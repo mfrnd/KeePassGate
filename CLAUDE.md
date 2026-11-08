@@ -8,66 +8,19 @@ Guidance for anyone, human or AI assistant, working in this repository.
 mutual TLS, so that automation and AI agents can each be given a narrow, revocable, audited slice of
 a database.
 
-**Status: all but step 34 of the build order are done, and the API is served.** The plugin loads
-into KeePass, the KPG tab creates, recreates and deletes the database's own certificate authority,
-the gate listens on loopback and answers over mutual TLS 1.3, a client is served only if
-the database holds an admission record for its certificate, and **a stranger can now become one**:
-the tab hands out an invitation, both sides prove they hold it, the operator approves what it may
-reach, and the record is written and saved before the certificate is handed over, and **a locked
-KeePass now answers `503 locked`** with a second host certificate held only in memory. **The routing
-table is now the OpenAPI document itself**: handlers bind to `operationId`, an undeclared path has
-nowhere to go, and a document that disagrees with the handlers stops the plugin loading. **What a
-grant means is now settled**: rules live in group and entry `CustomData`, nearest wins per profile,
-and every operation declares the verb it needs or the plugin does not load. **An operator can now
-write one**: the KPG tab on the group and entry dialogs edits the rules as a `CRUSDLAP` mask,
-writing into the copy the dialog puts back on OK. **And the two halves are combined**: the router
-intersects the admission record with the rules before any handler runs, and writes every decision
-the rules make, every certificate the database issued that an operation turns away, and
-every pairing and renewal the operator answers and every client revoked, to a JSON Lines
-file outside the database. **And there is an API**: twenty-four routes over groups,
-entries, fields and attachments, every one declaring the verb it needs and the node it is
-about, and the routes about the gate and the caller beside them, with `PyKeePassGate`
-covering all of them. **And a profile has a home**: the set of names a database
-knows lives beside the authority, with a page of its own to manage them, and a name taken off it
-grants nothing whatever rule still names it. **And the plugin has a window of its own**, under KeePass's Tools
-menu, saying where the gate is listening and taking the port it should listen on. **And there is
-documentation for whoever runs it**: `docs/`, written in the order an operator meets the plugin,
-around screenshots a fixture takes by driving a real KeePass. **And a certificate has a
-lifecycle**: the authority and its host certificate are issued together for a hundred years, a
-client's certificate lasts as long as the operator picks from what the client proposes, the records
-of expired certificates go with the plugin's next write of its own, a pairing, a renewal, a
-revocation or a change to the authority, and a client can give its own certificate
-up, or renew it on an approval dialog like the pairing one, which can refuse it once, in this
-session, until a date or forever, an answer the clients page shows in red and takes back on
-the operator's word. **And the client has options of its own**: a program built on it
-can keep its key under a password, make the connection it goes over, and test against the stand-in
-gate the client's own tests use. **And a client can ask about itself**: who the gate takes it for,
-with the key the operator knows it by, and what it may do at a group or an entry before it tries.
-**And field references are followed**: the reference client compiles them as KeePass does, on its
-own side and under the caller's own rules, held to KeePass's own compiler. **And there is a package
-a release can publish**: `build.ps1 -Task Package` zips the plugin with everything it loads, its
-license and the notices, beside a `SHA256SUMS`. **And the project has a front page**: the README
-says what this is for and shows it, around a moving picture of the whole journey from a database
-to a revoked client, which the Screenshots fixture takes with the stills, and a diagram of the
-pieces. **And the command line covers every route**: a command for each route the library
-serves, held to the routing table as the library is, and `-o json` on every one for a program.
-**And a write can be made against what was read**: a read of one group or one entry carries an
-`ETag`, a keyed digest of what the node holds, to a client whose rule reads all of it, and a
-request carrying `If-Match` is answered `412` when the node has changed since, decided under the
-writer's lock. **And `master` takes a merge only once the gate has passed**: a ruleset requires the
-check `gate passed`, which stands for every job the workflow runs. **And a `v` tag publishes a
-release**: the plugin's zip as a GitHub release and the client on PyPI, last, through Trusted
-Publishing, after a rehearsal against a draft and TestPyPI, as `RELEASING.md` describes. **And
-CodeQL reads what the gate does not**: the C#, the Python and the workflows, on every pull request,
-every push to `master` and once a week. **And the analysis is clean**: every finding is fixed, or
-suppressed where it is made with its reason, and a merge waits for `code scanning passed`, which
-fails on any finding left, and for every suppression the pull request touches to be resolved in
-review. **And a read holds KeePass still**: every read a connection makes holds KeePass's
-thread for its whole length, in a turn taken from the one queue every write takes its turn from as
-well, and only once KeePass has nothing else to do. **And the certificates are Bouncy Castle's**:
-it issues every one, signs with every stored key and judges every anchor, so no key the plugin holds
-is handed to Windows and nothing builds a chain. **Step 34, tags, is planned and not started**: what
-the build order plans for it is in `DESIGN.md` §132.
+**Status: released, and changed through pull requests into `master`.** The plugin makes each
+database its own certificate authority, kept in the database's own `CustomData`, and serves a gate
+on loopback over mutual TLS 1.3, on Windows only. A client is served only while the database holds
+an admission record for its certificate. A stranger becomes a client by pairing, on an invitation
+from the KPG tab and an approval dialog the operator answers, and a client's certificate is renewed
+on a dialog of the same kind, given up by the client or revoked by the operator. The OpenAPI
+document is the routing table, and every route declares the verb it needs: the router intersects
+the record's profiles with the rules kept on groups and entries, which the KPG tab of their dialogs
+edits as a `CRUSDLAP` mask, and writes every decision the rules make, and every pairing, renewal
+and revocation, to an audit file outside the database. A locked database answers `503 locked`.
+PyKeePassGate is the reference client, a library and a command line covering every route, and a
+`v` tag publishes the two, the plugin's zip as a GitHub release and the client on PyPI.
+[`docs/`](docs/README.md) is the operator's account of all of it.
 
 ## Read these before proposing anything
 
@@ -995,7 +948,7 @@ deleted. The ruleset asks for no approval, because a sole maintainer cannot appr
 request, and the repository's administrators may bypass it. It names `gate passed` rather than each
 gate, because the gates are what `build.ps1 -ListGates` answers, and a list written into a setting
 would go stale the first time a gate was added. This reverses "there is no branch protection", which
-held until the build order's pull requests had all been merged, since a required check on a stack
+held until the first stack of pull requests had all been merged, since a required check on a stack
 being merged would have held every one of them. **A release tag requires it too**: the tag ruleset
 `release gate` refuses a `v` tag on a commit without GitHub Actions' `gate passed`, before the tag
 exists and with nobody allowed past it, since `master` holding a commit is not the gate having
@@ -1145,35 +1098,21 @@ here can hang or crash the password manager.
 
 ## Where to start
 
-[`DESIGN.md`](DESIGN.md) §132 ends with a multi-step build order. **All but step 34 are done.** The
-skeleton loads and shows a KPG tab, that tab creates, recreates and deletes the authority, the gate
-serves the document's routes over mutual TLS to a client the authority issued and the database holds
-a record for, a stranger can pair, a locked database answers `503 locked`, a grant means something
-definite, an operator can write one from the group and entry dialogs, the router refuses anything
-the record and the rules do not both allow while recording every answer the rules give, twenty-four
-routes read and change the database, two launchers start the pinned KeePass with the plugin in it,
-a profile has a home of its own, the plugin has a window under the Tools menu, `docs/` says how
-to use the result, a client's certificate can be renewed and given up, a program built on the client
-can keep its key under a password, make its connection and test against a stand-in gate, a client
-can ask who the gate takes it for and what it may do at a node, the audit records every pairing and
-renewal the operator answers and every client revoked, the client follows field references as
-KeePass does, under the caller's own rules, `build.ps1 -Task Package` makes the zip a release
-would publish, the README tells somebody arriving what this is, around a picture of the
-whole journey that moves and a diagram of the pieces, the command line reaches every route
-and prints JSON for a program, a write can be made against what was read, refused with `412`
-when the node has changed since, a merge into `master` waits for the whole gate to pass, a
-tag publishes both halves, CodeQL analyzes every language it reads, a merge waits until every
-finding is fixed or suppressed with its reason, a read holds KeePass's thread still for as long
-as it reads, in a turn that gives way to the operator first, and every certificate is made, and
-every anchor judged, through Bouncy Castle.
-
 **Start with [`docs/`](docs/README.md) if the question is what this does**, and with the documents
-below if the question is why it does it that way. What is left is step 34, tags.
+listed under "Read these before proposing anything" if the question is why it does it that way. A
+change goes in as a pull request into `master`, one topic to each, as
+[`CONVENTIONS.md`](CONVENTIONS.md) sets out.
+
+## What each part settled
+
+Why each part is shaped as it is, by subject, for whoever is about to change that part.
+
+### Storage, and the dialogs that copy it
 
 **The storage decision survived the thing most likely to invalidate it.** The `GroupForm` snapshot
 hazard is real and now measured rather than remembered: `SnapshotHazardTests` reads the mechanism off
 the real KeePass and reproduces the behavior with KeePass's own types. What it established, and what
-step 8 built on: the settings dialog the KPG tab lives on carries **no** snapshot of custom data, so
+pairing built on: the settings dialog the KPG tab lives on carries **no** snapshot of custom data, so
 those buttons are safe from their own dialog, and anything written while a **group** dialog is open
 is destroyed by its OK.
 
@@ -1189,6 +1128,8 @@ put back no custom data either or hold nothing. The count gates nothing: it gate
 purge, a button on that very dialog, and went on being kept for the tests and the log when the
 purge went.
 
+### Profiles
+
 **The profile list is the database's own names.** `GrantSheet.Available` is what the profile
 picker offers, being `ProfileNames` less every profile already on the table, **explicit and
 inherited alike**, because a profile is one row however it got there and narrowing an inherited
@@ -1203,16 +1144,18 @@ removed name out of every rule, revisions included, and still lost to a stale co
 DESIGN.md §139. An unreadable list is an empty one, so every client stays admitted and reaches
 nothing.
 
-**What step 13 settled about the editor.** The tab is captioned `KPG` with the plugin's icon, and
-not "Access control", because another plugin may well put an access control page on the same dialogs
-and two pages with one name governing different clients is a trap. Neither column on the table is
-typed into: a mask spelled by hand is a rule nobody meant, and a profile spelled by hand is a rule
-for a name that may not exist, which grants nobody anything and reads exactly like one that works.
-Both are chosen from a list, and choosing a profile opens the rule picker straight after it, because
-a profile with no rule grants nothing and nobody opened the list to say that. `F2` and `Alt+Down` are
-the keyboard's way into either picker, and while one is open `Enter` and `Escape` belong to it, which
-is what `DialogKeys.Suspend` takes away from the dialog's own OK and Cancel: without that, choosing a
-verb presses OK on the group dialog and closes it with the rule half made.
+### The grant editor
+
+The tab is captioned `KPG` with the plugin's icon, and not "Access control", because another plugin
+may well put an access control page on the same dialogs and two pages with one name governing
+different clients is a trap. Neither column on the table is typed into: a mask spelled by hand is a
+rule nobody meant, and a profile spelled by hand is a rule for a name that may not exist, which
+grants nobody anything and reads exactly like a rule that works. Both are chosen from a list, and
+choosing a profile opens the rule picker straight after it, because a profile with no rule grants
+nothing and nobody opened the list to say that. `F2` and `Alt+Down` are the keyboard's way into
+either picker, and while a picker is open `Enter` and `Escape` belong to it, which is what
+`DialogKeys.Suspend` takes away from the dialog's own OK and Cancel: without that, choosing a verb
+presses OK on the group dialog and closes it with the rule half made.
 
 A rule is a `CRUSDLAP` mask in a monospaced column rather than a row of check boxes, so two rules
 differ in the place the eye is already looking. Inherited rules are shown among the local ones in
@@ -1228,24 +1171,27 @@ modification time, but the entry dialog compares the entry it hands back with th
 given, so a rule respelled by a byte is a changed entry, with a revision in its history and the
 database marked modified, for having been looked at.
 
-**What step 14 settled about authorization.** The intersection is structural: the profiles handed to
-the resolver are the ones the admission record carries, less any the database's list no longer
-names, so the rules can only ever answer about what the operator approved when the client was
-admitted, at pairing or at a renewal, and has not taken away since, and there is no place where the
-two halves could be compared wrongly. The **router** asks, before the body is checked and before any
-handler runs, because a handler could forget to. A node that may not be reached and one that is not
-there answer the same 404, and the audit is where the operator is told which it was. **Each client's
-lines are paced**, by `DecisionPace`: a thousand at once and ten a second after that, per client
-key, so a renewal keeps the allowance the client has spent, and a decision past that waits on the
-caller's own connection rather than being dropped or refused, because the file rolls by size and a
-client that could fill it quickly could push its own earlier lines out of it. `DESIGN.md` §120 has the argument.
+### Authorization
 
-**What step 12 settled about verbs.** A rule holds **six verbs and two switches**, which is
-`CRUSDLAP` and is the order they are declared, written and shown in. The verbs are create, read,
-update, strip, delete and list, and `list` sits below `read` because knowing an entry exists is not
-knowing what is in it. Removal is two verbs rather than one: `strip` is may remove the parts inside
-a node, `delete` is removals are allowed here, and removing a node asks for `delete` from the group
-it leaves and from itself.
+The intersection is structural: the profiles handed to the resolver are those the admission record
+carries, less any the database's list no longer names, so the rules can only ever answer about what
+the operator approved when the client was admitted, at pairing or at a renewal, and has not taken
+away since, and there is no place where the two halves could be compared wrongly. The **router**
+asks, before the body is checked and before any handler runs, because a handler could forget to. A
+node that may not be reached and a node that is not there answer the same 404, and the audit is
+where the operator is told which it was. **Each client's lines are paced**, by `DecisionPace`: a
+thousand at once and ten a second after that, per client key, so a renewal keeps the allowance the
+client has spent, and a decision past that waits on the caller's own connection rather than being
+dropped or refused, because the file rolls by size and a client that could fill it quickly could
+push its own earlier lines out of it. `DESIGN.md` §120 has the argument.
+
+### Verbs
+
+A rule holds **six verbs and two switches**, which is `CRUSDLAP` and is the order they are
+declared, written and shown in. The verbs are create, read, update, strip, delete and list, and
+`list` sits below `read` because knowing an entry exists is not knowing what is in it. Removal is
+two verbs rather than one: `strip` is may remove the parts inside a node, `delete` is removals are
+allowed here, and removing a node asks for `delete` from the group it leaves and from itself.
 
 **A switch is not a verb**, and getting that wrong is the mistake worth naming: `attachments` does
 not mean "may read attachments" and `protected` does not mean "may read passwords". Each means "and
@@ -1272,6 +1218,8 @@ refusing it as an absent node unless some profile is granted a verb there. One m
 because a switch belongs to its rule and a union across profiles would claim combinations the gate
 refuses.
 
+### The router
+
 **Four things about the router that are decisions rather than details.** A caller with no
 certificate is refused the same way everywhere, so an undeclared path and one it may not use answer
 alike and only an admitted client is told which it was. That is about the *refusal*, not about
@@ -1291,16 +1239,20 @@ certificate reaches the same routes on its own name, and it did buy the pairing 
 connection with no person in it. And `PairingHandler` is two operations now rather than one
 dispatcher: which path is which is the document's answer.
 
-What steps 8 and 9 leave it. `DatabaseWriter` is the single writer, and the only place a request
-writes to a database. `GroupDialogs` watches for the dialog that would take a write back, tracking
-specific `GroupForm` instances rather than counting windows, because the question is per node and a
-count cannot answer it, and because a count would also depend on what this plugin's own dialogs
-register with `GlobalWindowManager`. **It refuses while it is not watching**, which is a different answer from
+### The writer, the dialog watch and the lock
+
+`DatabaseWriter` is the single writer, and the only place a request writes to a database.
+`GroupDialogs` watches for the dialog that would take a write back, tracking specific `GroupForm`
+instances rather than counting windows, because the question is per node and a count cannot answer
+it, and because a count would also depend on what this plugin's own dialogs register with
+`GlobalWindowManager`. **It refuses while it is not watching**, which is a different answer from
 seeing nothing open and is the fail-closed direction on the one guard this design rests on.
 `LockWatch` drives both lock transitions against seams rather than KeePass, and
 `OpenDatabaseTargets` is where a database becomes a `LockedTarget` and back. `JsonBody` reads
-request bodies strictly and says in its own comments where it stops being enough, which is exactly
-where step 11 began.
+request bodies strictly, as one flat object of strings and arrays of strings, and what a route
+allows within that is `BodyCheck`'s to decide, against the schema the routing document declares.
+
+### Connection budgets
 
 **A pairing connection is measured against `GateOptions.PairingBudget` rather than `Budget`.** The
 ordinary budget is what stops a peer holding a thread by feeding it slowly, and phase 4 exceeds it
@@ -1329,18 +1281,23 @@ that pinned the floor is gone rather than rewritten, because what it asserted wa
 two constants that bounded nothing; `GateListenerTests.A_write_that_outlasts_the_budget_is_still_answered`
 replaced it, over a real socket. See DESIGN.md §119.
 
+### Admission records
+
 **Two things about records that cost time to learn.** They are read from the live database on every
 connection and never cached, so a record that lands takes effect with nothing having to be reloaded
 or told: the KPG tab's clients page lists every admitted client, names in red the ones whose
 renewals stand refused and lifts that answer from the row's menu, and takes one away, and from
-the next request onwards that client is refused. **Landing is what waits now**, see the tab's own
-entry below: the row goes at once, the revocation lands when the dialog is accepted, and the file changes
-when the database is saved. Until then the certificate still works. The press itself goes into the
-dialog's buffer and cannot fail there, so whether a revocation reached the database is said in the
-log when the dialog is accepted, not on the page. And a record written into the
+the next request onwards that client is refused. **Landing is what waits now**, as the settings
+tab's entry under "Things that are already decided" has it: the row goes at once, the revocation
+lands when the dialog is accepted, and the file changes when the database is saved. Until then the
+certificate still works. The press itself goes into the dialog's buffer and cannot fail there, so
+whether a revocation reached the database is written in the log when the dialog is accepted, not
+on the page. And a record written into the
 `.kdbx` file underneath a running KeePass is invisible to it and will be overwritten by its next
 save: KeePass serves the database it holds in memory, which is why pairing writes through the plugin
 rather than through the file.
+
+### The transport
 
 **One thing to know before touching the transport.** An `EphemeralKeySet` certificate signs happily
 and SChannel will not do TLS with it in either direction. That is why `Org.BouncyCastle.Tls`
@@ -1353,6 +1310,8 @@ serve, and write the host key to somebody's profile at every connection, with no
 no key of the plugin's own is handed to Windows at all is a later decision with another reason: the
 issuer moved to Bouncy Castle because Mono has no ECDSA and no `CertificateRequest` a .NET Framework
 build can reach, `CA.md` §203 and its row in §221.
+
+### Dependencies
 
 **A dependency ships beside the plugin, and so does everything it drags in.** `build.ps1 -Task
 Deploy` copies every DLL from the build output into `plugins\KeePassGate`, because KeePass loads
