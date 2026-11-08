@@ -265,11 +265,13 @@ namespace KeePassGate.Tests
         [Test]
         public void The_switch_is_not_something_to_ask_about()
         {
-            // It says how far a rule reaches, so "may this profile attachments" is not a question.
+            // A switch names how far a rule reaches, so "may this profile attachments" is not a
+            // question, and neither is the same of protected values.
             var entry = TestNode.Root("root")
-                .Granting("reader", AclVerb.Read, AclVerb.Attachments).Child("an entry");
+                .Granting("reader", AclVerb.Read, AclVerb.Attachments, AclVerb.Protected).Child("an entry");
 
             Assert.That(AclResolver.Permits(entry, Reader, AclVerb.Attachments), Is.False);
+            Assert.That(AclResolver.Permits(entry, Reader, AclVerb.Protected), Is.False);
         }
 
         [Test]
