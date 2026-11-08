@@ -1,8 +1,8 @@
 # Findings
 
-What was established by building things, kept after the proofs themselves were deleted. Everything
-here was measured or executed rather than reasoned about, and each entry says how, so that a doubtful
-reader can redo it rather than trust it.
+What was established by building things, kept after the proofs themselves left the mainline for
+branches of their own. Everything here was measured or executed rather than reasoned about, and each
+entry states how, so that a doubtful reader can redo it rather than trust it.
 
 [`ANALYSIS.md`](ANALYSIS.md) is the argument. This is the evidence. [`DESIGN.md`](DESIGN.md) is what
 was built from it.
@@ -26,8 +26,8 @@ was built from it.
 | Fact | How it was established |
 | --- | --- |
 | **mTLS works in process, and TLS 1.3 negotiates** on .NET Framework 4.8 | `SslStream` over `TcpListener`, server saw `CN=agent-fictitious` |
-| **TLS 1.3 is Windows 11 and Server 2022 only.** Every Windows 10 build is unsupported | Microsoft's Schannel protocol table |
-| Requiring it therefore excludes only Windows versions that are themselves out of support | Windows 10 ended support in October 2025 |
+| **TLS 1.3 is Windows 11 and Server 2022 only**, in SChannel. Every Windows 10 build is unsupported | Microsoft's Schannel protocol table |
+| Requiring it therefore excluded only Windows versions that are themselves out of support, while SChannel terminated the TLS. Bouncy Castle offers TLS 1.3 whatever the Windows build, so that limit now binds only a client built on SChannel | Windows 10 ended support in October 2025; `DESIGN.md` §133 has why the server's TLS is not the platform's |
 | **`HttpListener` cannot serve HTTPS** without an administrator certificate binding: `Start()` succeeds and the first request dies | ran it unelevated |
 | Plain HTTP on loopback **does** work unelevated; only the wildcard prefix is refused | `http://localhost:port/` and `http://127.0.0.1:port/` both round-tripped |
 | **`HttpListener` exposes no TLS control at all**, no `SslProtocols`, no certificate. Version selection is machine-wide Schannel policy | enumerated its members |
@@ -78,9 +78,14 @@ certificate.
   request parser are all ours now, and no HTTP dependency is taken.
 
 The tooling exists on .NET Framework, which was not obvious: **`Microsoft.OpenApi` 1.6** and its
-readers target netstandard2.0. That was measured on 1.6.22, and the plugin takes 1.6.30: NuGet marks
-1.6.22 deprecated for a denial of service in its YAML reading that 1.6.30 fixes, and 1.6.30 brings
-the same three assemblies.
+readers target netstandard2.0. That was measured on 1.6.22, which NuGet marks deprecated for a
+denial of service in its YAML reading. The plugin takes 1.6.31, over `SharpYaml` 2.1.5, which
+brings the same three assemblies, and it is that pair which bounds what an alias expands to.
+Measured for review 4, with a nest of aliases under an `x-` extension: 1.6.30 over `SharpYaml`
+2.1.1 read it with no error, at a cost growing ninefold with each level, and an alias naming
+itself ended the process with a stack overflow, where 1.6.31 refuses the first past 5,000 nodes and
+names the second a cycle. The plugin reads only the document it embeds, so neither was ever
+within a caller's reach.
 
 **Nothing in .NET does this off the shelf.** Swashbuckle and NSwag are code-first or build-time
 generators; runtime spec-driven routing has no mainstream .NET equivalent, so it is custom work on
@@ -92,8 +97,8 @@ Recorded because a reader who only sees conclusions will re-make the same mistak
 
 | Claimed | Actually |
 | --- | --- |
-| TLS 1.3 was a caveat to design around | It is a choice. Requiring it excludes only unsupported Windows, and it is what makes certificate contents safe |
-| Certificates should not name databases | With TLS 1.3 required the confidentiality objection falls. What remains is that **KeePass has no database UUID**: `PwDatabase` has only `DataCipherUuid` and `RecycleBinUuid`, so the identifier would have to be the root group's |
+| TLS 1.3 was a caveat to design around | It is a choice. Requiring it excluded only unsupported Windows while SChannel served it, and no longer turns on the Windows build now that Bouncy Castle does, and it is what makes certificate contents safe |
+| Certificates should not name databases | With TLS 1.3 required the confidentiality objection falls. What remains is that **KeePass has no database UUID**: of `PwDatabase`'s `PwUuid` members, `DataCipherUuid` names a cipher and `RecycleBinUuid`, `EntryTemplatesGroup`, `LastSelectedGroup` and `LastTopVisibleGroup` name groups, so the identifier would have to be the root group's |
 | ...and then they should not, after all | The question dissolved rather than being answered. Once each database carries **its own authority**, a certificate is bound to one database by whoever signed it, so naming it again in the claim is a second place to get it wrong. Claims became `kpg://profile/<name>` and the `kpg://any` wildcard went with them, which is what closed the escalation it had introduced |
 | websocket-sharp was the right dependency | It was, while it terminated TLS for us. Selecting a host certificate by SNI made that impossible, and a library parsing only a header block does not earn a submodule. `uHttpSharp` fits the new seam natively with zero changes and is ruled out on **license**, LGPL-2.1, not on fit. See `DESIGN.md` §107 |
 | Vendored code should be subset hard, deleting what is unwanted | Deleting is a dangerous edit in the most dangerous place, and it makes upstream fixes hard to port. Minimum divergence, refuse from outside |
@@ -213,14 +218,14 @@ something plausible rather than by failing.
 | **A control with an `AccessibleName` reports that name to UI automation instead of its text.** A label set up for one kind of test then reads as `KpgApprovalDetailLabel` to the other | the end to end test found the approval dialog, read every text on it, and got the control names back. Set `Name` for the in-process tests, and leave `AccessibleName` off anything whose text is read from the desktop |
 | **`Button.PerformClick()` does nothing on a form that was never shown.** `CanSelect` walks the parents, and an unshown form is not visible, so the click is dropped in silence and the test asserts against a dialog nobody pressed | the dialog answered `TimedOut` after being "clicked". What the button does is public on the form now, exactly as the tab's buttons are, so a test can reach the decision without a window |
 | **`MainForm.SaveDatabase(PwDatabase, object)` is public and saves the database it is given.** `UIFileSave` saves whichever document is active, which is not necessarily the one a connection resolved to | enumerated `MainForm`, then disassembled it: it takes the active database only when handed null, and falls through to Save As when the database has no path |
-| **KeePass's save reports nothing, and `PwDatabase.Modified` going false is the signal.** It is what the pairing write reads back | measured against a real KDBX4 in the host tier, and asserted there, so a KeePass that stops clearing it fails a test rather than a pairing |
+| **KeePass's save reports nothing, and `PwDatabase.Modified` going false is half the signal.** Every write reads it back, and since KeePass clears it from what it did in memory, every write also hashes the file against `PwDatabase.HashOfLastIO` and answers `500 not verified` when the two disagree | measured against a real KDBX4 in the host tier, and asserted there, so a KeePass that stops clearing it fails a test rather than a pairing |
 | **A `GroupForm` can be given its group without being shown**, with `InitEx(group, false, null, database)`, which is what sets the field the watcher reads | the group dialog watcher is tested against the real dialog and the real window notifications |
 | **A modal dialog shown from inside a marshaled call still pumps messages**, so UI automation can press its buttons while the connection thread that raised it waits on the answer | the end to end test approves and refuses real pairing requests this way |
-| `Control.BeginInvoke` plus a wait on the returned handle is a synchronous marshal with a bound on it, and `EndInvoke` brings anything the work threw back to the waiting thread | the pairing write and the approval dialog both use it; the case that cannot be arranged with a real user interface is covered by a stand-in that never runs the work |
+| `Control.BeginInvoke` plus a wait on the returned handle is a synchronous marshal, and its bound is on the wait for the work to start and nothing after it: work that has started is waited out, or a caller would let go of a lock while its own write was still running. What the work throws does not wait for `EndInvoke`, as the row below has it, so the work catches its own and the waiting thread throws it again | every write and the approval dialog are waited for with that bound, through a turn of their own on KeePass's thread since section 21; the case that cannot be arranged with a real user interface is covered by a stand-in that never runs the work |
 | **`BeginInvoke` cannot be taken back, so a timeout on it means "not yet" unless something else is added.** The work stays in the queue and runs whenever the user interface next drains it, which for pairing is a record saved after the client was refused, or an approval dialog for a client that was turned away minutes ago | `UiThreadTests` posts work onto a real form that is not pumping, lets the caller give up, and only then pumps. Without the latch that refuses to start work already called off, the count goes up after the caller was told it never ran |
 | **In a custom format string a bare `-` and `:` are the current culture's date and time separators**, not literals, so `"yyyy-MM-dd HH:mm:ss"` writes `2026.08.26 11.04.07` on a machine set to a culture that uses dots. It is correct only for as long as every caller remembers `InvariantCulture` | one of four copies of two timestamp formats had them unquoted. `Moments` is now the only place either format is written down, and both quote their separators |
-| **An exception thrown by work posted with `BeginInvoke` and left unobserved reaches `Application.ThreadException`**, whose default handler is a modal dialog. In a test host that pumps messages, that is a hang rather than a failure | a test that asserted `EndInvoke` rethrows never finished; it was deleted, because it was pinning behavior that predates the fix it was written beside |
-| **The desktop tests find a box by its `AccessibleName`, so that string has two jobs and only one right value.** The rule above says to leave `AccessibleName` off anything the desktop reads, and a `TextBox` is the case it does not cover: it has no caption, so with nothing set there is no name to search by at all. What goes there has to be the phrase a screen reader should say, and the driver has to look the box up by that | setting it to the lookup name instead announced `KpgInvitationBox` to a screen reader; setting it to the words broke `LivePairingTests` until the driver was pointed at the same constant. `Name` stays the lookup key for the in-process tests, which match on it and not on the accessible name |
+| **An exception thrown by work posted with `BeginInvoke` reaches `Application.ThreadException` whether or not anything calls `EndInvoke`**, whose default handler is a modal dialog. In a test host that pumps messages, that is a hang rather than a failure | a test that asserted `EndInvoke` rethrows never finished; it was deleted, because it was pinning behavior that predates the fix it was written beside. A form on one thread and a throwing `BeginInvoke` from another then showed a registered handler raised on the form's thread before `EndInvoke` was ever called |
+| **A `TextBox` has no caption, so its `AccessibleName` is all a screen reader has to say for it.** The rule above leaves `AccessibleName` off anything the desktop reads, and a box is the case it does not cover: what goes there has to be the phrase a screen reader should say. While the desktop tests found a box by that name, the string had two jobs and only one right value; they find it by its `AutomationId` now, which comes from `Name`, so the accessible name has the one job, `CONVENTIONS.md` | setting it to the lookup name instead announced `KpgInvitationBox` to a screen reader; setting it to the words broke `LivePairingTests` until the driver was pointed at the same constant. Keying the lookup on the name was then what made the two collide, and the driver asks for the identifier instead, as the in-process tests always matched on `Name` |
 
 ## 12. Grants in a real tree
 
@@ -259,7 +264,7 @@ than confirming it.
 | Fact | How it was established |
 | --- | --- |
 | **The intersection is not a step.** Handing the resolver the profiles the admission record carries makes `record INTERSECT acl` structural: there is nowhere the two are compared, and so nowhere they can be compared wrongly | tried to write the comparison and found there was nothing to write. The tests that remain assert the two failure directions instead: a rule about a profile no record carries, and a record naming profiles no rule mentions |
-| **The plugin's own JSON reader refuses a boolean**, so an audit line saying `"permitted":true` could not be read back by the thing that wrote it | asserted it, and changed the format: every value is a string and the member is `"decision":"permitted"`, which the design named that way anyway |
+| **The plugin's own JSON reader refuses a boolean**, so an audit line saying `"permitted":true` could not be read back by the thing that wrote it | asserted it, and changed the format: the decision is a word, `"decision":"permitted"`, which the design named that way anyway. The format later took a bare `null` for a member that does not apply and an array for the profiles a refusal names as removed, and the reader refuses the null, deliberately: nothing in the plugin parses a line back, `AuditEntry` has why |
 | A refusal and a node that is not there have to answer the same thing, or a client that may reach nothing can map the database one identifier at a time | which is what `list` exists to be able to withhold, so the router answers 404 to both and the audit records which it was |
 
 ## 15. Reading and writing JSON
@@ -272,7 +277,7 @@ Json.NET that anybody reading `JsonBody` has to know.
 | --- | --- |
 | **One assembly against nine decides the reader.** `Newtonsoft.Json` arrives alone; `System.Text.Json` brings eight more on this framework, one of them `System.Runtime.CompilerServices.Unsafe`, which wants a binding redirect a plugin cannot supply because the only `app.config` in play is KeePass's | built a throwaway `net48` library against each and counted the output directory |
 | **No schema library is taken**, at fourteen assemblies, twenty, or a license an MIT plugin cannot hold. What checks a body instead is a checker over the subset this wire carries, with a startup refusal of any schema it does not implement, so a subset cannot become a gap | the same counts, and `LICENSE.md` read out of the package |
-| **Json.NET accepts a trailing comma, a comment, a string or a name in single quotes, a name in no quotes, `\'` inside a string, and a raw control character in a string.** None carries a member and none changes what the object says, so all of them are accepted rather than fought: refusing them is exactly what owning a grammar would have cost | ran the body fixture against it. The control character matters in the other direction, because an entry's notes hold paragraphs, so a line break has to survive and what keeps one out of a log is escaping on the way out |
+| **Json.NET accepts a trailing comma, a comment, a string or a name in single quotes, a name in no quotes, `\'` inside a string, and a raw control character in a string.** None carries a member and none changes what the object holds, so all but the last are accepted rather than fought: refusing them is exactly what owning a grammar would have cost. The control character is refused, by `JsonBody` rather than by the grammar, whether it arrives raw or escaped, unless it is a tab, a line feed or a carriage return, because a `.kdbx` drops the rest, section 18 | ran the body fixture against it. The control character matters in the other direction too, because an entry's notes hold paragraphs, so a line break has to survive and what keeps one out of a log is escaping on the way out |
 | **Json.NET reports a NUL after the object as the end of its input**, so the check that refuses anything after the closing brace, which asks the reader for one more token, passed a body ending in one, though text after the NUL was refused. So a body holding a NUL is refused before the parser sees it | read the object and one more token from the built plugin, with a NUL alone, a NUL and text, and a NUL and a second object after it |
 | **Json.NET turns any date shaped string into a `DateTime` unless told not to**, so a value would come back reformatted rather than as it was sent | `DateParseHandling.None`, pinned by a test, because this is the sort of default discovered by a client reporting a timestamp it never sent |
 
@@ -290,7 +295,9 @@ it.
 
 ## 17. Reconstruction
 
-The proofs were deleted once they had answered their questions. To rebuild any of them:
+The proofs left the mainline once they had answered their questions, and are kept on branches of
+their own: the transport, vendoring and spec-first proofs on `spikes/http-lib-measurements`, and
+the TLS and X.509 probes on `spikes/tls-and-certificates`. To rebuild any of them without either:
 
 1. **Transport.** `TcpListener` on loopback, `SslStream`, `AuthenticateAsServer(cert, true,
    SslProtocols.Tls13, false)`. Issue a CA, a server certificate and a client certificate with
@@ -316,8 +323,11 @@ represent and reports nothing: the 29 control characters other than tab, carriag
 feed, the 2,048 surrogates when they arrive without a pair, and `U+FFFE` and `U+FFFF`. A surrogate
 pair survives, including the pairs whose halves look like those last two, so `U+1FFFE` is stored as
 it was sent. Measured by calling that method on KeePass 2.61.1 once per code point and comparing
-what came back, which is also what `JsonBody.IsUsable` is now written against: the two agree on all
-65,536.
+what came back, which is also what `JsonBody.IsUsable` is now written against: the two agree on
+every one of the 65,536 inside a string. Alone, four differ, since `IsUsable` also refuses a string
+that is whitespace alone, which `SafeXmlString` keeps, so a lone tab, line feed, carriage return or
+space is refused for the reader's reason rather than KeePass's. That agreement was measured once,
+and no test compares the two.
 
 **A lone surrogate reaches a body reader only as `U+FFFD`.** Json.NET substitutes the replacement
 character for an escaped half while it is reading, so `{"a":"one\uD800two"}` comes out of
@@ -362,16 +372,17 @@ passed there, **47 tests, none skipped**, the same count as locally on the day i
 pinned KeePass is fetched, hash checked and signature checked on the way. That count is a reading of
 the runner rather than a standing claim about the tier: the suite grows, so what it does there at any
 later commit is what that commit's run says and nothing here. The screen is 1024x768 with one
-monitor, which is enough for the one place the tier moves a real pointer. `spikes/hosted-runner-desktop` holds
-the probe and the numbers.
+monitor, which is enough for the places the tier moves a real pointer.
+`spikes/hosted-runner-desktop` holds the probe and the numbers.
 
 **Containers were never the alternative.** Linux is the wrong operating system for UI Automation,
 `keybd_event` and WinForms on .NET Framework; Windows containers have no interactive desktop; and
 GitHub does not support container jobs on Windows runners at all.
 
-**Required status checks are available and not configured.** The workflow reports and does not
-block, which is a property of the repository's settings rather than of the gate. Requiring the
-gate before a merge is one setting and costs nothing.
+**Required status checks were available and not configured** when this was measured, so the
+workflow reported and blocked nothing, which was a property of the repository's settings rather
+than of the gate. It is configured now: a ruleset on `master` requires `gate passed` before a
+merge, and another requires it of a release tag, as `CLAUDE.md` has under "There is CI".
 
 ## 20. What a version of a node can be made of
 
