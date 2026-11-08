@@ -304,7 +304,9 @@ class Unresolved(GateError):
     """A value `pykeepassgate.refs` will not give as KeePass would give it, and says why.
 
     The resolver follows what it can follow exactly and refuses the rest rather than hand back
-    text KeePass would have changed: a reference that searches by anything but a whole
+    text KeePass would have changed, but for `%NAME%` and a placeholder another plugin adds, which
+    it leaves as text since what they come to is the machine's and that plugin's rather than the
+    database's. What it refuses: a reference that searches by anything but a whole
     identifier, which KeePass answers from the whole database and the gate from what this client
     may see; a reference to an entry this client cannot read, absent, in the recycle bin and
     refused being one answer; a placeholder KeePass replaces and the resolver does not;

@@ -378,7 +378,8 @@ def _parser() -> argparse.ArgumentParser:
         help=(
             "follow field references and placeholders as KeePass would, reading each entry a "
             "reference names under this client's rules, and fail rather than print a value that "
-            "cannot be given as KeePass would give it. Without it, values print as stored."
+            "cannot be given as KeePass would give it, but for %%NAME%% and a placeholder another "
+            "plugin adds, which print as stored. Without it, values print as stored."
         ),
     )
     _shared(show)

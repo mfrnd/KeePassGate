@@ -4,7 +4,9 @@ The gate serves a value as the entry stores it and never compiles it (`openapi.y
 resolves a reference against the whole open database, which knows nothing about the rules. This
 compiles one on this side instead, and every entry it reads to do so is a request of its own, which
 the rules decide and the audit records like any other. So `resolve` gives what KeePass would give
-for a value, or raises: it never hands back text KeePass would have changed.
+for a value, or raises: it never hands back text KeePass would have changed, but for two kinds of
+text it leaves as they are, `%NAME%` and a placeholder another plugin adds, which KeePass replaces
+out of the machine it runs on and out of that plugin. The paragraph on what it leaves names both.
 
 **What it follows.** A reference by identifier, `{REF:<T|U|P|A|N|I>@I:<uuid>}`, and the
 placeholders for the entry's own strings, `{TITLE}`, `{USERNAME}`, `{PASSWORD}`, `{URL}`, `{NOTES}`
