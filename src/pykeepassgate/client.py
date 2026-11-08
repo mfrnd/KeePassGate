@@ -100,8 +100,11 @@ class Renewal:
 
     `unrevoked` and `retired` are both `None` when everything went: the old certificate is
     revoked and what was stored for it is gone. Otherwise `retired` is where the old identity is
-    still kept, because revoking a certificate takes presenting it, and `unrevoked` says why the
-    gate did not take it back, when that is the reason it is kept.
+    still kept, because revoking a certificate takes presenting it, and `unrevoked` is the refusal
+    giving it up met: a `RouteRefused` whose `error` is `not verified` is a certificate the gate
+    already refuses, whose file the operator settles, and any other refusal leaves it admitted.
+    Beside a `retired`, `unrevoked` is `None` when the gate took the certificate back and only
+    removing what was stored for it failed.
     """
 
     credentials: credentials_module.Credentials
