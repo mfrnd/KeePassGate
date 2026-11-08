@@ -181,6 +181,16 @@ to that program. And with a URL override switched on, under **Tools**, **Options
 the override names them. KeePass asks first only before it runs a command line, and that question
 can be switched off. So don't open a URL a program may have written.
 
+**A link in an entry's notes is opened the same way, and by a single click.** The entry view, the
+pane under the entry list, makes a link of a web address in the notes, the title, the user name or
+a field of the entry's own, percent signs and all, and clicking it hands it to the browser as
+opening the URL does: `%NAME%` becomes the value of the environment variable of that name first,
+and nothing asks. A brace ends such a link, so a reference does not travel this way. So a program
+that may write an entry can put an address of its choosing there with a variable's name in it, and
+the operator's click sends the variable's value to that address. A percent sign is as ordinary in a
+note as a brace is, so the gate stores it as written, and a link in an entry a program may have
+written is to be left alone as its URL is.
+
 **Global auto-type chooses an entry by its title.** When you press KeePass's global auto-type
 hot key, an entry matches if its title is contained in the title of the window in front, and when
 only one entry matches, KeePass types its user name and password into that window without asking.
