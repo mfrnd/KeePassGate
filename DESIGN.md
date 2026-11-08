@@ -152,7 +152,7 @@ availability: §110 sets out what that leaves open, and why it is conceded.
 | Step | Ours | Measured in |
 | --- | --- | --- |
 | Accept | `TcpListener` | |
-| Peek the ClientHello, extract `server_name` | ~90 lines, bounds checked, total | `SniProbe` |
+| Peek the ClientHello, extract `server_name` | about 320 lines, bounds checked, total | `SniProbe`, and `ClientHelloTests` for the one that ships |
 | Resolve the name to an open database | fixed time, no match drops pre-TLS | `HmacSniProbe` |
 | Terminate TLS 1.3 through a prepending stream | `Org.BouncyCastle.Tls`, replaying the buffered hello | `ManagedTlsProbe` |
 | Parse the request line and headers | see below | |
@@ -363,9 +363,13 @@ this is what the rest of the design depends on.
 
 That last point is the one that carries the design, and it exists because of a measured failure
 rather than a preference. `GroupForm` snapshots a group's `CustomData` when it opens and writes the
-snapshot back on OK, so a record written while that dialog is open is silently destroyed. Making the
-record load bearing turns that from an invisible, irrevocable certificate into a client that must
-pair again. [`PAIRING.md`](PAIRING.md) has the full sequence.
+snapshot back on OK, so a record written to the root group while that dialog was open was silently
+destroyed. The records left the root group for the database's own `CustomData`, CA.md §204, where no
+group dialog reaches them, and what can still lose one is a copy of that dictionary put back:
+Database Maintenance's, which the writer refuses to write under, a stale copy merged in, or a save
+the operator declined. Making the record load bearing turns each of those from an invisible,
+irrevocable certificate into a client that must pair again. [`PAIRING.md`](PAIRING.md) has the full
+sequence.
 
 ### The gate §112
 
@@ -1417,16 +1421,18 @@ an `internal static`. But the candidate that genuinely fits the new seam is **uH
 needs no changes at all, and it is ruled out on **license** rather than on fit: LGPL-2.1 against a
 project that chose MIT so a compiled release carries no copyleft obligation.
 
-What is carried instead is roughly 250 lines of our own bounded parsing, in two pieces: a ClientHello
-reader and an HTTP request-head reader. The first is the one that matters, because it faces
-unauthenticated bytes, and it is measured in `SniProbe.cs` on `spikes/tls-and-certificates`.
+What is carried instead is about a thousand lines of our own bounded parsing, comments aside, in two
+pieces: a ClientHello reader, about 320 of them, and an HTTP request reader, the rest, which takes
+the head, the body and the path's escapes. The first is the one that matters, because it faces
+unauthenticated bytes. `SniProbe.cs` on `spikes/tls-and-certificates` measured that a peek of its
+own in front of a TLS stack works, and `ClientHelloTests` holds the one that ships.
 
 ### C3. Reading the database off the UI thread is a data race §124
 
 **This objection was originally the reverse**, and investigating it changed the design rather than
 mitigating it. The first draft marshaled every read onto the UI thread and then had to answer for
 the bottleneck and the deadlock that created. Neither cost turned out to be necessary: reads answer
-from a background thread, and only the save has to marshal.
+from a background thread, and only a write has to marshal, the change together with its save.
 
 What remained was the real objection, and it looked smaller. KeePass documents no thread safety
 for `PwDatabase`, so a request reading an entry while the user edits that entry in KeePass's own
@@ -1493,10 +1499,11 @@ lacks any of them starts no watch, and every write and every pairing is refused.
 **The objection was right, and the answer is now structural rather than defensive.** Its point was
 that an authority's key concentrates value: stealing it mints identities rather than borrowing one.
 
-An earlier draft answered with layers, a passphrase over PBKDF2 over AES-CBC over DPAPI, and claimed
-two independent factors. That is deleted. It was cryptography written here to protect a key that was
-sitting beside an encrypted database anyway, and its backup story was broken: a DPAPI-wrapped blob
-cannot be restored on another machine, so the recommended backup restored nowhere.
+An earlier draft answered with layers, a passphrase through Argon2 over AES-CBC, with a MAC over the
+result, inside DPAPI, and claimed two independent factors. That is deleted. It was cryptography
+written here to protect a key that was sitting beside an encrypted database anyway, and its backup
+story was broken: a DPAPI-wrapped blob cannot be restored on another machine, so the recommended
+backup restored nowhere.
 
 The key now lives **inside the database**, under the database's own encryption. Three consequences:
 
@@ -1550,8 +1557,9 @@ we add is the ClientHello peek in front of it, and that is unavoidable: no libra
 .NET Framework can select a certificate by SNI, because the platform exposes no hook for it.
 
 The genuine new risk is the peek itself, which parses unauthenticated bytes. It is bounded, total,
-and returns no name rather than throwing; `SniProbe.cs` is the evidence it works and
-`HmacSniProbe.cs` that a forged name is dropped before any TLS work.
+and returns no name rather than throwing; `SniProbe.cs` is the evidence that a peek works in front
+of a TLS stack, `ClientHelloTests` holds the one that ships, and `HmacSniProbe.cs` is the evidence
+that a forged name is dropped before any TLS work.
 
 ### C6. "Spec-first routing is slower than a switch statement" §128
 
@@ -1566,8 +1574,8 @@ It is not, though the shape of the answer changed. The certificate no longer nam
 the issuing authority does that. What remains is an **admission record**, and it is not redundant
 with the ACL: the record says whether this client exists at all and which profiles it was granted,
 the ACL says what those profiles reach. Two independent answers that fail independently, and the
-record additionally fails **closed** when it goes missing, which is what makes the `GroupForm`
-snapshot hazard survivable.
+record additionally fails **closed** when it goes missing, which is what makes a stale copy of the
+database's custom data survivable, whether a dialog, a merge or a declined save put it back.
 
 ### C8. "A removal is a removal, so the rules have decided everything" §138
 
@@ -1616,21 +1624,24 @@ the same answer it copied.
 Written down so that it is possible to be wrong about this on purpose rather than by drift.
 
 - **If the ACL model does not survive contact with real grants.** The plan assumes a document per
-  group resolves cleanly against a real database. If it needs reshaping once it meets one, the cost
+  node resolves cleanly against a real database. If it needs reshaping once it meets one, the cost
   estimate is wrong and the design should be revisited before more is built on it.
 - **If the synchronous marshal on the pairing path proves unusable**, the issuance ordering needs
   replacing rather than adjusting. The wait is there because handing over a certificate before its
   record is saved would create a credential nobody can revoke. It is not the only place a request
   thread waits on the UI thread, which this bullet once said: every write waits there the same way,
-  for a turn and with a bounded wait (§119), and so does every read now. If that wait cannot be made reliable, the
-  alternative is to issue only from the UI thread outright and let the request poll.
+  for a turn and with a bounded wait (§119), and so does every read now. If that wait cannot be made
+  reliable, the alternative is to issue only from the UI thread outright and let the request poll.
 - **If our own request parser accumulates cases.** It is justified only while the HTTP subset stays
   trivial. If chunked bodies, keep-alive or upgrade become necessary, writing it here stops being the
-  cheaper trade and `HttpRequest.ReadRequest` is the seam to return to.
-- **If the `GroupForm` snapshot hazard proves unavoidable in practice**, rather than merely
-  survivable. The design absorbs it by making a lost admission record fail closed, and step 5 of the
-  build order exercises it deliberately. If records turn out to be lost often enough to be a support
-  burden, `CustomData` is the wrong store and that decision has to reopen.
+  cheaper trade, and uHttpSharp is the candidate to reopen, with its license the question to answer
+  first, §107.
+- **If a stale copy of the database's custom data proves unavoidable in practice**, rather than
+  merely survivable. The design absorbs it by making a lost admission record fail closed, and step 5
+  of the build order exercises it deliberately. If records turn out to be lost often enough to be a
+  support burden, to Database Maintenance, a merge or a declined save, `CustomData` is the wrong
+  store and that decision has to reopen. The group dialog's own copy is a hazard to grants, which
+  live on the node, and the editor answers it by writing into that copy.
 
 ## Build order §132
 
