@@ -1020,12 +1020,16 @@ paths:
       operationId: getGroupAccess
       summary: What this client may do at this group, profile by profile.
       description: |
-        Every verb and switch each profile this client holds is granted here, as the rules answer
-        each operation's own question, in the notation the KPG tab shows a rule in. One mask per
-        profile, because a switch reaches only the verbs of its own rule. Answered `404` unless
-        some profile is granted some verb here, as a group that is not there is. Like every
-        question the rules answer about a node, each request is written to the audit:
-        `permitted` when some profile is granted some verb, and `refused` otherwise.
+        What each profile this client holds is granted here, in the notation the KPG tab shows a
+        rule in, put through the walk an operation's own question takes and asked of the group
+        alone, as the tab shows a rule there. A mask is therefore what the rules grant at the group
+        rather than a promise that every operation it names succeeds: removing the group asks the
+        group above it as well, from the same profile, and `S` is reported though no operation
+        strips a group, as `Access` explains. One mask per profile, because a switch reaches only
+        the verbs of its own rule. Answered `404` unless some profile is granted some verb here, as
+        a group that is not there is. Like every question the rules answer about a node, each
+        request is written to the audit: `permitted` when some profile is granted some verb, and
+        `refused` otherwise.
       x-kpg-verb: any
       parameters:
         - $ref: "#/components/parameters/GroupUuid"

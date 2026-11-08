@@ -11,6 +11,10 @@ none, since it releases both.
 
 ## 0.2.0, unreleased
 
+- **The routing document's access routes describe a mask as what the rules grant at the node**,
+  asked of the node alone, as the design documents and the `Access` schema already did. They
+  described it as each operation's own answer, which a removal, asking the group above as well, is
+  not.
 - **The routing document no longer claims every audit line names both of a client's keys.** A
   refused certificate's line names its `admissionKey` alone and a pairing's line its `clientKey`
   alone, as `docs/audit.md` already stated, so a program revoked and still trying finds those
