@@ -422,6 +422,31 @@ namespace KeePassGate.Tests
             }
         }
 
+        [TestCase("D", "DA", "The same as")]
+        [TestCase("SP", "S", "The same as")]
+        [TestCase("A", "", "The same as")]
+        [TestCase("RA", "R", "Widens")]
+        [TestCase("R", "RP", "Narrows")]
+        public void Narrowing_and_widening_are_judged_as_the_gate_grants_rather_than_as_letters(
+            string here, string above, string word)
+        {
+            // A switch widens the verbs beside it that read, and is asked for no strip or delete:
+            // compared as sets, a switch on a rule that holds no reading verb read as a change.
+            var node = TestNode.Root("root").Granting("reader", Verbs(above));
+
+            using (var panel = Panel(new FakeGrantStore(Rules.Granting(("reader", here))), node))
+            {
+                var grid = ControlTree.FindByName<DataGridView>(panel, GrantTab.GridControlName);
+
+                Assert.That(Row(grid, "reader").Cells[1].ToolTipText, Does.StartWith(word));
+            }
+        }
+
+        private static AclVerb[] Verbs(string letters)
+        {
+            return letters.Select(letter => AclVerbs.Grantable[VerbKeys.PositionOf(letter)]).ToArray();
+        }
+
         private static DataGridViewRow Row(DataGridView grid, string profile)
         {
             foreach (DataGridViewRow row in grid.Rows)

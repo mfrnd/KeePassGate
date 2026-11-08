@@ -677,11 +677,17 @@ namespace KeePassGate.Ui
         /// in full, and one that grants more than that rule is in force in full: said to narrow it,
         /// the tooltip told an operator widening an entry that the group's rule still bounded it,
         /// which is the direction a sentence about permissions must never be wrong in.
+        ///
+        /// **Compared as what the gate grants, not as letters.** A switch is not a verb: it widens
+        /// the verbs beside it that read, and the resolver asks neither switch for a strip or a
+        /// delete, so a switch on a rule that holds no other verb grants nothing. Compared as sets,
+        /// `........` under `......A.` was named as narrowing a rule that granted nothing, and
+        /// `....D.A.` under `....D...` as widening it, where both answer the same.
         /// </remarks>
         private static string Replacing(string mask, string inherited)
         {
-            var here = VerbMask.Read(mask);
-            var above = VerbMask.Read(inherited);
+            var here = Effective(VerbMask.Read(mask));
+            var above = Effective(VerbMask.Read(inherited));
             if (here == null || above == null)
             {
                 return "Replaces";
@@ -703,7 +709,22 @@ namespace KeePassGate.Ui
             return around ? "Widens" : "Replaces";
         }
 
-        /// <summary>Whether every verb in the first set is in the second.</summary>
+        /// <summary>
+        /// A mask as the gate grants it: its verbs, and its switches only beside a verb that reads,
+        /// which is every verb but strip and delete. Null for a mask that will not read.
+        /// </summary>
+        private static IList<AclVerb> Effective(IList<AclVerb> mask)
+        {
+            if (mask == null)
+            {
+                return null;
+            }
+
+            var reading = mask.Any(verb => !AclVerbs.IsScope(verb) && verb != AclVerb.Strip && verb != AclVerb.Delete);
+            return mask.Where(verb => reading || !AclVerbs.IsScope(verb)).ToList();
+        }
+
+        /// <summary>Whether every verb and switch in the first set is in the second.</summary>
         private static bool Within(IList<AclVerb> some, IList<AclVerb> all)
         {
             foreach (var verb in some)
