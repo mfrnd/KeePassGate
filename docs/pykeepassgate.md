@@ -265,8 +265,8 @@ pykeepassgate renew --lifetime 30
 approve on screen as they did the pairing, so it waits while they read: six minutes, as pairing
 does, or longer when `--connection-timeout` says so, because the gate answers only once the
 operator has and the approval is saved, and an answer hung up on is an approval lost. Once they
-approve, it stores the new identity where the old one was, by writing it beside the old one and then
-swapping the two, and then gives the old certificate up by presenting it. `--lifetime` is a
+approve, it writes the four files of the new identity over those of the old identity, in the same
+directory, and then gives the old certificate up by presenting it. `--lifetime` is a
 proposal, as on `pair`, and `expires` is what the operator picked. If KeePass is still busy a moment
 after they approve, nothing is issued yet and the gate holds the approval, saying until when:
 `renew` asks again by itself, budget or none, and the renewal is written without the dialog. Only
@@ -312,11 +312,17 @@ renewal = client.renew(lifetime=timedelta(days=30))
 
 print(renewal.credentials.expires)
 if renewal.retired is not None:
-    ...     # renewal.unrevoked says why the old certificate is still admitted
+    ...     # the old identity is still kept there, for a reason below
 ```
 
 The client carries on as the new identity, so every call after `renew` presents the new
-certificate.
+certificate. **`renewal.retired` is where the old identity is still kept**, or `None` when it is
+gone, and `renewal.unrevoked` is the refusal that giving the old certificate up met. A
+`RouteRefused` whose `.error` is `not verified` is a certificate the gate already refuses, whose
+file the operator settles; any other refusal leaves the old certificate admitted. `unrevoked` is
+`None` when the gate took the certificate back and only removing its files failed. In each case
+`revoke --directory` on `renewal.retired` tries again, and so does the next renewal before it asks
+for anything.
 
 ## Reach a KeePass on another machine
 
