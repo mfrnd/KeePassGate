@@ -17,8 +17,8 @@ using NUnit.Framework;
 namespace KeePassGate.Host.Tests.Live
 {
     /// <summary>
-    /// The acceptance test for step 8 of the build order: a stranger becomes a client of a
-    /// real KeePass, and nothing about it is simulated.
+    /// The end to end test of pairing: a stranger becomes a client of a real KeePass, and nothing
+    /// about it is simulated.
     /// </summary>
     /// <remarks>
     /// The operator presses the invite button on the real tab. The token is read off the real

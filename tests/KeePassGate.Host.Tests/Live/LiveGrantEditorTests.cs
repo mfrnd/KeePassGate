@@ -10,8 +10,8 @@ using NUnit.Framework;
 namespace KeePassGate.Host.Tests.Live
 {
     /// <summary>
-    /// The acceptance test for step 13 of the build order: a grant made from the KPG tab of a
-    /// real KeePass, kept by that dialog's OK, and still in the file afterwards.
+    /// The end to end test of the grant editor: a grant made from the KPG tab of a real KeePass,
+    /// kept by that dialog's OK, and still in the file afterwards.
     /// </summary>
     /// <remarks>
     /// This is the one test that closes the loop the whole editor was built around. Everything else

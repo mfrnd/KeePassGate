@@ -57,13 +57,13 @@ namespace KeePassGate.Spec
     /// to the document with nothing behind it, or a handler for something the document does not
     /// declare, stops the plugin loading rather than becoming a 404 discovered by whoever tried it.
     ///
-    /// **The order of refusals is deliberate and is the shape step 9 left.** A locked database is
-    /// refused before anything else, because a locked database has nothing to answer with and
-    /// saying so is all it may say. Then the document decides which operation this is, so an
-    /// undeclared path is refused before anything has parsed a body. The transport has read the
-    /// bytes by then, within `GateOptions.MaxBodyBytes`, because it reads a request whole before
-    /// routing it. Then identity, in one place, so a route added later is denied by default rather
-    /// than by somebody remembering to guard it.
+    /// **The order of refusals is deliberate.** A locked database is refused before anything
+    /// else, because a locked database has nothing to answer with and the lock is all it may
+    /// answer. Then the document decides which operation this is, so an undeclared path is refused
+    /// before anything has parsed a body. The transport has read the bytes by then, within
+    /// `GateOptions.MaxBodyBytes`, because it reads a request whole before routing it. Then
+    /// identity, in one place, so a route added later is denied by default rather than by somebody
+    /// remembering to guard it.
     /// Then the operation's own guard, for a precondition the document cannot state. Then
     /// authorization, the admission record intersected with the rules. Then the body, against
     /// the declared schema, so nothing is reported about a body on a route the caller may not

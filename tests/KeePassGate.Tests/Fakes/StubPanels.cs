@@ -19,7 +19,7 @@ namespace KeePassGate.Tests.Fakes
         }
     }
 
-    /// <summary>A panel factory that fails, the way a later step's panel could.</summary>
+    /// <summary>A panel factory that fails, the way a real panel could.</summary>
     internal sealed class ThrowingPanelFactory : IGatePanelFactory
     {
         public static readonly string Message = "the panel could not be built";

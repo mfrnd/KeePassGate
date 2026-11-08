@@ -14,9 +14,8 @@ using NUnit.Framework.Interfaces;
 namespace KeePassGate.Host.Tests.Live
 {
     /// <summary>
-    /// The acceptance test for step 4 of the build order, stated as the step states it:
-    /// the plugin loads into KeePass, shows a KPG tab on the database settings dialog, and stops
-    /// cleanly.
+    /// The end to end test of the plugin itself: it loads into KeePass, shows a KPG tab on the
+    /// database settings dialog, and stops cleanly.
     /// </summary>
     /// <remarks>
     /// It drives a throwaway KeePass through the desktop, so it needs an interactive session and

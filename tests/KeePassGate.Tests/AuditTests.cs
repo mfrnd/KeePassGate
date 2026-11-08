@@ -693,11 +693,12 @@ namespace KeePassGate.Tests
         [Test]
         public void A_pairing_line_does_not_stand_for_a_request_and_a_renewal_or_a_revocation_line_does()
         {
-            // Step 23's lines: a pairing names its certificate under `issued` and `clientKey` with
-            // `admissionKey` null, so a certificate is last seen by its first request; a renewal is
-            // a request; the operator's revocation names its certificate under `admissionKey`,
-            // which nothing asks about afterwards. The renewal here is of a certificate that came
-            // of renewing `aaaa`, so its client key is `aaaa`, and that is no request by `aaaa`.
+            // The admission lines: a pairing names its certificate under `issued` and `clientKey`
+            // with `admissionKey` null, so a certificate is last seen by its first request; a
+            // renewal is a request; the operator's revocation names its certificate under
+            // `admissionKey`, which nothing asks about afterwards. The renewal here is of a
+            // certificate that came of renewing `aaaa`, so its client key is `aaaa`, and that is no
+            // request by `aaaa`.
             var path = Paths.Join(_directory, "audit.jsonl");
             Directory.CreateDirectory(_directory);
             var older = new DateTimeOffset(2026, 9, 1, 8, 0, 0, TimeSpan.Zero);
