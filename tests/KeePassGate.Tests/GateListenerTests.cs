@@ -816,6 +816,57 @@ namespace KeePassGate.Tests
         }
 
         [Test]
+        public void A_stop_after_the_accept_loop_ended_still_closes_what_it_accepted()
+        {
+            // An accept loop that fails retires the port itself, and the stop that followed found
+            // nothing listening and returned before closing anything, so a connection accepted
+            // before the failure was served on past the plugin's teardown. A read here may block
+            // for a minute, and so may the phase before the name resolves, so a connection this
+            // closes is the stop's.
+            var options = new GateOptions
+            {
+                Port = 0,
+                Timeout = TimeSpan.FromSeconds(60),
+                Budget = TimeSpan.FromSeconds(60),
+            };
+
+            using (var listener = new GateListener(
+                options, new GateResolver(_targets, _log), GateOperations.Router("9.9.9"), _log))
+            {
+                Assert.That(listener.Start(), Is.True);
+
+                using (var peer = new TcpClient())
+                {
+                    peer.Connect(IPAddress.Loopback, listener.Port);
+                    Assert.That(Waited(() => Conversations(listener) == 1), Is.True, "the connection was never taken");
+
+                    Underneath(listener).Stop();
+                    Assert.That(Waited(() => !listener.IsListening), Is.True, "the accept loop did not end");
+
+                    listener.Stop();
+
+                    peer.ReceiveTimeout = 30000;
+                    var spent = Stopwatch.StartNew();
+                    int read;
+                    try
+                    {
+                        read = peer.GetStream().ReadByte();
+                    }
+                    catch (IOException)
+                    {
+                        read = -1;
+                    }
+
+                    spent.Stop();
+
+                    Assert.That(read, Is.EqualTo(-1), "nothing arrives on a connection the gate closed");
+                    Assert.That(spent.Elapsed, Is.LessThan(TimeSpan.FromSeconds(20)),
+                        "the connection outlived the stop and ended only at a deadline of its own");
+                }
+            }
+        }
+
+        [Test]
         public void More_connections_than_it_will_serve_are_closed_rather_than_queued()
         {
             // The gate borrows the password manager's thread pool, so a connection that waits is a

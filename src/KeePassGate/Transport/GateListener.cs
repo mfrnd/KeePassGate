@@ -268,23 +268,28 @@ namespace KeePassGate.Transport
         public void Stop()
         {
             Thread accepting;
+            bool listening;
 
             lock (_stateLock)
             {
-                if (!_running)
-                {
-                    return;
-                }
-
+                listening = _running;
                 accepting = _accepting;
             }
 
-            Retire();
+            if (listening)
+            {
+                Retire();
+            }
 
             // What the class remark has always said happens here. `Retire` closes the listener and
             // nothing else: conversations already running kept their target references and ran on
             // to their own deadline, up to the pairing budget, so a pairing could still hand out a
             // certificate after the plugin had been told to stop.
+            //
+            // **Whether or not anything is still listening.** An accept loop that failed retired
+            // the port itself, and a stop that then found nothing listening returned at once, so
+            // every conversation accepted before the failure ran on past the plugin's teardown,
+            // an ordinary write's with no deadline at all.
             CloseAll("the gate is stopping");
 
             if (accepting != null)
@@ -294,7 +299,10 @@ namespace KeePassGate.Transport
                 accepting.Join(TimeSpan.FromSeconds(2));
             }
 
-            _log.Info("stopped listening");
+            if (listening)
+            {
+                _log.Info("stopped listening");
+            }
         }
 
         public void Dispose()

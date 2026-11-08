@@ -11,6 +11,10 @@ none, since it releases both.
 
 ## 0.2.0, unreleased
 
+- **The gate closes every connection it is serving when the plugin stops, even after its accept
+  loop failed.** A loop that ended for a reason nobody chose had already given the port up, and
+  the stop that followed closed nothing, so connections accepted before the failure were served
+  on past the plugin's teardown.
 - **A run of connections naming nothing an open database answers to writes one log line a
   minute**, the first at once and the rest counted into the next, as refusals above the connection
   ceiling already were. Each wrote a line, and such a connection needs no key, certificate or
