@@ -3,17 +3,19 @@
 from __future__ import annotations
 
 import dataclasses
+import inspect
 import json
 import math
 import re
 import socket
+from collections.abc import Callable
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Any, cast
 
 import pytest
 
-from pykeepassgate import __version__, sni, transport
+from pykeepassgate import __version__, api, sni, transport
 from pykeepassgate import credentials as credentials_module
 from pykeepassgate.client import GateClient
 from pykeepassgate.errors import (
@@ -27,6 +29,7 @@ from pykeepassgate.errors import (
     StorageError,
     TransportError,
 )
+from pykeepassgate.pairing import Pairing
 from pykeepassgate.testing import FakeGate, Issued
 
 
@@ -280,15 +283,25 @@ def test_a_revoked_client_and_one_that_never_paired_look_the_same(
         paired.status()
 
 
-def test_every_setting_is_passed_by_name(tmp_path: Path, bundle: dict[str, Any]) -> None:
+@pytest.mark.parametrize(
+    ("made", "positional"),
+    [
+        (GateClient, ["credentials"]),
+        (GateClient.open, ["directory", "profile"]),
+        (Pairing, ["port", "invitation"]),
+        (api.pair, ["invitation", "name"]),
+    ],
+    ids=["GateClient", "GateClient.open", "Pairing", "api.pair"],
+)
+def test_every_setting_is_passed_by_name(made: Callable[..., Any], positional: list[str]) -> None:
     # A setting added in the middle once changed what the fourth argument meant, with nothing to
-    # say so; keyword only, a setting added later cannot.
-    stored = credentials_module.save(tmp_path / "kept", 45678, bundle)
+    # warn of it; keyword only, a setting added later cannot. What comes before the settings is
+    # what `docs/pykeepassgate.md` names, and everything after it is held here, not a sample.
+    parameters = inspect.signature(made).parameters.values()
 
-    with pytest.raises(TypeError):
-        cast(Any, GateClient)(stored, 10.0)
-    with pytest.raises(TypeError):
-        cast(Any, GateClient.open)(tmp_path / "kept", "default", "127.0.0.1")
+    assert [
+        parameter.name for parameter in parameters if parameter.kind is not parameter.KEYWORD_ONLY
+    ] == positional
 
 
 def test_a_certificate_that_has_expired_is_named_as_expired_before_anything_is_dialed(

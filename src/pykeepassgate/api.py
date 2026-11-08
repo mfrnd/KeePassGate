@@ -5,10 +5,10 @@ and the exceptions that say what to do next. The modules underneath stay importa
 pieces of the protocol are worth reading on their own, but nothing outside this package has to know
 which module a name lives in.
 
-The one thing `api` adds rather than re-exports is `pair`, which is the whole exchange as one call.
-It exists because the two-connection shape is the protocol's business rather than the caller's, and
-a reference implementation that made every caller drive both halves by hand would be teaching the
-wrong lesson.
+What `api` adds rather than re-exports is `pair`, which is the whole exchange as one call, and
+`DEFAULT_PORT`, the port it dials unless told another. `pair` exists because the two-connection
+shape is the protocol's business rather than the caller's, and a reference implementation that
+made every caller drive both halves by hand would be teaching the wrong lesson.
 """
 
 from __future__ import annotations
