@@ -1609,7 +1609,7 @@ database's custom data survivable, whether a dialog, a merge or a declined save 
 
 Not quite, and this is independent of which letters a rule holds. `KdbxVault.Discard` removes an
 entry the way KeePass does: to the recycle bin when the database keeps one, and permanently only
-when it does not or when the entry is already in there. So a removal is usually a **move**, and a
+when it does not. So a removal is usually a **move**, and a
 move crosses an ACL boundary. The bin is an ordinary group under the root, governed by whatever rule
 reaches it there, so a client granted removal on one group and no `read` could relocate an entry it
 may not read into a group where a rule at the root may well let it read what it just could not.

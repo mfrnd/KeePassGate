@@ -1758,8 +1758,13 @@ namespace KeePassGate.Bridge
 
         /// <summary>
         /// Removes an entry the way KeePass does: to the recycle bin when the database keeps one,
-        /// and permanently when it does not or when it is already in there.
+        /// and permanently when it does not.
         /// </summary>
+        /// <remarks>
+        /// KeePass's own delete also removes an entry already in the bin permanently. No entry in
+        /// the bin reaches this, because `FindEntry` finds none, `DESIGN.md` §138, and the bin it
+        /// would be found in is the bin `RecycleBin` answers.
+        /// </remarks>
         /// <returns>How to put the entry back where it came from.</returns>
         private Action Discard(PwEntry entry)
         {
@@ -1769,7 +1774,7 @@ namespace KeePassGate.Bridge
             Action unmakeBin;
             var bin = RecycleBin(out unmakeBin);
 
-            if (bin != null && parent != null && !ReferenceEquals(parent, bin))
+            if (bin != null && parent != null)
             {
                 var wasPrevious = entry.PreviousParentGroup;
                 parent.Entries.Remove(entry);
