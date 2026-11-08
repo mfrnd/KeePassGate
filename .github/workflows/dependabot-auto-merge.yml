@@ -62,6 +62,8 @@ jobs:
           (steps.meta.outputs.dependency-group == 'actions' &&
            (steps.meta.outputs.update-type == 'version-update:semver-minor' ||
             steps.meta.outputs.update-type == 'version-update:semver-patch'))
+        with:
+          persist-credentials: false
 
       - name: auto-merge
         if: >-

@@ -261,6 +261,9 @@ jobs:
       VERSION: ${{ needs.decide.outputs.version }}
       PLUGIN: ${{ needs.decide.outputs.plugin }}
     steps:
+      # Keeping the token in git's configuration, unlike `codeql.yml`'s checkouts, since
+      # `git ls-remote` below reads the tags of origin with it. Every step here holds it in
+      # `GH_TOKEN` already, and none runs code the repository holds.
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - if: needs.decide.outputs.plugin == 'true'
