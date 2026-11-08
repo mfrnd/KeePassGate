@@ -133,7 +133,11 @@ namespace KeePassGate.Ui
 
             admitted.Sort((left, right) => right.Admitted.CompareTo(left.Admitted));
 
-            return AuthorityOption.Whole(candidate.Fingerprint, material.Authority.NotBefore, admitted);
+            // When it was made rather than when it starts to be valid, which the issuer puts a few
+            // minutes earlier for clocks that disagree: shown as its notBefore, the column named a
+            // moment before anybody pressed Create, to somebody matching it against when they did.
+            var created = material.Authority.NotBefore + AuthorityIssuer.Backdate;
+            return AuthorityOption.Whole(candidate.Fingerprint, created, admitted);
         }
     }
 

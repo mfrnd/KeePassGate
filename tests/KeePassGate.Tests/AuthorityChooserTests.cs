@@ -50,6 +50,8 @@ namespace KeePassGate.Tests
             var first = choice.Options.Single(o => o.Fingerprint == _candidates[0]);
             Assert.That(first.CanKeep, Is.True);
             Assert.That(first.Created, Is.Not.Null);
+            Assert.That(first.Created.Value.ToUniversalTime(), Is.EqualTo(DateTime.UtcNow).Within(TimeSpan.FromMinutes(1)),
+                "when it was made, not the notBefore the issuer backdates");
             Assert.That(first.Clients.Single().Name, Is.EqualTo("agent-fictitious"), "without the CN= every row would carry");
             Assert.That(first.Clients.Single().Profiles, Is.EqualTo(new[] { "ops", "reader" }));
             Assert.That(first.Clients.Single().Admitted, Is.EqualTo(Admitted));
