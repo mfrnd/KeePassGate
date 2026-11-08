@@ -10,10 +10,13 @@ protected field is a different thing: `show` and `field` print one when the gate
 it, which is when the rule granted `P`. When it did not, `show` prints `(withheld)` and `field`
 fails, since what `field` prints is taken by a script for the value.
 
-Exit codes are the point of a command line: `0` worked, `1` the gate refused or could not be
-reached, `2` the arguments were wrong, and `130` Ctrl+C, as a shell has it, with the line
-`interrupted` rather than a traceback. A reader that stops reading, as `head` does, ends a command
-with `1` and nothing more. A script can branch on that without reading English.
+Exit codes are the point of a command line: `0` worked; `2` nothing was sent, because the parser
+refused an argument or a command could not read the input it was given; `1` failed after that,
+which is the gate refusing or out of reach and is also whatever the library refuses before it
+dials, nothing paired, a key that will not open, an invitation that will not read and a name the
+gate would refuse among them; and `130` Ctrl+C, as a shell has it, with the line `interrupted`
+rather than a traceback. A reader that stops reading, as `head` does, ends a command with `1` and
+nothing more. A script can branch on that without reading English.
 
 **What a command prints is chosen with `-o`/`--output`**, on every command: `plain`, lines for a
 person, and `json`, one document for a program such as `jq`. A choice rather than a `--json`
