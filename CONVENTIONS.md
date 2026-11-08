@@ -153,19 +153,10 @@ button, a third-party option.
   otherwise claim something that is not true yet.
 - **Each commit stands alone and says why**, not merely what. The history is read as if it were a
   pull request, by somebody who was not here.
-- **A forward reference is marked wherever it is not a design document.** Describing what is to be
+- **A forward reference belongs in a design document and nowhere else.** Describing what is to be
   built is what a design document is for, so `DESIGN.md`, `CA.md` and `PAIRING.md` may name what
-  does not exist yet and say nothing about it. Anywhere else, a reference to something a later step
-  brings carries `TODO(step N)` at the reference itself, naming the step that makes it true. A bare
-  `TODO` names nobody and expires never, which is why the form is fixed and why `build.ps1` fails
-  when a marker names a step the build order already marks done.
-- **A step named in a sentence is a reference like any other.** "Step 14 is where the two are put
-  together", in a comment describing a class, claims behavior nothing has yet; the shape of the
-  sentence is what hides that, not the reference. One thing outside the design documents is exempt,
-  and it is `CLAUDE.md`'s status section, because saying a step is next is already saying it has not
-  happened. What the exemption does not cover is going on saying it afterwards: status prose
-  describes the present, so the step that lands is the one that brings it up to date. A build order
-  entry is the opposite and is left alone, being a log written at its own step's vantage.
+  does not exist yet. Anywhere else, a comment, a page or a commit message describes what is, and a
+  pull request brings whatever its own lines refer to.
 - **A professional tone.** Plain technical language: no anthropomorphism, no rhetorical openers, no
   cuteness. A gate does not answer "civilly", a test does not "assume", and a subject does not open
   with "Say what". The subject states what the commit does and the body says why, both in the
