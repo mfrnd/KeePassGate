@@ -383,6 +383,37 @@ namespace KeePassGate.Tests
                 Is.EqualTo(200));
         }
 
+        [TestCase("field", TestName = "Adding a field answers with the tag of the entry it leaves")]
+        [TestCase("attachment", TestName = "Adding an attachment answers with the tag of the entry it leaves")]
+        [TestCase("replace", TestName = "Replacing an attachment answers with the tag of the entry it leaves")]
+        public void A_change_under_an_entry_answers_with_the_entry_s_tag(string route)
+        {
+            // The routing document's `WrittenTag`, for the changes that add or replace something
+            // under an entry: the client writes again under the tag it is answered with.
+            _vault.Granting(_group, AllButProtected);
+            var entry = "/entries/" + _entry;
+            Assume.That(_vault.CreateAttachment(_entry, "notes.txt", new byte[] { 1 }, VaultTagging.None).Ok, Is.True);
+
+            Answer written;
+            switch (route)
+            {
+                case "field":
+                    written = Send("POST", entry + "/fields", Bodies.Of(("name", "Added"), ("value", "a value")));
+                    break;
+                case "attachment":
+                    written = Send("POST", entry + "/attachments", Bodies.Of(("name", "added.txt"), ("content", Base64("x"))));
+                    break;
+                default:
+                    written = Send("PUT", entry + "/attachments/notes.txt", Bodies.Of(("content", Base64("y"))));
+                    break;
+            }
+
+            Assert.That(written.Status, Is.EqualTo(route == "replace" ? 200 : VaultHandlers.Created), written.Json);
+            Assert.That(written.Written, Is.Not.Null.And.EqualTo(Get(entry).Tag), written.Json);
+            Assert.That(Conditioned("PUT", entry, "{\"Title\":\"renamed\"}", written.Written).Status, Is.EqualTo(200),
+                "and a second write can name it without reading in between");
+        }
+
         [Test]
         public void A_write_against_a_tag_the_entry_has_moved_on_from_is_refused_and_changes_nothing()
         {
