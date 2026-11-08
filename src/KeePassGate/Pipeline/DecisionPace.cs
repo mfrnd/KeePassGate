@@ -21,15 +21,20 @@ namespace KeePassGate.Pipeline
     /// prevent, and a refusal would be a status the API does not have for a client doing nothing
     /// wrong. A slow answer is something every client already copes with. So a client may be
     /// recorded <see cref="Burst"/> times at once, and after that <see cref="PerSecond"/> times a
-    /// second, and a decision past that waits on its own connection's thread for its turn. That
-    /// thread is the caller's own: nothing another client is waiting on is held, and the lock
-    /// here is not held while waiting.
+    /// second, and a decision past that waits on its own connection's thread for its turn, with
+    /// the lock here let go. **The connection keeps its slot while it waits**, one of the
+    /// `GateOptions.MaxConnections` every client shares, so a paced client with many connections
+    /// open can hold most of them for seconds at a time, and other clients' connections, a
+    /// pairing's among them, are closed at the door meanwhile. That is conceded, the operator's
+    /// ruling R6, as `GateListener` concedes the slots to any peer that fills them.
     ///
-    /// What it buys is a floor rather than a guarantee. One file is about thirty thousand lines,
-    /// so a single client flooding as fast as it is allowed needs over an hour to push one
-    /// decision out of both files, where it needed two minutes. The operator issued every key this
-    /// is counted against, so a flood from several of them is several clients the operator
-    /// approved, and every line the flood writes names the one doing it.
+    /// What it buys is a floor rather than a guarantee. One file holds about twenty thousand
+    /// lines, so a single client flooding as fast as it is allowed pushes a decision out of both
+    /// files in about half an hour, where it needed two minutes: a line written just before the
+    /// file is set aside goes once the next file fills, and only a line written at the start of a
+    /// file lasts about an hour. The operator issued every key this is counted against, so a flood
+    /// from several of them is several clients the operator approved, and every line the flood
+    /// writes names the client doing it.
     ///
     /// **Counted per client key**, the key every record of one client carries and a renewal
     /// copies, so a renewal does not hand a client a fresh allowance: counted per admission key,

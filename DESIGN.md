@@ -1367,8 +1367,10 @@ model includes the caller, and a caller covering its tracks is the one the audit
 per client key, and a decision past that **waits** on the caller's own connection rather than
 being dropped or refused: a line left out is the loss being prevented, and a refusal would be a
 status the API does not have. That is a floor rather than a guarantee, since one flooding client now
-needs well over an hour to push a decision out of both files, and shipping the lines elsewhere is
-still what makes the record durable.
+needs about half an hour to push a decision out of both files, a file holding about twenty thousand
+lines, and an hour only for a decision written at the start of a file; shipping the lines elsewhere
+is still what makes the record durable. The wait keeps the connection's slot, so a paced client
+with many connections open holds them while it waits, which is conceded, the operator's ruling R6.
 
 **Per client key, and not per admission key as it first was.** A renewal gives a client a new
 certificate and so a new admission key, and an allowance kept by admission key started again at a
