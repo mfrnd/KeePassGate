@@ -439,7 +439,7 @@ class TestTheResponder:
     def test_no_request_is_sent_over_a_responder(
         self, gate: FakeGate, responder: Issued, authority: Authority, client_certificate: Issued
     ) -> None:
-        # `CA.md` 208: the marker is there so a client can refuse to send real requests over an
+        # `CA.md` §208: the marker is there so a client can refuse to send real requests over an
         # identity that can only say the database is locked. Refusing after the answer would
         # have handed over the request first, and a request body is what it was going to store.
         gate.serve_with(responder)

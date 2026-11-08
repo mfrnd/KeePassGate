@@ -29,7 +29,7 @@ SUFFIX = "kpg"
 #: Sixteen bytes, so the label is 32 hex characters and fits what a DNS label allows.
 NONCE_LENGTH = 16
 
-#: Thirty-two, which is what `CA.md` 204 specifies and what `AuthorityMaterial.SniKeyLength`
+#: Thirty-two, which is what `CA.md` §204 specifies and what `AuthorityMaterial.SniKeyLength`
 #: refuses anything else against. The invitation token is the same length, which is what lets one
 #: construction cover both.
 KEY_LENGTH = 32

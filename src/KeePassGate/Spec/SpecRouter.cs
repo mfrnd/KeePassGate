@@ -589,8 +589,8 @@ namespace KeePassGate.Spec
         /// **A request target is more than its path.** The transport splits the query off and
         /// parses it, and nothing here ever read the result, so `GET /entries?group=x` was served
         /// as `GET /entries`: the whole database came back and the caller was told nothing about
-        /// the word it sent. `API.md` 407 is where scoping by query was cut, and it says the
-        /// list routes are where filtering and paging would arrive, so this asks the document
+        /// the word it sent. `API.md` §407 is where scoping by query was cut, and it names the
+        /// list routes as where filtering and paging would arrive, so this asks the document
         /// rather than refusing every query for all time.
         ///
         /// Refused as an undeclared target, which is what it is, so it answers exactly what an

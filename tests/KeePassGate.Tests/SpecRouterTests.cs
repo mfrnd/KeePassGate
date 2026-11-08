@@ -527,7 +527,7 @@ namespace KeePassGate.Tests
         [Test]
         public void The_one_query_parameter_is_the_expiry_flag_on_the_two_entry_listings()
         {
-            // `API.md` 407: scoping is a path here, and filtering and paging were cut but for this
+            // `API.md` §407: scoping is a path here, and filtering and paging were cut but for this
             // one flag. The check reads the document rather than refusing every query for all
             // time, so this is what says the document has not quietly grown another: a name
             // declared is one the router lets through to a handler.
