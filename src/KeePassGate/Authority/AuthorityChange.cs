@@ -3,21 +3,26 @@ using System;
 namespace KeePassGate.Authority
 {
     /// <summary>
-    /// What happened when the operator asked for something. A result rather than an exception,
-    /// because every one of these is reported in a dialog and none of them may reach KeePass.
+    /// What happened when the operator asked for something: done, or refused and why. A result
+    /// rather than an exception, because a refusal is put in front of the operator, on the KPG tab
+    /// or by the authority chooser, and none of them may reach KeePass.
     /// </summary>
+    /// <remarks>
+    /// **A change that was made carries no words.** The tab shows what changed in what it draws
+    /// next, and what recreating or deleting costs is in the question it asks before either, which
+    /// is the only moment that number is any use to the operator. A sentence composed here for a
+    /// change that was made had nobody to read it.
+    /// </remarks>
     public sealed class AuthorityChange
     {
         private readonly bool _succeeded;
         private readonly string _message;
-        private readonly int _recordsRemoved;
         private readonly bool _behindAnotherWrite;
 
-        private AuthorityChange(bool succeeded, string message, int recordsRemoved, bool behindAnotherWrite)
+        private AuthorityChange(bool succeeded, string message, bool behindAnotherWrite)
         {
             _succeeded = succeeded;
             _message = message ?? string.Empty;
-            _recordsRemoved = recordsRemoved;
             _behindAnotherWrite = behindAnotherWrite;
         }
 
@@ -26,16 +31,10 @@ namespace KeePassGate.Authority
             get { return _succeeded; }
         }
 
-        /// <summary>What to show the operator. Never empty.</summary>
+        /// <summary>Why it was refused, which is what the operator is shown. Empty when it was done.</summary>
         public string Message
         {
             get { return _message; }
-        }
-
-        /// <summary>How many clients lost their admission, which a message has to be able to state.</summary>
-        public int RecordsRemoved
-        {
-            get { return _recordsRemoved; }
         }
 
         /// <summary>
@@ -47,25 +46,20 @@ namespace KeePassGate.Authority
             get { return _behindAnotherWrite; }
         }
 
-        public static AuthorityChange Done(string message)
+        public static AuthorityChange Done()
         {
-            return new AuthorityChange(true, message, 0, false);
-        }
-
-        public static AuthorityChange Done(string message, int recordsRemoved)
-        {
-            return new AuthorityChange(true, message, recordsRemoved, false);
+            return new AuthorityChange(true, null, false);
         }
 
         public static AuthorityChange Refused(string reason)
         {
-            return new AuthorityChange(false, Reason(reason), 0, false);
+            return new AuthorityChange(false, Reason(reason), false);
         }
 
         /// <summary>Refused because another write held the writer, <see cref="IsBehindAnotherWrite"/>.</summary>
         public static AuthorityChange BehindAnotherWrite(string reason)
         {
-            return new AuthorityChange(false, Reason(reason), 0, true);
+            return new AuthorityChange(false, Reason(reason), true);
         }
 
         private static string Reason(string reason)

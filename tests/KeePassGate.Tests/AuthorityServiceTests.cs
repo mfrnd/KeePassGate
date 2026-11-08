@@ -41,19 +41,13 @@ namespace KeePassGate.Tests
         }
 
         [Test]
-        public void The_message_says_what_happened_and_leaves_the_details_to_the_tab()
+        public void A_change_that_was_made_carries_no_words_for_the_tab_to_repeat()
         {
-            // The fingerprint is on the tab already, in a table, with a name beside it. Repeating
-            // it here made the answer to "what just happened" longer without making it complete,
-            // and the two would have to be kept saying the same thing.
-            var result = _service.Create();
-
-            using (var reading = _service.Read())
-            {
-                Assert.That(result.Message, Is.EqualTo("The authority was created."));
-                Assert.That(result.Message,
-                    Does.Not.Contain(CertificateDigest.Shorten(reading.Material.AuthorityDigest)));
-            }
+            // What changed is on the tab in what it draws next, and the tab shows nothing for a
+            // change that was made: a sentence composed here had nobody to read it.
+            Assert.That(_service.Create().Message, Is.Empty);
+            Assert.That(_service.Recreate().Message, Is.Empty);
+            Assert.That(_service.Delete().Message, Is.Empty);
         }
 
         [Test]
@@ -138,7 +132,7 @@ namespace KeePassGate.Tests
         }
 
         [Test]
-        public void Recreating_revokes_every_client_and_says_how_many()
+        public void Recreating_revokes_every_client_and_logs_how_many_records_went()
         {
             _service.Create();
             _values.Plant(AuthorityKeys.ClientPrefix + "aaa", "record");
@@ -146,33 +140,12 @@ namespace KeePassGate.Tests
 
             var result = _service.Recreate();
 
-            Assert.That(result.RecordsRemoved, Is.EqualTo(2));
-            Assert.That(result.Message, Does.Contain("2 clients lost their admission"));
+            Assert.That(result.Succeeded, Is.True, result.Message);
+            Assert.That(_log.Entries.Any(e => e.Message.Contains("admission records removed: 2")), Is.True);
             using (var reading = _service.Read())
             {
                 Assert.That(reading.ClientRecordCount, Is.Zero);
             }
-        }
-
-        [Test]
-        public void One_client_is_counted_in_words_that_read_properly()
-        {
-            _service.Create();
-            _values.Plant(AuthorityKeys.ClientPrefix + "aaa", "record");
-
-            var result = _service.Recreate();
-
-            Assert.That(result.Message, Does.Contain("One client lost its admission"));
-        }
-
-        [Test]
-        public void Recreating_with_no_clients_says_nothing_about_clients()
-        {
-            _service.Create();
-
-            var result = _service.Recreate();
-
-            Assert.That(result.Message, Does.Not.Contain("admission"));
         }
 
         [Test]
@@ -186,7 +159,7 @@ namespace KeePassGate.Tests
             var result = _service.Delete();
 
             Assert.That(result.Succeeded, Is.True, result.Message);
-            Assert.That(result.RecordsRemoved, Is.EqualTo(1));
+            Assert.That(_log.Entries.Any(e => e.Message.Contains("admission records removed: 1")), Is.True);
             Assert.That(_values.Keys.OrderBy(k => k, StringComparer.Ordinal), Is.EqualTo(new[]
             {
                 AuthorityKeys.RetirementKey(deleted),
@@ -246,15 +219,32 @@ namespace KeePassGate.Tests
         }
 
         [Test]
-        public void Keeping_one_of_several_serves_it_and_says_how_many_went()
+        public void Keeping_one_of_several_serves_it_and_logs_how_many_went()
         {
             var digests = Undecided();
 
             var result = _service.Keep(digests[0]);
 
             Assert.That(result.Succeeded, Is.True, result.Message);
-            Assert.That(result.Message, Does.Contain("the other one was retired"));
+            Assert.That(_log.Entries.Any(e => e.Message.Contains("others retired: 1")), Is.True);
             Assert.That(Digest(), Is.EqualTo(digests[0]));
+        }
+
+        [Test]
+        public void Keeping_the_one_authority_served_alone_retires_nothing_and_changes_nothing()
+        {
+            // Reached from the tab only by a race, since the chooser asks only of a database
+            // serving several, and directly through the service at once, which keeps the database
+            // as it was and has nothing to put in words.
+            _service.Create();
+            var only = Digest();
+
+            var result = _service.Keep(only);
+
+            Assert.That(result.Succeeded, Is.True, result.Message);
+            Assert.That(result.Message, Is.Empty);
+            Assert.That(_log.Entries.Any(e => e.Message.Contains("others retired: 0")), Is.True);
+            Assert.That(Digest(), Is.EqualTo(only));
         }
 
         [Test]
@@ -315,8 +305,8 @@ namespace KeePassGate.Tests
         {
             var result = _service.Delete();
 
-            Assert.That(result.Succeeded, Is.True);
-            Assert.That(result.RecordsRemoved, Is.Zero);
+            Assert.That(result.Succeeded, Is.True, result.Message);
+            Assert.That(_log.Entries.Any(e => e.Message.Contains("admission records removed: 0")), Is.True);
         }
 
         [Test]

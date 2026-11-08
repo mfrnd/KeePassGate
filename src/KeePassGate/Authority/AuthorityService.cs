@@ -98,8 +98,9 @@ namespace KeePassGate.Authority
 
         /// <summary>
         /// Replaces whatever is there. Every client admitted under the old authority loses its
-        /// admission, and the message says how many, because that is the number the operator needs
-        /// before pressing it and the only one they cannot work out themselves.
+        /// admission, which the tab counts in the question it asks before this runs, because that
+        /// is the number the operator needs before pressing it and the only one they cannot work
+        /// out themselves.
         /// </summary>
         public AuthorityChange Recreate()
         {
@@ -134,7 +135,8 @@ namespace KeePassGate.Authority
                 return cleared ? AuthorityChange.Refused(result.Message + ClearingNote()) : result;
             }
 
-            return AuthorityChange.Done(result.Message + RevocationNote(removed), removed);
+            _log.Info("authority recreated, admission records removed: " + removed);
+            return result;
         }
 
         /// <summary>
@@ -172,7 +174,7 @@ namespace KeePassGate.Authority
             }
 
             _log.Info("authority deleted, admission records removed: " + removed);
-            return AuthorityChange.Done("The authority was deleted." + RevocationNote(removed), removed);
+            return AuthorityChange.Done();
         }
 
         /// <summary>
@@ -210,10 +212,11 @@ namespace KeePassGate.Authority
                 }
             }
 
+            // None retired is the authority already served alone, which is kept as it was: the
+            // chooser asks only of a database serving several, and keeping one that is already the
+            // only one leaves the database as the operator asked for it.
             _log.Info("authority " + CertificateDigest.Shorten(fingerprint) + " kept, others retired: " + retired);
-            return AuthorityChange.Done(retired == 1
-                ? "The authority was kept, and the other one was retired."
-                : "The authority was kept, and the other " + retired + " were retired.");
+            return AuthorityChange.Done();
         }
 
         /// <summary>
@@ -225,18 +228,6 @@ namespace KeePassGate.Authority
         {
             return " Recreating removes the old authority and every admission record before writing " +
                    "the replacement, so what was there before may be gone as well.";
-        }
-
-        private static string RevocationNote(int removed)
-        {
-            if (removed <= 0)
-            {
-                return string.Empty;
-            }
-
-            return removed == 1
-                ? " One client lost its admission."
-                : " " + removed + " clients lost their admission.";
         }
 
         private static byte[] NewSniKey()
@@ -318,11 +309,7 @@ namespace KeePassGate.Authority
                 }
 
                 _log.Info("authority " + verb + ", digest " + check.Material.AuthorityDigest);
-
-                // Without the fingerprint, which the tab already shows above this line and shows
-                // with a name beside it. Saying it twice makes the answer to "what just happened"
-                // longer without making it more complete.
-                return AuthorityChange.Done("The authority was " + verb + ".");
+                return AuthorityChange.Done();
             }
         }
 
