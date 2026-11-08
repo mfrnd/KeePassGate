@@ -52,6 +52,16 @@ namespace KeePassGate.Host.Tests
         }
 
         [Test]
+        public void A_database_opened_from_a_URL_is_named_by_its_file_whatever_the_URL_holds()
+        {
+            // `|` is a character no Windows path may hold, and a URL can.
+            _database.Database.Name = string.Empty;
+            _database.Database.IOConnectionInfo.Path = "https://dav.invalid/folder/invented|copy.kdbx";
+
+            Assert.That(new OpenDatabase(_database.Database).Name, Is.EqualTo("invented|copy.kdbx"));
+        }
+
+        [Test]
         public void A_database_with_nobody_listening_still_records_the_change()
         {
             // Everything above this interface is testable without a window to repaint, so the

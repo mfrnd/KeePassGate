@@ -190,6 +190,10 @@ none, since it releases both.
   whatever the file reads as afterwards. Taking the record back out read the file a second time,
   and a file part way through a copy at the first read and whole at the second cleared the mark,
   over a record memory no longer held and the file might.
+- **A database opened from a URL holding a character Windows forbids in a path is named by its
+  file**, as KeePass names it. Its name threw, so the authority chooser asking which authority to
+  keep failed as an incident under Tools without asking, and Choose authority on the KPG tab failed
+  with a path error.
 - **A protected field is kept from a strip whenever any profile could put an unprotected value
   back.** The guard asked whether some profile could create there and whether some profile could
   create a protected value there, so a program holding one profile that could put an unprotected
