@@ -425,8 +425,10 @@ print(entry.expires, entry.expired)
 ```
 
 **Absent is not empty.** An entry that was listed rather than read has `fields` set to `None`, and
-asking it for a username raises `AttributeError` rather than handing back an empty string. Check
-`entry.is_read` when it is not clear which one is in hand.
+asking it for a username raises `AttributeError` rather than handing back an empty string, as
+asking which of its strings are `protected` does rather than naming none, and asking a listed
+attachment for its `content` rather than answering `None`. Check `entry.is_read` when it is not
+clear which one is in hand, and `attachment.is_read` likewise.
 
 **Withheld is not empty either.** A value the database protects reaches this client only when the
 rule that lets it read the entry grants `P`, and otherwise the gate withholds it. Reading a
@@ -922,7 +924,7 @@ except api.RouteRefused:
 | `StorageError` | From `pair`, before anything is sent: the directory cannot hold credentials, and the message says why. Nothing is spent, so fix that and pair again. Afterwards: what is stored for this client will not read, or could not be written, and the message names the file or the directory to look at. A key stored under a password is one of these when no password was given, or the one given does not open it, and the message names `identity.pem`. |
 | `TransportError` | No whole answer arrived: nothing is listening, the socket a `dial` handed back could not be used, closed or never connected, the handshake failed, which a paragraph below explains, or the connection broke or timed out once the request was on its way. After a read, send it again. After a write, the change may have landed, so look before sending it again: read or list what it changed, where the rules allow that, or ask the operator. |
 | `ValueError` | A setting or an argument that could not work, refused where it is given and before anything is dialed, stored or spent: a port, a host, a timeout, a retry budget, a response cap, a lifetime, a profile's name, an expiry, a key password or a `dial`. The message names it, and never repeats a password. Correct it in the calling program. |
-| `AttributeError` | Something this client never read, which is absence and not emptiness: a listed entry's `username`, `password`, `notes`, `expires` or `custom()`, a listed group's `notes`, a listed field's `value`, or the `etag` of a group or an entry only listed. Read the node first. The `etag` of a read the gate gave no tag for is this as well, and reading again does not change it: the gate hands tags only to a client whose rule reads everything a tag covers, which the message says. A withheld value is never this, so `getattr` with a default and `hasattr` cannot turn one into a default. |
+| `AttributeError` | Something this client never read, which is absence and not emptiness: a listed entry's `username`, `password`, `notes`, `protected`, `expires` or `custom()`, a listed group's `notes`, a listed field's `value`, a listed attachment's `content`, or the `etag` of a group or an entry only listed. Read the node first. The `etag` of a read the gate gave no tag for is this as well, and reading again does not change it: the gate hands tags only to a client whose rule reads everything a tag covers, which the message says. A withheld value is never this, so `getattr` with a default and `hasattr` cannot turn one into a default. |
 | `KeyError` | A name `entry.fields` or `entry.custom()` does not hold, as from any mapping. `get` answers its default for that, and for nothing else. |
 | `TypeError` | A `dial` that handed back something other than a connected stream socket, such as a datagram socket, which is a mistake in the program's own `dial`; what it handed back is closed first, if it can be. A socket it handed back already closed or never connected is a `TransportError`, whose message is that the socket could not be used rather than that a handshake failed, and is closed as well. |
 

@@ -11,6 +11,10 @@ none, since it releases both.
 
 ## 0.2.0, unreleased
 
+- **A listed entry has no `protected` and a listed attachment no `content`**: each raises
+  `AttributeError`, as a listed entry's password does, where the entry answered `()`, naming
+  nothing protected beside a withheld title, and the attachment `None`. A read carries both as
+  before.
 - **Plain output escapes a line break wherever it is**, in an identifier, a subject or a
   directory as well as a name or a value: each command escaped the values it named, and the rest
   went out as they were.

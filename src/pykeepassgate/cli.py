@@ -2189,11 +2189,13 @@ def _fetch(arguments: argparse.Namespace) -> int:
     )
 
     # `GateClient.attachment` never answers without the bytes: `Attachment.read` refuses such an
-    # answer rather than guess at one. Narrowed here the same way, because a fallback to no bytes
-    # would write an empty file and report it written, which is the guess refused there.
-    content = attachment.content
-    if content is None:
+    # answer rather than guess at one. Refused here the same way, as a `ProtocolError` rather than
+    # the `AttributeError` asking a listed attachment for its bytes raises, because a fallback to
+    # no bytes would write an empty file and report it written, which is the guess refused there.
+    if not attachment.is_read:
         raise ProtocolError("the gate sent an attachment with no content")
+
+    content = attachment.content
 
     # Owner read and write only, never through a link at the name, and a file already there
     # narrowed before the content goes in, as the identity's own files are written: what a

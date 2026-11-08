@@ -441,11 +441,12 @@ class Entry:
     """An entry, with as much of it as the gate was asked for.
 
     A listing fills in what a listing gives: the identifier, the group, the title, the URL and
-    the two times. Reading one fills in `fields`, and only then do `username`, `password` and
-    `notes` exist at all. Asking for one that was never read raises `AttributeError`, which is the
-    point: absence is not emptiness. `expires` and `expired` are the same: a listing does not say
-    when an entry expires, so a listed entry has neither, rather than an expiry that reads as
-    never.
+    the two times. Reading one fills in `fields`, and only then do `username`, `password`,
+    `notes` and `protected` exist at all. Asking for one that was never read raises
+    `AttributeError`, which is the point: absence is not emptiness, and a listed entry that
+    answered `protected` with nothing would name nothing protected beside a `withheld` title.
+    `expires` and `expired` are the same: a listing does not say when an entry expires, so a
+    listed entry has neither, rather than an expiry that reads as never.
 
     **A value the rule withholds raises `Withheld`** from every one of them, the title and the URL
     of a listed entry as much as the password of a read one, and `withheld` names which. That is
@@ -458,7 +459,8 @@ class Entry:
     created: datetime | None = None
     modified: datetime | None = None
     fields: Fields | None = None
-    protected: tuple[str, ...] = field(default_factory=tuple)
+    #: The names of the strings the database protects, which only a read carries.
+    protected_names: tuple[str, ...] | None = None
     #: The title and the URL a listing carried, which is all a listing carries of an entry's
     #: strings. Empty on a read entry, which holds both in `fields` with the rest.
     summary: Fields = field(default_factory=Fields, repr=False)
@@ -511,6 +513,17 @@ class Entry:
         """
         when = self.expires
         return when is not None and when <= datetime.now(UTC)
+
+    @property
+    def protected(self) -> tuple[str, ...]:
+        """The names of the strings the database protects, once this entry has been read."""
+        if self.protected_names is None:
+            raise AttributeError(
+                "this entry was listed rather than read, so which of its strings are protected is "
+                "not known here. Read it with GateClient.entry() first."
+            )
+
+        return self.protected_names
 
     @property
     def username(self) -> str:
@@ -590,7 +603,7 @@ class Entry:
             created=_moment(body.get("created")),
             modified=_moment(body.get("modified")),
             fields=Fields(_strings(body, "fields")),
-            protected=_names(body, "protected"),
+            protected_names=_names(body, "protected"),
             expiry=_expiry(body),
             read_etag=etag,
         )
@@ -679,14 +692,29 @@ class Field:
 
 @dataclass(frozen=True)
 class Attachment:
-    """One of an entry's attachments, named and sized, with its bytes when they were asked for."""
+    """One of an entry's attachments, named and sized, with its bytes when they were asked for.
+
+    A listing carries no bytes, so a listed attachment has no `content` at all: asking raises
+    `AttributeError`, as asking a listed field for its value does, rather than answering `None`.
+    """
 
     name: str
     size: int
     #: Left out of the repr, which prints the name and the size: an attachment is a key or a
     #: recovery file as often as anything, and a repr is what a log line or a traceback carries.
-    content: bytes | None = field(default=None, repr=False)
+    _content: bytes | None = field(default=None, repr=False)
     read_etag: str | None = field(default=None, repr=False, compare=False)
+
+    @property
+    def content(self) -> bytes:
+        """The bytes, once this attachment has been read on its own route."""
+        if self._content is None:
+            raise AttributeError(
+                f"the attachment {self.name!r} was listed rather than read, so it has no content. "
+                "Read it with GateClient.attachment() first."
+            )
+
+        return self._content
 
     @property
     def etag(self) -> str:
@@ -699,7 +727,7 @@ class Attachment:
     @property
     def is_read(self) -> bool:
         """Whether the bytes were fetched, as opposed to only the name and the size."""
-        return self.content is not None
+        return self._content is not None
 
     @classmethod
     def listing(cls, body: dict[str, Any], etag: str | None = None) -> list[Attachment]:
@@ -719,7 +747,7 @@ class Attachment:
         return cls(
             name=_text(body, "name"),
             size=_size(body, "size"),
-            content=_content(body.get("content")),
+            _content=_content(body.get("content")),
             read_etag=etag,
         )
 

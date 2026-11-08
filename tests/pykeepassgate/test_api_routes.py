@@ -1023,6 +1023,39 @@ def test_a_listed_entry_says_nothing_about_when_it_expires(
         _ = listed.expired
 
 
+def test_a_listed_entry_says_nothing_about_which_strings_are_protected(
+    gate: FakeGate, paired: GateClient
+) -> None:
+    """Absent rather than none: a listing names no protected strings, though it may withhold some.
+
+    A listed entry that answered `()` named nothing protected beside a `withheld` title, which
+    contradicts itself, and `'Password' in entry.protected` answered `False` for every entry.
+    """
+    listing = {"entries": [{"uuid": UUID, "group": OTHER, "title": None, "url": ""}], "count": 1}
+    answering(gate, listing)
+
+    listed = paired.entries()[0]
+
+    assert listed.withheld == ("Title",)
+    assert not hasattr(listed, "protected")
+    with pytest.raises(AttributeError, match="listed rather than read"):
+        _ = listed.protected
+
+
+def test_a_listed_attachment_has_no_content_rather_than_none(
+    gate: FakeGate, paired: GateClient
+) -> None:
+    """A listing carries no bytes, so asking for them is asking for something never fetched."""
+    answering(gate, {"attachments": [{"name": "key.pem", "size": 451}]})
+
+    listed = paired.attachments(UUID)[0]
+
+    assert not listed.is_read
+    assert not hasattr(listed, "content")
+    with pytest.raises(AttributeError, match="listed rather than read"):
+        _ = listed.content
+
+
 def test_a_read_without_its_expiry_is_an_answer_this_client_cannot_read(
     gate: FakeGate, paired: GateClient
 ) -> None:
