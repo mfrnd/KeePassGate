@@ -320,6 +320,87 @@ def test_a_placeholder_a_replacement_made_is_refused_for_what_it_is() -> None:
         refs.resolve(Database([]), entry, "{S:Brace}C:an invented comment}")
 
 
+def test_a_placeholder_the_strings_made_is_refused_before_any_reference_is_followed() -> None:
+    # The check after the strings comes before the references are followed: without it the check
+    # after them still refuses the value, but only once each entry named has been read through the
+    # gate, an audit line each, and a withheld value there raised `Withheld` in its place.
+    lending = {"uuid": VAULT, "fields": {"Title": "Invented Vault", "Password": None}}
+    database = Database([lending])
+    entry = Entry.read(answer(SERVICE, {"Title": "UID}"}))
+
+    with pytest.raises(Unresolved, match="after a replacement"):
+        refs.resolve(database, entry, "{U{TITLE} {REF:P@I:" + VAULT + "}")
+
+    assert database.asked == [], "no other entry was read"
+
+
+@pytest.mark.parametrize("placeholder", ["BASE}", "TIMEOTP}"])  # cspell:ignore TIMEOTP
+def test_a_placeholder_a_reference_made_is_refused_for_what_it_is(placeholder: str) -> None:
+    # The check after the references, which nothing else reaches: an entry titled `{` makes a
+    # placeholder KeePass handles after following references, and replaces with '' there, as its
+    # own compiler answered on the review's measurement, where this would hand back the text.
+    database = Database([{"uuid": VAULT, "fields": {"Title": "{"}}])
+    entry = Entry.read(answer(SERVICE, {"Title": "Invented Service"}))
+
+    with pytest.raises(Unresolved, match="after a replacement"):
+        refs.resolve(database, entry, "{REF:T@I:" + VAULT + "}" + placeholder)
+
+
+# KeePass's order, measured with its own compiler on the review and pinned here rather than in
+# `ReferenceVectors.json`, which only the host tier writes: each was removable with every test
+# green, and its mutant refused or misread what KeePass follows.
+
+
+def test_a_malformed_reference_is_skipped_by_one_character_so_one_inside_it_is_followed() -> None:
+    database = Database([{"uuid": SERVICE, "fields": {"Title": "Invented Service"}}])
+    entry = Entry.read(answer(VAULT, {"Title": "Invented Vault"}))
+
+    value = "{REF:Z@I:{REF:T@I:" + SERVICE + "}"
+    assert refs.resolve(database, entry, value) == "{REF:Z@I:Invented Service"
+
+
+def test_a_reference_followed_leaves_the_search_where_it_was() -> None:
+    # Ten skipped references count against KeePass's twenty, and following a reference does not
+    # start the search again, so the two after them are still reached.
+    other = "A3000000000000000000000000000001"
+    database = Database(
+        [
+            {"uuid": SERVICE, "fields": {"Title": "Invented Service"}},
+            {"uuid": other, "fields": {"Title": "Other"}},
+        ]
+    )
+    entry = Entry.read(answer(VAULT, {"Title": "Invented Vault"}))
+    skipped = "{REF:Z@I:" + SERVICE + "}"
+
+    value = skipped * 10 + "{REF:T@I:" + SERVICE + "}{REF:T@I:" + other + "}"
+    assert refs.resolve(database, entry, value) == skipped * 10 + "Invented ServiceOther"
+
+
+def test_a_value_keepass_would_not_compile_is_handed_back_without_a_look() -> None:
+    # `SprEngine.MightChange`: no brace before a closing brace, so `{CMD:` is never seen.
+    entry = Entry.read(answer(SERVICE, {"Title": "Invented Service"}))
+
+    assert refs.resolve(Database([]), entry, "a{CMD:b") == "a{CMD:b"
+
+
+def test_the_standard_names_an_entry_does_not_hold_come_after_its_own() -> None:
+    # As KeePass appends them: `{S:Brace}` makes `{URL}` before the URL is looked for, and the
+    # entry holds none, so it is empty, where looking for it first left a `{URL}` behind.
+    entry = Entry.read(answer(SERVICE, {"Title": "Invented Service", "Brace": "{"}))
+
+    assert refs.resolve(Database([]), entry, "{S:Brace}URL}") == ""
+
+
+def test_a_string_met_on_two_branches_is_no_circle() -> None:
+    # The path is popped after each string, so a title both the user name and the password name
+    # is compiled twice rather than read as leading back to itself.
+    entry = Entry.read(
+        answer(SERVICE, {"Title": "T", "UserName": "{TITLE}u", "Password": "{TITLE}p"})
+    )
+
+    assert refs.resolve(Database([]), entry, "{USERNAME}{PASSWORD}") == "TuTp"
+
+
 def test_a_value_with_nothing_to_replace_asks_nothing() -> None:
     database = Database([])
     entry = Entry.read(answer(SERVICE, {"Title": "Invented Service"}))
