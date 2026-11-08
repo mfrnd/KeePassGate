@@ -60,7 +60,10 @@ namespace KeePassGate.Ui
         /// <summary>The plugin's writes, or null where there are none to wait for.</summary>
         private readonly IWriterState _writes;
 
-        /// <summary>The dialog on the screen, touched only on KeePass's thread.</summary>
+        /// <summary>
+        /// The dialog on the screen until it closes or a lock withdraws it, touched only on
+        /// KeePass's thread.
+        /// </summary>
         private ApprovalDialog _showing;
 
         public PairingApprovalPrompt(IUiThread ui, IGateLog log)
@@ -156,6 +159,10 @@ namespace KeePassGate.Ui
         /// its database no longer served and is never shown. Every way KeePass locks, its own
         /// timers, Ctrl and L, a session lock or switch, a suspend, a minimize, a change of remote
         /// control, ends in the same closing of the database that calls this.
+        ///
+        /// **Once per lock, however many databases it locks.** KeePass closes each open database
+        /// in turn, inside the dialog's own modal loop, and each close calls this while the dialog
+        /// is still on the screen, so the dialog is let go of here rather than when its loop ends.
         /// </remarks>
         public void Locked()
         {
@@ -165,6 +172,7 @@ namespace KeePassGate.Ui
                 return;
             }
 
+            _showing = null;
             _log.Warn("KeePass locked while a request was in front of the operator, so it was closed unanswered");
             showing.Withdraw();
         }

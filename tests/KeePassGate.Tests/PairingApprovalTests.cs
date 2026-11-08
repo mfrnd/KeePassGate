@@ -1259,6 +1259,46 @@ namespace KeePassGate.Tests
         }
 
         [Test]
+        [Apartment(ApartmentState.STA)]
+        public void A_lock_of_several_databases_closes_the_dialog_and_logs_it_once()
+        {
+            // S094. KeePass locks every open database in turn, inside the dialog's own modal loop,
+            // and the close of each tells the prompt. The dialog was still on the screen for all of
+            // them, so a request closed once was logged as closed once per database.
+            var prompt = new PairingApprovalPrompt(CurrentThread.Instance, _log);
+            prompt.RenewalDialog = (request, timeout) =>
+            {
+                using (var dialog = new RenewalApprovalForm(request, timeout, null, DateTime.Today, null))
+                {
+                    dialog.StartPosition = FormStartPosition.Manual;
+                    dialog.Location = new System.Drawing.Point(-4000, -4000);
+                    dialog.ShowInTaskbar = false;
+
+                    using (var timer = new System.Windows.Forms.Timer { Interval = 100 })
+                    {
+                        timer.Tick += delegate
+                        {
+                            timer.Stop();
+                            prompt.Locked();
+                            prompt.Locked();
+                            prompt.Locked();
+                        };
+
+                        timer.Start();
+                        prompt.Show(dialog);
+                    }
+
+                    return dialog.Answer();
+                }
+            };
+
+            var answer = prompt.Ask(Renewal(), Timeout);
+
+            Assert.That(answer.Decision, Is.EqualTo(PairingDecision.Locked));
+            Assert.That(_log.Warnings.Count(entry => entry.Message.Contains("closed unanswered")), Is.EqualTo(1));
+        }
+
+        [Test]
         public void A_dialog_delivered_inside_the_plugins_own_save_is_put_back_and_shown_once_the_save_ends()
         {
             // A dialog is a marshaled call, and a save pumps: delivered there it held the save,

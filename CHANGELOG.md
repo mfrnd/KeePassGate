@@ -330,6 +330,9 @@ none, since it releases both.
   audit**, since nobody was asked, and the log states that it was never shown. It was answered as
   a dialog the lock closed, so the audit recorded the operator leaving a question unanswered that
   never reached them, and the log a dialog closed that never stood.
+- **A lock that closes an approval dialog logs it once**, however many databases are open. KeePass
+  locks each of them in turn while the dialog stands, and each logged again that the request in
+  front of the operator was closed unanswered.
 
 ## 0.1.0, 2026-10-25
 
