@@ -311,7 +311,7 @@ rather than being closed.
 **The settings dialog an invitation was made on takes it back unless that dialog is accepted.**
 The code is good the moment it is shown, so a program can pair before OK, but Cancel, or closing the
 dialog any other way, withdraws it if nobody has used it yet. That is the dialog's OK and Cancel
-meaning what they say for the one thing on the tab that the database does not hold. A code already
+meaning what they promise for the one thing on the tab that takes effect before OK. A code already
 spent stays spent, since the record it led to is the database's and a revocation takes that back.
 
 ---
