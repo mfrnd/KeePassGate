@@ -14,7 +14,8 @@ namespace KeePassGate.Gate
     /// closes the database, so the authority, the admission records and the normal host key are all
     /// gone. Two things are deliberately kept.
     ///
-    /// **The responder certificate**, minted while the database was open and held only in memory.
+    /// **The responder certificate**, minted at the lock from the authority the gate last read,
+    /// after KeePass has closed the database, and held only in memory.
     /// Without it there is nothing to complete a handshake with, and a client gets a bare
     /// connection failure indistinguishable from a wrong port, a stopped KeePass, or an attack.
     /// With it, a locked KeePass says "locked" and a client can wait rather than guess.

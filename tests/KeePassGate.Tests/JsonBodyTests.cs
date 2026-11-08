@@ -256,6 +256,38 @@ namespace KeePassGate.Tests
             Assert.That(body.Count, Is.EqualTo(1));
         }
 
+        [TestCase("{\"a\":\"b\"\u00A0}")]
+        [TestCase("\u2028{\"a\":\"b\"}")]
+        [TestCase("{\"a\":\"b\"} \u3000")]
+        [TestCase("{\u0085\"a\"\u2003:\"b\"}")]
+        public void Whitespace_JSON_does_not_count_between_the_tokens_is_skipped(string text)
+        {
+            // Json.NET skips every character .NET counts as whitespace there, not only JSON's four,
+            // and none of them carries a member, so the leniency is read as the object it obviously
+            // is and pinned for the reason the others are.
+            var body = JsonBody.Read(text);
+
+            Assert.That(body, Is.Not.Null, text);
+            Assert.That(body.Text("a"), Is.EqualTo("b"));
+            Assert.That(body.Count, Is.EqualTo(1));
+        }
+
+        [TestCase("{\"a\":\"b\"\uFEFF}")]
+        [TestCase("\uFEFF{\"a\":\"b\"}")]
+        public void A_byte_order_mark_between_the_tokens_is_refused(string text)
+        {
+            // Not whitespace to .NET, so Json.NET refuses it there rather than skipping it.
+            Assert.That(JsonBody.Read(text), Is.Null);
+        }
+
+        [Test]
+        public void A_tab_or_a_carriage_return_written_raw_in_a_value_is_a_value()
+        {
+            // The same grammar as a raw line feed, below, and the two other controls XML keeps.
+            Assert.That(JsonBody.Read("{\"a\":\"one\ttwo\"}").Text("a"), Is.EqualTo("one\ttwo"));
+            Assert.That(JsonBody.Read("{\"a\":\"one\rtwo\"}").Text("a"), Is.EqualTo("one\rtwo"));
+        }
+
         [Test]
         public void Something_nested_is_refused()
         {

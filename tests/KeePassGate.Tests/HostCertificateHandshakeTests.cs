@@ -148,6 +148,21 @@ namespace KeePassGate.Tests
         }
 
         [Test]
+        public void The_certificate_request_names_no_authority_and_one_signature_algorithm()
+        {
+            // What a client is asked for. No authorities, because a client of the gate needs no
+            // help choosing a certificate and every authority's subject is the same name, and a
+            // single signature algorithm, ECDSA over P-256 with SHA-256, which a client's key is.
+            var request = new GateTlsServer(new BcTlsCrypto(new SecureRandom()), _host)
+                .GetCertificateRequest();
+
+            Assert.That(request.CertificateAuthorities, Is.Null.Or.Empty);
+            Assert.That(request.SupportedSignatureAlgorithms, Has.Count.EqualTo(1));
+            Assert.That(request.SupportedSignatureAlgorithms[0].Hash, Is.EqualTo(HashAlgorithm.sha256));
+            Assert.That(request.SupportedSignatureAlgorithms[0].Signature, Is.EqualTo(SignatureAlgorithm.ecdsa));
+        }
+
+        [Test]
         public void A_host_certificate_that_cannot_be_read_is_refused_rather_than_half_used()
         {
             Assert.That(CertifiedKey.From(null), Is.Null);

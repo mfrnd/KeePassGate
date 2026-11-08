@@ -188,7 +188,7 @@ namespace KeePassGate.Tests
             _incidents = new GateIncidents(_log);
             _watch = new LockWatch(_events, _targets, () => _connections, _log, _incidents, _screen);
 
-            Assert.That(_watch.Start(), Is.True);
+            _watch.Start();
         }
 
         [TearDown]
@@ -468,7 +468,7 @@ namespace KeePassGate.Tests
         [Test]
         public void Starting_twice_watches_once()
         {
-            Assert.That(_watch.Start(), Is.True);
+            _watch.Start();
 
             _events.RaiseClosed("C:\\invented\\one.kdbx", true);
 

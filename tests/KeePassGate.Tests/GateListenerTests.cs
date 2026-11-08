@@ -104,6 +104,56 @@ namespace KeePassGate.Tests
         }
 
         [Test]
+        [NonParallelizable]
+        public void A_port_that_could_not_be_taken_leaves_no_socket_behind()
+        {
+            // A `TcpListener` makes its socket as it is constructed, and a `Start` refused for a
+            // port already taken leaves it open, since the bind that failed is outside what `Start`
+            // unwinds; `Stop` closes it and makes another. Dropped with nothing closing them, each
+            // refusal was a handle the password manager held until a collection, so this runs
+            // where nothing collects, and alone, since the count it reads is the process's.
+            const int refusals = 64;
+            var refused = Enumerable.Range(0, refusals)
+                .Select(i => new GateListener(
+                    new GateOptions { Port = _listener.Port },
+                    new GateResolver(_targets, _log),
+                    GateOperations.Router("9.9.9"),
+                    _log))
+                .ToList();
+
+            var before = Handles();
+            Assume.That(GC.TryStartNoGCRegion(4 * 1024 * 1024), Is.True, "a region with no collection");
+            try
+            {
+                foreach (var listener in refused)
+                {
+                    Assert.That(listener.Start(), Is.False, "the port is already this fixture's");
+                }
+            }
+            finally
+            {
+                if (System.Runtime.GCSettings.LatencyMode == System.Runtime.GCLatencyMode.NoGCRegion)
+                {
+                    GC.EndNoGCRegion();
+                }
+            }
+
+            var after = Handles();
+
+            Assert.That(after - before, Is.LessThan(refusals / 2),
+                refusals + " refusals left " + (after - before) + " handles open");
+        }
+
+        /// <summary>How many handles the test process holds right now.</summary>
+        private static int Handles()
+        {
+            using (var process = Process.GetCurrentProcess())
+            {
+                return process.HandleCount;
+            }
+        }
+
+        [Test]
         public void A_port_refused_before_it_was_tried_is_kept_as_why_nothing_listens()
         {
             // A `KEEPASSGATE_PORT` that names something other than a port stops the gate before any
@@ -324,6 +374,50 @@ namespace KeePassGate.Tests
                 Assert.That(reply.Answered, Is.False,
                     "an unresolvable name must be indistinguishable from a port with nothing behind it");
             }
+        }
+
+        [Test]
+        public void A_run_of_names_nothing_answers_to_writes_one_line_and_each_reason_its_own()
+        {
+            // A name no open database answers to costs a peer one packet and proves nothing, so a
+            // line for each let a single loop of them fill the plugin's log at its bound and push
+            // out the file kept before it in under two minutes. The first of a run is written and
+            // the rest are counted into the next, as for refusals above the ceiling, and a run of
+            // one reason hides none of the others.
+            var forged = ClientHelloBuilder.WithName(SniName.For(new byte[32]));
+            for (var i = 0; i < 4; i++)
+            {
+                GateClient.SendRaw(_listener.Port, forged);
+            }
+
+            GateClient.SendRaw(_listener.Port, new ClientHelloBuilder().Build());
+
+            Assert.That(Waited(() => Drops(GateOutcome.NoName) == 1), Is.True,
+                "a nameless hello after a run of unanswered names was not written");
+            Assert.That(Drops(GateOutcome.NoMatch), Is.EqualTo(1),
+                "four connections naming nothing wrote a line each, so a peer that proves nothing writes the log");
+        }
+
+        [Test]
+        public void A_paced_line_is_written_once_an_interval_and_counts_what_it_did_not_write()
+        {
+            var line = new GateListener.PacedLine(TimeSpan.FromMinutes(1));
+            int since;
+
+            Assert.That(line.Due(TimeSpan.FromSeconds(10), out since), Is.True, "the first is written at once");
+            Assert.That(since, Is.Zero);
+            Assert.That(line.Due(TimeSpan.FromSeconds(20), out since), Is.False);
+            Assert.That(line.Due(TimeSpan.FromSeconds(69), out since), Is.False);
+            Assert.That(line.Due(TimeSpan.FromSeconds(70), out since), Is.True, "and the next a whole interval later");
+            Assert.That(since, Is.EqualTo(2), "carrying the two that were not written");
+            Assert.That(line.Due(TimeSpan.FromSeconds(71), out since), Is.False);
+        }
+
+        /// <summary>How many lines of this fixture's log tell of a drop for this reason.</summary>
+        private int Drops(GateOutcome outcome)
+        {
+            var start = "dropped a connection: " + outcome.ToString().ToLowerInvariant();
+            return _log.Entries.Count(entry => entry.Message.StartsWith(start, StringComparison.Ordinal));
         }
 
         [Test]
@@ -548,7 +642,8 @@ namespace KeePassGate.Tests
             using (var certificate = _first.IssueAdmittedClient())
             {
                 var reply = GateClient.Send(
-                    _listener.Port, _first.NewName(), certificate, "POST /thing HTTP/1.1\r\nTransfer-Encoding: chunked\r\n\r\n");
+                    _listener.Port, _first.NewName(), certificate,
+                    "POST /thing HTTP/1.1\r\nHost: gate\r\nTransfer-Encoding: chunked\r\n\r\n");
 
                 Assert.That(reply.Status, Is.EqualTo(501), reply.Failure);
             }
@@ -771,6 +866,57 @@ namespace KeePassGate.Tests
         }
 
         [Test]
+        public void A_stop_after_the_accept_loop_ended_still_closes_what_it_accepted()
+        {
+            // An accept loop that fails retires the port itself, and the stop that followed found
+            // nothing listening and returned before closing anything, so a connection accepted
+            // before the failure was served on past the plugin's teardown. A read here may block
+            // for a minute, and so may the phase before the name resolves, so a connection this
+            // closes is the stop's.
+            var options = new GateOptions
+            {
+                Port = 0,
+                Timeout = TimeSpan.FromSeconds(60),
+                Budget = TimeSpan.FromSeconds(60),
+            };
+
+            using (var listener = new GateListener(
+                options, new GateResolver(_targets, _log), GateOperations.Router("9.9.9"), _log))
+            {
+                Assert.That(listener.Start(), Is.True);
+
+                using (var peer = new TcpClient())
+                {
+                    peer.Connect(IPAddress.Loopback, listener.Port);
+                    Assert.That(Waited(() => Conversations(listener) == 1), Is.True, "the connection was never taken");
+
+                    Underneath(listener).Stop();
+                    Assert.That(Waited(() => !listener.IsListening), Is.True, "the accept loop did not end");
+
+                    listener.Stop();
+
+                    peer.ReceiveTimeout = 30000;
+                    var spent = Stopwatch.StartNew();
+                    int read;
+                    try
+                    {
+                        read = peer.GetStream().ReadByte();
+                    }
+                    catch (IOException)
+                    {
+                        read = -1;
+                    }
+
+                    spent.Stop();
+
+                    Assert.That(read, Is.EqualTo(-1), "nothing arrives on a connection the gate closed");
+                    Assert.That(spent.Elapsed, Is.LessThan(TimeSpan.FromSeconds(20)),
+                        "the connection outlived the stop and ended only at a deadline of its own");
+                }
+            }
+        }
+
+        [Test]
         public void More_connections_than_it_will_serve_are_closed_rather_than_queued()
         {
             // The gate borrows the password manager's thread pool, so a connection that waits is a
@@ -924,6 +1070,118 @@ namespace KeePassGate.Tests
                 Assert.That(reply.Status, Is.EqualTo(201));
                 Assert.That(spent.Elapsed, Is.GreaterThan(options.Budget),
                     "and it took longer than the budget, which is the whole point of the case");
+            }
+        }
+
+        [TestCase("\r\n")]
+        [TestCase("GET /gate/status HTTP/1.1\r\nHost: gate\r\n\r\n")]
+        public void A_client_that_sends_more_after_its_request_still_reads_the_answer(string more)
+        {
+            // A socket closed with the peer's bytes unread is answered by the stack with a reset,
+            // which discards whatever reached the peer and was not read yet. A record sent after
+            // the request, a line break written on its own or a second request pipelined behind
+            // the first, was never read, so the close was a reset and a client reading a moment
+            // late lost the answer, a landed write's `201` as much as this.
+            var handler = new ThreadHandler();
+            using (var listener = new GateListener(
+                new GateOptions { Port = 0 }, new GateResolver(_targets, _log), handler, _log))
+            {
+                Assert.That(listener.Start(), Is.True);
+
+                string answer;
+                using (var tcp = new TcpClient())
+                {
+                    tcp.Connect(IPAddress.Loopback, listener.Port);
+                    tcp.ReceiveTimeout = 10000;
+                    using (var tls = new System.Net.Security.SslStream(
+                        tcp.GetStream(), false, delegate { return true; }))
+                    {
+                        tls.AuthenticateAsClient(
+                            _first.NewName(), null, System.Security.Authentication.SslProtocols.Tls13,
+                            false);
+
+                        var records = new[] { "GET /gate/status HTTP/1.1\r\nHost: gate\r\n\r\n", more };
+                        foreach (var bytes in records.Select(record => Encoding.ASCII.GetBytes(record)))
+                        {
+                            tls.Write(bytes, 0, bytes.Length);
+                            tls.Flush();
+                        }
+
+                        // Long enough for the gate to have answered and closed before this reads.
+                        Thread.Sleep(TimeSpan.FromSeconds(1));
+                        answer = ReadAll(tls);
+                    }
+                }
+
+                Assert.That(answer, Does.StartWith("HTTP/1.1 200 "), "the answer was lost to a reset");
+                Assert.That(answer, Does.EndWith("{}"), "and was read whole");
+            }
+        }
+
+        /// <summary>What a client read before the connection ended, or why it ended without a word.</summary>
+        private static string ReadAll(System.IO.Stream stream)
+        {
+            using (var read = new MemoryStream())
+            {
+                var buffer = new byte[4096];
+                try
+                {
+                    int got;
+                    while ((got = stream.Read(buffer, 0, buffer.Length)) > 0)
+                    {
+                        read.Write(buffer, 0, got);
+                    }
+                }
+                catch (IOException error)
+                {
+                    return read.Length > 0 ? Encoding.ASCII.GetString(read.ToArray()) : "no answer: " + error.Message;
+                }
+
+                return Encoding.ASCII.GetString(read.ToArray());
+            }
+        }
+
+        [Test]
+        public void An_answer_its_peer_does_not_read_is_cut_off_at_the_budget()
+        {
+            // How fast an answer is read is the peer's doing, as the pace of its request was. The
+            // socket's send timeout bounds one send, which is one TLS record, so a peer reading a
+            // record inside each timeout held a thread and a slot for as long as the answer
+            // lasted. Here a read may block for two minutes and the budget is five seconds, which
+            // is generous because the handshake is inside it, and nothing reads the answer, which
+            // is far larger than the buffers between the two ends: the write is closed under at
+            // the budget, or at the end of a send timeout this waits a quarter of.
+            var options = new GateOptions
+            {
+                Port = 0,
+                Timeout = TimeSpan.FromSeconds(120),
+                Budget = TimeSpan.FromSeconds(5),
+            };
+
+            using (var listener = new GateListener(
+                options, new GateResolver(_targets, _log), new LargeHandler(16 * 1024 * 1024), _log))
+            {
+                Assert.That(listener.Start(), Is.True);
+
+                using (var tcp = new TcpClient())
+                {
+                    tcp.Connect(IPAddress.Loopback, listener.Port);
+                    using (var tls = new System.Net.Security.SslStream(
+                        tcp.GetStream(), false, delegate { return true; }))
+                    {
+                        tls.AuthenticateAsClient(
+                            _first.NewName(), null, System.Security.Authentication.SslProtocols.Tls13,
+                            false);
+                        var request = Encoding.ASCII.GetBytes(
+                            "GET " + GateOperations.StatusPath + " HTTP/1.1\r\nHost: gate\r\n\r\n");
+                        tls.Write(request, 0, request.Length);
+                        tls.Flush();
+
+                        Assert.That(
+                            Waited(() => _log.Warnings.Any(w => w.Message.Contains("could not be written"))),
+                            Is.True, "an answer nobody read held its connection past the budget");
+                    }
+                }
             }
         }
 
@@ -1302,6 +1560,22 @@ namespace KeePassGate.Tests
                 Interlocked.Increment(ref _entered);
                 _released.Wait(TimeSpan.FromSeconds(30));
                 context.Respond(200, "{}");
+            }
+        }
+
+        /// <summary>A handler whose answer is one string member this many characters long.</summary>
+        private sealed class LargeHandler : IGateHandler
+        {
+            private readonly string _answer;
+
+            public LargeHandler(int length)
+            {
+                _answer = "{\"a\":\"" + new string('a', length) + "\"}";
+            }
+
+            public void Handle(IGateContext context)
+            {
+                context.Respond(200, _answer);
             }
         }
 

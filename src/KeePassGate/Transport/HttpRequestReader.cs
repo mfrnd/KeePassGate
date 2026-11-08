@@ -192,6 +192,16 @@ namespace KeePassGate.Transport
                 headers[name] = value;
             }
 
+            // RFC 9112 section 3.2 requires a `400` for an HTTP/1.1 request without exactly one
+            // `Host`, and a second is refused above, as any repeated header is. Nothing reads the
+            // value: the gate routes by the name the connection's TLS was made under, so asking for
+            // the field is the grammar's rule rather than something routing needs.
+            // https://www.rfc-editor.org/rfc/rfc9112#section-3.2
+            if (!headers.ContainsKey("Host"))
+            {
+                return HttpReadResult.Refused(BadRequest, "a request needs a host header", method, announced);
+            }
+
             long length = 0;
             string lengthHeader;
             if (headers.TryGetValue("Content-Length", out lengthHeader))
@@ -382,7 +392,7 @@ namespace KeePassGate.Transport
         /// that has finished to hang up. So a length given twice counts as the larger, and a line
         /// the parser would refuse still counts if it gives a length. A client that sent `Expect`
         /// announces nothing whatever length it gives, because it has sent nothing and is waiting
-        /// to be told to.
+        /// to be told to, unless its request line is HTTP/1.0's, whose expectation is ignored.
         ///
         /// A head over the cap is read on from <paramref name="stream"/> to its blank line, with
         /// no line held past the cap, so that its body can be taken too. What bounds that read is
@@ -394,6 +404,7 @@ namespace KeePassGate.Transport
         {
             var length = 0L;
             var expecting = false;
+            var expectIgnored = false;
             var line = new StringBuilder();
             var overlong = false;
             var requestLine = true;
@@ -431,6 +442,14 @@ namespace KeePassGate.Transport
                     {
                         Note(line.ToString(), ref length, ref expecting);
                     }
+                    else if (requestLine)
+                    {
+                        // An expectation is ignored in an HTTP/1.0 request, RFC 9110 section
+                        // 10.1.1, so such a client sends its body without being asked: refused as
+                        // a version this reader does not serve, it still has that body drained.
+                        expectIgnored = line.ToString()
+                            .EndsWith(" HTTP/1.0", StringComparison.Ordinal);
+                    }
 
                     requestLine = false;
                     overlong = false;
@@ -451,7 +470,7 @@ namespace KeePassGate.Transport
                 }
             }
 
-            return expecting ? 0 : length;
+            return expecting && !expectIgnored ? 0 : length;
         }
 
         /// <summary>
@@ -545,11 +564,15 @@ namespace KeePassGate.Transport
                 return HttpReadResult.Refused(UriTooLong, "the target is over 2048 characters", method, announced);
             }
 
-            if (!string.Equals(parts[2], "HTTP/1.1", StringComparison.Ordinal) &&
-                !string.Equals(parts[2], "HTTP/1.0", StringComparison.Ordinal))
+            // HTTP/1.1 and nothing else, the operator's ruling of 2026-11-08. The version is not
+            // kept, so a request of another version would be held to 1.1's rules where they
+            // differ, and HTTP/1.0 was: it was read, and sent `100 Continue` for an `Expect` that
+            // RFC 9110 section 10.1.1 requires a server to ignore in a 1.0 request.
+            // https://www.rfc-editor.org/rfc/rfc9110#section-10.1.1
+            if (!string.Equals(parts[2], "HTTP/1.1", StringComparison.Ordinal))
             {
                 return HttpReadResult.Refused(
-                    VersionNotSupported, "only HTTP/1.1 and HTTP/1.0 are accepted", method, announced);
+                    VersionNotSupported, "only HTTP/1.1 is accepted", method, announced);
             }
 
             target = parts[1];

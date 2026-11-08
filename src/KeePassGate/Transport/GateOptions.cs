@@ -37,6 +37,7 @@ namespace KeePassGate.Transport
             Timeout = TimeSpan.FromSeconds(10);
             Budget = TimeSpan.FromSeconds(90);
             PairingBudget = DefaultPairingBudget;
+            Linger = TimeSpan.FromSeconds(2);
         }
 
         public int Port { get; set; }
@@ -60,11 +61,33 @@ namespace KeePassGate.Transport
         /// </remarks>
         public int MaxConnections { get; set; }
 
-        /// <summary>How long a single read may block before the socket is given up on.</summary>
+        /// <summary>
+        /// How long a single read or a single send may block before the socket is given up on.
+        /// </summary>
+        /// <remarks>
+        /// A send is one TLS record, so this bounds neither a request nor an answer: a peer that
+        /// moves a record inside it every time is never cut off by it. <see cref="Budget"/> is what
+        /// bounds both.
+        /// </remarks>
         public TimeSpan Timeout { get; set; }
 
         /// <summary>
-        /// How long a whole connection may take, however slowly it is being fed.
+        /// How long an answered connection waits on a quiet peer, once its own sending half is
+        /// shut, before closing. Two seconds.
+        /// </summary>
+        /// <remarks>
+        /// What the peer sent after its request is read and dropped first, because a socket
+        /// closed over unread bytes is answered by the stack with a reset, and the reset discards
+        /// the answer the peer has not read yet: `GateListener.Linger` has the reasons. A client
+        /// that has its answer closes at once, which ends the wait at once, so this is the time
+        /// a peer that neither sends nor closes keeps its slot. Two seconds is the pause Apache's
+        /// lingering close allows between reads, and the connection's deadline bounds the whole.
+        /// </remarks>
+        public TimeSpan Linger { get; set; }
+
+        /// <summary>
+        /// How long a connection may take to deliver its request once its name has resolved, and
+        /// again to have its answer read, however slowly the peer sends or reads.
         /// </summary>
         /// <remarks>
         /// Separate from <see cref="Timeout"/> because that one bounds a read and not a
@@ -78,7 +101,8 @@ namespace KeePassGate.Transport
         /// the thread nor the connection slot: all it does is destroy the answer to a write that
         /// lands anyway, leaving a client that has to guess whether its create happened and holds
         /// no identifier for the entry if it did. `GateListener.Deadline.Disarm` is where that is,
-        /// with the argument.
+        /// with the argument. It is set again, counted afresh, once the answer is being written,
+        /// because how fast an answer is read is the peer's doing: `GateListener.Deadline.Writing`.
         ///
         /// **It used to be said to have a floor**, and the floor was `DatabaseWriter.LockTimeout`
         /// plus `DatabaseWriter.WriteTimeout`, on the ground that the second of those bounds the

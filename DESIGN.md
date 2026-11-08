@@ -295,12 +295,14 @@ is the one to answer first, because the fit was never in doubt.
 | Refused | Where |
 | --- | --- |
 | An unresolvable SNI | the gate, before any TLS work |
+| Any HTTP version but 1.1, HTTP/1.0 included | the request line, 505 |
 | Any request with `Transfer-Encoding` | header parse, before the body is read |
 | Bodies over 1 MB | by `Content-Length`, before reading |
 | An `Expect` that is not `100-continue` | before the body, 417 |
 | A header block over 8 KB | during the parse |
 | What the grammar does not allow: a control character in a header value, a header folded onto the next line, a character RFC 3986 says to escape arriving bare, a query name sent twice | during the parse, 400 |
 | A header sent twice, `Content-Length` among them, since keeping one of the two is a guess | during the parse, 400 |
+| A request with no `Host`, which RFC 9112 section 3.2 requires of HTTP/1.1, although routing reads the TLS name instead | once the headers are read, 400 |
 | A path with a segment that is `.` or `..`, escaped or not | during the parse, 400 |
 | WebSocket upgrade | never implemented |
 | Keep-alive | responses always close |
@@ -313,6 +315,14 @@ so the body a refused head announced is taken off the wire and dropped before th
 closes, and a head over 8 KB is read on to its end first. What the head announced is read off
 the whole of it, whatever the refusal was decided on, because the request line comes before the
 length and so may a header that is refused.
+
+**And so can every answer, whatever the client sent after its request.** A second request
+pipelined behind the first, a line break written as a record of its own, or the `close_notify` of
+a client that shut its sending half was left unread, and the close was the same reset. So an
+answered connection is closed as RFC 9112 section 9.6 describes: the gate's sending half first,
+then what still arrives is read and dropped until the client closes, stays quiet for
+`GateOptions.Linger`, or has sent as much as one more request could hold, under the deadline the
+connection already has.
 
 The listener binds `https://127.0.0.1:<port>/` only. Nothing binds off loopback, by construction;
 reaching it from elsewhere is a tunnel's job. Binding off loopback would put a password
@@ -1089,6 +1099,13 @@ So the rules here:
   leaving a client unable to tell a create that happened from one that did not and holding no
   identifier either way. That is the same loss pairing is protected from, arriving on every other
   route.
+
+  **And it starts again when the answer is written**, counted afresh, because how fast an answer
+  is read is the peer's doing as much as how fast a request is sent. The socket's send timeout
+  does not bound it, since it bounds one send, which is one TLS record: a peer reading a record
+  inside every timeout held a thread and a connection slot for as long as a large answer lasted,
+  minutes for an attachment. By then the plugin's own work is over, so closing the socket there
+  costs only an answer its peer was not reading.
 
   **This section used to claim a floor instead**, `DatabaseWriter.LockTimeout +
   DatabaseWriter.WriteTimeout`, and say that a budget above the sum prevented the loss. It does

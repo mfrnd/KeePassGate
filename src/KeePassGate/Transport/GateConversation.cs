@@ -126,15 +126,22 @@ namespace KeePassGate.Transport
         /// what a route about a client's own admission writes.
         /// </remarks>
         /// <param name="peer">
-        /// The address the connection came from, for the two routes that show it to a person, or
-        /// null where nobody knows.
+        /// The address the connection came from, for the renewal dialog, which shows it to a
+        /// person, or null where nobody knows. A pairing has its own copy, on the pairing
+        /// connection, and reads that instead.
         /// </param>
         /// <param name="arrived">
         /// Told that the whole request is off the wire, and what it asked for, which is the instant
-        /// the peer stops having anything to do with how long the rest takes. The listener hangs its
-        /// connection deadline on it, and the request is what says whether the rest waits on a
-        /// person: see `GateListener.Deadline.Disarm`. Null where nothing is counting, which is
-        /// every test of this over a pair of memory streams.
+        /// the peer stops having anything to do with how long the plugin's own work takes. The
+        /// listener hangs its connection deadline on it, and the request is what decides whether
+        /// the rest waits on a person: see `GateListener.Deadline.Disarm`. Null where nothing is
+        /// counting, which is every test of this over a pair of memory streams.
+        /// </param>
+        /// <param name="answering">
+        /// Told that the handler has decided and its answer is about to be written, which is the
+        /// instant the peer has something to do with how long the rest takes again: how fast it
+        /// reads. The listener gives the write a deadline of its own here, see
+        /// `GateListener.Deadline.Writing`. Null where nothing is counting.
         /// </param>
         public static void Serve(
             Stream stream,
@@ -146,7 +153,8 @@ namespace KeePassGate.Transport
             GateIncidents incidents,
             Gate.IGateTarget target,
             string peer = null,
-            Action<HttpRequestHead> arrived = null)
+            Action<HttpRequestHead> arrived = null,
+            Action answering = null)
         {
             if (stream == null)
             {
@@ -211,9 +219,9 @@ namespace KeePassGate.Transport
             if (arrived != null)
             {
                 // Here rather than after the handler, because here is where the peer stops being
-                // able to make this connection take any longer. Everything below is this plugin's
-                // own work and the write of the answer, and neither is something to close a socket
-                // over: the one bound that matters to the answer is the socket's `SendTimeout`.
+                // able to make this connection take any longer. What follows is this plugin's own
+                // work, which is nothing to close a socket over, and then the write of the answer,
+                // which the listener bounds again once it begins: see `answering`.
                 arrived(head);
             }
 
@@ -245,6 +253,7 @@ namespace KeePassGate.Transport
                 // attachment by what it is called, and a name does not go into a log that somebody
                 // with no right to the database may read. The exception says which handler it was.
                 incidents.Record("a handler failed on " + head.Method, error);
+                answering?.Invoke();
                 Answer(
                     stream, 500, HttpResponse.ErrorBody("internal error"), logger,
                     IsHead(head.Method));
@@ -252,6 +261,7 @@ namespace KeePassGate.Transport
             }
 
             // The one answer a handler decided, so the one that can carry a field of its own.
+            answering?.Invoke();
             Answer(
                 stream, context.Status, context.Json, logger, IsHead(head.Method), context.Headers);
         }
@@ -267,8 +277,11 @@ namespace KeePassGate.Transport
         ///
         /// **Where this sits is the point.** By now `ReadHead` has already refused a body that is
         /// too long, a duplicate length, and a transfer encoding, all without reading a byte of the
-        /// body. So a client that would have been refused is refused **before** being invited to
+        /// body. So a client the reader would have refused is refused **before** being invited to
         /// send, which is better than the alternative: it sends a megabyte and is then told no.
+        /// That is the reader's refusals and no others. What the router refuses, about the
+        /// caller, the route or the rules, it refuses once the body is read, because the
+        /// transport reads a request whole before routing it.
         ///
         /// An expectation that is not `100-continue` is refused rather than ignored, because
         /// ignoring one means proceeding while the client believes something that is not true.

@@ -138,9 +138,13 @@ namespace KeePassGate.Gate
     ///
     /// Order matters at a lock, and what it buys is narrower than it looks. The material is let go
     /// **before** the connections are closed, but letting go is releasing a reference, not wiping:
-    /// a connection already in flight holds one of its own and the material lives until it finishes,
-    /// which its deadline bounds. What the order does guarantee is that no connection arriving after
-    /// the lock can reach it, and that the ones still running are being closed rather than served.
+    /// a connection already in flight holds a reference of its own and the material lives until
+    /// it ends. A pairing's or a renewal's deadline bounds that. Nothing of this plugin's bounds an
+    /// ordinary write in flight, whose deadline was disarmed with its request: closing its socket
+    /// frees no thread, so the material is held until its write and save end, and then for as long
+    /// as its answer's write is allowed. What the order does guarantee is that no connection
+    /// arriving after the lock can reach it, and that the connections still running are being
+    /// closed rather than served.
     /// The data path is closed either way, because a locked target answers no records at all.
     ///
     /// **A lock spares the connections waiting on the operator**, and closes the question they are
@@ -224,28 +228,27 @@ namespace KeePassGate.Gate
             _incidents = incidents ?? new GateIncidents(_log);
         }
 
-        public bool Start()
+        /// <summary>Subscribes to the database events, once however often it is asked.</summary>
+        /// <remarks>
+        /// Nothing to report and nothing caught, because subscribing cannot fail: the events
+        /// KeePass's main window raises reach this through `MainWindowDatabases`, whose events
+        /// are field-like, and adding a handler to such an event throws nothing. A catch here, and
+        /// a result answering whether it ran, described a failure that cannot happen to a caller
+        /// that never asked.
+        /// </remarks>
+        public void Start()
         {
             lock (_stateLock)
             {
                 if (_started)
                 {
-                    return true;
+                    return;
                 }
 
-                try
-                {
-                    _databases.Opened += OnOpened;
-                    _databases.Closing += OnClosing;
-                    _databases.Closed += OnClosed;
-                    _started = true;
-                    return true;
-                }
-                catch (Exception error) when (Expected.OfUserInterface(error))
-                {
-                    _log.Error("the lock transitions could not be watched", error);
-                    return false;
-                }
+                _databases.Opened += OnOpened;
+                _databases.Closing += OnClosing;
+                _databases.Closed += OnClosed;
+                _started = true;
             }
         }
 
@@ -261,16 +264,11 @@ namespace KeePassGate.Gate
                 _started = false;
             }
 
-            try
-            {
-                _databases.Opened -= OnOpened;
-                _databases.Closing -= OnClosing;
-                _databases.Closed -= OnClosed;
-            }
-            catch (Exception error) when (Expected.OfUserInterface(error))
-            {
-                _log.Error("the lock watch could not be released", error);
-            }
+            // Nothing caught, for the reason `Start` catches nothing: removing a handler from a
+            // field-like event throws nothing either.
+            _databases.Opened -= OnOpened;
+            _databases.Closing -= OnClosing;
+            _databases.Closed -= OnClosed;
         }
 
         /// <summary>

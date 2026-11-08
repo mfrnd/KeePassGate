@@ -130,11 +130,13 @@ namespace KeePassGate.Gate
         /// Writes an admission record and makes it durable, on whichever thread owns the database.
         /// </summary>
         /// <remarks>
-        /// The one write the transport ever asks for, and it marshals synchronously like every
-        /// write this plugin makes, so what it answers is whether the record is on disk. It is
-        /// checked again inside the write, because the answer to <see cref="AdmissionBlocked"/>
-        /// can change between asking and writing, and a pairing that cannot land its record has
-        /// to fail rather than hand over a certificate nobody can see.
+        /// One of the three writes a connection asks of its target, beside <see cref="Revoke"/>
+        /// and <see cref="RefuseRenewal"/>, the API's own going through <see cref="Vault"/>. It
+        /// marshals synchronously like every write this plugin makes, so what it answers is
+        /// whether the record is on disk. It is checked again inside the write, because the answer
+        /// to <see cref="AdmissionBlocked"/> can change between asking and writing, and a pairing
+        /// that cannot land its record has to fail rather than hand over a certificate nobody can
+        /// see.
         /// </remarks>
         /// <param name="condition">
         /// Why the record may no longer be written, or null when it may, asked of the database's
@@ -173,6 +175,13 @@ namespace KeePassGate.Gate
         /// The operator's standing answer to renewing this certificate, read now, or null when
         /// there is none.
         /// </summary>
+        /// <remarks>
+        /// **A read that fails throws**, an exception `Expected.OfCustomData` names, rather than
+        /// answering null. Null is the answer that puts the renewal dialog in front of the
+        /// operator, and an answer that could not be read is not an answer that is absent, so
+        /// `RenewalHandler` answers the failure `503 busy` instead. An implementation that caught
+        /// it and answered null would ask the operator again something already refused.
+        /// </remarks>
         RenewalRefusal StandingRefusal(string admissionKey);
 
         /// <summary>

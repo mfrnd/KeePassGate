@@ -11,6 +11,40 @@ none, since it releases both.
 
 ## 0.2.0, unreleased
 
+- **A port the gate could not take, and a gate that stops, leave no socket open behind them.** On
+  .NET Framework a refused listener kept the socket it was made with, and a stopped listener
+  opened a new socket, each held by the password manager until a collection.
+- **The gate closes every connection it is serving when the plugin stops, even after its accept
+  loop failed.** A loop that ended for a reason nobody chose had already given the port up, and
+  the stop that followed closed nothing, so connections accepted before the failure were served
+  on past the plugin's teardown.
+- **A run of connections naming nothing an open database answers to writes one log line a
+  minute**, the first at once and the rest counted into the next, as refusals above the connection
+  ceiling already were. Each wrote a line, and such a connection needs no key, certificate or
+  invitation, so one loop of them pushed the plugin's log and the file kept before it out of
+  existence in about two minutes. Each reason, no name, no match or two databases at once, is
+  paced on its own.
+- **A client that sends anything after its request still reads the answer.** A second request
+  pipelined behind the first, a line break written on its own or a TLS half close was left
+  unread, so the connection closed with a reset, which threw away an answer the client had not
+  read yet, a landed write's `201` among them. The gate now shuts its sending half first and reads
+  and drops what still arrives, for up to two seconds of quiet, before it closes.
+- **An answer its client reads too slowly is cut off at the connection budget**, counted from the
+  moment it starts being written. Only the socket's send timeout bounded it, which covers one TLS
+  record, so an admitted client reading a large answer a record at a time held a thread and a
+  connection slot for minutes. A pairing and a renewal keep the longer deadline they had.
+- **The routing document names the transport's answers before routing as the transport gives
+  them.** It promised a `501` for a method the gate does not implement, which the router answers
+  instead, and named no `501` for a `Transfer-Encoding`, the only reason a `501` is sent; it
+  called every such `error` a sentence, where the `417`'s is the one word `expectation`.
+- **A request without a `Host` header is refused with `400`**, as RFC 9112 requires of HTTP/1.1.
+  It was served, so a request every other server refuses worked against this gate alone. The
+  gate still routes by the name the TLS was made under and reads nothing in the header, and
+  PyKeePassGate has always sent the header.
+- **Only HTTP/1.1 is served**, and every other version is answered `505`, as the routing
+  document already stated. HTTP/1.0 was read and served, and a 1.0 request carrying
+  `Expect: 100-continue` was sent an interim `100 Continue`, where RFC 9110 has a server ignore
+  that expectation.
 - **The plugin refuses to load a routing document whose parameters declare what the router does
   not keep**: a query parameter or `If-Match` declared required, or a parameter given a `style`,
   `explode`, `allowReserved` or `allowEmptyValue` other than OpenAPI's own for where it sits. Only

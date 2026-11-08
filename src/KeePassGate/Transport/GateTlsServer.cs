@@ -119,8 +119,11 @@ namespace KeePassGate.Transport
                     SignatureAndHashAlgorithm.GetInstance(BcHashAlgorithm.sha256, SignatureAlgorithm.ecdsa)
                 };
 
-                // No certificate authorities are named. Naming ours would tell an unauthenticated
-                // client which database it had reached, and the gate exists to avoid exactly that.
+                // No certificate authorities are named, because the list would give a client
+                // nothing to choose by: a client of this gate holds a certificate from the one
+                // authority the database it named has, and every authority's subject is the same
+                // `CN=KeePassGate authority`, `AuthorityIssuer.AuthoritySubject`. Nor would it tell
+                // anybody which database this is, since only a peer whose name resolved is asked.
                 return new BcCertificateRequest(TlsUtilities.EmptyBytes, signatureAlgorithms, null, null);
             }
             catch (Exception error)

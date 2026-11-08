@@ -65,7 +65,7 @@ namespace KeePassGate.Tests
         {
             var handler = new SpyHandler(context => context.Respond(200, Bodies.Of(("seen", context.Body))));
             var stream = new ConversationStream(
-                "POST /gate/status HTTP/1.1\r\nExpect: 100-continue\r\nContent-Length: 4\r\n\r\nbody");
+                "POST /gate/status HTTP/1.1\r\nHost: gate\r\nExpect: 100-continue\r\nContent-Length: 4\r\n\r\nbody");
 
             GateConversation.Serve(stream, Paired(), handler, _options, _log);
 
@@ -90,7 +90,7 @@ namespace KeePassGate.Tests
             // The ordering that makes this worth having. `ReadHead` has already refused the length,
             // so the client learns that from a 413 instead of after uploading a megabyte.
             var stream = new ConversationStream(
-                "POST /gate/status HTTP/1.1\r\nExpect: 100-continue\r\nContent-Length: 5000\r\n\r\n");
+                "POST /gate/status HTTP/1.1\r\nHost: gate\r\nExpect: 100-continue\r\nContent-Length: 5000\r\n\r\n");
 
             GateConversation.Serve(stream, Paired(), new SpyHandler(c => c.Respond(200, "{}")), _options, _log);
 
@@ -103,12 +103,29 @@ namespace KeePassGate.Tests
         public void A_transfer_encoding_is_still_refused_before_any_continue()
         {
             var stream = new ConversationStream(
-                "POST /gate/status HTTP/1.1\r\nExpect: 100-continue\r\nTransfer-Encoding: chunked\r\n\r\n");
+                "POST /gate/status HTTP/1.1\r\nHost: gate\r\nExpect: 100-continue\r\nTransfer-Encoding: chunked\r\n\r\n");
 
             GateConversation.Serve(stream, Paired(), new SpyHandler(c => c.Respond(200, "{}")), _options, _log);
 
             Assert.That(stream.Status, Is.EqualTo(501));
             Assert.That(stream.Response, Does.Not.Contain("100 Continue"));
+        }
+
+        [Test]
+        public void An_HTTP_1_0_request_is_refused_rather_than_told_to_continue()
+        {
+            // RFC 9110 section 10.1.1 has a server ignore an expectation in an HTTP/1.0 request,
+            // and a client of that version knows no interim answer, so it would read `100 Continue`
+            // as the final answer. Only HTTP/1.1 is served, so nothing of another version is asked.
+            var handler = new SpyHandler(c => c.Respond(200, "{}"));
+            var stream = new ConversationStream(
+                "POST /gate/status HTTP/1.0\r\nExpect: 100-continue\r\nContent-Length: 2\r\n\r\n{}");
+
+            GateConversation.Serve(stream, Paired(), handler, _options, _log);
+
+            Assert.That(stream.Status, Is.EqualTo(505));
+            Assert.That(stream.Response, Does.Not.Contain("100 Continue"));
+            Assert.That(handler.Calls, Is.Zero);
         }
 
         [Test]
@@ -143,7 +160,7 @@ namespace KeePassGate.Tests
         {
             var handler = new SpyHandler(context => context.Respond(200, "{}"));
             var stream = new ConversationStream(
-                "POST /gate/status HTTP/1.1\r\nExpect: something-else\r\nContent-Length: 2\r\n\r\n{}");
+                "POST /gate/status HTTP/1.1\r\nHost: gate\r\nExpect: something-else\r\nContent-Length: 2\r\n\r\n{}");
 
             GateConversation.Serve(stream, Paired(), handler, _options, _log);
 
@@ -164,7 +181,7 @@ namespace KeePassGate.Tests
         {
             // Odd but legal, and refusing it would be inventing a rule.
             var stream = new ConversationStream(
-                "GET /gate/status HTTP/1.1\r\nExpect: 100-continue\r\n\r\n");
+                "GET /gate/status HTTP/1.1\r\nHost: gate\r\nExpect: 100-continue\r\n\r\n");
 
             GateConversation.Serve(stream, Paired(), new SpyHandler(c => c.Respond(200, "{}")), _options, _log);
 
@@ -175,7 +192,7 @@ namespace KeePassGate.Tests
         private ConversationStream Serve(string method, string headers, string body)
         {
             var bytes = Encoding.UTF8.GetBytes(body ?? string.Empty);
-            var request = method + " /gate/status HTTP/1.1\r\n" + headers +
+            var request = method + " /gate/status HTTP/1.1\r\nHost: gate\r\n" + headers +
                           "Content-Length: " + bytes.Length + "\r\n\r\n" + body;
 
             var stream = new ConversationStream(request);

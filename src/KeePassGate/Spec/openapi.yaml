@@ -51,16 +51,19 @@ info:
 
     **The transport answers before any route is chosen, on any path**, and so none of what it
     answers is declared per operation either, for the reason `405` is not. Each carries the
-    `Error` body, its `error` a sentence rather than one word: `400` for a request line, a
-    header, a `Content-Length`, a target or a body it cannot read, among them a header repeated
-    or folded, a body that ended early or is not UTF-8, and a path segment that decodes to `.` or
-    `..`, to a control character, or to bytes that are not UTF-8; `411` for a body with no
-    length; `413` for a body over the ceiling; `414` for a target too long; `417` for an
-    expectation it does not meet; `431` for a head over its ceiling; `501` for a method it does
-    not implement; and `505` for an HTTP version other than 1.1. Nor is the `500 internal error`
-    declared that a read would give if the vault behind it broke its own contract, which nothing
-    here does: it shares a status with `500 not saved` and not its meaning, which is why the
-    body says which.
+    `Error` body, its `error` a sentence rather than one word, except the `417`'s, which is
+    `expectation`: `400` for a request line, a header, a `Content-Length`, a target or a body it
+    cannot read, among them a head that is not ASCII or ended early, a header repeated, folded or
+    holding a control character, a request with no `Host`, a body that ended early or is not
+    UTF-8, and a path segment that decodes to `.` or `..`, to a control character, or to bytes
+    that are not UTF-8; `411` for a `POST`, `PUT` or `PATCH` with no `Content-Length`; `413` for
+    a body over the ceiling; `414` for a target too long; `417` for an expectation other than
+    `100-continue`; `431` for a head over its ceiling; `501` for any `Transfer-Encoding`, which
+    it does not decode; and `505` for an HTTP version other than 1.1. It refuses no method: any
+    method that is a token reaches the router, which answers it as the paragraph above describes.
+    Nor is the `500 internal error` declared that a read would give if the vault behind it broke
+    its own contract, which nothing here does: it shares a status with `500 not saved` and not its
+    meaning, which is why the body names which.
 
     **A field or an attachment is named within its entry, percent encoded, separator included**:
     the gate splits a path into segments before it decodes each one, which is what makes an

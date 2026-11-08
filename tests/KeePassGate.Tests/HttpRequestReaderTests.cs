@@ -33,10 +33,25 @@ namespace KeePassGate.Tests
             Assert.That(result.Head.ContentLength, Is.Zero);
         }
 
+        [TestCase("GET /gate/status HTTP/1.1\r\n\r\n")]
+        [TestCase("GET /gate/status HTTP/1.1\r\nX-Host: x.kpg\r\n\r\n")]
+        [TestCase("POST /gate/status HTTP/1.1\r\nContent-Length: 2\r\n\r\n{}")]
+        public void A_request_without_a_host_is_refused(string request)
+        {
+            // RFC 9112 section 3.2: a `400` for any HTTP/1.1 request that lacks the header. Nothing
+            // here reads it, since the gate routes by the name the TLS was made under, and serving
+            // a request every other server refuses is a client working against this gate alone.
+            var result = Read(request);
+
+            Assert.That(result.Ok, Is.False, request);
+            Assert.That(result.Status, Is.EqualTo(400));
+            Assert.That(result.Reason, Does.Contain("host"));
+        }
+
         [Test]
         public void Headers_are_read_without_regard_to_case()
         {
-            var result = Read("GET / HTTP/1.1\r\nX-Thing: value\r\n\r\n");
+            var result = Read("GET / HTTP/1.1\r\nHost: gate\r\nX-Thing: value\r\n\r\n");
 
             Assert.That(result.Head.GetHeader("x-thing"), Is.EqualTo("value"));
             Assert.That(result.Head.GetHeader("X-THING"), Is.EqualTo("value"));
@@ -46,7 +61,7 @@ namespace KeePassGate.Tests
         [Test]
         public void A_query_is_split_off_and_decoded()
         {
-            var result = Read("GET /thing?first=one&second=two%20three HTTP/1.1\r\n\r\n");
+            var result = Read("GET /thing?first=one&second=two%20three HTTP/1.1\r\nHost: gate\r\n\r\n");
 
             Assert.That(result.Head.Path, Is.EqualTo("/thing"));
             Assert.That(result.Head.Query["first"], Is.EqualTo("one"));
@@ -56,7 +71,7 @@ namespace KeePassGate.Tests
         [Test]
         public void A_body_is_read_to_the_length_that_was_declared()
         {
-            var stream = Stream("POST /thing HTTP/1.1\r\nContent-Length: 5\r\n\r\nhello and then some");
+            var stream = Stream("POST /thing HTTP/1.1\r\nHost: gate\r\nContent-Length: 5\r\n\r\nhello and then some");
             var head = HttpRequestReader.ReadHead(stream, _options);
 
             string refusal;
@@ -67,7 +82,7 @@ namespace KeePassGate.Tests
         [Test]
         public void A_body_that_stops_early_is_refused_rather_than_padded()
         {
-            var stream = Stream("POST /thing HTTP/1.1\r\nContent-Length: 50\r\n\r\nshort");
+            var stream = Stream("POST /thing HTTP/1.1\r\nHost: gate\r\nContent-Length: 50\r\n\r\nshort");
             var head = HttpRequestReader.ReadHead(stream, _options);
 
             string refusal;
@@ -80,7 +95,7 @@ namespace KeePassGate.Tests
         {
             var body = "{\"name\":\"naïve\"}";
             var bytes = Encoding.UTF8.GetBytes(body);
-            var request = "POST /thing HTTP/1.1\r\nContent-Length: " + bytes.Length + "\r\n\r\n";
+            var request = "POST /thing HTTP/1.1\r\nHost: gate\r\nContent-Length: " + bytes.Length + "\r\n\r\n";
 
             var all = new byte[Encoding.ASCII.GetByteCount(request) + bytes.Length];
             Buffer.BlockCopy(Encoding.ASCII.GetBytes(request), 0, all, 0, Encoding.ASCII.GetByteCount(request));
@@ -101,7 +116,7 @@ namespace KeePassGate.Tests
             // Every declared byte arrives, so nothing about the socket or the length is wrong. A
             // refusal naming the length sends whoever reads it looking at the one thing that is in
             // order, and the answer is the same 400 either way, so the sentence is all there is.
-            var request = "POST /thing HTTP/1.1\r\nContent-Length: 2\r\n\r\n";
+            var request = "POST /thing HTTP/1.1\r\nHost: gate\r\nContent-Length: 2\r\n\r\n";
             var all = new byte[Encoding.ASCII.GetByteCount(request) + 2];
             Buffer.BlockCopy(Encoding.ASCII.GetBytes(request), 0, all, 0, all.Length - 2);
 
@@ -125,7 +140,7 @@ namespace KeePassGate.Tests
         {
             // Not implemented rather than parsed. Two parsers that disagree about framing is the
             // whole of request smuggling.
-            var result = Read("POST /thing HTTP/1.1\r\nTransfer-Encoding: chunked\r\n\r\n");
+            var result = Read("POST /thing HTTP/1.1\r\nHost: gate\r\nTransfer-Encoding: chunked\r\n\r\n");
 
             Assert.That(result.Ok, Is.False);
             Assert.That(result.Status, Is.EqualTo(501));
@@ -134,7 +149,7 @@ namespace KeePassGate.Tests
         [Test]
         public void Two_content_lengths_are_refused()
         {
-            var result = Read("POST /thing HTTP/1.1\r\nContent-Length: 5\r\nContent-Length: 6\r\n\r\n");
+            var result = Read("POST /thing HTTP/1.1\r\nHost: gate\r\nContent-Length: 5\r\nContent-Length: 6\r\n\r\n");
 
             Assert.That(result.Ok, Is.False);
             Assert.That(result.Status, Is.EqualTo(400));
@@ -151,7 +166,7 @@ namespace KeePassGate.Tests
             // RFC 9110 section 5.5. A bare CR or LF is not a line ending here, so either can sit
             // inside a value, and a value that trims into a match, like the last case, is exactly
             // the guess this reader does not make.
-            var result = Read("GET /thing HTTP/1.1\r\n" + header + "\r\n\r\n");
+            var result = Read("GET /thing HTTP/1.1\r\nHost: gate\r\n" + header + "\r\n\r\n");
 
             Assert.That(result.Ok, Is.False, header);
             Assert.That(result.Status, Is.EqualTo(400));
@@ -160,7 +175,7 @@ namespace KeePassGate.Tests
         [Test]
         public void A_tab_inside_a_header_value_is_kept()
         {
-            var result = Read("GET /thing HTTP/1.1\r\nX-Thing: a\tb\r\n\r\n");
+            var result = Read("GET /thing HTTP/1.1\r\nHost: gate\r\nX-Thing: a\tb\r\n\r\n");
 
             Assert.That(result.Ok, Is.True, result.Reason);
             Assert.That(result.Head.GetHeader("X-Thing"), Is.EqualTo("a\tb"));
@@ -169,7 +184,7 @@ namespace KeePassGate.Tests
         [Test]
         public void A_folded_header_is_refused()
         {
-            var result = Read("GET / HTTP/1.1\r\nX-Thing: one\r\n  two\r\n\r\n");
+            var result = Read("GET / HTTP/1.1\r\nHost: gate\r\nX-Thing: one\r\n  two\r\n\r\n");
 
             Assert.That(result.Ok, Is.False);
             Assert.That(result.Status, Is.EqualTo(400));
@@ -178,7 +193,7 @@ namespace KeePassGate.Tests
         [Test]
         public void A_body_larger_than_the_cap_is_refused_before_it_is_read()
         {
-            var result = Read("POST /thing HTTP/1.1\r\nContent-Length: " + (_options.MaxBodyBytes + 1) + "\r\n\r\n");
+            var result = Read("POST /thing HTTP/1.1\r\nHost: gate\r\nContent-Length: " + (_options.MaxBodyBytes + 1) + "\r\n\r\n");
 
             Assert.That(result.Ok, Is.False);
             Assert.That(result.Status, Is.EqualTo(413));
@@ -188,7 +203,7 @@ namespace KeePassGate.Tests
         public void A_head_larger_than_the_cap_is_refused()
         {
             var padding = new string('a', _options.MaxHeadBytes);
-            var result = Read("GET / HTTP/1.1\r\nX-Thing: " + padding + "\r\n\r\n");
+            var result = Read("GET / HTTP/1.1\r\nHost: gate\r\nX-Thing: " + padding + "\r\n\r\n");
 
             Assert.That(result.Ok, Is.False);
             Assert.That(result.Status, Is.EqualTo(431));
@@ -197,22 +212,24 @@ namespace KeePassGate.Tests
         [Test]
         public void A_bodied_method_without_a_length_is_refused()
         {
-            var result = Read("POST /thing HTTP/1.1\r\n\r\n");
+            var result = Read("POST /thing HTTP/1.1\r\nHost: gate\r\n\r\n");
 
             Assert.That(result.Ok, Is.False);
             Assert.That(result.Status, Is.EqualTo(411));
         }
 
         [TestCase("GET /thing HTTP/2.0\r\n\r\n", 505)]
-        [TestCase("GET http://example.com/thing HTTP/1.1\r\n\r\n", 400)]
-        [TestCase("GET  HTTP/1.1\r\n\r\n", 400)]
+        [TestCase("GET /thing HTTP/1.0\r\n\r\n", 505)]
+        [TestCase("GET /thing http/1.1\r\n\r\n", 505)]
+        [TestCase("GET http://example.com/thing HTTP/1.1\r\nHost: gate\r\n\r\n", 400)]
+        [TestCase("GET  HTTP/1.1\r\nHost: gate\r\n\r\n", 400)]
         [TestCase("GET /thing\r\n\r\n", 400)]
         [TestCase("GET /thing HTTP/1.1 extra\r\n\r\n", 400)]
-        [TestCase("GE T /thing HTTP/1.1\r\n\r\n", 400)]
-        [TestCase("GET /thing HTTP/1.1\r\nBadHeader\r\n\r\n", 400)]
-        [TestCase("GET /thing HTTP/1.1\r\n: value\r\n\r\n", 400)]
-        [TestCase("GET /thing HTTP/1.1\r\nContent-Length: many\r\n\r\n", 400)]
-        [TestCase("GET /thing HTTP/1.1\r\nContent-Length: -1\r\n\r\n", 400)]
+        [TestCase("GE T /thing HTTP/1.1\r\nHost: gate\r\n\r\n", 400)]
+        [TestCase("GET /thing HTTP/1.1\r\nHost: gate\r\nBadHeader\r\n\r\n", 400)]
+        [TestCase("GET /thing HTTP/1.1\r\nHost: gate\r\n: value\r\n\r\n", 400)]
+        [TestCase("GET /thing HTTP/1.1\r\nHost: gate\r\nContent-Length: many\r\n\r\n", 400)]
+        [TestCase("GET /thing HTTP/1.1\r\nHost: gate\r\nContent-Length: -1\r\n\r\n", 400)]
         public void Malformed_requests_are_refused_with_a_status(string request, int status)
         {
             var result = Read(request);
@@ -226,29 +243,29 @@ namespace KeePassGate.Tests
         {
             // Nothing maps a path to a file, and nothing ever will, but a path that can climb is a
             // liability the moment somebody forgets that.
-            Assert.That(Read("GET /../../secrets HTTP/1.1\r\n\r\n").Ok, Is.False);
-            Assert.That(Read("GET /a/%2e%2e/b HTTP/1.1\r\n\r\n").Ok, Is.False);
+            Assert.That(Read("GET /../../secrets HTTP/1.1\r\nHost: gate\r\n\r\n").Ok, Is.False);
+            Assert.That(Read("GET /a/%2e%2e/b HTTP/1.1\r\nHost: gate\r\n\r\n").Ok, Is.False);
         }
 
         [Test]
         public void A_percent_escape_that_would_produce_a_control_character_is_refused()
         {
             // A parser that accepts %0A is a parser that puts a line break into a log.
-            Assert.That(Read("GET /thing%0A/other HTTP/1.1\r\n\r\n").Ok, Is.False);
-            Assert.That(Read("GET /thing%00 HTTP/1.1\r\n\r\n").Ok, Is.False);
+            Assert.That(Read("GET /thing%0A/other HTTP/1.1\r\nHost: gate\r\n\r\n").Ok, Is.False);
+            Assert.That(Read("GET /thing%00 HTTP/1.1\r\nHost: gate\r\n\r\n").Ok, Is.False);
         }
 
-        [TestCase("GET /thing%2 HTTP/1.1\r\n\r\n")]
-        [TestCase("GET /thing% HTTP/1.1\r\n\r\n")]
-        [TestCase("GET /thing%zz HTTP/1.1\r\n\r\n")]
+        [TestCase("GET /thing%2 HTTP/1.1\r\nHost: gate\r\n\r\n")]
+        [TestCase("GET /thing% HTTP/1.1\r\nHost: gate\r\n\r\n")]
+        [TestCase("GET /thing%zz HTTP/1.1\r\nHost: gate\r\n\r\n")]
         public void A_malformed_percent_escape_is_refused_rather_than_repaired(string request)
         {
             Assert.That(Read(request).Ok, Is.False);
         }
 
-        [TestCase("GET /entries/x/fields/a|b HTTP/1.1\r\n\r\n")]
-        [TestCase("GET /entries/x/fields/a#b HTTP/1.1\r\n\r\n")]
-        [TestCase("GET /thing?a={b} HTTP/1.1\r\n\r\n")]
+        [TestCase("GET /entries/x/fields/a|b HTTP/1.1\r\nHost: gate\r\n\r\n")]
+        [TestCase("GET /entries/x/fields/a#b HTTP/1.1\r\nHost: gate\r\n\r\n")]
+        [TestCase("GET /thing?a={b} HTTP/1.1\r\nHost: gate\r\n\r\n")]
         public void A_target_carrying_a_character_it_should_have_escaped_is_refused(string request)
         {
             // RFC 9112 section 3: a request line the grammar makes invalid is answered with 400
@@ -262,7 +279,7 @@ namespace KeePassGate.Tests
         [Test]
         public void A_target_longer_than_anything_reasonable_is_refused()
         {
-            var result = Read("GET /" + new string('a', 3000) + " HTTP/1.1\r\n\r\n");
+            var result = Read("GET /" + new string('a', 3000) + " HTTP/1.1\r\nHost: gate\r\n\r\n");
 
             Assert.That(result.Ok, Is.False);
             Assert.That(result.Status, Is.EqualTo(414));
@@ -277,7 +294,7 @@ namespace KeePassGate.Tests
             var request = new List<byte>();
             request.AddRange(Encoding.ASCII.GetBytes("GET /gate/status"));
             request.Add(0x80);
-            request.AddRange(Encoding.ASCII.GetBytes("xy HTTP/1.1\r\n\r\n"));
+            request.AddRange(Encoding.ASCII.GetBytes("xy HTTP/1.1\r\nHost: gate\r\n\r\n"));
 
             using (var stream = new MemoryStream(request.ToArray()))
             {
@@ -294,14 +311,14 @@ namespace KeePassGate.Tests
         {
             // Keeping the last of two is a guess, and an intermediary in front of this would have
             // to make the same guess to agree with it.
-            Assert.That(Read("GET /a HTTP/1.1\r\nExpect: 100-continue\r\nExpect: other\r\n\r\n").Ok, Is.False);
+            Assert.That(Read("GET /a HTTP/1.1\r\nHost: gate\r\nExpect: 100-continue\r\nExpect: other\r\n\r\n").Ok, Is.False);
             Assert.That(Read("GET /a HTTP/1.1\r\nHost: a\r\nhost: b\r\n\r\n").Ok, Is.False);
         }
 
-        [TestCase("GET /a?limit=10&limit=100000 HTTP/1.1\r\n\r\n")]
-        [TestCase("GET /a?group=a&group=a HTTP/1.1\r\n\r\n")]
-        [TestCase("GET /a?x=1&x HTTP/1.1\r\n\r\n")]
-        [TestCase("GET /a?x+y=1&x%20y=2 HTTP/1.1\r\n\r\n")]
+        [TestCase("GET /a?limit=10&limit=100000 HTTP/1.1\r\nHost: gate\r\n\r\n")]
+        [TestCase("GET /a?group=a&group=a HTTP/1.1\r\nHost: gate\r\n\r\n")]
+        [TestCase("GET /a?x=1&x HTTP/1.1\r\nHost: gate\r\n\r\n")]
+        [TestCase("GET /a?x+y=1&x%20y=2 HTTP/1.1\r\nHost: gate\r\n\r\n")]
         public void A_repeated_query_name_is_refused_rather_than_resolved(string request)
         {
             // The same guess about a query, and waiting for the first operation that declares one:
@@ -316,7 +333,7 @@ namespace KeePassGate.Tests
         [Test]
         public void An_escape_is_read_as_utf8_rather_than_one_character_per_byte()
         {
-            var result = Read("GET /a?title=caf%C3%A9 HTTP/1.1\r\n\r\n");
+            var result = Read("GET /a?title=caf%C3%A9 HTTP/1.1\r\nHost: gate\r\n\r\n");
 
             Assert.That(result.Ok, Is.True, result.Reason);
             Assert.That(result.Head.Query["title"], Is.EqualTo("café"));
@@ -325,8 +342,8 @@ namespace KeePassGate.Tests
         [Test]
         public void An_escape_that_is_not_utf8_is_refused_rather_than_repaired()
         {
-            Assert.That(Read("GET /a?title=%C3 HTTP/1.1\r\n\r\n").Ok, Is.False);
-            Assert.That(Read("GET /a?title=%FF%FE HTTP/1.1\r\n\r\n").Ok, Is.False);
+            Assert.That(Read("GET /a?title=%C3 HTTP/1.1\r\nHost: gate\r\n\r\n").Ok, Is.False);
+            Assert.That(Read("GET /a?title=%FF%FE HTTP/1.1\r\nHost: gate\r\n\r\n").Ok, Is.False);
         }
 
         [Test]
@@ -334,7 +351,7 @@ namespace KeePassGate.Tests
         {
             // Somebody is there: they said something first. Silence is what a port with nothing
             // behind it looks like, and it is not this.
-            var result = Read("GET /gate/status HTTP/1.1\r\nHo");
+            var result = Read("GET /gate/status HTTP/1.1\r\nHost: gate\r\nHo");
 
             Assert.That(result.Ok, Is.False);
             Assert.That(result.Silent, Is.False, "bytes arrived, so there is somebody to answer");
@@ -345,7 +362,7 @@ namespace KeePassGate.Tests
         public void A_body_costs_nothing_until_it_arrives()
         {
             // The length is the caller's number, and a caller that has proved nothing chooses it.
-            var head = Read("POST /a HTTP/1.1\r\nContent-Length: 1048576\r\n\r\n");
+            var head = Read("POST /a HTTP/1.1\r\nHost: gate\r\nContent-Length: 1048576\r\n\r\n");
 
             Assert.That(head.Ok, Is.True, head.Reason);
             string refusal;
@@ -359,7 +376,7 @@ namespace KeePassGate.Tests
             // What the refusal has to take off the wire before the connection ends. Without it the
             // answer is written into a socket that is then closed over the peer's unread bytes, and
             // the reset that follows discards it.
-            var result = Read("POST /thing HTTP/1.1\r\nContent-Length: " + (_options.MaxBodyBytes + 1) + "\r\n\r\n");
+            var result = Read("POST /thing HTTP/1.1\r\nHost: gate\r\nContent-Length: " + (_options.MaxBodyBytes + 1) + "\r\n\r\n");
 
             Assert.That(result.Status, Is.EqualTo(413));
             Assert.That(result.Announced, Is.EqualTo(_options.MaxBodyBytes + 1L));
@@ -371,19 +388,31 @@ namespace KeePassGate.Tests
             // It is waiting to be invited, so nothing is on its way and reading would leave both
             // sides waiting for the other.
             var result = Read(
-                "POST /thing HTTP/1.1\r\nExpect: 100-continue\r\nContent-Length: " +
+                "POST /thing HTTP/1.1\r\nHost: gate\r\nExpect: 100-continue\r\nContent-Length: " +
                 (_options.MaxBodyBytes + 1) + "\r\n\r\n");
 
             Assert.That(result.Status, Is.EqualTo(413));
             Assert.That(result.Announced, Is.Zero);
         }
 
+        [Test]
+        public void An_HTTP_1_0_request_that_asked_first_is_refused_with_its_body_still_announced()
+        {
+            // Only HTTP/1.1 is served, and RFC 9110 section 10.1.1 has a server ignore an
+            // expectation in an HTTP/1.0 request, so such a client sends its body without being
+            // invited: the 505 is read only if that body is taken off the wire.
+            var result = Read("POST /thing HTTP/1.0\r\nExpect: 100-continue\r\nContent-Length: 5\r\n\r\n");
+
+            Assert.That(result.Status, Is.EqualTo(505), result.Reason);
+            Assert.That(result.Announced, Is.EqualTo(5));
+        }
+
         [TestCase("BOGUS-VERSION /thing HTTP/9.9\r\nContent-Length: 5\r\n\r\n", 505)]
-        [TestCase("POST /thing|x HTTP/1.1\r\nContent-Length: 5\r\n\r\n", 400)]
-        [TestCase("POST thing HTTP/1.1\r\nContent-Length: 5\r\n\r\n", 400)]
-        [TestCase("POST /thing HTTP/1.1\r\nBad Name: x\r\nContent-Length: 5\r\n\r\n", 400)]
-        [TestCase("POST /thing HTTP/1.1\r\n folded\r\nContent-Length: 5\r\n\r\n", 400)]
-        [TestCase("POST /thing HTTP/1.1\r\nTransfer-Encoding: chunked\r\nContent-Length: 5\r\n\r\n", 501)]
+        [TestCase("POST /thing|x HTTP/1.1\r\nHost: gate\r\nContent-Length: 5\r\n\r\n", 400)]
+        [TestCase("POST thing HTTP/1.1\r\nHost: gate\r\nContent-Length: 5\r\n\r\n", 400)]
+        [TestCase("POST /thing HTTP/1.1\r\nHost: gate\r\nBad Name: x\r\nContent-Length: 5\r\n\r\n", 400)]
+        [TestCase("POST /thing HTTP/1.1\r\nHost: gate\r\n folded\r\nContent-Length: 5\r\n\r\n", 400)]
+        [TestCase("POST /thing HTTP/1.1\r\nHost: gate\r\nTransfer-Encoding: chunked\r\nContent-Length: 5\r\n\r\n", 501)]
         public void A_refusal_decided_before_the_length_was_parsed_announces_it_all_the_same(
             string request, int status)
         {
@@ -401,7 +430,7 @@ namespace KeePassGate.Tests
         public void A_refusal_for_a_byte_that_is_not_ascii_announces_the_length_too()
         {
             var request = new List<byte>();
-            request.AddRange(Encoding.ASCII.GetBytes("POST /thing HTTP/1.1\r\nX-Note: "));
+            request.AddRange(Encoding.ASCII.GetBytes("POST /thing HTTP/1.1\r\nHost: gate\r\nX-Note: "));
             request.Add(0x80);
             request.AddRange(Encoding.ASCII.GetBytes("\r\nContent-Length: 5\r\n\r\nhello"));
 
@@ -420,7 +449,7 @@ namespace KeePassGate.Tests
             // Refused for being repeated, and all that is left to decide is how much to take off
             // the wire before closing. Taking more than arrives costs the wait for a peer that has
             // finished to hang up, and taking less is the reset.
-            var result = Read("POST /thing HTTP/1.1\r\nContent-Length: 9\r\nContent-Length: 5\r\n\r\n");
+            var result = Read("POST /thing HTTP/1.1\r\nHost: gate\r\nContent-Length: 9\r\nContent-Length: 5\r\n\r\n");
 
             Assert.That(result.Status, Is.EqualTo(400));
             Assert.That(result.Announced, Is.EqualTo(9));
@@ -430,7 +459,7 @@ namespace KeePassGate.Tests
         public void An_expect_after_the_refused_line_still_announces_nothing()
         {
             // A client that asked first is waiting wherever in the head it asked.
-            var result = Read("POST /thing|x HTTP/1.1\r\nContent-Length: 5\r\nExpect: 100-continue\r\n\r\n");
+            var result = Read("POST /thing|x HTTP/1.1\r\nHost: gate\r\nContent-Length: 5\r\nExpect: 100-continue\r\n\r\n");
 
             Assert.That(result.Status, Is.EqualTo(400));
             Assert.That(result.Announced, Is.Zero);
@@ -442,7 +471,7 @@ namespace KeePassGate.Tests
             // The answer is read only if what follows the cap is taken off the wire as well, and
             // its body with it. The body is left on the stream for the drain that follows.
             var padding = new string('a', _options.MaxHeadBytes);
-            var stream = Stream("POST /thing HTTP/1.1\r\nX-Thing: " + padding + "\r\nContent-Length: 5\r\n\r\nhello");
+            var stream = Stream("POST /thing HTTP/1.1\r\nHost: gate\r\nX-Thing: " + padding + "\r\nContent-Length: 5\r\n\r\nhello");
 
             var result = HttpRequestReader.ReadHead(stream, _options);
 
@@ -455,7 +484,7 @@ namespace KeePassGate.Tests
         public void A_head_within_the_cap_is_never_read_past()
         {
             // The body is the drain's to take, or the handler's, and never this reader's.
-            var stream = Stream("POST /thing|x HTTP/1.1\r\nContent-Length: 5\r\n\r\nhello");
+            var stream = Stream("POST /thing|x HTTP/1.1\r\nHost: gate\r\nContent-Length: 5\r\n\r\nhello");
 
             HttpRequestReader.ReadHead(stream, _options);
 
@@ -468,7 +497,7 @@ namespace KeePassGate.Tests
             // Which is what the connection's deadline makes of a head that goes on for ever: the
             // socket is closed under the read, and the refusal is still the 431.
             var padding = new string('a', 2 * _options.MaxHeadBytes);
-            var result = Read("POST /thing HTTP/1.1\r\nContent-Length: 5\r\nX-Thing: " + padding);
+            var result = Read("POST /thing HTTP/1.1\r\nHost: gate\r\nContent-Length: 5\r\nX-Thing: " + padding);
 
             Assert.That(result.Status, Is.EqualTo(431));
         }
@@ -509,7 +538,7 @@ namespace KeePassGate.Tests
         [Test]
         public void A_head_is_read_and_no_more_than_the_head()
         {
-            var stream = Stream("GET / HTTP/1.1\r\nContent-Length: 4\r\n\r\nbody");
+            var stream = Stream("GET / HTTP/1.1\r\nHost: gate\r\nContent-Length: 4\r\n\r\nbody");
             HttpRequestReader.ReadHead(stream, _options);
 
             Assert.That(Encoding.ASCII.GetString(Remaining(stream)), Is.EqualTo("body"));

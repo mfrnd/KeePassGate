@@ -51,8 +51,11 @@ namespace KeePassGate.Transport
         private readonly IGateLog _log;
         private readonly object _stateLock = new object();
 
-        /// <summary>How often a run of refusals above the ceiling is reported. See `Refused`.</summary>
-        private static readonly TimeSpan RefusalInterval = TimeSpan.FromMinutes(1);
+        /// <summary>
+        /// How often a run of refusals above the ceiling, or of drops before TLS, is reported. See
+        /// `Refused` and `Dropped`.
+        /// </summary>
+        private static readonly TimeSpan PaceInterval = TimeSpan.FromMinutes(1);
 
         /// <summary>
         /// Monotonic, because the wall clock can go backwards and would take the warning with it.
@@ -90,9 +93,21 @@ namespace KeePassGate.Transport
         private Thread _accepting;
         private volatile bool _running;
         private int _conversations;
-        private TimeSpan _saidRefusedAt;
-        private bool _saidRefused;
-        private int _refusedSince;
+
+        /// <summary>The line for a connection refused above the ceiling: see `Refused`.</summary>
+        private readonly PacedLine _refusals = new PacedLine(PaceInterval);
+
+        /// <summary>
+        /// The line for each reason a connection is dropped before TLS, a pace of its own for each
+        /// so that a run of one reason hides none of the others: see `Dropped`.
+        /// </summary>
+        private readonly Dictionary<GateOutcome, PacedLine> _drops =
+            new Dictionary<GateOutcome, PacedLine>
+            {
+                { GateOutcome.NoName, new PacedLine(PaceInterval) },
+                { GateOutcome.NoMatch, new PacedLine(PaceInterval) },
+                { GateOutcome.Ambiguous, new PacedLine(PaceInterval) },
+            };
 
         /// <summary>
         /// Every connection being served right now, so that all of them can be closed at once.
@@ -232,6 +247,7 @@ namespace KeePassGate.Transport
                 catch (SocketException error)
                 {
                     _log.Error("could not listen on 127.0.0.1:" + _options.Port, error);
+                    Release(_listener);
                     _listener = null;
 
                     // Kept rather than only logged. Nothing will try this port again in this
@@ -253,23 +269,28 @@ namespace KeePassGate.Transport
         public void Stop()
         {
             Thread accepting;
+            bool listening;
 
             lock (_stateLock)
             {
-                if (!_running)
-                {
-                    return;
-                }
-
+                listening = _running;
                 accepting = _accepting;
             }
 
-            Retire();
+            if (listening)
+            {
+                Retire();
+            }
 
             // What the class remark has always said happens here. `Retire` closes the listener and
             // nothing else: conversations already running kept their target references and ran on
             // to their own deadline, up to the pairing budget, so a pairing could still hand out a
             // certificate after the plugin had been told to stop.
+            //
+            // **Whether or not anything is still listening.** An accept loop that failed retired
+            // the port itself, and a stop that then found nothing listening returned at once, so
+            // every conversation accepted before the failure ran on past the plugin's teardown,
+            // an ordinary write's with no deadline at all.
             CloseAll("the gate is stopping");
 
             if (accepting != null)
@@ -279,7 +300,10 @@ namespace KeePassGate.Transport
                 accepting.Join(TimeSpan.FromSeconds(2));
             }
 
-            _log.Info("stopped listening");
+            if (listening)
+            {
+                _log.Info("stopped listening");
+            }
         }
 
         public void Dispose()
@@ -624,27 +648,101 @@ namespace KeePassGate.Transport
         ///
         /// The first refusal of a run is said at once, because that is the one worth reading, and
         /// the rest are counted and reported with the next line that goes out. A run that stops is
-        /// missing its tail, which is what the first line being immediate costs. No lock, because
-        /// `Take` is reached from the accept thread and from nowhere else.
+        /// missing its tail, which is what the first line being immediate costs: see
+        /// <see cref="PacedLine"/>.
         /// </remarks>
         private void Refused()
         {
-            var now = _clock.Elapsed;
-            if (_saidRefused && now - _saidRefusedAt < RefusalInterval)
+            int since;
+            if (!_refusals.Due(_clock.Elapsed, out since))
             {
-                _refusedSince++;
                 return;
             }
 
             _log.Warn(
                 "refused a connection: " + _options.MaxConnections + " are already being served" +
-                (_refusedSince > 0
-                    ? ", and " + _refusedSince + " more since the last of these"
-                    : string.Empty));
+                Since(since));
+        }
 
-            _saidRefused = true;
-            _saidRefusedAt = now;
-            _refusedSince = 0;
+        /// <summary>
+        /// Writes that a connection was dropped before TLS for a name that resolved to nothing, at
+        /// most once an interval for each reason.
+        /// </summary>
+        /// <remarks>
+        /// **For the reason <see cref="Refused"/> is paced.** A ClientHello naming nothing, or a
+        /// name no open database answers to, needs no gate key, no certificate and no invitation,
+        /// only a connect and one packet, and a line each let one loop of them fill the plugin's
+        /// log at its bound in under a minute and push out the file kept before it in about two,
+        /// errors and incidents with it. A connection that is not TLS at all writes nothing, as it
+        /// always did.
+        ///
+        /// A pace for each reason rather than a single pace for all of them, so that a run of
+        /// names nobody answers to does not hide the first name that two open databases answer
+        /// to, which is the operator's to act on.
+        /// </remarks>
+        private void Dropped(GateOutcome outcome)
+        {
+            var since = 0;
+            PacedLine line;
+            if (_drops.TryGetValue(outcome, out line) && !line.Due(_clock.Elapsed, out since))
+            {
+                return;
+            }
+
+            _log.Info("dropped a connection: " + outcome.ToString().ToLowerInvariant() + Since(since));
+        }
+
+        /// <summary>The count a paced line carries of the occasions it did not write.</summary>
+        private static string Since(int since)
+        {
+            return since > 0 ? ", and " + since + " more since the last of these" : string.Empty;
+        }
+
+        /// <summary>
+        /// A line written at most once an interval, with the occasions in between counted into the
+        /// next line written.
+        /// </summary>
+        /// <remarks>
+        /// Under a lock of its own, because the drops before TLS are written from every
+        /// connection's thread at once. The clock is handed in rather than read here, so that a
+        /// test can choose what time it is.
+        /// </remarks>
+        internal sealed class PacedLine
+        {
+            private readonly object _lock = new object();
+            private readonly TimeSpan _interval;
+            private bool _written;
+            private TimeSpan _writtenAt;
+            private int _since;
+
+            public PacedLine(TimeSpan interval)
+            {
+                _interval = interval;
+            }
+
+            /// <summary>
+            /// Whether the line is written now, <paramref name="now"/> on a clock that never goes
+            /// back, with how many occasions went unwritten since the last line that was. False
+            /// counts this occasion among them.
+            /// </summary>
+            public bool Due(TimeSpan now, out int since)
+            {
+                lock (_lock)
+                {
+                    if (_written && now - _writtenAt < _interval)
+                    {
+                        _since++;
+                        since = 0;
+                        return false;
+                    }
+
+                    since = _since;
+                    _written = true;
+                    _writtenAt = now;
+                    _since = 0;
+                    return true;
+                }
+            }
         }
 
         /// <summary>
@@ -688,17 +786,38 @@ namespace KeePassGate.Transport
                 {
                     if (_listener != null)
                     {
-                        _listener.Stop();
+                        Release(_listener);
                     }
-                }
-                catch (Exception error) when (Expected.OfConnection(error))
-                {
-                    _log.Error("the listener did not stop cleanly", error);
                 }
                 finally
                 {
                     _listener = null;
                 }
+            }
+        }
+
+        /// <summary>
+        /// Stops a listener and closes every socket it holds, which <see cref="TcpListener.Stop"/>
+        /// alone does not.
+        /// </summary>
+        /// <remarks>
+        /// On .NET Framework `Stop` closes the listener's socket and makes another, unbound, for a
+        /// `Start` that never comes here, and a listener whose `Start` was refused for a port
+        /// already taken still holds the socket its constructor made, because the bind that failed
+        /// is outside what `Start` unwinds. Either was a handle left open in the password manager
+        /// with nothing referring to it, until a collection got round to it. Total, since the
+        /// accept thread retires through it: see `Drop`.
+        /// </remarks>
+        private void Release(TcpListener listener)
+        {
+            try
+            {
+                listener.Stop();
+                listener.Server.Close();
+            }
+            catch (Exception error) when (Expected.OfConnection(error))
+            {
+                _log.Error("the listener did not stop cleanly", error);
             }
         }
 
@@ -724,11 +843,10 @@ namespace KeePassGate.Transport
                         // ends that peer's connection, and the failure it raises is one the paths
                         // below already expect.
                         //
-                        // **The budget is for a peer that keeps sending, not one that stops.** A
-                        // read blocked with no traffic at all does not return when the close is
-                        // made, only once it lands behind the read, so a peer that sends nothing
-                        // is bounded by `Timeout` on the socket and not by this. Nothing relies on
-                        // the budget against silence: `Timeout` already ends it.
+                        // **It ends a peer that stops as well as a peer that keeps sending.**
+                        // Closing the socket wakes a read blocked with no traffic at all, at once,
+                        // with the failure a peer that hung up raises, so the deadline bounds
+                        // silence too, and `Timeout` is the bound on each single read beneath it.
                         //
                         // **It is granted in stages, and this is the first of them.** Until a name
                         // resolves there is nothing owed but a ClientHello, which a client sends
@@ -775,9 +893,7 @@ namespace KeePassGate.Transport
 
                                 if (!resolution.IsResolved)
                                 {
-                                    _log.Info(
-                                        "dropped a connection: " +
-                                        resolution.Outcome.ToString().ToLowerInvariant());
+                                    Dropped(resolution.Outcome);
                                     return;
                                 }
 
@@ -794,10 +910,10 @@ namespace KeePassGate.Transport
                                 // it however long its hello took.
                                 deadline.Extend(_options.Budget);
 
-                                // The third and last stage, taken when the whole request is off
-                                // the wire. For an ordinary connection that is no deadline at all:
-                                // what is left is this plugin's own work and no number bounds it,
-                                // see `Deadline.Disarm`. For a pairing it is a longer one, because
+                                // The third stage, taken when the whole request is off the wire.
+                                // For an ordinary connection that is no deadline at all while the
+                                // plugin's own work runs, since no number bounds it, see
+                                // `Deadline.Disarm`. For a pairing it is a longer deadline, because
                                 // there the remaining work is a sum somebody wrote down: the
                                 // screen, the dialog, the grace on it, and the write. The
                                 // ordinary budget would close the socket while the dialog was
@@ -825,6 +941,11 @@ namespace KeePassGate.Transport
                                 // for the same reason: what is left after its request is the screen,
                                 // the dialog, the grace on it and the write. It is told apart by what
                                 // it asked for, which is only known here, once the request is read.
+                                //
+                                // **And the last stage is the answer's write**, which an ordinary
+                                // connection is given the ordinary budget for once more, because
+                                // how fast an answer is read is the peer's doing: see
+                                // `Deadline.Writing`. A pairing or a renewal keeps its own.
                                 Serve(
                                     raw, peek, resolution, Peer(socket),
                                     head =>
@@ -838,8 +959,15 @@ namespace KeePassGate.Transport
                                         {
                                             deadline.Disarm();
                                         }
-                                    });
+                                    },
+                                    () => deadline.Writing(_options.Budget));
                             }
+
+                            // And closed the way an answered connection is, so that whatever the
+                            // peer sent after its request is not the reset that throws the answer
+                            // away: see `Linger`. Once the target is given back, since nothing
+                            // here reads the database.
+                            Linger(socket);
                         }
                     }
                     finally
@@ -925,6 +1053,12 @@ namespace KeePassGate.Transport
         {
             private readonly Timer _timer;
 
+            /// <summary>
+            /// Whether <see cref="Disarm"/> has run, which only the connection's own thread asks or
+            /// sets.
+            /// </summary>
+            private bool _disarmed;
+
             public Deadline(TcpClient client, TimeSpan budget)
             {
                 _timer = new Timer(
@@ -955,8 +1089,8 @@ namespace KeePassGate.Transport
             /// **The budget is granted in stages**, because a connection that has named nothing
             /// has said nothing anybody could have meant: it is owed a ClientHello and no more,
             /// and it is holding a connection slot while it says it. This is where a connection
-            /// that has named a database is given the span the design writes down for a whole
-            /// conversation, and where the two exchanges that wait on a person, a pairing and a
+            /// that has named a database is given the span the design writes down for delivering
+            /// its request, and where the two exchanges that wait on a person, a pairing and a
             /// renewal, are given the longer span written down for that. A peer that named nothing
             /// reaches neither.
             ///
@@ -989,7 +1123,8 @@ namespace KeePassGate.Transport
             /// on, and on a failure a message box that waits on a person. None of that is knowable
             /// before it runs. `DatabaseWriter.WriteTimeout` bounds the wait for the marshaled
             /// call to *start*, not the call, so no sum of this plugin's timeouts bounds it either.
-            /// The answer write that follows is bounded by the socket's own `SendTimeout`.
+            /// Writing the answer is the peer's to slow down again, and is armed afresh by
+            /// <see cref="Writing"/>.
             ///
             /// **Not for a pairing or a renewal**, the two connections whose remaining work is a sum
             /// somebody wrote down: the screen, the dialog, the grace on it, the settling of a busy
@@ -999,7 +1134,32 @@ namespace KeePassGate.Transport
             /// </remarks>
             public void Disarm()
             {
+                _disarmed = true;
                 _timer.Change(Timeout.InfiniteTimeSpan, Timeout.InfiniteTimeSpan);
+            }
+
+            /// <summary>
+            /// Gives writing the answer a budget of its own, counted from now, on a connection
+            /// whose deadline was disarmed with its request.
+            /// </summary>
+            /// <remarks>
+            /// **How fast the answer is read is the peer's doing**, as the pace of its request was,
+            /// and nothing else bounds it. The socket's `SendTimeout` bounds one send, which is one
+            /// TLS record of up to sixteen kilobytes, so a peer that read a record inside every
+            /// timeout held a thread and a connection slot for as long as a large answer lasted:
+            /// an attachment of half a megabyte, two thirds of a megabyte as base64, read at under
+            /// two kilobytes a second, is about seven minutes.
+            ///
+            /// The plugin's own work is over by now, so closing the socket here costs only an
+            /// answer the peer was not reading. A pairing or a renewal keeps the deadline it was
+            /// given with its request, which already outlasts the answer it writes.
+            /// </remarks>
+            public void Writing(TimeSpan budget)
+            {
+                if (_disarmed)
+                {
+                    _timer.Change(budget, Timeout.InfiniteTimeSpan);
+                }
             }
 
             public void Dispose()
@@ -1050,6 +1210,10 @@ namespace KeePassGate.Transport
         /// conversation already reads as a client that left. The stream is made on that socket
         /// rather than asked of the client, because `GetStream` reads `Client` again, and so does
         /// anything else that is handed the client rather than the socket.
+        ///
+        /// **The stream does not own the socket**, so Bouncy Castle closing the stream it was
+        /// given ends the TLS and leaves the socket open for <see cref="Linger"/>. The client
+        /// closes it, when `Converse` lets it go, and so does the deadline.
         /// </remarks>
         internal static NetworkStream Opened(TcpClient client, int timeout, out Socket socket)
         {
@@ -1062,8 +1226,70 @@ namespace KeePassGate.Transport
             socket.ReceiveTimeout = timeout;
             socket.SendTimeout = timeout;
             socket.NoDelay = true;
-            return new NetworkStream(socket, true);
+            return new NetworkStream(socket, false);
         }
+
+        /// <summary>
+        /// Ends an answered connection the way RFC 9112 section 9.6 asks of a server closing a
+        /// connection: its own sending half first, and then whatever the peer still sends is read
+        /// and dropped, until the peer closes, stays quiet for <see cref="GateOptions.Linger"/>,
+        /// or has sent as much as one more request could hold.
+        /// </summary>
+        /// <remarks>
+        /// **A socket closed with the peer's bytes unread is answered by the stack with a reset**,
+        /// and the reset discards whatever reached the peer and was not read yet, the answer
+        /// among it. The body a refused head announced is taken already, by
+        /// `HttpRequestReader.Discard`; this is for what nothing announced: a second request
+        /// pipelined behind the first, a line break written as a record of its own, or the
+        /// `close_notify` of a client that shut its own sending half once its request was out,
+        /// which RFC 8446 section 6.1 allows. Any of those turned the close into a reset, and a
+        /// client reading a moment late lost the answer to a write that had landed, a `201`
+        /// among them, and held no identifier for what it made.
+        ///
+        /// What is read is TLS records, dropped with nothing decrypted. The deadline bounds the
+        /// whole of it: the answer's own for an ordinary connection, a pairing's or a renewal's,
+        /// or the budget a name earned for a connection whose request was never read. The cap is
+        /// for a peer that keeps sending fast, which it can do only up to the size of one more
+        /// request.
+        /// https://www.rfc-editor.org/rfc/rfc9112#section-9.6
+        /// </remarks>
+        private void Linger(Socket socket)
+        {
+            try
+            {
+                socket.Shutdown(SocketShutdown.Send);
+                if (_options.Linger <= TimeSpan.Zero)
+                {
+                    return;
+                }
+
+                // Zero is no timeout at all to a socket, so a linger shorter than a millisecond
+                // waits a millisecond rather than for ever.
+                socket.ReceiveTimeout = Math.Max(1, (int)_options.Linger.TotalMilliseconds);
+
+                var chunk = new byte[LingerChunkBytes];
+                var left = (long)_options.MaxHeadBytes + _options.MaxBodyBytes;
+                while (left > 0)
+                {
+                    var got = socket.Receive(
+                        chunk, 0, (int)Math.Min(chunk.Length, left), SocketFlags.None);
+                    if (got <= 0)
+                    {
+                        return;
+                    }
+
+                    left -= got;
+                }
+            }
+            catch (Exception error) when (Expected.OfConnection(error))
+            {
+                // The peer closed, reset, or stayed quiet for the linger, or the deadline closed
+                // the socket under the read. Each is the end the linger was waiting for.
+            }
+        }
+
+        /// <summary>How much <see cref="Linger"/> takes off the socket at a time.</summary>
+        private const int LingerChunkBytes = 8 * 1024;
 
         private static string Peer(Socket socket)
         {
@@ -1154,7 +1380,8 @@ namespace KeePassGate.Transport
             ClientHelloPeek peek,
             GateResolution resolution,
             string peer,
-            Action<HttpRequestHead> arrived)
+            Action<HttpRequestHead> arrived,
+            Action answering)
         {
             var target = resolution.Target;
             var replayed = new PrependingStream(peek.Bytes, raw);
@@ -1167,8 +1394,12 @@ namespace KeePassGate.Transport
                 {
                     protocol.Accept(server);
                 }
-                catch (TlsFatalAlert alert)
+                catch (Exception error) when (Expected.OfConnection(error))
                 {
+                    // An alert and every other way a handshake fails, in one catch, because the
+                    // question asked of each is the same: an alert is an `IOException`, and so is
+                    // what Bouncy Castle throws on unwrapped from a callback. One check for both
+                    // is a check the test of a failing callback reaches whichever arrives.
                     if (server.Failure != null)
                     {
                         // Part of the connection catch-all, kept here rather than left to it, for
@@ -1180,22 +1411,8 @@ namespace KeePassGate.Transport
                         return;
                     }
 
-                    // A client offering something we do not is refused here, and told so in the
-                    // alert.
-                    _log.Info("a handshake failed: " + alert.Message);
-                    return;
-                }
-                catch (Exception error) when (Expected.OfConnection(error))
-                {
-                    if (server.Failure != null)
-                    {
-                        // The same, for one that arrived as an `IOException` rather than an alert.
-                        _incidents.Record("the handshake failed on this side", server.Failure);
-                        return;
-                    }
-
-                    // Everything a handshake can fail with that is not an alert: a client that
-                    // hung up, a stream that closed, bytes that were never TLS.
+                    // A client offering something we do not, refused and told so in the alert, a
+                    // client that hung up, a stream that closed, bytes that were never TLS.
                     _log.Info("a handshake failed: " + error.Message);
                     return;
                 }
@@ -1241,7 +1458,8 @@ namespace KeePassGate.Transport
 
                 GateConversation.Serve(
                     protocol.Stream, client, _handler, _options, _log,
-                    Pairing(resolution, peek, target, peer), _incidents, target, peer, arrived);
+                    Pairing(resolution, peek, target, peer), _incidents, target, peer, arrived,
+                    answering);
             }
             finally
             {

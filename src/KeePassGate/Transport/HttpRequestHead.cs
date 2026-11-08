@@ -26,7 +26,10 @@ namespace KeePassGate.Transport
             _contentLength = contentLength;
         }
 
-        /// <summary>Upper case, as sent. A method is case sensitive and ours are all upper case.</summary>
+        /// <summary>
+        /// As sent, case and all. A method is case sensitive, and every method this API declares is
+        /// upper case, so `get` is a method nothing declares.
+        /// </summary>
         public string Method
         {
             get { return _method; }
@@ -114,7 +117,8 @@ namespace KeePassGate.Transport
         /// other. Read off the whole head whatever a refusal was decided on, since the request line
         /// and a refused header can both come before the length, and for a head over the cap off
         /// the rest of it, read on to its blank line. Zero for a head the connection cut short,
-        /// where nothing more is coming.
+        /// where nothing more is coming. An `Expect` counts for nothing in an HTTP/1.0 request,
+        /// refused for its version, since RFC 9110 section 10.1.1 has a server ignore it there.
         /// </remarks>
         public long Announced { get; private set; }
 

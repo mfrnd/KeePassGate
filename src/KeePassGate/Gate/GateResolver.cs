@@ -211,17 +211,14 @@ namespace KeePassGate.Gate
                         continue;
                     }
 
+                    // Nothing caught: `SniName.Matches` answers a missing key and a name of the
+                    // wrong shape with false, and the HMAC under it takes a key of any length, so
+                    // nothing it does throws for whatever key a database holds.
                     var key = candidate.GateKey;
                     bool hit;
                     try
                     {
                         hit = SniName.Matches(serverName, key);
-                    }
-                    catch (Exception error) when (Expected.OfCryptography(error))
-                    {
-                        // A gate key of the wrong length is a database that cannot be addressed at
-                        // all, rather than one that did not match this name.
-                        hit = false;
                     }
                     finally
                     {
