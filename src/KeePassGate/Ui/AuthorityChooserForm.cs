@@ -25,7 +25,9 @@ namespace KeePassGate.Ui
     ///   that everything still uses is usually the one to keep.
     /// - **Keeping takes a press.** Enter reaches nothing and Escape cancels, and so does every
     ///   other way of dismissing the dialog: a choice retires the others for good, and a dialog
-    ///   that can be dismissed into one is a dialog that will be.
+    ///   that can be dismissed into one is a dialog that will be. Keep is an `ApproveButton`, so
+    ///   no letter presses it and it never becomes the button Enter presses, which a focused
+    ///   button otherwise does: a bare K on either button, or Enter on a focused Keep, kept.
     /// - **Only an authority that reads can be kept.** One that will not is listed, because it is
     ///   still one the database holds, and keeping another retires it.
     /// - **One copy answers.** The audit the evidence comes from is this machine's own, so copies
@@ -233,10 +235,8 @@ namespace KeePassGate.Ui
                 Margin = new Padding(0, 0, Spacing.Gap, 0)
             };
 
-            _keep = new Button
+            _keep = new ApproveButton(GateTab.KeepButtonName, GateTab.KeepButtonText)
             {
-                Name = GateTab.KeepButtonName,
-                Text = "&" + GateTab.KeepButtonText,
                 AutoSize = true,
                 AutoSizeMode = AutoSizeMode.GrowAndShrink,
                 Margin = new Padding(0)
@@ -356,6 +356,27 @@ namespace KeePassGate.Ui
             }
 
             return client.LastSeen.HasValue ? Moments.OnScreen(client.LastSeen.Value) : NeverSeen;
+        }
+
+        /// <summary>
+        /// Enter reaches nothing, wherever the focus is.
+        /// </summary>
+        /// <remarks>
+        /// Asked only once a control has declined the key, so an open list still takes it. What
+        /// this takes away is the form's own handling, which presses the default button, and the
+        /// default button is whichever button has the focus.
+        /// </remarks>
+        protected override bool ProcessDialogKey(Keys keyData)
+        {
+            return WindowHandlers.Run("a key on the authority chooser could not be handled", () =>
+            {
+                if ((keyData & (Keys.Alt | Keys.Control)) == Keys.None && (keyData & Keys.KeyCode) == Keys.Enter)
+                {
+                    return true;
+                }
+
+                return base.ProcessDialogKey(keyData);
+            }, true);
         }
 
         /// <summary>

@@ -4,10 +4,13 @@ using System.Windows.Forms;
 namespace KeePassGate.Ui
 {
     /// <summary>
-    /// The Approve button on the pairing and renewal dialogs, which no stray key presses.
+    /// The Approve button on the pairing and renewal dialogs, and the authority chooser's Keep,
+    /// which no stray key presses.
     /// </summary>
     /// <remarks>
-    /// <see cref="ApprovalDialog"/> says why. Three things an ordinary button does are taken away:
+    /// <see cref="ApprovalDialog"/> gives the reason for Approve, and the chooser's own remark for
+    /// Keep, which retires every other authority for good. Three things an ordinary button does
+    /// are taken away:
     /// a mnemonic, which a bare letter fires whenever a button has the focus, Alt or not; being
     /// drawn as the default button once it has the focus; and the form's Enter, which the dialog
     /// answers itself. What is left is a click, and Space while it has the focus.
@@ -15,9 +18,15 @@ namespace KeePassGate.Ui
     public sealed class ApproveButton : Button
     {
         public ApproveButton()
+            : this(GateTab.ApproveButtonName, GateTab.ApproveButtonText)
         {
-            Name = GateTab.ApproveButtonName;
-            Text = GateTab.ApproveButtonText;
+        }
+
+        /// <summary>The same button under another name and caption.</summary>
+        internal ApproveButton(string name, string text)
+        {
+            Name = name;
+            Text = text;
 
             // An ampersand in the text is then an ampersand, so a caption changed later cannot
             // bring a mnemonic back.

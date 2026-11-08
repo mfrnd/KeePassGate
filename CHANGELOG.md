@@ -11,6 +11,9 @@ none, since it releases both.
 
 ## 0.2.0, unreleased
 
+- **No stray key keeps an authority on the chooser.** Keep carried an access key, so a bare K typed
+  while either button had the focus kept the selected authority and retired every other for good,
+  and Enter on a focused Keep kept as well. Keep now takes a click or Space, as Approve does.
 - **The renewal dialog marks its two moments as UTC, and its refuse-until range runs where the
   operator is.** The moments read as local time with nothing marking them. The calendar ran from a
   local tomorrow to the date of the certificate's end in UTC, so far east of Greenwich the choice

@@ -277,7 +277,8 @@ it last made a request, if the audit file remembers one.
 **Keep this authority** keeps the selected authority and retires every other authority for good: the
 programs those admitted stop working and have to pair again, and their rows stay on the clients page
 as **not this authority** until they are removed. The database is marked changed and not saved, so
-save it to keep the choice.
+save it to keep the choice. It takes a click, or Space on the button: no letter presses it and
+Enter does nothing on this window, wherever the focus is.
 
 **Cancel** serves nothing. The Certificate Authority page then says the database holds more than
 one authority, and **Choose authority** there asks again; a choice made from there waits for OK
