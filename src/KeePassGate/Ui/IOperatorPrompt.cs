@@ -9,8 +9,9 @@ namespace KeePassGate.Ui
     /// An interface so that a test can answer without a human, and so that the one place a dialog
     /// is raised stays visible. These prompts are never reached from an API request; the two
     /// requests that do put a window up, pairing and renewal, go through `PairingApprovalPrompt`,
-    /// `DESIGN.md` §119. These are reached from something the operator has just done, or once at
-    /// startup when the gate could not take its port.
+    /// `DESIGN.md` §119. These are reached from something the operator has just done, once at
+    /// startup when the gate could not take its port, or once on the way out about standing
+    /// answers no database took.
     /// </remarks>
     public interface IOperatorPrompt
     {
@@ -21,11 +22,13 @@ namespace KeePassGate.Ui
         /// Tells the operator something there is no answer to, and waits for them to acknowledge it.
         /// </summary>
         /// <remarks>
-        /// Three callers: a gate that could not take its port, a port the operator has just changed
-        /// on the window under Tools, and an authority they chose that could not be kept. None is a
-        /// question, because nothing the operator can say here would change it, and none is a log
-        /// line either, because the consequence lasts and the person it affects is the person in
-        /// front of the screen.
+        /// Four callers: a gate that could not take its port, a port the operator has just changed
+        /// on the window under Tools, an authority they chose that could not be kept, and standing
+        /// answers to renewals no database took before KeePass exits. None is a question, because
+        /// nothing the operator can say here would change it, and none is a log line either,
+        /// because the consequence lasts and the person it affects is the person in front of the
+        /// screen. The last is the log line alone at a Windows logoff or shutdown, when there is
+        /// nobody in front of it, which `OwedAnswersAtExit` gives the reason for.
         /// </remarks>
         void Tell(string title, string news);
     }

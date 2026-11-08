@@ -11,6 +11,11 @@ none, since it releases both.
 
 ## 0.2.0, unreleased
 
+- **A Windows logoff or shutdown is no longer held up by the message about standing answers never
+  written.** KeePass unloads the plugin inside the session's end, and the message box waited there
+  for an answer nobody was at the desk to give, until Windows gave up on KeePass. At a logoff or a
+  shutdown the answers go to the plugin's log alone; an exit the operator starts still shows the
+  message, and shows it once however often the plugin is told to stop.
 - **Every method that reads or writes one group or entry with its tag takes the three retry
   budgets and a `connection_timeout`**, keyword-only and for that call alone: the reads of a
   group, an entry, a field or an attachment and the listings of fields and attachments, `head`,

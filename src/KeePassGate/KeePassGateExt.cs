@@ -41,6 +41,7 @@ namespace KeePassGate
         private LockWatch _locks;
         private AuthorityChooser _chooser;
         private OwedAnswerSaves _owedAnswerSaves;
+        private OwedAnswersAtExit _owedAtExit;
         private DroppedLocks _droppedLocks;
         private InvitationBook _invitations;
 
@@ -644,8 +645,17 @@ namespace KeePassGate
 
                 // An exit takes every held approval with it, as a lock does.
                 _approvals.Clear();
+            });
 
-                TellWhatIsStillOwed();
+            Attempt("failed to tell what is still owed", () =>
+            {
+                // Kept rather than let go, so that a second run meets the notice that has told
+                // already and stays silent: `OwedAnswersAtExit` tells once.
+                if (_owedAtExit != null)
+                {
+                    _owedAtExit.Tell(_log);
+                    _owedAtExit.Dispose();
+                }
             });
 
             Attempt("failed to release the save events", () =>
@@ -842,6 +852,11 @@ namespace KeePassGate
             _owedAnswerSaves = new OwedAnswerSaves(mainWindow, writer, _incidents);
             _owedAnswerSaves.Start();
 
+            // And what is still owed when KeePass exits, which is told then, and watched for here
+            // because whether the operator is there to read it is a question about this window.
+            _owedAtExit = new OwedAnswersAtExit(_sessionRefusals.Owed, new MessageBoxPrompt());
+            _owedAtExit.Watch(mainWindow);
+
             // A lock KeePass was asked for while the writer's own save was running, which KeePass
             // drops, made once the request that saved has been answered: `DroppedLocks` gives the reason.
             _droppedLocks = new DroppedLocks(
@@ -928,36 +943,6 @@ namespace KeePassGate
                 new ApprovalScreens(prompt, _approvals, _chooser));
             _locks.Start();
             _chooser.Start();
-        }
-
-        /// <summary>
-        /// Tells the operator about standing answers to renewals that no database took before
-        /// KeePass exits, which go with it.
-        /// </summary>
-        /// <remarks>
-        /// The operator's ruling of 2026-10-14: an answer forever or until a date given while
-        /// KeePass was busy holds from memory and is written by the next save of that database,
-        /// and an answer still unwritten is told to the operator rather than only to the log. Exit
-        /// is when that becomes true for good: a lock or a close keeps it, and the next save after
-        /// an unlock or an open writes it. Said once, on the way out, naming each certificate, so
-        /// that the operator knows which programs may be asked about again; `OwedAnswerNotice` has
-        /// the words, and why they give no cause.
-        /// </remarks>
-        private void TellWhatIsStillOwed()
-        {
-            var owed = _sessionRefusals.Owed();
-            if (owed.Count == 0)
-            {
-                return;
-            }
-
-            var log = _log;
-            if (log != null)
-            {
-                log.Warn(OwedAnswerNotice.LogLine(owed));
-            }
-
-            new MessageBoxPrompt().Tell(GateName.Full, OwedAnswerNotice.Message(owed));
         }
 
         /// <summary>
