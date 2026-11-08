@@ -11,6 +11,11 @@ none, since it releases both.
 
 ## 0.2.0, unreleased
 
+- **A renewal opens a kept identity with the password it was given, and calls a kept identity it
+  could not present what it is.** An identity at `<dir>.retired` under a password, beside an
+  identity whose key needs none, was opened with no password at all, and every renewal was refused with
+  the claim that the gate still admitted it, though the gate was asked nothing; so was a kept
+  identity that would not load.
 - **An identity opened by a relative path renews beside its own directory**, `.` and `..` among
   them. `.` raised a bare `ValueError` out of every renewal, after `pair --directory .` had been
   accepted, and `..` kept the two directories a renewal makes in the working directory, inside

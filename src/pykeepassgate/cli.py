@@ -1277,6 +1277,16 @@ def _renew(arguments: argparse.Namespace) -> int:
             f"{renewal.retired}` removes it, as the next renewal does by itself",
             file=sys.stderr,
         )
+    elif isinstance(unrevoked, StorageError):
+        # Refused while the client that would present it was built, so the gate was asked
+        # nothing and whether it still admits the certificate is not known here.
+        print(
+            f"the certificate this renewed from could not be presented to give it up: "
+            f"{unrevoked}. It is kept in {renewal.retired}, and `pykeepassgate revoke "
+            f"--directory {renewal.retired}` gives it up and removes it, as the next renewal "
+            "tries to by itself",
+            file=sys.stderr,
+        )
     elif unrevoked is not None:
         print(
             f"the certificate this renewed from is still admitted: {unrevoked}. It is kept in "

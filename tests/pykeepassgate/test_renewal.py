@@ -579,6 +579,47 @@ def test_another_clients_identity_beside_this_one_stops_a_renewal_untouched(
     assert api.load(where).expires == "2126-08-15T09:00:00Z"
 
 
+def test_a_kept_identity_under_a_password_is_opened_with_the_one_this_client_was_given(
+    gate: FakeGate, paired: GateClient, renewing: Gate
+) -> None:
+    # This client's own key is not encrypted, so it never asked for a password, and the kept
+    # identity beside it was opened with none: refused for having none, and reported as an
+    # identity the gate still admits though the gate was asked nothing.
+    retired = paired.credentials.directory.with_name("default.retired")
+    credentials_module.save(
+        retired,
+        gate.port,
+        renewing.renewed,
+        key_password="an invented password",
+        client_key=paired.credentials.client_key,
+    )
+    client = GateClient(
+        paired.credentials, connection_timeout=10.0, key_password="an invented password"
+    )
+
+    client.renew()
+
+    assert [method for method, _ in gate.requests][:1] == ["DELETE"], "given up first"
+    assert not retired.exists()
+
+
+def test_a_kept_identity_that_will_not_load_is_not_called_admitted(
+    gate: FakeGate, paired: GateClient, renewing: Gate
+) -> None:
+    # Refused while the client that would present it was built, so nothing was asked.
+    retired = paired.credentials.directory.with_name("default.retired")
+    kept = credentials_module.save(
+        retired, gate.port, renewing.renewed, client_key=paired.credentials.client_key
+    )
+    kept.identity.write_bytes(b"not a certificate or a key")
+
+    with pytest.raises(StorageError, match="could not be presented to give it up") as refused:
+        paired.renew()
+
+    assert "still admits" not in str(refused.value)
+    assert gate.requests == []
+
+
 def test_what_a_renewal_that_stopped_before_its_answer_left_is_written_over(
     paired: GateClient, renewing: Gate
 ) -> None:
@@ -1027,6 +1068,30 @@ def test_the_command_line_does_not_call_a_certificate_the_gate_refuses_admitted(
     assert "is refused, and KeePass may not have that in its file" in said
     assert "still admitted" not in said
     assert f"pykeepassgate revoke --directory {where.with_name('kept.retired')}" in said
+
+
+def test_the_command_line_does_not_call_a_certificate_it_could_not_present_admitted(
+    tmp_path: Path,
+    gate: FakeGate,
+    bundle: dict[str, Any],
+    renewing: Gate,
+    capsys: pytest.CaptureFixture[str],
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    # A refusal building the client that would give it up asked the gate nothing.
+    def unpresentable(self: GateClient, old: Any) -> StorageError:
+        return StorageError("identity.pem will not load as this client's certificate and key")
+
+    monkeypatch.setattr(GateClient, "_give_up", unpresentable)
+    where = tmp_path / "kept"
+    credentials_module.save(where, gate.port, bundle)
+
+    code = cli.main(["renew", "--directory", str(where)])
+
+    said = capsys.readouterr().err
+    assert code == cli.FAILED
+    assert "could not be presented to give it up" in said
+    assert "still admitted" not in said
 
 
 @pytest.mark.parametrize(

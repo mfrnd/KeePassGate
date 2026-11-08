@@ -532,6 +532,16 @@ class GateClient:
             return
 
         unrevoked = self._give_up(old)
+        if isinstance(unrevoked, StorageError):
+            # Refused before anything was dialed, building the client that would present it, so
+            # the gate was asked nothing and nothing here knows what it would answer.
+            raise StorageError(
+                f"{retired} holds the identity an earlier renewal renewed from, and it could not "
+                f"be presented to give it up: {unrevoked}. Revoke it first, which "
+                f"`pykeepassgate revoke --directory {retired}` does, or, if it will not load, "
+                f"have the operator revoke it on the KPG tab's clients page and remove {retired}"
+            )
+
         if unrevoked is not None:
             raise StorageError(
                 f"{retired} holds the identity an earlier renewal renewed from, and the gate "
@@ -558,7 +568,14 @@ class GateClient:
         )
 
     def _give_up(self, old: credentials_module.Credentials) -> GateError | None:
-        """Revoke the certificate a renewal replaced, presenting it, and say why not if not."""
+        """Revoke the certificate a renewal replaced, presenting it, and say why not if not.
+
+        Opened with the password that opened this client's own key, which is the password the
+        renewal stored the old key under, and with the password this client was given where its
+        own key needed none: a kept identity encrypted beside an identity that is not was opened
+        with no password at all, and refused for having none. A `StorageError` back from here is a
+        refusal to build that client, before anything was dialed.
+        """
         try:
             giving_up = GateClient(
                 old,
@@ -569,7 +586,7 @@ class GateClient:
                 retry_locked_timeout=self._retry_locked_timeout,
                 retry_undecided_timeout=self._retry_undecided_timeout,
                 max_response_bytes=self._max_response_bytes,
-                key_password=self._opened,
+                key_password=self._key_password if self._opened is None else self._opened,
             )
             # The gate this client compared already, which the renewal has just been answered by.
             giving_up._compatible = self._compatible
