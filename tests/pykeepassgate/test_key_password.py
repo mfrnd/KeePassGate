@@ -115,8 +115,7 @@ class TestTheKeyOnDisk:
     def test_a_password_outside_ascii_opens_what_it_stored(
         self, tmp_path: Path, bundle: dict[str, Any], gate: FakeGate
     ) -> None:
-        # Built from its code point, so this file stays ASCII and the password does not.
-        typed = "an invented " + chr(0xE4) + " password"
+        typed = "an invented ä password"
         stored = credentials_module.save(tmp_path / "kept", gate.port, bundle, key_password=typed)
         serving_status(gate)
 
@@ -197,7 +196,7 @@ class TestOpeningTheKey:
 
 @pytest.mark.parametrize(
     "given",
-    [7, "", b"", ["a list"], "x" * 1024, b"x" * 1024, "\u00e9" * 512, "ab\udc80cd"],
+    [7, "", b"", ["a list"], "x" * 1024, b"x" * 1024, "é" * 512, "ab\udc80cd"],
     ids=[
         "a number", "empty text", "empty bytes", "a list", "1024 characters", "1024 bytes",
         "512 characters of two bytes each", "a lone surrogate",
@@ -231,7 +230,7 @@ def test_the_longest_key_password_a_key_can_be_stored_under_is_taken(
 ) -> None:
     # 1023 bytes is what `cryptography` encrypts under and `ssl` opens with, and one more is
     # refused where it is given rather than after a pairing has spent its invitation.
-    longest = "\u00e9" * 511 + "x"
+    longest = "é" * 511 + "x"
     stored = credentials_module.save(tmp_path / "kept", gate.port, bundle, key_password=longest)
     serving_status(gate)
 

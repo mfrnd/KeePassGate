@@ -133,7 +133,7 @@ namespace KeePassGate.Tests
             // The refusal above is about halves. A pair is a code point the database stores like
             // any other, including the ones whose low half looks like `U+FFFE`.
             Assert.That(JsonBody.Read("{\"a\":\"one\\uD83D\\uDE00two\"}").Text("a"),
-                Is.EqualTo("one" + char.ConvertFromUtf32(0x1F600) + "two"));
+                Is.EqualTo("one😀two"));
             Assert.That(JsonBody.Read("{\"a\":\"\\uD83F\\uDFFE\"}"), Is.Not.Null,
                 "U+1FFFE is a character, whatever the two halves look like on their own");
         }
