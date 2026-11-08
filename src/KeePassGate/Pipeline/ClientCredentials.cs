@@ -108,6 +108,14 @@ namespace KeePassGate.Pipeline
                 }
 
                 var admissionKey = CertificateDigest.Of(presented);
+
+                // The names before the record, and read once, so the names granted and the names
+                // withheld are two halves of one list. Each read holds KeePass's thread on its own,
+                // and a lock can land between them: read second, the list met a database already
+                // shut and named nothing, and a client was told every profile it holds had been
+                // taken away. Read first, a lock after it is met by the record's read, which
+                // answers a shut database as one.
+                var named = target.KnownProfiles;
                 var record = target.Admission(admissionKey);
 
                 if (record == null)
@@ -117,8 +125,6 @@ namespace KeePassGate.Pipeline
                     return ClientIdentity.Refused(databaseId, presented, "this certificate has no admission record");
                 }
 
-                // Read once, so the names granted and the names withheld are two halves of one list.
-                var named = target.KnownProfiles;
                 return ClientIdentity.Paired(
                     databaseId,
                     presented,

@@ -194,6 +194,10 @@ none, since it releases both.
   file**, as KeePass names it. Its name threw, so the authority chooser asking which authority to
   keep failed as an incident under Tools without asking, and Choose authority on the KPG tab failed
   with a path error.
+- **A program asking who it is as KeePass locks is told the database is locked**, as every other
+  route tells it. A lock between the gate reading its record and reading the database's profiles
+  left the list naming nothing, and `whoami` answered that the operator had taken every profile
+  away.
 - **A protected field is kept from a strip whenever any profile could put an unprotected value
   back.** The guard asked whether some profile could create there and whether some profile could
   create a protected value there, so a program holding one profile that could put an unprotected

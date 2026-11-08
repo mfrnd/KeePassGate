@@ -10,6 +10,7 @@ using KeePassGate.Diagnostics;
 using KeePassGate.Gate;
 using KeePassGate.Pipeline;
 using KeePassGate.Testing;
+using KeePassGate.Ui;
 using NUnit.Framework;
 
 namespace KeePassGate.Host.Tests
@@ -151,6 +152,28 @@ namespace KeePassGate.Host.Tests
 
                 Assert.That(identity.IsPaired, Is.False);
                 Assert.That(identity.IsLocked, Is.True);
+            }
+        }
+
+        [Test]
+        public void A_lock_between_reading_the_record_and_the_profiles_is_answered_as_a_lock()
+        {
+            // Each read holds KeePass's thread on its own, so a lock can land between the two. The
+            // list read from a database already shut names nothing, and a client told that was
+            // told every profile it holds had been taken away, on the one route that reads no node.
+            using (var certificate = IssueAndAdmit())
+            {
+                var hold = new LockAfterFirstRead(() => _database.Database.Close());
+                using (var targets = new OpenDatabaseTargets(delegate { return _open; }, null, hold, _log))
+                using (var target = targets.Current().Single())
+                {
+                    hold.Armed = true;
+
+                    var identity = ClientCredentials.For(certificate, target, _log);
+
+                    Assert.That(identity.IsLocked, Is.True);
+                    Assert.That(identity.IsPaired, Is.False);
+                }
             }
         }
 
@@ -516,6 +539,34 @@ namespace KeePassGate.Host.Tests
 
                 _database.Save();
                 return certificate;
+            }
+        }
+
+        /// <summary>
+        /// Runs every read where it is asked, and closes the database once the first read of a
+        /// record or of the profiles has returned, as a lock landing between the two would.
+        /// </summary>
+        private sealed class LockAfterFirstRead : IReadHold
+        {
+            private readonly Action _lock;
+
+            public LockAfterFirstRead(Action lockIt)
+            {
+                _lock = lockIt;
+            }
+
+            public bool Armed { get; set; }
+
+            public T Hold<T>(Func<T> read)
+            {
+                var value = read();
+                if (Armed && (typeof(T) == typeof(AdmissionRecord) || typeof(T) == typeof(IReadOnlyList<string>)))
+                {
+                    Armed = false;
+                    _lock();
+                }
+
+                return value;
             }
         }
 
