@@ -186,7 +186,8 @@ namespace KeePassGate.Tests
         private HeldApproval Hold(string key, string databaseId, long mark)
         {
             return _book.Hold(
-                key, databaseId, new[] { "ops" }, TimeSpan.FromDays(30), new[] { "ops" }, null, _now.AddMinutes(6), mark);
+                key, databaseId, new[] { "ops" }, TimeSpan.FromDays(30), new[] { "ops" }, null,
+                PairingClock.For(() => _now).Read().After(TimeSpan.FromMinutes(6)), mark);
         }
     }
 }

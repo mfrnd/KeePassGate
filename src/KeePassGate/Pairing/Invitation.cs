@@ -17,21 +17,27 @@ namespace KeePassGate.Pairing
     /// It carries at most one outstanding challenge, because the proof exchange is two requests and
     /// the transport serves one request per connection. A second hello replaces the first, and a
     /// challenge is spent the moment it is used.
+    ///
+    /// **It ends by elapsed time**, and so does its challenge, read off the clock it was made by,
+    /// so that moving the system clock neither lengthens nor shortens either: see
+    /// <see cref="PairingClock"/>.
+    /// What it shows and sends as its expiry is the wall-clock time read when it was made.
     /// </remarks>
     public sealed class Invitation : IDisposable
     {
         private readonly string _id;
         private readonly string _databaseId;
         private readonly DateTimeOffset _created;
-        private readonly DateTimeOffset _expires;
+        private readonly PairingMoment _ends;
+        private readonly PairingClock _clock;
         private readonly byte[] _token;
         private readonly object _lock = new object();
 
         private PairingChallenge _challenge;
         private bool _disposed;
 
-        public Invitation(
-            string id, string databaseId, byte[] token, DateTimeOffset created, DateTimeOffset expires)
+        /// <summary>An invitation made now by this clock, lasting this long.</summary>
+        public Invitation(string id, string databaseId, byte[] token, PairingClock clock, TimeSpan lifetime)
         {
             if (string.IsNullOrEmpty(id))
             {
@@ -57,8 +63,11 @@ namespace KeePassGate.Pairing
             _id = id;
             _databaseId = databaseId;
             _token = (byte[])token.Clone();
-            _created = created;
-            _expires = expires;
+            _clock = clock ?? PairingClock.Default;
+
+            var made = _clock.Read();
+            _created = made.Wall;
+            _ends = made.After(lifetime);
         }
 
         /// <summary>
@@ -86,9 +95,10 @@ namespace KeePassGate.Pairing
             get { return _created; }
         }
 
+        /// <summary>When it ends, as the wall clock read it then, for showing and sending.</summary>
         public DateTimeOffset Expires
         {
-            get { return _expires; }
+            get { return _ends.Wall; }
         }
 
         /// <summary>A copy, which the caller may zero. Null once the invitation has been disposed.</summary>
@@ -115,9 +125,10 @@ namespace KeePassGate.Pairing
             }
         }
 
-        public bool HasExpired(DateTimeOffset now)
+        /// <summary>Whether its time is up, by elapsed time on the clock it was made by.</summary>
+        public bool HasExpired()
         {
-            return now >= _expires;
+            return _clock.HasReached(_ends);
         }
 
         /// <summary>
@@ -170,9 +181,9 @@ namespace KeePassGate.Pairing
         /// nonce are kept with it, because the request that follows arrives on a different
         /// connection and has to prove itself against the connection the challenge was issued on.
         /// </summary>
-        public PairingChallenge Challenge(byte[] binding, byte[] nonce, DateTimeOffset now, TimeSpan lifetime)
+        public PairingChallenge Challenge(byte[] binding, byte[] nonce, TimeSpan lifetime)
         {
-            var challenge = new PairingChallenge(NewChallenge(), binding, nonce, now + lifetime);
+            var challenge = new PairingChallenge(NewChallenge(), binding, nonce, _clock.Read().After(lifetime));
 
             lock (_lock)
             {
@@ -191,14 +202,14 @@ namespace KeePassGate.Pairing
         /// Takes the outstanding challenge, if there is one that has not expired. It is spent by
         /// being taken, so a request that fails cannot be tried again against the same challenge.
         /// </summary>
-        public PairingChallenge TakeChallenge(DateTimeOffset now)
+        public PairingChallenge TakeChallenge()
         {
             lock (_lock)
             {
                 var challenge = _challenge;
                 _challenge = null;
 
-                if (challenge == null || challenge.HasExpired(now))
+                if (challenge == null || _clock.HasReached(challenge.Ends))
                 {
                     return null;
                 }
@@ -250,9 +261,10 @@ namespace KeePassGate.Pairing
         private readonly byte[] _challenge;
         private readonly byte[] _binding;
         private readonly byte[] _nonce;
-        private readonly DateTimeOffset _expires;
+        private readonly PairingMoment _ends;
 
-        public PairingChallenge(byte[] challenge, byte[] binding, byte[] nonce, DateTimeOffset expires)
+        /// <summary>A challenge over this connection, ending at <paramref name="ends"/>.</summary>
+        public PairingChallenge(byte[] challenge, byte[] binding, byte[] nonce, PairingMoment ends)
         {
             if (challenge == null)
             {
@@ -272,7 +284,7 @@ namespace KeePassGate.Pairing
             _challenge = (byte[])challenge.Clone();
             _binding = (byte[])binding.Clone();
             _nonce = (byte[])nonce.Clone();
-            _expires = expires;
+            _ends = ends;
         }
 
         public byte[] Value
@@ -292,14 +304,16 @@ namespace KeePassGate.Pairing
             get { return (byte[])_nonce.Clone(); }
         }
 
+        /// <summary>When it ends, as the wall clock read it then, which a hello sends.</summary>
         public DateTimeOffset Expires
         {
-            get { return _expires; }
+            get { return _ends.Wall; }
         }
 
-        public bool HasExpired(DateTimeOffset now)
+        /// <summary>When it ends on both clocks, of which elapsed time decides.</summary>
+        public PairingMoment Ends
         {
-            return now >= _expires;
+            get { return _ends; }
         }
     }
 }

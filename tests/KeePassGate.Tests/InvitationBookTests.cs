@@ -337,7 +337,7 @@ namespace KeePassGate.Tests
         {
             _now = new DateTimeOffset(2026, 8, 15, 9, 0, 0, TimeSpan.Zero);
             _invitation = new Invitation(
-                "abcdef01", "database", PairingToken.New(), _now, _now.AddMinutes(10));
+                "abcdef01", "database", PairingToken.New(), PairingClock.For(() => _now), TimeSpan.FromMinutes(10));
         }
 
         [TearDown]
@@ -349,7 +349,7 @@ namespace KeePassGate.Tests
         [Test]
         public void There_is_no_challenge_until_a_hello_asks_for_one()
         {
-            Assert.That(_invitation.TakeChallenge(_now), Is.Null);
+            Assert.That(_invitation.TakeChallenge(), Is.Null);
         }
 
         [Test]
@@ -358,7 +358,7 @@ namespace KeePassGate.Tests
             var binding = new byte[] { 1, 2, 3 };
             var nonce = new byte[] { 4, 5, 6 };
 
-            var issued = _invitation.Challenge(binding, nonce, _now, Minute);
+            var issued = _invitation.Challenge(binding, nonce, Minute);
 
             Assert.That(issued.Value.Length, Is.EqualTo(PairingChallenge.Length));
             Assert.That(issued.Binding, Is.EqualTo(binding));
@@ -369,20 +369,20 @@ namespace KeePassGate.Tests
         [Test]
         public void Taking_it_spends_it()
         {
-            _invitation.Challenge(new byte[1], new byte[1], _now, Minute);
+            _invitation.Challenge(new byte[1], new byte[1], Minute);
 
-            Assert.That(_invitation.TakeChallenge(_now), Is.Not.Null);
-            Assert.That(_invitation.TakeChallenge(_now), Is.Null,
+            Assert.That(_invitation.TakeChallenge(), Is.Not.Null);
+            Assert.That(_invitation.TakeChallenge(), Is.Null,
                 "a challenge that can be used twice is a request that can be replayed");
         }
 
         [Test]
         public void A_second_hello_replaces_the_first()
         {
-            var first = _invitation.Challenge(new byte[1], new byte[1], _now, Minute);
-            var second = _invitation.Challenge(new byte[1], new byte[1], _now, Minute);
+            var first = _invitation.Challenge(new byte[1], new byte[1], Minute);
+            var second = _invitation.Challenge(new byte[1], new byte[1], Minute);
 
-            var taken = _invitation.TakeChallenge(_now);
+            var taken = _invitation.TakeChallenge();
 
             Assert.That(taken.Value, Is.EqualTo(second.Value));
             Assert.That(taken.Value, Is.Not.EqualTo(first.Value));
@@ -391,9 +391,11 @@ namespace KeePassGate.Tests
         [Test]
         public void An_expired_challenge_is_not_handed_over()
         {
-            _invitation.Challenge(new byte[1], new byte[1], _now, Minute);
+            _invitation.Challenge(new byte[1], new byte[1], Minute);
 
-            Assert.That(_invitation.TakeChallenge(_now.AddMinutes(2)), Is.Null);
+            _now = _now.AddMinutes(2);
+
+            Assert.That(_invitation.TakeChallenge(), Is.Null);
         }
 
         [Test]
@@ -403,7 +405,7 @@ namespace KeePassGate.Tests
 
             for (var i = 0; i < 100; i++)
             {
-                var issued = _invitation.Challenge(new byte[1], new byte[1], _now, Minute);
+                var issued = _invitation.Challenge(new byte[1], new byte[1], Minute);
                 Assert.That(seen.Add(Convert.ToBase64String(issued.Value)), Is.True);
             }
         }
@@ -413,13 +415,13 @@ namespace KeePassGate.Tests
         {
             _invitation.Dispose();
 
-            Assert.That(_invitation.Challenge(new byte[1], new byte[1], _now, Minute), Is.Null);
+            Assert.That(_invitation.Challenge(new byte[1], new byte[1], Minute), Is.Null);
         }
 
         [Test]
         public void A_challenge_hands_out_copies_rather_than_what_it_holds()
         {
-            var issued = _invitation.Challenge(new byte[] { 9 }, new byte[] { 8 }, _now, Minute);
+            var issued = _invitation.Challenge(new byte[] { 9 }, new byte[] { 8 }, Minute);
 
             var taken = issued.Value;
             Array.Clear(taken, 0, taken.Length);

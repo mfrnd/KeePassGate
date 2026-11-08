@@ -639,7 +639,7 @@ namespace KeePassGate.Tests
 
         private static Invitation At(DateTimeOffset expires, string id = "abcdef01")
         {
-            return new Invitation(id, "database", PairingToken.New(), Now, expires);
+            return new Invitation(id, "database", PairingToken.New(), PairingClock.For(() => Now), expires - Now);
         }
     }
 }

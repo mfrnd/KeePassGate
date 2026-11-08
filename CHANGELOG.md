@@ -539,6 +539,11 @@ none, since it releases both.
   audit**, since nobody was asked, and the log states that it was never shown. It was answered as
   a dialog the lock closed, so the audit recorded the operator leaving a question unanswered that
   never reached them, and the log a dialog closed that never stood.
+- **An invitation, a hello's challenge and an approval held for a busy KeePass end by elapsed
+  time**, so setting the system clock back or forward neither lengthens nor shortens them. Set back
+  an hour, it kept an unused code alive for the hour, and kept an approval writable without the
+  dialog past its pairing budget. What the tab shows and a client is told is still the wall-clock
+  time read when each was made.
 - **A lock that closes an approval dialog logs it once**, however many databases are open. KeePass
   locks each of them in turn while the dialog stands, and each logged again that the request in
   front of the operator was closed unanswered.

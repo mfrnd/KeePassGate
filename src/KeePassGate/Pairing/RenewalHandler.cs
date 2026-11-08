@@ -58,7 +58,7 @@ namespace KeePassGate.Pairing
         private readonly IRenewalApproval _approval;
         private readonly PairingOptions _options;
         private readonly AuthorityIssuer _issuer;
-        private readonly Func<DateTimeOffset> _clock;
+        private readonly PairingClock _clock;
         private readonly SessionRefusals _session;
         private readonly HashSet<string> _inFlight = new HashSet<string>(StringComparer.Ordinal);
         private readonly AdmissionAudit _audit;
@@ -127,7 +127,7 @@ namespace KeePassGate.Pairing
             _approval = approval ?? NoRenewalApproval.Instance;
             _options = options ?? new PairingOptions();
             _issuer = issuer ?? new AuthorityIssuer();
-            _clock = clock ?? (() => DateTimeOffset.UtcNow);
+            _clock = PairingClock.For(clock);
             _session = session ?? new SessionRefusals();
             _audit = audit ?? new AdmissionAudit(NullGateAudit.Instance);
             _log = log ?? NullGateLog.Instance;
@@ -139,7 +139,7 @@ namespace KeePassGate.Pairing
         public void Renew(IGateContext context)
         {
             // When the pairing budget began, near enough, which an approval is held against.
-            var arrived = _clock();
+            var arrived = _clock.Read();
 
             var client = context.Client;
             if (!client.IsPaired || string.IsNullOrEmpty(client.AdmissionKey))
@@ -212,7 +212,7 @@ namespace KeePassGate.Pairing
             string key,
             TimeSpan? lifetime,
             string approval,
-            DateTimeOffset arrived)
+            PairingMoment arrived)
         {
             AdmissionRecord record;
             if (!Admission(context, target, key, out record))
@@ -317,7 +317,7 @@ namespace KeePassGate.Pairing
             AdmissionRecord record,
             TimeSpan? lifetime,
             string approval,
-            DateTimeOffset arrived)
+            PairingMoment arrived)
         {
             // Before anything is put to the operator, for pairing's reason: a lock or a close of
             // this database between the question and the answer lets the answer go.
@@ -448,7 +448,7 @@ namespace KeePassGate.Pairing
                 decision.Lifetime,
                 request.Profiles,
                 ApprovalBook.Digest(record.Save()),
-                arrived + _options.ApprovalHeld,
+                arrived.After(_options.ApprovalHeld),
                 mark,
                 request.Profiles.Concat(request.Dropped));
         }
@@ -505,7 +505,7 @@ namespace KeePassGate.Pairing
             // operator gives now that the database cannot take: `OwedAnswer.Baseline`.
             stored = standing;
 
-            var now = _clock();
+            var now = _clock.Now;
             if (standing == null || !standing.Refuses(now))
             {
                 // The plugin's memory after the database: this session's answer, or one for longer
@@ -689,7 +689,7 @@ namespace KeePassGate.Pairing
 
             using (certificate)
             {
-                var record = AdmissionRecord.For(certificate, _clock(), profiles, clientKey);
+                var record = AdmissionRecord.For(certificate, _clock.Now, profiles, clientKey);
 
                 // Written by the write, as pairing's is, once the new record has landed and before
                 // anything else hears of it. It waits for nothing there, on KeePass's own thread,

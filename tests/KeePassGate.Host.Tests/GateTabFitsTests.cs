@@ -959,7 +959,7 @@ namespace KeePassGate.Host.Tests
             var now = DateTimeOffset.UtcNow;
             string longest;
             using (var invitation = new Invitation(
-                new string(digit, length), "measured", PairingToken.New(), now, now + InvitationBook.DefaultLifetime))
+                new string(digit, length), "measured", PairingToken.New(), PairingClock.For(() => now), InvitationBook.DefaultLifetime))
             {
                 longest = InvitationText.For(new[] { invitation }, now);
             }
