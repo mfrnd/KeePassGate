@@ -205,7 +205,9 @@ namespace KeePassGate.Pipeline
 
         /// <summary>
         /// Somebody who reached a database that is served by nobody for now, for the reason the
-        /// word gives. A locked database is one; one holding several authorities is the other.
+        /// word gives: `locked` for a locked database, `undecided` for a database holding several
+        /// authorities, and `busy` for a database whose admission records could not be listed just
+        /// now, which <see cref="ClientCredentials"/> answers.
         /// </summary>
         public static ClientIdentity Unavailable(string databaseId, string error)
         {
