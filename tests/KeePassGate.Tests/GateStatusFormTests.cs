@@ -3,6 +3,7 @@ using System.Linq;
 using System.Threading;
 using System.Windows.Forms;
 using KeePassGate.Diagnostics;
+using KeePassGate.Tests.Fakes;
 using KeePassGate.Transport;
 using KeePassGate.Ui;
 using NUnit.Framework;
@@ -463,6 +464,15 @@ namespace KeePassGate.Tests
 
                 Assert.That(advice.Top - facts.Bottom, Is.GreaterThanOrEqualTo(window.Font.Height),
                     "the refusal has a line of its own");
+            }
+        }
+
+        [Test]
+        public void Every_control_on_it_carries_a_name()
+        {
+            using (var window = new GateStatusForm(Listening(45678), null, Takes, 45678))
+            {
+                Assert.That(Unnamed.On(window), Is.Empty);
             }
         }
 

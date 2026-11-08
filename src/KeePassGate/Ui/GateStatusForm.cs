@@ -138,6 +138,7 @@ namespace KeePassGate.Ui
 
             layout.Controls.Add(new TextLabel
             {
+                Name = "KpgStatusIntro",
                 Text = GateName.Product + " serves this KeePass's databases to programs that have been let in.",
                 AutoSize = true,
                 MaximumSize = new Size(LogicalToDeviceUnits(390), 0),

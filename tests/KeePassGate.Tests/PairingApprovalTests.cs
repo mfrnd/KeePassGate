@@ -35,6 +35,15 @@ namespace KeePassGate.Tests
         private static readonly TimeSpan Timeout = TimeSpan.FromMinutes(2);
 
         [Test]
+        public void Every_control_on_it_carries_a_name()
+        {
+            using (var dialog = New("reader", "ops"))
+            {
+                Assert.That(Unnamed.On(dialog), Is.Empty);
+            }
+        }
+
+        [Test]
         public void The_two_answers_sit_on_the_same_line()
         {
             // A flow panel places each control at the top of its row plus that control's own top

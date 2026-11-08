@@ -421,6 +421,7 @@ namespace KeePassGate.Ui
             // make it look attached to the wrong one of the two.
             layout.Controls.Add(new TextLabel
             {
+                Name = "KpgApprovalAskingLabel",
                 Text = Asking(request),
                 AutoSize = true,
                 MaximumSize = new Size(_wrap, 0),

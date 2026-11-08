@@ -238,6 +238,15 @@ namespace KeePassGate.Tests
         }
 
         [Test]
+        public void Every_control_on_it_carries_a_name()
+        {
+            using (var dialog = new AuthorityChooserForm(Choice(null), "Invented Vault"))
+            {
+                Assert.That(Unnamed.On(dialog), Is.Empty);
+            }
+        }
+
+        [Test]
         public void Keeping_keeps_the_selected_one()
         {
             using (var dialog = new AuthorityChooserForm(Choice(null), null))

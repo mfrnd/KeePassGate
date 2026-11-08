@@ -145,15 +145,16 @@ namespace KeePassGate.Ui
                 Dock = DockStyle.Fill
             };
 
-            layout.Controls.Add(Line(Title(choice, databaseName), _titleFont, Spacing.Gap));
+            layout.Controls.Add(Line("KpgChooserTitle", Title(choice, databaseName), _titleFont, Spacing.Gap));
             layout.Controls.Add(Line(
+                "KpgChooserExplanation",
                 "Copies of this database each made an authority of their own, and a merge brought " +
                 "them together. Nothing is served until one authority is kept. " + Consequence,
                 null,
                 Spacing.Gap));
-            layout.Controls.Add(Line(OneCopy, null, Spacing.Gap));
+            layout.Controls.Add(Line("KpgChooserOneCopyLabel", OneCopy, null, Spacing.Gap));
 
-            layout.Controls.Add(Line(GateTab.ChooserAuthorityListLabel + ":", null, Spacing.Tight));
+            layout.Controls.Add(Line("KpgChooserAuthorityListLabel", GateTab.ChooserAuthorityListLabel + ":", null, Spacing.Tight));
             _authorities = NewList(GateTab.ChooserAuthorityListName, GateTab.ChooserAuthorityListLabel);
             AddColumns(_authorities, AuthorityColumns, AuthorityShares);
             foreach (var option in choice.Options)
@@ -174,7 +175,7 @@ namespace KeePassGate.Ui
             };
             layout.Controls.Add(_authorities);
 
-            layout.Controls.Add(Line(GateTab.ChooserFingerprintBoxLabel + ":", null, Spacing.Tight));
+            layout.Controls.Add(Line("KpgChooserFingerprintBoxLabel", GateTab.ChooserFingerprintBoxLabel + ":", null, Spacing.Tight));
             _fingerprint = new TextBox
             {
                 Name = GateTab.ChooserFingerprintBoxName,
@@ -186,11 +187,10 @@ namespace KeePassGate.Ui
             };
             layout.Controls.Add(_fingerprint);
 
-            _detail = Line(string.Empty, null, Spacing.Gap);
-            _detail.Name = GateTab.ChooserDetailLabelName;
+            _detail = Line(GateTab.ChooserDetailLabelName, string.Empty, null, Spacing.Gap);
             layout.Controls.Add(_detail);
 
-            layout.Controls.Add(Line(GateTab.ChooserClientListLabel + ":", null, Spacing.Tight));
+            layout.Controls.Add(Line("KpgChooserClientListLabel", GateTab.ChooserClientListLabel + ":", null, Spacing.Tight));
             _clients = NewList(GateTab.ChooserClientListName, GateTab.ChooserClientListLabel);
             AddColumns(_clients, ClientColumns, ClientShares);
             _clients.Height = ListHeight(_clients, MostClients(choice), FewestClientRows, MostClientRows);
@@ -482,10 +482,11 @@ namespace KeePassGate.Ui
             }
         }
 
-        private Label Line(string text, Font font, int below)
+        private Label Line(string name, string text, Font font, int below)
         {
             var label = new TextLabel
             {
+                Name = name,
                 Text = text,
                 AutoSize = true,
                 MaximumSize = new Size(_wrap, 0),
