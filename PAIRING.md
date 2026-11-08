@@ -228,15 +228,19 @@ and stopped being necessary when the transport became managed code.
 ## 4. How the client verifies the server §304
 
 Hostname verification is gone, deliberately: the SNI is rebuilt every connection, so it can never
-appear in the host certificate's SAN. A correct deployment therefore always reports both
-`RemoteCertificateNameMismatch` and `RemoteCertificateChainErrors`, the second because the authority
-is deliberately absent from every machine trust store. The client ignores `SslPolicyErrors` entirely
-and reaches its own verdict.
+appear in the host certificate's SAN, and the authority is deliberately absent from every machine
+trust store. So the client trusts nothing but the authority. The reference client turns host name
+checking off and loads the authority it was handed at pairing as the only anchor, so a host
+certificate that does not chain to it fails the handshake, and OpenSSL's own check for a TLS server
+holds the certificate to `serverAuth` and to its dates. While pairing it has no anchor yet, verifies
+nothing in the handshake, and lets the server's proof decide. A client built on `SslStream` meets
+the same facts as `RemoteCertificateNameMismatch` and `RemoteCertificateChainErrors` on every
+correct connection, so it has to ignore `SslPolicyErrors` and reach its own verdict, `CA.md` §214.
 
 ```mermaid
 flowchart TD
     A["Client connects"] --> B{"does it already hold<br/>the authority certificate?"}
-    B -- "yes: paired, or handed<br/>the trust bundle out of band" --> C["Pin the anchor. Build the chain,<br/>require exactly two elements, byte compare<br/>the root against the pinned DER."]
+    B -- "yes: paired, or handed<br/>the trust bundle out of band" --> C["Pin the anchor. The authority is the only<br/>certificate trusted, so the host certificate<br/>has to chain to it and to nothing else."]
     C --> D["Require the serverAuth EKU,<br/>because this same authority also signs clients."]
     D --> E["Check the validity dates."]
     E --> G["Verified, by the anchor."]

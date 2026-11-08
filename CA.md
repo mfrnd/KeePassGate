@@ -610,8 +610,12 @@ Order matters, and every failure is a refusal.
    completes the handshake anyway. Enforcement is the route table's job.
 4. **The anchor is pinned** against the resolved database's authority, and a certificate that
    fails it is taken as no certificate. See below.
-5. **The EKU is checked explicitly**: `clientAuth` for a client, `serverAuth` for a host.
-6. **Validity dates**, with five minutes of skew allowed on `notBefore` only.
+5. **The EKU is checked explicitly**: `clientAuth` for a client, here, and `serverAuth` for a host,
+   by the client, `PAIRING.md` §304.
+6. **Validity dates**, compared exactly. The allowance for a clock behind the one that issued is in
+   the certificate rather than in this check: everything the authority issues starts five minutes
+   before the moment it was issued, so a client checking the host's dates is given the same five
+   minutes, and only on `notBefore`.
 7. **The admission record is looked up** by SHA-256 over the certificate DER. Absent means refused.
 8. **The profiles come from that record.**
 
@@ -683,10 +687,11 @@ is a public certificate, and every client that can reach this code was handed a 
 pairing. What is load bearing is that the anchor's own key and bytes are what is checked, which
 is the line the platform would not write.
 
-`SslPolicyErrors.None` is the **wrong** test. The authority is deliberately in no machine store, so
-a correct deployment always reports `RemoteCertificateChainErrors`, and since the SNI rotates it
-always reports `RemoteCertificateNameMismatch` too. The callback ignores `SslPolicyErrors` entirely
-and reaches its own verdict.
+`SslPolicyErrors.None` is the **wrong** test, for a client built on `SslStream`. The authority is
+deliberately in no machine store, so a correct deployment always reports
+`RemoteCertificateChainErrors`, and since the SNI rotates it always reports
+`RemoteCertificateNameMismatch` too. Such a client's callback ignores `SslPolicyErrors` entirely and
+reaches its own verdict; the reference client is not one, and `PAIRING.md` §304 has how it checks.
 
 ### Why hostname verification is abandoned §215
 
