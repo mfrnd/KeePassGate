@@ -29,7 +29,8 @@ namespace KeePassGate.Ui
     {
         /// <summary>
         /// Raised once a record is written, saved, and read back from the database it went into,
-        /// and once a client's revocation of itself is saved and verified.
+        /// and once a client's revocation of itself or a standing answer to a renewal is saved and
+        /// verified.
         /// </summary>
         /// <remarks>
         /// On the user interface thread, because the write it follows is marshaled there and this

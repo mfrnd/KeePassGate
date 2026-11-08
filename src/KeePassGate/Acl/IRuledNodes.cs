@@ -19,7 +19,8 @@ namespace KeePassGate.Acl
     {
         /// <summary>
         /// Every group and entry, whether or not it carries rules. Not the revisions an entry
-        /// keeps: a revision's rules are in force for nobody until somebody restores it.
+        /// keeps, and not the recycle bin or anything in it: their rules are in force for nobody
+        /// until somebody restores the revision or moves the node back out.
         /// </summary>
         IEnumerable<IRuledNode> All();
     }

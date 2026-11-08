@@ -53,9 +53,10 @@ namespace KeePassGate.Bridge
     /// - **Nothing is believed without asking.** KeePass's save reports nothing to its caller,
     ///   so what "it worked" is made of is `PwDatabase.Modified` having gone false. **That is the
     ///   answer after an exception as well as after a return**, because `MainForm.SaveDatabase`
-    ///   catches everything the save itself throws and then raises `FileSaved` to every other
-    ///   plugin outside that try: an exception arriving from there is somebody else's handler
-    ///   failing over a file this change is already in. **And the flag is not the whole of it
+    ///   catches everything the save itself throws and runs the rest outside that try: its window
+    ///   redrawn, which raises `UIStateUpdated` to every other plugin, the messages it pumps, its
+    ///   `FileSaved` event and the triggers. An exception arriving from there is something failing
+    ///   over a file this change is already in. **And the flag is not the whole of it
     ///   either**, because KeePass clears it as soon as it has committed the bytes and only then
     ///   hashes the file back: when that disagrees it warns the operator and changes nothing, so
     ///   the file is asked about as well. Pairing asks for more again, and reads its record back,
@@ -538,10 +539,18 @@ namespace KeePassGate.Bridge
         ///   asking is only one of the two things it does.
         ///
         /// **The same comparison as `PreSaveValidate` makes, through the same function**, so the
-        /// file this refuses to save over is exactly the file KeePass would stop at, whether to ask
-        /// or to merge. It costs one more read of the file per write, which is what having the
-        /// answer before the save rather than during it costs, and the save that follows reads the
-        /// file again anyway.
+        /// file this refuses to save over is the file KeePass would stop at, whether to ask or to
+        /// merge, as the file stands when this reads it. It costs one more read of the file per
+        /// write, which is what having the answer before the save rather than during it costs, and
+        /// the save that follows reads the file again anyway.
+        ///
+        /// **Earlier than `PreSaveValidate` reads it, and the gap is not closed.** Between the two
+        /// reads `MainForm.SaveDatabase` pumps messages as it raises its block and raises
+        /// `FileSavingPre` to every plugin, this one's `OwedAnswerSaves` among them, and another
+        /// process needs no pump at all. A file a sync client rewrites in that gap still puts
+        /// KeePass's question, or its merge under `SaveForceSync`, inside the request, holding the
+        /// writer's lock until it is answered. `DESIGN.md` §119 names the gap
+        /// beside the two warnings that remain.
         ///
         /// **For a database opened from a URL that read is a download**, on this thread and under
         /// the writer's lock, bounded only by the network timeouts KeePass gives it, which for a
@@ -623,7 +632,8 @@ namespace KeePassGate.Bridge
         /// reason. A save that recorded no hash at all is a different case and answers true: the
         /// value is written by `PwDatabase.Save` itself, one statement before it clears the flag
         /// this is reached through, so inside KeePass there is no save that cleared one and not the
-        /// other. Outside it there is no save either.
+        /// other. Outside it there is no save either. A database closed after its save has no hash
+        /// either, since `PwDatabase.Close` clears it, and that case is asked before this is.
         /// </remarks>
         private static bool TheFileHoldsWhatWasWritten(PwDatabase database)
         {
@@ -819,7 +829,7 @@ namespace KeePassGate.Bridge
         /// </param>
         public VaultWrite Change(PwDatabase database, Func<VaultChange> change)
         {
-            return Change(database, change, null);
+            return Change(database, change, true, null);
         }
 
         /// <summary>
@@ -860,7 +870,7 @@ namespace KeePassGate.Bridge
                 return VaultWrite.Missing();
             }
 
-            return Change(database, () => RevokeOnTheUiThread(database, admissionKey), () => Landed(audit));
+            return Change(database, () => RevokeOnTheUiThread(database, admissionKey), false, () => Landed(audit));
         }
 
         private VaultChange RevokeOnTheUiThread(PwDatabase database, string admissionKey)
@@ -902,7 +912,9 @@ namespace KeePassGate.Bridge
         /// Refused while Database Maintenance is open on the database, for the reason a revocation
         /// is: the key is in the database's own custom data, which that dialog writes back. Taken
         /// back out, and the answer that was there before put back, when the save does not land.
-        /// Nothing is drawn from it, so nothing is told when it lands.
+        /// The Clients page draws the client's name red from it, so the page is told when it
+        /// lands, as it is when a record does; the tree and the entry list show none of it, so they
+        /// are not rebuilt.
         /// </remarks>
         public VaultWrite RefuseRenewal(PwDatabase database, string admissionKey, RenewalRefusal refusal)
         {
@@ -919,7 +931,7 @@ namespace KeePassGate.Bridge
                 return VaultWrite.Failed("a standing answer for this session is never written to the database");
             }
 
-            return Change(database, () => RefuseRenewalOnTheUiThread(database, admissionKey, refusal), null);
+            return Change(database, () => RefuseRenewalOnTheUiThread(database, admissionKey, refusal), false, Admitted);
         }
 
         private VaultChange RefuseRenewalOnTheUiThread(PwDatabase database, string admissionKey, RenewalRefusal refusal)
@@ -1012,6 +1024,12 @@ namespace KeePassGate.Bridge
         /// The change <see cref="Change(PwDatabase, Func{VaultChange})"/> makes, with something to
         /// run once it stands.
         /// </summary>
+        /// <param name="lists">
+        /// Whether a change that lands puts the group tree and the entry list out of date, which
+        /// <see cref="Redraw"/> rebuilds for the database in front. False for a change to the
+        /// database's own custom data alone, which neither shows: the rebuild replaces the
+        /// operator's search results with the selected group's entries.
+        /// </param>
         /// <param name="landed">
         /// Run on the user interface thread once the change stands: saved and verified, or saved
         /// and left in place because the file could not be verified, which undoes nothing, and so
@@ -1019,7 +1037,7 @@ namespace KeePassGate.Bridge
         /// Not on any path that took the change back out. Null when nothing is drawn from what the
         /// change wrote.
         /// </param>
-        private VaultWrite Change(PwDatabase database, Func<VaultChange> change, Action landed)
+        private VaultWrite Change(PwDatabase database, Func<VaultChange> change, bool lists, Action landed)
         {
             if (change == null)
             {
@@ -1050,7 +1068,7 @@ namespace KeePassGate.Bridge
                 bool ran;
                 try
                 {
-                    ran = _ui.Run(() => outcome = ChangeOnTheUiThread(database, change, landed), WriteTimeout);
+                    ran = _ui.Run(() => outcome = ChangeOnTheUiThread(database, change, lists, landed), WriteTimeout);
                 }
                 catch (Exception error) when (Expected.OfUserInterface(error) || Expected.OfCustomData(error))
                 {
@@ -1111,7 +1129,7 @@ namespace KeePassGate.Bridge
             // wait here is the two waiting on each other until the timeout, with KeePass frozen.
             if (!Monitor.TryEnter(_writing, TimeSpan.Zero))
             {
-                return AuthorityChange.Refused("another change is being written, so choose again in a moment");
+                return AuthorityChange.BehindAnotherWrite("another change is being written");
             }
 
             try
@@ -1171,7 +1189,8 @@ namespace KeePassGate.Bridge
             return kept;
         }
 
-        private VaultWrite ChangeOnTheUiThread(PwDatabase database, Func<VaultChange> change, Action landed)
+        private VaultWrite ChangeOnTheUiThread(
+            PwDatabase database, Func<VaultChange> change, bool lists, Action landed)
         {
             if (!database.IsOpen)
             {
@@ -1210,7 +1229,8 @@ namespace KeePassGate.Bridge
                 // is nothing to take back out and the refusal costs the database nothing. Nothing
                 // between here and `_save` pumps a message, so the two instants are equally close
                 // to the save; what is *not* true, and what the guard above is for, is that
-                // nothing has pumped to get here.
+                // nothing has pumped to get here. Nor is the save the same instant: `Asking`
+                // names what happens inside it before KeePass reads the file again.
                 return VaultWrite.Busy(asking);
             }
 
@@ -1297,11 +1317,11 @@ namespace KeePassGate.Bridge
                     // catch-all and is counted there.
                     _log.Error("the save ended in an exception nothing here expects, so the change " +
                                "is settled as the database leaves it, and the exception goes on", null);
-                    Concluded(database, decided, wasModified, owing, landed, null);
+                    Concluded(database, decided, wasModified, owing, lists, landed, null);
                 }
             }
 
-            return Concluded(database, decided, wasModified, owing, landed, failed);
+            return Concluded(database, decided, wasModified, owing, lists, landed, failed);
         }
 
         /// <summary>
@@ -1315,7 +1335,13 @@ namespace KeePassGate.Bridge
         /// the other two.
         /// </remarks>
         private VaultWrite Concluded(
-            PwDatabase database, VaultChange decided, bool wasModified, Owing owing, Action landed, Exception failed)
+            PwDatabase database,
+            VaultChange decided,
+            bool wasModified,
+            Owing owing,
+            bool lists,
+            Action landed,
+            Exception failed)
         {
             if (database.Modified)
             {
@@ -1334,24 +1360,46 @@ namespace KeePassGate.Bridge
                     failed);
             }
 
+            if (!database.IsOpen)
+            {
+                // **Closed as its save ended**, which a lock or a close does when KeePass handles
+                // one among the messages `MainForm.SaveDatabase` pumps once it has lifted its own
+                // block. `PwDatabase.Close` clears the flag, the file's hashes and the connection,
+                // so the flag above read as a save that worked, whether it had or not, and the hash
+                // below would read as verified on its null. Nothing knows whether the file holds
+                // the change, which is what this answer is: not taken back out, there being no
+                // database left in memory to take it out of, written down as a change left in place
+                // is, and the standing answers the save carried kept owed.
+                _log.Error("the database closed as its save ended, so whether the file holds the " +
+                           "change is not known", failed);
+
+                if (landed != null)
+                {
+                    landed();
+                }
+
+                return VaultWrite.Unverified("the database closed as its save ended");
+            }
+
             if (failed != null)
             {
                 // **An exception out of `_save` with nothing unsaved left is not a save that
                 // failed.** `PwDatabase.Save` clears that flag as the last thing it does, and
                 // `MainForm.SaveDatabase` catches everything the save itself throws; what is left
-                // to throw is what runs after it, outside that try. Its `FileSaved` event is
-                // raised there, to every other plugin loaded, with the file already written. So
-                // an exception here means somebody else's handler failed after this change reached
-                // the disk, and taking the change back out over it would leave the database in
+                // to throw is what runs after it, outside that try, with the file already written:
+                // its window redrawn, which raises `UIStateUpdated` to every other plugin loaded,
+                // the messages it pumps, its `FileSaved` event and the triggers. So an exception
+                // here means one of those failed after this change reached the disk, and taking
+                // the change back out over it would leave the database in
                 // memory disagreeing with the file KeePass just wrote: the client is told `500 not
                 // saved` and retries, the next unlock reads the file and brings the first copy
                 // back beside the second, and the operator's next save writes the undone state
                 // over the top instead. Decided by the flag rather than by the exception's type
                 // for the same reason every other question here is asked of the database: the type
                 // says which code threw, and the flag says what happened to the file.
-                _log.Error("the change was saved and something after the save failed, which is " +
-                           "another plugin's `FileSaved` handler: the change is on the disk and " +
-                           "is being left there", failed);
+                _log.Error("the change was saved and something KeePass runs after its save " +
+                           "failed, another plugin's handler, a trigger or KeePass's own window: " +
+                           "the change is on the disk and is being left there", failed);
             }
 
             if (!TheFileHoldsWhatWasWritten(database))
@@ -1394,13 +1442,13 @@ namespace KeePassGate.Bridge
                 landed();
             }
 
-            // Last, and the only place the tree and the list are asked for. Every path above
-            // either changed nothing or has just put its change back, and in both cases they
-            // already show the database as it now is: neither is rebuilt between the change and
-            // the undo, since nothing on this thread reads a `PwGroup` again until something asks
-            // it to. What a put back does leave wrong is the mark saying there is something to
-            // save, which `PutBack` redraws on its own.
-            Redraw(database, true);
+            // Last, and the only place the tree and the list are asked for, when the change is one
+            // they show. Every path above either changed nothing or has just put its change back,
+            // and in both cases they already show the database as it now is: neither is rebuilt
+            // between the change and the undo, since nothing on this thread reads a `PwGroup` again
+            // until something asks it to. What a put back does leave wrong is the mark that there
+            // is something to save, which `PutBack` redraws on its own.
+            Redraw(database, lists);
 
             return decided.Outcome;
         }
@@ -1833,8 +1881,10 @@ namespace KeePassGate.Bridge
 
             // Everything this write touched, put back as it was, for every ending below that
             // leaves the record out of the database.
-            Func<string, AdmissionWrite> undo = reason => Undo(
-                store, database, record, before, namesBefore, pruned, owing, wasModified, reason);
+            // `raised` keeps the flag up whatever the file then reads as, for the one path that
+            // raises it on purpose.
+            Func<string, bool, AdmissionWrite> undo = (reason, raised) => Undo(
+                store, database, record, before, namesBefore, pruned, owing, wasModified || raised, reason);
 
             // True until the save ends in a way this method expects, as in `ChangeOnTheUiThread`.
             var escaped = true;
@@ -1856,20 +1906,20 @@ namespace KeePassGate.Bridge
                 // **Which of those it was is the database's answer rather than the exception's**,
                 // for the reason `ChangeOnTheUiThread` gives: the save clears the modified flag as
                 // the last thing it does, and `MainForm.SaveDatabase` catches everything the save
-                // itself throws, so an exception arriving with nothing unsaved left is another
-                // plugin's `FileSaved` handler failing after the record reached the disk. Undoing
+                // itself throws, so an exception arriving with nothing unsaved left is something
+                // KeePass runs after its save failing after the record reached the disk. Undoing
                 // there would refuse the client its certificate while the record stays in the
                 // file, which is the client on the clients page that never existed that `Undo`
                 // exists to prevent, arriving by the other road.
                 if (database.Modified)
                 {
                     _log.Error("the database could not be saved after an admission record was written", error);
-                    return undo(error.Message);
+                    return undo(error.Message, false);
                 }
 
-                _log.Error("the record was saved and something after the save failed, which is " +
-                           "another plugin's `FileSaved` handler: the record is on the disk and " +
-                           "is being left there", error);
+                _log.Error("the record was saved and something KeePass runs after its save " +
+                           "failed, another plugin's handler, a trigger or KeePass's own window: " +
+                           "the record is on the disk and is being left there", error);
             }
             finally
             {
@@ -1905,18 +1955,18 @@ namespace KeePassGate.Bridge
             string written,
             Owing owing,
             Action audit,
-            Func<string, AdmissionWrite> undo)
+            Func<string, bool, AdmissionWrite> undo)
         {
             if (!string.Equals(store.Get(record.StorageKey), written, StringComparison.Ordinal))
             {
-                return undo("the record did not survive being written");
+                return undo("the record did not survive being written", false);
             }
 
             if (database.Modified)
             {
                 // KeePass tells a caller nothing about whether a save worked. This is what it does
                 // say: a database it has saved has no unsaved changes left.
-                return undo("the database still has unsaved changes, so nothing is on disk");
+                return undo("the database still has unsaved changes, so nothing is on disk", false);
             }
 
             if (!TheFileHoldsWhatWasWritten(database))
@@ -1928,13 +1978,17 @@ namespace KeePassGate.Bridge
                 // API's write leaves it, because refusing a pairing costs an invitation and
                 // admitting one that was never stored costs a client nobody can take away.
                 //
-                // The flag goes up whatever it was before, which is more than `Undo` does on its
-                // own: a database that arrived with unsaved edits has just had them written to a
-                // file that did not keep them either, so this is the one path where leaving it
-                // clear would be wrong about somebody else's work as well as about this record.
+                // The flag goes up whatever it was before, and stays up, which is more than `Undo`
+                // does on its own: a database that arrived with unsaved edits has just had them
+                // written to a file that did not keep them either, so this is the one path where
+                // leaving it clear would be wrong about somebody else's work as well as about this
+                // record. `Undo` would otherwise decide the flag again from a second read of the
+                // file, against the hash this save left, and a file that was unreadable or part
+                // way through a copy at the first read and whole at the second cleared it, over a
+                // record memory no longer holds and the file may.
                 database.Modified = true;
 
-                return undo("the file on disk does not hold what KeePass wrote to it");
+                return undo("the file on disk does not hold what KeePass wrote to it", true);
             }
 
             Owing.Settle(owing, Owed);
@@ -1979,8 +2033,8 @@ namespace KeePassGate.Bridge
         }
 
         /// <summary>
-        /// Says a record landed, or a client's revocation of itself did, to whatever is drawn from
-        /// the records.
+        /// Tells whatever is drawn from the records that a record landed, or a client's revocation
+        /// of itself, or a standing answer to a renewal.
         /// </summary>
         /// <remarks>
         /// Here and nowhere earlier: every path above this either put its change back or is still
@@ -2036,7 +2090,8 @@ namespace KeePassGate.Bridge
         /// still waiting, and clearing one over a file the failed save damaged would tell it there
         /// is nothing to save while the only undamaged copy is the one in memory.
         /// <see cref="TheFileIsAsKeePassLeftIt"/> is that second question, in the same words as
-        /// `PutBack` asks it.
+        /// `PutBack` asks it. A file that does not hold what was written is undone with the flag
+        /// kept up whatever it was, for the reason `RecordConcluded` gives there.
         /// </remarks>
         private AdmissionWrite Undo(
             CustomDataStore store,

@@ -804,7 +804,9 @@ paths:
         an entry: to the recycle bin, or written down as deleted where there is none. The root
         group cannot be removed, and asking
         answers the same `404` as any node the rules do not reach rather than a conflict: a removal
-        is asked of the group a node is leaving, and the root is leaving nothing.
+        is asked of the group a node is leaving, and the root is leaving nothing. A group holding the
+        recycle bin cannot be removed either, although no listing shows the bin in it, since
+        removing the group would take the bin with it.
       x-kpg-verb: delete
       parameters:
         - $ref: "#/components/parameters/GroupUuid"
@@ -2384,10 +2386,11 @@ components:
         for the same reason. `not verified` is the third and the one that does leave something
         behind: the change was made and saved, and the file KeePass hashed back afterwards is not
         the one it wrote, so nothing knows whether the file holds the change and it is not taken
-        back out. A retry may make a second copy, and what to do about it is the operator's, whom
-        KeePass has already warned that writing failed. A pairing in the same situation is refused
-        instead, because a record that may not be on the disk is a certificate nobody can see and
-        nobody can revoke.
+        back out. So is a change whose database KeePass closed as its save ended, which a lock can
+        do, leaving nothing to hash the file against. A retry may make a second copy, and what to do
+        about it is the operator's, whom KeePass has warned when writing failed. A pairing in the
+        same situation is refused instead, because a record that may not be on the disk is a
+        certificate nobody can see and nobody can revoke.
 
         Every operation whose verb changes the database declares this, and one that does not stops
         the plugin loading.

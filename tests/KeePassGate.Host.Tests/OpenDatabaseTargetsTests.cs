@@ -245,6 +245,31 @@ namespace KeePassGate.Host.Tests
         }
 
         [Test]
+        public void A_target_given_back_by_its_last_holder_overwrites_its_tag_key()
+        {
+            // The tag key is derived from the host's private key, and was the one array of the
+            // host's material a target let go without overwriting it.
+            CreateAuthorityIn(_first);
+            var held = _targets.Current()[0];
+            var vault = held.Vault;
+            Assume.That(vault.GroupTag(vault.RootAlias), Is.Not.Null);
+
+            ServiceFor(_first).Recreate();
+            foreach (var replacement in _targets.Current())
+            {
+                replacement.Dispose();
+            }
+
+            Assert.That(vault.GroupTag(vault.RootAlias), Is.Not.Null, "a holder is still finishing with it");
+
+            held.Dispose();
+
+            Assert.Throws<ObjectDisposedException>(
+                delegate { vault.GroupTag(vault.RootAlias); },
+                "a tag is refused rather than made under a key of zeros");
+        }
+
+        [Test]
         public void Deleting_the_authority_stops_the_database_being_served()
         {
             CreateAuthorityIn(_first);

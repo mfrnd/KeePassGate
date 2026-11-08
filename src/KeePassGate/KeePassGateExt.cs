@@ -884,16 +884,10 @@ namespace KeePassGate
             // will be. The incidents are the plugin's own rather than a second
             // tally: these handlers catch everything, as every handler of KeePass's own events
             // here does, and the window under Tools is where the count is read.
-            // The prompt too, because a lock closes the question it has on the screen, and the
-            // approvals held for a retry, because a lock or a close lets go of every one of them.
-            _locks = new LockWatch(
-                _databases, _targets, () => _listener, _log, _incidents, new ApprovalScreens(prompt, _approvals));
-            _locks.Start();
-
-            // After the lock watch, so that an unlock has been read by the time the question is
-            // posted; and through the one writer, whose guard is what a choice has to pass. The
-            // audit is asked for where it is writing each time, for the last request of each
-            // client the dialog lists.
+            // Through the one writer, whose guard is what a choice has to pass. The audit is asked
+            // for where it is writing each time, for the last request of each client the dialog
+            // lists. Made before the lock watch, which closes its question at a lock, and started
+            // after it, so that an unlock has been read by the time the question is posted.
             _chooser = new AuthorityChooser(
                 _databases,
                 _targets,
@@ -904,6 +898,18 @@ namespace KeePassGate
                 new MessageBoxPrompt(),
                 _incidents,
                 _log);
+
+            // The prompt too, because a lock closes the question it has on the screen, and the
+            // approvals held for a retry, because a lock or a close lets go of every one of them,
+            // and the authority chooser, whose question a lock closes as well.
+            _locks = new LockWatch(
+                _databases,
+                _targets,
+                () => _listener,
+                _log,
+                _incidents,
+                new ApprovalScreens(prompt, _approvals, _chooser));
+            _locks.Start();
             _chooser.Start();
         }
 

@@ -6,6 +6,7 @@ using KeePassLib;
 using KeePassGate.Audit;
 using KeePassGate.Authority;
 using KeePassGate.Diagnostics;
+using KeePassGate.Gate;
 using KeePassGate.Ui;
 
 namespace KeePassGate.Bridge
@@ -32,22 +33,32 @@ namespace KeePassGate.Bridge
     ///
     /// **A choice goes through `DatabaseWriter`**, whose guard refuses it while Database
     /// Maintenance is open, and marks the database modified without saving it.
+    ///
+    /// **A lock closes the question unanswered**, as it closes a pairing or a renewal dialog,
+    /// and for their reasons: the chooser is not registered with `GlobalWindowManager`, so
+    /// KeePass's own lock goes through under it, and left standing it went on listing every
+    /// authority's clients, their profiles and when they last connected over a locked KeePass,
+    /// modal over the window the operator has to unlock in. An answer given as the lock lands is
+    /// not written. The unlock asks again, since the lock let go of the state that was asked about.
     /// </remarks>
-    public sealed class AuthorityChooser : IDisposable
+    public sealed class AuthorityChooser : IDisposable, IApprovalScreen
     {
         /// <summary>How long to wait before asking again while KeePass is busy with something.</summary>
         public static readonly TimeSpan Retry = TimeSpan.FromSeconds(1);
 
         /// <summary>
-        /// How long a choice the writer refused is tried again before the operator is told to
-        /// choose again.
+        /// How long a choice the writer refused for a reason that does not end by itself is tried
+        /// again before the operator is told to choose again.
         /// </summary>
         /// <remarks>
-        /// The operator's ruling of 2026-10-14. The usual refusal is another client's write holding
-        /// the writer, or KeePass part way through a save, both of which end in a moment, and
-        /// telling the operator at once that their answer was not kept asked them to come back
-        /// and give it again for a busy spell they could not see. A few seconds covers those;
-        /// Database Maintenance left open does not end by itself, and is told after them.
+        /// The operator's rulings of 2026-10-14 and 2026-11-08. **Another write holding the writer
+        /// is waited out, however long it takes**, since it lets go once its save ends and a save is
+        /// a whole-database write: eight seconds and more were measured for one, and 80.6 for a
+        /// database of 201 MiB of attachments, so a few seconds told the operator their answer was
+        /// not kept for a wait that would have ended by itself a moment later. **What this bounds is
+        /// a refusal that does not end by itself**, Database Maintenance left open or KeePass busy
+        /// with an operation of its own, counted from the last time another write held the writer,
+        /// and told once it has passed.
         /// </remarks>
         public static readonly TimeSpan KeepTrying = TimeSpan.FromSeconds(3);
 
@@ -69,6 +80,15 @@ namespace KeePassGate.Bridge
         private Timer _later;
         private bool _started;
         private bool _disposed;
+
+        /// <summary>The database a question is standing for, or null when none is.</summary>
+        private PwDatabase _standing;
+
+        /// <summary>The dialog standing, when the question is the real one rather than a test's.</summary>
+        private Form _showing;
+
+        /// <summary>Whether the question standing was closed by a lock or a close.</summary>
+        private bool _withdrawn;
 
         public AuthorityChooser(
             IDatabaseEvents events,
@@ -114,25 +134,21 @@ namespace KeePassGate.Bridge
             _incidents = incidents ?? new GateIncidents(_log);
         }
 
-        public bool Start()
+        /// <summary>Watches for a database opened, unlocked or saved, once however often it is asked.</summary>
+        /// <remarks>
+        /// Subscribing adds a handler to an event of the plugin's own, which throws nothing, so
+        /// nothing here is caught and nothing is answered.
+        /// </remarks>
+        public void Start()
         {
             if (_started)
             {
-                return true;
+                return;
             }
 
-            try
-            {
-                _events.Opened += OnChanged;
-                _events.Saved += OnChanged;
-                _started = true;
-                return true;
-            }
-            catch (Exception error) when (Expected.OfUserInterface(error))
-            {
-                _log.Error("the authority chooser could not watch for databases changing", error);
-                return false;
-            }
+            _events.Opened += OnChanged;
+            _events.Saved += OnChanged;
+            _started = true;
         }
 
         public void Dispose()
@@ -222,19 +238,18 @@ namespace KeePassGate.Bridge
                 var chosen = Choose(database);
                 if (chosen == null)
                 {
-                    _log.Info("the operator kept no authority, so the database is still not served");
                     return null;
                 }
 
                 var kept = _writer.Keep(database, chosen);
                 if (!kept.Succeeded)
                 {
-                    // Tried again for a moment rather than told at once: the writer refuses while
-                    // another write holds it or KeePass is saving, and neither is something the
-                    // operator should have to choose again for. The database stays marked as being
-                    // asked about, so nothing asks it again in the meantime.
-                    _log.Info("the authority the operator chose could not be kept yet, so it is tried again " +
-                              "for a moment: " + kept.Message);
+                    // Tried again rather than told at once: the writer refuses while another write
+                    // holds it or KeePass is busy, and neither is something the operator should
+                    // have to choose again for. The database stays marked as being asked about, so
+                    // nothing asks it again in the meantime.
+                    _log.Info("the authority the operator chose could not be kept yet, so it is tried again: " +
+                              kept.Message);
                     trying = true;
                     TryAgain(database, chosen, kept, System.Diagnostics.Stopwatch.StartNew());
                 }
@@ -257,13 +272,20 @@ namespace KeePassGate.Bridge
         internal Action<TimeSpan, Action> After { get; set; }
 
         /// <summary>
-        /// Tries once more to keep the authority the operator chose, until it is kept or
-        /// <see cref="KeepTrying"/> has passed, and then tells the operator.
+        /// Tries once more to keep the authority the operator chose, until it is kept, its
+        /// database closes, or a refusal that does not end by itself has outlasted
+        /// <see cref="KeepTrying"/>, and then tells the operator.
         /// </summary>
         private void TryAgain(
             PwDatabase database, string chosen, AuthorityChange last, System.Diagnostics.Stopwatch trying)
         {
-            if (trying.Elapsed >= KeepTrying || !database.IsOpen)
+            if (last.IsBehindAnotherWrite)
+            {
+                // Waited out, and the bound counts from the moment the writer is free.
+                trying.Restart();
+            }
+
+            if (!database.IsOpen || trying.Elapsed >= KeepTrying)
             {
                 NotKept(database, last);
                 return;
@@ -289,6 +311,16 @@ namespace KeePassGate.Bridge
         private void NotKept(PwDatabase database, AuthorityChange kept)
         {
             _asking.Remove(database);
+
+            if (!database.IsOpen)
+            {
+                // Locked or closed while the choice was being tried again. A box sending the
+                // operator to the tab would be about a question the unlock puts again by itself.
+                _log.Info("the database closed before the authority the operator chose could be kept, " +
+                          "so it is asked about again when it is open");
+                return;
+            }
+
             _log.Warn("the authority the operator chose could not be kept: " + kept.Message);
             _prompt.Tell(
                 GateName.Full,
@@ -338,6 +370,12 @@ namespace KeePassGate.Bridge
         }
 
         /// <summary>The digest the operator kept, or null.</summary>
+        /// <remarks>
+        /// Null as well when nobody was asked, because the database was decided since it was
+        /// noticed, so the line about the operator keeping nothing is written here, where the two
+        /// are told apart: written for both, it reported a database being served as one still
+        /// not served, by an operator who had never been asked.
+        /// </remarks>
         private string Choose(PwDatabase database)
         {
             var store = new CustomDataStore(database);
@@ -355,7 +393,65 @@ namespace KeePassGate.Bridge
                     reading, new AdmissionStore(store, _log).All(), LastSeen, _log);
             }
 
-            return AskWhichToKeep(choice, new OpenDatabase(database).Name);
+            string chosen;
+            _standing = database;
+            _withdrawn = false;
+            try
+            {
+                chosen = AskWhichToKeep(choice, new OpenDatabase(database).Name);
+            }
+            finally
+            {
+                _standing = null;
+            }
+
+            if (_withdrawn)
+            {
+                _log.Info("the question of which authority to keep was closed by a lock or a close, " +
+                          "so it is asked again when the database is open");
+                return null;
+            }
+
+            if (chosen == null)
+            {
+                _log.Info("the operator kept no authority, so the database is still not served");
+            }
+
+            return chosen;
+        }
+
+        /// <summary>
+        /// KeePass locked: the question standing closes unanswered, and an answer it gave as the
+        /// lock landed is not written.
+        /// </summary>
+        void IApprovalScreen.Locked()
+        {
+            Withdraw();
+        }
+
+        /// <summary>
+        /// A database was closed: the question standing for it closes unanswered, as at a lock.
+        /// </summary>
+        void IApprovalScreen.Closed(IReadOnlyCollection<string> databaseIds)
+        {
+            if (_standing != null && !_standing.IsOpen)
+            {
+                Withdraw();
+            }
+        }
+
+        private void Withdraw()
+        {
+            if (_standing == null)
+            {
+                return;
+            }
+
+            _withdrawn = true;
+            if (_showing != null)
+            {
+                _showing.Close();
+            }
         }
 
         /// <summary>
@@ -368,7 +464,16 @@ namespace KeePassGate.Bridge
         {
             using (var form = new AuthorityChooserForm(choice, databaseName))
             {
-                form.ShowDialog(_owner);
+                _showing = form;
+                try
+                {
+                    form.ShowDialog(_owner);
+                }
+                finally
+                {
+                    _showing = null;
+                }
+
                 return form.Chosen;
             }
         }

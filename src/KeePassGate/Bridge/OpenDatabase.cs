@@ -47,6 +47,12 @@ namespace KeePassGate.Bridge
         /// it was given none. A screen naming a database by its fingerprint alone is asking the
         /// operator to recognize sixteen hexadecimal characters.
         /// </summary>
+        /// <remarks>
+        /// The file's name as KeePass takes it, through `UrlUtil`, as every other place naming a
+        /// database does. `System.IO.Path` refuses a character Windows forbids in a path, and a URL
+        /// KeePass opens over WebDAV or FTP may hold one: the name threw, and the authority chooser
+        /// asking about that database failed as an incident without asking anybody.
+        /// </remarks>
         public string Name
         {
             get
@@ -57,7 +63,7 @@ namespace KeePassGate.Bridge
                 }
 
                 var path = _database.IOConnectionInfo == null ? null : _database.IOConnectionInfo.Path;
-                return string.IsNullOrEmpty(path) ? string.Empty : System.IO.Path.GetFileName(path);
+                return string.IsNullOrEmpty(path) ? string.Empty : KeePassLib.Utility.UrlUtil.GetFileName(path);
             }
         }
 

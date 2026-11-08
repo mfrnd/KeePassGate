@@ -1,7 +1,9 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.Text;
+using System.Threading;
 using KeePassGate.Bridge;
 using KeePassGate.Testing;
 using KeePassGate.Ui;
@@ -217,6 +219,39 @@ namespace KeePassGate.Host.Tests
         }
 
         [Test]
+        public void An_entry_s_tag_does_not_depend_on_the_culture_its_names_were_sorted_under()
+        {
+            // KeePass's dictionaries order their names by the culture they were compared under,
+            // which is the culture the file was loaded in. The two sort these apart.
+            // cspell:ignore Ärende
+            var tags = new List<string>();
+            var uuid = new PwUuid(true);
+
+            foreach (var culture in new[] { "de-DE", "sv-SE" })
+            {
+                var entry = new PwEntry(false, false) { Uuid = uuid, CreationTime = Moment, LastModificationTime = Moment };
+                var was = Thread.CurrentThread.CurrentCulture;
+                try
+                {
+                    Thread.CurrentThread.CurrentCulture = new CultureInfo(culture);
+                    foreach (var name in new[] { "Zone", "Ärende", "Bank" })
+                    {
+                        entry.Strings.Set(name, new ProtectedString(false, "invented"));
+                        entry.Binaries.Set(name + ".txt", new ProtectedBinary(false, Encoding.UTF8.GetBytes("invented")));
+                    }
+                }
+                finally
+                {
+                    Thread.CurrentThread.CurrentCulture = was;
+                }
+
+                tags.Add(TestTags.Fixed.Of(entry, (name, value) => value.IsProtected));
+            }
+
+            Assert.That(tags[1], Is.EqualTo(tags[0]));
+        }
+
+        [Test]
         public void Two_entries_holding_the_same_never_share_a_tag()
         {
             var twin = _entry.CloneDeep();
@@ -390,6 +425,24 @@ namespace KeePassGate.Host.Tests
             {
                 Assert.That(missing.IsPreconditionFailed || missing.IsConflict || missing.Ok, Is.False, missing.Reason);
             }
+        }
+
+        [Test]
+        public void A_refusal_names_whether_the_node_changed_or_the_condition_could_never_be_met()
+        {
+            var stale = _vault.UpdateEntry(
+                Uuid(_entry), Fields(PwDefs.UserNameField, "written by a client"), Asking("0123456789abcdef0123456789abcdef"));
+            Assert.That(stale.IsPreconditionFailed, Is.True);
+            Assert.That(stale.Reason, Does.Contain("no longer holds"));
+
+            // A client the gate hands no tag, which the operator would otherwise go looking for an
+            // edit to the entry over.
+            var withheld = _vault.UpdateEntry(
+                Uuid(_entry), Fields(PwDefs.UserNameField, "written by a client"),
+                new VaultTagging(VaultPrecondition.Withheld(), false));
+            Assert.That(withheld.IsPreconditionFailed, Is.True);
+            Assert.That(withheld.Reason, Is.EqualTo(VaultPrecondition.Withheld().Refusal));
+            Assert.That(_entry.Strings.ReadSafe(PwDefs.UserNameField), Is.EqualTo("an invented name"));
         }
 
         [Test]

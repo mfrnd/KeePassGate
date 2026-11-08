@@ -149,8 +149,8 @@ kind a program is, is its author's choice rather than something a rule can requi
 A tag goes only to a program whose rule may read everything it covers: `read` on a group, and on an
 entry `read` reaching its attachments, and its protected values too when it holds any. Any other
 program is handed none and cannot write under one, because a tag compared by a program that may
-not read what it covers would let it test guesses at that. A tag is made with a secret kept in the
-database's own certificate, so it says nothing about what is in the entry to anyone else, and it
+not read what it covers would let it test guesses at that. A tag is made with a secret derived from
+the database's own host key, so it tells anyone else nothing about what is in the entry, and it
 stays the same when KeePass starts again; recreating the database's authority changes every tag.
 
 **The lock after global user inactivity is the one writes cannot postpone.** KeePass has two
@@ -181,7 +181,10 @@ database is opened and made again as it is locked, and good for ninety days from
 gets a refusal it can read rather than a connection failure it cannot interpret. At lock the plugin
 lets go of the key of the host certificate the gate serves the open database with, and
 [`../CA.md`](../CA.md) §208 says how much of that is erasure. The key that reads the database is
-KeePass's own, and the plugin never holds it.
+KeePass's own, and the plugin never holds it. A database locked while Undecided answers nothing,
+since a responder would have to be made under one of its authorities, and neither does a database
+locked with no current responder to answer with: until it is unlocked, a connection to it is
+dropped before TLS, as a connection to a closed database is.
 
 **KeePass does not lock while it has a question of its own on the screen**, and that is worth
 knowing because an agent can put one there. When a save fails, KeePass warns that writing to the

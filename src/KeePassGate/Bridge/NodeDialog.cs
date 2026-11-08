@@ -35,10 +35,12 @@ namespace KeePassGate.Bridge
         private readonly Form _dialog;
         private readonly FieldInfo _workingField;
         private readonly bool _merged;
+        private readonly bool _entryDialog;
         private readonly IGateLog _log;
 
         private NodeDialog(
             Form dialog,
+            bool entryDialog,
             PwGroup group,
             PwEntry entry,
             PwDatabase database,
@@ -48,6 +50,7 @@ namespace KeePassGate.Bridge
             IGateLog log)
         {
             _dialog = dialog;
+            _entryDialog = entryDialog;
             _workingField = workingField;
             _merged = merged;
             _log = log;
@@ -121,18 +124,15 @@ namespace KeePassGate.Bridge
             get { return Group != null || Entry != null; }
         }
 
-        /// <summary>What the editor's first line says, which differs by dialog.</summary>
+        /// <summary>What the editor's first line reads, which differs by dialog.</summary>
+        /// <remarks>
+        /// By the kind of dialog rather than by the node found in it, so that a dialog that does
+        /// not name its node is still headed as the group or entry dialog it is: headed as about
+        /// neither, it contradicted its own sentence naming which of the two it could not find.
+        /// </remarks>
         public string Scope
         {
-            get
-            {
-                if (Entry != null)
-                {
-                    return GrantTab.EntryScope;
-                }
-
-                return Group != null ? GrantTab.GroupScope : GrantTab.NoNodeScope;
-            }
+            get { return _entryDialog ? GrantTab.EntryScope : GrantTab.GroupScope; }
         }
 
         /// <summary>
@@ -182,12 +182,17 @@ namespace KeePassGate.Bridge
             // Found before it is read, like the fields below: a dialog that does not say which
             // database it belongs to has no profiles to offer, and a rule is started by choosing
             // one, so that is a reason to be read only rather than an empty list.
-            var databaseField = FieldOf(dialog, KeePassContract.NodeFormDatabaseField, writer);
+            var databaseField = Typed(
+                FieldOf(dialog, KeePassContract.NodeFormDatabaseField, writer), typeof(PwDatabase), typeName, writer);
             var database = databaseField == null ? null : ValueOf(databaseField, dialog, writer) as PwDatabase;
 
-            // Whether the field exists, not what it holds. It holds nothing yet: the copy is made
-            // while the dialog loads, and this runs during that load.
-            var workingField = FieldOf(dialog, KeePassContract.NodeFormCustomDataField, writer);
+            // Whether the field exists, and is of the type the copy is, not what it holds. It holds
+            // nothing yet: the copy is made while the dialog loads, and this runs during that load.
+            var workingField = Typed(
+                FieldOf(dialog, KeePassContract.NodeFormCustomDataField, writer),
+                typeof(StringDictionaryEx),
+                typeName,
+                writer);
 
             // Asked before anything else, because on these two the tab must not write at all
             // and `Store` answers null for them below. Read-only here means the same thing it
@@ -242,8 +247,8 @@ namespace KeePassGate.Bridge
                     + "reach, so the rules below can be read but not changed. Nothing typed here "
                     + "would be kept.";
 
-                writer.Warn(typeName + " no longer exposes " + KeePassContract.NodeFormCustomDataField +
-                            ", so the grant editor is read only");
+                writer.Warn(typeName + " exposes no " + KeePassContract.NodeFormCustomDataField +
+                            " this plugin can use, so the grant editor is read only");
             }
             else if (databaseField == null)
             {
@@ -252,24 +257,51 @@ namespace KeePassGate.Bridge
                 readOnly = "This KeePass does not say which database this dialog belongs to, so there "
                     + "are no profiles to choose from and the rules below can be read but not changed.";
 
-                writer.Warn(typeName + " no longer exposes " + KeePassContract.NodeFormDatabaseField +
-                            ", so the grant editor is read only");
+                writer.Warn(typeName + " exposes no " + KeePassContract.NodeFormDatabaseField +
+                            " this plugin can use, so the grant editor is read only");
             }
             else if (group == null && entry == null)
             {
                 readOnly = "This dialog does not say which " + (isGroup ? "group" : "entry")
                     + " it is about, so a rule written here could not be attached to anything.";
+
+                writer.Warn(typeName + " names no " + (isGroup ? "group" : "entry") + " in " +
+                            (isGroup ? KeePassContract.GroupFormGroupField : KeePassContract.EntryFormEntryField) +
+                            ", so the grant editor is read only");
             }
 
             // The field is kept out of the store for these four rather than merely reported,
             // because a reason with a live store behind it would leave the tab offering to
             // discard rules it must not touch.
             return new NodeDialog(
-                dialog, group, entry, database,
+                dialog, isEntry, group, entry, database,
                 merged || revision || untold || databaseField == null ? null : workingField,
                 merged,
                 readOnly,
                 writer);
+        }
+
+        /// <summary>
+        /// The field, or null when it holds a type this plugin cannot use, which is read as the
+        /// field being gone.
+        /// </summary>
+        /// <remarks>
+        /// **A field of another type is a field this plugin cannot reach**, whatever its name. A
+        /// KeePass keeping the dialog's copy under the same name as something else left the tab
+        /// editable, and every rule chosen was then refused as "this dialog has not made its own
+        /// copy yet", which was false, with nothing in the log when the tab opened. Read as gone,
+        /// it gets the sentence and the log line a renamed field gets, and the log names the type.
+        /// </remarks>
+        private static FieldInfo Typed(FieldInfo field, Type expected, string typeName, IGateLog writer)
+        {
+            if (field == null || expected.IsAssignableFrom(field.FieldType))
+            {
+                return field;
+            }
+
+            writer.Warn(typeName + " keeps " + field.Name + " as " + field.FieldType.FullName +
+                        " rather than " + expected.FullName);
+            return null;
         }
 
         /// <summary>Where a rule typed on this dialog is written, and where the rules are read from.</summary>

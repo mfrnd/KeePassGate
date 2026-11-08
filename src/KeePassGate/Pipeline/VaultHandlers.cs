@@ -1596,7 +1596,7 @@ namespace KeePassGate.Pipeline
             var precondition = Precondition(context);
             if (!mayTag && precondition != null)
             {
-                precondition = VaultPrecondition.Nothing();
+                precondition = VaultPrecondition.Withheld();
             }
 
             return new VaultTagging(precondition, mayTag && answers);

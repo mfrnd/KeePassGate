@@ -43,6 +43,47 @@ namespace KeePassGate.Bridge
         /// </remarks>
         public bool Changed { get; private set; }
 
+        /// <summary>
+        /// A change already made, whose outcome is asked only once its undo is in hand.
+        /// </summary>
+        /// <remarks>
+        /// **For an outcome that can throw**, which is one carrying the tag the change left: taking
+        /// it decrypts every value the node holds and digests every attachment it has not digested
+        /// before, and a decryption can fail, through memory protection, another plugin's
+        /// `ProtectedBinary.ExtCrypt` or an allocation. Asked as an argument of the constructor, the
+        /// outcome ran before the undo existed, so a tag that threw left the change in memory with
+        /// its history revision, unflagged and unsaved, for the next save to write although its
+        /// client had been told `500`. So an outcome that throws puts the change back first, and the
+        /// exception goes on to whatever was going to see it.
+        /// </remarks>
+        public static VaultChange Made(Func<VaultWrite> outcome, Action undo)
+        {
+            if (outcome == null)
+            {
+                throw new ArgumentNullException(nameof(outcome));
+            }
+
+            if (undo == null)
+            {
+                throw new ArgumentNullException(nameof(undo));
+            }
+
+            var made = false;
+            try
+            {
+                var change = new VaultChange(outcome(), undo);
+                made = true;
+                return change;
+            }
+            finally
+            {
+                if (!made)
+                {
+                    undo();
+                }
+            }
+        }
+
         /// <summary>An outcome that carries nothing to undo, which is what every refusal is.</summary>
         public static implicit operator VaultChange(VaultWrite outcome)
         {

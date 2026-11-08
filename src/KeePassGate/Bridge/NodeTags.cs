@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Security.Cryptography;
 using System.Text;
@@ -24,10 +25,16 @@ namespace KeePassGate.Bridge
     ///
     /// **Keyed, because a plain digest of a secret is a way to guess it.** Over a plain hash a
     /// client could try values offline until one reproduced the tag. The key is derived from the
-    /// database's host certificate, which is stored in the database and handed to no client, so
-    /// nothing outside the gate can compute a tag for a guess, and one content gives one tag for as
-    /// long as the authority stands: across a lock, a restart and a reload alike. Recreating the
-    /// authority changes every tag, which costs a `412` and never an overwrite.
+    /// database's host certificate as the database stores it, a PKCS#12 carrying the host's private
+    /// key, which leaves the database for nobody: the certificate alone is handed to every client
+    /// in every handshake, and the private key beside it is what no client holds. So nothing
+    /// outside the gate can compute a tag for a guess, and one content gives one tag for as long as
+    /// the authority stands: across a lock, a restart and a reload alike. Recreating the authority
+    /// changes every tag, which costs a `412` and never an overwrite.
+    ///
+    /// **The key is overwritten when the database stops being served**, by <see cref="Clear"/>, as
+    /// every other array the plugin keeps of the host's material is, `CA.md` §208. A tag asked for
+    /// afterwards is refused rather than made under a key of zeros, which anybody could compute.
     ///
     /// **The key keeps tags from being computed, and it does not keep them from being compared.**
     /// A client that can make a write under `If-Match` learns whether the node held what its tag
@@ -47,6 +54,12 @@ namespace KeePassGate.Bridge
     /// in the tag changed every tag across a reload for nothing anybody wrote. A rule is left out,
     /// since no route serves one.
     ///
+    /// **Strings and attachments enter in an order of the tag's own**, by name, ordinal. KeePass
+    /// keeps both in dictionaries sorted by the current culture, in the order their names were
+    /// compared when the file loaded, so a tag walked in that order changed for content nobody
+    /// changed once the regional format or Windows' collation moved between two sessions, and a
+    /// write under the earlier tag was refused `412`.
+    ///
     /// **An attachment larger than the gate serves enters by its size alone.** Its bytes cannot be
     /// read through the gate and cannot be written through it either, so no client holds a copy
     /// to lose an update to, and hashing megabytes on a connection thread for a tag that protects
@@ -59,9 +72,15 @@ namespace KeePassGate.Bridge
     /// itself, keeping the object's own hash code in it once asked.
     /// <see cref="ConditionalWeakTable{TKey,TValue}"/> keys by the object itself and holds it
     /// weakly, so a digest goes when KeePass lets the attachment go and nothing here keeps one
-    /// alive, and the digest is a <see cref="Lazy{T}"/> so that two readers asking at once decrypt
-    /// it once between them. `KeePassContractTests` pins the immutability, because a KeePass that
-    /// changed bytes in place would leave a tag standing over content it no longer describes.
+    /// alive. `KeePassContractTests` pins the immutability, because a KeePass that changed bytes in
+    /// place would leave a tag standing over content it no longer describes.
+    ///
+    /// **A digest is kept and a failure is not.** The digest is a <see cref="Lazy{T}"/> that
+    /// publishes the first value made and caches no exception, so a decryption that fails once,
+    /// through memory protection, another plugin's `ProtectedBinary.ExtCrypt` or an allocation, is
+    /// tried again by the next tag. Kept, it failed every tag of every entry holding that
+    /// attachment until KeePass let the object go. The price is that two readers asking at once may
+    /// each decrypt it, and one digest of the two stands.
     ///
     /// **A new hasher per tag, and a part at a time**, which was measured against the obvious
     /// economies and kept: reusing the hasher saved a fifth of a microsecond, and buffering the
@@ -82,6 +101,7 @@ namespace KeePassGate.Bridge
             new ConditionalWeakTable<ProtectedBinary, Lazy<byte[]>>();
 
         private readonly byte[] _key;
+        private bool _cleared;
 
         /// <summary>For one database, keeping a copy of its key rather than the caller's array.</summary>
         /// <param name="key">The database's tag key, as <see cref="KeyFrom"/> derives it.</param>
@@ -116,6 +136,17 @@ namespace KeePassGate.Bridge
             }
         }
 
+        /// <summary>Overwrites the key, after which every tag asked for is refused.</summary>
+        /// <remarks>
+        /// Called when the target holding this is let go by its last holder, so nothing is asking
+        /// for a tag by then: what is refused is only a defect that kept the vault past its target.
+        /// </remarks>
+        public void Clear()
+        {
+            _cleared = true;
+            Array.Clear(_key, 0, _key.Length);
+        }
+
         /// <summary>An entry's tag.</summary>
         /// <param name="guarded">
         /// Whether a string is served as protected, which is the flag or the database's own setting
@@ -128,7 +159,7 @@ namespace KeePassGate.Bridge
                 return null;
             }
 
-            using (var hmac = new HMACSHA256(_key))
+            using (var hmac = Keyed())
             {
                 Put(hmac, "entry");
                 Put(hmac, entry.Uuid.ToHexString());
@@ -136,7 +167,7 @@ namespace KeePassGate.Bridge
                 Put(hmac, Served(entry.CreationTime));
                 Put(hmac, Served(entry.LastModificationTime));
 
-                foreach (var pair in entry.Strings)
+                foreach (var pair in entry.Strings.OrderBy(pair => pair.Key, StringComparer.Ordinal))
                 {
                     Put(hmac, "string");
                     Put(hmac, pair.Key);
@@ -159,7 +190,7 @@ namespace KeePassGate.Bridge
                     }
                 }
 
-                foreach (var pair in entry.Binaries)
+                foreach (var pair in entry.Binaries.OrderBy(pair => pair.Key, StringComparer.Ordinal))
                 {
                     Put(hmac, "attachment");
                     Put(hmac, pair.Key);
@@ -185,7 +216,7 @@ namespace KeePassGate.Bridge
                 return null;
             }
 
-            using (var hmac = new HMACSHA256(_key))
+            using (var hmac = Keyed())
             {
                 Put(hmac, "group");
                 Put(hmac, group.Uuid.ToHexString());
@@ -197,6 +228,16 @@ namespace KeePassGate.Bridge
 
                 return Done(hmac);
             }
+        }
+
+        private HMACSHA256 Keyed()
+        {
+            if (_cleared)
+            {
+                throw new ObjectDisposedException(nameof(NodeTags), "the tag key has been overwritten");
+            }
+
+            return new HMACSHA256(_key);
         }
 
         private static string Parent(PwGroup parent)
@@ -212,7 +253,7 @@ namespace KeePassGate.Bridge
 
         private static Lazy<byte[]> Deferred(ProtectedBinary binary)
         {
-            return new Lazy<byte[]>(() => Digest(binary), LazyThreadSafetyMode.ExecutionAndPublication);
+            return new Lazy<byte[]>(() => Digest(binary), LazyThreadSafetyMode.PublicationOnly);
         }
 
         /// <summary>One attachment's SHA-256, from a copy of its bytes that is wiped afterwards.</summary>

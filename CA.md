@@ -259,11 +259,15 @@ audit holds it, when it last made a request. Keeping an authority retires every 
 through the single writer's guard, and marks the database modified without saving it; the records of
 the authorities not kept stay, admitting nobody, and the clients page names them for what they are.
 Cancel serves nothing, and the KPG tab's authority page asks again, waiting for the settings
-dialog's OK like everything else there. **A choice the writer refuses is tried again for a few
-seconds** before the operator is told to choose again, which is the operator's ruling of 2026-10-14:
-another client's write holding the writer, or KeePass part way through a save, is over in a moment,
-and only a refusal that outlasts that, Database Maintenance left open among them, is put back in
-front of the operator.
+dialog's OK like everything else there. **A choice the writer refuses is tried again** before the
+operator is told to choose again, which is the operator's rulings of 2026-10-14 and 2026-11-08:
+another client's write holding the writer is waited out however long its save takes, which can be
+a minute and more for a large database, and a refusal that does not end by itself, Database
+Maintenance left open or KeePass busy with an operation of its own, is tried again for a few
+seconds and then put back in front of the operator. **A lock closes the dialog unanswered**, as it
+closes a pairing or a renewal dialog and for their reason: KeePass locks under a dialog the plugin
+does not register, and this dialog lists every authority's clients. An answer given as the lock
+lands is not written, and the unlock asks again.
 
 **Copies that keep different authorities retire every authority.** Each copy asks on its own, and
 the last requests it shows come from that machine's own audit, so copies asked before any answer is
@@ -478,9 +482,9 @@ plugin memory. While locked it is the only identity available and it can do noth
   database's custom data, an immutable string; the plugin's own copy of that text, every stored
   authority document in one string, which the cache compares against and which holds the authority's
   key, the host's and the gate key; and whatever Bouncy Castle parsed the bytes into. The key a
-  node's tag is made with, derived from the host's PKCS#12, is let go with the cache in the same way
-  rather than cleared. The gate key itself is not let go at all: a copy of it is kept for the
-  responder, as the bullet below has it.
+  node's tag is made with, derived from the host's PKCS#12, is an array of the plugin's own, and it
+  is overwritten with the rest, as the array it was derived into is. The gate key itself is not let
+  go at all: a copy of it is kept for the responder, as the bullet below has it.
 - **The responder must be distinguishable by what it carries**, not by convention, so a client can
   refuse to send real requests over it. It is a `kpg://host/responder` URI in the subject
   alternative name rather than an extension of its own: the UUID arc `2.25` does not survive
@@ -555,11 +559,11 @@ to the two places that write.
   miss all fail to match without any rule of their own. There is nothing that parses `kpg://profile/<name>`,
   because §212 leaves nothing to parse one for.
 - **Reject rather than repair, at the two places that write.** Issuance refuses a profile name that
-  is not one to sixty-four characters of letters, digits, dash and underscore, and refuses the
-  ACL's own `default` whatever case it is written in, so a claim carrying a percent escape, an
-  empty name or a smuggled newline is one this authority will not mint. Reading an admission record
-  drops a profile that could not have been issued as a claim, §223, so a record edited by hand
-  grants nothing strange either.
+  is not one to sixty-four characters of ASCII letters, digits, hyphens and underscores, and
+  refuses the ACL's own `default` whatever case it is written in, so a claim carrying a percent
+  escape, an empty name or a smuggled newline is one this authority will not mint. Reading an
+  admission record drops a profile that could not have been issued as a claim, §223, so a record
+  edited by hand grants nothing strange either.
 
 ### The measurement behind those rules §211
 

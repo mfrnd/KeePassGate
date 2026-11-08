@@ -38,7 +38,10 @@ namespace KeePassGate.Acl
     /// <summary>How far into an entry an operation reaches, which a rule answers separately.</summary>
     public enum AclReach
     {
-        /// <summary>The entry itself. What an operation reaches unless it says otherwise.</summary>
+        /// <summary>
+        /// The node itself, a group or an entry with its fields. What an operation reaches unless
+        /// it declares otherwise.
+        /// </summary>
         Fields = 0,
 
         /// <summary>
@@ -452,8 +455,10 @@ namespace KeePassGate.Acl
             if (!AclVerbs.IsGrantable(verb) || AclVerbs.IsScope(verb))
             {
                 // `None` is what an operation that touches no data declares, and no rule grants it.
-                // `Attachments` is a scope rather than something to do, so it is not a question
-                // either. Both are asking the wrong thing, and the answer to that is no.
+                // `Any` is every verb at once, which `DecideAny` answers profile by profile and
+                // never as one question here. `Attachments` and `Protected` are switches rather
+                // than something to do, so they are not a question either. All four are asking the
+                // wrong thing, and the answer to that is no.
                 return new AclDecision(false, "that is not something a rule grants", null);
             }
 

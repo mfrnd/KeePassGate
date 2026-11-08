@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 using KeePassGate.Acl;
 using KeePassLib;
 
@@ -16,6 +17,13 @@ namespace KeePassGate.Bridge
     /// rules of the moment KeePass took the backup, and none of them is in force: the resolver
     /// walks the live tree. A count that included them would count as live a rule that decides
     /// nothing until somebody restores that revision, and restoring one is an edit like any other.
+    ///
+    /// **Not the recycle bin either, for the same reason.** The vault reaches nothing in it,
+    /// `DESIGN.md` §138, so a rule on the bin or on anything removed into it decides nothing until
+    /// the operator moves the node back out. Counted, the Profiles page offered to put such rules
+    /// back in force by adding a name again, and counted them among the rules a removal leaves
+    /// inert, which they were already. The bin is the one the vault hides, through the same two
+    /// questions it asks.
     /// </remarks>
     public sealed class DatabaseNodes : IRuledNodes
     {
@@ -28,19 +36,25 @@ namespace KeePassGate.Bridge
 
         public IEnumerable<IRuledNode> All()
         {
-            if (_database == null || _database.RootGroup == null)
+            var root = _database == null ? null : _database.RootGroup;
+            if (root == null)
             {
                 yield break;
             }
 
-            yield return new GroupNode(_database.RootGroup);
+            var bin = KdbxVault.Bin(_database, root);
 
-            foreach (var group in _database.RootGroup.GetGroups(true))
+            if (!KdbxVault.Discarded(root, bin))
+            {
+                yield return new GroupNode(root);
+            }
+
+            foreach (var group in root.GetGroups(true).Where(group => !KdbxVault.Discarded(group, bin)))
             {
                 yield return new GroupNode(group);
             }
 
-            foreach (var entry in _database.RootGroup.GetEntries(true))
+            foreach (var entry in root.GetEntries(true).Where(entry => !KdbxVault.Discarded(entry, bin)))
             {
                 yield return new EntryNode(entry);
             }

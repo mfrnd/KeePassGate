@@ -148,6 +148,79 @@ none, since it releases both.
   operator moving the entry at that moment let a rule without `protected` write a protected value,
   or strip a protected field it could put back unprotected. Such a write is answered `404` now, as
   a read is, or `503 locked` when the database locked.
+- **A change whose answer cannot carry its tag is taken back out before the failure goes on.**
+  A write answering with the tag it left took that tag after changing the node and before
+  anything could undo the change, so a decryption that failed while the tag was taken left the
+  change and its history revision in memory behind a `500`, unsaved and unmarked, for the next
+  save to write.
+- **An attachment that failed to decrypt once is tagged the next time a tag is asked for.** The
+  failure was kept in place of its digest, so every tag of every entry holding that attachment
+  failed again, answered `500` and counted under Tools, until KeePass let the attachment go.
+- **A write digests its node only where something reads the digest**: an `If-Match` naming a
+  tag, and an answer carrying one. Every write asked either took the node's tag on KeePass's
+  thread, under the writer's lock, including a write under `*`, a condition naming no tag, and a
+  change answering with the tag it leaves, which took a second.
+- **A write refused `412` is logged with its cause**: the node no longer holding a tag named, an
+  `If-Match` that does not read, one naming no strong tag, or a program the gate hands no tags.
+  Every one was logged as a node that changed, which sent an operator looking for an edit nobody
+  made.
+- **An entry's tag is the same whatever culture KeePass runs under.** Its strings and attachments
+  entered the tag in the order KeePass keeps them, which is by the current culture as the file
+  loaded, so a change of regional format or of Windows' collation between two sessions changed
+  the tag of entries nobody had changed, and a write under the earlier tag was refused `412`. The
+  names now enter in ordinal order, so a tag an entry with custom names was handed before this
+  version can be refused once.
+- **The key a node's tag is made with is overwritten when its database stops being served**, as
+  the rest of the host's material is. It is derived from the host's private key, and it was let go
+  without being overwritten, along with the array it was derived into.
+- **A group holding the recycle bin and nothing else is refused for the bin.** Every listing leaves
+  the bin out, so such a group read as empty to the program refused `409` and was logged as a group
+  still holding something. The log names the bin now, and the routing document states that a group
+  holding the bin cannot be removed.
+- **A program's revocation of itself and a standing answer to a renewal rebuild neither the group
+  tree nor the entry list**, which show neither, and the rebuild replaced any search results the
+  operator had on screen. A standing answer that lands tells the Clients page, which draws the
+  client's name red from it and went on showing it black until something else redrew the page.
+- **A write whose database KeePass closed as the save ended is answered `500 not verified`.** A
+  lock handled among the messages KeePass's save pumps once it has lifted its own block closes the
+  database before the save returns, and the close cleared what the plugin reads to know that the
+  file holds the change, so the write was answered as saved and verified whatever the save had
+  done.
+- **A pairing or a renewal whose record the file did not keep leaves the database marked unsaved**
+  whatever the file reads as afterwards. Taking the record back out read the file a second time,
+  and a file part way through a copy at the first read and whole at the second cleared the mark,
+  over a record memory no longer held and the file might.
+- **A database opened from a URL holding a character Windows forbids in a path is named by its
+  file**, as KeePass names it. Its name threw, so the authority chooser asking which authority to
+  keep failed as an incident under Tools without asking, and Choose authority on the KPG tab failed
+  with a path error.
+- **A program asking who it is as KeePass locks is told the database is locked**, as every other
+  route tells it. A lock between the gate reading its record and reading the database's profiles
+  left the list naming nothing, and `whoami` answered that the operator had taken every profile
+  away.
+- **A lock closes the window asking which authority to keep**, as it closes a pairing or a renewal
+  dialog, and unlocking asks again. KeePass locked under it, and it went on listing every
+  authority's clients over the locked KeePass, modal over the window the operator unlocks in; and a
+  choice whose database locked while it was being kept sent the operator to the KPG tab for a
+  question the unlock was about to put again.
+- **The Profiles page counts no rule in the recycle bin.** Nothing in the bin is reached through the
+  gate, so its rules decide nothing, and the page counted them among the rules removing a name
+  leaves inert and offered to put them back in force when the name was added again.
+- **A database is served as soon as KeePass has unlocked it**, while KeePass is still asking its own
+  questions about it: a master key due for a change, weak key derivation, duplicate identifiers.
+  Until those were answered, the database and the certificate answering for it while locked both
+  answered to its name, so every connection was dropped and the log claimed two databases were
+  open.
+- **A KeePass that keeps a dialog's copy of a node's settings, or its database, as another type
+  leaves the KPG tab on the group and entry dialogs read only**, with its reason, as a KeePass that
+  renamed either does. The tab looked editable and refused every rule chosen on it as a copy the
+  dialog had not made yet.
+- **An authority the operator chose while another write held the plugin's writer is kept once
+  that write is done**, however long its save takes. It was tried for three seconds, while a save
+  of a large database takes a minute and more, and the operator was then told it was not kept and
+  sent to the KPG tab to choose again. A refusal that does not end by itself, Database Maintenance
+  left open or KeePass busy with an operation of its own, is still tried for a few seconds and
+  then told.
 - **A protected field is kept from a strip whenever any profile could put an unprotected value
   back.** The guard asked whether some profile could create there and whether some profile could
   create a protected value there, so a program holding one profile that could put an unprotected

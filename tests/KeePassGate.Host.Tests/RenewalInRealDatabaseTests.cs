@@ -84,6 +84,21 @@ namespace KeePassGate.Host.Tests
         }
 
         [Test]
+        public void A_standing_answer_that_lands_is_announced_and_rebuilds_neither_list()
+        {
+            // The Clients page draws the client's name red from the answer, so it is told, as it
+            // is of a record; the tree and the entry list show none of it, so neither is rebuilt.
+            var announced = 0;
+            var rebuilt = new List<bool>();
+            var writer = new DatabaseWriter(
+                CurrentThread.Instance, Save, (database, lists) => rebuilt.Add(lists), () => announced++, _dialogs, null);
+
+            Assert.That(writer.RefuseRenewal(_database.Database, Key, RenewalRefusal.Forever()).Ok, Is.True);
+            Assert.That(announced, Is.EqualTo(1));
+            Assert.That(rebuilt, Has.None.True);
+        }
+
+        [Test]
         public void A_later_standing_answer_saved_replaces_the_one_before_it_in_the_file()
         {
             var earlier = RenewalRefusal.Until(new DateTimeOffset(2026, 10, 9, 22, 0, 0, TimeSpan.Zero));

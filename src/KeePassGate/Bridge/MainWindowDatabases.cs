@@ -47,11 +47,12 @@ namespace KeePassGate.Bridge
             _mainWindow = mainWindow;
             _mainWindow.FileOpened += OnFileOpened;
 
-            // `File > New` raises this and never `FileOpened`, so without it a database created
-            // this session is never served, never has a responder minted, and answers nothing at
-            // all once it is locked. Verified against KeePass 2.61.1: `OnFileNew` is the only
-            // method that raises `FileCreated`, and `OpenDatabase` the only one that raises the
-            // other.
+            // `File > New` raises this and never `FileOpened`, so it is announced as an opening,
+            // which is what reads the new database at once rather than at the first connection,
+            // and what the authority chooser listens to. Serving does not wait for it: the targets
+            // read every open database on each connection, and the closing a lock begins with
+            // mints the responder. Verified against KeePass 2.61.1: `OnFileNew` is the only method
+            // that raises `FileCreated`, and `OpenDatabase` the only method that raises the other.
             _mainWindow.FileCreated += OnFileCreated;
             _mainWindow.FileClosingPre += OnFileClosing;
             _mainWindow.FileClosed += OnFileClosed;

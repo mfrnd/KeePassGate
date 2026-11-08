@@ -56,18 +56,35 @@ namespace KeePassGate.Tests
         public void No_precondition_refuses_nothing_and_one_refuses_what_it_does_not_admit()
         {
             Assert.That(VaultPrecondition.Fails(null, Tag), Is.False);
-            Assert.That(VaultPrecondition.Fails(null, null), Is.False, "not even a node with no tag");
+            Assert.That(VaultPrecondition.Fails(null, (string)null), Is.False, "not even a node with no tag");
             Assert.That(VaultPrecondition.Fails(VaultPrecondition.Read("\"" + Tag + "\""), Tag), Is.False);
             Assert.That(VaultPrecondition.Fails(VaultPrecondition.Read("\"0000\""), Tag), Is.True);
-            Assert.That(VaultPrecondition.Fails(VaultPrecondition.Read("*"), null), Is.True);
+            Assert.That(VaultPrecondition.Fails(VaultPrecondition.Read("*"), (string)null), Is.True);
         }
 
         [Test]
         public void Nothing_is_met_by_no_tag_at_all()
         {
-            // What a client that may not be handed a tag has its condition replaced with.
             Assert.That(VaultPrecondition.Nothing().Admits(Tag), Is.False);
             Assert.That(VaultPrecondition.Nothing().Admits(null), Is.False);
+
+            // What a client that may not be handed a tag has its condition replaced with.
+            Assert.That(VaultPrecondition.Withheld().Admits(Tag), Is.False);
+            Assert.That(VaultPrecondition.Fails(VaultPrecondition.Withheld(), () => Tag), Is.True);
+        }
+
+        [Test]
+        public void A_refusal_names_what_the_condition_asked()
+        {
+            // Read in the operator's log, where only the first is a node that changed.
+            Assert.That(VaultPrecondition.Read("\"0000\"").Refusal, Does.Contain("no longer holds"));
+            Assert.That(VaultPrecondition.Read("W/\"" + Tag + "\"").Refusal, Does.Contain("no strong tag"));
+            Assert.That(VaultPrecondition.Read("\"" + Tag).Refusal, Does.Contain("does not read"));
+            Assert.That(VaultPrecondition.Withheld().Refusal, Does.Contain("handed no tags"));
+
+            var refused = VaultWrite.PreconditionFailed(VaultPrecondition.Withheld());
+            Assert.That(refused.IsPreconditionFailed, Is.True);
+            Assert.That(refused.Reason, Is.EqualTo(VaultPrecondition.Withheld().Refusal));
         }
 
         [TestCase("")]

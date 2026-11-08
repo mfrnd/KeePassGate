@@ -222,11 +222,14 @@ namespace KeePassGate.Vault
     /// holds what `If-Match` named, and whether it answers with the tag it leaves.
     /// </summary>
     /// <remarks>
-    /// **Every change takes one, and none takes it by default**, so that a caller that forgets
-    /// the request's precondition does not compile into a write that ignores it. The handler
-    /// decides both halves from who is asking: only a caller whose rule may read everything the
-    /// tag covers is handed a tag or has its `If-Match` asked, which is what keeps a tag from
-    /// telling a client anything about a value its rule does not let it read.
+    /// **Every change to a node that is already there takes one, and none takes it by default**,
+    /// so that a caller that forgets the request's precondition does not compile into a write that
+    /// ignores it. A field or an attachment created is one of those, its entry answering for it;
+    /// a group or an entry created is not, since its request is sent to a collection and declares
+    /// no `If-Match`, `API.md` §410. The handler decides both halves from who is asking: only a
+    /// caller whose rule may read everything the tag covers is handed a tag or has its `If-Match`
+    /// asked, which is what keeps a tag from telling a client anything about a value its rule does
+    /// not let it read.
     /// </remarks>
     public sealed class VaultTagging
     {
@@ -244,12 +247,6 @@ namespace KeePassGate.Vault
 
         /// <summary>Whether the answer carries the tag the change left.</summary>
         public bool Answers { get; private set; }
-
-        /// <summary>Whether the node's tag has to be taken at all, for the precondition or for the answer.</summary>
-        public bool NeedsTag
-        {
-            get { return Precondition != null || Answers; }
-        }
     }
 
     /// <summary>What happened to a change, and whether it is worth trying again.</summary>
@@ -390,10 +387,18 @@ namespace KeePassGate.Vault
             return new VaultWrite(true, false, false, uuid, null) { Tag = tag };
         }
 
-        /// <summary>The node no longer holds what `If-Match` said, and nothing was changed.</summary>
-        public static VaultWrite PreconditionFailed()
+        /// <summary>The node did not meet what `If-Match` asked, and nothing was changed.</summary>
+        /// <param name="precondition">
+        /// What was asked, whose <see cref="VaultPrecondition.Refusal"/> is the reason.
+        /// </param>
+        public static VaultWrite PreconditionFailed(VaultPrecondition precondition)
         {
-            return new VaultWrite(false, false, false, null, "the node no longer holds what If-Match named")
+            if (precondition == null)
+            {
+                throw new ArgumentNullException(nameof(precondition));
+            }
+
+            return new VaultWrite(false, false, false, null, precondition.Refusal)
             {
                 IsPreconditionFailed = true,
             };

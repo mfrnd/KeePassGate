@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Threading;
 using KeePass.Forms;
 using KeePass.UI;
@@ -90,6 +91,20 @@ namespace KeePassGate.Host.Tests
 
             Assert.That(landing.Revoke(_database.Database, Admitted()).Ok, Is.True);
             Assert.That(announced, Is.EqualTo(1));
+        }
+
+        [Test]
+        public void A_revocation_that_lands_rebuilds_neither_the_tree_nor_the_entry_list()
+        {
+            // It changes the database's own custom data, which neither shows, and a rebuild
+            // replaces the search results an operator may have on screen.
+            var rebuilt = new List<bool>();
+            var writer = new DatabaseWriter(
+                CurrentThread.Instance, Save, (database, lists) => rebuilt.Add(lists), _dialogs, null);
+
+            Assert.That(writer.Revoke(_database.Database, Admitted()).Ok, Is.True);
+            Assert.That(rebuilt, Is.Not.Empty, "the title bar is still told");
+            Assert.That(rebuilt, Has.None.True);
         }
 
         [Test]

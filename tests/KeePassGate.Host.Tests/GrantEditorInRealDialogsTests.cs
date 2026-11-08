@@ -279,6 +279,86 @@ namespace KeePassGate.Host.Tests
         }
 
         [Test]
+        public void A_dialog_keeping_its_copy_as_another_type_reads_the_rules_and_writes_none()
+        {
+            // The name KeePass uses for the copy, holding something this plugin cannot write into.
+            // Taken as usable, the tab offered to edit and refused every rule as a copy not yet
+            // made, which was false.
+            var group = GroupUnderRoot("Fictitious");
+            group.CustomData.Set(AclDocument.CustomDataKey, Rules.Granting(("reader", "R")));
+
+            using (var dialog = GroupFormTyped(group, typeof(object), typeof(PwDatabase)))
+            {
+                var node = NodeDialog.Of(dialog, null);
+
+                Assert.That(node.ReadOnlyReason, Does.Contain("can be read but not changed"));
+                Assert.That(node.Store(), Is.Null);
+                Assert.That(new NodeDialogs(null).SheetFor(dialog).Rows.Single(row => row.Local).Mask,
+                    Is.EqualTo(".R......"), "and the rules are still shown");
+            }
+        }
+
+        [Test]
+        public void A_dialog_that_names_no_node_is_headed_as_the_dialog_it_is()
+        {
+            // Headed as about neither a group nor an entry, the tab contradicted its own sentence,
+            // which names the group it could not find.
+            using (var dialog = GroupFormTyped(null, typeof(StringDictionaryEx), typeof(PwDatabase)))
+            {
+                var node = NodeDialog.Of(dialog, null);
+
+                Assert.That(node.Scope, Is.EqualTo(GrantTab.GroupScope));
+                Assert.That(node.ReadOnlyReason, Does.Contain("which group"));
+                Assert.That(node.Store(), Is.Null);
+            }
+        }
+
+        [Test]
+        public void A_dialog_keeping_its_database_as_another_type_names_the_database_as_missing()
+        {
+            var group = GroupUnderRoot("Fictitious");
+
+            using (var dialog = GroupFormTyped(group, typeof(StringDictionaryEx), typeof(object)))
+            {
+                var node = NodeDialog.Of(dialog, null);
+
+                Assert.That(node.ReadOnlyReason, Does.Contain("which database"));
+                Assert.That(node.Store(), Is.Null);
+            }
+        }
+
+        /// <summary>
+        /// A form KeePass's group dialog in name and in all three of its fields, with the copy and
+        /// the database of the types given.
+        /// </summary>
+        private Form GroupFormTyped(PwGroup group, Type copy, Type database)
+        {
+            var name = "GroupFormTyped" + copy.Name + database.Name;
+            var module = AppDomain.CurrentDomain
+                .DefineDynamicAssembly(new AssemblyName(name), System.Reflection.Emit.AssemblyBuilderAccess.Run)
+                .DefineDynamicModule(name);
+            var type = module.DefineType(
+                KeePassContract.GroupFormTypeName, TypeAttributes.Public | TypeAttributes.Class, typeof(Form));
+            type.DefineField(KeePassContract.GroupFormGroupField, typeof(PwGroup), FieldAttributes.Private);
+            type.DefineField(KeePassContract.NodeFormCustomDataField, copy, FieldAttributes.Private);
+            type.DefineField(KeePassContract.NodeFormDatabaseField, database, FieldAttributes.Private);
+            type.DefineDefaultConstructor(MethodAttributes.Public);
+
+            var built = type.CreateType();
+            var dialog = (Form)Activator.CreateInstance(built);
+            const BindingFlags flags = BindingFlags.NonPublic | BindingFlags.Instance;
+            built.GetField(KeePassContract.GroupFormGroupField, flags).SetValue(dialog, group);
+            built.GetField(KeePassContract.NodeFormCustomDataField, flags).SetValue(
+                dialog,
+                copy != typeof(StringDictionaryEx) ? new object()
+                : group == null ? new StringDictionaryEx()
+                : (object)group.CustomData.CloneDeep());
+            built.GetField(KeePassContract.NodeFormDatabaseField, flags).SetValue(
+                dialog, database == typeof(PwDatabase) ? (object)_database.Database : new object());
+            return dialog;
+        }
+
+        [Test]
         public void A_dialog_that_does_not_say_which_database_it_belongs_to_says_why_it_cannot_write()
         {
             // No database is no list of profiles, and a rule is started by choosing one. The tab

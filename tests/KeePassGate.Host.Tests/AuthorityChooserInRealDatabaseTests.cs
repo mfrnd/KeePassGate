@@ -9,6 +9,7 @@ using KeePassLib;
 using KeePassGate.Authority;
 using KeePassGate.Bridge;
 using KeePassGate.Diagnostics;
+using KeePassGate.Gate;
 using KeePassGate.Ui;
 using NUnit.Framework;
 
@@ -103,6 +104,74 @@ namespace KeePassGate.Host.Tests
                 Assert.That(served.DatabaseId, Is.EqualTo(_candidates[0]));
                 Assert.That(served.Unavailable, Is.Null);
             }
+        }
+
+        [Test]
+        public void A_database_decided_before_it_was_asked_about_asks_nobody_and_logs_no_choice()
+        {
+            // The tab, or another save, can decide it between the notice and the question.
+            var log = new LinesLog();
+            var chooser = new AuthorityChooser(
+                new NoEvents(), _targets, _writer, _owner, null, null, _prompt, null, log);
+            chooser.AskWhichToKeep = (choice, name) =>
+            {
+                _asked++;
+                return null;
+            };
+
+            using (chooser)
+            {
+                Assume.That(
+                    new AuthorityService(new CustomDataStore(_database.Database), NullGateLog.Instance)
+                        .Keep(_candidates[0]).Succeeded,
+                    Is.True);
+
+                Assert.That(chooser.Ask(_database.Database), Is.Null);
+            }
+
+            Assert.That(_asked, Is.Zero, "nobody was asked");
+            Assert.That(log.Lines, Has.None.Contains("kept no authority"),
+                "and the log does not credit the operator with a choice nobody put to them");
+        }
+
+        [Test]
+        public void A_lock_closes_the_question_and_an_answer_given_as_it_lands_is_not_written()
+        {
+            // The chooser is not registered with KeePass's window manager, so KeePass locks under
+            // it, and it went on listing every authority's clients over a locked KeePass.
+            _chooser.AskWhichToKeep = (choice, name) =>
+            {
+                _asked++;
+                ((IApprovalScreen)_chooser).Locked();
+                return _candidates[0];
+            };
+
+            Assert.That(_chooser.Ask(_database.Database), Is.Null);
+            Assert.That(_asked, Is.EqualTo(1));
+            Assert.That(_database.Database.CustomData.Exists(AuthorityKeys.RetirementKey(_candidates[1])), Is.False,
+                "nothing was kept");
+            Assert.That(_prompt.Told, Is.Null);
+
+            ((IApprovalScreen)_chooser).Locked();
+            Assert.That(_chooser.Ask(_database.Database), Is.Null, "a lock with no question standing closes nothing");
+        }
+
+        [Test]
+        public void A_choice_its_database_closed_under_is_not_sent_back_to_the_tab()
+        {
+            // The unlock asks again by itself, so a box sending the operator to the settings tab
+            // was about a question already on its way back.
+            _chooser.AskWhichToKeep = (choice, name) =>
+            {
+                _asked++;
+                _database.Database.Close();
+                return _candidates[0];
+            };
+
+            _chooser.Ask(_database.Database);
+
+            Assert.That(_asked, Is.EqualTo(1));
+            Assert.That(_prompt.Told, Is.Null);
         }
 
         [Test]
@@ -354,8 +423,68 @@ namespace KeePassGate.Host.Tests
                 spent.Stop();
 
                 Assert.That(kept.Succeeded, Is.False);
-                Assert.That(kept.Message, Does.Contain("choose again"));
+                Assert.That(kept.IsBehindAnotherWrite, Is.True, "and as a refusal that ends by itself");
                 Assert.That(spent.Elapsed, Is.LessThan(TimeSpan.FromSeconds(2)), "refused at once rather than waited");
+            }
+            finally
+            {
+                release.Set();
+                other.Join(TimeSpan.FromSeconds(10));
+            }
+        }
+
+        [Test]
+        public void A_choice_behind_another_write_is_kept_once_that_write_is_done_however_long_it_takes()
+        {
+            // A save is a whole-database write and a large one takes a minute and more. Tried for
+            // three seconds and then given up, the choice was reported as not kept, and the
+            // operator sent to the tab, for a wait that would have ended by itself.
+            var held = new ManualResetEventSlim(false);
+            var release = new ManualResetEventSlim(false);
+            var ui = new HoldingUi(held, release);
+            var writer = new DatabaseWriter(ui, database => { }, null, null, null, _dialogs, NullGateLog.Instance);
+
+            var other = new Thread(() =>
+            {
+                ui.Holding = Thread.CurrentThread;
+                writer.Change(_database.Database, () => null);
+            });
+
+            other.IsBackground = true;
+            other.Start();
+
+            var tries = 0;
+            var chooser = new AuthorityChooser(
+                new NoEvents(), _targets, writer, _owner, null, null, _prompt, null, NullGateLog.Instance)
+            {
+                AskWhichToKeep = (choice, name) => _candidates[0],
+                After = (delay, work) =>
+                {
+                    Thread.Sleep(delay);
+
+                    // Past the bound a refusal that does not end by itself is given.
+                    if (++tries * delay.TotalMilliseconds > AuthorityChooser.KeepTrying.TotalMilliseconds + 1000)
+                    {
+                        release.Set();
+                        other.Join(TimeSpan.FromSeconds(10));
+                    }
+
+                    work();
+                },
+            };
+
+            try
+            {
+                Assume.That(held.Wait(TimeSpan.FromSeconds(10)), Is.True, "the other write has the lock");
+
+                using (chooser)
+                {
+                    chooser.Ask(_database.Database);
+                }
+
+                Assert.That(_prompt.Told, Is.Null, "the operator is not sent back to choose again");
+                Assert.That(_database.Database.CustomData.Exists(AuthorityKeys.RetirementKey(_candidates[1])), Is.True,
+                    "and the choice is kept");
             }
             finally
             {
@@ -453,6 +582,32 @@ namespace KeePassGate.Host.Tests
             {
                 add { }
                 remove { }
+            }
+        }
+
+        /// <summary>Every line logged, in order.</summary>
+        private sealed class LinesLog : IGateLog
+        {
+            public List<string> Lines { get; } = new List<string>();
+
+            public void Info(string message)
+            {
+                Lines.Add(message);
+            }
+
+            public void Warn(string message)
+            {
+                Lines.Add(message);
+            }
+
+            public void Error(string message, Exception error)
+            {
+                Lines.Add(message);
+            }
+
+            public void Unexpected(string message, Exception error)
+            {
+                Lines.Add(message);
             }
         }
 

@@ -582,9 +582,9 @@ get wrong. A profile the document does not mention is a different thing: that is
 is what `default` answers.
 
 The reader's ceilings are the format's ceilings, and reaching one denies rather than truncates: a
-node carries the default and 31 profiles, and a 32nd makes the whole document unreadable and
-everything under that node refused. That is the right way round, but it is worth knowing about
-rather than discovering.
+node carries the default and 31 profiles, and a 32nd makes the whole document unreadable, so every
+profile no nearer rule answers is refused there and under it. That is the right way round, but it
+is worth knowing about rather than discovering.
 
 ### The set of profiles is written down §139
 
@@ -935,6 +935,14 @@ So the rules here:
   still runs inside the request and underneath the write, and can still stop for the other
   file's key or to warn about what it found.
 
+  **The third is refused on a read of the file the save does not share**, so it is narrowed rather
+  than closed. The writer reads the file inside its marshaled call, before the change, and
+  `MainForm.SaveDatabase` then pumps messages as it raises its block and raises `FileSavingPre` to
+  every plugin before `PreSaveValidate` reads the file again, while another process rewrites a file
+  without waiting for either. A sync client finishing its copy in that gap still puts the
+  question, or the merge under `SaveForceSync`, inside the request, which holds the writer's lock
+  until somebody answers. The gap is the length of the save's own start.
+
   **Two remain, and both are a save that has already failed.** `MessageService.ShowSaveWarning`
   when `PwDatabase.Save` throws, and the verification warning when the bytes on disk are not the
   bytes written. Neither can be known before the save, and both report damage the operator has to
@@ -1156,7 +1164,10 @@ So the rules here:
 
   **Not for an admission record.** A record is in the database's own custom data, which the main
   window has no view of, so a pairing that lands redraws nothing, and one taken back out redraws
-  the title bar and the menus for the reason a change does.
+  the title bar and the menus for the reason a change does. **Nor for a client's revocation of
+  itself or a standing answer to a renewal**, which go through the writer as a change does and are
+  kept in the same custom data: either, once it lands, redraws the title bar and the menus,
+  rebuilds neither list, and tells the Clients page, which draws from both.
 - **Nothing throws to the transport.** A handler failure becomes `500 internal error` and an
   incident, counted on the plugin's window under Tools and logged at `UNEXPECTED`, because an
   unhandled exception in this process takes KeePass with it. It is not audited, which this bullet
@@ -1609,7 +1620,7 @@ database's custom data survivable, whether a dialog, a merge or a declined save 
 
 Not quite, and this is independent of which letters a rule holds. `KdbxVault.Discard` removes an
 entry the way KeePass does: to the recycle bin when the database keeps one, and permanently only
-when it does not or when the entry is already in there. So a removal is usually a **move**, and a
+when it does not. So a removal is usually a **move**, and a
 move crosses an ACL boundary. The bin is an ordinary group under the root, governed by whatever rule
 reaches it there, so a client granted removal on one group and no `read` could relocate an entry it
 may not read into a group where a rule at the root may well let it read what it just could not.

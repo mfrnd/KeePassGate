@@ -748,7 +748,7 @@ about is gone, and `create_group` and `create_entry` return what addresses the n
 read then tags.
 
 **A tag says nothing about what it was made from.** It is a keyed digest the plugin makes with a
-secret derived from the database's own host certificate, which no client holds, so a client
+secret derived from the database's own host key, which no client holds, so a client
 cannot compute a tag for a guess. The same content keeps the same tag across a lock, a KeePass
 restart and a reload, and recreating the database's certificate authority changes every tag,
 which costs a `412` and never an overwrite.

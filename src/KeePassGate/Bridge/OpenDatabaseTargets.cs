@@ -190,7 +190,17 @@ namespace KeePassGate.Bridge
                 // A locked database is still served, by a responder that can say so and nothing
                 // else. Without this the gate resolves no name for it and a client gets a bare
                 // connection failure, which is what `PAIRING.md` §308 exists to avoid.
-                foreach (var locked in _locked.Values)
+                //
+                // **Not once KeePass has opened it again**, which is before `FileOpened` lifts the
+                // lock: KeePass puts the database back into its document and then asks its own
+                // questions, a master key due for a change, weak key derivation, duplicate
+                // identifiers, before it announces the open. Handed out beside the database it was
+                // standing in for, the responder answered to the same name, and every connection
+                // was dropped for a name two databases answer to, for as long as the operator took
+                // to answer. Kept until the unlock all the same, which is what lets it go.
+                var reopened = new HashSet<string>(
+                    open.Select(PathOf).Where(path => !string.IsNullOrEmpty(path)), _paths);
+                foreach (var locked in _locked.Where(pair => !reopened.Contains(pair.Key)).Select(pair => pair.Value))
                 {
                     // One reference per caller, exactly as above. Handing this out bare meant the
                     // first caller to give it back destroyed it for every later connection.
@@ -309,7 +319,7 @@ namespace KeePassGate.Bridge
                 else
                 {
                     // No responder was minted, so there is nothing to answer with. `CA.md`
-                    // §207 names this case and accepts it: the connection really is a bare
+                    // §208 names this case and accepts it: the connection really is a bare
                     // failure until somebody unlocks.
                     // `Release` rather than `Forget`: the cache entry is disposed below, and
                     // `Forget` would drop it here as well, releasing one reference for two.
@@ -375,7 +385,7 @@ namespace KeePassGate.Bridge
             if (cached.Target == null)
             {
                 // Several authorities and none chosen, so no responder was minted: minting one
-                // would be choosing. A lock answers nothing, which `CA.md` §207 accepts for a
+                // would be choosing. A lock answers nothing, which `CA.md` §208 accepts for a
                 // database with no responder.
                 return null;
             }
@@ -904,45 +914,64 @@ namespace KeePassGate.Bridge
         {
             var targets = new List<UndecidedTarget>();
 
-            using (reading)
+            // Each candidate holds a copy of its gate key until it is disposed, and nothing owns
+            // them before the cache does, so a throw on the way there gives back every one built,
+            // as `TargetFor` gives back its reading.
+            var kept = false;
+            try
             {
-                foreach (var candidate in reading.Candidates)
+                using (reading)
                 {
-                    if (!candidate.IsWhole)
+                    foreach (var candidate in reading.Candidates)
                     {
-                        continue;
+                        if (!candidate.IsWhole)
+                        {
+                            continue;
+                        }
+
+                        var host = candidate.Material.HostKey;
+
+                        // Into a local and zeroed afterwards, for the reason `Answering` gives.
+                        var gateKey = candidate.Material.SniKey;
+                        try
+                        {
+                            targets.Add(new UndecidedTarget(candidate.Fingerprint, gateKey, host));
+                        }
+                        finally
+                        {
+                            Array.Clear(gateKey, 0, gateKey.Length);
+                        }
                     }
 
-                    var host = candidate.Material.HostKey;
+                    var shorts = new List<string>();
+                    foreach (var candidate in reading.Candidates)
+                    {
+                        shorts.Add(AuthorityKeys.Shown(candidate.Fingerprint));
+                    }
 
-                    // Into a local and zeroed afterwards, for the reason `Answering` gives.
-                    var gateKey = candidate.Material.SniKey;
-                    try
-                    {
-                        targets.Add(new UndecidedTarget(candidate.Fingerprint, gateKey, host));
-                    }
-                    finally
-                    {
-                        Array.Clear(gateKey, 0, gateKey.Length);
-                    }
+                    _log.Warn("not serving a database that holds " + reading.Candidates.Count +
+                              " authorities until the operator keeps one: " + string.Join(", ", shorts));
                 }
 
-                var shorts = new List<string>();
-                foreach (var candidate in reading.Candidates)
-                {
-                    shorts.Add(AuthorityKeys.Shown(candidate.Fingerprint));
-                }
+                var path = PathOf(database);
+                Discard(path);
 
-                _log.Warn("not serving a database that holds " + reading.Candidates.Count +
-                          " authorities until the operator keeps one: " + string.Join(", ", shorts));
+                var entry = new CachedTarget(stored, path, null, null, targets);
+                _cache[database] = entry;
+                kept = true;
+                return entry;
             }
-
-            var path = PathOf(database);
-            Discard(path);
-
-            var entry = new CachedTarget(stored, path, null, null, targets);
-            _cache[database] = entry;
-            return entry;
+            finally
+            {
+                if (!kept)
+                {
+                    // codeql[cs/missed-using-statement] disposed only when it is not cached, which no `using` can do
+                    foreach (var target in targets)
+                    {
+                        target.Dispose();
+                    }
+                }
+            }
         }
 
         /// <summary>
@@ -968,8 +997,10 @@ namespace KeePassGate.Bridge
                 // `InvalidOperationException` among it: that is what issuance raises for an
                 // authority whose own dates have passed, and `AuthorityStore.Read` ignores expiry,
                 // so one reaches here. Escaping left the target half built and made the resolver
-                // answer nothing for every open database, not only the expired one.
-                _log.Error("a responder certificate could not be minted, so a lock will answer nothing", error);
+                // answer nothing for every open database, not only the expired one. What a missing
+                // responder costs is the caller's to log: a lock answers with the responder it holds
+                // while that is current, and a first serve leaves the mint to the lock.
+                _log.Error("a responder certificate could not be minted", error);
                 return null;
             }
         }
@@ -1125,6 +1156,7 @@ namespace KeePassGate.Bridge
             private readonly IReadHold _hold;
             private readonly IGateLog _log;
             private readonly KdbxVault _vault;
+            private readonly NodeTags _tags;
 
             // The cache holds the first of these; `Current` takes one more per caller.
             private int _holders = 1;
@@ -1146,7 +1178,19 @@ namespace KeePassGate.Bridge
                 // a certificate export for an answer that was already known.
                 _databaseId = reading.Material.AuthorityDigest;
                 _writer = writer;
-                _vault = new KdbxVault(database, writer, new NodeTags(TagKey(reading.Material)), hold, log);
+                // The tags keep a copy of the key, so the array it was derived into is wiped here,
+                // as the copy of the host key it came from is in `TagKey`.
+                var key = TagKey(reading.Material);
+                try
+                {
+                    _tags = new NodeTags(key);
+                }
+                finally
+                {
+                    Array.Clear(key, 0, key.Length);
+                }
+
+                _vault = new KdbxVault(database, writer, _tags, hold, log);
             }
 
             /// <summary>The database's tag key, with the copy of the host key it came from wiped.</summary>
@@ -1172,8 +1216,9 @@ namespace KeePassGate.Bridge
 
             /// <summary>
             /// What the API reads and changes. One per served database rather than one per
-            /// request, because it holds nothing but the database and the writer, both of which
-            /// outlive any connection.
+            /// request, because what it holds outlives any connection: the database, the writer,
+            /// the hold on KeePass's thread, and the tag key this target overwrites when it is let
+            /// go.
             /// </summary>
             public IVault Vault
             {
@@ -1417,7 +1462,8 @@ namespace KeePassGate.Bridge
                 }
                 else
                 {
-                    _log.Warn("a client asked to revoke its own certificate and it was not done: " + written.Reason);
+                    _log.Warn("a client asked to revoke its own certificate and it was not done: " +
+                              CertificateDigest.Shorten(admissionKey) + ": " + written.Reason);
                 }
 
                 return written;
@@ -1501,6 +1547,7 @@ namespace KeePassGate.Bridge
                 {
                     _database = null;
                     _reading.Dispose();
+                    _tags.Clear();
                 }
             }
 

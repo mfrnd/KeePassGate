@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
 using System.Threading;
@@ -615,6 +616,40 @@ namespace KeePassGate.Host.Tests
                     "and the record is taken back out of the database in memory as well");
                 Assert.That(_database.Database.Modified, Is.True,
                     "which leaves KeePass asking before it discards the copy that holds the truth");
+            }
+        }
+
+        [Test]
+        public void A_record_the_file_did_not_keep_leaves_the_database_marked_even_if_the_file_then_reads_whole()
+        {
+            // Two reads of the file: the verification, and the undo's question whether the file is
+            // as KeePass left it. A copy that is part way through at the first and done by the
+            // second disagrees and then agrees, which the hash KeePass verifies against, set aside
+            // after the save, stands in for here.
+            using (var certificate = IssueClient())
+            {
+                _database.Save();
+
+                var writer = new DatabaseWriter(
+                    CurrentThread.Instance,
+                    database =>
+                    {
+                        Save(database);
+                        typeof(PwDatabase)
+                            .GetField("m_pbHashOfLastIO", BindingFlags.NonPublic | BindingFlags.Instance)
+                            .SetValue(database, new byte[32]);
+                    },
+                    null,
+                    _dialogs,
+                    _log);
+
+                var record = Record(certificate, "ops");
+                var result = writer.WriteAdmission(_database.Database, record);
+
+                Assert.That(result.Ok, Is.False);
+                Assert.That(new CustomDataStore(_database.Database).Get(record.StorageKey), Is.Null);
+                Assert.That(_database.Database.Modified, Is.True,
+                    "memory lost a record the file may hold, so KeePass asks before discarding it");
             }
         }
 
