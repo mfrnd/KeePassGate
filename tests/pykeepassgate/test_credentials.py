@@ -17,6 +17,7 @@ from cryptography import x509
 from cryptography.hazmat.primitives.serialization import Encoding
 
 from pykeepassgate import credentials
+from pykeepassgate.client import GateClient
 from pykeepassgate.errors import NotPaired, ProtocolError, StorageError
 from pykeepassgate.testing import Issued
 
@@ -514,6 +515,22 @@ def test_a_gate_key_that_will_not_read_is_refused_the_same_way(
 
     with pytest.raises(StorageError, match="will not read"):
         _ = stored.gate_key
+
+
+@pytest.mark.parametrize("length", [0, 5, 33])
+def test_a_gate_key_of_the_wrong_length_on_the_disk_is_damage_named_by_its_file(
+    tmp_path: Path, bundle: dict[str, Any], length: int
+) -> None:
+    # A re-pair cut short at its second file leaves such a key beside a whole `client.json`, and
+    # HMAC takes a key of any length, so every name was built under the wrong key and every
+    # connection was an EOF nothing on this side explained as a damaged file.
+    stored = credentials.save(tmp_path / "kept", 45678, bundle)
+    (stored.directory / credentials.GATE_KEY_FILE).write_bytes(bytes(length))
+
+    with pytest.raises(StorageError, match=rf"gate\.key holds {length} bytes"):
+        _ = stored.gate_key
+    with pytest.raises(StorageError, match="damaged"):
+        GateClient(stored)
 
 
 @pytest.mark.skipif(os.name != "nt", reason="the roaming distinction is a Windows one")

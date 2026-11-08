@@ -11,6 +11,10 @@ none, since it releases both.
 
 ## 0.2.0, unreleased
 
+- **A `gate.key` of the wrong length is a `StorageError` naming the file**, as `identity.pem` and
+  `authority.pem` already are. HMAC takes a key of any length, so a gate key a re-pair cut short
+  named every connection under the wrong key, and every call failed as an EOF in the handshake,
+  which the client explains as a database not open or an authority recreated.
 - **A pairing or a renewal refused `503 busy` names the database's list of profiles among the
   causes**, the cause that does not end until the operator repairs the list. The client gave only
   causes that end by themselves, and a renewal was told what any route is, that asking again

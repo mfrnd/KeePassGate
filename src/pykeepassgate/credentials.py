@@ -189,15 +189,30 @@ class Credentials:
 
     @property
     def gate_key(self) -> bytes:
-        """The key every connection after pairing is named from."""
+        """The key every connection after pairing is named from, at the one length it can be.
+
+        **A key of any other length is damage, named by its file**, as `save` refuses it: HMAC
+        takes a key of any length, so a `gate.key` a re-pair cut short, written second of four
+        beside a whole `client.json`, named every connection under the wrong key, and the gate
+        dropped each as an EOF that reads as a database not open or an authority recreated.
+        """
+        path = self.directory / GATE_KEY_FILE
         try:
-            return (self.directory / GATE_KEY_FILE).read_bytes()
+            key = path.read_bytes()
         except OSError as error:
             # Every one of them, a file that has gone among them, which is damage here rather
             # than a client that never paired: `load` found `client.json` beside it. Left
             # alone they reach the caller mid request as a bare `OSError`: a file locked by a
             # backup agent, a directory locked down after this client opened.
             raise StorageError(f"the gate key in {self.directory} will not read") from error
+
+        if len(key) != sni.KEY_LENGTH:
+            raise StorageError(
+                f"{path} holds {len(key)} bytes where a gate key is {sni.KEY_LENGTH}, so it is "
+                "damaged, as a pairing or a renewal stopped part way leaves it: pair again"
+            )
+
+        return key
 
     @property
     def expired(self) -> bool:
