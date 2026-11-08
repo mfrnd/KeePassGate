@@ -48,6 +48,7 @@ make a placeholder out of the text around it.
 from __future__ import annotations
 
 import string
+from dataclasses import dataclass
 from typing import Protocol
 
 from .errors import AmbiguousName, RouteRefused, Unresolved, Withheld
@@ -191,7 +192,8 @@ def resolve(client: Entries, entry: Entry, value: str) -> str:
 
     `entry` is the entry the value came from, read rather than listed, since the placeholders for
     its own strings are answered out of it: a listed one raises `AttributeError`, as asking it for
-    a string does. `client` reads every entry a reference names, with `GateClient.entry`.
+    a string does. `client` reads every entry a reference names, with `GateClient.entry`, but for
+    `entry` itself, which a reference to it is answered out of rather than read again.
 
     A value with nothing in it KeePass could replace comes back as it is, and nothing is asked.
     """
@@ -199,7 +201,46 @@ def resolve(client: Entries, entry: Entry, value: str) -> str:
     if not _might_change(value):
         return value
 
-    return _Resolution(client).compile(value, entry, 0)
+    return _Resolution(client, entry).resolved(value, entry)[0]
+
+
+@dataclass(frozen=True)
+class Resolved:
+    """One of an entry's strings as KeePass would give it, and whether it holds a protected value.
+
+    `protected` is about what went into the value as well as where it is stored: a URL holding
+    `{REF:P@I:<uuid>}` comes out holding a password, and is protected here though the database
+    does not protect the URL. So is a string the database protects, whatever it names.
+    """
+
+    value: str
+    protected: bool
+
+
+def resolve_entry(client: Entries, entry: Entry) -> dict[str, Resolved]:
+    """Every string of a read entry as KeePass would give it, in one resolution, by its name.
+
+    One moment, as KeePass compiles every string out of the one database it holds: each entry a
+    reference names is read once for all of them, and `entry` never again, so no two strings, and
+    no string and a reference to its own entry, answer out of two versions of one entry. Each
+    string keeps a reference cache and a budget of its own, as KeePass gives each value a context
+    of its own. A string the rule withholds is left out, as `withheld` names it, and the first
+    string that cannot be given raises, with nothing given.
+    """
+    fields = _fields(entry)
+    resolution = _Resolution(client, entry)
+    given: dict[str, Resolved] = {}
+    for name in fields:
+        if name in entry.withheld:
+            continue
+
+        stored = fields[name]
+        value, borrowed = (
+            resolution.resolved(stored, entry) if _might_change(stored) else (stored, False)
+        )
+        given[name] = Resolved(value, borrowed or name in entry.protected)
+
+    return given
 
 
 def _fields(entry: Entry) -> Fields:
@@ -334,24 +375,35 @@ _TOO_LONG = (
 
 
 class _Resolution:
-    """One value being resolved: what it has read, and what it is in the middle of.
+    """Values of one entry being resolved: what they have read, and what each is in the middle of.
 
     KeePass compiles a value inside one context that every value it compiles on the way shares, and
     this is that context. `cache` is KeePass's reference cache, each reference and what it came to,
     which it puts back into every value from then on before it looks for another; it decides how
     many references a value can hold, so it is kept rather than left out. `path` is the fields being
     compiled, outermost first, which is how a circle is seen when KeePass would only run out of
-    depth. `read` keeps each entry a reference named, since one resolution is one moment.
-    `compiles` and `characters` are the work done so far, which `COMPILES` and `CHARACTERS` bound.
+    depth. `compiles` and `characters` are the work done so far, which `COMPILES` and `CHARACTERS`
+    bound, and `protected` whether a value the database protects went in. Each is the value's own,
+    begun again by `resolved`. `read` is the resolution's, kept for every value it is asked for,
+    since one resolution is one moment: each entry a reference named, and the entry the values came
+    from, from the start, so that a reference to it is answered out of the read the caller holds.
     """
 
-    def __init__(self, client: Entries) -> None:
+    def __init__(self, client: Entries, entry: Entry) -> None:
         self._client = client
+        self._read: dict[str, Entry] = {entry.uuid.upper(): entry}
         self._cache: list[tuple[str, str]] = []
         self._path: list[tuple[str, str]] = []
-        self._read: dict[str, Entry] = {}
         self._compiles = 0
         self._characters = 0
+        self._protected = False
+
+    def resolved(self, value: str, entry: Entry) -> tuple[str, bool]:
+        """One value as KeePass would give it, and whether a protected value went into it."""
+        self._cache, self._path = [], []
+        self._compiles = self._characters = 0
+        self._protected = False
+        return self.compile(value, entry, 0), self._protected
 
     def compile(self, text: str, entry: Entry, level: int) -> str:
         """What `SprEngine.CompileInternal` makes of this text, for what this follows."""
@@ -416,6 +468,9 @@ class _Resolution:
         with a null in it, the only ways such a spelling can arise, which `_collation_may_join`
         asks, is refused rather than read as empty: empty could stand where KeePass has a value,
         or where the gate withheld one.
+
+        **A string the database protects marks the value protected**, whichever string it goes into,
+        since a password put into a URL is a password still.
         """
         fields = _fields(entry)
         if name in entry.withheld:
@@ -439,9 +494,12 @@ class _Resolution:
 
         self._path.append(visiting)
         try:
-            return self.compile(held, entry, level + 1)
+            compiled = self.compile(held, entry, level + 1)
         finally:
             self._path.pop()
+
+        self._protected = self._protected or name in entry.protected
+        return compiled
 
     def _references(self, text: str, level: int) -> str:
         """The references: `FillRefPlaceholders`, with its cache, its order and its limit."""

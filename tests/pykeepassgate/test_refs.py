@@ -44,13 +44,19 @@ def _vectors() -> dict[str, Any]:
 DOCUMENT = _vectors()
 
 
-def answer(uuid: str, fields: dict[str, str | None]) -> dict[str, Any]:
-    """What the gate answers a read of an entry with, `null` for a value it withholds."""
+def answer(
+    uuid: str, fields: dict[str, str | None], protected: tuple[str, ...] = ()
+) -> dict[str, Any]:
+    """What the gate answers a read of an entry with, `null` for a value it withholds.
+
+    Every value withheld is protected, and so is every name in `protected`, readable here.
+    """
+    withheld = [name for name, value in fields.items() if value is None]
     return {
         "uuid": uuid,
         "group": GROUP,
         "fields": fields,
-        "protected": [name for name, value in fields.items() if value is None],
+        "protected": [*withheld, *(name for name in protected if name not in withheld)],
         "expires": None,
     }
 
@@ -69,7 +75,9 @@ class Database:
         if found is None:
             raise RouteRefused(404, "no such route")
 
-        return Entry.read(answer(found["uuid"], dict(found["fields"])))
+        return Entry.read(
+            answer(found["uuid"], dict(found["fields"]), tuple(found.get("protected", ())))
+        )
 
 
 def test_the_vectors_are_where_the_host_test_writes_them() -> None:
@@ -225,6 +233,8 @@ def test_a_circle_is_refused_as_a_circle_rather_than_by_running_out_of_depth(nam
 
 SERVICE = "A1000000000000000000000000000001"
 VAULT = "A2000000000000000000000000000001"
+#: An entry nothing here holds, which the gate answers `404` alike for an entry absent or refused.
+ABSENT = "A3000000000000000000000000000001"
 
 
 def test_a_withheld_value_a_placeholder_stands_for_raises_withheld() -> None:
@@ -468,6 +478,65 @@ def test_a_value_that_comes_to_more_than_a_client_holds_is_refused() -> None:
         refs.resolve(Database([]), entry, "{S:Big}{NOTES}")
 
 
+def test_a_reference_to_the_entry_a_value_came_from_is_answered_out_of_it() -> None:
+    # One resolution is one moment: read again through the gate, the entry could answer as a
+    # newer version than the version its own placeholders were answered out of.
+    database = Database([{"uuid": SERVICE, "fields": {"Title": "newer title"}}])
+    entry = Entry.read(answer(SERVICE, {"Title": "older title"}))
+
+    resolved = refs.resolve(database, entry, "{TITLE} / {REF:T@I:" + SERVICE.lower() + "}")
+
+    assert resolved == "older title / older title"
+    assert database.asked == []
+
+
+def test_an_entry_s_strings_are_resolved_together_reading_each_entry_once() -> None:
+    database = Database([{"uuid": VAULT, "fields": {"URL": "vault.example", "Notes": "n"}}])
+    fields: dict[str, str | None] = {
+        "Title": "Invented Service",
+        "URL": "{REF:A@I:" + VAULT + "}",
+        "Notes": "{REF:N@I:" + VAULT + "} of {REF:T@I:" + SERVICE + "}",
+        "Password": None,
+    }
+    entry = Entry.read(answer(SERVICE, fields))
+
+    resolved = refs.resolve_entry(database, entry)
+
+    assert {name: found.value for name, found in resolved.items()} == {
+        "Title": "Invented Service",
+        "URL": "vault.example",
+        "Notes": "n of Invented Service",
+    }, "a withheld string is left out, as `withheld` names it"
+    assert database.asked == [VAULT], "the other entry once, and this entry not again"
+
+
+def test_a_string_a_protected_value_goes_into_is_protected() -> None:
+    # A password put into a URL is a password still, by a reference or by a placeholder of the
+    # entry's own, and a string the database protects is protected whatever it names.
+    database = Database(
+        [{"uuid": VAULT, "fields": {"Password": "not-a-real-one"}, "protected": ("Password",)}]
+    )
+    fields: dict[str, str | None] = {
+        "Title": "Invented Service",
+        "UserName": "{TITLE}",
+        "URL": "https://u:{REF:P@I:" + VAULT + "}@host.example",
+        "Notes": "the password is {PASSWORD}",
+        "Password": "plain",
+    }
+    entry = Entry.read(answer(SERVICE, fields, protected=("Password",)))
+
+    resolved = refs.resolve_entry(database, entry)
+
+    assert {name: found.protected for name, found in resolved.items()} == {
+        "Title": False,
+        "UserName": False,
+        "URL": True,
+        "Notes": True,
+        "Password": True,
+    }
+    assert resolved["URL"].value == "https://u:not-a-real-one@host.example"
+
+
 def test_a_search_is_refused_without_repeating_what_it_searched_for() -> None:
     # The search text is part of the value, and a refusal is what gets logged.
     entry = Entry.read(answer(SERVICE, {"Title": "Invented Service"}))
@@ -509,4 +578,4 @@ def test_a_reference_is_followed_through_the_gate(
     assert gate.requests == [("GET", f"/entries/{VAULT.lower()}")]
 
     with pytest.raises(Unresolved, match="cannot read"):
-        refs.resolve(client, entry, "{REF:P@I:" + SERVICE + "}")
+        refs.resolve(client, entry, "{REF:P@I:" + ABSENT + "}")

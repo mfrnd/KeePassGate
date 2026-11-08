@@ -506,6 +506,8 @@ pykeepassgate show <uuid> --resolve
 
 `show --resolve` prints every string the entry holds resolved this way, a withheld one still as
 `(withheld)`, and fails with exit code 1, printing nothing, when any value cannot be resolved.
+A string a protected value went into, a password a URL borrows by reference among them, is marked
+`(protected)` and listed under `protected` with `-o json`, as a string stored protected is.
 Without `--resolve`, `show` prints every value as it is stored.
 
 `refs.resolve` gives what KeePass would give for a value of an entry. It follows a reference by
@@ -514,7 +516,15 @@ names through the gate, and the placeholders for the entry's own strings, `{TITL
 `{PASSWORD}`, `{URL}`, `{NOTES}` and `{S:<name>}`, in any case. What one stands for is compiled
 again in the entry it came from, as KeePass does, so a reference to a reference is followed as far
 as KeePass follows it. **Each entry a reference names is a read of its own**, so the rules on that
-entry decide whether this client may follow it, and the operator's audit records the read.
+entry decide whether this client may follow it, and the operator's audit records the read. The
+entry the value came from is not read again: a reference to it is answered out of the read the
+caller holds, so a value never mixes two versions of that entry.
+
+`refs.resolve_entry(client, entry)` resolves every string of an entry together, which is what
+`show --resolve` uses: each entry they name is read once for all of them, and each string comes
+back as a `refs.Resolved`, its `value` and whether it is `protected`, which is true for a string
+the database protects and for a string a protected value went into. A withheld string is left
+out, as `entry.withheld` names it.
 
 **It refuses rather than guess**, with `Unresolved`, whose message says why:
 

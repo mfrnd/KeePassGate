@@ -378,6 +378,38 @@ def test_show_prints_a_reference_as_stored_unless_told_to_follow_it(
     assert gate.requests[-1] == ("GET", f"/entries/{LENDING}"), "the other entry, by its own read"
 
 
+@pytest.mark.parametrize("output", ["plain", "json"])
+def test_show_marks_a_string_a_protected_value_was_resolved_into_as_protected(
+    gate: FakeGate, kept: Path, capsys: pytest.CaptureFixture[str], output: str
+) -> None:
+    # A password borrowed into a URL is a password still: printed unmarked, and left out of what
+    # `-o json` names protected, an operator or a program redacting by that list showed it.
+    url = "https://u:{REF:P@I:" + LENDING + "}@host.example"
+    fields = {"Title": "{REF:T@I:" + LENDING + "}", "URL": url}
+    borrowing = {**READS[BORROWING], "fields": fields, "protected": []}
+    reads = {BORROWING: borrowing, LENDING: READS[LENDING]}
+
+    def answer(path: str, sent: str, client: bytes | None) -> tuple[int, str]:
+        return 200, json.dumps(reads[path.rsplit("/", 1)[-1]])
+
+    gate.handler = answer
+
+    code = cli.main(["show", BORROWING, "--resolve", "--directory", str(kept), "-o", output])
+
+    assert code == 0
+    out = capsys.readouterr().out
+    if output == "json":
+        shown = json.loads(out)
+        assert shown["fields"]["URL"] == "https://u:not-a-real-password@host.example"
+        assert shown["protected"] == ["URL"]
+    else:
+        assert "URL: https://u:not-a-real-password@host.example (protected)" in out.splitlines()
+        assert "Title: an invented vault" in out.splitlines(), "a title borrowed is no password"
+
+    # Both strings name the other entry, which is read once for the two of them.
+    assert gate.requests == [("GET", f"/entries/{BORROWING}"), ("GET", f"/entries/{LENDING}")]
+
+
 def test_show_prints_nothing_when_a_value_cannot_be_resolved(
     gate: FakeGate, kept: Path, capsys: pytest.CaptureFixture[str]
 ) -> None:

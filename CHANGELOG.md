@@ -11,6 +11,12 @@ none, since it releases both.
 
 ## 0.2.0, unreleased
 
+- **`refs.resolve_entry` resolves every string of an entry together**, each entry they name read
+  once and the entry itself not again, and names each string `protected` that a protected value
+  went into. `show --resolve` uses it, so a password a URL borrows by reference is marked
+  `(protected)` and listed under `protected`, where it printed unmarked, and an entry several
+  strings borrow from is read once rather than for each. `refs.resolve` answers a reference to
+  the entry a value came from out of that entry, where it read the entry again.
 - **`refs.resolve` refuses a value that takes more work than it spends**, with `Unresolved`:
   more than a thousand compilations, `refs.COMPILES`, or more than 4 MiB, `refs.CHARACTERS`.
   Strings that name each other in wide layers are compiled once for every path through them, so

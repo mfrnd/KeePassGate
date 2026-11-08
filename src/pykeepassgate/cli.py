@@ -1917,12 +1917,18 @@ def _show(arguments: argparse.Namespace) -> int:
 
     # A withheld value is not a value, and reading one raises, so it is asked about by name rather
     # than read. Every other one is worked out before anything is printed, so a value `--resolve`
-    # cannot give fails the command with nothing printed rather than half an entry.
-    values = {
-        name: refs.resolve(client, entry, strings[name]) if arguments.resolve else strings[name]
-        for name in strings
-        if name not in entry.withheld
-    }
+    # cannot give fails the command with nothing printed rather than half an entry. Resolved
+    # together, so that every entry they name is read once and the entry itself not again, and
+    # protected wherever a protected value went in, a password a URL borrows among them.
+    protected = list(entry.protected)
+    if arguments.resolve:
+        resolved = refs.resolve_entry(client, entry)
+        values = {name: found.value for name, found in resolved.items()}
+        protected += [
+            name for name, found in resolved.items() if found.protected and name not in protected
+        ]
+    else:
+        values = {name: strings[name] for name in strings if name not in entry.withheld}
 
     lines = [f"uuid:  {entry.uuid}", f"group: {entry.group}"]
     document: dict[str, object] = {"uuid": entry.uuid, "group": entry.group}
@@ -1936,7 +1942,7 @@ def _show(arguments: argparse.Namespace) -> int:
     document["expired"] = entry.expired
 
     for name in sorted(strings):
-        guarded = " (protected)" if name in entry.protected else ""
+        guarded = " (protected)" if name in protected else ""
         # A value is escaped as a name is, since one line per field is what this output promises:
         # a line feed in the notes would otherwise print a `Password:` row of its own, above the
         # real one, written by whoever may change the notes and not the password.
@@ -1945,7 +1951,7 @@ def _show(arguments: argparse.Namespace) -> int:
 
     # The values as they are, which `json` escapes itself, and a withheld one only by its name.
     document["fields"] = {name: values[name] for name in sorted(values)}
-    document["protected"] = list(entry.protected)
+    document["protected"] = protected
     document["withheld"] = list(entry.withheld)
     _left(document, entry.read_etag)
 
