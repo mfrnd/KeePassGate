@@ -37,6 +37,7 @@ namespace KeePassGate.Transport
             Timeout = TimeSpan.FromSeconds(10);
             Budget = TimeSpan.FromSeconds(90);
             PairingBudget = DefaultPairingBudget;
+            Linger = TimeSpan.FromSeconds(2);
         }
 
         public int Port { get; set; }
@@ -69,6 +70,20 @@ namespace KeePassGate.Transport
         /// bounds both.
         /// </remarks>
         public TimeSpan Timeout { get; set; }
+
+        /// <summary>
+        /// How long an answered connection waits on a quiet peer, once its own sending half is
+        /// shut, before closing. Two seconds.
+        /// </summary>
+        /// <remarks>
+        /// What the peer sent after its request is read and dropped first, because a socket
+        /// closed over unread bytes is answered by the stack with a reset, and the reset discards
+        /// the answer the peer has not read yet: `GateListener.Linger` has the reasons. A client
+        /// that has its answer closes at once, which ends the wait at once, so this is the time
+        /// a peer that neither sends nor closes keeps its slot. Two seconds is the pause Apache's
+        /// lingering close allows between reads, and the connection's deadline bounds the whole.
+        /// </remarks>
+        public TimeSpan Linger { get; set; }
 
         /// <summary>
         /// How long a connection may take to deliver its request once its name has resolved, and

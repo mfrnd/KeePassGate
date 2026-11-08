@@ -845,6 +845,12 @@ namespace KeePassGate.Transport
                                     },
                                     () => deadline.Writing(_options.Budget));
                             }
+
+                            // And closed the way an answered connection is, so that whatever the
+                            // peer sent after its request is not the reset that throws the answer
+                            // away: see `Linger`. Once the target is given back, since nothing
+                            // here reads the database.
+                            Linger(socket);
                         }
                     }
                     finally
@@ -1087,6 +1093,10 @@ namespace KeePassGate.Transport
         /// conversation already reads as a client that left. The stream is made on that socket
         /// rather than asked of the client, because `GetStream` reads `Client` again, and so does
         /// anything else that is handed the client rather than the socket.
+        ///
+        /// **The stream does not own the socket**, so Bouncy Castle closing the stream it was
+        /// given ends the TLS and leaves the socket open for <see cref="Linger"/>. The client
+        /// closes it, when `Converse` lets it go, and so does the deadline.
         /// </remarks>
         internal static NetworkStream Opened(TcpClient client, int timeout, out Socket socket)
         {
@@ -1099,8 +1109,70 @@ namespace KeePassGate.Transport
             socket.ReceiveTimeout = timeout;
             socket.SendTimeout = timeout;
             socket.NoDelay = true;
-            return new NetworkStream(socket, true);
+            return new NetworkStream(socket, false);
         }
+
+        /// <summary>
+        /// Ends an answered connection the way RFC 9112 section 9.6 asks of a server closing a
+        /// connection: its own sending half first, and then whatever the peer still sends is read
+        /// and dropped, until the peer closes, stays quiet for <see cref="GateOptions.Linger"/>,
+        /// or has sent as much as one more request could hold.
+        /// </summary>
+        /// <remarks>
+        /// **A socket closed with the peer's bytes unread is answered by the stack with a reset**,
+        /// and the reset discards whatever reached the peer and was not read yet, the answer
+        /// among it. The body a refused head announced is taken already, by
+        /// `HttpRequestReader.Discard`; this is for what nothing announced: a second request
+        /// pipelined behind the first, a line break written as a record of its own, or the
+        /// `close_notify` of a client that shut its own sending half once its request was out,
+        /// which RFC 8446 section 6.1 allows. Any of those turned the close into a reset, and a
+        /// client reading a moment late lost the answer to a write that had landed, a `201`
+        /// among them, and held no identifier for what it made.
+        ///
+        /// What is read is TLS records, dropped with nothing decrypted. The deadline bounds the
+        /// whole of it: the answer's own for an ordinary connection, a pairing's or a renewal's,
+        /// or the budget a name earned for a connection whose request was never read. The cap is
+        /// for a peer that keeps sending fast, which it can do only up to the size of one more
+        /// request.
+        /// https://www.rfc-editor.org/rfc/rfc9112#section-9.6
+        /// </remarks>
+        private void Linger(Socket socket)
+        {
+            try
+            {
+                socket.Shutdown(SocketShutdown.Send);
+                if (_options.Linger <= TimeSpan.Zero)
+                {
+                    return;
+                }
+
+                // Zero is no timeout at all to a socket, so a linger shorter than a millisecond
+                // waits a millisecond rather than for ever.
+                socket.ReceiveTimeout = Math.Max(1, (int)_options.Linger.TotalMilliseconds);
+
+                var chunk = new byte[LingerChunkBytes];
+                var left = (long)_options.MaxHeadBytes + _options.MaxBodyBytes;
+                while (left > 0)
+                {
+                    var got = socket.Receive(
+                        chunk, 0, (int)Math.Min(chunk.Length, left), SocketFlags.None);
+                    if (got <= 0)
+                    {
+                        return;
+                    }
+
+                    left -= got;
+                }
+            }
+            catch (Exception error) when (Expected.OfConnection(error))
+            {
+                // The peer closed, reset, or stayed quiet for the linger, or the deadline closed
+                // the socket under the read. Each is the end the linger was waiting for.
+            }
+        }
+
+        /// <summary>How much <see cref="Linger"/> takes off the socket at a time.</summary>
+        private const int LingerChunkBytes = 8 * 1024;
 
         private static string Peer(Socket socket)
         {

@@ -928,6 +928,74 @@ namespace KeePassGate.Tests
             }
         }
 
+        [TestCase("\r\n")]
+        [TestCase("GET /gate/status HTTP/1.1\r\nHost: gate\r\n\r\n")]
+        public void A_client_that_sends_more_after_its_request_still_reads_the_answer(string more)
+        {
+            // A socket closed with the peer's bytes unread is answered by the stack with a reset,
+            // which discards whatever reached the peer and was not read yet. A record sent after
+            // the request, a line break written on its own or a second request pipelined behind
+            // the first, was never read, so the close was a reset and a client reading a moment
+            // late lost the answer, a landed write's `201` as much as this.
+            var handler = new ThreadHandler();
+            using (var listener = new GateListener(
+                new GateOptions { Port = 0 }, new GateResolver(_targets, _log), handler, _log))
+            {
+                Assert.That(listener.Start(), Is.True);
+
+                string answer;
+                using (var tcp = new TcpClient())
+                {
+                    tcp.Connect(IPAddress.Loopback, listener.Port);
+                    tcp.ReceiveTimeout = 10000;
+                    using (var tls = new System.Net.Security.SslStream(
+                        tcp.GetStream(), false, delegate { return true; }))
+                    {
+                        tls.AuthenticateAsClient(
+                            _first.NewName(), null, System.Security.Authentication.SslProtocols.Tls13,
+                            false);
+
+                        var records = new[] { "GET /gate/status HTTP/1.1\r\nHost: gate\r\n\r\n", more };
+                        foreach (var bytes in records.Select(record => Encoding.ASCII.GetBytes(record)))
+                        {
+                            tls.Write(bytes, 0, bytes.Length);
+                            tls.Flush();
+                        }
+
+                        // Long enough for the gate to have answered and closed before this reads.
+                        Thread.Sleep(TimeSpan.FromSeconds(1));
+                        answer = ReadAll(tls);
+                    }
+                }
+
+                Assert.That(answer, Does.StartWith("HTTP/1.1 200 "), "the answer was lost to a reset");
+                Assert.That(answer, Does.EndWith("{}"), "and was read whole");
+            }
+        }
+
+        /// <summary>What a client read before the connection ended, or why it ended without a word.</summary>
+        private static string ReadAll(System.IO.Stream stream)
+        {
+            using (var read = new MemoryStream())
+            {
+                var buffer = new byte[4096];
+                try
+                {
+                    int got;
+                    while ((got = stream.Read(buffer, 0, buffer.Length)) > 0)
+                    {
+                        read.Write(buffer, 0, got);
+                    }
+                }
+                catch (IOException error)
+                {
+                    return read.Length > 0 ? Encoding.ASCII.GetString(read.ToArray()) : "no answer: " + error.Message;
+                }
+
+                return Encoding.ASCII.GetString(read.ToArray());
+            }
+        }
+
         [Test]
         public void An_answer_its_peer_does_not_read_is_cut_off_at_the_budget()
         {

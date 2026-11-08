@@ -11,6 +11,11 @@ none, since it releases both.
 
 ## 0.2.0, unreleased
 
+- **A client that sends anything after its request still reads the answer.** A second request
+  pipelined behind the first, a line break written on its own or a TLS half close was left
+  unread, so the connection closed with a reset, which threw away an answer the client had not
+  read yet, a landed write's `201` among them. The gate now shuts its sending half first and reads
+  and drops what still arrives, for up to two seconds of quiet, before it closes.
 - **An answer its client reads too slowly is cut off at the connection budget**, counted from the
   moment it starts being written. Only the socket's send timeout bounded it, which covers one TLS
   record, so an admitted client reading a large answer a record at a time held a thread and a

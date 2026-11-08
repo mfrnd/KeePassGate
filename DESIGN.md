@@ -316,6 +316,14 @@ closes, and a head over 8 KB is read on to its end first. What the head announce
 the whole of it, whatever the refusal was decided on, because the request line comes before the
 length and so may a header that is refused.
 
+**And so can every answer, whatever the client sent after its request.** A second request
+pipelined behind the first, a line break written as a record of its own, or the `close_notify` of
+a client that shut its sending half was left unread, and the close was the same reset. So an
+answered connection is closed as RFC 9112 section 9.6 describes: the gate's sending half first,
+then what still arrives is read and dropped until the client closes, stays quiet for
+`GateOptions.Linger`, or has sent as much as one more request could hold, under the deadline the
+connection already has.
+
 The listener binds `https://127.0.0.1:<port>/` only. Nothing binds off loopback, by construction;
 reaching it from elsewhere is a tunnel's job. Binding off loopback would put a password
 manager's API on a network interface, and no amount of authentication makes that worth doing inside
