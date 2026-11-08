@@ -60,6 +60,10 @@ class IncompatibleGate(GateError):
         self.client = client
         self.gate = gate
 
+    def __reduce__(self) -> tuple[type[IncompatibleGate], tuple[object, ...]]:
+        """Pickled by what it was made of, as `RouteRefused` is, which `Exception` would not do."""
+        return type(self), (self.args[0], self.client, self.gate)
+
 
 class StorageError(GateError):
     """What is stored for a paired client could not be written, read or protected.
@@ -145,6 +149,14 @@ class RenewalTooEarly(RenewalRefused):
         """Keep the moment the gate said renewals are asked about again, in UTC."""
         super().__init__(message)
         self.not_before = not_before
+
+    def __reduce__(self) -> tuple[type[RenewalTooEarly], tuple[object, ...]]:
+        """Pickled by what it was made of, as `RouteRefused` is.
+
+        `Exception` keeps the message alone, and this constructor called with the message alone is
+        a `TypeError`, so a copy taken to another process could not be made at all.
+        """
+        return type(self), (self.args[0], self.not_before)
 
 
 class RenewalRefusedForever(RenewalRefused):
@@ -298,6 +310,16 @@ class Withheld(GateError):
             f"{reached} {holder} does not grant `P`, which the operator can add to that rule"
         )
         self.name = name
+        self.listed = listed
+        self.through = through
+
+    def __reduce__(self) -> tuple[type[Withheld], tuple[object, ...]]:
+        """Pickled by what it was made of, as `RouteRefused` is.
+
+        `Exception` keeps the message alone, which this constructor took for the name, so a copy
+        taken to another process was a sentence built around the whole sentence.
+        """
+        return type(self), (self.name, self.listed, self.through)
 
 
 class Unresolved(GateError):

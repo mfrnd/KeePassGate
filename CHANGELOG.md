@@ -11,6 +11,11 @@ none, since it releases both.
 
 ## 0.2.0, unreleased
 
+- **Every exception PyKeePassGate raises survives being pickled as what it was**, which a process
+  pool does with an exception raised in a worker. A copy of `RenewalTooEarly` or
+  `IncompatibleGate` could not be made at all, and `Withheld` came back as a sentence built around
+  its own message, with whether it was a listing's and what stood for it gone. `Withheld` keeps
+  both now, as `listed` and `through`.
 - **PyKeePassGate refuses an `If-Match` the gate could not match before sending it**: a tag
   without its quotes, a list the gate cannot read, or a list naming weak tags alone, which the gate
   compares strongly and never matches. Each went to the gate and came back as the `412` a node that

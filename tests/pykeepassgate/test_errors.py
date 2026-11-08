@@ -3,7 +3,9 @@
 from __future__ import annotations
 
 import inspect
+import pickle
 import re
+from datetime import UTC, datetime
 from pathlib import Path
 
 import pytest
@@ -94,6 +96,44 @@ def test_each_table_of_what_to_catch_names_everything_this_client_raises(page: P
     }
 
     assert rows == (raised - {"GateError"}) | STANDARD
+
+
+#: One of every class `errors.py` defines, each made with everything its constructor takes, which
+#: is what a copy taken to another process has to be made again from.
+PICKLED: dict[type[Exception], Exception] = {
+    errors.IncompatibleGate: errors.IncompatibleGate("versions differ", "0.1.0", "0.2.0"),
+    errors.RenewalTooEarly: errors.RenewalTooEarly(
+        "not before then", datetime(2030, 1, 2, 3, 4, 5, tzinfo=UTC)
+    ),
+    errors.GateUnavailable: errors.GateUnavailable("not now", "teapot", 2.0),
+    errors.GateBusy: errors.GateBusy("busy", 2.0, datetime(2030, 1, 2, 3, 4, 5, tzinfo=UTC)),
+    errors.DatabaseLocked: errors.DatabaseLocked("locked", 2.0),
+    errors.AuthorityUndecided: errors.AuthorityUndecided("undecided", 2.0),
+    errors.Withheld: errors.Withheld("Password", listed=True, through="{REF:P@I:" + "0" * 32 + "}"),
+    errors.RouteRefused: errors.RouteRefused(404, "no such route"),
+    errors.PreconditionFailed: errors.PreconditionFailed("precondition failed"),
+}
+
+
+@pytest.mark.parametrize(
+    "kind",
+    [
+        value
+        for _, value in inspect.getmembers(errors, inspect.isclass)
+        if issubclass(value, Exception) and value.__module__ == errors.__name__
+    ],
+    ids=lambda kind: kind.__name__,
+)
+def test_every_exception_survives_being_pickled_as_what_it_was(kind: type[Exception]) -> None:
+    # What a process pool does with an exception raised in a worker. A class whose constructor
+    # takes more than a message cannot be made again from the message `Exception` keeps: two of
+    # them could not be copied at all, and `Withheld` came back as a sentence built around itself.
+    made = PICKLED.get(kind) or kind("a message")
+    copied = pickle.loads(pickle.dumps(made))  # noqa: S301, its own bytes
+
+    assert type(copied) is kind
+    assert str(copied) == str(made)
+    assert vars(copied) == vars(made)
 
 
 def test_the_pairing_failures_are_one_family() -> None:

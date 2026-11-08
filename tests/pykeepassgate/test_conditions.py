@@ -8,7 +8,6 @@ when one matches and which client is handed one is the plugin's, and its own tie
 from __future__ import annotations
 
 import json
-import pickle
 from collections.abc import Callable
 from pathlib import Path
 from typing import Any
@@ -213,16 +212,6 @@ def test_a_condition_that_does_not_hold_is_its_own_refusal_and_is_not_asked_agai
     assert raised.value.status == 412
     assert raised.value.error == "precondition failed"
     assert len(gate.requests) == 1
-
-
-def test_a_refusal_survives_being_pickled_as_what_it_was() -> None:
-    # What a process pool does with an exception raised in a worker.
-    for refusal in (PreconditionFailed("precondition failed"), RouteRefused(404, "no such route")):
-        copied = pickle.loads(pickle.dumps(refusal))  # noqa: S301, its own bytes
-
-        assert type(copied) is type(refusal)
-        assert str(copied) == str(refusal)
-        assert (copied.status, copied.error) == (refusal.status, refusal.error)
 
 
 def test_the_generic_calls_carry_a_condition_too(gate: FakeGate, paired: GateClient) -> None:
