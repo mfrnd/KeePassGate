@@ -310,6 +310,45 @@ is saving, and a program's write is a save, so the plugin catches a lock that ar
 own save and has KeePass lock as soon as the program that wrote has been answered, a few seconds
 later at most. Windows has locked the screen by then, so this happens behind it.
 
+## Removing the plugin
+
+**Delete each database's authority first, while the plugin is still there.** Taking the plugin out
+takes nothing out of a database, so a database whose authority stays keeps the authority's private
+key, the host's and the gate key inside it, where KeePass keeps them without knowing what they are
+and an XML export writes them out in the clear. **Delete authority**, followed by OK and a save,
+takes them out, with every admission record, revocation and standing answer to a renewal. Then
+close KeePass and delete `plugins\KeePassGate`.
+
+**What stays in the database grants nothing and holds no key**, and KeePass's own dialogs remove
+it once the plugin is gone:
+
+| | |
+| --- | --- |
+| **The retirements** | `KPG.RetiredAuthority.` and a fingerprint, a key for each authority the database has held, which Delete authority writes on purpose: they are what keeps a copy of the file from before putting the old authority back into service, so remove them only once the plugin is not coming back. |
+| **The profiles** | `KPG.Profiles`, the names the Profiles page kept. |
+| **The rules** | `KPG`, in the custom data of each group and entry that has a rule. |
+
+The first two are on the **Plugin Data** tab under **Tools**, **Database Tools**, **Database
+Maintenance**, the tab to leave alone while the plugin is in use, as [Revoking](clients.md#revoking)
+explains. A group's rules are
+on the **Plugin Data** tab of **Edit Group**, and an entry's under **Plugin data** on the
+**Properties** tab of **Edit Entry**; the versions an entry keeps in its history keep the rules they
+had. Then save the database.
+
+**Outside the databases** are the plugin's files, its port and what the programs it let in were
+handed:
+
+- `%LOCALAPPDATA%\KeePassGate`, holding [the plugin's log](#the-plugins-log) and
+  [the audit file](audit.md), each with its `.1` beside it, or wherever `KEEPASSGATE_LOG_FILE` and
+  `KEEPASSGATE_AUDIT_FILE` put them. The audit names every client by its key and every node by its
+  identifier, never by a title. Delete them when they are no longer wanted.
+- The port, where a port was chosen on the plugin's window, as `KPG.Port` in KeePass's configuration
+  file, which nothing but the plugin reads, and `KEEPASSGATE_PORT` where it is set.
+- What each paired program was handed, its private key among it, which stays where the program
+  stored it. The reference client gives its identity up with `pykeepassgate revoke` while the gate
+  still serves it, and [`pykeepassgate.md`](pykeepassgate.md#where-the-identity-is-kept) names the
+  directory to delete once the gate is gone.
+
 ## Next
 
 The database can now issue certificates and nobody holds one. [`pairing.md`](pairing.md) is how a
