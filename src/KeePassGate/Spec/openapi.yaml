@@ -34,11 +34,11 @@ info:
     **Every `get` declares a `head` beside it, and the two share one handler.** RFC 9110 section
     9.3.2 says a `head` is identical to its `get` except that no content is sent, so one handler is
     what makes that true by construction rather than by two implementations agreeing. The plugin
-    refuses to load a `get` with no `head`, and a pair that disagrees about its `x-kpg-verb`,
-    its `x-kpg-attachments`, needing a certificate, carrying a body, the query parameters it
-    takes, or whether it takes `If-Match`. The answer omits `Content-Length` rather than sending a wrong one, which section 9.3.2
-    permits for a value determined only while generating content, and section 8.6 requires of
-    anything else.
+    refuses to load a `get` with no `head`, and a pair that disagrees about its `x-kpg-verb`, its
+    `x-kpg-attachments`, needing a certificate, the lengths its path parameters allow, the body it
+    takes, the query parameters it takes, or whether it takes `If-Match`. The answer omits
+    `Content-Length` rather than sending a wrong one, which section 9.3.2 permits for a value
+    determined only while generating content, and section 8.6 requires of anything else.
 
     **A declared path asked for with a method it does not declare answers `405`, carrying the
     methods it does.** RFC 9110 section 15.5.6 requires that list, and it is read off this

@@ -11,6 +11,10 @@ none, since it releases both.
 
 ## 0.2.0, unreleased
 
+- **The plugin refuses to load a routing document whose `get` and `head` hold a path parameter or
+  a body to different schemas.** Only whether each carried a body was compared, so a `head`
+  allowing a segment its `get` refused loaded, and a `GET` for that segment was answered `405`
+  naming `HEAD`. The document the plugin ships holds every pair to one schema.
 - **The plugin refuses to load a routing document allowing a larger body than its reader takes**:
   an array in a request body declaring no `maxItems`, or more than 32, and a body declaring more
   than 32 members. The reader refuses either before the document's schema is asked, so such a

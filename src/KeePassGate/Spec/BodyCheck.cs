@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.Text;
 using System.Text.RegularExpressions;
 using KeePassGate.Transport;
@@ -395,6 +396,49 @@ namespace KeePassGate.Spec
             }
 
             return declared.Pattern == null || Matches(declared.Pattern, value);
+        }
+
+        /// <summary>
+        /// Whether two schemas hold a request to the same thing, as far as anything here holds a
+        /// request to a schema.
+        /// </summary>
+        /// <remarks>
+        /// **Every keyword this implements, and nothing else**, which is enough because a schema
+        /// writing anything beyond them was refused before this is asked: the type, the lengths,
+        /// the pattern, the cap on items, what the items are, which members there are, which are
+        /// required and that there are no others. An annotation is not compared, since nothing
+        /// holds a request to an annotation.
+        /// </remarks>
+        public static bool Agree(OpenApiSchema first, OpenApiSchema second)
+        {
+            if (first == null || second == null)
+            {
+                return first == second;
+            }
+
+            if (!string.Equals(first.Type, second.Type, StringComparison.Ordinal)
+                || first.MinLength != second.MinLength
+                || first.MaxLength != second.MaxLength
+                || !string.Equals(first.Pattern, second.Pattern, StringComparison.Ordinal)
+                || first.MaxItems != second.MaxItems
+                || first.AdditionalPropertiesAllowed != second.AdditionalPropertiesAllowed
+                || !Agree(first.Items, second.Items)
+                || !new HashSet<string>(first.Required, StringComparer.Ordinal).SetEquals(second.Required)
+                || first.Properties.Count != second.Properties.Count)
+            {
+                return false;
+            }
+
+            foreach (var property in first.Properties)
+            {
+                OpenApiSchema theirs;
+                if (!second.Properties.TryGetValue(property.Key, out theirs) || !Agree(property.Value, theirs))
+                {
+                    return false;
+                }
+            }
+
+            return true;
         }
 
         /// <summary>Why a pattern cannot be held to, or null when it can be.</summary>

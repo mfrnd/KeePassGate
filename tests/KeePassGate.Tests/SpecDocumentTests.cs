@@ -625,6 +625,43 @@ namespace KeePassGate.Tests
         }
 
         [Test]
+        public void A_head_taking_another_body_than_its_own_get_stops_it_as_well()
+        {
+            // Both carrying a body was all that was asked, so a pair could hold the one body to
+            // two schemas and be two requests after all.
+            const string Taken =
+                "\"requestBody\":{\"required\":true,\"content\":{\"application/json\":{\"schema\":" +
+                "{\"type\":\"object\",\"additionalProperties\":false,\"properties\":{\"a\":{\"type\":\"string\",\"maxLength\":";
+
+            var raised = Assert.Throws<InvalidOperationException>(() => SpecDocument.Parse(Document(
+                "\"/a\":{\"get\":{\"operationId\":\"readA\",\"x-kpg-verb\":\"read\"," + Taken + "4}}}}}}," +
+                "\"responses\":{\"200\":{\"description\":\"o\"},\"415\":{\"description\":\"m\"}}}," +
+                "\"head\":{\"operationId\":\"headA\",\"x-kpg-verb\":\"read\"," + Taken + "64}}}}}}," +
+                "\"responses\":{\"200\":{\"description\":\"o\"},\"415\":{\"description\":\"m\"}}}}")));
+
+            Assert.That(raised.Message, Does.Contain("disagree about the body"));
+        }
+
+        [TestCase("{\"type\":\"string\",\"maxLength\":64}", TestName = "a longer segment allowed")]
+        [TestCase("{\"type\":\"string\",\"minLength\":1,\"maxLength\":4}", TestName = "a lower bound beside it")]
+        [TestCase("{\"type\":\"string\"}", TestName = "any segment allowed")]
+        public void A_head_holding_a_segment_to_another_length_than_its_own_get_stops_it_too(string theirs)
+        {
+            // The lengths decide whether a path exists before a method is looked at, so a head
+            // allowing a segment its get refuses was a route there for HEAD alone: a GET for that
+            // segment found the head and was answered `405` naming it.
+            var raised = Assert.Throws<InvalidOperationException>(() => SpecDocument.Parse(Document(
+                "\"/a/{id}\":{\"get\":{\"operationId\":\"readA\",\"x-kpg-verb\":\"none\",\"parameters\":" +
+                "[{\"name\":\"id\",\"in\":\"path\",\"required\":true,\"schema\":{\"type\":\"string\",\"maxLength\":4}}]," +
+                "\"responses\":{\"200\":{\"description\":\"o\"}}}," +
+                "\"head\":{\"operationId\":\"headA\",\"x-kpg-verb\":\"none\",\"parameters\":" +
+                "[{\"name\":\"id\",\"in\":\"path\",\"required\":true,\"schema\":" + theirs + "}]," +
+                "\"responses\":{\"200\":{\"description\":\"o\"}}}}")));
+
+            Assert.That(raised.Message, Does.Contain("hold id to different schemas"));
+        }
+
+        [Test]
         public void A_head_scoped_differently_from_its_own_get_stops_it_as_well()
         {
             // The same argument one switch along. A head that did not reach the attachment

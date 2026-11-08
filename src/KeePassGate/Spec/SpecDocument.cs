@@ -701,6 +701,32 @@ namespace KeePassGate.Spec
                         " the content left off.");
                 }
 
+                // And the same body where both carry a body, for the same reason: a schema is what
+                // decides whether either of them serves the request at all.
+                if (head.Body != null && !BodyCheck.Agree(head.Body, operation.Body))
+                {
+                    throw new InvalidOperationException(
+                        head.OperationId + " and " + operation.OperationId +
+                        " disagree about the body they take, so they are not one request with" +
+                        " the content left off.");
+                }
+
+                // The lengths a captured segment is held to decide whether the path exists, before
+                // a method is looked at. A head allowing a segment its get does not was a route
+                // there for HEAD alone: a GET for it skipped the get, found the head, and was
+                // answered `405` naming HEAD, while a HEAD ran the shared handler.
+                foreach (var capture in operation.Captures)
+                {
+                    OpenApiSchema held;
+                    if (!head.Captures.TryGetValue(capture.Key, out held) || !BodyCheck.Agree(held, capture.Value))
+                    {
+                        throw new InvalidOperationException(
+                            head.OperationId + " and " + operation.OperationId + " hold " + capture.Key +
+                            " to different schemas, so the head would answer on a path its own get" +
+                            " does not declare.");
+                    }
+                }
+
                 // The switch is not a verb, so it is asked about separately here as it is
                 // everywhere else. A head reaching an attachment its own get does not would
                 // answer whether that attachment is there to a caller holding no `A`.
