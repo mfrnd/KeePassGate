@@ -746,6 +746,59 @@ namespace KeePassGate.Tests
             Assert.That(JsonLinesAudit.LastSeen(path, new[] { "aaaa" }), Is.Empty);
         }
 
+        [Test]
+        public void A_line_that_cannot_be_shaped_is_counted_as_an_incident_each_time()
+        {
+            // Nothing a line is made of can fail but a defect here. It is caught, because the audit
+            // may not fail the request it records, and counted where the operator looks, each time:
+            // logged once instead, a defect hid every later decision behind a single line.
+            Directory.CreateDirectory(_directory);
+            var path = Paths.Join(_directory, "audit.jsonl");
+            var log = new Fakes.RecordingGateLog();
+            var incidents = new GateIncidents(log);
+            var audit = new JsonLinesAudit(path, log, incidents);
+            var broken = new AuditEntry(
+                DateTimeOffset.UtcNow, "d1e2f3", "9f86d081", "9f86d081", "readEntry", "7b1c", "3a9f", false,
+                AccessCheckReason, new UnreadableList());
+
+            Assert.DoesNotThrow(() => audit.Record(broken));
+            Assert.DoesNotThrow(() => audit.Record(broken));
+
+            Assert.That(audit.Lost, Is.EqualTo(2));
+            Assert.That(incidents.Count, Is.EqualTo(2), "each one counted on the window under Tools");
+            Assert.That(File.Exists(path), Is.False, "and nothing half written");
+
+            audit.Record(Entry("readEntry", true));
+            Assert.That(File.ReadAllLines(path).Length, Is.EqualTo(1), "the next line is written as usual");
+        }
+
+        /// <summary>A refusal a removed profile caused, which is the line a list is written on.</summary>
+        private const string AccessCheckReason = "profile removed";
+
+        /// <summary>A list of profile names that a defect has left unreadable.</summary>
+        private sealed class UnreadableList : System.Collections.Generic.IReadOnlyList<string>
+        {
+            public int Count
+            {
+                get { return 1; }
+            }
+
+            public string this[int index]
+            {
+                get { throw new NullReferenceException("a defect in what the line is made of"); }
+            }
+
+            public System.Collections.Generic.IEnumerator<string> GetEnumerator()
+            {
+                throw new NullReferenceException("a defect in what the line is made of");
+            }
+
+            System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator()
+            {
+                return GetEnumerator();
+            }
+        }
+
         private static string Line(DateTimeOffset at, string client)
         {
             return new AuditEntry(at, "d1e2f3", client, client, "getEntry", null, null, true, "why").Line();

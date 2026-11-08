@@ -1239,7 +1239,8 @@ a place of a kind sees it, or must add no exception of its own:
 - The reporters, none of which may add an exception of its own: the log, `TraceGateLog`, which the
   catch-alls report through and whose formatting and trace listeners run code nobody here wrote,
   `GateIncidents.Record`, which they report to, and the audit line `JsonLinesAudit.Record` shapes,
-  which may not fail the request it records.
+  which may not fail the request it records. The audit is no part of how an incident is reported,
+  so what it catches is recorded through `GateIncidents` as a kind's is.
 - `Unattended.Post`, which catches what its posted work throws as the catch-all of the handler that
   posted it, followed across the post to KeePass's message queue, and what its reporter throws, for
   the reason the log does.

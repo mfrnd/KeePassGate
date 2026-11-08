@@ -141,6 +141,9 @@ none, since it releases both.
 - **A debugger attached stops wherever the plugin records a failure it did not foresee**, with the
   exception in hand, and continuing carries on as it would with no debugger: every such failure is
   caught, so a debugger was told nothing.
+- **An audit line the plugin fails to put together is counted on its window under Tools**, each
+  time, as the plugin's other failures it did not foresee are. It was logged once, and every later
+  decision such a defect lost went unsaid.
 - **Nothing the plugin's own windows do ends in WinForms' error dialog.** Every handler on the
   window under Tools, the approval dialogs, the authority chooser and the KPG pages records what it
   did not foresee, as the plugin's other catch-alls do. Let through, such a failure could reach

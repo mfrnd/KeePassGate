@@ -70,15 +70,18 @@ namespace KeePassGate.Audit
         private readonly object _fileLock = new object();
         private readonly string _path;
         private readonly IGateLog _log;
+        private readonly GateIncidents _incidents;
 
         private bool _reported;
         private bool _rollReported;
-        private bool _shapeReported;
         private int _lost;
         private int _unrecorded;
 
-        public JsonLinesAudit(IGateLog log)
-            : this(DefaultPath(), log)
+        /// <summary>
+        /// The audit at this path, with a line that could not be shaped counted in the log alone.
+        /// </summary>
+        public JsonLinesAudit(string path, IGateLog log)
+            : this(path, log, null)
         {
         }
 
@@ -98,10 +101,15 @@ namespace KeePassGate.Audit
         /// An audit that is not being written and an audit with nothing in it look the same in
         /// the place somebody would look, which is the file that is not there.
         /// </remarks>
-        public JsonLinesAudit(string path, IGateLog log)
+        /// <param name="incidents">
+        /// Where a line that could not be shaped is counted, or null for a count of this audit's
+        /// own, which reaches the log and no window.
+        /// </param>
+        public JsonLinesAudit(string path, IGateLog log, GateIncidents incidents)
         {
             _path = string.IsNullOrEmpty(path) ? null : path;
             _log = log ?? NullGateLog.Instance;
+            _incidents = incidents ?? new GateIncidents(_log);
 
             if (_path == null)
             {
@@ -183,14 +191,14 @@ namespace KeePassGate.Audit
                     // filter below was worse than that. `ArgumentOutOfRangeException` derives
                     // from `ArgumentException`, so a bad moment was caught there and reported as a
                     // file that could not be written, naming a path that was never the trouble.
+                    //
+                    // **Counted as an incident, every time**, because nothing a line is made of can
+                    // fail but a defect here, and the audit is no part of how an incident is
+                    // reported, so recording one adds nothing that could come back. Logged once
+                    // instead, a defect would hide every later decision behind one line, with
+                    // nothing on the window under Tools.
                     _lost++;
-
-                    if (!_shapeReported)
-                    {
-                        _shapeReported = true;
-                        _log.Error("an audit line could not be written down, and is lost", error);
-                    }
-
+                    _incidents.Record("an audit line could not be written down, and is lost", error);
                     return;
                 }
 
