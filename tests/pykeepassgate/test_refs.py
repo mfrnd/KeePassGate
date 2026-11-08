@@ -108,7 +108,7 @@ def test_the_resolver_gives_what_keepass_gives_or_refuses(case: dict[str, Any]) 
     [
         ("\u1f80", "{S:\u1f88}"),
         ("\u1fb3", "{S:\u1fbc}"),
-        ("}\u00fc{S:", "{S:}\u00dc{S:}\u00fc{S:}"),
+        ("}ü{S:", "{S:}Ü{S:}ü{S:}"),
     ],
     ids=[
         "an iota subscript small letter spelled title case",

@@ -482,9 +482,8 @@ class TestWhatThisClientWillNotSend:
         gate.handler = answers(200, {"ok": True})
         context = transport.paired_context(authority.pem, client_certificate.pem)
 
-        # Built from its code point rather than typed, so this file stays ASCII and the
-        # path does not.
-        beyond = "/groups/" + chr(0x00FC) + "ber"
+        # cspell:ignore über
+        beyond = "/groups/über"
 
         with transport.connect(
             gate.port, context, "abc.def.kpg", connection_timeout=10.0

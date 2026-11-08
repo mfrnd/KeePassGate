@@ -20,7 +20,7 @@ namespace KeePassGate.Tests
         [TestCase("a \"quoted\" word", TestName = "a quote")]
         [TestCase("C:\\a\\b", TestName = "a backslash")]
         [TestCase("first\r\nsecond\tthird", TestName = "a line break and a tab")]
-        [TestCase("\u00fc\u20ac\U0001F600", TestName = "letters beyond ASCII")]
+        [TestCase("ü€😀", TestName = "letters beyond ASCII")]
         [TestCase("{REF:P@I:0123456789ABCDEF}", TestName = "a field reference")]
         public void A_value_arrives_as_it_was_given(string value)
         {
@@ -53,7 +53,7 @@ namespace KeePassGate.Tests
         public void A_length_counts_bytes_rather_than_characters()
         {
             Assert.That(Bodies.LengthOf("{}"), Is.EqualTo(2));
-            Assert.That(Bodies.LengthOf("\u00fc\U0001F600"), Is.EqualTo(6), "two bytes and four");
+            Assert.That(Bodies.LengthOf("ü😀"), Is.EqualTo(6), "two bytes and four");
             Assert.That(Bodies.LengthOf(null), Is.EqualTo(0));
         }
     }

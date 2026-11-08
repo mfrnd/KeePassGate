@@ -61,7 +61,7 @@ namespace KeePassGate.Tests
         {
             // JSON Schema counts characters, and one outside the Basic Multilingual Plane is two
             // UTF-16 units. Counting those refused 33 of them under a `maxLength` of 64.
-            var grinning = char.ConvertFromUtf32(0x1F600);
+            var grinning = "😀";
             var most = string.Concat(Enumerable.Repeat(grinning, 64));
 
             Assert.That(
