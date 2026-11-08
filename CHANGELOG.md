@@ -170,6 +170,9 @@ none, since it releases both.
   the tag of entries nobody had changed, and a write under the earlier tag was refused `412`. The
   names now enter in ordinal order, so a tag an entry with custom names was handed before this
   version can be refused once.
+- **The key a node's tag is made with is overwritten when its database stops being served**, as
+  the rest of the host's material is. It is derived from the host's private key, and it was let go
+  without being overwritten, along with the array it was derived into.
 - **A protected field is kept from a strip whenever any profile could put an unprotected value
   back.** The guard asked whether some profile could create there and whether some profile could
   create a protected value there, so a program holding one profile that could put an unprotected

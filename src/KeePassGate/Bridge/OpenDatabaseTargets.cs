@@ -1125,6 +1125,7 @@ namespace KeePassGate.Bridge
             private readonly IReadHold _hold;
             private readonly IGateLog _log;
             private readonly KdbxVault _vault;
+            private readonly NodeTags _tags;
 
             // The cache holds the first of these; `Current` takes one more per caller.
             private int _holders = 1;
@@ -1146,7 +1147,19 @@ namespace KeePassGate.Bridge
                 // a certificate export for an answer that was already known.
                 _databaseId = reading.Material.AuthorityDigest;
                 _writer = writer;
-                _vault = new KdbxVault(database, writer, new NodeTags(TagKey(reading.Material)), hold, log);
+                // The tags keep a copy of the key, so the array it was derived into is wiped here,
+                // as the copy of the host key it came from is in `TagKey`.
+                var key = TagKey(reading.Material);
+                try
+                {
+                    _tags = new NodeTags(key);
+                }
+                finally
+                {
+                    Array.Clear(key, 0, key.Length);
+                }
+
+                _vault = new KdbxVault(database, writer, _tags, hold, log);
             }
 
             /// <summary>The database's tag key, with the copy of the host key it came from wiped.</summary>
@@ -1172,8 +1185,9 @@ namespace KeePassGate.Bridge
 
             /// <summary>
             /// What the API reads and changes. One per served database rather than one per
-            /// request, because it holds nothing but the database and the writer, both of which
-            /// outlive any connection.
+            /// request, because what it holds outlives any connection: the database, the writer,
+            /// the hold on KeePass's thread, and the tag key this target overwrites when it is let
+            /// go.
             /// </summary>
             public IVault Vault
             {
@@ -1501,6 +1515,7 @@ namespace KeePassGate.Bridge
                 {
                     _database = null;
                     _reading.Dispose();
+                    _tags.Clear();
                 }
             }
 

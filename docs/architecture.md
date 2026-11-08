@@ -149,8 +149,8 @@ kind a program is, is its author's choice rather than something a rule can requi
 A tag goes only to a program whose rule may read everything it covers: `read` on a group, and on an
 entry `read` reaching its attachments, and its protected values too when it holds any. Any other
 program is handed none and cannot write under one, because a tag compared by a program that may
-not read what it covers would let it test guesses at that. A tag is made with a secret kept in the
-database's own certificate, so it says nothing about what is in the entry to anyone else, and it
+not read what it covers would let it test guesses at that. A tag is made with a secret derived from
+the database's own host key, so it tells anyone else nothing about what is in the entry, and it
 stays the same when KeePass starts again; recreating the database's authority changes every tag.
 
 **The lock after global user inactivity is the one writes cannot postpone.** KeePass has two

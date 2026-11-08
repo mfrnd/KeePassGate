@@ -25,10 +25,16 @@ namespace KeePassGate.Bridge
     ///
     /// **Keyed, because a plain digest of a secret is a way to guess it.** Over a plain hash a
     /// client could try values offline until one reproduced the tag. The key is derived from the
-    /// database's host certificate, which is stored in the database and handed to no client, so
-    /// nothing outside the gate can compute a tag for a guess, and one content gives one tag for as
-    /// long as the authority stands: across a lock, a restart and a reload alike. Recreating the
-    /// authority changes every tag, which costs a `412` and never an overwrite.
+    /// database's host certificate as the database stores it, a PKCS#12 carrying the host's private
+    /// key, which leaves the database for nobody: the certificate alone is handed to every client
+    /// in every handshake, and the private key beside it is what no client holds. So nothing
+    /// outside the gate can compute a tag for a guess, and one content gives one tag for as long as
+    /// the authority stands: across a lock, a restart and a reload alike. Recreating the authority
+    /// changes every tag, which costs a `412` and never an overwrite.
+    ///
+    /// **The key is overwritten when the database stops being served**, by <see cref="Clear"/>, as
+    /// every other array the plugin keeps of the host's material is, `CA.md` §208. A tag asked for
+    /// afterwards is refused rather than made under a key of zeros, which anybody could compute.
     ///
     /// **The key keeps tags from being computed, and it does not keep them from being compared.**
     /// A client that can make a write under `If-Match` learns whether the node held what its tag
@@ -95,6 +101,7 @@ namespace KeePassGate.Bridge
             new ConditionalWeakTable<ProtectedBinary, Lazy<byte[]>>();
 
         private readonly byte[] _key;
+        private bool _cleared;
 
         /// <summary>For one database, keeping a copy of its key rather than the caller's array.</summary>
         /// <param name="key">The database's tag key, as <see cref="KeyFrom"/> derives it.</param>
@@ -129,6 +136,17 @@ namespace KeePassGate.Bridge
             }
         }
 
+        /// <summary>Overwrites the key, after which every tag asked for is refused.</summary>
+        /// <remarks>
+        /// Called when the target holding this is let go by its last holder, so nothing is asking
+        /// for a tag by then: what is refused is only a defect that kept the vault past its target.
+        /// </remarks>
+        public void Clear()
+        {
+            _cleared = true;
+            Array.Clear(_key, 0, _key.Length);
+        }
+
         /// <summary>An entry's tag.</summary>
         /// <param name="guarded">
         /// Whether a string is served as protected, which is the flag or the database's own setting
@@ -141,7 +159,7 @@ namespace KeePassGate.Bridge
                 return null;
             }
 
-            using (var hmac = new HMACSHA256(_key))
+            using (var hmac = Keyed())
             {
                 Put(hmac, "entry");
                 Put(hmac, entry.Uuid.ToHexString());
@@ -198,7 +216,7 @@ namespace KeePassGate.Bridge
                 return null;
             }
 
-            using (var hmac = new HMACSHA256(_key))
+            using (var hmac = Keyed())
             {
                 Put(hmac, "group");
                 Put(hmac, group.Uuid.ToHexString());
@@ -210,6 +228,16 @@ namespace KeePassGate.Bridge
 
                 return Done(hmac);
             }
+        }
+
+        private HMACSHA256 Keyed()
+        {
+            if (_cleared)
+            {
+                throw new ObjectDisposedException(nameof(NodeTags), "the tag key has been overwritten");
+            }
+
+            return new HMACSHA256(_key);
         }
 
         private static string Parent(PwGroup parent)

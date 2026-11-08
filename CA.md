@@ -478,9 +478,9 @@ plugin memory. While locked it is the only identity available and it can do noth
   database's custom data, an immutable string; the plugin's own copy of that text, every stored
   authority document in one string, which the cache compares against and which holds the authority's
   key, the host's and the gate key; and whatever Bouncy Castle parsed the bytes into. The key a
-  node's tag is made with, derived from the host's PKCS#12, is let go with the cache in the same way
-  rather than cleared. The gate key itself is not let go at all: a copy of it is kept for the
-  responder, as the bullet below has it.
+  node's tag is made with, derived from the host's PKCS#12, is an array of the plugin's own, and it
+  is overwritten with the rest, as the array it was derived into is. The gate key itself is not let
+  go at all: a copy of it is kept for the responder, as the bullet below has it.
 - **The responder must be distinguishable by what it carries**, not by convention, so a client can
   refuse to send real requests over it. It is a `kpg://host/responder` URI in the subject
   alternative name rather than an extension of its own: the UUID arc `2.25` does not survive
