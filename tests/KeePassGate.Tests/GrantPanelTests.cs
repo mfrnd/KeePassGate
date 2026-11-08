@@ -78,8 +78,8 @@ namespace KeePassGate.Tests
         [Test]
         public void Opening_a_tab_and_changing_nothing_writes_nothing()
         {
-            // The one that decides whether looking at a database leaves it modified. The grid
-            // commits for reasons that are not edits, and every one of them lands here.
+            // The one that decides whether looking at a database leaves it modified. Only an edit
+            // writes, a choice in a picker, an X, the seal or Discard, and none is made here.
             var store = new FakeGrantStore(Rules.Granting(("reader", "R")));
 
             using (var panel = Panel(store, null))
@@ -594,10 +594,11 @@ namespace KeePassGate.Tests
         [Test]
         public void A_table_with_every_profile_on_it_says_nothing()
         {
-            // There was a sentence here, and what it said was that the rows already on the table
-            // are all of them, which the rows say. It cost four lines of a page that has 314
-            // pixels. The case below, where the database names no profiles at all, is the one
-            // worth a sentence: there the table is empty and nothing says where one comes from.
+            // There was a sentence here, and what it stated was that the rows already on the table
+            // are all of them, which the rows show. It cost four lines of the group dialog's page,
+            // the shortest this plugin is on. The case below, where the database names no profiles
+            // at all, is the one worth a sentence: there the table is empty and nothing tells where
+            // a profile comes from.
             var store = new FakeGrantStore(Rules.Granting(("reader", "R"), ("editor", "U")));
 
             using (var panel = Panel(store, null))

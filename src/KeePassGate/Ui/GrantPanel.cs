@@ -22,7 +22,9 @@ namespace KeePassGate.Ui
     /// `GrantSheet`, which is tested without a message pump; what is left here is drawing it and
     /// turning clicks into calls.
     ///
-    /// **It writes on every commit, and only when something changed.** A dialog's OK is what makes
+    /// **It writes on every edit, and only when the rules mean something else.** An edit is a
+    /// choice in a picker, an X, the seal or Discard: neither column can be typed into, so nothing
+    /// else reaches the store. A dialog's OK is what makes
     /// the write durable, because what this edits is the dialog's own copy of the node's custom
     /// data. Cancel therefore discards it, which is what an operator pressing Cancel means.
     ///
@@ -179,9 +181,9 @@ namespace KeePassGate.Ui
         /// How many times this panel has actually written.
         /// </summary>
         /// <remarks>
-        /// For the tests, and it is the number that matters: the grid commits for reasons that are
-        /// not edits, and a panel that wrote on every one of them would mark a database as modified
-        /// for having been looked at.
+        /// For the tests, and it is the number that matters: an edit that leaves the rules meaning
+        /// what they meant writes nothing, and a panel that wrote on every one of them would leave
+        /// an entry changed, with a revision in its history, for having been looked at.
         /// </remarks>
         public int Writes { get; private set; }
 
@@ -256,7 +258,7 @@ namespace KeePassGate.Ui
         }
 
         /// <summary>
-        /// Writes a rule, exactly as typing one into the table does.
+        /// Writes a rule, exactly as choosing one in the rule picker does.
         /// </summary>
         /// <remarks>
         /// Public for the same reason the tab's buttons are: `Button.PerformClick` does nothing on a
@@ -616,9 +618,10 @@ namespace KeePassGate.Ui
         /// How a verb reads in the picker: its letter, then what it means.
         /// </summary>
         /// <remarks>
-        /// The switch needs a sentence rather than a name, because its name is a noun and it is not
+        /// Each switch needs a sentence rather than a name, because its name is a noun and it is not
         /// a verb: on its own it grants nothing, and what it does is widen whatever else is checked
-        /// so that the same permissions reach an entry's attachments and not only its fields.
+        /// so that the same permissions reach an entry's attachments, or its protected values, and
+        /// not only its other fields.
         /// </remarks>
         private static string Choice(AclVerb verb)
         {

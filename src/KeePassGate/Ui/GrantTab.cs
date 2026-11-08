@@ -86,10 +86,10 @@ namespace KeePassGate.Ui
         /// </summary>
         /// <remarks>
         /// There was a second one, for the list being empty because every profile already has a
-        /// rule here. It was true and it was four lines of a page that has 314 pixels, and what it
-        /// said was that the rows already on the table are all of them, which the rows say. This
-        /// one stays because there the table is empty and nothing on the page says where a profile
-        /// comes from.
+        /// rule here. It was true and it was four lines of the shortest page this plugin is on, the
+        /// group dialog's, and what it stated was that the rows already on the table are all of
+        /// them, which the rows show. This one stays because there the table is empty and nothing
+        /// on the page tells where a profile comes from.
         /// </remarks>
         public const string NoProfilesYet =
             "This database names no profiles yet. Add one on the " + GateName.OnATab

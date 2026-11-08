@@ -362,7 +362,7 @@ namespace KeePassGate.Ui
 
             if (!AuthorityIssuer.IsUsableProfileName(name))
             {
-                return "A profile name is letters, digits, dash and underscore, up to 64 of them.";
+                return "A profile name is ASCII letters, digits, dash and underscore, up to 64 of them.";
             }
 
             var held = VerbMask.Read(mask);
