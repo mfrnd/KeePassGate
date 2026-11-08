@@ -831,8 +831,8 @@ namespace KeePassGate.Ui
             // room nothing can use.
             grid.Columns.Add(Filling("Client", 60));
             grid.Columns.Add(Filling("Profiles", 40));
-            grid.Columns.Add(Fitted("Admitted"));
-            grid.Columns.Add(Fitted("Until"));
+            grid.Columns.Add(Fitted(AdmittedHeader));
+            grid.Columns.Add(Fitted(UntilHeader));
 
             var revoke = new DataGridViewButtonColumn
             {
@@ -906,6 +906,16 @@ namespace KeePassGate.Ui
                 ReadOnly = true
             };
         }
+
+        /// <summary>The heading of the column holding when a record was admitted.</summary>
+        /// <remarks>
+        /// Each of the two moment columns names its zone, because every moment on screen is printed
+        /// in UTC and a bare moment reads as local time, wrong by the operator's offset.
+        /// </remarks>
+        public const string AdmittedHeader = "Admitted (UTC)";
+
+        /// <summary>The heading of the column holding when a certificate stops working.</summary>
+        public const string UntilHeader = "Until (UTC)";
 
         private static DataGridViewTextBoxColumn Fitted(string header)
         {

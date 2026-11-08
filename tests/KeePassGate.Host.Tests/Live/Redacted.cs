@@ -150,7 +150,7 @@ namespace KeePassGate.Host.Tests.Live
         }
 
         /// <summary>The headers of the two columns on the clients page that hold a moment.</summary>
-        private static readonly string[] MomentHeaders = { "Admitted", "Until" };
+        private static readonly string[] MomentHeaders = { KeePassGate.Ui.ClientList.AdmittedHeader, KeePassGate.Ui.ClientList.UntilHeader };
 
         /// <summary>Where the header of a column with this caption is, or an empty rectangle.</summary>
         private static System.Windows.Rect HeaderOf(AutomationElement grid, string caption)

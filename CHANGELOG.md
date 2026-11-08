@@ -11,6 +11,10 @@ none, since it releases both.
 
 ## 0.2.0, unreleased
 
+- **The authority chooser and the clients page name UTC in the headings of their moment columns**,
+  Created, Admitted and Last request on the chooser and Admitted and Until on the clients page, as
+  the renewal dialog now names it beside its two moments. Every moment on screen is printed in UTC,
+  and a bare moment read as local time.
 - **The access editor's tooltips tell the operator what the row can do.** A profile cut in its
   column is shown whole on hover; an inherited row is no longer told to remove and recreate a rule
   it does not hold; a tab that cannot be changed, a history revision among them, no longer offers a

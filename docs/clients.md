@@ -16,8 +16,8 @@ just approved.
 | --- | --- |
 | **Client** | the name the program asked to be called when it paired |
 | **Profiles** | the profiles approved for it, which is what its rules are worked out from. One this database no longer names is dimmed and marked "(removed)": the client still holds it, and it grants nothing unless the name is added back |
-| **Admitted** | when it was approved, in UTC and to the second |
-| **Until** | when its certificate stops working, or why it does not work at all |
+| **Admitted (UTC)** | when it was approved, to the second |
+| **Until (UTC)** | when its certificate stops working, or why it does not work at all |
 | **X** | takes this client's admission away |
 
 **Resting the pointer on a row names its keys in full**: the **client key**, which is the
@@ -43,21 +43,21 @@ key on the selected row. For a client with a standing answer, its first line sta
 grayed out, and under it are **Allow renewal**, which takes the answer back, and **Revoke**, which
 does what the **X** does. For any other client, Allow renewal is grayed out.
 
-A client whose certificate has expired is refused like any other, and **Until** states `expired`
-instead of a date, by this computer's clock. The row goes with the next change the plugin itself
-makes to the database: revoking a client, pairing or renewing one, a client revoking itself, or
-keeping, recreating or deleting the authority. The plugin's log names each row that goes that way,
-because a clock set wrong can cost one that setting it right does not bring back. Until then it
+A client whose certificate has expired is refused like any other, and **Until (UTC)** states
+`expired` instead of a date, by this computer's clock. The row goes with the next change the plugin
+itself makes to the database: revoking a client, pairing or renewing one, a client revoking itself,
+or keeping, recreating or deleting the authority. The plugin's log names each row that goes that
+way, because a clock set wrong can cost one that setting it right does not bring back. Until then it
 states `expired`, because a row that has expired and a row somebody removed look the same once the
 row is gone, and only one of them needs doing anything about.
 
-**Until** states `not this authority` for a record whose certificate this database's authority did
-not issue. The gate checks that before anything else, so such a record grants nothing whatever its
-dates state, and a date there would be the one thing about the row that is not true. Records reach
-that state by outliving the authority that made sense of them: an authority recreated or deleted
-while a program was pairing, the authorities not kept when a database held more than one, or a
-synchronize or a partial restore carrying records across. Removing them is the same **X**, and there
-is nothing else to do with them.
+**Until (UTC)** states `not this authority` for a record whose certificate this database's authority
+did not issue. The gate checks that before anything else, so such a record grants nothing whatever
+its dates state, and a date there would be the one thing about the row that is not true. Records
+reach that state by outliving the authority that made sense of them: an authority recreated or
+deleted while a program was pairing, the authorities not kept when a database held more than one, or
+a synchronize or a partial restore carrying records across. Removing them is the same **X**, and
+there is nothing else to do with them.
 
 Two more phrases take the date's place, for the two things the gate asks next, in the order it asks
 them. `not for client use` is a certificate this authority issued for something other than a
@@ -68,11 +68,11 @@ that is wrong on the machine that issued it, or on the one reading the file, pro
 nothing until then. The expiry warnings on the Certificate Authority page leave all three out,
 since the gate refuses them before their end matters.
 
-**A record that cannot be read at all** is listed too, after the clients: damaged by a merge,
-edited by hand, or written by a later version of the plugin. It admits nobody and has nothing to
-show but the start of the key it is stored under, so the row holds that, `cannot be read` under
-**Until**, and the **X**, which takes it away like any other, once OK is pressed. The Certificate
-Authority page counts such a record and states how many cannot be read.
+**A record that cannot be read at all** is listed too, after the clients: damaged by a merge, edited
+by hand, or written by a later version of the plugin. It admits nobody and has nothing to show but
+the start of the key it is stored under, so the row holds that, `cannot be read` under
+**Until (UTC)**, and the **X**, which takes it away like any other, once OK is pressed. The
+Certificate Authority page counts such a record and states how many cannot be read.
 
 The list is read from the open database rather than remembered, so it never shows a client that
 has gone or misses one that has arrived. A program that pairs while this dialog is open is added
@@ -222,9 +222,9 @@ certificate has expired, with the next change the plugin itself makes to the dat
 expired row does.
 
 Approving writes a new record beside the old one rather than replacing it, so the program is listed
-twice under one name, told apart by **Admitted** and **Until**, until it gives the old certificate
-up, which the reference client does as soon as it has stored the new one. A program that does not
-leaves the old row on the list until its own date; revoke it once the new one is approved.
+twice under one name, told apart by **Admitted (UTC)** and **Until (UTC)**, until it gives the old
+certificate up, which the reference client does as soon as it has stored the new one. A program that
+does not leaves the old row on the list until its own date; revoke it once the new one is approved.
 
 **If KeePass is still busy a moment after Approve is pressed**, saving or with a dialog open that
 would take the new record back, nothing is issued yet and the approval is kept, in KeePass's memory

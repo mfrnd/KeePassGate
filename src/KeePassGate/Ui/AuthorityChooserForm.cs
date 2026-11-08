@@ -60,9 +60,10 @@ namespace KeePassGate.Ui
         private const int FewestClientRows = 3;
         private const int MostClientRows = 8;
 
-        private static readonly string[] AuthorityColumns = { "Fingerprint", "Created", "Clients" };
+        // The moments are printed in UTC, as every moment on screen is, so their headings name it.
+        private static readonly string[] AuthorityColumns = { "Fingerprint", "Created (UTC)", "Clients" };
         private static readonly int[] AuthorityShares = { 3, 4, 2 };
-        private static readonly string[] ClientColumns = { "Client", "Profiles", "Admitted", "Last request" };
+        private static readonly string[] ClientColumns = { "Client", "Profiles", "Admitted (UTC)", "Last request (UTC)" };
         private static readonly int[] ClientShares = { 3, 3, 4, 4 };
 
         private readonly AuthorityChoice _choice;

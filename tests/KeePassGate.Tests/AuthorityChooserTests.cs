@@ -238,6 +238,30 @@ namespace KeePassGate.Tests
         }
 
         [Test]
+        public void Every_moment_column_names_UTC_and_every_heading_fits_its_column()
+        {
+            // The moments are printed in UTC, and a heading that is cut is a heading that does
+            // not state it. A list header draws its text inside a few pixels of padding a side.
+            using (var dialog = new AuthorityChooserForm(Choice(null), "Invented Vault"))
+            {
+                var headings = new List<string>();
+                foreach (var list in new[] { GateTab.ChooserAuthorityListName, GateTab.ChooserClientListName }
+                             .Select(name => ControlTree.FindByName<ListView>(dialog, name)))
+                {
+                    foreach (ColumnHeader column in list.Columns)
+                    {
+                        headings.Add(column.Text);
+                        var wanted = TextRenderer.MeasureText(column.Text, list.Font).Width + 12;
+                        Assert.That(column.Width, Is.GreaterThanOrEqualTo(wanted),
+                            "\"" + column.Text + "\" is cut in its column");
+                    }
+                }
+
+                Assert.That(headings, Is.SupersetOf(new[] { "Created (UTC)", "Admitted (UTC)", "Last request (UTC)" }));
+            }
+        }
+
+        [Test]
         public void Every_control_on_it_carries_a_name()
         {
             using (var dialog = new AuthorityChooserForm(Choice(null), "Invented Vault"))
