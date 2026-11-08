@@ -345,7 +345,8 @@ class GateClient:
         over with the new ones, and the first is taken away. **Only those four files move**:
         anything else a program keeps in the directory stays where it is. A failure while they
         are written over puts the old ones back, and says where each identity is; at every moment
-        each of the two is whole somewhere, and a person can finish what was interrupted.
+        each of the two is whole somewhere, and a person can finish what was interrupted. Every
+        file is on the disk, flushed, before a copy of either is taken away.
         `allow_shared_directory` waives `prepare`'s ownership check on the identity's own
         directory, for one paired into a directory shared on purpose; the two beside it are this
         client's own and are never waived.

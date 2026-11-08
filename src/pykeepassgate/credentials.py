@@ -899,9 +899,15 @@ def _write(path: Path, descriptor: int, content: bytes) -> None:
 
     **A file that was already there is narrowed before anything goes into it**, through the
     handle, because the name may be somebody else's link by now. The mode at opening applies
-    only where the file is created, so an overwrite keeps whatever the old file had, and a re-pair
-    is an overwrite: narrowed afterwards, the new key sat at the old mode until the `chmod`, and
-    a narrowing refused was refused with the key already in the file.
+    only where the file is created, so an overwrite keeps whatever the old file had, and a
+    re-pair is an overwrite: narrowed afterwards, the new key sat at the old mode until the
+    `chmod`, and a narrowing refused was refused with the key already in the file.
+
+    **And it is on the disk before this returns**, flushed rather than left to the system's
+    cache, because a renewal takes the other copies of an identity away once it has written this
+    copy, and gives the old certificate up on the gate: written and not flushed, a power loss
+    straight after a renewal that reported success could leave the identity's files empty with
+    neither copy left and the old certificate revoked.
     """
     _own(path, _OWNER_ONLY, descriptor)
 
@@ -911,6 +917,7 @@ def _write(path: Path, descriptor: int, content: bytes) -> None:
         view = memoryview(content)
         while view:
             view = view[os.write(descriptor, view) :]
+        os.fsync(descriptor)
     except OSError as error:
         raise StorageError(f"{path} could not be written: {error}") from error
 

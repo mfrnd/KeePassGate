@@ -160,6 +160,32 @@ def test_a_renewal_stores_the_new_identity_and_gives_the_old_one_up_by_presentin
     assert not where.with_name("default.renewing").exists()
 
 
+def test_every_file_a_renewal_writes_is_on_the_disk_before_anything_is_taken_away(
+    paired: GateClient, renewing: Gate, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    # Taken away are the staging copy and, once the gate took the old certificate back, the
+    # retired copy: a file still only in the system's cache then, and a power loss, left the
+    # identity's own files empty with neither copy left and the old certificate revoked.
+    events: list[str] = []
+    fsync, forget = os.fsync, credentials_module.forget
+
+    def flushed(descriptor: int) -> None:
+        events.append("flushed")
+        fsync(descriptor)
+
+    def forgotten(directory: Path) -> None:
+        events.append(f"forgot {directory.name}")
+        forget(directory)
+
+    monkeypatch.setattr(os, "fsync", flushed)
+    monkeypatch.setattr(credentials_module, "forget", forgotten)
+
+    paired.renew()
+
+    # Four files each into the staging copy, the retired copy and the identity's own directory.
+    assert events == ["flushed"] * 12 + ["forgot default.renewing", "forgot default.retired"]
+
+
 def test_the_client_carries_on_as_the_new_identity(
     gate: FakeGate, paired: GateClient, renewing: Gate, renewed_certificate: Issued
 ) -> None:

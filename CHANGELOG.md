@@ -11,6 +11,11 @@ none, since it releases both.
 
 ## 0.2.0, unreleased
 
+- **Every file PyKeePassGate stores is flushed to the disk before it is counted written.** A
+  renewal takes the staging copy away and, once the gate takes the old certificate back, the
+  retired copy too, and nothing was flushed: a power loss within seconds of a renewal that
+  reported success could leave the identity's files empty, with no copy left and the old
+  certificate revoked.
 - **PyKeePassGate writes a key only into a regular file of its own, narrowed first.** A file
   already there was narrowed after the key went in, so a re-pair over a widened identity held the
   new key at the old mode until then, and a narrowing refused came with the key already written.
