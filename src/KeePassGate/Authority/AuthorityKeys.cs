@@ -180,7 +180,9 @@ namespace KeePassGate.Authority
         /// either way: by modification time, which a slow clock or a copy saved without the times
         /// turns around, or whatever the time under Overwrite existing. It never admits anybody,
         /// since a renewal is still a person approving one, but losing a newer until-date to an
-        /// older forever costs the client a new pairing rather than a dialog, `CA.md` §204.
+        /// older forever answers every renewal `409 forever` until the operator lifts it, `CA.md`
+        /// §204. **Allow renewal** on the clients page, accepted with the settings dialog, is what
+        /// lifts it, and removes the key; so does the prune of a key no record is left to ask.
         ///
         /// **A refusal in this session has no key**: it is held in plugin memory, so that it goes
         /// with the session it names.

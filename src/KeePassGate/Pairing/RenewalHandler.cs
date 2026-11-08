@@ -474,10 +474,11 @@ namespace KeePassGate.Pairing
         /// **The database's answer is asked first, and the session's after it.** The dialog is
         /// raised only while neither refuses, so the two stand together only when a merge has
         /// brought in an answer from another copy of the file, and then the stored one is the
-        /// better thing to tell the client: forever says that only pairing again helps, which an
-        /// answer about this session would leave it to find out after KeePass next starts. A
-        /// stored until-date is told there too, and once its day begins the session's answer
-        /// takes over, so its `notBefore` is not then a moment the operator is asked again.
+        /// better thing to tell the client: forever tells it that nothing short of the operator
+        /// allowing renewal again, or pairing again, helps, which an answer about this session
+        /// would leave it to find out after KeePass next starts. A stored until-date is told there
+        /// too, and once its day begins the session's answer takes over, so its `notBefore` is not
+        /// then a moment the operator is asked again.
         ///
         /// **An answer that will not read is no answer**, and the caller tells the client what
         /// comes of it: before the dialog nothing is held yet, and on the retry of an approval

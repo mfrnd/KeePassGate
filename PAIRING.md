@@ -700,10 +700,11 @@ the certificate they are about, and every one with the authority recreated or de
 The database's answer is read before the session's. The dialog is raised only while neither
 refuses, and a renewal waiting behind another of the same certificate is answered at once rather
 than kept for a second dialog, so the two meet only when a merge brings a stored answer in from
-another copy of the file. Then the stored one is what the client is told, since forever says that
-only pairing again helps. A stored until a date says less there: once its day begins the session's
-answer is told in its place, `409 this session`, so its `notBefore` is the moment the session's
-refusal takes over rather than one from which the operator is asked again.
+another copy of the file. Then the stored one is what the client is told, since forever tells it
+that nothing short of the operator allowing renewal again, or pairing again, helps. A stored until
+a date says less there: once its day begins the session's answer is told in its place,
+`409 this session`, so its `notBefore` is the moment the session's refusal takes over rather than
+one from which the operator is asked again.
 
 **Every answer is written to the audit**, `DESIGN.md` §120, against the certificate that asked and
 the client key on its record, which the renewal leaves as it was: approved, with the key of the one
