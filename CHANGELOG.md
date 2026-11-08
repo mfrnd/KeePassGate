@@ -177,6 +177,10 @@ none, since it releases both.
   the bin out, so such a group read as empty to the program refused `409` and was logged as a group
   still holding something. The log names the bin now, and the routing document states that a group
   holding the bin cannot be removed.
+- **A program's revocation of itself and a standing answer to a renewal rebuild neither the group
+  tree nor the entry list**, which show neither, and the rebuild replaced any search results the
+  operator had on screen. A standing answer that lands tells the Clients page, which draws the
+  client's name red from it and went on showing it black until something else redrew the page.
 - **A protected field is kept from a strip whenever any profile could put an unprotected value
   back.** The guard asked whether some profile could create there and whether some profile could
   create a protected value there, so a program holding one profile that could put an unprotected

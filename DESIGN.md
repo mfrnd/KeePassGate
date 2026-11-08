@@ -1156,7 +1156,10 @@ So the rules here:
 
   **Not for an admission record.** A record is in the database's own custom data, which the main
   window has no view of, so a pairing that lands redraws nothing, and one taken back out redraws
-  the title bar and the menus for the reason a change does.
+  the title bar and the menus for the reason a change does. **Nor for a client's revocation of
+  itself or a standing answer to a renewal**, which go through the writer as a change does and are
+  kept in the same custom data: either, once it lands, redraws the title bar and the menus,
+  rebuilds neither list, and tells the Clients page, which draws from both.
 - **Nothing throws to the transport.** A handler failure becomes `500 internal error` and an
   incident, counted on the plugin's window under Tools and logged at `UNEXPECTED`, because an
   unhandled exception in this process takes KeePass with it. It is not audited, which this bullet

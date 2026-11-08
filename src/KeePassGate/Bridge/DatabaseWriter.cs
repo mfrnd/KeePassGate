@@ -819,7 +819,7 @@ namespace KeePassGate.Bridge
         /// </param>
         public VaultWrite Change(PwDatabase database, Func<VaultChange> change)
         {
-            return Change(database, change, null);
+            return Change(database, change, true, null);
         }
 
         /// <summary>
@@ -860,7 +860,7 @@ namespace KeePassGate.Bridge
                 return VaultWrite.Missing();
             }
 
-            return Change(database, () => RevokeOnTheUiThread(database, admissionKey), () => Landed(audit));
+            return Change(database, () => RevokeOnTheUiThread(database, admissionKey), false, () => Landed(audit));
         }
 
         private VaultChange RevokeOnTheUiThread(PwDatabase database, string admissionKey)
@@ -902,7 +902,9 @@ namespace KeePassGate.Bridge
         /// Refused while Database Maintenance is open on the database, for the reason a revocation
         /// is: the key is in the database's own custom data, which that dialog writes back. Taken
         /// back out, and the answer that was there before put back, when the save does not land.
-        /// Nothing is drawn from it, so nothing is told when it lands.
+        /// The Clients page draws the client's name red from it, so the page is told when it
+        /// lands, as it is when a record does; the tree and the entry list show none of it, so they
+        /// are not rebuilt.
         /// </remarks>
         public VaultWrite RefuseRenewal(PwDatabase database, string admissionKey, RenewalRefusal refusal)
         {
@@ -919,7 +921,7 @@ namespace KeePassGate.Bridge
                 return VaultWrite.Failed("a standing answer for this session is never written to the database");
             }
 
-            return Change(database, () => RefuseRenewalOnTheUiThread(database, admissionKey, refusal), null);
+            return Change(database, () => RefuseRenewalOnTheUiThread(database, admissionKey, refusal), false, Admitted);
         }
 
         private VaultChange RefuseRenewalOnTheUiThread(PwDatabase database, string admissionKey, RenewalRefusal refusal)
@@ -1012,6 +1014,12 @@ namespace KeePassGate.Bridge
         /// The change <see cref="Change(PwDatabase, Func{VaultChange})"/> makes, with something to
         /// run once it stands.
         /// </summary>
+        /// <param name="lists">
+        /// Whether a change that lands puts the group tree and the entry list out of date, which
+        /// <see cref="Redraw"/> rebuilds for the database in front. False for a change to the
+        /// database's own custom data alone, which neither shows: the rebuild replaces the
+        /// operator's search results with the selected group's entries.
+        /// </param>
         /// <param name="landed">
         /// Run on the user interface thread once the change stands: saved and verified, or saved
         /// and left in place because the file could not be verified, which undoes nothing, and so
@@ -1019,7 +1027,7 @@ namespace KeePassGate.Bridge
         /// Not on any path that took the change back out. Null when nothing is drawn from what the
         /// change wrote.
         /// </param>
-        private VaultWrite Change(PwDatabase database, Func<VaultChange> change, Action landed)
+        private VaultWrite Change(PwDatabase database, Func<VaultChange> change, bool lists, Action landed)
         {
             if (change == null)
             {
@@ -1050,7 +1058,7 @@ namespace KeePassGate.Bridge
                 bool ran;
                 try
                 {
-                    ran = _ui.Run(() => outcome = ChangeOnTheUiThread(database, change, landed), WriteTimeout);
+                    ran = _ui.Run(() => outcome = ChangeOnTheUiThread(database, change, lists, landed), WriteTimeout);
                 }
                 catch (Exception error) when (Expected.OfUserInterface(error) || Expected.OfCustomData(error))
                 {
@@ -1171,7 +1179,8 @@ namespace KeePassGate.Bridge
             return kept;
         }
 
-        private VaultWrite ChangeOnTheUiThread(PwDatabase database, Func<VaultChange> change, Action landed)
+        private VaultWrite ChangeOnTheUiThread(
+            PwDatabase database, Func<VaultChange> change, bool lists, Action landed)
         {
             if (!database.IsOpen)
             {
@@ -1297,11 +1306,11 @@ namespace KeePassGate.Bridge
                     // catch-all and is counted there.
                     _log.Error("the save ended in an exception nothing here expects, so the change " +
                                "is settled as the database leaves it, and the exception goes on", null);
-                    Concluded(database, decided, wasModified, owing, landed, null);
+                    Concluded(database, decided, wasModified, owing, lists, landed, null);
                 }
             }
 
-            return Concluded(database, decided, wasModified, owing, landed, failed);
+            return Concluded(database, decided, wasModified, owing, lists, landed, failed);
         }
 
         /// <summary>
@@ -1315,7 +1324,13 @@ namespace KeePassGate.Bridge
         /// the other two.
         /// </remarks>
         private VaultWrite Concluded(
-            PwDatabase database, VaultChange decided, bool wasModified, Owing owing, Action landed, Exception failed)
+            PwDatabase database,
+            VaultChange decided,
+            bool wasModified,
+            Owing owing,
+            bool lists,
+            Action landed,
+            Exception failed)
         {
             if (database.Modified)
             {
@@ -1394,13 +1409,13 @@ namespace KeePassGate.Bridge
                 landed();
             }
 
-            // Last, and the only place the tree and the list are asked for. Every path above
-            // either changed nothing or has just put its change back, and in both cases they
-            // already show the database as it now is: neither is rebuilt between the change and
-            // the undo, since nothing on this thread reads a `PwGroup` again until something asks
-            // it to. What a put back does leave wrong is the mark saying there is something to
-            // save, which `PutBack` redraws on its own.
-            Redraw(database, true);
+            // Last, and the only place the tree and the list are asked for, when the change is one
+            // they show. Every path above either changed nothing or has just put its change back,
+            // and in both cases they already show the database as it now is: neither is rebuilt
+            // between the change and the undo, since nothing on this thread reads a `PwGroup` again
+            // until something asks it to. What a put back does leave wrong is the mark that there
+            // is something to save, which `PutBack` redraws on its own.
+            Redraw(database, lists);
 
             return decided.Outcome;
         }
@@ -1979,8 +1994,8 @@ namespace KeePassGate.Bridge
         }
 
         /// <summary>
-        /// Says a record landed, or a client's revocation of itself did, to whatever is drawn from
-        /// the records.
+        /// Tells whatever is drawn from the records that a record landed, or a client's revocation
+        /// of itself, or a standing answer to a renewal.
         /// </summary>
         /// <remarks>
         /// Here and nowhere earlier: every path above this either put its change back or is still
