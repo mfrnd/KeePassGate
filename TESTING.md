@@ -5,10 +5,10 @@ fails in a way that names its own cause.
 
 | | Project | Needs | Runs in | What it proves |
 | --- | --- | --- | --- | --- |
-| **Unit** | `tests/KeePassGate.Tests` | nothing but a compiler, and a loopback socket | under a minute | the logic, and the whole transport, against stand-ins shaped like KeePass |
-| **Host** | `tests/KeePassGate.Host.Tests` | a KeePass to reference | about a second | the same code against real KeePass types, dialogs and events |
-| **End to end** | the same project, category `Live` | a desktop, and the machine to itself | under a minute | the plugin loading into a KeePass a user could have started |
-| **Client** | `tests/pykeepassgate`, `tests/tools` | Python, and `uv` to arrange it | a few seconds | PyKeePassGate against stand-ins, its protocol code against vectors the plugin produced, and its resolver against vectors KeePass produced; and the suppression check against vectors CodeQL produced |
+| **Unit** | `tests/KeePassGate.Tests` | a compiler, a loopback socket, and a window station for the fixtures that show a form | a few minutes | the logic, and the whole transport, against stand-ins shaped like KeePass |
+| **Host** | `tests/KeePassGate.Host.Tests` | a KeePass to reference, and a window station for the fixture that shows the plugin's own dialog | a few minutes | the same code against real KeePass types, dialogs and events |
+| **End to end** | the same project, category `Live` | a desktop, and the machine to itself | a few minutes | the plugin loading into a KeePass a user could have started |
+| **Client** | `tests/pykeepassgate`, `tests/tools` | Python, and `uv` to arrange it | about a minute | PyKeePassGate against stand-ins, its protocol code against vectors the plugin produced, and its resolver against vectors KeePass produced; and the suppression check against vectors CodeQL produced |
 
 ```powershell
 .\build.ps1                     # the prose, the client tier, then unit and host
@@ -19,13 +19,13 @@ fails in a way that names its own cause.
 
 **One category inside the unit tier draws rather than asserts.** `Gallery` builds each surface at
 the states that change its shape and writes a picture of it, into `.gallery` beside the solution or
-wherever `KPG_GALLERY_DIR` says. It runs with the ordinary tests, because it needs no KeePass, no
-desktop and no network, and because a picture nobody generates is a picture nobody looks at. Two
-things follow from its writing files: the directory is gitignored, and everything in it is rewritten
-on every run, so nothing meant to be kept belongs there. `docs/images` is the set that is committed,
-and a task of its own draws those.
+wherever `KPG_GALLERY_DIR` names. It runs with the ordinary tests, because it needs no KeePass and
+no network, only a window station to show its forms on, off screen, and because a picture nobody
+generates is a picture nobody looks at. Two things follow from its writing files: the directory is
+gitignored, and everything in it is rewritten on every run, so nothing meant to be kept belongs
+there. `docs/images` is the set that is committed, and a task of its own draws those.
 
-**The screenshots are a fourth use of the end to end tier rather than a fourth tier.** Same
+**The screenshots are another use of the end to end tier rather than a tier of their own.** Same
 throwaway KeePass, same driver, and it writes into `docs/images` instead of asserting: the
 documentation shows the real tab, so the pictures are generated the same way everything else
 about that tab is checked. It is excluded from `Live` because it writes into the working tree,
@@ -65,8 +65,10 @@ bare `using KeePass` matches every file that imports one of them. `KeePassContra
 of KeePass's members through `nameof`, which compiles to the string the host tier pins and leaves no
 reference to KeePass behind, so the check rightly does not list it.
 
-The consequence worth having: the unit project **cannot** compile against KeePass, so a dependency
-that creeps up into the pipeline shows up as a build error rather than as a design argument.
+The consequence worth having: the unit project **has no reference** to KeePass, so a dependency that
+creeps up into the pipeline shows up as a failure rather than as a design argument. It is a build
+error where a member a test uses names a KeePass type, and otherwise a missing assembly at run time
+once a test reaches the member; the grep above is what catches a creep no test reaches.
 
 **The transport is tested there too**, over a real loopback socket with real TLS 1.3 and real
 certificates, because none of that needs a password manager. `GateListenerTests` is the one to read
@@ -76,23 +78,25 @@ first: it is where the pieces stop being separately correct and start being a se
 
 Two jobs.
 
-**It pins the names.** `KeePassContractTests` asserts every name the plugin reaches for inside
-KeePass: the dialog type, the tab control called `m_tabMain`, the window manager's events, the
-plugin base class. A KeePass upgrade that moves one of these is caught here, before anybody runs it.
-At run time the plugin notices some of them itself and refuses rather than guessing: a dialog the
-watch cannot find stops every write and every pairing and the log names it, and a field a tab
-reads on a dialog it decorates leaves that tab read only with a sentence saying why. The rest would
-break it quietly.
+**It pins the names.** `KeePassContractTests` asserts the names the plugin reaches for inside
+KeePass: the dialog types, the tab control called `m_tabMain`, the window manager's events, the
+plugin base class; and `GroupDialogsTests` holds every window the watch looks for to the real
+assembly, the progress window among them. A KeePass upgrade that moves one of these is caught here,
+before anybody runs it. At run time the plugin notices some of them itself and refuses rather than
+guessing: a dialog the watch cannot find stops every write and every pairing and the log names it,
+and a field a tab reads on a dialog it decorates leaves that tab read only with a sentence giving
+the reason. The rest would break it quietly.
 
 **It uses the real thing.** `DatabaseSettingsForm` can be constructed outside a running KeePass, and
 `GlobalWindowManager.AddWindow` is public, so the plugin is driven exactly as KeePass drives it:
-initialize, open the real dialog, close it, terminate, and check that nothing of ours is left behind.
-The authority is exercised against a real `PwDatabase` as well, written to a real KDBX4 file and
-opened again, because a dictionary cannot prove that KeePass keeps what it is given. So are a
-node's tags, in `NodeTagsTests`, where every change is made the way KeePass makes it rather than
-through the API: an edit as the entry dialog leaves it, a move as the main window makes one, a
-synchronize at an equal modification time, a save and a reopen, and an operator's edit landing on
-KeePass's thread just before a queued write, which has to be refused.
+initialize, open the real dialog, close it, terminate, and check that the tab went with the dialog
+and that a terminated plugin no longer hears the window manager. The authority is exercised against
+a real `PwDatabase` as well, written to a real KDBX4 file and opened again, because a dictionary
+cannot prove that KeePass keeps what it is given. So are a node's tags, in `NodeTagsTests`, where
+every change is made the way KeePass makes it rather than through the API: an edit as the entry
+dialog leaves it, a move as the main window makes one, a synchronize at an equal modification time,
+a save and a reopen, and an operator's edit landing on KeePass's thread just before a queued write,
+which has to be refused.
 
 The access control rules are split the same way, and the split is worth reading as an example of the
 whole arrangement. What a grant **means** is decided against `IAclNode`, a document and a parent, so
@@ -121,7 +125,10 @@ dotnet test tests\KeePassGate.Host.Tests --filter "FullyQualifiedName~ReferenceV
 KeePass, and WinForms answers with its unhandled-exception dialog, which blocks the run until
 something kills it. So `SnapshotHazardTests` measures the group dialog's custom data snapshot in two
 halves: the mechanism by reflection over the real types, and the behavior by reproducing it with
-KeePass's own `CloneDeep` and a real group. Pressing buttons for real belongs to the tier below.
+KeePass's own `CloneDeep` and a real group. Pressing buttons for real belongs to the tier below. The
+plugin's own dialogs are another matter, and `ApprovalsUnderLoadTests` shows one: an approval dialog
+put up through the real prompt, transparent and off screen, on a message loop of its own, so the
+tier needs a session that can show a form.
 
 ## What the end to end tier is for
 
@@ -226,6 +233,16 @@ nothing, and the database is marked changed and left unsaved until the test save
 The client half of pairing lives in `tests/Shared/PairingClient.cs` and is compiled into **both**
 test assemblies. That is deliberate: if the loopback tests and the end to end test each had their
 own client, either could pass against a protocol only it knew.
+
+**A test's rules and request bodies are written by the plugin's own writers**, through
+`tests/Shared/Rules.cs` and `tests/Shared/Bodies.cs`, compiled into both test assemblies the same
+way. Spelled by hand, either fails in the safe direction: a misspelled verb or a dropped quote is a
+document that will not read, and a value holding a quote or a line break is a body that is not
+JSON, and each is refused, so a test expecting a refusal passes for the wrong reason. `Rules` takes
+a `CRUSDLAP` mask and throws as the test sets up when the mask is not exactly one, and `Bodies`
+escapes every value as the plugin escapes what it writes and throws on a name given twice. Raw text
+stays where the text is what is being tested: a reader's own tests, a document no editor would
+write, an escape spelled one particular way, and a body that is not JSON.
 
 **Every certificate a C# test makes for itself is made through Bouncy Castle**, as the plugin makes
 its own. `tests/Shared/Minted.cs` builds one of whatever shape a test needs, another name, dates of
@@ -355,16 +372,18 @@ Castle's server and Python's `ssl`; and the plugin's framing under the client's 
 the one that would show it. It runs where the end to end tier does, so a green client tier
 answers for none of the three.
 
-**Seven of them do not run on Windows, and run on Linux in CI.** The client narrows the
-directory and the files it keeps a paired identity in, refuses a directory other accounts may
-write to, refuses a link where one of those files is about to go, and reads `XDG_CONFIG_HOME`
-where Windows reads `LOCALAPPDATA`. Four of the tests ask questions Windows answers with an access
-control list rather than with nine bits, two need a link, which takes a privilege on Windows, and
-one reads a variable Windows does not, so all seven are skipped there, and a run on the machine
-this is developed on reports `7 skipped`. The code is guarded by the same platform test, so what is
-skipped is the check rather than the behavior, and the check is not skipped everywhere:
-`build.ps1 -ListGates` gives the client's check a second runner, `ubuntu-latest`, where those seven
-run and the one test about a Windows roaming profile is skipped instead.
+**Some of them do not run on Windows, and run on Linux in CI.** The client narrows the directory
+and the files it keeps a paired identity in, and a file it fetches, refuses a directory other
+accounts may write to, refuses a link where one of those files is about to go, and reads
+`XDG_CONFIG_HOME` where Windows reads `LOCALAPPDATA`. The tests that ask questions Windows answers
+with an access control list rather than with nine bits, and the one that reads a variable Windows
+does not, are skipped there by the same platform test the code is guarded by, so what is skipped is
+the check rather than the behavior. The tests that need a file link are skipped only where the
+account cannot make one, which on Windows takes Developer Mode or an elevated process, since the
+refusal they test has no platform guard: they run in CI's Windows job and on the machine this is
+developed on, so how many are skipped depends on the account. The checks are not skipped
+everywhere: `build.ps1 -ListGates` gives the client's check a second runner, `ubuntu-latest`, where
+all of them run and the one test about a Windows roaming profile is skipped instead.
 
 ```shell
 uv run pytest --cov        # the client, with the coverage floor the gate enforces
@@ -429,7 +448,7 @@ measured.
 **The host tier stays one test after another**, and that is a choice rather than an omission. Its
 fixtures drive KeePass's own statics, which belong to the whole process as much as anything above
 does, and the plugin reads them. A mark forgotten there would fail now and then rather than
-plainly, and the tier is a minute or two either way.
+plainly, and the tier takes a few minutes either way.
 
 **And the client tier runs beside both.** `build.ps1` starts it as a process of its own while the
 plugin builds and its tiers run, prints its output once they are done, and fails if either half did.
@@ -456,15 +475,20 @@ figure did.
 
 ## Before a commit
 
-There is CI, and `master` requires its `gate passed` check before a pull request merges into it,
-as `CLAUDE.md` explains. `.\build.ps1 -Task All` is the gate, and nothing stops a push to
-a branch that skipped it: what is stopped is the merge.
+There is CI, and `master` requires its `gate passed` check before a pull request merges into it, as
+`CLAUDE.md` explains. That check passes once every check `build.ps1 -ListGates` names has passed,
+the end to end tier and the coverage floor among them, so the default `.\build.ps1` is what each
+commit is held to and not the whole gate: `-Task All` adds the end to end tier, and `-Task Coverage`
+runs the floor. Nothing stops a push to a branch that skipped any of them: what is stopped is the
+merge.
 
 **The fast half can run at the commit itself, once it is installed.** `.pre-commit-config.yaml`
 holds the checks cheap enough to run on what is being committed: the client's style and types, the
 spelling and the markdown rules, each run by the tool and the configuration the gate uses, and a
-refusal of a `.kdbx`, a private key or a merge left half done. Nothing installs it, so a clone has
-none of it until somebody runs this once:
+refusal of a `.kdbx`, a private key, a large file or a merge left half done. It holds checks the
+gate does not make as well, of YAML, of TOML, of trailing whitespace and of the end of each file,
+and the last two put right what they find, so a commit can be refused for something the gate
+passes. Nothing installs it, so a clone has none of it until somebody runs this once:
 
 ```powershell
 uv run pre-commit install
