@@ -70,19 +70,21 @@ MAX_RESPONSE_BYTES = 4 * 1024 * 1024
 #: never sent over one.
 RESPONDER_CLAIM = "kpg://host/responder"
 
-#: How long any one wait on the socket may last, in seconds, for anything that is not a pairing:
-#: the dial, the handshake, and each read of the answer, each on its own. So it ends a wait on a
-#: peer that has stopped sending, and not a connection to one that goes on sending, however
-#: slowly; a caller that needs a bound on a whole call puts one around the call. It says nothing
-#: about waiting out a refusal, which is what the three budgets below are for.
+#: How long any one wait on the socket may last, in seconds, for anything that is not a pairing or
+#: a renewal's request, which the next constant is for: the dial, the handshake, and each read of
+#: the answer, each on its own. So it ends a wait on a peer that has stopped sending, and not a
+#: connection to a peer that goes on sending, however slowly; a caller that needs a bound on a
+#: whole call bounds the call itself. Waiting out a refusal is no part of it, which is what the
+#: three budgets below are for.
 DEFAULT_CONNECTION_TIMEOUT = 120.0
 
 #: What the socket gets instead for the two exchanges that wait on a person, a pairing and a
 #: renewal, and the least a renewal waits whatever the client was given. It has to outlast the
 #: plugin's own sum: `PairingOptions.ApprovalTimeout` two minutes waiting for the screen while
 #: another pairing or renewal holds it, the same two minutes again for the dialog plus
-#: `PairingApprovalPrompt.Grace` fifteen seconds, then `DatabaseWriter.LockTimeout` twenty and
-#: `WriteTimeout` thirty. That sum is 305 seconds, and is why `GateOptions.PairingBudget` is six
+#: `PairingApprovalPrompt.Grace` fifteen seconds, `PairingOptions.ApprovalSettle` two for a busy
+#: KeePass to settle once the operator has approved, then `DatabaseWriter.LockTimeout` twenty and
+#: `WriteTimeout` thirty. That sum is 307 seconds, and is why `GateOptions.PairingBudget` is six
 #: minutes for both; this is the same six, since the gate closes the connection then and waiting
 #: past it buys nothing. Hanging up early cancels nothing: the record is written and saved
 #: regardless, an invitation spent with it, and only the answer is lost, leaving a record for a

@@ -607,11 +607,12 @@ class TestTheAnswerIsFramedRatherThanEnded:
         assert transport.response_limit(default) == default
 
     def test_the_pairing_timeout_outlasts_what_the_plugin_may_take(self) -> None:
-        # `GateOptionsTests` sums the same five waits on the other side: the screen, the dialog
-        # and its grace, the turn at the writer and the write. 305 seconds, and the gate gives
-        # itself 360; a client that hangs up first loses the answer to a pairing the gate has
-        # already spent the invitation and written the record for.
-        assert transport.PAIRING_CONNECTION_TIMEOUT > 120.0 + 120.0 + 15.0 + 20.0 + 30.0
+        # `GateOptionsTests` sums the same six waits on the other side: the screen, the dialog
+        # and its grace, KeePass settling once the operator has approved, the turn at the writer
+        # and the write. 307 seconds, and the gate gives itself 360; a client that hangs up first
+        # loses the answer to a pairing the gate has already spent the invitation and written the
+        # record for.
+        assert transport.PAIRING_CONNECTION_TIMEOUT > 120.0 + 120.0 + 15.0 + 2.0 + 20.0 + 30.0
         assert transport.PAIRING_CONNECTION_TIMEOUT > transport.DEFAULT_CONNECTION_TIMEOUT
 
 

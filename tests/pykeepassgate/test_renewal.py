@@ -712,10 +712,11 @@ def test_a_renewal_waits_as_long_as_a_pairing_and_gives_up_on_the_ordinary_timeo
     waited: list[float],
 ) -> None:
     # The renewal waits on a person, and the gate gives it the six minutes a pairing gets, since
-    # its own worst case is the same 305 seconds: the screen, the dialog and its grace, the turn at
-    # the writer and the write. A client that hangs up first leaves an approval saved for a
-    # certificate nobody holds. Giving the old certificate up asks nobody, so it waits the usual
-    # time, and so does the comparison of the gate's version that comes before both.
+    # its own worst case is the same 307 seconds: the screen, the dialog and its grace, KeePass
+    # settling once the operator has approved, the turn at the writer and the write. A client that
+    # hangs up first leaves an approval saved for a certificate nobody holds. Giving the old
+    # certificate up asks nobody, so it waits the usual time, and so does the comparison of the
+    # gate's version that comes before both.
     timeouts: list[float] = []
     connect = transport.connect
 

@@ -153,7 +153,7 @@ def pair(
     directory: Path | None = None,
     profile: str = "default",
     # Not `DEFAULT_CONNECTION_TIMEOUT`. This is one of the two exchanges that wait on a person, and
-    # the gate gives itself six minutes for it because its own worst case is 305 seconds. Hanging up
+    # the gate gives itself six minutes for it because its own worst case is 307 seconds. Hanging up
     # first cancels nothing: the invitation is spent and the record is written and saved
     # anyway, and only the answer is lost.
     connection_timeout: float = PAIRING_CONNECTION_TIMEOUT,
