@@ -939,7 +939,7 @@ namespace KeePassGate.Host.Tests
         [Test]
         public void A_client_pairs_against_a_real_database_and_the_record_survives_the_file()
         {
-            // The whole of step 8 against a real database: an invitation, both proofs, an operator
+            // The whole of pairing against a real database: an invitation, both proofs, an operator
             // who agrees, and a certificate that the reopened file still admits.
             using (var book = new InvitationBook(TimeSpan.FromMinutes(10), null, _log))
             using (var targets = Targets())

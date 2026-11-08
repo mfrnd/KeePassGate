@@ -429,8 +429,8 @@ namespace KeePassGate.Tests.Fakes
         }
 
         /// <summary>
-        /// Admits a client, which is what pairing will do for real. Without this a certificate this
-        /// authority issued opens nothing, which is the point of step 7.
+        /// Admits a client, which is what pairing does for real. Without this a certificate this
+        /// authority issued opens nothing, which is the point of the admission record.
         /// </summary>
         public void Admit(X509Certificate2 certificate, params string[] profiles)
         {

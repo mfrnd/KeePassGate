@@ -884,7 +884,7 @@ Nothing here justifies committing to the build yet. Three spikes would settle it
 > the `spikes/http-lib-measurements` branch and then re-answered when selecting a host certificate by
 > name forced us to own the accept loop, so no port is spiked at all. Issuance writes an admission
 > record into the database rather than a fingerprint into a local registry. [`DESIGN.md`](DESIGN.md)
-> §132 carries the build order that replaced these.
+> is what was built instead.
 
 1. ~~**The vendored `HttpListener`, ported and fed our own `SslStream`, inside a running KeePass**~~,
    answering one route. What survived from this spike is its instinct: feeding a listener our own

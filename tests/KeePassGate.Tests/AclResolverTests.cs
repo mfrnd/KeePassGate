@@ -367,7 +367,7 @@ namespace KeePassGate.Tests
         [Test]
         public void A_decision_says_what_answered_it()
         {
-            // What step 14 writes into the audit log, which is why it names a node rather than
+            // What the router writes into the audit log, which is why it names a node rather than
             // quoting one. The name is a UUID by the time a real database supplies it.
             var granted = AclResolver.Decide(
                 TestNode.Root("root").Granting("reader", AclVerb.Read).Child("an entry"), Reader, AclVerb.Read);

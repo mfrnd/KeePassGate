@@ -5,7 +5,7 @@
 # read at run time, one line per check and runner, so a task added to the script, or a runner added
 # for one, is checked by CI without anybody editing this file, and there is no second list that
 # could disagree with the first. That is the whole design: the list is never written here, however
-# many steps the repository grows.
+# many checks the repository grows.
 #
 # **The actions are pinned by commit**, with the release each commit is beside it, because a tag is
 # whatever its maintainers move it to next, and what every run executes would then change with no
@@ -13,10 +13,10 @@
 # action's maintainers retire the runtime it runs on, a newer release is pinned here, in a commit of
 # its own. `dependabot.yml` proposes each one, moving the commit and the release beside it together.
 #
-# **Pull requests, and pushes to `master` only.** Every step's branch is stacked on the one below
-# it and its pull request is based there, so a push to the branch and the pull request's merge
-# result check the same tree, and running on both would check it twice. A pull request is checked
-# once, as the merge it would make, and `master` after every merge. A branch with no pull request
+# **Pull requests, and pushes to `master` only.** Every change reaches `master` through a pull
+# request, and a push to its branch and the pull request's merge result check the same work, so
+# running on both would check it twice. A pull request is checked once, as the merge it would make,
+# and `master` after every merge. A branch with no pull request
 # gets no run from this file. A pull request's run gives way to a newer push to it, and to nothing
 # else: its group is named for the pull request's number, so two pull requests never share one.
 # Every push to `master` runs in a group of its own, named for the commit, so no merge's check is
@@ -31,10 +31,10 @@
 # **Read access and nothing more.** No step writes to the repository, so every job's token is
 # declared read only here rather than left to whatever the repository's settings grant.
 #
-# **Which is why the setup below tolerates what does not exist yet.** A branch early in the build
-# order has no `uv.lock` and no pinned KeePass, and a later one has both. Each of those steps is
-# guarded on the file that proves its subject has arrived, rather than on a step number this file
-# would then have to know about.
+# **Which is why the setup below tolerates what does not exist yet.** A commit early in the history
+# has no `uv.lock` and no pinned KeePass, and every later commit has both. Each of those steps is
+# guarded on the file that proves its subject has arrived, rather than on a commit this file would
+# then have to know about.
 #
 # **`windows-latest` for everything Windows does**, including the short job that only reads the task
 # list. This is a Windows repository and the gate is Windows PowerShell; running a job on a cheaper

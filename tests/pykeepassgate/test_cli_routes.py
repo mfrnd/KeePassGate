@@ -405,7 +405,7 @@ def test_strip_attachment_says_what_it_took_off(
     assert capsys.readouterr().out.strip() == f"stripped key.pem from {UUID}"
 
 
-#: `operationId` to the command that asks it, which is the claim this step makes checkable: the
+#: `operationId` to the command that asks it, which is what makes this claim checkable: the
 #: command line reaches every route the library does. Two operations share `groups` and two share
 #: `entries`, as they share a library method, because which is asked is an option. Pairing is the
 #: one command made of two, and a `head` is left to the library, since it answers nothing a

@@ -300,14 +300,6 @@ function Invoke-Lint {
         npm run --silent lint:spelling
     }
 
-    # A promise made in a comment is still a promise. `TODO(step N)` says which step makes the
-    # reference around it true, and this is what collects on it: a marker naming a step the build
-    # order already calls done is a note somebody forgot to take out, and the reader it misleads
-    # is the next person to trust the sentence it sits in.
-    Invoke-Step 'todo markers' {
-        & (Join-Path $root 'tools/Markers.ps1') -Root $root
-    }
-
     # **A rule nobody checks is a rule until the first person who has not read it.** The ban on
     # dashes as punctuation is checked from the first commit that can check anything, because
     # a dash found by eye is found long after it has been copied into the next file. Cheap to

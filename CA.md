@@ -418,12 +418,14 @@ fail-open in a design that fails closed everywhere else.
 Every certificate carries a **subject key identifier** and every leaf an **authority key
 identifier**, so the authority can be renewed later without invalidating what it signed. A leaf's
 authority key identifier is its authority's subject key identifier copied, so a stored authority
-whose subject key identifier is absent, empty or not DER cannot issue, and is refused as one that
-cannot. **`pathLen 0`** so it cannot mint a subordinate. **No EKU on the authority**, because one
-there constrains everything beneath it and buys nothing. **A leaf's `notAfter` is clamped to the
-authority's**, so nothing outlives what vouches for it, **and its `notBefore` is never earlier than
-the authority's**, so nothing starts before it either: a clock that reads earlier than the
-authority's start issues nothing.
+whose subject key identifier is absent, empty or not DER cannot issue, and is refused as an
+authority that cannot: a pairing under it is answered `500 internal error` and its database is
+served without a responder, while every other open database is served as before. **`pathLen 0`**
+so it cannot mint a subordinate. **No EKU on the authority**, because an EKU there constrains
+everything beneath it and buys nothing. **A leaf's `notAfter` is clamped to the authority's**, so
+nothing outlives what vouches for it, **and its `notBefore` is never earlier than the
+authority's**, so nothing starts before it either: a clock that reads earlier than the authority's
+start issues nothing.
 
 **A client proposes how long its certificate lasts, and the operator picks.** A pairing request may
 ask for whole days from one to 365, and the approval dialog offers 1, 7, 30 and 90 days and a year,

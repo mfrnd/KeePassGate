@@ -138,17 +138,18 @@ tier needs a session that can show a form.
 
 ## What the end to end tier is for
 
-The acceptance tests for the build order, stated the way the steps state themselves.
+The claims only a KeePass somebody could have started can answer, each held by a fixture of its
+own.
 
-**Step 4**, in `LiveKeePassTests`: the plugin loads into KeePass, shows a KPG tab on the database
+**The plugin**, in `LiveKeePassTests`: the plugin loads into KeePass, shows a KPG tab on the database
 settings dialog, and stops cleanly.
 
-**Step 5**, in `LiveAuthorityTests`: an authority created from that tab in a real KeePass is still
+**The authority**, in `LiveAuthorityTests`: an authority created from that tab in a real KeePass is still
 there, with the same fingerprint, after the database has been saved and KeePass has been closed and
 started again. That second session is the whole point. Everything else in the suite proves the
 plugin writes what it means to write; only this proves KeePass keeps it.
 
-**Steps 6 and 7**, in `LiveGateTests`: a real client, in the test process, reaches a real KeePass
+**The gate**, in `LiveGateTests`: a real client, in the test process, reaches a real KeePass
 over mutual TLS 1.3 and is answered, and a second certificate from the same authority is refused
 because the database holds no record for it. It issues itself both certificates from the authority
 inside the database file, because it holds the file and its password, which is exactly what the
@@ -172,7 +173,7 @@ KeePass; this is what notices a KeePass that raises them differently.
 lock, ten seconds, and lets it fall due under a renewal dialog nobody answers. The dialog closes as
 unanswered and the client is told `503 locked`, `PAIRING.md` §308.
 
-**Step 8**, in `LivePairingTests`, the longest chain the C# pairing client drives. The operator
+**Pairing**, in `LivePairingTests`, the longest chain the C# pairing client drives. The operator
 presses the invite button on the real tab; the token is read off the real screen; a client holding
 nothing but that token and a port number derives its own connection names, proves itself and is
 proved to; the approval dialog is a real window, approved by a real button press on a thread that is
@@ -215,7 +216,7 @@ client meets `DatabaseLocked`. What the command line does not offer, one field o
 a changed password, goes through the library with `tests/pykeepassgate/live_calls.py`, which the
 client tier runs against its stand-in as well.
 
-**Step 13**, in `LiveGrantEditorTests`: a rule made on the KPG tab of a real KeePass, kept by the
+**The grant editor**, in `LiveGrantEditorTests`: a rule made on the KPG tab of a real KeePass, kept by the
 group dialog's **OK**, and read out of the `.kdbx` after the process has gone. Pressing OK rather
 than Escape is what it is for: the dialog writes its own copy of the group's settings back over the
 group at that moment, so a rule written anywhere else would be destroyed exactly there.

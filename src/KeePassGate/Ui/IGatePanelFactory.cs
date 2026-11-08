@@ -4,8 +4,8 @@ namespace KeePassGate.Ui
 {
     /// <summary>
     /// Builds the contents of the plugin's tab. Separate from the code that attaches the tab
-    /// because the two change for different reasons: attaching is finished, whereas the contents
-    /// grow with every later step of the build order.
+    /// because the two change for different reasons: attaching is settled, whereas the contents
+    /// are where every change to the tab is made.
     /// </summary>
     public interface IGatePanelFactory
     {

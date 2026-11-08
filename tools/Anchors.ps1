@@ -61,8 +61,8 @@ $ErrorActionPreference = 'Stop'
 $sign = [char] 0x00A7
 
 # The documents that settle things, each with the hundred it allocates from. A document is checked
-# only if it is present: `API.md` arrives with the routes it describes, several steps after the
-# other three, and a gate demanding it from the first commit would fail every commit before it.
+# only if it is present: `API.md` arrived with the routes it describes, well after the other three,
+# and a gate demanding it from the first commit would fail every commit before it.
 # Keys are written with forward slashes, which `Join-Path` and git both take on every platform.
 $routing = 'src/KeePassGate/Spec/openapi.yaml'
 $blocks = [ordered] @{

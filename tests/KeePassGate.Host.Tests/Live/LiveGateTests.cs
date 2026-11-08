@@ -11,8 +11,8 @@ using NUnit.Framework;
 namespace KeePassGate.Host.Tests.Live
 {
     /// <summary>
-    /// The acceptance test for step 6 of the build order: a real KeePass, with the plugin
-    /// loaded and a database that has an authority, answering a real client over mutual TLS.
+    /// The end to end test of the gate: a real KeePass, with the plugin loaded and a database
+    /// that has an authority, answering a real client over mutual TLS.
     /// </summary>
     /// <remarks>
     /// Nothing in this fixture is a stand-in. KeePass is a separate process. The client is an
@@ -51,7 +51,7 @@ namespace KeePassGate.Host.Tests.Live
             // Both certificates are issued and one is admitted before KeePass starts, because a
             // running KeePass serves the database it holds in memory: a record written to the file
             // underneath it would be invisible and then overwritten. Pairing writes through the
-            // plugin for exactly that reason, and it is step 8.
+            // plugin for exactly that reason, which `LivePairingTests` covers.
             using (var admitted = keePass.IssueClientCertificate("agent-fictitious"))
             using (var never = keePass.IssueClientCertificate("agent-unadmitted"))
             {

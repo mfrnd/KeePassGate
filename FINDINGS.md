@@ -19,7 +19,8 @@ was built from it.
 | KeePass is a **.NET Framework** application: `supportedRuntime v4.0` and `v2.0.50727`, CLR 4.0.30319 | read `KeePass.exe.config`, queried the runtime |
 | Therefore **modern .NET is unreachable in process**. A process has one runtime; `net8.0` needs CoreCLR and `netstandard2.1` excludes .NET Framework | NetCoreServer has never shipped a Framework-consumable target: 5.0.0 is `net5.0` through 8.0.7 at `net8.0` |
 | **`AesGcm` is absent from .NET Framework 4.8**, so no version upgrade unlocks an AEAD | tested on the 4.8.1 runtime |
-| `CertificateRequest.Create(issuer, …)` and `SubjectAlternativeNameBuilder.AddUri` exist, so **the certificate authority needs no third-party library**. Still so on Windows, and build-order step 35 issues through Bouncy Castle all the same, because Mono has no ECDSA and no `CertificateRequest` a .NET Framework build can reach, `spikes/mono-compatibility` | enumerated the API, then issued a real chain with it |
+| `CertificateRequest.Create(issuer, …)` and `SubjectAlternativeNameBuilder.AddUri` exist, so **the certificate authority needs no third-party library**. Still so on Windows, and the plugin issues through Bouncy Castle all the same, because Mono has no ECDSA and no `CertificateRequest` a .NET Framework build can reach, `spikes/mono-compatibility` | enumerated the API, then issued a real chain with it |
+| **In KeePass on Mono the plugin does not load at all**, because `ControlUiThread`, the queue of turns on KeePass's thread, asks `user32` for that thread as the plugin starts. Once every certificate went through Bouncy Castle, the tests found no failure in the plugin's certificate code as far as a test reaches it: what fails is put down to Mono's runtime, its WinForms and the plugin's `user32` calls above all, and to the tests' own Windows dependencies, their `SslStream` clients first, which offer no TLS 1.3 on Mono. So the plugin stays Windows only | `spikes/mono-compatibility`, run under Mono 6.8 again after the issuer moved, and recorded beside the first run |
 
 ## 2. Transport
 
@@ -111,8 +112,8 @@ Recorded because a reader who only sees conclusions will re-make the same mistak
 
 ## 6. The document as the routing table
 
-Established while building step 11. The first two are the reason the design's named library is not
-the one that shipped.
+Established while building the spec router. The first two are the reason the design's named
+library is not the library that shipped.
 
 | Fact | How it was established |
 | --- | --- |
@@ -137,8 +138,8 @@ Established while replacing a KeePass copied there by hand with a pinned downloa
 
 ## 8. Loading a plugin, and testing one
 
-Established while building step 4 of the build order. The first entry is the one that costs an
-evening, because it fails without a message.
+Established while making the plugin load into KeePass. The first entry costs an evening, because it
+fails without a message.
 
 | Fact | How it was established |
 | --- | --- |
@@ -172,15 +173,15 @@ through the tree once nothing is modal.
 
 ## 9. Storing an authority inside a database
 
-Established while building step 5. The first two decide where the private key lives; the rest cost
-time to find.
+Established while storing the authority in the database. The first two decide where the private
+key lives; the rest cost time to find.
 
 | Fact | How it was established |
 | --- | --- |
 | **A PKCS#12 imported on .NET Framework writes a key file into `%APPDATA%\Microsoft\Crypto\Keys`** for as long as the certificate is loaded, and removes it on dispose. `EphemeralKeySet` keeps it off the disk entirely | counted the files either side of the import, `EphemeralKeyProbe` |
 | **An `EphemeralKeySet` certificate signs happily and SChannel will not do TLS with it in either direction.** A server gets `SEC_E_NO_CREDENTIALS`, a client never gets its certificate onto the wire. That is what put `Org.BouncyCastle.Tls` under the transport, which does serve with them, so no key this plugin loads reaches the disk | `EphemeralKeyProbe` case A, which is first and alone for the reason below |
 | **That is a correction.** An earlier reading of the same probe said ephemeral keys serve TLS. It had imported the same PKCS#12 with a persisted container moments before, and Windows found that key | reordering the cases changed the answer |
-| A `CertificateRequest.Create` under an issuer returns a certificate **with no private key**: it has to be married to the generated key with `CopyWithPrivateKey`. That was the issuer until build-order step 35, which issues through Bouncy Castle and marries nothing | `HasPrivateKey` was false until it was |
+| A `CertificateRequest.Create` under an issuer returns a certificate **with no private key**: it has to be married to the generated key with `CopyWithPrivateKey`. That was the issuer until every certificate went through Bouncy Castle, which marries nothing | `HasPrivateKey` was false until it was |
 | An ECDSA P-256 authority is about 384 bytes of DER and 1.3 KB of base64 PKCS#12 as Windows issued it, and about 393 bytes and 1.4 KB as Bouncy Castle issues it, with a serial twice as long, so custom data holds it comfortably | measured on the issued certificates, and again on Bouncy Castle's: 392 to 394 bytes over three hundred, and 1372 to 1384 characters of base64 |
 | **`PwGroup.CustomData` has a setter, and it is not public.** KeePass can replace a group's custom data wholesale from inside its own assembly; a plugin can only set and remove keys one at a time | `PropertyInfo.CanWrite` says true, the compiler says no, and `GetSetMethod(true).IsPublic` says false |
 | **Every authority this plugin issues carries the same subject**, so telling a stored pair apart by issuer name accepts a host certificate from a foreign authority. The anchor pin is the only check that works | a test written to prove the name comparison correct failed instead |
@@ -193,7 +194,7 @@ by reflection over the real types, and the behavior by reproducing it with KeePa
 
 ## 10. The gate and the transport
 
-Established while building step 6.
+Established while building the gate and the transport.
 
 | Fact | How it was established |
 | --- | --- |
@@ -210,7 +211,7 @@ Established while building step 6.
 
 ## 11. Pairing
 
-Established while building step 8. The first two cost an hour each, and both fail by producing
+Established while building pairing. The first two cost an hour each, and both fail by producing
 something plausible rather than by failing.
 
 | Fact | How it was established |
@@ -229,7 +230,7 @@ something plausible rather than by failing.
 
 ## 12. Grants in a real tree
 
-Established while building step 12. The rules themselves need no password manager; these are the
+Established while building the rules. The rules themselves need no password manager; these are the
 three things about KeePass that the rules depend on and could not be reasoned out.
 
 | Fact | How it was established |
@@ -239,14 +240,14 @@ three things about KeePass that the rules depend on and could not be reasoned ou
 | **`ParentGroup` is set by `AddEntry` and `AddGroup` with `takeOwnership` true**, on entries and groups alike, which is the whole of what inheritance walks | resolved a grant written on the root group from an entry three groups down |
 
 Two things this section deliberately does not claim. Nothing here was measured about **where** a rule
-is asked, because step 12 did not ask one: the resolver was not wired to the router, and step 14 is
+is asked, because these were measured before the resolver was wired to the router, and section 14 is
 where the two answers are combined. And the `GroupForm` snapshot hazard in section 9 applies to
-grants exactly as it applies to everything else in custom data, which is why the editor is step 13
-and not this one.
+grants exactly as it applies to everything else in custom data, which is why the editor has a
+section of its own, 13.
 
 ## 13. Editing a grant on somebody else's dialog
 
-Established while building step 13.
+Established while building the grant editor.
 
 | Fact | How it was established |
 | --- | --- |
@@ -258,12 +259,12 @@ Established while building step 13.
 
 ## 14. Combining the two answers
 
-Established while building step 14, and the first entry is the one that changed the design rather
-than confirming it.
+Established while combining the admission record with the rules, and the first entry changed the
+design rather than confirming it.
 
 | Fact | How it was established |
 | --- | --- |
-| **The intersection is not a step.** Handing the resolver the profiles the admission record carries makes `record INTERSECT acl` structural: there is nowhere the two are compared, and so nowhere they can be compared wrongly | tried to write the comparison and found there was nothing to write. The tests that remain assert the two failure directions instead: a rule about a profile no record carries, and a record naming profiles no rule mentions |
+| **The intersection is not a stage of its own.** Handing the resolver the profiles the admission record carries makes `record INTERSECT acl` structural: there is nowhere the two are compared, and so nowhere they can be compared wrongly | tried to write the comparison and found there was nothing to write. The tests that remain assert the two failure directions instead: a rule about a profile no record carries, and a record naming profiles no rule mentions |
 | **The plugin's own JSON reader refuses a boolean**, so an audit line saying `"permitted":true` could not be read back by the thing that wrote it | asserted it, and changed the format: the decision is a word, `"decision":"permitted"`, which the design named that way anyway. The format later took a bare `null` for a member that does not apply and an array for the profiles a refusal names as removed, and the reader refuses the null, deliberately: nothing in the plugin parses a line back, `AuditEntry` has why |
 | A refusal and a node that is not there have to answer the same thing, or a client that may reach nothing can map the database one identifier at a time | which is what `list` exists to be able to withhold, so the router answers 404 to both and the audit records which it was |
 
@@ -414,7 +415,7 @@ the host certificate's stored PKCS#12, which no client holds, so a tag is the sa
 restart; it was drawn at load first, which made every tag change whenever KeePass started.
 
 **A keyed digest is still a way to guess, if it is handed to a client that cannot read what it
-covers.** Measured in the review of the step that added it: a client whose rule held `update` and
+covers.** Measured in the review of the change that added it: a client whose rule held `update` and
 `protected` and not `read` wrote an empty update to learn the tag, then wrote each candidate PIN
 into the password and compared the tag that came back with the first, and had a three digit one in
 614 writes and 7.8 seconds; a rule holding `read` beside another profile's `update` and

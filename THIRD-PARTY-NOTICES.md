@@ -172,6 +172,6 @@ Five assemblies, and all of them are MIT: `BouncyCastle.Cryptography`, `Microsof
 list, and both put this file beside them, taking it from the repository, since the build output
 holds no copy of it.
 
-This file is maintained by hand and is to be re-checked against the resolved package set as each
-step lands. The package holds it to that: `build.ps1 -Task Package` refuses a DLL beside the plugin
+This file is maintained by hand and is to be re-checked against the resolved package set whenever
+a dependency changes. The package holds it to that: `build.ps1 -Task Package` refuses a DLL beside the plugin
 that the list above does not name.

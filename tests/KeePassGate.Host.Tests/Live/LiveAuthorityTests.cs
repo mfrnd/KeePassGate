@@ -7,8 +7,8 @@ using NUnit.Framework;
 namespace KeePassGate.Host.Tests.Live
 {
     /// <summary>
-    /// The acceptance test for step 5 of the build order: an authority created from the
-    /// KPG tab of a real KeePass, saved, and still there when KeePass is started again.
+    /// The end to end test of the authority's storage: an authority created from the KPG tab of a
+    /// real KeePass, saved, and still there when KeePass is started again.
     /// </summary>
     /// <remarks>
     /// This is the "believe it only after reopening" discipline as a test. Everything else in the
