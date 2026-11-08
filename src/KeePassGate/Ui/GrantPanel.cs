@@ -1783,7 +1783,7 @@ namespace KeePassGate.Ui
             var stored = false;
             try
             {
-                _store.Write(_sheet.Document);
+                _store.Write(_sheet.ToStore);
                 _sheet.Stored();
                 stored = true;
                 Writes++;

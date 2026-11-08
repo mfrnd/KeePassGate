@@ -447,6 +447,44 @@ namespace KeePassGate.Tests
             return letters.Select(letter => AclVerbs.Grantable[VerbKeys.PositionOf(letter)]).ToArray();
         }
 
+        [Test]
+        public void Two_edits_that_cancel_leave_a_hand_written_rule_as_it_was_written()
+        {
+            // After a write the sheet compared against what it had just written, so the seal on
+            // and off came back in the writer's spelling, and the entry dialog took the respelled
+            // value for a changed entry, with a revision in its history.
+            var store = new FakeGrantStore("{ \"reader\" : [ \"read\" ] }");
+
+            using (var panel = new GrantPanel(
+                new GrantSheet(store.Read(), null, new[] { "reader" }, null), store, GrantTab.GroupScope, null))
+            {
+                var seal = ControlTree.FindByName<CheckBox>(panel, GrantTab.SealCheckBoxName);
+
+                seal.Checked = true;
+                Assume.That(store.Current, Is.Not.EqualTo("{ \"reader\" : [ \"read\" ] }"), "the seal was written");
+                seal.Checked = false;
+
+                Assert.That(store.Current, Is.EqualTo("{ \"reader\" : [ \"read\" ] }"));
+            }
+        }
+
+        [Test]
+        public void An_empty_value_is_no_change_from_no_rules()
+        {
+            // An empty value and no value read the same, and an empty value read as changed on
+            // opening, so the first edits that ended with no rules took the key away.
+            var store = new FakeGrantStore(string.Empty);
+
+            using (var panel = new GrantPanel(
+                new GrantSheet(store.Read(), null, new[] { "reader" }, null), store, GrantTab.GroupScope, null))
+            {
+                Assert.That(panel.SetGrant("reader", ".R......"), Is.Null);
+                Assert.That(panel.RemoveGrant("reader"), Is.True);
+
+                Assert.That(store.Current, Is.Empty, "the dialog's own value went back, not a removal");
+            }
+        }
+
         private static DataGridViewRow Row(DataGridView grid, string profile)
         {
             foreach (DataGridViewRow row in grid.Rows)

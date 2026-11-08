@@ -105,6 +105,10 @@ namespace KeePassGate.Ui
         private string _stored;
         private string _canonical;
 
+        /// <summary>What the dialog's copy held when the sheet was made, and its canonical form.</summary>
+        private readonly string _opened;
+        private readonly string _openedCanonical;
+
         private readonly List<string> _offered = new List<string>();
 
         /// <summary>The database's list exactly as given, or null when none was.</summary>
@@ -149,6 +153,8 @@ namespace KeePassGate.Ui
 
             var already = stored == null ? null : AclDocument.Read(stored);
             _canonical = already == null ? null : already.Write();
+            _opened = stored;
+            _openedCanonical = _canonical;
             _above = above == null ? AclInheritance.None : AclResolver.Above(above);
             ReadOnlyReason = readOnlyReason;
 
@@ -480,23 +486,65 @@ namespace KeePassGate.Ui
         {
             get
             {
-                var wanted = Document;
+                var writing = ToStore;
 
-                if (_stored == null || wanted == null)
-                {
-                    return !(_stored == null && wanted == null);
-                }
-
-                if (string.Equals(_stored, wanted, StringComparison.Ordinal))
+                // An empty value and no value mean the same to every reader, so neither is a
+                // change from the other: a stored empty value read as changed on opening, and the
+                // first edits that ended with no rules took the key away.
+                if (string.IsNullOrEmpty(_stored) && string.IsNullOrEmpty(writing))
                 {
                     return false;
+                }
+
+                if (_stored == null || writing == null)
+                {
+                    return true;
+                }
+
+                if (string.Equals(_stored, writing, StringComparison.Ordinal))
+                {
+                    return false;
+                }
+
+                // The dialog's own bytes going back is the change that undoes the edits before it.
+                if (string.Equals(writing, _opened, StringComparison.Ordinal))
+                {
+                    return true;
                 }
 
                 // Against the stored document written out again, so that the same rules spelled
                 // differently do not read as a change. Worked out once when `_stored` was set,
                 // because it cannot answer differently until that does, and because this is
                 // asked on every edit, twice, with `Document` built each time either way.
-                return _canonical == null || !string.Equals(_canonical, wanted, StringComparison.Ordinal);
+                return _canonical == null || !string.Equals(_canonical, writing, StringComparison.Ordinal);
+            }
+        }
+
+        /// <summary>
+        /// What storing the rules on the sheet puts in the dialog's copy: <see cref="Document"/>,
+        /// unless the rules mean what they meant when the dialog opened, and then what it opened
+        /// with, byte for byte.
+        /// </summary>
+        /// <remarks>
+        /// **The editor never writes the same rules in other words**, and that held only for a
+        /// sheet nobody had edited: after a write, a node whose rules were spelled by hand came
+        /// back from two edits that cancel, the seal on and off, in the writer's spelling, and the
+        /// entry dialog took the respelled value for a changed entry, with a revision in its
+        /// history and the database marked modified.
+        /// </remarks>
+        public string ToStore
+        {
+            get
+            {
+                var wanted = Document;
+                if (wanted == null)
+                {
+                    return string.IsNullOrEmpty(_opened) ? _opened : null;
+                }
+
+                return _openedCanonical != null && string.Equals(wanted, _openedCanonical, StringComparison.Ordinal)
+                    ? _opened
+                    : wanted;
             }
         }
 
@@ -511,10 +559,10 @@ namespace KeePassGate.Ui
         {
             if (!Unreadable)
             {
-                // What was written is what this wrote, so it is already the canonical form and
-                // needs no round trip to find that out.
-                _stored = Document;
-                _canonical = _stored;
+                // What was written is what this wrote, whose canonical form is the document the
+                // rules make, without a round trip to find that out.
+                _stored = ToStore;
+                _canonical = Document;
             }
         }
 
