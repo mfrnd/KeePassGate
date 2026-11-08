@@ -1,4 +1,4 @@
-using System.Linq;
+using System.Collections.Generic;
 
 namespace KeePassGate.Ui
 {
@@ -274,23 +274,20 @@ namespace KeePassGate.Ui
             "The profile change is not applied yet. Press OK and reopen this dialog to pair.";
 
         /// <summary>
-        /// The longest of them, which is what the tab has to be measured against.
+        /// Every sentence the band over the invite button can hold, which is what the tab has to
+        /// be measured against.
         /// </summary>
         /// <remarks>
         /// Here rather than in the test that measures it, so that a further reason to say
         /// something above the invite button is measured by adding it to this rather than by
-        /// somebody remembering to. `GateTabFitsTests` is what reads it. How many reasons there are
-        /// has changed more than once, which is why the comparison is over a list rather than
-        /// written out.
+        /// somebody remembering to. `GateTabFitsTests` is what reads it, and it picks the widest in
+        /// the band's own font: more characters is not more pixels in a proportional font, and
+        /// the longest by count was the sentence measured.
         /// </remarks>
-        public static readonly string LongestInviteNotice = Longest(
-            PendingAuthorityNotice, PendingProfilesNotice);
-
-        private static string Longest(params string[] candidates)
+        public static readonly IReadOnlyList<string> InviteNotices = new[]
         {
-            return candidates.Aggregate(
-                string.Empty, (longest, candidate) => candidate.Length > longest.Length ? candidate : longest);
-        }
+            PendingAuthorityNotice, PendingProfilesNotice
+        };
 
         /// <summary>The dialog raised when somebody asks to pair.</summary>
         public const string ApprovalFormName = "KpgApprovalForm";

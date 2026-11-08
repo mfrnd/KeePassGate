@@ -462,7 +462,7 @@ namespace KeePassGate.Host.Tests
                 var area = scaled == null ? _page.DisplayRectangle.Size : PageOf(scaled.Dialog);
                 var where = " at " + scaling.ToString("0.00", CultureInfo.InvariantCulture) + " scaling";
 
-                foreach (var notice in new[] { GateTab.PendingAuthorityNotice, GateTab.PendingProfilesNotice })
+                foreach (var notice in GateTab.InviteNotices)
                 {
                     using (var panel = NewPanel(true, true))
                     {
@@ -954,11 +954,25 @@ namespace KeePassGate.Host.Tests
             // client list 72 of its 90 pixels under the two lines a merge adds. Each notice beside
             // what it can really share the page with is measured by
             // `The_notice_over_the_invite_button_leaves_the_list_its_room`.
-            Show(panel, GateTab.InviteNoticeName, GateTab.LongestInviteNotice);
+            var notice = WidestInviteNotice(panel);
+            Show(panel, GateTab.InviteNoticeName, notice);
             ControlTree.FindFirst<TabControl>(panel).SelectedIndexChanged +=
-                delegate { Show(panel, GateTab.InviteNoticeName, GateTab.LongestInviteNotice); };
+                delegate { Show(panel, GateTab.InviteNoticeName, notice); };
 
             return panel;
+        }
+
+        /// <summary>
+        /// The widest sentence the band over the invite button can hold, in the band's own font.
+        /// </summary>
+        /// <remarks>
+        /// Measured, as the invitation line is: in a proportional font more characters is not more
+        /// pixels, and the band was handed the longest by count.
+        /// </remarks>
+        private static string WidestInviteNotice(Control panel)
+        {
+            var font = ControlTree.FindByName<Label>(panel, GateTab.InviteNoticeName).Font;
+            return GateTab.InviteNotices.OrderByDescending(notice => WidthOf(notice, font)).First();
         }
 
         /// <summary>
