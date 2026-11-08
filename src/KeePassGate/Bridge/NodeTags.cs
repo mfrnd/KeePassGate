@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Security.Cryptography;
 using System.Text;
@@ -46,6 +47,12 @@ namespace KeePassGate.Bridge
     /// wire writes it, to the second, because a file reopened keeps no more than that: a fraction
     /// in the tag changed every tag across a reload for nothing anybody wrote. A rule is left out,
     /// since no route serves one.
+    ///
+    /// **Strings and attachments enter in an order of the tag's own**, by name, ordinal. KeePass
+    /// keeps both in dictionaries sorted by the current culture, in the order their names were
+    /// compared when the file loaded, so a tag walked in that order changed for content nobody
+    /// changed once the regional format or Windows' collation moved between two sessions, and a
+    /// write under the earlier tag was refused `412`.
     ///
     /// **An attachment larger than the gate serves enters by its size alone.** Its bytes cannot be
     /// read through the gate and cannot be written through it either, so no client holds a copy
@@ -142,7 +149,7 @@ namespace KeePassGate.Bridge
                 Put(hmac, Served(entry.CreationTime));
                 Put(hmac, Served(entry.LastModificationTime));
 
-                foreach (var pair in entry.Strings)
+                foreach (var pair in entry.Strings.OrderBy(pair => pair.Key, StringComparer.Ordinal))
                 {
                     Put(hmac, "string");
                     Put(hmac, pair.Key);
@@ -165,7 +172,7 @@ namespace KeePassGate.Bridge
                     }
                 }
 
-                foreach (var pair in entry.Binaries)
+                foreach (var pair in entry.Binaries.OrderBy(pair => pair.Key, StringComparer.Ordinal))
                 {
                     Put(hmac, "attachment");
                     Put(hmac, pair.Key);

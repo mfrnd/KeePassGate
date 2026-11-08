@@ -1,7 +1,9 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.Text;
+using System.Threading;
 using KeePassGate.Bridge;
 using KeePassGate.Testing;
 using KeePassGate.Ui;
@@ -214,6 +216,39 @@ namespace KeePassGate.Host.Tests
             _vault.Read(Uuid(_entry));
 
             Assert.That(EntryTag(), Is.EqualTo(tag));
+        }
+
+        [Test]
+        public void An_entry_s_tag_does_not_depend_on_the_culture_its_names_were_sorted_under()
+        {
+            // KeePass's dictionaries order their names by the culture they were compared under,
+            // which is the culture the file was loaded in. The two sort these apart.
+            // cspell:ignore Ärende
+            var tags = new List<string>();
+            var uuid = new PwUuid(true);
+
+            foreach (var culture in new[] { "de-DE", "sv-SE" })
+            {
+                var entry = new PwEntry(false, false) { Uuid = uuid, CreationTime = Moment, LastModificationTime = Moment };
+                var was = Thread.CurrentThread.CurrentCulture;
+                try
+                {
+                    Thread.CurrentThread.CurrentCulture = new CultureInfo(culture);
+                    foreach (var name in new[] { "Zone", "Ärende", "Bank" })
+                    {
+                        entry.Strings.Set(name, new ProtectedString(false, "invented"));
+                        entry.Binaries.Set(name + ".txt", new ProtectedBinary(false, Encoding.UTF8.GetBytes("invented")));
+                    }
+                }
+                finally
+                {
+                    Thread.CurrentThread.CurrentCulture = was;
+                }
+
+                tags.Add(TestTags.Fixed.Of(entry, (name, value) => value.IsProtected));
+            }
+
+            Assert.That(tags[1], Is.EqualTo(tags[0]));
         }
 
         [Test]

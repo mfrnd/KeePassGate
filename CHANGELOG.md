@@ -164,6 +164,12 @@ none, since it releases both.
   `If-Match` that does not read, one naming no strong tag, or a program the gate hands no tags.
   Every one was logged as a node that changed, which sent an operator looking for an edit nobody
   made.
+- **An entry's tag is the same whatever culture KeePass runs under.** Its strings and attachments
+  entered the tag in the order KeePass keeps them, which is by the current culture as the file
+  loaded, so a change of regional format or of Windows' collation between two sessions changed
+  the tag of entries nobody had changed, and a write under the earlier tag was refused `412`. The
+  names now enter in ordinal order, so a tag an entry with custom names was handed before this
+  version can be refused once.
 - **A protected field is kept from a strip whenever any profile could put an unprotected value
   back.** The guard asked whether some profile could create there and whether some profile could
   create a protected value there, so a program holding one profile that could put an unprotected
