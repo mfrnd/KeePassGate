@@ -210,8 +210,9 @@ shows a client pointed at one.
 
 **It does not open a `.kdbx`.** There is no file and no master password on this side of the API, by
 design. What that means for anybody expecting a `pykeepass` object is measured on the
-`spikes/pykeepass-compatibility` branch: 23 of its 56 public members are servable over the routes the
-gate already has, and the object itself is not one of them.
+`spikes/pykeepass-compatibility` branch: 65 of the 122 public members of `PyKeePass`, `Entry`,
+`Group` and `Attachment` are servable over the routes the gate already has, 24 of the 56 on
+`PyKeePass` itself, and the object itself is not one of them.
 
 **It defends nothing against local code execution as the user.** The client's key is on the disk,
 because a client has to still be the same client tomorrow. The whole design concedes this
