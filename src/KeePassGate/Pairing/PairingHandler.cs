@@ -528,9 +528,12 @@ namespace KeePassGate.Pairing
             // back is whatever the screen answered and a repeated profile would reach the
             // certificate as a repeated claim. The lifetime is the operator's choice, which the
             // issuer holds to `Lifetime`'s bounds once more. What the list held of the approved
-            // names is kept with it, because the write compares that under the writer's lock.
+            // names is kept with it, because the write compares that under the writer's lock, and
+            // it is the list the dialog was built from, which is what the operator answered: a
+            // fresh read here took in a name put on the list while the dialog stood, which the
+            // dialog had shown as "(new)", and the write then found nothing to compare.
             var approved = Once(decision.Profiles);
-            var listed = new HashSet<string>(target.KnownProfiles ?? Array.Empty<string>(), StringComparer.Ordinal);
+            var listed = new HashSet<string>(known ?? Array.Empty<string>(), StringComparer.Ordinal);
             return _held.Hold(
                 key,
                 target.DatabaseId,
@@ -689,7 +692,7 @@ namespace KeePassGate.Pairing
                     if (stale != HeldStaleness.None)
                     {
                         refused = "stale";
-                        return "a profile it approved is not on the list as it was when the operator answered";
+                        return "a profile the answer rested on is not on the list as the dialog showed it";
                     }
 
                     if (!_invitations.Burn(invitationId))

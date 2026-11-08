@@ -16,12 +16,13 @@ namespace KeePassGate.Pairing
     /// <remarks>
     /// Built by <see cref="ApprovalBook.Hold"/> and nowhere else. What the operator decided, the
     /// profiles and the lifetime, and the state they decided it against: the authority being
-    /// served, which of the approved names the database's list held, and for a renewal the record
-    /// being renewed. <see cref="Stale"/> compares that state with the database's own under the
-    /// writer's lock, at the moment of writing.
+    /// served, which of the names the decision rested on the database's list held as the dialog
+    /// showed it, and for a renewal the record being renewed. <see cref="Stale"/> compares that
+    /// state with the database's own under the writer's lock, at the moment of writing.
     /// </remarks>
     public sealed class HeldApproval
     {
+        private readonly HashSet<string> _asked;
         private readonly HashSet<string> _listed;
 
         internal HeldApproval(
@@ -29,6 +30,7 @@ namespace KeePassGate.Pairing
             string databaseId,
             IReadOnlyList<string> profiles,
             TimeSpan lifetime,
+            IEnumerable<string> asked,
             IEnumerable<string> listed,
             string record,
             DateTimeOffset until)
@@ -37,6 +39,8 @@ namespace KeePassGate.Pairing
             DatabaseId = databaseId;
             Profiles = profiles ?? Array.Empty<string>();
             Lifetime = lifetime;
+            _asked = new HashSet<string>(asked ?? Array.Empty<string>(), StringComparer.Ordinal);
+            _asked.UnionWith(Profiles);
             _listed = new HashSet<string>(listed ?? Array.Empty<string>(), StringComparer.Ordinal);
             Record = record;
             Until = until;
@@ -77,11 +81,18 @@ namespace KeePassGate.Pairing
         /// **The authority** has to be the one served and not retired: a record written under any other
         /// is one that chains to nothing the gate serves.
         ///
-        /// **The profiles**, name by name: each approved name has to be on the list exactly when it
-        /// was. A name the operator took off the list since would be put back by the write, with
-        /// every rule naming it and every client holding it, and one put on it since is not the
-        /// "(new)" name the dialog said it was. A name the approval does not carry changes nothing
-        /// it decided, so a pairing landing in between and naming something else voids nothing.
+        /// **The profiles**, name by name: each name the decision rested on has to be on the list
+        /// exactly when the dialog showed it there. A name the operator took off the list since
+        /// would be put back by the write, with every rule naming it and every client holding it,
+        /// and a name put on it since is not the "(new)" name the dialog showed. A name the
+        /// decision did not rest on changes nothing it decided, so a pairing landing in between and
+        /// naming something else voids nothing.
+        ///
+        /// **This is the read a record's names are written from**, `DESIGN.md` §124: what the
+        /// handler read on its connection thread built the dialog and nothing more. A renewal's
+        /// decision rests on every name its record carries, those the dialog offered and those it
+        /// showed as dropped, so a read that missed the list while the dialog was built, and
+        /// offered nothing, is caught here rather than written as a record with no profiles.
         ///
         /// **The record**, for a renewal: still there, unrevoked and unchanged. A revocation that
         /// landed after the operator answered, or after the handler last read it, is what this
@@ -116,7 +127,7 @@ namespace KeePassGate.Pairing
             }
 
             var names = ProfileNames.Read(stored);
-            foreach (var profile in Profiles)
+            foreach (var profile in _asked)
             {
                 if (names.Holds(profile) != _listed.Contains(profile))
                 {
@@ -248,6 +259,14 @@ namespace KeePassGate.Pairing
         /// Holds what the operator approved, until <paramref name="until"/>, replacing anything
         /// held under the same key.
         /// </summary>
+        /// <param name="listed">
+        /// Which of the names the decision rested on the list held as the dialog showed it.
+        /// </param>
+        /// <param name="asked">
+        /// The names the decision rested on beyond the approved ones, which the write compares as
+        /// well, or null for none: a renewal's record carries names the operator was shown as
+        /// dropped and did not approve.
+        /// </param>
         public HeldApproval Hold(
             string key,
             string databaseId,
@@ -255,9 +274,10 @@ namespace KeePassGate.Pairing
             TimeSpan lifetime,
             IEnumerable<string> listed,
             string record,
-            DateTimeOffset until)
+            DateTimeOffset until,
+            IEnumerable<string> asked = null)
         {
-            var held = new HeldApproval(key, databaseId, profiles, lifetime, listed, record, until);
+            var held = new HeldApproval(key, databaseId, profiles, lifetime, asked, listed, record, until);
             lock (_lock)
             {
                 _held[key] = held;
