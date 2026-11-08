@@ -105,7 +105,7 @@ namespace KeePassGate.Authority
         /// that found them was itself read. A record that cannot be read is reported, admits
         /// nobody, and is named by its key; a listing that cannot be made is reported and
         /// answered, which is not the same as answering that there are none. A record with a
-        /// revocation beside it is not listed, only counted, as one that came back.
+        /// revocation beside it is not listed, only counted, as a client that came back.
         /// </summary>
         public AdmissionListing All()
         {
@@ -114,14 +114,19 @@ namespace KeePassGate.Authority
             var revoked = Revoked(stored);
             var records = new List<AdmissionRecord>();
             var unreadable = new List<string>();
-            var cameBack = 0;
+            var cameBack = new HashSet<string>(StringComparer.Ordinal);
 
             foreach (var key in RecordKeys(stored))
             {
                 var admissionKey = AuthorityKeys.AdmissionKeyIn(key);
                 if (revoked.Contains(admissionKey))
                 {
-                    cameBack++;
+                    // By client key, as every count of clients is, so that a renewed client whose
+                    // certificates were each revoked and each brought back is one client and not
+                    // two. A record that will not read names no client, and counts as one by its
+                    // own key, which is the client key whenever it was the client's first.
+                    var back = Read(key);
+                    cameBack.Add(back == null ? admissionKey : back.ClientKey);
                     continue;
                 }
 
@@ -137,7 +142,7 @@ namespace KeePassGate.Authority
                 unreadable.Add(admissionKey);
             }
 
-            return new AdmissionListing(records, unreadable, cameBack, listed);
+            return new AdmissionListing(records, unreadable, cameBack.Count, listed);
         }
 
         /// <summary>

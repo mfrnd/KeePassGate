@@ -322,6 +322,9 @@ none, since it releases both.
   their answers were synchronized, retire every authority, and the tab then sent the operator
   looking for a step they had missed. A delete, which retires an authority too, is shown the same
   way.
+- **The Clients page counts the revoked clients a merge brought back by client, not by record.**
+  A renewed client whose certificates were both revoked and both brought back was counted as two
+  revoked clients.
 - **The client's messages and the documentation name the authority** wherever "one" stood for
   it, and no longer assume two copies or two authorities.
 - **A database holding a crafted authority key stops only itself being served.** A key named
