@@ -1315,10 +1315,10 @@ which agent read which entry belongs in neither; `KEEPASSGATE_AUDIT_FILE` names 
 eight megabytes keeping one previous file, which is the smallest thing that stops an unbounded file
 while leaving the recent past readable. And **every value it carries is a string**, the decision
 included, so a line says `"decision":"refused"` rather than `false` and a person skimming the file
-reads a word rather than a flag whose sense they have to remember. A member with nothing to say is
-written as an explicit `null` rather than left out, because a reader that has to tell "absent" from
-"not applicable" is a reader that will guess, and a missing member reads as a log written by a
-different version.
+reads a word rather than a flag whose sense they have to remember; `removedProfiles`, the one list,
+is an array of strings. A member with nothing to say is written as an explicit `null` rather than
+left out, because a reader that has to tell "absent" from "not applicable" is a reader that will
+guess, and a missing member reads as a log written by a different version.
 
 **That null is why `JsonBody` cannot read a line back**, and this corrects a claim made here
 earlier. The all-strings shape was argued for partly on the plugin being able to read its own audit

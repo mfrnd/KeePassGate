@@ -39,10 +39,10 @@ namespace KeePassGate.Audit
     /// **Every value is a string, including the decision**, so that a line says
     /// `"decision":"refused"` rather than `false`, which is a word a person skimming a file can see
     /// rather than a flag they have to remember the sense of. The exceptions are the six members
-    /// that can have nothing to say. Those are `database`, `admissionKey`, `clientKey`,
-    /// `operation`, `node` and `decidedAt`, each written as a bare `null` rather than left out,
-    /// because a reader that has to tell "absent" from "not applicable" is a reader that will
-    /// guess.
+    /// that can have nothing to say, and `removedProfiles`, the one list, an array of strings. The
+    /// six are `database`, `admissionKey`, `clientKey`, `operation`, `node` and `decidedAt`, each
+    /// written as a bare `null` rather than left out, because a reader that has to tell "absent"
+    /// from "not applicable" is a reader that will guess.
     ///
     /// **Two kinds of line, in one form.** Most say what the rules decided about a request, and
     /// their decision is `permitted` or `refused`. The rest say what happened to an admission, which
