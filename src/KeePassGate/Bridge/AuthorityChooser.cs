@@ -134,25 +134,21 @@ namespace KeePassGate.Bridge
             _incidents = incidents ?? new GateIncidents(_log);
         }
 
-        public bool Start()
+        /// <summary>Watches for a database opened, unlocked or saved, once however often it is asked.</summary>
+        /// <remarks>
+        /// Subscribing adds a handler to an event of the plugin's own, which throws nothing, so
+        /// nothing here is caught and nothing is answered.
+        /// </remarks>
+        public void Start()
         {
             if (_started)
             {
-                return true;
+                return;
             }
 
-            try
-            {
-                _events.Opened += OnChanged;
-                _events.Saved += OnChanged;
-                _started = true;
-                return true;
-            }
-            catch (Exception error) when (Expected.OfUserInterface(error))
-            {
-                _log.Error("the authority chooser could not watch for databases changing", error);
-                return false;
-            }
+            _events.Opened += OnChanged;
+            _events.Saved += OnChanged;
+            _started = true;
         }
 
         public void Dispose()
