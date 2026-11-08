@@ -640,10 +640,10 @@ revision's rule is in force for nobody. **Adding the name back is a full undo** 
 every record still naming it, so the page asks first, saying how many rules come back into force and
 naming every client that regains the name, each once by its client key, `CA.md` §223, so that a
 client holding two certificates is one client and two that chose one name are two, named apart. A
-client that renewed while the name was off the list was
-given a record without it, `PAIRING.md` §312, and the certificate it renewed to does not regain it.
-Approving a pairing for a removed name that clients still hold warns the same way, because pairing
-writes the approved name onto the list.
+client that renewed while the name was off the list was given a record without it,
+`PAIRING.md` §312, and the certificate it renewed to does not regain it. Approving a pairing for a
+removed name that clients still hold warns the same way, because pairing writes the approved name
+onto the list.
 
 ### Resolution §137
 

@@ -204,22 +204,21 @@ moment its certificate ended and the moment the clock read. A clock that is wron
 refuse a client that setting the clock right admits again; a key taken out of the file is not
 put back by anything, so the log is where a client lost to a wrong clock is found.
 
-**A standing answer to a renewal is changed rather than only added**, unlike a revocation, because
-a later answer about the same certificate replaces an earlier one. That makes it a key a merge can
+**A standing answer to a renewal is changed rather than only added**, unlike a revocation, because a
+later answer about the same certificate replaces an earlier one. That makes it a key a merge can
 decide either way: Synchronize and the methods like it take the newer by modification time, which a
 slow clock or a copy saved without the times turns around, and Overwrite existing takes the other
-copy's whatever its time. The direction is safe, since a renewal is still a person approving one
-and no standing answer admits anybody, but the price is not always a dialog: a forever that wins
+copy's whatever its time. The direction is safe, since a renewal still waits on a person approving
+it, and no standing answer admits anybody, but the price is not always a dialog: a forever that wins
 over a newer until a date answers every renewal `409 forever`, and the client's name is red on the
-clients page until the operator lifts it there. One that will not read is answered as forever, and
-said in the log. It goes on the writes the other prunes ride on, once no record admits the
-certificate: revoked, expired, or gone; and when the operator presses **Allow renewal** on that
+clients page until the operator lifts it there. A standing answer that will not read counts as
+forever, and the log names it. It goes on the writes the other prunes ride on, once no record admits
+the certificate: revoked, expired, or gone; and when the operator presses **Allow renewal** on that
 client's row and accepts the settings dialog, which removes the key. A removal is the one thing a
-KeePass merge never carries, so a copy of the file from before the lift brings the answer back,
-red on the page again, and the operator lifts it again. **A refusal in this session
-has no key at all**: the plugin holds it in memory, per certificate, until KeePass exits, because
-an answer about one session written into the file would outlast that session in every copy of it,
-`PAIRING.md` §312.
+KeePass merge never carries, so a copy of the file from before the lift brings the answer back, red
+on the page again, and the operator lifts it again. **A refusal in this session has no key at all**:
+the plugin holds it in memory, per certificate, until KeePass exits, because an answer about one
+session written into the file would outlast that session in every copy of it, `PAIRING.md` §312.
 
 **Each authority is one key, and that is the same argument the other way.** A merge that took its
 parts separately could take the certificate from one replica and the private key from another, and
