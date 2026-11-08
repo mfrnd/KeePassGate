@@ -186,6 +186,43 @@ def test_every_file_a_renewal_writes_is_on_the_disk_before_anything_is_taken_awa
     assert events == ["flushed"] * 12 + ["forgot default.renewing", "forgot default.retired"]
 
 
+@pytest.mark.parametrize("opened", [".", ".."], ids=["the directory itself", "the directory above"])
+def test_an_identity_opened_by_a_relative_path_renews_beside_its_own_directory(
+    tmp_path: Path,
+    gate: FakeGate,
+    bundle: dict[str, Any],
+    renewing: Gate,
+    monkeypatch: pytest.MonkeyPatch,
+    opened: str,
+) -> None:
+    # `pair --directory .` is accepted, and every later renewal of it raised `with_name`'s bare
+    # `ValueError`, while `..` kept its two directories in the working directory, inside the
+    # identity's own rather than beside it.
+    kept = tmp_path / "kept"
+    credentials_module.save(kept, gate.port, bundle)
+    (kept / "below").mkdir()
+    monkeypatch.chdir(kept if opened == "." else kept / "below")
+    beside: list[Path] = []
+    prepare = credentials_module.prepare
+
+    def recorded(where: Path, *arguments: Any, **named: Any) -> Any:
+        beside.append(Path(os.path.normpath(where.absolute())))
+        return prepare(where, *arguments, **named)
+
+    monkeypatch.setattr(credentials_module, "prepare", recorded)
+
+    renewal = GateClient.open(directory=Path(opened), connection_timeout=10.0).renew()
+
+    assert renewal.retired is None
+    assert api.load(kept).expires == "2127-01-02T03:04:05Z"
+    assert beside[:2] == [tmp_path / "kept.renewing", tmp_path / "kept.retired"]
+
+
+def test_an_identity_at_a_root_is_refused_a_renewal_with_what_to_do_instead() -> None:
+    with pytest.raises(StorageError, match="is a root"):
+        client_module._beside(Path(Path.cwd().anchor), "renewing")
+
+
 def test_the_client_carries_on_as_the_new_identity(
     gate: FakeGate, paired: GateClient, renewing: Gate, renewed_certificate: Issued
 ) -> None:

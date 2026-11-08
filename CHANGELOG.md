@@ -11,6 +11,11 @@ none, since it releases both.
 
 ## 0.2.0, unreleased
 
+- **An identity opened by a relative path renews beside its own directory**, `.` and `..` among
+  them. `.` raised a bare `ValueError` out of every renewal, after `pair --directory .` had been
+  accepted, and `..` kept the two directories a renewal makes in the working directory, inside
+  the identity's own. An identity at a root is refused a renewal with a `StorageError` naming what
+  to do instead, which is keeping it in a directory of its own.
 - **Every file PyKeePassGate stores is flushed to the disk before it is counted written.** A
   renewal takes the staging copy away and, once the gate takes the old certificate back, the
   retired copy too, and nothing was flushed: a power loss within seconds of a renewal that

@@ -17,6 +17,7 @@ from __future__ import annotations
 import base64
 import contextlib
 import json
+import os
 from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
@@ -1206,8 +1207,22 @@ def _expiry(value: object, *, creating: bool) -> str:
 
 
 def _beside(directory: Path, purpose: str) -> Path:
-    """A directory next to this one, named for what it holds during a renewal."""
-    return directory.with_name(f"{directory.name}.{purpose}")
+    """A directory next to this one, named for what it holds during a renewal.
+
+    Named from the directory as a whole path, `..` taken lexically, because an identity is opened
+    by whatever path a caller gave: `.` has no name to put a suffix on, which `with_name`
+    refused with a bare `ValueError`, and `..` named `...renewing` in the working directory,
+    inside the identity's directory rather than beside it. A root has nothing beside it at all,
+    which is a `StorageError` naming what to do instead.
+    """
+    whole = Path(os.path.normpath(directory.absolute()))
+    if not whole.name:
+        raise StorageError(
+            f"{directory} is a root, and a renewal keeps two directories beside the identity's "
+            "own, which a root has nowhere to put: keep the identity in a directory of its own"
+        )
+
+    return whole.with_name(f"{whole.name}.{purpose}")
 
 
 def _held(directory: Path) -> dict[str, bytes]:
