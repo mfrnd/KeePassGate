@@ -11,6 +11,11 @@ none, since it releases both.
 
 ## 0.2.0, unreleased
 
+- **The routing document names the error words worth matching on**, `not saved`, `not verified`,
+  `not recorded` and `internal error` on a `500` among them, where it named a few and called the
+  rest told apart by the status. It tells `409 no exchange`, after which the same invitation starts
+  again from a hello, from `409 no invitation`, and a revocation's `500 internal error` covers a
+  revocation that went wrong before anything was saved as well as a revocation never attempted.
 - **A router refuses to be built with a route bound to nothing**: a handler, a guard or a node
   selector given as null counted as bound, so it loaded and the route's first request was answered
   `500` as a defect. The plugin binds none to nothing, so only a router assembled outside it

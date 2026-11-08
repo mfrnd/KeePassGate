@@ -345,7 +345,9 @@ paths:
             read back as something else: it is kept in the database in memory, which stays marked
             as changed, so the certificate is already refused and asking again is answered
             `401`, and whether the file keeps it is the operator's to settle. `internal error` is
-            one that could not be attempted at all.
+            a revocation that could not be attempted at all, the database having closed under the
+            request, or that went wrong before anything was saved: KeePass answered the attempt
+            with an error, or the records did not read back as written and were put back.
           content:
             application/json:
               schema:
@@ -1802,11 +1804,17 @@ components:
         error:
           type: string
           description: |
-            A fixed string, matched whole rather than parsed. The ones worth matching on are
-            `locked`, `undecided`, `busy` and `proof`, and on a `409` from `renewCertificate`
-            `this session`, `too early` and `forever`, because each is a different thing for a
-            client to do next; the rest are told apart by the status and read by a person. None of them carries anything
-            the caller sent back to it.
+            A fixed word or phrase, matched whole rather than parsed, except where a response names
+            its body a sentence: the transport's refusals but its `417`, and `EntryTooLarge` and
+            `TooLarge`, each known by its status. Where several share a status, the response
+            declaring them names what each means, and those are the words worth matching on,
+            because each is a different thing for a client to do next: `locked`, `undecided` and
+            `busy` on a `503`; `proof` on a `401` from pairing; `no invitation` and `no exchange` on
+            a `409` from pairing, and `this session`, `too early` and `forever` on a `409` from
+            renewal; `malformed`, `name` and `profile` on a `400` from `pairRequest`; and
+            `not saved`, `not verified`, `not recorded` and `internal error` on a `500`. The rest
+            are told apart by the status and read by a person. None of them carries anything the
+            caller sent back to it.
 
 
     Identity:
@@ -2459,7 +2467,11 @@ components:
 
     NoInvitation:
       description: |
-        The invitation is gone: expired, spent, or this did not follow its own hello.
+        One of two, and the body names which. `no invitation` is the invitation gone, expired or
+        spent, and pairing again needs a new invitation from the operator. `no exchange`, which
+        only `pairRequest` answers, is a request that did not follow its own hello: there was no
+        hello, or a different certificate answered it. That spends the hello's challenge and
+        nothing else, so the same invitation starts again from a hello.
       content:
         application/json:
           schema:
