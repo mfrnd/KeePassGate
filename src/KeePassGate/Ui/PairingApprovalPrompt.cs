@@ -221,8 +221,9 @@ namespace KeePassGate.Ui
         /// </summary>
         /// <param name="what">What is being asked, for the log: a pairing or a renewal.</param>
         /// <param name="lockedWhileWaiting">
-        /// The answer for a request whose database locked while it waited for the screen, which is
-        /// never shown. A dialog the lock closes answers for itself, as unanswered.
+        /// The answer for a request whose database locked or closed while it waited for the screen,
+        /// which is never shown. A dialog the lock or the close takes away answers for itself, as
+        /// unanswered.
         /// </param>
         private TAnswer OnScreen<TAnswer>(
             Func<TAnswer> dialog,
@@ -278,7 +279,8 @@ namespace KeePassGate.Ui
                     try
                     {
                         // Asked on KeePass's thread, as the lock is: a request that waited here while
-                        // KeePass locked is answered as locked without a dialog being put up at all.
+                        // KeePass locked, or its database closed, is answered as locked without a
+                        // dialog being put up at all.
                         // And asked there for the second reason a write asks there: the turn waits
                         // for KeePass to be idle, and a dialog of WinForms' own shown inside a save
                         // is idle enough to start one.
@@ -287,7 +289,8 @@ namespace KeePassGate.Ui
                             {
                                 if (!_serving(databaseId))
                                 {
-                                    _log.Warn("the database a " + what + " was about locked while it waited for the screen");
+                                    _log.Warn("the database a " + what + " was about locked or closed while it " +
+                                              "waited for the screen");
                                     answer = lockedWhileWaiting();
                                     return;
                                 }

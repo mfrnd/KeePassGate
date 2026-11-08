@@ -101,13 +101,15 @@ namespace KeePassGate.Transport
         /// `PAIRING.md` §308: a lock closes all of them but those waiting on the operator, since a
         /// socket thread must not be reading a database the user interface thread is closing and
         /// KeePass locks every database at once. A close and an unlock close only their own
-        /// database's, by <see cref="_servedFor"/>.
+        /// database's, by <see cref="_servedFor"/>, and a close spares those waiting on the
+        /// operator as a lock does.
         /// </remarks>
         private readonly HashSet<TcpClient> _live = new HashSet<TcpClient>();
 
         /// <summary>
         /// The live connections whose request is a pairing or a renewal, which wait on the operator
-        /// and which a lock spares: see <see cref="CloseAllButAwaiting"/>.
+        /// and which a lock and a close of their database spare: see
+        /// <see cref="CloseAllButAwaiting"/> and <see cref="CloseButAwaiting"/>.
         /// </summary>
         private readonly HashSet<TcpClient> _awaiting = new HashSet<TcpClient>();
 
@@ -319,14 +321,41 @@ namespace KeePassGate.Transport
         /// renewal's included, and leaves every other database's.
         /// </summary>
         /// <remarks>
-        /// What a close and an unlock do, the operator's ruling R1. Both used to close every
-        /// connection: closing or unlocking a second database reset every request to the first,
+        /// What an unlock does, and what a close did until the operator's ruling of 2026-11-08,
+        /// <see cref="CloseButAwaiting"/>. Both used to close every connection, the operator's
+        /// ruling R1: closing or unlocking a second database reset every request to the first,
         /// which was open all along, and closed the connection of a pairing waiting on the first
         /// database's dialog, which the operator then approved into a closed socket. A connection
         /// whose name has not resolved yet is about no database, and is left alone, unless it
         /// resolves to any of these before it is recorded: see <see cref="Serving"/>.
         /// </remarks>
         public int Close(IReadOnlyCollection<string> databaseIds, string why)
+        {
+            return Close(databaseIds, why, false);
+        }
+
+        /// <summary>
+        /// Closes every connection to a database with any of these authorities except a pairing's
+        /// or a renewal's, which a close leaves to answer as a lock does, and leaves every other
+        /// database's.
+        /// </summary>
+        /// <remarks>
+        /// What a close does, the operator's ruling of 2026-11-08. The close has already closed the
+        /// dialog such a connection waits on, or kept that dialog from being shown, so what is left
+        /// to it is answering `503 locked`; closing it here was what left the client with no answer
+        /// at all. It is recorded before the close, since it resolved before its request was read,
+        /// so <see cref="Serving"/> never ends it, and its deadline still bounds it.
+        /// </remarks>
+        public int CloseButAwaiting(IReadOnlyCollection<string> databaseIds, string why)
+        {
+            return Close(databaseIds, why, true);
+        }
+
+        /// <summary>
+        /// Closes the connections to a database with any of these authorities, sparing those
+        /// waiting on the operator when asked to.
+        /// </summary>
+        private int Close(IReadOnlyCollection<string> databaseIds, string why, bool sparingAwaiting)
         {
             if (databaseIds == null || databaseIds.Count == 0)
             {
@@ -338,7 +367,8 @@ namespace KeePassGate.Transport
                 client =>
                 {
                     string served;
-                    return _servedFor.TryGetValue(client, out served) && closed.Contains(served);
+                    return _servedFor.TryGetValue(client, out served) && closed.Contains(served)
+                           && !(sparingAwaiting && _awaiting.Contains(client));
                 },
                 why,
                 closed);

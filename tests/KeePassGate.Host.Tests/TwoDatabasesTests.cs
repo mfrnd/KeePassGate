@@ -123,13 +123,37 @@ namespace KeePassGate.Host.Tests
             Assert.That(Answered(reply).Answered, Is.False, "the request to the closed database was answered; " + _log);
         }
 
+        [Test]
+        public void Closing_a_database_spares_a_renewal_waiting_on_its_operator_so_it_is_answered()
+        {
+            // The operator's ruling of 2026-11-08, "spare it and answer 503 locked". The close
+            // takes the dialog away, and the connection waiting on it is left to answer for it, as
+            // a lock leaves it. It was closed with the database's other connections, so the client
+            // heard nothing. The handler here answers what the withdrawn dialog's renewal answers.
+            var reply = Held(_secondKey, "POST", "/gate/renew", "{}");
+
+            Close(_second, false);
+
+            var answered = Answered(reply);
+            Assert.That(answered.Answered, Is.True, "the renewal's connection was closed with the database; " + _log);
+            Assert.That(answered.Status, Is.EqualTo(503), answered.Failure + "; " + _log);
+            Assert.That(answered.Body, Is.EqualTo(HttpResponse.ErrorBody(LockedTarget.Error)));
+        }
+
         /// <summary>
         /// A request to the database with this gate key, held by the handler once it arrives.
         /// </summary>
         private Task<LiveReply> Held(byte[] gateKey)
         {
+            return Held(gateKey, "GET", "/gate/status", null);
+        }
+
+        /// <summary>The same, asking for something else.</summary>
+        private Task<LiveReply> Held(byte[] gateKey, string method, string path, string body)
+        {
             var name = SniName.For(gateKey);
-            var reply = Task.Run(() => LiveGateClient.Get(_listener.Port, name, null, "/gate/status"));
+            var reply = Task.Run(() => LiveGateClient.Send(
+                _listener.Port, name, null, method, path, body, LiveGateClient.OnTheOperator));
             Assert.That(_handler.Entered.Wait(Wait), Is.True, "the request never reached the handler");
             return reply;
         }
@@ -193,7 +217,10 @@ namespace KeePassGate.Host.Tests
             _events.RaiseOpened(database.Path);
         }
 
-        /// <summary>Answers every request, once the test lets it.</summary>
+        /// <summary>
+        /// Answers every request, once the test lets it: a renewal as its dialog's close leaves it
+        /// to, and anything else with a success.
+        /// </summary>
         private sealed class HoldingHandler : IGateHandler
         {
             private readonly ManualResetEventSlim _released = new ManualResetEventSlim();
@@ -209,6 +236,12 @@ namespace KeePassGate.Host.Tests
             {
                 Entered.Set();
                 _released.Wait(TimeSpan.FromSeconds(60));
+                if (string.Equals(context.Path, "/gate/renew", StringComparison.Ordinal))
+                {
+                    context.Respond(503, HttpResponse.ErrorBody(LockedTarget.Error));
+                    return;
+                }
+
                 context.Respond(200, "{}");
             }
         }

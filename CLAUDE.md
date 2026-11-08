@@ -192,7 +192,9 @@ designing around them.
   through under either dialog and closes it as unanswered, `PAIRING.md` §308. Do not register one to
   keep it from being left over a locked database: closing it at the lock is what does that. **A
   close of the database a dialog is about closes it the same way**, the operator's ruling of
-  2026-11-08, which replaced leaving it standing over a database that was gone.
+  2026-11-08, which replaced leaving it standing over a database that was gone, and spares its
+  connection as a lock does, by a second ruling that day, so its client is told `503 locked`
+  where it used to see the connection end with the database's others.
 - **The proofs need nothing from the transport.** `tls-server-end-point` is a hash of the
   certificate in use, so each side computes it from bytes it already holds. Do not re-propose
   `TransportContext.GetChannelBinding`: it was necessary while `SslStream` terminated the TLS and

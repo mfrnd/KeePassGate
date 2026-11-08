@@ -169,7 +169,7 @@ namespace KeePassGate.Pairing
             return new RenewalApproval(PairingDecision.Locked, null, null, null, PairingApproval.ClosedReason);
         }
 
-        /// <summary>A renewal a lock kept off the screen, as a pairing's is.</summary>
+        /// <summary>A renewal a lock or a close kept off the screen, as a pairing's is.</summary>
         public static RenewalApproval LockedWhileWaiting()
         {
             return new RenewalApproval(

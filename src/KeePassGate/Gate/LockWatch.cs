@@ -39,9 +39,17 @@ namespace KeePassGate.Gate
     {
         /// <summary>
         /// Closes every connection to a database with any of these authorities, waiting on the
-        /// operator or not, and answers how many it closed. What a close and an unlock do.
+        /// operator or not, and answers how many it closed. What an unlock does.
         /// </summary>
         int Close(IReadOnlyCollection<string> databaseIds, string why);
+
+        /// <summary>
+        /// Closes every connection to a database with any of these authorities except those
+        /// waiting on the operator, and answers how many it closed. What a close does, because
+        /// <see cref="IApprovalScreen.Closed"/> has already taken their question away and each
+        /// answers `503 locked` itself, as at a lock.
+        /// </summary>
+        int CloseButAwaiting(IReadOnlyCollection<string> databaseIds, string why);
 
         /// <summary>
         /// Closes every connection except those waiting on the operator, and answers how many it
@@ -142,6 +150,12 @@ namespace KeePassGate.Gate
     /// unanswered and its connection answers `503 locked`, `PAIRING.md` §308; every other
     /// connection is closed as before. What the spared ones go on to do touches nothing: a locked
     /// database writes nothing, and their deadline still bounds them.
+    ///
+    /// **A close spares them too**, the operator's ruling of 2026-11-08: the close of their own
+    /// database takes their dialog away as a lock does, and each answers `503 locked`. It ended
+    /// them with the database's other connections, so the dialog its close withdrew answered into
+    /// a closed socket and the client heard nothing. A closed database writes nothing either. An
+    /// unlock still ends its database's connections, the waiting ones among them.
     /// </remarks>
     public sealed class LockWatch : IDisposable
     {
@@ -390,9 +404,11 @@ namespace KeePassGate.Gate
                     }
                     finally
                     {
+                        // Its connections but those waiting on the operator, whose question the
+                        // screen has just taken away: each answers `503 locked`, as at a lock.
                         if (closed != null && closed.Count > 0)
                         {
-                            Close(closed, "a database was closed");
+                            CloseButAwaiting(closed, "a database was closed");
                         }
                     }
                 }
@@ -410,6 +426,15 @@ namespace KeePassGate.Gate
         private void Close(IReadOnlyCollection<string> databaseIds, string why)
         {
             Closing(connections => connections.Close(databaseIds, why), why);
+        }
+
+        /// <summary>
+        /// Closes the connections to the databases with these authorities but those waiting on the
+        /// operator.
+        /// </summary>
+        private void CloseButAwaiting(IReadOnlyCollection<string> databaseIds, string why)
+        {
+            Closing(connections => connections.CloseButAwaiting(databaseIds, why), why);
         }
 
         /// <summary>Closes every connection but those waiting on the operator.</summary>

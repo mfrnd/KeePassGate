@@ -155,8 +155,8 @@ up, or its deadline running out. A lock is the other thing that closes connectio
 this one: it closes the dialog as unanswered instead, nothing is issued or spent, and the client is
 told `503 locked`, §308. A close or an unlock closes only its own database's connections, so a
 close or an unlock of another database leaves this connection alone. A close of its own database
-closes the dialog as unanswered too, and this connection with it, so nothing is issued or spent
-there either.
+closes the dialog as unanswered too, and spares this connection as a lock does, so nothing is issued
+or spent there either and the client is told `503 locked`.
 
 **One pairing is put to the operator at a time.** Two connections can reach phase 4 together, and
 each asks the user interface thread to show a dialog. The second would open inside the first one's
@@ -455,9 +455,11 @@ on the argument that its answer would find the database gone: an Approve there c
 and only the plugin letting go of the approval as it arrived kept it out of the database opened
 again under the same authority. A close of another database leaves the dialog where it is, and a
 close that names no database, which lets every approval go, closes it too. The request is written
-down as unanswered, since the operator was shown it, and is answered `503 locked`, though a close
-ends its own database's connections, the dialog's among them, which a lock spares: what reaches
-the client is the connection ending.
+down as unanswered, since the operator was shown it, and its client is told `503 locked`: the
+close spares the connections waiting on its operator, as a lock does, the operator's ruling of
+2026-11-08 on the same day. It ended them with the database's other connections, so the dialog it
+closed answered into a closed socket and the client saw only its connection end. A request still
+waiting for the screen is spared too, is never shown, and is told `503 locked` the same way.
 
 **An unlock that lifts no lock closes nothing**, which is a refinement the end to end tier forced
 rather than a weakening. KeePass announces a database being opened and a database being unlocked
@@ -474,6 +476,10 @@ own**, as an unlock: it closed every connection and let every approval go, so cl
 database cost the first a request in flight, and a pairing waiting on its dialog its connection.
 A connection is that database's when its name resolved to an authority of the database, and a
 connection whose name resolves as the database closes is ended as soon as the name has resolved.
+**But for a pairing's or a renewal's waiting on the operator**, which the close spares as a lock
+spares it, since the close has taken its question away and what is left to it is answering
+`503 locked`. Its name resolved before its request was read, so the guard for a name resolving as
+the database closes never ends it, and its deadline still bounds it. An unlock spares none.
 
 **The responder is minted when the database opens, not when a connection arrives.** Minting it
 lazily looks equivalent and is not: a database nobody happened to connect to between an unlock and

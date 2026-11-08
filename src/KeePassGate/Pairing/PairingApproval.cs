@@ -304,8 +304,8 @@ namespace KeePassGate.Pairing
         }
 
         /// <summary>
-        /// A request that waited for the screen while KeePass locked, and was never shown: locked,
-        /// as a dialog the lock closed is, and asked of nobody.
+        /// A request that waited for the screen while its database locked or closed, and was never
+        /// shown: locked, as a dialog the lock closed is, and asked of nobody.
         /// </summary>
         public static PairingApproval LockedWhileWaiting()
         {
@@ -318,9 +318,12 @@ namespace KeePassGate.Pairing
         /// <summary>What the log reads of a question its database's close took away.</summary>
         internal const string ClosedReason = "closed unanswered when its database closed";
 
-        /// <summary>What the log reads of a question a lock kept off the screen.</summary>
+        /// <summary>
+        /// What the log reads of a question a lock or a close kept off the screen, which the screen
+        /// cannot tell apart: either leaves the database no longer served.
+        /// </summary>
         internal const string LockedWhileWaitingReason =
-            "never shown, because KeePass locked while it waited for the screen";
+            "never shown, because its database locked or closed while it waited for the screen";
     }
 
     /// <summary>

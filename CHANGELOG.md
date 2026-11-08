@@ -336,6 +336,10 @@ none, since it releases both.
   lock does, and the log states that its database closed. The dialog stayed up over the closed
   database, offering an Approve that could do nothing. Closing another database still leaves it
   where it is.
+- **Closing a database spares the pairings and renewals waiting on its operator**, as a lock does,
+  so a client whose dialog the close took away, or whose request was still waiting for the screen,
+  is told `503 locked`. Its connection was ended with the database's others, and the client saw it
+  close without an answer. Every other connection to that database is still ended.
 
 ## 0.1.0, 2026-10-25
 
