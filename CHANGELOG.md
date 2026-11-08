@@ -11,6 +11,10 @@ none, since it releases both.
 
 ## 0.2.0, unreleased
 
+- **An answer its client reads too slowly is cut off at the connection budget**, counted from the
+  moment it starts being written. Only the socket's send timeout bounded it, which covers one TLS
+  record, so an admitted client reading a large answer a record at a time held a thread and a
+  connection slot for minutes. A pairing and a renewal keep the longer deadline they had.
 - **The routing document names the transport's answers before routing as the transport gives
   them.** It promised a `501` for a method the gate does not implement, which the router answers
   instead, and named no `501` for a `Transfer-Encoding`, the only reason a `501` is sent; it

@@ -1092,6 +1092,13 @@ So the rules here:
   identifier either way. That is the same loss pairing is protected from, arriving on every other
   route.
 
+  **And it starts again when the answer is written**, counted afresh, because how fast an answer
+  is read is the peer's doing as much as how fast a request is sent. The socket's send timeout
+  does not bound it, since it bounds one send, which is one TLS record: a peer reading a record
+  inside every timeout held a thread and a connection slot for as long as a large answer lasted,
+  minutes for an attachment. By then the plugin's own work is over, so closing the socket there
+  costs only an answer its peer was not reading.
+
   **This section used to claim a floor instead**, `DatabaseWriter.LockTimeout +
   DatabaseWriter.WriteTimeout`, and say that a budget above the sum prevented the loss. It does
   not, and the paragraph above this one says why: `WriteTimeout` bounds the wait for the marshaled

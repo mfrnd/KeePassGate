@@ -129,7 +129,8 @@ take or the ordinary budget if that is shorter, since all it owes there is a Cli
 whole ordinary budget, `GateOptions.Budget`, counted from the name resolving to the end of its
 request. After that it has no deadline at all: what is left there is a write and a save that no
 number bounds, so a deadline could only ever close the socket while a write that is still going to
-land is landing.
+land is landing. The ordinary budget is given again, counted afresh, once its answer is being
+written, since how fast that is read is the peer's doing.
 
 Phase 4 blows through it on purpose, and by more than one wait. The operator is given two minutes to
 read the dialog; a second pairing waits that long again just to get in front of them, since only one

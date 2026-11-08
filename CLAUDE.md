@@ -1310,6 +1310,11 @@ those are added up against. `GateOptionsTests` still pins that one. A renewal wa
 things on the same screen, so the listener gives it the same deadline once it has read which
 request arrived.
 
+**And it starts again for the answer.** Once the handler has decided, an ordinary connection's
+answer is written under the ordinary budget counted afresh, `GateListener.Deadline.Writing`,
+because how fast it is read is the peer's doing again, and the socket's send timeout bounds one
+TLS record rather than an answer.
+
 **This used to claim a floor for both**, `DatabaseWriter.LockTimeout + DatabaseWriter.WriteTimeout`,
 and it was wrong: `WriteTimeout` bounds the wait for the marshaled call to *start*, and a call that
 has started is waited out with no clock on it. No sum of this plugin's timeouts bounds a save, which

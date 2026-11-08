@@ -138,9 +138,13 @@ namespace KeePassGate.Gate
     ///
     /// Order matters at a lock, and what it buys is narrower than it looks. The material is let go
     /// **before** the connections are closed, but letting go is releasing a reference, not wiping:
-    /// a connection already in flight holds one of its own and the material lives until it finishes,
-    /// which its deadline bounds. What the order does guarantee is that no connection arriving after
-    /// the lock can reach it, and that the ones still running are being closed rather than served.
+    /// a connection already in flight holds a reference of its own and the material lives until
+    /// it ends. A pairing's or a renewal's deadline bounds that. Nothing of this plugin's bounds an
+    /// ordinary write in flight, whose deadline was disarmed with its request: closing its socket
+    /// frees no thread, so the material is held until its write and save end, and then for as long
+    /// as its answer's write is allowed. What the order does guarantee is that no connection
+    /// arriving after the lock can reach it, and that the connections still running are being
+    /// closed rather than served.
     /// The data path is closed either way, because a locked target answers no records at all.
     ///
     /// **A lock spares the connections waiting on the operator**, and closes the question they are

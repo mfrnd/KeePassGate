@@ -929,6 +929,50 @@ namespace KeePassGate.Tests
         }
 
         [Test]
+        public void An_answer_its_peer_does_not_read_is_cut_off_at_the_budget()
+        {
+            // How fast an answer is read is the peer's doing, as the pace of its request was. The
+            // socket's send timeout bounds one send, which is one TLS record, so a peer reading a
+            // record inside each timeout held a thread and a slot for as long as the answer
+            // lasted. Here a read may block for two minutes and the budget is five seconds, which
+            // is generous because the handshake is inside it, and nothing reads the answer, which
+            // is far larger than the buffers between the two ends: the write is closed under at
+            // the budget, or at the end of a send timeout this waits a quarter of.
+            var options = new GateOptions
+            {
+                Port = 0,
+                Timeout = TimeSpan.FromSeconds(120),
+                Budget = TimeSpan.FromSeconds(5),
+            };
+
+            using (var listener = new GateListener(
+                options, new GateResolver(_targets, _log), new LargeHandler(16 * 1024 * 1024), _log))
+            {
+                Assert.That(listener.Start(), Is.True);
+
+                using (var tcp = new TcpClient())
+                {
+                    tcp.Connect(IPAddress.Loopback, listener.Port);
+                    using (var tls = new System.Net.Security.SslStream(
+                        tcp.GetStream(), false, delegate { return true; }))
+                    {
+                        tls.AuthenticateAsClient(
+                            _first.NewName(), null, System.Security.Authentication.SslProtocols.Tls13,
+                            false);
+                        var request = Encoding.ASCII.GetBytes(
+                            "GET " + GateOperations.StatusPath + " HTTP/1.1\r\nHost: gate\r\n\r\n");
+                        tls.Write(request, 0, request.Length);
+                        tls.Flush();
+
+                        Assert.That(
+                            Waited(() => _log.Warnings.Any(w => w.Message.Contains("could not be written"))),
+                            Is.True, "an answer nobody read held its connection past the budget");
+                    }
+                }
+            }
+        }
+
+        [Test]
         public void A_peer_that_dribbles_a_client_hello_is_cut_off_before_there_is_a_handshake()
         {
             // Something bounds the peek as well as the conversation, which is what cuts off a peer
@@ -1303,6 +1347,22 @@ namespace KeePassGate.Tests
                 Interlocked.Increment(ref _entered);
                 _released.Wait(TimeSpan.FromSeconds(30));
                 context.Respond(200, "{}");
+            }
+        }
+
+        /// <summary>A handler whose answer is one string member this many characters long.</summary>
+        private sealed class LargeHandler : IGateHandler
+        {
+            private readonly string _answer;
+
+            public LargeHandler(int length)
+            {
+                _answer = "{\"a\":\"" + new string('a', length) + "\"}";
+            }
+
+            public void Handle(IGateContext context)
+            {
+                context.Respond(200, _answer);
             }
         }
 

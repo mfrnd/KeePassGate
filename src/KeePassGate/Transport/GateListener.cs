@@ -724,11 +724,10 @@ namespace KeePassGate.Transport
                         // ends that peer's connection, and the failure it raises is one the paths
                         // below already expect.
                         //
-                        // **The budget is for a peer that keeps sending, not one that stops.** A
-                        // read blocked with no traffic at all does not return when the close is
-                        // made, only once it lands behind the read, so a peer that sends nothing
-                        // is bounded by `Timeout` on the socket and not by this. Nothing relies on
-                        // the budget against silence: `Timeout` already ends it.
+                        // **It ends a peer that stops as well as a peer that keeps sending.**
+                        // Closing the socket wakes a read blocked with no traffic at all, at once,
+                        // with the failure a peer that hung up raises, so the deadline bounds
+                        // silence too, and `Timeout` is the bound on each single read beneath it.
                         //
                         // **It is granted in stages, and this is the first of them.** Until a name
                         // resolves there is nothing owed but a ClientHello, which a client sends
@@ -794,10 +793,10 @@ namespace KeePassGate.Transport
                                 // it however long its hello took.
                                 deadline.Extend(_options.Budget);
 
-                                // The third and last stage, taken when the whole request is off
-                                // the wire. For an ordinary connection that is no deadline at all:
-                                // what is left is this plugin's own work and no number bounds it,
-                                // see `Deadline.Disarm`. For a pairing it is a longer one, because
+                                // The third stage, taken when the whole request is off the wire.
+                                // For an ordinary connection that is no deadline at all while the
+                                // plugin's own work runs, since no number bounds it, see
+                                // `Deadline.Disarm`. For a pairing it is a longer deadline, because
                                 // there the remaining work is a sum somebody wrote down: the
                                 // screen, the dialog, the grace on it, and the write. The
                                 // ordinary budget would close the socket while the dialog was
@@ -825,6 +824,11 @@ namespace KeePassGate.Transport
                                 // for the same reason: what is left after its request is the screen,
                                 // the dialog, the grace on it and the write. It is told apart by what
                                 // it asked for, which is only known here, once the request is read.
+                                //
+                                // **And the last stage is the answer's write**, which an ordinary
+                                // connection is given the ordinary budget for once more, because
+                                // how fast an answer is read is the peer's doing: see
+                                // `Deadline.Writing`. A pairing or a renewal keeps its own.
                                 Serve(
                                     raw, peek, resolution, Peer(socket),
                                     head =>
@@ -838,7 +842,8 @@ namespace KeePassGate.Transport
                                         {
                                             deadline.Disarm();
                                         }
-                                    });
+                                    },
+                                    () => deadline.Writing(_options.Budget));
                             }
                         }
                     }
@@ -925,6 +930,12 @@ namespace KeePassGate.Transport
         {
             private readonly Timer _timer;
 
+            /// <summary>
+            /// Whether <see cref="Disarm"/> has run, which only the connection's own thread asks or
+            /// sets.
+            /// </summary>
+            private bool _disarmed;
+
             public Deadline(TcpClient client, TimeSpan budget)
             {
                 _timer = new Timer(
@@ -955,8 +966,8 @@ namespace KeePassGate.Transport
             /// **The budget is granted in stages**, because a connection that has named nothing
             /// has said nothing anybody could have meant: it is owed a ClientHello and no more,
             /// and it is holding a connection slot while it says it. This is where a connection
-            /// that has named a database is given the span the design writes down for a whole
-            /// conversation, and where the two exchanges that wait on a person, a pairing and a
+            /// that has named a database is given the span the design writes down for delivering
+            /// its request, and where the two exchanges that wait on a person, a pairing and a
             /// renewal, are given the longer span written down for that. A peer that named nothing
             /// reaches neither.
             ///
@@ -989,7 +1000,8 @@ namespace KeePassGate.Transport
             /// on, and on a failure a message box that waits on a person. None of that is knowable
             /// before it runs. `DatabaseWriter.WriteTimeout` bounds the wait for the marshaled
             /// call to *start*, not the call, so no sum of this plugin's timeouts bounds it either.
-            /// The answer write that follows is bounded by the socket's own `SendTimeout`.
+            /// Writing the answer is the peer's to slow down again, and is armed afresh by
+            /// <see cref="Writing"/>.
             ///
             /// **Not for a pairing or a renewal**, the two connections whose remaining work is a sum
             /// somebody wrote down: the screen, the dialog, the grace on it, the settling of a busy
@@ -999,7 +1011,32 @@ namespace KeePassGate.Transport
             /// </remarks>
             public void Disarm()
             {
+                _disarmed = true;
                 _timer.Change(Timeout.InfiniteTimeSpan, Timeout.InfiniteTimeSpan);
+            }
+
+            /// <summary>
+            /// Gives writing the answer a budget of its own, counted from now, on a connection
+            /// whose deadline was disarmed with its request.
+            /// </summary>
+            /// <remarks>
+            /// **How fast the answer is read is the peer's doing**, as the pace of its request was,
+            /// and nothing else bounds it. The socket's `SendTimeout` bounds one send, which is one
+            /// TLS record of up to sixteen kilobytes, so a peer that read a record inside every
+            /// timeout held a thread and a connection slot for as long as a large answer lasted:
+            /// an attachment of half a megabyte, two thirds of a megabyte as base64, read at under
+            /// two kilobytes a second, is about seven minutes.
+            ///
+            /// The plugin's own work is over by now, so closing the socket here costs only an
+            /// answer the peer was not reading. A pairing or a renewal keeps the deadline it was
+            /// given with its request, which already outlasts the answer it writes.
+            /// </remarks>
+            public void Writing(TimeSpan budget)
+            {
+                if (_disarmed)
+                {
+                    _timer.Change(budget, Timeout.InfiniteTimeSpan);
+                }
             }
 
             public void Dispose()
@@ -1154,7 +1191,8 @@ namespace KeePassGate.Transport
             ClientHelloPeek peek,
             GateResolution resolution,
             string peer,
-            Action<HttpRequestHead> arrived)
+            Action<HttpRequestHead> arrived,
+            Action answering)
         {
             var target = resolution.Target;
             var replayed = new PrependingStream(peek.Bytes, raw);
@@ -1241,7 +1279,8 @@ namespace KeePassGate.Transport
 
                 GateConversation.Serve(
                     protocol.Stream, client, _handler, _options, _log,
-                    Pairing(resolution, peek, target, peer), _incidents, target, peer, arrived);
+                    Pairing(resolution, peek, target, peer), _incidents, target, peer, arrived,
+                    answering);
             }
             finally
             {
