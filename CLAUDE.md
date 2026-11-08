@@ -316,25 +316,29 @@ designing around them.
   tab strip cut out of a dialog is a picture of a page with no edges: a reader cannot see what it
   sits in, where the room runs out or which button ends it. What makes that publishable is the
   session, not the crop: the database settings dialog carries the open database's path in its
-  banner, so `LiveSession` builds the session where that path names nobody.
-  `build.ps1 -Task Lint` refuses a picture no page refers to and a reference to a picture that is
-  not there; that a picture is named in `DocumentationImages` is checked by the fixture that takes
-  it, which is in the `Screenshots` category and so runs only when the pictures are retaken.
-  **One picture moves, and it is a build output too**: `lifecycle.gif`, taken last in the same run.
-  It is a click journey somebody can follow, from the database the fixture filled, entries in two
-  folders and nothing else: every dialog opened from the menu bar, the authority created, an
-  invitation copied and pasted at the client's prompt, the pairing approved, a rule on the top
-  group and a seal on one folder written on the group dialogs, then PyKeePassGate's real command
-  line reading what the rules allow and refused what they do not, revoked from the clients page
-  and refused again. Create authority is the one press drawn rather than made: the pictures after
-  it are of the written down authority, for the reason the stills have one. The frames are then
-  composed from a fixed timeline, not from the clock: the pictures it took, the rectangles of the
-  controls it pressed, and the text the client typed and printed, with the terminal drawn beside
-  the windows, typed a character at a time, a pointer and its clicks drawn where the real presses
-  landed, and the keys pressed drawn on caps. `AnimatedGif` writes them, each frame only the
-  rectangle that changed, so the same run makes the same file. What the client makes new every
-  run, its key, its certificate's expiry and the directory it stored them in, is shown in the
-  terminal as written down values, and the moments on its row of the clients page are covered.
+  banner, so `LiveSession` builds the session where that path names nobody. `build.ps1 -Task Lint`
+  refuses a picture no page refers to and a reference to a picture that is not there; that a picture
+  is named in `DocumentationImages` is checked by the fixture that takes it, which is in the
+  `Screenshots` category and so runs only when the pictures are retaken. **One picture moves, and it
+  is a build output too**: `lifecycle.gif`, taken last in the same run. It is a click journey
+  somebody can follow, from the database the fixture filled, entries in two folders and nothing
+  else: every dialog opened from the menu bar, the authority created, an invitation copied and
+  pasted at the client's prompt, the pairing approved, a rule on the top group and a seal on one
+  folder written on the group dialogs, then PyKeePassGate's real command line reading what the rules
+  allow and refused what they do not, revoked from the clients page and refused again. Not every
+  press it draws is made: a press inside a dialog is made with the pointer where the picture draws
+  it, while each menu is photographed open through UI automation and chosen by its keys, the paste
+  at the client's prompt is drawn while the code goes over standard input, and Create authority is
+  drawn because the pictures after it are of the written down authority, for the reason the stills
+  have one. The frames are then composed from a fixed timeline, not from the clock: the pictures it
+  took, the rectangles of the controls it pressed, and the text the client typed and printed, with
+  the terminal drawn beside the windows, typed a character at a time, a pointer and its clicks drawn
+  where the presses go, and the keys pressed drawn on caps. `AnimatedGif` writes them with nothing
+  random in it, so the same frames make the same file, and the same machine and account make the
+  same frames: the scaling, the font smoothing, the regional format and the fonts installed all
+  reach the pictures. What the client makes new every run, its key, its certificate's expiry and the
+  directory it stored them in, is shown in the terminal as written down values, and the moments on
+  its row of the clients page are covered.
 - **Nothing on a tab scrolls.** The content is held to 449 by 314 and has to fit it; horizontal
   scrolling is never acceptable. That is KeePass's own first page on the settings dialog, inside a
   padding of 3. The page this plugin adds has no padding and is laid out to the tab control's whole

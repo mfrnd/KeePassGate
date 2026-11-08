@@ -9,12 +9,12 @@ local machine over mutual TLS, and each program sees only what it has been appro
 
 ![From a database with entries to a program that reads one folder, is refused the other, and is shut out once revoked](docs/images/lifecycle.gif)
 
-*Recorded from a real KeePass by the project's test fixture. A database becomes its own
-certificate authority, a program pairs with it and is approved, rules open one folder and close
-another, the program reads a password and, once a rule allows it, sets a new one, and once
-revoked, the program is refused everything. The gray boxes hide values that change on every run,
-such as today's date and the invitation's identifier, so the recording comes out the same each
-time it is made.*
+*Recorded from a real KeePass by the project's test fixture. A database becomes its own certificate
+authority, a program pairs with it and is approved, rules open one folder and close another, the
+program reads a password and, once a rule allows it, sets a new one, and once revoked, the program
+is refused everything. The gray boxes hide values that change on every run, such as today's date and
+the invitation's identifier, so the recording comes out the same each time it is made on the same
+machine.*
 
 ## Why it exists
 

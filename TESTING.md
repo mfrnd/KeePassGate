@@ -32,21 +32,27 @@ about that tab is checked. It is excluded from `Live` because it writes into the
 and it is ignored entirely unless the build task asks for it. [`docs/`](docs/README.md) is what
 it feeds.
 
-**It also makes the one picture that moves**, `docs/images/lifecycle.gif`, in the same run and
-for the same reason. After the stills, `DocumentationLifecycle.cs` puts back the database as the
-fixture filled it and walks the whole journey with the pointer, every dialog opened from its
-menu: the authority, an invitation copied and pasted at the client's prompt, the approval, a rule
-and a seal on the group dialogs, and the revocation. PyKeePassGate's real command line pairs with
-that KeePass, run through `uv` as `LiveReferenceClientTests` runs it and typing the commands the
-documentation gives, sees nothing before the rules are written, then reads what they allow, is
-refused what they do not, and is refused again once revoked. `Storyboard` then composes the frames
-from a fixed timeline rather than from the clock, out of the stills taken, the rectangles of the
-controls pressed and the text typed and printed: the terminal is drawn, a character at a time,
-and so are the pointer and its clicks, where the real presses landed, and the keys pressed, on
-caps. `AnimatedGif` writes them, each frame only the rectangle that changed, so a second run
-makes the same file.
-`AnimatedGifTests`, in the host tier, holds that encoder to GDI+'s own decoder, since nothing else
-reads it until the pictures are retaken.
+**It also makes the one picture that moves**, `docs/images/lifecycle.gif`, in the same run and for
+the same reason. After the stills, `DocumentationLifecycle.cs` puts back the database as the fixture
+filled it and walks the whole journey, every dialog opened from its menu: the authority, an
+invitation copied and pasted at the client's prompt, the approval, a rule and a seal on the group
+dialogs, and the revocation. PyKeePassGate's real command line pairs with that KeePass, run through
+`uv` as `LiveReferenceClientTests` runs it and typing the commands the documentation gives, sees
+nothing before the rules are written, then reads what they allow, is refused what they do not, and
+is refused again once revoked. `Storyboard` then composes the frames from a fixed timeline rather
+than from the clock, out of the stills taken, the rectangles of the controls pressed and the text
+typed and printed: the terminal is drawn, a character at a time, and so are the pointer and its
+clicks and the keys pressed, on caps. **Not every click it draws was made.** A press inside a dialog
+is made with the pointer, where the picture draws it. A menu is opened through UI automation only to
+be photographed and is then chosen by its keys, so the two clicks drawn on it pressed nothing;
+Create authority is drawn, because the pictures after it are of the written down authority; and so
+is the paste at the client's prompt, since the code reaches the client on its standard input.
+`AnimatedGif` writes the frames, each only the rectangle that changed, with nothing random in it and
+every tie broken by a color's value, so the same frames make the same file. A second run makes the
+same frames on the same machine and account, and not necessarily anywhere else: the display scaling,
+which the fixture checks, and the font smoothing, the regional format and the fonts installed, which
+it does not, all reach the pictures. `AnimatedGifTests`, in the host tier, holds that encoder to
+GDI+'s own decoder, since nothing else reads it until the pictures are retaken.
 
 **No tier runs `build.ps1 -Task Package`**, since it packages only a clean commit. It checks its own
 output instead, every time it runs: the zip is read back against the files it was made from and
@@ -216,9 +222,11 @@ group at that moment, so a rule written anywhere else would be destroyed exactly
 `LiveAuthorityTests` presses OK too, for the reason the paragraph on accepting dialogs below gives,
 so this is not the only fixture that does. It clicks with the pointer, because neither column on
 that table can be typed into and a list is not something the accessibility tree can be asked to
-operate, and `LiveRenewalTests` below does too, to choose from a menu. The screenshots move it as
-well, parking it clear of each window before the picture is taken, so that no tooltip covers what
-the picture shows, and choosing from the menu one picture leaves open once it has been taken.
+operate, and `LiveRenewalTests` below does too, to choose from a menu. The screenshot run moves it
+as well: its moving picture presses nearly every control inside the dialogs with it, and for the
+stills it parks the pointer clear of each window before the picture is taken, so that no tooltip
+covers what the picture shows, and chooses from the menu one picture leaves open once it has been
+taken.
 
 **A client's own certificate**, in `LiveCertificateTests` and `LiveRenewalTests`. A client revokes
 the certificate it presents and is refused on its very next connection, and the revocation is in the
