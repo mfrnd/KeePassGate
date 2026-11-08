@@ -99,8 +99,9 @@ designing around them.
   argument runs the other way: merged apart, a certificate from one replica and a private key from
   another read as damage. And **what has to survive a merge is a key that is only ever added**,
   because a KeePass merge never removes a key and never reads a value. A revocation is
-  `KPG.Revoked.<key>` beside the emptied record, never changed and pruned once the certificate has
-  expired, or kept for good beside a record that would not read and so gave no date; an authority is
+  `KPG.Revoked.<key>` beside the emptied record, never changed, naming the certificate's end and the
+  authority that issued it, and pruned once the certificate has expired or that authority is retired
+  or gone, or kept for good beside a record that would not read and so gave no date; an authority is
   one key per authority, `KPG.Authority.<fp>`, written once, and an authority recreated or deleted
   gets `KPG.RetiredAuthority.<fp>` beside it, so which authority is served is decided by the
   retirements and never by counting documents. More than one authority with no retirement serves

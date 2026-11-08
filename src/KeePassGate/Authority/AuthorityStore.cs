@@ -279,9 +279,10 @@ namespace KeePassGate.Authority
 
         /// <summary>
         /// Takes away every document whose authority is retired, every admission record that came
-        /// back beside its revocation, every record of a certificate that has expired, and every
-        /// standing answer to a renewal that no record is left to ask, answering with what went so
-        /// that a write that does not land can put it back.
+        /// back beside its revocation, every record of a certificate that has expired, every
+        /// revocation naming an authority this database no longer holds, and every standing answer
+        /// to a renewal that no record is left to ask, answering with what went so that a write that
+        /// does not land can put it back.
         /// </summary>
         /// <remarks>
         /// **Only ever as part of a write this plugin is making anyway**: keeping one authority,
@@ -303,6 +304,7 @@ namespace KeePassGate.Authority
             var retired = Retired();
             var removed = new List<KeyValuePair<string, string>>(_admissions.PruneCameBack());
             removed.AddRange(_admissions.PruneExpired(now));
+            removed.AddRange(_admissions.PruneUnserved(Standing(retired)));
             removed.AddRange(_admissions.PruneRefusals());
 
             foreach (var key in Keys().ToList())
@@ -318,6 +320,62 @@ namespace KeePassGate.Authority
             }
 
             return removed;
+        }
+
+        /// <summary>
+        /// The digests of the authorities this database holds a document for and has not retired,
+        /// which a revocation's authority has to be among for the revocation to be kept.
+        /// </summary>
+        internal HashSet<string> Standing()
+        {
+            return Standing(Retired());
+        }
+
+        private HashSet<string> Standing(HashSet<string> retired)
+        {
+            return new HashSet<string>(Live(retired).Select(pair => pair.Key), StringComparer.Ordinal);
+        }
+
+        /// <summary>
+        /// The digest of the authority among those standing that issued this certificate, or null
+        /// when none of them did, none could be read, or they could not be listed.
+        /// </summary>
+        /// <remarks>
+        /// By the anchor pin against each, which is how the gate itself decides what an authority
+        /// issued: a certificate names its issuer and a name proves nothing, every authority this
+        /// plugin makes carrying the same one. Null is the answer to every doubt, because what reads it
+        /// keeps a revocation that names no authority until its certificate expires, and takes one
+        /// away early only on a name it can trust.
+        /// </remarks>
+        internal string IssuerOf(X509Certificate2 certificate)
+        {
+            if (certificate == null)
+            {
+                return null;
+            }
+
+            List<KeyValuePair<string, string>> live;
+            try
+            {
+                live = Live(Retired());
+            }
+            catch (Exception error) when (Expected.OfCustomData(error))
+            {
+                return null;
+            }
+
+            foreach (var pair in live)
+            {
+                using (var material = ReadOne(pair.Key, pair.Value, new List<string>()))
+                {
+                    if (material != null && AnchorPin.Chains(certificate, material.Authority))
+                    {
+                        return pair.Key;
+                    }
+                }
+            }
+
+            return null;
         }
 
         /// <summary>

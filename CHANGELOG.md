@@ -342,6 +342,11 @@ none, since it releases both.
 - **The window asking which authority to keep reads no more than the last eight megabytes of each
   audit file** for when each client was last seen. An audit that could not be set aside grows past
   that, and was read whole while KeePass's window waited.
+- **A revocation names the authority that issued its certificate, and goes once that authority is
+  retired or gone.** A merge with a copy from before a recreation brought revocations back that
+  nothing took away until their certificates expired, with no row on the Clients page; the plugin's
+  next write of its own takes them away now. A revocation written before this names no authority
+  and still goes when its certificate expires.
 - **The Clients page counts the revoked clients a merge brought back by client, not by record.**
   A renewed client whose certificates were both revoked and both brought back was counted as two
   revoked clients.

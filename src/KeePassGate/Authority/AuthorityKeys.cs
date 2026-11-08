@@ -139,7 +139,7 @@ namespace KeePassGate.Authority
 
         /// <summary>
         /// One revocation per revoked certificate, keyed by the same digest as its record, whose
-        /// value is the certificate's `notAfter`.
+        /// value is the certificate's `notAfter` and the digest of the authority that issued it.
         /// </summary>
         /// <remarks>
         /// **A key of its own, only ever added and never changed**, because that is the one shape a
@@ -148,6 +148,14 @@ namespace KeePassGate.Authority
         /// hold by modification time and never by value, so a value nobody changes has nothing to
         /// lose to. The emptied record beside it is still written, and is still the losing kind of
         /// mark: a stale copy can bring the record back, and this is what refuses it when it does.
+        ///
+        /// **The value is chosen once, as the key is written**, and is what lets the key go: past
+        /// `notAfter` the gate refuses the certificate on its dates, and once the authority named
+        /// is retired or gone, the retirement refuses everything that authority issued. So both are
+        /// written together, the end first and the authority's digest after a space. A revocation
+        /// written before revocations named their authority holds the date alone, and so does one
+        /// for a certificate no authority this database holds issued; one for a record that would
+        /// not read holds nothing at all.
         /// </remarks>
         public const string RevokedPrefix = "KPG.Revoked.";
 
@@ -166,6 +174,53 @@ namespace KeePassGate.Authority
         public static string AdmissionKeyInRevocation(string key)
         {
             return IsRevocation(key) ? key.Substring(RevokedPrefix.Length) : null;
+        }
+
+        /// <summary>
+        /// What a revocation is written with: the certificate's end as the wire writes a moment,
+        /// and the digest of the authority that issued it, or empty when there is no end to give.
+        /// </summary>
+        public static string RevocationValue(string notAfter, string authority)
+        {
+            if (string.IsNullOrEmpty(notAfter))
+            {
+                return string.Empty;
+            }
+
+            return string.IsNullOrEmpty(authority) ? notAfter : notAfter + " " + authority;
+        }
+
+        /// <summary>The end a revocation holds, as written, or null when it holds none.</summary>
+        public static string NotAfterInRevocation(string value)
+        {
+            if (string.IsNullOrEmpty(value))
+            {
+                return null;
+            }
+
+            var space = value.IndexOf(' ');
+            return space < 0 ? value : value.Substring(0, space);
+        }
+
+        /// <summary>
+        /// The authority a revocation names, or null when it names none or names something that is
+        /// not a digest, which is then kept as though it named none.
+        /// </summary>
+        public static string AuthorityInRevocation(string value)
+        {
+            if (string.IsNullOrEmpty(value))
+            {
+                return null;
+            }
+
+            var space = value.IndexOf(' ');
+            if (space < 0)
+            {
+                return null;
+            }
+
+            var named = value.Substring(space + 1);
+            return CertificateDigest.IsDigest(named) ? named : null;
         }
 
         /// <summary>

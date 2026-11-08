@@ -217,6 +217,33 @@ namespace KeePassGate.Tests
         }
 
         [Test]
+        public void A_revocation_written_while_the_dialog_was_open_keeps_its_value_at_OK()
+        {
+            // A revocation is written once and never changed. Its value names the authority that
+            // issued the certificate as each writer found it, so the press on the page and the
+            // client's own revocation can choose different values for one key, and OK replaying
+            // the page's over the client's would be a revocation changed after it was written.
+            using (var authority = TestAuthority.New())
+            using (var client = authority.IssueClient("agent-fictitious", "ops"))
+            {
+                var live = new InMemoryKeyValueStore();
+                new AdmissionStore(live, null).Write(AdmissionRecord.For(client, System.DateTimeOffset.UtcNow, new[] { "ops" }));
+                var key = CertificateDigest.Of(client);
+
+                var pending = new PendingDatabase(new FakeGateDatabase(live), null);
+                Assume.That(new AdmissionStore(pending.PluginCustomData, null).Remove(key), Is.True);
+
+                var written = "2027-01-01T00:00:00Z " + new string('a', 64);
+                live.Plant(AuthorityKeys.RevocationKey(key), written);
+                live.Plant(AuthorityKeys.ClientRecordKey(key), string.Empty);
+
+                pending.Apply();
+
+                Assert.That(live.Get(AuthorityKeys.RevocationKey(key)), Is.EqualTo(written));
+            }
+        }
+
+        [Test]
         public void A_standing_answer_that_lands_after_the_press_goes_with_the_revocation_at_OK()
         {
             // The press prunes the standing answers it can see, and a renewal the operator refuses

@@ -323,17 +323,21 @@ namespace KeePassGate.Authority
         /// ever added survives all of them. That is measured against the KeePass this builds with,
         /// in the host tests, so a release that changes the rule fails the gate.
         ///
-        /// **Its value is the certificate's `notAfter`**, which is what lets it be pruned: past
-        /// that moment the gate refuses the certificate on its dates, so the revocation has nothing
-        /// left to refuse. A record that cannot be read gives no date, and its revocation is
-        /// written with an empty value that is never pruned.
+        /// **Its value is the certificate's `notAfter` and the authority that issued it**, which is
+        /// what lets it be pruned: past that moment the gate refuses the certificate on its dates,
+        /// and once that authority is retired or gone the retirement refuses everything it issued,
+        /// so the revocation has nothing left to refuse. The authority is the one standing in this
+        /// store that the certificate chains to, and none is named when none does. A record that
+        /// cannot be read gives no date, and its revocation is written with an empty value that is
+        /// never pruned.
         ///
         /// **Pruning expired revocations rides on this write and on nothing else.** Revocations
         /// are only ever added here, so pruning here keeps their number at the unexpired ones and
         /// the one just written, and opening a database, or reading it, changes nothing in it.
         /// Records that came back beside their revocations go in the same write, and so do the
-        /// records of expired certificates: see <see cref="PruneCameBack"/> and
-        /// <see cref="PruneExpired"/>.
+        /// records of expired certificates and the revocations naming an authority no longer held:
+        /// see <see cref="PruneCameBack"/>, <see cref="PruneExpired"/> and
+        /// <see cref="PruneUnserved(ICollection{string})"/>.
         /// </remarks>
         public bool Remove(string admissionKey)
         {
@@ -361,7 +365,7 @@ namespace KeePassGate.Authority
             // has a modification time a merge can lose to.
             if (_store.Get(revocation) == null)
             {
-                _store.Set(revocation, Expiry(admissionKey, stored));
+                _store.Set(revocation, Revocation(admissionKey, stored));
             }
 
             _store.Set(key, string.Empty);
@@ -372,6 +376,7 @@ namespace KeePassGate.Authority
             PruneCameBack();
             Prune(now, revocation);
             PruneExpired(now);
+            PruneUnserved();
             PruneRefusals();
 
             // Read back rather than assumed, the way every other mutation here is believed. The
@@ -415,7 +420,7 @@ namespace KeePassGate.Authority
 
                     DateTimeOffset notAfter;
                     if (!DateTimeOffset.TryParseExact(
-                            pair.Value,
+                            AuthorityKeys.NotAfterInRevocation(pair.Value),
                             Moments.WireFormat,
                             CultureInfo.InvariantCulture,
                             DateTimeStyles.AssumeUniversal | DateTimeStyles.AdjustToUniversal,
@@ -634,10 +639,11 @@ namespace KeePassGate.Authority
         }
 
         /// <summary>
-        /// When the certificate a record admits stops being valid, as a revocation stores it, or
-        /// empty when the record will not say.
+        /// What a revocation of the certificate a record admits is written with: when the
+        /// certificate stops being valid and the authority standing here that issued it, or empty
+        /// when the record will not say.
         /// </summary>
-        private static string Expiry(string admissionKey, string stored)
+        private string Revocation(string admissionKey, string stored)
         {
             var record = AdmissionRecord.Load(admissionKey, stored);
             if (record == null)
@@ -649,13 +655,100 @@ namespace KeePassGate.Authority
             {
                 using (var certificate = record.Certificate())
                 {
-                    return Moments.Wire(new DateTimeOffset(certificate.NotAfter.ToUniversalTime(), TimeSpan.Zero));
+                    return AuthorityKeys.RevocationValue(
+                        Moments.Wire(new DateTimeOffset(certificate.NotAfter.ToUniversalTime(), TimeSpan.Zero)),
+                        new AuthorityStore(_store, _log).IssuerOf(certificate));
                 }
             }
             catch (Exception error) when (Expected.OfCryptography(error))
             {
                 return string.Empty;
             }
+        }
+
+        /// <summary>
+        /// Takes away every revocation that names an authority this store no longer holds, as a
+        /// revocation write does it: the authorities standing are read here.
+        /// </summary>
+        private void PruneUnserved()
+        {
+            HashSet<string> standing;
+            try
+            {
+                standing = new AuthorityStore(_store, _log).Standing();
+            }
+            catch (Exception error) when (Expected.OfCustomData(error))
+            {
+                _log.Warn("the revocations of authorities no longer held could not be taken away: " + error.Message);
+                return;
+            }
+
+            PruneUnserved(standing);
+        }
+
+        /// <summary>
+        /// Takes away every revocation naming an authority that is not among those standing, with
+        /// the emptied record beside it, answering with what went so that a write that does not
+        /// land can put it back.
+        /// </summary>
+        /// <remarks>
+        /// **The retirement refuses everything that authority issued**, so a revocation of one of
+        /// its certificates has nothing left to refuse, and neither has the emptied record beside
+        /// it. Recreating or deleting the authority takes every revocation away, and a merge with a
+        /// copy from before brings them back: without this they stayed until their certificates
+        /// expired, with no row on the clients page to take them away from. Retired or gone is the
+        /// test, never served, so a database holding several authorities keeps the revocations of
+        /// each until the operator has kept one.
+        ///
+        /// **One that names no authority is left to expire**: one written before revocations named
+        /// their authority, and one for a certificate no authority here issued. Only a name read off
+        /// the value takes a revocation away early, and the name was found by the anchor pin when
+        /// the revocation was written. A record that came back beside one of these went before this
+        /// runs, as <see cref="PruneCameBack"/> runs first wherever this does.
+        ///
+        /// A failure is logged and answered with what went before it, as every prune here is.
+        /// </remarks>
+        internal IReadOnlyList<KeyValuePair<string, string>> PruneUnserved(ICollection<string> standing)
+        {
+            var removed = new List<KeyValuePair<string, string>>();
+            if (standing == null)
+            {
+                return removed;
+            }
+
+            try
+            {
+                foreach (var pair in Stored(out _).Where(pair => AuthorityKeys.IsRevocation(pair.Key)))
+                {
+                    var authority = AuthorityKeys.AuthorityInRevocation(pair.Value);
+                    if (authority == null || standing.Contains(authority))
+                    {
+                        continue;
+                    }
+
+                    _store.Remove(pair.Key);
+                    removed.Add(pair);
+
+                    var admissionKey = AuthorityKeys.AdmissionKeyInRevocation(pair.Key);
+                    var record = AuthorityKeys.ClientRecordKey(admissionKey);
+                    var beside = _store.Get(record);
+                    if (string.Equals(beside, string.Empty, StringComparison.Ordinal))
+                    {
+                        _store.Remove(record);
+                        removed.Add(new KeyValuePair<string, string>(record, beside));
+                    }
+
+                    _log.Info("the revocation of " + CertificateDigest.Shorten(admissionKey) +
+                              " was taken away, since authority " + CertificateDigest.Shorten(authority) +
+                              " that issued it is no longer held");
+                }
+            }
+            catch (Exception error) when (Expected.OfCustomData(error))
+            {
+                _log.Warn("the revocations of authorities no longer held could not be taken away: " + error.Message);
+            }
+
+            return removed;
         }
 
         /// <summary>

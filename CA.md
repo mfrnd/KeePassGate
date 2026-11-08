@@ -114,7 +114,7 @@ revocation paragraph below is about.
 | `KPG.Authority.<sha256>` | one authority, filed under the digest of its certificate: the authority, the host certificate and the gate key, all three in one document | once, at creation and on recreation, and never rewritten |
 | `KPG.RetiredAuthority.<sha256>` | the constant `retired`, for an authority recreated, deleted or not kept | once, and never changed or removed |
 | `KPG.Client.<sha256>` | one admission record per certificate admitted, naming the client it belongs to by its client key, §223 | at every pairing and every renewal, and written empty when the certificate is revoked; removed once its certificate has expired, and an emptied one with its revocation, unless that revocation is empty |
-| `KPG.Revoked.<sha256>` | the revoked certificate's `notAfter`, or nothing for a record that would not read and so gave no date | once, when the client is revoked, and never changed; removed once that moment has passed, and an empty one never |
+| `KPG.Revoked.<sha256>` | the revoked certificate's `notAfter` and, after a space, the digest of the authority that issued it; the date alone where no authority the database holds issued it, and nothing for a record that would not read and so gave no date | once, when the client is revoked, and never changed; removed once that moment has passed or the authority it names is retired or gone, and an empty one never |
 | `KPG.RenewalRefused.<sha256>` | the operator's standing answer to renewing one certificate: `forever`, or the moment renewals are asked about again | when the operator refuses a renewal forever or until a date, and again when a later answer replaces it, which the dialog takes only once an until-date has passed, or a merge brings in; removed once no record admits that certificate, or when the operator allows renewal on the clients page and accepts the dialog |
 | `KPG.Profiles` | the set of profile names this database knows | when the Profiles page is accepted, and at a pairing that approves a name it does not hold, in the same write as the record |
 
@@ -155,7 +155,8 @@ had been added on the Profiles page without the question that page asks first. A
 copies that both changed their profiles, the Profiles page is where to look.
 
 **A revocation is a key of its own, only ever added and never changed.** Revoking adds
-`KPG.Revoked.<sha256>` beside the record, holding the certificate's `notAfter`, and writes the
+`KPG.Revoked.<sha256>` beside the record, holding the certificate's `notAfter` and the authority
+that issued it, and writes the
 record empty, and a client is admitted only by a record that is not empty and has no revocation
 beside it. What makes that hold was measured on KeePass 2.61.1, and the host tests pin it against
 the KeePass this builds with: `PwDatabase.MergeInDbProperties` visits the source's keys and no
@@ -189,6 +190,13 @@ recreating or deleting it. Opening or reading a database changes nothing in it.
 and the emptied record beside it goes with it, having nothing left to refuse either. A stale copy
 that brings a pruned one back does no harm, and it is pruned again. A record that cannot be read
 gives no date, and its revocation is written empty and kept.
+
+**And once the authority it names is retired or gone**, on the same writes as a record that came
+back, because the retirement refuses everything that authority issued. The authority is found when
+the revocation is written, by the anchor pin against each authority the database holds and has not
+retired, and is written into the value then, so the key is still written once and never changed. A
+revocation that names none, one written before revocations named their authority or one for a
+certificate no authority there issued, is left to expire.
 
 **So does the record of a certificate that has expired**, by the same argument and on the same
 writes as a record that came back. Past its `notAfter` the record admits nobody, since the gate
@@ -285,13 +293,13 @@ This reverses recreation emptying the records rather than removing them, which i
 replacement went under the same key and an emptied record was the only mark a merge with an older
 copy would carry.
 
-**A merge with a copy from before brings those revocations back, and they stay.** A revocation names
-a certificate and not its authority, and the record beside it is empty, so nothing the plugin reads
-ties it to the authority that was retired, and no prune takes it early: it goes with the first
-revocation after its certificate has expired, as any revocation does, which is at most a year after
-it was issued, or with the next recreation or deletion, or by hand under Database Maintenance. It
-has no row on the clients page. It refuses nothing the retirement does not refuse already and admits
-nobody, so what it costs is a key in the file.
+**A merge with a copy from before brings those revocations back, and the next write takes them
+away.** Each names the authority that issued its certificate, which is retired, so the plugin's next
+write of its own drops it with the emptied record beside it. A revocation written before revocations
+named their authority holds its certificate's end alone and stays until the first revocation after
+that end, which is at most a year after it was issued, or the next recreation or deletion, or until
+it is removed by hand under Database Maintenance. It has no row on the clients page, and it refuses
+nothing the retirement does not refuse already and admits nobody.
 
 **All of this is a claim about KeePass 2.48 or later with the plugin in it.** Other programs can open
 the database, and saving or merging in one can quietly bring back a revoked client, a retired
