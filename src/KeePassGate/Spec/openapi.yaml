@@ -672,15 +672,20 @@ paths:
   /groups:
     get:
       operationId: listGroups
-      summary: Every group in the database, root first.
+      summary: Every group in the database outside the recycle bin, root first.
       description: |
         Anchored at the root, so a client that may not list there is told nothing. The root is the
         one group whose parent is null, which is how a client that was given no identifiers finds
-        the top of the tree.
+        the top of the tree. The recycle bin and every group inside it are left out, as they are
+        out of reach on every route.
       x-kpg-verb: list
       responses:
         "200":
-          description: The groups, in tree order.
+          description: |
+            The groups in the order KeePass's own tree shows them, depth first: the root, then
+            each of its groups followed by everything inside that group before the next, a group's
+            own groups in KeePass's order. A parent always comes before its children, and a group's
+            whole subtree comes together, so a client can show the tree as the groups arrive.
           content:
             application/json:
               schema:
@@ -841,7 +846,7 @@ paths:
   /groups/{uuid}/groups:
     get:
       operationId: listSubgroups
-      summary: The groups directly inside this one.
+      summary: The groups directly inside this group, the recycle bin aside.
       x-kpg-verb: list
       parameters:
         - $ref: "#/components/parameters/GroupUuid"
@@ -1056,10 +1061,12 @@ paths:
   /entries:
     get:
       operationId: listEntries
-      summary: Every entry in the database.
+      summary: Every entry in the database outside the recycle bin.
       description: |
         Anchored at the root and recursive, for a flat sweep. The entries route on a group is the
-        other question: one group, one level.
+        other question: one group, one level. An entry in the recycle bin is left out, as it is out
+        of reach on every route. The entries come group by group in the order `listGroups` answers,
+        each group's own in KeePass's order.
       x-kpg-verb: list
       parameters:
         - $ref: "#/components/parameters/IncludeExpired"

@@ -11,6 +11,13 @@ none, since it releases both.
 
 ## 0.2.0, unreleased
 
+- **The routing document states what the group and entry listings leave out and in what order
+  the groups come.** The sweeps of every group and every entry, and a group's own groups, leave out
+  the recycle bin and what it holds, which nothing on those routes stated.
+- **The groups are listed depth first, as KeePass's tree shows them**: each group, then everything
+  inside it, then the next. They came each group's own groups before the groups inside them, which
+  is neither KeePass's tree nor one level at a time, where the document promised tree order. The
+  entries already came group by group in that order.
 - **The routing document states which characters a profile asked for at pairing may hold**:
   ASCII letters and digits, `-` and `_`, and never `default`. It gave only the length, so a client
   built from it learned the rule by being answered `400 profile`.
