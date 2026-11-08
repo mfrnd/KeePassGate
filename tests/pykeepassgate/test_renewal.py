@@ -1015,6 +1015,38 @@ def test_the_command_line_says_how_to_give_up_what_it_could_not(
     assert str(where.with_name("kept.retired")) in captured.err
 
 
+@pytest.mark.parametrize(
+    ("revocation", "code", "kept"),
+    [((200, {"ok": True}), 0, False), ((500, {"error": "not saved"}), 1, True)],
+    ids=["given up", "kept"],
+)
+def test_renew_prints_one_document_naming_what_it_kept(
+    tmp_path: Path,
+    gate: FakeGate,
+    bundle: dict[str, Any],
+    renewing: Gate,
+    renewed_certificate: Issued,
+    capsys: pytest.CaptureFixture[str],
+    revocation: tuple[int, dict[str, Any]],
+    code: int,
+    kept: bool,
+) -> None:
+    # `retired` is the member a program reads to find the old identity kept beside the new, and
+    # the document is printed whichever way giving the old certificate up went.
+    status, answer = revocation
+    renewing.revocation = (status, json.dumps(answer))
+    where = tmp_path / "kept"
+    credentials_module.save(where, gate.port, bundle)
+
+    assert cli.main(["renew", "--directory", str(where), "-o", "json"]) == code
+
+    shown = json.loads(capsys.readouterr().out)
+    assert shown["subject"] == "CN=agent-invented"
+    assert shown["admissionKey"] == hashlib.sha256(der(renewed_certificate)).hexdigest()
+    assert shown["directory"] == str(where)
+    assert shown["retired"] == (str(where.with_name("kept.retired")) if kept else None)
+
+
 def test_what_was_kept_for_a_revoked_certificate_and_could_not_be_removed_is_named(
     tmp_path: Path,
     gate: FakeGate,

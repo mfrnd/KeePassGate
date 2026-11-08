@@ -744,8 +744,26 @@ def test_attachments_are_listed_with_their_sizes(
             {"grants": {"Real\nForged": ".R......"}},
             ".R......  Real\\nForged",
         ),
+        (
+            ["fields", UUID],
+            {"fields": [{"name": "Real\nPassword", "protected": True}]},
+            "Real\\nPassword (protected)",
+        ),
+        (
+            ["group", UUID],
+            {"uuid": UUID, "name": "Real\nForged", "parent": None, "notes": "a\nparent: x"},
+            "name:   Real\\nForged",
+        ),
+        (
+            ["group", UUID],
+            {"uuid": UUID, "name": "Real", "parent": None, "notes": "a\nparent: x"},
+            "notes:  a\\nparent: x",
+        ),
     ],
-    ids=["groups", "entries", "show", "attachments", "whoami", "access"],
+    ids=[
+        "groups", "entries", "show", "attachments", "whoami", "access", "fields", "group name",
+        "group notes",
+    ],
 )
 def test_a_name_that_would_break_a_line_is_printed_on_the_one_it_belongs_to(
     command: list[str],

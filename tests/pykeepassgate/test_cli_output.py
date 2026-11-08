@@ -336,8 +336,9 @@ def test_revoke_says_when_the_gate_refused_the_certificate_already(
         (["add", "--title", "Invented"], {"uuid": UUID}),
         (["update", UUID, "--title", "Invented"], {}),
         (["remove", UUID], {}),
+        (["add-group", "--name", "Invented"], {"uuid": UUID}),
     ],
-    ids=["add", "update", "remove"],
+    ids=["add", "update", "remove", "add-group"],
 )
 def test_a_write_names_what_it_wrote(
     gate: FakeGate,
