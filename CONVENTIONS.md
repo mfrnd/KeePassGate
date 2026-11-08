@@ -22,17 +22,18 @@ own, throwaway, somewhere temporary.
 
 ## Branches
 
-**One step per branch**, each starting from the tip of what it builds on, and each merged into
-`master` by a pull request of its own.
+**One topic per pull request**, on a branch of its own from `master`, such as `fix/<topic>` for a
+fix, and merged into `master` by that pull request. A set of changes gathered by kind, such as the
+fixes from one review, is split by subject before it is pushed.
 
 **Every commit on a branch has to stand on its own**, not merely the state the branch ends in. A fix
 that lands later than the thing it fixes leaves the commits in between failing, and a reader who
 checks one out gets that failure rather than the work.
 
-**A spike gets its own branch from `master`, named `spikes/<topic>`**, and, unlike a step, is never
-merged. A proof that lands on a branch carrying the product has to be deleted again later, and the
-deletion then sits in the history of everything downstream. The branch that carries the product
-keeps what a proof established, not the code that established it.
+**A spike gets its own branch from `master`, named `spikes/<topic>`**, and, unlike every other
+branch, is never merged. A proof that lands on a branch carrying the product has to be deleted
+again later, and the deletion then sits in the history of everything downstream. The branch that
+carries the product keeps what a proof established, not the code that established it.
 
 ## Prose
 
