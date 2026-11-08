@@ -237,7 +237,7 @@ namespace KeePassGate.Tests
 
                 var answer = dialog.Answer();
 
-                Assert.That(answer.IsApproved, Is.True);
+                Assert.That(answer.Decision, Is.EqualTo(PairingDecision.Approved));
                 Assert.That(answer.Profiles, Is.Empty);
             }
         }
