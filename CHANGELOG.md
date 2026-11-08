@@ -462,6 +462,9 @@ none, since it releases both.
   at all. A handler decided on its own and asked the rules again only to write the line, so a rule
   changed in between left a withheld value unrecorded, and that strip, decided profile by profile,
   was recorded by a walk pooling every profile, which permitted it and wrote nothing.
+- **A change to an entry that reached the disk is never answered `503 busy`.** Its answer reads the
+  entry again to confirm the tag it hands back, and a read that could not hold KeePass's thread was
+  answered `busy`, so a client retried a change already made. It is answered without the tag.
 
 ## 0.1.0, 2026-10-25
 

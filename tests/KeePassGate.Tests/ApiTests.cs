@@ -642,6 +642,59 @@ namespace KeePassGate.Tests
         }
 
         [Test]
+        public void A_write_that_landed_is_never_answered_busy(
+            [Values("entry", "field", "new field")] string route,
+            [Range(0, 6)] int lookups)
+        {
+            // A write answered with its tag reads the entry again once the change is saved, to
+            // confirm this client may still be handed the tag. That read meeting KeePass's thread
+            // unable to be held answered `503 busy` for a change already on the disk, and the
+            // client's retry met its own work. Tried at every moment of the request, so that
+            // whatever the count, a change that landed is answered as a change that landed.
+            _vault.Granting(_group, AllButProtected);
+            var entry = "/entries/" + _entry;
+            var tag = Get(entry).Tag;
+            Assume.That(tag, Is.Not.Null, "this client is handed the tag, which is what this is about");
+
+            var thrown = false;
+            _vault.After(lookups, () =>
+            {
+                thrown = true;
+                throw new KeePassGate.Diagnostics.VaultUnsettled("KeePass's thread could not be held");
+            });
+
+            Answer answer;
+            switch (route)
+            {
+                case "entry":
+                    answer = Conditioned("PUT", entry, "{\"Title\":\"what the client meant\"}", tag);
+                    break;
+                case "field":
+                    answer = Conditioned("PUT", entry + "/fields/Title", "{\"value\":\"what the client meant\"}", tag);
+                    break;
+                default:
+                    answer = Conditioned(
+                        "POST", entry + "/fields", Bodies.Of(("name", "Added"), ("value", "what the client meant")), tag);
+                    break;
+            }
+
+            _vault.After(0, null);
+            var landed = route == "new field"
+                ? _vault.Field(_entry, "Added") != null
+                : _vault.Field(_entry, "Title") == "what the client meant";
+
+            if (landed)
+            {
+                Assert.That(answer.Status, Is.EqualTo(route == "new field" ? VaultHandlers.Created : 200), answer.Json);
+            }
+            else
+            {
+                Assert.That(thrown, Is.True, "nothing but the throw keeps the write from landing");
+                Assert.That(answer.Status, Is.EqualTo(503), answer.Json);
+            }
+        }
+
+        [Test]
         public void A_read_never_serves_content_older_than_its_tag(
             [Values("group", "entry", "field", "attachment")] string route,
             [Range(0, 5)] int lookups)

@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Net;
 using KeePassGate.Acl;
+using KeePassGate.Diagnostics;
 using KeePassGate.Spec;
 using KeePassGate.Transport;
 using KeePassGate.Vault;
@@ -1665,7 +1666,32 @@ namespace KeePassGate.Pipeline
         /// </summary>
         private static void Answer(IGateContext context, IVault vault, string uuid, VaultWrite write)
         {
-            Answer(context, write, write == null ? null : Confirmed(context, vault, uuid, write.Tag));
+            Answer(context, write, write == null ? null : Landed(context, vault, uuid, write.Tag));
+        }
+
+        /// <summary>
+        /// The tag a change that has been made answers with, or null when it cannot be confirmed
+        /// for this caller.
+        /// </summary>
+        /// <remarks>
+        /// **Asked after the change is on the disk, so it must not be the way the change is
+        /// answered `503 busy`.** Confirming the tag reads the entry again, and a read that cannot
+        /// hold KeePass's thread throws `VaultUnsettled`, which the router answers `busy`. Told
+        /// that of a write already saved, a client retries it, and the retry meets its own work: a
+        /// name taken, a field gone, a precondition the change has moved on from. The tag is a
+        /// convenience a client can do without, since reading the entry again hands it the tag, so
+        /// a read that cannot be made here costs the tag and not the answer.
+        /// </remarks>
+        private static string Landed(IGateContext context, IVault vault, string uuid, string tag)
+        {
+            try
+            {
+                return Confirmed(context, vault, uuid, tag);
+            }
+            catch (VaultUnsettled)
+            {
+                return null;
+            }
         }
 
         private static void Answer(IGateContext context, VaultWrite write)
