@@ -222,11 +222,14 @@ namespace KeePassGate.Vault
     /// holds what `If-Match` named, and whether it answers with the tag it leaves.
     /// </summary>
     /// <remarks>
-    /// **Every change takes one, and none takes it by default**, so that a caller that forgets
-    /// the request's precondition does not compile into a write that ignores it. The handler
-    /// decides both halves from who is asking: only a caller whose rule may read everything the
-    /// tag covers is handed a tag or has its `If-Match` asked, which is what keeps a tag from
-    /// telling a client anything about a value its rule does not let it read.
+    /// **Every change to a node that is already there takes one, and none takes it by default**,
+    /// so that a caller that forgets the request's precondition does not compile into a write that
+    /// ignores it. A field or an attachment created is one of those, its entry answering for it;
+    /// a group or an entry created is not, since its request is sent to a collection and declares
+    /// no `If-Match`, `API.md` §410. The handler decides both halves from who is asking: only a
+    /// caller whose rule may read everything the tag covers is handed a tag or has its `If-Match`
+    /// asked, which is what keeps a tag from telling a client anything about a value its rule does
+    /// not let it read.
     /// </remarks>
     public sealed class VaultTagging
     {
