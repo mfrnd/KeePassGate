@@ -964,6 +964,10 @@ def _parse(raw: bytes) -> Response:
     **The length is read rather than assumed.** Believing the close instead makes a truncated
     answer indistinguishable from a complete one, and an answer whose body never arrived would
     become an empty object. A caller cannot tell that from a gate that said so.
+
+    **Except on the answer to a `HEAD`**, which carries no `Content-Length` at all, as RFC 9110
+    section 9.3.2 permits, and is read to the close. It has no body, so there is nothing a close
+    could cut short, and a length that is missing is not the peer's defect there.
     """
     if not raw:
         raise TransportError("the connection was closed without an answer")
