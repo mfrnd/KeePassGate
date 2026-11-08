@@ -40,6 +40,15 @@ build-backend = "hatchling.build"
 path = "Directory.Build.props"
 pattern = "<Version>(?P<version>[^<]+)</Version>"
 
+# **And uv is told to watch it.** uv builds the project again only when a key below changes, and
+# left to itself it watches this file and whether `src` exists, which is its own list less the
+# `setup.py` and `setup.cfg` this project has neither of. Without `Directory.Build.props` here an
+# environment made before the number moved keeps the old version in its metadata, which is where
+# the client reads its own, and the version test fails locally after a correct bump, and nowhere
+# else. Measured: with it, moving the version reinstalls the client on the next `uv sync`.
+[tool.uv]
+cache-keys = [{ file = "pyproject.toml" }, { dir = "src" }, { file = "Directory.Build.props" }]
+
 [tool.hatch.build.targets.wheel]
 packages = ["src/pykeepassgate"]
 
