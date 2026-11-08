@@ -341,11 +341,18 @@ own. Either way OK and Cancel mean what they say.
 In the group's or entry's own custom data, under a key beginning `KPG`. It travels with the
 database, it is covered by the database's encryption, and no other plugin's data is touched.
 
-**A copy of a node carries its rules.** **Duplicate Entry** and **Duplicate Group** give the copy
-the original's custom data, rules included, and a duplicated group brings the rules of everything
-inside it as well. The copy is a node of its own, with an identifier of its own, and it grants what
-the original's rules grant wherever it is moved, so look at its **KPG** tab before moving it
-somewhere a program should not reach.
+**A copy of a node carries its rules**, whichever way KeePass makes the copy. **Duplicate Entry**
+and **Duplicate Group**, copying entries or a group into another group, and making an entry from a
+template all give the copy the original's custom data, rules included, and a copied group brings
+the rules of everything inside it as well. The copy is a node of its own, with an identifier of its
+own, and it grants what the original's rules grant wherever it is moved, so look at its **KPG** tab
+before moving it somewhere a program should not reach.
+
+**A rule on a template is a rule on every entry made from it.** The arrow beside the toolbar's
+**Add Entry** button offers the entries of the templates group chosen under **File**, **Database
+Settings**, **Advanced**, and an entry made from a template is a copy of it, made in whichever group
+is selected at the time. So keep rules off the templates, or check the **KPG** tab of every entry
+made from a template.
 
 ## What a program actually gets
 
