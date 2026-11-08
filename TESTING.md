@@ -56,7 +56,11 @@ GDI+'s own decoder, since nothing else reads it until the pictures are retaken.
 
 **No tier runs `build.ps1 -Task Package`**, since it packages only a clean commit. It checks its own
 output instead, every time it runs: the zip is read back against the files it was made from and
-`SHA256SUMS` against what `sha256sum -c` reads.
+`SHA256SUMS` against what `sha256sum -c` reads. **`release.yml` runs it**, as its check on a pull
+request that touches what a release is built from, and that check is the only place before a tag
+where an assembly the notices do not name, a file naming the directory it was built in or a symbol
+document outside `/_/` is refused. No ruleset requires it, so a pull request it fails can still be
+merged by whoever does not read it.
 
 ## Why the unit tier does not reference KeePass
 

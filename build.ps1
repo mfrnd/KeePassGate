@@ -1191,8 +1191,13 @@ function Assert-Package {
 # the way `sha256sum -c` reads it so that the zip extracted where it lies can be checked file by
 # file.
 #
-# **Not a gate.** It judges nothing a check does not already judge, and every run of the gate
-# rebuilding and zipping the plugin would only make it slower.
+# **Not a gate, and what it judges is judged nowhere else**: every assembly beside the plugin named
+# in the notices, no file naming the directory it was built in, every document the symbols name
+# under `/_/`, and the zip and its sums read back. `release.yml` runs it as its check on a pull
+# request that touches what a release is built from, which no ruleset requires, and again at a
+# release, so a miss holds up a merge only for whoever reads that check, and a tag in any case.
+# Every run of the gate rebuilding and zipping the plugin would slow every run down for a question
+# few pull requests raise.
 function Invoke-Package {
     $keePass = Resolve-KeePass
     $output = Join-Path $root 'src\KeePassGate\bin\Release\net48'
