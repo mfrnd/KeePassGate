@@ -53,9 +53,10 @@ namespace KeePassGate.Bridge
     /// - **Nothing is believed without asking.** KeePass's save reports nothing to its caller,
     ///   so what "it worked" is made of is `PwDatabase.Modified` having gone false. **That is the
     ///   answer after an exception as well as after a return**, because `MainForm.SaveDatabase`
-    ///   catches everything the save itself throws and then raises `FileSaved` to every other
-    ///   plugin outside that try: an exception arriving from there is somebody else's handler
-    ///   failing over a file this change is already in. **And the flag is not the whole of it
+    ///   catches everything the save itself throws and runs the rest outside that try: its window
+    ///   redrawn, which raises `UIStateUpdated` to every other plugin, the messages it pumps, its
+    ///   `FileSaved` event and the triggers. An exception arriving from there is something failing
+    ///   over a file this change is already in. **And the flag is not the whole of it
     ///   either**, because KeePass clears it as soon as it has committed the bytes and only then
     ///   hashes the file back: when that disagrees it warns the operator and changes nothing, so
     ///   the file is asked about as well. Pairing asks for more again, and reads its record back,
@@ -1376,19 +1377,20 @@ namespace KeePassGate.Bridge
                 // **An exception out of `_save` with nothing unsaved left is not a save that
                 // failed.** `PwDatabase.Save` clears that flag as the last thing it does, and
                 // `MainForm.SaveDatabase` catches everything the save itself throws; what is left
-                // to throw is what runs after it, outside that try. Its `FileSaved` event is
-                // raised there, to every other plugin loaded, with the file already written. So
-                // an exception here means somebody else's handler failed after this change reached
-                // the disk, and taking the change back out over it would leave the database in
+                // to throw is what runs after it, outside that try, with the file already written:
+                // its window redrawn, which raises `UIStateUpdated` to every other plugin loaded,
+                // the messages it pumps, its `FileSaved` event and the triggers. So an exception
+                // here means one of those failed after this change reached the disk, and taking
+                // the change back out over it would leave the database in
                 // memory disagreeing with the file KeePass just wrote: the client is told `500 not
                 // saved` and retries, the next unlock reads the file and brings the first copy
                 // back beside the second, and the operator's next save writes the undone state
                 // over the top instead. Decided by the flag rather than by the exception's type
                 // for the same reason every other question here is asked of the database: the type
                 // says which code threw, and the flag says what happened to the file.
-                _log.Error("the change was saved and something after the save failed, which is " +
-                           "another plugin's `FileSaved` handler: the change is on the disk and " +
-                           "is being left there", failed);
+                _log.Error("the change was saved and something KeePass runs after its save " +
+                           "failed, another plugin's handler, a trigger or KeePass's own window: " +
+                           "the change is on the disk and is being left there", failed);
             }
 
             if (!TheFileHoldsWhatWasWritten(database))
@@ -1895,8 +1897,8 @@ namespace KeePassGate.Bridge
                 // **Which of those it was is the database's answer rather than the exception's**,
                 // for the reason `ChangeOnTheUiThread` gives: the save clears the modified flag as
                 // the last thing it does, and `MainForm.SaveDatabase` catches everything the save
-                // itself throws, so an exception arriving with nothing unsaved left is another
-                // plugin's `FileSaved` handler failing after the record reached the disk. Undoing
+                // itself throws, so an exception arriving with nothing unsaved left is something
+                // KeePass runs after its save failing after the record reached the disk. Undoing
                 // there would refuse the client its certificate while the record stays in the
                 // file, which is the client on the clients page that never existed that `Undo`
                 // exists to prevent, arriving by the other road.
@@ -1906,9 +1908,9 @@ namespace KeePassGate.Bridge
                     return undo(error.Message, false);
                 }
 
-                _log.Error("the record was saved and something after the save failed, which is " +
-                           "another plugin's `FileSaved` handler: the record is on the disk and " +
-                           "is being left there", error);
+                _log.Error("the record was saved and something KeePass runs after its save " +
+                           "failed, another plugin's handler, a trigger or KeePass's own window: " +
+                           "the record is on the disk and is being left there", error);
             }
             finally
             {
