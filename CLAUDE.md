@@ -972,9 +972,14 @@ tools and the plugin's libraries, never a library's next major version and never
 `pyproject.toml`, and each a week after its release. Only the prose tools and a minor or patch
 version of the actions merge themselves, through `dependabot-auto-merge.yml`, since a green gate
 shows that an update breaks nothing and not that it is what it claims to be; the libraries and the
-lock wait for a person. **Every head is judged on its own**, since auto-merge stays on through a
-push by anybody with write access, Dependabot included: each run switches it off first, and only
-a head that qualifies switches it back on. A security update, which GitHub opens as soon as an
+lock wait for a person, and so does an action only the release's publishing jobs run, since a
+rehearsal is the first run it gets and a person runs that. **Every head is judged on its own**,
+since auto-merge stays on through a push by anybody with write access, Dependabot included: each
+run switches it off first, and only a head that qualifies switches it back on. **And with a GitHub
+App's token**, since GitHub merges as whoever switched auto-merge on and a push made with the
+workflow's own token starts no workflow, so a merge switched on with it would reach `master` with
+no gate and no CodeQL run there; without the app's two secrets, which `RELEASING.md` lists,
+nothing merges itself. A security update, which GitHub opens as soon as an
 advisory is out under two settings `RELEASING.md` lists, waits for a person as well. KeePass is
 pinned where no such service reads, so `keepass-watch.yml` opens an issue when it releases a newer
 version, and moving that pin stays a person's job, since `tools/KeePass.ps1` refuses a version
