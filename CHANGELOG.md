@@ -11,6 +11,11 @@ none, since it releases both.
 
 ## 0.2.0, unreleased
 
+- **PyKeePassGate refuses a socket its `dial` hands back that TLS cannot use, and closes it**: a
+  datagram socket is a `TypeError`, as anything but a connected stream socket is, and a socket
+  never connected is a `TransportError`, as a closed socket is. The first raised
+  `NotImplementedError` and the second a bare `OSError` once TLS had wrapped it, neither of them
+  an error the client promises, and each left its socket open.
 - **A certificate the database admits, turned away on a connection that arrived on an invitation,
   is written to the audit**, with the reason `this connection arrived on an invitation`. It is
   refused as before, and was the line missing from the audit's account of every certificate this

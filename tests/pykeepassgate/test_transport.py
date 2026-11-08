@@ -247,6 +247,60 @@ class TestDialing:
         ), transport.connect(45678, transport.unpaired_context(), "x.y.kpg", dial=closed):
             pass  # pragma: no cover, the timeout is what raises
 
+    def test_a_dial_that_hands_back_a_socket_never_connected_is_a_transport_error(self) -> None:
+        # TLS wraps such a socket without a word, and reading the certificate off it raised a bare
+        # `OSError`, measured on Windows as `WinError 10057`, with the socket left open.
+        made: list[socket.socket] = []
+
+        def unconnected(host: str, port: int, timeout: float) -> socket.socket:
+            made.append(socket.socket())
+            return made[-1]
+
+        with pytest.raises(
+            TransportError, match="the socket dial handed back could not be used"
+        ), transport.connect(45678, transport.unpaired_context(), "x.y.kpg", dial=unconnected):
+            pass  # pragma: no cover, asking for the peer is what raises
+
+        assert made[0].fileno() == -1
+
+    def test_a_dial_that_hands_back_a_datagram_socket_is_a_programming_error(self) -> None:
+        # Which TLS refused with `NotImplementedError`, leaving the socket open.
+        made: list[socket.socket] = []
+
+        def datagram(host: str, port: int, timeout: float) -> socket.socket:
+            made.append(socket.socket(socket.AF_INET, socket.SOCK_DGRAM))
+            return made[-1]
+
+        with pytest.raises(TypeError, match="dial returned a SOCK_DGRAM socket rather than"), (
+            transport.connect(45678, transport.unpaired_context(), "x.y.kpg", dial=datagram)
+        ):
+            pass  # pragma: no cover, the dial is what raises
+
+        assert made[0].fileno() == -1
+
+    def test_a_server_that_sends_no_certificate_leaves_nothing_open(
+        self, gate: FakeGate, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        # Which a server cannot do under TLS 1.3, and something else on the port could still try.
+        closed: list[bool] = []
+        close = ssl.SSLSocket.close
+
+        def recorded(wrapped: ssl.SSLSocket) -> None:
+            # The gate's own sockets close through here too, on threads of their own.
+            if not wrapped.server_side:
+                closed.append(True)
+            close(wrapped)
+
+        monkeypatch.setattr(ssl.SSLSocket, "getpeercert", lambda wrapped, binary_form=False: b"")
+        monkeypatch.setattr(ssl.SSLSocket, "close", recorded)
+
+        with pytest.raises(TransportError, match="the server sent no certificate"), (
+            transport.connect(gate.port, transport.unpaired_context(), "x.y.kpg")
+        ):
+            pass  # pragma: no cover, reading the certificate is what raises
+
+        assert closed == [True]
+
     def test_a_dial_that_hands_back_no_socket_is_a_programming_error(self) -> None:
         def wrong(host: str, port: int, timeout: float) -> socket.socket:
             return cast(socket.socket, "a socket, in a manner of speaking")

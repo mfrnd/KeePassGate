@@ -789,26 +789,34 @@ def connect(
     except OSError as error:
         raise TransportError(f"nothing is listening on {host}:{port}: {error}") from error
 
-    if not isinstance(made, socket.socket):
+    if not isinstance(made, socket.socket) or made.type != socket.SOCK_STREAM:
         # Closed before it goes, as every failure here closes what it holds: what a `dial` hands
         # back by mistake is likely a wrapper from some other library that owns a descriptor.
         # Anything its own `close` raises is that library's, and the mistake reported is this.
+        # A socket that is not a stream socket is the same mistake: TLS refuses a datagram socket
+        # with `NotImplementedError`, which is no `GateError` and closes nothing.
         close = getattr(made, "close", None)
         if callable(close):
             with contextlib.suppress(Exception):
                 close()
 
-        raise TypeError(
-            f"dial returned an object of type {type(made).__name__} rather than a connected "
-            "socket"
+        kind = (
+            f"a {made.type.name} socket"
+            if isinstance(made, socket.socket)
+            else f"an object of type {type(made).__name__}"
         )
+        raise TypeError(f"dial returned {kind} rather than a connected stream socket")
 
     raw = made
 
     try:
         # A refusal of its own, because a socket a caller's `dial` handed back can already be
-        # closed, and setting its timeout then raises a bare `OSError` before any handshake.
+        # closed, and setting its timeout then raises a bare `OSError` before any handshake. A
+        # socket never connected, or whose peer is already gone, is asked for its peer for the
+        # same reason: TLS wraps it without a word, and the certificate is then read off a
+        # connection that is not there, as an `OSError` with the socket left open.
         raw.settimeout(connection_timeout)
+        raw.getpeername()
     except OSError as error:
         raw.close()
         raise TransportError(f"the socket dial handed back could not be used: {error}") from error
@@ -839,7 +847,13 @@ def connect(
         # The error a reset carries outside Windows, as POSIX names it: cspell:ignore ECONNRESET
         raise TransportError(f"the handshake failed: {error}") from error
 
-    connection = Connection(wrapped, max_response_bytes)
+    try:
+        connection = Connection(wrapped, max_response_bytes)
+    except BaseException:
+        # A server that sent no certificate, refused there, still holds the socket.
+        wrapped.close()
+        raise
+
     try:
         yield connection
     finally:

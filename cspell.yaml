@@ -96,6 +96,10 @@ words:
   - REUSEADDR
   - cafile
 
+  # the kind of socket a dial may hand back by mistake, and Python's name for it
+  - datagram
+  - DGRAM
+
   # start the reference client, with the checks it is held to
   - addopts
   - conftest
