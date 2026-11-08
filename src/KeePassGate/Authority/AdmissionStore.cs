@@ -21,12 +21,14 @@ namespace KeePassGate.Authority
     /// difference, rather than asking the dictionary. The key is a digest of a certificate somebody
     /// else chose, so the comparison must not report how much of it matched.
     ///
-    /// **A failure to read is not an absence, and where that matters the answer says so.** For
-    /// `Find` it does not: both are null, because the safe answer to "can this certificate be
-    /// admitted" is no either way, and a store that would not answer says so with an `Error` of
-    /// its own, immediately before the caller's `refused a certificate with no admission record`.
-    /// `All` carries the difference in an `AdmissionListing`, because a screen that states how
-    /// many clients are admitted would otherwise turn "could not tell" into "nobody".
+    /// **A failure to read is not an absence, and where that matters the answer tells them apart.**
+    /// `Find` with `listed` does, and the gate asks it that way: a listing that failed is answered
+    /// as `VaultUnsettled`, which the connection is told as `503 busy` rather than as a certificate
+    /// with no record. `Find` without it answers null for both, because the safe answer to "can
+    /// this certificate be admitted" is no either way, and a store that would not answer logs an
+    /// `Error` of its own. `All` carries the difference in an `AdmissionListing`, because a screen
+    /// that states how many clients are admitted would otherwise turn "could not tell" into
+    /// "nobody".
     /// </remarks>
     public sealed class AdmissionStore
     {
