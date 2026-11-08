@@ -1,3 +1,4 @@
+using System.Linq;
 using KeePassGate.Acl;
 using KeePassGate.Ui;
 using NUnit.Framework;
@@ -60,22 +61,20 @@ namespace KeePassGate.Tests
         }
 
         [Test]
-        public void One_letter_names_one_verb_and_it_is_the_first_that_wanted_it()
+        public void No_two_verbs_share_a_letter_and_each_letter_toggles_its_own_verb()
         {
-            // Nothing declared today collides. The rule matters for what is declared tomorrow: a
-            // verb added later that starts with a letter already spoken for gets no key, rather
-            // than taking one away from a verb operators have been pressing for years.
-            var keys = VerbKeys.All();
+            // A verb added later that starts with a letter already spoken for would leave one of
+            // the two with no key to type and the mask with two positions spelled the same.
+            var letters = AclVerbs.Grantable.Select(VerbMask.LetterOf).ToList();
 
-            foreach (var pair in keys)
-            {
-                Assert.That(VerbKeys.PositionOf(pair.Key), Is.GreaterThanOrEqualTo(0));
-                Assert.That(AclVerbs.Grantable[VerbKeys.PositionOf(pair.Key)], Is.EqualTo(pair.Value));
-            }
-
-            Assert.That(keys.Count, Is.EqualTo(AclVerbs.Grantable.Count),
+            Assert.That(letters, Is.Unique,
                 "two verbs share a first letter, so one of them can no longer be typed and the "
                 + "mask has two positions spelled the same");
+
+            for (var i = 0; i < letters.Count; i++)
+            {
+                Assert.That(VerbKeys.PositionOf(letters[i]), Is.EqualTo(i));
+            }
         }
     }
 }
