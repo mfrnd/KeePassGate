@@ -11,6 +11,9 @@ none, since it releases both.
 
 ## 0.2.0, unreleased
 
+- **Plain output escapes a line break wherever it is**, in an identifier, a subject or a
+  directory as well as a name or a value: each command escaped the values it named, and the rest
+  went out as they were.
 - **A value piped in over more than a line is refused**, exit 2 with nothing sent. It was cut to
   its first line and stored, so a key in PEM was stored as its `BEGIN` line and reported done. A
   value piped in is read to the end of input now, so whatever sends it must close the pipe, which

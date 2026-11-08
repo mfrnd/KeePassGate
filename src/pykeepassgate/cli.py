@@ -733,17 +733,20 @@ def _formatted(parser: argparse.ArgumentParser) -> None:
 def _emit(arguments: argparse.Namespace, document: object, lines: Iterable[str]) -> None:
     """What a command found, in the format `--output` chose.
 
-    `lines` is the plain form, every name and value in it already through `_printable`, and
-    `document` the JSON one, which needs no such care: the encoder escapes every character that
-    would break a line, and `ensure_ascii` keeps the document readable on a console whose code
-    page holds less than the database does.
+    `lines` is the plain form, each through `_printable` here, so that no caller has to remember
+    which of its values another writer could have chosen: a name, an identifier, a subject or a
+    directory alike, from the gate, from a file or from the command line. Every caller's own text
+    holds nothing it escapes, so a line is printed as written unless a value in it needed it.
+    `document` is the JSON form, which needs no such care: the encoder escapes every character
+    that would break a line, and `ensure_ascii` keeps the document readable on a console whose
+    code page holds less than the database does.
     """
     if arguments.output == "json":
         print(json.dumps(document, indent=2))
         return
 
     for line in lines:
-        print(line)
+        print(_printable(line))
 
 
 def _moment(when: datetime) -> str:
@@ -1708,12 +1711,10 @@ def _whoami(arguments: argparse.Namespace) -> int:
         "removedProfiles": list(found.removed_profiles),
         "profilesUnreadable": found.profiles_unreadable,
     }
-    # Escaped as every name the gate answers with is, though the plugin allows no character in a
-    # subject or a profile that would need it: what is printed is what was answered.
     lines = [
-        f"subject:          {_printable(found.subject)}",
-        f"client key:       {_printable(found.client_key)}",
-        f"admission key:    {_printable(found.admission_key)}",
+        f"subject:          {found.subject}",
+        f"client key:       {found.client_key}",
+        f"admission key:    {found.admission_key}",
         f"expires:          {_moment(found.expires)}",
         f"profiles:         {_listed(found.profiles)}",
         f"removed profiles: {_listed(found.removed_profiles)}",
@@ -1732,7 +1733,7 @@ def _whoami(arguments: argparse.Namespace) -> int:
 
 def _listed(names: tuple[str, ...]) -> str:
     """Names on one line, separated by commas, or the word for none."""
-    return ", ".join(_printable(name) for name in names) or "none"
+    return ", ".join(names) or "none"
 
 
 def _access(arguments: argparse.Namespace) -> int:
@@ -1753,7 +1754,7 @@ def _access(arguments: argparse.Namespace) -> int:
     _emit(
         arguments,
         {"grants": dict(found.grants)},
-        [f"{mask}  {_printable(profile)}" for profile, mask in found.grants.items()],
+        [f"{mask}  {profile}" for profile, mask in found.grants.items()],
     )
     return 0
 
@@ -1771,7 +1772,7 @@ def _groups(arguments: argparse.Namespace) -> int:
     _emit(
         arguments,
         [_group(group) for group in found],
-        [f"{group.uuid}  {_printable(group.name)}" for group in found],
+        [f"{group.uuid}  {group.name}" for group in found],
     )
     return 0
 
@@ -1790,9 +1791,9 @@ def _group_read(arguments: argparse.Namespace) -> int:
     # escaped as an entry's are in `show`, so notes over several lines print on one.
     lines = [
         f"uuid:   {found.uuid}",
-        f"name:   {_printable(found.name)}",
+        f"name:   {found.name}",
         f"parent: {found.parent or 'none'}",
-        f"notes:  {_printable(found.notes)}",
+        f"notes:  {found.notes}",
     ]
 
     _emit(arguments, _group(found), lines)
@@ -1877,7 +1878,7 @@ def _entries(arguments: argparse.Namespace) -> int:
     for entry in found:
         # A withheld title is not a title, and reading one raises. Asked first rather than
         # caught, so one withheld title does not end the listing.
-        title = "(withheld)" if TITLE in entry.withheld else _printable(entry.title)
+        title = "(withheld)" if TITLE in entry.withheld else entry.title
         lines.append(f"{entry.uuid}  {title}")
 
     _emit(arguments, [_listed_entry(entry) for entry in found], lines)
@@ -1939,8 +1940,8 @@ def _show(arguments: argparse.Namespace) -> int:
         # A value is escaped as a name is, since one line per field is what this output promises:
         # a line feed in the notes would otherwise print a `Password:` row of its own, above the
         # real one, written by whoever may change the notes and not the password.
-        shown = "(withheld)" if name in entry.withheld else _printable(values[name])
-        lines.append(f"{_printable(name)}: {shown}{guarded}")
+        shown = "(withheld)" if name in entry.withheld else values[name]
+        lines.append(f"{name}: {shown}{guarded}")
 
     # The values as they are, which `json` escapes itself, and a withheld one only by its name.
     document["fields"] = {name: values[name] for name in sorted(values)}
@@ -2055,7 +2056,7 @@ def _fields(arguments: argparse.Namespace) -> int:
             for field in found
         ],
         [
-            _printable(field.name) + (" (protected)" if field.protected else "")
+            field.name + (" (protected)" if field.protected else "")
             for field in found
         ],
     )
@@ -2079,7 +2080,7 @@ def _field(arguments: argparse.Namespace) -> int:
 
     document: dict[str, object] = {"name": found.name, "protected": found.protected, "value": value}
     _left(document, found.read_etag)
-    _emit(arguments, document, [_printable(value)])
+    _emit(arguments, document, [value])
     return 0
 
 
@@ -2111,7 +2112,7 @@ def _add_field(arguments: argparse.Namespace) -> int:
     _emit(
         arguments,
         _left({"uuid": arguments.uuid, "name": arguments.name}, etag),
-        [f"added {_printable(arguments.name)} to {arguments.uuid}"],
+        [f"added {arguments.name} to {arguments.uuid}"],
     )
     return 0
 
@@ -2130,7 +2131,7 @@ def _update_field(arguments: argparse.Namespace) -> int:
     _emit(
         arguments,
         _left({"uuid": arguments.uuid, "name": arguments.name}, etag),
-        [f"updated {_printable(arguments.name)} on {arguments.uuid}"],
+        [f"updated {arguments.name} on {arguments.uuid}"],
     )
     return 0
 
@@ -2148,7 +2149,7 @@ def _strip_field(arguments: argparse.Namespace) -> int:
     _emit(
         arguments,
         _left({"uuid": arguments.uuid, "name": arguments.name}, etag),
-        [f"stripped {_printable(arguments.name)} from {arguments.uuid}"],
+        [f"stripped {arguments.name} from {arguments.uuid}"],
     )
     return 0
 
@@ -2170,7 +2171,7 @@ def _attachments(arguments: argparse.Namespace) -> int:
             _left({"name": attachment.name, "size": attachment.size}, attachment.read_etag)
             for attachment in found
         ],
-        [f"{attachment.size:>10}  {_printable(attachment.name)}" for attachment in found],
+        [f"{attachment.size:>10}  {attachment.name}" for attachment in found],
     )
     return 0
 
@@ -2307,7 +2308,7 @@ def _add_attachment(arguments: argparse.Namespace) -> int:
         lambda client, content: client.create_attachment(
             arguments.uuid, arguments.name, content, if_match=arguments.if_match
         ),
-        f"added {_printable(arguments.name)} to {arguments.uuid}",
+        f"added {arguments.name} to {arguments.uuid}",
     )
 
 
@@ -2317,7 +2318,7 @@ def _update_attachment(arguments: argparse.Namespace) -> int:
         lambda client, content: client.update_attachment(
             arguments.uuid, arguments.name, content, if_match=arguments.if_match
         ),
-        f"updated {_printable(arguments.name)} on {arguments.uuid}",
+        f"updated {arguments.name} on {arguments.uuid}",
     )
 
 
@@ -2334,7 +2335,7 @@ def _strip_attachment(arguments: argparse.Namespace) -> int:
     _emit(
         arguments,
         _left({"uuid": arguments.uuid, "name": arguments.name}, etag),
-        [f"stripped {_printable(arguments.name)} from {arguments.uuid}"],
+        [f"stripped {arguments.name} from {arguments.uuid}"],
     )
     return 0
 

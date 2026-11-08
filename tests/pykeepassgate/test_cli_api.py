@@ -759,10 +759,28 @@ def test_attachments_are_listed_with_their_sizes(
             {"uuid": UUID, "name": "Real", "parent": None, "notes": "a\nparent: x"},
             "notes:  a\\nparent: x",
         ),
+        # What the plugin answers with only in hex, escaped all the same, since what is printed
+        # is what was answered and the model holds an identifier to no form.
+        (
+            ["groups"],
+            {"groups": [{"uuid": "Real\nForged", "name": "Real", "parent": None}]},
+            "Real\\nForged  Real",
+        ),
+        (
+            ["show", UUID],
+            {
+                "uuid": UUID,
+                "group": "g\nForged: x",
+                "fields": {},
+                "protected": [],
+                "expires": None,
+            },
+            "group: g\\nForged: x",
+        ),
     ],
     ids=[
         "groups", "entries", "show", "attachments", "whoami", "access", "fields", "group name",
-        "group notes",
+        "group notes", "an identifier", "show's group",
     ],
 )
 def test_a_name_that_would_break_a_line_is_printed_on_the_one_it_belongs_to(

@@ -837,8 +837,9 @@ pykeepassgate show <uuid> --output json | jq -r '.fields.UserName'
 
 Every command takes `-o` or `--output`. `plain`, the default, is the lines shown everywhere else on
 this page, written for a person: one item to a line, with a line break or another control
-character inside a name or a value written as its escape, so that nothing can print a row that is
-not there. `json` prints one document for a program, an array for a listing and an object for
+character written as its escape wherever it is, in a name, a value, an identifier or a directory,
+so that nothing can print a row that is not there.
+`json` prints one document for a program, an array for a listing and an object for
 anything else, with every value exactly as stored, and only ASCII, so a console whose code page
 holds less than the database does still prints it. **Both are written as UTF-8** to a file or a
 pipe, whatever the code page, as Python 3.15 writes by default, so whatever reads the output reads
