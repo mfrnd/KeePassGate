@@ -26,7 +26,10 @@ namespace KeePassGate.Transport
             _contentLength = contentLength;
         }
 
-        /// <summary>Upper case, as sent. A method is case sensitive and ours are all upper case.</summary>
+        /// <summary>
+        /// As sent, case and all. A method is case sensitive, and every method this API declares is
+        /// upper case, so `get` is a method nothing declares.
+        /// </summary>
         public string Method
         {
             get { return _method; }
