@@ -126,8 +126,9 @@ namespace KeePassGate.Transport
         /// what a route about a client's own admission writes.
         /// </remarks>
         /// <param name="peer">
-        /// The address the connection came from, for the two routes that show it to a person, or
-        /// null where nobody knows.
+        /// The address the connection came from, for the renewal dialog, which shows it to a
+        /// person, or null where nobody knows. A pairing has its own copy, on the pairing
+        /// connection, and reads that instead.
         /// </param>
         /// <param name="arrived">
         /// Told that the whole request is off the wire, and what it asked for, which is the instant
@@ -276,8 +277,11 @@ namespace KeePassGate.Transport
         ///
         /// **Where this sits is the point.** By now `ReadHead` has already refused a body that is
         /// too long, a duplicate length, and a transfer encoding, all without reading a byte of the
-        /// body. So a client that would have been refused is refused **before** being invited to
+        /// body. So a client the reader would have refused is refused **before** being invited to
         /// send, which is better than the alternative: it sends a megabyte and is then told no.
+        /// That is the reader's refusals and no others. What the router refuses, about the
+        /// caller, the route or the rules, it refuses once the body is read, because the
+        /// transport reads a request whole before routing it.
         ///
         /// An expectation that is not `100-continue` is refused rather than ignored, because
         /// ignoring one means proceeding while the client believes something that is not true.
