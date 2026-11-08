@@ -242,8 +242,8 @@ namespace KeePassGate.Bridge
         /// admission records were never here to drop: they are read from the live database on every
         /// connection, and locking cuts them off by closing the database rather than by clearing
         /// anything. The gate key is copied out before the material goes, because disposing it
-        /// zeroes the key, and the responder was minted while the database was open and is held on
-        /// its own.
+        /// zeroes the key, and the responder is minted here, from the reading the cache still
+        /// holds, before that reading is disposed, and is held on its own: see `Answering`.
         ///
         /// A lock that finds nothing cached is not necessarily a database nobody served: a
         /// connection may have found it shut before this arrived, in which case what it will

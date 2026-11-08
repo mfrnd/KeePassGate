@@ -243,9 +243,10 @@ namespace KeePassGate.Authority
         /// complete a handshake with, and a client gets a bare connection failure indistinguishable
         /// from a wrong port, a stopped KeePass, or an attack.
         ///
-        /// It is minted while the database is open and kept only in memory, and it can do nothing
-        /// but answer "locked": the authority it would need to validate a client certificate is
-        /// exactly what has been dropped. The marker is what lets a client tell it apart and refuse
+        /// It is minted from an authority read while the database was open, when the database is
+        /// first served and again at the lock it answers, once KeePass has closed the database, and
+        /// kept only in memory. It can do nothing but answer "locked": the authority it would need
+        /// to validate a client certificate is exactly what has been dropped. The marker is what lets a client tell it apart and refuse
         /// to send real requests over it, because an impostor holding this key reads nothing but
         /// could answer with a fabricated secret, and an agent acting on a forged answer is worse
         /// than an agent that fails.
