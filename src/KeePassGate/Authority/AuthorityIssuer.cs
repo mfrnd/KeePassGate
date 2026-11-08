@@ -67,8 +67,9 @@ namespace KeePassGate.Authority
 
         /// <summary>
         /// What marks a responder certificate, so a client can tell one without reading a subject
-        /// name. `CA.md` §207 requires a marker in an extension rather than a convention,
-        /// because a client has to be able to refuse to send real requests over this identity.
+        /// name. `CA.md` §208 requires it to be told apart by what it carries rather than by a
+        /// convention, because a client has to be able to refuse to send real requests over this
+        /// identity.
         /// </summary>
         /// <remarks>
         /// A URI in the subject alternative name rather than a private extension, and that is a
@@ -238,7 +239,7 @@ namespace KeePassGate.Authority
         /// The second host certificate: what a locked KeePass answers with.
         /// </summary>
         /// <remarks>
-        /// `CA.md` §207 and `PAIRING.md` §308. Locking closes the database, and with it
+        /// `CA.md` §208 and `PAIRING.md` §308. Locking closes the database, and with it
         /// the authority, the records and the normal host key. Without this there is nothing left to
         /// complete a handshake with, and a client gets a bare connection failure indistinguishable
         /// from a wrong port, a stopped KeePass, or an attack.
