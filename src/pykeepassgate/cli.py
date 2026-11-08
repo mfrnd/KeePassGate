@@ -38,7 +38,7 @@ import os
 import sys
 import unicodedata
 from collections.abc import Callable, Iterable
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Literal, TypedDict
 
@@ -937,6 +937,15 @@ def _expiry(text: str) -> datetime | Literal["auto"]:
 
     if when.utcoffset() is None:
         raise argparse.ArgumentTypeError(f"{text!r} names no time zone; end it with Z for UTC")
+
+    # Moved to UTC here as well as in the library, whose `ValueError` would otherwise leave `main`
+    # as a traceback: `9999-12-31T23:00:00-05:00` is a moment in the year 10000 there.
+    try:
+        when.astimezone(UTC)
+    except OverflowError:
+        raise argparse.ArgumentTypeError(
+            f"{text!r} falls outside the years 1 to 9999 in UTC, which is where it is sent"
+        ) from None
 
     return when
 

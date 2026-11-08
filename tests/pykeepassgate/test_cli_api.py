@@ -16,6 +16,7 @@ from typing import Any
 import pytest
 
 from pykeepassgate import api, cli, transport
+from pykeepassgate import client as client_module
 from pykeepassgate import credentials as credentials_module
 from pykeepassgate.testing import FakeGate, identified
 from test_credentials import linked
@@ -1286,6 +1287,29 @@ def test_an_expiry_that_names_no_instant_is_refused_as_an_argument(
 
     assert raised.value.code == 2
     assert gate.requests == []
+
+
+@pytest.mark.parametrize(
+    ("command", "given"),
+    [("add", "9999-12-31T23:00:00-05:00"), ("update", "0001-01-01T00:00:00+01:00")],
+    ids=["past the year 9999", "before the year 1"],
+)
+def test_an_expiry_outside_the_calendar_in_utc_is_refused_as_an_argument(
+    command: str, given: str, kept: Path, gate: FakeGate, capsys: pytest.CaptureFixture[str]
+) -> None:
+    # Each parsed, and moving it to UTC raised `OverflowError` out of `main` as a traceback.
+    named = [UUID] if command == "update" else []
+    with pytest.raises(SystemExit) as raised:
+        cli.main([command, *named, "--expires", given, "--directory", str(kept)])
+
+    assert raised.value.code == 2
+    assert "outside the years 1 to 9999" in capsys.readouterr().err
+    assert gate.names == []
+
+
+def test_the_library_refuses_such_an_expiry_as_the_value_error_it_names() -> None:
+    with pytest.raises(ValueError, match="years 1 to 9999"):
+        client_module._expiry(datetime.fromisoformat("9999-12-31T23:00:00-05:00"), creating=True)
 
 
 def test_a_key_that_will_not_load_is_an_exit_code_rather_than_a_stack_trace(

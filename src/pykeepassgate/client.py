@@ -1227,7 +1227,17 @@ def _expiry(value: object, *, creating: bool) -> str:
         if value.utcoffset() is None:
             raise ValueError("an expiry needs a time zone, which datetime.now(UTC) has")
 
-        return value.astimezone(UTC).replace(microsecond=0, tzinfo=None).isoformat() + "Z"
+        # A moment whose instant in UTC falls outside the years 1 to 9999 cannot be moved there,
+        # and `astimezone` raises `OverflowError` for it, which is no `ValueError`.
+        try:
+            moved = value.astimezone(UTC)
+        except OverflowError:
+            raise ValueError(
+                f"an expiry is a moment whose instant in UTC falls in the years 1 to 9999, "
+                f"not {value.isoformat()}"
+            ) from None
+
+        return moved.replace(microsecond=0, tzinfo=None).isoformat() + "Z"
 
     if value == AUTO and creating:
         return AUTO

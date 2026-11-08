@@ -11,6 +11,10 @@ none, since it releases both.
 
 ## 0.2.0, unreleased
 
+- **An expiry whose instant in UTC falls outside the years 1 to 9999 is refused as such**, a
+  `ValueError` from the library and exit 2 from `--expires`. `9999-12-31T23:00:00-05:00` parsed,
+  and moving it to UTC raised `OverflowError`, which the library's documents do not name and
+  which left the command line as a traceback.
 - **An identifier or a name that names nothing is refused before anything is dialed**: an empty
   identifier or name, and text UTF-8 cannot encode, such as a lone surrogate from argv. The
   library raises `ProtocolError`, and the command line refuses the argument, exit 2. `groups
