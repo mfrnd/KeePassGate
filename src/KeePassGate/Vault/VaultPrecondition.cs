@@ -25,13 +25,31 @@ namespace KeePassGate.Vault
     /// </remarks>
     public sealed class VaultPrecondition
     {
+        /// <summary>Why a node is refused under a precondition naming tags: it holds none of them.</summary>
+        private const string Changed = "the node no longer holds what If-Match named";
+
         private readonly bool _any;
         private readonly IReadOnlyCollection<string> _tags;
+        private readonly string _refusal;
 
-        private VaultPrecondition(bool any, IReadOnlyCollection<string> tags)
+        private VaultPrecondition(bool any, IReadOnlyCollection<string> tags, string refusal)
         {
             _any = any;
             _tags = tags;
+            _refusal = refusal;
+        }
+
+        /// <summary>Why a node is refused under this precondition, for the operator's log.</summary>
+        /// <remarks>
+        /// **Three of the four reasons are about the request and not the node**: a field that will
+        /// not read, a field naming no strong tag, and a caller the gate hands no tag, each met by
+        /// no node whatever it holds. One sentence for all four told the operator that the node
+        /// had changed, which sent somebody looking for an edit nobody made while a program was
+        /// sending a condition nothing could meet.
+        /// </remarks>
+        public string Refusal
+        {
+            get { return _refusal; }
         }
 
         /// <summary>
@@ -46,7 +64,7 @@ namespace KeePassGate.Vault
 
             if (string.Equals(field, "*", StringComparison.Ordinal))
             {
-                return new VaultPrecondition(true, Array.Empty<string>());
+                return new VaultPrecondition(true, Array.Empty<string>(), Changed);
             }
 
             var tags = new List<string>();
@@ -94,7 +112,9 @@ namespace KeePassGate.Vault
 
             // A field holding only commas and spaces names no tag, and a precondition naming none is
             // one no node meets.
-            return new VaultPrecondition(false, tags);
+            return tags.Count == 0
+                ? new VaultPrecondition(false, tags, "If-Match names no strong tag, so no node meets it")
+                : new VaultPrecondition(false, tags, Changed);
         }
 
         /// <summary>
@@ -118,7 +138,8 @@ namespace KeePassGate.Vault
         /// **For a change, which asks under the writer's lock on KeePass's thread**, where a tag is
         /// a digest over every string and attachment the node holds. Three answers need none: no
         /// precondition refuses nothing, `*` is met by every node that is there, and a precondition
-        /// naming no tag, which a field that will not read asks, is met by none.
+        /// naming no tag, which a field that will not read and a caller handed no tags both ask, is
+        /// met by none.
         /// </remarks>
         public static bool Fails(VaultPrecondition precondition, Func<string> tag)
         {
@@ -146,10 +167,21 @@ namespace KeePassGate.Vault
             return _any || _tags.Contains(tag, StringComparer.Ordinal);
         }
 
-        /// <summary>One that no node meets, which is what a field that will not read asks.</summary>
+        /// <summary>A precondition no node meets, which is what a field that will not read asks.</summary>
         public static VaultPrecondition Nothing()
         {
-            return new VaultPrecondition(false, Array.Empty<string>());
+            return new VaultPrecondition(
+                false, Array.Empty<string>(), "If-Match does not read as a list of tags, so no node meets it");
+        }
+
+        /// <summary>
+        /// A precondition no node meets, which is what a caller the gate hands no tag asks, whatever
+        /// its field names: a tag it could meet a node with was never handed to it.
+        /// </summary>
+        public static VaultPrecondition Withheld()
+        {
+            return new VaultPrecondition(
+                false, Array.Empty<string>(), "this client is handed no tags, so no node meets its If-Match");
         }
 
         private static int Skip(string field, int at)

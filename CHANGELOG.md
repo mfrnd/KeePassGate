@@ -160,6 +160,10 @@ none, since it releases both.
   tag, and an answer carrying one. Every write asked either took the node's tag on KeePass's
   thread, under the writer's lock, including a write under `*`, a condition naming no tag, and a
   change answering with the tag it leaves, which took a second.
+- **A write refused `412` is logged with its cause**: the node no longer holding a tag named, an
+  `If-Match` that does not read, one naming no strong tag, or a program the gate hands no tags.
+  Every one was logged as a node that changed, which sent an operator looking for an edit nobody
+  made.
 - **A protected field is kept from a strip whenever any profile could put an unprotected value
   back.** The guard asked whether some profile could create there and whether some profile could
   create a protected value there, so a program holding one profile that could put an unprotected

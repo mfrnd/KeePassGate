@@ -384,10 +384,18 @@ namespace KeePassGate.Vault
             return new VaultWrite(true, false, false, uuid, null) { Tag = tag };
         }
 
-        /// <summary>The node no longer holds what `If-Match` said, and nothing was changed.</summary>
-        public static VaultWrite PreconditionFailed()
+        /// <summary>The node did not meet what `If-Match` asked, and nothing was changed.</summary>
+        /// <param name="precondition">
+        /// What was asked, whose <see cref="VaultPrecondition.Refusal"/> is the reason.
+        /// </param>
+        public static VaultWrite PreconditionFailed(VaultPrecondition precondition)
         {
-            return new VaultWrite(false, false, false, null, "the node no longer holds what If-Match named")
+            if (precondition == null)
+            {
+                throw new ArgumentNullException(nameof(precondition));
+            }
+
+            return new VaultWrite(false, false, false, null, precondition.Refusal)
             {
                 IsPreconditionFailed = true,
             };

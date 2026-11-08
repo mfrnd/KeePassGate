@@ -442,7 +442,7 @@ namespace KeePassGate.Bridge
                 var tag = Before(group);
                 if (VaultPrecondition.Fails(tagging.Precondition, tag))
                 {
-                    return VaultWrite.PreconditionFailed();
+                    return VaultWrite.PreconditionFailed(tagging.Precondition);
                 }
 
                 if ((name == null || string.Equals(group.Name, name, StringComparison.Ordinal))
@@ -511,7 +511,7 @@ namespace KeePassGate.Bridge
 
                 if (VaultPrecondition.Fails(tagging.Precondition, Before(group)))
                 {
-                    return VaultWrite.PreconditionFailed();
+                    return VaultWrite.PreconditionFailed(tagging.Precondition);
                 }
 
                 var parent = group.ParentGroup;
@@ -682,7 +682,7 @@ namespace KeePassGate.Bridge
                 var tag = Before(entry);
                 if (VaultPrecondition.Fails(tagging.Precondition, tag))
                 {
-                    return VaultWrite.PreconditionFailed();
+                    return VaultWrite.PreconditionFailed(tagging.Precondition);
                 }
 
                 if (AlreadyHolds(entry, fields) && AlreadyExpires(entry, expiry))
@@ -778,7 +778,7 @@ namespace KeePassGate.Bridge
 
                 if (VaultPrecondition.Fails(tagging.Precondition, Before(entry)))
                 {
-                    return VaultWrite.PreconditionFailed();
+                    return VaultWrite.PreconditionFailed(tagging.Precondition);
                 }
 
                 // No history revision here either, and for the same reason KeePass's own delete
@@ -825,7 +825,7 @@ namespace KeePassGate.Bridge
 
                 if (VaultPrecondition.Fails(tagging.Precondition, Before(entry)))
                 {
-                    return VaultWrite.PreconditionFailed();
+                    return VaultWrite.PreconditionFailed(tagging.Precondition);
                 }
 
                 var restore = Restoring(entry);
@@ -870,7 +870,7 @@ namespace KeePassGate.Bridge
                 var tag = Before(entry);
                 if (VaultPrecondition.Fails(tagging.Precondition, tag))
                 {
-                    return VaultWrite.PreconditionFailed();
+                    return VaultWrite.PreconditionFailed(tagging.Precondition);
                 }
 
                 // Kept as protected as it already was. Whether a field is protected is a property of
@@ -934,7 +934,7 @@ namespace KeePassGate.Bridge
 
                 if (VaultPrecondition.Fails(tagging.Precondition, Before(entry)))
                 {
-                    return VaultWrite.PreconditionFailed();
+                    return VaultWrite.PreconditionFailed(tagging.Precondition);
                 }
 
                 var was = entry.Strings.Get(name);
@@ -986,7 +986,7 @@ namespace KeePassGate.Bridge
 
                 if (VaultPrecondition.Fails(tagging.Precondition, Before(entry)))
                 {
-                    return VaultWrite.PreconditionFailed();
+                    return VaultWrite.PreconditionFailed(tagging.Precondition);
                 }
 
                 var restore = Restoring(entry);
@@ -1025,7 +1025,7 @@ namespace KeePassGate.Bridge
                 var tag = Before(entry);
                 if (VaultPrecondition.Fails(tagging.Precondition, tag))
                 {
-                    return VaultWrite.PreconditionFailed();
+                    return VaultWrite.PreconditionFailed(tagging.Precondition);
                 }
 
                 var was = entry.Binaries.Get(name);
@@ -1074,7 +1074,7 @@ namespace KeePassGate.Bridge
 
                 if (VaultPrecondition.Fails(tagging.Precondition, Before(entry)))
                 {
-                    return VaultWrite.PreconditionFailed();
+                    return VaultWrite.PreconditionFailed(tagging.Precondition);
                 }
 
                 var was = entry.Binaries.Get(name);
@@ -1295,8 +1295,8 @@ namespace KeePassGate.Bridge
         /// </summary>
         /// <remarks>
         /// **A caller is told the kind of refusal and the operator is told the reason.** The route
-        /// answers `503 busy`, `409 conflict` or `500 internal error`, which is all a client can
-        /// act on, and several of the reasons behind them are something only the operator can
+        /// answers `503 busy`, `409 conflict`, `412` or `500 internal error`, which is all a client
+        /// can act on, and several of the reasons behind them are something only the operator can
         /// clear: a dialog left open on the node, a file on disk that is not the one KeePass read,
         /// a database with no file yet, saving disallowed by policy. None of them was written
         /// anywhere, so an agent retrying a `503 busy` for as long as it was allowed to left the
@@ -1319,9 +1319,12 @@ namespace KeePassGate.Bridge
             }
             else if (write.IsPreconditionFailed)
             {
-                // Something only the client can clear, by reading again, and still worth a line:
-                // a client refused this way over and over is one writing over somebody, or
-                // guessing, and the operator is the one who can tell which.
+                // Something only the client can clear, and the reason names how: a node that
+                // changed by reading it again, a field that will not read by sending a field that
+                // does, and a client handed no tags by nothing short of a rule reading all of the
+                // node. Still worth a line: a client refused this way over and over is one writing
+                // over somebody, guessing, or naming a tag it was never handed, and the operator is
+                // the one who can tell which.
                 _log.Warn("a change was refused, its precondition failing: " + write.Reason);
             }
             else if (write.IsConflict)

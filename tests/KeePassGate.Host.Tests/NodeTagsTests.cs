@@ -393,6 +393,24 @@ namespace KeePassGate.Host.Tests
         }
 
         [Test]
+        public void A_refusal_names_whether_the_node_changed_or_the_condition_could_never_be_met()
+        {
+            var stale = _vault.UpdateEntry(
+                Uuid(_entry), Fields(PwDefs.UserNameField, "written by a client"), Asking("0123456789abcdef0123456789abcdef"));
+            Assert.That(stale.IsPreconditionFailed, Is.True);
+            Assert.That(stale.Reason, Does.Contain("no longer holds"));
+
+            // A client the gate hands no tag, which the operator would otherwise go looking for an
+            // edit to the entry over.
+            var withheld = _vault.UpdateEntry(
+                Uuid(_entry), Fields(PwDefs.UserNameField, "written by a client"),
+                new VaultTagging(VaultPrecondition.Withheld(), false));
+            Assert.That(withheld.IsPreconditionFailed, Is.True);
+            Assert.That(withheld.Reason, Is.EqualTo(VaultPrecondition.Withheld().Refusal));
+            Assert.That(_entry.Strings.ReadSafe(PwDefs.UserNameField), Is.EqualTo("an invented name"));
+        }
+
+        [Test]
         public void A_write_against_the_tag_it_read_goes_ahead_and_hands_back_the_tag_a_read_then_gives()
         {
             var write = _vault.UpdateEntry(
