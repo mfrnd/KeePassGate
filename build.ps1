@@ -1199,15 +1199,6 @@ function Invoke-Package {
     $dist = Join-Path $root 'dist'
     $staging = Join-Path $root '.tmp\package'
 
-    # All three emptied first. The output for the reason `Invoke-Deploy` empties it, since what is
-    # collected below is a directory rather than a list; `dist` because a `SHA256SUMS` beside a zip
-    # it does not describe is worse than none.
-    foreach ($path in $output, $dist, $staging) {
-        if (Test-Path $path) {
-            Remove-Item $path -Recurse -Force
-        }
-    }
-
     # **Built the way a build machine builds**, which is what `ContinuousIntegrationBuild` says.
     # Without it the compiler writes the full path of the symbols into the plugin, which is wherever
     # the checkout is and on most machines begins with the account that built it; with it every
@@ -1282,6 +1273,18 @@ function Invoke-Package {
     }
 
     $stamp = [DateTimeOffset]::FromUnixTimeSeconds([long] ([string] $committed).Trim())
+
+    # All three emptied before the build, and only once git has answered, as `Invoke-Deploy` asks
+    # its own cheap question before anything is deleted: a refusal above, which an uncommitted edit
+    # earns, then leaves the last package and the Release build where they were. All three are
+    # ignored, so emptying them first would change none of git's answers. The output for the
+    # reason `Invoke-Deploy` empties it, since what is collected below is a directory rather than a
+    # list; `dist` because a `SHA256SUMS` beside a zip it does not describe is worse than none.
+    foreach ($path in $output, $dist, $staging) {
+        if (Test-Path $path) {
+            Remove-Item $path -Recurse -Force
+        }
+    }
 
     $global:LASTEXITCODE = 0
     Invoke-Step 'build (Release, to package)' {
