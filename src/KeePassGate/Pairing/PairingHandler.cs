@@ -104,6 +104,7 @@ namespace KeePassGate.Pairing
         private readonly AdmissionAudit _audit;
         private readonly IGateLog _log;
         private readonly ApprovalBook _held;
+        private readonly GateIncidents _incidents;
 
         /// <summary>With the default options, an issuer of its own and the system clock.</summary>
         /// <param name="audit">
@@ -119,9 +120,18 @@ namespace KeePassGate.Pairing
         /// The approvals held for a retry, which a lock, a close of their database and an exit
         /// clear, or null for a book of this handler's own.
         /// </param>
+        /// <param name="incidents">
+        /// Where an answer from the screen that this handler does not name is counted, or null for
+        /// the log alone.
+        /// </param>
         public PairingHandler(
-            IInvitations invitations, IPairingApproval approval, ApprovalBook held, AdmissionAudit audit, IGateLog log)
-            : this(invitations, approval, new PairingOptions(), new AuthorityIssuer(), null, audit, log, held)
+            IInvitations invitations,
+            IPairingApproval approval,
+            ApprovalBook held,
+            AdmissionAudit audit,
+            IGateLog log,
+            GateIncidents incidents = null)
+            : this(invitations, approval, new PairingOptions(), new AuthorityIssuer(), null, audit, log, held, incidents)
         {
         }
 
@@ -133,7 +143,8 @@ namespace KeePassGate.Pairing
             Func<DateTimeOffset> clock,
             AdmissionAudit audit,
             IGateLog log,
-            ApprovalBook held = null)
+            ApprovalBook held = null,
+            GateIncidents incidents = null)
         {
             if (invitations == null)
             {
@@ -148,6 +159,7 @@ namespace KeePassGate.Pairing
             _audit = audit ?? new AdmissionAudit(NullGateAudit.Instance);
             _log = log ?? NullGateLog.Instance;
             _held = held ?? new ApprovalBook(_clock);
+            _incidents = incidents ?? new GateIncidents(_log);
         }
 
         /// <summary>`pairHello`, once the router has decided this is the operation.</summary>
@@ -494,6 +506,9 @@ namespace KeePassGate.Pairing
 
             switch (decision.Decision)
             {
+                case PairingDecision.Approved:
+                    break;
+
                 case PairingDecision.TimedOut:
                     // Nothing is spent. An absent operator does not cost the invitee its invitation.
                     _log.Warn("pairing on invitation " + invitation.Id + " went unanswered");
@@ -528,6 +543,17 @@ namespace KeePassGate.Pairing
                     _log.Warn("pairing on invitation " + invitation.Id + " was refused, and it is spent");
                     _audit.PairingRefused(target.DatabaseId, invitation.Id);
                     context.Respond(403, HttpResponse.ErrorBody("refused"));
+                    return null;
+
+                default:
+                    // An approval is the one answer that issues, so it is named rather than reached
+                    // by falling past the others, which would issue a certificate for any decision
+                    // added without a case of its own. An answer nothing here names is a defect
+                    // rather than a yes, and nothing is spent, as for an answer nobody gave.
+                    _incidents.Record(
+                        "pairing on invitation " + invitation.Id + " was answered " + decision.Decision +
+                        ", which this handler does not name, so it was refused for now", null);
+                    context.Respond(503, HttpResponse.ErrorBody("busy"));
                     return null;
             }
 

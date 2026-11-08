@@ -1,10 +1,12 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
 using KeePassGate.Audit;
 using KeePassGate.Authority;
+using KeePassGate.Diagnostics;
 using KeePassGate.Gate;
 using KeePassGate.Pairing;
 using KeePassGate.Pipeline;
@@ -44,6 +46,7 @@ namespace KeePassGate.Tests
         private AuthorityIssuer _issuer;
         private RecordingAudit _audit;
         private ApprovalBook _held;
+        private GateIncidents _incidents;
 
         [SetUp]
         public void SetUp()
@@ -53,6 +56,7 @@ namespace KeePassGate.Tests
             _held = new ApprovalBook();
             _target = TestAuthority.New();
             _log = new RecordingGateLog();
+            _incidents = new GateIncidents(_log);
             _book = new InvitationBook(TimeSpan.FromMinutes(10), null, _log);
             _invitation = _book.Invite(_target.DatabaseId);
             _token = _invitation.Token;
@@ -491,6 +495,27 @@ namespace KeePassGate.Tests
 
             Assert.That(context.Status, Is.EqualTo(503));
             Assert.That(_book.Outstanding().Count, Is.EqualTo(1));
+        }
+
+        [Test]
+        public void An_answer_the_handler_does_not_name_is_refused_as_busy_and_counted()
+        {
+            // An approval is the one answer that issues, so it is named. Reached by falling past
+            // the other cases, a decision added without a case of its own was issued a certificate.
+            Hello(ClientProof());
+            var answer = PairingApproval.Approved(new[] { "reader" });
+            typeof(PairingApproval).GetField("_decision", BindingFlags.Instance | BindingFlags.NonPublic)
+                .SetValue(answer, (PairingDecision)int.MaxValue);
+
+            var context = Request("agent-fictitious", new[] { "reader" }, new FakePairingApproval(answer));
+
+            Assert.That(context.Status, Is.EqualTo(503), context.Json);
+            Assert.That(context.Json, Is.EqualTo(HttpResponse.ErrorBody("busy")));
+            Assert.That(_target.Admitted, Is.Null, "nothing is issued");
+            Assert.That(_held.Count, Is.Zero, "nor held for a retry");
+            Assert.That(_book.Outstanding().Count, Is.EqualTo(1), "and nothing is spent");
+            Assert.That(_audit.Entries, Is.Empty, "nothing was decided to write down");
+            Assert.That(_incidents.Count, Is.EqualTo(1), "counted where the operator sees it");
         }
 
         [Test]
@@ -1296,8 +1321,9 @@ namespace KeePassGate.Tests
             // The default issuer unless a test named one, which is how a clock that moves between
             // the check and the issuance is reached at all.
             return _issuer == null
-                ? new PairingHandler(_book, approval, _held, new AdmissionAudit(_audit), _log)
-                : new PairingHandler(_book, approval, new PairingOptions(), _issuer, null, new AdmissionAudit(_audit), _log, _held);
+                ? new PairingHandler(_book, approval, _held, new AdmissionAudit(_audit), _log, _incidents)
+                : new PairingHandler(
+                    _book, approval, new PairingOptions(), _issuer, null, new AdmissionAudit(_audit), _log, _held, _incidents);
         }
 
         private static FakePairingApproval Approving(params string[] profiles)

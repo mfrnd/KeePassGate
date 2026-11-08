@@ -64,6 +64,7 @@ namespace KeePassGate.Pairing
         private readonly AdmissionAudit _audit;
         private readonly IGateLog _log;
         private readonly ApprovalBook _held;
+        private readonly GateIncidents _incidents;
 
         /// <summary>
         /// The handler this plugin runs, with the session's refusals it shares with the KPG tab.
@@ -92,9 +93,18 @@ namespace KeePassGate.Pairing
         /// The approvals held for a retry, which a lock, a close of their database and an exit
         /// clear, shared with pairing, or null for a book of this handler's own.
         /// </param>
+        /// <param name="incidents">
+        /// Where an answer from the screen that this handler does not name is counted, or null for
+        /// the log alone.
+        /// </param>
         public RenewalHandler(
-            IRenewalApproval approval, SessionRefusals session, ApprovalBook held, AdmissionAudit audit, IGateLog log)
-            : this(approval, new PairingOptions(), new AuthorityIssuer(), null, session, audit, log, held)
+            IRenewalApproval approval,
+            SessionRefusals session,
+            ApprovalBook held,
+            AdmissionAudit audit,
+            IGateLog log,
+            GateIncidents incidents = null)
+            : this(approval, new PairingOptions(), new AuthorityIssuer(), null, session, audit, log, held, incidents)
         {
         }
 
@@ -111,7 +121,8 @@ namespace KeePassGate.Pairing
             SessionRefusals session,
             AdmissionAudit audit,
             IGateLog log,
-            ApprovalBook held = null)
+            ApprovalBook held = null,
+            GateIncidents incidents = null)
         {
             _approval = approval ?? NoRenewalApproval.Instance;
             _options = options ?? new PairingOptions();
@@ -121,6 +132,7 @@ namespace KeePassGate.Pairing
             _audit = audit ?? new AdmissionAudit(NullGateAudit.Instance);
             _log = log ?? NullGateLog.Instance;
             _held = held ?? new ApprovalBook(_clock);
+            _incidents = incidents ?? new GateIncidents(_log);
         }
 
         /// <summary>`renewCertificate`, once the router has decided this is the operation.</summary>
@@ -366,6 +378,9 @@ namespace KeePassGate.Pairing
 
             switch (decision.Decision)
             {
+                case PairingDecision.Approved:
+                    break;
+
                 case PairingDecision.TimedOut:
                     _log.Warn("a renewal by " + CertificateDigest.Shorten(key) + " went unanswered");
                     _audit.RenewalUnanswered(target.DatabaseId, key, record.ClientKey);
@@ -400,6 +415,15 @@ namespace KeePassGate.Pairing
                     // half of it could be kept: what is written down is what they decided.
                     _audit.RenewalRefused(target.DatabaseId, key, record.ClientKey, decision.Standing);
                     context.Respond(403, HttpResponse.ErrorBody("refused"));
+                    return null;
+
+                default:
+                    // Named for pairing's reason: only an approval renews, and an answer nothing
+                    // here names is a defect rather than a yes, which changes nothing.
+                    _incidents.Record(
+                        "a renewal by " + CertificateDigest.Shorten(key) + " was answered " + decision.Decision +
+                        ", which this handler does not name, so it was refused for now", null);
+                    context.Respond(503, HttpResponse.ErrorBody("busy"));
                     return null;
             }
 

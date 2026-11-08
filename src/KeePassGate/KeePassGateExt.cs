@@ -852,8 +852,8 @@ namespace KeePassGate
             var router = GateOperations.Router(
                 GateVersion.Current,
                 GateVersion.Revision,
-                new PairingHandler(_invitations, prompt, _approvals, access.Admissions, _log),
-                new RenewalHandler(prompt, _sessionRefusals, _approvals, access.Admissions, _log),
+                new PairingHandler(_invitations, prompt, _approvals, access.Admissions, _log, _incidents),
+                new RenewalHandler(prompt, _sessionRefusals, _approvals, access.Admissions, _log, _incidents),
                 access);
 
             var resolver = new GateResolver(_targets, _invitations, _log);
