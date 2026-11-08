@@ -541,7 +541,12 @@ namespace KeePassGate
                             _admissions,
                             _incidents,
                             access.Admissions,
-                            _sessionRefusals),
+                            _sessionRefusals)
+                        {
+                            // The chooser on the tab reads the file the audit opened, as the
+                            // chooser over the main window does.
+                            AuditPath = () => _audit == null ? null : _audit.Path
+                        },
                         _log,
                         KeePassContract.DatabaseSettingsTabControlName,
                         GateTab.Text,

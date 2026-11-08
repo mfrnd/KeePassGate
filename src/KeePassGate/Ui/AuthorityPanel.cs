@@ -550,10 +550,17 @@ namespace KeePassGate.Ui
                         return null;
                     }
 
+                    // Where the audit is writing, as the plugin opened it, rather than the variable
+                    // read again: a relative path is made whole once, against the directory KeePass
+                    // started in, and made whole again here it named wherever KeePass's working
+                    // directory had moved to since. No path is an audit nobody can read.
+                    var audit = AuditPath == null ? null : AuditPath();
                     choice = AuthorityChoice.From(
                         reading,
                         new AdmissionStore(_database.PluginCustomData, _log).All(),
-                        clients => JsonLinesAudit.LastSeen(JsonLinesAudit.DefaultPath(), clients),
+                        audit == null
+                            ? (Func<ICollection<string>, IDictionary<string, DateTimeOffset>>)null
+                            : clients => JsonLinesAudit.LastSeen(audit, clients),
                         _log);
                 }
 
@@ -567,6 +574,12 @@ namespace KeePassGate.Ui
         /// <see cref="Clipboard"/> is: a test that put a modal dialog up would wait for somebody.
         /// </summary>
         internal Func<AuthorityChoice, string, string> AskWhichToKeep { get; set; }
+
+        /// <summary>
+        /// Where the gate's audit is writing, which the chooser reads each client's last request
+        /// from, or null for a tab with no audit behind it.
+        /// </summary>
+        public Func<string> AuditPath { get; set; }
 
         private string ShowChooser(AuthorityChoice choice, string databaseName)
         {

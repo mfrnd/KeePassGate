@@ -111,6 +111,12 @@ namespace KeePassGate.Ui
             _session = session;
         }
 
+        /// <summary>
+        /// Where the gate's audit is writing, handed to every panel for its authority chooser, or
+        /// null where there is no audit.
+        /// </summary>
+        public Func<string> AuditPath { get; set; }
+
         public Control CreatePanel(Form dialog)
         {
             var found = _databases.ForDialog(dialog);
@@ -137,7 +143,10 @@ namespace KeePassGate.Ui
                 invitations,
                 database == null ? null : new DatabaseProfiles(database, _log),
                 _admissions,
-                session);
+                session)
+            {
+                AuditPath = AuditPath
+            };
 
             Commit(dialog, found, database, invitations, session);
             return panel;

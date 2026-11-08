@@ -1,10 +1,12 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Security.Cryptography.X509Certificates;
 using System.Threading;
 using System.Windows.Forms;
 using KeePassGate.Authority;
+using KeePassGate.Diagnostics;
 using KeePassGate.Tests.Fakes;
 using KeePassGate.Pairing;
 using KeePassGate.Acl;
@@ -1715,6 +1717,51 @@ namespace KeePassGate.Tests
             panel.PerformLayout();
 
             return control.Visible;
+        }
+
+        [Test]
+        public void The_chooser_on_the_tab_reads_the_audit_the_plugin_handed_it()
+        {
+            // It read the audit's variable again, which a relative path resolves against wherever
+            // KeePass's working directory had moved to, while the audit itself resolved it once.
+            var candidates = Undecided();
+            var key = CertificateBlob.Load(
+                AuthorityDocument.Read(_database.Store.Get(AuthorityKeys.AuthorityKey(candidates[0])), null).Authority);
+            string admission;
+            using (var client = new AuthorityIssuer().IssueClient(key, "agent-audited", new[] { "ops" }).Read())
+            {
+                var record = AdmissionRecord.For(client, DateTimeOffset.UtcNow, new[] { "ops" });
+                new AdmissionStore(_database.PluginCustomData, null).Write(record);
+                admission = record.AdmissionKey;
+            }
+
+            var audit = Paths.Join(Path.GetTempPath(), "KeePassGateTests", Guid.NewGuid().ToString("N") + ".jsonl");
+            Directory.CreateDirectory(Path.GetDirectoryName(audit));
+            File.WriteAllText(audit, "{\"at\":\"2026-09-20T10:30:00Z\",\"admissionKey\":\"" + admission + "\"}\n");
+
+            try
+            {
+                using (var panel = NewPanel(true))
+                {
+                    AuthorityChoice asked = null;
+                    panel.AuditPath = () => audit;
+                    panel.AskWhichToKeep = (choice, name) =>
+                    {
+                        asked = choice;
+                        return null;
+                    };
+
+                    panel.ChooseAuthority();
+
+                    Assert.That(asked.LastSeenKnown, Is.True);
+                    Assert.That(asked.Options.Single(o => o.Fingerprint == candidates[0]).Clients.Single().LastSeen,
+                        Is.EqualTo(new DateTimeOffset(2026, 9, 20, 10, 30, 0, TimeSpan.Zero)));
+                }
+            }
+            finally
+            {
+                File.Delete(audit);
+            }
         }
 
         [Test]
