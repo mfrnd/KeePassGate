@@ -508,14 +508,13 @@ designing around them.
 
   Measured on `spikes/pykeepass-compatibility`, taken from `master` and never merged, and remeasured
   on 2026-10-25 over the four classes a program holds, `PyKeePass`, `Entry`, `Group` and
-  `Attachment`: of their 122 public members, 65 are servable over the routes the gate already has,
-  4 are served under a name that means something else there, the deletes, which go to the recycle
-  bin where `pykeepass`'s are for good, 9 would need routes nothing forbids, among them an
-  entry's tags and history, and 44 cannot exist here, the database's name and description among
-  them. The
-  first measurement counted `PyKeePass` alone, the deletes as served and `trash_*` and `deref` as
-  missing, and its `RESULTS.md` records both, with the per member table and what would have to
-  change on each side.
+  `Attachment`: of their 122 public members, 65 are servable over the routes the gate already has, 4
+  are served under a name that means something else there, the deletes, which go to the recycle bin
+  where `pykeepass`'s are for good, and are for good as well in a database that keeps no bin, 9
+  would need routes nothing forbids, among them an entry's tags and history, and 44 cannot exist
+  here, the database's name and description among them. The first measurement counted `PyKeePass`
+  alone, the deletes as served and `trash_*` and `deref` as missing, and its `RESULTS.md` records
+  both, with the per member table and what would have to change on each side.
 
 ## Measured facts that cost time if rediscovered
 
