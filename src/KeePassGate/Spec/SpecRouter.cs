@@ -63,11 +63,14 @@ namespace KeePassGate.Spec
     /// before anything has parsed a body. The transport has read the bytes by then, within
     /// `GateOptions.MaxBodyBytes`, because it reads a request whole before routing it. Then
     /// identity, in one place, so a route added later is denied by default rather than by somebody
-    /// remembering to guard it.
-    /// Then the operation's own guard, for a precondition the document cannot state. Then
-    /// authorization, the admission record intersected with the rules. Then the body, against
-    /// the declared schema, so nothing is reported about a body on a route the caller may not
-    /// reach.
+    /// remembering to guard it. Then a query name or a body the operation does not declare,
+    /// answered as the undeclared target the request then is. Then the operation's own guard, for
+    /// a precondition the document cannot state. Then authorization, the admission record
+    /// intersected with the rules. Then the body's media type, and then the body against the
+    /// declared schema, so nothing is reported about a body on a route the caller may not reach.
+    /// A method none of the path's operations has goes the same way as far as it can: a caller
+    /// that may not be told the path is there, or a query name or a body nothing on the path
+    /// declares, is answered as an undeclared target, and anything else is a `405`.
     ///
     /// **HEAD follows GET.** It is declared beside every `get` and bound to the same handler, and
     /// served by running that handler and discarding what it wrote. RFC 9110 section 9.3.2 asks for the same header

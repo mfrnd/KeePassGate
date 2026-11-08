@@ -12,10 +12,12 @@ namespace KeePassGate.Spec
     /// Checks a request body against the schema the document declares for it, before a handler runs.
     /// </summary>
     /// <remarks>
-    /// **A subset, and the subset is enforced rather than assumed.** `Supports` says whether a
-    /// schema uses only what this understands, and the router asks it about every schema in the
-    /// document at startup. A construct nobody implemented is therefore a plugin that does not
-    /// load, never a body that goes unchecked because the checker did not recognize its schema.
+    /// **A subset, and the subset is enforced rather than assumed.** `Supports` and the two beside
+    /// it answer whether a schema uses only what this understands, and the loader asks them, as it
+    /// reads the document at startup, about every request body and every path, query and header
+    /// parameter. A response's schema is not asked about, since nothing here checks an answer. A
+    /// construct nobody implemented in a request is therefore a plugin that does not load, never a
+    /// body that goes unchecked because the checker did not recognize its schema.
     /// That is the difference between a subset and a gap.
     ///
     /// What it understands is exactly what `JsonBody` can read and what this wire carries: one flat
@@ -57,8 +59,8 @@ namespace KeePassGate.Spec
         /// Why this schema cannot be checked, or null when it can be.
         /// </summary>
         /// <remarks>
-        /// Called for every schema in the document at startup, so the answer is a sentence for
-        /// whoever is editing the document rather than something a client sees.
+        /// Called for every request body the document declares, at startup, so the answer is a
+        /// sentence for whoever is editing the document rather than something a client sees.
         /// </remarks>
         public static string Supports(OpenApiSchema schema)
         {
