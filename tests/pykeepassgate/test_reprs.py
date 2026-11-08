@@ -10,22 +10,26 @@ from __future__ import annotations
 
 import base64
 import json
+import traceback
 from pathlib import Path
 from typing import Any
 
 import pytest
 
 from pykeepassgate import credentials as credentials_module
-from pykeepassgate import transport
+from pykeepassgate import refs, transport
 from pykeepassgate.client import GateClient
 from pykeepassgate.errors import (
+    AmbiguousName,
     GateError,
     GateUnavailable,
     ProtocolError,
     RouteRefused,
     TransportError,
+    Unresolved,
     Withheld,
 )
+from pykeepassgate.model import Entry
 from pykeepassgate.testing import Authority, FakeGate, Issued
 
 #: A secret nobody would choose, put wherever a value can be and looked for in everything printed.
@@ -138,10 +142,40 @@ def test_no_object_this_client_reads_or_raises_prints_a_value(
         refusal(lambda: transport._parse(b"HTTP/1.1 200 OK\r\nContent-Length: 99\r\n\r\n" + body))
     )
 
+    # What the resolver refuses, about a value holding the secret beside a reference it will not
+    # follow, and beside a placeholder naming a field only in another case beyond ASCII.
+    # cspell:ignore Übung übung
+    searching = f"{SENTINEL}{{REF:P@T:{SENTINEL}}}"
+    printed.append(refusal(lambda: refs.resolve(paired, entry, searching)))
+    beyond = Entry.read(
+        {
+            "uuid": UUID,
+            "group": UUID,
+            "fields": {"Übung": SENTINEL},
+            "protected": [],
+            "expires": None,
+        }
+    )
+    printed.append(refusal(lambda: refs.resolve(paired, beyond, f"{SENTINEL}{{S:übung}}")))
+
     kinds = {type(each) for each in printed}
-    assert {Withheld, RouteRefused, GateUnavailable, ProtocolError, TransportError} <= kinds
+    assert {
+        Withheld,
+        RouteRefused,
+        GateUnavailable,
+        ProtocolError,
+        TransportError,
+        Unresolved,
+        AmbiguousName,
+    } <= kinds
     assert transport.Response in kinds, "the responses themselves were printed"
 
     for each in printed:
-        for shown in (repr(each), str(each)):
-            assert SENTINEL not in shown, f"a {type(each).__name__} printed a value: {shown}"
+        shown = [repr(each), str(each)]
+        if isinstance(each, BaseException):
+            # A traceback prints each exception's cause and context as well, and a `raise ... from`
+            # over an error quoting what it could not read would carry it there.
+            shown.append("".join(traceback.format_exception(each)))
+
+        for text in shown:
+            assert SENTINEL not in text, f"a {type(each).__name__} printed a value: {text}"
