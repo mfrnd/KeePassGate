@@ -481,21 +481,47 @@ function Invoke-Host {
 # checked when nothing ran: the outcome `gate.yml` already calls worse than a red one, guarded
 # there for an empty task list and not for this. So every tier writes a result file and is judged
 # on the count in it, which is read from the file because the console text is localized.
+#
+# **What did not run is counted from the total, and named.** The result file counts a test NUnit
+# ignored, found inconclusive, held explicit or let a failed assumption stop as neither not
+# executed nor inconclusive, and the console's summary leaves it out of its skipped count too,
+# so a test that stopped measuring passes with nothing but a line among thousands to show for it.
+# Each is listed here with its reason instead. Listed rather than refused, since some are meant:
+# a measurement held explicit, and a test that asks the machine for what it may not have.
 function Assert-Executed {
-    param([string] $Trx, [string] $Tier)
+    param([string] $Trx, [string] $Tier, [string] $Meaning = 'A tier that ignored itself has not passed.')
 
     if (-not (Test-Path $Trx)) {
         throw "The $Tier tests produced no result file, so nothing can say what ran."
     }
 
-    $counters = ([xml] (Get-Content -LiteralPath $Trx -Raw)).TestRun.ResultSummary.Counters
+    $run = ([xml] (Get-Content -LiteralPath $Trx -Raw)).DocumentElement
+    $counters = $run.ResultSummary.Counters
     $executed = [int] $counters.executed
+    $skipped = [int] $counters.total - $executed
     if ($executed -lt 1) {
-        throw ("The $Tier tests ran nothing: $([int] $counters.total) found, " +
-            "$([int] $counters.notExecuted) skipped. A tier that ignored itself has not passed.")
+        throw "The $Tier tests ran nothing: $([int] $counters.total) found, $skipped skipped. $Meaning"
     }
 
     Write-Host "  $executed $Tier test(s) ran." -ForegroundColor DarkGray
+    if ($skipped -lt 1) {
+        return
+    }
+
+    # By local name, as `Write-LiveEvidence` reads the file, for the reason it gives.
+    $shown = 20
+    $results = @($run.SelectNodes(
+        "*[local-name()='Results']/*[local-name()='UnitTestResult'][@outcome!='Passed' and @outcome!='Failed']"))
+    Write-Host "  $skipped did not run:" -ForegroundColor Yellow
+    foreach ($result in ($results | Select-Object -First $shown)) {
+        $reason = $result.SelectSingleNode("*[local-name()='Output']/*[local-name()='ErrorInfo']/*[local-name()='Message']")
+        $why = if ($null -ne $reason -and $reason.InnerText) { ': ' + ($reason.InnerText.Trim() -split "\r?\n")[0] } else { '' }
+        Write-Host "    $($result.GetAttribute('testName'))$why" -ForegroundColor Yellow
+    }
+
+    if ($results.Count -gt $shown) {
+        Write-Host "    ... and $($results.Count - $shown) more, named in $Trx." -ForegroundColor Yellow
+    }
 }
 
 # **Both tiers, because neither answers on its own.** A line the host tests reach and the unit
@@ -775,22 +801,13 @@ function Invoke-Screenshots {
         Remove-Item Env:\KPG_SCREENSHOT_DIR -ErrorAction SilentlyContinue
     }
 
-    # The same guard `Invoke-Live` carries, and it is worth more here. A fixture that ignores
-    # itself exits zero either way, but this task ends by naming a directory in green: an operator
-    # who asked for the pictures to be retaken would read that, commit what is on disk, and publish
-    # the old ones as though they were of the code they had just changed. `LiveSession.Begin`
-    # ignores the whole fixture when the provided KeePass does not match what the tests were built
-    # against, which `-KeePassDir` can produce without anything looking wrong.
-    if (-not (Test-Path $trx)) {
-        throw 'The screenshot run produced no result file, so nothing can say what was retaken.'
-    }
-
-    $counters = ([xml] (Get-Content -LiteralPath $trx -Raw)).TestRun.ResultSummary.Counters
-    $executed = [int] $counters.executed
-    if ($executed -lt 1) {
-        throw ("The screenshot fixture ignored itself: $([int] $counters.total) found, " +
-            "$([int] $counters.notExecuted) skipped. No picture was retaken.")
-    }
+    # The guard every tier has, and it is worth more here. A fixture that ignores itself exits zero
+    # either way, but this task ends by naming a directory in green: an operator who asked for the
+    # pictures to be retaken would read that, commit what is on disk, and publish the old pictures
+    # as though they were of the code they had just changed. `LiveSession.Begin` ignores the whole
+    # fixture when the provided KeePass does not match what the tests were built against, which
+    # `-KeePassDir` can produce without anything looking wrong.
+    Assert-Executed $trx 'screenshot' 'No picture was retaken.'
 
     Write-Host "Images are in $images" -ForegroundColor Green
 }
