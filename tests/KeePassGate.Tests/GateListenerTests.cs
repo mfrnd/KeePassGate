@@ -104,6 +104,56 @@ namespace KeePassGate.Tests
         }
 
         [Test]
+        [NonParallelizable]
+        public void A_port_that_could_not_be_taken_leaves_no_socket_behind()
+        {
+            // A `TcpListener` makes its socket as it is constructed, and a `Start` refused for a
+            // port already taken leaves it open, since the bind that failed is outside what `Start`
+            // unwinds; `Stop` closes it and makes another. Dropped with nothing closing them, each
+            // refusal was a handle the password manager held until a collection, so this runs
+            // where nothing collects, and alone, since the count it reads is the process's.
+            const int refusals = 64;
+            var refused = Enumerable.Range(0, refusals)
+                .Select(i => new GateListener(
+                    new GateOptions { Port = _listener.Port },
+                    new GateResolver(_targets, _log),
+                    GateOperations.Router("9.9.9"),
+                    _log))
+                .ToList();
+
+            var before = Handles();
+            Assume.That(GC.TryStartNoGCRegion(4 * 1024 * 1024), Is.True, "a region with no collection");
+            try
+            {
+                foreach (var listener in refused)
+                {
+                    Assert.That(listener.Start(), Is.False, "the port is already this fixture's");
+                }
+            }
+            finally
+            {
+                if (System.Runtime.GCSettings.LatencyMode == System.Runtime.GCLatencyMode.NoGCRegion)
+                {
+                    GC.EndNoGCRegion();
+                }
+            }
+
+            var after = Handles();
+
+            Assert.That(after - before, Is.LessThan(refusals / 2),
+                refusals + " refusals left " + (after - before) + " handles open");
+        }
+
+        /// <summary>How many handles the test process holds right now.</summary>
+        private static int Handles()
+        {
+            using (var process = Process.GetCurrentProcess())
+            {
+                return process.HandleCount;
+            }
+        }
+
+        [Test]
         public void A_port_refused_before_it_was_tried_is_kept_as_why_nothing_listens()
         {
             // A `KEEPASSGATE_PORT` that names something other than a port stops the gate before any

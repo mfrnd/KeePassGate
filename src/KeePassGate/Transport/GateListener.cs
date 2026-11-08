@@ -247,6 +247,7 @@ namespace KeePassGate.Transport
                 catch (SocketException error)
                 {
                     _log.Error("could not listen on 127.0.0.1:" + _options.Port, error);
+                    Release(_listener);
                     _listener = null;
 
                     // Kept rather than only logged. Nothing will try this port again in this
@@ -785,17 +786,38 @@ namespace KeePassGate.Transport
                 {
                     if (_listener != null)
                     {
-                        _listener.Stop();
+                        Release(_listener);
                     }
-                }
-                catch (Exception error) when (Expected.OfConnection(error))
-                {
-                    _log.Error("the listener did not stop cleanly", error);
                 }
                 finally
                 {
                     _listener = null;
                 }
+            }
+        }
+
+        /// <summary>
+        /// Stops a listener and closes every socket it holds, which <see cref="TcpListener.Stop"/>
+        /// alone does not.
+        /// </summary>
+        /// <remarks>
+        /// On .NET Framework `Stop` closes the listener's socket and makes another, unbound, for a
+        /// `Start` that never comes here, and a listener whose `Start` was refused for a port
+        /// already taken still holds the socket its constructor made, because the bind that failed
+        /// is outside what `Start` unwinds. Either was a handle left open in the password manager
+        /// with nothing referring to it, until a collection got round to it. Total, since the
+        /// accept thread retires through it: see `Drop`.
+        /// </remarks>
+        private void Release(TcpListener listener)
+        {
+            try
+            {
+                listener.Stop();
+                listener.Server.Close();
+            }
+            catch (Exception error) when (Expected.OfConnection(error))
+            {
+                _log.Error("the listener did not stop cleanly", error);
             }
         }
 

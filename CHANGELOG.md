@@ -11,6 +11,9 @@ none, since it releases both.
 
 ## 0.2.0, unreleased
 
+- **A port the gate could not take, and a gate that stops, leave no socket open behind them.** On
+  .NET Framework a refused listener kept the socket it was made with, and a stopped listener
+  opened a new socket, each held by the password manager until a collection.
 - **The gate closes every connection it is serving when the plugin stops, even after its accept
   loop failed.** A loop that ended for a reason nobody chose had already given the port up, and
   the stop that followed closed nothing, so connections accepted before the failure were served
