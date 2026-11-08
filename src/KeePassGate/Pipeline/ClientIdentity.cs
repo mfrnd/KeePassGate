@@ -235,8 +235,9 @@ namespace KeePassGate.Pipeline
         /// and holding on its record these others that the database no longer lists.
         /// </summary>
         /// <param name="clientKey">
-        /// The client key the record carries, or null for a client that has not renewed, whose
-        /// client key is its own certificate's admission key.
+        /// The client key the record carries. Every record carries one, and a client that has not
+        /// renewed carries its own certificate's admission key there; null stands in for a record
+        /// only where there is none, as in a test, and is read as that admission key.
         /// </param>
         public static ClientIdentity Paired(
             string databaseId,
