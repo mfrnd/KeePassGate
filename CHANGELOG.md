@@ -206,6 +206,11 @@ none, since it releases both.
 - **The Profiles page counts no rule in the recycle bin.** Nothing in the bin is reached through the
   gate, so its rules decide nothing, and the page counted them among the rules removing a name
   leaves inert and offered to put them back in force when the name was added again.
+- **A database is served as soon as KeePass has unlocked it**, while KeePass is still asking its own
+  questions about it: a master key due for a change, weak key derivation, duplicate identifiers.
+  Until those were answered, the database and the certificate answering for it while locked both
+  answered to its name, so every connection was dropped and the log claimed two databases were
+  open.
 - **A protected field is kept from a strip whenever any profile could put an unprotected value
   back.** The guard asked whether some profile could create there and whether some profile could
   create a protected value there, so a program holding one profile that could put an unprotected

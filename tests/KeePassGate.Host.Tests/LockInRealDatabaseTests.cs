@@ -178,6 +178,30 @@ namespace KeePassGate.Host.Tests
         }
 
         [Test]
+        public void A_database_opened_again_is_served_as_itself_before_the_unlock_is_announced()
+        {
+            // KeePass opens the file into its document and asks its own questions before it raises
+            // `FileOpened`, which is what lifts the lock here. In between, the responder and the
+            // database answered to one name, and every connection was dropped as ambiguous.
+            _targets.Current();
+            Lock();
+
+            _database.Reopen();
+            _open.Clear();
+            _open.Add(_database.Database);
+
+            var targets = _targets.Current();
+            Assert.That(targets, Has.Count.EqualTo(1));
+
+            using (var target = targets[0])
+            {
+                Assert.That(target.IsLocked, Is.False, "the database it is, rather than the responder it was");
+            }
+
+            Assert.That(_targets.Unlock(_database.Path), Is.Not.Empty, "and the unlock still lifts the lock");
+        }
+
+        [Test]
         public void Unlocking_serves_it_in_full_again()
         {
             using (var certificate = IssueAndAdmit())

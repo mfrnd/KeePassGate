@@ -190,7 +190,17 @@ namespace KeePassGate.Bridge
                 // A locked database is still served, by a responder that can say so and nothing
                 // else. Without this the gate resolves no name for it and a client gets a bare
                 // connection failure, which is what `PAIRING.md` §308 exists to avoid.
-                foreach (var locked in _locked.Values)
+                //
+                // **Not once KeePass has opened it again**, which is before `FileOpened` lifts the
+                // lock: KeePass puts the database back into its document and then asks its own
+                // questions, a master key due for a change, weak key derivation, duplicate
+                // identifiers, before it announces the open. Handed out beside the database it was
+                // standing in for, the responder answered to the same name, and every connection
+                // was dropped for a name two databases answer to, for as long as the operator took
+                // to answer. Kept until the unlock all the same, which is what lets it go.
+                var reopened = new HashSet<string>(
+                    open.Select(PathOf).Where(path => !string.IsNullOrEmpty(path)), _paths);
+                foreach (var locked in _locked.Where(pair => !reopened.Contains(pair.Key)).Select(pair => pair.Value))
                 {
                     // One reference per caller, exactly as above. Handing this out bare meant the
                     // first caller to give it back destroyed it for every later connection.
