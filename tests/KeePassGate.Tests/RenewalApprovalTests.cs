@@ -58,6 +58,17 @@ namespace KeePassGate.Tests
         }
 
         [Test]
+        public void The_menu_of_ways_to_refuse_is_named_to_a_screen_reader()
+        {
+            using (var dialog = New(Request(new[] { "reader" }, 40)))
+            {
+                var refuse = ControlTree.FindByName<SplitButton>(dialog, GateTab.RefuseButtonName);
+
+                Assert.That(refuse.Menu.AccessibleName, Is.EqualTo(GateTab.RefuseMenuLabel));
+            }
+        }
+
+        [Test]
         public void The_countdown_says_that_nothing_gets_issued()
         {
             using (var dialog = New(Request(new[] { "reader" }, 40)))

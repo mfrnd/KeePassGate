@@ -50,8 +50,16 @@ namespace KeePassGate.Ui
         /// </remarks>
         public const string RulePickerName = "KpgGrantRulePicker";
 
+        /// <summary>
+        /// What a screen reader calls the rule picker, a list with no text of its own to name it.
+        /// </summary>
+        public const string RulePickerLabel = "What this profile may do here";
+
         /// <summary>The list of profiles a rule is added for.</summary>
         public const string ProfilePickerName = "KpgGrantProfilePicker";
+
+        /// <summary>What a screen reader calls the profile picker, for the same reason.</summary>
+        public const string ProfilePickerLabel = "Profiles a rule can be written for";
 
         /// <summary>The dropdown either list is shown in.</summary>
         public const string PickerName = "KpgGrantPicker";

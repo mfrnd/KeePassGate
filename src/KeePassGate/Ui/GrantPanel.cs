@@ -374,6 +374,7 @@ namespace KeePassGate.Ui
             var list = new CheckedListBox
             {
                 Name = GrantTab.RulePickerName,
+                AccessibleName = GrantTab.RulePickerLabel,
                 CheckOnClick = true,
                 BorderStyle = BorderStyle.None,
             };
@@ -512,6 +513,7 @@ namespace KeePassGate.Ui
             var list = new ListBox
             {
                 Name = GrantTab.ProfilePickerName,
+                AccessibleName = GrantTab.ProfilePickerLabel,
                 BorderStyle = BorderStyle.None,
             };
 

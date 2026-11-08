@@ -371,6 +371,11 @@ namespace KeePassGate.Ui
         /// </summary>
         public const string RefuseMenuName = "KpgRefuseMenu";
 
+        /// <summary>
+        /// What a screen reader calls that menu, which has no text of its own to name it.
+        /// </summary>
+        public const string RefuseMenuLabel = "Ways of refusing";
+
         public const string RefuseOnceName = "KpgRefuseOnce";
 
         public const string RefuseThisSessionName = "KpgRefuseThisSession";

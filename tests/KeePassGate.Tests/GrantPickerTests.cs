@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Drawing;
 using System.Linq;
+using System.Reflection;
 using System.Threading;
 using System.Windows.Forms;
 using KeePassGate.Acl;
@@ -111,6 +112,30 @@ namespace KeePassGate.Tests
                 Assert.That(panel.Picking, Is.True, "and the second opened a second one");
                 Assert.That(form.IsDisposed, Is.False, "the window closed");
                 Assert.That(_loop, Is.Empty);
+            });
+        }
+
+        [TestCase(ProfileColumn, GrantTab.ProfilePickerName, GrantTab.ProfilePickerLabel)]
+        [TestCase(MaskColumn, GrantTab.RulePickerName, GrantTab.RulePickerLabel)]
+        public void Each_picker_is_named_to_a_screen_reader(int column, string name, string label)
+        {
+            // A list with no text of its own, announced as a bare list: the keyboard's only way
+            // to write a rule, named to nobody using it without the screen.
+            Using(Rules.Granting(("reader", "R")), (form, panel, grid) =>
+            {
+                panel.Press(column == ProfileColumn ? grid.NewRowIndex : 0, column);
+                OffScreenForm.Pump();
+                Assume.That(panel.Picking, Is.True);
+
+                var open = (ToolStripDropDown)typeof(GrantPanel)
+                    .GetField("_open", BindingFlags.Instance | BindingFlags.NonPublic).GetValue(panel);
+                var list = open.Items.OfType<ToolStripControlHost>().Select(host => host.Control)
+                    .Single(control => control.Name == name);
+
+                Assert.That(list.AccessibleName, Is.EqualTo(label));
+
+                panel.ClosePicker();
+                OffScreenForm.Pump();
             });
         }
 

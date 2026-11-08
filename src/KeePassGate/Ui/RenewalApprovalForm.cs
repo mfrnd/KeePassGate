@@ -346,6 +346,7 @@ namespace KeePassGate.Ui
             };
 
             _refuse.Menu.Name = GateTab.RefuseMenuName;
+            _refuse.Menu.AccessibleName = GateTab.RefuseMenuLabel;
             _refuse.Menu.Font = Font;
             _refuse.Menu.Items.Add(Choice(GateTab.RefuseOnceName, GateTab.RefuseOnceText));
             _refuse.Menu.Items.Add(Choice(GateTab.RefuseThisSessionName, GateTab.RefuseThisSessionText));
