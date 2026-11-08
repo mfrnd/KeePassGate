@@ -205,8 +205,13 @@ jobs:
           }
 
           # A rehearsal publishes to TestPyPI under a development version of its own, since a
-          # number taken there cannot be taken again either, and the run number never repeats.
-          $python = if ($mode -eq 'rehearsal') { "$version.dev$env:GITHUB_RUN_NUMBER" } else { $version }
+          # number taken there cannot be taken again either. The run's number with its attempt,
+          # since re-running a run keeps its number: the attempt in the last two digits, which hold
+          # more than the fifty re-runs GitHub allows. Re-running the failed jobs alone reuses this
+          # job's answer, so a rehearsal whose upload failed is re-run whole, as `RELEASING.md` has
+          # it.
+          $dev = [int] $env:GITHUB_RUN_NUMBER * 100 + [int] $env:GITHUB_RUN_ATTEMPT
+          $python = if ($mode -eq 'rehearsal') { "$version.dev$dev" } else { $version }
 
           Write-Host "mode $mode, version $version, plugin $plugin, client $client as $python"
           # Without a byte order mark, which Windows PowerShell's own UTF-8 writes first, and which
@@ -318,16 +323,22 @@ jobs:
             gh release create "$tag" --verify-tag --title "KeePassGate $VERSION" --notes-file notes.md \
               "${latest[@]}" "${files[@]}"
           else
-            tag="v$VERSION-rehearsal.$GITHUB_RUN_NUMBER"
+            # Named for the attempt as well as the run, as the client's version is. The draft is
+            # deleted however the step ends, by its tag, so a step that stops anywhere after
+            # making it, the lookup below among them, leaves none behind; and only a draft is.
+            tag="v$VERSION-rehearsal.$GITHUB_RUN_NUMBER.$GITHUB_RUN_ATTEMPT"
+            discard() {
+              gh api "repos/$GITHUB_REPOSITORY/releases" --paginate \
+                --jq ".[] | select(.draft and .tag_name == \"$tag\") | .id" |
+                while read -r draft; do gh api -X DELETE "repos/$GITHUB_REPOSITORY/releases/$draft"; done
+            }
+            trap discard EXIT
             gh release create "$tag" --draft --target "$GITHUB_SHA" --title "KeePassGate $VERSION, rehearsed" \
               --notes-file notes.md "${files[@]}"
           fi
 
           id=$(gh api "repos/$GITHUB_REPOSITORY/releases" --paginate --jq ".[] | select(.tag_name == \"$tag\") | .id")
           test -n "$id"
-          if [ "$MODE" != release ]; then
-            trap 'gh api -X DELETE "repos/$GITHUB_REPOSITORY/releases/$id"' EXIT
-          fi
 
           mkdir back
           gh api "repos/$GITHUB_REPOSITORY/releases/$id/assets" --jq '.[] | "\(.id) \(.name)"' |

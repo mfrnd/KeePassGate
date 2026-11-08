@@ -66,10 +66,12 @@ fails at the step that needs it until it is done.
 **Run `release` by hand from the Actions page, on `master`.** It builds and checks everything a
 release would, makes the GitHub release as a draft under a tag nobody pushed, which a draft does
 not create, reads its files back and deletes it, and publishes the client to TestPyPI under a
-development version of its own, `0.1.0.dev` and the run's number, since a number taken there
-cannot be taken again either. What a
-release still does for the first time is the address it publishes to and nothing else, so rehearse
-after any change to the workflow and before the first release. That holds for a change Dependabot
+development version of its own, `0.1.0.dev` and the run's number with its attempt in the last two
+digits, `0.1.0.dev1201` for run 12, since a number taken there cannot be taken again either. **A
+rehearsal that failed is re-run whole**, with Re-run all jobs: re-running the failed jobs alone
+keeps the version the first attempt decided, which TestPyPI may hold already. What a release
+still does for the first time is the address it publishes to and nothing else, so rehearse after
+any change to the workflow and before the first release. That holds for a change Dependabot
 makes as well, which is why `dependabot-auto-merge.yml` leaves to a person an update to an action
 only the publishing jobs run: nothing runs it before a tag does but the rehearsal after merging it.
 
