@@ -50,8 +50,9 @@ namespace KeePassGate.Acl
     ///
     /// **The reader's ceilings are this format's ceilings**, and they are worth saying out loud
     /// because reaching one denies rather than truncates. `JsonBody.MaxMembers` allows 32, so a
-    /// node carries the default and 31 profiles, and the 32nd makes the whole document unreadable
-    /// and everything under that node refused. That holds whether or not a document writes the
+    /// node carries the default and 31 profiles, and the 32nd makes the whole document unreadable,
+    /// so every profile no nearer rule answers is refused there and under it. That holds whether
+    /// or not a document writes the
     /// default, because <see cref="Write"/> always does. `JsonBody.MaxItems` allows 32 verbs where
     /// there are eight. Neither is a number anybody should be near, and a node that is near one is
     /// a node whose rules nobody can read anyway.
@@ -187,7 +188,7 @@ namespace KeePassGate.Acl
             return new AclDocument(fallback, grants);
         }
 
-        /// <summary>Builds one, which is what the editor will do.</summary>
+        /// <summary>Builds a document, which is how `GrantSheet` writes one.</summary>
         public static AclDocument Of(AclDefault fallback, IDictionary<string, IEnumerable<AclVerb>> grants)
         {
             var held = new Dictionary<string, HashSet<AclVerb>>(StringComparer.Ordinal);

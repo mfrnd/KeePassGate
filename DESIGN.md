@@ -582,9 +582,9 @@ get wrong. A profile the document does not mention is a different thing: that is
 is what `default` answers.
 
 The reader's ceilings are the format's ceilings, and reaching one denies rather than truncates: a
-node carries the default and 31 profiles, and a 32nd makes the whole document unreadable and
-everything under that node refused. That is the right way round, but it is worth knowing about
-rather than discovering.
+node carries the default and 31 profiles, and a 32nd makes the whole document unreadable, so every
+profile no nearer rule answers is refused there and under it. That is the right way round, but it
+is worth knowing about rather than discovering.
 
 ### The set of profiles is written down §139
 
