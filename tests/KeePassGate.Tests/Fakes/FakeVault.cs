@@ -375,6 +375,10 @@ namespace KeePassGate.Tests.Fakes
         /// finds the node, which is the other race: an operator's move, caught between taking the
         /// node out of one group and putting it into the other, misses a handler's lookup and is
         /// over by the time the write looks again.
+        ///
+        /// **And an entry's list of fields**, which is a lookup of its own: a write asks it which
+        /// of the entry's strings are protected after finding the entry, so the move can miss that
+        /// lookup alone.
         /// </remarks>
         public string Vanishes { get; set; }
 
@@ -461,6 +465,11 @@ namespace KeePassGate.Tests.Fakes
         public IReadOnlyList<VaultField> Fields(string entryUuid)
         {
             Looking();
+
+            if (string.Equals(entryUuid, Vanishes, StringComparison.Ordinal))
+            {
+                return null;
+            }
 
             var entry = FindEntry(entryUuid);
 

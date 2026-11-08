@@ -354,8 +354,14 @@ namespace KeePassGate.Pipeline
                 return;
             }
 
-            if ((Guarded(vault, fields.Keys) || Guarded(vault, uuid, fields.Keys))
-                && !ReachesProtected(context, entry.Node, AclVerb.Update))
+            var guarded = Guarded(vault, uuid, fields.Keys);
+            if (guarded == null)
+            {
+                Gone(context);
+                return;
+            }
+
+            if (guarded.Value && !ReachesProtected(context, entry.Node, AclVerb.Update))
             {
                 Withheld(context, entry.Node, AclVerb.Update);
                 return;
@@ -581,12 +587,17 @@ namespace KeePassGate.Pipeline
                 return;
             }
 
-            // Both halves. `Guarded` answers the flag this string carries; `Protects` answers what
-            // the database says about the name. They disagree whenever an operator turns a
-            // protection on, because KeePass does not go back and re-flag what is already there.
-            // While they disagreed, this route wrote a password the entry route refused.
-            if ((vault.Protects(name) || Guarded(vault, uuid, new[] { name }))
-                && !ReachesProtected(context, entry.Node, AclVerb.Update))
+            // Both halves, which `Guarded` asks: what the database decides about the name and the
+            // flag this string carries. While only the flag was asked here, this route wrote a
+            // password the entry route refused.
+            var guarded = Guarded(vault, uuid, new[] { name });
+            if (guarded == null)
+            {
+                Gone(context);
+                return;
+            }
+
+            if (guarded.Value && !ReachesProtected(context, entry.Node, AclVerb.Update))
             {
                 Withheld(context, entry.Node, AclVerb.Update);
                 return;
@@ -626,8 +637,14 @@ namespace KeePassGate.Pipeline
             // protected field off as before, because it has nowhere to put anything back. What is
             // refused is a rule that could create in its place and could not have created the
             // protected value it is taking away: any rule the client holds, each asked on its own.
-            if ((vault.Protects(name) || Guarded(vault, uuid, new[] { name }))
-                && CouldPutBackUnprotected(context, entry.Node))
+            var guarded = Guarded(vault, uuid, new[] { name });
+            if (guarded == null)
+            {
+                Gone(context);
+                return;
+            }
+
+            if (guarded.Value && CouldPutBackUnprotected(context, entry.Node))
             {
                 Withheld(context, entry.Node, AclVerb.Create);
                 return;
@@ -1347,23 +1364,35 @@ namespace KeePassGate.Pipeline
         }
 
         /// <summary>
-        /// Whether any of these names is protected on the entry that already exists.
+        /// Whether any of these names is protected on the entry, by the database or by the flag its
+        /// own string carries, or null when the entry is not there to ask.
         /// </summary>
         /// <remarks>
-        /// Asked as well as `Protects`, because the two answer different halves. A field is
-        /// protected either because of what it is called, which the database decides, or because
-        /// somebody marked that one on that entry. Overwriting either is setting a secret.
+        /// Both halves, because they answer different questions. A field is protected either
+        /// because of what it is called, which the database decides, or because somebody marked
+        /// that string on that entry, and the two disagree whenever an operator turns a protection
+        /// on, since KeePass does not go back and re-flag what is already there. Overwriting either
+        /// is setting a secret. What the database protects is asked first, so a name it protects
+        /// needs no lookup.
         ///
-        /// An entry that is not there marks nothing, which is the answer every caller here already
-        /// gives an entry it cannot find: it asks nothing about protection and leaves the write to
-        /// find the entry gone.
+        /// **An entry whose strings cannot be read is gone, never unprotected.** Every caller found
+        /// the entry a moment before, under a read of its own, and its write finds the entry again
+        /// under another, so an operator's move can miss this lookup alone. Answering "nothing is
+        /// protected" there let the write go ahead and set, or take away, a string protected by its
+        /// own flag for a rule without `protected`. The callers answer null as they answer a miss
+        /// of their own lookup.
         /// </remarks>
-        private static bool Guarded(IVault vault, string entryUuid, IEnumerable<string> names)
+        private static bool? Guarded(IVault vault, string entryUuid, IEnumerable<string> names)
         {
+            if (Guarded(vault, names))
+            {
+                return true;
+            }
+
             var fields = vault.Fields(entryUuid);
             if (fields == null)
             {
-                return false;
+                return null;
             }
 
             foreach (var field in fields)
