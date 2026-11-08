@@ -263,6 +263,13 @@ namespace KeePassGate.Ui
                         + "unless a nearer rule admits it. Discard them to edit this tab.";
                 }
 
+                if (_above.TooDeep)
+                {
+                    return "This is deeper in the tree than the gate reads rules for, so nothing from "
+                        + "further up arrives here: a profile that neither this tab nor a group in "
+                        + "between names is refused.";
+                }
+
                 if (!_above.Readable)
                 {
                     return "A rule above this cannot be read, so nothing beyond it arrives here: a "

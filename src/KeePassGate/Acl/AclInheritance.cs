@@ -16,7 +16,8 @@ namespace KeePassGate.Acl
     /// it and this node are still in force and are listed, and everything they do not name is
     /// refused. An editor that carried on listing what the groups further up say would be
     /// describing permissions nobody has. `Readable` false means nothing beyond the broken
-    /// document is known.
+    /// document is known, or nothing beyond the depth the resolver walks, which `TooDeep` tells
+    /// apart.
     ///
     /// **A seal above is not reported, because nothing below it would read differently.** A
     /// `default` of `deny` stops the walk, which is why nothing above it is listed, and that is
@@ -27,10 +28,11 @@ namespace KeePassGate.Acl
     {
         private readonly Dictionary<string, AclGrant> _grants;
 
-        internal AclInheritance(Dictionary<string, AclGrant> grants, bool readable)
+        internal AclInheritance(Dictionary<string, AclGrant> grants, bool readable, bool tooDeep = false)
         {
             _grants = grants;
             Readable = readable;
+            TooDeep = tooDeep;
         }
 
         /// <summary>
@@ -39,6 +41,17 @@ namespace KeePassGate.Acl
         /// rules grant, and every profile they do not name is refused.
         /// </summary>
         public bool Readable { get; private set; }
+
+        /// <summary>
+        /// Whether the chain stopped because the tree is deeper than the resolver walks, rather than
+        /// at a document that will not read. Only ever true where <see cref="Readable"/> is false.
+        /// </summary>
+        /// <remarks>
+        /// Told apart because the remedy differs: a document that will not read is fixed in the
+        /// group that holds it, and a depth bound has no rule anywhere to fix. An editor naming the
+        /// first sent the operator looking for a broken rule that did not exist.
+        /// </remarks>
+        public bool TooDeep { get; private set; }
 
         /// <summary>Every profile a rule above says something about, in no particular order.</summary>
         public IEnumerable<string> Profiles

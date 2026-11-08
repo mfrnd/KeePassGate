@@ -31,6 +31,23 @@ namespace KeePassGate.Tests
         }
 
         [Test]
+        public void A_node_deeper_than_the_walk_is_told_so_rather_than_sent_to_a_broken_rule()
+        {
+            // Past the depth the resolver walks, every document on the chain may read, and the
+            // editor sent the operator to fix a rule above that could not be read.
+            var node = TestNode.Root("root").Granting("reader", AclVerb.Read);
+            for (var level = 1; level < AclResolver.MaxDepth + 1; level++)
+            {
+                node = node.Child("level " + level);
+            }
+
+            var sheet = new GrantSheet(null, node.Parent, new[] { "reader" }, null);
+
+            Assert.That(sheet.Warning, Does.Contain("deeper in the tree"));
+            Assert.That(sheet.Warning, Does.Not.Contain("cannot be read"));
+        }
+
+        [Test]
         public void A_rule_typed_here_is_written_here()
         {
             var sheet = new GrantSheet(null, null, null, null);

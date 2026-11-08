@@ -188,6 +188,7 @@ namespace KeePassGate.Acl
             // Counted from there, `MaxDepth` gives up at the same group `Decide` does rather than
             // one further up, where a grant it would show is one the resolver never reaches.
             var walked = 1;
+            var tooDeep = false;
 
             for (var current = node; current != null; current = current.Parent)
             {
@@ -196,6 +197,7 @@ namespace KeePassGate.Acl
                     // Where `Decide` gives up, and what it answers there: no for every profile
                     // still unanswered. What was collected below this point is still in force.
                     readable = false;
+                    tooDeep = true;
                     break;
                 }
 
@@ -232,7 +234,7 @@ namespace KeePassGate.Acl
                 }
             }
 
-            return new AclInheritance(grants, readable);
+            return new AclInheritance(grants, readable, tooDeep);
         }
 
         /// <summary>Whether these profiles may do this to this entry's fields.</summary>
