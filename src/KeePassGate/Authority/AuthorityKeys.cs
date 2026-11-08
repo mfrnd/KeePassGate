@@ -106,7 +106,10 @@ namespace KeePassGate.Authority
             return FingerprintInAuthority(key) != null || FingerprintInRetirement(key) != null;
         }
 
-        /// <summary>One admission record per paired client, keyed by its certificate digest.</summary>
+        /// <summary>
+        /// One admission record per certificate admitted, keyed by its digest, so a renewed client
+        /// holds one for each certificate it still has.
+        /// </summary>
         public const string ClientPrefix = "KPG.Client.";
 
         public static bool IsClientRecord(string key)
@@ -135,8 +138,8 @@ namespace KeePassGate.Authority
         }
 
         /// <summary>
-        /// One revocation per revoked client, keyed by the same digest as its record, whose value
-        /// is the certificate's `notAfter`.
+        /// One revocation per revoked certificate, keyed by the same digest as its record, whose
+        /// value is the certificate's `notAfter`.
         /// </summary>
         /// <remarks>
         /// **A key of its own, only ever added and never changed**, because that is the one shape a

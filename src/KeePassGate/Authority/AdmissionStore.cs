@@ -7,13 +7,15 @@ using KeePassGate.Diagnostics;
 namespace KeePassGate.Authority
 {
     /// <summary>
-    /// The admitted clients of one database: one custom data key each, under `KPG.Client.`.
+    /// The admitted clients of one database: one custom data key for each certificate admitted,
+    /// under `KPG.Client.`, each naming the client it belongs to by its client key.
     /// </summary>
     /// <remarks>
-    /// One key per client rather than one document, because a replicated database merges per key.
-    /// Two hosts pairing different clients then keep both, where a single blob would be
-    /// last-writer-wins and would lose a pairing without saying so. A revocation is a key of its
-    /// own as well, under `KPG.Revoked.`, for the reason `Remove` gives.
+    /// One key per certificate rather than one document, because a replicated database merges per
+    /// key. Two hosts pairing different clients then keep both, where a single blob would be
+    /// last-writer-wins and would lose a pairing without saying so, and a renewed client holds a
+    /// key for each certificate it still has. A revocation is a key of its own as well, under
+    /// `KPG.Revoked.`, for the reason `Remove` gives.
     ///
     /// Lookups compare every stored key against the one asked for without stopping at the first
     /// difference, rather than asking the dictionary. The key is a digest of a certificate somebody

@@ -137,7 +137,7 @@ that replaced a purge which rewrote every rule naming a removed profile, and mov
 entries nobody had edited to make the rewrite carry. A write that says nothing new stays a no-op, so
 reading a rule is never an unsaved change.
 
-**One key per client, never one blob, and in the dictionary that merges per key.** Measured on
+**One key per certificate, never one blob, and in the dictionary that merges per key.** Measured on
 KeePass 2.61.1: `PwDatabase.CustomData` keeps a modification time for each key and a merge
 arbitrates key by key, while a group's dictionary keeps none, so `PwGroup.AssignProperties`
 replaces the whole of it from whichever replica's group was touched last. Two hosts pairing

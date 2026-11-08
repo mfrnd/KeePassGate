@@ -415,7 +415,7 @@ against the host that issued its invitation.
 
 **One hazard that is KeePass's, not ours.** Two KeePass instances writing one replicated kdbx is the
 ordinary multi-writer problem, and this design does not solve it. Admission records are one key per
-client in the database's own `CustomData` precisely so a merge is per client rather than
+certificate in the database's own `CustomData` precisely so a merge is per certificate rather than
 last-writer-wins, and a revocation or a retired authority is a key of its own that is only ever
 added, because a KeePass merge never removes a key and never reads a value; see CA.md §204. That
 replaced a revocation written as an empty record, which a merge carried only while the file kept its
