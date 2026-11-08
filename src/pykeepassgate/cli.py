@@ -645,8 +645,9 @@ def _conditioned(parser: argparse.ArgumentParser) -> None:
         help=(
             "write only while the node still holds what this tag says, as -o json printed it "
             "from a read, quotes and all; refused with exit 1, and nothing changed, when "
-            "somebody changed it since or when the gate gives this client no tags. Left off, "
-            "the write goes ahead whatever changed"
+            "somebody changed it since or when the gate gives this client no tags, and with "
+            "exit 2 before anything is sent when it is no tag the gate could match, without its "
+            "quotes or weak. Left off, the write goes ahead whatever changed"
         ),
     )
 

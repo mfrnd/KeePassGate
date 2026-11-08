@@ -977,6 +977,14 @@ def check_condition(if_match: str | None) -> None:
     allows between the tags of a list, and not nothing, since an empty one asks for something no
     node holds and is never what a caller meant.
 
+    **And only what the gate can read as an `If-Match`**: `*`, or a list of tags with commas
+    between, each in quotes as `etag` holds it, `VaultPrecondition.Read` on the gate's side. The
+    gate answers anything else `412`, the refusal a node that changed gets, so a tag pasted
+    without its quotes was refused as a node that moved on, and read again, and sent again the
+    same way. For the same reason a list must name a tag the gate compares at all: it compares
+    strongly, as RFC 9110 section 13.1.1 asks, so a weak tag, `W/` before it, never matches, and
+    the gate hands out none.
+
     Public because the client asks it before anything is dialed, and the command line before it
     asks for anything at a terminal: `send` asks it again, as the last thing between a caller and
     the wire.
@@ -988,6 +996,62 @@ def check_condition(if_match: str | None) -> None:
         character != "\t" and not " " <= character <= "~" for character in if_match
     ):
         raise ProtocolError(f"that is not a tag this client will send: {if_match!r}")
+
+    if if_match.strip(" \t") == "*":
+        return
+
+    if not _strong_tags(if_match):
+        raise ProtocolError(
+            f"that is not a tag this client will send: {if_match!r}, since the gate reads a tag "
+            "only as `etag` holds it, in quotes, and never matches a weak tag: send it quotes "
+            "and all, several with commas between, or `*`"
+        )
+
+
+def _strong_tags(if_match: str) -> list[str]:
+    """The tags an `If-Match` list names that the gate compares, or none when it will not read.
+
+    RFC 9110 section 13.1.1's list as the gate reads it, a character at a time, since a comma may
+    stand inside a tag: elements with commas between and spaces or tabs around them, an empty
+    element allowed, each an `entity-tag`, visible ASCII but a quote between two quotes, with `W/`
+    before a weak tag. A weak tag reads and is left out, since it never matches.
+    """
+    tags: list[str] = []
+    at = 0
+    while True:
+        at = _past_spaces(if_match, at)
+        if at == len(if_match):
+            return tags
+
+        if if_match[at] == ",":
+            at += 1
+            continue
+
+        weak = if_match.startswith("W/", at)
+        if weak:
+            at += 2
+
+        end = if_match.find('"', at + 1)
+        if at >= len(if_match) or if_match[at] != '"' or end < 0:
+            return []
+
+        if any(not "!" <= character <= "~" for character in if_match[at + 1 : end]):
+            return []
+
+        if not weak:
+            tags.append(if_match[at : end + 1])
+
+        at = _past_spaces(if_match, end + 1)
+        if at < len(if_match) and if_match[at] != ",":
+            return []
+
+
+def _past_spaces(text: str, at: int) -> int:
+    """Where the spaces and tabs from `at` end, which is where the next element of a list starts."""
+    while at < len(text) and text[at] in " \t":
+        at += 1
+
+    return at
 
 
 def _header(head: str, wanted: str) -> str | None:

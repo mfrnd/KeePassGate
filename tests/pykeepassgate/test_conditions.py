@@ -261,3 +261,56 @@ def test_a_condition_that_could_not_be_one_header_line_is_refused_before_anythin
 
     assert gate.names == [], "nothing was dialed"
     assert gate.requests == []
+
+
+@pytest.mark.parametrize(
+    "tag",
+    [
+        TAG.strip('"'),
+        f"W/{TAG}",
+        f"W/{TAG}, W/{NEXT}",
+        f"{TAG} {NEXT}",
+        f"{TAG}x",
+        '"a"b"',
+        '"a',
+        '"a b"',
+        ",",
+    ],
+    ids=[
+        "no quotes",
+        "weak",
+        "weak alone",
+        "no comma",
+        "after the quote",
+        "a quote inside",
+        "no closing quote",
+        "a space inside",
+        "only a comma",
+    ],
+)
+def test_a_condition_the_gate_could_not_match_is_refused_before_anything_is_dialed(
+    gate: FakeGate, paired: GateClient, tag: str
+) -> None:
+    # The gate answers each with the `412` a node that changed gets, so a tag pasted without its
+    # quotes was refused as a node that moved on, read again, and sent again the same way.
+    tagging(gate, {"ok": True}, None)
+
+    with pytest.raises(ProtocolError, match="in quotes"):
+        paired.update_entry(UUID, title="x", if_match=tag)
+
+    assert gate.names == [], "nothing was dialed"
+
+
+@pytest.mark.parametrize(
+    "tag",
+    ['"a,b"', f" , {TAG} ,", f"W/{TAG}, {NEXT}", '"!"', " * "],
+    ids=["a comma inside", "empty elements", "weak beside strong", "one character", "any"],
+)
+def test_a_condition_the_gate_can_read_is_sent_as_given(
+    gate: FakeGate, paired: GateClient, tag: str
+) -> None:
+    conditions = tagging(gate, {"ok": True}, None)
+
+    paired.update_entry(UUID, title="x", if_match=tag)
+
+    assert conditions == [tag.strip(" \t")], "sent exactly, as the gate trims what it reads"

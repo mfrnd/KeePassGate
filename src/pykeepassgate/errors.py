@@ -361,14 +361,15 @@ class PreconditionFailed(RouteRefused):
     """The gate did nothing, because the condition `if_match` gave did not hold: `412`.
 
     Most often the node no longer holds what the tag said: somebody changed it after the tag was
-    read, another client, the operator in KeePass, a merge or a plugin. Two more reasons answer
-    the same: an `if_match` the gate cannot read as one, and any `if_match` from a client the gate
-    hands no tag to, whose rule does not read everything a tag covers, since it cannot know what
-    it would be asking. Not retried, since asking again asks the same question of the same node.
-    What mends the first is reading the node again, which hands back the tag it holds now, and
-    deciding again whether the change still makes sense with what it holds; what mends the last is
-    sending none. A `RouteRefused`, so a caller that catches every refusal already catches this
-    one, with `status` `412`.
+    read, another client, the operator in KeePass, a merge or a plugin. One more reason answers
+    the same: any `if_match` from a client the gate hands no tag to, whose rule does not read
+    everything a tag covers, since it cannot know what it would be asking. An `if_match` the gate
+    could not read, a tag without its quotes or a weak tag among them, would be a third, and this
+    client refuses it with `ProtocolError` before it is sent. Not retried, since asking
+    again asks the same question of the same node. What mends the first is reading the node again,
+    which hands back the tag it holds now, and deciding again whether the change still makes sense
+    with what it holds; what mends the second is sending none. A `RouteRefused`, so a caller that
+    catches every refusal already catches this refusal, with `status` `412`.
     """
 
     def __init__(self, error: str) -> None:

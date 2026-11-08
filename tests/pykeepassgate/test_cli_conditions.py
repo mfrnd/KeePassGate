@@ -160,11 +160,13 @@ def test_an_entry_s_listing_prints_the_entry_s_tag_beside_each_name(
     assert ["etag" in item for item in json.loads(capsys.readouterr().out)] == [False]
 
 
-@pytest.mark.parametrize("tag", ["", '"a"\x00', '"é"'])
+@pytest.mark.parametrize("tag", ["", '"a"\x00', '"é"', TAG.strip('"'), f"W/{TAG}"])
 def test_a_tag_that_could_not_be_sent_is_refused_as_an_argument_before_anything_is_dialed(
     gate: FakeGate, kept: Path, capsys: pytest.CaptureFixture[str], tag: str
 ) -> None:
     # Exit 2, as every argument this cannot use is refused, and before a prompt or a connection.
+    # A tag pasted without its quotes, or a weak tag, is among them: the gate would have answered
+    # `412`, the exit 1 a node that changed gets.
     tagging(gate, {"ok": True}, None)
 
     with pytest.raises(SystemExit) as exited:

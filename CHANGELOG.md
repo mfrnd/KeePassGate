@@ -11,6 +11,11 @@ none, since it releases both.
 
 ## 0.2.0, unreleased
 
+- **PyKeePassGate refuses an `If-Match` the gate could not match before sending it**: a tag
+  without its quotes, a list the gate cannot read, or a list naming weak tags alone, which the gate
+  compares strongly and never matches. Each went to the gate and came back as the `412` a node that
+  changed gets, so a script that pasted a tag without its quotes read the node again, found the
+  same tag and sent it the same way. The library raises `ProtocolError`, and `--if-match` exits 2.
 - **PyKeePassGate holds a path it sends to RFC 3986's grammar**, an absolute path and a query of
   the characters the gate takes as they stand and escapes of two hex digits, and refuses anything
   else with `ProtocolError` before dialing. Only a space, a line break, a tab and a null were
