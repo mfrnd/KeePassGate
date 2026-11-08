@@ -258,7 +258,7 @@ function Invoke-Compile {
 # is not a check.
 function Invoke-Lint {
     if (-not (Get-Command npm -ErrorAction SilentlyContinue)) {
-        throw 'npm was not found. The prose checks are markdownlint and cspell, both from npm. Install Node, then run npm ci.'
+        throw 'npm was not found. The prose checks are markdownlint and cspell, both from npm. Install Node, then run this again, which installs them.'
     }
 
     # Whether the tools are there, rather than whether a directory is. An interrupted install, a
@@ -276,6 +276,10 @@ function Invoke-Lint {
     # lockfile's hash is written down beside what `npm ci` installed, and a different one, or none,
     # installs again. It lives inside `node_modules`, which `npm ci` deletes before installing, so
     # it can never outlive the install it describes.
+    #
+    # **Without the packages' own scripts.** An update to these tools merges itself, and a script
+    # a package runs as it installs is code that runs on this machine before any check calls it,
+    # which the tools need none of: no package the lockfile holds has an install script.
     $lock = Join-Path $root 'package-lock.json'
     $record = Join-Path $root 'node_modules\.installed-from'
     $wanted = (Get-FileHash -LiteralPath $lock -Algorithm SHA256).Hash
@@ -286,7 +290,7 @@ function Invoke-Lint {
 
     if ($missing.Count -gt 0 -or $installed -ne $wanted) {
         Invoke-Step 'installing the prose tools' {
-            npm ci --no-audit --no-fund
+            npm ci --ignore-scripts --no-audit --no-fund
         }
 
         Set-Content -LiteralPath $record -Value $wanted
