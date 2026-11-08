@@ -1896,14 +1896,28 @@ namespace KeePassGate.Bridge
         /// </remarks>
         private PwGroup Bin(PwGroup root)
         {
-            if (root == null
-                || _database.RecycleBinUuid == null
-                || _database.RecycleBinUuid.Equals(PwUuid.Zero))
+            return Bin(_database, root);
+        }
+
+        /// <summary>
+        /// The group a database names as its recycle bin, under this root, or null when it names
+        /// none there.
+        /// </summary>
+        /// <remarks>
+        /// Shared with `DatabaseNodes`, so that what the Profiles page counts and what the vault
+        /// leaves out are one bin.
+        /// </remarks>
+        internal static PwGroup Bin(PwDatabase database, PwGroup root)
+        {
+            if (database == null
+                || root == null
+                || database.RecycleBinUuid == null
+                || database.RecycleBinUuid.Equals(PwUuid.Zero))
             {
                 return null;
             }
 
-            return root.FindGroup(_database.RecycleBinUuid, true);
+            return root.FindGroup(database.RecycleBinUuid, true);
         }
 
         /// <summary>
@@ -1917,7 +1931,7 @@ namespace KeePassGate.Bridge
         /// rule for it, and it is right on its own account: the bin holds what the operator decided
         /// they were finished with.
         /// </remarks>
-        private static bool Discarded(PwGroup group, PwGroup bin)
+        internal static bool Discarded(PwGroup group, PwGroup bin)
         {
             if (bin == null || group == null)
             {
@@ -1946,7 +1960,7 @@ namespace KeePassGate.Bridge
         }
 
         /// <summary>Whether this entry sits in the recycle bin.</summary>
-        private static bool Discarded(PwEntry entry, PwGroup bin)
+        internal static bool Discarded(PwEntry entry, PwGroup bin)
         {
             return entry != null && Discarded(entry.ParentGroup, bin);
         }

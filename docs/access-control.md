@@ -16,7 +16,7 @@ Open **File**, **Database Settings**, pick the **KPG** tab, then the **Profiles*
 | | |
 | --- | --- |
 | **Profile** | the name, which is what a rule and a certificate both carry |
-| **Rules** | how many groups and entries have a rule for it, whatever the rule grants, which is how many rules removing it leaves inert |
+| **Rules** | how many groups and entries have a rule for it, whatever the rule grants, which is how many rules removing it leaves inert; nothing in the recycle bin counts, since no rule there decides anything |
 | **Clients** | how many admitted clients hold it |
 | **X** | removes it |
 

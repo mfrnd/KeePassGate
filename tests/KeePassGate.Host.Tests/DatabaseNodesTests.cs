@@ -65,6 +65,25 @@ namespace KeePassGate.Host.Tests
         }
 
         [Test]
+        public void Nothing_in_the_recycle_bin_is_walked()
+        {
+            // The vault reaches nothing in the bin, so its rules decide nothing, and counted they
+            // were offered back "in force" when the name was added again.
+            var database = Tree();
+            var bin = database.RootGroup.GetGroups(true).Single(group => group.Name == "first");
+            database.RecycleBinUuid = bin.Uuid;
+            bin.CustomData.Set(AclDocument.CustomDataKey, Rules.Granting(("ops", "R")));
+            bin.Entries.Single().CustomData.Set(AclDocument.CustomDataKey, Rules.Granting(("ops", "R")));
+
+            var nodes = new DatabaseNodes(database).All().ToList();
+
+            // The root, the second group and the one entry under the root: the bin, the group
+            // inside it and their two entries are left out.
+            Assert.That(nodes.Count, Is.EqualTo(3));
+            Assert.That(nodes.Count(node => node.Read() != null), Is.Zero);
+        }
+
+        [Test]
         public void A_database_with_no_tree_yields_nothing_rather_than_failing()
         {
             Assert.That(new DatabaseNodes(null).All(), Is.Empty);

@@ -203,6 +203,9 @@ none, since it releases both.
   authority's clients over the locked KeePass, modal over the window the operator unlocks in; and a
   choice whose database locked while it was being kept sent the operator to the KPG tab for a
   question the unlock was about to put again.
+- **The Profiles page counts no rule in the recycle bin.** Nothing in the bin is reached through the
+  gate, so its rules decide nothing, and the page counted them among the rules removing a name
+  leaves inert and offered to put them back in force when the name was added again.
 - **A protected field is kept from a strip whenever any profile could put an unprotected value
   back.** The guard asked whether some profile could create there and whether some profile could
   create a protected value there, so a program holding one profile that could put an unprotected
