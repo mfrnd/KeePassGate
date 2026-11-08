@@ -568,6 +568,61 @@ namespace KeePassGate.Tests
         }
 
         [Test]
+        public void A_protected_value_arriving_during_a_request_is_never_covered_by_the_tag_it_hands_out(
+            [Values("entry", "field", "fields", "attachments", "attachment", "write")] string route,
+            [Range(0, 6)] int lookups)
+        {
+            // This rule reads everything but protected values, so it is handed an entry's tag only
+            // while the entry holds none. The handler decides that from one lookup and takes the
+            // tag at another, so it asks again of what it read afterwards, and a protected value
+            // landing between the two never goes out under a tag that covers it. Tried at every
+            // moment of each route rather than at a moment counted, so that the second question is
+            // what is pinned, not where it is asked.
+            _vault.Granting(_group, AllButProtected);
+            Assume.That(_vault.CreateAttachment(_entry, "notes.txt", new byte[] { 1 }, VaultTagging.None).Ok, Is.True);
+            var entry = "/entries/" + _entry;
+
+            var landed = false;
+            _vault.After(lookups, () =>
+            {
+                landed = true;
+                _vault.CreateField(_entry, "PIN", "not-a-real-pin", true, VaultTagging.None);
+            });
+
+            Answer answer;
+            switch (route)
+            {
+                case "entry":
+                    answer = Get(entry);
+                    break;
+                case "field":
+                    answer = Get(entry + "/fields/Title");
+                    break;
+                case "fields":
+                    answer = Get(entry + "/fields");
+                    break;
+                case "attachments":
+                    answer = Get(entry + "/attachments");
+                    break;
+                case "attachment":
+                    answer = Get(entry + "/attachments/notes.txt");
+                    break;
+                default:
+                    answer = Send("PUT", entry, "{\"Title\":\"what the client meant\"}");
+                    break;
+            }
+
+            _vault.After(0, null);
+            var handed = route == "write" ? answer.Written : answer.Tag;
+
+            if (landed && handed != null)
+            {
+                Assert.That(handed, Is.Not.EqualTo("\"" + _vault.EntryTag(_entry) + "\""),
+                    "handed a tag that covers a protected value this rule may not read: " + answer.Json);
+            }
+        }
+
+        [Test]
         public void A_group_s_tag_is_for_a_rule_that_reads_the_group()
         {
             _vault.Granting(_group, Rules.Granting(("agent", "U")));
