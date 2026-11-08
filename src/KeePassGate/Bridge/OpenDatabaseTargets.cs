@@ -309,7 +309,7 @@ namespace KeePassGate.Bridge
                 else
                 {
                     // No responder was minted, so there is nothing to answer with. `CA.md`
-                    // §207 names this case and accepts it: the connection really is a bare
+                    // §208 names this case and accepts it: the connection really is a bare
                     // failure until somebody unlocks.
                     // `Release` rather than `Forget`: the cache entry is disposed below, and
                     // `Forget` would drop it here as well, releasing one reference for two.
@@ -375,7 +375,7 @@ namespace KeePassGate.Bridge
             if (cached.Target == null)
             {
                 // Several authorities and none chosen, so no responder was minted: minting one
-                // would be choosing. A lock answers nothing, which `CA.md` §207 accepts for a
+                // would be choosing. A lock answers nothing, which `CA.md` §208 accepts for a
                 // database with no responder.
                 return null;
             }

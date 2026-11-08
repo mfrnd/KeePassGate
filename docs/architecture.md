@@ -181,7 +181,10 @@ database is opened and made again as it is locked, and good for ninety days from
 gets a refusal it can read rather than a connection failure it cannot interpret. At lock the plugin
 lets go of the key of the host certificate the gate serves the open database with, and
 [`../CA.md`](../CA.md) §208 says how much of that is erasure. The key that reads the database is
-KeePass's own, and the plugin never holds it.
+KeePass's own, and the plugin never holds it. A database locked while Undecided answers nothing,
+since a responder would have to be made under one of its authorities, and neither does a database
+locked with no current responder to answer with: until it is unlocked, a connection to it is
+dropped before TLS, as a connection to a closed database is.
 
 **KeePass does not lock while it has a question of its own on the screen**, and that is worth
 knowing because an agent can put one there. When a save fails, KeePass warns that writing to the
