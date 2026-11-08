@@ -75,8 +75,15 @@ def test_each_table_of_what_to_catch_names_everything_this_client_raises(page: P
     # A row for every class `errors.py` defines but the root, which the text above each table
     # names instead, and one for each of the standard library's that a caller can meet. A class
     # added without a row fails here, and so does a row left behind by a class taken away.
-    if not page.exists():  # pragma: no cover, only outside the repository
-        pytest.skip(f"no page at {page} to hold to this module")
+    #
+    # Skipped only where these tests are not in the repository, as `test_reference.py` skips. A
+    # page missing inside it fails: a skip would turn the one check holding the tables to this
+    # module into a green skip whenever a page was moved or renamed.
+    if not (REPOSITORY / "pyproject.toml").exists():  # pragma: no cover, only outside it
+        pytest.skip(f"no repository at {REPOSITORY}, so no page to hold to this module")
+
+    if not page.exists():
+        pytest.fail(f"no page at {page} to hold to this module, which is where it is kept")
 
     section = page.read_text("utf-8").split("## What to catch", 1)[1].split("\n## ", 1)[0]
     rows = set(re.findall(r"^\| `(\w+)` \|", section, flags=re.MULTILINE))
