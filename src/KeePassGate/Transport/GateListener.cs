@@ -1394,8 +1394,12 @@ namespace KeePassGate.Transport
                 {
                     protocol.Accept(server);
                 }
-                catch (TlsFatalAlert alert)
+                catch (Exception error) when (Expected.OfConnection(error))
                 {
+                    // An alert and every other way a handshake fails, in one catch, because the
+                    // question asked of each is the same: an alert is an `IOException`, and so is
+                    // what Bouncy Castle throws on unwrapped from a callback. One check for both
+                    // is a check the test of a failing callback reaches whichever arrives.
                     if (server.Failure != null)
                     {
                         // Part of the connection catch-all, kept here rather than left to it, for
@@ -1407,22 +1411,8 @@ namespace KeePassGate.Transport
                         return;
                     }
 
-                    // A client offering something we do not is refused here, and told so in the
-                    // alert.
-                    _log.Info("a handshake failed: " + alert.Message);
-                    return;
-                }
-                catch (Exception error) when (Expected.OfConnection(error))
-                {
-                    if (server.Failure != null)
-                    {
-                        // The same, for one that arrived as an `IOException` rather than an alert.
-                        _incidents.Record("the handshake failed on this side", server.Failure);
-                        return;
-                    }
-
-                    // Everything a handshake can fail with that is not an alert: a client that
-                    // hung up, a stream that closed, bytes that were never TLS.
+                    // A client offering something we do not, refused and told so in the alert, a
+                    // client that hung up, a stream that closed, bytes that were never TLS.
                     _log.Info("a handshake failed: " + error.Message);
                     return;
                 }
