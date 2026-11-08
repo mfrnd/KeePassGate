@@ -11,6 +11,9 @@ none, since it releases both.
 
 ## 0.2.0, unreleased
 
+- **A write or a pairing still in progress as KeePass exits is logged as meeting a window that has
+  gone**, rather than as KeePass not answering in time, and a pairing or renewal then is no longer
+  audited as a dialog nobody answered when no dialog was shown.
 - **Creating and deleting an authority on one settings dialog leaves the database as it was.** The
   delete retired the authority the create had made, and OK wrote that retirement for an authority
   the file never held, a key kept for good that made the database read as one that had retired

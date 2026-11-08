@@ -50,6 +50,12 @@ namespace KeePassGate.Ui
         /// lists, so an exception nothing on the way up names is counted and logged there; the
         /// implementation over a `Control` explains why it has to carry it rather than let it
         /// travel.
+        ///
+        /// **A thread with no window left to run on is thrown as that**, an
+        /// `ObjectDisposedException`, which `Expected.OfUserInterface` names, rather than answered
+        /// false. It is what KeePass's exit leaves a connection thread still inside a handler, and
+        /// answered as a timeout it was written down as KeePass not answering in time, or as a
+        /// dialog nobody answered that was never shown.
         /// </remarks>
         bool Run(Action work, TimeSpan timeout);
 
@@ -214,7 +220,8 @@ namespace KeePassGate.Ui
 
             if (_control.IsDisposed || !_control.IsHandleCreated)
             {
-                return false;
+                throw new ObjectDisposedException(
+                    _control.GetType().Name, "KeePass's window has gone, so nothing can be run on its thread.");
             }
 
             if (!_control.InvokeRequired)

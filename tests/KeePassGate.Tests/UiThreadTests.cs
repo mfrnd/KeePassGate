@@ -4,6 +4,7 @@ using System.Diagnostics;
 using System.Linq;
 using System.Threading;
 using System.Windows.Forms;
+using KeePassGate.Diagnostics;
 using KeePassGate.Testing;
 using KeePassGate.Tests.Fakes;
 using KeePassGate.Ui;
@@ -102,12 +103,28 @@ namespace KeePassGate.Tests
         }
 
         [Test]
-        public void A_control_with_no_window_yet_answers_no_rather_than_throwing()
+        public void A_control_with_no_window_is_named_as_that_rather_than_answered_as_a_timeout()
         {
+            // False means the timeout passed, and every caller words it so: an exit, which is when
+            // a connection thread meets a window that has gone, was written down as KeePass not
+            // answering in time, or as a dialog nobody answered that was never shown.
+            var ran = false;
+
             using (var form = new Form())
+            using (var thread = new ControlUiThread(form))
             {
-                Assert.That(new ControlUiThread(form).Run(() => { }, Patience), Is.False);
+                Assert.That(() => thread.Run(() => ran = true, Patience), Throws.InstanceOf<ObjectDisposedException>(),
+                    "a window that was never made");
+
+                form.CreateControl();
+                form.Dispose();
+
+                var thrown = Assert.Throws<ObjectDisposedException>(() => thread.Run(() => ran = true, Patience),
+                    "a window that has gone");
+                Assert.That(Expected.OfUserInterface(thrown), Is.True, "every caller already catches it by name");
             }
+
+            Assert.That(ran, Is.False);
         }
 
         [Test]
