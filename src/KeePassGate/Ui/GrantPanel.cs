@@ -252,8 +252,20 @@ namespace KeePassGate.Ui
             }
             catch (Exception error) when (Expected.OfUserInterface(error))
             {
+                // Let go of as every other failure here lets go of a picker: forgotten alone, it
+                // left the dialog's Enter and Escape suspended and the dropdown undisposed, while
+                // the panel read as picking nothing. A close that threw after its deferred finish
+                // was queued releases the keys a second time there, which does nothing.
                 _log.Warn("a grant picker could not be closed: " + error.Message);
-                _open = null;
+                Abandon(open, open.Held ?? new NothingHeld());
+            }
+        }
+
+        /// <summary>The keys of a picker that never took any.</summary>
+        private sealed class NothingHeld : IDisposable
+        {
+            public void Dispose()
+            {
             }
         }
 
@@ -808,6 +820,12 @@ namespace KeePassGate.Ui
             }
 
             /// <summary>
+            /// The dialog's Enter and Escape this picker holds while it is open, so that a close
+            /// that fails can still give them back. Releasing it twice releases it once.
+            /// </summary>
+            public IDisposable Held { get; set; }
+
+            /// <summary>
             /// What one key does to this picker. True when it was taken.
             /// </summary>
             /// <remarks>
@@ -915,6 +933,7 @@ namespace KeePassGate.Ui
                     return;
                 }
 
+                drop.Held = keys;
                 _open = drop;
                 drop.Show(_grid, new Point(cell.Left, cell.Bottom));
 
