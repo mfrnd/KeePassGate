@@ -25,8 +25,14 @@ namespace KeePassGate.Transport
     /// the same answer an admission record gives to anything that is not exactly a record.
     ///
     /// **What it does not refuse is a trailing comma, a comment inside the object, a string or a
-    /// name in single quotes, a name in no quotes at all, or `\'` inside a string**, because
-    /// Json.NET accepts all of them and none carries a member or changes what the object says.
+    /// name in single quotes, a name in no quotes at all, `\'` inside a string, a tab, line feed
+    /// or carriage return written raw inside a string, or whitespace beyond JSON's four between
+    /// the tokens and around the object, such as U+00A0, U+2028 and U+3000**, because Json.NET
+    /// accepts all of them and none carries a member or changes what the object holds: a line
+    /// break written raw is the line break `\n` would have been, and whitespace JSON does not
+    /// count is skipped as JSON's own is. Every other control character inside a string is
+    /// refused, by <see cref="IsUsable"/>, and Json.NET refuses U+FEFF between the tokens rather
+    /// than skipping it.
     /// Fighting a parser to reject punctuation that means nothing is how owning a grammar starts,
     /// and each is pinned so that the leniency is a decision rather than something nobody noticed.
     /// A comment **after** the closing brace is refused with everything else that follows one:
