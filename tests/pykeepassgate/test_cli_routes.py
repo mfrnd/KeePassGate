@@ -16,6 +16,7 @@ import pytest
 from pykeepassgate import cli
 from pykeepassgate import credentials as credentials_module
 from pykeepassgate.testing import FakeGate
+from tagged import TAG, tagging
 
 UUID = "7b1c" * 8
 GROUP = "40ac" * 8
@@ -408,9 +409,23 @@ def test_strip_attachment_says_what_it_took_off(
 #: `operationId` to the command that asks it, which is what makes this claim checkable: the
 #: command line reaches every route the library does. Two operations share `groups` and two share
 #: `entries`, as they share a library method, because which is asked is an option. Pairing is the
-#: one command made of two, and a `head` is left to the library, since it answers nothing a
-#: command could print.
+#: one command made of two, and every `head` is a kind of the `head` command, which prints the
+#: tag the route answers with.
 COMMANDS = {
+    "headStatus": "head status",
+    "headIdentity": "head whoami",
+    "headGroups": "head groups",
+    "headGroup": "head group",
+    "headSubgroups": "head groups",
+    "headGroupEntries": "head entries",
+    "headGroupAccess": "head access",
+    "headEntries": "head entries",
+    "headEntry": "head entry",
+    "headFields": "head fields",
+    "headField": "head field",
+    "headAttachments": "head attachments",
+    "headAttachment": "head attachment",
+    "headEntryAccess": "head access",
     "getStatus": "status",
     "getIdentity": "whoami",
     "revokeCertificate": "revoke",
@@ -444,15 +459,77 @@ COMMANDS = {
 }
 
 
-def test_every_route_but_a_head_has_a_command() -> None:
+def test_every_route_has_a_command() -> None:
     from test_cli_output import commands
     from test_reference import operations, routing_table
 
-    declared = {
-        name
-        for name, operation in operations(routing_table()).items()
-        if operation["method"] != "head"
-    }
-
-    assert set(COMMANDS) == declared
+    assert set(COMMANDS) == set(operations(routing_table()))
     assert set(COMMANDS.values()) <= set(commands())
+
+
+@pytest.mark.parametrize(
+    ("command", "path"),
+    [
+        (["status"], "/gate/status"),
+        (["whoami"], "/gate/whoami"),
+        (["groups"], "/groups"),
+        (["groups", "--under", UUID], f"/groups/{UUID}/groups"),
+        (["group", UUID], f"/groups/{UUID}"),
+        (["entries"], "/entries"),
+        (["entries", "--group", UUID], f"/groups/{UUID}/entries"),
+        (["entry", UUID], f"/entries/{UUID}"),
+        (["fields", UUID], f"/entries/{UUID}/fields"),
+        (["field", UUID, "a/b"], f"/entries/{UUID}/fields/a%2Fb"),
+        (["attachments", UUID], f"/entries/{UUID}/attachments"),
+        (["attachment", UUID, "key.pem"], f"/entries/{UUID}/attachments/key.pem"),
+        (["access", "--group", UUID], f"/groups/{UUID}/access"),
+        (["access", "--entry", UUID], f"/entries/{UUID}/access"),
+    ],
+    ids=lambda value: " ".join(value) if isinstance(value, list) else None,
+)
+def test_head_asks_the_route_its_read_command_asks_and_prints_the_tag(
+    gate: FakeGate,
+    kept: Path,
+    capsys: pytest.CaptureFixture[str],
+    command: list[str],
+    path: str,
+) -> None:
+    tagging(gate, {"ok": True}, TAG)
+
+    assert cli.main(["head", *command, "--directory", str(kept)]) == 0
+
+    assert gate.requests == [("HEAD", path)]
+    assert capsys.readouterr().out == f"{TAG}\n"
+
+
+def test_head_prints_the_tag_under_json_as_a_read_does_and_nothing_without_one(
+    gate: FakeGate, kept: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    tagging(gate, {"ok": True}, TAG)
+    assert cli.main(["head", "entry", UUID, "--directory", str(kept), "-o", "json"]) == 0
+    assert json.loads(capsys.readouterr().out) == {"etag": TAG}
+
+    tagging(gate, {"ok": True}, None)
+    assert cli.main(["head", "entry", UUID, "--directory", str(kept)]) == 0
+    assert capsys.readouterr().out == ""
+
+
+@pytest.mark.parametrize(
+    "command",
+    [
+        ["group", UUID],
+        ["show", UUID],
+        ["fields", UUID],
+        ["field", UUID, "Title"],
+        ["attachments", UUID],
+        ["head", "entry", UUID],
+    ],
+)
+def test_a_read_is_made_under_the_tag_it_is_given(
+    gate: FakeGate, kept: Path, command: list[str]
+) -> None:
+    # Sent as the library sends it, and a node that changed since is the `412` a write gets.
+    conditions = tagging(gate, {"error": "precondition failed"}, None, status=412)
+
+    assert cli.main([*command, "--if-match", TAG, "--directory", str(kept)]) == cli.FAILED
+    assert conditions == [TAG]

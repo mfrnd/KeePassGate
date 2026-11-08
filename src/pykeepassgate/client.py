@@ -643,9 +643,14 @@ class GateClient:
         """
         return Group.listing(self.get("/groups"))
 
-    def group(self, uuid: str = ROOT) -> Group:
-        """One group's own settings, which needs `read` rather than `list`, and its `etag`."""
-        return Group.read(*self._read_tagged(f"/groups/{_segment(uuid)}"))
+    def group(self, uuid: str = ROOT, *, if_match: str | None = None) -> Group:
+        """One group's own settings, which needs `read` rather than `list`, and its `etag`.
+
+        `if_match` reads it only while the group still holds what the tag names, and is
+        `PreconditionFailed` with nothing read otherwise. Every read below takes it the same way,
+        about the group or the entry the route is about.
+        """
+        return Group.read(*self._read_tagged(f"/groups/{_segment(uuid)}", if_match))
 
     def subgroups(self, uuid: str = ROOT) -> list[Group]:
         """The groups directly inside this one."""
@@ -726,13 +731,13 @@ class GateClient:
 
         return Entry.listing(self.get(path))
 
-    def entry(self, uuid: str) -> Entry:
+    def entry(self, uuid: str, *, if_match: str | None = None) -> Entry:
         """One entry and every string it holds.
 
         The protected ones arrive only when this client may read them. Its `etag` covers it and
         everything in it, which is what a write to it, its fields or its attachments can name.
         """
-        return Entry.read(*self._read_tagged(f"/entries/{_segment(uuid)}"))
+        return Entry.read(*self._read_tagged(f"/entries/{_segment(uuid)}", if_match))
 
     def create_entry(
         self,
@@ -800,13 +805,14 @@ class GateClient:
 
     # Fields
 
-    def fields(self, uuid: str) -> list[Field]:
+    def fields(self, uuid: str, *, if_match: str | None = None) -> list[Field]:
         """The names of an entry's strings, never their values, each with the entry's `etag`."""
-        return Field.listing(*self._read_tagged(f"/entries/{_segment(uuid)}/fields"))
+        return Field.listing(*self._read_tagged(f"/entries/{_segment(uuid)}/fields", if_match))
 
-    def field(self, uuid: str, name: str) -> Field:
+    def field(self, uuid: str, name: str, *, if_match: str | None = None) -> Field:
         """One string's value, and the `etag` of the entry holding it."""
-        return Field.read(*self._read_tagged(f"/entries/{_segment(uuid)}/fields/{_segment(name)}"))
+        path = f"/entries/{_segment(uuid)}/fields/{_segment(name)}"
+        return Field.read(*self._read_tagged(path, if_match))
 
     def create_field(
         self,
@@ -860,20 +866,20 @@ class GateClient:
 
     # Attachments
 
-    def attachments(self, uuid: str) -> list[Attachment]:
+    def attachments(self, uuid: str, *, if_match: str | None = None) -> list[Attachment]:
         """The names and sizes of an entry's attachments, never their contents.
 
         Needs the attachment switch as well as `list`, which is what the seventh letter of a grant
         means: not "may read attachments" but "and the attachments too". Each comes with the
         entry's `etag`, as `fields` hands them out.
         """
-        return Attachment.listing(*self._read_tagged(f"/entries/{_segment(uuid)}/attachments"))
+        path = f"/entries/{_segment(uuid)}/attachments"
+        return Attachment.listing(*self._read_tagged(path, if_match))
 
-    def attachment(self, uuid: str, name: str) -> Attachment:
+    def attachment(self, uuid: str, name: str, *, if_match: str | None = None) -> Attachment:
         """One attachment, contents and all, and the `etag` of the entry holding it."""
-        return Attachment.read(
-            *self._read_tagged(f"/entries/{_segment(uuid)}/attachments/{_segment(name)}")
-        )
+        path = f"/entries/{_segment(uuid)}/attachments/{_segment(name)}"
+        return Attachment.read(*self._read_tagged(path, if_match))
 
     def create_attachment(
         self, uuid: str, name: str, content: bytes, *, if_match: str | None = None
@@ -1059,9 +1065,11 @@ class GateClient:
             )
         )
 
-    def _read_tagged(self, path: str) -> tuple[dict[str, Any], str | None]:
-        """One read, and the tag it was answered with, which the read model keeps."""
-        reply = self._exchange("GET", path, None, _refuse)
+    def _read_tagged(
+        self, path: str, if_match: str | None = None
+    ) -> tuple[dict[str, Any], str | None]:
+        """One read, under `if_match` when it was given, and the tag it was answered with."""
+        reply = self._exchange("GET", path, None, _refuse, if_match=if_match)
         return reply.json(), reply.etag
 
     def _written(

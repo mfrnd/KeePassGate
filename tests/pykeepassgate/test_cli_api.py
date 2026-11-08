@@ -830,7 +830,9 @@ def test_fetch_writes_nothing_for_an_attachment_that_came_without_its_bytes(
     # The library refuses such an answer before it gets here, so this stands in for whatever
     # later path might not. An empty file reported as written would be a successful download of
     # nothing, which is the guess `Attachment.read` refuses.
-    def attachment(self: api.GateClient, uuid: str, name: str) -> api.Attachment:
+    def attachment(
+        self: api.GateClient, uuid: str, name: str, *, if_match: str | None = None
+    ) -> api.Attachment:
         return api.Attachment(name=name, size=22)
 
     monkeypatch.setattr(api.GateClient, "attachment", attachment)

@@ -43,6 +43,7 @@ from pathlib import Path
 from typing import Literal, TypedDict
 
 from . import api, compatibility, pairing, refs, transport
+from .client import IDENTITY_PATH, STATUS_PATH, _segment
 from .credentials import IDENTITY_FILE, write_owner_only
 from .errors import GateError, ProtocolError, StorageError
 from .model import TITLE, URL
@@ -312,6 +313,7 @@ def _parser() -> argparse.ArgumentParser:
         description="Needs `read` on the group, where listing it needs `list` on the one above.",
     )
     group.add_argument("uuid", type=_addressed, help="the group's identifier, or root")
+    _read_conditioned(group)
     _shared(group)
     _dialed(group)
     group.set_defaults(run=_group_read)
@@ -392,6 +394,7 @@ def _parser() -> argparse.ArgumentParser:
             "plugin adds, which print as stored. Without it, values print as stored."
         ),
     )
+    _read_conditioned(show)
     _shared(show)
     _dialed(show)
     show.set_defaults(run=_show)
@@ -466,6 +469,7 @@ def _parser() -> argparse.ArgumentParser:
         "fields", help="list the names of an entry's strings, and which are protected"
     )
     fields.add_argument("uuid", type=_addressed, help="the entry's identifier")
+    _read_conditioned(fields)
     _shared(fields)
     _dialed(fields)
     fields.set_defaults(run=_fields)
@@ -481,6 +485,7 @@ def _parser() -> argparse.ArgumentParser:
     )
     field.add_argument("uuid", type=_addressed, help="the entry's identifier")
     field.add_argument("name", type=_addressed, help="the string's name, such as Password")
+    _read_conditioned(field)
     _shared(field)
     _dialed(field)
     field.set_defaults(run=_field)
@@ -526,6 +531,7 @@ def _parser() -> argparse.ArgumentParser:
 
     files = commands.add_parser("attachments", help="list an entry's attachments")
     files.add_argument("uuid", type=_addressed, help="the entry's identifier")
+    _read_conditioned(files)
     _shared(files)
     _dialed(files)
     files.set_defaults(run=_attachments)
@@ -534,6 +540,7 @@ def _parser() -> argparse.ArgumentParser:
     fetch.add_argument("uuid", type=_addressed, help="the entry's identifier")
     fetch.add_argument("name", type=_addressed, help="the attachment's name")
     fetch.add_argument("--to", type=Path, required=True, help="where to write it")
+    _read_conditioned(fetch)
     _shared(fetch)
     _dialed(fetch)
     fetch.set_defaults(run=_fetch)
@@ -575,12 +582,64 @@ def _parser() -> argparse.ArgumentParser:
     _dialed(strip_attachment)
     strip_attachment.set_defaults(run=_strip_attachment)
 
+    # One command for every `head` the document declares, as one library method covers them: a
+    # kind of node to ask about, named as the read command of it is, and the same arguments.
+    head = commands.add_parser(
+        "head",
+        help="ask whether a route answers, and print the tag it answers with, reading nothing",
+        description=(
+            "Asks the route a read command asks, with HEAD, so nothing is read. Prints the tag "
+            "of the group or entry the route is about, as -o json prints it from a read, or "
+            "nothing where the gate gives none. With --if-match it asks whether that tag is "
+            "still current: refused with exit 1 when it is not."
+        ),
+    )
+    kinds = head.add_subparsers(dest="kind", required=True)
+    for kind, summary in HEADS.items():
+        asked = kinds.add_parser(kind, help=summary)
+        if kind in ("group", "entry", "fields", "field", "attachments", "attachment"):
+            asked.add_argument("uuid", type=_addressed, help="the node's identifier")
+            if kind in ("field", "attachment"):
+                asked.add_argument("name", type=_addressed, help="the string's or the file's name")
+            _read_conditioned(asked)
+        elif kind == "groups":
+            asked.add_argument("--under", type=_addressed, help="a group, to ask one level below")
+        elif kind == "entries":
+            asked.add_argument("--group", type=_addressed, help="a group, for its own entries")
+        elif kind == "access":
+            node = asked.add_mutually_exclusive_group(required=True)
+            node.add_argument("--group", type=_addressed, help="a group identifier, or root")
+            node.add_argument("--entry", type=_addressed, help="an entry identifier")
+        _shared(asked)
+        _dialed(asked)
+        _formatted(asked)
+        asked.set_defaults(run=_head)
+
     # Every command, by construction rather than by remembering it on each, so a command added
-    # later cannot be the one a program has no way to read.
+    # later cannot be the one a program has no way to read. `head` is the command made of others,
+    # each of which carries the option itself: on both, the default of the command asked would
+    # overwrite what was given to the command around it.
     for command in commands.choices.values():
-        _formatted(command)
+        if command is not head:
+            _formatted(command)
 
     return parser
+
+
+#: What `head` asks about, by the read command each kind is named after.
+HEADS = {
+    "status": "the status route",
+    "whoami": "who the gate admits this client as",
+    "groups": "the groups listing, or one level under a group",
+    "group": "one group",
+    "entries": "the entries listing, or a group's own entries",
+    "entry": "one entry",
+    "fields": "the names of an entry's strings",
+    "field": "one of an entry's strings",
+    "attachments": "the names of an entry's attachments",
+    "attachment": "one of an entry's attachments",
+    "access": "what this client may do at a group or an entry",
+}
 
 
 def _formatted(parser: argparse.ArgumentParser) -> None:
@@ -661,6 +720,20 @@ def _conditioned(parser: argparse.ArgumentParser) -> None:
             "somebody changed it since or when the gate gives this client no tags, and with "
             "exit 2 before anything is sent when it is no tag the gate could match, without its "
             "quotes or weak. Left off, the write goes ahead whatever changed"
+        ),
+    )
+
+
+def _read_conditioned(parser: argparse.ArgumentParser) -> None:
+    """The tag a read is made under, sent as the library sends it, as `If-Match`."""
+    parser.add_argument(
+        "--if-match",
+        metavar="ETAG",
+        type=_condition,
+        help=(
+            "read only while the node still holds what this tag names, as -o json printed it, "
+            "quotes and all; refused with exit 1, and nothing read, when somebody changed it "
+            "since or when the gate gives this client no tags"
         ),
     )
 
@@ -1528,7 +1601,7 @@ def _group_read(arguments: argparse.Namespace) -> int:
         key_password=_key_password(arguments),
         **_dialing(arguments),
     )
-    found = client.group(arguments.uuid)
+    found = client.group(arguments.uuid, if_match=arguments.if_match)
 
     # The root has nothing above it, which is said rather than printed as a blank. The notes are
     # escaped as an entry's are in `show`, so notes over several lines print on one.
@@ -1650,7 +1723,7 @@ def _show(arguments: argparse.Namespace) -> int:
         key_password=_key_password(arguments),
         **_dialing(arguments),
     )
-    entry = client.entry(arguments.uuid)
+    entry = client.entry(arguments.uuid, if_match=arguments.if_match)
     # `GateClient.entry` never answers without the strings: `Entry.read` refuses such an answer.
     # Narrowed here the same way, as `fetch` narrows an attachment's bytes, because a fallback to
     # none would print an entry holding nothing, which is the guess refused there.
@@ -1788,7 +1861,7 @@ def _fields(arguments: argparse.Namespace) -> int:
         key_password=_key_password(arguments),
         **_dialing(arguments),
     )
-    found = client.fields(arguments.uuid)
+    found = client.fields(arguments.uuid, if_match=arguments.if_match)
 
     # Each with the entry's tag when the gate gave one, since a field the listing named is taken
     # off under that tag without being read first.
@@ -1814,7 +1887,7 @@ def _field(arguments: argparse.Namespace) -> int:
         key_password=_key_password(arguments),
         **_dialing(arguments),
     )
-    found = client.field(arguments.uuid, arguments.name)
+    found = client.field(arguments.uuid, arguments.name, if_match=arguments.if_match)
 
     # Read before anything is printed: a value the rule withholds raises `Withheld`, which leaves
     # through `main` as exit 1. Printing `(withheld)` as `show` does would hand a script that
@@ -1906,7 +1979,7 @@ def _attachments(arguments: argparse.Namespace) -> int:
         **_dialing(arguments),
     )
 
-    found = client.attachments(arguments.uuid)
+    found = client.attachments(arguments.uuid, if_match=arguments.if_match)
 
     _emit(
         arguments,
@@ -1927,7 +2000,9 @@ def _fetch(arguments: argparse.Namespace) -> int:
         key_password=_key_password(arguments),
         **_dialing(arguments),
     )
-    attachment = client.attachment(arguments.uuid, arguments.name)
+    attachment = client.attachment(
+        arguments.uuid, arguments.name, if_match=arguments.if_match
+    )
 
     # `GateClient.attachment` never answers without the bytes: `Attachment.read` refuses such an
     # answer rather than guess at one. Narrowed here the same way, because a fallback to no bytes
@@ -1960,6 +2035,52 @@ def _fetch(arguments: argparse.Namespace) -> int:
     _left(document, attachment.read_etag)
     _emit(arguments, document, [f"wrote {len(content)} bytes to {arguments.to}"])
     return 0
+
+
+def _head(arguments: argparse.Namespace) -> int:
+    """Ask a route with HEAD, which reads nothing, and print the tag it answered with."""
+    client = api.GateClient.open(
+        arguments.directory,
+        arguments.profile,
+        host=arguments.host,
+        key_password=_key_password(arguments),
+        **_dialing(arguments),
+    )
+    tag = client.head(_headed(arguments), if_match=getattr(arguments, "if_match", None))
+
+    # The tag alone, as `field` prints a value alone, for a script to read, and nothing where
+    # the gate gave none: absent is not empty, and `-o json` leaves `etag` out the same way.
+    _emit(arguments, _left({}, tag), [] if tag is None else [tag])
+    return 0
+
+
+def _headed(arguments: argparse.Namespace) -> str:
+    """The path the read command of this kind asks, which `head` asks with HEAD instead."""
+    kind = arguments.kind
+    if kind == "status":
+        return STATUS_PATH
+    if kind == "whoami":
+        return IDENTITY_PATH
+    if kind == "groups":
+        under = arguments.under
+        return "/groups" if under is None else f"/groups/{_segment(under)}/groups"
+    if kind == "entries":
+        group = arguments.group
+        return "/entries" if group is None else f"/groups/{_segment(group)}/entries"
+    if kind == "access":
+        if arguments.entry is not None:
+            return f"/entries/{_segment(arguments.entry)}/access"
+        return f"/groups/{_segment(arguments.group)}/access"
+    if kind == "group":
+        return f"/groups/{_segment(arguments.uuid)}"
+
+    entry = f"/entries/{_segment(arguments.uuid)}"
+    below = {"entry": "", "fields": "/fields", "attachments": "/attachments"}
+    if kind in below:
+        return entry + below[kind]
+
+    plural = "fields" if kind == "field" else "attachments"
+    return f"{entry}/{plural}/{_segment(arguments.name)}"
 
 
 def _attaching(

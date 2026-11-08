@@ -740,12 +740,11 @@ before anything is dialed, and so is an `if_match` the gate could not read: a ta
 quotes, which the gate would answer `412` as though the node had changed, or a weak tag, `W/`
 before it, which the gate never hands out and never matches.
 
-**A read made on the same condition goes through `get` or `head`.** The typed reads, `group`,
-`entry`, `fields`, `field`, `attachments` and `attachment`, take no `if_match` and read whatever is
-there. `get`, `head` and `send` take it, and on the six paths that declare it, which are the paths
-those reads ask, a tag that no longer matches is `PreconditionFailed` with nothing read:
-`client.get(f"/entries/{uuid}", if_match=entry.etag)` reads the entry only if it is unchanged, and
-answers with the body as the gate sent it. `head` answers with the tag the route carries, which is a
+**A read can be made on the same condition.** The typed reads, `group`, `entry`, `fields`, `field`,
+`attachments` and `attachment`, take `if_match` as the writes do, and so do `get`, `head` and
+`send`, on the six paths that declare it, which are the paths those reads ask: a tag that no longer
+matches is `PreconditionFailed` with nothing read, so `client.entry(uuid, if_match=entry.etag)`
+reads the entry only if it is unchanged. `head` answers with the tag the route carries, which is a
 way to ask whether a tag is still current without reading anything.
 
 **A write answers with the tag it left**, so a second write can name it without reading in
@@ -762,10 +761,16 @@ restart and a reload, and recreating the database's certificate authority change
 which costs a `412` and never an overwrite.
 
 From the command line, `-o json` prints a read's tag as `etag`, and every write about one group or
-one entry takes it back as `--if-match`, exactly as printed, quotes and all:
+one entry takes it back as `--if-match`, exactly as printed, quotes and all, and so does every read
+of a group or an entry, `group`, `show`, `fields`, `field`, `attachments` and `fetch`.
+**`head` asks any route a read command asks, with HEAD**, reading nothing, and prints the tag it
+answered with, alone on a line, or nothing where the gate gives none, and as `etag` under `-o
+json`; with `--if-match` it is the way to ask whether a tag is still current. So the command line
+has a command for every route the gate serves, heads included:
 
 ```shell
 etag=$(pykeepassgate show <uuid> -o json | jq -er .etag)
+pykeepassgate head entry <uuid> --if-match "$etag"
 pykeepassgate update <uuid> --password --if-match "$etag"
 ```
 

@@ -44,13 +44,26 @@ def printed(capsys: pytest.CaptureFixture[str]) -> Any:
 
 
 def commands() -> dict[str, argparse.ArgumentParser]:
-    """Every command the parser has, by name."""
-    parser = cli._parser()
-    chosen = next(
-        action for action in parser._actions if isinstance(action, argparse._SubParsersAction)
-    )
-    found: dict[str, argparse.ArgumentParser] = chosen.choices
-    return found
+    """Every command the parser has, by name, a command made of others by each of those.
+
+    `head` is made of one command for each kind of node, so it is `head entry` and the rest that
+    are commands here, and `head` on its own is not a command here.
+    """
+
+    def chosen(parser: argparse.ArgumentParser) -> dict[str, argparse.ArgumentParser]:
+        found: dict[str, argparse.ArgumentParser] = next(
+            action for action in parser._actions if isinstance(action, argparse._SubParsersAction)
+        ).choices
+        return found
+
+    every: dict[str, argparse.ArgumentParser] = {}
+    for name, command in chosen(cli._parser()).items():
+        if any(isinstance(action, argparse._SubParsersAction) for action in command._actions):
+            every |= {f"{name} {kind}": each for kind, each in chosen(command).items()}
+        else:
+            every[name] = command
+
+    return every
 
 
 def test_every_command_prints_plain_unless_asked_for_another_format() -> None:

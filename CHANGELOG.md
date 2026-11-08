@@ -11,6 +11,11 @@ none, since it releases both.
 
 ## 0.2.0, unreleased
 
+- **The command line has a command for every route, heads included.** `pykeepassgate head`
+  asks any route a read command asks, `head entry <uuid>` and the rest, with HEAD, reading
+  nothing, and prints the tag it answered with, as `etag` under `-o json`. The reads of one group
+  or one entry take `--if-match` as the writes do, and so do the library's typed reads, as
+  `if_match=`, where only `get`, `head` and `send` took a condition.
 - **`pykeepassgate --version` names the client's version**, the half of the comparison a client
   and a plugin are paired by that the command line could not show, beside the gate's that
   `status` prints.
