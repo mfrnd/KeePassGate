@@ -133,7 +133,7 @@ namespace KeePassGate.Ui
             // against another screen, and a proportional font makes that a matter of luck.
             _fingerprintFont = new Font(FontFamily.GenericMonospace, Font.Size, FontStyle.Regular);
 
-            Padding = new Padding(Spacing.Window);
+            Padding = new Padding(LogicalToDeviceUnits(Spacing.Window));
 
             var layout = new FlowLayoutPanel
             {
@@ -145,16 +145,16 @@ namespace KeePassGate.Ui
                 Dock = DockStyle.Fill
             };
 
-            layout.Controls.Add(Line("KpgChooserTitle", Title(choice, databaseName), _titleFont, Spacing.Gap));
+            layout.Controls.Add(Line("KpgChooserTitle", Title(choice, databaseName), _titleFont, LogicalToDeviceUnits(Spacing.Gap)));
             layout.Controls.Add(Line(
                 "KpgChooserExplanation",
                 "Copies of this database each made an authority of their own, and a merge brought " +
                 "them together. Nothing is served until one authority is kept. " + Consequence,
                 null,
-                Spacing.Gap));
-            layout.Controls.Add(Line("KpgChooserOneCopyLabel", OneCopy, null, Spacing.Gap));
+                LogicalToDeviceUnits(Spacing.Gap)));
+            layout.Controls.Add(Line("KpgChooserOneCopyLabel", OneCopy, null, LogicalToDeviceUnits(Spacing.Gap)));
 
-            layout.Controls.Add(Line("KpgChooserAuthorityListLabel", GateTab.ChooserAuthorityListLabel + ":", null, Spacing.Tight));
+            layout.Controls.Add(Line("KpgChooserAuthorityListLabel", GateTab.ChooserAuthorityListLabel + ":", null, LogicalToDeviceUnits(Spacing.Tight)));
             _authorities = NewList(GateTab.ChooserAuthorityListName, GateTab.ChooserAuthorityListLabel);
             AddColumns(_authorities, AuthorityColumns, AuthorityShares);
             foreach (var option in choice.Options)
@@ -168,14 +168,14 @@ namespace KeePassGate.Ui
             }
 
             _authorities.Height = ListHeight(_authorities, choice.Options.Count, FewestAuthorityRows, MostAuthorityRows);
-            _authorities.Margin = new Padding(0, 0, 0, Spacing.Gap);
+            _authorities.Margin = new Padding(0, 0, 0, LogicalToDeviceUnits(Spacing.Gap));
             _authorities.SelectedIndexChanged += delegate
             {
                 WindowHandlers.Run("the chooser could not show the authority chosen", OnSelectionChanged);
             };
             layout.Controls.Add(_authorities);
 
-            layout.Controls.Add(Line("KpgChooserFingerprintBoxLabel", GateTab.ChooserFingerprintBoxLabel + ":", null, Spacing.Tight));
+            layout.Controls.Add(Line("KpgChooserFingerprintBoxLabel", GateTab.ChooserFingerprintBoxLabel + ":", null, LogicalToDeviceUnits(Spacing.Tight)));
             _fingerprint = new TextBox
             {
                 Name = GateTab.ChooserFingerprintBoxName,
@@ -183,14 +183,14 @@ namespace KeePassGate.Ui
                 ReadOnly = true,
                 Font = _fingerprintFont,
                 Width = _wrap,
-                Margin = new Padding(0, 0, 0, Spacing.Gap)
+                Margin = new Padding(0, 0, 0, LogicalToDeviceUnits(Spacing.Gap))
             };
             layout.Controls.Add(_fingerprint);
 
-            _detail = Line(GateTab.ChooserDetailLabelName, string.Empty, null, Spacing.Gap);
+            _detail = Line(GateTab.ChooserDetailLabelName, string.Empty, null, LogicalToDeviceUnits(Spacing.Gap));
             layout.Controls.Add(_detail);
 
-            layout.Controls.Add(Line("KpgChooserClientListLabel", GateTab.ChooserClientListLabel + ":", null, Spacing.Tight));
+            layout.Controls.Add(Line("KpgChooserClientListLabel", GateTab.ChooserClientListLabel + ":", null, LogicalToDeviceUnits(Spacing.Tight)));
             _clients = NewList(GateTab.ChooserClientListName, GateTab.ChooserClientListLabel);
             AddColumns(_clients, ClientColumns, ClientShares);
             _clients.Height = ListHeight(_clients, MostClients(choice), FewestClientRows, MostClientRows);
@@ -206,7 +206,7 @@ namespace KeePassGate.Ui
                 AutoSizeMode = AutoSizeMode.GrowAndShrink,
                 GrowStyle = TableLayoutPanelGrowStyle.FixedSize,
                 MinimumSize = new Size(_wrap, 0),
-                Margin = new Padding(0, Spacing.Gap, 0, 0)
+                Margin = new Padding(0, LogicalToDeviceUnits(Spacing.Gap), 0, 0)
             };
 
             footer.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100f));
@@ -232,7 +232,7 @@ namespace KeePassGate.Ui
                 Text = GateTab.ChooserCancelButtonText,
                 AutoSize = true,
                 AutoSizeMode = AutoSizeMode.GrowAndShrink,
-                Margin = new Padding(0, 0, Spacing.Gap, 0)
+                Margin = new Padding(0, 0, LogicalToDeviceUnits(Spacing.Gap), 0)
             };
 
             _keep = new ApproveButton(GateTab.KeepButtonName, GateTab.KeepButtonText)

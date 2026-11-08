@@ -256,7 +256,7 @@ namespace KeePassGate.Ui
                 }
 
                 var arrow = ArrowBounds;
-                if (arrow.Width <= 0 || arrow.Height <= SeparatorInset * 2)
+                if (arrow.Width <= 0 || arrow.Height <= LogicalToDeviceUnits(SeparatorInset) * 2)
                 {
                     return;
                 }
@@ -266,7 +266,7 @@ namespace KeePassGate.Ui
 
                 using (var line = new Pen(Enabled ? SystemColors.ControlDark : SystemColors.GrayText))
                 {
-                    graphics.DrawLine(line, arrow.Left, arrow.Top + SeparatorInset, arrow.Left, arrow.Bottom - SeparatorInset - 1);
+                    graphics.DrawLine(line, arrow.Left, arrow.Top + LogicalToDeviceUnits(SeparatorInset), arrow.Left, arrow.Bottom - LogicalToDeviceUnits(SeparatorInset) - 1);
                 }
 
                 // A triangle pointing down, as wide as half the part and odd, so that it has a

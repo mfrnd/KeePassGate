@@ -61,7 +61,7 @@ namespace KeePassGate.Ui
             AutoSize = true;
             AutoSizeMode = AutoSizeMode.GrowAndShrink;
             GrowStyle = TableLayoutPanelGrowStyle.FixedSize;
-            Margin = new Padding(0, Spacing.Gap, 0, 0);
+            Margin = new Padding(0, LogicalToDeviceUnits(Spacing.Gap), 0, 0);
 
             ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
             ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
@@ -73,7 +73,7 @@ namespace KeePassGate.Ui
                     Name = "KpgApprovalLifetimeCaption",
                     Text = Caption,
                     AutoSize = true,
-                    Margin = new Padding(0, 0, Spacing.Gap, 0),
+                    Margin = new Padding(0, 0, LogicalToDeviceUnits(Spacing.Gap), 0),
                     Anchor = AnchorStyles.Left
                 },
                 0,
@@ -100,7 +100,7 @@ namespace KeePassGate.Ui
             _box.Width = _box.Items.Cast<string>()
                              .Select(text => TextRenderer.MeasureText(text, font).Width)
                              .Max()
-                         + SystemInformation.VerticalScrollBarWidth + Spacing.Gap;
+                         + SystemInformation.VerticalScrollBarWidth + LogicalToDeviceUnits(Spacing.Gap);
 
             Controls.Add(_box, 1, 0);
         }

@@ -339,7 +339,11 @@ namespace KeePassGate.Ui
             // sized from is measured below in the font the dialog is built at, which on a scaled
             // display is already the larger one; `AutoScaleMode.Font` was set here with no
             // dimensions to scale from, so it did nothing at any display scaling, and acted only
-            // when the font changed after the dialog was built, which nothing does.
+            // when the font changed after the dialog was built, which nothing does. **The insets
+            // and gaps are converted to the display's units as they are written**, as the window
+            // under Tools converts its own: left raw they stayed at their 100 percent pixels on a
+            // display at 200 percent while everything they separate had doubled, and so did those
+            // of the renewal dialog, the question of a day and the authority chooser.
             AutoSize = true;
             AutoSizeMode = AutoSizeMode.GrowAndShrink;
 
@@ -352,7 +356,7 @@ namespace KeePassGate.Ui
                 _wrap = Wrap(prototype);
             }
 
-            Padding = new Padding(Spacing.Window);
+            Padding = new Padding(LogicalToDeviceUnits(Spacing.Window));
 
             // Three regions rather than one column. The list of profiles is the part that grows
             // with what is being asked, so it takes whatever the other two leave: a fixed height
@@ -375,7 +379,7 @@ namespace KeePassGate.Ui
                 Font = _titleFont,
                 AutoSize = true,
                 MaximumSize = new Size(_wrap, 0),
-                Margin = new Padding(0, 0, 0, Spacing.Gap)
+                Margin = new Padding(0, 0, 0, LogicalToDeviceUnits(Spacing.Gap))
             });
 
             // A table rather than a paragraph. Every one of these is a value with a name, and the
@@ -389,7 +393,7 @@ namespace KeePassGate.Ui
                 AutoSize = true,
                 AutoSizeMode = AutoSizeMode.GrowAndShrink,
                 GrowStyle = TableLayoutPanelGrowStyle.AddRows,
-                Margin = new Padding(0, 0, 0, Spacing.Gap)
+                Margin = new Padding(0, 0, 0, LogicalToDeviceUnits(Spacing.Gap))
             };
 
             details.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
@@ -412,7 +416,7 @@ namespace KeePassGate.Ui
                 Text = Consequence,
                 AutoSize = true,
                 MaximumSize = new Size(_wrap, 0),
-                Margin = new Padding(0, 0, 0, Spacing.Gap)
+                Margin = new Padding(0, 0, 0, LogicalToDeviceUnits(Spacing.Gap))
             });
 
             // A gap under it, like everything else on this dialog and like the gap the footer keeps
@@ -425,7 +429,7 @@ namespace KeePassGate.Ui
                 Text = Asking(request),
                 AutoSize = true,
                 MaximumSize = new Size(_wrap, 0),
-                Margin = new Padding(0, 0, 0, Spacing.Gap)
+                Margin = new Padding(0, 0, 0, LogicalToDeviceUnits(Spacing.Gap))
             });
 
             _profiles = new SteadyChecks
@@ -466,7 +470,7 @@ namespace KeePassGate.Ui
                 Text = scrolling,
                 AutoSize = true,
                 MaximumSize = new Size(_wrap, 0),
-                Margin = new Padding(0, Spacing.Gap, 0, 0)
+                Margin = new Padding(0, LogicalToDeviceUnits(Spacing.Gap), 0, 0)
             };
 
             // Under the list rather than above it, because it is about what checking one of those
@@ -479,7 +483,7 @@ namespace KeePassGate.Ui
                 Text = regaining,
                 AutoSize = true,
                 MaximumSize = new Size(_wrap, 0),
-                Margin = new Padding(0, Spacing.Gap, 0, 0)
+                Margin = new Padding(0, LogicalToDeviceUnits(Spacing.Gap), 0, 0)
             };
 
             // How long the certificate lasts, under the profiles because both are what approving
@@ -508,7 +512,7 @@ namespace KeePassGate.Ui
 
                 // A gap above, which is what separates this row from the list it answers
                 // about. Nothing below: the form's own padding closes the dialog.
-                Margin = new Padding(0, Spacing.Gap, 0, 0)
+                Margin = new Padding(0, LogicalToDeviceUnits(Spacing.Gap), 0, 0)
             };
 
             footer.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100f));
@@ -556,7 +560,7 @@ namespace KeePassGate.Ui
                 Text = "&" + GateTab.RefuseButtonText,
                 AutoSize = true,
                 AutoSizeMode = AutoSizeMode.GrowAndShrink,
-                Margin = new Padding(0, 0, Spacing.Gap, 0)
+                Margin = new Padding(0, 0, LogicalToDeviceUnits(Spacing.Gap), 0)
             };
 
             var approve = new ApproveButton
@@ -760,7 +764,7 @@ namespace KeePassGate.Ui
                 AutoSize = true,
                 Font = value ? _valueFont : Font,
                 MaximumSize = new Size(_wrap * 2 / 3, 0),
-                Margin = value ? new Padding(0) : new Padding(0, 0, Spacing.Gap, 0)
+                Margin = value ? new Padding(0) : new Padding(0, 0, LogicalToDeviceUnits(Spacing.Gap), 0)
             };
         }
 

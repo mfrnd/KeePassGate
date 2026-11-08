@@ -209,7 +209,7 @@ namespace KeePassGate.Ui
                 _wrap = PairingApprovalForm.Wrap(prototype);
             }
 
-            Padding = new Padding(Spacing.Window);
+            Padding = new Padding(LogicalToDeviceUnits(Spacing.Window));
 
             var layout = new FlowLayoutPanel
             {
@@ -229,7 +229,7 @@ namespace KeePassGate.Ui
                 AutoSize = true,
                 AutoSizeMode = AutoSizeMode.GrowAndShrink,
                 GrowStyle = TableLayoutPanelGrowStyle.AddRows,
-                Margin = new Padding(0, 0, 0, Spacing.Gap)
+                Margin = new Padding(0, 0, 0, LogicalToDeviceUnits(Spacing.Gap))
             };
 
             details.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
@@ -305,7 +305,7 @@ namespace KeePassGate.Ui
                 AutoSizeMode = AutoSizeMode.GrowAndShrink,
                 GrowStyle = TableLayoutPanelGrowStyle.FixedSize,
                 MinimumSize = new Size(_wrap, 0),
-                Margin = new Padding(0, Spacing.Gap, 0, 0)
+                Margin = new Padding(0, LogicalToDeviceUnits(Spacing.Gap), 0, 0)
             };
 
             footer.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100f));
@@ -342,7 +342,7 @@ namespace KeePassGate.Ui
                 AccessibleDescription = GateTab.RefuseButtonDescription,
                 AutoSize = true,
                 AutoSizeMode = AutoSizeMode.GrowAndShrink,
-                Margin = new Padding(0, 0, Spacing.Gap, 0)
+                Margin = new Padding(0, 0, LogicalToDeviceUnits(Spacing.Gap), 0)
             };
 
             _refuse.Menu.Name = GateTab.RefuseMenuName;
@@ -734,7 +734,7 @@ namespace KeePassGate.Ui
                 Font = font,
                 AutoSize = true,
                 MaximumSize = new Size(_wrap, 0),
-                Margin = above ? new Padding(0, Spacing.Gap, 0, 0) : new Padding(0, 0, 0, Spacing.Gap)
+                Margin = above ? new Padding(0, LogicalToDeviceUnits(Spacing.Gap), 0, 0) : new Padding(0, 0, 0, LogicalToDeviceUnits(Spacing.Gap))
             };
         }
 
@@ -747,7 +747,7 @@ namespace KeePassGate.Ui
                 AutoSize = true,
                 Font = value ? _valueFont : Font,
                 MaximumSize = new Size(_wrap * 2 / 3, 0),
-                Margin = value ? new Padding(0) : new Padding(0, 0, Spacing.Gap, 0)
+                Margin = value ? new Padding(0) : new Padding(0, 0, LogicalToDeviceUnits(Spacing.Gap), 0)
             };
         }
 
