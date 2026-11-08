@@ -974,17 +974,22 @@ namespace KeePassGate.Ui
         }
 
         /// <summary>
-        /// What a client's row says when the pointer rests on it: the standing answer, when one
-        /// stands, then the client key and the certificate's own key, each whole on a line.
+        /// What a client's row shows when the pointer rests on it: the client's whole name, the
+        /// standing answer, when one stands, then the client key and the certificate's own key,
+        /// each whole on a line.
         /// </summary>
         /// <remarks>
         /// Broken into lines here, which `Tooltips.Wrapped` leaves as they are, because a key is
         /// sixty-four characters with no space to fold at, and one folded onto a line of its own
         /// would leave its label behind.
+        ///
+        /// **The name first**, because the column cuts a long name and a cell with a tip of its own
+        /// never shows its cut value whole: two programs named alike but for their last characters
+        /// read as the same row, and only a key told them apart.
         /// </remarks>
         internal static string Identified(AdmissionRecord record, string answer)
         {
-            var lines = new List<string>();
+            var lines = new List<string> { Describe(record) };
             if (answer != null)
             {
                 lines.Add(answer);

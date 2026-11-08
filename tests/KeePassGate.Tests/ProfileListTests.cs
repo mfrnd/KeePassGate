@@ -350,6 +350,24 @@ namespace KeePassGate.Tests
             }
         }
 
+        [Test]
+        public void A_name_is_its_own_tip_marked_left_to_right()
+        {
+            // A name too wide for its column fell back to the grid's own tip for a cut value, which
+            // carries none of the marks every other tip has, so under a right to left KeePass a
+            // dash at one end of a name was drawn at the other.
+            var profiles = new FakeProfiles();
+            var name = new string('n', 63) + "-";
+            profiles.Add(name);
+
+            using (var page = new ProfileList(profiles, null))
+            {
+                var grid = ControlTree.FindByName<DataGridView>(page, ProfileList.ListName);
+
+                Assert.That(grid.Rows[0].Cells[0].ToolTipText, Is.EqualTo(Tooltips.Wrapped(name)));
+            }
+        }
+
         [TestCase(true)]
         [TestCase(false)]
         public void The_answer_to_a_gesture_stays_above_the_standing_line_whatever_the_list_began_with(bool beganEmpty)

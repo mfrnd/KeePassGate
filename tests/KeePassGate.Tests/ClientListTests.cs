@@ -655,10 +655,11 @@ namespace KeePassGate.Tests
             return tip.Replace(Tooltips.LeftToRightMark.ToString(), string.Empty);
         }
 
-        /// <summary>What a row's tooltip says, without the marks: the answer, if any, and the two keys.</summary>
+        /// <summary>What a row's tooltip holds, without the marks: the name, the answer, if any, and the two keys.</summary>
         private static string Keys(string answer, AdmissionRecord record)
         {
-            return (answer == null ? string.Empty : answer + Environment.NewLine)
+            return ClientList.Describe(record) + Environment.NewLine
+                   + (answer == null ? string.Empty : answer + Environment.NewLine)
                    + "Client key " + record.ClientKey + Environment.NewLine
                    + "Certificate " + record.AdmissionKey;
         }

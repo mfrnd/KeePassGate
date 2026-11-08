@@ -502,7 +502,13 @@ namespace KeePassGate.Ui
                 foreach (var name in _profiles.Names())
                 {
                     _shown.Add(name);
-                    _grid.Rows.Add(name, Counted(rules, name), Counted(clients, name), RemoveMark);
+                    var added = _grid.Rows[_grid.Rows.Add(name, Counted(rules, name), Counted(clients, name), RemoveMark)];
+
+                    // The name whole, and marked left to right like every other tip: a name too
+                    // wide for its column fell back to the grid's own tip for a cut value, which
+                    // carries no marks, so under a right to left KeePass a dash at one end of a
+                    // name was drawn at the other, on the page where names are removed.
+                    added.Cells[NameColumn].ToolTipText = Tooltips.Wrapped(name);
                 }
             }
             finally
