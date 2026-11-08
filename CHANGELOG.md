@@ -11,6 +11,11 @@ none, since it releases both.
 
 ## 0.2.0, unreleased
 
+- **A renewal refused for this session shows on an open clients page at once.** The page draws a
+  client's name red from every answer that refuses its renewals, and an answer for this session, or
+  an answer the database could not take when it was given, is held in the plugin's memory, which
+  nothing told the page about: the name stayed black until the page was drawn again for some other
+  reason.
 - **The access editor offers a profile named while its dialog is open.** A pairing approved over a
   group or an entry dialog can name a profile the database did not, and the editor read the
   database's profiles once, as the dialog opened: the new name was missing from its pick list, and a

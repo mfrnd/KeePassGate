@@ -42,6 +42,7 @@ namespace KeePassGate
         private AuthorityChooser _chooser;
         private OwedAnswerSaves _owedAnswerSaves;
         private OwedAnswersAtExit _owedAtExit;
+        private SessionAnswerNotice _sessionAnswers;
         private DroppedLocks _droppedLocks;
         private InvitationBook _invitations;
 
@@ -688,6 +689,15 @@ namespace KeePassGate
                 }
             });
 
+            Attempt("failed to stop telling the KPG tab of answers held in memory", () =>
+            {
+                if (_sessionAnswers != null)
+                {
+                    _sessionAnswers.Dispose();
+                    _sessionAnswers = null;
+                }
+            });
+
             Attempt("failed to stop the authority chooser", () =>
             {
                 if (_chooser != null)
@@ -877,6 +887,11 @@ namespace KeePassGate
             // because whether the operator is there to read it is a question about this window.
             _owedAtExit = new OwedAnswersAtExit(_sessionRefusals.Owed, new MessageBoxPrompt());
             _owedAtExit.Watch(mainWindow);
+
+            // And every answer held in memory told to the KPG tab, as the writer tells it of a
+            // standing answer that lands: the clients page draws both, and nothing writes these.
+            _sessionAnswers = new SessionAnswerNotice(
+                _sessionRefusals, mainWindow, _admissions.Raise, _incidents, _log);
 
             // A lock KeePass was asked for while the writer's own save was running, which KeePass
             // drops, made once the request that saved has been answered: `DroppedLocks` gives the reason.

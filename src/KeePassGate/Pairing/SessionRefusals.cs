@@ -40,6 +40,20 @@ namespace KeePassGate.Pairing
         private readonly Dictionary<string, OwedAnswer> _owed = new Dictionary<string, OwedAnswer>(StringComparer.Ordinal);
         private readonly HashSet<OwedAnswer> _withheld = new HashSet<OwedAnswer>();
 
+        /// <summary>
+        /// Raised once this holds an answer it did not hold before, on the thread that gave it and
+        /// outside the lock.
+        /// </summary>
+        /// <remarks>
+        /// **For the clients page**, which draws a client's name red from what this holds as it
+        /// does from the database's standing answers, and is told when a standing answer lands.
+        /// Nothing writes an answer for this session to a database, and an answer owed is written
+        /// only later, so nothing else could tell the page of either: a renewal refused while the
+        /// settings dialog showed it left the client's name black until something else drew the
+        /// page again. `SessionAnswerNotice` carries it to KeePass's thread.
+        /// </remarks>
+        public event EventHandler Answered;
+
         /// <summary>Refuses every later renewal of this certificate until KeePass exits.</summary>
         public void Refuse(string admissionKey)
         {
@@ -48,9 +62,15 @@ namespace KeePassGate.Pairing
                 throw new ArgumentException("An admission key is required.", nameof(admissionKey));
             }
 
+            bool added;
             lock (_lock)
             {
-                _refused.Add(admissionKey);
+                added = _refused.Add(admissionKey);
+            }
+
+            if (added)
+            {
+                Raise();
             }
         }
 
@@ -77,6 +97,18 @@ namespace KeePassGate.Pairing
             lock (_lock)
             {
                 _owed[admissionKey] = new OwedAnswer(databaseId, admissionKey, refusal, baseline);
+            }
+
+            Raise();
+        }
+
+        /// <summary>Tells whoever listens that this holds an answer it did not.</summary>
+        private void Raise()
+        {
+            var answered = Answered;
+            if (answered != null)
+            {
+                answered(this, EventArgs.Empty);
             }
         }
 

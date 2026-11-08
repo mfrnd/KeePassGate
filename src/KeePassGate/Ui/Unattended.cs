@@ -16,7 +16,10 @@ namespace KeePassGate.Ui
     /// refusal and the database events for the authority chooser, or in the tick of a timer of the
     /// plugin's own, which is how the chooser asks again later. It returns before the queue is
     /// pumped: a stored exception would have nowhere to be thrown and would simply be lost, and
-    /// waiting for the work instead would hold the one thread that has to run it.
+    /// waiting for the work instead would hold the one thread that has to run it. One post comes
+    /// from a connection thread instead, `SessionAnswerNotice`'s, which could wait and has no
+    /// reason to: what it posts is a redraw, and the client it is answering learns nothing from
+    /// a redraw.
     ///
     /// So the failure is reported where it happens rather than carried to somebody. That is what
     /// keeps this from being a kind of catch-all of its own, `DESIGN.md` §141: it is the catch-all

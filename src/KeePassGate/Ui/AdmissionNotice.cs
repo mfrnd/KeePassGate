@@ -19,6 +19,9 @@ namespace KeePassGate.Ui
     /// lands a record can name a profile the database did not, and the editor's pick list is the
     /// database's list of profiles: the approval is answered over the very dialog the editor is on.
     ///
+    /// **And it is raised for an answer to a renewal the plugin's memory holds**, by
+    /// `SessionAnswerNotice`, which nothing writes and the clients page draws all the same.
+    ///
     /// **Said rather than polled.** A timer would have to run whenever that page is showing, ask
     /// the database on every tick for a list that changes a few times a year, and still answer
     /// late by up to its own interval. What the writer knows exactly is the moment a record is on
@@ -34,11 +37,12 @@ namespace KeePassGate.Ui
         /// <summary>
         /// Raised once a record is written, saved, and read back from the database it went into,
         /// and once a client's revocation of itself or a standing answer to a renewal is saved and
-        /// verified.
+        /// verified, and once the plugin's memory holds an answer to a renewal it did not.
         /// </summary>
         /// <remarks>
-        /// On the user interface thread, because the write it follows is marshaled there and this
-        /// is raised inside that same call. A handler may touch controls directly.
+        /// On the user interface thread: inside the write it follows, which is marshaled there, or
+        /// in the post `SessionAnswerNotice` makes for an answer held in memory. A handler may
+        /// touch controls directly.
         /// </remarks>
         event EventHandler Landed;
     }
