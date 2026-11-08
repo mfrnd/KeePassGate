@@ -47,7 +47,8 @@ info:
     is said when none of the operations on a path matched, which is a property of the path
     rather than of anything listed under it. It is about the path and never the query: a query
     name nothing on the path declares makes a target this document does not declare at any
-    method, answered as an undeclared path whichever method asked.
+    method, answered as an undeclared path whichever method asked, and so does a body sent where
+    nothing on the path takes a body.
 
     **The transport answers before any route is chosen, on any path**, and so none of what it
     answers is declared per operation either, for the reason `405` is not. Each carries the

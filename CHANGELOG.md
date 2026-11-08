@@ -11,6 +11,10 @@ none, since it releases both.
 
 ## 0.2.0, unreleased
 
+- **A body sent to a path none of whose operations takes a body is refused as an undeclared
+  target whatever the method**, as a query name nothing on the path declares already was. Sent
+  with a method the path does not serve, it was answered `405` naming the methods the path does
+  serve.
 - **The plugin refuses to load a routing document whose `get` and `head` hold a path parameter or
   a body to different schemas.** Only whether each carried a body was compared, so a `head`
   allowing a segment its `get` refused loaded, and a `GET` for that segment was answered `405`

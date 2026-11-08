@@ -387,9 +387,10 @@ namespace KeePassGate.Spec
             // What the path does serve, gathered while looking for what was asked for. The loop
             // below stops at a match, so this is only ever complete when there was none. That is
             // the one case that has to say what the methods are, and the query names any of them
-            // declares are gathered for the same case.
+            // declares, and whether any of them takes a body, are gathered for the same case.
             var served = new List<string>();
             var named = new HashSet<string>(StringComparer.Ordinal);
+            var bodied = false;
 
             foreach (var candidate in _document.Operations)
             {
@@ -406,6 +407,7 @@ namespace KeePassGate.Spec
                 pathIsPublic = pathIsPublic || !candidate.NeedsIdentity;
                 served.Add(candidate.Method);
                 named.UnionWith(candidate.Query);
+                bodied = bodied || candidate.Body != null;
 
                 if (string.Equals(candidate.Method, wanted, StringComparison.Ordinal))
                 {
@@ -443,6 +445,15 @@ namespace KeePassGate.Spec
                 // serves where `GET /gate/status?x=1` and `DELETE /nothing?x=1` were both `404`.
                 if (!Declared(context, named))
                 {
+                    return;
+                }
+
+                // The body is the other half of that target, as `Bodied` holds once a method has
+                // matched. Asked only there, `DELETE /gate/status` carrying `{"x":"1"}` was a `405`
+                // naming what the path serves, where the same words sent as a query were `404`.
+                if (!bodied && !string.IsNullOrEmpty(context.Body))
+                {
+                    Undeclared.Refuse(context);
                     return;
                 }
 

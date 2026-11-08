@@ -391,6 +391,26 @@ namespace KeePassGate.Tests
         }
 
         [Test]
+        public void A_body_nothing_on_the_path_declares_is_undeclared_whatever_the_method()
+        {
+            // The body twin of the query above. A method the path does not serve answered `405`
+            // and named what the path does serve, for a request the document declares at no
+            // method, where the same words sent as a query were `404`.
+            var admitted = Request("DELETE", GateOperations.StatusPath, Paired("db"), "{\"x\":\"1\"}");
+            var declared = Request("GET", "/pair/hello", ClientIdentity.Stranger("db"), Hello);
+
+            _router.Handle(admitted);
+            _router.Handle(declared);
+
+            Assert.That(admitted.Status, Is.EqualTo(404));
+            Assert.That(admitted.Json, Does.Contain("no such route"));
+            Assert.That(admitted.Headers, Is.Null, "an Allow field is a list of what the path serves");
+            Assert.That(declared.Status, Is.EqualTo(405),
+                "a body another method on the path takes is a request the document declares there");
+            Assert.That(declared.Headers["Allow"], Is.EqualTo("POST"));
+        }
+
+        [Test]
         public void A_body_the_operation_does_not_declare_is_refused_as_an_undeclared_request()
         {
             // Told what a query nobody declared is told: `404` to a client the database admits
