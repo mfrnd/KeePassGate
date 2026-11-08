@@ -935,6 +935,14 @@ So the rules here:
   still runs inside the request and underneath the write, and can still stop for the other
   file's key or to warn about what it found.
 
+  **The third is refused on a read of the file the save does not share**, so it is narrowed rather
+  than closed. The writer reads the file inside its marshaled call, before the change, and
+  `MainForm.SaveDatabase` then pumps messages as it raises its block and raises `FileSavingPre` to
+  every plugin before `PreSaveValidate` reads the file again, while another process rewrites a file
+  without waiting for either. A sync client finishing its copy in that gap still puts the
+  question, or the merge under `SaveForceSync`, inside the request, which holds the writer's lock
+  until somebody answers. The gap is the length of the save's own start.
+
   **Two remain, and both are a save that has already failed.** `MessageService.ShowSaveWarning`
   when `PwDatabase.Save` throws, and the verification warning when the bytes on disk are not the
   bytes written. Neither can be known before the save, and both report damage the operator has to

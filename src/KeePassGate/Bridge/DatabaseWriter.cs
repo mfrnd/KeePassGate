@@ -539,10 +539,18 @@ namespace KeePassGate.Bridge
         ///   asking is only one of the two things it does.
         ///
         /// **The same comparison as `PreSaveValidate` makes, through the same function**, so the
-        /// file this refuses to save over is exactly the file KeePass would stop at, whether to ask
-        /// or to merge. It costs one more read of the file per write, which is what having the
-        /// answer before the save rather than during it costs, and the save that follows reads the
-        /// file again anyway.
+        /// file this refuses to save over is the file KeePass would stop at, whether to ask or to
+        /// merge, as the file stands when this reads it. It costs one more read of the file per
+        /// write, which is what having the answer before the save rather than during it costs, and
+        /// the save that follows reads the file again anyway.
+        ///
+        /// **Earlier than `PreSaveValidate` reads it, and the gap is not closed.** Between the two
+        /// reads `MainForm.SaveDatabase` pumps messages as it raises its block and raises
+        /// `FileSavingPre` to every plugin, this one's `OwedAnswerSaves` among them, and another
+        /// process needs no pump at all. A file a sync client rewrites in that gap still puts
+        /// KeePass's question, or its merge under `SaveForceSync`, inside the request, holding the
+        /// writer's lock until it is answered. `DESIGN.md` §119 names the gap
+        /// beside the two warnings that remain.
         ///
         /// **For a database opened from a URL that read is a download**, on this thread and under
         /// the writer's lock, bounded only by the network timeouts KeePass gives it, which for a
@@ -1221,7 +1229,8 @@ namespace KeePassGate.Bridge
                 // is nothing to take back out and the refusal costs the database nothing. Nothing
                 // between here and `_save` pumps a message, so the two instants are equally close
                 // to the save; what is *not* true, and what the guard above is for, is that
-                // nothing has pumped to get here.
+                // nothing has pumped to get here. Nor is the save the same instant: `Asking`
+                // names what happens inside it before KeePass reads the file again.
                 return VaultWrite.Busy(asking);
             }
 
