@@ -203,6 +203,11 @@ namespace KeePassGate.Ui
                 return "No database is open on this dialog.";
             }
 
+            if (Unreadable)
+            {
+                return UnreadableRefusal;
+            }
+
             var names = Read();
             if (names.Holds(name))
             {
@@ -316,6 +321,11 @@ namespace KeePassGate.Ui
                 return "No database is open on this dialog.";
             }
 
+            if (Unreadable)
+            {
+                return UnreadableRefusal;
+            }
+
             var names = Read();
             if (!names.Remove(name))
             {
@@ -390,6 +400,63 @@ namespace KeePassGate.Ui
                 _log.Warn("the profiles could not be read: " + error.Message);
                 return ProfileNames.Empty();
             }
+        }
+
+        /// <summary>What Add and Remove answer while the stored list will not read.</summary>
+        public const string UnreadableRefusal =
+            "The list of profiles this database holds will not read, so it is left as it is. Start a new list first.";
+
+        /// <summary>
+        /// Whether the stored list will not read, which <see cref="ProfileNames.Readable"/> decides
+        /// for every reader that writes what it reads.
+        /// </summary>
+        /// <remarks>
+        /// **The page wrote over it, and nothing else does.** `ProfileNames.Read` answers a damaged
+        /// list as naming nothing, which is right for a reader asking what is named and wrong for
+        /// a reader that writes the result back: the page showed no names and no warning, and its first
+        /// Add or Remove at OK replaced the damaged value, every name it held and the only sign
+        /// that it was damaged, which pairing, renewal and the writer all refuse to do. A list
+        /// that cannot be asked about at all is not called damaged, since nothing about its value
+        /// is known.
+        /// </remarks>
+        public bool Unreadable
+        {
+            get
+            {
+                if (_database == null || !_database.IsOpen || _database.PluginCustomData == null)
+                {
+                    return false;
+                }
+
+                try
+                {
+                    return !ProfileNames.Readable(_database.PluginCustomData.Get(ProfileNames.CustomDataKey));
+                }
+                catch (Exception error) when (Expected.OfCustomData(error))
+                {
+                    _log.Warn("the profiles could not be read: " + error.Message);
+                    return false;
+                }
+            }
+        }
+
+        /// <summary>
+        /// The operator's choice to replace a stored list that will not read with one naming
+        /// nothing, the one way the page writes over it, the operator's ruling of 2026-11-08.
+        /// </summary>
+        public string StartNew()
+        {
+            if (_database == null || !_database.IsOpen)
+            {
+                return "No database is open on this dialog.";
+            }
+
+            if (!Unreadable)
+            {
+                return "The list of profiles reads, so there is nothing to replace.";
+            }
+
+            return Store(ProfileNames.Empty());
         }
 
         private string Store(ProfileNames names)

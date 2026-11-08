@@ -615,7 +615,9 @@ than anybody their access. The intersection makes it load bearing, and fails clo
 everything here does: a list that will not read is an empty set, so every client stays admitted
 and reaches nothing until it reads again. A list in another shape, or holding a name it cannot
 hold, names only what reading could take from it, and pairing and renewal, which write the list or
-a record from what they read, refuse it as they refuse a list that does not parse.
+a record from what they read, refuse it as they refuse a list that does not parse. So does the
+Profiles page, which writes what it reads: it shows the damage and writes over it only when the
+operator presses the one button that replaces it, the operator's ruling of 2026-11-08.
 
 The one rule it applies is the issuer's, `AuthorityIssuer.IsUsableProfileName`, because a name that
 cannot travel as a claim is a name no client can ever hold: it would be granted here and refused at

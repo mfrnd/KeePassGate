@@ -11,6 +11,11 @@ none, since it releases both.
 
 ## 0.2.0, unreleased
 
+- **The Profiles page shows a stored list that will not read, and writes over it only when told
+  to.** It showed such a list as naming nothing, with no warning, and its first Add or Remove at OK
+  replaced the damaged value and every name it held. Add and Remove now stay off under a line stating
+  that the list will not read, until **Replace it with a new list** is pressed, and the tab's OK leaves a
+  list that turned unreadable while the dialog was open as it is.
 - **A profile edit on the KPG tab takes back the code made on the dialog**, as Cancel does. The edit
   killed the invite button, but a code made before it stayed on screen, copyable and good, so a
   program could still pair against a list OK was about to change.

@@ -1186,7 +1186,8 @@ through, and adding the name back restores every rule and every client holding i
 Profiles page and the approval dialog both say before it happens. This reverses a purge that took a
 removed name out of every rule, revisions included, and still lost to a stale copy merged in; see
 DESIGN.md §139. An unreadable list is an empty one, so every client stays admitted and reaches
-nothing.
+nothing, and the Profiles page shows it as damaged and writes over it only when the operator
+replaces it there.
 
 ### The grant editor
 

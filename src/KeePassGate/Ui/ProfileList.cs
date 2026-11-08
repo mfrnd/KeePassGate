@@ -79,6 +79,26 @@ namespace KeePassGate.Ui
         public const string NobodyText =
             "No profile is named yet. Add one here, or approve a new one when a client asks to pair.";
 
+        /// <summary>The line and the button a stored list that will not read puts on the page.</summary>
+        public const string DamagedRowName = "KpgProfileDamagedRow";
+
+        public const string DamagedLabelName = "KpgProfileDamagedLabel";
+
+        public const string StartNewButtonName = "KpgProfileStartNewButton";
+
+        /// <summary>What the page shows while the stored list will not read.</summary>
+        public const string DamagedText =
+            "The list of profiles this database holds will not read, so no client reaches anything, " +
+            "and it is left as it is. Replacing it starts a list naming nothing, and the damaged list " +
+            "is lost when OK is pressed.";
+
+        /// <summary>The button that replaces it, which states as much.</summary>
+        public const string StartNewButtonText = "Replace it with a new list";
+
+        /// <summary>What the page answers once a new list is started.</summary>
+        public const string StartedText =
+            "A new list is started. It replaces the damaged list when OK is pressed.";
+
         private const int NameColumn = 0;
         private const int UsedColumn = 1;
         private const int HeldColumn = 2;
@@ -88,7 +108,10 @@ namespace KeePassGate.Ui
         private readonly IOperatorPrompt _prompt;
         private readonly DataGridView _grid;
         private readonly FlowLayoutPanel _adding;
+        private readonly FlowLayoutPanel _damaged;
+        private readonly Label _damagedLine;
         private readonly TextBox _name;
+        private readonly Button _add;
         private readonly Label _empty;
         private readonly Label _result;
 
@@ -163,7 +186,7 @@ namespace KeePassGate.Ui
                 Margin = new Padding(0, BoxNudge, Spacing.Gap, 0)
             };
 
-            var add = new Button
+            var add = _add = new Button
             {
                 Name = AddButtonName,
                 Text = AddButtonText,
@@ -238,6 +261,43 @@ namespace KeePassGate.Ui
                 Visible = false
             };
 
+            // A stored list that will not read is shown as that, above everything else on the page,
+            // with the one way to write over it: the operator's ruling of 2026-11-08 is that
+            // nothing replaces it by accident.
+            _damaged = new FlowLayoutPanel
+            {
+                Name = DamagedRowName,
+                Dock = DockStyle.Top,
+                FlowDirection = FlowDirection.TopDown,
+                WrapContents = false,
+                AutoSize = true,
+                AutoSizeMode = AutoSizeMode.GrowAndShrink,
+                Padding = new Padding(0, Spacing.Gap, 0, 0),
+                Visible = false
+            };
+
+            var startNew = new Button
+            {
+                Name = StartNewButtonName,
+                Text = StartNewButtonText,
+                AutoSize = true,
+                AutoSizeMode = AutoSizeMode.GrowAndShrink,
+                Margin = new Padding(0, Spacing.Gap, 0, 0)
+            };
+
+            startNew.Click += delegate { WindowHandlers.Run("a new list of profiles could not be started", () => StartNew()); };
+
+            _damagedLine = new TextLabel
+            {
+                Name = DamagedLabelName,
+                Text = DamagedText,
+                AutoSize = true,
+                Margin = new Padding(0)
+            };
+
+            _damaged.Controls.Add(_damagedLine);
+            _damaged.Controls.Add(startNew);
+
             _result = new TextLabel
             {
                 Name = ResultLabelName,
@@ -252,6 +312,7 @@ namespace KeePassGate.Ui
             // backwards, so whatever is added last takes its band first.
             Controls.Add(_grid);
             Controls.Add(adding);
+            Controls.Add(_damaged);
             Controls.Add(_result);
             Controls.Add(_empty);
 
@@ -340,6 +401,11 @@ namespace KeePassGate.Ui
                 return Said("Type a name first.");
             }
 
+            if (_profiles.Unreadable)
+            {
+                return Said(DatabaseProfiles.UnreadableRefusal);
+            }
+
             // Asked before the name goes on the list, because putting it there is what brings back
             // whatever was left waiting for it. A name that was never removed has nothing waiting,
             // and is added without a question.
@@ -399,6 +465,24 @@ namespace KeePassGate.Ui
             }
         }
 
+        /// <summary>
+        /// Replaces a stored list that will not read with one naming nothing, as the button under
+        /// the line stating so does.
+        /// </summary>
+        public string StartNew()
+        {
+            var refused = _profiles.StartNew();
+            if (refused != null)
+            {
+                return Said(refused);
+            }
+
+            Describe();
+            var said = Said(StartedText);
+            OnEdited();
+            return said;
+        }
+
         /// <summary>Reads the database again and redraws. Safe to call at any time.</summary>
         public void Describe()
         {
@@ -426,7 +510,13 @@ namespace KeePassGate.Ui
                 _filling = false;
             }
 
-            _empty.Visible = _shown.Count == 0;
+            // A list that will not read names nothing the page can show, and is not a list naming
+            // nothing yet: it is shown as what it is, and nothing here adds to it or takes from it.
+            var damaged = _profiles.Unreadable;
+            _damaged.Visible = damaged;
+            _name.Enabled = !damaged;
+            _add.Enabled = !damaged;
+            _empty.Visible = _shown.Count == 0 && !damaged;
 
             // A redraw a pairing caused can take off the page a name the last
             // gesture said is available, when the list filled to its ceiling meanwhile, and the
@@ -538,7 +628,7 @@ namespace KeePassGate.Ui
             {
                 // Every child that has been added so far, since the constructor lays this out as it
                 // adds them.
-                var order = new Control[] { _grid, _adding, _result, _empty };
+                var order = new Control[] { _grid, _adding, _damaged, _result, _empty };
                 for (var at = 0; at < order.Length; at++)
                 {
                     var child = order[at];
@@ -546,6 +636,14 @@ namespace KeePassGate.Ui
                     {
                         Controls.SetChildIndex(child, at);
                     }
+                }
+
+                // The line about a damaged list sits in a row rather than docked, so it is told
+                // how wide the page is, which a docked line works out for itself.
+                var room = DisplayRectangle.Width;
+                if (_damagedLine != null && room > 0 && _damagedLine.MaximumSize.Width != room)
+                {
+                    _damagedLine.MaximumSize = new Size(room, 0);
                 }
 
                 base.OnLayout(e);
@@ -645,6 +743,20 @@ namespace KeePassGate.Ui
 
         /// <summary>What the last removal did, in words, or null when it has done nothing.</summary>
         string LastRemoval { get; }
+
+        /// <summary>
+        /// Whether the stored list will not read. It is then left as it is: neither
+        /// <see cref="Add"/> nor <see cref="Remove"/> writes over it, and only
+        /// <see cref="StartNew"/> puts a list in its place.
+        /// </summary>
+        bool Unreadable { get; }
+
+        /// <summary>
+        /// Puts a list naming nothing in the place of a stored list that will not read, which loses
+        /// the damaged value once the dialog is accepted. Answers with why it could not, or null
+        /// when it did.
+        /// </summary>
+        string StartNew();
     }
 
     /// <summary>
@@ -689,6 +801,16 @@ namespace KeePassGate.Ui
         }
 
         public string Remove(string name)
+        {
+            return "No database is open on this dialog.";
+        }
+
+        public bool Unreadable
+        {
+            get { return false; }
+        }
+
+        public string StartNew()
         {
             return "No database is open on this dialog.";
         }

@@ -156,11 +156,29 @@ namespace KeePassGate.Ui
         /// In the log, because the merge that counts runs at OK, when the dialog that could have
         /// said so is already closing. The page reads the same merge while the dialog is open, to
         /// show what OK will write, and says nothing then: a name left out of a list that is still
-        /// being edited can yet be kept. `ProfileNames.Merge` says why the names already on the
-        /// list are the ones kept.
+        /// being edited can yet be kept. `ProfileNames.Merge` gives the reason the names already on
+        /// the list are the ones kept.
+        ///
+        /// **A list that changed under the dialog into a list that will not read is left alone**, the
+        /// operator's ruling of 2026-11-08, and the log is told at OK. Merged, it read as naming
+        /// nothing, so the edit replaced it, every name it held and the sign that it was damaged.
+        /// The page then shows the damage, and replacing it takes the operator's choice: starting
+        /// a new list there writes against the damaged value the page read, which OK lands only
+        /// while that value is still the value stored, so this is not asked.
         /// </remarks>
         private string MergeProfiles(string baseline, string current, string buffered, bool landing)
         {
+            if (!ProfileNames.Readable(current))
+            {
+                if (landing)
+                {
+                    _log.Warn("the profile list edited on the " + GateName.Product + " tab was not written: "
+                              + "the database's list will not read now, and is left as it is");
+                }
+
+                return current;
+            }
+
             IReadOnlyList<string> unkept;
             var merged = ProfileNames.Merge(baseline, current, buffered, out unkept);
 

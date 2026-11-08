@@ -543,6 +543,42 @@ namespace KeePassGate.Host.Tests
         }
 
         [Test]
+        public void The_line_about_a_list_that_will_not_read_fits_the_profiles_page_with_its_button()
+        {
+            // The state a damaged list puts the page in: a line stating so and the button that
+            // replaces it, above the row that adds a profile, with a refusal under the list.
+            foreach (var state in States())
+            {
+                using (var panel = state.Panel)
+                {
+                    LayOut(panel, _page.DisplayRectangle.Size);
+
+                    var list = ControlTree.FindByName<ProfileList>(panel, ProfileList.ControlName);
+                    var row = ControlTree.FindByName<Control>(list, ProfileList.DamagedRowName);
+                    var said = ControlTree.FindByName<Label>(list, ProfileList.ResultLabelName);
+                    row.Visible = true;
+                    said.Text = DatabaseProfiles.UnreadableRefusal;
+                    said.Visible = true;
+
+                    Show(list);
+                    list.PerformLayout();
+
+                    var line = ControlTree.FindByName<Label>(list, ProfileList.DamagedLabelName);
+                    var button = ControlTree.FindByName<Button>(list, ProfileList.StartNewButtonName);
+                    var wanted = line.GetPreferredSize(new Size(line.Width, 0));
+
+                    TestContext.Out.WriteLine(state.Description + ": the line is " + line.Size + ", the row " +
+                                              row.Bounds + ", the refusal " + said.Bounds);
+
+                    Assert.That(line.Right, Is.LessThanOrEqualTo(row.ClientSize.Width), state.Description + ": the line runs off the page");
+                    Assert.That(line.Height, Is.GreaterThanOrEqualTo(wanted.Height), state.Description + ": the line is cut off");
+                    Assert.That(button.Right, Is.LessThanOrEqualTo(row.ClientSize.Width), state.Description + ": the button runs off the page");
+                    Assert.That(row.Bottom, Is.LessThanOrEqualTo(said.Top), state.Description + ": the row runs into the refusal");
+                }
+            }
+        }
+
+        [Test]
         public void The_columns_of_the_client_list_fit_the_width_it_is_given()
         {
             // Columns that overflow would go unnoticed until somebody looked at the tab: the test

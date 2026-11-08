@@ -616,6 +616,16 @@ namespace KeePassGate.Tests
             {
                 return null;
             }
+
+            public bool Unreadable
+            {
+                get { return false; }
+            }
+
+            public string StartNew()
+            {
+                return null;
+            }
         }
 
         /// <summary>A database whose custom data cannot even be asked for, which stops a tab being built.</summary>

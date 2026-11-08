@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using KeePassGate.Acl;
 using KeePassGate.Authority;
 using KeePassGate.Tests.Fakes;
@@ -172,6 +173,47 @@ namespace KeePassGate.Tests
 
             Assert.That(after, Is.EqualTo(new[] { "deploy", "ops", "readonly" }),
                 "the name the pairing wrote is still there, and so is the one the operator typed");
+        }
+
+        [Test]
+        public void A_list_that_turned_damaged_under_the_dialog_is_left_as_it_is()
+        {
+            // The operator's ruling of 2026-11-08. Merged, a list that will not read read as one
+            // naming nothing, so OK replaced it with the edit, every name it held and the sign that
+            // it was damaged with it. It is left alone, and the log is told why the edit went.
+            var live = new InMemoryKeyValueStore();
+            live.Set(ProfileNames.CustomDataKey, "{\"profiles\":[\"reader\"]}");
+            var log = new RecordingGateLog();
+            var pending = new PendingDatabase(new FakeGateDatabase(live), log);
+
+            Assume.That(new DatabaseProfiles(pending, null).Add("ops"), Is.Null);
+            live.Set(ProfileNames.CustomDataKey, "{not json");
+
+            Assert.That(new DatabaseProfiles(pending, null).Unreadable, Is.True, "the page shows the damage it would write over");
+
+            pending.Apply();
+
+            Assert.That(live.Get(ProfileNames.CustomDataKey), Is.EqualTo("{not json"));
+            Assert.That(log.Warnings.Any(entry => entry.Message.Contains("will not read")), Is.True);
+        }
+
+        [Test]
+        public void A_new_list_started_over_a_damaged_one_replaces_it_at_OK()
+        {
+            // The one way the page writes over a list that will not read: the operator chose it.
+            var live = new InMemoryKeyValueStore();
+            live.Set(ProfileNames.CustomDataKey, "{not json");
+            var pending = new PendingDatabase(new FakeGateDatabase(live), null);
+            var profiles = new DatabaseProfiles(pending, null);
+
+            Assume.That(profiles.Unreadable, Is.True);
+            Assert.That(profiles.StartNew(), Is.Null);
+            Assert.That(profiles.Add("ops"), Is.Null);
+
+            pending.Apply();
+
+            Assert.That(ProfileNames.Readable(live.Get(ProfileNames.CustomDataKey)), Is.True);
+            Assert.That(ProfileNames.Read(live.Get(ProfileNames.CustomDataKey)).Names, Is.EqualTo(new[] { "ops" }));
         }
 
         [TestCase(false)]

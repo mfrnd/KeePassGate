@@ -204,6 +204,28 @@ namespace KeePassGate.Tests
         }
 
         [Test]
+        public void A_stored_list_that_will_not_read_is_left_as_it_is_until_a_new_list_is_started()
+        {
+            // Read as naming nothing, the page took an Add or a Remove and wrote the result over
+            // the damaged list at OK, which pairing, renewal and the writer all refuse to do.
+            var database = new FakeGateDatabase();
+            database.Store.Plant(ProfileNames.CustomDataKey, "{not json");
+            var profiles = new DatabaseProfiles(database, null);
+
+            Assert.That(profiles.Unreadable, Is.True);
+            Assert.That(profiles.Add("agent"), Is.EqualTo(DatabaseProfiles.UnreadableRefusal));
+            Assert.That(profiles.Remove("reader"), Is.EqualTo(DatabaseProfiles.UnreadableRefusal));
+            Assert.That(database.Store.Get(ProfileNames.CustomDataKey), Is.EqualTo("{not json"), "nothing replaced it by accident");
+
+            Assert.That(profiles.StartNew(), Is.Null);
+
+            Assert.That(profiles.Unreadable, Is.False);
+            Assert.That(profiles.Add("agent"), Is.Null);
+            Assert.That(profiles.Names(), Is.EqualTo(new[] { "agent" }));
+            Assert.That(new DatabaseProfiles(new FakeGateDatabase(), null).StartNew(), Does.Contain("nothing to replace"));
+        }
+
+        [Test]
         public void The_clients_holding_a_profile_are_counted_the_same_way()
         {
             // Counted rather than remembered for the same reason the rules are, and a stronger

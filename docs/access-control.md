@@ -40,6 +40,13 @@ long as the edit is waiting all the same, because a program approved for a profi
 through being removed would be admitted to a name **OK** takes off the list, where it grants
 nothing.
 
+**A stored list that will not read is shown as that**, and left as it is: every client stays admitted
+and reaches nothing, as while the list is missing, but nothing on this page adds to it or takes from
+it. **Replace it with a new list** starts a list naming nothing in its place, which loses the damaged
+value when **OK** is pressed; names can be added after that. A list that turns unreadable under the
+dialog, from a merge while it is open, is left alone too, and the plugin's log names the edit that
+was not written over it.
+
 **Removing a profile takes it off this list and touches nothing else**, and from then on it grants
 nothing. A program is given only the profiles its record holds that this list still names, so a
 rule naming a removed profile stays on its group or entry, inert, and the access editor shows it
