@@ -123,10 +123,13 @@ sequenceDiagram
 ```
 
 **A pairing connection is measured against a budget of its own, and so is a renewal's, §312.** Every
-other connection has a fixed span from accept to the end of its request, which is what stops a peer
-holding a thread by feeding it a byte at a time, and no deadline at all after that: what is left
-there is a write and a save that no number bounds, so a deadline could only ever close the socket
-while a write that is still going to land is landing.
+other connection is given two spans to deliver its request in, which is what stops a peer holding a
+thread by feeding it a byte at a time: from accept until its name resolves, as long as one read may
+take or the ordinary budget if that is shorter, since all it owes there is a ClientHello; then the
+whole ordinary budget, `GateOptions.Budget`, counted from the name resolving to the end of its
+request. After that it has no deadline at all: what is left there is a write and a save that no
+number bounds, so a deadline could only ever close the socket while a write that is still going to
+land is landing.
 
 Phase 4 blows through it on purpose, and by more than one wait. The operator is given two minutes to
 read the dialog; a second pairing waits that long again just to get in front of them, since only one
