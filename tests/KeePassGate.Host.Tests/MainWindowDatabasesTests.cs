@@ -78,6 +78,35 @@ namespace KeePassGate.Host.Tests
         }
 
         [Test]
+        public void A_created_database_is_announced_as_an_opened_one()
+        {
+            // `File > New` raises `FileCreated` and never `FileOpened`.
+            var database = Document(First).Database;
+
+            Raise("FileCreated", new FileCreatedEventArgs(database));
+
+            Assert.That(_opened, Has.Count.EqualTo(1));
+            Assert.That(_opened[0].Path, Is.EqualTo(First));
+            Assert.That(_opened[0].IsLocking, Is.False);
+        }
+
+        [Test]
+        public void Only_a_save_that_worked_is_announced()
+        {
+            // A synchronize is announced only by the save it ends with, and a save that failed
+            // brought nothing in for the authority chooser to ask about.
+            var saved = 0;
+            _databases.Saved += (sender, e) => saved++;
+            var database = Document(First).Database;
+
+            Raise("FileSaved", new FileSavedEventArgs(false, database, Guid.NewGuid()));
+            Assert.That(saved, Is.Zero);
+
+            Raise("FileSaved", new FileSavedEventArgs(true, database, Guid.NewGuid()));
+            Assert.That(saved, Is.EqualTo(1));
+        }
+
+        [Test]
         public void Locking_a_database_names_it_and_says_it_is_a_lock()
         {
             var document = Document(First);
