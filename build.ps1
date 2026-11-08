@@ -867,14 +867,18 @@ function Invoke-Deploy {
     # name on the machine: the one somebody keeps their real database in, and a throwaway copy an
     # end to end run left behind. Neither holds a file in the directory being written, so refusing
     # on either is refusing for a reason that is not true, and the reason given names a file those
-    # processes do not have open.
+    # processes do not have open. Compared against the directory with a separator after it, since
+    # `Resolve-KeePass` answers without a separator, and a sibling whose name only begins with this
+    # directory's, `.keepass\2.61.1` beside `.keepass\2.61` or `KeePass2` beside `KeePass`, is
+    # another KeePass.
+    $inside = $keePass.TrimEnd('\', '/') + '\'
     $running = @()
     foreach ($process in @(Get-Process -Name 'KeePass' -ErrorAction SilentlyContinue)) {
         # A process this account cannot open has no readable path, and is not one of ours.
         $path = $null
         try { $path = $process.Path } catch { }
 
-        if ($path -and $path.StartsWith($keePass, [System.StringComparison]::OrdinalIgnoreCase)) {
+        if ($path -and $path.StartsWith($inside, [System.StringComparison]::OrdinalIgnoreCase)) {
             $running += $process
         }
     }
