@@ -11,6 +11,9 @@ none, since it releases both.
 
 ## 0.2.0, unreleased
 
+- **The plugin refuses to load a routing document declaring a cookie parameter.** Nothing reads a
+  cookie, so a cookie declared required, or with a pattern, loaded and was kept by nobody. The
+  document the plugin ships declares none.
 - **The plugin refuses to load a routing document carrying an `x-kpg-` extension it does not
   read**, on an operation or on a path. The three it reads were looked up by name and nothing else
   was looked at, so a misspelled `x-kpg-attachments` loaded as absent, and the route was served to

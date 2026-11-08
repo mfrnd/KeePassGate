@@ -530,6 +530,18 @@ namespace KeePassGate.Spec
                         captures[name] = declared.Schema;
                     }
 
+                    var cookie = Located(path.Value.Parameters, operation.Parameters, ParameterLocation.Cookie)
+                        .FirstOrDefault();
+                    if (cookie != null)
+                    {
+                        // What `TakesIfMatch` refuses any other header for, in the one location
+                        // nothing reads at all: a cookie declared required, or held to a pattern,
+                        // loaded and was kept by nobody.
+                        throw new InvalidOperationException(
+                            operation.OperationId + " declares a cookie parameter " + cookie.Name +
+                            ", and nothing reads a cookie, so what it declares would be kept by nobody.");
+                    }
+
                     var takesIfMatch = TakesIfMatch(path.Value.Parameters, operation.Parameters, operation.OperationId);
                     if (takesIfMatch && !Answers(operation, PreconditionFailedStatus))
                     {

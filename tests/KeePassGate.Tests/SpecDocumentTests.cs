@@ -841,6 +841,26 @@ namespace KeePassGate.Tests
             Assert.That(raised.Message, Does.Contain(named));
         }
 
+        [Test]
+        public void A_cookie_parameter_stops_the_document_being_read()
+        {
+            // Nothing reads a cookie, so a cookie declared required, or with a pattern, was a
+            // promise the document made and nothing kept. Declared on the path item and on the
+            // operation alike, since every operation under a path item inherits its parameters.
+            const string Cookie =
+                "{\"name\":\"session\",\"in\":\"cookie\",\"required\":true,\"schema\":{\"type\":\"string\",\"pattern\":\"^x$\"}}";
+
+            var onThePath = Assert.Throws<InvalidOperationException>(() => SpecDocument.Parse(Document(Queried(Cookie))));
+            var onTheOperation = Assert.Throws<InvalidOperationException>(() => SpecDocument.Parse(Document(
+                "\"/a\":{\"get\":{\"operationId\":\"readA\",\"x-kpg-verb\":\"none\",\"parameters\":[" + Cookie + "]," +
+                "\"responses\":{\"200\":{\"description\":\"o\"}}}," +
+                "\"head\":{\"operationId\":\"headA\",\"x-kpg-verb\":\"none\",\"parameters\":[" + Cookie + "]," +
+                "\"responses\":{\"200\":{\"description\":\"o\"}}}}")));
+
+            Assert.That(onThePath.Message, Does.Contain("cookie parameter session"));
+            Assert.That(onTheOperation.Message, Does.Contain("cookie parameter session"));
+        }
+
         /// <summary>A get and its head under a path item declaring this parameter.</summary>
         private static string Queried(string parameter)
         {
