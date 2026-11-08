@@ -313,6 +313,40 @@ namespace KeePassGate.Tests
         }
 
         [Test]
+        public void A_question_of_the_protected_values_is_written_down_only_when_it_refuses()
+        {
+            // A value handed over is covered by the line the router wrote before dispatch, and the
+            // walk that refuses is the walk written down, so the two cannot disagree.
+            var entry = TestNode.Root("root").Holding(Rules.Granting(("keeper", "RP"), ("reader", "R"))).Child("an entry");
+
+            Assert.That(
+                _check.Reaches(Client("keeper"), "readEntry", AclVerb.Read, AclReach.Protected, entry, null),
+                Is.True);
+            Assert.That(_audit.Entries, Is.Empty);
+
+            Assert.That(
+                _check.Reaches(Client("reader"), "readEntry", AclVerb.Read, AclReach.Protected, entry, null),
+                Is.False);
+            Assert.That(_audit.Entries.Single().Permitted, Is.False);
+            Assert.That(_audit.Entries.Single().OperationId, Is.EqualTo("readEntry"));
+        }
+
+        [Test]
+        public void A_question_asked_of_some_profiles_asks_only_profiles_the_client_holds()
+        {
+            var entry = TestNode.Root("root").Holding(Rules.Granting(("keeper", "RP"), ("reader", "R"))).Child("an entry");
+
+            Assert.That(
+                _check.Reaches(Client("reader"), "readEntry", AclVerb.Read, AclReach.Protected, entry, new[] { "keeper" }),
+                Is.False, "a name the client does not hold is left out of the question");
+            Assert.That(
+                _check.Reaches(
+                    Client("reader", "keeper"), "readEntry", AclVerb.Read, AclReach.Protected, entry, new[] { "reader" }),
+                Is.False, "and a profile left out of the question does not answer it");
+            Assert.That(_audit.Entries.Count, Is.EqualTo(2));
+        }
+
+        [Test]
         public void A_refusal_no_removed_profile_would_have_permitted_is_the_rules_refusing()
         {
             var entry = TestNode.Root("root").Granting("reader", AclVerb.List).Child("an entry");

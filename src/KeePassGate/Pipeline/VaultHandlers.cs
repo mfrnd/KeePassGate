@@ -257,8 +257,11 @@ namespace KeePassGate.Pipeline
             // database protects, and a listing leaves it out, because `list` gives names.
             json.Text(ExpiresMember, entry.Entry.Expires.HasValue ? Moments.Wire(entry.Entry.Expires.Value) : null);
 
-            var reaches = ReachesProtected(context, entry.Entry.Node, AclVerb.Read);
-            var blanked = false;
+            // Asked only of an entry holding a value the database protects, and once, however many
+            // it holds: the decision is one decision, and a refusal is written down only where
+            // something is withheld.
+            var reaches = !entry.Fields.Any(field => IsProtected(entry, field.Key))
+                          || Reaches(context, entry.Entry.Node, AclVerb.Read);
 
             json.Object("fields");
             foreach (var field in entry.Fields)
@@ -267,18 +270,11 @@ namespace KeePassGate.Pipeline
                 // have from a field that is not there. The `protected` member below says which
                 // were which, which is what makes the difference readable rather than guessed at.
                 var withheld = !reaches && IsProtected(entry, field.Key);
-                blanked = blanked || withheld;
 
                 json.Text(field.Key, withheld ? null : field.Value);
             }
 
             json.End();
-
-            if (blanked)
-            {
-                // Once, however many fields were blanked: the decision was one decision.
-                Recorded(context, entry.Entry.Node, AclVerb.Read);
-            }
 
             json.Array("protected");
             foreach (var name in entry.Protected)
@@ -321,9 +317,9 @@ namespace KeePassGate.Pipeline
                 return;
             }
 
-            if (Guarded(vault, fields.Keys) && !ReachesProtected(context, group.Node, AclVerb.Create))
+            if (Guarded(vault, fields.Keys) && !Reaches(context, group.Node, AclVerb.Create))
             {
-                Withheld(context, group.Node, AclVerb.Create);
+                Withheld(context);
                 return;
             }
 
@@ -361,9 +357,9 @@ namespace KeePassGate.Pipeline
                 return;
             }
 
-            if (guarded.Value && !ReachesProtected(context, entry.Node, AclVerb.Update))
+            if (guarded.Value && !Reaches(context, entry.Node, AclVerb.Update))
             {
-                Withheld(context, entry.Node, AclVerb.Update);
+                Withheld(context);
                 return;
             }
 
@@ -505,11 +501,7 @@ namespace KeePassGate.Pipeline
                 return;
             }
 
-            var withheld = guarded && !ReachesProtected(context, entry.Node, AclVerb.Read);
-            if (withheld)
-            {
-                Recorded(context, entry.Node, AclVerb.Read);
-            }
+            var withheld = guarded && !Reaches(context, entry.Node, AclVerb.Read);
 
             json.Text("value", withheld ? null : value);
             json.Flag("protected", guarded);
@@ -552,9 +544,9 @@ namespace KeePassGate.Pipeline
                 return;
             }
 
-            if ((guarded || vault.Protects(name)) && !ReachesProtected(context, entry.Node, AclVerb.Create))
+            if ((guarded || vault.Protects(name)) && !Reaches(context, entry.Node, AclVerb.Create))
             {
-                Withheld(context, entry.Node, AclVerb.Create);
+                Withheld(context);
                 return;
             }
 
@@ -597,9 +589,9 @@ namespace KeePassGate.Pipeline
                 return;
             }
 
-            if (guarded.Value && !ReachesProtected(context, entry.Node, AclVerb.Update))
+            if (guarded.Value && !Reaches(context, entry.Node, AclVerb.Update))
             {
-                Withheld(context, entry.Node, AclVerb.Update);
+                Withheld(context);
                 return;
             }
 
@@ -646,7 +638,7 @@ namespace KeePassGate.Pipeline
 
             if (guarded.Value && CouldPutBackUnprotected(context, entry.Node))
             {
-                Withheld(context, entry.Node, AclVerb.Create);
+                Withheld(context);
                 return;
             }
 
@@ -663,12 +655,22 @@ namespace KeePassGate.Pipeline
         /// protected value, though another could still put an unprotected value back. A profile
         /// that may create and reach protected values could write the protected value anyway, and
         /// a profile that may not create has nowhere to put anything back.
+        ///
+        /// **The refusal is written down for the profile that could put a value back**, through
+        /// <see cref="Reaches(IGateContext, IAclNode, AclVerb, IReadOnlyList{string})"/> asked of
+        /// that profile alone, so the strip the guard stops is on record as the attempt it is.
+        /// Recorded by a walk pooling every profile, it was written down only when no profile at
+        /// all could create a protected value here, and the case R10 made this guard refuse wrote
+        /// nothing. Whether a profile could put anything back at all refuses nothing on its own,
+        /// so that question is put to the resolver and not written down.
         /// </remarks>
         private static bool CouldPutBackUnprotected(IGateContext context, IAclNode node)
         {
-            return context.Client.Profiles.Any(profile =>
-                AclResolver.Permits(node, new[] { profile }, AclVerb.Create, AclReach.Fields)
-                && !AclResolver.Permits(node, new[] { profile }, AclVerb.Create, AclReach.Protected));
+            // `Any` stops at the first profile that could, so one refusal is written down.
+            return context.Client.Profiles
+                .Select(profile => new[] { profile })
+                .Any(alone => AclResolver.Permits(node, alone, AclVerb.Create, AclReach.Fields)
+                              && !Reaches(context, node, AclVerb.Create, alone));
         }
 
         public static void ListAttachments(IGateContext context)
@@ -1415,7 +1417,8 @@ namespace KeePassGate.Pipeline
         }
 
         /// <summary>
-        /// What a caller is told when a write would set a value it may not set.
+        /// What a caller is told when a write would set a value it may not set, once
+        /// <see cref="Reaches(IGateContext, IAclNode, AclVerb)"/> has written the refusal down.
         /// </summary>
         /// <remarks>
         /// The same answer a rule that refuses anything else gives, which is what every refusal
@@ -1423,60 +1426,59 @@ namespace KeePassGate.Pipeline
         /// noticing which refusals differ. It costs an honest caller a clearer message, and the
         /// message it would have wanted is on the tab of whoever wrote the rule.
         /// </remarks>
-        private static void Withheld(IGateContext context, IAclNode node, AclVerb verb)
+        private static void Withheld(IGateContext context)
         {
-            Recorded(context, node, verb);
             Unreachable(context);
         }
 
-        /// <summary>Writes down a protected-scope refusal, which is the one the router never sees.</summary>
-        /// <remarks>
-        /// The router records that the verb was granted, before dispatch, and that line is true.
-        /// This is the second decision on the same request: the same client asking for the values
-        /// inside an answer it is otherwise allowed, and being refused them. Without it the audit
-        /// said a client had been given something the gate had in fact withheld. That attempt is
-        /// exactly the one the `protected` switch exists to stop, so it is exactly the line an
-        /// operator opens the file to find.
-        ///
-        /// **Only where something was actually withheld.** Asked on every read, this would write a
-        /// line for the ordinary case of a client that simply does not hold `protected`, on entries
-        /// with nothing protected on them, which is the noise `A_listing_is_recorded_once` refuses.
-        /// </remarks>
-        private static void Recorded(IGateContext context, IAclNode node, AclVerb verb)
-        {
-            object found;
-            if (context.Items.TryGetValue(SpecRouter.ReachItem, out found) && found is ProtectedReach)
-            {
-                // Records because it refuses; the router's own check decides which way.
-                ((ProtectedReach)found)(node, verb);
-            }
-        }
-
         /// <summary>
-        /// Whether this caller may have the values the database protects on this node.
+        /// Whether this caller may have the values the database protects on this node, a refusal
+        /// written down by the walk that decides it.
         /// </summary>
         /// <remarks>
         /// **The one question a handler asks rather than the router**, and the asymmetry is worth
         /// naming. An attachment is a route of its own, so the router asks before dispatch and no
         /// handler thinks about scope. A protected value arrives inside the answer to a route that
         /// is allowed, so the only moment the question exists is while that answer is being
-        /// written.
+        /// written. So each handler that writes a field value into an answer or takes a field
+        /// value from a body asks it, which is a check every such handler has to remember: the
+        /// arrangement every other question is kept out of, and the arrangement this question
+        /// needs, since only the handler holds the values, `DESIGN.md` §137. A route added later
+        /// that handles field values has to ask it as well.
         ///
-        /// It is asked wherever a protected value would be written, which is a handful of places,
-        /// for the reason everything else is asked once: field values are written in more places
-        /// than anybody can hold in their head, and a check each of them has to remember is a check
-        /// one of them will not.
+        /// **Asked through the router's <see cref="ProtectedReach"/>, which decides and records in
+        /// one walk.** The router records that the verb was granted, before dispatch, and that
+        /// line is true; a value withheld is a second decision on the same request, and without
+        /// its line the audit held that a client had been given what the gate withheld. That
+        /// attempt is exactly what the `protected` switch exists to stop, so its line is exactly
+        /// the line an operator opens the file to find. Decided here and written down by a second
+        /// walk, as it was, the two could disagree, and a refusal went unwritten whenever they did.
+        ///
+        /// **Only where something would be withheld.** Each caller asks once it holds a protected
+        /// value to hand out or to write, so a client that simply does not hold `protected`,
+        /// reading an entry with nothing protected on it, writes no second line. A handler the
+        /// router did not hand the question to withholds, which is the direction a defect has to
+        /// fail in.
         /// </remarks>
-        private static bool ReachesProtected(IGateContext context, IAclNode node, AclVerb verb)
+        private static bool Reaches(IGateContext context, IAclNode node, AclVerb verb)
         {
-            return AclResolver.Permits(node, context.Client.Profiles, verb, AclReach.Protected);
+            return Reaches(context, node, verb, null);
+        }
+
+        /// <summary>The same question, asked of some of the caller's profiles and not all of them.</summary>
+        private static bool Reaches(
+            IGateContext context, IAclNode node, AclVerb verb, IReadOnlyList<string> profiles)
+        {
+            object found;
+            var reach = context.Items.TryGetValue(SpecRouter.ReachItem, out found) ? found as ProtectedReach : null;
+            return reach != null && reach(node, verb, profiles);
         }
 
         /// <summary>The same question, asked per item and deliberately not recorded.</summary>
         /// <remarks>
         /// For the reason `Visible` gives just above: a listing asks this about every entry it
         /// walks, so recording it would be a line per item for the ordinary case. The decisions
-        /// worth reading are the ones about a named node, and those go through `ReachesProtected`.
+        /// worth reading are the ones about a named node, and those go through `Reaches`.
         /// Asked of every profile the client holds, as `Visible` is, so a protected title is shown
         /// through any profile that may list the entry with its protected values.
         /// </remarks>

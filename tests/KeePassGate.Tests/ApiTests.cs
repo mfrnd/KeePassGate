@@ -1651,6 +1651,32 @@ namespace KeePassGate.Tests
             Assert.That(audit.Entries[1].Reason, Is.EqualTo(NoProtectedReach));
         }
 
+        [TestCase("CRSL", "CRLP", TestName = "A strip kept from a profile beside a profile reaching protected values is written down")]
+        [TestCase("RSL", "CRL", TestName = "A strip kept from the profile that could put a value back is written down")]
+        public void A_strip_the_guard_keeps_from_a_profile_writes_its_refusal_down(string tidier, string maker)
+        {
+            // The guard asks each profile on its own, under R10, and its refusal was written down
+            // by a walk pooling every profile. Where some profile could create a protected value,
+            // as `maker` can in the first case, that walk permitted and wrote nothing, so the
+            // attempt the guard exists to stop left no line.
+            var audit = new RecordingAudit();
+            var router = GateOperations.Router("9.9.9", null, new AccessCheck(audit));
+            _profiles = new[] { "tidier", "maker" };
+            _vault.CreateField(_entry, "PIN", "not-a-real-secret", true, VaultTagging.None);
+            _vault.Granting(_group, Rules.Granting(("tidier", tidier), ("maker", maker)));
+
+            var context = Context("DELETE", "/entries/" + _entry + "/fields/PIN", null);
+            router.Handle(context);
+
+            Assert.That(context.Status, Is.EqualTo(404), context.Json);
+            Assert.That(_vault.Field(_entry, "PIN"), Is.EqualTo("not-a-real-secret"));
+            Assert.That(audit.Entries.Count, Is.EqualTo(2), "the strip was granted and the guard refused it");
+            Assert.That(audit.Entries[0].Permitted, Is.True);
+            Assert.That(audit.Entries[1].Permitted, Is.False);
+            Assert.That(audit.Entries[1].OperationId, Is.EqualTo("stripField"));
+            Assert.That(audit.Entries[1].Reason, Is.EqualTo(NoProtectedReach));
+        }
+
         [Test]
         public void A_read_that_withholds_protected_values_writes_one_refusal_however_many_it_blanks()
         {

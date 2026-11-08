@@ -697,26 +697,13 @@ namespace KeePassGate.Spec
 
             // Left for the handler, which asks the one question the router cannot: whether this
             // caller may have the protected values inside an answer it is otherwise allowed. It
-            // goes through the same check so that it is recorded the same way.
+            // goes through the same check, which decides it and writes a refusal down in one walk,
+            // so that the answer the handler acts on is the answer recorded.
             var access = _access;
             var operationId = operation.OperationId;
             var client = context.Client;
-            context.Items[ReachItem] = (ProtectedReach)((n, v) =>
-            {
-                if (AclResolver.Permits(n, client.Profiles, v, AclReach.Protected))
-                {
-                    return true;
-                }
-
-                // Recorded only when it refuses, and asked twice to do it. A protected value handed
-                // over is already covered by the line this router wrote before dispatch; a
-                // protected value withheld is the decision that was going unwritten, and it is the
-                // one an operator opens the audit to find. Recording both would put a second line
-                // on every ordinary read, which is what `A_listing_is_recorded_once` forbids and
-                // for the reason it gives: noise buries what is worth reading.
-                access.Decide(client, operationId, v, AclReach.Protected, n);
-                return false;
-            });
+            context.Items[ReachItem] = (ProtectedReach)((n, v, profiles) =>
+                access.Reaches(client, operationId, v, AclReach.Protected, n, profiles));
 
             // The identifier asked for goes on the line when it found nothing, so the operator can
             // see which reference a request was following; the check keeps only a well-formed one.

@@ -99,10 +99,79 @@ namespace KeePassGate.Pipeline
             ClientIdentity client, string operationId, AclVerb verb, AclReach reach, IAclNode node, string requested)
         {
             var decision = Answer(client, client == null ? null : client.Profiles, verb, reach, node);
+            Written(client, operationId, verb, reach, node, decision, requested, true);
+            return decision;
+        }
+
+        /// <summary>
+        /// Whether this client may have what this scope covers at this node, written down only
+        /// when it may not.
+        /// </summary>
+        /// <remarks>
+        /// **The question a handler asks of the protected values inside an answer the router has
+        /// already allowed**, through the <see cref="ProtectedReach"/> the router hands it. The
+        /// walk that answers is the walk written down, so what the handler acts on and what the
+        /// line holds cannot disagree. Decided by the handler and asked again here only to be
+        /// written, a rule edit landing between the two walks left a withheld value unrecorded,
+        /// and the strip guard, which asks profile by profile, was written down by a walk pooling
+        /// every profile, which permitted, and so wrote nothing at all.
+        ///
+        /// **Written only when it refuses.** A protected value handed over is covered by the line
+        /// the router wrote before dispatch, and a line for every ordinary read would be the noise
+        /// `A_listing_is_recorded_once_and_not_once_per_item` keeps out, burying the refusal an
+        /// operator opens the file to find.
+        ///
+        /// **Some of the client's profiles, for a question a change asks profile by profile**, the
+        /// operator's ruling R10, and never a profile the client does not hold: a name it does not
+        /// hold is left out of the question. A refusal asked of some profiles is written as the
+        /// rules made it, without asking the removed ones, since restoring a removed profile
+        /// changes nothing about what the profiles asked may do.
+        /// </remarks>
+        /// <param name="profiles">The client's profiles to ask with, or null for all of them.</param>
+        public bool Reaches(
+            ClientIdentity client,
+            string operationId,
+            AclVerb verb,
+            AclReach reach,
+            IAclNode node,
+            IReadOnlyList<string> profiles)
+        {
+            var held = client == null ? null : client.Profiles;
+            var asked = profiles == null || held == null
+                ? held
+                : held.Where(profile => profiles.Contains(profile, StringComparer.Ordinal)).ToList();
+
+            var decision = Answer(client, asked, verb, reach, node);
+            if (decision.Permitted)
+            {
+                return true;
+            }
+
+            Written(client, operationId, verb, reach, node, decision, null, profiles == null);
+            return false;
+        }
+
+        /// <summary>
+        /// Writes a decision down: as the rules made it, or, for a refusal the removed profiles
+        /// would have permitted, as <see cref="ProfileRemoved"/>.
+        /// </summary>
+        /// <param name="restoring">
+        /// Whether a refusal asks the removed profiles what they would have done.
+        /// </param>
+        private void Written(
+            ClientIdentity client,
+            string operationId,
+            AclVerb verb,
+            AclReach reach,
+            IAclNode node,
+            AclDecision decision,
+            string requested,
+            bool restoring)
+        {
             var name = node == null ? null : node.Name;
 
             AclDecision restored = null;
-            var removed = decision.Permitted ? null : Restoring(client, verb, reach, node, out restored);
+            var removed = decision.Permitted || !restoring ? null : Restoring(client, verb, reach, node, out restored);
 
             if (removed == null || restored == null)
             {
@@ -113,8 +182,6 @@ namespace KeePassGate.Pipeline
             {
                 Write(client, operationId, name, restored.DecidedAt, false, ProfileRemoved, removed, requested);
             }
-
-            return decision;
         }
 
         /// <summary>

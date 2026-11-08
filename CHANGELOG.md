@@ -457,6 +457,11 @@ none, since it releases both.
 - **An audit line's `at` is when it was decided, for a paced client too.** It was read once the
   client's wait was over, so a client past its allowance had its decisions and refused renewals
   stamped up to seconds after the rules or the operator's earlier answer had decided them.
+- **A protected value withheld is written down by the walk that withheld it**, and a strip of a
+  protected field refused because some profile could put an unprotected value back is written down
+  at all. A handler decided on its own and asked the rules again only to write the line, so a rule
+  changed in between left a withheld value unrecorded, and that strip, decided profile by profile,
+  was recorded by a walk pooling every profile, which permitted it and wrote nothing.
 
 ## 0.1.0, 2026-10-25
 
