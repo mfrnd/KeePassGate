@@ -287,6 +287,9 @@ namespace KeePassGate.Ui
         /// <summary>Whether the answer above is one that was given, or the one it started at.</summary>
         private bool _decided;
 
+        /// <summary>Whether a close of the database it is about withdrew it, rather than a lock.</summary>
+        private bool _closedWithDatabase;
+
         public PairingApprovalForm(PairingRequest request, TimeSpan timeout)
             : this(request, timeout, null)
         {
@@ -676,8 +679,13 @@ namespace KeePassGate.Ui
             Refuse();
         }
 
-        internal override void Withdraw()
+        internal override void Withdraw(bool databaseClosed)
         {
+            if (!_decided)
+            {
+                _closedWithDatabase = databaseClosed;
+            }
+
             Finish(PairingDecision.Locked);
         }
 
@@ -696,7 +704,7 @@ namespace KeePassGate.Ui
                     return PairingApproval.Refused();
 
                 case PairingDecision.Locked:
-                    return PairingApproval.Locked();
+                    return _closedWithDatabase ? PairingApproval.Closed() : PairingApproval.Locked();
 
                 default:
                     return PairingApproval.TimedOut();

@@ -165,7 +165,8 @@ act's, so `permitted` goes on meaning only that the rules allowed something, and
 **`approved` always names a client that was admitted.** An approval whose record did not reach the
 database, or whose invitation had been spent or had run out by the time the operator answered,
 admitted nobody: the program was told so, the plugin's log says why, and the audit has no line for
-it. Nor is there a line when there was nobody to ask, with no screen to show the dialog on.
+it. Nor is there a line when there was nobody to ask: no screen to show the dialog on, or a lock that
+came while the request waited for the screen, so that it was never shown.
 
 **And what reached the database is always here.** A pairing, a renewal or a program's revocation
 of itself that reached the database is written down even when a defect in KeePass or in another

@@ -435,6 +435,11 @@ namespace KeePassGate.Pairing
             var target = connection.Target;
             var invitation = connection.Invitation;
 
+            // Before anything is put to the operator, so that a lock or a close of this database
+            // between the question and the answer lets the answer go rather than holding it for a
+            // database opened again since.
+            var mark = _held.Mark();
+
             // Before the operator is disturbed. The challenge is already spent by now, so a
             // client turned away here needs a fresh hello rather than a second try. Database
             // Maintenance open on this database would take the record straight back off again.
@@ -509,9 +514,16 @@ namespace KeePassGate.Pairing
 
                 case PairingDecision.Locked:
                     // Unanswered, as a timeout is, so nothing is spent; told as every connection to
-                    // a locked database is told, since that is what this one now is.
+                    // a locked database is told, since that is what this connection now is. A dialog
+                    // its database's close took away is answered the same, its reason naming the
+                    // close. A request the lock kept off the screen was put to nobody, and the
+                    // audit records nothing of it, as of a request with no screen to ask.
                     _log.Warn("pairing on invitation " + invitation.Id + " was " + decision.Reason);
-                    _audit.PairingUnanswered(target.DatabaseId, invitation.Id);
+                    if (decision.Shown)
+                    {
+                        _audit.PairingUnanswered(target.DatabaseId, invitation.Id);
+                    }
+
                     context.Respond(503, HttpResponse.ErrorBody(LockedTarget.Error));
                     return null;
 
@@ -541,7 +553,8 @@ namespace KeePassGate.Pairing
                 decision.Lifetime,
                 approved.Where(listed.Contains),
                 null,
-                arrived + _options.ApprovalHeld);
+                arrived + _options.ApprovalHeld,
+                mark);
         }
 
         /// <summary>
@@ -556,12 +569,13 @@ namespace KeePassGate.Pairing
             // Asked again, because the answer before the dialog is as old as the dialog. Database
             // Maintenance opened while the operator was reading, or KeePass saving, is found here
             // while it can still be a `503` that spends nothing. A lock while the dialog stands
-            // closes the dialog instead, `PAIRING.md` §308, and a lock after it takes the held
-            // approval away, which ends this wait as the lock it is.
+            // closes the dialog instead, `PAIRING.md` §308, as a close of its database does, and a
+            // lock or a close after it takes the held approval away, which ends this wait as the
+            // lock it is.
             var blocked = Settled(target, _options.ApprovalSettle, Blocked, () => _held.Holds(held));
             if (!_held.Holds(held))
             {
-                Gone(context, held, "pairing on invitation " + invitation.Id, _log);
+                Gone(context, invitation, held, "pairing on invitation " + invitation.Id);
                 return;
             }
 
@@ -576,7 +590,8 @@ namespace KeePassGate.Pairing
 
         /// <summary>
         /// Answers an approval that is held no longer: `503 locked` when a lock or a close took it,
-        /// and `503 busy` with nothing held when its time ran out, which raises the dialog again.
+        /// and `503 busy` with nothing held when its time ran out or another request asking for
+        /// the same thing took it, which raises the dialog again.
         /// </summary>
         internal static void Gone(IGateContext context, HeldApproval held, string what, IGateLog log)
         {
@@ -588,8 +603,44 @@ namespace KeePassGate.Pairing
                 return;
             }
 
-            log.Warn(what + " was approved, and was held until its time ran out without being written");
+            log.Warn(what + (held.Taken
+                ? " was approved, and another request asking for the same thing took the approval first"
+                : " was approved, and was held until its time ran out without being written"));
             context.Respond(503, HttpResponse.ErrorBody("busy"));
+        }
+
+        /// <summary>
+        /// Answers a pairing whose approval is held no longer, as the other overload does, unless
+        /// its invitation is gone as well, which leaves nothing for a `503` to retry.
+        /// </summary>
+        /// <remarks>
+        /// Two exchanges on one invitation can find the same approval held, and the write that
+        /// lands first takes it and spends the invitation, so the other was told `503 busy` and its
+        /// retry was turned away at the name. It is told `409 no invitation` now, as a request
+        /// whose invitation went while the operator decided is. A lock or a close is still
+        /// `503 locked`, since the invitation outlives both.
+        /// </remarks>
+        private void Gone(IGateContext context, Invitation invitation, HeldApproval held, string what)
+        {
+            if (!held.Cleared && !Outstanding(invitation))
+            {
+                _log.Warn(what + " was approved, and " +
+                          (held.Taken
+                              ? "another request asking for the same thing took the approval"
+                              : "the approval was held until its time ran out") +
+                          ", and the invitation is spent or has run out, so nothing can come of this request");
+                context.Respond(409, HttpResponse.ErrorBody("no invitation"));
+                return;
+            }
+
+            Gone(context, held, what, _log);
+        }
+
+        /// <summary>Whether the invitation is still there to be spent.</summary>
+        private bool Outstanding(Invitation invitation)
+        {
+            return _invitations.For(invitation.DatabaseId)
+                .Any(live => string.Equals(live.Id, invitation.Id, StringComparison.Ordinal));
         }
 
         /// <summary>
@@ -646,6 +697,11 @@ namespace KeePassGate.Pairing
                 // a database that outlived its own runs out, as well as a key that would not sign;
                 // left unnamed it escaped the handler to the catch-all on the connection thread,
                 // which counts anything a handler throws as a defect in this plugin.
+                //
+                // **The approval goes with it**, `PAIRING.md` §311: the book holds what KeePass was
+                // too busy to write, and nothing on this answer tells the client an approval is
+                // held, so asking again asks the operator again.
+                _held.Take(held);
                 _log.Error("a client certificate could not be issued", error);
                 context.Respond(500, HttpResponse.ErrorBody("internal error"));
                 return;
@@ -719,7 +775,7 @@ namespace KeePassGate.Pairing
 
                 if (!written.Ok && !spent)
                 {
-                    Unwritten(context, held, written, refused, "pairing on invitation " + invitationId);
+                    Unwritten(context, invitation, held, written, refused, "pairing on invitation " + invitationId);
                     return;
                 }
 
@@ -761,7 +817,12 @@ namespace KeePassGate.Pairing
         /// database no longer holding what the operator approved, which asks them again.
         /// </remarks>
         private void Unwritten(
-            IGateContext context, HeldApproval held, AdmissionWrite written, string refused, string what)
+            IGateContext context,
+            Invitation invitation,
+            HeldApproval held,
+            AdmissionWrite written,
+            string refused,
+            string what)
         {
             if (written.IsBusy)
             {
@@ -771,7 +832,7 @@ namespace KeePassGate.Pairing
                     return;
                 }
 
-                Gone(context, held, what, _log);
+                Gone(context, invitation, held, what);
                 return;
             }
 
@@ -779,7 +840,7 @@ namespace KeePassGate.Pairing
             {
                 case "locked":
                 case "expired":
-                    Gone(context, held, what, _log);
+                    Gone(context, invitation, held, what);
                     return;
 
                 case "no invitation":

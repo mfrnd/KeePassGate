@@ -297,7 +297,7 @@ namespace KeePassGate.Tests
         }
 
         [Test]
-        public void An_unlock_and_a_close_end_only_their_own_database_and_close_no_dialog()
+        public void An_unlock_and_a_close_end_only_their_own_database_and_lock_nothing()
         {
             // The operator's ruling R1. Both used to close every connection and the close every
             // approval, so unlocking or closing a second database reset the first database's
@@ -307,6 +307,7 @@ namespace KeePassGate.Tests
 
             _events.RaiseOpened("C:\\invented\\one.kdbx");
             Assert.That(_screen.ClosedFor, Is.Empty, "an unlock lets go of no approval");
+            Assert.That(_connections.Spared, Is.Zero, "and spares none of the connections it ends");
 
             _events.RaiseClosed("C:\\invented\\two.kdbx", false);
 
@@ -314,7 +315,8 @@ namespace KeePassGate.Tests
             {
                 RecordingTargets.IdOf("C:\\invented\\one.kdbx"), RecordingTargets.IdOf("C:\\invented\\two.kdbx")
             }));
-            Assert.That(_connections.Spared, Is.Zero);
+            Assert.That(_connections.Spared, Is.EqualTo(1),
+                "a close spares the connections waiting on its operator, the operator's ruling of 2026-11-08");
             Assert.That(_screen.Locked, Is.Zero);
             Assert.That(_screen.ClosedFor.Single(), Is.EqualTo(new[] { RecordingTargets.IdOf("C:\\invented\\two.kdbx") }),
                 "a close lets go of its own database's approvals");
@@ -635,6 +637,13 @@ namespace KeePassGate.Tests
 
             public int Close(IReadOnlyCollection<string> databaseIds, string why)
             {
+                ClosedFor.AddRange(databaseIds);
+                return Closing();
+            }
+
+            public int CloseButAwaiting(IReadOnlyCollection<string> databaseIds, string why)
+            {
+                Spared++;
                 ClosedFor.AddRange(databaseIds);
                 return Closing();
             }

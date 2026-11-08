@@ -147,6 +147,9 @@ namespace KeePassGate.Ui
         private RenewalRefusal _standing;
         private bool _decided;
 
+        /// <summary>Whether a close of the database it is about withdrew it, rather than a lock.</summary>
+        private bool _closedWithDatabase;
+
         /// <summary>The dialog asking for a day, while it is open.</summary>
         private Form _askingForADay;
 
@@ -478,8 +481,13 @@ namespace KeePassGate.Ui
             Refuse();
         }
 
-        internal override void Withdraw()
+        internal override void Withdraw(bool databaseClosed)
         {
+            if (!_decided)
+            {
+                _closedWithDatabase = databaseClosed;
+            }
+
             Finish(PairingDecision.Locked, null);
         }
 
@@ -595,7 +603,7 @@ namespace KeePassGate.Ui
                     return RenewalApproval.Refused(_standing);
 
                 case PairingDecision.Locked:
-                    return RenewalApproval.Locked();
+                    return _closedWithDatabase ? RenewalApproval.Closed() : RenewalApproval.Locked();
 
                 default:
                     return RenewalApproval.TimedOut();

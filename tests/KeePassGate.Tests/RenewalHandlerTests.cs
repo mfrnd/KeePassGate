@@ -844,6 +844,37 @@ namespace KeePassGate.Tests
         }
 
         [Test]
+        public void A_standing_answer_that_cannot_be_read_on_the_retry_keeps_the_held_approval()
+        {
+            // S022. A read that failed once was taken for a standing answer, so the approval the
+            // operator gave was let go, and the next retry put the same dialog in front of them.
+            var operatorAt = FakeRenewalApproval.Approving();
+
+            using (var old = _authority.IssueAdmittedClient("reader"))
+            {
+                _authority.AdmitAnswers = AdmissionWrite.Busy("KeePass is saving");
+                Assume.That(Renew(operatorAt, old, "{}").Status, Is.EqualTo(503));
+                _authority.AdmitAnswers = null;
+
+                _authority.StandingRefusalThrows = new InvalidOperationException("the custom data would not read");
+                var unread = Renew(operatorAt, old, "{}");
+
+                Assert.That(unread.Status, Is.EqualTo(503), unread.Json);
+                Assert.That(JsonBody.Read(unread.Json).Text("heldUntil"),
+                    Is.EqualTo(Moments.Wire(_now + GateOptions.DefaultPairingBudget)),
+                    "still held, and the client is told until when");
+                Assert.That(_held.Count, Is.EqualTo(1));
+                Assert.That(_authority.Admitted, Is.Null, "nothing is written past an answer that would not read");
+
+                _authority.StandingRefusalThrows = null;
+                var retry = Renew(operatorAt, old, "{}");
+
+                Assert.That(retry.Status, Is.EqualTo(200), retry.Json);
+                Assert.That(operatorAt.Asked, Is.EqualTo(1), "the operator answered once");
+            }
+        }
+
+        [Test]
         public void A_held_approval_runs_out_with_the_pairing_budget_and_the_dialog_comes_up_again()
         {
             var operatorAt = FakeRenewalApproval.Approving();
@@ -893,6 +924,53 @@ namespace KeePassGate.Tests
                 Assert.That(context.Status, Is.EqualTo(503), context.Json);
                 Assert.That(context.Json, Is.EqualTo(HttpResponse.ErrorBody("locked")));
                 Assert.That(_authority.Admitted, Is.Null);
+            }
+        }
+
+        [TestCase("locked")]
+        [TestCase("closed")]
+        public void A_lock_or_a_close_between_the_operators_answer_and_its_hold_lets_the_answer_go(string how)
+        {
+            // S083 and D005: the dialog had answered, and the book was emptied before the answer
+            // was held, which held it all the same. The client was told `503 busy` until when, and
+            // the same renewal once the database was open again was written without the dialog.
+            var operatorAt = FakeRenewalApproval.Approving();
+            var cleared = false;
+            operatorAt.Meanwhile = () =>
+            {
+                if (cleared)
+                {
+                    return;
+                }
+
+                cleared = true;
+                if (how == "locked")
+                {
+                    ((IApprovalScreen)_held).Locked();
+                }
+                else
+                {
+                    ((IApprovalScreen)_held).Closed(new[] { _authority.DatabaseId });
+                }
+
+                _authority.AdmissionBlocked = "the database is not open";
+            };
+
+            using (var old = _authority.IssueAdmittedClient("reader"))
+            {
+                var before = _authority.Admitted;
+                var context = Renew(operatorAt, old, "{}");
+
+                Assert.That(context.Status, Is.EqualTo(503), context.Json);
+                Assert.That(context.Json, Is.EqualTo(HttpResponse.ErrorBody(LockedTarget.Error)));
+                Assert.That(_held.Count, Is.Zero);
+                Assert.That(_authority.Admitted, Is.SameAs(before), "nothing was written");
+
+                _authority.AdmissionBlocked = null;
+                var retry = Renew(operatorAt, old, "{}");
+
+                Assert.That(retry.Status, Is.EqualTo(200), retry.Json);
+                Assert.That(operatorAt.Asked, Is.EqualTo(2), "the operator is asked again");
             }
         }
 
@@ -1054,6 +1132,27 @@ namespace KeePassGate.Tests
         }
 
         [Test]
+        public void A_renewal_a_lock_kept_off_the_screen_is_not_written_down_as_unanswered()
+        {
+            // S081, as pairing has it: never shown, so nobody was asked.
+            var prompt = new KeePassGate.Ui.PairingApprovalPrompt(new FakeUiThread(), databaseId => false, _log);
+            var handler = new RenewalHandler(
+                prompt, _options, new AuthorityIssuer(), () => _now, _session, new AdmissionAudit(_audit), _log, _held);
+
+            using (var old = _authority.IssueAdmittedClient("reader"))
+            {
+                var context = Context(old, "{}");
+                Router(handler).Handle(context);
+
+                Assert.That(context.Status, Is.EqualTo(503));
+                Assert.That(context.Json, Is.EqualTo(HttpResponse.ErrorBody(LockedTarget.Error)));
+                Assert.That(_audit.Entries, Is.Empty, "nobody was asked");
+                Assert.That(_log.Warnings.Any(w => w.Message.Contains("closed unanswered")), Is.False,
+                    "and no dialog was closed");
+            }
+        }
+
+        [Test]
         public void An_approval_that_admitted_nobody_is_not_written_down()
         {
             _authority.AdmitAnswers = AdmissionWrite.Failed("the save did not land");
@@ -1121,6 +1220,34 @@ namespace KeePassGate.Tests
                 Assert.That(context.Status, Is.EqualTo(500));
                 Assert.That(context.Json, Is.EqualTo(HttpResponse.ErrorBody("internal error")));
                 Assert.That(_audit.Entries, Is.Empty, "an approval that renewed nothing is not written down");
+            }
+        }
+
+        [Test]
+        public void An_approval_whose_certificate_could_not_be_issued_is_not_kept_for_a_retry()
+        {
+            // S015, as pairing has it: the book holds an approval KeePass was too busy to write,
+            // and nothing told the client this approval was held, yet the same renewal asked again
+            // was issued without the dialog once the issuer worked again.
+            var issuing = DateTimeOffset.UtcNow + AuthorityIssuer.AuthorityLifetime + TimeSpan.FromDays(1);
+            var operatorAt = FakeRenewalApproval.Approving();
+            var handler = new RenewalHandler(
+                operatorAt, _options, new AuthorityIssuer(() => issuing), () => _now, _session,
+                new AdmissionAudit(_audit), _log, _held);
+
+            using (var old = _authority.IssueAdmittedClient("reader"))
+            {
+                var failed = Context(old, "{}");
+                Router(handler).Handle(failed);
+                Assume.That(failed.Status, Is.EqualTo(500), failed.Json);
+                Assert.That(_held.Count, Is.Zero);
+
+                issuing = DateTimeOffset.UtcNow;
+                var retry = Context(old, "{}");
+                Router(handler).Handle(retry);
+
+                Assert.That(retry.Status, Is.EqualTo(200), retry.Json);
+                Assert.That(operatorAt.Asked, Is.EqualTo(2), "the operator is asked again");
             }
         }
 

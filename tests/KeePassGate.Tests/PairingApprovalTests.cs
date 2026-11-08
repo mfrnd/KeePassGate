@@ -1204,9 +1204,16 @@ namespace KeePassGate.Tests
                 }
             };
 
-            Assert.That(prompt.Ask(Request(), Timeout).Decision, Is.EqualTo(PairingDecision.Locked));
-            Assert.That(prompt.Ask(Renewal(), Timeout).Decision, Is.EqualTo(PairingDecision.Locked));
+            var pairing = prompt.Ask(Request(), Timeout);
+            var renewal = prompt.Ask(Renewal(), Timeout);
+
+            Assert.That(pairing.Decision, Is.EqualTo(PairingDecision.Locked));
+            Assert.That(renewal.Decision, Is.EqualTo(PairingDecision.Locked));
             Assert.That(shown, Is.Zero);
+
+            // S081: and the answer holds that, so the audit writes down no dialog that never stood.
+            Assert.That(pairing.Shown || renewal.Shown, Is.False);
+            Assert.That(pairing.Reason, Does.Contain("never shown"));
         }
 
         [Test]
@@ -1233,7 +1240,7 @@ namespace KeePassGate.Tests
                         };
 
                         timer.Start();
-                        prompt.Show(dialog);
+                        prompt.Show(dialog, request.DatabaseId);
                     }
 
                     return dialog.Answer();
@@ -1243,11 +1250,143 @@ namespace KeePassGate.Tests
             var answer = prompt.Ask(Renewal(), Timeout);
 
             Assert.That(answer.Decision, Is.EqualTo(PairingDecision.Locked));
+            Assert.That(answer.Shown, Is.True, "a dialog the lock closed was put to the operator");
             Assert.That(_log.Warnings.Select(entry => entry.Message), Has.Some.Contains("closed unanswered"));
 
             prompt.Locked();
             Assert.That(_log.Warnings.Count(entry => entry.Message.Contains("closed unanswered")), Is.EqualTo(1),
                 "a lock with nothing on the screen closes nothing");
+        }
+
+        [Test]
+        [Apartment(ApartmentState.STA)]
+        public void A_lock_of_several_databases_closes_the_dialog_and_logs_it_once()
+        {
+            // S094. KeePass locks every open database in turn, inside the dialog's own modal loop,
+            // and the close of each tells the prompt. The dialog was still on the screen for all of
+            // them, so a request closed once was logged as closed once per database.
+            var prompt = new PairingApprovalPrompt(CurrentThread.Instance, _log);
+            prompt.RenewalDialog = (request, timeout) =>
+            {
+                using (var dialog = new RenewalApprovalForm(request, timeout, null, DateTime.Today, null))
+                {
+                    dialog.StartPosition = FormStartPosition.Manual;
+                    dialog.Location = new System.Drawing.Point(-4000, -4000);
+                    dialog.ShowInTaskbar = false;
+
+                    using (var timer = new System.Windows.Forms.Timer { Interval = 100 })
+                    {
+                        timer.Tick += delegate
+                        {
+                            timer.Stop();
+                            prompt.Locked();
+                            prompt.Locked();
+                            prompt.Locked();
+                        };
+
+                        timer.Start();
+                        prompt.Show(dialog, request.DatabaseId);
+                    }
+
+                    return dialog.Answer();
+                }
+            };
+
+            var answer = prompt.Ask(Renewal(), Timeout);
+
+            Assert.That(answer.Decision, Is.EqualTo(PairingDecision.Locked));
+            Assert.That(_log.Warnings.Count(entry => entry.Message.Contains("closed unanswered")), Is.EqualTo(1));
+        }
+
+        [Test]
+        [Apartment(ApartmentState.STA)]
+        public void A_close_of_its_database_closes_the_dialog_on_the_screen_as_unanswered()
+        {
+            // The operator's ruling of 2026-11-08, "close it with the database". The dialog used to
+            // stay up over a database closed for real, offering an Approve that could only find
+            // the database gone, as a lock's dialog once did over a locked database.
+            var prompt = new PairingApprovalPrompt(CurrentThread.Instance, _log);
+            OffScreenRenewal(prompt, () =>
+            {
+                prompt.Closed(new[] { Renewal().DatabaseId });
+                prompt.Closed(new[] { Renewal().DatabaseId });
+            });
+
+            var answer = prompt.Ask(Renewal(), Timeout);
+
+            Assert.That(answer.Decision, Is.EqualTo(PairingDecision.Locked), "answered as a lock's is");
+            Assert.That(answer.Reason, Is.EqualTo(PairingApproval.ClosedReason), "and named for the close");
+            Assert.That(answer.Shown, Is.True, "it was put to the operator");
+            Assert.That(_log.Warnings.Count(entry => entry.Message.Contains("database closed")), Is.EqualTo(1),
+                "closed once, and logged once");
+            Assert.That(_log.Warnings.Any(entry => entry.Message.Contains("KeePass locked")), Is.False);
+        }
+
+        [Test]
+        [Apartment(ApartmentState.STA)]
+        public void A_close_of_another_database_leaves_the_dialog_on_the_screen()
+        {
+            // R1: a close is about its own database, and every other database is still open.
+            var prompt = new PairingApprovalPrompt(CurrentThread.Instance, _log);
+            OffScreenRenewal(prompt, () => prompt.Closed(new[] { "another database" }));
+
+            var answer = prompt.Ask(Renewal(), Timeout);
+
+            Assert.That(answer.Reason, Is.EqualTo(PairingApproval.LockedReason),
+                "still standing for the lock that ended it");
+            Assert.That(_log.Warnings.Any(entry => entry.Message.Contains("database closed")), Is.False);
+        }
+
+        [Test]
+        [Apartment(ApartmentState.STA)]
+        public void A_close_that_names_no_database_closes_the_dialog_on_the_screen()
+        {
+            // A close whose database nothing could name lets every approval go, and so it takes
+            // whatever dialog is up as well.
+            var prompt = new PairingApprovalPrompt(CurrentThread.Instance, _log);
+            OffScreenRenewal(prompt, () => prompt.Closed(null));
+
+            var answer = prompt.Ask(Renewal(), Timeout);
+
+            Assert.That(answer.Reason, Is.EqualTo(PairingApproval.ClosedReason));
+        }
+
+        /// <summary>
+        /// A renewal dialog shown where nobody sees it, through the prompt's own show: what is given
+        /// runs once it stands, and a lock comes after that to end it, should nothing else have.
+        /// </summary>
+        private static void OffScreenRenewal(PairingApprovalPrompt prompt, Action meanwhile)
+        {
+            prompt.RenewalDialog = (request, timeout) =>
+            {
+                using (var dialog = new RenewalApprovalForm(request, timeout, null, DateTime.Today, null))
+                {
+                    dialog.StartPosition = FormStartPosition.Manual;
+                    dialog.Location = new System.Drawing.Point(-4000, -4000);
+                    dialog.ShowInTaskbar = false;
+
+                    using (var timer = new System.Windows.Forms.Timer { Interval = 100 })
+                    {
+                        var ticks = 0;
+                        timer.Tick += delegate
+                        {
+                            if (++ticks == 1)
+                            {
+                                meanwhile();
+                                return;
+                            }
+
+                            timer.Stop();
+                            prompt.Locked();
+                        };
+
+                        timer.Start();
+                        prompt.Show(dialog, request.DatabaseId);
+                    }
+
+                    return dialog.Answer();
+                }
+            };
         }
 
         [Test]

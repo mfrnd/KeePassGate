@@ -205,14 +205,22 @@ namespace KeePassGate.Pairing
         private readonly IReadOnlyList<string> _profiles;
         private readonly TimeSpan _lifetime;
         private readonly string _reason;
+        private readonly bool _shown;
 
         private PairingApproval(
             PairingDecision decision, IReadOnlyList<string> profiles, TimeSpan? lifetime, string reason)
+            : this(decision, profiles, lifetime, reason, true)
+        {
+        }
+
+        private PairingApproval(
+            PairingDecision decision, IReadOnlyList<string> profiles, TimeSpan? lifetime, string reason, bool shown)
         {
             _decision = decision;
             _profiles = profiles ?? Nothing;
             _lifetime = lifetime ?? Authority.Lifetime.Unasked;
             _reason = reason ?? string.Empty;
+            _shown = shown;
         }
 
         public PairingDecision Decision
@@ -248,6 +256,16 @@ namespace KeePassGate.Pairing
             get { return _decision == PairingDecision.Approved; }
         }
 
+        /// <summary>
+        /// Whether the question reached the operator's screen, which it did not when there was no
+        /// screen to ask or a lock came while it waited for the screen. The audit writes down only
+        /// a question somebody was asked.
+        /// </summary>
+        public bool Shown
+        {
+            get { return _shown; }
+        }
+
         /// <summary>The operator's yes, and the profiles the record is to carry.</summary>
         /// <param name="lifetime">How long the certificate lasts, or null for a year.</param>
         public static PairingApproval Approved(IReadOnlyList<string> profiles, TimeSpan? lifetime = null)
@@ -267,16 +285,45 @@ namespace KeePassGate.Pairing
 
         public static PairingApproval Unavailable(string reason)
         {
-            return new PairingApproval(PairingDecision.Unavailable, null, null, reason);
+            return new PairingApproval(PairingDecision.Unavailable, null, null, reason, false);
         }
 
+        /// <summary>A dialog the lock closed as unanswered.</summary>
         public static PairingApproval Locked()
         {
             return new PairingApproval(PairingDecision.Locked, null, null, LockedReason);
         }
 
-        /// <summary>What the log says of a question a lock took away.</summary>
+        /// <summary>
+        /// A dialog closed as unanswered because the database it is about closed: answered as a
+        /// lock's is, since the database is no longer there to write to, and named for the close.
+        /// </summary>
+        public static PairingApproval Closed()
+        {
+            return new PairingApproval(PairingDecision.Locked, null, null, ClosedReason);
+        }
+
+        /// <summary>
+        /// A request that waited for the screen while its database locked or closed, and was never
+        /// shown: locked, as a dialog the lock closed is, and asked of nobody.
+        /// </summary>
+        public static PairingApproval LockedWhileWaiting()
+        {
+            return new PairingApproval(PairingDecision.Locked, null, null, LockedWhileWaitingReason, false);
+        }
+
+        /// <summary>What the log reads of a question a lock took away.</summary>
         internal const string LockedReason = "closed unanswered when KeePass locked";
+
+        /// <summary>What the log reads of a question its database's close took away.</summary>
+        internal const string ClosedReason = "closed unanswered when its database closed";
+
+        /// <summary>
+        /// What the log reads of a question a lock or a close kept off the screen, which the screen
+        /// cannot tell apart: either leaves the database no longer served.
+        /// </summary>
+        internal const string LockedWhileWaitingReason =
+            "never shown, because its database locked or closed while it waited for the screen";
     }
 
     /// <summary>

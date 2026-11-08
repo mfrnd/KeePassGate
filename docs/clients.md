@@ -236,7 +236,9 @@ certificate.
 lock or anything else that locks it, the dialog closes as unanswered and the program is told the
 database is locked. Nothing is written, and the certificate it holds still works: it can ask again
 once KeePass is unlocked, which a program given time to wait does by itself, and the dialog comes
-back then.
+back then. **Closing the database the dialog is about closes the dialog the same way**, as
+unanswered, and the program is told the database is locked; closing another database leaves the
+dialog where it is.
 
 **The authority and the certificate KeePass answers with are good for a hundred years**, and
 nothing counts down to that. They are made together and end together, so neither runs out under the

@@ -74,6 +74,12 @@ namespace KeePassGate.Pairing
         public bool Cleared { get; internal set; }
 
         /// <summary>
+        /// Whether another request asking for the same thing took it: a write took it out to be
+        /// written, or the same request approved again took its place.
+        /// </summary>
+        public bool Taken { get; internal set; }
+
+        /// <summary>
         /// Why the database no longer holds what this was approved against, or null when it still
         /// does. Asked under the writer's lock, on KeePass's thread, as part of the write.
         /// </summary>
@@ -178,6 +184,15 @@ namespace KeePassGate.Pairing
     /// session of the database it was given in, and an approval still settling when KeePass locks
     /// is never written after the unlock for a client whose connection the unlock closed.
     ///
+    /// **An answer given across a clear is cleared with it**, which is what <see cref="Mark"/> is
+    /// for. The handler takes a mark before the operator is asked and hands it to
+    /// <see cref="Hold"/>, and an approval whose database was locked or closed in between is let
+    /// go as it arrives rather than held. Otherwise an answer a lock or a close overtook between
+    /// the dialog and the hold went into the book the clear had already emptied, and the same
+    /// request asked again once the database was open again was written without the dialog. An
+    /// answer given on a dialog left standing over a closed database went the same way, until the
+    /// operator's ruling of 2026-11-08 had a close take the dialog with it, as a lock does.
+    ///
     /// **Every approval passes through here**, the ones written at once included, because the
     /// same three things decide whether any of them may still be written: the entry is still
     /// held, the database still holds what it was approved against, and, for a pairing, the
@@ -189,6 +204,18 @@ namespace KeePassGate.Pairing
         private readonly object _lock = new object();
         private readonly Dictionary<string, HeldApproval> _held =
             new Dictionary<string, HeldApproval>(StringComparer.Ordinal);
+
+        /// <summary>
+        /// For each database a close has let go of, the clear that did it last, which grows by
+        /// one entry for each database closed in the session.
+        /// </summary>
+        private readonly Dictionary<string, long> _closed = new Dictionary<string, long>(StringComparer.Ordinal);
+
+        /// <summary>How many clears there have been, which is what a mark counts.</summary>
+        private long _clears;
+
+        /// <summary>The last clear that let go of every database's approvals.</summary>
+        private long _clearedAll;
 
         public ApprovalBook()
             : this(null)
@@ -256,11 +283,29 @@ namespace KeePassGate.Pairing
         }
 
         /// <summary>
+        /// Where the book stands, taken before the operator is asked and handed back to
+        /// <see cref="Hold"/> with their answer.
+        /// </summary>
+        public long Mark()
+        {
+            lock (_lock)
+            {
+                return _clears;
+            }
+        }
+
+        /// <summary>
         /// Holds what the operator approved, until <paramref name="until"/>, replacing anything
-        /// held under the same key.
+        /// held under the same key, unless its database was locked or closed since
+        /// <paramref name="mark"/>.
         /// </summary>
         /// <param name="listed">
         /// Which of the names the decision rested on the list held as the dialog showed it.
+        /// </param>
+        /// <param name="mark">
+        /// What <see cref="Mark"/> answered before the operator was asked. An approval whose
+        /// database a lock or a close let go of since then is answered as an approval that clear
+        /// took away: <see cref="HeldApproval.Cleared"/>, and not held.
         /// </param>
         /// <param name="asked">
         /// The names the decision rested on beyond the approved ones, which the write compares as
@@ -275,15 +320,39 @@ namespace KeePassGate.Pairing
             IEnumerable<string> listed,
             string record,
             DateTimeOffset until,
+            long mark,
             IEnumerable<string> asked = null)
         {
             var held = new HeldApproval(key, databaseId, profiles, lifetime, asked, listed, record, until);
             lock (_lock)
             {
+                if (ClearedSince(databaseId, mark))
+                {
+                    held.Cleared = true;
+                    return held;
+                }
+
+                HeldApproval replaced;
+                if (_held.TryGetValue(key, out replaced))
+                {
+                    replaced.Taken = true;
+                }
+
                 _held[key] = held;
             }
 
             return held;
+        }
+
+        /// <summary>
+        /// Whether a clear since this mark let go of this database's approvals. Called with the
+        /// lock held.
+        /// </summary>
+        private bool ClearedSince(string databaseId, long mark)
+        {
+            long closed;
+            return _clearedAll > mark
+                   || (_closed.TryGetValue(databaseId ?? string.Empty, out closed) && closed > mark);
         }
 
         /// <summary>
@@ -329,6 +398,7 @@ namespace KeePassGate.Pairing
                     return false;
                 }
 
+                held.Taken = true;
                 _held.Remove(held.Key);
                 return true;
             }
@@ -337,7 +407,11 @@ namespace KeePassGate.Pairing
         /// <summary>Lets go of every approval held, which a lock and an exit do.</summary>
         public void Clear()
         {
-            Clear(held => true);
+            lock (_lock)
+            {
+                _clearedAll = ++_clears;
+                Clear(held => true);
+            }
         }
 
         /// <summary>A lock: nothing held survives it.</summary>
@@ -364,7 +438,16 @@ namespace KeePassGate.Pairing
                 return;
             }
 
-            Clear(held => databaseIds.Contains(held.DatabaseId, StringComparer.Ordinal));
+            lock (_lock)
+            {
+                var clear = ++_clears;
+                foreach (var databaseId in databaseIds.Where(databaseId => databaseId != null))
+                {
+                    _closed[databaseId] = clear;
+                }
+
+                Clear(held => databaseIds.Contains(held.DatabaseId, StringComparer.Ordinal));
+            }
         }
 
         /// <summary>Lets go of every approval held that this chooses.</summary>

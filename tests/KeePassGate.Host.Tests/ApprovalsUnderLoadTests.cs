@@ -87,7 +87,7 @@ namespace KeePassGate.Host.Tests
             _prompt = new PairingApprovalPrompt(ui, _targets.Serving, _writer, NullGateLog.Instance);
             _prompt.RenewalDialog = (request, timeout) =>
             {
-                var shown = Show();
+                var shown = Show(request.DatabaseId);
                 return shown ? RenewalApproval.Approved(request.Profiles, request.Lifetime) : RenewalApproval.TimedOut();
             };
         }
@@ -177,7 +177,7 @@ namespace KeePassGate.Host.Tests
                     var key = CertificateDigest.Of(old);
                     _prompt.RenewalDialog = (request, timeout) =>
                     {
-                        var shown = Show();
+                        var shown = Show(request.DatabaseId);
                         revoking.Set();
                         return shown ? RenewalApproval.Approved(request.Profiles, request.Lifetime) : RenewalApproval.TimedOut();
                     };
@@ -224,7 +224,7 @@ namespace KeePassGate.Host.Tests
             {
                 _prompt.RenewalDialog = (request, timeout) =>
                 {
-                    var shown = Show();
+                    var shown = Show(request.DatabaseId);
                     Interlocked.Increment(ref _blocked);
                     new Thread(() =>
                     {
@@ -275,7 +275,7 @@ namespace KeePassGate.Host.Tests
         }
 
         /// <summary>The operator reading a dialog for a moment, through the prompt's own show.</summary>
-        private bool Show()
+        private bool Show(string databaseId)
         {
             if (_blocked > 0)
             {
@@ -285,7 +285,7 @@ namespace KeePassGate.Host.Tests
             Interlocked.Increment(ref _shown);
             using (var dialog = new ThinkingDialog(150))
             {
-                _prompt.Show(dialog);
+                _prompt.Show(dialog, databaseId);
                 return dialog.Answered;
             }
         }
@@ -353,7 +353,7 @@ namespace KeePassGate.Host.Tests
 
             public bool Answered { get; private set; }
 
-            internal override void Withdraw()
+            internal override void Withdraw(bool databaseClosed)
             {
                 _timer.Stop();
                 Close();

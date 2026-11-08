@@ -154,7 +154,9 @@ disk for a certificate the client never received and cannot ask for again. That 
 up, or its deadline running out. A lock is the other thing that closes connections, and it spares
 this one: it closes the dialog as unanswered instead, nothing is issued or spent, and the client is
 told `503 locked`, §308. A close or an unlock closes only its own database's connections, so a
-close or an unlock of another database leaves this connection alone.
+close or an unlock of another database leaves this connection alone. A close of its own database
+closes the dialog as unanswered too, and spares this connection as a lock does, so nothing is issued
+or spent there either and the client is told `503 locked`.
 
 **One pairing is put to the operator at a time.** Two connections can reach phase 4 together, and
 each asks the user interface thread to show a dialog. The second would open inside the first one's
@@ -439,7 +441,25 @@ cannot be written answers. Their deadline still bounds them. Nothing is written 
 spent: an invitation is still good after the unlock, and a renewing client's old certificate still
 works. **A lock lets go of every approval held for a retry**, §303, and a close of a database lets
 go of that database's, so an approval still waiting for a busy KeePass when the lock comes is
-answered `503 locked` at once and never written into the database the unlock opens again.
+answered `503 locked` at once and never written into the database the unlock opens again. **So is
+an answer the lock or the close overtook**: an approval the operator gave as KeePass locked or the
+database closed, which had not reached the plugin's memory when the lock or the close let go of what
+was there. The plugin notes where it stood before the operator was asked, and an approval arriving
+after a lock, or after a close of its own database, is let go as it arrives and answered
+`503 locked`.
+
+**A database closed for real closes its own pairing or renewal dialog as unanswered**, as a lock
+does, which is the operator's ruling of 2026-11-08, and the answer names the close rather than a
+lock. That replaced leaving the dialog standing over the closed database, which nothing took down,
+on the argument that its answer would find the database gone: an Approve there could do nothing,
+and only the plugin letting go of the approval as it arrived kept it out of the database opened
+again under the same authority. A close of another database leaves the dialog where it is, and a
+close that names no database, which lets every approval go, closes it too. The request is written
+down as unanswered, since the operator was shown it, and its client is told `503 locked`: the
+close spares the connections waiting on its operator, as a lock does, the operator's ruling of
+2026-11-08 on the same day. It ended them with the database's other connections, so the dialog it
+closed answered into a closed socket and the client saw only its connection end. A request still
+waiting for the screen is spared too, is never shown, and is told `503 locked` the same way.
 
 **An unlock that lifts no lock closes nothing**, which is a refinement the end to end tier forced
 rather than a weakening. KeePass announces a database being opened and a database being unlocked
@@ -456,6 +476,10 @@ own**, as an unlock: it closed every connection and let every approval go, so cl
 database cost the first a request in flight, and a pairing waiting on its dialog its connection.
 A connection is that database's when its name resolved to an authority of the database, and a
 connection whose name resolves as the database closes is ended as soon as the name has resolved.
+**But for a pairing's or a renewal's waiting on the operator**, which the close spares as a lock
+spares it, since the close has taken its question away and what is left to it is answering
+`503 locked`. Its name resolved before its request was read, so the guard for a name resolving as
+the database closes never ends it, and its deadline still bounds it. An unlock spares none.
 
 **The responder is minted when the database opens, not when a connection arrives.** Minting it
 lazily looks equivalent and is not: a database nobody happened to connect to between an unlock and
@@ -573,9 +597,16 @@ answered, since the write would otherwise put a name back that was taken off in 
 approval is used up there, and the invitation spent there, last, so nothing that can still answer
 busy comes after the burn. **A lock and KeePass exiting let go of every approval held, and a close
 of a database lets go of that database's**, and an approval still settling when KeePass locks is
-answered `503 locked` rather than written into the database an unlock opens again. A close let go
-of every database's until the operator's ruling of 2026-11-01, which told a pairing approved for a
-database still open that its database was locked.
+answered `503 locked` rather than written into the database an unlock opens again. So is an
+approval the operator gave across the lock or the close, which arrives after it, §308. A close let
+go of every database's until the operator's ruling of 2026-11-01, which told a pairing approved for
+a database still open that its database was locked.
+
+**Two exchanges on one invitation can find the same approval held**, since a client may start again
+from a hello while its first request is still waiting, and the write that lands first uses it up.
+The other is answered `409 no invitation` once the invitation is gone, and `503 busy` while it is
+not, which puts the request to the operator again, and the log tells either apart from an approval
+whose time ran out.
 
 **Every `503` is raised before the invitation is spent, and that is what makes it honest.** The
 dialog check and the wait for the screen both happen before the burn, so a caller that starts again
@@ -685,7 +716,9 @@ yet, the audit has its line when the write lands, and the renewal asked again be
 written without the dialog, **unless an answer refusing it stands by then**: a merge can bring one
 in, and so can the dialog of a renewal of the same certificate that asked for another lifetime.
 That answer is what the retry is told, as it would be told before any dialog, and the approval is
-let go. What pairing asks again about its invitation a renewal asks about its
+let go. A stored answer that will not read is no answer: the approval stays held, and the retry is
+told `503 busy` with `heldUntil` again.
+What pairing asks again about its invitation a renewal asks about its
 record: one revoked while the operator was deciding, or left behind by an authority recreated or
 deleted in that time, is answered `401 unpaired` and nothing is issued. **And the write asks it
 once more, under the writer's lock**, comparing the record with the one the operator approved, so a

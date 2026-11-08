@@ -61,14 +61,19 @@ namespace KeePassGate.Ui
         protected abstract void RefuseByKey();
 
         /// <summary>
-        /// Closes the dialog as unanswered because KeePass locked, unless it was answered first.
+        /// Closes the dialog as unanswered because KeePass locked, or because the database it is
+        /// about closed, unless it was answered first.
         /// </summary>
         /// <remarks>
-        /// On KeePass's thread, from inside this dialog's own modal loop, which is where a lock
-        /// arrives while it stands: the loop ends once the lock's handler returns. `PAIRING.md`
-        /// §308 says what the client is told.
+        /// On KeePass's thread, from inside this dialog's own modal loop, which is where a lock or
+        /// a close arrives while it stands: the loop ends once the handler returns. `PAIRING.md`
+        /// §308 holds what the client is told.
         /// </remarks>
-        internal abstract void Withdraw();
+        /// <param name="databaseClosed">
+        /// True for a close of the dialog's database, whose answer names the close, and false for
+        /// a lock.
+        /// </param>
+        internal abstract void Withdraw(bool databaseClosed);
 
         /// <summary>
         /// Enter and Escape refuse, with Shift or without it, whatever has the focus.

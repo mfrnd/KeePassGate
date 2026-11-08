@@ -407,6 +407,77 @@ namespace KeePassGate.Tests
         }
 
         [Test]
+        [Apartment(System.Threading.ApartmentState.STA)]
+        public void A_pairing_whose_dialog_its_database_s_close_took_away_is_unanswered_and_writes_nothing()
+        {
+            // The operator's ruling of 2026-11-08: the dialog goes with its database, as with a
+            // lock, so nothing can be approved over a database that is gone. It is answered as a
+            // dialog a lock closed is, unanswered, and the log names the close.
+            var prompt = new KeePassGate.Ui.PairingApprovalPrompt(KeePassGate.Ui.CurrentThread.Instance, _log);
+            prompt.Dialog = (request, timeout) =>
+            {
+                using (var dialog = new KeePassGate.Ui.PairingApprovalForm(request, timeout))
+                {
+                    dialog.StartPosition = System.Windows.Forms.FormStartPosition.Manual;
+                    dialog.Location = new System.Drawing.Point(-4000, -4000);
+                    dialog.ShowInTaskbar = false;
+
+                    using (var timer = new System.Windows.Forms.Timer { Interval = 100 })
+                    {
+                        var ticks = 0;
+                        timer.Tick += delegate
+                        {
+                            if (++ticks == 1)
+                            {
+                                prompt.Closed(new[] { _target.DatabaseId });
+                                return;
+                            }
+
+                            // Whatever the close left standing is refused, so that this ends.
+                            timer.Stop();
+                            dialog.Refuse();
+                        };
+
+                        timer.Start();
+                        prompt.Show(dialog, request.DatabaseId);
+                    }
+
+                    return dialog.Answer();
+                }
+            };
+            Hello(ClientProof());
+
+            var context = Request("agent-fictitious", Array.Empty<string>(), prompt);
+
+            Assert.That(context.Status, Is.EqualTo(503), context.Json);
+            Assert.That(context.Json, Is.EqualTo(HttpResponse.ErrorBody(LockedTarget.Error)));
+            Assert.That(_target.Admitted, Is.Null, "nothing is written");
+            Assert.That(_book.Outstanding(), Has.Count.EqualTo(1), "nor is the invitation spent");
+            Assert.That(_held.Count, Is.Zero);
+            Assert.That(_audit.Entries.Single().Decision, Is.EqualTo(AuditEntry.Unanswered));
+            Assert.That(_log.Warnings.Any(w => w.Message.Contains(PairingApproval.ClosedReason)), Is.True);
+        }
+
+        [Test]
+        public void A_request_a_lock_kept_off_the_screen_is_not_written_down_as_unanswered()
+        {
+            // S081. It waited for the screen while KeePass locked and was never shown, so nobody
+            // was asked and the audit records nothing, as with no screen to ask. It was taken
+            // for a dialog the lock closed, written down as left unanswered, and logged as closed.
+            var prompt = new KeePassGate.Ui.PairingApprovalPrompt(new FakeUiThread(), databaseId => false, _log);
+            Hello(ClientProof());
+
+            var context = Request("agent-fictitious", Array.Empty<string>(), prompt);
+
+            Assert.That(context.Status, Is.EqualTo(503));
+            Assert.That(context.Json, Is.EqualTo(HttpResponse.ErrorBody(LockedTarget.Error)));
+            Assert.That(_book.Outstanding(), Has.Count.EqualTo(1));
+            Assert.That(_audit.Entries, Is.Empty, "nobody was asked");
+            Assert.That(_log.Warnings.Any(w => w.Message.Contains("closed unanswered")), Is.False,
+                "and no dialog was closed");
+        }
+
+        [Test]
         public void No_screen_to_ask_spends_nothing_either()
         {
             Hello(ClientProof());
@@ -650,6 +721,27 @@ namespace KeePassGate.Tests
             Assert.That(_log.Errors.Any(e => e.Message.Contains("could not be issued")), Is.True);
             Assert.That(_log.Surprises, Is.Empty);
             Assert.That(_audit.Entries, Is.Empty, "an approval that admitted nobody is not written down");
+            Assert.That(_held.Count, Is.Zero, "and the approval is lost, `PAIRING.md` §311");
+        }
+
+        [Test]
+        public void An_approval_whose_certificate_could_not_be_issued_is_not_kept_for_a_retry()
+        {
+            // S015. Nothing was issued, so the approval is lost and the invitation is not. It
+            // was kept held, with nothing telling the client so, and the same request from a
+            // fresh hello was issued without the dialog once the issuer worked again.
+            var issuing = DateTimeOffset.UtcNow + AuthorityIssuer.AuthorityLifetime + TimeSpan.FromDays(1);
+            _issuer = new AuthorityIssuer(() => issuing);
+            var approval = Approving();
+            Hello(ClientProof());
+            Assume.That(Request("agent-fictitious", Array.Empty<string>(), approval).Status, Is.EqualTo(500));
+
+            issuing = DateTimeOffset.UtcNow;
+            Hello(ClientProof());
+            var retry = Request("agent-fictitious", Array.Empty<string>(), approval);
+
+            Assert.That(retry.Status, Is.EqualTo(200), retry.Json);
+            Assert.That(approval.Asked, Is.EqualTo(2), "the operator is asked again");
         }
 
         [Test]
@@ -844,6 +936,156 @@ namespace KeePassGate.Tests
             Hello(ClientProof());
             Assert.That(Request("agent-fictitious", Array.Empty<string>(), approval).Status, Is.EqualTo(200));
             Assert.That(approval.Asked, Is.EqualTo(2));
+        }
+
+        [Test]
+        public void A_lock_between_the_operators_answer_and_its_hold_lets_the_answer_go()
+        {
+            // S083. The dialog had answered and KeePass locked before the answer was held, so the
+            // book the lock had emptied took it all the same: the client was told `503 busy` until
+            // when, and the same request after a quick unlock was written without the dialog.
+            var locked = false;
+            var approval = new FakePairingApproval(request =>
+            {
+                if (!locked)
+                {
+                    locked = true;
+                    ((IApprovalScreen)_held).Locked();
+                    _target.AdmissionBlocked = "the database is not open";
+                }
+
+                return PairingApproval.Approved(Array.Empty<string>());
+            });
+            Hello(ClientProof());
+
+            var context = Request("agent-fictitious", Array.Empty<string>(), approval);
+
+            Assert.That(context.Status, Is.EqualTo(503));
+            Assert.That(context.Json, Is.EqualTo(HttpResponse.ErrorBody(LockedTarget.Error)));
+            Assert.That(_held.Count, Is.Zero, "nothing is held across the lock");
+            Assert.That(_book.Outstanding(), Has.Count.EqualTo(1), "and nothing is spent");
+            Assert.That(_log.Warnings.Any(w => w.Message.Contains("KeePass locked or closed the database")), Is.True);
+
+            _target.AdmissionBlocked = null;
+            Hello(ClientProof());
+            var retry = Request("agent-fictitious", Array.Empty<string>(), approval);
+
+            Assert.That(retry.Status, Is.EqualTo(200), retry.Json);
+            Assert.That(approval.Asked, Is.EqualTo(2), "the operator is asked again after the unlock");
+        }
+
+        [Test]
+        public void An_approval_given_after_its_database_closed_is_not_written_into_it_once_reopened()
+        {
+            // D005 and D017. Nothing takes the dialog down when its database closes for real, and
+            // an Approve pressed after the close was held in the book the close had emptied, for a
+            // retry of the same request on the database opened again under the same authority.
+            var closed = false;
+            var approval = new FakePairingApproval(request =>
+            {
+                if (!closed)
+                {
+                    closed = true;
+                    ((IApprovalScreen)_held).Closed(new[] { _target.DatabaseId });
+                    _target.AdmissionBlocked = "the database is not open";
+                }
+
+                return PairingApproval.Approved(Array.Empty<string>());
+            });
+            Hello(ClientProof());
+
+            var context = Request("agent-fictitious", Array.Empty<string>(), approval);
+
+            Assert.That(context.Status, Is.EqualTo(503));
+            Assert.That(context.Json, Is.EqualTo(HttpResponse.ErrorBody(LockedTarget.Error)));
+            Assert.That(_held.Count, Is.Zero);
+
+            _target.AdmissionBlocked = null;
+            Hello(ClientProof());
+            var retry = Request("agent-fictitious", Array.Empty<string>(), approval);
+
+            Assert.That(retry.Status, Is.EqualTo(200), retry.Json);
+            Assert.That(approval.Asked, Is.EqualTo(2), "the reopened database's operator is asked again");
+        }
+
+        [Test]
+        public void A_held_approval_another_request_wrote_first_is_told_the_invitation_is_gone()
+        {
+            // D006. Two exchanges on one invitation can both find the same held approval, and
+            // the write that lands first takes it and spends the invitation. The other was logged
+            // as held until its time ran out and told `503 busy`, inviting a retry on an
+            // invitation that was already gone.
+            var approval = Approving();
+            _target.AdmitAnswers = AdmissionWrite.Busy("KeePass is saving");
+            Hello(ClientProof());
+            Assume.That(Request("agent-fictitious", Array.Empty<string>(), approval).Status, Is.EqualTo(503));
+
+            var held = _held.Find(
+                ApprovalBook.Pairing(_invitation.Id, "agent-fictitious", Array.Empty<string>(), null), _target.DatabaseId);
+            Assume.That(held, Is.Not.Null);
+            _target.AdmitAnswers = null;
+            _target.BeforeWrite = () =>
+            {
+                // The other exchange's write, landing first.
+                _held.Take(held);
+                _book.Burn(_invitation.Id);
+            };
+
+            Hello(ClientProof());
+            var context = Request("agent-fictitious", Array.Empty<string>(), approval);
+
+            Assert.That(context.Status, Is.EqualTo(409), context.Json);
+            Assert.That(context.Json, Is.EqualTo(HttpResponse.ErrorBody("no invitation")));
+            Assert.That(_log.Warnings.Any(w => w.Message.Contains("another request")), Is.True);
+            Assert.That(_log.Warnings.Any(w => w.Message.Contains("its time ran out")), Is.False);
+            Assert.That(approval.Asked, Is.EqualTo(1));
+        }
+
+        [Test]
+        public void A_held_approval_another_request_used_up_without_spending_anything_asks_again()
+        {
+            // The other exchange took the approval and wrote nothing, as a write refused because a
+            // profile left the list does: the invitation is still good, so the answer is the
+            // `503 busy` that puts the request to the operator again.
+            var approval = Approving();
+            _target.AdmitAnswers = AdmissionWrite.Busy("KeePass is saving");
+            Hello(ClientProof());
+            Assume.That(Request("agent-fictitious", Array.Empty<string>(), approval).Status, Is.EqualTo(503));
+
+            var held = _held.Find(
+                ApprovalBook.Pairing(_invitation.Id, "agent-fictitious", Array.Empty<string>(), null), _target.DatabaseId);
+            Assume.That(held, Is.Not.Null);
+            _target.AdmitAnswers = null;
+            _target.BeforeWrite = () => _held.Take(held);
+
+            Hello(ClientProof());
+            var context = Request("agent-fictitious", Array.Empty<string>(), approval);
+
+            Assert.That(context.Status, Is.EqualTo(503), context.Json);
+            Assert.That(context.Json, Is.EqualTo(HttpResponse.ErrorBody("busy")));
+            Assert.That(_book.Outstanding(), Has.Count.EqualTo(1));
+            Assert.That(_log.Warnings.Any(w => w.Message.Contains("another request")), Is.True);
+            Assert.That(_log.Warnings.Any(w => w.Message.Contains("its time ran out")), Is.False);
+        }
+
+        [Test]
+        public void A_close_of_another_database_between_the_question_and_the_answer_keeps_the_answer()
+        {
+            // The operator's ruling R1: a close lets go of its own database's approvals and of no
+            // other's, and an answer that arrives after it is no different.
+            var approval = new FakePairingApproval(request =>
+            {
+                ((IApprovalScreen)_held).Closed(new[] { "another database" });
+                return PairingApproval.Approved(Array.Empty<string>());
+            });
+            _target.AdmitAnswers = AdmissionWrite.Busy("KeePass is saving");
+            Hello(ClientProof());
+
+            var context = Request("agent-fictitious", Array.Empty<string>(), approval);
+
+            Assert.That(context.Status, Is.EqualTo(503));
+            Assert.That(JsonBody.Read(context.Json).Text("heldUntil"), Is.Not.Null, context.Json);
+            Assert.That(_held.Count, Is.EqualTo(1));
         }
 
         [Test]
