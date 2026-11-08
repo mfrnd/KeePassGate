@@ -90,11 +90,11 @@ info:
     section 2.11 of XML 1.0 requires. So a value written with `\r\n` or a lone `\r` is answered
     `200` or `201`, is exactly what was sent for as long as the database stays open, and reads
     back with `\n` once KeePass has opened the file again. Tabs and line feeds survive unchanged.
-    A client that compares what it wrote with what it reads compares line endings as equal, and
-    one that needs the carriage returns kept encodes them itself. A surrogate half written as an
-    escape is the one string `Malformed` does not reach: the JSON reader replaces it with
-    `U+FFFD` before anything here sees it, which is what a caller asking to store half a
-    character gets everywhere else too.
+    A client that compares what it wrote with what it reads compares line endings as equal, and a
+    client needing the carriage returns kept encodes them itself. A surrogate half never reaches
+    `Malformed`. Written as an escape, the JSON reader replaces it with `U+FFFD` before anything
+    here sees it, which is what a caller asking to store half a character gets everywhere else
+    too, and written raw it is not UTF-8, which the transport refuses before a route is chosen.
 
     `x-kpg-unauthenticated` marks the two routes an invitee may reach before it has a certificate.
     Everything else needs one, by default rather than by remembering to say so.
@@ -1326,7 +1326,10 @@ paths:
                   maxLength: 65536
                   description: |
                     Line breaks, tabs and bidirectional controls are allowed here, since notes are
-                    a field like any other and right to left text is ordinary in one.
+                    a field like any other and right to left text is ordinary there. A value of
+                    whitespace and nothing else, line breaks and tabs included, is
+                    `400 malformed`, as `Malformed` explains, since the file would read it back
+                    empty.
                 # A string because a request body on this wire carries no booleans. §505
                 protected:
                   type: string
@@ -1451,6 +1454,9 @@ paths:
                 value:
                   type: string
                   maxLength: 65536
+                  description: |
+                    As `createField` takes a value: line breaks, tabs and bidirectional controls
+                    are allowed, and a value of whitespace and nothing else is `400 malformed`.
       responses:
         "200":
           $ref: "#/components/responses/Done"
@@ -2402,9 +2408,11 @@ components:
       description: |
         The body, or the value of a query parameter, is not what the document declares, or it is
         and carries a string a `.kdbx` cannot hold, on every operation and in the name of a field
-        or an attachment as much as in a value: one holding a control character other than tab,
-        carriage return and line feed, `U+FFFE` or `U+FFFF`, or a surrogate without its pair, and
-        one of whitespace and nothing else. The body names which.
+        or an attachment as much as in a value: a string holding a control character other than
+        tab, carriage return and line feed, or `U+FFFE` or `U+FFFF`, and a string of whitespace and
+        nothing else. A surrogate half never arrives here, as the description at the top explains.
+        Each of these is answered `{"error":"malformed"}`, the same word whichever it was, so a
+        client is told that the request was refused and not which part of it.
       content:
         application/json:
           schema:

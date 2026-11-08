@@ -11,6 +11,10 @@ none, since it releases both.
 
 ## 0.2.0, unreleased
 
+- **The routing document's `Malformed` no longer promises a body naming which refusal it was**:
+  every case is answered `malformed`. It no longer lists a surrogate without its pair, which never
+  reaches it, and a field's value states that whitespace and nothing else is refused, where it
+  stated only that line breaks and tabs are allowed.
 - **The routing document names the error words worth matching on**, `not saved`, `not verified`,
   `not recorded` and `internal error` on a `500` among them, where it named a few and called the
   rest told apart by the status. It tells `409 no exchange`, after which the same invitation starts
