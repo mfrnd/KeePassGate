@@ -419,6 +419,55 @@ def test_each_entry_a_value_names_is_read_once() -> None:
     assert database.asked == [VAULT]
 
 
+def layered(width: int, layers: int) -> dict[str, str | None]:
+    """Strings in layers, each naming every string of the layer below, the last holding a letter.
+
+    Acyclic and inside `refs.DEPTH`, so neither check stops it, and compiled once for every path
+    through it, which is `width` to the power of `layers`.
+    """
+
+    def named(layer: int, index: int) -> str:
+        return f"L{layer}_{index}"
+
+    strings: dict[str, str | None] = {named(layers - 1, index): "x" for index in range(width)}
+    for layer in range(layers - 1):
+        below = "".join("{S:" + named(layer + 1, index) + "}" for index in range(width))
+        strings |= {named(layer, index): below for index in range(width)}
+
+    return strings
+
+
+def test_strings_that_name_each_other_in_wide_layers_are_refused_rather_than_waited_on() -> None:
+    # A few hundred characters any client that may change the entry can write: 34 such strings
+    # took 37 seconds, and a few more never finished.
+    entry = Entry.read(answer(SERVICE, layered(width=3, layers=9)))
+
+    with pytest.raises(Unresolved, match=f"more than {refs.COMPILES} compilations"):
+        refs.resolve(Database([]), entry, "{S:L0_0}")
+
+
+def test_strings_that_name_each_other_narrowly_are_followed_as_before() -> None:
+    entry = Entry.read(answer(SERVICE, layered(width=2, layers=6)))
+
+    assert refs.resolve(Database([]), entry, "{S:L0_0}") == "x" * 2**5
+
+
+def test_a_value_that_comes_to_more_than_a_client_holds_is_refused() -> None:
+    # Few compilations, many characters: a long string named many times over.
+    entry = Entry.read(answer(SERVICE, {"Notes": "n" * 300_000}))
+
+    with pytest.raises(Unresolved, match=f"more than {refs.CHARACTERS} characters"):
+        refs.resolve(Database([]), entry, "{NOTES}" * 20)
+
+    assert refs.resolve(Database([]), entry, "{NOTES}" * 2) == "n" * 600_000
+
+    # Each value inside the limit, and what they come to together over it.
+    entry = Entry.read(answer(SERVICE, {"Notes": "n" * 300_000, "Big": "{NOTES}" * 10}))
+
+    with pytest.raises(Unresolved, match=f"more than {refs.CHARACTERS} characters"):
+        refs.resolve(Database([]), entry, "{S:Big}{NOTES}")
+
+
 def test_a_search_is_refused_without_repeating_what_it_searched_for() -> None:
     # The search text is part of the value, and a refusal is what gets logged.
     entry = Entry.read(answer(SERVICE, {"Title": "Invented Service"}))

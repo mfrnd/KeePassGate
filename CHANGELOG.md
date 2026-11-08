@@ -11,6 +11,11 @@ none, since it releases both.
 
 ## 0.2.0, unreleased
 
+- **`refs.resolve` refuses a value that takes more work than it spends**, with `Unresolved`:
+  more than a thousand compilations, `refs.COMPILES`, or more than 4 MiB, `refs.CHARACTERS`.
+  Strings that name each other in wide layers are compiled once for every path through them, so
+  34 short strings took 37 seconds and a few more never finished, and nothing bounded it. Folding
+  and replacing take a pass over the text where they took one per character and per occurrence.
 - **A listed entry has no `protected` and a listed attachment no `content`**: each raises
   `AttributeError`, as a listed entry's password does, where the entry answered `()`, naming
   nothing protected beside a withheld title, and the attachment `None`. A read carries both as

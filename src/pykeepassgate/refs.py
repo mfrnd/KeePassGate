@@ -24,12 +24,12 @@ listed in `REFUSED`, and one of those an earlier replacement made, which KeePass
 leaves as text by where in its own order the placeholder's step falls. References that go round in
 a circle or further than KeePass follows, where KeePass gives up at the deepest level and answers
 that value as empty, keeping the text around it: this refuses the whole value rather than give
-that. **And what it refuses with `AmbiguousName`**: a placeholder whose name matches a field
-only when letters beyond ASCII are compared without their case, which is a comparison KeePass
-makes its own way, and a standard string the entry holds under no name spelled exactly so while
-it holds a name beyond ASCII or with a null in it, which KeePass's collation may read as that
-string. A value it may not
-read, behind a reference or a placeholder, raises `Withheld`.
+that. And a value that takes more work than `COMPILES` and `CHARACTERS` allow, which KeePass
+would go on with. **And what it refuses with `AmbiguousName`**: a placeholder whose name matches
+a field only when letters beyond ASCII are compared without their case, which is a comparison
+KeePass makes its own way, and a standard string the entry holds under no name spelled exactly
+so while it holds a name beyond ASCII or with a null in it, which KeePass's collation may read as
+that string. A value it may not read, behind a reference or a placeholder, raises `Withheld`.
 
 **What it leaves as it is.** Braces that name nothing KeePass knows, which are ordinary in a
 generated password, and a reference too malformed for KeePass to read, both as KeePass leaves them.
@@ -47,6 +47,7 @@ make a placeholder out of the text around it.
 
 from __future__ import annotations
 
+import string
 from typing import Protocol
 
 from .errors import AmbiguousName, RouteRefused, Unresolved, Withheld
@@ -70,6 +71,18 @@ DEPTH = 12
 #: How many references KeePass looks at in one value, the loop in `FillRefPlaceholders`, counting
 #: the ones it skips; one after them is left as text there, and so here.
 REFERENCES = 20
+
+#: How many values one value may take compiling, its own included: a placeholder or a reference
+#: is compiled again each time it is found, as KeePass compiles it, so strings that name each
+#: other in wide layers inside `DEPTH` take as many compilations as there are paths through them,
+#: and a few hundred characters held 34 strings for 37 seconds. Past this, `Unresolved`, which
+#: KeePass would not raise: no value a person wrote needs a thousand.
+COMPILES = 1000
+
+#: How many characters the values a value is made of may come to, counted as each is compiled,
+#: for strings few enough to stay inside `COMPILES` that are long: a note of 1 MiB named twenty
+#: times. Past this, `Unresolved` as well.
+CHARACTERS = 4 * 1024 * 1024
 
 #: What each letter of a reference asks for, which `I`, the entry's identifier, completes.
 WANTED = {"T": TITLE, "U": USERNAME, "P": PASSWORD, "A": URL, "N": NOTES}
@@ -210,13 +223,19 @@ def _might_change(value: str) -> bool:
     return (0 <= opened < value.rfind("}")) or (0 <= percent < value.rfind("%"))
 
 
+#: ASCII's lower case letters to their upper case, which is all `_fold` changes. A table, so that
+#: folding is the interpreter's work rather than a step of Python's for every character: a value is
+#: folded again for every name its entry holds.
+_ASCII_UPPER = str.maketrans(string.ascii_lowercase, string.ascii_uppercase)
+
+
 def _fold(text: str) -> str:
     """Text as KeePass compares it without case, for the letters this can be sure of: ASCII's."""
-    return "".join(letter.upper() if letter.isascii() else letter for letter in text)
+    return text.translate(_ASCII_UPPER)
 
 
-def _wide(text: str) -> str:
-    """Text with every letter's case taken away that has one, beyond ASCII as well.
+class _WideLetters(dict[int, int]):
+    """What `_wide` makes of each character, worked out the first time the character is folded.
 
     Each letter is folded through its upper case where that is one letter, and otherwise through
     its lower case: a Greek letter with an iota subscript has an upper case of two letters, and
@@ -227,14 +246,25 @@ def _wide(text: str) -> str:
     read an i with no dot as an `I` or a long s as an `S`, which `ReferenceVectors.json` shows, so
     neither may this.
     """
-    def folded(letter: str) -> str:
+
+    def __missing__(self, code: int) -> int:
+        letter = chr(code)
+        folded = code
         for cased in (letter.upper(), letter.lower()):
             if len(cased) == 1 and (letter.isascii() or not cased.isascii()):
-                return cased
+                folded = ord(cased)
+                break
 
-        return letter
+        self[code] = folded
+        return folded
 
-    return "".join(folded(letter) for letter in text)
+
+_WIDE = _WideLetters()
+
+
+def _wide(text: str) -> str:
+    """Text with the case taken off every letter that has a case, beyond ASCII: `_WideLetters`."""
+    return text.translate(_WIDE)
 
 
 def _present(text: str, placeholder: str) -> bool:
@@ -271,19 +301,36 @@ def _replace(text: str, placeholder: str, value: str) -> str:
     """Every occurrence of the placeholder, in any case, replaced: `StrUtil.ReplaceCaseInsensitive`.
 
     Left to right, and the search goes on after what was put in, so a value is never searched for
-    the placeholder it replaced.
+    the placeholder it replaced. So every occurrence is found in the text as it was, folded once,
+    since `_fold` keeps each character where it is: one pass, where searching the text again after
+    each replacement took a pass per occurrence. **Refused with `Unresolved`** once the text would
+    come to more than `CHARACTERS`, before it is made.
     """
     wanted = _fold(placeholder)
+    folded = _fold(text)
+    pieces: list[str] = []
+    length = 0
     position = 0
-    while position < len(text):
-        found = _fold(text).find(wanted, position)
-        if found < 0:
-            break
+    found = folded.find(wanted)
+    while found >= 0:
+        length += found - position + len(value)
+        if length > CHARACTERS:
+            raise Unresolved(_TOO_LONG)
 
-        text = text[:found] + value + text[found + len(placeholder) :]
-        position = found + len(value)
+        pieces += (text[position:found], value)
+        position = found + len(placeholder)
+        found = folded.find(wanted, position)
 
-    return text
+    pieces.append(text[position:])
+    return "".join(pieces)
+
+
+#: The reason `Unresolved` gives for a value that comes to more than `CHARACTERS`.
+_TOO_LONG = (
+    f"this value comes to more than {CHARACTERS} characters as KeePass would give it, which "
+    "KeePass would go on making and this will not: strings that name each other can come to more "
+    "than this client can hold"
+)
 
 
 class _Resolution:
@@ -295,6 +342,7 @@ class _Resolution:
     many references a value can hold, so it is kept rather than left out. `path` is the fields being
     compiled, outermost first, which is how a circle is seen when KeePass would only run out of
     depth. `read` keeps each entry a reference named, since one resolution is one moment.
+    `compiles` and `characters` are the work done so far, which `COMPILES` and `CHARACTERS` bound.
     """
 
     def __init__(self, client: Entries) -> None:
@@ -302,6 +350,8 @@ class _Resolution:
         self._cache: list[tuple[str, str]] = []
         self._path: list[tuple[str, str]] = []
         self._read: dict[str, Entry] = {}
+        self._compiles = 0
+        self._characters = 0
 
     def compile(self, text: str, entry: Entry, level: int) -> str:
         """What `SprEngine.CompileInternal` makes of this text, for what this follows."""
@@ -312,11 +362,25 @@ class _Resolution:
                 "it, which this will not give as an answer"
             )
 
+        self._compiles += 1
+        if self._compiles > COMPILES:
+            raise Unresolved(
+                f"working this value out takes more than {COMPILES} compilations of the strings "
+                "and references it names, which KeePass would go through and this will not: "
+                "strings that name each other in wide layers take a compilation for every path "
+                "through them, which grows past any wait"
+            )
+
         _refuse(text, REFUSED)
         text = self._strings(text, entry, level)
         _refuse(text, LATE, made=True)
         text = self._references(text, level)
         _refuse(text, LATE, made=True)
+
+        self._characters += len(text)
+        if self._characters > CHARACTERS:
+            raise Unresolved(_TOO_LONG)
+
         return text
 
     def _strings(self, text: str, entry: Entry, level: int) -> str:

@@ -332,9 +332,10 @@ class Unresolved(GateError):
     identifier, which KeePass answers from the whole database and the gate from what this client
     may see; a reference to an entry this client cannot read, absent, in the recycle bin and
     refused being one answer; a placeholder KeePass replaces and the resolver does not;
-    and references that go round in a circle, or further than KeePass follows. Which name KeePass
-    would read is `AmbiguousName`'s. The message names the reference or the placeholder, and never
-    the value it was found in.
+    references that go round in a circle, or further than KeePass follows; and a value that takes
+    more work to give than `refs.COMPILES` and `refs.CHARACTERS` allow. Which name KeePass would
+    read is `AmbiguousName`'s. The message names the reference or the placeholder, and never the
+    value it was found in.
     """
 
 
