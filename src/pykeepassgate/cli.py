@@ -20,7 +20,9 @@ person, and `json`, one document for a program such as `jq`. A choice rather tha
 switch, so that another format is one more choice. Both say the same things under the same rules:
 a value the rule withholds is named as withheld and never printed as empty, and what the gate did
 not say is left out rather than printed as nothing. Only what a command found is formatted; a
-failure is a sentence on standard error and an exit code either way.
+failure is a sentence on standard error and an exit code either way, and is printed beside what
+was found only where something was: `renew` that kept the certificate before, and `status`
+answered that the gate is not serving.
 
 **Every standard stream is UTF-8**, whatever the code page, as Python 3.15 makes them by default:
 a listing written to a file or a pipe on Windows was encoded as cp1252 and died part way through
@@ -1392,6 +1394,7 @@ def _status(arguments: argparse.Namespace) -> int:
         **_dialing(arguments),
     )
     status = client.status()
+    serving = "serving" if status.ok else "not serving"
     _emit(
         arguments,
         {
@@ -1400,9 +1403,15 @@ def _status(arguments: argparse.Namespace) -> int:
             "version": status.version,
             "revision": status.revision,
         },
-        [f"gate {status.version} serving database {status.database}"],
+        [f"gate {status.version} {serving} database {status.database}"],
     )
-    return 0 if status.ok else FAILED
+    if status.ok:
+        return 0
+
+    # What the gate answered is printed, since it is what was found, and the failure is the
+    # sentence and the exit code beside it, as with every other failure.
+    print("the gate answered that it is not serving this database: ok is false", file=sys.stderr)
+    return FAILED
 
 
 def _renew(arguments: argparse.Namespace) -> int:

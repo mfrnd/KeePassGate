@@ -11,6 +11,8 @@ none, since it releases both.
 
 ## 0.2.0, unreleased
 
+- **`status` answered `ok: false` prints `not serving`** where it printed `serving`, and a
+  sentence on standard error, where it printed nothing there and exited 1.
 - **Ctrl+C ends a command with exit code 130 and the line `interrupted`**, a pairing's wait on
   the operator among them, and a reader that stops reading, as `head -1` does, ends it with exit
   code 1 and nothing on standard error. Both ended in a traceback, and the second with exit code

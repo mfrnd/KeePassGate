@@ -228,7 +228,10 @@ def test_status_prints_what_the_gate_said_and_keeps_its_exit_code(
 
     assert cli.main(["status", "--directory", str(kept), "-o", "json"]) == 1
 
-    assert printed(capsys) == body
+    # What the gate answered is what was found, and the failure is the sentence beside it.
+    out, error = capsys.readouterr()
+    assert json.loads(out) == body
+    assert error == "the gate answered that it is not serving this database: ok is false\n"
 
 
 def test_identity_says_what_is_stored_and_nothing_it_holds(

@@ -359,7 +359,11 @@ def test_a_gate_that_says_it_is_not_ok_exits_with_the_number_a_script_reads(
     )
 
     assert cli.main(["status", "--directory", str(tmp_path / "kept")]) == 1
-    assert "abcdef01" in capsys.readouterr().out
+
+    # And not printed as serving, with the failure in a sentence of its own, as every other is.
+    out, error = capsys.readouterr()
+    assert out == f"gate {__version__} not serving database abcdef01\n"
+    assert error == "the gate answered that it is not serving this database: ok is false\n"
 
 
 def test_a_certificate_that_has_expired_is_reported_as_expired(
