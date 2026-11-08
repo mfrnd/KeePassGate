@@ -59,7 +59,7 @@ can read it.
 | | |
 | --- | --- |
 | `at` | when it was decided, UTC, to the second |
-| `database` | which database answered: the SHA-256 of its authority's certificate, in hex, whose first sixteen characters are the **Fingerprint** on the Certificate Authority page. Recreating the authority gives the same file a new value here. `null` on the operator's revocation in a database serving no authority, which is a database holding several authorities that copies of it made separately, before any of them has been kept |
+| `database` | which database answered: the SHA-256 of its authority's certificate, in hex, whose first sixteen characters are the **Fingerprint** on the Certificate Authority page. Recreating the authority gives the same file a new value here. `null` on the operator's revocation in a database serving no authority once **OK** is through, whatever the reason: its authority will not read, every authority it held is retired, or it holds several authorities that copies of it made separately and none of them has been kept yet |
 | `admissionKey` | which certificate the line is about, by the same admission key the Clients page revokes: the one that asked, or the one a revocation took away. `null` on a pairing, whose program holds no certificate yet |
 | `clientKey` | which client that certificate belongs to, by its **client key**: the admission key of the certificate it paired with, which the KPG tab counts and tells clients apart by and which a renewal keeps. `null` where no admission record stands behind the line, which is a pairing the operator did not approve and a certificate the gate refuses |
 | `operation` | what it asked for, by the name the routing table gives it, or `null` for the operator's own revocation, which no route asked for |
@@ -82,13 +82,29 @@ prints when it pairs is its client key as well, for good.
 
 **`permitted` means the rules allowed it, and nothing more.** The line is written as the rules
 answer, before the body is checked and before anything is read or written, so a request can be
-`permitted` here and still be answered with a refusal of its body, a conflict, `412` for a group
-or an entry that changed since the program read it, `503 busy`, `503 locked` or a failure. None of
-those gets a line of its own: what the request came to is what the program was answered. Why a
-change was refused is in the plugin's log, a warning per refusal, `412` included, which is where to
-look when a program's writes keep coming back `busy`: some of the reasons, a dialog left open or a
-database file changed on disk, clear only when somebody at the desk acts. A program refused `412`
-over and over is either writing over somebody or guessing, and the log is where that shows.
+`permitted` here and still be answered with a refusal of its body, a conflict, `412`, `503 busy`,
+`503 locked` or a failure. None of those gets a line of its own: what the request came to is what
+the program was answered. Why a change was refused is in the plugin's log, a warning per refusal,
+a change's `412` included, which is where to look when a program's writes keep coming back `busy`:
+some of the reasons, a dialog left open or a database file changed on disk, clear only when
+somebody at the desk acts.
+
+**A `412` does not always mean the node changed.** It answers a program whose tag no longer matches
+what the group or entry holds, and it also answers every `If-Match` from a program the gate hands
+no tag to, because its rules do not read everything a tag covers, and an `If-Match` that does not
+read as a tag at all: neither can ever be met, whether anything changed or not. A change's `412` is
+in the log, and a read's is written nowhere. A program refused `412` on its writes over and over is
+writing over somebody, guessing, or naming a tag it was never handed, and the log is where that
+shows.
+
+**A protected value withheld is a second decision, and gets a line of its own.** When the rules
+allow a request whose answer would carry a value the database protects, and no rule of the
+program's reaches protected values there, the value is withheld from the answer, or a write that
+would set such a value is refused as a node that cannot be reached. Either way a second line
+follows the request's `permitted` line, about the same operation and node: `refused`, with the
+reason the rules give, usually `a rule here does not reach protected values`. So `readEntry`
+permitted and then refused for one node is a read that went ahead without its protected values. A
+request that withheld nothing gets no second line.
 
 **A program asking what it may do at a group or an entry is a decision as well**, and written down
 like any other: `permitted` when some profile it holds may do something there, `refused` when none
@@ -176,11 +192,14 @@ both files in a couple of minutes, including the lines recording what it did fir
 recorded up to a thousand times at once and ten times a second after that, counted by its client
 key so that renewing does not start it again, and a request past that is answered more slowly
 rather than refused or left out. A certificate the gate refuses has no client key and is counted by
-its own admission key. A single client flooding the gate therefore
-needs well over an hour to push a line out of both files, and every line it writes on the way names
-it. Its renewals and its revocation of itself count against the same allowance, since a renewal
-refused by an earlier answer is answered at once and as often as it is asked. A pairing waits on
-the operator, and the operator's revocation on nobody, so neither is held back.
+its own admission key. A file holds about twenty thousand lines, so a single client flooding the
+gate needs about half an hour to push a line out of both files: a line written just before the file
+is set aside goes once the next file fills, and only a line at the start of a file lasts about an
+hour. Every line the client writes on the way names it, and where what a client did first matters,
+the lines are worth shipping somewhere else more often than that. A client's renewals and its
+revocation of itself count against the same allowance, since a renewal refused by an earlier
+answer is answered at once and as often as it is asked. A pairing waits on the operator, and the
+operator's revocation on nobody, so neither is held back.
 
 ## When it is not being written
 

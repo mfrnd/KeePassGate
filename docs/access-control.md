@@ -20,8 +20,9 @@ Open **File**, **Database Settings**, pick the **KPG** tab, then the **Profiles*
 | **Clients** | how many admitted clients hold it |
 | **X** | removes it |
 
-Type a name and press **Add**. A name is letters, digits, dash and underscore, up to 64 of
-them. It grants nothing until a rule says so.
+Type a name and press **Add**. A name is ASCII letters, digits, hyphens and underscores, up to 64
+of them, so the letters are A to Z without accents, and it is not `default` in any mix of capitals,
+which the stored rules keep for a meaning of their own. It grants nothing until a rule names it.
 
 The other way one arrives is pairing: a program asks for profiles by name, and any this database does
 not name now and no client holds is marked "(new)" on the approval dialog. Approving adds it, and
@@ -110,9 +111,9 @@ The eight characters are always in the same order, and a dot means "not this one
 
 | | | |
 | --- | --- | --- |
-| `C` | create | make a new group or entry here |
-| `R` | read | read what an entry holds |
-| `U` | update | change what an entry holds |
+| `C` | create | make a new group or entry here, or add a field or an attachment to an entry |
+| `R` | read | read a group's notes, or what an entry holds |
+| `U` | update | rename a group or change its notes, or change what an entry holds |
 | `S` | strip | take fields and attachments off an entry, though not the five every entry has, which are emptied instead |
 | `D` | delete | **removals are allowed here**: see below, because this one is asked twice |
 | `L` | list | see that something exists, and whether an entry has expired, without reading it |
@@ -179,6 +180,16 @@ to that program. And with a URL override switched on, under **Tools**, **Options
 **Integration**, it puts the URL into a command line, with the entry's user name or password where
 the override names them. KeePass asks first only before it runs a command line, and that question
 can be switched off. So don't open a URL a program may have written.
+
+**A link in an entry's notes is opened the same way, and by a single click.** The entry view, the
+pane under the entry list, makes a link of a web address in the notes, the title, the user name or
+a field of the entry's own, percent signs and all, and clicking it hands it to the browser as
+opening the URL does: `%NAME%` becomes the value of the environment variable of that name first,
+and nothing asks. A brace ends such a link, so a reference does not travel this way. So a program
+that may write an entry can put an address of its choosing there with a variable's name in it, and
+the operator's click sends the variable's value to that address. A percent sign is as ordinary in a
+note as a brace is, so the gate stores it as written, and a link in an entry a program may have
+written is to be left alone as its URL is.
 
 **Global auto-type chooses an entry by its title.** When you press KeePass's global auto-type
 hot key, an entry matches if its title is contained in the title of the window in front, and when
@@ -298,6 +309,33 @@ is the one that answers.
 
 Use it on a group holding things no program should reach.
 
+## When the tab changes nothing
+
+**The tab shows the rules and will not change them** in three cases, and the line over the table
+gives the reason:
+
+- **Several entries edited together.** What KeePass's dialog holds for them is no single entry's
+  rules, so open one entry at a time to read or change its rules.
+- **An earlier version of an entry**, opened from its **History** tab. The rules shown are the ones
+  that version had, not the ones in force, and KeePass keeps nothing changed on that dialog.
+- **A KeePass this plugin cannot reach into**: a KeePass that keeps a dialog's settings somewhere
+  the plugin does not find them, or that does not tell it which database, group or entry the dialog
+  is about. The rules can be read and not changed, and
+  [the plugin's log](getting-started.md#the-plugins-log) names what was missing.
+
+**Rules that cannot be read are refused rather than skipped.** A rule damaged by a merge, edited by
+hand or written by a later version of the plugin is still there, and nobody can tell what it was
+taking away, so every profile is refused at that group or entry and everything under it unless a
+nearer rule admits it, and the tab cannot be edited while they stand. **Discard the unreadable
+rules** throws away that node's own rules, with the **Refuse any profile not named here** check
+mark, and lets the tab be edited again: it is the only way past them. Like every other change on the
+tab, it is kept by OK and undone by Cancel. What the rules held is shown nowhere, since it could not
+be read, so write the rules the node should have before pressing OK.
+
+**A rule above that cannot be read** is named on the tab as well: nothing beyond it arrives here, so
+a profile that neither this node nor a group in between names is refused. Its rules are discarded on
+the group that holds them, not here.
+
 ## Press OK
 
 **A rule is kept by the dialog's OK and discarded by its Cancel**, like everything else on those
@@ -313,11 +351,18 @@ own. Either way OK and Cancel mean what they say.
 In the group's or entry's own custom data, under a key beginning `KPG`. It travels with the
 database, it is covered by the database's encryption, and no other plugin's data is touched.
 
-**A copy of a node carries its rules.** **Duplicate Entry** and **Duplicate Group** give the copy
-the original's custom data, rules included, and a duplicated group brings the rules of everything
-inside it as well. The copy is a node of its own, with an identifier of its own, and it grants what
-the original's rules grant wherever it is moved, so look at its **KPG** tab before moving it
-somewhere a program should not reach.
+**A copy of a node carries its rules**, whichever way KeePass makes the copy. **Duplicate Entry**
+and **Duplicate Group**, copying entries or a group into another group, and making an entry from a
+template all give the copy the original's custom data, rules included, and a copied group brings
+the rules of everything inside it as well. The copy is a node of its own, with an identifier of its
+own, and it grants what the original's rules grant wherever it is moved, so look at its **KPG** tab
+before moving it somewhere a program should not reach.
+
+**A rule on a template is a rule on every entry made from it.** The arrow beside the toolbar's
+**Add Entry** button offers the entries of the templates group chosen under **File**, **Database
+Settings**, **Advanced**, and an entry made from a template is a copy of it, made in whichever group
+is selected at the time. So keep rules off the templates, or check the **KPG** tab of every entry
+made from a template.
 
 ## What a program actually gets
 

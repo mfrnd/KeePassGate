@@ -7,8 +7,9 @@ programs in; until then it can do nothing at all.
 
 KeePassGate is a plain DLL, built against KeePass 2.61.1, and it needs that release or a later one:
 an older KeePass cannot load it. Make a directory named `KeePassGate` inside the `plugins` directory
-of the KeePass installation, copy `KeePassGate.dll` **and every DLL beside it** into that, then
-restart KeePass. KeePass looks for plugins in the directories under `plugins` as well.
+of the KeePass installation, copy `KeePassGate.dll` **and every DLL beside it** into that, with
+`KeePassGate.pdb` where it is there too, then restart KeePass. KeePass looks for plugins in the
+directories under `plugins` as well.
 
 **Windows is the only platform the plugin is made for.** KeePass 2.x also runs under Mono, on Linux
 and macOS, and the plugin does not: under Mono 6.8, as Ubuntu 24.04 ships it, the plugin could not
@@ -46,14 +47,34 @@ other plugin to a Bouncy Castle at least as new mends it, and so does removing t
 [the releases page](https://github.com/mfrnd/KeePassGate/releases) carries
 `KeePassGate-<version>.zip` and a `SHA256SUMS`, and so does the release it marks the latest,
 since a release of the client alone carries neither and is never marked so. The zip holds the
-whole set, the license and `THIRD-PARTY-NOTICES.md`, under `KeePassGate`. The sums name each file
-under `KeePassGate/` and the zip by its own name, so they are checked where the zip lies: put both
-in one directory, extract the zip there, run `sha256sum -c SHA256SUMS` in that directory, and only
-then copy the folder into `plugins`.
+whole set under `KeePassGate`: the DLLs, `KeePassGate.pdb`, the license and
+`THIRD-PARTY-NOTICES.md`. The sums name each file under `KeePassGate/` and the zip by its own name,
+so they are checked where the zip lies: put both in one directory, extract the zip there, check the
+sums in that directory, and only then copy the folder into `plugins`. In PowerShell, in that
+directory, with the zip's own name in the first line:
+
+```powershell
+Expand-Archive KeePassGate-0.1.0.zip -DestinationPath .
+Get-Content SHA256SUMS | ForEach-Object {
+    $hash, $name = $_ -split '  ', 2
+    $found = (Get-FileHash -LiteralPath $name -Algorithm SHA256).Hash
+    if ($found -eq $hash) { "OK      $name" } else { "FAILED  $name" }
+}
+```
+
+Every line has to read `OK`. In Git Bash or WSL, `sha256sum -c SHA256SUMS` makes the same check.
+Explorer's **Extract All** offers a folder named after the zip: take that last part off the path it
+offers, or `KeePassGate` lands a level below the sums and none of its files is found.
+
+**`KeePassGate.pdb` is the plugin's symbols.** The plugin runs without it, and with it beside
+`KeePassGate.dll` a failure nobody foresaw is written into [the plugin's log](#the-plugins-log)
+with the file and the line it happened at, which is what makes such a line worth reporting.
 
 When building from source, `.\build.ps1 -Task Deploy` copies the whole set into
-`plugins\KeePassGate`, with `THIRD-PARTY-NOTICES.md` beside it, which holds the licenses of the DLLs
-this project did not write. `.\run-debug.ps1` deploys and starts the KeePass this repository pins.
+`plugins\KeePassGate` of the KeePass this repository pins, which the build fetches into
+`.keepass\<version>`, or of the KeePass `-KeePassDir` names: never into another KeePass by itself.
+`THIRD-PARTY-NOTICES.md`, which holds the licenses of the DLLs this project did not write, goes
+beside the set. `.\run-debug.ps1` deploys and starts the KeePass this repository pins.
 From a clone of the repository with no change left uncommitted, `.\build.ps1 -Task Package` puts
 the same set and the license into one zip under `dist`, with a `SHA256SUMS` beside it to check every
 file against; extracted into `plugins`, the zip makes `plugins\KeePassGate`. A source download has
@@ -193,9 +214,11 @@ That is what the notice on the page says, and it is worth reading once carefully
 steps, and skipping either one loses the work:
 
 1. **OK** on the settings dialog puts the changes into the database KeePass is holding. Cancel
-   discards it, on every page of this tab, with one exception: an invitation already handed out
-   lives in KeePass's memory rather than in the database, and [`pairing.md`](pairing.md) says how
-   to take one back.
+   discards them, on every page of this tab. An invitation is the one thing that does not wait:
+   it works from the moment it is shown, so a program can pair while the dialog is still open, and
+   an invitation a program has used stays used whichever button closes the dialog. Cancel takes
+   back an invitation made on the dialog that nobody has used, and [`pairing.md`](pairing.md)
+   describes taking an invitation back after OK.
 2. **Saving** writes that database to disk. Until it is saved, the file does not have it, and closing
    KeePass without saving throws it away.
 
@@ -286,6 +309,45 @@ the same tab, and all three are off until you turn them on. KeePass ignores such
 is saving, and a program's write is a save, so the plugin catches a lock that arrives during its
 own save and has KeePass lock as soon as the program that wrote has been answered, a few seconds
 later at most. Windows has locked the screen by then, so this happens behind it.
+
+## Removing the plugin
+
+**Delete each database's authority first, while the plugin is still there.** Taking the plugin out
+takes nothing out of a database, so a database whose authority stays keeps the authority's private
+key, the host's and the gate key inside it, where KeePass keeps them without knowing what they are
+and an XML export writes them out in the clear. **Delete authority**, followed by OK and a save,
+takes them out, with every admission record, revocation and standing answer to a renewal. Then
+close KeePass and delete `plugins\KeePassGate`.
+
+**What stays in the database grants nothing and holds no key**, and KeePass's own dialogs remove
+it once the plugin is gone:
+
+| | |
+| --- | --- |
+| **The retirements** | `KPG.RetiredAuthority.` and a fingerprint, a key for each authority the database has held, which Delete authority writes on purpose: they are what keeps a copy of the file from before putting the old authority back into service, so remove them only once the plugin is not coming back. |
+| **The profiles** | `KPG.Profiles`, the names the Profiles page kept. |
+| **The rules** | `KPG`, in the custom data of each group and entry that has a rule. |
+
+The first two are on the **Plugin Data** tab under **Tools**, **Database Tools**, **Database
+Maintenance**, the tab to leave alone while the plugin is in use, as [Revoking](clients.md#revoking)
+explains. A group's rules are
+on the **Plugin Data** tab of **Edit Group**, and an entry's under **Plugin data** on the
+**Properties** tab of **Edit Entry**; the versions an entry keeps in its history keep the rules they
+had. Then save the database.
+
+**Outside the databases** are the plugin's files, its port and what the programs it let in were
+handed:
+
+- `%LOCALAPPDATA%\KeePassGate`, holding [the plugin's log](#the-plugins-log) and
+  [the audit file](audit.md), each with its `.1` beside it, or wherever `KEEPASSGATE_LOG_FILE` and
+  `KEEPASSGATE_AUDIT_FILE` put them. The audit names every client by its key and every node by its
+  identifier, never by a title. Delete them when they are no longer wanted.
+- The port, where a port was chosen on the plugin's window, as `KPG.Port` in KeePass's configuration
+  file, which nothing but the plugin reads, and `KEEPASSGATE_PORT` where it is set.
+- What each paired program was handed, its private key among it, which stays where the program
+  stored it. The reference client gives its identity up with `pykeepassgate revoke` while the gate
+  still serves it, and [`pykeepassgate.md`](pykeepassgate.md#where-the-identity-is-kept) names the
+  directory to delete once the gate is gone.
 
 ## Next
 

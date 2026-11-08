@@ -11,7 +11,7 @@ one page summary.
 
 | | |
 | --- | --- |
-| [`getting-started.md`](getting-started.md) | install the plugin, check it loaded, and give the database an authority |
+| [`getting-started.md`](getting-started.md) | install the plugin, check it loaded, give the database an authority, and take the plugin out again |
 | [`pairing.md`](pairing.md) | let a program in, and decide what it may reach |
 | [`access-control.md`](access-control.md) | name profiles, and write the rules that say what "may reach" means |
 | [`clients.md`](clients.md) | see who is in, renew or refuse one that is about to expire, and take one back out |

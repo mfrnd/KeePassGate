@@ -1,7 +1,9 @@
-# Who is in, and taking one back out
+# Who is in, renewing a client, and taking a client back out
 
 The **Clients** page of the **KPG** tab lists every program this database has admitted, and takes
-one away.
+a program's admission away. A program about to expire asks to renew on a dialog of its own, which
+approves the renewal or refuses it, once or as a standing answer this page can take back:
+[Expiry](#expiry) covers both.
 
 ![The clients page with an admitted client on it](images/clients-admitted.png)
 
@@ -128,14 +130,16 @@ the line with them: revoking another client, pairing or renewing one, a client r
 keeping, recreating or deleting the authority.
 
 The mark stays until the client's certificate expires. After that the certificate is refused on its
-dates anyway, and the next revocation takes the mark away, and the emptied record with it.
+dates anyway, and the next revocation takes the mark away, and the emptied record with it. **A
+record that could not be read is the exception**: it gives no date, so the mark its removal writes
+carries none, and that mark and the emptied record stay until the authority is recreated or deleted.
 
-**All of that holds in KeePass 2.48 or later with the plugin in it, and only there.** Other programs
-can open the database, KeePassXC and KeePass before 2.48 among them, but saving or merging in one of
-them can quietly bring back a revoked client, a replaced authority or a removed profile, because
-their merges replace or drop what the plugin keeps. So save and merge a paired database only in
-KeePass 2.48 or later with the plugin, and after any change made anywhere else, look at this list
-and at the Certificate Authority page.
+**All of that holds in KeePass with the plugin in it, which is 2.61.1 or later, and only there.**
+Other programs can open the database, KeePassXC and KeePass before 2.48 among them, but saving or
+merging in any of them can quietly bring back a revoked client, a replaced authority or a removed
+profile, because their merges replace or drop what the plugin keeps. So save and merge a paired
+database only in KeePass with the plugin in it, and after any change made anywhere else, look at
+this list and at the Certificate Authority page.
 
 **Nor is anything here managed from KeePass's own Database Maintenance dialog.** Its **Plugin Data**
 tab lists what the plugin keeps, each revocation's mark among it, and deletes a row on request.
@@ -214,26 +218,6 @@ One until a date or forever goes with the revocation of the certificate it was a
 certificate has expired, with the next change the plugin itself makes to the database, as an
 expired row does.
 
-### Taking a standing answer back
-
-A client whose renewals stand refused has its name in red on the list. Open its row's menu and
-choose **Allow renewal**: it takes back whichever answer stands, forever, until a day or in this
-session, and the menu's first line says which one that is before anything is chosen.
-
-![The clients page with two refused clients and one row's menu open](images/clients-standing-answers.png)
-
-**It waits for OK, as a revocation does.** The name stops being red at once, and nothing has
-changed yet: until **OK** is pressed on the settings dialog the program's renewals are still
-refused without asking, and **Cancel** leaves the answer standing. After OK the next renewal raises
-the dialog again, to be answered afresh. An answer forever or until a day is kept in the database,
-so taking it back is a change to save; one in this session is kept only in KeePass's memory, so
-there is nothing to save. A copy of the database from before the answer was taken back brings it
-back when merged in, and its client's name is red again.
-
-This is also the way out of an answer given by mistake, **Refuse forever** chosen in place of
-**Refuse until a date...**, or too late a day: there is no need to revoke the program and pair it
-again.
-
 Approving writes a new record beside the old one rather than replacing it, so the program is listed
 twice under one name, told apart by **Admitted** and **Until**, until it gives the old certificate
 up, which the reference client does as soon as it has stored the new one. A program that does not
@@ -258,3 +242,23 @@ back then.
 nothing counts down to that. They are made together and end together, so neither runs out under the
 other, and nothing on the tab warns about them or turns a pairing away ahead of them. A leaked key is
 answered by recreating the authority, as above, however long it has left.
+
+### Taking a standing answer back
+
+A client whose renewals stand refused has its name in red on the list. Open its row's menu and
+choose **Allow renewal**: it takes back whichever answer stands, forever, until a day or in this
+session, and the menu's first line says which one that is before anything is chosen.
+
+![The clients page with two refused clients and one row's menu open](images/clients-standing-answers.png)
+
+**It waits for OK, as a revocation does.** The name stops being red at once, and nothing has
+changed yet: until **OK** is pressed on the settings dialog the program's renewals are still
+refused without asking, and **Cancel** leaves the answer standing. After OK the next renewal raises
+the dialog again, to be answered afresh. An answer forever or until a day is kept in the database,
+so taking it back is a change to save; one in this session is kept only in KeePass's memory, so
+there is nothing to save. A copy of the database from before the answer was taken back brings it
+back when merged in, and its client's name is red again.
+
+This is also the way out of an answer given by mistake, **Refuse forever** chosen in place of
+**Refuse until a date...**, or too late a day: there is no need to revoke the program and pair it
+again.
