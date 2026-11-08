@@ -731,6 +731,60 @@ namespace KeePassGate.Tests
         }
 
         [Test]
+        public void When_a_client_was_last_seen_is_read_from_the_last_stretch_of_a_file_past_its_bound()
+        {
+            // A file that could not be set aside grows past its bound, and the chooser asks this on
+            // KeePass's own thread, which read such a file whole. Only its last `RollAt` is read.
+            var path = Paths.Join(_directory, "audit.jsonl");
+            Directory.CreateDirectory(_directory);
+            var older = new DateTimeOffset(2026, 9, 1, 8, 0, 0, TimeSpan.Zero);
+            var newer = new DateTimeOffset(2026, 9, 20, 10, 30, 0, TimeSpan.Zero);
+
+            using (var file = new FileStream(path, FileMode.Create, FileAccess.Write))
+            {
+                Write(file, Line(older, "aaaa") + "\n");
+                file.SetLength(JsonLinesAudit.RollAt + 4096);
+                file.Seek(0, SeekOrigin.End);
+                Write(file, "\n" + Line(newer, "bbbb") + "\n");
+            }
+
+            var seen = JsonLinesAudit.LastSeen(path, new[] { "aaaa", "bbbb" });
+
+            Assert.That(seen["bbbb"], Is.EqualTo(newer), "the end of the file is read");
+            Assert.That(seen.ContainsKey("aaaa"), Is.False, "and its start, past the bound, is not");
+        }
+
+        [Test]
+        public void A_line_that_begins_where_the_stretch_read_begins_is_read_whole()
+        {
+            // The stretch is whole lines only, so the rest of a line cut by it is passed over; a
+            // line that begins exactly there is not the rest of anything.
+            var path = Paths.Join(_directory, "audit.jsonl");
+            Directory.CreateDirectory(_directory);
+            var at = new DateTimeOffset(2026, 9, 20, 10, 30, 0, TimeSpan.Zero);
+            var line = Line(at, "cccc") + "\n";
+
+            using (var file = new FileStream(path, FileMode.Create, FileAccess.Write))
+            {
+                Write(file, new string('x', 100) + "\n");
+                var begins = file.Position;
+                Write(file, line);
+                file.SetLength(begins + JsonLinesAudit.RollAt - 1);
+                file.Seek(0, SeekOrigin.End);
+                Write(file, "\n");
+                Assume.That(file.Length - JsonLinesAudit.RollAt, Is.EqualTo(begins));
+            }
+
+            Assert.That(JsonLinesAudit.LastSeen(path, new[] { "cccc" })["cccc"], Is.EqualTo(at));
+        }
+
+        private static void Write(FileStream file, string text)
+        {
+            var bytes = new UTF8Encoding(false).GetBytes(text);
+            file.Write(bytes, 0, bytes.Length);
+        }
+
+        [Test]
         public void An_audit_with_no_file_at_all_is_no_answer_rather_than_nobody()
         {
             Assert.That(JsonLinesAudit.LastSeen(Paths.Join(_directory, "nothing.jsonl"), new[] { "aaaa" }), Is.Null);

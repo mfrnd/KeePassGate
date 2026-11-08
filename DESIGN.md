@@ -1340,8 +1340,10 @@ certificate yet and which names its invitation instead; any other is written onl
 since a caller that proved nothing to this authority is not written down at all. The shape is kept
 on its first reason alone. The plugin reads the audit back for one thing only, when each client
 last made a request, which the window asking which authority to keep shows, and it finds `at` and
-`admissionKey`, the two members that needs, by position rather than with `JsonBody`; the reader
-the file is written for is whatever the operator already greps with.
+`admissionKey`, the two members that needs, by position rather than with `JsonBody`, in the last
+eight megabytes of each file and no more, since a file that could not be set aside has no bound of
+its own and that window waits on the read; the reader the file is written for is whatever the
+operator already greps with.
 
 **The file is opened with the right to append and no other**, so that an administrator can make it
 append only and every decision is still written. That was measured rather than assumed: on .NET

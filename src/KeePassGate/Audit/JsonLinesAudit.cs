@@ -409,15 +409,21 @@ namespace KeePassGate.Audit
         /// longer admitted, so that line never stands in for a request. A pairing names its
         /// certificate under `issued`, so a certificate is last seen by its first request.
         ///
-        /// **Cheap because the files are bounded**, which is what makes reading them on the user
-        /// interface thread acceptable: at most <see cref="RollAt"/> each, read once, line by line,
-        /// with the two members this needs found by position rather than by parsing the line.
-        /// `at` is always the first member and `admissionKey` is always written, so neither search
-        /// can be fooled by anything a node or a reason could hold: both are this plugin's own
-        /// text. A line whose `admissionKey` is null, a pairing's, holds `"admissionKey":null`,
-        /// which the search for a quoted value does not match, and every member after it on such a
-        /// line is a digest, a fixed word or an identifier this plugin wrote, none of which holds
-        /// that text either.
+        /// **Cheap because what it reads is bounded**, which is what makes reading on the user
+        /// interface thread acceptable: the last <see cref="RollAt"/> of each file at most, whole
+        /// lines only, read once, line by line, with the two members this needs found by position
+        /// rather than by parsing the line. `at` is always the first member and `admissionKey` is
+        /// always written, so neither search can be fooled by anything a node or a reason could
+        /// hold: both are this plugin's own text. A line whose `admissionKey` is null, a pairing's,
+        /// holds `"admissionKey":null`, which the search for a quoted value does not match, and
+        /// every member after it on such a line is a digest, a fixed word or an identifier this
+        /// plugin wrote, none of which holds that text either.
+        ///
+        /// **Bounded here, because the files are not always bounded.** A file that could not be
+        /// set aside grows past its bound until it can be, and one that grew for months was read
+        /// whole while KeePass's window waited. What lies before the last stretch of such a file is
+        /// not read, so a client seen only there is answered as not seen, which is the answer a
+        /// file that did roll gives once those lines have gone.
         ///
         /// Shared for reading and writing both, so a decision being appended while this reads is
         /// neither blocked nor lost.
@@ -444,13 +450,22 @@ namespace KeePassGate.Audit
 
                     using (var stream = new FileStream(
                                file, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete))
-                    using (var reader = new StreamReader(stream, Encoding.UTF8))
                     {
-                        read = true;
-                        string line;
-                        while ((line = reader.ReadLine()) != null)
+                        var whole = NearTheEnd(stream);
+                        using (var reader = new StreamReader(stream, Encoding.UTF8))
                         {
-                            Seen(line, wanted, seen);
+                            read = true;
+                            if (!whole)
+                            {
+                                // The rest of a line that began before the stretch read.
+                                reader.ReadLine();
+                            }
+
+                            string line;
+                            while ((line = reader.ReadLine()) != null)
+                            {
+                                Seen(line, wanted, seen);
+                            }
                         }
                     }
                 }
@@ -462,6 +477,22 @@ namespace KeePassGate.Audit
             }
 
             return read ? seen : null;
+        }
+
+        /// <summary>
+        /// Puts a file at its last <see cref="RollAt"/>, or leaves it at its start when it holds no
+        /// more than that, and answers whether that is where a line begins.
+        /// </summary>
+        private static bool NearTheEnd(Stream stream)
+        {
+            var start = stream.Length - RollAt;
+            if (start <= 0)
+            {
+                return true;
+            }
+
+            stream.Seek(start - 1, SeekOrigin.Begin);
+            return stream.ReadByte() == '\n';
         }
 
         private const string AtMember = "{\"at\":\"";

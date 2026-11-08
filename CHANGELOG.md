@@ -330,6 +330,9 @@ none, since it releases both.
   their answers were synchronized, retire every authority, and the tab then sent the operator
   looking for a step they had missed. A delete, which retires an authority too, is shown the same
   way.
+- **The window asking which authority to keep reads no more than the last eight megabytes of each
+  audit file** for when each client was last seen. An audit that could not be set aside grows past
+  that, and was read whole while KeePass's window waited.
 - **The Clients page counts the revoked clients a merge brought back by client, not by record.**
   A renewed client whose certificates were both revoked and both brought back was counted as two
   revoked clients.
