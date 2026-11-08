@@ -471,7 +471,12 @@ namespace KeePassGate
                 // applies the same to them, asking KeePass's setting as each is made.
                 CaptureGuard.Wanted = () => KeePass.Program.Config.Security.PreventScreenCapture;
 
-                _log = new TraceGateLog();
+                // KeePass calls this on its own thread, which is the one that may not wait for a
+                // file: a line the log or the audit is given there goes to a writer of its own.
+                var keePass = System.Threading.Thread.CurrentThread;
+                Func<bool> onKeePass = () => System.Threading.Thread.CurrentThread == keePass;
+
+                _log = new TraceGateLog(onKeePass);
                 _incidents = new GateIncidents(_log);
 
                 // Before any window of the plugin's own is made, so that every handler on one
@@ -506,14 +511,7 @@ namespace KeePassGate
                 // The audit is opened before anything can be decided, and it is the plugin's own
                 // file rather than the database's: a record of what an agent reached, kept inside
                 // the thing it reached, is a record whoever compromised the database can edit.
-                // KeePass calls this on its own thread, which is the one that may not wait for the
-                // file: a line recorded there goes to the audit's own writer.
-                var keePass = System.Threading.Thread.CurrentThread;
-                _audit = new JsonLinesAudit(
-                    JsonLinesAudit.DefaultPath(),
-                    _log,
-                    _incidents,
-                    () => System.Threading.Thread.CurrentThread == keePass);
+                _audit = new JsonLinesAudit(JsonLinesAudit.DefaultPath(), _log, _incidents, onKeePass);
 
                 // One check for the gate's decisions and the record of what happens to admissions,
                 // the operator's revocations on the tab among them, so that the file has one clock

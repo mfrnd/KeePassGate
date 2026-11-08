@@ -231,6 +231,9 @@ none, since it releases both.
   handed to a writer of the plugin's own and reach the file in order with every other line. An
   audit on slow or unreachable storage held KeePass's window for its own write and for every
   connection's line ahead of it.
+- **Nor on the plugin's log.** A line KeePass's own thread writes there is handed to a writer of
+  the plugin's own and reaches the file in order with every other line, so a log on slow or
+  unreachable storage no longer holds KeePass's window for each line.
 - **A list of profiles in another shape is refused by pairing and renewal**, as a list that does
   not parse is. A `Profiles` spelled with a capital, a `profiles` that is a string, a member beside
   it or a name the list cannot hold read as fewer names than the list holds, or none, so a renewal

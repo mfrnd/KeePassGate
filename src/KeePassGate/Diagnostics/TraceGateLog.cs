@@ -1,7 +1,9 @@
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Text;
+using System.Threading;
 
 namespace KeePassGate.Diagnostics
 {
@@ -24,6 +26,9 @@ namespace KeePassGate.Diagnostics
     /// Nothing here throws. A log that cannot be written is worth less than a running password
     /// manager, so a line the file will not take is dropped, the failure is reported to
     /// <see cref="Trace"/> once as it begins, and the file is tried again at the next line.
+    ///
+    /// **KeePass's own thread hands its lines to a writer of the log's own** rather than waiting
+    /// on the file, and every line keeps its place, as the audit's do: see the constructor.
     /// </remarks>
     public sealed class TraceGateLog : IGateLog
     {
@@ -55,34 +60,72 @@ namespace KeePassGate.Diagnostics
         private bool _failing;
         private int _missed;
 
+        private readonly Func<bool> _mayNotWait;
+
+        // The lines a thread that may not wait has logged, with when each was, for the log's own
+        // writer to take, under a lock of their own.
+        private readonly object _queueLock = new object();
+        private readonly Queue<KeyValuePair<DateTime, string>> _queued = new Queue<KeyValuePair<DateTime, string>>();
+
         /// <summary>
         /// Writes to the file the environment names, or to one beside the audit, which is also
         /// where it writes when the environment names something that is not a path.
         /// </summary>
-        public TraceGateLog()
-            : this(PluginFiles.Resolve(LogFileVariable, DefaultFileName, out var refused), refused, null)
+        /// <param name="mayNotWait">
+        /// Whether the thread logging a line may not wait for the file, which is true of KeePass's
+        /// own thread, or null when every thread may.
+        /// </param>
+        public TraceGateLog(Func<bool> mayNotWait)
+            : this(PluginFiles.Resolve(LogFileVariable, DefaultFileName, out var refused), refused, null, mayNotWait)
         {
         }
 
         public TraceGateLog(string filePath)
-            : this(filePath, null, null)
+            : this(filePath, null, null, null)
         {
         }
 
         internal TraceGateLog(string filePath, Func<DateTime> clock)
-            : this(filePath, null, clock)
+            : this(filePath, null, clock, null)
         {
         }
 
         /// <summary>The log at this path, by this clock, beginning with a name refused in its place.</summary>
+        /// <remarks>
+        /// **KeePass's own thread never waits on the file**, which is the audit's rule for its
+        /// lines and holds for these for the same reason: a log on slow or unreachable storage
+        /// held KeePass's window for every line it wrote there, and for every connection's line
+        /// ahead of it on the lock. So a line logged on a thread that may not wait goes to the
+        /// trace at once and is queued for a thread of the log's own, started here and kept for as
+        /// long as the process runs, so that logging never has a thread to start. A line logged on
+        /// any other thread first writes every line queued before it, under the file's lock that
+        /// the log's writer takes too, so every line keeps its place. A line still queued when the
+        /// process ends is lost, which `docs/getting-started.md` states.
+        ///
+        /// **The writer is a root**, in the sense `GateIncidents` means: its thread has nothing
+        /// above it, and an exception escaping it ends the process. It is safe the way the accept
+        /// thread is, `DESIGN.md` §141: it waits on a lock nothing interrupts, and what it writes
+        /// goes through <see cref="AppendToFile"/>, whose every call is filtered or guarded as the
+        /// rest of this log is. Anything added there has to keep that true.
+        /// </remarks>
         /// <param name="refused">
         /// What <see cref="LogFileVariable"/> held when it named no path, which the first line
         /// names beside where the log is kept instead, or null when nothing was refused.
         /// </param>
-        internal TraceGateLog(string filePath, string refused, Func<DateTime> clock)
+        /// <param name="mayNotWait">
+        /// Whether the thread logging a line may not wait for the file, or null when every thread
+        /// may, which starts no writer.
+        /// </param>
+        internal TraceGateLog(string filePath, string refused, Func<DateTime> clock, Func<bool> mayNotWait)
         {
             _filePath = string.IsNullOrEmpty(filePath) ? null : filePath;
             _clock = clock ?? (() => DateTime.UtcNow);
+            _mayNotWait = mayNotWait ?? (() => false);
+
+            if (mayNotWait != null && _filePath != null)
+            {
+                new Thread(WriteInTurn) { IsBackground = true, Name = "KeePassGate log" }.Start();
+            }
 
             if (refused != null)
             {
@@ -141,7 +184,70 @@ namespace KeePassGate.Diagnostics
                 // throw anything at all. Losing the line is the lesser failure.
             }
 
-            AppendToFile(at, line);
+            if (_filePath == null)
+            {
+                return;
+            }
+
+            if (_mayNotWait())
+            {
+                lock (_queueLock)
+                {
+                    _queued.Enqueue(new KeyValuePair<DateTime, string>(at, line));
+                    Monitor.Pulse(_queueLock);
+                }
+
+                return;
+            }
+
+            lock (_fileLock)
+            {
+                WriteQueued();
+                AppendToFile(at, line);
+            }
+        }
+
+        /// <summary>The log's own writer: every queued line, as each arrives, for good.</summary>
+        private void WriteInTurn()
+        {
+            while (true)
+            {
+                lock (_queueLock)
+                {
+                    while (_queued.Count == 0)
+                    {
+                        Monitor.Wait(_queueLock);
+                    }
+                }
+
+                lock (_fileLock)
+                {
+                    WriteQueued();
+                }
+            }
+        }
+
+        /// <summary>
+        /// Writes every line queued so far, in the order queued. Called under the file's lock, so
+        /// that taking a line from the queue and writing it are one step to every other writer.
+        /// </summary>
+        private void WriteQueued()
+        {
+            while (true)
+            {
+                KeyValuePair<DateTime, string> next;
+                lock (_queueLock)
+                {
+                    if (_queued.Count == 0)
+                    {
+                        return;
+                    }
+
+                    next = _queued.Dequeue();
+                }
+
+                AppendToFile(next.Key, next.Value);
+            }
         }
 
         /// <summary>

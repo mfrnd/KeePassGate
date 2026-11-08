@@ -1228,7 +1228,8 @@ above them, like the connection thread, and rather than catching everything, eve
 is total or filtered. `GateListener.Drop` explains what keeps that true, and what a change to the
 accept loop has to do if it cannot. The audit's own writer, which writes the lines KeePass's thread
 records, is a root of the same kind: shaping a line catches everything, as a reporter, and every
-file call it makes is filtered, as `JsonLinesAudit.Queue` explains.
+file call it makes is filtered, as `JsonLinesAudit.Queue` explains. So is the plugin log's own
+writer, for the lines KeePass's thread logs, as the `TraceGateLog` constructor explains.
 
 **Places that catch everything without being a kind**, since each throws what it caught again where
 a place of a kind sees it, or must add no exception of its own:

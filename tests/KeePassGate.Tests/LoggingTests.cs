@@ -190,6 +190,120 @@ namespace KeePassGate.Tests
         }
 
         [Test]
+        public void A_line_KeePass_s_thread_logs_does_not_wait_for_the_file()
+        {
+            // The audit's rule, for the audit's reason: KeePass's own thread logs, and a log on
+            // slow storage held its window for every line. Here a connection holds the file's lock
+            // while it reports that the file refused its line, held there by the clock it reads
+            // the moment from, and KeePass's thread comes back anyway.
+            var path = Paths.Join(_directory, "gate.log");
+            System.Threading.Thread keePass = null;
+            System.Threading.Thread connection = null;
+            using (var reporting = new System.Threading.ManualResetEventSlim(false))
+            using (var release = new System.Threading.ManualResetEventSlim(false))
+            {
+                var asked = 0;
+                Func<DateTime> clock = () =>
+                {
+                    // The connection's second reading is the one its report of the refusal takes,
+                    // under the file's lock.
+                    if (System.Threading.Thread.CurrentThread == connection && ++asked == 2)
+                    {
+                        reporting.Set();
+                        release.Wait(TimeSpan.FromSeconds(30));
+                    }
+
+                    return DateTime.UtcNow;
+                };
+                var log = new TraceGateLog(path, null, clock, () => System.Threading.Thread.CurrentThread == keePass);
+                connection = new System.Threading.Thread(() => log.Info("from a connection"));
+                bool returned;
+
+                try
+                {
+                    // The file is let go before the connection is, so the log's writer finds it free.
+                    using (new FileStream(path, FileMode.Create, FileAccess.ReadWrite, FileShare.None))
+                    {
+                        connection.Start();
+                        Assume.That(reporting.Wait(TimeSpan.FromSeconds(10)), Is.True, "a connection holds the file's lock");
+
+                        keePass = new System.Threading.Thread(() => log.Info("from KeePass"));
+                        keePass.Start();
+                        returned = keePass.Join(TimeSpan.FromSeconds(10));
+                    }
+                }
+                finally
+                {
+                    release.Set();
+                    connection.Join();
+                }
+
+                Assert.That(returned, Is.True, "KeePass's thread came back while the file's lock was held");
+
+                // Written by the log's own writer once the lock was free, and before a line logged
+                // after it, which writes what was queued ahead of it first.
+                log.Info("after");
+                var lines = File.ReadAllLines(path);
+
+                Assert.That(lines.Length, Is.EqualTo(3), string.Join(Environment.NewLine, lines));
+                Assert.That(lines[0], Does.Contain("KPG WARN the log file is being written again, and 1 line"));
+                Assert.That(lines[1], Does.Contain("KPG INFO from KeePass"));
+                Assert.That(lines[2], Does.Contain("KPG INFO after"));
+            }
+        }
+        [Test]
+        public void A_line_KeePass_s_thread_queued_is_logged_before_a_line_logged_after_it()
+        {
+            var path = Paths.Join(_directory, "gate.log");
+            System.Threading.Thread keePass = null;
+            var log = new TraceGateLog(path, null, null, () => System.Threading.Thread.CurrentThread == keePass);
+
+            keePass = new System.Threading.Thread(() => log.Info("first"));
+            keePass.Start();
+            keePass.Join();
+            log.Info("second");
+
+            var lines = File.ReadAllLines(path);
+            Assert.That(lines.Length, Is.EqualTo(2));
+            Assert.That(lines[0], Does.Contain("KPG INFO first"));
+            Assert.That(lines[1], Does.Contain("KPG INFO second"));
+        }
+
+        [Test]
+        public void A_line_KeePass_s_thread_queued_is_logged_with_nothing_logged_after_it()
+        {
+            var path = Paths.Join(_directory, "gate.log");
+            System.Threading.Thread keePass = null;
+            var log = new TraceGateLog(path, null, null, () => System.Threading.Thread.CurrentThread == keePass);
+
+            keePass = new System.Threading.Thread(() => log.Info("on its own"));
+            keePass.Start();
+            keePass.Join();
+
+            Assert.That(
+                System.Threading.SpinWait.SpinUntil(() => Shared(path).Contains("KPG INFO on its own"), TimeSpan.FromSeconds(10)),
+                Is.True,
+                "the log's own writer wrote it");
+        }
+
+        /// <summary>What the file holds, read sharing writing so that the log's writer is not refused.</summary>
+        private static string Shared(string path)
+        {
+            try
+            {
+                using (var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete))
+                using (var reader = new StreamReader(stream))
+                {
+                    return reader.ReadToEnd();
+                }
+            }
+            catch (FileNotFoundException)
+            {
+                return string.Empty;
+            }
+        }
+
+        [Test]
         public void A_file_that_could_not_be_written_for_a_while_is_written_again_with_what_it_missed()
         {
             // A program reading the log without letting anybody write to it stops every line for
@@ -347,7 +461,7 @@ namespace KeePassGate.Tests
             {
                 Environment.SetEnvironmentVariable(TraceGateLog.LogFileVariable, path);
 
-                new TraceGateLog().Info("one");
+                new TraceGateLog(mayNotWait: null).Info("one");
             }
             finally
             {
@@ -392,7 +506,7 @@ namespace KeePassGate.Tests
         {
             var path = Paths.Join(_directory, "gate.log");
 
-            new TraceGateLog(path, "bad|name.log", null).Info("one");
+            new TraceGateLog(path, "bad|name.log", null, null).Info("one");
 
             var lines = File.ReadAllLines(path);
             Assert.That(lines[0], Does.Contain(
