@@ -157,8 +157,8 @@ namespace KeePassGate
             }
 
             // What the listener kept, which is the whole point of its having kept it. Sending the
-            // operator to the log here would be this commit building a surface to reach them with
-            // and then using it to say the answer is somewhere else. The fallback is for a later
+            // operator to the log here would be building a surface to reach them with and then
+            // using it to point somewhere else. The fallback is for a later
             // refusal that forgets to record one: an empty box says even less than the log line.
             return _listener.Refusal
                 ?? "nothing is listening on 127.0.0.1:" + port + ". The log says why.";
@@ -246,8 +246,9 @@ namespace KeePassGate
         /// reads it when its handle is made, which is after it was added, and a menu item keeps
         /// the reference it was given. **Neither disposes what it was handed**, which is why
         /// `TabPageInjector` disposes the tab's copy itself, after the list, when the tab goes; the
-        /// one this hands to the Tools menu is 16 by 16 and lives as long as the menu does, which
-        /// is the process.
+        /// copy this hands to the Tools menu is the size of KeePass's own icons at the display's
+        /// scaling, `GateIcon` has the numbers, and lives as long as the menu does, which is the
+        /// process.
         /// KeePass's own icons are read rather than a picture of ours shipped, so the plugin looks
         /// like the window it is in and follows a KeePass that restyles them.
         /// </remarks>
@@ -325,9 +326,11 @@ namespace KeePassGate
         /// the title bar stops claiming there is nothing to save. Nothing else is asked for, since
         /// this plugin changes no group, no entry and no selection.
         ///
-        /// Wrapped because it runs from a button on a dialog, and an exception escaping there
-        /// reaches WinForms' own error dialog, which offers to quit KeePass. A window that failed
-        /// to repaint is worth a log line, not that dialog.
+        /// It runs when the database settings dialog's OK puts what the KPG tab held into the
+        /// database, from `PendingDatabase.Apply` inside `AuthorityPanelFactory`'s `FormClosed`
+        /// handler: the tab's own buttons write into the dialog's buffer, whose mark does nothing.
+        /// That handler catches everything, and the filter here keeps a window that failed to
+        /// repaint to a log line rather than an incident there.
         /// </remarks>
         private void Changed(IPluginHost host)
         {
@@ -918,15 +921,12 @@ namespace KeePassGate
             }
 
             // Locking has to be watched from here rather than from the tab, because it happens
-            // whether or not anybody has the settings dialog open, and because both transitions
-            // close every connection the listener is holding.
+            // whether or not anybody has the settings dialog open, and because a lock, an unlock
+            // and a close each close connections the listener is holding: a lock every connection
+            // but those waiting on the operator, an unlock and a close those to their own
+            // database, as `LockWatch` sets out.
             _databases = new MainWindowDatabases(mainWindow);
-            // The listener is asked for each time rather than handed over once. That is about
-            // construction order rather than about rebinding, which this commit takes away: the
-            // port is bound once at startup, so the listener this hands back is the only one there
-            // will be. The incidents are the plugin's own rather than a second
-            // tally: these handlers catch everything, as every handler of KeePass's own events
-            // here does, and the window under Tools is where the count is read.
+
             // Through the one writer, whose guard is what a choice has to pass. The audit is asked
             // for where it is writing each time, for the last request of each client the dialog
             // lists. Made before the lock watch, which closes its question at a lock, and started
@@ -942,6 +942,12 @@ namespace KeePassGate
                 _incidents,
                 _log);
 
+            // The listener is asked for each time rather than handed over once. That is about
+            // construction order rather than about rebinding, which never happens: the port is
+            // bound once at startup, so the listener this hands back is the only listener there
+            // will be. The incidents are the plugin's own rather than a second
+            // tally: these handlers catch everything, as every handler of KeePass's own events
+            // here does, and the window under Tools is where the count is read.
             // The prompt too, because a lock closes the question it has on the screen, and the
             // approvals held for a retry, because a lock or a close lets go of every one of them,
             // and the authority chooser, whose question a lock closes as well.
@@ -1022,8 +1028,11 @@ namespace KeePassGate
             catch (Exception error) when (Expected.OfUserInterface(error))
             {
                 // A window that has gone, or never had a handle. Foreseen, so it stays a log line
-                // rather than an incident: nothing here is a defect in this plugin. Read into a
-                // local first, the way `Report` does, since `Terminate` sets the field to null.
+                // rather than an incident. The filter would take the `ArgumentNullException`
+                // `Unattended.Post` throws for a missing argument as well, which would be a defect
+                // here, and is left to it because every argument above is a value that cannot be
+                // null. Read into a local first, the way `Report` does, since `Terminate` sets the
+                // field to null.
                 var log = _log;
                 if (log != null)
                 {
