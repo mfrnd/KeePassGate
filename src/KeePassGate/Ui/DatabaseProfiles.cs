@@ -116,6 +116,8 @@ namespace KeePassGate.Ui
         /// **Every profile from one reading of the records**, for the reason the rules are counted
         /// in one walk: each reading parses every record's certificate, and the page asks for a
         /// count on every row.
+        ///
+        /// **Only clients that get in**, which <see cref="GettingIn"/> gives the reason for.
         /// </remarks>
         public IReadOnlyDictionary<string, int> Clients()
         {
@@ -132,9 +134,9 @@ namespace KeePassGate.Ui
                 // held by no client rather than claiming it is held by one. The tab's own line
                 // is where a failed read is reported.
                 var holders = new Dictionary<string, HashSet<string>>(StringComparer.Ordinal);
-                foreach (var record in new AdmissionStore(_database.PluginCustomData, _log).All().Records)
+                foreach (var record in GettingIn())
                 {
-                    if (record == null || record.Profiles == null)
+                    if (record.Profiles == null)
                     {
                         continue;
                     }
@@ -170,6 +172,28 @@ namespace KeePassGate.Ui
             }
 
             return found;
+        }
+
+        /// <summary>
+        /// The records whose clients get in now, judged by `ClientReaches` against the authority
+        /// this dialog would serve, as the clients page judges its rows.
+        /// </summary>
+        /// <remarks>
+        /// A record the gate refuses, of another authority, not for client use, not yet valid or
+        /// expired, holds profiles it cannot use. It was counted as a client holding them, on the
+        /// same page whose warning about adding a name back left the expired ones out.
+        /// </remarks>
+        private List<AdmissionRecord> GettingIn()
+        {
+            using (var reading = new AuthorityService(_database.PluginCustomData, _log).Read())
+            {
+                var authority = reading.IsPresent ? reading.Material.Authority : null;
+                var now = DateTimeOffset.UtcNow;
+
+                return new AdmissionStore(_database.PluginCustomData, _log).All().Records
+                    .Where(record => record != null && ClientReaches.GetsIn(record, authority, now))
+                    .ToList();
+            }
         }
 
         public string Add(string name)
@@ -269,17 +293,11 @@ namespace KeePassGate.Ui
 
             try
             {
-                var now = DateTimeOffset.UtcNow;
-
-                // Not one whose certificate has expired, which regains nothing and goes with the
-                // plugin's next write.
-                foreach (var record in new AdmissionStore(_database.PluginCustomData, _log).All().Records
-                             .Where(record => record != null && record.Profiles != null
-                                              && record.Profiles.Contains(name, StringComparer.Ordinal)
-                                              && !record.HasExpired(now)))
-                {
-                    found.Add(record);
-                }
+                // Only a record that gets in: an expired record regains nothing and goes with the
+                // plugin's next write, and a record of another authority, not for client use or
+                // not yet valid regains nothing either.
+                found.AddRange(GettingIn().Where(record => record.Profiles != null
+                                                         && record.Profiles.Contains(name, StringComparer.Ordinal)));
             }
             catch (Exception error) when (Expected.OfCustomData(error))
             {

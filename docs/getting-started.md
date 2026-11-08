@@ -270,7 +270,9 @@ window, as soon as the plugin sees the database that way: when it is opened or u
 is saved, which is how a synchronize ends. The window lists every authority with its fingerprint,
 when it was created and how many clients it admitted, and for the authority selected, its whole
 fingerprint and every client it admitted, with the client's profiles, when it was admitted and when
-it last made a request, if the audit file remembers one.
+it last made a request, if the audit file remembers one. A client is counted and listed only while
+that authority would let it in: one whose certificate has expired, has not begun or is not for a
+client to present is left out, as the clients page marks it.
 
 ![The window asking which authority to keep](images/authority-chooser.png)
 

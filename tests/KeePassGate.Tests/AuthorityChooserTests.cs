@@ -61,6 +61,29 @@ namespace KeePassGate.Tests
         }
 
         [Test]
+        public void A_record_its_authority_would_not_let_in_is_no_client_of_it()
+        {
+            // The clients a candidate admitted are the evidence of which copy is in use, and the
+            // clients page marks a record the gate refuses: one not for a client to present, or
+            // one not valid yet, was listed and counted as a client all the same.
+            var authority = CertificateBlob.Load(
+                AuthorityDocument.Read(_values.Get(AuthorityKeys.AuthorityKey(_candidates[1])), null).Authority);
+            var store = new AdmissionStore(_values, null);
+
+            using (var host = new AuthorityIssuer().IssueHost(authority).Read())
+            using (var later = new AuthorityIssuer(() => DateTimeOffset.UtcNow.AddDays(2))
+                       .IssueClient(authority, "agent-later", new[] { "ops" }).Read())
+            {
+                store.Write(AdmissionRecord.For(host, Admitted, new[] { "ops" }));
+                store.Write(AdmissionRecord.For(later, Admitted, new[] { "ops" }));
+            }
+
+            var second = Choice(null).Options.Single(o => o.Fingerprint == _candidates[1]);
+
+            Assert.That(second.Clients, Is.Empty);
+        }
+
+        [Test]
         public void A_candidate_naming_no_digest_is_shown_as_one()
         {
             // A row and a log line carry the short digest, and an empty one would show nothing.

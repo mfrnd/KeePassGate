@@ -11,6 +11,10 @@ none, since it releases both.
 
 ## 0.2.0, unreleased
 
+- **What the KPG tab and the authority chooser call clients are the clients the gate lets in.** The
+  Recreate and Delete confirmations, the Profiles page's counts and the chooser counted every
+  readable record, among them records of another authority, not for client use, not yet valid or
+  expired, which the clients page marks as refused. They now judge each record as that page does.
 - **No stray key keeps an authority on the chooser.** Keep carried an access key, so a bare K typed
   while either button had the focus kept the selected authority and retired every other for good,
   and Enter on a focused Keep kept as well. Keep now takes a click or Space, as Approve does.

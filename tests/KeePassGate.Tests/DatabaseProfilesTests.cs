@@ -31,8 +31,16 @@ namespace KeePassGate.Tests
         /// reads back: every count over it is zero and every assertion about zero passes for the
         /// wrong reason. Issuing is the slow part, so it is done once and the certificates are
         /// handed out.
+        ///
+        /// **The authority the databases here serve**, stored as a database stores one, because a
+        /// client is counted only while that authority would let it in, as the clients page judges
+        /// its rows. <see cref="Serving"/> puts it in a database.
         /// </remarks>
-        private static TestAuthority _authority;
+        private static CertifiedKey _authority;
+
+        private static string _authorityKey;
+
+        private static string _authorityDocument;
 
         private static readonly Dictionary<string, X509Certificate2> Issued =
             new Dictionary<string, X509Certificate2>(StringComparer.Ordinal);
@@ -40,7 +48,24 @@ namespace KeePassGate.Tests
         [OneTimeSetUp]
         public static void Issue()
         {
-            _authority = TestAuthority.New();
+            var store = new InMemoryKeyValueStore();
+            Assume.That(new AuthorityService(store, null).Create().Succeeded, Is.True);
+
+            _authorityKey = store.Keys.Single(key => AuthorityKeys.FingerprintInAuthority(key) != null);
+            _authorityDocument = store.Get(_authorityKey);
+            _authority = CertificateBlob.Load(AuthorityDocument.Read(_authorityDocument, null).Authority);
+        }
+
+        /// <summary>The database, serving the fixture's authority.</summary>
+        private static FakeGateDatabase Serving(FakeGateDatabase database)
+        {
+            database.Store.Plant(_authorityKey, _authorityDocument);
+            return database;
+        }
+
+        private static X509Certificate2 IssueClient(string subject, params string[] profiles)
+        {
+            return new AuthorityIssuer().IssueClient(_authority, subject, profiles).Read();
         }
 
         [OneTimeTearDown]
@@ -184,7 +209,7 @@ namespace KeePassGate.Tests
             // Counted rather than remembered for the same reason the rules are, and a stronger
             // one: a pairing writes its record while this dialog is open, so a number kept here
             // would be wrong about the client the operator approved a moment ago.
-            var database = new FakeGateDatabase();
+            var database = Serving(new FakeGateDatabase());
             var profiles = new DatabaseProfiles(database, null);
             var store = new AdmissionStore(database.PluginCustomData, null);
 
@@ -200,11 +225,35 @@ namespace KeePassGate.Tests
         }
 
         [Test]
+        public void A_record_the_gate_refuses_holds_its_profiles_for_nobody()
+        {
+            // Counted as the clients page judges its rows: a record of another authority, or one
+            // not for a client to present, was counted as a client holding the name, beside a
+            // warning about adding it back that left out only the expired ones.
+            var database = Serving(new FakeGateDatabase { Nodes = new TestRuledNodes() });
+            var profiles = new DatabaseProfiles(database, null);
+            var store = new AdmissionStore(database.PluginCustomData, null);
+
+            using (var elsewhere = TestAuthority.New())
+            using (var foreign = elsewhere.IssueClient("agent-elsewhere", "ops"))
+            using (var host = new AuthorityIssuer().IssueHost(_authority).Read())
+            {
+                store.Write(AdmissionRecord.For(foreign, DateTimeOffset.UtcNow, new[] { "ops" }));
+                store.Write(AdmissionRecord.For(host, DateTimeOffset.UtcNow, new[] { "ops" }));
+            }
+
+            Assume.That(store.All().Records, Has.Count.EqualTo(2));
+
+            Assert.That(Counted(profiles.Clients(), "ops"), Is.Zero);
+            Assert.That(profiles.Returning("ops"), Is.Null, "nobody regains a name through a record the gate refuses");
+        }
+
+        [Test]
         public void A_client_holding_a_profile_twice_is_still_one_client()
         {
             // The record is what is counted, and a record naming a profile is one client whatever
             // the list inside it looks like.
-            var database = new FakeGateDatabase();
+            var database = Serving(new FakeGateDatabase());
             var profiles = new DatabaseProfiles(database, null);
 
             new AdmissionStore(database.PluginCustomData, null).Write(
@@ -218,10 +267,10 @@ namespace KeePassGate.Tests
         {
             // A record keeps every name it was approved for. The gate reads it beside the list, so
             // a name off the list grants nothing, and the operator is told who would regain it.
-            var database = new FakeGateDatabase
+            var database = Serving(new FakeGateDatabase
             {
                 Nodes = new TestRuledNodes(new TestRuledNode("a group", "{\"ops\":[\"read\"]}"))
-            };
+            });
             var profiles = new DatabaseProfiles(database, null);
             var store = new AdmissionStore(database.PluginCustomData, null);
 
@@ -245,12 +294,12 @@ namespace KeePassGate.Tests
         {
             // Which clients regain a name is the whole of what the operator is agreeing to, so the
             // warning names each of them, as the Clients page calls it, before the rules.
-            var database = new FakeGateDatabase
+            var database = Serving(new FakeGateDatabase
             {
                 Nodes = new TestRuledNodes(
                     new TestRuledNode("a group", "{\"ops\":[\"read\"]}"),
                     new TestRuledNode("an entry", "{\"ops\":[\"list\"]}"))
-            };
+            });
             var profiles = new DatabaseProfiles(database, null);
             var store = new AdmissionStore(database.PluginCustomData, null);
 
@@ -269,7 +318,7 @@ namespace KeePassGate.Tests
             // A renewal leaves a second record with the same client key until the client gives
             // the older up. Counted by record it was two clients holding the profile, and named
             // twice in the warning about adding it back.
-            var database = new FakeGateDatabase { Nodes = new TestRuledNodes() };
+            var database = Serving(new FakeGateDatabase { Nodes = new TestRuledNodes() });
             var profiles = new DatabaseProfiles(database, null);
             var store = new AdmissionStore(database.PluginCustomData, null);
 
@@ -291,14 +340,14 @@ namespace KeePassGate.Tests
             // A client chooses its own name, so two programs may pair under one, such as one
             // program on two machines. Each is its own client key, so they are two clients in the
             // count and two in the warning, each named with the start of its key.
-            var database = new FakeGateDatabase { Nodes = new TestRuledNodes() };
+            var database = Serving(new FakeGateDatabase { Nodes = new TestRuledNodes() });
             var profiles = new DatabaseProfiles(database, null);
             var store = new AdmissionStore(database.PluginCustomData, null);
 
             var first = Admitting("agent", "ops");
             store.Write(first);
             string second;
-            using (var other = _authority.IssueClient("agent", new[] { "ops" }))
+            using (var other = IssueClient("agent", "ops"))
             {
                 var der = other.RawData;
                 second = CertificateDigest.Of(der);
@@ -321,7 +370,7 @@ namespace KeePassGate.Tests
         {
             // The gate refuses it before its record is read, and the next write the plugin makes
             // prunes the record, so naming it said it would regain a name it never could.
-            var database = new FakeGateDatabase { Nodes = new TestRuledNodes() };
+            var database = Serving(new FakeGateDatabase { Nodes = new TestRuledNodes() });
             var profiles = new DatabaseProfiles(database, null);
             var store = new AdmissionStore(database.PluginCustomData, null);
 
@@ -337,7 +386,7 @@ namespace KeePassGate.Tests
         {
             // No rule names it, but a client holds it, and a rule written for it later would reach
             // that client the moment the name is listed.
-            var database = new FakeGateDatabase { Nodes = new TestRuledNodes() };
+            var database = Serving(new FakeGateDatabase { Nodes = new TestRuledNodes() });
             var profiles = new DatabaseProfiles(database, null);
             new AdmissionStore(database.PluginCustomData, null).Write(Admitting("ci-runner", "ops"));
 
@@ -411,7 +460,7 @@ namespace KeePassGate.Tests
             var records = new AdmissionRecord[2];
             for (var i = 0; i < records.Length; i++)
             {
-                using (var certificate = _authority.IssueClient(subject, profiles))
+                using (var certificate = IssueClient(subject, profiles))
                 {
                     var admitted = new DateTimeOffset(2026, 8, 15 + i, 9, 0, 0, TimeSpan.Zero);
                     records[i] = i == 0
@@ -438,7 +487,7 @@ namespace KeePassGate.Tests
 
             if (!Issued.TryGetValue(subject, out certificate))
             {
-                certificate = _authority.IssueClient(subject, profiles);
+                certificate = IssueClient(subject, profiles);
                 Issued[subject] = certificate;
             }
 

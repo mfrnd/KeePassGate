@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Security.Cryptography.X509Certificates;
 using System.Threading;
 using System.Windows.Forms;
 using KeePassGate.Authority;
@@ -177,13 +178,73 @@ namespace KeePassGate.Tests
             using (var panel = NewPanel(prompt))
             {
                 panel.CreateAuthority();
-                _database.Store.Plant(AuthorityKeys.ClientPrefix + "aaa", "record");
-                _database.Store.Plant(AuthorityKeys.ClientPrefix + "bbb", "record");
+                var store = new AdmissionStore(_database.PluginCustomData, null);
+                using (var first = IssueOwnClient("agent-one"))
+                using (var second = IssueOwnClient("agent-two"))
+                {
+                    store.Write(AdmissionRecord.For(first, DateTimeOffset.UtcNow, new[] { "ops" }));
+                    store.Write(AdmissionRecord.For(second, DateTimeOffset.UtcNow, new[] { "ops" }));
+                }
 
                 panel.RecreateAuthority();
 
                 Assert.That(prompt.LastQuestion, Does.Contain("revokes every client"));
                 Assert.That(prompt.LastQuestion, Does.Contain("2 clients are admitted"));
+            }
+        }
+
+        [Test]
+        public void Recreating_between_undecided_authorities_costs_the_clients_of_each()
+        {
+            // Nothing is served while several authorities wait to be chosen between, but choosing
+            // would keep the clients of the authority kept, and recreating keeps none.
+            var candidates = Undecided();
+            var prompt = new FakePrompt(false);
+            var store = new AdmissionStore(_database.PluginCustomData, null);
+            foreach (var candidate in candidates)
+            {
+                var key = CertificateBlob.Load(
+                    AuthorityDocument.Read(_database.Store.Get(AuthorityKeys.AuthorityKey(candidate)), null).Authority);
+                using (var client = new AuthorityIssuer().IssueClient(key, "agent-" + candidate.Substring(0, 4), new[] { "ops" }).Read())
+                {
+                    store.Write(AdmissionRecord.For(client, DateTimeOffset.UtcNow, new[] { "ops" }));
+                }
+            }
+
+            using (var panel = NewPanel(prompt))
+            {
+                panel.RecreateAuthority();
+
+                Assert.That(prompt.LastQuestion, Does.Contain("2 clients are admitted"));
+            }
+        }
+
+        [Test]
+        public void A_record_the_gate_refuses_costs_nothing_to_recreate()
+        {
+            // Counted as the clients page judges its rows: a record of another authority, a record
+            // not for a client to present and a record that will not read admit nobody, so
+            // recreating takes nobody's admission away. All three were counted as clients that
+            // would pair again.
+            var prompt = new FakePrompt(false);
+            using (var panel = NewPanel(prompt))
+            using (var elsewhere = TestAuthority.New())
+            using (var foreign = elsewhere.IssueClient("agent-elsewhere", "ops"))
+            {
+                panel.CreateAuthority();
+                var store = new AdmissionStore(_database.PluginCustomData, null);
+                store.Write(AdmissionRecord.For(foreign, DateTimeOffset.UtcNow, new[] { "ops" }));
+                using (var host = new AuthorityIssuer().IssueHost(OwnAuthority()).Read())
+                {
+                    store.Write(AdmissionRecord.For(host, DateTimeOffset.UtcNow, new[] { "ops" }));
+                }
+
+                _database.Store.Plant(AuthorityKeys.ClientPrefix + "aaa", "record");
+                Assume.That(panel.AdmittedClients().Records, Has.Count.EqualTo(2));
+
+                panel.RecreateAuthority();
+
+                Assert.That(prompt.LastQuestion, Does.Contain("No client has been admitted yet"));
             }
         }
 
@@ -194,15 +255,16 @@ namespace KeePassGate.Tests
             // two clients that would have to pair again.
             var prompt = new FakePrompt(false);
             using (var panel = NewPanel(prompt))
-            using (var issuer = TestAuthority.New())
-            using (var older = issuer.IssueClient("agent-renewing", "ops"))
-            using (var renewed = issuer.IssueClient("agent-renewing", "ops"))
             {
                 panel.CreateAuthority();
-                var store = new AdmissionStore(_database.PluginCustomData, null);
-                var paired = AdmissionRecord.For(older, DateTimeOffset.UtcNow.AddDays(-1), new[] { "ops" });
-                store.Write(paired);
-                store.Write(AdmissionRecord.For(renewed, DateTimeOffset.UtcNow, new[] { "ops" }, paired.ClientKey));
+                using (var older = IssueOwnClient("agent-renewing"))
+                using (var renewed = IssueOwnClient("agent-renewing"))
+                {
+                    var store = new AdmissionStore(_database.PluginCustomData, null);
+                    var paired = AdmissionRecord.For(older, DateTimeOffset.UtcNow.AddDays(-1), new[] { "ops" });
+                    store.Write(paired);
+                    store.Write(AdmissionRecord.For(renewed, DateTimeOffset.UtcNow, new[] { "ops" }, paired.ClientKey));
+                }
 
                 panel.RecreateAuthority();
 
@@ -216,14 +278,15 @@ namespace KeePassGate.Tests
             // Each would have to pair again, whatever name they chose.
             var prompt = new FakePrompt(false);
             using (var panel = NewPanel(prompt))
-            using (var issuer = TestAuthority.New())
-            using (var first = issuer.IssueClient("agent", "ops"))
-            using (var second = issuer.IssueClient("agent", "ops"))
             {
                 panel.CreateAuthority();
                 var store = new AdmissionStore(_database.PluginCustomData, null);
-                store.Write(AdmissionRecord.For(first, DateTimeOffset.UtcNow.AddDays(-1), new[] { "ops" }));
-                store.Write(AdmissionRecord.For(second, DateTimeOffset.UtcNow, new[] { "ops" }));
+                using (var first = IssueOwnClient("agent"))
+                using (var second = IssueOwnClient("agent"))
+                {
+                    store.Write(AdmissionRecord.For(first, DateTimeOffset.UtcNow.AddDays(-1), new[] { "ops" }));
+                    store.Write(AdmissionRecord.For(second, DateTimeOffset.UtcNow, new[] { "ops" }));
+                }
 
                 panel.RecreateAuthority();
 
@@ -1707,6 +1770,19 @@ namespace KeePassGate.Tests
         private AuthorityPanel NewPanel(IOperatorPrompt prompt)
         {
             return new AuthorityPanel(_database, prompt, _log);
+        }
+
+        /// <summary>The authority the panel created, as the key it issues with.</summary>
+        private CertifiedKey OwnAuthority()
+        {
+            var stored = _database.Store.Get(AuthorityKeys.AuthorityKey(Digest()));
+            return CertificateBlob.Load(AuthorityDocument.Read(stored, null).Authority);
+        }
+
+        /// <summary>A client of the panel's own authority, for the caller to dispose.</summary>
+        private X509Certificate2 IssueOwnClient(string name)
+        {
+            return new AuthorityIssuer().IssueClient(OwnAuthority(), name, new[] { "ops" }).Read();
         }
 
         private string Digest()

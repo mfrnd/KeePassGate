@@ -1566,8 +1566,8 @@ namespace KeePassGate.Ui
 
         /// <summary>
         /// How many clients recreating or deleting the authority cuts off, read now rather than
-        /// remembered: each client once, by its client key, and each record that will not read as
-        /// one of its own.
+        /// remembered: each client that gets in once, by its client key, judged by
+        /// `ClientReaches` as the clients page judges its rows.
         /// </summary>
         /// <remarks>
         /// A client that renewed holds two records until it gives the older up, and was counted
@@ -1575,10 +1575,8 @@ namespace KeePassGate.Ui
         /// are two clients, and counted by name were one. A listing that could not be made falls
         /// back to counting the stored records, which says at least how many keys go.
         ///
-        /// This reads every record to get one integer, and the whole authority when they cannot be
-        /// listed, which parses both stored PKCS#12 blobs, reads both certificates into Windows
-        /// without their keys and asks the anchor pin about the host, for certificates nothing here
-        /// looks at. Caching it from the last `Describe` was tried and reverted: a panel can be
+        /// This reads every record and the whole authority to get one integer, which parses both
+        /// stored PKCS#12 blobs and asks the anchor pin about every record. Caching it from the last `Describe` was tried and reverted: a panel can be
         /// asked to confirm before it has ever described itself, and the number would then be zero
         /// in a sentence telling the operator what they are about to lose. A wrong count there is
         /// worse than a slow one.
@@ -1594,15 +1592,41 @@ namespace KeePassGate.Ui
         private int CountRecords()
         {
             var admitted = AdmittedClients();
-            if (admitted.Complete)
-            {
-                return ClientList.ClientNames(admitted.Records).Count + admitted.Unreadable.Count;
-            }
 
             using (var reading = _service.Read())
             {
-                return reading.ClientRecordCount;
+                if (!admitted.Complete)
+                {
+                    return reading.ClientRecordCount;
+                }
+
+                // The clients that get in, judged as the clients page judges its rows: a record
+                // the gate refuses, of another authority, not for client use, not yet valid or
+                // expired, loses nothing to a recreate, and neither does a record that will not
+                // read. While several authorities wait to be chosen between, a client of any of
+                // them is counted, since choosing would keep it and this keeps none.
+                var authorities = Admitting(reading);
+                var now = DateTimeOffset.UtcNow;
+                return ClientList.ClientNames(admitted.Records.Where(
+                    record => authorities.Any(authority => ClientReaches.GetsIn(record, authority, now)))).Count;
             }
+        }
+
+        /// <summary>
+        /// The authorities whose clients recreating or deleting cuts off: the authority served, or
+        /// while several are undecided, each candidate that reads.
+        /// </summary>
+        private static IReadOnlyList<X509Certificate2> Admitting(AuthorityReading reading)
+        {
+            if (reading.IsPresent)
+            {
+                return new[] { reading.Material.Authority };
+            }
+
+            return reading.Presence == AuthorityPresence.Undecided
+                ? reading.Candidates.Where(candidate => candidate.IsWhole)
+                    .Select(candidate => candidate.Material.Authority).ToList()
+                : new List<X509Certificate2>();
         }
 
         private void OnCreate(object sender, EventArgs e)
@@ -1925,22 +1949,11 @@ namespace KeePassGate.Ui
                     ClientReach judged;
                     if (!_judged.TryGetValue(record.AdmissionKey, out judged))
                     {
-                        judged = !AnchorPin.Chains(certificate, authority)
-                            ? ClientReach.Stranger
-                            : ClientCredentials.IsForClientAuthentication(certificate)
-                                ? ClientReach.Reaches
-                                : ClientReach.NotForClients;
+                        judged = ClientReaches.Issued(certificate, authority);
                         _judged[record.AdmissionKey] = judged;
                     }
 
-                    if (judged != ClientReach.Reaches)
-                    {
-                        return judged;
-                    }
-
-                    return !CertificateValidity.IsCurrent(certificate, now) && !CertificateValidity.HasExpired(certificate, now)
-                        ? ClientReach.NotYetValid
-                        : ClientReach.Reaches;
+                    return ClientReaches.Dated(judged, certificate, now);
                 }
             }
             catch (Exception error) when (Expected.OfCryptography(error) || Expected.OfCustomData(error))

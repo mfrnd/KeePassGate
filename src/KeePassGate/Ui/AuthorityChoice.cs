@@ -80,9 +80,10 @@ namespace KeePassGate.Ui
             }
 
             var options = new List<AuthorityOption>();
+            var now = DateTimeOffset.UtcNow;
             foreach (var candidate in reading.Candidates)
             {
-                options.Add(Option(candidate, records, seen, logger));
+                options.Add(Option(candidate, records, seen, now, logger));
             }
 
             return new AuthorityChoice(options, seen != null);
@@ -92,6 +93,7 @@ namespace KeePassGate.Ui
             AuthorityCandidate candidate,
             IEnumerable<AdmissionRecord> records,
             IDictionary<string, DateTimeOffset> seen,
+            DateTimeOffset now,
             IGateLog log)
         {
             if (!candidate.IsWhole)
@@ -108,9 +110,13 @@ namespace KeePassGate.Ui
             {
                 try
                 {
+                    // A client of this candidate is a record whose client the candidate would let in,
+                    // judged as the clients page judges its rows: a record that has expired, is not
+                    // valid yet or is not for client use is no evidence of which copy is in use,
+                    // and listed as a client it made an authority look more used than it is.
                     using (var certificate = record.Certificate())
                     {
-                        if (!AnchorPin.Chains(certificate, material.Authority))
+                        if (!ClientReaches.GetsIn(certificate, material.Authority, now))
                         {
                             continue;
                         }
@@ -180,7 +186,10 @@ namespace KeePassGate.Ui
         /// </summary>
         public DateTime? Created { get; }
 
-        /// <summary>The admitted clients whose certificates chain to it, newest first.</summary>
+        /// <summary>
+        /// The admitted clients it would let in, newest first: their certificates chain to it,
+        /// are for a client to present, and are valid now.
+        /// </summary>
         public IReadOnlyList<ChoiceClient> Clients { get; }
 
         public static AuthorityOption Whole(
