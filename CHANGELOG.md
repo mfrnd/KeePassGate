@@ -482,6 +482,10 @@ none, since it releases both.
   `profile list unreadable`**, with `removedProfiles` naming them, where it was `profile removed`.
   A list of profiles that will not read names fewer than it held, and nobody had removed them, so
   the line sent the operator to name again profiles nobody took off.
+- **`GET /gate/whoami` answers `profilesUnreadable`**, always present and true only while the
+  database's list of profiles will not read. A damaged list names fewer profiles than it held, so
+  `removedProfiles` then held names nobody removed, and a program had no way to tell that from the
+  operator taking them away.
 
 ## 0.1.0, 2026-10-25
 

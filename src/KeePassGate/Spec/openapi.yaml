@@ -1805,7 +1805,8 @@ components:
 
     Identity:
       type: object
-      required: [subject, clientKey, admissionKey, expires, profiles, removedProfiles]
+      required:
+        [subject, clientKey, admissionKey, expires, profiles, removedProfiles, profilesUnreadable]
       additionalProperties: false
       description: |
         Every line of the audit names both keys under these two names, so a program can find its
@@ -1844,6 +1845,13 @@ components:
           description: |
             The ones its record holds that the database no longer names. They grant nothing, and
             the operator naming one again gives it back.
+        profilesUnreadable:
+          type: boolean
+          description: |
+            Whether the database's list of profiles will not read, which is damage rather than
+            anybody's choice. A list that will not read names fewer profiles than it held, none
+            at all when it does not parse, so `removedProfiles` then holds names nobody removed,
+            and they come back when the list is repaired. False whenever the list reads.
 
     # One mask per profile because a switch belongs to its rule: `A` and `P` say how far the verbs
     # of the same rule reach, so a client holding `.R......` under one profile and `.....L.P` under

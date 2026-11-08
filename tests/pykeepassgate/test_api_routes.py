@@ -49,6 +49,7 @@ IDENTITY: dict[str, Any] = {
     "expires": "2027-02-03T04:05:06Z",
     "profiles": ["reader"],
     "removedProfiles": ["retired"],
+    "profilesUnreadable": False,
 }
 
 
@@ -67,6 +68,7 @@ def test_the_gate_says_who_this_client_is_as_it_was_admitted(
         expires=datetime(2027, 2, 3, 4, 5, 6, tzinfo=UTC),
         profiles=("reader",),
         removed_profiles=("retired",),
+        profiles_unreadable=False,
     )
 
     declared = document["components"]["schemas"]["Identity"]
@@ -1111,6 +1113,11 @@ UNREADABLE: list[tuple[str, dict[str, Any], Callable[[GateClient], object]]] = [
      lambda c: c.identity()),
     ("an identity with no removed profiles",
      {name: value for name, value in IDENTITY.items() if name != "removedProfiles"},
+     lambda c: c.identity()),
+    ("an identity not saying whether its profiles read",
+     {name: value for name, value in IDENTITY.items() if name != "profilesUnreadable"},
+     lambda c: c.identity()),
+    ("an identity saying it in a word", {**IDENTITY, "profilesUnreadable": "false"},
      lambda c: c.identity()),
     ("grants that are a list", {"grants": ["reader"]}, lambda c: c.group_access()),
     ("a mask out of its order", {"grants": {"reader": "RC......"}}, lambda c: c.group_access()),

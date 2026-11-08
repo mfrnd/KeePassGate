@@ -191,6 +191,7 @@ def test_whoami_answers_under_the_names_the_route_documents(
         "expires": "2027-02-03T04:05:06Z",
         "profiles": ["reader"],
         "removedProfiles": ["writer"],
+        "profilesUnreadable": False,
     }
     answering(gate, body)
 

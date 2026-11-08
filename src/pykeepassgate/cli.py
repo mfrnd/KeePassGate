@@ -1378,6 +1378,7 @@ def _whoami(arguments: argparse.Namespace) -> int:
         "expires": _moment(found.expires),
         "profiles": list(found.profiles),
         "removedProfiles": list(found.removed_profiles),
+        "profilesUnreadable": found.profiles_unreadable,
     }
     # Escaped as every name the gate answers with is, though the plugin allows no character in a
     # subject or a profile that would need it: what is printed is what was answered.

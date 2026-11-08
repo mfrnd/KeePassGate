@@ -58,6 +58,7 @@ def test_whoami_says_who_the_gate_admits_this_client_as(
             "expires": "2027-02-03T04:05:06Z",
             "profiles": ["reader", "writer"],
             "removedProfiles": [],
+            "profilesUnreadable": False,
         },
     )
 
@@ -86,6 +87,7 @@ def test_whoami_names_a_profile_the_database_no_longer_holds(
             "expires": "2027-02-03T04:05:06Z",
             "profiles": [],
             "removedProfiles": ["reader"],
+            "profilesUnreadable": False,
         },
     )
 
@@ -592,6 +594,7 @@ def test_attachments_are_listed_with_their_sizes(
                 "expires": "2027-02-03T04:05:06Z",
                 "profiles": ["reader"],
                 "removedProfiles": [],
+                "profilesUnreadable": False,
             },
             "subject:          CN=Real\\nForged",
         ),
