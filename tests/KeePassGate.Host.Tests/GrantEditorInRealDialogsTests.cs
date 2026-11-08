@@ -299,6 +299,21 @@ namespace KeePassGate.Host.Tests
         }
 
         [Test]
+        public void A_dialog_that_names_no_node_is_headed_as_the_dialog_it_is()
+        {
+            // Headed as about neither a group nor an entry, the tab contradicted its own sentence,
+            // which names the group it could not find.
+            using (var dialog = GroupFormTyped(null, typeof(StringDictionaryEx), typeof(PwDatabase)))
+            {
+                var node = NodeDialog.Of(dialog, null);
+
+                Assert.That(node.Scope, Is.EqualTo(GrantTab.GroupScope));
+                Assert.That(node.ReadOnlyReason, Does.Contain("which group"));
+                Assert.That(node.Store(), Is.Null);
+            }
+        }
+
+        [Test]
         public void A_dialog_keeping_its_database_as_another_type_names_the_database_as_missing()
         {
             var group = GroupUnderRoot("Fictitious");
@@ -334,7 +349,10 @@ namespace KeePassGate.Host.Tests
             const BindingFlags flags = BindingFlags.NonPublic | BindingFlags.Instance;
             built.GetField(KeePassContract.GroupFormGroupField, flags).SetValue(dialog, group);
             built.GetField(KeePassContract.NodeFormCustomDataField, flags).SetValue(
-                dialog, copy == typeof(StringDictionaryEx) ? (object)group.CustomData.CloneDeep() : new object());
+                dialog,
+                copy != typeof(StringDictionaryEx) ? new object()
+                : group == null ? new StringDictionaryEx()
+                : (object)group.CustomData.CloneDeep());
             built.GetField(KeePassContract.NodeFormDatabaseField, flags).SetValue(
                 dialog, database == typeof(PwDatabase) ? (object)_database.Database : new object());
             return dialog;

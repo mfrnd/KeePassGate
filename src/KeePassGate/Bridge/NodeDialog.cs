@@ -35,10 +35,12 @@ namespace KeePassGate.Bridge
         private readonly Form _dialog;
         private readonly FieldInfo _workingField;
         private readonly bool _merged;
+        private readonly bool _entryDialog;
         private readonly IGateLog _log;
 
         private NodeDialog(
             Form dialog,
+            bool entryDialog,
             PwGroup group,
             PwEntry entry,
             PwDatabase database,
@@ -48,6 +50,7 @@ namespace KeePassGate.Bridge
             IGateLog log)
         {
             _dialog = dialog;
+            _entryDialog = entryDialog;
             _workingField = workingField;
             _merged = merged;
             _log = log;
@@ -121,18 +124,15 @@ namespace KeePassGate.Bridge
             get { return Group != null || Entry != null; }
         }
 
-        /// <summary>What the editor's first line says, which differs by dialog.</summary>
+        /// <summary>What the editor's first line reads, which differs by dialog.</summary>
+        /// <remarks>
+        /// By the kind of dialog rather than by the node found in it, so that a dialog that does
+        /// not name its node is still headed as the group or entry dialog it is: headed as about
+        /// neither, it contradicted its own sentence naming which of the two it could not find.
+        /// </remarks>
         public string Scope
         {
-            get
-            {
-                if (Entry != null)
-                {
-                    return GrantTab.EntryScope;
-                }
-
-                return Group != null ? GrantTab.GroupScope : GrantTab.NoNodeScope;
-            }
+            get { return _entryDialog ? GrantTab.EntryScope : GrantTab.GroupScope; }
         }
 
         /// <summary>
@@ -264,13 +264,17 @@ namespace KeePassGate.Bridge
             {
                 readOnly = "This dialog does not say which " + (isGroup ? "group" : "entry")
                     + " it is about, so a rule written here could not be attached to anything.";
+
+                writer.Warn(typeName + " names no " + (isGroup ? "group" : "entry") + " in " +
+                            (isGroup ? KeePassContract.GroupFormGroupField : KeePassContract.EntryFormEntryField) +
+                            ", so the grant editor is read only");
             }
 
             // The field is kept out of the store for these four rather than merely reported,
             // because a reason with a live store behind it would leave the tab offering to
             // discard rules it must not touch.
             return new NodeDialog(
-                dialog, group, entry, database,
+                dialog, isEntry, group, entry, database,
                 merged || revision || untold || databaseField == null ? null : workingField,
                 merged,
                 readOnly,
