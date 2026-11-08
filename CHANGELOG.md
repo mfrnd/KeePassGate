@@ -486,6 +486,9 @@ none, since it releases both.
   database's list of profiles will not read. A damaged list names fewer profiles than it held, so
   `removedProfiles` then held names nobody removed, and a program had no way to tell that from the
   operator taking them away.
+- **A read refused `412` is logged as a change refused `412` is**, a warning with its reason, a
+  client handed no tag and an `If-Match` that does not read among them. A read's `412` was written
+  nowhere, so a program refused on its reads over and over showed nowhere at all.
 
 ## 0.1.0, 2026-10-25
 

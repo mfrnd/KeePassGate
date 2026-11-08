@@ -1,4 +1,5 @@
 using System;
+using KeePassGate.Diagnostics;
 using KeePassGate.Gate;
 using KeePassGate.Transport;
 using KeePassGate.Vault;
@@ -23,6 +24,7 @@ namespace KeePassGate.Pipeline
 
         private readonly IVault _vault;
         private readonly IGateTarget _target;
+        private readonly IGateLog _log;
 
         public ServedDatabase(IVault vault)
             : this(vault, null)
@@ -39,6 +41,13 @@ namespace KeePassGate.Pipeline
         /// writes them. Null where a test is about the vault alone. One of the two is required.
         /// </param>
         public ServedDatabase(IVault vault, IGateTarget target)
+            : this(vault, target, null)
+        {
+        }
+
+        /// <summary>The same, with the plugin's log for what a route refuses itself.</summary>
+        /// <param name="log">Where a read's refusal is logged, or null for nowhere.</param>
+        public ServedDatabase(IVault vault, IGateTarget target, IGateLog log)
         {
             if (vault == null && target == null)
             {
@@ -47,6 +56,7 @@ namespace KeePassGate.Pipeline
 
             _vault = vault;
             _target = target;
+            _log = log ?? NullGateLog.Instance;
         }
 
         public IVault Vault
@@ -58,6 +68,24 @@ namespace KeePassGate.Pipeline
         public IGateTarget Target
         {
             get { return _target; }
+        }
+
+        /// <summary>
+        /// The plugin's log for this request, or a log that keeps nothing when the request was
+        /// served without a log.
+        /// </summary>
+        /// <remarks>
+        /// A change is refused inside the vault, which logs it. A read is refused by the route
+        /// that serves it, and this is where that route names why.
+        /// </remarks>
+        public static IGateLog LogOf(IGateContext context)
+        {
+            object found;
+            var served = context != null && context.Items.TryGetValue(Key, out found)
+                ? found as ServedDatabase
+                : null;
+
+            return served == null ? NullGateLog.Instance : served._log;
         }
 
         public void PutOn(IGateContext context)

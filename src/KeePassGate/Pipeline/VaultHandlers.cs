@@ -1678,14 +1678,30 @@ namespace KeePassGate.Pipeline
         /// with, which is the tag it would be answered with, and null, which a caller that may not
         /// be handed one has, matches nothing. The routes that declare no `If-Match` never read
         /// the header, `API.md` §410.
+        ///
+        /// **Logged as a change's `412` is**, at `Warn` and with the reason the vault gives a
+        /// change's, a caller handed no tag named as such: a client refused on its reads over and
+        /// over showed nowhere, while the same refusals on its writes were each a line.
         /// </remarks>
         private static bool PreconditionFails(IGateContext context, string tag)
         {
-            if (!VaultPrecondition.Fails(Precondition(context), tag))
+            var asked = Precondition(context);
+            if (tag == null && asked != null)
+            {
+                // A caller handed no tag, whose condition nothing meets, named as `Tagging` names
+                // a change's.
+                asked = VaultPrecondition.Withheld();
+            }
+
+            if (!VaultPrecondition.Fails(asked, tag))
             {
                 return false;
             }
 
+            // Logged as a change's is, at the level and with the reason the vault gives a
+            // change's, since a client refused over and over on its reads is as worth finding.
+            ServedDatabase.LogOf(context).Warn(
+                "a read was refused, its precondition failing: " + asked.Refusal);
             PreconditionFailed(context);
             return true;
         }

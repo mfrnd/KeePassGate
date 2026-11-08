@@ -234,7 +234,7 @@ namespace KeePassGate.Transport
 
             if (target != null)
             {
-                new ServedDatabase(target.Vault, target).PutOn(context);
+                new ServedDatabase(target.Vault, target, logger).PutOn(context);
             }
 
             ConnectionPeer.PutOn(context, peer);

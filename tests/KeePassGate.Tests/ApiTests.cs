@@ -63,6 +63,10 @@ namespace KeePassGate.Tests
         /// </summary>
         private string[] _removed;
         private SpecRouter _router;
+
+        /// <summary>The plugin's log as the requests here are served with it.</summary>
+        private RecordingGateLog _log;
+
         private string _group;
         private string _entry;
 
@@ -72,6 +76,7 @@ namespace KeePassGate.Tests
             _vault = new FakeVault();
             _profiles = new[] { "agent" };
             _removed = null;
+            _log = new RecordingGateLog();
             _group = _vault.Add(_vault.RootAlias, "Fictitious");
             _entry = _vault.AddEntry(_group, "an invented service");
 
@@ -506,6 +511,47 @@ namespace KeePassGate.Tests
             }
 
             Assert.That(_vault.Entry(_entry), Is.Null);
+        }
+
+        [TestCase("/groups/{group}", "\"00000000000000000000000000000000\"", false, TestName = "A read of a group refused under a stale tag is logged with its reason")]
+        [TestCase("/entries/{entry}", "\"00000000000000000000000000000000\"", false, TestName = "A read of an entry refused under a stale tag is logged with its reason")]
+        [TestCase("/entries/{entry}/fields/Title", "\"unterminated", false, TestName = "A read refused under a field that does not read is logged with its reason")]
+        [TestCase("/entries/{entry}/attachments/notes.txt", "*", true, TestName = "A read refused to a client handed no tag is logged with its reason")]
+        public void A_read_refused_412_is_logged_as_a_change_refused_412_is(
+            string route, string ifMatch, bool holdsProtected)
+        {
+            // The maintainer's word of 2026-11-08. A change's `412` has always been a warning in
+            // the log, with its reason; a read's was written nowhere, so a client refused on its
+            // reads over and over showed nowhere at all.
+            _vault.Granting(_group, AllButProtected);
+            Assume.That(_vault.CreateAttachment(_entry, "notes.txt", new byte[] { 1 }, VaultTagging.None).Ok, Is.True);
+            if (holdsProtected)
+            {
+                _vault.CreateField(_entry, "Password", "not-a-real-password", true, VaultTagging.None);
+            }
+
+            var read = Conditioned("GET", route.Replace("{group}", _group).Replace("{entry}", _entry), null, ifMatch);
+
+            // The reason a change's refusal gives, one way of naming a cause for both: a caller
+            // handed no tag is refused under `Withheld`, as its changes are, and any other caller
+            // under what it asked.
+            var reason = (holdsProtected ? VaultPrecondition.Withheld() : VaultPrecondition.Read(ifMatch)).Refusal;
+
+            Assert.That(read.Status, Is.EqualTo(412), read.Json);
+            Assert.That(_log.Warnings.Select(line => line.Message), Is.EqualTo(new[]
+            {
+                "a read was refused, its precondition failing: " + reason,
+            }));
+        }
+
+        [Test]
+        public void A_read_whose_condition_holds_logs_nothing()
+        {
+            _vault.Granting(_group, AllButProtected);
+            var entry = "/entries/" + _entry;
+
+            Assert.That(Conditioned("GET", entry, null, Get(entry).Tag).Status, Is.EqualTo(200));
+            Assert.That(_log.Warnings, Is.Empty);
         }
 
         [Test]
@@ -2844,7 +2890,7 @@ namespace KeePassGate.Tests
             }
 
             var context = new GateContext(new HttpRequestHead(method, path, parameters, headers, Bodies.LengthOf(text)), text, Paired());
-            new ServedDatabase(_vault).PutOn(context);
+            new ServedDatabase(_vault, null, _log).PutOn(context);
 
             _router.Handle(context);
 
