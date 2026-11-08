@@ -1260,11 +1260,38 @@ function Invoke-Package {
         throw "Package builds a commit, and $root has $($changes.Count) change(s) nobody committed, $($changes[0].Substring(3)) first among them. Commit them or set them aside, then package."
     }
 
+    # **And the line endings a Windows checkout writes.** git writes a text file's line endings as
+    # the clone is configured, and the plugin and its symbols are compiled from those bytes, as the
+    # license and the notices the zip carries are copied from them: measured, a clone checked out
+    # with LF builds a `KeePassGate.dll` and a `KeePassGate.pdb` other than a CRLF clone's, with
+    # every other input the same. A Windows clone as git leaves it writes CRLF, the hosted runner's
+    # among them, so a clone that writes LF, under `core.autocrlf=input` or `core.eol=lf`, is refused
+    # rather than packaged into a zip no other clone reproduces.
+    $ErrorActionPreference = 'Continue'
+    try {
+        $endings = @(& git -C $root ls-files --eol -- src/KeePassGate LICENSE THIRD-PARTY-NOTICES.md 2>$null)
+    }
+    finally {
+        $ErrorActionPreference = $before
+    }
+
+    if ($LASTEXITCODE -ne 0) {
+        throw "git could not report which line endings $root writes, and the plugin is compiled from them."
+    }
+
+    $otherwise = @($endings | Where-Object { $_ -match '^\S+\s+w/(lf|mixed)\s' })
+    if ($otherwise.Count -gt 0) {
+        throw "Package builds what a Windows checkout holds, with CRLF line endings, and $root has $($otherwise.Count) file(s) the package is made from checked out otherwise, $(($otherwise[0] -split "`t", 2)[1]) first among them. Package from a clone with git's own line endings."
+    }
+
     # **The commit's own time, for every entry in the zip.** The plugin and its symbols are built
     # deterministically, so every file in the zip is the same from the same commit and toolchain,
-    # and a zip entry would otherwise carry the moment the build wrote its file: the zip's own line
-    # in `SHA256SUMS` would then match only the zip from the same run. With the commit's time it
-    # is the same from every run on the same runtime, whose deflate is the one other input.
+    # with the line endings held above and the same `origin`, whose address the symbols' Source Link
+    # record names, and the plugin names the symbols by a digest of them: measured, two clones of
+    # one commit in different directories package the same bytes once their `origin` agrees. A zip
+    # entry would otherwise carry the moment the build wrote its file, and the zip's own line in
+    # `SHA256SUMS` would then match only the zip from the same run. With the commit's time it is
+    # the same from every run on the same runtime, whose deflate is the one other input.
     $ErrorActionPreference = 'Continue'
     try {
         $committed = & git -C $root log -1 --format=%ct 2>$null
