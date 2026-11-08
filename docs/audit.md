@@ -192,11 +192,14 @@ both files in a couple of minutes, including the lines recording what it did fir
 recorded up to a thousand times at once and ten times a second after that, counted by its client
 key so that renewing does not start it again, and a request past that is answered more slowly
 rather than refused or left out. A certificate the gate refuses has no client key and is counted by
-its own admission key. A single client flooding the gate therefore
-needs well over an hour to push a line out of both files, and every line it writes on the way names
-it. Its renewals and its revocation of itself count against the same allowance, since a renewal
-refused by an earlier answer is answered at once and as often as it is asked. A pairing waits on
-the operator, and the operator's revocation on nobody, so neither is held back.
+its own admission key. A file holds about twenty thousand lines, so a single client flooding the
+gate needs about half an hour to push a line out of both files: a line written just before the file
+is set aside goes once the next file fills, and only a line at the start of a file lasts about an
+hour. Every line the client writes on the way names it, and where what a client did first matters,
+the lines are worth shipping somewhere else more often than that. A client's renewals and its
+revocation of itself count against the same allowance, since a renewal refused by an earlier
+answer is answered at once and as often as it is asked. A pairing waits on the operator, and the
+operator's revocation on nobody, so neither is held back.
 
 ## When it is not being written
 
