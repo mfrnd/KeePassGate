@@ -126,9 +126,9 @@ namespace KeePassGate.Tests
         [Test]
         public void An_approved_renewal_takes_the_client_s_turn_for_the_line_the_writer_wrote()
         {
-            // The writer writes an approved renewal's line on KeePass's own thread, which must not
-            // wait, so the handler takes the client's turn for it on the client's own connection.
-            // Nothing else paces it.
+            // The writer records an approved renewal's line from KeePass's own thread, which must
+            // not wait, so the handler takes the client's turn for it on the client's own
+            // connection. Nothing else paces it.
             var waits = new List<TimeSpan>();
             var admissions = new AdmissionAudit(_audit, null, new DecisionPace(() => TimeSpan.Zero, waits.Add));
             var handler = new RenewalHandler(

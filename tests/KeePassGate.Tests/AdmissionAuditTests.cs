@@ -265,7 +265,7 @@ namespace KeePassGate.Tests
         [Test]
         public void The_lines_the_writer_writes_never_wait_and_their_turn_is_taken_apart_from_them()
         {
-            // An approved renewal and a revocation of itself are written by the writer on
+            // An approved renewal and a revocation of itself are recorded by the writer from
             // KeePass's own thread, which must not be held, so the client's turn for each is taken
             // afterwards on its own connection, against the same allowance.
             var client = Client("reader");
@@ -295,7 +295,7 @@ namespace KeePassGate.Tests
         public void A_pairing_and_the_operator_s_revocation_never_wait()
         {
             // A pairing waits on a person, who is its pace, whether or not it names a client; the
-            // operator's revocation is written on KeePass's own thread, which must not be held.
+            // operator's revocation is recorded from KeePass's own thread, which must not be held.
             var client = Client("reader");
             var entry = TestNode.Root("root").Granting("reader", AclVerb.Read).Child("an entry");
 

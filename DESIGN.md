@@ -1387,10 +1387,11 @@ had certificates.
 given before refuses is answered at once and as often as a client asks, so its lines, and the line
 for a client revoking itself, are paced with that client's decisions rather than on an allowance of
 their own, which would let one client spend two. A pairing's line is not counted: it waits on a
-person, who is its pace, and the operator's revocation is written on KeePass's own thread, which
-must never be held. So are an approved renewal's line and a client's own revocation's, by the
-writer, so those two are written without waiting and the client's turn for each is taken once the
-write returns, on its own connection, against the same allowance.
+person, who is its pace, and the operator's revocation is recorded from KeePass's own thread,
+which must never be held. So are an approved renewal's line and a client's own revocation's, by
+the writer, whether the line reaches the file on that thread or a moment later from a thread the
+audit writes on, so those two are recorded without waiting and the client's turn for each is taken
+once the write returns, on its own connection, against the same allowance.
 
 A line carries neither the profiles the client holds nor the verb it asked for. Which profiles a
 client has is in the database already, and a log repeating them is a second copy of the thing worth

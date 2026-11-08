@@ -41,11 +41,12 @@ namespace KeePassGate.Pipeline
     /// a renewal refused by a standing answer is answered at once and could otherwise roll the
     /// file, and an approved one must not hand the client a fresh allowance. A refused one is
     /// written on the client's own connection and waits there. An approved renewal and a
-    /// self-revocation are written by the writer, on KeePass's own thread, which must not wait, so
-    /// those two are written without waiting and the client's turn for each is taken by
-    /// <see cref="TakeTurn"/> once the write returns, on its own connection. A pairing's line is
-    /// not counted, approved or not, because it waits on a person, who is its pace. The
-    /// operator's revocation is written on KeePass's own thread too.
+    /// self-revocation are recorded by the writer, from KeePass's own thread, which must not
+    /// wait, whether the line reaches the file there or a moment later from a thread the audit
+    /// writes on. So those two are recorded without waiting, and the client's turn for each is
+    /// taken by <see cref="TakeTurn"/> once the write returns, on its own connection. A
+    /// pairing's line is not counted, approved or not, because it waits on a person, who is its
+    /// pace. The operator's revocation is recorded from KeePass's own thread too.
     /// </remarks>
     public sealed class AdmissionAudit
     {
@@ -127,8 +128,8 @@ namespace KeePassGate.Pipeline
 
         /// <summary>A renewal the operator approved, once the new record is in the database.</summary>
         /// <remarks>
-        /// Written by the writer on KeePass's own thread, so it does not wait: the renewal takes
-        /// the client's turn for it with <see cref="TakeTurn"/> once the write returns.
+        /// Recorded by the writer from KeePass's own thread, so it does not wait: the renewal
+        /// takes the client's turn for it with <see cref="TakeTurn"/> once the write returns.
         /// </remarks>
         /// <param name="client">The certificate that asked, by admission key.</param>
         /// <param name="clientKey">
@@ -191,8 +192,8 @@ namespace KeePassGate.Pipeline
         /// A client's revocation of its own certificate, once the revocation is in the database.
         /// </summary>
         /// <remarks>
-        /// Written by the writer on KeePass's own thread, so it does not wait: the revocation takes
-        /// the client's turn for it with <see cref="TakeTurn"/> once the write returns.
+        /// Recorded by the writer from KeePass's own thread, so it does not wait: the revocation
+        /// takes the client's turn for it with <see cref="TakeTurn"/> once the write returns.
         /// </remarks>
         public void RevokedItself(string databaseId, string client, string clientKey)
         {
@@ -225,8 +226,8 @@ namespace KeePassGate.Pipeline
         /// The operator's revocation, as the settings dialog's OK puts it into the database.
         /// </summary>
         /// <remarks>
-        /// Never paced: it is written on KeePass's own thread, and an operator cannot revoke faster
-        /// than they can press a button and accept a dialog.
+        /// Never paced: it is recorded from KeePass's own thread, and an operator cannot revoke
+        /// faster than they can press a button and accept a dialog.
         /// </remarks>
         /// <param name="clientKey">
         /// The client key on the record the revocation empties, read before OK applied it, or null

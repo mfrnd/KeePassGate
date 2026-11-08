@@ -144,7 +144,7 @@ namespace KeePassGate.Tests
         [TestCase("busy", 0, TestName = "A revocation that wrote no line takes no turn")]
         public void A_revocation_takes_the_client_s_turn_for_the_line_the_writer_wrote(string outcome, int turns)
         {
-            // The writer writes the line on KeePass's own thread, which must not wait, so the
+            // The writer records the line from KeePass's own thread, which must not wait, so the
             // operation takes the client's turn for it on the client's own connection. Nothing
             // else paces a client revoking itself.
             var waits = new List<TimeSpan>();
