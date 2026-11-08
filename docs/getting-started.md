@@ -96,7 +96,8 @@ with no database open at all:
 | **Listen on port** | the port the next start of KeePass binds: the one chosen here, or while none has been, the one it is listening on. It is the only thing on this window that can be changed. What OK does with it is below. |
 
 **The port is set here too**, and it is the only setting the plugin has. Type a port between 1024
-and 65535 and press **OK**. **It takes effect the next time KeePass starts**, not straight away:
+and 65535 and press **OK**; a number outside that range is refused, and the window stays open to
+show why. **It takes effect the next time KeePass starts**, not straight away:
 the gate binds its port once, while KeePass is loading, and never moves it afterwards, so a client
 that is connected cannot have the socket taken out from under it by somebody looking at a settings
 window. Cancel leaves the port where it was.

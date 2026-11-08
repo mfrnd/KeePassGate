@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
 using System.Windows.Forms;
 using KeePassGate.Diagnostics;
@@ -365,12 +366,61 @@ namespace KeePassGate.Tests
         [Test]
         public void A_port_outside_the_range_is_refused_before_anything_is_asked()
         {
-            // The box itself will not go outside the range, so this is about the check rather than
-            // about the control: what the operator types is checked in terms of the number.
             Assert.That(GatePort.Refuse(80), Does.Contain("between"));
             Assert.That(GatePort.Refuse(70000), Does.Contain("between"));
             Assert.That(GatePort.Refuse(GatePort.Lowest), Is.Null);
             Assert.That(GatePort.Refuse(GatePort.Highest), Is.Null);
+        }
+
+        [TestCase("80")]
+        [TestCase("70000")]
+        [TestCase("515776")]
+        [TestCase("99999999999")]
+        public void A_port_typed_outside_the_range_is_refused_rather_than_moved_into_it(string typed)
+        {
+            // A box held to the range moved what was typed to its nearer end, as its value was
+            // read or as it lost the focus to OK: 80 was saved as 1024 without a word. What OK
+            // takes is what was typed, refused in the words `GatePort` has for it.
+            var written = new List<int>();
+
+            using (var window = new GateStatusForm(
+                Listening(51776), null, port => { written.Add(port); return null; }, 51776))
+            {
+                Type(window, typed);
+
+                var said = window.Keep();
+
+                Assert.That(said, Is.EqualTo(GatePort.Refuse(80)));
+                Assert.That(window.Applied, Is.False, "the window stays open to say why");
+                Assert.That(written, Is.Empty);
+            }
+        }
+
+        [Test]
+        public void A_port_typed_inside_the_range_is_taken_as_typed()
+        {
+            var written = new List<int>();
+
+            using (var window = new GateStatusForm(
+                Listening(51776), null, port => { written.Add(port); return null; }, 51776))
+            {
+                Type(window, "52000");
+
+                window.Keep();
+
+                Assert.That(written, Is.EqualTo(new[] { 52000 }));
+            }
+        }
+
+        /// <summary>
+        /// Puts text in the port box where a keyboard puts it, in the edit box inside it. The
+        /// box's own `Text` checks what it is given at once and keeps it to the range, which no
+        /// keystroke does.
+        /// </summary>
+        private static void Type(Form window, string text)
+        {
+            var box = (NumericUpDown)window.Controls.Find(GateTab.StatusPortBoxName, true)[0];
+            box.Controls.OfType<TextBox>().Single().Text = text;
         }
 
         private static string Takes(int port)

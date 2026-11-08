@@ -237,12 +237,18 @@ namespace KeePassGate.Ui
             // the session.
             _opened = Starting(gate, chosen);
             _takesNothing = GatePort.Refuse(chosen) != null;
+
+            // **Wider than a port, so that what is typed reaches `GatePort` as it was typed.** A
+            // box held to 1024 to 65535 takes a number outside that and moves it to the nearer
+            // end, as its value is read or as it loses the focus to OK: 80 was saved as 1024 and
+            // 70000 as 65535 without a word, so the refusal written for somebody typing 80 could
+            // never be shown. Measured on .NET Framework 4.8. The range is the refusal's to keep.
             _port = new NumericUpDown
             {
                 Name = GateTab.StatusPortBoxName,
                 AccessibleName = GateTab.StatusPortBoxLabel,
-                Minimum = GatePort.Lowest,
-                Maximum = GatePort.Highest,
+                Minimum = 0,
+                Maximum = int.MaxValue,
                 Value = _opened,
                 Width = WidestPort(),
                 Margin = new Padding(0, 0, LogicalToDeviceUnits(Spacing.Gap), 0)

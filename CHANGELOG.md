@@ -11,6 +11,9 @@ none, since it releases both.
 
 ## 0.2.0, unreleased
 
+- **A port typed outside 1024 to 65535 on the Tools window is refused rather than moved into the
+  range.** The box held itself to the range, so 80 was saved as 1024 and 70000 as 65535 without a
+  word, and the refusal written for the number could never be shown.
 - **OK on the Tools window writes the port in its box while `KEEPASSGATE_PORT` names no port.** The
   next start then takes nothing, and the box offers 51776, but OK on it untouched answered that
   nothing had changed and wrote nothing, so the default was the one port the window could not
