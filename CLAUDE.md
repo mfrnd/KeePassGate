@@ -147,16 +147,17 @@ designing around them.
   another read as damage. And **what has to survive a merge is a key that is only ever added**,
   because a KeePass merge never removes a key and never reads a value. A revocation is
   `KPG.Revoked.<key>` beside the emptied record, never changed and pruned once the certificate has
-  expired; an authority is one key per authority, `KPG.Authority.<fp>`, written once, and one
-  recreated or deleted gets `KPG.RetiredAuthority.<fp>` beside it, so which authority is served is decided
-  by the retirements and never by counting documents. More than one authority with no retirement
-  serves nothing: every connection is answered `503 undecided`, and KeePass asks the operator which
-  to keep in a dialog over its main window, never raised from a connection. **This reverses two
-  rules**: a revocation used to be written empty rather than removed and the only authority lived
-  under one key, both resting on a merge carrying the newer value, which a dropped time, a slow
-  clock or an import defeats. A record that comes back beside its revocation is deleted by the
-  plugin's next write of its own, and recreating or deleting the authority removes every record
-  and every revocation with it. See CA.md §204.
+  expired, or kept for good beside a record that would not read and so gave no date; an authority is
+  one key per authority, `KPG.Authority.<fp>`, written once, and an authority recreated or deleted
+  gets `KPG.RetiredAuthority.<fp>` beside it, so which authority is served is decided by the
+  retirements and never by counting documents. More than one authority with no retirement serves
+  nothing: every connection is answered `503 undecided`, and KeePass asks the operator which to keep
+  in a dialog over its main window, never raised from a connection. **This reverses two rules**: a
+  revocation used to be written empty rather than removed and the only authority lived under one
+  key, both resting on a merge carrying the newer value, which a dropped time, a slow clock or an
+  import defeats. A record that comes back beside its revocation is deleted by the plugin's next
+  write of its own, and recreating or deleting the authority removes every record and every
+  revocation with it. See CA.md §204.
 - **The authority takes the file to KDBX 4.1**, because a per-key modification time is a 4.1
   field. A database saved with an authority in it is a 4.1 file before anything has paired with
   it, and a record keeps it there. That is a format and not a gate: KeePass 2.47

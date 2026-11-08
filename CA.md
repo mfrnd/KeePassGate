@@ -113,8 +113,8 @@ revocation paragraph below is about.
 | --- | --- | --- |
 | `KPG.Authority.<sha256>` | one authority, filed under the digest of its certificate: the authority, the host certificate and the gate key, all three in one document | once, at creation and on recreation, and never rewritten |
 | `KPG.RetiredAuthority.<sha256>` | the constant `retired`, for an authority recreated, deleted or not kept | once, and never changed or removed |
-| `KPG.Client.<sha256>` | one admission record per certificate admitted, naming the client it belongs to by its client key, §223 | at every pairing and every renewal, and written empty when the certificate is revoked; removed once its certificate has expired, and an emptied one with its revocation |
-| `KPG.Revoked.<sha256>` | the revoked certificate's `notAfter` | once, when the client is revoked, and never changed; removed once that moment has passed |
+| `KPG.Client.<sha256>` | one admission record per certificate admitted, naming the client it belongs to by its client key, §223 | at every pairing and every renewal, and written empty when the certificate is revoked; removed once its certificate has expired, and an emptied one with its revocation, unless that revocation is empty |
+| `KPG.Revoked.<sha256>` | the revoked certificate's `notAfter`, or nothing for a record that would not read and so gave no date | once, when the client is revoked, and never changed; removed once that moment has passed, and an empty one never |
 | `KPG.RenewalRefused.<sha256>` | the operator's standing answer to renewing one certificate: `forever`, or the moment renewals are asked about again | when the operator refuses a renewal forever or until a date, and again when a later answer replaces it, which the dialog takes only once an until-date has passed, or a merge brings in; removed once no record admits that certificate, or when the operator allows renewal on the clients page and accepts the dialog |
 | `KPG.Profiles` | the set of profile names this database knows | when the Profiles page is accepted, and at a pairing that approves a name it does not hold, in the same write as the record |
 
@@ -241,13 +241,14 @@ no authority, and is given a new authority and paired again.
 
 **Which authority a database has is decided by the retirements, never by counting documents.** The
 authorities are the documents with no retirement beside them, so a retired document that a merge
-brings back serves nothing, and the plugin's next write takes it away again. **More than one
-authority with no retirement serves nothing**: that is copies that each created or recreated an
-authority, meeting in a synchronize, and choosing between them is the operator's decision rather
-than this plugin's. A key that names no proper digest, a bare `KPG.Authority.` among them, is a
-document too, filed under a digest not its own: beside another authority it is one more candidate,
-which can be retired and never kept, and it holds up that database alone, since **what one database
-holds stops no other being served**.
+brings back serves nothing, and is taken away again the next time the plugin keeps, recreates or
+deletes an authority or admits a client, at a pairing or a renewal; a revocation leaves it. **More
+than one authority with no retirement serves nothing**: that is copies that each created or
+recreated an authority, meeting in a synchronize, and choosing between them is the operator's
+decision rather than this plugin's. A key that names no proper digest, a bare `KPG.Authority.` among
+them, is a document too, filed under a digest not its own: beside another authority it is one more
+candidate, which can be retired and never kept, and it holds up that database alone, since **what
+one database holds stops no other being served**.
 
 **So the plugin asks, and answers `503 undecided` until somebody has.** A connection to such a
 database is answered before a request is read, with each authority's own host certificate and no
@@ -376,8 +377,9 @@ OK**. A value written to the live group therefore survives Cancel and is destroy
 
 Measured rather than remembered, in `SnapshotHazardTests`: the snapshot field is still there in
 KeePass 2.61.1, a group's custom data can be replaced wholesale from inside KeePass but not from a
-plugin, a write made while the dialog is open is destroyed by OK and survives Cancel, and an
-authority created before the dialog opened comes back unharmed because the dialog copied it.
+plugin, a write made while the dialog is open is destroyed by OK, and an authority created before
+the dialog opened comes back unharmed because the dialog copied it. That Cancel leaves the write
+alone is read off the dialog rather than measured: only its OK puts the copy back.
 
 **The dialog this plugin puts its tab on carries no such snapshot**, which the same tests assert
 against the real type. So the buttons on the KPG tab are safe from their own dialog, and the hazard
