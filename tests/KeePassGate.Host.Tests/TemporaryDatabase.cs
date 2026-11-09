@@ -74,9 +74,13 @@ namespace KeePassGate.Host.Tests
         }
 
         /// <summary>
-        /// Opens the file again without saving first, which is what an unlock is: KeePass closed
-        /// the database and is now reading the same file back.
+        /// Reads the file into a new `PwDatabase` without saving first, leaving the old one behind.
         /// </summary>
+        /// <remarks>
+        /// Not what KeePass does at an unlock, which opens the same `PwDatabase` again: that is
+        /// <see cref="LockAndUnlock"/> and <see cref="Unlock"/>. This is for a test that asks only
+        /// what the file holds, or that wants a second object to compare with the first.
+        /// </remarks>
         public void Reopen()
         {
             var reopened = new PwDatabase();
