@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using System.Drawing;
 using System.Linq;
 using System.Reflection;
+using System.Threading;
 using System.Windows.Forms;
 using KeePassGate.Acl;
 using KeePassGate.Testing;
@@ -20,6 +21,7 @@ namespace KeePassGate.Tests
     /// pressed one would assert against a table nobody touched.
     /// </remarks>
     [TestFixture]
+    [Apartment(ApartmentState.STA)]
     public sealed class GrantPanelTests
     {
         [Test]
