@@ -429,6 +429,41 @@ namespace KeePassGate.Host.Tests
         }
 
         [Test]
+        public void The_spellings_stay_apart_on_a_thread_of_another_culture()
+        {
+            // The comparison takes KeePass's culture once, as it is made on KeePass's thread, and a
+            // connection thread looks paths up too. Read at each comparison instead, the test above
+            // would still pass, everything in it running on one thread.
+            KeePassPaths paths;
+            var was = Thread.CurrentThread.CurrentCulture;
+            Thread.CurrentThread.CurrentCulture = new System.Globalization.CultureInfo("tr-TR");
+            try
+            {
+                paths = new KeePassPaths();
+            }
+            finally
+            {
+                Thread.CurrentThread.CurrentCulture = was;
+            }
+
+            var equal = true;
+            var sameHash = true;
+            var elsewhere = new Thread(() =>
+            {
+                equal = paths.Equals("C:\\invented\\Ideas.kdbx", "C:\\invented\\ideas.kdbx");
+                sameHash = paths.GetHashCode("C:\\invented\\Ideas.kdbx") == paths.GetHashCode("C:\\invented\\ideas.kdbx");
+            })
+            {
+                CurrentCulture = new System.Globalization.CultureInfo("en-US"),
+            };
+            elsewhere.Start();
+            Assert.That(elsewhere.Join(TimeSpan.FromSeconds(10)), Is.True);
+
+            Assert.That(equal, Is.False, "an en-US thread joined two paths KeePass's Turkish thread keeps apart");
+            Assert.That(sameHash, Is.False, "and hashed them alike, so a lookup from there finds the other one");
+        }
+
+        [Test]
         public void A_lock_after_a_save_as_still_answers_for_the_database()
         {
             // Save As moves the path under the same `PwDatabase` and KeePass says so only as a
