@@ -75,18 +75,18 @@ namespace KeePassGate.Host.Tests.Live
         }
 
         [Test]
-        public void A_rule_typed_there_is_in_the_file_after_KeePass_has_gone()
+        public void A_rule_made_there_is_in_the_file_after_KeePass_has_gone()
         {
             Assert.That(_accepted, Is.True, "The group dialog was never accepted.");
             Assert.That(_exited, Is.True, "KeePass did not exit cleanly.");
 
             Assert.That(_storedDocument, Is.Not.Null,
-                "The group carries no rules, so the dialog's OK discarded what was typed.");
+                "The group carries no rules, so the dialog's OK discarded the rule made on it.");
 
             var document = AclDocument.Read(_storedDocument);
 
             Assert.That(document, Is.Not.Null, "What was stored does not read as a document.");
-            Assert.That(document.Grant(Profile), Is.Not.Null, "the profile that was typed is not in the file");
+            Assert.That(document.Grant(Profile), Is.Not.Null, "the profile that was chosen is not in the file");
             Assert.That(document.Default, Is.EqualTo(AclDefault.Deny), "the switch that was checked is not either");
         }
 

@@ -23,7 +23,7 @@ namespace KeePassGate.Host.Tests
     /// </summary>
     /// <remarks>
     /// `GrantSheetTests` and `GrantPanelTests` settle what the editor decides. This settles the one
-    /// thing only KeePass can answer, and it is the thing the whole design turns on: **a rule typed
+    /// thing only KeePass can answer, and it is the thing the whole design turns on: **a rule made
     /// here lands in the copy the dialog writes back on OK**, not on the live node, so the dialog's
     /// own buttons mean what they say.
     ///
@@ -666,7 +666,7 @@ namespace KeePassGate.Host.Tests
         }
 
         [Test]
-        public void A_rule_typed_on_a_group_dialog_lands_in_the_copy_and_not_on_the_group()
+        public void A_rule_made_on_a_group_dialog_lands_in_the_copy_and_not_on_the_group()
         {
             // The measurement the whole editor rests on. A grant written to the live group would
             // survive Cancel and be destroyed by OK, which is the worst way for this to fail.
@@ -691,7 +691,7 @@ namespace KeePassGate.Host.Tests
         }
 
         [Test]
-        public void A_rule_typed_on_an_entry_dialog_lands_in_the_copy_and_not_on_the_entry()
+        public void A_rule_made_on_an_entry_dialog_lands_in_the_copy_and_not_on_the_entry()
         {
             // The same measurement on the other dialog, which the group one does not stand for.
             // `PwEntryForm` takes its copy in `InitPropertiesTab` and puts it back in `SaveEntry`,
