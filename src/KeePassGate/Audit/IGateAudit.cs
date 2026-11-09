@@ -16,6 +16,14 @@ namespace KeePassGate.Audit
     public interface IGateAudit
     {
         void Record(AuditEntry entry);
+
+        /// <summary>Whether what is recorded here is kept anywhere.</summary>
+        /// <remarks>
+        /// Asked by the pace, `DecisionPace`, which holds a client back only so that its lines
+        /// cannot roll a bounded file away: an audit that keeps nothing has nothing to protect,
+        /// and a client slowed for it would be slowed for nothing.
+        /// </remarks>
+        bool Keeps { get; }
     }
 
     /// <summary>An audit that keeps nothing, for a caller that has not been given one.</summary>
@@ -25,6 +33,11 @@ namespace KeePassGate.Audit
 
         private NullGateAudit()
         {
+        }
+
+        public bool Keeps
+        {
+            get { return false; }
         }
 
         public void Record(AuditEntry entry)

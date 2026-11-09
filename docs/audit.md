@@ -92,10 +92,12 @@ somebody at the desk acts.
 **A `412` does not always mean the node changed.** It answers a program whose tag no longer matches
 what the group or entry holds, and it also answers every `If-Match` from a program the gate hands
 no tag to, because its rules do not read everything a tag covers, and an `If-Match` that does not
-read as a tag at all: neither can ever be met, whether anything changed or not. A change's `412` is
-in the log, and a read's is written nowhere. A program refused `412` on its writes over and over is
-writing over somebody, guessing, or naming a tag it was never handed, and the log is where that
-shows.
+read as a tag at all: neither can ever be met, whether anything changed or not. Every `412` is in
+the log, a change's and a read's alike, each a warning with its reason. A program refused `412`
+over and over is writing over somebody, guessing, or naming a tag it was never handed, and each
+warning names which: `the node no longer holds what If-Match named` for the first two, and for a
+condition nothing could meet, that the program is handed no tags, that `If-Match` does not read as
+a list of tags, or that it names no strong tag.
 
 **A protected value withheld is a second decision, and gets a line of its own.** When the rules
 allow a request whose answer would carry a value the database protects, and no rule of the
@@ -124,7 +126,11 @@ whose record still holds a profile this database no longer names, and that profi
 allowed the request, `reason` is `profile removed`, `decidedAt` is the node whose rule would have
 allowed it, and one more member, `removedProfiles`, lists the removed profiles that would have.
 Every other line leaves that member out. A removed profile grants nothing, so naming it says why a
-request failed without saying what anybody can reach.
+request failed without saying what anybody can reach. A profile list the database cannot read
+names fewer profiles than it held, none at all when it does not read, and nobody removed the
+profiles it lost, so a refusal they would have allowed has `reason` `profile list unreadable`
+instead, with `removedProfiles` naming them all the same:
+[Naming profiles](access-control.md#naming-profiles) covers what to do then.
 
 **A revoked client is still written down.** A certificate this database issued and the gate
 refuses, because its record has been taken away, it has expired, or it is not a client certificate,
@@ -192,8 +198,9 @@ so a program sending requests as fast as it can would otherwise push everything 
 both files in a couple of minutes, including the lines recording what it did first. Each client is
 recorded up to a thousand times at once and ten times a second after that, counted by its client
 key so that renewing does not start it again, and a request past that is answered more slowly
-rather than refused or left out. A certificate the gate refuses has no client key and is counted by
-its own admission key. A file holds about twenty thousand lines, so a single client flooding the
+rather than refused or left out. A certificate the gate refuses has no client key, and every
+certificate refused for a database is counted together, so certificates a program renewed out of
+give it nothing more. A file holds about twenty thousand lines, so a single client flooding the
 gate needs about half an hour to push a line out of both files: a line written just before the file
 is set aside goes once the next file fills, and only a line at the start of a file lasts about an
 hour. Every line the client writes on the way names it, and where what a client did first matters,

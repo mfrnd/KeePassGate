@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Net;
 using KeePassGate.Acl;
+using KeePassGate.Diagnostics;
 using KeePassGate.Spec;
 using KeePassGate.Transport;
 using KeePassGate.Vault;
@@ -226,16 +227,9 @@ namespace KeePassGate.Pipeline
                 return;
             }
 
-            // Asked again of what was read, which says whether the entry holds a protected value
-            // as of after the tag was taken.
-            tag = MayTag(context, entry.Entry) ? tag : null;
-            if (PreconditionFails(context, tag))
-            {
-                return;
-            }
-
             // Measured again on what came back, because a vault handing over more than it was
-            // asked for must not be the way past the ceiling either.
+            // asked for must not be the way past the ceiling either. Before the condition, for the
+            // reason `ReadAttachment` gives.
             if (entry.Fields == null || entry.Characters > MaxEntryCharacters)
             {
                 context.Respond(413, HttpResponse.ErrorBody(string.Format(
@@ -243,6 +237,14 @@ namespace KeePassGate.Pipeline
                     "this entry holds {0} characters of names and values, and this gate hands out at most {1}",
                     entry.Characters,
                     MaxEntryCharacters)));
+                return;
+            }
+
+            // Asked again of what was read, which says whether the entry holds a protected value
+            // as of after the tag was taken.
+            tag = MayTag(context, entry.Entry) ? tag : null;
+            if (PreconditionFails(context, tag))
+            {
                 return;
             }
 
@@ -257,8 +259,11 @@ namespace KeePassGate.Pipeline
             // database protects, and a listing leaves it out, because `list` gives names.
             json.Text(ExpiresMember, entry.Entry.Expires.HasValue ? Moments.Wire(entry.Entry.Expires.Value) : null);
 
-            var reaches = ReachesProtected(context, entry.Entry.Node, AclVerb.Read);
-            var blanked = false;
+            // Asked only of an entry holding a value the database protects, and once, however many
+            // it holds: the decision is one decision, and a refusal is written down only where
+            // something is withheld.
+            var reaches = !entry.Fields.Any(field => IsProtected(entry, field.Key))
+                          || Reaches(context, entry.Entry.Node, AclVerb.Read);
 
             json.Object("fields");
             foreach (var field in entry.Fields)
@@ -267,18 +272,11 @@ namespace KeePassGate.Pipeline
                 // have from a field that is not there. The `protected` member below says which
                 // were which, which is what makes the difference readable rather than guessed at.
                 var withheld = !reaches && IsProtected(entry, field.Key);
-                blanked = blanked || withheld;
 
                 json.Text(field.Key, withheld ? null : field.Value);
             }
 
             json.End();
-
-            if (blanked)
-            {
-                // Once, however many fields were blanked: the decision was one decision.
-                Recorded(context, entry.Entry.Node, AclVerb.Read);
-            }
 
             json.Array("protected");
             foreach (var name in entry.Protected)
@@ -321,9 +319,9 @@ namespace KeePassGate.Pipeline
                 return;
             }
 
-            if (Guarded(vault, fields.Keys) && !ReachesProtected(context, group.Node, AclVerb.Create))
+            if (Guarded(vault, fields.Keys) && !Reaches(context, group.Node, AclVerb.Create))
             {
-                Withheld(context, group.Node, AclVerb.Create);
+                Withheld(context);
                 return;
             }
 
@@ -361,9 +359,9 @@ namespace KeePassGate.Pipeline
                 return;
             }
 
-            if (guarded.Value && !ReachesProtected(context, entry.Node, AclVerb.Update))
+            if (guarded.Value && !Reaches(context, entry.Node, AclVerb.Update))
             {
-                Withheld(context, entry.Node, AclVerb.Update);
+                Withheld(context);
                 return;
             }
 
@@ -486,14 +484,7 @@ namespace KeePassGate.Pipeline
                 return;
             }
 
-            // Asked of this lookup, which is after the tag, so it is the entry as of then that
-            // decides whether this caller may still be handed it.
-            tag = MayTag(context, entry) ? tag : null;
-            if (PreconditionFails(context, tag))
-            {
-                return;
-            }
-
+            // Before the condition, for the reason `ReadAttachment` gives.
             var value = held.Value;
             if (value == null || held.Characters > MaxEntryCharacters)
             {
@@ -505,11 +496,15 @@ namespace KeePassGate.Pipeline
                 return;
             }
 
-            var withheld = guarded && !ReachesProtected(context, entry.Node, AclVerb.Read);
-            if (withheld)
+            // Asked of this lookup, which is after the tag, so it is the entry as of then that
+            // decides whether this caller may still be handed it.
+            tag = MayTag(context, entry) ? tag : null;
+            if (PreconditionFails(context, tag))
             {
-                Recorded(context, entry.Node, AclVerb.Read);
+                return;
             }
+
+            var withheld = guarded && !Reaches(context, entry.Node, AclVerb.Read);
 
             json.Text("value", withheld ? null : value);
             json.Flag("protected", guarded);
@@ -540,7 +535,7 @@ namespace KeePassGate.Pipeline
                 return;
             }
 
-            if (Unnameable(context, name))
+            if (Unnameable(context, name, FieldRouteCharacters))
             {
                 return;
             }
@@ -552,9 +547,9 @@ namespace KeePassGate.Pipeline
                 return;
             }
 
-            if ((guarded || vault.Protects(name)) && !ReachesProtected(context, entry.Node, AclVerb.Create))
+            if ((guarded || vault.Protects(name)) && !Reaches(context, entry.Node, AclVerb.Create))
             {
-                Withheld(context, entry.Node, AclVerb.Create);
+                Withheld(context);
                 return;
             }
 
@@ -597,9 +592,9 @@ namespace KeePassGate.Pipeline
                 return;
             }
 
-            if (guarded.Value && !ReachesProtected(context, entry.Node, AclVerb.Update))
+            if (guarded.Value && !Reaches(context, entry.Node, AclVerb.Update))
             {
-                Withheld(context, entry.Node, AclVerb.Update);
+                Withheld(context);
                 return;
             }
 
@@ -646,7 +641,7 @@ namespace KeePassGate.Pipeline
 
             if (guarded.Value && CouldPutBackUnprotected(context, entry.Node))
             {
-                Withheld(context, entry.Node, AclVerb.Create);
+                Withheld(context);
                 return;
             }
 
@@ -663,12 +658,22 @@ namespace KeePassGate.Pipeline
         /// protected value, though another could still put an unprotected value back. A profile
         /// that may create and reach protected values could write the protected value anyway, and
         /// a profile that may not create has nowhere to put anything back.
+        ///
+        /// **The refusal is written down for the profile that could put a value back**, through
+        /// <see cref="Reaches(IGateContext, IAclNode, AclVerb, IReadOnlyList{string})"/> asked of
+        /// that profile alone, so the strip the guard stops is on record as the attempt it is.
+        /// Recorded by a walk pooling every profile, it was written down only when no profile at
+        /// all could create a protected value here, and the case R10 made this guard refuse wrote
+        /// nothing. Whether a profile could put anything back at all refuses nothing on its own,
+        /// so that question is put to the resolver and not written down.
         /// </remarks>
         private static bool CouldPutBackUnprotected(IGateContext context, IAclNode node)
         {
-            return context.Client.Profiles.Any(profile =>
-                AclResolver.Permits(node, new[] { profile }, AclVerb.Create, AclReach.Fields)
-                && !AclResolver.Permits(node, new[] { profile }, AclVerb.Create, AclReach.Protected));
+            // `Any` stops at the first profile that could, so one refusal is written down.
+            return context.Client.Profiles
+                .Select(profile => new[] { profile })
+                .Any(alone => AclResolver.Permits(node, alone, AclVerb.Create, AclReach.Fields)
+                              && !Reaches(context, node, AclVerb.Create, alone));
         }
 
         public static void ListAttachments(IGateContext context)
@@ -758,14 +763,11 @@ namespace KeePassGate.Pipeline
                 return;
             }
 
-            tag = Confirmed(context, vault, uuid, tag);
-            if (PreconditionFails(context, tag))
-            {
-                return;
-            }
-
             // Measured again on what came back, because a vault handing over more than it was
-            // asked for must not be the way past the ceiling either.
+            // asked for must not be the way past the ceiling either. Before the condition, which
+            // RFC 9110 section 13.2.1 orders after every refusal that does not depend on the tag:
+            // asked first, an attachment over the ceiling answered a stale tag `412`, and a client
+            // never handed a tag was told `412` every time and never that it was too large.
             var content = attachment.Content;
             var size = content == null ? attachment.Size : content.Length;
             if (content == null || size > MaxAttachmentBytes)
@@ -775,6 +777,12 @@ namespace KeePassGate.Pipeline
                     "this attachment is {0} bytes, and this gate hands out at most {1}",
                     size,
                     MaxAttachmentBytes)));
+                return;
+            }
+
+            tag = Confirmed(context, vault, uuid, tag);
+            if (PreconditionFails(context, tag))
+            {
                 return;
             }
 
@@ -804,7 +812,7 @@ namespace KeePassGate.Pipeline
             }
 
             var name = body.Text("name");
-            if (Unnameable(context, name))
+            if (Unnameable(context, name, AttachmentRouteCharacters))
             {
                 return;
             }
@@ -1110,12 +1118,23 @@ namespace KeePassGate.Pipeline
         /// holding only `create` could write beside an existing protected field, be answered
         /// `201`, and find its own value there in clear once the file was reopened.
         ///
-        /// **And a name that would be shown in another order than it is written**, which
-        /// <see cref="Reorders"/> says why.
+        /// **And a name holding a format character**, for the reasons <see cref="Formats"/> gives.
+        ///
+        /// **And a name too long to travel in a path.** A name goes into the routes naming it
+        /// percent-encoded, three characters for each byte of its UTF-8 beyond ASCII, so nine for
+        /// a Chinese character and twelve for a character beyond the first plane, and the
+        /// transport refuses a target over
+        /// <see cref="HttpRequestReader.MaxTargetCharacters"/> before a route is chosen. So a name
+        /// of a few hundred such characters, inside the 512 the body allows, was made with `201`
+        /// and every route naming it was answered `414`. Measured against the route the name
+        /// would be named in, <see cref="FieldRouteCharacters"/> or
+        /// <see cref="AttachmentRouteCharacters"/> before it.
         /// </remarks>
-        private static bool Unnameable(IGateContext context, string name)
+        /// <param name="before">The characters of the route naming it that come before the name.</param>
+        private static bool Unnameable(IGateContext context, string name, int before)
         {
-            if (PathTemplate.IsCapture(name) && !Reorders(name))
+            if (PathTemplate.IsCapture(name) && !Formats(name)
+                && before + InPath(name) <= HttpRequestReader.MaxTargetCharacters)
             {
                 return false;
             }
@@ -1125,7 +1144,39 @@ namespace KeePassGate.Pipeline
         }
 
         /// <summary>
-        /// Whether a name holds a character that changes the order the text around it is shown in.
+        /// The characters before the name in the routes naming a field: `/entries/`, the entry's
+        /// identifier and `/fields/`.
+        /// </summary>
+        internal static readonly int FieldRouteCharacters = "/entries/".Length + 32 + "/fields/".Length;
+
+        /// <summary>The same, for the routes naming an attachment.</summary>
+        internal static readonly int AttachmentRouteCharacters = "/entries/".Length + 32 + "/attachments/".Length;
+
+        /// <summary>
+        /// How many characters a name takes in a path, percent-encoded as the reference client
+        /// writes it: every byte of its UTF-8 but an unreserved character as three.
+        /// </summary>
+        /// <remarks>
+        /// The unreserved characters of RFC 3986 section 2.3 are the ASCII letters and digits and
+        /// `-`, `.`, `_` and `~`. A client leaving more of a name unencoded takes fewer, so a
+        /// name measured here travels however it is written.
+        /// </remarks>
+        private static int InPath(string name)
+        {
+            var length = 0;
+            foreach (var octet in System.Text.Encoding.UTF8.GetBytes(name))
+            {
+                var c = (char)octet;
+                length += octet < 0x80 && (Ascii.IsLetterOrDigit(c) || c == '-' || c == '.' || c == '_' || c == '~')
+                    ? 1
+                    : 3;
+            }
+
+            return length;
+        }
+
+        /// <summary>
+        /// Whether a name holds a Unicode format character, a character of general category Cf.
         /// </summary>
         /// <remarks>
         /// **Refused in a name, because KeePass acts on what a name says.** It lists an attachment
@@ -1134,22 +1185,37 @@ namespace KeePassGate.Pipeline
         /// right to left override and then `fdp.exe` is listed as ending in `.pdf` and started as a
         /// program, and a client allowed to create attachments could offer the operator a program
         /// dressed as a document. A field name is refused the same way, since the same dialog
-        /// shows those.
+        /// shows those. Every bidirectional control Unicode has, the Arabic letter mark, the two
+        /// directional marks, the five embeddings and overrides and the four isolates, is a format
+        /// character.
         ///
-        /// These twelve are every character Unicode classes as a bidirectional control: the Arabic
-        /// letter mark, the two directional marks, the five embeddings and overrides, and the four
-        /// isolates. A value is not a name and keeps them, because right to left text is ordinary
-        /// in a note.
+        /// **The rest of the category is drawn as nothing at all**: the zero-width space, the
+        /// joiners, the soft hyphen, the byte order mark, the tag characters. A name holding any of
+        /// them is drawn exactly as the name without it, so a client allowed to create fields could
+        /// put a second `Password` on an entry, unprotected and holding what the client chose,
+        /// beside the real `Password`, for the operator to type a credential into or copy from. The
+        /// database cannot be left to refuse it: it tells names apart by the culture's collation,
+        /// which weighs some of these and not others, so `Pass` and `word` around a zero-width
+        /// space were a second name to KeePass and the same name to the eye.
+        ///
+        /// Asked of each character as Unicode classes it, a pair of surrogates as the character it
+        /// encodes, so that a format character beyond the first plane is refused as well. A value
+        /// is not a name and keeps them, because right to left text is ordinary in a note. A name
+        /// that looks like another in any other way, a letter of another script or a space at its
+        /// end, is not asked about here.
         /// </remarks>
-        private static bool Reorders(string name)
+        private static bool Formats(string name)
         {
-            foreach (var character in name)
+            for (var at = 0; at < name.Length; at++)
             {
-                if (character == '\u061C' || character == '\u200E' || character == '\u200F'
-                    || (character >= '\u202A' && character <= '\u202E')
-                    || (character >= '\u2066' && character <= '\u2069'))
+                if (CharUnicodeInfo.GetUnicodeCategory(name, at) == UnicodeCategory.Format)
                 {
                     return true;
+                }
+
+                if (char.IsHighSurrogate(name[at]) && at + 1 < name.Length && char.IsLowSurrogate(name[at + 1]))
+                {
+                    at++;
                 }
             }
 
@@ -1415,7 +1481,8 @@ namespace KeePassGate.Pipeline
         }
 
         /// <summary>
-        /// What a caller is told when a write would set a value it may not set.
+        /// What a caller is told when a write would set a value it may not set, once
+        /// <see cref="Reaches(IGateContext, IAclNode, AclVerb)"/> has written the refusal down.
         /// </summary>
         /// <remarks>
         /// The same answer a rule that refuses anything else gives, which is what every refusal
@@ -1423,60 +1490,59 @@ namespace KeePassGate.Pipeline
         /// noticing which refusals differ. It costs an honest caller a clearer message, and the
         /// message it would have wanted is on the tab of whoever wrote the rule.
         /// </remarks>
-        private static void Withheld(IGateContext context, IAclNode node, AclVerb verb)
+        private static void Withheld(IGateContext context)
         {
-            Recorded(context, node, verb);
             Unreachable(context);
         }
 
-        /// <summary>Writes down a protected-scope refusal, which is the one the router never sees.</summary>
-        /// <remarks>
-        /// The router records that the verb was granted, before dispatch, and that line is true.
-        /// This is the second decision on the same request: the same client asking for the values
-        /// inside an answer it is otherwise allowed, and being refused them. Without it the audit
-        /// said a client had been given something the gate had in fact withheld. That attempt is
-        /// exactly the one the `protected` switch exists to stop, so it is exactly the line an
-        /// operator opens the file to find.
-        ///
-        /// **Only where something was actually withheld.** Asked on every read, this would write a
-        /// line for the ordinary case of a client that simply does not hold `protected`, on entries
-        /// with nothing protected on them, which is the noise `A_listing_is_recorded_once` refuses.
-        /// </remarks>
-        private static void Recorded(IGateContext context, IAclNode node, AclVerb verb)
-        {
-            object found;
-            if (context.Items.TryGetValue(SpecRouter.ReachItem, out found) && found is ProtectedReach)
-            {
-                // Records because it refuses; the router's own check decides which way.
-                ((ProtectedReach)found)(node, verb);
-            }
-        }
-
         /// <summary>
-        /// Whether this caller may have the values the database protects on this node.
+        /// Whether this caller may have the values the database protects on this node, a refusal
+        /// written down by the walk that decides it.
         /// </summary>
         /// <remarks>
         /// **The one question a handler asks rather than the router**, and the asymmetry is worth
         /// naming. An attachment is a route of its own, so the router asks before dispatch and no
         /// handler thinks about scope. A protected value arrives inside the answer to a route that
         /// is allowed, so the only moment the question exists is while that answer is being
-        /// written.
+        /// written. So each handler that writes a field value into an answer or takes a field
+        /// value from a body asks it, which is a check every such handler has to remember: the
+        /// arrangement every other question is kept out of, and the arrangement this question
+        /// needs, since only the handler holds the values, `DESIGN.md` §137. A route added later
+        /// that handles field values has to ask it as well.
         ///
-        /// It is asked wherever a protected value would be written, which is a handful of places,
-        /// for the reason everything else is asked once: field values are written in more places
-        /// than anybody can hold in their head, and a check each of them has to remember is a check
-        /// one of them will not.
+        /// **Asked through the router's <see cref="ProtectedReach"/>, which decides and records in
+        /// one walk.** The router records that the verb was granted, before dispatch, and that
+        /// line is true; a value withheld is a second decision on the same request, and without
+        /// its line the audit held that a client had been given what the gate withheld. That
+        /// attempt is exactly what the `protected` switch exists to stop, so its line is exactly
+        /// the line an operator opens the file to find. Decided here and written down by a second
+        /// walk, as it was, the two could disagree, and a refusal went unwritten whenever they did.
+        ///
+        /// **Only where something would be withheld.** Each caller asks once it holds a protected
+        /// value to hand out or to write, so a client that simply does not hold `protected`,
+        /// reading an entry with nothing protected on it, writes no second line. A handler the
+        /// router did not hand the question to withholds, which is the direction a defect has to
+        /// fail in.
         /// </remarks>
-        private static bool ReachesProtected(IGateContext context, IAclNode node, AclVerb verb)
+        private static bool Reaches(IGateContext context, IAclNode node, AclVerb verb)
         {
-            return AclResolver.Permits(node, context.Client.Profiles, verb, AclReach.Protected);
+            return Reaches(context, node, verb, null);
+        }
+
+        /// <summary>The same question, asked of some of the caller's profiles and not all of them.</summary>
+        private static bool Reaches(
+            IGateContext context, IAclNode node, AclVerb verb, IReadOnlyList<string> profiles)
+        {
+            object found;
+            var reach = context.Items.TryGetValue(SpecRouter.ReachItem, out found) ? found as ProtectedReach : null;
+            return reach != null && reach(node, verb, profiles);
         }
 
         /// <summary>The same question, asked per item and deliberately not recorded.</summary>
         /// <remarks>
         /// For the reason `Visible` gives just above: a listing asks this about every entry it
         /// walks, so recording it would be a line per item for the ordinary case. The decisions
-        /// worth reading are the ones about a named node, and those go through `ReachesProtected`.
+        /// worth reading are the ones about a named node, and those go through `Reaches`.
         /// Asked of every profile the client holds, as `Visible` is, so a protected title is shown
         /// through any profile that may list the entry with its protected values.
         /// </remarks>
@@ -1612,14 +1678,30 @@ namespace KeePassGate.Pipeline
         /// with, which is the tag it would be answered with, and null, which a caller that may not
         /// be handed one has, matches nothing. The routes that declare no `If-Match` never read
         /// the header, `API.md` §410.
+        ///
+        /// **Logged as a change's `412` is**, at `Warn` and with the reason the vault gives a
+        /// change's, a caller handed no tag named as such: a client refused on its reads over and
+        /// over showed nowhere, while the same refusals on its writes were each a line.
         /// </remarks>
         private static bool PreconditionFails(IGateContext context, string tag)
         {
-            if (!VaultPrecondition.Fails(Precondition(context), tag))
+            var asked = Precondition(context);
+            if (tag == null && asked != null)
+            {
+                // A caller handed no tag, whose condition nothing meets, named as `Tagging` names
+                // a change's.
+                asked = VaultPrecondition.Withheld();
+            }
+
+            if (!VaultPrecondition.Fails(asked, tag))
             {
                 return false;
             }
 
+            // Logged as a change's is, at the level and with the reason the vault gives a
+            // change's, since a client refused over and over on its reads is as worth finding.
+            ServedDatabase.LogOf(context).Warn(
+                "a read was refused, its precondition failing: " + asked.Refusal);
             PreconditionFailed(context);
             return true;
         }
@@ -1663,7 +1745,32 @@ namespace KeePassGate.Pipeline
         /// </summary>
         private static void Answer(IGateContext context, IVault vault, string uuid, VaultWrite write)
         {
-            Answer(context, write, write == null ? null : Confirmed(context, vault, uuid, write.Tag));
+            Answer(context, write, write == null ? null : Landed(context, vault, uuid, write.Tag));
+        }
+
+        /// <summary>
+        /// The tag a change that has been made answers with, or null when it cannot be confirmed
+        /// for this caller.
+        /// </summary>
+        /// <remarks>
+        /// **Asked after the change is on the disk, so it must not be the way the change is
+        /// answered `503 busy`.** Confirming the tag reads the entry again, and a read that cannot
+        /// hold KeePass's thread throws `VaultUnsettled`, which the router answers `busy`. Told
+        /// that of a write already saved, a client retries it, and the retry meets its own work: a
+        /// name taken, a field gone, a precondition the change has moved on from. The tag is a
+        /// convenience a client can do without, since reading the entry again hands it the tag, so
+        /// a read that cannot be made here costs the tag and not the answer.
+        /// </remarks>
+        private static string Landed(IGateContext context, IVault vault, string uuid, string tag)
+        {
+            try
+            {
+                return Confirmed(context, vault, uuid, tag);
+            }
+            catch (VaultUnsettled)
+            {
+                return null;
+            }
         }
 
         private static void Answer(IGateContext context, VaultWrite write)

@@ -28,6 +28,12 @@ namespace KeePassGate.Pipeline
     /// are this client's own record, approved for it when it was admitted, at pairing or at a
     /// renewal, so neither tells it anything about anybody else. What a rule grants at a node is
     /// not here: that is a question about a node, and the record says nothing about one.
+    ///
+    /// **And whether the list would not read**, as `profilesUnreadable`, the operator's ruling of
+    /// 2026-11-08. A damaged list names fewer profiles than it held, so `removedProfiles` then
+    /// holds names nobody removed, and a client told only that would wait for the operator to
+    /// name them again rather than for the list to be repaired. Always present, and true only
+    /// then.
     /// </remarks>
     public static class IdentityOperation
     {
@@ -66,6 +72,7 @@ namespace KeePassGate.Pipeline
             }
 
             json.End();
+            json.Flag("profilesUnreadable", client.ProfilesUnreadable);
 
             context.Respond(200, json.Done());
         }

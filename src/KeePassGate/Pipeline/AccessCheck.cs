@@ -72,13 +72,26 @@ namespace KeePassGate.Pipeline
         public const string ProfileRemoved = "profile removed";
 
         /// <summary>
+        /// The reason the same refusal gives when nobody removed them: the database's list of
+        /// profiles would not read, so the names it lost count as removed.
+        /// </summary>
+        /// <remarks>
+        /// The operator's ruling of 2026-11-08. Written as <see cref="ProfileRemoved"/>, it sent
+        /// an operator to name again profiles nobody took off, over a list that a copy of the
+        /// database from before the damage still holds whole.
+        /// </remarks>
+        public const string ProfilesUnreadable = "profile list unreadable";
+
+        /// <summary>
         /// Whether this client may do this to this node, with what answered it, recorded either way.
         /// </summary>
         /// <remarks>
         /// **A refusal is asked a second time when the client's record holds a removed name**,
-        /// this time with the record's whole list. If that would have permitted it, the line says
+        /// this time with the record's whole list. If that would have permitted it, the line holds
         /// <see cref="ProfileRemoved"/> and names the removed profiles that would have done it,
-        /// and the node whose rule would have; otherwise it is written as the rules refused it.
+        /// and the node whose rule would have, or <see cref="ProfilesUnreadable"/> when the names
+        /// were lost to a list that would not read; otherwise it is written as the rules refused
+        /// it.
         /// Without this the two read alike, and an operator who took a name away and then finds a
         /// client refused goes looking for a rule that is not the reason.
         ///
@@ -99,10 +112,79 @@ namespace KeePassGate.Pipeline
             ClientIdentity client, string operationId, AclVerb verb, AclReach reach, IAclNode node, string requested)
         {
             var decision = Answer(client, client == null ? null : client.Profiles, verb, reach, node);
+            Written(client, operationId, verb, reach, node, decision, requested, true);
+            return decision;
+        }
+
+        /// <summary>
+        /// Whether this client may have what this scope covers at this node, written down only
+        /// when it may not.
+        /// </summary>
+        /// <remarks>
+        /// **The question a handler asks of the protected values inside an answer the router has
+        /// already allowed**, through the <see cref="ProtectedReach"/> the router hands it. The
+        /// walk that answers is the walk written down, so what the handler acts on and what the
+        /// line holds cannot disagree. Decided by the handler and asked again here only to be
+        /// written, a rule edit landing between the two walks left a withheld value unrecorded,
+        /// and the strip guard, which asks profile by profile, was written down by a walk pooling
+        /// every profile, which permitted, and so wrote nothing at all.
+        ///
+        /// **Written only when it refuses.** A protected value handed over is covered by the line
+        /// the router wrote before dispatch, and a line for every ordinary read would be the noise
+        /// `A_listing_is_recorded_once_and_not_once_per_item` keeps out, burying the refusal an
+        /// operator opens the file to find.
+        ///
+        /// **Some of the client's profiles, for a question a change asks profile by profile**, the
+        /// operator's ruling R10, and never a profile the client does not hold: a name it does not
+        /// hold is left out of the question. A refusal asked of some profiles is written as the
+        /// rules made it, without asking the removed ones, since restoring a removed profile
+        /// changes nothing about what the profiles asked may do.
+        /// </remarks>
+        /// <param name="profiles">The client's profiles to ask with, or null for all of them.</param>
+        public bool Reaches(
+            ClientIdentity client,
+            string operationId,
+            AclVerb verb,
+            AclReach reach,
+            IAclNode node,
+            IReadOnlyList<string> profiles)
+        {
+            var held = client == null ? null : client.Profiles;
+            var asked = profiles == null || held == null
+                ? held
+                : held.Where(profile => profiles.Contains(profile, StringComparer.Ordinal)).ToList();
+
+            var decision = Answer(client, asked, verb, reach, node);
+            if (decision.Permitted)
+            {
+                return true;
+            }
+
+            Written(client, operationId, verb, reach, node, decision, null, profiles == null);
+            return false;
+        }
+
+        /// <summary>
+        /// Writes a decision down: as the rules made it, or, for a refusal the removed profiles
+        /// would have permitted, as <see cref="ProfileRemoved"/>.
+        /// </summary>
+        /// <param name="restoring">
+        /// Whether a refusal asks the removed profiles what they would have done.
+        /// </param>
+        private void Written(
+            ClientIdentity client,
+            string operationId,
+            AclVerb verb,
+            AclReach reach,
+            IAclNode node,
+            AclDecision decision,
+            string requested,
+            bool restoring)
+        {
             var name = node == null ? null : node.Name;
 
             AclDecision restored = null;
-            var removed = decision.Permitted ? null : Restoring(client, verb, reach, node, out restored);
+            var removed = decision.Permitted || !restoring ? null : Restoring(client, verb, reach, node, out restored);
 
             if (removed == null || restored == null)
             {
@@ -111,10 +193,9 @@ namespace KeePassGate.Pipeline
             }
             else
             {
-                Write(client, operationId, name, restored.DecidedAt, false, ProfileRemoved, removed, requested);
+                var reason = client.ProfilesUnreadable ? ProfilesUnreadable : ProfileRemoved;
+                Write(client, operationId, name, restored.DecidedAt, false, reason, removed, requested);
             }
-
-            return decision;
         }
 
         /// <summary>
@@ -164,11 +245,12 @@ namespace KeePassGate.Pipeline
         /// **Not a decision about the rules, and written down beside them anyway.** No rule was
         /// asked, because a certificate with no admission record has no profiles to ask with. But
         /// the operator who revokes a client opens this file to see whether it keeps trying, and a
-        /// revoked client hammering the gate otherwise looked exactly like one that stopped. What
-        /// is written is the key the Clients page revoked and the reason the credential check
-        /// gave, and no client key, since no record stands behind the certificate to carry one:
-        /// `docs/audit.md` says why it is not looked for. A caller that proved nothing, or proved it to another authority, names nobody the
-        /// operator issued and is not written down: see <see cref="ClientIdentity.Refusal"/>.
+        /// revoked client hammering the gate otherwise looked exactly like a client that stopped.
+        /// What is written is the key the Clients page revoked and the reason the credential check
+        /// gave, and no client key, since no record stands behind the certificate to carry it:
+        /// `docs/audit.md` gives the reason it is not looked for. A caller that proved nothing, or
+        /// proved it to another authority, names nobody the operator issued and is not written
+        /// down: see <see cref="ClientIdentity.Refusal"/>.
         /// </remarks>
         public void Refuse(ClientIdentity client, string operationId)
         {
@@ -190,13 +272,23 @@ namespace KeePassGate.Pipeline
             IReadOnlyList<string> removedProfiles,
             string requested)
         {
+            // When it was decided, which is now and not once the wait below is over: `at` is the
+            // moment the rules answered, and a paced client's lines would otherwise be stamped up
+            // to seconds late, which is exactly the client somebody reading them is looking at.
+            var at = _clock();
+
             // Before the line, so the wait is paid by the request that would have written it. By
             // the client key, so a renewal keeps the allowance spent; a refused certificate has no
-            // client and is counted by its own admission key, as `DecisionPace` says.
-            _pace.Take(client == null ? null : client.ClientKey ?? client.AdmissionKey);
+            // client and shares one allowance with every refused certificate of its database, for
+            // the reason `DecisionPace` gives. Not at all where the audit keeps nothing, since the
+            // pace exists to protect a file and there is none.
+            if (_audit.Keeps)
+            {
+                _pace.Take(Allowance(client));
+            }
 
             _audit.Record(new AuditEntry(
-                _clock(),
+                at,
                 client == null ? null : client.DatabaseId,
                 client == null ? null : client.AdmissionKey,
                 client == null ? null : client.ClientKey,
@@ -207,6 +299,25 @@ namespace KeePassGate.Pipeline
                 reason,
                 removedProfiles,
                 Identifier(requested)));
+        }
+
+        /// <summary>
+        /// The allowance a line about this caller is counted against, or null for a caller no
+        /// line can be counted for.
+        /// </summary>
+        private static string Allowance(ClientIdentity client)
+        {
+            if (client == null)
+            {
+                return null;
+            }
+
+            if (client.ClientKey != null)
+            {
+                return client.ClientKey;
+            }
+
+            return client.Refusal != null ? DecisionPace.RefusedAllowance(client.DatabaseId) : null;
         }
 
         /// <summary>

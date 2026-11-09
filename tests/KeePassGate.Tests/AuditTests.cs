@@ -565,6 +565,14 @@ namespace KeePassGate.Tests
         }
 
         [Test]
+        public void An_audit_keeps_what_it_records_only_where_a_file_was_named()
+        {
+            // What the pace asks before it holds a client back, which it does only to protect a file.
+            Assert.That(new JsonLinesAudit(Paths.Join(_directory, "audit.jsonl"), null).Keeps, Is.True);
+            Assert.That(new JsonLinesAudit(null, null).Keeps, Is.False);
+        }
+
+        [Test]
         public void An_audit_with_nowhere_to_write_says_so_rather_than_going_quiet()
         {
             // The case worth hearing about, and the one that made no sound at all: every request

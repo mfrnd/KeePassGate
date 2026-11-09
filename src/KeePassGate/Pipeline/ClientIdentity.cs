@@ -42,6 +42,7 @@ namespace KeePassGate.Pipeline
         private readonly string _unavailable;
         private readonly DateTimeOffset? _expires;
         private readonly string _clientKey;
+        private readonly bool _profilesUnreadable;
 
         private ClientIdentity(
             bool isPaired,
@@ -54,8 +55,10 @@ namespace KeePassGate.Pipeline
             string unavailable = null,
             IReadOnlyList<string> removed = null,
             DateTimeOffset? expires = null,
-            string clientKey = null)
+            string clientKey = null,
+            bool profilesUnreadable = false)
         {
+            _profilesUnreadable = profilesUnreadable;
             _removed = removed ?? Nothing;
             _expires = expires;
             _clientKey = clientKey;
@@ -147,6 +150,23 @@ namespace KeePassGate.Pipeline
         }
 
         /// <summary>
+        /// Whether the database's list of profiles would not read when this connection's client was
+        /// admitted. False for anybody who is not paired.
+        /// </summary>
+        /// <remarks>
+        /// A list that will not read names fewer profiles than it held, none at all when it does
+        /// not parse, so the names it lost are in <see cref="Removed"/> exactly as names the
+        /// operator took off would be. This is what tells the two apart, the operator's ruling of
+        /// 2026-11-08: a refusal those names would have permitted is written down as the list
+        /// being unreadable rather than as a profile removed, and the client is told the list is
+        /// damaged, so neither is sent looking for a removal nobody made.
+        /// </remarks>
+        public bool ProfilesUnreadable
+        {
+            get { return _profilesUnreadable; }
+        }
+
+        /// <summary>
         /// Why a certificate this authority issued admits nobody, in the plugin's own words, or
         /// null for anybody else.
         /// </summary>
@@ -205,7 +225,9 @@ namespace KeePassGate.Pipeline
 
         /// <summary>
         /// Somebody who reached a database that is served by nobody for now, for the reason the
-        /// word gives. A locked database is one; one holding several authorities is the other.
+        /// word gives: `locked` for a locked database, `undecided` for a database holding several
+        /// authorities, and `busy` for a database whose admission records could not be listed just
+        /// now, which <see cref="ClientCredentials"/> answers.
         /// </summary>
         public static ClientIdentity Unavailable(string databaseId, string error)
         {
@@ -233,15 +255,21 @@ namespace KeePassGate.Pipeline
         /// and holding on its record these others that the database no longer lists.
         /// </summary>
         /// <param name="clientKey">
-        /// The client key the record carries, or null for a client that has not renewed, whose
-        /// client key is its own certificate's admission key.
+        /// The client key the record carries. Every record carries one, and a client that has not
+        /// renewed carries its own certificate's admission key there; null stands in for a record
+        /// only where there is none, as in a test, and is read as that admission key.
+        /// </param>
+        /// <param name="profilesUnreadable">
+        /// Whether the database's list of profiles would not read, so that the names it lost are
+        /// in <paramref name="removed"/> without anybody having removed them.
         /// </param>
         public static ClientIdentity Paired(
             string databaseId,
             X509Certificate2 certificate,
             IReadOnlyList<string> profiles,
             IReadOnlyList<string> removed = null,
-            string clientKey = null)
+            string clientKey = null,
+            bool profilesUnreadable = false)
         {
             if (certificate == null)
             {
@@ -260,7 +288,8 @@ namespace KeePassGate.Pipeline
                 null,
                 removed,
                 new DateTimeOffset(certificate.NotAfter.ToUniversalTime(), TimeSpan.Zero),
-                clientKey ?? admissionKey);
+                clientKey ?? admissionKey,
+                profilesUnreadable);
         }
     }
 }

@@ -56,6 +56,17 @@ profile removed only on the dropped copy comes back into force, and a profile ad
 dropped copy is lost, which the clients page then shows as removed on every client holding it.
 After merging two copies that both changed their profiles, check this page.
 
+**A damaged list takes profiles away that nobody removed.** The list is one value in the
+database's own data, and a hand edit, or another program writing under its key, can leave it
+unreadable. A list that does not read at all names nothing, and a list holding a name it cannot
+hold names only the rest. Either way every client stays admitted and reaches only the profiles
+still named: a program asking who the gate takes it for is told the others are removed and that
+the list will not read, and the audit writes each refusal they would have allowed as
+`profile list unreadable`, since nobody took a name off. Pairing and renewal are answered
+`503 busy` until the list reads again, so that neither writes over it, and the plugin's log has a
+warning naming the damage each time. A copy of the database from before the damage holds the names
+the list held.
+
 **Adding a profile back is a full undo.** Every rule still naming it applies again, and every client
 still holding it regains it, so the page asks first: it says how many rules come back into force and
 names every client that regains the profile, each once by its client key, the fingerprint of the
@@ -214,6 +225,14 @@ name's ending, a program included, when the operator double-clicks it. The gate 
 holding the characters that reorder how text is displayed, so a program cannot show the operator a
 document's name on something that ends in `.exe`, but a name that says `.exe` plainly is still one it
 may choose. Whatever a program may create, the operator's KeePass may open.
+
+**A field is filled in by its name too.** The gate refuses a field or attachment name holding a
+character drawn as nothing at all, a zero-width space, a joiner, a soft hyphen or a byte order mark
+among them, so a program holding `C` cannot add a second field drawn exactly as `Password`, beside
+the real `Password` and holding what the program chose, for the operator to type a credential into
+or copy from. A name is not checked for looking like another in any other way: a letter from
+another script, or a space at the end, still makes a name of its own, which the entry's
+**Advanced** tab shows beside the others.
 
 **What counts as protected is KeePass's own answer**, not this plugin's. KeePass keeps some fields
 encrypted in memory, the password by default, and an operator can mark any field or unmark one. A

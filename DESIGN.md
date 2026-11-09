@@ -1284,8 +1284,8 @@ that was admitted.** An approval whose record never landed, whose invitation was
 whose certificate could not be issued admitted nobody, was answered as a failure and said so in the
 plugin's log, and gets no line; nor does a request nobody could be asked about. Recreating or
 deleting the authority, which takes every record away, and the operator's changes to rules and
-profiles are not recorded: they wait for a design of audit levels. Never a profile, here as
-anywhere in the file.
+profiles are not recorded: they wait for a design of audit levels. Never a profile: the one place
+the file names profiles is a refusal that a removed profile would have permitted, below.
 
 **Every line names the client as well as the certificate**, under the two names `/gate/whoami`
 answers with, so one word means one thing wherever it is read. `admissionKey` is the certificate on
@@ -1367,32 +1367,40 @@ model includes the caller, and a caller covering its tracks is the one the audit
 per client key, and a decision past that **waits** on the caller's own connection rather than
 being dropped or refused: a line left out is the loss being prevented, and a refusal would be a
 status the API does not have. That is a floor rather than a guarantee, since one flooding client now
-needs well over an hour to push a decision out of both files, and shipping the lines elsewhere is
-still what makes the record durable.
+needs about half an hour to push a decision out of both files, a file holding about twenty thousand
+lines, and an hour only for a decision written at the start of a file; shipping the lines elsewhere
+is still what makes the record durable. The wait keeps the connection's slot, so a paced client
+with many connections open holds them while it waits, which is conceded, the operator's ruling R6.
 
 **Per client key, and not per admission key as it first was.** A renewal gives a client a new
 certificate and so a new admission key, and an allowance kept by admission key started again at a
 whole burst after every renewal, so a client could spend the burst once per certificate. The client
 key is the same on every record of one client, `CA.md` §223, and the router holds it already, on
 the identity the credential check built from the record, so counting by it costs no read. A
-certificate the gate refuses has no record behind it and so no client key; its lines are counted by
-its own admission key, which is what they name.
+certificate the gate refuses has no record behind it and so no client key, and every such
+certificate of a database is counted against one allowance they share. Counted by its own admission
+key, as it first was, each certificate a client renewed out of brought a whole burst of its own
+once it was revoked or had expired, so a client that kept them wrote as many times the pace as it
+had certificates.
 
 **A client's lines about its own admission count against the same allowance.** A renewal an answer
 given before refuses is answered at once and as often as a client asks, so its lines, and the line
 for a client revoking itself, are paced with that client's decisions rather than on an allowance of
-their own, which would let one client spend two. A pairing's line names no client and waits on a
-person, who is its pace, and the operator's revocation is written on KeePass's own thread, which
-must never be held. So are an approved renewal's line and a client's own revocation's, by the
-writer, so those two are written without waiting and the client's turn for each is taken once the
-write returns, on its own connection, against the same allowance.
+their own, which would let one client spend two. A pairing's line is not counted: it waits on a
+person, who is its pace, and the operator's revocation is recorded from KeePass's own thread,
+which must never be held. So are an approved renewal's line and a client's own revocation's, by
+the writer, whether the line reaches the file on that thread or a moment later from a thread the
+audit writes on, so those two are recorded without waiting and the client's turn for each is taken
+once the write returns, on its own connection, against the same allowance.
 
 A line carries neither the profiles the client holds nor the verb it asked for. Which profiles a
 client has is in the database already, and a log repeating them is a second copy of the thing worth
 stealing. A refusal that the client's whole record would have permitted names the profiles the
 operator removed, under the reason `profile removed`, and that is not the copy: a removed name
 grants nothing, so writing it down says why a request failed without saying what anybody can
-reach.
+reach. Where nobody removed them, because the database's list of profiles would not read and so
+named fewer than it held, the reason is `profile list unreadable` instead, the operator's ruling
+of 2026-11-08, so the line points at the damage rather than at a removal nobody made.
 
 **A certificate this authority issued is written down when an operation refuses it**, by its admission key,
 with the reason the credential check gave and no node. It has no admission record, or is outside

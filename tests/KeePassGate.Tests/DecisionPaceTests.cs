@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
 using KeePassGate.Acl;
+using KeePassGate.Audit;
+using KeePassGate.Authority;
 using KeePassGate.Pipeline;
 using KeePassGate.Tests.Fakes;
 using NUnit.Framework;
@@ -89,6 +91,57 @@ namespace KeePassGate.Tests
 
             Assert.That(_waits, Has.Count.EqualTo(3), "a permitted read and an absent node alike");
             Assert.That(audit.Entries, Has.Count.EqualTo(DecisionPace.Burst + 3), "and none is dropped");
+        }
+
+        [Test]
+        public void A_paced_line_is_stamped_when_it_was_decided_rather_than_when_its_wait_ended()
+        {
+            // `at` is when the rules answered. Read after the wait, a paced client's lines were
+            // stamped up to seconds late, and a paced client is the client they are read about.
+            var audit = new RecordingAudit();
+            var started = new DateTimeOffset(2026, 3, 4, 5, 6, 7, TimeSpan.Zero);
+            var check = new AccessCheck(audit, () => started + _now, _pace);
+            var entry = TestNode.Root("root").Granting("reader", AclVerb.Read).Child("an entry");
+            var client = Client("reader");
+
+            for (var i = 0; i < DecisionPace.Burst; i++)
+            {
+                check.Decide(client, "readEntry", AclVerb.Read, AclReach.Fields, entry);
+            }
+
+            var decided = started + _now;
+            check.Decide(client, "readEntry", AclVerb.Read, AclReach.Fields, entry);
+            Assume.That(_waits, Has.Count.EqualTo(1), "the decision past the burst waited");
+
+            var refused = started + _now;
+            check.Admissions.RenewalRefusedWithoutAsking(
+                "d1e2f3", client.AdmissionKey, client.ClientKey, RenewalRefusal.Forever());
+            Assume.That(_waits, Has.Count.EqualTo(2), "and so did the refused renewal");
+
+            var lines = audit.Entries;
+            Assert.That(lines[lines.Count - 2].At, Is.EqualTo(decided));
+            Assert.That(lines[lines.Count - 1].At, Is.EqualTo(refused));
+        }
+
+        [Test]
+        public void Nothing_is_paced_for_an_audit_that_keeps_nothing()
+        {
+            // The pace keeps a client from rolling a bounded file away, and a machine where no
+            // audit file could be named has none: a client held to it there is slowed for nothing.
+            var check = new AccessCheck(new JsonLinesAudit(null, null), null, _pace);
+            var entry = TestNode.Root("root").Granting("reader", AclVerb.Read).Child("an entry");
+            var client = Client("reader");
+
+            for (var i = 0; i < DecisionPace.Burst + 3; i++)
+            {
+                check.Decide(client, "readEntry", AclVerb.Read, AclReach.Fields, entry);
+            }
+
+            check.Admissions.RenewalRefusedWithoutAsking(
+                "d1e2f3", client.AdmissionKey, client.ClientKey, RenewalRefusal.Forever());
+            check.Admissions.TakeTurn(client.ClientKey);
+
+            Assert.That(_waits, Is.Empty);
         }
 
         [Test]

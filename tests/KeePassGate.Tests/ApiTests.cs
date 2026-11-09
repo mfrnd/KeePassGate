@@ -42,7 +42,8 @@ namespace KeePassGate.Tests
         /// U+00AD, the soft hyphen. KeePass keeps an entry's strings under the default comparer,
         /// which compares by the current culture, and that collation gives it no weight at all, so
         /// this name addresses the entry's `Password`. It is a format character rather than a
-        /// control one, so nothing in the path or the body refuses it on the way in.
+        /// control character, so nothing in the path refuses it on the way in; a body making a
+        /// name holding it is refused, as every name holding a format character is.
         /// </remarks>
         private const string PasswordAlias = "Pass\u00ADword";
 
@@ -62,6 +63,10 @@ namespace KeePassGate.Tests
         /// </summary>
         private string[] _removed;
         private SpecRouter _router;
+
+        /// <summary>The plugin's log as the requests here are served with it.</summary>
+        private RecordingGateLog _log;
+
         private string _group;
         private string _entry;
 
@@ -71,6 +76,7 @@ namespace KeePassGate.Tests
             _vault = new FakeVault();
             _profiles = new[] { "agent" };
             _removed = null;
+            _log = new RecordingGateLog();
             _group = _vault.Add(_vault.RootAlias, "Fictitious");
             _entry = _vault.AddEntry(_group, "an invented service");
 
@@ -383,6 +389,37 @@ namespace KeePassGate.Tests
                 Is.EqualTo(200));
         }
 
+        [TestCase("field", TestName = "Adding a field answers with the tag of the entry it leaves")]
+        [TestCase("attachment", TestName = "Adding an attachment answers with the tag of the entry it leaves")]
+        [TestCase("replace", TestName = "Replacing an attachment answers with the tag of the entry it leaves")]
+        public void A_change_under_an_entry_answers_with_the_entry_s_tag(string route)
+        {
+            // The routing document's `WrittenTag`, for the changes that add or replace something
+            // under an entry: the client writes again under the tag it is answered with.
+            _vault.Granting(_group, AllButProtected);
+            var entry = "/entries/" + _entry;
+            Assume.That(_vault.CreateAttachment(_entry, "notes.txt", new byte[] { 1 }, VaultTagging.None).Ok, Is.True);
+
+            Answer written;
+            switch (route)
+            {
+                case "field":
+                    written = Send("POST", entry + "/fields", Bodies.Of(("name", "Added"), ("value", "a value")));
+                    break;
+                case "attachment":
+                    written = Send("POST", entry + "/attachments", Bodies.Of(("name", "added.txt"), ("content", Base64("x"))));
+                    break;
+                default:
+                    written = Send("PUT", entry + "/attachments/notes.txt", Bodies.Of(("content", Base64("y"))));
+                    break;
+            }
+
+            Assert.That(written.Status, Is.EqualTo(route == "replace" ? 200 : VaultHandlers.Created), written.Json);
+            Assert.That(written.Written, Is.Not.Null.And.EqualTo(Get(entry).Tag), written.Json);
+            Assert.That(Conditioned("PUT", entry, "{\"Title\":\"renamed\"}", written.Written).Status, Is.EqualTo(200),
+                "and a second write can name it without reading in between");
+        }
+
         [Test]
         public void A_write_against_a_tag_the_entry_has_moved_on_from_is_refused_and_changes_nothing()
         {
@@ -474,6 +511,47 @@ namespace KeePassGate.Tests
             }
 
             Assert.That(_vault.Entry(_entry), Is.Null);
+        }
+
+        [TestCase("/groups/{group}", "\"00000000000000000000000000000000\"", false, TestName = "A read of a group refused under a stale tag is logged with its reason")]
+        [TestCase("/entries/{entry}", "\"00000000000000000000000000000000\"", false, TestName = "A read of an entry refused under a stale tag is logged with its reason")]
+        [TestCase("/entries/{entry}/fields/Title", "\"unterminated", false, TestName = "A read refused under a field that does not read is logged with its reason")]
+        [TestCase("/entries/{entry}/attachments/notes.txt", "*", true, TestName = "A read refused to a client handed no tag is logged with its reason")]
+        public void A_read_refused_412_is_logged_as_a_change_refused_412_is(
+            string route, string ifMatch, bool holdsProtected)
+        {
+            // The maintainer's word of 2026-11-08. A change's `412` has always been a warning in
+            // the log, with its reason; a read's was written nowhere, so a client refused on its
+            // reads over and over showed nowhere at all.
+            _vault.Granting(_group, AllButProtected);
+            Assume.That(_vault.CreateAttachment(_entry, "notes.txt", new byte[] { 1 }, VaultTagging.None).Ok, Is.True);
+            if (holdsProtected)
+            {
+                _vault.CreateField(_entry, "Password", "not-a-real-password", true, VaultTagging.None);
+            }
+
+            var read = Conditioned("GET", route.Replace("{group}", _group).Replace("{entry}", _entry), null, ifMatch);
+
+            // The reason a change's refusal gives, one way of naming a cause for both: a caller
+            // handed no tag is refused under `Withheld`, as its changes are, and any other caller
+            // under what it asked.
+            var reason = (holdsProtected ? VaultPrecondition.Withheld() : VaultPrecondition.Read(ifMatch)).Refusal;
+
+            Assert.That(read.Status, Is.EqualTo(412), read.Json);
+            Assert.That(_log.Warnings.Select(line => line.Message), Is.EqualTo(new[]
+            {
+                "a read was refused, its precondition failing: " + reason,
+            }));
+        }
+
+        [Test]
+        public void A_read_whose_condition_holds_logs_nothing()
+        {
+            _vault.Granting(_group, AllButProtected);
+            var entry = "/entries/" + _entry;
+
+            Assert.That(Conditioned("GET", entry, null, Get(entry).Tag).Status, Is.EqualTo(200));
+            Assert.That(_log.Warnings, Is.Empty);
         }
 
         [Test]
@@ -568,6 +646,61 @@ namespace KeePassGate.Tests
         }
 
         [Test]
+        public void A_protected_value_arriving_during_a_request_is_never_covered_by_the_tag_it_hands_out(
+            [Values("entry", "field", "fields", "attachments", "attachment", "write")] string route,
+            [Range(0, 6)] int lookups)
+        {
+            // This rule reads everything but protected values, so it is handed an entry's tag only
+            // while the entry holds none. The handler decides that from one lookup and takes the
+            // tag at another, so it asks again of what it read afterwards, and a protected value
+            // landing between the two never goes out under a tag that covers it. Tried at every
+            // moment of each route rather than at a moment counted, so that the second question is
+            // what is pinned, not where it is asked.
+            _vault.Granting(_group, AllButProtected);
+            Assume.That(_vault.CreateAttachment(_entry, "notes.txt", new byte[] { 1 }, VaultTagging.None).Ok, Is.True);
+            var entry = "/entries/" + _entry;
+
+            var landed = false;
+            _vault.After(lookups, () =>
+            {
+                landed = true;
+                _vault.CreateField(_entry, "PIN", "not-a-real-pin", true, VaultTagging.None);
+            });
+
+            Answer answer;
+            switch (route)
+            {
+                case "entry":
+                    answer = Get(entry);
+                    break;
+                case "field":
+                    answer = Get(entry + "/fields/Title");
+                    break;
+                case "fields":
+                    answer = Get(entry + "/fields");
+                    break;
+                case "attachments":
+                    answer = Get(entry + "/attachments");
+                    break;
+                case "attachment":
+                    answer = Get(entry + "/attachments/notes.txt");
+                    break;
+                default:
+                    answer = Send("PUT", entry, "{\"Title\":\"what the client meant\"}");
+                    break;
+            }
+
+            _vault.After(0, null);
+            var handed = route == "write" ? answer.Written : answer.Tag;
+
+            if (landed && handed != null)
+            {
+                Assert.That(handed, Is.Not.EqualTo("\"" + _vault.EntryTag(_entry) + "\""),
+                    "handed a tag that covers a protected value this rule may not read: " + answer.Json);
+            }
+        }
+
+        [Test]
         public void A_group_s_tag_is_for_a_rule_that_reads_the_group()
         {
             _vault.Granting(_group, Rules.Granting(("agent", "U")));
@@ -639,6 +772,59 @@ namespace KeePassGate.Tests
             Assert.That(landed, Is.True, "every one of these lands inside the request");
             Assert.That(answer.Status, Is.EqualTo(412), answer.Json);
             Assert.That(_vault.Field(_entry, "Title"), Is.EqualTo("changed by somebody else"));
+        }
+
+        [Test]
+        public void A_write_that_landed_is_never_answered_busy(
+            [Values("entry", "field", "new field")] string route,
+            [Range(0, 6)] int lookups)
+        {
+            // A write answered with its tag reads the entry again once the change is saved, to
+            // confirm this client may still be handed the tag. That read meeting KeePass's thread
+            // unable to be held answered `503 busy` for a change already on the disk, and the
+            // client's retry met its own work. Tried at every moment of the request, so that
+            // whatever the count, a change that landed is answered as a change that landed.
+            _vault.Granting(_group, AllButProtected);
+            var entry = "/entries/" + _entry;
+            var tag = Get(entry).Tag;
+            Assume.That(tag, Is.Not.Null, "this client is handed the tag, which is what this is about");
+
+            var thrown = false;
+            _vault.After(lookups, () =>
+            {
+                thrown = true;
+                throw new KeePassGate.Diagnostics.VaultUnsettled("KeePass's thread could not be held");
+            });
+
+            Answer answer;
+            switch (route)
+            {
+                case "entry":
+                    answer = Conditioned("PUT", entry, "{\"Title\":\"what the client meant\"}", tag);
+                    break;
+                case "field":
+                    answer = Conditioned("PUT", entry + "/fields/Title", "{\"value\":\"what the client meant\"}", tag);
+                    break;
+                default:
+                    answer = Conditioned(
+                        "POST", entry + "/fields", Bodies.Of(("name", "Added"), ("value", "what the client meant")), tag);
+                    break;
+            }
+
+            _vault.After(0, null);
+            var landed = route == "new field"
+                ? _vault.Field(_entry, "Added") != null
+                : _vault.Field(_entry, "Title") == "what the client meant";
+
+            if (landed)
+            {
+                Assert.That(answer.Status, Is.EqualTo(route == "new field" ? VaultHandlers.Created : 200), answer.Json);
+            }
+            else
+            {
+                Assert.That(thrown, Is.True, "nothing but the throw keeps the write from landing");
+                Assert.That(answer.Status, Is.EqualTo(503), answer.Json);
+            }
         }
 
         [Test]
@@ -764,7 +950,7 @@ namespace KeePassGate.Tests
             Assert.That(Send("DELETE", aliased, null).Status, Is.EqualTo(404));
             Assert.That(Send("POST", "/entries/" + _entry + "/fields",
                 Bodies.Of(("name", PasswordAlias), ("value", "chosen-by-the-caller"))).Status,
-                Is.EqualTo(404));
+                Is.EqualTo(400), "and a name holding a format character is not made at all");
 
             Assert.That(_vault.Field(_entry, "Password"), Is.EqualTo("not-a-real-password"));
         }
@@ -1354,6 +1540,38 @@ namespace KeePassGate.Tests
                 "a field under it in the same entry is still read");
         }
 
+        [TestCase("/attachments/big.bin", "\"00000000000000000000000000000000\"", false, TestName = "An attachment over the ceiling asked for under a stale tag is too large")]
+        [TestCase("/attachments/big.bin", "*", true, TestName = "An attachment over the ceiling asked for by a client handed no tag is too large")]
+        [TestCase("", "\"00000000000000000000000000000000\"", false, TestName = "An entry over the ceiling asked for under a stale tag is too large")]
+        [TestCase("/fields/Big", "\"00000000000000000000000000000000\"", false, TestName = "A field over the ceiling asked for under a stale tag is too large")]
+        public void A_read_over_the_ceiling_is_too_large_whatever_its_condition(
+            string under, string ifMatch, bool holdsProtected)
+        {
+            // RFC 9110 section 13.2.1 asks the condition only of a request that would otherwise
+            // succeed, and the size does not depend on the tag. Asked first, a stale tag was told
+            // `412`, read again, and only then told the read could not be served, and a client
+            // handed no tag, whose condition nothing meets, was told `412` every time.
+            _vault.Granting(_group, AllButProtected);
+            if (holdsProtected)
+            {
+                _vault.CreateField(_entry, "Password", "not-a-real-password", true, VaultTagging.None);
+            }
+
+            if (under.StartsWith("/attachments/", StringComparison.Ordinal))
+            {
+                Assume.That(_vault.CreateAttachment(
+                    _entry, "big.bin", new byte[VaultHandlers.MaxAttachmentBytes + 1], VaultTagging.None).Ok, Is.True);
+            }
+            else
+            {
+                _vault.Plant(_entry, "Big", new string('x', VaultHandlers.MaxEntryCharacters));
+            }
+
+            var read = Conditioned("GET", "/entries/" + _entry + under, null, ifMatch);
+
+            Assert.That(read.Status, Is.EqualTo(413), read.Json);
+        }
+
         [Test]
         public void A_write_taking_an_entry_over_the_ceiling_is_refused_and_changes_nothing()
         {
@@ -1648,6 +1866,32 @@ namespace KeePassGate.Tests
             Assert.That(audit.Entries[0].Permitted, Is.True);
             Assert.That(audit.Entries[1].Permitted, Is.False);
             Assert.That(audit.Entries[1].OperationId, Is.EqualTo(operation));
+            Assert.That(audit.Entries[1].Reason, Is.EqualTo(NoProtectedReach));
+        }
+
+        [TestCase("CRSL", "CRLP", TestName = "A strip kept from a profile beside a profile reaching protected values is written down")]
+        [TestCase("RSL", "CRL", TestName = "A strip kept from the profile that could put a value back is written down")]
+        public void A_strip_the_guard_keeps_from_a_profile_writes_its_refusal_down(string tidier, string maker)
+        {
+            // The guard asks each profile on its own, under R10, and its refusal was written down
+            // by a walk pooling every profile. Where some profile could create a protected value,
+            // as `maker` can in the first case, that walk permitted and wrote nothing, so the
+            // attempt the guard exists to stop left no line.
+            var audit = new RecordingAudit();
+            var router = GateOperations.Router("9.9.9", null, new AccessCheck(audit));
+            _profiles = new[] { "tidier", "maker" };
+            _vault.CreateField(_entry, "PIN", "not-a-real-secret", true, VaultTagging.None);
+            _vault.Granting(_group, Rules.Granting(("tidier", tidier), ("maker", maker)));
+
+            var context = Context("DELETE", "/entries/" + _entry + "/fields/PIN", null);
+            router.Handle(context);
+
+            Assert.That(context.Status, Is.EqualTo(404), context.Json);
+            Assert.That(_vault.Field(_entry, "PIN"), Is.EqualTo("not-a-real-secret"));
+            Assert.That(audit.Entries.Count, Is.EqualTo(2), "the strip was granted and the guard refused it");
+            Assert.That(audit.Entries[0].Permitted, Is.True);
+            Assert.That(audit.Entries[1].Permitted, Is.False);
+            Assert.That(audit.Entries[1].OperationId, Is.EqualTo("stripField"));
             Assert.That(audit.Entries[1].Reason, Is.EqualTo(NoProtectedReach));
         }
 
@@ -1952,6 +2196,96 @@ namespace KeePassGate.Tests
             Assert.That(_vault.Attachment(_entry, name), Is.Null);
         }
 
+        [TestCase("Pass\\u200Bword", "Pass\u200Bword", TestName = "a zero-width space")]
+        [TestCase("Pass\\u200Cword", "Pass\u200Cword", TestName = "a zero-width non-joiner")]
+        [TestCase("Pass\\u200Dword", "Pass\u200Dword", TestName = "a zero-width joiner")]
+        [TestCase("Pass\\u2060word", "Pass\u2060word", TestName = "a word joiner")]
+        [TestCase("Pass\\u00ADword", "Pass\u00ADword", TestName = "a soft hyphen")]
+        [TestCase("Pass\\uFEFFword", "Pass\uFEFFword", TestName = "a byte order mark")]
+        [TestCase("Pass\\u180Eword", "Pass\u180Eword", TestName = "the Mongolian vowel separator")]
+        [TestCase("Pass\\uDB40\\uDC41word", "Pass\uDB40\uDC41word", TestName = "a tag character beyond the first plane")]
+        public void A_name_holding_a_character_drawn_as_nothing_is_not_made(string spelled, string name)
+        {
+            // Each of these is drawn as nothing at all, so the name is drawn as `Password`: a
+            // client holding `create` and not `protected` put a second, unprotected `Password`
+            // beside the real `Password`, holding what it chose, for the operator to type into or
+            // copy from. The database tells names apart by the culture, which weighs some of these
+            // and not others, so the zero-width space was a second name to it and the same name to
+            // the eye.
+            _vault.Granting(_group, AllButProtected);
+            _vault.CreateField(_entry, "Password", "not-a-real-password", true, VaultTagging.None);
+            var content = Convert.ToBase64String(new byte[] { 1, 2, 3 });
+            var fields = _vault.Fields(_entry).Count;
+
+            var field = Send("POST", "/entries/" + _entry + "/fields",
+                             "{\"name\":\"" + spelled + "\",\"value\":\"chosen-by-the-caller\"}");
+            var attachment = Send("POST", "/entries/" + _entry + "/attachments",
+                                  "{\"name\":\"" + spelled + "\",\"content\":\"" + content + "\"}");
+
+            Assert.That(field.Status, Is.EqualTo(400), field.Json);
+            Assert.That(field.Json, Does.Contain("malformed"));
+            Assert.That(attachment.Status, Is.EqualTo(400), attachment.Json);
+            Assert.That(_vault.Fields(_entry).Count, Is.EqualTo(fields), "nothing was made");
+            Assert.That(_vault.Attachment(_entry, name), Is.Null);
+            Assert.That(_vault.Field(_entry, "Password"), Is.EqualTo("not-a-real-password"));
+        }
+
+        [TestCase("fields", "\u4E2D", TestName = "A field name of Chinese characters is made only while its routes can name it")]
+        [TestCase("attachments", "\u4E2D", TestName = "An attachment name of Chinese characters is made only while its routes can name it")]
+        [TestCase("fields", "\u0436", TestName = "A field name of Cyrillic letters is made only while its routes can name it")]
+        [TestCase("attachments", "\uD83D\uDE00", TestName = "An attachment name beyond the first plane is made only while its routes can name it")]
+        public void A_name_is_made_only_while_the_route_naming_it_fits_the_target_ceiling(string kind, string letter)
+        {
+            // Percent-encoded, a character beyond ASCII takes six to twelve characters of the
+            // path, and the transport refuses a target over its ceiling before any route is
+            // chosen. So a name inside the 512 the body allows was made with `201`, and every
+            // route naming it was answered `414`.
+            _vault.Granting(_group, AllButProtected);
+            var under = "/entries/" + _entry + "/" + kind + "/";
+            var encoded = Uri.EscapeDataString(letter).Length;
+            var fits = (HttpRequestReader.MaxTargetCharacters - under.Length) / encoded;
+            var content = Convert.ToBase64String(new byte[] { 1, 2, 3 });
+
+            foreach (var count in new[] { fits, fits + 1 })
+            {
+                var name = string.Concat(Enumerable.Repeat(letter, count));
+                var body = kind == "fields"
+                    ? Bodies.Of(("name", name), ("value", "invented"))
+                    : Bodies.Of(("name", name), ("content", content));
+                var route = under + Uri.EscapeDataString(name);
+                Assume.That(route.Length <= HttpRequestReader.MaxTargetCharacters, Is.EqualTo(count == fits), route.Length.ToString(CultureInfo.InvariantCulture));
+
+                var made = Send("POST", "/entries/" + _entry + "/" + kind, body);
+
+                if (count == fits)
+                {
+                    Assert.That(made.Status, Is.EqualTo(VaultHandlers.Created), made.Json);
+                    Assert.That(Get(route).Status, Is.EqualTo(200), "and its own route names it");
+                }
+                else
+                {
+                    Assert.That(made.Status, Is.EqualTo(400), made.Json);
+                    Assert.That(made.Json, Does.Contain("malformed"));
+                }
+            }
+        }
+
+        [Test]
+        public void The_routes_a_name_is_measured_against_are_the_routes_the_document_declares()
+        {
+            // The ceiling is asked of what comes before the name in the route naming it, so the
+            // handler's count has to be the document's.
+            var named = SpecDocument.Embedded().Operations
+                .Select(operation => operation.Path.Text)
+                .Where(path => path.EndsWith("/{name}", StringComparison.Ordinal))
+                .Distinct()
+                .ToList();
+
+            Assert.That(named, Is.EquivalentTo(new[] { "/entries/{uuid}/fields/{name}", "/entries/{uuid}/attachments/{name}" }));
+            Assert.That(VaultHandlers.FieldRouteCharacters, Is.EqualTo("/entries/{uuid}/fields/".Replace("{uuid}", new string('0', 32)).Length));
+            Assert.That(VaultHandlers.AttachmentRouteCharacters, Is.EqualTo("/entries/{uuid}/attachments/".Replace("{uuid}", new string('0', 32)).Length));
+        }
+
         [Test]
         public void Right_to_left_text_is_still_a_value_like_any_other()
         {
@@ -1994,6 +2328,21 @@ namespace KeePassGate.Tests
             Assert.That(refused.Status, Is.EqualTo(404), refused.Json);
             Assert.That(absent.Status, Is.EqualTo(404), absent.Json);
             Assert.That(refused.Json, Is.EqualTo(absent.Json));
+        }
+
+        [Test]
+        public void An_undeclared_path_answers_an_admitted_client_as_a_refused_node_does()
+        {
+            // The router answers the two from two places, the authorization refusal and
+            // `Undeclared`, and the property is that an admitted client cannot tell them apart.
+            _vault.Granting(_vault.RootAlias, Rules.Granting(("agent", "RL")));
+
+            var refused = Send("PUT", "/groups/" + _group, "{\"Name\":\"Renamed\"}");
+            var undeclared = Get("/groups/" + _group + "/nothing-is-declared-here");
+
+            Assert.That(refused.Status, Is.EqualTo(404), refused.Json);
+            Assert.That(undeclared.Status, Is.EqualTo(refused.Status), undeclared.Json);
+            Assert.That(undeclared.Json, Is.EqualTo(refused.Json));
         }
 
         [TestCase("/groups/{0}/groups", TestName = "the groups in a group removed after the router decided")]
@@ -2541,7 +2890,7 @@ namespace KeePassGate.Tests
             }
 
             var context = new GateContext(new HttpRequestHead(method, path, parameters, headers, Bodies.LengthOf(text)), text, Paired());
-            new ServedDatabase(_vault).PutOn(context);
+            new ServedDatabase(_vault, null, _log).PutOn(context);
 
             _router.Handle(context);
 
@@ -2631,21 +2980,6 @@ namespace KeePassGate.Tests
 
             /// <summary>The tag a change answered with in its body, quotes and all, or null.</summary>
             public string Written { get; private set; }
-        }
-
-        private sealed class RecordingAudit : IGateAudit
-        {
-            private readonly List<AuditEntry> _entries = new List<AuditEntry>();
-
-            public IReadOnlyList<AuditEntry> Entries
-            {
-                get { return _entries; }
-            }
-
-            public void Record(AuditEntry entry)
-            {
-                _entries.Add(entry);
-            }
         }
     }
 }

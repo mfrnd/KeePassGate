@@ -702,8 +702,9 @@ class Identity:
     Everything here was settled when the connection was admitted, out of this client's own
     admission record. `profiles` are the ones the rules are asked about for it now: the ones the
     record holds that the database still names. `removed_profiles` are the rest, which grant
-    nothing until the operator names them again. Pairing, or the last renewal, stored what was
-    approved at the time, and this is what holds now, which is why the two can differ.
+    nothing until the operator names them again, or, while `profiles_unreadable` is true, until
+    the database's damaged list of profiles is repaired. Pairing, or the last renewal, stored
+    what was approved at the time, and this is what holds now, which is why the two can differ.
     """
 
     subject: str
@@ -718,6 +719,9 @@ class Identity:
     expires: datetime
     profiles: tuple[str, ...]
     removed_profiles: tuple[str, ...]
+    #: Whether the database's list of profiles will not read, so that `removed_profiles` holds
+    #: names nobody removed.
+    profiles_unreadable: bool
 
     @classmethod
     def of(cls, body: dict[str, Any]) -> Identity:
@@ -736,6 +740,7 @@ class Identity:
             expires=expires,
             profiles=_names(body, "profiles"),
             removed_profiles=_names(body, "removedProfiles"),
+            profiles_unreadable=_flag(body, "profilesUnreadable"),
         )
 
 

@@ -425,6 +425,59 @@ namespace KeePassGate.Host.Tests
             Assert.That(_vault.Read(uuid).Protected, Does.Contain(PwDefs.PasswordField));
         }
 
+        [TestCase("de-DE")]
+        [TestCase("en-US")]
+        [TestCase("tr-TR")]
+        public void A_name_holding_a_character_drawn_as_nothing_is_not_made_whatever_the_culture(string culture)
+        {
+            // The database tells names apart by the current culture's collation, which weighs the
+            // zero-width space and not the soft hyphen, so `Pass` and `word` around the first were
+            // a second name to KeePass, made with `201` and drawn as `Password`, and around the
+            // second the conflict the entry's own name gets. Refused before the database is asked,
+            // the answer is the same whatever the culture makes of the name.
+            var uuid = Created(_vault.CreateEntry(_vault.RootAlias, Named("an invented service")));
+            _vault.UpdateField(uuid, PwDefs.PasswordField, "not-a-real-password", VaultTagging.None);
+            _database.RootGroup.CustomData.Set(
+                Acl.AclDocument.CustomDataKey, Rules.Granting(("agent", "CRUSDLA")));
+
+            var router = Spec.GateOperations.Router("9.9.9", null, new Pipeline.AccessCheck(Audit.NullGateAudit.Instance));
+            var names = Entry(uuid).Strings.Select(pair => pair.Key).ToList();
+            var was = Thread.CurrentThread.CurrentCulture;
+            Thread.CurrentThread.CurrentCulture = new System.Globalization.CultureInfo(culture);
+
+            try
+            {
+                using (var certificate = Minted.Named("CN=agent-fictitious").SelfSigned().Read())
+                {
+                    foreach (var name in new[] { "Pass\u200Bword", "Pass\u00ADword", "Pass\u200Dword", "Pass\uFEFFword" })
+                    {
+                        var body = Bodies.Of(("name", name), ("value", "chosen-by-the-caller"));
+                        var context = new Pipeline.GateContext(
+                            new Transport.HttpRequestHead(
+                                "POST",
+                                "/entries/" + uuid + "/fields",
+                                new Dictionary<string, string>(),
+                                new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase),
+                                Bodies.LengthOf(body)),
+                            body,
+                            Pipeline.ClientIdentity.Paired("d1e2f3", certificate, new[] { "agent" }));
+                        new Pipeline.ServedDatabase(_vault).PutOn(context);
+
+                        router.Handle(context);
+
+                        Assert.That(context.Status, Is.EqualTo(400), name + ": " + context.Json);
+                    }
+                }
+            }
+            finally
+            {
+                Thread.CurrentThread.CurrentCulture = was;
+            }
+
+            Assert.That(Entry(uuid).Strings.Select(pair => pair.Key), Is.EqualTo(names), "no second name was made");
+            Assert.That(Entry(uuid).Strings.ReadSafe(PwDefs.PasswordField), Is.EqualTo("not-a-real-password"));
+        }
+
         [Test]
         public void An_attachment_name_the_database_cannot_tell_from_another_reaches_neither()
         {

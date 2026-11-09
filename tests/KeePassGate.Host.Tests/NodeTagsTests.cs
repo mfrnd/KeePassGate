@@ -483,6 +483,23 @@ namespace KeePassGate.Host.Tests
         }
 
         [Test]
+        public void Adding_a_field_or_an_attachment_and_replacing_an_attachment_hand_back_the_entry_s_tag()
+        {
+            // The answer a client writes again under, so it is the tag a read then gives.
+            var field = _vault.CreateField(Uuid(_entry), "Invented", "a value", false, Asking(EntryTag()));
+            Assert.That(field.Ok, Is.True, field.Reason);
+            Assert.That(field.Tag, Is.Not.Null.And.EqualTo(EntryTag()));
+
+            var added = _vault.CreateAttachment(Uuid(_entry), "added.txt", Filled(3, 1), Asking(EntryTag()));
+            Assert.That(added.Ok, Is.True, added.Reason);
+            Assert.That(added.Tag, Is.Not.Null.And.EqualTo(EntryTag()));
+
+            var replaced = _vault.UpdateAttachment(Uuid(_entry), "added.txt", Filled(3, 2), Asking(EntryTag()));
+            Assert.That(replaced.Ok, Is.True, replaced.Reason);
+            Assert.That(replaced.Tag, Is.Not.Null.And.EqualTo(EntryTag()));
+        }
+
+        [Test]
         public void A_group_write_asks_the_group_s_own_tag()
         {
             var stale = Asking(GroupTag());

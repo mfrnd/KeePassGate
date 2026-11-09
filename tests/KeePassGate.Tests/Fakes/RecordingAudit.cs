@@ -28,6 +28,12 @@ namespace KeePassGate.Tests.Fakes
             }
         }
 
+        /// <summary>True: a list keeps what it is given, as a file the audit names does.</summary>
+        public bool Keeps
+        {
+            get { return true; }
+        }
+
         public void Record(AuditEntry entry)
         {
             lock (_lock)

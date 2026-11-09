@@ -65,9 +65,10 @@ namespace KeePassGate.Transport
         /// that says why, having decided before it asked.
         /// </summary>
         /// <remarks>
-        /// Everything <see cref="Locked"/> says holds for every such word. The other one is
-        /// `undecided`, a database holding more than one authority while the operator has not
-        /// chosen: the same answer for every path, method and body, and a client that can wait.
+        /// What the remarks on <see cref="Locked"/> state holds for every such word. There are two
+        /// others: `undecided`, a database holding more than one authority while the operator has
+        /// not chosen, and `busy`, a database whose admission records could not be listed just
+        /// now. Each is the same answer for every path, method and body, to a client that can wait.
         /// </remarks>
         public static void Unavailable(Stream stream, string error, GateOptions options, IGateLog log)
         {
@@ -233,7 +234,7 @@ namespace KeePassGate.Transport
 
             if (target != null)
             {
-                new ServedDatabase(target.Vault, target).PutOn(context);
+                new ServedDatabase(target.Vault, target, logger).PutOn(context);
             }
 
             ConnectionPeer.PutOn(context, peer);

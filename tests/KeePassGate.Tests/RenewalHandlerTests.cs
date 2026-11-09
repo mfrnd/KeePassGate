@@ -124,6 +124,36 @@ namespace KeePassGate.Tests
         }
 
         [Test]
+        public void An_approved_renewal_takes_the_client_s_turn_for_the_line_the_writer_wrote()
+        {
+            // The writer records an approved renewal's line from KeePass's own thread, which must
+            // not wait, so the handler takes the client's turn for it on the client's own
+            // connection. Nothing else paces it.
+            var waits = new List<TimeSpan>();
+            var admissions = new AdmissionAudit(_audit, null, new DecisionPace(() => TimeSpan.Zero, waits.Add));
+            var handler = new RenewalHandler(
+                FakeRenewalApproval.Approving(), _options, new AuthorityIssuer(), () => _now, _session, admissions,
+                _log, _held);
+
+            using (var old = _authority.IssueAdmittedClient("reader"))
+            {
+                var client = Paired(old);
+                for (var i = 0; i < DecisionPace.Burst; i++)
+                {
+                    admissions.TakeTurn(client.ClientKey);
+                }
+
+                Assume.That(waits, Is.Empty, "the burst itself is never held back");
+
+                var context = Context(client, "{}");
+                Router(handler).Handle(context);
+
+                Assert.That(context.Status, Is.EqualTo(200), context.Json);
+                Assert.That(waits, Has.Count.EqualTo(1));
+            }
+        }
+
+        [Test]
         public void The_operator_is_shown_what_the_record_holds_rather_than_anything_the_client_said()
         {
             var operatorAt = FakeRenewalApproval.Approving();

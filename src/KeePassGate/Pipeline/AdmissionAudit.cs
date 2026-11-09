@@ -22,9 +22,11 @@ namespace KeePassGate.Pipeline
     /// client either. A renewal names the certificate that asked and, approved, the one issued in
     /// its place. A revocation names the certificate it takes away. Every line but a pairing's
     /// names the client by the client key on the record of the certificate it is about, which a
-    /// renewal copies, so it is the same before and after. **Never a profile**, as nowhere in the file:
-    /// which profiles a client holds is in its record, and a second copy of that is the thing
-    /// worth stealing.
+    /// renewal copies, so it is the same before and after. **Never a profile**: none of these
+    /// lines names what a client asked for, was approved for or kept, because which profiles a
+    /// client holds is in its record, and a second copy of that is the thing worth stealing. The
+    /// one place the file names profiles is a refusal of the rules that a removed profile would
+    /// have permitted, `AccessCheck.Decide`, and a removed name grants nothing.
     ///
     /// **An approval is written once its record is in the database**, so `approved` always names
     /// a key that was admitted. One that admitted nobody, because the record did not land, the
@@ -39,11 +41,12 @@ namespace KeePassGate.Pipeline
     /// a renewal refused by a standing answer is answered at once and could otherwise roll the
     /// file, and an approved one must not hand the client a fresh allowance. A refused one is
     /// written on the client's own connection and waits there. An approved renewal and a
-    /// self-revocation are written by the writer, on KeePass's own thread, which must not wait, so
-    /// those two are written without waiting and the client's turn for each is taken by
-    /// <see cref="TakeTurn"/> once the write returns, on its own connection. A pairing's line
-    /// names no client and waits on a person, who is its pace. The operator's revocation is
-    /// written on KeePass's own thread too.
+    /// self-revocation are recorded by the writer, from KeePass's own thread, which must not
+    /// wait, whether the line reaches the file there or a moment later from a thread the audit
+    /// writes on. So those two are recorded without waiting, and the client's turn for each is
+    /// taken by <see cref="TakeTurn"/> once the write returns, on its own connection. A
+    /// pairing's line is not counted, approved or not, because it waits on a person, who is its
+    /// pace. The operator's revocation is recorded from KeePass's own thread too.
     /// </remarks>
     public sealed class AdmissionAudit
     {
@@ -125,8 +128,8 @@ namespace KeePassGate.Pipeline
 
         /// <summary>A renewal the operator approved, once the new record is in the database.</summary>
         /// <remarks>
-        /// Written by the writer on KeePass's own thread, so it does not wait: the renewal takes
-        /// the client's turn for it with <see cref="TakeTurn"/> once the write returns.
+        /// Recorded by the writer from KeePass's own thread, so it does not wait: the renewal
+        /// takes the client's turn for it with <see cref="TakeTurn"/> once the write returns.
         /// </remarks>
         /// <param name="client">The certificate that asked, by admission key.</param>
         /// <param name="clientKey">
@@ -189,8 +192,8 @@ namespace KeePassGate.Pipeline
         /// A client's revocation of its own certificate, once the revocation is in the database.
         /// </summary>
         /// <remarks>
-        /// Written by the writer on KeePass's own thread, so it does not wait: the revocation takes
-        /// the client's turn for it with <see cref="TakeTurn"/> once the write returns.
+        /// Recorded by the writer from KeePass's own thread, so it does not wait: the revocation
+        /// takes the client's turn for it with <see cref="TakeTurn"/> once the write returns.
         /// </remarks>
         public void RevokedItself(string databaseId, string client, string clientKey)
         {
@@ -216,15 +219,15 @@ namespace KeePassGate.Pipeline
         /// <param name="clientKey">The client the line was about, by its client key.</param>
         public void TakeTurn(string clientKey)
         {
-            _pace.Take(clientKey);
+            Pace(clientKey);
         }
 
         /// <summary>
         /// The operator's revocation, as the settings dialog's OK puts it into the database.
         /// </summary>
         /// <remarks>
-        /// Never paced: it is written on KeePass's own thread, and an operator cannot revoke faster
-        /// than they can press a button and accept a dialog.
+        /// Never paced: it is recorded from KeePass's own thread, and an operator cannot revoke
+        /// faster than they can press a button and accept a dialog.
         /// </remarks>
         /// <param name="clientKey">
         /// The client key on the record the revocation empties, read before OK applied it, or null
@@ -252,8 +255,8 @@ namespace KeePassGate.Pipeline
         /// </remarks>
         private void Pairing(string databaseId, string invitationId, string decision, string reason, string issued)
         {
-            // Not paced: there is no client yet to count it against, and the dialog it answers is
-            // the pace, one at a time and none faster than somebody can answer or a timeout runs.
+            // Not paced, even where it names the client it admitted: the dialog it answers is the
+            // pace, one at a time and none faster than somebody can answer or a timeout runs.
             _audit.Record(AuditEntry.Admission(
                 _clock(),
                 databaseId,
@@ -268,11 +271,27 @@ namespace KeePassGate.Pipeline
 
         private void Renewal(string databaseId, string client, string clientKey, string decision, string reason)
         {
+            // Stamped as it is answered, and not once the wait below is over, for the reason
+            // `AccessCheck` stamps a decision before its wait.
+            var at = _clock();
+
             // By the client, which the renewal leaves as it was, so the certificate it ends with
             // spends the allowance the one that asked had spent.
-            _pace.Take(clientKey);
+            Pace(clientKey);
 
-            Write(databaseId, client, clientKey, GateOperations.RenewCertificate, decision, reason, null);
+            Write(at, databaseId, client, clientKey, GateOperations.RenewCertificate, decision, reason, null);
+        }
+
+        /// <summary>
+        /// Waits for this client's turn, unless the audit keeps nothing, which the pace has nothing
+        /// to protect in.
+        /// </summary>
+        private void Pace(string clientKey)
+        {
+            if (_audit.Keeps)
+            {
+                _pace.Take(clientKey);
+            }
         }
 
         /// <summary>A line about a client's own admission, written without waiting for its turn.</summary>
@@ -285,8 +304,22 @@ namespace KeePassGate.Pipeline
             string reason,
             string issued)
         {
+            Write(_clock(), databaseId, client, clientKey, operation, decision, reason, issued);
+        }
+
+        /// <summary>The same, stamped with a moment taken earlier.</summary>
+        private void Write(
+            DateTimeOffset at,
+            string databaseId,
+            string client,
+            string clientKey,
+            string operation,
+            string decision,
+            string reason,
+            string issued)
+        {
             _audit.Record(AuditEntry.Admission(
-                _clock(), databaseId, client, clientKey, operation, decision, reason, null, issued));
+                at, databaseId, client, clientKey, operation, decision, reason, null, issued));
         }
     }
 }

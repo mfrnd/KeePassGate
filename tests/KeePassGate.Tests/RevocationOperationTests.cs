@@ -139,6 +139,38 @@ namespace KeePassGate.Tests
             }
         }
 
+        [TestCase("ok", 1, TestName = "A revocation that took takes a turn of the client for its line")]
+        [TestCase("unverified", 1, TestName = "A revocation kept in memory takes a turn of the client for its line")]
+        [TestCase("busy", 0, TestName = "A revocation that wrote no line takes no turn")]
+        public void A_revocation_takes_the_client_s_turn_for_the_line_the_writer_wrote(string outcome, int turns)
+        {
+            // The writer records the line from KeePass's own thread, which must not wait, so the
+            // operation takes the client's turn for it on the client's own connection. Nothing
+            // else paces a client revoking itself.
+            var waits = new List<TimeSpan>();
+            var check = new AccessCheck(_audit, null, new DecisionPace(() => TimeSpan.Zero, waits.Add));
+            var router = GateOperations.Router("9.9.9", null, check);
+            if (outcome != "ok")
+            {
+                _authority.RevokeAnswers = Outcome(outcome);
+            }
+
+            using (var certificate = _authority.IssueAdmittedClient("reader"))
+            {
+                var client = Paired(certificate);
+                for (var i = 0; i < DecisionPace.Burst; i++)
+                {
+                    check.Admissions.TakeTurn(client.ClientKey);
+                }
+
+                Assume.That(waits, Is.Empty, "the burst itself is never held back");
+
+                router.Handle(Revoking(client));
+
+                Assert.That(waits, Has.Count.EqualTo(turns));
+            }
+        }
+
         [Test]
         public void A_listener_that_fails_after_the_revocation_landed_does_not_lose_its_line()
         {

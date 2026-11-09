@@ -38,6 +38,16 @@ namespace KeePassGate.Transport
         /// <summary>How much of a body is asked for at once, so nothing is sized from the wire.</summary>
         private const int ChunkBytes = 8 * 1024;
 
+        /// <summary>
+        /// The longest request target read, in characters, past which a request is refused `414`.
+        /// </summary>
+        /// <remarks>
+        /// Shared with what a route may be asked to make: a field or an attachment whose name would
+        /// take the route naming it past this is refused when it would be made, since no request
+        /// could name it again.
+        /// </remarks>
+        public const int MaxTargetCharacters = 2048;
+
         /// <summary>Refuses bytes that are not UTF-8 rather than rewriting them.</summary>
         private static readonly UTF8Encoding StrictUtf8 = new UTF8Encoding(false, true);
 
@@ -559,9 +569,10 @@ namespace KeePassGate.Transport
                 return HttpReadResult.Refused(BadRequest, "the target is not an absolute path", method, announced);
             }
 
-            if (parts[1].Length > 2048)
+            if (parts[1].Length > MaxTargetCharacters)
             {
-                return HttpReadResult.Refused(UriTooLong, "the target is over 2048 characters", method, announced);
+                return HttpReadResult.Refused(
+                    UriTooLong, "the target is over " + MaxTargetCharacters + " characters", method, announced);
             }
 
             // HTTP/1.1 and nothing else, the operator's ruling of 2026-11-08. The version is not

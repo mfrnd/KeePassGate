@@ -447,6 +447,48 @@ none, since it releases both.
   so a client whose dialog the close took away, or whose request was still waiting for the screen,
   is told `503 locked`. Its connection was ended with the database's others, and the client saw it
   close without an answer. Every other connection to that database is still ended.
+- **Every certificate the gate refuses for a database shares one allowance in the audit**, rather
+  than each counting against its own. A client keeps the certificates it renewed out of, and each
+  brought a whole burst and rate of its own once it was revoked or had expired, so a client that
+  kept them could write as many times the pace as it had certificates.
+- **No client is paced where the audit has no file to write**, as on an account with no local
+  application data and no `KEEPASSGATE_AUDIT_FILE`. The pace keeps a client from rolling the file
+  away, and with no file a client past its first thousand decisions was still held to ten a second.
+- **An audit line's `at` is when it was decided, for a paced client too.** It was read once the
+  client's wait was over, so a client past its allowance had its decisions and refused renewals
+  stamped up to seconds after the rules or the operator's earlier answer had decided them.
+- **A protected value withheld is written down by the walk that withheld it**, and a strip of a
+  protected field refused because some profile could put an unprotected value back is written down
+  at all. A handler decided on its own and asked the rules again only to write the line, so a rule
+  changed in between left a withheld value unrecorded, and that strip, decided profile by profile,
+  was recorded by a walk pooling every profile, which permitted it and wrote nothing.
+- **A change to an entry that reached the disk is never answered `503 busy`.** Its answer reads the
+  entry again to confirm the tag it hands back, and a read that could not hold KeePass's thread was
+  answered `busy`, so a client retried a change already made. It is answered without the tag.
+- **A read too large to serve is `413` whatever its `If-Match`**, for an attachment, an entry and a
+  field alike, as RFC 9110 section 13.2.1 orders it and the routing document already stated. The
+  condition was asked first, so a stale tag was told `412`, and a client handed no tag was told
+  `412` every time and never that the read was too large.
+- **A new field or attachment name holding a Unicode format character is `400 malformed`**, the
+  zero-width spaces and joiners, the soft hyphen and the byte order mark among them, beside the
+  bidirectional controls already refused. A name holding such a character is drawn as the name
+  without it, so a program holding `C` could add a second, unprotected `Password` beside the real
+  `Password`.
+- **A new field or attachment name too long for its routes is `400 malformed`.** Percent-encoded,
+  a name of a few hundred characters beyond ASCII, inside the 512 the body allows, took the route
+  naming it past the 2048 characters of a target the transport reads, so it was made with `201`
+  and could never be read, changed or stripped by name, every request for it answered `414`.
+- **A refusal that profiles a damaged list lost would have allowed is written down as
+  `profile list unreadable`**, with `removedProfiles` naming them, where it was `profile removed`.
+  A list of profiles that will not read names fewer than it held, and nobody had removed them, so
+  the line sent the operator to name again profiles nobody took off.
+- **`GET /gate/whoami` answers `profilesUnreadable`**, always present and true only while the
+  database's list of profiles will not read. A damaged list names fewer profiles than it held, so
+  `removedProfiles` then held names nobody removed, and a program had no way to tell that from the
+  operator taking them away.
+- **A read refused `412` is logged as a change refused `412` is**, a warning with its reason, a
+  client handed no tag and an `If-Match` that does not read among them. A read's `412` was written
+  nowhere, so a program refused on its reads over and over showed nowhere at all.
 
 ## 0.1.0, 2026-10-25
 

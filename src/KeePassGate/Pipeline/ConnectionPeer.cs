@@ -1,8 +1,8 @@
 namespace KeePassGate.Pipeline
 {
     /// <summary>
-    /// Where this request's connection came from, for the two routes that show it to a person,
-    /// pairing and renewal.
+    /// Where this request's connection came from, for the renewal dialog, which shows it to a
+    /// person. The pairing dialog takes its own copy from the pairing connection.
     /// </summary>
     /// <remarks>
     /// The approval dialog for a renewal says where the request came from, as the pairing one does,

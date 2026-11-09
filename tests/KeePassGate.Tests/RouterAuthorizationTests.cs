@@ -167,6 +167,33 @@ namespace KeePassGate.Tests
         }
 
         [Test]
+        public void A_profile_lost_to_a_list_that_will_not_read_is_written_down_as_the_damage_it_is()
+        {
+            // The operator's ruling of 2026-11-08. A list that does not read names nothing, so the
+            // record's every profile counts as removed, and written as `profile removed` the line
+            // sent the operator to name again profiles nobody took off.
+            using (var authority = TestAuthority.New())
+            using (var certificate = authority.IssueClient("agent-fictitious", "reader"))
+            {
+                authority.Admit(certificate, "reader");
+                authority.KnownProfiles = Array.Empty<string>();
+                authority.ProfilesUnreadable = "the list of profiles is not a list";
+
+                var identity = ClientCredentials.For(certificate, authority, _log);
+                Assume.That(identity.ProfilesUnreadable, Is.True);
+
+                var refused = Ask(identity);
+
+                var line = _audit.Entries[_audit.Entries.Count - 1];
+                Assert.That(refused.Status, Is.EqualTo(404));
+                Assert.That(line.Permitted, Is.False);
+                Assert.That(line.Reason, Is.EqualTo(AccessCheck.ProfilesUnreadable));
+                Assert.That(line.RemovedProfiles, Is.EqualTo(new[] { "reader" }),
+                    "and it names the profiles the damage took, as a removal names the ones removed");
+            }
+        }
+
+        [Test]
         public void Records_that_could_not_be_listed_leave_an_admitted_client_busy_rather_than_a_stranger()
         {
             // A stranger is told to pair, and this client is admitted: what failed was the
