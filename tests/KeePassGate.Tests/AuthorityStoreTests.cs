@@ -306,7 +306,7 @@ namespace KeePassGate.Tests
         [Test]
         public void A_store_that_swallows_writes_is_read_back_as_absent()
         {
-            // What a stale dialog snapshot does, in the small: the write appears to work.
+            // A store that keeps nothing it is given, while the write appears to work.
             _values.SwallowWrites = true;
             Write();
 

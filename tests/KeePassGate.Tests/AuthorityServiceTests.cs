@@ -312,7 +312,7 @@ namespace KeePassGate.Tests
         [Test]
         public void A_write_that_vanishes_is_reported_rather_than_believed()
         {
-            // What a stale dialog snapshot does to a write: it is accepted and it is not there.
+            // A store that loses a write: it is accepted and it is not there.
             _values.SwallowWrites = true;
 
             var result = _service.Create();
