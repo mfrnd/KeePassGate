@@ -1773,14 +1773,30 @@ namespace KeePassGate.Tests
         [Test]
         public void A_stranger_is_told_the_same_thing_on_every_route_there_is()
         {
-            foreach (var path in new[] { "/entries", "/groups", "/entries/" + _entry, "/nothing/here" })
+            // Every operation that needs a certificate, at the method it declares, and beside them
+            // a path nothing declares and a declared path at a method nothing declares: one status
+            // and one body for all of them, so a stranger learns nothing about which exist.
+            var requests = SpecDocument.Embedded().Operations
+                .Where(o => o.NeedsIdentity)
+                .Select(o => new[] { o.Method, o.Path.Text.Replace("{uuid}", _entry).Replace("{name}", "Title") })
+                .Concat(new[]
+                {
+                    new[] { "GET", "/nothing/here" },
+                    new[] { "PATCH", "/entries/" + _entry },
+                })
+                .ToList();
+
+            Assert.That(requests.Count, Is.GreaterThan(2), "the document declares no operation a stranger is refused");
+
+            foreach (var request in requests)
             {
                 var context = new GateContext(
-                    Head("GET", path), string.Empty, ClientIdentity.Stranger("d1"));
+                    Head(request[0], request[1]), string.Empty, ClientIdentity.Stranger("d1"));
 
                 _router.Handle(context);
 
-                Assert.That(context.Status, Is.EqualTo(401), path);
+                Assert.That(context.Status, Is.EqualTo(401), request[0] + " " + request[1]);
+                Assert.That(context.Json, Is.EqualTo("{\"error\":\"unpaired\"}"), request[0] + " " + request[1]);
             }
         }
 
