@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using System.Threading;
 using System.Windows.Automation;
 using KeePassGate.Ui;
@@ -101,7 +102,11 @@ namespace KeePassGate.Host.Tests.Live
         [Test]
         public void The_plugin_recorded_creating_it_once_and_nothing_going_wrong()
         {
-            Assert.That(_pluginLog, Does.Contain("authority created"));
+            // The count, not just the phrase: a second creation, in either session, would be the
+            // authority made again rather than kept, which the fingerprint alone may not show.
+            var created = _pluginLog.Split('\n').Count(line => line.Contains("authority created"));
+
+            Assert.That(created, Is.EqualTo(1), _pluginLog);
             Assert.That(LiveSession.FailuresIn(_pluginLog), Is.Empty);
         }
 
