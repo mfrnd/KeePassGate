@@ -43,7 +43,7 @@ because a single use credential is not worth putting on a second screen. It is t
 dialog is something checkable: if the identifier on it is not the one on this page, the code being
 redeemed is not the code handed out.
 
-Three things about that code surprise people, so the page states all three every time:
+Three things about that code surprise people, so the box's tooltip states all three:
 
 - **There is one code at a time.** Pressing the button again replaces it, and the code it replaced
   stops working at once. That is why, while a code is out, the button states **Renew invite**.
@@ -53,7 +53,7 @@ Three things about that code surprise people, so the page states all three every
   does not travel with the file and does not survive KeePass closing. A code sent yesterday is
   gone.
 
-That line also states how long the code has left. It runs out on its own in minutes.
+The code runs out on its own in minutes.
 
 **Close the dialog with OK to keep the code.** It works from the moment it is shown, so the program
 can pair while the dialog is still open, but **Cancel**, or closing the dialog any other way, takes

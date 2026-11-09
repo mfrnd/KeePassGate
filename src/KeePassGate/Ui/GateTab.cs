@@ -141,10 +141,10 @@ namespace KeePassGate.Ui
         /// because pressing it again does not add a second code: it replaces the one that is there.
         /// </summary>
         /// <remarks>
-        /// Two words, and it used to be five. "One-time" and "client" were both said again in the
-        /// line above the box, which now says the code is consumed by the first client or renewed,
-        /// so the button was spending width to repeat its own explanation. **The width is what it
-        /// was spending it on**: the box beside it holds a forty-three character code and shares
+        /// Two words, and it used to be five. "One-time" and "client" were both stated again beside
+        /// the box, whose tooltip names the first client spending the code and a renewal replacing
+        /// it, so the button was spending width to repeat its own explanation. **The width is what
+        /// it was spending it on**: the box beside it holds a forty-three character code and shares
         /// this row with the button, so every character of caption is width taken from the box,
         /// which has to hold the whole code and at 100 percent has little more than that. This is
         /// the caption that is up while the box holds one.
@@ -221,6 +221,19 @@ namespace KeePassGate.Ui
         /// caption for them to read. Every other button on this tab is found by its own text.
         /// </summary>
         public const string CopyButtonLabel = "Copy the invitation";
+
+        /// <summary>
+        /// The code box's tooltip: the three things about a code that surprise people.
+        /// </summary>
+        /// <remarks>
+        /// On the box rather than on the line over it, the operator's ruling of 2026-11-09. They
+        /// read the same on every visit and took a second line of a page that is 449 by 314,
+        /// while the line keeps what changes: the minutes left and the name the approval dialog
+        /// gives the code.
+        /// </remarks>
+        public const string InvitationBoxHelp =
+            "The code lives in this KeePass's memory only. The first client to use it spends it, " +
+            "and " + RenewInviteButtonText + " replaces it.";
 
         /// <summary>What is outstanding, and until when.</summary>
         public const string InvitationLabelName = "KpgInvitationLabel";

@@ -379,6 +379,7 @@ namespace KeePassGate.Ui
 
             _tips = new ToolTip();
             Tooltips.Set(_tips, _copy, GateTab.CopyButtonLabel);
+            Tooltips.Set(_tips, _token, GateTab.InvitationBoxHelp);
 
             _ticking.Tick += (sender, e) =>
                 WindowHandlers.Run("the KPG tab's countdown could not be moved on", () => OnTick(sender, e));

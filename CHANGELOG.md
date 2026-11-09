@@ -11,6 +11,10 @@ none, since it releases both.
 
 ## 0.2.0, unreleased
 
+- **The line over the invitation code shows the minutes left and the identifier and nothing else.**
+  That the code lives in KeePass's memory, that the first client to use it spends it and that
+  Renew invite replaces it read the same on every visit, so they are the code box's tooltip now,
+  and the client list has the line back.
 - **With no code out, the clients page shows it in the empty code box rather than on a line over
   it.** The line stated what the box beside it already showed, and the client list has that line
   back. The gray text is never the box's text, so the copy button stays dead over it and nothing

@@ -112,18 +112,15 @@ namespace KeePassGate.Ui
                 return "The code has just run out.";
             }
 
-            var window = minutes == 1
-                ? "1 minute"
-                : minutes.ToString(CultureInfo.InvariantCulture) + " minutes";
-
-            // Three things about a code used to be a line of their own under it: that it lives in
-            // memory, that renewing replaces it, and that the first client to use it spends it.
-            // They are said here instead, in the sentence the operator is already reading, because
-            // a second line saying what the first line implies is a second line nobody reads and
-            // this page is short of room rather than short of words.
-            return "The in-memory code is good for another " + window
-                + " until the first client consumes it or it gets renewed. "
-                + "The approval dialog will call it " + soonest.Id + ".";
+            // What changes from one look to the next, and nothing else: the minutes and the name.
+            // Three things about a code used to be a line of their own under it, and then a
+            // second line of this one: that it lives in memory, that the first client to use it
+            // spends it, and that renewing replaces it. They read the same on every visit, so they
+            // are the box's tooltip now, `GateTab.InvitationBoxHelp`, the operator's ruling of
+            // 2026-11-09, and the client list has the line back. No full stop after the name,
+            // which would read as part of it.
+            return "Expires in " + minutes.ToString(CultureInfo.InvariantCulture) + " min; "
+                + "the approval dialog shows " + soonest.Id;
         }
     }
 }
