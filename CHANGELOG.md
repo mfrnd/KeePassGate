@@ -11,6 +11,10 @@ none, since it releases both.
 
 ## 0.2.0, unreleased
 
+- **The renewal dialog reads in fewer words**: "Approving issues a new certificate and saves this
+  database. The certificate it holds now stays valid until the client gives it up.", "Profiles
+  for the new certificate; uncheck any it should lose. The certificate it holds now keeps every
+  one until it is given up:", and the countdown as the pairing dialog's.
 - **The pairing dialog reads in fewer words**: what approving does, "Approving issues a
   certificate and saves this database. Revoke it later on the KPG tab.", what the list is,
   "Profiles it asks for; uncheck any it should not get:", and the countdown, "Times out in 115 s;

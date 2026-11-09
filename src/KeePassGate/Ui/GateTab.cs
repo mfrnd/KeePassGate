@@ -366,7 +366,7 @@ namespace KeePassGate.Ui
 
         /// <summary>What the renewal dialog's countdown says, with the seconds left in place.</summary>
         public const string RenewalCountdownFormat =
-            "This renewal request times out in {0} seconds, and nothing gets issued.";
+            "Times out in {0} s; nothing is issued.";
 
         /// <summary>What the renewal dialog calls the moment the client's record was written.</summary>
         /// <remarks>

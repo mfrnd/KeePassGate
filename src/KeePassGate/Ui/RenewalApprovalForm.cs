@@ -38,10 +38,14 @@ namespace KeePassGate.Ui
     public sealed class RenewalApprovalForm : ApprovalDialog
     {
         /// <summary>What approving costs and what it leaves, said once.</summary>
+        /// <remarks>
+        /// The save and what happens to the certificate the client holds now, which is what the
+        /// operator acts on. How the save is ordered against the answer is `PAIRING.md`'s, since
+        /// the operator's ruling of 2026-11-09 cutting the dialog's words.
+        /// </remarks>
         public const string Consequence =
-            "Approving issues it a new certificate and saves this database, so the admission is on " +
-            "disk before the client is told anything. The certificate it holds now is not revoked " +
-            "by this: the client gives it up itself once it has the new one.";
+            "Approving issues a new certificate and saves this database. The certificate it holds " +
+            "now stays valid until the client gives it up.";
 
         /// <summary>What the list underneath is.</summary>
         /// <remarks>
@@ -50,9 +54,8 @@ namespace KeePassGate.Ui
         /// line says so rather than letting an unchecked box read as access taken away.
         /// </remarks>
         public const string ProfilesHeld =
-            "The new certificate carries the profiles the client holds now. " +
-            "Uncheck anything it should no longer have; the certificate it holds now keeps every " +
-            "one until it is given up, or revoked on the Clients page:";
+            "Profiles for the new certificate; uncheck any it should lose. The certificate it " +
+            "holds now keeps every one until it is given up:";
 
         /// <summary>The same when the record holds none the database still names.</summary>
         public const string NoProfilesHeld =
