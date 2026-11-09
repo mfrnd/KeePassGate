@@ -11,6 +11,8 @@ none, since it releases both.
 
 ## 0.2.0, unreleased
 
+- **The note under the KPG tab's pages reads "Changes apply on OK, then save the database."**,
+  the same two things as before in fewer words.
 - **A revocation or an Allow renewal that went through puts no sentence under the clients list.**
   The rows show it: a revoked row goes at once and a lifted name stops being red, and the note
   under the pages states that changes apply on OK. Only one that did not go through puts words

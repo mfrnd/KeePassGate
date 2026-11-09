@@ -53,9 +53,12 @@ namespace KeePassGate.Ui
         /// custom data and so never undid any of it. It was still wrong: a dialog with OK and
         /// Cancel on it says nothing has happened yet, and a tab inside one that has already
         /// happened is a tab lying about the buttons around it.
+        ///
+        /// Shorter since the operator's ruling of 2026-11-09, which cut the clients page's words:
+        /// the same two things, as one instruction.
         /// </remarks>
         public const string ImmediateNotice =
-            "Changes apply on OK; the database must then be saved.";
+            "Changes apply on OK, then save the database.";
 
         /// <summary>
         /// What the invitation box, and the copy button as tall as it, drop by to sit centered on
