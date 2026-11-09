@@ -160,26 +160,14 @@ namespace KeePassGate.Testing
                 var proof = WrongProof ?? PairingProof.Request(
                     _token, _binding, _nonce, _challenge, PairingProof.Asked(name, asked, Lifetime));
 
-                var body = new StringBuilder();
-                body.Append("{\"name\":\"").Append(name).Append("\",\"profiles\":[");
-                for (var i = 0; i < asked.Length; i++)
-                {
-                    if (i > 0)
-                    {
-                        body.Append(',');
-                    }
-
-                    body.Append('"').Append(asked[i]).Append('"');
-                }
-
-                body.Append(']');
+                var members = new List<(string Name, object Value)> { ("name", name), ("profiles", asked) };
                 if (Lifetime != null)
                 {
-                    body.Append(",\"lifetime\":\"").Append(Lifetime).Append('"');
+                    members.Add(("lifetime", Lifetime));
                 }
 
-                body.Append(",\"proof\":\"").Append(Convert.ToBase64String(proof)).Append("\"}");
-                return body.ToString();
+                members.Add(("proof", Convert.ToBase64String(proof)));
+                return Bodies.Of(members.ToArray());
             });
 
             if (!reply.Answered || reply.Status != 200 || reply.Json == null)
