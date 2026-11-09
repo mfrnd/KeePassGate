@@ -15,9 +15,11 @@ namespace KeePassGate.Tests
     /// </summary>
     /// <remarks>
     /// One thing here is different from every other button on this tab, and the wording has to
-    /// carry it: inviting changes nothing in the database. There is nothing for Cancel to undo and
-    /// nothing for a save to keep, because a token that was never in custom data cannot be brought
-    /// back by a dialog writing a stale copy of it.
+    /// carry it: inviting changes nothing in the database. There is nothing for a save to keep,
+    /// because a token that was never in custom data cannot be brought back by a dialog writing a
+    /// stale copy of it. The dialog's answer still decides whether the code stays good: Cancel, the
+    /// close box and Escape take back a code made on the dialog that nobody has used yet, which
+    /// `PendingInvitationsTests` pins, while a code spent with the dialog open stays spent.
     /// </remarks>
     [TestFixture]
     [Apartment(ApartmentState.STA)]
@@ -134,6 +136,7 @@ namespace KeePassGate.Tests
                 panel.InviteClient();
 
                 Assert.That(_book.For(Digest()).Count, Is.EqualTo(1));
+                Assert.That(_book.Outstanding().Count, Is.EqualTo(1), "and nothing for any other database");
             }
         }
 
