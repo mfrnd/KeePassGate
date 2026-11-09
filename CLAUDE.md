@@ -1367,10 +1367,11 @@ terminates the transport, so that every key the plugin loads can stay off the di
 makes for itself: it records why the transport is not `SslStream`, and does not watch the
 listener's. A tidy-up back to `SslStream` that kept the key ephemeral fails loudly, in
 `GateListenerTests`; a tidy-up that gave the key a file so that SChannel would serve with it would
-serve, and write the host key to somebody's profile at every connection, with nothing failing. That
-no key of the plugin's own is handed to Windows at all is a later decision with another reason: the
-issuer moved to Bouncy Castle because Mono has no ECDSA and no `CertificateRequest` a .NET Framework
-build can reach, `CA.md` §203 and its row in §221.
+serve, and write the host key to somebody's profile at every connection, which only
+`OpenDatabaseTargetsTests` would notice, in the host tier, watching the key directories around the
+listener's own handshake. That no key of the plugin's own is handed to Windows at all is a later
+decision with another reason: the issuer moved to Bouncy Castle because Mono has no ECDSA and no
+`CertificateRequest` a .NET Framework build can reach, `CA.md` §203 and its row in §221.
 
 ### Dependencies
 
