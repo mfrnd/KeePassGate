@@ -2719,6 +2719,12 @@ components:
         9110 section 13.2.1 orders them. The header sent twice is `400`, as any header this gate
         reads is.
 
+        **So a client that is sent no tag can learn from an `If-Match` which names an entry
+        carries**, without changing anything: a field or an attachment name the entry does not
+        carry is `404`, and a name it does carry `412`. A write without the condition tells it as
+        much, by making the change wherever the name is there. What it learns is a name, one guess
+        at a time, and never a value.
+
         **A write's condition is checked where the write is made**, on KeePass's thread under the
         writer's lock, against the node as the change would find it, so nothing can land between
         the check and the change. A read's is checked against the tag the read is answered with.

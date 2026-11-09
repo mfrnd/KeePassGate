@@ -143,6 +143,12 @@ wants. It still learns one thing about what is there: adding a field or an attac
 the entry already holds is refused as taken, so such a program can find out, one guess at a time,
 which names an entry holds. It never learns a value that way.
 
+**A program that may change or strip what an entry holds, without reading all of it, learns the
+same and changes nothing doing so.** It is handed no tag, the token a program names to change an
+entry only if nothing changed since it read it, so any tag it names is refused. But a field or an
+attachment the entry does not hold is refused as missing before that, so naming a tag anyway tells
+it whether a name is there: one guess at a time again, and never a value.
+
 **`L` sits below `R` on purpose.** Knowing that an entry exists is not knowing what is in it.
 
 **`S` and `D` are two sizes of removal.** `S` takes parts off a node: an entry's fields and its
