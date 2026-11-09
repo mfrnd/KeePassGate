@@ -2020,7 +2020,9 @@ components:
         parent:
           type: string
           nullable: true
-          description: Null on the root group, which is how a client finds the top of the tree.
+          description: |
+            Null on the root group, which is how a client finds the top of the tree. A group the
+            rules hide is named here all the same, as `Unreachable` explains.
         created:
           type: string
         modified:
@@ -2041,7 +2043,9 @@ components:
         parent:
           type: string
           nullable: true
-          description: Null on the root group, which is how a client finds the top of the tree.
+          description: |
+            Null on the root group, which is how a client finds the top of the tree. A group the
+            rules hide is named here all the same, as `Unreachable` explains.
         created:
           type: string
         modified:
@@ -2077,6 +2081,9 @@ components:
           type: string
         group:
           type: string
+          description: |
+            The group the entry is in, named even where the rules hide it, as `Unreachable`
+            explains.
         title:
           type: string
           nullable: true
@@ -2115,6 +2122,9 @@ components:
           type: string
         group:
           type: string
+          description: |
+            The group the entry is in, named even where the rules hide it, as `Unreachable`
+            explains.
         created:
           type: string
         modified:
@@ -2545,6 +2555,14 @@ components:
         both, deliberately.** Telling them apart would let a client that may reach nothing map the
         database by asking, one identifier at a time, which is exactly what `list` exists to be able
         to withhold. The operator is told which it was, in the audit.
+
+        **A group the rules hide is still named by what is in it.** What a client may see carries
+        the identifier of the group it is in, as `parent` on a group and `group` on an entry,
+        whether or not the client may reach that group, and asking for that group by it is then
+        this answer. So a client shown something inside a group it may not reach learns that the
+        group is there and which of what it is shown share it, though never the group's name, its
+        notes or anything else in it. The identifier is served all the same because it is how a
+        client places what it is shown, and a `parent` of null already stands for the root.
 
         A node that goes while the request is answered, in a database that stays open, is this as
         well, and so is a listing of a group or an entry that has gone: never `200` with an empty

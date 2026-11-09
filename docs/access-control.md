@@ -404,6 +404,11 @@ The record is read from the open database on every request, so removing it takes
 A node a program may not reach and a node that does not exist answer the same way, so a refused
 program cannot map the database by asking.
 
+**What a program may see still names the group it is in**, by identifier, even where the rules
+hide that group. So a program shown an entry inside a group it may not reach learns that the group
+is there and which of what it is shown share it, though never the group's name or anything else in
+it.
+
 **A program can ask what it may do at a group or an entry** before it tries. It is told one mask for
 each profile it holds, written as this tab writes them, and nothing about a profile it does not
 hold. Each mask is what the rules grant at that node, as this tab shows it there, so a `D` on an
