@@ -83,9 +83,10 @@ the page to the front reads the database again anyway.
 
 Press the **X** at the end of a client's row, or choose **Revoke** on the row's menu.
 
-The row goes, and the page states so. **Nothing has happened to the database yet**: press **OK** on
-the settings dialog to make it real, then **save the database** to write it to disk. Cancel discards
-the revocation along with everything else done on this tab.
+The row goes, and once the last row has gone, the empty list reads "No clients once OK is pressed."
+**Nothing has happened to the database yet**: press **OK** on the settings dialog to make it real,
+then **save the database** to write it to disk. Cancel discards the revocation along with everything
+else done on this tab.
 
 That is worth knowing rather than assuming, because it is the one place where waiting costs
 something. A revocation that has not been accepted has not revoked anything, so if a

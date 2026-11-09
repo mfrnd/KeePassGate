@@ -11,6 +11,9 @@ none, since it releases both.
 
 ## 0.2.0, unreleased
 
+- **A clients list emptied by revoking reads "No clients once OK is pressed."**, rather than that
+  no client has been admitted to the database, which every client revoked there still reaches
+  until OK.
 - **A write or an approval dialog still waiting for KeePass's thread when KeePass closes is
   logged as KeePass closing**, as a write meeting a window already gone was, and the write is
   answered as failed. Both were answered as a timeout: the write logged as KeePass not answering
