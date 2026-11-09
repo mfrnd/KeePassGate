@@ -102,10 +102,11 @@ namespace KeePassGate.Host.Tests
         {
             // Why a removal that would make the first recycle bin is refused while this dialog is
             // open. The combo is filled from `RecycleBinUuid` when the dialog loads and the
-            // dictionary says which group each of its items means; an index the dictionary does not
-            // hold is the item naming no group, and that is the branch whose OK sets
-            // `RecycleBinUuid` back to zero. A KeePass that drops either of these is one where the
-            // refusal is guarding nothing, which is worth being told about rather than carrying.
+            // dictionary holds which group each of its items means; the first item names no group
+            // and the dictionary holds it as zero, which is what OK sets `RecycleBinUuid` back to
+            // on a database that had no bin when the dialog opened. `RecycleBinDialogTests` drives
+            // that OK. A KeePass that drops either of these is one where the refusal is guarding
+            // nothing, which is worth being told about rather than carrying.
             var type = KeePassAssembly.GetType(KeePassContract.DatabaseSettingsFormTypeName, false);
 
             var combo = type.GetField(

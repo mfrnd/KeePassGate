@@ -26,8 +26,9 @@ namespace KeePassGate
         /// What that combo's selected index means, which is the dialog's own copy of the choice.
         /// </summary>
         /// <remarks>
-        /// An index this does not hold is the item naming no group, and that is the branch whose
-        /// OK zeroes `RecycleBinUuid`.
+        /// The item naming no group is the first, which this holds as `PwUuid.Zero`, so OK on that
+        /// item zeroes `RecycleBinUuid`; an index this does not hold, which only a page that never
+        /// loaded is on, zeroes it too.
         /// </remarks>
         public const string DatabaseSettingsFormRecycleBinGroupsField = "m_dictRecycleBinGroups";
 
