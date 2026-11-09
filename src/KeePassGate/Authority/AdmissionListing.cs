@@ -73,14 +73,18 @@ namespace KeePassGate.Authority
         }
 
         /// <summary>
-        /// How many records admit nobody because the client was revoked and a merge brought the
-        /// record back beside its revocation.
+        /// How many revoked clients a merge brought a record back for, beside its revocation, so
+        /// that the record admits nobody.
         /// </summary>
         /// <remarks>
         /// A number rather than records, because nothing is done to them one by one: the next
-        /// write this plugin makes takes them away, `AdmissionStore.PruneCameBack` says which. It
+        /// write this plugin makes takes them away, `AdmissionStore.PruneCameBack` names which. It
         /// is kept at all because the clients page is where an operator learns that a copy of the
-        /// file older than a revocation was merged in, and says so under the list until then.
+        /// file older than a revocation was merged in, and states it under the list until then.
+        ///
+        /// **Clients by client key, not records**, as every count of clients is: a renewed client
+        /// whose certificates both came back is one client. A record that will not read names no
+        /// client and counts as one of its own.
         /// </remarks>
         public int CameBack
         {

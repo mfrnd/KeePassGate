@@ -14,9 +14,10 @@ namespace KeePassGate.Bridge
     /// to each.** KeePass keeps a modification time per key for `PwDatabase.CustomData` and none at
     /// all for a group's, so a merge combines the first key by key and replaces the second
     /// wholesale, taking every key from whichever replica's group was touched last. Everything
-    /// this plugin stores about a database therefore lives here: the authority under one key, so
-    /// its three parts cannot be merged apart, the profile list, and one admission record per
-    /// client, so two hosts pairing different clients keep both.
+    /// this plugin stores about a database therefore lives here: each authority under a key of its
+    /// own, so its three parts cannot be merged apart, and the retirements beside them; the profile
+    /// list; one admission record per certificate admitted, so two hosts pairing different clients
+    /// keep both, and the revocations beside them; and the standing answers to renewals.
     ///
     /// A node's access rule is not here. It belongs to its group or entry, travels with that node
     /// through a merge, a move or a deletion, and is written through the dialog's own copy.

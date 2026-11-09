@@ -106,7 +106,10 @@ namespace KeePassGate.Authority
             return FingerprintInAuthority(key) != null || FingerprintInRetirement(key) != null;
         }
 
-        /// <summary>One admission record per paired client, keyed by its certificate digest.</summary>
+        /// <summary>
+        /// One admission record per certificate admitted, keyed by its digest, so a renewed client
+        /// holds one for each certificate it still has.
+        /// </summary>
         public const string ClientPrefix = "KPG.Client.";
 
         public static bool IsClientRecord(string key)
@@ -135,8 +138,8 @@ namespace KeePassGate.Authority
         }
 
         /// <summary>
-        /// One revocation per revoked client, keyed by the same digest as its record, whose value
-        /// is the certificate's `notAfter`.
+        /// One revocation per revoked certificate, keyed by the same digest as its record, whose
+        /// value is the certificate's `notAfter` and the digest of the authority that issued it.
         /// </summary>
         /// <remarks>
         /// **A key of its own, only ever added and never changed**, because that is the one shape a
@@ -145,6 +148,14 @@ namespace KeePassGate.Authority
         /// hold by modification time and never by value, so a value nobody changes has nothing to
         /// lose to. The emptied record beside it is still written, and is still the losing kind of
         /// mark: a stale copy can bring the record back, and this is what refuses it when it does.
+        ///
+        /// **The value is chosen once, as the key is written**, and is what lets the key go: past
+        /// `notAfter` the gate refuses the certificate on its dates, and once the authority named
+        /// is retired or gone, the retirement refuses everything that authority issued. So both are
+        /// written together, the end first and the authority's digest after a space. A revocation
+        /// written before revocations named their authority holds the date alone, and so does one
+        /// for a certificate no authority this database holds issued; one for a record that would
+        /// not read holds nothing at all.
         /// </remarks>
         public const string RevokedPrefix = "KPG.Revoked.";
 
@@ -166,6 +177,53 @@ namespace KeePassGate.Authority
         }
 
         /// <summary>
+        /// What a revocation is written with: the certificate's end as the wire writes a moment,
+        /// and the digest of the authority that issued it, or empty when there is no end to give.
+        /// </summary>
+        public static string RevocationValue(string notAfter, string authority)
+        {
+            if (string.IsNullOrEmpty(notAfter))
+            {
+                return string.Empty;
+            }
+
+            return string.IsNullOrEmpty(authority) ? notAfter : notAfter + " " + authority;
+        }
+
+        /// <summary>The end a revocation holds, as written, or null when it holds none.</summary>
+        public static string NotAfterInRevocation(string value)
+        {
+            if (string.IsNullOrEmpty(value))
+            {
+                return null;
+            }
+
+            var space = value.IndexOf(' ');
+            return space < 0 ? value : value.Substring(0, space);
+        }
+
+        /// <summary>
+        /// The authority a revocation names, or null when it names none or names something that is
+        /// not a digest, which is then kept as though it named none.
+        /// </summary>
+        public static string AuthorityInRevocation(string value)
+        {
+            if (string.IsNullOrEmpty(value))
+            {
+                return null;
+            }
+
+            var space = value.IndexOf(' ');
+            if (space < 0)
+            {
+                return null;
+            }
+
+            var named = value.Substring(space + 1);
+            return CertificateDigest.IsDigest(named) ? named : null;
+        }
+
+        /// <summary>
         /// The operator's standing answer to renewing one certificate, keyed by the same digest as
         /// its record, holding `forever` or the moment renewals are asked about again.
         /// </summary>
@@ -177,7 +235,9 @@ namespace KeePassGate.Authority
         /// either way: by modification time, which a slow clock or a copy saved without the times
         /// turns around, or whatever the time under Overwrite existing. It never admits anybody,
         /// since a renewal is still a person approving one, but losing a newer until-date to an
-        /// older forever costs the client a new pairing rather than a dialog, `CA.md` §204.
+        /// older forever answers every renewal `409 forever` until the operator lifts it, `CA.md`
+        /// §204. **Allow renewal** on the clients page, accepted with the settings dialog, is what
+        /// lifts it, and removes the key; so does the prune of a key no record is left to ask.
         ///
         /// **A refusal in this session has no key**: it is held in plugin memory, so that it goes
         /// with the session it names.

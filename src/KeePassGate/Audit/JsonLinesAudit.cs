@@ -4,6 +4,7 @@ using System.Globalization;
 using System.IO;
 using System.Security.AccessControl;
 using System.Text;
+using System.Threading;
 using KeePassGate.Diagnostics;
 using IoPath = System.IO.Path;
 
@@ -43,6 +44,9 @@ namespace KeePassGate.Audit
     /// **Where it is writing is said as it opens**, and so is having nowhere to write. See the
     /// constructor. `docs/audit.md` is the same answer for whoever runs this rather than reads it.
     ///
+    /// **KeePass's own thread hands its lines to a writer of the audit's own** rather than waiting
+    /// on the file, and every line keeps its place: see <see cref="Record"/>.
+    ///
     /// **It asks for the right to append and no other**, so it goes on working on a file an
     /// administrator has made append only, where it can no longer set the file aside. See
     /// <see cref="Append"/>. That is an arrangement it works under rather than a protection it
@@ -70,15 +74,26 @@ namespace KeePassGate.Audit
         private readonly object _fileLock = new object();
         private readonly string _path;
         private readonly IGateLog _log;
+        private readonly GateIncidents _incidents;
+        private readonly Func<bool> _mayNotWait;
+
+        // The lines a thread that may not wait has recorded, and whether a writer is running to
+        // take them, both under a lock of their own.
+        private readonly object _queueLock = new object();
+        private readonly Queue<AuditEntry> _queued = new Queue<AuditEntry>();
+        private bool _writing;
 
         private bool _reported;
         private bool _rollReported;
-        private bool _shapeReported;
         private int _lost;
         private int _unrecorded;
 
-        public JsonLinesAudit(IGateLog log)
-            : this(DefaultPath(), log)
+        /// <summary>
+        /// The audit at this path, with a line that could not be shaped counted in the log alone,
+        /// and every line written on the thread that records it.
+        /// </summary>
+        public JsonLinesAudit(string path, IGateLog log)
+            : this(path, log, null, null)
         {
         }
 
@@ -98,10 +113,20 @@ namespace KeePassGate.Audit
         /// An audit that is not being written and an audit with nothing in it look the same in
         /// the place somebody would look, which is the file that is not there.
         /// </remarks>
-        public JsonLinesAudit(string path, IGateLog log)
+        /// <param name="incidents">
+        /// Where a line that could not be shaped is counted, or null for a count of this audit's
+        /// own, which reaches the log and no window.
+        /// </param>
+        /// <param name="mayNotWait">
+        /// Whether the thread recording a line may not wait for the file, which is true of
+        /// KeePass's own thread, or null when every thread may.
+        /// </param>
+        public JsonLinesAudit(string path, IGateLog log, GateIncidents incidents, Func<bool> mayNotWait)
         {
             _path = string.IsNullOrEmpty(path) ? null : path;
             _log = log ?? NullGateLog.Instance;
+            _incidents = incidents ?? new GateIncidents(_log);
+            _mayNotWait = mayNotWait ?? (() => false);
 
             if (_path == null)
             {
@@ -159,6 +184,25 @@ namespace KeePassGate.Audit
             return PluginFiles.Resolve(AuditFileVariable, DefaultFileName);
         }
 
+        /// <summary>
+        /// Writes one line down, after every line queued before it, or queues it for the audit's
+        /// own writer when the calling thread may not wait for the file.
+        /// </summary>
+        /// <remarks>
+        /// **KeePass's own thread never waits on the file.** It records a line when a pairing, a
+        /// renewal or a client's revocation of itself lands, inside the writer's turn, and when the
+        /// settings dialog's OK puts the operator's revocation into the database. Written there, a
+        /// slow or unreachable audit path held KeePass's window for that file's I/O and for every
+        /// connection's line queued on the lock ahead of it. So such a line is queued before
+        /// anything else is done with it, which nothing after it can undo, and a thread of the
+        /// audit's own writes it. An ordinary exit waits for that writer, <see cref="Drain"/>, for
+        /// `PluginFiles.ExitWait` at most, and a process that ends with a line still queued loses
+        /// it, which `docs/audit.md` states.
+        ///
+        /// **Every line keeps its place.** A line written here first writes every line queued
+        /// before it, under the same lock the audit's own writer takes, so a pairing's line is
+        /// never written after the first request of the client it admitted.
+        /// </remarks>
         public void Record(AuditEntry entry)
         {
             if (entry == null || _path == null)
@@ -166,6 +210,130 @@ namespace KeePassGate.Audit
                 return;
             }
 
+            if (_mayNotWait())
+            {
+                Queue(entry);
+                return;
+            }
+
+            lock (_fileLock)
+            {
+                WriteQueued();
+                Write(entry);
+            }
+        }
+
+        /// <summary>
+        /// Puts a line in the queue, and starts the audit's own writer unless it is already
+        /// running.
+        /// </summary>
+        /// <remarks>
+        /// Under a lock of its own and never the file's, so a thread that may not wait waits for
+        /// nothing but a queue. **The writer is a root**, in the sense `GateIncidents` means: its
+        /// thread has nothing above it, and an exception escaping it ends the process. It is safe
+        /// the way the accept thread is, `DESIGN.md` §141: what it calls is total or filtered, the
+        /// shaping catching everything for the reason it gives, every file call filtered by
+        /// `Expected.OfStorage`, and the log and the incidents total. Anything added to
+        /// <see cref="Write"/> has to keep that true.
+        /// </remarks>
+        private void Queue(AuditEntry entry)
+        {
+            lock (_queueLock)
+            {
+                _queued.Enqueue(entry);
+                if (_writing)
+                {
+                    return;
+                }
+
+                _writing = true;
+            }
+
+            // A background thread, so that storage that does not answer never keeps KeePass's
+            // process alive: an exit waits for it no longer than `PluginFiles.ExitWait`.
+            new Thread(WriteInTurn) { IsBackground = true, Name = "KeePassGate audit" }.Start();
+        }
+
+        /// <summary>
+        /// Waits until every line queued so far is written, or <paramref name="within"/> has passed,
+        /// and answers whether they were.
+        /// </summary>
+        /// <remarks>
+        /// For KeePass exiting, the one moment its thread waits for this file, and only briefly:
+        /// `PluginFiles.ExitWait` states for how long and why.
+        /// </remarks>
+        internal bool Drain(TimeSpan within)
+        {
+            var waited = System.Diagnostics.Stopwatch.StartNew();
+            lock (_queueLock)
+            {
+                while (_writing || _queued.Count > 0)
+                {
+                    var left = within - waited.Elapsed;
+                    if (left <= TimeSpan.Zero)
+                    {
+                        return false;
+                    }
+
+                    Monitor.Wait(_queueLock, left);
+                }
+
+                return true;
+            }
+        }
+
+        /// <summary>The audit's own writer: every queued line, until the queue stays empty.</summary>
+        private void WriteInTurn()
+        {
+            while (true)
+            {
+                lock (_fileLock)
+                {
+                    WriteQueued();
+                }
+
+                lock (_queueLock)
+                {
+                    // Asked under the queue's lock, where a line queued after the last one written
+                    // either finds this still running or starts another writer.
+                    if (_queued.Count == 0)
+                    {
+                        _writing = false;
+                        Monitor.PulseAll(_queueLock);
+                        return;
+                    }
+                }
+            }
+        }
+
+        /// <summary>
+        /// Writes every line queued so far, in the order queued. Called under the file's lock, so
+        /// that taking a line from the queue and writing it are one step to every other writer.
+        /// </summary>
+        private void WriteQueued()
+        {
+            while (true)
+            {
+                AuditEntry next;
+                lock (_queueLock)
+                {
+                    if (_queued.Count == 0)
+                    {
+                        return;
+                    }
+
+                    next = _queued.Dequeue();
+                }
+
+                Write(next);
+            }
+        }
+
+        /// <summary>
+        /// Shapes one line and appends it, under the file's lock, which the caller may already hold.
+        /// </summary>
+        private void Write(AuditEntry entry)
+        {
             lock (_fileLock)
             {
                 string line;
@@ -183,14 +351,14 @@ namespace KeePassGate.Audit
                     // filter below was worse than that. `ArgumentOutOfRangeException` derives
                     // from `ArgumentException`, so a bad moment was caught there and reported as a
                     // file that could not be written, naming a path that was never the trouble.
+                    //
+                    // **Counted as an incident, every time**, because nothing a line is made of can
+                    // fail but a defect here, and the audit is no part of how an incident is
+                    // reported, so recording one adds nothing that could come back. Logged once
+                    // instead, a defect would hide every later decision behind one line, with
+                    // nothing on the window under Tools.
                     _lost++;
-
-                    if (!_shapeReported)
-                    {
-                        _shapeReported = true;
-                        _log.Error("an audit line could not be written down, and is lost", error);
-                    }
-
+                    _incidents.Record("an audit line could not be written down, and is lost", error);
                     return;
                 }
 
@@ -273,15 +441,21 @@ namespace KeePassGate.Audit
         /// longer admitted, so that line never stands in for a request. A pairing names its
         /// certificate under `issued`, so a certificate is last seen by its first request.
         ///
-        /// **Cheap because the files are bounded**, which is what makes reading them on the user
-        /// interface thread acceptable: at most <see cref="RollAt"/> each, read once, line by line,
-        /// with the two members this needs found by position rather than by parsing the line.
-        /// `at` is always the first member and `admissionKey` is always written, so neither search
-        /// can be fooled by anything a node or a reason could hold: both are this plugin's own
-        /// text. A line whose `admissionKey` is null, a pairing's, holds `"admissionKey":null`,
-        /// which the search for a quoted value does not match, and every member after it on such a
-        /// line is a digest, a fixed word or an identifier this plugin wrote, none of which holds
-        /// that text either.
+        /// **Cheap because what it reads is bounded**, which is what makes reading on the user
+        /// interface thread acceptable: the last <see cref="RollAt"/> of each file at most, whole
+        /// lines only, read once, line by line, with the two members this needs found by position
+        /// rather than by parsing the line. `at` is always the first member and `admissionKey` is
+        /// always written, so neither search can be fooled by anything a node or a reason could
+        /// hold: both are this plugin's own text. A line whose `admissionKey` is null, a pairing's,
+        /// holds `"admissionKey":null`, which the search for a quoted value does not match, and
+        /// every member after it on such a line is a digest, a fixed word or an identifier this
+        /// plugin wrote, none of which holds that text either.
+        ///
+        /// **Bounded here, because the files are not always bounded.** A file that could not be
+        /// set aside grows past its bound until it can be, and one that grew for months was read
+        /// whole while KeePass's window waited. What lies before the last stretch of such a file is
+        /// not read, so a client seen only there is answered as not seen, which is the answer a
+        /// file that did roll gives once those lines have gone.
         ///
         /// Shared for reading and writing both, so a decision being appended while this reads is
         /// neither blocked nor lost.
@@ -308,13 +482,22 @@ namespace KeePassGate.Audit
 
                     using (var stream = new FileStream(
                                file, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete))
-                    using (var reader = new StreamReader(stream, Encoding.UTF8))
                     {
-                        read = true;
-                        string line;
-                        while ((line = reader.ReadLine()) != null)
+                        var whole = NearTheEnd(stream);
+                        using (var reader = new StreamReader(stream, Encoding.UTF8))
                         {
-                            Seen(line, wanted, seen);
+                            read = true;
+                            if (!whole)
+                            {
+                                // The rest of a line that began before the stretch read.
+                                reader.ReadLine();
+                            }
+
+                            string line;
+                            while ((line = reader.ReadLine()) != null)
+                            {
+                                Seen(line, wanted, seen);
+                            }
                         }
                     }
                 }
@@ -326,6 +509,22 @@ namespace KeePassGate.Audit
             }
 
             return read ? seen : null;
+        }
+
+        /// <summary>
+        /// Puts a file at its last <see cref="RollAt"/>, or leaves it at its start when it holds no
+        /// more than that, and answers whether that is where a line begins.
+        /// </summary>
+        private static bool NearTheEnd(Stream stream)
+        {
+            var start = stream.Length - RollAt;
+            if (start <= 0)
+            {
+                return true;
+            }
+
+            stream.Seek(start - 1, SeekOrigin.Begin);
+            return stream.ReadByte() == '\n';
         }
 
         private const string AtMember = "{\"at\":\"";

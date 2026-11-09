@@ -305,6 +305,15 @@ The whole lifetime is in memory, under the plugin's own lock, so a burn cannot b
 race cannot double spend. A timeout does not burn the token, so an absent operator does not cost the
 invitee their invitation. A refusal does.
 
+**Every lifetime in pairing is kept by elapsed time**: an invitation's ten minutes, a hello's
+challenge, and an approval held for a busy KeePass, §311, each end once that long has passed on a
+monotonic clock, which is the operator's ruling of 2026-11-08. So setting the system clock back or
+forward while one is outstanding neither lengthens nor shortens it, where measured against the
+system clock a step back kept a code and a held approval alive for the length of the step. What the
+tab shows and the client is told, `expires` and `heldUntil`, is the wall-clock time read when each
+was made, and so is the tab's countdown to an invitation's end, so after such a step those differ
+from when the thing really ends by as much as the clock moved.
+
 **Closing the dialog is a refusal, not a timeout**, whether by the close box, by Alt with F4, from
 the window menu or from the taskbar. An operator who dismisses the question has answered it, and the
 answer a dismissal means is no: the invitation is spent and the program has to be invited again. Only
@@ -700,10 +709,11 @@ the certificate they are about, and every one with the authority recreated or de
 The database's answer is read before the session's. The dialog is raised only while neither
 refuses, and a renewal waiting behind another of the same certificate is answered at once rather
 than kept for a second dialog, so the two meet only when a merge brings a stored answer in from
-another copy of the file. Then the stored one is what the client is told, since forever says that
-only pairing again helps. A stored until a date says less there: once its day begins the session's
-answer is told in its place, `409 this session`, so its `notBefore` is the moment the session's
-refusal takes over rather than one from which the operator is asked again.
+another copy of the file. Then the stored one is what the client is told, since forever tells it
+that nothing short of the operator allowing renewal again, or pairing again, helps. A stored until
+a date says less there: once its day begins the session's answer is told in its place,
+`409 this session`, so its `notBefore` is the moment the session's refusal takes over rather than
+one from which the operator is asked again.
 
 **Every answer is written to the audit**, `DESIGN.md` §120, against the certificate that asked and
 the client key on its record, which the renewal leaves as it was: approved, with the key of the one

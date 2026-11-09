@@ -138,9 +138,18 @@ none, since it releases both.
   sealed for an append-only audit, which it shares by default. With the backup and restore
   privileges enabled it was given up for the session at its first roll there, and wherever its
   own ACL let it be removed, its previous file was deleted for nothing.
+- **A `KEEPASSGATE_LOG_FILE` that is no path at all leaves the plugin's log where it would have
+  been**, and the log's first line names the value. The log went on with no file, and nothing
+  told the operator why.
+- **The plugin's log is written again once it can be**, as the audit is, beginning with a line
+  naming how many lines went unwritten. A single write it could not make, such as one made while
+  a program held the file without letting anybody write to it, ended the file for the session.
 - **A debugger attached stops wherever the plugin records a failure it did not foresee**, with the
   exception in hand, and continuing carries on as it would with no debugger: every such failure is
   caught, so a debugger was told nothing.
+- **An audit line the plugin fails to put together is counted on its window under Tools**, each
+  time, as the plugin's other failures it did not foresee are. It was logged once, and every later
+  decision such a defect lost went unsaid.
 - **Nothing the plugin's own windows do ends in WinForms' error dialog.** Every handler on the
   window under Tools, the approval dialogs, the authority chooser and the KPG pages records what it
   did not foresee, as the plugin's other catch-alls do. Let through, such a failure could reach
@@ -166,6 +175,9 @@ none, since it releases both.
   without a word and the renewal dialog stayed unanswered.
 - **A retry of keeping the authority the operator chose stops when the plugin is let go.** It
   ticked once more as KeePass closed, and told the operator the authority was not kept.
+- **Recreating or deleting the authority that fails part way tells the operator what may be
+  gone.** The authority is retired before the records are taken away, and a failure in between
+  was refused as though nothing had been removed, from a database that already served nobody.
 - **The message at exit names the standing answers it lets go, and gives no cause.** It counted
   them and blamed KeePass being busy whenever they were given and nothing being written after
   them, which was untrue after a save that failed or a save made since, and promised a dialog for
@@ -214,6 +226,17 @@ none, since it releases both.
   a defect is settled as the database leaves it before the request fails: a change the file
   received is written down, and a change it never received is taken back out, which also keeps an
   ordinary change answered `500` from being made twice by its retry.
+- **KeePass's window never waits on the audit file.** The lines for a pairing, a renewal or a
+  program's revocation of itself that lands, and for the operator's revocation at **OK**, are
+  handed to a writer of the plugin's own and reach the file in order with every other line. An
+  audit on slow or unreachable storage held KeePass's window for its own write and for every
+  connection's line ahead of it.
+- **Nor on the plugin's log.** A line KeePass's own thread writes there is handed to a writer of
+  the plugin's own and reaches the file in order with every other line, so a log on slow or
+  unreachable storage no longer holds KeePass's window for each line.
+- **Closing KeePass waits two seconds at most for the audit's and the log's last lines**, so what
+  is recorded and logged as KeePass closes reaches the files, and storage that does not answer
+  holds the exit no longer than that.
 - **A list of profiles in another shape is refused by pairing and renewal**, as a list that does
   not parse is. A `Profiles` spelled with a capital, a `profiles` that is a string, a member beside
   it or a name the list cannot hold read as fewer names than the list holds, or none, so a renewal
@@ -319,6 +342,17 @@ none, since it releases both.
   their answers were synchronized, retire every authority, and the tab then sent the operator
   looking for a step they had missed. A delete, which retires an authority too, is shown the same
   way.
+- **The window asking which authority to keep reads no more than the last eight megabytes of each
+  audit file** for when each client was last seen. An audit that could not be set aside grows past
+  that, and was read whole while KeePass's window waited.
+- **A revocation names the authority that issued its certificate, and goes once that authority is
+  retired or gone.** A merge with a copy from before a recreation brought revocations back that
+  nothing took away until their certificates expired, with no row on the Clients page; the plugin's
+  next write of its own takes them away now. A revocation written before this names no authority
+  and still goes when its certificate expires.
+- **The Clients page counts the revoked clients a merge brought back by client, not by record.**
+  A renewed client whose certificates were both revoked and both brought back was counted as two
+  revoked clients.
 - **The client's messages and the documentation name the authority** wherever "one" stood for
   it, and no longer assume two copies or two authorities.
 - **A database holding a crafted authority key stops only itself being served.** A key named
@@ -513,6 +547,11 @@ none, since it releases both.
   audit**, since nobody was asked, and the log states that it was never shown. It was answered as
   a dialog the lock closed, so the audit recorded the operator leaving a question unanswered that
   never reached them, and the log a dialog closed that never stood.
+- **An invitation, a hello's challenge and an approval held for a busy KeePass end by elapsed
+  time**, so setting the system clock back or forward neither lengthens nor shortens them. Set back
+  an hour, it kept an unused code alive for the hour, and kept an approval writable without the
+  dialog past its pairing budget. What the tab shows and a client is told is still the wall-clock
+  time read when each was made.
 - **A lock that closes an approval dialog logs it once**, however many databases are open. KeePass
   locks each of them in turn while the dialog stands, and each logged again that the request in
   front of the operator was closed unanswered.

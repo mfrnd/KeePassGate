@@ -33,7 +33,7 @@ namespace KeePassGate.Pairing
             IEnumerable<string> asked,
             IEnumerable<string> listed,
             string record,
-            DateTimeOffset until)
+            PairingMoment until)
         {
             Key = key;
             DatabaseId = databaseId;
@@ -43,7 +43,7 @@ namespace KeePassGate.Pairing
             _asked.UnionWith(Profiles);
             _listed = new HashSet<string>(listed ?? Array.Empty<string>(), StringComparer.Ordinal);
             Record = record;
-            Until = until;
+            Ends = until;
         }
 
         /// <summary>The digest of the request it approved.</summary>
@@ -64,8 +64,17 @@ namespace KeePassGate.Pairing
         /// </summary>
         public string Record { get; private set; }
 
-        /// <summary>When it stops being held, which is the end of the pairing budget it was given in.</summary>
-        public DateTimeOffset Until { get; private set; }
+        /// <summary>
+        /// When it stops being held, which is the end of the pairing budget it was given in, as the
+        /// wall clock read it then: what a `503 busy` sends as `heldUntil`.
+        /// </summary>
+        public DateTimeOffset Until
+        {
+            get { return Ends.Wall; }
+        }
+
+        /// <summary>The same end on both clocks, of which elapsed time decides.</summary>
+        internal PairingMoment Ends { get; private set; }
 
         /// <summary>
         /// Whether a lock, a close or KeePass exiting took it away, rather than its time running out
@@ -179,10 +188,11 @@ namespace KeePassGate.Pairing
     /// the wire to be part of it.
     ///
     /// **Single use**: the write that lands takes the entry, under the writer's lock, before it
-    /// changes anything. **Bounded by the pairing budget** the request arrived in, and **cleared by
-    /// a lock, a close of its database and KeePass exiting**, so an approval never outlives the
-    /// session of the database it was given in, and an approval still settling when KeePass locks
-    /// is never written after the unlock for a client whose connection the unlock closed.
+    /// changes anything. **Bounded by the pairing budget** the request arrived in, by elapsed time
+    /// rather than the system clock, `PAIRING.md` §306, and **cleared by a lock, a close of its
+    /// database and KeePass exiting**, so an approval never outlives the session of the database
+    /// it was given in, and an approval still settling when KeePass locks is never written after
+    /// the unlock for a client whose connection the unlock closed.
     ///
     /// **An answer given across a clear is cleared with it**, which is what <see cref="Mark"/> is
     /// for. The handler takes a mark before the operator is asked and hands it to
@@ -200,7 +210,7 @@ namespace KeePassGate.Pairing
     /// </remarks>
     public sealed class ApprovalBook : IApprovalScreen
     {
-        private readonly Func<DateTimeOffset> _clock;
+        private readonly PairingClock _clock;
         private readonly object _lock = new object();
         private readonly Dictionary<string, HeldApproval> _held =
             new Dictionary<string, HeldApproval>(StringComparer.Ordinal);
@@ -218,13 +228,22 @@ namespace KeePassGate.Pairing
         private long _clearedAll;
 
         public ApprovalBook()
-            : this(null)
+            : this(PairingClock.Default)
         {
         }
 
+        /// <summary>
+        /// A book letting approvals go by this wall clock, or by the system's for null.
+        /// </summary>
         public ApprovalBook(Func<DateTimeOffset> clock)
+            : this(PairingClock.For(clock))
         {
-            _clock = clock ?? (() => DateTimeOffset.UtcNow);
+        }
+
+        /// <summary>The same, by a clock whose two readings a test sets apart.</summary>
+        internal ApprovalBook(PairingClock clock)
+        {
+            _clock = clock ?? PairingClock.Default;
         }
 
         /// <summary>How many approvals are held now.</summary>
@@ -319,7 +338,7 @@ namespace KeePassGate.Pairing
             TimeSpan lifetime,
             IEnumerable<string> listed,
             string record,
-            DateTimeOffset until,
+            PairingMoment until,
             long mark,
             IEnumerable<string> asked = null)
         {
@@ -466,8 +485,7 @@ namespace KeePassGate.Pairing
         /// <summary>Drops whatever has run out. Called with the lock held.</summary>
         private void Sweep()
         {
-            var now = _clock();
-            foreach (var key in _held.Where(pair => pair.Value.Until <= now).Select(pair => pair.Key).ToList())
+            foreach (var key in _held.Where(pair => _clock.HasReached(pair.Value.Ends)).Select(pair => pair.Key).ToList())
             {
                 _held.Remove(key);
             }

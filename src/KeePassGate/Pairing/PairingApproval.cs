@@ -251,11 +251,6 @@ namespace KeePassGate.Pairing
             get { return _reason; }
         }
 
-        public bool IsApproved
-        {
-            get { return _decision == PairingDecision.Approved; }
-        }
-
         /// <summary>
         /// Whether the question reached the operator's screen, which it did not when there was no
         /// screen to ask or a lock came while it waited for the screen. The audit writes down only

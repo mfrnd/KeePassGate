@@ -16,8 +16,9 @@ namespace KeePassGate.Diagnostics
     /// So the rule through the whole plugin is: **catch the type that names the failure**, and let
     /// everything else travel. Only a handful of places catch everything, because in each of them
     /// an exception that got past would do more harm than the defect it carries, and every one of
-    /// them reports what it caught as an incident rather than as a routine error. See
-    /// <see cref="GateIncidents"/>, which names them and what an escape from each would do.
+    /// them reports what it caught as an incident rather than as a routine error, through
+    /// <see cref="GateIncidents"/>, or throws it again where a place that does sees it, unless it is
+    /// part of reporting itself. `DESIGN.md` §141 names them and what an escape from each would do.
     ///
     /// Deriving from <see cref="Exception"/> rather than from `ApplicationException`, which
     /// Microsoft's own guidance has advised against since .NET 2.0:

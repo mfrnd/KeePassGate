@@ -4,6 +4,7 @@ using System.Linq;
 using System.Security.Cryptography.X509Certificates;
 using KeePassGate.Audit;
 using KeePassGate.Authority;
+using KeePassGate.Diagnostics;
 using KeePassGate.Gate;
 using KeePassGate.Pairing;
 using KeePassGate.Pipeline;
@@ -32,6 +33,7 @@ namespace KeePassGate.Tests
         private RecordingAudit _audit;
         private ApprovalBook _held;
         private PairingOptions _options;
+        private GateIncidents _incidents;
 
         [SetUp]
         public void SetUp()
@@ -40,6 +42,7 @@ namespace KeePassGate.Tests
             _audit = new RecordingAudit();
             _authority = TestAuthority.New();
             _log = new RecordingGateLog();
+            _incidents = new GateIncidents(_log);
             _now = DateTimeOffset.UtcNow;
             _session = new SessionRefusals();
             _held = new ApprovalBook(() => _now);
@@ -701,6 +704,29 @@ namespace KeePassGate.Tests
 
                 Assert.That(context.Status, Is.EqualTo(status));
                 Assert.That(context.Json, Is.EqualTo(HttpResponse.ErrorBody(error)));
+            }
+        }
+
+        [Test]
+        public void An_answer_the_handler_does_not_name_is_refused_as_busy_and_counted()
+        {
+            // An approval is the one answer that renews, so it is named. Reached by falling past
+            // the other cases, a decision added without a case of its own was renewed.
+            var answer = RenewalApproval.Approved(new[] { "reader" });
+            typeof(RenewalApproval).GetProperty(nameof(RenewalApproval.Decision))
+                .SetValue(answer, (PairingDecision)int.MaxValue);
+            var operatorAt = new FakeRenewalApproval(answer);
+
+            using (var old = _authority.IssueAdmittedClient("reader"))
+            {
+                var context = Renew(operatorAt, old, "{}");
+
+                Assert.That(context.Status, Is.EqualTo(503), context.Json);
+                Assert.That(context.Json, Is.EqualTo(HttpResponse.ErrorBody("busy")));
+                Assert.That(_authority.Admitted, Is.Null, "nothing is renewed");
+                Assert.That(_held.Count, Is.Zero, "nor held for a retry");
+                Assert.That(_audit.Entries, Is.Empty, "and nothing was decided to write down");
+                Assert.That(_incidents.Count, Is.EqualTo(1), "counted where the operator sees it");
             }
         }
 
@@ -1420,7 +1446,7 @@ namespace KeePassGate.Tests
         {
             return new RenewalHandler(
                 operatorAt, _options, new AuthorityIssuer(), () => _now, _session, new AdmissionAudit(_audit), _log,
-                _held);
+                _held, _incidents);
         }
 
         private static SpecRouter Router(RenewalHandler handler)

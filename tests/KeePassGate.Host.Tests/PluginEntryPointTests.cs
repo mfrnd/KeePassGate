@@ -205,6 +205,36 @@ namespace KeePassGate.Host.Tests
             _plugin.Terminate();
         }
 
+        /// <summary>
+        /// Whether the log comes to hold this text within a few seconds.
+        /// </summary>
+        /// <remarks>
+        /// A few seconds, because `Initialize` runs here on the test's thread, which it takes for
+        /// KeePass's own, and a line logged there goes to the log's own writer rather than straight
+        /// to the file. Read sharing writing, so that the writer is not refused the file meanwhile.
+        /// </remarks>
+        private bool Logged(string text)
+        {
+            var path = Paths.Join(_logDirectory, TraceGateLog.DefaultFileName);
+            return SpinWait.SpinUntil(() => Holds(path, text), TimeSpan.FromSeconds(10));
+        }
+
+        private static bool Holds(string path, string text)
+        {
+            try
+            {
+                using (var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete))
+                using (var reader = new StreamReader(stream))
+                {
+                    return reader.ReadToEnd().Contains(text);
+                }
+            }
+            catch (IOException)
+            {
+                return false;
+            }
+        }
+
         [Test]
         public void Without_a_host_it_refuses_to_start()
         {
@@ -229,8 +259,7 @@ namespace KeePassGate.Host.Tests
             Assert.That(arrived, Is.SameAs(thrown));
             Assert.That(WindowManagerHandlers(), Is.EqualTo(watching),
                 "the failed start left a handler on KeePass's window manager");
-            Assert.That(File.ReadAllText(Paths.Join(_logDirectory, TraceGateLog.DefaultFileName)),
-                Does.Contain("initialization failed"));
+            Assert.That(Logged("initialization failed"), Is.True);
         }
 
         [Test]
@@ -248,8 +277,7 @@ namespace KeePassGate.Host.Tests
             Assert.DoesNotThrow(() => item = _plugin.GetMenuItem(PluginMenuType.Main));
 
             Assert.That(item, Is.Null, "KeePass leaves out an item it is not given");
-            Assert.That(File.ReadAllText(Paths.Join(_logDirectory, TraceGateLog.DefaultFileName)),
-                Does.Contain("the Tools menu item could not be made"));
+            Assert.That(Logged("the Tools menu item could not be made"), Is.True);
         }
 
         [Test]

@@ -58,12 +58,13 @@ namespace KeePassGate.Pairing
         private readonly IRenewalApproval _approval;
         private readonly PairingOptions _options;
         private readonly AuthorityIssuer _issuer;
-        private readonly Func<DateTimeOffset> _clock;
+        private readonly PairingClock _clock;
         private readonly SessionRefusals _session;
         private readonly HashSet<string> _inFlight = new HashSet<string>(StringComparer.Ordinal);
         private readonly AdmissionAudit _audit;
         private readonly IGateLog _log;
         private readonly ApprovalBook _held;
+        private readonly GateIncidents _incidents;
 
         /// <summary>
         /// The handler this plugin runs, with the session's refusals it shares with the KPG tab.
@@ -92,9 +93,18 @@ namespace KeePassGate.Pairing
         /// The approvals held for a retry, which a lock, a close of their database and an exit
         /// clear, shared with pairing, or null for a book of this handler's own.
         /// </param>
+        /// <param name="incidents">
+        /// Where an answer from the screen that this handler does not name is counted, or null for
+        /// the log alone.
+        /// </param>
         public RenewalHandler(
-            IRenewalApproval approval, SessionRefusals session, ApprovalBook held, AdmissionAudit audit, IGateLog log)
-            : this(approval, new PairingOptions(), new AuthorityIssuer(), null, session, audit, log, held)
+            IRenewalApproval approval,
+            SessionRefusals session,
+            ApprovalBook held,
+            AdmissionAudit audit,
+            IGateLog log,
+            GateIncidents incidents = null)
+            : this(approval, new PairingOptions(), new AuthorityIssuer(), null, session, audit, log, held, incidents)
         {
         }
 
@@ -111,23 +121,25 @@ namespace KeePassGate.Pairing
             SessionRefusals session,
             AdmissionAudit audit,
             IGateLog log,
-            ApprovalBook held = null)
+            ApprovalBook held = null,
+            GateIncidents incidents = null)
         {
             _approval = approval ?? NoRenewalApproval.Instance;
             _options = options ?? new PairingOptions();
             _issuer = issuer ?? new AuthorityIssuer();
-            _clock = clock ?? (() => DateTimeOffset.UtcNow);
+            _clock = PairingClock.For(clock);
             _session = session ?? new SessionRefusals();
             _audit = audit ?? new AdmissionAudit(NullGateAudit.Instance);
             _log = log ?? NullGateLog.Instance;
             _held = held ?? new ApprovalBook(_clock);
+            _incidents = incidents ?? new GateIncidents(_log);
         }
 
         /// <summary>`renewCertificate`, once the router has decided this is the operation.</summary>
         public void Renew(IGateContext context)
         {
             // When the pairing budget began, near enough, which an approval is held against.
-            var arrived = _clock();
+            var arrived = _clock.Read();
 
             var client = context.Client;
             if (!client.IsPaired || string.IsNullOrEmpty(client.AdmissionKey))
@@ -200,7 +212,7 @@ namespace KeePassGate.Pairing
             string key,
             TimeSpan? lifetime,
             string approval,
-            DateTimeOffset arrived)
+            PairingMoment arrived)
         {
             AdmissionRecord record;
             if (!Admission(context, target, key, out record))
@@ -305,7 +317,7 @@ namespace KeePassGate.Pairing
             AdmissionRecord record,
             TimeSpan? lifetime,
             string approval,
-            DateTimeOffset arrived)
+            PairingMoment arrived)
         {
             // Before anything is put to the operator, for pairing's reason: a lock or a close of
             // this database between the question and the answer lets the answer go.
@@ -366,6 +378,9 @@ namespace KeePassGate.Pairing
 
             switch (decision.Decision)
             {
+                case PairingDecision.Approved:
+                    break;
+
                 case PairingDecision.TimedOut:
                     _log.Warn("a renewal by " + CertificateDigest.Shorten(key) + " went unanswered");
                     _audit.RenewalUnanswered(target.DatabaseId, key, record.ClientKey);
@@ -401,6 +416,15 @@ namespace KeePassGate.Pairing
                     _audit.RenewalRefused(target.DatabaseId, key, record.ClientKey, decision.Standing);
                     context.Respond(403, HttpResponse.ErrorBody("refused"));
                     return null;
+
+                default:
+                    // Named for pairing's reason: only an approval renews, and an answer nothing
+                    // here names is a defect rather than a yes, which changes nothing.
+                    _incidents.Record(
+                        "a renewal by " + CertificateDigest.Shorten(key) + " was answered " + decision.Decision +
+                        ", which this handler does not name, so it was refused for now", null);
+                    context.Respond(503, HttpResponse.ErrorBody("busy"));
+                    return null;
             }
 
             // Never wider than the record: whatever the screen answered, the new certificate holds
@@ -424,7 +448,7 @@ namespace KeePassGate.Pairing
                 decision.Lifetime,
                 request.Profiles,
                 ApprovalBook.Digest(record.Save()),
-                arrived + _options.ApprovalHeld,
+                arrived.After(_options.ApprovalHeld),
                 mark,
                 request.Profiles.Concat(request.Dropped));
         }
@@ -450,10 +474,11 @@ namespace KeePassGate.Pairing
         /// **The database's answer is asked first, and the session's after it.** The dialog is
         /// raised only while neither refuses, so the two stand together only when a merge has
         /// brought in an answer from another copy of the file, and then the stored one is the
-        /// better thing to tell the client: forever says that only pairing again helps, which an
-        /// answer about this session would leave it to find out after KeePass next starts. A
-        /// stored until-date is told there too, and once its day begins the session's answer
-        /// takes over, so its `notBefore` is not then a moment the operator is asked again.
+        /// better thing to tell the client: forever tells it that nothing short of the operator
+        /// allowing renewal again, or pairing again, helps, which an answer about this session
+        /// would leave it to find out after KeePass next starts. A stored until-date is told there
+        /// too, and once its day begins the session's answer takes over, so its `notBefore` is not
+        /// then a moment the operator is asked again.
         ///
         /// **An answer that will not read is no answer**, and the caller tells the client what
         /// comes of it: before the dialog nothing is held yet, and on the retry of an approval
@@ -480,7 +505,7 @@ namespace KeePassGate.Pairing
             // operator gives now that the database cannot take: `OwedAnswer.Baseline`.
             stored = standing;
 
-            var now = _clock();
+            var now = _clock.Now;
             if (standing == null || !standing.Refuses(now))
             {
                 // The plugin's memory after the database: this session's answer, or one for longer
@@ -664,7 +689,7 @@ namespace KeePassGate.Pairing
 
             using (certificate)
             {
-                var record = AdmissionRecord.For(certificate, _clock(), profiles, clientKey);
+                var record = AdmissionRecord.For(certificate, _clock.Now, profiles, clientKey);
 
                 // Written by the write, as pairing's is, once the new record has landed and before
                 // anything else hears of it. It waits for nothing there, on KeePass's own thread,

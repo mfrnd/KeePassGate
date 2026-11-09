@@ -153,6 +153,46 @@ namespace KeePassGate.Tests
         }
 
         [Test]
+        public void Clients_that_came_back_are_counted_by_client_key_rather_than_by_record()
+        {
+            // Every count of clients goes by the client key. A renewed client holds a record for
+            // each certificate, and a stale copy merged in after both were revoked brings both
+            // back: two records, and one client, which the clients page counted as two.
+            using (var first = _authority.IssueClient("agent-fictitious"))
+            using (var renewed = _authority.IssueClient("agent-fictitious"))
+            using (var other = _authority.IssueClient("agent-invented"))
+            {
+                var paired = AdmissionRecord.For(first, DateTimeOffset.UtcNow, new[] { "ops" });
+                var records = new[]
+                {
+                    paired,
+                    AdmissionRecord.For(renewed, DateTimeOffset.UtcNow, new[] { "ops" }, paired.ClientKey),
+                    AdmissionRecord.For(other, DateTimeOffset.UtcNow, new[] { "ops" })
+                };
+
+                foreach (var record in records)
+                {
+                    _store.Write(record);
+                    Assume.That(_store.Remove(record.AdmissionKey), Is.True);
+                }
+
+                foreach (var record in records)
+                {
+                    _values.Plant(record.StorageKey, record.Save());
+                }
+
+                Assert.That(_store.All().CameBack, Is.EqualTo(2), "two clients, from three records");
+
+                // A record that will not read names no client, so it is one of its own.
+                var damaged = new string('e', 64);
+                _values.Plant(AuthorityKeys.ClientRecordKey(damaged), "rubbish");
+                _values.Plant(AuthorityKeys.RevocationKey(damaged), "2999-01-01T00:00:00Z");
+
+                Assert.That(_store.All().CameBack, Is.EqualTo(3));
+            }
+        }
+
+        [Test]
         public void Revoking_a_record_that_came_back_empties_it_and_leaves_the_revocation_alone()
         {
             using (var certificate = _authority.IssueClient("agent-fictitious"))

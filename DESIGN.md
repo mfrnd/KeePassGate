@@ -415,7 +415,7 @@ against the host that issued its invitation.
 
 **One hazard that is KeePass's, not ours.** Two KeePass instances writing one replicated kdbx is the
 ordinary multi-writer problem, and this design does not solve it. Admission records are one key per
-client in the database's own `CustomData` precisely so a merge is per client rather than
+certificate in the database's own `CustomData` precisely so a merge is per certificate rather than
 last-writer-wins, and a revocation or a retired authority is a key of its own that is only ever
 added, because a KeePass merge never removes a key and never reads a value; see CA.md §204. That
 replaced a revocation written as an empty record, which a merge carried only while the file kept its
@@ -1226,7 +1226,10 @@ The kinds:
 **Roots kept safe another way.** The accept thread and a connection's deadline timer have nothing
 above them, like the connection thread, and rather than catching everything, every call they make
 is total or filtered. `GateListener.Drop` explains what keeps that true, and what a change to the
-accept loop has to do if it cannot.
+accept loop has to do if it cannot. The audit's own writer, which writes the lines KeePass's thread
+records, is a root of the same kind: shaping a line catches everything, as a reporter, and every
+file call it makes is filtered, as `JsonLinesAudit.Queue` explains. So is the plugin log's own
+writer, for the lines KeePass's thread logs, as the `TraceGateLog` constructor explains.
 
 **Places that catch everything without being a kind**, since each throws what it caught again where
 a place of a kind sees it, or must add no exception of its own:
@@ -1239,7 +1242,8 @@ a place of a kind sees it, or must add no exception of its own:
 - The reporters, none of which may add an exception of its own: the log, `TraceGateLog`, which the
   catch-alls report through and whose formatting and trace listeners run code nobody here wrote,
   `GateIncidents.Record`, which they report to, and the audit line `JsonLinesAudit.Record` shapes,
-  which may not fail the request it records.
+  which may not fail the request it records. The audit is no part of how an incident is reported,
+  so what it catches is recorded through `GateIncidents` as a kind's is.
 - `Unattended.Post`, which catches what its posted work throws as the catch-all of the handler that
   posted it, followed across the post to KeePass's message queue, and what its reporter throws, for
   the reason the log does.
@@ -1309,16 +1313,26 @@ a defect in the Clients page's listener went past every filter to the connection
 catch-all, and the line about a change already on the disk was never written. Catching that defect
 instead would have made a place that catches everything of no kind §141 lists.
 
+**And KeePass's thread never waits on the file for it.** That write runs on KeePass's thread, and so
+does the operator's revocation the settings dialog's OK applies, so each line recorded there is
+queued before anything else is done with it and written by a thread of the audit's own: written in
+place, an audit on slow or unreachable storage held KeePass's window for that file's I/O and for the
+line of every connection waiting on its lock. A line recorded anywhere else first writes every line
+queued before it, so the file keeps them in order. The writer is a background thread, so storage
+that does not answer never keeps KeePass's process alive or holds up a logoff, and KeePass's exit
+waits for it, and for the plugin log's, two seconds at most, `PluginFiles.ExitWait`, so that what is
+recorded as KeePass closes is not lost; a line still queued when the process ends is lost.
+
 Three things are settled about it. It defaults to this user's own application data rather than
 beside the `.kdbx`, because a database is often on a share or in a cloud folder and a record of
 which agent read which entry belongs in neither; `KEEPASSGATE_AUDIT_FILE` names another. It rolls at
 eight megabytes keeping one previous file, which is the smallest thing that stops an unbounded file
 while leaving the recent past readable. And **every value it carries is a string**, the decision
 included, so a line says `"decision":"refused"` rather than `false` and a person skimming the file
-reads a word rather than a flag whose sense they have to remember. A member with nothing to say is
-written as an explicit `null` rather than left out, because a reader that has to tell "absent" from
-"not applicable" is a reader that will guess, and a missing member reads as a log written by a
-different version.
+reads a word rather than a flag whose sense they have to remember; `removedProfiles`, the one list,
+is an array of strings. A member with nothing to say is written as an explicit `null` rather than
+left out, because a reader that has to tell "absent" from "not applicable" is a reader that will
+guess, and a missing member reads as a log written by a different version.
 
 **That null is why `JsonBody` cannot read a line back**, and this corrects a claim made here
 earlier. The all-strings shape was argued for partly on the plugin being able to read its own audit
@@ -1329,8 +1343,10 @@ certificate yet and which names its invitation instead; any other is written onl
 since a caller that proved nothing to this authority is not written down at all. The shape is kept
 on its first reason alone. The plugin reads the audit back for one thing only, when each client
 last made a request, which the window asking which authority to keep shows, and it finds `at` and
-`admissionKey`, the two members that needs, by position rather than with `JsonBody`; the reader
-the file is written for is whatever the operator already greps with.
+`admissionKey`, the two members that needs, by position rather than with `JsonBody`, in the last
+eight megabytes of each file and no more, since a file that could not be set aside has no bound of
+its own and that window waits on the read; the reader the file is written for is whatever the
+operator already greps with.
 
 **The file is opened with the right to append and no other**, so that an administrator can make it
 append only and every decision is still written. That was measured rather than assumed: on .NET

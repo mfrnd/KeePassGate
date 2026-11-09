@@ -2020,7 +2020,9 @@ namespace KeePassGate.Bridge
         /// **And never waiting**, because this is KeePass's own thread inside the writer's lock.
         /// The line is written without waiting for the client's turn, and the operation takes that
         /// turn once the write returns, on the client's own connection, as `AdmissionAudit` says.
-        /// An audit swallows what it cannot write, so a full disk fails nothing here either.
+        /// Nor for the file: the audit queues a line recorded on this thread for a writer of its
+        /// own, `JsonLinesAudit.Record`. An audit swallows what it cannot write, so a full disk
+        /// fails nothing here either.
         /// </remarks>
         private void Landed(Action audit)
         {

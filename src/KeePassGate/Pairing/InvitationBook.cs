@@ -52,6 +52,10 @@ namespace KeePassGate.Pairing
     /// A timeout does not burn. An absent operator costs the invitee nothing, and only an approval
     /// or a refusal spends the invitation.
     ///
+    /// **An invitation runs out by elapsed time**, on the book's <see cref="PairingClock"/>, so a
+    /// system clock set back or forward while it is outstanding does not move its end. Its expiry
+    /// as shown and sent is the wall-clock time read when it was made.
+    ///
     /// Nothing here is written to a database, so nothing here survives KeePass exiting, and that is
     /// not a limitation to be worked around. It is the reason a stale dialog snapshot cannot bring a
     /// spent invitation back.
@@ -77,7 +81,7 @@ namespace KeePassGate.Pairing
         public const int MaxPerDatabase = 1;
 
         private readonly TimeSpan _lifetime;
-        private readonly Func<DateTimeOffset> _clock;
+        private readonly PairingClock _clock;
         private readonly IGateLog _log;
         private readonly object _lock = new object();
         private readonly List<Invitation> _invitations = new List<Invitation>();
@@ -89,10 +93,19 @@ namespace KeePassGate.Pairing
         {
         }
 
+        /// <summary>
+        /// A book whose invitations last this long, by this wall clock or by the system's.
+        /// </summary>
         public InvitationBook(TimeSpan lifetime, Func<DateTimeOffset> clock, IGateLog log)
+            : this(lifetime, log, PairingClock.For(clock))
+        {
+        }
+
+        /// <summary>The same, by a clock whose two readings a test sets apart.</summary>
+        internal InvitationBook(TimeSpan lifetime, IGateLog log, PairingClock clock)
         {
             _lifetime = lifetime;
-            _clock = clock ?? (() => DateTimeOffset.UtcNow);
+            _clock = clock ?? PairingClock.Default;
             _log = log ?? NullGateLog.Instance;
         }
 
@@ -108,8 +121,7 @@ namespace KeePassGate.Pairing
                 throw new ArgumentException("An invitation is for one database.", nameof(databaseId));
             }
 
-            var now = _clock();
-            var invitation = new Invitation(NewId(), databaseId, PairingToken.New(), now, now + _lifetime);
+            var invitation = new Invitation(NewId(), databaseId, PairingToken.New(), _clock, _lifetime);
 
             // Written after the lock is given up, along with whatever the sweep found. The log can
             // reach a file, and holding a lock the connection threads need across somebody else's
@@ -124,7 +136,7 @@ namespace KeePassGate.Pairing
                     return null;
                 }
 
-                Sweep(now, said);
+                Sweep(said);
 
                 // Whatever this database had is gone the moment a new one is made. Dropped rather
                 // than kept until it expires, because a code the operator has replaced is a code
@@ -156,7 +168,7 @@ namespace KeePassGate.Pairing
 
             lock (_lock)
             {
-                Sweep(_clock(), said);
+                Sweep(said);
                 live = new List<Invitation>(_invitations);
             }
 
@@ -219,7 +231,7 @@ namespace KeePassGate.Pairing
                 // Swept first, as every read of the book is. An invitation whose time ran out while
                 // the operator was deciding is gone then, whether or not anything else happened to
                 // touch the book in the meantime, rather than spendable until something did.
-                Sweep(_clock(), said);
+                Sweep(said);
 
                 for (var i = 0; i < _invitations.Count; i++)
                 {
@@ -307,11 +319,11 @@ namespace KeePassGate.Pairing
         /// Called with the lock held. What it wants said goes on the list for the caller to say
         /// once the lock is back, because logging can reach a file.
         /// </summary>
-        private void Sweep(DateTimeOffset now, ICollection<string> said)
+        private void Sweep(ICollection<string> said)
         {
             for (var i = _invitations.Count - 1; i >= 0; i--)
             {
-                if (!_invitations[i].HasExpired(now))
+                if (!_invitations[i].HasExpired())
                 {
                     continue;
                 }

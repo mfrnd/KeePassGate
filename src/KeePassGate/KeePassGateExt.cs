@@ -471,7 +471,12 @@ namespace KeePassGate
                 // applies the same to them, asking KeePass's setting as each is made.
                 CaptureGuard.Wanted = () => KeePass.Program.Config.Security.PreventScreenCapture;
 
-                _log = new TraceGateLog();
+                // KeePass calls this on its own thread, which is the one that may not wait for a
+                // file: a line the log or the audit is given there goes to a writer of its own.
+                var keePass = System.Threading.Thread.CurrentThread;
+                Func<bool> onKeePass = () => System.Threading.Thread.CurrentThread == keePass;
+
+                _log = new TraceGateLog(onKeePass);
                 _incidents = new GateIncidents(_log);
 
                 // Before any window of the plugin's own is made, so that every handler on one
@@ -506,7 +511,7 @@ namespace KeePassGate
                 // The audit is opened before anything can be decided, and it is the plugin's own
                 // file rather than the database's: a record of what an agent reached, kept inside
                 // the thing it reached, is a record whoever compromised the database can edit.
-                _audit = new JsonLinesAudit(_log);
+                _audit = new JsonLinesAudit(JsonLinesAudit.DefaultPath(), _log, _incidents, onKeePass);
 
                 // One check for the gate's decisions and the record of what happens to admissions,
                 // the operator's revocations on the tab among them, so that the file has one clock
@@ -722,6 +727,18 @@ namespace KeePassGate
                 }
             });
 
+            Attempt("failed to wait for the lines still queued", () =>
+            {
+                // Last, once every step above has logged what it did, and briefly: the writers are
+                // background threads, and `PluginFiles.ExitWait` is how long the process is held
+                // for them before it is let end anyway.
+                var log = _log as TraceGateLog;
+                PluginFiles.WaitForQueuedLines(
+                    PluginFiles.ExitWait,
+                    _audit == null ? null : (Func<TimeSpan, bool>)_audit.Drain,
+                    log == null ? null : (Func<TimeSpan, bool>)log.Drain);
+            });
+
             _incidents = null;
             _log = null;
 
@@ -852,8 +869,8 @@ namespace KeePassGate
             var router = GateOperations.Router(
                 GateVersion.Current,
                 GateVersion.Revision,
-                new PairingHandler(_invitations, prompt, _approvals, access.Admissions, _log),
-                new RenewalHandler(prompt, _sessionRefusals, _approvals, access.Admissions, _log),
+                new PairingHandler(_invitations, prompt, _approvals, access.Admissions, _log, _incidents),
+                new RenewalHandler(prompt, _sessionRefusals, _approvals, access.Admissions, _log, _incidents),
                 access);
 
             var resolver = new GateResolver(_targets, _invitations, _log);

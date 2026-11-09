@@ -149,7 +149,7 @@ namespace KeePassGate.Tests
                     _listener.Port,
                     _target.NewName(),
                     certificate,
-                    "POST " + PairingHandler.HelloPath + " HTTP/1.1\r\nHost: x\r\nContent-Length: 2\r\n\r\n{}");
+                    "POST " + GateOperations.PathOf(GateOperations.PairHello) + " HTTP/1.1\r\nHost: x\r\nContent-Length: 2\r\n\r\n{}");
 
                 Assert.That(reply.Status, Is.EqualTo(404));
             }
@@ -331,7 +331,7 @@ namespace KeePassGate.Tests
                         tls.AuthenticateAsClient(name, null, SslProtocols.Tls13, false);
 
                         var head = Encoding.ASCII.GetBytes(
-                            "POST " + PairingHandler.HelloPath + " HTTP/1.1\r\nHost: x\r\n" +
+                            "POST " + GateOperations.PathOf(GateOperations.PairHello) + " HTTP/1.1\r\nHost: x\r\n" +
                             "X-Padding: " + new string('a', 190) + "\r\n\r\n");
 
                         try

@@ -10,9 +10,10 @@ namespace KeePassGate.Diagnostics
     /// </summary>
     /// <remarks>
     /// The places in this plugin that catch every exception rather than a named exception report
-    /// here, and `DESIGN.md` §141 is the account of them: the kinds of place, why an exception
-    /// escaping each would do more harm than the defect it carries, and the roots kept safe another
-    /// way.
+    /// here, or throw what they caught again where a place that does sees it, unless they are
+    /// part of reporting themselves, and `DESIGN.md` §141 is the account of them: the kinds of
+    /// place, why an exception escaping each would do more harm than the defect it carries, the
+    /// roots kept safe another way, and the places that catch everything without being a kind.
     ///
     /// A catch-all that only writes a log line is how an unexpected failure becomes an unnoticed
     /// failure, so they record here instead. The count reaches the plugin's own window under the

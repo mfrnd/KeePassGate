@@ -184,9 +184,150 @@ namespace KeePassGate.Tests
             Assert.DoesNotThrow(() => log.Info("one"));
             Assert.DoesNotThrow(() => log.Info("two"));
 
-            Assert.That(_listener.Lines.Any(l => l.Contains("log file disabled")), Is.True);
-            // Reported once, then dropped: a broken log must not cost a line of work per event.
-            Assert.That(_listener.Lines.Count(l => l.Contains("log file disabled")), Is.EqualTo(1));
+            Assert.That(_listener.Lines.Any(l => l.Contains("log file not written")), Is.True);
+            // Reported once for as long as it lasts, rather than once a line.
+            Assert.That(_listener.Lines.Count(l => l.Contains("log file not written")), Is.EqualTo(1));
+        }
+
+        [Test]
+        public void A_line_KeePass_s_thread_logs_does_not_wait_for_the_file()
+        {
+            // The audit's rule, for the audit's reason: KeePass's own thread logs, and a log on
+            // slow storage held its window for every line. Here a connection holds the file's lock
+            // while it reports that the file refused its line, held there by the clock it reads
+            // the moment from, and KeePass's thread comes back anyway.
+            var path = Paths.Join(_directory, "gate.log");
+            System.Threading.Thread keePass = null;
+            System.Threading.Thread connection = null;
+            using (var reporting = new System.Threading.ManualResetEventSlim(false))
+            using (var release = new System.Threading.ManualResetEventSlim(false))
+            {
+                var asked = 0;
+                Func<DateTime> clock = () =>
+                {
+                    // The connection's second reading is the one its report of the refusal takes,
+                    // under the file's lock.
+                    if (System.Threading.Thread.CurrentThread == connection && ++asked == 2)
+                    {
+                        reporting.Set();
+                        release.Wait(TimeSpan.FromSeconds(30));
+                    }
+
+                    return DateTime.UtcNow;
+                };
+                var log = new TraceGateLog(path, null, clock, () => System.Threading.Thread.CurrentThread == keePass);
+                connection = new System.Threading.Thread(() => log.Info("from a connection"));
+                bool returned;
+
+                try
+                {
+                    // The file is let go before the connection is, so the log's writer finds it free.
+                    using (new FileStream(path, FileMode.Create, FileAccess.ReadWrite, FileShare.None))
+                    {
+                        connection.Start();
+                        Assume.That(reporting.Wait(TimeSpan.FromSeconds(10)), Is.True, "a connection holds the file's lock");
+
+                        keePass = new System.Threading.Thread(() => log.Info("from KeePass"));
+                        keePass.Start();
+                        returned = keePass.Join(TimeSpan.FromSeconds(10));
+                    }
+                }
+                finally
+                {
+                    release.Set();
+                    connection.Join();
+                }
+
+                Assert.That(returned, Is.True, "KeePass's thread came back while the file's lock was held");
+
+                // Written by the log's own writer once the lock was free, and before a line logged
+                // after it, which writes what was queued ahead of it first.
+                log.Info("after");
+                var lines = File.ReadAllLines(path);
+
+                Assert.That(lines.Length, Is.EqualTo(3), string.Join(Environment.NewLine, lines));
+                Assert.That(lines[0], Does.Contain("KPG WARN the log file is being written again, and 1 line"));
+                Assert.That(lines[1], Does.Contain("KPG INFO from KeePass"));
+                Assert.That(lines[2], Does.Contain("KPG INFO after"));
+            }
+        }
+        [Test]
+        public void A_line_KeePass_s_thread_queued_is_logged_before_a_line_logged_after_it()
+        {
+            var path = Paths.Join(_directory, "gate.log");
+            System.Threading.Thread keePass = null;
+            var log = new TraceGateLog(path, null, null, () => System.Threading.Thread.CurrentThread == keePass);
+
+            keePass = new System.Threading.Thread(() => log.Info("first"));
+            keePass.Start();
+            keePass.Join();
+            log.Info("second");
+
+            var lines = File.ReadAllLines(path);
+            Assert.That(lines.Length, Is.EqualTo(2));
+            Assert.That(lines[0], Does.Contain("KPG INFO first"));
+            Assert.That(lines[1], Does.Contain("KPG INFO second"));
+        }
+
+        [Test]
+        public void A_line_KeePass_s_thread_queued_is_logged_with_nothing_logged_after_it()
+        {
+            var path = Paths.Join(_directory, "gate.log");
+            System.Threading.Thread keePass = null;
+            var log = new TraceGateLog(path, null, null, () => System.Threading.Thread.CurrentThread == keePass);
+
+            keePass = new System.Threading.Thread(() => log.Info("on its own"));
+            keePass.Start();
+            keePass.Join();
+
+            Assert.That(
+                System.Threading.SpinWait.SpinUntil(() => Shared(path).Contains("KPG INFO on its own"), TimeSpan.FromSeconds(10)),
+                Is.True,
+                "the log's own writer wrote it");
+        }
+
+        /// <summary>What the file holds, read sharing writing so that the log's writer is not refused.</summary>
+        private static string Shared(string path)
+        {
+            try
+            {
+                using (var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete))
+                using (var reader = new StreamReader(stream))
+                {
+                    return reader.ReadToEnd();
+                }
+            }
+            catch (FileNotFoundException)
+            {
+                return string.Empty;
+            }
+        }
+
+        [Test]
+        public void A_file_that_could_not_be_written_for_a_while_is_written_again_with_what_it_missed()
+        {
+            // A program reading the log without letting anybody write to it stops every line for
+            // exactly as long as it holds the file, and then the next one works. Given up on after
+            // the first failure, the file took nothing more for the rest of the session.
+            var path = Paths.Join(_directory, "gate.log");
+            var log = new TraceGateLog(path);
+            log.Info("before");
+
+            using (new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read))
+            {
+                log.Info("while held");
+                log.Info("still held");
+            }
+
+            log.Info("after");
+
+            var lines = File.ReadAllLines(path);
+            Assert.That(lines.Length, Is.EqualTo(3), string.Join(Environment.NewLine, lines));
+            Assert.That(lines[0], Does.Contain("KPG INFO before"));
+            Assert.That(lines[1], Does.Contain("KPG WARN the log file is being written again, and 2 lines"));
+            Assert.That(lines[2], Does.Contain("KPG INFO after"));
+            Assert.That(_listener.Lines.Count(l => l.Contains("log file not written")), Is.EqualTo(1),
+                "the trace is told once as the failure begins");
         }
 
         [Test]
@@ -252,7 +393,7 @@ namespace KeePassGate.Tests
                 Assert.That(File.ReadAllText(path), Does.Contain("KPG INFO one").And.Contain("KPG INFO two"));
                 Assert.That(_listener.Lines.Count(l => l.Contains("not set aside")), Is.EqualTo(1),
                     "said once rather than at every line");
-                Assert.That(_listener.Lines.Any(l => l.Contains("log file disabled")), Is.False);
+                Assert.That(_listener.Lines.Any(l => l.Contains("log file not written")), Is.False);
             }
         }
 
@@ -307,7 +448,7 @@ namespace KeePassGate.Tests
             Assert.That(File.ReadAllText(path), Does.Contain("KPG INFO one").And.Contain("KPG INFO two"));
             Assert.That(_listener.Lines.Count(l => l.Contains("not set aside")), Is.EqualTo(1),
                 "the trace is told once that the log grows past its bound");
-            Assert.That(_listener.Lines.Any(l => l.Contains("log file disabled")), Is.False);
+            Assert.That(_listener.Lines.Any(l => l.Contains("log file not written")), Is.False);
             Assert.That(File.ReadAllText(path + ".1"), Is.EqualTo("older\n"), "and the previous file is as it was");
         }
 
@@ -320,7 +461,7 @@ namespace KeePassGate.Tests
             {
                 Environment.SetEnvironmentVariable(TraceGateLog.LogFileVariable, path);
 
-                new TraceGateLog().Info("one");
+                new TraceGateLog(mayNotWait: null).Info("one");
             }
             finally
             {
@@ -328,6 +469,49 @@ namespace KeePassGate.Tests
             }
 
             Assert.That(File.ReadAllText(path), Does.Contain("KPG INFO one"));
+        }
+
+        // Alone, because the variable it sets names the log for the whole process.
+        [Test]
+        [NonParallelizable]
+        public void A_variable_naming_no_path_keeps_the_log_where_it_would_be_and_the_audit_nowhere()
+        {
+            // `GetFullPath` refuses a name holding a character no path can, and the log went on
+            // with no file and not a word about why, while every pointer to it led nowhere. The
+            // log takes its default instead; the audit, which nobody looks for anywhere else,
+            // still takes none and states that it records nothing.
+            const string named = "bad|name.log";
+            var was = Environment.GetEnvironmentVariable(TraceGateLog.LogFileVariable);
+            try
+            {
+                Environment.SetEnvironmentVariable(TraceGateLog.LogFileVariable, named);
+
+                string refused;
+                var resolved = PluginFiles.Resolve(TraceGateLog.LogFileVariable, TraceGateLog.DefaultFileName, out refused);
+                var local = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+
+                Assert.That(refused, Is.EqualTo(named));
+                Assert.That(resolved, Is.EqualTo(Paths.Join(local, "KeePassGate", TraceGateLog.DefaultFileName)));
+                Assert.That(PluginFiles.Resolve(TraceGateLog.LogFileVariable, TraceGateLog.DefaultFileName), Is.Null,
+                    "the audit's answer");
+            }
+            finally
+            {
+                Environment.SetEnvironmentVariable(TraceGateLog.LogFileVariable, was);
+            }
+        }
+
+        [Test]
+        public void A_log_kept_in_place_of_a_name_refused_begins_by_naming_both()
+        {
+            var path = Paths.Join(_directory, "gate.log");
+
+            new TraceGateLog(path, "bad|name.log", null, null).Info("one");
+
+            var lines = File.ReadAllLines(path);
+            Assert.That(lines[0], Does.Contain(
+                "KPG WARN " + TraceGateLog.LogFileVariable + " names bad|name.log, which is not a path, so the log is kept at " + path));
+            Assert.That(lines[1], Does.Contain("KPG INFO one"));
         }
 
         [Test]

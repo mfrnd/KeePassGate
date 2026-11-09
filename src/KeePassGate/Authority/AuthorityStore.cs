@@ -195,7 +195,30 @@ namespace KeePassGate.Authority
         /// <returns>How many admission records were removed.</returns>
         public int DeleteEverything()
         {
-            foreach (var pair in Listed("deleted"))
+            return DeleteEverything(null);
+        }
+
+        /// <summary>The same, telling the caller once the database is about to change.</summary>
+        /// <remarks>
+        /// **So that a refusal after that point can say the database may have changed.** Listing
+        /// the authorities is the step that fails with nothing written; every step after it writes,
+        /// and the records are listed again last of all, so a failure there comes after every
+        /// authority was retired and its document taken away, leaving a database that serves
+        /// nothing under a refusal that read as nothing having happened.
+        /// </remarks>
+        /// <param name="changing">
+        /// Called once the authorities are listed and before the first of them is retired, or null.
+        /// </param>
+        /// <returns>How many admission records were removed.</returns>
+        public int DeleteEverything(Action changing)
+        {
+            var live = Listed("deleted");
+            if (changing != null)
+            {
+                changing();
+            }
+
+            foreach (var pair in live)
             {
                 Retire(pair.Key);
             }
@@ -256,9 +279,10 @@ namespace KeePassGate.Authority
 
         /// <summary>
         /// Takes away every document whose authority is retired, every admission record that came
-        /// back beside its revocation, every record of a certificate that has expired, and every
-        /// standing answer to a renewal that no record is left to ask, answering with what went so
-        /// that a write that does not land can put it back.
+        /// back beside its revocation, every record of a certificate that has expired, every
+        /// revocation naming an authority this database no longer holds, and every standing answer
+        /// to a renewal that no record is left to ask, answering with what went so that a write that
+        /// does not land can put it back.
         /// </summary>
         /// <remarks>
         /// **Only ever as part of a write this plugin is making anyway**: keeping one authority,
@@ -280,6 +304,7 @@ namespace KeePassGate.Authority
             var retired = Retired();
             var removed = new List<KeyValuePair<string, string>>(_admissions.PruneCameBack());
             removed.AddRange(_admissions.PruneExpired(now));
+            removed.AddRange(_admissions.PruneUnserved(Standing(retired)));
             removed.AddRange(_admissions.PruneRefusals());
 
             foreach (var key in Keys().ToList())
@@ -295,6 +320,62 @@ namespace KeePassGate.Authority
             }
 
             return removed;
+        }
+
+        /// <summary>
+        /// The digests of the authorities this database holds a document for and has not retired,
+        /// which a revocation's authority has to be among for the revocation to be kept.
+        /// </summary>
+        internal HashSet<string> Standing()
+        {
+            return Standing(Retired());
+        }
+
+        private HashSet<string> Standing(HashSet<string> retired)
+        {
+            return new HashSet<string>(Live(retired).Select(pair => pair.Key), StringComparer.Ordinal);
+        }
+
+        /// <summary>
+        /// The digest of the authority among those standing that issued this certificate, or null
+        /// when none of them did, none could be read, or they could not be listed.
+        /// </summary>
+        /// <remarks>
+        /// By the anchor pin against each, which is how the gate itself decides what an authority
+        /// issued: a certificate names its issuer and a name proves nothing, every authority this
+        /// plugin makes carrying the same one. Null is the answer to every doubt, because what reads it
+        /// keeps a revocation that names no authority until its certificate expires, and takes one
+        /// away early only on a name it can trust.
+        /// </remarks>
+        internal string IssuerOf(X509Certificate2 certificate)
+        {
+            if (certificate == null)
+            {
+                return null;
+            }
+
+            List<KeyValuePair<string, string>> live;
+            try
+            {
+                live = Live(Retired());
+            }
+            catch (Exception error) when (Expected.OfCustomData(error))
+            {
+                return null;
+            }
+
+            foreach (var pair in live)
+            {
+                using (var material = ReadOne(pair.Key, pair.Value, new List<string>()))
+                {
+                    if (material != null && AnchorPin.Chains(certificate, material.Authority))
+                    {
+                        return pair.Key;
+                    }
+                }
+            }
+
+            return null;
         }
 
         /// <summary>

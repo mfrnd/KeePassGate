@@ -96,20 +96,17 @@ namespace KeePassGate.Pairing
     /// </remarks>
     public sealed class PairingHandler
     {
-        public const string HelloPath = "/pair/hello";
-
-        public const string RequestPath = "/pair/request";
-
         private readonly IInvitations _invitations;
         private readonly IPairingApproval _approval;
         private readonly PairingOptions _options;
         private readonly AuthorityIssuer _issuer;
-        private readonly Func<DateTimeOffset> _clock;
+        private readonly PairingClock _clock;
         private readonly AdmissionAudit _audit;
         private readonly IGateLog _log;
         private readonly ApprovalBook _held;
+        private readonly GateIncidents _incidents;
 
-        /// <summary>With the default options, an issuer of its own and the system clock.</summary>
+        /// <summary>With the default options, an issuer of its own and the system clocks.</summary>
         /// <param name="audit">
         /// Where each pairing the operator answers is written down, or null for nowhere.
         /// </param>
@@ -123,9 +120,18 @@ namespace KeePassGate.Pairing
         /// The approvals held for a retry, which a lock, a close of their database and an exit
         /// clear, or null for a book of this handler's own.
         /// </param>
+        /// <param name="incidents">
+        /// Where an answer from the screen that this handler does not name is counted, or null for
+        /// the log alone.
+        /// </param>
         public PairingHandler(
-            IInvitations invitations, IPairingApproval approval, ApprovalBook held, AdmissionAudit audit, IGateLog log)
-            : this(invitations, approval, new PairingOptions(), new AuthorityIssuer(), null, audit, log, held)
+            IInvitations invitations,
+            IPairingApproval approval,
+            ApprovalBook held,
+            AdmissionAudit audit,
+            IGateLog log,
+            GateIncidents incidents = null)
+            : this(invitations, approval, new PairingOptions(), new AuthorityIssuer(), null, audit, log, held, incidents)
         {
         }
 
@@ -137,7 +143,8 @@ namespace KeePassGate.Pairing
             Func<DateTimeOffset> clock,
             AdmissionAudit audit,
             IGateLog log,
-            ApprovalBook held = null)
+            ApprovalBook held = null,
+            GateIncidents incidents = null)
         {
             if (invitations == null)
             {
@@ -148,10 +155,11 @@ namespace KeePassGate.Pairing
             _approval = approval ?? NoPairingApproval.Instance;
             _options = options ?? new PairingOptions();
             _issuer = issuer ?? new AuthorityIssuer();
-            _clock = clock ?? (() => DateTimeOffset.UtcNow);
+            _clock = PairingClock.For(clock);
             _audit = audit ?? new AdmissionAudit(NullGateAudit.Instance);
             _log = log ?? NullGateLog.Instance;
             _held = held ?? new ApprovalBook(_clock);
+            _incidents = incidents ?? new GateIncidents(_log);
         }
 
         /// <summary>`pairHello`, once the router has decided this is the operation.</summary>
@@ -265,7 +273,7 @@ namespace KeePassGate.Pairing
                 }
 
                 var challenge = connection.Invitation.Challenge(
-                    binding, nonce, _clock(), _options.ChallengeLifetime);
+                    binding, nonce, _options.ChallengeLifetime);
 
                 if (challenge == null)
                 {
@@ -308,7 +316,7 @@ namespace KeePassGate.Pairing
         {
             // When the pairing budget began, near enough: the request is off the wire by now, and
             // an approval is held for what is left of that budget.
-            var arrived = _clock();
+            var arrived = _clock.Read();
 
             var body = JsonBody.Read(context.Body);
             if (body == null)
@@ -363,7 +371,7 @@ namespace KeePassGate.Pairing
             {
                 // Taken, so it is spent whatever happens next. A request that fails cannot be
                 // retried against the same challenge, only against a fresh hello.
-                challenge = invitation.TakeChallenge(_clock());
+                challenge = invitation.TakeChallenge();
                 if (challenge == null)
                 {
                     context.Respond(409, HttpResponse.ErrorBody("no exchange"));
@@ -430,7 +438,7 @@ namespace KeePassGate.Pairing
             IReadOnlyList<string> asked,
             TimeSpan? lifetime,
             string key,
-            DateTimeOffset arrived)
+            PairingMoment arrived)
         {
             var target = connection.Target;
             var invitation = connection.Invitation;
@@ -498,6 +506,9 @@ namespace KeePassGate.Pairing
 
             switch (decision.Decision)
             {
+                case PairingDecision.Approved:
+                    break;
+
                 case PairingDecision.TimedOut:
                     // Nothing is spent. An absent operator does not cost the invitee its invitation.
                     _log.Warn("pairing on invitation " + invitation.Id + " went unanswered");
@@ -533,6 +544,17 @@ namespace KeePassGate.Pairing
                     _audit.PairingRefused(target.DatabaseId, invitation.Id);
                     context.Respond(403, HttpResponse.ErrorBody("refused"));
                     return null;
+
+                default:
+                    // An approval is the one answer that issues, so it is named rather than reached
+                    // by falling past the others, which would issue a certificate for any decision
+                    // added without a case of its own. An answer nothing here names is a defect
+                    // rather than a yes, and nothing is spent, as for an answer nobody gave.
+                    _incidents.Record(
+                        "pairing on invitation " + invitation.Id + " was answered " + decision.Decision +
+                        ", which this handler does not name, so it was refused for now", null);
+                    context.Respond(503, HttpResponse.ErrorBody("busy"));
+                    return null;
             }
 
             // Held from here until it is written, so that KeePass being busy when the operator has
@@ -553,7 +575,7 @@ namespace KeePassGate.Pairing
                 decision.Lifetime,
                 approved.Where(listed.Contains),
                 null,
-                arrived + _options.ApprovalHeld,
+                arrived.After(_options.ApprovalHeld),
                 mark);
         }
 
@@ -712,7 +734,7 @@ namespace KeePassGate.Pairing
                 // A profile the operator approved that this database had never named is created by
                 // their approval, and the writer does that inside the same marshaled write as the
                 // record, off the profiles the record already carries.
-                var record = AdmissionRecord.For(certificate, _clock(), profiles);
+                var record = AdmissionRecord.For(certificate, _clock.Now, profiles);
 
                 // The audit's line is the write's to write, once the record has landed and before
                 // anything else hears of it, so nothing that runs after the write can lose it. The

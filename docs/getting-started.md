@@ -163,7 +163,12 @@ starts. At eight megabytes the file is set aside as `plugin.log.1` and a new one
 one before that is deleted, as the audit's are. Every line goes to Windows's debug output as well,
 which a debugger or a viewer such as Sysinternals DebugView shows while KeePass is running, and on
 an account with no local application data directory for the plugin to find, that is the only place
-it goes.
+it goes. A `KEEPASSGATE_LOG_FILE` that is no path at all, such as one holding a `|`, leaves the log
+where it would have been, and the log's first line names the value it refused. A line KeePass's own
+window writes is handed to a writer of the plugin's own rather than written there, so a log on slow
+or unreachable storage costs KeePass nothing; the lines still reach the file in order. Closing
+KeePass waits two seconds at most for the lines still waiting, and loses any that are still waiting
+after that.
 
 ## Find the tab
 

@@ -249,12 +249,19 @@ namespace KeePassGate.Authority
         }
 
         /// <summary>
-        /// Reads one back. Null for anything that is not exactly a record: a missing field, an
-        /// unknown version, a repeated field, a subject with a line ending in it, a client key that
-        /// is not a digest, a date that will not parse, a certificate that will not decode, and one
-        /// that decodes to something other than the bytes it was stored as. A record that cannot be read admits nobody, which is
-        /// the whole point of keeping this strict.
+        /// Reads one back. Null for anything that is not a record: a missing field, an unknown
+        /// field or version, a repeated field, a subject with a line ending in it, a client key
+        /// that is not a digest, a date that will not parse, a certificate that will not decode,
+        /// and one that decodes to something other than the bytes it was stored as. A record that
+        /// cannot be read admits nobody, which is the whole point of keeping this strict.
         /// </summary>
+        /// <remarks>
+        /// **Strict about what a record holds, not about how it is spelled.** Fields in another
+        /// order, blank lines, either line ending, whitespace inside the certificate's base64 and a
+        /// profile list that repeats a name or holds one that is not a profile name all read, and
+        /// <see cref="Save"/> writes each back in its own form: `Save(Load(x))` is the record `x`
+        /// spells, written canonically, and not always `x`.
+        /// </remarks>
         public static AdmissionRecord Load(string admissionKey, string stored)
         {
             if (string.IsNullOrEmpty(admissionKey) || string.IsNullOrEmpty(stored))
@@ -289,7 +296,8 @@ namespace KeePassGate.Authority
             // A name this reader does not know is refused rather than skipped. The version marker
             // exists so that a later writer can add a field which narrows what a record grants, and
             // a reader that walked past one would go on admitting on the strength of the fields it
-            // did recognize. Refusing here is also what makes `Save(Load(x))` give back `x`.
+            // did recognize. Refusing here is also what keeps every field a record holds in what
+            // `Save(Load(x))` writes, though not every spelling of it, as the remarks above set out.
             foreach (var name in fields.Keys)
             {
                 if (!Fields.Contains(name))

@@ -99,14 +99,15 @@ namespace KeePassGate.Ui
             _store = new PendingStore(() => database.PluginCustomData);
 
             // **The key with a second writer whose two versions have to be merged.** A record
-            // or a revocation the tab touches can also be written while the dialog is up, by a
-            // client revoking itself or by the prune of expired records every landed write rides
-            // on, and replaying writes it again as the operator left it: the same revocation, or
-            // one the next prune tidies away. `KPG.Profiles` is also written by a pairing, live
-            // and saved, because the profile the operator just approved has to be named by the
-            // same write as the admission record; replaying a snapshot taken before that threw the
-            // name away and left a client holding a profile this tab could no longer list or
-            // count, and that granted it nothing, since a client holds only what the list names.
+            // the tab touches can also be written while the dialog is up, by a client revoking
+            // itself or by the prune of expired records every landed write rides on, and
+            // replaying writes it again as the operator left it: the same emptied record, or one
+            // the next prune tidies away; a revocation is kept as written, below. `KPG.Profiles`
+            // is also written by a pairing, live and saved, because the profile the operator just
+            // approved has to be named by the same write as the admission record; replaying a
+            // snapshot taken before that threw the name away and left a client holding a profile
+            // this tab could no longer list or count, and that granted it nothing, since a client
+            // holds only what the list names.
             //
             // Registered here rather than known by the buffer, because the buffer is a buffer: it
             // holds strings for a dialog and has no business knowing what any of them mean.
@@ -115,6 +116,21 @@ namespace KeePassGate.Ui
             // And a standing answer to a renewal, lifted here and given again on the renewal
             // dialog while this one was open: the answer given later is the one that stands.
             _store.Reconcile(AuthorityKeys.IsRenewalRefusal, KeepTheLaterAnswer);
+
+            // And a revocation, which is written once and never changed: one the client wrote by
+            // revoking itself while this dialog was open is the one that stands at OK, whatever
+            // value this dialog chose for the same key, since its value names an authority and the
+            // two may have read different ones.
+            _store.Reconcile(AuthorityKeys.IsRevocation, KeepTheRevocationThere);
+        }
+
+        /// <summary>
+        /// A revocation somebody else wrote while the dialog was open, kept over the one the tab
+        /// would write, or the tab's where there is none now.
+        /// </summary>
+        private static string KeepTheRevocationThere(string baseline, string current, string buffered, bool landing)
+        {
+            return current ?? buffered;
         }
 
         /// <summary>

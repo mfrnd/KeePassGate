@@ -99,8 +99,9 @@ designing around them.
   argument runs the other way: merged apart, a certificate from one replica and a private key from
   another read as damage. And **what has to survive a merge is a key that is only ever added**,
   because a KeePass merge never removes a key and never reads a value. A revocation is
-  `KPG.Revoked.<key>` beside the emptied record, never changed and pruned once the certificate has
-  expired, or kept for good beside a record that would not read and so gave no date; an authority is
+  `KPG.Revoked.<key>` beside the emptied record, never changed, naming the certificate's end and the
+  authority that issued it, and pruned once the certificate has expired or that authority is retired
+  or gone, or kept for good beside a record that would not read and so gave no date; an authority is
   one key per authority, `KPG.Authority.<fp>`, written once, and an authority recreated or deleted
   gets `KPG.RetiredAuthority.<fp>` beside it, so which authority is served is decided by the
   retirements and never by counting documents. More than one authority with no retirement serves
@@ -177,9 +178,14 @@ designing around them.
   debugger attached stops there. Letting WinForms' own dialog ask the operator instead was tried
   and taken back, for the cost §141 sets out.
   **A line that has to outlive a defect is written before it rather than caught around it**: the
-  audit line for a pairing, a renewal or a client's own revocation that landed is written by
+  audit line for a pairing, a renewal or a client's own revocation that landed is queued by
   `DatabaseWriter` on its own landed path, before any listener runs and before KeePass's window is
-  redrawn, so no listener's defect can lose it and the operation writes none of its own. A defect
+  redrawn, so no listener's defect can lose it and the operation writes none of its own. **Queued
+  for a writer of the audit's own**, as every line KeePass's thread records is, the operator's
+  revocation at the settings dialog's OK among them, so that KeePass's thread never waits on the
+  file, and the plugin's log does the same with the lines KeePass's thread logs; every line keeps
+  its place, KeePass's exit waits for both writers for two seconds at most, `PluginFiles.ExitWait`,
+  and a line still queued when the process ends is lost. A defect
   in the save itself, which runs every other plugin's handlers, is settled by a `finally` as the
   database leaves it, and still reaches the connection thread: a change the file received is
   written down, and a change it never received is taken back out.

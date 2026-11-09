@@ -187,7 +187,7 @@ namespace KeePassGate.Host.Tests
 
             var result = _authority.Recreate();
 
-            Assert.That(result.RecordsRemoved, Is.EqualTo(1));
+            Assert.That(result.Succeeded, Is.True, result.Message);
             Assert.That(_admissions.Count(out _), Is.Zero, "a record issued under an authority that is gone admits nobody");
         }
 

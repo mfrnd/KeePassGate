@@ -98,8 +98,9 @@ namespace KeePassGate.Authority
 
         /// <summary>
         /// Replaces whatever is there. Every client admitted under the old authority loses its
-        /// admission, and the message says how many, because that is the number the operator needs
-        /// before pressing it and the only one they cannot work out themselves.
+        /// admission, which the tab counts in the question it asks before this runs, because that
+        /// is the number the operator needs before pressing it and the only one they cannot work
+        /// out themselves.
         /// </summary>
         public AuthorityChange Recreate()
         {
@@ -112,8 +113,9 @@ namespace KeePassGate.Authority
             {
                 try
                 {
-                    removed = _store.DeleteEverything();
-                    cleared = true;
+                    // Cleared from the first write rather than once the clearing returns, so that
+                    // the clearing failing part way is reported as the change it already made.
+                    removed = _store.DeleteEverything(() => cleared = true);
                     return null;
                 }
                 catch (Exception error) when (Expected.OfCustomData(error))
@@ -125,7 +127,7 @@ namespace KeePassGate.Authority
             });
             if (!result.Succeeded)
             {
-                // Once the clearing has run, a refusal is not a database that was left alone, and
+                // Once the clearing has begun, a refusal is not a database that was left alone, and
                 // the message has to say so or the operator reads "it did not happen" and goes
                 // back to whatever they were doing with a database that now serves nobody. The
                 // sentence describes what recreation does rather than asserting what landed,
@@ -134,7 +136,8 @@ namespace KeePassGate.Authority
                 return cleared ? AuthorityChange.Refused(result.Message + ClearingNote()) : result;
             }
 
-            return AuthorityChange.Done(result.Message + RevocationNote(removed), removed);
+            _log.Info("authority recreated, admission records removed: " + removed);
+            return result;
         }
 
         /// <summary>
@@ -145,14 +148,19 @@ namespace KeePassGate.Authority
         public AuthorityChange Delete()
         {
             int removed;
+            var deleting = false;
             try
             {
-                removed = _store.DeleteEverything();
+                removed = _store.DeleteEverything(() => deleting = true);
             }
             catch (Exception error) when (Expected.OfCustomData(error))
             {
+                // Once the deletion has begun, a failure is not a database that was left alone,
+                // for the reason a recreation that fails once its clearing has begun tells the
+                // operator so.
                 _log.Error("the authority could not be deleted", error);
-                return AuthorityChange.Refused("The authority could not be deleted: " + error.Message);
+                return AuthorityChange.Refused(
+                    "The authority could not be deleted: " + error.Message + (deleting ? PartlyDeletedNote : string.Empty));
             }
 
             using (var check = Read())
@@ -172,7 +180,7 @@ namespace KeePassGate.Authority
             }
 
             _log.Info("authority deleted, admission records removed: " + removed);
-            return AuthorityChange.Done("The authority was deleted." + RevocationNote(removed), removed);
+            return AuthorityChange.Done();
         }
 
         /// <summary>
@@ -210,14 +218,15 @@ namespace KeePassGate.Authority
                 }
             }
 
+            // None retired is the authority already served alone, which is kept as it was: the
+            // chooser asks only of a database serving several, and keeping one that is already the
+            // only one leaves the database as the operator asked for it.
             _log.Info("authority " + CertificateDigest.Shorten(fingerprint) + " kept, others retired: " + retired);
-            return AuthorityChange.Done(retired == 1
-                ? "The authority was kept, and the other one was retired."
-                : "The authority was kept, and the other " + retired + " were retired.");
+            return AuthorityChange.Done();
         }
 
         /// <summary>
-        /// What a recreation that failed after the clearing step has to add, whatever it failed
+        /// What a recreation that failed once its clearing had begun has to add, whatever it failed
         /// at. The old authority and the records are asked for before the replacement is written,
         /// so every refusal from that point on is about a database that has already been changed.
         /// </summary>
@@ -227,17 +236,12 @@ namespace KeePassGate.Authority
                    "the replacement, so what was there before may be gone as well.";
         }
 
-        private static string RevocationNote(int removed)
-        {
-            if (removed <= 0)
-            {
-                return string.Empty;
-            }
-
-            return removed == 1
-                ? " One client lost its admission."
-                : " " + removed + " clients lost their admission.";
-        }
+        /// <summary>
+        /// What a deletion that failed once it had begun has to add: the authority may already be
+        /// retired, and the records gone with it.
+        /// </summary>
+        private const string PartlyDeletedNote =
+            " Some of the deletion may have landed, so read the page again before pressing anything else.";
 
         private static byte[] NewSniKey()
         {
@@ -318,11 +322,7 @@ namespace KeePassGate.Authority
                 }
 
                 _log.Info("authority " + verb + ", digest " + check.Material.AuthorityDigest);
-
-                // Without the fingerprint, which the tab already shows above this line and shows
-                // with a name beside it. Saying it twice makes the answer to "what just happened"
-                // longer without making it more complete.
-                return AuthorityChange.Done("The authority was " + verb + ".");
+                return AuthorityChange.Done();
             }
         }
 
