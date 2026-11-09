@@ -65,7 +65,7 @@ namespace KeePassGate.Host.Tests
             // count: the one guard this design rests on is the last place where silence may be
             // read as permission. `Blocking` folds the question into a sentence and so cannot be
             // misread this way.
-            using (var never = new GroupDialogs(new GlobalWindowManagerWindows(), NullGateLog.Instance))
+            using (var never = new GroupDialogs(_windows, NullGateLog.Instance))
             {
                 Assert.That(never.Count, Is.EqualTo(0),
                     "which is the number an empty desktop gives too, which is the whole problem");
@@ -428,7 +428,7 @@ namespace KeePassGate.Host.Tests
         {
             // The same answer `Blocking` gives, for the same reason: an empty table means nothing
             // was noticed rather than that nothing is open.
-            using (var never = new GroupDialogs(new GlobalWindowManagerWindows(), NullGateLog.Instance))
+            using (var never = new GroupDialogs(_windows, NullGateLog.Instance))
             {
                 Assert.That(never.BlockingRemoval(_database.RootGroup), Is.Not.Null);
                 Assert.That(never.BlockingAdditions(_database.RootGroup), Is.Not.Null);
@@ -701,7 +701,7 @@ namespace KeePassGate.Host.Tests
 
             Assert.That(_dialogs.Working(), Is.Null, "and closing it lets writes through again");
 
-            using (var never = new GroupDialogs(new GlobalWindowManagerWindows(), NullGateLog.Instance))
+            using (var never = new GroupDialogs(_windows, NullGateLog.Instance))
             {
                 Assert.That(never.Working(), Is.Not.Null,
                     "a watch that is not running cannot say nothing is, so it refuses");

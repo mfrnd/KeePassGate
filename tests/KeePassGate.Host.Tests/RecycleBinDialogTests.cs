@@ -219,10 +219,26 @@ namespace KeePassGate.Host.Tests
         {
             // Fail closed, as every other question this watch answers does. An empty table means
             // nothing was noticed rather than that nothing is open, and a settings dialog on the
-            // desktop is exactly what a watch that never started cannot see.
-            using (var never = new GroupDialogs(new GlobalWindowManagerWindows(), NullGateLog.Instance))
+            // desktop is exactly what a watch that never started cannot see. The fixture's own
+            // source, which a watch that never starts never subscribes to, so nothing outlives the
+            // test in KeePass's static window manager.
+            var entry = Created(_vault.CreateEntry(_vault.RootAlias, Named("an invented service")));
+
+            using (var never = new GroupDialogs(_windows, NullGateLog.Instance))
             {
+                var unwatched = new KdbxVault(
+                    _database.Database,
+                    new DatabaseWriter(
+                        CurrentThread.Instance, database => database.Save(null), null, never, null),
+                    TestTags.Fixed,
+                    null);
+
+                var refused = unwatched.DeleteEntry(entry, VaultTagging.None);
+
                 Assert.That(never.BlockingRecycleBin(_database.Database), Is.Not.Null);
+                Assert.That(refused.IsBusy, Is.True, refused.Reason);
+                Assert.That(_database.Database.RecycleBinUuid.Equals(PwUuid.Zero), Is.True, "no bin was made");
+                Assert.That(_vault.Entry(entry), Is.Not.Null, "and the entry is where it was");
             }
 
             Assert.That(_dialogs.BlockingRecycleBin(_database.Database), Is.Null,
