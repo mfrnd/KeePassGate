@@ -195,6 +195,16 @@ namespace KeePassGate.Host.Tests.Live
         public AutomationElement OpenEntryDialog()
         {
             SelectFirstEntry();
+            return OpenChosenEntryDialog();
+        }
+
+        /// <summary>Entry, Edit Entry, on whichever entry the list has chosen already.</summary>
+        /// <remarks>
+        /// For a caller that chose one itself, with the pointer: <see cref="OpenEntryDialog"/>
+        /// chooses the first again, which is another entry wherever the chosen one is not first.
+        /// </remarks>
+        public AutomationElement OpenChosenEntryDialog()
+        {
             return OpenFromMenu("Entry", "Edit", "Edit Entry");
         }
 

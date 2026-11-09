@@ -73,6 +73,9 @@ namespace KeePassGate.Host.Tests.Live
         /// </summary>
         private const string RevealPassword = "m_cbHidePassword";
 
+        /// <summary>The box on KeePass's entry dialog holding the entry's title.</summary>
+        private const string EntryTitle = "m_tbTitle";
+
         /// <summary>KeePass's entry view, the details of the chosen entry under the main window's list.</summary>
         private const string EntryView = "m_richEntryView";
 
@@ -474,7 +477,9 @@ namespace KeePassGate.Host.Tests.Live
             Thread.Sleep(400);
             var entryChosen = TakeMain(story, driver, "the entry chosen");
             var entryMenu = OpenMenu(story, driver, "Entry", "Edit Entry");
-            var entry = driver.OpenEntryDialog();
+            var entry = driver.OpenChosenEntryDialog();
+            Assert.That(driver.ValueOf(entry, EntryTitle), Is.EqualTo(BuildAgentTitle),
+                "the entry dialog that opened is not the entry the film chose, " + driver.Diagnostics);
             var entryOpened = TakeOpened(story, driver, entry, "the entry dialog as it opens");
             var reveal = Click(entry, Uia.ById(entry, RevealPassword));
             Thread.Sleep(500);
