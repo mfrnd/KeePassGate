@@ -177,6 +177,24 @@ KeePass; this is what notices a KeePass that raises them differently.
 lock, ten seconds, and lets it fall due under a renewal dialog nobody answers. The dialog closes as
 unanswered and the client is told `503 locked`, `PAIRING.md` §308.
 
+**A Windows lock during a save**, in `LiveSessionLockTests`: KeePass set to lock when Windows does,
+and the message Windows sends when the session locks posted to KeePass the moment a write's save is
+seen to begin. KeePass drops a lock asked for while its interaction is blocked, and every save
+blocks it, so the write is answered, the plugin then makes the lock KeePass dropped, and the next
+client is told `503 locked`. Posted rather than locked, because locking the desktop would end the
+session the tests run in, and timed by the file the save writes first rather than by a wait,
+because how long a save takes is the machine's.
+
+**KeePass's own dialogs over a node, for real**, in `LiveAttachmentEditorTests` and
+`LiveTanWizardTests`, for the two the host tier cannot stand up whole. KeePass's attachment editor
+writes the bytes it holds back onto the entry when it closes changed, whatever happened to the
+entry meanwhile, so a removal of that attachment through the gate is refused `503 busy` while it is
+open, the attachment then holds what the operator typed, and the removal goes ahead once the editor
+has closed. The TAN wizard adds its entries from inside its own OK, which a write's save would have
+handling its messages part way through a walk of the tree, so a write is refused `503 busy` while
+the wizard is open, its OK is pressed once that write has been answered, and the wizard's entries
+and a write made after it are both in the file.
+
 **Pairing**, in `LivePairingTests`, the longest chain the C# pairing client drives. The operator
 presses the invite button on the real tab; the token is read off the real screen; a client holding
 nothing but that token and a port number derives its own connection names, proves itself and is
