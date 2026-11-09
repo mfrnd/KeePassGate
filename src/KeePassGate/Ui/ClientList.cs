@@ -936,12 +936,19 @@ namespace KeePassGate.Ui
 
         private static DataGridViewTextBoxColumn Fitted(string header)
         {
-            return new DataGridViewTextBoxColumn
+            var column = new DataGridViewTextBoxColumn
             {
                 HeaderText = header,
                 AutoSizeMode = DataGridViewAutoSizeColumnMode.AllCells,
                 ReadOnly = true
             };
+
+            // One line, as the revoke column's heading is. Sized to what it holds, a column with no
+            // rows under it holds only its heading, and a heading free to wrap was given the width
+            // that folds it: "Admitted (UTC)" and "Until (UTC)" made the heading row two lines tall
+            // on a page that had admitted nobody yet.
+            column.HeaderCell.Style.WrapMode = DataGridViewTriState.False;
+            return column;
         }
 
         private void OnCellClick(object sender, DataGridViewCellEventArgs e)

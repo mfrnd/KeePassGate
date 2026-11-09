@@ -721,6 +721,39 @@ namespace KeePassGate.Tests
             }
         }
 
+        [Test]
+        [Apartment(System.Threading.ApartmentState.STA)]
+        public void A_moment_heading_stays_on_one_line_over_an_empty_list()
+        {
+            // Sized to what it holds, a moment column with no rows under it holds only its heading,
+            // and a heading free to wrap was given the width that folds it: the README's film
+            // showed "Admitted (UTC)" and "Until (UTC)" on two lines each, over a page that had
+            // admitted nobody yet. On a form that is shown, since a grid that only has a handle
+            // never wraps its headings and passes whatever they are set to.
+            using (var form = new Form { ClientSize = new Size(431, 200) })
+            using (var list = new ClientList(Allows) { Dock = DockStyle.Fill })
+            {
+                form.Controls.Add(list);
+                form.ShowInTaskbar = false;
+                form.Show();
+                list.Fill(new AdmissionListing(Array.Empty<AdmissionRecord>(), true), null, null);
+                form.PerformLayout();
+                Application.DoEvents();
+
+                var grid = Grid(list);
+                var font = grid.ColumnHeadersDefaultCellStyle.Font ?? grid.Font;
+                var line = TextRenderer.MeasureText("Admitted", font).Height;
+
+                Assert.That(grid.ColumnHeadersHeight, Is.LessThan(2 * line), "the heading row is two lines tall");
+                foreach (var header in new[] { ClientList.AdmittedHeader, ClientList.UntilHeader })
+                {
+                    var column = grid.Columns.Cast<DataGridViewColumn>().Single(c => c.HeaderText == header);
+                    Assert.That(column.Width, Is.GreaterThanOrEqualTo(TextRenderer.MeasureText(header, font).Width),
+                        "\"" + header + "\" has less room than one line of it");
+                }
+            }
+        }
+
         /// <summary>What one row says its client holds, a line per profile, read off the grid.</summary>
         private static string[] Held(ClientList list, int row)
         {
