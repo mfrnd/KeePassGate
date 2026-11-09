@@ -211,6 +211,68 @@ namespace KeePassGate.Tests
         }
 
         [Test]
+        public void A_picker_closed_by_a_click_on_another_rule_leaves_the_table_and_the_dialog_standing()
+        {
+            // Closed the way an operator closes a picker, by pressing somewhere else, rather than
+            // by a call: the press goes through the loop, where the dropdown closes itself on it
+            // before the table is handed it, and the table and the dialog are left as they were.
+            Using(
+                Rules.Granting(("reader", "R"), ("ops", "RL")),
+                (form, panel, grid) =>
+                {
+                    grid.Focus();
+                    grid.CurrentCell = grid.Rows[0].Cells[MaskColumn];
+                    OffScreenForm.Pump();
+                    PressKey(grid, Keys.F2);
+                    Assert.That(panel.Picking, Is.True, "F2 opened nothing, so nothing below is measured");
+
+                    PressAt(grid, grid.GetCellDisplayRectangle(ProfileColumn, 1, false));
+
+                    Assert.That(panel.Picking, Is.False, "the press elsewhere did not close the picker");
+                    Assert.That(form.IsDisposed, Is.False, "the window closed");
+                    Assert.That(panel.Lines, Is.EqualTo(new[] { "ops .R...L..", "reader .R......" }));
+                    Assert.That(_loop, Is.Empty);
+                });
+        }
+
+        [Test]
+        public void Enter_in_an_open_picker_chooses_and_presses_nothing_behind_it()
+        {
+            // The keystroke itself, posted rather than called, so that it reaches the picker the
+            // way a key does, through the menu filter and the picker's own `ProcessCmdKey`, which
+            // every test calling `Type` goes round, and presses nothing of the dialog behind it.
+            Using((form, panel, grid) =>
+            {
+                var accept = new Button();
+                var cancel = new Button();
+                var pressed = 0;
+                accept.Click += (sender, e) => pressed++;
+                cancel.Click += (sender, e) => pressed++;
+                form.Controls.Add(accept);
+                form.Controls.Add(cancel);
+                form.AcceptButton = accept;
+                form.CancelButton = cancel;
+
+                grid.Focus();
+                grid.CurrentCell = grid.Rows[grid.NewRowIndex].Cells[ProfileColumn];
+                OffScreenForm.Pump();
+                PressKey(grid, Keys.F2);
+                Assert.That(panel.Picking, Is.True, "F2 opened nothing, so nothing below is measured");
+
+                var open = (ToolStripDropDown)typeof(GrantPanel)
+                    .GetField("_open", BindingFlags.Instance | BindingFlags.NonPublic).GetValue(panel);
+                PressKey(open, Keys.Down);
+                PressKey(open, Keys.Enter);
+
+                Assert.That(panel.Picking, Is.False, "Enter did not close the picker");
+                Assert.That(panel.Lines, Is.EqualTo(new[] { "ops ........" }), "nor chose what was highlighted");
+                Assert.That(pressed, Is.Zero, "Enter pressed a button of the dialog under the picker");
+                Assert.That(form.AcceptButton, Is.SameAs(accept), "and the dialog has its keys back");
+                Assert.That(_loop, Is.Empty);
+            });
+        }
+
+        [Test]
         public void A_picker_opened_before_the_last_has_finished_closing_leaves_the_dialog_its_keys()
         {
             // A picker finishes closing a message later, and a click landing in between opens the
@@ -922,8 +984,22 @@ namespace KeePassGate.Tests
             OffScreenForm.Pump();
         }
 
+        /// <summary>
+        /// Puts a press and a release of the left button on the queue for a control, at the middle
+        /// of an area of it, and lets the loop deliver them.
+        /// </summary>
+        private static void PressAt(Control control, Rectangle area)
+        {
+            var where = (IntPtr)(((area.Top + (area.Height / 2)) << 16) | ((area.Left + (area.Width / 2)) & 0xFFFF));
+            User32.PostMessage(control.Handle, ButtonDownMessage, (IntPtr)1, where);
+            User32.PostMessage(control.Handle, ButtonUpMessage, IntPtr.Zero, where);
+            OffScreenForm.Pump();
+        }
+
         private const int KeyDownMessage = 0x0100;
         private const int KeyUpMessage = 0x0101;
+        private const int ButtonDownMessage = 0x0201;
+        private const int ButtonUpMessage = 0x0202;
         private const int WheelMessage = 0x020A;
 
         private static void Using(Action<Form, GrantPanel, DataGridView> work)

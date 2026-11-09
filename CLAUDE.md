@@ -655,9 +655,11 @@ Run them from
   `ToolStripDropDown.SetVisibleCore` through `ToolStripManager.ModalMenuFilter` and throws
   `ObjectDisposedException` **into the message loop**, where no handler on the page can see it and
   KeePass answers by closing the dialog. Rebuilding the grid underneath and restoring the dialog's
-  `AcceptButton` have the same problem for the same reason. `GrantPanel.Finish` defers all three
-  with `BeginInvoke`, and `GrantPickerTests` reproduces the crash on a real shown form: revert the
-  deferral and the test host dies rather than the assertion failing.
+  `AcceptButton` were deferred with it for the same reason. `GrantPanel.Finish` defers all three
+  with `BeginInvoke`, and `GrantPickerTests` reproduces the dispose's crash on a real shown form:
+  revert that deferral and the test host dies rather than the assertion failing. The other two have
+  no reproduction: moved back into the handler, neither fails a test, a picker closed by a posted
+  press elsewhere or a posted Enter included.
 
 - **A menu holding nothing but its items owns Enter and Escape while it is open**, which a dropdown
   hosting a list does not. Enter clicks the highlighted item, or does nothing when none is, Escape
