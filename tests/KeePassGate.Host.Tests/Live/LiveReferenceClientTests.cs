@@ -80,7 +80,6 @@ namespace KeePassGate.Host.Tests.Live
         private const string BusyLine =
             "a change was refused as busy: an entry dialog is open on the entry this would be written to";
 
-        private static readonly TimeSpan StartTimeout = TimeSpan.FromSeconds(60);
         private static readonly TimeSpan DialogTimeout = TimeSpan.FromSeconds(60);
         private static readonly TimeSpan SettleTimeout = TimeSpan.FromMinutes(5);
         private static readonly TimeSpan CommandTimeout = TimeSpan.FromMinutes(2);
@@ -133,7 +132,7 @@ namespace KeePassGate.Host.Tests.Live
             keePass.Grant(Rules.Granting((Profile, "CRULAP")));
 
             var driver = KeePassDriver.Start(keePass);
-            WaitUntilServing(keePass, driver);
+            LivePairingTests.WaitUntilServing(keePass, driver);
 
             InviteFromTheTab(driver);
             Assert.That(_token, Is.Not.Null.And.Not.Empty, "nothing was on the tab to give the client");
@@ -561,29 +560,6 @@ namespace KeePassGate.Host.Tests.Live
         private static Run Client(string arguments, TimeSpan timeout, string input = null)
         {
             return ReferenceClient.Execute("pykeepassgate " + arguments, timeout, input);
-        }
-
-        /// <summary>
-        /// Ready is the database being served, not the socket being open. `LivePairingTests` says
-        /// why both lines, in that order.
-        /// </summary>
-        private static void WaitUntilServing(ThrowawayKeePass keePass, KeePassDriver driver)
-        {
-            WaitForLog(keePass, driver, "listening on 127.0.0.1:" + keePass.Port,
-                "The plugin never reported a listening gate.");
-
-            WaitForLog(keePass, driver, "serving a database with authority",
-                "The plugin never reported serving the database KeePass was started with.");
-        }
-
-        private static void WaitForLog(
-            ThrowawayKeePass keePass, KeePassDriver driver, string marker, string failure)
-        {
-            if (!Logged(keePass, marker, StartTimeout))
-            {
-                Assert.Fail(failure + " " + driver.Diagnostics + Environment.NewLine +
-                            "Log so far:" + Environment.NewLine + keePass.ReadPluginLog());
-            }
         }
 
         private static bool Logged(ThrowawayKeePass keePass, string marker, TimeSpan timeout)
