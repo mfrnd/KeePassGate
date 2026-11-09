@@ -135,7 +135,7 @@ namespace KeePassGate.Ui
 
         /// <summary>
         /// The latest day a refusal until a date can name: the day the certificate the client holds
-        /// now ends, as the dialog prints it.
+        /// now ends, where the operator is.
         /// </summary>
         private readonly DateTime _lastDay;
 
@@ -190,7 +190,7 @@ namespace KeePassGate.Ui
             _allowed = timeout;
 
             Name = GateTab.RenewalFormName;
-            Text = "KeePassGate: a client is asking to renew its certificate";
+            Text = GateName.Product + ": a client is asking to renew its certificate";
             FormBorderStyle = FormBorderStyle.FixedDialog;
             StartPosition = FormStartPosition.CenterScreen;
             MinimizeBox = false;
@@ -209,7 +209,7 @@ namespace KeePassGate.Ui
                 _wrap = PairingApprovalForm.Wrap(prototype);
             }
 
-            Padding = new Padding(Spacing.Window);
+            Padding = new Padding(LogicalToDeviceUnits(Spacing.Window));
 
             var layout = new FlowLayoutPanel
             {
@@ -229,7 +229,7 @@ namespace KeePassGate.Ui
                 AutoSize = true,
                 AutoSizeMode = AutoSizeMode.GrowAndShrink,
                 GrowStyle = TableLayoutPanelGrowStyle.AddRows,
-                Margin = new Padding(0, 0, 0, Spacing.Gap)
+                Margin = new Padding(0, 0, 0, LogicalToDeviceUnits(Spacing.Gap))
             };
 
             details.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
@@ -286,10 +286,15 @@ namespace KeePassGate.Ui
             // From tomorrow to the day the certificate it holds now ends, because a day before that
             // asks nothing of anybody and this certificate cannot ask on a day after it. Tomorrow
             // is asked of the clock each time, since the dialog can be answered after midnight.
-            // The last day is the one the row above prints, in UTC as every moment on screen is,
-            // so the row and the calendar never name two different days.
+            //
+            // **Both ends where the operator is**, since the refusal begins at the start of the day
+            // chosen there. The last day used to be the date the row above prints in UTC, against
+            // a local tomorrow: far east of Greenwich the choice was grayed out a local day early,
+            // and far west it offered a day after the certificate's local end, whose refusal began
+            // after the certificate had stopped. The row names its zone, so a last day a date away
+            // from it near midnight is read as what it is.
             _today = today ?? (() => DateTime.Today);
-            _lastDay = request.Expires.UtcDateTime.Date;
+            _lastDay = TimeZoneInfo.ConvertTime(request.Expires, TimeZoneInfo.Local).Date;
 
             var footer = new TableLayoutPanel
             {
@@ -300,7 +305,7 @@ namespace KeePassGate.Ui
                 AutoSizeMode = AutoSizeMode.GrowAndShrink,
                 GrowStyle = TableLayoutPanelGrowStyle.FixedSize,
                 MinimumSize = new Size(_wrap, 0),
-                Margin = new Padding(0, Spacing.Gap, 0, 0)
+                Margin = new Padding(0, LogicalToDeviceUnits(Spacing.Gap), 0, 0)
             };
 
             footer.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100f));
@@ -337,10 +342,11 @@ namespace KeePassGate.Ui
                 AccessibleDescription = GateTab.RefuseButtonDescription,
                 AutoSize = true,
                 AutoSizeMode = AutoSizeMode.GrowAndShrink,
-                Margin = new Padding(0, 0, Spacing.Gap, 0)
+                Margin = new Padding(0, 0, LogicalToDeviceUnits(Spacing.Gap), 0)
             };
 
             _refuse.Menu.Name = GateTab.RefuseMenuName;
+            _refuse.Menu.AccessibleName = GateTab.RefuseMenuLabel;
             _refuse.Menu.Font = Font;
             _refuse.Menu.Items.Add(Choice(GateTab.RefuseOnceName, GateTab.RefuseOnceText));
             _refuse.Menu.Items.Add(Choice(GateTab.RefuseThisSessionName, GateTab.RefuseThisSessionText));
@@ -728,7 +734,7 @@ namespace KeePassGate.Ui
                 Font = font,
                 AutoSize = true,
                 MaximumSize = new Size(_wrap, 0),
-                Margin = above ? new Padding(0, Spacing.Gap, 0, 0) : new Padding(0, 0, 0, Spacing.Gap)
+                Margin = above ? new Padding(0, LogicalToDeviceUnits(Spacing.Gap), 0, 0) : new Padding(0, 0, 0, LogicalToDeviceUnits(Spacing.Gap))
             };
         }
 
@@ -741,7 +747,7 @@ namespace KeePassGate.Ui
                 AutoSize = true,
                 Font = value ? _valueFont : Font,
                 MaximumSize = new Size(_wrap * 2 / 3, 0),
-                Margin = value ? new Padding(0) : new Padding(0, 0, Spacing.Gap, 0)
+                Margin = value ? new Padding(0) : new Padding(0, 0, LogicalToDeviceUnits(Spacing.Gap), 0)
             };
         }
 

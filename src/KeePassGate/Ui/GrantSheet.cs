@@ -105,10 +105,14 @@ namespace KeePassGate.Ui
         private string _stored;
         private string _canonical;
 
+        /// <summary>What the dialog's copy held when the sheet was made, and its canonical form.</summary>
+        private readonly string _opened;
+        private readonly string _openedCanonical;
+
         private readonly List<string> _offered = new List<string>();
 
         /// <summary>The database's list exactly as given, or null when none was.</summary>
-        private readonly HashSet<string> _named;
+        private HashSet<string> _named;
         private readonly Dictionary<string, List<AclVerb>> _rules =
             new Dictionary<string, List<AclVerb>>(StringComparer.Ordinal);
 
@@ -149,23 +153,53 @@ namespace KeePassGate.Ui
 
             var already = stored == null ? null : AclDocument.Read(stored);
             _canonical = already == null ? null : already.Write();
+            _opened = stored;
+            _openedCanonical = _canonical;
             _above = above == null ? AclInheritance.None : AclResolver.Above(above);
             ReadOnlyReason = readOnlyReason;
 
-            if (offered != null)
+            TakeNames(offered);
+            Load();
+        }
+
+        /// <summary>
+        /// Takes the database's list of profiles as it stands now, which may have changed since
+        /// this sheet was made.
+        /// </summary>
+        /// <returns>True when it had changed, and the pick list and rows now follow it.</returns>
+        /// <remarks>
+        /// **The list has a second writer while a group or an entry dialog is open**: an approval
+        /// names a profile the list did not, in the same write as its record, and nothing keeps a
+        /// pairing out while a node dialog is open. A sheet holding the list it read as the dialog
+        /// opened left the new name off the pick list, and drew a rule for a name the approval had
+        /// just put back as granting nothing while the gate honored it. Null asks nothing about
+        /// the list, as it does when the sheet is made.
+        /// </remarks>
+        public bool ReloadNames(IEnumerable<string> offered)
+        {
+            var named = offered == null ? null : new HashSet<string>(offered, StringComparer.Ordinal);
+            if (named == null ? _named == null : _named != null && _named.SetEquals(named))
             {
-                _named = new HashSet<string>(offered, StringComparer.Ordinal);
-
-                foreach (var profile in offered.Where(
-                    profile => AuthorityIssuer.IsUsableProfileName(profile) && !_offered.Contains(profile)))
-                {
-                    _offered.Add(profile);
-                }
-
-                _offered.Sort(StringComparer.Ordinal);
+                return false;
             }
 
-            Load();
+            TakeNames(named);
+            return true;
+        }
+
+        /// <summary>The names to offer and to mark rows by, from the database's list.</summary>
+        private void TakeNames(IEnumerable<string> offered)
+        {
+            _offered.Clear();
+            _named = offered == null ? null : new HashSet<string>(offered, StringComparer.Ordinal);
+
+            if (_named == null)
+            {
+                return;
+            }
+
+            _offered.AddRange(_named.Where(AuthorityIssuer.IsUsableProfileName));
+            _offered.Sort(StringComparer.Ordinal);
         }
 
         /// <summary>
@@ -255,6 +289,13 @@ namespace KeePassGate.Ui
                 {
                     return "The rules here cannot be read, so every client is refused here and below "
                         + "unless a nearer rule admits it. Discard them to edit this tab.";
+                }
+
+                if (_above.TooDeep)
+                {
+                    return "This is deeper in the tree than the gate reads rules for, so nothing from "
+                        + "further up arrives here: a profile that neither this tab nor a group in "
+                        + "between names is refused.";
                 }
 
                 if (!_above.Readable)
@@ -362,7 +403,7 @@ namespace KeePassGate.Ui
 
             if (!AuthorityIssuer.IsUsableProfileName(name))
             {
-                return "A profile name is letters, digits, dash and underscore, up to 64 of them.";
+                return "A profile name is ASCII letters, digits, dash and underscore, up to 64 of them.";
             }
 
             var held = VerbMask.Read(mask);
@@ -421,9 +462,9 @@ namespace KeePassGate.Ui
             // Not `CanEdit`, which its siblings ask and which is false whenever `Unreadable` is
             // true. Asking it here would turn off the one button that clears that. The
             // question is the other half of `CanEdit`: a tab with no store behind it must not
-            // appear to destroy anything. Nothing can reach that state today, because a reason
-            // to be read only is also a reason nothing was read to be unreadable, but that is
-            // three files agreeing and a method that clears rules should not need them to.
+            // appear to destroy anything. That state is reached: a node dialog with no store
+            // behind it reads the node's own rules, so a history revision whose rules will not
+            // read is read only and unreadable at once, and the panel shows no Discard there.
             if (!string.IsNullOrEmpty(ReadOnlyReason) || !Unreadable)
             {
                 return;
@@ -480,23 +521,65 @@ namespace KeePassGate.Ui
         {
             get
             {
-                var wanted = Document;
+                var writing = ToStore;
 
-                if (_stored == null || wanted == null)
-                {
-                    return !(_stored == null && wanted == null);
-                }
-
-                if (string.Equals(_stored, wanted, StringComparison.Ordinal))
+                // An empty value and no value mean the same to every reader, so neither is a
+                // change from the other: a stored empty value read as changed on opening, and the
+                // first edits that ended with no rules took the key away.
+                if (string.IsNullOrEmpty(_stored) && string.IsNullOrEmpty(writing))
                 {
                     return false;
+                }
+
+                if (_stored == null || writing == null)
+                {
+                    return true;
+                }
+
+                if (string.Equals(_stored, writing, StringComparison.Ordinal))
+                {
+                    return false;
+                }
+
+                // The dialog's own bytes going back is the change that undoes the edits before it.
+                if (string.Equals(writing, _opened, StringComparison.Ordinal))
+                {
+                    return true;
                 }
 
                 // Against the stored document written out again, so that the same rules spelled
                 // differently do not read as a change. Worked out once when `_stored` was set,
                 // because it cannot answer differently until that does, and because this is
                 // asked on every edit, twice, with `Document` built each time either way.
-                return _canonical == null || !string.Equals(_canonical, wanted, StringComparison.Ordinal);
+                return _canonical == null || !string.Equals(_canonical, writing, StringComparison.Ordinal);
+            }
+        }
+
+        /// <summary>
+        /// What storing the rules on the sheet puts in the dialog's copy: <see cref="Document"/>,
+        /// unless the rules mean what they meant when the dialog opened, and then what it opened
+        /// with, byte for byte.
+        /// </summary>
+        /// <remarks>
+        /// **The editor never writes the same rules in other words**, and that held only for a
+        /// sheet nobody had edited: after a write, a node whose rules were spelled by hand came
+        /// back from two edits that cancel, the seal on and off, in the writer's spelling, and the
+        /// entry dialog took the respelled value for a changed entry, with a revision in its
+        /// history and the database marked modified.
+        /// </remarks>
+        public string ToStore
+        {
+            get
+            {
+                var wanted = Document;
+                if (wanted == null)
+                {
+                    return string.IsNullOrEmpty(_opened) ? _opened : null;
+                }
+
+                return _openedCanonical != null && string.Equals(wanted, _openedCanonical, StringComparison.Ordinal)
+                    ? _opened
+                    : wanted;
             }
         }
 
@@ -511,10 +594,10 @@ namespace KeePassGate.Ui
         {
             if (!Unreadable)
             {
-                // What was written is what this wrote, so it is already the canonical form and
-                // needs no round trip to find that out.
-                _stored = Document;
-                _canonical = _stored;
+                // What was written is what this wrote, whose canonical form is the document the
+                // rules make, without a round trip to find that out.
+                _stored = ToStore;
+                _canonical = Document;
             }
         }
 

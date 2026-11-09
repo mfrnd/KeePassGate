@@ -1,4 +1,4 @@
-using System.Linq;
+using System.Collections.Generic;
 
 namespace KeePassGate.Ui
 {
@@ -131,8 +131,8 @@ namespace KeePassGate.Ui
         /// </summary>
         /// <remarks>
         /// Not the caption it has once a code is out, because the first press renews nothing: the
-        /// line above the box says no code is outstanding, and a button beside it offering to renew
-        /// one was offering something the page had just said does not exist.
+        /// empty box beside it shows that no code is outstanding, and a button offering to renew
+        /// one was offering something the page had just stated does not exist.
         /// </remarks>
         public const string InviteButtonText = "Invite";
 
@@ -202,7 +202,7 @@ namespace KeePassGate.Ui
         public const string CopyButtonName = "KpgCopyButton";
 
         /// <summary>What a screen reader calls the tab's contents, which have no caption.</summary>
-        public const string PanelAccessibleLabel = "KeePassGate settings for this database";
+        public const string PanelAccessibleLabel = GateName.Product + " settings for this database";
 
         /// <summary>What a screen reader calls the box holding an invitation code.</summary>
         public const string InvitationBoxLabel = "Invitation code";
@@ -259,6 +259,18 @@ namespace KeePassGate.Ui
             "The authority change is not applied yet. Press OK and reopen this dialog to pair.";
 
         /// <summary>
+        /// What it shows while a change that leaves no authority, a delete, is waiting for OK.
+        /// </summary>
+        /// <remarks>
+        /// The notice above tells the operator to press OK and reopen the dialog to pair, and after
+        /// a delete there is nothing to pair with once OK has been pressed: the line beside it
+        /// already states that the database has no authority. What is left to tell is that the
+        /// change has not been made yet.
+        /// </remarks>
+        public const string PendingDeleteNotice =
+            "Deleting the authority is not applied yet. It takes effect when OK is pressed.";
+
+        /// <summary>
         /// What it says while a profile edit is waiting for OK.
         /// </summary>
         /// <remarks>
@@ -274,23 +286,20 @@ namespace KeePassGate.Ui
             "The profile change is not applied yet. Press OK and reopen this dialog to pair.";
 
         /// <summary>
-        /// The longest of them, which is what the tab has to be measured against.
+        /// Every sentence the band over the invite button can hold, which is what the tab has to
+        /// be measured against.
         /// </summary>
         /// <remarks>
         /// Here rather than in the test that measures it, so that a further reason to say
         /// something above the invite button is measured by adding it to this rather than by
-        /// somebody remembering to. `GateTabFitsTests` is what reads it. How many reasons there are
-        /// has changed more than once, which is why the comparison is over a list rather than
-        /// written out.
+        /// somebody remembering to. `GateTabFitsTests` is what reads it, and it picks the widest in
+        /// the band's own font: more characters is not more pixels in a proportional font, and
+        /// the longest by count was the sentence measured.
         /// </remarks>
-        public static readonly string LongestInviteNotice = Longest(
-            PendingAuthorityNotice, PendingProfilesNotice);
-
-        private static string Longest(params string[] candidates)
+        public static readonly IReadOnlyList<string> InviteNotices = new[]
         {
-            return candidates.Aggregate(
-                string.Empty, (longest, candidate) => candidate.Length > longest.Length ? candidate : longest);
-        }
+            PendingAuthorityNotice, PendingDeleteNotice, PendingProfilesNotice
+        };
 
         /// <summary>The dialog raised when somebody asks to pair.</summary>
         public const string ApprovalFormName = "KpgApprovalForm";
@@ -347,15 +356,25 @@ namespace KeePassGate.Ui
             "This renewal request times out in {0} seconds, and nothing gets issued.";
 
         /// <summary>What the renewal dialog calls the moment the client's record was written.</summary>
-        public const string RenewalAdmittedFactName = "Admitted";
+        /// <remarks>
+        /// Each of the two moments names its zone, because every moment on screen is printed in
+        /// UTC and a bare moment reads as local time, wrong by the operator's own offset on the one
+        /// dialog where that date decides something.
+        /// </remarks>
+        public const string RenewalAdmittedFactName = "Admitted (UTC)";
 
         /// <summary>What it calls the end of the certificate the client holds now.</summary>
-        public const string RenewalExpiresFactName = "Its certificate expires";
+        public const string RenewalExpiresFactName = "Its certificate expires (UTC)";
 
         /// <summary>
         /// The menu the renewal dialog's Refuse button opens, listing what refusing can mean.
         /// </summary>
         public const string RefuseMenuName = "KpgRefuseMenu";
+
+        /// <summary>
+        /// What a screen reader calls that menu, which has no text of its own to name it.
+        /// </summary>
+        public const string RefuseMenuLabel = "Ways of refusing";
 
         public const string RefuseOnceName = "KpgRefuseOnce";
 

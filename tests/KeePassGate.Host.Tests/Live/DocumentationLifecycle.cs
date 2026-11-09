@@ -630,6 +630,10 @@ namespace KeePassGate.Host.Tests.Live
         /// The real run hands the password over a pipe, where the command shows no prompt, so the
         /// prompt, the stars and the two keys are drawn, as the pairing's are: a star for each
         /// character pasted, as the command's own prompt shows one at a terminal.
+        ///
+        /// The password goes over as it is, because `Execute` ends the line it writes. A line end
+        /// of its own made a second, empty line, and the command refuses input holding more than a
+        /// line rather than send the first.
         /// </remarks>
         private static Run Update(
             Storyboard story, string command, IDictionary<string, string> environment, string caption)
@@ -645,7 +649,7 @@ namespace KeePassGate.Host.Tests.Live
             story.Answered();
 
             var run = ReferenceClient.Execute(
-                Quietly(command), CommandTimeout, ThrowawayKeePass.RotatedPassword + "\n", environment);
+                Quietly(command), CommandTimeout, ThrowawayKeePass.RotatedPassword, environment);
             story.Print(run);
             story.Hold(220);
             return run;

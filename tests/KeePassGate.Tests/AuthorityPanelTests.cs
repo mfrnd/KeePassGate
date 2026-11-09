@@ -1,9 +1,12 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
+using System.Security.Cryptography.X509Certificates;
 using System.Threading;
 using System.Windows.Forms;
 using KeePassGate.Authority;
+using KeePassGate.Diagnostics;
 using KeePassGate.Tests.Fakes;
 using KeePassGate.Pairing;
 using KeePassGate.Acl;
@@ -177,13 +180,100 @@ namespace KeePassGate.Tests
             using (var panel = NewPanel(prompt))
             {
                 panel.CreateAuthority();
-                _database.Store.Plant(AuthorityKeys.ClientPrefix + "aaa", "record");
-                _database.Store.Plant(AuthorityKeys.ClientPrefix + "bbb", "record");
+                var store = new AdmissionStore(_database.PluginCustomData, null);
+                using (var first = IssueOwnClient("agent-one"))
+                using (var second = IssueOwnClient("agent-two"))
+                {
+                    store.Write(AdmissionRecord.For(first, DateTimeOffset.UtcNow, new[] { "ops" }));
+                    store.Write(AdmissionRecord.For(second, DateTimeOffset.UtcNow, new[] { "ops" }));
+                }
 
                 panel.RecreateAuthority();
 
                 Assert.That(prompt.LastQuestion, Does.Contain("revokes every client"));
                 Assert.That(prompt.LastQuestion, Does.Contain("2 clients are admitted"));
+            }
+        }
+
+        [Test]
+        public void Recreating_between_undecided_authorities_costs_the_clients_of_each()
+        {
+            // Nothing is served while several authorities wait to be chosen between, but choosing
+            // would keep the clients of the authority kept, and recreating keeps none.
+            var candidates = Undecided();
+            var prompt = new FakePrompt(false);
+            var store = new AdmissionStore(_database.PluginCustomData, null);
+            foreach (var candidate in candidates)
+            {
+                var key = CertificateBlob.Load(
+                    AuthorityDocument.Read(_database.Store.Get(AuthorityKeys.AuthorityKey(candidate)), null).Authority);
+                using (var client = new AuthorityIssuer().IssueClient(key, "agent-" + candidate.Substring(0, 4), new[] { "ops" }).Read())
+                {
+                    store.Write(AdmissionRecord.For(client, DateTimeOffset.UtcNow, new[] { "ops" }));
+                }
+            }
+
+            using (var panel = NewPanel(prompt))
+            {
+                panel.RecreateAuthority();
+
+                Assert.That(prompt.LastQuestion, Does.Contain("2 clients are admitted"));
+            }
+        }
+
+        [Test]
+        public void A_record_the_gate_refuses_costs_nothing_to_recreate()
+        {
+            // Counted as the clients page judges its rows: a record of another authority, a record
+            // not for a client to present and a record that will not read admit nobody, so
+            // recreating takes nobody's admission away. All three were counted as clients that
+            // would pair again.
+            var prompt = new FakePrompt(false);
+            using (var panel = NewPanel(prompt))
+            using (var elsewhere = TestAuthority.New())
+            using (var foreign = elsewhere.IssueClient("agent-elsewhere", "ops"))
+            {
+                panel.CreateAuthority();
+                var store = new AdmissionStore(_database.PluginCustomData, null);
+                store.Write(AdmissionRecord.For(foreign, DateTimeOffset.UtcNow, new[] { "ops" }));
+                using (var host = new AuthorityIssuer().IssueHost(OwnAuthority()).Read())
+                {
+                    store.Write(AdmissionRecord.For(host, DateTimeOffset.UtcNow, new[] { "ops" }));
+                }
+
+                _database.Store.Plant(AuthorityKeys.ClientPrefix + "aaa", "record");
+                Assume.That(panel.AdmittedClients().Records, Has.Count.EqualTo(2));
+
+                panel.RecreateAuthority();
+
+                Assert.That(prompt.LastQuestion, Does.Contain("No client has been admitted yet"));
+            }
+        }
+
+        [Test]
+        public void Deleting_records_left_without_an_authority_says_they_admit_nobody()
+        {
+            // Delete is offered with no authority when records outlived it, and the question
+            // written for a live authority told the operator that deleting stops the database
+            // being served and that its clients would pair again, beside a page calling the
+            // records inert.
+            var prompt = new FakePrompt(false);
+            using (var elsewhere = TestAuthority.New())
+            using (var client = elsewhere.IssueClient("agent-left", "ops"))
+            {
+                new AdmissionStore(_database.PluginCustomData, null)
+                    .Write(AdmissionRecord.For(client, DateTimeOffset.UtcNow, new[] { "ops" }));
+            }
+
+            using (var panel = NewPanel(prompt))
+            {
+                Assume.That(Button(panel, GateTab.DeleteButtonName).Enabled, Is.True);
+
+                panel.DeleteAuthority();
+
+                Assert.That(prompt.LastQuestion, Does.Contain("admit nobody"));
+                Assert.That(prompt.LastQuestion, Does.Not.Contain("stops this database being served"));
+                Assert.That(prompt.LastQuestion, Does.Not.Contain("pair again"));
             }
         }
 
@@ -194,15 +284,16 @@ namespace KeePassGate.Tests
             // two clients that would have to pair again.
             var prompt = new FakePrompt(false);
             using (var panel = NewPanel(prompt))
-            using (var issuer = TestAuthority.New())
-            using (var older = issuer.IssueClient("agent-renewing", "ops"))
-            using (var renewed = issuer.IssueClient("agent-renewing", "ops"))
             {
                 panel.CreateAuthority();
-                var store = new AdmissionStore(_database.PluginCustomData, null);
-                var paired = AdmissionRecord.For(older, DateTimeOffset.UtcNow.AddDays(-1), new[] { "ops" });
-                store.Write(paired);
-                store.Write(AdmissionRecord.For(renewed, DateTimeOffset.UtcNow, new[] { "ops" }, paired.ClientKey));
+                using (var older = IssueOwnClient("agent-renewing"))
+                using (var renewed = IssueOwnClient("agent-renewing"))
+                {
+                    var store = new AdmissionStore(_database.PluginCustomData, null);
+                    var paired = AdmissionRecord.For(older, DateTimeOffset.UtcNow.AddDays(-1), new[] { "ops" });
+                    store.Write(paired);
+                    store.Write(AdmissionRecord.For(renewed, DateTimeOffset.UtcNow, new[] { "ops" }, paired.ClientKey));
+                }
 
                 panel.RecreateAuthority();
 
@@ -216,14 +307,15 @@ namespace KeePassGate.Tests
             // Each would have to pair again, whatever name they chose.
             var prompt = new FakePrompt(false);
             using (var panel = NewPanel(prompt))
-            using (var issuer = TestAuthority.New())
-            using (var first = issuer.IssueClient("agent", "ops"))
-            using (var second = issuer.IssueClient("agent", "ops"))
             {
                 panel.CreateAuthority();
                 var store = new AdmissionStore(_database.PluginCustomData, null);
-                store.Write(AdmissionRecord.For(first, DateTimeOffset.UtcNow.AddDays(-1), new[] { "ops" }));
-                store.Write(AdmissionRecord.For(second, DateTimeOffset.UtcNow, new[] { "ops" }));
+                using (var first = IssueOwnClient("agent"))
+                using (var second = IssueOwnClient("agent"))
+                {
+                    store.Write(AdmissionRecord.For(first, DateTimeOffset.UtcNow.AddDays(-1), new[] { "ops" }));
+                    store.Write(AdmissionRecord.For(second, DateTimeOffset.UtcNow, new[] { "ops" }));
+                }
 
                 panel.RecreateAuthority();
 
@@ -524,6 +616,16 @@ namespace KeePassGate.Tests
             {
                 return null;
             }
+
+            public bool Unreadable
+            {
+                get { return false; }
+            }
+
+            public string StartNew()
+            {
+                return null;
+            }
         }
 
         /// <summary>A database whose custom data cannot even be asked for, which stops a tab being built.</summary>
@@ -702,6 +804,45 @@ namespace KeePassGate.Tests
                 Assert.That(left.Count, Is.EqualTo(1));
                 Assert.That(left[0].Subject, Does.Contain("agent-invented"),
                     "revoking one client must not be recreating the authority in disguise");
+            }
+        }
+
+        [Test]
+        public void A_record_stored_with_no_certificate_after_its_prefix_can_be_taken_away()
+        {
+            // Listed as an unreadable record with an empty key, and its X answered that there was
+            // no client to revoke, so the row could never go.
+            using (var panel = NewPanel(true))
+            {
+                _database.Store.Plant(AuthorityKeys.ClientPrefix, "x");
+                Assume.That(panel.AdmittedClients().Unreadable, Is.EqualTo(new[] { string.Empty }));
+
+                Assert.That(panel.Revoke(string.Empty), Is.Null);
+
+                Assert.That(_database.Store.Get(AuthorityKeys.ClientPrefix), Is.Null);
+                Assert.That(panel.AdmittedClients().Unreadable, Is.Empty);
+                Assert.That(panel.Revoke(string.Empty), Is.EqualTo("there is no client to revoke"));
+            }
+        }
+
+        [Test]
+        public void A_revocation_pressed_on_the_tab_is_not_logged_before_OK_lands_it()
+        {
+            // The log said an admission record was removed as X was pressed, and a Cancel left the
+            // line standing over a client still admitted. OK logs what it lands.
+            var pending = new PendingDatabase(_database, null);
+            using (var panel = new AuthorityPanel(pending, new FakePrompt(true), _log))
+            {
+                var going = Admit("agent-fictitious", DateTimeOffset.UtcNow);
+                var before = _log.Entries.Count;
+
+                Assume.That(panel.Revoke(going.AdmissionKey), Is.Null);
+
+                Assert.That(_log.Entries.Skip(before).Select(entry => entry.Message), Is.Empty);
+
+                pending.Discard();
+                Assert.That(new AdmissionStore(_database.Store, null).All().Records, Has.Count.EqualTo(1),
+                    "and the client is still admitted");
             }
         }
 
@@ -1372,6 +1513,45 @@ namespace KeePassGate.Tests
             }
         }
 
+        [Test]
+        public void The_facts_follow_the_panel_to_a_larger_font()
+        {
+            // S417: the bold font of the values was made once, from the system's, so a dialog whose
+            // font is not the system's drew the values smaller than the names beside them, and the
+            // scaled fit test measured the table with them at a size nobody sees. The names had
+            // been given the panel's font as it was, which stopped them following it as well.
+            using (var panel = NewPanel(true))
+            using (var larger = new System.Drawing.Font(panel.Font.FontFamily, 12f))
+            {
+                panel.CreateAuthority();
+                panel.DrawLongestFacts();
+
+                panel.Font = larger;
+                AssertFactsIn(panel, larger, "the facts drawn before the change");
+
+                panel.DrawLongestFacts();
+                AssertFactsIn(panel, larger, "the facts drawn after it");
+            }
+        }
+
+        private static void AssertFactsIn(Control panel, System.Drawing.Font font, string which)
+        {
+            var table = ControlTree.FindByName<TableLayoutPanel>(panel, GateTab.FactsTableName);
+            Assert.That(table.RowCount, Is.GreaterThan(0), "there are no facts to ask");
+
+            for (var row = 0; row < table.RowCount; row++)
+            {
+                var name = table.GetControlFromPosition(0, row);
+                var value = table.GetControlFromPosition(1, row);
+
+                Assert.That(name.Font.SizeInPoints, Is.EqualTo(font.SizeInPoints).Within(0.01f),
+                    which + ": the name " + name.Text + " kept its size");
+                Assert.That(value.Font.SizeInPoints, Is.EqualTo(font.SizeInPoints).Within(0.01f),
+                    which + ": the value of " + name.Text + " kept its size");
+                Assert.That(value.Font.Bold, Is.True, which + ": the value of " + name.Text + " is no longer bold");
+            }
+        }
+
         /// <summary>
         /// What the facts table says beside a name. The count lives there rather than in the
         /// sentences below it, so this is where a test asks about it.
@@ -1415,6 +1595,25 @@ namespace KeePassGate.Tests
         }
 
         [Test]
+        public void A_delete_waiting_for_OK_is_not_followed_by_reopening_the_dialog_to_pair()
+        {
+            // The notice written for a create told the operator to press OK and reopen the dialog
+            // to pair, under a line stating that the database has no authority: after the delete
+            // there is nothing to pair with.
+            new AuthorityService(_database.Store, null).Create();
+            var pending = new PendingDatabase(_database, null);
+
+            using (var panel = new AuthorityPanel(pending, new FakePrompt(true), _log, new InvitationBook(_log)))
+            {
+                panel.DeleteAuthority();
+
+                Assert.That(panel.AuthorityIsWaiting, Is.True);
+                Assert.That(Label(panel, GateTab.InviteNoticeName).Text, Is.EqualTo(GateTab.PendingDeleteNotice));
+                Assert.That(GateTab.PendingDeleteNotice, Does.Not.Contain("pair"));
+            }
+        }
+
+        [Test]
         public void The_clients_page_says_when_the_gate_cannot_see_the_authority_yet()
         {
             // The one place the waiting arrangement costs something, and it is invisible from where
@@ -1439,6 +1638,62 @@ namespace KeePassGate.Tests
                 panel.Describe();
 
                 Assert.That(panel.AuthorityIsWaiting, Is.False, "once it is in the database");
+            }
+        }
+
+        [Test]
+        public void A_code_made_before_a_profile_edit_is_withdrawn_by_the_edit()
+        {
+            // The operator's ruling of 2026-11-08. The dead button stopped a new code, and a code
+            // made before the edit stayed in the box, copyable and good, under a band telling the
+            // operator to press OK and reopen the dialog to pair: a client could still pair against
+            // a list OK is about to change. The edit takes it back, as Cancel does.
+            var pending = new PendingDatabase(_database, null);
+
+            using (var book = new InvitationBook(_log))
+            using (var panel = new AuthorityPanel(
+                pending, new FakePrompt(true), _log, new PendingInvitations(book),
+                new DatabaseProfiles(pending, null)))
+            {
+                panel.CreateAuthority();
+                pending.Apply();
+                panel.Describe();
+                var digest = Digest();
+
+                panel.InviteClient();
+                Assume.That(book.For(digest), Is.Not.Empty);
+                Assume.That(TextBox(panel, GateTab.InvitationBoxName).Text, Is.Not.Empty);
+
+                Assert.That(ControlTree.FindByName<ProfileList>(panel, ProfileList.ControlName).Add("ops"),
+                    Does.Contain("available to grant"));
+
+                Assert.That(panel.ProfilesAreWaiting, Is.True);
+                Assert.That(book.For(digest), Is.Empty, "the code made on this dialog still pairs");
+                Assert.That(TextBox(panel, GateTab.InvitationBoxName).Text, Is.Empty);
+                Assert.That(Button(panel, GateTab.CopyButtonName).Enabled, Is.False);
+            }
+        }
+
+        [Test]
+        public void A_code_from_an_accepted_dialog_is_not_the_profile_edit_s_to_take_back()
+        {
+            // What the edit takes back is what Cancel would: the codes made on this dialog.
+            var pending = new PendingDatabase(_database, null);
+
+            using (var book = new InvitationBook(_log))
+            using (var panel = new AuthorityPanel(pending, new FakePrompt(true), _log, new PendingInvitations(book), null))
+            {
+                panel.CreateAuthority();
+                pending.Apply();
+                var digest = Digest();
+                var earlier = book.Invite(digest);
+
+                var names = ProfileNames.Read(null);
+                Assume.That(names.Add("ops"), Is.Null);
+                pending.PluginCustomData.Set(ProfileNames.CustomDataKey, names.Write());
+                panel.Describe();
+
+                Assert.That(book.For(digest).Select(invitation => invitation.Id), Is.EqualTo(new[] { earlier.Id }));
             }
         }
 
@@ -1628,6 +1883,51 @@ namespace KeePassGate.Tests
         }
 
         [Test]
+        public void The_chooser_on_the_tab_reads_the_audit_the_plugin_handed_it()
+        {
+            // It read the audit's variable again, which a relative path resolves against wherever
+            // KeePass's working directory had moved to, while the audit itself resolved it once.
+            var candidates = Undecided();
+            var key = CertificateBlob.Load(
+                AuthorityDocument.Read(_database.Store.Get(AuthorityKeys.AuthorityKey(candidates[0])), null).Authority);
+            string admission;
+            using (var client = new AuthorityIssuer().IssueClient(key, "agent-audited", new[] { "ops" }).Read())
+            {
+                var record = AdmissionRecord.For(client, DateTimeOffset.UtcNow, new[] { "ops" });
+                new AdmissionStore(_database.PluginCustomData, null).Write(record);
+                admission = record.AdmissionKey;
+            }
+
+            var audit = Paths.Join(Path.GetTempPath(), "KeePassGateTests", Guid.NewGuid().ToString("N") + ".jsonl");
+            Directory.CreateDirectory(Path.GetDirectoryName(audit));
+            File.WriteAllText(audit, "{\"at\":\"2026-09-20T10:30:00Z\",\"admissionKey\":\"" + admission + "\"}\n");
+
+            try
+            {
+                using (var panel = NewPanel(true))
+                {
+                    AuthorityChoice asked = null;
+                    panel.AuditPath = () => audit;
+                    panel.AskWhichToKeep = (choice, name) =>
+                    {
+                        asked = choice;
+                        return null;
+                    };
+
+                    panel.ChooseAuthority();
+
+                    Assert.That(asked.LastSeenKnown, Is.True);
+                    Assert.That(asked.Options.Single(o => o.Fingerprint == candidates[0]).Clients.Single().LastSeen,
+                        Is.EqualTo(new DateTimeOffset(2026, 9, 20, 10, 30, 0, TimeSpan.Zero)));
+                }
+            }
+            finally
+            {
+                File.Delete(audit);
+            }
+        }
+
+        [Test]
         public void Choosing_from_the_tab_waits_for_the_dialog_s_OK_like_everything_else_on_it()
         {
             var candidates = Undecided();
@@ -1709,6 +2009,19 @@ namespace KeePassGate.Tests
             return new AuthorityPanel(_database, prompt, _log);
         }
 
+        /// <summary>The authority the panel created, as the key it issues with.</summary>
+        private CertifiedKey OwnAuthority()
+        {
+            var stored = _database.Store.Get(AuthorityKeys.AuthorityKey(Digest()));
+            return CertificateBlob.Load(AuthorityDocument.Read(stored, null).Authority);
+        }
+
+        /// <summary>A client of the panel's own authority, for the caller to dispose.</summary>
+        private X509Certificate2 IssueOwnClient(string name)
+        {
+            return new AuthorityIssuer().IssueClient(OwnAuthority(), name, new[] { "ops" }).Read();
+        }
+
         private string Digest()
         {
             using (var reading = new AuthorityService(_database.Store, null).Read())
@@ -1729,6 +2042,13 @@ namespace KeePassGate.Tests
             var button = ControlTree.FindByName<Button>(panel, name);
             Assert.That(button, Is.Not.Null, "no button called " + name);
             return button;
+        }
+
+        private static TextBox TextBox(Control panel, string name)
+        {
+            var box = ControlTree.FindByName<TextBox>(panel, name);
+            Assert.That(box, Is.Not.Null, "no box called " + name);
+            return box;
         }
 
         private static TextBox Box(Control panel, string name)

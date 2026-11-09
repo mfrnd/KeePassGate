@@ -16,8 +16,8 @@ just approved.
 | --- | --- |
 | **Client** | the name the program asked to be called when it paired |
 | **Profiles** | the profiles approved for it, which is what its rules are worked out from. One this database no longer names is dimmed and marked "(removed)": the client still holds it, and it grants nothing unless the name is added back |
-| **Admitted** | when it was approved, in UTC and to the second |
-| **Until** | when its certificate stops working, or why it does not work at all |
+| **Admitted (UTC)** | when it was approved, to the second |
+| **Until (UTC)** | when its certificate stops working, or why it does not work at all |
 | **X** | takes this client's admission away |
 
 **Resting the pointer on a row names its keys in full**: the **client key**, which is the
@@ -33,7 +33,7 @@ beside the names, and it does not scroll.
 
 **A name in red** is a client whose renewals stand refused, by one of the
 [standing answers](#taking-a-standing-answer-back) the renewal dialog can give. Resting the pointer
-on any of the row's text says which one, above the keys: refused forever, until a day, or in this
+on any of the row's text states which one, above the keys: refused forever, until a day, or in this
 session. A screen
 reader is told the same words as the row's description. A selected row keeps the list's own
 colors, so the red shows only while the row is not selected.
@@ -43,21 +43,21 @@ key on the selected row. For a client with a standing answer, its first line sta
 grayed out, and under it are **Allow renewal**, which takes the answer back, and **Revoke**, which
 does what the **X** does. For any other client, Allow renewal is grayed out.
 
-A client whose certificate has expired is refused like any other, and **Until** says `expired`
-instead of a date, by this computer's clock. The row goes with the next change the plugin itself
-makes to the database: revoking a client, pairing or renewing one, a client revoking itself, or
-keeping, recreating or deleting the authority. The plugin's log names each row that goes that way,
-because a clock set wrong can cost one that setting it right does not bring back. Until then it says
-`expired`, because a row that has expired and a row somebody removed look the same once the row is
-gone, and only one of them needs doing anything about.
+A client whose certificate has expired is refused like any other, and **Until (UTC)** states
+`expired` instead of a date, by this computer's clock. The row goes with the next change the plugin
+itself makes to the database: revoking a client, pairing or renewing one, a client revoking itself,
+or keeping, recreating or deleting the authority. The plugin's log names each row that goes that
+way, because a clock set wrong can cost one that setting it right does not bring back. Until then it
+states `expired`, because a row that has expired and a row somebody removed look the same once the
+row is gone, and only one of them needs doing anything about.
 
-**Until** says `not this authority` for a record whose certificate this database's authority did not
-issue. The gate checks that before anything else, so such a record grants nothing whatever its dates
-say, and a date there would be the one thing about the row that is not true. Records reach that
-state by outliving the authority that made sense of them: an authority recreated or deleted while a
-program was pairing, the authorities not kept when a database held more than one, or a synchronize
-or a partial restore carrying records across. Removing them is the same **X**, and there is nothing
-else to do with them.
+**Until (UTC)** states `not this authority` for a record whose certificate this database's authority
+did not issue. The gate checks that before anything else, so such a record grants nothing whatever
+its dates state, and a date there would be the one thing about the row that is not true. Records
+reach that state by outliving the authority that made sense of them: an authority recreated or
+deleted while a program was pairing, the authorities not kept when a database held more than one, or
+a synchronize or a partial restore carrying records across. Removing them is the same **X**, and
+there is nothing else to do with them.
 
 Two more phrases take the date's place, for the two things the gate asks next, in the order it asks
 them. `not for client use` is a certificate this authority issued for something other than a
@@ -68,11 +68,11 @@ that is wrong on the machine that issued it, or on the one reading the file, pro
 nothing until then. The expiry warnings on the Certificate Authority page leave all three out,
 since the gate refuses them before their end matters.
 
-**A record that cannot be read at all** is listed too, after the clients: damaged by a merge,
-edited by hand, or written by a later version of the plugin. It admits nobody and has nothing to
-show but the start of the key it is stored under, so the row holds that, `cannot be read` under
-**Until**, and the **X**, which takes it away like any other, once OK is pressed. The Certificate
-Authority page counts such a record and says how many cannot be read.
+**A record that cannot be read at all** is listed too, after the clients: damaged by a merge, edited
+by hand, or written by a later version of the plugin. It admits nobody and has nothing to show but
+the start of the key it is stored under, so the row holds that, `cannot be read` under
+**Until (UTC)**, and the **X**, which takes it away like any other, once OK is pressed. The
+Certificate Authority page counts such a record and states how many cannot be read.
 
 The list is read from the open database rather than remembered, so it never shows a client that
 has gone or misses one that has arrived. A program that pairs while this dialog is open is added
@@ -83,7 +83,7 @@ the page to the front reads the database again anyway.
 
 Press the **X** at the end of a client's row, or choose **Revoke** on the row's menu.
 
-The row goes, and the page says so. **Nothing has happened to the database yet**: press **OK** on
+The row goes, and the page states so. **Nothing has happened to the database yet**: press **OK** on
 the settings dialog to make it real, then **save the database** to write it to disk. Cancel discards
 the revocation along with everything else done on this tab.
 
@@ -121,10 +121,10 @@ A revocation survives a synchronize and an import, including one from a copy of 
 the client was still admitted. Revoking adds a mark of its own to the database, beside the client's
 record, and the mark is never changed afterwards. KeePass merges by adding what the other copy has
 and never takes a mark away, so the client stays refused whatever the other copy holds, whatever
-the clocks of the computers involved say, and whether or not the file kept the time of each change.
+the clocks of the computers involved show, and whether or not the file kept the time of each change.
 
 The other copy can still bring the client's record back. It admits nobody, and it is not listed as
-a client: a line under the list says how many revoked clients reappeared in a merge, and that they
+a client: a line under the list states how many revoked clients reappeared in a merge, and that they
 stay refused. The next change the plugin itself makes to the database takes those records away and
 the line with them: revoking another client, pairing or renewing one, a client revoking itself, or
 keeping, recreating or deleting the authority.
@@ -173,14 +173,15 @@ certificate of a year, ten for one of a month, a little over two for one of a we
 certificate is not reported as about to expire from the day it was issued.
 
 **A program that is about to expire asks to renew**, and KeePass raises a dialog like the pairing
-one, in front and without taking the keyboard, with no invitation to hand out first: it says which
-program is asking, when it was admitted, when the certificate it holds now ends, where the request
-came from, and the profiles it holds, all checked. Uncheck anything the new certificate should not
-carry; nothing can be added. The certificate it holds now keeps every profile until it is given up,
-so to take one away at once, revoke the older row once the renewal is approved. A profile this
-database no longer names is not offered, and a line under the list says it is not carried over. Pick
-how long the new certificate lasts, as on the pairing dialog. A program that asks again while its
-dialog is still up is told to wait, so the dialog never comes up twice for one certificate.
+one, in front and without taking the keyboard, with no invitation to hand out first: it names which
+program is asking, when it was admitted and when the certificate it holds now ends, both in UTC as
+the dialog marks them, where the request came from, and the profiles it holds, all checked. Uncheck
+anything the new certificate should not carry; nothing can be added. The certificate it holds now
+keeps every profile until it is given up, so to take one away at once, revoke the older row once the
+renewal is approved. A profile this database no longer names is not offered, and a line under the
+list states it is not carried over. Pick how long the new certificate lasts, as on the pairing
+dialog. A program that asks again while its dialog is still up is told to wait, so the dialog never
+comes up twice for one certificate.
 
 ![The renewal dialog with its Refuse menu open](images/renewal-approval.png)
 
@@ -193,35 +194,37 @@ click anywhere else puts it away, and a click on **Approve** that puts it away a
 - **Refuse in this session** answers every renewal of that certificate without asking until KeePass
   exits. It is kept in the plugin's memory and not in the database, so it goes when KeePass closes,
   and the next renewal after that raises the dialog again.
-- **Refuse until a date...** asks for a day, from tomorrow to the day the certificate ends, with a
-  week from today already chosen, and answers every renewal of that certificate without asking
-  until that day begins. **Cancel** there goes back to the renewal dialog with nothing decided. On
-  the certificate's last day there is no day left to name, so the choice is grayed out and says
-  the certificate ends today.
+- **Refuse until a date...** asks for a day, from tomorrow to the day the certificate ends, both
+  where the operator is rather than in UTC, with a week from today already chosen, and answers every
+  renewal of that certificate without asking until that day begins there. **Cancel** there goes
+  back to the renewal dialog with nothing decided. On the certificate's last day there is no day
+  left to name, so the choice is grayed out and states that the certificate ends today.
 - **Refuse forever** answers every renewal of it without asking at all, so the program has to pair
   again for a new certificate before this one runs out, unless the answer is taken back.
 
 The last two are kept in the database. If KeePass is busy when either is given, saving or with
 Database Maintenance open, it holds at once all the same, from KeePass's memory, and is written to
-the database with its next save, yours or the plugin's, once Database Maintenance is closed on it.
-An answer still unwritten when KeePass exits is lost, and KeePass tells you so as it closes, naming
-the certificate, so that nobody is surprised when the dialog comes back for that program. **A later
-answer about the same certificate is the answer that counts**: an answer given on a later dialog, or
-an answer a synchronize brought in from another copy, is kept, and the answer still waiting is let
-go, as an answer until a date whose day has begun is.
+the database with its next save, the operator's or the plugin's, once Database Maintenance is closed
+on it. An answer still unwritten when KeePass exits is lost, and KeePass tells the operator so as it
+closes, naming the certificate, so that nobody is surprised when the dialog comes back for that
+program. At a Windows logoff or shutdown that goes to the plugin's log alone, since a message then
+would hold the logoff up with nobody there to read it. **A later answer about the same certificate
+is the answer that counts**: an answer given on a later dialog, or an answer a synchronize brought
+in from another copy, is kept, and the answer still waiting is let go, as an answer until a date
+whose day has begun is.
 
-The plugin's log says what was answered and when, and the audit file records every renewal the
+The plugin's log states what was answered and when, and the audit file records every renewal the
 operator answered or left unanswered, one refused without asking included. An approval is written
 there when its record lands, which may be on the program's next try, below; one that issued
-nothing, because the new record did not reach the disk, has no line there, and the log says why.
+nothing, because the new record did not reach the disk, has no line there, and the log states why.
 One until a date or forever goes with the revocation of the certificate it was about, and once that
 certificate has expired, with the next change the plugin itself makes to the database, as an
 expired row does.
 
 Approving writes a new record beside the old one rather than replacing it, so the program is listed
-twice under one name, told apart by **Admitted** and **Until**, until it gives the old certificate
-up, which the reference client does as soon as it has stored the new one. A program that does not
-leaves the old row on the list until its own date; revoke it once the new one is approved.
+twice under one name, told apart by **Admitted (UTC)** and **Until (UTC)**, until it gives the old
+certificate up, which the reference client does as soon as it has stored the new one. A program that
+does not leaves the old row on the list until its own date; revoke it once the new one is approved.
 
 **If KeePass is still busy a moment after Approve is pressed**, saving or with a dialog open that
 would take the new record back, nothing is issued yet and the approval is kept, in KeePass's memory
@@ -249,7 +252,7 @@ answered by recreating the authority, as above, however long it has left.
 
 A client whose renewals stand refused has its name in red on the list. Open its row's menu and
 choose **Allow renewal**: it takes back whichever answer stands, forever, until a day or in this
-session, and the menu's first line says which one that is before anything is chosen.
+session, and the menu's first line states which one that is before anything is chosen.
 
 ![The clients page with two refused clients and one row's menu open](images/clients-standing-answers.png)
 

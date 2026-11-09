@@ -52,7 +52,7 @@ namespace KeePassGate.Ui
             }
 
             Name = GateTab.RefuseUntilFormName;
-            Text = "KeePassGate: refuse renewals until a day";
+            Text = GateName.Product + ": refuse renewals until a day";
             FormBorderStyle = FormBorderStyle.FixedDialog;
             StartPosition = FormStartPosition.CenterParent;
             MinimizeBox = false;
@@ -61,7 +61,7 @@ namespace KeePassGate.Ui
             TopMost = true;
             AutoSize = true;
             AutoSizeMode = AutoSizeMode.GrowAndShrink;
-            Padding = new Padding(Spacing.Window);
+            Padding = new Padding(LogicalToDeviceUnits(Spacing.Window));
 
             var layout = new FlowLayoutPanel
             {
@@ -79,7 +79,7 @@ namespace KeePassGate.Ui
                 Text = Explanation,
                 AutoSize = true,
                 MaximumSize = new Size(Wrap(Font), 0),
-                Margin = new Padding(0, 0, 0, Spacing.Gap)
+                Margin = new Padding(0, 0, 0, LogicalToDeviceUnits(Spacing.Gap))
             });
 
             _calendar = new MonthCalendar
@@ -109,7 +109,7 @@ namespace KeePassGate.Ui
                 AutoSize = true,
                 AutoSizeMode = AutoSizeMode.GrowAndShrink,
                 Anchor = AnchorStyles.Right,
-                Margin = new Padding(0, Spacing.Gap, 0, 0)
+                Margin = new Padding(0, LogicalToDeviceUnits(Spacing.Gap), 0, 0)
             };
 
             var refuse = new Button
@@ -121,7 +121,7 @@ namespace KeePassGate.Ui
                 AutoSize = true,
                 AutoSizeMode = AutoSizeMode.GrowAndShrink,
                 DialogResult = DialogResult.OK,
-                Margin = new Padding(0, 0, Spacing.Gap, 0)
+                Margin = new Padding(0, 0, LogicalToDeviceUnits(Spacing.Gap), 0)
             };
 
             var cancel = new Button

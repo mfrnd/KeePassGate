@@ -11,6 +11,90 @@ none, since it releases both.
 
 ## 0.2.0, unreleased
 
+- **With no code out, the clients page shows it in the empty code box rather than on a line over
+  it.** The line stated what the box beside it already showed, and the client list has that line
+  back. The gray text is never the box's text, so the copy button stays dead over it and nothing
+  can copy it.
+- **A renewal refused for this session shows on an open clients page at once.** The page draws a
+  client's name red from every answer that refuses its renewals, and an answer for this session, or
+  an answer the database could not take when it was given, is held in the plugin's memory, which
+  nothing told the page about: the name stayed black until the page was drawn again for some other
+  reason.
+- **The access editor offers a profile named while its dialog is open.** A pairing approved over a
+  group or an entry dialog can name a profile the database did not, and the editor read the
+  database's profiles once, as the dialog opened: the new name was missing from its pick list, and a
+  rule for a name put back stayed struck through as granting nothing. It reads them again when its
+  tab comes forward and when a record lands.
+- **A screen reader names every X on the KPG tab and the access editor by what pressing it does.**
+  The columns of Xs on the clients, the profiles and the rules are headed by a painted bin, over a
+  heading left empty, and a table names a cell by its heading and its row, so each X was read out as
+  a row number and an X. The headings now hold Revoke, Remove profile and Remove rule, which are
+  never drawn and take no room.
+- **On a Windows without Consolas the invitation code goes under the Invite button rather than past
+  the page.** The code falls back to Courier New there, and at 100 percent a whole code no longer
+  fits beside the button once it reads Renew invite, so the row ran 12 pixels past the tab. The box
+  now takes a line of its own wherever a whole code does not fit beside the button.
+- **The KPG tab's facts and the access editor's masks take the font of the dialog they are on.**
+  Both were drawn in fonts made once, at the size the tab was built at, so on a dialog whose font
+  is not the system's the bold values were smaller than the names beside them, and the masks
+  smaller than the profiles.
+- **The authority chooser and the clients page name UTC in the headings of their moment columns**,
+  Created, Admitted and Last request on the chooser and Admitted and Until on the clients page, as
+  the renewal dialog now names it beside its two moments. Every moment on screen is printed in UTC,
+  and a bare moment read as local time.
+- **The access editor's tooltips tell the operator what the row can do.** A profile cut in its
+  column is shown whole on hover; an inherited row is no longer told to remove and recreate a rule
+  it does not hold; a tab that cannot be changed, a history revision among them, no longer offers a
+  choice or a Discard that does nothing; a removed profile's rule from above on a sealed node no
+  longer promises that adding the name back puts it in force; and a revision's rules from above are
+  named as what the groups grant now.
+- **A write or a pairing still in progress as KeePass exits is logged as meeting a window that has
+  gone**, rather than as KeePass not answering in time, and a pairing or renewal then is no longer
+  audited as a dialog nobody answered when no dialog was shown.
+- **Creating and deleting an authority on one settings dialog leaves the database as it was.** The
+  delete retired the authority the create had made, and OK wrote that retirement for an authority
+  the file never held, a key kept for good that made the database read as one that had retired
+  every authority it had. Two recreates on one dialog did the same to the authority between them.
+- **The clients page names a revocation and a lifted answer as waiting for OK**, which they do. The
+  line under the list stated that the client could no longer reach the database, or that its next
+  renewal raised the dialog again, while the dialog had changed nothing yet, and the plugin's log
+  wrote the revocation and the lift down as they were pressed, where a Cancel left the lines
+  standing. The log now names each as the dialog's OK lands it.
+- **The Profiles page shows a stored list that will not read, and writes over it only when told
+  to.** It showed such a list as naming nothing, with no warning, and its first Add or Remove at OK
+  replaced the damaged value and every name it held. Add and Remove now stay off under a line stating
+  that the list will not read, until **Replace it with a new list** is pressed, and the tab's OK leaves a
+  list that turned unreadable while the dialog was open as it is.
+- **A profile edit on the KPG tab takes back the code made on the dialog**, as Cancel does. The edit
+  killed the invite button, but a code made before it stayed on screen, copyable and good, so a
+  program could still pair against a list OK was about to change.
+- **What the KPG tab and the authority chooser call clients are the clients the gate lets in.** The
+  Recreate and Delete confirmations, the Profiles page's counts and the chooser counted every
+  readable record, among them records of another authority, not for client use, not yet valid or
+  expired, which the clients page marks as refused. They now judge each record as that page does.
+- **No stray key keeps an authority on the chooser.** Keep carried an access key, so a bare K typed
+  while either button had the focus kept the selected authority and retired every other for good,
+  and Enter on a focused Keep kept as well. Keep now takes a click or Space, as Approve does.
+- **The renewal dialog marks its two moments as UTC, and its refuse-until range runs where the
+  operator is.** The moments read as local time with nothing marking them. The calendar ran from a
+  local tomorrow to the date of the certificate's end in UTC, so far east of Greenwich the choice
+  was grayed out a day early, and far west it offered a day whose refusal began after the
+  certificate had stopped.
+- **The message after a port change tells the operator that clients pair again**, rather than that
+  they have to be told the new port. PyKeePassGate keeps the port it paired against and offers no
+  way to change it, as the getting started page already stated.
+- **A port typed outside 1024 to 65535 on the Tools window is refused rather than moved into the
+  range.** The box held itself to the range, so 80 was saved as 1024 and 70000 as 65535 without a
+  word, and the refusal written for the number could never be shown.
+- **OK on the Tools window writes the port in its box while `KEEPASSGATE_PORT` names no port.** The
+  next start then takes nothing, and the box offers 51776, but OK on it untouched answered that
+  nothing had changed and wrote nothing, so the default was the one port the window could not
+  choose over the variable.
+- **A Windows logoff or shutdown is no longer held up by the message about standing answers never
+  written.** KeePass unloads the plugin inside the session's end, and the message box waited there
+  for an answer nobody was at the desk to give, until Windows gave up on KeePass. At a logoff or a
+  shutdown the answers go to the plugin's log alone; an exit the operator starts still shows the
+  message, and shows it once however often the plugin is told to stop.
 - **Every method that reads or writes one group or entry with its tag takes the three retry
   budgets and a `connection_timeout`**, keyword-only and for that call alone: the reads of a
   group, an entry, a field or an attachment and the listings of fields and attachments, `head`,

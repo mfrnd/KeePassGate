@@ -217,7 +217,8 @@ designing around them.
   left out, said on the page as it goes and named in the log at OK, however the list was edited in
   between. What no merge can decide is left where it is: a client approved for
   a profile the operator is part way through removing is admitted to a name OK takes off the list,
-  where it grants nothing, which is why a buffered profile edit kills the invite button.
+  where it grants nothing, which is why a buffered profile edit kills the invite button and
+  withdraws the code made on the dialog, as Cancel does.
 
   **A standing answer to a renewal is the other key with a second writer that matters.** The
   clients page's **Allow renewal** takes one away in the buffer, and the renewal dialog writes one
@@ -860,8 +861,9 @@ those are two different failures.
 the group dialog. Its write-back is conditional on the key count differing rather than on anything
 the operator did, so a pairing landing while it is open is destroyed with the Plugin Data tab never
 opened. And its one button is both the accept and the cancel button, with `DialogResult.Cancel`, so
-there is no way to decline it. `GroupDialogs` watches for it and `DatabaseWriter` refuses while it
-is open.
+the button, Enter and Escape all write the copy back, and only the close box and Alt+F4 do not,
+which nothing on screen tells the operator. `GroupDialogs` watches for it and `DatabaseWriter`
+refuses while it is open.
 
 **A dialog that is adding something is about a group it does not hold**, which a watch keyed on the
 node a dialog holds cannot see. Add Entry and the TAN wizard put what they made into their group
@@ -1185,7 +1187,8 @@ through, and adding the name back restores every rule and every client holding i
 Profiles page and the approval dialog both say before it happens. This reverses a purge that took a
 removed name out of every rule, revisions included, and still lost to a stale copy merged in; see
 DESIGN.md §139. An unreadable list is an empty one, so every client stays admitted and reaches
-nothing.
+nothing, and the Profiles page shows it as damaged and writes over it only when the operator
+replaces it there.
 
 ### The grant editor
 

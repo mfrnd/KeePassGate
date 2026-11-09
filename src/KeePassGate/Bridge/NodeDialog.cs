@@ -222,9 +222,11 @@ namespace KeePassGate.Bridge
             else if (revision)
             {
                 // A history revision. KeePass keeps nothing typed on this dialog, and the
-                // rules below are that old revision's rather than the ones in force.
-                readOnly = "This is an earlier version of the entry, so these are the rules "
-                    + "it had then. Nothing here can be changed.";
+                // revision's own rules are that old revision's rather than the ones in force. What
+                // arrives from above is read from the groups as they are now, since a revision
+                // keeps no copy of them, so the sentence claims the past only for its own.
+                readOnly = "This is an earlier version of the entry: its own rules are the ones it "
+                    + "had then, and the groups above grant what they grant now. Nothing here can be changed.";
             }
             else if (untold)
             {
@@ -313,7 +315,7 @@ namespace KeePassGate.Bridge
         /// <summary>The rules this node holds, as the tab should show them, or null for none.</summary>
         /// <remarks>
         /// **Read from the node when there is no store**, because a tab that cannot write still
-        /// shows what is there: a history revision says these are the rules it had then, and a
+        /// shows what is there: a history revision shows the rules it had then, and a
         /// KeePass that renamed the dialog's copy says the rules can be read but not changed.
         /// Asking only the store left both tables with nothing of the node's own, so the inherited
         /// rows read as the whole of it while the node granted more, or sealed what they show.

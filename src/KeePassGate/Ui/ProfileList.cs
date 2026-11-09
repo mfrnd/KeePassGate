@@ -75,9 +75,35 @@ namespace KeePassGate.Ui
 
         public const string RemoveMark = "X";
 
+        /// <summary>
+        /// That column's heading, which a screen reader names every X in it by, and which is never
+        /// drawn: `ClientList.RevokeHeading` gives the reason.
+        /// </summary>
+        public const string RemoveHeading = "Remove profile";
+
         /// <summary>What the page says when the database names no profiles at all.</summary>
         public const string NobodyText =
             "No profile is named yet. Add one here, or approve a new one when a client asks to pair.";
+
+        /// <summary>The line and the button a stored list that will not read puts on the page.</summary>
+        public const string DamagedRowName = "KpgProfileDamagedRow";
+
+        public const string DamagedLabelName = "KpgProfileDamagedLabel";
+
+        public const string StartNewButtonName = "KpgProfileStartNewButton";
+
+        /// <summary>What the page shows while the stored list will not read.</summary>
+        public const string DamagedText =
+            "The list of profiles this database holds will not read, so no client reaches anything, " +
+            "and it is left as it is. Replacing it starts a list naming nothing, and the damaged list " +
+            "is lost when OK is pressed.";
+
+        /// <summary>The button that replaces it, which states as much.</summary>
+        public const string StartNewButtonText = "Replace it with a new list";
+
+        /// <summary>What the page answers once a new list is started.</summary>
+        public const string StartedText =
+            "A new list is started. It replaces the damaged list when OK is pressed.";
 
         private const int NameColumn = 0;
         private const int UsedColumn = 1;
@@ -87,12 +113,22 @@ namespace KeePassGate.Ui
         private readonly IProfiles _profiles;
         private readonly IOperatorPrompt _prompt;
         private readonly DataGridView _grid;
+        private readonly FlowLayoutPanel _adding;
+        private readonly FlowLayoutPanel _damaged;
+        private readonly Label _damagedLine;
         private readonly TextBox _name;
+        private readonly Button _add;
         private readonly Label _empty;
         private readonly Label _result;
 
         /// <summary>The name the last gesture said is available to grant, while the line says so.</summary>
         private string _added;
+
+        /// <summary>
+        /// Raised once a name has gone onto the list or off it, which is a change waiting for the
+        /// dialog's OK that the rest of the tab answers to.
+        /// </summary>
+        public event EventHandler Edited;
         private readonly List<string> _shown = new List<string>();
 
         /// <summary>
@@ -156,7 +192,7 @@ namespace KeePassGate.Ui
                 Margin = new Padding(0, BoxNudge, Spacing.Gap, 0)
             };
 
-            var add = new Button
+            var add = _add = new Button
             {
                 Name = AddButtonName,
                 Text = AddButtonText,
@@ -191,7 +227,7 @@ namespace KeePassGate.Ui
                 WindowHandlers.Run("a key in the profile's name could not be handled", () => Typing(typed));
             };
 
-            var adding = new FlowLayoutPanel
+            var adding = _adding = new FlowLayoutPanel
             {
                 Name = "KpgProfileAddingRow",
                 Dock = DockStyle.Top,
@@ -231,6 +267,43 @@ namespace KeePassGate.Ui
                 Visible = false
             };
 
+            // A stored list that will not read is shown as that, above everything else on the page,
+            // with the one way to write over it: the operator's ruling of 2026-11-08 is that
+            // nothing replaces it by accident.
+            _damaged = new FlowLayoutPanel
+            {
+                Name = DamagedRowName,
+                Dock = DockStyle.Top,
+                FlowDirection = FlowDirection.TopDown,
+                WrapContents = false,
+                AutoSize = true,
+                AutoSizeMode = AutoSizeMode.GrowAndShrink,
+                Padding = new Padding(0, Spacing.Gap, 0, 0),
+                Visible = false
+            };
+
+            var startNew = new Button
+            {
+                Name = StartNewButtonName,
+                Text = StartNewButtonText,
+                AutoSize = true,
+                AutoSizeMode = AutoSizeMode.GrowAndShrink,
+                Margin = new Padding(0, Spacing.Gap, 0, 0)
+            };
+
+            startNew.Click += delegate { WindowHandlers.Run("a new list of profiles could not be started", () => StartNew()); };
+
+            _damagedLine = new TextLabel
+            {
+                Name = DamagedLabelName,
+                Text = DamagedText,
+                AutoSize = true,
+                Margin = new Padding(0)
+            };
+
+            _damaged.Controls.Add(_damagedLine);
+            _damaged.Controls.Add(startNew);
+
             _result = new TextLabel
             {
                 Name = ResultLabelName,
@@ -245,6 +318,7 @@ namespace KeePassGate.Ui
             // backwards, so whatever is added last takes its band first.
             Controls.Add(_grid);
             Controls.Add(adding);
+            Controls.Add(_damaged);
             Controls.Add(_result);
             Controls.Add(_empty);
 
@@ -333,6 +407,11 @@ namespace KeePassGate.Ui
                 return Said("Type a name first.");
             }
 
+            if (_profiles.Unreadable)
+            {
+                return Said(DatabaseProfiles.UnreadableRefusal);
+            }
+
             // Asked before the name goes on the list, because putting it there is what brings back
             // whatever was left waiting for it. A name that was never removed has nothing waiting,
             // and is added without a question.
@@ -355,6 +434,7 @@ namespace KeePassGate.Ui
             Describe();
             var said = Said("The profile " + wanted + " is available to grant.");
             _added = wanted;
+            OnEdited();
             return said;
         }
 
@@ -377,7 +457,36 @@ namespace KeePassGate.Ui
             }
 
             Describe();
-            return Said(_profiles.LastRemoval ?? ("The profile " + name + " is gone."));
+            var gone = Said(_profiles.LastRemoval ?? ("The profile " + name + " is gone."));
+            OnEdited();
+            return gone;
+        }
+
+        private void OnEdited()
+        {
+            var edited = Edited;
+            if (edited != null)
+            {
+                edited(this, EventArgs.Empty);
+            }
+        }
+
+        /// <summary>
+        /// Replaces a stored list that will not read with one naming nothing, as the button under
+        /// the line stating so does.
+        /// </summary>
+        public string StartNew()
+        {
+            var refused = _profiles.StartNew();
+            if (refused != null)
+            {
+                return Said(refused);
+            }
+
+            Describe();
+            var said = Said(StartedText);
+            OnEdited();
+            return said;
         }
 
         /// <summary>Reads the database again and redraws. Safe to call at any time.</summary>
@@ -399,7 +508,13 @@ namespace KeePassGate.Ui
                 foreach (var name in _profiles.Names())
                 {
                     _shown.Add(name);
-                    _grid.Rows.Add(name, Counted(rules, name), Counted(clients, name), RemoveMark);
+                    var added = _grid.Rows[_grid.Rows.Add(name, Counted(rules, name), Counted(clients, name), RemoveMark)];
+
+                    // The name whole, and marked left to right like every other tip: a name too
+                    // wide for its column fell back to the grid's own tip for a cut value, which
+                    // carries no marks, so under a right to left KeePass a dash at one end of a
+                    // name was drawn at the other, on the page where names are removed.
+                    added.Cells[NameColumn].ToolTipText = Tooltips.Wrapped(name);
                 }
             }
             finally
@@ -407,7 +522,13 @@ namespace KeePassGate.Ui
                 _filling = false;
             }
 
-            _empty.Visible = _shown.Count == 0;
+            // A list that will not read names nothing the page can show, and is not a list naming
+            // nothing yet: it is shown as what it is, and nothing here adds to it or takes from it.
+            var damaged = _profiles.Unreadable;
+            _damaged.Visible = damaged;
+            _name.Enabled = !damaged;
+            _add.Enabled = !damaged;
+            _empty.Visible = _shown.Count == 0 && !damaged;
 
             // A redraw a pairing caused can take off the page a name the last
             // gesture said is available, when the list filled to its ceiling meanwhile, and the
@@ -480,18 +601,24 @@ namespace KeePassGate.Ui
                 ReadOnly = true
             });
 
-            grid.Columns.Add(new DataGridViewButtonColumn
+            var remove = new DataGridViewButtonColumn
             {
                 Name = RemoveColumnName,
-                HeaderText = string.Empty,
+
+                // The name of every X under it, and nothing else, as the clients list's is.
+                HeaderText = RemoveHeading,
                 Text = RemoveMark,
                 UseColumnTextForButtonValue = true,
-                AutoSizeMode = DataGridViewAutoSizeColumnMode.AllCells,
+                AutoSizeMode = DataGridViewAutoSizeColumnMode.AllCellsExceptHeader,
                 MinimumWidth = GateIcon.Room,
                 ToolTipText = Tooltips.Wrapped(
                     "Removes this profile, so it grants nothing. The rules naming it stay, and "
                     + "come back into force if it is added again.")
-            });
+            };
+
+            // One line, so that words nobody sees do not make the heading row taller.
+            remove.HeaderCell.Style.WrapMode = DataGridViewTriState.False;
+            grid.Columns.Add(remove);
 
             grid.CellClick += (sender, e) =>
                 WindowHandlers.Run("a press on the profiles could not be carried out", () => OnCellClick(sender, e));
@@ -501,11 +628,54 @@ namespace KeePassGate.Ui
         }
 
         /// <summary>
+        /// Puts the table and the lines around it back in the order docking reads, before it
+        /// reads it.
+        /// </summary>
+        /// <remarks>
+        /// **WinForms moves a child in `Controls` to match its window**, the hazard
+        /// `ClientList.OnLayout` measured on the clients page. On a database naming no profile the
+        /// line saying so is made visible before the page has a window, is given a window there and
+        /// then, and when the page's window arrives is moved ahead of the gesture's line, which
+        /// has none yet: every later answer then docked under the standing sentence rather than
+        /// above it, the reverse of the order this page was built in. Docking reads that order
+        /// and nothing else here does, so it is put back where it is about to be read.
+        /// </remarks>
+        protected override void OnLayout(LayoutEventArgs e)
+        {
+            WindowHandlers.Run("the Profiles page could not be laid out", () =>
+            {
+                // Every child that has been added so far, since the constructor lays this out as it
+                // adds them.
+                var order = new Control[] { _grid, _adding, _damaged, _result, _empty };
+                for (var at = 0; at < order.Length; at++)
+                {
+                    var child = order[at];
+                    if (child != null && child.Parent == this && Controls.GetChildIndex(child) != at)
+                    {
+                        Controls.SetChildIndex(child, at);
+                    }
+                }
+
+                // The line about a damaged list sits in a row rather than docked, so it is told
+                // how wide the page is, which a docked line works out for itself.
+                var room = DisplayRectangle.Width;
+                if (_damagedLine != null && room > 0 && _damagedLine.MaximumSize.Width != room)
+                {
+                    _damagedLine.MaximumSize = new Size(room, 0);
+                }
+
+                base.OnLayout(e);
+            });
+        }
+
+        /// <summary>
         /// Draws a bin over the heading of the column that takes something away.
         /// </summary>
         /// <remarks>
-        /// The heading only. The buttons under it keep their mark: what a button does is said by
-        /// the column it is in, and a picture in every row is a picture repeated once per row.
+        /// The heading only. The buttons under it keep their mark: what a button does is named by
+        /// the column it is in, to the eye by the bin and to a screen reader by the heading's
+        /// words, and a picture in every row is a picture repeated once per row. The words are
+        /// never drawn, bin or no bin, since the column is as wide as an X and not as the words.
         /// </remarks>
         private void OnCellPainting(object sender, DataGridViewCellPaintingEventArgs e)
         {
@@ -514,18 +684,17 @@ namespace KeePassGate.Ui
                 return;
             }
 
-            var bin = GateIcon.Bin;
-            if (bin == null)
-            {
-                return;
-            }
-
             e.Paint(e.ClipBounds, DataGridViewPaintParts.All & ~DataGridViewPaintParts.ContentForeground);
-            e.Graphics.DrawImageUnscaled(
-                bin,
-                e.CellBounds.Left + ((e.CellBounds.Width - bin.Width) / 2),
-                e.CellBounds.Top + ((e.CellBounds.Height - bin.Height) / 2));
             e.Handled = true;
+
+            var bin = GateIcon.Bin;
+            if (bin != null)
+            {
+                e.Graphics.DrawImageUnscaled(
+                    bin,
+                    e.CellBounds.Left + ((e.CellBounds.Width - bin.Width) / 2),
+                    e.CellBounds.Top + ((e.CellBounds.Height - bin.Height) / 2));
+            }
         }
 
         private void OnCellClick(object sender, DataGridViewCellEventArgs e)
@@ -593,6 +762,20 @@ namespace KeePassGate.Ui
 
         /// <summary>What the last removal did, in words, or null when it has done nothing.</summary>
         string LastRemoval { get; }
+
+        /// <summary>
+        /// Whether the stored list will not read. It is then left as it is: neither
+        /// <see cref="Add"/> nor <see cref="Remove"/> writes over it, and only
+        /// <see cref="StartNew"/> puts a list in its place.
+        /// </summary>
+        bool Unreadable { get; }
+
+        /// <summary>
+        /// Puts a list naming nothing in the place of a stored list that will not read, which loses
+        /// the damaged value once the dialog is accepted. Answers with why it could not, or null
+        /// when it did.
+        /// </summary>
+        string StartNew();
     }
 
     /// <summary>
@@ -637,6 +820,16 @@ namespace KeePassGate.Ui
         }
 
         public string Remove(string name)
+        {
+            return "No database is open on this dialog.";
+        }
+
+        public bool Unreadable
+        {
+            get { return false; }
+        }
+
+        public string StartNew()
         {
             return "No database is open on this dialog.";
         }

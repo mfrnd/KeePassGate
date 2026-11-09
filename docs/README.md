@@ -13,17 +13,17 @@ one page summary.
 | --- | --- |
 | [`getting-started.md`](getting-started.md) | install the plugin, check it loaded, give the database an authority, and take the plugin out again |
 | [`pairing.md`](pairing.md) | let a program in, and decide what it may reach |
-| [`access-control.md`](access-control.md) | name profiles, and write the rules that say what "may reach" means |
+| [`access-control.md`](access-control.md) | name profiles, and write the rules that state what "may reach" means |
 | [`clients.md`](clients.md) | see who is in, renew or refuse one that is about to expire, and take one back out |
-| [`audit.md`](audit.md) | where the record of every decision is, and what a line in it says |
+| [`audit.md`](audit.md) | where the record of every decision is, and what a line in it states |
 | [`architecture.md`](architecture.md) | what the pieces are, on one page |
 | [`pykeepassgate.md`](pykeepassgate.md) | the client, from the other side |
 
 ## What it is, in four sentences
 
 Every database is its own certificate authority. A program that wants in is handed a certificate by
-that authority, and the database keeps a record saying which profiles that certificate may use. A
-profile is a name the database keeps, and the rules on its groups and entries say what each name
+that authority, and the database keeps a record stating which profiles that certificate may use. A
+profile is a name the database keeps, and the rules on its groups and entries state what each name
 reaches.
 Take the record away and the program is refused from its next request onwards.
 

@@ -24,8 +24,9 @@ namespace KeePassGate.Ui
         string Name { get; }
 
         /// <summary>
-        /// Every group and entry in it, as somewhere rules can be read. Null when the tree cannot
-        /// be reached, which is not the same as a tree with nothing in it.
+        /// Every group and entry in it, as somewhere rules can be read. Every database KeePass opens
+        /// answers with its tree, a root it cannot reach being a tree with nothing in it; null is
+        /// what a test double with no tree answers, and is read the same way.
         /// </summary>
         Acl.IRuledNodes Nodes { get; }
 

@@ -1,7 +1,10 @@
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
 using System.Windows.Forms;
 using KeePassGate.Diagnostics;
+using KeePassGate.Tests.Fakes;
+using KeePassGate.Transport;
 using KeePassGate.Ui;
 using NUnit.Framework;
 
@@ -161,9 +164,14 @@ namespace KeePassGate.Tests
         }
 
         [Test]
-        public void With_nothing_chosen_the_box_starts_on_the_port_the_gate_is_using()
+        public void A_port_the_gate_could_not_take_is_the_port_the_box_starts_on()
         {
-            using (var window = new GateStatusForm(Listening(45678), null, Takes, 0))
+            // Nothing chosen, and `KEEPASSGATE_PORT` naming a port something else holds: the gate
+            // is on nothing, and the next start tries the same port again, which is what the
+            // plugin hands the window and what the box shows.
+            var down = new Gate(false, 0) { Refusal = "127.0.0.1:45678 could not be taken: in use" };
+
+            using (var window = new GateStatusForm(down, null, Takes, 45678))
             {
                 Assert.That(window.ChosenPort, Is.EqualTo(45678));
             }
@@ -205,7 +213,7 @@ namespace KeePassGate.Tests
             {
                 taken = port;
                 return null;
-            }, 0))
+            }, 45678))
             {
                 window.ChosenPort = 52000;
 
@@ -215,7 +223,8 @@ namespace KeePassGate.Tests
                 Assert.That(said, Does.Contain("52000"));
                 Assert.That(said, Does.Contain("next time KeePass starts"),
                     "nothing rebinds while the operator watches, so the window has to say when it will");
-                Assert.That(said, Does.Contain("paired"), "somebody has to tell the clients");
+                Assert.That(said, Does.Contain("pair again against the new one"),
+                    "a client keeps the port it paired against, so it has to pair again");
             }
         }
 
@@ -225,7 +234,7 @@ namespace KeePassGate.Tests
             // Pressing OK without touching the box is the commonest thing that happens to this
             // window, and a sentence about a restart there would be asking for one that buys
             // nothing.
-            using (var window = new GateStatusForm(Listening(45678), null, Takes, 0))
+            using (var window = new GateStatusForm(Listening(45678), null, Takes, 45678))
             {
                 var said = window.Keep();
 
@@ -238,7 +247,7 @@ namespace KeePassGate.Tests
         public void A_port_that_could_not_be_written_down_says_so_and_names_the_reason()
         {
             using (var window = new GateStatusForm(Listening(45678), null,
-                port => "the configuration is read only", 0))
+                port => "the configuration is read only", 45678))
             {
                 window.ChosenPort = 52000;
 
@@ -274,22 +283,24 @@ namespace KeePassGate.Tests
 
         [TestCase(false, 0)]
         [TestCase(true, 80)]
-        public void An_untouched_OK_over_a_port_the_box_cannot_show_says_nothing_changed(bool listening, int port)
+        public void An_OK_when_the_next_start_takes_no_port_writes_the_port_in_the_box(bool listening, int port)
         {
-            // A gate on nothing, or on a port below the range the box offers, opens the box on the
-            // default. OK there writes nothing, and it used to answer "Saved" with a port the next
-            // start would not take.
+            // Nothing chosen and `KEEPASSGATE_PORT` naming something that is not a port, so the
+            // next start takes nothing and the box opens on the default as a suggestion. OK on it,
+            // untouched, used to answer that nothing changed and write nothing, which left the
+            // default the one port this window could not choose over the variable.
             var written = new List<int>();
 
             using (var window = new GateStatusForm(
                 new Gate(listening, port), null, chosen => { written.Add(chosen); return null; }, 0))
             {
+                Assume.That(window.ChosenPort, Is.EqualTo(GateOptions.DefaultPort));
+
                 var said = window.Keep();
 
-                Assert.That(written, Is.Empty);
-                Assert.That(window.Applied, Is.True);
-                Assert.That(said, Does.Not.Contain("Saved"));
-                Assert.That(said, Is.EqualTo("Nothing was changed."));
+                Assert.That(written, Is.EqualTo(new[] { GateOptions.DefaultPort }));
+                Assert.That(window.Changed, Is.True);
+                Assert.That(said, Does.StartWith("Saved."));
             }
         }
 
@@ -311,7 +322,7 @@ namespace KeePassGate.Tests
                 Assert.That(written, Is.EqualTo(new[] { 51776 }));
                 Assert.That(window.Changed, Is.True);
                 Assert.That(said, Does.Contain("stays on 127.0.0.1:51776"));
-                Assert.That(said, Does.Not.Contain("told the new one"),
+                Assert.That(said, Does.Not.Contain("pair again"),
                     "the clients are on this port already, and have nothing to be told");
             }
         }
@@ -320,8 +331,8 @@ namespace KeePassGate.Tests
         public void Only_a_port_that_actually_moved_is_worth_telling_the_operator_about()
         {
             // `Changed` is what decides whether anything is said once the window has gone, and the
-            // sentence it carries is not a receipt: it says the port waits for the next start, and
-            // that every client paired against the old one has to be told the new one. Saying that
+            // sentence it carries is not a receipt: it states that the port waits for the next
+            // start, and that every client paired against the old port has to pair again. Saying that
             // about a port nobody moved would train somebody to dismiss it.
             using (var window = new GateStatusForm(Listening(51776), null, Takes, 52000))
             {
@@ -357,12 +368,61 @@ namespace KeePassGate.Tests
         [Test]
         public void A_port_outside_the_range_is_refused_before_anything_is_asked()
         {
-            // The box itself will not go outside the range, so this is about the check rather than
-            // about the control: what the operator types is checked in terms of the number.
             Assert.That(GatePort.Refuse(80), Does.Contain("between"));
             Assert.That(GatePort.Refuse(70000), Does.Contain("between"));
             Assert.That(GatePort.Refuse(GatePort.Lowest), Is.Null);
             Assert.That(GatePort.Refuse(GatePort.Highest), Is.Null);
+        }
+
+        [TestCase("80")]
+        [TestCase("70000")]
+        [TestCase("515776")]
+        [TestCase("99999999999")]
+        public void A_port_typed_outside_the_range_is_refused_rather_than_moved_into_it(string typed)
+        {
+            // A box held to the range moved what was typed to its nearer end, as its value was
+            // read or as it lost the focus to OK: 80 was saved as 1024 without a word. What OK
+            // takes is what was typed, refused in the words `GatePort` has for it.
+            var written = new List<int>();
+
+            using (var window = new GateStatusForm(
+                Listening(51776), null, port => { written.Add(port); return null; }, 51776))
+            {
+                Type(window, typed);
+
+                var said = window.Keep();
+
+                Assert.That(said, Is.EqualTo(GatePort.Refuse(80)));
+                Assert.That(window.Applied, Is.False, "the window stays open to say why");
+                Assert.That(written, Is.Empty);
+            }
+        }
+
+        [Test]
+        public void A_port_typed_inside_the_range_is_taken_as_typed()
+        {
+            var written = new List<int>();
+
+            using (var window = new GateStatusForm(
+                Listening(51776), null, port => { written.Add(port); return null; }, 51776))
+            {
+                Type(window, "52000");
+
+                window.Keep();
+
+                Assert.That(written, Is.EqualTo(new[] { 52000 }));
+            }
+        }
+
+        /// <summary>
+        /// Puts text in the port box where a keyboard puts it, in the edit box inside it. The
+        /// box's own `Text` checks what it is given at once and keeps it to the range, which no
+        /// keystroke does.
+        /// </summary>
+        private static void Type(Form window, string text)
+        {
+            var box = (NumericUpDown)window.Controls.Find(GateTab.StatusPortBoxName, true)[0];
+            box.Controls.OfType<TextBox>().Single().Text = text;
         }
 
         private static string Takes(int port)
@@ -380,6 +440,40 @@ namespace KeePassGate.Tests
 
             Assert.That(facts.Count, Is.EqualTo(1));
             Assert.That(Named(facts, "Listening"), Is.Not.Null);
+        }
+
+        [Test]
+        public void The_line_OK_writes_takes_no_room_until_it_has_something_to_say()
+        {
+            // An empty label still reserves a line, and this one is written only when OK is
+            // refused: kept on screen, it was a blank band between the table and the advice.
+            using (var window = new GateStatusForm(
+                Listening(45678), null, port => "the configuration is read only", 45678))
+            {
+                window.CreateControl();
+                var facts = ControlTree.FindByName<Control>(window, GateTab.StatusFactsName);
+                var advice = ControlTree.FindByName<Control>(window, GateTab.StatusAdviceName);
+
+                Assert.That(advice.Top - facts.Bottom, Is.LessThan(window.Font.Height),
+                    "the empty line still took room between the table and the advice");
+
+                window.ChosenPort = 52000;
+                window.Keep();
+                window.PerformLayout();
+                advice.Parent.PerformLayout();
+
+                Assert.That(advice.Top - facts.Bottom, Is.GreaterThanOrEqualTo(window.Font.Height),
+                    "the refusal has a line of its own");
+            }
+        }
+
+        [Test]
+        public void Every_control_on_it_carries_a_name()
+        {
+            using (var window = new GateStatusForm(Listening(45678), null, Takes, 45678))
+            {
+                Assert.That(Unnamed.On(window), Is.Empty);
+            }
         }
 
         [Test]
@@ -405,6 +499,10 @@ namespace KeePassGate.Tests
                 // Cancel on the outside, OK beside it, which is the order Windows uses and the
                 // order the hand is already going to.
                 Assert.That(cancel.Left, Is.GreaterThan(ok.Left));
+
+                // And Tab reaches them in that order, as on every KeePass dialog.
+                Assert.That(ok.Parent, Is.SameAs(cancel.Parent));
+                Assert.That(ok.TabIndex, Is.LessThan(cancel.TabIndex), "Tab reached Cancel before OK");
             }
         }
 

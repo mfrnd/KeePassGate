@@ -42,8 +42,8 @@ in its directory has to be taken away as well. The plugin opens the file asking 
 append and no other, so every decision is still written down, and sets it aside only where the ACL
 lets it, whatever privileges the account holds: a KeePass started from a shell that enables the
 backup and restore privileges, as Git Bash run elevated does, records as any other. Two things change: the file can no
-longer be set aside at eight megabytes, which the plugin's log says once while the file grows past
-it, and the window asking which authority to keep cannot read the file, so it says `unknown` for
+longer be set aside at eight megabytes, which the plugin's log states once while the file grows past
+it, and the window asking which authority to keep cannot read the file, so it states `unknown` for
 when each client last made a request.
 
 **That ACL is something the plugin works under, not a defense it provides.** Anything running as
@@ -51,7 +51,7 @@ that account can do whatever the account can, and KeePassGate concedes code runn
 throughout. What keeps the file append only is that the account cannot change the ACL, which means
 somebody else owns the file, and arranging that is the administrator's.
 
-## What a line says
+## What a line states
 
 One JSON object per line, so that a line is a record and whatever the operator already greps with
 can read it.
@@ -66,16 +66,16 @@ can read it.
 | `node` | which group or entry it was about, by UUID, or `null` if it never reached one |
 | `decidedAt` | which node's rule answered, by UUID, or `null` if no rule did |
 | `decision` | `permitted` or `refused` for the rules; `approved`, `refused`, `unanswered` or `revoked` for an admission |
-| `reason` | a few words saying why |
+| `reason` | a few words stating why |
 
 **The two keys answer two questions.** Every line a program ever caused carries the same
 `clientKey`, however often it renewed, so searching for that one value finds its whole history, and
-two programs that chose the same name are told apart by it. `admissionKey` says which of its
+two programs that chose the same name are told apart by it. `admissionKey` states which of its
 certificates asked, which is what to look for after revoking one: a renewal changes it, and the
 renewal's own line names the old certificate under `admissionKey` and the new one under `issued`.
 The names are the ones `GET /gate/whoami` answers with, so a word means one thing in both places.
 
-**The reference client says which keys are its own.** PyKeePassGate prints its admission key when
+**The reference client states which keys are its own.** PyKeePassGate prints its admission key when
 it pairs, renews or gives its certificate up, and `pykeepassgate identity` prints both keys at any
 time without connecting. `pykeepassgate whoami` asks the gate for both. The admission key a program
 prints when it pairs is its client key as well, for good.
@@ -117,16 +117,16 @@ locked, whether it was locked when the request arrived or KeePass locked it whil
 still being read, is answered `503 locked` and written down nowhere, because no rule was asked. A
 group or an entry that is simply not there while the database is open is still refused, and still
 written down, with one more member, `requested`, naming the identifier the program asked for, so
-the line says which entry a reference was following when the program was told only that there was
+the line states which entry a reference was following when the program was told only that there was
 nothing there. It holds an identifier as the routes write one, 32 hexadecimal characters or `root`,
 and is left out for anything else.
 
-**A refusal that a removed profile would have allowed says so.** When the rules refuse a program
+**A refusal that a removed profile would have allowed states so.** When the rules refuse a program
 whose record still holds a profile this database no longer names, and that profile would have
 allowed the request, `reason` is `profile removed`, `decidedAt` is the node whose rule would have
 allowed it, and one more member, `removedProfiles`, lists the removed profiles that would have.
-Every other line leaves that member out. A removed profile grants nothing, so naming it says why a
-request failed without saying what anybody can reach. A profile list the database cannot read
+Every other line leaves that member out. A removed profile grants nothing, so naming it states why a
+request failed without stating what anybody can reach. A profile list the database cannot read
 names fewer profiles than it held, none at all when it does not read, and nobody removed the
 profiles it lost, so a refusal they would have allowed has `reason` `profile list unreadable`
 instead, with `removedProfiles` naming them all the same:
@@ -171,12 +171,12 @@ act's, so `permitted` goes on meaning only that the rules allowed something, and
 | | |
 | --- | --- |
 | A pairing | `pairRequest`, with no `admissionKey`, since the program has no certificate yet. `approved`, `refused` or `unanswered`, as the operator answered the dialog or left it to close itself. One more member, `invitation`, names the invitation it arrived on, as the KPG tab and the dialog show it, and an approved one adds `issued`: the admission key of the certificate it admitted, which every later line from that program names under `admissionKey` until it renews. That is its client key for good, so an approved pairing's `clientKey` is the same key; a refused or unanswered one admitted nobody and its `clientKey` is `null` |
-| A renewal | `renewCertificate`, with the certificate that asked under `admissionKey` and its client under `clientKey`, which the renewal does not change. `approved`, with the new certificate's key under `issued`; `refused`, with a reason saying which answer the operator gave, once, in this session, until a later date or forever, or that an answer given before refused it without asking; or `unanswered` |
+| A renewal | `renewCertificate`, with the certificate that asked under `admissionKey` and its client under `clientKey`, which the renewal does not change. `approved`, with the new certificate's key under `issued`; `refused`, with a reason stating which answer the operator gave, once, in this session, until a later date or forever, or that an answer given before refused it without asking; or `unanswered` |
 | A revocation | `revoked`, with the certificate it took away under `admissionKey` and the client it belonged to under `clientKey`. The operator's, with `operation` as `null`, is written when the settings dialog's **OK** puts it into the database, which is when it takes effect, and never on **Cancel**; its client key is read from the record just before **OK** empties it, and is `null` only if that record was already gone or could not be read. Its `database` is the authority served once **OK** is through, so a revocation pressed after recreating the authority in the same dialog names the new one. A program's revocation of itself, `revokeCertificate`, is written once the revocation is in the database |
 
 **`approved` always names a client that was admitted.** An approval whose record did not reach the
 database, or whose invitation had been spent or had run out by the time the operator answered,
-admitted nobody: the program was told so, the plugin's log says why, and the audit has no line for
+admitted nobody: the program was told so, the plugin's log states why, and the audit has no line for
 it. Nor is there a line when there was nobody to ask: no screen to show the dialog on, or a lock that
 came while the request waited for the screen, so that it was never shown.
 
@@ -198,8 +198,8 @@ answer, KeePass closes after those two seconds and the lines still waiting are l
 takes every record away and is not written down, and neither is a change to the rules or to the
 profiles. Those wait for a design of audit levels.
 
-**Never a profile.** A pairing line does not say what the program asked for or what the operator
-approved, and a renewal line does not say what it kept: which profiles a program holds is in its
+**Never a profile.** A pairing line does not state what the program asked for or what the operator
+approved, and a renewal line does not state what it kept: which profiles a program holds is in its
 record, and a second copy of that is what is worth stealing.
 
 ## How large it gets
@@ -230,7 +230,7 @@ A failed write costs the line and never the request. A full disk, a file somebod
 exclusively, a directory that has gone away: each of those is reported in the plugin's log when it
 begins and the gate carries on answering, because a plugin that refused every request while it
 could not write a log would be a denial of service anybody could arrange. When a line can be written
-again the log says so, with how many decisions went unrecorded in between, and a later failure is
+again the log states so, with how many decisions went unrecorded in between, and a later failure is
 reported in its turn.
 
 Not every failure lasts. A program that opens the file for reading without letting anybody else
@@ -240,4 +240,4 @@ follow a log leave writing open to others.
 The same is true of having nowhere to write at all. If the account has no local application data
 directory the plugin can find, there is no default path, nothing is recorded, and everything else
 works exactly as before. Naming a file with `KEEPASSGATE_AUDIT_FILE` is what makes the audit
-independent of that, and the plugin's log says which of the two happened as it loads.
+independent of that, and the plugin's log states which of the two happened as it loads.

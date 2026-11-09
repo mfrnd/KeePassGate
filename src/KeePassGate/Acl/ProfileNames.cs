@@ -239,7 +239,9 @@ namespace KeePassGate.Acl
         /// name typed on the page can be typed again once there is room. It is not dropped
         /// quietly: every name left out is handed back, for the caller to say so.
         ///
-        /// A document that will not read is an empty set, here as everywhere else this reads one.
+        /// A document that will not read is an empty set here, as it is to every reader that only
+        /// asks what is named. The KPG tab's buffer, which writes the result, does not merge with a
+        /// current value that will not read, and leaves it as it is.
         /// </remarks>
         /// <param name="baseline">What the key held when the edit began.</param>
         /// <param name="current">What it holds now.</param>

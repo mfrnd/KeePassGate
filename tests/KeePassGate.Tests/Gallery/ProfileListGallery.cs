@@ -177,6 +177,16 @@ namespace KeePassGate.Tests.Gallery
                 _profiles.RemoveAll(p => p.Name == name);
                 return null;
             }
+
+            public bool Unreadable
+            {
+                get { return false; }
+            }
+
+            public string StartNew()
+            {
+                return null;
+            }
         }
     }
 }

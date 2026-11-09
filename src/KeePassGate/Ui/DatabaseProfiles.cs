@@ -116,6 +116,8 @@ namespace KeePassGate.Ui
         /// **Every profile from one reading of the records**, for the reason the rules are counted
         /// in one walk: each reading parses every record's certificate, and the page asks for a
         /// count on every row.
+        ///
+        /// **Only clients that get in**, which <see cref="GettingIn"/> gives the reason for.
         /// </remarks>
         public IReadOnlyDictionary<string, int> Clients()
         {
@@ -132,9 +134,9 @@ namespace KeePassGate.Ui
                 // held by no client rather than claiming it is held by one. The tab's own line
                 // is where a failed read is reported.
                 var holders = new Dictionary<string, HashSet<string>>(StringComparer.Ordinal);
-                foreach (var record in new AdmissionStore(_database.PluginCustomData, _log).All().Records)
+                foreach (var record in GettingIn())
                 {
-                    if (record == null || record.Profiles == null)
+                    if (record.Profiles == null)
                     {
                         continue;
                     }
@@ -172,11 +174,38 @@ namespace KeePassGate.Ui
             return found;
         }
 
+        /// <summary>
+        /// The records whose clients get in now, judged by `ClientReaches` against the authority
+        /// this dialog would serve, as the clients page judges its rows.
+        /// </summary>
+        /// <remarks>
+        /// A record the gate refuses, of another authority, not for client use, not yet valid or
+        /// expired, holds profiles it cannot use. It was counted as a client holding them, on the
+        /// same page whose warning about adding a name back left the expired ones out.
+        /// </remarks>
+        private List<AdmissionRecord> GettingIn()
+        {
+            using (var reading = new AuthorityService(_database.PluginCustomData, _log).Read())
+            {
+                var authority = reading.IsPresent ? reading.Material.Authority : null;
+                var now = DateTimeOffset.UtcNow;
+
+                return new AdmissionStore(_database.PluginCustomData, _log).All().Records
+                    .Where(record => record != null && ClientReaches.GetsIn(record, authority, now))
+                    .ToList();
+            }
+        }
+
         public string Add(string name)
         {
             if (_database == null || !_database.IsOpen)
             {
                 return "No database is open on this dialog.";
+            }
+
+            if (Unreadable)
+            {
+                return UnreadableRefusal;
             }
 
             var names = Read();
@@ -269,17 +298,11 @@ namespace KeePassGate.Ui
 
             try
             {
-                var now = DateTimeOffset.UtcNow;
-
-                // Not one whose certificate has expired, which regains nothing and goes with the
-                // plugin's next write.
-                foreach (var record in new AdmissionStore(_database.PluginCustomData, _log).All().Records
-                             .Where(record => record != null && record.Profiles != null
-                                              && record.Profiles.Contains(name, StringComparer.Ordinal)
-                                              && !record.HasExpired(now)))
-                {
-                    found.Add(record);
-                }
+                // Only a record that gets in: an expired record regains nothing and goes with the
+                // plugin's next write, and a record of another authority, not for client use or
+                // not yet valid regains nothing either.
+                found.AddRange(GettingIn().Where(record => record.Profiles != null
+                                                         && record.Profiles.Contains(name, StringComparer.Ordinal)));
             }
             catch (Exception error) when (Expected.OfCustomData(error))
             {
@@ -296,6 +319,11 @@ namespace KeePassGate.Ui
             if (_database == null || !_database.IsOpen)
             {
                 return "No database is open on this dialog.";
+            }
+
+            if (Unreadable)
+            {
+                return UnreadableRefusal;
             }
 
             var names = Read();
@@ -374,6 +402,63 @@ namespace KeePassGate.Ui
             }
         }
 
+        /// <summary>What Add and Remove answer while the stored list will not read.</summary>
+        public const string UnreadableRefusal =
+            "The list of profiles this database holds will not read, so it is left as it is. Start a new list first.";
+
+        /// <summary>
+        /// Whether the stored list will not read, which <see cref="ProfileNames.Readable"/> decides
+        /// for every reader that writes what it reads.
+        /// </summary>
+        /// <remarks>
+        /// **The page wrote over it, and nothing else does.** `ProfileNames.Read` answers a damaged
+        /// list as naming nothing, which is right for a reader asking what is named and wrong for
+        /// a reader that writes the result back: the page showed no names and no warning, and its first
+        /// Add or Remove at OK replaced the damaged value, every name it held and the only sign
+        /// that it was damaged, which pairing, renewal and the writer all refuse to do. A list
+        /// that cannot be asked about at all is not called damaged, since nothing about its value
+        /// is known.
+        /// </remarks>
+        public bool Unreadable
+        {
+            get
+            {
+                if (_database == null || !_database.IsOpen || _database.PluginCustomData == null)
+                {
+                    return false;
+                }
+
+                try
+                {
+                    return !ProfileNames.Readable(_database.PluginCustomData.Get(ProfileNames.CustomDataKey));
+                }
+                catch (Exception error) when (Expected.OfCustomData(error))
+                {
+                    _log.Warn("the profiles could not be read: " + error.Message);
+                    return false;
+                }
+            }
+        }
+
+        /// <summary>
+        /// The operator's choice to replace a stored list that will not read with one naming
+        /// nothing, the one way the page writes over it, the operator's ruling of 2026-11-08.
+        /// </summary>
+        public string StartNew()
+        {
+            if (_database == null || !_database.IsOpen)
+            {
+                return "No database is open on this dialog.";
+            }
+
+            if (!Unreadable)
+            {
+                return "The list of profiles reads, so there is nothing to replace.";
+            }
+
+            return Store(ProfileNames.Empty());
+        }
+
         private string Store(ProfileNames names)
         {
             try
@@ -394,8 +479,10 @@ namespace KeePassGate.Ui
             }
             catch (Exception error) when (Expected.OfCustomData(error))
             {
+                // Cut, because the message is somebody else's and lands on a page that does not
+                // scroll, under the page's own sentence, which is measured whole.
                 _log.Error("the profiles could not be written", error);
-                return "That could not be written: " + error.Message;
+                return "That could not be written: " + Clipped.Message(error.Message);
             }
         }
     }

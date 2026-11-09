@@ -61,6 +61,12 @@ namespace KeePassGate.Testing
             return Imported.GetForegroundWindow();
         }
 
+        internal static bool GetKeyboardState(byte[] keys)
+        {
+            // codeql[cs/call-to-unmanaged-code] the one call to it, for every caller in the tests
+            return Imported.GetKeyboardState(keys);
+        }
+
         internal static bool GetWindowDisplayAffinity(IntPtr window, out uint affinity)
         {
             // codeql[cs/call-to-unmanaged-code] the one call to it, for every caller in the tests
@@ -163,6 +169,12 @@ namespace KeePassGate.Testing
             return Imported.SetForegroundWindow(window);
         }
 
+        internal static bool SetKeyboardState(byte[] keys)
+        {
+            // codeql[cs/call-to-unmanaged-code] the one call to it, for every caller in the tests
+            return Imported.SetKeyboardState(keys);
+        }
+
         /// <summary>
         /// The pointer moved in physical pixels, whatever this process's DPI awareness, which is
         /// what UI automation's bounding rectangles are in.
@@ -249,6 +261,11 @@ namespace KeePassGate.Testing
 
             [DllImport("user32.dll")]
             [return: MarshalAs(UnmanagedType.Bool)]
+            // codeql[cs/unmanaged-code] the thread's keys as Windows holds them, to put back after a test
+            internal static extern bool GetKeyboardState(byte[] keys);
+
+            [DllImport("user32.dll")]
+            [return: MarshalAs(UnmanagedType.Bool)]
             // codeql[cs/unmanaged-code] display affinity has no managed reader
             internal static extern bool GetWindowDisplayAffinity(IntPtr window, out uint affinity);
 
@@ -320,6 +337,11 @@ namespace KeePassGate.Testing
             [return: MarshalAs(UnmanagedType.Bool)]
             // codeql[cs/unmanaged-code] nothing managed brings another process's window to the front
             internal static extern bool SetForegroundWindow(IntPtr window);
+
+            [DllImport("user32.dll")]
+            [return: MarshalAs(UnmanagedType.Bool)]
+            // codeql[cs/unmanaged-code] a posted key carries no Alt, which only the thread's own keys hold
+            internal static extern bool SetKeyboardState(byte[] keys);
 
             [DllImport("user32.dll")]
             [return: MarshalAs(UnmanagedType.Bool)]

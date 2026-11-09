@@ -4,10 +4,10 @@ using System.Globalization;
 namespace KeePassGate
 {
     /// <summary>
-    /// The two ways this plugin writes a moment down, in one place.
+    /// The three ways this plugin writes a moment down, in one place.
     /// </summary>
     /// <remarks>
-    /// **Three formats, and no fourth.** <see cref="WireFormat"/> is RFC 3339 and goes anywhere a
+    /// **Three formats, and one exception.** <see cref="WireFormat"/> is RFC 3339 and goes anywhere a
     /// machine reads it: the wire, an admission record, the audit. <see cref="OnScreenFormat"/> drops
     /// the `T` and the `Z` for a person reading a table, where a column of them is already headed by
     /// what they are and the separators are noise. <see cref="LogFormat"/> is the wire's with
@@ -16,13 +16,17 @@ namespace KeePassGate
     ///
     /// Here because there were four copies of those two, and one of them had spelled the separators
     /// without quoting them. That version was correct only because every caller happened to pass
-    /// `InvariantCulture`: in a custom format string a bare `-` means "the date separator of the
-    /// current culture" and a bare `:` means "the time separator", so the same code against a
-    /// culture that uses dots writes `2026.08.26 11.04.07`. Every format string here quotes its
-    /// separators, and there is now one of each to get right.
+    /// `InvariantCulture`: in a custom format string a bare `:` means "the time separator of the
+    /// current culture", so the same code against a culture that writes the time with dots writes
+    /// `2026-08-26 11.04.07`. A bare `/` would be the date separator; a `-` is a literal, and is
+    /// quoted beside the others so that every separator here is spelled one way. Every format
+    /// string here quotes its separators, and there is now one of each to get right.
     ///
-    /// Always in UTC, because a record that says when a client was admitted has to mean the same
-    /// thing on the machine that wrote it and the machine reading it back.
+    /// Always in UTC, because a record that holds when a client was admitted has to mean the same
+    /// thing on the machine that wrote it and the machine reading it back. **The exception is the
+    /// day a standing answer to a renewal lasts until**, which the clients page writes as a date
+    /// alone in the operator's own zone, `ClientList.AnswerText`, since the day was chosen on a
+    /// calendar there and the same moment in UTC names the evening before east of Greenwich.
     /// </remarks>
     internal static class Moments
     {

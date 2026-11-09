@@ -40,6 +40,17 @@ namespace KeePassGate.Tests
         }
 
         [Test]
+        public void Every_X_is_named_to_a_screen_reader_by_what_pressing_it_does()
+        {
+            // S422: the heading was left empty for the bin painted over it, so each X was read
+            // out as its row and an X, and nothing told a listener that it revokes.
+            using (var list = ListOf(Allows, Record("agent-fictitious", "ops")))
+            {
+                ButtonColumns.AssertNamedBy(list, Grid(list), ClientList.RevokeColumnName, ClientList.RevokeHeading);
+            }
+        }
+
+        [Test]
         public void Revoking_one_of_a_renewed_clients_two_rows_says_which_certificate_went()
         {
             // A renewal leaves the client two rows with one client key until it gives the older
@@ -53,11 +64,12 @@ namespace KeePassGate.Tests
                 var said = list.Revoke(1);
 
                 Assert.That(said, Does.Contain("other certificate still reaches this database"));
-                Assert.That(said, Does.Not.Contain("can no longer reach"));
+                Assert.That(said, Does.Contain("when OK is pressed"), "nothing has happened to the database yet");
+                Assert.That(said, Does.Not.Contain("loses its admission"));
                 Assert.That(list.Clients, Is.EqualTo(new[] { renewed }));
 
                 said = list.Revoke(0);
-                Assert.That(said, Does.Contain("agent-fictitious can no longer reach this database"),
+                Assert.That(said, Does.Contain("agent-fictitious loses its admission when OK is pressed"),
                     "the last of them is the client going");
             }
         }
@@ -76,7 +88,7 @@ namespace KeePassGate.Tests
                 var said = list.Revoke(1);
 
                 Assert.That(said, Is.EqualTo(
-                    "agent (" + second.ClientKey.Substring(0, ClientList.ShortKeyLength) + ") can no longer reach this database."));
+                    "agent (" + second.ClientKey.Substring(0, ClientList.ShortKeyLength) + ") loses its admission when OK is pressed."));
                 Assert.That(list.Clients, Is.EqualTo(new[] { first }));
             }
         }
@@ -125,7 +137,7 @@ namespace KeePassGate.Tests
 
             using (var list = ListOf(Allows, record, Record("agent-invented", "ops")))
             {
-                Assume.That(list.Revoke(1), Does.Contain("can no longer reach"));
+                Assume.That(list.Revoke(1), Does.Contain("loses its admission"));
 
                 list.Fill(new AdmissionListing(new[] { record, Record("agent-invented", "ops") }, true), null, null);
 
@@ -202,7 +214,8 @@ namespace KeePassGate.Tests
                 list.Revoke(0);
 
                 Assert.That(list.Result, Does.Contain("agent-fictitious"));
-                Assert.That(list.Result, Does.Contain("no longer"));
+                Assert.That(list.Result, Does.Contain("loses its admission when OK is pressed"),
+                    "the revocation waits for the dialog's OK, and the line names it as waiting");
             }
         }
 
@@ -314,7 +327,7 @@ namespace KeePassGate.Tests
                 // And the row stays, because it is still a record and taking it away is still the
                 // operator's to do. That is why it is marked rather than hidden.
                 Assert.That(list.Clients.Count, Is.EqualTo(1));
-                Assert.That(list.Revoke(0), Does.Contain("no longer"));
+                Assert.That(list.Revoke(0), Does.Contain("loses its admission"));
             }
 
             using (var list = new ClientList(Allows))
@@ -585,7 +598,7 @@ namespace KeePassGate.Tests
                 var line = list.AllowRenewal(0);
 
                 Assert.That(lifted, Is.EqualTo(new[] { record.AdmissionKey }), "by the certificate's key");
-                Assert.That(line, Does.Contain("agent-fictitious").And.Contain("raises the dialog again"));
+                Assert.That(line, Does.Contain("agent-fictitious").And.Contain("raises the dialog again once OK is pressed"));
                 Assert.That(list.StandingAt(0), Is.Null);
                 Assert.That(Grid(list).Rows[0].Cells[0].Style.ForeColor, Is.EqualTo(Color.Empty));
                 Assert.That(Plain(Grid(list).Rows[0].Cells[0].ToolTipText), Is.EqualTo(Keys(null, record)));
@@ -653,10 +666,11 @@ namespace KeePassGate.Tests
             return tip.Replace(Tooltips.LeftToRightMark.ToString(), string.Empty);
         }
 
-        /// <summary>What a row's tooltip says, without the marks: the answer, if any, and the two keys.</summary>
+        /// <summary>What a row's tooltip holds, without the marks: the name, the answer, if any, and the two keys.</summary>
         private static string Keys(string answer, AdmissionRecord record)
         {
-            return (answer == null ? string.Empty : answer + Environment.NewLine)
+            return ClientList.Describe(record) + Environment.NewLine
+                   + (answer == null ? string.Empty : answer + Environment.NewLine)
                    + "Client key " + record.ClientKey + Environment.NewLine
                    + "Certificate " + record.AdmissionKey;
         }
@@ -704,6 +718,39 @@ namespace KeePassGate.Tests
 
                 Assert.That(Held(list, 0), Is.EqualTo(new[] { "reader", "ops" }),
                     "a list nobody was asked about marks nothing");
+            }
+        }
+
+        [Test]
+        [Apartment(System.Threading.ApartmentState.STA)]
+        public void A_moment_heading_stays_on_one_line_over_an_empty_list()
+        {
+            // Sized to what it holds, a moment column with no rows under it holds only its heading,
+            // and a heading free to wrap was given the width that folds it: the README's film
+            // showed "Admitted (UTC)" and "Until (UTC)" on two lines each, over a page that had
+            // admitted nobody yet. On a form that is shown, since a grid that only has a handle
+            // never wraps its headings and passes whatever they are set to.
+            using (var form = new Form { ClientSize = new Size(431, 200) })
+            using (var list = new ClientList(Allows) { Dock = DockStyle.Fill })
+            {
+                form.Controls.Add(list);
+                form.ShowInTaskbar = false;
+                form.Show();
+                list.Fill(new AdmissionListing(Array.Empty<AdmissionRecord>(), true), null, null);
+                form.PerformLayout();
+                Application.DoEvents();
+
+                var grid = Grid(list);
+                var font = grid.ColumnHeadersDefaultCellStyle.Font ?? grid.Font;
+                var line = TextRenderer.MeasureText("Admitted", font).Height;
+
+                Assert.That(grid.ColumnHeadersHeight, Is.LessThan(2 * line), "the heading row is two lines tall");
+                foreach (var header in new[] { ClientList.AdmittedHeader, ClientList.UntilHeader })
+                {
+                    var column = grid.Columns.Cast<DataGridViewColumn>().Single(c => c.HeaderText == header);
+                    Assert.That(column.Width, Is.GreaterThanOrEqualTo(TextRenderer.MeasureText(header, font).Width),
+                        "\"" + header + "\" has less room than one line of it");
+                }
             }
         }
 

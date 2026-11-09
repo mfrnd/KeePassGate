@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using KeePassGate.Acl;
 using KeePassGate.Authority;
 using KeePassGate.Tests.Fakes;
@@ -172,6 +173,106 @@ namespace KeePassGate.Tests
 
             Assert.That(after, Is.EqualTo(new[] { "deploy", "ops", "readonly" }),
                 "the name the pairing wrote is still there, and so is the one the operator typed");
+        }
+
+        [Test]
+        public void A_create_and_a_delete_on_one_dialog_leave_the_database_as_it_was()
+        {
+            // Delete retires what it deletes, and an authority made on this dialog was retired
+            // into the database at OK: a key the file kept for good, for an authority it never
+            // held, reading as a database that had retired every authority it had.
+            var live = new InMemoryKeyValueStore();
+            var pending = new PendingDatabase(new FakeGateDatabase(live), null);
+            var service = new AuthorityService(pending.PluginCustomData, null);
+
+            Assume.That(service.Create().Succeeded, Is.True);
+            Assume.That(service.Delete().Succeeded, Is.True);
+
+            Assert.That(pending.Apply(), Is.False, "nothing was written, so nothing is to be saved");
+            Assert.That(live.Keys, Is.Empty);
+        }
+
+        [Test]
+        public void Two_recreates_on_one_dialog_retire_only_the_authority_the_database_held()
+        {
+            var live = new InMemoryKeyValueStore();
+            Assume.That(new AuthorityService(live, null).Create().Succeeded, Is.True);
+            var held = live.Keys.Single(key => AuthorityKeys.FingerprintInAuthority(key) != null);
+
+            var pending = new PendingDatabase(new FakeGateDatabase(live), null);
+            var service = new AuthorityService(pending.PluginCustomData, null);
+            Assume.That(service.Recreate().Succeeded, Is.True);
+            Assume.That(service.Recreate().Succeeded, Is.True);
+
+            Assert.That(pending.Apply(), Is.True);
+
+            var retired = live.Keys.Select(AuthorityKeys.FingerprintInRetirement).Where(fingerprint => fingerprint != null);
+            Assert.That(retired, Is.EqualTo(new[] { AuthorityKeys.FingerprintInAuthority(held) }),
+                "the authority made between the two was never in the database, and is retired nowhere");
+            Assert.That(live.Keys.Count(key => AuthorityKeys.FingerprintInAuthority(key) != null), Is.EqualTo(1));
+        }
+
+        [Test]
+        public void What_OK_took_away_is_listed_beside_what_it_stored()
+        {
+            // So that what a lift landed can be logged as it lands, rather than at the press.
+            var live = new InMemoryKeyValueStore();
+            live.Set("KPG.RenewalRefused.aaa", "forever");
+            live.Set("KPG.RenewalRefused.bbb", "forever");
+            var pending = new PendingDatabase(new FakeGateDatabase(live), null);
+
+            pending.PluginCustomData.Remove("KPG.RenewalRefused.aaa");
+            pending.PluginCustomData.Remove("KPG.Nothing.There");
+            pending.PluginCustomData.Set("KPG.Written", "x");
+
+            Assert.That(pending.Apply(), Is.True);
+
+            Assert.That(pending.Taken, Is.EqualTo(new[] { "KPG.RenewalRefused.aaa" }), "a removal of nothing took nothing");
+            Assert.That(pending.Stored, Is.EqualTo(new[] { "KPG.Written" }));
+
+            pending.Discard();
+            Assert.That(pending.Taken, Is.Empty);
+        }
+
+        [Test]
+        public void A_list_that_turned_damaged_under_the_dialog_is_left_as_it_is()
+        {
+            // The operator's ruling of 2026-11-08. Merged, a list that will not read read as one
+            // naming nothing, so OK replaced it with the edit, every name it held and the sign that
+            // it was damaged with it. It is left alone, and the log is told why the edit went.
+            var live = new InMemoryKeyValueStore();
+            live.Set(ProfileNames.CustomDataKey, "{\"profiles\":[\"reader\"]}");
+            var log = new RecordingGateLog();
+            var pending = new PendingDatabase(new FakeGateDatabase(live), log);
+
+            Assume.That(new DatabaseProfiles(pending, null).Add("ops"), Is.Null);
+            live.Set(ProfileNames.CustomDataKey, "{not json");
+
+            Assert.That(new DatabaseProfiles(pending, null).Unreadable, Is.True, "the page shows the damage it would write over");
+
+            pending.Apply();
+
+            Assert.That(live.Get(ProfileNames.CustomDataKey), Is.EqualTo("{not json"));
+            Assert.That(log.Warnings.Any(entry => entry.Message.Contains("will not read")), Is.True);
+        }
+
+        [Test]
+        public void A_new_list_started_over_a_damaged_one_replaces_it_at_OK()
+        {
+            // The one way the page writes over a list that will not read: the operator chose it.
+            var live = new InMemoryKeyValueStore();
+            live.Set(ProfileNames.CustomDataKey, "{not json");
+            var pending = new PendingDatabase(new FakeGateDatabase(live), null);
+            var profiles = new DatabaseProfiles(pending, null);
+
+            Assume.That(profiles.Unreadable, Is.True);
+            Assert.That(profiles.StartNew(), Is.Null);
+            Assert.That(profiles.Add("ops"), Is.Null);
+
+            pending.Apply();
+
+            Assert.That(ProfileNames.Readable(live.Get(ProfileNames.CustomDataKey)), Is.True);
+            Assert.That(ProfileNames.Read(live.Get(ProfileNames.CustomDataKey)).Names, Is.EqualTo(new[] { "ops" }));
         }
 
         [TestCase(false)]
@@ -602,6 +703,9 @@ namespace KeePassGate.Tests
         [Test]
         public void A_database_is_not_marked_for_a_dialog_somebody_only_looked_at()
         {
+            // The decorator alone. On the real dialog's OK, KeePass's own handler marks the
+            // database whatever the tab applied; what this pins is that the tab adds no mark of
+            // its own, which is what a Cancel relies on.
             var inner = new FakeGateDatabase { Nodes = new TestRuledNodes() };
             var pending = new PendingDatabase(inner, null);
 

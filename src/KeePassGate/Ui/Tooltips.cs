@@ -21,7 +21,7 @@ namespace KeePassGate.Ui
     /// font the desktop gives it and this has no window to ask. What that costs is a ragged right
     /// edge on a proportional font, which is what a paragraph looks like anyway.
     ///
-    /// **And every line is marked left to right**, which <see cref="LeftToRight"/> says why.
+    /// **And every line is marked left to right**, for the reason <see cref="LeftToRight"/> gives.
     /// </remarks>
     public static class Tooltips
     {

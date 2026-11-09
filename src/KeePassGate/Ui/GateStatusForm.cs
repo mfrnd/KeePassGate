@@ -50,6 +50,12 @@ namespace KeePassGate.Ui
         /// <summary>What the box was showing when the window opened.</summary>
         private readonly decimal _opened;
 
+        /// <summary>
+        /// Whether the next start takes no port at all, so that what the box shows is a suggestion
+        /// rather than the setting.
+        /// </summary>
+        private readonly bool _takesNothing;
+
         /// <summary>The socket the gate is on right now, or zero when it is on none.</summary>
         private readonly int _where;
         private readonly NumericUpDown _port;
@@ -73,8 +79,10 @@ namespace KeePassGate.Ui
         /// can reach: a port is what the gate binds the next time KeePass starts.
         /// </param>
         /// <param name="chosen">
-        /// What the operator has chosen before, or zero when they have chosen nothing and the gate
-        /// is on whatever it defaulted to.
+        /// The port the next start takes, which is `GateOptions.PortToTake`'s answer: the port the
+        /// operator chose before, or while there is none `KEEPASSGATE_PORT`, or the default. Zero
+        /// when the next start takes none, which is when the variable names something that is not a
+        /// port, and the gate is on nothing for that reason.
         /// </param>
         public GateStatusForm(
             IGateStatus gate, GateIncidents incidents, Func<int, string> apply, int chosen)
@@ -130,6 +138,7 @@ namespace KeePassGate.Ui
 
             layout.Controls.Add(new TextLabel
             {
+                Name = "KpgStatusIntro",
                 Text = GateName.Product + " serves this KeePass's databases to programs that have been let in.",
                 AutoSize = true,
                 MaximumSize = new Size(LogicalToDeviceUnits(390), 0),
@@ -222,17 +231,25 @@ namespace KeePassGate.Ui
             facts.Controls.Add(addressName, 0, rows.Count);
             facts.Controls.Add(_addresses, 1, rows.Count);
 
-            // What the next start takes, so that pressing OK without touching it changes nothing:
-            // `_opened` is what an untouched OK is measured against. The socket the gate is on now
+            // What the next start takes, so that pressing OK without touching it changes nothing
+            // unless the next start takes no port at all: `_opened` is what an untouched OK is
+            // measured against. The socket the gate is on now
             // is the row above, and after a port is written down the two differ for the rest of
             // the session.
             _opened = Starting(gate, chosen);
+            _takesNothing = GatePort.Refuse(chosen) != null;
+
+            // **Wider than a port, so that what is typed reaches `GatePort` as it was typed.** A
+            // box held to 1024 to 65535 takes a number outside that and moves it to the nearer
+            // end, as its value is read or as it loses the focus to OK: 80 was saved as 1024 and
+            // 70000 as 65535 without a word, so the refusal written for somebody typing 80 could
+            // never be shown. Measured on .NET Framework 4.8. The range is the refusal's to keep.
             _port = new NumericUpDown
             {
                 Name = GateTab.StatusPortBoxName,
                 AccessibleName = GateTab.StatusPortBoxLabel,
-                Minimum = GatePort.Lowest,
-                Maximum = GatePort.Highest,
+                Minimum = 0,
+                Maximum = int.MaxValue,
                 Value = _opened,
                 Width = WidestPort(),
                 Margin = new Padding(0, 0, LogicalToDeviceUnits(Spacing.Gap), 0)
@@ -268,7 +285,13 @@ namespace KeePassGate.Ui
                 Name = GateTab.StatusResultLabelName,
                 AutoSize = true,
                 MaximumSize = new Size(LogicalToDeviceUnits(390), 0),
-                Margin = new Padding(0, 0, 0, LogicalToDeviceUnits(Spacing.Gap))
+                Margin = new Padding(0, 0, 0, LogicalToDeviceUnits(Spacing.Gap)),
+
+                // Nothing to say means no room taken. An empty label still reserves a line, and
+                // this one is written only when OK is refused, since an accepted OK closes the
+                // window: shown, it was a blank band between the table and the advice on almost
+                // every visit.
+                Visible = false
             };
 
             layout.Controls.Add(_result);
@@ -344,6 +367,12 @@ namespace KeePassGate.Ui
 
             buttons.Controls.Add(cancel);
             buttons.Controls.Add(ok);
+
+            // The tab order is the drawn order, which the order they were added in is not: a
+            // right to left row numbers its controls as they arrive, so Tab from the port box
+            // reached Cancel before OK, against every KeePass dialog.
+            ok.TabIndex = 0;
+            cancel.TabIndex = 1;
             layout.Controls.Add(buttons);
 
             Controls.Add(layout);
@@ -412,11 +441,13 @@ namespace KeePassGate.Ui
 
             var wanted = (int)_port.Value;
 
-            if (wanted == _opened)
+            if (wanted == _opened && !_takesNothing)
             {
                 // Untouched, so there is nothing to write. The box opened on what the next start
                 // takes, so writing it again would change nothing and would still write KeePass's
-                // configuration for it.
+                // configuration for it. A box that opened on a suggestion, because the next start
+                // takes nothing, is written whether or not it moved: OK there is the only way to
+                // choose that port over the variable, and it used to answer that nothing changed.
                 Applied = true;
                 return Said(Untouched(wanted));
             }
@@ -456,8 +487,10 @@ namespace KeePassGate.Ui
         /// <summary>What OK says once the port has been written down.</summary>
         /// <remarks>
         /// Typing the port the gate is listening on is how a port waiting for the next start is
-        /// taken back, and it says so, rather than telling the operator to reconfigure clients
-        /// that are already on the right port.
+        /// taken back, and the answer names it as that, rather than telling the operator to pair
+        /// again clients that are already on the right port. Elsewhere a client paired against the
+        /// old port pairs again, because PyKeePassGate keeps the port it paired against with the
+        /// identity and offers no way to give it another, as `docs/getting-started.md` sets out.
         /// </remarks>
         private string Kept(int wanted)
         {
@@ -468,18 +501,20 @@ namespace KeePassGate.Ui
             }
 
             return "Saved. The gate takes 127.0.0.1:" + wanted + " the next time KeePass starts, "
-                + "and clients paired against the old port have to be told the new one.";
+                + "and clients paired against the old port have to pair again against the new one.";
         }
 
         private string Said(string what)
         {
             _result.Text = what;
+            _result.Visible = !string.IsNullOrEmpty(what);
             return what;
         }
 
         /// <summary>
-        /// What the box starts on: what the next start takes, which is what was chosen, or the
-        /// port the gate is on when nothing was, or the default when neither says anything.
+        /// What the box starts on: what the next start takes. When that is no port at all, the box
+        /// offers the port the gate is on, or the default when it is on none it can show, and OK
+        /// writes it.
         /// </summary>
         /// <remarks>
         /// **The choice rather than the socket**, and it used to be the socket. The two differ for

@@ -38,11 +38,10 @@
     <PackageReference Include="BouncyCastle.Cryptography" Version="2.7.0" />
     <!-- The routing table is an OpenAPI document, so something has to read one. Measured before it
          was taken: three assemblies including its YAML reader, and it works on .NET Framework 4.8,
-         which was the doubt. `FINDINGS.md`, under "Spec-first binding", records the number:
-         cited by its title because the numbering shifts as sections are added above it, which
-         is what this very commit does to it. No schema library is
-         taken for the body checking beside it, and the counts that decided that are on the
-         `spikes/json-reading` branch. MIT. -->
+         which was the doubt. `FINDINGS.md`, under "The document as the routing table", records
+         the number and how it was taken: cited by its title because the numbering shifts as
+         sections are added above it. No schema library is taken for the body checking beside it,
+         and the counts that decided that are on the `spikes/json-reading` branch. MIT. -->
     <PackageReference Include="Microsoft.OpenApi" Version="1.6.31" />
     <PackageReference Include="Microsoft.OpenApi.Readers" Version="1.6.31" />
     <!-- Reading and writing JSON: one assembly, MIT, and nothing arrives with it.

@@ -109,6 +109,21 @@ namespace KeePassGate.Ui
         private string _broken;
 
         /// <summary>
+        /// A label whose ampersands are characters, in what it does as well as in what it draws.
+        /// </summary>
+        /// <remarks>
+        /// **No access key**, to agree with <see cref="Shape"/>. A `Label` takes an ampersand before
+        /// a letter in its text as an access key whatever draws it, and these hold text from outside
+        /// the plugin: a database named `R&amp;D` drew as that on the pairing and renewal dialogs
+        /// and the authority chooser, and made Alt+D, or a bare D while a button had the focus, a
+        /// key nobody could see that moved the focus.
+        /// </remarks>
+        public TextLabel()
+        {
+            UseMnemonic = false;
+        }
+
+        /// <summary>
         /// The text with a break put inside any word that will not fit the width on its own.
         /// </summary>
         /// <remarks>

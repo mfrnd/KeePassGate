@@ -156,11 +156,29 @@ namespace KeePassGate.Ui
         /// In the log, because the merge that counts runs at OK, when the dialog that could have
         /// said so is already closing. The page reads the same merge while the dialog is open, to
         /// show what OK will write, and says nothing then: a name left out of a list that is still
-        /// being edited can yet be kept. `ProfileNames.Merge` says why the names already on the
-        /// list are the ones kept.
+        /// being edited can yet be kept. `ProfileNames.Merge` gives the reason the names already on
+        /// the list are the ones kept.
+        ///
+        /// **A list that changed under the dialog into a list that will not read is left alone**, the
+        /// operator's ruling of 2026-11-08, and the log is told at OK. Merged, it read as naming
+        /// nothing, so the edit replaced it, every name it held and the sign that it was damaged.
+        /// The page then shows the damage, and replacing it takes the operator's choice: starting
+        /// a new list there writes against the damaged value the page read, which OK lands only
+        /// while that value is still the value stored, so this is not asked.
         /// </remarks>
         private string MergeProfiles(string baseline, string current, string buffered, bool landing)
         {
+            if (!ProfileNames.Readable(current))
+            {
+                if (landing)
+                {
+                    _log.Warn("the profile list edited on the " + GateName.Product + " tab was not written: "
+                              + "the database's list will not read now, and is left as it is");
+                }
+
+                return current;
+            }
+
             IReadOnlyList<string> unkept;
             var merged = ProfileNames.Merge(baseline, current, buffered, out unkept);
 
@@ -235,6 +253,14 @@ namespace KeePassGate.Ui
             get { return _store == null ? Array.Empty<string>() : _store.Stored; }
         }
 
+        /// <summary>
+        /// The keys the last <see cref="Apply"/> took away: see <see cref="PendingStore.Taken"/>.
+        /// </summary>
+        public IReadOnlyList<string> Taken
+        {
+            get { return _store == null ? Array.Empty<string>() : _store.Taken; }
+        }
+
         /// <summary>Whether any key of a kind is waiting.</summary>
         public bool WaitingOn(Func<string, bool> kind)
         {
@@ -243,10 +269,14 @@ namespace KeePassGate.Ui
 
         /// <summary>
         /// Ignored rather than deferred. What marks the database is a change actually reaching it,
-        /// which
-        /// is <see cref="Apply"/>, because a database marked for a change that was then canceled
-        /// is a database asking to be saved for nothing.
+        /// which is <see cref="Apply"/>, because a database marked for a change that was then
+        /// canceled is a database asking to be saved for nothing.
         /// </summary>
+        /// <remarks>
+        /// **What this buys is a Cancel that leaves nothing to save.** On OK, KeePass's own
+        /// handler for the settings dialog marks the database changed whatever the tab did, after
+        /// the tab has applied what it held, so an OK that changed nothing still asks for a save.
+        /// </remarks>
         public void MarkModified()
         {
             // Deliberately nothing. What reaches the database is decided by what `Apply`
@@ -272,6 +302,22 @@ namespace KeePassGate.Ui
 
             if (_store != null)
             {
+                // An authority made and then retired on this one dialog, by a create and a delete
+                // or by two recreates, never reached the database. Its retirement would: a key the
+                // file keeps for good, naming an authority it never held, and reading as a
+                // database that retired every authority it had.
+                var underneath = _database.PluginCustomData;
+                if (underneath != null)
+                {
+                    _store.Withdraw(key =>
+                    {
+                        var fingerprint = AuthorityKeys.FingerprintInRetirement(key);
+                        return fingerprint != null
+                               && underneath.Get(AuthorityKeys.AuthorityKey(fingerprint)) == null
+                               && underneath.Get(key) == null;
+                    });
+                }
+
                 changed |= _store.Apply();
             }
 
@@ -301,9 +347,10 @@ namespace KeePassGate.Ui
             }
 
             // On what was written, not on what was asked for. A create and a delete on the same
-            // tab cancel out, leaving a mark requested and nothing to save: KeePass then demanded
-            // a save for a file whose bytes had not changed, which is what this class exists to
-            // stop happening.
+            // tab cancel out, and nothing is marked for them here. KeePass marks the database on
+            // the settings dialog's OK in any case, `MarkModified` gives the reason that is not
+            // undone here, so what `changed` decides beyond this is the factory's log line about
+            // what landed and the prune of standing answers above.
             if (changed)
             {
                 _database.MarkModified();
@@ -364,10 +411,11 @@ namespace KeePassGate.Ui
         /// The order the writes were asked for, which is the order they are replayed in.
         /// </summary>
         /// <remarks>
-        /// A `Dictionary` has no order, and replaying one gave whatever it happened to hold:
-        /// measured, that inverted the sequence the authority is written in, where the key that
-        /// makes it usable goes last so a half-written one never reads as complete. The caller
-        /// chose an order; this keeps it.
+        /// A `Dictionary` has no order, and replaying one gave whatever it happened to hold. The
+        /// caller chose an order, and this keeps it, so OK lands a change in the order the code that
+        /// made it writes a live database in, which is the order that code's own reasoning about
+        /// each step holds for: a recreate, for one, writes its replacement before it retires the
+        /// authority it replaces.
         /// </remarks>
         private readonly List<string> _order = new List<string>();
         private readonly List<string> _removed = new List<string>();
@@ -445,6 +493,17 @@ namespace KeePassGate.Ui
         /// client's own made meanwhile, is not written down a second time.
         /// </remarks>
         public IReadOnlyList<string> Stored { get; private set; } = Array.Empty<string>();
+
+        /// <summary>
+        /// The keys the last <see cref="Apply"/> took away, which the removals it asked for and
+        /// found there are. Nothing is after a Cancel.
+        /// </summary>
+        /// <remarks>
+        /// For the same reader, about the other kind of edit: a standing answer to a renewal the
+        /// clients page lifted is taken away as the dialog's OK lands it, and the log names it then
+        /// rather than at the press.
+        /// </remarks>
+        public IReadOnlyList<string> Taken { get; private set; } = Array.Empty<string>();
 
         /// <summary>Whether one key in particular has been written here and not there.</summary>
         public bool WaitingOn(string key)
@@ -597,6 +656,25 @@ namespace KeePassGate.Ui
             _written[key] = value ?? string.Empty;
         }
 
+        /// <summary>
+        /// Takes back the writes the dialog holds for every key <paramref name="which"/> picks,
+        /// as though they had never been made. Nothing is removed by it.
+        /// </summary>
+        public void Withdraw(Func<string, bool> which)
+        {
+            if (which == null)
+            {
+                throw new ArgumentNullException(nameof(which));
+            }
+
+            foreach (var key in _written.Keys.Where(which).ToList())
+            {
+                _written.Remove(key);
+                _order.Remove(key);
+                _before.Remove(key);
+            }
+        }
+
         public void Remove(string key)
         {
             if (string.IsNullOrEmpty(key))
@@ -699,13 +777,20 @@ namespace KeePassGate.Ui
             // A removal is an edit like any other, so it is reconciled like one: an operator who
             // took the last name out of a list a pairing has since added to is asking for their
             // name to go, not for the pairing's to go with it.
+            var taken = new List<string>();
             foreach (var key in _removed)
             {
-                changed |= Land(store, key, null);
+                var landed = Land(store, key, null);
+                changed |= landed;
+                if (landed)
+                {
+                    taken.Add(key);
+                }
             }
 
             Discard();
             Stored = stored.AsReadOnly();
+            Taken = taken.AsReadOnly();
             return changed;
         }
 
@@ -777,6 +862,7 @@ namespace KeePassGate.Ui
             _removed.Clear();
             _before.Clear();
             Stored = Array.Empty<string>();
+            Taken = Array.Empty<string>();
         }
     }
 

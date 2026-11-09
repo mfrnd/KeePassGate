@@ -50,12 +50,37 @@ namespace KeePassGate.Tests
             var first = choice.Options.Single(o => o.Fingerprint == _candidates[0]);
             Assert.That(first.CanKeep, Is.True);
             Assert.That(first.Created, Is.Not.Null);
+            Assert.That(first.Created.Value.ToUniversalTime(), Is.EqualTo(DateTime.UtcNow).Within(TimeSpan.FromMinutes(1)),
+                "when it was made, not the notBefore the issuer backdates");
             Assert.That(first.Clients.Single().Name, Is.EqualTo("agent-fictitious"), "without the CN= every row would carry");
             Assert.That(first.Clients.Single().Profiles, Is.EqualTo(new[] { "ops", "reader" }));
             Assert.That(first.Clients.Single().Admitted, Is.EqualTo(Admitted));
 
             var second = choice.Options.Single(o => o.Fingerprint == _candidates[1]);
             Assert.That(second.Clients, Is.Empty, "a client belongs to the authority its certificate chains to");
+        }
+
+        [Test]
+        public void A_record_its_authority_would_not_let_in_is_no_client_of_it()
+        {
+            // The clients a candidate admitted are the evidence of which copy is in use, and the
+            // clients page marks a record the gate refuses: one not for a client to present, or
+            // one not valid yet, was listed and counted as a client all the same.
+            var authority = CertificateBlob.Load(
+                AuthorityDocument.Read(_values.Get(AuthorityKeys.AuthorityKey(_candidates[1])), null).Authority);
+            var store = new AdmissionStore(_values, null);
+
+            using (var host = new AuthorityIssuer().IssueHost(authority).Read())
+            using (var later = new AuthorityIssuer(() => DateTimeOffset.UtcNow.AddDays(2))
+                       .IssueClient(authority, "agent-later", new[] { "ops" }).Read())
+            {
+                store.Write(AdmissionRecord.For(host, Admitted, new[] { "ops" }));
+                store.Write(AdmissionRecord.For(later, Admitted, new[] { "ops" }));
+            }
+
+            var second = Choice(null).Options.Single(o => o.Fingerprint == _candidates[1]);
+
+            Assert.That(second.Clients, Is.Empty);
         }
 
         [Test]
@@ -209,6 +234,39 @@ namespace KeePassGate.Tests
                     .Single(item => item.Text == CertificateDigest.Shorten(_candidates[0]));
 
                 Assert.That(row.SubItems[2].Text, Is.EqualTo("2"));
+            }
+        }
+
+        [Test]
+        public void Every_moment_column_names_UTC_and_every_heading_fits_its_column()
+        {
+            // The moments are printed in UTC, and a heading that is cut is a heading that does
+            // not state it. A list header draws its text inside a few pixels of padding a side.
+            using (var dialog = new AuthorityChooserForm(Choice(null), "Invented Vault"))
+            {
+                var headings = new List<string>();
+                foreach (var list in new[] { GateTab.ChooserAuthorityListName, GateTab.ChooserClientListName }
+                             .Select(name => ControlTree.FindByName<ListView>(dialog, name)))
+                {
+                    foreach (ColumnHeader column in list.Columns)
+                    {
+                        headings.Add(column.Text);
+                        var wanted = TextRenderer.MeasureText(column.Text, list.Font).Width + 12;
+                        Assert.That(column.Width, Is.GreaterThanOrEqualTo(wanted),
+                            "\"" + column.Text + "\" is cut in its column");
+                    }
+                }
+
+                Assert.That(headings, Is.SupersetOf(new[] { "Created (UTC)", "Admitted (UTC)", "Last request (UTC)" }));
+            }
+        }
+
+        [Test]
+        public void Every_control_on_it_carries_a_name()
+        {
+            using (var dialog = new AuthorityChooserForm(Choice(null), "Invented Vault"))
+            {
+                Assert.That(Unnamed.On(dialog), Is.Empty);
             }
         }
 

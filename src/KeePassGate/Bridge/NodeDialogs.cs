@@ -24,31 +24,24 @@ namespace KeePassGate.Bridge
             _log = log ?? NullGateLog.Instance;
         }
 
-        public GrantSheet SheetFor(Form dialog)
+        public NodeTab TabFor(Form dialog)
         {
             var node = NodeDialog.Of(dialog, _log);
             if (node == null)
             {
-                return null;
+                return NodeTab.None;
             }
 
-            return new GrantSheet(
+            var sheet = new GrantSheet(
                 node.Document(),
                 node.Above,
                 ProfilesOf(node.Database),
                 node.ReadOnlyReason);
-        }
 
-        public IGrantStore StoreFor(Form dialog)
-        {
-            var node = NodeDialog.Of(dialog, _log);
-            return node == null ? null : node.Store();
-        }
-
-        public string ScopeFor(Form dialog)
-        {
-            var node = NodeDialog.Of(dialog, _log);
-            return node == null ? GrantTab.NoNodeScope : node.Scope;
+            // The list read again whenever the tab reads its rules again, from the database the
+            // dialog belongs to: a pairing can name a profile while the dialog is open.
+            var database = node.Database;
+            return new NodeTab(sheet, node.Store(), node.Scope, () => ProfilesOf(database));
         }
 
         /// <summary>

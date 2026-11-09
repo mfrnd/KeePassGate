@@ -23,11 +23,11 @@ namespace KeePassGate.Ui
     /// They are changed on different occasions and read on different occasions, and one page
     /// carrying all of them meant every line competing for the same 449 by 314.
     ///
-    /// Two things are said on screen rather than assumed, under both pages because both are true
-    /// of both. That nothing here reaches the database until this dialog is accepted, because a tab
-    /// inside a dialog with OK and Cancel on it has to mean the same thing they do. And what
-    /// recreating costs, in the number of clients that lose their admission, because that is the
-    /// number the operator cannot work out for themselves.
+    /// Two things are put on screen rather than assumed. Under all three pages, that nothing here
+    /// reaches the database until this dialog is accepted, because a tab inside a dialog with OK
+    /// and Cancel on it has to mean the same thing they do. And in the question asked before
+    /// Recreate or Delete, what either costs, in the number of clients that lose their admission,
+    /// because that is the number the operator cannot work out for themselves.
     ///
     /// **Nothing it can foresee is thrown**, because it runs on the UI thread of a password manager,
     /// where an exception leaving a click handler is recorded as a defect by `WindowHandlers` and
@@ -75,10 +75,15 @@ namespace KeePassGate.Ui
 
         private readonly IAdmissionNotice _admissions;
         private readonly AuthorityService _service;
-        private readonly Font _valueFont;
+
+        /// <summary>The bold font of the facts' values, built again with the panel's.</summary>
+        private Font _valueFont;
 
         /// <summary>The invitation box's own font, built again whenever the panel's changes.</summary>
         private Font _tokenFont;
+
+        /// <summary>The family that font is asked for in: <see cref="CodeFamily"/>.</summary>
+        private string _codeFamily = PreferredCodeFamily;
 
         private readonly TabControl _tabs;
         private readonly FlowLayoutPanel _inviting;
@@ -131,7 +136,7 @@ namespace KeePassGate.Ui
         private readonly Button _delete;
         private readonly Button _choose;
         private readonly Button _invite;
-        private readonly TextBox _token;
+        private readonly CodeBox _token;
         private readonly Button _copy;
         private readonly ToolTip _tips;
         private readonly Label _invitation;
@@ -239,13 +244,9 @@ namespace KeePassGate.Ui
             // that outgrows the tab fails a test rather than appearing on somebody's screen.
             AutoScroll = false;
 
-            // The prototype is disposed, because `SystemFonts.DefaultFont` hands back a new font
-            // every time it is read and `new Font(prototype, style)` copies rather than adopts.
-            // Without the `using`, every settings dialog opened leaves one behind.
-            using (var prototype = SystemFonts.DefaultFont)
-            {
-                _valueFont = new Font(prototype, FontStyle.Bold);
-            }
+            // From the panel's own font, which is the system's until a dialog hands it another, and
+            // which is not this panel's to dispose: `new Font(prototype, style)` copies.
+            _valueFont = new Font(Font, FontStyle.Bold);
 
             _tabs = new TabControl
             {
@@ -348,9 +349,9 @@ namespace KeePassGate.Ui
             // code is a different width every time it is minted, so a box that held one would cut
             // the next. Fixed width makes the widest code the only code, which is a width the box
             // can be built for.
-            _tokenFont = CodeFont(Font.Size);
+            _tokenFont = CodeFont(_codeFamily, Font.Size);
 
-            _token = new TextBox
+            _token = new CodeBox
             {
                 Name = GateTab.InvitationBoxName,
 
@@ -393,7 +394,10 @@ namespace KeePassGate.Ui
             // point where somebody has already tried to press it.
             //
             // Nothing under this one. The line below it qualifies it and the two are one band.
+            // Collapsed while it has nothing to state, which is whenever no code is out: the box
+            // shows that itself, and an empty line still takes its height from the list.
             _invitation = NewTextLabel(GateTab.InvitationLabelName, new Padding(0));
+            _invitation.Visible = false;
             invitation.Controls.Add(_invitation);
 
             // Under the invitation, because it qualifies what was just handed out. The column
@@ -419,6 +423,13 @@ namespace KeePassGate.Ui
             // database can issue, and who holds what it issued.
             _profiles = new ProfileList(profiles ?? new NoProfiles(), _prompt);
             _tabs.TabPages[1].Controls.Add(_profiles);
+
+            // A name put on the list or taken off it waits for OK, and the code made on this
+            // dialog goes at once rather than when the clients page is next brought forward.
+            _profiles.Edited += delegate
+            {
+                WindowHandlers.Run("the KPG tab could not answer a profile edit", Describe);
+            };
 
             // What the last press did, below all three pages rather than on one of them. Every page has
             // something to say here: the authority page has three buttons and the clients page has
@@ -492,16 +503,33 @@ namespace KeePassGate.Ui
         }
 
         /// <summary>Deletes it, asking first. Nothing happens if the answer is no.</summary>
+        /// <remarks>
+        /// **Asked in the words of what there is to delete.** Delete is offered with no authority
+        /// at all when admission records outlived it, and the question written for a live
+        /// authority then told the operator that deleting stops the database being served and
+        /// that its clients would pair again, beside a page calling those records inert.
+        /// </remarks>
         public void DeleteAuthority()
         {
             Act(() =>
             {
-                if (!_prompt.Confirm(
-                        "Delete the authority",
-                        "Deleting the authority stops this database being served at all." +
-                        Environment.NewLine + Environment.NewLine +
-                        Cost(CountRecords()) + Environment.NewLine + Environment.NewLine +
-                        "Delete it?"))
+                bool held;
+                using (var reading = _service.Read())
+                {
+                    held = reading.Presence != AuthorityPresence.None;
+                }
+
+                var question = held
+                    ? "Deleting the authority stops this database being served at all." +
+                      Environment.NewLine + Environment.NewLine +
+                      Cost(CountRecords()) + Environment.NewLine + Environment.NewLine +
+                      "Delete it?"
+                    : "Deleting takes away the admission records left without an authority. They " +
+                      "admit nobody, and nothing is served now, so nothing else changes." +
+                      Environment.NewLine + Environment.NewLine +
+                      "Delete them?";
+
+                if (!_prompt.Confirm("Delete the authority", question))
                 {
                     return null;
                 }
@@ -533,10 +561,17 @@ namespace KeePassGate.Ui
                         return null;
                     }
 
+                    // Where the audit is writing, as the plugin opened it, rather than the variable
+                    // read again: a relative path is made whole once, against the directory KeePass
+                    // started in, and made whole again here it named wherever KeePass's working
+                    // directory had moved to since. No path is an audit nobody can read.
+                    var audit = AuditPath == null ? null : AuditPath();
                     choice = AuthorityChoice.From(
                         reading,
                         new AdmissionStore(_database.PluginCustomData, _log).All(),
-                        clients => JsonLinesAudit.LastSeen(JsonLinesAudit.DefaultPath(), clients),
+                        audit == null
+                            ? (Func<ICollection<string>, IDictionary<string, DateTimeOffset>>)null
+                            : clients => JsonLinesAudit.LastSeen(audit, clients),
                         _log);
                 }
 
@@ -551,6 +586,12 @@ namespace KeePassGate.Ui
         /// </summary>
         internal Func<AuthorityChoice, string, string> AskWhichToKeep { get; set; }
 
+        /// <summary>
+        /// Where the gate's audit is writing, which the chooser reads each client's last request
+        /// from, or null for a tab with no audit behind it.
+        /// </summary>
+        public Func<string> AuditPath { get; set; }
+
         private string ShowChooser(AuthorityChoice choice, string databaseName)
         {
             using (var form = new AuthorityChooserForm(choice, databaseName))
@@ -564,10 +605,10 @@ namespace KeePassGate.Ui
         /// Creates an invitation and shows the token.
         /// </summary>
         /// <remarks>
-        /// Nothing is written to the database, so this is the one button on the tab that Cancel
-        /// does not undo: the invitation lives in `InvitationBook`, which is plugin memory, and
-        /// `AuthorityPanelFactory.Commit` never touches it. An invitation that outlives a canceled
-        /// dialog is a token somebody can still pair with, until its own expiry or KeePass exits.
+        /// Nothing is written to the database: the invitation lives in `InvitationBook`, which is
+        /// plugin memory, and is good for pairing from the moment it is made. It is made through
+        /// `PendingInvitations`, so `AuthorityPanelFactory.Commit` withdraws it when the dialog
+        /// closes without OK, and a profile edit waiting for that OK withdraws it at once.
         /// </remarks>
         public void InviteClient()
         {
@@ -770,6 +811,7 @@ namespace KeePassGate.Ui
                 // by name was a deleted authority, where the box kept a code for something that no
                 // longer exists.
                 _offered = reading != null && reading.IsPresent ? reading.Material.AuthorityDigest : null;
+                WithdrawForProfiles();
                 ShowOutstanding(OutstandingCodes(DateTimeOffset.UtcNow));
             }
             catch (Exception error) when (Expected.OfCustomData(error)
@@ -838,12 +880,42 @@ namespace KeePassGate.Ui
         /// </remarks>
         private string InviteNotice()
         {
+            // Against what the dialog is holding, as `_offered` was read: a change that leaves an
+            // authority is one to pair with once OK has landed it, and a delete is not.
             if (AuthorityIsWaiting)
             {
-                return GateTab.PendingAuthorityNotice;
+                return _offered == null ? GateTab.PendingDeleteNotice : GateTab.PendingAuthorityNotice;
             }
 
             return ProfilesAreWaiting ? GateTab.PendingProfilesNotice : string.Empty;
+        }
+
+        /// <summary>
+        /// Takes back the code made on this dialog while a profile edit waits for its OK, as
+        /// Cancel takes it back, and clears it from the box.
+        /// </summary>
+        /// <remarks>
+        /// The operator's ruling of 2026-11-08, for the reason the invite button is dead while the
+        /// edit waits: a client approved for a profile the operator is part way through removing
+        /// is admitted to a name OK takes off the list, where it grants nothing. The dead button
+        /// stopped a new code, and a code made before the edit stayed in the box, copyable and
+        /// good, under a band telling the operator to press OK and reopen the dialog to pair. A
+        /// code made on an earlier dialog that was accepted is not this dialog's to take back.
+        /// </remarks>
+        private void WithdrawForProfiles()
+        {
+            var made = _invitations as PendingInvitations;
+            if (made == null || !ProfilesAreWaiting)
+            {
+                return;
+            }
+
+            if (made.Discard() > 0)
+            {
+                _token.Text = string.Empty;
+                _log.Info("the invitation made on the " + GateName.OnATab +
+                          " tab was withdrawn: a profile edit waits for the dialog's OK");
+            }
         }
 
         /// <summary>Whether a profile edit is buffered and the list is about to change under a client.</summary>
@@ -901,6 +973,14 @@ namespace KeePassGate.Ui
         private void ShowOutstanding(Outstanding outstanding)
         {
             _invitation.Text = outstanding.Text;
+            _invitation.Visible = outstanding.Text.Length > 0;
+
+            // In the box rather than on the line over it, the operator's ruling of 2026-11-09: the
+            // line stated what the empty box beside it already showed, on a page of 449 by 314.
+            // **Only while nothing is out.** A code made on an earlier dialog is counted down on
+            // the line and never shown again, so the box is empty then too, and a placeholder
+            // there would deny the code the line is counting down.
+            _token.Placeholder = outstanding.Any ? string.Empty : InvitationText.None;
 
             // Offering to renew a code only while there is one to renew: the first press
             // renews nothing, and the line just set says so.
@@ -1157,15 +1237,17 @@ namespace KeePassGate.Ui
         }
 
         /// <summary>
-        /// Gives the invitation box a monospaced font at the panel's new size.
+        /// Gives the invitation box a monospaced font at the panel's new size, and the facts'
+        /// values a bold font at that size.
         /// </summary>
         /// <remarks>
-        /// The box's font is its own, and a font set on a control is not one it inherits: built
-        /// once, it stayed at the size the panel had in its constructor while everything around it
-        /// followed the panel's font. A panel is given a larger font by a dialog whose font is not
-        /// the system's, as the page is attached, and by the scaled fit test, which measured the
-        /// row holding the box with the box at the unscaled size nobody sees. Nothing happens
-        /// before the box exists, because the constructor sets properties that lay the panel out.
+        /// Both fonts are the panel's own, and a font set on a control is not a font it inherits:
+        /// built once, each stayed at the size the panel had in its constructor while everything
+        /// around it followed the panel's font. A panel is given a larger font by a dialog whose
+        /// font is not the system's, as the page is attached, and by the scaled fit test, which
+        /// measured the row holding the box with the box at the unscaled size nobody sees, and the
+        /// facts with bold values smaller than the names beside them. Nothing happens before the
+        /// box exists, because the constructor sets properties that lay the panel out.
         /// </remarks>
         protected override void OnFontChanged(EventArgs e)
         {
@@ -1178,15 +1260,57 @@ namespace KeePassGate.Ui
                     return;
                 }
 
-                var before = _tokenFont;
-                _tokenFont = CodeFont(Font.Size);
-                _token.Font = _tokenFont;
+                TakeCodeFont();
 
-                if (before != null)
+                // The values already drawn as well as those drawn next, since a reading draws the
+                // table again and a change of font draws nothing.
+                var was = _valueFont;
+                _valueFont = new Font(Font, FontStyle.Bold);
+                foreach (var value in _facts.Controls.Cast<Control>()
+                             .Where(control => ReferenceEquals(control.Font, was)).ToList())
                 {
-                    before.Dispose();
+                    value.Font = _valueFont;
                 }
+
+                was.Dispose();
             });
+        }
+
+        /// <summary>
+        /// The family the invitation code is asked for in: Consolas, unless a test names another.
+        /// </summary>
+        /// <remarks>
+        /// **A seam for measuring the fallback.** <see cref="CodeFont"/> falls back to the generic
+        /// monospaced family where the family asked for is not installed, and every machine the
+        /// fit tests run on has Consolas, so what the tab looks like without it was worked out in a
+        /// remark and measured by nothing. Naming a family no machine has is how `GateTabFitsTests`
+        /// lays the tab out in the font a Windows without Consolas shows the code in.
+        /// </remarks>
+        internal string CodeFamily
+        {
+            get
+            {
+                return _codeFamily;
+            }
+
+            set
+            {
+                _codeFamily = value;
+                TakeCodeFont();
+            }
+        }
+
+        /// <summary>Gives the invitation box its monospaced font, at the panel's size.</summary>
+        private void TakeCodeFont()
+        {
+            var before = _tokenFont;
+            _tokenFont = CodeFont(_codeFamily, Font.Size);
+            _token.Font = _tokenFont;
+
+            if (before != null)
+            {
+                before.Dispose();
+            }
         }
 
         /// <summary>
@@ -1194,7 +1318,8 @@ namespace KeePassGate.Ui
         /// </summary>
         /// <remarks>
         /// Wrapping labels are given a maximum width rather than a fixed one, so they grow
-        /// downwards instead of sideways, and the token box takes the width left beside its button.
+        /// downwards instead of sideways, and the token box takes the width left beside its button,
+        /// or a line of its own under the button where a whole code does not fit beside it.
         /// Sizes are read from the panel rather than written into it, because a number chosen here
         /// is a number that is wrong at another font size, another display scaling, or on a KeePass
         /// whose dialog is not the size this one is.
@@ -1240,18 +1365,31 @@ namespace KeePassGate.Ui
                 }
 
                 var available = RoomAround(_inviting) - _inviting.Margin.Horizontal;
+                var code = CodeWidth();
 
-                var width = available
-                            - _invite.Width - _invite.Margin.Horizontal
-                            - _copy.Width - _copy.Margin.Horizontal
-                            - _token.Margin.Horizontal;
+                var line = available
+                           - _copy.Width - _copy.Margin.Horizontal
+                           - _token.Margin.Horizontal;
+                var beside = line - _invite.Width - _invite.Margin.Horizontal;
 
-                // **Never narrower than a whole code.** What the row leaves is enough at every
-                // scaling `GateTabFitsTests` measures, and where it is not, the row runs past the
-                // page, which that test sees, rather than the box cutting the code off, which no
-                // test saw: at 100 percent the last character was missing whenever there was a
-                // code in the box, since that is when the button beside it says "Renew invite".
-                width = Math.Max(width, CodeWidth());
+                // **Under the button where a whole code does not fit beside it.** In Consolas it
+                // fits at every scaling `GateTabFitsTests` measures. In the family a Windows
+                // without Consolas falls back to, it does not at 100 percent while the button
+                // reads "Renew invite", which is whenever there is a code in the box, and the row
+                // ran 12 pixels past the page. A line of its own gives the box the page's width.
+                var under = beside < code;
+                if (_inviting.GetFlowBreak(_invite) != under)
+                {
+                    // Both, since a row that does not wrap takes no notice of a break.
+                    _inviting.WrapContents = under;
+                    _inviting.SetFlowBreak(_invite, under);
+                }
+
+                // **Never narrower than a whole code.** Where even a line of its own is too
+                // narrow, the row runs past the page, which that test sees, rather than the box
+                // cutting the code off, which no test saw: at 100 percent the last character was
+                // missing whenever there was a code in the box.
+                var width = Math.Max(under ? line : beside, code);
 
                 if (width > 0 && _token.Width != width)
                 {
@@ -1381,32 +1519,33 @@ namespace KeePassGate.Ui
         }
 
         /// <summary>
-        /// The font an invitation code is shown in, at a size.
+        /// The font an invitation code is shown in, asked for in a family and at a size.
         /// </summary>
         /// <remarks>
         /// **Consolas where it is installed, and the generic monospaced family where it is not.**
         /// Both are monospaced, which is what the box needs, and Consolas is narrower, which is
         /// what the row needed. In Courier New, the generic family on Windows, a code at the size
         /// of the rest of the page is 301 pixels wide at 100 percent, and the box beside "Renew
-        /// invite" has 294 inside its frame, so the last character was cut off. Consolas sets the
-        /// same code in 258, and it tells `0` from `O` and `1` from `l` and `I`, which a code read
-        /// off the screen needs and Courier New barely does.
+        /// invite" has 294 inside its frame, so the box goes under the button there, as
+        /// `FitToWidth` sets out. Consolas sets the same code in 258, and it tells `0` from `O` and
+        /// `1` from `l` and `I`, which a code read off the screen needs and Courier New barely
+        /// does.
         ///
         /// **Asked for by name and checked**, because GDI+ answers a family it does not have with
         /// Microsoft Sans Serif rather than a refusal, and a proportional code is what this font is
         /// here to prevent. Windows has shipped Consolas since Vista.
         /// </remarks>
-        private static Font CodeFont(float size)
+        private static Font CodeFont(string family, float size)
         {
             // codeql[cs/missed-using-statement] disposed only when it is not kept, which no `using` can do
-            var font = new Font(CodeFamily, size, FontStyle.Regular);
+            var font = new Font(family, size, FontStyle.Regular);
 
             // Let go of on every way out but the return, a throw while GDI+ is asked for the name
             // among them.
             var handedOver = false;
             try
             {
-                if (string.Equals(font.Name, CodeFamily, StringComparison.OrdinalIgnoreCase))
+                if (string.Equals(font.Name, family, StringComparison.OrdinalIgnoreCase))
                 {
                     handedOver = true;
                     return font;
@@ -1423,8 +1562,8 @@ namespace KeePassGate.Ui
             return new Font(FontFamily.GenericMonospace, size, FontStyle.Regular);
         }
 
-        /// <summary>The family <see cref="CodeFont"/> asks for first.</summary>
-        private const string CodeFamily = "Consolas";
+        /// <summary>The family a code is asked for in unless a test names another.</summary>
+        private const string PreferredCodeFamily = "Consolas";
 
         /// <summary>
         /// How wide the box has to be to show a whole code, its frame included.
@@ -1446,16 +1585,20 @@ namespace KeePassGate.Ui
         }
 
         /// <summary>
-        /// Draws a set of facts this database does not hold.
+        /// Draws the widest facts the table can ever hold, which this database does not.
         /// </summary>
         /// <remarks>
         /// For measurement. What has to fit the tab is the longest each value can ever be, and a
         /// database created a moment ago holds none of them. The next reading replaces whatever is
         /// put here, so this cannot leave anything on screen that outlives it.
+        ///
+        /// **Composed here, in the font the values are drawn in**, because the widest fingerprint
+        /// is a question about that font: <see cref="AuthorityDescription.LongestFacts"/> spells it
+        /// in whichever digit is widest there.
         /// </remarks>
-        public void DrawFacts(IReadOnlyList<Fact> facts)
+        public void DrawLongestFacts()
         {
-            Draw(facts);
+            Draw(AuthorityDescription.LongestFacts(_valueFont));
         }
 
         /// <summary>
@@ -1511,12 +1654,11 @@ namespace KeePassGate.Ui
 
         private Label NewFactLabel(Fact fact, bool value)
         {
-            return new TextLabel
+            var label = new TextLabel
             {
                 Name = fact.ControlName(value),
                 Text = value ? fact.Value : fact.Name,
                 AutoSize = true,
-                Font = value ? _valueFont : Font,
 
                 // Enough of a gap between the columns to read as two, and none above or below: the
                 // rows are one line each, and leading between them costs height the tab does not
@@ -1528,6 +1670,15 @@ namespace KeePassGate.Ui
                 // was one of those.
                 Margin = value ? new Padding(0) : new Padding(0, 0, Padding.Left, 0)
             };
+
+            // The name keeps the font it inherits, which follows the panel's. Set to the panel's
+            // font as it was, it stayed at that size through any later change.
+            if (value)
+            {
+                label.Font = _valueFont;
+            }
+
+            return label;
         }
 
         /// <summary>
@@ -1566,8 +1717,8 @@ namespace KeePassGate.Ui
 
         /// <summary>
         /// How many clients recreating or deleting the authority cuts off, read now rather than
-        /// remembered: each client once, by its client key, and each record that will not read as
-        /// one of its own.
+        /// remembered: each client that gets in once, by its client key, judged by
+        /// `ClientReaches` as the clients page judges its rows.
         /// </summary>
         /// <remarks>
         /// A client that renewed holds two records until it gives the older up, and was counted
@@ -1575,10 +1726,8 @@ namespace KeePassGate.Ui
         /// are two clients, and counted by name were one. A listing that could not be made falls
         /// back to counting the stored records, which says at least how many keys go.
         ///
-        /// This reads every record to get one integer, and the whole authority when they cannot be
-        /// listed, which parses both stored PKCS#12 blobs, reads both certificates into Windows
-        /// without their keys and asks the anchor pin about the host, for certificates nothing here
-        /// looks at. Caching it from the last `Describe` was tried and reverted: a panel can be
+        /// This reads every record and the whole authority to get one integer, which parses both
+        /// stored PKCS#12 blobs and asks the anchor pin about every record. Caching it from the last `Describe` was tried and reverted: a panel can be
         /// asked to confirm before it has ever described itself, and the number would then be zero
         /// in a sentence telling the operator what they are about to lose. A wrong count there is
         /// worse than a slow one.
@@ -1594,15 +1743,41 @@ namespace KeePassGate.Ui
         private int CountRecords()
         {
             var admitted = AdmittedClients();
-            if (admitted.Complete)
-            {
-                return ClientList.ClientNames(admitted.Records).Count + admitted.Unreadable.Count;
-            }
 
             using (var reading = _service.Read())
             {
-                return reading.ClientRecordCount;
+                if (!admitted.Complete)
+                {
+                    return reading.ClientRecordCount;
+                }
+
+                // The clients that get in, judged as the clients page judges its rows: a record
+                // the gate refuses, of another authority, not for client use, not yet valid or
+                // expired, loses nothing to a recreate, and neither does a record that will not
+                // read. While several authorities wait to be chosen between, a client of any of
+                // them is counted, since choosing would keep it and this keeps none.
+                var authorities = Admitting(reading);
+                var now = DateTimeOffset.UtcNow;
+                return ClientList.ClientNames(admitted.Records.Where(
+                    record => authorities.Any(authority => ClientReaches.GetsIn(record, authority, now)))).Count;
             }
+        }
+
+        /// <summary>
+        /// The authorities whose clients recreating or deleting cuts off: the authority served, or
+        /// while several are undecided, each candidate that reads.
+        /// </summary>
+        private static IReadOnlyList<X509Certificate2> Admitting(AuthorityReading reading)
+        {
+            if (reading.IsPresent)
+            {
+                return new[] { reading.Material.Authority };
+            }
+
+            return reading.Presence == AuthorityPresence.Undecided
+                ? reading.Candidates.Where(candidate => candidate.IsWhole)
+                    .Select(candidate => candidate.Material.Authority).ToList()
+                : new List<X509Certificate2>();
         }
 
         private void OnCreate(object sender, EventArgs e)
@@ -1757,14 +1932,45 @@ namespace KeePassGate.Ui
                 return "no answer to its renewals stands";
             }
 
+            // Nothing logged here: the lift waits for the dialog's OK, which logs what it lands, and
+            // a line at the press stayed in the log after a Cancel that lifted nothing.
             if (stored)
             {
                 _database.MarkModified();
             }
 
-            _log.Info("the operator lifted the standing answer to renewing "
-                      + CertificateDigest.Shorten(admissionKey));
             return null;
+        }
+
+        /// <summary>
+        /// Takes away a value stored under the record prefix with no certificate digest after it,
+        /// which the listing names as an unreadable record with an empty key.
+        /// </summary>
+        /// <remarks>
+        /// Only a file written by hand or by another program holds one. It admits nobody, and the
+        /// clients page lists it with an X like any record that will not read, which promised to
+        /// take it away and could not: there is no certificate to revoke, so the key itself goes,
+        /// with no revocation beside it, since a revocation names a certificate.
+        /// </remarks>
+        private string TakeTheBareRecord()
+        {
+            try
+            {
+                var store = _database.PluginCustomData;
+                if (store.Get(AuthorityKeys.ClientPrefix) == null)
+                {
+                    return "there is no client to revoke";
+                }
+
+                store.Remove(AuthorityKeys.ClientPrefix);
+                _database.MarkModified();
+                return null;
+            }
+            catch (Exception error) when (Expected.OfCustomData(error))
+            {
+                _log.Error("a record with no certificate could not be removed", error);
+                return error.Message;
+            }
         }
 
         /// <summary>
@@ -1925,22 +2131,11 @@ namespace KeePassGate.Ui
                     ClientReach judged;
                     if (!_judged.TryGetValue(record.AdmissionKey, out judged))
                     {
-                        judged = !AnchorPin.Chains(certificate, authority)
-                            ? ClientReach.Stranger
-                            : ClientCredentials.IsForClientAuthentication(certificate)
-                                ? ClientReach.Reaches
-                                : ClientReach.NotForClients;
+                        judged = ClientReaches.Issued(certificate, authority);
                         _judged[record.AdmissionKey] = judged;
                     }
 
-                    if (judged != ClientReach.Reaches)
-                    {
-                        return judged;
-                    }
-
-                    return !CertificateValidity.IsCurrent(certificate, now) && !CertificateValidity.HasExpired(certificate, now)
-                        ? ClientReach.NotYetValid
-                        : ClientReach.Reaches;
+                    return ClientReaches.Dated(judged, certificate, now);
                 }
             }
             catch (Exception error) when (Expected.OfCryptography(error) || Expected.OfCustomData(error))
@@ -1977,7 +2172,7 @@ namespace KeePassGate.Ui
         /// </remarks>
         public string Revoke(string admissionKey)
         {
-            if (string.IsNullOrEmpty(admissionKey))
+            if (admissionKey == null)
             {
                 return "there is no client to revoke";
             }
@@ -1985,6 +2180,11 @@ namespace KeePassGate.Ui
             if (_database == null || !_database.IsOpen)
             {
                 return "the database is not open";
+            }
+
+            if (admissionKey.Length == 0)
+            {
+                return TakeTheBareRecord();
             }
 
             try
@@ -2014,8 +2214,9 @@ namespace KeePassGate.Ui
                 return error.Message;
             }
 
+            // Nothing logged here either, for the same reason: `AuthorityPanelFactory` logs and
+            // audits the revocation as the dialog's OK lands it.
             _database.MarkModified();
-            _log.Info("an admission record was removed by the operator");
             return null;
         }
 
@@ -2132,11 +2333,11 @@ namespace KeePassGate.Ui
         /// The longest line the band under the pages can ever hold.
         /// </summary>
         /// <remarks>
-        /// For measurement, like <see cref="DrawFacts"/>. What has to fit the tab is the longest
-        /// this band can be, which is a refusal carrying somebody else's exception message, rather
-        /// than a sentence a third of that. A band measured against the short one fits while the
-        /// long one arrives on somebody's screen, and the room for the long one is what the gate's
-        /// address and the version leaving this tab pay for.
+        /// For measurement, like <see cref="DrawLongestFacts"/>. What has to fit the tab is the
+        /// longest this band can be, which is a refusal carrying somebody else's exception message,
+        /// rather than a sentence a third of that. A band measured against the short one fits while
+        /// the long one arrives on somebody's screen, and the room for the long one is what the
+        /// gate's address and the version leaving this tab pay for.
         ///
         /// The words are ordinary words in ordinary lengths rather than a run of one character,
         /// because what is being measured is how many lines the band wraps to and a string with

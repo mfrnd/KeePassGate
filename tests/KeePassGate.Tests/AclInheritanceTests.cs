@@ -159,6 +159,8 @@ namespace KeePassGate.Tests
 
             Assert.That(inherited.For("reader"), Is.Null);
             Assert.That(inherited.Readable, Is.False);
+            Assert.That(inherited.TooDeep, Is.True, "and it is the depth, not a rule, that stopped it");
+            Assert.That(AclResolver.Above(node.Parent.Parent).TooDeep, Is.False);
 
             // And one level shallower both of them reach it.
             Assert.That(AclResolver.Permits(node.Parent, new[] { "reader" }, AclVerb.Read), Is.True);

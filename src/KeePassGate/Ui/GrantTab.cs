@@ -50,8 +50,16 @@ namespace KeePassGate.Ui
         /// </remarks>
         public const string RulePickerName = "KpgGrantRulePicker";
 
+        /// <summary>
+        /// What a screen reader calls the rule picker, a list with no text of its own to name it.
+        /// </summary>
+        public const string RulePickerLabel = "What this profile may do here";
+
         /// <summary>The list of profiles a rule is added for.</summary>
         public const string ProfilePickerName = "KpgGrantProfilePicker";
+
+        /// <summary>What a screen reader calls the profile picker, for the same reason.</summary>
+        public const string ProfilePickerLabel = "Profiles a rule can be written for";
 
         /// <summary>The dropdown either list is shown in.</summary>
         public const string PickerName = "KpgGrantPicker";
@@ -86,10 +94,10 @@ namespace KeePassGate.Ui
         /// </summary>
         /// <remarks>
         /// There was a second one, for the list being empty because every profile already has a
-        /// rule here. It was true and it was four lines of a page that has 314 pixels, and what it
-        /// said was that the rows already on the table are all of them, which the rows say. This
-        /// one stays because there the table is empty and nothing on the page says where a profile
-        /// comes from.
+        /// rule here. It was true and it was four lines of the shortest page this plugin is on, the
+        /// group dialog's, and what it stated was that the rows already on the table are all of
+        /// them, which the rows show. This one stays because there the table is empty and nothing
+        /// on the page tells where a profile comes from.
         /// </remarks>
         public const string NoProfilesYet =
             "This database names no profiles yet. Add one on the " + GateName.OnATab
@@ -138,7 +146,27 @@ namespace KeePassGate.Ui
             + "profile again on the " + GateName.OnATab + " tab of the database settings puts it "
             + "back in force.";
 
+        /// <summary>
+        /// The same, on a rule from a group above that this node refuses as well, by its seal or by
+        /// rules of its own that will not read.
+        /// </summary>
+        /// <remarks>
+        /// Adding the name back does not put such a rule in force here: the row turns into a rule
+        /// the seal refuses, still struck through. Both reasons are given, because hearing only
+        /// the first sent the operator to add the name back and find the access still refused.
+        /// </remarks>
+        public const string ProfileNotNamedAndRefused =
+            "This database no longer names this profile, so this rule grants nothing, and this node "
+            + "refuses it here even once the profile is added again on the " + GateName.OnATab
+            + " tab of the database settings.";
+
         public const string MaskColumnName = "KpgGrantMaskColumn";
+
+        /// <summary>What that column's heading tells the operator, where a rule can be chosen.</summary>
+        public const string MaskColumnHelp = "Click to choose what a profile may do here.";
+
+        /// <summary>The same, on a tab where nothing can be changed.</summary>
+        public const string MaskColumnReadOnlyHelp = "What a profile may do here.";
 
         /// <summary>
         /// What that column is called on screen. The heading says what the column is for; the
@@ -148,6 +176,12 @@ namespace KeePassGate.Ui
         public const string MaskColumnHeader = "Permissions";
 
         public const string ForgetColumnName = "KpgGrantForgetColumn";
+
+        /// <summary>
+        /// The last column's heading, which a screen reader names every X in it by, and which is
+        /// never drawn: `ClientList.RevokeHeading` gives the reason.
+        /// </summary>
+        public const string ForgetColumnHeader = "Remove rule";
 
         public const string SealCheckBoxName = "KpgGrantSealCheckBox";
 
@@ -205,5 +239,8 @@ namespace KeePassGate.Ui
         /// <summary>What the page says when it is on a dialog with no node behind it.</summary>
         public const string NoNodeScope =
             "This dialog is not about a group or an entry, so there is nothing here to grant.";
+
+        /// <summary>Why nothing can be changed on that page, under the line above.</summary>
+        public const string NothingToChange = "Nothing here can be changed.";
     }
 }

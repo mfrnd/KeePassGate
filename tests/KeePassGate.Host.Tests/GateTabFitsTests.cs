@@ -201,21 +201,18 @@ namespace KeePassGate.Host.Tests
                             state.Description + ": the invitation box kept the unscaled font at " +
                             scaling.ToString("0.00", CultureInfo.InvariantCulture) + " scaling");
 
-                        foreach (var column in Columns(panel))
+                        // And so do the facts' values, bold in a font of their own, which kept
+                        // the system's size and were measured smaller than their names (S417).
+                        var facts = ControlTree.FindByName<TableLayoutPanel>(panel, GateTab.FactsTableName);
+                        foreach (Control fact in facts.Controls)
                         {
-                            Show(column);
-
-                            var room = Room(column);
-                            var needed = Needed(column);
-                            var where = state.Description + ", " + Where(column) + ", at " +
-                                        scaling.ToString("0.00", CultureInfo.InvariantCulture) + " scaling";
-
-                            Assert.That(needed.Width, Is.LessThanOrEqualTo(room.Width),
-                                where + ", is " + needed.Width + " wide in " + room.Width + ".");
-                            Assert.That(needed.Height, Is.LessThanOrEqualTo(room.Height),
-                                where + ", is " + needed.Height + " tall in " + room.Height +
-                                ". Shorten what is on the tab rather than scrolling it.");
+                            Assert.That(fact.Font.SizeInPoints, Is.EqualTo(scaled.Font.SizeInPoints).Within(0.01f),
+                                state.Description + ": the fact " + fact.Name + " kept the unscaled font at " +
+                                scaling.ToString("0.00", CultureInfo.InvariantCulture) + " scaling");
                         }
+
+                        AssertEveryColumnFits(panel, state.Description + " at " +
+                            scaling.ToString("0.00", CultureInfo.InvariantCulture) + " scaling");
                     }
                 }
 
@@ -224,7 +221,7 @@ namespace KeePassGate.Host.Tests
                 using (var panel = NewPanel(true, false))
                 {
                     panel.Scale(scale);
-                    panel.DrawFacts(AuthorityDescription.LongestFacts());
+                    panel.DrawLongestFacts();
 
                     var facts = ControlTree.FindByName<TableLayoutPanel>(panel, GateTab.FactsTableName);
                     var name = facts.GetControlFromPosition(0, 0);
@@ -462,7 +459,7 @@ namespace KeePassGate.Host.Tests
                 var area = scaled == null ? _page.DisplayRectangle.Size : PageOf(scaled.Dialog);
                 var where = " at " + scaling.ToString("0.00", CultureInfo.InvariantCulture) + " scaling";
 
-                foreach (var notice in new[] { GateTab.PendingAuthorityNotice, GateTab.PendingProfilesNotice })
+                foreach (var notice in GateTab.InviteNotices)
                 {
                     using (var panel = NewPanel(true, true))
                     {
@@ -538,6 +535,42 @@ namespace KeePassGate.Host.Tests
                     Assert.That(list.Height, Is.GreaterThanOrEqualTo(MinimumListHeight),
                         state.Description + " leaves the profile list " + list.Height +
                         " pixels, which is not a list.");
+                }
+            }
+        }
+
+        [Test]
+        public void The_line_about_a_list_that_will_not_read_fits_the_profiles_page_with_its_button()
+        {
+            // The state a damaged list puts the page in: a line stating so and the button that
+            // replaces it, above the row that adds a profile, with a refusal under the list.
+            foreach (var state in States())
+            {
+                using (var panel = state.Panel)
+                {
+                    LayOut(panel, _page.DisplayRectangle.Size);
+
+                    var list = ControlTree.FindByName<ProfileList>(panel, ProfileList.ControlName);
+                    var row = ControlTree.FindByName<Control>(list, ProfileList.DamagedRowName);
+                    var said = ControlTree.FindByName<Label>(list, ProfileList.ResultLabelName);
+                    row.Visible = true;
+                    said.Text = DatabaseProfiles.UnreadableRefusal;
+                    said.Visible = true;
+
+                    Show(list);
+                    list.PerformLayout();
+
+                    var line = ControlTree.FindByName<Label>(list, ProfileList.DamagedLabelName);
+                    var button = ControlTree.FindByName<Button>(list, ProfileList.StartNewButtonName);
+                    var wanted = line.GetPreferredSize(new Size(line.Width, 0));
+
+                    TestContext.Out.WriteLine(state.Description + ": the line is " + line.Size + ", the row " +
+                                              row.Bounds + ", the refusal " + said.Bounds);
+
+                    Assert.That(line.Right, Is.LessThanOrEqualTo(row.ClientSize.Width), state.Description + ": the line runs off the page");
+                    Assert.That(line.Height, Is.GreaterThanOrEqualTo(wanted.Height), state.Description + ": the line is cut off");
+                    Assert.That(button.Right, Is.LessThanOrEqualTo(row.ClientSize.Width), state.Description + ": the button runs off the page");
+                    Assert.That(row.Bottom, Is.LessThanOrEqualTo(said.Top), state.Description + ": the row runs into the refusal");
                 }
             }
         }
@@ -760,34 +793,106 @@ namespace KeePassGate.Host.Tests
                         }
 
                         LayOut(panel, area);
-
-                        var box = ControlTree.FindByName<TextBox>(panel, GateTab.InvitationBoxName);
-                        Assert.That(box, Is.Not.Null);
-                        Show(box);
-
-                        // Any code will do in a monospaced font, since every one is as wide as
-                        // every other, and a letter this wide makes one whatever the font.
-                        box.Text = new string('W', PairingToken.TextLength);
-                        box.Select(0, 0);
-                        box.ScrollToCaret();
-
-                        var room = new User32.Rect();
-                        User32.SendMessage(box.Handle, GetRect, IntPtr.Zero, ref room);
-
-                        var first = PositionOf(box, 0);
-                        var last = PositionOf(box, box.TextLength - 1) + (PositionOf(box, 1) - first);
-
-                        TestContext.Out.WriteLine(state.Description + where + ": the code runs from " + first +
-                                                  " to " + last + " in a box drawing text from " +
-                                                  room.Left + " to " + room.Right);
-
-                        Assert.That(first, Is.GreaterThanOrEqualTo(room.Left),
-                            state.Description + where + ": the box has scrolled the start of the code away.");
-                        Assert.That(last, Is.LessThanOrEqualTo(room.Right),
-                            state.Description + where + ": the invitation box cuts the code off at " +
-                            room.Right + ", where its last character ends at " + last + ".");
+                        AssertShowsWholeCode(panel, state.Description + where);
                     }
                 }
+            }
+        }
+
+        [Test]
+        [TestCase(1.00f)]
+        [TestCase(1.25f)]
+        [TestCase(1.50f)]
+        [TestCase(2.00f)]
+        public void Everything_fits_in_the_code_font_a_Windows_without_Consolas_shows(float scaling)
+        {
+            // S190: the code falls back to the generic monospaced family where Consolas is not
+            // installed, and every machine this runs on has Consolas, so the fallback was measured
+            // by a remark alone, whose own numbers put a whole code in Courier New past the page.
+            using (var scaled = scaling > 1.00f ? ScaledDialog(scaling) : null)
+            {
+                var area = scaled == null ? _page.DisplayRectangle.Size : PageOf(scaled.Dialog);
+                var where = " in the fallback at " + scaling.ToString("0.00", CultureInfo.InvariantCulture) + " scaling";
+
+                foreach (var state in States())
+                {
+                    using (var panel = state.Panel)
+                    {
+                        if (scaled != null)
+                        {
+                            panel.Scale(Spacing.ScaleOf(scaled.Dialog));
+                            panel.Font = scaled.Font;
+                        }
+
+                        panel.CodeFamily = NoSuchFamily;
+                        LayOut(panel, area);
+
+                        using (var generic = FontFamily.GenericMonospace)
+                        {
+                            Assert.That(ControlTree.FindByName<TextBox>(panel, GateTab.InvitationBoxName).Font.Name,
+                                Is.EqualTo(generic.Name), "the code is not in the font the fallback gives it");
+                        }
+
+                        AssertEveryColumnFits(panel, state.Description + where);
+                        AssertShowsWholeCode(panel, state.Description + where);
+                    }
+                }
+            }
+        }
+
+        /// <summary>A family no machine has, which gives the invitation box the fallback.</summary>
+        private const string NoSuchFamily = "KeePassGate No Such Family";
+
+        /// <summary>
+        /// Asks the edit control, with a code in it, where it puts the last character, against the
+        /// room it draws text in.
+        /// </summary>
+        private static void AssertShowsWholeCode(Control panel, string where)
+        {
+            var box = ControlTree.FindByName<TextBox>(panel, GateTab.InvitationBoxName);
+            Assert.That(box, Is.Not.Null);
+            Show(box);
+
+            // Any code will do in a monospaced font, since every code is as wide as every other,
+            // and a letter this wide makes a wide code whatever the font.
+            box.Text = new string('W', PairingToken.TextLength);
+            box.Select(0, 0);
+            box.ScrollToCaret();
+
+            var room = new User32.Rect();
+            User32.SendMessage(box.Handle, GetRect, IntPtr.Zero, ref room);
+
+            var first = PositionOf(box, 0);
+            var last = PositionOf(box, box.TextLength - 1) + (PositionOf(box, 1) - first);
+
+            TestContext.Out.WriteLine(where + ": the code runs from " + first + " to " + last +
+                                      " in a box drawing text from " + room.Left + " to " + room.Right);
+
+            Assert.That(first, Is.GreaterThanOrEqualTo(room.Left),
+                where + ": the box has scrolled the start of the code away.");
+            Assert.That(last, Is.LessThanOrEqualTo(room.Right),
+                where + ": the invitation box cuts the code off at " + room.Right +
+                ", where its last character ends at " + last + ".");
+        }
+
+        /// <summary>Every stack on a laid out panel, each in the room its page gives it.</summary>
+        private static void AssertEveryColumnFits(Control panel, string where)
+        {
+            foreach (var column in Columns(panel))
+            {
+                Show(column);
+
+                var room = Room(column);
+                var needed = Needed(column);
+                var which = where + ", " + Where(column);
+
+                TestContext.Out.WriteLine(which + ": needs " + needed + " of " + room);
+
+                Assert.That(needed.Width, Is.LessThanOrEqualTo(room.Width),
+                    which + ", is " + needed.Width + " wide in " + room.Width + ".");
+                Assert.That(needed.Height, Is.LessThanOrEqualTo(room.Height),
+                    which + ", is " + needed.Height + " tall in " + room.Height +
+                    ". Shorten what is on the tab rather than scrolling it.");
             }
         }
 
@@ -895,7 +1000,7 @@ namespace KeePassGate.Host.Tests
 
             Set(panel, GateTab.StatusLabelName, longest.Headline);
             Set(panel, GateTab.DetailLabelName, longest.DetailText);
-            panel.DrawFacts(AuthorityDescription.LongestFacts());
+            panel.DrawLongestFacts();
             Set(panel, GateTab.ResultLabelName, AuthorityPanel.LongestResult());
 
             // Written again whenever a page is brought forward, which every measurement of the
@@ -918,11 +1023,25 @@ namespace KeePassGate.Host.Tests
             // client list 72 of its 90 pixels under the two lines a merge adds. Each notice beside
             // what it can really share the page with is measured by
             // `The_notice_over_the_invite_button_leaves_the_list_its_room`.
-            Show(panel, GateTab.InviteNoticeName, GateTab.LongestInviteNotice);
+            var notice = WidestInviteNotice(panel);
+            Show(panel, GateTab.InviteNoticeName, notice);
             ControlTree.FindFirst<TabControl>(panel).SelectedIndexChanged +=
-                delegate { Show(panel, GateTab.InviteNoticeName, GateTab.LongestInviteNotice); };
+                delegate { Show(panel, GateTab.InviteNoticeName, notice); };
 
             return panel;
+        }
+
+        /// <summary>
+        /// The widest sentence the band over the invite button can hold, in the band's own font.
+        /// </summary>
+        /// <remarks>
+        /// Measured, as the invitation line is: in a proportional font more characters is not more
+        /// pixels, and the band was handed the longest by count.
+        /// </remarks>
+        private static string WidestInviteNotice(Control panel)
+        {
+            var font = ControlTree.FindByName<Label>(panel, GateTab.InviteNoticeName).Font;
+            return GateTab.InviteNotices.OrderByDescending(notice => WidthOf(notice, font)).First();
         }
 
         /// <summary>

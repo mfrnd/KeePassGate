@@ -138,6 +138,17 @@ namespace KeePassGate.Ui
         public const string RevokeMark = "X";
 
         /// <summary>
+        /// The last column's heading, which a screen reader names every X in the column by, and
+        /// which is never drawn.
+        /// </summary>
+        /// <remarks>
+        /// A table names a cell to UI automation by its column's heading and its row, and an X is
+        /// no name, so with a heading left empty for the bin painted over it each button was read
+        /// out as a row number with an X in it, and nothing about what pressing it does.
+        /// </remarks>
+        public const string RevokeHeading = "Revoke";
+
+        /// <summary>
         /// Said after a profile a client holds that the database no longer names.
         /// </summary>
         /// <remarks>
@@ -550,7 +561,9 @@ namespace KeePassGate.Ui
                 Mark(_grid.Rows[at], record, null);
             }
 
-            return Said("The next renewal of " + name + " raises the dialog again.");
+            // Worded as waiting, which it is until the dialog is accepted: the answer goes on
+            // refusing until then, as the tooltip on the menu item states.
+            return Said("The next renewal of " + name + " raises the dialog again once OK is pressed.");
         }
 
         /// <summary>
@@ -602,14 +615,16 @@ namespace KeePassGate.Ui
 
             // A renewed client is two rows with one client key until it gives the older up, and
             // taking one of them away leaves the client reaching the database through the other,
-            // so the sentence says which certificate went rather than that the client did.
+            // so the sentence names which certificate goes rather than the client. Both are worded
+            // as waiting for OK, which they are: the client still reaches the database until then,
+            // and a sentence stating otherwise was the one place on the page that did.
             if (_records.Exists(other => string.Equals(other.ClientKey, record.ClientKey, StringComparison.Ordinal)))
             {
                 return Said("The certificate admitted for " + name + " at " + Stamp(record.Admitted) +
-                            " is revoked; its other certificate still reaches this database.");
+                            " is revoked when OK is pressed; its other certificate still reaches this database.");
             }
 
-            return Said(name + " can no longer reach this database.");
+            return Said(name + " loses its admission when OK is pressed.");
         }
 
         /// <summary>
@@ -663,7 +678,7 @@ namespace KeePassGate.Ui
 
             UpdateEmptiness();
 
-            return Said("The record that could not be read is taken away.");
+            return Said("The record that could not be read is taken away when OK is pressed.");
         }
 
         /// <summary>
@@ -707,9 +722,9 @@ namespace KeePassGate.Ui
             _filling = true;
 
             // A listing read from the database is the newer answer than whatever the last press
-            // said about it: a redraw a landing caused, a renewal or a client revoking itself,
-            // could otherwise leave a client listed under a line saying it can no longer reach
-            // the database. A press says its line after the redraw it causes, so it keeps it.
+            // stated about it: a redraw a landing caused, a renewal or a client revoking itself,
+            // could otherwise leave a client listed under a line naming it as losing its
+            // admission. A press writes its line after the redraw it causes, so it keeps it.
             _said = string.Empty;
 
             try
@@ -827,16 +842,19 @@ namespace KeePassGate.Ui
             // room nothing can use.
             grid.Columns.Add(Filling("Client", 60));
             grid.Columns.Add(Filling("Profiles", 40));
-            grid.Columns.Add(Fitted("Admitted"));
-            grid.Columns.Add(Fitted("Until"));
+            grid.Columns.Add(Fitted(AdmittedHeader));
+            grid.Columns.Add(Fitted(UntilHeader));
 
             var revoke = new DataGridViewButtonColumn
             {
                 Name = RevokeColumnName,
-                HeaderText = string.Empty,
+
+                // The name of every X under it, and nothing else: the heading is a bin painted
+                // over the words, and the column is as wide as the Xs, so the words cost no room.
+                HeaderText = RevokeHeading,
                 Text = RevokeMark,
                 UseColumnTextForButtonValue = true,
-                AutoSizeMode = DataGridViewAutoSizeColumnMode.AllCells,
+                AutoSizeMode = DataGridViewAutoSizeColumnMode.AllCellsExceptHeader,
                 MinimumWidth = GateIcon.Room,
                 ToolTipText = Tooltips.Wrapped(
                     "Takes this certificate's admission away when OK is pressed. It is then "
@@ -845,6 +863,8 @@ namespace KeePassGate.Ui
                     + "renewed, and keeps the other.")
             };
 
+            // One line, so that words nobody sees do not make the heading row taller.
+            revoke.HeaderCell.Style.WrapMode = DataGridViewTriState.False;
             grid.Columns.Add(revoke);
 
             grid.Columns[ProfilesColumn].DefaultCellStyle.WrapMode = DataGridViewTriState.True;
@@ -862,8 +882,10 @@ namespace KeePassGate.Ui
         /// removed profiles a client holds.
         /// </summary>
         /// <remarks>
-        /// The heading only. The buttons under it keep their mark: what a button does is said by
-        /// the column it is in, and a picture in every row is a picture repeated once per row.
+        /// The heading only. The buttons under it keep their mark: what a button does is named by
+        /// the column it is in, to the eye by the bin and to a screen reader by the heading's
+        /// words, and a picture in every row is a picture repeated once per row. The words are
+        /// never drawn, bin or no bin, since the column is as wide as an X and not as the words.
         /// </remarks>
         private void OnCellPainting(object sender, DataGridViewCellPaintingEventArgs e)
         {
@@ -878,18 +900,17 @@ namespace KeePassGate.Ui
                 return;
             }
 
-            var bin = GateIcon.Bin;
-            if (bin == null)
-            {
-                return;
-            }
-
             e.Paint(e.ClipBounds, DataGridViewPaintParts.All & ~DataGridViewPaintParts.ContentForeground);
-            e.Graphics.DrawImageUnscaled(
-                bin,
-                e.CellBounds.Left + ((e.CellBounds.Width - bin.Width) / 2),
-                e.CellBounds.Top + ((e.CellBounds.Height - bin.Height) / 2));
             e.Handled = true;
+
+            var bin = GateIcon.Bin;
+            if (bin != null)
+            {
+                e.Graphics.DrawImageUnscaled(
+                    bin,
+                    e.CellBounds.Left + ((e.CellBounds.Width - bin.Width) / 2),
+                    e.CellBounds.Top + ((e.CellBounds.Height - bin.Height) / 2));
+            }
         }
 
         private static DataGridViewTextBoxColumn Filling(string header, int weight)
@@ -903,14 +924,31 @@ namespace KeePassGate.Ui
             };
         }
 
+        /// <summary>The heading of the column holding when a record was admitted.</summary>
+        /// <remarks>
+        /// Each of the two moment columns names its zone, because every moment on screen is printed
+        /// in UTC and a bare moment reads as local time, wrong by the operator's offset.
+        /// </remarks>
+        public const string AdmittedHeader = "Admitted (UTC)";
+
+        /// <summary>The heading of the column holding when a certificate stops working.</summary>
+        public const string UntilHeader = "Until (UTC)";
+
         private static DataGridViewTextBoxColumn Fitted(string header)
         {
-            return new DataGridViewTextBoxColumn
+            var column = new DataGridViewTextBoxColumn
             {
                 HeaderText = header,
                 AutoSizeMode = DataGridViewAutoSizeColumnMode.AllCells,
                 ReadOnly = true
             };
+
+            // One line, as the revoke column's heading is. Sized to what it holds, a column with no
+            // rows under it holds only its heading, and a heading free to wrap was given the width
+            // that folds it: "Admitted (UTC)" and "Until (UTC)" made the heading row two lines tall
+            // on a page that had admitted nobody yet.
+            column.HeaderCell.Style.WrapMode = DataGridViewTriState.False;
+            return column;
         }
 
         private void OnCellClick(object sender, DataGridViewCellEventArgs e)
@@ -970,17 +1008,22 @@ namespace KeePassGate.Ui
         }
 
         /// <summary>
-        /// What a client's row says when the pointer rests on it: the standing answer, when one
-        /// stands, then the client key and the certificate's own key, each whole on a line.
+        /// What a client's row shows when the pointer rests on it: the client's whole name, the
+        /// standing answer, when one stands, then the client key and the certificate's own key,
+        /// each whole on a line.
         /// </summary>
         /// <remarks>
         /// Broken into lines here, which `Tooltips.Wrapped` leaves as they are, because a key is
         /// sixty-four characters with no space to fold at, and one folded onto a line of its own
         /// would leave its label behind.
+        ///
+        /// **The name first**, because the column cuts a long name and a cell with a tip of its own
+        /// never shows its cut value whole: two programs named alike but for their last characters
+        /// read as the same row, and only a key told them apart.
         /// </remarks>
         internal static string Identified(AdmissionRecord record, string answer)
         {
-            var lines = new List<string>();
+            var lines = new List<string> { Describe(record) };
             if (answer != null)
             {
                 lines.Add(answer);

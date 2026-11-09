@@ -25,7 +25,9 @@ namespace KeePassGate.Ui
     ///   that everything still uses is usually the one to keep.
     /// - **Keeping takes a press.** Enter reaches nothing and Escape cancels, and so does every
     ///   other way of dismissing the dialog: a choice retires the others for good, and a dialog
-    ///   that can be dismissed into one is a dialog that will be.
+    ///   that can be dismissed into one is a dialog that will be. Keep is an `ApproveButton`, so
+    ///   no letter presses it and it never becomes the button Enter presses, which a focused
+    ///   button otherwise does: a bare K on either button, or Enter on a focused Keep, kept.
     /// - **Only an authority that reads can be kept.** One that will not is listed, because it is
     ///   still one the database holds, and keeping another retires it.
     /// - **One copy answers.** The audit the evidence comes from is this machine's own, so copies
@@ -58,9 +60,10 @@ namespace KeePassGate.Ui
         private const int FewestClientRows = 3;
         private const int MostClientRows = 8;
 
-        private static readonly string[] AuthorityColumns = { "Fingerprint", "Created", "Clients" };
+        // The moments are printed in UTC, as every moment on screen is, so their headings name it.
+        private static readonly string[] AuthorityColumns = { "Fingerprint", "Created (UTC)", "Clients" };
         private static readonly int[] AuthorityShares = { 3, 4, 2 };
-        private static readonly string[] ClientColumns = { "Client", "Profiles", "Admitted", "Last request" };
+        private static readonly string[] ClientColumns = { "Client", "Profiles", "Admitted (UTC)", "Last request (UTC)" };
         private static readonly int[] ClientShares = { 3, 3, 4, 4 };
 
         private readonly AuthorityChoice _choice;
@@ -131,7 +134,7 @@ namespace KeePassGate.Ui
             // against another screen, and a proportional font makes that a matter of luck.
             _fingerprintFont = new Font(FontFamily.GenericMonospace, Font.Size, FontStyle.Regular);
 
-            Padding = new Padding(Spacing.Window);
+            Padding = new Padding(LogicalToDeviceUnits(Spacing.Window));
 
             var layout = new FlowLayoutPanel
             {
@@ -143,15 +146,16 @@ namespace KeePassGate.Ui
                 Dock = DockStyle.Fill
             };
 
-            layout.Controls.Add(Line(Title(choice, databaseName), _titleFont, Spacing.Gap));
+            layout.Controls.Add(Line("KpgChooserTitle", Title(choice, databaseName), _titleFont, LogicalToDeviceUnits(Spacing.Gap)));
             layout.Controls.Add(Line(
+                "KpgChooserExplanation",
                 "Copies of this database each made an authority of their own, and a merge brought " +
                 "them together. Nothing is served until one authority is kept. " + Consequence,
                 null,
-                Spacing.Gap));
-            layout.Controls.Add(Line(OneCopy, null, Spacing.Gap));
+                LogicalToDeviceUnits(Spacing.Gap)));
+            layout.Controls.Add(Line("KpgChooserOneCopyLabel", OneCopy, null, LogicalToDeviceUnits(Spacing.Gap)));
 
-            layout.Controls.Add(Line(GateTab.ChooserAuthorityListLabel + ":", null, Spacing.Tight));
+            layout.Controls.Add(Line("KpgChooserAuthorityListLabel", GateTab.ChooserAuthorityListLabel + ":", null, LogicalToDeviceUnits(Spacing.Tight)));
             _authorities = NewList(GateTab.ChooserAuthorityListName, GateTab.ChooserAuthorityListLabel);
             AddColumns(_authorities, AuthorityColumns, AuthorityShares);
             foreach (var option in choice.Options)
@@ -165,14 +169,14 @@ namespace KeePassGate.Ui
             }
 
             _authorities.Height = ListHeight(_authorities, choice.Options.Count, FewestAuthorityRows, MostAuthorityRows);
-            _authorities.Margin = new Padding(0, 0, 0, Spacing.Gap);
+            _authorities.Margin = new Padding(0, 0, 0, LogicalToDeviceUnits(Spacing.Gap));
             _authorities.SelectedIndexChanged += delegate
             {
                 WindowHandlers.Run("the chooser could not show the authority chosen", OnSelectionChanged);
             };
             layout.Controls.Add(_authorities);
 
-            layout.Controls.Add(Line(GateTab.ChooserFingerprintBoxLabel + ":", null, Spacing.Tight));
+            layout.Controls.Add(Line("KpgChooserFingerprintBoxLabel", GateTab.ChooserFingerprintBoxLabel + ":", null, LogicalToDeviceUnits(Spacing.Tight)));
             _fingerprint = new TextBox
             {
                 Name = GateTab.ChooserFingerprintBoxName,
@@ -180,15 +184,14 @@ namespace KeePassGate.Ui
                 ReadOnly = true,
                 Font = _fingerprintFont,
                 Width = _wrap,
-                Margin = new Padding(0, 0, 0, Spacing.Gap)
+                Margin = new Padding(0, 0, 0, LogicalToDeviceUnits(Spacing.Gap))
             };
             layout.Controls.Add(_fingerprint);
 
-            _detail = Line(string.Empty, null, Spacing.Gap);
-            _detail.Name = GateTab.ChooserDetailLabelName;
+            _detail = Line(GateTab.ChooserDetailLabelName, string.Empty, null, LogicalToDeviceUnits(Spacing.Gap));
             layout.Controls.Add(_detail);
 
-            layout.Controls.Add(Line(GateTab.ChooserClientListLabel + ":", null, Spacing.Tight));
+            layout.Controls.Add(Line("KpgChooserClientListLabel", GateTab.ChooserClientListLabel + ":", null, LogicalToDeviceUnits(Spacing.Tight)));
             _clients = NewList(GateTab.ChooserClientListName, GateTab.ChooserClientListLabel);
             AddColumns(_clients, ClientColumns, ClientShares);
             _clients.Height = ListHeight(_clients, MostClients(choice), FewestClientRows, MostClientRows);
@@ -204,7 +207,7 @@ namespace KeePassGate.Ui
                 AutoSizeMode = AutoSizeMode.GrowAndShrink,
                 GrowStyle = TableLayoutPanelGrowStyle.FixedSize,
                 MinimumSize = new Size(_wrap, 0),
-                Margin = new Padding(0, Spacing.Gap, 0, 0)
+                Margin = new Padding(0, LogicalToDeviceUnits(Spacing.Gap), 0, 0)
             };
 
             footer.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100f));
@@ -230,13 +233,11 @@ namespace KeePassGate.Ui
                 Text = GateTab.ChooserCancelButtonText,
                 AutoSize = true,
                 AutoSizeMode = AutoSizeMode.GrowAndShrink,
-                Margin = new Padding(0, 0, Spacing.Gap, 0)
+                Margin = new Padding(0, 0, LogicalToDeviceUnits(Spacing.Gap), 0)
             };
 
-            _keep = new Button
+            _keep = new ApproveButton(GateTab.KeepButtonName, GateTab.KeepButtonText)
             {
-                Name = GateTab.KeepButtonName,
-                Text = "&" + GateTab.KeepButtonText,
                 AutoSize = true,
                 AutoSizeMode = AutoSizeMode.GrowAndShrink,
                 Margin = new Padding(0)
@@ -359,6 +360,27 @@ namespace KeePassGate.Ui
         }
 
         /// <summary>
+        /// Enter reaches nothing, wherever the focus is.
+        /// </summary>
+        /// <remarks>
+        /// Asked only once a control has declined the key, so an open list still takes it. What
+        /// this takes away is the form's own handling, which presses the default button, and the
+        /// default button is whichever button has the focus.
+        /// </remarks>
+        protected override bool ProcessDialogKey(Keys keyData)
+        {
+            return WindowHandlers.Run("a key on the authority chooser could not be handled", () =>
+            {
+                if ((keyData & (Keys.Alt | Keys.Control)) == Keys.None && (keyData & Keys.KeyCode) == Keys.Enter)
+                {
+                    return true;
+                }
+
+                return base.ProcessDialogKey(keyData);
+            }, true);
+        }
+
+        /// <summary>
         /// Sizes both lists from what they report once they have window handles, before the dialog
         /// is centered and shown.
         /// </summary>
@@ -461,10 +483,11 @@ namespace KeePassGate.Ui
             }
         }
 
-        private Label Line(string text, Font font, int below)
+        private Label Line(string name, string text, Font font, int below)
         {
             var label = new TextLabel
             {
+                Name = name,
                 Text = text,
                 AutoSize = true,
                 MaximumSize = new Size(_wrap, 0),

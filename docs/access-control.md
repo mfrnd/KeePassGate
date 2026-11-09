@@ -17,7 +17,7 @@ Open **File**, **Database Settings**, pick the **KPG** tab, then the **Profiles*
 | --- | --- |
 | **Profile** | the name, which is what a rule and a certificate both carry |
 | **Rules** | how many groups and entries have a rule for it, whatever the rule grants, which is how many rules removing it leaves inert; nothing in the recycle bin counts, since no rule there decides anything |
-| **Clients** | how many admitted clients hold it |
+| **Clients** | how many admitted clients hold it, counting only those the gate lets in: the clients page marks the rest |
 | **X** | removes it |
 
 Type a name and press **Add**. A name is ASCII letters, digits, hyphens and underscores, up to 64
@@ -34,16 +34,23 @@ created that way while this page is holding an edit is kept: what **OK** writes 
 this page made, not the list it was showing, so a name added here goes in, a name removed here goes
 out, and a name somebody else added stays. The one exception is a full list: a database names 32
 profiles at most, and when a pairing's name fills it first, a name added here that no longer fits is
-left out: the line under the list says so as soon as the page shows it gone, and the plugin's log
+left out: the line under the list states so as soon as the page shows it gone, and the plugin's log
 names it when **OK** is pressed, whatever was edited in between. The invite button is dead for as
 long as the edit is waiting all the same, because a program approved for a profile that is part way
 through being removed would be admitted to a name **OK** takes off the list, where it grants
 nothing.
 
+**A stored list that will not read is shown as that**, and left as it is: every client stays admitted
+and reaches nothing, as while the list is missing, but nothing on this page adds to it or takes from
+it. **Replace it with a new list** starts a list naming nothing in its place, which loses the damaged
+value when **OK** is pressed; names can be added after that. A list that turns unreadable under the
+dialog, from a merge while it is open, is left alone too, and the plugin's log names the edit that
+was not written over it.
+
 **Removing a profile takes it off this list and touches nothing else**, and from then on it grants
 nothing. A program is given only the profiles its record holds that this list still names, so a
 rule naming a removed profile stays on its group or entry, inert, and the access editor shows it
-struck through. The page says how many rules still name it and how many clients still hold it.
+struck through. The page states how many rules still name it and how many clients still hold it.
 
 That holds wherever the rule comes from: a group or entry dialog that was open while the profile was
 removed and is then accepted, an old version of an entry restored from its history, or a copy of the
@@ -68,17 +75,16 @@ warning naming the damage each time. A copy of the database from before the dama
 the list held.
 
 **Adding a profile back is a full undo.** Every rule still naming it applies again, and every client
-still holding it regains it, so the page asks first: it says how many rules come back into force and
-names every client that regains the profile, each once by its client key, the fingerprint of the
+still holding it regains it, so the page asks first: it states how many rules come back into force
+and names every client that regains the profile, each once by its client key, the fingerprint of the
 certificate it paired with: a program that renewed and has not given the older certificate up is one
 client, and two programs that chose the same name are two, each named with the start of its key,
-"agent (3f2a9c1e)". This replaces naming such a name once with how
-many certificates it held, which could not tell the two apart. A client whose
-certificate has expired is not named, since it regains nothing: the gate refuses it before its
-record is read. The one exception is a client that [renewed](clients.md#expiry) its certificate
-while the profile was off the list: the certificate it renewed to was recorded without the profile
-and does not regain it, while the older one, until the client gives it up, still holds it and does,
-which is why the warning still names that client.
+"agent (3f2a9c1e)". This replaces naming such a name once with how many certificates it held, which
+could not tell the two apart. A client whose certificate has expired is not named, since it regains
+nothing: the gate refuses it before its record is read. The one exception is a client that
+[renewed](clients.md#expiry) its certificate while the profile was off the list: the certificate it
+renewed to was recorded without the profile and does not regain it, while the older one, until the
+client gives it up, still holds it and does, which is why the warning still names that client.
 
 As everywhere else on this tab, nothing is changed until **OK** is pressed on the settings dialog,
 and **saving the database** is what puts it on disk. Cancel discards it.
@@ -90,8 +96,8 @@ the **KPG** tab.
 
 ![The KPG tab on a group, with a rule on it](images/group-access.png)
 
-The line at the top says the same thing on both dialogs: rules are inherited from parent groups and
-can be overwritten. On a group that reaches every entry in it and in the groups inside it; on an
+The line at the top states the same thing on both dialogs: rules are inherited from parent groups
+and can be overwritten. On a group that reaches every entry in it and in the groups inside it; on an
 entry it reaches that entry, with whatever the groups above grant shown among its own rules.
 
 ## Writing a rule
@@ -140,7 +146,7 @@ which names an entry holds. It never learns a value that way.
 **`L` sits below `R` on purpose.** Knowing that an entry exists is not knowing what is in it.
 
 **`S` and `D` are two sizes of removal.** `S` takes parts off a node: an entry's fields and its
-attachments. `D` says removals are allowed here, and removing a group or an entry asks for it
+attachments. `D` states removals are allowed here, and removing a group or an entry asks for it
 **twice**, from the group the thing is leaving and from the thing itself, and one profile has to
 grant both.
 
@@ -173,7 +179,7 @@ does not tell it enough to tell two entries apart, and `R` used to tell it every
 **It governs changing them too.** A rule with `U` and without `P` can correct an address and cannot
 overwrite a password; one with `C` and without `P` can add a field and not a protected one. This is
 worth more than it looks: a program that quietly replaces a password with one somebody else chose
-has taken the account, and nothing in a log of "an entry was updated" says which happened.
+has taken the account, and nothing in a log of "an entry was updated" states which happened.
 
 **A write verb reaches further than the entry it is written on.** KeePass resolves what some
 fields hold rather than using them as they stand: a URL it is told to open, a value being copied, an
@@ -202,14 +208,14 @@ the operator's click sends the variable's value to that address. A percent sign 
 note as a brace is, so the gate stores it as written, and a link in an entry a program may have
 written is to be left alone as its URL is.
 
-**Global auto-type chooses an entry by its title.** When you press KeePass's global auto-type
-hot key, an entry matches if its title is contained in the title of the window in front, and when
-only one entry matches, KeePass types its user name and password into that window without asking.
-So a program with `U` on an entry can rename it after a window whose title the program chooses,
-such as a web page it serves, and your next press of the hot key there types a password the rules
-never let it read. KeePass resolves a reference in what it types, so a reference in the user name
-types another entry's password as well. Where you've also told KeePass to match on an entry's URL,
-the URL can do the same.
+**Global auto-type chooses an entry by its title.** When the operator presses KeePass's global
+auto-type hot key, an entry matches if its title is contained in the title of the window in front,
+and when only one entry matches, KeePass types its user name and password into that window without
+asking. So a program with `U` on an entry can rename it after a window whose title the program
+chooses, such as a web page it serves, and the operator's next press of the hot key there types a
+password the rules never let it read. KeePass resolves a reference in what it types, so a reference
+in the user name types another entry's password as well. Where KeePass is also set to match on an
+entry's URL, the URL can do the same.
 To see which entry is about to be typed, turn on **Always show global auto-type entry selection
 dialog** under **Tools**, **Options**, **Advanced**.
 
@@ -223,8 +229,8 @@ audit names each of those writes.
 is called, and KeePass hands an attachment it cannot show itself to whatever Windows starts for its
 name's ending, a program included, when the operator double-clicks it. The gate refuses a name
 holding the characters that reorder how text is displayed, so a program cannot show the operator a
-document's name on something that ends in `.exe`, but a name that says `.exe` plainly is still one it
-may choose. Whatever a program may create, the operator's KeePass may open.
+document's name on something that ends in `.exe`, but a name that states `.exe` plainly is still one
+it may choose. Whatever a program may create, the operator's KeePass may open.
 
 **A field is filled in by its name too.** The gate refuses a field or attachment name holding a
 character drawn as nothing at all, a zero-width space, a joiner, a soft hyphen or a byte order mark
@@ -283,15 +289,17 @@ that a group above already opens wide, and somebody reading that would be invite
 
 **A line through the mask means it no longer arrives.** That is what an inherited rule looks like
 once **Refuse any profile not named here** is checked on this node: the rule is still up there and
-still says what it says, and this node has stopped letting it through. The row stays on the table
-because seeing what the check box refuses is the reason for checking it. To let one of them back in,
-click its mask, choose what it may do here and press **Enter**, which puts a rule of this node's own
-on the row. **Enter** keeps the check marks even when they are the ones the rule above already had;
-clicking away from them does not, so looking at a refused rule never lets it through.
+still states what it states, and this node has stopped letting it through. The row stays on the
+table because seeing what the check box refuses is the reason for checking it. To let one of them
+back in, click its mask, choose what it may do here and press **Enter**, which puts a rule of this
+node's own on the row. **Enter** keeps the check marks even when they are the ones the rule above
+already had; clicking away from them does not, so looking at a refused rule never lets it through.
 
 **A line through the mask also marks a profile this database no longer names**, on a rule of this
 node's own or one from above. It grants nothing until the profile is added back on the **Profiles**
-page, and its tooltip says so.
+page, and its tooltip states as much. A rule from above on a node whose seal refuses it, or whose
+own rules will not read, stays refused there once the name is back, and its tooltip states that too.
+Hovering over the profile shows its whole name, which a long name's column cuts.
 
 ## Nearest wins
 
@@ -299,7 +307,7 @@ For any one profile, the nearest rule wins.
 
 - A rule on the entry beats every group above it.
 - A rule on a group beats the groups above that one.
-- A profile that no rule names is answered by whatever the groups above say.
+- A profile that no rule names is answered by whatever the groups above state.
 
 Different profiles do not interfere: they are worked out separately and combined, so a program
 holding two profiles may reach what either of them reaches. A change has to be allowed by one
@@ -323,8 +331,8 @@ refuses every profile it does not name, and a grant from a group above stops rea
 anything under it.
 
 It closes the way in from above, not the way in from below: a group or entry under this one that
-names a profile itself still grants what its own rule says, because the nearest rule about a profile
-is the one that answers.
+names a profile itself still grants what its own rule states, because the nearest rule about a
+profile is the one that answers.
 
 Use it on a group holding things no program should reach.
 
@@ -335,8 +343,9 @@ gives the reason:
 
 - **Several entries edited together.** What KeePass's dialog holds for them is no single entry's
   rules, so open one entry at a time to read or change its rules.
-- **An earlier version of an entry**, opened from its **History** tab. The rules shown are the ones
-  that version had, not the ones in force, and KeePass keeps nothing changed on that dialog.
+- **An earlier version of an entry**, opened from its **History** tab. The entry's own rules shown
+  are the ones that version had, not the ones in force, while the rules from the groups above are
+  what those groups grant now, and KeePass keeps nothing changed on that dialog.
 - **A KeePass this plugin cannot reach into**: a KeePass that keeps a dialog's settings somewhere
   the plugin does not find them, or that does not tell it which database, group or entry the dialog
   is about. The rules can be read and not changed, and
@@ -363,7 +372,7 @@ dialogs. Then save the database as usual.
 The **KPG** tab in the database settings dialog works the same way, for a different underlying
 reason. KeePass's group and entry dialogs work on a copy and write it back when they are accepted, and
 this page writes into that copy. The settings dialog keeps no such copy, so that tab keeps one of its
-own. Either way OK and Cancel mean what they say.
+own. Either way OK and Cancel do what they promise.
 
 ## Where a rule is stored
 
@@ -389,7 +398,7 @@ Two answers, and both have to allow it:
 
 1. **The admission record**, which lists the profiles approved for that certificate. Only the ones
    this database still names count.
-2. **The rules**, which say what those profiles reach.
+2. **The rules**, which state what those profiles reach.
 
 The record is read from the open database on every request, so removing it takes effect at once.
 A node a program may not reach and a node that does not exist answer the same way, so a refused

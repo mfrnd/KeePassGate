@@ -145,6 +145,20 @@ namespace KeePassGate.Tests
         }
 
         [Test]
+        public void Every_X_is_named_to_a_screen_reader_by_what_pressing_it_does()
+        {
+            // S422: the heading was left empty for the bin painted over it, so each X was read
+            // out as its row and an X, and nothing told a listener that it removes a profile.
+            using (var page = new ProfileList(new FakeProfiles(), null))
+            {
+                Assume.That(page.Add("ops"), Does.Contain("ops"));
+
+                var grid = ControlTree.FindByName<DataGridView>(page, ProfileList.ListName);
+                ButtonColumns.AssertNamedBy(page, grid, ProfileList.RemoveColumnName, ProfileList.RemoveHeading);
+            }
+        }
+
+        [Test]
         public void A_name_the_database_refuses_is_reported_and_nothing_is_shown()
         {
             var database = new FakeProfiles { Refusal = "A group dialog is open." };
@@ -321,6 +335,91 @@ namespace KeePassGate.Tests
             }
         }
 
+        [Test]
+        public void A_list_that_will_not_read_is_shown_as_that_and_takes_no_edit_until_it_is_replaced()
+        {
+            // The operator's ruling of 2026-11-08: the page states that the stored list will not
+            // read, Add stays off, and a button that states it replaces the damaged list is the
+            // one way to name profiles again.
+            var profiles = new FakeProfiles { Unreadable = true };
+
+            using (var page = new ProfileList(profiles, null))
+            {
+                Assert.That(ControlTree.FindByName<Control>(page, ProfileList.DamagedRowName).Visible, Is.True);
+                Assert.That(ControlTree.FindByName<Label>(page, ProfileList.DamagedLabelName).Text, Does.Contain("will not read"));
+                Assert.That(ControlTree.FindByName<Button>(page, ProfileList.StartNewButtonName).Text, Does.Contain("Replace"));
+                Assert.That(ControlTree.FindByName<Control>(page, "KpgProfileEmptyLabel").Visible, Is.False,
+                    "a list that will not read is not a list naming nothing yet");
+                Assert.That(ControlTree.FindByName<Button>(page, ProfileList.AddButtonName).Enabled, Is.False);
+                Assert.That(ControlTree.FindByName<TextBox>(page, ProfileList.NameBoxName).Enabled, Is.False);
+
+                Assert.That(page.Add("ops"), Is.EqualTo(DatabaseProfiles.UnreadableRefusal));
+                Assert.That(profiles.Added, Is.Empty);
+
+                Assert.That(page.StartNew(), Is.EqualTo(ProfileList.StartedText));
+
+                Assert.That(profiles.Started, Is.EqualTo(1));
+                Assert.That(ControlTree.FindByName<Control>(page, ProfileList.DamagedRowName).Visible, Is.False);
+                Assert.That(ControlTree.FindByName<Button>(page, ProfileList.AddButtonName).Enabled, Is.True);
+            }
+        }
+
+        [Test]
+        public void A_name_is_its_own_tip_marked_left_to_right()
+        {
+            // A name too wide for its column fell back to the grid's own tip for a cut value, which
+            // carries none of the marks every other tip has, so under a right to left KeePass a
+            // dash at one end of a name was drawn at the other.
+            var profiles = new FakeProfiles();
+            var name = new string('n', 63) + "-";
+            profiles.Add(name);
+
+            using (var page = new ProfileList(profiles, null))
+            {
+                var grid = ControlTree.FindByName<DataGridView>(page, ProfileList.ListName);
+
+                Assert.That(grid.Rows[0].Cells[0].ToolTipText, Is.EqualTo(Tooltips.Wrapped(name)));
+            }
+        }
+
+        [TestCase(true)]
+        [TestCase(false)]
+        public void The_answer_to_a_gesture_stays_above_the_standing_line_whatever_the_list_began_with(bool beganEmpty)
+        {
+            // On a database naming no profile, the standing line was made visible before the page
+            // had a window, and was moved ahead of the gesture's line when the window came: every
+            // later answer then docked under it. A list that began with a name kept the order the
+            // page was built in.
+            var profiles = new FakeProfiles();
+            if (!beganEmpty)
+            {
+                profiles.Add("ops");
+            }
+
+            using (var form = OffScreenForm.New())
+            {
+                var list = new ProfileList(profiles, null) { Dock = DockStyle.Fill };
+                form.Controls.Add(list);
+                form.Show();
+                OffScreenForm.Pump();
+
+                if (beganEmpty)
+                {
+                    list.Add("ops");
+                }
+
+                list.Remove(0);
+                OffScreenForm.Pump();
+                list.PerformLayout();
+
+                var said = ControlTree.FindByName<Label>(list, ProfileList.ResultLabelName);
+                var empty = ControlTree.FindByName<Label>(list, "KpgProfileEmptyLabel");
+                Assume.That(said.Visible && empty.Visible, Is.True, "both lines are up once the last name is gone");
+
+                Assert.That(said.Bottom, Is.LessThanOrEqualTo(empty.Top), "the answer docked under the standing line");
+            }
+        }
+
         /// <summary>
         /// A shown window holding the page, with the two buttons a dialog has and a count of what
         /// pressed them.
@@ -464,6 +563,19 @@ namespace KeePassGate.Tests
                 }
 
                 _names.Remove(name);
+                return null;
+            }
+
+            /// <summary>Whether the list is to read as damaged, until a new list is started.</summary>
+            public bool Unreadable { get; set; }
+
+            public int Started { get; private set; }
+
+            public string StartNew()
+            {
+                Started++;
+                Unreadable = false;
+                _names.Clear();
                 return null;
             }
         }

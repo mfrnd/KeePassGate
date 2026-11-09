@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Drawing;
 using System.Linq;
+using System.Reflection;
 using System.Threading;
 using System.Windows.Forms;
 using KeePassGate.Acl;
@@ -111,6 +112,30 @@ namespace KeePassGate.Tests
                 Assert.That(panel.Picking, Is.True, "and the second opened a second one");
                 Assert.That(form.IsDisposed, Is.False, "the window closed");
                 Assert.That(_loop, Is.Empty);
+            });
+        }
+
+        [TestCase(ProfileColumn, GrantTab.ProfilePickerName, GrantTab.ProfilePickerLabel)]
+        [TestCase(MaskColumn, GrantTab.RulePickerName, GrantTab.RulePickerLabel)]
+        public void Each_picker_is_named_to_a_screen_reader(int column, string name, string label)
+        {
+            // A list with no text of its own, announced as a bare list: the keyboard's only way
+            // to write a rule, named to nobody using it without the screen.
+            Using(Rules.Granting(("reader", "R")), (form, panel, grid) =>
+            {
+                panel.Press(column == ProfileColumn ? grid.NewRowIndex : 0, column);
+                OffScreenForm.Pump();
+                Assume.That(panel.Picking, Is.True);
+
+                var open = (ToolStripDropDown)typeof(GrantPanel)
+                    .GetField("_open", BindingFlags.Instance | BindingFlags.NonPublic).GetValue(panel);
+                var list = open.Items.OfType<ToolStripControlHost>().Select(host => host.Control)
+                    .Single(control => control.Name == name);
+
+                Assert.That(list.AccessibleName, Is.EqualTo(label));
+
+                panel.ClosePicker();
+                OffScreenForm.Pump();
             });
         }
 
@@ -463,6 +488,37 @@ namespace KeePassGate.Tests
                     PressKey(grid, Keys.F2);
                     Assert.That(panel.Picking, Is.True, "F2 opened nothing once a rule was chosen");
                     Assert.That(grid.SelectedCells, Is.Empty, "and the rule is not drawn as chosen");
+                    Assert.That(_loop, Is.Empty);
+                });
+        }
+
+        [Test]
+        public void Alt_and_Down_open_either_picker_as_F2_does()
+        {
+            // S197: F2 and Alt+Down are the keyboard's two ways into the pickers, and only F2 was
+            // ever posted. Alt+Down arrives as a system key and passes `IsInputKey` and every
+            // `ProcessDialogKey` up to the dialog before the table hears it, which is a route of
+            // its own, and a dialog that took Alt+Down for itself would have gone unnoticed.
+            Using(
+                Rules.Granting(("reader", "R")),
+                (form, panel, grid) =>
+                {
+                    grid.Focus();
+                    grid.CurrentCell = grid.Rows[0].Cells[MaskColumn];
+                    OffScreenForm.Pump();
+
+                    PressAltDown(grid);
+                    Assert.That(panel.Picking, Is.True, "Alt+Down opened no rule picker on a rule");
+
+                    panel.Type(Keys.Escape);
+                    OffScreenForm.Pump();
+                    Assert.That(panel.Picking, Is.False);
+
+                    grid.CurrentCell = grid.Rows[grid.NewRowIndex].Cells[ProfileColumn];
+                    OffScreenForm.Pump();
+
+                    PressAltDown(grid);
+                    Assert.That(panel.Picking, Is.True, "Alt+Down opened no profile list on the empty line");
                     Assert.That(_loop, Is.Empty);
                 });
         }
@@ -866,9 +922,53 @@ namespace KeePassGate.Tests
             OffScreenForm.Pump();
         }
 
+        /// <summary>
+        /// Puts Alt+Down on the queue for a control, with Alt held, and lets the loop deliver it.
+        /// </summary>
+        /// <remarks>
+        /// **Held in the thread's own keys rather than carried in the message.** A key with Alt
+        /// down arrives as a system key, whose message carries Alt in its context bit, but
+        /// WinForms reads every modifier off the thread's keyboard state, and a posted message
+        /// changes none of that: posted with the bit and nothing else, the table heard Down alone.
+        /// So Alt is set in this thread's state for the delivery and put back after it, which
+        /// touches no other thread and no real keyboard.
+        /// </remarks>
+        private static void PressAltDown(Control control)
+        {
+            var keys = new byte[256];
+            Assert.That(User32.GetKeyboardState(keys), Is.True, "the thread's keys could not be read");
+
+            var held = (byte[])keys.Clone();
+            held[(int)Keys.Menu] |= Down;
+            held[(int)Keys.LMenu] |= Down;
+            Assert.That(User32.SetKeyboardState(held), Is.True, "Alt could not be held");
+
+            try
+            {
+                User32.PostMessage(control.Handle, SystemKeyDownMessage, (IntPtr)(int)Keys.Down, (IntPtr)AltHeld);
+                User32.PostMessage(control.Handle, SystemKeyUpMessage, (IntPtr)(int)Keys.Down, (IntPtr)AltReleased);
+                OffScreenForm.Pump();
+            }
+            finally
+            {
+                User32.SetKeyboardState(keys);
+            }
+        }
+
         private const int KeyDownMessage = 0x0100;
         private const int KeyUpMessage = 0x0101;
+        private const int SystemKeyDownMessage = 0x0104;
+        private const int SystemKeyUpMessage = 0x0105;
         private const int WheelMessage = 0x020A;
+
+        /// <summary>The bit of a key's state that holds it down.</summary>
+        private const byte Down = 0x80;
+
+        /// <summary>A key's first press with Alt held: one repeat, and the context bit.</summary>
+        private const int AltHeld = 0x20000001;
+
+        /// <summary>The same key let go: the context bit, and the two bits of a release.</summary>
+        private const int AltReleased = unchecked((int)0xE0000001);
 
         private static void Using(Action<Form, GrantPanel, DataGridView> work)
         {

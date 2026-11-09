@@ -27,13 +27,13 @@ namespace KeePassGate.Ui
     /// the approval timeout, and this waits a little longer than that, so an unanswered dialog ends
     /// as a timeout the operator's own screen produced rather than as a connection thread walking
     /// away from a window that is still open.
-    /// </remarks>
     ///
     /// **A lock takes the question away.** KeePass locks under these dialogs, which hold no lock
     /// off, and a dialog left standing over a locked database offered an Approve that could do
     /// nothing. `PAIRING.md` §308: the lock closes the open dialog as unanswered, a request still
     /// waiting for the screen is never shown, and both are answered `503 locked`. **So does a
     /// close of the database the dialog is about**, which is answered as the lock is.
+    /// </remarks>
     public sealed class PairingApprovalPrompt : IPairingApproval, IRenewalApproval, IApprovalScreen
     {
         /// <summary>How much longer than the dialog this waits before giving up on it.</summary>
