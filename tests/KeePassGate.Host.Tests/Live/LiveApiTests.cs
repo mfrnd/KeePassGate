@@ -21,8 +21,7 @@ namespace KeePassGate.Host.Tests.Live
     ///
     /// What it proves that the loopback tests cannot: that a write through the gate reaches
     /// KeePass's own save, on KeePass's own thread, and is on disk when the answer comes back. And
-    /// that the rules are what let it: the same client, one grant away, is told there is nothing
-    /// there.
+    /// that the rules are what let it: a client one grant away is told there is nothing there.
     ///
     /// The grant and the admission record are both written before KeePass starts, because a
     /// running KeePass serves the database it holds in memory and would overwrite either.
@@ -46,6 +45,7 @@ namespace KeePassGate.Host.Tests.Live
         private LiveReply _refused;
         private LiveReply _overtaken;
         private LiveReply _stale;
+        private LiveReply _reread;
         private LiveReply _current;
         private LiveReply _againUnread;
         private bool _exited;
@@ -69,9 +69,11 @@ namespace KeePassGate.Host.Tests.Live
             keePass.Grant(Rules.Granting(("agent", "CRUDLAP")));
 
             using (var admitted = keePass.IssueClientCertificate("agent-fictitious"))
+            using (var other = keePass.IssueClientCertificate("agent-invented"))
             using (var stranger = keePass.IssueClientCertificate("agent-no-rules"))
             {
                 keePass.Admit(admitted, "agent");
+                keePass.Admit(other, "agent");
                 keePass.Admit(stranger, "nobody");
 
                 var process = keePass.Start();
@@ -95,14 +97,14 @@ namespace KeePassGate.Host.Tests.Live
                 // changes the entry; the first then writes against the tag it read, and is
                 // refused. Read again, it writes under the tag it now holds, and then again under
                 // the tag that write handed back, without reading in between.
-                _overtaken = Send(keePass, admitted, "PUT", "/entries/" + _uuid,
+                _overtaken = Send(keePass, other, "PUT", "/entries/" + _uuid,
                     "{\"Notes\":\"changed by another client\"}");
                 _stale = Send(keePass, admitted, "PUT", "/entries/" + _uuid,
                     "{\"Notes\":\"what the first client meant\"}", _read.Tag);
 
-                var reread = Send(keePass, admitted, "GET", "/entries/" + _uuid, null);
+                _reread = Send(keePass, admitted, "GET", "/entries/" + _uuid, null);
                 _current = Send(keePass, admitted, "PUT", "/entries/" + _uuid,
-                    "{\"UserName\":\"agent-fictitious\"}", reread.Tag);
+                    "{\"UserName\":\"agent-fictitious\"}", _reread.Tag);
                 _againUnread = Send(keePass, admitted, "PUT", "/entries/" + _uuid,
                     "{\"URL\":\"https://invented.invalid\"}", _current.Written);
 
@@ -182,8 +184,15 @@ namespace KeePassGate.Host.Tests.Live
         [Test]
         public void A_write_against_the_tag_it_now_holds_goes_ahead_and_hands_back_the_next()
         {
+            // The tag read again is what the write is made under, so it is checked as a tag: a read
+            // that came back without one would make the write unconditional, which the assertions
+            // after these would not notice.
+            Assert.That(_reread.Status, Is.EqualTo(200), _reread.Body);
+            Assert.That(_reread.Tag, Does.Match("^\"[0-9a-f]{32}\"$"), "a read carries its entry's tag");
+            Assert.That(_reread.Tag, Is.Not.EqualTo(_read.Tag), "and the tag moved with the change that overtook it");
             Assert.That(_current.Status, Is.EqualTo(200), _current.Body);
-            Assert.That(_current.Written, Is.Not.Null.And.Not.EqualTo(_read.Tag));
+            Assert.That(_current.Written, Is.Not.Null.And.Not.EqualTo(_reread.Tag),
+                "the write hands back the tag it made, not the one it was made under");
             Assert.That(_againUnread.Status, Is.EqualTo(200), _againUnread.Body);
 
             var made = _session.KeePass.ReadEntries().First(e => e.Uuid.ToHexString() == _uuid);
