@@ -131,8 +131,21 @@ namespace KeePassGate.Tests
                        X509KeyStorageFlags.EphemeralKeySet | X509KeyStorageFlags.Exportable))
             {
                 Assert.That(ephemeral.HasPrivateKey, Is.True, "the key is there");
-                Assert.That(ephemeral.GetECDsaPrivateKey(), Is.Not.Null, "and it signs");
-                Assert.That(SChannelHandshake(ephemeral), Is.Not.EqualTo("ok"), "and SChannel still will not have it");
+
+                var signed = new byte[] { 1, 2, 3, 4 };
+                using (var key = ephemeral.GetECDsaPrivateKey())
+                using (var check = ephemeral.GetECDsaPublicKey())
+                {
+                    var signature = key.SignData(signed, System.Security.Cryptography.HashAlgorithmName.SHA256);
+                    Assert.That(check.VerifyData(signed, signature, System.Security.Cryptography.HashAlgorithmName.SHA256),
+                        Is.True, "and it signs");
+                }
+
+                // Asked why, as `Only_TLS_1_3_is_offered` asks, since a server that failed for any
+                // other reason would read as this refusal: SEC_E_NO_CREDENTIALS, the security
+                // package having no credentials it can use for a key Windows holds in no store.
+                Assert.That(SChannelHandshake(ephemeral), Is.EqualTo("Win32Exception 0x8009030E"),
+                    "and SChannel still will not have it, for that reason");
             }
         }
 
@@ -252,7 +265,15 @@ namespace KeePassGate.Tests
                     }
                 });
 
-                if (thrown != null)
+                // By the security package's own code where it gives a code, since the message is
+                // in the machine's language.
+                var native = thrown as System.ComponentModel.Win32Exception;
+                if (native != null)
+                {
+                    result = "Win32Exception 0x" + native.NativeErrorCode.ToString(
+                        "X8", System.Globalization.CultureInfo.InvariantCulture);
+                }
+                else if (thrown != null)
                 {
                     result = thrown.GetType().Name + ": " + thrown.Message;
                 }
