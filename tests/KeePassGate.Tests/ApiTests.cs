@@ -653,6 +653,29 @@ namespace KeePassGate.Tests
         }
 
         [Test]
+        public void An_entry_made_as_KeePass_makes_one_is_tagged_only_for_a_rule_reaching_protected_values()
+        {
+            // The tag tests above run on an entry holding only its title. KeePass and `createEntry`
+            // give every entry all five standard strings, and the database protects the password
+            // however empty it is, so every such entry holds a protected value from the start: a
+            // rule without `protected` is never handed its tag, and every condition it sends is
+            // refused, `*` included.
+            _vault.Granting(_group, AllButProtected);
+            var made = Send("POST", "/groups/" + _group + "/entries", Bodies.Of(("Title", "an invented entry")));
+            Assert.That(made.Status, Is.EqualTo(VaultHandlers.Created), made.Json);
+            var entry = "/entries/" + JsonBody.Read(made.Json).Text("uuid");
+
+            Assert.That(Get(entry).Status, Is.EqualTo(200));
+            Assert.That(Get(entry).Tag, Is.Null, "an empty password the database protects is a protected value");
+            Assert.That(Conditioned("PUT", entry, "{\"UserName\":\"x\"}", "*").Status, Is.EqualTo(412));
+
+            _vault.Granting(_group, Rules.Granting(("agent", "CRUSDLAP")));
+            var tag = Get(entry).Tag;
+            Assert.That(tag, Is.Not.Null);
+            Assert.That(Conditioned("PUT", entry, "{\"UserName\":\"x\"}", tag).Status, Is.EqualTo(200));
+        }
+
+        [Test]
         public void A_protected_value_arriving_during_a_request_is_never_covered_by_the_tag_it_hands_out(
             [Values("entry", "field", "fields", "attachments", "attachment", "write")] string route,
             [Range(0, 6)] int lookups)

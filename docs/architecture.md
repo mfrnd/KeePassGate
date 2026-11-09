@@ -147,11 +147,13 @@ every write did before, and the entry's history keeps what it replaced, as for a
 kind a program is, is its author's choice rather than something a rule can require.
 
 A tag goes only to a program whose rule may read everything it covers: `read` on a group, and on an
-entry `read` reaching its attachments, and its protected values too when it holds any. Any other
-program is handed none and cannot write under one, because a tag compared by a program that may
-not read what it covers would let it test guesses at that. A tag is made with a secret derived from
-the database's own host key, so it tells anyone else nothing about what is in the entry, and it
-stays the same when KeePass starts again; recreating the database's authority changes every tag.
+entry `read` reaching its attachments, and its protected values too when it holds any. Every entry
+KeePass makes holds a protected value from the start, its password, protected by default however
+empty, so there the rule needs `P` as well. Any other program is handed none and cannot write under
+one, because a tag compared by a program that may not read what it covers would let it test guesses
+at that. A tag is made with a secret derived from the database's own host key, so it tells anyone
+else nothing about what is in the entry, and it stays the same when KeePass starts again; recreating
+the database's authority changes every tag.
 
 **The lock after global user inactivity is the one writes cannot postpone.** KeePass has two
 timeouts, both under **Tools**, **Options**, **Security**. **Lock workspace after KeePass

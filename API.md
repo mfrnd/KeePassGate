@@ -132,7 +132,9 @@ read anywhere is this one.
 
 **Only for a client whose rule may read everything the tag covers.** For a group that is `read`;
 for an entry, `read` reaching its attachments, and its protected values too when it holds any, in
-one rule, since a switch belongs to the rule it is written in. Any other caller is handed no tag,
+one rule, since a switch belongs to the rule it is written in. An entry KeePass or `createEntry`
+makes holds a protected value from the start, its `Password`, protected by default however
+empty, so there the rule needs `protected` as well. Any other caller is handed no tag,
 on a read or in a write's answer, and any `If-Match` it sends is answered `412` without anything
 being written, because a condition it can never be told the answer to is one it cannot meet and
 ignoring it would make the write unconditional. **This is the second answer, and the first was
