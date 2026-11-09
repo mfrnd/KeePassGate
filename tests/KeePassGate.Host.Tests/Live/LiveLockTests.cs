@@ -1,5 +1,6 @@
 using System;
 using System.Threading;
+using KeePassGate.Authority;
 using NUnit.Framework;
 
 namespace KeePassGate.Host.Tests.Live
@@ -98,6 +99,8 @@ namespace KeePassGate.Host.Tests.Live
         public void The_client_is_answered_before_the_lock()
         {
             Assert.That(_beforeTheLock.Status, Is.EqualTo(200), _beforeTheLock.Failure);
+            Assert.That(_beforeTheLock.ServerSubject, Is.EqualTo(AuthorityIssuer.HostSubject),
+                "answered over the database's own host certificate");
         }
 
         [Test]
@@ -111,6 +114,8 @@ namespace KeePassGate.Host.Tests.Live
         {
             Assert.That(_whileLocked.Status, Is.EqualTo(503), _whileLocked.Failure ?? _whileLocked.Body);
             Assert.That(_whileLocked.Body, Does.Contain("\"locked\""));
+            Assert.That(_whileLocked.ServerSubject, Is.EqualTo(AuthorityIssuer.ResponderSubject),
+                "answered over the responder kept in memory for a lock, and not the host certificate let go at it");
         }
 
         [Test]

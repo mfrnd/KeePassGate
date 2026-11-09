@@ -38,6 +38,9 @@ namespace KeePassGate.Host.Tests.Live
 
         public string ServerSubject { get; set; }
 
+        /// <summary>The certificate the gate presented, as it was sent, or null when none was.</summary>
+        public byte[] ServerCertificate { get; set; }
+
         public string Failure { get; set; }
     }
 
@@ -160,6 +163,7 @@ namespace KeePassGate.Host.Tests.Live
                             if (presented != null)
                             {
                                 reply.ServerSubject = presented.Subject;
+                                reply.ServerCertificate = presented.GetRawCertData();
                             }
 
                             return true;
