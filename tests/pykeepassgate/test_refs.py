@@ -356,9 +356,10 @@ def test_a_placeholder_a_reference_made_is_refused_for_what_it_is(placeholder: s
         refs.resolve(database, entry, "{REF:T@I:" + VAULT + "}" + placeholder)
 
 
-# KeePass's order, measured with its own compiler on the review and pinned here rather than in
-# `ReferenceVectors.json`, which only the host tier writes: each was removable with every test
-# green, and its mutant refused or misread what KeePass follows.
+# KeePass's order, measured with its own compiler on the review: each was removable with every test
+# green, and its mutant refused or misread what KeePass follows. `ReferenceVectors.json` holds the
+# same shapes, which the host tier holds to KeePass on every run; these keep each choice beside a
+# sentence on why the resolver makes it.
 
 
 def test_a_malformed_reference_is_skipped_by_one_character_so_one_inside_it_is_followed() -> None:
