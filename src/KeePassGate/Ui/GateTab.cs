@@ -131,8 +131,8 @@ namespace KeePassGate.Ui
         /// </summary>
         /// <remarks>
         /// Not the caption it has once a code is out, because the first press renews nothing: the
-        /// line above the box says no code is outstanding, and a button beside it offering to renew
-        /// one was offering something the page had just said does not exist.
+        /// empty box beside it shows that no code is outstanding, and a button offering to renew
+        /// one was offering something the page had just stated does not exist.
         /// </remarks>
         public const string InviteButtonText = "Invite";
 

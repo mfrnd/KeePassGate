@@ -72,22 +72,6 @@ namespace KeePassGate.Host.Tests.Live
             "m_dtExpireDateTime",
         };
 
-        /// <summary>
-        /// What one of those controls says when nothing on it is new, which is left uncovered.
-        /// </summary>
-        /// <remarks>
-        /// **Covered only when there is something to hide**, the rule `Steadied` keeps for the box.
-        /// The invitation line names an identifier and a count of minutes while a code is out, and
-        /// one fixed sentence once there is none, which is what the clients page says after the
-        /// refused pairing has spent the only invitation. A bar over that sentence hid a line that
-        /// reads the same on every run, and the pages explain the bar as hiding what is new each
-        /// time.
-        /// </remarks>
-        private static readonly string[] Settled =
-        {
-            KeePassGate.Ui.InvitationText.None,
-        };
-
         /// <summary>Gray rather than black, so a bar reads as a bar and not as a hole.</summary>
         private static readonly Color Bar = Color.FromArgb(255, 108, 108, 108);
 
@@ -229,8 +213,14 @@ namespace KeePassGate.Host.Tests.Live
             {
                 try
                 {
-                    // A label reports its text as its name, which is what is compared here.
-                    if (Array.IndexOf(Settled, element.Current.Name) >= 0)
+                    // **Covered only when there is something to hide**, the rule `Steadied` keeps
+                    // for the box. The invitation line names an identifier and a count of minutes
+                    // while a code is out and is hidden once there is none, which is the clients
+                    // page after the refused pairing has spent the only invitation, so a line
+                    // with nothing new on it is not on screen to cover. Asked rather than read off
+                    // the bounds, which a hidden window can go on reporting where it last was, and
+                    // the row under the line moves up into that place.
+                    if (element.Current.IsOffscreen)
                     {
                         continue;
                     }

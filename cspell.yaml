@@ -71,6 +71,11 @@ words:
   # the window style that keeps the screenshot backdrop from taking the focus
   - NOACTIVATE
 
+  # the edit control's cue banner, which a read-only box does not draw, and the rectangle it
+  # draws its text in, which the code box's placeholder is drawn at
+  - SETCUEBANNER
+  - GETRECT
+
   # the pixel format and the color constructor the screenshots are written with
   - Argb
 

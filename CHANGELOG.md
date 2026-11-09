@@ -11,6 +11,10 @@ none, since it releases both.
 
 ## 0.2.0, unreleased
 
+- **With no code out, the clients page shows it in the empty code box rather than on a line over
+  it.** The line stated what the box beside it already showed, and the client list has that line
+  back. The gray text is never the box's text, so the copy button stays dead over it and nothing
+  can copy it.
 - **A renewal refused for this session shows on an open clients page at once.** The page draws a
   client's name red from every answer that refuses its renewals, and an answer for this session, or
   an answer the database could not take when it was given, is held in the plugin's memory, which

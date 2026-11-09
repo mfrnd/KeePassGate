@@ -136,7 +136,7 @@ namespace KeePassGate.Ui
         private readonly Button _delete;
         private readonly Button _choose;
         private readonly Button _invite;
-        private readonly TextBox _token;
+        private readonly CodeBox _token;
         private readonly Button _copy;
         private readonly ToolTip _tips;
         private readonly Label _invitation;
@@ -351,7 +351,7 @@ namespace KeePassGate.Ui
             // can be built for.
             _tokenFont = CodeFont(_codeFamily, Font.Size);
 
-            _token = new TextBox
+            _token = new CodeBox
             {
                 Name = GateTab.InvitationBoxName,
 
@@ -394,7 +394,10 @@ namespace KeePassGate.Ui
             // point where somebody has already tried to press it.
             //
             // Nothing under this one. The line below it qualifies it and the two are one band.
+            // Collapsed while it has nothing to state, which is whenever no code is out: the box
+            // shows that itself, and an empty line still takes its height from the list.
             _invitation = NewTextLabel(GateTab.InvitationLabelName, new Padding(0));
+            _invitation.Visible = false;
             invitation.Controls.Add(_invitation);
 
             // Under the invitation, because it qualifies what was just handed out. The column
@@ -970,6 +973,14 @@ namespace KeePassGate.Ui
         private void ShowOutstanding(Outstanding outstanding)
         {
             _invitation.Text = outstanding.Text;
+            _invitation.Visible = outstanding.Text.Length > 0;
+
+            // In the box rather than on the line over it, the operator's ruling of 2026-11-09: the
+            // line stated what the empty box beside it already showed, on a page of 449 by 314.
+            // **Only while nothing is out.** A code made on an earlier dialog is counted down on
+            // the line and never shown again, so the box is empty then too, and a placeholder
+            // there would deny the code the line is counting down.
+            _token.Placeholder = outstanding.Any ? string.Empty : InvitationText.None;
 
             // Offering to renew a code only while there is one to renew: the first press
             // renews nothing, and the line just set says so.

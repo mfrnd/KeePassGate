@@ -13,16 +13,21 @@ namespace KeePassGate.Ui
     public static class InvitationText
     {
         /// <summary>
-        /// Said when there is no code an operator could hand to anybody.
+        /// What the empty code box shows in gray, which is whenever there is no code an operator
+        /// could hand to anybody.
         /// </summary>
         /// <remarks>
         /// **Including when one is in the book and this authority has expired**, which is a code
         /// nobody can redeem and nothing can bring back: `PAIRING.md` §311 refuses the redemption,
-        /// and recreating the authority changes the digest the book answers on. This line used to
-        /// say the authority had expired, which is the sentence the notice above the button is
-        /// already showing whenever this state is reached, so the page said one thing twice on a
-        /// tab that is 449 by 314. The reason belongs to the notice, because that is the band that
-        /// also names the remedy.
+        /// and recreating the authority changes the digest the book answers on. The line over the
+        /// box used to give the authority's expiry as the reason, which is the sentence the notice
+        /// above the button is already showing whenever this state is reached, so the page stated
+        /// one thing twice on a tab that is 449 by 314. The reason belongs to the notice, because
+        /// that is the band that also names the remedy.
+        ///
+        /// **In the box and not on that line**, the operator's ruling of 2026-11-09: a line over an
+        /// empty box stating that it is empty spent a line of the page on what the box can show by
+        /// itself. See `CodeBox`, which keeps it out of the box's text.
         /// </remarks>
         public const string None = "No code is outstanding.";
 
@@ -76,8 +81,8 @@ namespace KeePassGate.Ui
             "A profile change has not been applied yet. Press OK, reopen this dialog, and invite then.";
 
         /// <summary>
-        /// What is outstanding, which is one code or none, and what an approval dialog will call
-        /// it.
+        /// The code that is outstanding, and what an approval dialog will call it, or nothing when
+        /// no code is out.
         /// </summary>
         /// <remarks>
         /// A list arrives rather than one invitation because that is what the book holds, and it
@@ -91,9 +96,10 @@ namespace KeePassGate.Ui
         /// </remarks>
         public static string For(IReadOnlyList<Invitation> invitations, DateTimeOffset now)
         {
+            // Nothing, so that the line over the box goes: the empty box shows `None` itself.
             if (invitations == null || invitations.Count == 0)
             {
-                return None;
+                return string.Empty;
             }
 
             var soonest = invitations.Aggregate(

@@ -59,7 +59,7 @@ namespace KeePassGate.Tests
                 panel.CreateAuthority();
 
                 Assert.That(Button(panel, GateTab.InviteButtonName).Enabled, Is.True);
-                Assert.That(Label(panel, GateTab.InvitationLabelName).Text, Is.EqualTo(InvitationText.None));
+                NothingIsOut(panel);
             }
         }
 
@@ -75,6 +75,53 @@ namespace KeePassGate.Tests
 
                 Assert.That(box.ReadOnly, Is.True, "it is to be copied, not edited");
                 Assert.That(PairingToken.Decode(box.Text), Is.Not.Null, "what is on screen is not a token");
+                Assert.That(((CodeBox)box).Placeholder, Is.Empty, "and nothing in gray claims there is none");
+            }
+        }
+
+        [Test]
+        public void With_no_code_out_the_box_shows_it_rather_than_a_line_over_it()
+        {
+            // The operator's ruling of 2026-11-09: the line stated what the empty box beside it
+            // already showed, and spent a line of a short page on it.
+            using (var panel = NewPanel())
+            {
+                panel.CreateAuthority();
+
+                NothingIsOut(panel);
+                Assert.That(OnScreen(panel, Label(panel, GateTab.InvitationLabelName)), Is.False,
+                    "the line over the box is gone while it has nothing to count down");
+            }
+        }
+
+        [Test]
+        public void A_code_already_out_as_the_page_is_made_is_counted_down_over_the_box()
+        {
+            // The line is hidden until there is something to count down, and a dialog opened while
+            // a code is out shows it before the page has a window, which is when WinForms can move
+            // a control in `Controls` to wherever its early window lands: `ClientList.OnLayout`
+            // has the case where it did.
+            using (var first = NewPanel())
+            {
+                first.CreateAuthority();
+                first.InviteClient();
+            }
+
+            using (var panel = NewPanel())
+            {
+                var line = Label(panel, GateTab.InvitationLabelName);
+                var box = (CodeBox)Box(panel, GateTab.InvitationBoxName);
+
+                Assert.That(OnScreen(panel, line), Is.True, "the code is out, so its countdown is on screen");
+                Assert.That(line.Text, Does.Contain("good for"));
+                Assert.That(line.Parent.Controls.GetChildIndex(line), Is.Zero, "and first in its band");
+                Assert.That(line.Bottom, Is.LessThanOrEqualTo(box.Parent.Top), "over the box, not under it");
+
+                // The code is shown only on the dialog that made it, so the box is empty here too,
+                // and gray text in it would deny the code the line is counting down.
+                Assert.That(box.Text, Is.Empty);
+                Assert.That(box.Placeholder, Is.Empty);
+                Assert.That(box.AccessibleDescription, Is.Null);
             }
         }
 
@@ -156,7 +203,7 @@ namespace KeePassGate.Tests
             {
                 panel.CreateAuthority();
 
-                Assert.That(Label(panel, GateTab.InvitationLabelName).Text, Is.EqualTo(InvitationText.None));
+                NothingIsOut(panel);
                 Assert.That(Button(panel, GateTab.InviteButtonName).Text, Is.EqualTo(GateTab.InviteButtonText));
 
                 panel.InviteClient();
@@ -324,7 +371,7 @@ namespace KeePassGate.Tests
                 clock = clock.AddMinutes(11);
                 panel.Tick();
 
-                Assert.That(Label(panel, GateTab.InvitationLabelName).Text, Is.EqualTo(InvitationText.None));
+                NothingIsOut(panel);
                 Assert.That(Box(panel, GateTab.InvitationBoxName).Text, Is.Empty, "the code that no longer works is gone");
                 Assert.That(Button(panel, GateTab.CopyButtonName).Enabled, Is.False, "and there is nothing to copy");
                 Assert.That(Button(panel, GateTab.InviteButtonName).Text, Is.EqualTo(GateTab.InviteButtonText),
@@ -464,7 +511,7 @@ namespace KeePassGate.Tests
                 _book.Burn(_book.Outstanding()[0].Id);
                 panel.Describe();
 
-                Assert.That(Label(panel, GateTab.InvitationLabelName).Text, Is.EqualTo(InvitationText.None));
+                NothingIsOut(panel);
                 Assert.That(Box(panel, GateTab.InvitationBoxName).Text, Is.Empty);
             }
         }
@@ -495,6 +542,25 @@ namespace KeePassGate.Tests
         private AuthorityPanel NewPanel()
         {
             return new AuthorityPanel(_database, new FakePrompt(true), _log, _book);
+        }
+
+        /// <summary>
+        /// The clients page with no code out: the empty box shows it in gray, the line over the box
+        /// has nothing to state, and the copy button has nothing to take.
+        /// </summary>
+        /// <remarks>
+        /// The placeholder is held to being nothing the box holds, which is what keeps it out of
+        /// the clipboard: the copy button copies the text, and is dead while there is none.
+        /// </remarks>
+        private static void NothingIsOut(AuthorityPanel panel)
+        {
+            var box = (CodeBox)Box(panel, GateTab.InvitationBoxName);
+
+            Assert.That(box.Text, Is.Empty, "the placeholder is never the box's text");
+            Assert.That(box.Placeholder, Is.EqualTo(InvitationText.None));
+            Assert.That(box.AccessibleDescription, Is.EqualTo(InvitationText.None), "and a screen reader is given it");
+            Assert.That(Label(panel, GateTab.InvitationLabelName).Text, Is.Empty);
+            Assert.That(Button(panel, GateTab.CopyButtonName).Enabled, Is.False, "and there is nothing to copy");
         }
 
         /// <summary>
@@ -561,10 +627,10 @@ namespace KeePassGate.Tests
         private static readonly DateTimeOffset Now = new DateTimeOffset(2026, 8, 15, 9, 0, 0, TimeSpan.Zero);
 
         [Test]
-        public void Nothing_outstanding_says_so()
+        public void Nothing_outstanding_leaves_the_line_to_the_box()
         {
-            Assert.That(InvitationText.For(Array.Empty<Invitation>(), Now), Is.EqualTo(InvitationText.None));
-            Assert.That(InvitationText.For(null, Now), Is.EqualTo(InvitationText.None));
+            Assert.That(InvitationText.For(Array.Empty<Invitation>(), Now), Is.Empty);
+            Assert.That(InvitationText.For(null, Now), Is.Empty);
         }
 
         [Test]

@@ -11,8 +11,9 @@ namespace KeePassGate.Ui
     /// <remarks>
     /// What WinForms and .NET Framework leave unanswered: whether a window is enabled as Windows
     /// sees it, which window owns another, how a taskbar entry is flashed, how a window is kept out
-    /// of screen captures, which windows a thread has open that no form stands for, and how a file
-    /// is renamed by what its access control lists allow and nothing else.
+    /// of screen captures, which windows a thread has open that no form stands for, where an edit
+    /// control draws its text, and how a file is renamed by what its access control lists allow and
+    /// nothing else.
     ///
     /// **Each declaration is called once, by the method of its name in this class**, which is what
     /// the rest of the plugin calls. CodeQL reports every declaration of unmanaged code and every
@@ -75,6 +76,28 @@ namespace KeePassGate.Ui
         {
             // codeql[cs/call-to-unmanaged-code] the one call to it, for every caller in the plugin
             return User32.IsWindowVisible(window);
+        }
+
+        /// <summary>Where an edit control draws its text, inside its border and its margins.</summary>
+        internal static System.Drawing.Rectangle GetEditRectangle(IntPtr edit)
+        {
+            var area = new Rect();
+            // codeql[cs/call-to-unmanaged-code] the one call to it, for every caller in the plugin
+            User32.SendMessage(edit, EmGetRect, IntPtr.Zero, ref area);
+            return System.Drawing.Rectangle.FromLTRB(area.Left, area.Top, area.Right, area.Bottom);
+        }
+
+        /// <summary>`EM_GETRECT`, which asks an edit control for its formatting rectangle.</summary>
+        private const int EmGetRect = 0x00B2;
+
+        /// <summary>A rectangle as Windows writes one: its four edges.</summary>
+        [StructLayout(LayoutKind.Sequential)]
+        internal struct Rect
+        {
+            public int Left;
+            public int Top;
+            public int Right;
+            public int Bottom;
         }
 
         /// <summary>The window's class name, or null when it has none to give.</summary>
@@ -196,6 +219,10 @@ namespace KeePassGate.Ui
             [DllImport("user32.dll", CharSet = CharSet.Unicode)]
             // codeql[cs/unmanaged-code] a window's class is what tells a native dialog from a form
             internal static extern int GetClassName(IntPtr window, [Out] char[] name, int capacity);
+
+            [DllImport("user32.dll")]
+            // codeql[cs/unmanaged-code] WinForms keeps an edit control's margins to itself
+            internal static extern IntPtr SendMessage(IntPtr window, int message, IntPtr wParam, ref Rect lParam);
         }
 
         private static class Kernel32

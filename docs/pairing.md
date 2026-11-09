@@ -18,8 +18,9 @@ there is not.
 remedy: press **OK**, open the dialog again, and hand out the code then. See
 [`access-control.md`](access-control.md).
 
-Open **File**, **Database Settings**, the **KPG** tab, and the **Clients** page. Press
-**Invite**.
+Open **File**, **Database Settings**, the **KPG** tab, and the **Clients** page. While no code is
+out, the box beside the button reads "No code is outstanding." in gray, which is not a code and
+which the copy button does not copy. Press **Invite**.
 
 ![The clients page with an invitation outstanding](images/clients-invitation.png)
 
