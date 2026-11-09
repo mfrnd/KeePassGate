@@ -4,6 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Windows.Automation;
+using KeePassGate.Acl;
 using KeePassGate.Audit;
 using KeePassGate.Authority;
 using KeePassGate.Gate;
@@ -25,8 +26,9 @@ namespace KeePassGate.Host.Tests.Live
     /// screen. The client is a separate object holding nothing but that token and a port number,
     /// and it derives its own connection names from it. The approval dialog is a real window,
     /// approved by a real button press, on a thread that is not the one waiting for the answer.
-    /// And the record is looked for in the `.kdbx` file after KeePass has exited, because a record
-    /// that is only in memory admits nobody tomorrow.
+    /// And the record is looked for in the `.kdbx` file, because a record that is only in memory
+    /// admits nobody tomorrow: as the pairing's own save left it, before this saves the database
+    /// itself, and again after KeePass has exited.
     ///
     /// What that chain establishes, and nothing smaller does: that pairing writes through the
     /// plugin into the database KeePass is holding, that KeePass's own save is what makes it
@@ -45,6 +47,12 @@ namespace KeePassGate.Host.Tests.Live
         private static readonly TimeSpan StartTimeout = TimeSpan.FromSeconds(60);
         private static readonly TimeSpan DialogTimeout = TimeSpan.FromSeconds(60);
 
+        /// <summary>
+        /// What the refused request asks for, which the database does not list, so a refusal that
+        /// named it there would show in the file.
+        /// </summary>
+        private const string UnlistedProfile = "unlisted";
+
         private LiveSession _session;
 
         private string _token;
@@ -54,7 +62,9 @@ namespace KeePassGate.Host.Tests.Live
         private PairingReply _refused;
         private int _statusAfterPairing;
         private string _statusBody;
+        private IReadOnlyList<AdmissionRecord> _savedByThePairing;
         private IReadOnlyList<AdmissionRecord> _recordsInTheFile;
+        private IReadOnlyList<string> _profilesInTheFile;
         private bool _exited;
         private string _pluginLog;
 
@@ -80,6 +90,10 @@ namespace KeePassGate.Host.Tests.Live
 
             _paired = ApproveTheNextRequest(driver, client, "agent-fictitious", "ops");
 
+            // The file as the pairing's own save left it, before anything below saves the whole
+            // database again and would put a record only in memory into the file on its behalf.
+            _savedByThePairing = keePass.ReadAdmissions();
+
             if (_paired.Status == 200)
             {
                 UseWhatItWasGiven(keePass, client);
@@ -89,6 +103,7 @@ namespace KeePassGate.Host.Tests.Live
 
             _exited = driver.ShutDown();
             _recordsInTheFile = keePass.ReadAdmissions();
+            _profilesInTheFile = ProfileNames.Read(keePass.ReadCustomData(ProfileNames.CustomDataKey)).Names;
 
             _pluginLog = keePass.ReadPluginLog();
             TestContext.Out.WriteLine("Plugin log:");
@@ -141,11 +156,18 @@ namespace KeePassGate.Host.Tests.Live
         }
 
         [Test]
+        public void The_pairing_s_own_save_put_the_record_in_the_file()
+        {
+            Assert.That(_savedByThePairing, Is.Not.Null);
+            Assert.That(_savedByThePairing.Select(record => record.Subject), Is.EqualTo(new[] { "CN=agent-fictitious" }),
+                "pairing has to save, or the client stops working the next time KeePass starts");
+        }
+
+        [Test]
         public void The_record_is_in_the_file_after_KeePass_has_gone()
         {
             Assert.That(_recordsInTheFile, Is.Not.Null);
-            Assert.That(_recordsInTheFile.Count, Is.EqualTo(1),
-                "pairing has to save, or the client stops working the next time KeePass starts");
+            Assert.That(_recordsInTheFile.Count, Is.EqualTo(1), "the record the pairing saved is not in the file");
             Assert.That(_recordsInTheFile[0].Subject, Is.EqualTo("CN=agent-fictitious"));
             Assert.That(_recordsInTheFile[0].Profiles, Is.EqualTo(new[] { "ops" }));
         }
@@ -161,6 +183,8 @@ namespace KeePassGate.Host.Tests.Live
         public void A_refusal_leaves_nothing_extra_in_the_file()
         {
             Assert.That(_recordsInTheFile.Count, Is.EqualTo(1), "a refusal wrote a record");
+            Assert.That(_profilesInTheFile, Is.EqualTo(new[] { "ops" }),
+                "a refusal named the profile it was asked for in the database's list");
         }
 
         [Test]
@@ -193,6 +217,7 @@ namespace KeePassGate.Host.Tests.Live
                 Is.EqualTo(1), string.Join(Environment.NewLine, pairings));
             Assert.That(pairings, Has.All.Contains("\"invitation\":\""), "each names its invitation");
             Assert.That(pairings, Has.None.Contains("ops"), "and none names a profile");
+            Assert.That(pairings, Has.None.Contains(UnlistedProfile), "not even one it was asked for");
         }
 
         [Test]
@@ -200,10 +225,13 @@ namespace KeePassGate.Host.Tests.Live
         {
             Assert.That(_pluginLog, Does.Contain("paired CN=agent-fictitious"));
 
-            var unexpected = LiveSession.FailuresIn(_pluginLog)
-                .Where(line => !line.Contains("was refused, and it is spent"))
-                .ToArray();
+            // The refusal's line is required, once, rather than only kept out of the failures: it
+            // is the plugin's own word that the invitation the refused client came on is spent.
+            var failures = LiveSession.FailuresIn(_pluginLog);
+            var spent = failures.Where(line => line.Contains("was refused, and it is spent")).ToArray();
+            var unexpected = failures.Except(spent).ToArray();
 
+            Assert.That(spent, Has.Length.EqualTo(1), _pluginLog);
             Assert.That(unexpected, Is.Empty, string.Join(Environment.NewLine, unexpected));
         }
 
@@ -255,7 +283,7 @@ namespace KeePassGate.Host.Tests.Live
             var client = new PairingClient(keePass.Port, token);
             Assert.That(client.Hello().ServerProved, Is.True);
 
-            return Decide(driver, client, "agent-unwanted", Array.Empty<string>(), GateTab.RefuseButtonText);
+            return Decide(driver, client, "agent-unwanted", new[] { UnlistedProfile }, GateTab.RefuseButtonText);
         }
 
         private static PairingReply Decide(

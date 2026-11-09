@@ -182,8 +182,9 @@ presses the invite button on the real tab; the token is read off the real screen
 nothing but that token and a port number derives its own connection names, proves itself and is
 proved to; the approval dialog is a real window, approved by a real button press on a thread that is
 not the one waiting for the answer; the certificate that comes back is then used on the very next
-connection; and the record is looked for in the `.kdbx` after KeePass has exited. A refusal is
-driven the same way, and writes no record.
+connection; and the record is looked for in the `.kdbx` as the pairing's own save left it, before
+anything else saves the database, and again after KeePass has exited. A refusal is driven the same
+way, spends its invitation, and writes no record and no profile it was asked for.
 
 **The API**, in `LiveApiTests`: a real client with a certificate the database's own authority issued
 creates an entry through the gate, adds a field, reads it back, lists it, and the entry is read out
