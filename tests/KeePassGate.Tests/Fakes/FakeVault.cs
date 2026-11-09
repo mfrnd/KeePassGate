@@ -20,6 +20,9 @@ namespace KeePassGate.Tests.Fakes
     /// </remarks>
     internal sealed class FakeVault : IVault
     {
+        /// <summary>The five strings every entry KeePass makes holds.</summary>
+        private static readonly string[] Standard = { "Title", "UserName", "Password", "URL", "Notes" };
+
         private readonly Dictionary<string, Node> _groups = new Dictionary<string, Node>(StringComparer.Ordinal);
         private readonly Dictionary<string, Kept> _entries = new Dictionary<string, Kept>(StringComparer.Ordinal);
         private readonly Node _root;
@@ -194,7 +197,15 @@ namespace KeePassGate.Tests.Fakes
             return group.Uuid;
         }
 
-        /// <summary>Adds an entry, without going through the rules.</summary>
+        /// <summary>
+        /// Adds an entry holding only its title, without going through the rules.
+        /// </summary>
+        /// <remarks>
+        /// Not the shape KeePass or the gate makes: both give every entry all five standard
+        /// strings, the password among them protected, which <see cref="CreateEntry"/> does here
+        /// too. An entry holding only its title is how an entry another program wrote can arrive,
+        /// and it holds no protected value, so a rule without `protected` is handed its tag.
+        /// </remarks>
         public string AddEntry(string groupUuid, string title)
         {
             var group = Find(groupUuid)
@@ -226,6 +237,20 @@ namespace KeePassGate.Tests.Fakes
         {
             // `Add` answers whether it was new, so no `Contains` in front of it.
             _entries[entryUuid].Protected.Add(field);
+        }
+
+        /// <summary>
+        /// Whether a field was stored with its own protection flag set, apart from whether the
+        /// database protects its name.
+        /// </summary>
+        /// <remarks>
+        /// What the real vault stores with the value, and what every lookup here folds into one
+        /// answer with the name, so a write that dropped the flag for a name the database protects
+        /// could not otherwise be told from a write that kept it.
+        /// </remarks>
+        public bool Flagged(string entryUuid, string field)
+        {
+            return _entries[entryUuid].Protected.Contains(field);
         }
 
         /// <summary>Gives an entry an expiry, or takes it away with null, as KeePass's dialog does.</summary>
@@ -666,7 +691,7 @@ namespace KeePassGate.Tests.Fakes
                 var uuid = AddEntry(group.Uuid, string.Empty);
                 var entry = _entries[uuid];
 
-                foreach (var name in new[] { "Title", "UserName", "Password", "URL", "Notes" })
+                foreach (var name in Standard)
                 {
                     entry.Fields[name] = string.Empty;
                 }
@@ -858,6 +883,13 @@ namespace KeePassGate.Tests.Fakes
                 if (entry == null || !Holds(entry.Fields.Keys, name))
                 {
                     return VaultWrite.Missing();
+                }
+
+                // The real vault's rule, and in its order: emptied and never taken off, compared as
+                // the store compares names.
+                if (Standard.Any(standard => Comparer<string>.Default.Compare(name, standard) == 0))
+                {
+                    return VaultWrite.Conflict("a standard field can be emptied and not taken off");
                 }
 
                 var refused = Refused(tagging, () => Tag(entry));

@@ -2032,10 +2032,13 @@ namespace KeePassGate.Tests
         [Test]
         public void A_field_the_database_protects_is_stored_protected_however_it_was_asked_for()
         {
-            // The check said `guarded || Protects`; the call passed `guarded`. So a caller holding
-            // `strip` could take a standard field off and put it back unprotected, and every later
-            // client with `read` and no `protected` was handed it in clear.
+            // The check asked `guarded || Protects`; the call passed `guarded`. So a standard field
+            // an entry lacks, which an entry another program wrote can, was put on it unprotected,
+            // and every later client with `read` and no `protected` was handed it in clear. Both
+            // entries here hold only their titles, since taking a standard field off to put it
+            // back is refused.
             _vault.Granting(_group, Rules.Granting(("agent", "CRSLP")));
+            var other = _vault.AddEntry(_group, "another invented service");
 
             Assert.That(
                 Send("POST", "/entries/" + _entry + "/fields",
@@ -2044,17 +2047,36 @@ namespace KeePassGate.Tests
 
             Assert.That(Get("/entries/" + _entry).Json, Does.Contain("\"protected\":[\"Password\"]"),
                 "the database says this name is protected, whatever the request said");
+            Assert.That(_vault.Flagged(_entry, "Password"), Is.True, "and it is stored with the flag set");
 
             // And saying `false` out loud is the same request: it cannot take away a protection
             // the database gives the name, so it is stored protected too and still answered 201.
-            Assume.That(Send("DELETE", "/entries/" + _entry + "/fields/Password", null).Status, Is.EqualTo(200));
             Assert.That(
-                Send("POST", "/entries/" + _entry + "/fields",
+                Send("POST", "/entries/" + other + "/fields",
                      "{\"name\":\"Password\",\"value\":\"not-a-real-password\",\"protected\":\"false\"}").Status,
                 Is.EqualTo(201));
 
-            Assert.That(Get("/entries/" + _entry).Json, Does.Contain("\"protected\":[\"Password\"]"),
+            Assert.That(Get("/entries/" + other).Json, Does.Contain("\"protected\":[\"Password\"]"),
                 "`false` cannot unprotect a name the database protects");
+            Assert.That(_vault.Flagged(other, "Password"), Is.True, "nor store it without the flag");
+        }
+
+        [Test]
+        public void A_standard_field_can_be_emptied_and_not_taken_off()
+        {
+            // The real vault's rule, which `KdbxVaultTests` holds it to, so the handlers here meet
+            // it too: a request sequence the gate refuses is not a sequence a test can lean on.
+            _vault.Granting(_group, Rules.Granting(("agent", "CRUSL")));
+            var made = Send("POST", "/groups/" + _group + "/entries", Bodies.Of(("Title", "an invented entry")));
+            Assert.That(made.Status, Is.EqualTo(VaultHandlers.Created), made.Json);
+            var entry = "/entries/" + JsonBody.Read(made.Json).Text("uuid");
+
+            var stripped = Send("DELETE", entry + "/fields/URL", null);
+
+            Assert.That(stripped.Status, Is.EqualTo(409), stripped.Json);
+            Assert.That(Send("PUT", entry + "/fields/URL", Bodies.Of(("value", string.Empty))).Status, Is.EqualTo(200),
+                "emptied, which is what taking a standard field off means");
+            Assert.That(Get(entry + "/fields").Json, Does.Contain("\"name\":\"URL\""), "and still there");
         }
 
         [Test]
