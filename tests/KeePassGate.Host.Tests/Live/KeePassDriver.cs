@@ -4,6 +4,7 @@ using System.Diagnostics;
 using System.Text;
 using System.Windows.Automation;
 using KeePassGate;
+using KeePassGate.Testing;
 using KeePassGate.Ui;
 using NUnit.Framework;
 
@@ -848,10 +849,18 @@ namespace KeePassGate.Host.Tests.Live
         /// dialog's OK, and while the settings dialog carries no such snapshot, a test that closes
         /// dialogs with Cancel can never be the reason something was lost.
         /// </summary>
+        /// <remarks>
+        /// Waits for the dialog to go before answering, rather than for a time. On a loaded machine
+        /// a dialog took longer than a fixed wait to close, and what came next met it still open: a
+        /// keystroke meant for the main window reached nothing, and a close of KeePass was never
+        /// delivered, since KeePass's main window takes no close while a dialog over it is modal.
+        /// </remarks>
         public void CloseDialog(AutomationElement dialog)
         {
+            var window = HandleOf(dialog);
             Keyboard.Front(dialog);
             Keyboard.SendEscape();
+            WaitUntilGone(window);
             System.Threading.Thread.Sleep(500);
         }
 
@@ -860,13 +869,20 @@ namespace KeePassGate.Host.Tests.Live
         /// </summary>
         /// <remarks>
         /// The difference between this and <see cref="CloseDialog"/> is the whole of what the
-        /// KPG tab now means by a change: Escape is Cancel, and Cancel throws it away.
+        /// KPG tab now means by a change: Escape is Cancel, and Cancel throws it away. Waits for the
+        /// dialog to go, as that does and for its reason.
         /// </remarks>
         public bool AcceptDialog(AutomationElement dialog)
         {
+            var window = HandleOf(dialog);
             Keyboard.BringToFront(dialog);
 
             var pressed = PressButton(dialog, "OK");
+            if (pressed)
+            {
+                WaitUntilGone(window);
+            }
+
             System.Threading.Thread.Sleep(900);
             return pressed;
         }
@@ -888,10 +904,58 @@ namespace KeePassGate.Host.Tests.Live
         }
 
         /// <summary>Closes KeePass and waits for it to go. True when it exited by itself.</summary>
+        /// <remarks>
+        /// **The close is asked for again until it is delivered.** `CloseMainWindow` posts nothing,
+        /// and answers false, while the main window is disabled, which it is for as long as a modal
+        /// dialog is open over it; a dialog that was still closing when this was called left a
+        /// KeePass that was never asked to exit, and that then failed to exit in time.
+        /// </remarks>
         public bool ShutDown()
         {
-            _process.CloseMainWindow();
-            return _process.WaitForExit((int)ShutdownTimeout.TotalMilliseconds);
+            var deadline = DateTime.UtcNow + ShutdownTimeout;
+            while (!_process.HasExited && !_process.CloseMainWindow() && DateTime.UtcNow < deadline)
+            {
+                System.Threading.Thread.Sleep(250);
+            }
+
+            var left = deadline - DateTime.UtcNow;
+            return _process.WaitForExit(left > TimeSpan.Zero ? (int)left.TotalMilliseconds : 0);
+        }
+
+        /// <summary>How long a dialog is given to close once it has been told to.</summary>
+        private static readonly TimeSpan DialogCloseTimeout = TimeSpan.FromSeconds(15);
+
+        /// <summary>The window behind an element, or none for an element that has gone.</summary>
+        private static IntPtr HandleOf(AutomationElement window)
+        {
+            try
+            {
+                return new IntPtr(window.Current.NativeWindowHandle);
+            }
+            catch (ElementNotAvailableException)
+            {
+                return IntPtr.Zero;
+            }
+        }
+
+        /// <summary>
+        /// Waits for a window to leave the screen, closed or hidden, for as long as a dialog is
+        /// given to close, and answers whether it did.
+        /// </summary>
+        private static bool WaitUntilGone(IntPtr window)
+        {
+            var deadline = DateTime.UtcNow + DialogCloseTimeout;
+            while (window != IntPtr.Zero && User32.IsWindowVisible(window))
+            {
+                if (DateTime.UtcNow >= deadline)
+                {
+                    return false;
+                }
+
+                System.Threading.Thread.Sleep(100);
+            }
+
+            return true;
         }
 
         public int ExitCode
