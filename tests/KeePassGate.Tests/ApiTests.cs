@@ -348,6 +348,45 @@ namespace KeePassGate.Tests
         }
 
         [Test]
+        public void A_tag_is_taken_only_by_a_route_that_hands_it_out()
+        {
+            // A tag is a digest of every string and attachment the node holds, which the real vault
+            // decrypts to take, so `IVault.GroupTag` keeps it to a route that will use it: a
+            // listing, an access answer and a caller that may not be handed a tag cost none.
+            // Nothing a client sees would differ if they did, which is why this counts.
+            _vault.Granting(_vault.RootAlias, Rules.Granting(("agent", "CRUSDLAP")));
+            Assert.That(_vault.CreateAttachment(_entry, "notes.txt", new byte[] { 1 }, VaultTagging.None).Ok, Is.True);
+            var entry = "/entries/" + _entry;
+
+            var taken = _vault.TagsTaken;
+            foreach (var path in new[]
+            {
+                "/groups", "/groups/" + _group + "/groups", "/entries", "/groups/" + _group + "/entries",
+                "/groups/" + _group + "/access", entry + "/access",
+            })
+            {
+                Assert.That(Get(path).Status, Is.EqualTo(200), path);
+            }
+
+            Assert.That(_vault.TagsTaken, Is.EqualTo(taken), "a route handing out no tag took a tag");
+
+            Assert.That(Get(entry).Tag, Is.Not.Null);
+            Assert.That(_vault.TagsTaken, Is.EqualTo(taken + 1), "and a read handing a tag out takes it once");
+
+            // A rule whose `read` does not reach the attachments may not be handed the entry's tag.
+            _vault.Granting(_vault.RootAlias, Rules.Granting(("agent", "RUL")));
+            taken = _vault.TagsTaken;
+
+            foreach (var path in new[] { entry, entry + "/fields", entry + "/fields/Title" })
+            {
+                Assert.That(Get(path).Status, Is.EqualTo(200), path);
+            }
+
+            Assert.That(Send("PUT", entry, "{\"Title\":\"renamed\"}").Status, Is.EqualTo(200));
+            Assert.That(_vault.TagsTaken, Is.EqualTo(taken), "a caller that may not be handed a tag cost a tag");
+        }
+
+        [Test]
         public void A_tag_moves_with_what_the_node_holds()
         {
             _vault.Granting(_vault.RootAlias, AllButProtected);
