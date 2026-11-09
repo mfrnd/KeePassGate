@@ -142,9 +142,11 @@ namespace KeePassGate.Gate
     /// it ends. A pairing's or a renewal's deadline bounds that. Nothing of this plugin's bounds an
     /// ordinary write in flight, whose deadline was disarmed with its request: closing its socket
     /// frees no thread, so the material is held until its write and save end, and then for as long
-    /// as its answer's write is allowed. What the order does guarantee is that no connection
-    /// arriving after the lock can reach it, and that the connections still running are being
-    /// closed rather than served.
+    /// as its answer's write is allowed. Nor is the order what keeps a later connection away from
+    /// it: KeePass shuts the database before it raises the close, so a connection arriving in
+    /// between finds it shut whichever runs first. What the order is for is the guard on the
+    /// close: connections are closed only when the lock took something away, and only letting go
+    /// can answer that, so it runs first.
     /// The data path is closed either way, because a locked target answers no records at all.
     ///
     /// **A lock spares the connections waiting on the operator**, and closes the question they are
@@ -366,12 +368,12 @@ namespace KeePassGate.Gate
                     }
                     finally
                     {
-                        // The material is let go first, then the connections. That does not wipe
-                        // it while a connection is still holding its own reference; what it does is
-                        // stop any later connection reaching it, and start closing the ones that
-                        // are. Guarded the way the unlock is. A lock that held nothing has taken
-                        // nothing away, and closing every connection then kills handshakes and
-                        // parked pairings belonging to databases that are still perfectly open.
+                        // The material is let go first, then the connections, because whether
+                        // anything was let go decides whether they are closed at all: guarded the
+                        // way the unlock is. A lock that held nothing has taken nothing away, and
+                        // closing every connection then kills handshakes and parked pairings
+                        // belonging to databases that are still perfectly open. Letting go does
+                        // not wipe the material while a connection holds its own reference.
                         if (_targets.Lock(e.Path))
                         {
                             CloseAllButAwaiting("a database was locked");

@@ -263,8 +263,10 @@ namespace KeePassGate.Tests
         [Test]
         public void The_material_goes_before_the_connections_do()
         {
-            // The other way round, a thread waking from a closed socket could still find the
-            // authority sitting there and use it on the way out.
+            // Not because a connection could find the material otherwise: a connection in flight
+            // holds its own reference whichever runs first, and a connection arriving later finds
+            // the database KeePass has already shut. The connections are closed only when the lock
+            // let go of something, which only the lock can answer, so it runs first.
             _events.RaiseClosed("C:\\invented\\one.kdbx", true);
 
             Assert.That(_order, Is.EqualTo(new[] { "screen", "lock", "close" }));
