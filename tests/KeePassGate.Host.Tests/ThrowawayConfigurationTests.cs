@@ -1,5 +1,6 @@
 using System.IO;
 using System.Text;
+using KeePass.App;
 using KeePass.App.Configuration;
 using KeePass.Util.XmlSerialization;
 using KeePassGate.Host.Tests.Live;
@@ -28,6 +29,8 @@ namespace KeePassGate.Host.Tests
                 read = (AppConfigEx)new XmlSerializerEx(typeof(AppConfigEx)).Deserialize(stream);
             }
 
+            Assert.That(read.Meta.PreferUserConfiguration, Is.False,
+                "KeePass would read the developer's own configuration rather than this one");
             Assert.That(read.Application.Start.CheckForUpdate, Is.False, "the update question would be asked");
             Assert.That(read.Application.Start.CheckForUpdateConfigured, Is.True, "and asked on the first start");
             Assert.That(read.Integration.LimitToSingleInstance, Is.False,
@@ -51,6 +54,17 @@ namespace KeePassGate.Host.Tests
             Assert.That(read.Security.WorkspaceLocking.LockAfterTime, Is.EqualTo(8));
             Assert.That(read.MainWindow.EscAction, Is.EqualTo(AceEscAction.None), "and everything else as before");
             Assert.That(read.Integration.LimitToSingleInstance, Is.False);
+            Assert.That(read.Meta.PreferUserConfiguration, Is.False);
+        }
+
+        [Test]
+        public void The_throwaway_names_its_fallback_configuration_with_KeePass_s_own_option()
+        {
+            // The file KeePass writes when it cannot write the one beside the program, which is the
+            // developer's own unless the command line names another. A name KeePass does not know
+            // is an argument it ignores, and the fallback would be the developer's again.
+            Assert.That(ThrowawayKeePass.LocalConfigurationOption,
+                Is.EqualTo("-" + AppDefs.CommandLineOptions.ConfigPathLocal + ":"));
         }
     }
 }

@@ -109,20 +109,65 @@ namespace KeePassGate.Host.Tests.Live
             return new Run(process.ExitCode, output.Result, errors.Result);
         }
 
-        /// <summary>Ends a program that is still running, which only a failure leaves.</summary>
+        /// <summary>
+        /// Ends a program that is still running, which only a failure leaves, and every process it
+        /// started.
+        /// </summary>
+        /// <remarks>
+        /// **The program is `uv`, and the client is its child**, which `Process.Kill` leaves running
+        /// on this framework: measured, the Python process outlived the kill of the `uv` above it,
+        /// holding its connection to KeePass and the pipes this process is still reading to their
+        /// end. So the whole tree is ended, by `taskkill`, which the framework's own `Kill` cannot
+        /// do before .NET Core 3, and the `uv` process alone only where that could not be run.
+        /// </remarks>
+        // cspell:ignore taskkill
         public static void End(Process process)
         {
             try
             {
                 if (!process.HasExited)
                 {
-                    process.Kill();
+                    if (!EndTree(process.Id))
+                    {
+                        process.Kill();
+                    }
+
                     process.WaitForExit(10000);
                 }
             }
             catch (Exception error) when (error is InvalidOperationException || error is System.ComponentModel.Win32Exception)
             {
                 // Gone already, or going.
+            }
+        }
+
+        /// <summary>
+        /// Ends a process and every process under it, and answers whether `taskkill` could be run.
+        /// </summary>
+        private static bool EndTree(int processId)
+        {
+            var info = new ProcessStartInfo
+            {
+                FileName = "taskkill",
+                Arguments = "/T /F /PID " + processId.ToString(System.Globalization.CultureInfo.InvariantCulture),
+                UseShellExecute = false,
+                CreateNoWindow = true,
+                RedirectStandardOutput = true,
+                RedirectStandardError = true
+            };
+
+            try
+            {
+                using (var killing = Process.Start(info))
+                {
+                    killing.StandardOutput.ReadToEnd();
+                    killing.StandardError.ReadToEnd();
+                    return killing.WaitForExit(10000);
+                }
+            }
+            catch (System.ComponentModel.Win32Exception)
+            {
+                return false;
             }
         }
 

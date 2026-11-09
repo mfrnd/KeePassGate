@@ -32,7 +32,7 @@ namespace KeePassGate.Host.Tests.Live
     /// is where a menu on a dialog either owns its clicks and its keys or does not. The new
     /// certificate asks to renew in turn and is refused in this session, by a press on the arrow
     /// and a press on the choice; asking again is then answered `409 this session` with nobody
-    /// asked, and the file holds no answer of it once KeePass has gone.
+    /// asked, and the file holds no answer of it while the answer stands.
     ///
     /// **And that answer lifted from the clients page**, as the operator does it: the row's menu
     /// opened with Shift and F10, Allow renewal pressed, and the settings dialog accepted. The next
@@ -52,6 +52,7 @@ namespace KeePassGate.Host.Tests.Live
         private LiveReply _withTheNew;
         private LiveReply _refusedInThisSession;
         private LiveReply _askedAgain;
+        private RenewalRefusal _standingInTheFile;
         private string _menuSaid;
         private LiveReply _afterLifting;
         private LiveReply _givenUp;
@@ -92,6 +93,11 @@ namespace KeePassGate.Host.Tests.Live
                     _refusedInThisSession = RefuseInThisSession(driver, keePass, renewed);
                     _askedAgain = LiveGateClient.Send(
                         keePass.Port, keePass.NewGateName(), renewed, "POST", RenewalHandler.Path, "{}");
+
+                    // Read while the answer stands: Allow renewal below takes away any standing
+                    // answer for this certificate, so a file read after it holds none whatever
+                    // the refusal had written, and a write of one would have been saved by now.
+                    _standingInTheFile = keePass.ReadStandingRefusal(_newKey);
 
                     _menuSaid = AllowRenewalOnTheClientsPage(driver);
                     _afterLifting = RefuseOnce(driver, keePass, renewed);
@@ -134,9 +140,7 @@ namespace KeePassGate.Host.Tests.Live
             Assert.That(_askedAgain.Status, Is.EqualTo(409), _askedAgain.Failure ?? _askedAgain.Body);
             Assert.That(_askedAgain.Body, Does.Contain("\"this session\""));
 
-            Assert.That(_exited, Is.True, "KeePass did not exit cleanly");
-            Assert.That(_session.KeePass.ReadStandingRefusal(_newKey), Is.Null,
-                "an answer for this session reached the file");
+            Assert.That(_standingInTheFile, Is.Null, "an answer for this session reached the file");
         }
 
         [Test]

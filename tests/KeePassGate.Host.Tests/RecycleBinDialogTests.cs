@@ -84,8 +84,29 @@ namespace KeePassGate.Host.Tests
 
                 Assert.That(_database.Database.RecycleBinUuid.Equals(PwUuid.Zero), Is.True,
                     "the dialog put back the choice it loaded, which named no group");
+                Assert.That(_database.Database.RecycleBinEnabled, Is.True,
+                    "and left the bin switched on, as it loaded it, so the choice is all it put back");
                 Assert.That(_database.RootGroup.Groups.Any(g => ReferenceEquals(g, bin)), Is.True,
                     "and the group it pointed at is still there, now an ordinary one under the root");
+            }
+        }
+
+        [Test]
+        public void The_settings_dialog_puts_back_a_bin_that_was_there_when_it_opened()
+        {
+            // What makes the bin that already exists safe, and so what the refusal can leave
+            // alone: the dialog loads the bin it finds as its choice and writes that back.
+            var bin = new PwGroup(true, true, "Recycle Bin", PwIcon.TrashBin);
+            _database.RootGroup.AddGroup(bin, true);
+            _database.Database.RecycleBinUuid = bin.Uuid;
+
+            using (var dialog = Opened())
+            {
+                KeePassDialogs.PressOk(dialog.Form);
+
+                Assert.That(_database.Database.RecycleBinUuid.Equals(bin.Uuid), Is.True,
+                    "the dialog's OK took away a bin it had loaded as its choice");
+                Assert.That(_database.Database.RecycleBinEnabled, Is.True);
             }
         }
 
@@ -146,8 +167,8 @@ namespace KeePassGate.Host.Tests
         [Test]
         public void A_bin_that_was_already_there_when_the_dialog_opened_is_not_refused()
         {
-            // What the dialog copied, the dialog puts back, so only the branch that makes the first
-            // bin is a hazard. Refusing more than that would stop every removal on a database whose
+            // What the dialog copied, the dialog puts back, as the test of a bin that was there
+            // when it opened measures, so only the branch that makes the first bin is a hazard. Refusing more than that would stop every removal on a database whose
             // operator has the settings dialog open, and that dialog is where the KPG tab lives.
             var group = Created(_vault.CreateGroup(_vault.RootAlias, "Fictitious", null));
             var first = Created(_vault.CreateEntry(group, Named("an invented service")));
@@ -198,10 +219,26 @@ namespace KeePassGate.Host.Tests
         {
             // Fail closed, as every other question this watch answers does. An empty table means
             // nothing was noticed rather than that nothing is open, and a settings dialog on the
-            // desktop is exactly what a watch that never started cannot see.
-            using (var never = new GroupDialogs(new GlobalWindowManagerWindows(), NullGateLog.Instance))
+            // desktop is exactly what a watch that never started cannot see. The fixture's own
+            // source, which a watch that never starts never subscribes to, so nothing outlives the
+            // test in KeePass's static window manager.
+            var entry = Created(_vault.CreateEntry(_vault.RootAlias, Named("an invented service")));
+
+            using (var never = new GroupDialogs(_windows, NullGateLog.Instance))
             {
+                var unwatched = new KdbxVault(
+                    _database.Database,
+                    new DatabaseWriter(
+                        CurrentThread.Instance, database => database.Save(null), null, never, null),
+                    TestTags.Fixed,
+                    null);
+
+                var refused = unwatched.DeleteEntry(entry, VaultTagging.None);
+
                 Assert.That(never.BlockingRecycleBin(_database.Database), Is.Not.Null);
+                Assert.That(refused.IsBusy, Is.True, refused.Reason);
+                Assert.That(_database.Database.RecycleBinUuid.Equals(PwUuid.Zero), Is.True, "no bin was made");
+                Assert.That(_vault.Entry(entry), Is.Not.Null, "and the entry is where it was");
             }
 
             Assert.That(_dialogs.BlockingRecycleBin(_database.Database), Is.Null,
@@ -258,9 +295,14 @@ namespace KeePassGate.Host.Tests
         }
 
         /// <summary>
-        /// A real database settings dialog on a database, registered the way KeePass registers one.
+        /// A real database settings dialog on a database, its recycle bin page filled as the
+        /// dialog's own load fills it, and registered the way KeePass registers one.
         /// </summary>
         /// <remarks>
+        /// The page is filled because what its OK puts back is what the page loaded: the item
+        /// naming no group for a database with no bin, and the bin for a database with one. Left
+        /// empty, the page has nothing chosen, and its OK zeroes any bin and switches the bin off.
+        ///
         /// Disposable rather than a form and a `finally`, because `GlobalWindowManager` is static
         /// and outlives the fixture: a dialog left in it by an assertion that failed early is one
         /// every later test in the tier walks. Closing twice is closing once, so the test where the
@@ -278,6 +320,7 @@ namespace KeePassGate.Host.Tests
                 try
                 {
                     KeePassDialogs.InitializeFor(_form, database);
+                    KeePassDialogs.LoadRecycleBinPage(_form);
                     GlobalWindowManager.AddWindow(_form);
                     _open = true;
                 }

@@ -45,7 +45,13 @@ namespace KeePassGate.Host.Tests
     /// that order decides which of two pieces is replaced first. Placeholders whose answer is the
     /// machine's, a time, a path to a program, the clipboard, the selected group or an encrypted
     /// password, are left out of the file.
+    ///
+    /// **One answer is the platform's**, `{ENV_DIRSEP}`, which KeePass replaces with the separator
+    /// of the system it runs on and which the file holds as Windows answers it. That holds wherever
+    /// this tier runs, since KeePass runs it on Windows alone, and the case is one the resolver
+    /// refuses, so the client never reads that answer.
     /// </remarks>
+    // cspell:ignore DIRSEP
     [TestFixture]
     public sealed class ReferenceVectorsTests
     {

@@ -306,7 +306,8 @@ designing around them.
   same frames: the scaling, the font smoothing, the regional format and the fonts installed all
   reach the pictures. What the client makes new every run, its key, its certificate's expiry and the
   directory it stored them in, is shown in the terminal as written down values, and the moments on
-  its row of the clients page are covered.
+  its row of the clients page are covered, as is the main window's entry view, whose times are the
+  account's zone and regional format.
 - **Nothing on a tab scrolls.** The content is held to 449 by 314 and has to fit it; horizontal
   scrolling is never acceptable. That is KeePass's own first page on the settings dialog, inside a
   padding of 3. The page this plugin adds has no padding and is laid out to the tab control's whole
@@ -634,21 +635,24 @@ Run them from
   the file is hashed back as well.
 - **KeePass's own two busy signals say nothing about an ordinary dialog.**
   `MainForm.UIIsInteractionBlocked` is raised only through `UIBlockInteraction`, whose callers in
-  2.61.1 are save, save as, opening a database, search, duplicate entry removal, the status dialog
-  and logger, the shell command action and file search. `MessageService.CurrentMessageCount` moves
-  only for message boxes, task dialogs, triggers, `PerformExport` and the secure desktop. An open
-  `DatabaseSettingsForm`, or any plain dialog, raises neither: read off the IL, and a host probe
-  holding the settings dialog open read a count of zero. So the writer's refusal of a write inside
-  an operation KeePass is running covers no ordinary dialog, and the dialogs that write back are
-  covered by `GroupDialogs`, one at a time. `KeePassContractTests` pins both calls, in
+  2.61.1 are save, save as, opening a database, search, the Find menu's reports, duplicate entry
+  removal, the status dialog and logger, the shell command action and file search.
+  `MessageService.CurrentMessageCount` moves only for message boxes, task dialogs, triggers,
+  `PerformExport` and the secure desktop. An open `DatabaseSettingsForm`, or any plain dialog,
+  raises neither: read off the IL, and a host probe holding the settings dialog open read a count of
+  zero. So the writer's refusal of a write inside an operation KeePass is running covers no ordinary
+  dialog, and the dialogs that write back are covered by `GroupDialogs`, one at a time.
+  `KeePassContractTests` pins both calls, and a save raising the first and an export the second, in
   `The_main_window_still_says_when_it_has_blocked_itself` and
   `An_export_still_shows_in_the_count_of_windows_KeePass_is_waiting_on`. **Nor do they say anything
   about XML Replace**, under Tools then Database Tools, which merges into the live database with
-  KeePass's progress window as its status logger, pumping on every step, and raises neither: a
-  group created under the root there makes the merge throw out of `ApplyDeletions`, after the
-  write's own save. So there is a third signal, the plugin's own: `GroupDialogs.Working` answers
-  whether KeePass's `StatusProgressForm` is open, for any database, and the writer asks it after
-  the two. `VaultWritesUnderDialogsTests` drives the real window and the real merge.
+  KeePass's progress window as its status logger, pumping on every step, and raises neither: a group
+  created under the root there makes the merge throw out of `ApplyDeletions`, after the write's own
+  save. So there is a third signal, the plugin's own: `GroupDialogs.Working` answers whether
+  KeePass's `StatusProgressForm` is open, for any database, and the writer asks it after the two.
+  `VaultWritesUnderDialogsTests` drives the real window and the real merge, registering the window
+  by hand since it is never shown, and `KeePassContractTests` reads off the IL that the window
+  registers itself as it loads and that XML Replace merges under it.
 - **A `ToolStripDropDown` must not be disposed inside its own `Closed` handler.** That event is
   raised while WinForms is still delivering the click or keystroke that closed it, and disposing
   there disposes the control whose event is running: the next message reaches
@@ -1363,10 +1367,11 @@ terminates the transport, so that every key the plugin loads can stay off the di
 makes for itself: it records why the transport is not `SslStream`, and does not watch the
 listener's. A tidy-up back to `SslStream` that kept the key ephemeral fails loudly, in
 `GateListenerTests`; a tidy-up that gave the key a file so that SChannel would serve with it would
-serve, and write the host key to somebody's profile at every connection, with nothing failing. That
-no key of the plugin's own is handed to Windows at all is a later decision with another reason: the
-issuer moved to Bouncy Castle because Mono has no ECDSA and no `CertificateRequest` a .NET Framework
-build can reach, `CA.md` §203 and its row in §221.
+serve, and write the host key to somebody's profile at every connection, which only
+`OpenDatabaseTargetsTests` would notice, in the host tier, watching the key directories around the
+listener's own handshake. That no key of the plugin's own is handed to Windows at all is a later
+decision with another reason: the issuer moved to Bouncy Castle because Mono has no ECDSA and no
+`CertificateRequest` a .NET Framework build can reach, `CA.md` §203 and its row in §221.
 
 ### Dependencies
 

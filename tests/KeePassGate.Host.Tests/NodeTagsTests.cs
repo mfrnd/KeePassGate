@@ -123,6 +123,7 @@ namespace KeePassGate.Host.Tests
                 Change("a new string", () => _entry.Strings.Set("Account", new ProtectedString(false, "invented"))),
                 Change("a string taken off", () => _entry.Strings.Remove(PwDefs.PasswordField)),
                 Change("a string's protection", () => Title(true, "renamed")),
+                Change("the database protecting a name", () => _database.Database.MemoryProtection.ProtectUserName = true),
                 Change("an attachment's bytes", () => Attach("notes.txt", "changed")),
                 Change("an attachment's name", () => Rename(_entry, "notes.txt", "renamed.txt")),
                 Change("an expiry put on", () =>
@@ -321,6 +322,7 @@ namespace KeePassGate.Host.Tests
                 Change("notes", () => _group.Notes = "invented notes"),
                 Change("a move", () => MoveGroup(_group)),
                 Change("a modification time", () => _group.LastModificationTime = Moment),
+                Change("a creation time", () => _group.CreationTime = Moment.AddDays(-1)),
             };
 
             foreach (var change in changes)
@@ -328,6 +330,42 @@ namespace KeePassGate.Host.Tests
                 change.Value();
 
                 Assert.That(seen.Add(GroupTag()), Is.True, change.Key + " left the tag where it was");
+            }
+        }
+
+        [Test]
+        public void An_attachment_is_decrypted_for_the_first_tag_and_not_for_the_tags_after_it()
+        {
+            // Counted through `ProtectedBinary.ExtCrypt`, the hook KeePass decrypts a protected
+            // attachment through whenever one is set, and set here only for this test. Nothing else
+            // on the entry is protected in memory, so every decryption counted is the attachment's.
+            var decrypted = 0;
+            var was = ProtectedBinary.ExtCrypt;
+            ProtectedBinary.ExtCrypt = (data, flags, id) =>
+            {
+                if (flags == PbCryptFlags.Decrypt)
+                {
+                    Interlocked.Increment(ref decrypted);
+                }
+            };
+
+            try
+            {
+                _entry.Strings.Set(PwDefs.PasswordField, new ProtectedString(false, "not-a-real-password"));
+                _entry.Binaries.Remove("notes.txt");
+                Attach("counted.txt", "invented");
+
+                var first = EntryTag();
+                var once = Volatile.Read(ref decrypted);
+
+                Assert.That(EntryTag(), Is.EqualTo(first));
+                Assert.That(EntryTag(), Is.EqualTo(first));
+                Assert.That(once, Is.EqualTo(1), "the first tag decrypts the attachment to hash it");
+                Assert.That(Volatile.Read(ref decrypted), Is.EqualTo(once), "and the tags after it hash it again");
+            }
+            finally
+            {
+                ProtectedBinary.ExtCrypt = was;
             }
         }
 

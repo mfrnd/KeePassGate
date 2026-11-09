@@ -31,6 +31,7 @@ namespace KeePassGate.Host.Tests.Live
     {
         private LiveSession _session;
         private string _databaseId;
+        private string _hostDigest;
         private string _refusedDigest;
 
         private Reply _paired;
@@ -47,6 +48,10 @@ namespace KeePassGate.Host.Tests.Live
             _session = LiveSession.Begin(true);
             var keePass = _session.KeePass;
             _databaseId = keePass.DatabaseId();
+            using (var stored = keePass.ReadAuthority())
+            {
+                _hostDigest = CertificateDigest.Of(stored.Material.Host);
+            }
 
             // Both certificates are issued and one is admitted before KeePass starts, because a
             // running KeePass serves the database it holds in memory: a record written to the file
@@ -68,7 +73,7 @@ namespace KeePassGate.Host.Tests.Live
                 _wrongName = Ask(keePass.Port, SniName.For(new byte[32]), admitted, GateOperations.StatusPath);
 
                 process.CloseMainWindow();
-                _exited = process.WaitForExit(30000);
+                _exited = process.WaitForExit(30000) && process.ExitCode == 0;
             }
 
             _pluginLog = keePass.ReadPluginLog();
@@ -108,7 +113,11 @@ namespace KeePassGate.Host.Tests.Live
         [Test]
         public void The_certificate_it_serves_with_came_out_of_the_database()
         {
-            Assert.That(_paired.ServerSubject, Is.EqualTo("CN=KeePassGate host"));
+            // By its digest, since every host certificate the plugin issues carries the same name:
+            // one minted at start, or by another authority, would pass a look at the subject alone.
+            Assert.That(_paired.ServerSubject, Is.EqualTo(AuthorityIssuer.HostSubject));
+            Assert.That(_paired.ServerDigest, Is.EqualTo(_hostDigest),
+                "the gate served with a host certificate other than the one in the file");
         }
 
         [Test]
@@ -142,7 +151,7 @@ namespace KeePassGate.Host.Tests.Live
         [Test]
         public void KeePass_shut_down_by_itself_afterwards()
         {
-            Assert.That(_exited, Is.True, "KeePass did not exit, so the listener held it open.");
+            Assert.That(_exited, Is.True, "KeePass did not exit cleanly: the listener held it open, or it ended with an error.");
             Assert.That(_pluginLog, Does.Contain("stopped listening"));
         }
 
@@ -192,6 +201,7 @@ namespace KeePassGate.Host.Tests.Live
                 Status = answer.Status,
                 Body = answer.Body,
                 ServerSubject = answer.ServerSubject,
+                ServerDigest = answer.ServerCertificate == null ? null : CertificateDigest.Of(answer.ServerCertificate),
                 Failure = answer.Failure
             };
         }
@@ -206,6 +216,8 @@ namespace KeePassGate.Host.Tests.Live
             public string Body { get; set; }
 
             public string ServerSubject { get; set; }
+
+            public string ServerDigest { get; set; }
 
             public string Failure { get; set; }
         }

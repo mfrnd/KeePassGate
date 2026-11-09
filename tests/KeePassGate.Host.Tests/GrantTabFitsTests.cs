@@ -3,6 +3,7 @@ using System.Globalization;
 using System.Collections.Generic;
 using System.Drawing;
 using System.Linq;
+using System.Threading;
 using System.Windows.Forms;
 using KeePass.Forms;
 using KeePassGate.Testing;
@@ -32,6 +33,7 @@ namespace KeePassGate.Host.Tests
     /// both are right.
     /// </remarks>
     [TestFixture]
+    [Apartment(ApartmentState.STA)]
     public sealed class GrantTabFitsTests
     {
         private TemporaryDatabase _database;

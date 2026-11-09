@@ -17,9 +17,11 @@ namespace KeePassGate.Host.Tests.Live
     /// KeePass is locked under it.
     /// </summary>
     /// <remarks>
-    /// **The only place the two halves meet.** Every other tier runs PyKeePassGate against a
-    /// stand-in, a vector or the document, and the pairing test beside this one pairs with the C# client
-    /// in `tests/Shared`. So three things are held here and nowhere else: the identity the plugin
+    /// **The one place in the gated tiers where the two halves meet.** Every other tier runs
+    /// PyKeePassGate against a stand-in, a vector or the document, and the pairing test beside this
+    /// one pairs with the C# client in `tests/Shared`; the screenshot run's moving picture pairs the
+    /// same command line with the plugin as well, but only when the pictures are retaken. So three
+    /// things are held here and nowhere else the gate runs: the identity the plugin
     /// writes with Bouncy Castle's PKCS#12 and the client reads with `cryptography`, the TLS 1.3
     /// handshake between Bouncy Castle's server and Python's `ssl`, and the plugin's framing under
     /// the client's reader. And three of the client's answers are held against the plugin's own:
@@ -34,9 +36,9 @@ namespace KeePassGate.Host.Tests.Live
     /// --frozen` in the repository, so what is exercised is what the lockfile pins and not a copy.
     /// Asked once before KeePass starts, which settles the environment where a slow first sync
     /// cannot eat into the time the approval dialog is waited for. Without `uv` the fixture is
-    /// ignored, as a missing KeePass is. What the command line does not offer, reading one field
-    /// on its own route and changing a password, goes through the library with
-    /// `tests/pykeepassgate/live_calls.py`, run the same way.
+    /// ignored, as a missing KeePass is. One field is read on its own route with `field` and a
+    /// password changed with `update --password` from standard input, so what the command line
+    /// prints of a protected value and how it reads a new one meet the plugin too.
     ///
     /// **The grant is written before KeePass starts**, for the reason `LiveApiTests` gives, and
     /// names the profile the client asks for, which the approval then names in the database. It
@@ -78,7 +80,6 @@ namespace KeePassGate.Host.Tests.Live
         private const string BusyLine =
             "a change was refused as busy: an entry dialog is open on the entry this would be written to";
 
-        private static readonly TimeSpan StartTimeout = TimeSpan.FromSeconds(60);
         private static readonly TimeSpan DialogTimeout = TimeSpan.FromSeconds(60);
         private static readonly TimeSpan SettleTimeout = TimeSpan.FromMinutes(5);
         private static readonly TimeSpan CommandTimeout = TimeSpan.FromMinutes(2);
@@ -131,7 +132,7 @@ namespace KeePassGate.Host.Tests.Live
             keePass.Grant(Rules.Granting((Profile, "CRULAP")));
 
             var driver = KeePassDriver.Start(keePass);
-            WaitUntilServing(keePass, driver);
+            LivePairingTests.WaitUntilServing(keePass, driver);
 
             InviteFromTheTab(driver);
             Assert.That(_token, Is.Not.Null.And.Not.Empty, "nothing was on the tab to give the client");
@@ -150,9 +151,9 @@ namespace KeePassGate.Host.Tests.Live
                 _listed = Client("entries" + Where(), CommandTimeout);
                 _shown = Client("show " + Created() + Where(), CommandTimeout);
 
-                _readProtected = Calls("field " + Created() + " Password", CommandTimeout);
-                _rotated = Calls("password " + Created(), CommandTimeout, Rotated);
-                _readRotated = Calls("field " + Created() + " Password", CommandTimeout);
+                _readProtected = Client("field " + Created() + " Password" + Where(), CommandTimeout);
+                _rotated = Client("update " + Created() + " --password" + Where(), CommandTimeout, Rotated);
+                _readRotated = Client("field " + Created() + " Password" + Where(), CommandTimeout);
 
                 _entryAccess = Client("access --entry " + Created() + Where(), CommandTimeout);
                 _rootAccess = Client("access --group root" + Where(), CommandTimeout);
@@ -185,9 +186,9 @@ namespace KeePassGate.Host.Tests.Live
                 // would take back, so the gate turns it away, and Escape then leaves the entry
                 // as it was.
                 var dialog = driver.OpenEntryDialog();
-                _busy = Calls("password " + Created(), CommandTimeout, TurnedAway);
+                _busy = Client("update " + Created() + " --password" + Where(), CommandTimeout, TurnedAway);
                 driver.CloseDialog(dialog);
-                _afterBusy = Calls("field " + Created() + " Password", CommandTimeout);
+                _afterBusy = Client("field " + Created() + " Password" + Where(), CommandTimeout);
 
                 driver.LockWorkspace();
                 if (!Logged(keePass, LockedLine, LockTimeout))
@@ -391,7 +392,7 @@ namespace KeePassGate.Host.Tests.Live
         [Test]
         public void KeePass_shut_down_by_itself_afterwards()
         {
-            Assert.That(_exited, Is.True, "KeePass did not exit, so something was still holding it.");
+            Assert.That(_exited, Is.True, "KeePass did not exit cleanly: something was still holding it, or it ended with an error.");
         }
 
         [Test]
@@ -559,39 +560,6 @@ namespace KeePassGate.Host.Tests.Live
         private static Run Client(string arguments, TimeSpan timeout, string input = null)
         {
             return ReferenceClient.Execute("pykeepassgate " + arguments, timeout, input);
-        }
-
-        /// <summary>
-        /// One call through the library, with `live_calls.py`, for the identity this session paired.
-        /// </summary>
-        private Run Calls(string arguments, TimeSpan timeout, string input = null)
-        {
-            var program = Paths.Join("tests", "pykeepassgate", "live_calls.py");
-            return ReferenceClient.Execute(
-                "python \"" + program + "\" --directory \"" + _identity + "\" " + arguments, timeout, input);
-        }
-
-        /// <summary>
-        /// Ready is the database being served, not the socket being open. `LivePairingTests` says
-        /// why both lines, in that order.
-        /// </summary>
-        private static void WaitUntilServing(ThrowawayKeePass keePass, KeePassDriver driver)
-        {
-            WaitForLog(keePass, driver, "listening on 127.0.0.1:" + keePass.Port,
-                "The plugin never reported a listening gate.");
-
-            WaitForLog(keePass, driver, "serving a database with authority",
-                "The plugin never reported serving the database KeePass was started with.");
-        }
-
-        private static void WaitForLog(
-            ThrowawayKeePass keePass, KeePassDriver driver, string marker, string failure)
-        {
-            if (!Logged(keePass, marker, StartTimeout))
-            {
-                Assert.Fail(failure + " " + driver.Diagnostics + Environment.NewLine +
-                            "Log so far:" + Environment.NewLine + keePass.ReadPluginLog());
-            }
         }
 
         private static bool Logged(ThrowawayKeePass keePass, string marker, TimeSpan timeout)

@@ -58,23 +58,40 @@ namespace KeePassGate.Host.Tests
         ///
         /// Invoked by reflection because it is private, and safe on a dialog that was never shown:
         /// it reads its own controls and writes to the database, and calls nothing that puts a
-        /// window on the desktop. A dialog that was never loaded therefore reads exactly as one an
-        /// operator opened on a database with none of these things set, which is the state under
-        /// test.
+        /// window on the desktop. **It reads only what a page loaded into those controls**, and a
+        /// page that never loaded reads as empty rather than as the database's own settings: an
+        /// unloaded recycle bin page writes no bin and the bin switched off, whatever the database
+        /// held. So a test asking what OK puts back loads the page first, as
+        /// <see cref="LoadRecycleBinPage"/> does.
         /// </remarks>
         public static void PressOk(Form dialog)
         {
-            var handler = dialog.GetType().GetMethod(
-                OkHandlerName,
-                System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+            Invoke(dialog, OkHandlerName, new object[] { null, EventArgs.Empty });
+        }
 
-            if (handler == null)
+        /// <summary>
+        /// Fills the recycle bin page from the database, as the dialog's own load does before it is
+        /// shown: the groups it can choose, the one chosen, and whether the bin is on.
+        /// </summary>
+        public static void LoadRecycleBinPage(Form dialog)
+        {
+            Invoke(dialog, RecycleBinPageLoaderName, Array.Empty<object>());
+        }
+
+        /// <summary>What the dialog's load fills the recycle bin page in.</summary>
+        private const string RecycleBinPageLoaderName = "InitRecycleBinTab";
+
+        private static void Invoke(Form dialog, string name, object[] arguments)
+        {
+            var method = dialog.GetType().GetMethod(
+                name, System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+
+            if (method == null)
             {
-                throw new InvalidOperationException(
-                    dialog.GetType().FullName + " no longer writes its pages back in " + OkHandlerName + ".");
+                throw new InvalidOperationException(dialog.GetType().FullName + " no longer has " + name + ".");
             }
 
-            handler.Invoke(dialog, new object[] { null, EventArgs.Empty });
+            method.Invoke(dialog, arguments);
         }
 
         /// <summary>Closes the dialog as its Cancel does, which is what throws the tab away.</summary>

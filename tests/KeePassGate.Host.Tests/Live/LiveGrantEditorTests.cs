@@ -19,9 +19,9 @@ namespace KeePassGate.Host.Tests.Live
     /// that KeePass then writes that copy back over the group, saves it, and that the rule is in the
     /// `.kdbx` when the process is gone.
     ///
-    /// The dialog is closed with **OK**, which is the opposite of every other live test here and is
-    /// the point of this one: a rule that a dialog's OK destroys is exactly the failure the working
-    /// copy exists to prevent.
+    /// The dialog is closed with **OK**, which is the point of this one: a rule that a dialog's OK
+    /// destroys is exactly the failure the working copy exists to prevent. The other live tests
+    /// close a dialog with Escape unless OK is what keeps something they need.
     /// </remarks>
     [TestFixture]
     [Category(TestCategories.Live)]
@@ -75,18 +75,18 @@ namespace KeePassGate.Host.Tests.Live
         }
 
         [Test]
-        public void A_rule_typed_there_is_in_the_file_after_KeePass_has_gone()
+        public void A_rule_made_there_is_in_the_file_after_KeePass_has_gone()
         {
             Assert.That(_accepted, Is.True, "The group dialog was never accepted.");
             Assert.That(_exited, Is.True, "KeePass did not exit cleanly.");
 
             Assert.That(_storedDocument, Is.Not.Null,
-                "The group carries no rules, so the dialog's OK discarded what was typed.");
+                "The group carries no rules, so the dialog's OK discarded the rule made on it.");
 
             var document = AclDocument.Read(_storedDocument);
 
             Assert.That(document, Is.Not.Null, "What was stored does not read as a document.");
-            Assert.That(document.Grant(Profile), Is.Not.Null, "the profile that was typed is not in the file");
+            Assert.That(document.Grant(Profile), Is.Not.Null, "the profile that was chosen is not in the file");
             Assert.That(document.Default, Is.EqualTo(AclDefault.Deny), "the switch that was checked is not either");
         }
 

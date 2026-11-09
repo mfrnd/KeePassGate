@@ -15,11 +15,13 @@ namespace KeePassGate.Host.Tests.Live
     /// its own buttons.
     /// </summary>
     /// <remarks>
-    /// **What only this proves** is the claim the chooser's timing rests on: that KeePass announces
-    /// a synchronize by nothing but the save it ends with. `ImportUtil.Synchronize` merges the other
-    /// file in and then saves through the main window, which raises `FileSaved`, and that is the
-    /// event the plugin asks on. Everything else about the chooser is tested without a desktop;
-    /// that sentence was read off KeePass 2.61.1, and this is where it is run.
+    /// **What only this proves, of what the gate runs,** is the claim the chooser's timing rests
+    /// on: that KeePass announces a synchronize by nothing but the save it ends with.
+    /// `ImportUtil.Synchronize` merges the other file in and then saves through the main window,
+    /// which raises `FileSaved`, and that is the event the plugin asks on. Everything else about
+    /// the chooser is tested without a desktop; that sentence was read off KeePass 2.61.1, and this
+    /// is where it is run. The screenshot run raises the chooser the same way, but only when the
+    /// pictures are retaken.
     ///
     /// **Two copies of one file**, each of which replaces the authority they share and admits a
     /// client of its own, which is what two machines holding one database leave behind when their
@@ -251,7 +253,7 @@ namespace KeePassGate.Host.Tests.Live
         [Test]
         public void KeePass_shut_down_by_itself_afterwards()
         {
-            Assert.That(_exited, Is.True, "KeePass did not exit, so something was still holding it.");
+            Assert.That(_exited, Is.True, "KeePass did not exit cleanly: something was still holding it, or it ended with an error.");
             Assert.That(_pluginLog, Does.Contain("stopped listening"));
         }
 

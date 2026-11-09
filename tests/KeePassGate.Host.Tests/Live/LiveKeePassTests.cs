@@ -20,8 +20,9 @@ namespace KeePassGate.Host.Tests.Live
     /// <remarks>
     /// It drives a throwaway KeePass through the desktop, so it needs an interactive session and
     /// it takes some seconds. That is why it carries the Live category and is left out of the
-    /// default test run. Everything it touches is created under `CommonApplicationData` and deleted
-    /// afterwards, including the database.
+    /// default test run. Everything it touches is created under `CommonApplicationData`, in a
+    /// session directory deleted afterwards, the database included, when the fixture passes, and
+    /// kept for reading when it fails.
     /// </remarks>
     [TestFixture]
     [Category(TestCategories.Live)]
@@ -144,7 +145,7 @@ namespace KeePassGate.Host.Tests.Live
         [Test]
         public void KeePass_shut_down_by_itself_and_reported_success()
         {
-            Assert.That(_exited, Is.True, "KeePass was still running when the test gave up.");
+            Assert.That(_exited, Is.True, "KeePass did not exit by itself, or did not exit cleanly.");
             Assert.That(_exitCode, Is.Zero);
         }
 

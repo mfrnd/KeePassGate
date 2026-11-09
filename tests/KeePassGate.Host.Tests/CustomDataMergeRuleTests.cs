@@ -21,8 +21,9 @@ namespace KeePassGate.Host.Tests
     /// the file without them.
     ///
     /// `MergeInRealDatabaseTests` measures what that means for admission records; these measure
-    /// the rule itself, on the dictionary directly, so a KeePass that changes it fails here before
-    /// anything built on it is believed. The full matrix, and the program that produced it, are on
+    /// the rule itself, on the dictionary directly and cell by cell, which side each method takes
+    /// for each arrangement of times, so a KeePass that changes it fails here before anything built
+    /// on it is believed. The full matrix, and the program that produced it, are on
     /// `spikes/revocation-merge`.
     /// </remarks>
     [TestFixture]
@@ -53,6 +54,21 @@ namespace KeePassGate.Host.Tests
             PwMergeMethod.OverwriteIfNewer,
             PwMergeMethod.CreateNewUuids,
             PwMergeMethod.Synchronize,
+        };
+
+        /// <summary>
+        /// Every arrangement of times the rule distinguishes, each with the side a method that
+        /// decides by time takes.
+        /// </summary>
+        private static readonly Arrangement[] Arrangements =
+        {
+            new Arrangement("both stamped, source newer", Earlier, Later, false, Side.Source),
+            new Arrangement("both stamped, target newer", Later, Earlier, false, Side.Target),
+            new Arrangement("both stamped, equal", Later, Later, false, Side.Target),
+            new Arrangement("target stamped only", Earlier, null, false, Side.Target),
+            new Arrangement("source stamped only", null, Earlier, false, Side.Source),
+            new Arrangement("neither stamped, settings equal", null, null, false, Side.Target),
+            new Arrangement("neither stamped, source settings newer", null, null, true, Side.Source),
         };
 
         private readonly List<TemporaryDatabase> _databases = new List<TemporaryDatabase>();
@@ -95,25 +111,53 @@ namespace KeePassGate.Host.Tests
         }
 
         [Test]
-        public void The_value_never_decides_a_merge()
+        public void Each_method_takes_the_side_its_rule_names_for_a_key_both_hold()
         {
-            // Every arrangement of times the rule distinguishes. The same merge is run twice with
-            // the two values swapped, one of them empty, which is what a revocation mark is: if the
-            // value took any part, one of the two runs would pick the other side.
-            var arrangements = new[]
-            {
-                new Arrangement("both stamped, source newer", Earlier, Later, false),
-                new Arrangement("both stamped, target newer", Later, Earlier, false),
-                new Arrangement("both stamped, equal", Later, Later, false),
-                new Arrangement("target stamped only", Earlier, null, false),
-                new Arrangement("source stamped only", null, Earlier, false),
-                new Arrangement("neither stamped, settings equal", null, null, false),
-                new Arrangement("neither stamped, source settings newer", null, null, true),
-            };
-
+            // The table `CLAUDE.md` and `CA.md` §204 reason from. `KeepExisting` and `None` copy
+            // nothing; `OverwriteExisting` takes the source's key whatever the times; the other
+            // three take it only where its time is strictly newer or only it has one, and between
+            // two keys with no time only where the source's settings are newer, since the target
+            // holds the key.
             foreach (var method in EveryMethod)
             {
-                foreach (var arrangement in arrangements)
+                foreach (var arrangement in Arrangements)
+                {
+                    Assert.That(
+                        WinningSide(method, arrangement, "the target's", "the source's"),
+                        Is.EqualTo(Expected(method, arrangement)),
+                        method + ", " + arrangement.Name + ": the merge took the side the rule does not name");
+                }
+            }
+        }
+
+        [Test]
+        public void A_key_overwritten_from_the_source_comes_with_the_source_s_time_or_none()
+        {
+            // What lets `OverwriteExisting` undo an answer the target already holds: the older
+            // copy's key arrives with its own time, so nothing after it can tell that it is older.
+            foreach (var arrangement in Arrangements)
+            {
+                var target = Copy();
+                var source = Copy();
+                Write(target, Key, "the target's", arrangement.Target);
+                Write(source, Key, "the source's", arrangement.Source);
+
+                target.Database.MergeIn(source.Database, PwMergeMethod.OverwriteExisting, null);
+
+                Assert.That(Time(target, Key), Is.EqualTo(arrangement.Source),
+                    arrangement.Name + ": the key came over with a time other than the source's");
+            }
+        }
+
+        [Test]
+        public void The_value_never_decides_a_merge()
+        {
+            // The same merge is run twice with the two values swapped, one of them empty, which is
+            // what a revocation mark is: if the value took any part, one of the two runs would pick
+            // the other side.
+            foreach (var method in EveryMethod)
+            {
+                foreach (var arrangement in Arrangements)
                 {
                     var once = WinningSide(method, arrangement, "a record", string.Empty);
                     var swapped = WinningSide(method, arrangement, string.Empty, "a record");
@@ -190,14 +234,21 @@ namespace KeePassGate.Host.Tests
             Both,
         }
 
+        private enum Side
+        {
+            Target,
+            Source,
+        }
+
         private sealed class Arrangement
         {
-            public Arrangement(string name, DateTime? target, DateTime? source, bool sourceSettingsNewer)
+            public Arrangement(string name, DateTime? target, DateTime? source, bool sourceSettingsNewer, Side byTime)
             {
                 Name = name;
                 Target = target;
                 Source = source;
                 SourceSettingsNewer = sourceSettingsNewer;
+                ByTime = byTime;
             }
 
             public string Name { get; }
@@ -207,9 +258,26 @@ namespace KeePassGate.Host.Tests
             public DateTime? Source { get; }
 
             public bool SourceSettingsNewer { get; }
+
+            /// <summary>The side `Synchronize`, `OverwriteIfNewer` and `CreateNewUuids` take.</summary>
+            public Side ByTime { get; }
         }
 
-        private string WinningSide(PwMergeMethod method, Arrangement arrangement, string targetValue, string sourceValue)
+        private static Side Expected(PwMergeMethod method, Arrangement arrangement)
+        {
+            switch (method)
+            {
+                case PwMergeMethod.None:
+                case PwMergeMethod.KeepExisting:
+                    return Side.Target;
+                case PwMergeMethod.OverwriteExisting:
+                    return Side.Source;
+                default:
+                    return arrangement.ByTime;
+            }
+        }
+
+        private Side WinningSide(PwMergeMethod method, Arrangement arrangement, string targetValue, string sourceValue)
         {
             var target = Copy();
             var source = Copy();
@@ -222,7 +290,7 @@ namespace KeePassGate.Host.Tests
 
             target.Database.MergeIn(source.Database, method, null);
 
-            return target.Database.CustomData.Get(Key) == sourceValue ? "source" : "target";
+            return target.Database.CustomData.Get(Key) == sourceValue ? Side.Source : Side.Target;
         }
 
         /// <summary>

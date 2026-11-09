@@ -187,7 +187,7 @@ namespace KeePassGate.Host.Tests.Live
         [Test]
         public void KeePass_shut_down_by_itself_while_locked()
         {
-            Assert.That(_exited, Is.True, "KeePass did not exit, so something was still holding it.");
+            Assert.That(_exited, Is.True, "KeePass did not exit cleanly: something was still holding it, or it ended with an error.");
         }
 
         [Test]

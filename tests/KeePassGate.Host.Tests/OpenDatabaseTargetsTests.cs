@@ -416,10 +416,13 @@ namespace KeePassGate.Host.Tests
             // appear on it however anything is loaded. Handing Windows a key without
             // `EphemeralKeySet` on the way to the stored form, which writes it to the profile,
             // fails `CertificateBlobTests` in the unit tier and leaves this one green, because that
-            // is a path this one does not use. What this catches is
-            // a return to `SslStream` and SChannel for the server, which would put the host key in
-            // the user profile for as long as a database was open, and which `DESIGN.md` §133
-            // records as measured and rejected. It is worth its three handshakes for that alone.
+            // is a path this one does not use. What this catches is a return to `SslStream` and
+            // SChannel for the server, which would put the host key in the user profile for as long
+            // as a database was open, and which `DESIGN.md` §133 records as measured and rejected.
+            // So each handshake is the gate's own, through `GateListener` over these targets,
+            // which is where such a return would land: one made beside it, with a TLS server built
+            // for the test, would stay green over a listener that wrote a key on every connection.
+            // It is worth its three handshakes for that alone.
             //
             // **Asked more than once, because the directories are not ours.** Both belong to the
             // whole logon session, so anything else running can put a file in one inside the
@@ -441,10 +444,10 @@ namespace KeePassGate.Host.Tests
             for (var attempt = 0; attempt < Attempts; attempt++)
             {
                 CreateAuthorityIn(_first);
-                var host = _targets.Current()[0].Host;
+                var target = _targets.Current()[0];
 
                 var before = PrivateKeyFiles.Names();
-                Assert.That(Handshake(host), Is.EqualTo("ok"));
+                Assert.That(Served(target), Is.EqualTo("ok"));
 
                 var written = PrivateKeyFiles.Appeared(before);
                 if (written.Length == 0)
@@ -483,6 +486,51 @@ namespace KeePassGate.Host.Tests
 
         /// <summary>How long to watch an idle machine before believing it wrote nothing.</summary>
         private static readonly TimeSpan IdleWindow = TimeSpan.FromMilliseconds(250);
+
+        /// <summary>
+        /// A handshake with the gate this plugin serves, its listener over these targets, named
+        /// for the target: "ok" when it completes over that target's host certificate.
+        /// </summary>
+        private string Served(IGateTarget target)
+        {
+            using (var listener = new GateListener(
+                new GateOptions { Port = 0 },
+                new GateResolver(_targets, NullGateLog.Instance),
+                KeePassGate.Spec.GateOperations.Router("9.9.9"),
+                NullGateLog.Instance))
+            {
+                if (!listener.Start())
+                {
+                    return "the listener did not start";
+                }
+
+                byte[] presented = null;
+                var thrown = Thrown.By(() =>
+                {
+                    using (var client = new TcpClient("127.0.0.1", listener.Port))
+                    using (var stream = new SslStream(
+                        client.GetStream(),
+                        false,
+                        delegate(object sender, X509Certificate certificate, X509Chain chain, SslPolicyErrors errors)
+                        {
+                            presented = certificate == null ? null : certificate.GetRawCertData();
+                            return true;
+                        }))
+                    {
+                        stream.AuthenticateAsClient(SniName.For(target.GateKey), null, SslProtocols.Tls13, false);
+                    }
+                });
+
+                if (thrown != null)
+                {
+                    return thrown.GetType().Name + ": " + thrown.Message;
+                }
+
+                return presented != null && presented.SequenceEqual(target.Host.CertificateDer)
+                    ? "ok"
+                    : "the gate served a certificate other than the target's host";
+            }
+        }
 
         private static string Handshake(CertifiedKey host)
         {

@@ -1,5 +1,6 @@
 using System;
 using System.Threading;
+using KeePassGate.Authority;
 using NUnit.Framework;
 
 namespace KeePassGate.Host.Tests.Live
@@ -8,7 +9,8 @@ namespace KeePassGate.Host.Tests.Live
     /// A real KeePass locked from its own shortcut, and what the gate tells a real client then.
     /// </summary>
     /// <remarks>
-    /// **The one place the chain runs whole**: KeePass's own `LockAllDocuments`, the events it
+    /// **The fixture about the chain run whole**, which `LiveReferenceClientTests` and
+    /// `LiveLockTimerTests` end on as well: KeePass's own `LockAllDocuments`, the events it
     /// raises in its own order, `MainWindowDatabases` and `LockWatch` as the plugin wires them up
     /// inside KeePass, and an answer on a socket. Every link is tested on its own elsewhere, the
     /// lock itself against a model of the order KeePass raises its events in, and a model agrees
@@ -97,6 +99,8 @@ namespace KeePassGate.Host.Tests.Live
         public void The_client_is_answered_before_the_lock()
         {
             Assert.That(_beforeTheLock.Status, Is.EqualTo(200), _beforeTheLock.Failure);
+            Assert.That(_beforeTheLock.ServerSubject, Is.EqualTo(AuthorityIssuer.HostSubject),
+                "answered over the database's own host certificate");
         }
 
         [Test]
@@ -110,12 +114,14 @@ namespace KeePassGate.Host.Tests.Live
         {
             Assert.That(_whileLocked.Status, Is.EqualTo(503), _whileLocked.Failure ?? _whileLocked.Body);
             Assert.That(_whileLocked.Body, Does.Contain("\"locked\""));
+            Assert.That(_whileLocked.ServerSubject, Is.EqualTo(AuthorityIssuer.ResponderSubject),
+                "answered over the responder kept in memory for a lock, and not the host certificate let go at it");
         }
 
         [Test]
         public void KeePass_shut_down_by_itself_while_locked()
         {
-            Assert.That(_exited, Is.True, "KeePass did not exit, so something was still holding it.");
+            Assert.That(_exited, Is.True, "KeePass did not exit cleanly: something was still holding it, or it ended with an error.");
             Assert.That(_pluginLog, Does.Contain("stopped listening"));
         }
 

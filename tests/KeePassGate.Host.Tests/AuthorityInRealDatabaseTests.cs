@@ -53,7 +53,7 @@ namespace KeePassGate.Host.Tests
         {
             _service.Create();
 
-            Assert.That(_database.Database.CustomData.Exists(AuthorityKey()), Is.True,
+            Assert.That(_database.Database.CustomData.Select(pair => pair.Key), Is.EqualTo(new[] { AuthorityKey() }),
                 "one key, so a merge cannot take the three parts from different replicas");
             Assert.That(_database.RootGroup.CustomData.Exists(AuthorityKey()), Is.False,
                 "and nothing of this plugin's is left where the group dialog's snapshot reaches");
@@ -109,6 +109,7 @@ namespace KeePassGate.Host.Tests
         {
             _service.Create();
             _database.Save();
+            var digest = AuthorityKeys.FingerprintInAuthority(AuthorityKey());
             _service.Delete();
 
             _database.SaveCloseAndReopen();
@@ -119,6 +120,9 @@ namespace KeePassGate.Host.Tests
             {
                 Assert.That(reading.Presence, Is.EqualTo(AuthorityPresence.None));
             }
+
+            Assert.That(_database.Database.CustomData.Exists(AuthorityKeys.RetirementKey(digest)), Is.True,
+                "the retirement is what keeps the deletion when a copy still holding the authority is merged in");
         }
 
         [Test]

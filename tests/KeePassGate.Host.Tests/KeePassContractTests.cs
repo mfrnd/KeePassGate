@@ -102,10 +102,11 @@ namespace KeePassGate.Host.Tests
         {
             // Why a removal that would make the first recycle bin is refused while this dialog is
             // open. The combo is filled from `RecycleBinUuid` when the dialog loads and the
-            // dictionary says which group each of its items means; an index the dictionary does not
-            // hold is the item naming no group, and that is the branch whose OK sets
-            // `RecycleBinUuid` back to zero. A KeePass that drops either of these is one where the
-            // refusal is guarding nothing, which is worth being told about rather than carrying.
+            // dictionary holds which group each of its items means; the first item names no group
+            // and the dictionary holds it as zero, which is what OK sets `RecycleBinUuid` back to
+            // on a database that had no bin when the dialog opened. `RecycleBinDialogTests` drives
+            // that OK. A KeePass that drops either of these is one where the refusal is guarding
+            // nothing, which is worth being told about rather than carrying.
             var type = KeePassAssembly.GetType(KeePassContract.DatabaseSettingsFormTypeName, false);
 
             var combo = type.GetField(
@@ -417,16 +418,26 @@ namespace KeePassGate.Host.Tests
         public void The_main_window_still_says_when_it_has_blocked_itself()
         {
             // The window a write refuses behind. Answered from the count `UIBlockInteraction`
-            // keeps, which is what a save, an import and a synchronize raise. Asked of the shape
-            // rather than driven: blocking the window reaches `Enabled` on a main window that a
-            // test cannot build, and the count is only ever written by that one method.
+            // keeps, which is what a save, an import and a synchronize raise: the save is held to
+            // it here, off the IL, and the other two in the next test. Asked of the shape rather
+            // than driven: blocking the window reaches `Enabled` on a main window that a test
+            // cannot build, and the count is only ever written by that one method.
             var method = typeof(MainForm).GetMethod(
                 KeePassContract.MainFormInteractionBlockedMethod, Type.EmptyTypes);
+            var block = typeof(MainForm).GetMethod("UIBlockInteraction", new[] { typeof(bool) });
+            var save = typeof(MainForm).GetMethod(
+                KeePassContract.MainFormSaveDatabaseMethod, new[] { typeof(KeePassLib.PwDatabase), typeof(object) });
+            var saveAs = Array.Find(typeof(MainForm).GetMethods(), candidate => candidate.Name == "SaveDatabaseAs");
 
             Assert.That(method, Is.Not.Null);
             Assert.That(method.ReturnType, Is.EqualTo(typeof(bool)));
-            Assert.That(typeof(MainForm).GetMethod("UIBlockInteraction", new[] { typeof(bool) }), Is.Not.Null,
+            Assert.That(block, Is.Not.Null,
                 "what raises the answer is gone, so a save may no longer be what makes it true");
+            Assert.That(save, Is.Not.Null, "the save the plugin names a database to is gone");
+            Assert.That(saveAs, Is.Not.Null, "the save under another name is gone");
+            Assert.That(Calls(save, block), Is.True,
+                "a save no longer blocks the window, so a write can land inside KeePass's own save");
+            Assert.That(Calls(saveAs, block), Is.True, "a save under another name no longer blocks the window");
         }
 
         [Test]
@@ -599,7 +610,7 @@ namespace KeePassGate.Host.Tests
         /// happens to hold one of those opcodes resolves to something else or to nothing, and can
         /// only ever fail to match rather than match wrongly.
         /// </remarks>
-        private static bool Calls(MethodBase caller, MethodBase callee)
+        internal static bool Calls(MethodBase caller, MethodBase callee)
         {
             var body = caller.GetMethodBody().GetILAsByteArray();
 
@@ -635,11 +646,26 @@ namespace KeePassGate.Host.Tests
         public void An_export_still_shows_in_the_count_of_windows_KeePass_is_waiting_on()
         {
             // `PerformExport` raises the count rather than blocking the window, so this is the only
-            // signal a write has that an export is walking the live tree.
+            // signal a write has that an export is walking the live tree. That it raises it is read
+            // off the IL, since exporting needs the main window, and that raising it moves the
+            // answer a write asks for is driven.
             var property = typeof(KeePassLib.Utility.MessageService).GetProperty(
                 KeePassContract.MessageServiceCountProperty, BindingFlags.Public | BindingFlags.Static);
+            var export = typeof(MainForm).GetMethod(
+                nameof(MainForm.PerformExport), new[] { typeof(KeePassLib.PwGroup), typeof(bool) });
 
             Assert.That(property, Is.Not.Null);
+            Assert.That(export, Is.Not.Null, "the export File, Export runs is gone");
+            Assert.That(
+                Calls(export, typeof(KeePassLib.Utility.MessageService).GetMethod(
+                    nameof(KeePassLib.Utility.MessageService.ExternalIncrementMessageCount))),
+                Is.True,
+                "an export no longer raises the count, so a write can land while it walks the tree");
+            Assert.That(
+                Calls(export, typeof(KeePassLib.Utility.MessageService).GetMethod(
+                    nameof(KeePassLib.Utility.MessageService.ExternalDecrementMessageCount))),
+                Is.True,
+                "nor lowers it again");
 
             var before = KeePassLib.Utility.MessageService.CurrentMessageCount;
 
@@ -655,6 +681,44 @@ namespace KeePassGate.Host.Tests
             }
 
             Assert.That(KeePassLib.Utility.MessageService.CurrentMessageCount, Is.EqualTo(before));
+        }
+
+        [Test]
+        public void Xml_replace_still_merges_under_a_progress_window_that_announces_itself()
+        {
+            // The one operation a write is kept out of by a window alone: XML Replace raises
+            // neither busy signal, and `GroupDialogs.Working` sees it only because the progress
+            // window it merges under registers itself with the window manager as it loads. Both
+            // host fixtures that drive that window register it by hand, since it is never shown
+            // there, so the two links on KeePass's side are read off the IL here.
+            var progress = typeof(StatusProgressForm);
+            var xml = typeof(KeePass.Util.XmlUtil);
+            var all = BindingFlags.Instance | BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic;
+            var load = progress.GetMethod(
+                "OnFormLoad", all, null, new[] { typeof(object), typeof(EventArgs) }, null);
+            var construct = progress.GetMethod(nameof(StatusProgressForm.ConstructEx));
+            var replace = xml.GetMethod(nameof(KeePass.Util.XmlUtil.Replace));
+            var perform = xml.GetMethod("PerformXmlReplace", all);
+            var merge = typeof(KeePassLib.PwDatabase).GetMethod(
+                nameof(KeePassLib.PwDatabase.MergeIn),
+                new[]
+                {
+                    typeof(KeePassLib.PwDatabase), typeof(KeePassLib.PwMergeMethod),
+                    typeof(KeePassLib.Interfaces.IStatusLogger),
+                });
+
+            Assert.That(progress.FullName, Is.EqualTo(KeePassContract.StatusProgressFormTypeName));
+            Assert.That(load, Is.Not.Null, "the progress window's load handler is gone");
+            Assert.That(Calls(load, typeof(GlobalWindowManager).GetMethod("AddWindow", new[] { typeof(Form) })),
+                Is.True,
+                "the progress window no longer registers itself, so the dialog watch cannot see it");
+            Assert.That(Calls(construct, typeof(UIUtil).GetMethod(
+                    "Show", all, null, new[] { typeof(Form), typeof(IWin32Window) }, null)),
+                Is.True,
+                "the progress window is no longer shown as it is made, so it never loads");
+            Assert.That(Calls(replace, construct), Is.True, "XML Replace no longer runs under the progress window");
+            Assert.That(Calls(replace, perform), Is.True, "XML Replace no longer replaces in PerformXmlReplace");
+            Assert.That(Calls(perform, merge), Is.True, "XML Replace no longer merges into the live database");
         }
 
         [Test]

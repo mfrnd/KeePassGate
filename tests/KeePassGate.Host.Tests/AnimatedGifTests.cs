@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Drawing;
 using System.Drawing.Imaging;
 using System.IO;
@@ -102,6 +103,32 @@ namespace KeePassGate.Host.Tests
         }
 
         [Test]
+        public void Each_frame_after_the_first_holds_only_the_rectangle_that_changed()
+        {
+            // Read off the file's own image descriptors, because GDI+ lays each frame over the one
+            // before: a frame written whole reads back exactly as one written as its change, so
+            // only the file can tell them apart, and the file's size is what the change is for.
+            var frames = Frames();
+            try
+            {
+                var written = Descriptors(Encode(frames));
+
+                Assert.That(written, Has.Length.EqualTo(4), "the repeated frame is folded into the one before");
+                Assert.That(written[0], Is.EqualTo(new Rectangle(0, 0, Width, Height)), "the first frame, whole");
+                Assert.That(written[1], Is.EqualTo(new Rectangle(40, 30, 12, 9)), "the square, and nothing round it");
+                Assert.That(written[3], Is.EqualTo(new Rectangle(100, 50, 1, 1)), "the one pixel the dot changed");
+            }
+            finally
+            {
+                // codeql[cs/missed-using-statement] one of a list the `finally` disposes, which no `using` holds
+                foreach (var frame in frames)
+                {
+                    frame.Dispose();
+                }
+            }
+        }
+
+        [Test]
         public void The_same_frames_make_the_same_file()
         {
             var frames = Frames();
@@ -177,6 +204,64 @@ namespace KeePassGate.Host.Tests
             dot.SetPixel(100, 50, Color.Black);
 
             return new[] { noise, again, square, gradient, dot };
+        }
+
+        /// <summary>
+        /// Where each frame in a GIF is drawn and how large it is, from its image descriptor, in
+        /// the order the file holds them.
+        /// </summary>
+        /// <remarks>
+        /// The file's blocks walked as GIF89a lays them out: the header and the screen's
+        /// descriptor, the screen's color table when it has one, then extensions and images until
+        /// the trailer, every one of them a run of sub-blocks after its own fixed part.
+        /// </remarks>
+        private static Rectangle[] Descriptors(byte[] gif)
+        {
+            var found = new List<Rectangle>();
+            var at = 6 + 7;
+            if ((gif[10] & 0x80) != 0)
+            {
+                at += 3 << ((gif[10] & 0x07) + 1);
+            }
+
+            while (gif[at] != 0x3B)
+            {
+                if (gif[at] == 0x21)
+                {
+                    at = PastSubBlocks(gif, at + 2);
+                    continue;
+                }
+
+                Assert.That(gif[at], Is.EqualTo(0x2C), "a block that is neither an extension nor an image, at " + at);
+                found.Add(new Rectangle(
+                    BitConverter.ToUInt16(gif, at + 1),
+                    BitConverter.ToUInt16(gif, at + 3),
+                    BitConverter.ToUInt16(gif, at + 5),
+                    BitConverter.ToUInt16(gif, at + 7)));
+
+                var packed = gif[at + 9];
+                at += 10;
+                if ((packed & 0x80) != 0)
+                {
+                    at += 3 << ((packed & 0x07) + 1);
+                }
+
+                // The coder's starting width, then the coded pixels.
+                at = PastSubBlocks(gif, at + 1);
+            }
+
+            return found.ToArray();
+        }
+
+        /// <summary>Past a run of sub-blocks, each its length then that many bytes, and the empty one.</summary>
+        private static int PastSubBlocks(byte[] gif, int at)
+        {
+            while (gif[at] != 0)
+            {
+                at += gif[at] + 1;
+            }
+
+            return at + 1;
         }
 
         private static void AssertAlike(Bitmap expected, Bitmap actual, int tolerance, string what)

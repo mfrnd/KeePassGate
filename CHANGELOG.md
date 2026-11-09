@@ -272,6 +272,9 @@ none, since it releases both.
   is written to the audit**, with the reason `this connection arrived on an invitation`. It is
   refused as before, and was the line missing from the audit's account of every certificate this
   database issued that an operation turns away.
+- **The routing document and PAIRING.md name a list of profiles that will not read among the
+  reasons for a pairing's or a renewal's `503 busy`**, which both answer before the operator is
+  asked, since what either writes is taken from the list. Neither document named it.
 - **The routing document states what an attachment write takes**: the bytes base64 encoded, at
   most 524288 of them, and `400 malformed` for a string that does not decode or decodes to more.
   Only the read side stated the encoding.

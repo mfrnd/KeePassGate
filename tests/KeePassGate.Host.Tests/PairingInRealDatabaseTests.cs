@@ -1151,21 +1151,8 @@ namespace KeePassGate.Host.Tests
             var proof = PairingProof.Request(
                 token, binding, nonce, challenge, PairingProof.Asked(name, profiles, null));
 
-            var body = new System.Text.StringBuilder();
-            body.Append("{\"name\":\"").Append(name).Append("\",\"profiles\":[");
-            for (var i = 0; i < profiles.Length; i++)
-            {
-                if (i > 0)
-                {
-                    body.Append(',');
-                }
-
-                body.Append('"').Append(profiles[i]).Append('"');
-            }
-
-            body.Append("],\"proof\":\"").Append(Convert.ToBase64String(proof)).Append("\"}");
-
-            var request = Post(GateOperations.PathOf(GateOperations.PairRequest), body.ToString(), connection);
+            var body = Bodies.Of(("name", name), ("profiles", profiles), ("proof", Convert.ToBase64String(proof)));
+            var request = Post(GateOperations.PathOf(GateOperations.PairRequest), body, connection);
             handler.Request(request);
             return request;
         }

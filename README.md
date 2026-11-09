@@ -13,8 +13,9 @@ local machine over mutual TLS, and each program sees only what it has been appro
 authority, a program pairs with it and is approved, rules open one folder and close another, the
 program reads a password and, once a rule allows it, sets a new one, and once revoked, the program
 is refused everything. The gray boxes hide values that change on every run, such as today's date and
-the invitation's identifier, so the recording comes out the same each time it is made on the same
-machine.*
+the invitation's identifier, and the terminal shows the program's new key, its certificate's expiry
+and the directory it keeps them in as patterned stand-ins, so the recording comes out the same each
+time it is made on the same machine.*
 
 ## Why it exists
 

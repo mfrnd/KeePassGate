@@ -21,20 +21,24 @@ namespace KeePassGate.Host.Tests.Live
     /// </summary>
     /// <remarks>
     /// **A journey somebody can follow.** It starts where a reader starts, at a database with
-    /// entries in two folders and nothing else, and every dialog is opened the way an operator
-    /// opens it, from the menu bar, with the pointer going there first. The authority is created,
-    /// an invitation handed out and copied, the client pairs and is approved, the client is shown
-    /// to see nothing until a rule says otherwise, the rules are written on the group dialogs, one
-    /// folder opened and the other closed, and the client reads one and is refused the other. Then
-    /// it is revoked, and refused everything.
+    /// entries in two folders and nothing else, and every dialog is opened from the menu bar, with
+    /// the pointer drawn going there first. The authority is created, an invitation handed out and
+    /// copied, the client pairs and is approved, the client is shown refused even a listing until a
+    /// rule grants it one, the rules are written on the group dialogs, one folder opened and the
+    /// other closed, and the client reads one and is refused the other. Then it is revoked, and
+    /// refused everything.
     ///
-    /// **All of it real, with one exception said here.** The client is PyKeePassGate's own command
-    /// line, run through `uv` as the reference client tests run it, typing the commands the
-    /// documentation gives; the dialogs are KeePass's, pressed where an operator presses them; and
-    /// every answer in the terminal is what the gate answered. The exception is Create authority:
-    /// the press is drawn and not made, and the pictures after it are of the written down
-    /// authority, put into the file between two sessions, for the reason `Capture` gives. A minted
-    /// one shows a fingerprint that is new on every run, here and in the client's answer.
+    /// **What it shows is real, and not every press it draws was made.** The client is
+    /// PyKeePassGate's own command line, run through `uv` as the reference client tests run it,
+    /// typing the commands the documentation gives; the dialogs are KeePass's, and a press inside
+    /// one is made with the pointer where the picture draws it; and every answer in the terminal is
+    /// what the gate answered. Three things are drawn over what was done another way. Each menu is
+    /// photographed open through UI automation and then chosen by its keys, so the two clicks drawn
+    /// on it pressed nothing. The paste at the client's prompt is drawn, while the code reaches the
+    /// client on its standard input. And Create authority is drawn and not made: the pictures after
+    /// it are of the written down authority, put into the file between two sessions, for the
+    /// reason `Capture` gives, since a minted one shows a fingerprint that is new on every run,
+    /// here and in the client's answer.
     ///
     /// **Its own database, the one the fixture started from.** A copy is taken before anything
     /// else is written into the file and put back here, last, since a client paired and revoked
@@ -52,7 +56,8 @@ namespace KeePassGate.Host.Tests.Live
     /// by the client itself: its certificate's key and the moment it expires, which the terminal
     /// shows as invented values, and the directory it stored them in, a `LOCALAPPDATA` this session
     /// made, which the terminal shows by the variable's name. On the KeePass side the moments on
-    /// the client's row are covered, see `Redacted.Moments`.
+    /// the client's row are covered, see `Redacted.Moments`, and so is the main window's entry
+    /// view, whose times are written in the account's own zone and format.
     /// </remarks>
     public sealed partial class DocumentationScreenshots
     {
@@ -73,6 +78,9 @@ namespace KeePassGate.Host.Tests.Live
         /// </summary>
         private const string RevealPassword = "m_cbHidePassword";
 
+        /// <summary>The box on KeePass's entry dialog holding the entry's title.</summary>
+        private const string EntryTitle = "m_tbTitle";
+
         /// <summary>KeePass's entry view, the details of the chosen entry under the main window's list.</summary>
         private const string EntryView = "m_richEntryView";
 
@@ -89,10 +97,11 @@ namespace KeePassGate.Host.Tests.Live
         private const string InventedKey = "5eed5eed5eed5eed5eed5eed5eed5eed5eed5eed5eed5eed5eed5eed5eed5eed";
 
         /// <summary>
-        /// What it shows for when the certificate expires: a year after the seeded client was
-        /// admitted, which is the lifetime the dialog offers a client that asks for none.
+        /// What it shows for when the certificate expires, patterned as the key is, so that nobody
+        /// takes it for the client's own answer: that is a year after the moment the film is made,
+        /// the lifetime the dialog offers a client that asks for none.
         /// </summary>
-        private const string InventedExpiry = "2027-08-22T08:38:01Z";
+        private const string InventedExpiry = "2027-07-07T07:07:07Z";
 
         /// <summary>What it shows for the `LOCALAPPDATA` the client was given.</summary>
         private const string InventedHome = "%LOCALAPPDATA%";
@@ -102,24 +111,19 @@ namespace KeePassGate.Host.Tests.Live
 
         private string _pristine;
 
-        /// <summary>
-        /// Whether a client has changed an entry in this film yet. KeePass's entry view under the
-        /// main window's list says when the chosen entry was last changed, which is a time written
-        /// into the database until a client changes one, and this minute after it, so from then
-        /// on every picture of the main window covers it.
-        /// </summary>
-        private bool _entryChangedNow;
-
         private void FilmTheLifecycle()
         {
             var keePass = _session.KeePass;
-            _entryChangedNow = false;
             keePass.RestoreDatabase(_pristine);
             keePass.MoveRootEntryToAutomation();
             keePass.GiveTheBuildAgentAPassword();
 
-            // On the port nobody has to name, so the command typed is the one a reader types.
+            // On the port nobody has to name, so the command typed is the one a reader types. Taken
+            // elsewhere, the film would publish a `--port` no reader types and still end green.
             keePass.UseTheDefaultPort();
+            Assert.That(keePass.Port, Is.EqualTo(GateOptions.DefaultPort),
+                "something on this machine holds port " + GateOptions.DefaultPort +
+                ", so the moving picture would show another. Free it and take the pictures again.");
 
             var home = Paths.Join(Path.GetDirectoryName(keePass.DatabasePath), "home");
             Directory.CreateDirectory(home);
@@ -239,10 +243,7 @@ namespace KeePassGate.Host.Tests.Live
             story.Hold(100);
 
             // The pairing, typed as the documentation gives it, and the code pasted when asked.
-            // `--port` only when something else held the default and the gate had to go elsewhere,
-            // which makes a picture that differs from the published one and says why.
-            var port = keePass.Port == GateOptions.DefaultPort ? string.Empty : " --port " + keePass.Port;
-            var pairing = "pykeepassgate pair" + port + " --name " + ClientName + " --profile-name " + Profile;
+            var pairing = "pykeepassgate pair --name " + ClientName + " --profile-name " + Profile;
 
             story.Step(Side.Client, "The client asks to pair, and the code is pasted at a prompt that shows only stars");
             story.Hold(60);
@@ -279,7 +280,7 @@ namespace KeePassGate.Host.Tests.Live
             story.Hold(200);
 
             var nothing = Command(story, "pykeepassgate entries", environment,
-                "But no rule grants reader anything yet, so to the client the database is empty");
+                "But no rule grants reader anything yet, so the client is refused even a listing");
             Assert.That(nothing.ExitCode, Is.EqualTo(1), nothing.ToString());
 
             // The rule on the top group, written on its KPG tab.
@@ -461,10 +462,6 @@ namespace KeePassGate.Host.Tests.Live
             var changed = Update(story, update, environment, "The same command now sets the new password");
             Assert.That(changed.ExitCode, Is.Zero, changed.ToString());
 
-            // From here on the entry view under the main window's list says the entry was changed
-            // this minute whenever it is chosen, so every picture of the main window covers it.
-            _entryChangedNow = true;
-
             // KeePass shows it: the entry's dialog, and the button beside the password that reveals it.
             var automation = Click(driver.MainWindow, TreeItem(driver, AutomationGroup));
             Thread.Sleep(500);
@@ -473,7 +470,9 @@ namespace KeePassGate.Host.Tests.Live
             Thread.Sleep(400);
             var entryChosen = TakeMain(story, driver, "the entry chosen");
             var entryMenu = OpenMenu(story, driver, "Entry", "Edit Entry");
-            var entry = driver.OpenEntryDialog();
+            var entry = driver.OpenChosenEntryDialog();
+            Assert.That(driver.ValueOf(entry, EntryTitle), Is.EqualTo(BuildAgentTitle),
+                "the entry dialog that opened is not the entry the film chose, " + driver.Diagnostics);
             var entryOpened = TakeOpened(story, driver, entry, "the entry dialog as it opens");
             var reveal = Click(entry, Uia.ById(entry, RevealPassword));
             Thread.Sleep(500);
@@ -875,9 +874,13 @@ namespace KeePassGate.Host.Tests.Live
         /// client is named, and leaving alone the row's menu if it is open over them.
         /// </summary>
         /// <remarks>
-        /// **And the main window's entry view once a client has changed an entry**, see
-        /// <see cref="_entryChangedNow"/>, on every picture of that window from then on, a menu
-        /// photographed over it included.
+        /// **And the main window's entry view, on every picture of that window**, a menu
+        /// photographed over it included. It shows the chosen entry's times, which KeePass converts
+        /// to the time zone of the account running it and writes in that account's regional
+        /// format: one time written into the database reads 22.08.2026 10:30:00 under de-DE in
+        /// Central European summer time and 8/22/2026 8:30:00 AM under en-US and UTC, so a retake
+        /// on another account rewrote every frame showing it. And once a client has changed an
+        /// entry, the time is this minute.
         /// </remarks>
         private Storyboard.Shot Take(
             Storyboard story,
@@ -897,7 +900,7 @@ namespace KeePassGate.Host.Tests.Live
                 Redacted.Moments(picture, area, window, client, menu == null ? Rectangle.Empty : KeePassDriver.Bounds(menu));
             }
 
-            if (_entryChangedNow && Automation.Compare(window, driver.MainWindow))
+            if (Automation.Compare(window, driver.MainWindow))
             {
                 Redacted.Over(picture, area, window, EntryView);
             }

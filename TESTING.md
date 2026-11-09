@@ -21,9 +21,13 @@ fails in a way that names its own cause.
 the states that change its shape and writes a picture of it, into `.gallery` beside the solution or
 wherever `KPG_GALLERY_DIR` names. It runs with the ordinary tests, because it needs no KeePass and
 no network, only a window station to show its forms on, off screen, and because a picture nobody
-generates is a picture nobody looks at. Two things follow from its writing files: the directory is
-gitignored, and everything in it is rewritten on every run, so nothing meant to be kept belongs
-there. `docs/images` is the set that is committed, and a task of its own draws those.
+generates is a picture nobody looks at. Two things follow from its writing files: `.gallery` is
+gitignored, and every picture in the directory is replaced on every run, so nothing meant to be
+kept belongs there. A directory the gallery writes to is marked as its own with `.kpg-gallery`, and
+one `KPG_GALLERY_DIR` names that already holds pictures and no mark is refused rather than emptied,
+failing the run with its path, since a mistyped path or a directory shared with something else
+would otherwise lose every picture in it. `docs/images` is the set that is committed, and a task of
+its own draws those.
 
 **The screenshots are another use of the end to end tier rather than a tier of their own.** Same
 throwaway KeePass, same driver, and it writes into `docs/images` instead of asserting: the
@@ -37,8 +41,8 @@ the same reason. After the stills, `DocumentationLifecycle.cs` puts back the dat
 filled it and walks the whole journey, every dialog opened from its menu: the authority, an
 invitation copied and pasted at the client's prompt, the approval, a rule and a seal on the group
 dialogs, and the revocation. PyKeePassGate's real command line pairs with that KeePass, run through
-`uv` as `LiveReferenceClientTests` runs it and typing the commands the documentation gives, sees
-nothing before the rules are written, then reads what they allow, is refused what they do not, and
+`uv` as `LiveReferenceClientTests` runs it and typing the commands the documentation gives, is
+refused before the rules are written, then reads what they allow, is refused what they do not, and
 is refused again once revoked. `Storyboard` then composes the frames from a fixed timeline rather
 than from the clock, out of the stills taken, the rectangles of the controls pressed and the text
 typed and printed: the terminal is drawn, a character at a time, and so are the pointer and its
@@ -52,7 +56,9 @@ every tie broken by a color's value, so the same frames make the same file. A se
 same frames on the same machine and account, and not necessarily anywhere else: the display scaling,
 which the fixture checks, and the font smoothing, the regional format and the fonts installed, which
 it does not, all reach the pictures. `AnimatedGifTests`, in the host tier, holds that encoder to
-GDI+'s own decoder, since nothing else reads it until the pictures are retaken.
+GDI+'s own decoder, since nothing else reads it until the pictures are retaken, and
+`StoryboardTests` tells `Storyboard` a short story of its own, holding it to the same file however
+long the telling took and to an invented value drawn wherever the real one would have been.
 
 **No tier runs `build.ps1 -Task Package`**, since it packages only a clean commit. It checks its own
 output instead, every time it runs: the zip is read back against the files it was made from and
@@ -177,13 +183,32 @@ KeePass; this is what notices a KeePass that raises them differently.
 lock, ten seconds, and lets it fall due under a renewal dialog nobody answers. The dialog closes as
 unanswered and the client is told `503 locked`, `PAIRING.md` §308.
 
+**A Windows lock during a save**, in `LiveSessionLockTests`: KeePass set to lock when Windows does,
+and the message Windows sends when the session locks posted to KeePass the moment a write's save is
+seen to begin. KeePass drops a lock asked for while its interaction is blocked, and every save
+blocks it, so the write is answered, the plugin then makes the lock KeePass dropped, and the next
+client is told `503 locked`. Posted rather than locked, because locking the desktop would end the
+session the tests run in, and timed by the file the save writes first rather than by a wait,
+because how long a save takes is the machine's.
+
+**KeePass's own dialogs over a node, for real**, in `LiveAttachmentEditorTests` and
+`LiveTanWizardTests`, for the two the host tier cannot stand up whole. KeePass's attachment editor
+writes the bytes it holds back onto the entry when it closes changed, whatever happened to the
+entry meanwhile, so a removal of that attachment through the gate is refused `503 busy` while it is
+open, the attachment then holds what the operator typed, and the removal goes ahead once the editor
+has closed. The TAN wizard adds its entries from inside its own OK, which a write's save would have
+handling its messages part way through a walk of the tree, so a write is refused `503 busy` while
+the wizard is open, its OK is pressed once that write has been answered, and the wizard's entries
+and a write made after it are both in the file.
+
 **Pairing**, in `LivePairingTests`, the longest chain the C# pairing client drives. The operator
 presses the invite button on the real tab; the token is read off the real screen; a client holding
 nothing but that token and a port number derives its own connection names, proves itself and is
 proved to; the approval dialog is a real window, approved by a real button press on a thread that is
 not the one waiting for the answer; the certificate that comes back is then used on the very next
-connection; and the record is looked for in the `.kdbx` after KeePass has exited. A refusal is
-driven the same way, and writes no record.
+connection; and the record is looked for in the `.kdbx` as the pairing's own save left it, before
+anything else saves the database, and again after KeePass has exited. A refusal is driven the same
+way, spends its invitation, and writes no record and no profile it was asked for.
 
 **The API**, in `LiveApiTests`: a real client with a certificate the database's own authority issued
 creates an entry through the gate, adds a field, reads it back, lists it, and the entry is read out
@@ -216,9 +241,9 @@ renews through the real renewal dialog with `pykeepassgate renew`, which stores 
 gives up the certificate it renewed from, so `renew` and `revoke_certificate` meet the plugin as
 well; every step after that runs on the renewed identity. A write made while the entry's dialog is
 open in KeePass is turned away as `GateBusy` and changes nothing, and once KeePass is locked the
-client meets `DatabaseLocked`. What the command line does not offer, one field on its own route and
-a changed password, goes through the library with `tests/pykeepassgate/live_calls.py`, which the
-client tier runs against its stand-in as well.
+client meets `DatabaseLocked`. The protected value is read on its own route with `field`, and the
+password changed with `update --password` from standard input, so both meet the plugin through the
+command line as well.
 
 **The grant editor**, in `LiveGrantEditorTests`: a rule made on the KPG tab of a real KeePass, kept by the
 group dialog's **OK**, and read out of the `.kdbx` after the process has gone. Pressing OK rather
@@ -239,12 +264,12 @@ the certificate it presents and is refused on its very next connection, and the 
 window approved by a real button press, and the certificate that comes back opens a route on the
 next connection. The new certificate's own renewal is then refused in this session from the Refuse
 button's menu, opened and chosen with the pointer in KeePass's own modal loop, and asking again is
-answered `409 this session` with nobody asked. That answer is then lifted from the clients page, the
-row's menu opened with Shift and F10 and Allow renewal pressed, and the settings dialog accepted, so
-that the next renewal raises the dialog again and is refused once: the one end to end test of Allow
-renewal. After that the client gives the old certificate up by presenting it and is refused with it,
-and once KeePass has gone the file holds the new record and not the old one, and nothing of the
-refusal in this session.
+answered `409 this session` with nobody asked, while the file holds no answer of it. That answer is
+then lifted from the clients page, the row's menu opened with Shift and F10 and Allow renewal
+pressed, and the settings dialog accepted, so that the next renewal raises the dialog again and is
+refused once: the one end to end test of Allow renewal. After that the client gives the old
+certificate up by presenting it and is refused with it, and once KeePass has gone the file holds the
+new record and not the old one.
 
 **The authority chooser**, in `LiveAuthorityChooserTests`: two copies of one database each replace
 the authority they share and admit a client of their own, the copy KeePass opens is merged with the
@@ -295,7 +320,8 @@ session's directory goes when its fixture passes and stays when it fails, below.
 
 Then it starts that KeePass. `LiveAuthorityTests`, for one, walks File, Database Settings with the
 keyboard, reads the tab through the accessibility tree, presses the buttons on it, accepts the
-dialog with OK, saves with the keyboard, closes KeePass, and checks that it exited. It also reads
+dialog with OK, saves with the keyboard, closes KeePass, and checks that it exited, with the exit
+code zero that `KeePassDriver.ShutDown` holds every KeePass it closes to. It also reads
 the plugin's own log, which `KEEPASSGATE_LOG_FILE` puts in the session's own directory: that log is
 how a test sees from outside what the plugin did inside a process it does not otherwise hold.
 
@@ -449,7 +475,8 @@ is shared by the whole process or the whole account:
 - a shown window, the focus, a posted key or a menu left open, since a window another fixture shows
   takes the activation and closes the menu. Another test process shows its windows on the same
   screen, and no mark reaches it, so such a fixture carries `[Desktop]` as well, which holds the
-  screen against every other test process for each of its tests;
+  screen against every other test process for each of its tests. A fixture with one such test
+  among many that show nothing carries it on that test alone;
 - a static the plugin lends out for a while and takes back;
 - the account's key directories: a certificate loaded with its key and without `EphemeralKeySet`
   writes that key there, which `Certificates.WithKeyFile` does for a test whose client is

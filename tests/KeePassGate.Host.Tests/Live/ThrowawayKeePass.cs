@@ -27,7 +27,7 @@ namespace KeePassGate.Host.Tests.Live
 {
     /// <summary>
     /// A complete, disposable KeePass: its own copy of the program, its own configuration, its own
-    /// database, and the plugin under test in its plugins directory.
+    /// database, and the plugin under test in a directory of its own under `plugins`.
     /// </summary>
     /// <remarks>
     /// Nothing here touches the developer's KeePass or the developer's database. The copy exists
@@ -35,7 +35,8 @@ namespace KeePassGate.Host.Tests.Live
     /// and so that a failed run leaves nothing behind but one directory under
     /// `CommonApplicationData`. Not `%TEMP%`, which carries the account name: the pictures the
     /// documentation is built from show the open database's path, so where the session lives is
-    /// what makes them publishable.
+    /// what makes them publishable. The account's regional format and time zone are no setting of
+    /// KeePass's, and reach what it shows whatever the copy holds.
     /// </remarks>
     internal sealed class ThrowawayKeePass : IDisposable
     {
@@ -125,6 +126,25 @@ namespace KeePassGate.Host.Tests.Live
         public string PluginLogPath
         {
             get { return Paths.Join(_root, "keepassgate.log"); }
+        }
+
+        /// <summary>
+        /// What KeePass is started with to name its local configuration, the file it writes when
+        /// it cannot write the one beside the program.
+        /// </summary>
+        /// <remarks>
+        /// `AppDefs.CommandLineOptions.ConfigPathLocal`, which `ThrowawayConfigurationTests` holds
+        /// this to. Left unnamed, that file is `%APPDATA%\KeePass\KeePass.config.xml`, the
+        /// developer's own, so a session whose own configuration failed to save would write its
+        /// settings there: no single instance, no Escape, a lock after a few seconds, and a list of
+        /// recent files naming this one.
+        /// </remarks>
+        internal const string LocalConfigurationOption = "-cfg-local:";
+
+        /// <summary>The local configuration this installation names, inside it.</summary>
+        public string FallbackConfigurationPath
+        {
+            get { return Paths.Join(_root, "KeePass.local.config.xml"); }
         }
 
         /// <summary>
@@ -243,8 +263,12 @@ namespace KeePassGate.Host.Tests.Live
             {
                 FileName = ExePath,
                 // The password reaches the process list here. That is only ever acceptable because
-                // this database is invented, empty and deleted at the end of the test.
-                Arguments = "\"" + DatabasePath + "\" -pw:" + DatabasePassword,
+                // everything in this database is invented, and it lives in a session directory
+                // deleted when its fixture passes. The local
+                // configuration named is where KeePass writes its settings when it cannot write
+                // the one beside the program, which is otherwise the developer's own.
+                Arguments = "\"" + DatabasePath + "\" -pw:" + DatabasePassword +
+                            " " + LocalConfigurationOption + "\"" + FallbackConfigurationPath + "\"",
                 WorkingDirectory = _root,
                 UseShellExecute = false
             };
@@ -574,7 +598,7 @@ namespace KeePassGate.Host.Tests.Live
 
         /// <summary>
         /// A local configuration beside the program is what makes KeePass ignore the developer's
-        /// own settings, including any language they have selected. It answers four things.
+        /// own settings, including any language they have selected. It answers five things.
         /// </summary>
         /// <remarks>
         /// The update question is asked on a first start and blocks behind a modal dialog before
@@ -592,6 +616,11 @@ namespace KeePassGate.Host.Tests.Live
         /// the thing it was for has gone, or when a menu did not open, would lock the database
         /// every later step works on, and a failure about one menu would then read as a run of
         /// failures about something else.
+        ///
+        /// **And it names itself the configuration to read.** KeePass reads the file beside the
+        /// program, rather than the developer's own, only while that file does not prefer the
+        /// user's, which is a default rather than anything this wrote down. Written down, it holds
+        /// whatever a later KeePass defaults to.
         /// </remarks>
         private static void WriteConfiguration(string root, int lockAfterSeconds)
         {
@@ -665,6 +694,9 @@ namespace KeePassGate.Host.Tests.Live
         internal const string Configuration =
                 "<?xml version=\"1.0\" encoding=\"utf-8\"?>\r\n" +
                 "<Configuration>\r\n" +
+                "  <Meta>\r\n" +
+                "    <PreferUserConfiguration>false</PreferUserConfiguration>\r\n" +
+                "  </Meta>\r\n" +
                 "  <Application>\r\n" +
                 "    <Start>\r\n" +
                 "      <CheckForUpdate>false</CheckForUpdate>\r\n" +
@@ -1205,8 +1237,9 @@ namespace KeePassGate.Host.Tests.Live
 
         /// <summary>
         /// When every invented entry was made and last changed, written down for the reason the
-        /// identifiers are: KeePass's main window shows both for the selected entry, and the moving
-        /// picture shows the main window.
+        /// identifiers are, so that no two runs make a different database: KeePass's main window
+        /// shows both for the selected entry, under the cover the moving picture puts over that
+        /// view, since KeePass writes them in the zone and the format of the account running it.
         /// </summary>
         private static readonly DateTime Invented = new DateTime(2026, 8, 22, 8, 30, 0, DateTimeKind.Utc);
 
@@ -1286,38 +1319,6 @@ namespace KeePassGate.Host.Tests.Live
                 }
 
                 entry.Strings.Set(PwDefs.PasswordField, new ProtectedString(true, BuildAgentPassword));
-                database.Save(null);
-            }
-            finally
-            {
-                database.Close();
-            }
-        }
-
-        /// <summary>
-        /// Puts this many invented entries in the root group, before KeePass is started.
-        /// </summary>
-        /// <remarks>
-        /// For a save that spends a known while walking the root group's entries, which it does
-        /// handling KeePass's messages as it goes, so that something pressed meanwhile is handled
-        /// part way through the walk. Each is named for its number and holds nothing else.
-        /// </remarks>
-        public void FillTheRoot(int count)
-        {
-            var database = new PwDatabase();
-            try
-            {
-                database.Open(IOConnectionInfo.FromPath(DatabasePath), NewKey(), null);
-
-                for (var number = 1; number <= count; number++)
-                {
-                    var entry = new PwEntry(true, true);
-                    entry.Strings.Set(
-                        PwDefs.TitleField,
-                        new ProtectedString(false, "Invented entry " + number.ToString(CultureInfo.InvariantCulture)));
-                    database.RootGroup.AddEntry(entry, true);
-                }
-
                 database.Save(null);
             }
             finally
