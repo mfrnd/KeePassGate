@@ -11,6 +11,10 @@ none, since it releases both.
 
 ## 0.2.0, unreleased
 
+- **A write or an approval dialog still waiting for KeePass's thread when KeePass closes is
+  logged as KeePass closing**, as a write meeting a window already gone was, and the write is
+  answered as failed. Both were answered as a timeout: the write logged as KeePass not answering
+  in time and told `503 busy`, and the dialog logged as unanswered, though it was never shown.
 - **The renewal dialog reads in fewer words**: "Approving issues a new certificate and saves this
   database. The certificate it holds now stays valid until the client gives it up.", "Profiles
   for the new certificate; uncheck any it should lose. The certificate it holds now keeps every
