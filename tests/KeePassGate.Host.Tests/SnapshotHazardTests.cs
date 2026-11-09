@@ -17,11 +17,13 @@ namespace KeePassGate.Host.Tests
     /// open is destroyed by OK and survives Cancel.
     /// </summary>
     /// <remarks>
-    /// Measured in two halves, because the dialog itself cannot be stood up outside a running
-    /// KeePass. The first half is the mechanism, read off the real KeePass by reflection: the
-    /// snapshot field, its type, and the fact that a group's custom data can be assigned wholesale.
-    /// The second half is the behavior, reproduced with KeePass's own types, its own `CloneDeep`
-    /// and a real `PwGroup`, so that only the timing is simulated.
+    /// Measured in two halves, because the dialog can be built outside a running KeePass but not
+    /// shown, so its OK is reproduced rather than clicked. The first half is the mechanism, read off
+    /// the real KeePass by reflection: the snapshot field, its type, the fact that a group's custom
+    /// data can be assigned wholesale, and that the dialog's OK is the one place it assigns it,
+    /// which is what leaves a write alone on Cancel. The second half is the behavior, reproduced
+    /// with KeePass's own types, its own `CloneDeep` and a real `PwGroup`, so that only the timing
+    /// is simulated.
     ///
     /// This is why an admission record is load bearing. A record lost this way makes its
     /// certificate inert rather than invisible, which is the difference between a client that has
@@ -31,9 +33,6 @@ namespace KeePassGate.Host.Tests
     [Apartment(ApartmentState.STA)]
     public sealed class SnapshotHazardTests
     {
-        private const string GroupFormTypeName = "KeePass.Forms.GroupForm";
-        private const string SnapshotFieldName = "m_sdCustomData";
-
         private TemporaryDatabase _database;
         private CustomDataStore _store;
 
@@ -53,14 +52,38 @@ namespace KeePassGate.Host.Tests
         [Test]
         public void The_group_dialog_still_holds_a_copy_of_the_custom_data()
         {
-            var groupForm = typeof(Plugin).Assembly.GetType(GroupFormTypeName, false);
-            Assert.That(groupForm, Is.Not.Null, GroupFormTypeName + " is gone from this KeePass.");
+            var groupForm = typeof(Plugin).Assembly.GetType(KeePassContract.GroupFormTypeName, false);
+            Assert.That(groupForm, Is.Not.Null, KeePassContract.GroupFormTypeName + " is gone from this KeePass.");
 
-            var snapshot = groupForm.GetField(SnapshotFieldName, BindingFlags.NonPublic | BindingFlags.Instance);
+            var snapshot = groupForm.GetField(
+                KeePassContract.NodeFormCustomDataField, BindingFlags.NonPublic | BindingFlags.Instance);
 
             Assert.That(snapshot, Is.Not.Null,
                 "The snapshot field is gone. Either KeePass fixed this, or it moved and the hazard is now unmeasured.");
             Assert.That(snapshot.FieldType, Is.EqualTo(typeof(StringDictionaryEx)));
+        }
+
+        [Test]
+        public void Only_the_group_dialog_s_OK_puts_its_copy_back()
+        {
+            // Why a write survives Cancel: nothing the dialog runs on any other way out assigns the
+            // copy back over the group. Read off its IL, since its buttons cannot be clicked here,
+            // across every method and constructor the dialog declares.
+            var groupForm = typeof(Plugin).Assembly.GetType(KeePassContract.GroupFormTypeName, false);
+            Assert.That(groupForm, Is.Not.Null, KeePassContract.GroupFormTypeName + " is gone from this KeePass.");
+
+            var declared = BindingFlags.Instance | BindingFlags.Static | BindingFlags.Public
+                           | BindingFlags.NonPublic | BindingFlags.DeclaredOnly;
+            var assign = typeof(PwGroup).GetProperty("CustomData").GetSetMethod(true);
+            var assigning = groupForm.GetMethods(declared).Cast<MethodBase>()
+                .Concat(groupForm.GetConstructors(declared))
+                .Where(method => method.GetMethodBody() != null && KeePassContractTests.Calls(method, assign))
+                .Select(method => method.Name)
+                .ToList();
+
+            Assert.That(assigning, Is.EqualTo(new[] { "OnBtnOK" }),
+                "the methods of the dialog that put its copy back over the group, where only its OK "
+                + "did, so a write made while it is open may no longer survive Cancel");
         }
 
         [Test]
@@ -152,8 +175,9 @@ namespace KeePassGate.Host.Tests
         [Test]
         public void An_authority_created_before_the_dialog_opened_survives_OK()
         {
-            // The ordinary case, and the reason this is a hazard rather than a bar on the design:
-            // what the dialog copied, the dialog writes back.
+            // The ordinary case, an authority already there when the dialog opens. It comes back
+            // because it is in no group, so out of the dialog's reach, and not because the dialog
+            // puts back what it copied: the dialog copies the group's custom data alone.
             var service = new AuthorityService(_store, NullGateLog.Instance);
             var created = service.Create();
             Assume.That(created.Succeeded, Is.True, created.Message);
@@ -194,7 +218,7 @@ namespace KeePassGate.Host.Tests
                 Assert.That(reading.ClientRecordCount, Is.EqualTo(1),
                     "A client approved while a group dialog was open is still admitted after its OK.");
                 Assert.That(reading.Presence, Is.EqualTo(AuthorityPresence.Present),
-                    "The authority itself predates the dialog, so it comes back.");
+                    "The authority is in no group either, so the dialog's OK cannot reach it.");
             }
         }
 
@@ -226,10 +250,6 @@ namespace KeePassGate.Host.Tests
                     .GetSetMethod(true)
                     .Invoke(_group, new object[] { _snapshot });
                 _group.Touch(true, false);
-            }
-
-            public void PressCancel()
-            {
             }
         }
     }

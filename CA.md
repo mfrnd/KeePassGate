@@ -397,8 +397,9 @@ OK**. A value written to the live group therefore survives Cancel and is destroy
 Measured rather than remembered, in `SnapshotHazardTests`: the snapshot field is still there in
 KeePass 2.61.1, a group's custom data can be replaced wholesale from inside KeePass but not from a
 plugin, a write made while the dialog is open is destroyed by OK, and an authority created before
-the dialog opened comes back unharmed because the dialog copied it. That Cancel leaves the write
-alone is read off the dialog rather than measured: only its OK puts the copy back.
+the dialog opened comes back unharmed because it is in no group for the dialog to copy. That Cancel
+leaves the write alone is read off the dialog's code rather than pressed, and the same tests hold
+it: only its OK puts the copy back.
 
 **The dialog this plugin puts its tab on carries no such snapshot**, which the same tests assert
 against the real type. So the buttons on the KPG tab are safe from their own dialog, and the hazard

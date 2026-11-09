@@ -609,7 +609,7 @@ namespace KeePassGate.Host.Tests
         /// happens to hold one of those opcodes resolves to something else or to nothing, and can
         /// only ever fail to match rather than match wrongly.
         /// </remarks>
-        private static bool Calls(MethodBase caller, MethodBase callee)
+        internal static bool Calls(MethodBase caller, MethodBase callee)
         {
             var body = caller.GetMethodBody().GetILAsByteArray();
 
