@@ -126,6 +126,24 @@ namespace KeePassGate.Tests
         }
 
         [Test]
+        public void A_router_that_renews_nothing_tells_an_admitted_client_nothing_about_its_body()
+        {
+            // The renewal route had only `NotServed` behind it and no guard, so the router checked
+            // the body first: a malformed body was `400` and only a well formed body learned that
+            // the route is not served, which the pairing routes' guard exists to prevent.
+            foreach (var body in new[] { "not json", "{\"lifetime\":\"forever\"}", "{}" })
+            {
+                var context = Request(
+                    "POST", GateOperations.PathOf(GateOperations.RenewCertificate), Paired("db"), body);
+
+                _router.Handle(context);
+
+                Assert.That(context.Status, Is.EqualTo(404), body);
+                Assert.That(context.Json, Does.Contain("no such route"), body);
+            }
+        }
+
+        [Test]
         public void A_path_under_pair_that_the_document_does_not_declare_is_not_a_pairing_path()
         {
             // `/pair/` is not a prefix that means anything any more. An undeclared path is
@@ -319,6 +337,42 @@ namespace KeePassGate.Tests
             Assert.That(raised.Message, Does.Contain("nothing can reach it"));
         }
 
+        [TestCase("handler")]
+        [TestCase("guard")]
+        [TestCase("node selector")]
+        public void A_name_bound_to_nothing_stops_the_plugin_loading(string kind)
+        {
+            // The assertions asked which names are bound, and null counted, so a handler, guard
+            // or selector bound to nothing loaded and its first request threw and was answered
+            // `500` as a defect: the operation with nothing behind it, found on a connection.
+            var handlers = GateOperations.Handlers("9.9.9", string.Empty, null)
+                .ToDictionary(p => p.Key, p => p.Value, StringComparer.Ordinal);
+            var guards = new Dictionary<string, OperationGuard>(StringComparer.Ordinal);
+            var nodes = GateOperations.Nodes().ToDictionary(p => p.Key, p => p.Value, StringComparer.Ordinal);
+
+            string named;
+            if (kind == "handler")
+            {
+                named = GateOperations.Status;
+                handlers[named] = null;
+            }
+            else if (kind == "guard")
+            {
+                named = GateOperations.PairHello;
+                guards[named] = null;
+            }
+            else
+            {
+                named = GateOperations.ReadEntry;
+                nodes[named] = null;
+            }
+
+            var raised = Assert.Throws<InvalidOperationException>(() => new SpecRouter(
+                GateOperations.Document, handlers, guards, nodes, new AccessCheck(NullGateAudit.Instance)));
+
+            Assert.That(raised.Message, Does.Contain(named).And.Contain("bound to no " + kind));
+        }
+
         private static void Nothing(IGateContext context)
         {
             context.Respond(200, "{}");
@@ -357,6 +411,41 @@ namespace KeePassGate.Tests
         }
 
         [Test]
+        public void An_admitted_certificate_turned_away_on_an_invitation_s_connection_is_written_down()
+        {
+            // The audit promises a line for every certificate this database issued that an
+            // operation turns away, and this refusal left none: only the plugin's log saw a client
+            // using an invitation's name for what its own name gives it.
+            var audit = new RecordingAudit();
+            var router = GateOperations.Router("9.9.9", null, new AccessCheck(audit));
+
+            using (var target = TestAuthority.New())
+            using (var book = new InvitationBook(TimeSpan.FromMinutes(10), null, NullGateLog.Instance))
+            {
+                var client = Paired(target.DatabaseId);
+                var context = Request("GET", GateOperations.StatusPath, client);
+
+                new PairingConnection(
+                    book.Invite(target.DatabaseId),
+                    target,
+                    PairingProof.Binding(target.Host.CertificateDer),
+                    new byte[SniName.NonceLength],
+                    "127.0.0.1:60001").PutOn(context);
+
+                router.Handle(context);
+
+                Assert.That(context.Status, Is.EqualTo(404), "refused as before");
+                var line = audit.Entries.Single();
+                Assert.That(line.Permitted, Is.False);
+                Assert.That(line.Reason, Is.EqualTo(AccessCheck.ArrivedOnInvitation));
+                Assert.That(line.OperationId, Is.EqualTo(GateOperations.Status));
+                Assert.That(line.AdmissionKey, Is.EqualTo(client.AdmissionKey));
+                Assert.That(line.ClientKey, Is.EqualTo(client.ClientKey), "the certificate is admitted, so both keys");
+                Assert.That(line.Node, Is.Null);
+            }
+        }
+
+        [Test]
         public void A_query_parameter_the_document_does_not_declare_makes_the_target_undeclared()
         {
             // The transport splits a query off and parses it, and nothing read the answer, so
@@ -388,6 +477,26 @@ namespace KeePassGate.Tests
             Assert.That(admitted.Status, Is.EqualTo(404));
             Assert.That(admitted.Headers, Is.Null, "an Allow field is a list of what the path serves");
             Assert.That(stranger.Status, Is.EqualTo(401), "on a public path, what every caller with no certificate is told");
+        }
+
+        [Test]
+        public void A_body_nothing_on_the_path_declares_is_undeclared_whatever_the_method()
+        {
+            // The body twin of the query above. A method the path does not serve answered `405`
+            // and named what the path does serve, for a request the document declares at no
+            // method, where the same words sent as a query were `404`.
+            var admitted = Request("DELETE", GateOperations.StatusPath, Paired("db"), "{\"x\":\"1\"}");
+            var declared = Request("GET", "/pair/hello", ClientIdentity.Stranger("db"), Hello);
+
+            _router.Handle(admitted);
+            _router.Handle(declared);
+
+            Assert.That(admitted.Status, Is.EqualTo(404));
+            Assert.That(admitted.Json, Does.Contain("no such route"));
+            Assert.That(admitted.Headers, Is.Null, "an Allow field is a list of what the path serves");
+            Assert.That(declared.Status, Is.EqualTo(405),
+                "a body another method on the path takes is a request the document declares there");
+            Assert.That(declared.Headers["Allow"], Is.EqualTo("POST"));
         }
 
         [Test]
@@ -453,7 +562,7 @@ namespace KeePassGate.Tests
         [Test]
         public void The_one_query_parameter_is_the_expiry_flag_on_the_two_entry_listings()
         {
-            // `API.md` 407: scoping is a path here, and filtering and paging were cut but for this
+            // `API.md` §407: scoping is a path here, and filtering and paging were cut but for this
             // one flag. The check reads the document rather than refusing every query for all
             // time, so this is what says the document has not quietly grown another: a name
             // declared is one the router lets through to a handler.

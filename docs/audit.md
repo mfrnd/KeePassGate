@@ -143,6 +143,12 @@ line names both keys, so the client a revoked certificate belonged to is found t
 with no certificate, or with one from another database, names nobody this database issued and is
 not written down.
 
+**So is a program asking on an invitation for what its own certificate gives it.** A connection
+that arrived on an invitation reaches the two pairing routes and nothing else, so a program the
+database admits that also holds an invitation, and asks over it for anything else, is answered
+`404`. Its line is `refused`, with `node` as `null` and the reason `this connection arrived on an
+invitation`, and names both keys, since its certificate is admitted.
+
 `node` and `decidedAt` are usually different, and that is the point of both being there. Nearest
 wins, so a refusal is normally decided somewhere above the node asked about: without the second
 one, a line refusing an entry sends whoever reads it to an entry with no rule on it.

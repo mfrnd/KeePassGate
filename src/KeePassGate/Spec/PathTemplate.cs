@@ -20,8 +20,8 @@ namespace KeePassGate.Spec
     /// **The path arrives as it was sent, and is decoded one segment at a time here**, which is
     /// what RFC 3986 section 2.2 asks for and the only place it can be done correctly: a `%2F`
     /// decoded before the split stops being part of a name and becomes a separator, so an
-    /// attachment called `a/b` could never be addressed. Splitting first leaves the escape meaning a
-    /// slash inside one segment, which is what escaping it was for.
+    /// attachment called `a/b` could never be addressed. Splitting first leaves the escape meaning
+    /// a slash inside one segment, which is what escaping it was for.
     ///
     /// The reader has already refused a path with a segment that will not decode, one that carries
     /// a control character, and one that *is* a climb. It cannot have refused a segment that
@@ -45,7 +45,9 @@ namespace KeePassGate.Spec
             Text = text;
         }
 
-        /// <summary>The template as the document writes it, which is what a log or a test names.</summary>
+        /// <summary>
+        /// The template as the document writes it, which is what a log or a test names.
+        /// </summary>
         public string Text { get; private set; }
 
         /// <summary>The names this template captures, in order.</summary>
@@ -157,9 +159,9 @@ namespace KeePassGate.Spec
 
                 if (!_captures[i])
                 {
-                    // Compared after decoding, so an escaped separator is part of one
-                    // segment rather than a route, and `/g%61te/status` is `/gate/status`. A literal in the document is what a caller meant, not
-                    // how it spelled it.
+                    // Compared after decoding, so an escaped separator is part of one segment
+                    // rather than a route, and `/g%61te/status` is `/gate/status`. A literal in
+                    // the document is what a caller meant, not how it spelled it.
                     if (!string.Equals(part, _segments[i], StringComparison.Ordinal))
                     {
                         return false;

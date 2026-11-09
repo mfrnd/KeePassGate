@@ -179,6 +179,15 @@ namespace KeePassGate.Spec
         /// <summary>Marks an operation that reaches the attachments inside an entry.</summary>
         public const string AttachmentsExtension = "x-kpg-attachments";
 
+        /// <summary>What every extension this document gives a meaning to begins with.</summary>
+        private const string ExtensionPrefix = "x-kpg-";
+
+        /// <summary>Every extension this document reads, each on an operation alone.</summary>
+        private static readonly string[] Extensions =
+        {
+            UnauthenticatedExtension, VerbExtension, AttachmentsExtension,
+        };
+
         /// <summary>The only body this API speaks.</summary>
         public const string MediaType = "application/json";
 
@@ -305,6 +314,18 @@ namespace KeePassGate.Spec
 
                 templates.Add(template);
 
+                var onThePath = Ours(path.Value.Extensions);
+                if (onThePath != null)
+                {
+                    // Nothing reads an extension on a path item, the three this document knows
+                    // included, so even a well spelled extension meant for every operation under it
+                    // would be read as absent, and absent is the permissive answer for the
+                    // attachment switch.
+                    throw new InvalidOperationException(
+                        path.Key + " declares " + onThePath + " on the path rather than on an operation," +
+                        " and an extension is read only where an operation declares it.");
+                }
+
                 foreach (var pair in path.Value.Operations)
                 {
                     var operation = pair.Value;
@@ -394,6 +415,20 @@ namespace KeePassGate.Spec
                             " can be granted.");
                     }
 
+                    var unknown = Ours(operation.Extensions, Extensions);
+                    if (unknown != null)
+                    {
+                        // The three above are read by name, so a key that is none of them was
+                        // read as absent: `x-kpg-attachment: true` loaded as an operation reaching
+                        // no further than the fields, and a rule granting `read` without `A` was
+                        // handed the attachment it was written to keep back. Refused for the reason
+                        // a schema keyword nothing enforces is.
+                        throw new InvalidOperationException(
+                            operation.OperationId + " declares " + unknown + ", which is no extension" +
+                            " this document reads, so it would be read as absent whatever it was meant for." +
+                            " The extensions it reads are " + string.Join(", ", Extensions) + ".");
+                    }
+
                     OpenApiSchema body = null;
 
                     if (operation.RequestBody != null)
@@ -403,6 +438,19 @@ namespace KeePassGate.Spec
                         {
                             throw new InvalidOperationException(
                                 operation.OperationId + " declares a body that is not " + MediaType + ".");
+                        }
+
+                        if (operation.RequestBody.Content.Count != 1)
+                        {
+                            // The router answers any other type with a refusal it decides from
+                            // `MediaType` rather than from what an operation declares, so a second
+                            // type here is a body the document offers and the router turns away,
+                            // under a schema nothing would ever have checked.
+                            var other = operation.RequestBody.Content.Keys
+                                .First(type => !string.Equals(type, MediaType, StringComparison.Ordinal));
+                            throw new InvalidOperationException(
+                                operation.OperationId + " declares a body under " + other + " beside " + MediaType +
+                                ", which the router answers " + UnsupportedMediaTypeStatus + ".");
                         }
 
                         var unsupported = BodyCheck.Supports(content.Schema);
@@ -493,6 +541,18 @@ namespace KeePassGate.Spec
                         }
 
                         captures[name] = declared.Schema;
+                    }
+
+                    var cookie = Located(path.Value.Parameters, operation.Parameters, ParameterLocation.Cookie)
+                        .FirstOrDefault();
+                    if (cookie != null)
+                    {
+                        // What `TakesIfMatch` refuses any other header for, in the one location
+                        // nothing reads at all: a cookie declared required, or held to a pattern,
+                        // loaded and was kept by nobody.
+                        throw new InvalidOperationException(
+                            operation.OperationId + " declares a cookie parameter " + cookie.Name +
+                            ", and nothing reads a cookie, so what it declares would be kept by nobody.");
                     }
 
                     var takesIfMatch = TakesIfMatch(path.Value.Parameters, operation.Parameters, operation.OperationId);
@@ -639,6 +699,32 @@ namespace KeePassGate.Spec
                         head.OperationId + " and " + operation.OperationId +
                         " disagree about carrying a body, so they are not one request with" +
                         " the content left off.");
+                }
+
+                // And the same body where both carry a body, for the same reason: a schema is what
+                // decides whether either of them serves the request at all.
+                if (head.Body != null && !BodyCheck.Agree(head.Body, operation.Body))
+                {
+                    throw new InvalidOperationException(
+                        head.OperationId + " and " + operation.OperationId +
+                        " disagree about the body they take, so they are not one request with" +
+                        " the content left off.");
+                }
+
+                // The lengths a captured segment is held to decide whether the path exists, before
+                // a method is looked at. A head allowing a segment its get does not was a route
+                // there for HEAD alone: a GET for it skipped the get, found the head, and was
+                // answered `405` naming HEAD, while a HEAD ran the shared handler.
+                foreach (var capture in operation.Captures)
+                {
+                    OpenApiSchema held;
+                    if (!head.Captures.TryGetValue(capture.Key, out held) || !BodyCheck.Agree(held, capture.Value))
+                    {
+                        throw new InvalidOperationException(
+                            head.OperationId + " and " + operation.OperationId + " hold " + capture.Key +
+                            " to different schemas, so the head would answer on a path its own get" +
+                            " does not declare.");
+                    }
                 }
 
                 // The switch is not a verb, so it is asked about separately here as it is
@@ -896,6 +982,35 @@ namespace KeePassGate.Spec
             }
 
             return boolean.Value;
+        }
+
+        /// <summary>
+        /// The first key here in this document's namespace that is none of these, or null when
+        /// there is none.
+        /// </summary>
+        /// <remarks>
+        /// The namespace is compared without case, so `x-KPG-attachments` is a key of ours and is
+        /// refused, while each key it may hold is compared exactly: a spelling of a switch that
+        /// is not the switch is the misspelling this exists to catch. An extension outside the
+        /// namespace is somebody else's to give a meaning to, and is left alone.
+        /// </remarks>
+        private static string Ours(IDictionary<string, Microsoft.OpenApi.Interfaces.IOpenApiExtension> extensions,
+            params string[] read)
+        {
+            if (extensions == null)
+            {
+                return null;
+            }
+
+            foreach (var key in extensions.Keys)
+            {
+                if (key.StartsWith(ExtensionPrefix, StringComparison.OrdinalIgnoreCase) && Array.IndexOf(read, key) < 0)
+                {
+                    return key;
+                }
+            }
+
+            return null;
         }
 
         private static string Extension(IDictionary<string, Microsoft.OpenApi.Interfaces.IOpenApiExtension> extensions,

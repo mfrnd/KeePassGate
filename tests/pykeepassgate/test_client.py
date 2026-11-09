@@ -250,7 +250,7 @@ def test_a_503_that_names_no_word_is_the_family_itself(
 def test_nothing_is_asked_of_the_identity_a_locked_database_answers_with(
     gate: FakeGate, paired: GateClient, responder: Issued
 ) -> None:
-    # `CA.md` 208 is what the marker is for. A responder chains to the same authority, so the
+    # `CA.md` §208 is what the marker is for. A responder chains to the same authority, so the
     # pin admits it and an impostor holding its key could answer a route with a fabricated
     # password that an agent would then act on. The refusal comes before the request, so this
     # costs the caller a `DatabaseLocked` rather than a secret somebody made up.

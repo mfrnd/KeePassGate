@@ -16,7 +16,7 @@ is serving with. So the handshake has to have happened, and its certificate has 
 while the body is still being built.
 
 **Why one identity is refused before a request reaches it.** A locked database answers with a
-responder certificate, and `CA.md` 208 marks that certificate so a client can refuse to send real
+responder certificate, and `CA.md` §208 marks that certificate so a client can refuse to send real
 requests over it. Refusing has to happen before the write rather than after the answer, because a
 request body carries whatever it was going to store.
 """
@@ -836,9 +836,9 @@ def _responder(der: bytes) -> bool:
     """Whether this certificate is the one a locked database answers with.
 
     Read off the marker rather than off the subject name, because the subject is a convention and
-    `CA.md` 208 asks for something a client can decide on. The marker cannot be put on a certificate
-    or taken off one either: what the authority signed is what arrives, and a paired client accepts
-    nothing the authority did not sign.
+    `CA.md` §208 asks for something a client can decide on. The marker cannot be put on a
+    certificate or taken off one either: what the authority signed is what arrives, and a paired
+    client accepts nothing the authority did not sign.
 
     An encoding this cannot read is not a responder, which is the direction that keeps an honest
     connection working: a certificate the authority issued is one this reads, and one it did not

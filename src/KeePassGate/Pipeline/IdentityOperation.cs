@@ -19,8 +19,10 @@ namespace KeePassGate.Pipeline
     /// paired with, kept through every renewal, which every count and naming of clients on the KPG
     /// tab goes by and each row of the Clients page names. `admissionKey` is the certificate on
     /// this connection, which the Clients page revokes, and which changes with each renewal. Both
-    /// stay, because each answers a question the other cannot, and every line of the audit names
-    /// both under these same two names.
+    /// stay, because each answers a question the other cannot, and the audit names a client under
+    /// these same two names: both on a line about a request an admitted certificate made, and a
+    /// single key on a pairing's line and on a refused certificate's, as `openapi.yaml`'s
+    /// `Identity` sets out.
     ///
     /// **The profiles come in two halves of one list.** `profiles` is what the record holds that
     /// the database still names, which is all the rules are ever asked about for this client, and

@@ -362,8 +362,9 @@ designing around them.
   of what the API answers; one handler, so the two cannot come to disagree about whether
   something is there. The plugin refuses to load a `get` with no `head`, or a pair that differs in
   anything that decides who may ask or what is asked: the verb, the reach, the certificate, the
-  body, the query parameters, `If-Match` or the guard. The answer omits `Content-Length` rather
-  than sending a wrong one, which RFC 9110 section 9.3.2 permits.
+  lengths a path parameter allows, the body, the query parameters, `If-Match` or the guard. The
+  answer omits `Content-Length` rather than sending a wrong one, which RFC 9110 section 9.3.2
+  permits.
 - **A node's `ETag` is a keyed digest of what it holds, never a clock and never a plain hash.**
   `NodeTags` takes an HMAC-SHA256 over exactly what the routes serve, as they serve it: an entry's
   identifier, its group, its two times to the second, every string with its name, whether it is

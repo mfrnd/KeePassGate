@@ -100,8 +100,8 @@ namespace KeePassGate.Vault
         /// <summary>Every group under this one, one level down, or null when it is not there.</summary>
         IReadOnlyList<VaultGroup> Subgroups(string uuid);
 
-        /// <summary>Every group in the database, root included and the recycle bin aside, in tree
-        /// order, or null when the database has no tree to read.</summary>
+        /// <summary>Every group in the database, root included and the recycle bin aside, depth
+        /// first in KeePass's tree order, or null when the database has no tree to read.</summary>
         IReadOnlyList<VaultGroup> Groups();
 
         /// <summary>An entry by identifier, or null when there is none.</summary>

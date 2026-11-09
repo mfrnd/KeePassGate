@@ -202,7 +202,7 @@ namespace KeePassGate.Spec
             return new SpecRouter(
                 Document,
                 Handlers(version, revision, pairing, renewal, access == null ? null : access.Admissions),
-                Guards(pairing),
+                Guards(pairing, renewal),
                 Nodes(),
                 access);
         }
@@ -350,14 +350,19 @@ namespace KeePassGate.Spec
         }
 
         /// <summary>
-        /// The preconditions the document cannot state, because only pairing knows them.
+        /// The preconditions the document cannot state, because only pairing knows them, and the
+        /// routes a build without what serves them does not serve.
         /// </summary>
         /// <remarks>
         /// Reaching a pairing route needs a connection that arrived on an invitation and a client
         /// that does not already hold a certificate. That is neither identity nor a body, so the
         /// router asks pairing itself, before anything has looked at what was sent.
         /// </remarks>
-        public static IReadOnlyDictionary<string, OperationGuard> Guards(PairingHandler pairing)
+        /// <param name="renewal">
+        /// The renewal route's handler, or null for a build that renews nothing, whose renewal
+        /// route is then guarded as a pairing route is in a build without pairing.
+        /// </param>
+        public static IReadOnlyDictionary<string, OperationGuard> Guards(PairingHandler pairing, RenewalHandler renewal)
         {
             var guards = new Dictionary<string, OperationGuard>(StringComparer.Ordinal);
 
@@ -367,11 +372,20 @@ namespace KeePassGate.Spec
             guards[PairHello] = pairing == null ? Absent : (OperationGuard)PairingHandler.MayReach;
             guards[PairRequest] = pairing == null ? Absent : (OperationGuard)PairingHandler.MayReach;
 
+            // The same for a build that renews nothing. With only `NotServed` behind it, the router
+            // checked the body's media type and schema first, so a malformed body was told `400`
+            // and only a well formed body was told the route is not there.
+            if (renewal == null)
+            {
+                guards[RenewCertificate] = Absent;
+            }
+
             return guards;
         }
 
         /// <summary>
-        /// What a build with no pairing answers on the pairing routes.
+        /// What a build with no pairing answers on the pairing routes, and a build that renews
+        /// nothing on the renewal route.
         /// </summary>
         /// <remarks>
         /// Bound rather than absent, which is the difference between a build that says no and a

@@ -183,15 +183,20 @@ namespace KeePassGate.Bridge
             found.Add(Describe(root));
             var bin = Bin(root);
 
-            foreach (var group in root.GetGroups(true))
+            // Depth first, as KeePass's tree shows the groups and as `GetEntries(true)` walks them
+            // for the entries: each group, then everything inside it, then the next. The groups
+            // came in `GetGroups(true)`'s order, each group's own groups before any of theirs,
+            // which is neither, so a client showing them as they came put a sibling between a
+            // group and its children.
+            root.TraverseTree(TraversalMethod.PreOrder, group =>
             {
-                if (Discarded(group, bin))
+                if (!Discarded(group, bin))
                 {
-                    continue;
+                    found.Add(Describe(group));
                 }
 
-                found.Add(Describe(group));
-            }
+                return true;
+            }, null);
 
             return found;
         }

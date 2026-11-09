@@ -35,7 +35,7 @@ namespace KeePassGate.Tests
             foreach (var write in writes)
             {
                 Assert.That(write.Body.Properties["content"].MaxLength, Is.EqualTo(longest),
-                    write.OperationId + " accepts a different size from the one a read hands out");
+                    write.OperationId + " accepts a size other than the largest a read hands out");
             }
         }
 
@@ -58,6 +58,25 @@ namespace KeePassGate.Tests
             Assert.That(response, Does.Contain(
                 VaultHandlers.MaxEntryCharacters.ToString(System.Globalization.CultureInfo.InvariantCulture)
                 + " characters"));
+        }
+
+        [Test]
+        public void The_attachment_writes_name_the_ceiling_their_bytes_are_held_to()
+        {
+            // The same number in words for whoever writes a body, beside the length that spells it
+            // in base64, and nothing else relates the words to the constant.
+            var writes = SpecDocument.Embedded().Operations
+                .Where(o => o.Body != null && o.Body.Properties.ContainsKey("content"))
+                .ToList();
+
+            Assert.That(writes, Is.Not.Empty, "the attachment writes are what this is about");
+
+            foreach (var write in writes)
+            {
+                Assert.That(write.Body.Properties["content"].Description, Does.Contain(
+                    VaultHandlers.MaxAttachmentBytes.ToString(System.Globalization.CultureInfo.InvariantCulture)),
+                    write.OperationId + " names a ceiling other than the largest attachment a read hands out");
+            }
         }
 
         [Test]
@@ -402,6 +421,55 @@ namespace KeePassGate.Tests
             Assert.That(raised.Message, Does.Contain("readA"));
         }
 
+        [TestCase("x-kpg-attachment", TestName = "the attachment switch spelled singular")]
+        [TestCase("x-kpg-Attachments", TestName = "the attachment switch in another case")]
+        [TestCase("x-KPG-attachments", TestName = "the namespace in another case")]
+        [TestCase("x-kpg-verbs", TestName = "a key that is none of the three")]
+        public void An_extension_of_ours_this_does_not_read_stops_the_document_being_read(string key)
+        {
+            // The other half of the switch that will not read. The three keys are read by name,
+            // so a key that is none of them was read as absent, and absent is the permissive
+            // answer for the attachment switch: `x-kpg-attachment: true` loaded as an operation
+            // reaching only the fields, served to a rule holding `read` and not `A`.
+            var raised = Assert.Throws<InvalidOperationException>(() => SpecDocument.Parse(Document(
+                "\"/a\":{\"get\":{\"operationId\":\"readA\",\"x-kpg-verb\":\"read\"," +
+                "\"" + key + "\":true,\"responses\":{\"200\":{\"description\":\"o\"}}}," +
+                "\"head\":{\"operationId\":\"headA\",\"x-kpg-verb\":\"read\"," +
+                "\"" + key + "\":true,\"responses\":{\"200\":{\"description\":\"o\"}}}}")));
+
+            Assert.That(raised.Message, Does.Contain(key));
+            Assert.That(raised.Message, Does.Contain("readA"));
+        }
+
+        [Test]
+        public void An_extension_of_ours_on_a_path_stops_the_document_being_read_too()
+        {
+            // Nothing reads an extension there, well spelled or not, so the switch an author put on
+            // the path for every operation under it would have been read as absent on each of them.
+            var raised = Assert.Throws<InvalidOperationException>(() => SpecDocument.Parse(Document(
+                "\"/a\":{\"x-kpg-attachments\":true," +
+                "\"get\":{\"operationId\":\"readA\",\"x-kpg-verb\":\"read\"," +
+                "\"responses\":{\"200\":{\"description\":\"o\"}}}," +
+                "\"head\":{\"operationId\":\"headA\",\"x-kpg-verb\":\"read\"," +
+                "\"responses\":{\"200\":{\"description\":\"o\"}}}}")));
+
+            Assert.That(raised.Message, Does.Contain("x-kpg-attachments"));
+            Assert.That(raised.Message, Does.Contain("/a"));
+        }
+
+        [Test]
+        public void An_extension_outside_the_namespace_is_left_to_whoever_gives_it_a_meaning()
+        {
+            // Only this document's own keys are refused: an extension another tool reads has no
+            // bearing on what the router does.
+            Assert.DoesNotThrow(() => SpecDocument.Parse(Document(
+                "\"/a\":{\"x-other\":true," +
+                "\"get\":{\"operationId\":\"readA\",\"x-kpg-verb\":\"read\",\"x-other\":\"o\"," +
+                "\"responses\":{\"200\":{\"description\":\"o\"}}}," +
+                "\"head\":{\"operationId\":\"headA\",\"x-kpg-verb\":\"read\"," +
+                "\"responses\":{\"200\":{\"description\":\"o\"}}}}")));
+        }
+
         [Test]
         public void An_unauthenticated_switch_that_is_not_a_boolean_stops_it_too()
         {
@@ -576,6 +644,43 @@ namespace KeePassGate.Tests
         }
 
         [Test]
+        public void A_head_taking_another_body_than_its_own_get_stops_it_as_well()
+        {
+            // Both carrying a body was all that was asked, so a pair could hold the one body to
+            // two schemas and be two requests after all.
+            const string Taken =
+                "\"requestBody\":{\"required\":true,\"content\":{\"application/json\":{\"schema\":" +
+                "{\"type\":\"object\",\"additionalProperties\":false,\"properties\":{\"a\":{\"type\":\"string\",\"maxLength\":";
+
+            var raised = Assert.Throws<InvalidOperationException>(() => SpecDocument.Parse(Document(
+                "\"/a\":{\"get\":{\"operationId\":\"readA\",\"x-kpg-verb\":\"read\"," + Taken + "4}}}}}}," +
+                "\"responses\":{\"200\":{\"description\":\"o\"},\"415\":{\"description\":\"m\"}}}," +
+                "\"head\":{\"operationId\":\"headA\",\"x-kpg-verb\":\"read\"," + Taken + "64}}}}}}," +
+                "\"responses\":{\"200\":{\"description\":\"o\"},\"415\":{\"description\":\"m\"}}}}")));
+
+            Assert.That(raised.Message, Does.Contain("disagree about the body"));
+        }
+
+        [TestCase("{\"type\":\"string\",\"maxLength\":64}", TestName = "a longer segment allowed")]
+        [TestCase("{\"type\":\"string\",\"minLength\":1,\"maxLength\":4}", TestName = "a lower bound beside it")]
+        [TestCase("{\"type\":\"string\"}", TestName = "any segment allowed")]
+        public void A_head_holding_a_segment_to_another_length_than_its_own_get_stops_it_too(string theirs)
+        {
+            // The lengths decide whether a path exists before a method is looked at, so a head
+            // allowing a segment its get refuses was a route there for HEAD alone: a GET for that
+            // segment found the head and was answered `405` naming it.
+            var raised = Assert.Throws<InvalidOperationException>(() => SpecDocument.Parse(Document(
+                "\"/a/{id}\":{\"get\":{\"operationId\":\"readA\",\"x-kpg-verb\":\"none\",\"parameters\":" +
+                "[{\"name\":\"id\",\"in\":\"path\",\"required\":true,\"schema\":{\"type\":\"string\",\"maxLength\":4}}]," +
+                "\"responses\":{\"200\":{\"description\":\"o\"}}}," +
+                "\"head\":{\"operationId\":\"headA\",\"x-kpg-verb\":\"none\",\"parameters\":" +
+                "[{\"name\":\"id\",\"in\":\"path\",\"required\":true,\"schema\":" + theirs + "}]," +
+                "\"responses\":{\"200\":{\"description\":\"o\"}}}}")));
+
+            Assert.That(raised.Message, Does.Contain("hold id to different schemas"));
+        }
+
+        [Test]
         public void A_head_scoped_differently_from_its_own_get_stops_it_as_well()
         {
             // The same argument one switch along. A head that did not reach the attachment
@@ -614,6 +719,23 @@ namespace KeePassGate.Tests
                 "\"responses\":{\"200\":{\"description\":\"o\"}}}}")));
 
             Assert.That(raised.Message, Does.Contain("application/json"));
+        }
+
+        [Test]
+        public void A_body_offered_under_a_second_media_type_is_refused_as_well()
+        {
+            // The router answers 415 to every type but `application/json`, whatever an operation
+            // declares, so the document was offering a body the router turned away, and that
+            // body's schema never reached the check either.
+            var raised = Assert.Throws<InvalidOperationException>(() => SpecDocument.Parse(Document(
+                "\"/a\":{\"post\":{\"operationId\":\"writeA\",\"x-kpg-verb\":\"none\",\"requestBody\":{\"required\":true," +
+                "\"content\":{\"application/json\":{\"schema\":{\"type\":\"object\",\"additionalProperties\":false," +
+                "\"properties\":{\"a\":{\"type\":\"string\"}}}}," +
+                "\"text/plain\":{\"schema\":{\"type\":\"string\"}}}}," +
+                "\"responses\":{\"200\":{\"description\":\"o\"},\"415\":{\"description\":\"m\"}}}}")));
+
+            Assert.That(raised.Message, Does.Contain("text/plain"));
+            Assert.That(raised.Message, Does.Contain("writeA"));
         }
 
         [Test]
@@ -790,6 +912,26 @@ namespace KeePassGate.Tests
 
             Assert.That(raised.Message, Does.Contain("path parameter id"));
             Assert.That(raised.Message, Does.Contain(named));
+        }
+
+        [Test]
+        public void A_cookie_parameter_stops_the_document_being_read()
+        {
+            // Nothing reads a cookie, so a cookie declared required, or with a pattern, was a
+            // promise the document made and nothing kept. Declared on the path item and on the
+            // operation alike, since every operation under a path item inherits its parameters.
+            const string Cookie =
+                "{\"name\":\"session\",\"in\":\"cookie\",\"required\":true,\"schema\":{\"type\":\"string\",\"pattern\":\"^x$\"}}";
+
+            var onThePath = Assert.Throws<InvalidOperationException>(() => SpecDocument.Parse(Document(Queried(Cookie))));
+            var onTheOperation = Assert.Throws<InvalidOperationException>(() => SpecDocument.Parse(Document(
+                "\"/a\":{\"get\":{\"operationId\":\"readA\",\"x-kpg-verb\":\"none\",\"parameters\":[" + Cookie + "]," +
+                "\"responses\":{\"200\":{\"description\":\"o\"}}}," +
+                "\"head\":{\"operationId\":\"headA\",\"x-kpg-verb\":\"none\",\"parameters\":[" + Cookie + "]," +
+                "\"responses\":{\"200\":{\"description\":\"o\"}}}}")));
+
+            Assert.That(onThePath.Message, Does.Contain("cookie parameter session"));
+            Assert.That(onTheOperation.Message, Does.Contain("cookie parameter session"));
         }
 
         /// <summary>A get and its head under a path item declaring this parameter.</summary>

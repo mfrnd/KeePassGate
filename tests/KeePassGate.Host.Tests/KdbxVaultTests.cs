@@ -188,6 +188,35 @@ namespace KeePassGate.Host.Tests
         }
 
         [Test]
+        public void The_sweeps_come_in_the_order_KeePass_shows_the_tree()
+        {
+            // Depth first, as KeePass's tree view shows it: each group, then everything inside it,
+            // then the next. The groups came each group's own groups before any of theirs, so B
+            // arrived between A and A's children. The entries already followed the tree, and are
+            // held to it here beside the groups.
+            var a = Created(_vault.CreateGroup(_vault.RootAlias, "A", null));
+            var b = Created(_vault.CreateGroup(_vault.RootAlias, "B", null));
+            var a1 = Created(_vault.CreateGroup(a, "A1", null));
+            var a2 = Created(_vault.CreateGroup(a, "A2", null));
+            var a21 = Created(_vault.CreateGroup(a2, "A21", null));
+            var b1 = Created(_vault.CreateGroup(b, "B1", null));
+
+            _vault.CreateEntry(_vault.RootAlias, Named("r"));
+            foreach (var pair in new[] { Tuple.Create(b1, "b1"), Tuple.Create(a21, "a21"), Tuple.Create(a, "a"),
+                         Tuple.Create(b, "b"), Tuple.Create(a2, "a2"), Tuple.Create(a1, "a1") })
+            {
+                _vault.CreateEntry(pair.Item1, Named(pair.Item2));
+            }
+
+            Assert.That(_vault.Groups().Skip(1).Select(g => g.Name),
+                Is.EqualTo(new[] { "A", "A1", "A2", "A21", "B", "B1" }));
+            Assert.That(_vault.Groups()[0].Uuid, Is.EqualTo(Hex(_database.RootGroup.Uuid)), "the root first");
+            Assert.That(_vault.Entries().Select(e => e.Title),
+                Is.EqualTo(new[] { "r", "a", "a1", "a2", "a21", "b", "b1" }),
+                "by group in the same order, whatever order they were made in");
+        }
+
+        [Test]
         public void Fields_are_named_without_being_quoted()
         {
             var uuid = Created(_vault.CreateEntry(_vault.RootAlias, Named("an invented service")));

@@ -771,12 +771,12 @@ GET, except no content" true by construction rather than by two implementations 
 Deriving it instead would have left this document an incomplete account of what the API answers,
 which is the one thing it is for; refusing it would have left an HTTP requirement unmet for no
 gain. **A pair carries one verb between them**, one reach, one node it asks about, one answer about
-needing a certificate, one about carrying a body, one set of query parameters, one about taking
-`If-Match` and one guard. The plugin refuses to load a `get` with no `head`, or a pair that
-disagrees about any of them, because a `head` governed differently would answer whether a node
-exists to a caller its own `get` would have refused, which is an oracle rather than a route. The
-answer carries no length, which section 9.3.2 permits: it asks for the same header fields as GET
-and allows omitting the ones determined while generating the content.
+needing a certificate, one bound on each segment it captures, one body or none, one set of query
+parameters, one answer about taking `If-Match` and one guard. The plugin refuses to load a `get`
+with no `head`, or a pair that disagrees about any of them, because a `head` governed differently
+would answer whether a node exists to a caller its own `get` would have refused, which is an oracle
+rather than a route. The answer carries no length, which section 9.3.2 permits: it asks for the
+same header fields as GET and allows omitting the ones determined while generating the content.
 
 **And a refusal to a HEAD carries none either, which is the part that was left implicit and was
 therefore wrong.** RFC 9112 section 6.3 forbids content on a response to HEAD, and a refusal is a
@@ -1409,6 +1409,12 @@ exactly what the operator who revoked it opens this file to see, and until this 
 `401` and left a line nowhere. A caller with no certificate, or with one from another authority,
 names nobody the operator issued and is not written down, because a line for it would let anybody
 who reaches the port grow the file.
+
+**And an admitted certificate turned away on an invitation's connection is written down too**, by
+both its keys, with the reason `this connection arrived on an invitation` and no node. That
+connection reaches the pairing routes alone, and a client holding an invitation beside its
+certificate that asks there for anything else gains no permission by it, but gets the pairing
+budget on the thread; the line is how the operator sees it.
 
 **What the caller is told is less than what is recorded.** A node it may not reach and a node that
 is not there answer the same 404, because telling them apart would let a client that may reach

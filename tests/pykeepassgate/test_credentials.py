@@ -407,7 +407,7 @@ def test_a_first_pairing_that_is_refused_leaves_no_orphaned_key(
 
 
 def test_a_gate_key_of_the_wrong_length_is_refused(tmp_path: Path, bundle: dict[str, Any]) -> None:
-    # `CA.md` 204, and `AuthorityMaterial.SniKeyLength` refusing anything else on the other side. A
+    # `CA.md` §204, and `AuthorityMaterial.SniKeyLength` refusing anything else on the other side. A
     # short one names every connection this client makes, and fails much later as a handshake
     # nobody can account for.
     bundle["gateKey"] = base64.b64encode(bytes(1)).decode()

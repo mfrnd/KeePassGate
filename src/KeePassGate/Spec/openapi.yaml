@@ -34,11 +34,11 @@ info:
     **Every `get` declares a `head` beside it, and the two share one handler.** RFC 9110 section
     9.3.2 says a `head` is identical to its `get` except that no content is sent, so one handler is
     what makes that true by construction rather than by two implementations agreeing. The plugin
-    refuses to load a `get` with no `head`, and a pair that disagrees about its `x-kpg-verb`,
-    its `x-kpg-attachments`, needing a certificate, carrying a body, the query parameters it
-    takes, or whether it takes `If-Match`. The answer omits `Content-Length` rather than sending a wrong one, which section 9.3.2
-    permits for a value determined only while generating content, and section 8.6 requires of
-    anything else.
+    refuses to load a `get` with no `head`, and a pair that disagrees about its `x-kpg-verb`, its
+    `x-kpg-attachments`, needing a certificate, the lengths its path parameters allow, the body it
+    takes, the query parameters it takes, or whether it takes `If-Match`. The answer omits
+    `Content-Length` rather than sending a wrong one, which section 9.3.2 permits for a value
+    determined only while generating content, and section 8.6 requires of anything else.
 
     **A declared path asked for with a method it does not declare answers `405`, carrying the
     methods it does.** RFC 9110 section 15.5.6 requires that list, and it is read off this
@@ -47,7 +47,8 @@ info:
     is said when none of the operations on a path matched, which is a property of the path
     rather than of anything listed under it. It is about the path and never the query: a query
     name nothing on the path declares makes a target this document does not declare at any
-    method, answered as an undeclared path whichever method asked.
+    method, answered as an undeclared path whichever method asked, and so does a body sent where
+    nothing on the path takes a body.
 
     **The transport answers before any route is chosen, on any path**, and so none of what it
     answers is declared per operation either, for the reason `405` is not. Each carries the
@@ -89,11 +90,11 @@ info:
     section 2.11 of XML 1.0 requires. So a value written with `\r\n` or a lone `\r` is answered
     `200` or `201`, is exactly what was sent for as long as the database stays open, and reads
     back with `\n` once KeePass has opened the file again. Tabs and line feeds survive unchanged.
-    A client that compares what it wrote with what it reads compares line endings as equal, and
-    one that needs the carriage returns kept encodes them itself. A surrogate half written as an
-    escape is the one string `Malformed` does not reach: the JSON reader replaces it with
-    `U+FFFD` before anything here sees it, which is what a caller asking to store half a
-    character gets everywhere else too.
+    A client that compares what it wrote with what it reads compares line endings as equal, and a
+    client needing the carriage returns kept encodes them itself. A surrogate half never reaches
+    `Malformed`. Written as an escape, the JSON reader replaces it with `U+FFFD` before anything
+    here sees it, which is what a caller asking to store half a character gets everywhere else
+    too, and written raw it is not UTF-8, which the transport refuses before a route is chosen.
 
     `x-kpg-unauthenticated` marks the two routes an invitee may reach before it has a certificate.
     Everything else needs one, by default rather than by remembering to say so.
@@ -127,6 +128,11 @@ info:
     everything else here. A removal skips the protected switch for the same reason, so `strip`
     takes a protected field off without it.
 
+    **These three are the only `x-kpg-` extensions, and each is read on an operation alone.** Any
+    other key beginning `x-kpg-`, or any of the three on a path, stops the plugin loading, because
+    a key nothing reads is read as absent, and absent is the permissive answer for
+    `x-kpg-attachments`.
+
     **Protected values are a scope too, and no operation declares it.** A password does not have a
     route of its own: it arrives inside the answer to a read that is already allowed, so the switch
     is answered while that answer is written rather than before dispatch. A caller whose rule does
@@ -157,7 +163,11 @@ info:
     naming only what the node already holds, and the expiry when it names one. The values are
     compared as KeePass compares its own, a string by its text and an attachment by its bytes, and
     not by whether either is protected, which is not something a request names, and a name the
-    entry does not carry is a change, since writing it adds a string. Such a request is checked
+    entry does not carry is a change, since writing it adds a string. An expiry is compared
+    exactly, which is to the second for every moment a `.kdbx` kept, since the file keeps no
+    fraction of a second. An `auto` expiry set since KeePass last opened the file still carries
+    the fraction the wire leaves off, so writing back the moment a read served for it writes the
+    expiry once more, to the second, the first time. Such a request is checked
     as any update is, so a dialog open on the node still makes it `503 busy`, and then it writes
     nothing: no modification time, no usage count, no history revision, no save, and the same
     `200`, because the node holds what the request asked it to hold. The comparison is made on
@@ -333,13 +343,15 @@ paths:
           $ref: "#/components/responses/Unpaired"
         "500":
           description: |
-            The gate failed, and the body says how. `not saved` is a revocation that was made and
+            The gate failed, and the body names how. `not saved` is a revocation that was made and
             never reached the disk, and has been taken back out: the certificate is still admitted,
-            and asking again is safe. `not verified` is one that was saved to a file KeePass then
+            and asking again is safe. `not verified` is a revocation saved to a file KeePass then
             read back as something else: it is kept in the database in memory, which stays marked
             as changed, so the certificate is already refused and asking again is answered
             `401`, and whether the file keeps it is the operator's to settle. `internal error` is
-            one that could not be attempted at all.
+            a revocation that could not be attempted at all, the database having closed under the
+            request, or that went wrong before anything was saved: KeePass answered the attempt
+            with an error, or the records did not read back as written and were put back.
           content:
             application/json:
               schema:
@@ -572,15 +584,19 @@ paths:
                     minLength: 1
                     maxLength: 64
                   description: |
-                    A ceiling asked for, not a grant. The operator may take any of them away.
+                    A ceiling asked for, not a grant. The operator may take any of them away. Each
+                    is a profile name as a claim carries it: ASCII letters and digits, `-` and `_`,
+                    and never `default` in any case, and a name holding anything else is
+                    `400 profile`. This states no more than a length because `BodyCheck`
+                    implements no `pattern` an array's items could carry.
                 lifetime:
                   type: string
                   pattern: "^P([1-9]|[1-9][0-9]|[12][0-9][0-9]|3[0-5][0-9]|36[0-5])D$"
                   description: |
                     How long the certificate should last, as an ISO 8601 duration in whole days from
-                    one to 365, `P30D` for thirty, and in that spelling alone. A proposal rather than
-                    a grant: the dialog preselects it and the operator picks, and a request without
-                    it is offered a year. The proof covers it as written.
+                    one to 365, `P30D` for thirty, and in that spelling alone. A proposal rather
+                    than a grant: the dialog preselects it and the operator picks, and a request
+                    without it is offered a year. The proof covers it as written.
                 proof:
                   type: string
                   maxLength: 64
@@ -660,15 +676,20 @@ paths:
   /groups:
     get:
       operationId: listGroups
-      summary: Every group in the database, root first.
+      summary: Every group in the database outside the recycle bin, root first.
       description: |
         Anchored at the root, so a client that may not list there is told nothing. The root is the
         one group whose parent is null, which is how a client that was given no identifiers finds
-        the top of the tree.
+        the top of the tree. The recycle bin and every group inside it are left out, as they are
+        out of reach on every route.
       x-kpg-verb: list
       responses:
         "200":
-          description: The groups, in tree order.
+          description: |
+            The groups in the order KeePass's own tree shows them, depth first: the root, then
+            each of its groups followed by everything inside that group before the next, a group's
+            own groups in KeePass's order. A parent always comes before its children, and a group's
+            whole subtree comes together, so a client can show the tree as the groups arrive.
           content:
             application/json:
               schema:
@@ -829,7 +850,7 @@ paths:
   /groups/{uuid}/groups:
     get:
       operationId: listSubgroups
-      summary: The groups directly inside this one.
+      summary: The groups directly inside this group, the recycle bin aside.
       x-kpg-verb: list
       parameters:
         - $ref: "#/components/parameters/GroupUuid"
@@ -999,12 +1020,16 @@ paths:
       operationId: getGroupAccess
       summary: What this client may do at this group, profile by profile.
       description: |
-        Every verb and switch each profile this client holds is granted here, as the rules answer
-        each operation's own question, in the notation the KPG tab shows a rule in. One mask per
-        profile, because a switch reaches only the verbs of its own rule. Answered `404` unless
-        some profile is granted some verb here, as a group that is not there is. Like every
-        question the rules answer about a node, each request is written to the audit:
-        `permitted` when some profile is granted some verb, and `refused` otherwise.
+        What each profile this client holds is granted here, in the notation the KPG tab shows a
+        rule in, put through the walk an operation's own question takes and asked of the group
+        alone, as the tab shows a rule there. A mask is therefore what the rules grant at the group
+        rather than a promise that every operation it names succeeds: removing the group asks the
+        group above it as well, from the same profile, and `S` is reported though no operation
+        strips a group, as `Access` explains. One mask per profile, because a switch reaches only
+        the verbs of its own rule. Answered `404` unless some profile is granted some verb here, as
+        a group that is not there is. Like every question the rules answer about a node, each
+        request is written to the audit: `permitted` when some profile is granted some verb, and
+        `refused` otherwise.
       x-kpg-verb: any
       parameters:
         - $ref: "#/components/parameters/GroupUuid"
@@ -1044,10 +1069,12 @@ paths:
   /entries:
     get:
       operationId: listEntries
-      summary: Every entry in the database.
+      summary: Every entry in the database outside the recycle bin.
       description: |
         Anchored at the root and recursive, for a flat sweep. The entries route on a group is the
-        other question: one group, one level.
+        other question: one group, one level. An entry in the recycle bin is left out, as it is out
+        of reach on every route. The entries come group by group in the order `listGroups` answers,
+        each group's own in KeePass's order.
       x-kpg-verb: list
       parameters:
         - $ref: "#/components/parameters/IncludeExpired"
@@ -1098,9 +1125,9 @@ paths:
       description: |
         A protected value arrives only when the same rule carries `protected`, and is `null`
         otherwise, which is what the `fields` schema says and what `read` alone does not buy:
-        `protected` is a scope rather than something a verb implies. Attachments are not here, because
-        reaching those needs the attachment switch as well and a response whose contents depend on
-        a second permission is a response nobody can predict.
+        `protected` is a scope rather than something a verb implies. Attachments are not here,
+        because reaching those needs the attachment switch as well and a response whose contents
+        depend on a second permission is a response nobody can predict.
       x-kpg-verb: read
       parameters:
         - $ref: "#/components/parameters/EntryUuid"
@@ -1318,7 +1345,10 @@ paths:
                   maxLength: 65536
                   description: |
                     Line breaks, tabs and bidirectional controls are allowed here, since notes are
-                    a field like any other and right to left text is ordinary in one.
+                    a field like any other and right to left text is ordinary there. A value of
+                    whitespace and nothing else, line breaks and tabs included, is
+                    `400 malformed`, as `Malformed` explains, since the file would read it back
+                    empty.
                 # A string because a request body on this wire carries no booleans. §505
                 protected:
                   type: string
@@ -1443,6 +1473,9 @@ paths:
                 value:
                   type: string
                   maxLength: 65536
+                  description: |
+                    As `createField` takes a value: line breaks, tabs and bidirectional controls
+                    are allowed, and a value of whitespace and nothing else is `400 malformed`.
       responses:
         "200":
           $ref: "#/components/responses/Done"
@@ -1597,6 +1630,11 @@ paths:
                 content:
                   type: string
                   maxLength: 699052
+                  description: |
+                    The bytes, base64 encoded as `readAttachment` answers them: at most 524288,
+                    the largest attachment a read hands out, which is the length above in base64.
+                    A string that does not decode as base64, or decodes to more bytes than that,
+                    is `400 malformed`.
       responses:
         "201":
           $ref: "#/components/responses/Made"
@@ -1699,6 +1737,9 @@ paths:
                 content:
                   type: string
                   maxLength: 699052
+                  description: |
+                    As `createAttachment` takes it: the bytes, base64 encoded, at most 524288 of
+                    them, and `400 malformed` for a string that does not decode or decodes to more.
       responses:
         "200":
           $ref: "#/components/responses/Done"
@@ -1796,12 +1837,17 @@ components:
         error:
           type: string
           description: |
-            A fixed string, matched whole rather than parsed. The ones worth matching on are
-            `locked`, `undecided`, `busy` and `proof`, and on a `409` from `renewCertificate`
-            `this session`, `too early` and `forever`, because each is a different thing for a
-            client to do next; the rest are told apart by the status and read by a person. None of them carries anything
-            the caller sent back to it.
-
+            A fixed word or phrase, matched whole rather than parsed, except where a response names
+            its body a sentence: the transport's refusals but its `417`, and `EntryTooLarge` and
+            `TooLarge`, each known by its status. Where several share a status, the response
+            declaring them names what each means, and those are the words worth matching on,
+            because each is a different thing for a client to do next: `locked`, `undecided` and
+            `busy` on a `503`; `proof` on a `401` from pairing; `no invitation` and `no exchange` on
+            a `409` from pairing, and `this session`, `too early` and `forever` on a `409` from
+            renewal; `malformed`, `name` and `profile` on a `400` from `pairRequest`; and
+            `not saved`, `not verified`, `not recorded` and `internal error` on a `500`. The rest
+            are told apart by the status and read by a person. None of them carries anything the
+            caller sent back to it.
 
     Identity:
       type: object
@@ -1809,8 +1855,14 @@ components:
         [subject, clientKey, admissionKey, expires, profiles, removedProfiles, profilesUnreadable]
       additionalProperties: false
       description: |
-        Every line of the audit names both keys under these two names, so a program can find its
-        own lines by either.
+        The audit names a client under these same two names, so a program can find its own lines
+        there, though not every line carries both. A line about a request this certificate made
+        while admitted names both, and so does a renewal's line and a revocation's. A line about a
+        certificate this database issued and the gate refused, because it was revoked, has expired
+        or is not a client certificate, names its `admissionKey` alone, since no record stands
+        behind it to carry a `clientKey`. A pairing's line names only the certificate it issued,
+        as its `clientKey`, and neither key when it issued none, and the operator's revocation
+        leaves the `clientKey` out when the record was already gone.
       properties:
         subject:
           type: string
@@ -1826,8 +1878,9 @@ components:
           type: string
           description: |
             SHA-256 over the certificate on this connection, in lower case hex, which a renewal
-            changes. The Clients page revokes a certificate by it, and every line of the audit
-            names one by it.
+            changes. The Clients page revokes a certificate by it, and every line of the audit but
+            a pairing's, whose program holds no certificate yet, names by it the certificate the
+            line is about.
         expires:
           type: string
           description: When the certificate stops being admitted, RFC 3339 in UTC to the second.
@@ -1896,8 +1949,10 @@ components:
         The five strings every entry has, by KeePass's own names, so that nothing has to map one
         vocabulary onto another and no custom field can collide with a translated one. Every member
         is optional: a create fills in the rest as empty, and an update writes only what is named.
-        Each name is matched against the entry's own as `FieldName` says, for the whole body before
-        any of it is written, and against the body's other names as well.
+        Each name is matched against the entry's own byte for byte, as `FieldName` explains, and
+        against the body's other names as well, for the whole body before any of it is written: a
+        name the database could not keep apart from a name the entry carries, or from another name
+        in the body, is `409`.
 
         `expires` is not a string the entry holds, and is spelled as a read answers it, in lower
         case, rather than after either of the two things KeePass keeps for it, `Expires` and
@@ -1915,8 +1970,11 @@ components:
         # Stored as written, as every value is. KeePass's Open URL action compiles the entry's URL
         # first, which resolves a field reference such as `{REF:P@I:...}` against the whole open
         # database, knowing nothing about these rules, and replaces `%NAME%` with an environment
-        # variable, and it starts a `cmd://` URL as a command line. What that means for an operator
-        # granting a write verb is in docs/access-control.md.
+        # variable, and it starts a `cmd://` URL as a command line. The entry view makes a link of a
+        # web address in the notes, the title, the user name or a custom field as well, and a click
+        # opens it the same way, `%NAME%` replaced and nothing asked, though a brace ends such a
+        # link, so a reference never travels that way. What that means for an operator granting a
+        # write verb is in docs/access-control.md.
         URL:
           type: string
           maxLength: 8192
@@ -2243,8 +2301,8 @@ components:
         chosen between, which is copies that each made an authority of their own meeting in a
         synchronize. It is answered before a route is chosen too, with each authority's own host
         certificate, so a client of any of them reaches it, pairing included, and it lasts until the
-        operator keeps one of them, which KeePass asks for on its own screen. The clients of the authorities not kept are
-        refused from then on and pair again.
+        operator keeps one of them, which KeePass asks for on its own screen. The clients of the
+        authorities not kept are refused from then on and pair again.
 
         `busy` is five things, and a read meets the first as readily as a write meets the others.
         KeePass's own thread could not be held still for the read: every read waits its turn on that
@@ -2290,9 +2348,9 @@ components:
         window the write would land under, until the operation is over.
       # What a write delivered inside one of KeePass's own operations did, while writes were posted
       # to KeePass's thread rather than queued for it, was nothing a client could see as a conflict:
-      # the operator's own save committed the copy it took before the change and the write the client
-      # was told had landed was gone from the disk, or half an import was written with nothing left
-      # saying the rest never was, or an export threw and left a truncated file.
+      # the operator's own save committed the copy it took before the change and the write the
+      # client was told had landed was gone from the disk, or half an import was written with
+      # nothing left to show the rest never was, or an export threw and left a truncated file.
       headers:
         Retry-After:
           $ref: "#/components/headers/RetryAfter"
@@ -2388,9 +2446,11 @@ components:
       description: |
         The body, or the value of a query parameter, is not what the document declares, or it is
         and carries a string a `.kdbx` cannot hold, on every operation and in the name of a field
-        or an attachment as much as in a value: one holding a control character other than tab,
-        carriage return and line feed, `U+FFFE` or `U+FFFF`, or a surrogate without its pair, and
-        one of whitespace and nothing else. The body names which.
+        or an attachment as much as in a value: a string holding a control character other than
+        tab, carriage return and line feed, or `U+FFFE` or `U+FFFF`, and a string of whitespace and
+        nothing else. A surrogate half never arrives here, as the description at the top explains.
+        Each of these is answered `{"error":"malformed"}`, the same word whichever it was, so a
+        client is told that the request was refused and not which part of it.
       content:
         application/json:
           schema:
@@ -2428,8 +2488,9 @@ components:
     UnsupportedMediaType:
       description: |
         The body was sent under a media type this API does not speak. `application/json` is the
-        only one it declares anywhere, and a request claiming no type at all is taken as claiming
-        that one, because a caller that claimed nothing has not claimed something else. Every
+        only media type it declares anywhere, and a body declared under another beside it stops the
+        plugin loading. A request claiming no type at all is taken as claiming `application/json`,
+        because a caller that claimed nothing has not claimed something else. Every
         operation carrying a body declares this, and one that does not stops the plugin loading. A
         body sent to an operation that declares none is refused before its type is looked at, as a
         target this document does not declare.
@@ -2442,9 +2503,9 @@ components:
       description: |
         Either the proof did not verify, in which case the invitation is not spent, or this
         connection may not pair at all and is being told what every caller without a certificate is
-        told on every path there is. `proof` is the first and `unpaired` the second, and they are not
-        told apart on purpose: a caller the database does not admit cannot tell a pairing route from
-        a path nobody declared.
+        told on every path there is. `proof` is the first and `unpaired` the second, and they are
+        not told apart on purpose: a caller the database does not admit cannot tell a pairing route
+        from a path nobody declared.
       content:
         application/json:
           schema:
@@ -2452,7 +2513,11 @@ components:
 
     NoInvitation:
       description: |
-        The invitation is gone: expired, spent, or this did not follow its own hello.
+        One of two, and the body names which. `no invitation` is the invitation gone, expired or
+        spent, and pairing again needs a new invitation from the operator. `no exchange`, which
+        only `pairRequest` answers, is a request that did not follow its own hello: there was no
+        hello, or a different certificate answered it. That spends the hello's challenge and
+        nothing else, so the same invitation starts again from a hello.
       content:
         application/json:
           schema:
@@ -2462,9 +2527,9 @@ components:
     # mistake.
     NotPairing:
       description: |
-        This connection may not pair: it arrived on no invitation, or it already holds a certificate.
-        Only a client the database already admits is told this much, and it is told exactly what an
-        undeclared path tells it. Everybody else gets the `401` above instead.
+        This connection may not pair: it arrived on no invitation, or it already holds a
+        certificate. Only a client the database already admits is told this much, and it is told
+        exactly what an undeclared path tells it. Everybody else gets the `401` above instead.
       content:
         application/json:
           schema:
@@ -2487,10 +2552,6 @@ components:
           schema:
             $ref: "#/components/schemas/Error"
 
-    # A taken name is told rather than hidden because a create that did not land has to say so, or
-    # a client that only adds believes it stored what it did not, and neither other answer is
-    # open: a `404` would call an entry it may add to absent, and writing over the name is what
-    # `update` is for.
     PreconditionFailed:
       description: |
         The node is there and no longer holds what `If-Match` said, so nothing was read or changed:
@@ -2507,6 +2568,10 @@ components:
           schema:
             $ref: "#/components/schemas/Error"
 
+    # A taken name is told rather than hidden because a create that did not land has to tell the
+    # client so, or a client that only adds believes it stored what it did not, and neither other
+    # answer is open: a `404` would call an entry it may add to absent, and writing over the name
+    # is what `update` is for.
     Conflict:
       description: |
         The database already says otherwise: a name that is taken, a name the database cannot
@@ -2527,7 +2592,10 @@ components:
             $ref: "#/components/schemas/Error"
 
     Done:
-      description: The change is made and the database is saved.
+      description: |
+        The change is made and the database saved before this was answered. An update that asks
+        for nothing the node does not already hold makes no change and saves nothing, and is
+        answered the same, as the description at the top explains.
       content:
         application/json:
           schema:
@@ -2540,7 +2608,6 @@ components:
         application/json:
           schema:
             $ref: "#/components/schemas/Made"
-
 
   headers:
     RetryAfter:
@@ -2597,7 +2664,8 @@ components:
         the database's own host key, which no client holds, so nothing outside the gate can compute
         a tag for a guess. One content gives one tag for as long as the database's authority
         stands, across a lock, a restart and a reload, and recreating the authority changes every
-        tag. A listing carries none, since it answers about a collection.
+        tag. A listing of groups or entries carries none, since it answers about a collection,
+        while a listing of an entry's fields or attachments carries the entry's.
       required: false
       schema:
         type: string
@@ -2678,12 +2746,15 @@ components:
         `Password`, `URL`, `Notes`, or whatever a custom one is called. Percent encoded, and a
         separator inside it has to be escaped. **A name that decodes to `.`, `..` or a control
         character cannot be addressed by a path**: the transport refuses such a target with `400`
-        before a route is chosen, as the description at the top says. The entry's own read
+        before a route is chosen, as the description at the top explains. Nor can a name that
+        decodes into a climb, such as `a%2F..%2Fb` for `a/../b`, which the transport lets through
+        and no route matches, so it is answered as an undeclared path is. The entry's own read
         carries every string it holds, such a name included.
 
-        A name is matched against the entry's own names byte for byte: one that is not among them
-        is a name the entry does not carry, which is `404`, and one the database could not keep
-        apart from a name it does carry is `409`.
+        A name is matched against the entry's own names byte for byte, and a name not among them is
+        a name the entry does not carry, which is `404`, even where the database could not keep it
+        apart from a name the entry does carry. That is `409` only for a name a body brings, as
+        `createField`, `createAttachment` and `EntryFields` state.
       schema:
         type: string
         minLength: 1
@@ -2696,8 +2767,9 @@ components:
       description: |
         An attachment's name, percent encoded. **A name that decodes to `.`, `..` or a control
         character cannot be addressed by a path**: the transport refuses such a target with `400`
-        before a route is chosen, as the description at the top says. The entry's listing still
-        names it. A name is matched as a field's is, which `FieldName` says.
+        before a route is chosen, as the description at the top explains, and a name that decodes
+        into a climb matches no route, as `FieldName` explains. The entry's listing still names it.
+        A name is matched as a field's is, which `FieldName` sets out.
       schema:
         type: string
         minLength: 1

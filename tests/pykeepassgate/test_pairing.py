@@ -868,7 +868,7 @@ class TestWhatPairingMayRepeat:
     def test_a_hello_is_asked_again_because_a_hello_spends_nothing(
         self, gate: FakeGate, pairing_gate: Gate, waited: list[float]
     ) -> None:
-        # `PAIRING.md` 306: the token is burned by an approval or a refusal and by nothing else.
+        # `PAIRING.md` §306: the token is burned by an approval or a refusal and by nothing else.
         # A hello reaches no dialog, no issuance and no write, so a refused one has cost the
         # invitee nothing and asking again is starting phase 3 rather than sending it twice.
         pairing_gate.hello_refusals = [(503, "busy"), (503, "busy")]
@@ -1010,7 +1010,7 @@ class TestWhatPairingMayRepeat:
         bundle: dict[str, Any],
         waited: list[float],
     ) -> None:
-        """`api.pair` repeats the exchange, which is what `PAIRING.md` 303 says to do.
+        """`api.pair` repeats the exchange, which is what `PAIRING.md` §303 asks for.
 
         "Nothing is spent by that, so the invitee can simply ask again." A `503` from
         `/pair/request` is provably before the burn: `PairingHandler.Approve` answers it at the

@@ -63,11 +63,14 @@ namespace KeePassGate.Spec
     /// before anything has parsed a body. The transport has read the bytes by then, within
     /// `GateOptions.MaxBodyBytes`, because it reads a request whole before routing it. Then
     /// identity, in one place, so a route added later is denied by default rather than by somebody
-    /// remembering to guard it.
-    /// Then the operation's own guard, for a precondition the document cannot state. Then
-    /// authorization, the admission record intersected with the rules. Then the body, against
-    /// the declared schema, so nothing is reported about a body on a route the caller may not
-    /// reach.
+    /// remembering to guard it. Then a query name or a body the operation does not declare,
+    /// answered as the undeclared target the request then is. Then the operation's own guard, for
+    /// a precondition the document cannot state. Then authorization, the admission record
+    /// intersected with the rules. Then the body's media type, and then the body against the
+    /// declared schema, so nothing is reported about a body on a route the caller may not reach.
+    /// A method none of the path's operations has goes the same way as far as it can: a caller
+    /// that may not be told the path is there, or a query name or a body nothing on the path
+    /// declares, is answered as an undeclared target, and anything else is a `405`.
     ///
     /// **HEAD follows GET.** It is declared beside every `get` and bound to the same handler, and
     /// served by running that handler and discarding what it wrote. RFC 9110 section 9.3.2 asks for the same header
@@ -163,7 +166,7 @@ namespace KeePassGate.Spec
 
             foreach (var pair in handlers)
             {
-                _handlers[pair.Key] = pair.Value;
+                _handlers[pair.Key] = Bound(pair.Key, pair.Value, "handler");
             }
 
             _nodes = new Dictionary<string, NodeSelector>(StringComparer.Ordinal);
@@ -173,7 +176,7 @@ namespace KeePassGate.Spec
             {
                 foreach (var pair in guards)
                 {
-                    _guards[pair.Key] = pair.Value;
+                    _guards[pair.Key] = Bound(pair.Key, pair.Value, "guard");
                 }
             }
 
@@ -181,12 +184,32 @@ namespace KeePassGate.Spec
             {
                 foreach (var pair in nodes)
                 {
-                    _nodes[pair.Key] = pair.Value;
+                    _nodes[pair.Key] = Bound(pair.Key, pair.Value, "node selector");
                 }
             }
 
             Assert();
             AssertAuthorized();
+        }
+
+        /// <summary>The delegate bound under a name, refusing a binding to nothing.</summary>
+        /// <remarks>
+        /// A name bound to null counted as bound: every assertion below asks which names are
+        /// bound, and for a pair whether the two delegates are the same, so a null handler, guard
+        /// or selector loaded, and its first request threw where the router calls it and was
+        /// answered `500` as a defect. That is the operation with nothing behind it, found on a
+        /// connection, which the assertions exist to find as the plugin loads.
+        /// </remarks>
+        private static T Bound<T>(string name, T bound, string kind) where T : class
+        {
+            if (bound == null)
+            {
+                throw new InvalidOperationException(
+                    name + " is bound to no " + kind + ", so its first request would be a defect" +
+                    " rather than an answer.");
+            }
+
+            return bound;
         }
 
         /// <summary>
@@ -387,9 +410,10 @@ namespace KeePassGate.Spec
             // What the path does serve, gathered while looking for what was asked for. The loop
             // below stops at a match, so this is only ever complete when there was none. That is
             // the one case that has to say what the methods are, and the query names any of them
-            // declares are gathered for the same case.
+            // declares, and whether any of them takes a body, are gathered for the same case.
             var served = new List<string>();
             var named = new HashSet<string>(StringComparer.Ordinal);
+            var bodied = false;
 
             foreach (var candidate in _document.Operations)
             {
@@ -406,6 +430,7 @@ namespace KeePassGate.Spec
                 pathIsPublic = pathIsPublic || !candidate.NeedsIdentity;
                 served.Add(candidate.Method);
                 named.UnionWith(candidate.Query);
+                bodied = bodied || candidate.Body != null;
 
                 if (string.Equals(candidate.Method, wanted, StringComparison.Ordinal))
                 {
@@ -446,6 +471,15 @@ namespace KeePassGate.Spec
                     return;
                 }
 
+                // The body is the other half of that target, as `Bodied` holds once a method has
+                // matched. Asked only there, `DELETE /gate/status` carrying `{"x":"1"}` was a `405`
+                // naming what the path serves, where the same words sent as a query were `404`.
+                if (!bodied && !string.IsNullOrEmpty(context.Body))
+                {
+                    Undeclared.Refuse(context);
+                    return;
+                }
+
                 // RFC 9110 section 15.5.6: a 405 lists the methods the target does serve. Read
                 // off the document rather than assembled by a handler, so it says what this
                 // server actually routes and cannot fall out of step with it. In the document's
@@ -465,9 +499,14 @@ namespace KeePassGate.Spec
             {
                 // Written down when the certificate is one this database's authority issued, which
                 // is a revoked or expired client still trying and exactly what an operator opens the
-                // audit to see. Here and not at the two refusals above: those name no operation,
-                // and an admitted client asking for one is not written down either.
-                if (_access != null)
+                // audit to see, or an admitted client asking on an invitation's connection for what
+                // its own name gives it. Here and not at the two refusals above: those name no
+                // operation, so nobody refused there is written down, an admitted client included.
+                if (_access != null && context.Client.IsPaired)
+                {
+                    _access.RefuseOnInvitation(context.Client, operation.OperationId);
+                }
+                else if (_access != null)
                 {
                     _access.Refuse(context.Client, operation.OperationId);
                 }
@@ -555,8 +594,8 @@ namespace KeePassGate.Spec
         /// **A request target is more than its path.** The transport splits the query off and
         /// parses it, and nothing here ever read the result, so `GET /entries?group=x` was served
         /// as `GET /entries`: the whole database came back and the caller was told nothing about
-        /// the word it sent. `API.md` 407 is where scoping by query was cut, and it says the
-        /// list routes are where filtering and paging would arrive, so this asks the document
+        /// the word it sent. `API.md` §407 is where scoping by query was cut, and it names the
+        /// list routes as where filtering and paging would arrive, so this asks the document
         /// rather than refusing every query for all time.
         ///
         /// Refused as an undeclared target, which is what it is, so it answers exactly what an

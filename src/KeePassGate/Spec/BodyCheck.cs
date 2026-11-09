@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.Text;
 using System.Text.RegularExpressions;
 using KeePassGate.Transport;
@@ -11,16 +12,21 @@ namespace KeePassGate.Spec
     /// Checks a request body against the schema the document declares for it, before a handler runs.
     /// </summary>
     /// <remarks>
-    /// **A subset, and the subset is enforced rather than assumed.** `Supports` says whether a
-    /// schema uses only what this understands, and the router asks it about every schema in the
-    /// document at startup. A construct nobody implemented is therefore a plugin that does not
-    /// load, never a body that goes unchecked because the checker did not recognize its schema.
+    /// **A subset, and the subset is enforced rather than assumed.** `Supports` and the two beside
+    /// it answer whether a schema uses only what this understands, and the loader asks them, as it
+    /// reads the document at startup, about every request body and every path, query and header
+    /// parameter. A response's schema is not asked about, since nothing here checks an answer. A
+    /// construct nobody implemented in a request is therefore a plugin that does not load, never a
+    /// body that goes unchecked because the checker did not recognize its schema.
     /// That is the difference between a subset and a gap.
     ///
     /// What it understands is exactly what `JsonBody` can read and what this wire carries: one flat
     /// object whose values are strings or arrays of strings, `required`, `additionalProperties:
     /// false`, lengths, a pattern a string is held to, and a cap on how many items an array may
-    /// hold. No schema library does this
+    /// hold, which every array declares. **No more than `JsonBody` reads, either**: an array may
+    /// hold no more than `JsonBody.MaxItems` and a body no more than `JsonBody.MaxMembers`
+    /// members, because the reader refuses a larger body before this is asked, and a document
+    /// allowing more would offer bodies nothing accepts. No schema library does this
     /// job. The cheapest brings two assemblies and a license an MIT plugin cannot take; the cheapest
     /// one it can take brings fourteen into the process that holds somebody's password database,
     /// against three for reading the document, and would validate constructs this document is not
@@ -53,8 +59,8 @@ namespace KeePassGate.Spec
         /// Why this schema cannot be checked, or null when it can be.
         /// </summary>
         /// <remarks>
-        /// Called for every schema in the document at startup, so the answer is a sentence for
-        /// whoever is editing the document rather than something a client sees.
+        /// Called for every request body the document declares, at startup, so the answer is a
+        /// sentence for whoever is editing the document rather than something a client sees.
         /// </remarks>
         public static string Supports(OpenApiSchema schema)
         {
@@ -78,6 +84,14 @@ namespace KeePassGate.Spec
             if (schema.Properties == null || schema.Properties.Count == 0)
             {
                 return "a request body declares its properties";
+            }
+
+            if (schema.Properties.Count > JsonBody.MaxMembers)
+            {
+                // The reader refuses a body of more members than that before this is asked, so a
+                // document declaring more would offer bodies nothing accepts.
+                return "a request body declares at most " + JsonBody.MaxMembers +
+                       " properties, which is as many members as the reader takes";
             }
 
             foreach (var property in schema.Properties)
@@ -287,8 +301,23 @@ namespace KeePassGate.Spec
                     return "an array on this wire holds strings";
                 }
 
-                return Unimplemented(member, "items", "maxItems")
-                       ?? Unimplemented(member.Items, "minLength", "maxLength");
+                var unimplemented = Unimplemented(member, "items", "maxItems")
+                                    ?? Unimplemented(member.Items, "minLength", "maxLength");
+                if (unimplemented != null)
+                {
+                    return unimplemented;
+                }
+
+                // A bound of its own, and no higher than the reader's, which refuses a longer list
+                // before this is asked: an array allowing more, or declaring no bound, offered
+                // lists the reader answered as malformed past that length.
+                if (!member.MaxItems.HasValue || member.MaxItems.Value > JsonBody.MaxItems)
+                {
+                    return "an array declares maxItems of at most " + JsonBody.MaxItems +
+                           ", which is as many items as the reader takes";
+                }
+
+                return null;
             }
 
             return "this wire carries strings and arrays of strings, and this declares " + Describe(member.Type);
@@ -369,6 +398,49 @@ namespace KeePassGate.Spec
             }
 
             return declared.Pattern == null || Matches(declared.Pattern, value);
+        }
+
+        /// <summary>
+        /// Whether two schemas hold a request to the same thing, as far as anything here holds a
+        /// request to a schema.
+        /// </summary>
+        /// <remarks>
+        /// **Every keyword this implements, and nothing else**, which is enough because a schema
+        /// writing anything beyond them was refused before this is asked: the type, the lengths,
+        /// the pattern, the cap on items, what the items are, which members there are, which are
+        /// required and that there are no others. An annotation is not compared, since nothing
+        /// holds a request to an annotation.
+        /// </remarks>
+        public static bool Agree(OpenApiSchema first, OpenApiSchema second)
+        {
+            if (first == null || second == null)
+            {
+                return first == second;
+            }
+
+            if (!string.Equals(first.Type, second.Type, StringComparison.Ordinal)
+                || first.MinLength != second.MinLength
+                || first.MaxLength != second.MaxLength
+                || !string.Equals(first.Pattern, second.Pattern, StringComparison.Ordinal)
+                || first.MaxItems != second.MaxItems
+                || first.AdditionalPropertiesAllowed != second.AdditionalPropertiesAllowed
+                || !Agree(first.Items, second.Items)
+                || !new HashSet<string>(first.Required, StringComparer.Ordinal).SetEquals(second.Required)
+                || first.Properties.Count != second.Properties.Count)
+            {
+                return false;
+            }
+
+            foreach (var property in first.Properties)
+            {
+                OpenApiSchema theirs;
+                if (!second.Properties.TryGetValue(property.Key, out theirs) || !Agree(property.Value, theirs))
+                {
+                    return false;
+                }
+            }
+
+            return true;
         }
 
         /// <summary>Why a pattern cannot be held to, or null when it can be.</summary>

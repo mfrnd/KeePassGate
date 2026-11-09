@@ -83,6 +83,32 @@ namespace KeePassGate.Pipeline
         public const string ProfilesUnreadable = "profile list unreadable";
 
         /// <summary>
+        /// The reason a refusal gives when an admitted certificate asked for an ordinary route on a
+        /// connection that arrived on an invitation.
+        /// </summary>
+        public const string ArrivedOnInvitation = "this connection arrived on an invitation";
+
+        /// <summary>
+        /// Writes down a certificate this database admits, refused an operation because the
+        /// connection it asked on arrived on an invitation, which reaches the pairing routes alone.
+        /// </summary>
+        /// <remarks>
+        /// The other refusal of a certificate this database issued, beside <see cref="Refuse"/>'s,
+        /// and it went unwritten: a client holding an invitation as well can ask on its name for
+        /// what its own name gives it, with the pairing budget on the thread, and the audit is
+        /// where the operator sees it. The certificate is admitted, so its line names both keys.
+        /// </remarks>
+        public void RefuseOnInvitation(ClientIdentity client, string operationId)
+        {
+            if (client == null || !client.IsPaired)
+            {
+                return;
+            }
+
+            Write(client, operationId, null, null, false, ArrivedOnInvitation, null, null);
+        }
+
+        /// <summary>
         /// Whether this client may do this to this node, with what answered it, recorded either way.
         /// </summary>
         /// <remarks>

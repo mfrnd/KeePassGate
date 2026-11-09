@@ -11,6 +11,83 @@ none, since it releases both.
 
 ## 0.2.0, unreleased
 
+- **A certificate the database admits, turned away on a connection that arrived on an invitation,
+  is written to the audit**, with the reason `this connection arrived on an invitation`. It is
+  refused as before, and was the line missing from the audit's account of every certificate this
+  database issued that an operation turns away.
+- **The routing document states what an attachment write takes**: the bytes base64 encoded, at
+  most 524288 of them, and `400 malformed` for a string that does not decode or decodes to more.
+  Only the read side stated the encoding.
+- **The routing document's access routes describe a mask as what the rules grant at the node**,
+  asked of the node alone, as the design documents and the `Access` schema already did. They
+  described it as each operation's own answer, which a removal, asking the group above as well, is
+  not.
+- **The routing document no longer claims every audit line names both of a client's keys.** A
+  refused certificate's line names its `admissionKey` alone and a pairing's line its `clientKey`
+  alone, as `docs/audit.md` already stated, so a program revoked and still trying finds those
+  lines by its admission key.
+- **The routing document no longer promises a save behind every `200 ok`**: an update asking for
+  nothing the node does not already hold changes and saves nothing and is answered the same. It
+  states too that an `auto` expiry set since KeePass last opened the file is written once more,
+  to the second, the first time a client writes back the moment it read.
+- **The routing document's `ETag` no longer claims that no listing carries a tag**: a listing of
+  an entry's fields or attachments carries the entry's, as the routes already declared.
+- **The routing document states what the group and entry listings leave out and in what order
+  the groups come.** The sweeps of every group and every entry, and a group's own groups, leave out
+  the recycle bin and what it holds, which nothing on those routes stated.
+- **The groups are listed depth first, as KeePass's tree shows them**: each group, then everything
+  inside it, then the next. They came each group's own groups before the groups inside them, which
+  is neither KeePass's tree nor one level at a time, where the document promised tree order. The
+  entries already came group by group in that order.
+- **The routing document states which characters a profile asked for at pairing may hold**:
+  ASCII letters and digits, `-` and `_`, and never `default`. It gave only the length, so a client
+  built from it learned the rule by being answered `400 profile`.
+- **The routing document answers a field or attachment named in a path as the gate does**: a name
+  the database cannot keep apart from a name the entry carries is `404` there, where the document
+  promised `409`, which only a name in a body gets. A name that decodes into a climb, such as
+  `a/../b`, is named among those a path cannot address, and is answered as an undeclared path.
+- **The routing document's `Malformed` no longer promises a body naming which refusal it was**:
+  every case is answered `malformed`. It no longer lists a surrogate without its pair, which never
+  reaches it, and a field's value states that whitespace and nothing else is refused, where it
+  stated only that line breaks and tabs are allowed.
+- **The routing document names the error words worth matching on**, `not saved`, `not verified`,
+  `not recorded` and `internal error` on a `500` among them, where it named a few and called the
+  rest told apart by the status. It tells `409 no exchange`, after which the same invitation starts
+  again from a hello, from `409 no invitation`, and a revocation's `500 internal error` covers a
+  revocation that went wrong before anything was saved as well as a revocation never attempted.
+- **A router refuses to be built with a route bound to nothing**: a handler, a guard or a node
+  selector given as null counted as bound, so it loaded and the route's first request was answered
+  `500` as a defect. The plugin binds none to nothing, so only a router assembled outside it
+  changes.
+- **A router built without renewal refuses the renewal route before looking at the body**, as a
+  router built without pairing refuses the pairing routes. A malformed body was answered `400` and
+  only a well formed body was told the route is not served. The plugin always serves renewal, so
+  only a router assembled outside it, as the tests assemble theirs, answered this way.
+- **A body sent to a path none of whose operations takes a body is refused as an undeclared
+  target whatever the method**, as a query name nothing on the path declares already was. Sent
+  with a method the path does not serve, it was answered `405` naming the methods the path does
+  serve.
+- **The plugin refuses to load a routing document whose `get` and `head` hold a path parameter or
+  a body to different schemas.** Only whether each carried a body was compared, so a `head`
+  allowing a segment its `get` refused loaded, and a `GET` for that segment was answered `405`
+  naming `HEAD`. The document the plugin ships holds every pair to one schema.
+- **The plugin refuses to load a routing document allowing a larger body than its reader takes**:
+  an array in a request body declaring no `maxItems`, or more than 32, and a body declaring more
+  than 32 members. The reader refuses either before the document's schema is asked, so such a
+  document loaded and offered bodies that were answered `400 malformed`. The document the plugin
+  ships allows none.
+- **The plugin refuses to load a routing document offering a body under a second media type**
+  beside `application/json`. The router answers `415` to every other type whatever the document
+  declares, so such a document offered a body the router turned away, under a schema nothing
+  checked. The document the plugin ships offers none.
+- **The plugin refuses to load a routing document declaring a cookie parameter.** Nothing reads a
+  cookie, so a cookie declared required, or with a pattern, loaded and was kept by nobody. The
+  document the plugin ships declares none.
+- **The plugin refuses to load a routing document carrying an `x-kpg-` extension it does not
+  read**, on an operation or on a path. The three it reads were looked up by name and nothing else
+  was looked at, so a misspelled `x-kpg-attachments` loaded as absent, and the route was served to
+  a rule granting `read` without `A`. The document the plugin ships carries none, so nothing it
+  serves changes.
 - **A port the gate could not take, and a gate that stops, leave no socket open behind them.** On
   .NET Framework a refused listener kept the socket it was made with, and a stopped listener
   opened a new socket, each held by the password manager until a collection.

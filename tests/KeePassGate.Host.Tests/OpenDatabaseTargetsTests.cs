@@ -418,8 +418,8 @@ namespace KeePassGate.Host.Tests
             // fails `CertificateBlobTests` in the unit tier and leaves this one green, because that
             // is a path this one does not use. What this catches is
             // a return to `SslStream` and SChannel for the server, which would put the host key in
-            // the user profile for as long as a database was open, and which `DESIGN.md` 133 says
-            // was measured and rejected. It is worth its three handshakes for that alone.
+            // the user profile for as long as a database was open, and which `DESIGN.md` §133
+            // records as measured and rejected. It is worth its three handshakes for that alone.
             //
             // **Asked more than once, because the directories are not ours.** Both belong to the
             // whole logon session, so anything else running can put a file in one inside the
