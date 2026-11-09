@@ -118,8 +118,12 @@ namespace KeePassGate.Host.Tests.Live
             keePass.MoveRootEntryToAutomation();
             keePass.GiveTheBuildAgentAPassword();
 
-            // On the port nobody has to name, so the command typed is the one a reader types.
+            // On the port nobody has to name, so the command typed is the one a reader types. Taken
+            // elsewhere, the film would publish a `--port` no reader types and still end green.
             keePass.UseTheDefaultPort();
+            Assert.That(keePass.Port, Is.EqualTo(GateOptions.DefaultPort),
+                "something on this machine holds port " + GateOptions.DefaultPort +
+                ", so the moving picture would show another. Free it and take the pictures again.");
 
             var home = Paths.Join(Path.GetDirectoryName(keePass.DatabasePath), "home");
             Directory.CreateDirectory(home);
@@ -239,10 +243,7 @@ namespace KeePassGate.Host.Tests.Live
             story.Hold(100);
 
             // The pairing, typed as the documentation gives it, and the code pasted when asked.
-            // `--port` only when something else held the default and the gate had to go elsewhere,
-            // which makes a picture that differs from the published one and says why.
-            var port = keePass.Port == GateOptions.DefaultPort ? string.Empty : " --port " + keePass.Port;
-            var pairing = "pykeepassgate pair" + port + " --name " + ClientName + " --profile-name " + Profile;
+            var pairing = "pykeepassgate pair --name " + ClientName + " --profile-name " + Profile;
 
             story.Step(Side.Client, "The client asks to pair, and the code is pasted at a prompt that shows only stars");
             story.Hold(60);
