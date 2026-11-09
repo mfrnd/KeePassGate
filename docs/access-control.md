@@ -143,6 +143,12 @@ wants. It still learns one thing about what is there: adding a field or an attac
 the entry already holds is refused as taken, so such a program can find out, one guess at a time,
 which names an entry holds. It never learns a value that way.
 
+**A program that may change or strip what an entry holds, without reading all of it, learns the
+same and changes nothing doing so.** It is handed no tag, the token a program names to change an
+entry only if nothing changed since it read it, so any tag it names is refused. But a field or an
+attachment the entry does not hold is refused as missing before that, so naming a tag anyway tells
+it whether a name is there: one guess at a time again, and never a value.
+
 **`L` sits below `R` on purpose.** Knowing that an entry exists is not knowing what is in it.
 
 **`S` and `D` are two sizes of removal.** `S` takes parts off a node: an entry's fields and its
@@ -158,6 +164,10 @@ and that entry cannot be removed while its siblings still can.
 So put `D` on the group whose contents may come and go, rather than at the top of the database. A
 `D` at the top is what makes everything below it removable, and then holding one thing back means
 writing a rule for it.
+
+**A group is removed only once it is empty**, and a group that still holds something is refused as
+such. So a program holding `D` without `L` can find out whether a group it knows of holds anything,
+though never what.
 
 **Where a removed entry goes is out of the program's reach.** KeePass moves it to the recycle bin
 when the database keeps one, and this API cannot see the bin at all: it is not listed, not
@@ -403,6 +413,11 @@ Two answers, and both have to allow it:
 The record is read from the open database on every request, so removing it takes effect at once.
 A node a program may not reach and a node that does not exist answer the same way, so a refused
 program cannot map the database by asking.
+
+**What a program may see still names the group it is in**, by identifier, even where the rules
+hide that group. So a program shown an entry inside a group it may not reach learns that the group
+is there and which of what it is shown share it, though never the group's name or anything else in
+it.
 
 **A program can ask what it may do at a group or an entry** before it tries. It is told one mask for
 each profile it holds, written as this tab writes them, and nothing about a profile it does not

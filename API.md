@@ -192,6 +192,15 @@ removing a group or an entry, or creating one, answers none.
 **A condition says nothing about a node the caller may not reach.** It is asked after the router
 has decided, so a refused node is the same `404` whatever tag was named.
 
+**It does tell a client that is never handed a tag which names an entry carries.** Such a client's
+condition is refused `412` wherever it is asked, and it is asked after a field or an attachment the
+entry does not carry has been answered `404`, so a client that may change or strip an entry without
+reading all of it learns, a name at a time and without writing anything, which names are there. A
+write without the condition tells it as much, by making the change wherever the name is there, and
+answering the condition first would go against RFC 9110 section 13.2.1, which has a server ignore a
+condition on a request that would be refused without it. The same is conceded to `create`, whose
+`409` tells a client that may add and not list that a name is taken.
+
 ## Durability §408
 
 Every write goes through the plugin's single writer: it takes one lock, marshals to the thread that

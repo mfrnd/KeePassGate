@@ -2020,7 +2020,9 @@ components:
         parent:
           type: string
           nullable: true
-          description: Null on the root group, which is how a client finds the top of the tree.
+          description: |
+            Null on the root group, which is how a client finds the top of the tree. A group the
+            rules hide is named here all the same, as `Unreachable` explains.
         created:
           type: string
         modified:
@@ -2041,7 +2043,9 @@ components:
         parent:
           type: string
           nullable: true
-          description: Null on the root group, which is how a client finds the top of the tree.
+          description: |
+            Null on the root group, which is how a client finds the top of the tree. A group the
+            rules hide is named here all the same, as `Unreachable` explains.
         created:
           type: string
         modified:
@@ -2077,6 +2081,9 @@ components:
           type: string
         group:
           type: string
+          description: |
+            The group the entry is in, named even where the rules hide it, as `Unreachable`
+            explains.
         title:
           type: string
           nullable: true
@@ -2115,6 +2122,9 @@ components:
           type: string
         group:
           type: string
+          description: |
+            The group the entry is in, named even where the rules hide it, as `Unreachable`
+            explains.
         created:
           type: string
         modified:
@@ -2546,6 +2556,14 @@ components:
         database by asking, one identifier at a time, which is exactly what `list` exists to be able
         to withhold. The operator is told which it was, in the audit.
 
+        **A group the rules hide is still named by what is in it.** What a client may see carries
+        the identifier of the group it is in, as `parent` on a group and `group` on an entry,
+        whether or not the client may reach that group, and asking for that group by it is then
+        this answer. So a client shown something inside a group it may not reach learns that the
+        group is there and which of what it is shown share it, though never the group's name, its
+        notes or anything else in it. The identifier is served all the same because it is how a
+        client places what it is shown, and a `parent` of null already stands for the root.
+
         A node that goes while the request is answered, in a database that stays open, is this as
         well, and so is a listing of a group or an entry that has gone: never `200` with an empty
         list, which would say the node is there and holds nothing.
@@ -2573,7 +2591,9 @@ components:
     # A taken name is told rather than hidden because a create that did not land has to tell the
     # client so, or a client that only adds believes it stored what it did not, and neither other
     # answer is open: a `404` would call an entry it may add to absent, and writing over the name
-    # is what `update` is for.
+    # is what `update` is for. A group that still holds something is told for the same reason: a
+    # removal that did not happen has to be refused as such, and a `404` would call absent a group
+    # the client may remove.
     Conflict:
       description: |
         The database already says otherwise: a name that is taken, a name the database cannot
@@ -2583,6 +2603,10 @@ components:
 
         **A taken name is `409` even to a client that may create and not list**, and that tells it
         the name is there. What it learns is a name, one guess at a time, and never a value.
+
+        **So is a group that still holds something, to a client that may remove it and not list
+        it**, and that tells it the group is not empty, since an empty group is removed. What it
+        learns is that something is there, never what.
 
         **Not the root group**, which `deleteGroup` answers `404` for, as it does for any node
         the rules do not reach. A removal is asked of the group a node is leaving and the root is
@@ -2700,6 +2724,12 @@ components:
         group that still holds something is `409`, and a dialog open on the node `503 busy`, as RFC
         9110 section 13.2.1 orders them. The header sent twice is `400`, as any header this gate
         reads is.
+
+        **So a client that is sent no tag can learn from an `If-Match` which names an entry
+        carries**, without changing anything: a field or an attachment name the entry does not
+        carry is `404`, and a name it does carry `412`. A write without the condition tells it as
+        much, by making the change wherever the name is there. What it learns is a name, one guess
+        at a time, and never a value.
 
         **A write's condition is checked where the write is made**, on KeePass's thread under the
         writer's lock, against the node as the change would find it, so nothing can land between
