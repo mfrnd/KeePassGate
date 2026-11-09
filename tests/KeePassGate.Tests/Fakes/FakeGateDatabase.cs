@@ -23,6 +23,12 @@ namespace KeePassGate.Tests.Fakes
 
         public bool IsOpen { get; set; }
 
+        /// <summary>How many times the database was marked as modified.</summary>
+        /// <remarks>
+        /// Seen move by a panel handed this database itself, and by `PendingDatabase.Apply` when
+        /// a dialog's OK replays onto it, and never by a panel behind the `PendingDatabase` the
+        /// factory gives it, whose own mark does nothing.
+        /// </remarks>
         public int MarkedModifiedCount { get; private set; }
 
         public InMemoryKeyValueStore Store

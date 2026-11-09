@@ -553,6 +553,11 @@ namespace KeePassGate.Tests
             }
         }
 
+        /// <summary>
+        /// The panel over the fake database itself rather than the `PendingDatabase` the factory
+        /// always gives it, for the reason `AuthorityPanelTests` gives: what such a test asserts
+        /// about marking the database is the panel's own contract with it.
+        /// </summary>
         private AuthorityPanel NewPanel()
         {
             return new AuthorityPanel(_database, new FakePrompt(true), _log, _book);
