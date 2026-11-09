@@ -52,7 +52,9 @@ every tie broken by a color's value, so the same frames make the same file. A se
 same frames on the same machine and account, and not necessarily anywhere else: the display scaling,
 which the fixture checks, and the font smoothing, the regional format and the fonts installed, which
 it does not, all reach the pictures. `AnimatedGifTests`, in the host tier, holds that encoder to
-GDI+'s own decoder, since nothing else reads it until the pictures are retaken.
+GDI+'s own decoder, since nothing else reads it until the pictures are retaken, and
+`StoryboardTests` tells `Storyboard` a short story of its own, holding it to the same file however
+long the telling took and to an invented value drawn wherever the real one would have been.
 
 **No tier runs `build.ps1 -Task Package`**, since it packages only a clean commit. It checks its own
 output instead, every time it runs: the zip is read back against the files it was made from and
