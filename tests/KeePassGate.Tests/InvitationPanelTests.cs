@@ -473,6 +473,17 @@ namespace KeePassGate.Tests
                 Assert.That(copied.GetDataPresent(format, false), Is.True,
                     "the copy is not marked " + format);
             }
+
+            // Two of them are read by Windows as a four byte value, and only zero keeps the copy
+            // out. A managed data object hands Windows raw bytes only for a stream and serializes
+            // anything else, so what is under each has to be a stream of four zero bytes.
+            foreach (var format in new[] { "CanIncludeInClipboardHistory", "CanUploadToCloudClipboard" })
+            {
+                var value = copied.GetData(format, false) as System.IO.MemoryStream;
+
+                Assert.That(value, Is.Not.Null, format + " is not handed to Windows as raw bytes");
+                Assert.That(value?.ToArray(), Is.EqualTo(new byte[4]), format + " does not read as no");
+            }
         }
 
         [Test]
