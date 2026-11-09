@@ -18,17 +18,22 @@ namespace KeePassGate.Host.Tests
     /// <remarks>
     /// `SeededAuthority` is written down rather than minted, because ECDSA picks a random k and a
     /// certificate made twice has a different fingerprint, which would change the pictures on every
-    /// regeneration. What that buys in stability it pays for in a date: the certificate it carries
-    /// expires, and the first sign would otherwise be a published screenshot of a database whose one
-    /// admitted client had expired, taken by a fixture nobody was watching. `SeededCopies`, written
-    /// down for the picture of the authority chooser, carries three more.
+    /// regeneration. What that buys in stability it pays for in dates: the certificates it carries
+    /// expire, the client's, the host's and the authority's, and the first sign would otherwise be a
+    /// published screenshot of a database whose one admitted client had expired, or a retake whose
+    /// pairing failed at the handshake, taken by a fixture nobody was watching. `SeededCopies`,
+    /// written down for the picture of the authority chooser, carries two more authorities, their
+    /// hosts and three more clients.
     ///
-    /// So the date is asserted here, with enough warning to act on. This test failing is not a bug:
-    /// it is the fixture asking to be regenerated, along with the pictures that show its fingerprint.
+    /// So the dates are asserted here, with enough warning to act on. This test failing is not a
+    /// bug: it is the fixture asking to be regenerated, along with the pictures that show its
+    /// fingerprint.
     ///
-    /// The dates are read out of the stored line rather than through `AdmissionRecord`, which would
-    /// put a parser between the assertion and the bytes it is about; the record is read through it
-    /// to ask whether it reads as the client it was paired as.
+    /// A client's dates are read out of the stored line rather than through `AdmissionRecord`,
+    /// which would put a parser between the assertion and the bytes it is about; the record is read
+    /// through it to ask whether it reads as the client it was paired as. An authority's and a
+    /// host's are in a PKCS#12, which only a parser opens, and they are read through the one the
+    /// plugin loads them with.
     /// </remarks>
     [TestFixture]
     public sealed class SeededAuthorityTests
@@ -46,6 +51,17 @@ namespace KeePassGate.Host.Tests
             new object[] { nameof(SeededCopies), SeededCopies.AgentRecord },
             new object[] { nameof(SeededCopies), SeededCopies.BackupRecord },
             new object[] { nameof(SeededCopies), SeededCopies.OtherAgentRecord }
+        };
+
+        /// <summary>Every written down authority and host certificate, as the stored PKCS#12.</summary>
+        private static readonly object[] SeededAuthorities =
+        {
+            new object[] { nameof(SeededAuthority), "authority", SeededAuthority.Authority },
+            new object[] { nameof(SeededAuthority), "host", SeededAuthority.Host },
+            new object[] { nameof(SeededCopies), "authority of this copy", SeededCopies.ThisCopyAuthority },
+            new object[] { nameof(SeededCopies), "host of this copy", SeededCopies.ThisCopyHost },
+            new object[] { nameof(SeededCopies), "authority of the other copy", SeededCopies.OtherCopyAuthority },
+            new object[] { nameof(SeededCopies), "host of the other copy", SeededCopies.OtherCopyHost }
         };
 
         [TestCaseSource(nameof(Seeded))]
@@ -67,6 +83,23 @@ namespace KeePassGate.Host.Tests
                     "the seeded certificate expires on " + expires.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture) +
                     ". Regenerate " + seededBy + ", and the screenshots that show its fingerprint.");
             }
+        }
+
+        [TestCaseSource(nameof(SeededAuthorities))]
+        public void The_seeded_authority_and_host_certificates_are_not_close_to_expiring(
+            string seededBy, string part, string blob)
+        {
+            // The film pairs against the written down host and the client verifies it against
+            // the written down authority, so either expiring stops the pictures being retaken.
+            // These were written down under an earlier profile, ten years for an authority and
+            // five for a host, and so expire long before a hundred years would.
+            var expires = CertificateBlob.Load(blob).Certificate.NotAfter;
+
+            Assert.That(
+                expires - DateTime.UtcNow,
+                Is.GreaterThan(Warning),
+                seededBy + "'s " + part + " expires on " + expires.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture) +
+                ". Regenerate " + seededBy + ", and the screenshots that show its fingerprint.");
         }
 
         [TestCaseSource(nameof(Seeded))]
