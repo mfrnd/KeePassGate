@@ -221,18 +221,55 @@ namespace KeePassGate.Host.Tests
         }
 
         [Test]
-        public void The_responder_is_a_different_one_after_every_unlock()
+        public void A_responder_is_minted_at_every_unlock_and_again_at_the_lock()
         {
-            _targets.Current();
+            // Counted at the mint, because the responders a lock answers with differ whether or
+            // not the unlock mints one: the lock mints its own either way, and only a mint at the
+            // lock that fails ever shows the unlock's, which the test after this one makes happen.
+            var minted = 0;
+            _targets.MintResponder = authority =>
+            {
+                minted++;
+                return new AuthorityIssuer().IssueResponder(authority);
+            };
+
             Lock();
-            var first = _targets.Current().Single().Host.CertificateDer;
+            Assert.That(minted, Is.EqualTo(1), "the lock mints the responder it answers with");
 
             Unlock();
-            _targets.Current();
-            Lock();
-            var second = _targets.Current().Single().Host.CertificateDer;
+            Assert.That(minted, Is.EqualTo(2), "the unlock mints the one a failed mint at the next lock falls back on");
 
-            Assert.That(second, Is.Not.EqualTo(first), "a responder is minted at unlock, not kept for ever");
+            _targets.Current();
+            Assert.That(minted, Is.EqualTo(2), "and serving the database again mints nothing");
+
+            Lock();
+            Assert.That(minted, Is.EqualTo(3));
+        }
+
+        [Test]
+        public void A_lock_whose_own_mint_fails_answers_with_the_responder_minted_at_the_unlock()
+        {
+            // What the mint at the first serve is for: `Responder` fails for an authority whose
+            // dates have passed, and the lock then answers with the one it holds while that one is
+            // current, rather than with nothing at all.
+            byte[] held = null;
+            _targets.MintResponder = authority =>
+            {
+                var responder = new AuthorityIssuer().IssueResponder(authority);
+                held = responder.CertificateDer;
+                return responder;
+            };
+            Lock();
+            Unlock();
+            Assume.That(held, Is.Not.Null);
+
+            _targets.MintResponder = authority => throw new InvalidOperationException("an invented failure to mint");
+            Lock();
+
+            var locked = _targets.Current().Single();
+            Assert.That(locked.IsLocked, Is.True);
+            Assert.That(locked.Host, Is.Not.Null, "the lock answered with no responder at all");
+            Assert.That(locked.Host.CertificateDer, Is.EqualTo(held), "the lock answered with a responder other than the one held");
         }
 
         [Test]

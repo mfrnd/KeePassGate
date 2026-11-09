@@ -975,6 +975,14 @@ namespace KeePassGate.Bridge
         }
 
         /// <summary>
+        /// Mints a responder from an authority's key. Settable so that a test can make the mint at a
+        /// lock fail, which no stored authority does on demand, and reach the responder held since
+        /// the database was first served.
+        /// </summary>
+        internal Func<CertifiedKey, CertifiedKey> MintResponder { get; set; } =
+            authority => new AuthorityIssuer().IssueResponder(authority);
+
+        /// <summary>
         /// A responder for this database, minted while the authority is still available.
         /// </summary>
         /// <remarks>
@@ -989,7 +997,7 @@ namespace KeePassGate.Bridge
         {
             try
             {
-                return new AuthorityIssuer().IssueResponder(reading.Material.AuthorityKey);
+                return MintResponder(reading.Material.AuthorityKey);
             }
             catch (Exception error) when (Expected.OfIssuance(error))
             {
