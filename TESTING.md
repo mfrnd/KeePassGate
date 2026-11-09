@@ -240,12 +240,12 @@ the certificate it presents and is refused on its very next connection, and the 
 window approved by a real button press, and the certificate that comes back opens a route on the
 next connection. The new certificate's own renewal is then refused in this session from the Refuse
 button's menu, opened and chosen with the pointer in KeePass's own modal loop, and asking again is
-answered `409 this session` with nobody asked. That answer is then lifted from the clients page, the
-row's menu opened with Shift and F10 and Allow renewal pressed, and the settings dialog accepted, so
-that the next renewal raises the dialog again and is refused once: the one end to end test of Allow
-renewal. After that the client gives the old certificate up by presenting it and is refused with it,
-and once KeePass has gone the file holds the new record and not the old one, and nothing of the
-refusal in this session.
+answered `409 this session` with nobody asked, while the file holds no answer of it. That answer is
+then lifted from the clients page, the row's menu opened with Shift and F10 and Allow renewal
+pressed, and the settings dialog accepted, so that the next renewal raises the dialog again and is
+refused once: the one end to end test of Allow renewal. After that the client gives the old
+certificate up by presenting it and is refused with it, and once KeePass has gone the file holds the
+new record and not the old one.
 
 **The authority chooser**, in `LiveAuthorityChooserTests`: two copies of one database each replace
 the authority they share and admit a client of their own, the copy KeePass opens is merged with the
