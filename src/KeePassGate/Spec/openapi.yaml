@@ -385,8 +385,8 @@ paths:
         also the answer when the record went between the connection and the request, or while
         the operator was deciding, in which case nothing was issued. `503 busy` covers, beside
         what `Unavailable` names, another pairing or renewal in front of the operator, a renewal
-        of this same certificate still being answered, which is told so at once, and no screen to
-        ask on.
+        of this same certificate still being answered, which is told so at once, no screen to ask
+        on, and a list of profiles in the database that will not read.
       x-kpg-verb: none
       requestBody:
         required: true
@@ -2379,9 +2379,11 @@ components:
         `heldUntil`, nothing is spent, and the next request puts the dialog in front of the
         operator again. A lock and KeePass exiting let go of
         every approval held, and a close of a database lets go of that database's, and then the
-        next request raises the dialog again too.
+        next request raises the dialog again too. And a list of profiles in the database that
+        will not read is answered `503 busy` before the operator is asked, since what either
+        operation writes is taken from it.
         `heldUntil` is there only while an approval is held; every other `503` here is
-        `Unavailable`'s.
+        `Unavailable`'s, or the one for a list that will not read.
       headers:
         Retry-After:
           $ref: "#/components/headers/RetryAfter"

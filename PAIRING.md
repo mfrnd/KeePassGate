@@ -585,7 +585,7 @@ What a refusal says, and deliberately no more:
 | `400 name` / `400 profile` / `400 malformed` | it could never have been issued as asked |
 | `403 refused` | the operator said no, and the invitation is spent |
 | `504 unanswered` | nobody was at the screen. **Nothing is spent** |
-| `503 busy` | a dialog is open that would take the record back, KeePass is part way through a save, an import, a synchronize, an export or a message box of its own, or shows its progress window for one such as XML Replace, saving the database would stop to ask the operator something, such as what to do about a file on disk that is not the one KeePass read, another pairing or a renewal is already in front of the operator, a save this plugin is making for another client outlasts the wait for the screen, or there is no screen to ask; or the operator approved and KeePass was still busy a moment later, and then the body carries `heldUntil`, the moment the approval stops being held; or the operator approved and, when the write came to it, the list of profiles no longer held a name the answer rested on as the dialog showed it, and then the approval is used up and the next request is put to the operator again. **Nothing is spent**, and the client is never told which |
+| `503 busy` | a dialog is open that would take the record back, KeePass is part way through a save, an import, a synchronize, an export or a message box of its own, or shows its progress window for one such as XML Replace, saving the database would stop to ask the operator something, such as what to do about a file on disk that is not the one KeePass read, another pairing or a renewal is already in front of the operator, a save this plugin is making for another client outlasts the wait for the screen, there is no screen to ask, or the database's list of profiles will not read; or the operator approved and KeePass was still busy a moment later, and then the body carries `heldUntil`, the moment the approval stops being held; or the operator approved and, when the write came to it, the list of profiles no longer held a name the answer rested on as the dialog showed it, and then the approval is used up and the next request is put to the operator again. **Nothing is spent**, and the client is never told which |
 | `500 not recorded` | the operator approved and the record did not reach the disk. **The invitation is spent** |
 | `500 internal error` | the operator approved and no certificate could be issued: the authority's key would not sign, or the authority has outlived its hundred years. **The invitation is not spent**, and the client starts again from a hello |
 | `503 undecided` | the database holds more than one authority and the operator has not yet kept any of them. Answered before the request is read, as `503 locked` is, so **nothing is spent** |
@@ -724,25 +724,25 @@ issued in its place once its record is saved; refused, with which of the four an
 refused without the dialog, by an answer given before; or unanswered.
 
 **The order is pairing's, kept exactly.** Refused with `503 busy` before anybody is disturbed while
-a dialog would take the record back, asked again once the operator has answered, then issued,
-written and saved, and only then handed over. Refused `503 busy` the second time, when KeePass is
-still busy a moment after the answer, the approval is held, as a pairing's is, keyed by the
-admission key and the lifetime as written, and the answer carries `heldUntil`: nothing is issued
-yet, the audit has its line when the write lands, and the renewal asked again before then is
-written without the dialog, **unless an answer refusing it stands by then**: a merge can bring one
-in, and so can the dialog of a renewal of the same certificate that asked for another lifetime.
-That answer is what the retry is told, as it would be told before any dialog, and the approval is
-let go. A stored answer that will not read is no answer: the approval stays held, and the retry is
-told `503 busy` with `heldUntil` again.
-What pairing asks again about its invitation a renewal asks about its
-record: one revoked while the operator was deciding, or left behind by an authority recreated or
-deleted in that time, is answered `401 unpaired` and nothing is issued. **And the write asks it
-once more, under the writer's lock**, comparing the record with the one the operator approved, so a
-revocation landing after the handler last read it, the client's own on another connection among
-them, is found under the lock it was written under rather than overtaken. A renewal
-waits its turn for the screen with every pairing, since one raised inside a pairing's dialog would
-gray it out, and its connection is measured against `GateOptions.PairingBudget` from the moment its
-request is off the wire, since what is left after it is the same list of waits.
+a dialog would take the record back or the list of profiles will not read, asked again once the
+operator has answered, then issued, written and saved, and only then handed over. Refused `503 busy`
+the second time, when KeePass is still busy a moment after the answer, the approval is held, as a
+pairing's is, keyed by the admission key and the lifetime as written, and the answer carries
+`heldUntil`: nothing is issued yet, the audit has its line when the write lands, and the renewal
+asked again before then is written without the dialog, **unless an answer refusing it stands by
+then**: a merge can bring one in, and so can the dialog of a renewal of the same certificate that
+asked for another lifetime. That answer is what the retry is told, as it would be told before any
+dialog, and the approval is let go. A stored answer that will not read is no answer: the approval
+stays held, and the retry is told `503 busy` with `heldUntil` again. What pairing asks again about
+its invitation a renewal asks about its record: one revoked while the operator was deciding, or left
+behind by an authority recreated or deleted in that time, is answered `401 unpaired` and nothing is
+issued. **And the write asks it once more, under the writer's lock**, comparing the record with the
+one the operator approved, so a revocation landing after the handler last read it, the client's own
+on another connection among them, is found under the lock it was written under rather than
+overtaken. A renewal waits its turn for the screen with every pairing, since one raised inside a
+pairing's dialog would gray it out, and its connection is measured against
+`GateOptions.PairingBudget` from the moment its request is off the wire, since what is left after it
+is the same list of waits.
 
 **One renewal per certificate is in flight at a time.** A second renewal of a certificate whose first
 is still being answered is told `503 busy` at once, before anything about it is read, and the first
