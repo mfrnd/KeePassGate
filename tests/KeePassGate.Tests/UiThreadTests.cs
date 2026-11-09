@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using System.Reflection;
 using System.Threading;
 using System.Windows.Forms;
 using KeePassGate.Diagnostics;
@@ -125,6 +126,62 @@ namespace KeePassGate.Tests
             }
 
             Assert.That(ran, Is.False);
+        }
+
+        [Test]
+        public void Work_asked_for_once_the_plugin_has_stopped_is_named_as_KeePass_closing()
+        {
+            // The plugin stops on KeePass's exit while the window is still there, so this is the
+            // window-gone case met a moment sooner, and answered false it was written down the
+            // way that case was.
+            using (var form = new Form())
+            using (var ui = new ControlUiThread(form))
+            {
+                Handle(form);
+                ui.Dispose();
+
+                var ran = 0;
+                Exception caught = null;
+                var caller = new Thread(() => caught = Thrown.By(() => ui.Run(() => Interlocked.Increment(ref ran), Patience)));
+                caller.IsBackground = true;
+                caller.Start();
+
+                Assert.That(caller.Join(Patience), Is.True, "the caller never came back");
+                Assert.That(caught, Is.InstanceOf<ObjectDisposedException>(), "answered rather than named");
+                Assert.That(Expected.OfUserInterface(caught), Is.True, "every caller already catches it by name");
+
+                Drain(form);
+                Assert.That(Volatile.Read(ref ran), Is.Zero);
+            }
+        }
+
+        [Test]
+        public void Work_waiting_for_its_turn_when_the_plugin_stops_is_named_as_KeePass_closing()
+        {
+            using (var form = new Form())
+            using (var ui = new ControlUiThread(form))
+            {
+                Handle(form);
+
+                var ran = 0;
+                Exception caught = null;
+                var clock = Stopwatch.StartNew();
+                var caller = new Thread(() => caught = Thrown.By(() => ui.Run(() => Interlocked.Increment(ref ran), Patience)));
+                caller.IsBackground = true;
+                caller.Start();
+
+                // Nothing pumps, so the work waits in the queue until the plugin stops under it.
+                Assert.That(SpinWait.SpinUntil(() => Queued(ui) > 0, Patience), Is.True, "the work never joined the queue");
+                ui.Dispose();
+
+                Assert.That(caller.Join(Patience), Is.True, "the caller never came back");
+                Assert.That(clock.Elapsed, Is.LessThan(Patience), "told at once rather than at the end of its clock");
+                Assert.That(caught, Is.InstanceOf<ObjectDisposedException>(), "answered as a timeout rather than named");
+                Assert.That(Expected.OfUserInterface(caught), Is.True, "every caller already catches it by name");
+
+                Drain(form);
+                Assert.That(Volatile.Read(ref ran), Is.Zero, "turned away means it never runs");
+            }
         }
 
         [Test]
@@ -394,6 +451,25 @@ namespace KeePassGate.Tests
 
             Assert.That(caller.Join(Patience), Is.True, "the caller never came back");
             return escapes;
+        }
+
+        /// <summary>How many turns are waiting in the queue, read off the queue itself.</summary>
+        /// <remarks>
+        /// Read rather than exposed, because nothing but this test needs to know: the work has to
+        /// be waiting before the plugin stops, or the test is about work asked for afterwards.
+        /// </remarks>
+        private static int Queued(ControlUiThread ui)
+        {
+            var turns = (System.Collections.ICollection)typeof(ControlUiThread)
+                .GetField("_turns", BindingFlags.Instance | BindingFlags.NonPublic)
+                .GetValue(ui);
+            var gate = typeof(ControlUiThread)
+                .GetField("_gate", BindingFlags.Instance | BindingFlags.NonPublic)
+                .GetValue(ui);
+            lock (gate)
+            {
+                return turns.Count;
+            }
         }
 
         /// <summary>Forces the window into existence, which is what `BeginInvoke` needs.</summary>

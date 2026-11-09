@@ -55,7 +55,10 @@ namespace KeePassGate.Ui
         /// `ObjectDisposedException`, which `Expected.OfUserInterface` names, rather than answered
         /// false. It is what KeePass's exit leaves a connection thread still inside a handler, and
         /// answered as a timeout it was written down as KeePass not answering in time, or as a
-        /// dialog nobody answered that was never shown.
+        /// dialog nobody answered that was never shown. **So is work turned away because the
+        /// plugin is stopping**, whether it was asked for after that or was still waiting for its
+        /// turn, because that is the same exit met a moment sooner: the window is still there, and
+        /// nothing will run the work on it.
         /// </remarks>
         bool Run(Action work, TimeSpan timeout);
 
@@ -245,7 +248,9 @@ namespace KeePassGate.Ui
             var turn = new Turn(work);
             if (!Join(turn))
             {
-                return false;
+                // Nothing will serve it: the plugin has stopped, or the window went between the
+                // check above and the post.
+                throw Closing();
             }
 
             if (turn.AwaitReady(timeout))
@@ -253,7 +258,7 @@ namespace KeePassGate.Ui
                 if (turn.Withdrawn)
                 {
                     // Turned away by the plugin stopping, before it began.
-                    return false;
+                    throw Closing();
                 }
 
                 turn.Rethrow();
@@ -374,6 +379,13 @@ namespace KeePassGate.Ui
                 _fallback.Dispose();
                 _listening = false;
             }
+        }
+
+        /// <summary>What work is told when KeePass closes before the work can begin.</summary>
+        private static ObjectDisposedException Closing()
+        {
+            return new ObjectDisposedException(
+                nameof(ControlUiThread), "KeePass is closing, so work waiting for its thread was turned away.");
         }
 
         private static T Inline<T>(Func<T> read)
