@@ -58,12 +58,16 @@ namespace KeePassGate.Tests
         }
 
         [Test]
+        [NonParallelizable]
+        [Desktop]
         public void A_tooltip_reads_right_to_left_when_its_window_does_whatever_its_control_does()
         {
             // J076, and the reason the marks are there: `ToolTip` asks the top-level form rather
             // than the control, so a control laid out left to right on a right-to-left dialog
             // still has its tip read right to left. Were WinForms ever to ask the control, this
-            // fails, and the marks have nothing left to do.
+            // fails, and the marks have nothing left to do. Shown, so it runs alone and holds the
+            // desktop: the window takes the activation from whatever held it, in this process or
+            // another.
             using (var form = new Form
             {
                 RightToLeft = RightToLeft.Yes,

@@ -29,10 +29,14 @@ namespace KeePassGate.Tests
     /// later test in this process creates, and which order the tests ran in would decide what they
     /// measured. A domain of its own has its own copy of Windows Forms, and its windows are
     /// registered under names of their own, so its theme stays in it.
+    ///
+    /// **Shown, so it runs alone and holds the desktop**: a window shown takes the activation
+    /// from whatever held it, in this process or another test process on the same screen.
     /// </remarks>
     [TestFixture]
     [Apartment(ApartmentState.STA)]
     [NonParallelizable]
+    [Desktop]
     public sealed class ChooserListsFitTests
     {
         [Test]

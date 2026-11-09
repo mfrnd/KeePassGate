@@ -6,8 +6,9 @@ using NUnit.Framework.Interfaces;
 namespace KeePassGate.Tests
 {
     /// <summary>
-    /// Holds the desktop for each test of a fixture that shows a window and asks what is on top,
-    /// which window has the activation, or where the focus went.
+    /// Holds the desktop for each test that shows a window, which takes the activation from
+    /// whatever held it, or asks what is on top, which window has the activation, or where the
+    /// focus went.
     /// </summary>
     /// <remarks>
     /// **`[NonParallelizable]` keeps such a fixture apart from the others in this process, and
@@ -18,12 +19,14 @@ namespace KeePassGate.Tests
     /// screen which window is under the press before it raises one. So each
     /// test of a fixture carrying this takes a named mutex first and lets it go after, and the
     /// fixtures that care about the screen take turns with every test process this account runs.
+    /// On a single test it holds the desktop for that test alone, for a fixture with one test
+    /// that shows a window among many that do not.
     ///
     /// A mutex another process cannot open, or one held for longer than the patience here,
     /// leaves the test unlocked rather than stuck, and a holder that ended without letting go
     /// hands it on as an abandoned wait, which is taken as acquired.
     /// </remarks>
-    [AttributeUsage(AttributeTargets.Class, AllowMultiple = false)]
+    [AttributeUsage(AttributeTargets.Class | AttributeTargets.Method, AllowMultiple = false)]
     internal sealed class DesktopAttribute : Attribute, ITestAction
     {
         private const string LockName = @"Local\KeePassGate.Tests.Desktop";

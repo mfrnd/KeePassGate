@@ -295,10 +295,14 @@ namespace KeePassGate.Tests
         }
 
         [Test]
+        [NonParallelizable]
+        [Desktop]
         public void A_message_box_on_KeePass_s_thread_is_said_before_anything_is_queued()
         {
             // A native dialog's loop never raises Idle, so work queued under one waits for it to
             // close. Said at once instead, so that the writer and the prompt can answer at once.
+            // Shown, so it runs alone and holds the desktop: a message box takes the activation
+            // from whatever held it, in this process or another.
             using (var loop = new UiLoop())
             using (var ui = loop.Own(() => new ControlUiThread(loop.Control)))
             {
