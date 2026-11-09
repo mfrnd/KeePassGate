@@ -68,7 +68,7 @@ namespace KeePassGate.Host.Tests.Live
                 _wrongName = Ask(keePass.Port, SniName.For(new byte[32]), admitted, GateOperations.StatusPath);
 
                 process.CloseMainWindow();
-                _exited = process.WaitForExit(30000);
+                _exited = process.WaitForExit(30000) && process.ExitCode == 0;
             }
 
             _pluginLog = keePass.ReadPluginLog();
@@ -142,7 +142,7 @@ namespace KeePassGate.Host.Tests.Live
         [Test]
         public void KeePass_shut_down_by_itself_afterwards()
         {
-            Assert.That(_exited, Is.True, "KeePass did not exit, so the listener held it open.");
+            Assert.That(_exited, Is.True, "KeePass did not exit cleanly: the listener held it open, or it ended with an error.");
             Assert.That(_pluginLog, Does.Contain("stopped listening"));
         }
 

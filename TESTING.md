@@ -295,7 +295,8 @@ session's directory goes when its fixture passes and stays when it fails, below.
 
 Then it starts that KeePass. `LiveAuthorityTests`, for one, walks File, Database Settings with the
 keyboard, reads the tab through the accessibility tree, presses the buttons on it, accepts the
-dialog with OK, saves with the keyboard, closes KeePass, and checks that it exited. It also reads
+dialog with OK, saves with the keyboard, closes KeePass, and checks that it exited, with the exit
+code zero that `KeePassDriver.ShutDown` holds every KeePass it closes to. It also reads
 the plugin's own log, which `KEEPASSGATE_LOG_FILE` puts in the session's own directory: that log is
 how a test sees from outside what the plugin did inside a process it does not otherwise hold.
 

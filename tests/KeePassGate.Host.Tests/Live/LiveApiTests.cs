@@ -107,7 +107,7 @@ namespace KeePassGate.Host.Tests.Live
                     "{\"URL\":\"https://invented.invalid\"}", _current.Written);
 
                 process.CloseMainWindow();
-                _exited = process.WaitForExit(30000);
+                _exited = process.WaitForExit(30000) && process.ExitCode == 0;
             }
 
             _pluginLog = keePass.ReadPluginLog();

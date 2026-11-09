@@ -145,7 +145,7 @@ namespace KeePassGate.Host.Tests.Live
         [Test]
         public void KeePass_shut_down_by_itself_and_reported_success()
         {
-            Assert.That(_exited, Is.True, "KeePass was still running when the test gave up.");
+            Assert.That(_exited, Is.True, "KeePass did not exit by itself, or did not exit cleanly.");
             Assert.That(_exitCode, Is.Zero);
         }
 

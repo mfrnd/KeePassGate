@@ -36,6 +36,7 @@ namespace KeePassGate.Host.Tests.Live
         private bool _dialogWent;
         private LiveReply _reply;
         private Exception _failed;
+        private bool _exited;
         private string _pluginLog;
 
         [OneTimeSetUp]
@@ -65,7 +66,7 @@ namespace KeePassGate.Host.Tests.Live
                 }
 
                 asking.Join(LockTimeout);
-                driver.ShutDown();
+                _exited = driver.ShutDown();
             }
 
             _pluginLog = _session.KeePass.ReadPluginLog();
@@ -97,6 +98,13 @@ namespace KeePassGate.Host.Tests.Live
             Assert.That(_reply, Is.Not.Null, "the renewal was never answered");
             Assert.That(_reply.Status, Is.EqualTo(503), _reply.Failure ?? _reply.Body);
             Assert.That(_reply.Body, Does.Contain("\"locked\""));
+        }
+
+        [Test]
+        public void KeePass_exited_cleanly_from_its_lock()
+        {
+            Assert.That(_exited, Is.True,
+                "KeePass did not exit cleanly: something was still holding it, or it ended with an error.");
         }
 
         private void Ask(ThrowawayKeePass keePass, string name, X509Certificate2 renewing)

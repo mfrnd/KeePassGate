@@ -903,12 +903,19 @@ namespace KeePassGate.Host.Tests.Live
             System.Threading.Thread.Sleep(1000);
         }
 
-        /// <summary>Closes KeePass and waits for it to go. True when it exited by itself.</summary>
+        /// <summary>
+        /// Closes KeePass and waits for it to go. True when it exited by itself and cleanly, with
+        /// the exit code zero KeePass ends with when nothing went wrong.
+        /// </summary>
         /// <remarks>
         /// **The close is asked for again until it is delivered.** `CloseMainWindow` posts nothing,
         /// and answers false, while the main window is disabled, which it is for as long as a modal
         /// dialog is open over it; a dialog that was still closing when this was called left a
         /// KeePass that was never asked to exit, and that then failed to exit in time.
+        ///
+        /// **And the exit code is read.** A KeePass ended by something thrown on a thread of its
+        /// own, a shutting down plugin's among them, exits within the time as well, and only its
+        /// code tells the two apart. Which of them it was goes into <see cref="Diagnostics"/>.
         /// </remarks>
         public bool ShutDown()
         {
@@ -919,7 +926,19 @@ namespace KeePassGate.Host.Tests.Live
             }
 
             var left = deadline - DateTime.UtcNow;
-            return _process.WaitForExit(left > TimeSpan.Zero ? (int)left.TotalMilliseconds : 0);
+            if (!_process.WaitForExit(left > TimeSpan.Zero ? (int)left.TotalMilliseconds : 0))
+            {
+                _diagnostics.AppendLine("KeePass had not exited " + ShutdownTimeout.TotalSeconds + " s after it was closed");
+                return false;
+            }
+
+            if (_process.ExitCode != 0)
+            {
+                _diagnostics.AppendLine("KeePass exited with code " + _process.ExitCode);
+                return false;
+            }
+
+            return true;
         }
 
         /// <summary>How long a dialog is given to close once it has been told to.</summary>

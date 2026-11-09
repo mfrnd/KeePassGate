@@ -94,8 +94,8 @@ namespace KeePassGate.Host.Tests.Live
         [Test]
         public void Both_KeePass_sessions_shut_down_cleanly()
         {
-            Assert.That(_firstRunExited, Is.True, "The first KeePass did not exit.");
-            Assert.That(_secondRunExited, Is.True, "The second KeePass did not exit.");
+            Assert.That(_firstRunExited, Is.True, "The first KeePass did not exit cleanly.");
+            Assert.That(_secondRunExited, Is.True, "The second KeePass did not exit cleanly.");
         }
 
         [Test]

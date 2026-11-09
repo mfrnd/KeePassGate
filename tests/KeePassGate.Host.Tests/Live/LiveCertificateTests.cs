@@ -52,7 +52,7 @@ namespace KeePassGate.Host.Tests.Live
                 _after = Send(keePass, leaving, "GET", "/gate/status");
 
                 process.CloseMainWindow();
-                _exited = process.WaitForExit(30000);
+                _exited = process.WaitForExit(30000) && process.ExitCode == 0;
             }
 
             _pluginLog = keePass.ReadPluginLog();
