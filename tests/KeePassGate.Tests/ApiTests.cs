@@ -2870,7 +2870,8 @@ namespace KeePassGate.Tests
 
         /// <summary>
         /// One request through the whole pipeline, with at most one header and one query name of
-        /// its own, which is every shape these tests send.
+        /// its own, which is every shape these tests send, held to the statuses the document
+        /// declares for it.
         /// </summary>
         private Answer Request(
             string method, string path, string body, string header, string headerValue, string query, string queryValue)
@@ -2893,8 +2894,75 @@ namespace KeePassGate.Tests
             new ServedDatabase(_vault, null, _log).PutOn(context);
 
             _router.Handle(context);
+            Declared(method, path, context.Status, context.Json ?? string.Empty);
 
             return new Answer(context.Status, context.Json, context.Headers);
+        }
+
+        /// <summary>
+        /// The statuses each operation declares, by its identifier, read off the document once.
+        /// </summary>
+        private static readonly Lazy<IReadOnlyDictionary<string, HashSet<string>>> Statuses =
+            new Lazy<IReadOnlyDictionary<string, HashSet<string>>>(() =>
+            {
+                Microsoft.OpenApi.Models.OpenApiDocument document;
+                using (var stream = typeof(SpecDocument).Assembly.GetManifestResourceStream("KeePassGate.Spec.openapi.yaml"))
+                {
+                    Microsoft.OpenApi.Readers.OpenApiDiagnostic diagnostic;
+                    document = new Microsoft.OpenApi.Readers.OpenApiStreamReader().Read(stream, out diagnostic);
+                }
+
+                return document.Paths.Values
+                    .SelectMany(path => path.Operations.Values)
+                    .ToDictionary(o => o.OperationId, o => new HashSet<string>(o.Responses.Keys), StringComparer.Ordinal);
+            });
+
+        /// <summary>The operations the router is built from, read once.</summary>
+        private static readonly Lazy<IReadOnlyList<SpecOperation>> Operations =
+            new Lazy<IReadOnlyList<SpecOperation>>(() => SpecDocument.Embedded().Operations.ToList());
+
+        /// <summary>
+        /// Fails a request answered with a status the document does not declare for it.
+        /// </summary>
+        /// <remarks>
+        /// **Every request here comes through this**, so this is where a handler that learns a new
+        /// refusal is held to the document a client is generated from. An operation answering a
+        /// status it does not declare is how `updateEntry` came to answer `409`, the writes
+        /// `500 not saved` and the field routes `400`, each found by reading rather than by a test.
+        ///
+        /// Besides what the operation declares, only what the document declares for every path:
+        /// the `405` a declared path answers to a method it does not declare, the `404 no such
+        /// route` and `401` an undeclared target gets, and the `500 internal error` a read gives
+        /// when the vault behind it breaks its own contract, which the top description names as
+        /// declared nowhere. What the transport answers before any route is chosen never reaches
+        /// a router driven directly, so none of it is allowed here.
+        /// </remarks>
+        private static void Declared(string method, string path, int status, string json)
+        {
+            IReadOnlyDictionary<string, string> captured;
+            var onPath = Operations.Value.Where(o => o.Path.TryMatch(path, out captured)).ToList();
+            var operation = onPath.SingleOrDefault(o => string.Equals(o.Method, method, StringComparison.Ordinal));
+
+            var undeclaredTarget = status == 404 && json.Contains(SpecRouter.UnreachableError);
+            var brokenVault = status == 500 && json.Contains("internal error");
+            var undeclaredMethod = status == 405 && onPath.Count > 0;
+
+            bool allowed;
+            if (operation != null)
+            {
+                var declared = Statuses.Value[operation.OperationId].Contains(
+                    status.ToString(CultureInfo.InvariantCulture));
+                allowed = declared || undeclaredTarget || brokenVault;
+            }
+            else
+            {
+                allowed = undeclaredTarget || status == 401 || undeclaredMethod;
+            }
+
+            Assert.That(allowed, Is.True, string.Format(
+                CultureInfo.InvariantCulture,
+                "{0} {1} was answered {2}, which {3} does not declare: {4}",
+                method, path, status, operation == null ? "the document" : operation.OperationId, json));
         }
 
         /// <summary>
