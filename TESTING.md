@@ -21,9 +21,13 @@ fails in a way that names its own cause.
 the states that change its shape and writes a picture of it, into `.gallery` beside the solution or
 wherever `KPG_GALLERY_DIR` names. It runs with the ordinary tests, because it needs no KeePass and
 no network, only a window station to show its forms on, off screen, and because a picture nobody
-generates is a picture nobody looks at. Two things follow from its writing files: the directory is
-gitignored, and everything in it is rewritten on every run, so nothing meant to be kept belongs
-there. `docs/images` is the set that is committed, and a task of its own draws those.
+generates is a picture nobody looks at. Two things follow from its writing files: `.gallery` is
+gitignored, and every picture in the directory is replaced on every run, so nothing meant to be
+kept belongs there. A directory the gallery writes to is marked as its own with `.kpg-gallery`, and
+one `KPG_GALLERY_DIR` names that already holds pictures and no mark is refused rather than emptied,
+failing the run with its path, since a mistyped path or a directory shared with something else
+would otherwise lose every picture in it. `docs/images` is the set that is committed, and a task of
+its own draws those.
 
 **The screenshots are another use of the end to end tier rather than a tier of their own.** Same
 throwaway KeePass, same driver, and it writes into `docs/images` instead of asserting: the
@@ -471,7 +475,8 @@ is shared by the whole process or the whole account:
 - a shown window, the focus, a posted key or a menu left open, since a window another fixture shows
   takes the activation and closes the menu. Another test process shows its windows on the same
   screen, and no mark reaches it, so such a fixture carries `[Desktop]` as well, which holds the
-  screen against every other test process for each of its tests;
+  screen against every other test process for each of its tests. A fixture with one such test
+  among many that show nothing carries it on that test alone;
 - a static the plugin lends out for a while and takes back;
 - the account's key directories: a certificate loaded with its key and without `EphemeralKeySet`
   writes that key there, which `Certificates.WithKeyFile` does for a test whose client is
