@@ -60,5 +60,36 @@ namespace KeePassGate.Tests
             Assert.That(() => Rules.Sealing(("agent", "R"), (null, "L")), Throws.ArgumentException);
             Assert.That(() => Rules.Granting(("agent", "R"), ("agent", "L")), Throws.ArgumentException);
         }
+
+        [TestCase("", TestName = "an empty profile name")]
+        [TestCase("  ", TestName = "a profile name of spaces")]
+        [TestCase(" reader ", TestName = "a profile name with spaces round it")]
+        [TestCase("read only", TestName = "a profile name with a space in it")]
+        [TestCase("agent\t", TestName = "a profile name holding a control character")]
+        [TestCase("Default", TestName = "the reserved word in another case")]
+        public void A_profile_name_the_editor_refuses_is_refused_as_the_test_sets_up(string profile)
+        {
+            // Some of these make a document the reader refuses, which refuses wherever it is found,
+            // and the rest a document it reads and no operator could have written.
+            Assert.That(() => Rules.Granting((profile, "R")), Throws.ArgumentException);
+        }
+
+        [Test]
+        public void A_document_the_reader_would_refuse_is_refused_as_the_test_sets_up()
+        {
+            Assert.That(AclDocument.Read(Rules.Numbered(AclDocument.MostProfiles, "R")), Is.Not.Null,
+                "as many profiles as the reader takes");
+            Assert.That(() => Rules.Numbered(AclDocument.MostProfiles + 1, "R"), Throws.ArgumentException);
+        }
+
+        [Test]
+        public void No_rules_is_no_document_unless_the_node_is_sealed()
+        {
+            // The editor takes the key away when the last rule goes, so a document asking the group
+            // above for everything is a document no node holds.
+            Assert.That(() => Rules.Granting(), Throws.ArgumentException);
+            Assert.That(() => Rules.Numbered(0, "R"), Throws.ArgumentException);
+            Assert.That(AclDocument.Read(Rules.Sealing()), Is.Not.Null, "a seal is a rule on its own");
+        }
     }
 }

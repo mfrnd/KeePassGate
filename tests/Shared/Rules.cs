@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using KeePassGate.Acl;
+using KeePassGate.Authority;
 
 namespace KeePassGate.Testing
 {
@@ -14,8 +15,15 @@ namespace KeePassGate.Testing
     /// by hand fails in the safe direction: a verb misspelled, or a quote dropped, is a document
     /// that will not read, and that refuses where it is found, so a test expecting a refusal passes
     /// even when the rule it meant would have allowed the request. Built here, a mask that is not
-    /// exactly one throws as the test sets up, and what the node holds is a document
-    /// <see cref="AclDocument.Read"/> is held to.
+    /// exactly one throws as the test sets up, and so does a profile name the editor refuses and a
+    /// document <see cref="AclDocument.Read"/> would not take back, more profiles than it reads
+    /// among them, so what the node holds is a document the reader is held to and the editor
+    /// could have written.
+    ///
+    /// **No rules is no document**, which is what the editor leaves on a node whose rules have all
+    /// gone, so a document granting nothing and asking the group above for everything is refused
+    /// here: a test meaning a node with no rules writes nothing on it. Sealing with no rules is a
+    /// rule, and is written.
     ///
     /// A rule is a `CRUSDLAP` mask, as the editor shows it, in one of two forms: all eight places,
     /// a dot for each verb it does not hold, as `.R...L..`, or only the letters it holds, as `RL`,
@@ -75,6 +83,14 @@ namespace KeePassGate.Testing
                     throw new ArgumentException("A rule names no profile.", nameof(rules));
                 }
 
+                // What the editor holds a name to, `default` in any case included, so a rule no
+                // operator could write is not a rule a test can set up.
+                if (!AuthorityIssuer.IsUsableProfileName(rule.Profile))
+                {
+                    throw new ArgumentException(
+                        "\"" + rule.Profile + "\" is not a profile name the editor takes.", nameof(rules));
+                }
+
                 var verbs = Verbs(rule.Mask);
                 if (verbs == null)
                 {
@@ -92,7 +108,22 @@ namespace KeePassGate.Testing
                 grants.Add(rule.Profile, verbs);
             }
 
-            return AclDocument.Of(fallback, grants).Write();
+            if (grants.Count == 0 && fallback == AclDefault.Inherit)
+            {
+                throw new ArgumentException(
+                    "A node with no rules holds no document at all, so a test meaning such a node writes nothing on it.",
+                    nameof(rules));
+            }
+
+            var text = AclDocument.Of(fallback, grants).Write();
+            if (AclDocument.Read(text) == null)
+            {
+                throw new ArgumentException(
+                    "These rules make a document the reader refuses, which refuses wherever it is found.",
+                    nameof(rules));
+            }
+
+            return text;
         }
 
         /// <summary>What a mask in either form holds, or null for anything that is not one.</summary>
