@@ -42,12 +42,6 @@ namespace KeePassGate.Host.Tests.Live
         public const string EntryAccess = "entry-access";
 
         /// <summary>
-        /// The one that moves: a client paired, reading what its rule allows, refused what it does
-        /// not, revoked, and refused again, with its terminal beside the operator's KeePass.
-        /// </summary>
-        public const string Lifecycle = "lifecycle";
-
-        /// <summary>
         /// The clients page with two clients whose renewals stand refused, and the row menu of one
         /// of them open on the answer and Allow renewal.
         /// </summary>
@@ -61,6 +55,12 @@ namespace KeePassGate.Host.Tests.Live
         /// asking which one to keep.
         /// </summary>
         public const string AuthorityChooser = "authority-chooser";
+
+        /// <summary>
+        /// The one that moves: a client paired, reading what its rule allows, refused what it does
+        /// not, revoked, and refused again, with its terminal beside the operator's KeePass.
+        /// </summary>
+        public const string Lifecycle = "lifecycle";
 
         /// <summary>The pictures that move, which are GIFs where every other one is a PNG.</summary>
         private static readonly string[] Moving = { Lifecycle };
@@ -95,10 +95,10 @@ namespace KeePassGate.Host.Tests.Live
             Profiles,
             GroupAccess,
             EntryAccess,
-            Lifecycle,
             ClientsStandingAnswers,
             RenewalApproval,
-            AuthorityChooser
+            AuthorityChooser,
+            Lifecycle
         };
     }
 }
