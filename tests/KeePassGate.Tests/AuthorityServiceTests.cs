@@ -530,9 +530,10 @@ namespace KeePassGate.Tests
                 Assert.That(reading.Presence, Is.EqualTo(AuthorityPresence.None));
             }
 
+            // Asked of the whole line the file is given, any exception logged included.
             foreach (var entry in _log.Entries)
             {
-                Assert.That(entry.Message, Does.Not.Contain("MII"), "A certificate blob has no business in a log.");
+                Assert.That(entry.Line, Does.Not.Contain("MII"), "A certificate blob has no business in a log.");
                 Assert.That(entry.Message.Length, Is.LessThan(200));
             }
         }

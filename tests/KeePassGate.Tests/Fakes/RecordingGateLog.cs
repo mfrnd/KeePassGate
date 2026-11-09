@@ -29,6 +29,20 @@ namespace KeePassGate.Tests.Fakes
 
             public Exception Error { get; private set; }
 
+            /// <summary>
+            /// The whole line the log file would be given for this entry, the exception included.
+            /// </summary>
+            /// <remarks>
+            /// What a test about what reaches the file asks, rather than <see cref="Message"/>
+            /// alone: the file's line carries the exception's own text after the message, so a
+            /// name or a blob in an exception the plugin logs reaches the file with the message
+            /// clean.
+            /// </remarks>
+            public string Line
+            {
+                get { return GateLogFormat.Line(DateTime.MinValue, Level, Message, Error); }
+            }
+
             public override string ToString()
             {
                 return Level + " " + Message + (Error == null ? string.Empty : " | " + Error.GetType().Name);
