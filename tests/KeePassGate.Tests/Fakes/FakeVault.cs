@@ -12,14 +12,17 @@ namespace KeePassGate.Tests.Fakes
     /// <remarks>
     /// The whole reason `IVault` is a seam. What the handlers do to a tree, what they say about it
     /// and what they refuse are all decidable here in a few lines each; `KdbxVaultTests` is where
-    /// the same operations meet a real KDBX4, and it is short because this is where the thinking
-    /// happens.
+    /// the same operations meet a real KDBX4, and what it asks is whether the real vault holds to
+    /// what is decided here.
     ///
     /// The nodes it hands out are `TestNode`s wired into the same shape as the tree, so a rule
     /// written on a group really does reach the entries under it.
     /// </remarks>
     internal sealed class FakeVault : IVault
     {
+        /// <summary>The five strings every entry KeePass makes holds.</summary>
+        private static readonly string[] Standard = { "Title", "UserName", "Password", "URL", "Notes" };
+
         private readonly Dictionary<string, Node> _groups = new Dictionary<string, Node>(StringComparer.Ordinal);
         private readonly Dictionary<string, Kept> _entries = new Dictionary<string, Kept>(StringComparer.Ordinal);
         private readonly Node _root;
@@ -194,7 +197,15 @@ namespace KeePassGate.Tests.Fakes
             return group.Uuid;
         }
 
-        /// <summary>Adds an entry, without going through the rules.</summary>
+        /// <summary>
+        /// Adds an entry holding only its title, without going through the rules.
+        /// </summary>
+        /// <remarks>
+        /// Not the shape KeePass or the gate makes: both give every entry all five standard
+        /// strings, the password among them protected, which <see cref="CreateEntry"/> does here
+        /// too. An entry holding only its title is how an entry another program wrote can arrive,
+        /// and it holds no protected value, so a rule without `protected` is handed its tag.
+        /// </remarks>
         public string AddEntry(string groupUuid, string title)
         {
             var group = Find(groupUuid)
@@ -226,6 +237,20 @@ namespace KeePassGate.Tests.Fakes
         {
             // `Add` answers whether it was new, so no `Contains` in front of it.
             _entries[entryUuid].Protected.Add(field);
+        }
+
+        /// <summary>
+        /// Whether a field was stored with its own protection flag set, apart from whether the
+        /// database protects its name.
+        /// </summary>
+        /// <remarks>
+        /// What the real vault stores with the value, and what every lookup here folds into one
+        /// answer with the name, so a write that dropped the flag for a name the database protects
+        /// could not otherwise be told from a write that kept it.
+        /// </remarks>
+        public bool Flagged(string entryUuid, string field)
+        {
+            return _entries[entryUuid].Protected.Contains(field);
         }
 
         /// <summary>Gives an entry an expiry, or takes it away with null, as KeePass's dialog does.</summary>
@@ -288,6 +313,12 @@ namespace KeePassGate.Tests.Fakes
         /// database decides it, and an attachment's bytes only up to the largest the gate serves,
         /// each one counted as a read, since the real vault decrypts it to hash it.
         /// </summary>
+        /// <remarks>
+        /// **Less the two times**, because nothing here keeps any. The real vault's tag carries
+        /// both to the second and every change it makes touches the modification time, so there a
+        /// change that puts back what was there gives a new tag unless it lands within the same
+        /// second, where here it always gives back the tag that was there.
+        /// </remarks>
         private string Tag(Kept entry)
         {
             TagsTaken++;
@@ -666,7 +697,7 @@ namespace KeePassGate.Tests.Fakes
                 var uuid = AddEntry(group.Uuid, string.Empty);
                 var entry = _entries[uuid];
 
-                foreach (var name in new[] { "Title", "UserName", "Password", "URL", "Notes" })
+                foreach (var name in Standard)
                 {
                     entry.Fields[name] = string.Empty;
                 }
@@ -858,6 +889,13 @@ namespace KeePassGate.Tests.Fakes
                 if (entry == null || !Holds(entry.Fields.Keys, name))
                 {
                     return VaultWrite.Missing();
+                }
+
+                // The real vault's rule, and in its order: emptied and never taken off, compared as
+                // the store compares names.
+                if (Standard.Any(standard => Comparer<string>.Default.Compare(name, standard) == 0))
+                {
+                    return VaultWrite.Conflict("a standard field can be emptied and not taken off");
                 }
 
                 var refused = Refused(tagging, () => Tag(entry));
@@ -1072,7 +1110,10 @@ namespace KeePassGate.Tests.Fakes
                     Uuid, Name, Notes, Parent, DateTimeOffset.MinValue, DateTimeOffset.MinValue, Rules);
             }
 
-            /// <summary>What the group holds, condensed, as the real vault condenses it.</summary>
+            /// <summary>
+            /// What the group holds, condensed as the real vault condenses it, less the two times
+            /// for the reason the entry's tag gives.
+            /// </summary>
             public string Tag()
             {
                 return Tags.Of("group", Uuid, Parent, Name, Notes);
@@ -1140,9 +1181,10 @@ namespace KeePassGate.Tests.Fakes
 
         /// <summary>A digest of the parts, each behind its length, as the real vault's tags are made.</summary>
         /// <remarks>
-        /// Content rather than a counter, so that a change that puts back what was there gives
-        /// the tag back as well, which is what the real one does, and with no key, since nothing
-        /// here is a secret.
+        /// Content rather than a counter, as the real vault's tags are, and with no key, since
+        /// nothing here is a secret. With no times among the parts, a change that puts back what
+        /// was there gives the tag back here, which the real vault does only within the second the
+        /// change touched.
         /// </remarks>
         private static class Tags
         {

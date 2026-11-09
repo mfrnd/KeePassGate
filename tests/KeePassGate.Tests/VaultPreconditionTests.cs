@@ -87,23 +87,26 @@ namespace KeePassGate.Tests
             Assert.That(refused.Reason, Is.EqualTo(VaultPrecondition.Withheld().Refusal));
         }
 
-        [TestCase("")]
-        [TestCase(",")]
-        [TestCase(Tag)]
-        [TestCase("\"" + Tag)]
-        [TestCase("\"" + Tag + "\" junk")]
-        [TestCase("\"a b\"")]
-        [TestCase("\"" + Tag + "\"\"" + Tag + "\"")]
-        [TestCase("*, \"" + Tag + "\"")]
-        [TestCase("w/\"" + Tag + "\"")]
-        public void A_field_that_will_not_read_is_met_by_nothing(string field)
+        [TestCase("", Tag)]
+        [TestCase(",", Tag)]
+        [TestCase(Tag, Tag)]
+        [TestCase("\"" + Tag, Tag)]
+        [TestCase("\"" + Tag + "\" junk", Tag)]
+        [TestCase("\"a b\"", "a b")]
+        [TestCase("\"" + Tag + "\"\"" + Tag + "\"", Tag)]
+        [TestCase("*, \"" + Tag + "\"", Tag)]
+        [TestCase("w/\"0000\", \"" + Tag + "\"", Tag)]
+        public void A_field_that_will_not_read_is_met_by_nothing(string field, string lenient)
         {
             // Every way of ignoring a condition ends with the write going ahead, which is the one
-            // thing a client that sent one did not ask for.
+            // thing a client that sent one did not ask for. Each field is asked about the tag a
+            // reader taking it generously would have read out of it, which is what it would then
+            // have admitted: a space inside the quotes, and `w/` taken as the weak prefix that only
+            // `W/` is, so the strong tag beside it would be read.
             var read = VaultPrecondition.Read(field);
 
             Assert.That(read, Is.Not.Null, field);
-            Assert.That(read.Admits(Tag), Is.False, field);
+            Assert.That(read.Admits(lenient), Is.False, field);
         }
     }
 }

@@ -204,8 +204,8 @@ namespace KeePassGate.Tests
                 Refuse(dialog).Focus();
                 OffScreenForm.Pump();
 
-                Assert.That(Refuse(dialog).Press(Keys.Alt | Keys.Down), Is.True);
-                OffScreenForm.Pump();
+                Keystrokes.AltDown(Refuse(dialog));
+                Assert.That(Refuse(dialog).MenuShown, Is.True, "Alt and Down did not open the menu");
 
                 for (var i = 0; i < downs; i++)
                 {
@@ -240,8 +240,8 @@ namespace KeePassGate.Tests
                 Refuse(dialog).Focus();
                 OffScreenForm.Pump();
 
-                Assert.That(Refuse(dialog).Press(Keys.Alt | Keys.Down), Is.True);
-                OffScreenForm.Pump();
+                Keystrokes.AltDown(Refuse(dialog));
+                Assert.That(Refuse(dialog).MenuShown, Is.True, "Alt and Down did not open the menu");
 
                 Press(Refuse(dialog), Keys.Down);
                 Press(Refuse(dialog), Keys.Down);
@@ -370,7 +370,7 @@ namespace KeePassGate.Tests
             }
             catch (TimeZoneNotFoundException)
             {
-                Assert.Inconclusive("this machine has no Azores zone");
+                Assert.Ignore("this machine has no Azores zone");
                 return;
             }
 

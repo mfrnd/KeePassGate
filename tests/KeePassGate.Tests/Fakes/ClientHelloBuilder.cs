@@ -9,8 +9,10 @@ namespace KeePassGate.Tests.Fakes
     /// would never send.
     /// </summary>
     /// <remarks>
-    /// The valid case is also captured from a real handshake elsewhere in the suite. This exists
-    /// for everything else: truncations, lengths that lie, and names that are not names.
+    /// The valid case also arrives from real clients: every handshake `GateListenerTests` makes,
+    /// through `SslStream` in `GateClient` and through Bouncy Castle in `BouncyCastleGateClient`,
+    /// is read by `ClientHelloReader` before the gate answers it. This exists for everything else:
+    /// truncations, lengths that lie, and names that are not names.
     /// </remarks>
     internal sealed class ClientHelloBuilder
     {

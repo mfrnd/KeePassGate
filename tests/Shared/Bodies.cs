@@ -53,6 +53,15 @@ namespace KeePassGate.Testing
                             writer.Array(member.Name);
                             foreach (var item in items)
                             {
+                                // Refused as a null member is, rather than written as the empty
+                                // string the writer makes of it: a body about a value the test
+                                // never gave.
+                                if (item == null)
+                                {
+                                    throw new ArgumentException(
+                                        member.Name + " holds an item that is not there.", nameof(members));
+                                }
+
                                 writer.Item(item);
                             }
 

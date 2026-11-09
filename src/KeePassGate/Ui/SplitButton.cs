@@ -176,11 +176,7 @@ namespace KeePassGate.Ui
         /// What one key does to this button beyond what a button does with it. True when it was
         /// taken: Alt and Down open the menu, as they open a list on a dialog.
         /// </summary>
-        /// <remarks>
-        /// Reachable without the message loop, because a test cannot hold Alt down: the state of a
-        /// modifier is read from the keyboard, not from a message a test can post.
-        /// </remarks>
-        internal bool Press(Keys keyData)
+        private bool Press(Keys keyData)
         {
             if (keyData != (Keys.Alt | Keys.Down))
             {

@@ -15,9 +15,11 @@ namespace KeePassGate.Tests
     /// </summary>
     /// <remarks>
     /// One thing here is different from every other button on this tab, and the wording has to
-    /// carry it: inviting changes nothing in the database. There is nothing for Cancel to undo and
-    /// nothing for a save to keep, because a token that was never in custom data cannot be brought
-    /// back by a dialog writing a stale copy of it.
+    /// carry it: inviting changes nothing in the database. There is nothing for a save to keep,
+    /// because a token that was never in custom data cannot be brought back by a dialog writing a
+    /// stale copy of it. The dialog's answer still decides whether the code stays good: Cancel, the
+    /// close box and Escape take back a code made on the dialog that nobody has used yet, which
+    /// `PendingInvitationsTests` pins, while a code spent with the dialog open stays spent.
     /// </remarks>
     [TestFixture]
     [Apartment(ApartmentState.STA)]
@@ -134,6 +136,7 @@ namespace KeePassGate.Tests
                 panel.InviteClient();
 
                 Assert.That(_book.For(Digest()).Count, Is.EqualTo(1));
+                Assert.That(_book.Outstanding().Count, Is.EqualTo(1), "and nothing for any other database");
             }
         }
 
@@ -470,6 +473,17 @@ namespace KeePassGate.Tests
                 Assert.That(copied.GetDataPresent(format, false), Is.True,
                     "the copy is not marked " + format);
             }
+
+            // Two of them are read by Windows as a four byte value, and only zero keeps the copy
+            // out. A managed data object hands Windows raw bytes only for a stream and serializes
+            // anything else, so what is under each has to be a stream of four zero bytes.
+            foreach (var format in new[] { "CanIncludeInClipboardHistory", "CanUploadToCloudClipboard" })
+            {
+                var value = copied.GetData(format, false) as System.IO.MemoryStream;
+
+                Assert.That(value, Is.Not.Null, format + " is not handed to Windows as raw bytes");
+                Assert.That(value?.ToArray(), Is.EqualTo(new byte[4]), format + " does not read as no");
+            }
         }
 
         [Test]
@@ -539,6 +553,11 @@ namespace KeePassGate.Tests
             }
         }
 
+        /// <summary>
+        /// The panel over the fake database itself rather than the `PendingDatabase` the factory
+        /// always gives it, for the reason `AuthorityPanelTests` gives: what such a test asserts
+        /// about marking the database is the panel's own contract with it.
+        /// </summary>
         private AuthorityPanel NewPanel()
         {
             return new AuthorityPanel(_database, new FakePrompt(true), _log, _book);

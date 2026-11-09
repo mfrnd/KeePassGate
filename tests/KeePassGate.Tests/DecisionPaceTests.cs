@@ -145,18 +145,18 @@ namespace KeePassGate.Tests
         }
 
         [Test]
-        public void A_decision_with_no_admission_key_is_not_paced()
+        public void A_decision_with_no_key_is_not_paced()
         {
             Take(null, DecisionPace.Burst + 5);
 
             Assert.That(_waits, Is.Empty);
         }
 
-        private void Take(string admissionKey, int times)
+        private void Take(string clientKey, int times)
         {
             for (var i = 0; i < times; i++)
             {
-                _pace.Take(admissionKey);
+                _pace.Take(clientKey);
             }
         }
 

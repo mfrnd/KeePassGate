@@ -1375,29 +1375,17 @@ namespace KeePassGate.Tests
                 "POST", RequestPath, RequestBody(name, profiles, sent, proof), _connection, approval);
         }
 
+        /// <summary>A request's body, its lifetime left out when it asks for none.</summary>
         private static string RequestBody(string name, string[] profiles, string lifetime, byte[] proof)
         {
-            var text = new System.Text.StringBuilder();
-            text.Append("{\"name\":\"").Append(name).Append("\",\"profiles\":[");
-
-            for (var i = 0; i < profiles.Length; i++)
-            {
-                if (i > 0)
-                {
-                    text.Append(',');
-                }
-
-                text.Append('"').Append(profiles[i]).Append('"');
-            }
-
-            text.Append(']');
+            var members = new List<(string Name, object Value)> { ("name", name), ("profiles", profiles) };
             if (lifetime != null)
             {
-                text.Append(",\"lifetime\":\"").Append(lifetime).Append('"');
+                members.Add(("lifetime", lifetime));
             }
 
-            text.Append(",\"proof\":\"").Append(Convert.ToBase64String(proof)).Append("\"}");
-            return text.ToString();
+            members.Add(("proof", Convert.ToBase64String(proof)));
+            return Bodies.Of(members.ToArray());
         }
 
         private byte[] _lastChallenge;

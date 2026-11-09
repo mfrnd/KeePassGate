@@ -26,6 +26,14 @@ namespace KeePassGate.Tests
     /// no window has ever drawn cannot be. A test that pressed one would pass while proving
     /// nothing, which is why what a button does is public on this panel. The end to end tier
     /// presses the real buttons on a real KeePass, which is where the wiring is worth checking.
+    ///
+    /// **Most of these build the panel over a database of its own**, which production never does:
+    /// the factory always hands it a `PendingDatabase`, whose `MarkModified` does nothing and whose
+    /// buffer cannot lose a write. So a test here asserting that the database was marked modified,
+    /// or that a write the store swallowed was reported, pins the panel's own contract with
+    /// `IGateDatabase`, and the shipped path, the buffer and its replay at OK, is pinned in
+    /// `PendingChangesTests` and `GateWiringTests`, and here by the tests that build a
+    /// `PendingDatabase` of their own.
     /// </remarks>
     [TestFixture]
     [Apartment(ApartmentState.STA)]
@@ -2004,6 +2012,10 @@ namespace KeePassGate.Tests
             return NewPanel(new FakePrompt(confirm));
         }
 
+        /// <summary>
+        /// The panel over the fake database itself, for the panel's own contract with it: see the
+        /// fixture's remark for why that is not the path production takes.
+        /// </summary>
         private AuthorityPanel NewPanel(IOperatorPrompt prompt)
         {
             return new AuthorityPanel(_database, prompt, _log);

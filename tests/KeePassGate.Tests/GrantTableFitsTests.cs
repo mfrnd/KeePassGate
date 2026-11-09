@@ -17,10 +17,14 @@ namespace KeePassGate.Tests
     /// Its own fixture, and shown, because a `DataGridView` with no window handle never sizes
     /// anything: it answers with whatever was written down and the measurement believes it.
     /// `GrantPanelTests` cannot see this for the same reason it cannot see a dropdown open.
+    ///
+    /// **Shown, so it runs alone and holds the desktop**: a window shown takes the activation
+    /// from whatever held it, in this process or another test process on the same screen.
     /// </remarks>
     [TestFixture]
     [Apartment(ApartmentState.STA)]
     [NonParallelizable]
+    [Desktop]
     public sealed class GrantTableFitsTests
     {
         private const int ProfileColumn = GrantTab.ProfileColumn;

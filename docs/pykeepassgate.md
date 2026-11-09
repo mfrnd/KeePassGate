@@ -750,7 +750,9 @@ tag each came with, since the tag is not part of what the node holds.
 
 **The gate hands a tag only to a client whose rule reads everything it covers**: `read` on a
 group, and on an entry `read` reaching its attachments and, when the entry holds any, its
-protected values, from one rule. A tag is a digest of the content, so one handed to a client that
+protected values, from one rule. An entry KeePass or `create_entry` makes holds a protected value
+from the start, its `Password`, protected by default however empty, so such an entry is tagged
+only for a rule holding `P`. A tag is a digest of the content, so a tag handed to a client that
 may not read all of it would let that client test guesses at the rest by writing them where it
 may write. Any other client reads as before with no `etag`, where `AttributeError` states why, its
 writes return `None`, and any `if_match` it sends is `PreconditionFailed`, since it cannot know

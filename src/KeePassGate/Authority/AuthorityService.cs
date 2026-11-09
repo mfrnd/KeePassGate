@@ -13,8 +13,10 @@ namespace KeePassGate.Authority
     /// Two rules run through this class. Nothing is destroyed implicitly: creating over an existing
     /// authority is refused rather than silently replacing one, because replacing it revokes every
     /// client at once and that has to be asked for. And nothing is believed without reading it
-    /// back, because the store this writes to can have a dialog holding a stale copy of it, and a
-    /// write that vanishes must be reported rather than assumed. What the read back found is then
+    /// back, because a write that did not land as it was written must be reported rather than
+    /// assumed. That is no defense against a dialog holding a stale copy of the store, which puts
+    /// its copy back only on its own OK, after the read back has run: `GroupDialogs` refusing the
+    /// write while such a dialog is open is what answers that. What the read back found is then
     /// what the message says: a refusal claiming the database was left alone, made after something
     /// in it was already taken away, is a worse answer than the failure it is reporting, because
     /// the operator acts on it.
@@ -331,8 +333,7 @@ namespace KeePassGate.Authority
         /// </summary>
         /// <remarks>
         /// Two states rather than one, because the operator's next move differs and the message
-        /// used to give them neither. Nothing under the key is the write being swallowed, which is
-        /// what a dialog holding a stale copy does and is the case this read back was written for.
+        /// used to give them neither. Nothing under the key is a write the store did not keep.
         /// Something unreadable under the key is the write landing: the database now carries an
         /// authority this plugin refuses, `Create` answers "recreate it" from here on, and a
         /// message saying nothing had changed leaves the operator arguing with that.

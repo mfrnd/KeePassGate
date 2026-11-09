@@ -152,7 +152,8 @@ namespace KeePassGate.Tests
             {
                 Select(grid, 0);
                 AskFromTheKeyboard(grid);
-                Assume.That(Item(list.Menu, ClientList.AllowRenewalItemName).Selected, Is.True);
+                Assert.That(Item(list.Menu, ClientList.AllowRenewalItemName).Selected, Is.True,
+                    "the menu did not open on Allow renewal, so nothing below is measured");
 
                 Key(grid, Keys.Enter);
 

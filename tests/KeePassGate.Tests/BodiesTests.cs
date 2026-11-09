@@ -47,6 +47,8 @@ namespace KeePassGate.Tests
             Assert.That(() => Bodies.Of((null, "a")), Throws.ArgumentException);
             Assert.That(() => Bodies.Of(("count", 3)), Throws.ArgumentException);
             Assert.That(() => Bodies.Of(("nothing", null)), Throws.ArgumentException);
+            Assert.That(() => Bodies.Of(("profiles", new[] { "a", null })), Throws.ArgumentException,
+                "and a list holding nothing at one place, which the writer would make an empty string");
         }
 
         [Test]

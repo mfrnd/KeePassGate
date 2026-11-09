@@ -83,7 +83,7 @@ namespace KeePassGate.Tests
             Using((form, button, clicks, chosen) =>
             {
                 Click(button, Middle(button.ArrowBounds));
-                Assume.That(button.MenuShown, Is.True);
+                Assert.That(button.MenuShown, Is.True, "the menu did not open, so nothing below is measured");
 
                 Click(button, Middle(button.ArrowBounds));
 
@@ -100,11 +100,15 @@ namespace KeePassGate.Tests
         {
             Using((form, button, clicks, chosen) =>
             {
-                Assert.That(button.Press(Keys.Alt | Keys.Down), Is.True, "nothing took the keys");
+                Key(button, Keys.Down);
+                Assert.That(button.MenuShown, Is.False, "Down alone is the dialog's");
 
-                Assert.That(button.MenuShown, Is.True);
+                Keystrokes.AltDown(button);
+
+                Assert.That(button.MenuShown, Is.True, "Alt and Down did not reach the menu");
                 Assert.That(button.Menu.Items[0].Selected, Is.True, "Enter would have nothing to choose");
-                Assert.That(button.Press(Keys.Down), Is.False, "Down alone is the dialog's");
+                Assert.That(clicks, Is.Empty);
+                Assert.That(_loop, Is.Empty);
             });
         }
 

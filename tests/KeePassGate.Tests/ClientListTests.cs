@@ -464,6 +464,8 @@ namespace KeePassGate.Tests
 
         [Test]
         [Apartment(System.Threading.ApartmentState.STA)]
+        [NonParallelizable]
+        [Desktop]
         [TestCase(true, false)]
         [TestCase(false, true)]
         [TestCase(true, true)]
@@ -474,7 +476,8 @@ namespace KeePassGate.Tests
             // on, and the two had swapped once the page was on screen: a line shown before its
             // page has a window is moved when the page gets one, to after the last line that
             // already has one. So each line is shown first in turn, before the list is on screen,
-            // and the other one after.
+            // and the other one after. Shown, so it runs alone and holds the desktop: the window
+            // takes the activation from whatever held it, in this process or another.
             var client = Record("agent-fictitious", "ops");
 
             using (var form = Fakes.OffScreenForm.New())
@@ -723,13 +726,17 @@ namespace KeePassGate.Tests
 
         [Test]
         [Apartment(System.Threading.ApartmentState.STA)]
+        [NonParallelizable]
+        [Desktop]
         public void A_moment_heading_stays_on_one_line_over_an_empty_list()
         {
             // Sized to what it holds, a moment column with no rows under it holds only its heading,
             // and a heading free to wrap was given the width that folds it: the README's film
             // showed "Admitted (UTC)" and "Until (UTC)" on two lines each, over a page that had
             // admitted nobody yet. On a form that is shown, since a grid that only has a handle
-            // never wraps its headings and passes whatever they are set to.
+            // never wraps its headings and passes whatever they are set to. Shown, so it runs
+            // alone and holds the desktop: the window takes the activation from whatever held it,
+            // in this process or another.
             using (var form = new Form { ClientSize = new Size(431, 200) })
             using (var list = new ClientList(Allows) { Dock = DockStyle.Fill })
             {

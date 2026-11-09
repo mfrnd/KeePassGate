@@ -240,10 +240,37 @@ namespace KeePassGate.Tests
         [Test]
         public void A_record_claiming_to_be_larger_than_TLS_allows_is_refused_before_allocating()
         {
-            var header = new byte[] { 0x16, 0x03, 0x01, 0xFF, 0xFF };
-            using (var stream = new MemoryStream(header))
+            // The whole body is on the stream, because with only the header there the record is
+            // refused for ending early whether or not anything holds it to TLS's length.
+            var record = new byte[ClientHelloReader.HeaderLength + 0xFFFF];
+            new byte[] { 0x16, 0x03, 0x01, 0xFF, 0xFF }.CopyTo(record, 0);
+            using (var stream = new MemoryStream(record))
             {
                 Assert.That(ClientHelloReader.Read(stream), Is.Null);
+                Assert.That(stream.Position, Is.EqualTo(ClientHelloReader.HeaderLength),
+                    "Nothing past the header is read for a record TLS never sends.");
+            }
+        }
+
+        [Test]
+        public void A_record_as_large_as_TLS_allows_is_read_and_one_byte_larger_is_not()
+        {
+            var largest = HelloWithBodyOf(ClientHelloReader.MaxRecordLength);
+            var larger = HelloWithBodyOf(ClientHelloReader.MaxRecordLength + 1);
+
+            using (var stream = new MemoryStream(largest))
+            {
+                var peek = ClientHelloReader.Read(stream);
+
+                Assert.That(peek, Is.Not.Null);
+                Assert.That(peek.ServerName, Is.EqualTo(Name));
+                Assert.That(peek.Bytes, Is.EqualTo(largest));
+            }
+
+            using (var stream = new MemoryStream(larger))
+            {
+                Assert.That(ClientHelloReader.Read(stream), Is.Null);
+                Assert.That(stream.Position, Is.EqualTo(ClientHelloReader.HeaderLength));
             }
         }
 
@@ -280,6 +307,20 @@ namespace KeePassGate.Tests
 
             Assert.That(peek, Is.Not.Null);
             Assert.That(peek.ServerName, Is.EqualTo(Name));
+        }
+
+        /// <summary>
+        /// A hello naming <see cref="Name"/>, filled out with the padding extension until its
+        /// record's body is exactly as long as asked.
+        /// </summary>
+        private static byte[] HelloWithBodyOf(int bodyLength)
+        {
+            const int Padding = 0x0015;
+            var bare = new ClientHelloBuilder()
+                .AddServerName(Name).AddExtension(Padding, Array.Empty<byte>()).Build();
+            var fill = bodyLength - (bare.Length - ClientHelloReader.HeaderLength);
+
+            return new ClientHelloBuilder().AddServerName(Name).AddExtension(Padding, new byte[fill]).Build();
         }
 
         /// <summary>Hands back one byte at a time, as a socket under load may.</summary>

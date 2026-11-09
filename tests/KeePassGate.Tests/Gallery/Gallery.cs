@@ -74,6 +74,9 @@ namespace KeePassGate.Tests.Gallery
         /// </remarks>
         public static readonly Size GroupPage = new Size(356, 171);
 
+        /// <summary>The file that marks a directory as the gallery's own.</summary>
+        private const string Mark = ".kpg-gallery";
+
         private static readonly object Lock = new object();
 
         private static string _directory;
@@ -297,16 +300,37 @@ namespace KeePassGate.Tests.Gallery
             };
         }
 
+        /// <summary>
+        /// The directory the pictures go to, emptied of the pictures an earlier run left there.
+        /// </summary>
+        /// <remarks>
+        /// **Only pictures the gallery made are deleted.** `.gallery` is the gallery's own, and
+        /// any other directory is marked as the gallery's the first time a run writes there.
+        /// `KPG_GALLERY_DIR` naming a directory that already holds pictures and carries no mark is
+        /// a directory somebody else keeps pictures in, a mistyped path or a directory shared with
+        /// something else, and it is refused rather than emptied: the run that would have taken
+        /// every picture in it fails instead, naming it.
+        /// </remarks>
         private static string Prepare()
         {
             var chosen = Environment.GetEnvironmentVariable("KPG_GALLERY_DIR");
-            var where = string.IsNullOrEmpty(chosen) ? Paths.Join(Root(), ".gallery") : chosen;
+            var own = Paths.Join(Root(), ".gallery");
+            var where = string.IsNullOrEmpty(chosen) ? own : chosen;
+            var mark = Paths.Join(where, Mark);
 
             if (System.IO.Directory.Exists(where))
             {
-                foreach (var stale in System.IO.Directory.GetFiles(where, "*.png"))
+                var stale = System.IO.Directory.GetFiles(where, "*.png");
+                if (stale.Length > 0 && !File.Exists(mark) && !string.Equals(where, own, StringComparison.Ordinal))
                 {
-                    File.Delete(stale);
+                    throw new InvalidOperationException(
+                        "KPG_GALLERY_DIR names " + where + ", which holds pictures the gallery did not make. " +
+                        "Name an empty directory, or a directory an earlier run of the gallery wrote to.");
+                }
+
+                foreach (var picture in stale)
+                {
+                    File.Delete(picture);
                 }
             }
             else
@@ -314,6 +338,7 @@ namespace KeePassGate.Tests.Gallery
                 System.IO.Directory.CreateDirectory(where);
             }
 
+            File.WriteAllText(mark, "The pictures here are the gallery's, and each run of it replaces them.");
             return where;
         }
 

@@ -86,10 +86,11 @@ namespace KeePassGate.Tests
         }
 
         [Test]
-        public void Case_is_not_what_a_person_typing_a_mask_is_choosing_between()
+        public void Case_is_not_what_tells_one_mask_from_another()
         {
-            // There is one rule here, not two spellings of one, and the grid rewrites the cell to
-            // the canonical mask the moment it commits.
+            // There is one rule here, not two spellings of one. Nothing read here was spelled by a
+            // person, since neither column of the editor is typed into, and a lower case letter in
+            // its own column can only name the verb it would name in capitals.
             Assert.That(VerbMask.Read(".r...la."), Is.EqualTo(VerbMask.Read(".R...LA.")));
         }
 
@@ -111,9 +112,10 @@ namespace KeePassGate.Tests
         [TestCase("read", TestName = "the word instead")]
         public void Anything_that_is_not_exactly_a_mask_is_refused(string mask)
         {
-            // A letter in the wrong column is the one worth refusing loudly. Somebody who typed it
-            // meant something, and guessing which verb they meant is how an editor grants one
-            // nobody chose.
+            // What is read here was written by `VerbMask.Of`, so anything that is not exactly a
+            // mask is a defect to refuse rather than a rule to guess at. A letter in the wrong
+            // column is the letter worth refusing loudly, because taking it to mean the verb it
+            // names is how an editor grants a verb nobody chose.
             Assert.That(VerbMask.Read(mask), Is.Null);
         }
 

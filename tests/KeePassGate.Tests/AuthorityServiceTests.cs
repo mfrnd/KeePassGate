@@ -312,7 +312,7 @@ namespace KeePassGate.Tests
         [Test]
         public void A_write_that_vanishes_is_reported_rather_than_believed()
         {
-            // What a stale dialog snapshot does to a write: it is accepted and it is not there.
+            // A store that loses a write: it is accepted and it is not there.
             _values.SwallowWrites = true;
 
             var result = _service.Create();
@@ -530,9 +530,10 @@ namespace KeePassGate.Tests
                 Assert.That(reading.Presence, Is.EqualTo(AuthorityPresence.None));
             }
 
+            // Asked of the whole line the file is given, any exception logged included.
             foreach (var entry in _log.Entries)
             {
-                Assert.That(entry.Message, Does.Not.Contain("MII"), "A certificate blob has no business in a log.");
+                Assert.That(entry.Line, Does.Not.Contain("MII"), "A certificate blob has no business in a log.");
                 Assert.That(entry.Message.Length, Is.LessThan(200));
             }
         }

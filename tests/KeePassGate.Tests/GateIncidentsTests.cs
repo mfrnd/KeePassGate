@@ -3,6 +3,7 @@ using System.IO;
 using System.Linq;
 using System.Net.Sockets;
 using System.Reflection;
+using System.Runtime.InteropServices;
 using System.Security.Cryptography;
 using System.Threading;
 using KeePassGate.Diagnostics;
@@ -261,6 +262,61 @@ namespace KeePassGate.Tests
 
             Assert.That(Matches("OfCryptography", new InvalidOperationException()), Is.False,
                 "the list it widens still does not, because nothing else reading a key issues one");
+        }
+
+        [Test]
+        public void The_clipboard_covers_another_program_holding_it_and_not_a_copy_of_nothing()
+        {
+            Assert.That(Matches("OfClipboard", new ExternalException()), Is.True, "another program holds it");
+            Assert.That(Matches("OfClipboard", new System.ComponentModel.Win32Exception()), Is.True);
+            Assert.That(Matches("OfClipboard", new ThreadStateException()), Is.True);
+
+            // `SetDataObject` raises this only when it is handed nothing to put there, which is a
+            // defect here. Covered, it would be told to the operator as another program holding
+            // the clipboard, with advice that cannot work.
+            Assert.That(Matches("OfClipboard", new ArgumentNullException("data")), Is.False);
+            Assert.That(Matches("OfClipboard", new ArgumentException()), Is.False);
+        }
+
+        [Test]
+        public void Storage_covers_every_way_a_path_turns_out_to_be_unusable()
+        {
+            Assert.That(Matches("OfStorage", new IOException()), Is.True, "gone, locked or full");
+            Assert.That(Matches("OfStorage", new UnauthorizedAccessException()), Is.True);
+            Assert.That(Matches("OfStorage", new System.Security.SecurityException()), Is.True);
+            Assert.That(Matches("OfStorage", new ArgumentException()), Is.True, "not a path at all");
+            Assert.That(Matches("OfStorage", new NotSupportedException()), Is.True);
+        }
+
+        [Test]
+        public void Saving_covers_a_file_a_window_and_custom_data_at_once()
+        {
+            // The handlers of every other plugin run with KeePass's save, so a file's failure, a
+            // window's and custom data's all reach the writer from it.
+            Assert.That(Matches("OfSaving", new IOException()), Is.True);
+            Assert.That(Matches("OfSaving", new ObjectDisposedException("window")), Is.True);
+            Assert.That(Matches("OfSaving", new InvalidOperationException()), Is.True);
+            Assert.That(Matches("OfSaving", new CryptographicException()), Is.False, "and not a key's");
+        }
+
+        [Test]
+        public void The_user_interface_covers_a_window_gone_and_a_picture_that_will_not_draw()
+        {
+            Assert.That(Matches("OfUserInterface", new ObjectDisposedException("form")), Is.True);
+            Assert.That(Matches("OfUserInterface", new InvalidOperationException()), Is.True);
+            Assert.That(Matches("OfUserInterface", new ArgumentException()), Is.True);
+            Assert.That(Matches("OfUserInterface", new ExternalException()), Is.True,
+                "the base type, which GDI+ reports a picture it cannot decode as");
+        }
+
+        [Test]
+        public void A_document_covers_both_of_the_reader_s_unrelated_exceptions()
+        {
+            Assert.That(Matches("OfDocument", new Microsoft.OpenApi.Exceptions.OpenApiException()), Is.True);
+            Assert.That(
+                Matches("OfDocument", new Microsoft.OpenApi.Readers.Exceptions.OpenApiUnsupportedSpecVersionException("9.9")),
+                Is.True, "which derives from `Exception` itself rather than from the other");
+            Assert.That(Matches("OfDocument", new FormatException()), Is.True);
         }
 
         [TestCaseSource(nameof(EveryFilter))]

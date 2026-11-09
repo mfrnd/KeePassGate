@@ -609,6 +609,47 @@ namespace KeePassGate.Tests
             }
         }
 
+        [Test]
+        public void A_connection_closed_before_its_thread_began_is_logged_as_that_and_counted_as_nothing()
+        {
+            // The test above pins the framework and `Opened`; this pins the thread that uses it,
+            // whose own reading of the timeouts was what counted a lock as a defect. Served here,
+            // on a connection already closed, because nothing a test can time puts a close
+            // between the accept and the thread's first line.
+            using (var authority = TestAuthority.New())
+            {
+                var log = new QueueLog();
+                var incidents = new KeePassGate.Diagnostics.GateIncidents(log);
+                var accepting = new TcpListener(IPAddress.Loopback, 0);
+                accepting.Start();
+
+                try
+                {
+                    using (var listener = new GateListener(
+                        new GateOptions { Port = 0 },
+                        new GateResolver(new FakeGateTargets(authority), log),
+                        GateOperations.Router("9.9.9"),
+                        incidents,
+                        log))
+                    using (var peer = new TcpClient())
+                    {
+                        peer.Connect(IPAddress.Loopback, ((IPEndPoint)accepting.LocalEndpoint).Port);
+                        var accepted = accepting.AcceptTcpClient();
+                        accepted.Close();
+
+                        listener.Converse(accepted);
+
+                        Assert.That(incidents.Count, Is.Zero, string.Join("\n", log.Lines));
+                        Assert.That(log.Lines, Has.Member("INFO a connection was closed before it was served"));
+                    }
+                }
+                finally
+                {
+                    accepting.Stop();
+                }
+            }
+        }
+
         /// <summary>A log a test can read while connection threads write to it.</summary>
         private sealed class QueueLog : KeePassGate.Diagnostics.IGateLog
         {

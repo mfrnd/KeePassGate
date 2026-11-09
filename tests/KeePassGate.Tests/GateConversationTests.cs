@@ -316,9 +316,11 @@ namespace KeePassGate.Tests
             Assert.That(stream.Status, Is.EqualTo(500));
             Assert.That(_log.Surprises, Is.Not.Empty);
 
+            // The whole line the file is given, since the exception logged is written beside the
+            // message, and wrapped in an exception naming the path it would reach the file so.
             foreach (var entry in _log.Entries)
             {
-                Assert.That(entry.Message, Does.Not.Contain("Recovery"));
+                Assert.That(entry.Line, Does.Not.Contain("Recovery"));
             }
         }
 
