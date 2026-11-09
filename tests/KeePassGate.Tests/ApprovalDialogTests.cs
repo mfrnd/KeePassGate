@@ -58,7 +58,12 @@ namespace KeePassGate.Tests
                 User32.SetActiveWindow(owner.Handle);
                 box.Focus();
                 OffScreenForm.Pump();
-                Assume.That(User32.GetActiveWindow(), Is.EqualTo(owner.Handle));
+
+                // An assertion rather than an assumption, as `RenewalApprovalTests` gives the
+                // reason for: this is the one test of a dialog never taking the focus, and an
+                // assumption that never holds leaves it measuring nothing without a word.
+                Assert.That(User32.GetActiveWindow(), Is.EqualTo(owner.Handle),
+                    "the owner did not become active, so nothing below is measured");
 
                 Place(dialog);
 
@@ -250,7 +255,7 @@ namespace KeePassGate.Tests
                 var list = Focus(Profiles(dialog));
                 list.SelectedIndex = 0;
                 OffScreenForm.Pump();
-                Assume.That(list.GetItemChecked(0), Is.True);
+                Assert.That(list.GetItemChecked(0), Is.True, "the profile was not checked, so nothing below is measured");
 
                 User32.PostMessage(list.Handle, WmChar, (IntPtr)'o', IntPtr.Zero);
                 OffScreenForm.Pump();

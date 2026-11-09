@@ -83,7 +83,7 @@ namespace KeePassGate.Tests
             Using((form, button, clicks, chosen) =>
             {
                 Click(button, Middle(button.ArrowBounds));
-                Assume.That(button.MenuShown, Is.True);
+                Assert.That(button.MenuShown, Is.True, "the menu did not open, so nothing below is measured");
 
                 Click(button, Middle(button.ArrowBounds));
 
