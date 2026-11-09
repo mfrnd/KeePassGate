@@ -12,8 +12,8 @@ namespace KeePassGate.Tests.Fakes
     /// <remarks>
     /// The whole reason `IVault` is a seam. What the handlers do to a tree, what they say about it
     /// and what they refuse are all decidable here in a few lines each; `KdbxVaultTests` is where
-    /// the same operations meet a real KDBX4, and it is short because this is where the thinking
-    /// happens.
+    /// the same operations meet a real KDBX4, and what it asks is whether the real vault holds to
+    /// what is decided here.
     ///
     /// The nodes it hands out are `TestNode`s wired into the same shape as the tree, so a rule
     /// written on a group really does reach the entries under it.
