@@ -86,9 +86,10 @@ namespace KeePassGate.Tests
         [Test]
         public void Reading_a_node_and_writing_it_back_unchanged_is_not_a_change()
         {
-            // The whole reason this is asked at all: `StringDictionaryEx.Set` stamps a fresh
-            // modification time even for an identical value, which turns "look at the tab and press
-            // OK" into an unsaved database.
+            // The whole reason this is asked at all: the entry dialog compares the entry it hands
+            // back with the entry it was given, so rules written back in other words are a changed
+            // entry, with a revision in its history and the database marked modified, for "look at
+            // the tab and press OK". `Changed` is what decides whether anything is written.
             var stored = Rules.Granting(("reader", "R"));
 
             Assert.That(new GrantSheet(stored, null, null, null).Changed, Is.False);
