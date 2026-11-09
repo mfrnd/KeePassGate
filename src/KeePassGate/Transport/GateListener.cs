@@ -503,7 +503,7 @@ namespace KeePassGate.Transport
 
                     var accepted = client;
 
-                    // Tracked before it is queued. `Converse` takes it out again in a finally,
+                    // Tracked before its thread starts. `Converse` takes it out again in a finally,
                     // and `Stop` closes whatever is still in here, so a connection that was
                     // never added would outlive the listener that accepted it.
                     //
@@ -821,7 +821,13 @@ namespace KeePassGate.Transport
             }
         }
 
-        private void Converse(TcpClient client)
+        /// <summary>One conversation, on the thread <see cref="Started"/> gave it.</summary>
+        /// <remarks>
+        /// Internal so that a test can hand it a connection a lock closed before its thread began,
+        /// which no timing a test controls can arrange: the thread starts as the connection is
+        /// accepted, and a close lands before its first line only by chance.
+        /// </remarks>
+        internal void Converse(TcpClient client)
         {
             // In KeePass's culture, see `_culture`. The thread is this conversation's alone and
             // ends with it, so there is nothing to give back.
@@ -1200,7 +1206,7 @@ namespace KeePassGate.Transport
         /// </summary>
         /// <remarks>
         /// **A lock can close a connection whose thread has not started.** The accept loop tracks a
-        /// connection before it queues its thread, so that `CloseAll` reaches every one, and a lock
+        /// connection before it starts its thread, so that `CloseAll` reaches every one, and a lock
         /// or an unlock landing in between closes it there. A `TcpClient` closed before its stream
         /// was taken lets go of its socket and answers `Client` with null, so every property that
         /// goes through it, the timeouts first, raised a `NullReferenceException` that no filter
