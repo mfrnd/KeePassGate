@@ -313,6 +313,12 @@ namespace KeePassGate.Tests.Fakes
         /// database decides it, and an attachment's bytes only up to the largest the gate serves,
         /// each one counted as a read, since the real vault decrypts it to hash it.
         /// </summary>
+        /// <remarks>
+        /// **Less the two times**, because nothing here keeps any. The real vault's tag carries
+        /// both to the second and every change it makes touches the modification time, so there a
+        /// change that puts back what was there gives a new tag unless it lands within the same
+        /// second, where here it always gives back the tag that was there.
+        /// </remarks>
         private string Tag(Kept entry)
         {
             TagsTaken++;
@@ -1104,7 +1110,10 @@ namespace KeePassGate.Tests.Fakes
                     Uuid, Name, Notes, Parent, DateTimeOffset.MinValue, DateTimeOffset.MinValue, Rules);
             }
 
-            /// <summary>What the group holds, condensed, as the real vault condenses it.</summary>
+            /// <summary>
+            /// What the group holds, condensed as the real vault condenses it, less the two times
+            /// for the reason the entry's tag gives.
+            /// </summary>
             public string Tag()
             {
                 return Tags.Of("group", Uuid, Parent, Name, Notes);
@@ -1172,9 +1181,10 @@ namespace KeePassGate.Tests.Fakes
 
         /// <summary>A digest of the parts, each behind its length, as the real vault's tags are made.</summary>
         /// <remarks>
-        /// Content rather than a counter, so that a change that puts back what was there gives
-        /// the tag back as well, which is what the real one does, and with no key, since nothing
-        /// here is a secret.
+        /// Content rather than a counter, as the real vault's tags are, and with no key, since
+        /// nothing here is a secret. With no times among the parts, a change that puts back what
+        /// was there gives the tag back here, which the real vault does only within the second the
+        /// change touched.
         /// </remarks>
         private static class Tags
         {

@@ -348,7 +348,7 @@ namespace KeePassGate.Tests
         }
 
         [Test]
-        public void A_tag_moves_with_what_the_node_holds_and_comes_back_with_it()
+        public void A_tag_moves_with_what_the_node_holds()
         {
             _vault.Granting(_vault.RootAlias, AllButProtected);
             var entry = "/entries/" + _entry;
@@ -362,8 +362,12 @@ namespace KeePassGate.Tests
             Assert.That(changed, Is.Not.EqualTo(before), "a changed field is a changed entry");
             Assert.That(Get(group).Tag, Is.EqualTo(groupBefore), "and says nothing new about its group");
 
+            // Not whether the tag that was there comes back with what was there: that is the real
+            // vault's to answer, whose tag carries the time every change touches, so it does only
+            // within the second, and `NodeTagsTests` holds the content half of it. This fake keeps
+            // no times, so asked here it would pin a property the gate does not have.
             Assert.That(Send("PUT", entry, "{\"Title\":\"an invented service\"}").Status, Is.EqualTo(200));
-            Assert.That(Get(entry).Tag, Is.EqualTo(before), "what was there, put back, is the tag that was there");
+            Assert.That(Get(entry).Tag, Is.Not.EqualTo(changed), "the entry moved again");
 
             Assert.That(Send("PUT", group, "{\"Notes\":\"invented notes\"}").Status, Is.EqualTo(200));
             Assert.That(Get(group).Tag, Is.Not.EqualTo(groupBefore));
