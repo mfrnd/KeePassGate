@@ -491,6 +491,13 @@ namespace KeePassGate.Tests
                 document.Operations.Where(o => o.TakesIfMatch).Select(o => o.OperationId)));
 
             // Every one refused against a tag nothing holds, and nothing changed by any of them.
+            // Asked of each node's tag, which is a digest of everything the node holds, so a
+            // refused request that wrote a title, a group's notes, an attachment's bytes, or a
+            // field or attachment of its own changes the tag of the node it wrote to.
+            var entryBefore = _vault.EntryTag(_entry);
+            var groupBefore = _vault.GroupTag(_group);
+            var emptyBefore = _vault.GroupTag(empty);
+
             foreach (var request in requests)
             {
                 var refused = Conditioned(request[0], request[1], request[2], "\"00000000000000000000000000000000\"");
@@ -498,9 +505,9 @@ namespace KeePassGate.Tests
                 Assert.That(refused.Status, Is.EqualTo(412), request[0] + " " + request[1]);
             }
 
-            Assert.That(_vault.Field(_entry, "Account"), Is.EqualTo("an invented account"));
-            Assert.That(_vault.Attachment(_entry, "notes.txt"), Is.Not.Null);
-            Assert.That(_vault.Group(empty), Is.Not.Null);
+            Assert.That(_vault.EntryTag(_entry), Is.Not.Null.And.EqualTo(entryBefore), "the entry changed");
+            Assert.That(_vault.GroupTag(_group), Is.Not.Null.And.EqualTo(groupBefore), "its group changed");
+            Assert.That(_vault.GroupTag(empty), Is.Not.Null.And.EqualTo(emptyBefore), "the empty group changed");
 
             // And every one served under `*`, in this order, which ends with the entry gone.
             foreach (var request in requests)
