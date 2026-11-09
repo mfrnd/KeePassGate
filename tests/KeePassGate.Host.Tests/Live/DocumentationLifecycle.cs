@@ -21,20 +21,24 @@ namespace KeePassGate.Host.Tests.Live
     /// </summary>
     /// <remarks>
     /// **A journey somebody can follow.** It starts where a reader starts, at a database with
-    /// entries in two folders and nothing else, and every dialog is opened the way an operator
-    /// opens it, from the menu bar, with the pointer going there first. The authority is created,
-    /// an invitation handed out and copied, the client pairs and is approved, the client is shown
-    /// refused even a listing until a rule grants it one, the rules are written on the group
-    /// dialogs, one folder opened and the other closed, and the client reads one and is refused the
-    /// other. Then it is revoked, and refused everything.
+    /// entries in two folders and nothing else, and every dialog is opened from the menu bar, with
+    /// the pointer drawn going there first. The authority is created, an invitation handed out and
+    /// copied, the client pairs and is approved, the client is shown refused even a listing until a
+    /// rule grants it one, the rules are written on the group dialogs, one folder opened and the
+    /// other closed, and the client reads one and is refused the other. Then it is revoked, and
+    /// refused everything.
     ///
-    /// **All of it real, with one exception said here.** The client is PyKeePassGate's own command
-    /// line, run through `uv` as the reference client tests run it, typing the commands the
-    /// documentation gives; the dialogs are KeePass's, pressed where an operator presses them; and
-    /// every answer in the terminal is what the gate answered. The exception is Create authority:
-    /// the press is drawn and not made, and the pictures after it are of the written down
-    /// authority, put into the file between two sessions, for the reason `Capture` gives. A minted
-    /// one shows a fingerprint that is new on every run, here and in the client's answer.
+    /// **What it shows is real, and not every press it draws was made.** The client is
+    /// PyKeePassGate's own command line, run through `uv` as the reference client tests run it,
+    /// typing the commands the documentation gives; the dialogs are KeePass's, and a press inside
+    /// one is made with the pointer where the picture draws it; and every answer in the terminal is
+    /// what the gate answered. Three things are drawn over what was done another way. Each menu is
+    /// photographed open through UI automation and then chosen by its keys, so the two clicks drawn
+    /// on it pressed nothing. The paste at the client's prompt is drawn, while the code reaches the
+    /// client on its standard input. And Create authority is drawn and not made: the pictures after
+    /// it are of the written down authority, put into the file between two sessions, for the
+    /// reason `Capture` gives, since a minted one shows a fingerprint that is new on every run,
+    /// here and in the client's answer.
     ///
     /// **Its own database, the one the fixture started from.** A copy is taken before anything
     /// else is written into the file and put back here, last, since a client paired and revoked

@@ -38,7 +38,9 @@ namespace KeePassGate.Host.Tests.Live
     /// **The pointer is drawn**, because a screen copy never holds one: an arrow that travels to
     /// the middle of each control the operator used, on an eased path, and a ring where it
     /// clicks, shown a moment before the press changes anything and fading a moment after. The
-    /// middle is where `Mouse` presses, so the drawn click lands where the real one did.
+    /// middle is where `Mouse` presses, so a drawn click lands where a real one did, for the
+    /// presses that were made with it: a menu's are drawn over a choice made by its keys, as
+    /// `DocumentationLifecycle` names.
     ///
     /// **So are the keys**, for the same reason: a key pressed shows as a cap with its name on it,
     /// on the side that pressed it, for as long as a reader needs to see it. A paste at a prompt
