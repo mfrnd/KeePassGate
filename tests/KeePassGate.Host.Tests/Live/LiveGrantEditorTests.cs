@@ -19,9 +19,9 @@ namespace KeePassGate.Host.Tests.Live
     /// that KeePass then writes that copy back over the group, saves it, and that the rule is in the
     /// `.kdbx` when the process is gone.
     ///
-    /// The dialog is closed with **OK**, which is the opposite of every other live test here and is
-    /// the point of this one: a rule that a dialog's OK destroys is exactly the failure the working
-    /// copy exists to prevent.
+    /// The dialog is closed with **OK**, which is the point of this one: a rule that a dialog's OK
+    /// destroys is exactly the failure the working copy exists to prevent. The other live tests
+    /// close a dialog with Escape unless OK is what keeps something they need.
     /// </remarks>
     [TestFixture]
     [Category(TestCategories.Live)]

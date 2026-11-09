@@ -17,9 +17,11 @@ namespace KeePassGate.Host.Tests.Live
     /// KeePass is locked under it.
     /// </summary>
     /// <remarks>
-    /// **The only place the two halves meet.** Every other tier runs PyKeePassGate against a
-    /// stand-in, a vector or the document, and the pairing test beside this one pairs with the C# client
-    /// in `tests/Shared`. So three things are held here and nowhere else: the identity the plugin
+    /// **The one place in the gated tiers where the two halves meet.** Every other tier runs
+    /// PyKeePassGate against a stand-in, a vector or the document, and the pairing test beside this
+    /// one pairs with the C# client in `tests/Shared`; the screenshot run's moving picture pairs the
+    /// same command line with the plugin as well, but only when the pictures are retaken. So three
+    /// things are held here and nowhere else the gate runs: the identity the plugin
     /// writes with Bouncy Castle's PKCS#12 and the client reads with `cryptography`, the TLS 1.3
     /// handshake between Bouncy Castle's server and Python's `ssl`, and the plugin's framing under
     /// the client's reader. And three of the client's answers are held against the plugin's own:

@@ -8,7 +8,8 @@ namespace KeePassGate.Host.Tests.Live
     /// A real KeePass locked from its own shortcut, and what the gate tells a real client then.
     /// </summary>
     /// <remarks>
-    /// **The one place the chain runs whole**: KeePass's own `LockAllDocuments`, the events it
+    /// **The fixture about the chain run whole**, which `LiveReferenceClientTests` and
+    /// `LiveLockTimerTests` end on as well: KeePass's own `LockAllDocuments`, the events it
     /// raises in its own order, `MainWindowDatabases` and `LockWatch` as the plugin wires them up
     /// inside KeePass, and an answer on a socket. Every link is tested on its own elsewhere, the
     /// lock itself against a model of the order KeePass raises its events in, and a model agrees

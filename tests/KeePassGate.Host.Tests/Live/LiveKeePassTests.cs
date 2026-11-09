@@ -20,8 +20,9 @@ namespace KeePassGate.Host.Tests.Live
     /// <remarks>
     /// It drives a throwaway KeePass through the desktop, so it needs an interactive session and
     /// it takes some seconds. That is why it carries the Live category and is left out of the
-    /// default test run. Everything it touches is created under `CommonApplicationData` and deleted
-    /// afterwards, including the database.
+    /// default test run. Everything it touches is created under `CommonApplicationData`, in a
+    /// session directory deleted afterwards, the database included, when the fixture passes, and
+    /// kept for reading when it fails.
     /// </remarks>
     [TestFixture]
     [Category(TestCategories.Live)]

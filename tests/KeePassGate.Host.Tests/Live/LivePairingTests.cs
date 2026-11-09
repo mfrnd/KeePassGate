@@ -33,8 +33,8 @@ namespace KeePassGate.Host.Tests.Live
     /// durable, and that the certificate handed over at the end opens a route on the very next
     /// connection.
     ///
-    /// The settings dialog is still closed with Escape. It costs nothing here: an invitation is
-    /// never written to the database, so there is nothing on that dialog for OK to keep.
+    /// The settings dialog is accepted with OK, because an invitation made on it is withdrawn by
+    /// any other way of closing it, and the client needs the invitation.
     /// </remarks>
     [TestFixture]
     [Category(TestCategories.Live)]

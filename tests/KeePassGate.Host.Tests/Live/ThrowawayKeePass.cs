@@ -27,7 +27,7 @@ namespace KeePassGate.Host.Tests.Live
 {
     /// <summary>
     /// A complete, disposable KeePass: its own copy of the program, its own configuration, its own
-    /// database, and the plugin under test in its plugins directory.
+    /// database, and the plugin under test in a directory of its own under `plugins`.
     /// </summary>
     /// <remarks>
     /// Nothing here touches the developer's KeePass or the developer's database. The copy exists
@@ -262,7 +262,8 @@ namespace KeePassGate.Host.Tests.Live
             {
                 FileName = ExePath,
                 // The password reaches the process list here. That is only ever acceptable because
-                // this database is invented, empty and deleted at the end of the test. The local
+                // everything in this database is invented, and it lives in a session directory
+                // deleted when its fixture passes. The local
                 // configuration named is where KeePass writes its settings when it cannot write
                 // the one beside the program, which is otherwise the developer's own.
                 Arguments = "\"" + DatabasePath + "\" -pw:" + DatabasePassword +
