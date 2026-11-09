@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
+using System.Threading;
 using System.Windows.Forms;
 using KeePass.Forms;
 using KeePassGate.Testing;
@@ -31,6 +32,7 @@ namespace KeePassGate.Host.Tests
     /// something kills it. Pressing OK for real belongs to the tier below this one.
     /// </remarks>
     [TestFixture]
+    [Apartment(ApartmentState.STA)]
     public sealed class GrantEditorInRealDialogsTests
     {
         private TemporaryDatabase _database;
