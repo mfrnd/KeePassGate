@@ -448,14 +448,14 @@ namespace KeePassGate.Tests
 
                 Assert.That(list.Clients.Count, Is.EqualTo(1), "not clients, so not rows");
                 Assert.That(list.Reappeared,
-                    Is.EqualTo("2 revoked clients reappeared in a merge; they stay refused."));
+                    Is.EqualTo("2 revoked clients came back in a merge; still refused."));
 
                 list.Revoke(0);
                 Assert.That(list.Reappeared, Is.Not.Null, "the answer to a gesture does not hide it");
 
                 list.Fill(new AdmissionListing(Array.Empty<AdmissionRecord>(), 1, true), null, null);
                 Assert.That(list.Reappeared,
-                    Is.EqualTo("1 revoked client reappeared in a merge; it stays refused."), "one is one");
+                    Is.EqualTo("1 revoked client came back in a merge; still refused."), "one is one");
 
                 list.Fill(new AdmissionListing(new[] { client }, true), null, null);
                 Assert.That(list.Reappeared, Is.Null, "and nothing is said once they are gone");

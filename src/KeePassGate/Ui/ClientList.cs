@@ -442,9 +442,9 @@ namespace KeePassGate.Ui
         public static string ReappearedText(int count)
         {
             return count == 1
-                ? "1 revoked client reappeared in a merge; it stays refused."
+                ? "1 revoked client came back in a merge; still refused."
                 : count.ToString(CultureInfo.InvariantCulture)
-                  + " revoked clients reappeared in a merge; they stay refused.";
+                  + " revoked clients came back in a merge; still refused.";
         }
 
         /// <summary>

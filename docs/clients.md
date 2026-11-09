@@ -124,7 +124,7 @@ and never takes a mark away, so the client stays refused whatever the other copy
 the clocks of the computers involved show, and whether or not the file kept the time of each change.
 
 The other copy can still bring the client's record back. It admits nobody, and it is not listed as
-a client: a line under the list states how many revoked clients reappeared in a merge, and that they
+a client: a line under the list states how many revoked clients came back in a merge, and that they
 stay refused. The next change the plugin itself makes to the database takes those records away and
 the line with them: revoking another client, pairing or renewing one, a client revoking itself, or
 keeping, recreating or deleting the authority.
