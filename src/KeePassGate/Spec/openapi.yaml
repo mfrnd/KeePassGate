@@ -2591,7 +2591,9 @@ components:
     # A taken name is told rather than hidden because a create that did not land has to tell the
     # client so, or a client that only adds believes it stored what it did not, and neither other
     # answer is open: a `404` would call an entry it may add to absent, and writing over the name
-    # is what `update` is for.
+    # is what `update` is for. A group that still holds something is told for the same reason: a
+    # removal that did not happen has to be refused as such, and a `404` would call absent a group
+    # the client may remove.
     Conflict:
       description: |
         The database already says otherwise: a name that is taken, a name the database cannot
@@ -2601,6 +2603,10 @@ components:
 
         **A taken name is `409` even to a client that may create and not list**, and that tells it
         the name is there. What it learns is a name, one guess at a time, and never a value.
+
+        **So is a group that still holds something, to a client that may remove it and not list
+        it**, and that tells it the group is not empty, since an empty group is removed. What it
+        learns is that something is there, never what.
 
         **Not the root group**, which `deleteGroup` answers `404` for, as it does for any node
         the rules do not reach. A removal is asked of the group a node is leaving and the root is

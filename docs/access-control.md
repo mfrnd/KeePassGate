@@ -165,6 +165,10 @@ So put `D` on the group whose contents may come and go, rather than at the top o
 `D` at the top is what makes everything below it removable, and then holding one thing back means
 writing a rule for it.
 
+**A group is removed only once it is empty**, and a group that still holds something is refused as
+such. So a program holding `D` without `L` can find out whether a group it knows of holds anything,
+though never what.
+
 **Where a removed entry goes is out of the program's reach.** KeePass moves it to the recycle bin
 when the database keeps one, and this API cannot see the bin at all: it is not listed, not
 readable, and not addressable. So a program cannot read something by removing it first, and getting
