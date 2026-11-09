@@ -93,10 +93,11 @@ namespace KeePassGate.Host.Tests.Live
         private const string InventedKey = "5eed5eed5eed5eed5eed5eed5eed5eed5eed5eed5eed5eed5eed5eed5eed5eed";
 
         /// <summary>
-        /// What it shows for when the certificate expires: a year after the seeded client was
-        /// admitted, which is the lifetime the dialog offers a client that asks for none.
+        /// What it shows for when the certificate expires, patterned as the key is, so that nobody
+        /// takes it for the client's own answer: that is a year after the moment the film is made,
+        /// the lifetime the dialog offers a client that asks for none.
         /// </summary>
-        private const string InventedExpiry = "2027-08-22T08:38:01Z";
+        private const string InventedExpiry = "2027-07-07T07:07:07Z";
 
         /// <summary>What it shows for the `LOCALAPPDATA` the client was given.</summary>
         private const string InventedHome = "%LOCALAPPDATA%";
