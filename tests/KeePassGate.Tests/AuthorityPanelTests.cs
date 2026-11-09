@@ -90,7 +90,7 @@ namespace KeePassGate.Tests
 
                 Assert.That(notice, Is.EqualTo(AuthorityPanel.ImmediateNotice));
                 Assert.That(notice, Does.Contain("OK"), "the operator is told what commits it");
-                Assert.That(notice, Does.Contain("saved"),
+                Assert.That(notice, Does.Contain("save the database"),
                     "and that the file is not written until the database is saved");
 
                 // One line, because the tab does not scroll and this sits under both pages, where
@@ -131,7 +131,7 @@ namespace KeePassGate.Tests
 
                 // Where the operator is told to press OK and then save is the standing notice,
                 // once, rather than every answer repeating it.
-                Assert.That(Label(panel, GateTab.NoticeLabelName).Text, Does.Contain("saved"));
+                Assert.That(Label(panel, GateTab.NoticeLabelName).Text, Does.Contain("save the database"));
             }
         }
 
@@ -748,7 +748,7 @@ namespace KeePassGate.Tests
 
                 var list = ControlTree.FindByName<ClientList>(panel, ClientList.ControlName);
 
-                Assert.That(list.Revoke(0), Does.Contain("agent-fictitious"));
+                Assert.That(list.Revoke(0), Is.Null);
                 Assert.That(list.Clients, Is.Empty);
                 Assert.That(panel.AdmittedClients().Records, Is.Empty);
                 Assert.That(Fact(panel, "Admission records"), Is.EqualTo("0"));
@@ -899,7 +899,7 @@ namespace KeePassGate.Tests
                     Does.Contain("cannot be read and admits nobody. The Clients page lists it."));
                 Assert.That(Fact(panel, "Admission records"), Is.EqualTo("2"));
 
-                Assert.That(list.Revoke(list.Clients.Count), Does.Contain("taken away"));
+                Assert.That(list.Revoke(list.Clients.Count), Is.Null);
 
                 Assert.That(list.Unreadable, Is.Empty);
                 Assert.That(Label(panel, GateTab.DetailLabelName).Text, Does.Not.Contain("cannot be read"));

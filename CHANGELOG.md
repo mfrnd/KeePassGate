@@ -11,6 +11,25 @@ none, since it releases both.
 
 ## 0.2.0, unreleased
 
+- **The renewal dialog reads in fewer words**: "Approving issues a new certificate and saves this
+  database. The certificate it holds now stays valid until the client gives it up.", "Profiles
+  for the new certificate; uncheck any it should lose. The certificate it holds now keeps every
+  one until it is given up:", and the countdown as the pairing dialog's.
+- **The pairing dialog reads in fewer words**: what approving does, "Approving issues a
+  certificate and saves this database. Revoke it later on the KPG tab.", what the list is,
+  "Profiles it asks for; uncheck any it should not get:", and the countdown, "Times out in 115 s;
+  nothing is issued." That the admission is saved before the client is answered stays in
+  `PAIRING.md`.
+- **The note under the KPG tab's pages reads "Changes apply on OK, then save the database."**,
+  the same two things as before in fewer words.
+- **A revocation or an Allow renewal that went through puts no sentence under the clients list.**
+  The rows show it: a revoked row goes at once and a lifted name stops being red, and the note
+  under the pages states that changes apply on OK. Only one that did not go through puts words
+  there, which leaves the list up to two lines it used to lose.
+- **The line over the invitation code shows the minutes left and the identifier and nothing else.**
+  That the code lives in KeePass's memory, that the first client to use it spends it and that
+  Renew invite replaces it read the same on every visit, so they are the code box's tooltip now,
+  and the client list has the line back.
 - **With no code out, the clients page shows it in the empty code box rather than on a line over
   it.** The line stated what the box beside it already showed, and the client list has that line
   back. The gray text is never the box's text, so the copy button stays dead over it and nothing

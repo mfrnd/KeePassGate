@@ -420,7 +420,7 @@ namespace KeePassGate.Tests
                         panel, KeePassGate.Ui.ClientList.ControlName);
                     Assert.That(list.StandingAt(0).IsThisSession, Is.True, "the page shows the gate's answer");
 
-                    Assert.That(list.AllowRenewal(0), Does.Contain("raises the dialog again"));
+                    Assert.That(list.AllowRenewal(0), Is.Null);
                     Assert.That(list.StandingAt(0), Is.Null, "the name stops being red at once");
 
                     Assert.That(Renew(operatorAt, old, "{}").Status, Is.EqualTo(409),

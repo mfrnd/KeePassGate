@@ -578,7 +578,7 @@ namespace KeePassGate.Tests
             using (var dialog = New("ops"))
             {
                 Assert.That(Texts(dialog), Does.Contain(PairingApprovalForm.Consequence));
-                Assert.That(PairingApprovalForm.Consequence, Does.Contain("revoked later"));
+                Assert.That(PairingApprovalForm.Consequence, Does.Contain("Revoke it later"));
 
                 // No second person, which `CONVENTIONS.md` requires of every string an operator
                 // reads. This one said "You can revoke it later".
@@ -597,8 +597,8 @@ namespace KeePassGate.Tests
             using (var dialog = New("ops"))
             {
                 Assert.That(Texts(dialog), Does.Contain(PairingApprovalForm.ProfilesAsked));
-                Assert.That(PairingApprovalForm.ProfilesAsked, Does.Contain("profiles"));
-                Assert.That(PairingApprovalForm.ProfilesAsked, Does.Contain("Uncheck"));
+                Assert.That(PairingApprovalForm.ProfilesAsked, Does.StartWith("Profiles it asks for"));
+                Assert.That(PairingApprovalForm.ProfilesAsked, Does.Contain("uncheck"));
             }
         }
 
@@ -849,7 +849,6 @@ namespace KeePassGate.Tests
             // Which is the one thing on this dialog that touches the file. An operator who does not
             // expect it finds a saved database and cannot tell what else went with it.
             Assert.That(PairingApprovalForm.Consequence, Does.Contain("saves this database"));
-            Assert.That(PairingApprovalForm.Consequence, Does.Contain("before the client is told"));
         }
 
         [Test]
@@ -892,9 +891,9 @@ namespace KeePassGate.Tests
             {
                 var shown = Texts(dialog);
 
-                Assert.That(shown, Does.Contain("times out"),
+                Assert.That(shown, Does.Contain("Times out"),
                     "a dialog that answers for the operator has to say that it will");
-                Assert.That(shown, Does.Contain("nothing gets issued"),
+                Assert.That(shown, Does.Contain("nothing is issued"),
                     "and which way it answers, because the two are not the same news");
             }
         }

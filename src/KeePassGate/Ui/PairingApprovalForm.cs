@@ -43,12 +43,17 @@ namespace KeePassGate.Ui
         private readonly Label _countdown;
         private readonly Timer _clock;
         /// <summary>
-        /// What approving costs, said once and in full. Separate from the table above it because
-        /// this is a sentence to read rather than a value to check.
+        /// What approving costs, said once. Separate from the table above it because this is a
+        /// sentence to read rather than a value to check.
         /// </summary>
+        /// <remarks>
+        /// The save and where to undo it, which is what the operator acts on. That the admission
+        /// is on disk before the client is told anything is how the save is ordered, which
+        /// `PAIRING.md` sets out, and it went with the operator's ruling of 2026-11-09 cutting the
+        /// dialog's words.
+        /// </remarks>
         public const string Consequence =
-            "Approving issues it a certificate and saves this database, so the admission is on " +
-            "disk before the client is told anything. It can be revoked later from the " +
+            "Approving issues a certificate and saves this database. Revoke it later on the " +
             GateName.OnATab + " tab.";
 
         /// <summary>
@@ -57,8 +62,7 @@ namespace KeePassGate.Ui
         /// refers to, and what it refers to is the whole decision.
         /// </summary>
         public const string ProfilesAsked =
-            "The client is asking for binding to these profiles. " +
-            "Uncheck anything it should not have:";
+            "Profiles it asks for; uncheck any it should not get:";
 
         /// <summary>The same when it asked for nothing, which is unusual enough to say plainly.</summary>
         public const string NoProfilesAsked =
@@ -78,21 +82,20 @@ namespace KeePassGate.Ui
 
         /// <summary>Said under the list when any of them is new.</summary>
         public const string NewProfilesAsked =
-            "The client is asking for binding to these profiles. One or more are marked" +
-            NewSuffix + ", which means this database does not name them now: approving adds them, " +
-            "and any rule already naming one grants it to this client at once. A name no rule names " +
-            "grants nothing until one does. Uncheck anything it should not have:";
+            "Profiles it asks for. Those marked" + NewSuffix + " are not on this database's list " +
+            "now: approving adds them, and any rule already naming one grants it to this client " +
+            "at once. Uncheck any it should not get:";
 
         /// <summary>
         /// Said under the list when any of them would be added and the database's list is already
         /// full, so approving adds none of them.
         /// </summary>
         public static readonly string FullProfilesAsked =
-            "The client is asking for binding to these profiles. One or more are marked" + NewSuffix +
-            " or (removed), and this database already names as many profiles as it can hold, " +
-            KeePassGate.Acl.ProfileNames.Most.ToString(CultureInfo.InvariantCulture) + ": approving adds none of them, " +
-            "so the client holds them and reaches nothing through them until one is added on the " +
-            "Profiles page, after another is taken off. Uncheck anything it should not have:";
+            "Profiles it asks for. This database already names as many profiles as it can hold, " +
+            KeePassGate.Acl.ProfileNames.Most.ToString(CultureInfo.InvariantCulture) + ", so for " +
+            "those marked" + NewSuffix + " or" + RemovedSuffix + " approving adds none of them: the " +
+            "client holds them and reaches nothing through them until one is added on the Profiles " +
+            "page, after another is taken off. Uncheck any it should not get:";
 
         /// <summary>
         /// What marks a profile this database named once and removed, which clients still hold.

@@ -130,7 +130,7 @@ namespace KeePassGate.Host.Tests.Live
         [Test]
         public void The_tab_says_the_invitation_is_outstanding()
         {
-            Assert.That(_outstanding, Does.StartWith("The in-memory code is good for another"));
+            Assert.That(_outstanding, Does.StartWith("Expires in "));
         }
 
         [Test]
@@ -250,7 +250,7 @@ namespace KeePassGate.Host.Tests.Live
             // announces `InvitationBoxLabel` to a screen reader, which is a phrase for somebody
             // listening rather than a handle for a test, and `InvitationBoxName` is ours.
             _token = driver.ValueOf(dialog, GateTab.InvitationBoxName);
-            _outstanding = driver.TextStartingWith(dialog, "The in-memory code is good");
+            _outstanding = driver.TextStartingWith(dialog, "Expires in ");
 
             // With OK, which keeps the code: closing the dialog any other way takes it back.
             Assert.That(driver.AcceptDialog(dialog), Is.True, driver.Diagnostics);

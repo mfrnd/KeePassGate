@@ -51,44 +51,38 @@ namespace KeePassGate.Tests
         }
 
         [Test]
-        public void Revoking_one_of_a_renewed_clients_two_rows_says_which_certificate_went()
+        public void Revoking_one_of_a_renewed_clients_two_rows_takes_that_row_alone()
         {
             // A renewal leaves the client two rows with one client key until it gives the older
-            // up, and taking one away leaves it reaching the database through the other: the line
-            // used to say the client could no longer reach it.
+            // up, and taking one away leaves it reaching the database through the other, which is
+            // the row still listed. The rows are what show it: nothing is put under the list.
             var older = Record("agent-fictitious", "ops");
             var renewed = Renewal(older);
 
             using (var list = ListOf(Allows, renewed, older))
             {
-                var said = list.Revoke(1);
-
-                Assert.That(said, Does.Contain("other certificate still reaches this database"));
-                Assert.That(said, Does.Contain("when OK is pressed"), "nothing has happened to the database yet");
-                Assert.That(said, Does.Not.Contain("loses its admission"));
+                Assert.That(list.Revoke(1), Is.Null);
+                Assert.That(list.Result, Is.Null);
                 Assert.That(list.Clients, Is.EqualTo(new[] { renewed }));
 
-                said = list.Revoke(0);
-                Assert.That(said, Does.Contain("agent-fictitious loses its admission when OK is pressed"),
-                    "the last of them is the client going");
+                Assert.That(list.Revoke(0), Is.Null);
+                Assert.That(list.Clients, Is.Empty);
+                Assert.That(NoteOn(list), Is.EqualTo(ClientList.NobodyText),
+                    "and with the last gone, the list states it");
             }
         }
 
         [Test]
-        public void Revoking_one_of_two_programs_under_one_name_says_that_one_went_and_which()
+        public void Revoking_one_of_two_programs_under_one_name_takes_that_one_alone()
         {
-            // Two programs that chose one name are two clients: taking one away is that client
-            // gone, not a certificate of one still reaching the database, and the line names it
-            // with the start of its client key so it is not read as the other.
+            // Two programs that chose one name are two clients, and taking one away leaves the
+            // other listed, which each row's tooltip tells apart by its client key.
             var first = Record("agent", "ops");
             var second = Record("agent", "ops");
 
             using (var list = ListOf(Allows, first, second))
             {
-                var said = list.Revoke(1);
-
-                Assert.That(said, Is.EqualTo(
-                    "agent (" + second.ClientKey.Substring(0, ClientList.ShortKeyLength) + ") loses its admission when OK is pressed."));
+                Assert.That(list.Revoke(1), Is.Null);
                 Assert.That(list.Clients, Is.EqualTo(new[] { first }));
             }
         }
@@ -135,9 +129,9 @@ namespace KeePassGate.Tests
             // database.
             var record = Record("agent-fictitious", "ops");
 
-            using (var list = ListOf(Allows, record, Record("agent-invented", "ops")))
+            using (var list = ListOf(Refuses, record, Record("agent-invented", "ops")))
             {
-                Assume.That(list.Revoke(1), Does.Contain("loses its admission"));
+                Assume.That(list.Revoke(1), Does.Contain("still admitted"));
 
                 list.Fill(new AdmissionListing(new[] { record, Record("agent-invented", "ops") }, true), null, null);
 
@@ -207,15 +201,17 @@ namespace KeePassGate.Tests
         }
 
         [Test]
-        public void What_happened_is_said_in_words_and_names_the_client()
+        public void A_revocation_that_went_through_puts_nothing_under_the_list()
         {
-            using (var list = ListOf(Allows, Record("agent-fictitious", "ops")))
+            // The operator's ruling of 2026-11-09. The row going is what shows it, and the note
+            // under the pages states that changes apply on OK; a sentence here stating both again
+            // took up to two of the list's lines. Only a gesture that did not go through puts
+            // words under the list.
+            using (var list = ListOf(Allows, Record("agent-fictitious", "ops"), Record("agent-invented", "ops")))
             {
-                list.Revoke(0);
-
-                Assert.That(list.Result, Does.Contain("agent-fictitious"));
-                Assert.That(list.Result, Does.Contain("loses its admission when OK is pressed"),
-                    "the revocation waits for the dialog's OK, and the line names it as waiting");
+                Assert.That(list.Revoke(0), Is.Null);
+                Assert.That(list.Result, Is.Null);
+                Assert.That(NoteOn(list), Is.Empty);
             }
         }
 
@@ -247,14 +243,14 @@ namespace KeePassGate.Tests
         [Test]
         public void A_listing_that_could_not_be_read_outranks_the_last_gesture()
         {
-            using (var list = ListOf(Allows, Record("agent-fictitious", "ops")))
+            using (var list = ListOf(Refuses, Record("agent-fictitious", "ops")))
             {
                 list.Revoke(0);
-                Assert.That(NoteOn(list), Does.Contain("agent-fictitious"));
+                Assert.That(NoteOn(list), Does.Contain("still admitted"));
 
-                // Reading the database again is what the tab does after a revocation. If that
-                // read fails, `no longer admitted` over an empty grid reads as though the
-                // revocation is why the grid is empty.
+                // Reading the database again is what the tab does after a gesture. If that read
+                // fails, the gesture's line over an empty grid reads as though it were about what
+                // is listed, when nothing could be.
                 list.Fill(new AdmissionListing(Array.Empty<AdmissionRecord>(), false), null, null);
 
                 Assert.That(NoteOn(list), Is.EqualTo(ClientList.UnreadableText));
@@ -327,7 +323,8 @@ namespace KeePassGate.Tests
                 // And the row stays, because it is still a record and taking it away is still the
                 // operator's to do. That is why it is marked rather than hidden.
                 Assert.That(list.Clients.Count, Is.EqualTo(1));
-                Assert.That(list.Revoke(0), Does.Contain("loses its admission"));
+                Assert.That(list.Revoke(0), Is.Null);
+                Assert.That(list.Clients, Is.Empty);
             }
 
             using (var list = new ClientList(Allows))
@@ -386,7 +383,7 @@ namespace KeePassGate.Tests
                 var said = list.Revoke(1);
 
                 Assert.That(asked, Is.EqualTo(new[] { damaged }), "taken away by its key");
-                Assert.That(said, Does.Contain("taken away"));
+                Assert.That(said, Is.Null, "its row going is what shows it");
                 Assert.That(list.Unreadable, Is.Empty);
                 Assert.That(Rows(list), Is.EqualTo(1), "and its row went with it");
                 Assert.That(list.Clients.Count, Is.EqualTo(1), "the client beside it was not touched");
@@ -448,14 +445,14 @@ namespace KeePassGate.Tests
 
                 Assert.That(list.Clients.Count, Is.EqualTo(1), "not clients, so not rows");
                 Assert.That(list.Reappeared,
-                    Is.EqualTo("2 revoked clients reappeared in a merge; they stay refused."));
+                    Is.EqualTo("2 revoked clients came back in a merge; still refused."));
 
                 list.Revoke(0);
                 Assert.That(list.Reappeared, Is.Not.Null, "the answer to a gesture does not hide it");
 
                 list.Fill(new AdmissionListing(Array.Empty<AdmissionRecord>(), 1, true), null, null);
                 Assert.That(list.Reappeared,
-                    Is.EqualTo("1 revoked client reappeared in a merge; it stays refused."), "one is one");
+                    Is.EqualTo("1 revoked client came back in a merge; still refused."), "one is one");
 
                 list.Fill(new AdmissionListing(new[] { client }, true), null, null);
                 Assert.That(list.Reappeared, Is.Null, "and nothing is said once they are gone");
@@ -601,7 +598,7 @@ namespace KeePassGate.Tests
                 var line = list.AllowRenewal(0);
 
                 Assert.That(lifted, Is.EqualTo(new[] { record.AdmissionKey }), "by the certificate's key");
-                Assert.That(line, Does.Contain("agent-fictitious").And.Contain("raises the dialog again once OK is pressed"));
+                Assert.That(line, Is.Null, "the name stops being red, which is what shows it");
                 Assert.That(list.StandingAt(0), Is.Null);
                 Assert.That(Grid(list).Rows[0].Cells[0].Style.ForeColor, Is.EqualTo(Color.Empty));
                 Assert.That(Plain(Grid(list).Rows[0].Cells[0].ToolTipText), Is.EqualTo(Keys(null, record)));

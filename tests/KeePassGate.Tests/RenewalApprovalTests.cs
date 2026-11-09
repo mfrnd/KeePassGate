@@ -75,8 +75,7 @@ namespace KeePassGate.Tests
             {
                 var countdown = ControlTree.FindByName<Label>(dialog, GateTab.RenewalCountdownName);
 
-                Assert.That(countdown.Text, Is.EqualTo(
-                    "This renewal request times out in 120 seconds, and nothing gets issued."));
+                Assert.That(countdown.Text, Is.EqualTo("Times out in 120 s; nothing is issued."));
             }
         }
 

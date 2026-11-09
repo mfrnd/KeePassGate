@@ -1,4 +1,5 @@
 using System;
+using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Threading;
 using System.Windows.Forms;
@@ -115,7 +116,7 @@ namespace KeePassGate.Tests
                 var box = (CodeBox)Box(panel, GateTab.InvitationBoxName);
 
                 Assert.That(OnScreen(panel, line), Is.True, "the code is out, so its countdown is on screen");
-                Assert.That(line.Text, Does.Contain("good for"));
+                Assert.That(line.Text, Does.StartWith("Expires in "));
                 Assert.That(line.Parent.Controls.GetChildIndex(line), Is.Zero, "and first in its band");
                 Assert.That(line.Bottom, Is.LessThanOrEqualTo(box.Parent.Top), "over the box, not under it");
 
@@ -165,13 +166,13 @@ namespace KeePassGate.Tests
                 panel.CreateAuthority();
                 panel.InviteClient();
 
-                Assert.That(Label(panel, GateTab.InvitationLabelName).Text, Does.Contain("good for"));
+                Assert.That(Label(panel, GateTab.InvitationLabelName).Text, Does.StartWith("Expires in "));
 
                 // A second press replaces the first code rather than adding one, so the line says
                 // the same thing about the same one outstanding code.
                 panel.InviteClient();
 
-                Assert.That(Label(panel, GateTab.InvitationLabelName).Text, Does.Contain("good for"),
+                Assert.That(Label(panel, GateTab.InvitationLabelName).Text, Does.StartWith("Expires in "),
                     "renewing replaces the code rather than adding one, so the line reads the same");
             }
         }
@@ -193,7 +194,7 @@ namespace KeePassGate.Tests
 
                 Assert.That(second, Is.Not.EqualTo(first));
                 Assert.That(_book.Outstanding().Count, Is.EqualTo(1));
-                Assert.That(Label(panel, GateTab.InvitationLabelName).Text, Does.Contain("good for"));
+                Assert.That(Label(panel, GateTab.InvitationLabelName).Text, Does.StartWith("Expires in "));
             }
         }
 
@@ -487,6 +488,20 @@ namespace KeePassGate.Tests
         }
 
         [Test]
+        public void The_box_says_what_a_code_is_in_its_tooltip()
+        {
+            using (var panel = NewPanel())
+            {
+                var tips = (ToolTip)typeof(AuthorityPanel)
+                    .GetField("_tips", BindingFlags.Instance | BindingFlags.NonPublic)
+                    .GetValue(panel);
+
+                Assert.That(tips.GetToolTip(Box(panel, GateTab.InvitationBoxName)),
+                    Is.EqualTo(Tooltips.Wrapped(GateTab.InvitationBoxHelp)));
+            }
+        }
+
+        [Test]
         public void The_copy_button_says_what_it_is_to_anything_that_cannot_see_the_icon()
         {
             using (var panel = NewPanel())
@@ -653,22 +668,17 @@ namespace KeePassGate.Tests
         }
 
         [Test]
-        public void It_says_the_three_things_about_a_code_that_surprise_people()
+        public void The_three_things_about_a_code_that_surprise_people_are_the_box_s_tooltip()
         {
-            // All three used to be a line of their own under the code. They are said in the line
-            // about the code itself now, because a page this short cannot spend a line repeating
-            // what the line above it implies, and a notice nobody reads says nothing at all.
-            using (var invitation = At(Now.AddMinutes(7)))
-            {
-                var said = InvitationText.For(new[] { invitation }, Now);
-
-                Assert.That(said, Does.Contain("in-memory"),
-                    "a code does not travel with the file and does not survive KeePass closing");
-                Assert.That(said, Does.Contain("consumes it"),
-                    "the first client to use one is the only client that can");
-                Assert.That(said, Does.Contain("renewed"),
-                    "renewing replaces the code rather than adding one");
-            }
+            // All three used to be a line of their own under the code, and then a second line of
+            // the countdown. They read the same on every visit, so they are where somebody looking
+            // at the code finds them, and the countdown keeps what changes.
+            Assert.That(GateTab.InvitationBoxHelp, Does.Contain("memory only"),
+                "a code does not travel with the file and does not survive KeePass closing");
+            Assert.That(GateTab.InvitationBoxHelp, Does.Contain("first client to use it spends it"),
+                "the first client to use one is the only client that can");
+            Assert.That(GateTab.InvitationBoxHelp, Does.Contain(GateTab.RenewInviteButtonText + " replaces it"),
+                "renewing replaces the code rather than adding one");
         }
 
         [Test]
@@ -678,10 +688,7 @@ namespace KeePassGate.Tests
             {
                 Assert.That(
                     InvitationText.For(new[] { invitation }, Now),
-                    Is.EqualTo(
-                        "The in-memory code is good for another 7 minutes until the first client "
-                        + "consumes it or it gets renewed. "
-                        + "The approval dialog will call it abcdef01."));
+                    Is.EqualTo("Expires in 7 min; the approval dialog shows abcdef01"));
             }
         }
 
@@ -690,7 +697,7 @@ namespace KeePassGate.Tests
         {
             using (var invitation = At(Now.AddSeconds(30)))
             {
-                Assert.That(InvitationText.For(new[] { invitation }, Now), Does.Contain("another 1 minute until"));
+                Assert.That(InvitationText.For(new[] { invitation }, Now), Does.StartWith("Expires in 1 min;"));
             }
         }
 
@@ -706,10 +713,7 @@ namespace KeePassGate.Tests
             {
                 Assert.That(
                     InvitationText.For(new[] { later, soon }, Now),
-                    Is.EqualTo(
-                        "The in-memory code is good for another 2 minutes until the first client "
-                        + "consumes it or it gets renewed. "
-                        + "The approval dialog will call it sooner01."));
+                    Is.EqualTo("Expires in 2 min; the approval dialog shows sooner01"));
             }
         }
 
