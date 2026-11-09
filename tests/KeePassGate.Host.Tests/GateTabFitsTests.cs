@@ -386,9 +386,9 @@ namespace KeePassGate.Host.Tests
         {
             // A band this page has only after a merge, under the list and above the line a gesture
             // answers on. Both are shown at once with the longest thing each can say, a count four
-            // digits wide and the sentence for a listing that could not be read, and the list still
-            // has to be a list. At every scaling, because the room grows with the display and a
-            // band of ours that did not would be the one thing measured against the wrong room.
+            // digits wide and the longest answer to a gesture, see `LongestGesture`, and the list
+            // still has to be a list. At every scaling, because the room grows with the display and
+            // a band of ours that did not would be the one thing measured against the wrong room.
             using (var scaled = scaling > 1.00f ? ScaledDialog(scaling) : null)
             {
                 var area = scaled == null ? _page.DisplayRectangle.Size : PageOf(scaled.Dialog);
@@ -412,7 +412,7 @@ namespace KeePassGate.Host.Tests
                         // again and fills the list with what is really there.
                         Show(clients);
                         clients.Fill(new AdmissionListing(Array.Empty<AdmissionRecord>(), 9999, true), null, null);
-                        Show(clients, ClientList.ResultLabelName, ClientList.UnreadableText);
+                        Show(clients, ClientList.ResultLabelName, LongestGesture());
                         clients.PerformLayout();
 
                         var line = ControlTree.FindByName<Label>(clients, ClientList.ReappearedLabelName);
@@ -480,7 +480,8 @@ namespace KeePassGate.Host.Tests
                         Set(panel, GateTab.InvitationLabelName, LongestInvitationLine(panel));
                         Show(panel, GateTab.InviteNoticeName, notice);
                         Set(panel, GateTab.ResultLabelName, AuthorityPanel.LongestResult());
-                        clients.Fill(new AdmissionListing(Array.Empty<AdmissionRecord>(), 9999, false), null, null);
+                        clients.Fill(new AdmissionListing(Array.Empty<AdmissionRecord>(), 9999, true), null, null);
+                        Show(clients, ClientList.ResultLabelName, LongestGesture());
 
                         panel.PerformLayout();
                         Page(clients).PerformLayout();
@@ -1053,9 +1054,14 @@ namespace KeePassGate.Host.Tests
         /// lifetime with more digits or a longer identifier is what this measures on the day it
         /// arrives. The code runs out a whole `DefaultLifetime` from now, which is the most minutes
         /// the line ever counts, and its identifier is as long as the book makes one and spelled in
-        /// whichever hex digit is widest in the line's own font. The fixed sentences are measured
-        /// against it, since the line holds one of those instead whenever there is nothing to count
-        /// down, and the widest of them all is what the line is given.
+        /// whichever hex digit is widest in the line's own font. The two fixed sentences the line
+        /// holds instead, when there is nothing to count down, are measured against it, and the
+        /// widest of them all is what the line is given.
+        ///
+        /// **Those two and no others.** Every sentence `InvitationText` has used to be measured
+        /// here, and most of them answer a button in the band under the pages, which
+        /// `AuthorityPanel.LongestResult` measures: the longest of them made this line two lines it
+        /// is never, and took from the client list room the list does have.
         /// </remarks>
         private static string LongestInvitationLine(Control panel)
         {
@@ -1076,29 +1082,42 @@ namespace KeePassGate.Host.Tests
             }
 
             var now = DateTimeOffset.UtcNow;
-            string longest;
+            string counting;
+            string ranOut;
             using (var invitation = new Invitation(
                 new string(digit, length), "measured", PairingToken.New(), PairingClock.For(() => now), InvitationBook.DefaultLifetime))
             {
-                longest = InvitationText.For(new[] { invitation }, now);
+                counting = InvitationText.For(new[] { invitation }, now);
+                ranOut = InvitationText.For(new[] { invitation }, invitation.Expires.AddSeconds(1));
             }
 
-            foreach (var field in typeof(InvitationText).GetFields(
-                System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Static))
-            {
-                var said = field.IsLiteral ? field.GetRawConstantValue() as string : null;
-                if (said != null && WidthOf(said, font) > WidthOf(longest, font))
-                {
-                    longest = said;
-                }
-            }
-
-            return longest;
+            // The ordering is stable, so the countdown is kept where a fixed sentence is as wide.
+            return new[] { counting, ranOut, InvitationText.NoAuthority }
+                .OrderByDescending(said => WidthOf(said, font))
+                .First();
         }
 
         private static int WidthOf(string text, Font font)
         {
             return TextRenderer.MeasureText(text, font).Width;
+        }
+
+        /// <summary>
+        /// The longest line the clients page puts under its list: a refusal carrying somebody
+        /// else's message, cut where the page cuts it.
+        /// </summary>
+        /// <remarks>
+        /// A gesture that went through puts nothing there, so a refusal is the longest thing the
+        /// line holds, and its reason can be an exception's message of any length. The fit tests
+        /// measured the line with the sentence for a listing that could not be read, which is one
+        /// line where this is two, and the list was never measured under two.
+        /// </remarks>
+        private static string LongestGesture()
+        {
+            var said = Clipped.Message(
+                "The answer to renewing that client still stands: " + AuthorityPanel.LongestResult());
+            Assert.That(said.Length, Is.GreaterThan(ClientList.UnreadableText.Length));
+            return said;
         }
 
         /// <summary>A label that hides itself when it has nothing to say, made to say it.</summary>
