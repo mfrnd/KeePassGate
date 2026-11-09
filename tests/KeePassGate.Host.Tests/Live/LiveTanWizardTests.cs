@@ -12,20 +12,26 @@ using NUnit.Framework;
 namespace KeePassGate.Host.Tests.Live
 {
     /// <summary>
-    /// KeePass's TAN wizard open on a database, and a write through the gate while its OK is pressed.
+    /// KeePass's TAN wizard open on a database, a write through the gate while it is, and its OK
+    /// pressed once the write has been answered.
     /// </summary>
     /// <remarks>
     /// **The wizard adds its entries from inside its own OK**, and the save a write ends in
     /// handles KeePass's messages as it walks the tree, after every entry it writes once fifty
     /// milliseconds have passed. An OK handled during the walk of the group the wizard adds to
-    /// moves the list the walk is in. So the root, which the wizard is open on, holds enough
-    /// entries that writing them takes a while, and OK is pressed a little after the write is sent.
+    /// moves the list the walk is in, which is why a write is refused while the wizard is open.
+    ///
+    /// **OK is pressed once the write is answered, and not after a while.** Pressed a fixed time
+    /// after the write was sent, on a loaded machine it arrived before the write reached the
+    /// writer: the wizard had closed by then, the write went ahead as it should with nothing open,
+    /// and the fixture read the plugin as having let a write through. Waiting for the answer is
+    /// what makes the write one made while the wizard is open. A plugin that let it through is
+    /// still caught, by the answer that is not `503 busy`, though its save then ends before OK is
+    /// pressed rather than being broken by it.
     ///
     /// **Pressed through UI automation, which reaches the window as a message.** A press with the
     /// mouse made while KeePass's thread was busy was never handled at all, measured, whereas a
-    /// message waits for the save's next pump. One pressed while the key is being derived is
-    /// handled at the pump before the walk, which is harmless, so the key derivation is left at
-    /// KeePass's own.
+    /// message waits for KeePass's next pump.
     ///
     /// The write is about a group the wizard knows nothing of, because what goes wrong is the save
     /// rather than the write.
@@ -36,12 +42,6 @@ namespace KeePassGate.Host.Tests.Live
     [NonParallelizable]
     public sealed class LiveTanWizardTests
     {
-        /// <summary>Enough that writing them takes longer than the press takes to arrive.</summary>
-        private const int RootEntries = 20000;
-
-        /// <summary>When OK is pressed, counted from the write being sent.</summary>
-        private const int PressAfterMilliseconds = 600;
-
         private static readonly TimeSpan AnswerTimeout = TimeSpan.FromSeconds(60);
 
         private static readonly string CreatePath = "/groups/" + ThrowawayKeePass.AutomationUuid + "/entries";
@@ -62,7 +62,6 @@ namespace KeePassGate.Host.Tests.Live
             var keePass = _session.KeePass;
 
             keePass.FillWithInventedContent();
-            keePass.FillTheRoot(RootEntries);
             keePass.Grant(Rules.Granting(("agent", "CRUSDLA")));
 
             using (var admitted = keePass.IssueClientCertificate("agent-fictitious"))
@@ -82,10 +81,6 @@ namespace KeePassGate.Host.Tests.Live
                 var write = Task.Run(() => LiveGateClient.Send(
                     keePass.Port, name, admitted, "POST", CreatePath, Bodies.Of(("Title", "Invented"))));
 
-                Thread.Sleep(PressAfterMilliseconds);
-                var pressed = DateTime.UtcNow;
-                var press = Task.Run(() => ok.Invoke());
-
                 // A save that fails shows KeePass's own warning, and the write is answered only
                 // once that is closed.
                 var deadline = DateTime.UtcNow + AnswerTimeout;
@@ -104,10 +99,13 @@ namespace KeePassGate.Host.Tests.Live
                 _whileOpen = write.IsCompleted ? write.Result : new LiveReply { Failure = "no answer in time" };
                 var answered = DateTime.UtcNow;
 
+                var pressed = DateTime.UtcNow;
+                var press = Task.Run(() => ok.Invoke());
+
                 _wizardClosed = press.Wait(TimeSpan.FromSeconds(10)) && Uia.WaitForOrNull(
                     () => NativeWindows.Find(keePass.Process, title => title.Contains("TAN Wizard")) == null ? "closed" : null,
                     TimeSpan.FromSeconds(10)) != null;
-                _timeline = "sent " + Moment(sent) + ", OK pressed " + Moment(pressed) + ", answered " + Moment(answered);
+                _timeline = "sent " + Moment(sent) + ", answered " + Moment(answered) + ", OK pressed " + Moment(pressed);
 
                 _afterwards = Send(keePass, admitted, "POST", CreatePath, Bodies.Of(("Title", "Afterwards")));
 

@@ -1326,38 +1326,6 @@ namespace KeePassGate.Host.Tests.Live
         }
 
         /// <summary>
-        /// Puts this many invented entries in the root group, before KeePass is started.
-        /// </summary>
-        /// <remarks>
-        /// For a save that spends a known while walking the root group's entries, which it does
-        /// handling KeePass's messages as it goes, so that something pressed meanwhile is handled
-        /// part way through the walk. Each is named for its number and holds nothing else.
-        /// </remarks>
-        public void FillTheRoot(int count)
-        {
-            var database = new PwDatabase();
-            try
-            {
-                database.Open(IOConnectionInfo.FromPath(DatabasePath), NewKey(), null);
-
-                for (var number = 1; number <= count; number++)
-                {
-                    var entry = new PwEntry(true, true);
-                    entry.Strings.Set(
-                        PwDefs.TitleField,
-                        new ProtectedString(false, "Invented entry " + number.ToString(CultureInfo.InvariantCulture)));
-                    database.RootGroup.AddEntry(entry, true);
-                }
-
-                database.Save(null);
-            }
-            finally
-            {
-                database.Close();
-            }
-        }
-
-        /// <summary>
         /// Makes deriving the database's key take about <paramref name="time"/> on this machine,
         /// before KeePass is started.
         /// </summary>
