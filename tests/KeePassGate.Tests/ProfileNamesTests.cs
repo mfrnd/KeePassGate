@@ -71,8 +71,10 @@ namespace KeePassGate.Tests
         [Test]
         public void A_document_that_will_not_read_names_nothing_rather_than_refusing()
         {
-            // Nothing is granted by this list, so losing it costs an operator their pick list and
-            // nobody their access. The rules on the nodes go on meaning what they meant.
+            // Nothing is granted without this list, so losing it costs every client its access
+            // until it reads again: every client stays admitted and reaches nothing. That is the
+            // direction to fail in, where reading a damaged list as some other list would grant
+            // on a guess.
             Assert.That(ProfileNames.Read("{not a document").Names, Is.Empty);
             Assert.That(ProfileNames.Read("[\"ops\"]").Names, Is.Empty);
         }
