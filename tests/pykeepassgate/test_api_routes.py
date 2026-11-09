@@ -13,7 +13,7 @@ import json
 from collections.abc import Callable
 from datetime import UTC, datetime, timedelta, timezone
 from pathlib import Path
-from typing import Any
+from typing import Any, TypedDict
 from urllib.parse import quote
 
 import pytest
@@ -22,7 +22,7 @@ from pykeepassgate import credentials as credentials_module
 from pykeepassgate.client import ROOT, GateClient
 from pykeepassgate.errors import ProtocolError, Withheld
 from pykeepassgate.model import Access, Attachment, Entry, Field, Fields, Group, Identity
-from pykeepassgate.testing import FakeGate
+from pykeepassgate.testing import FakeGate, identified
 from test_reference import operations, routing_table
 
 UUID = "7b1c" * 8
@@ -75,6 +75,58 @@ def test_the_gate_says_who_this_client_is_as_it_was_admitted(
     assert set(IDENTITY) == set(declared["required"]) == set(declared["properties"]), (
         "every member the gate answers is one this client reads"
     )
+
+
+def test_a_list_of_profiles_that_will_not_read_is_read_as_the_gate_answers_it(
+    gate: FakeGate, paired: GateClient
+) -> None:
+    # Every profile on the record removed by no choice of the operator's, which the stand-in
+    # answers as the plugin does.
+    gate.handler = lambda path, sent, client: identified(
+        "CN=agent-invented",
+        "5f" * 32,
+        datetime(2027, 2, 3, 4, 5, 6, tzinfo=UTC),
+        ["reader"],
+        ["retired"],
+        client_key="3a" * 32,
+        profiles_unreadable=True,
+    )
+
+    found = paired.identity()
+
+    assert found.profiles_unreadable
+    assert (found.profiles, found.removed_profiles) == ((), ("reader", "retired"))
+    assert found.client_key == "3a" * 32
+
+
+@pytest.mark.parametrize(
+    "call",
+    [
+        lambda c: c.entries(""),
+        lambda c: c.subgroups(""),
+        lambda c: c.entry(""),
+        lambda c: c.field(UUID, ""),
+        lambda c: c.field(UUID, "caf\udce9"),
+        lambda c: c.attachment("\udcff", "key.pem"),
+    ],
+    ids=[
+        "an empty group",
+        "an empty group to walk",
+        "an empty entry",
+        "an empty field name",
+        "a field name UTF-8 cannot encode",
+        "an entry UTF-8 cannot encode",
+    ],
+)
+def test_a_segment_that_names_nothing_is_refused_before_anything_is_dialed(
+    gate: FakeGate, paired: GateClient, call: Callable[[GateClient], object]
+) -> None:
+    # An empty group asked for `/groups//entries`, and a lone surrogate left `quote` as
+    # `UnicodeEncodeError`, a `ValueError` past `except GateError`.
+    with pytest.raises(ProtocolError):
+        call(paired)
+
+    assert gate.names == [], "nothing was dialed"
 
 
 def test_the_gate_says_what_each_profile_may_do_at_a_node(
@@ -182,7 +234,7 @@ def test_a_listed_group_has_no_notes_rather_than_empty_ones(
 
 def test_a_group_defaults_to_the_root_by_name(gate: FakeGate, paired: GateClient) -> None:
     # Which is what lets a client granted only `create` put something somewhere.
-    answering(gate, {"uuid": UUID, "name": "Invented", "parent": None})
+    answering(gate, {"uuid": UUID, "name": "Invented", "parent": None, "notes": ""})
 
     paired.group()
 
@@ -256,6 +308,7 @@ def test_a_read_entry_carries_its_fields_and_says_which_are_protected(
                 "Invented": "a custom one",
             },
             "protected": ["Password"],
+            "expires": None,
         },
     )
 
@@ -286,6 +339,7 @@ def test_a_withheld_protected_value_stays_withheld(
                 "Password": None,
             },
             "protected": ["Password"],
+            "expires": None,
         },
     )
 
@@ -313,6 +367,7 @@ WITHHOLDING = {
         "Deploy key": None,
     },
     "protected": ["Password", "Deploy key"],
+    "expires": None,
 }
 
 #: Every path a caller has to a withheld value, each of which has to raise rather than hand back
@@ -630,7 +685,14 @@ def test_a_moment_the_gate_did_not_write_is_absent_rather_than_wrong(
 ) -> None:
     answering(
         gate,
-        {"uuid": UUID, "group": OTHER, "fields": {}, "protected": [], "created": "not a time"},
+        {
+            "uuid": UUID,
+            "group": OTHER,
+            "fields": {},
+            "protected": [],
+            "created": "not a time",
+            "expires": None,
+        },
     )
 
     entry = paired.entry(UUID)
@@ -644,8 +706,19 @@ def test_a_moment_the_gate_did_not_write_is_absent_rather_than_wrong(
 AWKWARD = "an invented/node"
 AWKWARD_NAME = "an invented/name"
 
+
+class _Standard(TypedDict):
+    """The five standard strings as keyword arguments, typed so that nothing else is passed."""
+
+    title: str
+    username: str
+    password: str
+    url: str
+    notes: str
+
+
 #: The five standard strings, every one given, so the body shows every key the client can write.
-STANDARD = {
+STANDARD: _Standard = {
     "title": "an invented service",
     "username": "agent-fictitious",
     "password": "not-a-real-password",
@@ -767,6 +840,8 @@ ANY_ANSWER: dict[str, Any] = {
     "uuid": UUID,
     "name": "an invented name",
     "parent": None,
+    "notes": "",
+    "expires": None,
     "group": OTHER,
     "fields": {},
     "protected": [],
@@ -959,14 +1034,51 @@ def test_a_listed_entry_says_nothing_about_when_it_expires(
         _ = listed.expired
 
 
-def test_a_read_that_says_nothing_about_expiry_has_none(gate: FakeGate, paired: GateClient) -> None:
-    """Not never, which is what `None` means here, and not the listing's message either."""
+def test_a_listed_entry_says_nothing_about_which_strings_are_protected(
+    gate: FakeGate, paired: GateClient
+) -> None:
+    """Absent rather than none: a listing names no protected strings, though it may withhold some.
+
+    A listed entry that answered `()` named nothing protected beside a `withheld` title, which
+    contradicts itself, and `'Password' in entry.protected` answered `False` for every entry.
+    """
+    listing = {"entries": [{"uuid": UUID, "group": OTHER, "title": None, "url": ""}], "count": 1}
+    answering(gate, listing)
+
+    listed = paired.entries()[0]
+
+    assert listed.withheld == ("Title",)
+    assert not hasattr(listed, "protected")
+    with pytest.raises(AttributeError, match="listed rather than read"):
+        _ = listed.protected
+
+
+def test_a_listed_attachment_has_no_content_rather_than_none(
+    gate: FakeGate, paired: GateClient
+) -> None:
+    """A listing carries no bytes, so asking for them is asking for something never fetched."""
+    answering(gate, {"attachments": [{"name": "key.pem", "size": 451}]})
+
+    listed = paired.attachments(UUID)[0]
+
+    assert not listed.is_read
+    assert not hasattr(listed, "content")
+    with pytest.raises(AttributeError, match="listed rather than read"):
+        _ = listed.content
+
+
+def test_a_read_without_its_expiry_is_an_answer_this_client_cannot_read(
+    gate: FakeGate, paired: GateClient
+) -> None:
+    """Not never, which is what `None` means here, and not a gate that served no expiry.
+
+    The document requires the member on every read, as it requires the title or a field's value,
+    and an absent one of those is a `ProtocolError` too.
+    """
     answering(gate, {"uuid": UUID, "group": OTHER, "fields": {}, "protected": []})
 
-    entry = paired.entry(UUID)
-
-    with pytest.raises(AttributeError, match="said nothing"):
-        _ = entry.expires
+    with pytest.raises(ProtocolError, match="no expiry"):
+        paired.entry(UUID)
 
 
 @pytest.mark.parametrize("said", ["not a time", "", 20310203, "2031-02-03T04:05:06+01:00"])
@@ -1064,6 +1176,9 @@ def test_an_expiry_the_gate_would_refuse_is_never_sent(
 #: reads it. Only a plugin defect or a plugin and a client of different versions sends one.
 UNREADABLE: list[tuple[str, dict[str, Any], Callable[[GateClient], object]]] = [
     ("a create with no uuid", {}, lambda c: c.create_entry(title="x")),
+    # Read as a listed group, with its tag dropped, whose notes then advised reading it.
+    ("a group read with no notes", {"uuid": UUID, "name": "x", "parent": None},
+     lambda c: c.group(UUID)),
     ("a null uuid", {"uuid": None}, lambda c: c.create_group("x")),
     ("a uuid that is a number", {"uuid": 7}, lambda c: c.create_group("x")),
     ("names rather than groups", {"groups": ["root"]}, lambda c: c.groups()),
@@ -1071,12 +1186,12 @@ UNREADABLE: list[tuple[str, dict[str, Any], Callable[[GateClient], object]]] = [
     ("an entry with no group", {"entries": [{"uuid": UUID, "title": "x"}]}, lambda c: c.entries()),
     (
         "fields that are a list",
-        {"uuid": UUID, "group": OTHER, "fields": ["Title"], "protected": []},
+        {"uuid": UUID, "group": OTHER, "fields": ["Title"], "protected": [], "expires": None},
         lambda c: c.entry(UUID),
     ),
     (
         "a value that is a number",
-        {"uuid": UUID, "group": OTHER, "fields": {"Title": 7}, "protected": []},
+        {"uuid": UUID, "group": OTHER, "fields": {"Title": 7}, "protected": [], "expires": None},
         lambda c: c.entry(UUID),
     ),
     ("a field listed as unprotected by saying nothing", {"fields": [{"name": "x"}]},
@@ -1156,7 +1271,15 @@ def test_a_moment_that_is_not_text_is_absent_rather_than_a_crash(
     # A time the gate did not write is `None`, as one it wrote wrongly already was. A number used
     # to reach `strptime` and leave as a `TypeError`.
     answering(
-        gate, {"uuid": UUID, "group": OTHER, "fields": {}, "protected": [], "created": 20260304}
+        gate,
+        {
+            "uuid": UUID,
+            "group": OTHER,
+            "fields": {},
+            "protected": [],
+            "created": 20260304,
+            "expires": None,
+        },
     )
 
     assert paired.entry(UUID).created is None
@@ -1215,6 +1338,7 @@ def test_a_title_a_read_withholds_raises_and_one_it_does_not_carry_is_empty(
             "created": "2026-03-04T05:06:07Z",
             "fields": {"Title": None, "URL": None},
             "protected": ["Title", "URL"],
+            "expires": None,
         },
     )
 
@@ -1227,7 +1351,7 @@ def test_a_title_a_read_withholds_raises_and_one_it_does_not_carry_is_empty(
         _ = withheld.url
     assert withheld.created == datetime(2026, 3, 4, 5, 6, 7, tzinfo=UTC), "in UTC, and aware"
 
-    answering(gate, {"uuid": UUID, "group": OTHER, "fields": {}, "protected": []})
+    answering(gate, {"uuid": UUID, "group": OTHER, "fields": {}, "protected": [], "expires": None})
 
     bare = paired.entry(UUID)
 

@@ -3,9 +3,12 @@
 from __future__ import annotations
 
 import base64
+import errno
 import hashlib
 import inspect
+import io
 import json
+import os
 import re
 import subprocess
 import sys
@@ -29,6 +32,121 @@ def test_a_command_is_required(capsys: pytest.CaptureFixture[str]) -> None:
         cli.main([])
 
     assert raised.value.code == 2
+
+
+def test_the_command_line_names_its_own_version(capsys: pytest.CaptureFixture[str]) -> None:
+    # Its half of the comparison a client and a plugin are paired by, beside the gate's that
+    # `status` prints.
+    with pytest.raises(SystemExit) as raised:
+        cli.main(["--version"])
+
+    assert raised.value.code == 0
+    assert capsys.readouterr().out == f"pykeepassgate {__version__}\n"
+
+
+def test_ctrl_c_ends_a_command_with_the_shell_s_number_and_a_line(
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    # The way out of a pairing's wait on the operator, or a prompt, and once a traceback.
+    def interrupted(arguments: object) -> int:
+        raise KeyboardInterrupt
+
+    monkeypatch.setattr(cli, "_identity", interrupted)
+
+    assert cli.main(["identity"]) == 130
+    assert capsys.readouterr() == ("", "interrupted\n")
+
+
+def test_a_reader_that_stops_reading_ends_the_command_without_a_traceback() -> None:
+    # `entries | head -1`, over a real pipe, since what goes wrong is what the interpreter does
+    # with the closed pipe at exit: a listing longer than a pipe holds, and a reader that takes
+    # a line and goes. On Windows the write raises `EINVAL` rather than `EPIPE`. Every argument
+    # is this test's own, which is what `S603` asks about. cspell:ignore EINVAL EPIPE
+    script = (
+        "import sys\n"
+        "from pykeepassgate import cli\n"
+        "def listed(arguments):\n"
+        "    for _ in range(100000):\n"
+        "        print('a row of a long listing')\n"
+        "    return 0\n"
+        "cli._identity = listed\n"
+        "sys.exit(cli.main(['identity']))\n"
+    )
+    command = subprocess.Popen(  # noqa: S603
+        [sys.executable, "-c", script], stdout=subprocess.PIPE, stderr=subprocess.PIPE
+    )
+    assert command.stdout is not None
+    assert command.stderr is not None
+
+    assert command.stdout.readline().strip() == b"a row of a long listing"
+    command.stdout.close()
+    error = command.stderr.read()
+
+    assert command.wait(timeout=60) == 1
+    assert error == b""
+
+
+@pytest.mark.parametrize(
+    "raised", [BrokenPipeError(errno.EPIPE, "pipe"), OSError(errno.EINVAL, "invalid")]
+)
+def test_the_same_error_raised_while_the_reader_is_there_is_not_taken_for_it_going(
+    monkeypatch: pytest.MonkeyPatch, raised: OSError
+) -> None:
+    # What a closed pipe raises, raised by something else while standard output still writes,
+    # which is a defect to be seen rather than a reader to be quiet for.
+    def failed(arguments: object) -> int:
+        raise raised
+
+    monkeypatch.setattr(cli, "_identity", failed)
+
+    with pytest.raises(OSError) as escaped:
+        cli.main(["identity"])
+
+    assert escaped.value is raised
+
+
+class _Gone:
+    """Standard output over a pipe whose reader has closed, held to a file of the test's own."""
+
+    def __init__(self, held: int | None, raised: OSError) -> None:
+        self.held = held
+        self.raised = raised
+
+    def write(self, text: str) -> int:
+        raise self.raised
+
+    def flush(self) -> None:
+        raise self.raised
+
+    def fileno(self) -> int:
+        if self.held is None:
+            raise io.UnsupportedOperation("fileno")
+
+        return self.held
+
+
+@pytest.mark.parametrize(
+    "raised", [BrokenPipeError(errno.EPIPE, "pipe"), OSError(errno.EINVAL, "invalid")]
+)
+@pytest.mark.parametrize("file", [True, False], ids=["file", "no file"])
+def test_a_reader_gone_points_standard_output_at_the_null_device(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path, raised: OSError, file: bool
+) -> None:
+    # In process, for what the pipe above decides out of sight: the descriptor standard output
+    # writes to is the null device afterwards, and a stream with no descriptor is left as it is.
+    def listed(arguments: object) -> int:
+        print("a row")
+        return 0
+
+    with (tmp_path / "out").open("wb") as held:
+        monkeypatch.setattr(sys, "stdout", _Gone(held.fileno() if file else None, raised))
+        monkeypatch.setattr(cli, "_identity", listed)
+
+        assert cli.main(["identity"]) == 1
+        if file:
+            os.write(held.fileno(), b"after")
+
+    assert (tmp_path / "out").read_bytes() == b""
 
 
 def test_pairing_without_a_port_dials_the_one_the_gate_listens_on_by_default() -> None:
@@ -241,7 +359,11 @@ def test_a_gate_that_says_it_is_not_ok_exits_with_the_number_a_script_reads(
     )
 
     assert cli.main(["status", "--directory", str(tmp_path / "kept")]) == 1
-    assert "abcdef01" in capsys.readouterr().out
+
+    # And not printed as serving, with the failure in a sentence of its own, as every other is.
+    out, error = capsys.readouterr()
+    assert out == f"gate {__version__} not serving database abcdef01\n"
+    assert error == "the gate answered that it is not serving this database: ok is false\n"
 
 
 def test_a_certificate_that_has_expired_is_reported_as_expired(
@@ -271,6 +393,23 @@ def test_a_locked_database_is_reported_as_something_to_wait_for(
     printed = capsys.readouterr().err
     assert "DatabaseLocked" in printed, "a script should be able to grep for the kind"
     assert "locked" in printed
+
+
+def test_no_standard_input_at_all_is_input_that_ended(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    # As `pythonw` and a detached process start, with `sys.stdin` set to `None`: refused as input
+    # cspell:ignore pythonw
+    # that ended before a line, and nothing dialed, rather than an `AttributeError` out of `main`.
+    monkeypatch.setattr("sys.stdin", None)
+
+    code = cli.main(
+        ["pair", "--port", "1", "--name", "agent-invented", "--directory", str(tmp_path / "kept")]
+    )
+
+    assert code == 2
+    assert "input ended before a line was read" in capsys.readouterr().err
+    assert not (tmp_path / "kept").exists()
 
 
 def test_an_invitation_can_be_read_from_standard_input(
@@ -670,6 +809,55 @@ def test_a_certificate_the_gate_already_refuses_counts_as_revoked(
     assert not where.exists()
 
 
+@pytest.mark.parametrize(
+    ("status", "said"),
+    [(200, "revoked CN=agent-invented"), (401, "the gate already refuses CN=agent-invented")],
+    ids=["revoked", "already refused"],
+)
+@pytest.mark.parametrize("output", ["plain", "json"])
+def test_a_revocation_whose_files_will_not_go_is_still_reported_as_one(
+    tmp_path: Path,
+    gate: FakeGate,
+    bundle: dict[str, Any],
+    client_certificate: Issued,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+    status: int,
+    said: str,
+    output: str,
+) -> None:
+    # Such as a file held open on Windows. The certificate is given up either way, so what was
+    # given up is printed, with the key the audit names it by, and the files left are named.
+    gate.handler = lambda path, body, client: (
+        status, json.dumps({"ok": True} if status == 200 else {"error": "unpaired"})
+    )
+    where = tmp_path / "kept"
+    credentials_module.save(where, gate.port, bundle)
+
+    def held(directory: Path) -> None:
+        raise StorageError(f"{directory / 'gate.key'} could not be removed: in use")
+
+    monkeypatch.setattr(api, "forget", held)
+
+    code = cli.main(["revoke", "--directory", str(where), "-o", output])
+
+    out, error = capsys.readouterr()
+    assert code == 1
+    key = admission_key(client_certificate)
+    if output == "json":
+        shown = json.loads(out)
+        assert shown["admissionKey"] == key
+        assert shown["alreadyRefused"] is (status == 401)
+        assert "removed" not in shown, "nothing was removed, so nothing is named as removed"
+    else:
+        lines = out.splitlines()
+        assert lines[0].startswith(said)
+        assert lines[1:] == [f"admission key: {key}"]
+    assert "could not all be removed" in error
+    assert "in use" in error
+    assert str(where) in error
+
+
 def test_pairing_asks_for_the_lifetime_it_was_given(monkeypatch: pytest.MonkeyPatch) -> None:
     # Days on the command line, a `timedelta` in the library, and nothing at all when nothing was
     # said, which the dialog answers by offering a year.
@@ -707,6 +895,18 @@ def test_a_lifetime_no_certificate_can_have_is_an_argument_error(
 
     assert raised.value.code == 2
     assert "days" in capsys.readouterr().err
+
+
+@pytest.mark.parametrize("host", ["", "a" * 64 + ".invalid", "a..b"])
+def test_a_host_nothing_could_dial_is_an_argument_error(
+    host: str, tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    # Exit 2 and a sentence, where the dial left `main` as a `UnicodeError` traceback.
+    with pytest.raises(SystemExit) as raised:
+        cli.main(["status", "--host", host, "--directory", str(tmp_path)])
+
+    assert raised.value.code == 2
+    assert "host" in capsys.readouterr().err
 
 
 def test_pairing_passes_the_shared_directory_choice_to_the_library(

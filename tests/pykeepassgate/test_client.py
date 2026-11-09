@@ -3,17 +3,20 @@
 from __future__ import annotations
 
 import dataclasses
+import inspect
 import json
 import math
 import re
 import socket
+from collections.abc import Callable
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Any, cast
 
 import pytest
 
-from pykeepassgate import __version__, sni, transport
+from pykeepassgate import __version__, api, sni, transport
+from pykeepassgate import client as client_module
 from pykeepassgate import credentials as credentials_module
 from pykeepassgate.client import GateClient
 from pykeepassgate.errors import (
@@ -27,7 +30,9 @@ from pykeepassgate.errors import (
     StorageError,
     TransportError,
 )
+from pykeepassgate.pairing import Pairing
 from pykeepassgate.testing import FakeGate, Issued
+from test_pairing import INVITATION
 
 
 @pytest.fixture
@@ -280,15 +285,25 @@ def test_a_revoked_client_and_one_that_never_paired_look_the_same(
         paired.status()
 
 
-def test_every_setting_is_passed_by_name(tmp_path: Path, bundle: dict[str, Any]) -> None:
+@pytest.mark.parametrize(
+    ("made", "positional"),
+    [
+        (GateClient, ["credentials"]),
+        (GateClient.open, ["directory", "profile"]),
+        (Pairing, ["port", "invitation"]),
+        (api.pair, ["invitation", "name"]),
+    ],
+    ids=["GateClient", "GateClient.open", "Pairing", "api.pair"],
+)
+def test_every_setting_is_passed_by_name(made: Callable[..., Any], positional: list[str]) -> None:
     # A setting added in the middle once changed what the fourth argument meant, with nothing to
-    # say so; keyword only, a setting added later cannot.
-    stored = credentials_module.save(tmp_path / "kept", 45678, bundle)
+    # warn of it; keyword only, a setting added later cannot. What comes before the settings is
+    # what `docs/pykeepassgate.md` names, and everything after it is held here, not a sample.
+    parameters = inspect.signature(made).parameters.values()
 
-    with pytest.raises(TypeError):
-        cast(Any, GateClient)(stored, 10.0)
-    with pytest.raises(TypeError):
-        cast(Any, GateClient.open)(tmp_path / "kept", "default", "127.0.0.1")
+    assert [
+        parameter.name for parameter in parameters if parameter.kind is not parameter.KEYWORD_ONLY
+    ] == positional
 
 
 def test_a_certificate_that_has_expired_is_named_as_expired_before_anything_is_dialed(
@@ -326,6 +341,58 @@ def test_a_certificate_expired_only_by_a_clock_ahead_of_the_gate_s_is_still_offe
     assert stored.expired, "identity still says so"
     assert GateClient(stored, connection_timeout=10.0).status().ok
     assert gate.names != [], "the gate was asked"
+
+
+def test_a_host_nothing_could_dial_is_refused_where_it_is_given(
+    tmp_path: Path, bundle: dict[str, Any]
+) -> None:
+    # Before anything is dialed, by the name it was given under, as every other setting is.
+    stored = credentials_module.save(tmp_path / "kept", 45678, bundle)
+
+    with pytest.raises(ValueError, match="host"):
+        GateClient(stored, host="a" * 64 + ".invalid")
+    with pytest.raises(ValueError, match="host"):
+        Pairing(45678, INVITATION, host="")
+    with pytest.raises(ValueError, match="host"):
+        api.pair("x", "agent", directory=tmp_path / "paired", host="\udcff")
+
+    assert not (tmp_path / "paired").exists(), "refused before anything was prepared"
+
+
+def test_the_leeway_is_the_five_minutes_the_documents_promise() -> None:
+    # The authority backdates a certificate by five minutes for a clock behind the gate's, and
+    # the client grants the same the other way; the pages give the number, so it is held here.
+    assert timedelta(minutes=5) == client_module.CLOCK_LEEWAY
+
+
+@pytest.mark.parametrize(
+    ("past", "dialed"),
+    [(timedelta(minutes=-1), True), (timedelta(minutes=1), False)],
+    ids=["a minute inside it", "a minute beyond it"],
+)
+def test_a_certificate_is_offered_until_the_leeway_has_passed_and_not_after(
+    past: timedelta, dialed: bool, tmp_path: Path, bundle: dict[str, Any], gate: FakeGate
+) -> None:
+    # Either side of the leeway, rather than a minute past and a quarter of a century: a leeway
+    # widened by mistake dials with a certificate the gate refuses as a stranger, and a leeway
+    # narrowed refuses a clock a few minutes ahead for nothing.
+    gate.version = None
+    status = {"ok": True, "database": "abcdef01", "version": __version__, "revision": ""}
+    gate.handler = lambda path, body, client: (200, json.dumps(status))
+    moment = datetime.now(UTC) - client_module.CLOCK_LEEWAY - past
+    stored = credentials_module.save(
+        tmp_path / "kept", gate.port, {**bundle, "expires": f"{moment:%Y-%m-%dT%H:%M:%SZ}"}
+    )
+
+    if dialed:
+        assert GateClient(stored, connection_timeout=10.0).status().ok
+        assert gate.names != [], "the gate was asked"
+        return
+
+    with pytest.raises(NotAdmitted, match="expired at"):
+        GateClient(stored, connection_timeout=10.0).status()
+
+    assert gate.names == [], "nothing was dialed to learn it"
 
 
 @pytest.mark.parametrize("expires", ["", "whenever", "2001-02-03"], ids=["none", "a word", "a day"])
@@ -579,6 +646,20 @@ def test_a_head_this_client_may_not_reach_is_refused_like_any_other(
         paired.head("/gate/status")
 
 
+#: An entry as a read answers it, for the tagged calls the budget tests make.
+TAGGED_ENTRY = json.dumps(
+    {"uuid": "7b1c" * 8, "group": "g", "fields": {}, "protected": [], "expires": None}
+)
+
+#: A tagged read and a tagged write, each made with whatever budgets it is handed.
+TAGGED: dict[str, Callable[..., object]] = {
+    "read": lambda client, **budgets: client.entry("7b1c" * 8, **budgets),
+    "write": lambda client, **budgets: client.update_entry(
+        "7b1c" * 8, title="Invented", if_match='"0a1b"', **budgets
+    ),
+}
+
+
 class TestWaitingOutARefusal:
     """The three retry budgets, which are `None` unless a caller says otherwise."""
 
@@ -649,6 +730,77 @@ class TestWaitingOutARefusal:
         assert self._client(stored, retry_busy_timeout=30.0).status().ok
         assert len(gate.requests) == 3
         assert waited == [2.0, 2.0], "it waited what the gate asked for, twice"
+
+    @staticmethod
+    def _busy_then(gate: FakeGate, times: int, answer: str) -> None:
+        """Refuse that many requests with `503 busy`, then answer the rest with this."""
+        left = [times]
+
+        def reply(path: str, body: str, client: bytes | None) -> tuple[int, str]:
+            if left[0] > 0:
+                left[0] -= 1
+                return 503, json.dumps({"error": "busy"})
+
+            return 200, answer
+
+        gate.handler = reply
+        gate.retry_after = "2"
+
+    @pytest.mark.parametrize("call", TAGGED, ids=TAGGED)
+    def test_a_tagged_call_waits_on_a_budget_given_for_it_alone(
+        self, gate: FakeGate, paired: GateClient, waited: list[float], call: str
+    ) -> None:
+        # On a client built with none, so the wait is the call's own: a program no longer needs a
+        # second client, or `send` without the tag, to give one call a budget of its own.
+        self._busy_then(gate, 2, TAGGED_ENTRY if call == "read" else '{"ok":true}')
+
+        TAGGED[call](paired, retry_busy_timeout=30.0)
+
+        assert [method for method, _ in gate.requests] == [
+            "GET" if call == "read" else "PUT"
+        ] * 3
+        assert waited == [2.0, 2.0]
+
+    @pytest.mark.parametrize("call", TAGGED, ids=TAGGED)
+    def test_a_tagged_call_given_no_budget_waits_on_the_client_s(
+        self,
+        tmp_path: Path,
+        bundle: dict[str, Any],
+        gate: FakeGate,
+        paired: GateClient,
+        waited: list[float],
+        call: str,
+    ) -> None:
+        stored = credentials_module.save(tmp_path / "kept", gate.port, bundle)
+        self._busy_then(gate, 1, TAGGED_ENTRY if call == "read" else '{"ok":true}')
+
+        TAGGED[call](self._client(stored, retry_busy_timeout=30.0))
+
+        assert waited == [2.0]
+
+        self._busy_then(gate, 1, TAGGED_ENTRY if call == "read" else '{"ok":true}')
+        with pytest.raises(GateBusy):
+            TAGGED[call](paired)
+
+    @pytest.mark.parametrize("call", TAGGED, ids=TAGGED)
+    def test_a_budget_given_to_a_tagged_call_overrides_the_client_s(
+        self,
+        tmp_path: Path,
+        bundle: dict[str, Any],
+        gate: FakeGate,
+        waited: list[float],
+        call: str,
+    ) -> None:
+        # `None` for one call is no retry, whatever the client was built with.
+        stored = credentials_module.save(tmp_path / "kept", gate.port, bundle)
+        self._busy_then(gate, 1, TAGGED_ENTRY if call == "read" else '{"ok":true}')
+
+        with pytest.raises(GateBusy):
+            TAGGED[call](
+                self._client(stored, retry_busy_timeout=30.0), retry_busy_timeout=None
+            )
+
+        assert waited == []
 
     def test_the_delay_is_the_gate_s_rather_than_one_this_client_invented(
         self, tmp_path: Path, bundle: dict[str, Any], gate: FakeGate, waited: list[float]
@@ -865,7 +1017,68 @@ def test_a_budget_given_for_one_call_is_held_to_the_same_rule(
     with pytest.raises(ValueError, match="retry_undecided_timeout"):
         paired.send("GET", "/gate/status", retry_undecided_timeout=math.inf)
 
+    with pytest.raises(ValueError, match="retry_busy_timeout"):
+        paired.entry("7b1c" * 8, retry_busy_timeout=-1.0)
+
+    with pytest.raises(ValueError, match="retry_locked_timeout"):
+        paired.strip_attachment("7b1c" * 8, "a.pem", retry_locked_timeout=math.nan)
+
+    with pytest.raises(ValueError, match="connection_timeout"):
+        paired.update_field("7b1c" * 8, "Token", "invented", connection_timeout=0.0)
+
+    with pytest.raises(ValueError, match="connection_timeout"):
+        paired.send("GET", "/gate/status", connection_timeout=math.inf)
+
     assert gate.names == []
+
+
+#: Every method that reads or writes one group or entry with its tag, which takes the budgets
+#: `send` takes, since nothing but a second client would otherwise give one of them its own.
+TAGGED_METHODS = (
+    "group", "entry", "fields", "field", "attachments", "attachment", "head",
+    "update_group", "delete_group", "update_entry", "delete_entry", "create_field",
+    "update_field", "strip_field", "create_attachment", "update_attachment", "strip_attachment",
+)
+
+#: What each of them takes for one call, as `send` declares it.
+PER_CALL = (
+    "connection_timeout", "retry_busy_timeout", "retry_locked_timeout", "retry_undecided_timeout"
+)
+
+
+@pytest.mark.parametrize("method", (*TAGGED_METHODS, "get", "send"))
+def test_every_tagged_call_takes_the_budgets_send_takes(method: str) -> None:
+    taken = inspect.signature(getattr(GateClient, method)).parameters
+    sent = inspect.signature(GateClient.send).parameters
+
+    for budget in PER_CALL:
+        assert taken[budget].kind is inspect.Parameter.KEYWORD_ONLY
+        assert taken[budget].default is transport.KEEP
+        assert taken[budget].annotation == sent[budget].annotation
+
+
+@pytest.mark.parametrize("call", TAGGED, ids=TAGGED)
+def test_a_connection_timeout_given_to_a_tagged_call_is_the_one_it_dials_with(
+    tmp_path: Path, bundle: dict[str, Any], gate: FakeGate, call: str
+) -> None:
+    # The client's own for a call given none, and for the status route a client asks before its
+    # first request, which waits on nothing whatever that request was given.
+    gate.handler = lambda path, body, client: (
+        200, TAGGED_ENTRY if call == "read" else '{"ok":true}'
+    )
+    dialed: list[float] = []
+
+    def dial(host: str, port: int, timeout: float) -> socket.socket:
+        dialed.append(timeout)
+        return socket.create_connection((host, port), timeout)
+
+    stored = credentials_module.save(tmp_path / "kept", gate.port, bundle)
+    client = GateClient(stored, connection_timeout=10.0, dial=dial)
+
+    TAGGED[call](client, connection_timeout=3.5)
+    TAGGED[call](client)
+
+    assert dialed == [10.0, 3.5, 10.0]
 
 
 def test_credentials_naming_a_port_tcp_does_not_have_make_no_client(

@@ -11,6 +11,179 @@ none, since it releases both.
 
 ## 0.2.0, unreleased
 
+- **Every method that reads or writes one group or entry with its tag takes the three retry
+  budgets and a `connection_timeout`**, keyword-only and for that call alone: the reads of a
+  group, an entry, a field or an attachment and the listings of fields and attachments, `head`,
+  and every update, removal, strip and field or attachment write. `send` and `get` take a
+  `connection_timeout` for one call too. A program wanting its own budget for one of them needed
+  a second client, or `send`, which hands back no read's tag.
+- **`refs.resolve_entry` resolves every string of an entry together**, each entry they name read
+  once and the entry itself not again, and names each string `protected` that a protected value
+  went into. `show --resolve` uses it, so a password a URL borrows by reference is marked
+  `(protected)` and listed under `protected`, where it printed unmarked, and an entry several
+  strings borrow from is read once rather than for each. `refs.resolve` answers a reference to
+  the entry a value came from out of that entry, where it read the entry again.
+- **`refs.resolve` refuses a value that takes more work than it spends**, with `Unresolved`:
+  more than a thousand compilations, `refs.COMPILES`, or more than 4 MiB, `refs.CHARACTERS`.
+  Strings that name each other in wide layers are compiled once for every path through them, so
+  34 short strings took 37 seconds and a few more never finished, and nothing bounded it. Folding
+  and replacing take a pass over the text where they took one per character and per occurrence.
+- **A listed entry has no `protected` and a listed attachment no `content`**: each raises
+  `AttributeError`, as a listed entry's password does, where the entry answered `()`, naming
+  nothing protected beside a withheld title, and the attachment `None`. A read carries both as
+  before.
+- **Plain output escapes a line break wherever it is**, in an identifier, a subject or a
+  directory as well as a name or a value: each command escaped the values it named, and the rest
+  went out as they were.
+- **A value piped in over more than a line is refused**, exit 2 with nothing sent. It was cut to
+  its first line and stored, so a key in PEM was stored as its `BEGIN` line and reported done. A
+  value piped in is read to the end of input now, so whatever sends it must close the pipe, which
+  the help of each command that reads a value names.
+- **A value piped in loses its carriage return on every platform**, as it did on Windows alone:
+  elsewhere a line a Windows program wrote reached the gate with the carriage return still on it,
+  and a password was stored with it.
+- **`revoke` whose files will not all go still reports the revocation**: what it gave up and the
+  admission key, with the directory to remove named on standard error and exit code 1. It printed
+  only the file's `StorageError`, so a revocation that landed read as refused.
+- **A key password is asked for at the terminal whatever standard input is**, so a value or an
+  invitation piped into a command sits beside a key password typed at the terminal, where every
+  pipe was refused as no terminal. Input from the null device is still no terminal, and a process
+  started with no standard input at all is refused as input that ended, where it raised
+  `AttributeError`.
+- **`status` answered `ok: false` prints `not serving`** where it printed `serving`, and a
+  sentence on standard error, where it printed nothing there and exited 1.
+- **Ctrl+C ends a command with exit code 130 and the line `interrupted`**, a pairing's wait on
+  the operator among them, and a reader that stops reading, as `head -1` does, ends it with exit
+  code 1 and nothing on standard error. Both ended in a traceback, and the second with exit code
+  120 besides.
+- **The stand-in's `tag` and `written` take an entity tag and nothing else**: visible ASCII
+  between two quotes, with no quote inside. `tag` took a quote inside, and `written` took
+  anything, though its tag is the tag a later `If-Match` sends back.
+- **The stand-in gate refuses what the plugin refuses before any route**, with the plugin's
+  status and reason: a head over 8 KiB, a target over 2048 characters or a target that is no
+  path the plugin takes, `..` among them, a version other than HTTP/1.1, a request without a
+  `Host`, and a body over 1 MiB, beside the repeated header and the control character it already
+  refused, and a refused `HEAD` comes without content. It used to hand all of them to the
+  handler, so a program that sent a name of `..` or an attachment too large passed its tests and
+  met the refusal only against KeePass.
+- **The command line has a command for every route, heads included.** `pykeepassgate head`
+  asks any route a read command asks, `head entry <uuid>` and the rest, with HEAD, reading
+  nothing, and prints the tag it answered with, as `etag` under `-o json`. The reads of one group
+  or one entry take `--if-match` as the writes do, and so do the library's typed reads, as
+  `if_match=`, where only `get`, `head` and `send` took a condition.
+- **`pykeepassgate --version` names the client's version**, the half of the comparison a client
+  and a plugin are paired by that the command line could not show, beside the gate's that
+  `status` prints.
+- **A standard string held under a name with a null in it is refused with `AmbiguousName`**, as
+  a string under a name beyond ASCII is, by the read model and by `refs.resolve`. .NET Framework's
+  collation gives the null no weight, so KeePass reads such a name as `Password`, and the client
+  answered empty, where KeePass has a value or the gate withheld a value.
+- **An entry read without `expires` is an answer PyKeePassGate cannot read**, `ProtocolError`, as
+  the document requires the member on every read and the client refuses any other required member
+  missing. It was read as a gate answering nothing about the expiry, an `AttributeError` from
+  `entry.expires`, and `show` left the line out.
+- **A group read without its notes is an answer PyKeePassGate cannot read**, `ProtocolError`, as
+  the document requires the member. `Group.of` told a read from a listing by whether the notes
+  were there, so such a read came back as a listed group with its tag dropped, and `group` ended
+  in an `AttributeError` traceback advising the call it had just made. `Group.read` and
+  `Group.listed` take its place.
+- **An expiry whose instant in UTC falls outside the years 1 to 9999 is refused as such**, a
+  `ValueError` from the library and exit 2 from `--expires`. `9999-12-31T23:00:00-05:00` parsed,
+  and moving it to UTC raised `OverflowError`, which the library's documents do not name and
+  which left the command line as a traceback.
+- **An identifier or a name that names nothing is refused before anything is dialed**: an empty
+  identifier or name, and text UTF-8 cannot encode, such as a lone surrogate from argv. The
+  library raises `ProtocolError`, and the command line refuses the argument, exit 2. `groups
+  --under ""` listed the whole database, which is another question and another grant, `entries
+  --group ""` asked for `/groups//entries`, and a surrogate left as a `UnicodeEncodeError`
+  traceback.
+- **A pairing waits at least six minutes for the operator's answer, whatever
+  `connection_timeout` is**, as a renewal already did. `pair --connection-timeout 30` hung up on
+  an operator who took longer, after the invitation was spent and the record written, leaving a
+  record for a key nobody holds. The hello still keeps the timeout given.
+- **A renewal opens a kept identity with the password it was given, and calls a kept identity it
+  could not present what it is.** An identity at `<dir>.retired` under a password, beside an
+  identity whose key needs none, was opened with no password at all, and every renewal was refused with
+  the claim that the gate still admitted it, though the gate was asked nothing; so was a kept
+  identity that would not load.
+- **An identity opened by a relative path renews beside its own directory**, `.` and `..` among
+  them. `.` raised a bare `ValueError` out of every renewal, after `pair --directory .` had been
+  accepted, and `..` kept the two directories a renewal makes in the working directory, inside
+  the identity's own. An identity at a root is refused a renewal with a `StorageError` naming what
+  to do instead, which is keeping it in a directory of its own.
+- **Every file PyKeePassGate stores is flushed to the disk before it is counted written.** A
+  renewal takes the staging copy away and, once the gate takes the old certificate back, the
+  retired copy too, and nothing was flushed: a power loss within seconds of a renewal that
+  reported success could leave the identity's files empty, with no copy left and the old
+  certificate revoked.
+- **PyKeePassGate writes a key only into a regular file of its own, narrowed first.** A file
+  already there was narrowed after the key went in, so a re-pair over a widened identity held the
+  new key at the old mode until then, and a narrowing refused came with the key already written.
+  A hard link at a file's name passed the check that holds the file to its name, and the key went
+  into the file it named; a file another account owns, in a directory shared on purpose, received
+  the key before the narrowing failed; and a FIFO swapped in after the look made `prepare` wait
+  for a reader forever. Each is now refused before anything is written, and `fetch` writes the
+  same way.
+- **A renewal refusing a shared directory beside the identity names what mends it**: removing
+  `<dir>.renewing` or `<dir>.retired`, or making it this account's alone. The refusal named
+  `--allow-shared-directory` on `pair`, which never waives either, and under `renew` named only
+  `pair` for the identity's own directory, where `renew` takes the flag as well.
+- **A `gate.key` of the wrong length is a `StorageError` naming the file**, as `identity.pem` and
+  `authority.pem` already are. HMAC takes a key of any length, so a gate key a re-pair cut short
+  named every connection under the wrong key, and every call failed as an EOF in the handshake,
+  which the client explains as a database not open or an authority recreated.
+- **A pairing or a renewal refused `503 busy` names the database's list of profiles among the
+  causes**, the cause that does not end until the operator repairs the list. The client gave only
+  causes that end by themselves, and a renewal was told what any route is, that asking again
+  shortly is safe, so a program waited out its whole budget for a list that would not read. An
+  ordinary route's busy message names the busy that waits for the operator's save as well.
+- **PyKeePassGate reads `profilesUnreadable` on the identity route**, as
+  `Identity.profiles_unreadable`, and `whoami` prints a `profile list` line when the database's
+  list of profiles will not read, in which case every profile on the record is among the removed
+  profiles until the operator repairs it. The stand-in gate's `identified(...)` answers the route
+  as the plugin does, either way. An identity without the member is an answer the client cannot
+  read, `ProtocolError`.
+- **`pykeepassgate whoami` prints a `profile list` line when the database's list of profiles
+  will not read**, which is why every profile on the record is among the removed profiles until
+  the operator repairs it, and the stand-in gate's `identified(...)` answers the identity route
+  as the plugin does, `profiles_unreadable=True` among it.
+- **PyKeePassGate refuses a host nothing could dial where it is given**, with a `ValueError`
+  naming `host`, and `--host` as an argument, exit 2: a host that is not text, or empty, and for
+  the `dial` a client has unless given another, a name `socket` could not encode to resolve, such
+  as a label over 63 characters or a lone surrogate. Each left the first call as `UnicodeError` or
+  `TypeError`, naming nothing, and the command line printed a traceback.
+- **Every exception PyKeePassGate raises survives being pickled as what it was**, which a process
+  pool does with an exception raised in a worker. A copy of `RenewalTooEarly` or
+  `IncompatibleGate` could not be made at all, and `Withheld` came back as a sentence built around
+  its own message, with whether it was a listing's and what stood for it gone. `Withheld` keeps
+  both now, as `listed` and `through`.
+- **PyKeePassGate refuses an `If-Match` the gate could not match before sending it**: a tag
+  without its quotes, a list the gate cannot read, or a list naming weak tags alone, which the gate
+  compares strongly and never matches. Each went to the gate and came back as the `412` a node that
+  changed gets, so a script that pasted a tag without its quotes read the node again, found the
+  same tag and sent it the same way. The library raises `ProtocolError`, and `--if-match` exits 2.
+- **PyKeePassGate holds a path it sends to RFC 3986's grammar**, an absolute path and a query of
+  the characters the gate takes as they stand and escapes of two hex digits, and refuses anything
+  else with `ProtocolError` before dialing. Only a space, a line break, a tab and a null were
+  refused, so a control, a quote, a hash, a brace or a stray `%` given to `send` or `get` spent a
+  connection and came back as the gate's `400`.
+- **PyKeePassGate refuses a body that is not UTF-8, or that is nested past the decoder's stack, as
+  a body it cannot read**, with `ProtocolError`. A body that was not UTF-8 was decoded leniently,
+  so a value came back holding U+FFFD where its bytes were, as though it were the value stored,
+  and a hundred thousand bytes of `[` raised `RecursionError` out of every call, past `except
+  GateError`. A `client.json` nested that deep is the `StorageError` any unreadable file is.
+- **PyKeePassGate reads the numbers in an answer as digits and nothing else**: the status as
+  three of them, and `Content-Length` and `Retry-After` as RFC 9110 writes them. Python's `int`
+  took a sign, an underscore and digits of any script, so a negative `Content-Length` counted as
+  met and a body cut short of it as whole, and a `Retry-After` of more digits than a `float`
+  holds raised `OverflowError`, which is no `GateError`, from any peer of a pairing. A version
+  part of more digits than `int` reads raised `ValueError` the same way, and is now a version the
+  client cannot compare.
+- **PyKeePassGate refuses a socket its `dial` hands back that TLS cannot use, and closes it**: a
+  datagram socket is a `TypeError`, as anything but a connected stream socket is, and a socket
+  never connected is a `TransportError`, as a closed socket is. The first raised
+  `NotImplementedError` and the second a bare `OSError` once TLS had wrapped it, neither of them
+  an error the client promises, and each left its socket open.
 - **A certificate the database admits, turned away on a connection that arrived on an invitation,
   is written to the audit**, with the reason `this connection arrived on an invitation`. It is
   refused as before, and was the line missing from the audit's account of every certificate this

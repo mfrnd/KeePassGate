@@ -5,10 +5,10 @@ and the exceptions that say what to do next. The modules underneath stay importa
 pieces of the protocol are worth reading on their own, but nothing outside this package has to know
 which module a name lives in.
 
-The one thing `api` adds rather than re-exports is `pair`, which is the whole exchange as one call.
-It exists because the two-connection shape is the protocol's business rather than the caller's, and
-a reference implementation that made every caller drive both halves by hand would be teaching the
-wrong lesson.
+What `api` adds rather than re-exports is `pair`, which is the whole exchange as one call, and
+`DEFAULT_PORT`, the port it dials unless told another. `pair` exists because the two-connection
+shape is the protocol's business rather than the caller's, and a reference implementation that
+made every caller drive both halves by hand would be teaching the wrong lesson.
 """
 
 from __future__ import annotations
@@ -70,6 +70,7 @@ from .transport import (
     connection_limit,
     create_connection,
     dial_limit,
+    host_limit,
     key_password_limit,
     key_secret,
     port_number,
@@ -153,7 +154,7 @@ def pair(
     directory: Path | None = None,
     profile: str = "default",
     # Not `DEFAULT_CONNECTION_TIMEOUT`. This is one of the two exchanges that wait on a person, and
-    # the gate gives itself six minutes for it because its own worst case is 305 seconds. Hanging up
+    # the gate gives itself six minutes for it because its own worst case is 307 seconds. Hanging up
     # first cancels nothing: the invitation is spent and the record is written and saved
     # anyway, and only the answer is lost.
     connection_timeout: float = PAIRING_CONNECTION_TIMEOUT,
@@ -213,6 +214,7 @@ def pair(
     connection_limit(connection_timeout)
     response_limit(max_response_bytes)
     dial_limit(dial)
+    host_limit(host, dial)
     if lifetime is not None:
         lifetime_text(lifetime)
     where = directory or default_directory(profile)

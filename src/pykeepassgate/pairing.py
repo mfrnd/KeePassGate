@@ -136,8 +136,8 @@ class Pairing:
         # paste as the command line is not refused what the command line accepts.
         self._token = token_text.decode(invitation.strip())
         self._connection_timeout = transport.connection_limit(connection_timeout)
-        self._host = host
         self._dial = transport.dial_limit(dial)
+        self._host = transport.host_limit(host, dial)
         self._retry_busy_timeout = transport.retry_limit("retry_busy_timeout", retry_busy_timeout)
         self._retry_locked_timeout = transport.retry_limit(
             "retry_locked_timeout", retry_locked_timeout
@@ -268,9 +268,14 @@ class Pairing:
 
         body = _json(asking)
 
+        # At least `transport.PAIRING_CONNECTION_TIMEOUT`, whatever `connection_timeout` holds, as
+        # a renewal waits: this request waits on the operator, and a client that hung up sooner
+        # would lose an approval the gate goes on to write with the invitation spent, leaving a
+        # record for a key nobody holds. A longer timeout is kept, and the hello keeps the
+        # timeout given.
         with transport.connect(
             self._port, context, server_name, host=self._host,
-            connection_timeout=self._connection_timeout,
+            connection_timeout=max(self._connection_timeout, transport.PAIRING_CONNECTION_TIMEOUT),
             max_response_bytes=self._max_response_bytes,
             dial=self._dial,
         ) as connection:
@@ -391,9 +396,10 @@ def _refuse(reply: transport.Response) -> None:
         # after the operator approved carries `heldUntil`: the approval is held until then for
         # exactly this request, which `api.pair` asks for again by itself.
         #
-        # What `busy` asks about is the writer's `Blocked`, which looks at no group dialog, and
-        # the screen: so the message names those rather than guessing at a dialog the gate never
-        # asked about.
+        # What `busy` asks about is the writer's `Blocked`, which looks at no group dialog, the
+        # screen, and whether the database's list of profiles reads, since a pairing writes a
+        # record of the names on it: so the message names those rather than guessing at a dialog
+        # the gate never asked about. The list is the one of them that does not end by itself.
         #
         # The challenge does not survive, so retrying this half alone earns `409 no exchange`.
         # What can be tried again is the whole pairing, which is what `api.pair` is.
@@ -404,8 +410,10 @@ def _refuse(reply: transport.Response) -> None:
                 "the gate cannot put this pairing to the operator right now: KeePass is part way "
                 "through something of its own, Database Maintenance is open, saving the database "
                 "would stop to ask the operator something, another pairing or renewal is in front "
-                "of them, or there is no screen to ask on. The invitation is still good, but this "
-                "exchange is not: start again from a hello"
+                "of them, or there is no screen to ask on, each of which ends by itself, or the "
+                "database's list of profiles will not read, which lasts until the operator "
+                "repairs it. The invitation is still good, but this exchange is not: start again "
+                "from a hello"
             ),
             undecided=(
                 "the database holds more than one certificate authority and the operator has "

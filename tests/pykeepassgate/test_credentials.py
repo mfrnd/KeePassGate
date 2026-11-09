@@ -9,6 +9,7 @@ import json
 import os
 import stat
 import sys
+import threading
 from pathlib import Path
 from typing import Any
 
@@ -17,6 +18,7 @@ from cryptography import x509
 from cryptography.hazmat.primitives.serialization import Encoding
 
 from pykeepassgate import credentials
+from pykeepassgate.client import GateClient
 from pykeepassgate.errors import NotPaired, ProtocolError, StorageError
 from pykeepassgate.testing import Issued
 
@@ -462,6 +464,8 @@ WRITTEN = {
     ("written", "because"),
     [
         ("{not json at all", "will not read"),
+        # Nested deeper than the decoder's stack allows, which is `RecursionError` there.
+        ("[" * 100_000, "will not read"),
         ("[]", "not what this client wrote"),
         ('{"subject": "x"}', "names no port"),
         ('{"port": "not a number"}', "names no port"),
@@ -512,6 +516,22 @@ def test_a_gate_key_that_will_not_read_is_refused_the_same_way(
 
     with pytest.raises(StorageError, match="will not read"):
         _ = stored.gate_key
+
+
+@pytest.mark.parametrize("length", [0, 5, 33])
+def test_a_gate_key_of_the_wrong_length_on_the_disk_is_damage_named_by_its_file(
+    tmp_path: Path, bundle: dict[str, Any], length: int
+) -> None:
+    # A re-pair cut short at its second file leaves such a key beside a whole `client.json`, and
+    # HMAC takes a key of any length, so every name was built under the wrong key and every
+    # connection was an EOF nothing on this side explained as a damaged file.
+    stored = credentials.save(tmp_path / "kept", 45678, bundle)
+    (stored.directory / credentials.GATE_KEY_FILE).write_bytes(bytes(length))
+
+    with pytest.raises(StorageError, match=rf"gate\.key holds {length} bytes"):
+        _ = stored.gate_key
+    with pytest.raises(StorageError, match="damaged"):
+        GateClient(stored)
 
 
 @pytest.mark.skipif(os.name != "nt", reason="the roaming distinction is a Windows one")
@@ -658,8 +678,8 @@ def test_a_file_that_will_not_be_replaced_is_refused_before_anything_is_spent(
 
 
 def test_a_directory_another_account_could_write_into_is_not_this_clients() -> None:
-    # Pure, so that the refusal is pinned on the one platform CI runs on, where the check
-    # itself is not asked.
+    # Pure, so that the refusal is pinned on Windows as well, where `geteuid` does not exist and
+    # the check itself is never asked; the test below asks it where the platform has modes.
     assert credentials._shared(stat.S_IFDIR | 0o700, 1000, 1000) == ""
     assert credentials._shared(stat.S_IFDIR | 0o755, 1000, 1000) == ""
     assert "another account" in credentials._shared(stat.S_IFDIR | 0o700, 0, 1000)
@@ -693,7 +713,19 @@ def test_the_shared_directory_refusal_names_the_way_past_it(tmp_path: Path, stra
         credentials.prepare(tmp_path)
 
     assert "allow_shared_directory" in str(refused.value)
-    assert "--allow-shared-directory" in str(refused.value)
+    assert "--allow-shared-directory on pair or renew" in str(refused.value)
+
+
+def test_a_directory_a_renewal_keeps_beside_names_what_mends_it_and_no_flag(
+    tmp_path: Path, stranger: None
+) -> None:
+    # The flag never waives one of these, so naming it sent a person round in a circle.
+    for waived in (False, True):
+        with pytest.raises(StorageError, match="another account") as refused:
+            credentials.prepare(tmp_path, allow_shared_directory=waived, beside=True)
+
+        assert "remove it or make it this account's alone" in str(refused.value)
+        assert "allow" not in str(refused.value)
 
 
 def test_a_caller_who_says_so_may_keep_credentials_in_a_shared_directory(
@@ -846,3 +878,102 @@ def test_a_link_where_the_key_goes_is_refused_rather_than_followed(
     with pytest.raises(StorageError, match="could not be opened for writing"):
         credentials.save(where, 45678, bundle)
     assert victim.read_text() == "old contents"
+
+
+def test_a_hard_link_where_the_key_goes_is_refused_rather_than_written_through(
+    tmp_path: Path, bundle: dict[str, Any]
+) -> None:
+    # It shares the device and the inode, so holding the file opened to the file at the name
+    # passed it, and the key went into the file it names. Any account may make a hard link, on
+    # Windows as well, where `os.link` takes no privilege on Microsoft's file system.
+    where = tmp_path / "kept"
+    where.mkdir(mode=0o700)
+    victim = tmp_path / "victim"
+    victim.write_text("old contents")
+    os.link(victim, where / credentials.IDENTITY_FILE)
+
+    with pytest.raises(StorageError, match="it is a link"):
+        credentials.save(where, 45678, bundle)
+
+    assert victim.read_text() == "old contents"
+
+
+def test_a_file_another_account_owns_is_refused_before_the_key_goes_in(
+    tmp_path: Path, bundle: dict[str, Any], stranger: None
+) -> None:
+    # In a directory shared on purpose: the account owning the file reads it whatever its mode,
+    # and narrowing it was refused only once the key was in it.
+    stored = credentials.save(tmp_path / "kept", 45678, bundle, allow_shared_directory=True)
+    held = stored.identity.read_bytes()
+
+    with pytest.raises(StorageError, match="belongs to another account"):
+        credentials.save(stored.directory, 45679, bundle, allow_shared_directory=True)
+
+    assert stored.identity.read_bytes() == held
+
+
+@pytest.mark.skipif(sys.platform == "win32", reason="Windows decides this with an ACL instead")
+def test_a_file_already_there_is_narrowed_and_its_key_with_it(
+    tmp_path: Path, bundle: dict[str, Any]
+) -> None:
+    # A file created here is owner-only from the start whatever `_write` does, so only a file
+    # that was already there, as a re-pair writes over, shows the narrowing at all, each of the
+    # four.
+    stored = credentials.save(tmp_path / "kept", 45678, bundle)
+    for name in credentials.FILES:
+        (stored.directory / name).chmod(0o644)
+
+    credentials.save(stored.directory, 45679, bundle)
+
+    for name in credentials.FILES:
+        assert stat.S_IMODE((stored.directory / name).stat().st_mode) == 0o600, name
+
+
+@pytest.mark.skipif(sys.platform == "win32", reason="Windows decides this with an ACL instead")
+def test_a_file_that_will_not_narrow_is_refused_before_the_key_goes_in(
+    tmp_path: Path, bundle: dict[str, Any], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    # Narrowed after the write, a refusal came with the key already sitting at the old mode.
+    stored = credentials.save(tmp_path / "kept", 45678, bundle)
+    held = stored.identity.read_bytes()
+    chmod = os.chmod
+
+    def refusing(path: Any, mode: int, **named: Any) -> None:
+        if isinstance(path, int):
+            raise PermissionError("not this account's to narrow")
+        chmod(path, mode, **named)
+
+    monkeypatch.setattr(os, "chmod", refusing)
+
+    with pytest.raises(StorageError, match="could not be made owner-only"):
+        credentials.save(stored.directory, 45679, bundle)
+
+    assert stored.identity.read_bytes() == held
+
+
+@pytest.mark.skipif(not hasattr(os, "mkfifo"), reason="a FIFO in the file system is POSIX's")
+def test_a_fifo_swapped_in_after_the_look_is_refused_rather_than_waited_on(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    # Opened for writing alone, a FIFO with no reader blocks until a reader appears, so `prepare`
+    # in a directory another account may write to hung rather than refusing.
+    where = tmp_path / "kept"
+    where.mkdir(mode=0o700)
+    # Looked up rather than named, as `geteuid` is: a type checker told it runs on Windows calls
+    # the name undefined there. cspell:ignore mkfifo
+    os.__dict__["mkfifo"](where / credentials.DETAILS_FILE)
+    monkeypatch.setattr(credentials, "_replaceable", lambda path: None)
+    raised: list[BaseException] = []
+
+    def preparing() -> None:
+        try:
+            credentials.prepare(where)
+        except StorageError as error:
+            raised.append(error)
+
+    thread = threading.Thread(target=preparing, daemon=True)
+    thread.start()
+    thread.join(timeout=10)
+
+    assert not thread.is_alive(), "prepare is still waiting on the FIFO"
+    assert len(raised) == 1

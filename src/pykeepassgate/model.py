@@ -24,7 +24,7 @@ entry holds is still told truthfully, and `withheld` says which values are kept 
 from __future__ import annotations
 
 import base64
-from collections.abc import Container, Iterator, Mapping
+from collections.abc import Container, Iterable, Iterator, Mapping
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from types import MappingProxyType
@@ -193,16 +193,19 @@ class _Expiry:
     when: datetime | None
 
 
-def _expiry(body: dict[str, Any]) -> _Expiry | None:
-    """What a read said about when the entry expires, or None when it said nothing about it.
+def _expiry(body: dict[str, Any]) -> _Expiry:
+    """The expiry a read carries for the entry.
 
     `null` is an entry that does not expire, so a value this cannot read is refused rather than
     read as one: that would report a credential the operator retired as a live one, which is the
     one direction a reader of this must not be wrong in. `_moment` answers `None` for a time it
-    cannot read, which is right for `created` and wrong here.
+    cannot read, which is right for `created` and wrong here. **A read always carries it**, as
+    the document requires, so a read without it is an answer this client cannot read, as
+    `_nullable` holds of every member declared on every answer, rather than a gate that answered
+    nothing about the expiry.
     """
     if EXPIRES not in body:
-        return None
+        raise ProtocolError("the gate's answer has no expiry this client can read")
 
     said = body[EXPIRES]
     if said is None:
@@ -356,24 +359,39 @@ class Group:
         return self.read_notes
 
     @classmethod
-    def of(cls, body: dict[str, Any], etag: str | None = None) -> Group:
-        """Read one out of an answer, with the tag that answer carried, if it carried one."""
+    def read(cls, body: dict[str, Any], etag: str | None = None) -> Group:
+        """One out of a read, notes and all, with the tag that answer carried, if it carried one.
+
+        **The notes are required**, as the document requires them on every read: told apart by
+        whether they were there, a read without them came back as a group that was listed, with
+        its tag dropped, and asking it for the notes raised `AttributeError` advising the very
+        call that made it, where an answer this client cannot read is a `ProtocolError`.
+        """
         return cls(
             uuid=_text(body, "uuid"),
             name=_text(body, "name"),
             parent=_optional(body, "parent"),
             created=_moment(body.get("created")),
             modified=_moment(body.get("modified")),
-            read_notes=_text(body, "notes") if "notes" in body else None,
-            # Kept only with the notes, which only a read carries, so that a group either was read,
-            # notes and tag alike, or was listed and has neither.
-            read_etag=etag if "notes" in body else None,
+            read_notes=_text(body, "notes"),
+            read_etag=etag,
+        )
+
+    @classmethod
+    def listed(cls, body: dict[str, Any]) -> Group:
+        """One out of a listing, which carries no notes and no tag, whatever else it holds."""
+        return cls(
+            uuid=_text(body, "uuid"),
+            name=_text(body, "name"),
+            parent=_optional(body, "parent"),
+            created=_moment(body.get("created")),
+            modified=_moment(body.get("modified")),
         )
 
     @classmethod
     def listing(cls, body: dict[str, Any]) -> list[Group]:
         """Every group a listing answered with."""
-        return [cls.of(item) for item in _objects(body, "groups")]
+        return [cls.listed(item) for item in _objects(body, "groups")]
 
 
 def _standard(strings: Fields, name: str) -> str:
@@ -388,21 +406,34 @@ def _standard(strings: Fields, name: str) -> str:
     the culture's collation, under which a name holding a character the collation ignores, a soft
     hyphen in `Pass­word` among them, is the same name as `Password`, and a file another
     program wrote can hold such a name. So an entry that holds the string under no name spelled
-    exactly so, while it holds a name beyond ASCII, raises `AmbiguousName`: "" could stand where
+    exactly so, while it holds a name beyond ASCII or with a null in it, which `_collation_may_join`
+    asks, raises `AmbiguousName`: "" could stand where
     KeePass shows a value, or where the gate withheld a value, and a withheld value is never
     empty here.
     """
     if name in strings:
         return strings[name]
 
-    if not all(held.isascii() for held in strings):
+    if _collation_may_join(strings):
         raise AmbiguousName(
             f"this entry holds no string named exactly {name!r}, and it holds a name beyond "
-            f"ASCII that KeePass's own comparison may read as {name!r}, which this will not "
-            "guess at"
+            f"ASCII or holding a null that KeePass's own comparison may read as {name!r}, which "
+            "this will not guess at"
         )
 
     return ""
+
+
+def _collation_may_join(names: Iterable[str]) -> bool:
+    """Whether a name here could be another to KeePass's collation: beyond ASCII, or with a null.
+
+    .NET Framework's collation gives some characters no weight, so a name holding such a
+    character is the same name as the name without it. Beyond ASCII that is a soft hyphen among
+    others, and within it the null alone, measured over every ASCII character at every place in
+    the five standard names under eight cultures: `Password` with a null inside it is `Password`
+    to KeePass's string dictionary.
+    """
+    return any(not held.isascii() or "\0" in held for held in names)
 
 
 @dataclass(frozen=True)
@@ -410,11 +441,12 @@ class Entry:
     """An entry, with as much of it as the gate was asked for.
 
     A listing fills in what a listing gives: the identifier, the group, the title, the URL and
-    the two times. Reading one fills in `fields`, and only then do `username`, `password` and
-    `notes` exist at all. Asking for one that was never read raises `AttributeError`, which is the
-    point: absence is not emptiness. `expires` and `expired` are the same: a listing does not say
-    when an entry expires, so a listed entry has neither, rather than an expiry that reads as
-    never.
+    the two times. Reading one fills in `fields`, and only then do `username`, `password`,
+    `notes` and `protected` exist at all. Asking for one that was never read raises
+    `AttributeError`, which is the point: absence is not emptiness, and a listed entry that
+    answered `protected` with nothing would name nothing protected beside a `withheld` title.
+    `expires` and `expired` are the same: a listing does not say when an entry expires, so a
+    listed entry has neither, rather than an expiry that reads as never.
 
     **A value the rule withholds raises `Withheld`** from every one of them, the title and the URL
     of a listed entry as much as the password of a read one, and `withheld` names which. That is
@@ -427,7 +459,8 @@ class Entry:
     created: datetime | None = None
     modified: datetime | None = None
     fields: Fields | None = None
-    protected: tuple[str, ...] = field(default_factory=tuple)
+    #: The names of the strings the database protects, which only a read carries.
+    protected_names: tuple[str, ...] | None = None
     #: The title and the URL a listing carried, which is all a listing carries of an entry's
     #: strings. Empty on a read entry, which holds both in `fields` with the rest.
     summary: Fields = field(default_factory=Fields, repr=False)
@@ -466,8 +499,6 @@ class Entry:
             raise AttributeError(
                 "this entry was listed rather than read, so it says nothing about when it expires. "
                 "Read it with GateClient.entry() first."
-                if self.fields is None
-                else "the gate said nothing about when this entry expires"
             )
 
         return self.expiry.when
@@ -482,6 +513,17 @@ class Entry:
         """
         when = self.expires
         return when is not None and when <= datetime.now(UTC)
+
+    @property
+    def protected(self) -> tuple[str, ...]:
+        """The names of the strings the database protects, once this entry has been read."""
+        if self.protected_names is None:
+            raise AttributeError(
+                "this entry was listed rather than read, so which of its strings are protected is "
+                "not known here. Read it with GateClient.entry() first."
+            )
+
+        return self.protected_names
 
     @property
     def username(self) -> str:
@@ -561,7 +603,7 @@ class Entry:
             created=_moment(body.get("created")),
             modified=_moment(body.get("modified")),
             fields=Fields(_strings(body, "fields")),
-            protected=_names(body, "protected"),
+            protected_names=_names(body, "protected"),
             expiry=_expiry(body),
             read_etag=etag,
         )
@@ -650,14 +692,29 @@ class Field:
 
 @dataclass(frozen=True)
 class Attachment:
-    """One of an entry's attachments, named and sized, with its bytes when they were asked for."""
+    """One of an entry's attachments, named and sized, with its bytes when they were asked for.
+
+    A listing carries no bytes, so a listed attachment has no `content` at all: asking raises
+    `AttributeError`, as asking a listed field for its value does, rather than answering `None`.
+    """
 
     name: str
     size: int
     #: Left out of the repr, which prints the name and the size: an attachment is a key or a
     #: recovery file as often as anything, and a repr is what a log line or a traceback carries.
-    content: bytes | None = field(default=None, repr=False)
+    _content: bytes | None = field(default=None, repr=False)
     read_etag: str | None = field(default=None, repr=False, compare=False)
+
+    @property
+    def content(self) -> bytes:
+        """The bytes, once this attachment has been read on its own route."""
+        if self._content is None:
+            raise AttributeError(
+                f"the attachment {self.name!r} was listed rather than read, so it has no content. "
+                "Read it with GateClient.attachment() first."
+            )
+
+        return self._content
 
     @property
     def etag(self) -> str:
@@ -670,7 +727,7 @@ class Attachment:
     @property
     def is_read(self) -> bool:
         """Whether the bytes were fetched, as opposed to only the name and the size."""
-        return self.content is not None
+        return self._content is not None
 
     @classmethod
     def listing(cls, body: dict[str, Any], etag: str | None = None) -> list[Attachment]:
@@ -690,7 +747,7 @@ class Attachment:
         return cls(
             name=_text(body, "name"),
             size=_size(body, "size"),
-            content=_content(body.get("content")),
+            _content=_content(body.get("content")),
             read_etag=etag,
         )
 
@@ -768,11 +825,15 @@ def _mask(value: object) -> bool:
 @dataclass(frozen=True)
 # codeql[py/equals-hash-mismatch] `@dataclass` makes its `__eq__`, over the grants `__hash__` reads
 class Access:
-    """What this client may do at one group or entry, one mask for each profile it holds.
+    """What the rules grant this client at one group or entry, one mask for each profile it holds.
 
-    A mask is the rule as the KPG tab shows one, `CRUSDLAP` with a dot for each verb or switch the
-    profile is not granted there, and eight dots for a profile granted nothing there. The profiles
-    are the ones the rules are asked about for this client, which `Identity.profiles` lists.
+    A mask is in the notation the KPG tab shows a rule in, `CRUSDLAP` with a dot for each verb or
+    switch the profile is not granted there, and eight dots for a profile granted nothing there.
+    It is what the rules grant at the node rather than the rule as the tab shows it, or which
+    operations would succeed there: a switch beside only `S` or `D` is left out, since removing
+    takes what a switch qualifies without asking it, and `D` is the node's own rule, which
+    `allows` explains. The profiles are those the rules are asked about for this client, which
+    `Identity.profiles` lists.
 
     **One mask per profile, because a switch belongs to its rule.** One profile's `R` and another's
     `P` do not add up to reading a protected value, so a question about a verb and a switch is a

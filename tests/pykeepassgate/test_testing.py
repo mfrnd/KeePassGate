@@ -13,6 +13,7 @@ import socket
 import ssl
 import subprocess
 import sys
+from collections.abc import Callable
 from pathlib import Path
 
 import pytest
@@ -69,12 +70,24 @@ def test_a_held_approval_is_answered_as_the_plugin_answers_it() -> None:
     assert json.loads(body) == {"error": "busy", "heldUntil": "2026-10-14T09:06:00Z"}
 
 
+#: What no entity tag is: beyond ASCII, without its quotes, a header break, past its last quote,
+#: and a quote inside, which RFC 9110 section 8.8.3 leaves out of a tag's characters.
+NO_TAGS = ['"é"', "0a1b", '"a\r\nX-Invented: 1"', '""x', '"a"b"']
+
+
 def test_a_write_is_answered_with_its_tag_in_the_body_as_the_plugin_answers_it() -> None:
     # `VaultHandlers.Answer`: `ok`, or what a create made, with `etag` beside it when there is one.
     assert written() == (200, '{"ok":true}')
     assert written('"0a1b"') == (200, '{"ok":true,"etag":"\\"0a1b\\""}')
     assert written('"0a1b"', uuid="Account") == (201, '{"uuid":"Account","etag":"\\"0a1b\\""}')
     assert written(uuid="7b1c") == (201, '{"uuid":"7b1c"}')
+
+
+@pytest.mark.parametrize("tag", NO_TAGS)
+def test_a_write_is_not_answered_with_what_is_no_tag(tag: str) -> None:
+    # Held as `tag` holds a header's, since the plugin writes one tag in both places.
+    with pytest.raises(ValueError, match="not a tag the gate could send"):
+        written(tag)
 
 
 def test_a_gate_nobody_scripted_answers_that_it_has_no_such_route(
@@ -227,19 +240,118 @@ def test_the_method_is_asked_only_while_a_request_is_answered(gate: FakeGate) ->
         gate.tag('"0a1b"')
 
 
-@pytest.mark.parametrize(
-    ("header", "reason"),
-    [
-        (b"If-Match: \"0a1b\"\r\nIf-Match: \"2c3d\"\r\n", "a header is repeated"),
-        (b"X-Invented: one\x01two\r\n", "a header value holds a control character"),
-    ],
-    ids=["repeated", "control"],
-)
-def test_a_head_the_plugin_refuses_is_refused_here_too(
-    gate: FakeGate, authority: Authority, header: bytes, reason: str
+HOST = b"Host: abc.def.kpg\r\n"
+
+
+def request(line: bytes, *headers: bytes, body: bytes = b"") -> bytes:
+    """One request as written on the wire, from its request line, its header lines and its body."""
+    return line + b"\r\n" + b"".join(headers) + b"\r\n" + body
+
+
+WHOAMI = b"GET /gate/whoami HTTP/1.1"
+POSTED = b"POST /groups HTTP/1.1"
+NO_PATH = "the target is not a path this server accepts"
+
+
+# `HttpRequestReader`, case by case, with the status and the reason it answers each with.
+REFUSED = {
+    "repeated": (
+        request(WHOAMI, HOST, b'If-Match: "0a1b"\r\n', b'If-Match: "2c3d"\r\n'),
+        400,
+        "a header is repeated",
+    ),
+    "control": (
+        request(WHOAMI, HOST, b"X-Invented: one\x01two\r\n"),
+        400,
+        "a header value holds a control character",
+    ),
+    "long head": (
+        request(WHOAMI, HOST, b"X-Invented: " + b"a" * 8192 + b"\r\n"),
+        431,
+        "the head is over 8192 bytes",
+    ),
+    "not ascii": (
+        request(WHOAMI, HOST, "X-Invented: café\r\n".encode()),  # cspell:ignore café
+        400,
+        "the head is not ascii",
+    ),
+    "two parts": (request(b"GET /gate/whoami", HOST), 400, "the request line is not three parts"),
+    "method": (
+        request(b"G(T /gate/whoami HTTP/1.1", HOST),
+        400,
+        "the method is not a token",
+    ),
+    "absolute form": (
+        request(b"GET https://abc.def.kpg/gate/whoami HTTP/1.1", HOST),
+        400,
+        "the target is not an absolute path",
+    ),
+    "long target": (
+        request(b"GET /" + b"a" * 2048 + b" HTTP/1.1", HOST),
+        414,
+        "the target is over 2048 characters",
+    ),
+    "HTTP/1.0": (request(b"GET /gate/whoami HTTP/1.0", HOST), 505, "only HTTP/1.1 is accepted"),
+    "traversal": (request(b"GET /entries/../x HTTP/1.1", HOST), 400, NO_PATH),
+    "escaped traversal": (
+        request(b"GET /entries/%2e%2E/x HTTP/1.1", HOST),
+        400,
+        NO_PATH,
+    ),
+    "unescaped": (request(b"GET /entries/a|b HTTP/1.1", HOST), 400, NO_PATH),
+    "escaped control": (
+        request(b"GET /entries/a%01b HTTP/1.1", HOST),
+        400,
+        NO_PATH,
+    ),
+    "short escape": (request(b"GET /entries/a%0 HTTP/1.1", HOST), 400, NO_PATH),
+    "not utf-8": (request(b"GET /entries/%FF HTTP/1.1", HOST), 400, NO_PATH),
+    "escaped C1": (request(b"GET /entries/%C2%85 HTTP/1.1", HOST), 400, NO_PATH),
+    "query twice": (
+        request(b"GET /entries?group=a&group=b HTTP/1.1", HOST),
+        400,
+        NO_PATH,
+    ),
+    "empty query name": (
+        request(b"GET /entries?=a HTTP/1.1", HOST),
+        400,
+        NO_PATH,
+    ),
+    "folded": (request(WHOAMI, HOST, b" folded\r\n"), 400, "folded headers are not accepted"),
+    "no name": (request(WHOAMI, HOST, b": value\r\n"), 400, "a header line has no name"),
+    "name": (request(WHOAMI, HOST, b"X Invented: 1\r\n"), 400, "a header name is not a token"),
+    "chunked": (
+        request(WHOAMI, HOST, b"Transfer-Encoding: chunked\r\n"),
+        501,
+        "transfer encodings are not accepted",
+    ),
+    "no host": (request(WHOAMI), 400, "a request needs a host header"),
+    "length": (
+        request(POSTED, HOST, b"Content-Length: 1e3\r\n"),
+        400,
+        "the content length is not a number",
+    ),
+    "no length": (request(POSTED, HOST), 411, "a body needs a content length"),
+    "long body": (
+        request(POSTED, HOST, b"Content-Length: 1048577\r\n", body=b"a" * 1048577),
+        413,
+        "the body is over 1048576 bytes",
+    ),
+    "body not utf-8": (
+        request(POSTED, HOST, b"Content-Length: 1\r\n", body=b"\xff"),
+        400,
+        "the body is not utf-8",
+    ),
+}
+
+
+@pytest.mark.parametrize(("sent", "status", "reason"), REFUSED.values(), ids=REFUSED.keys())
+def test_a_request_the_plugin_refuses_is_refused_here_too(
+    gate: FakeGate, authority: Authority, sent: bytes, status: int, reason: str
 ) -> None:
-    # `HttpRequestReader`: refused before any route, so a program tested here is not tested
-    # against a gate that takes more than the plugin does.
+    # Refused before any route, so a program tested here is not tested against a gate that takes
+    # more than the plugin does. A body is taken before the connection closes, as the plugin
+    # takes it, or the reset that follows can throw the refusal away unread.
     asked: list[str] = []
 
     def answer_asked(path: str, body: str, client: bytes | None) -> tuple[int, str]:
@@ -248,18 +360,66 @@ def test_a_head_the_plugin_refuses_is_refused_here_too(
 
     gate.handler = answer_asked
 
-    answer = answered(
-        gate, authority, b"GET /gate/whoami HTTP/1.1\r\nHost: abc.def.kpg\r\n" + header + b"\r\n"
-    )
-    head, _, body = answer.partition(b"\r\n\r\n")
+    head, _, body = answered(gate, authority, sent).partition(b"\r\n\r\n")
 
-    assert head.startswith(b"HTTP/1.1 400 ")
+    assert head.startswith(b"HTTP/1.1 %d " % status)
     assert json.loads(body) == {"error": reason}
     assert asked == [], "and the handler was never asked"
 
 
-@pytest.mark.parametrize("tag", ['"é"', "0a1b", '"a\r\nX-Invented: 1"', '""x'])
-def test_a_tag_the_plugin_could_not_send_is_answered_as_a_defect(
+@pytest.mark.parametrize(
+    "sent",
+    [
+        request(b"HEAD /gate/whoami HTTP/1.1", HOST, b"X-Invented: 1\r\n", b"X-Invented: 2\r\n"),
+        request(b"HEAD /gate/whoami HTTP/1.1", HOST, b"X-Invented: " + b"a" * 8192 + b"\r\n"),
+        request(b"HEAD /gate/whoami HTTP/1.0", HOST),
+    ],
+    ids=["repeated", "long head", "HTTP/1.0"],
+)
+def test_a_head_request_the_plugin_refuses_is_answered_without_content(
+    gate: FakeGate, authority: Authority, sent: bytes
+) -> None:
+    # As the plugin answers it: the method is read off what arrived, so a refusal answers a HEAD
+    # with no body and no length, as every other answer to a HEAD does.
+    head, _, body = answered(gate, authority, sent).partition(b"\r\n\r\n")
+
+    assert head.startswith((b"HTTP/1.1 400 ", b"HTTP/1.1 431 ", b"HTTP/1.1 505 "))
+    assert b"Content-Length" not in head
+    assert body == b""
+
+
+@pytest.mark.parametrize(
+    ("ask", "status"),
+    [
+        (lambda client: client.field("A1" * 16, ".."), 400),
+        (lambda client: client.field("A1" * 16, "n" * 2048), 414),
+        (lambda client: client.create_attachment("A1" * 16, "big", b"\0" * 800_000), 413),
+    ],
+    ids=["traversal", "long target", "long body"],
+)
+def test_what_the_library_sends_and_the_plugin_refuses_is_refused_here_too(
+    gate: FakeGate,
+    tmp_path: Path,
+    bundle: dict[str, object],
+    ask: Callable[[api.GateClient], object],
+    status: int,
+) -> None:
+    # Three a typed method can send: a name of `..`, a name that makes the target too long and
+    # an attachment whose encoding makes the body too long, each refused by the gate.
+    gate.handler = lambda path, body, client: (200, "{}")
+    client = api.GateClient(
+        api.save(tmp_path / "kept", gate.port, dict(bundle)), connection_timeout=10.0
+    )
+
+    with pytest.raises(RouteRefused) as refused:
+        ask(client)
+
+    assert refused.value.status == status
+    assert gate.requests == []
+
+
+@pytest.mark.parametrize("tag", NO_TAGS)
+def test_what_is_no_tag_is_answered_as_a_defect(
     gate: FakeGate, authority: Authority, tag: str
 ) -> None:
     # Raised inside the handler, which used to end the thread answering it, so the client saw a

@@ -44,13 +44,26 @@ def printed(capsys: pytest.CaptureFixture[str]) -> Any:
 
 
 def commands() -> dict[str, argparse.ArgumentParser]:
-    """Every command the parser has, by name."""
-    parser = cli._parser()
-    chosen = next(
-        action for action in parser._actions if isinstance(action, argparse._SubParsersAction)
-    )
-    found: dict[str, argparse.ArgumentParser] = chosen.choices
-    return found
+    """Every command the parser has, by name, a command made of others by each of those.
+
+    `head` is made of one command for each kind of node, so it is `head entry` and the rest that
+    are commands here, and `head` on its own is not a command here.
+    """
+
+    def chosen(parser: argparse.ArgumentParser) -> dict[str, argparse.ArgumentParser]:
+        found: dict[str, argparse.ArgumentParser] = next(
+            action for action in parser._actions if isinstance(action, argparse._SubParsersAction)
+        ).choices
+        return found
+
+    every: dict[str, argparse.ArgumentParser] = {}
+    for name, command in chosen(cli._parser()).items():
+        if any(isinstance(action, argparse._SubParsersAction) for action in command._actions):
+            every |= {f"{name} {kind}": each for kind, each in chosen(command).items()}
+        else:
+            every[name] = command
+
+    return every
 
 
 def test_every_command_prints_plain_unless_asked_for_another_format() -> None:
@@ -145,19 +158,15 @@ def test_show_prints_the_values_it_may_and_names_the_rest(
     }
 
 
-def test_show_says_nothing_about_an_expiry_the_gate_said_nothing_about(
+def test_show_prints_no_document_for_an_entry_read_without_its_expiry(
     gate: FakeGate, kept: Path, capsys: pytest.CaptureFixture[str]
 ) -> None:
-    answering(
-        gate,
-        {"uuid": UUID, "group": GROUP, "fields": {"Title": "Invented"}, "protected": []},
-    )
+    # A failure is never a document, and this client cannot read the answer.
+    read = {"uuid": UUID, "group": GROUP, "fields": {"Title": "Invented"}, "protected": []}
+    answering(gate, read)
 
-    assert cli.main(["show", UUID, "--directory", str(kept), "-o", "json"]) == 0
-
-    shown = printed(capsys)
-    assert "expires" not in shown
-    assert "expired" not in shown
+    assert cli.main(["show", UUID, "--directory", str(kept), "-o", "json"]) == cli.FAILED
+    assert capsys.readouterr().out == ""
 
 
 def test_show_prints_an_expiry_as_the_gate_writes_one(
@@ -219,7 +228,10 @@ def test_status_prints_what_the_gate_said_and_keeps_its_exit_code(
 
     assert cli.main(["status", "--directory", str(kept), "-o", "json"]) == 1
 
-    assert printed(capsys) == body
+    # What the gate answered is what was found, and the failure is the sentence beside it.
+    out, error = capsys.readouterr()
+    assert json.loads(out) == body
+    assert error == "the gate answered that it is not serving this database: ok is false\n"
 
 
 def test_identity_says_what_is_stored_and_nothing_it_holds(
@@ -324,8 +336,9 @@ def test_revoke_says_when_the_gate_refused_the_certificate_already(
         (["add", "--title", "Invented"], {"uuid": UUID}),
         (["update", UUID, "--title", "Invented"], {}),
         (["remove", UUID], {}),
+        (["add-group", "--name", "Invented"], {"uuid": UUID}),
     ],
-    ids=["add", "update", "remove"],
+    ids=["add", "update", "remove", "add-group"],
 )
 def test_a_write_names_what_it_wrote(
     gate: FakeGate,

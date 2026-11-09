@@ -28,8 +28,9 @@ class TransportError(GateError):
 
     A handshake that failed carries the reason the TLS library gave, because the reasons want
     different things done: a certificate that does not chain to the authority pinned at pairing,
-    one that has expired, and a connection the gate dropped because no open database answers to
-    this client are three of them.
+    a certificate that has expired, a connection the gate dropped because no open database
+    answers to this client, and a connection it reset because it already serves as many as it
+    takes at once, which clears as they end, are four of them.
     """
 
 
@@ -58,6 +59,10 @@ class IncompatibleGate(GateError):
         super().__init__(message)
         self.client = client
         self.gate = gate
+
+    def __reduce__(self) -> tuple[type[IncompatibleGate], tuple[object, ...]]:
+        """Pickled by what it was made of, as `RouteRefused` is, which `Exception` would not do."""
+        return type(self), (self.args[0], self.client, self.gate)
 
 
 class StorageError(GateError):
@@ -144,6 +149,14 @@ class RenewalTooEarly(RenewalRefused):
         """Keep the moment the gate said renewals are asked about again, in UTC."""
         super().__init__(message)
         self.not_before = not_before
+
+    def __reduce__(self) -> tuple[type[RenewalTooEarly], tuple[object, ...]]:
+        """Pickled by what it was made of, as `RouteRefused` is.
+
+        `Exception` keeps the message alone, and this constructor called with the message alone is
+        a `TypeError`, so a copy taken to another process could not be made at all.
+        """
+        return type(self), (self.args[0], self.not_before)
 
 
 class RenewalRefusedForever(RenewalRefused):
@@ -297,19 +310,32 @@ class Withheld(GateError):
             f"{reached} {holder} does not grant `P`, which the operator can add to that rule"
         )
         self.name = name
+        self.listed = listed
+        self.through = through
+
+    def __reduce__(self) -> tuple[type[Withheld], tuple[object, ...]]:
+        """Pickled by what it was made of, as `RouteRefused` is.
+
+        `Exception` keeps the message alone, which this constructor took for the name, so a copy
+        taken to another process was a sentence built around the whole sentence.
+        """
+        return type(self), (self.name, self.listed, self.through)
 
 
 class Unresolved(GateError):
     """A value `pykeepassgate.refs` will not give as KeePass would give it, and says why.
 
     The resolver follows what it can follow exactly and refuses the rest rather than hand back
-    text KeePass would have changed: a reference that searches by anything but a whole
+    text KeePass would have changed, but for `%NAME%` and a placeholder another plugin adds, which
+    it leaves as text since what they come to is the machine's and that plugin's rather than the
+    database's. What it refuses: a reference that searches by anything but a whole
     identifier, which KeePass answers from the whole database and the gate from what this client
     may see; a reference to an entry this client cannot read, absent, in the recycle bin and
     refused being one answer; a placeholder KeePass replaces and the resolver does not;
-    and references that go round in a circle, or further than KeePass follows. Which name KeePass
-    would read is `AmbiguousName`'s. The message names the reference or the placeholder, and never
-    the value it was found in.
+    references that go round in a circle, or further than KeePass follows; and a value that takes
+    more work to give than `refs.COMPILES` and `refs.CHARACTERS` allow. Which name KeePass would
+    read is `AmbiguousName`'s. The message names the reference or the placeholder, and never the
+    value it was found in.
     """
 
 
@@ -322,7 +348,8 @@ class AmbiguousName(GateError):
     standard name. And it compares placeholders without their case in .NET Framework's terms,
     which beyond ASCII are not Python's. So an entry's `title`, `username`, `password`, `url` and
     `notes`, and a placeholder or a reference standing for such a string, raise this when the
-    entry holds the string under no name spelled exactly so beside a name beyond ASCII, and
+    entry holds the string under no name spelled exactly so beside a name beyond ASCII or with a
+    null in it, and
     `refs.resolve` raises it for a placeholder that names a field only when letters beyond ASCII
     are compared without their case. Empty or another field's value could stand where KeePass
     reads a value, or where the gate withheld a value. The message names the string or the
@@ -358,14 +385,15 @@ class PreconditionFailed(RouteRefused):
     """The gate did nothing, because the condition `if_match` gave did not hold: `412`.
 
     Most often the node no longer holds what the tag said: somebody changed it after the tag was
-    read, another client, the operator in KeePass, a merge or a plugin. Two more reasons answer
-    the same: an `if_match` the gate cannot read as one, and any `if_match` from a client the gate
-    hands no tag to, whose rule does not read everything a tag covers, since it cannot know what
-    it would be asking. Not retried, since asking again asks the same question of the same node.
-    What mends the first is reading the node again, which hands back the tag it holds now, and
-    deciding again whether the change still makes sense with what it holds; what mends the last is
-    sending none. A `RouteRefused`, so a caller that catches every refusal already catches this
-    one, with `status` `412`.
+    read, another client, the operator in KeePass, a merge or a plugin. One more reason answers
+    the same: any `if_match` from a client the gate hands no tag to, whose rule does not read
+    everything a tag covers, since it cannot know what it would be asking. An `if_match` the gate
+    could not read, a tag without its quotes or a weak tag among them, would be a third, and this
+    client refuses it with `ProtocolError` before it is sent. Not retried, since asking
+    again asks the same question of the same node. What mends the first is reading the node again,
+    which hands back the tag it holds now, and deciding again whether the change still makes sense
+    with what it holds; what mends the second is sending none. A `RouteRefused`, so a caller that
+    catches every refusal already catches this refusal, with `status` `412`.
     """
 
     def __init__(self, error: str) -> None:

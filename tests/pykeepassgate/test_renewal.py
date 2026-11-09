@@ -10,6 +10,7 @@ from __future__ import annotations
 import base64
 import hashlib
 import json
+import os
 import re
 import socket
 import time
@@ -157,6 +158,69 @@ def test_a_renewal_stores_the_new_identity_and_gives_the_old_one_up_by_presentin
     assert renewing.seen[1][2] == der(client_certificate), "and given up by presenting it"
     assert not where.with_name("default.retired").exists(), "nothing of the old one is left"
     assert not where.with_name("default.renewing").exists()
+
+
+def test_every_file_a_renewal_writes_is_on_the_disk_before_anything_is_taken_away(
+    paired: GateClient, renewing: Gate, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    # Taken away are the staging copy and, once the gate took the old certificate back, the
+    # retired copy: a file still only in the system's cache then, and a power loss, left the
+    # identity's own files empty with neither copy left and the old certificate revoked.
+    events: list[str] = []
+    fsync, forget = os.fsync, credentials_module.forget
+
+    def flushed(descriptor: int) -> None:
+        events.append("flushed")
+        fsync(descriptor)
+
+    def forgotten(directory: Path) -> None:
+        events.append(f"forgot {directory.name}")
+        forget(directory)
+
+    monkeypatch.setattr(os, "fsync", flushed)
+    monkeypatch.setattr(credentials_module, "forget", forgotten)
+
+    paired.renew()
+
+    # Four files each into the staging copy, the retired copy and the identity's own directory.
+    assert events == ["flushed"] * 12 + ["forgot default.renewing", "forgot default.retired"]
+
+
+@pytest.mark.parametrize("opened", [".", ".."], ids=["the directory itself", "the directory above"])
+def test_an_identity_opened_by_a_relative_path_renews_beside_its_own_directory(
+    tmp_path: Path,
+    gate: FakeGate,
+    bundle: dict[str, Any],
+    renewing: Gate,
+    monkeypatch: pytest.MonkeyPatch,
+    opened: str,
+) -> None:
+    # `pair --directory .` is accepted, and every later renewal of it raised `with_name`'s bare
+    # `ValueError`, while `..` kept its two directories in the working directory, inside the
+    # identity's own rather than beside it.
+    kept = tmp_path / "kept"
+    credentials_module.save(kept, gate.port, bundle)
+    (kept / "below").mkdir()
+    monkeypatch.chdir(kept if opened == "." else kept / "below")
+    beside: list[Path] = []
+    prepare = credentials_module.prepare
+
+    def recorded(where: Path, *arguments: Any, **named: Any) -> Any:
+        beside.append(Path(os.path.normpath(where.absolute())))
+        return prepare(where, *arguments, **named)
+
+    monkeypatch.setattr(credentials_module, "prepare", recorded)
+
+    renewal = GateClient.open(directory=Path(opened), connection_timeout=10.0).renew()
+
+    assert renewal.retired is None
+    assert api.load(kept).expires == "2127-01-02T03:04:05Z"
+    assert beside[:2] == [tmp_path / "kept.renewing", tmp_path / "kept.retired"]
+
+
+def test_an_identity_at_a_root_is_refused_a_renewal_with_what_to_do_instead() -> None:
+    with pytest.raises(StorageError, match="is a root"):
+        client_module._beside(Path(Path.cwd().anchor), "renewing")
 
 
 def test_the_client_carries_on_as_the_new_identity(
@@ -515,6 +579,47 @@ def test_another_clients_identity_beside_this_one_stops_a_renewal_untouched(
     assert api.load(where).expires == "2126-08-15T09:00:00Z"
 
 
+def test_a_kept_identity_under_a_password_is_opened_with_the_one_this_client_was_given(
+    gate: FakeGate, paired: GateClient, renewing: Gate
+) -> None:
+    # This client's own key is not encrypted, so it never asked for a password, and the kept
+    # identity beside it was opened with none: refused for having none, and reported as an
+    # identity the gate still admits though the gate was asked nothing.
+    retired = paired.credentials.directory.with_name("default.retired")
+    credentials_module.save(
+        retired,
+        gate.port,
+        renewing.renewed,
+        key_password="an invented password",
+        client_key=paired.credentials.client_key,
+    )
+    client = GateClient(
+        paired.credentials, connection_timeout=10.0, key_password="an invented password"
+    )
+
+    client.renew()
+
+    assert [method for method, _ in gate.requests][:1] == ["DELETE"], "given up first"
+    assert not retired.exists()
+
+
+def test_a_kept_identity_that_will_not_load_is_not_called_admitted(
+    gate: FakeGate, paired: GateClient, renewing: Gate
+) -> None:
+    # Refused while the client that would present it was built, so nothing was asked.
+    retired = paired.credentials.directory.with_name("default.retired")
+    kept = credentials_module.save(
+        retired, gate.port, renewing.renewed, client_key=paired.credentials.client_key
+    )
+    kept.identity.write_bytes(b"not a certificate or a key")
+
+    with pytest.raises(StorageError, match="could not be presented to give it up") as refused:
+        paired.renew()
+
+    assert "still admits" not in str(refused.value)
+    assert gate.requests == []
+
+
 def test_what_a_renewal_that_stopped_before_its_answer_left_is_written_over(
     paired: GateClient, renewing: Gate
 ) -> None:
@@ -598,6 +703,23 @@ def test_a_renewal_refused_for_now_is_read_as_every_route_reads_a_503(
     assert not where.with_name("default.renewing").exists()
 
 
+def test_a_busy_renewal_is_described_by_what_the_gate_asks_about(
+    paired: GateClient, renewing: Gate
+) -> None:
+    # The renewal's causes are the pairing's, the screen and the list of profiles among them, and
+    # an ordinary route's "asking again" would send a program round its whole budget for a list
+    # that does not read until the operator repairs it.
+    renewing.renewal = (503, json.dumps({"error": "busy"}))
+
+    with pytest.raises(GateBusy) as refused:
+        paired.renew()
+
+    said = str(refused.value)
+    assert "another pairing or renewal is in front of them" in said
+    assert "list of profiles will not read, which lasts until the operator repairs it" in said
+    assert "certificate this client holds still works" in said
+
+
 def test_a_renewal_waits_out_two_authorities_on_the_budget_given_for_them(
     tmp_path: Path, gate: FakeGate, bundle: dict[str, Any], renewing: Gate,
     monkeypatch: pytest.MonkeyPatch,
@@ -648,6 +770,21 @@ def test_an_approval_the_gate_holds_is_asked_for_again_until_it_is_written(
 
     assert renewal.credentials.expires == "2127-01-02T03:04:05Z"
     assert waited == [2.0, 2.0]
+
+
+def test_a_shared_directory_beside_the_identity_is_refused_with_what_mends_it(
+    paired: GateClient, renewing: Gate, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    # Pretended rather than arranged, as `stranger` pretends it in the credentials tests, so that
+    # it runs on Windows as well. The flag waives the identity's own directory and never the two
+    # beside it, so the refusal names removing the directory rather than the flag.
+    monkeypatch.setattr(os, "geteuid", lambda: 4242, raising=False)
+
+    with pytest.raises(StorageError, match=r"default\.renewing cannot hold") as refused:
+        paired.renew(allow_shared_directory=True)
+
+    assert "remove it or make it this account's alone" in str(refused.value)
+    assert [path for path, _, _ in renewing.seen] == [], "nothing was asked"
 
 
 def test_a_certificate_that_has_expired_is_not_offered_for_renewal(
@@ -712,10 +849,11 @@ def test_a_renewal_waits_as_long_as_a_pairing_and_gives_up_on_the_ordinary_timeo
     waited: list[float],
 ) -> None:
     # The renewal waits on a person, and the gate gives it the six minutes a pairing gets, since
-    # its own worst case is the same 305 seconds: the screen, the dialog and its grace, the turn at
-    # the writer and the write. A client that hangs up first leaves an approval saved for a
-    # certificate nobody holds. Giving the old certificate up asks nobody, so it waits the usual
-    # time, and so does the comparison of the gate's version that comes before both.
+    # its own worst case is the same 307 seconds: the screen, the dialog and its grace, KeePass
+    # settling once the operator has approved, the turn at the writer and the write. A client that
+    # hangs up first leaves an approval saved for a certificate nobody holds. Giving the old
+    # certificate up asks nobody, so it waits the usual time, and so does the comparison of the
+    # gate's version that comes before both.
     timeouts: list[float] = []
     connect = transport.connect
 
@@ -877,6 +1015,38 @@ def test_the_command_line_says_how_to_give_up_what_it_could_not(
     assert str(where.with_name("kept.retired")) in captured.err
 
 
+@pytest.mark.parametrize(
+    ("revocation", "code", "kept"),
+    [((200, {"ok": True}), 0, False), ((500, {"error": "not saved"}), 1, True)],
+    ids=["given up", "kept"],
+)
+def test_renew_prints_one_document_naming_what_it_kept(
+    tmp_path: Path,
+    gate: FakeGate,
+    bundle: dict[str, Any],
+    renewing: Gate,
+    renewed_certificate: Issued,
+    capsys: pytest.CaptureFixture[str],
+    revocation: tuple[int, dict[str, Any]],
+    code: int,
+    kept: bool,
+) -> None:
+    # `retired` is the member a program reads to find the old identity kept beside the new, and
+    # the document is printed whichever way giving the old certificate up went.
+    status, answer = revocation
+    renewing.revocation = (status, json.dumps(answer))
+    where = tmp_path / "kept"
+    credentials_module.save(where, gate.port, bundle)
+
+    assert cli.main(["renew", "--directory", str(where), "-o", "json"]) == code
+
+    shown = json.loads(capsys.readouterr().out)
+    assert shown["subject"] == "CN=agent-invented"
+    assert shown["admissionKey"] == hashlib.sha256(der(renewed_certificate)).hexdigest()
+    assert shown["directory"] == str(where)
+    assert shown["retired"] == (str(where.with_name("kept.retired")) if kept else None)
+
+
 def test_what_was_kept_for_a_revoked_certificate_and_could_not_be_removed_is_named(
     tmp_path: Path,
     gate: FakeGate,
@@ -930,6 +1100,30 @@ def test_the_command_line_does_not_call_a_certificate_the_gate_refuses_admitted(
     assert "is refused, and KeePass may not have that in its file" in said
     assert "still admitted" not in said
     assert f"pykeepassgate revoke --directory {where.with_name('kept.retired')}" in said
+
+
+def test_the_command_line_does_not_call_a_certificate_it_could_not_present_admitted(
+    tmp_path: Path,
+    gate: FakeGate,
+    bundle: dict[str, Any],
+    renewing: Gate,
+    capsys: pytest.CaptureFixture[str],
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    # A refusal building the client that would give it up asked the gate nothing.
+    def unpresentable(self: GateClient, old: Any) -> StorageError:
+        return StorageError("identity.pem will not load as this client's certificate and key")
+
+    monkeypatch.setattr(GateClient, "_give_up", unpresentable)
+    where = tmp_path / "kept"
+    credentials_module.save(where, gate.port, bundle)
+
+    code = cli.main(["renew", "--directory", str(where)])
+
+    said = capsys.readouterr().err
+    assert code == cli.FAILED
+    assert "could not be presented to give it up" in said
+    assert "still admitted" not in said
 
 
 @pytest.mark.parametrize(

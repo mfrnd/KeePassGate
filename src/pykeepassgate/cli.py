@@ -10,15 +10,22 @@ protected field is a different thing: `show` and `field` print one when the gate
 it, which is when the rule granted `P`. When it did not, `show` prints `(withheld)` and `field`
 fails, since what `field` prints is taken by a script for the value.
 
-Exit codes are the point of a command line: `0` worked, `1` the gate refused or could not be
-reached, `2` the arguments were wrong. A script can branch on that without reading English.
+Exit codes are the point of a command line: `0` worked; `2` nothing was sent, because the parser
+refused an argument or a command could not read the input it was given; `1` failed after that,
+which is the gate refusing or out of reach and is also whatever the library refuses before it
+dials, nothing paired, a key that will not open, an invitation that will not read and a name the
+gate would refuse among them; and `130` Ctrl+C, as a shell has it, with the line `interrupted`
+rather than a traceback. A reader that stops reading, as `head` does, ends a command with `1` and
+nothing more. A script can branch on that without reading English.
 
 **What a command prints is chosen with `-o`/`--output`**, on every command: `plain`, lines for a
 person, and `json`, one document for a program such as `jq`. A choice rather than a `--json`
 switch, so that another format is one more choice. Both say the same things under the same rules:
 a value the rule withholds is named as withheld and never printed as empty, and what the gate did
 not say is left out rather than printed as nothing. Only what a command found is formatted; a
-failure is a sentence on standard error and an exit code either way.
+failure is a sentence on standard error and an exit code either way, and is printed beside what
+was found only where something was: `renew` that kept the certificate before, `revoke` whose
+files would not all go, and `status` answered that the gate is not serving.
 
 **Every standard stream is UTF-8**, whatever the code page, as Python 3.15 makes them by default:
 a listing written to a file or a pipe on Windows was encoded as cp1252 and died part way through
@@ -29,6 +36,7 @@ from __future__ import annotations
 
 import argparse
 import ctypes
+import errno
 import getpass
 import importlib
 import io
@@ -38,17 +46,21 @@ import os
 import sys
 import unicodedata
 from collections.abc import Callable, Iterable
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Literal, TypedDict
 
-from . import api, pairing, refs, transport
+from . import api, compatibility, pairing, refs, transport
+from .client import IDENTITY_PATH, STATUS_PATH, _segment
 from .credentials import IDENTITY_FILE, write_owner_only
 from .errors import GateError, ProtocolError, StorageError
 from .model import TITLE, URL
 
 #: Everything went wrong that this program knows how to be wrong about.
 FAILED = 1
+
+#: What a shell reports for a program ended by Ctrl+C: 128 and the number of SIGINT.
+INTERRUPTED = 130
 
 #: Where `pair` dials without `--port`: the library's own default, so the two cannot differ.
 DEFAULT_PORT = api.DEFAULT_PORT
@@ -65,7 +77,17 @@ def main(argv: list[str] | None = None) -> int:
     arguments = parser.parse_args(argv)
 
     try:
-        return int(arguments.run(arguments))
+        code = int(arguments.run(arguments))
+        # Flushed inside the `try`, so that a reader that has gone is met where it is answered,
+        # rather than at exit, where the interpreter's own flush reports an exception it ignored.
+        sys.stdout.flush()
+        return code
+    except KeyboardInterrupt:
+        # Ctrl+C, which is the way out of the minutes a pairing or a renewal waits on the operator,
+        # and of a prompt: a line and the shell's number for an interrupt, 128 and SIGINT's 2,
+        # rather than a traceback. Whatever the library was doing has run its own cleanup by now.
+        print("interrupted", file=sys.stderr)
+        return INTERRUPTED
     except _Refused as refusal:
         # Found inside a reader a command calls, where returning 2 is not possible, and the same
         # answer a command gives an argument it cannot use: nothing has been sent.
@@ -77,11 +99,64 @@ def main(argv: list[str] | None = None) -> int:
         # covers a profile nothing has paired under, which is `NotPaired`.
         print(f"{type(error).__name__}: {error}", file=sys.stderr)
         return FAILED
+    except OSError as error:
+        if not _reader_gone(error):
+            raise
+
+        # A reader that stopped reading, `entries | head -1`. What is left goes to the null device,
+        # as Python's documentation on SIGPIPE has it, because the interpreter flushes standard
+        # output again at exit and would meet the same closed pipe.
+        # The platform's names for signals and errors: cspell:ignore SIGPIPE EINVAL
+        _silenced()
+        return FAILED
+
+
+def _reader_gone(error: OSError) -> bool:
+    """Whether an error is standard output's reader having gone, as `head` goes once it has read.
+
+    A broken pipe, or on Windows an invalid argument, which is what a write to a pipe whose reader
+    has closed raises there, measured on Python 3.14. Asked again of standard output itself, which
+    still holds what it could not write, so that the same error raised by anything else is not
+    taken for it: a flush that works is a reader still there.
+    """
+    if not isinstance(error, BrokenPipeError) and error.errno != errno.EINVAL:
+        return False
+
+    try:
+        sys.stdout.flush()
+    except OSError as again:
+        return isinstance(again, BrokenPipeError) or again.errno == errno.EINVAL
+
+    return False
+
+
+def _silenced() -> None:
+    """Point standard output at the null device, for a reader that has closed its end."""
+    try:
+        descriptor = sys.stdout.fileno()
+    except (OSError, ValueError):
+        # A stream that is no file, as a test's capture is, has no descriptor to point elsewhere,
+        # and nothing at exit flushes it into a pipe.
+        return
+
+    null = os.open(os.devnull, os.O_WRONLY)
+    try:
+        os.dup2(null, descriptor)
+    finally:
+        os.close(null)
 
 
 class _Refused(Exception):
     """What a command cannot do as given, found where it cannot return exit code 2 itself."""
 
+
+#: The sentence each help text that reads standard input ends on: `_secret` reads to
+#: the end of input, since what comes after the line is refused rather than left unread, so a
+#: producer that sends its line and holds the pipe open holds the command with it.
+_PIPED = (
+    "piped in, it is one line and is read to the end of input, so whatever sends it must "
+    "close the pipe"
+)
 
 #: What `_secret` refuses input that ended before a line with.
 _NO_LINE = (
@@ -120,6 +195,11 @@ def _parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="pykeepassgate",
         description="The reference client for KeePassGate.",
+    )
+    # A client and a plugin are a pair by their major and minor versions, and `status` names the
+    # gate's, so the command line names its own half of the comparison too.
+    parser.add_argument(
+        "--version", action="version", version=f"pykeepassgate {compatibility.CLIENT_VERSION}"
     )
 
     commands = parser.add_subparsers(dest="command", required=True)
@@ -163,7 +243,7 @@ def _parser() -> argparse.ArgumentParser:
         "--invitation",
         help=(
             "the invitation from the tab. Omit it and it is read from standard input instead, "
-            "asked for at a terminal, showing a * for each character."
+            f"asked for at a terminal, showing a * for each character; {_PIPED}."
         ),
     )
     pairing.add_argument(
@@ -270,15 +350,17 @@ def _parser() -> argparse.ArgumentParser:
         "access",
         help="ask the gate what this client may do at a group or an entry",
         description=(
-            "Prints one rule for each profile this client holds, as the KPG tab shows a rule: "
-            "CRUSDLAP, with a dot for each verb or switch the profile is not granted there. A "
-            "switch reaches only the verbs on its own line. A node this client may do nothing at "
-            "is refused as one that is not there."
+            "Prints what the rules grant each profile this client holds there, in the notation "
+            "the KPG tab shows a rule in: CRUSDLAP, with a dot for each verb or switch the "
+            "profile is not granted there. A switch reaches only the verbs on its own line, and "
+            "a switch beside S or D alone is left out, since removing asks none. D is the node's "
+            "own rule: removing the node asks the group above it for D as well. A node this "
+            "client may do nothing at is refused as a node that is not there."
         ),
     )
     node = access.add_mutually_exclusive_group(required=True)
-    node.add_argument("--group", help="a group identifier, or root")
-    node.add_argument("--entry", help="an entry identifier")
+    node.add_argument("--group", type=_addressed, help="a group identifier, or root")
+    node.add_argument("--entry", type=_addressed, help="an entry identifier")
     _shared(access)
     _dialed(access)
     access.set_defaults(run=_access)
@@ -292,7 +374,9 @@ def _parser() -> argparse.ArgumentParser:
         ),
     )
 
-    groups.add_argument("--under", help="a group identifier, or root, to list one level below")
+    groups.add_argument(
+        "--under", type=_addressed, help="a group identifier, or root, to list one level below"
+    )
     _shared(groups)
     _dialed(groups)
     groups.set_defaults(run=_groups)
@@ -302,7 +386,8 @@ def _parser() -> argparse.ArgumentParser:
         help="read one group, its notes included",
         description="Needs `read` on the group, where listing it needs `list` on the one above.",
     )
-    group.add_argument("uuid", help="the group's identifier, or root")
+    group.add_argument("uuid", type=_addressed, help="the group's identifier, or root")
+    _read_conditioned(group)
     _shared(group)
     _dialed(group)
     group.set_defaults(run=_group_read)
@@ -310,7 +395,7 @@ def _parser() -> argparse.ArgumentParser:
     add_group = commands.add_parser("add-group", help="create a group inside another")
     add_group.add_argument("--name", required=True, help="what to call it")
     add_group.add_argument(
-        "--parent", default=api.ROOT, help="where to put it, by identifier or root"
+        "--parent", type=_addressed, default=api.ROOT, help="where to put it, by identifier or root"
     )
     add_group.add_argument("--notes", help="the notes")
     _shared(add_group)
@@ -320,7 +405,7 @@ def _parser() -> argparse.ArgumentParser:
     update_group = commands.add_parser(
         "update-group", help="rename a group, or change its notes"
     )
-    update_group.add_argument("uuid", help="the group's identifier, or root")
+    update_group.add_argument("uuid", type=_addressed, help="the group's identifier, or root")
     update_group.add_argument("--name", help="what to call it from now on")
     update_group.add_argument("--notes", help="the notes")
     _conditioned(update_group)
@@ -332,7 +417,7 @@ def _parser() -> argparse.ArgumentParser:
         "remove-group",
         help="delete a group, which the gate refuses while it holds anything",
     )
-    remove_group.add_argument("uuid", help="the group's identifier")
+    remove_group.add_argument("uuid", type=_addressed, help="the group's identifier")
     _conditioned(remove_group)
     _shared(remove_group)
     _dialed(remove_group)
@@ -345,6 +430,7 @@ def _parser() -> argparse.ArgumentParser:
 
     entries.add_argument(
         "--group",
+        type=_addressed,
         help="a group identifier, or root, for that group's own entries",
     )
     entries.add_argument(
@@ -366,27 +452,34 @@ def _parser() -> argparse.ArgumentParser:
         description=(
             "Prints every string the entry holds, one to a line, with a line break inside one "
             "written as \\n. A protected one arrives only when the rule grants `protected`. "
-            "Redirect it or read it directly: this is the one command that puts a password on "
-            "a terminal."
+            "Redirect it or read it directly: this and field are the two commands that put a "
+            "password on a terminal."
         ),
     )
 
-    show.add_argument("uuid", help="the entry's identifier")
+    show.add_argument("uuid", type=_addressed, help="the entry's identifier")
     show.add_argument(
         "--resolve",
         action="store_true",
         help=(
             "follow field references and placeholders as KeePass would, reading each entry a "
             "reference names under this client's rules, and fail rather than print a value that "
-            "cannot be given as KeePass would give it. Without it, values print as stored."
+            "cannot be given as KeePass would give it, but for %%NAME%% and a placeholder another "
+            "plugin adds, which print as stored. Without it, values print as stored."
         ),
     )
+    _read_conditioned(show)
     _shared(show)
     _dialed(show)
     show.set_defaults(run=_show)
 
     add = commands.add_parser("add", help="create an entry in a group")
-    add.add_argument("--group", default=api.ROOT, help="where to put it, by identifier or root")
+    add.add_argument(
+        "--group",
+        type=_addressed,
+        default=api.ROOT,
+        help="where to put it, by identifier or root",
+    )
     add.add_argument("--title", help="what to call it")
     add.add_argument("--username", help="the user name")
     add.add_argument("--url", help="the address")
@@ -404,7 +497,7 @@ def _parser() -> argparse.ArgumentParser:
         action="store_true",
         help=(
             "read the password from standard input, so it stays out of the process list; at a "
-            "terminal it is asked for, showing a * for each character"
+            f"terminal it is asked for, showing a * for each character; {_PIPED}"
         ),
     )
 
@@ -413,7 +506,7 @@ def _parser() -> argparse.ArgumentParser:
     add.set_defaults(run=_add)
 
     update = commands.add_parser("update", help="change an entry's standard fields")
-    update.add_argument("uuid", help="the entry's identifier")
+    update.add_argument("uuid", type=_addressed, help="the entry's identifier")
     update.add_argument("--title", help="what to call it")
     update.add_argument("--username", help="the user name")
     update.add_argument("--url", help="the address")
@@ -431,7 +524,7 @@ def _parser() -> argparse.ArgumentParser:
         action="store_true",
         help=(
             "read the new password from standard input, so it stays out of the process list; at "
-            "a terminal it is asked for, showing a * for each character"
+            f"a terminal it is asked for, showing a * for each character; {_PIPED}"
         ),
     )
     _conditioned(update)
@@ -440,7 +533,7 @@ def _parser() -> argparse.ArgumentParser:
     update.set_defaults(run=_update)
 
     remove = commands.add_parser("remove", help="delete an entry")
-    remove.add_argument("uuid", help="the entry's identifier")
+    remove.add_argument("uuid", type=_addressed, help="the entry's identifier")
     _conditioned(remove)
     _shared(remove)
     _dialed(remove)
@@ -449,7 +542,8 @@ def _parser() -> argparse.ArgumentParser:
     fields = commands.add_parser(
         "fields", help="list the names of an entry's strings, and which are protected"
     )
-    fields.add_argument("uuid", help="the entry's identifier")
+    fields.add_argument("uuid", type=_addressed, help="the entry's identifier")
+    _read_conditioned(fields)
     _shared(fields)
     _dialed(fields)
     fields.set_defaults(run=_fields)
@@ -463,15 +557,16 @@ def _parser() -> argparse.ArgumentParser:
             "`protected`, and one it withholds fails the command rather than printing anything."
         ),
     )
-    field.add_argument("uuid", help="the entry's identifier")
-    field.add_argument("name", help="the string's name, such as Password")
+    field.add_argument("uuid", type=_addressed, help="the entry's identifier")
+    field.add_argument("name", type=_addressed, help="the string's name, such as Password")
+    _read_conditioned(field)
     _shared(field)
     _dialed(field)
     field.set_defaults(run=_field)
 
     add_field = commands.add_parser("add-field", help="add a string the entry does not have")
-    add_field.add_argument("uuid", help="the entry's identifier")
-    add_field.add_argument("name", help="what to call it")
+    add_field.add_argument("uuid", type=_addressed, help="the entry's identifier")
+    add_field.add_argument("name", type=_addressed, help="what to call it")
     _valued(add_field)
     add_field.add_argument(
         "--protected",
@@ -489,8 +584,8 @@ def _parser() -> argparse.ArgumentParser:
     update_field = commands.add_parser(
         "update-field", help="change a string the entry already has"
     )
-    update_field.add_argument("uuid", help="the entry's identifier")
-    update_field.add_argument("name", help="the string's name")
+    update_field.add_argument("uuid", type=_addressed, help="the entry's identifier")
+    update_field.add_argument("name", type=_addressed, help="the string's name")
     _valued(update_field)
     _conditioned(update_field)
     _shared(update_field)
@@ -501,23 +596,25 @@ def _parser() -> argparse.ArgumentParser:
         "strip-field",
         help="take a string off an entry; the five standard ones are emptied with update instead",
     )
-    strip_field.add_argument("uuid", help="the entry's identifier")
-    strip_field.add_argument("name", help="the string's name")
+    strip_field.add_argument("uuid", type=_addressed, help="the entry's identifier")
+    strip_field.add_argument("name", type=_addressed, help="the string's name")
     _conditioned(strip_field)
     _shared(strip_field)
     _dialed(strip_field)
     strip_field.set_defaults(run=_strip_field)
 
     files = commands.add_parser("attachments", help="list an entry's attachments")
-    files.add_argument("uuid", help="the entry's identifier")
+    files.add_argument("uuid", type=_addressed, help="the entry's identifier")
+    _read_conditioned(files)
     _shared(files)
     _dialed(files)
     files.set_defaults(run=_attachments)
 
     fetch = commands.add_parser("fetch", help="write one attachment to a file")
-    fetch.add_argument("uuid", help="the entry's identifier")
-    fetch.add_argument("name", help="the attachment's name")
+    fetch.add_argument("uuid", type=_addressed, help="the entry's identifier")
+    fetch.add_argument("name", type=_addressed, help="the attachment's name")
     fetch.add_argument("--to", type=Path, required=True, help="where to write it")
+    _read_conditioned(fetch)
     _shared(fetch)
     _dialed(fetch)
     fetch.set_defaults(run=_fetch)
@@ -526,8 +623,8 @@ def _parser() -> argparse.ArgumentParser:
     add_attachment = commands.add_parser(
         "add-attachment", help="add an attachment the entry does not have, from a file"
     )
-    add_attachment.add_argument("uuid", help="the entry's identifier")
-    add_attachment.add_argument("name", help="what to call it")
+    add_attachment.add_argument("uuid", type=_addressed, help="the entry's identifier")
+    add_attachment.add_argument("name", type=_addressed, help="what to call it")
     add_attachment.add_argument(
         "--from", dest="source", type=Path, required=True, help="the file to read it from"
     )
@@ -539,8 +636,8 @@ def _parser() -> argparse.ArgumentParser:
     update_attachment = commands.add_parser(
         "update-attachment", help="replace an attachment the entry already has, from a file"
     )
-    update_attachment.add_argument("uuid", help="the entry's identifier")
-    update_attachment.add_argument("name", help="the attachment's name")
+    update_attachment.add_argument("uuid", type=_addressed, help="the entry's identifier")
+    update_attachment.add_argument("name", type=_addressed, help="the attachment's name")
     update_attachment.add_argument(
         "--from", dest="source", type=Path, required=True, help="the file to read it from"
     )
@@ -552,19 +649,71 @@ def _parser() -> argparse.ArgumentParser:
     strip_attachment = commands.add_parser(
         "strip-attachment", help="take an attachment off an entry"
     )
-    strip_attachment.add_argument("uuid", help="the entry's identifier")
-    strip_attachment.add_argument("name", help="the attachment's name")
+    strip_attachment.add_argument("uuid", type=_addressed, help="the entry's identifier")
+    strip_attachment.add_argument("name", type=_addressed, help="the attachment's name")
     _conditioned(strip_attachment)
     _shared(strip_attachment)
     _dialed(strip_attachment)
     strip_attachment.set_defaults(run=_strip_attachment)
 
+    # One command for every `head` the document declares, as one library method covers them: a
+    # kind of node to ask about, named as the read command of it is, and the same arguments.
+    head = commands.add_parser(
+        "head",
+        help="ask whether a route answers, and print the tag it answers with, reading nothing",
+        description=(
+            "Asks the route a read command asks, with HEAD, so nothing is read. Prints the tag "
+            "of the group or entry the route is about, as -o json prints it from a read, or "
+            "nothing where the gate gives none. With --if-match it asks whether that tag is "
+            "still current: refused with exit 1 when it is not."
+        ),
+    )
+    kinds = head.add_subparsers(dest="kind", required=True)
+    for kind, summary in HEADS.items():
+        asked = kinds.add_parser(kind, help=summary)
+        if kind in ("group", "entry", "fields", "field", "attachments", "attachment"):
+            asked.add_argument("uuid", type=_addressed, help="the node's identifier")
+            if kind in ("field", "attachment"):
+                asked.add_argument("name", type=_addressed, help="the string's or the file's name")
+            _read_conditioned(asked)
+        elif kind == "groups":
+            asked.add_argument("--under", type=_addressed, help="a group, to ask one level below")
+        elif kind == "entries":
+            asked.add_argument("--group", type=_addressed, help="a group, for its own entries")
+        elif kind == "access":
+            node = asked.add_mutually_exclusive_group(required=True)
+            node.add_argument("--group", type=_addressed, help="a group identifier, or root")
+            node.add_argument("--entry", type=_addressed, help="an entry identifier")
+        _shared(asked)
+        _dialed(asked)
+        _formatted(asked)
+        asked.set_defaults(run=_head)
+
     # Every command, by construction rather than by remembering it on each, so a command added
-    # later cannot be the one a program has no way to read.
+    # later cannot be the one a program has no way to read. `head` is the command made of others,
+    # each of which carries the option itself: on both, the default of the command asked would
+    # overwrite what was given to the command around it.
     for command in commands.choices.values():
-        _formatted(command)
+        if command is not head:
+            _formatted(command)
 
     return parser
+
+
+#: What `head` asks about, by the read command each kind is named after.
+HEADS = {
+    "status": "the status route",
+    "whoami": "who the gate admits this client as",
+    "groups": "the groups listing, or one level under a group",
+    "group": "one group",
+    "entries": "the entries listing, or a group's own entries",
+    "entry": "one entry",
+    "fields": "the names of an entry's strings",
+    "field": "one of an entry's strings",
+    "attachments": "the names of an entry's attachments",
+    "attachment": "one of an entry's attachments",
+    "access": "what this client may do at a group or an entry",
+}
 
 
 def _formatted(parser: argparse.ArgumentParser) -> None:
@@ -584,17 +733,20 @@ def _formatted(parser: argparse.ArgumentParser) -> None:
 def _emit(arguments: argparse.Namespace, document: object, lines: Iterable[str]) -> None:
     """What a command found, in the format `--output` chose.
 
-    `lines` is the plain form, every name and value in it already through `_printable`, and
-    `document` the JSON one, which needs no such care: the encoder escapes every character that
-    would break a line, and `ensure_ascii` keeps the document readable on a console whose code
-    page holds less than the database does.
+    `lines` is the plain form, each through `_printable` here, so that no caller has to remember
+    which of its values another writer could have chosen: a name, an identifier, a subject or a
+    directory alike, from the gate, from a file or from the command line. Every caller's own text
+    holds nothing it escapes, so a line is printed as written unless a value in it needed it.
+    `document` is the JSON form, which needs no such care: the encoder escapes every character
+    that would break a line, and `ensure_ascii` keeps the document readable on a console whose
+    code page holds less than the database does.
     """
     if arguments.output == "json":
         print(json.dumps(document, indent=2))
         return
 
     for line in lines:
-        print(line)
+        print(_printable(line))
 
 
 def _moment(when: datetime) -> str:
@@ -628,7 +780,7 @@ def _valued(parser: argparse.ArgumentParser) -> None:
         help=(
             "the value. Left off, it is read from standard input, which keeps it out of the "
             "process list and is the way to give a secret; at a terminal it is asked for, "
-            "showing a * for each character"
+            f"showing a * for each character; {_PIPED}"
         ),
     )
 
@@ -642,8 +794,23 @@ def _conditioned(parser: argparse.ArgumentParser) -> None:
         help=(
             "write only while the node still holds what this tag says, as -o json printed it "
             "from a read, quotes and all; refused with exit 1, and nothing changed, when "
-            "somebody changed it since or when the gate gives this client no tags. Left off, "
-            "the write goes ahead whatever changed"
+            "somebody changed it since or when the gate gives this client no tags, and with "
+            "exit 2 before anything is sent when it is no tag the gate could match, without its "
+            "quotes or weak. Left off, the write goes ahead whatever changed"
+        ),
+    )
+
+
+def _read_conditioned(parser: argparse.ArgumentParser) -> None:
+    """The tag a read is made under, sent as the library sends it, as `If-Match`."""
+    parser.add_argument(
+        "--if-match",
+        metavar="ETAG",
+        type=_condition,
+        help=(
+            "read only while the node still holds what this tag names, as -o json printed it, "
+            "quotes and all; refused with exit 1, and nothing read, when somebody changed it "
+            "since or when the gate gives this client no tags"
         ),
     )
 
@@ -699,6 +866,7 @@ def _dialed(parser: argparse.ArgumentParser) -> None:
     """
     parser.add_argument(
         "--host",
+        type=_host,
         default=api.LOOPBACK,
         help=(
             "where to dial, if the gate is not reachable on loopback. It binds to loopback, so "
@@ -715,7 +883,8 @@ def _dialed(parser: argparse.ArgumentParser) -> None:
         default=None,
         help=(
             "seconds any one wait on the socket may last, the dial, the handshake or a read, if "
-            "not the default for what is being done"
+            "not the default for what is being done. The request of pair and of renew waits on "
+            "the operator for six minutes or this, whichever is longer"
         ),
     )
 
@@ -763,6 +932,40 @@ def _dialed(parser: argparse.ArgumentParser) -> None:
             "answer over it fails whole rather than arriving cut short."
         ),
     )
+
+
+def _addressed(text: str) -> str:
+    """A node's identifier, or a field's or an attachment's name, refused here if it names none.
+
+    Empty is no identifier: `groups --under ""`, from a variable that was not set, listed the
+    whole database, and `entries --group ""` asked for `/groups//entries`. Nor is text UTF-8
+    cannot encode, which argv that was not UTF-8 brings on POSIX as a lone surrogate, and which
+    left `main` as a traceback. Both are arguments that cannot work, exit 2 before anything is
+    dialed, as the library refuses them with `ProtocolError`.
+    """
+    if not text:
+        raise argparse.ArgumentTypeError("an identifier or a name is never empty")
+
+    try:
+        text.encode("utf-8")
+    except UnicodeEncodeError:
+        raise argparse.ArgumentTypeError(
+            f"{text!r} is text UTF-8 cannot encode, so it names nothing the gate holds"
+        ) from None
+
+    return text
+
+
+def _host(text: str) -> str:
+    """Where to dial, refused here as an argument rather than as a traceback out of the dial.
+
+    A label over 63 characters or a label holding a lone surrogate, which argv from a name that was
+    not UTF-8 brings on POSIX, left the dial as `UnicodeError`, which is no `GateError`.
+    """
+    try:
+        return transport.host_limit(text)
+    except ValueError as error:
+        raise argparse.ArgumentTypeError(str(error)) from None
 
 
 def _byte_count(text: str) -> int:
@@ -890,6 +1093,15 @@ def _expiry(text: str) -> datetime | Literal["auto"]:
     if when.utcoffset() is None:
         raise argparse.ArgumentTypeError(f"{text!r} names no time zone; end it with Z for UTC")
 
+    # Moved to UTC here as well as in the library, whose `ValueError` would otherwise leave `main`
+    # as a traceback: `9999-12-31T23:00:00-05:00` is a moment in the year 10000 there.
+    try:
+        when.astimezone(UTC)
+    except OverflowError:
+        raise argparse.ArgumentTypeError(
+            f"{text!r} falls outside the years 1 to 9999 in UTC, which is where it is sent"
+        ) from None
+
     return when
 
 
@@ -980,11 +1192,13 @@ def _dialing(arguments: argparse.Namespace) -> _Dialing:
 def _secret(prompt: str) -> str:
     """One line of standard input, asked for with a `*` per character when a person is typing it.
 
-    Piped in, it is the line as it was sent. At a terminal a bare read would print nothing, so
-    the command would look hung, and would echo what was typed onto the screen, into scrollback
-    and into any recording of the session, which is what reading it rather than taking it as an
-    argument is meant to avoid. `getpass` asks on the terminal itself, so the prompt reaches
-    neither of the two streams a script reads.
+    Piped in, it is the line as it was sent, less its line ending, a line feed or a carriage return
+    and a line feed alike. Python reads standard input with universal newlines on Windows alone,
+    so elsewhere a line a Windows program wrote kept its carriage return, and was stored with it.
+    At a terminal a bare read would print nothing, so the command would look hung, and would echo
+    what was typed onto the screen, into scrollback and into any recording of the session, which
+    is what reading it rather than taking it as an argument is meant to avoid. `getpass` asks on
+    the terminal itself, so the prompt reaches neither of the two streams a script reads.
 
     A `*` stands in for each character because a value is pasted as often as typed, and a prompt
     that stays blank after a paste looks as if the paste did not land. That says how long the
@@ -995,6 +1209,12 @@ def _secret(prompt: str) -> str:
     value: a producer that printed nothing, a closed standard input and `< /dev/null` end so, and
     so does the end of input typed at the prompt. An empty value is an empty line, which a pipe
     sends as a line break and a person as Enter on its own.
+
+    **And input holding more than a line is refused**, rather than cut to its first line: a key
+    in PEM piped in was stored as its `BEGIN` line, reported done, and found useless only when
+    something tried it. A value over several lines is a program's to send, which takes any
+    string. Asked by reading a character past the line, so a producer that never stops is
+    refused at once rather than read for good.
     """
     if _console():
         try:
@@ -1002,8 +1222,14 @@ def _secret(prompt: str) -> str:
         except EOFError:
             raise _Refused(_NO_LINE) from None
 
+    if sys.stdin is None:
+        # A process started with no standard input at all, as `pythonw` and a detached process
+        # are, which is input that ended before it began.
+        raise _Refused(_NO_LINE)
+
     try:
         line = sys.stdin.readline()
+        more = sys.stdin.read(1) if line.endswith("\n") else ""
     except UnicodeDecodeError:
         raise _Refused(
             "standard input is not UTF-8, so what it holds would be stored as other text; "
@@ -1013,7 +1239,13 @@ def _secret(prompt: str) -> str:
     if not line:
         raise _Refused(_NO_LINE)
 
-    return line
+    if more:
+        raise _Refused(
+            "standard input holds more than a line, and a value read from it is a line: only the "
+            "first would be sent, so nothing was"
+        )
+
+    return line.removesuffix("\n").removesuffix("\r")
 
 
 def _console() -> bool:
@@ -1024,9 +1256,9 @@ def _console() -> bool:
     get past every refusal for having no terminal into `getpass`, which reads the console rather
     than standard input and so waits for good, or spins with no console at all. So there the
     descriptor is asked whether it is a console. A stream with no descriptor of its own is taken
-    at its word, as every stream is elsewhere.
+    at its word, as every stream is elsewhere, and no standard input at all is no terminal.
     """
-    if not sys.stdin.isatty():
+    if sys.stdin is None or not sys.stdin.isatty():
         return False
 
     if os.name != "nt":
@@ -1038,6 +1270,69 @@ def _console() -> bool:
         return True
 
     return _windows_console(descriptor)
+
+
+def _terminal() -> bool:
+    """Whether `getpass` has a terminal a person can type at, whatever standard input is.
+
+    `getpass` does not read standard input: on POSIX it opens `/dev/tty`, the terminal the process
+    belongs to, and on Windows it reads the console. So a value piped into a command can sit
+    beside a key password typed at the terminal, and asking standard input refused the key
+    password whenever the value was piped, though a person was there to type it. What is asked is
+    whether the terminal `getpass` uses is there.
+
+    **Input from the null device is no terminal**, whatever is there: automation points a
+    command's input at it, and `getpass` would then wait for good on a console nobody is at. A
+    stream with no descriptor of its own is taken at its word, as `_console` takes it.
+    """
+    stdin = sys.stdin
+    if stdin is not None:
+        try:
+            descriptor = stdin.fileno()
+        except (AttributeError, OSError, ValueError):
+            return bool(stdin.isatty())
+
+        if _null_device(descriptor):
+            return False
+
+    return _getpass_terminal()
+
+
+def _null_device(descriptor: int) -> bool:
+    """Whether a descriptor is the null device, or on Windows any character device but a console.
+
+    On Windows `isatty` is true for every character device, NUL among them, and only a console
+    answers `GetConsoleMode`. Elsewhere the device is compared with `os.devnull` itself.
+    """
+    if os.name == "nt":
+        return os.isatty(descriptor) and not _windows_console(descriptor)
+
+    try:
+        return os.path.samestat(os.fstat(descriptor), Path(os.devnull).stat())
+    except OSError:
+        return False
+
+
+def _getpass_terminal() -> bool:
+    """Whether the terminal `getpass` asks on opens: `/dev/tty`, or on Windows a console."""
+    # The platforms' own names: cspell:ignore pythonw fstat CONIN RDWR NOCTTY
+    windows = os.name == "nt"
+    if windows:
+        name, flags = "CONIN$", os.O_RDWR
+    else:
+        # Looked up for the reason `_windows_console` looks its names up: Windows has no
+        # `O_NOCTTY`, and a type checker told it runs there calls the name undefined.
+        name, flags = "/dev/tty", os.O_RDWR | os.__dict__["O_NOCTTY"]
+
+    try:
+        descriptor = os.open(name, flags)
+    except OSError:
+        return False
+
+    try:
+        return not windows or _windows_console(descriptor)
+    finally:
+        os.close(descriptor)
 
 
 def _windows_console(descriptor: int) -> bool:
@@ -1103,14 +1398,15 @@ def _key_password(arguments: argparse.Namespace) -> Callable[[], str]:
     Handed to every command that loads the key, and called only when the key turns out to be
     encrypted, so an identity stored without a password is never asked about. There is no other
     way to give it to the command line, deliberately: never as an argument, which the process
-    list shows, and not from standard input, which may be carrying something else. A program
-    passes `key_password=` instead.
+    list shows, and not from standard input, which may be carrying something else, a value piped
+    in for the command among them, since `getpass` asks the terminal and not standard input. A
+    program passes `key_password=` instead.
     """
     where = arguments.directory or api.default_directory(arguments.profile)
     identity = where / IDENTITY_FILE
 
     def ask() -> str:
-        if not _console():
+        if not _terminal():
             raise StorageError(
                 f"{identity} holds an encrypted key, and its password is asked for only at a "
                 "terminal: a program passes key_password= instead"
@@ -1128,8 +1424,9 @@ def _key_password(arguments: argparse.Namespace) -> Callable[[], str]:
 def _pair(arguments: argparse.Namespace) -> int:
     # Before anything is read or sent: the password is asked for at a terminal and nowhere else,
     # so without one this pairing could not be what it says, and it is refused as an argument
-    # that cannot be done as given, with nothing spent.
-    if arguments.key_password and not _console():
+    # that cannot be done as given, with nothing spent. The terminal, not standard input, which
+    # may be bringing the invitation.
+    if arguments.key_password and not _terminal():
         print(
             "--key-password asks for the password at a terminal, and there is none here: a "
             "program passes key_password= to api.pair instead",
@@ -1196,6 +1493,7 @@ def _status(arguments: argparse.Namespace) -> int:
         **_dialing(arguments),
     )
     status = client.status()
+    serving = "serving" if status.ok else "not serving"
     _emit(
         arguments,
         {
@@ -1204,9 +1502,15 @@ def _status(arguments: argparse.Namespace) -> int:
             "version": status.version,
             "revision": status.revision,
         },
-        [f"gate {status.version} serving database {status.database}"],
+        [f"gate {status.version} {serving} database {status.database}"],
     )
-    return 0 if status.ok else FAILED
+    if status.ok:
+        return 0
+
+    # What the gate answered is printed, since it is what was found, and the failure is the
+    # sentence and the exit code beside it, as with every other failure.
+    print("the gate answered that it is not serving this database: ok is false", file=sys.stderr)
+    return FAILED
 
 
 def _renew(arguments: argparse.Namespace) -> int:
@@ -1260,6 +1564,16 @@ def _renew(arguments: argparse.Namespace) -> int:
             f"{renewal.retired}` removes it, as the next renewal does by itself",
             file=sys.stderr,
         )
+    elif isinstance(unrevoked, StorageError):
+        # Refused while the client that would present it was built, so the gate was asked
+        # nothing and whether it still admits the certificate is not known here.
+        print(
+            f"the certificate this renewed from could not be presented to give it up: "
+            f"{unrevoked}. It is kept in {renewal.retired}, and `pykeepassgate revoke "
+            f"--directory {renewal.retired}` gives it up and removes it, as the next renewal "
+            "tries to by itself",
+            file=sys.stderr,
+        )
     elif unrevoked is not None:
         print(
             f"the certificate this renewed from is still admitted: {unrevoked}. It is kept in "
@@ -1300,26 +1614,43 @@ def _revoke(arguments: argparse.Namespace) -> int:
     try:
         client.revoke_certificate()
     except api.NotAdmitted:
-        api.forget(where)
         already = True
         said = f"the gate already refuses {named}, so there was nothing left to revoke"
     else:
-        api.forget(where)
         already = False
         said = f"revoked {named}"
 
-    _emit(
-        arguments,
-        {
-            "subject": client.credentials.subject,
-            "database": client.credentials.database,
-            "admissionKey": key,
-            "alreadyRefused": already,
-            "removed": str(where),
-        },
-        [said, f"admission key: {key}", f"removed what was stored in {where}"],
+    # The certificate is given up whatever happens to the files, so a file that will not go is
+    # reported after the revocation rather than instead of it, as `renew` reports what it kept. A
+    # person or a script would otherwise read a revocation that landed as refused.
+    left: StorageError | None = None
+    try:
+        api.forget(where)
+    except StorageError as refused:
+        left = refused
+
+    document: dict[str, object] = {
+        "subject": client.credentials.subject,
+        "database": client.credentials.database,
+        "admissionKey": key,
+        "alreadyRefused": already,
+    }
+    lines = [said, f"admission key: {key}"]
+    if left is None:
+        document["removed"] = str(where)
+        lines.append(f"removed what was stored in {where}")
+
+    _emit(arguments, document, lines)
+    if left is None:
+        return 0
+
+    print(
+        f"the certificate is given up, and what was stored for it could not all be removed from "
+        f"{where}: {left}. Nothing can use it now, since the gate refuses the certificate: remove "
+        "that directory",
+        file=sys.stderr,
     )
-    return 0
+    return FAILED
 
 
 def _identity(arguments: argparse.Namespace) -> int:
@@ -1380,26 +1711,29 @@ def _whoami(arguments: argparse.Namespace) -> int:
         "removedProfiles": list(found.removed_profiles),
         "profilesUnreadable": found.profiles_unreadable,
     }
-    # Escaped as every name the gate answers with is, though the plugin allows no character in a
-    # subject or a profile that would need it: what is printed is what was answered.
-    _emit(
-        arguments,
-        document,
-        [
-            f"subject:          {_printable(found.subject)}",
-            f"client key:       {_printable(found.client_key)}",
-            f"admission key:    {_printable(found.admission_key)}",
-            f"expires:          {_moment(found.expires)}",
-            f"profiles:         {_listed(found.profiles)}",
-            f"removed profiles: {_listed(found.removed_profiles)}",
-        ],
-    )
+    lines = [
+        f"subject:          {found.subject}",
+        f"client key:       {found.client_key}",
+        f"admission key:    {found.admission_key}",
+        f"expires:          {_moment(found.expires)}",
+        f"profiles:         {_listed(found.profiles)}",
+        f"removed profiles: {_listed(found.removed_profiles)}",
+    ]
+    # Only when it is so: it is why a person reading this finds every profile removed, and a line
+    # for a list that reads would be a line nobody acts on.
+    if found.profiles_unreadable:
+        lines.append(
+            "profile list:     will not read, so every profile is removed until the operator "
+            "repairs it"
+        )
+
+    _emit(arguments, document, lines)
     return 0
 
 
 def _listed(names: tuple[str, ...]) -> str:
     """Names on one line, separated by commas, or the word for none."""
-    return ", ".join(_printable(name) for name in names) or "none"
+    return ", ".join(names) or "none"
 
 
 def _access(arguments: argparse.Namespace) -> int:
@@ -1420,7 +1754,7 @@ def _access(arguments: argparse.Namespace) -> int:
     _emit(
         arguments,
         {"grants": dict(found.grants)},
-        [f"{mask}  {_printable(profile)}" for profile, mask in found.grants.items()],
+        [f"{mask}  {profile}" for profile, mask in found.grants.items()],
     )
     return 0
 
@@ -1433,12 +1767,12 @@ def _groups(arguments: argparse.Namespace) -> int:
         key_password=_key_password(arguments),
         **_dialing(arguments),
     )
-    found = client.subgroups(arguments.under) if arguments.under else client.groups()
+    found = client.subgroups(arguments.under) if arguments.under is not None else client.groups()
 
     _emit(
         arguments,
         [_group(group) for group in found],
-        [f"{group.uuid}  {_printable(group.name)}" for group in found],
+        [f"{group.uuid}  {group.name}" for group in found],
     )
     return 0
 
@@ -1451,15 +1785,15 @@ def _group_read(arguments: argparse.Namespace) -> int:
         key_password=_key_password(arguments),
         **_dialing(arguments),
     )
-    found = client.group(arguments.uuid)
+    found = client.group(arguments.uuid, if_match=arguments.if_match)
 
     # The root has nothing above it, which is said rather than printed as a blank. The notes are
     # escaped as an entry's are in `show`, so notes over several lines print on one.
     lines = [
         f"uuid:   {found.uuid}",
-        f"name:   {_printable(found.name)}",
+        f"name:   {found.name}",
         f"parent: {found.parent or 'none'}",
-        f"notes:  {_printable(found.notes)}",
+        f"notes:  {found.notes}",
     ]
 
     _emit(arguments, _group(found), lines)
@@ -1544,7 +1878,7 @@ def _entries(arguments: argparse.Namespace) -> int:
     for entry in found:
         # A withheld title is not a title, and reading one raises. Asked first rather than
         # caught, so one withheld title does not end the listing.
-        title = "(withheld)" if TITLE in entry.withheld else _printable(entry.title)
+        title = "(withheld)" if TITLE in entry.withheld else entry.title
         lines.append(f"{entry.uuid}  {title}")
 
     _emit(arguments, [_listed_entry(entry) for entry in found], lines)
@@ -1573,41 +1907,51 @@ def _show(arguments: argparse.Namespace) -> int:
         key_password=_key_password(arguments),
         **_dialing(arguments),
     )
-    entry = client.entry(arguments.uuid)
-    strings = entry.fields if entry.fields is not None else api.Fields()
+    entry = client.entry(arguments.uuid, if_match=arguments.if_match)
+    # `GateClient.entry` never answers without the strings: `Entry.read` refuses such an answer.
+    # Narrowed here the same way, as `fetch` narrows an attachment's bytes, because a fallback to
+    # none would print an entry holding nothing, which is the guess refused there.
+    strings = entry.fields
+    if strings is None:
+        raise ProtocolError("the gate sent an entry with no strings")
 
     # A withheld value is not a value, and reading one raises, so it is asked about by name rather
     # than read. Every other one is worked out before anything is printed, so a value `--resolve`
-    # cannot give fails the command with nothing printed rather than half an entry.
-    values = {
-        name: refs.resolve(client, entry, strings[name]) if arguments.resolve else strings[name]
-        for name in strings
-        if name not in entry.withheld
-    }
+    # cannot give fails the command with nothing printed rather than half an entry. Resolved
+    # together, so that every entry they name is read once and the entry itself not again, and
+    # protected wherever a protected value went in, a password a URL borrows among them.
+    protected = list(entry.protected)
+    if arguments.resolve:
+        resolved = refs.resolve_entry(client, entry)
+        values = {name: found.value for name, found in resolved.items()}
+        protected += [
+            name for name, found in resolved.items() if found.protected and name not in protected
+        ]
+    else:
+        values = {name: strings[name] for name in strings if name not in entry.withheld}
 
     lines = [f"uuid:  {entry.uuid}", f"group: {entry.group}"]
     document: dict[str, object] = {"uuid": entry.uuid, "group": entry.group}
     _said(document, "created", entry.created)
     _said(document, "modified", entry.modified)
 
-    # `hasattr` is how the read model says whether the gate said anything at all, and a gate that
-    # said nothing about an expiry has not said the entry never expires.
-    if hasattr(entry, "expires"):
-        lines.append(f"expires: {_shown(entry.expires, entry.expired)}")
-        document["expires"] = None if entry.expires is None else _moment(entry.expires)
-        document["expired"] = entry.expired
+    # Every read carries the entry's expiry, `None` for never, since `Entry.read` refuses a read
+    # without it.
+    lines.append(f"expires: {_shown(entry.expires, entry.expired)}")
+    document["expires"] = None if entry.expires is None else _moment(entry.expires)
+    document["expired"] = entry.expired
 
     for name in sorted(strings):
-        guarded = " (protected)" if name in entry.protected else ""
+        guarded = " (protected)" if name in protected else ""
         # A value is escaped as a name is, since one line per field is what this output promises:
         # a line feed in the notes would otherwise print a `Password:` row of its own, above the
         # real one, written by whoever may change the notes and not the password.
-        shown = "(withheld)" if name in entry.withheld else _printable(values[name])
-        lines.append(f"{_printable(name)}: {shown}{guarded}")
+        shown = "(withheld)" if name in entry.withheld else values[name]
+        lines.append(f"{name}: {shown}{guarded}")
 
     # The values as they are, which `json` escapes itself, and a withheld one only by its name.
     document["fields"] = {name: values[name] for name in sorted(values)}
-    document["protected"] = list(entry.protected)
+    document["protected"] = protected
     document["withheld"] = list(entry.withheld)
     _left(document, entry.read_etag)
 
@@ -1628,7 +1972,7 @@ def _add(arguments: argparse.Namespace) -> int:
     if arguments.password:
         # Read rather than argued, for the same reason the invitation is: an argument is in the
         # process list, where anything running as this user can read it.
-        password = _secret("Password for the new entry: ").rstrip("\n")
+        password = _secret("Password for the new entry: ")
 
     uuid = client.create_entry(
         group=arguments.group,
@@ -1669,7 +2013,7 @@ def _update(arguments: argparse.Namespace) -> int:
     password = None
     if arguments.password:
         # Read rather than argued, as `add` reads one.
-        password = _secret("New password: ").rstrip("\n")
+        password = _secret("New password: ")
 
     etag = client.update_entry(
         arguments.uuid,
@@ -1707,7 +2051,7 @@ def _fields(arguments: argparse.Namespace) -> int:
         key_password=_key_password(arguments),
         **_dialing(arguments),
     )
-    found = client.fields(arguments.uuid)
+    found = client.fields(arguments.uuid, if_match=arguments.if_match)
 
     # Each with the entry's tag when the gate gave one, since a field the listing named is taken
     # off under that tag without being read first.
@@ -1718,7 +2062,7 @@ def _fields(arguments: argparse.Namespace) -> int:
             for field in found
         ],
         [
-            _printable(field.name) + (" (protected)" if field.protected else "")
+            field.name + (" (protected)" if field.protected else "")
             for field in found
         ],
     )
@@ -1733,7 +2077,7 @@ def _field(arguments: argparse.Namespace) -> int:
         key_password=_key_password(arguments),
         **_dialing(arguments),
     )
-    found = client.field(arguments.uuid, arguments.name)
+    found = client.field(arguments.uuid, arguments.name, if_match=arguments.if_match)
 
     # Read before anything is printed: a value the rule withholds raises `Withheld`, which leaves
     # through `main` as exit 1. Printing `(withheld)` as `show` does would hand a script that
@@ -1742,7 +2086,7 @@ def _field(arguments: argparse.Namespace) -> int:
 
     document: dict[str, object] = {"name": found.name, "protected": found.protected, "value": value}
     _left(document, found.read_etag)
-    _emit(arguments, document, [_printable(value)])
+    _emit(arguments, document, [value])
     return 0
 
 
@@ -1751,7 +2095,7 @@ def _value(arguments: argparse.Namespace, prompt: str) -> str:
     if arguments.value is not None:
         return str(arguments.value)
 
-    return _secret(prompt).rstrip("\n")
+    return _secret(prompt)
 
 
 def _add_field(arguments: argparse.Namespace) -> int:
@@ -1774,7 +2118,7 @@ def _add_field(arguments: argparse.Namespace) -> int:
     _emit(
         arguments,
         _left({"uuid": arguments.uuid, "name": arguments.name}, etag),
-        [f"added {_printable(arguments.name)} to {arguments.uuid}"],
+        [f"added {arguments.name} to {arguments.uuid}"],
     )
     return 0
 
@@ -1793,7 +2137,7 @@ def _update_field(arguments: argparse.Namespace) -> int:
     _emit(
         arguments,
         _left({"uuid": arguments.uuid, "name": arguments.name}, etag),
-        [f"updated {_printable(arguments.name)} on {arguments.uuid}"],
+        [f"updated {arguments.name} on {arguments.uuid}"],
     )
     return 0
 
@@ -1811,7 +2155,7 @@ def _strip_field(arguments: argparse.Namespace) -> int:
     _emit(
         arguments,
         _left({"uuid": arguments.uuid, "name": arguments.name}, etag),
-        [f"stripped {_printable(arguments.name)} from {arguments.uuid}"],
+        [f"stripped {arguments.name} from {arguments.uuid}"],
     )
     return 0
 
@@ -1825,7 +2169,7 @@ def _attachments(arguments: argparse.Namespace) -> int:
         **_dialing(arguments),
     )
 
-    found = client.attachments(arguments.uuid)
+    found = client.attachments(arguments.uuid, if_match=arguments.if_match)
 
     _emit(
         arguments,
@@ -1833,7 +2177,7 @@ def _attachments(arguments: argparse.Namespace) -> int:
             _left({"name": attachment.name, "size": attachment.size}, attachment.read_etag)
             for attachment in found
         ],
-        [f"{attachment.size:>10}  {_printable(attachment.name)}" for attachment in found],
+        [f"{attachment.size:>10}  {attachment.name}" for attachment in found],
     )
     return 0
 
@@ -1846,14 +2190,18 @@ def _fetch(arguments: argparse.Namespace) -> int:
         key_password=_key_password(arguments),
         **_dialing(arguments),
     )
-    attachment = client.attachment(arguments.uuid, arguments.name)
+    attachment = client.attachment(
+        arguments.uuid, arguments.name, if_match=arguments.if_match
+    )
 
     # `GateClient.attachment` never answers without the bytes: `Attachment.read` refuses such an
-    # answer rather than guess at one. Narrowed here the same way, because a fallback to no bytes
-    # would write an empty file and report it written, which is the guess refused there.
-    content = attachment.content
-    if content is None:
+    # answer rather than guess at one. Refused here the same way, as a `ProtocolError` rather than
+    # the `AttributeError` asking a listed attachment for its bytes raises, because a fallback to
+    # no bytes would write an empty file and report it written, which is the guess refused there.
+    if not attachment.is_read:
         raise ProtocolError("the gate sent an attachment with no content")
+
+    content = attachment.content
 
     # Owner read and write only, never through a link at the name, and a file already there
     # narrowed before the content goes in, as the identity's own files are written: what a
@@ -1879,6 +2227,52 @@ def _fetch(arguments: argparse.Namespace) -> int:
     _left(document, attachment.read_etag)
     _emit(arguments, document, [f"wrote {len(content)} bytes to {arguments.to}"])
     return 0
+
+
+def _head(arguments: argparse.Namespace) -> int:
+    """Ask a route with HEAD, which reads nothing, and print the tag it answered with."""
+    client = api.GateClient.open(
+        arguments.directory,
+        arguments.profile,
+        host=arguments.host,
+        key_password=_key_password(arguments),
+        **_dialing(arguments),
+    )
+    tag = client.head(_headed(arguments), if_match=getattr(arguments, "if_match", None))
+
+    # The tag alone, as `field` prints a value alone, for a script to read, and nothing where
+    # the gate gave none: absent is not empty, and `-o json` leaves `etag` out the same way.
+    _emit(arguments, _left({}, tag), [] if tag is None else [tag])
+    return 0
+
+
+def _headed(arguments: argparse.Namespace) -> str:
+    """The path the read command of this kind asks, which `head` asks with HEAD instead."""
+    kind = arguments.kind
+    if kind == "status":
+        return STATUS_PATH
+    if kind == "whoami":
+        return IDENTITY_PATH
+    if kind == "groups":
+        under = arguments.under
+        return "/groups" if under is None else f"/groups/{_segment(under)}/groups"
+    if kind == "entries":
+        group = arguments.group
+        return "/entries" if group is None else f"/groups/{_segment(group)}/entries"
+    if kind == "access":
+        if arguments.entry is not None:
+            return f"/entries/{_segment(arguments.entry)}/access"
+        return f"/groups/{_segment(arguments.group)}/access"
+    if kind == "group":
+        return f"/groups/{_segment(arguments.uuid)}"
+
+    entry = f"/entries/{_segment(arguments.uuid)}"
+    below = {"entry": "", "fields": "/fields", "attachments": "/attachments"}
+    if kind in below:
+        return entry + below[kind]
+
+    plural = "fields" if kind == "field" else "attachments"
+    return f"{entry}/{plural}/{_segment(arguments.name)}"
 
 
 def _attaching(
@@ -1922,7 +2316,7 @@ def _add_attachment(arguments: argparse.Namespace) -> int:
         lambda client, content: client.create_attachment(
             arguments.uuid, arguments.name, content, if_match=arguments.if_match
         ),
-        f"added {_printable(arguments.name)} to {arguments.uuid}",
+        f"added {arguments.name} to {arguments.uuid}",
     )
 
 
@@ -1932,7 +2326,7 @@ def _update_attachment(arguments: argparse.Namespace) -> int:
         lambda client, content: client.update_attachment(
             arguments.uuid, arguments.name, content, if_match=arguments.if_match
         ),
-        f"updated {_printable(arguments.name)} on {arguments.uuid}",
+        f"updated {arguments.name} on {arguments.uuid}",
     )
 
 
@@ -1949,7 +2343,7 @@ def _strip_attachment(arguments: argparse.Namespace) -> int:
     _emit(
         arguments,
         _left({"uuid": arguments.uuid, "name": arguments.name}, etag),
-        [f"stripped {_printable(arguments.name)} from {arguments.uuid}"],
+        [f"stripped {arguments.name} from {arguments.uuid}"],
     )
     return 0
 

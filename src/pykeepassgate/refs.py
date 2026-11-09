@@ -4,7 +4,9 @@ The gate serves a value as the entry stores it and never compiles it (`openapi.y
 resolves a reference against the whole open database, which knows nothing about the rules. This
 compiles one on this side instead, and every entry it reads to do so is a request of its own, which
 the rules decide and the audit records like any other. So `resolve` gives what KeePass would give
-for a value, or raises: it never hands back text KeePass would have changed.
+for a value, or raises: it never hands back text KeePass would have changed, but for two kinds of
+text it leaves as they are, `%NAME%` and a placeholder another plugin adds, which KeePass replaces
+out of the machine it runs on and out of that plugin. The paragraph on what it leaves names both.
 
 **What it follows.** A reference by identifier, `{REF:<T|U|P|A|N|I>@I:<uuid>}`, and the
 placeholders for the entry's own strings, `{TITLE}`, `{USERNAME}`, `{PASSWORD}`, `{URL}`, `{NOTES}`
@@ -22,11 +24,12 @@ listed in `REFUSED`, and one of those an earlier replacement made, which KeePass
 leaves as text by where in its own order the placeholder's step falls. References that go round in
 a circle or further than KeePass follows, where KeePass gives up at the deepest level and answers
 that value as empty, keeping the text around it: this refuses the whole value rather than give
-that. **And what it refuses with `AmbiguousName`**: a placeholder whose name matches a field
-only when letters beyond ASCII are compared without their case, which is a comparison KeePass
-makes its own way, and a standard string the entry holds under no name spelled exactly so while
-it holds a name beyond ASCII, which KeePass's collation may read as that string. A value it may not
-read, behind a reference or a placeholder, raises `Withheld`.
+that. And a value that takes more work than `COMPILES` and `CHARACTERS` allow, which KeePass
+would go on with. **And what it refuses with `AmbiguousName`**: a placeholder whose name matches
+a field only when letters beyond ASCII are compared without their case, which is a comparison
+KeePass makes its own way, and a standard string the entry holds under no name spelled exactly
+so while it holds a name beyond ASCII or with a null in it, which KeePass's collation may read as
+that string. A value it may not read, behind a reference or a placeholder, raises `Withheld`.
 
 **What it leaves as it is.** Braces that name nothing KeePass knows, which are ordinary in a
 generated password, and a reference too malformed for KeePass to read, both as KeePass leaves them.
@@ -44,10 +47,22 @@ make a placeholder out of the text around it.
 
 from __future__ import annotations
 
+import string
+from dataclasses import dataclass
 from typing import Protocol
 
 from .errors import AmbiguousName, RouteRefused, Unresolved, Withheld
-from .model import NOTES, PASSWORD, STANDARD, TITLE, URL, USERNAME, Entry, Fields
+from .model import (
+    NOTES,
+    PASSWORD,
+    STANDARD,
+    TITLE,
+    URL,
+    USERNAME,
+    Entry,
+    Fields,
+    _collation_may_join,
+)
 
 #: How deep KeePass compiles a value before it gives up and answers that value as empty, which is
 #: where a cycle ends in KeePass: `SprEngine.MaxRecursionDepth`. Each value a placeholder or a
@@ -57,6 +72,18 @@ DEPTH = 12
 #: How many references KeePass looks at in one value, the loop in `FillRefPlaceholders`, counting
 #: the ones it skips; one after them is left as text there, and so here.
 REFERENCES = 20
+
+#: How many values one value may take compiling, its own included: a placeholder or a reference
+#: is compiled again each time it is found, as KeePass compiles it, so strings that name each
+#: other in wide layers inside `DEPTH` take as many compilations as there are paths through them,
+#: and a few hundred characters held 34 strings for 37 seconds. Past this, `Unresolved`, which
+#: KeePass would not raise: no value a person wrote needs a thousand.
+COMPILES = 1000
+
+#: How many characters the values a value is made of may come to, counted as each is compiled,
+#: for strings few enough to stay inside `COMPILES` that are long: a note of 1 MiB named twenty
+#: times. Past this, `Unresolved` as well.
+CHARACTERS = 4 * 1024 * 1024
 
 #: What each letter of a reference asks for, which `I`, the entry's identifier, completes.
 WANTED = {"T": TITLE, "U": USERNAME, "P": PASSWORD, "A": URL, "N": NOTES}
@@ -146,8 +173,10 @@ REFUSED = (
     "{TIMEOTP}",
 )
 
-#: What KeePass replaces once more after the entry's strings, with the URL compiled again, so that a
-#: `{URL}` made by putting one of them next to the text around it is replaced there too.
+#: What is looked for again after each replacement, since a replacement can make a placeholder out
+#: of the text around it: every placeholder in `REFUSED`, which KeePass replaces or leaves as text
+#: by where in its own order that placeholder's step falls, and `{URL}`, which KeePass compiles
+#: again after the entry's strings, so that a `{URL}` a replacement made is replaced there too.
 LATE = (*REFUSED, "{URL}")
 
 
@@ -163,7 +192,8 @@ def resolve(client: Entries, entry: Entry, value: str) -> str:
 
     `entry` is the entry the value came from, read rather than listed, since the placeholders for
     its own strings are answered out of it: a listed one raises `AttributeError`, as asking it for
-    a string does. `client` reads every entry a reference names, with `GateClient.entry`.
+    a string does. `client` reads every entry a reference names, with `GateClient.entry`, but for
+    `entry` itself, which a reference to it is answered out of rather than read again.
 
     A value with nothing in it KeePass could replace comes back as it is, and nothing is asked.
     """
@@ -171,7 +201,46 @@ def resolve(client: Entries, entry: Entry, value: str) -> str:
     if not _might_change(value):
         return value
 
-    return _Resolution(client).compile(value, entry, 0)
+    return _Resolution(client, entry).resolved(value, entry)[0]
+
+
+@dataclass(frozen=True)
+class Resolved:
+    """One of an entry's strings as KeePass would give it, and whether it holds a protected value.
+
+    `protected` is about what went into the value as well as where it is stored: a URL holding
+    `{REF:P@I:<uuid>}` comes out holding a password, and is protected here though the database
+    does not protect the URL. So is a string the database protects, whatever it names.
+    """
+
+    value: str
+    protected: bool
+
+
+def resolve_entry(client: Entries, entry: Entry) -> dict[str, Resolved]:
+    """Every string of a read entry as KeePass would give it, in one resolution, by its name.
+
+    One moment, as KeePass compiles every string out of the one database it holds: each entry a
+    reference names is read once for all of them, and `entry` never again, so no two strings, and
+    no string and a reference to its own entry, answer out of two versions of one entry. Each
+    string keeps a reference cache and a budget of its own, as KeePass gives each value a context
+    of its own. A string the rule withholds is left out, as `withheld` names it, and the first
+    string that cannot be given raises, with nothing given.
+    """
+    fields = _fields(entry)
+    resolution = _Resolution(client, entry)
+    given: dict[str, Resolved] = {}
+    for name in fields:
+        if name in entry.withheld:
+            continue
+
+        stored = fields[name]
+        value, borrowed = (
+            resolution.resolved(stored, entry) if _might_change(stored) else (stored, False)
+        )
+        given[name] = Resolved(value, borrowed or name in entry.protected)
+
+    return given
 
 
 def _fields(entry: Entry) -> Fields:
@@ -195,13 +264,19 @@ def _might_change(value: str) -> bool:
     return (0 <= opened < value.rfind("}")) or (0 <= percent < value.rfind("%"))
 
 
+#: ASCII's lower case letters to their upper case, which is all `_fold` changes. A table, so that
+#: folding is the interpreter's work rather than a step of Python's for every character: a value is
+#: folded again for every name its entry holds.
+_ASCII_UPPER = str.maketrans(string.ascii_lowercase, string.ascii_uppercase)
+
+
 def _fold(text: str) -> str:
     """Text as KeePass compares it without case, for the letters this can be sure of: ASCII's."""
-    return "".join(letter.upper() if letter.isascii() else letter for letter in text)
+    return text.translate(_ASCII_UPPER)
 
 
-def _wide(text: str) -> str:
-    """Text with every letter's case taken away that has one, beyond ASCII as well.
+class _WideLetters(dict[int, int]):
+    """What `_wide` makes of each character, worked out the first time the character is folded.
 
     Each letter is folded through its upper case where that is one letter, and otherwise through
     its lower case: a Greek letter with an iota subscript has an upper case of two letters, and
@@ -212,14 +287,25 @@ def _wide(text: str) -> str:
     read an i with no dot as an `I` or a long s as an `S`, which `ReferenceVectors.json` shows, so
     neither may this.
     """
-    def folded(letter: str) -> str:
+
+    def __missing__(self, code: int) -> int:
+        letter = chr(code)
+        folded = code
         for cased in (letter.upper(), letter.lower()):
             if len(cased) == 1 and (letter.isascii() or not cased.isascii()):
-                return cased
+                folded = ord(cased)
+                break
 
-        return letter
+        self[code] = folded
+        return folded
 
-    return "".join(folded(letter) for letter in text)
+
+_WIDE = _WideLetters()
+
+
+def _wide(text: str) -> str:
+    """Text with the case taken off every letter that has a case, beyond ASCII: `_WideLetters`."""
+    return text.translate(_WIDE)
 
 
 def _present(text: str, placeholder: str) -> bool:
@@ -256,37 +342,68 @@ def _replace(text: str, placeholder: str, value: str) -> str:
     """Every occurrence of the placeholder, in any case, replaced: `StrUtil.ReplaceCaseInsensitive`.
 
     Left to right, and the search goes on after what was put in, so a value is never searched for
-    the placeholder it replaced.
+    the placeholder it replaced. So every occurrence is found in the text as it was, folded once,
+    since `_fold` keeps each character where it is: one pass, where searching the text again after
+    each replacement took a pass per occurrence. **Refused with `Unresolved`** once the text would
+    come to more than `CHARACTERS`, before it is made.
     """
     wanted = _fold(placeholder)
+    folded = _fold(text)
+    pieces: list[str] = []
+    length = 0
     position = 0
-    while position < len(text):
-        found = _fold(text).find(wanted, position)
-        if found < 0:
-            break
+    found = folded.find(wanted)
+    while found >= 0:
+        length += found - position + len(value)
+        if length > CHARACTERS:
+            raise Unresolved(_TOO_LONG)
 
-        text = text[:found] + value + text[found + len(placeholder) :]
-        position = found + len(value)
+        pieces += (text[position:found], value)
+        position = found + len(placeholder)
+        found = folded.find(wanted, position)
 
-    return text
+    pieces.append(text[position:])
+    return "".join(pieces)
+
+
+#: The reason `Unresolved` gives for a value that comes to more than `CHARACTERS`.
+_TOO_LONG = (
+    f"this value comes to more than {CHARACTERS} characters as KeePass would give it, which "
+    "KeePass would go on making and this will not: strings that name each other can come to more "
+    "than this client can hold"
+)
 
 
 class _Resolution:
-    """One value being resolved: what it has read, and what it is in the middle of.
+    """Values of one entry being resolved: what they have read, and what each is in the middle of.
 
     KeePass compiles a value inside one context that every value it compiles on the way shares, and
     this is that context. `cache` is KeePass's reference cache, each reference and what it came to,
     which it puts back into every value from then on before it looks for another; it decides how
     many references a value can hold, so it is kept rather than left out. `path` is the fields being
     compiled, outermost first, which is how a circle is seen when KeePass would only run out of
-    depth. `read` keeps each entry a reference named, since one resolution is one moment.
+    depth. `compiles` and `characters` are the work done so far, which `COMPILES` and `CHARACTERS`
+    bound, and `protected` whether a value the database protects went in. Each is the value's own,
+    begun again by `resolved`. `read` is the resolution's, kept for every value it is asked for,
+    since one resolution is one moment: each entry a reference named, and the entry the values came
+    from, from the start, so that a reference to it is answered out of the read the caller holds.
     """
 
-    def __init__(self, client: Entries) -> None:
+    def __init__(self, client: Entries, entry: Entry) -> None:
         self._client = client
+        self._read: dict[str, Entry] = {entry.uuid.upper(): entry}
         self._cache: list[tuple[str, str]] = []
         self._path: list[tuple[str, str]] = []
-        self._read: dict[str, Entry] = {}
+        self._compiles = 0
+        self._characters = 0
+        self._protected = False
+
+    def resolved(self, value: str, entry: Entry) -> tuple[str, bool]:
+        """One value as KeePass would give it, and whether a protected value went into it."""
+        self._cache, self._path = [], []
+        self._compiles = self._characters = 0
+        self._protected = False
+        return self.compile(value, entry, 0), self._protected
 
     def compile(self, text: str, entry: Entry, level: int) -> str:
         """What `SprEngine.CompileInternal` makes of this text, for what this follows."""
@@ -297,11 +414,25 @@ class _Resolution:
                 "it, which this will not give as an answer"
             )
 
+        self._compiles += 1
+        if self._compiles > COMPILES:
+            raise Unresolved(
+                f"working this value out takes more than {COMPILES} compilations of the strings "
+                "and references it names, which KeePass would go through and this will not: "
+                "strings that name each other in wide layers take a compilation for every path "
+                "through them, which grows past any wait"
+            )
+
         _refuse(text, REFUSED)
         text = self._strings(text, entry, level)
         _refuse(text, LATE, made=True)
         text = self._references(text, level)
         _refuse(text, LATE, made=True)
+
+        self._characters += len(text)
+        if self._characters > CHARACTERS:
+            raise Unresolved(_TOO_LONG)
+
         return text
 
     def _strings(self, text: str, entry: Entry, level: int) -> str:
@@ -333,19 +464,23 @@ class _Resolution:
         under which a name holding a character that collation ignores, a soft hyphen in
         `Pass­word` for one, is the same name as `Password`. A file another program wrote can
         hold one, and the gate answers it under the name it is stored by. So a standard string the
-        entry holds under no name spelled exactly so, while it holds a name beyond ASCII, which is
-        the only way such a spelling can arise, is refused rather than read as empty: empty could
-        stand where KeePass has a value, or where the gate withheld one.
+        entry holds under no name spelled exactly so, while it holds a name beyond ASCII or a name
+        with a null in it, the only ways such a spelling can arise, which `_collation_may_join`
+        asks, is refused rather than read as empty: empty could stand where KeePass has a value,
+        or where the gate withheld one.
+
+        **A string the database protects marks the value protected**, whichever string it goes into,
+        since a password put into a URL is a password still.
         """
         fields = _fields(entry)
         if name in entry.withheld:
             raise Withheld(name, through=through)
 
-        if name in STANDARD and name not in fields and not all(held.isascii() for held in fields):
+        if name in STANDARD and name not in fields and _collation_may_join(fields):
             raise AmbiguousName(
                 f"{through} stands for {name!r}, which this entry holds under no name spelled "
-                "exactly so, and it holds a name beyond ASCII that KeePass's own comparison may "
-                f"read as {name!r}, which this will not guess at"
+                "exactly so, and it holds a name beyond ASCII or holding a null that KeePass's own "
+                f"comparison may read as {name!r}, which this will not guess at"
             )
 
         held = fields.get(name, "")
@@ -359,9 +494,12 @@ class _Resolution:
 
         self._path.append(visiting)
         try:
-            return self.compile(held, entry, level + 1)
+            compiled = self.compile(held, entry, level + 1)
         finally:
             self._path.pop()
+
+        self._protected = self._protected or name in entry.protected
+        return compiled
 
     def _references(self, text: str, level: int) -> str:
         """The references: `FillRefPlaceholders`, with its cache, its order and its limit."""
@@ -403,7 +541,8 @@ class _Resolution:
         if len(inner) <= 4 or inner[1] != "@" or inner[3] != ":":
             return None
 
-        # As `char.ToUpperInvariant` reads them, which leaves every letter beyond ASCII as it is.
+        # As `char.ToUpperInvariant` reads them, which never turns a letter beyond ASCII into an
+        # ASCII letter, so only an ASCII letter can name what a reference asks for or searches by.
         wanted, scan, search = _upper(inner[0]), _upper(inner[2]), inner[4:]
         if scan not in (*_SEARCHES, "I") or wanted not in (*WANTED, "I"):
             return None
@@ -460,7 +599,12 @@ _SEARCHES = {
 
 
 def _upper(letter: str) -> str:
-    """One letter as `char.ToUpperInvariant` gives it, for the letters a reference can hold."""
+    """One letter of a reference, upper cased where it is ASCII, as `char.ToUpperInvariant` does.
+
+    A letter beyond ASCII is left as it is. `ToUpperInvariant` changes many of them, `ü` to `Ü`
+    among them, but never into an ASCII letter, and what this gives is only ever compared with
+    ASCII letters, so leaving it alone gives the same answer.
+    """
     return letter.upper() if letter.isascii() else letter
 
 

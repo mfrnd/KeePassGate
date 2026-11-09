@@ -75,4 +75,9 @@ def _release(text: str) -> tuple[int, int] | None:
     if found is None:
         return None
 
-    return int(found.group(1)), int(found.group(2))
+    try:
+        return int(found.group(1)), int(found.group(2))
+    except ValueError:
+        # More digits than `int` reads from text, which is no release, and was a `ValueError` out
+        # of the status route and the pairing hello rather than the refusal of a version.
+        return None

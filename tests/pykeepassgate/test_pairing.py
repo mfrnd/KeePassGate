@@ -435,6 +435,9 @@ def test_a_busy_gate_is_described_by_what_it_asks_about(
     assert "another pairing or renewal" in said
     assert "group dialog" not in said
     assert "invitation is still good" in said
+    # The one cause the gate asks about that does not end on its own, which a list of causes that
+    # all end would send a program round its whole budget for.
+    assert "list of profiles will not read, which lasts until the operator repairs it" in said
 
 
 @pytest.mark.parametrize(
@@ -511,12 +514,33 @@ def test_a_request_that_reaches_its_own_hello_is_served(gate: FakeGate, pairing_
 
 def test_a_pairing_waits_longer_than_the_gate_may_take(gate: FakeGate) -> None:
     # Not the ordinary timeout. The plugin gives this one exchange six minutes because its own
-    # worst case is 305 seconds, and a client that hangs up first throws away the answer to a
+    # worst case is 307 seconds, and a client that hangs up first throws away the answer to a
     # pairing whose invitation is already spent and whose record is already written.
     assert (
         Pairing(gate.port, INVITATION)._connection_timeout
         == transport.PAIRING_CONNECTION_TIMEOUT
     )
+
+
+def test_a_shorter_timeout_does_not_hang_up_on_the_operator(
+    gate: FakeGate, pairing_gate: Gate, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    # `pair --connection-timeout 30`, from somebody who wanted a dead port to fail fast, hung up
+    # on an operator who took forty seconds, after the invitation was spent and the record
+    # written. The hello keeps the timeout given, and the request waits as a renewal's does.
+    timeouts: list[float] = []
+    connect = transport.connect
+
+    def recorded(*arguments: Any, **named: Any) -> Any:
+        timeouts.append(named["connection_timeout"])
+        return connect(*arguments, **named)
+
+    monkeypatch.setattr(transport, "connect", recorded)
+    pairing = Pairing(gate.port, INVITATION, connection_timeout=10.0)
+
+    pairing.request(pairing.hello(), "agent-invented", ["reader"])
+
+    assert timeouts == [10.0, transport.PAIRING_CONNECTION_TIMEOUT]
 
 
 @pytest.mark.parametrize(

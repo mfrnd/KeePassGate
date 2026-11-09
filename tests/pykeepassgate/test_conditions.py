@@ -8,7 +8,6 @@ when one matches and which client is handed one is the plugin's, and its own tie
 from __future__ import annotations
 
 import json
-import pickle
 from collections.abc import Callable
 from pathlib import Path
 from typing import Any
@@ -136,9 +135,9 @@ def test_a_listed_node_has_no_tag_and_says_where_to_get_one(
 def test_two_reads_of_one_node_are_equal_whatever_tag_each_came_with() -> None:
     # A tag says which version a write may be made against, not what the node holds, and a read
     # without one is what a client the gate hands none to gets.
-    assert Group.of(GROUP, TAG) == Group.of(GROUP, None)
+    assert Group.read(GROUP, TAG) == Group.read(GROUP, None)
     assert Entry.read(ENTRY, TAG) == Entry.read(ENTRY, NEXT)
-    assert hash(Group.of(GROUP, TAG)) == hash(Group.of(GROUP, NEXT))
+    assert hash(Group.read(GROUP, TAG)) == hash(Group.read(GROUP, NEXT))
 
 
 @pytest.mark.parametrize(
@@ -215,16 +214,6 @@ def test_a_condition_that_does_not_hold_is_its_own_refusal_and_is_not_asked_agai
     assert len(gate.requests) == 1
 
 
-def test_a_refusal_survives_being_pickled_as_what_it_was() -> None:
-    # What a process pool does with an exception raised in a worker.
-    for refusal in (PreconditionFailed("precondition failed"), RouteRefused(404, "no such route")):
-        copied = pickle.loads(pickle.dumps(refusal))  # noqa: S301, its own bytes
-
-        assert type(copied) is type(refusal)
-        assert str(copied) == str(refusal)
-        assert (copied.status, copied.error) == (refusal.status, refusal.error)
-
-
 def test_the_generic_calls_carry_a_condition_too(gate: FakeGate, paired: GateClient) -> None:
     conditions = tagging(gate, GROUP, TAG)
 
@@ -261,3 +250,56 @@ def test_a_condition_that_could_not_be_one_header_line_is_refused_before_anythin
 
     assert gate.names == [], "nothing was dialed"
     assert gate.requests == []
+
+
+@pytest.mark.parametrize(
+    "tag",
+    [
+        TAG.strip('"'),
+        f"W/{TAG}",
+        f"W/{TAG}, W/{NEXT}",
+        f"{TAG} {NEXT}",
+        f"{TAG}x",
+        '"a"b"',
+        '"a',
+        '"a b"',
+        ",",
+    ],
+    ids=[
+        "no quotes",
+        "weak",
+        "weak alone",
+        "no comma",
+        "after the quote",
+        "a quote inside",
+        "no closing quote",
+        "a space inside",
+        "only a comma",
+    ],
+)
+def test_a_condition_the_gate_could_not_match_is_refused_before_anything_is_dialed(
+    gate: FakeGate, paired: GateClient, tag: str
+) -> None:
+    # The gate answers each with the `412` a node that changed gets, so a tag pasted without its
+    # quotes was refused as a node that moved on, read again, and sent again the same way.
+    tagging(gate, {"ok": True}, None)
+
+    with pytest.raises(ProtocolError, match="in quotes"):
+        paired.update_entry(UUID, title="x", if_match=tag)
+
+    assert gate.names == [], "nothing was dialed"
+
+
+@pytest.mark.parametrize(
+    "tag",
+    ['"a,b"', f" , {TAG} ,", f"W/{TAG}, {NEXT}", '"!"', " * "],
+    ids=["a comma inside", "empty elements", "weak beside strong", "one character", "any"],
+)
+def test_a_condition_the_gate_can_read_is_sent_as_given(
+    gate: FakeGate, paired: GateClient, tag: str
+) -> None:
+    conditions = tagging(gate, {"ok": True}, None)
+
+    paired.update_entry(UUID, title="x", if_match=tag)
+
+    assert conditions == [tag.strip(" \t")], "sent exactly, as the gate trims what it reads"

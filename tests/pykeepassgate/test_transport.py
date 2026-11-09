@@ -43,6 +43,18 @@ class TestResponse:
         with pytest.raises(ProtocolError, match="not an object"):
             transport.Response(200, "[1, 2]").json()
 
+    def test_a_body_nested_past_the_decoder_s_stack_is_refused_as_one_that_will_not_read(
+        self,
+    ) -> None:
+        # `RecursionError` in the decoder, which is no `ValueError`, and which escaped `json` and
+        # `error` alike, out of every refusal's handling and past `except GateError`.
+        deep = transport.Response(503, "[" * 100_000)
+
+        with pytest.raises(ProtocolError, match="not JSON"):
+            deep.json()
+
+        assert deep.error() == ""
+
     def test_the_word_a_refusal_carries_is_readable(self) -> None:
         assert transport.Response(503, '{"error":"locked"}').error() == "locked"
 
@@ -115,6 +127,33 @@ class TestParsing:
     def test_an_answer_with_no_header_block_is_refused(self) -> None:
         with pytest.raises(ProtocolError, match="header block"):
             transport._parse(b"HTTP/1.1 200 OK\r\n")
+
+    def test_a_body_that_is_not_utf_8_is_refused_rather_than_patched(self) -> None:
+        # Decoded leniently, it was a value holding U+FFFD where the byte was, handed over as
+        # though it were the value stored.
+        raw = b'HTTP/1.1 200 OK\r\nContent-Length: 13\r\n\r\n{"value":"\xff"}'
+
+        with pytest.raises(ProtocolError, match="not UTF-8") as refused:
+            transport._parse(raw)
+
+        assert refused.value.__cause__ is None, "what would not decode is the whole body"
+
+    @pytest.mark.parametrize("status", ["2_00", "+200", " 200", "20", "2000", "٢٠٠"])
+    def test_a_status_is_three_digits_and_nothing_int_reads_besides(self, status: str) -> None:
+        # `int` takes an underscore, a sign, white space and digits beyond ASCII, and each was
+        # read as the status a peer never wrote. cspell:ignore ٢٠٠
+        raw = f"HTTP/1.1 {status} OK\r\nContent-Length: 2\r\n\r\n{{}}".encode()
+
+        with pytest.raises(ProtocolError, match="not a status"):
+            transport._parse(raw)
+
+    @pytest.mark.parametrize("length", ["-5", "+2", "1_0", "٢", "9" * 5000])
+    def test_a_length_is_digits_and_nothing_int_reads_besides(self, length: str) -> None:
+        # A negative length counted as already met, so a short body could never be found short.
+        raw = f"HTTP/1.1 200 OK\r\nContent-Length: {length}\r\n\r\n".encode()
+
+        with pytest.raises(ProtocolError, match="not a content length"):
+            transport._parse(raw)
 
 
 class TestConnecting:
@@ -246,6 +285,60 @@ class TestDialing:
             TransportError, match="the socket dial handed back could not be used"
         ), transport.connect(45678, transport.unpaired_context(), "x.y.kpg", dial=closed):
             pass  # pragma: no cover, the timeout is what raises
+
+    def test_a_dial_that_hands_back_a_socket_never_connected_is_a_transport_error(self) -> None:
+        # TLS wraps such a socket without a word, and reading the certificate off it raised a bare
+        # `OSError`, measured on Windows as `WinError 10057`, with the socket left open.
+        made: list[socket.socket] = []
+
+        def unconnected(host: str, port: int, timeout: float) -> socket.socket:
+            made.append(socket.socket())
+            return made[-1]
+
+        with pytest.raises(
+            TransportError, match="the socket dial handed back could not be used"
+        ), transport.connect(45678, transport.unpaired_context(), "x.y.kpg", dial=unconnected):
+            pass  # pragma: no cover, asking for the peer is what raises
+
+        assert made[0].fileno() == -1
+
+    def test_a_dial_that_hands_back_a_datagram_socket_is_a_programming_error(self) -> None:
+        # Which TLS refused with `NotImplementedError`, leaving the socket open.
+        made: list[socket.socket] = []
+
+        def datagram(host: str, port: int, timeout: float) -> socket.socket:
+            made.append(socket.socket(socket.AF_INET, socket.SOCK_DGRAM))
+            return made[-1]
+
+        with pytest.raises(TypeError, match="dial returned a SOCK_DGRAM socket rather than"), (
+            transport.connect(45678, transport.unpaired_context(), "x.y.kpg", dial=datagram)
+        ):
+            pass  # pragma: no cover, the dial is what raises
+
+        assert made[0].fileno() == -1
+
+    def test_a_server_that_sends_no_certificate_leaves_nothing_open(
+        self, gate: FakeGate, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        # Which a server cannot do under TLS 1.3, and something else on the port could still try.
+        closed: list[bool] = []
+        close = ssl.SSLSocket.close
+
+        def recorded(wrapped: ssl.SSLSocket) -> None:
+            # The gate's own sockets close through here too, on threads of their own.
+            if not wrapped.server_side:
+                closed.append(True)
+            close(wrapped)
+
+        monkeypatch.setattr(ssl.SSLSocket, "getpeercert", lambda wrapped, binary_form=False: b"")
+        monkeypatch.setattr(ssl.SSLSocket, "close", recorded)
+
+        with pytest.raises(TransportError, match="the server sent no certificate"), (
+            transport.connect(gate.port, transport.unpaired_context(), "x.y.kpg")
+        ):
+            pass  # pragma: no cover, reading the certificate is what raises
+
+        assert closed == [True]
 
     def test_a_dial_that_hands_back_no_socket_is_a_programming_error(self) -> None:
         def wrong(host: str, port: int, timeout: float) -> socket.socket:
@@ -490,6 +583,36 @@ class TestWhatThisClientWillNotSend:
         ) as connection, pytest.raises(ProtocolError, match="not a path"):
             connection.send("GET", beyond)
 
+    @pytest.mark.parametrize(
+        "path",
+        ["/a\x01b", "/a\x7fb", '/a"b', "/a#b", "/a<b", "/a{b", "/a|b", "/a\\b", "/a b", "/a?b c"],
+        ids=[
+            "a control", "DEL", "a quote", "a hash", "an angle", "a brace", "a bar", "a backslash",
+            "a space", "a space in the query",
+        ],
+    )
+    def test_a_path_holding_what_rfc_3986_does_not_allow_is_refused(self, path: str) -> None:
+        # Each was sent and came back as the gate's `400`, which spent a connection to be told.
+        with pytest.raises(ProtocolError, match="request line cannot"):
+            transport._check("GET", path)
+
+    @pytest.mark.parametrize("path", ["/a%zz", "/a%4", "/a%"])
+    def test_a_percent_that_begins_no_escape_is_refused(self, path: str) -> None:
+        with pytest.raises(ProtocolError, match="does not begin an escape"):
+            transport._check("GET", path)
+
+    @pytest.mark.parametrize(
+        "path",
+        [
+            "/groups/root/entries?includeExpired=false",
+            "/entries/0a1b/attachments/a%2Fb%C3%A9",
+            "/x/y:z@w!$&'()*+,;=-._~",
+            "/x?y=a/b?c",
+        ],
+    )
+    def test_a_path_the_grammar_allows_is_sent(self, path: str) -> None:
+        transport._check("GET", path)
+
     def test_a_method_that_is_not_one_is_refused(
         self, gate: FakeGate, authority: Authority, client_certificate: Issued, answers: Answers
     ) -> None:
@@ -607,11 +730,12 @@ class TestTheAnswerIsFramedRatherThanEnded:
         assert transport.response_limit(default) == default
 
     def test_the_pairing_timeout_outlasts_what_the_plugin_may_take(self) -> None:
-        # `GateOptionsTests` sums the same five waits on the other side: the screen, the dialog
-        # and its grace, the turn at the writer and the write. 305 seconds, and the gate gives
-        # itself 360; a client that hangs up first loses the answer to a pairing the gate has
-        # already spent the invitation and written the record for.
-        assert transport.PAIRING_CONNECTION_TIMEOUT > 120.0 + 120.0 + 15.0 + 20.0 + 30.0
+        # `GateOptionsTests` sums the same six waits on the other side: the screen, the dialog
+        # and its grace, KeePass settling once the operator has approved, the turn at the writer
+        # and the write. 307 seconds, and the gate gives itself 360; a client that hangs up first
+        # loses the answer to a pairing the gate has already spent the invitation and written the
+        # record for.
+        assert transport.PAIRING_CONNECTION_TIMEOUT > 120.0 + 120.0 + 15.0 + 2.0 + 20.0 + 30.0
         assert transport.PAIRING_CONNECTION_TIMEOUT > transport.DEFAULT_CONNECTION_TIMEOUT
 
 
@@ -643,6 +767,18 @@ class TestWhenToComeBack:
     def test_a_delay_that_is_not_a_delay_says_nothing_either(self) -> None:
         assert self._answer("Retry-After: soon\r\n").retry_after is None
         assert self._answer("Retry-After: -5\r\n").retry_after is None
+
+    @pytest.mark.parametrize("delay", ["+1_0", "+10", "1_0"])
+    def test_a_delay_is_digits_and_nothing_int_reads_besides(self, delay: str) -> None:
+        assert self._answer(f"Retry-After: {delay}\r\n").retry_after is None
+
+    @pytest.mark.parametrize("digits", [400, 5000], ids=["past a float", "past what int reads"])
+    def test_a_delay_too_long_to_hold_says_nothing_rather_than_overflowing(
+        self, digits: int
+    ) -> None:
+        # Four hundred digits raised `OverflowError` out of the parse, which is no `GateError`,
+        # from an answer any peer of a pairing could send.
+        assert self._answer(f"Retry-After: {'9' * digits}\r\n").retry_after is None
 
     def test_a_refusal_the_certificate_gave_carries_no_delay(
         self, gate: FakeGate, responder: Issued, authority: Authority, client_certificate: Issued
@@ -791,6 +927,26 @@ class TestASettingThatCannotWork:
         with pytest.raises(ValueError, match="retry_undecided_timeout"):
             transport.Retry(undecided=seconds)
 
+    @pytest.mark.parametrize(
+        "host",
+        ["", "a" * 64 + ".invalid", "a..b", "\udcff", 5, None],
+        ids=["empty", "a long label", "an empty label", "a lone surrogate", "a number", "none"],
+    )
+    def test_a_host_nothing_could_dial(self, host: Any) -> None:
+        # The idna codec refused each from inside `socket` as `UnicodeError`, and a host that was
+        # no text as `TypeError`, out of the first call and naming nothing.
+        with pytest.raises(ValueError, match="host"):
+            transport.host_limit(host)
+
+    def test_a_host_a_dial_of_its_own_reads_is_left_to_it(self) -> None:
+        # The host is the dial's to read, so it can name what that dial understands.
+        def relay(host: str, port: int, timeout: float) -> socket.socket:  # pragma: no cover
+            raise AssertionError("nothing is dialed to check a host")
+
+        assert transport.host_limit("a" * 64 + ".relay", relay) == "a" * 64 + ".relay"
+        with pytest.raises(ValueError, match="host"):
+            transport.host_limit("", relay)
+
     @pytest.mark.parametrize("cap", [1.5, math.nan, True])
     def test_a_cap_that_is_not_a_whole_number_of_bytes(self, cap: Any) -> None:
         # A NaN cap compares false with every length, so it capped nothing at all.
@@ -807,6 +963,8 @@ class TestASettingThatCannotWork:
         assert transport.retry_limit("retry_locked_timeout", 3600.0) == 3600.0
         assert transport.retry_limit("retry_undecided_timeout", 86400.0) == 86400.0
         assert transport.response_limit(1) == 1
+        for host in (transport.LOOPBACK, "::1", "fe80::1%12", "localhost", "例え.jp", "b" * 63):
+            assert transport.host_limit(host) == host
 
     def test_nothing_is_dialed_on_a_setting_that_cannot_work(
         self, gate: FakeGate, authority: Authority, client_certificate: Issued

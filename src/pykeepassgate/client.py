@@ -17,6 +17,7 @@ from __future__ import annotations
 import base64
 import contextlib
 import json
+import os
 from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
@@ -69,12 +70,25 @@ AUTO = "auto"
 
 
 def _segment(text: str) -> str:
-    """One path segment, escaped.
+    """One path segment, escaped, or a refusal of text that addresses nothing.
 
     Nothing is left unescaped, the separator least of all: the gate splits a path before it decodes
     it, so an attachment called `a/b` is addressable exactly because its slash arrives escaped.
+
+    **Refused rather than sent**, as `transport._check` refuses a path it will not send: an empty
+    segment, which made `/groups//entries` of a group given as `""`, and text UTF-8 cannot encode,
+    a lone surrogate such as a name taken from argv that was not UTF-8 brings on POSIX, which left
+    `quote` as `UnicodeEncodeError`, a `ValueError` and no `GateError`.
     """
-    return quote(text, safe="")
+    if not text:
+        raise ProtocolError("an identifier or a name in a path is never empty, and this is empty")
+
+    try:
+        return quote(text, safe="", errors="strict")
+    except UnicodeEncodeError:
+        raise ProtocolError(
+            f"{text!r} is text UTF-8 cannot encode, so it names nothing the gate holds"
+        ) from None
 
 
 @dataclass(frozen=True)
@@ -100,8 +114,11 @@ class Renewal:
 
     `unrevoked` and `retired` are both `None` when everything went: the old certificate is
     revoked and what was stored for it is gone. Otherwise `retired` is where the old identity is
-    still kept, because revoking a certificate takes presenting it, and `unrevoked` says why the
-    gate did not take it back, when that is the reason it is kept.
+    still kept, because revoking a certificate takes presenting it, and `unrevoked` is the refusal
+    giving it up met: a `RouteRefused` whose `error` is `not verified` is a certificate the gate
+    already refuses, whose file the operator settles, and any other refusal leaves it admitted.
+    Beside a `retired`, `unrevoked` is `None` when the gate took the certificate back and only
+    removing what was stored for it failed.
     """
 
     credentials: credentials_module.Credentials
@@ -133,7 +150,9 @@ class GateClient:
         because each ends differently: a busy KeePass is in the middle of something, a locked one
         is waiting for a person to come back, and an undecided one for a person to choose between
         two authorities, which may not be this client's. A `503` with a word none of them names
-        is never waited out. Any of them can be overridden on one call, which `send` takes.
+        is never waited out. Any of them can be overridden on one call, and `connection_timeout`
+        with them, which `send` takes, and so does every method that reads or writes a group or
+        an entry with its tag.
 
         `max_response_bytes` is how much of one answer this client will read, and an answer over
         it fails whole with `ProtocolError` naming the setting, rather than arriving cut short.
@@ -143,8 +162,9 @@ class GateClient:
         **A setting that could not work is refused here**, with a `ValueError` naming it, before
         anything is dialed, and the command line refuses the same ones: a cap that is not a
         positive whole number of bytes, a socket timeout that is not a finite number of seconds
-        above zero, a budget that is neither `None` nor a finite number of seconds from zero, and
-        a port in the credentials that TCP does not have.
+        above zero, a budget that is neither `None` nor a finite number of seconds from zero, a
+        port in the credentials that TCP does not have, and a host that is not text, or for the
+        `dial` a client has unless given another, a name `socket` could not encode to resolve.
 
         `key_password` opens a key that pairing or a renewal stored under one: the password, as text
         or bytes, or a callable returning it, which is asked only if the key turns out to be
@@ -178,8 +198,8 @@ class GateClient:
         transport.port_number(credentials.port)
         self._credentials = credentials
         self._connection_timeout = transport.connection_limit(connection_timeout)
-        self._host = host
         self._dial = transport.dial_limit(dial)
+        self._host = transport.host_limit(host, dial)
         self._retry_busy_timeout = transport.retry_limit("retry_busy_timeout", retry_busy_timeout)
         self._retry_locked_timeout = transport.retry_limit(
             "retry_locked_timeout", retry_locked_timeout
@@ -297,6 +317,8 @@ class GateClient:
         `credentials` says it without connecting. This is what holds now: `profiles` are the ones
         the rules are asked about, which leave out any name the database no longer holds, and
         `removed_profiles` are those, which grant nothing until the operator names them again.
+        `profiles_unreadable` is a database whose list of profiles will not read, which removes
+        every profile the record holds until the operator repairs it.
         """
         return Identity.of(self.get(IDENTITY_PATH))
 
@@ -339,7 +361,8 @@ class GateClient:
         over with the new ones, and the first is taken away. **Only those four files move**:
         anything else a program keeps in the directory stays where it is. A failure while they
         are written over puts the old ones back, and says where each identity is; at every moment
-        each of the two is whole somewhere, and a person can finish what was interrupted.
+        each of the two is whole somewhere, and a person can finish what was interrupted. Every
+        file is on the disk, flushed, before a copy of either is taken away.
         `allow_shared_directory` waives `prepare`'s ownership check on the identity's own
         directory, for one paired into a directory shared on purpose; the two beside it are this
         client's own and are never waived.
@@ -413,12 +436,16 @@ class GateClient:
 
         prepared: list[credentials_module.Prepared] = []
         try:
-            for where, shared in (
-                (staging, False),
-                (retired, False),
-                (directory, allow_shared_directory),
+            for where, shared, beside in (
+                (staging, False, True),
+                (retired, False, True),
+                (directory, allow_shared_directory, False),
             ):
-                prepared.append(credentials_module.prepare(where, allow_shared_directory=shared))
+                prepared.append(
+                    credentials_module.prepare(
+                        where, allow_shared_directory=shared, beside=beside
+                    )
+                )
 
             renewing, keeping, live = prepared
             bundle = self._request(
@@ -520,6 +547,16 @@ class GateClient:
             return
 
         unrevoked = self._give_up(old)
+        if isinstance(unrevoked, StorageError):
+            # Refused before anything was dialed, building the client that would present it, so
+            # the gate was asked nothing and nothing here knows what it would answer.
+            raise StorageError(
+                f"{retired} holds the identity an earlier renewal renewed from, and it could not "
+                f"be presented to give it up: {unrevoked}. Revoke it first, which "
+                f"`pykeepassgate revoke --directory {retired}` does, or, if it will not load, "
+                f"have the operator revoke it on the KPG tab's clients page and remove {retired}"
+            )
+
         if unrevoked is not None:
             raise StorageError(
                 f"{retired} holds the identity an earlier renewal renewed from, and the gate "
@@ -546,7 +583,14 @@ class GateClient:
         )
 
     def _give_up(self, old: credentials_module.Credentials) -> GateError | None:
-        """Revoke the certificate a renewal replaced, presenting it, and say why not if not."""
+        """Revoke the certificate a renewal replaced, presenting it, and say why not if not.
+
+        Opened with the password that opened this client's own key, which is the password the
+        renewal stored the old key under, and with the password this client was given where its
+        own key needed none: a kept identity encrypted beside an identity that is not was opened
+        with no password at all, and refused for having none. A `StorageError` back from here is a
+        refusal to build that client, before anything was dialed.
+        """
         try:
             giving_up = GateClient(
                 old,
@@ -557,7 +601,7 @@ class GateClient:
                 retry_locked_timeout=self._retry_locked_timeout,
                 retry_undecided_timeout=self._retry_undecided_timeout,
                 max_response_bytes=self._max_response_bytes,
-                key_password=self._opened,
+                key_password=self._key_password if self._opened is None else self._opened,
             )
             # The gate this client compared already, which the renewal has just been answered by.
             giving_up._compatible = self._compatible
@@ -601,9 +645,32 @@ class GateClient:
         """
         return Group.listing(self.get("/groups"))
 
-    def group(self, uuid: str = ROOT) -> Group:
-        """One group's own settings, which needs `read` rather than `list`, and its `etag`."""
-        return Group.of(*self._read_tagged(f"/groups/{_segment(uuid)}"))
+    def group(
+        self,
+        uuid: str = ROOT,
+        *,
+        if_match: str | None = None,
+        connection_timeout: float | transport.Keep = transport.KEEP,
+        retry_busy_timeout: transport.Given = transport.KEEP,
+        retry_locked_timeout: transport.Given = transport.KEEP,
+        retry_undecided_timeout: transport.Given = transport.KEEP,
+    ) -> Group:
+        """One group's own settings, which needs `read` rather than `list`, and its `etag`.
+
+        `if_match` reads it only while the group still holds what the tag names, and is
+        `PreconditionFailed` with nothing read otherwise. `connection_timeout` and the three retry
+        budgets are `send`'s, for this read alone, and `KEEP` is the client's own. Every read
+        below takes all five the same way, about the group or the entry the route is about.
+        """
+        found = self._read_tagged(
+            f"/groups/{_segment(uuid)}",
+            if_match,
+            connection_timeout=connection_timeout,
+            retry_busy_timeout=retry_busy_timeout,
+            retry_locked_timeout=retry_locked_timeout,
+            retry_undecided_timeout=retry_undecided_timeout,
+        )
+        return Group.read(*found)
 
     def subgroups(self, uuid: str = ROOT) -> list[Group]:
         """The groups directly inside this one."""
@@ -624,6 +691,10 @@ class GateClient:
         notes: str | None = None,
         *,
         if_match: str | None = None,
+        connection_timeout: float | transport.Keep = transport.KEEP,
+        retry_busy_timeout: transport.Given = transport.KEEP,
+        retry_locked_timeout: transport.Given = transport.KEEP,
+        retry_undecided_timeout: transport.Given = transport.KEEP,
     ) -> str | None:
         """Rename a group, or change its notes. Only what is named is written.
 
@@ -631,7 +702,8 @@ class GateClient:
         group still holding exactly that: `PreconditionFailed` when it does not, with nothing
         changed. Left out, the write goes ahead whatever changed since. What comes back is the
         group's tag as the change left it, for the next write to name without reading first.
-        Every write below takes and answers the same way.
+        `connection_timeout` and the three retry budgets are `send`'s, for this write alone, as
+        `group` takes them. Every write below takes and answers the same way.
 
         **Only for a client the gate hands tags to**, which is one whose rule reads everything the
         tag covers: `read` on a group, and on an entry `read` reaching its attachments and, when
@@ -645,20 +717,51 @@ class GateClient:
         if notes is not None:
             body["Notes"] = notes
 
-        return self._written("PUT", f"/groups/{_segment(uuid)}", body, if_match)
+        return self._written(
+            "PUT",
+            f"/groups/{_segment(uuid)}",
+            body,
+            if_match,
+            connection_timeout=connection_timeout,
+            retry_busy_timeout=retry_busy_timeout,
+            retry_locked_timeout=retry_locked_timeout,
+            retry_undecided_timeout=retry_undecided_timeout,
+        )
 
-    def delete_group(self, uuid: str, *, if_match: str | None = None) -> None:
+    def delete_group(
+        self,
+        uuid: str,
+        *,
+        if_match: str | None = None,
+        connection_timeout: float | transport.Keep = transport.KEEP,
+        retry_busy_timeout: transport.Given = transport.KEEP,
+        retry_locked_timeout: transport.Given = transport.KEEP,
+        retry_undecided_timeout: transport.Given = transport.KEEP,
+    ) -> None:
         """Remove a group, which the gate refuses while it still holds anything."""
-        self._written("DELETE", f"/groups/{_segment(uuid)}", None, if_match)
+        self._written(
+            "DELETE",
+            f"/groups/{_segment(uuid)}",
+            None,
+            if_match,
+            connection_timeout=connection_timeout,
+            retry_busy_timeout=retry_busy_timeout,
+            retry_locked_timeout=retry_locked_timeout,
+            retry_undecided_timeout=retry_undecided_timeout,
+        )
 
     def group_access(self, uuid: str = ROOT) -> Access:
-        """What this client may do at a group, one mask for each profile it holds.
+        """What the rules grant this client at a group, one mask for each profile it holds.
 
         The route declares `x-kpg-verb: any`, so the gate puts every verb and switch to the rules
-        here for each profile, as each operation's own question would be put, and answers `404`
-        unless some profile is granted some verb, as it answers a group that is not there. So a
-        client learns what it may do at a node it can reach, and nothing about one it cannot.
-        `Access.allows` asks the questions a caller has.
+        for each profile, about the group alone, and answers `404` unless some profile is granted
+        some verb there, as it answers a group that is not there. So a client learns what the rules
+        grant it at a node it can reach, and nothing about a node it cannot. **A mask is what the
+        rules grant at the node rather than which operations would succeed**: a switch beside only
+        `S` or `D` is left out, since removing takes what a switch qualifies without asking it,
+        removing the group itself asks the group above it for `D` as well, and `S` is reported on
+        a group though no operation strips a group. `Access.allows` asks the questions a caller
+        has.
         """
         return Access.of(self.get(f"/groups/{_segment(uuid)}/access"))
 
@@ -680,13 +783,30 @@ class GateClient:
 
         return Entry.listing(self.get(path))
 
-    def entry(self, uuid: str) -> Entry:
+    def entry(
+        self,
+        uuid: str,
+        *,
+        if_match: str | None = None,
+        connection_timeout: float | transport.Keep = transport.KEEP,
+        retry_busy_timeout: transport.Given = transport.KEEP,
+        retry_locked_timeout: transport.Given = transport.KEEP,
+        retry_undecided_timeout: transport.Given = transport.KEEP,
+    ) -> Entry:
         """One entry and every string it holds.
 
         The protected ones arrive only when this client may read them. Its `etag` covers it and
         everything in it, which is what a write to it, its fields or its attachments can name.
         """
-        return Entry.read(*self._read_tagged(f"/entries/{_segment(uuid)}"))
+        found = self._read_tagged(
+            f"/entries/{_segment(uuid)}",
+            if_match,
+            connection_timeout=connection_timeout,
+            retry_busy_timeout=retry_busy_timeout,
+            retry_locked_timeout=retry_locked_timeout,
+            retry_undecided_timeout=retry_undecided_timeout,
+        )
+        return Entry.read(*found)
 
     def create_entry(
         self,
@@ -725,6 +845,10 @@ class GateClient:
         expires: datetime | Literal[False] | None = None,
         *,
         if_match: str | None = None,
+        connection_timeout: float | transport.Keep = transport.KEEP,
+        retry_busy_timeout: transport.Given = transport.KEEP,
+        retry_locked_timeout: transport.Given = transport.KEEP,
+        retry_undecided_timeout: transport.Given = transport.KEEP,
     ) -> str | None:
         """Change the standard fields of an entry. Only what is named is written.
 
@@ -738,11 +862,38 @@ class GateClient:
         if expires is not None:
             body[EXPIRES] = _expiry(expires, creating=False)
 
-        return self._written("PUT", f"/entries/{_segment(uuid)}", body, if_match)
+        return self._written(
+            "PUT",
+            f"/entries/{_segment(uuid)}",
+            body,
+            if_match,
+            connection_timeout=connection_timeout,
+            retry_busy_timeout=retry_busy_timeout,
+            retry_locked_timeout=retry_locked_timeout,
+            retry_undecided_timeout=retry_undecided_timeout,
+        )
 
-    def delete_entry(self, uuid: str, *, if_match: str | None = None) -> None:
+    def delete_entry(
+        self,
+        uuid: str,
+        *,
+        if_match: str | None = None,
+        connection_timeout: float | transport.Keep = transport.KEEP,
+        retry_busy_timeout: transport.Given = transport.KEEP,
+        retry_locked_timeout: transport.Given = transport.KEEP,
+        retry_undecided_timeout: transport.Given = transport.KEEP,
+    ) -> None:
         """Remove an entry, to the recycle bin when the database keeps one."""
-        self._written("DELETE", f"/entries/{_segment(uuid)}", None, if_match)
+        self._written(
+            "DELETE",
+            f"/entries/{_segment(uuid)}",
+            None,
+            if_match,
+            connection_timeout=connection_timeout,
+            retry_busy_timeout=retry_busy_timeout,
+            retry_locked_timeout=retry_locked_timeout,
+            retry_undecided_timeout=retry_undecided_timeout,
+        )
 
     def entry_access(self, uuid: str) -> Access:
         """What this client may do at an entry, one mask for each profile it holds.
@@ -754,13 +905,49 @@ class GateClient:
 
     # Fields
 
-    def fields(self, uuid: str) -> list[Field]:
+    def fields(
+        self,
+        uuid: str,
+        *,
+        if_match: str | None = None,
+        connection_timeout: float | transport.Keep = transport.KEEP,
+        retry_busy_timeout: transport.Given = transport.KEEP,
+        retry_locked_timeout: transport.Given = transport.KEEP,
+        retry_undecided_timeout: transport.Given = transport.KEEP,
+    ) -> list[Field]:
         """The names of an entry's strings, never their values, each with the entry's `etag`."""
-        return Field.listing(*self._read_tagged(f"/entries/{_segment(uuid)}/fields"))
+        found = self._read_tagged(
+            f"/entries/{_segment(uuid)}/fields",
+            if_match,
+            connection_timeout=connection_timeout,
+            retry_busy_timeout=retry_busy_timeout,
+            retry_locked_timeout=retry_locked_timeout,
+            retry_undecided_timeout=retry_undecided_timeout,
+        )
+        return Field.listing(*found)
 
-    def field(self, uuid: str, name: str) -> Field:
+    def field(
+        self,
+        uuid: str,
+        name: str,
+        *,
+        if_match: str | None = None,
+        connection_timeout: float | transport.Keep = transport.KEEP,
+        retry_busy_timeout: transport.Given = transport.KEEP,
+        retry_locked_timeout: transport.Given = transport.KEEP,
+        retry_undecided_timeout: transport.Given = transport.KEEP,
+    ) -> Field:
         """One string's value, and the `etag` of the entry holding it."""
-        return Field.read(*self._read_tagged(f"/entries/{_segment(uuid)}/fields/{_segment(name)}"))
+        path = f"/entries/{_segment(uuid)}/fields/{_segment(name)}"
+        found = self._read_tagged(
+            path,
+            if_match,
+            connection_timeout=connection_timeout,
+            retry_busy_timeout=retry_busy_timeout,
+            retry_locked_timeout=retry_locked_timeout,
+            retry_undecided_timeout=retry_undecided_timeout,
+        )
+        return Field.read(*found)
 
     def create_field(
         self,
@@ -770,6 +957,10 @@ class GateClient:
         protected: bool = False,
         *,
         if_match: str | None = None,
+        connection_timeout: float | transport.Keep = transport.KEEP,
+        retry_busy_timeout: transport.Given = transport.KEEP,
+        retry_locked_timeout: transport.Given = transport.KEEP,
+        retry_undecided_timeout: transport.Given = transport.KEEP,
     ) -> str | None:
         """Add a string this entry does not have. Refused when the name is already taken.
 
@@ -784,10 +975,28 @@ class GateClient:
         if protected:
             body["protected"] = "true"
 
-        return self._written("POST", f"/entries/{_segment(uuid)}/fields", body, if_match)
+        return self._written(
+            "POST",
+            f"/entries/{_segment(uuid)}/fields",
+            body,
+            if_match,
+            connection_timeout=connection_timeout,
+            retry_busy_timeout=retry_busy_timeout,
+            retry_locked_timeout=retry_locked_timeout,
+            retry_undecided_timeout=retry_undecided_timeout,
+        )
 
     def update_field(
-        self, uuid: str, name: str, value: str, *, if_match: str | None = None
+        self,
+        uuid: str,
+        name: str,
+        value: str,
+        *,
+        if_match: str | None = None,
+        connection_timeout: float | transport.Keep = transport.KEEP,
+        retry_busy_timeout: transport.Given = transport.KEEP,
+        retry_locked_timeout: transport.Given = transport.KEEP,
+        retry_undecided_timeout: transport.Given = transport.KEEP,
     ) -> str | None:
         """Change a string this entry already has. Refused when there is no such name.
 
@@ -796,10 +1005,27 @@ class GateClient:
         `etag`, so the write is refused if anything in the entry changed, not only this field.
         """
         return self._written(
-            "PUT", f"/entries/{_segment(uuid)}/fields/{_segment(name)}", {"value": value}, if_match
+            "PUT",
+            f"/entries/{_segment(uuid)}/fields/{_segment(name)}",
+            {"value": value},
+            if_match,
+            connection_timeout=connection_timeout,
+            retry_busy_timeout=retry_busy_timeout,
+            retry_locked_timeout=retry_locked_timeout,
+            retry_undecided_timeout=retry_undecided_timeout,
         )
 
-    def strip_field(self, uuid: str, name: str, *, if_match: str | None = None) -> str | None:
+    def strip_field(
+        self,
+        uuid: str,
+        name: str,
+        *,
+        if_match: str | None = None,
+        connection_timeout: float | transport.Keep = transport.KEEP,
+        retry_busy_timeout: transport.Given = transport.KEEP,
+        retry_locked_timeout: transport.Given = transport.KEEP,
+        retry_undecided_timeout: transport.Given = transport.KEEP,
+    ) -> str | None:
         """Take a string off an entry, and answer with the entry's tag as that left it.
 
         A strip rather than a delete: it removes a part of the entry and leaves the entry, so it
@@ -809,28 +1035,79 @@ class GateClient:
         instead.
         """
         return self._written(
-            "DELETE", f"/entries/{_segment(uuid)}/fields/{_segment(name)}", None, if_match
+            "DELETE",
+            f"/entries/{_segment(uuid)}/fields/{_segment(name)}",
+            None,
+            if_match,
+            connection_timeout=connection_timeout,
+            retry_busy_timeout=retry_busy_timeout,
+            retry_locked_timeout=retry_locked_timeout,
+            retry_undecided_timeout=retry_undecided_timeout,
         )
 
     # Attachments
 
-    def attachments(self, uuid: str) -> list[Attachment]:
+    def attachments(
+        self,
+        uuid: str,
+        *,
+        if_match: str | None = None,
+        connection_timeout: float | transport.Keep = transport.KEEP,
+        retry_busy_timeout: transport.Given = transport.KEEP,
+        retry_locked_timeout: transport.Given = transport.KEEP,
+        retry_undecided_timeout: transport.Given = transport.KEEP,
+    ) -> list[Attachment]:
         """The names and sizes of an entry's attachments, never their contents.
 
         Needs the attachment switch as well as `list`, which is what the seventh letter of a grant
         means: not "may read attachments" but "and the attachments too". Each comes with the
         entry's `etag`, as `fields` hands them out.
         """
-        return Attachment.listing(*self._read_tagged(f"/entries/{_segment(uuid)}/attachments"))
-
-    def attachment(self, uuid: str, name: str) -> Attachment:
-        """One attachment, contents and all, and the `etag` of the entry holding it."""
-        return Attachment.read(
-            *self._read_tagged(f"/entries/{_segment(uuid)}/attachments/{_segment(name)}")
+        path = f"/entries/{_segment(uuid)}/attachments"
+        found = self._read_tagged(
+            path,
+            if_match,
+            connection_timeout=connection_timeout,
+            retry_busy_timeout=retry_busy_timeout,
+            retry_locked_timeout=retry_locked_timeout,
+            retry_undecided_timeout=retry_undecided_timeout,
         )
+        return Attachment.listing(*found)
+
+    def attachment(
+        self,
+        uuid: str,
+        name: str,
+        *,
+        if_match: str | None = None,
+        connection_timeout: float | transport.Keep = transport.KEEP,
+        retry_busy_timeout: transport.Given = transport.KEEP,
+        retry_locked_timeout: transport.Given = transport.KEEP,
+        retry_undecided_timeout: transport.Given = transport.KEEP,
+    ) -> Attachment:
+        """One attachment, contents and all, and the `etag` of the entry holding it."""
+        path = f"/entries/{_segment(uuid)}/attachments/{_segment(name)}"
+        found = self._read_tagged(
+            path,
+            if_match,
+            connection_timeout=connection_timeout,
+            retry_busy_timeout=retry_busy_timeout,
+            retry_locked_timeout=retry_locked_timeout,
+            retry_undecided_timeout=retry_undecided_timeout,
+        )
+        return Attachment.read(*found)
 
     def create_attachment(
-        self, uuid: str, name: str, content: bytes, *, if_match: str | None = None
+        self,
+        uuid: str,
+        name: str,
+        content: bytes,
+        *,
+        if_match: str | None = None,
+        connection_timeout: float | transport.Keep = transport.KEEP,
+        retry_busy_timeout: transport.Given = transport.KEEP,
+        retry_locked_timeout: transport.Given = transport.KEEP,
+        retry_undecided_timeout: transport.Given = transport.KEEP,
     ) -> str | None:
         """Add an attachment this entry does not have. `if_match` is the entry's `etag`."""
         return self._written(
@@ -838,10 +1115,23 @@ class GateClient:
             f"/entries/{_segment(uuid)}/attachments",
             {"name": name, "content": base64.b64encode(content).decode("ascii")},
             if_match,
+            connection_timeout=connection_timeout,
+            retry_busy_timeout=retry_busy_timeout,
+            retry_locked_timeout=retry_locked_timeout,
+            retry_undecided_timeout=retry_undecided_timeout,
         )
 
     def update_attachment(
-        self, uuid: str, name: str, content: bytes, *, if_match: str | None = None
+        self,
+        uuid: str,
+        name: str,
+        content: bytes,
+        *,
+        if_match: str | None = None,
+        connection_timeout: float | transport.Keep = transport.KEEP,
+        retry_busy_timeout: transport.Given = transport.KEEP,
+        retry_locked_timeout: transport.Given = transport.KEEP,
+        retry_undecided_timeout: transport.Given = transport.KEEP,
     ) -> str | None:
         """Replace an attachment this entry already has. `if_match` is the entry's `etag`."""
         return self._written(
@@ -849,17 +1139,36 @@ class GateClient:
             f"/entries/{_segment(uuid)}/attachments/{_segment(name)}",
             {"content": base64.b64encode(content).decode("ascii")},
             if_match,
+            connection_timeout=connection_timeout,
+            retry_busy_timeout=retry_busy_timeout,
+            retry_locked_timeout=retry_locked_timeout,
+            retry_undecided_timeout=retry_undecided_timeout,
         )
 
     def strip_attachment(
-        self, uuid: str, name: str, *, if_match: str | None = None
+        self,
+        uuid: str,
+        name: str,
+        *,
+        if_match: str | None = None,
+        connection_timeout: float | transport.Keep = transport.KEEP,
+        retry_busy_timeout: transport.Given = transport.KEEP,
+        retry_locked_timeout: transport.Given = transport.KEEP,
+        retry_undecided_timeout: transport.Given = transport.KEEP,
     ) -> str | None:
         """Take an attachment off an entry, and answer with the entry's tag as that left it.
 
         Needs `strip`, and not the attachment switch: removing shows nobody anything.
         """
         return self._written(
-            "DELETE", f"/entries/{_segment(uuid)}/attachments/{_segment(name)}", None, if_match
+            "DELETE",
+            f"/entries/{_segment(uuid)}/attachments/{_segment(name)}",
+            None,
+            if_match,
+            connection_timeout=connection_timeout,
+            retry_busy_timeout=retry_busy_timeout,
+            retry_locked_timeout=retry_locked_timeout,
+            retry_undecided_timeout=retry_undecided_timeout,
         )
 
     @staticmethod
@@ -886,6 +1195,7 @@ class GateClient:
         path: str,
         *,
         if_match: str | None = None,
+        connection_timeout: float | transport.Keep = transport.KEEP,
         retry_busy_timeout: transport.Given = transport.KEEP,
         retry_locked_timeout: transport.Given = transport.KEEP,
         retry_undecided_timeout: transport.Given = transport.KEEP,
@@ -916,6 +1226,7 @@ class GateClient:
             None,
             _refuse,
             if_match=if_match,
+            connection_timeout=connection_timeout,
             retry_busy_timeout=retry_busy_timeout,
             retry_locked_timeout=retry_locked_timeout,
             retry_undecided_timeout=retry_undecided_timeout,
@@ -926,6 +1237,7 @@ class GateClient:
         path: str,
         *,
         if_match: str | None = None,
+        connection_timeout: float | transport.Keep = transport.KEEP,
         retry_busy_timeout: transport.Given = transport.KEEP,
         retry_locked_timeout: transport.Given = transport.KEEP,
         retry_undecided_timeout: transport.Given = transport.KEEP,
@@ -935,6 +1247,7 @@ class GateClient:
             "GET",
             path,
             if_match=if_match,
+            connection_timeout=connection_timeout,
             retry_busy_timeout=retry_busy_timeout,
             retry_locked_timeout=retry_locked_timeout,
             retry_undecided_timeout=retry_undecided_timeout,
@@ -947,6 +1260,7 @@ class GateClient:
         body: dict[str, Any] | None = None,
         *,
         if_match: str | None = None,
+        connection_timeout: float | transport.Keep = transport.KEEP,
         retry_busy_timeout: transport.Given = transport.KEEP,
         retry_locked_timeout: transport.Given = transport.KEEP,
         retry_undecided_timeout: transport.Given = transport.KEEP,
@@ -957,18 +1271,21 @@ class GateClient:
         the methods this class happens to name would be a worse reference than one that can reach
         anything the document declares.
 
-        **This is also where a retry budget is overridden for one call**, and the reason it is
-        here rather than on each method above is that a call to the gate is a request: every one
-        of those methods comes down to the request this makes, `renew` aside, which makes several
-        and waits with the client's own budgets, so `send` is where a caller can say that this
-        request in particular is worth waiting for. Three more arguments on each of
-        them would say the same thing once for every route and turn the file that is meant to
-        read as the list of what the gate serves into a file about timeouts.
+        **The connection timeout and the retry budgets are overridden for one call here**, and on
+        every method above that reads or writes a group or an entry with its tag, which takes the
+        same four: the reads of one group, entry, field or attachment and their listings of fields
+        and attachments, `head`, and every update, removal and strip, and every field and
+        attachment write. A program that wanted a budget of its own for one of those would
+        otherwise make it through this, which hands back no read's tag, since that comes in a
+        header, or through a second client built with other budgets. `connection_timeout` bounds
+        each wait on the socket of each attempt, as the client's own does. The other methods wait
+        with the client's own, as `renew` does, which makes several requests, and `send` is where
+        a caller marks a request of theirs in particular as worth waiting for.
 
         Nothing but a `503` is retried, and a `503` only when its word is one a budget names. A
         refusal a client cannot fix by waiting must not be sent round a loop, and a write that
-        failed for any other reason may well have landed. A budget given for one call is refused
-        as the client's own are, before anything is dialed.
+        failed for any other reason may well have landed. A budget or a connection timeout given
+        for one call is refused as the client's own are, before anything is dialed.
 
         `if_match` goes as `If-Match`, exactly as given: a tag as `etag` holds one, several with
         commas between, or `*`. The gate reads it on the routes about one group or one entry and
@@ -982,6 +1299,7 @@ class GateClient:
                 body,
                 _refuse,
                 if_match=if_match,
+                connection_timeout=connection_timeout,
                 retry_busy_timeout=retry_busy_timeout,
                 retry_locked_timeout=retry_locked_timeout,
                 retry_undecided_timeout=retry_undecided_timeout,
@@ -995,7 +1313,7 @@ class GateClient:
         body: dict[str, Any] | None,
         refuse: Callable[[transport.Response], None],
         *,
-        connection_timeout: float | None = None,
+        connection_timeout: float | transport.Keep = transport.KEEP,
         held: float | None = None,
     ) -> dict[str, Any]:
         """One request whose refusals mean what the caller says, under this client's budgets.
@@ -1004,7 +1322,7 @@ class GateClient:
         its body, so the route that has them says what they are rather than every route learning
         them. Its `503`s are read by `_refuse` as every route's are, so a renewal is waited out
         exactly as a read is. It waits on a person as well, so it gives its own
-        `connection_timeout` too, and `None` is this client's. And it can be answered with an
+        `connection_timeout` too, and `KEEP` is this client's. And it can be answered with an
         approval the gate holds, which `held` is how long to go on asking for, `None` for not.
         """
         return _object(
@@ -1013,15 +1331,43 @@ class GateClient:
             )
         )
 
-    def _read_tagged(self, path: str) -> tuple[dict[str, Any], str | None]:
-        """One read, and the tag it was answered with, which the read model keeps."""
-        reply = self._exchange("GET", path, None, _refuse)
+    def _read_tagged(
+        self,
+        path: str,
+        if_match: str | None,
+        *,
+        connection_timeout: float | transport.Keep,
+        retry_busy_timeout: transport.Given,
+        retry_locked_timeout: transport.Given,
+        retry_undecided_timeout: transport.Given,
+    ) -> tuple[dict[str, Any], str | None]:
+        """One read, under `if_match` and the budgets given, and the tag it was answered with."""
+        reply = self._exchange(
+            "GET",
+            path,
+            None,
+            _refuse,
+            if_match=if_match,
+            connection_timeout=connection_timeout,
+            retry_busy_timeout=retry_busy_timeout,
+            retry_locked_timeout=retry_locked_timeout,
+            retry_undecided_timeout=retry_undecided_timeout,
+        )
         return reply.json(), reply.etag
 
     def _written(
-        self, method: str, path: str, body: dict[str, Any] | None, if_match: str | None
+        self,
+        method: str,
+        path: str,
+        body: dict[str, Any] | None,
+        if_match: str | None,
+        *,
+        connection_timeout: float | transport.Keep,
+        retry_busy_timeout: transport.Given,
+        retry_locked_timeout: transport.Given,
+        retry_undecided_timeout: transport.Given,
     ) -> str | None:
-        """One write, under `if_match` when it was given, and the tag of what it left.
+        """One write, under `if_match` and the budgets given, and the tag of what it left.
 
         Read out of the answer's body, as `etag`, where the gate puts it: RFC 9110 section 9.3.4
         has an `ETag` on the answer to a `PUT` say the body sent was stored as sent, and this is
@@ -1029,7 +1375,17 @@ class GateClient:
         which leaves nothing to tag, a create of a group or an entry, which is sent to a listing,
         and every write by a client the gate hands no tag to.
         """
-        reply = self._exchange(method, path, body, _refuse, if_match=if_match)
+        reply = self._exchange(
+            method,
+            path,
+            body,
+            _refuse,
+            if_match=if_match,
+            connection_timeout=connection_timeout,
+            retry_busy_timeout=retry_busy_timeout,
+            retry_locked_timeout=retry_locked_timeout,
+            retry_undecided_timeout=retry_undecided_timeout,
+        )
         left = _object(reply).get("etag")
         if left is None:
             return None
@@ -1047,10 +1403,10 @@ class GateClient:
         refuse: Callable[[transport.Response], None],
         *,
         if_match: str | None = None,
+        connection_timeout: float | transport.Keep = transport.KEEP,
         retry_busy_timeout: transport.Given = transport.KEEP,
         retry_locked_timeout: transport.Given = transport.KEEP,
         retry_undecided_timeout: transport.Given = transport.KEEP,
-        connection_timeout: float | None = None,
         held: float | None = None,
         comparing: bool = True,
     ) -> transport.Response:
@@ -1064,11 +1420,21 @@ class GateClient:
         **The first request this client sends is preceded by the status route**, unless it is
         that route asked by `status`, which is the comparison itself: a gate this client does not
         work with is refused, with `IncompatibleGate`, before anything else is sent to it. Under
-        the budgets of the request it precedes, since a caller willing to wait out a lock for a
-        write is willing to wait it out for what the write needs first, and once per client, since
-        the gate a client reaches is the gate its credentials name.
+        the retry budgets of the request it precedes, since a caller willing to wait out a lock for
+        a write is willing to wait it out for what the write needs first, and once per client,
+        since the gate a client reaches is the gate its credentials name. Its connection timeout
+        is the client's own whatever the request was given: a longer timeout is for a request that
+        waits on something, a renewal on a person, and the comparison waits on nothing.
+
+        A connection timeout given for one call is refused as the client's own is, before
+        anything is dialed, and `KEEP` is the client's.
         """
         transport.check_condition(if_match)
+        timeout = (
+            self._connection_timeout
+            if isinstance(connection_timeout, transport.Keep)
+            else transport.connection_limit(connection_timeout)
+        )
         retry = transport.Retry(
             busy=transport.given(retry_busy_timeout, self._retry_busy_timeout),
             locked=transport.given(retry_locked_timeout, self._retry_locked_timeout),
@@ -1079,9 +1445,13 @@ class GateClient:
         payload = "" if body is None else json.dumps(body, separators=(",", ":"))
 
         if comparing and not self._compatible:
-            self._status(self._attempts("GET", STATUS_PATH, "", _refuse, retry, None, None))
+            self._status(
+                self._attempts(
+                    "GET", STATUS_PATH, "", _refuse, retry, self._connection_timeout, None
+                )
+            )
 
-        return self._attempts(method, path, payload, refuse, retry, connection_timeout, if_match)
+        return self._attempts(method, path, payload, refuse, retry, timeout, if_match)
 
     def _attempts(
         self,
@@ -1090,7 +1460,7 @@ class GateClient:
         payload: str,
         refuse: Callable[[transport.Response], None],
         retry: transport.Retry,
-        connection_timeout: float | None,
+        connection_timeout: float,
         if_match: str | None,
     ) -> transport.Response:
         """One request, sent again for as long as `retry` allows, and the reply that ended it."""
@@ -1115,7 +1485,7 @@ class GateClient:
         method: str,
         path: str,
         payload: str,
-        connection_timeout: float | None = None,
+        connection_timeout: float,
         if_match: str | None = None,
     ) -> transport.Response:
         """One attempt, on a connection of its own and under a name of its own.
@@ -1148,9 +1518,7 @@ class GateClient:
             self._context,
             name,
             host=self._host,
-            connection_timeout=(
-                self._connection_timeout if connection_timeout is None else connection_timeout
-            ),
+            connection_timeout=connection_timeout,
             max_response_bytes=self._max_response_bytes,
             dial=self._dial,
         ) as connection:
@@ -1181,7 +1549,17 @@ def _expiry(value: object, *, creating: bool) -> str:
         if value.utcoffset() is None:
             raise ValueError("an expiry needs a time zone, which datetime.now(UTC) has")
 
-        return value.astimezone(UTC).replace(microsecond=0, tzinfo=None).isoformat() + "Z"
+        # A moment whose instant in UTC falls outside the years 1 to 9999 cannot be moved there,
+        # and `astimezone` raises `OverflowError` for it, which is no `ValueError`.
+        try:
+            moved = value.astimezone(UTC)
+        except OverflowError:
+            raise ValueError(
+                f"an expiry is a moment whose instant in UTC falls in the years 1 to 9999, "
+                f"not {value.isoformat()}"
+            ) from None
+
+        return moved.replace(microsecond=0, tzinfo=None).isoformat() + "Z"
 
     if value == AUTO and creating:
         return AUTO
@@ -1191,8 +1569,22 @@ def _expiry(value: object, *, creating: bool) -> str:
 
 
 def _beside(directory: Path, purpose: str) -> Path:
-    """A directory next to this one, named for what it holds during a renewal."""
-    return directory.with_name(f"{directory.name}.{purpose}")
+    """A directory next to this one, named for what it holds during a renewal.
+
+    Named from the directory as a whole path, `..` taken lexically, because an identity is opened
+    by whatever path a caller gave: `.` has no name to put a suffix on, which `with_name`
+    refused with a bare `ValueError`, and `..` named `...renewing` in the working directory,
+    inside the identity's directory rather than beside it. A root has nothing beside it at all,
+    which is a `StorageError` naming what to do instead.
+    """
+    whole = Path(os.path.normpath(directory.absolute()))
+    if not whole.name:
+        raise StorageError(
+            f"{directory} is a root, and a renewal keeps two directories beside the identity's "
+            "own, which a root has nowhere to put: keep the identity in a directory of its own"
+        )
+
+    return whole.with_name(f"{whole.name}.{purpose}")
 
 
 def _held(directory: Path) -> dict[str, bytes]:
@@ -1338,7 +1730,33 @@ def _refuse_renewal(reply: transport.Response) -> None:
             "at the screen"
         )
 
+    if reply.status == 503:
+        # A renewal's own causes, which an ordinary route's message does not name: the gate asks
+        # the screen and the list of profiles as it does for a pairing, since a renewal writes a
+        # record of the names on it, and the list is the one of them that does not end by itself.
+        raise transport.unavailable(
+            reply,
+            locked="the database is locked, so a renewal has nothing to issue from",
+            busy=(
+                "the gate cannot put this renewal to the operator right now: KeePass is part way "
+                "through something of its own, Database Maintenance is open, saving the database "
+                "would stop to ask the operator something, another pairing or renewal is in front "
+                "of them, or there is no screen to ask on, each of which ends by itself, or the "
+                "database's list of profiles will not read, which lasts until the operator "
+                "repairs it. Nothing changed, and the certificate this client holds still works"
+            ),
+            undecided=_UNDECIDED,
+        )
+
     _refuse(reply)
+
+
+#: What a `503 undecided` means wherever a paired client meets it, a renewal among them.
+_UNDECIDED = (
+    "the database holds more than one certificate authority and the operator has not yet kept "
+    "any of them, which KeePass asks about on its own screen. If the authority kept is not this "
+    "client's, this client reaches nothing afterwards and pairs again"
+)
 
 
 def _moment(value: object) -> datetime:
@@ -1369,15 +1787,12 @@ def _refuse(reply: transport.Response) -> None:
             locked="the database is locked, so every route answers this until it is not",
             busy=(
                 "the gate cannot serve this right now: KeePass is busy, with a dialog open on "
-                "what this would change or with something of its own. Nothing was done, so "
-                "asking again shortly is safe"
+                "what this would change, with something of its own, or with a save that would "
+                "stop to ask the operator something, such as a database file changed on disk, "
+                "which lasts until the operator saves the database in KeePass. Nothing was done, "
+                "so asking again is safe"
             ),
-            undecided=(
-                "the database holds more than one certificate authority and the operator has "
-                "not yet kept any of them, which KeePass asks about on its own screen. If the "
-                "authority kept is not this client's, this client reaches nothing afterwards and "
-                "pairs again"
-            ),
+            undecided=_UNDECIDED,
         )
 
     error = reply.error()

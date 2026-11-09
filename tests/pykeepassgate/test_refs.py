@@ -44,13 +44,19 @@ def _vectors() -> dict[str, Any]:
 DOCUMENT = _vectors()
 
 
-def answer(uuid: str, fields: dict[str, str | None]) -> dict[str, Any]:
-    """What the gate answers a read of an entry with, `null` for a value it withholds."""
+def answer(
+    uuid: str, fields: dict[str, str | None], protected: tuple[str, ...] = ()
+) -> dict[str, Any]:
+    """What the gate answers a read of an entry with, `null` for a value it withholds.
+
+    Every value withheld is protected, and so is every name in `protected`, readable here.
+    """
+    withheld = [name for name, value in fields.items() if value is None]
     return {
         "uuid": uuid,
         "group": GROUP,
         "fields": fields,
-        "protected": [name for name, value in fields.items() if value is None],
+        "protected": [*withheld, *(name for name in protected if name not in withheld)],
         "expires": None,
     }
 
@@ -69,7 +75,9 @@ class Database:
         if found is None:
             raise RouteRefused(404, "no such route")
 
-        return Entry.read(answer(found["uuid"], dict(found["fields"])))
+        return Entry.read(
+            answer(found["uuid"], dict(found["fields"]), tuple(found.get("protected", ())))
+        )
 
 
 def test_the_vectors_are_where_the_host_test_writes_them() -> None:
@@ -127,6 +135,14 @@ def test_a_spelling_only_keepass_can_compare_is_refused(name: str, value: str) -
         refs.resolve(Database([]), entry, value)
 
 
+#: What the culture's collation gives no weight to, so that a name holding such a character is the
+#: name without it: a soft hyphen beyond ASCII, and the null, the only such character within it.
+IGNORED = pytest.mark.parametrize(
+    "ignored", [chr(0xAD), "\0"], ids=["a soft hyphen", "a null"]
+)
+
+
+@IGNORED
 @pytest.mark.parametrize("withheld", [False, True], ids=["read", "withheld"])
 @pytest.mark.parametrize(
     "value",
@@ -134,17 +150,18 @@ def test_a_spelling_only_keepass_can_compare_is_refused(name: str, value: str) -
     ids=["a placeholder", "a reference"],
 )
 def test_a_standard_string_held_under_a_look_alike_name_is_refused_rather_than_empty(
-    value: str, withheld: bool
+    value: str, withheld: bool, ignored: str
 ) -> None:
     # KeePass reads `Password` out of a dictionary ordered by the culture's collation, which gives
-    # the soft hyphen no weight, so to it this entry holds a password. Empty would stand where
-    # KeePass has a value, and where the gate withholds one, where a value never may.
-    look_alike = "Pass" + chr(0xAD) + "word"
+    # the soft hyphen no weight, nor the null, so to it this entry holds a password. Empty would
+    # stand where KeePass has a value, and where the gate withholds one, where a value never may.
+    # The null is ASCII, so a refusal asking only for a name beyond ASCII let it through.
+    look_alike = "Pass" + ignored + "word"
     held = {"Title": "Invented Look-alike", look_alike: None if withheld else "an invented value"}
     entry = Entry.read(answer("A2000000000000000000000000000002", held))
     database = Database([{"uuid": "A2000000000000000000000000000002", "fields": held}])
 
-    with pytest.raises(AmbiguousName, match="beyond ASCII"):
+    with pytest.raises(AmbiguousName, match="beyond ASCII or holding a null"):
         refs.resolve(database, entry, value)
 
 
@@ -156,10 +173,11 @@ def test_a_standard_string_an_entry_of_ascii_names_does_not_hold_is_empty() -> N
     assert refs.resolve(Database([]), entry, "[{PASSWORD}]") == "[]"
 
 
+@IGNORED
 @pytest.mark.parametrize("withheld", [False, True], ids=["read", "withheld"])
 @pytest.mark.parametrize("standard", ["title", "username", "password", "url", "notes"])
 def test_the_read_model_refuses_a_standard_string_held_under_a_look_alike_name(
-    withheld: bool, standard: str
+    withheld: bool, standard: str, ignored: str
 ) -> None:
     # The resolver's rule on the read model. `entry.password` answered "" for this entry, where
     # KeePass shows a value, and where the gate withheld a value, which this client never reads as
@@ -167,10 +185,10 @@ def test_the_read_model_refuses_a_standard_string_held_under_a_look_alike_name(
     names = {"title": "Title", "username": "UserName", "password": "Password", "url": "URL"}
     name = names.get(standard, "Notes")
     held: dict[str, str | None] = {} if standard == "title" else {"Title": "Invented Look-alike"}
-    held[name[:2] + chr(0xAD) + name[2:]] = None if withheld else "an invented value"
+    held[name[:2] + ignored + name[2:]] = None if withheld else "an invented value"
     entry = Entry.read(answer("A2000000000000000000000000000002", held))
 
-    with pytest.raises(AmbiguousName, match="beyond ASCII"):
+    with pytest.raises(AmbiguousName, match="beyond ASCII or holding a null"):
         getattr(entry, standard)
 
 
@@ -215,6 +233,8 @@ def test_a_circle_is_refused_as_a_circle_rather_than_by_running_out_of_depth(nam
 
 SERVICE = "A1000000000000000000000000000001"
 VAULT = "A2000000000000000000000000000001"
+#: An entry nothing here holds, which the gate answers `404` alike for an entry absent or refused.
+ABSENT = "A3000000000000000000000000000001"
 
 
 def test_a_withheld_value_a_placeholder_stands_for_raises_withheld() -> None:
@@ -310,6 +330,87 @@ def test_a_placeholder_a_replacement_made_is_refused_for_what_it_is() -> None:
         refs.resolve(Database([]), entry, "{S:Brace}C:an invented comment}")
 
 
+def test_a_placeholder_the_strings_made_is_refused_before_any_reference_is_followed() -> None:
+    # The check after the strings comes before the references are followed: without it the check
+    # after them still refuses the value, but only once each entry named has been read through the
+    # gate, an audit line each, and a withheld value there raised `Withheld` in its place.
+    lending = {"uuid": VAULT, "fields": {"Title": "Invented Vault", "Password": None}}
+    database = Database([lending])
+    entry = Entry.read(answer(SERVICE, {"Title": "UID}"}))
+
+    with pytest.raises(Unresolved, match="after a replacement"):
+        refs.resolve(database, entry, "{U{TITLE} {REF:P@I:" + VAULT + "}")
+
+    assert database.asked == [], "no other entry was read"
+
+
+@pytest.mark.parametrize("placeholder", ["BASE}", "TIMEOTP}"])  # cspell:ignore TIMEOTP
+def test_a_placeholder_a_reference_made_is_refused_for_what_it_is(placeholder: str) -> None:
+    # The check after the references, which nothing else reaches: an entry titled `{` makes a
+    # placeholder KeePass handles after following references, and replaces with '' there, as its
+    # own compiler answered on the review's measurement, where this would hand back the text.
+    database = Database([{"uuid": VAULT, "fields": {"Title": "{"}}])
+    entry = Entry.read(answer(SERVICE, {"Title": "Invented Service"}))
+
+    with pytest.raises(Unresolved, match="after a replacement"):
+        refs.resolve(database, entry, "{REF:T@I:" + VAULT + "}" + placeholder)
+
+
+# KeePass's order, measured with its own compiler on the review and pinned here rather than in
+# `ReferenceVectors.json`, which only the host tier writes: each was removable with every test
+# green, and its mutant refused or misread what KeePass follows.
+
+
+def test_a_malformed_reference_is_skipped_by_one_character_so_one_inside_it_is_followed() -> None:
+    database = Database([{"uuid": SERVICE, "fields": {"Title": "Invented Service"}}])
+    entry = Entry.read(answer(VAULT, {"Title": "Invented Vault"}))
+
+    value = "{REF:Z@I:{REF:T@I:" + SERVICE + "}"
+    assert refs.resolve(database, entry, value) == "{REF:Z@I:Invented Service"
+
+
+def test_a_reference_followed_leaves_the_search_where_it_was() -> None:
+    # Ten skipped references count against KeePass's twenty, and following a reference does not
+    # start the search again, so the two after them are still reached.
+    other = "A3000000000000000000000000000001"
+    database = Database(
+        [
+            {"uuid": SERVICE, "fields": {"Title": "Invented Service"}},
+            {"uuid": other, "fields": {"Title": "Other"}},
+        ]
+    )
+    entry = Entry.read(answer(VAULT, {"Title": "Invented Vault"}))
+    skipped = "{REF:Z@I:" + SERVICE + "}"
+
+    value = skipped * 10 + "{REF:T@I:" + SERVICE + "}{REF:T@I:" + other + "}"
+    assert refs.resolve(database, entry, value) == skipped * 10 + "Invented ServiceOther"
+
+
+def test_a_value_keepass_would_not_compile_is_handed_back_without_a_look() -> None:
+    # `SprEngine.MightChange`: no brace before a closing brace, so `{CMD:` is never seen.
+    entry = Entry.read(answer(SERVICE, {"Title": "Invented Service"}))
+
+    assert refs.resolve(Database([]), entry, "a{CMD:b") == "a{CMD:b"
+
+
+def test_the_standard_names_an_entry_does_not_hold_come_after_its_own() -> None:
+    # As KeePass appends them: `{S:Brace}` makes `{URL}` before the URL is looked for, and the
+    # entry holds none, so it is empty, where looking for it first left a `{URL}` behind.
+    entry = Entry.read(answer(SERVICE, {"Title": "Invented Service", "Brace": "{"}))
+
+    assert refs.resolve(Database([]), entry, "{S:Brace}URL}") == ""
+
+
+def test_a_string_met_on_two_branches_is_no_circle() -> None:
+    # The path is popped after each string, so a title both the user name and the password name
+    # is compiled twice rather than read as leading back to itself.
+    entry = Entry.read(
+        answer(SERVICE, {"Title": "T", "UserName": "{TITLE}u", "Password": "{TITLE}p"})
+    )
+
+    assert refs.resolve(Database([]), entry, "{USERNAME}{PASSWORD}") == "TuTp"
+
+
 def test_a_value_with_nothing_to_replace_asks_nothing() -> None:
     database = Database([])
     entry = Entry.read(answer(SERVICE, {"Title": "Invented Service"}))
@@ -326,6 +427,114 @@ def test_each_entry_a_value_names_is_read_once() -> None:
 
     assert refs.resolve(database, entry, named) == f"Invented Vault u {VAULT}"
     assert database.asked == [VAULT]
+
+
+def layered(width: int, layers: int) -> dict[str, str | None]:
+    """Strings in layers, each naming every string of the layer below, the last holding a letter.
+
+    Acyclic and inside `refs.DEPTH`, so neither check stops it, and compiled once for every path
+    through it, which is `width` to the power of `layers`.
+    """
+
+    def named(layer: int, index: int) -> str:
+        return f"L{layer}_{index}"
+
+    strings: dict[str, str | None] = {named(layers - 1, index): "x" for index in range(width)}
+    for layer in range(layers - 1):
+        below = "".join("{S:" + named(layer + 1, index) + "}" for index in range(width))
+        strings |= {named(layer, index): below for index in range(width)}
+
+    return strings
+
+
+def test_strings_that_name_each_other_in_wide_layers_are_refused_rather_than_waited_on() -> None:
+    # A few hundred characters any client that may change the entry can write: 34 such strings
+    # took 37 seconds, and a few more never finished.
+    entry = Entry.read(answer(SERVICE, layered(width=3, layers=9)))
+
+    with pytest.raises(Unresolved, match=f"more than {refs.COMPILES} compilations"):
+        refs.resolve(Database([]), entry, "{S:L0_0}")
+
+
+def test_strings_that_name_each_other_narrowly_are_followed_as_before() -> None:
+    entry = Entry.read(answer(SERVICE, layered(width=2, layers=6)))
+
+    assert refs.resolve(Database([]), entry, "{S:L0_0}") == "x" * 2**5
+
+
+def test_a_value_that_comes_to_more_than_a_client_holds_is_refused() -> None:
+    # Few compilations, many characters: a long string named many times over.
+    entry = Entry.read(answer(SERVICE, {"Notes": "n" * 300_000}))
+
+    with pytest.raises(Unresolved, match=f"more than {refs.CHARACTERS} characters"):
+        refs.resolve(Database([]), entry, "{NOTES}" * 20)
+
+    assert refs.resolve(Database([]), entry, "{NOTES}" * 2) == "n" * 600_000
+
+    # Each value inside the limit, and what they come to together over it.
+    entry = Entry.read(answer(SERVICE, {"Notes": "n" * 300_000, "Big": "{NOTES}" * 10}))
+
+    with pytest.raises(Unresolved, match=f"more than {refs.CHARACTERS} characters"):
+        refs.resolve(Database([]), entry, "{S:Big}{NOTES}")
+
+
+def test_a_reference_to_the_entry_a_value_came_from_is_answered_out_of_it() -> None:
+    # One resolution is one moment: read again through the gate, the entry could answer as a
+    # newer version than the version its own placeholders were answered out of.
+    database = Database([{"uuid": SERVICE, "fields": {"Title": "newer title"}}])
+    entry = Entry.read(answer(SERVICE, {"Title": "older title"}))
+
+    resolved = refs.resolve(database, entry, "{TITLE} / {REF:T@I:" + SERVICE.lower() + "}")
+
+    assert resolved == "older title / older title"
+    assert database.asked == []
+
+
+def test_an_entry_s_strings_are_resolved_together_reading_each_entry_once() -> None:
+    database = Database([{"uuid": VAULT, "fields": {"URL": "vault.example", "Notes": "n"}}])
+    fields: dict[str, str | None] = {
+        "Title": "Invented Service",
+        "URL": "{REF:A@I:" + VAULT + "}",
+        "Notes": "{REF:N@I:" + VAULT + "} of {REF:T@I:" + SERVICE + "}",
+        "Password": None,
+    }
+    entry = Entry.read(answer(SERVICE, fields))
+
+    resolved = refs.resolve_entry(database, entry)
+
+    assert {name: found.value for name, found in resolved.items()} == {
+        "Title": "Invented Service",
+        "URL": "vault.example",
+        "Notes": "n of Invented Service",
+    }, "a withheld string is left out, as `withheld` names it"
+    assert database.asked == [VAULT], "the other entry once, and this entry not again"
+
+
+def test_a_string_a_protected_value_goes_into_is_protected() -> None:
+    # A password put into a URL is a password still, by a reference or by a placeholder of the
+    # entry's own, and a string the database protects is protected whatever it names.
+    database = Database(
+        [{"uuid": VAULT, "fields": {"Password": "not-a-real-one"}, "protected": ("Password",)}]
+    )
+    fields: dict[str, str | None] = {
+        "Title": "Invented Service",
+        "UserName": "{TITLE}",
+        "URL": "https://u:{REF:P@I:" + VAULT + "}@host.example",
+        "Notes": "the password is {PASSWORD}",
+        "Password": "plain",
+    }
+    entry = Entry.read(answer(SERVICE, fields, protected=("Password",)))
+
+    resolved = refs.resolve_entry(database, entry)
+
+    assert {name: found.protected for name, found in resolved.items()} == {
+        "Title": False,
+        "UserName": False,
+        "URL": True,
+        "Notes": True,
+        "Password": True,
+    }
+    assert resolved["URL"].value == "https://u:not-a-real-one@host.example"
 
 
 def test_a_search_is_refused_without_repeating_what_it_searched_for() -> None:
@@ -369,4 +578,4 @@ def test_a_reference_is_followed_through_the_gate(
     assert gate.requests == [("GET", f"/entries/{VAULT.lower()}")]
 
     with pytest.raises(Unresolved, match="cannot read"):
-        refs.resolve(client, entry, "{REF:P@I:" + SERVICE + "}")
+        refs.resolve(client, entry, "{REF:P@I:" + ABSENT + "}")

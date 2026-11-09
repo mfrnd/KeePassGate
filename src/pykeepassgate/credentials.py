@@ -23,7 +23,8 @@ OpenSSL's default and the only work factor PEM PKCS#8 is written with here, whic
 per guess against a password a person types.
 
 What it does do is refuse to be careless. The files are *created* with owner-only permissions
-where the platform has them, rather than created and then narrowed, and the key is written once
+where the platform has them, rather than created and then narrowed, a file already there is
+narrowed before anything is written into it, and the key is written once
 rather than through a temporary file that a crash could leave behind. A directory cannot be made
 that way, because `mkdir` gives its mode to the last directory alone, so each one this client
 makes is narrowed straight after it, and one that was already there keeps the mode it had.
@@ -189,15 +190,30 @@ class Credentials:
 
     @property
     def gate_key(self) -> bytes:
-        """The key every connection after pairing is named from."""
+        """The key every connection after pairing is named from, at the one length it can be.
+
+        **A key of any other length is damage, named by its file**, as `save` refuses it: HMAC
+        takes a key of any length, so a `gate.key` a re-pair cut short, written second of four
+        beside a whole `client.json`, named every connection under the wrong key, and the gate
+        dropped each as an EOF that reads as a database not open or an authority recreated.
+        """
+        path = self.directory / GATE_KEY_FILE
         try:
-            return (self.directory / GATE_KEY_FILE).read_bytes()
+            key = path.read_bytes()
         except OSError as error:
             # Every one of them, a file that has gone among them, which is damage here rather
             # than a client that never paired: `load` found `client.json` beside it. Left
             # alone they reach the caller mid request as a bare `OSError`: a file locked by a
             # backup agent, a directory locked down after this client opened.
             raise StorageError(f"the gate key in {self.directory} will not read") from error
+
+        if len(key) != sni.KEY_LENGTH:
+            raise StorageError(
+                f"{path} holds {len(key)} bytes where a gate key is {sni.KEY_LENGTH}, so it is "
+                "damaged, as a pairing or a renewal stopped part way leaves it: pair again"
+            )
+
+        return key
 
     @property
     def expired(self) -> bool:
@@ -419,31 +435,24 @@ class Prepared:
         be made there by any account in Developer Mode and by an elevated one, so on every
         platform the file opened is then held to the file at the name, by device and inode,
         before anything is written through it; after that the handle is what is written.
+        `_held_to` is that, and the rest of what a file that was already there is held to.
         """
         path = self.directory / name
-        flags = os.O_WRONLY | getattr(os, "O_NOFOLLOW", 0) | getattr(os, "O_BINARY", 0)
         try:
             try:
                 # codeql[py/file-not-closed] held in `_handles` until `close` closes every one
-                descriptor = os.open(path, flags | os.O_CREAT | os.O_EXCL, _OWNER_ONLY)
+                descriptor = os.open(path, _OPENING | os.O_CREAT | os.O_EXCL, _OWNER_ONLY)
                 self._created.append(name)
+                existed = False
             except FileExistsError:
                 # codeql[py/file-not-closed] held in `_handles` until `close` closes every one
-                descriptor = os.open(path, flags)
+                descriptor = os.open(path, _OPENING)
+                existed = True
         except OSError as error:
             raise StorageError(f"{path} could not be opened for writing: {error}") from error
 
         self._handles[name] = descriptor
-        # cspell:ignore fstat
-        try:
-            opened, there = os.fstat(descriptor), path.lstat()
-        except OSError as error:
-            raise StorageError(f"{path} could not be opened for writing: {error}") from error
-
-        if _linked(there) or (opened.st_dev, opened.st_ino) != (there.st_dev, there.st_ino):
-            raise StorageError(
-                f"{path} could not be opened for writing: it is a link, which is not followed"
-            )
+        _held_to(path, descriptor, existed)
 
 
 def _contents(
@@ -499,9 +508,11 @@ def load(directory: Path) -> Credentials:
             "the pairing used"
         )
 
+    # `RecursionError` as well, which a file nested deeper than the decoder's stack allows raises,
+    # and which is no `ValueError`.
     try:
         details = json.loads(details_path.read_text("utf-8"))
-    except (OSError, ValueError) as error:
+    except (OSError, ValueError, RecursionError) as error:
         raise StorageError(f"{details_path} will not read: {error}") from error
 
     if not isinstance(details, dict):
@@ -633,7 +644,9 @@ def _optional(bundle: dict[str, Any], key: str) -> str:
     return value if isinstance(value, str) else ""
 
 
-def prepare(directory: Path, allow_shared_directory: bool = False) -> Prepared:
+def prepare(
+    directory: Path, allow_shared_directory: bool = False, *, beside: bool = False
+) -> Prepared:
     """Make the directory and open the four files, so that `save` can write into them later.
 
     **Called before the exchange, because afterwards is too late.** Once the gate has answered,
@@ -659,6 +672,11 @@ def prepare(directory: Path, allow_shared_directory: bool = False) -> Prepared:
     are refused whatever it says, and opening still refuses to follow a link: the flag says
     others can reach this directory, not that nothing should be checked.
 
+    **`beside` is a directory a renewal keeps beside an identity's own**, `<dir>.renewing` or
+    `<dir>.retired`, which is this client's alone and is never waived, so its refusal names what
+    mends it, removing the directory or making it this account's alone, rather than a flag that
+    would not apply.
+
     **The directory itself is no link either**, a symbolic link or a junction, asked before it is
     made and again after, so one planted between the two is refused as well: every other check
     here would follow it, and the identity would be written into whichever directory it named.
@@ -674,13 +692,20 @@ def prepare(directory: Path, allow_shared_directory: bool = False) -> Prepared:
     # Looked up rather than named: Windows has no `geteuid`, and a type checker told which
     # platform it runs on calls a branch on `os.name` unreachable or its call undefined.
     me = getattr(os, "geteuid", None)
-    if me is not None and not allow_shared_directory:
+    if me is not None and (beside or not allow_shared_directory):
         status = directory.stat()
         reason = _shared(status.st_mode, status.st_uid, me())
+        if reason and beside:
+            raise StorageError(
+                f"{directory} cannot hold credentials: {reason}. It is a directory a renewal "
+                "keeps beside the identity's own, which nothing accepts shared: remove it or "
+                "make it this account's alone, and renew again"
+            )
+
         if reason:
             raise StorageError(
                 f"{directory} cannot hold credentials: {reason}. If that is intended, "
-                "allow_shared_directory, or --allow-shared-directory on pair, accepts it"
+                "allow_shared_directory, or --allow-shared-directory on pair or renew, accepts it"
             )
 
     for name in FILES:
@@ -723,29 +748,82 @@ def write_owner_only(path: Path, content: bytes) -> None:
     where the platform has it and by holding the file opened to the file at the name, as
     `Prepared.open` does, and narrows a file already there through the handle before anything is
     written into it. On Windows the mode means nothing and the file takes its directory's ACL, as
-    the identity's files do. A failure is a `StorageError` naming the path.
+    the identity's files do. A file already there is held to what `_held_to` asks of such a file. A
+    failure is a `StorageError` naming the path.
     """
-    flags = os.O_WRONLY | os.O_CREAT | getattr(os, "O_NOFOLLOW", 0) | getattr(os, "O_BINARY", 0)
     try:
-        descriptor = os.open(path, flags, _OWNER_ONLY)
+        try:
+            descriptor = os.open(path, _OPENING | os.O_CREAT | os.O_EXCL, _OWNER_ONLY)
+            existed = False
+        except FileExistsError:
+            descriptor = os.open(path, _OPENING)
+            existed = True
     except OSError as error:
         raise StorageError(f"{path} could not be opened for writing: {error}") from error
 
     try:
-        try:
-            opened, there = os.fstat(descriptor), path.lstat()
-        except OSError as error:
-            raise StorageError(f"{path} could not be opened for writing: {error}") from error
-
-        if _linked(there) or (opened.st_dev, opened.st_ino) != (there.st_dev, there.st_ino):
-            raise StorageError(
-                f"{path} could not be opened for writing: it is a link, which is not followed"
-            )
-
-        _own(path, _OWNER_ONLY, descriptor)
+        _held_to(path, descriptor, existed)
         _write(path, descriptor, content)
     finally:
         os.close(descriptor)
+
+
+#: How a file this client writes a key into is opened: for writing, never through a symbolic link
+#: where the platform can refuse a link, and without waiting on a FIFO swapped in at the name,
+#: which an open for writing alone blocks on until something reads it. `O_NONBLOCK` is cleared
+#: again by `_held_to` once the file opened is known to be a regular file.
+#: cspell:ignore NONBLOCK
+_OPENING = (
+    os.O_WRONLY
+    | getattr(os, "O_NOFOLLOW", 0)
+    | getattr(os, "O_BINARY", 0)
+    | getattr(os, "O_NONBLOCK", 0)
+)
+
+
+def _held_to(path: Path, descriptor: int, existed: bool) -> None:
+    """Refuse a file opened at a name unless it is a regular file this client alone writes there.
+
+    Held to the file at the name by device and inode, so a symbolic link or a junction swapped
+    in after the look is refused, and **to one name**: a hard link shares the device and the
+    inode, so another account's file linked in at the name passed that, and received the key.
+    **A regular file**, since a FIFO with a reader at the other end opens and then fails only at
+    the write, after the exchange spent what it spent. **And a file this account owns**, where
+    the platform has owners, for a file that was already there: a file another account owns and
+    lets this account write is read by that account whatever its mode, and narrowing it fails
+    only once the key is in it. Where none of that refuses, the descriptor is made blocking again.
+    """
+    # cspell:ignore fstat
+    try:
+        opened, there = os.fstat(descriptor), path.lstat()
+    except OSError as error:
+        raise StorageError(f"{path} could not be opened for writing: {error}") from error
+
+    if (
+        _linked(there)
+        or (opened.st_dev, opened.st_ino) != (there.st_dev, there.st_ino)
+        or opened.st_nlink != 1
+    ):
+        raise StorageError(
+            f"{path} could not be opened for writing: it is a link, which is not followed"
+        )
+
+    if not stat.S_ISREG(opened.st_mode):
+        raise StorageError(f"{path} could not be opened for writing: it is not a regular file")
+
+    # Looked up rather than named, as `prepare` looks it up: Windows has no `geteuid`.
+    me = getattr(os, "geteuid", None)
+    if existed and me is not None and opened.st_uid != me():
+        raise StorageError(
+            f"{path} could not be opened for writing: it belongs to another account, which can "
+            "read whatever is written into it"
+        )
+
+    if getattr(os, "O_NONBLOCK", 0):
+        try:
+            os.set_blocking(descriptor, True)
+        except OSError as error:
+            raise StorageError(f"{path} could not be opened for writing: {error}") from error
 
 
 def _linked(status: os.stat_result) -> bool:
@@ -818,20 +896,30 @@ def _write(path: Path, descriptor: int, content: bytes) -> None:
     The file was created closed, with the mode in the call, rather than created open and
     narrowed after: `Path.write_bytes` creates with the process umask, which is world-readable
     under the usual one, and the client's key would exist at 0644 until a `chmod` caught up.
+
+    **A file that was already there is narrowed before anything goes into it**, through the
+    handle, because the name may be somebody else's link by now. The mode at opening applies
+    only where the file is created, so an overwrite keeps whatever the old file had, and a
+    re-pair is an overwrite: narrowed afterwards, the new key sat at the old mode until the
+    `chmod`, and a narrowing refused was refused with the key already in the file.
+
+    **And it is on the disk before this returns**, flushed rather than left to the system's
+    cache, because a renewal takes the other copies of an identity away once it has written this
+    copy, and gives the old certificate up on the gate: written and not flushed, a power loss
+    straight after a renewal that reported success could leave the identity's files empty with
+    neither copy left and the old certificate revoked.
     """
+    _own(path, _OWNER_ONLY, descriptor)
+
     try:
         os.ftruncate(descriptor, 0)
         os.lseek(descriptor, 0, os.SEEK_SET)
         view = memoryview(content)
         while view:
             view = view[os.write(descriptor, view) :]
+        os.fsync(descriptor)
     except OSError as error:
         raise StorageError(f"{path} could not be written: {error}") from error
-
-    # The mode at opening applies only where the file is created, so an overwrite keeps
-    # whatever the old one had. A re-pair is an overwrite. Narrowed through the handle,
-    # because the name may be somebody else's link by now.
-    _own(path, _OWNER_ONLY, descriptor)
 
 
 def _own(path: Path, mode: int, descriptor: int | None = None) -> None:

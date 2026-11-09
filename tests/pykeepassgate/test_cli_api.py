@@ -9,14 +9,16 @@ import json
 import os
 import stat
 from collections.abc import Callable
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
 import pytest
 
 from pykeepassgate import api, cli, transport
+from pykeepassgate import client as client_module
 from pykeepassgate import credentials as credentials_module
-from pykeepassgate.testing import FakeGate
+from pykeepassgate.testing import FakeGate, identified
 from test_credentials import linked
 
 UUID = "7b1c" * 8
@@ -96,6 +98,31 @@ def test_whoami_names_a_profile_the_database_no_longer_holds(
     printed = capsys.readouterr().out.splitlines()
     assert "profiles:         none" in printed
     assert "removed profiles: reader" in printed
+    assert not any(line.startswith("profile list:") for line in printed), "printed only when so"
+
+
+def test_whoami_names_a_list_of_profiles_that_will_not_read(
+    gate: FakeGate, kept: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    # Every profile is removed then by no choice of the operator's, which is the one thing a
+    # person reading why nothing is granted needs to know, and it lasts until the list is mended.
+    gate.handler = lambda path, sent, client: identified(
+        "CN=agent-invented",
+        "5f" * 32,
+        datetime(2027, 2, 3, 4, 5, 6, tzinfo=UTC),
+        ["reader"],
+        profiles_unreadable=True,
+    )
+
+    assert cli.main(["whoami", "--directory", str(kept)]) == 0
+
+    printed = capsys.readouterr().out.splitlines()
+    assert "profiles:         none" in printed
+    assert "removed profiles: reader" in printed
+    assert printed[-1] == (
+        "profile list:     will not read, so every profile is removed until the operator "
+        "repairs it"
+    )
 
 
 @pytest.mark.parametrize(
@@ -178,6 +205,42 @@ def test_groups_under_one_group_walks_a_level(gate: FakeGate, kept: Path) -> Non
     assert gate.requests[-1] == ("GET", f"/groups/{UUID}/groups")
 
 
+@pytest.mark.parametrize(
+    "command",
+    [
+        ["groups", "--under", ""],
+        ["entries", "--group", ""],
+        ["access", "--entry", ""],
+        ["show", ""],
+        ["field", UUID, ""],
+        ["field", UUID, "caf\udce9"],
+        ["fetch", "\udcff", "key.pem", "--to", "x"],
+    ],
+    ids=[
+        "an empty group to walk",
+        "an empty group to list",
+        "an empty entry to ask about",
+        "an empty entry to read",
+        "an empty field name",
+        "a field name that is not UTF-8",
+        "an entry that is not UTF-8",
+    ],
+)
+def test_an_argument_that_names_nothing_is_refused_before_anything_is_dialed(
+    gate: FakeGate, kept: Path, capsys: pytest.CaptureFixture[str], command: list[str]
+) -> None:
+    # An empty `--under` from a variable nobody set listed the whole database, which is another
+    # question and another grant, and a lone surrogate from argv that was not UTF-8 left `main`
+    # as a traceback. Each is an argument that cannot work, exit 2.
+    with pytest.raises(SystemExit) as exited:
+        cli.main([*command, "--directory", str(kept)])
+
+    refused = capsys.readouterr().err
+    assert exited.value.code == 2
+    assert "names nothing" in refused or "never empty" in refused
+    assert gate.names == [], "nothing was dialed"
+
+
 def test_entries_are_printed_and_can_be_scoped(
     gate: FakeGate, kept: Path, capsys: pytest.CaptureFixture[str]
 ) -> None:
@@ -226,6 +289,7 @@ def test_show_prints_every_string_and_says_which_are_protected(
             "group": "g",
             "fields": {"Title": "an invented service", "Password": "not-a-real-password"},
             "protected": ["Password"],
+            "expires": None,
         },
     )
 
@@ -248,6 +312,7 @@ def test_show_says_a_value_the_rule_withholds_is_withheld(
             "group": "g",
             "fields": {"Title": "an invented service", "Password": None},
             "protected": ["Password"],
+            "expires": None,
         },
     )
 
@@ -261,7 +326,7 @@ def test_show_says_a_value_the_rule_withholds_is_withheld(
 #: An entry whose password is another's, by reference, and the other entry, as the gate reads each.
 BORROWING = "A1" * 16
 LENDING = "B2" * 16
-READS = {
+READS: dict[str, dict[str, Any]] = {
     BORROWING: {
         "uuid": BORROWING,
         "group": "g",
@@ -271,12 +336,14 @@ READS = {
             "Notes": None,
         },
         "protected": ["Password", "Notes"],
+        "expires": None,
     },
     LENDING: {
         "uuid": LENDING,
         "group": "g",
         "fields": {"Title": "an invented vault", "Password": "not-a-real-password"},
         "protected": ["Password"],
+        "expires": None,
     },
 }
 
@@ -309,6 +376,38 @@ def test_show_prints_a_reference_as_stored_unless_told_to_follow_it(
     assert "Password: not-a-real-password (protected)" in printed
     assert "Notes: (withheld) (protected)" in printed, "a withheld value is still not a value"
     assert gate.requests[-1] == ("GET", f"/entries/{LENDING}"), "the other entry, by its own read"
+
+
+@pytest.mark.parametrize("output", ["plain", "json"])
+def test_show_marks_a_string_a_protected_value_was_resolved_into_as_protected(
+    gate: FakeGate, kept: Path, capsys: pytest.CaptureFixture[str], output: str
+) -> None:
+    # A password borrowed into a URL is a password still: printed unmarked, and left out of what
+    # `-o json` names protected, an operator or a program redacting by that list showed it.
+    url = "https://u:{REF:P@I:" + LENDING + "}@host.example"
+    fields = {"Title": "{REF:T@I:" + LENDING + "}", "URL": url}
+    borrowing = {**READS[BORROWING], "fields": fields, "protected": []}
+    reads = {BORROWING: borrowing, LENDING: READS[LENDING]}
+
+    def answer(path: str, sent: str, client: bytes | None) -> tuple[int, str]:
+        return 200, json.dumps(reads[path.rsplit("/", 1)[-1]])
+
+    gate.handler = answer
+
+    code = cli.main(["show", BORROWING, "--resolve", "--directory", str(kept), "-o", output])
+
+    assert code == 0
+    out = capsys.readouterr().out
+    if output == "json":
+        shown = json.loads(out)
+        assert shown["fields"]["URL"] == "https://u:not-a-real-password@host.example"
+        assert shown["protected"] == ["URL"]
+    else:
+        assert "URL: https://u:not-a-real-password@host.example (protected)" in out.splitlines()
+        assert "Title: an invented vault" in out.splitlines(), "a title borrowed is no password"
+
+    # Both strings name the other entry, which is read once for the two of them.
+    assert gate.requests == [("GET", f"/entries/{BORROWING}"), ("GET", f"/entries/{LENDING}")]
 
 
 def test_show_prints_nothing_when_a_value_cannot_be_resolved(
@@ -402,6 +501,74 @@ def test_a_value_piped_in_that_is_not_utf8_is_refused_before_anything_is_sent(
     assert cli.main(["add", "--title", "x", "--password", "--directory", str(kept)]) == 2
     assert "not UTF-8" in capsys.readouterr().err
     assert sent == []
+
+
+@pytest.mark.parametrize("newline", [None, "\n"], ids=["as on Windows", "as elsewhere"])
+@pytest.mark.parametrize(
+    "command",
+    [
+        (["add", "--title", "x", "--password"], "Password"),
+        (["update", UUID, "--password"], "Password"),
+        (["add-field", UUID, "Token"], "value"),
+        (["update-field", UUID, "Token"], "value"),
+    ],
+    ids=["add", "update", "add-field", "update-field"],
+)
+def test_a_line_a_windows_program_wrote_is_read_without_its_carriage_return(
+    gate: FakeGate,
+    kept: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    newline: str | None,
+    command: tuple[list[str], str],
+) -> None:
+    # Python reads standard input with universal newlines on Windows alone, so elsewhere a line
+    # ending in a carriage return and a line feed kept the carriage return, and was stored with
+    # it: every later use of the password failed, and on the same machine nothing looked amiss.
+    arguments, member = command
+    sent = _created(gate)
+    piped = io.TextIOWrapper(io.BytesIO(b"rotated\r\n"), encoding="utf-8", newline=newline)
+    monkeypatch.setattr("sys.stdin", piped)
+
+    assert cli.main([*arguments, "--directory", str(kept)]) == 0
+    assert sent[-1][member] == "rotated"
+
+
+@pytest.mark.parametrize(
+    "piped",
+    [
+        "-----BEGIN OPENSSH PRIVATE KEY-----\ninvented\n-----END OPENSSH PRIVATE KEY-----\n",
+        "rotated\n\n",
+        "rotated\r\nmore",
+    ],
+    ids=["a key over three lines", "a blank line after it", "more after a carriage return"],
+)
+def test_input_holding_more_than_a_line_is_refused_rather_than_cut_to_its_first(
+    gate: FakeGate,
+    kept: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+    piped: str,
+) -> None:
+    # A key piped in was stored as its `BEGIN` line, reported done with exit 0, and found useless
+    # only when something tried it.
+    sent = _created(gate)
+    monkeypatch.setattr("sys.stdin", io.StringIO(piped))
+
+    assert cli.main(["add-field", UUID, "Deploy key", "--directory", str(kept)]) == 2
+    assert "more than a line" in capsys.readouterr().err
+    assert sent == []
+    assert gate.requests == []
+
+
+def test_a_line_with_no_line_ending_is_read_without_waiting_for_more(
+    gate: FakeGate, kept: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    # Input that ends inside its only line has nothing after it to ask about.
+    sent = _created(gate)
+    monkeypatch.setattr("sys.stdin", io.StringIO("rotated"))
+
+    assert cli.main(["update", UUID, "--password", "--directory", str(kept)]) == 0
+    assert sent[-1]["Password"] == "rotated"
 
 
 @pytest.mark.parametrize(
@@ -577,7 +744,13 @@ def test_attachments_are_listed_with_their_sizes(
         ),
         (
             ["show", UUID],
-            {"uuid": UUID, "group": "g", "fields": {"Real\n\x85Forged": "x"}, "protected": []},
+            {
+                "uuid": UUID,
+                "group": "g",
+                "fields": {"Real\n\x85Forged": "x"},
+                "protected": [],
+                "expires": None,
+            },
             "Real\\n\\x85Forged: x",
         ),
         (
@@ -603,8 +776,44 @@ def test_attachments_are_listed_with_their_sizes(
             {"grants": {"Real\nForged": ".R......"}},
             ".R......  Real\\nForged",
         ),
+        (
+            ["fields", UUID],
+            {"fields": [{"name": "Real\nPassword", "protected": True}]},
+            "Real\\nPassword (protected)",
+        ),
+        (
+            ["group", UUID],
+            {"uuid": UUID, "name": "Real\nForged", "parent": None, "notes": "a\nparent: x"},
+            "name:   Real\\nForged",
+        ),
+        (
+            ["group", UUID],
+            {"uuid": UUID, "name": "Real", "parent": None, "notes": "a\nparent: x"},
+            "notes:  a\\nparent: x",
+        ),
+        # What the plugin answers with only in hex, escaped all the same, since what is printed
+        # is what was answered and the model holds an identifier to no form.
+        (
+            ["groups"],
+            {"groups": [{"uuid": "Real\nForged", "name": "Real", "parent": None}]},
+            "Real\\nForged  Real",
+        ),
+        (
+            ["show", UUID],
+            {
+                "uuid": UUID,
+                "group": "g\nForged: x",
+                "fields": {},
+                "protected": [],
+                "expires": None,
+            },
+            "group: g\\nForged: x",
+        ),
     ],
-    ids=["groups", "entries", "show", "attachments", "whoami", "access"],
+    ids=[
+        "groups", "entries", "show", "attachments", "whoami", "access", "fields", "group name",
+        "group notes", "an identifier", "show's group",
+    ],
 )
 def test_a_name_that_would_break_a_line_is_printed_on_the_one_it_belongs_to(
     command: list[str],
@@ -639,6 +848,7 @@ def test_show_keeps_a_value_on_the_line_of_the_field_it_belongs_to(
                 "Password": "not-a-real-password",
             },
             "protected": ["Password"],
+            "expires": None,
         },
     )
 
@@ -756,7 +966,9 @@ def test_fetch_writes_nothing_for_an_attachment_that_came_without_its_bytes(
     # The library refuses such an answer before it gets here, so this stands in for whatever
     # later path might not. An empty file reported as written would be a successful download of
     # nothing, which is the guess `Attachment.read` refuses.
-    def attachment(self: api.GateClient, uuid: str, name: str) -> api.Attachment:
+    def attachment(
+        self: api.GateClient, uuid: str, name: str, *, if_match: str | None = None
+    ) -> api.Attachment:
         return api.Attachment(name=name, size=22)
 
     monkeypatch.setattr(api.GateClient, "attachment", attachment)
@@ -815,6 +1027,10 @@ class _Line:
 
     def readline(self) -> str:
         return self._text
+
+    def read(self, size: int = -1) -> str:
+        # Nothing after the line, which is what a pipe that has sent a line and closed holds.
+        return ""
 
 
 class _Terminal:
@@ -1185,14 +1401,17 @@ def test_show_says_when_an_entry_expires(
     assert printed in capsys.readouterr().out
 
 
-def test_show_says_nothing_about_an_expiry_the_gate_said_nothing_about(
+def test_show_refuses_an_entry_read_without_its_expiry(
     gate: FakeGate, kept: Path, capsys: pytest.CaptureFixture[str]
 ) -> None:
-    # Not "never", which would be this client answering for the gate.
+    # Not "never", which would be this client answering for the gate, and not a line left out
+    # either: the document requires the member, so this cannot read an answer without it.
     answering(gate, {"uuid": UUID, "group": UUID, "fields": {}, "protected": []})
 
-    assert cli.main(["show", UUID, "--directory", str(kept)]) == 0
-    assert "expires" not in capsys.readouterr().out
+    assert cli.main(["show", UUID, "--directory", str(kept)]) == cli.FAILED
+    captured = capsys.readouterr()
+    assert captured.out == ""
+    assert "ProtocolError" in captured.err
 
 
 @pytest.mark.parametrize(
@@ -1224,6 +1443,29 @@ def test_an_expiry_that_names_no_instant_is_refused_as_an_argument(
 
     assert raised.value.code == 2
     assert gate.requests == []
+
+
+@pytest.mark.parametrize(
+    ("command", "given"),
+    [("add", "9999-12-31T23:00:00-05:00"), ("update", "0001-01-01T00:00:00+01:00")],
+    ids=["past the year 9999", "before the year 1"],
+)
+def test_an_expiry_outside_the_calendar_in_utc_is_refused_as_an_argument(
+    command: str, given: str, kept: Path, gate: FakeGate, capsys: pytest.CaptureFixture[str]
+) -> None:
+    # Each parsed, and moving it to UTC raised `OverflowError` out of `main` as a traceback.
+    named = [UUID] if command == "update" else []
+    with pytest.raises(SystemExit) as raised:
+        cli.main([command, *named, "--expires", given, "--directory", str(kept)])
+
+    assert raised.value.code == 2
+    assert "outside the years 1 to 9999" in capsys.readouterr().err
+    assert gate.names == []
+
+
+def test_the_library_refuses_such_an_expiry_as_the_value_error_it_names() -> None:
+    with pytest.raises(ValueError, match="years 1 to 9999"):
+        client_module._expiry(datetime.fromisoformat("9999-12-31T23:00:00-05:00"), creating=True)
 
 
 def test_a_key_that_will_not_load_is_an_exit_code_rather_than_a_stack_trace(

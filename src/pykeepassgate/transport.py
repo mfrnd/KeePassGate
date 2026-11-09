@@ -29,6 +29,7 @@ import json
 import math
 import socket
 import ssl
+import string
 import time
 from collections.abc import Callable, Iterator
 from contextlib import contextmanager
@@ -58,7 +59,10 @@ LOOPBACK = "127.0.0.1"
 #: `max_response_bytes` does, so that no answer can make this client hold as much memory as it
 #: likes. An attachment is not what decides it: the gate hands out at most 512 KiB of one
 #: (`VaultHandlers.MaxAttachmentBytes`), under 700 KiB once it is base64 inside a JSON answer. What
-#: can outgrow it is a listing, since the plugin does not page (`API.md` §407), and one that does
+#: can outgrow it is a listing, since the plugin does not page (`API.md` §407), and the read of an
+#: entry whose strings were made to: they are held to 524288 characters
+#: (`VaultEntryDetail.MostCharacters`), which come to more than this only when most of them are
+#: characters JSON escapes, a protected field's name going out twice. An answer that outgrows it
 #: fails whole rather than being truncated. So a caller whose database is large enough gets a
 #: setting to raise rather than a number to patch.
 MAX_RESPONSE_BYTES = 4 * 1024 * 1024
@@ -70,19 +74,21 @@ MAX_RESPONSE_BYTES = 4 * 1024 * 1024
 #: never sent over one.
 RESPONDER_CLAIM = "kpg://host/responder"
 
-#: How long any one wait on the socket may last, in seconds, for anything that is not a pairing:
-#: the dial, the handshake, and each read of the answer, each on its own. So it ends a wait on a
-#: peer that has stopped sending, and not a connection to one that goes on sending, however
-#: slowly; a caller that needs a bound on a whole call puts one around the call. It says nothing
-#: about waiting out a refusal, which is what the three budgets below are for.
+#: How long any one wait on the socket may last, in seconds, for anything that is not a pairing or
+#: a renewal's request, which the next constant is for: the dial, the handshake, and each read of
+#: the answer, each on its own. So it ends a wait on a peer that has stopped sending, and not a
+#: connection to a peer that goes on sending, however slowly; a caller that needs a bound on a
+#: whole call bounds the call itself. Waiting out a refusal is no part of it, which is what the
+#: three budgets below are for.
 DEFAULT_CONNECTION_TIMEOUT = 120.0
 
 #: What the socket gets instead for the two exchanges that wait on a person, a pairing and a
 #: renewal, and the least a renewal waits whatever the client was given. It has to outlast the
 #: plugin's own sum: `PairingOptions.ApprovalTimeout` two minutes waiting for the screen while
 #: another pairing or renewal holds it, the same two minutes again for the dialog plus
-#: `PairingApprovalPrompt.Grace` fifteen seconds, then `DatabaseWriter.LockTimeout` twenty and
-#: `WriteTimeout` thirty. That sum is 305 seconds, and is why `GateOptions.PairingBudget` is six
+#: `PairingApprovalPrompt.Grace` fifteen seconds, `PairingOptions.ApprovalSettle` two for a busy
+#: KeePass to settle once the operator has approved, then `DatabaseWriter.LockTimeout` twenty and
+#: `WriteTimeout` thirty. That sum is 307 seconds, and is why `GateOptions.PairingBudget` is six
 #: minutes for both; this is the same six, since the gate closes the connection then and waiting
 #: past it buys nothing. Hanging up early cancels nothing: the record is written and saved
 #: regardless, an invitation spent with it, and only the answer is lost, leaving a record for a
@@ -318,6 +324,32 @@ def dial_limit(dial: Dial) -> Dial:
     return dial
 
 
+def host_limit(host: str, dial: Dial = create_connection) -> str:
+    """Refuse a host nothing could dial, where it is given, and hand back a host that could be.
+
+    Text and not nothing, whichever `dial` reads it. **For the `dial` a client has unless given
+    another, a name `socket` can resolve as well**: it encodes a name as IDNA before it asks for
+    an address, which refuses a label over 63 characters, an empty label and a lone surrogate
+    with `UnicodeError`, a `ValueError` that is no `GateError` and named nothing, out of the first
+    call rather than where the host was given. Whether a name that encodes is a name that resolves
+    is the network's answer, a `TransportError` when it is not. A `dial` of the caller's own reads
+    the host however it likes, so nothing more is asked of a host given to it.
+    """
+    if not isinstance(host, str) or not host:
+        given = (
+            "an empty host" if isinstance(host, str) else f"an object of type {type(host).__name__}"
+        )
+        raise ValueError(f"host is the name or the address to dial, as text, not {given}")
+
+    if dial is create_connection:
+        try:
+            host.encode("idna")
+        except UnicodeError as error:
+            raise ValueError(f"host {host!r} is no name this client can dial: {error}") from None
+
+    return host
+
+
 class Budget:
     """What one kind of `503` is worth waiting out, and what is left of it.
 
@@ -327,8 +359,9 @@ class Budget:
     mix the two into one number that answers for neither. **A refusal is not always quick**: a
     pairing's or a renewal's `503 busy` comes after the gate waited up to two minutes for the
     screen, and a write's after up to twenty seconds for its turn at the database, so a busy
-    budget of ten seconds can hold a pairing for five attempts of up to two minutes each. The
-    budget bounds the pauses between attempts, and the call is the caller's to bound.
+    budget of ten seconds can hold a pairing for six attempts of up to two minutes each, the first
+    and five more, with the gate's two seconds between each. The budget bounds the pauses between
+    attempts, and the call is the caller's to bound.
 
     A budget of `None` is no retry at all, which is the default everywhere: the refusal is raised
     exactly as it was before any of this existed.
@@ -470,10 +503,15 @@ class Response:
     etag: str | None = None
 
     def json(self) -> dict[str, Any]:
-        """The body as an object, or a refusal if it is not one."""
+        """The body as an object, or a refusal if it is not one.
+
+        A body nested deeper than the decoder's stack allows raises `RecursionError` there, which
+        is no `ValueError`, and a hundred thousand bytes of `[` is far under any cap; it is refused
+        as any other body that will not read, so `except GateError` still catches it.
+        """
         try:
             parsed = json.loads(self.body)
-        except ValueError as error:
+        except (ValueError, RecursionError) as error:
             raise ProtocolError(
                 f"the gate answered {self.status} with something that is not JSON"
             ) from error
@@ -775,6 +813,7 @@ def connect(
     port_number(port)
     connection_limit(connection_timeout)
     dial_limit(dial)
+    host_limit(host, dial)
     pinned_context(context)
 
     try:
@@ -783,26 +822,34 @@ def connect(
     except OSError as error:
         raise TransportError(f"nothing is listening on {host}:{port}: {error}") from error
 
-    if not isinstance(made, socket.socket):
+    if not isinstance(made, socket.socket) or made.type != socket.SOCK_STREAM:
         # Closed before it goes, as every failure here closes what it holds: what a `dial` hands
         # back by mistake is likely a wrapper from some other library that owns a descriptor.
         # Anything its own `close` raises is that library's, and the mistake reported is this.
+        # A socket that is not a stream socket is the same mistake: TLS refuses a datagram socket
+        # with `NotImplementedError`, which is no `GateError` and closes nothing.
         close = getattr(made, "close", None)
         if callable(close):
             with contextlib.suppress(Exception):
                 close()
 
-        raise TypeError(
-            f"dial returned an object of type {type(made).__name__} rather than a connected "
-            "socket"
+        kind = (
+            f"a {made.type.name} socket"
+            if isinstance(made, socket.socket)
+            else f"an object of type {type(made).__name__}"
         )
+        raise TypeError(f"dial returned {kind} rather than a connected stream socket")
 
     raw = made
 
     try:
         # A refusal of its own, because a socket a caller's `dial` handed back can already be
-        # closed, and setting its timeout then raises a bare `OSError` before any handshake.
+        # closed, and setting its timeout then raises a bare `OSError` before any handshake. A
+        # socket never connected, or whose peer is already gone, is asked for its peer for the
+        # same reason: TLS wraps it without a word, and the certificate is then read off a
+        # connection that is not there, as an `OSError` with the socket left open.
         raw.settimeout(connection_timeout)
+        raw.getpeername()
     except OSError as error:
         raw.close()
         raise TransportError(f"the socket dial handed back could not be used: {error}") from error
@@ -823,9 +870,23 @@ def connect(
         # a database not open, or not unlocked since KeePass started; two copies of one open at
         # once; and an authority recreated or deleted since this client paired, which takes away
         # the key every name this client sends is built from, so pairing again is what mends it.
+        #
+        # And it closes a connection it has no room for, while it already serves the 32 it takes
+        # at once, `GateOptions.MaxConnections`, which ends the handshake here as a reset:
+        # `[WinError 10054]` or `[WinError 10053]` on Windows, and `ECONNRESET` elsewhere. That
+        # clears as those connections end, so asking again shortly mends it, and the plugin's log
+        # has a line for the refusal.
+        #
+        # The error a reset carries outside Windows, as POSIX names it: cspell:ignore ECONNRESET
         raise TransportError(f"the handshake failed: {error}") from error
 
-    connection = Connection(wrapped, max_response_bytes)
+    try:
+        connection = Connection(wrapped, max_response_bytes)
+    except BaseException:
+        # A server that sent no certificate, refused there, still holds the socket.
+        wrapped.close()
+        raise
+
     try:
         yield connection
     finally:
@@ -877,6 +938,14 @@ def _pin_to_tls13(context: ssl.SSLContext) -> ssl.SSLContext:
     return context
 
 
+#: What RFC 3986's `pchar` allows as it stands: the unreserved characters, the sub-delimiters, `:`
+#: and `@`, which is what `PercentEncoding.StandsForItself` takes on the gate's side.
+_PATH_CHARACTERS = frozenset(string.ascii_letters + string.digits + "-._~!$&'()*+,;=:@")
+
+#: The digits an escape is written in, either case.
+_HEX = frozenset(string.hexdigits)
+
+
 def _check(method: str, path: str) -> None:
     """Refuse anything that could not be a request line, before it reaches the wire.
 
@@ -889,6 +958,14 @@ def _check(method: str, path: str) -> None:
 
     `send` is the documented way to reach a route this client has no method for, so its arguments
     are caller data, and the threat model says a caller can be prompt-injected.
+
+    **A path is held to RFC 3986's grammar**, an absolute path and a query after the first `?`,
+    which is what RFC 9112 makes a request target, and which the gate's `PercentEncoding`
+    takes a character by: `pchar`, which is the unreserved characters, the sub-delimiters, `:`,
+    `@` and an escape of two hex digits, with `/` between segments and `/` and `?` in the query
+    as well. A control, `"`, `#`, `<`, `{`, a space and the rest were sent, and came back as the
+    gate's `400`. What the grammar allows and the gate refuses as well, an escape standing for a
+    control or a segment of `..`, is the gate's to answer.
     """
     if not method.isascii() or not method.isalpha():
         raise ProtocolError(f"that is not a method: {method!r}")
@@ -896,8 +973,25 @@ def _check(method: str, path: str) -> None:
     if not path.startswith("/") or not path.isascii():
         raise ProtocolError(f"that is not a path this client will send: {path!r}")
 
-    if any(character in path for character in " \r\n\t\x00"):
-        raise ProtocolError(f"that path holds something a request line cannot: {path!r}")
+    absolute, _, query = path.partition("?")
+    for part, also in ((absolute, "/"), (query, "/?")):
+        position = 0
+        while position < len(part):
+            character = part[position]
+            if character == "%":
+                escape = part[position + 1 : position + 3]
+                if len(escape) != 2 or any(digit not in _HEX for digit in escape):
+                    raise ProtocolError(
+                        f"that path holds a % that does not begin an escape: {path!r}"
+                    )
+
+                position += 3
+                continue
+
+            if character not in _PATH_CHARACTERS and character not in also:
+                raise ProtocolError(f"that path holds something a request line cannot: {path!r}")
+
+            position += 1
 
 
 def check_condition(if_match: str | None) -> None:
@@ -910,6 +1004,14 @@ def check_condition(if_match: str | None) -> None:
     allows between the tags of a list, and not nothing, since an empty one asks for something no
     node holds and is never what a caller meant.
 
+    **And only what the gate can read as an `If-Match`**: `*`, or a list of tags with commas
+    between, each in quotes as `etag` holds it, `VaultPrecondition.Read` on the gate's side. The
+    gate answers anything else `412`, the refusal a node that changed gets, so a tag pasted
+    without its quotes was refused as a node that moved on, and read again, and sent again the
+    same way. For the same reason a list must name a tag the gate compares at all: it compares
+    strongly, as RFC 9110 section 13.1.1 asks, so a weak tag, `W/` before it, never matches, and
+    the gate hands out none.
+
     Public because the client asks it before anything is dialed, and the command line before it
     asks for anything at a terminal: `send` asks it again, as the last thing between a caller and
     the wire.
@@ -921,6 +1023,62 @@ def check_condition(if_match: str | None) -> None:
         character != "\t" and not " " <= character <= "~" for character in if_match
     ):
         raise ProtocolError(f"that is not a tag this client will send: {if_match!r}")
+
+    if if_match.strip(" \t") == "*":
+        return
+
+    if not _strong_tags(if_match):
+        raise ProtocolError(
+            f"that is not a tag this client will send: {if_match!r}, since the gate reads a tag "
+            "only as `etag` holds it, in quotes, and never matches a weak tag: send it quotes "
+            "and all, several with commas between, or `*`"
+        )
+
+
+def _strong_tags(if_match: str) -> list[str]:
+    """The tags an `If-Match` list names that the gate compares, or none when it will not read.
+
+    RFC 9110 section 13.1.1's list as the gate reads it, a character at a time, since a comma may
+    stand inside a tag: elements with commas between and spaces or tabs around them, an empty
+    element allowed, each an `entity-tag`, visible ASCII but a quote between two quotes, with `W/`
+    before a weak tag. A weak tag reads and is left out, since it never matches.
+    """
+    tags: list[str] = []
+    at = 0
+    while True:
+        at = _past_spaces(if_match, at)
+        if at == len(if_match):
+            return tags
+
+        if if_match[at] == ",":
+            at += 1
+            continue
+
+        weak = if_match.startswith("W/", at)
+        if weak:
+            at += 2
+
+        end = if_match.find('"', at + 1)
+        if at >= len(if_match) or if_match[at] != '"' or end < 0:
+            return []
+
+        if any(not "!" <= character <= "~" for character in if_match[at + 1 : end]):
+            return []
+
+        if not weak:
+            tags.append(if_match[at : end + 1])
+
+        at = _past_spaces(if_match, end + 1)
+        if at < len(if_match) and if_match[at] != ",":
+            return []
+
+
+def _past_spaces(text: str, at: int) -> int:
+    """Where the spaces and tabs from `at` end, which is where the next element of a list starts."""
+    while at < len(text) and text[at] in " \t":
+        at += 1
+
+    return at
 
 
 def _header(head: str, wanted: str) -> str | None:
@@ -937,16 +1095,34 @@ def _header(head: str, wanted: str) -> str | None:
     return None
 
 
+def _digits(value: str) -> int | None:
+    """A number in a status or a header as RFC 9110 writes it, `1*DIGIT`, or `None` otherwise.
+
+    Python's `int` reads more than that: a sign, an underscore between digits, white space around
+    them and digits beyond ASCII, so `-5`, `+5` and `1_0` were each read as numbers the grammar
+    does not allow, and a negative `Content-Length` counted as already met. More digits than `int`
+    reads from text is no number a header means either.
+    """
+    if not value.isascii() or not value.isdigit():
+        return None
+
+    try:
+        return int(value)
+    except ValueError:
+        return None
+
+
 def _declared_length(head: str) -> int | None:
     """What the answer said its body would be, if it said."""
     value = _header(head, "content-length")
     if value is None:
         return None
 
-    try:
-        return int(value)
-    except ValueError:
-        raise ProtocolError(f"that is not a content length: {value!r}") from None
+    length = _digits(value)
+    if length is None:
+        raise ProtocolError(f"that is not a content length: {value!r}")
+
+    return length
 
 
 def _parse(raw: bytes) -> Response:
@@ -958,6 +1134,10 @@ def _parse(raw: bytes) -> Response:
     **The length is read rather than assumed.** Believing the close instead makes a truncated
     answer indistinguishable from a complete one, and an answer whose body never arrived would
     become an empty object. A caller cannot tell that from a gate that said so.
+
+    **Except on the answer to a `HEAD`**, which carries no `Content-Length` at all, as RFC 9110
+    section 9.3.2 permits, and is read to the close. It has no body, so there is nothing a close
+    could cut short, and a length that is missing is not the peer's defect there.
     """
     if not raw:
         raise TransportError("the connection was closed without an answer")
@@ -971,10 +1151,10 @@ def _parse(raw: bytes) -> Response:
     if len(parts) < 2 or not parts[0].startswith("HTTP/"):
         raise ProtocolError(f"that is not a status line: {line!r}")
 
-    try:
-        status = int(parts[1])
-    except ValueError as error:
-        raise ProtocolError(f"that is not a status: {parts[1]!r}") from error
+    # Three digits, RFC 9112 section 4, and nothing `int` would read as a number besides.
+    status = _digits(parts[1]) if len(parts[1]) == 3 else None
+    if status is None:
+        raise ProtocolError(f"that is not a status: {parts[1]!r}")
 
     body = raw[blank + 4 :]
     head = raw[:blank].decode("ascii", "replace")
@@ -984,9 +1164,19 @@ def _parse(raw: bytes) -> Response:
             f"the answer stopped {declared - len(body)} bytes short of its own content length"
         )
 
+    # Strictly, because a body decoded leniently hands a value over with U+FFFD where its bytes
+    # were, a password among them, as though it were the value stored: wrong data is worse than an
+    # error, as `model._content` holds of an attachment. The plugin writes nothing but UTF-8, so
+    # only a defect or an unverified peer of a pairing reaches this. Not chained, because what
+    # could not be decoded holds the whole body.
+    try:
+        text = body.decode("utf-8")
+    except UnicodeDecodeError:
+        raise ProtocolError(f"the gate answered {status} with a body that is not UTF-8") from None
+
     return Response(
         status=status,
-        body=body.decode("utf-8", "replace"),
+        body=text,
         retry_after=_retry_after(head),
         unavailable_word=_header(head, "kpg-unavailable") or None,
         etag=_etag(head),
@@ -1014,14 +1204,19 @@ def _retry_after(head: str) -> float | None:
 
     Nothing is trusted beyond the number itself. What gets waited is bounded by the budget the
     caller gave, so a peer asking for a day gets no more than the caller was prepared to spend.
+    **A number is digits and nothing else**, as `_digits` reads a number, and a number of seconds
+    too large for a `float` to hold is no delay this reads either: converting such a number raised
+    `OverflowError`, which is no `GateError`, from an answer any peer of a pairing could send.
     """
     value = _header(head, "retry-after")
     if value is None:
         return None
 
-    try:
-        seconds = int(value)
-    except ValueError:
+    seconds = _digits(value)
+    if seconds is None:
         return None
 
-    return None if seconds < 0 else float(seconds)
+    try:
+        return float(seconds)
+    except OverflowError:
+        return None
