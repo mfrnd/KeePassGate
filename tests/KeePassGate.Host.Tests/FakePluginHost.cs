@@ -15,10 +15,20 @@ using KeePassLib.Keys;
 namespace KeePassGate.Host.Tests
 {
     /// <summary>
-    /// A plugin host that hands out nothing. The plugin's first step touches none of it, and a
-    /// test that starts failing here is a test telling us the plugin has grown a dependency on
-    /// KeePass's running state which needs a real KeePass to cover.
+    /// A plugin host that hands out nothing, the main window included.
     /// </summary>
+    /// <remarks>
+    /// **The plugin asks this host for its main window, and is told there is none.** Its start
+    /// borrows the window's icons only when there is one, and serves nothing without one: no
+    /// writer, no database watch, no listener. So the tests on this host cover what a start does
+    /// before and around the gate, the tabs and the window events it subscribes to and lets go,
+    /// with the gate switched off, and a dependency on the main window that is guarded does not
+    /// fail them. What serving needs is covered against the real types by the fixtures that build
+    /// those pieces themselves, and by the end to end tier.
+    ///
+    /// The constructor that counts reads of the main window, and `RefuseFromNowOn`, make a read of
+    /// it throw, which is how a test makes a start, or something after it, fail part way.
+    /// </remarks>
     internal sealed class FakePluginHost : IPluginHost
     {
         private Exception _refusal;
