@@ -52,7 +52,8 @@ namespace KeePassGate.Host.Tests.Live
     /// by the client itself: its certificate's key and the moment it expires, which the terminal
     /// shows as invented values, and the directory it stored them in, a `LOCALAPPDATA` this session
     /// made, which the terminal shows by the variable's name. On the KeePass side the moments on
-    /// the client's row are covered, see `Redacted.Moments`.
+    /// the client's row are covered, see `Redacted.Moments`, and so is the main window's entry
+    /// view, whose times are written in the account's own zone and format.
     /// </remarks>
     public sealed partial class DocumentationScreenshots
     {
@@ -105,18 +106,9 @@ namespace KeePassGate.Host.Tests.Live
 
         private string _pristine;
 
-        /// <summary>
-        /// Whether a client has changed an entry in this film yet. KeePass's entry view under the
-        /// main window's list says when the chosen entry was last changed, which is a time written
-        /// into the database until a client changes one, and this minute after it, so from then
-        /// on every picture of the main window covers it.
-        /// </summary>
-        private bool _entryChangedNow;
-
         private void FilmTheLifecycle()
         {
             var keePass = _session.KeePass;
-            _entryChangedNow = false;
             keePass.RestoreDatabase(_pristine);
             keePass.MoveRootEntryToAutomation();
             keePass.GiveTheBuildAgentAPassword();
@@ -464,10 +456,6 @@ namespace KeePassGate.Host.Tests.Live
 
             var changed = Update(story, update, environment, "The same command now sets the new password");
             Assert.That(changed.ExitCode, Is.Zero, changed.ToString());
-
-            // From here on the entry view under the main window's list says the entry was changed
-            // this minute whenever it is chosen, so every picture of the main window covers it.
-            _entryChangedNow = true;
 
             // KeePass shows it: the entry's dialog, and the button beside the password that reveals it.
             var automation = Click(driver.MainWindow, TreeItem(driver, AutomationGroup));
@@ -881,9 +869,13 @@ namespace KeePassGate.Host.Tests.Live
         /// client is named, and leaving alone the row's menu if it is open over them.
         /// </summary>
         /// <remarks>
-        /// **And the main window's entry view once a client has changed an entry**, see
-        /// <see cref="_entryChangedNow"/>, on every picture of that window from then on, a menu
-        /// photographed over it included.
+        /// **And the main window's entry view, on every picture of that window**, a menu
+        /// photographed over it included. It shows the chosen entry's times, which KeePass converts
+        /// to the time zone of the account running it and writes in that account's regional
+        /// format: one time written into the database reads 22.08.2026 10:30:00 under de-DE in
+        /// Central European summer time and 8/22/2026 8:30:00 AM under en-US and UTC, so a retake
+        /// on another account rewrote every frame showing it. And once a client has changed an
+        /// entry, the time is this minute.
         /// </remarks>
         private Storyboard.Shot Take(
             Storyboard story,
@@ -903,7 +895,7 @@ namespace KeePassGate.Host.Tests.Live
                 Redacted.Moments(picture, area, window, client, menu == null ? Rectangle.Empty : KeePassDriver.Bounds(menu));
             }
 
-            if (_entryChangedNow && Automation.Compare(window, driver.MainWindow))
+            if (Automation.Compare(window, driver.MainWindow))
             {
                 Redacted.Over(picture, area, window, EntryView);
             }

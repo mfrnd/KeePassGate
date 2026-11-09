@@ -172,10 +172,11 @@ namespace KeePassGate.Host.Tests.Live
         /// The same over controls only some pictures need covered, which the caller names.
         /// </summary>
         /// <remarks>
-        /// KeePass's entry view under the main window's list is one: it says when the chosen entry
-        /// was last changed, and once a client has changed one in the picture that is this
-        /// minute. Every other time it shows times written into the database, which read the same
-        /// on every run and are worth showing, so it is not on the list every picture is held to.
+        /// KeePass's entry view under the main window's list is one: it shows the chosen entry's
+        /// times in the time zone and the regional format of the account running KeePass, so even
+        /// a time written into the database reads differently from one machine to the next, and
+        /// once a client has changed an entry the time is this minute. Only the moving picture
+        /// shows the main window, so it is not on the list every picture is held to.
         /// </remarks>
         public static void Over(Bitmap picture, Rectangle area, AutomationElement window, params string[] identifiers)
         {

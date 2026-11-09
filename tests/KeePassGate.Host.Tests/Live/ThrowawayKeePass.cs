@@ -35,7 +35,8 @@ namespace KeePassGate.Host.Tests.Live
     /// and so that a failed run leaves nothing behind but one directory under
     /// `CommonApplicationData`. Not `%TEMP%`, which carries the account name: the pictures the
     /// documentation is built from show the open database's path, so where the session lives is
-    /// what makes them publishable.
+    /// what makes them publishable. The account's regional format and time zone are no setting of
+    /// KeePass's, and reach what it shows whatever the copy holds.
     /// </remarks>
     internal sealed class ThrowawayKeePass : IDisposable
     {
@@ -1236,8 +1237,9 @@ namespace KeePassGate.Host.Tests.Live
 
         /// <summary>
         /// When every invented entry was made and last changed, written down for the reason the
-        /// identifiers are: KeePass's main window shows both for the selected entry, and the moving
-        /// picture shows the main window.
+        /// identifiers are, so that no two runs make a different database: KeePass's main window
+        /// shows both for the selected entry, under the cover the moving picture puts over that
+        /// view, since KeePass writes them in the zone and the format of the account running it.
         /// </summary>
         private static readonly DateTime Invented = new DateTime(2026, 8, 22, 8, 30, 0, DateTimeKind.Utc);
 

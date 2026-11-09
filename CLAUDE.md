@@ -306,7 +306,8 @@ designing around them.
   same frames: the scaling, the font smoothing, the regional format and the fonts installed all
   reach the pictures. What the client makes new every run, its key, its certificate's expiry and the
   directory it stored them in, is shown in the terminal as written down values, and the moments on
-  its row of the clients page are covered.
+  its row of the clients page are covered, as is the main window's entry view, whose times are the
+  account's zone and regional format.
 - **Nothing on a tab scrolls.** The content is held to 449 by 314 and has to fit it; horizontal
   scrolling is never acceptable. That is KeePass's own first page on the settings dialog, inside a
   padding of 3. The page this plugin adds has no padding and is laid out to the tab control's whole
