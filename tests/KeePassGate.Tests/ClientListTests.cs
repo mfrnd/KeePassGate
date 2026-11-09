@@ -67,8 +67,8 @@ namespace KeePassGate.Tests
 
                 Assert.That(list.Revoke(0), Is.Null);
                 Assert.That(list.Clients, Is.Empty);
-                Assert.That(NoteOn(list), Is.EqualTo(ClientList.NobodyText),
-                    "and with the last gone, the list states it");
+                Assert.That(NoteOn(list), Is.EqualTo(ClientList.EmptiedText),
+                    "and with the last gone, the list states that it waits for OK");
             }
         }
 
@@ -212,6 +212,22 @@ namespace KeePassGate.Tests
                 Assert.That(list.Revoke(0), Is.Null);
                 Assert.That(list.Result, Is.Null);
                 Assert.That(NoteOn(list), Is.Empty);
+            }
+        }
+
+        [Test]
+        public void A_list_emptied_by_revoking_is_not_called_a_database_that_admitted_nobody()
+        {
+            // The operator's ruling of 2026-11-09: every client revoked here still reaches the
+            // database until OK, so the line under the emptied list names the wait, and keeps
+            // naming it when the host draws the list again from the page's own copy.
+            using (var list = ListOf(Allows, Record("agent-fictitious", "ops")))
+            {
+                Assert.That(list.Revoke(0), Is.Null);
+                Assert.That(NoteOn(list), Is.EqualTo(ClientList.EmptiedText));
+
+                list.Fill(new AdmissionListing(Array.Empty<AdmissionRecord>(), true), null, null);
+                Assert.That(NoteOn(list), Is.EqualTo(ClientList.EmptiedText), "after a redraw");
             }
         }
 
@@ -387,6 +403,10 @@ namespace KeePassGate.Tests
                 Assert.That(list.Unreadable, Is.Empty);
                 Assert.That(Rows(list), Is.EqualTo(1), "and its row went with it");
                 Assert.That(list.Clients.Count, Is.EqualTo(1), "the client beside it was not touched");
+
+                Assert.That(list.Revoke(0), Is.Null);
+                Assert.That(NoteOn(list), Is.EqualTo(ClientList.EmptiedText),
+                    "the record is still stored until OK, as a client is");
             }
         }
 

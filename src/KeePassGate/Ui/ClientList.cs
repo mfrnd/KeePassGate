@@ -83,6 +83,17 @@ namespace KeePassGate.Ui
         /// <summary>What is said when the database has admitted nobody.</summary>
         public const string NobodyText = "No client has been admitted to this database.";
 
+        /// <summary>
+        /// The line under a list that revocations on this page emptied, while the database still
+        /// holds every client they took off it.
+        /// </summary>
+        /// <remarks>
+        /// <see cref="NobodyText"/> there read as though no client had ever been admitted, when
+        /// each revoked client still reaches the database until the dialog is accepted. Worded
+        /// by the operator's ruling of 2026-11-09.
+        /// </remarks>
+        public const string EmptiedText = "No clients once OK is pressed.";
+
         /// <summary>What is said when the admitted clients could not be listed at all.</summary>
         public const string UnreadableText =
             "The admitted clients could not be read. This list is not what the database holds.";
@@ -237,6 +248,10 @@ namespace KeePassGate.Ui
         // Whether the last thing filled in was the whole truth. Starts true because an empty
         // list that nobody has filled yet is empty, not unreadable.
         private bool _readable = true;
+
+        // Whether a revocation on this list went through, which lands only on OK. Kept across a
+        // refill, since what the host lists is the page's own copy, with the revoked gone.
+        private bool _revoked;
 
         private readonly Label _reappeared;
 
@@ -594,6 +609,8 @@ namespace KeePassGate.Ui
                 return Said("That client is still admitted: " + refused);
             }
 
+            _revoked = true;
+
             // Found again rather than trusting the index, because what the callback does is the
             // host's business: a host that refills the list in answer to the change is a reasonable
             // host, and one that removed a row by a stale index would be removing somebody else's.
@@ -639,6 +656,8 @@ namespace KeePassGate.Ui
             {
                 return Said("That record is still there: " + refused);
             }
+
+            _revoked = true;
 
             // Found again, for the reason a client's row is.
             var at = _unreadable.IndexOf(admissionKey);
@@ -1626,7 +1645,9 @@ namespace KeePassGate.Ui
                 ? UnreadableText
                 : _said.Length > 0
                     ? _said
-                    : _records.Count + _unreadable.Count == 0 ? NobodyText : string.Empty;
+                    : _records.Count + _unreadable.Count > 0
+                        ? string.Empty
+                        : _revoked ? EmptiedText : NobodyText;
 
             _note.Text = text;
             _note.Visible = text.Length > 0;
