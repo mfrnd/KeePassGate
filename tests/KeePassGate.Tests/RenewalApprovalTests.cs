@@ -370,7 +370,7 @@ namespace KeePassGate.Tests
             }
             catch (TimeZoneNotFoundException)
             {
-                Assert.Inconclusive("this machine has no Azores zone");
+                Assert.Ignore("this machine has no Azores zone");
                 return;
             }
 
