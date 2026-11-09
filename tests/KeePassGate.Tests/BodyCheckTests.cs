@@ -337,6 +337,29 @@ namespace KeePassGate.Tests
             }
         }
 
+        [TestCaseSource(nameof(Keywords))]
+        public void A_parameter_keeps_only_the_keywords_the_router_holds_it_to(string keyword)
+        {
+            // The other half of a request, with allow lists of its own. The router holds a path
+            // segment to its lengths and nothing else, and asks of a query name only whether it is
+            // declared, so anything more on either would load and never be checked.
+            var path = new OpenApiSchema { Type = "string" };
+            Writes[keyword](path);
+            var query = new OpenApiSchema { Type = "string" };
+            Writes[keyword](query);
+
+            if (keyword == "MinLength" || keyword == "MaxLength")
+            {
+                Assert.That(BodyCheck.SupportsParameter(path), Is.Null, "a path segment is held to its lengths");
+            }
+            else
+            {
+                Assert.That(BodyCheck.SupportsParameter(path), Is.Not.Null, "nothing enforces " + keyword + " on a path");
+            }
+
+            Assert.That(BodyCheck.SupportsQuery(query), Is.Not.Null, "nothing enforces " + keyword + " on a query");
+        }
+
         [Test]
         public void An_array_declares_a_bound_no_higher_than_the_reader_takes()
         {
