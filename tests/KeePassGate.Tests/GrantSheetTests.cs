@@ -48,7 +48,7 @@ namespace KeePassGate.Tests
         }
 
         [Test]
-        public void A_rule_typed_here_is_written_here()
+        public void A_rule_made_here_is_written_here()
         {
             var sheet = new GrantSheet(null, null, null, null);
 
