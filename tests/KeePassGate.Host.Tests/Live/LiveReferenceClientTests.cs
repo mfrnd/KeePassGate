@@ -36,9 +36,9 @@ namespace KeePassGate.Host.Tests.Live
     /// --frozen` in the repository, so what is exercised is what the lockfile pins and not a copy.
     /// Asked once before KeePass starts, which settles the environment where a slow first sync
     /// cannot eat into the time the approval dialog is waited for. Without `uv` the fixture is
-    /// ignored, as a missing KeePass is. What the command line does not offer, reading one field
-    /// on its own route and changing a password, goes through the library with
-    /// `tests/pykeepassgate/live_calls.py`, run the same way.
+    /// ignored, as a missing KeePass is. One field is read on its own route with `field` and a
+    /// password changed with `update --password` from standard input, so what the command line
+    /// prints of a protected value and how it reads a new one meet the plugin too.
     ///
     /// **The grant is written before KeePass starts**, for the reason `LiveApiTests` gives, and
     /// names the profile the client asks for, which the approval then names in the database. It
@@ -152,9 +152,9 @@ namespace KeePassGate.Host.Tests.Live
                 _listed = Client("entries" + Where(), CommandTimeout);
                 _shown = Client("show " + Created() + Where(), CommandTimeout);
 
-                _readProtected = Calls("field " + Created() + " Password", CommandTimeout);
-                _rotated = Calls("password " + Created(), CommandTimeout, Rotated);
-                _readRotated = Calls("field " + Created() + " Password", CommandTimeout);
+                _readProtected = Client("field " + Created() + " Password" + Where(), CommandTimeout);
+                _rotated = Client("update " + Created() + " --password" + Where(), CommandTimeout, Rotated);
+                _readRotated = Client("field " + Created() + " Password" + Where(), CommandTimeout);
 
                 _entryAccess = Client("access --entry " + Created() + Where(), CommandTimeout);
                 _rootAccess = Client("access --group root" + Where(), CommandTimeout);
@@ -187,9 +187,9 @@ namespace KeePassGate.Host.Tests.Live
                 // would take back, so the gate turns it away, and Escape then leaves the entry
                 // as it was.
                 var dialog = driver.OpenEntryDialog();
-                _busy = Calls("password " + Created(), CommandTimeout, TurnedAway);
+                _busy = Client("update " + Created() + " --password" + Where(), CommandTimeout, TurnedAway);
                 driver.CloseDialog(dialog);
-                _afterBusy = Calls("field " + Created() + " Password", CommandTimeout);
+                _afterBusy = Client("field " + Created() + " Password" + Where(), CommandTimeout);
 
                 driver.LockWorkspace();
                 if (!Logged(keePass, LockedLine, LockTimeout))
@@ -561,16 +561,6 @@ namespace KeePassGate.Host.Tests.Live
         private static Run Client(string arguments, TimeSpan timeout, string input = null)
         {
             return ReferenceClient.Execute("pykeepassgate " + arguments, timeout, input);
-        }
-
-        /// <summary>
-        /// One call through the library, with `live_calls.py`, for the identity this session paired.
-        /// </summary>
-        private Run Calls(string arguments, TimeSpan timeout, string input = null)
-        {
-            var program = Paths.Join("tests", "pykeepassgate", "live_calls.py");
-            return ReferenceClient.Execute(
-                "python \"" + program + "\" --directory \"" + _identity + "\" " + arguments, timeout, input);
         }
 
         /// <summary>

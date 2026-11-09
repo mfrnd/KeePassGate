@@ -217,9 +217,9 @@ renews through the real renewal dialog with `pykeepassgate renew`, which stores 
 gives up the certificate it renewed from, so `renew` and `revoke_certificate` meet the plugin as
 well; every step after that runs on the renewed identity. A write made while the entry's dialog is
 open in KeePass is turned away as `GateBusy` and changes nothing, and once KeePass is locked the
-client meets `DatabaseLocked`. What the command line does not offer, one field on its own route and
-a changed password, goes through the library with `tests/pykeepassgate/live_calls.py`, which the
-client tier runs against its stand-in as well.
+client meets `DatabaseLocked`. The protected value is read on its own route with `field`, and the
+password changed with `update --password` from standard input, so both meet the plugin through the
+command line as well.
 
 **The grant editor**, in `LiveGrantEditorTests`: a rule made on the KPG tab of a real KeePass, kept by the
 group dialog's **OK**, and read out of the `.kdbx` after the process has gone. Pressing OK rather
