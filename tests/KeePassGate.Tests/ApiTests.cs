@@ -1025,7 +1025,7 @@ namespace KeePassGate.Tests
         }
 
         [Test]
-        public void An_attachment_asked_for_under_such_a_spelling_is_not_read_at_all()
+        public void An_attachment_asked_for_under_such_a_spelling_hands_nothing_over()
         {
             // `readAttachment` served the stored attachment's bytes under the caller's spelling,
             // and got there past the ceiling the listing is asked about first, because the listing
@@ -1034,11 +1034,26 @@ namespace KeePassGate.Tests
             var content = Convert.ToBase64String(Encoding.UTF8.GetBytes("an invented attachment"));
             Send("POST", "/entries/" + _entry + "/attachments",
                 Bodies.Of(("name", "notes.txt"), ("content", content)));
+            var oversize = new byte[VaultHandlers.MaxAttachmentBytes + 1];
+            Assert.That(_vault.CreateAttachment(_entry, "big.bin", oversize, VaultTagging.None).Ok, Is.True);
 
+            // Not unread: a caller that may be handed the entry's tag has every attachment up to
+            // the ceiling digested for it first, which the real vault decrypts to do. What the
+            // spelling must not reach is the attachment itself, so the reads are the tag's alone.
             _vault.AttachmentReads = 0;
-            var asked = Get("/entries/" + _entry + "/attachments/notes%C2%AD.txt");
+            _vault.EntryTag(_entry);
+            var tagged = _vault.AttachmentReads;
 
-            Assert.That(asked.Status, Is.EqualTo(404));
+            foreach (var spelling in new[] { "notes%C2%AD.txt", "big%C2%AD.bin" })
+            {
+                _vault.AttachmentReads = 0;
+                var asked = Get("/entries/" + _entry + "/attachments/" + spelling);
+
+                Assert.That(asked.Status, Is.EqualTo(404), spelling);
+                Assert.That(asked.Json, Does.Not.Contain("content"), spelling);
+                Assert.That(_vault.AttachmentReads, Is.EqualTo(tagged), spelling + " was read past the tag");
+            }
+
             Assert.That(Get("/entries/" + _entry + "/attachments/notes.txt").Json,
                 Does.Contain("\"content\":\"" + content + "\""), "and the stored name still answers");
         }
