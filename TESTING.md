@@ -37,8 +37,8 @@ the same reason. After the stills, `DocumentationLifecycle.cs` puts back the dat
 filled it and walks the whole journey, every dialog opened from its menu: the authority, an
 invitation copied and pasted at the client's prompt, the approval, a rule and a seal on the group
 dialogs, and the revocation. PyKeePassGate's real command line pairs with that KeePass, run through
-`uv` as `LiveReferenceClientTests` runs it and typing the commands the documentation gives, sees
-nothing before the rules are written, then reads what they allow, is refused what they do not, and
+`uv` as `LiveReferenceClientTests` runs it and typing the commands the documentation gives, is
+refused before the rules are written, then reads what they allow, is refused what they do not, and
 is refused again once revoked. `Storyboard` then composes the frames from a fixed timeline rather
 than from the clock, out of the stills taken, the rectangles of the controls pressed and the text
 typed and printed: the terminal is drawn, a character at a time, and so are the pointer and its

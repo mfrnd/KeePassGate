@@ -24,9 +24,9 @@ namespace KeePassGate.Host.Tests.Live
     /// entries in two folders and nothing else, and every dialog is opened the way an operator
     /// opens it, from the menu bar, with the pointer going there first. The authority is created,
     /// an invitation handed out and copied, the client pairs and is approved, the client is shown
-    /// to see nothing until a rule says otherwise, the rules are written on the group dialogs, one
-    /// folder opened and the other closed, and the client reads one and is refused the other. Then
-    /// it is revoked, and refused everything.
+    /// refused even a listing until a rule grants it one, the rules are written on the group
+    /// dialogs, one folder opened and the other closed, and the client reads one and is refused the
+    /// other. Then it is revoked, and refused everything.
     ///
     /// **All of it real, with one exception said here.** The client is PyKeePassGate's own command
     /// line, run through `uv` as the reference client tests run it, typing the commands the
@@ -280,7 +280,7 @@ namespace KeePassGate.Host.Tests.Live
             story.Hold(200);
 
             var nothing = Command(story, "pykeepassgate entries", environment,
-                "But no rule grants reader anything yet, so to the client the database is empty");
+                "But no rule grants reader anything yet, so the client is refused even a listing");
             Assert.That(nothing.ExitCode, Is.EqualTo(1), nothing.ToString());
 
             // The rule on the top group, written on its KPG tab.
