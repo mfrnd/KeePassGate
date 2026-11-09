@@ -528,7 +528,8 @@ namespace KeePassGate.Ui
         /// <remarks>
         /// Whichever of the three it is. Like a revocation it goes into what the dialog holds and
         /// reaches the database and the gate when the dialog is accepted, and like a revocation the
-        /// row shows it at once: the name stops being red.
+        /// row shows it at once: the name stops being red. Answers with what the line under the
+        /// list now states, which is null when the lift went through, see <see cref="Done"/>.
         ///
         /// Public rather than only wired to the menu, for the reason <see cref="Revoke"/> is.
         /// </remarks>
@@ -561,9 +562,7 @@ namespace KeePassGate.Ui
                 Mark(_grid.Rows[at], record, null);
             }
 
-            // Worded as waiting, which it is until the dialog is accepted: the answer goes on
-            // refusing until then, as the tooltip on the menu item states.
-            return Said("The next renewal of " + name + " raises the dialog again once OK is pressed.");
+            return Done();
         }
 
         /// <summary>
@@ -572,7 +571,8 @@ namespace KeePassGate.Ui
         /// <remarks>
         /// Public rather than only wired to the column, because a cell cannot be pressed on a
         /// control that was never shown, silently, and a test that pressed one would pass while
-        /// proving nothing.
+        /// proving nothing. Answers with what the line under the list now states, which is null
+        /// when the revocation went through, see <see cref="Done"/>.
         /// </remarks>
         public string Revoke(int index)
         {
@@ -611,45 +611,22 @@ namespace KeePassGate.Ui
 
             UpdateEmptiness();
 
-            var name = Named(record);
-
-            // A renewed client is two rows with one client key until it gives the older up, and
-            // taking one of them away leaves the client reaching the database through the other,
-            // so the sentence names which certificate goes rather than the client. Both are worded
-            // as waiting for OK, which they are: the client still reaches the database until then,
-            // and a sentence stating otherwise was the one place on the page that did.
-            if (_records.Exists(other => string.Equals(other.ClientKey, record.ClientKey, StringComparison.Ordinal)))
-            {
-                return Said("The certificate admitted for " + name + " at " + Stamp(record.Admitted) +
-                            " is revoked when OK is pressed; its other certificate still reaches this database.");
-            }
-
-            return Said(name + " loses its admission when OK is pressed.");
+            return Done();
         }
 
         /// <summary>
-        /// What a sentence under the list calls this record's client: its name, and the start of
-        /// its client key as well when another client listed here goes by the same name.
+        /// What a sentence under the list calls this listed record's client: its name, and the
+        /// start of its client key as well when another client listed here goes by the same name.
         /// </summary>
-        /// <remarks>
-        /// Asked of the rows as they stand and of this record, which a revocation has just taken
-        /// off them, so that the client it named is told apart from one still listed.
-        /// </remarks>
         private string Named(AdmissionRecord record)
         {
-            var listed = new List<AdmissionRecord>(_records);
-            if (!listed.Contains(record))
-            {
-                listed.Add(record);
-            }
-
             var name = Describe(record);
-            var shared = listed.Exists(other =>
+            var shared = _records.Exists(other =>
                 string.Equals(Describe(other), name, StringComparison.Ordinal)
                 && !string.Equals(other.ClientKey, record.ClientKey, StringComparison.Ordinal));
 
             return shared
-                ? name + " (" + ShortKeys(listed.ConvertAll(other => other.ClientKey))[record.ClientKey] + ")"
+                ? name + " (" + ShortKeys(_records.ConvertAll(other => other.ClientKey))[record.ClientKey] + ")"
                 : name;
         }
 
@@ -678,7 +655,7 @@ namespace KeePassGate.Ui
 
             UpdateEmptiness();
 
-            return Said("The record that could not be read is taken away when OK is pressed.");
+            return Done();
         }
 
         /// <summary>
@@ -1613,6 +1590,22 @@ namespace KeePassGate.Ui
             _said = Clipped.Message(what);
             Note();
             return _said;
+        }
+
+        /// <summary>
+        /// Takes the line under the list away after a gesture that went through, and answers null.
+        /// </summary>
+        /// <remarks>
+        /// The rows show what went through: a revoked row goes at once and a lifted name stops
+        /// being red, and the note under the pages states that changes apply on OK. A sentence
+        /// under the list stating it again took up to two of the list's lines, so since the
+        /// operator's ruling of 2026-11-09 only a gesture that did not go through puts words here.
+        /// </remarks>
+        private string Done()
+        {
+            _said = string.Empty;
+            Note();
+            return null;
         }
 
         private void UpdateEmptiness()

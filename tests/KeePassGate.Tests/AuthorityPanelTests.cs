@@ -748,7 +748,7 @@ namespace KeePassGate.Tests
 
                 var list = ControlTree.FindByName<ClientList>(panel, ClientList.ControlName);
 
-                Assert.That(list.Revoke(0), Does.Contain("agent-fictitious"));
+                Assert.That(list.Revoke(0), Is.Null);
                 Assert.That(list.Clients, Is.Empty);
                 Assert.That(panel.AdmittedClients().Records, Is.Empty);
                 Assert.That(Fact(panel, "Admission records"), Is.EqualTo("0"));
@@ -899,7 +899,7 @@ namespace KeePassGate.Tests
                     Does.Contain("cannot be read and admits nobody. The Clients page lists it."));
                 Assert.That(Fact(panel, "Admission records"), Is.EqualTo("2"));
 
-                Assert.That(list.Revoke(list.Clients.Count), Does.Contain("taken away"));
+                Assert.That(list.Revoke(list.Clients.Count), Is.Null);
 
                 Assert.That(list.Unreadable, Is.Empty);
                 Assert.That(Label(panel, GateTab.DetailLabelName).Text, Does.Not.Contain("cannot be read"));
