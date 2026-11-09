@@ -349,7 +349,7 @@ namespace KeePassGate.Ui
         /// compile error.
         /// </remarks>
         public const string ApprovalCountdownFormat =
-            "This pairing request times out in {0} seconds, and nothing gets issued.";
+            "Times out in {0} s; nothing is issued.";
 
         /// <summary>The dialog raised when an admitted client asks for a new certificate.</summary>
         public const string RenewalFormName = "KpgRenewalForm";

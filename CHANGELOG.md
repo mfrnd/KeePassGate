@@ -11,6 +11,11 @@ none, since it releases both.
 
 ## 0.2.0, unreleased
 
+- **The pairing dialog reads in fewer words**: what approving does, "Approving issues a
+  certificate and saves this database. Revoke it later on the KPG tab.", what the list is,
+  "Profiles it asks for; uncheck any it should not get:", and the countdown, "Times out in 115 s;
+  nothing is issued." That the admission is saved before the client is answered stays in
+  `PAIRING.md`.
 - **The note under the KPG tab's pages reads "Changes apply on OK, then save the database."**,
   the same two things as before in fewer words.
 - **A revocation or an Allow renewal that went through puts no sentence under the clients list.**
