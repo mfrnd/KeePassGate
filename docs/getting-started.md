@@ -209,9 +209,9 @@ Anything wrong or about to be wrong appears as a sentence under the table: a cli
 third of its certificate's life, which is thirty days at most, and anything unreadable.
 
 **Once it is saved, the file is KDBX 4.1.** What the plugin keeps in the database carries the time
-each value was written, and that is a 4.1 field. KeePass 2.48 or later keeps those times. KeePassXC,
-and KeePass before 2.48, open the file all the same, but saving or merging in them can undo what the
-plugin keeps: [Revoking](clients.md#revoking) states what it costs and what to check afterwards.
+each value was written, and that is a 4.1 field. KeePass 2.48 or later keeps those times. Other
+programs open the file all the same, and [Revoking](clients.md#revoking) states what saving or
+merging in them costs and what to check afterwards.
 
 ## OK, then save
 

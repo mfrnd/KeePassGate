@@ -316,12 +316,12 @@ namespace KeePassGate.Authority
         ///
         /// **Why a key of its own rather than the emptied record alone.** KeePass merges this
         /// dictionary key by key on modification time, and a mark decided that way loses whenever
-        /// its time does: a file saved without the times, which KeePassXC and KeePass before 2.48
-        /// both do, a clock behind the pairing host's, or an import with Overwrite existing from a
-        /// copy still holding the record. The record comes back in every one of those. The merge
-        /// never removes a key the target holds and never reads a value, though, so a key only
-        /// ever added survives all of them. That is measured against the KeePass this builds with,
-        /// in the host tests, so a release that changes the rule fails the gate.
+        /// its time does: a file another program saved without the times, a clock behind the
+        /// pairing host's, or an import with Overwrite existing from a copy still holding the
+        /// record. The record comes back in every one of those. The merge never removes a key the
+        /// target holds and never reads a value, though, so a key only ever added survives all of
+        /// them. `CA.md` §204 has the measurements, and `CustomDataMergeRuleTests` pins the rule
+        /// against the KeePass this builds with, so a release that changes it fails the gate.
         ///
         /// **Its value is the certificate's `notAfter` and the authority that issued it**, which is
         /// what lets it be pruned: past that moment the gate refuses the certificate on its dates,

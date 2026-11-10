@@ -30,9 +30,8 @@ namespace KeePassGate.Authority
         /// `AuthorityDocument` is the shape inside it.
         ///
         /// **One key per authority rather than one key for the only authority**, because a key
-        /// that is only ever added and never changed is the one shape a KeePass merge cannot undo.
-        /// `PwDatabase.MergeInDbProperties` visits the source's keys and no others and never reads
-        /// a value, so a replacement written over the old authority's key lost to any copy whose
+        /// that is only ever added and never changed is the one shape a KeePass merge cannot undo,
+        /// `CA.md` §204. A replacement written over the old authority's key lost to any copy whose
         /// time for that key was later, and a stale copy merged in could put back an authority the
         /// operator had replaced. Written under its own digest, a document is written once and
         /// never rewritten; what replaces it is a retirement beside it, and two authorities made
@@ -143,11 +142,10 @@ namespace KeePassGate.Authority
         /// </summary>
         /// <remarks>
         /// **A key of its own, only ever added and never changed**, because that is the one shape a
-        /// KeePass merge cannot undo. `PwDatabase.MergeInDbProperties` visits the source's keys and
-        /// no others, so it never removes a key the target holds, and it decides a key both sides
-        /// hold by modification time and never by value, so a value nobody changes has nothing to
-        /// lose to. The emptied record beside it is still written, and is still the losing kind of
-        /// mark: a stale copy can bring the record back, and this is what refuses it when it does.
+        /// KeePass merge cannot undo: it never removes a key the target holds and never reads a
+        /// value, `CA.md` §204. The emptied record beside it is still written, and is still the
+        /// losing kind of mark: a stale copy can bring the record back, and this is what refuses it
+        /// when it does.
         ///
         /// **The value is chosen once, as the key is written**, and is what lets the key go: past
         /// `notAfter` the gate refuses the certificate on its dates, and once the authority named

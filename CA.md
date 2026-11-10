@@ -105,9 +105,9 @@ All of it under `KPG` keys in the **database's own** `CustomData`, which is the 
 KeePass stamps key by key and merges the same way. A node's access rule is the exception and lives
 on that node, where it belongs and travels. Everything requires KDBX 4, and this requires KDBX 4.1,
 because a per-key modification time is a 4.1 field: a database that has been paired with is a 4.1
-file. That is a format and not a gate, since an older KeePass opens the file and saves it back
-without the times. Nothing that has to survive a merge turns on them any more, which is what the
-revocation paragraph below is about.
+file. That is a format and not a gate: other programs open the file, and the paragraph on them
+below has what saving and merging in them was measured to do. Nothing that has to survive a merge
+turns on the times any more, which is what the revocation paragraph below is about.
 
 | Key | Contents | Written |
 | --- | --- | --- |
@@ -137,12 +137,12 @@ that replaced a purge which rewrote every rule naming a removed profile, and mov
 entries nobody had edited to make the rewrite carry. A write that says nothing new stays a no-op, so
 reading a rule is never an unsaved change.
 
-**One key per certificate, never one blob, and in the dictionary that merges per key.** Measured on
-KeePass 2.61.1: `PwDatabase.CustomData` keeps a modification time for each key and a merge
-arbitrates key by key, while a group's dictionary keeps none, so `PwGroup.AssignProperties`
-replaces the whole of it from whichever replica's group was touched last. Two hosts pairing
-different clients keep both only in the first. A single blob would be last-writer-wins in either,
-and would lose pairings silently.
+**One key per certificate, never one blob, and in the dictionary that merges per key.**
+`PwDatabase.CustomData` keeps a modification time for each key and a merge decides key by key, while
+a node's dictionary is taken whole as the paragraph above describes; `MergeInRealDatabaseTests`
+measures both against the KeePass this builds with. Two hosts pairing different clients keep both
+only in the first. A single blob would be last-writer-wins in either, and would lose pairings
+silently.
 
 **The profile list is one key, so a merge takes it whole.** `KPG.Profiles` holds every name in one
 value, and a merge keeps one side's list, which for a synchronize is whichever copy wrote it last: a
@@ -158,26 +158,26 @@ copies that both changed their profiles, the Profiles page is where to look.
 `KPG.Revoked.<sha256>` beside the record, holding the certificate's `notAfter` and the authority
 that issued it, and writes the
 record empty, and a client is admitted only by a record that is not empty and has no revocation
-beside it. What makes that hold was measured on KeePass 2.61.1, and the host tests pin it against
-the KeePass this builds with: `PwDatabase.MergeInDbProperties` visits the source's keys and no
-others, so **a KeePass merge never removes a key the target holds**, and it decides a key both
-sides hold by modification time, the merge method and `SettingsChanged`, so **it never reads a
-value**. A key that is added once and never changed survives every KeePass merge and import,
-whatever the clocks say and whether or not a program in between dropped the times.
+beside it. What makes that hold was measured on KeePass 2.61.1 on `spikes/revocation-merge`, and
+`CustomDataMergeRuleTests` pins it method by method against the KeePass this builds with:
+`PwDatabase.MergeInDbProperties` visits the source's keys and no others, so **a KeePass merge never
+removes a key the target holds**, and it decides a key both sides hold by modification time, the
+merge method and `SettingsChanged`, so **it never reads a value**. A key that is added once and
+never changed survives every KeePass merge and import, whatever the clocks read and whether or not
+a program in between dropped the times.
 
 **This reverses the empty record as the revocation**, and the argument for it is kept because it was
 right about the merge and wrong about what the merge would be given. A merge carries a newer value
 and carries nothing at all for a key that went, so the empty value was the removal in a form the
-merge could carry. It carried only while the file kept the time the mark was written at, and other
-programs decide that: KeePassXC 2.7.12 saves a paired file as 4.0 with every time gone, and so does
-KeePass 2.47, which opens a 4.1 file rather than refusing it, after which KeePass 2.61.1 keeps
-whichever side is stamped or already holds the key. The time was also the revoking host's clock,
-compared with the pairing host's record, so a revocation made sooner after the pairing than the two
-clocks disagree by lost the same way. And **File > Import** with *Overwrite existing* put back every
-record the imported copy held. In each of those the client was admitted again with everything it
-had, and the plugin, which cannot see the times or an import, could only revoke it again. The
-emptied record is still written, and is still that losing kind of mark: a stale copy can bring it
-back, and the revocation beside it is what refuses it when it does.
+merge could carry. It carried only while the file kept the time the mark was written at, which a
+save in another program usually does not, as the paragraph on other programs below has it, after
+which KeePass 2.61.1 keeps whichever side is stamped or already holds the key. The time was also
+the revoking host's clock, compared with the pairing host's record, so a revocation made sooner
+after the pairing than the two clocks disagree by lost the same way. And **File > Import** with
+*Overwrite existing* put back every record the imported copy held. In each of those the client was
+admitted again with everything it had, and the plugin, which cannot see the times or an import,
+could only revoke it again. The emptied record is still written, and is still that losing kind of
+mark: a stale copy can bring it back, and the revocation beside it is what refuses it when it does.
 
 **A record that comes back is taken away by the plugin's next write.** It admits nobody meanwhile,
 since admission reads the revocation rather than waiting for this, and the clients page counts it
@@ -301,11 +301,25 @@ that end, which is at most a year after it was issued, or the next recreation or
 it is removed by hand under Database Maintenance. It has no row on the clients page, and it refuses
 nothing the retirement does not refuse already and admits nobody.
 
-**All of this is a claim about KeePass 2.48 or later with the plugin in it.** Other programs can open
-the database, and saving or merging in one can quietly bring back a revoked client, a retired
-authority or a removed profile, because their merges replace or drop keys: KeePassXC 2.7.12, the
-one read from source, replaces the whole dictionary. Nothing here detects that. After any change
-made outside KeePass, the clients page and the authority are where to look.
+**All of this is a claim about KeePass 2.48 or later with the plugin in it.** Other programs open
+the database, and what they do to it was measured on `spikes/revocation-merge`, for KeePassXC 2.4.1
+to 2.8.0 and KeePass 2.47. **Saving in any of them keeps every key and its value, and usually not
+the times**: the file goes back to an older format, 4.0 or even 3.1, unless something else in it is
+4.1 as well, such as the previous parent a KeePass delete or move records, and only KeePassXC 2.7.0
+or later keeps the times even then. A revocation and a retirement survive that, being keys only
+ever added, while the profile list and a standing answer to a renewal go to whichever copy still
+carries a time at the next synchronize in KeePass. **A KeePassXC merge, from 2.4.2, replaces the
+custom data of the database it merges into with the other copy's, whole**, whenever the other copy
+was read in a later second, which a copy chosen to merge from nearly always is. Merging an older
+copy into the paired database therefore takes away every key written since, revocations,
+retirements and records alike, and puts back the older value of every key changed since, the
+profile list among them, stamped, where the file keeps times, with the time of the merge, which a
+later synchronize in KeePass takes as the newest. A group both copies hold keeps the rules of the
+database merged into, however the other copy changed them, and takes the newer of the two times,
+so a narrowing made in the other copy is lost without looking older. Merging the other way, the
+paired database into an older copy, gives that copy the paired database's keys. Nothing here
+detects any of it. After any change made outside KeePass, the clients page, the Profiles page and
+the authority are where to look.
 
 **KeePass's own Database Maintenance dialog lists every one of these keys on its Plugin Data tab,
 and deletes any of them on request.** None of that is a way to manage what this plugin keeps.
