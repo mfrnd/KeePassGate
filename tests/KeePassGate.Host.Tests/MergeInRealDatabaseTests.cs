@@ -114,12 +114,11 @@ namespace KeePassGate.Host.Tests
         public void A_revoked_client_stays_refused_whatever_happened_to_the_times()
         {
             // What the emptied record alone could not do, and the revocation beside it does. The
-            // record lost whenever its time did: dropped from the file, which KeePassXC and KeePass
-            // before 2.48 both do, or older than the other copy's, or overwritten outright by an
-            // import. Here every one of those happens at once where it can: the other copy writes
-            // its record no earlier than the revocation, so its time never loses on age, and the
-            // times are dropped on either side, through the file each time, merged in either
-            // direction.
+            // record lost whenever its time did: dropped from the file by another program's save,
+            // `CA.md` §204, or older than the other copy's, or overwritten outright by an import.
+            // Here every one of those happens at once where it can: the other copy writes its
+            // record no earlier than the revocation, so its time never loses on age, and the times
+            // are dropped on either side, through the file each time, merged in either direction.
             var admissionKey = CertificateDigest.Of(_first);
 
             foreach (var method in new[] { PwMergeMethod.Synchronize, PwMergeMethod.OverwriteExisting })
@@ -295,8 +294,8 @@ namespace KeePassGate.Host.Tests
         }
 
         /// <summary>
-        /// Every key written again with no time, which is what a file saved by KeePassXC or by
-        /// KeePass before 2.48 holds. The public `Set` always stamps one, so this goes through the
+        /// Every key written again with no time, which is what another program's save usually
+        /// leaves, `CA.md` §204. The public `Set` always stamps a time, so this goes through the
         /// internal overload.
         /// </summary>
         private static void StripTimes(TemporaryDatabase database)

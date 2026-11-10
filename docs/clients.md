@@ -136,11 +136,14 @@ record that could not be read is the exception**: it gives no date, so the mark 
 carries none, and that mark and the emptied record stay until the authority is recreated or deleted.
 
 **All of that holds in KeePass with the plugin in it, which is 2.61.1 or later, and only there.**
-Other programs can open the database, KeePassXC and KeePass before 2.48 among them, but saving or
-merging in any of them can quietly bring back a revoked client, a replaced authority or a removed
-profile, because their merges replace or drop what the plugin keeps. So save and merge a paired
-database only in KeePass with the plugin in it, and after any change made anywhere else, look at
-this list and at the Certificate Authority page.
+Other programs can open the database, KeePassXC and KeePass before 2.48 among them. **Merging an
+older copy into it in KeePassXC quietly brings back every revoked client, replaced authority and
+removed profile** the older copy still had, and a merge either way keeps a group's access rules as
+they were in the database merged into, however the other copy narrowed them. Saving in any of them
+keeps what the plugin wrote but usually drops the times it was written at, and a later synchronize
+in KeePass can then bring back a removed profile. [`CA.md`](../CA.md) §204 has what was measured.
+So save and merge a paired database only in KeePass with the plugin in it, and after any change
+made anywhere else, look at this list, the Profiles page and the Certificate Authority page.
 
 **Nor is anything here managed from KeePass's own Database Maintenance dialog.** Its **Plugin Data**
 tab lists what the plugin keeps, each revocation's mark among it, and deletes a row on request.

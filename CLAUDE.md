@@ -91,14 +91,13 @@ designing around them.
   which an attacker-supplied file could forge. **Do not re-propose a host-level authority or
   registry.**
 - **The database's own `CustomData`, never the root group's**, and it was the root group's until a
-  merge was measured. KeePass stamps each key of `PwDatabase.CustomData` with a modification time
-  and merges those key by key; a group's dictionary carries no stamps at all, so
-  `PwGroup.AssignProperties` replaces the whole of it from whichever replica's group was touched
-  last. Records shaped one-per-client to survive a merge did not. Two consequences worth keeping
-  straight. Each authority's three parts are **one key**, `AuthorityDocument`, because there the
-  argument runs the other way: merged apart, a certificate from one replica and a private key from
-  another read as damage. And **what has to survive a merge is a key that is only ever added**,
-  because a KeePass merge never removes a key and never reads a value. A revocation is
+  merge was measured: KeePass merges `PwDatabase.CustomData` key by key and a group's dictionary
+  whole, CA.md §204. Records shaped one-per-client to survive a merge did not. Two consequences
+  worth keeping straight. Each authority's three parts are **one key**, `AuthorityDocument`,
+  because there the argument runs the other way: merged apart, a certificate from one replica and a
+  private key from another read as damage. And **what has to survive a merge is a key that is only
+  ever added**, because a KeePass merge never removes a key and never reads a value, which is the
+  measured fact below. A revocation is
   `KPG.Revoked.<key>` beside the emptied record, never changed, naming the certificate's end and the
   authority that issued it, and pruned once the certificate has expired or that authority is retired
   or gone, or kept for good beside a record that would not read and so gave no date; an authority is
@@ -114,10 +113,10 @@ designing around them.
   revocation with it. See CA.md §204.
 - **The authority takes the file to KDBX 4.1**, because a per-key modification time is a 4.1
   field. A database saved with an authority in it is a 4.1 file before anything has paired with
-  it, and a record keeps it there. That is a format and not a gate: KeePass 2.47
-  opens it and saves it back as 4.0 without the per-key times, and so does KeePassXC. A revocation
-  no longer needs them, being a key of its own, but merging in another program can still undo one,
-  which is why a paired database belongs in KeePass 2.48 or later with the plugin. See CA.md §204.
+  it, and a record keeps it there. That is a format and not a gate: other programs open it, and
+  what saving and merging in them does to it is measured and stated in CA.md §204. A revocation no
+  longer needs the times, being a key of its own, but a KeePassXC merge can still undo a revocation,
+  which is why a paired database belongs in KeePass 2.48 or later with the plugin.
 - **The admission record is load bearing.** A certificate that chains, passes its EKU check and has
   no record in the database is refused, and so is one whose record has a revocation beside it. The
   permitted profiles are read from the **record**, less any name the database's list of profiles no
@@ -497,14 +496,13 @@ designing around them.
 ## Measured facts that cost time if rediscovered
 
 Every one of these was established by running code, and most contradict what the documentation
-suggests. The code is on branches of its own: `spikes/tls-and-certificates` holds the nine that
-measured TLS and X.509, `spikes/build-environment` the one that measured whether the gate can
-fail while nothing is wrong, `spikes/revocation-merge` the one that measured how KeePass merges
-a database's custom data, `spikes/entity-tags` the one that measured what a node's version
-could be made of, and `spikes/automation-unload` the one that measured why a domain that drove
-KeePass through UI automation cannot unload. Each gathers what it settled in its own `RESULTS.md`.
-Run them from
-**Windows PowerShell**, not PowerShell 7, which is .NET Core and answers a different question.
+suggests. The code is on branches of its own, each gathering what it settled in its own
+`RESULTS.md`: `spikes/tls-and-certificates` measured TLS and X.509, `spikes/build-environment`
+whether the gate can fail while nothing is wrong, `spikes/revocation-merge` how KeePass merges a
+database's custom data and what KeePassXC does to it, `spikes/entity-tags` what a node's version
+could be made of, and `spikes/automation-unload` why a domain that drove KeePass through UI
+automation cannot unload. Run them from **Windows PowerShell**, not PowerShell 7, which is .NET Core
+and answers a different question.
 
 - **`X509Chain` does not pin an anchor.** `ExtraStore` plus `AllowUnknownCertificateAuthority`
   accepts a certificate from a completely foreign authority. `X509ChainTrustMode.CustomRootTrust`
@@ -553,16 +551,18 @@ Run them from
 - **A KeePass merge of `PwDatabase.CustomData` visits the source's keys and no others, and never
   reads a value.** `PwDatabase.MergeInDbProperties` is the whole of it, run at the end of every
   `MergeIn`, which is File then Synchronize and File then Import alike. So no method removes a key
-  the target holds, and a removal travels nowhere. For a key both sides hold, the two modification
-  times, the method and `SettingsChanged` decide: `KeepExisting` copies nothing; `OverwriteExisting`
-  takes every source key with the source's time, or with none where it has none; `Synchronize`,
-  `OverwriteIfNewer` and `CreateNewUuids` take the source only when its time is strictly newer or
-  only it has one, and between two keys without times only when the target lacks the key or the
-  source's settings are newer. A key that is only ever added and never changed therefore survives
-  every KeePass merge, whatever the clocks say and whether or not a program that drops the times
-  has saved either copy. `CustomDataMergeRuleTests` pins that against the pinned KeePass, and
+  the target holds, a removal travels nowhere, and a key that is only ever added and never changed
+  survives every KeePass merge, whatever the clocks read. What each method does with a key both
+  sides hold is `CustomDataMergeRuleTests`, which pins it against the pinned KeePass, and
   `spikes/revocation-merge` holds the probe that measured every method in both directions and with
   the times lost on either side.
+- **KeePassXC keeps the plugin's keys when it saves and replaces them when it merges.** Measured on
+  `spikes/revocation-merge` from 2.4.1 to 2.8.0: a save keeps every key and value and usually drops
+  the per-key times, and from 2.4.2 a merge hands the database it merges into the other copy's
+  custom data whole, whenever that copy was read in a later second. Reading the source got the save
+  wrong once: KeePassXC decides the version a file is written as from the rest of the tree, and the
+  times on the database's own custom data do not count toward it. CA.md §204 states what all of
+  that does to a paired database.
 - **Never parse a SAN with `X509Extension.Format` or `GetNameInfo`.** `AddDnsName` accepts text that
   renders as a URI claim, the labels are localized, and `GetNameInfo` returns one entry. Read the
   ASN.1 tags: `0x86` URI, `0x82` dNSName, `0x81` rfc822Name. `SanProbe`. **The plugin reads

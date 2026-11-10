@@ -83,8 +83,8 @@ namespace KeePassGate.Host.Tests
             // key of the database's own custom data with a modification time, and a file carrying
             // one of those stamps is KDBX 4.1: `PwDatabase.GetMinKdbxVersion` says so. A database
             // this plugin has been used on is therefore a 4.1 file, and nothing on the tab says it
-            // happened. That is a format and not a gate: KeePass 2.47 opens such a file rather than
-            // refusing it, and saves it back as 4.0 without the stamps.
+            // happened. That is a format and not a gate: other programs open such a file, and what
+            // their saves do to the stamps is measured and stated in `CA.md` §204.
             //
             // Written about the authority rather than about a record, because the authority is
             // what comes first: creating one is enough, and every database that is served has one.

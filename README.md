@@ -181,9 +181,9 @@ retakes all of them.
 
 **Some measurements live on branches of their own** that were never merged into `master`:
 `spikes/tls-and-certificates` covers TLS and X.509 on .NET Framework, `spikes/build-environment`
-whether the gate can fail when nothing is wrong, `spikes/revocation-merge` how KeePass merges a
-database, and `spikes/pykeepass-compatibility` how much of `pykeepass` the API could serve. Each
-keeps its findings in a `RESULTS.md`.
+whether the gate can fail when nothing is wrong, `spikes/revocation-merge` how KeePass and KeePassXC
+merge a database, and `spikes/pykeepass-compatibility` how much of `pykeepass` the API could serve.
+Each keeps its findings in a `RESULTS.md`.
 
 ## License
 
