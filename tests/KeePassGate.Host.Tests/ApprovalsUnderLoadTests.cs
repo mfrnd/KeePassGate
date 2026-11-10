@@ -73,7 +73,7 @@ namespace KeePassGate.Host.Tests
             _insideSave = 0;
             _shown = 0;
 
-            var ui = new ControlUiThread(_ui.Control);
+            var ui = new ControlUiThread(_ui.Control, KeePassMerges.Watch());
             _writer = new DatabaseWriter(
                 ui, KeePassLikeSave, () => _blocked > 0 ? "KeePass is in the middle of an operation of its own" : null,
                 null, null, null, NullGateLog.Instance);

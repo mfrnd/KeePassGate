@@ -850,7 +850,20 @@ namespace KeePassGate
             // One queue for both: the writer's work and the reads every connection makes take
             // their turns on KeePass's thread from it, in order and behind whatever KeePass is
             // doing, `DESIGN.md` §119. Made here, on that thread, which is where it listens.
-            var ui = new ControlUiThread(mainWindow);
+            //
+            // A read is kept out of a merge by looking for the merge on that thread's own stack,
+            // and a KeePass with no method of that name leaves nothing to look for.
+            var merging = MergeWatch.Over(typeof(KeePassLib.PwDatabase), KeePassContract.DatabaseMergeMethod);
+            if (merging == null)
+            {
+                _log.Error(
+                    "this KeePass has no " + KeePassContract.DatabaseMergeMethod + " on its database, so a " +
+                    "merge cannot be seen and a read waits for KeePass to be idle: a read asked for " +
+                    "during a long save or under a message box is answered as busy",
+                    null);
+            }
+
+            var ui = new ControlUiThread(mainWindow, merging);
             _ui = ui;
 
             // The one writer, shared by every database, because pairing is a single writer by

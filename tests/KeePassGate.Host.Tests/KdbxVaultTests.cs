@@ -1231,7 +1231,7 @@ namespace KeePassGate.Host.Tests
             var listed = _vault.Subgroups(_vault.RootAlias).Count;
 
             using (var loop = new UiLoop())
-            using (var ui = loop.Own(() => new ControlUiThread(loop.Control)))
+            using (var ui = loop.Own(() => new ControlUiThread(loop.Control, KeePassMerges.Watch())))
             using (var churn = loop.Own(() => new System.Windows.Forms.Timer { Interval = 1 }))
             {
                 var vault = new KdbxVault(_database.Database, Writer(), TestTags.Fixed, ui.Value, null);

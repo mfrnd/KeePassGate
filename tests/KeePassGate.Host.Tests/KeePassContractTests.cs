@@ -722,6 +722,47 @@ namespace KeePassGate.Host.Tests
         }
 
         [Test]
+        public void Every_merge_KeePass_runs_still_goes_through_the_method_a_read_looks_for()
+        {
+            // A read is kept out of a merge by finding `PwDatabase.MergeIn` on the stack of
+            // KeePass's thread, `MergeWatch`, so a merge that ran somewhere else would be one no
+            // read waits for. The overload without a logger is a few bytes that may be compiled
+            // into whatever calls it, leaving no frame of its own, which costs nothing while it
+            // calls the long one. That the long one keeps a frame is driven, in
+            // `ReadsDuringAMergeTests`; who reaches it is read off the IL here, XML Replace in the
+            // test above.
+            var database = typeof(KeePassLib.PwDatabase);
+            var quiet = database.GetMethod(
+                KeePassContract.DatabaseMergeMethod,
+                new[] { typeof(KeePassLib.PwDatabase), typeof(KeePassLib.PwMergeMethod) });
+            var merge = database.GetMethod(
+                KeePassContract.DatabaseMergeMethod,
+                new[]
+                {
+                    typeof(KeePassLib.PwDatabase), typeof(KeePassLib.PwMergeMethod),
+                    typeof(KeePassLib.Interfaces.IStatusLogger),
+                });
+            var import = Array.Find(
+                typeof(KeePass.DataExchange.ImportUtil).GetMethods(BindingFlags.Static | BindingFlags.NonPublic),
+                method => method.Name == "Import" && method.GetParameters().Length == 9);
+
+            Assert.That(merge, Is.Not.Null, "the merge every other one ends in is gone");
+            Assert.That(quiet, Is.Not.Null, "the merge without a logger is gone");
+            Assert.That(Calls(quiet, merge), Is.True,
+                "the merge without a logger no longer runs inside the one a read looks for");
+            Assert.That(import, Is.Not.Null, "the import every synchronize and import goes through is gone");
+            Assert.That(Calls(import, merge), Is.True,
+                "an import or a synchronize no longer merges inside the method a read looks for");
+            Assert.That(
+                Array.FindAll(
+                    database.GetMethods(BindingFlags.Instance | BindingFlags.Static | BindingFlags.Public |
+                        BindingFlags.NonPublic | BindingFlags.DeclaredOnly),
+                    method => method.Name == KeePassContract.DatabaseMergeMethod),
+                Has.Length.EqualTo(2),
+                "a third way into a merge, which may not end in the one a read looks for");
+        }
+
+        [Test]
         public void KeePass_still_announces_a_database_opening_and_closing()
         {
             // How the plugin learns about a lock. Without these it never drops the authority key

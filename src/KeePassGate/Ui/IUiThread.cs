@@ -98,10 +98,22 @@ namespace KeePassGate.Ui
     /// writer; queued work waits for the operation to end. The writer still asks, because a dialog
     /// shown inside one of them is a WinForms loop and does raise Idle.
     ///
-    /// **A read also starts on a slow timer**, because a read inside a pump is harmless and a loop
-    /// that is not WinForms' never raises Idle: a message box's, or `DoEvents` itself. So reads
-    /// are served during a long save, and the first read waiting may go ahead of work that cannot
-    /// start yet. Otherwise the queue is served in the order it was joined.
+    /// **A read also starts on a slow timer**, because a loop that is not WinForms' never raises
+    /// Idle: a message box's, or `DoEvents` itself. So reads are served during a long save, and
+    /// the first read waiting may go ahead of work that cannot start yet. Otherwise the queue is
+    /// served in the order it was joined.
+    ///
+    /// **Nothing starts inside a merge**, which reverses the reason that timer was given: a read
+    /// inside a pump was taken to be harmless, and inside a save it is, because the tree stands
+    /// still. A merge pumps from its status logger between one group or entry and the next, and
+    /// the timer's tick served a read there from a tree part way between two databases: entries
+    /// not yet moved to where the merge puts them, deletions not yet applied. So each round asks
+    /// first whether the thread is inside a merge, <see cref="Bridge.MergeWatch"/>, and serves
+    /// nothing while it is. The read keeps its place and is served from the merged tree on the
+    /// tick after, or answered as busy when its wait runs out. **With nobody to ask, the timer
+    /// serves no read at all**, since a read it started could be inside a merge unseen: reads
+    /// then wait for Idle like work, and a read under a long save or a message box is answered as
+    /// busy.
     ///
     /// **A native dialog is answered at once rather than waited out.** A message box, a task dialog
     /// and a file dialog run a loop of Windows' own, which never raises Idle, so work queued under
@@ -146,6 +158,7 @@ namespace KeePassGate.Ui
         private static int t_holds;
 
         private readonly Control _control;
+        private readonly Func<bool> _merging;
         private readonly TimeSpan _holdWait;
         private readonly TimeSpan _holdLimit;
         private readonly object _gate = new object();
@@ -162,12 +175,19 @@ namespace KeePassGate.Ui
         private System.Windows.Forms.Timer _fallback;
         private bool _listening;
 
-        public ControlUiThread(Control control)
-            : this(control, HoldWait, HoldLimit)
+        /// <summary>The queue of turns on the thread a control's window belongs to.</summary>
+        /// <param name="control">Any control whose window belongs to the user interface thread.</param>
+        /// <param name="merging">
+        /// Whether the thread asking is inside a merge of KeePass's, asked on the user interface
+        /// thread before a turn starts, or null when nothing can answer, which leaves reads
+        /// waiting for Idle as work does.
+        /// </param>
+        public ControlUiThread(Control control, Func<bool> merging)
+            : this(control, merging, HoldWait, HoldLimit)
         {
         }
 
-        internal ControlUiThread(Control control, TimeSpan holdWait, TimeSpan holdLimit)
+        internal ControlUiThread(Control control, Func<bool> merging, TimeSpan holdWait, TimeSpan holdLimit)
         {
             if (control == null)
             {
@@ -175,6 +195,7 @@ namespace KeePassGate.Ui
             }
 
             _control = control;
+            _merging = merging;
             _holdWait = holdWait;
             _holdLimit = holdLimit;
 
@@ -480,11 +501,10 @@ namespace KeePassGate.Ui
 
         /// <summary>
         /// On the user interface thread: one turn, the first in the queue, or the first read when
-        /// this is not Idle.
+        /// this is not Idle, and none at all inside a merge.
         /// </summary>
         private void Serve(bool idle)
         {
-            Turn next = null;
             lock (_gate)
             {
                 _turns.RemoveAll(turn => turn.Withdrawn);
@@ -498,10 +518,25 @@ namespace KeePassGate.Ui
 
                     return;
                 }
+            }
 
+            // Asked with something waiting and never otherwise, since it reads the thread's whole
+            // stack, and outside the lock, which a thread joining the queue should not wait on
+            // for that long. On Idle as well as on the timer: a WinForms dialog shown from inside
+            // a merge raises Idle, inside the merge. What is waiting stays where it is, and the
+            // timer keeps ticking, so the round after the merge serves it.
+            if (_merging != null && _merging())
+            {
+                return;
+            }
+
+            Turn next = null;
+            lock (_gate)
+            {
                 foreach (var turn in _turns)
                 {
-                    if (idle || turn.IsRead)
+                    // A read on the timer only where a merge would have been seen.
+                    if (idle || (turn.IsRead && _merging != null))
                     {
                         next = turn;
                         break;
@@ -510,7 +545,8 @@ namespace KeePassGate.Ui
 
                 if (next == null)
                 {
-                    // Only work is waiting, and work waits for Idle.
+                    // Only work is waiting, or reads the timer may not start, and both wait for
+                    // Idle.
                     return;
                 }
 

@@ -2319,7 +2319,9 @@ components:
         thread and holds it for as long as the read takes, so the tree cannot move under it, and a
         turn that does not come round within ten seconds, or a read that outlasts five, is answered
         `busy` rather than trusted. That is KeePass busy with something it does not pause in, such
-        as deriving a key, rather than a fault here. A dialog is open on what a write would change,
+        as deriving a key, rather than a fault here, or KeePass part way through a merge, which
+        no read is started inside: a synchronize, an import and XML Replace leave the tree
+        between two databases until they end. A dialog is open on what a write would change,
         and a change made underneath it is a change the operator's OK destroys. KeePass's
         attachment editor destroys it as it closes, writing the attachment back onto the entry it
         came from, and since nothing tells which entry that is, every entry holding an attachment
