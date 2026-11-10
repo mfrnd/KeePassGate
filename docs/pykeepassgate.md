@@ -596,8 +596,9 @@ pykeepassgate remove <uuid>
 an expiry off. `--password` reads from standard input rather than taking a value, so the secret
 stays out of the process list. At a terminal it is asked for, and each character typed or pasted
 shows as a `*`; piped in, it is the one line as sent, spaces and all, read as UTF-8 whatever the
-code page, with a byte order mark at its start dropped, and its line ending taken off, a carriage
-return before the line feed as well on every platform. Input that is not UTF-8 is refused, exit 2,
+code page, with a byte order mark at its start dropped, or in the encoding `PYTHONIOENCODING`
+names, and its line ending taken off, a carriage return before the line feed as well on every
+platform. Input that does not decode is refused, exit 2,
 rather than stored as other text, and so is input that ends before a line, piped or typed: an
 empty value is an empty line, which a pipe sends as a line break and a person as Enter on its own.
 Input holding more than a line is refused too, exit 2 with nothing sent, rather than cut to its
@@ -670,7 +671,8 @@ nothing else, for a script, so `"$(pykeepassgate field <uuid> Password)"` is the
 break or another control character inside it is written as its escape, as everywhere in `plain`,
 and `-o json` gives the value exactly. A value the rule withholds fails `field` with `Withheld` and
 exit code 1 rather than printing anything, since a script would take any word printed in its place
-for the value.
+for the value. **In PowerShell that holds once the console decodes UTF-8**, as
+[reading what a command prints](#read-what-a-command-prints-from-a-program) sets out.
 
 `add-field` and `update-field` take the value as `--value`, or read it from standard input when it
 is left off, as `--password` is read, which is the way to give a secret. `--protected` stores the
@@ -860,8 +862,27 @@ so that nothing can print a row that is not there.
 `json` prints one document for a program, an array for a listing and an object for
 anything else, with every value exactly as stored, and only ASCII, so a console whose code page
 holds less than the database does still prints it. **Both are written as UTF-8** to a file or a
-pipe, whatever the code page, as Python 3.15 writes by default, so whatever reads the output reads
-it as UTF-8.
+pipe, whatever the code page, as Python 3.15 writes by default, or in the encoding
+`PYTHONIOENCODING` names, which decides for all three standard streams as Python's documentation
+has it. Whatever reads the output has to read it the same way.
+
+**PowerShell does not, until it is told to.** Windows PowerShell and PowerShell decode what a
+program prints with the console's code page, 437 on an English Windows, so
+`$value = pykeepassgate field <uuid> Password` holds other text for a value beyond ASCII, and
+nothing fails. Setting the console to UTF-8 first makes the two agree:
+
+```powershell
+[Console]::OutputEncoding = [Text.UTF8Encoding]::new()
+```
+
+`PYTHONIOENCODING` set to the console's code page makes them agree too, at a cost: a character the
+code page lacks is written as its escape, `\u20ac` for `€`, and a script would take that for the
+value. **While they disagree, plain output holding a character beyond ASCII is warned about**,
+once, on standard error, as `OutputEncodingWarning`, and printed as it would have been. A file the
+shell writes as it receives it, as `cmd` and PowerShell 7.6 do with `>`, cannot be told from a
+capture, so it is warned about too. The warning is raised through Python's `warnings`, so a program
+calling `cli.main` decides with its own filters whether it is shown. `json` is only ASCII and
+reads the same in every code page, which makes it the safer form for a script.
 
 **The same rules hold in both.** A value the rule withholds is never printed as empty: `show` and
 `entries` leave it out and name it in `withheld`, as `entry.withheld` does in the library, beside
