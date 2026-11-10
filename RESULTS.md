@@ -1,8 +1,10 @@
 # What the probe settled
 
-How KeePass 2.61.1 merges `PwDatabase.CustomData`, and what that does to each way a revocation and
-a certificate authority could be kept there. Every KeePass cell below was measured on .NET Framework
-4.8 against throwaway databases the probe created; the output is under
+How KeePass 2.61.1 merges `PwDatabase.CustomData`, what that does to each way a revocation and a
+certificate authority could be kept there, and what KeePassXC and KeePass 2.47 do to the same keys
+when they save or merge the file. Every cell below but the rows section 2 marks as reasoned was
+measured against throwaway databases the probe created, each read back with KeePassLib 2.61.1 on
+.NET Framework 4.8; the output is under
 [`spikes/revocation/output`](spikes/revocation/output) as it came back, so a re-run that disagrees
 is a finding rather than a mistake. [`README.md`](README.md) says how to run it.
 
@@ -12,12 +14,12 @@ is a finding rather than a mistake. [`README.md`](README.md) says how to run it.
 | Does a revocation written as an empty record survive a merge? | Only while both copies kept their times and the clocks agree. It loses to clock skew, to a copy saved without the times, and to Import with Overwrite existing |
 | Does a separate key, added once and never changed, survive? | **Yes**, in every one of the 70 cells for every method, whatever was stripped |
 | Can the authority be kept so that a merge never serves the wrong one? | **Yes**, with one key per authority and a retirement key per retired one, deciding on retirements rather than counting documents |
-| Does KeePassXC keep any of this? | **No.** Its merge replaces the database's custom data as a whole, read from its 2.7.12 source |
+| Does KeePassXC keep any of this? | **No.** From 2.4.2 its merge replaces the database's custom data as a whole with the copy it loaded later. Its save keeps every key and value and drops their times, except from 2.7.0 in a file holding another KDBX 4.1 feature |
+| And KeePass 2.47? | It opens a 4.1 file and saves every key and value without their times, as KDBX 4.0, or as 3.1 when nothing else needs 4.0 |
 
 **Nobody else's source is on this branch.** KeePass and KeePassXC are both GPL and this repository
 is MIT. KeePass is cited by path and line in the `KeePass-2.61.1-Source.zip` release, KeePassXC by
-path and line at its `2.7.12` tag. The KeePass rule was read from the source and then measured; the
-KeePassXC rows were read and not run.
+path and line at its `2.7.12` tag. Both were measured, and their source read for why.
 
 ## 1. The merge rule
 
@@ -72,8 +74,9 @@ and a reopen: after the revocation, after stripping, and after the merge.
 
 The conditions:
 
-- **strip**: every custom data key rewritten with no time, which is what KeePassXC 2.7.12 and KeePass
-  2.47 and earlier leave behind;
+- **strip**: every custom data key rewritten with no time, which is what a save by KeePass 2.47 or
+  by any KeePassXC measured leaves behind, unless the file holds another KDBX 4.1 feature and
+  KeePassXC is 2.7.0 or later (section 5);
 - **skew**: the revoker's clock 60 seconds behind the machine that paired the client;
 - **settings newer**: that copy's `SettingsChanged` is later, which any edit to a database setting
   does.
@@ -141,7 +144,7 @@ unstamped mark.
 
 | scenario | Today | A | B | C | source |
 | --- | --- | --- | --- | --- | --- |
-| a KeePassXC 2.7.12 merge from a stale copy | ADMIT/X | ADMIT/X | ADMIT/X | **ADMIT/X**, the added key removed | section 5 |
+| a KeePassXC merge, 2.4.2 or later, that loads the stale copy a second or more after the other | ADMIT/X | ADMIT/X | ADMIT/X | **ADMIT/X**, the added key removed | section 5, which measured design C's keys |
 | the operator deletes `KPG.Revoked.*` under Database Maintenance, Plugin Data | n/a | n/a | n/a | ADMIT | a deliberate act |
 | the authority deleted, then a synchronize with an older copy | everything returns | same | same | same | the rule: removals do not travel |
 
@@ -157,8 +160,8 @@ unstamped mark.
   that reads times and nothing else, and it needs reflection into an internal KeePass overload.
 - **C, a key added once and never changed**, holds against every KeePass 2.61.1 merge and import
   method: the client stays refused in every cell where the revocation took part, the authority fails
-  closed wherever X came back, and Y is served wherever it did not. It fails under a KeePassXC merge,
-  as everything does, and under deliberate deletion.
+  closed wherever X came back, and Y is served wherever it did not. It fails under a KeePassXC merge
+  that loads the stale copy later, as everything does, and under deliberate deletion.
 
 ## 3. One key per authority
 
@@ -229,30 +232,150 @@ is what turns a lucky "no" into a "yes". Pruning therefore belongs behind the sa
 other write, and the decision must never depend on a prune having run: it reads the retirements and
 never counts documents.
 
-## 5. KeePassXC 2.7.12, read from its source
+## 5. KeePassXC and KeePass 2.47, measured
 
-Read at the `2.7.12` tag and not run.
+`output/keepassxc-save.txt`, `output/keepassxc-kdf.txt` and `output/keepassxc-merge.txt`, written by
+`Measure-KeePassXC.ps1` and `Measure-KeePassXCKdf.ps1`. Six KeePassXC releases, each the Windows
+archive its release publishes, pinned in `keepassxc.sha256` and signed by DroidMonkey Apps, LLC:
+2.4.1, 2.4.2, 2.6.6, 2.7.0, 2.7.12 and 2.8.0. And KeePass 2.47, the last release before KDBX 4.1,
+through its own KeePassLib in a process of its own. Measured on Windows 11 with a `de-DE` locale.
 
-**Its merge replaces the dictionary.** `src/core/Merger.cpp:724-762` (`Merger::mergeMetadata`)
-merges the database's custom data as a whole, and only when the target has no `_LAST_MODIFIED` key
-or the source's is newer. When it does, it **removes every target key the source lacks** (`:733-743`),
-sparing only the keys `src/core/CustomData.cpp:190-193` calls protected, and then copies every
-differing source value (`:745-761`).
+This section replaces an account read from the KeePassXC 2.7.12 source and never run. The
+measurement confirms what that reading found of the merge, and corrects what section 2 took from
+it: a KeePassXC save does not always drop the per-key times.
 
-**And the source is normally the newer one.** Every `set` that adds or changes a key rewrites
-`_LAST_MODIFIED` to the current time (`src/core/CustomData.cpp:79-100` and `:177-188`), and
-`src/format/KdbxXmlReader.cpp:443` loads each item through that `set`, so a database's
-`_LAST_MODIFIED` in memory is the time it was loaded rather than the time stored. A copy loaded at
-merge time is therefore newer than a target opened earlier.
+**The databases.** Two copies of a file, C and P, not to be confused with section 2's designs. C is
+a paired database: two authorities, the first retired, two client records and an emptied record
+beside its revocation, and a profile list, every key stamped with a time of its own; a group G with
+a rule, and an entry E1 in it with another. P is C after a client was revoked, the second authority
+retired and a third made, the profile list narrowed and both rules narrowed, every change stamped
+later than anything in C, so P is newer than C in every way the plugin reads. In `P-plain` the
+per-key times are the file's only KDBX 4.1 feature. `P-moved` also has an entry moved out of G by
+KeePassLib, which records where it came from, and that previous parent is a second 4.1 feature.
 
-**It writes both markers on every save.** `Database::saveAs` (`src/core/Database.cpp:312-314`),
-which every save reaches, first sets `KPXC_RANDOM_SLUG` to fresh random bytes, so `_LAST_MODIFIED`
-changes on every save too. `src/format/KdbxXmlWriter.cpp:264-276` writes every key without a
-filter, and `:287-289` writes per-key times only at KDBX 4.1. Opening a database without editing it
-writes nothing (`src/core/Database.cpp:181`).
+### A plain save
 
-Unknown keys, `KPG.*` among them, are otherwise kept on load and save: nothing on either path filters
-them. The consequence is that a KeePassXC merge of a stale copy into a revoked one restores the stale
-dictionary, removing an added revocation key as readily as it restores a record. **No design kept
-inside `PwDatabase.CustomData` survives it**, which is why what KeePassGate can promise is limited to
-KeePass's own merges.
+`keepassxc-cli add`, a new entry at the root, which touches no custom data; and for KeePass 2.47,
+`PwDatabase.Open`, an entry added, `PwDatabase.Save`, which is what its File then Save reaches.
+**In all 35 cells all eleven keys came back with their values, and G and E1 kept their rules.**
+What differs is the format and the times:
+
+| program | `P-plain` | `P-moved` | `P-plain`, AES-KDF | no rules, Argon2d | no rules, AES-KDF | keys it adds |
+| --- | --- | --- | --- | --- | --- | --- |
+| KeePassXC 2.4.1 | 4.0, times gone | 4.0, times and previous parent gone | 4.0, times gone | 4.0 | 4.0 | none |
+| KeePassXC 2.4.2, 2.6.6 | 4.0, times gone | 4.0, times and previous parent gone | 4.0, times gone | 4.0 | 4.0 | `_LAST_MODIFIED`, in G and E1 too |
+| KeePassXC 2.7.0 | 4.0, times gone | **4.1, every time kept** | 4.0, times gone | 4.0 | 4.0 | `_LAST_MODIFIED`, in G and E1 too |
+| KeePassXC 2.7.12, 2.8.0 | 4.0, times gone | **4.1, every time kept** | 4.0, times gone | 4.0 | 4.0 | those and `KPXC_RANDOM_SLUG` |
+| KeePass 2.47 | 4.0, times gone | 4.0, times and previous parent gone | 4.0, times gone | 4.0 | **3.1** | none |
+
+No file written as 4.0 or 3.1 kept a per-key time.
+
+**Why KeePassXC from 2.7.0 writes `P-plain` as 4.0.** Loading sets the format from the file
+(`src/format/KdbxReader.cpp:84`), and the header's KDF field then calls `Database::setKdf`
+(`src/format/Kdbx4Reader.cpp:217`), which computes the format afresh, ignoring the format just read
+(`src/core/Database.cpp:1092-1096`), while the tree is still empty. What it counts as KDBX 4.1
+(`src/format/KeePass2Writer.cpp:52-108`) is a tag, a previous parent, an entry excluded from
+reports or a custom icon with a name or a time, and never a custom data item's time, so the save
+writes 4.0 unless the tree holds any of those, and the item times are written only at 4.1
+(`src/format/KdbxXmlWriter.cpp:287-289`). A previous parent is what `P-moved` holds. Before 2.7.0 a
+save drops the previous parent too, and writes 4.0 whatever the file held.
+
+**KeePassXC's markers.** `_LAST_MODIFIED` is Qt's date text, with no time of its own, in the
+system's language up to 2.7.12 and in English in 2.8.0. It is rewritten whenever a key is added or
+changed (`src/core/CustomData.cpp:79-100`, writing it at `:177-188`), and loading adds every key
+through that path (`src/format/KdbxXmlReader.cpp:443`), so the marker in memory is the time the file
+was loaded, to the second, or the time of a change since. It is written into G's and E1's custom
+data as well, the only nodes that had any, without changing their modification times.
+`KPXC_RANDOM_SLUG`, in 2.7.12 and 2.8.0, is fresh random hex on every save
+(`src/core/Database.cpp:311-313`), with a time of its own when the file is 4.1.
+
+**KeePass 2.47** opened every 4.1 file and found all eleven keys. With AES-KDF and no custom data on
+any node it wrote KDBX 3.1, which carries the database's custom data and no per-key times.
+
+### The KDF change
+
+No `keepassxc-cli` among the six changes an existing database's KDF: `db-create` takes a decryption
+time for a new database, and `db-edit` in 2.7.12 and 2.8.0 sets credentials only. So
+`Measure-KeePassXCKdf.ps1` drives KeePassXC's own window by UI automation: Database
+Security, Encryption Settings, Advanced, transform rounds from 2 to 3, OK, with autosave on. The
+rounds read back as 3 in all four files. KeePassXC 2.7.12 showed no window on two of its five
+starts, and the script started it again.
+
+| release | `P-plain` | `P-moved` | keys it adds beyond a plain save |
+| --- | --- | --- | --- |
+| 2.7.12 | 4.0, times gone | 4.1, every time kept | `KPXC_autosaveDelayMin=0` |
+| 2.8.0 | 4.0, times gone | 4.1, every time kept | `KPXC_autosaveDelayMin=0`, `KPXC_REMOTE_SYNC_SETTINGS=[]` |
+
+The change adds nothing to what a plain save does: the format is decided the same way, and the
+format box shows KDBX 4 and is disabled.
+
+### The merge
+
+`keepassxc-cli merge -s <target> <source>`, which loads the target first. **Into P** is C merged
+into P and **into C** the reverse. `fresh` is C as KeePassLib wrote it, `saved` is C saved once by
+the same release first, so that it carries KeePassXC's marker on disk. `slow` is a KDF under which a
+load takes well over a second, `fast` a KDF under which both loads fall in the same second, and the
+`m` sets carry a previous parent in both copies, from 2.7.0, which keeps the result 4.1. A letter
+per run names the copy whose `KPG` keys the target held afterwards, exactly and with nothing else.
+216 runs, every program exiting 0.
+
+| release | KDF | fresh, into P | fresh, into C | saved, into P | saved, into C |
+| --- | --- | --- | --- | --- | --- |
+| 2.4.1 | slow, fast | PPP | CCC | PPP | CCC |
+| 2.4.2, 2.6.6 | slow | **CCC** | **PPP** | **CCC** | **PPP** |
+| 2.4.2, 2.6.6 | fast | PPP | CCC | PPP | CCC |
+| 2.7.0, 2.7.12, 2.8.0 | slow, slowm | **CCC** | **PPP** | **CCC** | **PPP** |
+| 2.7.0, 2.7.12, 2.8.0 | fast, fastm | PPP | CCC | PPP | CCC |
+
+- **From 2.4.2, the copy loaded later replaces the whole of the target's database custom data**,
+  whenever the two loads fall in different seconds: all 96 `slow` and `slowm` runs. Into P, the
+  result held exactly C's keys, the revocation `KPG.Revoked.<c2>`, the retirement
+  `KPG.RetiredAuthority.<a1>` and the new `KPG.Authority.<a2>` removed and the record and the
+  profile list set back to C's. Into C, it held exactly P's. A C saved by KeePassXC first, with its
+  marker on disk, made no difference. `Merger::mergeMetadata` merges custom data only when the
+  target has no `_LAST_MODIFIED` or the source's is later (`src/core/Merger.cpp:724-729`), and then
+  removes every target key the source lacks (`:733-743`), sparing only the keys
+  `src/core/CustomData.cpp:190-193` calls protected, and sets every differing source value
+  (`:745-761`). The marker in memory being the load's time to the second, the later load is the
+  newer.
+- **Within one second it does nothing.** None of the 96 `fast` and `fastm` runs from 2.4.2 changed
+  the database's custom data, in either direction, since neither marker is later than the other.
+- **KeePassXC 2.4.1 merges no database custom data**, in any of its 24 runs.
+- **Every merge from 2.4.2 saves the target** with `_LAST_MODIFIED` dated inside the merge, whether
+  or not it changed anything.
+- **The keys a merge copies carry the merge's time, not the source's.** In each of the 36 replaced
+  4.1 results, every key the source brought in was stamped inside the merge, while the keys both
+  copies held kept their own: the merge sets a value with no time (`src/core/Merger.cpp:758`), and a
+  value set with no time is stamped with the current time (`src/core/CustomData.cpp:88-89`). After a
+  replacing merge the stale values therefore carry the newest times in the file, which is what a
+  later KeePass synchronize prefers (section 1). That later merge was not run.
+- **A group on both sides keeps the target's custom data and takes the newer modification time.**
+  G kept the target's rule in all 216 runs and came out with P's modification time, so into C the
+  wider rule no longer looks older.
+- **An entry takes the newer entry whole.** E1 came out with P's rule and P's modification time in
+  all 216 runs, in either direction, with the older E1 in its history.
+- **`--dry-run` exists from 2.6.6**, and in every run listed the five changes to the plugin's keys
+  that the merge then made, or none where the merge made none.
+- **The format afterwards** is 4.0, except the `slowm` and `fastm` results from 2.7.0, which are
+  4.1.
+
+### What this leaves the plugin
+
+A KeePassXC merge from 2.4.2 that loads a stale copy a second or more after the other restores the
+stale dictionary entire, an added revocation or retirement as readily as a record, so **no design
+kept in `PwDatabase.CustomData` survives it**, and what KeePassGate can promise is limited to
+KeePass's own merges. A KeePassXC save, or a KeePass 2.47 save, keeps every key and value; whether
+the times survive depends on the release and on whether the file holds another KDBX 4.1 feature,
+which is the strip condition of section 2.
+
+### Not run
+
+- Database then Merge in KeePassXC's window, with the change list 2.7.11 added; reloading a file
+  changed on disk; 2.8.0's remote sync; KeeShare.
+- KeePassXC 2.4.0 and earlier, 2.5.x and 2.7.1 to 2.7.11, so `KPXC_RANDOM_SLUG` first appears
+  somewhere from 2.7.1 to 2.7.12.
+- The KDF change on any release but 2.7.12 and 2.8.0, and KeePass 2.47's own window.
+- The keys KeePassXC protects from removal, `KPXC_BROWSER_*` and `_CREATED_`.
+- A month whose name differs between the system's language and English, in which the date marker is
+  written up to 2.7.12.
+- A KeePass 2.61.1 merge of a file KeePassXC merged.

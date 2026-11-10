@@ -1,0 +1,460 @@
+As KeePassLib 2.61.1 wrote them
+C-fast
+  kdbx 4.1, Argon2d iterations=2 memory=1024KiB lanes=1
+  C's KPG keys: A0:=/= A0r:=/= A1:=/= C1:=/= C2:C/C C0:=/= C0v:=/= Prof:C/C C2v:- A1r:- A2:-
+  other keys: none
+  group Root, modified =: {}
+  group G, modified C: {KPG=C}
+  group H, modified =: {}
+  entry E1 in G, modified C, history 0: {KPG=C}
+  entry E2 in G, modified =, history 0: {}
+  deleted objects: 0
+P-plain-fast
+  kdbx 4.1, Argon2d iterations=2 memory=1024KiB lanes=1
+  P's KPG keys: A0:=/= A0r:=/= A1:=/= C1:=/= C2:P/P C0:=/= C0v:=/= Prof:P/P C2v:P/P A1r:P/P A2:P/P
+  other keys: none
+  group Root, modified =: {}
+  group G, modified P: {KPG=P}
+  group H, modified =: {}
+  entry E1 in G, modified P, history 0: {KPG=P}
+  entry E2 in G, modified =, history 0: {}
+  deleted objects: 0
+P-moved-fast
+  kdbx 4.1, Argon2d iterations=2 memory=1024KiB lanes=1
+  P's KPG keys: A0:=/= A0r:=/= A1:=/= C1:=/= C2:P/P C0:=/= C0v:=/= Prof:P/P C2v:P/P A1r:P/P A2:P/P
+  other keys: none
+  group Root, modified =: {}
+  group G, modified P: {KPG=P}
+  group H, modified =: {}
+  entry E1 in G, modified P, history 0: {KPG=P}
+  entry E2 in H from G, modified =, history 0: {}
+  deleted objects: 0
+P-plain-aes
+  kdbx 4.1, AES-KDF rounds=100000
+  P's KPG keys: A0:=/= A0r:=/= A1:=/= C1:=/= C2:P/P C0:=/= C0v:=/= Prof:P/P C2v:P/P A1r:P/P A2:P/P
+  other keys: none
+  group Root, modified =: {}
+  group G, modified P: {KPG=P}
+  group H, modified =: {}
+  entry E1 in G, modified P, history 0: {KPG=P}
+  entry E2 in G, modified =, history 0: {}
+  deleted objects: 0
+P-plain-fastb
+  kdbx 4.1, Argon2d iterations=2 memory=1024KiB lanes=1
+  P's KPG keys: A0:=/= A0r:=/= A1:=/= C1:=/= C2:P/P C0:=/= C0v:=/= Prof:P/P C2v:P/P A1r:P/P A2:P/P
+  other keys: none
+  group Root, modified =: {}
+  group G, modified P: {}
+  group H, modified =: {}
+  entry E1 in G, modified P, history 0: {}
+  entry E2 in G, modified =, history 0: {}
+  deleted objects: 0
+P-plain-aesb
+  kdbx 4.1, AES-KDF rounds=100000
+  P's KPG keys: A0:=/= A0r:=/= A1:=/= C1:=/= C2:P/P C0:=/= C0v:=/= Prof:P/P C2v:P/P A1r:P/P A2:P/P
+  other keys: none
+  group Root, modified =: {}
+  group G, modified P: {}
+  group H, modified =: {}
+  entry E1 in G, modified P, history 0: {}
+  entry E2 in G, modified =, history 0: {}
+  deleted objects: 0
+
+KeePassXC 2.4.1, keepassxc-cli add
+P-plain-fast, exit 0
+  kdbx 4.0, Argon2d iterations=2 memory=1024KiB lanes=1
+  P's KPG keys: A0:=/none A0r:=/none A1:=/none C1:=/none C2:P/none C0:=/none C0v:=/none Prof:P/none C2v:P/none A1r:P/none A2:P/none
+  other keys: none
+  group Root, modified save: {}
+  group G, modified P: {KPG=P}
+  group H, modified =: {}
+  entry xc-added in Root, modified save, history 0: {}
+  entry E1 in G, modified P, history 0: {KPG=P}
+  entry E2 in G, modified =, history 0: {}
+  deleted objects: 0
+P-moved-fast, exit 0
+  kdbx 4.0, Argon2d iterations=2 memory=1024KiB lanes=1
+  P's KPG keys: A0:=/none A0r:=/none A1:=/none C1:=/none C2:P/none C0:=/none C0v:=/none Prof:P/none C2v:P/none A1r:P/none A2:P/none
+  other keys: none
+  group Root, modified save: {}
+  group G, modified P: {KPG=P}
+  group H, modified =: {}
+  entry xc-added in Root, modified save, history 0: {}
+  entry E1 in G, modified P, history 0: {KPG=P}
+  entry E2 in H, modified =, history 0: {}
+  deleted objects: 0
+P-plain-aes, exit 0
+  kdbx 4.0, AES-KDF rounds=100000
+  P's KPG keys: A0:=/none A0r:=/none A1:=/none C1:=/none C2:P/none C0:=/none C0v:=/none Prof:P/none C2v:P/none A1r:P/none A2:P/none
+  other keys: none
+  group Root, modified save: {}
+  group G, modified P: {KPG=P}
+  group H, modified =: {}
+  entry xc-added in Root, modified save, history 0: {}
+  entry E1 in G, modified P, history 0: {KPG=P}
+  entry E2 in G, modified =, history 0: {}
+  deleted objects: 0
+P-plain-fastb, exit 0
+  kdbx 4.0, Argon2d iterations=2 memory=1024KiB lanes=1
+  P's KPG keys: A0:=/none A0r:=/none A1:=/none C1:=/none C2:P/none C0:=/none C0v:=/none Prof:P/none C2v:P/none A1r:P/none A2:P/none
+  other keys: none
+  group Root, modified save: {}
+  group G, modified P: {}
+  group H, modified =: {}
+  entry xc-added in Root, modified save, history 0: {}
+  entry E1 in G, modified P, history 0: {}
+  entry E2 in G, modified =, history 0: {}
+  deleted objects: 0
+P-plain-aesb, exit 0
+  kdbx 4.0, AES-KDF rounds=100000
+  P's KPG keys: A0:=/none A0r:=/none A1:=/none C1:=/none C2:P/none C0:=/none C0v:=/none Prof:P/none C2v:P/none A1r:P/none A2:P/none
+  other keys: none
+  group Root, modified save: {}
+  group G, modified P: {}
+  group H, modified =: {}
+  entry xc-added in Root, modified save, history 0: {}
+  entry E1 in G, modified P, history 0: {}
+  entry E2 in G, modified =, history 0: {}
+  deleted objects: 0
+
+KeePassXC 2.4.2, keepassxc-cli add
+P-plain-fast, exit 0
+  kdbx 4.0, Argon2d iterations=2 memory=1024KiB lanes=1
+  P's KPG keys: A0:=/none A0r:=/none A1:=/none C1:=/none C2:P/none C0:=/none C0v:=/none Prof:P/none C2v:P/none A1r:P/none A2:P/none
+  other keys: _LAST_MODIFIED=<date de-DE, save>/none
+  group Root, modified save: {}
+  group G, modified P: {KPG=P, _LAST_MODIFIED=<date de-DE, save>}
+  group H, modified =: {}
+  entry xc-added in Root, modified save, history 0: {}
+  entry E1 in G, modified P, history 0: {KPG=P, _LAST_MODIFIED=<date de-DE, save>}
+  entry E2 in G, modified =, history 0: {}
+  deleted objects: 0
+P-moved-fast, exit 0
+  kdbx 4.0, Argon2d iterations=2 memory=1024KiB lanes=1
+  P's KPG keys: A0:=/none A0r:=/none A1:=/none C1:=/none C2:P/none C0:=/none C0v:=/none Prof:P/none C2v:P/none A1r:P/none A2:P/none
+  other keys: _LAST_MODIFIED=<date de-DE, save>/none
+  group Root, modified save: {}
+  group G, modified P: {KPG=P, _LAST_MODIFIED=<date de-DE, save>}
+  group H, modified =: {}
+  entry xc-added in Root, modified save, history 0: {}
+  entry E1 in G, modified P, history 0: {KPG=P, _LAST_MODIFIED=<date de-DE, save>}
+  entry E2 in H, modified =, history 0: {}
+  deleted objects: 0
+P-plain-aes, exit 0
+  kdbx 4.0, AES-KDF rounds=100000
+  P's KPG keys: A0:=/none A0r:=/none A1:=/none C1:=/none C2:P/none C0:=/none C0v:=/none Prof:P/none C2v:P/none A1r:P/none A2:P/none
+  other keys: _LAST_MODIFIED=<date de-DE, save>/none
+  group Root, modified save: {}
+  group G, modified P: {KPG=P, _LAST_MODIFIED=<date de-DE, save>}
+  group H, modified =: {}
+  entry xc-added in Root, modified save, history 0: {}
+  entry E1 in G, modified P, history 0: {KPG=P, _LAST_MODIFIED=<date de-DE, save>}
+  entry E2 in G, modified =, history 0: {}
+  deleted objects: 0
+P-plain-fastb, exit 0
+  kdbx 4.0, Argon2d iterations=2 memory=1024KiB lanes=1
+  P's KPG keys: A0:=/none A0r:=/none A1:=/none C1:=/none C2:P/none C0:=/none C0v:=/none Prof:P/none C2v:P/none A1r:P/none A2:P/none
+  other keys: _LAST_MODIFIED=<date de-DE, save>/none
+  group Root, modified save: {}
+  group G, modified P: {}
+  group H, modified =: {}
+  entry xc-added in Root, modified save, history 0: {}
+  entry E1 in G, modified P, history 0: {}
+  entry E2 in G, modified =, history 0: {}
+  deleted objects: 0
+P-plain-aesb, exit 0
+  kdbx 4.0, AES-KDF rounds=100000
+  P's KPG keys: A0:=/none A0r:=/none A1:=/none C1:=/none C2:P/none C0:=/none C0v:=/none Prof:P/none C2v:P/none A1r:P/none A2:P/none
+  other keys: _LAST_MODIFIED=<date de-DE, save>/none
+  group Root, modified save: {}
+  group G, modified P: {}
+  group H, modified =: {}
+  entry xc-added in Root, modified save, history 0: {}
+  entry E1 in G, modified P, history 0: {}
+  entry E2 in G, modified =, history 0: {}
+  deleted objects: 0
+
+KeePassXC 2.6.6, keepassxc-cli add
+P-plain-fast, exit 0
+  kdbx 4.0, Argon2d iterations=2 memory=1024KiB lanes=1
+  P's KPG keys: A0:=/none A0r:=/none A1:=/none C1:=/none C2:P/none C0:=/none C0v:=/none Prof:P/none C2v:P/none A1r:P/none A2:P/none
+  other keys: _LAST_MODIFIED=<date de-DE, save>/none
+  group Root, modified save: {}
+  group G, modified P: {KPG=P, _LAST_MODIFIED=<date de-DE, save>}
+  group H, modified =: {}
+  entry xc-added in Root, modified save, history 0: {}
+  entry E1 in G, modified P, history 0: {KPG=P, _LAST_MODIFIED=<date de-DE, save>}
+  entry E2 in G, modified =, history 0: {}
+  deleted objects: 0
+P-moved-fast, exit 0
+  kdbx 4.0, Argon2d iterations=2 memory=1024KiB lanes=1
+  P's KPG keys: A0:=/none A0r:=/none A1:=/none C1:=/none C2:P/none C0:=/none C0v:=/none Prof:P/none C2v:P/none A1r:P/none A2:P/none
+  other keys: _LAST_MODIFIED=<date de-DE, save>/none
+  group Root, modified save: {}
+  group G, modified P: {KPG=P, _LAST_MODIFIED=<date de-DE, save>}
+  group H, modified =: {}
+  entry xc-added in Root, modified save, history 0: {}
+  entry E1 in G, modified P, history 0: {KPG=P, _LAST_MODIFIED=<date de-DE, save>}
+  entry E2 in H, modified =, history 0: {}
+  deleted objects: 0
+P-plain-aes, exit 0
+  kdbx 4.0, AES-KDF rounds=100000
+  P's KPG keys: A0:=/none A0r:=/none A1:=/none C1:=/none C2:P/none C0:=/none C0v:=/none Prof:P/none C2v:P/none A1r:P/none A2:P/none
+  other keys: _LAST_MODIFIED=<date de-DE, save>/none
+  group Root, modified save: {}
+  group G, modified P: {KPG=P, _LAST_MODIFIED=<date de-DE, save>}
+  group H, modified =: {}
+  entry xc-added in Root, modified save, history 0: {}
+  entry E1 in G, modified P, history 0: {KPG=P, _LAST_MODIFIED=<date de-DE, save>}
+  entry E2 in G, modified =, history 0: {}
+  deleted objects: 0
+P-plain-fastb, exit 0
+  kdbx 4.0, Argon2d iterations=2 memory=1024KiB lanes=1
+  P's KPG keys: A0:=/none A0r:=/none A1:=/none C1:=/none C2:P/none C0:=/none C0v:=/none Prof:P/none C2v:P/none A1r:P/none A2:P/none
+  other keys: _LAST_MODIFIED=<date de-DE, save>/none
+  group Root, modified save: {}
+  group G, modified P: {}
+  group H, modified =: {}
+  entry xc-added in Root, modified save, history 0: {}
+  entry E1 in G, modified P, history 0: {}
+  entry E2 in G, modified =, history 0: {}
+  deleted objects: 0
+P-plain-aesb, exit 0
+  kdbx 4.0, AES-KDF rounds=100000
+  P's KPG keys: A0:=/none A0r:=/none A1:=/none C1:=/none C2:P/none C0:=/none C0v:=/none Prof:P/none C2v:P/none A1r:P/none A2:P/none
+  other keys: _LAST_MODIFIED=<date de-DE, save>/none
+  group Root, modified save: {}
+  group G, modified P: {}
+  group H, modified =: {}
+  entry xc-added in Root, modified save, history 0: {}
+  entry E1 in G, modified P, history 0: {}
+  entry E2 in G, modified =, history 0: {}
+  deleted objects: 0
+
+KeePassXC 2.7.0, keepassxc-cli add
+P-plain-fast, exit 0
+  kdbx 4.0, Argon2d iterations=2 memory=1024KiB lanes=1
+  P's KPG keys: A0:=/none A0r:=/none A1:=/none C1:=/none C2:P/none C0:=/none C0v:=/none Prof:P/none C2v:P/none A1r:P/none A2:P/none
+  other keys: _LAST_MODIFIED=<date de-DE, save>/none
+  group Root, modified save: {}
+  group G, modified P: {KPG=P, _LAST_MODIFIED=<date de-DE, save>}
+  group H, modified =: {}
+  entry xc-added in Root, modified save, history 0: {}
+  entry E1 in G, modified P, history 0: {KPG=P, _LAST_MODIFIED=<date de-DE, save>}
+  entry E2 in G, modified =, history 0: {}
+  deleted objects: 0
+P-moved-fast, exit 0
+  kdbx 4.1, Argon2d iterations=2 memory=1024KiB lanes=1
+  P's KPG keys: A0:=/= A0r:=/= A1:=/= C1:=/= C2:P/P C0:=/= C0v:=/= Prof:P/P C2v:P/P A1r:P/P A2:P/P
+  other keys: _LAST_MODIFIED=<date de-DE, save>/none
+  group Root, modified save: {}
+  group G, modified P: {KPG=P, _LAST_MODIFIED=<date de-DE, save>}
+  group H, modified =: {}
+  entry xc-added in Root, modified save, history 0: {}
+  entry E1 in G, modified P, history 0: {KPG=P, _LAST_MODIFIED=<date de-DE, save>}
+  entry E2 in H from G, modified =, history 0: {}
+  deleted objects: 0
+P-plain-aes, exit 0
+  kdbx 4.0, AES-KDF rounds=100000
+  P's KPG keys: A0:=/none A0r:=/none A1:=/none C1:=/none C2:P/none C0:=/none C0v:=/none Prof:P/none C2v:P/none A1r:P/none A2:P/none
+  other keys: _LAST_MODIFIED=<date de-DE, save>/none
+  group Root, modified save: {}
+  group G, modified P: {KPG=P, _LAST_MODIFIED=<date de-DE, save>}
+  group H, modified =: {}
+  entry xc-added in Root, modified save, history 0: {}
+  entry E1 in G, modified P, history 0: {KPG=P, _LAST_MODIFIED=<date de-DE, save>}
+  entry E2 in G, modified =, history 0: {}
+  deleted objects: 0
+P-plain-fastb, exit 0
+  kdbx 4.0, Argon2d iterations=2 memory=1024KiB lanes=1
+  P's KPG keys: A0:=/none A0r:=/none A1:=/none C1:=/none C2:P/none C0:=/none C0v:=/none Prof:P/none C2v:P/none A1r:P/none A2:P/none
+  other keys: _LAST_MODIFIED=<date de-DE, save>/none
+  group Root, modified save: {}
+  group G, modified P: {}
+  group H, modified =: {}
+  entry xc-added in Root, modified save, history 0: {}
+  entry E1 in G, modified P, history 0: {}
+  entry E2 in G, modified =, history 0: {}
+  deleted objects: 0
+P-plain-aesb, exit 0
+  kdbx 4.0, AES-KDF rounds=100000
+  P's KPG keys: A0:=/none A0r:=/none A1:=/none C1:=/none C2:P/none C0:=/none C0v:=/none Prof:P/none C2v:P/none A1r:P/none A2:P/none
+  other keys: _LAST_MODIFIED=<date de-DE, save>/none
+  group Root, modified save: {}
+  group G, modified P: {}
+  group H, modified =: {}
+  entry xc-added in Root, modified save, history 0: {}
+  entry E1 in G, modified P, history 0: {}
+  entry E2 in G, modified =, history 0: {}
+  deleted objects: 0
+
+KeePassXC 2.7.12, keepassxc-cli add
+P-plain-fast, exit 0
+  kdbx 4.0, Argon2d iterations=2 memory=1024KiB lanes=1
+  P's KPG keys: A0:=/none A0r:=/none A1:=/none C1:=/none C2:P/none C0:=/none C0v:=/none Prof:P/none C2v:P/none A1r:P/none A2:P/none
+  other keys: KPXC_RANDOM_SLUG=<random>/none _LAST_MODIFIED=<date de-DE, save>/none
+  group Root, modified save: {}
+  group G, modified P: {KPG=P, _LAST_MODIFIED=<date de-DE, save>}
+  group H, modified =: {}
+  entry xc-added in Root, modified save, history 0: {}
+  entry E1 in G, modified P, history 0: {KPG=P, _LAST_MODIFIED=<date de-DE, save>}
+  entry E2 in G, modified =, history 0: {}
+  deleted objects: 0
+P-moved-fast, exit 0
+  kdbx 4.1, Argon2d iterations=2 memory=1024KiB lanes=1
+  P's KPG keys: A0:=/= A0r:=/= A1:=/= C1:=/= C2:P/P C0:=/= C0v:=/= Prof:P/P C2v:P/P A1r:P/P A2:P/P
+  other keys: KPXC_RANDOM_SLUG=<random>/save _LAST_MODIFIED=<date de-DE, save>/none
+  group Root, modified save: {}
+  group G, modified P: {KPG=P, _LAST_MODIFIED=<date de-DE, save>}
+  group H, modified =: {}
+  entry xc-added in Root, modified save, history 0: {}
+  entry E1 in G, modified P, history 0: {KPG=P, _LAST_MODIFIED=<date de-DE, save>}
+  entry E2 in H from G, modified =, history 0: {}
+  deleted objects: 0
+P-plain-aes, exit 0
+  kdbx 4.0, AES-KDF rounds=100000
+  P's KPG keys: A0:=/none A0r:=/none A1:=/none C1:=/none C2:P/none C0:=/none C0v:=/none Prof:P/none C2v:P/none A1r:P/none A2:P/none
+  other keys: KPXC_RANDOM_SLUG=<random>/none _LAST_MODIFIED=<date de-DE, save>/none
+  group Root, modified save: {}
+  group G, modified P: {KPG=P, _LAST_MODIFIED=<date de-DE, save>}
+  group H, modified =: {}
+  entry xc-added in Root, modified save, history 0: {}
+  entry E1 in G, modified P, history 0: {KPG=P, _LAST_MODIFIED=<date de-DE, save>}
+  entry E2 in G, modified =, history 0: {}
+  deleted objects: 0
+P-plain-fastb, exit 0
+  kdbx 4.0, Argon2d iterations=2 memory=1024KiB lanes=1
+  P's KPG keys: A0:=/none A0r:=/none A1:=/none C1:=/none C2:P/none C0:=/none C0v:=/none Prof:P/none C2v:P/none A1r:P/none A2:P/none
+  other keys: KPXC_RANDOM_SLUG=<random>/none _LAST_MODIFIED=<date de-DE, save>/none
+  group Root, modified save: {}
+  group G, modified P: {}
+  group H, modified =: {}
+  entry xc-added in Root, modified save, history 0: {}
+  entry E1 in G, modified P, history 0: {}
+  entry E2 in G, modified =, history 0: {}
+  deleted objects: 0
+P-plain-aesb, exit 0
+  kdbx 4.0, AES-KDF rounds=100000
+  P's KPG keys: A0:=/none A0r:=/none A1:=/none C1:=/none C2:P/none C0:=/none C0v:=/none Prof:P/none C2v:P/none A1r:P/none A2:P/none
+  other keys: KPXC_RANDOM_SLUG=<random>/none _LAST_MODIFIED=<date de-DE, save>/none
+  group Root, modified save: {}
+  group G, modified P: {}
+  group H, modified =: {}
+  entry xc-added in Root, modified save, history 0: {}
+  entry E1 in G, modified P, history 0: {}
+  entry E2 in G, modified =, history 0: {}
+  deleted objects: 0
+
+KeePassXC 2.8.0, keepassxc-cli add
+P-plain-fast, exit 0
+  kdbx 4.0, Argon2d iterations=2 memory=1024KiB lanes=1
+  P's KPG keys: A0:=/none A0r:=/none A1:=/none C1:=/none C2:P/none C0:=/none C0v:=/none Prof:P/none C2v:P/none A1r:P/none A2:P/none
+  other keys: KPXC_RANDOM_SLUG=<random>/none _LAST_MODIFIED=<date en, save>/none
+  group Root, modified save: {}
+  group G, modified P: {KPG=P, _LAST_MODIFIED=<date en, save>}
+  group H, modified =: {}
+  entry xc-added in Root, modified save, history 0: {}
+  entry E1 in G, modified P, history 0: {KPG=P, _LAST_MODIFIED=<date en, save>}
+  entry E2 in G, modified =, history 0: {}
+  deleted objects: 0
+P-moved-fast, exit 0
+  kdbx 4.1, Argon2d iterations=2 memory=1024KiB lanes=1
+  P's KPG keys: A0:=/= A0r:=/= A1:=/= C1:=/= C2:P/P C0:=/= C0v:=/= Prof:P/P C2v:P/P A1r:P/P A2:P/P
+  other keys: KPXC_RANDOM_SLUG=<random>/save _LAST_MODIFIED=<date en, save>/none
+  group Root, modified save: {}
+  group G, modified P: {KPG=P, _LAST_MODIFIED=<date en, save>}
+  group H, modified =: {}
+  entry xc-added in Root, modified save, history 0: {}
+  entry E1 in G, modified P, history 0: {KPG=P, _LAST_MODIFIED=<date en, save>}
+  entry E2 in H from G, modified =, history 0: {}
+  deleted objects: 0
+P-plain-aes, exit 0
+  kdbx 4.0, AES-KDF rounds=100000
+  P's KPG keys: A0:=/none A0r:=/none A1:=/none C1:=/none C2:P/none C0:=/none C0v:=/none Prof:P/none C2v:P/none A1r:P/none A2:P/none
+  other keys: KPXC_RANDOM_SLUG=<random>/none _LAST_MODIFIED=<date en, save>/none
+  group Root, modified save: {}
+  group G, modified P: {KPG=P, _LAST_MODIFIED=<date en, save>}
+  group H, modified =: {}
+  entry xc-added in Root, modified save, history 0: {}
+  entry E1 in G, modified P, history 0: {KPG=P, _LAST_MODIFIED=<date en, save>}
+  entry E2 in G, modified =, history 0: {}
+  deleted objects: 0
+P-plain-fastb, exit 0
+  kdbx 4.0, Argon2d iterations=2 memory=1024KiB lanes=1
+  P's KPG keys: A0:=/none A0r:=/none A1:=/none C1:=/none C2:P/none C0:=/none C0v:=/none Prof:P/none C2v:P/none A1r:P/none A2:P/none
+  other keys: KPXC_RANDOM_SLUG=<random>/none _LAST_MODIFIED=<date en, save>/none
+  group Root, modified save: {}
+  group G, modified P: {}
+  group H, modified =: {}
+  entry xc-added in Root, modified save, history 0: {}
+  entry E1 in G, modified P, history 0: {}
+  entry E2 in G, modified =, history 0: {}
+  deleted objects: 0
+P-plain-aesb, exit 0
+  kdbx 4.0, AES-KDF rounds=100000
+  P's KPG keys: A0:=/none A0r:=/none A1:=/none C1:=/none C2:P/none C0:=/none C0v:=/none Prof:P/none C2v:P/none A1r:P/none A2:P/none
+  other keys: KPXC_RANDOM_SLUG=<random>/none _LAST_MODIFIED=<date en, save>/none
+  group Root, modified save: {}
+  group G, modified P: {}
+  group H, modified =: {}
+  entry xc-added in Root, modified save, history 0: {}
+  entry E1 in G, modified P, history 0: {}
+  entry E2 in G, modified =, history 0: {}
+  deleted objects: 0
+
+KeePass 2.47, PwDatabase.Open, an entry added at the root, PwDatabase.Save
+P-plain-fast, exit 0, opened by KeePassLib 2.47 with 11 keys in the database's custom data, saved
+  kdbx 4.0, Argon2d iterations=2 memory=1024KiB lanes=1
+  P's KPG keys: A0:=/none A0r:=/none A1:=/none C1:=/none C2:P/none C0:=/none C0v:=/none Prof:P/none C2v:P/none A1r:P/none A2:P/none
+  other keys: none
+  group Root, modified =: {}
+  group G, modified P: {KPG=P}
+  group H, modified =: {}
+  entry kp-added in Root, modified save, history 0: {}
+  entry E1 in G, modified P, history 0: {KPG=P}
+  entry E2 in G, modified =, history 0: {}
+  deleted objects: 0
+P-moved-fast, exit 0, opened by KeePassLib 2.47 with 11 keys in the database's custom data, saved
+  kdbx 4.0, Argon2d iterations=2 memory=1024KiB lanes=1
+  P's KPG keys: A0:=/none A0r:=/none A1:=/none C1:=/none C2:P/none C0:=/none C0v:=/none Prof:P/none C2v:P/none A1r:P/none A2:P/none
+  other keys: none
+  group Root, modified =: {}
+  group G, modified P: {KPG=P}
+  group H, modified =: {}
+  entry kp-added in Root, modified save, history 0: {}
+  entry E1 in G, modified P, history 0: {KPG=P}
+  entry E2 in H, modified =, history 0: {}
+  deleted objects: 0
+P-plain-aes, exit 0, opened by KeePassLib 2.47 with 11 keys in the database's custom data, saved
+  kdbx 4.0, AES-KDF rounds=100000
+  P's KPG keys: A0:=/none A0r:=/none A1:=/none C1:=/none C2:P/none C0:=/none C0v:=/none Prof:P/none C2v:P/none A1r:P/none A2:P/none
+  other keys: none
+  group Root, modified =: {}
+  group G, modified P: {KPG=P}
+  group H, modified =: {}
+  entry kp-added in Root, modified save, history 0: {}
+  entry E1 in G, modified P, history 0: {KPG=P}
+  entry E2 in G, modified =, history 0: {}
+  deleted objects: 0
+P-plain-fastb, exit 0, opened by KeePassLib 2.47 with 11 keys in the database's custom data, saved
+  kdbx 4.0, Argon2d iterations=2 memory=1024KiB lanes=1
+  P's KPG keys: A0:=/none A0r:=/none A1:=/none C1:=/none C2:P/none C0:=/none C0v:=/none Prof:P/none C2v:P/none A1r:P/none A2:P/none
+  other keys: none
+  group Root, modified =: {}
+  group G, modified P: {}
+  group H, modified =: {}
+  entry kp-added in Root, modified save, history 0: {}
+  entry E1 in G, modified P, history 0: {}
+  entry E2 in G, modified =, history 0: {}
+  deleted objects: 0
+P-plain-aesb, exit 0, opened by KeePassLib 2.47 with 11 keys in the database's custom data, saved
+  kdbx 3.1, AES-KDF rounds=100000
+  P's KPG keys: A0:=/none A0r:=/none A1:=/none C1:=/none C2:P/none C0:=/none C0v:=/none Prof:P/none C2v:P/none A1r:P/none A2:P/none
+  other keys: none
+  group Root, modified =: {}
+  group G, modified P: {}
+  group H, modified =: {}
+  entry kp-added in Root, modified save, history 0: {}
+  entry E1 in G, modified P, history 0: {}
+  entry E2 in G, modified =, history 0: {}
+  deleted objects: 0

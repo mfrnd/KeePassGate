@@ -1,0 +1,71 @@
+KeePassXC 2.7.12, P-plain-fast, transform rounds set to 3 in Database Security
+  menu item: Database Security…
+  key derivation: Argon2d (KDBX 4 – recommended)
+  transform rounds: 2, then 3
+  memory usage: 1, parallelism: 1
+  database format: KDBX 4 (recommended), enabled False
+  windows after OK: none
+  Save Database after OK: enabled False
+  kdbx 4.0, Argon2d iterations=3 memory=1024KiB lanes=1
+  P's KPG keys: A0:=/none A0r:=/none A1:=/none C1:=/none C2:P/none C0:=/none C0v:=/none Prof:P/none C2v:P/none A1r:P/none A2:P/none
+  other keys: KPXC_RANDOM_SLUG=<random>/none KPXC_autosaveDelayMin=0/none _LAST_MODIFIED=<date de-DE, save>/none
+  group Root, modified =: {}
+  group G, modified P: {KPG=P, _LAST_MODIFIED=<date de-DE, save>}
+  group H, modified =: {}
+  entry E1 in G, modified P, history 0: {KPG=P, _LAST_MODIFIED=<date de-DE, save>}
+  entry E2 in G, modified =, history 0: {}
+  deleted objects: 0
+
+KeePassXC 2.7.12, P-moved-fast, transform rounds set to 3 in Database Security
+  menu item: Database Security…
+  key derivation: Argon2d (KDBX 4 – recommended)
+  transform rounds: 2, then 3
+  memory usage: 1, parallelism: 1
+  database format: KDBX 4 (recommended), enabled False
+  windows after OK: none
+  Save Database after OK: enabled False
+  kdbx 4.1, Argon2d iterations=3 memory=1024KiB lanes=1
+  P's KPG keys: A0:=/= A0r:=/= A1:=/= C1:=/= C2:P/P C0:=/= C0v:=/= Prof:P/P C2v:P/P A1r:P/P A2:P/P
+  other keys: KPXC_RANDOM_SLUG=<random>/save KPXC_autosaveDelayMin=0/save _LAST_MODIFIED=<date de-DE, save>/none
+  group Root, modified =: {}
+  group G, modified P: {KPG=P, _LAST_MODIFIED=<date de-DE, save>}
+  group H, modified =: {}
+  entry E1 in G, modified P, history 0: {KPG=P, _LAST_MODIFIED=<date de-DE, save>}
+  entry E2 in H from G, modified =, history 0: {}
+  deleted objects: 0
+
+KeePassXC 2.8.0, P-plain-fast, transform rounds set to 3 in Database Security
+  menu item: Database Security…
+  key derivation: Argon2d (KDBX 4 – recommended)
+  transform rounds: 2, then 3
+  memory usage: 1, parallelism: 1
+  database format: KDBX 4 (recommended), enabled False
+  windows after OK: none
+  Save Database after OK: enabled False
+  kdbx 4.0, Argon2d iterations=3 memory=1024KiB lanes=1
+  P's KPG keys: A0:=/none A0r:=/none A1:=/none C1:=/none C2:P/none C0:=/none C0v:=/none Prof:P/none C2v:P/none A1r:P/none A2:P/none
+  other keys: KPXC_RANDOM_SLUG=<random>/none KPXC_REMOTE_SYNC_SETTINGS=[]/none KPXC_autosaveDelayMin=0/none _LAST_MODIFIED=<date en, save>/none
+  group Root, modified =: {}
+  group G, modified P: {KPG=P, _LAST_MODIFIED=<date en, save>}
+  group H, modified =: {}
+  entry E1 in G, modified P, history 0: {KPG=P, _LAST_MODIFIED=<date en, save>}
+  entry E2 in G, modified =, history 0: {}
+  deleted objects: 0
+
+KeePassXC 2.8.0, P-moved-fast, transform rounds set to 3 in Database Security
+  menu item: Database Security…
+  key derivation: Argon2d (KDBX 4 – recommended)
+  transform rounds: 2, then 3
+  memory usage: 1, parallelism: 1
+  database format: KDBX 4 (recommended), enabled False
+  windows after OK: none
+  Save Database after OK: enabled False
+  kdbx 4.1, Argon2d iterations=3 memory=1024KiB lanes=1
+  P's KPG keys: A0:=/= A0r:=/= A1:=/= C1:=/= C2:P/P C0:=/= C0v:=/= Prof:P/P C2v:P/P A1r:P/P A2:P/P
+  other keys: KPXC_RANDOM_SLUG=<random>/save KPXC_REMOTE_SYNC_SETTINGS=[]/save KPXC_autosaveDelayMin=0/save _LAST_MODIFIED=<date en, save>/none
+  group Root, modified =: {}
+  group G, modified P: {KPG=P, _LAST_MODIFIED=<date en, save>}
+  group H, modified =: {}
+  entry E1 in G, modified P, history 0: {KPG=P, _LAST_MODIFIED=<date en, save>}
+  entry E2 in H from G, modified =, history 0: {}
+  deleted objects: 0
