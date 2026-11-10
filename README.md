@@ -64,6 +64,16 @@ KDF. `-Scenario save` or `-Scenario merge` runs only that scenario, and `-Releas
 fewer; a run of fewer than were recorded takes `-Output` somewhere else, since each scenario
 replaces its whole file.
 
+The KDF change has a script of its own, because no `keepassxc-cli` among the pinned releases can
+make it, so KeePassXC's own window is driven by UI automation. It is optional, it takes the desktop
+for a minute or two, and it stops every KeePassXC it started:
+
+```powershell
+powershell.exe -NoProfile -File spikes\revocation\Measure-KeePassXCKdf.ps1 -Work work\keepassxc
+```
+
+It writes `keepassxc-kdf.txt` beside the others.
+
 ## Reading a re-run
 
 The output names times symbolically rather than printing them, so a re-run against the same KeePass

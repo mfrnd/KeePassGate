@@ -83,3 +83,6 @@ words:
   - aesb
   - fastm
   - slowm
+
+  # A KeePassXC option, spelled as KeePassXC spells it.
+  - localconfig
