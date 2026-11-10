@@ -1,0 +1,11 @@
+# The KeePassXC releases this branch measured, one Windows archive each, in the format `sha256sum`
+# writes and reads. Each hash is what the release publishes beside its archive in a `.DIGEST`
+# file, and the archive's name is part of the pin because it changed between releases: there is no
+# `-Win64` archive for 2.8.0. Measuring another release adds a line; `tools/KeePassXC.ps1` refuses
+# a release with none.
+8a76cfec7b10e42b269a11fa131c15e8a5a3c8e86e1f302d1db6615167e2491f  KeePassXC-2.4.1-Win64-portable.zip
+f2f0b870c9c3b956b19471e463ab22d08f48e0178c64a208978a398896981264  KeePassXC-2.4.2-Win64-portable.zip
+45a4cd19f02ad617808aa814fac2ed61b59eff467d8c464d94ba5304d7ccabc0  KeePassXC-2.6.6-Win64-portable.zip
+104574f8e4977792d1b600f89e3abb4cf444bf9b10c9c7c32ad08814b32a5d25  KeePassXC-2.7.0-Win64.zip
+958234b0669d757b53eacf42bdd5de0fa1cc1ab7527709ddf4f7e29c06a8305f  KeePassXC-2.7.12-Win64.zip
+48ff4f088e9ce70e241da1270e5081528dba77c38b17dae4aa6690ffc50fc828  KeePassXC-2.8.0-x64.zip

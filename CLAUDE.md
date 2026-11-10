@@ -42,7 +42,10 @@ If a **new** question needs measuring, it gets its own branch from `master`, nam
 - One console program, `spikes/revocation`, built with the .NET SDK against KeePass itself.
 - **KeePass is provided, not found.** `keepass.version` says which release, `keepass.sha256` what it
   must arrive as, and `tools/KeePass.ps1` fetches it into `.keepass\<version>\`, which is not
-  committed.
+  committed. KeePass 2.47 arrives the same way, by version.
+- **So is KeePassXC.** `keepassxc.sha256` pins each release by its archive, and
+  `tools/KeePassXC.ps1` fetches a release into `.keepassxc\<version>\` after checking the hash and
+  its publisher's signature.
 - Every database it opens is one it created a moment before, under a work directory named on its
   command line, with an invented password.
 - **Nobody else's source is here.** KeePass and KeePassXC are both GPL and this repository is MIT,

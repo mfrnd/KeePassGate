@@ -71,3 +71,8 @@ words:
   - Qsettings
   - tunretired
   - unretired
+
+  # KeePassXC and its publisher, spelled as they spell themselves.
+  - KeePassXC
+  - keepassxc
+  - DroidMonkey

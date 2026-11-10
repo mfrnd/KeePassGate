@@ -11,6 +11,11 @@
     this fetches it into `.keepass\<version>\`, gitignored and named after the version so that
     changing the pin provides the new one rather than silently reusing the old.
 
+    **Two additions the mainline does not have.** `-Version` provides a release other than the
+    pin, which is how KeePass 2.47 arrives for the measurement of what it saves; it is still refused
+    unless `keepass.sha256` pins it. And `-Archive` takes an archive already on disk in place of a
+    download, checked exactly as a download is, so it saves a download and nothing else.
+
     **What it verifies, in order, before anything is put in place.** The archive against a SHA-256
     pinned in `keepass.sha256`. Then, after extracting, that `KeePass.exe` says it is KeePass, that
     its file version is the version asked for, and that its Authenticode signature is valid and
@@ -30,6 +35,9 @@
 .EXAMPLE
     . .\tools\KeePass.ps1
     Install-KeePass
+
+.EXAMPLE
+    Install-KeePass -Version 2.47
 #>
 
 Set-StrictMode -Version Latest
@@ -40,19 +48,24 @@ $script:Signer = 'Dominik Reichl'
 function Get-KeePassPin {
     <#
     .SYNOPSIS
-        The version this repository is pinned to, and the hash it is expected to arrive with.
+        The version this repository is pinned to, or the version asked for, and the hash it is
+        expected to arrive with.
     #>
     [CmdletBinding()]
-    param()
+    param([string] $Version)
 
-    $versionFile = Join-Path $script:Root 'keepass.version'
-    if (-not (Test-Path $versionFile)) {
-        throw "No keepass.version at $versionFile. That file is what says which KeePass this repository builds against."
+    if (-not $Version) {
+        $versionFile = Join-Path $script:Root 'keepass.version'
+        if (-not (Test-Path $versionFile)) {
+            throw "No keepass.version at $versionFile. That file names the KeePass this repository builds against."
+        }
+
+        $Version = (Get-Content $versionFile -Raw).Trim()
     }
 
-    $version = (Get-Content $versionFile -Raw).Trim()
+    # The rest of this function spells it `$version`, which PowerShell reads as the same variable.
     if ($version -notmatch '^\d+\.\d+(\.\d+)?$') {
-        throw "keepass.version says '$version', which is not a KeePass version."
+        throw "'$version' is not a KeePass version."
     }
 
     # The sha256sum format, so the same file can be checked with `sha256sum -c` and so more than
@@ -111,16 +124,25 @@ function Test-KeePassProvided {
 function Install-KeePass {
     <#
     .SYNOPSIS
-        Provides the pinned KeePass and returns the directory holding it.
+        Provides the pinned KeePass, or the version asked for, and returns the directory holding
+        it.
 
     .DESCRIPTION
         Does nothing when it is already there. Everything it fetches is verified before it is put
         in place, and a failure anywhere leaves no half-populated directory behind.
+
+    .PARAMETER Version
+        A release other than the version `keepass.version` names. It must still be pinned in
+        `keepass.sha256`.
+
+    .PARAMETER Archive
+        The release's archive, already on disk, taken in place of a download. It is hashed and its
+        contents checked exactly as a download's would be.
     #>
     [CmdletBinding()]
-    param([switch] $Force)
+    param([string] $Version, [string] $Archive, [switch] $Force)
 
-    $pin = Get-KeePassPin
+    $pin = Get-KeePassPin -Version $Version
     $directory = Get-KeePassDirectory -Version $pin.Version
 
     if (-not $Force -and (Test-KeePassProvided -Directory $directory -Version $pin.Version)) {
@@ -140,15 +162,23 @@ function Install-KeePass {
     New-Item -ItemType Directory -Path $staging | Out-Null
 
     try {
-        $archive = Join-Path $staging $pin.Archive
-        Write-Host "  fetching KeePass $($pin.Version)" -ForegroundColor DarkGray
+        # Not `$archive`, which PowerShell would take for the parameter: its names ignore case.
+        $file = Join-Path $staging $pin.Archive
 
-        # A browser user agent gets SourceForge's interstitial page rather than the file, which
-        # arrives as a plausible 137 KB of HTML. Anything else gets the archive.
-        Invoke-WebRequest -Uri $url -OutFile $archive -UseBasicParsing -TimeoutSec 300 `
-            -Headers @{ 'User-Agent' = 'KeePassGate-build' }
+        if ($Archive) {
+            Write-Host "  taking KeePass $($pin.Version) from $Archive" -ForegroundColor DarkGray
+            Copy-Item -LiteralPath $Archive -Destination $file
+        }
+        else {
+            Write-Host "  fetching KeePass $($pin.Version)" -ForegroundColor DarkGray
 
-        $actual = (Get-FileHash $archive -Algorithm SHA256).Hash.ToUpperInvariant()
+            # A browser user agent gets SourceForge's interstitial page rather than the file, which
+            # arrives as a plausible 137 KB of HTML. Anything else gets the archive.
+            Invoke-WebRequest -Uri $url -OutFile $file -UseBasicParsing -TimeoutSec 300 `
+                -Headers @{ 'User-Agent' = 'KeePassGate-build' }
+        }
+
+        $actual = (Get-FileHash $file -Algorithm SHA256).Hash.ToUpperInvariant()
 
         if (-not $pin.Sha256) {
             throw @"
@@ -168,7 +198,7 @@ download happened to give.
         }
 
         $unpacked = Join-Path $staging 'unpacked'
-        Expand-Archive -Path $archive -DestinationPath $unpacked -Force
+        Expand-Archive -Path $file -DestinationPath $unpacked -Force
 
         Assert-KeePassAuthentic -Directory $unpacked -Version $pin.Version
 
