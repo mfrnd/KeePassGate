@@ -902,7 +902,7 @@ namespace KeePassGate.Tests
 
         [Test]
         public void A_read_never_serves_content_older_than_its_tag(
-            [Values("group", "entry", "field", "attachment")] string route,
+            [Values("group", "entry", "field", "attachment", "fields", "attachments")] string route,
             [Range(0, 5)] int lookups)
         {
             // A read takes the node's tag before the content it serves with it, so a change landing
@@ -935,6 +935,22 @@ namespace KeePassGate.Tests
                     change = () => _vault.UpdateAttachment(_entry, "notes.txt", new byte[] { 2 }, VaultTagging.None);
                     changed = Convert.ToBase64String(new byte[] { 2 });
                     write = path;
+                    body = "{\"content\":\"" + Convert.ToBase64String(new byte[] { 3 }) + "\"}";
+                    break;
+                // The two listings serve names, so the change each has to show is a name.
+                case "fields":
+                    path = entry + "/fields";
+                    change = () => _vault.CreateField(_entry, "Added by somebody else", "x", false, VaultTagging.None);
+                    changed = "Added by somebody else";
+                    write = entry;
+                    body = "{\"Title\":\"what the first client meant\"}";
+                    break;
+                case "attachments":
+                    path = entry + "/attachments";
+                    change = () => _vault.CreateAttachment(
+                        _entry, "added by somebody else.txt", new byte[] { 2 }, VaultTagging.None);
+                    changed = "added by somebody else.txt";
+                    write = entry + "/attachments/notes.txt";
                     body = "{\"content\":\"" + Convert.ToBase64String(new byte[] { 3 }) + "\"}";
                     break;
                 default:
