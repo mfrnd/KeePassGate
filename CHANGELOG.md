@@ -11,6 +11,15 @@ none, since it releases both.
 
 ## 0.2.0, unreleased
 
+- **The command line honors `PYTHONIOENCODING`, and warns when its output is on its way to being
+  misread.** Every standard stream was UTF-8 whatever the variable named; it now decides the
+  encoding of all three, and of input and output the error handler, as Python reads it. On
+  Windows, plain output holding a character beyond ASCII that goes to a file or a pipe while the
+  console decodes another code page, which is how Windows PowerShell and PowerShell capture a
+  program's output, is warned about once with `OutputEncodingWarning`:
+  `$value = pykeepassgate field <uuid> Password` held other text for such a value, and nothing
+  failed. The client's page stated that whatever read the output read UTF-8, and now gives the
+  console setting that makes PowerShell do so.
 - **A clients list emptied by revoking reads "No clients once OK is pressed."**, rather than that
   no client has been admitted to the database, which every client revoked there still reaches
   until OK.

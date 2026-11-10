@@ -12,7 +12,11 @@ import argparse
 import base64
 import io
 import json
+import os
+import subprocess
 import sys
+import types
+import warnings
 from pathlib import Path
 from typing import Any
 
@@ -369,6 +373,221 @@ def test_plain_output_written_through_a_code_page_is_utf8_and_whole(
     sys.stdout.flush()
     lines = written.getvalue().decode("utf-8").splitlines()
     assert [line.split()[-1] for line in lines] == ["a.pem", "Ω.pem"]
+
+
+def test_plain_output_is_written_in_the_encoding_pythonioencoding_names(
+    gate: FakeGate, kept: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    # For a reader that decodes with another code page. What the code page lacks is written as its
+    # escape, as UTF-8 writes a lone surrogate, rather than ending the listing part way through.
+    monkeypatch.setenv("PYTHONIOENCODING", "cp437")
+    answering(gate, {"attachments": [{"name": "ä.pem", "size": 1}, {"name": "€.pem", "size": 2}]})
+    written = io.BytesIO()
+    monkeypatch.setattr("sys.stdout", io.TextIOWrapper(written, encoding="cp1252"))
+
+    assert cli.main(["attachments", UUID, "--directory", str(kept)]) == 0
+
+    sys.stdout.flush()
+    lines = written.getvalue().decode("cp437").splitlines()
+    assert [line.split()[-1] for line in lines] == ["ä.pem", "\\u20ac.pem"]
+
+
+def test_the_error_handler_pythonioencoding_names_is_kept_for_input_and_output(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    # Standard error keeps its escapes whatever the variable names, as Python's own reading of it
+    # has it, so a sentence about a failure never fails to be written.
+    monkeypatch.setenv("PYTHONIOENCODING", "ascii:replace")
+    for name in ("stdin", "stdout", "stderr"):
+        monkeypatch.setattr(f"sys.{name}", io.TextIOWrapper(io.BytesIO(), encoding="utf-8"))
+
+    cli._encoded_streams()
+
+    assert (sys.stdin.encoding, sys.stdin.errors) == ("ascii", "replace")
+    assert (sys.stdout.encoding, sys.stdout.errors) == ("ascii", "replace")
+    # Python's own name for the handler: cspell:ignore backslashreplace
+    assert (sys.stderr.encoding, sys.stderr.errors) == ("ascii", "backslashreplace")
+
+
+def test_utf8_named_by_pythonioencoding_is_read_as_utf8_is_without_it(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    # A byte order mark, which Windows PowerShell puts before what it sends as UTF-8, is still
+    # dropped from input, and output still starts with none.
+    monkeypatch.setenv("PYTHONIOENCODING", "UTF8")
+    piped = "\N{BYTE ORDER MARK}rotated\n".encode()
+    monkeypatch.setattr("sys.stdin", io.TextIOWrapper(io.BytesIO(piped), encoding="cp1252"))
+    monkeypatch.setattr("sys.stdout", io.TextIOWrapper(io.BytesIO(), encoding="cp1252"))
+
+    cli._encoded_streams()
+
+    assert sys.stdin.read() == "rotated\n"
+    assert sys.stdout.encoding == "utf-8"
+
+
+@pytest.mark.parametrize(
+    ("flags", "encoding"), [([], "cp437"), (["-I"], "utf-8")], ids=["read", "ignored"]
+)
+def test_pythonioencoding_is_read_as_python_reads_it(flags: list[str], encoding: str) -> None:
+    # Ignored under `-E` and `-I`, which tell the interpreter to ignore the environment, and then
+    # it decides nothing here either. In an interpreter of its own, since the flag is read as the
+    # interpreter starts.
+    script = (
+        "import sys\n"
+        "from pykeepassgate import cli\n"
+        "cli._encoded_streams()\n"
+        "print(sys.stdout.encoding, file=sys.stderr)\n"
+    )
+    environment = {**os.environ, "PYTHONIOENCODING": "cp437"}
+
+    ended = subprocess.run(  # noqa: S603
+        [sys.executable, *flags, "-c", script],
+        env=environment,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+
+    assert ended.stderr.strip() == encoding, ended.stderr
+
+
+def test_pythonioencoding_names_nothing_to_an_interpreter_ignoring_the_environment(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    # The same as the interpreter of its own above, read here as well so that this process runs the
+    # path too: the flags are replaced for this question alone.
+    monkeypatch.setenv("PYTHONIOENCODING", "cp437:replace")
+    monkeypatch.setattr("sys.flags", types.SimpleNamespace(ignore_environment=1))
+
+    assert cli._io_encoding() == (None, None)
+
+
+def test_plain_output_for_a_console_that_decodes_otherwise_is_warned_about_once(
+    gate: FakeGate,
+    kept: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    # PowerShell decodes a program's output with the console's code page, so a name beyond ASCII
+    # captured into a variable arrives as other text and nothing fails. The output is printed all
+    # the same, and the warning names both ways of making the two agree.
+    monkeypatch.setattr(cli, "_other_reader", lambda: "cp437")
+    answering(gate, {"attachments": [{"name": "ä.pem", "size": 1}, {"name": "Ω.pem", "size": 2}]})
+
+    assert cli.main(["attachments", UUID, "--directory", str(kept)]) == 0
+
+    out, err = capsys.readouterr()
+    assert [line.split()[-1] for line in out.splitlines()] == ["ä.pem", "Ω.pem"]
+    assert err.count("OutputEncodingWarning: ") == 1
+    assert "this console decodes cp437" in err
+    assert "[Console]::OutputEncoding" in err
+    assert "PYTHONIOENCODING=cp437" in err
+
+
+@pytest.mark.parametrize(
+    ("output", "name"), [("plain", "key.pem"), ("json", "ä.pem")], ids=["ascii", "json"]
+)
+def test_output_every_code_page_reads_alike_is_not_warned_about(
+    gate: FakeGate,
+    kept: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+    output: str,
+    name: str,
+) -> None:
+    # `json` is only ASCII, whatever the names in it.
+    monkeypatch.setattr(cli, "_other_reader", lambda: "cp437")
+    answering(gate, {"attachments": [{"name": name, "size": 1}]})
+
+    assert cli.main(["attachments", UUID, "--directory", str(kept), "-o", output]) == 0
+
+    assert "OutputEncodingWarning" not in capsys.readouterr().err
+
+
+def test_the_warning_is_pythons_own_and_a_filter_silences_it(
+    gate: FakeGate,
+    kept: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    # Raised through `warnings`, so a program running the command line with its own filters, or
+    # `-W`, decides whether it is shown.
+    monkeypatch.setattr(cli, "_other_reader", lambda: "cp437")
+    with pytest.warns(cli.OutputEncodingWarning, match="cp437"):
+        cli._misread(["key.pem", "ä.pem"])
+
+    answering(gate, {"attachments": [{"name": "ä.pem", "size": 1}]})
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore", cli.OutputEncodingWarning)
+        assert cli.main(["attachments", UUID, "--directory", str(kept)]) == 0
+
+    assert "OutputEncodingWarning" not in capsys.readouterr().err
+
+
+def test_a_warning_is_shown_as_a_failure_is_and_never_fails_itself(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    shown = io.StringIO()
+    cli._warned("decodes otherwise", cli.OutputEncodingWarning, "cli.py", 1, shown)
+    assert shown.getvalue() == "OutputEncodingWarning: decodes otherwise\n"
+
+    class Gone(io.StringIO):
+        def write(self, text: str) -> int:
+            raise BrokenPipeError
+
+    cli._warned("cannot be written", UserWarning, "cli.py", 1, Gone())
+
+    # No standard error at all, as under `pythonw`. cspell:ignore pythonw
+    monkeypatch.setattr("sys.stderr", None)
+    cli._warned("nowhere to go", UserWarning, "cli.py", 1)
+
+
+@pytest.mark.skipif(os.name != "nt", reason="a console decodes with a code page on Windows")
+@pytest.mark.parametrize(
+    ("page", "expected"),
+    [(437, "cp437"), (65001, None), (0, None), (99999, None)],
+    ids=["another", "utf-8", "no console", "no codec"],
+)
+def test_a_file_is_read_with_the_consoles_code_page_where_it_differs(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, page: int, expected: str | None
+) -> None:
+    monkeypatch.setattr(cli, "_console_code_page", lambda: page)
+    with (tmp_path / "out.txt").open("w", encoding="utf-8") as file:
+        monkeypatch.setattr("sys.stdout", file)
+        assert cli._other_reader() == expected
+
+
+@pytest.mark.skipif(os.name != "nt", reason="a console decodes with a code page on Windows")
+def test_a_stream_nobody_reads_through_the_console_has_no_reader(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    # The null device is read by nobody, and a stream with no descriptor, or a stream that is no
+    # text wrapper at all, as a capture may be, is no file or pipe.
+    monkeypatch.setattr(cli, "_console_code_page", lambda: 437)
+    with Path(os.devnull).open("w", encoding="utf-8") as null:
+        monkeypatch.setattr("sys.stdout", null)
+        assert cli._other_reader() is None
+
+    monkeypatch.setattr("sys.stdout", io.TextIOWrapper(io.BytesIO(), encoding="utf-8"))
+    assert cli._other_reader() is None
+
+    monkeypatch.setattr("sys.stdout", io.StringIO())
+    assert cli._other_reader() is None
+
+
+@pytest.mark.skipif(os.name != "nt", reason="a console decodes with a code page on Windows")
+def test_the_consoles_code_page_is_asked_of_windows() -> None:
+    # Whatever runs the tests may have a console or none, so only the answer's form is known.
+    assert cli._console_code_page() >= 0
+
+
+@pytest.mark.skipif(os.name == "nt", reason="elsewhere no console decodes with a code page")
+def test_elsewhere_no_reader_is_warned_about(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    with (tmp_path / "out.txt").open("w", encoding="utf-8") as file:
+        monkeypatch.setattr("sys.stdout", file)
+        assert cli._other_reader() is None
 
 
 def test_attachments_are_listed_by_name_and_size(

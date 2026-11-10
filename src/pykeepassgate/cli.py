@@ -30,11 +30,15 @@ files would not all go, and `status` answered that the gate is not serving.
 **Every standard stream is UTF-8**, whatever the code page, as Python 3.15 makes them by default:
 a listing written to a file or a pipe on Windows was encoded as cp1252 and died part way through
 at the first name beyond it, and a value piped in was decoded as cp1252 and stored as other text.
+**Or what `PYTHONIOENCODING` names**, as Python reads that variable, which is how output is matched
+to a reader that decodes it with another code page. Plain output on its way to such a reader, as
+PowerShell is in a console left at its default, is warned about with `OutputEncodingWarning`.
 """
 
 from __future__ import annotations
 
 import argparse
+import codecs
 import ctypes
 import errno
 import getpass
@@ -45,10 +49,11 @@ import math
 import os
 import sys
 import unicodedata
+import warnings
 from collections.abc import Callable, Iterable
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
-from typing import Literal, TypedDict
+from typing import Literal, TextIO, TypedDict
 
 from . import api, compatibility, pairing, refs, transport
 from .client import IDENTITY_PATH, STATUS_PATH, _segment
@@ -70,9 +75,32 @@ DEFAULT_PORT = api.DEFAULT_PORT
 OUTPUTS = ("plain", "json")
 
 
+class OutputEncodingWarning(UserWarning):
+    """Plain output is going to a reader that decodes it with another encoding.
+
+    Given once a line holding a character the two encodings write differently is printed, on
+    Windows, while standard output is a file or a pipe and the console the command runs in decodes
+    another code page. Windows PowerShell and PowerShell decode a program's output with that code
+    page, so a value captured into a variable arrives as other text and nothing fails. A
+    redirection the shell passes through unchanged cannot be told from a capture, so it is warned
+    about too. Making the two agree ends it: the console set to UTF-8, or `PYTHONIOENCODING` set to
+    the console's code page, which writes a character the code page lacks as its escape.
+    """
+
+
 def main(argv: list[str] | None = None) -> int:
     """Run one command and return what the shell should see."""
-    _utf8_streams()
+    _encoded_streams()
+    # A warning is shown as a failure is, its class and its sentence on standard error, rather
+    # than with the file and line Python names by default, which are about this program and not
+    # about anything the person running it can change. Python's own display is back afterwards.
+    with warnings.catch_warnings():
+        warnings.showwarning = _warned
+        return _command(argv)
+
+
+def _command(argv: list[str] | None) -> int:
+    """Parse and run one command, answering every failure it knows with its exit code."""
     parser = _parser()
     arguments = parser.parse_args(argv)
 
@@ -165,8 +193,8 @@ _NO_LINE = (
 )
 
 
-def _utf8_streams() -> None:
-    """Read and write UTF-8 on every standard stream, whatever the locale's code page.
+def _encoded_streams() -> None:
+    """Read and write UTF-8 on every standard stream, or what `PYTHONIOENCODING` names.
 
     On Windows a stream that is not a console takes the code page, cp1252 here, so plain output
     written to a file or a pipe raised `UnicodeEncodeError` part way through a listing at the
@@ -180,15 +208,70 @@ def _utf8_streams() -> None:
     Windows PowerShell puts there when told to send UTF-8. **Output never fails**: a character
     UTF-8 cannot encode, which only a lone surrogate is, is written as its escape. A stream that
     is not a text wrapper over a file, as a test's capture may be, is left as it is.
+
+    **`PYTHONIOENCODING` decides where it is set**, as Python's documentation has it: its encoding
+    for all three streams, and its error handler for input and output, standard error keeping its
+    escapes as Python's own does. That is the way to write for a reader that decodes with another
+    code page, which `OutputEncodingWarning` names. What it leaves out is this client's default,
+    and UTF-8 named there is read as UTF-8 is read without it, a byte order mark dropped.
     """
+    encoding, errors = _io_encoding()
     # Python's own name for the handler: cspell:ignore backslashreplace
-    for stream, encoding, errors in (
-        (sys.stdin, "utf-8-sig", "strict"),
-        (sys.stdout, "utf-8", "backslashreplace"),
+    for stream, default, handler in (
+        (sys.stdin, "utf-8-sig", errors or "strict"),
+        (sys.stdout, "utf-8", errors or "backslashreplace"),
         (sys.stderr, "utf-8", "backslashreplace"),
     ):
         if isinstance(stream, io.TextIOWrapper):
-            stream.reconfigure(encoding=encoding, errors=errors)
+            named = default if encoding is None or _utf8(encoding) else encoding
+            stream.reconfigure(encoding=named, errors=handler)
+
+
+def _io_encoding() -> tuple[str | None, str | None]:
+    """The encoding and the error handler `PYTHONIOENCODING` names, each `None` where it names none.
+
+    Read as Python reads it as it starts, `encoding:errors` with either part left out, and not at
+    all when the interpreter was told to ignore the environment, by `-E` or `-I`.
+    """
+    if sys.flags.ignore_environment:
+        return None, None
+
+    encoding, _, errors = os.environ.get("PYTHONIOENCODING", "").partition(":")
+    return encoding or None, errors or None
+
+
+def _utf8(encoding: str) -> bool:
+    """Whether an encoding's name names UTF-8, with the byte order mark or without it.
+
+    Python has already found a codec for every name asked about: the variable's as it started, and
+    a stream's own.
+    """
+    return codecs.lookup(encoding).name in {"utf-8", "utf-8-sig"}
+
+
+def _warned(
+    message: Warning | str,
+    category: type[Warning],
+    filename: str,
+    lineno: int,
+    file: TextIO | None = None,
+    line: str | None = None,
+) -> None:
+    """Show a warning as the command line shows a failure: its class and its sentence.
+
+    Written where Python's own display writes, and failing as quietly: with no standard error, as
+    under `pythonw`, or a standard error that cannot be written, nothing is shown.
+    """
+    # Python's display is handed where the warning was raised, which is this program's business.
+    del filename, lineno, line
+    stream = sys.stderr if file is None else file
+    if stream is None:
+        return
+
+    try:
+        stream.write(f"{category.__name__}: {message}\n")
+    except OSError:
+        return
 
 
 def _parser() -> argparse.ArgumentParser:
@@ -745,8 +828,72 @@ def _emit(arguments: argparse.Namespace, document: object, lines: Iterable[str])
         print(json.dumps(document, indent=2))
         return
 
+    printable = [_printable(line) for line in lines]
+    _misread(printable)
+    for line in printable:
+        print(line)
+
+
+def _misread(lines: Iterable[str]) -> None:
+    """Warn, once, when a line is printed for a reader that would decode it as other text.
+
+    Asked of plain output alone: `json` is only ASCII, which every code page reads alike. Each line
+    is compared as both encodings would write it, so ASCII, which the two write alike, is never
+    warned about, and the output is printed as it would have been either way.
+    """
+    console = _other_reader()
+    if console is None:
+        return
+
+    written = sys.stdout.encoding
     for line in lines:
-        print(_printable(line))
+        if line.encode(written, "backslashreplace") != line.encode(console, "backslashreplace"):
+            warnings.warn(
+                f"standard output is written as {written} and this console decodes {console}, "
+                "so whatever captures it, as PowerShell does, reads characters beyond ASCII as "
+                "other text: [Console]::OutputEncoding = [Text.UTF8Encoding]::new() sets the "
+                f"console to UTF-8, or PYTHONIOENCODING={console} writes what it decodes",
+                OutputEncodingWarning,
+                stacklevel=2,
+            )
+            return
+
+
+def _other_reader() -> str | None:
+    """The encoding the console decodes standard output with, where that differs from its own.
+
+    Only on Windows, and only while standard output is a file or a pipe: a console is written in
+    UTF-16 whatever its code page, and another character device, the null device among them, is
+    read by nobody. The code page is the console's own, which Windows PowerShell and PowerShell
+    decode a program's output with. A command running in no console has no such reader, and a code
+    page Python has no codec for cannot be compared, so neither is warned about.
+    """
+    if os.name != "nt" or not isinstance(sys.stdout, io.TextIOWrapper):
+        return None
+
+    try:
+        descriptor = sys.stdout.fileno()
+    except (OSError, ValueError):
+        return None
+
+    page = _console_code_page()
+    if page == 0 or os.isatty(descriptor):
+        return None
+
+    try:
+        console = codecs.lookup(f"cp{page}").name
+    except LookupError:
+        return None
+
+    return None if console == codecs.lookup(sys.stdout.encoding).name else console
+
+
+def _console_code_page() -> int:
+    """The code page of the console this process runs in, `0` where it runs in none.
+
+    `GetConsoleOutputCP`, looked up for the reason `_windows_console` looks its names up.
+    """
+    return int(ctypes.__dict__["windll"].kernel32.GetConsoleOutputCP())
 
 
 def _moment(when: datetime) -> str:
@@ -1231,9 +1378,11 @@ def _secret(prompt: str) -> str:
         line = sys.stdin.readline()
         more = sys.stdin.read(1) if line.endswith("\n") else ""
     except UnicodeDecodeError:
+        # Named as it was chosen, which is UTF-8 unless `PYTHONIOENCODING` chose another.
+        encoding = "UTF-8" if _utf8(sys.stdin.encoding) else sys.stdin.encoding
         raise _Refused(
-            "standard input is not UTF-8, so what it holds would be stored as other text; "
-            "send it as UTF-8"
+            f"standard input is not {encoding}, so what it holds would be stored as other text; "
+            f"send it as {encoding}"
         ) from None
 
     if not line:

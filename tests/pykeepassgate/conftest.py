@@ -32,6 +32,17 @@ from pykeepassgate import transport
 from pykeepassgate.testing import Authority, FakeGate, Handler, Issued
 
 
+# pytest's own names: cspell:ignore autouse delenv
+@pytest.fixture(autouse=True)
+def no_io_encoding(monkeypatch: pytest.MonkeyPatch) -> None:
+    """No test inherits an encoding for the standard streams from whoever runs it.
+
+    The command line honors `PYTHONIOENCODING`, so a value set in the shell running the tests would
+    change what the tests that hold input and output to UTF-8 read back.
+    """
+    monkeypatch.delenv("PYTHONIOENCODING", raising=False)
+
+
 @pytest.fixture
 def authority(tmp_path: Path) -> Authority:
     """A database's authority, and the two leaves under it the tests need."""

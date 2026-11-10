@@ -503,6 +503,20 @@ def test_a_value_piped_in_that_is_not_utf8_is_refused_before_anything_is_sent(
     assert sent == []
 
 
+def test_a_value_piped_in_that_the_named_encoding_cannot_read_is_refused_by_that_name(
+    gate: FakeGate, kept: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    # `PYTHONIOENCODING` chose the encoding, so the refusal names that encoding rather than UTF-8.
+    monkeypatch.setenv("PYTHONIOENCODING", "ascii")
+    sent = _created(gate)
+    stdin = io.TextIOWrapper(io.BytesIO("ä\n".encode()), encoding="cp1252")
+    monkeypatch.setattr("sys.stdin", stdin)
+
+    assert cli.main(["add", "--title", "x", "--password", "--directory", str(kept)]) == 2
+    assert "standard input is not ascii" in capsys.readouterr().err
+    assert sent == []
+
+
 @pytest.mark.parametrize("newline", [None, "\n"], ids=["as on Windows", "as elsewhere"])
 @pytest.mark.parametrize(
     "command",
