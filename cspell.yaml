@@ -76,3 +76,10 @@ words:
   - KeePassXC
   - keepassxc
   - DroidMonkey
+
+  # The database sets measured against KeePassXC: a set's name is its KDF, and a letter for what
+  # else differs.
+  - fastb
+  - aesb
+  - fastm
+  - slowm
