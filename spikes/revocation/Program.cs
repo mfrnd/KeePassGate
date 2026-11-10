@@ -155,6 +155,7 @@ static partial class Probe
         Directory.CreateDirectory(Work);
         if (args.Length > 1 && args[1] == "rules") { Rules(); return; }
         if (args.Length > 1 && args[1] == "layout") { Layout(); return; }
+        if (args.Length > 1 && Paired(args)) return;
 
         var basePath = Base();
         var conditions = new[] { "kept", "skew", "stripRevoker", "stripHolder", "stripBoth", "stripBoth+holderSettingsNewer", "stripBoth+revokerSettingsNewer" };
