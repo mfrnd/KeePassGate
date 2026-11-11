@@ -14,7 +14,8 @@ settled, in `DESIGN.md` §119 and `FINDINGS.md` §21, and a pointer to it.
 
 Each is one C# file, built on its own with the compiler .NET Framework 4.8 carries, and run from
 Windows PowerShell. Those that use KeePass are built against KeePass 2.61.1's own `KeePass.exe`,
-which holds KeePassLib, and none of them depends on the plugin.
+which holds KeePassLib, and none of them depends on the plugin, except `HoldCost`, which is about
+nothing else.
 
 | probe | what it asks |
 | --- | --- |
@@ -27,10 +28,14 @@ which holds KeePassLib, and none of them depends on the plugin.
 | `FieldWriters` | the same, over the methods that store to those fields |
 | `UiPriority` | whether 32 readers holding a window's thread starve the operator's input and the window's timers, under four ways of taking the turn, and inside a message box, a WinForms dialog and a `DoEvents` loop |
 | `NativeLoop` | whether another thread can tell, without asking, that a window's thread is inside a native dialog's loop |
+| `HoldCost` | how long a whole request holds KeePass's thread, now that a request that changes nothing is decided and served inside one hold |
 
-How long each of the plugin's reads holds the thread was measured against the plugin's own
+How long each step of the plugin's reads holds the thread was measured against the plugin's own
 `KdbxVault` rather than by a probe here, since that is a claim about the product. `RESULTS.md` cites
-it.
+it. **`HoldCost` is a claim about the product too, and is kept here all the same**, because the
+figures it produced are the ones the mainline's documents give: it is a fixture for the plugin's
+host test project and builds only there, against a mainline that decides and serves a read inside
+one hold.
 
 ## Running them
 
@@ -60,6 +65,17 @@ bin\UiPriority.exe queued 32 17 0 dialog
 bin\UiPriority.exe queued 32 17 0 doevents
 bin\NativeLoop.exe
 bin\Mutators.exe Application.DoEvents UIUtil.DoEventsByTime
+```
+
+**`HoldCost` runs from a checkout of the mainline**, copied into its host tests, and is taken out
+again afterwards. It does nothing unless `KPG_HOLD_COST_OUT` names the file its table goes to:
+
+```powershell
+Copy-Item probes\HoldCost.cs <the mainline checkout>\tests\KeePassGate.Host.Tests\
+Set-Location <the mainline checkout>
+$env:KPG_HOLD_COST_OUT = "$PWD\hold-cost.txt"
+dotnet test tests\KeePassGate.Host.Tests\KeePassGate.Host.Tests.csproj -c Release --nologo --filter "FullyQualifiedName~HoldCost"
+Remove-Item tests\KeePassGate.Host.Tests\HoldCost.cs
 ```
 
 **`UiPriority` and `NativeLoop` need a desktop**, and a session that takes input: they open a window

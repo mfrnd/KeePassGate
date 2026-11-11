@@ -3,7 +3,8 @@
 **A read on a connection thread meets KeePass's own thread changing the tree, and nothing on the
 reading side can tell; holding KeePass's thread still for the read closes it, and taking the hold on
 `Application.Idle` keeps the operator's input and KeePass's timers ahead of it.** Measured on .NET
-Framework 4.8 on Windows 11, against KeePass 2.61.1's KeePassLib, on 2026-11-01 and 2026-11-02.
+Framework 4.8 on Windows 11, against KeePass 2.61.1's KeePassLib, on 2026-11-01 and 2026-11-02,
+and what a whole request holds the thread for on 2026-11-11.
 
 ## What a read meets
 
@@ -41,6 +42,32 @@ and 10,000 entries, built from `master` as review 4 found it:
 | a shallow snapshot of every reference | about 10 ms | about 10 ms |
 | the structure alone | 0.055 ms | 0.055 ms |
 | one lookup | 0.17 ms | 0.17 ms |
+
+**That was a read's own step, and the plugin went on to hold the thread for more.** A request that
+changes nothing is decided and served inside one hold: the caller's record and the database's list
+of profiles read again, the node found, the rules asked, the handler's read, its tag, and the answer
+made. `HoldCost` times that, through the plugin's own router and `KdbxVault`, over 1,000 groups and
+10,000 entries in a database with an authority and an admitted client, 41 requests of each kind
+after a first. What it times is the work inside the hold and not the wait for it to begin, which is
+`ParkWalk`'s figure above.
+
+| request | Release, median | Release, worst | Debug, median |
+| --- | --- | --- | --- |
+| every entry, 2.3 MB of JSON | 54.9 ms, and 43.4 in a second run | 69.0 ms | 60.8 ms |
+| every group | 2.3 ms | 3.5 ms | 2.7 ms |
+| the entries of one group | 0.12 ms | 0.35 ms | 0.14 ms |
+| one group | 0.11 ms | 0.40 ms | 0.12 ms |
+| one entry | 0.81 ms | 1.4 ms | 0.83 ms |
+| what the caller may do at an entry | 0.29 ms | 0.64 ms | 0.30 ms |
+| an entry of 50 fields of 10,000 characters each | 2.4 ms | 3.6 ms | 1.8 ms |
+| the fields of that entry | 1.6 ms | 2.1 ms | 1.5 ms |
+| an attachment of 512 KiB, the most the plugin serves | 2.6 ms | 15.4 ms | 2.9 ms |
+| an entry holding forty such attachments, the first time | 47.3 ms, and 48.8 in a second run | | 43.2 ms |
+| the same entry after that | 0.83 ms | 4.6 ms | 0.86 ms |
+
+The entry holding forty attachments is slow once because its tag digests 20 MiB, and the plugin
+keeps each attachment's digest afterwards. Reading the record and the list of profiles again is
+about 0.03 ms of every row.
 
 **A hold over the structure alone would not be exact**, because KeePass changes some live entries in
 place outside its dialogs, read off `Mutators` and `FieldWriters`: `EntryUtil.FillPlaceholders` for a
