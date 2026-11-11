@@ -1,6 +1,7 @@
 using System;
 using KeePassGate.Acl;
 using KeePassGate.Bridge;
+using KeePassGate.Testing;
 using KeePassGate.Ui;
 using KeePassGate.Vault;
 using KeePassLib;
@@ -104,7 +105,7 @@ namespace KeePassGate.Host.Tests
             there.CustomData.Set(AclDocument.CustomDataKey, Narrowed);
             there.LastModificationTime = _made.AddMinutes(5);
 
-            Assert.That(_vault.DeleteGroup(Hex(_empty), VaultTagging.None).Ok, Is.True);
+            Assert.That(_vault.DeleteGroup(Hex(_empty), VaultAskings.Free).Ok, Is.True);
 
             var merged = Synchronize(intoHere);
 
@@ -121,7 +122,7 @@ namespace KeePassGate.Host.Tests
             there.Strings.Set(PwDefs.TitleField, new ProtectedString(false, "edited on the other copy"));
             there.LastModificationTime = _made.AddMinutes(5);
 
-            Assert.That(_vault.DeleteEntry(Hex(_entry), VaultTagging.None).Ok, Is.True);
+            Assert.That(_vault.DeleteEntry(Hex(_entry), VaultAskings.Free).Ok, Is.True);
 
             var merged = Synchronize(intoHere);
             var entry = Find(merged, _entry);
@@ -142,7 +143,7 @@ namespace KeePassGate.Host.Tests
             _elsewhere.Database.RecycleBinEnabled = false;
             _elsewhere.Database.RecycleBinChanged = _made.AddMinutes(5);
 
-            Assert.That(_vault.DeleteEntry(Hex(_entry), VaultTagging.None).Ok, Is.True);
+            Assert.That(_vault.DeleteEntry(Hex(_entry), VaultAskings.Free).Ok, Is.True);
             Assume.That(_here.Database.RecycleBinUuid, Is.Not.EqualTo(PwUuid.Zero), "the removal made this copy's first bin");
 
             Assert.That(Synchronize(intoHere).RecycleBinEnabled, Is.False);

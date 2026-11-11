@@ -6,6 +6,7 @@ using System.Windows.Forms;
 using KeePass.UI;
 using KeePassGate.Bridge;
 using KeePassGate.Diagnostics;
+using KeePassGate.Testing;
 using KeePassGate.Ui;
 using KeePassGate.Vault;
 using KeePassLib;
@@ -118,7 +119,7 @@ namespace KeePassGate.Host.Tests
 
             using (Opened())
             {
-                var refused = _vault.DeleteEntry(entry, VaultTagging.None);
+                var refused = _vault.DeleteEntry(entry, VaultAskings.Free);
 
                 Assert.That(refused.IsBusy, Is.True, refused.Reason);
                 Assert.That(refused.Reason, Does.Contain("database settings dialog"));
@@ -137,7 +138,7 @@ namespace KeePassGate.Host.Tests
 
             using (Opened())
             {
-                var refused = _vault.DeleteGroup(group, VaultTagging.None);
+                var refused = _vault.DeleteGroup(group, VaultAskings.Free);
 
                 Assert.That(refused.IsBusy, Is.True, refused.Reason);
                 Assert.That(_vault.Group(group), Is.Not.Null);
@@ -149,7 +150,7 @@ namespace KeePassGate.Host.Tests
         public void The_dialog_is_answered_before_a_condition_the_node_fails()
         {
             // For the reason `VaultWritesUnderDialogsTests` gives for a dialog on the node itself.
-            var stale = new VaultTagging(VaultPrecondition.Read("\"0123456789abcdef0123456789abcdef\""), true);
+            var stale = VaultAskings.Tagged(VaultPrecondition.Read("\"0123456789abcdef0123456789abcdef\""), true);
             var group = Created(_vault.CreateGroup(_vault.RootAlias, "Fictitious", null));
             var entry = Created(_vault.CreateEntry(group, Named("an invented service")));
             var empty = Created(_vault.CreateGroup(_vault.RootAlias, "Empty", null));
@@ -174,12 +175,12 @@ namespace KeePassGate.Host.Tests
             var first = Created(_vault.CreateEntry(group, Named("an invented service")));
             var second = Created(_vault.CreateEntry(group, Named("another invented service")));
 
-            Assume.That(_vault.DeleteEntry(first, VaultTagging.None).Ok, Is.True, "which makes the bin");
+            Assume.That(_vault.DeleteEntry(first, VaultAskings.Free).Ok, Is.True, "which makes the bin");
             Assume.That(_database.Database.RecycleBinUuid.Equals(PwUuid.Zero), Is.False);
 
             using (Opened())
             {
-                Assert.That(_vault.DeleteEntry(second, VaultTagging.None).Ok, Is.True);
+                Assert.That(_vault.DeleteEntry(second, VaultAskings.Free).Ok, Is.True);
                 Assert.That(_vault.Entry(second), Is.Null);
             }
         }
@@ -192,7 +193,7 @@ namespace KeePassGate.Host.Tests
             {
                 var entry = Created(_vault.CreateEntry(_vault.RootAlias, Named("an invented service")));
 
-                Assert.That(_vault.DeleteEntry(entry, VaultTagging.None).Ok, Is.True);
+                Assert.That(_vault.DeleteEntry(entry, VaultAskings.Free).Ok, Is.True);
                 Assert.That(_database.Database.RecycleBinUuid.Equals(PwUuid.Zero), Is.False);
             }
         }
@@ -204,12 +205,12 @@ namespace KeePassGate.Host.Tests
 
             using (var dialog = Opened())
             {
-                Assume.That(_vault.DeleteEntry(entry, VaultTagging.None).IsBusy, Is.True);
+                Assume.That(_vault.DeleteEntry(entry, VaultAskings.Free).IsBusy, Is.True);
 
                 // The gesture under test, and the only place the closing is not simply cleanup.
                 dialog.Close();
 
-                Assert.That(_vault.DeleteEntry(entry, VaultTagging.None).Ok, Is.True);
+                Assert.That(_vault.DeleteEntry(entry, VaultAskings.Free).Ok, Is.True);
                 Assert.That(_vault.Entry(entry), Is.Null);
             }
         }
@@ -233,7 +234,7 @@ namespace KeePassGate.Host.Tests
                     TestTags.Fixed,
                     null);
 
-                var refused = unwatched.DeleteEntry(entry, VaultTagging.None);
+                var refused = unwatched.DeleteEntry(entry, VaultAskings.Free);
 
                 Assert.That(never.BlockingRecycleBin(_database.Database), Is.Not.Null);
                 Assert.That(refused.IsBusy, Is.True, refused.Reason);

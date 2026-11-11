@@ -132,7 +132,7 @@ namespace KeePassGate.Tests
             // The reason for one mask per profile, and the test that fails if they are ever
             // combined: `R` under one profile and `P` under another are not a protected read.
             _vault.Granting(_vault.RootAlias, Rules.Granting(("reader", "R"), ("auditor", "LP")));
-            Assume.That(_vault.CreateField(_entry, "Password", "an invented secret", true, VaultTagging.None).Ok, Is.True);
+            Assume.That(_vault.CreateField(_entry, "Password", "an invented secret", true, VaultAskings.Free).Ok, Is.True);
 
             var grants = Grants(Send("GET", "/entries/" + _entry + "/access", "reader", "auditor"));
 

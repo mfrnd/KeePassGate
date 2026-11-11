@@ -110,6 +110,13 @@ namespace KeePassGate.Spec
         /// </summary>
         public const string GrantsItem = "kpg.grants";
 
+        /// <summary>
+        /// Where the router leaves a <see cref="DecidedInside"/> for an operation whose verb
+        /// changes the database and whose request it did not refuse: the question the change
+        /// asks again from inside its own turn, which is the answer acted on.
+        /// </summary>
+        public const string InsideItem = "kpg.inside";
+
         private readonly SpecDocument _document;
         private readonly Dictionary<string, OperationHandler> _handlers;
         private readonly Dictionary<string, OperationGuard> _guards;
@@ -376,6 +383,17 @@ namespace KeePassGate.Spec
             }
         }
 
+        /// <summary>Writes the lines a request's decisions came to.</summary>
+        /// <remarks>
+        /// Only an operation the rules govern gathers lines, and no router is built holding such
+        /// an operation and nothing to authorize with, which <see cref="AssertAuthorized"/>
+        /// refuses. So the access check is there whenever there is a line to write.
+        /// </remarks>
+        private void Record(DecisionLines lines)
+        {
+            _access.Write(lines);
+        }
+
         public void Handle(IGateContext context)
         {
             if (context == null)
@@ -539,6 +557,15 @@ namespace KeePassGate.Spec
             // moving under it exactly as a handler's does. Catching around the handler alone
             // answered one moving database two ways, and the answer on the earlier hop was the
             // wrong one.
+            //
+            // **The decisions are kept and written last.** A change is decided twice, here and
+            // again inside its own turn on KeePass's thread, and a line written in that turn
+            // would put the audit's pacing on the thread the operator is typing into. So every
+            // line the request's decisions come to gathers in one place, the later decision in
+            // place of the earlier, and is written once nothing of the request is left to decide:
+            // after the handler, before the answer goes out, on the caller's own connection.
+            var lines = AclVerbs.IsGoverned(operation.Verb) ? new DecisionLines() : null;
+
             try
             {
                 OperationGuard guard;
@@ -547,7 +574,7 @@ namespace KeePassGate.Spec
                     return;
                 }
 
-                if (!Authorized(context, operation))
+                if (!Authorized(context, operation, lines))
                 {
                     return;
                 }
@@ -586,6 +613,13 @@ namespace KeePassGate.Spec
                 // catch-all around this counts anything escaping the router as a defect in this
                 // plugin, answers 500, and puts an incident on the plugin's own window for it.
                 context.Respond(503, HttpResponse.ErrorBody("busy"));
+            }
+            finally
+            {
+                if (lines != null)
+                {
+                    Record(lines);
+                }
             }
         }
 
@@ -712,8 +746,15 @@ namespace KeePassGate.Spec
         /// **Before**, and for the same reason the guard is: checking a body first would let a
         /// caller that may not reach a node learn whether its body would have been accepted, which
         /// is a difference the refusal exists to deny.
+        ///
+        /// **For a change this can refuse and cannot permit.** What it permits is a place in the
+        /// queue for KeePass's thread, and the change asks again from inside its turn, through
+        /// the <see cref="DecidedInside"/> left for it here. Asked here all the same, so that a
+        /// request the rules refuse is turned away before its body is read and before it costs
+        /// KeePass's thread anything.
         /// </remarks>
-        private bool Authorized(IGateContext context, SpecOperation operation)
+        /// <param name="lines">Where the request's decisions are kept until they are written.</param>
+        private bool Authorized(IGateContext context, SpecOperation operation, DecisionLines lines)
         {
             if (!AclVerbs.IsGoverned(operation.Verb))
             {
@@ -738,17 +779,13 @@ namespace KeePassGate.Spec
             // caller may have the protected values inside an answer it is otherwise allowed. It
             // goes through the same check, which decides it and writes a refusal down in one walk,
             // so that the answer the handler acts on is the answer recorded.
-            var access = _access;
-            var operationId = operation.OperationId;
-            var client = context.Client;
-            context.Items[ReachItem] = (ProtectedReach)((n, v, profiles) =>
-                access.Reaches(client, operationId, v, AclReach.Protected, n, profiles));
+            context.Items[ReachItem] = Reach(context.Client, operation, lines);
 
             // The identifier asked for goes on the line when it found nothing, so the operator can
             // see which reference a request was following; the check keeps only a well-formed one.
             var decision = _access.Decide(
                 context.Client, operation.OperationId, operation.Verb, operation.Reach, node,
-                node == null ? Captured(context, "uuid") : null);
+                node == null ? Captured(context, "uuid") : null, lines);
 
             if (decision.Permitted)
             {
@@ -759,11 +796,69 @@ namespace KeePassGate.Spec
                     context.Items[GrantsItem] = decision.Grants;
                 }
 
+                if (AclVerbs.Changes(operation.Verb))
+                {
+                    context.Items[InsideItem] =
+                        (DecidedInside)(found => Inside(context, operation, found, lines));
+                }
+
                 return true;
             }
 
             context.Respond(404, HttpResponse.ErrorBody(UnreachableError));
             return false;
+        }
+
+        /// <summary>
+        /// The protected-scope question for one client, deciding and keeping its refusals in one
+        /// walk.
+        /// </summary>
+        private ProtectedReach Reach(ClientIdentity client, SpecOperation operation, DecisionLines lines)
+        {
+            var access = _access;
+            var operationId = operation.OperationId;
+
+            return (node, verb, profiles) =>
+                access.Reaches(client, operationId, verb, AclReach.Protected, node, profiles, lines);
+        }
+
+        /// <summary>
+        /// A change decided again, inside its own turn and about the node it found there: what
+        /// <see cref="DecidedInside"/> describes.
+        /// </summary>
+        /// <remarks>
+        /// **The client first, then the rules about that client.** The record and the list of
+        /// profiles are read in the same turn the node was found in, so the three cannot have
+        /// moved against each other, and the profiles the resolver is handed are the ones the
+        /// database holds for this certificate now.
+        ///
+        /// **Both answers replace the line the router kept before dispatch**, a refused
+        /// certificate as the certificate's own refusal and anything else as the rules decided
+        /// it, so the audit holds the answer the change was given and not the one it queued on.
+        /// </remarks>
+        private IGateContext Inside(
+            IGateContext context, SpecOperation operation, IAclNode node, DecisionLines lines)
+        {
+            var client = ClientCredentials.Again(
+                context.Client, ServedDatabase.TargetOf(context), ServedDatabase.LogOf(context));
+
+            if (!client.IsPaired)
+            {
+                _access.Refuse(client, operation.OperationId, lines);
+                return null;
+            }
+
+            var decision = _access.Decide(
+                client, operation.OperationId, operation.Verb, operation.Reach, node, null, lines);
+
+            if (!decision.Permitted)
+            {
+                return null;
+            }
+
+            var inside = new DecidedContext(context, client);
+            inside.Items[ReachItem] = Reach(client, operation, lines);
+            return inside;
         }
 
         /// <summary>A path parameter as the router captured it, or null.</summary>

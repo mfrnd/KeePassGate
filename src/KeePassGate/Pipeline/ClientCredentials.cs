@@ -161,6 +161,98 @@ namespace KeePassGate.Pipeline
         }
 
         /// <summary>
+        /// The client a request arrived as, as the database holds it at the moment the request is
+        /// decided: its record and the list of profiles read again, the certificate not.
+        /// </summary>
+        /// <remarks>
+        /// **An identity is as old as its connection's first read.** `For` reads the
+        /// record and the list when the request arrives, and a change then waits for its turn on
+        /// KeePass's thread, in which the operator can revoke the client, take a profile off the
+        /// list or accept a renewal that narrows the record. A decision made in that turn about
+        /// the identity read before it would be made for a client the database no longer holds
+        /// that way. So whoever decides inside the turn asks this first, in the same turn, and
+        /// asks the rules about what it answers.
+        ///
+        /// **The certificate is not judged again.** The anchor, the usage and the dates are facts
+        /// about bytes the connection already holds, and a request that began inside its dates
+        /// is answered. What an operator can change under a request is the record and the list,
+        /// and an authority recreated or deleted answers as no record, which
+        /// <see cref="IGateTarget.Admission"/> has the argument for.
+        ///
+        /// **Every failure is a refusal or a database that is not there**, never the identity as
+        /// it was: a record that is gone refuses, a database that shut is locked, and anything
+        /// that will not read refuses with the error logged. Records that could not be listed
+        /// just now throw <see cref="VaultUnsettled"/> as they do for `For`, and the
+        /// caller answers it `busy`, since nothing here knows whether the change it interrupts
+        /// has been made.
+        ///
+        /// A caller that is not paired is handed back as it is, having nothing to read again,
+        /// and so is any caller where no target is served, which is a test's arrangement.
+        /// </remarks>
+        public static ClientIdentity Again(ClientIdentity client, IGateTarget target, IGateLog log)
+        {
+            if (client == null)
+            {
+                throw new ArgumentNullException(nameof(client));
+            }
+
+            if (target == null || !client.IsPaired)
+            {
+                return client;
+            }
+
+            var logger = log ?? NullGateLog.Instance;
+            var databaseId = client.DatabaseId;
+
+            if (target.IsLocked)
+            {
+                return ClientIdentity.Locked(databaseId);
+            }
+
+            if (target.Unavailable != null)
+            {
+                return ClientIdentity.Unavailable(databaseId, target.Unavailable);
+            }
+
+            try
+            {
+                // In the order `For` reads them, and for its reasons.
+                var named = target.KnownProfiles;
+                var unreadable = target.ProfilesUnreadable != null;
+                var record = target.Admission(client.AdmissionKey);
+
+                if (record == null)
+                {
+                    logger.Warn("refused a certificate whose admission record went while its request waited: " +
+                                CertificateDigest.Shorten(client.AdmissionKey));
+                    return client.AsRefused("this certificate has no admission record");
+                }
+
+                return client.AsNow(
+                    Effective(record.Profiles, named),
+                    Removed(record.Profiles, named),
+                    record.ClientKey,
+                    unreadable);
+            }
+            catch (DatabaseShut error)
+            {
+                logger.Info("a certificate could not be checked again, because " + error.Message);
+                return ClientIdentity.Locked(databaseId);
+            }
+            catch (VaultUnsettled)
+            {
+                // Named so that the filter below, which takes every failure of this plugin's own,
+                // does not make a refusal of a database that only has to be asked again.
+                throw;
+            }
+            catch (Exception error) when (Expected.OfCustomData(error) || Expected.OfCryptography(error))
+            {
+                logger.Error("a certificate could not be checked against this database again", error);
+                return client.AsRefused("this certificate could not be checked");
+            }
+        }
+
+        /// <summary>
         /// The profiles a record holds that the database still names, in the record's order.
         /// </summary>
         /// <remarks>

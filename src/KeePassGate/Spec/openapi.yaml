@@ -2301,11 +2301,10 @@ components:
         before the router has looked up the node it is about, or between the router's decision and
         the handler's read, is `locked` as well, because its nodes have not gone and a client told
         they had would stop looking for something that is still there. A node that has gone while
-        the database stays open is the `404` any absent node gets. A write whose handler looks its
-        node up before writing, to ask the rules about protected values, meets a lock there as a
-        read does, and is `locked` too. The exception is a lock landing once the change is on its
-        way: it is handed to the writer, which finds nothing open to change and answers `500
-        internal error`, because the change could not be attempted.
+        the database stays open is the `404` any absent node gets. A write meets a lock the same
+        way: its change is handed to the writer with the questions the rules are asked about it,
+        the writer finds nothing open to change, and the answer is `locked`, because nothing was
+        attempted and the same request is worth sending again once the database is open.
 
         `undecided` is a database holding more than one certificate authority that nobody has
         chosen between, which is copies that each made an authority of their own meeting in a
@@ -2477,11 +2476,12 @@ components:
         The gate failed, rather than the request being wrong or the node being out of reach. Three
         things reach this. `not saved` means the change was made and the save never got to the
         disk, and it has been taken back out again. `internal error` means it could not be
-        attempted at all: the database closed under the request, or KeePass answered the attempt
-        with an error. Neither leaves anything behind that a retry would duplicate, which is why
-        this is not the `404` a refusal gives: that answer says the request had nowhere to go, and
-        it is the one an absent node and a forbidden one share. Neither is worth retrying either,
-        for the same reason. `not verified` is the third and the one that does leave something
+        attempted at all, in a database that is still open: KeePass answered the attempt with an
+        error. A database that locked or closed under the request is `503 locked` instead. Neither
+        leaves anything behind that a retry would duplicate, which is why this is not the `404` a
+        refusal gives: that answer means the request had nowhere to go, and it is the one an absent
+        node and a forbidden one share. Neither is worth retrying either, for the same reason.
+        `not verified` is the third and the one that does leave something
         behind: the change was made and saved, and the file KeePass hashed back afterwards is not
         the one it wrote, so nothing knows whether the file holds the change and it is not taken
         back out. So is a change whose database KeePass closed as its save ended, which a lock can

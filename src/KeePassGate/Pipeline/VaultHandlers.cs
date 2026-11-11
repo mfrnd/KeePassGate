@@ -16,8 +16,14 @@ namespace KeePassGate.Pipeline
     /// </summary>
     /// <remarks>
     /// **A handler never asks whether it may.** By the time one of these runs, the router has taken
-    /// the node it named, intersected the admission record with the rules, and written the decision
-    /// down. What is left is doing the thing and saying what happened, which is why these are short.
+    /// the node it named, intersected the admission record with the rules, and kept the decision
+    /// to write down. What is left is doing the thing and reporting what happened, which is why
+    /// these are short.
+    ///
+    /// **A change is decided again where it is made**, and still not by its handler. The router
+    /// answered before the change waited for its turn on KeePass's thread, so the handler of a
+    /// change looks nothing up and decides nothing: it hands the vault the router's question and
+    /// its own, `Asking`, and the vault asks them of the node it finds inside that turn.
     ///
     /// **The one exception is a listing**, and it is not an exception to the rule so much as a
     /// consequence of it. A list is a question about a collection, so the router authorizes the
@@ -28,7 +34,8 @@ namespace KeePassGate.Pipeline
     /// **Absent and refused answer the same 404** for the node an operation is about, which the
     /// router decides, and these use the same words for the things underneath it. A node that has
     /// gone by the time a handler reads it is absent too, and one whose database has locked under
-    /// the request is not: `Gone` is where the two part.
+    /// the request is not: `Gone` is where the two part. A change the rules refuse inside its
+    /// turn answers as a node gone by then does.
     ///
     /// Inside an answer they are told apart on purpose. A route that is allowed and a value that is
     /// not gives `null` beside a `protected` member saying which could have been withheld, because
@@ -116,7 +123,7 @@ namespace KeePassGate.Pipeline
 
             var body = JsonBody.Read(context.Body);
             Answer(context, vault.CreateGroup(
-                Captured(context, "uuid"), body.Text("Name"), body.Text("Notes")));
+                Captured(context, "uuid"), body.Text("Name"), body.Text("Notes"), Asking(context, false)));
         }
 
         public static void UpdateGroup(IGateContext context)
@@ -129,9 +136,8 @@ namespace KeePassGate.Pipeline
 
             var uuid = Captured(context, "uuid");
             var body = JsonBody.Read(context.Body);
-            var tagging = Tagging(context, MayTag(context, vault.Group(uuid)), true);
 
-            Answer(context, vault.UpdateGroup(uuid, body.Text("Name"), body.Text("Notes"), tagging));
+            Answer(context, vault.UpdateGroup(uuid, body.Text("Name"), body.Text("Notes"), Asking(context, true)));
         }
 
         public static void DeleteGroup(IGateContext context)
@@ -142,8 +148,7 @@ namespace KeePassGate.Pipeline
                 return;
             }
 
-            var uuid = Captured(context, "uuid");
-            Answer(context, vault.DeleteGroup(uuid, Tagging(context, MayTag(context, vault.Group(uuid)), false)));
+            Answer(context, vault.DeleteGroup(Captured(context, "uuid"), Asking(context, false)));
         }
 
         public static void ListEntries(IGateContext context)
@@ -304,28 +309,10 @@ namespace KeePassGate.Pipeline
                 return;
             }
 
-            var fields = Standard(context);
-            var group = vault.Group(Captured(context, "uuid"));
-            if (group == null)
-            {
-                // Gone since the router found it, or locked, and answered as `ReadField` answers
-                // the same miss. While this lookup sat inside the conjunction below, a miss skipped
-                // the question about protected values and handed the write over anyway, and the
-                // vault looks the node up again: an operator's move takes a node out of one group
-                // before it puts it into the other, so this lookup can miss what the vault then
-                // finds, and a rule without `protected` wrote a protected value. The four write
-                // routes below answer the same miss the same way.
-                Gone(context);
-                return;
-            }
-
-            if (Guarded(vault, fields.Keys) && !Reaches(context, group.Node, AclVerb.Create))
-            {
-                Withheld(context);
-                return;
-            }
-
-            Answer(context, vault.CreateEntry(Captured(context, "uuid"), fields, expiry));
+            // Whether a protected value may be set is asked by the write, of the group it finds
+            // and of what the database protects at that moment: `Asking` has the reason.
+            Answer(context, vault.CreateEntry(
+                Captured(context, "uuid"), Standard(context), Asking(context, false, Setting(AclVerb.Create)), expiry));
         }
 
         public static void UpdateEntry(IGateContext context)
@@ -343,29 +330,8 @@ namespace KeePassGate.Pipeline
                 return;
             }
 
-            var uuid = Captured(context, "uuid");
-            var fields = Standard(context);
-            var entry = vault.Entry(uuid);
-            if (entry == null)
-            {
-                Gone(context);
-                return;
-            }
-
-            var guarded = Guarded(vault, uuid, fields.Keys);
-            if (guarded == null)
-            {
-                Gone(context);
-                return;
-            }
-
-            if (guarded.Value && !Reaches(context, entry.Node, AclVerb.Update))
-            {
-                Withheld(context);
-                return;
-            }
-
-            Answer(context, vault, uuid, vault.UpdateEntry(uuid, fields, Tagging(context, MayTag(context, entry), true), expiry));
+            Answer(context, vault.UpdateEntry(
+                Captured(context, "uuid"), Standard(context), Asking(context, true, Setting(AclVerb.Update)), expiry));
         }
 
         public static void DeleteEntry(IGateContext context)
@@ -376,8 +342,7 @@ namespace KeePassGate.Pipeline
                 return;
             }
 
-            var uuid = Captured(context, "uuid");
-            Answer(context, vault.DeleteEntry(uuid, Tagging(context, MayTag(context, vault.Entry(uuid)), false)));
+            Answer(context, vault.DeleteEntry(Captured(context, "uuid"), Asking(context, false)));
         }
 
         public static void ListFields(IGateContext context)
@@ -524,8 +489,8 @@ namespace KeePassGate.Pipeline
             var uuid = Captured(context, "uuid");
             var name = body == null ? null : body.Text("name");
 
-            bool guarded;
-            if (!Marked(body == null ? null : body.Text("protected"), out guarded))
+            bool marked;
+            if (!Marked(body == null ? null : body.Text("protected"), out marked))
             {
                 // A marker this cannot read is refused rather than read as `false`. Everything
                 // else in this plugin denies on a marker it does not recognize, and this one used
@@ -540,28 +505,12 @@ namespace KeePassGate.Pipeline
                 return;
             }
 
-            var entry = vault.Entry(uuid);
-            if (entry == null)
-            {
-                Gone(context);
-                return;
-            }
-
-            if ((guarded || vault.Protects(name)) && !Reaches(context, entry.Node, AclVerb.Create))
-            {
-                Withheld(context);
-                return;
-            }
-
-            // There is a body here: without one there is no name, and a missing name was refused above.
-            var made = body.Text("value");
-
-            // What the check above asked about, not half of it. Asking on `guarded || Protects`
-            // and then storing only `guarded` meant a caller could re-create a standard field
-            // unprotected after stripping it, and every later client with `read` and no
-            // `protected` was handed it in clear until KeePass next normalized the file.
-            Answer(context, vault, uuid, vault.CreateField(
-                uuid, name, made, guarded || vault.Protects(name), Tagging(context, MayTag(context, entry), true)));
+            // There is a body here: without one there is no name, and a missing name was refused
+            // above. Only the caller's own marker goes down with it. Whether the database protects
+            // the name is the vault's to decide, where the value is stored, so that what the rules
+            // are asked about and what is stored are one answer: `IVault.CreateField`.
+            Answer(context, vault.CreateField(
+                uuid, name, body.Text("value"), marked, Asking(context, true, Setting(AclVerb.Create))));
         }
 
         public static void UpdateField(IGateContext context)
@@ -573,33 +522,16 @@ namespace KeePassGate.Pipeline
             }
 
             var body = JsonBody.Read(context.Body);
-            var uuid = Captured(context, "uuid");
-            var name = Captured(context, "name");
-            var entry = vault.Entry(uuid);
-            if (entry == null)
-            {
-                Gone(context);
-                return;
-            }
-
-            // Both halves, which `Guarded` asks: what the database decides about the name and the
-            // flag this string carries. While only the flag was asked here, this route wrote a
-            // password the entry route refused.
-            var guarded = Guarded(vault, uuid, new[] { name });
-            if (guarded == null)
-            {
-                Gone(context);
-                return;
-            }
-
-            if (guarded.Value && !Reaches(context, entry.Node, AclVerb.Update))
-            {
-                Withheld(context);
-                return;
-            }
-
             var written = body == null ? null : body.Text("value");
-            Answer(context, vault, uuid, vault.UpdateField(uuid, name, written, Tagging(context, MayTag(context, entry), true)));
+
+            // Both halves of protected, which the vault finds: what the database decides about
+            // the name and the flag this string carries. While only the flag was asked, this
+            // route wrote a password the entry route refused.
+            Answer(context, vault.UpdateField(
+                Captured(context, "uuid"),
+                Captured(context, "name"),
+                written,
+                Asking(context, true, Setting(AclVerb.Update))));
         }
 
         public static void StripField(IGateContext context)
@@ -607,15 +539,6 @@ namespace KeePassGate.Pipeline
             var vault = Vault(context);
             if (vault == null)
             {
-                return;
-            }
-
-            var uuid = Captured(context, "uuid");
-            var name = Captured(context, "name");
-            var entry = vault.Entry(uuid);
-            if (entry == null)
-            {
-                Gone(context);
                 return;
             }
 
@@ -632,20 +555,11 @@ namespace KeePassGate.Pipeline
             // protected field off as before, because it has nowhere to put anything back. What is
             // refused is a rule that could create in its place and could not have created the
             // protected value it is taking away: any rule the client holds, each asked on its own.
-            var guarded = Guarded(vault, uuid, new[] { name });
-            if (guarded == null)
-            {
-                Gone(context);
-                return;
-            }
-
-            if (guarded.Value && CouldPutBackUnprotected(context, entry.Node))
-            {
-                Withheld(context);
-                return;
-            }
-
-            Answer(context, vault, uuid, vault.DeleteField(uuid, name, Tagging(context, MayTag(context, entry), true)));
+            Answer(context, vault.DeleteField(
+                Captured(context, "uuid"),
+                Captured(context, "name"),
+                Asking(context, true, (inside, found) =>
+                    !found.Guarded || !CouldPutBackUnprotected(inside, found.Node))));
         }
 
         /// <summary>
@@ -817,9 +731,8 @@ namespace KeePassGate.Pipeline
                 return;
             }
 
-            var uuid = Captured(context, "uuid");
-            Answer(context, vault, uuid, vault.CreateAttachment(
-                uuid, name, content, Tagging(context, MayTag(context, vault.Entry(uuid)), true)));
+            Answer(context, vault.CreateAttachment(
+                Captured(context, "uuid"), name, content, Asking(context, true)));
         }
 
         public static void UpdateAttachment(IGateContext context)
@@ -839,9 +752,8 @@ namespace KeePassGate.Pipeline
                 return;
             }
 
-            var uuid = Captured(context, "uuid");
-            Answer(context, vault, uuid, vault.UpdateAttachment(
-                uuid, Captured(context, "name"), content, Tagging(context, MayTag(context, vault.Entry(uuid)), true)));
+            Answer(context, vault.UpdateAttachment(
+                Captured(context, "uuid"), Captured(context, "name"), content, Asking(context, true)));
         }
 
         public static void StripAttachment(IGateContext context)
@@ -852,9 +764,8 @@ namespace KeePassGate.Pipeline
                 return;
             }
 
-            var uuid = Captured(context, "uuid");
-            Answer(context, vault, uuid, vault.DeleteAttachment(
-                uuid, Captured(context, "name"), Tagging(context, MayTag(context, vault.Entry(uuid)), true)));
+            Answer(context, vault.DeleteAttachment(
+                Captured(context, "uuid"), Captured(context, "name"), Asking(context, true)));
         }
 
         /// <summary>
@@ -1415,84 +1326,74 @@ namespace KeePassGate.Pipeline
             return false;
         }
 
-        /// <summary>Whether any of these names is one the database would protect.</summary>
-        private static bool Guarded(IVault vault, IEnumerable<string> names)
-        {
-            foreach (var name in names)
-            {
-                if (vault.Protects(name))
-                {
-                    return true;
-                }
-            }
-
-            return false;
-        }
-
         /// <summary>
-        /// Whether any of these names is protected on the entry, by the database or by the flag its
-        /// own string carries, or null when the entry is not there to ask.
+        /// The questions a change asks about its caller from inside its own turn, once it has
+        /// found its node.
         /// </summary>
         /// <remarks>
-        /// Both halves, because they answer different questions. A field is protected either
-        /// because of what it is called, which the database decides, or because somebody marked
-        /// that string on that entry, and the two disagree whenever an operator turns a protection
-        /// on, since KeePass does not go back and re-flag what is already there. Overwriting either
-        /// is setting a secret. What the database protects is asked first, so a name it protects
-        /// needs no lookup.
+        /// **Nothing about a change is decided here, on the connection's thread.** These used to
+        /// look the node up, ask whether a protected value may be set and whether the caller may
+        /// be handed the tag, and hand the vault the answers; the write then waited for its turn
+        /// on KeePass's thread and acted on them, whatever the operator had done to the node, its
+        /// rules or its strings in that wait. A string marked protected in the wait was
+        /// overwritten for a rule without `protected`. So the vault is handed the questions and
+        /// asks them of the node it finds: <see cref="VaultAsking"/> has the argument.
         ///
-        /// **An entry whose strings cannot be read is gone, never unprotected.** Every caller found
-        /// the entry a moment before, under a read of its own, and its write finds the entry again
-        /// under another, so an operator's move can miss this lookup alone. Answering "nothing is
-        /// protected" there let the write go ahead and set, or take away, a string protected by its
-        /// own flag for a rule without `protected`. The callers answer null as they answer a miss
-        /// of their own lookup.
+        /// **The router's question first, and every other question of the request it answers
+        /// with.** The <see cref="DecidedInside"/> the router left reads the client's record
+        /// again and asks the rules about the node the change found. What a handler asks beside
+        /// it, and whether the caller may be handed the tag, are asked of that request and not
+        /// of the request that queued, so every answer is about one client and one node at one
+        /// moment.
+        ///
+        /// **A request the router left no question for is refused**, which is the direction a
+        /// defect has to fail in.
         /// </remarks>
-        private static bool? Guarded(IVault vault, string entryUuid, IEnumerable<string> names)
+        /// <param name="answers">Whether the answer carries the tag the change leaves.</param>
+        /// <param name="also">
+        /// What this change asks beside the router's question, of the request as it is decided
+        /// inside the turn, or null when the router's question is all there is.
+        /// </param>
+        private static VaultAsking Asking(
+            IGateContext context, bool answers, Func<IGateContext, VaultFound, bool> also = null)
         {
-            if (Guarded(vault, names))
-            {
-                return true;
-            }
+            object left;
+            var again = context.Items.TryGetValue(SpecRouter.InsideItem, out left) ? left as DecidedInside : null;
 
-            var fields = vault.Fields(entryUuid);
-            if (fields == null)
-            {
-                return null;
-            }
+            // The request as it was decided inside the turn, kept for the questions that follow
+            // the first in that same turn.
+            IGateContext inside = null;
 
-            foreach (var field in fields)
-            {
-                if (!field.IsProtected)
+            return new VaultAsking(
+                found =>
                 {
-                    continue;
-                }
-
-                foreach (var name in names)
-                {
-                    if (string.Equals(field.Name, name, StringComparison.Ordinal))
-                    {
-                        return true;
-                    }
-                }
-            }
-
-            return false;
+                    inside = again == null ? null : again(found.Node);
+                    return inside != null && (also == null || also(inside, found));
+                },
+                found => inside != null && (found.Entry != null
+                    ? MayTag(inside, found.Entry)
+                    : MayTag(inside, found.Group)),
+                Precondition(context),
+                answers);
         }
 
         /// <summary>
-        /// What a caller is told when a write would set a value it may not set, once
-        /// <see cref="Reaches(IGateContext, IAclNode, AclVerb)"/> has written the refusal down.
+        /// What a change that sets a string asks beside the router's question: whether this
+        /// caller may set a protected value, where the change would set one.
         /// </summary>
         /// <remarks>
-        /// The same answer a rule that refuses anything else gives, which is what every refusal
-        /// here looks like: a client that may reach nothing must not be able to map the database by
-        /// noticing which refusals differ. It costs an honest caller a clearer message, and the
-        /// message it would have wanted is on the tab of whoever wrote the rule.
+        /// **Whether it would is the vault's to find**, <see cref="VaultFound.Guarded"/>, and both
+        /// halves of it: a field is protected because of what it is called, which the database
+        /// decides, or because somebody marked that string on that entry, and the two disagree
+        /// whenever an operator turns a protection on, since KeePass does not go back and
+        /// re-flag what is already there. Overwriting either is setting a secret.
+        ///
+        /// **Refused as the rules refusing the change is**, the same `404`, for the reason
+        /// `Answer` gives.
         /// </remarks>
-        private static void Withheld(IGateContext context)
+        private static Func<IGateContext, VaultFound, bool> Setting(AclVerb verb)
         {
-            Unreachable(context);
+            return (inside, found) => !found.Guarded || Reaches(inside, found.Node, verb);
         }
 
         /// <summary>
@@ -1511,7 +1412,7 @@ namespace KeePassGate.Pipeline
         /// that handles field values has to ask it as well.
         ///
         /// **Asked through the router's <see cref="ProtectedReach"/>, which decides and records in
-        /// one walk.** The router records that the verb was granted, before dispatch, and that
+        /// one walk.** The router keeps a line for the verb it granted, and that
         /// line is true; a value withheld is a second decision on the same request, and without
         /// its line the audit held that a client had been given what the gate withheld. That
         /// attempt is exactly what the `protected` switch exists to stop, so its line is exactly
@@ -1649,25 +1550,6 @@ namespace KeePassGate.Pipeline
             return tag != null && MayTag(context, vault.Entry(uuid)) ? tag : null;
         }
 
-        /// <summary>What a change is to ask of its node, and whether it answers with the tag it leaves.</summary>
-        /// <remarks>
-        /// **A caller that may not be handed the tag has its `If-Match` failed rather than
-        /// ignored.** Ignoring it would make the write unconditional, which is the one thing a
-        /// client sending a precondition did not ask for. Failed in the vault rather than here,
-        /// so that a node gone, taken or busy is still answered first, as RFC 9110 section 13.2.1
-        /// orders it.
-        /// </remarks>
-        private static VaultTagging Tagging(IGateContext context, bool mayTag, bool answers)
-        {
-            var precondition = Precondition(context);
-            if (!mayTag && precondition != null)
-            {
-                precondition = VaultPrecondition.Withheld();
-            }
-
-            return new VaultTagging(precondition, mayTag && answers);
-        }
-
         /// <summary>
         /// Whether a read is refused because the node no longer holds what `If-Match` said,
         /// answered here when it is.
@@ -1688,8 +1570,8 @@ namespace KeePassGate.Pipeline
             var asked = Precondition(context);
             if (tag == null && asked != null)
             {
-                // A caller handed no tag, whose condition nothing meets, named as `Tagging` names
-                // a change's.
+                // A caller handed no tag, whose condition nothing meets, named as
+                // `VaultAsking.Tagging` names a change's.
                 asked = VaultPrecondition.Withheld();
             }
 
@@ -1740,50 +1622,19 @@ namespace KeePassGate.Pipeline
         }
 
         /// <summary>
-        /// What a change to an entry answers with, its tag handed back only while this caller may
-        /// still be handed it.
-        /// </summary>
-        private static void Answer(IGateContext context, IVault vault, string uuid, VaultWrite write)
-        {
-            Answer(context, write, write == null ? null : Landed(context, vault, uuid, write.Tag));
-        }
-
-        /// <summary>
-        /// The tag a change that has been made answers with, or null when it cannot be confirmed
-        /// for this caller.
-        /// </summary>
-        /// <remarks>
-        /// **Asked after the change is on the disk, so it must not be the way the change is
-        /// answered `503 busy`.** Confirming the tag reads the entry again, and a read that cannot
-        /// hold KeePass's thread throws `VaultUnsettled`, which the router answers `busy`. Told
-        /// that of a write already saved, a client retries it, and the retry meets its own work: a
-        /// name taken, a field gone, a precondition the change has moved on from. The tag is a
-        /// convenience a client can do without, since reading the entry again hands it the tag, so
-        /// a read that cannot be made here costs the tag and not the answer.
-        /// </remarks>
-        private static string Landed(IGateContext context, IVault vault, string uuid, string tag)
-        {
-            try
-            {
-                return Confirmed(context, vault, uuid, tag);
-            }
-            catch (VaultUnsettled)
-            {
-                return null;
-            }
-        }
-
-        private static void Answer(IGateContext context, VaultWrite write)
-        {
-            Answer(context, write, write == null ? null : write.Tag);
-        }
-
-        /// <summary>
         /// What a change answers with.
         /// </summary>
         /// <remarks>
         /// A refusal that says nothing is there is the same 404 as a node the rules refuse, so a
-        /// client cannot tell a name it may not use from one that is not taken.
+        /// client cannot tell a name it may not use from one that is not taken. **A change the
+        /// rules refuse inside its own turn is that 404 too**, a protected value its caller may
+        /// not set among them: a client that may reach nothing must not be able to map the
+        /// database by noticing which refusals differ. It costs an honest caller a clearer
+        /// message, and the message it would have wanted is on the tab of whoever wrote the rule.
+        ///
+        /// **The tag is the vault's answer and nothing here asks about it again.** Whether this
+        /// caller may be handed the tag the change left was asked inside the change's turn, of
+        /// the node as the change left it, <see cref="VaultAsking.Tagging"/>.
         ///
         /// **The tag goes in the body, as `etag`, and not in an `ETag` header.** RFC 9110 section
         /// 9.3.4 makes an `ETag` on the answer to a `PUT` mean the representation the request sent
@@ -1791,7 +1642,7 @@ namespace KeePassGate.Pipeline
         /// request had, while every tag here is the tag of the whole node the change left. Written
         /// as `ETag` would write it, quotes and all, so that it goes back as `If-Match` unchanged.
         /// </remarks>
-        private static void Answer(IGateContext context, VaultWrite write, string tag)
+        private static void Answer(IGateContext context, VaultWrite write)
         {
             if (write == null)
             {
@@ -1809,6 +1660,7 @@ namespace KeePassGate.Pipeline
             {
                 // The node's tag as the change left it, where there is one: a client that writes
                 // again can name it without reading in between.
+                var tag = write.Tag;
                 var json = new JsonWriter();
 
                 if (write.Uuid == null)
@@ -1887,7 +1739,17 @@ namespace KeePassGate.Pipeline
                 // above is, and it was the same defect: a caller was told its request had nowhere
                 // to go, which is what an absent node and a refused one are told, so an operator
                 // was sent to look at rules and identifiers over a database that had simply gone.
-                context.Respond(500, HttpResponse.ErrorBody("internal error"));
+                //
+                // **A database that locked or closed while the request waited is `503 locked`**,
+                // as a read finding its node gone under a lock answers. Nothing reads the node
+                // before the write does, so the write is where a lock landing behind the router
+                // is found, and a client told `500` there would report a defect where the
+                // request only has to be sent again once the database is open.
+                if (!ServedDatabase.TryAnswerLocked(context))
+                {
+                    context.Respond(500, HttpResponse.ErrorBody("internal error"));
+                }
+
                 return;
             }
 

@@ -477,7 +477,7 @@ namespace KeePassGate.Host.Tests
             // edit to the entry over.
             var withheld = _vault.UpdateEntry(
                 Uuid(_entry), Fields(PwDefs.UserNameField, "written by a client"),
-                new VaultTagging(VaultPrecondition.Withheld(), false));
+                VaultAskings.Tagged(VaultPrecondition.Withheld(), false));
             Assert.That(withheld.IsPreconditionFailed, Is.True);
             Assert.That(withheld.Reason, Is.EqualTo(VaultPrecondition.Withheld().Refusal));
             Assert.That(_entry.Strings.ReadSafe(PwDefs.UserNameField), Is.EqualTo("an invented name"));
@@ -497,7 +497,7 @@ namespace KeePassGate.Host.Tests
             Assert.That(field.Ok, Is.True, field.Reason);
             Assert.That(field.Tag, Is.EqualTo(EntryTag()), "a field's write hands back its entry's tag");
 
-            var unasked = _vault.UpdateField(Uuid(_entry), PwDefs.TitleField, "renamed again", VaultTagging.None);
+            var unasked = _vault.UpdateField(Uuid(_entry), PwDefs.TitleField, "renamed again", VaultAskings.Free);
             Assert.That(unasked.Ok, Is.True, unasked.Reason);
             Assert.That(unasked.Tag, Is.Null, "and a write not asked for one hands back none");
         }
@@ -596,9 +596,9 @@ namespace KeePassGate.Host.Tests
         }
 
         /// <summary>A write made only while the node holds what this tag says, answering the tag it leaves.</summary>
-        private static VaultTagging Asking(string tag)
+        private static VaultAsking Asking(string tag)
         {
-            return new VaultTagging(VaultPrecondition.Read("\"" + tag + "\""), true);
+            return VaultAskings.Tagged(VaultPrecondition.Read("\"" + tag + "\""), true);
         }
 
         private static IReadOnlyDictionary<string, string> Fields(string name, string value)
