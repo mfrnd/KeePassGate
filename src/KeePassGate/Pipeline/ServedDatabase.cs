@@ -148,8 +148,8 @@ namespace KeePassGate.Pipeline
         /// <remarks>
         /// `openapi.yaml` §502 is the rule. The gate answers a database that is locked when a
         /// request arrives before routing it, and a lock or a close can land at any later step:
-        /// while the request is still being read, before the router looks its node up, or between
-        /// the router's decision and the handler's read. Every lookup then finds nothing, and a
+        /// while the request is still being read, before the router looks its node up, or while
+        /// a change waits for its turn. Every lookup then finds nothing, and a
         /// node in a database that has locked has not gone, so a client told `404` would conclude
         /// something untrue. It is answered as the gate answers it, in the same word, and nothing
         /// about it is recorded, because no rule decided it.

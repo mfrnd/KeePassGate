@@ -192,11 +192,13 @@ namespace KeePassGate.Tests
         }
 
         [Test]
-        public void A_database_that_locks_under_the_question_is_answered_as_locked()
+        public void A_database_that_locked_before_the_question_is_held_is_answered_as_locked()
         {
-            // Not a node that has gone, so not the `404` one gets: the nodes are all still there.
+            // Not a node that has gone, so not the `404` an absent node gets: the nodes are all
+            // still there. The lock is found inside the hold the question is answered in, since
+            // none can land once the hold is taken.
             _vault.Granting(_vault.RootAlias, Rules.Granting(("reader", "R")));
-            _vault.After(0, _vault.Lock);
+            _vault.Lock();
 
             var answer = Send("GET", "/entries/" + _entry + "/access", "reader");
 

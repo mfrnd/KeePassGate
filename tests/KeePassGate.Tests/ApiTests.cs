@@ -724,11 +724,12 @@ namespace KeePassGate.Tests
             [Range(0, 6)] int lookups)
         {
             // This rule reads everything but protected values, so it is handed an entry's tag only
-            // while the entry holds none. The handler decides that from one lookup and takes the
-            // tag at another, so it asks again of what it read afterwards, and a protected value
-            // landing between the two never goes out under a tag that covers it. Tried at every
-            // moment of each route rather than at a moment counted, so that the second question is
-            // what is pinned, not where it is asked.
+            // while the entry holds none. A read decides that and takes the tag inside one hold of
+            // KeePass's thread, so a protected value asked for under the read lands once the hold
+            // is let go, and a change decides it inside its own turn. Either way no value landing
+            // during the request goes out under a tag that covers it. Tried at every moment of
+            // each route rather than at a moment counted, so that what is pinned is the tag handed
+            // out, not where the question is asked.
             _vault.Granting(_group, AllButProtected);
             Assume.That(_vault.CreateAttachment(_entry, "notes.txt", new byte[] { 1 }, VaultAskings.Free).Ok, Is.True);
             var entry = "/entries/" + _entry;
@@ -901,13 +902,14 @@ namespace KeePassGate.Tests
             [Values("group", "entry", "field", "attachment", "fields", "attachments")] string route,
             [Range(0, 5)] int lookups)
         {
-            // A read takes the node's tag before the content it serves with it, so a change landing
-            // between the two leaves the tag older than the content, and a write under that tag is
-            // refused. Taken the other way round, the content would be the older and the tag the
-            // newer, and a write under that tag would be carried over a change the client never
-            // saw. So wherever in the read a change lands, content that does not show the change
-            // has to come with a tag that refuses a write. Each read is tried at every moment
-            // rather than at a moment counted, so that the order is what is pinned, not the count.
+            // A read takes the node's tag and the content it serves with it inside one hold of
+            // KeePass's thread, so a change asked for under the read lands once the read is over,
+            // and a write under the read's tag is refused. Read under holds of their own, a newer
+            // tag could come beside older content, and a write under that tag would be carried over
+            // a change the client never saw. So whenever during the read a change is asked for,
+            // content that does not show the change has to come with a tag that refuses a write.
+            // Each read is tried at every moment rather than at a moment counted, so that the pair
+            // is what is pinned, not the count.
             _vault.Granting(_group, AllButProtected);
             Assume.That(_vault.CreateAttachment(_entry, "notes.txt", new byte[] { 1 }, VaultAskings.Free).Ok, Is.True);
 
@@ -1115,13 +1117,9 @@ namespace KeePassGate.Tests
             var oversize = new byte[VaultHandlers.MaxAttachmentBytes + 1];
             Assert.That(_vault.CreateAttachment(_entry, "big.bin", oversize, VaultAskings.Free).Ok, Is.True);
 
-            // Not unread: a caller that may be handed the entry's tag has every attachment up to
-            // the ceiling digested for it first, which the real vault decrypts to do. What the
-            // spelling must not reach is the attachment itself, so the reads are the tag's alone.
-            _vault.AttachmentReads = 0;
-            _vault.EntryTag(_entry);
-            var tagged = _vault.AttachmentReads;
-
+            // Nothing is read at all. The name is asked for first, and the entry's tag, which
+            // digests every attachment up to the ceiling and which the real vault decrypts them
+            // to take, is taken only for an answer that hands it out.
             foreach (var spelling in new[] { "notes%C2%AD.txt", "big%C2%AD.bin" })
             {
                 _vault.AttachmentReads = 0;
@@ -1129,7 +1127,7 @@ namespace KeePassGate.Tests
 
                 Assert.That(asked.Status, Is.EqualTo(404), spelling);
                 Assert.That(asked.Json, Does.Not.Contain("content"), spelling);
-                Assert.That(_vault.AttachmentReads, Is.EqualTo(tagged), spelling + " was read past the tag");
+                Assert.That(_vault.AttachmentReads, Is.Zero, spelling + " was read");
             }
 
             Assert.That(Get("/entries/" + _entry + "/attachments/notes.txt").Json,
@@ -2461,71 +2459,6 @@ namespace KeePassGate.Tests
             Assert.That(refused.Status, Is.EqualTo(404), refused.Json);
             Assert.That(undeclared.Status, Is.EqualTo(refused.Status), undeclared.Json);
             Assert.That(undeclared.Json, Is.EqualTo(refused.Json));
-        }
-
-        [TestCase("/groups/{0}/groups", TestName = "the groups in a group removed after the router decided")]
-        [TestCase("/groups/{0}/entries", TestName = "the entries in a group removed after the router decided")]
-        [TestCase("/groups/{0}", TestName = "a group removed after the router decided")]
-        public void A_group_gone_after_the_router_decided_is_absent_and_never_empty(string template)
-        {
-            // The router decides about the group, and the operator removes it before the handler
-            // reads it. A listing answered `200` and an empty list, which says the group is still
-            // there and holds nothing.
-            var gone = _vault.Add(_vault.RootAlias, "Removed");
-            _vault.Granting(_vault.RootAlias, AllButProtected);
-            _vault.After(1, () => _vault.DeleteGroup(gone, VaultAskings.Free));
-
-            var answer = Get(string.Format(CultureInfo.InvariantCulture, template, gone));
-
-            Assert.That(_vault.Group(gone), Is.Null, "the group was removed, which is what this is about");
-            Assert.That(answer.Status, Is.EqualTo(404), answer.Json);
-            Assert.That(answer.Json, Does.Contain(SpecRouter.UnreachableError));
-        }
-
-        [TestCase("/entries/{0}/fields", TestName = "the fields of an entry removed after the router decided")]
-        [TestCase("/entries/{0}/attachments", TestName = "the attachments of an entry removed after the router decided")]
-        [TestCase("/entries/{0}", TestName = "an entry removed after the router decided")]
-        [TestCase("/entries/{0}/fields/Title", TestName = "a field of an entry removed after the router decided")]
-        [TestCase("/entries/{0}/attachments/note.txt", TestName = "an attachment of an entry removed after the router decided")]
-        public void An_entry_gone_after_the_router_decided_is_absent_and_never_empty(string template)
-        {
-            // The same race one level down. The two entry listings asked whether the entry was
-            // there and then listed it, so one removed between the two was an entry with no fields.
-            _vault.Granting(_vault.RootAlias, AllButProtected);
-            Assume.That(_vault.CreateAttachment(_entry, "note.txt", new byte[] { 1, 2, 3 }, VaultAskings.Free).Ok, Is.True);
-            _vault.After(1, () => _vault.DeleteEntry(_entry, VaultAskings.Free));
-
-            var answer = Get(string.Format(CultureInfo.InvariantCulture, template, _entry));
-
-            Assert.That(_vault.Entry(_entry), Is.Null, "the entry was removed, which is what this is about");
-            Assert.That(answer.Status, Is.EqualTo(404), answer.Json);
-            Assert.That(answer.Json, Does.Contain(SpecRouter.UnreachableError));
-        }
-
-        [TestCase("/groups", TestName = "every group, in a database locked after the router decided")]
-        [TestCase("/groups/{0}/groups", TestName = "a group's groups, in a database locked after the router decided")]
-        [TestCase("/groups/{0}", TestName = "a group, in a database locked after the router decided")]
-        [TestCase("/entries", TestName = "every entry, in a database locked after the router decided")]
-        [TestCase("/groups/{0}/entries", TestName = "a group's entries, in a database locked after the router decided")]
-        [TestCase("/entries/{1}", TestName = "an entry, in a database locked after the router decided")]
-        [TestCase("/entries/{1}/fields", TestName = "an entry's fields, in a database locked after the router decided")]
-        [TestCase("/entries/{1}/fields/Title", TestName = "a field, in a database locked after the router decided")]
-        [TestCase("/entries/{1}/attachments", TestName = "an entry's attachments, in a database locked after the router decided")]
-        [TestCase("/entries/{1}/attachments/note.txt", TestName = "an attachment, in a database locked after the router decided")]
-        public void A_read_meeting_a_database_locked_after_the_router_decided_is_told_it_is_locked(string template)
-        {
-            // A node in a database that has locked has not gone, and a client told `404` would stop
-            // looking for something that is still there. It is told what a locked database
-            // answers before routing, in the same word.
-            _vault.Granting(_vault.RootAlias, AllButProtected);
-            Assume.That(_vault.CreateAttachment(_entry, "note.txt", new byte[] { 1, 2, 3 }, VaultAskings.Free).Ok, Is.True);
-            _vault.After(1, _vault.Lock);
-
-            var answer = Get(string.Format(CultureInfo.InvariantCulture, template, _group, _entry));
-
-            Assert.That(_vault.IsOpen, Is.False, "the database locked, which is what this is about");
-            Assert.That(answer.Status, Is.EqualTo(503), answer.Json);
-            Assert.That(answer.Json, Is.EqualTo("{\"error\":\"locked\"}"));
         }
 
         [TestCase("POST", "/groups/{0}/groups", "{\"Name\":\"Invented\"}", TestName = "a group made in a database locked after the router decided")]

@@ -32,6 +32,7 @@ namespace KeePassGate.Tests.Fakes
         private string _writeBlocked;
         private int _lookupsBefore;
         private Action _then;
+        private Action _waiting;
         private int _held;
         private int _changing;
 
@@ -67,16 +68,22 @@ namespace KeePassGate.Tests.Fakes
         /// a lock or a close landing at a chosen moment of a request.
         /// </summary>
         /// <remarks>
-        /// **One is the moment between the router and the handler.** The router asks the vault
-        /// once, for the node it decides about, and everything after that is the handler's, so one
-        /// lookup answered lets the router decide about a node the handler then cannot find. A
-        /// change counts as well, because a write's handler asks for nothing before it writes: the
-        /// change is its first and only call, and what it asks the rules is asked inside it.
+        /// **For a change, one is the moment between the router and the write.** The router asks
+        /// the vault once, for the node it may refuse the change at, and a write's handler asks
+        /// for nothing before it writes, so one lookup answered lets the router pass a change
+        /// whose turn then finds something else. The change counts as well: it is the handler's
+        /// first and only call, and what it asks the rules is asked inside it.
+        ///
+        /// **Under a hold it waits for the hold.** What an operator does is done on KeePass's
+        /// thread, and a read that holds that thread is over before any of it happens, so
+        /// whatever comes due inside <see cref="Held"/> runs once the hold is let go. A hold set
+        /// to lapse holds nothing, and there it runs where it came due, under the read.
         /// </remarks>
         public void After(int lookups, Action then)
         {
             _lookupsBefore = lookups;
             _then = then;
+            _waiting = null;
         }
 
         /// <summary>Set to make every change come back busy, as a dialog on the node does.</summary>
@@ -140,6 +147,12 @@ namespace KeePassGate.Tests.Fakes
             finally
             {
                 _held--;
+
+                // The first moment KeePass's thread has for what the operator asked of it
+                // meanwhile.
+                var waiting = _waiting;
+                _waiting = null;
+                waiting?.Invoke();
             }
 
             if (Lapses)
@@ -1268,7 +1281,8 @@ namespace KeePassGate.Tests.Fakes
         /// <summary>Counts one lookup or change, and runs what <see cref="After"/> left once it is due.</summary>
         /// <remarks>
         /// Before whatever it counts, so the event lands between the last answer that was due and
-        /// this one. Cleared before it runs, because what it runs may well be a change of its own.
+        /// this one, unless a hold keeps it waiting. Cleared before it runs, because what it runs
+        /// may well be a change of its own.
         /// </remarks>
         private void Looking()
         {
@@ -1290,6 +1304,13 @@ namespace KeePassGate.Tests.Fakes
 
             var then = _then;
             _then = null;
+
+            if (_held > 0 && !Lapses)
+            {
+                _waiting = then;
+                return;
+            }
+
             then();
         }
 

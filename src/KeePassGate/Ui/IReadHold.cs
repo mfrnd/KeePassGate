@@ -16,9 +16,11 @@ namespace KeePassGate.Ui
     /// too late to show. A thread that is waiting for a read to finish changes nothing, so the read
     /// sees a tree standing still.
     ///
-    /// **Held for one read step**, which is one call: a sweep, a lookup, a walk up the rules, an
-    /// admission record. Nothing that waits belongs inside one, because KeePass's window waits with
-    /// it: not the writer, not the audit's pacing or its file, not a dialog, and not the network.
+    /// **Held for one read step**: a sweep, a lookup, a walk up the rules, an admission record,
+    /// or the whole of a request that changes nothing, which the router holds once so that all of
+    /// those are read from one database. Nothing that waits belongs inside one, because KeePass's
+    /// window waits with it: not the writer, not the audit's pacing or its file, not a dialog,
+    /// and not the network.
     /// </remarks>
     public interface IReadHold
     {

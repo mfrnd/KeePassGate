@@ -123,6 +123,54 @@ namespace KeePassGate.Tests
         }
 
         [Test]
+        public void What_the_operator_does_under_a_read_waits_for_the_read(
+            [ValueSource(nameof(Paths))] string path,
+            [Values("remove", "lock")] string what,
+            [Range(0, 6)] int lookups)
+        {
+            // A group removed with what is in it, or a database locked, while a read holds
+            // KeePass's thread is removed or locked once the read is over, so the read answers as
+            // though neither had been asked for. Tried at every lookup a read makes, and at more
+            // than any of them makes.
+            var landed = false;
+            _vault.After(lookups, () =>
+            {
+                landed = true;
+                Undo(what);
+            });
+
+            var context = Asked("GET", path);
+            _vault.After(0, null);
+
+            Assert.That(context.Status, Is.EqualTo(200), path + " " + context.Json);
+            if (landed)
+            {
+                Assert.That(what == "lock" ? !_vault.IsOpen : _vault.Group(_group) == null, Is.True,
+                    "what was asked for did happen, after the read");
+            }
+        }
+
+        [Test]
+        public void A_removal_or_a_lock_under_a_hold_that_did_not_last_is_answered_busy(
+            [ValueSource(nameof(Paths))] string path,
+            [Values("remove", "lock")] string what,
+            [Range(0, 6)] int lookups)
+        {
+            // A hold that did not last kept nothing back, so here the group goes or the database
+            // locks under the read, between any two of its lookups. Whatever the handler made of
+            // a node that vanished half way is not an answer, and it throws nothing on the way:
+            // the request is told to come again.
+            _vault.Lapses = true;
+            _vault.After(lookups, () => Undo(what));
+
+            var context = Asked("GET", path);
+            _vault.After(0, null);
+
+            Assert.That(context.Status, Is.EqualTo(503), path + " " + context.Json);
+            Assert.That(context.Json, Is.EqualTo(HttpResponse.ErrorBody("busy")), path);
+        }
+
+        [Test]
         public void A_hold_that_cannot_be_taken_answers_busy_with_nothing_decided()
         {
             _vault.RefusesHolds = true;
@@ -209,6 +257,21 @@ namespace KeePassGate.Tests
             Assert.That(context.Status, Is.EqualTo(503));
             Assert.That(context.Json, Is.EqualTo(HttpResponse.ErrorBody("busy")));
             Assert.That(_audit.Entries, Is.Empty);
+        }
+
+        /// <summary>
+        /// Takes the entry and the group the paths are under out of the database, or locks it.
+        /// </summary>
+        private void Undo(string what)
+        {
+            if (what == "lock")
+            {
+                _vault.Lock();
+                return;
+            }
+
+            Assume.That(_vault.DeleteEntry(_entry, VaultAskings.Free).Ok, Is.True);
+            Assume.That(_vault.DeleteGroup(_group, VaultAskings.Free).Ok, Is.True);
         }
 
         /// <summary>The client as its connection's first read found it.</summary>

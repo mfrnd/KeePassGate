@@ -36,11 +36,11 @@ namespace KeePassGate.Vault
     /// nothing of rules or callers by that; it asks what it was handed and acts on the answer.
     ///
     /// **A listing of something that is not there is null, never empty.** An empty list is an
-    /// answer about a group or an entry, that it holds nothing, and a group removed or a database
-    /// locked between the router's decision and the handler's read used to come back as one: a
-    /// client was told `200` and an empty group. Null is what every single lookup here already
-    /// answers for a node that is not there, and <see cref="IsOpen"/> is what tells a node that has
-    /// gone from a database that has, which `openapi.yaml` §503 and §502 answer differently.
+    /// answer about a group or an entry, that it holds nothing, and a group that had gone by the
+    /// time it was listed, or a database that had locked, used to come back as one: a client was
+    /// told `200` and an empty group. Null is what every single lookup here already answers for
+    /// a node that is not there, and <see cref="IsOpen"/> is what tells a node that has gone from
+    /// a database that has, which `openapi.yaml` §503 and §502 answer differently.
     /// </remarks>
     public interface IVault
     {
@@ -74,9 +74,10 @@ namespace KeePassGate.Vault
         /// What <paramref name="read"/> returned, with the database held still for the whole of it.
         /// </summary>
         /// <remarks>
-        /// For a read step made of several of the reads here, such as a listing and the rules asked
-        /// of everything in it: each read inside it is part of the one hold rather than a hold of
-        /// its own, so the listing is judged against the tree it was taken from, and a thousand
+        /// **A request that changes nothing is one of these**, taken by the router around the
+        /// decision and the handler both, so the client's record, the rules and everything read
+        /// are of one database. Each read inside it is part of the one hold rather than a hold of
+        /// its own, so a listing is judged against the tree it was taken from, and a thousand
         /// entries wait for one turn rather than a thousand. Throws `VaultUnsettled` as they do.
         /// **Nothing that waits belongs inside it**, the audit and the writer least of all, since
         /// the operator's window waits with it.
@@ -94,12 +95,12 @@ namespace KeePassGate.Vault
         /// everything the node holds, so a lookup that only wants to know which node a request is
         /// about, which is what the router asks for every request, never takes one.
         ///
-        /// **Taken before what it is served with**, by every route that serves both. A read runs
-        /// beside the user interface thread and nothing stops a change landing in the middle of
-        /// one, so a tag and its content can come from either side of it. Tag first, and the worst
-        /// a client holds is an older tag beside newer content, which a write it makes under that
-        /// tag is refused over with `412`; the other order handed it a newer tag beside older
-        /// content, which a write would have carried straight over the change it never saw.
+        /// **Of the moment its content is of**, on every route that serves both. A request that
+        /// changes nothing holds KeePass's thread from its decision to its answer, so no change
+        /// lands between a tag and what it is served with, whichever is taken first. Each used to
+        /// be read under a hold of its own, with room for a change between them, and a newer tag
+        /// beside older content is what a write would have carried straight over the change the
+        /// client never saw.
         /// </remarks>
         string GroupTag(string uuid);
 
@@ -115,7 +116,7 @@ namespace KeePassGate.Vault
 
         /// <summary>
         /// An entry's tag, which is its fields' and its attachments' too, or null when there is
-        /// none. Asked and taken as <see cref="GroupTag"/> says.
+        /// none. Asked as <see cref="GroupTag"/> is, and of the same moment as its content.
         /// </summary>
         string EntryTag(string uuid);
 
