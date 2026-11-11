@@ -1,0 +1,13 @@
+# Keepass2Android, fresh app state: open /sdcard/Download/${NAME}.kdbx through the system file
+# picker and unlock it.
+sh monkey -p keepass2android.keepass2android -c android.intent.category.LAUNCHER 1
+clear ^OK$ start_open_file 40     # change log (and any other first-start notice)
+tap start_open_file
+tap ^System.file.picker$
+waitfor Show.roots 20
+include picker.flow
+waitfor password_edit 30
+tap password_edit
+text dummy-password-for-a-throwaway-file
+tap pass_ok
+waitfor fabAddNew 60

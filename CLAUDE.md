@@ -28,6 +28,11 @@ leave of the keys the design rests on. The probe makes those databases and reads
 same KeePassLib, and scripts beside it drive the other programs, because KeePassXC is a program
 rather than a library and KeePass 2.47 cannot share a process with the 2.61.1 that reads.
 
+It was asked of the Android programs that open KDBX 4 files as well, with scripts of their own
+under `spikes/revocation/android`, because those programs run in an emulator under Linux and have
+no command line: each is driven on its screen, and a writer and reader of their own, `Kpg.cs`,
+makes the databases and reads them back with the same KeePassLib.
+
 ## The rule that matters
 
 **Do not improve this account.** Every number recorded here and on the mainline was produced by
@@ -48,7 +53,9 @@ If a **new** question needs measuring, it gets its own branch from `master`, nam
 
 - One console program, `spikes/revocation`, built with the .NET SDK against KeePass itself, and
   the Windows PowerShell 5.1 scripts beside it that run KeePassXC and KeePass 2.47 against its
-  databases.
+  databases. The Android programs have a directory of their own, `spikes/revocation/android`:
+  shell scripts and a Python driver for the emulator, which run under Linux, and the PowerShell
+  that makes their databases and reads them back.
 - **KeePass is provided, not found.** `keepass.version` says which release, `keepass.sha256` what it
   must arrive as, and `tools/KeePass.ps1` fetches it into `.keepass\<version>\`, which is not
   committed. KeePass 2.47 arrives the same way, by version.

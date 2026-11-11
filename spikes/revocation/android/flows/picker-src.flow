@@ -1,0 +1,2 @@
+# The system file picker, as picker.flow, picking ${SRCNAME}.kdbx instead.
+pick ${SRCNAME}.kdbx

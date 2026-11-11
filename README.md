@@ -74,6 +74,112 @@ powershell.exe -NoProfile -File spikes\revocation\Measure-KeePassXCKdf.ps1 -Work
 
 It writes `keepassxc-kdf.txt` beside the others.
 
+## Running the Android programs against it
+
+They run in an emulator, and the emulator under Linux with KVM, which was WSL 2 here. Nothing is
+drawn on a desktop: the emulator starts with no window, and `k.py` reads each screen through
+`uiautomator` and presses what a flow file names. `android.sha256` pins each APK by its hash and by
+the digest of the certificate that signed it, and the Android SDK's command-line tools by their
+hash.
+
+The scripts are in `spikes/revocation/android`. The shell scripts are the Linux side and need
+`python3`; `kp.ps1` and `collect.ps1` are the Windows side, for Windows PowerShell 5.1, and make
+the databases and read them back with the pinned KeePass. Both sides use one work directory,
+`work/android` under the repository unless `KPG_ANDROID_WORK` names another, so the checkout has to
+be where both reach it, as a Windows drive is from WSL. Nothing in it is committed.
+
+Once, under Linux:
+
+```sh
+cd spikes/revocation/android
+sudo sh root-setup.sh "$USER" install   # KVM, a JDK and the libraries the emulator needs
+sh sdk-setup.sh                         # the SDK, into ~/android-sdk unless ANDROID_HOME is set
+sh avd-create.sh                        # the device: Android 11, API 30, x86_64
+sh fetch.sh                             # every pinned APK, held to its hash
+sh verify-apks.sh                       # and to the certificate that signed it
+```
+
+KVM does not stay loaded across a restart of WSL; `sudo sh root-setup.sh "$USER"` loads it again.
+
+Then the databases, from Windows PowerShell 5.1 at the top of the repository:
+
+```powershell
+function Kpg { powershell.exe -NoProfile -File spikes\revocation\android\kp.ps1 -KeePass .keepass\2.61.1 -Source Kpg.cs -Type Kpg @args }
+$base = 'work\android\work\base'
+Kpg make $base fast  argon2d 2 1024 1
+Kpg make $base aes   aes 100000
+Kpg make $base fastb argon2d 2 1024 1
+Kpg make $base aesb  aes 100000
+New-Item -ItemType Directory work\android\work\base2 | Out-Null
+Kpg settings $base\C-fast.kdbx       work\android\work\base2\C-fast-s.kdbx       2026-11-10T12:00:00Z
+Kpg settings $base\P-plain-fast.kdbx work\android\work\base2\P-plain-fast-s.kdbx 2026-11-10T12:00:00Z
+```
+
+`make` gives C and P the moment it runs as their `SettingsChanged`, and `settings` makes the copy
+whose settings are the newer, so the time on those two lines has to be later than the moment the
+bases were made. It was on the day of the run; a re-run gives a later time.
+
+Then the runs, under Linux, with the emulator in the background:
+
+```sh
+K2A=keepass2android.keepass2android
+DX=com.kunzisoft.keepass.libre
+DX3=com.kunzisoft.keepass.free
+KPD=com.android.keepass
+SETS="P-plain-fast P-moved-fast P-plain-aes P-plain-fastb P-plain-aesb"
+
+sh emu-start.sh &
+sh wait-boot.sh
+
+sh install.sh k2a-1.15-r6
+sh run-A.sh k2a-1.15-r6 k2a-A.flow $K2A "$SETS"
+sh run-B.sh k2a-1.15-r6 k2a-B.flow $K2A P-plain-fast C-fast PC
+sh run-B.sh k2a-1.15-r6 k2a-B.flow $K2A C-fast P-plain-fast CP
+sh run-B.sh k2a-1.15-r6 k2a-B.flow $K2A P-plain-fast ../base2/C-fast-s PCs
+sh run-B.sh k2a-1.15-r6 k2a-B.flow $K2A C-fast ../base2/P-plain-fast-s CPs
+
+sh install.sh kpdx-4.5.8
+sh run-A.sh kpdx-4.5.8 kpdx-A.flow $DX "$SETS"
+sh run-B.sh kpdx-4.5.8 kpdx-B-from.flow $DX P-plain-fast C-fast fromPC
+sh run-B.sh kpdx-4.5.8 kpdx-B-from.flow $DX C-fast P-plain-fast fromCP
+sh run-B.sh kpdx-4.5.8 kpdx-B-ext.flow  $DX P-plain-fast C-fast extPC
+sh run-B.sh kpdx-4.5.8 kpdx-B-ext.flow  $DX C-fast P-plain-fast extCP
+sh run-B.sh kpdx-4.5.8 kpdx-B-keep.flow $DX P-plain-fast C-fast keepPC 1
+
+sh install.sh kpd-2.7
+sh run-A.sh kpd-2.7      kpd-A.flow    $KPD "$SETS"
+sh run-A.sh kpd-2.7-menu kpd-menu.flow $KPD P-plain-fast
+
+sh install.sh k2a-1.08d-r5 replace
+sh run-A.sh k2a-1.08d-r5 k2a-A.flow $K2A "$SETS"
+sh run-B.sh k2a-1.08d-r5 k2a-B.flow $K2A P-plain-fast C-fast PC
+sh run-B.sh k2a-1.08d-r5 k2a-B.flow $K2A C-fast P-plain-fast CP
+
+sh install.sh kpdx-3.2.0
+sh run-A.sh kpdx-3.2.0 kpdx320-A.flow $DX3 "$SETS"
+sh run-B.sh kpdx-3.2.0 kpdx320-B-ext.flow $DX3 P-plain-fast C-fast extPC
+sh run-B.sh kpdx-3.2.0 kpdx320-B-ext.flow $DX3 C-fast P-plain-fast extCP
+
+sh install.sh kpdx-3.3.0 replace
+sh run-A.sh kpdx-3.3.0 kpdx320-A.flow $DX3 "P-plain-fast P-moved-fast"
+
+sh teardown.sh
+```
+
+`run-A.sh` is a plain save and `run-B.sh` a merge, three runs unless its last argument names
+fewer. That is 27 saves, 37 merges and a walk through KeePassDroid's menus, each a run of its own
+from the program's data cleared, and each leaving a step log under the work directory's `out` and
+what the program wrote under its `work`. A line printed at the end of each run counts the steps
+that failed; a run with a failure is repeated, not read.
+
+Reading back is the Windows side again, a directory at a time:
+
+```powershell
+powershell.exe -NoProfile -File spikes\revocation\android\collect.ps1 -Work work\android -Dir work\A\k2a-1.15-r6 -Name A-k2a-1.15-r6 -KeePass .keepass\2.61.1
+```
+
+and the same for every directory under `work\A` and `work\B`.
+
 ## Reading a re-run
 
 The output names times symbolically rather than printing them, so a re-run against the same KeePass

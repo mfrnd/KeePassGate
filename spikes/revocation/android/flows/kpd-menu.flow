@@ -1,0 +1,26 @@
+# KeePassDroid: open a database and list every menu it offers (start screen, group view overflow,
+# settings), to establish whether any merge or synchronize exists.
+sh monkey -p ${PKG} -c android.intent.category.LAUNCHER 1
+clear ^(OK|Accept|Allow)$ open@^OPEN$ 40
+key MENU
+sleep 2
+list
+key BACK
+tapuntil open@^OPEN$ Show.roots 40
+include picker.flow
+waitfor pass_ok 40
+typepw password@.* dummy-password-for-a-throwaway-file
+tapuntil pass_ok add_entry 60
+key MENU
+sleep 2
+list
+tap ^Settings$
+sleep 3
+list
+key BACK
+sleep 1
+key MENU
+sleep 2
+tap ^Database.settings$
+sleep 3
+list

@@ -1,0 +1,25 @@
+# Scenario B, KeePassDX 3.2.0's external-change path (3.2.0 has no "Merge from ..."): as
+# kpdx-B-ext.flow, but its overflow opens to the menu key (the toolbar's button ignored injected
+# taps), and its "Merge data" does not save, so "Save data" follows.
+include kpdx320-open.flow
+sleep 11
+adb push ${SRC} /sdcard/Download/${NAME}.kdbx
+sh touch /sdcard/Download/${NAME}.kdbx
+sh ls -l --full-time /sdcard/Download/${NAME}.kdbx
+sh sha256sum /sdcard/Download/${NAME}.kdbx
+key HOME
+sleep 2
+sh monkey -p ${PKG} -c android.intent.category.LAUNCHER 1
+waitfor modified.outside 40
+list
+tap ^OK$
+sleep 4
+key MENU
+tap ^Merge.data$
+sleep 8
+sh ls -l --full-time /sdcard/Download/${NAME}.kdbx
+key MENU
+tap ^Save.data$
+sleep 8
+sh ls -l --full-time /sdcard/Download/${NAME}.kdbx
+list

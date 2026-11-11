@@ -1,0 +1,3 @@
+# Scenario A, KeePassDX: open, unlock, add an entry at the root (saved at once), done.
+include kpdx-open.flow
+include kpdx-add.flow

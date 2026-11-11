@@ -1,0 +1,21 @@
+# Scenario A, KeePassDroid: open /sdcard/Download/${NAME}.kdbx with its Open button (the system file
+# picker), unlock, add one entry titled ${ENTRY} at the root and save it. Its bottom buttons (ADD
+# ENTRY, SAVE) come back from the dump with bounds [0,0][0,0], so they are tapped where they are
+# drawn (seen on a screenshot of the group view; the entry editor is FLAG_SECURE, and SAVE sits
+# where ADD GROUP does).
+sh monkey -p ${PKG} -c android.intent.category.LAUNCHER 1
+clear ^(OK|Accept|Allow)$ open@^OPEN$ 40
+tapuntil open@^OPEN$ Show.roots 40
+include picker.flow
+waitfor pass_ok 40
+list
+typepw password@.* dummy-password-for-a-throwaway-file
+tapuntil pass_ok add_entry 60
+list
+tapor add_entry 415 2141
+waitfor entry_save 30
+type entry_title@.* ${ENTRY}
+tapor entry_save 140 2141         # placed above the keyboard while it shows, else at the bottom
+waitfor entry_text@^${ENTRY}$ 40
+sleep 5
+list

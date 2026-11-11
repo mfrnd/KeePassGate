@@ -1,0 +1,4 @@
+# The system file picker (DocumentsUI): pick /sdcard/Download/${NAME}.kdbx. Its list items ignore
+# injected taps, so k.py's pick walks them with the keyboard (and goes by the device root when not
+# already there).
+pick ${NAME}.kdbx
