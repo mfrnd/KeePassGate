@@ -80,14 +80,21 @@ it pairs, renews or gives its certificate up, and `pykeepassgate identity` print
 time without connecting. `pykeepassgate whoami` asks the gate for both. The admission key a program
 prints when it pairs is its client key as well, for good.
 
-**`permitted` means the rules allowed it, and nothing more.** The line is written as the rules
-answer, before the body is checked and before anything is read or written, so a request can be
-`permitted` here and still be answered with a refusal of its body, a conflict, `412`, `503 busy`,
-`503 locked` or a failure. None of those gets a line of its own: what the request came to is what
-the program was answered. Why a change was refused is in the plugin's log, a warning per refusal,
-a change's `412` included, which is where to look when a program's writes keep coming back `busy`:
-some of the reasons, a dialog left open or a database file changed on disk, clear only when
-somebody at the desk acts.
+**`permitted` means the rules allowed it, and nothing more.** The line records what the rules
+answered and not what came of the request, so a request can be `permitted` here and still be
+answered with a refusal of its body, a conflict, `412`, `503 busy`, `503 locked` or a failure. None
+of those gets a line of its own: what the request came to is what the program was answered. Why a
+change was refused is in the plugin's log, a warning per refusal, a change's `412` included, which
+is where to look when a program's writes keep coming back `busy`: some of the reasons, a dialog
+left open or a database file changed on disk, clear only when somebody at the desk acts.
+
+**A request is decided at the moment it is served, and its line carries that moment.** A read is
+decided as KeePass is held still for it, and a change as it is made, so a rule taken away, a
+profile removed or a client revoked while a request waited for KeePass is what the line shows. A
+change the rules allowed when it arrived and refused when its turn came leaves the `refused` line
+and no other, and a client revoked in that wait leaves the line of a certificate turned away. The
+time on a line is when the rules answered. The line reaches the file a moment later, once KeePass
+is free again, so two lines close together can stand in the file out of the order of their times.
 
 **A `412` does not always mean the node changed.** It answers a program whose tag no longer matches
 what the group or entry holds, and it also answers every `If-Match` from a program the gate hands

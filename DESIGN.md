@@ -758,14 +758,19 @@ Each operation declares the verb it needs, and the authorization layer reads tha
 rather than from an attribute in code, so the specification stays the single account of what the API
 permits.
 
-**The router asks the rules, not the handler**, before the body is checked and before any handler
-runs, because a handler that asked for itself could forget to, and a route added later would then
-be a route with no rules on it. What a route supplies is the node it is about, a selector beside its
-handler, and that is all: an operation that declares a verb and names no node stops the plugin
-loading, and so does a node named for an operation declaring `none`, since a selector nothing
-consults reads as authorization that is happening and is not. So a route that reads or changes the
-database arrives with no machinery of its own: a verb in the document, a node beside the handler,
-and the router does the rest.
+**The router asks the rules, not the handler**, because a handler that asked for itself could
+forget to, and a route added later would then be a route with no rules on it. What a route
+supplies is the node it is about, a selector beside its handler, and that is all: an operation
+that declares a verb and names no node stops the plugin loading, and so does a node named for an
+operation declaring `none`, since a selector nothing consults reads as authorization that is
+happening and is not. So a route that reads or changes the database arrives with no machinery of
+its own: a verb in the document, a node beside the handler, and the router does the rest.
+
+**It asks where the database stands still**, §119, which reverses asking once before any handler
+ran: a rule taken away between that answer and the handler's read was served regardless. A
+request that changes nothing is asked about inside the hold its handler reads in. A change is
+asked about before its body is checked and before anything is queued, where the answer can only
+refuse, and again inside the change's own turn, where the answer is acted on.
 
 **HEAD is decided, and the decision is that every GET declares one.** The two are declared
 separately and bound to one handler, which is what makes RFC 9110 section 9.3.2's "identical to
@@ -833,15 +838,40 @@ So the rules here:
   version moves after the size. Taken again, as the reads once were, a read answers only what
   threw.
 
-  **So each read step waits for a turn on KeePass's thread, which waits in the turn until the read
-  is over.** A step is one call: a sweep, a lookup, a walk up the rules, an admission record, the
-  databases the gate is serving. Measured over the same churn, holding KeePass's thread missed
-  nothing and threw nothing, and a sweep of ten thousand entries holds it for about seventeen
-  milliseconds. **One hold per step, and not one per request**, which is a ruling: between the
-  steps of one request the tree can move as it always could, so a node can still move between the
-  router's decision and the handler's read. **Nothing that waits runs inside a hold**, since the
-  operator's window waits with it: not the writer, which waits on that thread itself and is
-  refused as a defect, not the audit's pacing or its file, not a dialog and not the network.
+  **So a read waits for a turn on KeePass's thread, which waits in the turn until the read is
+  over.** Measured over the same churn, holding KeePass's thread missed nothing and threw
+  nothing.
+
+  **One hold per request, which reverses a ruling.** A hold was one step, a sweep, a lookup or a
+  walk up the rules, and between the steps of one request the tree could move as it always
+  could. That was ruled acceptable and turned out not to be: a rule taken away after the router
+  had asked still let the read through, and the read then served the database as it stood after
+  the edit, so a value typed into an entry once its group was sealed went out to the client the
+  seal was for. A client revoked or a profile taken off the list between the two was served the
+  same way, and a tag was of one moment and the content beside it of another. So a request that
+  changes nothing is decided and served inside one hold, the operator's ruling of 2026-11-10:
+  the caller's admission record and the profile list are read again, the node is found, the
+  rules are asked, the handler reads what it serves and takes its tag, and the answer is made,
+  all of one moment. The rules are asked once, there, and no longer before it. A caller the
+  database stopped admitting while its request waited is answered inside the hold as its next
+  request would be: `401 unpaired`, or the `503` of a database that locked or holds two
+  authorities. **What is not a request keeps a hold per step**: the admission record a
+  connection is judged on as it arrives, and the databases the gate is serving.
+
+  **What a whole request holds the thread for is still short.** Over a thousand groups and ten
+  thousand entries, through the real router and vault: about fifty-five milliseconds to list
+  every entry, 2.3 MB of JSON, where the sweep alone held seventeen; two and a half to list
+  every group, or to serve an entry or an attachment at its ceiling; under a millisecond for an
+  ordinary entry. The first read of an entry holding forty attachments at the ceiling took
+  forty-seven, since a tag digests each attachment once. `FINDINGS.md` has the table, under
+  "Reading while KeePass changes the tree".
+
+  **Nothing that waits runs inside a hold**, since the operator's window waits with it: not the
+  writer, which waits on that thread itself and is refused as a defect, not the audit's pacing or
+  its file, not a dialog and not the network. So the answer is kept inside the hold and written
+  to the connection once the hold has ended, each decision's audit line is composed where the
+  decision is made and written once the hold is over, §120, and a line logged inside a hold is
+  queued for the log's own writer, as a line logged on KeePass's own thread is.
 
   **Liveness now depends on KeePass's thread, which is the cost the earlier rule existed to
   avoid**, and it is bounded rather than denied: a read whose turn has not come in ten seconds,
@@ -853,6 +883,18 @@ So the rules here:
   but a change made on the request thread and saved on the UI thread has an instant between them
   for a dialog to open on the node, and the whole of the writer's argument is that there must not
   be one.
+
+  **And a change is decided inside its own turn**, for the reason a read is decided inside its
+  hold. The router's answer was the only answer, given before the change was queued, and a
+  change can wait behind a save for as long as the save takes: a string marked protected in the
+  meantime was written over for a rule without `protected`, a rule taken away still permitted
+  the write, and an entry moved under a narrower rule was removed by the rule of the group it
+  had left. So the caller's record, the profile list and the rules are asked again in the turn,
+  against the node as the change finds it, and that answer is the answer acted on. The router
+  still asks before the change is queued, and that answer can only refuse: a request nothing
+  permits is turned away before its body is checked and before it waits for the writer. A
+  caller no longer admitted by the turn is answered there as a read's is, and rules that cannot
+  be read there are `503 busy`.
 
   **So a read sees a change before its save does.** Reads take no lock against the writer, and
   the writer's save pumps, so a read can be served in the middle of a write's turn: a change is
@@ -1201,8 +1243,8 @@ So the rules here:
 - **Nothing throws to the transport.** A handler failure becomes `500 internal error` and an
   incident, counted on the plugin's window under Tools and logged at `UNEXPECTED`, because an
   unhandled exception in this process takes KeePass with it. It is not audited, which this bullet
-  used to claim: the request's audit line is the permitted one written before the handler ran,
-  since the audit records the authorization and not what the request then did (§120).
+  used to claim: the request's audit line is the permitted line its decision got, since the audit
+  records the authorization and not what the request then did (§120).
 - Distribution is a **plain DLL** targeting .NET Framework 4.8, not a `.plgx`, which is what allows
   modern C# and what the packaging measurement showed.
 
@@ -1291,14 +1333,23 @@ one: a line naming only the first sends an operator to an entry that carries no 
 title, never a value, because a log of titles is an inventory of the database sitting beside it.
 A write failure is reported, not fatal, so a full disk cannot silently revoke every agent's
 access, and its end is reported too, with how many decisions went unrecorded while it lasted.
-A line records the authorization and not what the request then did: it is written before
-the body is checked and before the handler runs, so a permitted line also stands for a request
-answered afterwards with a malformed body, a conflict, `503 busy` or a failure, none of which gets a
-line of its own. **A lock is not a decision either.** A request that meets the database locked or
-closed before the router has decided about it, whether it was locked when the request arrived or
-locked while the request was being read, is answered `503 locked` and written down nowhere, because
-no rule was asked; a node that is simply not there while the database is open is still decided
-about, refused and recorded. `openapi.yaml` §502 states the rule for the caller.
+A line records the authorization and not what the request then did, so a permitted line also
+stands for a request answered afterwards with a malformed body, a conflict, `503 busy` or a
+failure, none of which gets a line of its own. **A line is composed where the decision is made and
+written once KeePass's thread is free again**, which reverses writing it before the handler ran:
+a request is decided inside the hold its read is served in or the turn its change is made in,
+§119, and the audit's file and the pace a client's lines are held to are waits that belong on the
+caller's connection. So a line carries the moment of its decision and reaches the file after the
+handler, before the answer goes out. **A request is still one decision.** A change is asked about
+twice, and the answer inside its turn replaces the router's, so a change permitted before its turn
+and refused inside it leaves only the refused line, and a change that never reached its turn keeps
+the router's. A client revoked while its request waited leaves the refused certificate's line in
+place of a decision. **A lock is not a decision either.** A request that meets the database locked
+or closed before the rules have been asked about it, whether it was locked when the request
+arrived or locked while the request was being read, is answered `503 locked` and written down
+nowhere, because no rule was asked, and a change that meets a lock inside its turn keeps the line
+the router's answer got; a node that is simply not there while the database is open is still
+decided about, refused and recorded. `openapi.yaml` §502 states the rule for the caller.
 
 **And what happens to the database's admissions, in the same file and form.** No rule decides any
 of it, and it is what an operator opening this file to see what reached the database needs first: a
@@ -1352,6 +1403,13 @@ queued before it, so the file keeps them in order. The writer is a background th
 that does not answer never keeps KeePass's process alive or holds up a logoff, and KeePass's exit
 waits for it, and for the plugin log's, two seconds at most, `PluginFiles.ExitWait`, so that what is
 recorded as KeePass closes is not lost; a line still queued when the process ends is lost.
+
+**A thread holding KeePass's thread still for a read is such a thread too**, to the audit and to
+the plugin's log alike, since the window waits for the reader as it waits for its own thread. A
+line the log was given inside a hold went to the file with KeePass's window waiting for it, which
+mattered little while a hold was one step of a read. A request is now served inside one hold,
+§119, and a caller can have a line logged there as often as it asks, since a precondition nothing
+meets is logged where the read is refused. `ControlUiThread.MayNotWait` is the question both ask.
 
 Three things are settled about it. It defaults to this user's own application data rather than
 beside the `.kdbx`, because a database is often on a share or in a cloud folder and a record of

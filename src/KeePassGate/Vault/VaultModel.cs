@@ -218,24 +218,164 @@ namespace KeePassGate.Vault
     }
 
     /// <summary>
-    /// What a change does about the node's tag: whether it is made only while the node still
-    /// holds what `If-Match` named, and whether it answers with the tag it leaves.
+    /// What a change found where it is about to be made: the node the rules are asked about, as
+    /// it stands inside the change's own turn.
     /// </summary>
     /// <remarks>
-    /// **Every change to a node that is already there takes one, and none takes it by default**,
-    /// so that a caller that forgets the request's precondition does not compile into a write that
-    /// ignores it. A field or an attachment created is one of those, its entry answering for it;
-    /// a group or an entry created is not, since its request is sent to a collection and declares
-    /// no `If-Match`, `API.md` §410. The handler decides both halves from who is asking: only a
-    /// caller whose rule may read everything the tag covers is handed a tag or has its `If-Match`
-    /// asked, which is what keeps a tag from telling a client anything about a value its rule does
-    /// not let it read.
+    /// The entry for a change to an entry or to anything inside it, the group for a change to a
+    /// group, and the group that would hold it for a group or an entry being created: the node
+    /// the routing table has the router ask about, found again by the write itself.
+    /// </remarks>
+    public sealed class VaultFound
+    {
+        public VaultFound(VaultGroup group)
+        {
+            if (group == null)
+            {
+                throw new ArgumentNullException(nameof(group));
+            }
+
+            Group = group;
+        }
+
+        public VaultFound(VaultEntry entry, bool guarded)
+        {
+            if (entry == null)
+            {
+                throw new ArgumentNullException(nameof(entry));
+            }
+
+            Entry = entry;
+            Guarded = guarded;
+        }
+
+        /// <summary>
+        /// The same group, as the group a new entry would be made in.
+        /// </summary>
+        /// <param name="guarded">Whether a string the entry would be made with is protected.</param>
+        public static VaultFound Holding(VaultGroup group, bool guarded)
+        {
+            return new VaultFound(group) { Guarded = guarded };
+        }
+
+        /// <summary>The group, or null when an entry was found.</summary>
+        public VaultGroup Group { get; private set; }
+
+        /// <summary>The entry, or null when a group was found.</summary>
+        public VaultEntry Entry { get; private set; }
+
+        /// <summary>
+        /// Whether the change sets or takes away a string that is protected, by the database for
+        /// what it is called or by the flag the string itself carries. False for a change that
+        /// touches no string.
+        /// </summary>
+        public bool Guarded { get; private set; }
+
+        /// <summary>The node the rules are asked about.</summary>
+        public IAclNode Node
+        {
+            get { return Entry != null ? Entry.Node : Group.Node; }
+        }
+    }
+
+    /// <summary>
+    /// The questions a change asks about its caller once it has found its node, inside its own
+    /// turn: whether the change may be made at all, and what it does about the node's tag.
+    /// </summary>
+    /// <remarks>
+    /// **A change is decided where it is made.** A request waits for its turn on KeePass's thread,
+    /// and whatever was decided before the wait was decided about a database the operator went on
+    /// editing: a string marked protected, a rule taken away, an entry moved under a group that
+    /// refuses. So the vault is handed the questions instead of their answers, and asks them of
+    /// the node it found, in the turn the change is made in, where nothing else moves.
+    ///
+    /// **Asked before anything else is answered about the node.** A caller the rules refuse is
+    /// told nothing of a name already taken, a dialog open on the entry or a tag that no longer
+    /// matches, since each of those is a fact about a node it may not reach.
+    ///
+    /// **The tag is asked about twice**, of the node as the change found it, for the request's
+    /// `If-Match`, and of the node as the change left it, for the tag in the answer: a change
+    /// that makes a string protected leaves a node whose tag covers a value its own caller may no
+    /// longer read. Only a caller whose rule may read everything the tag covers is handed a tag
+    /// or has its `If-Match` asked, which is what keeps a tag from telling a client anything
+    /// about a value its rule does not let it read, `API.md` §410.
+    ///
+    /// **A change handed no questions is refused**, as is a change whose questions are answered
+    /// by nobody, so a caller that forgets the rules does not compile into a write that ignores
+    /// them.
+    /// </remarks>
+    public sealed class VaultAsking
+    {
+        private readonly Func<VaultFound, bool> _allowed;
+        private readonly Func<VaultFound, bool> _mayTag;
+        private readonly VaultPrecondition _precondition;
+        private readonly bool _answers;
+
+        /// <summary>The questions one change asks, each of the node the change finds.</summary>
+        /// <param name="allowed">Whether the caller may make this change to what was found.</param>
+        /// <param name="mayTag">
+        /// Whether the caller may be handed the tag of what was found and have its `If-Match`
+        /// asked, or null for a change that deals in no tag.
+        /// </param>
+        /// <param name="precondition">What `If-Match` asked of the node, or null.</param>
+        /// <param name="answers">Whether the answer carries the tag the change leaves.</param>
+        public VaultAsking(
+            Func<VaultFound, bool> allowed,
+            Func<VaultFound, bool> mayTag,
+            VaultPrecondition precondition,
+            bool answers)
+        {
+            _allowed = allowed;
+            _mayTag = mayTag;
+            _precondition = precondition;
+            _answers = answers;
+        }
+
+        /// <summary>Whether the change may be made to what it found.</summary>
+        public bool Allows(VaultFound found)
+        {
+            return _allowed != null && found != null && _allowed(found);
+        }
+
+        /// <summary>
+        /// What the change does about the tag of the node as it stands: asked once of the node
+        /// the change found, and again of the node the change left.
+        /// </summary>
+        /// <remarks>
+        /// **A caller that may not be handed the tag has its `If-Match` failed rather than
+        /// ignored.** Ignoring it would make the write unconditional, which is the one thing a
+        /// client sending a precondition did not ask for. Failed where the vault asks it, so
+        /// that a node gone, taken or busy is still answered first, as RFC 9110 section 13.2.1
+        /// orders it.
+        /// </remarks>
+        public VaultTagging Tagging(VaultFound found)
+        {
+            var mayTag = _mayTag != null && found != null && _mayTag(found);
+
+            var precondition = _precondition;
+            if (!mayTag && precondition != null)
+            {
+                precondition = VaultPrecondition.Withheld();
+            }
+
+            return new VaultTagging(precondition, mayTag && _answers);
+        }
+    }
+
+    /// <summary>
+    /// What a change does about the node's tag as the node stands at one moment: whether it is
+    /// made only while the node still holds what `If-Match` named, and whether it answers with
+    /// the tag it leaves.
+    /// </summary>
+    /// <remarks>
+    /// Answered by <see cref="VaultAsking.Tagging"/> inside the change's turn, never handed in
+    /// from outside it, so both halves are decided from who is asking about the node as it is.
+    /// A field or an attachment created answers with its entry's tag; a group or an entry
+    /// created does not, since its request is sent to a collection and declares no `If-Match`,
+    /// `API.md` §410.
     /// </remarks>
     public sealed class VaultTagging
     {
-        /// <summary>No precondition, and no tag in the answer.</summary>
-        public static readonly VaultTagging None = new VaultTagging(null, false);
-
         public VaultTagging(VaultPrecondition precondition, bool answers)
         {
             Precondition = precondition;
@@ -454,6 +594,15 @@ namespace KeePassGate.Vault
         public static VaultWrite Missing()
         {
             return new VaultWrite(false, false, false, null, "there is nothing there");
+        }
+
+        /// <summary>
+        /// The rules refuse the change, asked inside its own turn. Answered as a node that is not
+        /// there is, since telling the two apart would let a client map a database by asking.
+        /// </summary>
+        public static VaultWrite Refused()
+        {
+            return new VaultWrite(false, false, false, null, "the rules refuse it");
         }
     }
 

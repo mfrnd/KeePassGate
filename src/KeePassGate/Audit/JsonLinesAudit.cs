@@ -119,7 +119,7 @@ namespace KeePassGate.Audit
         /// </param>
         /// <param name="mayNotWait">
         /// Whether the thread recording a line may not wait for the file, which is true of
-        /// KeePass's own thread, or null when every thread may.
+        /// KeePass's own thread and of a thread holding it still, or null when every thread may.
         /// </param>
         public JsonLinesAudit(string path, IGateLog log, GateIncidents incidents, Func<bool> mayNotWait)
         {

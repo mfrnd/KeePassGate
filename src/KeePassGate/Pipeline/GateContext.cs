@@ -95,8 +95,10 @@ namespace KeePassGate.Pipeline
         {
             if (_answered)
             {
-                // The first answer stands. A second one is a defect in a handler, and overwriting
-                // would turn it into a response that contradicts what was already decided.
+                // The first answer stands. A second answer is a defect in a handler, or a
+                // handler answering the refusal of a change whose caller `SpecRouter` turned away
+                // inside the change's turn, and overwriting would turn either into a response
+                // that contradicts what was already decided.
                 return;
             }
 

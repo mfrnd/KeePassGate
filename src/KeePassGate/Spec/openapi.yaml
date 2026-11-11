@@ -177,8 +177,8 @@ info:
     **A read of one group or one entry carries an `ETag`, to a client that may read all of it**,
     which `ETag` under the headers says the whole of: a group's for the group, and an entry's for
     the entry and for everything inside it, its fields and attachments, one at a time or listed.
-    It is taken before what it is answered with, so a change landing in the middle of a read can
-    leave a client an older tag beside newer content and never a newer tag beside older content.
+    It is taken at the moment of what it is answered with, since a read is decided and served
+    with KeePass's thread held still, so a tag never arrives beside content of another moment.
     A change answers with the tag it left in its body, as `etag`, rather than in a header. A
     listing of groups or entries carries none.
 
@@ -2286,8 +2286,8 @@ components:
 
   responses:
     # Not now, as against not at all. A lock is not a decision, so the audit records none: a
-    # request that met it before the router decided leaves no line, and one that met it afterwards
-    # keeps the line its decision got. §502
+    # request that met it before the rules were asked leaves no line, and a change that met it
+    # afterwards, inside its turn, keeps the line its decision got. §502
     Unavailable:
       description: |
         Not now, and worth trying again shortly, where a refusal is not. The body carries
@@ -2298,30 +2298,32 @@ components:
         `locked` is the database being locked, answered before a route is chosen at all, by a
         second host certificate held only in memory so that a locked KeePass answers rather than
         failing at the transport. A database that locks or closes while a request is being read,
-        before the router has looked up the node it is about, or between the router's decision and
-        the handler's read, is `locked` as well, because its nodes have not gone and a client told
-        they had would stop looking for something that is still there. A node that has gone while
-        the database stays open is the `404` any absent node gets. A write whose handler looks its
-        node up before writing, to ask the rules about protected values, meets a lock there as a
-        read does, and is `locked` too. The exception is a lock landing once the change is on its
-        way: it is handed to the writer, which finds nothing open to change and answers `500
-        internal error`, because the change could not be attempted.
+        or while a request that changes nothing waits for KeePass's thread to be held still for
+        it, is `locked` as well, because its nodes have not gone and a client told they had would
+        stop looking for something that is still there. A node that has gone while the database
+        stays open is the `404` any absent node gets. A write meets a lock the same way: its
+        change is handed to the writer with the questions the rules are asked about it, the
+        writer finds nothing open to change, and the answer is `locked`, because nothing was
+        attempted and the same request is worth sending again once the database is open.
 
         `undecided` is a database holding more than one certificate authority that nobody has
         chosen between, which is copies that each made an authority of their own meeting in a
         synchronize. It is answered before a route is chosen too, with each authority's own host
         certificate, so a client of any of them reaches it, pairing included, and it lasts until the
         operator keeps one of them, which KeePass asks for on its own screen. The clients of the
-        authorities not kept are refused from then on and pair again.
+        authorities not kept are refused from then on and pair again. A request already waiting
+        for its turn on KeePass's thread when a second authority arrived is answered `undecided`
+        as well.
 
         `busy` is five things, and a read meets the first as readily as a write meets the others.
         KeePass's own thread could not be held still for the read: every read waits its turn on that
-        thread and holds it for as long as the read takes, so the tree cannot move under it, and a
-        turn that does not come round within ten seconds, or a read that outlasts five, is answered
-        `busy` rather than trusted. That is KeePass busy with something it does not pause in, such
-        as deriving a key, rather than a fault here, or KeePass part way through a merge, which
-        no read is started inside: a synchronize, an import and XML Replace leave the tree
-        between two databases until they end. A dialog is open on what a write would change,
+        thread and holds it from the rules being asked to the answer being made, so neither the
+        tree nor the rules can move under it, and a turn that does not come round within ten
+        seconds, or a read that outlasts five, is answered `busy` rather than trusted. That is
+        KeePass busy with something it does not pause in, such as deriving a key, rather than a
+        fault here, or KeePass part way through a merge, which no read is started inside: a
+        synchronize, an import and XML Replace leave the tree between two databases until they
+        end. A dialog is open on what a write would change,
         and a change made underneath it is a change the operator's OK destroys. KeePass's
         attachment editor destroys it as it closes, writing the attachment back onto the entry it
         came from, and since nothing tells which entry that is, every entry holding an attachment
@@ -2414,7 +2416,10 @@ components:
                 type: string
 
     Unpaired:
-      description: No admission record for this certificate. Also what revocation looks like.
+      description: |
+        No admission record for this certificate. Also what revocation looks like, to a request
+        that was waiting for KeePass's thread when its client was revoked as to every request
+        after it.
       content:
         application/json:
           schema:
@@ -2477,11 +2482,12 @@ components:
         The gate failed, rather than the request being wrong or the node being out of reach. Three
         things reach this. `not saved` means the change was made and the save never got to the
         disk, and it has been taken back out again. `internal error` means it could not be
-        attempted at all: the database closed under the request, or KeePass answered the attempt
-        with an error. Neither leaves anything behind that a retry would duplicate, which is why
-        this is not the `404` a refusal gives: that answer says the request had nowhere to go, and
-        it is the one an absent node and a forbidden one share. Neither is worth retrying either,
-        for the same reason. `not verified` is the third and the one that does leave something
+        attempted at all, in a database that is still open: KeePass answered the attempt with an
+        error. A database that locked or closed under the request is `503 locked` instead. Neither
+        leaves anything behind that a retry would duplicate, which is why this is not the `404` a
+        refusal gives: that answer means the request had nowhere to go, and it is the one an absent
+        node and a forbidden one share. Neither is worth retrying either, for the same reason.
+        `not verified` is the third and the one that does leave something
         behind: the change was made and saved, and the file KeePass hashed back afterwards is not
         the one it wrote, so nothing knows whether the file holds the change and it is not taken
         back out. So is a change whose database KeePass closed as its save ended, which a lock can

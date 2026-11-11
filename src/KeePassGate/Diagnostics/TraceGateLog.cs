@@ -28,7 +28,8 @@ namespace KeePassGate.Diagnostics
     /// <see cref="Trace"/> once as it begins, and the file is tried again at the next line.
     ///
     /// **KeePass's own thread hands its lines to a writer of the log's own** rather than waiting
-    /// on the file, and every line keeps its place, as the audit's do: see the constructor.
+    /// on the file, and so does a thread holding KeePass's thread still. Every line keeps its
+    /// place, as the audit's do: see the constructor.
     /// </remarks>
     public sealed class TraceGateLog : IGateLog
     {
@@ -74,7 +75,7 @@ namespace KeePassGate.Diagnostics
         /// </summary>
         /// <param name="mayNotWait">
         /// Whether the thread logging a line may not wait for the file, which is true of KeePass's
-        /// own thread, or null when every thread may.
+        /// own thread and of a thread holding it still, or null when every thread may.
         /// </param>
         public TraceGateLog(Func<bool> mayNotWait)
             : this(PluginFiles.Resolve(LogFileVariable, DefaultFileName, out var refused), refused, null, mayNotWait)
@@ -101,6 +102,11 @@ namespace KeePassGate.Diagnostics
         /// queued and ends once nothing is. A line logged on any other thread first writes every
         /// line queued before it, under the file's lock that the log's writer takes too, so every
         /// line keeps its place.
+        ///
+        /// **A thread holding KeePass's thread still is such a thread**, since the window waits
+        /// for the reader as it waits for its own thread: `ControlUiThread.MayNotWait` is the
+        /// question the plugin hands in, and what a read logs inside its hold is queued with the
+        /// rest.
         ///
         /// **An ordinary exit waits for it, briefly**: what KeePass logs as it closes, the gate
         /// stopping among it, is queued just before the process ends, and the writer is a background

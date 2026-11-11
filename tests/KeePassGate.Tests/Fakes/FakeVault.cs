@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using KeePassGate.Acl;
+using KeePassGate.Diagnostics;
 using KeePassGate.Vault;
 
 namespace KeePassGate.Tests.Fakes
@@ -31,6 +32,9 @@ namespace KeePassGate.Tests.Fakes
         private string _writeBlocked;
         private int _lookupsBefore;
         private Action _then;
+        private Action _waiting;
+        private int _held;
+        private int _changing;
 
         public FakeVault()
         {
@@ -64,15 +68,22 @@ namespace KeePassGate.Tests.Fakes
         /// a lock or a close landing at a chosen moment of a request.
         /// </summary>
         /// <remarks>
-        /// **One is the moment between the router and the handler.** The router asks the vault
-        /// once, for the node it decides about, and everything after that is the handler's, so one
-        /// lookup answered lets the router decide about a node the handler then cannot find. A
-        /// change counts as well, because a write's handler may ask for nothing before it writes.
+        /// **For a change, one is the moment between the router and the write.** The router asks
+        /// the vault once, for the node it may refuse the change at, and a write's handler asks
+        /// for nothing before it writes, so one lookup answered lets the router pass a change
+        /// whose turn then finds something else. The change counts as well: it is the handler's
+        /// first and only call, and what it asks the rules is asked inside it.
+        ///
+        /// **Under a hold it waits for the hold.** What an operator does is done on KeePass's
+        /// thread, and a read that holds that thread is over before any of it happens, so
+        /// whatever comes due inside <see cref="Held"/> runs once the hold is let go. A hold set
+        /// to lapse holds nothing, and there it runs where it came due, under the read.
         /// </remarks>
         public void After(int lookups, Action then)
         {
             _lookupsBefore = lookups;
             _then = then;
+            _waiting = null;
         }
 
         /// <summary>Set to make every change come back busy, as a dialog on the node does.</summary>
@@ -83,14 +94,73 @@ namespace KeePassGate.Tests.Fakes
             get { return "root"; }
         }
 
-        /// <summary>How many reads have been held as one, by <see cref="Held"/>.</summary>
+        /// <summary>
+        /// How many reads have been held by <see cref="Held"/>, each counted once however many
+        /// holds it took inside itself.
+        /// </summary>
         public int HeldReads { get; private set; }
 
-        /// <summary>Reads where it is, since a database in a dictionary has no thread to hold.</summary>
+        /// <summary>
+        /// How many lookups were answered with nothing held: outside every <see cref="Held"/>
+        /// and outside every change.
+        /// </summary>
+        /// <remarks>
+        /// What a request that changes nothing may never do. Two lookups each held alone are two
+        /// moments of the database, with room between them for whatever the operator does next.
+        /// </remarks>
+        public int LooseLookups { get; private set; }
+
+        /// <summary>Set to refuse every hold, as KeePass's thread does while it cannot be held.</summary>
+        public bool RefusesHolds { get; set; }
+
+        /// <summary>
+        /// Set to let every hold lapse: the read runs to its end and is refused then, as a read
+        /// that outlasted the hold on KeePass's thread is.
+        /// </summary>
+        public bool Lapses { get; set; }
+
+        /// <summary>
+        /// Reads where it is, since a database in a dictionary has no thread to hold, and keeps
+        /// count of what was read inside a hold and what was not.
+        /// </summary>
         public T Held<T>(Func<T> read)
         {
+            if (_held > 0)
+            {
+                // A hold inside a hold is the same hold, as it is on KeePass's thread.
+                return read();
+            }
+
+            if (RefusesHolds)
+            {
+                throw new VaultUnsettled("KeePass's thread could not be held");
+            }
+
             HeldReads++;
-            return read();
+            _held++;
+
+            T answer;
+            try
+            {
+                answer = read();
+            }
+            finally
+            {
+                _held--;
+
+                // The first moment KeePass's thread has for what the operator asked of it
+                // meanwhile.
+                var waiting = _waiting;
+                _waiting = null;
+                waiting?.Invoke();
+            }
+
+            if (Lapses)
+            {
+                throw new VaultUnsettled("the read took longer than KeePass's thread could be held for");
+            }
+
+            return answer;
         }
 
         public string RootUuid
@@ -603,7 +673,7 @@ namespace KeePassGate.Tests.Fakes
                     : null;
         }
 
-        public VaultWrite CreateGroup(string parentUuid, string name, string notes)
+        public VaultWrite CreateGroup(string parentUuid, string name, string notes, VaultAsking asking)
         {
             return Change(() =>
             {
@@ -611,6 +681,12 @@ namespace KeePassGate.Tests.Fakes
                 if (parent == null)
                 {
                     return VaultWrite.Missing();
+                }
+
+                var refusal = Refusal(asking, new VaultFound(parent.Describe()));
+                if (refusal != null)
+                {
+                    return refusal;
                 }
 
                 if (Busy != null)
@@ -624,7 +700,7 @@ namespace KeePassGate.Tests.Fakes
             });
         }
 
-        public VaultWrite UpdateGroup(string uuid, string name, string notes, VaultTagging tagging)
+        public VaultWrite UpdateGroup(string uuid, string name, string notes, VaultAsking asking)
         {
             return Change(() =>
             {
@@ -632,6 +708,13 @@ namespace KeePassGate.Tests.Fakes
                 if (group == null)
                 {
                     return VaultWrite.Missing();
+                }
+
+                VaultTagging tagging;
+                var refusal = Refusal(asking, new VaultFound(group.Describe()), out tagging);
+                if (refusal != null)
+                {
+                    return refusal;
                 }
 
                 var refused = Refused(tagging, () => group.Tag());
@@ -642,11 +725,11 @@ namespace KeePassGate.Tests.Fakes
 
                 group.Name = name ?? group.Name;
                 group.Notes = notes ?? group.Notes;
-                return VaultWrite.Done(tagging.Answers ? group.Tag() : null);
+                return VaultWrite.Done(Left(asking, group));
             });
         }
 
-        public VaultWrite DeleteGroup(string uuid, VaultTagging tagging)
+        public VaultWrite DeleteGroup(string uuid, VaultAsking asking)
         {
             return Change(() =>
             {
@@ -654,6 +737,13 @@ namespace KeePassGate.Tests.Fakes
                 if (group == null)
                 {
                     return VaultWrite.Missing();
+                }
+
+                VaultTagging tagging;
+                var refusal = Refusal(asking, new VaultFound(group.Describe()), out tagging);
+                if (refusal != null)
+                {
+                    return refusal;
                 }
 
                 if (group.Parent == null)
@@ -679,7 +769,10 @@ namespace KeePassGate.Tests.Fakes
         }
 
         public VaultWrite CreateEntry(
-            string groupUuid, IReadOnlyDictionary<string, string> fields, VaultExpiry expiry = null)
+            string groupUuid,
+            IReadOnlyDictionary<string, string> fields,
+            VaultAsking asking,
+            VaultExpiry expiry = null)
         {
             return Change(() =>
             {
@@ -687,6 +780,12 @@ namespace KeePassGate.Tests.Fakes
                 if (group == null)
                 {
                     return VaultWrite.Missing();
+                }
+
+                var refusal = Refusal(asking, VaultFound.Holding(group.Describe(), fields != null && fields.Keys.Any(Protects)));
+                if (refusal != null)
+                {
+                    return refusal;
                 }
 
                 if (Busy != null)
@@ -744,7 +843,7 @@ namespace KeePassGate.Tests.Fakes
         public VaultWrite UpdateEntry(
             string uuid,
             IReadOnlyDictionary<string, string> fields,
-            VaultTagging tagging,
+            VaultAsking asking,
             VaultExpiry expiry = null)
         {
             if (expiry != null && expiry.IsAuto)
@@ -758,6 +857,14 @@ namespace KeePassGate.Tests.Fakes
                 if (entry == null)
                 {
                     return VaultWrite.Missing();
+                }
+
+                var guarded = fields != null && fields.Keys.Any(name => Guards(entry, name));
+                VaultTagging tagging;
+                var refusal = Refusal(asking, new VaultFound(Single(entry), guarded), out tagging);
+                if (refusal != null)
+                {
+                    return refusal;
                 }
 
                 if (fields != null && Clashes(entry.Fields.Keys, fields.Keys))
@@ -790,11 +897,11 @@ namespace KeePassGate.Tests.Fakes
                     entry.Expires = expiry.When;
                 }
 
-                return VaultWrite.Done(Left(tagging, entry));
+                return VaultWrite.Done(Left(asking, entry));
             });
         }
 
-        public VaultWrite DeleteEntry(string uuid, VaultTagging tagging)
+        public VaultWrite DeleteEntry(string uuid, VaultAsking asking)
         {
             return Change(() =>
             {
@@ -802,6 +909,13 @@ namespace KeePassGate.Tests.Fakes
                 if (entry == null)
                 {
                     return VaultWrite.Missing();
+                }
+
+                VaultTagging tagging;
+                var refusal = Refusal(asking, new VaultFound(Single(entry), false), out tagging);
+                if (refusal != null)
+                {
+                    return refusal;
                 }
 
                 var refused = Refused(tagging, () => Tag(entry));
@@ -816,7 +930,7 @@ namespace KeePassGate.Tests.Fakes
         }
 
         public VaultWrite CreateField(
-            string entryUuid, string name, string value, bool isProtected, VaultTagging tagging)
+            string entryUuid, string name, string value, bool isProtected, VaultAsking asking)
         {
             return Change(() =>
             {
@@ -824,6 +938,15 @@ namespace KeePassGate.Tests.Fakes
                 if (entry == null)
                 {
                     return VaultWrite.Missing();
+                }
+
+                // The real vault's rule: what the rules are asked about is what is stored.
+                var guarded = isProtected || (name != null && Protects(name));
+                VaultTagging tagging;
+                var refusal = Refusal(asking, new VaultFound(Single(entry), guarded), out tagging);
+                if (refusal != null)
+                {
+                    return refusal;
                 }
 
                 if (name == null || entry.Fields.ContainsKey(name))
@@ -845,21 +968,34 @@ namespace KeePassGate.Tests.Fakes
 
                 entry.Fields[name] = value ?? string.Empty;
 
-                if (isProtected)
+                if (guarded)
                 {
                     entry.Protected.Add(name);
                 }
 
-                return VaultWrite.Created(name, Left(tagging, entry));
+                return VaultWrite.Created(name, Left(asking, entry));
             });
         }
 
-        public VaultWrite UpdateField(string entryUuid, string name, string value, VaultTagging tagging)
+        public VaultWrite UpdateField(string entryUuid, string name, string value, VaultAsking asking)
         {
             return Change(() =>
             {
                 var entry = FindEntry(entryUuid);
-                if (entry == null || !Holds(entry.Fields.Keys, name))
+                if (entry == null)
+                {
+                    return VaultWrite.Missing();
+                }
+
+                VaultTagging tagging;
+                var refusal = Refusal(asking, new VaultFound(Single(entry), name != null && Guards(entry, name)), out tagging);
+                if (refusal != null)
+                {
+                    return refusal;
+                }
+
+                // After the rules, as the real vault asks it, so a refused caller learns no name.
+                if (!Holds(entry.Fields.Keys, name))
                 {
                     return VaultWrite.Missing();
                 }
@@ -877,16 +1013,28 @@ namespace KeePassGate.Tests.Fakes
                 }
 
                 entry.Fields[name] = value ?? string.Empty;
-                return VaultWrite.Done(Left(tagging, entry));
+                return VaultWrite.Done(Left(asking, entry));
             });
         }
 
-        public VaultWrite DeleteField(string entryUuid, string name, VaultTagging tagging)
+        public VaultWrite DeleteField(string entryUuid, string name, VaultAsking asking)
         {
             return Change(() =>
             {
                 var entry = FindEntry(entryUuid);
-                if (entry == null || !Holds(entry.Fields.Keys, name))
+                if (entry == null)
+                {
+                    return VaultWrite.Missing();
+                }
+
+                VaultTagging tagging;
+                var refusal = Refusal(asking, new VaultFound(Single(entry), name != null && Guards(entry, name)), out tagging);
+                if (refusal != null)
+                {
+                    return refusal;
+                }
+
+                if (!Holds(entry.Fields.Keys, name))
                 {
                     return VaultWrite.Missing();
                 }
@@ -906,11 +1054,11 @@ namespace KeePassGate.Tests.Fakes
 
                 entry.Fields.Remove(name);
                 entry.Protected.Remove(name);
-                return VaultWrite.Done(Left(tagging, entry));
+                return VaultWrite.Done(Left(asking, entry));
             });
         }
 
-        public VaultWrite CreateAttachment(string entryUuid, string name, byte[] content, VaultTagging tagging)
+        public VaultWrite CreateAttachment(string entryUuid, string name, byte[] content, VaultAsking asking)
         {
             return Change(() =>
             {
@@ -918,6 +1066,13 @@ namespace KeePassGate.Tests.Fakes
                 if (entry == null)
                 {
                     return VaultWrite.Missing();
+                }
+
+                VaultTagging tagging;
+                var refusal = Refusal(asking, new VaultFound(Single(entry), false), out tagging);
+                if (refusal != null)
+                {
+                    return refusal;
                 }
 
                 if (name == null || entry.Attachments.ContainsKey(name))
@@ -932,16 +1087,28 @@ namespace KeePassGate.Tests.Fakes
                 }
 
                 entry.Attachments[name] = content ?? Array.Empty<byte>();
-                return VaultWrite.Created(name, Left(tagging, entry));
+                return VaultWrite.Created(name, Left(asking, entry));
             });
         }
 
-        public VaultWrite UpdateAttachment(string entryUuid, string name, byte[] content, VaultTagging tagging)
+        public VaultWrite UpdateAttachment(string entryUuid, string name, byte[] content, VaultAsking asking)
         {
             return Change(() =>
             {
                 var entry = FindEntry(entryUuid);
-                if (entry == null || !Holds(entry.Attachments.Keys, name))
+                if (entry == null)
+                {
+                    return VaultWrite.Missing();
+                }
+
+                VaultTagging tagging;
+                var refusal = Refusal(asking, new VaultFound(Single(entry), false), out tagging);
+                if (refusal != null)
+                {
+                    return refusal;
+                }
+
+                if (!Holds(entry.Attachments.Keys, name))
                 {
                     return VaultWrite.Missing();
                 }
@@ -953,16 +1120,28 @@ namespace KeePassGate.Tests.Fakes
                 }
 
                 entry.Attachments[name] = content ?? Array.Empty<byte>();
-                return VaultWrite.Done(Left(tagging, entry));
+                return VaultWrite.Done(Left(asking, entry));
             });
         }
 
-        public VaultWrite DeleteAttachment(string entryUuid, string name, VaultTagging tagging)
+        public VaultWrite DeleteAttachment(string entryUuid, string name, VaultAsking asking)
         {
             return Change(() =>
             {
                 var entry = FindEntry(entryUuid);
-                if (entry == null || !Holds(entry.Attachments.Keys, name))
+                if (entry == null)
+                {
+                    return VaultWrite.Missing();
+                }
+
+                VaultTagging tagging;
+                var refusal = Refusal(asking, new VaultFound(Single(entry), false), out tagging);
+                if (refusal != null)
+                {
+                    return refusal;
+                }
+
+                if (!Holds(entry.Attachments.Keys, name))
                 {
                     return VaultWrite.Missing();
                 }
@@ -974,7 +1153,7 @@ namespace KeePassGate.Tests.Fakes
                 }
 
                 entry.Attachments.Remove(name);
-                return VaultWrite.Done(Left(tagging, entry));
+                return VaultWrite.Done(Left(asking, entry));
             });
         }
 
@@ -989,6 +1168,42 @@ namespace KeePassGate.Tests.Fakes
 
             var entry = FindEntry(uuid);
             return entry == null ? null : entry.Node;
+        }
+
+        /// <summary>
+        /// What every change asks about its caller once it has found its node, as the real vault
+        /// asks it: inside the change, of the node as it is found there.
+        /// </summary>
+        /// <remarks>
+        /// The real vault's answers, so a handler test meets them: a change handed no questions
+        /// is refused, as one the rules refuse is, and questions that cannot be answered are
+        /// `busy`.
+        /// </remarks>
+        private static VaultWrite Refusal(VaultAsking asking, VaultFound found, out VaultTagging tagging)
+        {
+            tagging = null;
+
+            try
+            {
+                if (asking == null || !asking.Allows(found))
+                {
+                    return VaultWrite.Refused();
+                }
+
+                tagging = asking.Tagging(found);
+                return null;
+            }
+            catch (VaultUnsettled error)
+            {
+                return VaultWrite.Busy(error.Message);
+            }
+        }
+
+        /// <summary>The same question for a change that deals in no tag, which a create is.</summary>
+        private static VaultWrite Refusal(VaultAsking asking, VaultFound found)
+        {
+            VaultTagging tagging;
+            return Refusal(asking, found, out tagging);
         }
 
         /// <summary>
@@ -1018,27 +1233,64 @@ namespace KeePassGate.Tests.Fakes
                 : null;
         }
 
-        private string Left(VaultTagging tagging, Kept entry)
+        /// <summary>
+        /// The tag a change left, when its answer is to carry one: asked of the node as the
+        /// change left it, as the real vault asks.
+        /// </summary>
+        private string Left(VaultAsking asking, Kept entry)
         {
-            return tagging.Answers ? Tag(entry) : null;
+            return Answers(asking, new VaultFound(Single(entry), false)) ? Tag(entry) : null;
+        }
+
+        private static string Left(VaultAsking asking, Node group)
+        {
+            return Answers(asking, new VaultFound(group.Describe())) ? group.Tag() : null;
+        }
+
+        private static bool Answers(VaultAsking asking, VaultFound left)
+        {
+            try
+            {
+                return asking.Tagging(left).Answers;
+            }
+            catch (VaultUnsettled)
+            {
+                return false;
+            }
         }
 
         private VaultWrite Change(Func<VaultWrite> change)
         {
-            Looking();
+            // A change has KeePass's thread for the whole of its turn, so nothing it looks up is
+            // looked up with nothing held.
+            _changing++;
+            try
+            {
+                Looking();
 
-            // Not `Busy`, which each change answers itself once it has found the node, so that a
-            // node gone or a name taken is answered first, as the real vault answers them.
-            return WriteBlocked != null ? VaultWrite.Failed(WriteBlocked) : change();
+                // Not `Busy`, which each change answers itself once it has found the node, so that
+                // a node gone or a name taken is answered first, as the real vault answers them.
+                return WriteBlocked != null ? VaultWrite.Failed(WriteBlocked) : change();
+            }
+            finally
+            {
+                _changing--;
+            }
         }
 
         /// <summary>Counts one lookup or change, and runs what <see cref="After"/> left once it is due.</summary>
         /// <remarks>
         /// Before whatever it counts, so the event lands between the last answer that was due and
-        /// this one. Cleared before it runs, because what it runs may well be a change of its own.
+        /// this one, unless a hold keeps it waiting. Cleared before it runs, because what it runs
+        /// may well be a change of its own.
         /// </remarks>
         private void Looking()
         {
+            if (_held == 0 && _changing == 0)
+            {
+                LooseLookups++;
+            }
+
             if (_then == null)
             {
                 return;
@@ -1052,6 +1304,13 @@ namespace KeePassGate.Tests.Fakes
 
             var then = _then;
             _then = null;
+
+            if (_held > 0 && !Lapses)
+            {
+                _waiting = then;
+                return;
+            }
+
             then();
         }
 

@@ -179,9 +179,11 @@ change, and after every refusal that does not depend on it, as RFC 9110 section 
 them: a node gone is `404`, a name taken or a group not empty `409`, and a dialog open on the node
 `503 busy`, whatever the tag says. An update that would change nothing is asked the condition too,
 under the same lock, and then writes nothing. A read's is decided against the tag it is answered
-with, and that tag is taken before what it is answered with, so a change landing in the middle of a
-read leaves a client an older tag over newer content, which its next write fails over, and never a
-newer tag over older content, which its next write would carry straight over the change.
+with, and the tag and what it is answered with are of one moment, taken inside the hold of
+KeePass's thread the read is decided and served in, `DESIGN.md` §119. **That reverses a tag taken
+before its content**, which was the safe order while a change could land between the two: a
+client was left an older tag over newer content, which its next write failed over, and never a
+newer tag over older content, which its next write would have carried straight over the change.
 
 **A write answers with the tag it left, in its body as `etag`** and not as an `ETag` header: RFC
 9110 section 9.3.4 makes an `ETag` on the answer to a `PUT` say the body sent was stored as sent,

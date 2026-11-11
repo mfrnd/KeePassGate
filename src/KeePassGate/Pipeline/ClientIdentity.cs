@@ -291,5 +291,45 @@ namespace KeePassGate.Pipeline
                 clientKey ?? admissionKey,
                 profilesUnreadable);
         }
+
+        /// <summary>
+        /// The same client, holding what its record and the database's list of profiles hold at
+        /// a later moment of the same request.
+        /// </summary>
+        /// <remarks>
+        /// The certificate is the one already judged, so its subject, its admission key and its
+        /// dates are carried over; what a record and a list can change is everything else.
+        /// <see cref="ClientCredentials.Again"/> is the caller, and has the reason.
+        /// </remarks>
+        public ClientIdentity AsNow(
+            IReadOnlyList<string> profiles,
+            IReadOnlyList<string> removed,
+            string clientKey,
+            bool profilesUnreadable)
+        {
+            return new ClientIdentity(
+                true,
+                false,
+                _subject,
+                _admissionKey,
+                _databaseId,
+                profiles,
+                null,
+                null,
+                removed,
+                _expires,
+                clientKey ?? _admissionKey,
+                profilesUnreadable);
+        }
+
+        /// <summary>
+        /// The same certificate, refused at a later moment of the same request: what
+        /// <see cref="Refused"/> makes of a certificate, for a caller that holds the identity
+        /// and no longer the certificate.
+        /// </summary>
+        public ClientIdentity AsRefused(string reason)
+        {
+            return new ClientIdentity(false, false, null, _admissionKey, _databaseId, Nothing, reason);
+        }
     }
 }

@@ -16,8 +16,23 @@ namespace KeePassGate.Pipeline
     /// </summary>
     /// <remarks>
     /// **A handler never asks whether it may.** By the time one of these runs, the router has taken
-    /// the node it named, intersected the admission record with the rules, and written the decision
-    /// down. What is left is doing the thing and saying what happened, which is why these are short.
+    /// the node it named, intersected the admission record with the rules, and kept the decision
+    /// to write down. What is left is doing the thing and reporting what happened, which is why
+    /// these are short.
+    ///
+    /// **A read runs inside the hold it was decided in.** The router holds KeePass's thread
+    /// around the decision and the handler both, so what a handler here looks up is the database
+    /// the router asked the rules about: the node is the node the router found, and a tag and
+    /// the content it is served with are of one moment whichever is taken first. A read's
+    /// handler therefore looks each thing up once and takes no hold of its own. What it can
+    /// still find missing is a name inside the node, a field or an attachment the entry does
+    /// not hold. Anything else missing is a hold that did not last, and the router answers that
+    /// `503 busy` whatever was made of it here.
+    ///
+    /// **A change is decided again where it is made**, and still not by its handler. The router
+    /// answered before the change waited for its turn on KeePass's thread, so the handler of a
+    /// change looks nothing up and decides nothing: it hands the vault the router's question and
+    /// its own, `Asking`, and the vault asks them of the node it finds inside that turn.
     ///
     /// **The one exception is a listing**, and it is not an exception to the rule so much as a
     /// consequence of it. A list is a question about a collection, so the router authorizes the
@@ -27,8 +42,9 @@ namespace KeePassGate.Pipeline
     ///
     /// **Absent and refused answer the same 404** for the node an operation is about, which the
     /// router decides, and these use the same words for the things underneath it. A node that has
-    /// gone by the time a handler reads it is absent too, and one whose database has locked under
-    /// the request is not: `Gone` is where the two part.
+    /// gone by the time a change's turn comes is absent too, and a change the rules refuse inside
+    /// its turn answers as that node does. A database that locked while the change waited is not
+    /// absent, and `Answer` is where the two part.
     ///
     /// Inside an answer they are told apart on purpose. A route that is allowed and a value that is
     /// not gives `null` beside a `protected` member saying which could have been withheld, because
@@ -59,7 +75,7 @@ namespace KeePassGate.Pipeline
                 return;
             }
 
-            Listed(context, vault.Held(() => Groups(context, vault.Groups())));
+            Listed(context, Groups(context, vault.Groups()));
         }
 
         public static void ListSubgroups(IGateContext context)
@@ -71,7 +87,7 @@ namespace KeePassGate.Pipeline
             }
 
             var uuid = Captured(context, "uuid");
-            Listed(context, vault.Held(() => Groups(context, vault.Subgroups(uuid))));
+            Listed(context, Groups(context, vault.Subgroups(uuid)));
         }
 
         public static void ReadGroup(IGateContext context)
@@ -83,19 +99,14 @@ namespace KeePassGate.Pipeline
             }
 
             var uuid = Captured(context, "uuid");
-
-            // Looked up twice: once to say whether this caller may be handed the tag, and again
-            // after the tag is taken, for what is served with it, for the reason
-            // `IVault.GroupTag` gives.
             var group = vault.Group(uuid);
-            var tag = MayTag(context, group) ? vault.GroupTag(uuid) : null;
-            group = group == null ? null : vault.Group(uuid);
             if (group == null)
             {
-                Gone(context);
+                Unreachable(context);
                 return;
             }
 
+            var tag = MayTag(context, group) ? vault.GroupTag(uuid) : null;
             if (PreconditionFails(context, tag))
             {
                 return;
@@ -116,7 +127,7 @@ namespace KeePassGate.Pipeline
 
             var body = JsonBody.Read(context.Body);
             Answer(context, vault.CreateGroup(
-                Captured(context, "uuid"), body.Text("Name"), body.Text("Notes")));
+                Captured(context, "uuid"), body.Text("Name"), body.Text("Notes"), Asking(context, false)));
         }
 
         public static void UpdateGroup(IGateContext context)
@@ -129,9 +140,8 @@ namespace KeePassGate.Pipeline
 
             var uuid = Captured(context, "uuid");
             var body = JsonBody.Read(context.Body);
-            var tagging = Tagging(context, MayTag(context, vault.Group(uuid)), true);
 
-            Answer(context, vault.UpdateGroup(uuid, body.Text("Name"), body.Text("Notes"), tagging));
+            Answer(context, vault.UpdateGroup(uuid, body.Text("Name"), body.Text("Notes"), Asking(context, true)));
         }
 
         public static void DeleteGroup(IGateContext context)
@@ -142,8 +152,7 @@ namespace KeePassGate.Pipeline
                 return;
             }
 
-            var uuid = Captured(context, "uuid");
-            Answer(context, vault.DeleteGroup(uuid, Tagging(context, MayTag(context, vault.Group(uuid)), false)));
+            Answer(context, vault.DeleteGroup(Captured(context, "uuid"), Asking(context, false)));
         }
 
         public static void ListEntries(IGateContext context)
@@ -161,7 +170,7 @@ namespace KeePassGate.Pipeline
                 return;
             }
 
-            Listed(context, vault.Held(() => Entries(context, vault.Entries(), withExpired)));
+            Listed(context, Entries(context, vault.Entries(), withExpired));
         }
 
         public static void ListGroupEntries(IGateContext context)
@@ -180,7 +189,7 @@ namespace KeePassGate.Pipeline
             }
 
             var uuid = Captured(context, "uuid");
-            Listed(context, vault.Held(() => Entries(context, vault.Entries(uuid), withExpired)));
+            Listed(context, Entries(context, vault.Entries(uuid), withExpired));
         }
 
         /// <summary>
@@ -216,14 +225,13 @@ namespace KeePassGate.Pipeline
             }
 
             var uuid = Captured(context, "uuid");
-            var tag = EntryTag(context, vault, uuid);
 
             // The ceiling goes with the question, so an entry over it comes back measured and not
             // decrypted, as an attachment does.
             var entry = vault.Read(uuid, MaxEntryCharacters);
             if (entry == null)
             {
-                Gone(context);
+                Unreachable(context);
                 return;
             }
 
@@ -240,9 +248,9 @@ namespace KeePassGate.Pipeline
                 return;
             }
 
-            // Asked again of what was read, which says whether the entry holds a protected value
-            // as of after the tag was taken.
-            tag = MayTag(context, entry.Entry) ? tag : null;
+            // After the ceiling, so an entry too large to hand out is not digested either, and
+            // only for a caller that may be handed the tag.
+            var tag = MayTag(context, entry.Entry) ? vault.EntryTag(uuid) : null;
             if (PreconditionFails(context, tag))
             {
                 return;
@@ -304,28 +312,10 @@ namespace KeePassGate.Pipeline
                 return;
             }
 
-            var fields = Standard(context);
-            var group = vault.Group(Captured(context, "uuid"));
-            if (group == null)
-            {
-                // Gone since the router found it, or locked, and answered as `ReadField` answers
-                // the same miss. While this lookup sat inside the conjunction below, a miss skipped
-                // the question about protected values and handed the write over anyway, and the
-                // vault looks the node up again: an operator's move takes a node out of one group
-                // before it puts it into the other, so this lookup can miss what the vault then
-                // finds, and a rule without `protected` wrote a protected value. The four write
-                // routes below answer the same miss the same way.
-                Gone(context);
-                return;
-            }
-
-            if (Guarded(vault, fields.Keys) && !Reaches(context, group.Node, AclVerb.Create))
-            {
-                Withheld(context);
-                return;
-            }
-
-            Answer(context, vault.CreateEntry(Captured(context, "uuid"), fields, expiry));
+            // Whether a protected value may be set is asked by the write, of the group it finds
+            // and of what the database protects at that moment: `Asking` has the reason.
+            Answer(context, vault.CreateEntry(
+                Captured(context, "uuid"), Standard(context), Asking(context, false, Setting(AclVerb.Create)), expiry));
         }
 
         public static void UpdateEntry(IGateContext context)
@@ -343,29 +333,8 @@ namespace KeePassGate.Pipeline
                 return;
             }
 
-            var uuid = Captured(context, "uuid");
-            var fields = Standard(context);
-            var entry = vault.Entry(uuid);
-            if (entry == null)
-            {
-                Gone(context);
-                return;
-            }
-
-            var guarded = Guarded(vault, uuid, fields.Keys);
-            if (guarded == null)
-            {
-                Gone(context);
-                return;
-            }
-
-            if (guarded.Value && !Reaches(context, entry.Node, AclVerb.Update))
-            {
-                Withheld(context);
-                return;
-            }
-
-            Answer(context, vault, uuid, vault.UpdateEntry(uuid, fields, Tagging(context, MayTag(context, entry), true), expiry));
+            Answer(context, vault.UpdateEntry(
+                Captured(context, "uuid"), Standard(context), Asking(context, true, Setting(AclVerb.Update)), expiry));
         }
 
         public static void DeleteEntry(IGateContext context)
@@ -376,8 +345,7 @@ namespace KeePassGate.Pipeline
                 return;
             }
 
-            var uuid = Captured(context, "uuid");
-            Answer(context, vault.DeleteEntry(uuid, Tagging(context, MayTag(context, vault.Entry(uuid)), false)));
+            Answer(context, vault.DeleteEntry(Captured(context, "uuid"), Asking(context, false)));
         }
 
         public static void ListFields(IGateContext context)
@@ -388,20 +356,17 @@ namespace KeePassGate.Pipeline
                 return;
             }
 
-            // One read, which answers for the entry as well as for its strings. Asking whether the
-            // entry was there and then listing it was two, and an entry removed between them was
-            // listed as one holding no strings at all. The tag is taken first, for the reason
-            // `IVault.GroupTag` gives, and an entry gone since is gone here.
+            // One read, which answers for the entry as well as for its strings: null is an entry
+            // that is not there, and never an entry holding no strings.
             var uuid = Captured(context, "uuid");
-            var tag = EntryTag(context, vault, uuid);
             var fields = vault.Fields(uuid);
             if (fields == null)
             {
-                Gone(context);
+                Unreachable(context);
                 return;
             }
 
-            tag = Confirmed(context, vault, uuid, tag);
+            var tag = EntryTag(context, vault, uuid);
             if (PreconditionFails(context, tag))
             {
                 return;
@@ -433,21 +398,20 @@ namespace KeePassGate.Pipeline
             var uuid = Captured(context, "uuid");
             var name = Captured(context, "name");
 
-            // The tag, before the value it is served with, for the reason `IVault.GroupTag` gives,
-            // and the ceiling with the question, as `readEntry` asks it.
-            var tag = EntryTag(context, vault, uuid);
+            // The ceiling with the question, as `readEntry` asks it. Null is a name the entry
+            // does not hold.
             var held = vault.Field(uuid, name, MaxEntryCharacters);
             if (held == null)
             {
-                Gone(context);
+                Unreachable(context);
                 return;
             }
 
-            // True until something says otherwise. The entry can go between the value being read
-            // and this, taken by an operator's delete or by another connection's, and a loop that
-            // finds nothing then left this false and sent a protected value to a rule that may not
-            // have it. Fail closed here and the worst case is a value withheld from somebody
-            // entitled to it, which is a retry rather than a disclosure.
+            // True until the listing answers otherwise, since the value read above does not carry
+            // it. A listing that does not name the field is a hold that did not last, whose
+            // answer goes nowhere, and a loop finding nothing leaves the value guarded there all
+            // the same: started false, this once sent a protected value to a rule that may not
+            // have it.
             var guarded = true;
             var fields = vault.Fields(uuid);
             if (fields != null)
@@ -477,10 +441,11 @@ namespace KeePassGate.Pipeline
             var entry = vault.Entry(uuid);
             if (entry == null)
             {
-                // Gone since the value was read. There is no node left to ask the rules about, so
-                // there is no answer to give: this lookup used to sit inside the conjunction below,
-                // where a missing entry made `withheld` false and sent the value out.
-                Gone(context);
+                // No node left to ask the rules about, which only a hold that did not last comes
+                // to, so there is no answer to give. This lookup used to sit inside the
+                // conjunction below, where a missing entry made `withheld` false and sent the
+                // value out.
+                Unreachable(context);
                 return;
             }
 
@@ -496,9 +461,8 @@ namespace KeePassGate.Pipeline
                 return;
             }
 
-            // Asked of this lookup, which is after the tag, so it is the entry as of then that
-            // decides whether this caller may still be handed it.
-            tag = MayTag(context, entry) ? tag : null;
+            // After the ceiling, as `readEntry` takes it.
+            var tag = MayTag(context, entry) ? vault.EntryTag(uuid) : null;
             if (PreconditionFails(context, tag))
             {
                 return;
@@ -524,8 +488,8 @@ namespace KeePassGate.Pipeline
             var uuid = Captured(context, "uuid");
             var name = body == null ? null : body.Text("name");
 
-            bool guarded;
-            if (!Marked(body == null ? null : body.Text("protected"), out guarded))
+            bool marked;
+            if (!Marked(body == null ? null : body.Text("protected"), out marked))
             {
                 // A marker this cannot read is refused rather than read as `false`. Everything
                 // else in this plugin denies on a marker it does not recognize, and this one used
@@ -540,28 +504,12 @@ namespace KeePassGate.Pipeline
                 return;
             }
 
-            var entry = vault.Entry(uuid);
-            if (entry == null)
-            {
-                Gone(context);
-                return;
-            }
-
-            if ((guarded || vault.Protects(name)) && !Reaches(context, entry.Node, AclVerb.Create))
-            {
-                Withheld(context);
-                return;
-            }
-
-            // There is a body here: without one there is no name, and a missing name was refused above.
-            var made = body.Text("value");
-
-            // What the check above asked about, not half of it. Asking on `guarded || Protects`
-            // and then storing only `guarded` meant a caller could re-create a standard field
-            // unprotected after stripping it, and every later client with `read` and no
-            // `protected` was handed it in clear until KeePass next normalized the file.
-            Answer(context, vault, uuid, vault.CreateField(
-                uuid, name, made, guarded || vault.Protects(name), Tagging(context, MayTag(context, entry), true)));
+            // There is a body here: without one there is no name, and a missing name was refused
+            // above. Only the caller's own marker goes down with it. Whether the database protects
+            // the name is the vault's to decide, where the value is stored, so that what the rules
+            // are asked about and what is stored are one answer: `IVault.CreateField`.
+            Answer(context, vault.CreateField(
+                uuid, name, body.Text("value"), marked, Asking(context, true, Setting(AclVerb.Create))));
         }
 
         public static void UpdateField(IGateContext context)
@@ -573,33 +521,16 @@ namespace KeePassGate.Pipeline
             }
 
             var body = JsonBody.Read(context.Body);
-            var uuid = Captured(context, "uuid");
-            var name = Captured(context, "name");
-            var entry = vault.Entry(uuid);
-            if (entry == null)
-            {
-                Gone(context);
-                return;
-            }
-
-            // Both halves, which `Guarded` asks: what the database decides about the name and the
-            // flag this string carries. While only the flag was asked here, this route wrote a
-            // password the entry route refused.
-            var guarded = Guarded(vault, uuid, new[] { name });
-            if (guarded == null)
-            {
-                Gone(context);
-                return;
-            }
-
-            if (guarded.Value && !Reaches(context, entry.Node, AclVerb.Update))
-            {
-                Withheld(context);
-                return;
-            }
-
             var written = body == null ? null : body.Text("value");
-            Answer(context, vault, uuid, vault.UpdateField(uuid, name, written, Tagging(context, MayTag(context, entry), true)));
+
+            // Both halves of protected, which the vault finds: what the database decides about
+            // the name and the flag this string carries. While only the flag was asked, this
+            // route wrote a password the entry route refused.
+            Answer(context, vault.UpdateField(
+                Captured(context, "uuid"),
+                Captured(context, "name"),
+                written,
+                Asking(context, true, Setting(AclVerb.Update))));
         }
 
         public static void StripField(IGateContext context)
@@ -607,15 +538,6 @@ namespace KeePassGate.Pipeline
             var vault = Vault(context);
             if (vault == null)
             {
-                return;
-            }
-
-            var uuid = Captured(context, "uuid");
-            var name = Captured(context, "name");
-            var entry = vault.Entry(uuid);
-            if (entry == null)
-            {
-                Gone(context);
                 return;
             }
 
@@ -632,20 +554,11 @@ namespace KeePassGate.Pipeline
             // protected field off as before, because it has nowhere to put anything back. What is
             // refused is a rule that could create in its place and could not have created the
             // protected value it is taking away: any rule the client holds, each asked on its own.
-            var guarded = Guarded(vault, uuid, new[] { name });
-            if (guarded == null)
-            {
-                Gone(context);
-                return;
-            }
-
-            if (guarded.Value && CouldPutBackUnprotected(context, entry.Node))
-            {
-                Withheld(context);
-                return;
-            }
-
-            Answer(context, vault, uuid, vault.DeleteField(uuid, name, Tagging(context, MayTag(context, entry), true)));
+            Answer(context, vault.DeleteField(
+                Captured(context, "uuid"),
+                Captured(context, "name"),
+                Asking(context, true, (inside, found) =>
+                    !found.Guarded || !CouldPutBackUnprotected(inside, found.Node))));
         }
 
         /// <summary>
@@ -684,17 +597,16 @@ namespace KeePassGate.Pipeline
                 return;
             }
 
-            // The tag and then one read, for the reasons `ListFields` gives.
+            // One read, as `ListFields` makes it.
             var uuid = Captured(context, "uuid");
-            var tag = EntryTag(context, vault, uuid);
             var attachments = vault.Attachments(uuid);
             if (attachments == null)
             {
-                Gone(context);
+                Unreachable(context);
                 return;
             }
 
-            tag = Confirmed(context, vault, uuid, tag);
+            var tag = EntryTag(context, vault, uuid);
             if (PreconditionFails(context, tag))
             {
                 return;
@@ -749,17 +661,13 @@ namespace KeePassGate.Pipeline
             var uuid = Captured(context, "uuid");
             var name = Captured(context, "name");
 
-            // The tag first, for the reason `IVault.GroupTag` gives. Then the ceiling goes with
-            // the question, so an attachment over it comes back measured and not decrypted: its
-            // size is kept beside its encrypted bytes. Asking a listing first and reading second
-            // was two reads, and an attachment replaced between them, by the operator's own OK or
-            // a synchronize, was decrypted whole at whatever size it had become before anything
-            // refused it.
-            var tag = EntryTag(context, vault, uuid);
+            // The ceiling goes with the question, so an attachment over it comes back measured
+            // and not decrypted: its size is kept beside its encrypted bytes. Null is a name the
+            // entry does not hold.
             var attachment = vault.Attachment(uuid, name, MaxAttachmentBytes);
             if (attachment == null)
             {
-                Gone(context);
+                Unreachable(context);
                 return;
             }
 
@@ -780,7 +688,8 @@ namespace KeePassGate.Pipeline
                 return;
             }
 
-            tag = Confirmed(context, vault, uuid, tag);
+            // After the ceiling, as `readEntry` takes it.
+            var tag = EntryTag(context, vault, uuid);
             if (PreconditionFails(context, tag))
             {
                 return;
@@ -817,9 +726,8 @@ namespace KeePassGate.Pipeline
                 return;
             }
 
-            var uuid = Captured(context, "uuid");
-            Answer(context, vault, uuid, vault.CreateAttachment(
-                uuid, name, content, Tagging(context, MayTag(context, vault.Entry(uuid)), true)));
+            Answer(context, vault.CreateAttachment(
+                Captured(context, "uuid"), name, content, Asking(context, true)));
         }
 
         public static void UpdateAttachment(IGateContext context)
@@ -839,9 +747,8 @@ namespace KeePassGate.Pipeline
                 return;
             }
 
-            var uuid = Captured(context, "uuid");
-            Answer(context, vault, uuid, vault.UpdateAttachment(
-                uuid, Captured(context, "name"), content, Tagging(context, MayTag(context, vault.Entry(uuid)), true)));
+            Answer(context, vault.UpdateAttachment(
+                Captured(context, "uuid"), Captured(context, "name"), content, Asking(context, true)));
         }
 
         public static void StripAttachment(IGateContext context)
@@ -852,9 +759,8 @@ namespace KeePassGate.Pipeline
                 return;
             }
 
-            var uuid = Captured(context, "uuid");
-            Answer(context, vault, uuid, vault.DeleteAttachment(
-                uuid, Captured(context, "name"), Tagging(context, MayTag(context, vault.Entry(uuid)), true)));
+            Answer(context, vault.DeleteAttachment(
+                Captured(context, "uuid"), Captured(context, "name"), Asking(context, true)));
         }
 
         /// <summary>
@@ -918,29 +824,6 @@ namespace KeePassGate.Pipeline
         private static void Unreachable(IGateContext context)
         {
             context.Respond(404, HttpResponse.ErrorBody(SpecRouter.UnreachableError));
-        }
-
-        /// <summary>
-        /// What a read answers when the node the router decided about is not there by the time
-        /// the handler looks.
-        /// </summary>
-        /// <remarks>
-        /// **Gone, or locked, and `openapi.yaml` §502 tells them apart.** A delete, a lock or a
-        /// close can land between the router's decision and the read. A node that has gone while
-        /// the database stays open is the `404` every absent node gets; a database that has locked
-        /// or closed is `503 locked`, because its nodes have not gone and a client told they had
-        /// would stop looking for something that is still there.
-        ///
-        /// **A listing is the case this was written for.** One of a group or an entry that had gone
-        /// answered `200` and an empty list, which says the node is there and holds nothing: a
-        /// group the operator removed, or a database they locked, read to a client as an empty one.
-        /// </remarks>
-        private static void Gone(IGateContext context)
-        {
-            if (!ServedDatabase.TryAnswerLocked(context))
-            {
-                Unreachable(context);
-            }
         }
 
         private static string Captured(IGateContext context, string name)
@@ -1257,19 +1140,22 @@ namespace KeePassGate.Pipeline
         }
 
         /// <summary>
-        /// Answers a listing, or that the node it was taken from has gone.
+        /// Answers a listing, or that the node it was taken from is not there.
         /// </summary>
         /// <remarks>
-        /// **A listing is one read step**, `IVault.Held` around the sweep and the rules asked of
-        /// everything in it, so it is judged against the tree it was taken from and waits for one
-        /// turn on KeePass's thread rather than one an entry. What it writes is a string by then,
-        /// and the answer goes out with the thread let go.
+        /// **A listing is judged against the tree it was taken from.** The sweep and the rules
+        /// asked of everything in it run inside the hold the router decided the request in, which
+        /// is one turn on KeePass's thread rather than one an entry. What it writes is a string,
+        /// kept until that hold is let go, so the answer goes out with the thread free.
+        ///
+        /// Null is a listing of something that is not there, which `IVault` never answers as an
+        /// empty list, and is never an empty list here either.
         /// </remarks>
         private static void Listed(IGateContext context, string listing)
         {
             if (listing == null)
             {
-                Gone(context);
+                Unreachable(context);
                 return;
             }
 
@@ -1415,84 +1301,74 @@ namespace KeePassGate.Pipeline
             return false;
         }
 
-        /// <summary>Whether any of these names is one the database would protect.</summary>
-        private static bool Guarded(IVault vault, IEnumerable<string> names)
-        {
-            foreach (var name in names)
-            {
-                if (vault.Protects(name))
-                {
-                    return true;
-                }
-            }
-
-            return false;
-        }
-
         /// <summary>
-        /// Whether any of these names is protected on the entry, by the database or by the flag its
-        /// own string carries, or null when the entry is not there to ask.
+        /// The questions a change asks about its caller from inside its own turn, once it has
+        /// found its node.
         /// </summary>
         /// <remarks>
-        /// Both halves, because they answer different questions. A field is protected either
-        /// because of what it is called, which the database decides, or because somebody marked
-        /// that string on that entry, and the two disagree whenever an operator turns a protection
-        /// on, since KeePass does not go back and re-flag what is already there. Overwriting either
-        /// is setting a secret. What the database protects is asked first, so a name it protects
-        /// needs no lookup.
+        /// **Nothing about a change is decided here, on the connection's thread.** These used to
+        /// look the node up, ask whether a protected value may be set and whether the caller may
+        /// be handed the tag, and hand the vault the answers; the write then waited for its turn
+        /// on KeePass's thread and acted on them, whatever the operator had done to the node, its
+        /// rules or its strings in that wait. A string marked protected in the wait was
+        /// overwritten for a rule without `protected`. So the vault is handed the questions and
+        /// asks them of the node it finds: <see cref="VaultAsking"/> has the argument.
         ///
-        /// **An entry whose strings cannot be read is gone, never unprotected.** Every caller found
-        /// the entry a moment before, under a read of its own, and its write finds the entry again
-        /// under another, so an operator's move can miss this lookup alone. Answering "nothing is
-        /// protected" there let the write go ahead and set, or take away, a string protected by its
-        /// own flag for a rule without `protected`. The callers answer null as they answer a miss
-        /// of their own lookup.
+        /// **The router's question first, and every other question of the request it answers
+        /// with.** The <see cref="DecidedInside"/> the router left reads the client's record
+        /// again and asks the rules about the node the change found. What a handler asks beside
+        /// it, and whether the caller may be handed the tag, are asked of that request and not
+        /// of the request that queued, so every answer is about one client and one node at one
+        /// moment.
+        ///
+        /// **A request the router left no question for is refused**, which is the direction a
+        /// defect has to fail in.
         /// </remarks>
-        private static bool? Guarded(IVault vault, string entryUuid, IEnumerable<string> names)
+        /// <param name="answers">Whether the answer carries the tag the change leaves.</param>
+        /// <param name="also">
+        /// What this change asks beside the router's question, of the request as it is decided
+        /// inside the turn, or null when the router's question is all there is.
+        /// </param>
+        private static VaultAsking Asking(
+            IGateContext context, bool answers, Func<IGateContext, VaultFound, bool> also = null)
         {
-            if (Guarded(vault, names))
-            {
-                return true;
-            }
+            object left;
+            var again = context.Items.TryGetValue(SpecRouter.InsideItem, out left) ? left as DecidedInside : null;
 
-            var fields = vault.Fields(entryUuid);
-            if (fields == null)
-            {
-                return null;
-            }
+            // The request as it was decided inside the turn, kept for the questions that follow
+            // the first in that same turn.
+            IGateContext inside = null;
 
-            foreach (var field in fields)
-            {
-                if (!field.IsProtected)
+            return new VaultAsking(
+                found =>
                 {
-                    continue;
-                }
-
-                foreach (var name in names)
-                {
-                    if (string.Equals(field.Name, name, StringComparison.Ordinal))
-                    {
-                        return true;
-                    }
-                }
-            }
-
-            return false;
+                    inside = again == null ? null : again(found.Node);
+                    return inside != null && (also == null || also(inside, found));
+                },
+                found => inside != null && (found.Entry != null
+                    ? MayTag(inside, found.Entry)
+                    : MayTag(inside, found.Group)),
+                Precondition(context),
+                answers);
         }
 
         /// <summary>
-        /// What a caller is told when a write would set a value it may not set, once
-        /// <see cref="Reaches(IGateContext, IAclNode, AclVerb)"/> has written the refusal down.
+        /// What a change that sets a string asks beside the router's question: whether this
+        /// caller may set a protected value, where the change would set one.
         /// </summary>
         /// <remarks>
-        /// The same answer a rule that refuses anything else gives, which is what every refusal
-        /// here looks like: a client that may reach nothing must not be able to map the database by
-        /// noticing which refusals differ. It costs an honest caller a clearer message, and the
-        /// message it would have wanted is on the tab of whoever wrote the rule.
+        /// **Whether it would is the vault's to find**, <see cref="VaultFound.Guarded"/>, and both
+        /// halves of it: a field is protected because of what it is called, which the database
+        /// decides, or because somebody marked that string on that entry, and the two disagree
+        /// whenever an operator turns a protection on, since KeePass does not go back and
+        /// re-flag what is already there. Overwriting either is setting a secret.
+        ///
+        /// **Refused as the rules refusing the change is**, the same `404`, for the reason
+        /// `Answer` gives.
         /// </remarks>
-        private static void Withheld(IGateContext context)
+        private static Func<IGateContext, VaultFound, bool> Setting(AclVerb verb)
         {
-            Unreachable(context);
+            return (inside, found) => !found.Guarded || Reaches(inside, found.Node, verb);
         }
 
         /// <summary>
@@ -1511,7 +1387,7 @@ namespace KeePassGate.Pipeline
         /// that handles field values has to ask it as well.
         ///
         /// **Asked through the router's <see cref="ProtectedReach"/>, which decides and records in
-        /// one walk.** The router records that the verb was granted, before dispatch, and that
+        /// one walk.** The router keeps a line for the verb it granted, and that
         /// line is true; a value withheld is a second decision on the same request, and without
         /// its line the audit held that a client had been given what the gate withheld. That
         /// attempt is exactly what the `protected` switch exists to stop, so its line is exactly
@@ -1625,47 +1501,15 @@ namespace KeePassGate.Pipeline
         /// entry that is not there.
         /// </summary>
         /// <remarks>
-        /// Taken before what it is served with, for the reason `IVault.GroupTag` gives, and only
-        /// for a caller that may have it, since taking one digests every string and attachment.
-        /// What is served afterwards is asked again through <see cref="Confirmed"/>.
+        /// Only for a caller that may have it, since taking a tag digests every string and
+        /// attachment. Whether the entry holds a protected value is part of that question, and it
+        /// is asked of the entry the tag is then taken from: both inside the hold the read was
+        /// decided in, so no value arrives between the two, and the tag is the tag of what is
+        /// served with it, for the reason `IVault.GroupTag` gives.
         /// </remarks>
         private static string EntryTag(IGateContext context, IVault vault, string uuid)
         {
             return MayTag(context, vault.Entry(uuid)) ? vault.EntryTag(uuid) : null;
-        }
-
-        /// <summary>
-        /// A tag taken earlier, still handed out only when the entry as it is now may still be
-        /// tagged for this caller.
-        /// </summary>
-        /// <remarks>
-        /// Whether the entry holds a protected value is part of the question, and the entry can
-        /// take one between the lookup that decided and the tag. Asked again after, so a tag that
-        /// could cover a value this caller may not read goes out only if that value came and went
-        /// between two lookups, which leaves the tag naming content the entry no longer holds.
-        /// </remarks>
-        private static string Confirmed(IGateContext context, IVault vault, string uuid, string tag)
-        {
-            return tag != null && MayTag(context, vault.Entry(uuid)) ? tag : null;
-        }
-
-        /// <summary>What a change is to ask of its node, and whether it answers with the tag it leaves.</summary>
-        /// <remarks>
-        /// **A caller that may not be handed the tag has its `If-Match` failed rather than
-        /// ignored.** Ignoring it would make the write unconditional, which is the one thing a
-        /// client sending a precondition did not ask for. Failed in the vault rather than here,
-        /// so that a node gone, taken or busy is still answered first, as RFC 9110 section 13.2.1
-        /// orders it.
-        /// </remarks>
-        private static VaultTagging Tagging(IGateContext context, bool mayTag, bool answers)
-        {
-            var precondition = Precondition(context);
-            if (!mayTag && precondition != null)
-            {
-                precondition = VaultPrecondition.Withheld();
-            }
-
-            return new VaultTagging(precondition, mayTag && answers);
         }
 
         /// <summary>
@@ -1688,8 +1532,8 @@ namespace KeePassGate.Pipeline
             var asked = Precondition(context);
             if (tag == null && asked != null)
             {
-                // A caller handed no tag, whose condition nothing meets, named as `Tagging` names
-                // a change's.
+                // A caller handed no tag, whose condition nothing meets, named as
+                // `VaultAsking.Tagging` names a change's.
                 asked = VaultPrecondition.Withheld();
             }
 
@@ -1740,50 +1584,24 @@ namespace KeePassGate.Pipeline
         }
 
         /// <summary>
-        /// What a change to an entry answers with, its tag handed back only while this caller may
-        /// still be handed it.
-        /// </summary>
-        private static void Answer(IGateContext context, IVault vault, string uuid, VaultWrite write)
-        {
-            Answer(context, write, write == null ? null : Landed(context, vault, uuid, write.Tag));
-        }
-
-        /// <summary>
-        /// The tag a change that has been made answers with, or null when it cannot be confirmed
-        /// for this caller.
-        /// </summary>
-        /// <remarks>
-        /// **Asked after the change is on the disk, so it must not be the way the change is
-        /// answered `503 busy`.** Confirming the tag reads the entry again, and a read that cannot
-        /// hold KeePass's thread throws `VaultUnsettled`, which the router answers `busy`. Told
-        /// that of a write already saved, a client retries it, and the retry meets its own work: a
-        /// name taken, a field gone, a precondition the change has moved on from. The tag is a
-        /// convenience a client can do without, since reading the entry again hands it the tag, so
-        /// a read that cannot be made here costs the tag and not the answer.
-        /// </remarks>
-        private static string Landed(IGateContext context, IVault vault, string uuid, string tag)
-        {
-            try
-            {
-                return Confirmed(context, vault, uuid, tag);
-            }
-            catch (VaultUnsettled)
-            {
-                return null;
-            }
-        }
-
-        private static void Answer(IGateContext context, VaultWrite write)
-        {
-            Answer(context, write, write == null ? null : write.Tag);
-        }
-
-        /// <summary>
         /// What a change answers with.
         /// </summary>
         /// <remarks>
         /// A refusal that says nothing is there is the same 404 as a node the rules refuse, so a
-        /// client cannot tell a name it may not use from one that is not taken.
+        /// client cannot tell a name it may not use from one that is not taken. **A change the
+        /// rules refuse inside its own turn is that 404 too**, a protected value its caller may
+        /// not set among them: a client that may reach nothing must not be able to map the
+        /// database by noticing which refusals differ. It costs an honest caller a clearer
+        /// message, and the message it would have wanted is on the tab of whoever wrote the rule.
+        ///
+        /// **A change whose caller the database stopped admitting while it waited is answered
+        /// before this**, inside the change's turn and as that caller's next request is, which
+        /// <see cref="DecidedInside"/> describes. The refusal still arrives here, and its `404`
+        /// is a second answer on a request whose first stands.
+        ///
+        /// **The tag is the vault's answer and nothing here asks about it again.** Whether this
+        /// caller may be handed the tag the change left was asked inside the change's turn, of
+        /// the node as the change left it, <see cref="VaultAsking.Tagging"/>.
         ///
         /// **The tag goes in the body, as `etag`, and not in an `ETag` header.** RFC 9110 section
         /// 9.3.4 makes an `ETag` on the answer to a `PUT` mean the representation the request sent
@@ -1791,7 +1609,7 @@ namespace KeePassGate.Pipeline
         /// request had, while every tag here is the tag of the whole node the change left. Written
         /// as `ETag` would write it, quotes and all, so that it goes back as `If-Match` unchanged.
         /// </remarks>
-        private static void Answer(IGateContext context, VaultWrite write, string tag)
+        private static void Answer(IGateContext context, VaultWrite write)
         {
             if (write == null)
             {
@@ -1809,6 +1627,7 @@ namespace KeePassGate.Pipeline
             {
                 // The node's tag as the change left it, where there is one: a client that writes
                 // again can name it without reading in between.
+                var tag = write.Tag;
                 var json = new JsonWriter();
 
                 if (write.Uuid == null)
@@ -1887,7 +1706,17 @@ namespace KeePassGate.Pipeline
                 // above is, and it was the same defect: a caller was told its request had nowhere
                 // to go, which is what an absent node and a refused one are told, so an operator
                 // was sent to look at rules and identifiers over a database that had simply gone.
-                context.Respond(500, HttpResponse.ErrorBody("internal error"));
+                //
+                // **A database that locked or closed while the request waited is `503 locked`**,
+                // as the router answers a read that finds it locked. The handler reads nothing
+                // before the write does, so the write is where a lock landing behind the router
+                // is found, and a client told `500` there would report a defect where the
+                // request only has to be sent again once the database is open.
+                if (!ServedDatabase.TryAnswerLocked(context))
+                {
+                    context.Respond(500, HttpResponse.ErrorBody("internal error"));
+                }
+
                 return;
             }
 

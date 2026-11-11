@@ -213,6 +213,25 @@ namespace KeePassGate.Ui
             get { return t_holds > 0; }
         }
 
+        /// <summary>
+        /// Answers whether the calling thread may not wait for a file: it is KeePass's own, or it
+        /// is holding KeePass's thread still.
+        /// </summary>
+        /// <remarks>
+        /// What the plugin's log and its audit ask before they write a line. KeePass's window
+        /// waits for its own thread, and for as long as a read holds that thread it waits for the
+        /// reader as well, so a line logged inside a hold that waited on slow or unreachable
+        /// storage held the window for that file, up to the hold's limit, and then cost the
+        /// request its answer. A request that changes nothing is decided and served inside one
+        /// hold, and a caller can make that log a line as often as it asks: a precondition
+        /// nothing meets is logged where it is refused.
+        /// </remarks>
+        /// <param name="keePass">The thread KeePass's windows belong to.</param>
+        internal static Func<bool> MayNotWait(Thread keePass)
+        {
+            return () => Thread.CurrentThread == keePass || Holding;
+        }
+
         public string Stalled
         {
             get

@@ -468,11 +468,11 @@ namespace KeePassGate
                 // write it.
                 //
                 // KeePass calls this on its own thread, which is the one that may not wait for a
-                // file: a line the log or the audit is given there goes to a writer of its own.
-                var keePass = System.Threading.Thread.CurrentThread;
-                Func<bool> onKeePass = () => System.Threading.Thread.CurrentThread == keePass;
+                // file, and neither may a thread holding it still for a read: a line the log or
+                // the audit is given on either goes to a writer of its own.
+                var mayNotWait = ControlUiThread.MayNotWait(System.Threading.Thread.CurrentThread);
 
-                _log = new TraceGateLog(onKeePass);
+                _log = new TraceGateLog(mayNotWait);
                 _incidents = new GateIncidents(_log);
 
                 // KeePass's own icons, lent to the tabs for as long as this plugin is loaded. The
@@ -521,7 +521,7 @@ namespace KeePassGate
                 // The audit is opened before anything can be decided, and it is the plugin's own
                 // file rather than the database's: a record of what an agent reached, kept inside
                 // the thing it reached, is a record whoever compromised the database can edit.
-                _audit = new JsonLinesAudit(JsonLinesAudit.DefaultPath(), _log, _incidents, onKeePass);
+                _audit = new JsonLinesAudit(JsonLinesAudit.DefaultPath(), _log, _incidents, mayNotWait);
 
                 // One check for the gate's decisions and the record of what happens to admissions,
                 // the operator's revocations on the tab among them, so that the file has one clock

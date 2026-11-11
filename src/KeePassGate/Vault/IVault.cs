@@ -25,16 +25,22 @@ namespace KeePassGate.Vault
     /// find out where. No verb implies another, and an identifier can as easily have arrived from
     /// an operator as from a listing.
     ///
-    /// Nothing here filters by permission. The rules are asked by the router, about the node each
+    /// No read here filters by permission. The rules are asked by the router, about the node each
     /// of these carries, and a vault that quietly returned less than it was asked for would make
     /// the audit a record of the wrong question.
     ///
+    /// **A change asks the rules itself, through the <see cref="VaultAsking"/> it is handed.**
+    /// The router's answer was given before the change waited for its turn, about a database the
+    /// operator went on editing, so it can refuse a change and cannot permit one: the change
+    /// finds its node inside its turn and asks about the node as it stands there. A vault knows
+    /// nothing of rules or callers by that; it asks what it was handed and acts on the answer.
+    ///
     /// **A listing of something that is not there is null, never empty.** An empty list is an
-    /// answer about a group or an entry, that it holds nothing, and a group removed or a database
-    /// locked between the router's decision and the handler's read used to come back as one: a
-    /// client was told `200` and an empty group. Null is what every single lookup here already
-    /// answers for a node that is not there, and <see cref="IsOpen"/> is what tells a node that has
-    /// gone from a database that has, which `openapi.yaml` §503 and §502 answer differently.
+    /// answer about a group or an entry, that it holds nothing, and a group that had gone by the
+    /// time it was listed, or a database that had locked, used to come back as one: a client was
+    /// told `200` and an empty group. Null is what every single lookup here already answers for
+    /// a node that is not there, and <see cref="IsOpen"/> is what tells a node that has gone from
+    /// a database that has, which `openapi.yaml` §503 and §502 answer differently.
     /// </remarks>
     public interface IVault
     {
@@ -68,9 +74,10 @@ namespace KeePassGate.Vault
         /// What <paramref name="read"/> returned, with the database held still for the whole of it.
         /// </summary>
         /// <remarks>
-        /// For a read step made of several of the reads here, such as a listing and the rules asked
-        /// of everything in it: each read inside it is part of the one hold rather than a hold of
-        /// its own, so the listing is judged against the tree it was taken from, and a thousand
+        /// **A request that changes nothing is one of these**, taken by the router around the
+        /// decision and the handler both, so the client's record, the rules and everything read
+        /// are of one database. Each read inside it is part of the one hold rather than a hold of
+        /// its own, so a listing is judged against the tree it was taken from, and a thousand
         /// entries wait for one turn rather than a thousand. Throws `VaultUnsettled` as they do.
         /// **Nothing that waits belongs inside it**, the audit and the writer least of all, since
         /// the operator's window waits with it.
@@ -88,12 +95,12 @@ namespace KeePassGate.Vault
         /// everything the node holds, so a lookup that only wants to know which node a request is
         /// about, which is what the router asks for every request, never takes one.
         ///
-        /// **Taken before what it is served with**, by every route that serves both. A read runs
-        /// beside the user interface thread and nothing stops a change landing in the middle of
-        /// one, so a tag and its content can come from either side of it. Tag first, and the worst
-        /// a client holds is an older tag beside newer content, which a write it makes under that
-        /// tag is refused over with `412`; the other order handed it a newer tag beside older
-        /// content, which a write would have carried straight over the change it never saw.
+        /// **Of the moment its content is of**, on every route that serves both. A request that
+        /// changes nothing holds KeePass's thread from its decision to its answer, so no change
+        /// lands between a tag and what it is served with, whichever is taken first. Each used to
+        /// be read under a hold of its own, with room for a change between them, and a newer tag
+        /// beside older content is what a write would have carried straight over the change the
+        /// client never saw.
         /// </remarks>
         string GroupTag(string uuid);
 
@@ -109,7 +116,7 @@ namespace KeePassGate.Vault
 
         /// <summary>
         /// An entry's tag, which is its fields' and its attachments' too, or null when there is
-        /// none. Asked and taken as <see cref="GroupTag"/> says.
+        /// none. Asked as <see cref="GroupTag"/> is, and of the same moment as its content.
         /// </summary>
         string EntryTag(string uuid);
 
@@ -181,30 +188,39 @@ namespace KeePassGate.Vault
         /// Not empty. The routing table's lengths keep an empty one from every client, and a vault
         /// answers one as a failure on this side rather than make a group nobody can name.
         /// </param>
-        VaultWrite CreateGroup(string parentUuid, string name, string notes);
+        /// <param name="asking">
+        /// As <see cref="UpdateGroup"/> takes it, about the group the new group goes into. A
+        /// group or an entry created deals in no tag.
+        /// </param>
+        VaultWrite CreateGroup(string parentUuid, string name, string notes, VaultAsking asking);
 
         /// <summary>Renames a group or changes its notes, leaving whichever is null as it is.</summary>
-        /// <param name="tagging">
-        /// Whether the change is made only while the group still holds what `If-Match` named, and
-        /// whether its answer carries the tag it leaves. Every change taking one asks the
-        /// precondition of the node its target answers for, a field's and an attachment's being
-        /// their entry: under the writer's lock, against the node as the change finds it, and
-        /// after every refusal that does not depend on the precondition, as RFC 9110 section
-        /// 13.2.1 orders them, so a node that is gone is still `404`, one that is taken or not
-        /// empty still `409`, and one under an open dialog still `503 busy`. Answered
+        /// <param name="asking">
+        /// Whether the caller may make the change, asked of the node the change finds, inside its
+        /// turn and before anything else about that node is answered: a change refused there is
+        /// <see cref="VaultWrite.Refused"/>, and one handed no asking is refused as well. Every
+        /// change asks about the node its target answers for, a field's and an attachment's
+        /// being their entry, and a create's being the group it goes into.
+        ///
+        /// It answers besides whether the change is made only while the node still holds what
+        /// `If-Match` named, and whether its answer carries the tag it leaves. The precondition
+        /// is asked under the writer's lock, against the node as the change finds it, and after
+        /// every refusal that does not depend on it, as RFC 9110 section 13.2.1 orders them, so
+        /// a node that is gone is still `404`, one that is taken or not empty still `409`, and
+        /// one under an open dialog still `503 busy`. Answered
         /// <see cref="VaultWrite.PreconditionFailed"/> when it does not hold, and an update
         /// naming nothing to change is asked it as well.
         /// </param>
-        VaultWrite UpdateGroup(string uuid, string name, string notes, VaultTagging tagging);
+        VaultWrite UpdateGroup(string uuid, string name, string notes, VaultAsking asking);
 
         /// <summary>Removes a group, which is refused while it still holds anything.</summary>
         /// <remarks>
         /// A recursive delete would let one grant on a parent destroy entries that were never
         /// individually decided or recorded, which is the opposite of what a per-node rule is for.
-        /// A removal answers no tag whatever <paramref name="tagging"/> asks, since it leaves
+        /// A removal answers no tag whatever <paramref name="asking"/> asks, since it leaves
         /// nothing to tag.
         /// </remarks>
-        VaultWrite DeleteGroup(string uuid, VaultTagging tagging);
+        VaultWrite DeleteGroup(string uuid, VaultAsking asking);
 
         /// <summary>
         /// Puts a new entry in a group, holding the five standard fields whether or not they are
@@ -214,8 +230,12 @@ namespace KeePassGate.Vault
         /// When the new entry expires, or null, as <see cref="VaultExpiry.Never"/>, for an entry
         /// that does not expire.
         /// </param>
+        /// <param name="asking">As <see cref="CreateGroup"/> takes it, about the group.</param>
         VaultWrite CreateEntry(
-            string groupUuid, IReadOnlyDictionary<string, string> fields, VaultExpiry expiry = null);
+            string groupUuid,
+            IReadOnlyDictionary<string, string> fields,
+            VaultAsking asking,
+            VaultExpiry expiry = null);
 
         /// <summary>
         /// Sets the strings named on an entry, and one it already holds keeps the protection it had.
@@ -225,37 +245,42 @@ namespace KeePassGate.Vault
         /// <see cref="VaultExpiry.Auto"/> is a create's, and a vault given it here answers a failure
         /// on this side, as it does an empty name for a new field.
         /// </param>
-        /// <param name="tagging">As <see cref="UpdateGroup"/> takes it, about the entry.</param>
+        /// <param name="asking">As <see cref="UpdateGroup"/> takes it, about the entry.</param>
         VaultWrite UpdateEntry(
             string uuid,
             IReadOnlyDictionary<string, string> fields,
-            VaultTagging tagging,
+            VaultAsking asking,
             VaultExpiry expiry = null);
 
         /// <summary>Removes an entry, to the recycle bin when the database keeps one.</summary>
-        /// <param name="tagging">As <see cref="DeleteGroup"/> takes it, about the entry.</param>
-        VaultWrite DeleteEntry(string uuid, VaultTagging tagging);
+        /// <param name="asking">As <see cref="DeleteGroup"/> takes it, about the entry.</param>
+        VaultWrite DeleteEntry(string uuid, VaultAsking asking);
 
         /// <summary>Adds a string that is not there, and refuses one that is.</summary>
         /// <param name="name">Not empty, for the reason <see cref="CreateGroup"/> gives.</param>
-        /// <param name="tagging">
+        /// <param name="isProtected">
+        /// Whether the request marks the string protected. A name the database protects is stored
+        /// protected whichever way this is, and that is settled inside the change, so the rules
+        /// are asked about what is stored and never about what a caller read beforehand.
+        /// </param>
+        /// <param name="asking">
         /// As <see cref="UpdateGroup"/> takes it, about the entry, which answers for the string. A
         /// string's removal answers with the entry's tag too, since the entry is still there.
         /// </param>
         VaultWrite CreateField(
-            string entryUuid, string name, string value, bool isProtected, VaultTagging tagging);
+            string entryUuid, string name, string value, bool isProtected, VaultAsking asking);
 
         /// <summary>Changes a string that is there, and refuses one that is not.</summary>
-        VaultWrite UpdateField(string entryUuid, string name, string value, VaultTagging tagging);
+        VaultWrite UpdateField(string entryUuid, string name, string value, VaultAsking asking);
 
-        VaultWrite DeleteField(string entryUuid, string name, VaultTagging tagging);
+        VaultWrite DeleteField(string entryUuid, string name, VaultAsking asking);
 
         /// <summary>Adds an attachment that is not there, and refuses one that is.</summary>
         /// <param name="name">Not empty, for the reason <see cref="CreateGroup"/> gives.</param>
-        VaultWrite CreateAttachment(string entryUuid, string name, byte[] content, VaultTagging tagging);
+        VaultWrite CreateAttachment(string entryUuid, string name, byte[] content, VaultAsking asking);
 
-        VaultWrite UpdateAttachment(string entryUuid, string name, byte[] content, VaultTagging tagging);
+        VaultWrite UpdateAttachment(string entryUuid, string name, byte[] content, VaultAsking asking);
 
-        VaultWrite DeleteAttachment(string entryUuid, string name, VaultTagging tagging);
+        VaultWrite DeleteAttachment(string entryUuid, string name, VaultAsking asking);
     }
 }

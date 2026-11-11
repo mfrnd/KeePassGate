@@ -1,6 +1,7 @@
 using System.Security.Cryptography;
 using System.Text;
 using KeePassGate.Bridge;
+using KeePassGate.Testing;
 using KeePassGate.Ui;
 using KeePassGate.Vault;
 using KeePassLib;
@@ -90,7 +91,7 @@ namespace KeePassGate.Host.Tests
 
             _refusing = true;
             Assert.Throws<CryptographicException>(() => _vault.UpdateAttachment(
-                Uuid(_entry), "notes.txt", Encoding.UTF8.GetBytes("written by a client"), new VaultTagging(null, true)));
+                Uuid(_entry), "notes.txt", Encoding.UTF8.GetBytes("written by a client"), VaultAskings.Tagged(null, true)));
             _refusing = false;
 
             Assert.That(Encoding.UTF8.GetString(_entry.Binaries.Get("notes.txt").ReadData()), Is.EqualTo("invented"),
@@ -122,18 +123,18 @@ namespace KeePassGate.Host.Tests
             _entry.Binaries.Set("later.txt", new ProtectedBinary(true, Encoding.UTF8.GetBytes("made through the hook")));
             _refusing = true;
 
-            var taken = _vault.DeleteAttachment(Uuid(_entry), "later.txt", new VaultTagging(null, true));
+            var taken = _vault.DeleteAttachment(Uuid(_entry), "later.txt", VaultAskings.Tagged(null, true));
             Assert.That(taken.Ok, Is.True, "no condition, and an answer tagging what is left: " + taken.Reason);
             Assert.That(taken.Tag, Does.Match("^[0-9a-f]{32}$"));
 
             _entry.Binaries.Set("later.txt", new ProtectedBinary(true, Encoding.UTF8.GetBytes("made through the hook")));
 
             var any = _vault.UpdateField(
-                Uuid(_entry), PwDefs.TitleField, "renamed", new VaultTagging(VaultPrecondition.Read("*"), false));
+                Uuid(_entry), PwDefs.TitleField, "renamed", VaultAskings.Tagged(VaultPrecondition.Read("*"), false));
             Assert.That(any.Ok, Is.True, "a condition every entry that is there meets: " + any.Reason);
 
             var none = _vault.UpdateField(
-                Uuid(_entry), PwDefs.TitleField, "renamed again", new VaultTagging(VaultPrecondition.Read("W/\"0\""), false));
+                Uuid(_entry), PwDefs.TitleField, "renamed again", VaultAskings.Tagged(VaultPrecondition.Read("W/\"0\""), false));
             Assert.That(none.IsPreconditionFailed, Is.True, "a condition naming no tag, which no entry meets: " + none.Reason);
             Assert.That(_entry.Strings.ReadSafe(PwDefs.TitleField), Is.EqualTo("renamed"));
         }

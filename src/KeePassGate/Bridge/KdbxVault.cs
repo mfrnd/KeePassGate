@@ -391,7 +391,7 @@ namespace KeePassGate.Bridge
             return new VaultAttachment(name, size, size > most ? null : binary.ReadData());
         }
 
-        public VaultWrite CreateGroup(string parentUuid, string name, string notes)
+        public VaultWrite CreateGroup(string parentUuid, string name, string notes, VaultAsking asking)
         {
             if (string.IsNullOrEmpty(name))
             {
@@ -404,6 +404,12 @@ namespace KeePassGate.Bridge
                 if (parent == null)
                 {
                     return VaultWrite.Missing();
+                }
+
+                var refusal = Refusal(asking, new VaultFound(Describe(parent)));
+                if (refusal != null)
+                {
+                    return refusal;
                 }
 
                 var blocked = BlockingAdditions(parent);
@@ -426,16 +432,21 @@ namespace KeePassGate.Bridge
             });
         }
 
-        public VaultWrite UpdateGroup(string uuid, string name, string notes, VaultTagging tagging)
+        public VaultWrite UpdateGroup(string uuid, string name, string notes, VaultAsking asking)
         {
-            tagging = tagging ?? VaultTagging.None;
-
             return Change(() =>
             {
                 var group = FindGroup(uuid);
                 if (group == null)
                 {
                     return VaultWrite.Missing();
+                }
+
+                VaultTagging tagging;
+                var refusal = Refusal(asking, new VaultFound(Describe(group)), out tagging);
+                if (refusal != null)
+                {
+                    return refusal;
                 }
 
                 var blocked = Blocking(group);
@@ -475,7 +486,7 @@ namespace KeePassGate.Bridge
 
                 group.Touch(true, false);
 
-                return VaultChange.Made(() => VaultWrite.Done(After(tagging, group)), () =>
+                return VaultChange.Made(() => VaultWrite.Done(After(asking, group)), () =>
                 {
                     group.Name = wasName;
                     group.Notes = wasNotes;
@@ -484,16 +495,21 @@ namespace KeePassGate.Bridge
             });
         }
 
-        public VaultWrite DeleteGroup(string uuid, VaultTagging tagging)
+        public VaultWrite DeleteGroup(string uuid, VaultAsking asking)
         {
-            tagging = tagging ?? VaultTagging.None;
-
             return Change(() =>
             {
                 var group = FindGroup(uuid);
                 if (group == null)
                 {
                     return VaultWrite.Missing();
+                }
+
+                VaultTagging tagging;
+                var refusal = Refusal(asking, new VaultFound(Describe(group)), out tagging);
+                if (refusal != null)
+                {
+                    return refusal;
                 }
 
                 if (group.ParentGroup == null)
@@ -586,7 +602,10 @@ namespace KeePassGate.Bridge
         }
 
         public VaultWrite CreateEntry(
-            string groupUuid, IReadOnlyDictionary<string, string> fields, VaultExpiry expiry = null)
+            string groupUuid,
+            IReadOnlyDictionary<string, string> fields,
+            VaultAsking asking,
+            VaultExpiry expiry = null)
         {
             return Change(() =>
             {
@@ -594,6 +613,16 @@ namespace KeePassGate.Bridge
                 if (group == null)
                 {
                     return VaultWrite.Missing();
+                }
+
+                // Whether the database protects a name the body carries, asked here and of the
+                // database as it is, since the operator can change what it protects while this
+                // waited for its turn.
+                var guarded = fields != null && fields.Keys.Any(Protects);
+                var refusal = Refusal(asking, VaultFound.Holding(Describe(group), guarded));
+                if (refusal != null)
+                {
+                    return refusal;
                 }
 
                 var blocked = BlockingAdditions(group);
@@ -652,11 +681,9 @@ namespace KeePassGate.Bridge
         public VaultWrite UpdateEntry(
             string uuid,
             IReadOnlyDictionary<string, string> fields,
-            VaultTagging tagging,
+            VaultAsking asking,
             VaultExpiry expiry = null)
         {
-            tagging = tagging ?? VaultTagging.None;
-
             if (expiry != null && expiry.IsAuto)
             {
                 return Logged(VaultWrite.Failed(
@@ -669,6 +696,18 @@ namespace KeePassGate.Bridge
                 if (entry == null)
                 {
                     return VaultWrite.Missing();
+                }
+
+                // Both halves of every string the body names, the flag it carries and what the
+                // database decides about its name, as the entry holds them now. Asked through the
+                // entry's own dictionary, so a name KeePass would read as the password is judged
+                // as the password, whatever `Clashes` goes on to answer about it.
+                var guarded = fields != null && fields.Keys.Any(name => Guards(entry, name));
+                VaultTagging tagging;
+                var refusal = Refusal(asking, new VaultFound(Single(entry), guarded), out tagging);
+                if (refusal != null)
+                {
+                    return refusal;
                 }
 
                 if (fields != null && Clashes(entry, fields.Keys))
@@ -745,7 +784,7 @@ namespace KeePassGate.Bridge
 
                 entry.Touch(true, false);
 
-                return VaultChange.Made(() => VaultWrite.Done(After(tagging, entry)), () =>
+                return VaultChange.Made(() => VaultWrite.Done(After(asking, entry)), () =>
                 {
                     foreach (var was in before)
                     {
@@ -767,16 +806,21 @@ namespace KeePassGate.Bridge
             });
         }
 
-        public VaultWrite DeleteEntry(string uuid, VaultTagging tagging)
+        public VaultWrite DeleteEntry(string uuid, VaultAsking asking)
         {
-            tagging = tagging ?? VaultTagging.None;
-
             return Change(() =>
             {
                 var entry = FindEntry(uuid);
                 if (entry == null)
                 {
                     return VaultWrite.Missing();
+                }
+
+                VaultTagging tagging;
+                var refusal = Refusal(asking, new VaultFound(Single(entry), false), out tagging);
+                if (refusal != null)
+                {
+                    return refusal;
                 }
 
                 var blocked = Blocking(entry) ?? RecycleBinBlocked();
@@ -798,10 +842,8 @@ namespace KeePassGate.Bridge
         }
 
         public VaultWrite CreateField(
-            string entryUuid, string name, string value, bool isProtected, VaultTagging tagging)
+            string entryUuid, string name, string value, bool isProtected, VaultAsking asking)
         {
-            tagging = tagging ?? VaultTagging.None;
-
             if (string.IsNullOrEmpty(name))
             {
                 return Logged(VaultWrite.Failed("a field needs a name"));
@@ -813,6 +855,19 @@ namespace KeePassGate.Bridge
                 if (entry == null)
                 {
                     return VaultWrite.Missing();
+                }
+
+                // What the rules are asked about is what is stored: protected because the caller
+                // marked it or because the database protects the name, as the database decides
+                // that now. Asked on one and stored on the other, a caller could put a standard
+                // field back unprotected after stripping it, and every later client with `read`
+                // and no `protected` was handed it in clear until KeePass next normalized the file.
+                var guarded = isProtected || Protects(name);
+                VaultTagging tagging;
+                var refusal = Refusal(asking, new VaultFound(Single(entry), guarded), out tagging);
+                if (refusal != null)
+                {
+                    return refusal;
                 }
 
                 if (entry.Strings.Exists(name))
@@ -839,10 +894,10 @@ namespace KeePassGate.Bridge
 
                 var restore = Restoring(entry);
                 var restoreHistory = Backing(entry);
-                entry.Strings.Set(name, new ProtectedString(isProtected, value ?? string.Empty));
+                entry.Strings.Set(name, new ProtectedString(guarded, value ?? string.Empty));
                 entry.Touch(true, false);
 
-                return VaultChange.Made(() => VaultWrite.Created(name, After(tagging, entry)), () =>
+                return VaultChange.Made(() => VaultWrite.Created(name, After(asking, entry)), () =>
                 {
                     entry.Strings.Remove(name);
                     restoreHistory();
@@ -851,14 +906,26 @@ namespace KeePassGate.Bridge
             });
         }
 
-        public VaultWrite UpdateField(string entryUuid, string name, string value, VaultTagging tagging)
+        public VaultWrite UpdateField(string entryUuid, string name, string value, VaultAsking asking)
         {
-            tagging = tagging ?? VaultTagging.None;
-
             return Change(() =>
             {
                 var entry = FindEntry(entryUuid);
-                if (entry == null || !Holds(entry, name))
+                if (entry == null)
+                {
+                    return VaultWrite.Missing();
+                }
+
+                VaultTagging tagging;
+                var guarded = name != null && Guards(entry, name);
+                var refusal = Refusal(asking, new VaultFound(Single(entry), guarded), out tagging);
+                if (refusal != null)
+                {
+                    return refusal;
+                }
+
+                // After the rules, so a caller they refuse is not told which names the entry holds.
+                if (!Holds(entry, name))
                 {
                     return VaultWrite.Missing();
                 }
@@ -886,8 +953,8 @@ namespace KeePassGate.Bridge
                 // the database's own arrangement, and changing it as a side effect of writing a
                 // value would be this API deciding something the operator decided.
                 var existing = entry.Strings.Get(name);
-                var guarded = existing != null && existing.IsProtected;
-                var replacement = new ProtectedString(guarded, value ?? string.Empty);
+                var flagged = existing != null && existing.IsProtected;
+                var replacement = new ProtectedString(flagged, value ?? string.Empty);
 
                 if (existing != null && existing.Equals(replacement, false))
                 {
@@ -900,7 +967,7 @@ namespace KeePassGate.Bridge
                 entry.Strings.Set(name, replacement);
                 entry.Touch(true, false);
 
-                return VaultChange.Made(() => VaultWrite.Done(After(tagging, entry)), () =>
+                return VaultChange.Made(() => VaultWrite.Done(After(asking, entry)), () =>
                 {
                     entry.Strings.Set(name, existing);
                     restoreHistory();
@@ -909,16 +976,22 @@ namespace KeePassGate.Bridge
             });
         }
 
-        public VaultWrite DeleteField(string entryUuid, string name, VaultTagging tagging)
+        public VaultWrite DeleteField(string entryUuid, string name, VaultAsking asking)
         {
-            tagging = tagging ?? VaultTagging.None;
-
             return Change(() =>
             {
                 var entry = FindEntry(entryUuid);
                 if (entry == null)
                 {
                     return VaultWrite.Missing();
+                }
+
+                VaultTagging tagging;
+                var guarded = name != null && Guards(entry, name);
+                var refusal = Refusal(asking, new VaultFound(Single(entry), guarded), out tagging);
+                if (refusal != null)
+                {
+                    return refusal;
                 }
 
                 if (!Holds(entry, name))
@@ -955,7 +1028,7 @@ namespace KeePassGate.Bridge
 
                 // The entry's tag, since the entry is still there, and a client that removes one
                 // field and then changes another needs it to say which entry it is changing.
-                return VaultChange.Made(() => VaultWrite.Done(After(tagging, entry)), () =>
+                return VaultChange.Made(() => VaultWrite.Done(After(asking, entry)), () =>
                 {
                     entry.Strings.Set(name, was);
                     restoreHistory();
@@ -965,10 +1038,8 @@ namespace KeePassGate.Bridge
         }
 
         public VaultWrite CreateAttachment(
-            string entryUuid, string name, byte[] content, VaultTagging tagging)
+            string entryUuid, string name, byte[] content, VaultAsking asking)
         {
-            tagging = tagging ?? VaultTagging.None;
-
             if (string.IsNullOrEmpty(name))
             {
                 return Logged(VaultWrite.Failed("an attachment needs a name"));
@@ -980,6 +1051,13 @@ namespace KeePassGate.Bridge
                 if (entry == null)
                 {
                     return VaultWrite.Missing();
+                }
+
+                VaultTagging tagging;
+                var refusal = Refusal(asking, new VaultFound(Single(entry), false), out tagging);
+                if (refusal != null)
+                {
+                    return refusal;
                 }
 
                 if (entry.Binaries.Get(name) != null)
@@ -1003,7 +1081,7 @@ namespace KeePassGate.Bridge
                 entry.Binaries.Set(name, new ProtectedBinary(true, content ?? Array.Empty<byte>()));
                 entry.Touch(true, false);
 
-                return VaultChange.Made(() => VaultWrite.Created(name, After(tagging, entry)), () =>
+                return VaultChange.Made(() => VaultWrite.Created(name, After(asking, entry)), () =>
                 {
                     entry.Binaries.Remove(name);
                     restoreHistory();
@@ -1013,14 +1091,25 @@ namespace KeePassGate.Bridge
         }
 
         public VaultWrite UpdateAttachment(
-            string entryUuid, string name, byte[] content, VaultTagging tagging)
+            string entryUuid, string name, byte[] content, VaultAsking asking)
         {
-            tagging = tagging ?? VaultTagging.None;
-
             return Change(() =>
             {
                 var entry = FindEntry(entryUuid);
-                if (entry == null || !Keeps(entry, name))
+                if (entry == null)
+                {
+                    return VaultWrite.Missing();
+                }
+
+                VaultTagging tagging;
+                var refusal = Refusal(asking, new VaultFound(Single(entry), false), out tagging);
+                if (refusal != null)
+                {
+                    return refusal;
+                }
+
+                // After the rules, for the reason `UpdateField` gives.
+                if (!Keeps(entry, name))
                 {
                     return VaultWrite.Missing();
                 }
@@ -1054,7 +1143,7 @@ namespace KeePassGate.Bridge
                 entry.Binaries.Set(name, replacement);
                 entry.Touch(true, false);
 
-                return VaultChange.Made(() => VaultWrite.Done(After(tagging, entry)), () =>
+                return VaultChange.Made(() => VaultWrite.Done(After(asking, entry)), () =>
                 {
                     entry.Binaries.Set(name, was);
                     restoreHistory();
@@ -1063,14 +1152,25 @@ namespace KeePassGate.Bridge
             });
         }
 
-        public VaultWrite DeleteAttachment(string entryUuid, string name, VaultTagging tagging)
+        public VaultWrite DeleteAttachment(string entryUuid, string name, VaultAsking asking)
         {
-            tagging = tagging ?? VaultTagging.None;
-
             return Change(() =>
             {
                 var entry = FindEntry(entryUuid);
-                if (entry == null || !Keeps(entry, name))
+                if (entry == null)
+                {
+                    return VaultWrite.Missing();
+                }
+
+                VaultTagging tagging;
+                var refusal = Refusal(asking, new VaultFound(Single(entry), false), out tagging);
+                if (refusal != null)
+                {
+                    return refusal;
+                }
+
+                // After the rules, for the reason `UpdateField` gives.
+                if (!Keeps(entry, name))
                 {
                     return VaultWrite.Missing();
                 }
@@ -1094,7 +1194,7 @@ namespace KeePassGate.Bridge
                 entry.Touch(true, false);
 
                 // The entry's tag, as a field's removal answers it.
-                return VaultChange.Made(() => VaultWrite.Done(After(tagging, entry)), () =>
+                return VaultChange.Made(() => VaultWrite.Done(After(asking, entry)), () =>
                 {
                     entry.Binaries.Set(name, was);
                     restoreHistory();
@@ -1379,15 +1479,83 @@ namespace KeePassGate.Bridge
             return () => tag ?? (tag = Tag(entry));
         }
 
-        /// <summary>The tag a change left, when its answer is to carry one, and null otherwise.</summary>
-        private string After(VaultTagging tagging, PwGroup group)
+        /// <summary>
+        /// What a change's caller is refused before the change is made, or null when the rules
+        /// allow it.
+        /// </summary>
+        /// <remarks>
+        /// **The first thing a change does once it has found its node**, inside its turn on
+        /// KeePass's thread, where neither the node nor the rules above it can move before the
+        /// answer is acted on. Everything a request decided before that turn was decided about a
+        /// database the operator went on editing, so none of it is taken on trust here.
+        /// <see cref="VaultAsking"/> has the argument.
+        ///
+        /// **A change handed no questions is refused**, as the rules refusing it is.
+        ///
+        /// **Busy when the questions cannot be answered.** The admission records are read again
+        /// for them, and records that will not list throw <see cref="VaultUnsettled"/>, which is
+        /// a database to ask again and neither a refusal nor a defect.
+        /// </remarks>
+        /// <param name="tagging">What the change does about the tag of the node as it found it.</param>
+        private static VaultWrite Refusal(VaultAsking asking, VaultFound found, out VaultTagging tagging)
         {
-            return tagging.Answers ? _tags.Of(group) : null;
+            tagging = null;
+
+            try
+            {
+                if (asking == null || !asking.Allows(found))
+                {
+                    return VaultWrite.Refused();
+                }
+
+                tagging = asking.Tagging(found);
+                return null;
+            }
+            catch (VaultUnsettled error)
+            {
+                return VaultWrite.Busy(error.Message);
+            }
         }
 
-        private string After(VaultTagging tagging, PwEntry entry)
+        /// <summary>The same question for a change that deals in no tag, which a create is.</summary>
+        private static VaultWrite Refusal(VaultAsking asking, VaultFound found)
         {
-            return tagging.Answers ? Tag(entry) : null;
+            VaultTagging tagging;
+            return Refusal(asking, found, out tagging);
+        }
+
+        /// <summary>The tag a change left, when its answer is to carry one, and null otherwise.</summary>
+        /// <remarks>
+        /// **Asked of the node as the change left it**, in the same turn as the tag is taken, so
+        /// the tag handed out covers nothing its caller may not read at that moment: a change
+        /// that makes a string protected leaves a node whose tag its own caller may no longer be
+        /// handed.
+        /// </remarks>
+        private string After(VaultAsking asking, PwGroup group)
+        {
+            return Answers(asking, new VaultFound(Describe(group))) ? _tags.Of(group) : null;
+        }
+
+        private string After(VaultAsking asking, PwEntry entry)
+        {
+            return Answers(asking, new VaultFound(Single(entry), false)) ? Tag(entry) : null;
+        }
+
+        /// <summary>Whether the caller is handed the tag of the node a change left.</summary>
+        /// <remarks>
+        /// A question that cannot be answered leaves the tag out and the change in: the change
+        /// is made by now, and a client told `busy` would make it again.
+        /// </remarks>
+        private static bool Answers(VaultAsking asking, VaultFound left)
+        {
+            try
+            {
+                return asking.Tagging(left).Answers;
+            }
+            catch (VaultUnsettled)
+            {
+                return false;
+            }
         }
 
         /// <summary>Whether every string a body names already holds the value it asks for.</summary>

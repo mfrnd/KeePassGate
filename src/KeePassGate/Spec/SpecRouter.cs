@@ -110,6 +110,13 @@ namespace KeePassGate.Spec
         /// </summary>
         public const string GrantsItem = "kpg.grants";
 
+        /// <summary>
+        /// Where the router leaves a <see cref="DecidedInside"/> for an operation whose verb
+        /// changes the database and whose request it did not refuse: the question the change
+        /// asks again from inside its own turn, which is the answer acted on.
+        /// </summary>
+        public const string InsideItem = "kpg.inside";
+
         private readonly SpecDocument _document;
         private readonly Dictionary<string, OperationHandler> _handlers;
         private readonly Dictionary<string, OperationGuard> _guards;
@@ -376,6 +383,17 @@ namespace KeePassGate.Spec
             }
         }
 
+        /// <summary>Writes the lines a request's decisions came to.</summary>
+        /// <remarks>
+        /// Only an operation the rules govern gathers lines, and no router is built holding such
+        /// an operation and nothing to authorize with, which <see cref="AssertAuthorized"/>
+        /// refuses. So the access check is there whenever there is a line to write.
+        /// </remarks>
+        private void Record(DecisionLines lines)
+        {
+            _access.Write(lines);
+        }
+
         public void Handle(IGateContext context)
         {
             if (context == null)
@@ -539,6 +557,16 @@ namespace KeePassGate.Spec
             // moving under it exactly as a handler's does. Catching around the handler alone
             // answered one moving database two ways, and the answer on the earlier hop was the
             // wrong one.
+            //
+            // **The decisions are kept and written last.** A read is decided inside the hold
+            // it is served in, and a change is decided twice, here and again inside its own turn
+            // on KeePass's thread. A line written in either would put the audit's pacing on the
+            // thread the operator is typing into. So every line the request's decisions come to
+            // gathers in one place, the later decision in place of the earlier, and is written
+            // once nothing of the request is left to decide: after the handler, before the answer
+            // goes out, on the caller's own connection.
+            var lines = AclVerbs.IsGoverned(operation.Verb) ? new DecisionLines() : null;
+
             try
             {
                 OperationGuard guard;
@@ -547,37 +575,20 @@ namespace KeePassGate.Spec
                     return;
                 }
 
-                if (!Authorized(context, operation))
+                if (lines != null && !AclVerbs.Changes(operation.Verb))
+                {
+                    // A read, a listing, or a question about what the caller may do at a node:
+                    // nothing about it is decided out here. `Held` has the reason.
+                    Held(context, operation, lines);
+                    return;
+                }
+
+                if (!Authorized(context, operation, lines))
                 {
                     return;
                 }
 
-                if (operation.Body != null && !Typed(context))
-                {
-                    return;
-                }
-
-                if (operation.Body != null && !Checked(context, operation))
-                {
-                    return;
-                }
-
-                // After everything that refuses, so that a condition says nothing about a node
-                // the caller may not reach: a refused node is the same `404` whatever the tag.
-                // The handler asks it of the node, at the read or under the writer's lock.
-                if (operation.TakesIfMatch)
-                {
-                    var precondition = VaultPrecondition.Read(context.GetHeader(SpecDocument.IfMatchHeader));
-                    if (precondition != null)
-                    {
-                        context.Items[PreconditionItem] = precondition;
-                    }
-                }
-
-                // The handler runs as it would for the GET, and what it wrote is dropped by the
-                // writer rather than here: a body blanked at this layer still gets measured, which
-                // is how `Content-Length: 0` went out where a GET would have said forty-five.
-                _handlers[operation.OperationId](context);
+                Served(context, operation);
             }
             catch (VaultUnsettled)
             {
@@ -587,6 +598,130 @@ namespace KeePassGate.Spec
                 // plugin, answers 500, and puts an incident on the plugin's own window for it.
                 context.Respond(503, HttpResponse.ErrorBody("busy"));
             }
+            finally
+            {
+                if (lines != null)
+                {
+                    Record(lines);
+                }
+            }
+        }
+
+        /// <summary>
+        /// A request that changes nothing, decided and served while KeePass's thread is held
+        /// still once.
+        /// </summary>
+        /// <remarks>
+        /// **One hold for the client, the rules and the answer.** The client's record and the
+        /// list of profiles are read again, the node is found, the rules are asked and the
+        /// handler reads what it serves, all of the database as it stands at one moment. Each of
+        /// those was a hold of its own, so an operator's edit could land between any two of them:
+        /// a rule taken away after the router asked still let the read through, and what the
+        /// read served was the database as it stood after the edit. Nothing about a read is
+        /// decided before this hold, because an answer from before it is an answer about another
+        /// moment, which is what a change's first answer is and why a change asks again.
+        ///
+        /// **The answer is handed over once the hold has ended**, for the reason
+        /// <see cref="DecidedContext"/> gives, and a hold that could not be taken or did not
+        /// last leaves the request to the `503 busy` every unsettled read gets. The lines its
+        /// decisions came to are written all the same: they are what was decided, and a change
+        /// that queued and was never made leaves its line too.
+        ///
+        /// **Nothing in here waits**, which <see cref="Ui.IReadHold"/> asks of everything it
+        /// holds KeePass's thread for: the audit's lines are kept and written once the hold is
+        /// over, and the answer is written to the connection after that.
+        /// </remarks>
+        private void Held(IGateContext context, SpecOperation operation, DecisionLines lines)
+        {
+            // With no vault on the request there is no thread to hold, and nothing of a database
+            // for the steps to read: they run where they are.
+            var vault = ServedDatabase.Of(context);
+            var read = vault == null
+                ? Read(context, operation, lines)
+                : vault.Held(() => Read(context, operation, lines));
+
+            read.Deliver();
+        }
+
+        /// <summary>
+        /// Everything a held request does, against the client as the database holds it now, with
+        /// the answer kept on what is returned.
+        /// </summary>
+        private DecidedContext Read(IGateContext context, SpecOperation operation, DecisionLines lines)
+        {
+            var client = ClientCredentials.Again(
+                context.Client, ServedDatabase.TargetOf(context), ServedDatabase.LogOf(context));
+            var read = new DecidedContext(context, client, true);
+
+            if (!client.IsPaired)
+            {
+                TurnAway(read, operation, lines);
+                return read;
+            }
+
+            if (Authorized(read, operation, lines))
+            {
+                Served(read, operation);
+            }
+
+            return read;
+        }
+
+        /// <summary>
+        /// Answers a client the database stopped admitting between its connection and the moment
+        /// its request is decided, as its next connection is answered.
+        /// </summary>
+        /// <remarks>
+        /// A database that locked, or that nobody is served from for now, is the `503` the
+        /// listener gives before routing, in the same word, and leaves no line, because nothing
+        /// was decided. A certificate whose record has gone is refused as a certificate with no
+        /// record is refused on arrival: the line a refused certificate gets, and the `401` every
+        /// route gives a caller the database does not admit.
+        ///
+        /// A read comes here inside its hold and a change inside its turn, so the two are turned
+        /// away alike.
+        /// </remarks>
+        private void TurnAway(IGateContext decided, SpecOperation operation, DecisionLines lines)
+        {
+            if (decided.Client.UnavailableError != null)
+            {
+                decided.Respond(503, HttpResponse.ErrorBody(decided.Client.UnavailableError));
+                return;
+            }
+
+            _access.Refuse(decided.Client, operation.OperationId, lines);
+            Undeclared.Refuse(decided);
+        }
+
+        /// <summary>The body, the condition and the handler, for a request the rules let through.</summary>
+        private void Served(IGateContext context, SpecOperation operation)
+        {
+            if (operation.Body != null && !Typed(context))
+            {
+                return;
+            }
+
+            if (operation.Body != null && !Checked(context, operation))
+            {
+                return;
+            }
+
+            // After everything that refuses, so that a condition reveals nothing about a node the
+            // caller may not reach: a refused node is the same `404` whatever the tag. The
+            // handler asks it of the node, inside the read's hold or under the writer's lock.
+            if (operation.TakesIfMatch)
+            {
+                var precondition = VaultPrecondition.Read(context.GetHeader(SpecDocument.IfMatchHeader));
+                if (precondition != null)
+                {
+                    context.Items[PreconditionItem] = precondition;
+                }
+            }
+
+            // The handler runs as it would for the GET, and what it wrote is dropped by the
+            // writer rather than here: a body blanked at this layer still gets measured, which
+            // is how `Content-Length: 0` went out where a GET would have sent forty-five.
+            _handlers[operation.OperationId](context);
         }
 
         /// <summary>Whether every query parameter sent is one the operation declares.</summary>
@@ -712,8 +847,18 @@ namespace KeePassGate.Spec
         /// **Before**, and for the same reason the guard is: checking a body first would let a
         /// caller that may not reach a node learn whether its body would have been accepted, which
         /// is a difference the refusal exists to deny.
+        ///
+        /// **For a change this can refuse and cannot permit.** What it permits is a place in the
+        /// queue for KeePass's thread, and the change asks again from inside its turn, through
+        /// the <see cref="DecidedInside"/> left for it here. Asked here all the same, so that a
+        /// request the rules refuse is turned away before its body is read and before it costs
+        /// KeePass's thread anything.
+        ///
+        /// **For anything else this is the only asking**, and <see cref="Held"/> runs it inside
+        /// the hold the answer is read in.
         /// </remarks>
-        private bool Authorized(IGateContext context, SpecOperation operation)
+        /// <param name="lines">Where the request's decisions are kept until they are written.</param>
+        private bool Authorized(IGateContext context, SpecOperation operation, DecisionLines lines)
         {
             if (!AclVerbs.IsGoverned(operation.Verb))
             {
@@ -738,17 +883,13 @@ namespace KeePassGate.Spec
             // caller may have the protected values inside an answer it is otherwise allowed. It
             // goes through the same check, which decides it and writes a refusal down in one walk,
             // so that the answer the handler acts on is the answer recorded.
-            var access = _access;
-            var operationId = operation.OperationId;
-            var client = context.Client;
-            context.Items[ReachItem] = (ProtectedReach)((n, v, profiles) =>
-                access.Reaches(client, operationId, v, AclReach.Protected, n, profiles));
+            context.Items[ReachItem] = Reach(context.Client, operation, lines);
 
             // The identifier asked for goes on the line when it found nothing, so the operator can
             // see which reference a request was following; the check keeps only a well-formed one.
             var decision = _access.Decide(
                 context.Client, operation.OperationId, operation.Verb, operation.Reach, node,
-                node == null ? Captured(context, "uuid") : null);
+                node == null ? Captured(context, "uuid") : null, lines);
 
             if (decision.Permitted)
             {
@@ -759,11 +900,78 @@ namespace KeePassGate.Spec
                     context.Items[GrantsItem] = decision.Grants;
                 }
 
+                if (AclVerbs.Changes(operation.Verb))
+                {
+                    context.Items[InsideItem] =
+                        (DecidedInside)(found => Inside(context, operation, found, lines));
+                }
+
                 return true;
             }
 
             context.Respond(404, HttpResponse.ErrorBody(UnreachableError));
             return false;
+        }
+
+        /// <summary>
+        /// The protected-scope question for one client, deciding and keeping its refusals in one
+        /// walk.
+        /// </summary>
+        private ProtectedReach Reach(ClientIdentity client, SpecOperation operation, DecisionLines lines)
+        {
+            var access = _access;
+            var operationId = operation.OperationId;
+
+            return (node, verb, profiles) =>
+                access.Reaches(client, operationId, verb, AclReach.Protected, node, profiles, lines);
+        }
+
+        /// <summary>
+        /// A change decided again, inside its own turn and about the node it found there: what
+        /// <see cref="DecidedInside"/> describes.
+        /// </summary>
+        /// <remarks>
+        /// **The client first, then the rules about that client.** The record and the list of
+        /// profiles are read in the same turn the node was found in, so the three cannot have
+        /// moved against each other, and the profiles the resolver is handed are the ones the
+        /// database holds for this certificate now.
+        ///
+        /// **Both answers replace the line the router kept before dispatch**, a refused
+        /// certificate as the certificate's own refusal and anything else as the rules decided
+        /// it, so the audit holds the answer the change was given and not the one it queued on.
+        ///
+        /// **A client the database stopped admitting while the change waited is answered here**,
+        /// by <see cref="TurnAway"/> and on the request itself, before null goes back to refuse
+        /// the change. Left to the handler, a refusal is the `404` of a node that is not there,
+        /// which told a revoked client to look for another node and told a client whose database
+        /// had locked, or had come to hold two authorities, that what it was changing had gone.
+        /// The first answer on a request stands, so the handler's `404` comes second and changes
+        /// nothing. A database that is not there replaces no line: the line kept before dispatch
+        /// is the only answer the rules gave, as it is for a change that never reached its turn.
+        /// </remarks>
+        private IGateContext Inside(
+            IGateContext context, SpecOperation operation, IAclNode node, DecisionLines lines)
+        {
+            var client = ClientCredentials.Again(
+                context.Client, ServedDatabase.TargetOf(context), ServedDatabase.LogOf(context));
+
+            if (!client.IsPaired)
+            {
+                TurnAway(new DecidedContext(context, client), operation, lines);
+                return null;
+            }
+
+            var decision = _access.Decide(
+                client, operation.OperationId, operation.Verb, operation.Reach, node, null, lines);
+
+            if (!decision.Permitted)
+            {
+                return null;
+            }
+
+            var inside = new DecidedContext(context, client);
+            inside.Items[ReachItem] = Reach(client, operation, lines);
+            return inside;
         }
 
         /// <summary>A path parameter as the router captured it, or null.</summary>

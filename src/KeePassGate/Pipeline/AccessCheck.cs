@@ -93,10 +93,11 @@ namespace KeePassGate.Pipeline
         /// connection it asked on arrived on an invitation, which reaches the pairing routes alone.
         /// </summary>
         /// <remarks>
-        /// The other refusal of a certificate this database issued, beside <see cref="Refuse"/>'s,
-        /// and it went unwritten: a client holding an invitation as well can ask on its name for
-        /// what its own name gives it, with the pairing budget on the thread, and the audit is
-        /// where the operator sees it. The certificate is admitted, so its line names both keys.
+        /// The other refusal of a certificate this database issued, beside
+        /// <see cref="Refuse(ClientIdentity, string)"/>'s, and it went unwritten: a client holding
+        /// an invitation as well can ask on its name for what its own name gives it, with the
+        /// pairing budget on the thread, and the audit is where the operator sees it. The
+        /// certificate is admitted, so its line names both keys.
         /// </remarks>
         public void RefuseOnInvitation(ClientIdentity client, string operationId)
         {
@@ -105,7 +106,7 @@ namespace KeePassGate.Pipeline
                 return;
             }
 
-            Write(client, operationId, null, null, false, ArrivedOnInvitation, null, null);
+            Write(client, operationId, null, null, false, ArrivedOnInvitation, null, null, null, false);
         }
 
         /// <summary>
@@ -137,8 +138,27 @@ namespace KeePassGate.Pipeline
         public AclDecision Decide(
             ClientIdentity client, string operationId, AclVerb verb, AclReach reach, IAclNode node, string requested)
         {
+            return Decide(client, operationId, verb, reach, node, requested, null);
+        }
+
+        /// <summary>
+        /// The same, with the line kept as the request's decision rather than written.
+        /// </summary>
+        /// <remarks>
+        /// For a decision made while KeePass's thread is stopped for it: <see cref="DecisionLines"/>
+        /// has the reason, and <see cref="Write(DecisionLines)"/> writes what was kept.
+        /// </remarks>
+        public AclDecision Decide(
+            ClientIdentity client,
+            string operationId,
+            AclVerb verb,
+            AclReach reach,
+            IAclNode node,
+            string requested,
+            DecisionLines lines)
+        {
             var decision = Answer(client, client == null ? null : client.Profiles, verb, reach, node);
-            Written(client, operationId, verb, reach, node, decision, requested, true);
+            Written(client, operationId, verb, reach, node, decision, requested, true, lines, true);
             return decision;
         }
 
@@ -175,6 +195,21 @@ namespace KeePassGate.Pipeline
             IAclNode node,
             IReadOnlyList<string> profiles)
         {
+            return Reaches(client, operationId, verb, reach, node, profiles, null);
+        }
+
+        /// <summary>
+        /// The same, with a refusal's line kept after the request's decision rather than written.
+        /// </summary>
+        public bool Reaches(
+            ClientIdentity client,
+            string operationId,
+            AclVerb verb,
+            AclReach reach,
+            IAclNode node,
+            IReadOnlyList<string> profiles,
+            DecisionLines lines)
+        {
             var held = client == null ? null : client.Profiles;
             var asked = profiles == null || held == null
                 ? held
@@ -186,7 +221,7 @@ namespace KeePassGate.Pipeline
                 return true;
             }
 
-            Written(client, operationId, verb, reach, node, decision, null, profiles == null);
+            Written(client, operationId, verb, reach, node, decision, null, profiles == null, lines, false);
             return false;
         }
 
@@ -197,6 +232,8 @@ namespace KeePassGate.Pipeline
         /// <param name="restoring">
         /// Whether a refusal asks the removed profiles what they would have done.
         /// </param>
+        /// <param name="lines">Where the line is kept, or null to write it now.</param>
+        /// <param name="decides">Whether a kept line is the request's decision.</param>
         private void Written(
             ClientIdentity client,
             string operationId,
@@ -205,7 +242,9 @@ namespace KeePassGate.Pipeline
             IAclNode node,
             AclDecision decision,
             string requested,
-            bool restoring)
+            bool restoring,
+            DecisionLines lines,
+            bool decides)
         {
             var name = node == null ? null : node.Name;
 
@@ -215,12 +254,21 @@ namespace KeePassGate.Pipeline
             if (removed == null || restored == null)
             {
                 Write(
-                    client, operationId, name, decision.DecidedAt, decision.Permitted, decision.Reason, null, requested);
+                    client,
+                    operationId,
+                    name,
+                    decision.DecidedAt,
+                    decision.Permitted,
+                    decision.Reason,
+                    null,
+                    requested,
+                    lines,
+                    decides);
             }
             else
             {
                 var reason = client.ProfilesUnreadable ? ProfilesUnreadable : ProfileRemoved;
-                Write(client, operationId, name, restored.DecidedAt, false, reason, removed, requested);
+                Write(client, operationId, name, restored.DecidedAt, false, reason, removed, requested, lines, decides);
             }
         }
 
@@ -280,12 +328,45 @@ namespace KeePassGate.Pipeline
         /// </remarks>
         public void Refuse(ClientIdentity client, string operationId)
         {
+            Refuse(client, operationId, null);
+        }
+
+        /// <summary>
+        /// The same, with the line kept as the request's decision rather than written.
+        /// </summary>
+        /// <remarks>
+        /// For a client whose record went between the connection's own check and the request's
+        /// decision: that refusal is the answer the request was given, so it is the line.
+        /// </remarks>
+        public void Refuse(ClientIdentity client, string operationId, DecisionLines lines)
+        {
             if (client == null || client.Refusal == null)
             {
                 return;
             }
 
-            Write(client, operationId, null, null, false, client.Refusal, null, null);
+            Write(client, operationId, null, null, false, client.Refusal, null, null, lines, true);
+        }
+
+        /// <summary>
+        /// Writes the lines a request's decisions were kept as, the decision first.
+        /// </summary>
+        /// <remarks>
+        /// Called once the hold or the turn the decisions were made in is over, on the connection's
+        /// own thread, which is the thread that pays the wait <see cref="DecisionPace"/> imposes.
+        /// Each line keeps the moment it was decided at.
+        /// </remarks>
+        public void Write(DecisionLines lines)
+        {
+            if (lines == null)
+            {
+                return;
+            }
+
+            foreach (var line in lines.Taken())
+            {
+                Write(line.Entry, line.Allowance);
+            }
         }
 
         private void Write(
@@ -296,25 +377,16 @@ namespace KeePassGate.Pipeline
             bool permitted,
             string reason,
             IReadOnlyList<string> removedProfiles,
-            string requested)
+            string requested,
+            DecisionLines lines,
+            bool decides)
         {
-            // When it was decided, which is now and not once the wait below is over: `at` is the
-            // moment the rules answered, and a paced client's lines would otherwise be stamped up
-            // to seconds late, which is exactly the client somebody reading them is looking at.
-            var at = _clock();
-
-            // Before the line, so the wait is paid by the request that would have written it. By
-            // the client key, so a renewal keeps the allowance spent; a refused certificate has no
-            // client and shares one allowance with every refused certificate of its database, for
-            // the reason `DecisionPace` gives. Not at all where the audit keeps nothing, since the
-            // pace exists to protect a file and there is none.
-            if (_audit.Keeps)
-            {
-                _pace.Take(Allowance(client));
-            }
-
-            _audit.Record(new AuditEntry(
-                at,
+            // When it was decided, which is now and not once the wait in the writing is over, or
+            // the hold a kept line was decided in: `at` is the moment the rules answered, and a
+            // paced client's lines would otherwise be stamped up to seconds late, which is exactly
+            // the client somebody reading them is looking at.
+            var entry = new AuditEntry(
+                _clock(),
                 client == null ? null : client.DatabaseId,
                 client == null ? null : client.AdmissionKey,
                 client == null ? null : client.ClientKey,
@@ -324,7 +396,35 @@ namespace KeePassGate.Pipeline
                 permitted,
                 reason,
                 removedProfiles,
-                Identifier(requested)));
+                Identifier(requested));
+
+            if (lines == null)
+            {
+                Write(entry, Allowance(client));
+            }
+            else if (decides)
+            {
+                lines.Decided(entry, Allowance(client));
+            }
+            else
+            {
+                lines.Asked(entry, Allowance(client));
+            }
+        }
+
+        private void Write(AuditEntry entry, string allowance)
+        {
+            // Before the line, so the wait is paid by the request that would have written it. By
+            // the client key, so a renewal keeps the allowance spent; a refused certificate has no
+            // client and shares one allowance with every refused certificate of its database, for
+            // the reason `DecisionPace` gives. Not at all where the audit keeps nothing, since the
+            // pace exists to protect a file and there is none.
+            if (_audit.Keeps)
+            {
+                _pace.Take(allowance);
+            }
+
+            _audit.Record(entry);
         }
 
         /// <summary>
