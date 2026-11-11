@@ -101,8 +101,9 @@ The mark is in the row it acts on, so there is never a question of which client 
 remove. The same mark takes a rule away in the access editor.
 
 **Once accepted it takes effect at once, and saving is what keeps it.** Records are read from the
-open database on every request, so from the next request onwards that client is told it is not
-admitted. Nothing has to be reloaded and nothing has to be told. [The audit file](audit.md) records
+open database as each request is served, so from then on that client is told it is not admitted, a
+request of its own that was still waiting for KeePass included. Nothing has to be reloaded and
+nothing has to be told. [The audit file](audit.md) records
 the revocation at that moment, by the certificate's key and the client key, and records nothing for
 one that Cancel took away.
 

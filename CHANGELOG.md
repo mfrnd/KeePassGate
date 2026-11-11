@@ -11,6 +11,25 @@ none, since it releases both.
 
 ## 0.2.0, unreleased
 
+- **A read is decided and served at one moment, and a change is decided as it is made.** The
+  rules were asked before a request's handler ran, and KeePass could move in between. A rule
+  taken away, a profile removed or a client revoked after the rules had answered was served
+  regardless, from the database as it stood after the edit, so a value typed into an entry once
+  its group was sealed went out to the client the seal was for. A change that waited behind a
+  save wrote over a string marked protected in the meantime for a rule without `protected`, or
+  removed an entry by the rule of the group the entry had just left. A request that changes
+  nothing is now decided and served with KeePass's thread held still once, from the caller's
+  admission record to the answer, and a change is asked about again inside its own turn, where
+  that answer is acted on and written to the audit in place of the earlier line. A read's `ETag`
+  and its content are of one moment as well, where a tag could be older than what it arrived
+  beside. The longest such hold measured is about fifty-five milliseconds, listing ten thousand
+  entries.
+- **A client revoked while its request waited for KeePass is answered `401 unpaired`**, as its
+  next request is, where the request was served as though still admitted. A database that came
+  to hold two authorities in that wait answers `503 undecided` the same way.
+- **What the plugin logs while it holds KeePass still for a read no longer waits on the log
+  file.** Such a line went to the file with KeePass's window waiting for it. It is queued now and
+  written by the log's own thread, as a line logged on KeePass's own thread is.
 - **A read asked for while KeePass merges waits for the merge to end.** A synchronize, an
   import and XML Replace let messages through between one step and the next, and a read was
   served there from a database part way between the two being merged: entries not yet arrived,
