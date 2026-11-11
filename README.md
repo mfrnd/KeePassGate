@@ -1,4 +1,4 @@
-# KeePassGate: what KeePass and KeePassXC do to a database's custom data
+# KeePassGate: what KeePass and other programs do to a database's custom data
 
 **Measurements, kept for reference and never merged.** KeePassGate keeps its certificate authority,
 its admission records and its revocations in `PwDatabase.CustomData`, and a database that is
@@ -10,6 +10,10 @@ The same file can also be opened by another program. What KeePassXC does to it w
 when it merges, and what KeePass 2.47 does when it saves, was answered the same way: by running
 six KeePassXC releases from 2.4.1 to 2.8.0, chosen where its behavior changes, and KeePass 2.47
 against throwaway databases shaped like the plugin's.
+
+So was what the Android programs that open KDBX 4 files do to it: Keepass2Android, KeePassDX and
+KeePassDroid, six releases among them, run in an emulator against the same kind of database, each
+saving it and, where the program has a merge, merging two copies.
 
 This branch is taken from `master` and holds nothing else: no plugin, no tests, no design
 documents. What the probe settled is in [`RESULTS.md`](RESULTS.md), with the recorded output beside
@@ -206,3 +210,14 @@ come back exactly:
 
 And one value depends on the machine: the language of KeePassXC's date marker is the system's
 before 2.8.0, recorded here as `de-DE`, and English from 2.8.0.
+
+**The Android output is in another notation**, that of `Kpg.cs`, set out at the top of each
+`android-*.txt`, and it prints times as they are. A re-run therefore differs from it in every time
+a program wrote, in every hash, and in `SettingsChanged`, since `Kpg.cs` makes the databases anew.
+What is compared is the first line of each file's block: the format, the value and the time of each
+key by the copy it came from, and the rules on G and E1.
+
+Those files are not written by a script. They were put together from the read-backs and the step
+logs of the one run, with the work directory cut from the front of every path and the lines that
+describe the machine left out. `collect.ps1` writes full paths, so what it writes is not for
+committing as it comes back.

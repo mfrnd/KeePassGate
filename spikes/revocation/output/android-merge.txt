@@ -1,0 +1,452 @@
+The Android programs merging the paired databases, each result read back.
+
+A block is one file as `Kpg.cs` read it with KeePassLib 2.61.1, less the work directory in front of
+its path. Its first line is the summary: the file, the KDBX version, then each of the plugin's keys
+as label:value/time. A value is `=` where C and P hold the same and this file holds it, `C` or `P`
+for that copy's, and the whole item is `label:-` where the key is absent. A time is `=`, `C` or `P`
+the same way and `none` where the key has no modification time. `G:` and `E1:` are the rule on that
+group and that entry: `C`, `P`, or `-` for none. `E2@H(prev)` is an entry in H whose previous parent
+group is still recorded. Under it: the bytes, the KDF, each key with its value cut at 40 characters
+and its time after `@`, then every group and entry with its modification time, its previous parent
+and its custom data.
+
+A cell is named for what was done. `PC` is P open in the program and C arriving, `CP` the reverse,
+and a trailing `s` is a source whose `SettingsChanged` is the later. In Keepass2Android the source
+is written over the open file, an entry `droid-merge` is added and saved, and the prompt that raises
+is answered "Yes, merge". In KeePassDX `ext` is the same replacement answered with "Merge data",
+with no entry added; `from` is "Merge from ..." with the source in a file of its own, read back
+afterwards as the `-src` file; and `keep` is the replacement with no merge asked for, an entry added
+and saved. KeePassDX 3.2.0 writes nothing at "Merge data", so "Save data" follows it there.
+
+Each program has the summary line of every run, then run 1 of each cell in full, then how the other
+runs of that cell differ from it once the path, the bytes and the time taken to open are set aside.
+
+Keepass2Android 1.15-r6
+B\k2a-1.15-r6\CP-r1\k2a-1.15-r6-CP.kdbx | kdbx 4.0 | A0:=/none A0r:=/none A1:=/none C1:=/none C2:C/none C0:=/none C0v:=/none Prof:C/none C2v:P/none A1r:P/none A2:P/none | G:P E1:P | others: (none) | entries: droid-merge@Root,E1@G,E2@G | open 0.1s
+B\k2a-1.15-r6\CP-r2\k2a-1.15-r6-CP.kdbx | kdbx 4.0 | A0:=/none A0r:=/none A1:=/none C1:=/none C2:C/none C0:=/none C0v:=/none Prof:C/none C2v:P/none A1r:P/none A2:P/none | G:P E1:P | others: (none) | entries: droid-merge@Root,E1@G,E2@G | open 0.0s
+B\k2a-1.15-r6\CP-r3\k2a-1.15-r6-CP.kdbx | kdbx 4.0 | A0:=/none A0r:=/none A1:=/none C1:=/none C2:C/none C0:=/none C0v:=/none Prof:C/none C2v:P/none A1r:P/none A2:P/none | G:P E1:P | others: (none) | entries: droid-merge@Root,E1@G,E2@G | open 0.0s
+B\k2a-1.15-r6\CPs-r1\k2a-1.15-r6-CPs.kdbx | kdbx 4.0 | A0:=/none A0r:=/none A1:=/none C1:=/none C2:P/none C0:=/none C0v:=/none Prof:P/none C2v:P/none A1r:P/none A2:P/none | G:P E1:P | others: (none) | entries: droid-merge@Root,E1@G,E2@G | open 0.0s
+B\k2a-1.15-r6\CPs-r2\k2a-1.15-r6-CPs.kdbx | kdbx 4.0 | A0:=/none A0r:=/none A1:=/none C1:=/none C2:P/none C0:=/none C0v:=/none Prof:P/none C2v:P/none A1r:P/none A2:P/none | G:P E1:P | others: (none) | entries: droid-merge@Root,E1@G,E2@G | open 0.0s
+B\k2a-1.15-r6\CPs-r3\k2a-1.15-r6-CPs.kdbx | kdbx 4.0 | A0:=/none A0r:=/none A1:=/none C1:=/none C2:P/none C0:=/none C0v:=/none Prof:P/none C2v:P/none A1r:P/none A2:P/none | G:P E1:P | others: (none) | entries: droid-merge@Root,E1@G,E2@G | open 0.0s
+B\k2a-1.15-r6\PC-r1\k2a-1.15-r6-PC.kdbx | kdbx 4.0 | A0:=/none A0r:=/none A1:=/none C1:=/none C2:P/none C0:=/none C0v:=/none Prof:P/none C2v:P/none A1r:P/none A2:P/none | G:P E1:P | others: (none) | entries: droid-merge@Root,E1@G,E2@G | open 0.0s
+B\k2a-1.15-r6\PC-r2\k2a-1.15-r6-PC.kdbx | kdbx 4.0 | A0:=/none A0r:=/none A1:=/none C1:=/none C2:P/none C0:=/none C0v:=/none Prof:P/none C2v:P/none A1r:P/none A2:P/none | G:P E1:P | others: (none) | entries: droid-merge@Root,E1@G,E2@G | open 0.0s
+B\k2a-1.15-r6\PC-r3\k2a-1.15-r6-PC.kdbx | kdbx 4.0 | A0:=/none A0r:=/none A1:=/none C1:=/none C2:P/none C0:=/none C0v:=/none Prof:P/none C2v:P/none A1r:P/none A2:P/none | G:P E1:P | others: (none) | entries: droid-merge@Root,E1@G,E2@G | open 0.0s
+B\k2a-1.15-r6\PCs-r1\k2a-1.15-r6-PCs.kdbx | kdbx 4.0 | A0:=/none A0r:=/none A1:=/none C1:=/none C2:C/none C0:=/none C0v:=/none Prof:C/none C2v:P/none A1r:P/none A2:P/none | G:P E1:P | others: (none) | entries: droid-merge@Root,E1@G,E2@G | open 0.0s
+B\k2a-1.15-r6\PCs-r2\k2a-1.15-r6-PCs.kdbx | kdbx 4.0 | A0:=/none A0r:=/none A1:=/none C1:=/none C2:C/none C0:=/none C0v:=/none Prof:C/none C2v:P/none A1r:P/none A2:P/none | G:P E1:P | others: (none) | entries: droid-merge@Root,E1@G,E2@G | open 0.0s
+B\k2a-1.15-r6\PCs-r3\k2a-1.15-r6-PCs.kdbx | kdbx 4.0 | A0:=/none A0r:=/none A1:=/none C1:=/none C2:C/none C0:=/none C0v:=/none Prof:C/none C2v:P/none A1r:P/none A2:P/none | G:P E1:P | others: (none) | entries: droid-merge@Root,E1@G,E2@G | open 0.0s
+
+k2a-1.15-r6-CP.kdbx | kdbx 4.0 | A0:=/none A0r:=/none A1:=/none C1:=/none C2:C/none C0:=/none C0v:=/none Prof:C/none C2v:P/none A1r:P/none A2:P/none | G:P E1:P | others: (none) | entries: droid-merge@Root,E1@G,E2@G | open 0.1s
+  path: B\k2a-1.15-r6\CP-r1\k2a-1.15-r6-CP.kdbx
+  size: 2229 sha256: D3FF5882C699B29467BEAC8D22E20E0E60ACC8C9FB392EC86BE77D6CA0C03190
+  kdbx 4.0, Argon2d it=2 mem=1024KiB par=1, SettingsChanged 2026-11-10T10:23:43Z
+  database CustomData (11):
+    KPG.Authority.a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0 = authority-document-A0  @none
+    KPG.Authority.a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1 = authority-document-A1  @none
+    KPG.Authority.a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2 = authority-document-A2  @none
+    KPG.Client.c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0 =   @none
+    KPG.Client.c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1 = {"profiles":["reader"],"name":"agent-one...(76)  @none
+    KPG.Client.c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2 = {"profiles":["reader","writer"],"name":"...(85)  @none
+    KPG.Profiles = ["reader","writer"]  @none
+    KPG.RetiredAuthority.a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0 = retired  @none
+    KPG.RetiredAuthority.a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1 = retired  @none
+    KPG.Revoked.c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0 = 2027-01-01T00:00:00Z a1a1a1a1a1a1a1a1a1a...(85)  @none
+    KPG.Revoked.c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2 = 2027-02-01T00:00:00Z a1a1a1a1a1a1a1a1a1a...(85)  @none
+  PublicCustomData count: 0
+  group G mtime 2026-02-01T06:00:00Z prev - customdata {KPG={"reader":["list"]}}
+  group H mtime 2026-01-01T00:00:00Z prev - customdata {}
+  group Root mtime 2026-01-01T00:00:00Z prev - customdata {}
+  entry droid-merge in Root mtime 2026-11-10T18:45:24Z prev - history 0 customdata {}
+  entry E1 in G mtime 2026-02-01T07:00:00Z prev - history 1 customdata {KPG={"reader":[]}}
+  entry E2 in G mtime 2026-01-01T00:00:00Z prev - history 0 customdata {}
+  deleted objects: 0
+  runs 2 and 3: the same in every line but the modification time of `droid-merge`; bytes r1 2229, r2 2229, r3 2245
+
+k2a-1.15-r6-CPs.kdbx | kdbx 4.0 | A0:=/none A0r:=/none A1:=/none C1:=/none C2:P/none C0:=/none C0v:=/none Prof:P/none C2v:P/none A1r:P/none A2:P/none | G:P E1:P | others: (none) | entries: droid-merge@Root,E1@G,E2@G | open 0.0s
+  path: B\k2a-1.15-r6\CPs-r1\k2a-1.15-r6-CPs.kdbx
+  size: 2229 sha256: A4E863D16368A41B692F308FDF3011C915D5EF3E5BB7552F9772DFF992415EDE
+  kdbx 4.0, Argon2d it=2 mem=1024KiB par=1, SettingsChanged 2026-11-10T12:00:00Z
+  database CustomData (11):
+    KPG.Authority.a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0 = authority-document-A0  @none
+    KPG.Authority.a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1 = authority-document-A1  @none
+    KPG.Authority.a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2 = authority-document-A2  @none
+    KPG.Client.c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0 =   @none
+    KPG.Client.c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1 = {"profiles":["reader"],"name":"agent-one...(76)  @none
+    KPG.Client.c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2 =   @none
+    KPG.Profiles = ["reader"]  @none
+    KPG.RetiredAuthority.a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0 = retired  @none
+    KPG.RetiredAuthority.a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1 = retired  @none
+    KPG.Revoked.c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0 = 2027-01-01T00:00:00Z a1a1a1a1a1a1a1a1a1a...(85)  @none
+    KPG.Revoked.c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2 = 2027-02-01T00:00:00Z a1a1a1a1a1a1a1a1a1a...(85)  @none
+  PublicCustomData count: 0
+  group G mtime 2026-02-01T06:00:00Z prev - customdata {KPG={"reader":["list"]}}
+  group H mtime 2026-01-01T00:00:00Z prev - customdata {}
+  group Root mtime 2026-01-01T00:00:00Z prev - customdata {}
+  entry droid-merge in Root mtime 2026-11-10T20:23:58Z prev - history 0 customdata {}
+  entry E1 in G mtime 2026-02-01T07:00:00Z prev - history 1 customdata {KPG={"reader":[]}}
+  entry E2 in G mtime 2026-01-01T00:00:00Z prev - history 0 customdata {}
+  deleted objects: 0
+  runs 2 and 3: the same in every line but the modification time of `droid-merge`; bytes r1 2229, r2 2229, r3 2213
+
+k2a-1.15-r6-PC.kdbx | kdbx 4.0 | A0:=/none A0r:=/none A1:=/none C1:=/none C2:P/none C0:=/none C0v:=/none Prof:P/none C2v:P/none A1r:P/none A2:P/none | G:P E1:P | others: (none) | entries: droid-merge@Root,E1@G,E2@G | open 0.0s
+  path: B\k2a-1.15-r6\PC-r1\k2a-1.15-r6-PC.kdbx
+  size: 2229 sha256: 9D1BE38901B740E3397C3CB524FD01D0C3C173C4058EC19103D30403B2379879
+  kdbx 4.0, Argon2d it=2 mem=1024KiB par=1, SettingsChanged 2026-11-10T10:23:43Z
+  database CustomData (11):
+    KPG.Authority.a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0 = authority-document-A0  @none
+    KPG.Authority.a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1 = authority-document-A1  @none
+    KPG.Authority.a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2 = authority-document-A2  @none
+    KPG.Client.c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0 =   @none
+    KPG.Client.c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1 = {"profiles":["reader"],"name":"agent-one...(76)  @none
+    KPG.Client.c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2 =   @none
+    KPG.Profiles = ["reader"]  @none
+    KPG.RetiredAuthority.a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0 = retired  @none
+    KPG.RetiredAuthority.a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1 = retired  @none
+    KPG.Revoked.c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0 = 2027-01-01T00:00:00Z a1a1a1a1a1a1a1a1a1a...(85)  @none
+    KPG.Revoked.c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2 = 2027-02-01T00:00:00Z a1a1a1a1a1a1a1a1a1a...(85)  @none
+  PublicCustomData count: 0
+  group G mtime 2026-02-01T06:00:00Z prev - customdata {KPG={"reader":["list"]}}
+  group H mtime 2026-01-01T00:00:00Z prev - customdata {}
+  group Root mtime 2026-01-01T00:00:00Z prev - customdata {}
+  entry droid-merge in Root mtime 2026-11-10T18:36:11Z prev - history 0 customdata {}
+  entry E1 in G mtime 2026-02-01T07:00:00Z prev - history 1 customdata {KPG={"reader":[]}}
+  entry E2 in G mtime 2026-01-01T00:00:00Z prev - history 0 customdata {}
+  deleted objects: 0
+  runs 2 and 3: the same in every line but the modification time of `droid-merge`; bytes r1 2229, r2 2213, r3 2213
+
+k2a-1.15-r6-PCs.kdbx | kdbx 4.0 | A0:=/none A0r:=/none A1:=/none C1:=/none C2:C/none C0:=/none C0v:=/none Prof:C/none C2v:P/none A1r:P/none A2:P/none | G:P E1:P | others: (none) | entries: droid-merge@Root,E1@G,E2@G | open 0.0s
+  path: B\k2a-1.15-r6\PCs-r1\k2a-1.15-r6-PCs.kdbx
+  size: 2245 sha256: 95703F783DE5D516982DF63B612EF959130F27705A0247795B4739CAB5EC5B40
+  kdbx 4.0, Argon2d it=2 mem=1024KiB par=1, SettingsChanged 2026-11-10T12:00:00Z
+  database CustomData (11):
+    KPG.Authority.a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0 = authority-document-A0  @none
+    KPG.Authority.a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1 = authority-document-A1  @none
+    KPG.Authority.a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2 = authority-document-A2  @none
+    KPG.Client.c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0 =   @none
+    KPG.Client.c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1 = {"profiles":["reader"],"name":"agent-one...(76)  @none
+    KPG.Client.c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2 = {"profiles":["reader","writer"],"name":"...(85)  @none
+    KPG.Profiles = ["reader","writer"]  @none
+    KPG.RetiredAuthority.a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0 = retired  @none
+    KPG.RetiredAuthority.a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1 = retired  @none
+    KPG.Revoked.c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0 = 2027-01-01T00:00:00Z a1a1a1a1a1a1a1a1a1a...(85)  @none
+    KPG.Revoked.c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2 = 2027-02-01T00:00:00Z a1a1a1a1a1a1a1a1a1a...(85)  @none
+  PublicCustomData count: 0
+  group G mtime 2026-02-01T06:00:00Z prev - customdata {KPG={"reader":["list"]}}
+  group H mtime 2026-01-01T00:00:00Z prev - customdata {}
+  group Root mtime 2026-01-01T00:00:00Z prev - customdata {}
+  entry droid-merge in Root mtime 2026-11-10T20:19:10Z prev - history 0 customdata {}
+  entry E1 in G mtime 2026-02-01T07:00:00Z prev - history 1 customdata {KPG={"reader":[]}}
+  entry E2 in G mtime 2026-01-01T00:00:00Z prev - history 0 customdata {}
+  deleted objects: 0
+  runs 2 and 3: the same in every line but the modification time of `droid-merge`; bytes r1 2245, r2 2245, r3 2245
+
+Keepass2Android 1.08d-r5
+B\k2a-1.08d-r5\CP-r1\k2a-1.08d-r5-CP.kdbx | kdbx 4.0 | A0:=/none A0r:=/none A1:=/none C1:=/none C2:C/none C0:=/none C0v:=/none Prof:C/none C2v:P/none A1r:P/none A2:P/none | G:P E1:P | others: (none) | entries: droid-merge@Root,E1@G,E2@G | open 0.1s
+B\k2a-1.08d-r5\CP-r2\k2a-1.08d-r5-CP.kdbx | kdbx 4.0 | A0:=/none A0r:=/none A1:=/none C1:=/none C2:C/none C0:=/none C0v:=/none Prof:C/none C2v:P/none A1r:P/none A2:P/none | G:P E1:P | others: (none) | entries: droid-merge@Root,E1@G,E2@G | open 0.0s
+B\k2a-1.08d-r5\CP-r3\k2a-1.08d-r5-CP.kdbx | kdbx 4.0 | A0:=/none A0r:=/none A1:=/none C1:=/none C2:C/none C0:=/none C0v:=/none Prof:C/none C2v:P/none A1r:P/none A2:P/none | G:P E1:P | others: (none) | entries: droid-merge@Root,E1@G,E2@G | open 0.0s
+B\k2a-1.08d-r5\PC-r1\k2a-1.08d-r5-PC.kdbx | kdbx 4.0 | A0:=/none A0r:=/none A1:=/none C1:=/none C2:P/none C0:=/none C0v:=/none Prof:P/none C2v:P/none A1r:P/none A2:P/none | G:P E1:P | others: (none) | entries: droid-merge@Root,E1@G,E2@G | open 0.0s
+B\k2a-1.08d-r5\PC-r2\k2a-1.08d-r5-PC.kdbx | kdbx 4.0 | A0:=/none A0r:=/none A1:=/none C1:=/none C2:P/none C0:=/none C0v:=/none Prof:P/none C2v:P/none A1r:P/none A2:P/none | G:P E1:P | others: (none) | entries: droid-merge@Root,E1@G,E2@G | open 0.0s
+B\k2a-1.08d-r5\PC-r3\k2a-1.08d-r5-PC.kdbx | kdbx 4.0 | A0:=/none A0r:=/none A1:=/none C1:=/none C2:P/none C0:=/none C0v:=/none Prof:P/none C2v:P/none A1r:P/none A2:P/none | G:P E1:P | others: (none) | entries: droid-merge@Root,E1@G,E2@G | open 0.0s
+
+k2a-1.08d-r5-CP.kdbx | kdbx 4.0 | A0:=/none A0r:=/none A1:=/none C1:=/none C2:C/none C0:=/none C0v:=/none Prof:C/none C2v:P/none A1r:P/none A2:P/none | G:P E1:P | others: (none) | entries: droid-merge@Root,E1@G,E2@G | open 0.1s
+  path: B\k2a-1.08d-r5\CP-r1\k2a-1.08d-r5-CP.kdbx
+  size: 2229 sha256: F4C23265E11F342A73048F19E686F8967DF2EFBA43807F41872017540FCBF571
+  kdbx 4.0, Argon2d it=2 mem=1024KiB par=1, SettingsChanged 2026-11-10T10:23:43Z
+  database CustomData (11):
+    KPG.Authority.a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0 = authority-document-A0  @none
+    KPG.Authority.a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1 = authority-document-A1  @none
+    KPG.Authority.a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2 = authority-document-A2  @none
+    KPG.Client.c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0 =   @none
+    KPG.Client.c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1 = {"profiles":["reader"],"name":"agent-one...(76)  @none
+    KPG.Client.c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2 = {"profiles":["reader","writer"],"name":"...(85)  @none
+    KPG.Profiles = ["reader","writer"]  @none
+    KPG.RetiredAuthority.a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0 = retired  @none
+    KPG.RetiredAuthority.a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1 = retired  @none
+    KPG.Revoked.c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0 = 2027-01-01T00:00:00Z a1a1a1a1a1a1a1a1a1a...(85)  @none
+    KPG.Revoked.c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2 = 2027-02-01T00:00:00Z a1a1a1a1a1a1a1a1a1a...(85)  @none
+  PublicCustomData count: 0
+  group G mtime 2026-02-01T06:00:00Z prev - customdata {KPG={"reader":["list"]}}
+  group H mtime 2026-01-01T00:00:00Z prev - customdata {}
+  group Root mtime 2026-01-01T00:00:00Z prev - customdata {}
+  entry droid-merge in Root mtime 2026-11-10T20:55:04Z prev - history 0 customdata {}
+  entry E1 in G mtime 2026-02-01T07:00:00Z prev - history 1 customdata {KPG={"reader":[]}}
+  entry E2 in G mtime 2026-01-01T00:00:00Z prev - history 0 customdata {}
+  deleted objects: 0
+  runs 2 and 3: the same in every line but the modification time of `droid-merge`; bytes r1 2229, r2 2229, r3 2229
+
+k2a-1.08d-r5-PC.kdbx | kdbx 4.0 | A0:=/none A0r:=/none A1:=/none C1:=/none C2:P/none C0:=/none C0v:=/none Prof:P/none C2v:P/none A1r:P/none A2:P/none | G:P E1:P | others: (none) | entries: droid-merge@Root,E1@G,E2@G | open 0.0s
+  path: B\k2a-1.08d-r5\PC-r1\k2a-1.08d-r5-PC.kdbx
+  size: 2213 sha256: 0027F9F34C1EE3C86B4E55FA8B4E4A4022724B4313D73C43BFB165F47EE59942
+  kdbx 4.0, Argon2d it=2 mem=1024KiB par=1, SettingsChanged 2026-11-10T10:23:43Z
+  database CustomData (11):
+    KPG.Authority.a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0 = authority-document-A0  @none
+    KPG.Authority.a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1 = authority-document-A1  @none
+    KPG.Authority.a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2 = authority-document-A2  @none
+    KPG.Client.c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0 =   @none
+    KPG.Client.c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1 = {"profiles":["reader"],"name":"agent-one...(76)  @none
+    KPG.Client.c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2 =   @none
+    KPG.Profiles = ["reader"]  @none
+    KPG.RetiredAuthority.a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0 = retired  @none
+    KPG.RetiredAuthority.a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1 = retired  @none
+    KPG.Revoked.c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0 = 2027-01-01T00:00:00Z a1a1a1a1a1a1a1a1a1a...(85)  @none
+    KPG.Revoked.c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2 = 2027-02-01T00:00:00Z a1a1a1a1a1a1a1a1a1a...(85)  @none
+  PublicCustomData count: 0
+  group G mtime 2026-02-01T06:00:00Z prev - customdata {KPG={"reader":["list"]}}
+  group H mtime 2026-01-01T00:00:00Z prev - customdata {}
+  group Root mtime 2026-01-01T00:00:00Z prev - customdata {}
+  entry droid-merge in Root mtime 2026-11-10T20:50:22Z prev - history 0 customdata {}
+  entry E1 in G mtime 2026-02-01T07:00:00Z prev - history 1 customdata {KPG={"reader":[]}}
+  entry E2 in G mtime 2026-01-01T00:00:00Z prev - history 0 customdata {}
+  deleted objects: 0
+  runs 2 and 3: the same in every line but the modification time of `droid-merge`; bytes r1 2213, r2 2213, r3 2213
+
+KeePassDX 4.5.8
+B\kpdx-4.5.8\extCP-r1\kpdx-4.5.8-extCP.kdbx | kdbx 4.1 | A0:=/= A0r:=/= A1:=/= C1:=/= C2:P/P C0:=/= C0v:=/= Prof:P/P C2v:P/P A1r:P/P A2:P/P | G:P E1:P | others: (none) | entries: E1@G,E2@G | open 0.1s
+B\kpdx-4.5.8\extCP-r2\kpdx-4.5.8-extCP.kdbx | kdbx 4.1 | A0:=/= A0r:=/= A1:=/= C1:=/= C2:P/P C0:=/= C0v:=/= Prof:P/P C2v:P/P A1r:P/P A2:P/P | G:P E1:P | others: (none) | entries: E1@G,E2@G | open 0.0s
+B\kpdx-4.5.8\extCP-r3\kpdx-4.5.8-extCP.kdbx | kdbx 4.1 | A0:=/= A0r:=/= A1:=/= C1:=/= C2:P/P C0:=/= C0v:=/= Prof:P/P C2v:P/P A1r:P/P A2:P/P | G:P E1:P | others: (none) | entries: E1@G,E2@G | open 0.0s
+B\kpdx-4.5.8\extPC-r1\kpdx-4.5.8-extPC.kdbx | kdbx 4.1 | A0:=/= A0r:=/= A1:=/= C1:=/= C2:P/P C0:=/= C0v:=/= Prof:P/P C2v:P/P A1r:P/P A2:P/P | G:C E1:C | others: (none) | entries: E1@G,E2@G | open 0.0s
+B\kpdx-4.5.8\extPC-r2\kpdx-4.5.8-extPC.kdbx | kdbx 4.1 | A0:=/= A0r:=/= A1:=/= C1:=/= C2:P/P C0:=/= C0v:=/= Prof:P/P C2v:P/P A1r:P/P A2:P/P | G:C E1:C | others: (none) | entries: E1@G,E2@G | open 0.0s
+B\kpdx-4.5.8\extPC-r3\kpdx-4.5.8-extPC.kdbx | kdbx 4.1 | A0:=/= A0r:=/= A1:=/= C1:=/= C2:P/P C0:=/= C0v:=/= Prof:P/P C2v:P/P A1r:P/P A2:P/P | G:C E1:C | others: (none) | entries: E1@G,E2@G | open 0.0s
+B\kpdx-4.5.8\fromCP-r1\kpdx-4.5.8-fromCP-src.kdbx | kdbx 4.1 | A0:=/= A0r:=/= A1:=/= C1:=/= C2:P/P C0:=/= C0v:=/= Prof:P/P C2v:P/P A1r:P/P A2:P/P | G:P E1:P | others: (none) | entries: E1@G,E2@G | open 0.0s
+B\kpdx-4.5.8\fromCP-r1\kpdx-4.5.8-fromCP.kdbx | kdbx 4.1 | A0:=/= A0r:=/= A1:=/= C1:=/= C2:P/P C0:=/= C0v:=/= Prof:P/P C2v:P/P A1r:P/P A2:P/P | G:P E1:P | others: (none) | entries: E1@G,E2@G | open 0.0s
+B\kpdx-4.5.8\fromCP-r2\kpdx-4.5.8-fromCP-src.kdbx | kdbx 4.1 | A0:=/= A0r:=/= A1:=/= C1:=/= C2:P/P C0:=/= C0v:=/= Prof:P/P C2v:P/P A1r:P/P A2:P/P | G:P E1:P | others: (none) | entries: E1@G,E2@G | open 0.0s
+B\kpdx-4.5.8\fromCP-r2\kpdx-4.5.8-fromCP.kdbx | kdbx 4.1 | A0:=/= A0r:=/= A1:=/= C1:=/= C2:P/P C0:=/= C0v:=/= Prof:P/P C2v:P/P A1r:P/P A2:P/P | G:P E1:P | others: (none) | entries: E1@G,E2@G | open 0.0s
+B\kpdx-4.5.8\fromCP-r3\kpdx-4.5.8-fromCP-src.kdbx | kdbx 4.1 | A0:=/= A0r:=/= A1:=/= C1:=/= C2:P/P C0:=/= C0v:=/= Prof:P/P C2v:P/P A1r:P/P A2:P/P | G:P E1:P | others: (none) | entries: E1@G,E2@G | open 0.0s
+B\kpdx-4.5.8\fromCP-r3\kpdx-4.5.8-fromCP.kdbx | kdbx 4.1 | A0:=/= A0r:=/= A1:=/= C1:=/= C2:P/P C0:=/= C0v:=/= Prof:P/P C2v:P/P A1r:P/P A2:P/P | G:P E1:P | others: (none) | entries: E1@G,E2@G | open 0.0s
+B\kpdx-4.5.8\fromPC-r1\kpdx-4.5.8-fromPC-src.kdbx | kdbx 4.1 | A0:=/= A0r:=/= A1:=/= C1:=/= C2:C/C C0:=/= C0v:=/= Prof:C/C C2v:- A1r:- A2:- | G:C E1:C | others: (none) | entries: E1@G,E2@G | open 0.0s
+B\kpdx-4.5.8\fromPC-r1\kpdx-4.5.8-fromPC.kdbx | kdbx 4.1 | A0:=/= A0r:=/= A1:=/= C1:=/= C2:P/P C0:=/= C0v:=/= Prof:P/P C2v:P/P A1r:P/P A2:P/P | G:C E1:C | others: (none) | entries: E1@G,E2@G | open 0.0s
+B\kpdx-4.5.8\fromPC-r2\kpdx-4.5.8-fromPC-src.kdbx | kdbx 4.1 | A0:=/= A0r:=/= A1:=/= C1:=/= C2:C/C C0:=/= C0v:=/= Prof:C/C C2v:- A1r:- A2:- | G:C E1:C | others: (none) | entries: E1@G,E2@G | open 0.0s
+B\kpdx-4.5.8\fromPC-r2\kpdx-4.5.8-fromPC.kdbx | kdbx 4.1 | A0:=/= A0r:=/= A1:=/= C1:=/= C2:P/P C0:=/= C0v:=/= Prof:P/P C2v:P/P A1r:P/P A2:P/P | G:C E1:C | others: (none) | entries: E1@G,E2@G | open 0.0s
+B\kpdx-4.5.8\fromPC-r3\kpdx-4.5.8-fromPC-src.kdbx | kdbx 4.1 | A0:=/= A0r:=/= A1:=/= C1:=/= C2:C/C C0:=/= C0v:=/= Prof:C/C C2v:- A1r:- A2:- | G:C E1:C | others: (none) | entries: E1@G,E2@G | open 0.0s
+B\kpdx-4.5.8\fromPC-r3\kpdx-4.5.8-fromPC.kdbx | kdbx 4.1 | A0:=/= A0r:=/= A1:=/= C1:=/= C2:P/P C0:=/= C0v:=/= Prof:P/P C2v:P/P A1r:P/P A2:P/P | G:C E1:C | others: (none) | entries: E1@G,E2@G | open 0.0s
+B\kpdx-4.5.8\keepPC-r1\kpdx-4.5.8-keepPC.kdbx | kdbx 4.1 | A0:=/= A0r:=/= A1:=/= C1:=/= C2:P/P C0:=/= C0v:=/= Prof:P/P C2v:P/P A1r:P/P A2:P/P | G:P E1:P | others: (none) | entries: droid-merge@Root,E1@G,E2@G | open 0.0s
+
+kpdx-4.5.8-extCP.kdbx | kdbx 4.1 | A0:=/= A0r:=/= A1:=/= C1:=/= C2:P/P C0:=/= C0v:=/= Prof:P/P C2v:P/P A1r:P/P A2:P/P | G:P E1:P | others: (none) | entries: E1@G,E2@G | open 0.1s
+  path: B\kpdx-4.5.8\extCP-r1\kpdx-4.5.8-extCP.kdbx
+  size: 1973 sha256: 42F3B7066DC2BFDB0D02C0B9ED7688F31C3C82F0E3FA84693B12AEE03156C37B
+  kdbx 4.1, Argon2d it=2 mem=1024KiB par=1, SettingsChanged 2026-11-10T10:23:43Z
+  database CustomData (11):
+    KPG.Authority.a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0 = authority-document-A0  @2026-01-01T01:00:00Z
+    KPG.Authority.a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1 = authority-document-A1  @2026-01-01T03:00:00Z
+    KPG.Authority.a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2 = authority-document-A2  @2026-02-01T04:00:00Z
+    KPG.Client.c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0 =   @2026-01-01T06:00:00Z
+    KPG.Client.c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1 = {"profiles":["reader"],"name":"agent-one...(76)  @2026-01-01T04:00:00Z
+    KPG.Client.c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2 =   @2026-02-01T01:00:00Z
+    KPG.Profiles = ["reader"]  @2026-02-01T05:00:00Z
+    KPG.RetiredAuthority.a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0 = retired  @2026-01-01T02:00:00Z
+    KPG.RetiredAuthority.a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1 = retired  @2026-02-01T03:00:00Z
+    KPG.Revoked.c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0 = 2027-01-01T00:00:00Z a1a1a1a1a1a1a1a1a1a...(85)  @2026-01-01T07:00:00Z
+    KPG.Revoked.c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2 = 2027-02-01T00:00:00Z a1a1a1a1a1a1a1a1a1a...(85)  @2026-02-01T02:00:00Z
+  PublicCustomData count: 0
+  group G mtime 2026-02-01T06:00:00Z prev - customdata {KPG={"reader":["list"]}}
+  group H mtime 2026-01-01T00:00:00Z prev - customdata {}
+  group Root mtime 2026-01-01T00:00:00Z prev - customdata {}
+  entry E1 in G mtime 2026-02-01T07:00:00Z prev - history 1 customdata {KPG={"reader":[]}}
+  entry E2 in G mtime 2026-01-01T00:00:00Z prev - history 0 customdata {}
+  deleted objects: 0
+  runs 2 and 3: the same in every line; bytes r1 1973, r2 1973, r3 1957
+
+kpdx-4.5.8-extPC.kdbx | kdbx 4.1 | A0:=/= A0r:=/= A1:=/= C1:=/= C2:P/P C0:=/= C0v:=/= Prof:P/P C2v:P/P A1r:P/P A2:P/P | G:C E1:C | others: (none) | entries: E1@G,E2@G | open 0.0s
+  path: B\kpdx-4.5.8\extPC-r1\kpdx-4.5.8-extPC.kdbx
+  size: 1989 sha256: 3B898C253E3BDE69EE44E59A1A403C5911F055E6695CBCE89FA549EEF4A02424
+  kdbx 4.1, Argon2d it=2 mem=1024KiB par=1, SettingsChanged 2026-11-10T10:23:43Z
+  database CustomData (11):
+    KPG.Authority.a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0 = authority-document-A0  @2026-01-01T01:00:00Z
+    KPG.Authority.a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1 = authority-document-A1  @2026-01-01T03:00:00Z
+    KPG.Authority.a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2 = authority-document-A2  @2026-02-01T04:00:00Z
+    KPG.Client.c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0 =   @2026-01-01T06:00:00Z
+    KPG.Client.c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1 = {"profiles":["reader"],"name":"agent-one...(76)  @2026-01-01T04:00:00Z
+    KPG.Client.c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2 =   @2026-02-01T01:00:00Z
+    KPG.Profiles = ["reader"]  @2026-02-01T05:00:00Z
+    KPG.RetiredAuthority.a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0 = retired  @2026-01-01T02:00:00Z
+    KPG.RetiredAuthority.a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1 = retired  @2026-02-01T03:00:00Z
+    KPG.Revoked.c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0 = 2027-01-01T00:00:00Z a1a1a1a1a1a1a1a1a1a...(85)  @2026-01-01T07:00:00Z
+    KPG.Revoked.c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2 = 2027-02-01T00:00:00Z a1a1a1a1a1a1a1a1a1a...(85)  @2026-02-01T02:00:00Z
+  PublicCustomData count: 0
+  group G mtime 2026-02-01T06:00:00Z prev - customdata {KPG={"reader":["read","list"],"writer":["create","read","update","list"]}}
+  group H mtime 2026-01-01T00:00:00Z prev - customdata {}
+  group Root mtime 2026-01-01T00:00:00Z prev - customdata {}
+  entry E1 in G mtime 2026-02-01T07:00:00Z prev - history 1 customdata {KPG={"reader":["read","list"]}}
+  entry E2 in G mtime 2026-01-01T00:00:00Z prev - history 0 customdata {}
+  deleted objects: 0
+  runs 2 and 3: the same in every line; bytes r1 1989, r2 1989, r3 1989
+
+kpdx-4.5.8-fromCP-src.kdbx | kdbx 4.1 | A0:=/= A0r:=/= A1:=/= C1:=/= C2:P/P C0:=/= C0v:=/= Prof:P/P C2v:P/P A1r:P/P A2:P/P | G:P E1:P | others: (none) | entries: E1@G,E2@G | open 0.0s
+  path: B\kpdx-4.5.8\fromCP-r1\kpdx-4.5.8-fromCP-src.kdbx
+  size: 2037 sha256: C3BD78AD4B8E60B1B4315E3E2740C0C7812DF07AA66A6CF3719DA08ADF450B16
+  kdbx 4.1, Argon2d it=2 mem=1024KiB par=1, SettingsChanged 2026-11-10T10:23:43Z
+  database CustomData (11):
+    KPG.Authority.a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0 = authority-document-A0  @2026-01-01T01:00:00Z
+    KPG.Authority.a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1 = authority-document-A1  @2026-01-01T03:00:00Z
+    KPG.Authority.a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2 = authority-document-A2  @2026-02-01T04:00:00Z
+    KPG.Client.c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0 =   @2026-01-01T06:00:00Z
+    KPG.Client.c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1 = {"profiles":["reader"],"name":"agent-one...(76)  @2026-01-01T04:00:00Z
+    KPG.Client.c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2 =   @2026-02-01T01:00:00Z
+    KPG.Profiles = ["reader"]  @2026-02-01T05:00:00Z
+    KPG.RetiredAuthority.a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0 = retired  @2026-01-01T02:00:00Z
+    KPG.RetiredAuthority.a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1 = retired  @2026-02-01T03:00:00Z
+    KPG.Revoked.c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0 = 2027-01-01T00:00:00Z a1a1a1a1a1a1a1a1a1a...(85)  @2026-01-01T07:00:00Z
+    KPG.Revoked.c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2 = 2027-02-01T00:00:00Z a1a1a1a1a1a1a1a1a1a...(85)  @2026-02-01T02:00:00Z
+  PublicCustomData count: 0
+  group G mtime 2026-02-01T06:00:00Z prev - customdata {KPG={"reader":["list"]}}
+  group H mtime 2026-01-01T00:00:00Z prev - customdata {}
+  group Root mtime 2026-01-01T00:00:00Z prev - customdata {}
+  entry E1 in G mtime 2026-02-01T07:00:00Z prev - history 0 customdata {KPG={"reader":[]}}
+  entry E2 in G mtime 2026-01-01T00:00:00Z prev - history 0 customdata {}
+  deleted objects: 0
+  runs 2 and 3: the same in every line; bytes r1 2037, r2 2037, r3 2037
+
+kpdx-4.5.8-fromCP.kdbx | kdbx 4.1 | A0:=/= A0r:=/= A1:=/= C1:=/= C2:P/P C0:=/= C0v:=/= Prof:P/P C2v:P/P A1r:P/P A2:P/P | G:P E1:P | others: (none) | entries: E1@G,E2@G | open 0.0s
+  path: B\kpdx-4.5.8\fromCP-r1\kpdx-4.5.8-fromCP.kdbx
+  size: 1973 sha256: EA4A29E84FE17FD03B47FEA538F4791D1985A483FF4A5612FB61598BBE2B06A0
+  kdbx 4.1, Argon2d it=2 mem=1024KiB par=1, SettingsChanged 2026-11-10T10:23:43Z
+  database CustomData (11):
+    KPG.Authority.a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0 = authority-document-A0  @2026-01-01T01:00:00Z
+    KPG.Authority.a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1 = authority-document-A1  @2026-01-01T03:00:00Z
+    KPG.Authority.a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2 = authority-document-A2  @2026-02-01T04:00:00Z
+    KPG.Client.c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0 =   @2026-01-01T06:00:00Z
+    KPG.Client.c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1 = {"profiles":["reader"],"name":"agent-one...(76)  @2026-01-01T04:00:00Z
+    KPG.Client.c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2 =   @2026-02-01T01:00:00Z
+    KPG.Profiles = ["reader"]  @2026-02-01T05:00:00Z
+    KPG.RetiredAuthority.a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0 = retired  @2026-01-01T02:00:00Z
+    KPG.RetiredAuthority.a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1 = retired  @2026-02-01T03:00:00Z
+    KPG.Revoked.c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0 = 2027-01-01T00:00:00Z a1a1a1a1a1a1a1a1a1a...(85)  @2026-01-01T07:00:00Z
+    KPG.Revoked.c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2 = 2027-02-01T00:00:00Z a1a1a1a1a1a1a1a1a1a...(85)  @2026-02-01T02:00:00Z
+  PublicCustomData count: 0
+  group G mtime 2026-02-01T06:00:00Z prev - customdata {KPG={"reader":["list"]}}
+  group H mtime 2026-01-01T00:00:00Z prev - customdata {}
+  group Root mtime 2026-01-01T00:00:00Z prev - customdata {}
+  entry E1 in G mtime 2026-02-01T07:00:00Z prev - history 1 customdata {KPG={"reader":[]}}
+  entry E2 in G mtime 2026-01-01T00:00:00Z prev - history 0 customdata {}
+  deleted objects: 0
+  runs 2 and 3: the same in every line; bytes r1 1973, r2 1973, r3 1957
+
+kpdx-4.5.8-fromPC-src.kdbx | kdbx 4.1 | A0:=/= A0r:=/= A1:=/= C1:=/= C2:C/C C0:=/= C0v:=/= Prof:C/C C2v:- A1r:- A2:- | G:C E1:C | others: (none) | entries: E1@G,E2@G | open 0.0s
+  path: B\kpdx-4.5.8\fromPC-r1\kpdx-4.5.8-fromPC-src.kdbx
+  size: 2021 sha256: 7B115A85B27842E2BCAA30C43D970BEFFD4580AFB8E05EA310CE90B5AB858AB5
+  kdbx 4.1, Argon2d it=2 mem=1024KiB par=1, SettingsChanged 2026-11-10T10:23:43Z
+  database CustomData (8):
+    KPG.Authority.a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0 = authority-document-A0  @2026-01-01T01:00:00Z
+    KPG.Authority.a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1 = authority-document-A1  @2026-01-01T03:00:00Z
+    KPG.Client.c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0 =   @2026-01-01T06:00:00Z
+    KPG.Client.c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1 = {"profiles":["reader"],"name":"agent-one...(76)  @2026-01-01T04:00:00Z
+    KPG.Client.c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2 = {"profiles":["reader","writer"],"name":"...(85)  @2026-01-01T05:00:00Z
+    KPG.Profiles = ["reader","writer"]  @2026-01-01T08:00:00Z
+    KPG.RetiredAuthority.a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0 = retired  @2026-01-01T02:00:00Z
+    KPG.Revoked.c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0 = 2027-01-01T00:00:00Z a1a1a1a1a1a1a1a1a1a...(85)  @2026-01-01T07:00:00Z
+  PublicCustomData count: 0
+  group G mtime 2026-01-01T09:00:00Z prev - customdata {KPG={"reader":["read","list"],"writer":["create","read","update","list"]}}
+  group H mtime 2026-01-01T00:00:00Z prev - customdata {}
+  group Root mtime 2026-01-01T00:00:00Z prev - customdata {}
+  entry E1 in G mtime 2026-01-01T10:00:00Z prev - history 0 customdata {KPG={"reader":["read","list"]}}
+  entry E2 in G mtime 2026-01-01T00:00:00Z prev - history 0 customdata {}
+  deleted objects: 0
+  runs 2 and 3: the same in every line; bytes r1 2021, r2 2021, r3 2021
+
+kpdx-4.5.8-fromPC.kdbx | kdbx 4.1 | A0:=/= A0r:=/= A1:=/= C1:=/= C2:P/P C0:=/= C0v:=/= Prof:P/P C2v:P/P A1r:P/P A2:P/P | G:C E1:C | others: (none) | entries: E1@G,E2@G | open 0.0s
+  path: B\kpdx-4.5.8\fromPC-r1\kpdx-4.5.8-fromPC.kdbx
+  size: 1989 sha256: 85700698581C3AC2D337CBE555F5A523B1CFA481781910716D3DF202A914B310
+  kdbx 4.1, Argon2d it=2 mem=1024KiB par=1, SettingsChanged 2026-11-10T10:23:43Z
+  database CustomData (11):
+    KPG.Authority.a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0 = authority-document-A0  @2026-01-01T01:00:00Z
+    KPG.Authority.a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1 = authority-document-A1  @2026-01-01T03:00:00Z
+    KPG.Authority.a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2 = authority-document-A2  @2026-02-01T04:00:00Z
+    KPG.Client.c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0 =   @2026-01-01T06:00:00Z
+    KPG.Client.c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1 = {"profiles":["reader"],"name":"agent-one...(76)  @2026-01-01T04:00:00Z
+    KPG.Client.c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2 =   @2026-02-01T01:00:00Z
+    KPG.Profiles = ["reader"]  @2026-02-01T05:00:00Z
+    KPG.RetiredAuthority.a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0 = retired  @2026-01-01T02:00:00Z
+    KPG.RetiredAuthority.a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1 = retired  @2026-02-01T03:00:00Z
+    KPG.Revoked.c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0 = 2027-01-01T00:00:00Z a1a1a1a1a1a1a1a1a1a...(85)  @2026-01-01T07:00:00Z
+    KPG.Revoked.c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2 = 2027-02-01T00:00:00Z a1a1a1a1a1a1a1a1a1a...(85)  @2026-02-01T02:00:00Z
+  PublicCustomData count: 0
+  group G mtime 2026-02-01T06:00:00Z prev - customdata {KPG={"reader":["read","list"],"writer":["create","read","update","list"]}}
+  group H mtime 2026-01-01T00:00:00Z prev - customdata {}
+  group Root mtime 2026-01-01T00:00:00Z prev - customdata {}
+  entry E1 in G mtime 2026-02-01T07:00:00Z prev - history 1 customdata {KPG={"reader":["read","list"]}}
+  entry E2 in G mtime 2026-01-01T00:00:00Z prev - history 0 customdata {}
+  deleted objects: 0
+  runs 2 and 3: the same in every line; bytes r1 1989, r2 1973, r3 1989
+
+kpdx-4.5.8-keepPC.kdbx | kdbx 4.1 | A0:=/= A0r:=/= A1:=/= C1:=/= C2:P/P C0:=/= C0v:=/= Prof:P/P C2v:P/P A1r:P/P A2:P/P | G:P E1:P | others: (none) | entries: droid-merge@Root,E1@G,E2@G | open 0.0s
+  path: B\kpdx-4.5.8\keepPC-r1\kpdx-4.5.8-keepPC.kdbx
+  size: 2021 sha256: 88C1E7BC3A289BDFF175D17D0B814014FA0DFD7F5F1996413451F5EFB9629B89
+  kdbx 4.1, Argon2d it=2 mem=1024KiB par=1, SettingsChanged 2026-11-10T10:23:43Z
+  database CustomData (11):
+    KPG.Authority.a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0 = authority-document-A0  @2026-01-01T01:00:00Z
+    KPG.Authority.a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1 = authority-document-A1  @2026-01-01T03:00:00Z
+    KPG.Authority.a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2 = authority-document-A2  @2026-02-01T04:00:00Z
+    KPG.Client.c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0 =   @2026-01-01T06:00:00Z
+    KPG.Client.c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1 = {"profiles":["reader"],"name":"agent-one...(76)  @2026-01-01T04:00:00Z
+    KPG.Client.c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2 =   @2026-02-01T01:00:00Z
+    KPG.Profiles = ["reader"]  @2026-02-01T05:00:00Z
+    KPG.RetiredAuthority.a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0 = retired  @2026-01-01T02:00:00Z
+    KPG.RetiredAuthority.a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1 = retired  @2026-02-01T03:00:00Z
+    KPG.Revoked.c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0 = 2027-01-01T00:00:00Z a1a1a1a1a1a1a1a1a1a...(85)  @2026-01-01T07:00:00Z
+    KPG.Revoked.c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2 = 2027-02-01T00:00:00Z a1a1a1a1a1a1a1a1a1a...(85)  @2026-02-01T02:00:00Z
+  PublicCustomData count: 0
+  group G mtime 2026-02-01T06:00:00Z prev - customdata {KPG={"reader":["list"]}}
+  group H mtime 2026-01-01T00:00:00Z prev - customdata {}
+  group Root mtime 2026-11-10T20:17:38Z prev - customdata {}
+  entry droid-merge in Root mtime 2026-11-10T20:17:38Z prev - history 0 customdata {}
+  entry E1 in G mtime 2026-02-01T07:00:00Z prev - history 0 customdata {KPG={"reader":[]}}
+  entry E2 in G mtime 2026-01-01T00:00:00Z prev - history 0 customdata {}
+  deleted objects: 0
+  one run
+
+KeePassDX 3.2.0
+B\kpdx-3.2.0\extCP-r1\kpdx-3.2.0-extCP.kdbx | kdbx 4.1 | A0:=/= A0r:=/= A1:=/= C1:=/= C2:P/P C0:=/= C0v:=/= Prof:P/P C2v:P/P A1r:P/P A2:P/P | G:- E1:P | others: (none) | entries: E1@G,E2@G | open 0.1s
+B\kpdx-3.2.0\extCP-r2\kpdx-3.2.0-extCP.kdbx | kdbx 4.1 | A0:=/= A0r:=/= A1:=/= C1:=/= C2:P/P C0:=/= C0v:=/= Prof:P/P C2v:P/P A1r:P/P A2:P/P | G:- E1:P | others: (none) | entries: E1@G,E2@G | open 0.0s
+B\kpdx-3.2.0\extCP-r3\kpdx-3.2.0-extCP.kdbx | kdbx 4.1 | A0:=/= A0r:=/= A1:=/= C1:=/= C2:P/P C0:=/= C0v:=/= Prof:P/P C2v:P/P A1r:P/P A2:P/P | G:- E1:P | others: (none) | entries: E1@G,E2@G | open 0.0s
+B\kpdx-3.2.0\extPC-r1\kpdx-3.2.0-extPC.kdbx | kdbx 4.1 | A0:=/= A0r:=/= A1:=/= C1:=/= C2:P/P C0:=/= C0v:=/= Prof:P/P C2v:P/P A1r:P/P A2:P/P | G:- E1:C | others: (none) | entries: E1@G,E2@G | open 0.0s
+B\kpdx-3.2.0\extPC-r2\kpdx-3.2.0-extPC.kdbx | kdbx 4.1 | A0:=/= A0r:=/= A1:=/= C1:=/= C2:P/P C0:=/= C0v:=/= Prof:P/P C2v:P/P A1r:P/P A2:P/P | G:- E1:C | others: (none) | entries: E1@G,E2@G | open 0.0s
+B\kpdx-3.2.0\extPC-r3\kpdx-3.2.0-extPC.kdbx | kdbx 4.1 | A0:=/= A0r:=/= A1:=/= C1:=/= C2:P/P C0:=/= C0v:=/= Prof:P/P C2v:P/P A1r:P/P A2:P/P | G:- E1:C | others: (none) | entries: E1@G,E2@G | open 0.0s
+
+kpdx-3.2.0-extCP.kdbx | kdbx 4.1 | A0:=/= A0r:=/= A1:=/= C1:=/= C2:P/P C0:=/= C0v:=/= Prof:P/P C2v:P/P A1r:P/P A2:P/P | G:- E1:P | others: (none) | entries: E1@G,E2@G | open 0.1s
+  path: B\kpdx-3.2.0\extCP-r1\kpdx-3.2.0-extCP.kdbx
+  size: 1973 sha256: 7B10673EAD06DE94E8D8AD2405D4C65FC3980DEB66BE07CC04528024CEDE3752
+  kdbx 4.1, Argon2d it=2 mem=1024KiB par=1, SettingsChanged 2026-11-10T10:23:43Z
+  database CustomData (11):
+    KPG.Authority.a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0 = authority-document-A0  @2026-01-01T01:00:00Z
+    KPG.Authority.a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1 = authority-document-A1  @2026-01-01T03:00:00Z
+    KPG.Authority.a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2 = authority-document-A2  @2026-02-01T04:00:00Z
+    KPG.Client.c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0 =   @2026-01-01T06:00:00Z
+    KPG.Client.c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1 = {"profiles":["reader"],"name":"agent-one...(76)  @2026-01-01T04:00:00Z
+    KPG.Client.c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2 =   @2026-02-01T01:00:00Z
+    KPG.Profiles = ["reader"]  @2026-02-01T05:00:00Z
+    KPG.RetiredAuthority.a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0 = retired  @2026-01-01T02:00:00Z
+    KPG.RetiredAuthority.a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1 = retired  @2026-02-01T03:00:00Z
+    KPG.Revoked.c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0 = 2027-01-01T00:00:00Z a1a1a1a1a1a1a1a1a1a...(85)  @2026-01-01T07:00:00Z
+    KPG.Revoked.c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2 = 2027-02-01T00:00:00Z a1a1a1a1a1a1a1a1a1a...(85)  @2026-02-01T02:00:00Z
+  PublicCustomData count: 0
+  group G mtime 2026-02-01T06:00:00Z prev - customdata {}
+  group H mtime 2026-01-01T00:00:00Z prev - customdata {}
+  group Root mtime 2026-01-01T00:00:00Z prev - customdata {}
+  entry E1 in G mtime 2026-02-01T07:00:00Z prev - history 1 customdata {KPG={"reader":[]}}
+  entry E2 in G mtime 2026-01-01T00:00:00Z prev - history 0 customdata {}
+  deleted objects: 0
+  runs 2 and 3: the same in every line; bytes r1 1973, r2 1957, r3 1957
+
+kpdx-3.2.0-extPC.kdbx | kdbx 4.1 | A0:=/= A0r:=/= A1:=/= C1:=/= C2:P/P C0:=/= C0v:=/= Prof:P/P C2v:P/P A1r:P/P A2:P/P | G:- E1:C | others: (none) | entries: E1@G,E2@G | open 0.0s
+  path: B\kpdx-3.2.0\extPC-r1\kpdx-3.2.0-extPC.kdbx
+  size: 1957 sha256: D66E32362A9180CCF40C767B1A89B44E8C9201E189CF53FC05DC9F2D7230D19A
+  kdbx 4.1, Argon2d it=2 mem=1024KiB par=1, SettingsChanged 2026-11-10T10:23:43Z
+  database CustomData (11):
+    KPG.Authority.a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0 = authority-document-A0  @2026-01-01T01:00:00Z
+    KPG.Authority.a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1 = authority-document-A1  @2026-01-01T03:00:00Z
+    KPG.Authority.a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2 = authority-document-A2  @2026-02-01T04:00:00Z
+    KPG.Client.c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0 =   @2026-01-01T06:00:00Z
+    KPG.Client.c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1 = {"profiles":["reader"],"name":"agent-one...(76)  @2026-01-01T04:00:00Z
+    KPG.Client.c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2 =   @2026-02-01T01:00:00Z
+    KPG.Profiles = ["reader"]  @2026-02-01T05:00:00Z
+    KPG.RetiredAuthority.a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0 = retired  @2026-01-01T02:00:00Z
+    KPG.RetiredAuthority.a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1 = retired  @2026-02-01T03:00:00Z
+    KPG.Revoked.c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0 = 2027-01-01T00:00:00Z a1a1a1a1a1a1a1a1a1a...(85)  @2026-01-01T07:00:00Z
+    KPG.Revoked.c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2 = 2027-02-01T00:00:00Z a1a1a1a1a1a1a1a1a1a...(85)  @2026-02-01T02:00:00Z
+  PublicCustomData count: 0
+  group G mtime 2026-02-01T06:00:00Z prev - customdata {}
+  group H mtime 2026-01-01T00:00:00Z prev - customdata {}
+  group Root mtime 2026-01-01T00:00:00Z prev - customdata {}
+  entry E1 in G mtime 2026-02-01T07:00:00Z prev - history 1 customdata {KPG={"reader":["read","list"]}}
+  entry E2 in G mtime 2026-01-01T00:00:00Z prev - history 0 customdata {}
+  deleted objects: 0
+  runs 2 and 3: the same in every line; bytes r1 1957, r2 1973, r3 1973

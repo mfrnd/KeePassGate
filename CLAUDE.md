@@ -6,9 +6,9 @@ Guidance for anyone, human or AI assistant, working on this branch.
 
 **Reference material, and nothing else.** It holds the probe that measured how KeePass merges a
 database's custom data, which is where KeePassGate keeps its certificate authority, its admission
-records and its revocations, and what KeePassXC and KeePass 2.47 do to the same keys when they save
-or merge the file. It is taken from `master`, it is never merged, and nothing here ships or is
-built by any gate.
+records and its revocations, and what KeePassXC, KeePass 2.47 and the Android programs that open
+KDBX 4 files do to the same keys when they save or merge the file. It is taken from `master`, it is
+never merged, and nothing here ships or is built by any gate.
 
 The plugin, its tests, its build script and its design documents are on the mainline branches. This
 branch deliberately has none of them, so the probe can be read without the project around it and the
@@ -68,8 +68,9 @@ If a **new** question needs measuring, it gets its own branch from `master`, nam
   committed, and `verify-apks.sh` beside it refuses an APK signed by any other certificate.
 - Every database it opens is one it created a moment before, under a work directory named on its
   command line, with an invented password.
-- **Nobody else's source is here.** KeePass and KeePassXC are both GPL and this repository is MIT,
-  so `RESULTS.md` cites their files by path and line in the named release instead of carrying them.
+- **Nobody else's source is here.** KeePass and KeePassXC are both GPL, and so are Keepass2Android,
+  KeePassDX and KeePassDroid, and this repository is MIT, so `RESULTS.md` cites their files by path
+  and line in the named release instead of carrying them.
 
 ## Conventions
 

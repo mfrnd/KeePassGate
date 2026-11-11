@@ -1,0 +1,267 @@
+What each merge run did to the program, in order, and what the program's dialogs showed.
+Condensed from the step logs: the presses, the keys, the files written over, and the title, message
+and buttons of every dialog met. A resource identifier stands where a control had no text. In the
+KeePassDX message `<time>, <size>` stands for a local time and a file size, and `->` for an arrow.
+A `typed` line gives the field as the flow selected it and then the text. A `file` line is the
+target as the device listed it: its bytes at the first listing, and after that `unchanged` where
+neither its bytes nor its time had moved since the listing before and `rewritten` where either had.
+`flow ended 0` is a run that went through. Runs of a cell that did the same are given once.
+
+Keepass2Android 1.15-r6
+  CP, runs 1, 2, 3
+    pressed 'Open file...'
+    pressed 'System file picker'
+    pressed 'Show roots'
+    pressed 'sdk_gphone_x86_64'
+    pressed 'Password'
+    pressed 'Unlock'
+    pushed P-plain-fast.kdbx over k2a-1.15-r6-CP.kdbx
+    pressed 'fabAddNew'
+    pressed 'Add entry'
+    pressed 'name'
+    pressed 'Save'
+    shown alertTitle 'Merge changes?'
+    shown message 'The database file was modified externally. Do you want to load and merge the changes before saving? Select No if you want to overwrite the external changes.'
+    shown button3 'Cancel'
+    shown button2 'No, overwrite'
+    shown button1 'Yes, merge'
+    pressed 'Yes, merge'
+    flow ended 0
+  CPs, runs 1, 2, 3
+    pressed 'Open file...'
+    pressed 'System file picker'
+    picked k2a-1.15-r6-CPs.kdbx
+    pressed 'Password'
+    pressed 'Unlock'
+    pushed P-plain-fast-s.kdbx over k2a-1.15-r6-CPs.kdbx
+    pressed 'fabAddNew'
+    pressed 'Add entry'
+    pressed 'name'
+    pressed 'Save'
+    shown alertTitle 'Merge changes?'
+    shown message 'The database file was modified externally. Do you want to load and merge the changes before saving? Select No if you want to overwrite the external changes.'
+    shown button3 'Cancel'
+    shown button2 'No, overwrite'
+    shown button1 'Yes, merge'
+    pressed 'Yes, merge'
+    flow ended 0
+  PC, runs 1, 2, 3
+    pressed 'Open file...'
+    pressed 'System file picker'
+    pressed 'Show roots'
+    pressed 'sdk_gphone_x86_64'
+    pressed 'Password'
+    pressed 'Unlock'
+    pushed C-fast.kdbx over k2a-1.15-r6-PC.kdbx
+    pressed 'fabAddNew'
+    pressed 'Add entry'
+    pressed 'name'
+    pressed 'Save'
+    shown alertTitle 'Merge changes?'
+    shown message 'The database file was modified externally. Do you want to load and merge the changes before saving? Select No if you want to overwrite the external changes.'
+    shown button3 'Cancel'
+    shown button2 'No, overwrite'
+    shown button1 'Yes, merge'
+    pressed 'Yes, merge'
+    flow ended 0
+  PCs, runs 1, 2, 3
+    pressed 'Open file...'
+    pressed 'System file picker'
+    picked k2a-1.15-r6-PCs.kdbx
+    pressed 'Password'
+    pressed 'Unlock'
+    pushed C-fast-s.kdbx over k2a-1.15-r6-PCs.kdbx
+    pressed 'fabAddNew'
+    pressed 'Add entry'
+    pressed 'name'
+    pressed 'Save'
+    shown alertTitle 'Merge changes?'
+    shown message 'The database file was modified externally. Do you want to load and merge the changes before saving? Select No if you want to overwrite the external changes.'
+    shown button3 'Cancel'
+    shown button2 'No, overwrite'
+    shown button1 'Yes, merge'
+    pressed 'Yes, merge'
+    flow ended 0
+
+Keepass2Android 1.08d-r5
+  CP, runs 1, 2, 3
+    pressed 'Open file...'
+    pressed 'System file picker'
+    picked k2a-1.08d-r5-CP.kdbx
+    pressed 'Password'
+    pressed 'UNLOCK'
+    pushed P-plain-fast.kdbx over k2a-1.08d-r5-CP.kdbx
+    pressed 'fabAddNew'
+    pressed 'fabAddNewEntry'
+    pressed 'name'
+    pressed 'Save'
+    shown alertTitle 'Merge changes?'
+    shown message 'The database file was modified externally. Do you want to load and merge the changes before saving? Select No if you want to overwrite the external changes.'
+    shown button1 'YES, MERGE'
+    shown button2 'NO, OVERWRITE'
+    shown button3 'CANCEL'
+    pressed 'YES, MERGE'
+    flow ended 0
+  PC, runs 1, 2, 3
+    pressed 'Open file...'
+    pressed 'System file picker'
+    picked k2a-1.08d-r5-PC.kdbx
+    pressed 'Password'
+    pressed 'UNLOCK'
+    pushed C-fast.kdbx over k2a-1.08d-r5-PC.kdbx
+    pressed 'fabAddNew'
+    pressed 'fabAddNewEntry'
+    pressed 'name'
+    pressed 'Save'
+    shown alertTitle 'Merge changes?'
+    shown message 'The database file was modified externally. Do you want to load and merge the changes before saving? Select No if you want to overwrite the external changes.'
+    shown button1 'YES, MERGE'
+    shown button2 'NO, OVERWRITE'
+    shown button3 'CANCEL'
+    pressed 'YES, MERGE'
+    flow ended 0
+
+KeePassDX 4.5.8
+  extCP, runs 1, 2, 3
+    pressed 'Open existing vault'
+    picked kpdx-4.5.8-extCP.kdbx
+    typed the password
+    pressed 'Unlock'
+    pushed P-plain-fast.kdbx over kpdx-4.5.8-extCP.kdbx
+    touched kpdx-4.5.8-extCP.kdbx
+    file kpdx-4.5.8-extCP.kdbx: 2037 bytes
+    key HOME
+    shown message 'The information contained in your database has been modified outside the app.\n\n<time>, <size>\n->\n<time>, <size>\n\nMerge the data, overwrite the external modifications by saving the database or reload it with the latest changes.'
+    shown button1 'OK'
+    pressed 'OK'
+    pressed 'More options'
+    pressed 'Merge data'
+    flow ended 0
+  extPC, runs 1, 2, 3
+    pressed 'Open existing vault'
+    picked kpdx-4.5.8-extPC.kdbx
+    typed the password
+    pressed 'Unlock'
+    pushed C-fast.kdbx over kpdx-4.5.8-extPC.kdbx
+    touched kpdx-4.5.8-extPC.kdbx
+    file kpdx-4.5.8-extPC.kdbx: 2021 bytes
+    key HOME
+    shown message 'The information contained in your database has been modified outside the app.\n\n<time>, <size>\n->\n<time>, <size>\n\nMerge the data, overwrite the external modifications by saving the database or reload it with the latest changes.'
+    shown button1 'OK'
+    pressed 'OK'
+    pressed 'More options'
+    pressed 'Merge data'
+    flow ended 0
+  fromCP, runs 1, 2, 3
+    pressed 'Open existing vault'
+    picked kpdx-4.5.8-fromCP.kdbx
+    typed the password
+    pressed 'Unlock'
+    pushed P-plain-fast.kdbx over kpdx-4.5.8-fromCP-src.kdbx
+    pressed 'menu_merge_from'
+    typed setup_check_password_edit_text dumm
+    pressed 'Check'
+    picked kpdx-4.5.8-fromCP-src.kdbx
+    typed the password
+    pressed 'OK'
+    flow ended 0
+  fromPC, runs 1, 2, 3
+    pressed 'Open existing vault'
+    picked kpdx-4.5.8-fromPC.kdbx
+    typed the password
+    pressed 'Unlock'
+    pushed C-fast.kdbx over kpdx-4.5.8-fromPC-src.kdbx
+    pressed 'menu_merge_from'
+    typed setup_check_password_edit_text dumm
+    pressed 'Check'
+    picked kpdx-4.5.8-fromPC-src.kdbx
+    typed the password
+    pressed 'OK'
+    flow ended 0
+  keepPC, run 1
+    pressed 'Open existing vault'
+    picked kpdx-4.5.8-keepPC.kdbx
+    typed the password
+    pressed 'Unlock'
+    pushed C-fast.kdbx over kpdx-4.5.8-keepPC.kdbx
+    file kpdx-4.5.8-keepPC.kdbx: 2021 bytes
+    key HOME
+    pressed 'Add node'
+    pressed 'Add entry'
+    typed ^Title$ droid-merge
+    pressed 'Validate'
+    flow ended 0
+
+KeePassDX 3.2.0
+  extCP, runs 1, 2, 3
+    pressed 'OPEN EXISTING DATABASE'
+    picked kpdx-3.2.0-extCP.kdbx
+    typed the password
+    pressed 'OPEN'
+    pushed P-plain-fast.kdbx over kpdx-3.2.0-extCP.kdbx
+    touched kpdx-3.2.0-extCP.kdbx
+    file kpdx-3.2.0-extCP.kdbx: 2037 bytes
+    key HOME
+    shown message 'The information contained in your database file has been modified outside the app.\n\n<time>, <size>\n->\n<time>, <size>\n\nMerge the data, overwrite the external modifications by saving the database or reload it with the latest changes.'
+    shown button1 'OK'
+    pressed 'OK'
+    key MENU
+    pressed 'Merge data'
+    file kpdx-3.2.0-extCP.kdbx: unchanged
+    key MENU
+    pressed 'Save data'
+    file kpdx-3.2.0-extCP.kdbx: rewritten
+    flow ended 0
+  extPC, runs 1, 2, 3
+    pressed 'OPEN EXISTING DATABASE'
+    picked kpdx-3.2.0-extPC.kdbx
+    typed the password
+    pressed 'OPEN'
+    pushed C-fast.kdbx over kpdx-3.2.0-extPC.kdbx
+    touched kpdx-3.2.0-extPC.kdbx
+    file kpdx-3.2.0-extPC.kdbx: 2021 bytes
+    key HOME
+    shown message 'The information contained in your database file has been modified outside the app.\n\n<time>, <size>\n->\n<time>, <size>\n\nMerge the data, overwrite the external modifications by saving the database or reload it with the latest changes.'
+    shown button1 'OK'
+    pressed 'OK'
+    key MENU
+    pressed 'Merge data'
+    file kpdx-3.2.0-extPC.kdbx: unchanged
+    key MENU
+    pressed 'Save data'
+    file kpdx-3.2.0-extPC.kdbx: rewritten
+    flow ended 0
+
+KeePassDroid 2.7, its menus
+  The lines under `listed:` are the titles and summaries on the screen at that step. The last press
+  found the group's menu open again in place of the settings screen, so the page behind "Database
+  settings" was never listed.
+    key MENU
+    listed:
+      title 'About'
+      title 'Settings'
+    key BACK
+    pressed 'OPEN'
+    picked kpd-2.7-menu-P-plain-fast.kdbx
+    typed the password
+    pressed 'OK'
+    key MENU
+    listed:
+      title 'Donate'
+      title 'Settings'
+      title 'Change master key'
+      title 'DB sort order'
+    pressed 'Settings'
+    listed:
+      title 'Database'
+      summary 'Database settings'
+      title 'Application'
+      summary 'Application settings'
+    key BACK
+    key MENU
+      title 'Donate'
+      title 'Settings'
+      title 'Change master key'
+      title 'DB sort order'
+    FAILED: tap: no node matches ^Database.settings$
+    flow ended 1

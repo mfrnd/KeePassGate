@@ -1,8 +1,9 @@
 # What the probe settled
 
 How KeePass 2.61.1 merges `PwDatabase.CustomData`, what that does to each way a revocation and a
-certificate authority could be kept there, and what KeePassXC and KeePass 2.47 do to the same keys
-when they save or merge the file. Every cell below but the rows section 2 marks as reasoned was
+certificate authority could be kept there, and what KeePassXC, KeePass 2.47 and the Android
+programs that open KDBX 4 files do to the same keys, and to the rules on groups and entries, when
+they save or merge the file. Every cell below but the rows section 2 marks as reasoned was
 measured against throwaway databases the probe created, each read back with KeePassLib 2.61.1 on
 .NET Framework 4.8; the output is under
 [`spikes/revocation/output`](spikes/revocation/output) as it came back, so a re-run that disagrees
@@ -16,10 +17,12 @@ is a finding rather than a mistake. [`README.md`](README.md) says how to run it.
 | Can the authority be kept so that a merge never serves the wrong one? | **Yes**, with one key per authority and a retirement key per retired one, deciding on retirements rather than counting documents |
 | Does KeePassXC keep any of this? | **No.** From 2.4.2 its merge replaces the database's custom data as a whole with the copy it loaded later. Its save keeps every key and value and drops their times, except from 2.7.0 in a file holding another KDBX 4.1 feature |
 | And KeePass 2.47? | It opens a 4.1 file and saves every key and value without their times, as KDBX 4.0, or as 3.1 when nothing else needs 4.0 |
+| And the Android programs that open KDBX 4 files? | No save and no merge that was run removed a key. Keepass2Android saves as KeePass 2.47 does, and its merge sets a key both copies hold to the arriving copy's value when that copy's `SettingsChanged` is later. KeePassDX keeps the keys and their times, and its merge puts the arriving copy's rule on a group or an entry whichever is newer. **KeePassDroid deletes every rule when it saves, and KeePassDX 3.2.0 and 3.3.0 every group's** |
 
 **Nobody else's source is on this branch.** KeePass and KeePassXC are both GPL and this repository
 is MIT. KeePass is cited by path and line in the `KeePass-2.61.1-Source.zip` release, KeePassXC by
-path and line at its `2.7.12` tag. Both were measured, and their source read for why.
+path and line at its `2.7.12` tag. Both were measured, and their source read for why. So were the
+three Android programs, GPL as well, each cited by path and line at the tag section 6 names.
 
 ## 1. The merge rule
 
@@ -76,7 +79,8 @@ The conditions:
 
 - **strip**: every custom data key rewritten with no time, which is what a save by KeePass 2.47 or
   by any KeePassXC measured leaves behind, unless the file holds another KDBX 4.1 feature and
-  KeePassXC is 2.7.0 or later (section 5);
+  KeePassXC is 2.7.0 or later (section 5), and what a save by either Keepass2Android measured
+  leaves behind (section 6);
 - **skew**: the revoker's clock 60 seconds behind the machine that paired the client;
 - **settings newer**: that copy's `SettingsChanged` is later, which any edit to a database setting
   does.
@@ -379,3 +383,212 @@ which is the strip condition of section 2.
 - A month whose name differs between the system's language and English, in which the date marker is
   written up to 2.7.12.
 - A KeePass 2.61.1 merge of a file KeePassXC merged.
+
+## 6. The Android programs, measured
+
+`output/android-save.txt`, `output/android-merge.txt` and `output/android-screens.txt`, with the
+programs as they were verified in `output/android-programs.txt` and the databases they were given
+in `output/android-base.txt`. Three programs, the Android programs that open KDBX 4 files, each as
+the APK its project publishes on GitHub, pinned in `android.sha256` beside the digest of the
+certificate that signed it. Keepass2Android 1.15-r6, the newest release not marked a prerelease on
+the day of the run, and 1.08d-r5, the release before the notes of 1.09a-r3 add KDBX 4.1. KeePassDX
+4.5.8, the newest that day, 3.2.0, whose notes list "Manage data merge", and 3.3.0, the release
+after it, whose notes list "Merge from file and save as copy" and which was run for a save only.
+And KeePassDroid 2.7, the newest that day.
+
+Each was installed into an emulator of Android 11, API 30 on x86_64, started with no window under
+Linux in WSL 2, and driven over `adb` by the scripts in `spikes/revocation/android`: `k.py` reads
+the screen through `uiautomator` and presses what a flow file names. Every run starts from the
+program's data cleared and its database alone in the device's download directory, opened through
+the system's file picker, and what the program left there is pulled back and read by `Kpg.cs` with
+KeePassLib 2.61.1. Eight attempts whose flow failed on the screen or was stopped were repeated from
+cleared data once the flow was corrected, and are not counted: every save and every merge counted
+below is a run whose flow ended without a failure.
+
+**Measured and read are kept apart below.** A result is what a file read back as. A reason is read
+from the program's source at the tag named and is marked as read from source, and nothing read
+there is given as a result.
+
+**The databases.** C and P as section 5 describes them, written again by `Kpg.cs`, so they have the
+same shape and not the same bytes. `fast` is Argon2d and `aes` is AES-KDF, a set whose name ends in
+`b` has no rule on any group or entry, and in `P-moved-fast` the entry E2 has been moved out of G
+with its previous parent recorded. C and P of a set carry the same `SettingsChanged`; `C-fast-s`
+and `P-plain-fast-s` are copies with a later `SettingsChanged`, for a merge in which the arriving
+file's settings are the newer.
+
+### A plain save
+
+The file opened and unlocked, an entry `droid-added` added at the root and the database saved, each
+by the program's own controls. Five sets for every release, and for KeePassDX 3.3.0 the two Argon2d
+sets with rules: 27 files. **In all 27 all eleven keys came back with their values, and no program
+added a key.** What differs is the format, the times and the rules:
+
+| program | format | per-key times | previous parent | G's rule | E1's rule |
+| --- | --- | --- | --- | --- | --- |
+| Keepass2Android 1.15-r6, 1.08d-r5 | 4.0, and **3.1** with AES-KDF and no rules | gone | gone | kept | kept |
+| KeePassDX 4.5.8 | 4.1 | kept | kept | kept | kept |
+| KeePassDX 3.2.0, and 3.3.0 in its two sets | 4.1 | kept | kept | **deleted** | kept |
+| KeePassDroid 2.7 | 4.1 | kept | kept | **deleted** | **deleted** |
+
+**Keepass2Android strips as KeePass 2.47 does**, in both releases: the format column is the row
+section 5 has for KeePass 2.47, and no file kept a per-key time or the previous parent. Read from
+source at `v1.15-r6`: the reader hands each key's time to the dictionary
+(`src/KeePassLib2Android/Serialization/KdbxFile.Read.Streamed.cs:639-640`), which keeps a time only
+when it was made to remember them
+(`src/KeePassLib2Android/Collections/StringDictionaryEx.cs:154-157`), and the dictionary a database
+is left with when it is made was not
+(`src/KeePassLib2Android/PwDatabase.cs:574`, against the field's own initializer at `:100`). So the
+times are lost at the load and not at the save. With no time left, the format choice
+(`src/KeePassLib2Android/Serialization/KdbxFile.cs:393-455`) answers 4.0 for Argon2d or for custom
+data on a group or an entry and 3.1 otherwise; it has no case for a previous parent, which is
+written only at 4.1 (`src/KeePassLib2Android/Serialization/KdbxFile.Write.cs:544-547` and
+`:584-586`). At `1.08d-r5` the dictionary holds no times at all.
+
+**KeePassDX 4.5.8 changed nothing the plugin reads.** It gave the root group the time of the save,
+as 3.2.0 and 3.3.0 did, and the other two programs left that time alone.
+
+**KeePassDX 3.2.0 and 3.3.0 delete a group's custom data.** G came back with none in all five files
+that had a rule to lose, and with its modification time unchanged, so nothing about G shows that
+the rule went. E1 kept its rule. The notes of 3.4.5 list "Fix custom data in group (fix KeeShare)";
+no release between 3.3.0 and 4.5.8 was run, so where the deletion stops is not bracketed, and no
+source line is cited for it.
+
+**KeePassDroid deletes every rule.** G and E1 both came back with no custom data in the three files
+that had rules, their modification times unchanged. Read from source at `v2.7`: the writer writes
+custom data for the database and for nothing else
+(`app/src/main/java/com/keepassdroid/database/save/PwDbV4Output.java:360`, the only use of that
+element in the file), and the reader stores a group's custom data key in place of its value
+(`app/src/main/java/com/keepassdroid/database/load/ImporterV4.java:880`).
+
+**Two kinds of file read back with no `SettingsChanged` of their own.** All five KeePassDroid files
+read back with the same `SettingsChanged`, the time at which they were read, later than every save;
+so did the KDBX 3.1 file Keepass2Android 1.08d-r5 wrote, while its 4.0 files kept the value they
+were given. The 1.15-r6 files were read before the reader printed that time. Read from source,
+KeePassDroid's writer has no such element anywhere in `PwDbV4Output.java`. To a merge that compares
+`SettingsChanged`, a file like these is the newer whenever it is read. That merge was not run.
+
+### The merge
+
+No program has a merge to call from a command line, so each was driven on its screen, and
+`output/android-screens.txt` has what was pressed and what every dialog showed. **PC** is P open in
+the program and C arriving, **CP** the reverse, on the `fast` sets with rules. Three runs a cell
+but for the cell noted, 37 runs, and within a cell every run read back alike but for the time of
+an entry the run added.
+
+**Keepass2Android.** The merge reached is the merge its save offers when the file has changed
+underneath it: with a database open, the arriving copy was written over its file, an entry
+`droid-merge` added, and Save raised "Merge changes?", answered "Yes, merge". A trailing `s` is an
+arriving copy with the later `SettingsChanged`.
+
+| release | cell | open, arriving | keys only P holds | record and profile list | G and E1 |
+| --- | --- | --- | --- | --- | --- |
+| 1.15-r6, 1.08d-r5 | PC | P, C | kept | P's | P's rule, P's time |
+| 1.15-r6, 1.08d-r5 | CP | C, P | added | **C's** | P's rule, P's time |
+| 1.15-r6 | PCs | P, C with later settings | kept | **C's** | P's rule, P's time |
+| 1.15-r6 | CPs | C, P with later settings | added | P's | P's rule, P's time |
+
+- **A key only one copy holds is in the result, and no key is removed.** The revocation
+  `KPG.Revoked.<c2>`, the retirement `KPG.RetiredAuthority.<a1>` and the new `KPG.Authority.<a2>`
+  were in all 18 results, whichever copy was open.
+- **A key both copies hold keeps the open copy's value, unless the arriving copy's
+  `SettingsChanged` is later, and then takes the arriving copy's.** In CP the stale C was open, and
+  the result held C's admitted record for the client beside P's revocation of it, and C's wider
+  profile list. In PCs the newer P was open and the stale C arrived with later settings, and the
+  record and the profile list went back to C's all the same. Nine runs of the 18 ended that way.
+  The revocation still refuses that client. The profile list has no such key beside it: a name P
+  had taken off the list was back on it.
+- **Read from source**, at `v1.15-r6`. The merge is KeePassLib's `Synchronize` with the open
+  database as the target (`src/Kp2aBusinessLogic/database/edit/SaveDB.cs:338`), in a port of
+  KeePassLib that reports version 2.35 (`src/KeePassLib2Android/PwDefs.cs:69`). Its custom data loop
+  copies a source key, with no time, when the target lacks the key or the source's
+  `SettingsChanged` is later (`src/KeePassLib2Android/PwDatabase.cs:1476` and `:1530-1534`), which
+  is section 1's case of neither side stamped and the only case left once every time is lost at the
+  load. The target takes the source's `SettingsChanged` then (`:1480`), and the PCs and CPs results
+  did read back with the arriving copy's. Synchronizing a remote file through its cached copy
+  reaches the same `MergeIn` (`src/Kp2aBusinessLogic/database/SynchronizeCachedDatabase.cs:90`) and
+  was not run.
+- **Every result is KDBX 4.0 with no per-key time**, whatever the two copies carried.
+- **G and E1 came out with P's rule and P's modification time in all 18 runs**, in either
+  direction, E1 with one older version in its history.
+
+**KeePassDX.** Two ways in 4.5.8, neither adding an entry. **from** is "Merge from ..." in the
+database's menu, the arriving copy in a file of its own, which read back afterwards as it was
+given. **ext** is the arriving copy written over the open file, which KeePassDX reports in a dialog,
+and then "Merge data". **keep** is the same replacement with no merge asked for, an entry added and
+the database saved, in one run. 3.2.0 was run through ext only, and there "Merge data" left the
+file as it was until "Save data" was pressed, in all six runs.
+
+| release | cell | open, arriving | the database's keys | G | E1 |
+| --- | --- | --- | --- | --- | --- |
+| 4.5.8 | fromCP, extCP | C, P | P's, at P's times | P's rule | P's rule |
+| 4.5.8 | fromPC, extPC | P, C | P's, at P's times | **C's rule, P's time** | **C's rule, P's time** |
+| 4.5.8 | keepPC | P, C | P's, at P's times | P's rule | P's rule |
+| 3.2.0 | extCP | C, P | P's, at P's times | none | P's rule |
+| 3.2.0 | extPC | P, C | P's, at P's times | none | **C's rule, P's time** |
+
+- **The database's keys went by their own times.** All 18 merges ended with P's eleven keys at P's
+  times in a 4.1 file, whichever copy was open.
+- **A rule goes by no time: the arriving copy's replaces the open copy's, whichever group or entry
+  is the newer.** With P open and the stale C arriving, G and E1 came out with C's older, wider
+  rule under P's modification time in all six 4.5.8 runs, and E1 did in the three 3.2.0 runs, where
+  G had no rule left to replace. The group or entry then carries the newer time and the older rule,
+  so a later merge that goes by that time has nothing to show it the rule is stale. That later
+  merge was not run.
+- **Read from source**, at `4.5.8`, in
+  `database/src/main/java/com/kunzisoft/keepass/database/merge/DatabaseKDBXMerger.kt`.
+  `mergeCustomData` (`:415-432`) puts an arriving item when the target lacks its key, when either
+  item has no time, or when the target's time is before the arriving item's, and it removes
+  nothing. It is called for the database (`:268`), and for an entry (`:507`) and a group (`:577`)
+  before their modification times are compared, and a rule is an item with no time, so a rule is
+  always put. The comparison that would take a newer group compares the open group's time with
+  itself (`:584`). At `3.2.0` the same function is
+  `app/src/main/java/com/kunzisoft/keepass/database/merge/DatabaseKDBXMerger.kt:306-320`. By the
+  same reading, an arriving copy whose per-key times were dropped by another program's save would
+  have its value put for every key both copies hold, the stale value as readily as the fresh. That
+  merge was not run.
+- **A replacement that does not move the file's time on was not noticed.** In keepPC the arriving C
+  was written over the open file with its own older time: no dialog was shown, and the save wrote
+  the open P and the added entry over it. Read from source, a change is reported when the file's
+  time is more than ten seconds past the time held for it
+  (`app/src/main/java/com/kunzisoft/keepass/services/DatabaseTaskNotificationService.kt:219`), which
+  is why the ext flows wait eleven seconds and then set the file's time.
+
+**KeePassDroid** showed no merge to run. Its menu holds About and Settings before a database is
+open and Donate, Settings, Change master key and DB sort order after, and its settings screen
+Database and Application. The page behind Database was never listed, the last press of that flow
+having failed. Read from source, the strings at `v2.7` (`app/src/main/res/values/strings.xml`) name
+no merge and no synchronization.
+
+### What this leaves the plugin
+
+Design C held. The three keys only P holds, the revocation, the retirement and the new authority,
+were in all 37 merge results, and no save and no merge removed a key from the database's custom
+data: none of these programs does what a KeePassXC merge does. What they reach is everything design
+C does not cover. A key that is changed and not added, the admission record or the profile list,
+came back at its older value from a Keepass2Android merge, with the stale copy open or with the
+stale copy arriving under later settings; the record is refused all the same by the revocation
+beside it, and the profile list has nothing beside it. A Keepass2Android save is the strip
+condition of section 2. And a rule on a group or an entry has no protection at all: a KeePassDX
+merge brings an older rule back under a newer time, KeePassDroid deletes every rule in a file it
+saves, and KeePassDX 3.2.0 and 3.3.0 every group's, none of them moving the modification time of
+the group or entry. A deleted rule refuses nothing. The group or entry then answers with what it
+inherits or with the default, so where the rule narrowed what a group above grants, deleting it
+widens what a client reaches.
+
+### Not run
+
+- Keepass2Android synchronizing a remote file through its cache; its setting to merge on every
+  conflict without asking (`src/Kp2aBusinessLogic/database/edit/SaveDB.cs:162`); the releases
+  between 1.08d-r5 and 1.15-r6.
+- A Keepass2Android merge of a file that carries no `SettingsChanged`, as a KeePassDroid save
+  leaves it. Read from source, a database is given the current time when it is made
+  (`src/KeePassLib2Android/PwDatabase.cs:543`), so such a file would arrive with the later
+  settings.
+- KeePassDX 3.3.0 in a merge, and every release between 3.3.0 and 4.5.8, whose notes list merge
+  fixes at 4.1.8, 4.2.1 and 4.2.2; reloading and saving in answer to 4.5.8's dialog in place of
+  merging; a merge of a copy without per-key times.
+- KeePassDroid's database settings page.
+- A merge of `P-moved`, or under AES-KDF or a slow KDF, and later settings in any program but
+  Keepass2Android 1.15-r6.
+- A KeePass 2.61.1 merge of any file these programs saved or merged.
+- Any Android release but 11, any image but x86_64, and a device in place of the emulator.
