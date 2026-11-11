@@ -311,6 +311,40 @@ namespace KeePassGate.Tests
         }
 
         [Test]
+        public void A_thread_holding_KeePass_s_thread_may_wait_for_a_file_no_more_than_that_thread_may()
+        {
+            // What the log and the audit ask before a line is written. A read's hold keeps
+            // KeePass's window waiting, so a line logged inside a hold is queued as a line logged
+            // on KeePass's own thread is, and the same thread waits for the file as any
+            // connection does before the hold and after it.
+            using (var form = Made())
+            using (var ui = new ControlUiThread(form, NoMerge))
+            {
+                var mayNotWait = ControlUiThread.MayNotWait(Thread.CurrentThread);
+                var before = true;
+                var inside = false;
+                var nested = false;
+                var after = true;
+
+                var reader = Start(() =>
+                {
+                    before = mayNotWait();
+                    inside = ui.Hold(mayNotWait);
+                    nested = ui.Hold(() => ui.Hold(mayNotWait) && mayNotWait());
+                    after = mayNotWait();
+                });
+
+                PumpUntil(() => !reader.IsAlive);
+
+                Assert.That(mayNotWait(), Is.True, "KeePass's own thread");
+                Assert.That(before, Is.False, "a connection's thread, holding nothing");
+                Assert.That(inside, Is.True, "the same thread inside a hold");
+                Assert.That(nested, Is.True, "and still inside the outer hold once an inner hold is over");
+                Assert.That(after, Is.False, "and no longer once the hold is over");
+            }
+        }
+
+        [Test]
         public void With_nobody_to_ask_about_a_merge_the_timer_starts_no_read()
         {
             // A KeePass whose merge cannot be looked for. A read the timer started could be
