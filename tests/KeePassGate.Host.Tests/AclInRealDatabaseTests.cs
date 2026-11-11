@@ -213,7 +213,7 @@ namespace KeePassGate.Host.Tests
             var quiet = EntryIn(quietGroup);
 
             using (var loop = new UiLoop())
-            using (var ui = loop.Own(() => new ControlUiThread(loop.Control)))
+            using (var ui = loop.Own(() => new ControlUiThread(loop.Control, KeePassMerges.Watch())))
             using (var churn = loop.Own(() => new System.Windows.Forms.Timer { Interval = 1 }))
             {
                 var round = 0;

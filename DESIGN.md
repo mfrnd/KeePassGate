@@ -896,12 +896,39 @@ So the rules here:
   Idle left input waiting at most for the turn it arrived during, eight to eleven milliseconds at
   the median, and a hundred-millisecond timer never more than 125 between ticks, against 112 with
   nothing queued. **A read also starts on a slow fallback timer**, because a loop that is not
-  WinForms' never raises Idle, a message box's or `DoEvents` itself, and a read inside one is
-  harmless; a write never does, which the rule about KeePass's own operations below depends on. **A
+  WinForms' never raises Idle, a message box's or `DoEvents` itself; a write never does, which
+  the rule about KeePass's own operations below depends on. **A
   dialog of Windows' own is answered before a write is queued**, since no turn comes round under
   one: a message box, a task dialog or a file dialog is a window of class `#32770` on the thread,
   which a form never is, and any thread can see one there in about twenty microseconds without
   asking the thread anything. `spikes/keepass-thread` holds the probes.
+
+  **Nothing starts inside a merge, and that reverses the reason the timer was given.** A read
+  inside a pump was held to be harmless, and inside a save it is, because the tree stands still.
+  A merge is the other case: `PwDatabase.MergeIn` adds and overwrites groups and entries first,
+  then moves, reorders and deletes them in passes of their own, and the status logger it is
+  given pumps through `DoEvents` between one step and the next. The timer ticked there, and the
+  read it served was of a tree that was neither database: driven against KeePass's own merge of
+  forty entries, a read asked for at the merge's first step was answered inside it, with none
+  of the forty. Nothing KeePass announces is that question. `MainForm.UIIsInteractionBlocked`
+  is raised around a synchronize and an import and around every save as well, where a read is
+  welcome; the progress window is XML Replace's alone; a merge another plugin runs raises
+  neither. **So the queue looks for the merge where it cannot be missed, on the stack of
+  KeePass's own thread**: every merge KeePass runs ends in the one method, whose body is far too
+  long to be compiled into its caller, so a thread inside it has its frame, and `MergeWatch`
+  finds it by name in twenty to fifty microseconds. Each round of the queue asks first, with
+  something waiting and never otherwise, and serves nothing while the answer is yes, on Idle as
+  on the timer, since a WinForms dialog shown from inside a merge raises Idle inside it. The
+  read keeps its place: it is answered from the merged tree on the tick after the merge ends,
+  or `503 busy` when its ten seconds run out first. **A KeePass with no method of that name
+  leaves nothing to look for, and there the timer serves no read at all**: reads wait for Idle
+  as work does, a read under a long save or a message box is answered `busy`, and the log names
+  what is missing as the plugin starts. Two things the look cannot see. A merge on a thread
+  other than KeePass's, which KeePass has none of. And a merge stopped part way: Cancel on XML
+  Replace's progress window ends the method early, and the partly merged tree it leaves is from
+  then on the database, for the operator's own eyes as for a client's.
+  `ReadsDuringAMergeTests` drives KeePass's own merge under every merge method, and
+  `KeePassContractTests` reads who calls it off the IL.
 
   **The bound has two halves, and only one of them is a timeout.** Work still sitting in the queue
   when the timeout expires is withdrawn, so the caller's "no" is true of the database as well: the
@@ -1035,7 +1062,8 @@ So the rules here:
   created under the root there makes the merge throw out of `ApplyDeletions`, with the write's own
   save already on the disk. So the dialog watch also answers whether that window is open, and the
   writer asks it after KeePass's two signals. **Reads are not refused by it**, since
-  every one of these hazards is a write. **And a database with unsaved changes is not refused
+  every one of these hazards is a write: what keeps a read out of a merge is the queue's own
+  look at the thread, above. **And a database with unsaved changes is not refused
   either**: an API write still saves what is in memory, the operator's own edits included, which is
   a documented consequence rather than something to guard against.
 

@@ -135,7 +135,10 @@ database under it: well under a millisecond to look one entry up, and about seve
 thousand. A read waits for KeePass to have nothing else to do first, so what is typed or clicked in
 the window goes ahead of it, and so do KeePass's own timers, among them the one that locks it after
 a period of inactivity. A read that KeePass cannot make room for within ten seconds, because it is
-busy with something it does not pause in, answers "busy".
+busy with something it does not pause in, answers "busy". **And no read starts inside a merge**:
+while KeePass imports, synchronizes or runs XML Replace, what it holds is part of one database and
+part of another, so a read asked for then waits for the merge to end and is answered from what it
+leaves, or "busy" when the merge takes more than ten seconds.
 
 **A program can ask not to write over what changed since it read.** Reading a group or an entry
 hands back a tag of what it holds, and a program that hands the tag back with its write is

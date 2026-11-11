@@ -235,5 +235,19 @@ namespace KeePassGate
         /// than by a build that no longer finds it.
         /// </remarks>
         public const string StatusProgressFormTypeName = "KeePass.Forms.StatusProgressForm";
+
+        /// <summary>
+        /// The method every merge runs inside: a synchronize, an import, XML Replace and a merge
+        /// another plugin asks for. What a read looks for on KeePass's thread before it starts.
+        /// </summary>
+        /// <remarks>
+        /// Never called by the plugin, which merges nothing: `MergeWatch` looks for it by name on
+        /// the stack of the thread it is asked on, and every overload is meant, since the short
+        /// one calls the long one. `nameof` for the reason
+        /// <see cref="MainFormInteractionBlockedMethod"/> gives, which pins that a method of that
+        /// name exists. That a merge still runs inside it, with a frame of its own to find, is
+        /// what the host tests pin.
+        /// </remarks>
+        public const string DatabaseMergeMethod = nameof(KeePassLib.PwDatabase.MergeIn);
     }
 }

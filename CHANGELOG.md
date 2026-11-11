@@ -11,6 +11,13 @@ none, since it releases both.
 
 ## 0.2.0, unreleased
 
+- **A read asked for while KeePass merges waits for the merge to end.** A synchronize, an
+  import and XML Replace let messages through between one step and the next, and a read was
+  served there from a database part way between the two being merged: entries not yet arrived,
+  not yet moved to where the merge puts them, or not yet deleted. Such a read is now answered
+  from what the merge leaves, once it is over, or `503 busy` when the merge takes more than ten
+  seconds, which the client waits out as it does any other `busy`. A read during a save is
+  served as before.
 - **The command line honors `PYTHONIOENCODING`, and warns when its output is on its way to being
   misread.** Every standard stream was UTF-8 whatever the variable named; it now decides the
   encoding of all three, and of input and output the error handler, as Python reads it. On

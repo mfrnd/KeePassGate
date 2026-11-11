@@ -39,11 +39,14 @@ namespace KeePassGate.Tests
     {
         private static readonly TimeSpan Patience = TimeSpan.FromSeconds(5);
 
+        /// <summary>No merge is running, which is every test here that is not about one.</summary>
+        private static readonly Func<bool> NoMerge = () => false;
+
         [Test]
         public void Work_the_user_interface_never_reached_is_called_off_rather_than_run_later()
         {
             using (var form = new Form())
-            using (var ui = new ControlUiThread(form))
+            using (var ui = new ControlUiThread(form, NoMerge))
             {
                 Handle(form);
 
@@ -78,7 +81,7 @@ namespace KeePassGate.Tests
         public void Work_that_gets_through_in_time_runs_once_and_is_reported_as_having_run()
         {
             using (var form = new Form())
-            using (var ui = new ControlUiThread(form))
+            using (var ui = new ControlUiThread(form, NoMerge))
             {
                 Handle(form);
 
@@ -112,7 +115,7 @@ namespace KeePassGate.Tests
             var ran = false;
 
             using (var form = new Form())
-            using (var thread = new ControlUiThread(form))
+            using (var thread = new ControlUiThread(form, NoMerge))
             {
                 Assert.That(() => thread.Run(() => ran = true, Patience), Throws.InstanceOf<ObjectDisposedException>(),
                     "a window that was never made");
@@ -135,7 +138,7 @@ namespace KeePassGate.Tests
             // window-gone case met a moment sooner, and answered false it was written down the
             // way that case was.
             using (var form = new Form())
-            using (var ui = new ControlUiThread(form))
+            using (var ui = new ControlUiThread(form, NoMerge))
             {
                 Handle(form);
                 ui.Dispose();
@@ -159,7 +162,7 @@ namespace KeePassGate.Tests
         public void Work_waiting_for_its_turn_when_the_plugin_stops_is_named_as_KeePass_closing()
         {
             using (var form = new Form())
-            using (var ui = new ControlUiThread(form))
+            using (var ui = new ControlUiThread(form, NoMerge))
             {
                 Handle(form);
 
@@ -188,7 +191,7 @@ namespace KeePassGate.Tests
         public void Work_that_throws_fails_the_caller_rather_than_the_user_interface_thread()
         {
             using (var form = new Form())
-            using (var ui = new ControlUiThread(form))
+            using (var ui = new ControlUiThread(form, NoMerge))
             {
                 Handle(form);
 
@@ -225,7 +228,7 @@ namespace KeePassGate.Tests
         public void Work_that_throws_after_the_timeout_fails_the_caller_that_waited_for_it()
         {
             using (var form = new Form())
-            using (var ui = new ControlUiThread(form))
+            using (var ui = new ControlUiThread(form, NoMerge))
             {
                 Handle(form);
 
@@ -269,7 +272,7 @@ namespace KeePassGate.Tests
             // loop, which never raises Idle. Work posted with `BeginInvoke` started there, inside
             // the operation; queued, it waits for the operation to end.
             using (var form = new Form())
-            using (var ui = new ControlUiThread(form))
+            using (var ui = new ControlUiThread(form, NoMerge))
             {
                 Handle(form);
 
@@ -302,7 +305,7 @@ namespace KeePassGate.Tests
             // makes a timer's message only once nothing else is queued; started on Idle, it leaves
             // every timer on time.
             using (var loop = new UiLoop())
-            using (var ui = loop.Own(() => new ControlUiThread(loop.Control)))
+            using (var ui = loop.Own(() => new ControlUiThread(loop.Control, NoMerge)))
             using (var ticker = loop.Own(() => new System.Windows.Forms.Timer { Interval = 100 }))
             {
                 var clock = Stopwatch.StartNew();
@@ -361,7 +364,7 @@ namespace KeePassGate.Tests
             // Shown, so it runs alone and holds the desktop: a message box takes the activation
             // from whatever held it, in this process or another.
             using (var loop = new UiLoop())
-            using (var ui = loop.Own(() => new ControlUiThread(loop.Control)))
+            using (var ui = loop.Own(() => new ControlUiThread(loop.Control, NoMerge)))
             {
                 uint thread = 0;
                 loop.Invoke(() => thread = NativeMethods.GetWindowThreadProcessId(loop.Control.Handle));
