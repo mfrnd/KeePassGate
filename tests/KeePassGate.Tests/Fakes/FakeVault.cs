@@ -32,6 +32,8 @@ namespace KeePassGate.Tests.Fakes
         private string _writeBlocked;
         private int _lookupsBefore;
         private Action _then;
+        private int _held;
+        private int _changing;
 
         public FakeVault()
         {
@@ -85,14 +87,67 @@ namespace KeePassGate.Tests.Fakes
             get { return "root"; }
         }
 
-        /// <summary>How many reads have been held as one, by <see cref="Held"/>.</summary>
+        /// <summary>
+        /// How many reads have been held by <see cref="Held"/>, each counted once however many
+        /// holds it took inside itself.
+        /// </summary>
         public int HeldReads { get; private set; }
 
-        /// <summary>Reads where it is, since a database in a dictionary has no thread to hold.</summary>
+        /// <summary>
+        /// How many lookups were answered with nothing held: outside every <see cref="Held"/>
+        /// and outside every change.
+        /// </summary>
+        /// <remarks>
+        /// What a request that changes nothing may never do. Two lookups each held alone are two
+        /// moments of the database, with room between them for whatever the operator does next.
+        /// </remarks>
+        public int LooseLookups { get; private set; }
+
+        /// <summary>Set to refuse every hold, as KeePass's thread does while it cannot be held.</summary>
+        public bool RefusesHolds { get; set; }
+
+        /// <summary>
+        /// Set to let every hold lapse: the read runs to its end and is refused then, as a read
+        /// that outlasted the hold on KeePass's thread is.
+        /// </summary>
+        public bool Lapses { get; set; }
+
+        /// <summary>
+        /// Reads where it is, since a database in a dictionary has no thread to hold, and keeps
+        /// count of what was read inside a hold and what was not.
+        /// </summary>
         public T Held<T>(Func<T> read)
         {
+            if (_held > 0)
+            {
+                // A hold inside a hold is the same hold, as it is on KeePass's thread.
+                return read();
+            }
+
+            if (RefusesHolds)
+            {
+                throw new VaultUnsettled("KeePass's thread could not be held");
+            }
+
             HeldReads++;
-            return read();
+            _held++;
+
+            T answer;
+            try
+            {
+                answer = read();
+            }
+            finally
+            {
+                _held--;
+            }
+
+            if (Lapses)
+            {
+                throw new VaultUnsettled("the read took longer than KeePass's thread could be held for");
+            }
+
+            return answer;
         }
 
         public string RootUuid
@@ -1193,11 +1248,21 @@ namespace KeePassGate.Tests.Fakes
 
         private VaultWrite Change(Func<VaultWrite> change)
         {
-            Looking();
+            // A change has KeePass's thread for the whole of its turn, so nothing it looks up is
+            // looked up with nothing held.
+            _changing++;
+            try
+            {
+                Looking();
 
-            // Not `Busy`, which each change answers itself once it has found the node, so that a
-            // node gone or a name taken is answered first, as the real vault answers them.
-            return WriteBlocked != null ? VaultWrite.Failed(WriteBlocked) : change();
+                // Not `Busy`, which each change answers itself once it has found the node, so that
+                // a node gone or a name taken is answered first, as the real vault answers them.
+                return WriteBlocked != null ? VaultWrite.Failed(WriteBlocked) : change();
+            }
+            finally
+            {
+                _changing--;
+            }
         }
 
         /// <summary>Counts one lookup or change, and runs what <see cref="After"/> left once it is due.</summary>
@@ -1207,6 +1272,11 @@ namespace KeePassGate.Tests.Fakes
         /// </remarks>
         private void Looking()
         {
+            if (_held == 0 && _changing == 0)
+            {
+                LooseLookups++;
+            }
+
             if (_then == null)
             {
                 return;
