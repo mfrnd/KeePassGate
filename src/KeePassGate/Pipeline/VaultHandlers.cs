@@ -1594,6 +1594,11 @@ namespace KeePassGate.Pipeline
         /// database by noticing which refusals differ. It costs an honest caller a clearer
         /// message, and the message it would have wanted is on the tab of whoever wrote the rule.
         ///
+        /// **A change whose caller the database stopped admitting while it waited is answered
+        /// before this**, inside the change's turn and as that caller's next request is, which
+        /// <see cref="DecidedInside"/> describes. The refusal still arrives here, and its `404`
+        /// is a second answer on a request whose first stands.
+        ///
         /// **The tag is the vault's answer and nothing here asks about it again.** Whether this
         /// caller may be handed the tag the change left was asked inside the change's turn, of
         /// the node as the change left it, <see cref="VaultAsking.Tagging"/>.

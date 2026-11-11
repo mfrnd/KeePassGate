@@ -16,8 +16,14 @@ namespace KeePassGate.Pipeline
     /// and that answer is the answer acted on and the line written down.
     ///
     /// **Null is a refusal, whoever made it**: a record that went, a profile that no longer
-    /// grants the verb, a node that now sits under a group that refuses. The caller is answered
-    /// as for a node that is not there, and the audit holds which it was.
+    /// grants the verb, a node that now sits under a group that refuses. What the rules refuse
+    /// is answered as a node that is not there, and the audit holds which it was.
+    ///
+    /// **A caller the database no longer admits has been answered by the time null comes
+    /// back**, on the request itself and as that caller's next request is answered: `401
+    /// unpaired` for a certificate whose record went, and the `503` of a database that locked
+    /// or that nobody is served from for now. The first answer on a request stands, so what the
+    /// change's handler makes of the refusal afterwards changes nothing.
     ///
     /// What comes back otherwise is the request as it stands inside the turn, for the questions
     /// the handler asks beside the router's: its <see cref="IGateContext.Client"/> is the client

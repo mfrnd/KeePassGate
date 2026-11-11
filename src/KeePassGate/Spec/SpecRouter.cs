@@ -677,6 +677,9 @@ namespace KeePassGate.Spec
         /// was decided. A certificate whose record has gone is refused as a certificate with no
         /// record is refused on arrival: the line a refused certificate gets, and the `401` every
         /// route gives a caller the database does not admit.
+        ///
+        /// A read comes here inside its hold and a change inside its turn, so the two are turned
+        /// away alike.
         /// </remarks>
         private void TurnAway(IGateContext decided, SpecOperation operation, DecisionLines lines)
         {
@@ -936,6 +939,15 @@ namespace KeePassGate.Spec
         /// **Both answers replace the line the router kept before dispatch**, a refused
         /// certificate as the certificate's own refusal and anything else as the rules decided
         /// it, so the audit holds the answer the change was given and not the one it queued on.
+        ///
+        /// **A client the database stopped admitting while the change waited is answered here**,
+        /// by <see cref="TurnAway"/> and on the request itself, before null goes back to refuse
+        /// the change. Left to the handler, a refusal is the `404` of a node that is not there,
+        /// which told a revoked client to look for another node and told a client whose database
+        /// had locked, or had come to hold two authorities, that what it was changing had gone.
+        /// The first answer on a request stands, so the handler's `404` comes second and changes
+        /// nothing. A database that is not there replaces no line: the line kept before dispatch
+        /// is the only answer the rules gave, as it is for a change that never reached its turn.
         /// </remarks>
         private IGateContext Inside(
             IGateContext context, SpecOperation operation, IAclNode node, DecisionLines lines)
@@ -945,7 +957,7 @@ namespace KeePassGate.Spec
 
             if (!client.IsPaired)
             {
-                _access.Refuse(client, operation.OperationId, lines);
+                TurnAway(new DecidedContext(context, client), operation, lines);
                 return null;
             }
 

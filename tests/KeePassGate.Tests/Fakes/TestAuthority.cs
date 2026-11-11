@@ -201,11 +201,11 @@ namespace KeePassGate.Tests.Fakes
             get { return false; }
         }
 
-        /// <summary>Never: this one is always served.</summary>
-        public string Unavailable
-        {
-            get { return null; }
-        }
+        /// <summary>
+        /// Set to the word a database nobody is served from for now answers with, and null while
+        /// this database is served.
+        /// </summary>
+        public string Unavailable { get; set; }
 
         /// <summary>Set to fail the write after it was allowed to start.</summary>
         public AdmissionWrite AdmitAnswers { get; set; }

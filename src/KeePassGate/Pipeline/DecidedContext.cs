@@ -24,8 +24,10 @@ namespace KeePassGate.Pipeline
     /// only once the read is over, and what a read made of a database that was let go under it
     /// is not an answer: kept here, it is dropped with this context and the request is answered
     /// `503 busy`. Answered on the request at once, it would have stood, since the first answer
-    /// does. A change's answer goes straight to the request, because a change is answered on the
-    /// connection's thread once its turn is over.
+    /// does. A change's answer goes straight to the request, because a turn is KeePass's thread
+    /// running the change itself and cannot be let go under it: there is nothing to wait for,
+    /// whether the handler answers on the connection's thread once the turn is over or a client
+    /// is turned away inside the turn.
     /// </remarks>
     internal sealed class DecidedContext : IGateContext
     {
