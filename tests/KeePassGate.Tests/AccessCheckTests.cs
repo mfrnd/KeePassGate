@@ -332,6 +332,115 @@ namespace KeePassGate.Tests
         }
 
         [Test]
+        public void A_decision_kept_for_later_is_written_only_when_asked_for()
+        {
+            // A request decided while KeePass's thread is stopped for it writes nothing there: the
+            // line is composed and kept, and written once the stop is over.
+            var entry = TestNode.Root("root").Granting("reader", AclVerb.Read).Child("an entry");
+            var lines = new DecisionLines();
+
+            var decision = _check.Decide(
+                Client("reader"), "readEntry", AclVerb.Read, AclReach.Fields, entry, null, lines);
+
+            Assert.That(decision.Permitted, Is.True);
+            Assert.That(_audit.Entries, Is.Empty, "nothing is written where the decision is made");
+
+            _check.Write(lines);
+
+            Assert.That(_audit.Entries.Single().OperationId, Is.EqualTo("readEntry"));
+            Assert.That(_audit.Entries.Single().Node, Is.EqualTo("an entry"));
+
+            _check.Write(lines);
+
+            Assert.That(_audit.Entries.Count, Is.EqualTo(1), "and written once, however often it is asked for");
+        }
+
+        [Test]
+        public void A_later_decision_about_the_same_request_is_the_line_that_is_written()
+        {
+            // A write is asked about before it is queued and again inside its turn, and the second
+            // answer is the answer acted on. A request is still one decision line.
+            var root = TestNode.Root("root").Granting("reader", AclVerb.Update);
+            var open = root.Child("an entry");
+            var shut = root.Child("another entry").Granting("reader", AclVerb.Read);
+            var lines = new DecisionLines();
+
+            _check.Decide(Client("reader"), "updateEntry", AclVerb.Update, AclReach.Fields, open, null, lines);
+            _check.Decide(Client("reader"), "updateEntry", AclVerb.Update, AclReach.Fields, shut, null, lines);
+            _check.Write(lines);
+
+            Assert.That(_audit.Entries.Single().Permitted, Is.False);
+            Assert.That(_audit.Entries.Single().Node, Is.EqualTo("another entry"));
+        }
+
+        [Test]
+        public void A_refused_certificate_found_later_replaces_the_decision_it_was_given()
+        {
+            var entry = TestNode.Root("root").Granting("reader", AclVerb.Update).Child("an entry");
+            var lines = new DecisionLines();
+
+            _check.Decide(Client("reader"), "updateEntry", AclVerb.Update, AclReach.Fields, entry, null, lines);
+
+            using (var authority = TestAuthority.New())
+            using (var certificate = authority.IssueClient("agent-fictitious"))
+            {
+                _check.Refuse(
+                    ClientIdentity.Refused("d1e2f3", certificate, "this certificate has no admission record"),
+                    "updateEntry",
+                    lines);
+            }
+
+            _check.Write(lines);
+
+            Assert.That(_audit.Entries.Single().Permitted, Is.False);
+            Assert.That(_audit.Entries.Single().Reason, Is.EqualTo("this certificate has no admission record"));
+        }
+
+        [Test]
+        public void A_question_of_the_protected_values_is_kept_after_the_decision_it_follows()
+        {
+            var entry = TestNode.Root("root").Granting("reader", AclVerb.Read).Child("an entry");
+            var lines = new DecisionLines();
+
+            // Asked in the order a request asks them, and a later decision still goes first.
+            _check.Decide(Client("reader"), "readEntry", AclVerb.Read, AclReach.Fields, entry, null, lines);
+            Assert.That(
+                _check.Reaches(Client("reader"), "readEntry", AclVerb.Read, AclReach.Protected, entry, null, lines),
+                Is.False);
+            _check.Decide(Client("reader"), "readEntry", AclVerb.Read, AclReach.Fields, entry, null, lines);
+
+            Assert.That(_audit.Entries, Is.Empty);
+
+            _check.Write(lines);
+
+            Assert.That(_audit.Entries.Select(e => e.Permitted), Is.EqualTo(new[] { true, false }));
+        }
+
+        [Test]
+        public void A_kept_line_carries_the_moment_it_was_decided_at()
+        {
+            var now = At;
+            var check = new AccessCheck(_audit, () => now);
+            var entry = TestNode.Root("root").Granting("reader", AclVerb.Read).Child("an entry");
+            var lines = new DecisionLines();
+
+            check.Decide(Client("reader"), "readEntry", AclVerb.Read, AclReach.Fields, entry, null, lines);
+            now = At.AddSeconds(30);
+            check.Write(lines);
+
+            Assert.That(_audit.Entries.Single().At, Is.EqualTo(At));
+        }
+
+        [Test]
+        public void Writing_no_lines_writes_nothing()
+        {
+            _check.Write(null);
+            _check.Write(new DecisionLines());
+
+            Assert.That(_audit.Entries, Is.Empty);
+        }
+
+        [Test]
         public void A_question_asked_of_some_profiles_asks_only_profiles_the_client_holds()
         {
             var entry = TestNode.Root("root").Holding(Rules.Granting(("keeper", "RP"), ("reader", "R"))).Child("an entry");
