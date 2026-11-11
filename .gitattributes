@@ -8,6 +8,12 @@
 *.bat text eol=crlf
 *.sln text eol=crlf
 
+# What is read under Linux, where a carriage return ends up inside a command or a hash.
+*.sh text eol=lf
+*.flow text eol=lf
+*.py text eol=lf
+/android.sha256 text eol=lf
+
 *.cs text diff=csharp
 *.csproj text
 *.props text

@@ -55,6 +55,10 @@ If a **new** question needs measuring, it gets its own branch from `master`, nam
 - **So is KeePassXC.** `keepassxc.sha256` pins each release by its archive, and
   `tools/KeePassXC.ps1` fetches a release into `.keepassxc\<version>\` after checking the hash and
   its publisher's signature.
+- **So are the Android programs.** `android.sha256` pins each APK by its hash and by the digest of
+  the certificate that signed it, and the Android SDK's command-line tools by their hash.
+  `spikes/revocation/android/fetch.sh` fetches the APKs into a work directory that is not
+  committed, and `verify-apks.sh` beside it refuses an APK signed by any other certificate.
 - Every database it opens is one it created a moment before, under a work directory named on its
   command line, with an invented password.
 - **Nobody else's source is here.** KeePass and KeePassXC are both GPL and this repository is MIT,

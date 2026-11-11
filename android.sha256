@@ -1,0 +1,24 @@
+# The Android programs this branch measured, one APK each, and the Android SDK command-line tools
+# they were run with. Four columns: the file's SHA-256; a name and the file, which is where
+# `spikes/revocation/android/fetch.sh` puts it under the work directory's `dl`; the SHA-256 of the
+# certificate that signed it; and where it is downloaded from. `fetch.sh` refuses a name with no
+# line here and a file whose hash differs, and `verify-apks.sh` refuses an APK that `apksigner`
+# reports as signed by any other certificate. Measuring another release adds a line.
+#
+# Where each value is published. KeePassDX writes an APK's hash into the text of its release, and
+# the digest of its signing certificate into its README, under "Package authenticity from GitHub".
+# GitHub reports a digest for the Keepass2Android 1.15-r6 asset and for the KeePassDroid 2.7 asset.
+# Keepass2Android 1.08d-r5 has no published hash: that line is the hash of the file that arrived.
+# No published digest was found for Keepass2Android's or KeePassDroid's signing certificate, so
+# those two are what `apksigner` printed for these files, and what they buy is that both
+# Keepass2Android releases carry the same certificate and that a later download is held to it.
+#
+# The last line is the command-line tools, which `sdk-setup.sh` fetches and checks itself. Its hash
+# is the value on https://developer.android.com/studio, and a ZIP has no signer, hence the `-`.
+5c446a4fff3ac3fe29b07724dff59e756738eb1fd6611281cd594e421817891d  k2a-1.15-r6/keepass2android.keepass2android-Signed-x64.apk  0bf8056d3a394ed7c77173c4b42c800565b4f0a42977569cf3472c271c562939  https://github.com/PhilippC/keepass2android/releases/download/v1.15-r6/keepass2android.keepass2android-Signed-x64.apk
+84c62ea1fb2977d0d179ddad0351291de247d04e0a1419577f7d9eae85e87420  k2a-1.08d-r5/keepass2android.keepass2android-1.08d-r5.apk  0bf8056d3a394ed7c77173c4b42c800565b4f0a42977569cf3472c271c562939  https://github.com/PhilippC/keepass2android/releases/download/1.08d-r5/keepass2android.keepass2android-1.08d-r5.apk
+8aaac6a0c55a9de760147990856726e197efbbcdc5ce2f6bfb4d4ab2a3d65f74  kpdx-4.5.8/KeePassDX-4.5.8-libre.apk  7d55b8af210381aabf960f07e17cf7857b6d2a642ca2da6bf0bdf1b200362f04  https://github.com/Kunzisoft/KeePassDX/releases/download/4.5.8/KeePassDX-4.5.8-libre.apk
+9322646cef8f863fd442b86dc1a89e607492b7bd2a20eaff5d0b6fa08c6d13d7  kpdx-3.2.0/KeePassDX-3.2.0.apk  7d55b8af210381aabf960f07e17cf7857b6d2a642ca2da6bf0bdf1b200362f04  https://github.com/Kunzisoft/KeePassDX/releases/download/3.2.0/KeePassDX-3.2.0.apk
+a5d569c6fdbc225463c6764b1fbc0450dadb834803e4cf3812564e9d4c55604f  kpdx-3.3.0/KeePassDX-3.3.0.apk  7d55b8af210381aabf960f07e17cf7857b6d2a642ca2da6bf0bdf1b200362f04  https://github.com/Kunzisoft/KeePassDX/releases/download/3.3.0/KeePassDX-3.3.0.apk
+513b2555dbebf8324d81455642f1b709c3692e7558110b576f90f715035ca762  kpd-2.7/app-general-release.apk  692ed2f00824264edf569615b448a96f0220fd57137e03e146df3647ef6e4cf5  https://github.com/bpellin/keepassdroid/releases/download/v2.7/app-general-release.apk
+4e4c464f145a7512b57d088ac6c278c03c9eea610886b35a5e0804e74eedf583  sdk/commandlinetools-linux-15859902_latest.zip  -  https://dl.google.com/android/repository/commandlinetools-linux-15859902_latest.zip

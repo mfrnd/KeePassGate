@@ -86,3 +86,7 @@ words:
 
   # A KeePassXC option, spelled as KeePassXC spells it.
   - localconfig
+
+  # The Android measurement: what its scripts are named for, and Android's own tools and commands,
+  # spelled as Android spells them.
+  - apks
