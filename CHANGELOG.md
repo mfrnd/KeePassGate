@@ -20,7 +20,14 @@ none, since it releases both.
   for a client that may list them and by their bytes as well for a client that may read them,
   and not at all for any other. Nothing about the rule itself is in a tag, so a rule widened
   over an entry where nothing new comes into sight, `attachments` granted over an entry holding
-  none, moves no tag. Every route about an entry hands a client the same tag, and a
+  none, moves no tag. A listing and a read now show a client the same of an entry's protected
+  title and URL, under one rule: `protected` beside `list` or beside `read` in one rule on the
+  entry. A read serves them to a client holding `list` with `protected` beside `read`, where it
+  withheld what the listing showed, a listing shows them to a client holding `read` with
+  `protected` beside `list`, where it answered `null` for what the read served, and that
+  client's tag covers both. An update naming a protected title or URL as it stands is skipped
+  for a client either route shows it to, as for any value its client may read. Every route
+  about an entry hands a client the same tag, and a
   write is asked against that tag and answers with it. Two clients that see different things of
   an entry hold different tags for it, and two that see the same hold the same. A client without
   `read` is still handed no tag, and its `If-Match` still fails. This reverses the earlier rule,

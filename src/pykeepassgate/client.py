@@ -707,7 +707,8 @@ class GateClient:
 
         **For every client holding `read` on the node, over what that client may read of it.** A
         group's tag covers its name and notes. An entry's covers its protected values only where
-        the rule holding `read` holds `protected` too, its attachments only where it holds
+        the rule holding `read` holds `protected` too, a protected title or URL also where a
+        rule lets this client list with `protected`, its attachments only where it holds
         `attachments`, and their names and sizes alone where `attachments` stands beside `list`
         and not beside `read`, so two clients that see different things of an entry hold different
         tags

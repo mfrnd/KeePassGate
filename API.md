@@ -134,7 +134,9 @@ read anywhere is this one.
 group's tag covers what `read` serves, and a group has no switches to scope it by. An entry's
 covers the entry as its caller's rules open it: every string's name and whether it is protected,
 the value of every string nothing protects, the values of protected strings where `read` and
-`protected` stand in one rule, the attachments' names, sizes and bytes where `read` and
+`protected` stand in one rule, a protected title or URL also where `list` and `protected` stand
+in one rule beside `read`, which is what a listing of entries shows such a caller, the
+attachments' names, sizes and bytes where `read` and
 `attachments` stand in one rule, and their names and sizes alone where `attachments` stands with
 `list` and not with `read`, which is what the listing of attachments serves such a caller. A
 switch counts in the rule it is written in, and profiles are combined with or, as a read combines
@@ -191,18 +193,31 @@ again, which is right, since it now sees something else. And two callers that se
 things of one node hold different tags for it, so a tag passed from one program to another is
 good only between programs that see the same.
 
-**A tag is of what the entry's own routes serve its caller, and a value a caller is shown only by
-a listing is not in it.** The listing of entries shows a protected title or URL to a caller
-holding `list` and `protected` in one rule, §401, while the entry's view reads protected values
-only under `read` with `protected`. So a caller that reads an entry through one rule and lists
-protected titles through another is shown a title its tag does not cover: a change to that title
-is covered for it by `modified` alone, as any value it may not read is, and misses what
-`modified` misses. Bringing the title into the view for such a caller was the other choice, as
-`list` with `attachments` brings names and sizes in, and it was not taken: the title would then
-be in a view whose own route, `readEntry`, withholds it. The other edge runs the other way: a
-caller holding `read` and `attachments` with no `list` is listed no attachments and reads any of
-them by its name, so every attachment is in its view and in its tag, and its tag moves for an
-attachment it has not named.
+**A caller's view of an entry holds everything any route shows that caller of the entry**, and
+the read routes serve what the view holds. The listing of entries shows a protected title or URL
+to a caller holding `list` and `protected` in one rule, §401, so for a caller holding that beside
+`read` the title and the URL are in its view: `readEntry` and `readField` serve them and its tag
+covers them, while every other protected string still needs `read` with `protected`. **This
+reverses a view that read protected values under `read` with `protected` alone**, under which
+such a caller was shown a title by a listing and refused the same title by a read, and held a tag
+that did not move when the title it had been shown changed, so its conditional write went ahead
+over a change a listing would have shown it. That was first written down as a cost and then
+closed, on the operator's word that a listing and a read have to agree: `list` with `protected`
+brings
+the listed strings into the view the way `list` with `attachments` brings in names and sizes.
+Without `read` it brings nothing in, since a view that does not read holds no value. **And the
+same rule decides the listing, so the two agree in both directions**: a protected title or URL
+is shown to a caller, by a listing and by a read alike, when the caller may list or read the
+entry on that route's own verb and holds `protected` beside `list` or beside `read` in one rule
+on that entry. So a listing also shows the title to a caller holding `read` with `protected`
+beside `list` without it, where it answered `null` for a title the same caller's read served.
+The condition is in one place that the listing and the view both ask, and what a listing shows
+of an entry's title and URL is what that caller's view holds of them whenever it reads the
+entry. A caller that lists and does not read the entry is shown the title by the listing under
+`list` with `protected`, as it was, and its view of the entry holds no value. One edge
+of another kind is kept: a caller holding `read` and `attachments` with no `list` is
+listed no attachments and reads any of them by its name, so every attachment is in its view and
+in its tag, and its tag moves for an attachment it has not named.
 
 **Rejected on the way, so they are not proposed again.** A counter or version number: KeePass
 offers nothing that serves as either, the modification time having been measured and refused, the
@@ -245,7 +260,10 @@ them: a node gone is `404`, a name taken or a group not empty `409`, and a dialo
 `503 busy`, whatever the tag says. An update that would change nothing is asked the condition too,
 under the same lock, and then writes nothing, for a caller that may read every value it names; for
 any other caller it is written like any change, so that a guess at a value it may not read costs
-the same right or wrong. A read's is decided against the tag it is answered
+the same right or wrong. What a caller may read is read off its view of the node, the view its
+tag is taken of, so a protected title or URL a listing shows the caller counts as read, on
+`protected` beside `list` as well as beside `read`. A read's is decided against the tag it is
+answered
 with, and the tag and what it is answered with are of one moment, taken inside the hold of
 KeePass's thread the read is decided and served in, `DESIGN.md` §119. **That reverses a tag taken
 before its content**, which was the safe order while a change could land between the two: a

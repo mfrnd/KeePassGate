@@ -180,9 +180,12 @@ info:
     KeePass's thread under the writer's lock, where the change itself would be made, so a write
     landing in between cannot make the answer wrong.
 
-    **Only for a caller that may read every value the request names.** That is `read` on the
+    **Only for a caller that may read every value the request names**, which is every named
+    value a read by that caller would be served. That is `read` on the
     group for a group's update; `read` on the entry for an entry's or a field's, with `protected`
-    in the same rule when a string the request names is protected; and `read` with `attachments`
+    in the same rule when a string the request names is protected, or, for a protected title or
+    URL, `protected` beside `list` in a rule as well, since a listing and a read then show the
+    caller both; and `read` with `attachments`
     in one rule for an attachment's, through any profile the caller holds. For every other
     caller an update naming what the node already holds is written like any change, with its
     history revision, its modification time and its save, because a request that wrote nothing
@@ -1143,7 +1146,11 @@ paths:
       description: |
         A protected value arrives only when the same rule carries `protected`, and is `null`
         otherwise, which is what the `fields` schema says and what `read` alone does not buy:
-        `protected` is a scope rather than something a verb implies. Attachments are not here,
+        `protected` is a scope rather than something a verb implies. A protected title or URL
+        arrives as well for a client holding `list` and `protected` in one rule, as a listing of
+        entries shows both to a client holding `read` and `protected` in one rule: what a client
+        is shown of an entry's title and URL is the same whichever route it asks. Attachments are
+        not here,
         because reaching those needs the attachment switch as well and a response whose contents
         depend on a second permission is a response nobody can predict.
       x-kpg-verb: read
@@ -1926,8 +1933,9 @@ components:
 
     # One mask per profile because a switch belongs to its rule: `A` and `P` say how far the verbs
     # of the same rule reach, so a client holding `.R......` under one profile and `.....L.P` under
-    # another may read the entry and see a protected title in a listing, and is still refused the
-    # protected values a read carries. One mask made of both, `.R...L.P`, would claim a read the
+    # another may read the entry and see a protected title in a listing, and so in a read of the
+    # entry, and is still refused the other protected values a read carries. One mask made of
+    # both, `.R...L.P`, would claim a read the
     # gate refuses. §511
     Access:
       type: object
@@ -1947,8 +1955,10 @@ components:
             `profiles`, each a mask in the notation the KPG tab shows a rule in: `CRUSDLAP`, with a
             dot for each verb or switch the profile is not granted here, and eight dots for a
             profile granted nothing here. A switch reaches only the verbs of its own mask, so this
-            client may read a protected value here when one mask holds both `R` and `P`, and never
-            because one mask holds `R` and another `P`; it may add an attachment to this entry
+            client may read a protected value here when one mask holds both `R` and `P`, and not
+            because one mask holds `R` and another `P`, apart from an entry's title and URL,
+            which a read also serves where one mask holds `R` and another holds `L` with `P`, as
+            a listing shows them; it may add an attachment to this entry
             when one mask holds both `C` and `A`, and an entry to this group when one holds `C`. A
             switch is shown only beside a verb of its own mask that a switch can qualify, so a
             rule granting `A` or `P` beside `S` or `D` alone is answered without it, since
@@ -2093,7 +2103,12 @@ components:
         granting `list` is how an operator says they may be seen. Everything else needs `read`.
 
         Either can be protected, and then `list` alone is not enough: a protected one comes back
-        as `null` without the `protected` switch, the same way the read route answers.
+        as `null` without the `protected` switch, the same way the read route answers. The rule
+        is the same for a listing and for a read of the entry: a protected title or URL is shown
+        to a client holding `protected` beside `list` or beside `read` in one rule on that entry,
+        through any profile it holds, by a listing or by a read, whichever its rules let it ask.
+        So a listing shows a client exactly what a read of the entry would serve it of the title
+        and the URL.
       properties:
         uuid:
           type: string
@@ -2709,8 +2724,11 @@ components:
         and when it expires; for a group its identifier, the group it is in, its two times, its
         name and its notes. A protected value is in it only for a client holding `read` and
         `protected` in one rule, and for any other client enters as a mark that a value is there,
-        the same mark whatever the value is. An entry's attachments are in it whole for a client
-        holding `read` and `attachments` in one rule, by name and size for a client holding
+        the same mark whatever the value is. A protected title or URL is in it as well for a
+        client holding `read` beside `list` and `protected` in one rule, since a listing of
+        entries shows that client both and a read of the entry therefore serves them. An entry's
+        attachments are in it whole for a client holding `read` and `attachments` in one rule, by
+        name and size for a client holding
         `attachments` beside `list` and not beside `read`, and not at all for any other. How far
         a client's rules reach is not in it, only what they show: an entry holding no attachment
         has the same tag whether or not this client may read attachments, so rules widened over
@@ -2727,8 +2745,7 @@ components:
         guesses at the value by writing them where it may write and comparing the tags that came
         back. So a tag covers what its holder may read and holds nothing derived from a value it
         may not: a guess written blind moves the tag the same whether the guess was right, through
-        `modified` and through nothing else. A protected title or URL shown to a client only by a
-        listing of entries, under `list` with `protected`, is not in its tag. This reverses a tag
+        `modified` and through nothing else. This reverses a tag
         that covered the whole node and was sent only
         to a client whose one rule read all of it, which left a rule without `protected` no tag
         for any entry holding a password. What follows from it: two clients that see different

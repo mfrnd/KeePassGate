@@ -405,7 +405,8 @@ designing around them.
 
   **A tag covers what its caller may read, and every client holding `read` is handed a tag.** The
   caller's `VaultSight` decides the view: `read`, protected values where `read` and `protected`
-  stand in one rule, and attachments at `VaultAttachmentSight.Read` for `read` with
+  stand in one rule, a protected title or URL also where `list` and `protected` stand in one rule
+  beside `read`, and attachments at `VaultAttachmentSight.Read` for `read` with
   `attachments`, at `Listed`, names and sizes, for `list` with `attachments`, and at `None`
   otherwise, through any profile. The sight is about the caller and the node and never the
   route, so a client has one tag for an entry whichever route hands it out, and a write is asked
@@ -423,9 +424,19 @@ designing around them.
   closed because a tag holds nothing its holder may not read, so a guess written blind moves the
   tag the same whether the guess was right, through `modified` and through nothing of the value.
   What it costs: a client writing a value blind is told the
-  value changed in between only as far as `modified` tells it, a rule widened or narrowed
-  over what a client sees fails its next `If-Match` once, and a protected title or URL a client
-  is shown only by a listing of entries, under `list` with `protected`, is not in its tag.
+  value changed in between only as far as `modified` tells it, and a rule widened or narrowed
+  over what a client sees fails its next `If-Match` once.
+  **A caller's view of an entry holds everything any route shows that caller of the entry**: a
+  protected title or URL is shown to a caller, by a listing and by a read alike, when it holds
+  `protected` beside `list` or beside `read` in one rule on that entry, on whichever route its
+  rules let it ask. The condition is in one place, `VaultHandlers.ShowsListedProtected`, asked
+  by the listing and by `Sight` for `VaultSight.ListedInSight`, so the listing's answer and the
+  view's cannot come apart in either direction. `readEntry` and `readField` serve exactly what
+  the view holds, and a value the view withholds is written to the audit as the walk that
+  decided the view, through `AccessCheck.Withheld`, with no second asking of the rules. This
+  reverses a view that read protected values under `read` with `protected` alone, where such a
+  caller was shown a title by a listing, refused it by a read, and held a tag the title was not
+  in.
   **That in turn reversed handing every
   caller the tag of the whole node**, which a review measured as a way to recover a password a
   client may update and not read, by writing guesses and comparing the tags that came back,
@@ -433,11 +444,12 @@ designing around them.
   being compared.
 
   **An update that would change nothing is skipped only for a client that may read every value it
-  names**, the operator's ruling of 2026-11-10, `VaultTagging.Sees`, read off the same sight the
-  tag is taken with: `read` on a group, `read` on
-  an entry with `protected` in the same rule when a named string is protected, `read` with
-  `attachments` for an attachment, through any profile. For any other client it is written like
-  any change, revision, time and save, because a skip would tell a client that may write a value
+  names**, the operator's ruling of 2026-11-10, `VaultEntryView.Reads`, read off the view the
+  tag is taken of and never worked out again from the rules: `read` on a group, and for an entry
+  a view that holds the value of every named string the entry carries, or the bytes of the
+  attachment named, so a protected title a listing shows a client is a value it reads. For any
+  other client it is written like any change, revision, time and save, because a skip would tell
+  a client that may write a value
   and not read it that the value it sent is the value stored. A request naming nothing is skipped
   for everybody. The vault decides it inside the change's turn, of the strings as it finds them.
 

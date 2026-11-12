@@ -431,7 +431,9 @@ attachment for its `content` rather than answering `None`. Check `entry.is_read`
 clear which one is in hand, and `attachment.is_read` likewise.
 
 **Withheld is not empty either.** A value the database protects reaches this client only when the
-rule that lets it read the entry grants `P`, and otherwise the gate withholds it. Reading a
+rule that lets it read the entry grants `P`, and otherwise the gate withholds it. A protected
+title or URL reaches it where a rule it holds on the entry grants `P` beside `list` or beside
+`read`, and a listing and a read of the entry then show it the same of both. Reading a
 withheld value raises `Withheld`, by every path there is: `entry.password` or `entry.title`, a
 listed entry's title or URL, `entry.fields["Deploy key"]` and `get()` with a default, `values()`,
 `items()` and `dict()` over `entry.fields` or `entry.custom()`, and `field.value` from the field
@@ -752,12 +754,13 @@ compare equal whatever tag each came with, since the tag is not part of what the
 
 **The gate hands a tag to every client holding `read`, taken over what that client may read.** A
 group's tag covers the group. An entry's covers the entry as the client's rules open it: its
-protected values only where the rule holding `read` holds `P` too, its attachments only where it
-holds `A`, and their names and sizes where `A` stands beside `list` and not beside `read`. A
-value the client may not read is in its tag as a mark that a value is there, the same mark
-whatever the value is. A tag is a digest of content, so a tag covering a value its holder may not
-read would let that holder test guesses at the value by writing them where it may write; a tag
-over what the holder reads holds nothing of the value, so it moves the same whether a guess was
+protected values only where the rule holding `read` holds `P` too, a protected title or URL also
+where a rule lets it list with `P`, its attachments only where it holds `A`, and their names and
+sizes where `A` stands beside `list` and not beside `read`. A value the client may not read is in
+its tag as a mark that a value is there, the same mark whatever the value is. A tag is a digest
+of content, so a tag covering a value its holder may not read would let that holder test guesses
+at the value by writing them where it may write; a tag over what the holder reads holds nothing
+of the value, so it moves the same whether a guess was
 right, with the entry's `modified` and nothing else. This replaces an earlier rule, under
 which a tag covered the whole entry and went only to a client whose one rule read all of it, so
 that a client without `P` had no `etag` for any entry holding a password. What follows from the
@@ -858,7 +861,9 @@ if access.allows("RP"):
 ```
 
 **Ask about one rule at a time.** `A` and `P` state how far the verbs of the same rule reach, so a
-profile granting `R` and another granting `P` do not let this client read a protected value, and
+profile granting `R` and another granting `P` do not let this client read a protected value,
+apart from an entry's title and URL, which the gate also serves where one mask holds `R` and
+another `L` with `P`, as a listing shows them. So
 `allows` asks each profile's mask on its own: `"RP"` is whether this client may read the protected
 values here, `"CA"` whether it may add an attachment to this entry, and `"C"` whether it may add to
 this group. A switch states nothing about removing, which shows nobody anything, so beside only `S`

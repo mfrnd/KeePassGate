@@ -228,7 +228,8 @@ namespace KeePassGate.Pipeline
 
             // The view is taken with nothing decrypted, so an entry over the ceiling is measured
             // and refused with its strings still encrypted, as an attachment is.
-            var view = View(context, vault, uuid);
+            Reading asked;
+            var view = View(context, vault, uuid, out asked);
             if (view == null)
             {
                 Unreachable(context);
@@ -280,23 +281,22 @@ namespace KeePassGate.Pipeline
             // database protects, and a listing leaves it out, because `list` gives names.
             json.Text(ExpiresMember, view.Entry.Expires.HasValue ? Moments.Wire(view.Entry.Expires.Value) : null);
 
-            // Asked only of an entry holding a value the database protects, and once, however many
-            // it holds: the decision is one decision, and a refusal is written down only where
-            // something is withheld. The view withholds by the same rules, asked without a line,
-            // and a value goes out only where both answers open it.
-            var reaches = view.Protected.Count == 0
-                          || Reaches(context, view.Entry.Node, AclVerb.Read);
+            // The view decides what is served: a value is in the answer exactly when the view
+            // holds it, and the view holds what any route shows this caller, a protected title
+            // a listing shows it among them. Where the view withholds a value the refusal is
+            // written down, once, however many it withholds, from the walk the view's sight was
+            // decided by, with nothing asked of the rules again.
+            Withholding(context, view, view.Fields, asked);
 
             json.Object("fields");
             for (var index = 0; index < view.Fields.Count; index++)
             {
                 // Withheld as `null` rather than left out, so a client can tell a value it may not
-                // have from a field that is not there. The `protected` member below says which
-                // were which, which is what makes the difference readable rather than guessed at.
-                var field = view.Fields[index];
-                var withheld = !reaches && field.IsProtected;
-
-                json.Text(field.Name, withheld ? null : values[index]);
+                // have from a field that is not there. The `protected` member below names which
+                // could have been, which is what makes the difference readable rather than
+                // guessed at. A withheld field has no value behind it, so what is written for it
+                // is the null the view answered.
+                json.Text(view.Fields[index].Name, values[index]);
             }
 
             json.End();
@@ -430,7 +430,8 @@ namespace KeePassGate.Pipeline
             // `CLAUDE.md` concedes local code execution as the user and forbids claiming a
             // control that only defends against it, which is the only thing such a property
             // would be.
-            var view = View(context, vault, uuid);
+            Reading asked;
+            var view = View(context, vault, uuid, out asked);
             var field = view == null ? null : view.Field(name);
             if (field == null)
             {
@@ -460,15 +461,15 @@ namespace KeePassGate.Pipeline
                 return;
             }
 
-            // Asked, and a refusal written down, only for a string that is protected. The view
-            // withholds by the same rules, asked without a line, and the value goes out only
-            // where both answers open it. The flag and the value are of one string of one view,
-            // so neither is ever answered about a string the other was not read from.
-            var withheld = field.IsProtected && !Reaches(context, view.Entry.Node, AclVerb.Read);
+            // The view decides: the value is served exactly when the view holds it, and a refusal
+            // is written down where it does not, as `readEntry` does. The flag and the value are
+            // of one string of one view, so neither is ever answered about a string the other
+            // was not read from.
+            Withholding(context, view, new[] { field }, asked);
 
             var json = new JsonWriter();
             json.Text("name", name);
-            json.Text("value", withheld ? null : value);
+            json.Text("value", value);
             json.Flag("protected", field.IsProtected);
 
             context.Respond(200, json.Done(), Tagged(tag));
@@ -757,7 +758,7 @@ namespace KeePassGate.Pipeline
                 Captured(context, "uuid"),
                 Captured(context, "name"),
                 content,
-                Asking(context, true, null, true)));
+                Asking(context, true)));
         }
 
         public static void StripAttachment(IGateContext context)
@@ -1235,14 +1236,15 @@ namespace KeePassGate.Pipeline
                     continue;
                 }
 
-                // The same question the read route asks, for the same reason. Without it a client
-                // holding `list` alone would be told a title that `read` without `protected`
-                // refuses, which would make the smaller grant the more revealing one. Asked only
-                // of an entry with a protected title or address, since nothing else it says
-                // depends on the answer, and asking it of every entry was a second walk to the
-                // root for each one.
+                // The question a read of the entry asks about the title and the URL, asked in the
+                // same place, `ShowsListedProtected`, so a listing and a read show a caller the
+                // same of them. Without it a client holding `list` alone would be told a title
+                // that `read` without `protected` refuses, which would make the smaller grant the
+                // more revealing one. Asked only of an entry with a protected title or address,
+                // since nothing else in its line of the listing depends on the answer, and
+                // asking it of every entry was a second walk to the root for each entry.
                 var withheld = (entry.TitleProtected || entry.UrlProtected)
-                               && !ReachesProtectedInListing(context, entry.Node, AclVerb.List, read);
+                               && !ShowsListedProtected(context, entry.Node, read);
 
                 json.Item();
                 json.Text("uuid", entry.Uuid);
@@ -1310,13 +1312,59 @@ namespace KeePassGate.Pipeline
         /// its caller the same tag, and a change is asked against that tag and answers with it.
         ///
         /// **What the caller may read is asked of the resolver without a line**, of the entry the
-        /// vault found. A view leaving a value out is no refusal of its own: the routes that
-        /// withhold a protected value ask <see cref="Reaches(IGateContext, IAclNode, AclVerb)"/>
-        /// where they withhold, and that walk is what writes the refusal down.
+        /// vault found. A view leaving a value out is the decision, and the routes that serve
+        /// values write its refusal down from the walk that made it,
+        /// <see cref="Withholding"/>.
         /// </remarks>
         private static VaultEntryView View(IGateContext context, IVault vault, string uuid)
         {
             return vault.View(uuid, found => Sight(context, found));
+        }
+
+        /// <summary>
+        /// The same view, with how its sight was decided, for a route that serves values and
+        /// writes down the value it withholds.
+        /// </summary>
+        /// <param name="asked">
+        /// The sight the view was taken with and the walk that decided its reach into protected
+        /// values, or null when the entry is not there.
+        /// </param>
+        private static VaultEntryView View(IGateContext context, IVault vault, string uuid, out Reading asked)
+        {
+            Reading decided = null;
+            var view = vault.View(uuid, found =>
+            {
+                decided = Read(context, found);
+                return decided.Sight;
+            });
+
+            asked = decided;
+            return view;
+        }
+
+        /// <summary>
+        /// How far a caller may read into what was found, with the walk that decided whether
+        /// protected values are in sight.
+        /// </summary>
+        /// <remarks>
+        /// The walk is kept so that a value a view withholds is written down as the decision that
+        /// withheld it, and not by asking the rules a second time: <see cref="Withholding"/>.
+        /// </remarks>
+        private sealed class Reading
+        {
+            public Reading(VaultSight sight, AclDecision protectedValues)
+            {
+                Sight = sight;
+                ProtectedValues = protectedValues;
+            }
+
+            public VaultSight Sight { get; private set; }
+
+            /// <summary>
+            /// What the rules answered about `read` reaching protected values, or null where
+            /// that was not asked: a group, and a caller with no client behind it.
+            /// </summary>
+            public AclDecision ProtectedValues { get; private set; }
         }
 
         /// <summary>
@@ -1329,7 +1377,12 @@ namespace KeePassGate.Pipeline
         ///
         /// An entry is read by a rule holding `read`. Its protected values are in sight for a
         /// rule holding `read` and `protected` together, asked whatever strings the entry
-        /// holds. Its attachments are read by a rule holding `read` and `attachments` together,
+        /// holds. The protected strings a listing of entries shows, its title and its URL, are
+        /// in sight wherever a listing shows them, which is `protected` beside `list` as well as
+        /// beside `read`, asked through the question the listing itself asks,
+        /// `ShowsListedProtected`, so that
+        /// what a listing shows a caller and what a read serves it cannot come apart. Its
+        /// attachments are read by a rule holding `read` and `attachments` together,
         /// and listed, names and sizes, by a rule holding `list` and `attachments` together,
         /// which is what the routing table opens the listing of attachments to. Each switch
         /// counts in the rule it stands in, and profiles are combined with or, as a read
@@ -1344,9 +1397,17 @@ namespace KeePassGate.Pipeline
         /// </remarks>
         private static VaultSight Sight(IGateContext context, VaultFound found)
         {
+            return Read(context, found).Sight;
+        }
+
+        /// <summary>
+        /// The same answer, with the walk that decided whether protected values are in sight.
+        /// </summary>
+        private static Reading Read(IGateContext context, VaultFound found)
+        {
             if (found == null || context.Client == null)
             {
-                return VaultSight.Least;
+                return new Reading(VaultSight.Least, null);
             }
 
             var profiles = context.Client.Profiles;
@@ -1356,7 +1417,7 @@ namespace KeePassGate.Pipeline
 
             if (found.Entry == null)
             {
-                return new VaultSight(reads, false, VaultAttachmentSight.None);
+                return new Reading(new VaultSight(reads, false, VaultAttachmentSight.None), null);
             }
 
             var attachments = VaultAttachmentSight.None;
@@ -1369,10 +1430,14 @@ namespace KeePassGate.Pipeline
                 attachments = VaultAttachmentSight.Listed;
             }
 
-            return new VaultSight(
+            var protectedValues = AclResolver.Decide(node, profiles, AclVerb.Read, AclReach.Protected, read);
+            var sight = new VaultSight(
                 reads,
-                reads && AclResolver.Permits(node, profiles, AclVerb.Read, AclReach.Protected, read),
-                attachments);
+                reads && protectedValues.Permitted,
+                attachments,
+                reads && ShowsListedProtected(context, node, read, protectedValues.Permitted));
+
+            return new Reading(sight, protectedValues);
         }
 
         /// <summary>Answers that an entry's strings come to more than a read hands out.</summary>
@@ -1407,7 +1472,7 @@ namespace KeePassGate.Pipeline
         /// **The caller's sight is the same question a read asks**, <see cref="Sight"/>, so the
         /// tag a change is asked against and the tag it answers with are the tag every read
         /// route hands that caller, and whether an update that would change nothing is skipped,
-        /// <see cref="VaultTagging.Sees"/>, is read off the same answer.
+        /// <see cref="VaultEntryView.Reads"/>, is read off the view taken with the same answer.
         ///
         /// **A request the router left no question for is refused**, which is the direction a
         /// defect has to fail in.
@@ -1417,14 +1482,10 @@ namespace KeePassGate.Pipeline
         /// What this change asks beside the router's question, of the request as it is decided
         /// inside the turn, or null when the router's question is all there is.
         /// </param>
-        /// <param name="attachment">
-        /// Whether the value this change names is an attachment's bytes.
-        /// </param>
         private static VaultAsking Asking(
             IGateContext context,
             bool answers,
-            Func<IGateContext, VaultFound, bool> also = null,
-            bool attachment = false)
+            Func<IGateContext, VaultFound, bool> also = null)
         {
             object left;
             var again = context.Items.TryGetValue(SpecRouter.InsideItem, out left) ? left as DecidedInside : null;
@@ -1441,8 +1502,7 @@ namespace KeePassGate.Pipeline
                 },
                 found => inside == null ? null : Sight(inside, found),
                 Precondition(context),
-                answers,
-                attachment);
+                answers);
         }
 
         /// <summary>
@@ -1465,38 +1525,87 @@ namespace KeePassGate.Pipeline
         }
 
         /// <summary>
+        /// Writes down that a value is withheld from an answer, where the view withholds the
+        /// value of one of these strings.
+        /// </summary>
+        /// <remarks>
+        /// **The view decides what a read serves, and this records what it left out.** A value
+        /// is in an answer exactly when the caller's view holds it, and the line written is the
+        /// walk the view's sight was decided by, `read` reaching protected values, kept from
+        /// that asking and handed to the router's <see cref="ProtectedWithheld"/>. So the
+        /// refusal on record is the decision that withheld the value, and no second walk is
+        /// asked that could answer otherwise: asked again, a refusal went unwritten whenever
+        /// the two disagreed.
+        ///
+        /// **A value withheld is always written down.** A view that withholds with no refusal
+        /// behind it, which a sight nobody decided comes to, is recorded as that, and a request
+        /// the router left no recorder for writes nothing and still serves nothing withheld.
+        ///
+        /// Not written where the view serves every value, so a caller shown a protected title
+        /// through the listing's reach, reading an entry with nothing else protected on it,
+        /// writes no second line.
+        ///
+        /// **The recorder is told when every value withheld is a string the listings show**, a
+        /// title or a URL. Those are in sight on `list` with `protected` as well, so a profile
+        /// taken off the database's list can be the reason on that reach too, and the line
+        /// names it: `AccessCheck.Withheld`.
+        /// </remarks>
+        private static void Withholding(
+            IGateContext context, VaultEntryView view, IEnumerable<VaultViewField> fields, Reading asked)
+        {
+            var withheld = fields.Where(field => field.IsWithheld).ToList();
+            if (withheld.Count == 0)
+            {
+                return;
+            }
+
+            var decided = asked == null ? null : asked.ProtectedValues;
+            var refusal = decided != null && !decided.Permitted
+                ? decided
+                : AclDecisions.Refused("a value was withheld by a view with no refusal behind it");
+
+            object found;
+            var record = context.Items.TryGetValue(SpecRouter.WithheldItem, out found) ? found as ProtectedWithheld : null;
+            if (record != null)
+            {
+                record(view.Entry.Node, AclVerb.Read, refusal, withheld.All(field => field.IsListed));
+            }
+        }
+
+        /// <summary>
         /// Whether this caller may have the values the database protects on this node, a refusal
         /// written down by the walk that decides it.
         /// </summary>
         /// <remarks>
-        /// **The one question a handler asks and records rather than the router**, and the
-        /// asymmetry is worth naming. An attachment is a route of its own, so the router asks,
-        /// and records, before dispatch. **How far a caller may read is asked a second way,
-        /// silently**: <see cref="Sight"/> puts `read` and both switches to the resolver for
-        /// every view and every change, with no line, and the vault leaves out of the view what
-        /// that answer does not open. This is the asking that writes the refusal down, where a
-        /// protected value is withheld or set. A protected value arrives inside the
-        /// answer to a route that
-        /// is allowed, so the only moment the question exists is while that answer is being
-        /// written. So each handler that writes a field value into an answer or takes a field
-        /// value from a body asks it, which is a check every such handler has to remember: the
-        /// arrangement every other question is kept out of, and the arrangement this question
-        /// needs, since only the handler holds the values, `DESIGN.md` §137. A route added later
-        /// that handles field values has to ask it as well.
+        /// **The one question a handler of a change asks and records rather than the router**,
+        /// and the asymmetry is worth naming. An attachment is a route of its own, so the router
+        /// asks, and records, before dispatch. A protected value arrives inside the body of a
+        /// change the router has allowed, so the only moment the question exists is while that
+        /// change is being made. So each handler that takes a field value from a body asks it,
+        /// which is a check every such handler has to remember: the arrangement every other
+        /// question is kept out of, and the arrangement this question needs, since only the
+        /// handler holds the values, `DESIGN.md` §137. A change added later that takes field
+        /// values has to ask it as well.
+        ///
+        /// **A read asks nothing here.** How far a caller may read is asked silently by
+        /// <see cref="Sight"/>, for every view, the vault leaves out of the view what that
+        /// answer does not open, and a route serving values serves what the view holds and
+        /// writes a withheld value down from the walk the sight was decided by,
+        /// <see cref="Withholding"/>. A read route added later takes its values from the view
+        /// and records through that, and never asks this.
         ///
         /// **Asked through the router's <see cref="ProtectedReach"/>, which decides and records in
         /// one walk.** The router keeps a line for the verb it granted, and that
-        /// line is true; a value withheld is a second decision on the same request, and without
-        /// its line the audit held that a client had been given what the gate withheld. That
+        /// line is true; a value refused is a second decision on the same request, and without
+        /// its line the audit held that a client had set what the gate refused. That
         /// attempt is exactly what the `protected` switch exists to stop, so its line is exactly
         /// the line an operator opens the file to find. Decided here and written down by a second
         /// walk, as it was, the two could disagree, and a refusal went unwritten whenever they did.
         ///
-        /// **Only where something would be withheld.** Each caller asks once it holds a protected
-        /// value to hand out or to write, so a client that simply does not hold `protected`,
-        /// reading an entry with nothing protected on it, writes no second line. A handler the
-        /// router did not hand the question to withholds, which is the direction a defect has to
-        /// fail in.
+        /// **Only where a protected value would be set.** Each caller asks once it holds a
+        /// protected value to write, so a change naming nothing protected writes no second
+        /// line. A handler the router did not hand the question to refuses, which is the
+        /// direction a defect has to fail in.
         /// </remarks>
         private static bool Reaches(IGateContext context, IAclNode node, AclVerb verb)
         {
@@ -1512,18 +1621,47 @@ namespace KeePassGate.Pipeline
             return reach != null && reach(node, verb, profiles);
         }
 
-        /// <summary>The same question, asked per item and deliberately not recorded.</summary>
+        /// <summary>
+        /// Whether this caller is shown a protected title or URL of this entry: `protected`
+        /// beside `list` or beside `read` in one rule it holds there. Asked per item and
+        /// deliberately not recorded.
+        /// </summary>
         /// <remarks>
-        /// For the reason `Visible` gives just above: a listing asks this about every entry it
-        /// walks, so recording it would be a line per item for the ordinary case. The decisions
-        /// worth reading are the ones about a named node, and those go through `Reaches`.
-        /// Asked of every profile the client holds, as `Visible` is, so a protected title is shown
-        /// through any profile that may list the entry with its protected values.
+        /// **The one place the condition is, for a listing and for a read alike.** A listing
+        /// asks it of each entry whose title or URL is protected, and <see cref="Read"/> asks it
+        /// for the view every read of an entry is served from, so what a listing shows a caller
+        /// of the title and the URL is what that caller's view holds of them, in both
+        /// directions: a title a listing shows is served by a read, and a title a read serves is
+        /// shown by a listing. Which route a caller may ask at all stays the router's decision,
+        /// on that route's own verb.
+        ///
+        /// **Each question once.** The view has already asked `read` with `protected` to decide
+        /// its sight, so it hands that answer in and `list` with `protected` is asked only where
+        /// that answer did not settle it.
+        ///
+        /// Not recorded, for the reason `Visible` gives just above: a listing asks this about
+        /// every entry it walks, so recording it would be a line per item for the ordinary case.
+        /// Asked of every profile the client holds, as `Visible` is, so a protected title is
+        /// shown through any profile holding `protected` beside `list` or `read` on the entry,
+        /// which can be another profile than the profile the listing was taken through.
         /// </remarks>
-        private static bool ReachesProtectedInListing(
-            IGateContext context, IAclNode node, AclVerb verb, AclDocuments read)
+        private static bool ShowsListedProtected(IGateContext context, IAclNode node, AclDocuments read)
         {
-            return AclResolver.Permits(node, context.Client.Profiles, verb, AclReach.Protected, read);
+            var readsProtected = AclResolver.Permits(
+                node, context.Client.Profiles, AclVerb.Read, AclReach.Protected, read);
+
+            return ShowsListedProtected(context, node, read, readsProtected);
+        }
+
+        /// <summary>
+        /// The same condition, for a caller whose `read` with `protected` on this entry has
+        /// been answered already.
+        /// </summary>
+        private static bool ShowsListedProtected(
+            IGateContext context, IAclNode node, AclDocuments read, bool readsProtected)
+        {
+            return readsProtected
+                   || AclResolver.Permits(node, context.Client.Profiles, AclVerb.List, AclReach.Protected, read);
         }
 
         /// <summary>What `read` says about a group: what a listing says, and its notes.</summary>

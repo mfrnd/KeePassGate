@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using KeePassGate.Acl;
 using KeePassGate.Audit;
 using KeePassGate.Bridge;
@@ -31,6 +32,7 @@ namespace KeePassGate.Host.Tests
     public sealed class SkippedOnlyForAReaderTests
     {
         private const string Open = "kept in the open";
+        private const string Title = "an invented service";
         private const string Secret = "not-a-real-password";
         private const string Notes = "invented notes";
 
@@ -52,7 +54,7 @@ namespace KeePassGate.Host.Tests
             _database.RootGroup.AddGroup(_group, true);
 
             _entry = new PwEntry(true, true);
-            _entry.Strings.Set(PwDefs.TitleField, new ProtectedString(false, "an invented service"));
+            _entry.Strings.Set(PwDefs.TitleField, new ProtectedString(false, Title));
             _entry.Strings.Set(PwDefs.UserNameField, new ProtectedString(false, Open));
             _entry.Strings.Set(PwDefs.PasswordField, new ProtectedString(true, Secret));
             _entry.Binaries.Set("note.txt", new ProtectedBinary(true, Bytes));
@@ -136,6 +138,53 @@ namespace KeePassGate.Host.Tests
             Assert.That(_saves, Is.EqualTo(1));
         }
 
+        [TestCase("title", "R LP UP", true, TestName = "A protected title a listing shows its caller, beside read")]
+        [TestCase("entry title", "R LP UP", true, TestName = "An entry's protected title a listing shows its caller, beside read")]
+        [TestCase("title", "R UP", false, TestName = "A protected title its caller reads the entry without")]
+        [TestCase("title", "UP", false, TestName = "A protected title its caller may only set")]
+        [TestCase("title", "LP UP", false, TestName = "A protected title its caller is listed and does not read the entry of")]
+        [TestCase("secret", "R LP UP", false, TestName = "A password beside a title a listing shows its caller")]
+        public void A_protected_title_already_there_is_skipped_only_for_a_caller_whose_view_holds_it(
+            string what, string masks, bool skipped)
+        {
+            // A caller's view of an entry holds what any route shows that caller, so a protected
+            // title a listing shows it, under `list` with `protected`, is a value it reads once
+            // it holds `read` beside: writing it again tells that caller nothing, and is skipped.
+            // The listing's reach opens no other protected string, and without `read` a view
+            // holds no value at all. Each mask is a rule of its own, under a profile of its own.
+            _entry.Strings.Set(PwDefs.TitleField, new ProtectedString(true, Title));
+            var rules = masks.Split(' ').Select((mask, index) => ("profile" + index, mask)).ToArray();
+            _group.CustomData.Set(AclDocument.CustomDataKey, Rules.Granting(rules));
+            var revisions = _entry.History.UCount;
+
+            var answer = Send(what, rules.Select(rule => rule.Item1).ToArray());
+
+            Assert.That(answer.Status, Is.EqualTo(200), answer.Json);
+            Assert.That(_saves, Is.EqualTo(skipped ? 0 : 1), "saves");
+            Assert.That(_entry.History.UCount, Is.EqualTo(skipped ? revisions : revisions + 1), "revisions");
+            Assert.That(_entry.Strings.ReadSafe(PwDefs.TitleField), Is.EqualTo(Title));
+            Assert.That(_entry.Strings.Get(PwDefs.TitleField).IsProtected, Is.True);
+        }
+
+        [TestCase("R LP UP", true)]
+        [TestCase("R UP", false)]
+        public void A_title_the_database_protects_is_skipped_only_for_a_caller_whose_view_holds_it(
+            string masks, bool skipped)
+        {
+            // The same, for a title protected by the database's setting and carrying no flag of
+            // its own: what counts as protected is the database's answer, for the skip as for
+            // the listing and the read.
+            _database.Database.MemoryProtection.ProtectTitle = true;
+            var rules = masks.Split(' ').Select((mask, index) => ("profile" + index, mask)).ToArray();
+            _group.CustomData.Set(AclDocument.CustomDataKey, Rules.Granting(rules));
+
+            var answer = Send("title", rules.Select(rule => rule.Item1).ToArray());
+
+            Assert.That(answer.Status, Is.EqualTo(200), answer.Json);
+            Assert.That(_saves, Is.EqualTo(skipped ? 0 : 1), "saves");
+            Assert.That(_entry.Strings.ReadSafe(PwDefs.TitleField), Is.EqualTo(Title));
+        }
+
         [TestCase("nothing")]
         [TestCase("group nothing")]
         public void A_request_naming_nothing_is_skipped_for_everybody(string what)
@@ -171,6 +220,10 @@ namespace KeePassGate.Host.Tests
                     return Put(entry + "/fields/" + PwDefs.UserNameField, Bodies.Of(("value", Open)), profiles);
                 case "secret":
                     return Put(entry + "/fields/" + PwDefs.PasswordField, Bodies.Of(("value", Secret)), profiles);
+                case "title":
+                    return Put(entry + "/fields/" + PwDefs.TitleField, Bodies.Of(("value", Title)), profiles);
+                case "entry title":
+                    return Put(entry, Bodies.Of((PwDefs.TitleField, Title)), profiles);
                 case "entry":
                     return Put(entry, Bodies.Of((PwDefs.UserNameField, Open)), profiles);
                 case "entry secret":

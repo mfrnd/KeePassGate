@@ -213,8 +213,8 @@ namespace KeePassGate.Vault
     ///
     /// **One answer for the tag and for the skip.** Whether an update that would change
     /// nothing is skipped is decided by whether the caller may read what the change names,
-    /// <see cref="VaultTagging.Sees"/>, and that is read off the same sight the tag is taken
-    /// with, so the two cannot come to disagree about what the caller reads.
+    /// <see cref="VaultEntryView.Reads"/>, and that is read off the view the tag is taken of,
+    /// so the two cannot come to disagree about what the caller reads.
     ///
     /// **A change handed no questions is refused**, as is a change whose questions are answered
     /// by nobody, so a caller that forgets the rules does not compile into a write that ignores
@@ -226,7 +226,6 @@ namespace KeePassGate.Vault
         private readonly Func<VaultFound, VaultSight> _sight;
         private readonly VaultPrecondition _precondition;
         private readonly bool _answers;
-        private readonly bool _attachment;
 
         /// <summary>The questions one change asks, each of the node the change finds.</summary>
         /// <param name="allowed">Whether the caller may make this change to what was found.</param>
@@ -237,22 +236,16 @@ namespace KeePassGate.Vault
         /// </param>
         /// <param name="precondition">What `If-Match` asked of the node, or null.</param>
         /// <param name="answers">Whether the answer carries the tag the change leaves.</param>
-        /// <param name="attachment">
-        /// Whether the value the change names is an attachment's bytes, and not a string or a
-        /// group's name and notes.
-        /// </param>
         public VaultAsking(
             Func<VaultFound, bool> allowed,
             Func<VaultFound, VaultSight> sight,
             VaultPrecondition precondition,
-            bool answers,
-            bool attachment = false)
+            bool answers)
         {
             _allowed = allowed;
             _sight = sight;
             _precondition = precondition;
             _answers = answers;
-            _attachment = attachment;
         }
 
         /// <summary>Whether the change may be made to what it found.</summary>
@@ -268,8 +261,9 @@ namespace KeePassGate.Vault
         /// </summary>
         /// <remarks>
         /// **The sight is asked once per asking**, and the precondition, the tag in the answer
-        /// and the skip are all read off that answer. A question nobody answers is
-        /// <see cref="VaultSight.Least"/>, which reads nothing and is handed no tag.
+        /// and, through the view taken with it, the skip are all read off that answer. A
+        /// question nobody answers is <see cref="VaultSight.Least"/>, which reads nothing and is
+        /// handed no tag.
         ///
         /// **A caller that is handed no tag has its `If-Match` failed rather than ignored.**
         /// Ignoring it would make the write unconditional, which is the one thing a client
@@ -290,34 +284,16 @@ namespace KeePassGate.Vault
                 precondition = VaultPrecondition.Withheld();
             }
 
-            return new VaultTagging(precondition, sight.Reads && _answers, sight, Sees(found, sight));
-        }
-
-        /// <summary>
-        /// Whether a sight reads every value the change names on what was found:
-        /// <see cref="VaultTagging.Sees"/>.
-        /// </summary>
-        private bool Sees(VaultFound found, VaultSight sight)
-        {
-            if (found == null || !sight.Reads)
-            {
-                return false;
-            }
-
-            if (_attachment)
-            {
-                return sight.Attachments == VaultAttachmentSight.Read;
-            }
-
-            return !found.Guarded || sight.Protected;
+            return new VaultTagging(precondition, sight.Reads && _answers, sight);
         }
     }
 
     /// <summary>
     /// What a change does about the node as the node stands at one moment, decided from who is
     /// asking: whether it is made only while the node still holds what `If-Match` named, whether
-    /// it answers with the tag it leaves, how far its caller may read, which is the view both
-    /// tags are taken of, and whether its caller may read the values it names.
+    /// it answers with the tag it leaves, and how far its caller may read, which is the view
+    /// both tags are taken of and the view that decides whether its caller reads the values it
+    /// names.
     /// </summary>
     /// <remarks>
     /// Answered by <see cref="VaultAsking.Tagging"/> inside the change's turn, never handed in
@@ -328,12 +304,11 @@ namespace KeePassGate.Vault
     /// </remarks>
     public sealed class VaultTagging
     {
-        public VaultTagging(VaultPrecondition precondition, bool answers, VaultSight sight, bool sees)
+        public VaultTagging(VaultPrecondition precondition, bool answers, VaultSight sight)
         {
             Precondition = precondition;
             Answers = answers;
             Sight = sight ?? VaultSight.Least;
-            Sees = sees;
         }
 
         /// <summary>What `If-Match` asked of the node, or null when nothing is asked.</summary>
@@ -351,32 +326,13 @@ namespace KeePassGate.Vault
         /// caller's own view, the tag every read route hands the same caller, `API.md` §410. A
         /// sight that does not read has no tag, so its caller is handed none and its `If-Match`
         /// fails.
+        ///
+        /// **And the sight the skip is decided with.** Whether an update that would change
+        /// nothing is skipped is whether the view taken with this sight holds every value the
+        /// update names, <see cref="VaultEntryView.Reads"/>, and for a group, which has no
+        /// view, whether this sight reads.
         /// </remarks>
         public VaultSight Sight { get; private set; }
-
-        /// <summary>
-        /// Whether the caller may read every value the change names: a group's name and notes
-        /// under `read`, an entry's strings and expiry under `read`, reaching protected values
-        /// where a named string is protected, and an attachment's bytes under `read` reaching
-        /// attachments.
-        /// </summary>
-        /// <remarks>
-        /// **An update that would change nothing is skipped only for a caller this is true of**,
-        /// the operator's ruling of 2026-11-10. A skipped update moves no time, takes no revision
-        /// and saves nothing, and an update that writes does all three, so a caller that may
-        /// write a value and not read it could send a guess and learn from the listing's
-        /// `modified`, or from how long the answer took, whether the stored value was its guess.
-        /// For such a caller the update is written like any change, so a guess that is right and
-        /// a guess that is wrong do the same work. A caller that may read the value learns
-        /// nothing from the skip that a read would not tell it, and a request naming nothing has
-        /// nothing in it to guess, so it is skipped for everybody.
-        ///
-        /// **Read off <see cref="Sight"/>**, the same ruling's amendment that the skip and the
-        /// tag have the same input: a group's name and notes and an entry's unprotected strings
-        /// are read by a sight that reads, a protected string by a sight reaching protected
-        /// values, and an attachment's bytes by a sight reading attachments.
-        /// </remarks>
-        public bool Sees { get; private set; }
     }
 
     /// <summary>What happened to a change, and whether it is worth trying again.</summary>

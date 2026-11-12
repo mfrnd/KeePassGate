@@ -48,10 +48,10 @@ namespace KeePassGate.Bridge
     /// whose one rule read all of it, the operator's ruling of 2026-11-10.
     ///
     /// **What the entry's own routes serve its caller, as they serve it, and nothing a caller
-    /// may not read.** Two edges, both in `API.md` §410: a caller holding `read` with
-    /// `attachments` and no `list` has every attachment in its tag, since it reads any of them
-    /// by name though no route lists them to it, and a protected title or URL a caller is shown
-    /// only by a listing of entries, under `list` with `protected`, is not in its tag. An
+    /// may not read.** A protected title or URL a listing of entries shows a caller is in its
+    /// view of the entry, so a read serves it and the tag covers it. A caller holding `read`
+    /// with `attachments` and no `list` has every attachment in its tag, since it reads any of
+    /// them by name though no route lists them to it, `API.md` §410. An
     /// entry's tag covers its identifier, the group it is in, when it was created and last
     /// changed, every string with its name, whether it is served as protected and, where its
     /// caller may read it, its value, every attachment with its name and its size where its

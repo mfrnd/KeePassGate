@@ -580,8 +580,9 @@ class Entry:
     @classmethod
     def listed(cls, body: dict[str, Any]) -> Entry:
         """One out of a listing, which carries no values beyond a title and a URL."""
-        # A protected title or URL comes back as `null` when the rule lacks `P`, which `Fields`
-        # keeps as a name whose value is withheld rather than as the word "None" or as nothing.
+        # A protected title or URL comes back as `null` when no rule this client holds on the
+        # entry carries `P` beside `list` or `read`, which `Fields` keeps as a name whose value
+        # is withheld rather than as the word "None" or as nothing.
         summary = {TITLE: _nullable(body, "title"), URL: _nullable(body, "url")}
 
         return cls(
@@ -837,7 +838,9 @@ class Access:
 
     **One mask per profile, because a switch belongs to its rule.** One profile's `R` and another's
     `P` do not add up to reading a protected value, so a question about a verb and a switch is a
-    question about one mask at a time, which is what `allows` asks.
+    question about one mask at a time, which is what `allows` asks. An entry's title and URL are
+    the exception: where either is protected, the gate serves it to a client holding `R` in one
+    mask and `L` with `P` in another, since a listing shows that client both.
     """
 
     #: Each profile's mask, by the profile's name.
@@ -849,7 +852,10 @@ class Access:
         `"RP"` asks whether this client may read the protected values here, `"CA"` whether it may
         add an attachment to this entry, and `"C"` whether it may add to this group. Each mask is
         asked on its own, so a profile granting `R` and another granting `P` answer no: the gate
-        refuses that read, because a switch reaches only the verbs of its own rule.
+        refuses that read, because a switch reaches only the verbs of its own rule. It does serve
+        a protected title or URL to a client holding `R` in one mask and `L` with `P` in another,
+        which a listing shows it as well, so for those `allows("RP") or allows("LP")` beside
+        `allows("R")` is the question.
 
         **A switch says nothing about a removal**, which shows nobody anything, and a rule that may
         remove an entry already takes everything in it: the gate asks no switch of `S` or `D`, and

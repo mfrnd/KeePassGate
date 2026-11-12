@@ -140,6 +140,36 @@ namespace KeePassGate.Tests
             Assert.That(reader.Reads, Is.True);
             Assert.That(reader.Protected, Is.False);
             Assert.That(reader.Attachments, Is.EqualTo(VaultAttachmentSight.Listed));
+
+            // The listing's reach into protected strings brings a value into a view, and a view
+            // that does not read holds none, so it is dropped with the rest.
+            Assert.That(new VaultSight(false, false, VaultAttachmentSight.None, true).ListedInSight, Is.False);
+            Assert.That(new VaultSight(true, false, VaultAttachmentSight.None, true).ListedInSight, Is.True);
+            Assert.That(reader.ListedInSight, Is.False);
+            Assert.That(VaultSight.Least.ListedInSight, Is.False);
+        }
+
+        [Test]
+        public void A_protected_string_a_listing_shows_is_in_sight_on_the_listing_s_reach_beside_read()
+        {
+            // A caller's view holds everything any route shows that caller: a listing shows a
+            // protected title under `list` with `protected`, so beside `read` the title's value
+            // is in the view. A protected string no listing shows needs `read` with `protected`.
+            var listing = new VaultSight(true, false, VaultAttachmentSight.None, true);
+            var reading = new VaultSight(true, false, VaultAttachmentSight.None);
+            var blind = new VaultSight(false, false, VaultAttachmentSight.None, true);
+
+            Func<VaultSight, bool, bool, VaultViewField> made = (sight, guarded, listed) =>
+                new VaultViewField("Invented", guarded, 3, sight, () => "abc", listed);
+
+            Assert.That(made(listing, true, true).Value, Is.EqualTo("abc"));
+            Assert.That(made(listing, true, false).IsWithheld, Is.True, "the listing's reach opens no other string");
+            Assert.That(made(reading, true, true).IsWithheld, Is.True, "`read` alone opens no protected string");
+            Assert.That(made(blind, true, true).IsWithheld, Is.True, "and without `read` a view holds no value");
+            Assert.That(made(blind, false, true).IsWithheld, Is.True);
+            Assert.That(made(null, true, true).IsWithheld, Is.True);
+            Assert.That(made(reading, false, true).Value, Is.EqualTo("abc"), "a string nothing protects, as ever");
+            Assert.That(made(Sights.Whole, true, false).Value, Is.EqualTo("abc"));
         }
 
         [Test]

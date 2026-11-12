@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace KeePassGate.Vault
 {
@@ -29,10 +30,18 @@ namespace KeePassGate.Vault
     /// </summary>
     /// <remarks>
     /// What the caller's rules open on the entry a view is taken of, and nothing about the route
-    /// that asked: `read`, the `protected` switch in a rule with `read`, and the `attachments`
-    /// switch in a rule with `read` or, for names and sizes, in a rule with `list`. **Not
+    /// that asked: `read`, the `protected` switch in a rule with `read` or, for the strings a
+    /// listing of entries shows, in a rule with `list`, and the `attachments` switch in a rule
+    /// with `read` or, for names and sizes, in a rule with `list`. **Not
     /// depending on the route is what gives a caller one tag for an entry**, whichever route
     /// hands it out and whichever change answers with it.
+    ///
+    /// **A caller's view of an entry holds everything any route shows that caller of the
+    /// entry.** A listing of entries shows a protected title or URL to a caller holding
+    /// `protected` beside `list` or beside `read` in one rule, so a caller holding either
+    /// beside `read` has both strings in its view: a read serves them and its tag covers them.
+    /// Held otherwise, the caller was shown a title by a listing and refused the same title by
+    /// a read, under a tag that did not move when the title did.
     ///
     /// Decided above the vault, which knows nothing of rules, and handed to it as the answer to
     /// a question the vault asks once it has found the entry: <see cref="IVault.View"/> for a
@@ -54,17 +63,25 @@ namespace KeePassGate.Vault
         /// values. A view taken with such a sight holds no value of any string, protected or
         /// not, <see cref="VaultViewField.IsWithheld"/>: names and flags are what `list`
         /// opens, a value is `read`'s, and a length is kept for the ceiling and served to
-        /// nobody.
+        /// nobody. The listing's reach into protected strings is dropped the same way: it
+        /// brings a value into a view, and a view that does not read holds none.
         /// </remarks>
         /// <param name="reads">Whether the caller holds `read` on the entry.</param>
         /// <param name="reachesProtected">
         /// Whether `read` and `protected` stand in one rule the caller holds.
         /// </param>
         /// <param name="attachments">How much of the attachments the caller's rules open.</param>
-        public VaultSight(bool reads, bool reachesProtected, VaultAttachmentSight attachments)
+        /// <param name="listedInSight">
+        /// Whether a listing of entries shows this caller a protected title or URL of the
+        /// entry, which is `protected` beside `list` or beside `read` in one rule it holds: the
+        /// answer of the condition the listings themselves ask.
+        /// </param>
+        public VaultSight(
+            bool reads, bool reachesProtected, VaultAttachmentSight attachments, bool listedInSight = false)
         {
             Reads = reads;
             Protected = reads && reachesProtected;
+            ListedInSight = reads && listedInSight;
             Attachments = !reads && attachments == VaultAttachmentSight.Read
                 ? VaultAttachmentSight.None
                 : attachments;
@@ -77,6 +94,14 @@ namespace KeePassGate.Vault
 
         /// <summary>Whether the values of protected strings are in sight.</summary>
         public bool Protected { get; private set; }
+
+        /// <summary>
+        /// Whether the protected strings a listing of entries shows are in sight, whatever
+        /// else is: true only for a sight that reads, and true wherever
+        /// <see cref="Protected"/> is, since a listing shows them on `read` with `protected`
+        /// as well as on `list` with `protected`.
+        /// </summary>
+        public bool ListedInSight { get; private set; }
 
         /// <summary>How much of the entry's attachments is in sight.</summary>
         public VaultAttachmentSight Attachments { get; private set; }
@@ -100,6 +125,10 @@ namespace KeePassGate.Vault
     /// for a sight that reads without reaching protected values.** A caller that only lists is
     /// served names and flags, so its view holds those and the lengths the ceiling is measured
     /// by, and no value.
+    ///
+    /// **A protected string a listing of entries shows is in sight on the listing's own reach
+    /// as well**, for a sight that reads: a caller shown a protected title by a listing is
+    /// shown it by a read, <see cref="VaultSight"/>.
     /// </remarks>
     public sealed class VaultViewField
     {
@@ -119,7 +148,12 @@ namespace KeePassGate.Vault
         /// What the caller may read, where null is <see cref="VaultSight.Least"/>.
         /// </param>
         /// <param name="read">What reads the value, kept only for a string in sight.</param>
-        public VaultViewField(string name, bool isProtected, int length, VaultSight sight, Func<string> read)
+        /// <param name="isListed">
+        /// Whether a listing of entries shows this string, as the vault decides it: an entry's
+        /// title and its URL.
+        /// </param>
+        public VaultViewField(
+            string name, bool isProtected, int length, VaultSight sight, Func<string> read, bool isListed = false)
         {
             if (name == null)
             {
@@ -128,8 +162,9 @@ namespace KeePassGate.Vault
 
             Name = name;
             IsProtected = isProtected;
+            IsListed = isListed;
             _length = length;
-            IsWithheld = sight == null || !sight.Reads || (isProtected && !sight.Protected);
+            IsWithheld = !InSight(sight, isProtected, isListed);
 
             if (!IsWithheld)
             {
@@ -142,6 +177,25 @@ namespace KeePassGate.Vault
             }
         }
 
+        /// <summary>
+        /// Whether a sight reaches a string's value. No sight, and a sight that does not read,
+        /// reach none.
+        /// </summary>
+        private static bool InSight(VaultSight sight, bool isProtected, bool isListed)
+        {
+            if (sight == null || !sight.Reads)
+            {
+                return false;
+            }
+
+            if (!isProtected || sight.Protected)
+            {
+                return true;
+            }
+
+            return isListed && sight.ListedInSight;
+        }
+
         public string Name { get; private set; }
 
         /// <summary>
@@ -149,6 +203,12 @@ namespace KeePassGate.Vault
         /// carries the flag or because the database protects a field of that name.
         /// </summary>
         public bool IsProtected { get; private set; }
+
+        /// <summary>
+        /// Whether a listing of entries shows this string: an entry's title and its URL, as the
+        /// vault finds them.
+        /// </summary>
+        public bool IsListed { get; private set; }
 
         /// <summary>
         /// Whether the value is out of the caller's sight, and so not in this view.
@@ -470,6 +530,53 @@ namespace KeePassGate.Vault
             }
 
             return null;
+        }
+
+        /// <summary>
+        /// Whether this view holds the value of every one of these strings that the entry
+        /// carries, which is whether its caller may read every value a change naming them
+        /// names. A name the entry does not carry is no value to read: writing it is a change
+        /// whoever writes it. No names is the entry's own facts, its expiry among them, which
+        /// a sight that reads holds.
+        /// </summary>
+        /// <remarks>
+        /// **An update that would change nothing is skipped only for a caller this is true of**,
+        /// the operator's ruling of 2026-11-10. A skipped update moves no time, takes no revision
+        /// and saves nothing, and an update that writes does all three, so a caller that may
+        /// write a value and not read it could send a guess and learn from the listing's
+        /// `modified`, or from how long the answer took, whether the stored value was its guess.
+        /// For such a caller the update is written like any change, so a guess that is right and
+        /// a guess that is wrong do the same work. A caller that may read the value learns
+        /// nothing from the skip that a read would not tell it, and a request naming nothing has
+        /// nothing in it to guess, so it is skipped for everybody. A group has no view, and its
+        /// name and notes are read by a sight that reads.
+        ///
+        /// **Read off the view, and not worked out again from the sight**, so that what a
+        /// caller is taken to read here is what a read serves it and what its tag covers, by
+        /// construction: a protected title a listing shows this caller is a value it reads,
+        /// and a rule that decided that anywhere else could come to disagree.
+        /// </remarks>
+        public bool Reads(IEnumerable<string> names)
+        {
+            if (!Sight.Reads)
+            {
+                return false;
+            }
+
+            return (names ?? Array.Empty<string>())
+                .Select(Field)
+                .All(field => field == null || !field.IsWithheld);
+        }
+
+        /// <summary>
+        /// Whether this view holds the bytes of the attachment carrying this name, which is
+        /// whether its caller may read what a change replacing them names:
+        /// <see cref="Reads"/> has the reason it is asked.
+        /// </summary>
+        public bool ReadsAttachment(string name)
+        {
+            var attachment = Attachment(name);
+            return attachment != null && !attachment.IsWithheld;
         }
 
         /// <summary>

@@ -397,7 +397,16 @@ namespace KeePassGate.Acl
             return false;
         }
 
-        private static AclDecision Decide(
+        /// <summary>
+        /// The same question, with what answered it, reading each rule through documents one
+        /// request has already read.
+        /// </summary>
+        /// <remarks>
+        /// For a caller that asks several questions of one node and keeps a refusal to write
+        /// down, so that the line written is the walk that decided: see
+        /// <see cref="AclDocuments"/>.
+        /// </remarks>
+        public static AclDecision Decide(
             IAclNode node, IEnumerable<string> profiles, AclVerb verb, AclReach reach, AclDocuments read)
         {
             if (node == null)

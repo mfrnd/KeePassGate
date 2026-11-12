@@ -12,8 +12,9 @@ namespace KeePassGate.Tests
     /// </summary>
     /// <remarks>
     /// <see cref="VaultAsking.Tagging"/> is where a sight becomes the three things a vault acts
-    /// on: the condition asked of the node, whether the answer carries a tag, and whether the
-    /// caller reads what the change names. Held here on its own, apart from any vault, so that a
+    /// on: the condition asked of the node, whether the answer carries a tag, and the sight whose
+    /// view decides whether the caller reads what the change names. Held here on its own, apart
+    /// from any vault, so that a
     /// missing answer is seen to fail closed in each of them. Everything in here is invented.
     /// </remarks>
     [TestFixture]
@@ -27,7 +28,10 @@ namespace KeePassGate.Tests
 
         private static readonly VaultSight ListingAttachments = new VaultSight(true, false, VaultAttachmentSight.Listed);
 
-        private static readonly VaultSight ListingOnly = new VaultSight(false, false, VaultAttachmentSight.Listed);
+        private static readonly VaultSight ListingOnly = new VaultSight(false, false, VaultAttachmentSight.Listed, true);
+
+        private static readonly VaultSight ReadingBesideListingProtected =
+            new VaultSight(true, false, VaultAttachmentSight.None, true);
 
         [Test]
         public void A_sight_nobody_answers_is_the_least_and_fails_closed_in_every_part()
@@ -38,14 +42,13 @@ namespace KeePassGate.Tests
                 new VaultAsking(found => true, null, condition, true),
                 new VaultAsking(found => true, found => null, condition, true),
                 new VaultAsking(found => true, found => VaultSight.Least, condition, true),
-                new VaultAsking(found => true, found => ListingOnly, condition, true, true),
+                new VaultAsking(found => true, found => ListingOnly, condition, true),
             };
 
             foreach (var tagging in askings.Select(asking => asking.Tagging(Open())))
             {
                 Assert.That(tagging.Sight.Reads, Is.False);
                 Assert.That(tagging.Answers, Is.False, "no tag in the answer for a caller that does not read");
-                Assert.That(tagging.Sees, Is.False);
                 Assert.That(tagging.Precondition.Refusal, Is.EqualTo(VaultPrecondition.Withheld().Refusal),
                     "and its condition, `*` included, is a condition nothing meets");
                 Assert.That(VaultPrecondition.Fails(tagging.Precondition, () => "0123456789abcdef0123456789abcdef"), Is.True);
@@ -75,7 +78,6 @@ namespace KeePassGate.Tests
             Assert.That(asked, Is.Zero);
             Assert.That(tagging.Sight, Is.SameAs(VaultSight.Least));
             Assert.That(tagging.Answers, Is.False);
-            Assert.That(tagging.Sees, Is.False);
             Assert.That(tagging.Precondition.Refusal, Is.EqualTo(VaultPrecondition.Withheld().Refusal));
             Assert.That(asking.Allows(null), Is.False);
         }
@@ -118,27 +120,62 @@ namespace KeePassGate.Tests
         }
 
         [Test]
-        public void A_caller_reads_what_a_change_names_as_far_as_its_sight_reaches()
+        public void A_caller_reads_what_a_change_names_as_far_as_its_view_holds()
         {
-            // Strings and a group's name and notes: a sight that reads, reaching protected
-            // values where a named string is protected.
-            Assert.That(Sees(Reading, Open(), false), Is.True);
-            Assert.That(Sees(Reading, Guarded(), false), Is.False);
-            Assert.That(Sees(ReadingProtected, Guarded(), false), Is.True);
-            Assert.That(Sees(ReadingAttachments, Guarded(), false), Is.False, "the other switch opens no string");
-            Assert.That(Sees(Reading, new VaultFound(Group()), false), Is.True);
-            Assert.That(Sees(VaultSight.Least, new VaultFound(Group()), false), Is.False);
+            // What decides whether an update that would change nothing is skipped, read off the
+            // view the change found and not worked out again from the sight: every named string
+            // the entry carries has its value in the view.
+            var open = new[] { "Account" };
+            var secret = new[] { "Password" };
+            var title = new[] { "Title" };
 
-            // An attachment's bytes: a sight reading attachments, and nothing short of it.
-            Assert.That(Sees(ReadingAttachments, Open(), true), Is.True);
-            Assert.That(Sees(ListingAttachments, Open(), true), Is.False, "listed is names and sizes");
-            Assert.That(Sees(ReadingProtected, Open(), true), Is.False);
-            Assert.That(Sees(ListingOnly, Open(), true), Is.False);
+            Assert.That(Viewed(Reading).Reads(open), Is.True);
+            Assert.That(Viewed(Reading).Reads(secret), Is.False);
+            Assert.That(Viewed(Reading).Reads(new[] { "Account", "Password" }), Is.False, "the named values, every one");
+            Assert.That(Viewed(ReadingProtected).Reads(secret), Is.True);
+            Assert.That(Viewed(ReadingAttachments).Reads(secret), Is.False, "the other switch opens no string");
+            Assert.That(Viewed(Reading).Reads(new[] { "Absent" }), Is.True, "a name the entry does not carry is no value to read");
+            Assert.That(Viewed(Reading).Reads(null), Is.True, "the entry's own facts, its expiry among them");
+            Assert.That(Viewed(Reading).Reads(Array.Empty<string>()), Is.True);
+
+            // A protected title is a value its caller reads where a listing shows it to that
+            // caller, and the password beside it is not.
+            Assert.That(Viewed(Reading).Reads(title), Is.False);
+            Assert.That(Viewed(ReadingBesideListingProtected).Reads(title), Is.True);
+            Assert.That(Viewed(ReadingBesideListingProtected).Reads(secret), Is.False);
+
+            // No value at all for a sight that does not read, an open string among them.
+            foreach (var view in new[] { null, VaultSight.Least, ListingOnly }.Select(Viewed))
+            {
+                Assert.That(view.Reads(open), Is.False);
+                Assert.That(view.Reads(null), Is.False);
+                Assert.That(view.ReadsAttachment("notes.txt"), Is.False);
+            }
+
+            // An attachment's bytes: a view holding them, and nothing short of it.
+            Assert.That(Viewed(ReadingAttachments).ReadsAttachment("notes.txt"), Is.True);
+            Assert.That(Viewed(ReadingAttachments).ReadsAttachment("absent.txt"), Is.False);
+            Assert.That(Viewed(ListingAttachments).ReadsAttachment("notes.txt"), Is.False, "listed is names and sizes");
+            Assert.That(Viewed(ReadingProtected).ReadsAttachment("notes.txt"), Is.False);
         }
 
-        private static bool Sees(VaultSight sight, VaultFound found, bool attachment)
+        /// <summary>
+        /// An invented entry as this sight reaches into it: a protected title, a protected
+        /// password, an open string and an attachment.
+        /// </summary>
+        private static VaultEntryView Viewed(VaultSight sight)
         {
-            return new VaultAsking(asked => true, asked => sight, null, false, attachment).Tagging(found).Sees;
+            return new VaultEntryView(
+                Entry(),
+                sight,
+                new[]
+                {
+                    new VaultViewField("Title", true, 3, sight, () => "abc", true),
+                    new VaultViewField("Password", true, 3, sight, () => "abc"),
+                    new VaultViewField("Account", false, 3, sight, () => "abc"),
+                },
+                new[] { new VaultViewAttachment("notes.txt", 3, sight, () => new byte[3], () => new byte[32]) },
+                null);
         }
 
         /// <summary>An entry found by a change that names no protected string.</summary>
@@ -165,18 +202,6 @@ namespace KeePassGate.Tests
                 null,
                 false,
                 false,
-                null);
-        }
-
-        private static VaultGroup Group()
-        {
-            return new VaultGroup(
-                "FEDCBA9876543210FEDCBA9876543210",
-                "Fictitious",
-                "invented notes",
-                null,
-                DateTimeOffset.MinValue,
-                DateTimeOffset.MinValue,
                 null);
         }
     }

@@ -358,7 +358,8 @@ namespace KeePassGate.Tests.Fakes
         /// </summary>
         /// <remarks>
         /// This vault writes every update, so the skip itself is the host tier's to pin, over
-        /// the real vault. What a handler hands the vault is pinned here.
+        /// the real vault. What is pinned here is the answer, read off the caller's view of the
+        /// node as the real vault reads it, from the sight a handler hands over.
         /// </remarks>
         public bool Saw { get; private set; }
 
@@ -404,7 +405,27 @@ namespace KeePassGate.Tests.Fakes
         /// </summary>
         private string Found(Kept entry, VaultTagging tagging)
         {
-            return Seen(entry, entry.Placed(), tagging.Sight).Tag;
+            return Viewed(entry, tagging).Tag;
+        }
+
+        /// <summary>
+        /// An entry as the caller of a change may read it, as the change finds the entry: the
+        /// view its tag is taken of and the view that decides what its caller reads.
+        /// </summary>
+        private VaultEntryView Viewed(Kept entry, VaultTagging tagging)
+        {
+            return Seen(entry, entry.Placed(), tagging.Sight);
+        }
+
+        /// <summary>
+        /// Whether a listing of entries shows the string stored under this name, as the real
+        /// vault decides it: the title and the URL, which <see cref="Kept.Describe"/> reads for
+        /// a listing, compared as the store compares names and not byte for byte.
+        /// </summary>
+        private static bool Listed(string name)
+        {
+            return Comparer<string>.Default.Compare(name, "Title") == 0
+                   || Comparer<string>.Default.Compare(name, "URL") == 0;
         }
 
         /// <summary>
@@ -435,7 +456,8 @@ namespace KeePassGate.Tests.Fakes
                     {
                         StringReads++;
                         return value;
-                    }));
+                    },
+                    Listed(pair.Key)));
             }
 
             List<VaultViewAttachment> attachments = null;
@@ -690,6 +712,7 @@ namespace KeePassGate.Tests.Fakes
 
                 VaultTagging tagging;
                 var refusal = Refusal(asking, new VaultFound(group.Describe()), out tagging);
+                Saw = tagging != null && tagging.Sight.Reads;
                 if (refusal != null)
                 {
                     return refusal;
@@ -840,6 +863,7 @@ namespace KeePassGate.Tests.Fakes
                 var guarded = fields != null && fields.Keys.Any(name => Guards(entry, name));
                 VaultTagging tagging;
                 var refusal = Refusal(asking, new VaultFound(entry.Describe(), guarded), out tagging);
+                Saw = tagging != null && Viewed(entry, tagging).Reads(fields == null ? null : fields.Keys);
                 if (refusal != null)
                 {
                     return refusal;
@@ -981,6 +1005,7 @@ namespace KeePassGate.Tests.Fakes
 
                 VaultTagging tagging;
                 var refusal = Refusal(asking, new VaultFound(entry.Describe(), name != null && Guards(entry, name)), out tagging);
+                Saw = tagging != null && Viewed(entry, tagging).Reads(new[] { name });
                 if (refusal != null)
                 {
                     return refusal;
@@ -1102,6 +1127,7 @@ namespace KeePassGate.Tests.Fakes
 
                 VaultTagging tagging;
                 var refusal = Refusal(asking, new VaultFound(entry.Describe(), false), out tagging);
+                Saw = tagging != null && Viewed(entry, tagging).ReadsAttachment(name);
                 if (refusal != null)
                 {
                     return refusal;
@@ -1190,7 +1216,7 @@ namespace KeePassGate.Tests.Fakes
                 }
 
                 tagging = asking.Tagging(found);
-                Saw = tagging.Sees;
+                Saw = false;
                 return null;
             }
             catch (VaultUnsettled error)

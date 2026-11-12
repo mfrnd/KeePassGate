@@ -817,7 +817,7 @@ namespace KeePassGate.Host.Tests
             // A caller that may write a value and not read it would otherwise be told, by a time
             // that did not move or an answer that came at once, that the value it sent is the
             // value stored. So its update is a change like any other, and only a request naming
-            // nothing is still skipped for it. `VaultTagging.Sees` has the ruling.
+            // nothing is still skipped for it. `VaultEntryView.Reads` has the ruling.
             var group = Created(_vault.CreateGroup(_vault.RootAlias, "Fictitious", "invented notes"));
             var uuid = Created(_vault.CreateEntry(group, Named("an invented service"), VaultExpiry.At(Moment)));
             Assume.That(_vault.UpdateField(uuid, PwDefs.PasswordField, "not-a-real-password", VaultAskings.Free).Ok, Is.True);

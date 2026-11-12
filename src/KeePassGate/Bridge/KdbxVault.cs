@@ -253,8 +253,8 @@ namespace KeePassGate.Bridge
                 // As stored, and never compiled: KeePass resolves a reference against the whole
                 // open database, which knows nothing about the rules this answer was allowed by.
                 var held = strings[index].Value;
-                fields.Add(new VaultViewField(
-                    strings[index].Key, guarded[index], held.Length, sight, held.ReadString));
+                var name = strings[index].Key;
+                fields.Add(new VaultViewField(name, guarded[index], held.Length, sight, held.ReadString, Listed(name)));
             }
 
             List<VaultViewAttachment> attachments = null;
@@ -424,12 +424,12 @@ namespace KeePassGate.Bridge
                 }
 
                 // Skipped only for a caller that may read what it named, or when nothing was
-                // named: `VaultTagging.Sees` has the reason.
+                // named: `VaultEntryView.Reads` has the reason.
                 var named = name != null || notes != null;
                 var holds = (name == null || string.Equals(group.Name, name, StringComparison.Ordinal))
                     && (notes == null || string.Equals(group.Notes, notes, StringComparison.Ordinal));
 
-                if (holds && (!named || tagging.Sees))
+                if (holds && (!named || tagging.Sight.Reads))
                 {
                     // The group already holds what was asked for, which a body naming nothing asks
                     // as well, and `VaultChange.Unchanged` states why that writes nothing. The tag
@@ -701,10 +701,12 @@ namespace KeePassGate.Bridge
                 }
 
                 // Skipped only for a caller that may read what it named, or when nothing was
-                // named: `VaultTagging.Sees` has the reason.
+                // named: `VaultEntryView.Reads` has the reason.
                 var named = (fields != null && fields.Count > 0) || expiry != null;
 
-                if ((!named || tagging.Sees)
+                var reads = !named || Found(entry, tagging).Reads(fields == null ? null : fields.Keys);
+
+                if (reads
                     && AlreadyHolds(entry, fields)
                     && AlreadyExpires(entry, expiry))
                 {
@@ -929,9 +931,10 @@ namespace KeePassGate.Bridge
                 var flagged = existing != null && existing.IsProtected;
                 var replacement = new ProtectedString(flagged, value ?? string.Empty);
 
-                // Skipped only for a caller that may read the value: `VaultTagging.Sees` has
+                // Skipped only for a caller that may read the value: `VaultEntryView.Reads` has
                 // the reason.
-                if (tagging.Sees && existing != null && existing.Equals(replacement, false))
+                var reads = Found(entry, tagging).Reads(new[] { name });
+                if (reads && existing != null && existing.Equals(replacement, false))
                 {
                     return VaultChange.Unchanged(VaultWrite.Done(tagging.Answers ? tag() : null));
                 }
@@ -1107,8 +1110,9 @@ namespace KeePassGate.Bridge
                 // The bytes and not the protection flag, which is this route's own choice for
                 // what it stores rather than anything the request asked for. KeePass's comparison
                 // asks the lengths before it decrypts either side. Skipped only for a caller
-                // that may read the attachment: `VaultTagging.Sees` has the reason.
-                if (tagging.Sees && was != null && was.Equals(replacement, false))
+                // that may read the attachment: `VaultEntryView.Reads` has the reason.
+                var reads = Found(entry, tagging).ReadsAttachment(name);
+                if (reads && was != null && was.Equals(replacement, false))
                 {
                     return VaultChange.Unchanged(VaultWrite.Done(tagging.Answers ? tag() : null));
                 }
@@ -1437,7 +1441,38 @@ namespace KeePassGate.Bridge
         private Func<string> Before(PwEntry entry, VaultTagging tagging)
         {
             string tag = null;
-            return () => tag ?? (tag = Seen(entry, described => tagging.Sight).Tag);
+            return () => tag ?? (tag = Found(entry, tagging).Tag);
+        }
+
+        /// <summary>
+        /// An entry as the caller of a change may read it, as the change finds the entry: the
+        /// view the change's condition is asked of, and the view that decides whether the
+        /// caller reads what an update names, <see cref="VaultEntryView.Reads"/>.
+        /// </summary>
+        private VaultEntryView Found(PwEntry entry, VaultTagging tagging)
+        {
+            return Seen(entry, described => tagging.Sight);
+        }
+
+        /// <summary>
+        /// Whether a listing of entries shows the string stored under this name: the title and
+        /// the URL, which are the strings <see cref="Describe(PwEntry)"/> reads for a listing.
+        /// </summary>
+        /// <remarks>
+        /// Asked for a view, where a protected string a listing shows is in sight wherever a
+        /// listing shows it, `protected` beside `list` or beside `read`: a caller's view of an
+        /// entry holds everything any route shows that caller of it.
+        ///
+        /// **Compared as the store compares names, and not byte for byte**, <see cref="Names"/>,
+        /// because that is how the listing finds them: `Describe` asks the entry's own
+        /// dictionary for the title and the URL, and the dictionary answers with a key its
+        /// collation cannot tell from either name, a title keyed with a soft hyphen in it among
+        /// them. Compared byte for byte here, such a title was shown by a listing and withheld
+        /// by a read of the same entry.
+        /// </remarks>
+        private static bool Listed(string name)
+        {
+            return Names(name, PwDefs.TitleField) || Names(name, PwDefs.UrlField);
         }
 
         /// <summary>

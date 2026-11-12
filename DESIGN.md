@@ -673,9 +673,12 @@ about one profile decide for another, so holding an extra profile could take a p
 one profile allows both, since otherwise one profile's grant would undo the hold-back another
 profile's rule makes, and two profiles would do together what neither of them may. The strip guard
 of §136 asks each profile the same way. **A listing is the exception, being a read.** It is taken
-where some profile may list, and shows every item, and a protected title, that some profile the
-client holds may list, whichever profile that is: an item appears only to a client holding a profile
-entitled to it, and what the profiles pool is the way to it.
+where some profile may list, and shows every item that some profile the client holds may list,
+whichever profile that is: an item appears only to a client holding a profile entitled to it, and
+what the profiles pool is the way to it. A protected title or URL is shown on an item where some
+profile the client holds carries `protected` beside `list` or beside `read` on that entry, which is
+the rule a read of the entry serves the title and the URL by, so a listing and a read show a client
+the same of them.
 
 **Every failure denies**: an unreadable document, an unknown default, an unknown verb, a node with no
 chain to a root, a client holding no profiles, a database that is not open. A document that will not
@@ -686,24 +689,34 @@ with a permission the broken rule may have been taking away.
 and the switch from the same rule, so a rule granting `read` without the switch refuses where it is
 found rather than sending the walk up to a rule that would have allowed it. `protected` is answered
 the same way and at a different moment: an attachment is a route of its own, so the router asks
-before dispatch, while a protected value arrives inside an answer to a route that is allowed. So
-that question is asked by the handlers rather than the router: each one that writes a field value
-into an answer or takes one from a body asks it, reading an entry or a field, the listings, creating
-or updating either, and stripping a field, through one helper that puts it to the resolver and
-records a refusal. That is the arrangement every other question is kept out of, a check each site
-has to remember, and it is where this one has to be, since only the handler holds the values in
-question. A route added later that handles field values has to ask it as well.
+before dispatch, while a protected value arrives inside the body of a change that is allowed. So
+that question is asked by the handlers of changes rather than the router: each one that takes a
+field value from a body asks it, creating or updating an entry or a field, and stripping a field,
+through one helper that puts it to the resolver and records a refusal. That is the arrangement
+every other question is kept out of, a check each site has to remember, and it is where this one
+has to be, since only the handler holds the values in question. A change added later that takes
+field values has to ask it as well. **This used to be asked by the reads and the listings too**,
+each where it wrote a value into an answer; a read now serves what the caller's view holds, below,
+and a listing asks its own condition of each item without a line.
 
 **And how far a caller may read is asked once more, silently, for the view.** Every answer about an
 entry and the entry's tag are made from one view of it, and the handlers ask the resolver what that
-view may hold: `read`, `read` with `protected`, `read` with `attachments`, and `list` with
-`attachments`, each as one rule has to grant it and with no audit line, for every entry read and
-twice for every change to an entry, of the node the change found and of the node it left. The
-vault leaves out of the view what that answer does not open, so a value the rules withhold is not
-there to be rendered or tagged, `API.md` §410. The recorded helper stays beside it for what it was
-always for: the line an operator reads when a protected value is withheld or set. The two ask the
-same walk of the same node in the same hold or turn, so they cannot answer differently, and a value
-goes out only where both open it.
+view may hold: `read`, `read` with `protected`, `read` with `attachments`, `list` with
+`attachments`, and `list` with `protected`, each as one rule has to grant it and with no audit
+line, for every entry read and twice for every change to an entry, of the node the change found
+and of the node it left. The vault leaves out of the view what that answer does not open, so a
+value the rules withhold is not there to be rendered or tagged, `API.md` §410. **A view holds
+everything any route shows its caller of the entry**: a listing of entries shows a protected
+title or URL where `protected` stands beside `list` or beside `read` in one rule, so for a caller
+holding `read` both are in the view on either, asked through the condition the listing itself
+asks, and a read serves them. **The view decides what a read serves**, a value going out exactly
+when the view holds it. **And a read records what its view withheld from the walk that decided
+the view**: the refusal of `read` with `protected` that the sight was made of is kept and handed
+to `AccessCheck.Withheld` through the router's `ProtectedWithheld`, which writes the line an
+operator reads with nothing asked of the rules again, so the line cannot differ from what was
+served. Where everything withheld is a title or a URL, a removed profile is named on the listing's
+reach as well as on the read's. The recorded helper is asked by changes only, where it still
+decides whether a protected value may be set.
 
 The verb comes from the routing table, as `x-kpg-verb`, and **an operation that declares none stops
 the plugin loading**. That is what keeps authorization from being something a new route can be added
@@ -721,7 +734,10 @@ operation can use there, are still reported: a mask is what the rules grant at t
 promise that every operation it names succeeds. Per profile, because a switch belongs to its rule:
 one profile's `read` and another's `protected` do not add up to reading a protected value, and one
 grant made of both would say they do. It is refused, and recorded, as a verb is, unless some profile
-is granted some verb at the node.
+is granted some verb at the node. The title and the URL are the exception a mask does not show: a
+protected title or URL is also read where one profile's mask holds `read` and another's holds `list`
+with `protected`, since a listing shows that client both, §137 above; every other protected value
+needs `read` and `protected` in one mask.
 
 `AclResolver` returns why as well as whether, naming the node whose rule decided by its identifier
 and never by its title, because those reasons reach the audit log, §120, and a log is meant to be
