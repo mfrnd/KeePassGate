@@ -1,3 +1,4 @@
+using System;
 using KeePassGate.Acl;
 using KeePassGate.Testing;
 using KeePassGate.Tests.Fakes;
@@ -110,27 +111,38 @@ namespace KeePassGate.Tests
         }
 
         [Test]
-        public void Reading_a_node_whole_is_one_rule_reaching_every_part()
+        public void Reading_into_a_node_counts_a_switch_only_in_a_rule_holding_read()
         {
-            // What decides who is handed a tag. One profile's `read` over attachments and another's
-            // over protected values do not add up to reading an entry whole, because the gate
-            // refuses any request needing both from two rules.
+            // What decides what a tag covers, which is what its caller may read. A switch reaches
+            // as far as the verbs of its own rule, so `read` in one rule and a switch in another
+            // read no further in, while two rules each holding `read` with a switch open both
+            // parts, as two reads through them would.
             var entry = TestNode.Root("root")
-                .Holding(Rules.Granting(("files", "RA"), ("secrets", "RP"), ("both", "RAP")))
+                .Holding(Rules.Granting(("files", "RA"), ("secrets", "RP"), ("plain", "R"), ("writer", "UAP")))
                 .Child("an entry");
 
-            Assert.That(AclResolver.ReadsWhole(entry, new[] { "files" }, AclReach.Attachments), Is.True);
-            Assert.That(AclResolver.ReadsWhole(entry, new[] { "files", "secrets" }, AclReach.Attachments, AclReach.Protected),
-                Is.False, "two rules each reaching part of it");
-            Assert.That(AclResolver.ReadsWhole(entry, new[] { "files", "both" }, AclReach.Attachments, AclReach.Protected),
-                Is.True, "and one reaching all of it is enough among others");
-            Assert.That(AclResolver.ReadsWhole(entry, new[] { "secrets" }), Is.True, "with nothing further in to reach");
-            Assert.That(AclResolver.ReadsWhole(entry, new[] { "nobody" }), Is.False);
-            Assert.That(AclResolver.ReadsWhole(entry, null), Is.False);
-            Assert.That(AclResolver.ReadsWhole(null, new[] { "both" }), Is.False);
+            Func<string[], AclReach, bool> reads = (profiles, reach) =>
+                AclResolver.Permits(entry, profiles, AclVerb.Read, reach);
+
+            Assert.That(reads(new[] { "files" }, AclReach.Attachments), Is.True);
+            Assert.That(reads(new[] { "files" }, AclReach.Protected), Is.False);
+            Assert.That(reads(new[] { "plain", "writer" }, AclReach.Fields), Is.True);
+            Assert.That(reads(new[] { "plain", "writer" }, AclReach.Attachments), Is.False,
+                "a switch beside `update` in another rule opens nothing to `read`");
+            Assert.That(reads(new[] { "plain", "writer" }, AclReach.Protected), Is.False);
+            Assert.That(
+                reads(new[] { "files", "secrets" }, AclReach.Attachments)
+                && reads(new[] { "files", "secrets" }, AclReach.Protected),
+                Is.True,
+                "each part through the rule that reads it");
+            Assert.That(reads(new[] { "writer" }, AclReach.Fields), Is.False, "`update` is not `read`");
+            Assert.That(reads(new[] { "nobody" }, AclReach.Fields), Is.False);
+            Assert.That(reads(null, AclReach.Fields), Is.False);
+            Assert.That(AclResolver.Permits(null, new[] { "files" }, AclVerb.Read), Is.False);
 
             var listed = TestNode.Root("root").Granting("lister", AclVerb.List, AclVerb.Attachments).Child("an entry");
-            Assert.That(AclResolver.ReadsWhole(listed, new[] { "lister" }), Is.False, "`list` is not `read`");
+            Assert.That(AclResolver.Permits(listed, new[] { "lister" }, AclVerb.Read), Is.False, "`list` is not `read`");
+            Assert.That(AclResolver.Permits(listed, new[] { "lister" }, AclVerb.List, AclReach.Attachments), Is.True);
         }
 
         [Test]

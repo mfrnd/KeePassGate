@@ -498,8 +498,8 @@ class Response:
     unavailable_word: str | None = None
 
     #: The `ETag` the gate answered with, quotes and all, or `None` when it sent none. A read about
-    #: one group or one entry carries one, to a client whose rule may read everything it covers,
-    #: and nothing else does: a write hands back the tag it left in its body, as `etag`.
+    #: one group or one entry carries one, to a client holding `read` on it, over what that client
+    #: may read, and nothing else does: a write hands back the tag it left in its body, as `etag`.
     etag: str | None = None
 
     def json(self) -> dict[str, Any]:

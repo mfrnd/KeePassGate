@@ -208,9 +208,9 @@ def written(etag: str | None = None, uuid: str | None = None) -> tuple[int, str]
 
     `200` and `{"ok":true}`, or `201` and the `uuid` that addresses what a create made, with
     `etag` beside either when there is one: the plugin puts a write's tag in the body, quoted as
-    `ETag` writes one, and only for a client whose rule reads everything the tag covers. A
-    handler returns it, as it would any answer. A tag that is not an entity tag, as `FakeGate.tag`
-    holds a tag to, is refused with `ValueError`.
+    `ETag` writes one, and only for a client holding `read` on the node, over what that client
+    may read. A handler returns it, as it would any answer. A tag that is not an entity tag, as
+    `FakeGate.tag` holds a tag to, is refused with `ValueError`.
     """
     document: dict[str, object] = {"ok": True} if uuid is None else {"uuid": uuid}
     if etag is not None:
@@ -418,9 +418,9 @@ class FakeGate:
     def tag(self, etag: str) -> None:
         """Answer the read being answered with this `ETag`, exactly as given.
 
-        What the plugin does for a read about one group or one entry, to a client whose rule may
-        read everything the tag covers. A write's tag is not a header: the plugin puts it in the
-        body, as `etag`, which `written` makes. Called from inside the handler, before it
+        What the plugin does for a read about one group or one entry, to a client holding `read`
+        on it, over what that client may read. A write's tag is not a header: the plugin puts it
+        in the body, as `etag`, which `written` makes. Called from inside the handler, before it
         returns, and for that answer alone.
 
         Refused with `ValueError` unless it is an entity tag, visible ASCII between two quotes and

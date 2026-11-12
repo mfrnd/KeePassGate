@@ -54,16 +54,16 @@ def _tag_of(etag: str | None, what: str, read: bool, how: str) -> str:
     """A tag the gate answered with, or the reason there is none, as `AttributeError`.
 
     Absent rather than empty: a listing carries no tag, because it answers about a collection, and
-    a read carries none to a client whose rule does not read everything the tag covers, which the
-    gate decides and says nothing more about. Either way there is nothing to hand to `if_match`,
-    and an empty string there would ask for something no node holds.
+    an answer about a node carries none to a client without `read` on that node, which the routes
+    listing an entry's fields and attachments do not ask for. The gate hands every client holding
+    `read` a tag, taken over what that client may read. Either way there is nothing to hand to
+    `if_match`, and an empty string there would ask for something no node holds.
     """
     if etag is None:
         raise AttributeError(
-            f"the gate gave no tag for this {what}: it hands one only to a client whose rule reads "
-            "everything the tag covers, which for an entry is its attachments as well and, when "
-            "it holds any, its protected values, so a write from this client cannot be made "
-            "conditional on it"
+            f"the gate gave no tag for this {what}: it hands a tag to every client holding `read` "
+            "on the node, over what that client may read, and sent none with this answer, so a "
+            "write from this client cannot be made conditional on a tag"
             if read
             else f"this {what} was listed rather than read, so the gate gave no tag for it. "
             f"Read it with {how} first."
@@ -472,8 +472,8 @@ class Entry:
         """The tag the gate read this entry with, for `if_match`, once it has been read.
 
         One tag for the entry and everything in it, so a write to one of its fields or attachments
-        handed it is refused with `PreconditionFailed` when anything in the entry changed since,
-        not only that field. Opaque, and kept exactly as the gate sent it.
+        handed it is refused with `PreconditionFailed` when anything this client may read in the
+        entry changed since, not only that field. Opaque, and kept exactly as the gate sent it.
         """
         return _tag_of(self.read_etag, "entry", self.is_read, "GateClient.entry()")
 

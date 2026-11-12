@@ -21,18 +21,18 @@ namespace KeePassGate.Testing
             return true;
         }
 
-        private static bool No(VaultFound found)
+        private static VaultSight Whole(VaultFound found)
         {
-            return false;
+            return Sights.Whole;
         }
 
         /// <summary>
-        /// A caller the rules permit, that asks no condition, is handed no tag and may read what
-        /// it names.
+        /// A caller the rules permit, that reads the whole of what it finds, asks no condition
+        /// and asks for no tag in its answer.
         /// </summary>
         public static VaultAsking Free
         {
-            get { return new VaultAsking(Yes, No, Yes, null, false); }
+            get { return new VaultAsking(Yes, Whole, null, false); }
         }
 
         /// <summary>
@@ -41,17 +41,17 @@ namespace KeePassGate.Testing
         /// </summary>
         public static VaultAsking Blind
         {
-            get { return new VaultAsking(Yes, No, No, null, false); }
+            get { return new VaultAsking(Yes, null, null, false); }
         }
 
         /// <summary>
-        /// A caller the rules permit and that may be handed the node's tag, asking this
-        /// condition of the node as the change finds it.
+        /// A caller the rules permit and that reads the whole of what it finds, so its tag is
+        /// the tag of the whole node, asking this condition of the node as the change finds it.
         /// </summary>
         /// <param name="answers">Whether the answer carries the tag the change leaves.</param>
         public static VaultAsking Tagged(VaultPrecondition precondition, bool answers)
         {
-            return new VaultAsking(Yes, Yes, Yes, precondition, answers);
+            return new VaultAsking(Yes, Whole, precondition, answers);
         }
 
         /// <summary>A group made for a test's arrangement, by a caller the rules permit.</summary>

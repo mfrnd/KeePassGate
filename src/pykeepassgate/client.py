@@ -705,11 +705,16 @@ class GateClient:
         `connection_timeout` and the three retry budgets are `send`'s, for this write alone, as
         `group` takes them. Every write below takes and answers the same way.
 
-        **Only for a client the gate hands tags to**, which is one whose rule reads everything the
-        tag covers: `read` on a group, and on an entry `read` reaching its attachments and, when
-        it holds any, its protected values. Any other client is answered with no tag, `None` here,
-        and any `if_match` it sends is `PreconditionFailed`, since a tag it was never given is
-        not one it can name.
+        **For every client holding `read` on the node, over what that client may read of it.** A
+        group's tag covers its name and notes. An entry's covers its protected values only where
+        the rule holding `read` holds `protected` too, its attachments only where it holds
+        `attachments`, and their names and sizes alone where `attachments` stands beside `list`
+        and not beside `read`, so two clients that see different things of an entry hold different
+        tags
+        for it, and a client writing a value it may not read is not told by its tag that the
+        value changed in between, unless the change moved the entry's `modified`. A client
+        without `read` is answered with no tag, `None` here, and any `if_match` it sends is
+        `PreconditionFailed`, since a tag it was never given is not one it can name.
         """
         body: dict[str, Any] = {}
         if name is not None:
@@ -796,7 +801,8 @@ class GateClient:
         """One entry and every string it holds.
 
         The protected ones arrive only when this client may read them. Its `etag` covers it and
-        everything in it, which is what a write to it, its fields or its attachments can name.
+        everything in it that this client may read, which is what a write to it, its fields or
+        its attachments can name.
         """
         found = self._read_tagged(
             f"/entries/{_segment(uuid)}",
@@ -1002,7 +1008,8 @@ class GateClient:
 
         What it does not change is whether the field is protected: the operator arranged that, and
         writing a value is not the moment to decide it differently. `if_match` is the entry's
-        `etag`, so the write is refused if anything in the entry changed, not only this field.
+        `etag`, so the write is refused if anything this client may read in the entry changed,
+        not only this field.
         """
         return self._written(
             "PUT",
@@ -1371,9 +1378,9 @@ class GateClient:
 
         Read out of the answer's body, as `etag`, where the gate puts it: RFC 9110 section 9.3.4
         has an `ETag` on the answer to a `PUT` say the body sent was stored as sent, and this is
-        the tag of the whole node. `None` where the gate gave none: a group or an entry removed,
-        which leaves nothing to tag, a create of a group or an entry, which is sent to a listing,
-        and every write by a client the gate hands no tag to.
+        the tag of what this client may read of the whole node. `None` where the gate gave none:
+        a group or an entry removed, which leaves nothing to tag, a create of a group or an entry,
+        which is sent to a listing, and every write by a client the gate hands no tag to.
         """
         reply = self._exchange(
             method,

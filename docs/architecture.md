@@ -144,19 +144,24 @@ leaves, or "busy" when the merge takes more than ten seconds.
 
 **A program can ask not to write over what changed since it read.** Reading a group or an entry
 hands back a tag of what it holds, and a program that hands the tag back with its write is
-refused, with nothing changed, when that changed in between: for an entry anything in it, its
-fields and attachments included, and for a group its own name, notes, place and times, but not the
-groups and entries inside it. The change can be an edit made in KeePass, another program's write or
-a synchronize. A program that does not hand one back writes over whatever is there, which is what
-every write did before, and the entry's history keeps what it replaced, as for any change. Which
-kind a program is, is its author's choice rather than something a rule can require.
+refused, with nothing changed, when that changed in between: for an entry anything in it that the
+program may read, its fields and attachments included, and for a group its own name, notes, place
+and times, but not the groups and entries inside it. The change can be an edit made in KeePass,
+another program's write or a synchronize. A program that does not hand one back writes over
+whatever is there, which is what every write did before, and the entry's history keeps what it
+replaced, as for any change. Which kind a program is, is its author's choice rather than something
+a rule can require.
 
-A tag goes only to a program whose rule may read everything it covers: `read` on a group, and on an
-entry `read` reaching its attachments, and its protected values too when it holds any. Every entry
-KeePass makes holds a protected value from the start, its password, protected by default however
-empty, so there the rule needs `P` as well. Any other program is handed none and cannot write under
-one, because a tag compared by a program that may not read what it covers would let it test guesses
-at that. A tag is made with a secret derived from the database's own host key, so it tells anyone
+A tag goes to every program holding `read` on the group or the entry, and an entry's tag covers
+what that program's rules let it read: protected values where the rule holding `read` holds `P`
+too, attachments where it holds `A`, their names and sizes alone where `A` stands beside `list`
+and not beside `read`, and nothing of either otherwise. A program without `read` is
+handed no tag and cannot write under a tag. A tag never covers a value its holder may not read,
+because a tag compared by a program that may not read what it covers would let it test guesses
+at that: this replaces an earlier rule that covered the whole entry and handed the tag only to a
+program whose rule read all of it, which left a program without `P` no tag for any entry holding
+a password. [Access control](access-control.md) has what follows from it. A tag is made with a
+secret derived from the database's own host key, so it tells anyone
 else nothing about what is in the entry, and it stays the same when KeePass starts again; recreating
 the database's authority changes every tag.
 

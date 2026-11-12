@@ -228,7 +228,7 @@ namespace KeePassGate.Pipeline
 
             // The view is taken with nothing decrypted, so an entry over the ceiling is measured
             // and refused with its strings still encrypted, as an attachment is.
-            var view = View(context, vault, uuid, false);
+            var view = View(context, vault, uuid);
             if (view == null)
             {
                 Unreachable(context);
@@ -260,10 +260,10 @@ namespace KeePassGate.Pipeline
                 return;
             }
 
-            // After the ceiling, so an entry too large to hand out is not digested either, and
-            // only for a caller that may be handed the tag: the view's own, so the tag is of
-            // exactly what this answer is made from.
-            var tag = MayTag(context, view.Entry) ? view.Tag : null;
+            // After the ceiling, so an entry too large to hand out is not digested either. The
+            // view's own tag, so it is of exactly what this caller may read, and null from a view
+            // whose sight does not read.
+            var tag = view.Tag;
             if (PreconditionFails(context, tag))
             {
                 return;
@@ -372,17 +372,19 @@ namespace KeePassGate.Pipeline
             }
 
             // One read, which answers for the entry as well as for its strings: null is an entry
-            // that is not there, and never an entry holding no strings. A listing reads names and
-            // flags, so no value is decrypted for it.
+            // that is not there, and never an entry holding no strings. The listing itself is
+            // names and flags, so nothing is decrypted for a caller that only lists, whose view
+            // holds no value and has no tag. A caller holding `read` beside `list` is handed the
+            // entry's tag, and taking the tag reads every value in that caller's sight.
             var uuid = Captured(context, "uuid");
-            var view = View(context, vault, uuid, false);
+            var view = View(context, vault, uuid);
             if (view == null)
             {
                 Unreachable(context);
                 return;
             }
 
-            var tag = MayTag(context, view.Entry) ? view.Tag : null;
+            var tag = view.Tag;
             if (PreconditionFails(context, tag))
             {
                 return;
@@ -416,15 +418,19 @@ namespace KeePassGate.Pipeline
 
             // The entry's view, and the string in it. The view carries the node the rules are
             // asked about, the string's name, its flag and its size, and reads a value only when
-            // asked for that value, so answering for this string decrypts no other string the
-            // entry holds unless the tag, which covers them all, is handed out. Null is an entry
-            // that is not there or a name the entry does not hold.
+            // asked for that value, so a request refused before the tag is taken, for a name the
+            // entry does not hold or a field over the ceiling, decrypts nothing. An answer that
+            // is served carries the tag, which every caller reaching this route is handed, and
+            // taking the tag reads every value in the caller's sight; a value out of that sight
+            // is never read. Null is an entry that is not there or a name the entry does not
+            // hold.
             //
-            // The saving is the whole of the reason. It is not a claim that a value a caller is
-            // refused is safer for not having been decrypted: `CLAUDE.md` concedes local code
-            // execution as the user and forbids claiming a control that only defends against it,
-            // which is the only thing such a property would be.
-            var view = View(context, vault, uuid, false);
+            // The saving on a refusal is the whole of the reason for reading late. It is not a
+            // claim that a value a caller is refused is safer for not having been decrypted:
+            // `CLAUDE.md` concedes local code execution as the user and forbids claiming a
+            // control that only defends against it, which is the only thing such a property
+            // would be.
+            var view = View(context, vault, uuid);
             var field = view == null ? null : view.Field(name);
             if (field == null)
             {
@@ -448,7 +454,7 @@ namespace KeePassGate.Pipeline
             }
 
             // After the ceiling, as `readEntry` takes it.
-            var tag = MayTag(context, view.Entry) ? view.Tag : null;
+            var tag = view.Tag;
             if (PreconditionFails(context, tag))
             {
                 return;
@@ -591,16 +597,18 @@ namespace KeePassGate.Pipeline
 
             // One read, as `ListFields` makes it. The view holds no attachments for a caller whose
             // rules open none, which the router refused before this ran, so finding none here is
-            // answered as the entry not being there is.
+            // answered as the entry not being there is. Names and sizes are in the view for a
+            // caller that may list attachments and for a caller that may read them alike, and
+            // are all this route serves.
             var uuid = Captured(context, "uuid");
-            var view = View(context, vault, uuid, true);
+            var view = View(context, vault, uuid);
             if (view == null || view.Attachments == null)
             {
                 Unreachable(context);
                 return;
             }
 
-            var tag = MayTag(context, view.Entry) ? view.Tag : null;
+            var tag = view.Tag;
             if (PreconditionFails(context, tag))
             {
                 return;
@@ -658,10 +666,12 @@ namespace KeePassGate.Pipeline
             // The view hands over no bytes of an attachment over the ceiling, which comes back
             // measured and not decrypted: its size is kept beside its encrypted bytes. Null is an
             // entry that is not there, a name the entry does not hold, or attachments out of the
-            // caller's sight.
-            var view = View(context, vault, uuid, false);
+            // caller's sight. An attachment the caller may list and not read is in the view with
+            // no bytes behind it, and is answered as the same absence: the router refused that
+            // caller before this ran.
+            var view = View(context, vault, uuid);
             var attachment = view == null ? null : view.Attachment(name);
-            if (attachment == null)
+            if (attachment == null || attachment.IsWithheld)
             {
                 Unreachable(context);
                 return;
@@ -685,7 +695,7 @@ namespace KeePassGate.Pipeline
             }
 
             // After the ceiling, as `readEntry` takes it.
-            var tag = MayTag(context, view.Entry) ? view.Tag : null;
+            var tag = view.Tag;
             if (PreconditionFails(context, tag))
             {
                 return;
@@ -747,7 +757,7 @@ namespace KeePassGate.Pipeline
                 Captured(context, "uuid"),
                 Captured(context, "name"),
                 content,
-                Asking(context, true, null, AclReach.Attachments)));
+                Asking(context, true, null, true)));
         }
 
         public static void StripAttachment(IGateContext context)
@@ -1295,31 +1305,44 @@ namespace KeePassGate.Pipeline
         /// node the rules are asked about and the tag are all of one entry at one moment, and the
         /// tag covers exactly what the view holds.
         ///
+        /// **The same view whichever route asks**, since the sight it is taken with is about the
+        /// caller and the entry and nothing else. So every route answering about an entry hands
+        /// its caller the same tag, and a change is asked against that tag and answers with it.
+        ///
         /// **What the caller may read is asked of the resolver without a line**, of the entry the
         /// vault found. A view leaving a value out is no refusal of its own: the routes that
         /// withhold a protected value ask <see cref="Reaches(IGateContext, IAclNode, AclVerb)"/>
         /// where they withhold, and that walk is what writes the refusal down.
         /// </remarks>
-        /// <param name="listing">
-        /// Whether the route lists attachments, which the routing table opens to `list` reaching
-        /// attachments as well as to `read` reaching them.
-        /// </param>
-        private static VaultEntryView View(IGateContext context, IVault vault, string uuid, bool listing)
+        private static VaultEntryView View(IGateContext context, IVault vault, string uuid)
         {
-            return vault.View(uuid, found => Sight(context, found, listing));
+            return vault.View(uuid, found => Sight(context, found));
         }
 
         /// <summary>
-        /// How far into an entry this caller may read, through any profile it holds.
+        /// How far into what a read or a change found this caller may read, through any profile
+        /// it holds.
         /// </summary>
         /// <remarks>
-        /// Protected values are in sight for a rule holding `read` and `protected` together,
-        /// asked only of an entry that holds a protected string. Attachments are in sight for a
-        /// rule holding `read` and `attachments` together, and for the listing of attachments
-        /// under `list` and `attachments` too, since names and sizes are what that route serves
-        /// and what the router allowed it for. A caller with no client behind it sees the least.
+        /// **About the caller and the node, never about the route**, so a caller has the same
+        /// sight of an entry, and with it the same tag, on every route and in every change.
+        ///
+        /// An entry is read by a rule holding `read`. Its protected values are in sight for a
+        /// rule holding `read` and `protected` together, asked whatever strings the entry
+        /// holds. Its attachments are read by a rule holding `read` and `attachments` together,
+        /// and listed, names and sizes, by a rule holding `list` and `attachments` together,
+        /// which is what the routing table opens the listing of attachments to. Each switch
+        /// counts in the rule it stands in, and profiles are combined with or, as a read
+        /// combines them.
+        ///
+        /// A group has no switches to read by, so whether the caller holds `read` on it is the
+        /// whole of its sight, and a group's tag is handed out on that.
+        ///
+        /// **Asked of the resolver without a line**, each question once, each rules document
+        /// read once for all of them. A caller with no client behind it sees the least, which
+        /// has no tag.
         /// </remarks>
-        private static VaultSight Sight(IGateContext context, VaultFound found, bool listing)
+        private static VaultSight Sight(IGateContext context, VaultFound found)
         {
             if (found == null || context.Client == null)
             {
@@ -1327,11 +1350,29 @@ namespace KeePassGate.Pipeline
             }
 
             var profiles = context.Client.Profiles;
+            var node = found.Node;
+            var read = new AclDocuments();
+            var reads = AclResolver.Permits(node, profiles, AclVerb.Read, AclReach.Fields, read);
+
+            if (found.Entry == null)
+            {
+                return new VaultSight(reads, false, VaultAttachmentSight.None);
+            }
+
+            var attachments = VaultAttachmentSight.None;
+            if (reads && AclResolver.Permits(node, profiles, AclVerb.Read, AclReach.Attachments, read))
+            {
+                attachments = VaultAttachmentSight.Read;
+            }
+            else if (AclResolver.Permits(node, profiles, AclVerb.List, AclReach.Attachments, read))
+            {
+                attachments = VaultAttachmentSight.Listed;
+            }
 
             return new VaultSight(
-                found.Guarded && AclResolver.Permits(found.Node, profiles, AclVerb.Read, AclReach.Protected),
-                AclResolver.Permits(found.Node, profiles, AclVerb.Read, AclReach.Attachments)
-                    || (listing && AclResolver.Permits(found.Node, profiles, AclVerb.List, AclReach.Attachments)));
+                reads,
+                reads && AclResolver.Permits(node, profiles, AclVerb.Read, AclReach.Protected, read),
+                attachments);
         }
 
         /// <summary>Answers that an entry's strings come to more than a read hands out.</summary>
@@ -1360,9 +1401,13 @@ namespace KeePassGate.Pipeline
         /// **The router's question first, and every other question of the request it answers
         /// with.** The <see cref="DecidedInside"/> the router left reads the client's record
         /// again and asks the rules about the node the change found. What a handler asks beside
-        /// it, and whether the caller may be handed the tag, are asked of that request and not
-        /// of the request that queued, so every answer is about one client and one node at one
-        /// moment.
+        /// it, and how far the caller may read, are asked of that request and not of the
+        /// request that queued, so every answer is about one client and one node at one moment.
+        ///
+        /// **The caller's sight is the same question a read asks**, <see cref="Sight"/>, so the
+        /// tag a change is asked against and the tag it answers with are the tag every read
+        /// route hands that caller, and whether an update that would change nothing is skipped,
+        /// <see cref="VaultTagging.Sees"/>, is read off the same answer.
         ///
         /// **A request the router left no question for is refused**, which is the direction a
         /// defect has to fail in.
@@ -1372,15 +1417,14 @@ namespace KeePassGate.Pipeline
         /// What this change asks beside the router's question, of the request as it is decided
         /// inside the turn, or null when the router's question is all there is.
         /// </param>
-        /// <param name="names">
-        /// How far in the values this change names lie, where no string it names is protected:
-        /// an attachment's bytes for a change to an attachment.
+        /// <param name="attachment">
+        /// Whether the value this change names is an attachment's bytes.
         /// </param>
         private static VaultAsking Asking(
             IGateContext context,
             bool answers,
             Func<IGateContext, VaultFound, bool> also = null,
-            AclReach names = AclReach.Fields)
+            bool attachment = false)
         {
             object left;
             var again = context.Items.TryGetValue(SpecRouter.InsideItem, out left) ? left as DecidedInside : null;
@@ -1395,32 +1439,10 @@ namespace KeePassGate.Pipeline
                     inside = again == null ? null : again(found.Node);
                     return inside != null && (also == null || also(inside, found));
                 },
-                found => inside != null && (found.Entry != null
-                    ? MayTag(inside, found.Entry)
-                    : MayTag(inside, found.Group)),
-                found => inside != null && Sees(inside, found, names),
+                found => inside == null ? null : Sight(inside, found),
                 Precondition(context),
-                answers);
-        }
-
-        /// <summary>
-        /// Whether this caller may read every value a change names on what the change found,
-        /// through any profile it holds.
-        /// </summary>
-        /// <remarks>
-        /// What decides whether an update that would change nothing is skipped,
-        /// <see cref="VaultTagging.Sees"/>. **Asked of the resolver without a line**: the caller
-        /// attempted no read, so a refusal here is nothing the audit should hold against it.
-        /// A string protected by its name or by its own flag is read only by a rule holding
-        /// `read` and `protected` together, as a read is held to.
-        /// </remarks>
-        private static bool Sees(IGateContext inside, VaultFound found, AclReach names)
-        {
-            return AclResolver.Permits(
-                found.Node,
-                inside.Client.Profiles,
-                AclVerb.Read,
-                found.Guarded ? AclReach.Protected : names);
+                answers,
+                attachment);
         }
 
         /// <summary>
@@ -1447,9 +1469,14 @@ namespace KeePassGate.Pipeline
         /// written down by the walk that decides it.
         /// </summary>
         /// <remarks>
-        /// **The one question a handler asks rather than the router**, and the asymmetry is worth
-        /// naming. An attachment is a route of its own, so the router asks before dispatch and no
-        /// handler thinks about scope. A protected value arrives inside the answer to a route that
+        /// **The one question a handler asks and records rather than the router**, and the
+        /// asymmetry is worth naming. An attachment is a route of its own, so the router asks,
+        /// and records, before dispatch. **How far a caller may read is asked a second way,
+        /// silently**: <see cref="Sight"/> puts `read` and both switches to the resolver for
+        /// every view and every change, with no line, and the vault leaves out of the view what
+        /// that answer does not open. This is the asking that writes the refusal down, where a
+        /// protected value is withheld or set. A protected value arrives inside the
+        /// answer to a route that
         /// is allowed, so the only moment the question exists is while that answer is being
         /// written. So each handler that writes a field value into an answer or takes a field
         /// value from a body asks it, which is a check every such handler has to remember: the
@@ -1536,38 +1563,18 @@ namespace KeePassGate.Pipeline
 
         /// <summary>Whether this caller may be handed a group's tag and have its `If-Match` asked.</summary>
         /// <remarks>
-        /// **Only a caller that may read everything the tag covers**, `API.md` §410. A tag is a
-        /// digest of what the node holds, and one handed to a client that may not read all of it
-        /// lets that client test guesses at the rest: it writes a guess where it may write, and the
-        /// tag that comes back, or the `412` that does not, says whether the node now holds what
-        /// it held when the tag was taken. A group's tag covers what `read` serves, so `read` is
-        /// the whole question.
+        /// **A caller holding `read` on the group**, `API.md` §410. A tag is a digest of what its
+        /// holder is served, and a tag covering a part its holder may not read lets that holder
+        /// test guesses at the part: it writes a guess where it may write, and the tag that
+        /// comes back, or the `412` that does not, tells it whether the node now holds what it
+        /// held when the tag was taken. A group's tag covers what `read` serves and a group has
+        /// no switches to scope it by, so `read` is the whole question, the same question a
+        /// change to the group asks through <see cref="Sight"/>. An entry's tag needs no such
+        /// question here: its view has no tag for a sight that does not read.
         /// </remarks>
         private static bool MayTag(IGateContext context, VaultGroup group)
         {
-            return group != null && AclResolver.ReadsWhole(group.Node, context.Client.Profiles);
-        }
-
-        /// <summary>Whether this caller may be handed an entry's tag and have its `If-Match` asked.</summary>
-        /// <remarks>
-        /// An entry's tag covers its attachments' bytes, so `read` has to reach them, and its
-        /// protected values when it holds any, so `read` has to reach those too, in one rule, as
-        /// <see cref="AclResolver.ReadsWhole"/> asks. A lookup that did not say whether the entry
-        /// holds one is answered as if it did.
-        ///
-        /// A caller this is true of has the whole entry in sight, so the tag of its view is the
-        /// tag of the whole entry, which is the tag a change's `If-Match` is asked against.
-        /// </remarks>
-        private static bool MayTag(IGateContext context, VaultEntry entry)
-        {
-            if (entry == null)
-            {
-                return false;
-            }
-
-            return entry.HoldsProtected == false
-                ? AclResolver.ReadsWhole(entry.Node, context.Client.Profiles, AclReach.Attachments)
-                : AclResolver.ReadsWhole(entry.Node, context.Client.Profiles, AclReach.Attachments, AclReach.Protected);
+            return group != null && Sight(context, new VaultFound(group)).Reads;
         }
 
         /// <summary>
@@ -1619,10 +1626,11 @@ namespace KeePassGate.Pipeline
 
         /// <summary>A tag as `ETag` writes it: strong, and in quotes, as RFC 9110 section 8.8.3 spells one.</summary>
         /// <remarks>
-        /// Strong because the tag is a digest of everything the node holds rather than a guess at
-        /// whether two versions are close enough, and because `If-Match` compares strongly, so a
-        /// weak tag could never be handed back and matched. One tag serves every route the node
-        /// answers for, since what it says is what the node holds: an entry's fields and
+        /// Strong because the tag is a digest of everything its caller may read of the node
+        /// rather than a guess at whether two versions are close enough, and because `If-Match`
+        /// compares strongly, so a weak tag could never be handed back and matched. A caller has
+        /// the same tag on every route the node answers for, since the tag is of what that
+        /// caller may read of the node and not of what a route serves: an entry's fields and
         /// attachments are the entry's.
         /// </remarks>
         private static string Quoted(string tag)
@@ -1664,7 +1672,8 @@ namespace KeePassGate.Pipeline
         /// **The tag goes in the body, as `etag`, and not in an `ETag` header.** RFC 9110 section
         /// 9.3.4 makes an `ETag` on the answer to a `PUT` mean the representation the request sent
         /// was stored as it was, and on a `POST` or a `DELETE` it names no representation the
-        /// request had, while every tag here is the tag of the whole node the change left. Written
+        /// request had, while every tag here is the tag of the caller's view of the whole node
+        /// the change left. Written
         /// as `ETag` would write it, quotes and all, so that it goes back as `If-Match` unchanged.
         /// </remarks>
         private static void Answer(IGateContext context, VaultWrite write)

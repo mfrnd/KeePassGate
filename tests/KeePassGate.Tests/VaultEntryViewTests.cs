@@ -20,9 +20,21 @@ namespace KeePassGate.Tests
     [TestFixture]
     public sealed class VaultEntryViewTests
     {
-        private static readonly VaultSight OpenStringsAndAttachments = new VaultSight(false, true);
+        private static readonly VaultSight OpenStringsAndAttachments = new VaultSight(true, false, VaultAttachmentSight.Read);
 
-        private static readonly VaultSight EveryStringAndNoAttachment = new VaultSight(true, false);
+        private static readonly VaultSight EveryStringAndNoAttachment = new VaultSight(true, true, VaultAttachmentSight.None);
+
+        /// <summary>
+        /// The sights that do not read: none at all, the least, `read`'s switches handed in
+        /// without `read`, and the listing of attachments alone.
+        /// </summary>
+        private static readonly VaultSight[] NotReading =
+        {
+            null,
+            VaultSight.Least,
+            new VaultSight(false, true, VaultAttachmentSight.Read),
+            new VaultSight(false, false, VaultAttachmentSight.Listed),
+        };
 
         [Test]
         public void A_protected_string_out_of_sight_keeps_its_name_and_holds_no_value()
@@ -45,9 +57,49 @@ namespace KeePassGate.Tests
         [Test]
         public void A_withheld_string_needs_no_reader_and_a_string_in_sight_refuses_to_be_made_without_one()
         {
+            var reader = new VaultSight(true, false, VaultAttachmentSight.None);
+
+            Assert.That(new VaultViewField("Password", true, 3, reader, null).Value, Is.Null);
             Assert.That(new VaultViewField("Password", true, 3, VaultSight.Least, null).Value, Is.Null);
-            Assert.Throws<ArgumentNullException>(() => new VaultViewField("Title", false, 3, VaultSight.Least, null));
-            Assert.Throws<ArgumentNullException>(() => new VaultViewField("Password", true, 3, VaultSight.Whole, null));
+            Assert.That(new VaultViewField("Title", false, 3, VaultSight.Least, null).Value, Is.Null,
+                "a string nothing protects is withheld too from a sight that does not read");
+            Assert.Throws<ArgumentNullException>(() => new VaultViewField("Title", false, 3, reader, null));
+            Assert.Throws<ArgumentNullException>(() => new VaultViewField("Password", true, 3, Sights.Whole, null));
+        }
+
+        [Test]
+        public void A_view_whose_sight_does_not_read_holds_no_value_for_any_string()
+        {
+            // A caller that only lists is served names and flags. Its view holds those and the
+            // lengths the ceiling is measured by, and nothing a value could be read with.
+            var reads = 0;
+            Func<string> counted = () =>
+            {
+                reads++;
+                return "abc";
+            };
+
+            var views = NotReading.Select(sight => new VaultEntryView(
+                Entry(),
+                sight,
+                new[]
+                {
+                    new VaultViewField("Title", false, 3, sight, counted),
+                    new VaultViewField("Password", true, 3, sight, counted),
+                },
+                Array.Empty<VaultViewAttachment>(),
+                null));
+
+            foreach (var view in views)
+            {
+                Assert.That(view.Fields.Select(field => field.IsWithheld), Is.All.True);
+                Assert.That(view.Fields.Select(field => field.Value), Is.All.Null);
+                Assert.That(view.Fields.Select(field => field.Name), Is.EqualTo(new[] { "Title", "Password" }));
+                Assert.That(view.Protected, Is.EqualTo(new[] { "Password" }), "which strings are protected is still told");
+                Assert.That(view.Characters, Is.EqualTo("Title".Length + 3 + "Password".Length + 3));
+            }
+
+            Assert.That(reads, Is.Zero, "the readers handed in were dropped");
         }
 
         [Test]
@@ -59,17 +111,99 @@ namespace KeePassGate.Tests
                 Entry(), null, new[] { guarded, open }, new[] { Attachment("notes.txt", 3) }, null);
 
             Assert.That(guarded.IsWithheld, Is.True);
-            Assert.That(open.Value, Is.EqualTo("abc"), "a string nothing protects is in every sight");
+            Assert.That(open.IsWithheld, Is.True);
+            Assert.That(open.Value, Is.Null, "the least sight does not read, so no string's value is in it");
             Assert.That(view.Attachments, Is.Null);
-            Assert.That(VaultSight.Least.Protected || VaultSight.Least.Attachments, Is.False);
-            Assert.That(VaultSight.Whole.Protected && VaultSight.Whole.Attachments, Is.True);
+            Assert.That(view.Sight, Is.SameAs(VaultSight.Least));
+            Assert.That(VaultSight.Least.Reads || VaultSight.Least.Protected, Is.False);
+            Assert.That(VaultSight.Least.Attachments, Is.EqualTo(VaultAttachmentSight.None));
+            Assert.That(Sights.Whole.Reads && Sights.Whole.Protected, Is.True);
+            Assert.That(Sights.Whole.Attachments, Is.EqualTo(VaultAttachmentSight.Read));
+        }
+
+        [Test]
+        public void A_sight_that_does_not_read_reaches_nothing_read_opens()
+        {
+            // Protected values and attachments' bytes are read under `read` alone, so a sight
+            // without it is built reaching neither, whatever it was handed. Listing attachments
+            // is `list`'s to open, and stays.
+            var blind = new VaultSight(false, true, VaultAttachmentSight.Read);
+            Assert.That(blind.Reads, Is.False);
+            Assert.That(blind.Protected, Is.False);
+            Assert.That(blind.Attachments, Is.EqualTo(VaultAttachmentSight.None));
+
+            var lister = new VaultSight(false, true, VaultAttachmentSight.Listed);
+            Assert.That(lister.Protected, Is.False);
+            Assert.That(lister.Attachments, Is.EqualTo(VaultAttachmentSight.Listed));
+
+            var reader = new VaultSight(true, false, VaultAttachmentSight.Listed);
+            Assert.That(reader.Reads, Is.True);
+            Assert.That(reader.Protected, Is.False);
+            Assert.That(reader.Attachments, Is.EqualTo(VaultAttachmentSight.Listed));
+        }
+
+        [Test]
+        public void A_view_whose_sight_does_not_read_has_no_tag()
+        {
+            // Who is handed a tag is decided here and not by a route: nothing rendering from the
+            // view of a caller without `read` has a tag to hand out.
+            var asked = 0;
+            Func<VaultEntryView, string> tagger = view =>
+            {
+                asked++;
+                return "0123456789abcdef0123456789abcdef";
+            };
+
+            var views = NotReading.Select(sight => new VaultEntryView(
+                Entry(), sight, Array.Empty<VaultViewField>(), Array.Empty<VaultViewAttachment>(), tagger));
+
+            Assert.That(views.Select(view => view.Tag), Is.All.Null);
+
+            Assert.That(asked, Is.Zero, "and nothing was digested to find that out");
+
+            var read = new VaultEntryView(
+                Entry(),
+                new VaultSight(true, false, VaultAttachmentSight.None),
+                Array.Empty<VaultViewField>(),
+                Array.Empty<VaultViewAttachment>(),
+                tagger);
+            Assert.That(read.Tag, Is.Not.Null, "`read` alone is enough, with neither switch");
+        }
+
+        [Test]
+        public void An_attachment_listed_and_not_read_keeps_its_name_and_size_and_holds_no_bytes()
+        {
+            var read = 0;
+            Func<byte[]> counted = () =>
+            {
+                read++;
+                return new byte[] { 1, 2, 3 };
+            };
+
+            var listed = new VaultSight(true, true, VaultAttachmentSight.Listed);
+            var attachment = new VaultViewAttachment("notes.txt", 3, listed, counted, counted);
+            var view = new VaultEntryView(Entry(), listed, Array.Empty<VaultViewField>(), new[] { attachment }, null);
+
+            Assert.That(view.Attachments, Has.Count.EqualTo(1));
+            Assert.That(view.Attachment("notes.txt").Name, Is.EqualTo("notes.txt"));
+            Assert.That(view.Attachment("notes.txt").Size, Is.EqualTo(3));
+            Assert.That(attachment.IsWithheld, Is.True);
+            Assert.That(attachment.Content, Is.Null);
+            Assert.That(attachment.Digest, Is.Null);
+            Assert.That(read, Is.Zero, "the readers handed in were dropped, so nothing can read the bytes through the view");
+
+            Assert.That(new VaultViewAttachment("notes.txt", 3, listed, null, null).Content, Is.Null);
+            Assert.That(new VaultViewAttachment("notes.txt", 3, null, counted, counted).IsWithheld, Is.True);
+            Assert.Throws<ArgumentNullException>(() => new VaultViewAttachment("notes.txt", 3, Sights.Whole, null, counted));
+            Assert.Throws<ArgumentNullException>(() => new VaultViewAttachment("notes.txt", 3, Sights.Whole, counted, null));
         }
 
         [Test]
         public void A_value_is_read_when_it_is_first_asked_for_and_once()
         {
             var reads = 0;
-            var field = new VaultViewField("Title", false, 7, VaultSight.Least, () =>
+            var reader = new VaultSight(true, false, VaultAttachmentSight.None);
+            var field = new VaultViewField("Title", false, 7, reader, () =>
             {
                 reads++;
                 return "a title";
@@ -87,7 +221,7 @@ namespace KeePassGate.Tests
         public void A_value_that_could_not_be_read_is_read_again_by_the_next_asking()
         {
             var failing = true;
-            var field = new VaultViewField("Title", false, 7, VaultSight.Whole, () =>
+            var field = new VaultViewField("Title", false, 7, Sights.Whole, () =>
             {
                 if (failing)
                 {
@@ -97,7 +231,7 @@ namespace KeePassGate.Tests
                 return "a title";
             });
 
-            Assert.Throws<InvalidOperationException>(() => { var unused = field.Value; });
+            Assert.That(() => field.Value, Throws.InvalidOperationException);
             failing = false;
 
             Assert.That(field.Value, Is.EqualTo("a title"));
@@ -138,8 +272,8 @@ namespace KeePassGate.Tests
         {
             var view = new VaultEntryView(
                 Entry(),
-                VaultSight.Whole,
-                new[] { new VaultViewField("Title", false, 3, VaultSight.Whole, () => "abc") },
+                Sights.Whole,
+                new[] { new VaultViewField("Title", false, 3, Sights.Whole, () => "abc") },
                 new[] { Attachment("notes.txt", 3) },
                 null);
 
@@ -159,6 +293,7 @@ namespace KeePassGate.Tests
             var attachment = new VaultViewAttachment(
                 "notes.txt",
                 3,
+                Sights.Whole,
                 () =>
                 {
                     read++;
@@ -173,7 +308,7 @@ namespace KeePassGate.Tests
             var hidden = new VaultEntryView(
                 Entry(), EveryStringAndNoAttachment, Array.Empty<VaultViewField>(), new[] { attachment }, null);
             var none = new VaultEntryView(
-                Entry(), VaultSight.Whole, Array.Empty<VaultViewField>(), Array.Empty<VaultViewAttachment>(), null);
+                Entry(), Sights.Whole, Array.Empty<VaultViewField>(), Array.Empty<VaultViewAttachment>(), null);
 
             Assert.That(hidden.Attachments, Is.Null);
             Assert.That(hidden.Attachment("notes.txt"), Is.Null, "so nothing rendered from the view can reach it");
@@ -191,8 +326,8 @@ namespace KeePassGate.Tests
                 return new byte[] { 1 };
             };
 
-            var over = new VaultViewAttachment("big.bin", VaultViewAttachment.MostServed + 1, counted, counted);
-            var largest = new VaultViewAttachment("largest.bin", VaultViewAttachment.MostServed, counted, counted);
+            var over = new VaultViewAttachment("big.bin", VaultViewAttachment.MostServed + 1, Sights.Whole, counted, counted);
+            var largest = new VaultViewAttachment("largest.bin", VaultViewAttachment.MostServed, Sights.Whole, counted, counted);
 
             Assert.That(over.Size, Is.EqualTo(VaultViewAttachment.MostServed + 1));
             Assert.That(over.Content, Is.Null);
@@ -211,7 +346,7 @@ namespace KeePassGate.Tests
             var taken = new List<VaultEntryView>();
             var view = new VaultEntryView(
                 Entry(),
-                VaultSight.Whole,
+                Sights.Whole,
                 Array.Empty<VaultViewField>(),
                 Array.Empty<VaultViewAttachment>(),
                 asked =>
@@ -233,7 +368,7 @@ namespace KeePassGate.Tests
             var failing = true;
             var view = new VaultEntryView(
                 Entry(),
-                VaultSight.Whole,
+                Sights.Whole,
                 Array.Empty<VaultViewField>(),
                 Array.Empty<VaultViewAttachment>(),
                 asked =>
@@ -246,7 +381,7 @@ namespace KeePassGate.Tests
                     return "0123456789abcdef0123456789abcdef";
                 });
 
-            Assert.Throws<InvalidOperationException>(() => { var unused = view.Tag; });
+            Assert.That(() => view.Tag, Throws.InvalidOperationException);
             failing = false;
 
             Assert.That(view.Tag, Is.EqualTo("0123456789abcdef0123456789abcdef"));
@@ -262,23 +397,26 @@ namespace KeePassGate.Tests
             var view = vault.View(entry, found =>
             {
                 asked.Add(found);
-                return VaultSight.Whole;
+                return Sights.Whole;
             });
 
             Assert.That(asked, Has.Count.EqualTo(1));
             Assert.That(asked[0].Entry.Uuid, Is.EqualTo(entry));
-            Assert.That(asked[0].Guarded, Is.False, "nothing on the entry is protected yet");
+            Assert.That(asked[0].Guarded, Is.False);
             Assert.That(view.Entry.Uuid, Is.EqualTo(entry));
+            Assert.That(view.Entry.Title, Is.Null, "a title is in a view as a field or not at all");
+            Assert.That(view.Entry.Url, Is.Null);
 
             vault.Plant(entry, "Password", "not-a-real-password");
             vault.View(entry, found =>
             {
                 asked.Add(found);
-                return VaultSight.Whole;
+                return Sights.Whole;
             });
 
-            Assert.That(asked[1].Guarded, Is.True, "and now a string is");
-            Assert.That(vault.View("00000000000000000000000000000000", found => VaultSight.Whole), Is.Null,
+            Assert.That(asked[1].Guarded, Is.False,
+                "a view names no string, so how far its caller reads is asked whatever the entry holds");
+            Assert.That(vault.View("00000000000000000000000000000000", found => Sights.Whole), Is.Null,
                 "an entry that is not there has no view");
         }
 
@@ -294,9 +432,37 @@ namespace KeePassGate.Tests
             {
                 Assert.That(view.Field("Password").IsWithheld, Is.True);
                 Assert.That(view.Field("Password").Value, Is.Null);
-                Assert.That(view.Field("Title").Value, Is.EqualTo("an invented service"));
+                Assert.That(view.Field("Title").IsWithheld, Is.True);
+                Assert.That(view.Field("Title").Value, Is.Null, "a string nothing protects among them");
                 Assert.That(view.Attachments, Is.Null);
+                Assert.That(view.Tag, Is.Null, "and is handed no tag");
             }
+
+            Assert.That(vault.StringReads, Is.Zero);
+        }
+
+        [Test]
+        public void An_entry_holding_no_attachment_has_the_same_tag_however_far_the_sight_reaches_into_attachments()
+        {
+            // Nothing about the rule is in a tag, so a rule widened over an entry where nothing
+            // new comes into sight moves no tag: the stand-in vault, held to the real digest.
+            var vault = new FakeVault();
+            var entry = vault.AddEntry(vault.RootUuid, "an invented service");
+
+            var none = new VaultSight(true, true, VaultAttachmentSight.None);
+            var listed = new VaultSight(true, true, VaultAttachmentSight.Listed);
+
+            var tag = vault.View(entry, found => none).Tag;
+            Assert.That(tag, Is.Not.Null);
+            Assert.That(vault.View(entry, found => listed).Tag, Is.EqualTo(tag));
+            Assert.That(vault.Whole(entry).Tag, Is.EqualTo(tag));
+
+            Assert.That(vault.CreateAttachment(entry, "notes.txt", new byte[] { 1 }, VaultAskings.Free).Ok, Is.True);
+            Assert.That(vault.View(entry, found => none).Tag, Is.EqualTo(tag), "still nothing in this view");
+            Assert.That(
+                new[] { tag, vault.View(entry, found => listed).Tag, vault.Whole(entry).Tag },
+                Is.Unique,
+                "and an attachment is in each view as far as the view holds it");
         }
 
         [Test]
@@ -327,6 +493,35 @@ namespace KeePassGate.Tests
             Assert.That(vault.View(entry, found => OpenStringsAndAttachments).Tag, Is.Not.EqualTo(blind));
         }
 
+        [Test]
+        public void Attachments_listed_and_not_read_move_the_tag_of_their_view_by_name_and_size_alone()
+        {
+            // The stand-in vault again, held to the real vault's three levels.
+            var vault = new FakeVault();
+            var entry = vault.AddEntry(vault.RootUuid, "an invented service");
+            Assert.That(vault.CreateAttachment(entry, "notes.txt", new byte[] { 1 }, VaultAskings.Free).Ok, Is.True);
+
+            var listing = new VaultSight(true, true, VaultAttachmentSight.Listed);
+            var listed = vault.View(entry, found => listing);
+            Assert.That(listed.Attachment("notes.txt").Size, Is.EqualTo(1));
+            Assert.That(listed.Attachment("notes.txt").Content, Is.Null);
+            Assert.That(
+                new[] { listed.Tag, vault.View(entry, found => EveryStringAndNoAttachment).Tag, vault.Whole(entry).Tag },
+                Is.Unique);
+
+            var whole = vault.Whole(entry).Tag;
+            Assert.That(vault.UpdateAttachment(entry, "notes.txt", new byte[] { 2 }, VaultAskings.Free).Ok, Is.True);
+            Assert.That(vault.View(entry, found => listing).Tag, Is.EqualTo(listed.Tag), "other bytes of the same size");
+            Assert.That(vault.Whole(entry).Tag, Is.Not.EqualTo(whole));
+
+            Assert.That(vault.UpdateAttachment(entry, "notes.txt", new byte[] { 2, 3 }, VaultAskings.Free).Ok, Is.True);
+            Assert.That(vault.View(entry, found => listing).Tag, Is.Not.EqualTo(listed.Tag), "another size");
+
+            var resized = vault.View(entry, found => listing).Tag;
+            Assert.That(vault.CreateAttachment(entry, "more.txt", new byte[] { 1 }, VaultAskings.Free).Ok, Is.True);
+            Assert.That(vault.View(entry, found => listing).Tag, Is.Not.EqualTo(resized), "another name");
+        }
+
         private static VaultEntry Entry()
         {
             return new VaultEntry(
@@ -339,13 +534,12 @@ namespace KeePassGate.Tests
                 null,
                 false,
                 false,
-                null,
-                true);
+                null);
         }
 
         private static VaultViewAttachment Attachment(string name, int size)
         {
-            return new VaultViewAttachment(name, size, () => new byte[size], () => new byte[32]);
+            return new VaultViewAttachment(name, size, Sights.Whole, () => new byte[size], () => new byte[32]);
         }
     }
 }

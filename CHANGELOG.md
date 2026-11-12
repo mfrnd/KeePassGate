@@ -11,6 +11,26 @@ none, since it releases both.
 
 ## 0.2.0, unreleased
 
+- **Every client holding `read` is handed an entry's `ETag`, taken over what that client may
+  read.** A tag covered the whole entry and went only to a client whose one rule read all of it,
+  attachments and protected values included, so a rule without `protected` was handed no tag for
+  any entry holding a password, which is every entry KeePass makes, and every `If-Match` it sent
+  was answered `412`. A tag now covers the entry as its client's rules open it: a protected value
+  the client may not read enters as a mark beside its name, attachments enter by name and size
+  for a client that may list them and by their bytes as well for a client that may read them,
+  and not at all for any other. Nothing about the rule itself is in a tag, so a rule widened
+  over an entry where nothing new comes into sight, `attachments` granted over an entry holding
+  none, moves no tag. Every route about an entry hands a client the same tag, and a
+  write is asked against that tag and answers with it. Two clients that see different things of
+  an entry hold different tags for it, and two that see the same hold the same. A client without
+  `read` is still handed no tag, and its `If-Match` still fails. This reverses the earlier rule,
+  on the operator's ruling of 2026-11-10, and it moves the minor version by `API.md` §411, since
+  a client that was handed no tag may now rely on being handed a tag. What it costs: a client
+  writing a protected value it may not read is told the value changed in between only when the
+  change moved the entry's `modified`, and a client whose rules are widened or narrowed over
+  what it sees of an entry has its next `If-Match` fail once. Guessing a value by comparing tags
+  stays closed, because a tag holds nothing derived from a value its client may not read: a guess
+  written blind moves the tag the same whether the guess was right.
 - **An update naming what is already there is written, for a client that may not read it.** Such
   an update took no revision, moved no time and saved nothing, whoever sent it, so a client whose
   rule held `update` without `read` could send a guess at a field, a protected value, a group's

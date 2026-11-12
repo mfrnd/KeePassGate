@@ -203,7 +203,7 @@ namespace KeePassGate.Bridge
 
         private VaultEntry EntryInside(string uuid)
         {
-            return Single(FindEntry(uuid));
+            return Describe(FindEntry(uuid));
         }
 
         private VaultEntryView ViewInside(string uuid, Func<VaultFound, VaultSight> sight)
@@ -216,13 +216,7 @@ namespace KeePassGate.Bridge
 
             return Seen(entry, described => sight == null
                 ? null
-                : sight(new VaultFound(described, described.HoldsProtected == true)));
-        }
-
-        /// <summary>The whole of an entry, which is what a change's tags are taken of.</summary>
-        private VaultEntryView Whole(PwEntry entry)
-        {
-            return Seen(entry, described => VaultSight.Whole);
+                : sight(new VaultFound(described, false)));
         }
 
         /// <summary>
@@ -236,7 +230,9 @@ namespace KeePassGate.Bridge
         /// measured off the view with every value still encrypted. Each value is read when the
         /// view is first asked for it, and KeePass changes neither a `ProtectedString` nor a
         /// `ProtectedBinary` in place, so what is read then is what the entry held when the view
-        /// was taken.
+        /// was taken. The entry is described for the view without its title and its URL,
+        /// <see cref="Placed"/>, since a description holding either would have read both whatever
+        /// the sight.
         /// </remarks>
         /// <param name="asked">
         /// What the caller may read, asked of the entry as described here. Null is answered as
@@ -247,7 +243,7 @@ namespace KeePassGate.Bridge
             var strings = entry.Strings.ToList();
             var guarded = strings.Select(pair => Guards(pair.Key, pair.Value)).ToList();
 
-            var described = Describe(entry, guarded.Contains(true));
+            var described = Placed(entry);
             var sight = asked(described) ?? VaultSight.Least;
 
             // In the order KeePass keeps them, which is the order `read` writes them in.
@@ -262,15 +258,17 @@ namespace KeePassGate.Bridge
             }
 
             List<VaultViewAttachment> attachments = null;
-            if (sight.Attachments)
+            if (sight.Attachments != VaultAttachmentSight.None)
             {
                 attachments = new List<VaultViewAttachment>();
                 foreach (var pair in entry.Binaries)
                 {
                     // `Length` is kept beside the encrypted bytes, so asking it decrypts nothing.
+                    // The attachment keeps what reads its bytes only for a sight that reads
+                    // attachments.
                     var binary = pair.Value;
                     attachments.Add(new VaultViewAttachment(
-                        pair.Key, (int)binary.Length, binary.ReadData, () => NodeTags.DigestOf(binary)));
+                        pair.Key, (int)binary.Length, sight, binary.ReadData, () => NodeTags.DigestOf(binary)));
                 }
             }
 
@@ -673,7 +671,7 @@ namespace KeePassGate.Bridge
                 // as the password, whatever `Clashes` goes on to answer about it.
                 var guarded = fields != null && fields.Keys.Any(name => Guards(entry, name));
                 VaultTagging tagging;
-                var refusal = Refusal(asking, new VaultFound(Single(entry), guarded), out tagging);
+                var refusal = Refusal(asking, new VaultFound(Describe(entry), guarded), out tagging);
                 if (refusal != null)
                 {
                     return refusal;
@@ -696,7 +694,7 @@ namespace KeePassGate.Bridge
                     return VaultWrite.TooLarge(characters);
                 }
 
-                var tag = Before(entry);
+                var tag = Before(entry, tagging);
                 if (VaultPrecondition.Fails(tagging.Precondition, tag))
                 {
                     return VaultWrite.PreconditionFailed(tagging.Precondition);
@@ -792,7 +790,7 @@ namespace KeePassGate.Bridge
                 }
 
                 VaultTagging tagging;
-                var refusal = Refusal(asking, new VaultFound(Single(entry), false), out tagging);
+                var refusal = Refusal(asking, new VaultFound(Describe(entry), false), out tagging);
                 if (refusal != null)
                 {
                     return refusal;
@@ -804,7 +802,7 @@ namespace KeePassGate.Bridge
                     return VaultWrite.Busy(blocked);
                 }
 
-                if (VaultPrecondition.Fails(tagging.Precondition, Before(entry)))
+                if (VaultPrecondition.Fails(tagging.Precondition, Before(entry, tagging)))
                 {
                     return VaultWrite.PreconditionFailed(tagging.Precondition);
                 }
@@ -839,7 +837,7 @@ namespace KeePassGate.Bridge
                 // and no `protected` was handed it in clear until KeePass next normalized the file.
                 var guarded = isProtected || Protects(name);
                 VaultTagging tagging;
-                var refusal = Refusal(asking, new VaultFound(Single(entry), guarded), out tagging);
+                var refusal = Refusal(asking, new VaultFound(Describe(entry), guarded), out tagging);
                 if (refusal != null)
                 {
                     return refusal;
@@ -862,7 +860,7 @@ namespace KeePassGate.Bridge
                     return VaultWrite.TooLarge(characters);
                 }
 
-                if (VaultPrecondition.Fails(tagging.Precondition, Before(entry)))
+                if (VaultPrecondition.Fails(tagging.Precondition, Before(entry, tagging)))
                 {
                     return VaultWrite.PreconditionFailed(tagging.Precondition);
                 }
@@ -893,7 +891,7 @@ namespace KeePassGate.Bridge
 
                 VaultTagging tagging;
                 var guarded = name != null && Guards(entry, name);
-                var refusal = Refusal(asking, new VaultFound(Single(entry), guarded), out tagging);
+                var refusal = Refusal(asking, new VaultFound(Describe(entry), guarded), out tagging);
                 if (refusal != null)
                 {
                     return refusal;
@@ -918,7 +916,7 @@ namespace KeePassGate.Bridge
                 }
 
                 // The entry's tag, since the entry is what answers for the field.
-                var tag = Before(entry);
+                var tag = Before(entry, tagging);
                 if (VaultPrecondition.Fails(tagging.Precondition, tag))
                 {
                     return VaultWrite.PreconditionFailed(tagging.Precondition);
@@ -965,7 +963,7 @@ namespace KeePassGate.Bridge
 
                 VaultTagging tagging;
                 var guarded = name != null && Guards(entry, name);
-                var refusal = Refusal(asking, new VaultFound(Single(entry), guarded), out tagging);
+                var refusal = Refusal(asking, new VaultFound(Describe(entry), guarded), out tagging);
                 if (refusal != null)
                 {
                     return refusal;
@@ -991,7 +989,7 @@ namespace KeePassGate.Bridge
                     return VaultWrite.Busy(blocked);
                 }
 
-                if (VaultPrecondition.Fails(tagging.Precondition, Before(entry)))
+                if (VaultPrecondition.Fails(tagging.Precondition, Before(entry, tagging)))
                 {
                     return VaultWrite.PreconditionFailed(tagging.Precondition);
                 }
@@ -1031,7 +1029,7 @@ namespace KeePassGate.Bridge
                 }
 
                 VaultTagging tagging;
-                var refusal = Refusal(asking, new VaultFound(Single(entry), false), out tagging);
+                var refusal = Refusal(asking, new VaultFound(Describe(entry), false), out tagging);
                 if (refusal != null)
                 {
                     return refusal;
@@ -1048,7 +1046,7 @@ namespace KeePassGate.Bridge
                     return VaultWrite.Busy(blocked);
                 }
 
-                if (VaultPrecondition.Fails(tagging.Precondition, Before(entry)))
+                if (VaultPrecondition.Fails(tagging.Precondition, Before(entry, tagging)))
                 {
                     return VaultWrite.PreconditionFailed(tagging.Precondition);
                 }
@@ -1079,7 +1077,7 @@ namespace KeePassGate.Bridge
                 }
 
                 VaultTagging tagging;
-                var refusal = Refusal(asking, new VaultFound(Single(entry), false), out tagging);
+                var refusal = Refusal(asking, new VaultFound(Describe(entry), false), out tagging);
                 if (refusal != null)
                 {
                     return refusal;
@@ -1097,7 +1095,7 @@ namespace KeePassGate.Bridge
                     return VaultWrite.Busy(blocked);
                 }
 
-                var tag = Before(entry);
+                var tag = Before(entry, tagging);
                 if (VaultPrecondition.Fails(tagging.Precondition, tag))
                 {
                     return VaultWrite.PreconditionFailed(tagging.Precondition);
@@ -1141,7 +1139,7 @@ namespace KeePassGate.Bridge
                 }
 
                 VaultTagging tagging;
-                var refusal = Refusal(asking, new VaultFound(Single(entry), false), out tagging);
+                var refusal = Refusal(asking, new VaultFound(Describe(entry), false), out tagging);
                 if (refusal != null)
                 {
                     return refusal;
@@ -1159,7 +1157,7 @@ namespace KeePassGate.Bridge
                     return VaultWrite.Busy(blocked);
                 }
 
-                if (VaultPrecondition.Fails(tagging.Precondition, Before(entry)))
+                if (VaultPrecondition.Fails(tagging.Precondition, Before(entry, tagging)))
                 {
                     return VaultWrite.PreconditionFailed(tagging.Precondition);
                 }
@@ -1383,10 +1381,10 @@ namespace KeePassGate.Bridge
             {
                 // Something only the client can clear, and the reason names how: a node that
                 // changed by reading it again, a field that will not read by sending a field that
-                // does, and a client handed no tags by nothing short of a rule reading all of the
-                // node. Still worth a line: a client refused this way over and over is one writing
-                // over somebody, guessing, or naming a tag it was never handed, and the operator is
-                // the one who can tell which.
+                // does, and a client handed no tags by nothing short of a rule holding `read` on
+                // the node. Still worth a line: a client refused this way over and over is one
+                // writing over somebody, guessing, or naming a tag it was never handed, and the
+                // operator is the one who can tell which.
                 _log.Warn("a change was refused, its precondition failing: " + write.Reason);
             }
             else if (write.IsConflict)
@@ -1415,10 +1413,10 @@ namespace KeePassGate.Bridge
         /// Read under the writer's lock, after every refusal that does not depend on it, by the
         /// precondition when its answer depends on the tag, and by the answer where the change
         /// turns out to change nothing, which is the tag the node still has. A tag is a digest over
-        /// every string and attachment the node holds, so a write that reads it in neither place
-        /// takes none: taken whenever a precondition or an answer was asked for, it was work on
-        /// KeePass's thread that nothing read on every change that cannot leave its node unchanged,
-        /// and on every write asking `*` or naming no tag.
+        /// every string and attachment its caller may read, so a write that reads it in neither
+        /// place takes none: taken whenever a precondition or an answer was asked for, it was work
+        /// on KeePass's thread that nothing read on every change that cannot leave its node
+        /// unchanged, and on every write asking `*` or naming no tag.
         /// </remarks>
         private Func<string> Before(PwGroup group)
         {
@@ -1426,10 +1424,20 @@ namespace KeePassGate.Bridge
             return () => tag ?? (tag = _tags.Of(group));
         }
 
-        private Func<string> Before(PwEntry entry)
+        /// <summary>
+        /// An entry's tag as a change finds the entry, of the view its caller has of it.
+        /// </summary>
+        /// <remarks>
+        /// **The caller's own view, through the builder every read answers from**, so the tag a
+        /// change is asked against is the tag a read handed the same caller, and a value the
+        /// caller may not read is in neither. Null for a sight that does not read, whose
+        /// precondition <see cref="VaultAsking.Tagging"/> has already made a precondition
+        /// nothing meets.
+        /// </remarks>
+        private Func<string> Before(PwEntry entry, VaultTagging tagging)
         {
             string tag = null;
-            return () => tag ?? (tag = Whole(entry).Tag);
+            return () => tag ?? (tag = Seen(entry, described => tagging.Sight).Tag);
         }
 
         /// <summary>
@@ -1481,35 +1489,47 @@ namespace KeePassGate.Bridge
         /// <remarks>
         /// **Asked of the node as the change left it**, in the same turn as the tag is taken, so
         /// the tag handed out covers nothing its caller may not read at that moment: a change
-        /// that makes a string protected leaves a node whose tag its own caller may no longer be
-        /// handed.
+        /// that makes a string protected leaves a view its own caller reads less of, and the
+        /// tag is of the view after.
         /// </remarks>
         private string After(VaultAsking asking, PwGroup group)
         {
-            return Answers(asking, new VaultFound(Describe(group))) ? _tags.Of(group) : null;
+            var tagging = Left(asking, new VaultFound(Describe(group)));
+            return tagging != null && tagging.Answers ? _tags.Of(group) : null;
         }
 
         private string After(VaultAsking asking, PwEntry entry)
         {
-            // The tag of the view the question was asked about, so the two are of one entry.
-            var view = Whole(entry);
-            return Answers(asking, new VaultFound(view.Entry, false)) ? view.Tag : null;
+            // The sight is asked about the entry the view is being taken of, so the question,
+            // the view and the tag are of one entry.
+            var answers = false;
+            var view = Seen(entry, described =>
+            {
+                var tagging = Left(asking, new VaultFound(described, false));
+                answers = tagging != null && tagging.Answers;
+                return tagging == null ? null : tagging.Sight;
+            });
+
+            return answers ? view.Tag : null;
         }
 
-        /// <summary>Whether the caller is handed the tag of the node a change left.</summary>
+        /// <summary>
+        /// What a change does about the tag of the node it left, or null when that cannot be
+        /// answered.
+        /// </summary>
         /// <remarks>
         /// A question that cannot be answered leaves the tag out and the change in: the change
         /// is made by now, and a client told `busy` would make it again.
         /// </remarks>
-        private static bool Answers(VaultAsking asking, VaultFound left)
+        private static VaultTagging Left(VaultAsking asking, VaultFound left)
         {
             try
             {
-                return asking.Tagging(left).Answers;
+                return asking.Tagging(left);
             }
             catch (VaultUnsettled)
             {
-                return false;
+                return null;
             }
         }
 
@@ -2193,36 +2213,6 @@ namespace KeePassGate.Bridge
 
         private VaultEntry Describe(PwEntry entry)
         {
-            return Describe(entry, null);
-        }
-
-        /// <summary>An entry as one lookup answers about it, saying whether it holds a protected value.</summary>
-        /// <remarks>
-        /// A listing leaves that out, since it answers about a collection and nothing in it is
-        /// asked about one entry's tag.
-        /// </remarks>
-        private VaultEntry Single(PwEntry entry)
-        {
-            if (entry == null)
-            {
-                return null;
-            }
-
-            var holds = false;
-            foreach (var pair in entry.Strings)
-            {
-                if (Guards(pair.Key, pair.Value))
-                {
-                    holds = true;
-                    break;
-                }
-            }
-
-            return Describe(entry, holds);
-        }
-
-        private VaultEntry Describe(PwEntry entry, bool? holdsProtected)
-        {
             if (entry == null)
             {
                 return null;
@@ -2238,8 +2228,33 @@ namespace KeePassGate.Bridge
                 KdbxNodes.Of(entry, _hold),
                 Guards(entry, PwDefs.TitleField),
                 Guards(entry, PwDefs.UrlField),
-                entry.Expires ? When(entry.ExpiryTime) : (DateTimeOffset?)null,
-                holdsProtected);
+                entry.Expires ? When(entry.ExpiryTime) : (DateTimeOffset?)null);
+        }
+
+        /// <summary>
+        /// An entry as a view carries it: where it is, its times, its expiry and the node the
+        /// rules are asked about, with no title and no URL.
+        /// </summary>
+        /// <remarks>
+        /// **A view holds a string only as one of its fields**, where the sight decides whether
+        /// the value is there. A title or a URL in the description beside them would be read to
+        /// build every view and held whatever the sight, a protected title among them, with
+        /// nothing to stop a later route rendering it. So both are null here and neither is
+        /// read, and what a listing shows of them comes from <see cref="Describe(PwEntry)"/>.
+        /// </remarks>
+        private VaultEntry Placed(PwEntry entry)
+        {
+            return new VaultEntry(
+                entry.Uuid.ToHexString(),
+                entry.ParentGroup == null ? null : entry.ParentGroup.Uuid.ToHexString(),
+                null,
+                null,
+                When(entry.CreationTime),
+                When(entry.LastModificationTime),
+                KdbxNodes.Of(entry, _hold),
+                false,
+                false,
+                entry.Expires ? When(entry.ExpiryTime) : (DateTimeOffset?)null);
         }
 
         /// <summary>Whether one of an entry's strings is protected.</summary>

@@ -374,16 +374,18 @@ designing around them.
   lengths a path parameter allows, the body, the query parameters, `If-Match` or the guard. The
   answer omits `Content-Length` rather than sending a wrong one, which RFC 9110 section 9.3.2
   permits.
-- **A node's `ETag` is a keyed digest of what it holds, never a clock and never a plain hash.**
-  `NodeTags` takes an HMAC-SHA256 over exactly what the routes serve, as they serve it: an entry's
-  identifier, its group, its two times to the second, every string with its name, whether it is
-  protected and its value as a read decodes it, every attachment's name, size and, up to
-  `VaultViewAttachment.MostServed`, the SHA-256 of its bytes, and its expiry; a group's
-  identifier, its parent, its two times, its name and its notes. Rules stay out. **An entry's
+- **A node's `ETag` is a keyed digest of what its caller may read of it, never a clock and never
+  a plain hash.** `NodeTags` takes an HMAC-SHA256 over exactly what the routes serve that caller,
+  as they serve it: an entry's identifier, its group, its two times to the second, every string
+  with its name, whether it is protected and, where it is in sight, its value as a read decodes
+  it, every attachment's name, size and, up to `VaultViewAttachment.MostServed`, the SHA-256 of
+  its bytes, as far as attachments are in sight, and its expiry; a group's identifier, its
+  parent, its two times, its name and its notes. Rules stay out. **An entry's
   answer and its tag are one projection**: `IVault.View` hands back a `VaultEntryView`, the whole
   of the entry as one caller may read it, every route about an entry renders from it, and
-  `NodeTags.Of` hashes that view and never the `PwEntry`, a withheld value and attachments out of
-  sight entering as fixed marks, so what is served and what is tagged cannot drift apart. A clock
+  `NodeTags.Of` hashes that view and never the `PwEntry`, a withheld value entering as a fixed
+  mark and attachments the view does not hold entering nothing, with no mark of how far a rule
+  reaches, so what is served and what is tagged cannot drift apart. A clock
   on its own was measured
   and refused, in `FINDINGS.md` under "What a version of a node can be made of": it misses two
   changes inside one step, a merge at an equal time, a move and a plugin that never calls `Touch`.
@@ -401,15 +403,38 @@ designing around them.
   reload, and changes only when the authority is recreated. **This reverses a key drawn when the
   plugin loaded**, which changed every tag whenever KeePass started, for nothing anybody wrote.
 
-  **A tag is handed only to a client whose one rule may read everything it covers**: `read` on a
-  group; on an entry `read` reaching attachments, and protected values too when it holds any,
-  `AclResolver.ReadsWhole`. Anybody else gets no tag, and any `If-Match` it sends fails. **This
-  reverses handing every caller the tag**, which a review measured as a way to recover a password a
-  client may update and not read, by writing guesses and comparing the tags that came back, `API.md`
-  §410. A key stops a tag being computed; only not handing it out stops it being compared.
+  **A tag covers what its caller may read, and every client holding `read` is handed a tag.** The
+  caller's `VaultSight` decides the view: `read`, protected values where `read` and `protected`
+  stand in one rule, and attachments at `VaultAttachmentSight.Read` for `read` with
+  `attachments`, at `Listed`, names and sizes, for `list` with `attachments`, and at `None`
+  otherwise, through any profile. The sight is about the caller and the node and never the
+  route, so a client has one tag for an entry whichever route hands it out, and a write is asked
+  against that tag and answers with it: `VaultAsking.Tagging` carries the sight into the change's
+  turn, asked of the node the change found and again of the node it left. A view whose sight does
+  not read has no tag, `VaultEntryView.Tag`, and holds no value of any string, protected or not,
+  so a client without `read` gets no tag, any `If-Match` it sends fails, and what it lists is
+  names, flags and sizes. Nothing about the rule or the client is in the tag, so two clients
+  that see the same hold the same tag, two that see different things hold different tags, and a
+  rule widened over an entry where nothing new comes into sight, `attachments` granted over an
+  entry holding none, moves no tag.
+  **This reverses handing a tag only to a client whose one rule read everything the node held**,
+  the operator's ruling of 2026-11-10: that rule closed the guessing attack below and left every
+  rule without `protected` with no tag at all on an entry holding a password. The attack stays
+  closed because a tag holds nothing its holder may not read, so a guess written blind moves the
+  tag the same whether the guess was right, through `modified` and through nothing of the value.
+  What it costs: a client writing a value blind is told the
+  value changed in between only as far as `modified` tells it, a rule widened or narrowed
+  over what a client sees fails its next `If-Match` once, and a protected title or URL a client
+  is shown only by a listing of entries, under `list` with `protected`, is not in its tag.
+  **That in turn reversed handing every
+  caller the tag of the whole node**, which a review measured as a way to recover a password a
+  client may update and not read, by writing guesses and comparing the tags that came back,
+  `API.md` §410. A key stops a tag being computed; only keeping a value out of the tag stops it
+  being compared.
 
   **An update that would change nothing is skipped only for a client that may read every value it
-  names**, the operator's ruling of 2026-11-10, `VaultTagging.Sees`: `read` on a group, `read` on
+  names**, the operator's ruling of 2026-11-10, `VaultTagging.Sees`, read off the same sight the
+  tag is taken with: `read` on a group, `read` on
   an entry with `protected` in the same rule when a named string is protected, `read` with
   `attachments` for an attachment, through any profile. For any other client it is written like
   any change, revision, time and save, because a skip would tell a client that may write a value
@@ -433,10 +458,14 @@ designing around them.
   reads, so no parser arrives with the ACL.
 
   **`protected` is a scope and not a verb**, like `attachments`, and it is the one scope a handler
-  asks about rather than the router. An attachment is a route of its own, so the router asks before
-  dispatch; a protected value arrives inside the answer to a route that is allowed, so each handler
-  that writes or takes a field value asks it, through one helper, `DESIGN.md` §137, a read's inside
-  its hold and a write's inside its own turn, of the node as the vault finds it there. It governs
+  asks about and records rather than the router. An attachment is a route of its own, so the router
+  asks before dispatch; a protected value arrives inside the answer to a route that is allowed, so
+  each handler that writes or takes a field value asks it, through one helper that records a
+  refusal, `DESIGN.md` §137, a read's inside
+  its hold and a write's inside its own turn, of the node as the vault finds it there. **Beside
+  that helper, how far a caller may read is asked silently for every view**: `VaultHandlers.Sight`
+  puts `read` and both switches to the resolver with no line, for each entry read and twice for
+  each change, and the vault leaves out of the view what that answer does not open. It governs
   writing as well as reading, and what counts as protected is `IVault.Protects`, which is KeePass's
   own `MemoryProtection` rather than a list kept here. **Both sides ask it now**: a read used to
   trust the stored string's own flag, so a standard field the database protects and the string did

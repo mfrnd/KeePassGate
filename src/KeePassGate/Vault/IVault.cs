@@ -93,9 +93,9 @@ namespace KeePassGate.Vault
         /// A group's tag, by identifier or by the root alias, or null when there is none.
         /// </summary>
         /// <remarks>
-        /// **Asked on its own, and only by a route that will use it.** A tag is a digest of
-        /// everything the node holds, so a lookup that only wants to know which node a request is
-        /// about, which is what the router asks for every request, never takes one.
+        /// **Asked on its own, and only by a route that will use it.** A group's tag is a digest
+        /// of everything the group holds, so a lookup that only wants to know which node a request
+        /// is about, which is what the router asks for every request, never takes one.
         ///
         /// **Of the moment its content is of**, on every route that serves both. A request that
         /// changes nothing holds KeePass's thread from its decision to its answer, so no change
@@ -121,10 +121,9 @@ namespace KeePassGate.Vault
         /// and the entry's tag are made from, or null when there is none.
         /// </summary>
         /// <param name="sight">
-        /// What the caller may read of the entry, asked once, of the entry the read found:
-        /// <see cref="VaultFound.Guarded"/> is whether any of its strings is protected. A view
-        /// handed no question, or a question answered with null, is taken with
-        /// <see cref="VaultSight.Least"/>.
+        /// What the caller may read of the entry, asked once, of the entry the read found. A
+        /// view handed no question, or a question answered with null, is taken with
+        /// <see cref="VaultSight.Least"/>, which has no tag and holds no value.
         /// </param>
         /// <remarks>
         /// **The only read of what an entry holds.** Its strings, its attachments and its tag are

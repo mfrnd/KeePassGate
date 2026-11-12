@@ -4,37 +4,82 @@ using System.Collections.Generic;
 namespace KeePassGate.Vault
 {
     /// <summary>
-    /// How far into an entry a caller may read, beside the strings nothing protects.
+    /// How much of an entry's attachments a caller has in sight.
+    /// </summary>
+    public enum VaultAttachmentSight
+    {
+        /// <summary>Nothing about them, not even whether the entry holds any.</summary>
+        None,
+
+        /// <summary>
+        /// Their names and sizes and no more, which is what `list` and `attachments` in one
+        /// rule open.
+        /// </summary>
+        Listed,
+
+        /// <summary>
+        /// Their names, sizes and bytes, which is what `read` and `attachments` in one rule
+        /// open.
+        /// </summary>
+        Read,
+    }
+
+    /// <summary>
+    /// How far into an entry a caller may read.
     /// </summary>
     /// <remarks>
-    /// The two switches a rule holds, answered for `read` about the entry a view is taken of.
+    /// What the caller's rules open on the entry a view is taken of, and nothing about the route
+    /// that asked: `read`, the `protected` switch in a rule with `read`, and the `attachments`
+    /// switch in a rule with `read` or, for names and sizes, in a rule with `list`. **Not
+    /// depending on the route is what gives a caller one tag for an entry**, whichever route
+    /// hands it out and whichever change answers with it.
+    ///
     /// Decided above the vault, which knows nothing of rules, and handed to it as the answer to
-    /// a question the vault asks once it has found the entry: <see cref="IVault.View"/>.
+    /// a question the vault asks once it has found the entry: <see cref="IVault.View"/> for a
+    /// read, <see cref="VaultAsking.Tagging"/> for a change.
     /// </remarks>
     public sealed class VaultSight
     {
         /// <summary>
-        /// Every string and every attachment: the sight a tag handed out is taken with.
+        /// What no rule opens, which is what a question nobody answered comes to: no tag, no
+        /// value of any string and nothing about attachments.
         /// </summary>
-        public static readonly VaultSight Whole = new VaultSight(true, true);
+        public static readonly VaultSight Least = new VaultSight(false, false, VaultAttachmentSight.None);
+
+        /// <summary>A sight, held to what `read` can open.</summary>
+        /// <remarks>
+        /// Protected values and attachments' bytes are read under `read` and under nothing else,
+        /// so a sight that does not read is built reaching neither, whatever it was handed: no
+        /// mistake above the vault makes a sight that withholds the tag and hands out the
+        /// values. A view taken with such a sight holds no value of any string, protected or
+        /// not, <see cref="VaultViewField.IsWithheld"/>: names and flags are what `list`
+        /// opens, a value is `read`'s, and a length is kept for the ceiling and served to
+        /// nobody.
+        /// </remarks>
+        /// <param name="reads">Whether the caller holds `read` on the entry.</param>
+        /// <param name="reachesProtected">
+        /// Whether `read` and `protected` stand in one rule the caller holds.
+        /// </param>
+        /// <param name="attachments">How much of the attachments the caller's rules open.</param>
+        public VaultSight(bool reads, bool reachesProtected, VaultAttachmentSight attachments)
+        {
+            Reads = reads;
+            Protected = reads && reachesProtected;
+            Attachments = !reads && attachments == VaultAttachmentSight.Read
+                ? VaultAttachmentSight.None
+                : attachments;
+        }
 
         /// <summary>
-        /// The strings nothing protects and no more, which is what a question nobody answered
-        /// comes to.
+        /// Whether the caller holds `read` on the entry, which is what a tag is handed out on.
         /// </summary>
-        public static readonly VaultSight Least = new VaultSight(false, false);
-
-        public VaultSight(bool reachesProtected, bool reachesAttachments)
-        {
-            Protected = reachesProtected;
-            Attachments = reachesAttachments;
-        }
+        public bool Reads { get; private set; }
 
         /// <summary>Whether the values of protected strings are in sight.</summary>
         public bool Protected { get; private set; }
 
-        /// <summary>Whether the entry's attachments are in sight.</summary>
-        public bool Attachments { get; private set; }
+        /// <summary>How much of the entry's attachments is in sight.</summary>
+        public VaultAttachmentSight Attachments { get; private set; }
     }
 
     /// <summary>
@@ -42,12 +87,19 @@ namespace KeePassGate.Vault
     /// in sight.
     /// </summary>
     /// <remarks>
-    /// **The value is read the first time it is asked for**, so a view taken to answer for one
-    /// string, or to measure an entry, decrypts nothing else.
+    /// **The value is read the first time it is asked for**, so a view taken to measure an
+    /// entry, or for an answer refused before anything is rendered, decrypts nothing. The
+    /// view's tag asks for every value in sight, so an answer that hands the tag out reads
+    /// them all, whichever string the route was about.
     ///
     /// **A withheld string holds nothing its value could be read with.** The constructor drops
-    /// the reader for a protected string out of sight, so no later mistake above the vault can
-    /// reach the value through the view: there is nothing behind <see cref="Value"/> to reach.
+    /// the reader for a string out of sight, so no later mistake above the vault can reach the
+    /// value through the view: there is nothing behind <see cref="Value"/> to reach.
+    ///
+    /// **Out of sight is every string for a sight that does not read, and a protected string
+    /// for a sight that reads without reaching protected values.** A caller that only lists is
+    /// served names and flags, so its view holds those and the lengths the ceiling is measured
+    /// by, and no value.
     /// </remarks>
     public sealed class VaultViewField
     {
@@ -77,7 +129,7 @@ namespace KeePassGate.Vault
             Name = name;
             IsProtected = isProtected;
             _length = length;
-            IsWithheld = isProtected && (sight == null || !sight.Protected);
+            IsWithheld = sight == null || !sight.Reads || (isProtected && !sight.Protected);
 
             if (!IsWithheld)
             {
@@ -136,11 +188,16 @@ namespace KeePassGate.Vault
 
     /// <summary>
     /// One of an entry's attachments as a view holds it: named and sized, with its bytes and
-    /// their digest read when they are asked for.
+    /// their digest read when they are asked for, where they are in sight.
     /// </summary>
     /// <remarks>
     /// The size is known without decrypting anything, because a client has to decide whether to
     /// ask for an attachment before it asks, and an attachment can be megabytes.
+    ///
+    /// **An attachment that is listed and not read holds nothing its bytes could be read with**,
+    /// as a withheld string holds no reader. The constructor drops what reads the bytes and what
+    /// digests them unless the sight reads attachments, so a view taken for a caller that may
+    /// list them serves names and sizes and has nothing else behind them.
     /// </remarks>
     public sealed class VaultViewAttachment
     {
@@ -159,31 +216,42 @@ namespace KeePassGate.Vault
         private readonly Func<byte[]> _digest;
         private byte[] _content;
 
-        /// <summary>An attachment of an entry whose attachments are in sight.</summary>
+        /// <summary>An attachment of an entry, as far as <paramref name="sight"/> reaches it.</summary>
         /// <param name="size">Its length in bytes, known without decrypting it.</param>
-        /// <param name="read">What reads its bytes.</param>
-        /// <param name="digest">What takes the SHA-256 of its bytes.</param>
-        public VaultViewAttachment(string name, int size, Func<byte[]> read, Func<byte[]> digest)
+        /// <param name="sight">
+        /// What the caller may read, where null is <see cref="VaultSight.Least"/>.
+        /// </param>
+        /// <param name="read">What reads its bytes, kept only where they are in sight.</param>
+        /// <param name="digest">
+        /// What takes the SHA-256 of its bytes, kept only where they are in sight.
+        /// </param>
+        public VaultViewAttachment(
+            string name, int size, VaultSight sight, Func<byte[]> read, Func<byte[]> digest)
         {
             if (name == null)
             {
                 throw new ArgumentNullException(nameof(name));
             }
 
-            if (read == null)
-            {
-                throw new ArgumentNullException(nameof(read));
-            }
-
-            if (digest == null)
-            {
-                throw new ArgumentNullException(nameof(digest));
-            }
-
             Name = name;
             Size = size;
-            _read = read;
-            _digest = digest;
+            IsWithheld = sight == null || sight.Attachments != VaultAttachmentSight.Read;
+
+            if (!IsWithheld)
+            {
+                if (read == null)
+                {
+                    throw new ArgumentNullException(nameof(read));
+                }
+
+                if (digest == null)
+                {
+                    throw new ArgumentNullException(nameof(digest));
+                }
+
+                _read = read;
+                _digest = digest;
+            }
         }
 
         public string Name { get; private set; }
@@ -191,14 +259,21 @@ namespace KeePassGate.Vault
         public int Size { get; private set; }
 
         /// <summary>
-        /// What it holds, read the first time it is asked for, or null for an attachment larger
-        /// than <see cref="MostServed"/>, which is measured and never decrypted.
+        /// Whether its bytes are out of the caller's sight, and so not in this view: an
+        /// attachment listed for a caller that may not read attachments.
+        /// </summary>
+        public bool IsWithheld { get; private set; }
+
+        /// <summary>
+        /// What it holds, read the first time it is asked for, or null for an attachment that is
+        /// withheld and for an attachment larger than <see cref="MostServed"/>, which is measured
+        /// and never decrypted.
         /// </summary>
         public byte[] Content
         {
             get
             {
-                if (Size > MostServed)
+                if (IsWithheld || Size > MostServed)
                 {
                     return null;
                 }
@@ -208,12 +283,13 @@ namespace KeePassGate.Vault
         }
 
         /// <summary>
-        /// The SHA-256 of what it holds, or null for an attachment larger than
-        /// <see cref="MostServed"/>, whose bytes no route serves and no tag covers.
+        /// The SHA-256 of what it holds, or null for an attachment that is withheld and for an
+        /// attachment larger than <see cref="MostServed"/>, whose bytes no route serves and no
+        /// tag covers.
         /// </summary>
         public byte[] Digest
         {
-            get { return Size > MostServed ? null : _digest(); }
+            get { return IsWithheld || Size > MostServed ? null : _digest(); }
         }
     }
 
@@ -229,13 +305,26 @@ namespace KeePassGate.Vault
     /// render from it, and <see cref="Tag"/> is taken of it and of nothing else.
     ///
     /// **What is out of sight is not here.** A protected string out of sight keeps its name and
-    /// its place and holds no value, and attachments out of sight are no list at all, so nothing
-    /// rendered from a view can hand out what the sight left behind.
+    /// its place and holds no value, every string does for a sight that does not read,
+    /// attachments out of sight are no list at all, and attachments that are listed and not read
+    /// keep their names and sizes and hold no bytes, so nothing rendered from a view can hand
+    /// out what the sight left behind. The description beside them, <see cref="Entry"/>, holds
+    /// no title and no URL for the same reason: each is in the view as a field or not at all.
+    ///
+    /// **What is in sight is what the caller's rules open, which can be more than a route lists
+    /// to it.** A caller holding `read` with `attachments` and no `list` is served no listing
+    /// of the attachments, and reads any of them by its name, so they are all in its view and in
+    /// its tag, `API.md` §410.
+    ///
+    /// **A view whose sight does not read has no tag.** A tag is handed to every caller holding
+    /// `read` on the entry and to nobody else, `API.md` §410, and the view is where that is
+    /// held: <see cref="Tag"/> is null for a sight that does not read, so no route and no change
+    /// rendering from the view can hand a tag to a caller that may not have a tag.
     ///
     /// **Nothing is decrypted to build it.** Names, flags and sizes are kept beside the encrypted
     /// values, so an entry is found, measured against <see cref="MostCharacters"/> and refused
     /// with every value still encrypted. Values, attachments' bytes, their digests and the tag are
-    /// each read when first asked for.
+    /// each read when first asked for, and the tag asks for every value and digest in sight.
     /// </remarks>
     public sealed class VaultEntryView
     {
@@ -263,9 +352,12 @@ namespace KeePassGate.Vault
         /// Every string, in the order KeePass keeps them, built with the same sight.
         /// </param>
         /// <param name="attachments">
-        /// Every attachment, dropped here when the sight does not reach them.
+        /// Every attachment, built with the same sight, dropped here when the sight reaches
+        /// nothing about them.
         /// </param>
-        /// <param name="tagger">What condenses a view into its tag.</param>
+        /// <param name="tagger">
+        /// What condenses a view into its tag, dropped here when the sight does not read.
+        /// </param>
         public VaultEntryView(
             VaultEntry entry,
             VaultSight sight,
@@ -284,9 +376,10 @@ namespace KeePassGate.Vault
             }
 
             Entry = entry;
+            Sight = sight ?? VaultSight.Least;
             Fields = fields;
-            Attachments = sight != null && sight.Attachments ? attachments : null;
-            _tagger = tagger;
+            Attachments = Sight.Attachments == VaultAttachmentSight.None ? null : attachments;
+            _tagger = Sight.Reads ? tagger : null;
 
             var characters = 0;
             var guarded = new List<string>();
@@ -306,6 +399,9 @@ namespace KeePassGate.Vault
 
         public VaultEntry Entry { get; private set; }
 
+        /// <summary>How far into the entry this view reaches, never null.</summary>
+        public VaultSight Sight { get; private set; }
+
         /// <summary>
         /// Every string the entry holds, by KeePass's own names, in the order KeePass keeps them,
         /// which is the order `read` writes them in.
@@ -313,8 +409,9 @@ namespace KeePassGate.Vault
         public IReadOnlyList<VaultViewField> Fields { get; private set; }
 
         /// <summary>
-        /// Every attachment the entry holds, or null when the caller's sight does not reach
-        /// attachments. Never empty for that: an empty list is an entry holding none.
+        /// Every attachment the entry holds, or null when the caller's sight reaches nothing
+        /// about attachments. Never empty for that: an empty list is an entry holding none.
+        /// Each holds its bytes only where the sight reads attachments.
         /// </summary>
         public IReadOnlyList<VaultViewAttachment> Attachments { get; private set; }
 
@@ -332,9 +429,13 @@ namespace KeePassGate.Vault
 
         /// <summary>
         /// The tag of this view, taken the first time it is asked for, so a request that hands
-        /// out no tag digests nothing.
+        /// out no tag digests nothing, or null for a view whose sight does not read.
         /// </summary>
         /// <remarks>
+        /// **Of what this view holds and of nothing else**, so two callers that see different
+        /// things of an entry hold different tags for it, and a tag moves with nothing its
+        /// holder may not read.
+        ///
         /// A tag that cannot be taken throws, and the next asking takes it again.
         /// </remarks>
         public string Tag
@@ -373,7 +474,7 @@ namespace KeePassGate.Vault
 
         /// <summary>
         /// The attachment carrying this name byte for byte, or null when the entry holds none or
-        /// attachments are out of sight.
+        /// nothing about attachments is in sight.
         /// </summary>
         public VaultViewAttachment Attachment(string name)
         {

@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
+using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
 using System.Threading;
@@ -94,26 +95,6 @@ namespace KeePassGate.Host.Tests
         }
 
         [Test]
-        public void A_lookup_says_whether_the_entry_holds_a_protected_value_and_a_listing_does_not()
-        {
-            Assert.That(_vault.Entry(Uuid(_entry)).HoldsProtected, Is.True);
-            Assert.That(_vault.Whole(Uuid(_entry)).Entry.HoldsProtected, Is.True);
-
-            _entry.Strings.Set(PwDefs.PasswordField, new ProtectedString(false, string.Empty));
-            _database.Database.MemoryProtection.ProtectPassword = false;
-            Assert.That(_vault.Entry(Uuid(_entry)).HoldsProtected, Is.False);
-
-            _database.Database.MemoryProtection.ProtectPassword = true;
-            Assert.That(_vault.Entry(Uuid(_entry)).HoldsProtected, Is.True,
-                "a standard string the database protects is protected, whatever its own flag says");
-
-            foreach (var listed in _vault.Entries())
-            {
-                Assert.That(listed.HoldsProtected, Is.Null);
-            }
-        }
-
-        [Test]
         public void Every_kind_of_change_a_route_could_serve_is_a_new_tag()
         {
             // In order, each on top of the one before, so that no two of them could pass by
@@ -154,7 +135,7 @@ namespace KeePassGate.Host.Tests
             // A caller whose rule reads the entry and not its protected values. The tag of its
             // view covers what the view holds, so nothing about the password is in it: not the
             // value, and not how long the value is.
-            var sight = new VaultSight(false, true);
+            var sight = new VaultSight(true, false, VaultAttachmentSight.Read);
             var view = Seen(sight);
             var password = view.Field(PwDefs.PasswordField);
 
@@ -183,7 +164,7 @@ namespace KeePassGate.Host.Tests
         [Test]
         public void Attachments_out_of_sight_are_not_in_the_view_and_no_change_to_them_moves_its_tag()
         {
-            var sight = new VaultSight(true, false);
+            var sight = new VaultSight(true, true, VaultAttachmentSight.None);
             var view = Seen(sight);
 
             Assert.That(view.Attachments, Is.Null);
@@ -212,9 +193,12 @@ namespace KeePassGate.Host.Tests
                 whole = EntryTag();
             }
 
-            Assert.That(Seen(new VaultSight(true, true)).Attachments, Is.Empty);
-            Assert.That(Seen(new VaultSight(true, true)).Tag, Is.Not.EqualTo(tag),
-                "an entry holding no attachment, to a caller that may see them, is not attachments out of sight");
+            // An entry holding no attachment shows a caller that may read attachments what it
+            // shows a caller that may not, which is none, so the two views are one tag: nothing
+            // about how far a rule reaches is in a tag.
+            Assert.That(Seen(Sights.Whole).Attachments, Is.Empty);
+            Assert.That(Seen(Sights.Whole).Tag, Is.EqualTo(tag),
+                "a view holding no attachment is tagged by what it holds, whatever its sight reaches");
         }
 
         [Test]
@@ -229,31 +213,149 @@ namespace KeePassGate.Host.Tests
                 Assert.That(view.Field(PwDefs.PasswordField).IsWithheld, Is.True);
                 Assert.That(view.Field(PwDefs.PasswordField).Value, Is.Null);
                 Assert.That(view.Attachments, Is.Null);
-                Assert.That(view.Field(PwDefs.UserNameField).Value, Is.EqualTo("an invented name"));
+                Assert.That(view.Field(PwDefs.UserNameField).IsWithheld, Is.True);
+                Assert.That(view.Field(PwDefs.UserNameField).Value, Is.Null,
+                    "the least does not read, so a string nothing protects is out of its sight too");
+                Assert.That(view.Protected, Does.Contain(PwDefs.PasswordField), "names and flags are still told");
+                Assert.That(view.Sight.Reads, Is.False);
+                Assert.That(view.Tag, Is.Null, "and the least is handed no tag");
             }
         }
 
         [Test]
-        public void The_sight_is_asked_once_of_the_entry_found_and_told_whether_a_string_is_protected()
+        public void Attachments_listed_and_not_read_are_in_the_view_by_name_and_size_and_in_its_tag_by_no_more()
+        {
+            // The three levels of the same entry, changed the way KeePass or another plugin
+            // changes an attachment, with nothing touched: a tag moves with what its view holds
+            // and with nothing else.
+            var none = new VaultSight(true, true, VaultAttachmentSight.None);
+            var listed = new VaultSight(true, true, VaultAttachmentSight.Listed);
+            var read = Sights.Whole;
+
+            var view = Seen(listed);
+            var attachment = view.Attachment("notes.txt");
+            Assert.That(view.Attachments, Has.Count.EqualTo(1));
+            Assert.That(attachment.Name, Is.EqualTo("notes.txt"));
+            Assert.That(attachment.Size, Is.EqualTo(8));
+            Assert.That(attachment.IsWithheld, Is.True);
+            Assert.That(attachment.Content, Is.Null, "nothing reads the bytes of an attachment that is only listed");
+            Assert.That(attachment.Digest, Is.Null);
+            Assert.That(Seen(read).Attachment("notes.txt").IsWithheld, Is.False);
+
+            var tags = new[] { Seen(none).Tag, Seen(listed).Tag, Seen(read).Tag };
+            Assert.That(tags, Is.Unique, "three views holding different things of the attachments");
+            Assert.That(tags, Has.All.Match("^[0-9a-f]{32}$"));
+
+            Attach("notes.txt", "INVENTED");
+            Assert.That(Seen(none).Tag, Is.EqualTo(tags[0]), "bytes changed, to a view holding no attachment");
+            Assert.That(Seen(listed).Tag, Is.EqualTo(tags[1]), "bytes changed at the same size, to a view listing them");
+            Assert.That(Seen(read).Tag, Is.Not.EqualTo(tags[2]), "bytes changed, to a view reading them");
+            tags[2] = Seen(read).Tag;
+
+            var changes = new List<KeyValuePair<string, Action>>
+            {
+                Change("an attachment added", () => Attach("another.txt", "invented")),
+                Change("an attachment renamed", () => Rename(_entry, "notes.txt", "renamed.txt")),
+                Change("an attachment's size", () => Attach("renamed.txt", "invented, and longer")),
+                Change("an attachment taken off", () => _entry.Binaries.Remove("another.txt")),
+            };
+
+            foreach (var change in changes)
+            {
+                change.Value();
+
+                Assert.That(Seen(none).Tag, Is.EqualTo(tags[0]), change.Key + " moved the tag of a view holding none");
+                Assert.That(Seen(listed).Tag, Is.Not.EqualTo(tags[1]), change.Key + " left the tag of a view listing them");
+                Assert.That(Seen(read).Tag, Is.Not.EqualTo(tags[2]), change.Key + " left the tag of a view reading them");
+                tags[1] = Seen(listed).Tag;
+                tags[2] = Seen(read).Tag;
+            }
+
+            // With every attachment gone the three views hold the same, so they are one tag: a
+            // rule widened over an entry where nothing new comes into sight moves no tag.
+            _entry.Binaries.Clear();
+            Assert.That(Seen(none).Tag, Is.EqualTo(tags[0]));
+            Assert.That(Seen(listed).Tag, Is.EqualTo(tags[0]), "no attachment listed is no attachment in the view");
+            Assert.That(Seen(read).Tag, Is.EqualTo(tags[0]), "and no attachment to read is the same");
+        }
+
+        [Test]
+        public void An_attachment_larger_than_the_gate_serves_is_tagged_alike_listed_and_read()
+        {
+            // Its bytes are in neither view, so its name and size are all either holds of it.
+            _entry.Binaries.Set("notes.txt", new ProtectedBinary(true, Filled(VaultViewAttachment.MostServed + 1, 7)));
+
+            var none = new VaultSight(true, true, VaultAttachmentSight.None);
+            var listed = new VaultSight(true, true, VaultAttachmentSight.Listed);
+
+            Assert.That(Seen(listed).Tag, Is.EqualTo(EntryTag()));
+            Assert.That(Seen(none).Tag, Is.Not.EqualTo(EntryTag()), "while a view holding no attachment is another");
+        }
+
+        [Test]
+        public void A_view_whose_sight_does_not_read_has_no_tag_and_nothing_read_reaches_into_it()
+        {
+            // Who is handed a tag is decided by the view: a sight without `read` has none, and
+            // is built reaching nothing `read` opens, whatever it was handed.
+            var blind = new VaultSight(false, true, VaultAttachmentSight.Read);
+            Assert.That(blind.Reads, Is.False);
+            Assert.That(blind.Protected, Is.False);
+            Assert.That(blind.Attachments, Is.EqualTo(VaultAttachmentSight.None));
+
+            // `list` and `attachments` with no `read`: the listing of attachments and no tag.
+            var lister = new VaultSight(false, false, VaultAttachmentSight.Listed);
+            var view = Seen(lister);
+            Assert.That(view.Attachments, Has.Count.EqualTo(1));
+            Assert.That(view.Attachment("notes.txt").Content, Is.Null);
+            Assert.That(view.Tag, Is.Null);
+
+            // And no value of any string, protected or not: names and flags are what a
+            // caller that only lists is served.
+            foreach (var field in view.Fields)
+            {
+                Assert.That(field.IsWithheld, Is.True, field.Name);
+                Assert.That(field.Value, Is.Null, field.Name);
+            }
+
+            Assert.That(view.Fields, Has.Count.EqualTo(3));
+            Assert.That(view.Characters, Is.GreaterThan(0), "measured without a value read");
+            Assert.That(Seen(blind).Tag, Is.Null);
+
+            // And the digest refuses it as well, were anything to ask it directly.
+            var created = new DateTimeOffset(Moment);
+            var byHand = new VaultEntryView(
+                Described("A1", "B1", created, created, null),
+                lister,
+                Array.Empty<VaultViewField>(),
+                Array.Empty<VaultViewAttachment>(),
+                TestTags.Fixed.Of);
+            Assert.That(TestTags.Fixed.Of(byHand), Is.Null);
+            Assert.That(byHand.Tag, Is.Null);
+        }
+
+        [Test]
+        public void The_sight_is_asked_once_of_the_entry_found_whatever_strings_the_entry_holds()
         {
             var asked = new List<VaultFound>();
             Func<VaultFound, VaultSight> sight = found =>
             {
                 asked.Add(found);
-                return VaultSight.Whole;
+                return Sights.Whole;
             };
 
             _vault.View(Uuid(_entry), sight);
 
             Assert.That(asked, Has.Count.EqualTo(1));
             Assert.That(asked[0].Entry.Uuid, Is.EqualTo(Uuid(_entry)));
-            Assert.That(asked[0].Guarded, Is.True);
+            Assert.That(asked[0].Guarded, Is.False,
+                "a view names no string, so how far its caller reads is asked whatever the entry holds");
 
             _entry.Strings.Set(PwDefs.PasswordField, new ProtectedString(false, string.Empty));
             _database.Database.MemoryProtection.ProtectPassword = false;
             _vault.View(Uuid(_entry), sight);
 
             Assert.That(asked[1].Guarded, Is.False);
+            Assert.That(asked[1].Entry.Uuid, Is.EqualTo(Uuid(_entry)));
             Assert.That(_vault.View(new PwUuid(true).ToHexString(), sight), Is.Null);
             Assert.That(asked, Has.Count.EqualTo(2), "an entry that is not there is asked nothing about");
         }
@@ -263,11 +365,12 @@ namespace KeePassGate.Host.Tests
         {
             // The tag is of what the view holds, and never of the sight it was taken with: an
             // entry with no protected string and no reach to protected values withholds nothing,
-            // so it is tagged as the whole entry is, which is the tag a write is asked against.
+            // so it is tagged as the whole entry is, and a rule widened over an entry where
+            // nothing new comes into sight moves no tag.
             _entry.Strings.Set(PwDefs.PasswordField, new ProtectedString(false, "not-a-real-password"));
             _database.Database.MemoryProtection.ProtectPassword = false;
 
-            Assert.That(Seen(new VaultSight(false, true)).Tag, Is.EqualTo(EntryTag()));
+            Assert.That(Seen(new VaultSight(true, false, VaultAttachmentSight.Read)).Tag, Is.EqualTo(EntryTag()));
         }
 
         [Test]
@@ -315,7 +418,7 @@ namespace KeePassGate.Host.Tests
             // The digest itself, apart from any vault: two views that differ only in a value
             // neither holds are one tag, and a view holding the value is another.
             var created = new DateTimeOffset(Moment);
-            var blind = new VaultSight(false, true);
+            var blind = new VaultSight(true, false, VaultAttachmentSight.Read);
 
             Func<VaultSight, string, VaultEntryView> viewed = (sight, value) => new VaultEntryView(
                 Described("A1", "B1", created, created, null),
@@ -327,9 +430,9 @@ namespace KeePassGate.Host.Tests
             var tags = TestTags.Fixed;
 
             Assert.That(tags.Of(viewed(blind, "one")), Is.EqualTo(tags.Of(viewed(blind, "another, and longer"))));
-            Assert.That(tags.Of(viewed(blind, "withheld")), Is.Not.EqualTo(tags.Of(viewed(VaultSight.Whole, "withheld"))),
+            Assert.That(tags.Of(viewed(blind, "withheld")), Is.Not.EqualTo(tags.Of(viewed(Sights.Whole, "withheld"))),
                 "and a value that spells the mark is not the mark");
-            Assert.That(tags.Of(viewed(VaultSight.Whole, "one")), Is.Not.EqualTo(tags.Of(viewed(VaultSight.Whole, "another"))));
+            Assert.That(tags.Of(viewed(Sights.Whole, "one")), Is.Not.EqualTo(tags.Of(viewed(Sights.Whole, "another"))));
         }
 
         [Test]
@@ -558,6 +661,79 @@ namespace KeePassGate.Host.Tests
                 Assert.That(EntryTag(), Is.EqualTo(first));
                 Assert.That(once, Is.EqualTo(1), "the first tag decrypts the attachment to hash it");
                 Assert.That(Volatile.Read(ref decrypted), Is.EqualTo(once), "and the tags after it hash it again");
+            }
+            finally
+            {
+                ProtectedBinary.ExtCrypt = was;
+            }
+        }
+
+        [Test]
+        public void A_view_is_built_and_measured_with_nothing_decrypted_and_reads_a_value_when_asked_for_it()
+        {
+            // Counted through the same hook, which KeePass decrypts a protected attachment through
+            // and, measured here, not a protected string of this size: so what is counted is the
+            // attachment, made while the hook stands, and the strings are held to the rest by
+            // what the view carries. A view carries neither the title nor the URL beside its
+            // fields, which is what a description of the entry would have read to build it.
+            var decrypted = 0;
+            var was = ProtectedBinary.ExtCrypt;
+            ProtectedBinary.ExtCrypt = (data, flags, id) =>
+            {
+                if (flags == PbCryptFlags.Decrypt)
+                {
+                    Interlocked.Increment(ref decrypted);
+                }
+            };
+
+            try
+            {
+                _entry.Strings.Set(PwDefs.TitleField, new ProtectedString(true, "a protected title"));
+                _entry.Strings.Set(PwDefs.UrlField, new ProtectedString(true, "https://invented.example/"));
+                _entry.Strings.Set(PwDefs.PasswordField, new ProtectedString(true, "not-a-real-password"));
+                Attach("notes.txt", "invented");
+                Volatile.Write(ref decrypted, 0);
+
+                var sights = new[]
+                {
+                    Sights.Whole,
+                    new VaultSight(true, false, VaultAttachmentSight.Listed),
+                    VaultSight.Least,
+                };
+
+                foreach (var view in sights.Select(Seen))
+                {
+                    Assert.That(view.Entry.Title, Is.Null, "a title is in a view as a field or not at all");
+                    Assert.That(view.Entry.Url, Is.Null);
+                    Assert.That(view.Characters, Is.GreaterThan("a protected title".Length));
+                    Assert.That(view.Field(PwDefs.PasswordField).Characters,
+                        Is.EqualTo(PwDefs.PasswordField.Length + "not-a-real-password".Length));
+                    Assert.That(view.Protected, Does.Contain(PwDefs.TitleField).And.Contain(PwDefs.PasswordField));
+
+                    if (view.Attachments != null)
+                    {
+                        Assert.That(view.Attachments[0].Size, Is.EqualTo(8), "an attachment is measured too");
+                    }
+                }
+
+                Assert.That(Volatile.Read(ref decrypted), Is.Zero, "building and measuring a view decrypted something");
+
+                var whole = Seen(Sights.Whole);
+                Assert.That(whole.Field(PwDefs.PasswordField).Value, Is.EqualTo("not-a-real-password"));
+                Assert.That(Volatile.Read(ref decrypted), Is.Zero, "reading a string read the attachment");
+
+                Assert.That(whole.Attachment("notes.txt").Content, Has.Length.EqualTo(8));
+                Assert.That(whole.Attachment("notes.txt").Content, Has.Length.EqualTo(8));
+                Assert.That(Volatile.Read(ref decrypted), Is.EqualTo(1), "bytes are read when asked for, and once");
+
+                // A view that holds no bytes of the attachment reads none of them for its tag,
+                // whether it lists the attachment or is shown nothing of it.
+                Volatile.Write(ref decrypted, 0);
+                var listed = Seen(new VaultSight(true, false, VaultAttachmentSight.Listed));
+                var narrow = Seen(new VaultSight(true, false, VaultAttachmentSight.None));
+                Assert.That(narrow.Field(PwDefs.TitleField).Value, Is.Null);
+                Assert.That(listed.Tag, Is.Not.Null.And.Not.EqualTo(narrow.Tag));
+                Assert.That(Volatile.Read(ref decrypted), Is.Zero, "a tag decrypted bytes its view withholds");
             }
             finally
             {
@@ -831,7 +1007,7 @@ namespace KeePassGate.Host.Tests
             string uuid, string group, DateTimeOffset created, DateTimeOffset modified, DateTimeOffset? expires)
         {
             return new VaultEntry(
-                uuid, group, "an invented service", string.Empty, created, modified, null, false, false, expires, null);
+                uuid, group, "an invented service", string.Empty, created, modified, null, false, false, expires);
         }
 
         /// <summary>
@@ -860,9 +1036,9 @@ namespace KeePassGate.Host.Tests
 
             var view = new VaultEntryView(
                 Described(uuid, group, created, modified, expires),
-                VaultSight.Whole,
-                new[] { new VaultViewField("Invented", guarded, value.Length, VaultSight.Whole, () => value) },
-                new[] { new VaultViewAttachment(attachment, bytes.Length, () => bytes, digest) },
+                Sights.Whole,
+                new[] { new VaultViewField("Invented", guarded, value.Length, Sights.Whole, () => value) },
+                new[] { new VaultViewAttachment(attachment, bytes.Length, Sights.Whole, () => bytes, digest) },
                 null);
 
             return new KeyValuePair<string, VaultEntryView>(what, view);

@@ -385,9 +385,12 @@ class PreconditionFailed(RouteRefused):
     """The gate did nothing, because the condition `if_match` gave did not hold: `412`.
 
     Most often the node no longer holds what the tag said: somebody changed it after the tag was
-    read, another client, the operator in KeePass, a merge or a plugin. One more reason answers
-    the same: any `if_match` from a client the gate hands no tag to, whose rule does not read
-    everything a tag covers, since it cannot know what it would be asking. An `if_match` the gate
+    read, another client, the operator in KeePass, a merge or a plugin. A tag is taken over what
+    this client may read of the node, so the operator changing this client's rules, where that
+    changes what it sees of the node, answers the same once, and a tag another client was handed
+    matches only where both see the same. One more reason answers
+    the same: any `if_match` from a client the gate hands no tag to, which is a client without
+    `read` on the node, since it cannot know what it would be asking. An `if_match` the gate
     could not read, a tag without its quotes or a weak tag among them, would be a third, and this
     client refuses it with `ProtocolError` before it is sent. Not retried, since asking
     again asks the same question of the same node. What mends the first is reading the node again,

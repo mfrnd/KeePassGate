@@ -189,9 +189,12 @@ info:
     would tell a caller that may not read a value that the value it sent is the value stored. A
     request naming nothing is a guess at nothing, and writes nothing whoever sends it.
 
-    **A read of one group or one entry carries an `ETag`, to a client that may read all of it**,
-    which `ETag` under the headers says the whole of: a group's for the group, and an entry's for
-    the entry and for everything inside it, its fields and attachments, one at a time or listed.
+    **A read of one group or one entry carries an `ETag`, to every client holding `read` on it**,
+    taken over what that client may read, which `ETag` under the headers has the whole of: a
+    group's for the group, and an entry's for the entry and for everything inside it that the
+    client's rules open, its fields and attachments, one at a time or listed. A client has the
+    same tag for an entry whichever of those routes hands it out, and two clients that see
+    different things of an entry hold different tags for it.
     It is taken at the moment of what it is answered with, since a read is decided and served
     with KeePass's thread held still, so a tag never arrives beside content of another moment.
     A change answers with the tag it left in its body, as `etag`, rather than in a header. A
@@ -2286,15 +2289,19 @@ components:
 
     # In the body and not as an `ETag` header, because RFC 9110 section 9.3.4 makes an `ETag` on
     # the answer to a `PUT` say the representation sent was stored as sent, and on a `POST` or a
-    # `DELETE` it names nothing the request had, while this is the tag of the whole node.
+    # `DELETE` it names nothing the request had, while this is the tag of the caller's view of the
+    # whole node.
     WrittenTag:
       type: string
       description: |
         The tag of the node the change left, written as `ETag` writes one, quotes and all, so that
         it goes back as `If-Match` unchanged and a client can write again without reading in
         between: on an update, and on a field or an attachment added or taken off, which is the
-        entry's tag. Taken where the change was made, before the save, so it is the tag of exactly
-        what was written. Present only for a client the `ETag` header would be sent to; absent on a
+        entry's tag. Taken where the change was made, before the save, over what this client may
+        read of the node as the change left it, so it is the tag a read by the same client would
+        then be answered with. A client that set a value it may not read finds that value in
+        neither tag, the tag it held or the tag it is answered with. Present only for a client the
+        `ETag` header would be sent to; absent on a
         group or an entry removed, since nothing is left to tag, and on a new group or entry,
         since what a create is sent to is a listing, which has no tag, and a client that wants the
         new node's reads it.
@@ -2599,12 +2606,14 @@ components:
       description: |
         The node is there and no longer holds what `If-Match` said, so nothing was read or changed:
         `{"error":"precondition failed"}`. Another client, the operator in KeePass, a merge or a
-        plugin changed it after the tag was taken. Not retried, because asking again asks the same
-        question of the same node; what mends it is reading the node again, which hands back the
-        tag it holds now, and deciding again whether the change still makes sense. An `If-Match`
+        plugin changed something this client may read of it after the tag was taken, or the
+        operator changed this client's rules so that it reads more of the node or less. Not
+        retried, because asking again asks the same question of the same node; what mends it is
+        reading the node again, which hands back the tag this client's view of it has now, and
+        deciding again whether the change still makes sense. An `If-Match`
         that cannot be read at all is answered this way too, because every way of ignoring it ends
         with the write going ahead, and so is any `If-Match` from a client the `ETag` header is not
-        sent to, whose rule does not read everything the tag covers: reading again hands such a
+        sent to, whose rules do not hold `read` on the node: reading again hands such a
         client no tag, and what mends it is sending none.
       content:
         application/json:
@@ -2685,28 +2694,49 @@ components:
 
     ETag:
       description: |
-        What the group or the entry holds, condensed into 32 hexadecimal digits in quotes, a strong
-        tag as RFC 9110 section 8.8.3 spells one: `"3f9c0e7a1b2d4c5e6f708192a3b4c5d6"`. It is
-        opaque, and a client compares it, keeps it and hands it back rather than reading anything
-        into it. An entry has one tag for itself and everything in it, so the entry, its fields,
-        one field, its attachments and one attachment all answer with the same tag, as the rules
-        answer for all of them by the entry; a group's tag is its own.
+        What this client may read of the group or the entry, condensed into 32 hexadecimal digits
+        in quotes, a strong tag as RFC 9110 section 8.8.3 spells one:
+        `"3f9c0e7a1b2d4c5e6f708192a3b4c5d6"`. It is opaque, and a client compares it, keeps it and
+        hands it back rather than reading anything into it. A client has one tag for an entry and
+        everything in it, so the entry, its fields, one field, its attachments and one attachment
+        all answer that client with the same tag, as the rules answer for all of them by the
+        entry; a group's tag is its own.
 
-        **What it covers is what these routes serve, as they serve it, and nothing more**: for an
-        entry its identifier, the group it is in, when it was created and last changed, every
-        string with its name, whether it is protected and its value, every attachment with its
-        name, its size and, up to the largest this gate hands out, its bytes, and when it expires;
-        for a group its identifier, the group it is in, its two times, its name and its notes. The
-        identifier keeps two nodes that hold the same from sharing a tag, which would tell a client
-        so. Any change to one of those, made here, in KeePass, by a merge or by another plugin, is
-        a new tag. A time enters to the second, as it is served, which is all a database opened
-        again keeps of it. A rule is not in it, since no route serves one.
+        **What it covers is what these routes serve this client, as they serve it, and nothing
+        more**: for an entry its identifier, the group it is in, when it was created and last
+        changed, every string with its name, whether it is protected and its value, every
+        attachment with its name, its size and, up to the largest this gate hands out, its bytes,
+        and when it expires; for a group its identifier, the group it is in, its two times, its
+        name and its notes. A protected value is in it only for a client holding `read` and
+        `protected` in one rule, and for any other client enters as a mark that a value is there,
+        the same mark whatever the value is. An entry's attachments are in it whole for a client
+        holding `read` and `attachments` in one rule, by name and size for a client holding
+        `attachments` beside `list` and not beside `read`, and not at all for any other. How far
+        a client's rules reach is not in it, only what they show: an entry holding no attachment
+        has the same tag whether or not this client may read attachments, so rules widened over
+        a node where nothing new comes into sight leave its tag as it was. The
+        identifier keeps two nodes that hold the same from sharing a tag, which would tell a
+        client so. Any change to something this client may read, made here, in KeePass, by a
+        merge or by another plugin, is a new tag. A time enters to the second, as it is served,
+        which is all a database opened again keeps of it. A rule is not in it, since no route
+        serves one, and neither is the client: two clients that may read the same of a node are
+        sent the same tag for it.
 
-        **Sent only to a client that may read everything it covers**: `read` on a group, and on an
-        entry `read` reaching its attachments, and its protected values too when it holds any, in
-        one rule. A tag is a digest of the content, and one handed to a client that may not read
-        all of it would let that client test guesses at the rest by writing them where it may
-        write. A client that is not sent one has any `If-Match` it sends answered `412`, since a
+        **Sent to every client holding `read` on the node, and to no other.** A tag is a digest of
+        content, and a tag covering a value its holder may not read would let that holder test
+        guesses at the value by writing them where it may write and comparing the tags that came
+        back. So a tag covers what its holder may read and holds nothing derived from a value it
+        may not: a guess written blind moves the tag the same whether the guess was right, through
+        `modified` and through nothing else. A protected title or URL shown to a client only by a
+        listing of entries, under `list` with `protected`, is not in its tag. This reverses a tag
+        that covered the whole node and was sent only
+        to a client whose one rule read all of it, which left a rule without `protected` no tag
+        for any entry holding a password. What follows from it: two clients that see different
+        things of a node hold different tags for it; a client whose rules are widened or narrowed
+        so that it sees more of a node or less has its next `If-Match` answered `412` once, and
+        reads again; and a client that writes a value it may not read is told the value changed
+        in between only when the change moved the entry's `modified`, which is in every tag. A
+        client that is not sent a tag has any `If-Match` it sends answered `412`, since a
         condition it cannot be told the answer to is one it cannot meet.
 
         **And it says nothing about what it was made from.** It is keyed with a secret derived from
@@ -2735,7 +2765,9 @@ components:
         13.1.1 has it: one tag or several on the line, comma separated, each in quotes as `ETag`
         hands it out, or `*` for whatever the node holds. The tag is the group's for a group and the
         entry's for the entry and everything in it, so a field written against a tag taken from the
-        entry's own read is refused if anything in the entry changed since, not only that field.
+        entry's own read is refused if anything this client may read in the entry changed since,
+        not only that field. The condition is asked of the tag this client would be sent for the
+        node, so a tag another client was sent meets it only where both read the same of the node.
         Compared strongly, so a weak tag never matches. Absent, nothing is asked and the request is
         served as it always was: a write goes ahead whatever changed since the caller last read.
 
@@ -2748,11 +2780,13 @@ components:
         9110 section 13.2.1 orders them. The header sent twice is `400`, as any header this gate
         reads is.
 
-        **So a client that is sent no tag can learn from an `If-Match` which names an entry
-        carries**, without changing anything: a field or an attachment name the entry does not
-        carry is `404`, and a name it does carry `412`. A write without the condition tells it as
-        much, by making the change wherever the name is there. What it learns is a name, one guess
-        at a time, and never a value.
+        **So a client can learn from an `If-Match` that cannot hold which names an entry carries,
+        where it may change or strip a part it is not shown**, without changing anything: a field
+        or an attachment name the entry does not carry is `404`, and a name it does carry `412`.
+        That is a client sent no tag, whatever it sends, and a client that reads the entry without
+        `attachments` and may strip, sending a tag it made up. A write without the condition tells
+        it as much, by making the change wherever the name is there. What it learns is a name,
+        one guess at a time, and never a value.
 
         **A write's condition is checked where the write is made**, on KeePass's thread under the
         writer's lock, against the node as the change would find it, so nothing can land between

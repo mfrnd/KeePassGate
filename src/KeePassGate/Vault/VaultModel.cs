@@ -53,7 +53,7 @@ namespace KeePassGate.Vault
         public VaultEntry(
             string uuid, string group, string title, string url,
             DateTimeOffset created, DateTimeOffset modified, IAclNode node,
-            bool titleProtected, bool urlProtected, DateTimeOffset? expires, bool? holdsProtected)
+            bool titleProtected, bool urlProtected, DateTimeOffset? expires)
         {
             Uuid = uuid;
             Group = group;
@@ -65,7 +65,6 @@ namespace KeePassGate.Vault
             TitleProtected = titleProtected;
             UrlProtected = urlProtected;
             Expires = expires;
-            HoldsProtected = holdsProtected;
         }
 
         public string Uuid { get; private set; }
@@ -83,6 +82,10 @@ namespace KeePassGate.Vault
         /// Either of them can be protected, and then `list` is not enough on its own:
         /// <see cref="TitleProtected"/> and <see cref="UrlProtected"/> say which, and the
         /// handler withholds those without the `protected` switch, as the read route does.
+        ///
+        /// **Null, both of them, in the description a view carries**, <see cref="VaultEntryView"/>:
+        /// a view holds a string only as one of its fields, where the caller's sight decides
+        /// whether the value is there, and reads neither to be built.
         /// </remarks>
         public string Title { get; private set; }
 
@@ -116,17 +119,6 @@ namespace KeePassGate.Vault
         public DateTimeOffset? Expires { get; private set; }
 
         public IAclNode Node { get; private set; }
-
-        /// <summary>
-        /// Whether any of the entry's strings is protected, said by a lookup of the one entry and
-        /// null in a listing, which is not asked.
-        /// </summary>
-        /// <remarks>
-        /// What decides whether a client's rule has to carry `protected` before it is handed the
-        /// entry's tag. Nothing new is told by it: a client that may read the entry is told which
-        /// of its fields are protected anyway.
-        /// </remarks>
-        public bool? HoldsProtected { get; private set; }
     }
 
     /// <summary>
@@ -140,7 +132,8 @@ namespace KeePassGate.Vault
     ///
     /// **A view asks with the same thing**, the entry it is about to be taken of, so that what
     /// a caller may read is answered about the entry as the read finds it:
-    /// <see cref="IVault.View"/>.
+    /// <see cref="IVault.View"/>. A view names no string, so <see cref="Guarded"/> is false
+    /// for it: how far a caller may read is asked whatever the entry holds.
     /// </remarks>
     public sealed class VaultFound
     {
@@ -183,7 +176,7 @@ namespace KeePassGate.Vault
         /// <summary>
         /// Whether the change sets or takes away a string that is protected, by the database for
         /// what it is called or by the flag the string itself carries. False for a change that
-        /// touches no string. For a view, whether any string of the entry is protected.
+        /// touches no string, and for a view.
         /// </summary>
         public bool Guarded { get; private set; }
 
@@ -209,16 +202,19 @@ namespace KeePassGate.Vault
     /// told nothing of a name already taken, a dialog open on the entry or a tag that no longer
     /// matches, since each of those is a fact about a node it may not reach.
     ///
-    /// **The tag is asked about twice**, of the node as the change found it, for the request's
-    /// `If-Match`, and of the node as the change left it, for the tag in the answer: a change
-    /// that makes a string protected leaves a node whose tag covers a value its own caller may no
-    /// longer read. Only a caller whose rule may read everything the tag covers is handed a tag
-    /// or has its `If-Match` asked, which is what keeps a tag from telling a client anything
-    /// about a value its rule does not let it read, `API.md` §410.
+    /// **What the caller may read is asked about twice**, of the node as the change found it,
+    /// for the request's `If-Match`, and of the node as the change left it, for the tag in the
+    /// answer: a change that makes a string protected leaves a view its own caller reads less
+    /// of, and the tag in the answer is of the view after. A tag is taken of what its caller may
+    /// read and handed to every caller holding `read`, which is what keeps a tag from telling a
+    /// client anything about a value its rule does not let it read, `API.md` §410. This
+    /// reverses the rule that only a caller whose one rule read the whole node was handed a
+    /// tag, the operator's ruling of 2026-11-10.
     ///
-    /// **And whether the caller may read what the change names**, which decides whether an
-    /// update that would change nothing is skipped: <see cref="VaultTagging.Sees"/> has the
-    /// argument.
+    /// **One answer for the tag and for the skip.** Whether an update that would change
+    /// nothing is skipped is decided by whether the caller may read what the change names,
+    /// <see cref="VaultTagging.Sees"/>, and that is read off the same sight the tag is taken
+    /// with, so the two cannot come to disagree about what the caller reads.
     ///
     /// **A change handed no questions is refused**, as is a change whose questions are answered
     /// by nobody, so a caller that forgets the rules does not compile into a write that ignores
@@ -227,35 +223,36 @@ namespace KeePassGate.Vault
     public sealed class VaultAsking
     {
         private readonly Func<VaultFound, bool> _allowed;
-        private readonly Func<VaultFound, bool> _mayTag;
-        private readonly Func<VaultFound, bool> _sees;
+        private readonly Func<VaultFound, VaultSight> _sight;
         private readonly VaultPrecondition _precondition;
         private readonly bool _answers;
+        private readonly bool _attachment;
 
         /// <summary>The questions one change asks, each of the node the change finds.</summary>
         /// <param name="allowed">Whether the caller may make this change to what was found.</param>
-        /// <param name="mayTag">
-        /// Whether the caller may be handed the tag of what was found and have its `If-Match`
-        /// asked, or null for a change that deals in no tag.
-        /// </param>
-        /// <param name="sees">
-        /// Whether the caller may read every value the change names on what was found, or null
-        /// for a caller that may read none of them.
+        /// <param name="sight">
+        /// How far the caller may read into what was found, or null for a caller that may read
+        /// nothing, which deals in no tag. For a group, whether the caller holds `read` is the
+        /// whole of the answer.
         /// </param>
         /// <param name="precondition">What `If-Match` asked of the node, or null.</param>
         /// <param name="answers">Whether the answer carries the tag the change leaves.</param>
+        /// <param name="attachment">
+        /// Whether the value the change names is an attachment's bytes, and not a string or a
+        /// group's name and notes.
+        /// </param>
         public VaultAsking(
             Func<VaultFound, bool> allowed,
-            Func<VaultFound, bool> mayTag,
-            Func<VaultFound, bool> sees,
+            Func<VaultFound, VaultSight> sight,
             VaultPrecondition precondition,
-            bool answers)
+            bool answers,
+            bool attachment = false)
         {
             _allowed = allowed;
-            _mayTag = mayTag;
-            _sees = sees;
+            _sight = sight;
             _precondition = precondition;
             _answers = answers;
+            _attachment = attachment;
         }
 
         /// <summary>Whether the change may be made to what it found.</summary>
@@ -265,37 +262,62 @@ namespace KeePassGate.Vault
         }
 
         /// <summary>
-        /// What the change does about the tag of the node as it stands, and whether its caller
-        /// may read what it names there: asked once of the node the change found, and again of
-        /// the node the change left.
+        /// What the change does about the tag of the node as it stands, and how far its caller
+        /// may read there: asked once of the node the change found, and again of the node the
+        /// change left.
         /// </summary>
         /// <remarks>
-        /// **A caller that may not be handed the tag has its `If-Match` failed rather than
-        /// ignored.** Ignoring it would make the write unconditional, which is the one thing a
-        /// client sending a precondition did not ask for. Failed where the vault asks it, so
-        /// that a node gone, taken or busy is still answered first, as RFC 9110 section 13.2.1
-        /// orders it.
+        /// **The sight is asked once per asking**, and the precondition, the tag in the answer
+        /// and the skip are all read off that answer. A question nobody answers is
+        /// <see cref="VaultSight.Least"/>, which reads nothing and is handed no tag.
+        ///
+        /// **A caller that is handed no tag has its `If-Match` failed rather than ignored.**
+        /// Ignoring it would make the write unconditional, which is the one thing a client
+        /// sending a precondition did not ask for. Failed where the vault asks it, so that a
+        /// node gone, taken or busy is still answered first, as RFC 9110 section 13.2.1 orders
+        /// it.
         /// </remarks>
         public VaultTagging Tagging(VaultFound found)
         {
-            var mayTag = _mayTag != null && found != null && _mayTag(found);
+            // Nothing found is nothing in sight: no tag, a condition nothing meets, and nothing
+            // its caller reads.
+            var sight = found == null || _sight == null ? null : _sight(found);
+            sight = sight ?? VaultSight.Least;
 
             var precondition = _precondition;
-            if (!mayTag && precondition != null)
+            if (!sight.Reads && precondition != null)
             {
                 precondition = VaultPrecondition.Withheld();
             }
 
-            var sees = _sees != null && found != null && _sees(found);
+            return new VaultTagging(precondition, sight.Reads && _answers, sight, Sees(found, sight));
+        }
 
-            return new VaultTagging(precondition, mayTag && _answers, sees);
+        /// <summary>
+        /// Whether a sight reads every value the change names on what was found:
+        /// <see cref="VaultTagging.Sees"/>.
+        /// </summary>
+        private bool Sees(VaultFound found, VaultSight sight)
+        {
+            if (found == null || !sight.Reads)
+            {
+                return false;
+            }
+
+            if (_attachment)
+            {
+                return sight.Attachments == VaultAttachmentSight.Read;
+            }
+
+            return !found.Guarded || sight.Protected;
         }
     }
 
     /// <summary>
     /// What a change does about the node as the node stands at one moment, decided from who is
     /// asking: whether it is made only while the node still holds what `If-Match` named, whether
-    /// it answers with the tag it leaves, and whether its caller may read the values it names.
+    /// it answers with the tag it leaves, how far its caller may read, which is the view both
+    /// tags are taken of, and whether its caller may read the values it names.
     /// </summary>
     /// <remarks>
     /// Answered by <see cref="VaultAsking.Tagging"/> inside the change's turn, never handed in
@@ -306,10 +328,11 @@ namespace KeePassGate.Vault
     /// </remarks>
     public sealed class VaultTagging
     {
-        public VaultTagging(VaultPrecondition precondition, bool answers, bool sees)
+        public VaultTagging(VaultPrecondition precondition, bool answers, VaultSight sight, bool sees)
         {
             Precondition = precondition;
             Answers = answers;
+            Sight = sight ?? VaultSight.Least;
             Sees = sees;
         }
 
@@ -318,6 +341,18 @@ namespace KeePassGate.Vault
 
         /// <summary>Whether the answer carries the tag the change left.</summary>
         public bool Answers { get; private set; }
+
+        /// <summary>
+        /// How far the caller may read into the node as it stands, never null: the sight an
+        /// entry's tag is taken with, for the precondition and for the answer alike.
+        /// </summary>
+        /// <remarks>
+        /// The tag a change is asked against and the tag it answers with are the tags of the
+        /// caller's own view, the tag every read route hands the same caller, `API.md` §410. A
+        /// sight that does not read has no tag, so its caller is handed none and its `If-Match`
+        /// fails.
+        /// </remarks>
+        public VaultSight Sight { get; private set; }
 
         /// <summary>
         /// Whether the caller may read every value the change names: a group's name and notes
@@ -335,6 +370,11 @@ namespace KeePassGate.Vault
         /// a guess that is wrong do the same work. A caller that may read the value learns
         /// nothing from the skip that a read would not tell it, and a request naming nothing has
         /// nothing in it to guess, so it is skipped for everybody.
+        ///
+        /// **Read off <see cref="Sight"/>**, the same ruling's amendment that the skip and the
+        /// tag have the same input: a group's name and notes and an entry's unprotected strings
+        /// are read by a sight that reads, a protected string by a sight reaching protected
+        /// values, and an attachment's bytes by a sight reading attachments.
         /// </remarks>
         public bool Sees { get; private set; }
     }

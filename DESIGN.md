@@ -694,6 +694,17 @@ records a refusal. That is the arrangement every other question is kept out of, 
 has to remember, and it is where this one has to be, since only the handler holds the values in
 question. A route added later that handles field values has to ask it as well.
 
+**And how far a caller may read is asked once more, silently, for the view.** Every answer about an
+entry and the entry's tag are made from one view of it, and the handlers ask the resolver what that
+view may hold: `read`, `read` with `protected`, `read` with `attachments`, and `list` with
+`attachments`, each as one rule has to grant it and with no audit line, for every entry read and
+twice for every change to an entry, of the node the change found and of the node it left. The
+vault leaves out of the view what that answer does not open, so a value the rules withhold is not
+there to be rendered or tagged, `API.md` §410. The recorded helper stays beside it for what it was
+always for: the line an operator reads when a protected value is withheld or set. The two ask the
+same walk of the same node in the same hold or turn, so they cannot answer differently, and a value
+goes out only where both open it.
+
 The verb comes from the routing table, as `x-kpg-verb`, and **an operation that declares none stops
 the plugin loading**. That is what keeps authorization from being something a new route can be added
 without: there is no permissive default to fall into, only a document that does not parse. `none` is

@@ -38,16 +38,25 @@ namespace KeePassGate.Bridge
     ///
     /// **The key keeps tags from being computed, and it does not keep them from being compared.**
     /// A client that can make a write under `If-Match` learns whether the node held what its tag
-    /// named, and a write it can make changes the content in a way it chooses, so a tag handed to a
-    /// client that may not read every part it covers would let that client test guesses at the
-    /// rest one request at a time. That is why the routes hand a tag, and honor `If-Match`, only to
-    /// a caller whose rule may read everything the tag covers, `API.md` §410, and why nothing here
-    /// tries to make a tag safe for anybody else.
+    /// named, and a write it can make changes the content in a way it chooses, so a tag covering
+    /// a part its holder may not read would let that holder test guesses at the part one request
+    /// at a time. That is why an entry's tag covers what its caller may read and nothing else,
+    /// `API.md` §410: the tag of a caller that may not read a value holds nothing derived from
+    /// the value, so a guess written blind moves that tag the same whether the guess was
+    /// right, through the entry's `modified` and through nothing else. This
+    /// reverses the rule that a tag covered the whole entry and was handed only to a caller
+    /// whose one rule read all of it, the operator's ruling of 2026-11-10.
     ///
-    /// **Exactly what the routes serve, as they serve it, and nothing else.** An entry's tag covers
-    /// its identifier, the group it is in, when it was created and last changed, every string with
-    /// its name, whether it is served as protected and its value, every attachment with its name,
-    /// its size and its bytes, and when it expires; a group's covers its identifier, the group it
+    /// **What the entry's own routes serve its caller, as they serve it, and nothing a caller
+    /// may not read.** Two edges, both in `API.md` §410: a caller holding `read` with
+    /// `attachments` and no `list` has every attachment in its tag, since it reads any of them
+    /// by name though no route lists them to it, and a protected title or URL a caller is shown
+    /// only by a listing of entries, under `list` with `protected`, is not in its tag. An
+    /// entry's tag covers its identifier, the group it is in, when it was created and last
+    /// changed, every string with its name, whether it is served as protected and, where its
+    /// caller may read it, its value, every attachment with its name and its size where its
+    /// caller may list attachments and with its bytes where its caller may read them, and when
+    /// it expires; a group's covers its identifier, the group it
     /// is in, its name, its notes and its two times. The identifier is there so that two nodes
     /// holding the same never share a tag, which would tell a client they do. A time enters as the
     /// wire writes it, to the second, because a file reopened keeps no more than that: a fraction
@@ -56,8 +65,15 @@ namespace KeePassGate.Bridge
     ///
     /// **An entry's tag is taken of the view the routes answer from**, a
     /// <see cref="VaultEntryView"/>, and never of the entry itself, so the tag and the answer are
-    /// one projection and cannot come to cover different things. A value or the attachments the
-    /// view withholds enter as a fixed mark, with nothing derived from what is withheld.
+    /// one projection and cannot come to cover different things. A value the view withholds
+    /// enters as a fixed mark, with nothing derived from what is withheld, and attachments the
+    /// view does not hold enter nothing at all. **Nothing about the rule enters**, no scope, no
+    /// mark of how far a rule reaches and no client: the content already differs wherever two
+    /// views differ, and two callers with the same view hold the same tag, so a reader can hand
+    /// its tag to a writer that sees what it sees. **So a rule widened over an entry where
+    /// nothing new comes into sight moves no tag**: an entry holding no attachment is tagged
+    /// alike for a caller that may read attachments and for a caller that may not, since
+    /// neither is shown any, and a `412` is never the answer to a change nobody could see.
     ///
     /// **Strings and attachments enter in an order of the tag's own**, by name, ordinal. KeePass
     /// keeps both in dictionaries sorted by the current culture, in the order their names were
@@ -160,11 +176,20 @@ namespace KeePassGate.Bridge
         ///
         /// **A withheld value enters as a mark that it is withheld**, the same mark whatever the
         /// value is and however long, so the tag of a view moves with nothing its caller may not
-        /// read. Attachments out of sight enter as one mark for all of them, in the same way.
+        /// read.
+        ///
+        /// **Attachments enter as far as the view holds them, and no mark of how far that is.**
+        /// Nothing when the view holds none, each name and size when they are listed, and each
+        /// name, size and digest when they are read. A view that holds no attachment is tagged
+        /// alike whether its caller's rules reach attachments or the entry has none, so a rule
+        /// widened over an entry where nothing new comes into sight moves no tag.
+        ///
+        /// **No tag for a view whose sight does not read**, which the view itself already
+        /// answers by never asking, `VaultEntryView.Tag`.
         /// </remarks>
         public string Of(VaultEntryView view)
         {
-            if (view == null)
+            if (view == null || !view.Sight.Reads)
             {
                 return null;
             }
@@ -207,28 +232,26 @@ namespace KeePassGate.Bridge
                     }
                 }
 
-                if (view.Attachments == null)
-                {
-                    Put(hmac, "attachments withheld");
-                }
-                else
-                {
-                    Put(hmac, "attachments");
+                // What the view holds of the attachments and no mark for how far the sight
+                // reaches: a view holding no attachment is tagged alike whether its caller's rule
+                // reaches attachments or the entry has none, since neither caller is shown any.
+                // A rule widened over an entry where nothing new comes into sight therefore moves
+                // no tag, and a `412` is never the answer to a change nobody could see.
+                var held = view.Attachments ?? Array.Empty<VaultViewAttachment>();
 
-                    foreach (var attachment in view.Attachments.OrderBy(
-                        attachment => attachment.Name, StringComparer.Ordinal))
+                foreach (var attachment in held.OrderBy(attachment => attachment.Name, StringComparer.Ordinal))
+                {
+                    Put(hmac, "attachment");
+                    Put(hmac, attachment.Name);
+                    Put(hmac, Length((uint)attachment.Size));
+
+                    // Null for an attachment whose bytes are out of sight, and for an attachment
+                    // larger than the gate serves: each enters by its name and size alone.
+                    var digest = attachment.Digest;
+                    if (digest != null)
                     {
-                        Put(hmac, "attachment");
-                        Put(hmac, attachment.Name);
-                        Put(hmac, Length((uint)attachment.Size));
-
-                        // Null for an attachment larger than the gate serves, which enters by its
-                        // size alone.
-                        var digest = attachment.Digest;
-                        if (digest != null)
-                        {
-                            Put(hmac, digest);
-                        }
+                        Put(hmac, "bytes");
+                        Put(hmac, digest);
                     }
                 }
 

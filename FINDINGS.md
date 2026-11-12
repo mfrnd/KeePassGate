@@ -420,8 +420,32 @@ covers.** Measured in the review of the change that added it: a client whose rul
 into the password and compared the tag that came back with the first, and had a three digit one in
 614 writes and 7.8 seconds; a rule holding `read` beside another profile's `update` and
 `protected` recovered an eleven character password of a known shape in four. A key stops a tag
-being computed and not being compared, so a tag now goes only to a rule that may read everything it
+being computed and not being compared, so a tag went only to a rule that may read everything it
 covers, `API.md` §410.
+
+**A tag over what its caller may read gives the guess nothing to compare, and gives every reader a
+tag.** That rule closed the attack by handing most rules no tag: an entry KeePass makes holds a
+protected `Password` from the start, so a rule without `protected` was never handed a tag for it.
+The operator ruled on 2026-11-10 to reverse it. The tag is taken of the entry as its caller's
+rules open it, with a value the caller may not read entering as a fixed mark beside its name, and
+it is handed to every caller holding `read`. Both shapes of the measured attack were run again
+through the real router and vault, in `TagOfTheCallersViewTests`: the rule holding `update` and
+`protected` without `read` is handed no tag at all, and the rule holding `read` beside another
+profile's `update` and `protected` is handed the tag a rule holding `read` alone has, which
+stays where it was while the password under it is changed with nothing touched. A guess it
+writes is written like any change, a save and a revision for a right guess and a wrong guess
+alike, so its tag moves with `modified` the same for both and with nothing of the value.
+What moves a narrow tag was measured
+case by case in `NodeTagsTests`, on the same entry changed with nothing touched: a withheld value
+changed moves only the tag of a view reading protected values, an attachment's bytes changed at
+the same size only the tag of a view reading attachments, and an attachment added or renamed
+also the tag of a view that lists them. Nothing about how far a rule reaches is in a tag, so an
+entry holding no attachment has the same tag whether or not its caller's rule reaches
+attachments, and a rule widened over an entry where nothing new comes into sight moves no tag:
+`TagOfTheCallersViewTests` widens `read` to `read` with `attachments` over such an entry and
+writes under the tag from before. What is left for a caller writing a value blind is the
+entry's `modified`, which is in every view: its tag moves when a change moves the served second,
+so it misses what the table above has a time missing, and nothing else.
 
 **An update that writes nothing was a way to guess as well, with no tag in it.** A client whose
 rule held `update` and not `read` sent a value and was told whether the node already held it: a

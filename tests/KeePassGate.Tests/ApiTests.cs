@@ -350,9 +350,9 @@ namespace KeePassGate.Tests
         [Test]
         public void A_tag_is_taken_only_by_a_route_that_hands_it_out()
         {
-            // A tag is a digest of every string and attachment the node holds, which the real vault
-            // decrypts to take, so `IVault.GroupTag` keeps it to a route that will use it: a
-            // listing, an access answer and a caller that may not be handed a tag cost none.
+            // A tag is a digest of every string and attachment its caller may read of the node,
+            // which the real vault decrypts to take, so a tag is taken only by a route that will
+            // use it: a listing, an access answer and a caller that is handed no tag cost none.
             // Nothing a client sees would differ if they did, which is why this counts.
             _vault.Granting(_vault.RootAlias, Rules.Granting(("agent", "CRUSDLAP")));
             Assert.That(_vault.CreateAttachment(_entry, "notes.txt", new byte[] { 1 }, VaultAskings.Free).Ok, Is.True);
@@ -373,17 +373,20 @@ namespace KeePassGate.Tests
             Assert.That(Get(entry).Tag, Is.Not.Null);
             Assert.That(_vault.TagsTaken, Is.EqualTo(taken + 1), "and a read handing a tag out takes it once");
 
-            // A rule whose `read` does not reach the attachments may not be handed the entry's tag.
-            _vault.Granting(_vault.RootAlias, Rules.Granting(("agent", "RUL")));
+            // A rule without `read` is handed no tag, on the routes `list` opens and on a change.
+            _vault.Granting(_vault.RootAlias, Rules.Granting(("agent", "ULA")));
             taken = _vault.TagsTaken;
 
-            foreach (var path in new[] { entry, entry + "/fields", entry + "/fields/Title" })
+            foreach (var path in new[] { entry + "/fields", entry + "/attachments" })
             {
-                Assert.That(Get(path).Status, Is.EqualTo(200), path);
+                var listed = Get(path);
+
+                Assert.That(listed.Status, Is.EqualTo(200), path);
+                Assert.That(listed.Tag, Is.Null, path);
             }
 
             Assert.That(Send("PUT", entry, "{\"Title\":\"renamed\"}").Status, Is.EqualTo(200));
-            Assert.That(_vault.TagsTaken, Is.EqualTo(taken), "a caller that may not be handed a tag cost a tag");
+            Assert.That(_vault.TagsTaken, Is.EqualTo(taken), "a caller that is handed no tag cost a tag");
         }
 
         [Test]
@@ -636,26 +639,25 @@ namespace KeePassGate.Tests
         [TestCase("/groups/{group}", "\"00000000000000000000000000000000\"", false, TestName = "A read of a group refused under a stale tag is logged with its reason")]
         [TestCase("/entries/{entry}", "\"00000000000000000000000000000000\"", false, TestName = "A read of an entry refused under a stale tag is logged with its reason")]
         [TestCase("/entries/{entry}/fields/Title", "\"unterminated", false, TestName = "A read refused under a field that does not read is logged with its reason")]
-        [TestCase("/entries/{entry}/attachments/notes.txt", "*", true, TestName = "A read refused to a client handed no tag is logged with its reason")]
+        [TestCase("/entries/{entry}/attachments", "*", true, TestName = "A read refused to a client handed no tag is logged with its reason")]
         public void A_read_refused_412_is_logged_as_a_change_refused_412_is(
-            string route, string ifMatch, bool holdsProtected)
+            string route, string ifMatch, bool listsOnly)
         {
             // The maintainer's word of 2026-11-08. A change's `412` has always been a warning in
             // the log, with its reason; a read's was written nowhere, so a client refused on its
             // reads over and over showed nowhere at all.
-            _vault.Granting(_group, AllButProtected);
+            //
+            // A caller handed no tag is a caller without `read`, which reaches the routes `list`
+            // opens and no others.
+            _vault.Granting(_group, listsOnly ? Rules.Granting(("agent", "LA")) : AllButProtected);
             Assume.That(_vault.CreateAttachment(_entry, "notes.txt", new byte[] { 1 }, VaultAskings.Free).Ok, Is.True);
-            if (holdsProtected)
-            {
-                _vault.CreateField(_entry, "Password", "not-a-real-password", true, VaultAskings.Free);
-            }
 
             var read = Conditioned("GET", route.Replace("{group}", _group).Replace("{entry}", _entry), null, ifMatch);
 
             // The reason a change's refusal gives, one way of naming a cause for both: a caller
             // handed no tag is refused under `Withheld`, as its changes are, and any other caller
             // under what it asked.
-            var reason = (holdsProtected ? VaultPrecondition.Withheld() : VaultPrecondition.Read(ifMatch)).Refusal;
+            var reason = (listsOnly ? VaultPrecondition.Withheld() : VaultPrecondition.Read(ifMatch)).Refusal;
 
             Assert.That(read.Status, Is.EqualTo(412), read.Json);
             Assert.That(_log.Warnings.Select(line => line.Message), Is.EqualTo(new[]
@@ -705,14 +707,19 @@ namespace KeePassGate.Tests
         }
 
         [Test]
-        public void A_client_that_may_not_read_everything_a_tag_covers_is_handed_none()
+        public void A_client_that_may_not_read_an_entry_s_attachments_is_handed_the_tag_of_what_it_reads()
         {
-            // An entry's tag covers its attachments' bytes, so a rule whose `read` does not reach
-            // them may not have it: with one, a client could test guesses at what it may not read
-            // by writing them where it may write and watching the tag that came back.
+            // An entry's tag covers what its caller may read, so a rule whose `read` does not
+            // reach the attachments is handed a tag that nothing about them is in: a tag covering
+            // them would let it test guesses at what it may not read by writing them where it
+            // may write and watching the tag that came back.
             _vault.Granting(_group, Rules.Granting(("agent", "RUL")));
             _vault.CreateAttachment(_entry, "notes.txt", Encoding.UTF8.GetBytes("invented"), VaultAskings.Free);
             var entry = "/entries/" + _entry;
+            var tag = Get(entry).Tag;
+
+            Assert.That(tag, Does.Match("^\"[0-9a-f]{32}\"$"));
+            Assert.That(tag, Is.Not.EqualTo("\"" + _vault.EntryTag(_entry) + "\""), "and not the tag of the whole entry");
 
             foreach (var path in new[] { entry, entry + "/fields", entry + "/fields/Title" })
             {
@@ -721,17 +728,25 @@ namespace KeePassGate.Tests
                     var answer = Send(method, path, null);
 
                     Assert.That(answer.Status, Is.EqualTo(200), method + " " + path);
-                    Assert.That(answer.Tag, Is.Null, method + " " + path);
+                    Assert.That(answer.Tag, Is.EqualTo(tag), method + " " + path);
                 }
             }
 
-            var served = Send("PUT", entry, "{\"Title\":\"renamed\"}");
-            Assert.That(served.Status, Is.EqualTo(200), "a write that asks nothing is served as it always was");
-            Assert.That(served.Written, Is.Null, "and answers no tag");
+            // An attachment replaced, added and taken off by somebody else moves nothing this
+            // caller may read, so its tag still holds and its write goes ahead.
+            Assert.That(_vault.UpdateAttachment(_entry, "notes.txt", new byte[] { 1, 2 }, VaultAskings.Free).Ok, Is.True);
+            Assert.That(_vault.CreateAttachment(_entry, "more.txt", new byte[] { 3 }, VaultAskings.Free).Ok, Is.True);
+            Assert.That(Get(entry).Tag, Is.EqualTo(tag));
 
-            // A condition it cannot be told the answer to is one it cannot meet, `*` included, and
-            // ignoring it would make the write unconditional, which is the one thing it did not ask.
-            foreach (var condition in new[] { "*", "\"00000000000000000000000000000000\"" })
+            var served = Conditioned("PUT", entry, "{\"Title\":\"renamed\"}", tag);
+            Assert.That(served.Status, Is.EqualTo(200), served.Json);
+            Assert.That(served.Written, Is.Not.Null.And.Not.EqualTo(tag));
+            Assert.That(served.Written, Is.EqualTo(Get(entry).Tag), "the tag of this caller's view of what was written");
+
+            // The condition is asked of that tag as of any: `*` holds, and a tag the view has
+            // moved on from, or never had, fails and changes nothing.
+            Assert.That(Conditioned("GET", entry, null, "*").Status, Is.EqualTo(200));
+            foreach (var condition in new[] { tag, "\"00000000000000000000000000000000\"" })
             {
                 Assert.That(Conditioned("GET", entry, null, condition).Status, Is.EqualTo(412), condition);
 
@@ -740,25 +755,44 @@ namespace KeePassGate.Tests
                 Assert.That(_vault.Field(_entry, "Title"), Is.EqualTo("renamed"), condition);
             }
 
+            // A rule widened so that more of the entry comes into sight is another view, and
+            // the tag of the narrower view fails against it once.
+            var narrow = Get(entry).Tag;
             _vault.Granting(_group, AllButProtected);
-            Assert.That(Get(entry).Tag, Is.Not.Null, "and a rule that does reach them is handed it");
+            Assert.That(Get(entry).Tag, Is.Not.Null.And.Not.EqualTo(narrow));
+            Assert.That(Conditioned("PUT", entry, "{\"Title\":\"renamed again\"}", narrow).Status, Is.EqualTo(412));
         }
 
         [Test]
-        public void An_entry_holding_a_protected_value_is_tagged_only_for_a_rule_that_reads_it()
+        public void An_entry_holding_a_protected_value_is_tagged_for_a_rule_that_does_not_read_it_by_what_the_rule_reads()
         {
             _vault.CreateField(_entry, "Password", "not-a-real-password", true, VaultAskings.Free);
             var entry = "/entries/" + _entry;
 
             _vault.Granting(_group, AllButProtected);
-            Assert.That(Get(entry).Status, Is.EqualTo(200));
-            Assert.That(Get(entry).Tag, Is.Null, "read reaching attachments and not protected values");
-            Assert.That(Conditioned("PUT", entry, "{\"UserName\":\"x\"}", "*").Status, Is.EqualTo(412));
+            var narrow = Get(entry).Tag;
+            Assert.That(narrow, Is.Not.Null, "read reaching attachments and not protected values");
+            Assert.That(Get(entry).Json, Does.Not.Contain("not-a-real-password"));
+
+            // The withheld value changed by somebody else: nothing this caller reads moved, so
+            // its tag did not, and its write under that tag goes ahead.
+            _vault.Plant(_entry, "Password", "another-invented-password");
+            Assert.That(Get(entry).Tag, Is.EqualTo(narrow));
+            Assert.That(Conditioned("PUT", entry, "{\"UserName\":\"x\"}", "*").Status, Is.EqualTo(200));
+            narrow = Get(entry).Tag;
+            Assert.That(Conditioned("PUT", entry, "{\"UserName\":\"y\"}", narrow).Status, Is.EqualTo(200));
+            narrow = Get(entry).Tag;
 
             _vault.Granting(_group,
                 Rules.Granting(("agent", "CRUSDLAP")));
             var tag = Get(entry).Tag;
-            Assert.That(tag, Is.Not.Null);
+            Assert.That(tag, Is.Not.Null.And.Not.EqualTo(narrow), "a rule reading the value holds another tag for the entry");
+            Assert.That(Conditioned("PUT", entry, "{\"UserName\":\"z\"}", narrow).Status, Is.EqualTo(412),
+                "and the tag of a view that leaves the value out is not its tag");
+
+            _vault.Plant(_entry, "Password", "not-a-real-password");
+            Assert.That(Get(entry).Tag, Is.Not.EqualTo(tag), "which moves with the value");
+            tag = Get(entry).Tag;
 
             var written = Conditioned("PUT", entry, "{\"UserName\":\"x\"}", tag);
             Assert.That(written.Status, Is.EqualTo(200), written.Json);
@@ -766,26 +800,164 @@ namespace KeePassGate.Tests
         }
 
         [Test]
-        public void An_entry_made_as_KeePass_makes_one_is_tagged_only_for_a_rule_reaching_protected_values()
+        public void An_entry_made_as_KeePass_makes_one_is_tagged_for_a_rule_not_reaching_protected_values()
         {
             // The tag tests above run on an entry holding only its title. KeePass and `createEntry`
             // give every entry all five standard strings, and the database protects the password
             // however empty it is, so every such entry holds a protected value from the start: a
-            // rule without `protected` is never handed its tag, and every condition it sends is
-            // refused, `*` included.
+            // rule without `protected` is handed the tag of its own view of the entry, and its
+            // conditions are asked of that tag.
             _vault.Granting(_group, AllButProtected);
             var made = Send("POST", "/groups/" + _group + "/entries", Bodies.Of(("Title", "an invented entry")));
             Assert.That(made.Status, Is.EqualTo(VaultHandlers.Created), made.Json);
             var entry = "/entries/" + JsonBody.Read(made.Json).Text("uuid");
 
             Assert.That(Get(entry).Status, Is.EqualTo(200));
-            Assert.That(Get(entry).Tag, Is.Null, "an empty password the database protects is a protected value");
-            Assert.That(Conditioned("PUT", entry, "{\"UserName\":\"x\"}", "*").Status, Is.EqualTo(412));
+            var narrow = Get(entry).Tag;
+            Assert.That(narrow, Is.Not.Null);
+            Assert.That(Conditioned("PUT", entry, "{\"UserName\":\"x\"}", narrow).Status, Is.EqualTo(200));
+            Assert.That(Conditioned("PUT", entry, "{\"UserName\":\"y\"}", "*").Status, Is.EqualTo(200));
+            narrow = Get(entry).Tag;
 
             _vault.Granting(_group, Rules.Granting(("agent", "CRUSDLAP")));
             var tag = Get(entry).Tag;
-            Assert.That(tag, Is.Not.Null);
+            Assert.That(tag, Is.Not.Null.And.Not.EqualTo(narrow),
+                "an empty password the database protects is a protected value, and in this view");
             Assert.That(Conditioned("PUT", entry, "{\"UserName\":\"x\"}", tag).Status, Is.EqualTo(200));
+        }
+
+        [Test]
+        public void A_client_that_may_set_a_protected_value_and_not_read_the_entry_is_handed_no_tag()
+        {
+            // The guessing attack of `API.md` §410 from its first side: `update` and `protected`
+            // with no `read`. A tag here would be a tag of nothing the caller reads, so there is
+            // none, on the routes `list` opens and in the answer to a change, and a condition
+            // from this caller fails and is never ignored.
+            _vault.Plant(_entry, "Password", "not-a-real-password");
+            _vault.Granting(_group, Rules.Granting(("agent", "ULP")));
+            var entry = "/entries/" + _entry;
+
+            Assert.That(Get(entry).Status, Is.EqualTo(404));
+            Assert.That(Get(entry + "/fields").Status, Is.EqualTo(200));
+            Assert.That(Get(entry + "/fields").Tag, Is.Null);
+
+            // A right guess and a wrong guess, each sent at the same stored value, are answered
+            // alike and with no tag. That both are written like any change is the real vault's
+            // to show, `SkippedOnlyForAReaderTests`: this vault writes every update.
+            var answers = new List<string>();
+            foreach (var guess in new[] { "not-a-real-password", "a-wrong-guess" })
+            {
+                _vault.Plant(_entry, "Password", "not-a-real-password");
+                var written = Send("PUT", entry + "/fields/Password", Bodies.Of(("value", guess)));
+
+                Assert.That(written.Status, Is.EqualTo(200), written.Json);
+                Assert.That(written.Written, Is.Null, guess);
+                Assert.That(_vault.Field(_entry, "Password"), Is.EqualTo(guess));
+                answers.Add(written.Json);
+            }
+
+            Assert.That(answers[1], Is.EqualTo(answers[0]), "the answer to a wrong guess and to a right guess");
+            _vault.Plant(_entry, "Password", "not-a-real-password");
+
+            foreach (var condition in new[] { "*", "\"00000000000000000000000000000000\"" })
+            {
+                Assert.That(Conditioned("GET", entry + "/fields", null, condition).Status, Is.EqualTo(412), condition);
+                Assert.That(
+                    Conditioned("PUT", entry + "/fields/Password", Bodies.Of(("value", "overwritten")), condition).Status,
+                    Is.EqualTo(412),
+                    condition);
+                Assert.That(_vault.Field(_entry, "Password"), Is.EqualTo("not-a-real-password"), condition);
+            }
+        }
+
+        [Test]
+        public void Every_change_by_a_client_without_read_answers_no_tag_and_fails_any_condition()
+        {
+            // Every verb and both switches but `read`: each change this client may make to an
+            // entry is refused under any condition, `*` among them, with nothing changed, and
+            // made without a condition answers with no tag.
+            _vault.Granting(_group, Rules.Granting(("agent", "CUSDLAP")));
+            _vault.CreateField(_entry, "Account", "an invented account", false, VaultAskings.Free);
+            Assume.That(_vault.CreateAttachment(_entry, "notes.txt", new byte[] { 1 }, VaultAskings.Free).Ok, Is.True);
+            var entry = "/entries/" + _entry;
+
+            var changes = new[]
+            {
+                new[] { "PUT", entry, "{\"Title\":\"renamed\"}" },
+                new[] { "POST", entry + "/fields", Bodies.Of(("name", "Other"), ("value", "invented")) },
+                new[] { "PUT", entry + "/fields/Account", Bodies.Of(("value", "changed")) },
+                new[] { "DELETE", entry + "/fields/Account", null },
+                new[] { "POST", entry + "/attachments", Bodies.Of(("name", "other.txt"), ("content", Base64("invented"))) },
+                new[] { "PUT", entry + "/attachments/notes.txt", Bodies.Of(("content", Base64("changed"))) },
+                new[] { "DELETE", entry + "/attachments/notes.txt", null },
+                new[] { "DELETE", entry, null },
+            };
+
+            var before = _vault.EntryTag(_entry);
+            foreach (var condition in new[] { "*", "\"00000000000000000000000000000000\"" })
+            {
+                foreach (var change in changes)
+                {
+                    Assert.That(Conditioned(change[0], change[1], change[2], condition).Status, Is.EqualTo(412),
+                        change[0] + " " + change[1] + " under " + condition);
+                }
+            }
+
+            Assert.That(_vault.EntryTag(_entry), Is.Not.Null.And.EqualTo(before), "a refused change changed the entry");
+
+            foreach (var change in changes)
+            {
+                var made = Send(change[0], change[1], change[2]);
+
+                Assert.That(made.Status, Is.EqualTo(200).Or.EqualTo(201), change[0] + " " + change[1] + " " + made.Json);
+                Assert.That(made.Written, Is.Null, change[0] + " " + change[1]);
+            }
+
+            Assert.That(_vault.Entry(_entry), Is.Null, "the changes were made, the last of them the removal");
+        }
+
+        [Test]
+        public void A_client_reading_through_one_rule_and_setting_protected_values_through_another_holds_a_tag_the_password_is_not_in()
+        {
+            // The same attack from its other side: `read` without `protected` in one rule,
+            // `update` with `protected` in another. The caller is handed a tag, and nothing
+            // derived from the password is in it, so a right guess and a wrong guess, each sent
+            // at the same stored value, are answered alike.
+            //
+            // **The tag coming back unchanged is this vault's, which keeps no times.** The real
+            // vault writes a blind guess like any change, right or wrong, which moves `modified`
+            // and with it the tag, for both alike: `TagOfTheCallersViewTests` holds it to that.
+            // What is pinned here is the half a vault without times can show: the value written
+            // is not in the tag.
+            _profiles = new[] { "reader", "writer" };
+            _vault.Plant(_entry, "Password", "not-a-real-password");
+            _vault.Granting(_group, Rules.Granting(("reader", "RL"), ("writer", "UP")));
+            var entry = "/entries/" + _entry;
+
+            var tag = Get(entry).Tag;
+            Assert.That(tag, Is.Not.Null);
+            Assert.That(Get(entry).Json, Does.Not.Contain("not-a-real-password"));
+
+            var answers = new List<string>();
+            foreach (var guess in new[] { "not-a-real-password", "a-wrong-guess" })
+            {
+                _vault.Plant(_entry, "Password", "not-a-real-password");
+                var written = Conditioned("PUT", entry + "/fields/Password", Bodies.Of(("value", guess)), tag);
+
+                Assert.That(written.Status, Is.EqualTo(200), guess + ": " + written.Json);
+                Assert.That(_vault.Field(_entry, "Password"), Is.EqualTo(guess));
+                Assert.That(written.Written, Is.EqualTo(tag), guess);
+                Assert.That(Get(entry).Tag, Is.EqualTo(tag), guess);
+                answers.Add(written.Json);
+            }
+
+            Assert.That(answers[1], Is.EqualTo(answers[0]), "the answer to a wrong guess and to a right guess");
+
+            _vault.Plant(_entry, "Password", "changed-by-the-operator");
+            Assert.That(Get(entry).Tag, Is.EqualTo(tag));
+
+            Assert.That(Send("PUT", entry, "{\"Title\":\"renamed\"}").Status, Is.EqualTo(200));
+            Assert.That(Get(entry).Tag, Is.Not.EqualTo(tag), "while a string it reads moves the tag as ever");
         }
 
         [Test]
@@ -793,14 +965,19 @@ namespace KeePassGate.Tests
             [Values("entry", "field", "fields", "attachments", "attachment", "write")] string route,
             [Range(0, 6)] int lookups)
         {
-            // This rule reads everything but protected values, so it is handed an entry's tag only
-            // while the entry holds none. A read decides that and takes the tag inside one hold of
+            // This rule reads everything but protected values, so the tag it is handed covers no
+            // protected value. A read decides that and takes the tag inside one hold of
             // KeePass's thread, so a protected value asked for under the read lands once the hold
             // is let go, and a change decides it inside its own turn. Either way no value landing
             // during the request goes out under a tag that covers it. Tried at every moment of
             // each route rather than at a moment counted, so that what is pinned is the tag handed
             // out, not where the question is asked.
+            //
+            // The entry holds a password from the start, so the tag of this caller's view and
+            // the tag of the whole entry differ at every moment, and a tag taken with a wider
+            // sight on any route fails here whenever the value lands.
             _vault.Granting(_group, AllButProtected);
+            _vault.Plant(_entry, "Password", "not-a-real-password");
             Assume.That(_vault.CreateAttachment(_entry, "notes.txt", new byte[] { 1 }, VaultAskings.Free).Ok, Is.True);
             var entry = "/entries/" + _entry;
 
@@ -837,11 +1014,23 @@ namespace KeePassGate.Tests
             _vault.After(0, null);
             var handed = route == "write" ? answer.Written : answer.Tag;
 
-            if (landed && handed != null)
+            // The tag handed out is the tag of this caller's view of the entry, as the entry
+            // stood with the value landed or as it stood without, and never anything else: a
+            // whole view's tag, with or without the value, is neither.
+            var narrow = new VaultSight(true, false, VaultAttachmentSight.Read);
+            var views = new List<string> { "\"" + _vault.View(_entry, found => narrow).Tag + "\"" };
+
+            if (landed)
             {
-                Assert.That(handed, Is.Not.EqualTo("\"" + _vault.EntryTag(_entry) + "\""),
-                    "handed a tag that covers a protected value this rule may not read: " + answer.Json);
+                Assume.That(_vault.DeleteField(_entry, "PIN", VaultAskings.Free).Ok, Is.True);
+                views.Add("\"" + _vault.View(_entry, found => narrow).Tag + "\"");
             }
+
+            Assert.That(answer.Status, Is.EqualTo(200), answer.Json);
+            Assert.That(views, Does.Contain(handed),
+                "handed a tag that is not the tag of this caller's view: " + answer.Json);
+            Assert.That(views, Does.Not.Contain("\"" + _vault.EntryTag(_entry) + "\""),
+                "the whole entry and this caller's view have to differ for this to pin anything");
         }
 
         [Test]
@@ -1668,6 +1857,47 @@ namespace KeePassGate.Tests
                 "an entry refused for its size must not be decrypted to find that out");
         }
 
+        [TestCase("L")]
+        [TestCase("LA")]
+        public void A_caller_that_only_lists_is_served_names_flags_and_sizes_and_no_value_is_read(string mask)
+        {
+            // The view of a caller without `read` holds no value of any string and no bytes of
+            // any attachment, so the routes `list` opens serve what they always served, names,
+            // flags and sizes, and nothing is decrypted for them. No tag either, since that
+            // caller is handed none.
+            _vault.Granting(_group, Rules.Granting(("agent", mask)));
+            _vault.Plant(_entry, "Password", "not-a-real-password");
+            Assume.That(_vault.CreateAttachment(_entry, "notes.txt", new byte[] { 1, 2, 3 }, VaultAskings.Free).Ok, Is.True);
+            var entry = "/entries/" + _entry;
+
+            _vault.StringReads = 0;
+            _vault.AttachmentReads = 0;
+
+            var fields = Get(entry + "/fields");
+            Assert.That(fields.Status, Is.EqualTo(200), fields.Json);
+            Assert.That(fields.Json, Is.EqualTo(
+                "{\"fields\":[{\"name\":\"Password\",\"protected\":true},{\"name\":\"Title\",\"protected\":false}]}"));
+            Assert.That(fields.Tag, Is.Null);
+
+            var attachments = Get(entry + "/attachments");
+            if (mask == "LA")
+            {
+                Assert.That(attachments.Status, Is.EqualTo(200), attachments.Json);
+                Assert.That(attachments.Json, Is.EqualTo("{\"attachments\":[{\"name\":\"notes.txt\",\"size\":3}]}"));
+                Assert.That(attachments.Tag, Is.Null);
+            }
+            else
+            {
+                Assert.That(attachments.Status, Is.EqualTo(404));
+            }
+
+            Assert.That(Get(entry).Status, Is.EqualTo(404));
+            Assert.That(Get(entry + "/fields/Title").Status, Is.EqualTo(404));
+            Assert.That(Get(entry + "/attachments/notes.txt").Status, Is.EqualTo(404));
+            Assert.That(_vault.StringReads, Is.Zero, "a value was read for a caller that only lists");
+            Assert.That(_vault.AttachmentReads, Is.Zero, "an attachment was read for a caller that only lists");
+        }
+
         [Test]
         public void An_entry_a_vault_hands_over_past_the_ceiling_is_still_refused()
         {
@@ -1711,7 +1941,7 @@ namespace KeePassGate.Tests
         }
 
         [TestCase("/attachments/big.bin", "\"00000000000000000000000000000000\"", false, TestName = "An attachment over the ceiling asked for under a stale tag is too large")]
-        [TestCase("/attachments/big.bin", "*", true, TestName = "An attachment over the ceiling asked for by a client handed no tag is too large")]
+        [TestCase("/attachments/big.bin", "*", true, TestName = "An attachment over the ceiling asked for under any tag beside a withheld value is too large")]
         [TestCase("", "\"00000000000000000000000000000000\"", false, TestName = "An entry over the ceiling asked for under a stale tag is too large")]
         [TestCase("/fields/Big", "\"00000000000000000000000000000000\"", false, TestName = "A field over the ceiling asked for under a stale tag is too large")]
         public void A_read_over_the_ceiling_is_too_large_whatever_its_condition(
@@ -1719,8 +1949,8 @@ namespace KeePassGate.Tests
         {
             // RFC 9110 section 13.2.1 asks the condition only of a request that would otherwise
             // succeed, and the size does not depend on the tag. Asked first, a stale tag was told
-            // `412`, read again, and only then told the read could not be served, and a client
-            // handed no tag, whose condition nothing meets, was told `412` every time.
+            // `412`, read again, and only then told the read could not be served. A caller whose
+            // view withholds a password is handed a tag like any reader, and `*` holds for it.
             _vault.Granting(_group, AllButProtected);
             if (holdsProtected)
             {
@@ -2606,21 +2836,30 @@ namespace KeePassGate.Tests
         }
 
         [Test]
-        public void Reading_one_field_leaves_the_other_values_on_the_entry_alone()
+        public void Reading_one_field_reads_the_values_in_its_caller_s_sight_and_no_value_out_of_it()
         {
-            // The view of an entry reads a value when that value is asked for, and this route wants
-            // the value of the string it was asked about and the node to ask the rules about.
-            // Reading every string to answer for this string would take every other value on the
-            // entry out of protected memory, including the ones the same client is refused.
+            // The view of an entry reads a value when that value is asked for. A field read is
+            // answered with the entry's tag, which every caller reaching the route is handed, and
+            // the tag asks for every value in that caller's sight: the string asked about and
+            // the other open strings, each once. A value the caller's rule withholds is never
+            // read, for the answer or for the tag.
             _vault.CreateField(_entry, "Password", "not-a-real-password", true, VaultAskings.Free);
+            _vault.CreateField(_entry, "Account", "an invented account", false, VaultAskings.Free);
+            _vault.CreateField(_entry, "PIN", "not-a-real-pin", true, VaultAskings.Free);
             _vault.Granting(_group, Rules.Granting(("agent", "RL")));
             _vault.StringReads = 0;
 
             var answer = Get("/entries/" + _entry + "/fields/Title");
 
             Assert.That(answer.Status, Is.EqualTo(200), answer.Json);
-            Assert.That(_vault.StringReads, Is.EqualTo(1),
-                "one field was asked for, so one value is what the entry should have been read for");
+            Assert.That(answer.Tag, Is.Not.Null);
+            Assert.That(_vault.StringReads, Is.EqualTo(2),
+                "`Title` and `Account` are in this caller's sight, and `Password` and `PIN` are not");
+
+            // And a field read refused before the tag reads nothing at all.
+            _vault.StringReads = 0;
+            Assert.That(Get("/entries/" + _entry + "/fields/Absent").Status, Is.EqualTo(404));
+            Assert.That(_vault.StringReads, Is.Zero);
         }
 
         [Test]
