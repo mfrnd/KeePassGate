@@ -801,6 +801,41 @@ namespace KeePassGate.Host.Tests
         }
 
         [Test]
+        public void An_update_naming_what_is_already_there_is_written_for_a_caller_that_may_not_read_it()
+        {
+            // A caller that may write a value and not read it would otherwise be told, by a time
+            // that did not move or an answer that came at once, that the value it sent is the
+            // value stored. So its update is a change like any other, and only a request naming
+            // nothing is still skipped for it. `VaultTagging.Sees` has the ruling.
+            var group = Created(_vault.CreateGroup(_vault.RootAlias, "Fictitious", "invented notes"));
+            var uuid = Created(_vault.CreateEntry(group, Named("an invented service"), VaultExpiry.At(Moment)));
+            Assume.That(_vault.UpdateField(uuid, PwDefs.PasswordField, "not-a-real-password", VaultAskings.Free).Ok, Is.True);
+            Assume.That(_vault.CreateAttachment(uuid, "note.txt", new byte[] { 1, 2, 3 }, VaultAskings.Free).Ok, Is.True);
+
+            var entry = Entry(uuid);
+            var revisions = entry.History.UCount;
+            var saves = _saves;
+
+            Assert.That(_vault.UpdateEntry(uuid, new Dictionary<string, string>(), VaultAskings.Blind).Ok, Is.True);
+            Assert.That(_vault.UpdateGroup(group, null, null, VaultAskings.Blind).Ok, Is.True);
+            Assert.That(_saves, Is.EqualTo(saves), "naming nothing is a guess at nothing");
+
+            Assert.That(_vault.UpdateEntry(uuid, Named("an invented service"), VaultAskings.Blind, VaultExpiry.At(Moment)).Ok,
+                Is.True, "an entry");
+            Assert.That(_vault.UpdateField(uuid, PwDefs.PasswordField, "not-a-real-password", VaultAskings.Blind).Ok, Is.True,
+                "a field");
+            Assert.That(_vault.UpdateAttachment(uuid, "note.txt", new byte[] { 1, 2, 3 }, VaultAskings.Blind).Ok, Is.True,
+                "an attachment");
+            Assert.That(_vault.UpdateGroup(group, "Fictitious", "invented notes", VaultAskings.Blind).Ok, Is.True, "a group");
+
+            Assert.That(entry.History.UCount, Is.EqualTo(revisions + 3), "a revision for each change to the entry");
+            Assert.That(_saves, Is.EqualTo(saves + 4), "and a save for each of the four");
+            Assert.That(entry.Strings.ReadSafe(PwDefs.PasswordField), Is.EqualTo("not-a-real-password"));
+            Assert.That(entry.Binaries.Get("note.txt").ReadData(), Is.EqualTo(new byte[] { 1, 2, 3 }));
+            Assert.That(_database.Database.Modified, Is.False);
+        }
+
+        [Test]
         public void An_update_naming_one_value_that_is_not_there_writes_the_whole_of_it()
         {
             // The rule is about the request, not about each value in it: one value the node does not

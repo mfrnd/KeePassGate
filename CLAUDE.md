@@ -403,6 +403,14 @@ designing around them.
   client may update and not read, by writing guesses and comparing the tags that came back, `API.md`
   §410. A key stops a tag being computed; only not handing it out stops it being compared.
 
+  **An update that would change nothing is skipped only for a client that may read every value it
+  names**, the operator's ruling of 2026-11-10, `VaultTagging.Sees`: `read` on a group, `read` on
+  an entry with `protected` in the same rule when a named string is protected, `read` with
+  `attachments` for an attachment, through any profile. For any other client it is written like
+  any change, revision, time and save, because a skip would tell a client that may write a value
+  and not read it that the value it sent is the value stored. A request naming nothing is skipped
+  for everybody. The vault decides it inside the change's turn, of the strings as it finds them.
+
   **`If-Match` is optional, at the operator's word**, so a request without one is served as it
   always was, and one whose node no longer holds what the tag says is `412`, `API.md` §410. It is
   declared on exactly the operations whose target has a tag, reads among them, and the router hands

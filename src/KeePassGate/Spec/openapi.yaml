@@ -14,7 +14,13 @@ info:
   # and usage count and saved the database, so `update` alone pushed an entry's real revisions out
   # of its history at `HistoryMaxItems` calls that each asked for nothing, and an agent writing
   # back what it had just read, to make sure of it, did the same. A program that may write can
-  # still push them out by changing the entry, which docs/access-control.md tells the operator. §504
+  # still push them out by changing the entry, which docs/access-control.md tells the operator.
+  # The exception there is for a caller that may not read what it names. A skipped update
+  # and a written one differ in the `modified` a listing serves and in how long the answer takes,
+  # so a rule holding `update` without `read` could send a guess at a value and be told whether the
+  # guess was right. Written like any change, a right guess and a wrong one do the same work. The
+  # operator's ruling of 2026-11-10, which accepts what it costs: such a caller writing one value
+  # again and again takes a revision each time, as it can with changing values already. §504
   #
   # The paragraph on a query name or a body nothing declares. The transport parsed a query and
   # nothing read it, so `GET /entries?group=x` was served as `GET /entries`, handing the whole
@@ -173,6 +179,15 @@ info:
     `200`, because the node holds what the request asked it to hold. The comparison is made on
     KeePass's thread under the writer's lock, where the change itself would be made, so a write
     landing in between cannot make the answer wrong.
+
+    **Only for a caller that may read every value the request names.** That is `read` on the
+    group for a group's update; `read` on the entry for an entry's or a field's, with `protected`
+    in the same rule when a string the request names is protected; and `read` with `attachments`
+    in one rule for an attachment's, through any profile the caller holds. For every other
+    caller an update naming what the node already holds is written like any change, with its
+    history revision, its modification time and its save, because a request that wrote nothing
+    would tell a caller that may not read a value that the value it sent is the value stored. A
+    request naming nothing is a guess at nothing, and writes nothing whoever sends it.
 
     **A read of one group or one entry carries an `ETag`, to a client that may read all of it**,
     which `ETag` under the headers says the whole of: a group's for the group, and an entry's for

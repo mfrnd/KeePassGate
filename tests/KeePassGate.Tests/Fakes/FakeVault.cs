@@ -351,6 +351,16 @@ namespace KeePassGate.Tests.Fakes
         /// <summary>How many tags have been taken, so that a test can say a route took none.</summary>
         public int TagsTaken { get; private set; }
 
+        /// <summary>
+        /// Whether the caller of the last change the rules allowed was found to read every value
+        /// that change named, which is what the real vault skips an update on.
+        /// </summary>
+        /// <remarks>
+        /// This vault writes every update, so the skip itself is the host tier's to pin, over
+        /// the real vault. What a handler hands the vault is pinned here.
+        /// </remarks>
+        public bool Saw { get; private set; }
+
         public string GroupTag(string uuid)
         {
             Looking();
@@ -1179,7 +1189,7 @@ namespace KeePassGate.Tests.Fakes
         /// is refused, as one the rules refuse is, and questions that cannot be answered are
         /// `busy`.
         /// </remarks>
-        private static VaultWrite Refusal(VaultAsking asking, VaultFound found, out VaultTagging tagging)
+        private VaultWrite Refusal(VaultAsking asking, VaultFound found, out VaultTagging tagging)
         {
             tagging = null;
 
@@ -1191,6 +1201,7 @@ namespace KeePassGate.Tests.Fakes
                 }
 
                 tagging = asking.Tagging(found);
+                Saw = tagging.Sees;
                 return null;
             }
             catch (VaultUnsettled error)
@@ -1200,7 +1211,7 @@ namespace KeePassGate.Tests.Fakes
         }
 
         /// <summary>The same question for a change that deals in no tag, which a create is.</summary>
-        private static VaultWrite Refusal(VaultAsking asking, VaultFound found)
+        private VaultWrite Refusal(VaultAsking asking, VaultFound found)
         {
             VaultTagging tagging;
             return Refusal(asking, found, out tagging);

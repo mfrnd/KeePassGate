@@ -412,6 +412,76 @@ namespace KeePassGate.Tests
             Assert.That(Get(group).Tag, Is.Not.EqualTo(groupBefore));
         }
 
+        [TestCase("field", "U", false)]
+        [TestCase("field", "UL", false)]
+        [TestCase("field", "RU", true)]
+        [TestCase("secret", "UP", false)]
+        [TestCase("secret", "ULP", false)]
+        [TestCase("secret", "RUP", true)]
+        [TestCase("entry", "U", false)]
+        [TestCase("entry", "RU", true)]
+        [TestCase("attachment", "UA", false)]
+        [TestCase("attachment", "RUA", true)]
+        [TestCase("group", "U", false)]
+        [TestCase("group", "RU", true)]
+        public void An_update_hands_the_vault_whether_its_caller_may_read_what_it_names(
+            string what, string mask, bool sees)
+        {
+            // What the real vault skips an update on, when the update would change nothing: a
+            // caller that may write a value and not read it is written like any change, so that a
+            // guess at the value costs the same right or wrong. This vault writes every update, so
+            // what is pinned here is the answer the handler hands it, and
+            // `SkippedOnlyForAReaderTests` holds the real vault to what it does with one.
+            Named(what, Rules.Granting(("agent", mask)));
+
+            Assert.That(Updated(what).Status, Is.EqualTo(200));
+            Assert.That(_vault.Saw, Is.EqualTo(sees));
+        }
+
+        [TestCase("field", "R", "U", true)]
+        [TestCase("secret", "R", "UP", false)]
+        [TestCase("secret", "RP", "UP", true)]
+        [TestCase("attachment", "R", "UA", false)]
+        [TestCase("attachment", "RA", "UA", true)]
+        public void Reading_what_an_update_names_is_asked_of_every_profile_and_of_one_rule_at_a_time(
+            string what, string reader, string writer, bool sees)
+        {
+            // Profiles are combined with or, as a read combines them, and a switch belongs to its
+            // rule: reading the entry through one profile and setting its protected values through
+            // another reads no protected value.
+            _profiles = new[] { "reader", "writer" };
+            Named(what, Rules.Granting(("reader", reader), ("writer", writer)));
+
+            Assert.That(Updated(what).Status, Is.EqualTo(200));
+            Assert.That(_vault.Saw, Is.EqualTo(sees));
+        }
+
+        private void Named(string what, string rules)
+        {
+            _vault.Granting(_group, rules);
+            _vault.Plant(_entry, "Password", "not-a-real-password");
+            Assume.That(_vault.CreateAttachment(_entry, "notes.txt", new byte[] { 1 }, VaultAskings.Free).Ok, Is.True);
+        }
+
+        private Answer Updated(string what)
+        {
+            var entry = "/entries/" + _entry;
+
+            switch (what)
+            {
+                case "field":
+                    return Send("PUT", entry + "/fields/Title", Bodies.Of(("value", "an invented service")));
+                case "secret":
+                    return Send("PUT", entry + "/fields/Password", Bodies.Of(("value", "not-a-real-password")));
+                case "entry":
+                    return Send("PUT", entry, "{\"Title\":\"an invented service\"}");
+                case "attachment":
+                    return Send("PUT", entry + "/attachments/notes.txt", Bodies.Of(("content", Base64("x"))));
+                default:
+                    return Send("PUT", "/groups/" + _group, "{\"Notes\":\"invented notes\"}");
+            }
+        }
+
         [Test]
         public void A_write_against_the_tag_it_read_goes_ahead_and_answers_with_the_next_one()
         {

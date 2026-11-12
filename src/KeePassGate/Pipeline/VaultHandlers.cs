@@ -748,7 +748,10 @@ namespace KeePassGate.Pipeline
             }
 
             Answer(context, vault.UpdateAttachment(
-                Captured(context, "uuid"), Captured(context, "name"), content, Asking(context, true)));
+                Captured(context, "uuid"),
+                Captured(context, "name"),
+                content,
+                Asking(context, true, null, AclReach.Attachments)));
         }
 
         public static void StripAttachment(IGateContext context)
@@ -1329,8 +1332,15 @@ namespace KeePassGate.Pipeline
         /// What this change asks beside the router's question, of the request as it is decided
         /// inside the turn, or null when the router's question is all there is.
         /// </param>
+        /// <param name="names">
+        /// How far in the values this change names lie, where no string it names is protected:
+        /// an attachment's bytes for a change to an attachment.
+        /// </param>
         private static VaultAsking Asking(
-            IGateContext context, bool answers, Func<IGateContext, VaultFound, bool> also = null)
+            IGateContext context,
+            bool answers,
+            Func<IGateContext, VaultFound, bool> also = null,
+            AclReach names = AclReach.Fields)
         {
             object left;
             var again = context.Items.TryGetValue(SpecRouter.InsideItem, out left) ? left as DecidedInside : null;
@@ -1348,8 +1358,29 @@ namespace KeePassGate.Pipeline
                 found => inside != null && (found.Entry != null
                     ? MayTag(inside, found.Entry)
                     : MayTag(inside, found.Group)),
+                found => inside != null && Sees(inside, found, names),
                 Precondition(context),
                 answers);
+        }
+
+        /// <summary>
+        /// Whether this caller may read every value a change names on what the change found,
+        /// through any profile it holds.
+        /// </summary>
+        /// <remarks>
+        /// What decides whether an update that would change nothing is skipped,
+        /// <see cref="VaultTagging.Sees"/>. **Asked of the resolver without a line**: the caller
+        /// attempted no read, so a refusal here is nothing the audit should hold against it.
+        /// A string protected by its name or by its own flag is read only by a rule holding
+        /// `read` and `protected` together, as a read is held to.
+        /// </remarks>
+        private static bool Sees(IGateContext inside, VaultFound found, AclReach names)
+        {
+            return AclResolver.Permits(
+                found.Node,
+                inside.Client.Profiles,
+                AclVerb.Read,
+                found.Guarded ? AclReach.Protected : names);
         }
 
         /// <summary>

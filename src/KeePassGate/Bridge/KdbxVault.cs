@@ -461,8 +461,13 @@ namespace KeePassGate.Bridge
                     return VaultWrite.PreconditionFailed(tagging.Precondition);
                 }
 
-                if ((name == null || string.Equals(group.Name, name, StringComparison.Ordinal))
-                    && (notes == null || string.Equals(group.Notes, notes, StringComparison.Ordinal)))
+                // Skipped only for a caller that may read what it named, or when nothing was
+                // named: `VaultTagging.Sees` has the reason.
+                var named = name != null || notes != null;
+                var holds = (name == null || string.Equals(group.Name, name, StringComparison.Ordinal))
+                    && (notes == null || string.Equals(group.Notes, notes, StringComparison.Ordinal));
+
+                if (holds && (!named || tagging.Sees))
                 {
                     // The group already holds what was asked for, which a body naming nothing asks
                     // as well, and `VaultChange.Unchanged` states why that writes nothing. The tag
@@ -733,7 +738,13 @@ namespace KeePassGate.Bridge
                     return VaultWrite.PreconditionFailed(tagging.Precondition);
                 }
 
-                if (AlreadyHolds(entry, fields) && AlreadyExpires(entry, expiry))
+                // Skipped only for a caller that may read what it named, or when nothing was
+                // named: `VaultTagging.Sees` has the reason.
+                var named = (fields != null && fields.Count > 0) || expiry != null;
+
+                if ((!named || tagging.Sees)
+                    && AlreadyHolds(entry, fields)
+                    && AlreadyExpires(entry, expiry))
                 {
                     // Before `Backing`, which is the history revision this would otherwise take of
                     // an entry nothing is about to change. A body naming nothing lands here too.
@@ -956,7 +967,9 @@ namespace KeePassGate.Bridge
                 var flagged = existing != null && existing.IsProtected;
                 var replacement = new ProtectedString(flagged, value ?? string.Empty);
 
-                if (existing != null && existing.Equals(replacement, false))
+                // Skipped only for a caller that may read the value: `VaultTagging.Sees` has
+                // the reason.
+                if (tagging.Sees && existing != null && existing.Equals(replacement, false))
                 {
                     return VaultChange.Unchanged(VaultWrite.Done(tagging.Answers ? tag() : null));
                 }
@@ -1131,8 +1144,9 @@ namespace KeePassGate.Bridge
 
                 // The bytes and not the protection flag, which is this route's own choice for
                 // what it stores rather than anything the request asked for. KeePass's comparison
-                // asks the lengths before it decrypts either side.
-                if (was != null && was.Equals(replacement, false))
+                // asks the lengths before it decrypts either side. Skipped only for a caller
+                // that may read the attachment: `VaultTagging.Sees` has the reason.
+                if (tagging.Sees && was != null && was.Equals(replacement, false))
                 {
                     return VaultChange.Unchanged(VaultWrite.Done(tagging.Answers ? tag() : null));
                 }

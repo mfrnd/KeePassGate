@@ -423,6 +423,15 @@ into the password and compared the tag that came back with the first, and had a 
 being computed and not being compared, so a tag now goes only to a rule that may read everything it
 covers, `API.md` §410.
 
+**An update that writes nothing was a way to guess as well, with no tag in it.** A client whose
+rule held `update` and not `read` sent a value and was told whether the node already held it: a
+match took no revision, moved no time and saved nothing, and anything else did all three, so the
+`modified` a listing serves, or the time the answer took, gave the match away. One guess for each
+value an operator set, since a wrong guess replaces what was there. Reproduced through the real
+router and vault for an open field, a protected one, an entry, an attachment and a group, eleven
+cases in `SkippedOnlyForAReaderTests`, each reaching no save where it now reaches one. An update
+is skipped only for a caller that may read every value it names.
+
 **A value a read decodes is not always the bytes the store keeps.** A protected string another
 program wrote with bytes that are not UTF-8 is served with each bad sequence replaced, and KeePass
 keeps the decoded form once it has been read, so a tag over the stored bytes changed the first time

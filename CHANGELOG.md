@@ -11,6 +11,13 @@ none, since it releases both.
 
 ## 0.2.0, unreleased
 
+- **An update naming what is already there is written, for a client that may not read it.** Such
+  an update took no revision, moved no time and saved nothing, whoever sent it, so a client whose
+  rule held `update` without `read` could send a guess at a field, a protected value, a group's
+  notes or an attachment and learn from the `modified` a listing serves, or from how quickly the
+  answer came, whether the guess was right. It is now skipped only for a client that may read
+  every value it names, through any profile it holds, and written like any change for every
+  other, a history revision included. A request naming nothing still writes nothing.
 - **A read is decided and served at one moment, and a change is decided as it is made.** The
   rules were asked before a request's handler ran, and KeePass could move in between. A rule
   taken away, a profile removed or a client revoked after the rules had answered was served
