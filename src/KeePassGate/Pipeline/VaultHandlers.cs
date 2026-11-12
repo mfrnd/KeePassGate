@@ -210,11 +210,11 @@ namespace KeePassGate.Pipeline
         /// write it also hands back: a write that would take an entry over it is refused under the
         /// writer's lock, and an entry over it, which KeePass or a merge can make, is refused to
         /// `read` with its size, and nothing decrypted. A single field is held to it as well, with
-        /// its name. It is <see cref="VaultEntryDetail.MostCharacters"/>, so that the vault, which
+        /// its name. It is <see cref="VaultEntryView.MostCharacters"/>, so that the vault, which
         /// measures, and the routes, which refuse, read the same number, and it is the
         /// attachments' half a megabyte, counted in characters.
         /// </remarks>
-        public const int MaxEntryCharacters = VaultEntryDetail.MostCharacters;
+        public const int MaxEntryCharacters = VaultEntryView.MostCharacters;
 
         public static void ReadEntry(IGateContext context)
         {
@@ -226,68 +226,83 @@ namespace KeePassGate.Pipeline
 
             var uuid = Captured(context, "uuid");
 
-            // The ceiling goes with the question, so an entry over it comes back measured and not
-            // decrypted, as an attachment does.
-            var entry = vault.Read(uuid, MaxEntryCharacters);
-            if (entry == null)
+            // The view is taken with nothing decrypted, so an entry over the ceiling is measured
+            // and refused with its strings still encrypted, as an attachment is.
+            var view = View(context, vault, uuid, false);
+            if (view == null)
             {
                 Unreachable(context);
                 return;
             }
 
-            // Measured again on what came back, because a vault handing over more than it was
-            // asked for must not be the way past the ceiling either. Before the condition, for the
-            // reason `ReadAttachment` gives.
-            if (entry.Fields == null || entry.Characters > MaxEntryCharacters)
+            if (view.Characters > MaxEntryCharacters)
             {
-                context.Respond(413, HttpResponse.ErrorBody(string.Format(
-                    CultureInfo.InvariantCulture,
-                    "this entry holds {0} characters of names and values, and this gate hands out at most {1}",
-                    entry.Characters,
-                    MaxEntryCharacters)));
+                EntryTooLarge(context, view.Characters);
+                return;
+            }
+
+            // Measured again on what came back, because a view handing over more than it
+            // measured must not be the way past the ceiling either. Before the condition, for the
+            // reason `ReadAttachment` gives. A value out of the caller's sight is not in the view,
+            // and comes back as null.
+            var values = new List<string>(view.Fields.Count);
+            var handed = 0;
+            foreach (var field in view.Fields)
+            {
+                var value = field.Value;
+                values.Add(value);
+                handed += field.Name.Length + (value == null ? 0 : value.Length);
+            }
+
+            if (handed > MaxEntryCharacters)
+            {
+                EntryTooLarge(context, handed);
                 return;
             }
 
             // After the ceiling, so an entry too large to hand out is not digested either, and
-            // only for a caller that may be handed the tag.
-            var tag = MayTag(context, entry.Entry) ? vault.EntryTag(uuid) : null;
+            // only for a caller that may be handed the tag: the view's own, so the tag is of
+            // exactly what this answer is made from.
+            var tag = MayTag(context, view.Entry) ? view.Tag : null;
             if (PreconditionFails(context, tag))
             {
                 return;
             }
 
             var json = new JsonWriter();
-            json.Text("uuid", entry.Entry.Uuid);
-            json.Text("group", entry.Entry.Group);
-            json.Text("created", Moments.Wire(entry.Entry.Created));
-            json.Text("modified", Moments.Wire(entry.Entry.Modified));
+            json.Text("uuid", view.Entry.Uuid);
+            json.Text("group", view.Entry.Group);
+            json.Text("created", Moments.Wire(view.Entry.Created));
+            json.Text("modified", Moments.Wire(view.Entry.Modified));
 
             // `null` for an entry that does not expire, as `parent` is for the group with nothing
             // above it. `read` is all it needs, since when an entry expires is not a value the
             // database protects, and a listing leaves it out, because `list` gives names.
-            json.Text(ExpiresMember, entry.Entry.Expires.HasValue ? Moments.Wire(entry.Entry.Expires.Value) : null);
+            json.Text(ExpiresMember, view.Entry.Expires.HasValue ? Moments.Wire(view.Entry.Expires.Value) : null);
 
             // Asked only of an entry holding a value the database protects, and once, however many
             // it holds: the decision is one decision, and a refusal is written down only where
-            // something is withheld.
-            var reaches = !entry.Fields.Any(field => IsProtected(entry, field.Key))
-                          || Reaches(context, entry.Entry.Node, AclVerb.Read);
+            // something is withheld. The view withholds by the same rules, asked without a line,
+            // and a value goes out only where both answers open it.
+            var reaches = view.Protected.Count == 0
+                          || Reaches(context, view.Entry.Node, AclVerb.Read);
 
             json.Object("fields");
-            foreach (var field in entry.Fields)
+            for (var index = 0; index < view.Fields.Count; index++)
             {
                 // Withheld as `null` rather than left out, so a client can tell a value it may not
                 // have from a field that is not there. The `protected` member below says which
                 // were which, which is what makes the difference readable rather than guessed at.
-                var withheld = !reaches && IsProtected(entry, field.Key);
+                var field = view.Fields[index];
+                var withheld = !reaches && field.IsProtected;
 
-                json.Text(field.Key, withheld ? null : field.Value);
+                json.Text(field.Name, withheld ? null : values[index]);
             }
 
             json.End();
 
             json.Array("protected");
-            foreach (var name in entry.Protected)
+            foreach (var name in view.Protected)
             {
                 json.Item(name);
             }
@@ -357,16 +372,17 @@ namespace KeePassGate.Pipeline
             }
 
             // One read, which answers for the entry as well as for its strings: null is an entry
-            // that is not there, and never an entry holding no strings.
+            // that is not there, and never an entry holding no strings. A listing reads names and
+            // flags, so no value is decrypted for it.
             var uuid = Captured(context, "uuid");
-            var fields = vault.Fields(uuid);
-            if (fields == null)
+            var view = View(context, vault, uuid, false);
+            if (view == null)
             {
                 Unreachable(context);
                 return;
             }
 
-            var tag = EntryTag(context, vault, uuid);
+            var tag = MayTag(context, view.Entry) ? view.Tag : null;
             if (PreconditionFails(context, tag))
             {
                 return;
@@ -375,7 +391,7 @@ namespace KeePassGate.Pipeline
             var json = new JsonWriter();
             json.Array("fields");
 
-            foreach (var field in fields)
+            foreach (var field in view.Fields)
             {
                 json.Item();
                 json.Text("name", field.Name);
@@ -398,80 +414,56 @@ namespace KeePassGate.Pipeline
             var uuid = Captured(context, "uuid");
             var name = Captured(context, "name");
 
-            // The ceiling with the question, as `readEntry` asks it. Null is a name the entry
-            // does not hold.
-            var held = vault.Field(uuid, name, MaxEntryCharacters);
-            if (held == null)
-            {
-                Unreachable(context);
-                return;
-            }
-
-            // True until the listing answers otherwise, since the value read above does not carry
-            // it. A listing that does not name the field is a hold that did not last, whose
-            // answer goes nowhere, and a loop finding nothing leaves the value guarded there all
-            // the same: started false, this once sent a protected value to a rule that may not
-            // have it.
-            var guarded = true;
-            var fields = vault.Fields(uuid);
-            if (fields != null)
-            {
-                foreach (var field in fields.Where(
-                    field => string.Equals(field.Name, name, StringComparison.Ordinal)))
-                {
-                    guarded = field.IsProtected;
-                }
-            }
-
-            var json = new JsonWriter();
-            json.Text("name", name);
-
-            // The entry, not everything in it. All this needs is the node the rules are asked
-            // about, and `Read` builds a whole `VaultEntryDetail` to get at it: every string the
-            // entry holds, decrypted and copied into a dictionary, to answer a question about one
-            // field this handler has already read.
+            // The entry's view, and the string in it. The view carries the node the rules are
+            // asked about, the string's name, its flag and its size, and reads a value only when
+            // asked for that value, so answering for this string decrypts no other string the
+            // entry holds unless the tag, which covers them all, is handed out. Null is an entry
+            // that is not there or a name the entry does not hold.
             //
-            // The waste is the whole of the reason. It is not a claim that a value a caller is
-            // refused is safer for not having been decrypted: this route reads the value before it
-            // decides to withhold it, `readEntry` decrypts every string before blanking the
-            // protected ones, and the two listings decrypt a protected title and address for every
-            // entry, including the ones they then leave out. `CLAUDE.md` concedes local code
+            // The saving is the whole of the reason. It is not a claim that a value a caller is
+            // refused is safer for not having been decrypted: `CLAUDE.md` concedes local code
             // execution as the user and forbids claiming a control that only defends against it,
             // which is the only thing such a property would be.
-            var entry = vault.Entry(uuid);
-            if (entry == null)
+            var view = View(context, vault, uuid, false);
+            var field = view == null ? null : view.Field(name);
+            if (field == null)
             {
-                // No node left to ask the rules about, which only a hold that did not last comes
-                // to, so there is no answer to give. This lookup used to sit inside the
-                // conjunction below, where a missing entry made `withheld` false and sent the
-                // value out.
                 Unreachable(context);
                 return;
             }
 
-            // Before the condition, for the reason `ReadAttachment` gives.
-            var value = held.Value;
-            if (value == null || held.Characters > MaxEntryCharacters)
+            // Measured before the value is read, and again on what came back, as `readEntry`
+            // measures. Before the condition, for the reason `ReadAttachment` gives. A value out
+            // of the caller's sight is not in the view, and comes back as null.
+            var value = field.Characters > MaxEntryCharacters ? null : field.Value;
+            var characters = value == null ? field.Characters : name.Length + value.Length;
+            if (characters > MaxEntryCharacters)
             {
                 context.Respond(413, HttpResponse.ErrorBody(string.Format(
                     CultureInfo.InvariantCulture,
                     "this field holds {0} characters with its name, and this gate hands out at most {1}",
-                    held.Characters,
+                    characters,
                     MaxEntryCharacters)));
                 return;
             }
 
             // After the ceiling, as `readEntry` takes it.
-            var tag = MayTag(context, entry) ? vault.EntryTag(uuid) : null;
+            var tag = MayTag(context, view.Entry) ? view.Tag : null;
             if (PreconditionFails(context, tag))
             {
                 return;
             }
 
-            var withheld = guarded && !Reaches(context, entry.Node, AclVerb.Read);
+            // Asked, and a refusal written down, only for a string that is protected. The view
+            // withholds by the same rules, asked without a line, and the value goes out only
+            // where both answers open it. The flag and the value are of one string of one view,
+            // so neither is ever answered about a string the other was not read from.
+            var withheld = field.IsProtected && !Reaches(context, view.Entry.Node, AclVerb.Read);
 
+            var json = new JsonWriter();
+            json.Text("name", name);
             json.Text("value", withheld ? null : value);
-            json.Flag("protected", guarded);
+            json.Flag("protected", field.IsProtected);
 
             context.Respond(200, json.Done(), Tagged(tag));
         }
@@ -597,16 +589,18 @@ namespace KeePassGate.Pipeline
                 return;
             }
 
-            // One read, as `ListFields` makes it.
+            // One read, as `ListFields` makes it. The view holds no attachments for a caller whose
+            // rules open none, which the router refused before this ran, so finding none here is
+            // answered as the entry not being there is.
             var uuid = Captured(context, "uuid");
-            var attachments = vault.Attachments(uuid);
-            if (attachments == null)
+            var view = View(context, vault, uuid, true);
+            if (view == null || view.Attachments == null)
             {
                 Unreachable(context);
                 return;
             }
 
-            var tag = EntryTag(context, vault, uuid);
+            var tag = MayTag(context, view.Entry) ? view.Tag : null;
             if (PreconditionFails(context, tag))
             {
                 return;
@@ -615,7 +609,7 @@ namespace KeePassGate.Pipeline
             var json = new JsonWriter();
             json.Array("attachments");
 
-            foreach (var attachment in attachments)
+            foreach (var attachment in view.Attachments)
             {
                 json.Item();
                 json.Text("name", attachment.Name);
@@ -645,10 +639,10 @@ namespace KeePassGate.Pipeline
         /// together, because a document and a constant that drift apart make an attachment that can
         /// be read and never restored. The document alone cannot say it exactly, since a base64
         /// length names two sizes at this one, so `Decoded` asks the constant of what it decoded as
-        /// well. It is <see cref="VaultAttachment.MostServed"/>, so that the largest attachment a
-        /// node's tag hashes is the largest a route serves.
+        /// well. It is <see cref="VaultViewAttachment.MostServed"/>, so that the largest
+        /// attachment a node's tag hashes is the largest a route serves.
         /// </remarks>
-        public const int MaxAttachmentBytes = VaultAttachment.MostServed;
+        public const int MaxAttachmentBytes = VaultViewAttachment.MostServed;
 
         public static void ReadAttachment(IGateContext context)
         {
@@ -661,18 +655,20 @@ namespace KeePassGate.Pipeline
             var uuid = Captured(context, "uuid");
             var name = Captured(context, "name");
 
-            // The ceiling goes with the question, so an attachment over it comes back measured
-            // and not decrypted: its size is kept beside its encrypted bytes. Null is a name the
-            // entry does not hold.
-            var attachment = vault.Attachment(uuid, name, MaxAttachmentBytes);
+            // The view hands over no bytes of an attachment over the ceiling, which comes back
+            // measured and not decrypted: its size is kept beside its encrypted bytes. Null is an
+            // entry that is not there, a name the entry does not hold, or attachments out of the
+            // caller's sight.
+            var view = View(context, vault, uuid, false);
+            var attachment = view == null ? null : view.Attachment(name);
             if (attachment == null)
             {
                 Unreachable(context);
                 return;
             }
 
-            // Measured again on what came back, because a vault handing over more than it was
-            // asked for must not be the way past the ceiling either. Before the condition, which
+            // Measured again on what came back, because a view handing over more than it
+            // measured must not be the way past the ceiling either. Before the condition, which
             // RFC 9110 section 13.2.1 orders after every refusal that does not depend on the tag:
             // asked first, an attachment over the ceiling answered a stale tag `412`, and a client
             // never handed a tag was told `412` every time and never that it was too large.
@@ -689,7 +685,7 @@ namespace KeePassGate.Pipeline
             }
 
             // After the ceiling, as `readEntry` takes it.
-            var tag = EntryTag(context, vault, uuid);
+            var tag = MayTag(context, view.Entry) ? view.Tag : null;
             if (PreconditionFails(context, tag))
             {
                 return;
@@ -1290,18 +1286,62 @@ namespace KeePassGate.Pipeline
             return entry.Expires.HasValue && entry.Expires.Value <= now;
         }
 
-        /// <summary>Whether the database protects this one, by name.</summary>
-        private static bool IsProtected(VaultEntryDetail entry, string field)
+        /// <summary>
+        /// The whole of an entry as this caller may read it, which a read's answer and its tag are
+        /// both made from, or null when the entry is not there.
+        /// </summary>
+        /// <remarks>
+        /// **One view for a request**, so the string a read answers with, the flag beside it, the
+        /// node the rules are asked about and the tag are all of one entry at one moment, and the
+        /// tag covers exactly what the view holds.
+        ///
+        /// **What the caller may read is asked of the resolver without a line**, of the entry the
+        /// vault found. A view leaving a value out is no refusal of its own: the routes that
+        /// withhold a protected value ask <see cref="Reaches(IGateContext, IAclNode, AclVerb)"/>
+        /// where they withhold, and that walk is what writes the refusal down.
+        /// </remarks>
+        /// <param name="listing">
+        /// Whether the route lists attachments, which the routing table opens to `list` reaching
+        /// attachments as well as to `read` reaching them.
+        /// </param>
+        private static VaultEntryView View(IGateContext context, IVault vault, string uuid, bool listing)
         {
-            foreach (var name in entry.Protected)
+            return vault.View(uuid, found => Sight(context, found, listing));
+        }
+
+        /// <summary>
+        /// How far into an entry this caller may read, through any profile it holds.
+        /// </summary>
+        /// <remarks>
+        /// Protected values are in sight for a rule holding `read` and `protected` together,
+        /// asked only of an entry that holds a protected string. Attachments are in sight for a
+        /// rule holding `read` and `attachments` together, and for the listing of attachments
+        /// under `list` and `attachments` too, since names and sizes are what that route serves
+        /// and what the router allowed it for. A caller with no client behind it sees the least.
+        /// </remarks>
+        private static VaultSight Sight(IGateContext context, VaultFound found, bool listing)
+        {
+            if (found == null || context.Client == null)
             {
-                if (string.Equals(name, field, StringComparison.Ordinal))
-                {
-                    return true;
-                }
+                return VaultSight.Least;
             }
 
-            return false;
+            var profiles = context.Client.Profiles;
+
+            return new VaultSight(
+                found.Guarded && AclResolver.Permits(found.Node, profiles, AclVerb.Read, AclReach.Protected),
+                AclResolver.Permits(found.Node, profiles, AclVerb.Read, AclReach.Attachments)
+                    || (listing && AclResolver.Permits(found.Node, profiles, AclVerb.List, AclReach.Attachments)));
+        }
+
+        /// <summary>Answers that an entry's strings come to more than a read hands out.</summary>
+        private static void EntryTooLarge(IGateContext context, int characters)
+        {
+            context.Respond(413, HttpResponse.ErrorBody(string.Format(
+                CultureInfo.InvariantCulture,
+                "this entry holds {0} characters of names and values, and this gate hands out at most {1}",
+                characters,
+                MaxEntryCharacters)));
         }
 
         /// <summary>
@@ -1514,6 +1554,9 @@ namespace KeePassGate.Pipeline
         /// protected values when it holds any, so `read` has to reach those too, in one rule, as
         /// <see cref="AclResolver.ReadsWhole"/> asks. A lookup that did not say whether the entry
         /// holds one is answered as if it did.
+        ///
+        /// A caller this is true of has the whole entry in sight, so the tag of its view is the
+        /// tag of the whole entry, which is the tag a change's `If-Match` is asked against.
         /// </remarks>
         private static bool MayTag(IGateContext context, VaultEntry entry)
         {
@@ -1525,22 +1568,6 @@ namespace KeePassGate.Pipeline
             return entry.HoldsProtected == false
                 ? AclResolver.ReadsWhole(entry.Node, context.Client.Profiles, AclReach.Attachments)
                 : AclResolver.ReadsWhole(entry.Node, context.Client.Profiles, AclReach.Attachments, AclReach.Protected);
-        }
-
-        /// <summary>
-        /// An entry's tag, for a caller that may be handed it, and null for one that may not or an
-        /// entry that is not there.
-        /// </summary>
-        /// <remarks>
-        /// Only for a caller that may have it, since taking a tag digests every string and
-        /// attachment. Whether the entry holds a protected value is part of that question, and it
-        /// is asked of the entry the tag is then taken from: both inside the hold the read was
-        /// decided in, so no value arrives between the two, and the tag is the tag of what is
-        /// served with it, for the reason `IVault.GroupTag` gives.
-        /// </remarks>
-        private static string EntryTag(IGateContext context, IVault vault, string uuid)
-        {
-            return MayTag(context, vault.Entry(uuid)) ? vault.EntryTag(uuid) : null;
         }
 
         /// <summary>

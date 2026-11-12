@@ -1571,9 +1571,9 @@ namespace KeePassGate.Tests
         [Test]
         public void An_attachment_a_vault_hands_over_past_the_ceiling_is_still_refused()
         {
-            // The vault is asked with the ceiling and promises not to decrypt past it. When it
-            // hands over more anyway, the check of what came back is the only thing between that
-            // attachment and an answer over the ceiling.
+            // A view measures an attachment and hands over no bytes of an attachment past the
+            // ceiling. When it measures short and hands over more anyway, the check of what came
+            // back is the only thing between that attachment and an answer over the ceiling.
             _vault.Granting(_group, AllButProtected);
             var oversize = new byte[VaultHandlers.MaxAttachmentBytes + 1];
             Assume.That(_vault.CreateAttachment(_entry, "big.bin", oversize, VaultAskings.Free).Ok, Is.True);
@@ -1636,7 +1636,7 @@ namespace KeePassGate.Tests
 
             Assert.That(Send("POST", "/entries/" + _entry + "/attachments",
                 Bodies.Of(("name", "big.bin"), ("content", over))).Status, Is.EqualTo(400));
-            Assert.That(_vault.Attachments(_entry), Is.Empty, "nothing is stored");
+            Assert.That(_vault.Whole(_entry).Attachments, Is.Empty, "nothing is stored");
 
             Assume.That(_vault.CreateAttachment(_entry, "small.bin", new byte[] { 1 }, VaultAskings.Free).Ok, Is.True);
 
@@ -1675,9 +1675,11 @@ namespace KeePassGate.Tests
             _vault.Plant(_entry, "Big", new string('x', VaultHandlers.MaxEntryCharacters));
             _vault.IgnoresCeiling = true;
 
+            // The view measured its strings short and handed them over whole, a value at a time.
+            _vault.StringReads = 0;
             var read = Get("/entries/" + _entry);
 
-            Assert.That(_vault.StringReads, Is.EqualTo(1),
+            Assert.That(_vault.StringReads, Is.EqualTo(_vault.Whole(_entry).Fields.Count),
                 "the vault handed them over, so this is the check of what came back");
             Assert.That(read.Status, Is.EqualTo(413));
             Assert.That(read.Json, Does.Not.Contain("xxxx"), "nothing of the entry is handed out");
@@ -2401,7 +2403,7 @@ namespace KeePassGate.Tests
             _vault.Granting(_group, AllButProtected);
             _vault.CreateField(_entry, "Password", "not-a-real-password", true, VaultAskings.Free);
             var content = Convert.ToBase64String(new byte[] { 1, 2, 3 });
-            var fields = _vault.Fields(_entry).Count;
+            var fields = _vault.Whole(_entry).Fields.Count;
 
             var field = Send("POST", "/entries/" + _entry + "/fields",
                              "{\"name\":\"" + spelled + "\",\"value\":\"chosen-by-the-caller\"}");
@@ -2411,7 +2413,7 @@ namespace KeePassGate.Tests
             Assert.That(field.Status, Is.EqualTo(400), field.Json);
             Assert.That(field.Json, Does.Contain("malformed"));
             Assert.That(attachment.Status, Is.EqualTo(400), attachment.Json);
-            Assert.That(_vault.Fields(_entry).Count, Is.EqualTo(fields), "nothing was made");
+            Assert.That(_vault.Whole(_entry).Fields.Count, Is.EqualTo(fields), "nothing was made");
             Assert.That(_vault.Attachment(_entry, name), Is.Null);
             Assert.That(_vault.Field(_entry, "Password"), Is.EqualTo("not-a-real-password"));
         }
@@ -2606,18 +2608,19 @@ namespace KeePassGate.Tests
         [Test]
         public void Reading_one_field_leaves_the_other_values_on_the_entry_alone()
         {
-            // `IVault.Read` is the entry with every string decrypted, and this route wanted nothing
-            // out of it but the node to ask the rules about, which the entry carries on its own.
-            // So asking for one field's value took every other value on that entry out of
-            // protected memory, including the ones the same client would have been refused.
+            // The view of an entry reads a value when that value is asked for, and this route wants
+            // the value of the string it was asked about and the node to ask the rules about.
+            // Reading every string to answer for this string would take every other value on the
+            // entry out of protected memory, including the ones the same client is refused.
             _vault.CreateField(_entry, "Password", "not-a-real-password", true, VaultAskings.Free);
             _vault.Granting(_group, Rules.Granting(("agent", "RL")));
+            _vault.StringReads = 0;
 
             var answer = Get("/entries/" + _entry + "/fields/Title");
 
             Assert.That(answer.Status, Is.EqualTo(200), answer.Json);
-            Assert.That(_vault.Detailed, Is.Zero,
-                "one field was asked for, so one field is what the entry should have been asked for");
+            Assert.That(_vault.StringReads, Is.EqualTo(1),
+                "one field was asked for, so one value is what the entry should have been read for");
         }
 
         [Test]
@@ -2952,7 +2955,7 @@ namespace KeePassGate.Tests
         /// </summary>
         private string Written()
         {
-            var fields = _vault.Fields(_entry).Select(
+            var fields = _vault.Whole(_entry).Fields.Select(
                 field => field.Name + "=" + _vault.Field(_entry, field.Name) + (field.IsProtected ? ", protected" : string.Empty));
             return string.Join("\n", fields) + "\n" + _vault.Entries(_group).Count;
         }

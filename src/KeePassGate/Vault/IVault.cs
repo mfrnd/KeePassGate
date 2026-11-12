@@ -25,9 +25,11 @@ namespace KeePassGate.Vault
     /// find out where. No verb implies another, and an identifier can as easily have arrived from
     /// an operator as from a listing.
     ///
-    /// No read here filters by permission. The rules are asked by the router, about the node each
+    /// No read here decides a permission. The rules are asked by the router, about the node each
     /// of these carries, and a vault that quietly returned less than it was asked for would make
-    /// the audit a record of the wrong question.
+    /// the audit a record of the wrong question. <see cref="View"/> leaves out what its caller
+    /// may not read, and what that is the vault is told: it asks the question it was handed, of
+    /// the entry it found, and filters by the answer.
     ///
     /// **A change asks the rules itself, through the <see cref="VaultAsking"/> it is handed.**
     /// The router's answer was given before the change waited for its turn, about a database the
@@ -115,23 +117,29 @@ namespace KeePassGate.Vault
         VaultEntry Entry(string uuid);
 
         /// <summary>
-        /// An entry's tag, which is its fields' and its attachments' too, or null when there is
-        /// none. Asked as <see cref="GroupTag"/> is, and of the same moment as its content.
+        /// The whole of an entry as one caller may read it, which every answer about the entry
+        /// and the entry's tag are made from, or null when there is none.
         /// </summary>
-        string EntryTag(string uuid);
-
-        /// <summary>
-        /// An entry and everything it holds, with its strings when their names and values
-        /// together come to no more than <paramref name="most"/> characters, or null when there is
-        /// none.
-        /// </summary>
+        /// <param name="sight">
+        /// What the caller may read of the entry, asked once, of the entry the read found:
+        /// <see cref="VaultFound.Guarded"/> is whether any of its strings is protected. A view
+        /// handed no question, or a question answered with null, is taken with
+        /// <see cref="VaultSight.Least"/>.
+        /// </param>
         /// <remarks>
-        /// **Measured before anything is decrypted, in the same read**, as
-        /// <see cref="Attachment"/> is: KeePass keeps a protected string's length beside its
-        /// encrypted bytes, so an entry over the ceiling comes back with its size and no strings,
-        /// and a caller refusing it never pays for the plaintext.
+        /// **The only read of what an entry holds.** Its strings, its attachments and its tag are
+        /// all read off the view, so the tag is the tag of what the same request is answered
+        /// with, by construction and for the reason <see cref="GroupTag"/> gives: nothing takes
+        /// the tag by a second look at the entry.
+        ///
+        /// **Nothing is decrypted to take it**, as <see cref="VaultEntryView"/> describes. KeePass
+        /// keeps a protected string's length and an attachment's beside their encrypted bytes, so
+        /// an entry or an attachment over its ceiling is measured from the view and refused, and
+        /// a caller refusing it never pays for the plaintext. An attachment asked for in a
+        /// second read, after a listing, could be replaced in between and decrypted whole, at
+        /// whatever size it had become, before anything could refuse it.
         /// </remarks>
-        VaultEntryDetail Read(string uuid, int most);
+        VaultEntryView View(string uuid, Func<VaultFound, VaultSight> sight);
 
         /// <summary>The entries in a group, one level down, or null when it is not there.</summary>
         IReadOnlyList<VaultEntry> Entries(string groupUuid);
@@ -139,35 +147,6 @@ namespace KeePassGate.Vault
         /// <summary>Every entry in the database, the recycle bin aside, in tree order, or null when
         /// the database has no tree to read.</summary>
         IReadOnlyList<VaultEntry> Entries();
-
-        /// <summary>The names of an entry's strings, never their values, or null when it is not
-        /// there.</summary>
-        IReadOnlyList<VaultField> Fields(string entryUuid);
-
-        /// <summary>
-        /// A string's value when it comes, with its name, to no more than
-        /// <paramref name="most"/> characters, its size either way, or null when the entry or the
-        /// name is not there.
-        /// </summary>
-        /// <remarks>Measured before anything is decrypted, as <see cref="Read"/> is.</remarks>
-        VaultValue Field(string entryUuid, string name, int most);
-
-        /// <summary>The names and sizes of an entry's attachments, never their contents, or null
-        /// when it is not there.</summary>
-        IReadOnlyList<VaultAttachment> Attachments(string entryUuid);
-
-        /// <summary>
-        /// One attachment, with its contents when it is no larger than <paramref name="most"/>
-        /// bytes, or null when the entry or the name is not there.
-        /// </summary>
-        /// <remarks>
-        /// **The size is asked before anything is decrypted, in the same read.** KeePass keeps an
-        /// attachment's length beside its encrypted bytes, so one over the ceiling comes back with
-        /// its size and no contents, and a caller refusing it never pays for the plaintext. Two
-        /// reads, a listing and then the contents, let an attachment replaced in between be
-        /// decrypted whole, at whatever size it had become, before anything could refuse it.
-        /// </remarks>
-        VaultAttachment Attachment(string entryUuid, string name, int most);
 
         /// <summary>
         /// Why a change cannot be made right now, or null when one can.

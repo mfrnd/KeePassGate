@@ -206,13 +206,7 @@ namespace KeePassGate.Bridge
             return Single(FindEntry(uuid));
         }
 
-        private string EntryTagInside(string uuid)
-        {
-            var entry = FindEntry(uuid);
-            return entry == null ? null : Tag(entry);
-        }
-
-        private VaultEntryDetail ReadInside(string uuid, int most)
+        private VaultEntryView ViewInside(string uuid, Func<VaultFound, VaultSight> sight)
         {
             var entry = FindEntry(uuid);
             if (entry == null)
@@ -220,29 +214,67 @@ namespace KeePassGate.Bridge
                 return null;
             }
 
-            // Which strings are protected is read from their flags, and how long they are from the
-            // length kept beside their encrypted bytes, so an entry over the ceiling is measured
-            // and handed back with nothing decrypted.
-            var guarded = entry.Strings.Where(pair => Guards(pair.Key, pair.Value))
-                .Select(pair => pair.Key)
-                .ToList();
-            var described = Describe(entry, guarded.Count > 0);
-            var characters = Characters(entry);
-            if (characters > most)
-            {
-                return new VaultEntryDetail(described, null, guarded, characters);
-            }
+            return Seen(entry, described => sight == null
+                ? null
+                : sight(new VaultFound(described, described.HoldsProtected == true)));
+        }
 
-            // In the order KeePass keeps them, which `OrderedFields` promises to keep.
-            var fields = new OrderedFields();
-            foreach (var pair in entry.Strings)
+        /// <summary>The whole of an entry, which is what a change's tags are taken of.</summary>
+        private VaultEntryView Whole(PwEntry entry)
+        {
+            return Seen(entry, described => VaultSight.Whole);
+        }
+
+        /// <summary>
+        /// An entry as far as a sight reaches into it: the one place an entry's strings and
+        /// attachments are turned into what a route answers with and a tag is taken of.
+        /// </summary>
+        /// <remarks>
+        /// **Nothing is decrypted here.** Which strings are protected is read from their flags and
+        /// the database's setting, how long they are from the length KeePass keeps beside their
+        /// encrypted bytes, and an attachment's size the same way, so an entry over a ceiling is
+        /// measured off the view with every value still encrypted. Each value is read when the
+        /// view is first asked for it, and KeePass changes neither a `ProtectedString` nor a
+        /// `ProtectedBinary` in place, so what is read then is what the entry held when the view
+        /// was taken.
+        /// </remarks>
+        /// <param name="asked">
+        /// What the caller may read, asked of the entry as described here. Null is answered as
+        /// <see cref="VaultSight.Least"/>.
+        /// </param>
+        private VaultEntryView Seen(PwEntry entry, Func<VaultEntry, VaultSight> asked)
+        {
+            var strings = entry.Strings.ToList();
+            var guarded = strings.Select(pair => Guards(pair.Key, pair.Value)).ToList();
+
+            var described = Describe(entry, guarded.Contains(true));
+            var sight = asked(described) ?? VaultSight.Least;
+
+            // In the order KeePass keeps them, which is the order `read` writes them in.
+            var fields = new List<VaultViewField>();
+            for (var index = 0; index < strings.Count; index++)
             {
                 // As stored, and never compiled: KeePass resolves a reference against the whole
                 // open database, which knows nothing about the rules this answer was allowed by.
-                fields.Set(pair.Key, pair.Value.ReadString());
+                var held = strings[index].Value;
+                fields.Add(new VaultViewField(
+                    strings[index].Key, guarded[index], held.Length, sight, held.ReadString));
             }
 
-            return new VaultEntryDetail(described, fields, guarded, characters);
+            List<VaultViewAttachment> attachments = null;
+            if (sight.Attachments)
+            {
+                attachments = new List<VaultViewAttachment>();
+                foreach (var pair in entry.Binaries)
+                {
+                    // `Length` is kept beside the encrypted bytes, so asking it decrypts nothing.
+                    var binary = pair.Value;
+                    attachments.Add(new VaultViewAttachment(
+                        pair.Key, (int)binary.Length, binary.ReadData, () => NodeTags.DigestOf(binary)));
+                }
+            }
+
+            return new VaultEntryView(described, sight, fields, attachments, _tags.Of);
         }
 
         private IReadOnlyList<VaultEntry> EntriesInside(string groupUuid)
@@ -288,37 +320,6 @@ namespace KeePassGate.Bridge
             return found;
         }
 
-        private IReadOnlyList<VaultField> FieldsInside(string entryUuid)
-        {
-            var entry = FindEntry(entryUuid);
-            var found = new List<VaultField>();
-
-            if (entry == null)
-            {
-                return null;
-            }
-
-            foreach (var pair in entry.Strings)
-            {
-                found.Add(new VaultField(pair.Key, Guards(pair.Key, pair.Value)));
-            }
-
-            return found;
-        }
-
-        private VaultValue FieldInside(string entryUuid, string name, int most)
-        {
-            var entry = FindEntry(entryUuid);
-            if (!Holds(entry, name))
-            {
-                return null;
-            }
-
-            var held = entry.Strings.Get(name);
-            var characters = name.Length + (held == null ? 0 : held.Length);
-            return new VaultValue(characters, characters > most ? null : entry.Strings.ReadSafe(name));
-        }
-
         /// <summary>
         /// What an entry's strings, names and values together, come to in characters, measured
         /// without decrypting anything.
@@ -352,43 +353,6 @@ namespace KeePassGate.Bridge
             }
 
             return characters;
-        }
-
-        private IReadOnlyList<VaultAttachment> AttachmentsInside(string entryUuid)
-        {
-            var entry = FindEntry(entryUuid);
-            var found = new List<VaultAttachment>();
-
-            if (entry == null)
-            {
-                return null;
-            }
-
-            foreach (var pair in entry.Binaries)
-            {
-                found.Add(new VaultAttachment(pair.Key, (int)pair.Value.Length));
-            }
-
-            return found;
-        }
-
-        private VaultAttachment AttachmentInside(string entryUuid, string name, int most)
-        {
-            var entry = FindEntry(entryUuid);
-            if (!Keeps(entry, name))
-            {
-                return null;
-            }
-
-            var binary = entry.Binaries.Get(name);
-            if (binary == null)
-            {
-                return null;
-            }
-
-            // `Length` is kept beside the encrypted bytes, so asking it decrypts nothing.
-            var size = (int)binary.Length;
-            return new VaultAttachment(name, size, size > most ? null : binary.ReadData());
         }
 
         public VaultWrite CreateGroup(string parentUuid, string name, string notes, VaultAsking asking)
@@ -669,7 +633,7 @@ namespace KeePassGate.Bridge
 
                 // Measured as it would be added, so nothing is put into the group to be taken out.
                 var characters = Characters(entry);
-                if (characters > VaultEntryDetail.MostCharacters)
+                if (characters > VaultEntryView.MostCharacters)
                 {
                     return VaultWrite.TooLarge(characters);
                 }
@@ -727,7 +691,7 @@ namespace KeePassGate.Bridge
                 }
 
                 var characters = Characters(entry, fields);
-                if (characters > VaultEntryDetail.MostCharacters)
+                if (characters > VaultEntryView.MostCharacters)
                 {
                     return VaultWrite.TooLarge(characters);
                 }
@@ -893,7 +857,7 @@ namespace KeePassGate.Bridge
                 }
 
                 var characters = Characters(entry, new Dictionary<string, string> { { name, value } });
-                if (characters > VaultEntryDetail.MostCharacters)
+                if (characters > VaultEntryView.MostCharacters)
                 {
                     return VaultWrite.TooLarge(characters);
                 }
@@ -948,7 +912,7 @@ namespace KeePassGate.Bridge
                 }
 
                 var characters = Characters(entry, new Dictionary<string, string> { { name, value } });
-                if (characters > VaultEntryDetail.MostCharacters)
+                if (characters > VaultEntryView.MostCharacters)
                 {
                     return VaultWrite.TooLarge(characters);
                 }
@@ -1227,11 +1191,6 @@ namespace KeePassGate.Bridge
             return Reading(() => GroupTagInside(uuid));
         }
 
-        public string EntryTag(string uuid)
-        {
-            return Reading(() => EntryTagInside(uuid));
-        }
-
         public IReadOnlyList<VaultGroup> Subgroups(string uuid)
         {
             return Reading(() => SubgroupsInside(uuid));
@@ -1247,9 +1206,9 @@ namespace KeePassGate.Bridge
             return Reading(() => EntryInside(uuid));
         }
 
-        public VaultEntryDetail Read(string uuid, int most)
+        public VaultEntryView View(string uuid, Func<VaultFound, VaultSight> sight)
         {
-            return Reading(() => ReadInside(uuid, most));
+            return Reading(() => ViewInside(uuid, sight));
         }
 
         public IReadOnlyList<VaultEntry> Entries(string groupUuid)
@@ -1260,26 +1219,6 @@ namespace KeePassGate.Bridge
         public IReadOnlyList<VaultEntry> Entries()
         {
             return Reading(() => EntriesInside());
-        }
-
-        public IReadOnlyList<VaultField> Fields(string entryUuid)
-        {
-            return Reading(() => FieldsInside(entryUuid));
-        }
-
-        public VaultValue Field(string entryUuid, string name, int most)
-        {
-            return Reading(() => FieldInside(entryUuid, name, most));
-        }
-
-        public IReadOnlyList<VaultAttachment> Attachments(string entryUuid)
-        {
-            return Reading(() => AttachmentsInside(entryUuid));
-        }
-
-        public VaultAttachment Attachment(string entryUuid, string name, int most)
-        {
-            return Reading(() => AttachmentInside(entryUuid, name, most));
         }
 
         public T Held<T>(Func<T> read)
@@ -1490,7 +1429,7 @@ namespace KeePassGate.Bridge
         private Func<string> Before(PwEntry entry)
         {
             string tag = null;
-            return () => tag ?? (tag = Tag(entry));
+            return () => tag ?? (tag = Whole(entry).Tag);
         }
 
         /// <summary>
@@ -1552,7 +1491,9 @@ namespace KeePassGate.Bridge
 
         private string After(VaultAsking asking, PwEntry entry)
         {
-            return Answers(asking, new VaultFound(Single(entry), false)) ? Tag(entry) : null;
+            // The tag of the view the question was asked about, so the two are of one entry.
+            var view = Whole(entry);
+            return Answers(asking, new VaultFound(view.Entry, false)) ? view.Tag : null;
         }
 
         /// <summary>Whether the caller is handed the tag of the node a change left.</summary>
@@ -2278,11 +2219,6 @@ namespace KeePassGate.Bridge
             }
 
             return Describe(entry, holds);
-        }
-
-        private string Tag(PwEntry entry)
-        {
-            return _tags.Of(entry, Guards);
         }
 
         private VaultEntry Describe(PwEntry entry, bool? holdsProtected)

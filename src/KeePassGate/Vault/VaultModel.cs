@@ -129,94 +129,6 @@ namespace KeePassGate.Vault
         public bool? HoldsProtected { get; private set; }
     }
 
-    /// <summary>One of an entry's strings, named and described but not quoted.</summary>
-    /// <remarks>
-    /// **No length.** A `list` grant says which fields exist; the length of a password is worth
-    /// something to whoever is guessing it, and handing that over is not what listing means.
-    /// </remarks>
-    public sealed class VaultField
-    {
-        public VaultField(string name, bool isProtected)
-        {
-            Name = name;
-            IsProtected = isProtected;
-        }
-
-        public string Name { get; private set; }
-
-        /// <summary>
-        /// Whether it is kept protected in memory, as a password is, either because the string
-        /// carries the flag or because the database protects a field of that name.
-        /// </summary>
-        public bool IsProtected { get; private set; }
-    }
-
-    /// <summary>
-    /// A string's value, or its size alone when it is more than a read may hand over.
-    /// </summary>
-    public sealed class VaultValue
-    {
-        public VaultValue(int characters, string value)
-        {
-            Characters = characters;
-            Value = value;
-        }
-
-        /// <summary>
-        /// The string's name and value together, in characters, measured before anything was
-        /// decrypted.
-        /// </summary>
-        public int Characters { get; private set; }
-
-        /// <summary>
-        /// The value, or null when it was more than the read was allowed to hand over.
-        /// </summary>
-        public string Value { get; private set; }
-    }
-
-    /// <summary>
-    /// One of an entry's attachments, named and sized.
-    /// </summary>
-    /// <remarks>
-    /// The size stays, unlike a field's length, because a client has to decide whether to ask for
-    /// something before it asks, and an attachment can be megabytes.
-    /// </remarks>
-    public sealed class VaultAttachment
-    {
-        public VaultAttachment(string name, int size)
-            : this(name, size, null)
-        {
-        }
-
-        public VaultAttachment(string name, int size, byte[] content)
-        {
-            Name = name;
-            Size = size;
-            Content = content;
-        }
-
-        /// <summary>
-        /// The largest attachment the gate hands out, which is also the largest it takes and the
-        /// largest whose bytes a node's tag is taken over.
-        /// </summary>
-        /// <remarks>
-        /// Here rather than with the routes, so that the vault, which tags a node, and the routes,
-        /// which serve one, read the same number. `VaultHandlers.MaxAttachmentBytes` says why it is
-        /// this one.
-        /// </remarks>
-        public const int MostServed = 512 * 1024;
-
-        public string Name { get; private set; }
-
-        public int Size { get; private set; }
-
-        /// <summary>
-        /// What it holds, or null when that was not read: a listing reads none, and a read leaves
-        /// out one larger than it was allowed to hand over.
-        /// </summary>
-        public byte[] Content { get; private set; }
-    }
-
     /// <summary>
     /// What a change found where it is about to be made: the node the rules are asked about, as
     /// it stands inside the change's own turn.
@@ -225,6 +137,10 @@ namespace KeePassGate.Vault
     /// The entry for a change to an entry or to anything inside it, the group for a change to a
     /// group, and the group that would hold it for a group or an entry being created: the node
     /// the routing table has the router ask about, found again by the write itself.
+    ///
+    /// **A view asks with the same thing**, the entry it is about to be taken of, so that what
+    /// a caller may read is answered about the entry as the read finds it:
+    /// <see cref="IVault.View"/>.
     /// </remarks>
     public sealed class VaultFound
     {
@@ -267,7 +183,7 @@ namespace KeePassGate.Vault
         /// <summary>
         /// Whether the change sets or takes away a string that is protected, by the database for
         /// what it is called or by the flag the string itself carries. False for a change that
-        /// touches no string.
+        /// touches no string. For a view, whether any string of the entry is protected.
         /// </summary>
         public bool Guarded { get; private set; }
 
@@ -519,7 +435,7 @@ namespace KeePassGate.Vault
         /// A refusal about the request, answered `413`, and decided under the writer's lock against
         /// the entry as the change would have found it, as <see cref="IsPreconditionFailed"/>
         /// is, so that two writes landing in turn cannot each be measured against what the entry
-        /// held before the other. <see cref="VaultEntryDetail.MostCharacters"/> is the
+        /// held before the other. <see cref="VaultEntryView.MostCharacters"/> is the
         /// ceiling, and <see cref="Characters"/> what the entry would have come to.
         /// </remarks>
         public bool IsTooLarge { get; private set; }
@@ -638,55 +554,6 @@ namespace KeePassGate.Vault
         {
             return new VaultWrite(false, false, false, null, "the rules refuse it");
         }
-    }
-
-    /// <summary>An entry and everything it holds, which is what `read` answers with.</summary>
-    public sealed class VaultEntryDetail
-    {
-        /// <summary>
-        /// The most characters an entry's strings, names and values together, may come to and
-        /// still be read whole or written to.
-        /// </summary>
-        /// <remarks>
-        /// Here rather than with the routes, so that the vault, which measures an entry and refuses
-        /// a write taking an entry past it, and the routes, which refuse to read an entry past it,
-        /// read the same number. `VaultHandlers.MaxEntryCharacters` gives the reason for this
-        /// number.
-        /// </remarks>
-        public const int MostCharacters = 512 * 1024;
-
-        public VaultEntryDetail(
-            VaultEntry entry,
-            IReadOnlyDictionary<string, string> fields,
-            IReadOnlyList<string> protectedFields,
-            int characters)
-        {
-            Entry = entry;
-            Fields = fields;
-            Protected = protectedFields;
-            Characters = characters;
-        }
-
-        public VaultEntry Entry { get; private set; }
-
-        /// <summary>
-        /// Every string the entry holds, by KeePass's own names, values included, enumerated in
-        /// the order KeePass keeps them, which is the order `read` writes them in, or null when
-        /// they come to more characters than the read was allowed to hand over.
-        /// </summary>
-        public IReadOnlyDictionary<string, string> Fields { get; private set; }
-
-        /// <summary>
-        /// What the entry's strings, names and values together, come to in characters, measured
-        /// before anything was decrypted.
-        /// </summary>
-        public int Characters { get; private set; }
-
-        /// <summary>
-        /// Which of them are kept protected, by the string's own flag or by the database's setting
-        /// for a field of that name.
-        /// </summary>
-        public IReadOnlyList<string> Protected { get; private set; }
     }
 
     /// <summary>What a create or an update asks of an entry's expiry.</summary>

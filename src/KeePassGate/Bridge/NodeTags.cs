@@ -54,6 +54,11 @@ namespace KeePassGate.Bridge
     /// in the tag changed every tag across a reload for nothing anybody wrote. A rule is left out,
     /// since no route serves one.
     ///
+    /// **An entry's tag is taken of the view the routes answer from**, a
+    /// <see cref="VaultEntryView"/>, and never of the entry itself, so the tag and the answer are
+    /// one projection and cannot come to cover different things. A value or the attachments the
+    /// view withholds enter as a fixed mark, with nothing derived from what is withheld.
+    ///
     /// **Strings and attachments enter in an order of the tag's own**, by name, ordinal. KeePass
     /// keeps both in dictionaries sorted by the current culture, in the order their names were
     /// compared when the file loaded, so a tag walked in that order changed for content nobody
@@ -147,14 +152,19 @@ namespace KeePassGate.Bridge
             Array.Clear(_key, 0, _key.Length);
         }
 
-        /// <summary>An entry's tag.</summary>
-        /// <param name="guarded">
-        /// Whether a string is served as protected, which is the flag or the database's own setting
-        /// for the name, so that the tag follows what a client is told rather than one half of it.
-        /// </param>
-        public string Of(PwEntry entry, Func<string, ProtectedString, bool> guarded)
+        /// <summary>An entry's tag, as one caller may read the entry.</summary>
+        /// <remarks>
+        /// **Of the view and of nothing else.** The routes answer from the same view, so a part
+        /// that is served is a part that is hashed, and what the view leaves out cannot enter:
+        /// this never sees the entry the view was taken of.
+        ///
+        /// **A withheld value enters as a mark that it is withheld**, the same mark whatever the
+        /// value is and however long, so the tag of a view moves with nothing its caller may not
+        /// read. Attachments out of sight enter as one mark for all of them, in the same way.
+        /// </remarks>
+        public string Of(VaultEntryView view)
         {
-            if (entry == null)
+            if (view == null)
             {
                 return null;
             }
@@ -162,24 +172,31 @@ namespace KeePassGate.Bridge
             using (var hmac = Keyed())
             {
                 Put(hmac, "entry");
-                Put(hmac, entry.Uuid.ToHexString());
-                Put(hmac, Parent(entry.ParentGroup));
-                Put(hmac, Served(entry.CreationTime));
-                Put(hmac, Served(entry.LastModificationTime));
+                Put(hmac, view.Entry.Uuid);
+                Put(hmac, view.Entry.Group ?? string.Empty);
+                Put(hmac, Moments.Wire(view.Entry.Created));
+                Put(hmac, Moments.Wire(view.Entry.Modified));
 
-                foreach (var pair in entry.Strings.OrderBy(pair => pair.Key, StringComparer.Ordinal))
+                foreach (var field in view.Fields.OrderBy(field => field.Name, StringComparer.Ordinal))
                 {
                     Put(hmac, "string");
-                    Put(hmac, pair.Key);
-                    Put(hmac, guarded(pair.Key, pair.Value) ? "protected" : "plain");
+                    Put(hmac, field.Name);
+                    Put(hmac, field.IsProtected ? "protected" : "plain");
+
+                    if (field.IsWithheld)
+                    {
+                        Put(hmac, "withheld");
+                        continue;
+                    }
 
                     // The value as a read serves it, and not the bytes the store keeps: a file
                     // another program wrote can hold bytes that are not UTF-8, which the read
                     // serves with each bad sequence replaced, and a tag over the stored bytes was a
-                    // tag over a value nobody was ever served. The string is the one KeePass keeps
-                    // once it has been read, so asking for it decrypts nothing twice; the encoded
-                    // copy is wiped.
-                    var value = Encoding.UTF8.GetBytes(pair.Value.ReadString());
+                    // tag over a value nobody was ever served. The view keeps the string once it
+                    // has been read, so asking for it decrypts nothing twice; the encoded copy is
+                    // wiped.
+                    Put(hmac, "value");
+                    var value = Encoding.UTF8.GetBytes(field.Value);
                     try
                     {
                         Put(hmac, value);
@@ -190,22 +207,49 @@ namespace KeePassGate.Bridge
                     }
                 }
 
-                foreach (var pair in entry.Binaries.OrderBy(pair => pair.Key, StringComparer.Ordinal))
+                if (view.Attachments == null)
                 {
-                    Put(hmac, "attachment");
-                    Put(hmac, pair.Key);
-                    Put(hmac, Length(pair.Value.Length));
+                    Put(hmac, "attachments withheld");
+                }
+                else
+                {
+                    Put(hmac, "attachments");
 
-                    if (pair.Value.Length <= VaultAttachment.MostServed)
+                    foreach (var attachment in view.Attachments.OrderBy(
+                        attachment => attachment.Name, StringComparer.Ordinal))
                     {
-                        Put(hmac, Digests.GetValue(pair.Value, Deferred).Value);
+                        Put(hmac, "attachment");
+                        Put(hmac, attachment.Name);
+                        Put(hmac, Length((uint)attachment.Size));
+
+                        // Null for an attachment larger than the gate serves, which enters by its
+                        // size alone.
+                        var digest = attachment.Digest;
+                        if (digest != null)
+                        {
+                            Put(hmac, digest);
+                        }
                     }
                 }
 
-                Put(hmac, entry.Expires ? Served(entry.ExpiryTime) : "never");
+                Put(hmac, view.Entry.Expires.HasValue ? Moments.Wire(view.Entry.Expires.Value) : "never");
 
                 return Done(hmac);
             }
+        }
+
+        /// <summary>
+        /// The SHA-256 of an attachment's bytes, taken once for as long as KeePass keeps the
+        /// attachment.
+        /// </summary>
+        /// <remarks>
+        /// What a view's attachment answers its digest with. Kept against the object, for the
+        /// reasons the class gives: the bytes behind a `ProtectedBinary` never change, and a
+        /// failure is never kept.
+        /// </remarks>
+        internal static byte[] DigestOf(ProtectedBinary binary)
+        {
+            return Digests.GetValue(binary, Deferred).Value;
         }
 
         /// <summary>A group's tag.</summary>

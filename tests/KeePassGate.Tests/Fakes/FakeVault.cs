@@ -375,7 +375,7 @@ namespace KeePassGate.Tests.Fakes
             return group.Tag();
         }
 
-        public string EntryTag(string uuid)
+        public VaultEntryView View(string uuid, Func<VaultFound, VaultSight> sight)
         {
             Looking();
 
@@ -385,13 +385,87 @@ namespace KeePassGate.Tests.Fakes
             }
 
             var entry = FindEntry(uuid);
-            return entry == null ? null : Tag(entry);
+            if (entry == null)
+            {
+                return null;
+            }
+
+            var described = Single(entry);
+            return Seen(
+                entry,
+                described,
+                sight == null ? null : sight(new VaultFound(described, described.HoldsProtected == true)));
+        }
+
+        /// <summary>The whole of an entry, which is what a change's tags are taken of.</summary>
+        private VaultEntryView Whole(Kept entry)
+        {
+            return Seen(entry, Single(entry), VaultSight.Whole);
         }
 
         /// <summary>
-        /// What the entry holds, condensed as the real vault condenses it: protection as the
-        /// database decides it, and an attachment's bytes only up to the largest the gate serves,
-        /// each one counted as a read, since the real vault decrypts it to hash it.
+        /// An entry as far as a sight reaches into it, as the real vault builds a view: nothing
+        /// read until it is asked for, a protected string out of sight holding no value, and no
+        /// attachments at all when they are out of sight.
+        /// </summary>
+        /// <remarks>
+        /// Each value read counts in <see cref="StringReads"/> and each attachment read or
+        /// digested in <see cref="AttachmentReads"/>, since the real vault decrypts for both.
+        /// With <see cref="IgnoresCeiling"/> every length and size is told as nothing, which is a
+        /// view handing over more than it measured.
+        /// </remarks>
+        private VaultEntryView Seen(Kept entry, VaultEntry described, VaultSight sight)
+        {
+            var fields = new List<VaultViewField>();
+            foreach (var pair in entry.Fields)
+            {
+                var value = pair.Value ?? string.Empty;
+                fields.Add(new VaultViewField(
+                    pair.Key,
+                    Guards(entry, pair.Key),
+                    IgnoresCeiling ? 0 : value.Length,
+                    sight,
+                    () =>
+                    {
+                        StringReads++;
+                        return value;
+                    }));
+            }
+
+            List<VaultViewAttachment> attachments = null;
+            if (sight != null && sight.Attachments)
+            {
+                attachments = new List<VaultViewAttachment>();
+                foreach (var pair in entry.Attachments)
+                {
+                    var content = pair.Value;
+                    attachments.Add(new VaultViewAttachment(
+                        pair.Key,
+                        IgnoresCeiling ? 0 : content.Length,
+                        () =>
+                        {
+                            AttachmentReads++;
+                            return content;
+                        },
+                        () =>
+                        {
+                            AttachmentReads++;
+                            using (var sha256 = System.Security.Cryptography.SHA256.Create())
+                            {
+                                return sha256.ComputeHash(content);
+                            }
+                        }));
+                }
+            }
+
+            return new VaultEntryView(described, sight, fields, attachments, Tag);
+        }
+
+        /// <summary>
+        /// What a view holds, condensed as the real vault condenses a view and from the view
+        /// alone: protection as the database decides it, a withheld value and attachments out of
+        /// sight as fixed marks, and an attachment's digest only up to the largest the gate
+        /// serves.
         /// </summary>
         /// <remarks>
         /// **Less the two times**, because nothing here keeps any. The real vault's tag carries
@@ -399,36 +473,43 @@ namespace KeePassGate.Tests.Fakes
         /// change that puts back what was there gives a new tag unless it lands within the same
         /// second, where here it always gives back the tag that was there.
         /// </remarks>
-        private string Tag(Kept entry)
+        private string Tag(VaultEntryView view)
         {
             TagsTaken++;
 
             var parts = new List<string>
             {
                 "entry",
-                entry.Uuid,
-                entry.Group,
-                entry.Expires.HasValue
-                    ? entry.Expires.Value.UtcTicks.ToString(System.Globalization.CultureInfo.InvariantCulture)
+                view.Entry.Uuid,
+                view.Entry.Group,
+                view.Entry.Expires.HasValue
+                    ? view.Entry.Expires.Value.UtcTicks.ToString(System.Globalization.CultureInfo.InvariantCulture)
                     : "never",
             };
 
-            foreach (var field in entry.Fields)
+            foreach (var field in view.Fields)
             {
-                parts.Add(field.Key);
-                parts.Add(Guards(entry, field.Key) ? "protected" : "plain");
-                parts.Add(field.Value);
+                parts.Add(field.Name);
+                parts.Add(field.IsProtected ? "protected" : "plain");
+                parts.Add(field.IsWithheld ? "withheld" : "value");
+                parts.Add(field.IsWithheld ? string.Empty : field.Value);
             }
 
-            foreach (var attachment in entry.Attachments)
+            if (view.Attachments == null)
             {
-                parts.Add(attachment.Key);
-                parts.Add(attachment.Value.Length.ToString(System.Globalization.CultureInfo.InvariantCulture));
+                parts.Add("attachments withheld");
+            }
+            else
+            {
+                parts.Add("attachments");
 
-                if (attachment.Value.Length <= VaultAttachment.MostServed)
+                foreach (var attachment in view.Attachments)
                 {
-                    AttachmentReads++;
-                    parts.Add(Convert.ToBase64String(attachment.Value));
+                    parts.Add(attachment.Name);
+                    parts.Add(attachment.Size.ToString(System.Globalization.CultureInfo.InvariantCulture));
+
+                    var digest = attachment.Digest;
+                    parts.Add(digest == null ? "unread" : Convert.ToBase64String(digest));
                 }
             }
 
@@ -494,46 +575,6 @@ namespace KeePassGate.Tests.Fakes
         public string Vanishes { get; set; }
 
         /// <summary>
-        /// How many times the whole of an entry was asked for, values included.
-        /// </summary>
-        /// <remarks>
-        /// The real vault answers this by decrypting every string the entry holds, so a route that
-        /// wants one value and calls it takes every other one out of protected memory as well.
-        /// Counted rather than assumed, because nothing else here can see the difference.
-        /// </remarks>
-        public int Detailed { get; private set; }
-
-        public VaultEntryDetail Read(string uuid, int most)
-        {
-            Looking();
-            Detailed++;
-
-            if (string.Equals(uuid, Vanishes, StringComparison.Ordinal))
-            {
-                return null;
-            }
-
-            var entry = FindEntry(uuid);
-            if (entry == null)
-            {
-                return null;
-            }
-
-            var characters = Characters(entry.Fields);
-            var over = characters > most && !IgnoresCeiling;
-            if (!over)
-            {
-                StringReads++;
-            }
-
-            return new VaultEntryDetail(
-                Single(entry),
-                over ? null : new Dictionary<string, string>(entry.Fields, StringComparer.Ordinal),
-                entry.Fields.Keys.Where(n => Guards(entry, n)).ToList(),
-                characters);
-        }
-
-        /// <summary>
         /// What these strings, names and values together, come to, as the real vault counts them.
         /// </summary>
         private static int Characters(IEnumerable<KeyValuePair<string, string>> strings)
@@ -573,100 +614,31 @@ namespace KeePassGate.Tests.Fakes
             return IsOpen ? _entries.Values.Select(e => e.Describe()).ToList() : null;
         }
 
-        public IReadOnlyList<VaultField> Fields(string entryUuid)
-        {
-            Looking();
-
-            if (string.Equals(entryUuid, Vanishes, StringComparison.Ordinal))
-            {
-                return null;
-            }
-
-            var entry = FindEntry(entryUuid);
-
-            return entry == null
-                ? null
-                : entry.Fields.Keys.Select(n => new VaultField(n, Guards(entry, n))).ToList();
-        }
-
-        public VaultValue Field(string entryUuid, string name, int most)
-        {
-            Looking();
-
-            var entry = FindEntry(entryUuid);
-            string value;
-
-            if (entry == null || !Holds(entry.Fields.Keys, name) || !entry.Fields.TryGetValue(name, out value))
-            {
-                return null;
-            }
-
-            var characters = name.Length + (value ?? string.Empty).Length;
-            if (characters > most && !IgnoresCeiling)
-            {
-                return new VaultValue(characters, null);
-            }
-
-            StringReads++;
-            return new VaultValue(characters, value);
-        }
-
-        public IReadOnlyList<VaultAttachment> Attachments(string entryUuid)
-        {
-            Looking();
-
-            var entry = FindEntry(entryUuid);
-
-            return entry == null
-                ? null
-                : entry.Attachments
-                    .Select(a => new VaultAttachment(a.Key, a.Value.Length))
-                    .ToList();
-        }
-
         /// <summary>
         /// Hands over an attachment's contents, an entry's strings or a field's value whatever size
-        /// they are when set, as a vault that broke its promise would.
+        /// they are when set, by measuring each as nothing, as a vault that broke its promise
+        /// would.
         /// </summary>
         /// <remarks>
         /// What `ReadAttachment`'s, `ReadEntry`'s and `ReadField`'s own checks of what they were
-        /// handed are for, and without this nothing here could ever hand them more than they
-        /// asked for.
+        /// handed are for, and without this nothing here could ever hand them more than it
+        /// measured.
         /// </remarks>
         public bool IgnoresCeiling { get; set; }
 
         /// <summary>
-        /// How many times an entry's strings or a field's value have been handed over, which is how
-        /// many times they were decrypted, so that a test can tell an answer was refused before
-        /// anything was decrypted rather than after.
+        /// How many string values have been read off a view, each of which the real vault
+        /// decrypts, so that a test can tell an answer was refused before anything was decrypted
+        /// rather than after, and that a read of one string left the others alone.
         /// </summary>
         public int StringReads { get; set; }
 
         /// <summary>
-        /// How many attachments have been handed over with their contents, which is how many were
-        /// decrypted, so that a test can say an answer was refused before anything was decrypted
-        /// rather than after.
+        /// How many times an attachment's contents have been read off a view, to hand over or to
+        /// digest for a tag, each of which the real vault decrypts, so that a test can tell an
+        /// answer was refused before anything was decrypted rather than after.
         /// </summary>
         public int AttachmentReads { get; set; }
-
-        public VaultAttachment Attachment(string entryUuid, string name, int most)
-        {
-            Looking();
-
-            var content = Attachment(entryUuid, name);
-            if (content == null)
-            {
-                return null;
-            }
-
-            if (content.Length > most && !IgnoresCeiling)
-            {
-                return new VaultAttachment(name, content.Length, null);
-            }
-
-            AttachmentReads++;
-            return new VaultAttachment(name, content.Length, content);
-        }
 
         /// <summary>
         /// What is stored under this name, for a test to look at: nothing is counted and no
@@ -828,7 +800,7 @@ namespace KeePassGate.Tests.Fakes
                 }
 
                 var characters = Characters(entry.Fields);
-                if (characters > VaultEntryDetail.MostCharacters)
+                if (characters > VaultEntryView.MostCharacters)
                 {
                     _entries.Remove(uuid);
                     return VaultWrite.TooLarge(characters);
@@ -883,12 +855,12 @@ namespace KeePassGate.Tests.Fakes
                 }
 
                 var characters = Characters(entry.Fields, fields);
-                if (characters > VaultEntryDetail.MostCharacters)
+                if (characters > VaultEntryView.MostCharacters)
                 {
                     return VaultWrite.TooLarge(characters);
                 }
 
-                var refused = Refused(tagging, () => Tag(entry));
+                var refused = Refused(tagging, () => Whole(entry).Tag);
                 if (refused != null)
                 {
                     return refused;
@@ -928,7 +900,7 @@ namespace KeePassGate.Tests.Fakes
                     return refusal;
                 }
 
-                var refused = Refused(tagging, () => Tag(entry));
+                var refused = Refused(tagging, () => Whole(entry).Tag);
                 if (refused != null)
                 {
                     return refused;
@@ -965,12 +937,12 @@ namespace KeePassGate.Tests.Fakes
                 }
 
                 var characters = Characters(entry.Fields, new Dictionary<string, string> { { name, value } });
-                if (characters > VaultEntryDetail.MostCharacters)
+                if (characters > VaultEntryView.MostCharacters)
                 {
                     return VaultWrite.TooLarge(characters);
                 }
 
-                var refused = Refused(tagging, () => Tag(entry));
+                var refused = Refused(tagging, () => Whole(entry).Tag);
                 if (refused != null)
                 {
                     return refused;
@@ -1011,12 +983,12 @@ namespace KeePassGate.Tests.Fakes
                 }
 
                 var characters = Characters(entry.Fields, new Dictionary<string, string> { { name, value } });
-                if (characters > VaultEntryDetail.MostCharacters)
+                if (characters > VaultEntryView.MostCharacters)
                 {
                     return VaultWrite.TooLarge(characters);
                 }
 
-                var refused = Refused(tagging, () => Tag(entry));
+                var refused = Refused(tagging, () => Whole(entry).Tag);
                 if (refused != null)
                 {
                     return refused;
@@ -1056,7 +1028,7 @@ namespace KeePassGate.Tests.Fakes
                     return VaultWrite.Conflict("a standard field can be emptied and not taken off");
                 }
 
-                var refused = Refused(tagging, () => Tag(entry));
+                var refused = Refused(tagging, () => Whole(entry).Tag);
                 if (refused != null)
                 {
                     return refused;
@@ -1090,7 +1062,7 @@ namespace KeePassGate.Tests.Fakes
                     return VaultWrite.Conflict("that attachment is already there");
                 }
 
-                var refused = Refused(tagging, () => Tag(entry));
+                var refused = Refused(tagging, () => Whole(entry).Tag);
                 if (refused != null)
                 {
                     return refused;
@@ -1123,7 +1095,7 @@ namespace KeePassGate.Tests.Fakes
                     return VaultWrite.Missing();
                 }
 
-                var refused = Refused(tagging, () => Tag(entry));
+                var refused = Refused(tagging, () => Whole(entry).Tag);
                 if (refused != null)
                 {
                     return refused;
@@ -1156,7 +1128,7 @@ namespace KeePassGate.Tests.Fakes
                     return VaultWrite.Missing();
                 }
 
-                var refused = Refused(tagging, () => Tag(entry));
+                var refused = Refused(tagging, () => Whole(entry).Tag);
                 if (refused != null)
                 {
                     return refused;
@@ -1250,7 +1222,8 @@ namespace KeePassGate.Tests.Fakes
         /// </summary>
         private string Left(VaultAsking asking, Kept entry)
         {
-            return Answers(asking, new VaultFound(Single(entry), false)) ? Tag(entry) : null;
+            var view = Whole(entry);
+            return Answers(asking, new VaultFound(view.Entry, false)) ? view.Tag : null;
         }
 
         private static string Left(VaultAsking asking, Node group)

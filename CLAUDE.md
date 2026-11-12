@@ -378,8 +378,13 @@ designing around them.
   `NodeTags` takes an HMAC-SHA256 over exactly what the routes serve, as they serve it: an entry's
   identifier, its group, its two times to the second, every string with its name, whether it is
   protected and its value as a read decodes it, every attachment's name, size and, up to
-  `VaultAttachment.MostServed`, the SHA-256 of its bytes, and its expiry; a group's identifier, its
-  parent, its two times, its name and its notes. Rules stay out. A clock on its own was measured
+  `VaultViewAttachment.MostServed`, the SHA-256 of its bytes, and its expiry; a group's
+  identifier, its parent, its two times, its name and its notes. Rules stay out. **An entry's
+  answer and its tag are one projection**: `IVault.View` hands back a `VaultEntryView`, the whole
+  of the entry as one caller may read it, every route about an entry renders from it, and
+  `NodeTags.Of` hashes that view and never the `PwEntry`, a withheld value and attachments out of
+  sight entering as fixed marks, so what is served and what is tagged cannot drift apart. A clock
+  on its own was measured
   and refused, in `FINDINGS.md` under "What a version of a node can be made of": it misses two
   changes inside one step, a merge at an equal time, a move and a plugin that never calls `Touch`.
   An entry has one tag for itself, its fields and its attachments, as the rules answer for all three
@@ -388,8 +393,8 @@ designing around them.
   there, so no change lands between the two. Attachment
   digests are kept per `ProtectedBinary` in a `ConditionalWeakTable` of `Lazy` values, so two
   readers decrypt one once between them, on the strength of KeePass never changing one in place,
-  which `KeePassContractTests` pins. A lookup takes no tag: `IVault.EntryTag` and `GroupTag` are
-  asked only by a route that will hand one out.
+  which `KeePassContractTests` pins. A lookup takes no tag: `VaultEntryView.Tag` and
+  `IVault.GroupTag` are asked only by a route that will hand a tag out.
 
   **The key is derived from the host certificate's stored PKCS#12**, `NodeTags.KeyFrom`, never the
   gate key, which every paired client holds. So a tag is the same across a lock, a restart and a
