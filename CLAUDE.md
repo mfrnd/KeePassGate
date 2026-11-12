@@ -182,7 +182,9 @@ designing around them.
   redrawn, so no listener's defect can lose it and the operation writes none of its own. **Queued
   for a writer of the audit's own**, as every line KeePass's thread records is, the operator's
   revocation at the settings dialog's OK among them, so that KeePass's thread never waits on the
-  file, and the plugin's log does the same with the lines KeePass's thread logs; every line keeps
+  file, and the plugin's log does the same with the lines KeePass's thread logs. A thread holding
+  KeePass's thread still for a read may wait for a file no more than that thread may, so what is
+  logged inside a hold is queued the same way, `ControlUiThread.MayNotWait`; every line keeps
   its place, KeePass's exit waits for both writers for two seconds at most, `PluginFiles.ExitWait`,
   and a line still queued when the process ends is lost. A defect
   in the save itself, which runs every other plugin's handlers, is settled by a `finally` as the
@@ -381,9 +383,9 @@ designing around them.
   and refused, in `FINDINGS.md` under "What a version of a node can be made of": it misses two
   changes inside one step, a merge at an equal time, a move and a plugin that never calls `Touch`.
   An entry has one tag for itself, its fields and its attachments, as the rules answer for all three
-  by the entry. **The tag is taken before what it is served with**, so a change landing in the
-  middle of a read leaves a client an older tag beside newer content, which a write then fails over,
-  rather than the other way round, which a write would have carried over the change. Attachment
+  by the entry. **A tag and what it is served with are of one moment**: a read is decided and
+  served inside one hold of KeePass's thread, and its handler takes the tag and makes the answer
+  there, so no change lands between the two. Attachment
   digests are kept per `ProtectedBinary` in a `ConditionalWeakTable` of `Lazy` values, so two
   readers decrypt one once between them, on the strength of KeePass never changing one in place,
   which `KeePassContractTests` pins. A lookup takes no tag: `IVault.EntryTag` and `GroupTag` are
@@ -400,6 +402,14 @@ designing around them.
   reverses handing every caller the tag**, which a review measured as a way to recover a password a
   client may update and not read, by writing guesses and comparing the tags that came back, `API.md`
   §410. A key stops a tag being computed; only not handing it out stops it being compared.
+
+  **An update that would change nothing is skipped only for a client that may read every value it
+  names**, the operator's ruling of 2026-11-10, `VaultTagging.Sees`: `read` on a group, `read` on
+  an entry with `protected` in the same rule when a named string is protected, `read` with
+  `attachments` for an attachment, through any profile. For any other client it is written like
+  any change, revision, time and save, because a skip would tell a client that may write a value
+  and not read it that the value it sent is the value stored. A request naming nothing is skipped
+  for everybody. The vault decides it inside the change's turn, of the strings as it finds them.
 
   **`If-Match` is optional, at the operator's word**, so a request without one is served as it
   always was, and one whose node no longer holds what the tag says is `412`, `API.md` §410. It is
@@ -420,7 +430,8 @@ designing around them.
   **`protected` is a scope and not a verb**, like `attachments`, and it is the one scope a handler
   asks about rather than the router. An attachment is a route of its own, so the router asks before
   dispatch; a protected value arrives inside the answer to a route that is allowed, so each handler
-  that writes or takes a field value asks it, through one helper, `DESIGN.md` §137. It governs
+  that writes or takes a field value asks it, through one helper, `DESIGN.md` §137, a read's inside
+  its hold and a write's inside its own turn, of the node as the vault finds it there. It governs
   writing as well as reading, and what counts as protected is `IVault.Protects`, which is KeePass's
   own `MemoryProtection` rather than a list kept here. **Both sides ask it now**: a read used to
   trust the stored string's own flag, so a standard field the database protects and the string did
@@ -1235,7 +1246,26 @@ the operator approved when the client was admitted, at pairing or at a renewal, 
 away since, and there is no place where the two halves could be compared wrongly. The **router**
 asks, before the body is checked and before any handler runs, because a handler could forget to. A
 node that may not be reached and a node that is not there answer the same 404, and the audit is
-where the operator is told which it was. **Each client's lines are paced**, by `DecisionPace`: a
+where the operator is told which it was.
+
+**A request is decided at the moment it is served**, the operator's ruling of 2026-11-10. A request
+that changes nothing is held once: inside one hold of KeePass's thread the caller's record and the
+list of profiles are read again, the node is found, the rules are asked and the handler reads and
+makes its answer, which goes out once the hold has ended, and a hold that could not be taken or did
+not last answers `503 busy`. No rule is asked about such a request before its hold. A change is
+asked on arrival, where the answer can only refuse, and again inside its own turn on KeePass's
+thread, where the vault asks the router's question, left as a `DecidedInside` and passed in a
+`VaultAsking`, of the node it finds before anything else about that node is answered. A caller the
+database stopped admitting while its request waited is answered there as its next request would be:
+`401 unpaired` with the refused certificate's line, or the `503` of a database that locked or came
+to hold two authorities. `DESIGN.md` §119 has the argument and what a hold costs.
+
+**A request has one decision line, written once KeePass's thread is free.** `AccessCheck` composes
+a line where it decides and keeps it in a `DecisionLines`, the answer inside a change's turn in
+place of the router's, and the router writes what was kept on the caller's own connection, so the
+audit's pacing and its file are never paid for on KeePass's thread. A line carries the moment of
+its decision, so lines can stand in the file out of the order of their times.
+**Each client's lines are paced**, by `DecisionPace`: a
 thousand at once and ten a second after that, per client key, so a renewal keeps the allowance the
 client has spent, and a decision past that waits on the caller's own connection rather than being
 dropped or refused, because the file rolls by size and a client that could fill it quickly could
@@ -1345,18 +1375,18 @@ replaced it, over a real socket. See DESIGN.md §119.
 ### Admission records
 
 **Two things about records that cost time to learn.** They are read from the live database on every
-connection and never cached, so a record that lands takes effect with nothing having to be reloaded
-or told: the KPG tab's clients page lists every admitted client, names in red the ones whose
-renewals stand refused and lifts that answer from the row's menu, and takes one away, and from
-the next request onwards that client is refused. **Landing is what waits now**, as the settings
-tab's entry under "Things that are already decided" has it: the row goes at once, the revocation
-lands when the dialog is accepted, and the file changes when the database is saved. Until then the
-certificate still works. The press itself goes into the dialog's buffer and cannot fail there, so
-whether a revocation reached the database is written in the log when the dialog is accepted, not
-on the page. And a record written into the
-`.kdbx` file underneath a running KeePass is invisible to it and will be overwritten by its next
-save: KeePass serves the database it holds in memory, which is why pairing writes through the plugin
-rather than through the file.
+connection, and again inside the hold a request is read in or the turn it changes in, and never
+cached, so a record that lands takes effect with nothing having to be reloaded or told: the KPG
+tab's clients page lists every admitted client, names in red the ones whose renewals stand refused
+and lifts that answer from the row's menu, and takes one away, and from then on that client is
+refused, a request of its own that was already waiting included. **Landing is what waits now**, as
+the settings tab's entry under "Things that are already decided" has it: the row goes at once, the
+revocation lands when the dialog is accepted, and the file changes when the database is saved. Until
+then the certificate still works. The press itself goes into the dialog's buffer and cannot fail
+there, so whether a revocation reached the database is written in the log when the dialog is
+accepted, not on the page. And a record written into the `.kdbx` file underneath a running KeePass
+is invisible to it and will be overwritten by its next save: KeePass serves the database it holds in
+memory, which is why pairing writes through the plugin rather than through the file.
 
 ### The transport
 

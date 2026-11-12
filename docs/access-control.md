@@ -149,6 +149,11 @@ entry only if nothing changed since it read it, so any tag it names is refused. 
 attachment the entry does not hold is refused as missing before that, so naming a tag anyway tells
 it whether a name is there: one guess at a time again, and never a value.
 
+**Nor does writing a value tell such a program what was there.** An update naming only what an
+entry, an attachment or a group already holds writes nothing for a program that may read those
+values. For a program that may not, it is written like any change, so sending a guess at a value
+costs the same and looks the same whether the guess was right.
+
 **`L` sits below `R` on purpose.** Knowing that an entry exists is not knowing what is in it.
 
 **`S` and `D` are two sizes of removal.** `S` takes parts off a node: an entry's fields and its
@@ -233,7 +238,8 @@ dialog** under **Tools**, **Options**, **Advanced**.
 makes to an entry first keeps the entry as it was, as an edit in KeePass does, and KeePass keeps
 only as many of those versions as **Database Settings**, **Advanced**, allows, so a program that
 changes an entry more times than that has pushed out every version from before it started, and the
-audit names each of those writes.
+audit names each of those writes. A program that may change a value and not read it does so even
+by writing the value that is already there, since for that program every update is a change.
 
 **An attachment is opened by its name.** A program holding `C` with `A` chooses what an attachment
 is called, and KeePass hands an attachment it cannot show itself to whatever Windows starts for its

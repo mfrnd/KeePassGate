@@ -178,7 +178,9 @@ thread, against the node as the change finds it, so nothing can land between the
 change, and after every refusal that does not depend on it, as RFC 9110 section 13.2.1 orders
 them: a node gone is `404`, a name taken or a group not empty `409`, and a dialog open on the node
 `503 busy`, whatever the tag says. An update that would change nothing is asked the condition too,
-under the same lock, and then writes nothing. A read's is decided against the tag it is answered
+under the same lock, and then writes nothing, for a caller that may read every value it names; for
+any other caller it is written like any change, so that a guess at a value it may not read costs
+the same right or wrong. A read's is decided against the tag it is answered
 with, and the tag and what it is answered with are of one moment, taken inside the hold of
 KeePass's thread the read is decided and served in, `DESIGN.md` §119. **That reverses a tag taken
 before its content**, which was the safe order while a change could land between the two: a

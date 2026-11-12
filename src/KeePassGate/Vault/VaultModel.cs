@@ -300,6 +300,10 @@ namespace KeePassGate.Vault
     /// or has its `If-Match` asked, which is what keeps a tag from telling a client anything
     /// about a value its rule does not let it read, `API.md` §410.
     ///
+    /// **And whether the caller may read what the change names**, which decides whether an
+    /// update that would change nothing is skipped: <see cref="VaultTagging.Sees"/> has the
+    /// argument.
+    ///
     /// **A change handed no questions is refused**, as is a change whose questions are answered
     /// by nobody, so a caller that forgets the rules does not compile into a write that ignores
     /// them.
@@ -308,6 +312,7 @@ namespace KeePassGate.Vault
     {
         private readonly Func<VaultFound, bool> _allowed;
         private readonly Func<VaultFound, bool> _mayTag;
+        private readonly Func<VaultFound, bool> _sees;
         private readonly VaultPrecondition _precondition;
         private readonly bool _answers;
 
@@ -317,16 +322,22 @@ namespace KeePassGate.Vault
         /// Whether the caller may be handed the tag of what was found and have its `If-Match`
         /// asked, or null for a change that deals in no tag.
         /// </param>
+        /// <param name="sees">
+        /// Whether the caller may read every value the change names on what was found, or null
+        /// for a caller that may read none of them.
+        /// </param>
         /// <param name="precondition">What `If-Match` asked of the node, or null.</param>
         /// <param name="answers">Whether the answer carries the tag the change leaves.</param>
         public VaultAsking(
             Func<VaultFound, bool> allowed,
             Func<VaultFound, bool> mayTag,
+            Func<VaultFound, bool> sees,
             VaultPrecondition precondition,
             bool answers)
         {
             _allowed = allowed;
             _mayTag = mayTag;
+            _sees = sees;
             _precondition = precondition;
             _answers = answers;
         }
@@ -338,8 +349,9 @@ namespace KeePassGate.Vault
         }
 
         /// <summary>
-        /// What the change does about the tag of the node as it stands: asked once of the node
-        /// the change found, and again of the node the change left.
+        /// What the change does about the tag of the node as it stands, and whether its caller
+        /// may read what it names there: asked once of the node the change found, and again of
+        /// the node the change left.
         /// </summary>
         /// <remarks>
         /// **A caller that may not be handed the tag has its `If-Match` failed rather than
@@ -358,28 +370,31 @@ namespace KeePassGate.Vault
                 precondition = VaultPrecondition.Withheld();
             }
 
-            return new VaultTagging(precondition, mayTag && _answers);
+            var sees = _sees != null && found != null && _sees(found);
+
+            return new VaultTagging(precondition, mayTag && _answers, sees);
         }
     }
 
     /// <summary>
-    /// What a change does about the node's tag as the node stands at one moment: whether it is
-    /// made only while the node still holds what `If-Match` named, and whether it answers with
-    /// the tag it leaves.
+    /// What a change does about the node as the node stands at one moment, decided from who is
+    /// asking: whether it is made only while the node still holds what `If-Match` named, whether
+    /// it answers with the tag it leaves, and whether its caller may read the values it names.
     /// </summary>
     /// <remarks>
     /// Answered by <see cref="VaultAsking.Tagging"/> inside the change's turn, never handed in
-    /// from outside it, so both halves are decided from who is asking about the node as it is.
+    /// from outside it, so every part is decided from who is asking about the node as it is.
     /// A field or an attachment created answers with its entry's tag; a group or an entry
     /// created does not, since its request is sent to a collection and declares no `If-Match`,
     /// `API.md` §410.
     /// </remarks>
     public sealed class VaultTagging
     {
-        public VaultTagging(VaultPrecondition precondition, bool answers)
+        public VaultTagging(VaultPrecondition precondition, bool answers, bool sees)
         {
             Precondition = precondition;
             Answers = answers;
+            Sees = sees;
         }
 
         /// <summary>What `If-Match` asked of the node, or null when nothing is asked.</summary>
@@ -387,6 +402,25 @@ namespace KeePassGate.Vault
 
         /// <summary>Whether the answer carries the tag the change left.</summary>
         public bool Answers { get; private set; }
+
+        /// <summary>
+        /// Whether the caller may read every value the change names: a group's name and notes
+        /// under `read`, an entry's strings and expiry under `read`, reaching protected values
+        /// where a named string is protected, and an attachment's bytes under `read` reaching
+        /// attachments.
+        /// </summary>
+        /// <remarks>
+        /// **An update that would change nothing is skipped only for a caller this is true of**,
+        /// the operator's ruling of 2026-11-10. A skipped update moves no time, takes no revision
+        /// and saves nothing, and an update that writes does all three, so a caller that may
+        /// write a value and not read it could send a guess and learn from the listing's
+        /// `modified`, or from how long the answer took, whether the stored value was its guess.
+        /// For such a caller the update is written like any change, so a guess that is right and
+        /// a guess that is wrong do the same work. A caller that may read the value learns
+        /// nothing from the skip that a read would not tell it, and a request naming nothing has
+        /// nothing in it to guess, so it is skipped for everybody.
+        /// </remarks>
+        public bool Sees { get; private set; }
     }
 
     /// <summary>What happened to a change, and whether it is worth trying again.</summary>
