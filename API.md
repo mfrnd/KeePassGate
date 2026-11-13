@@ -351,9 +351,11 @@ Every other answer that hands a tag out, a listing of the fields and a read of a
 among them, and every write under `If-Match` or answered with an `etag`, reads every value in its
 caller's sight. A read does that once the hold of KeePass's thread has ended, from the view of
 the entry it took inside the hold, and encodes a long value for the digest a piece at a time,
-`DESIGN.md` §119. Measured on an entry of fifty strings of a million characters each, a read
-that hands a tag out holds KeePass's thread for under a tenth of a millisecond and then takes
-about forty milliseconds and 0.2 MB on its own connection's thread. A write takes its tags inside
+`DESIGN.md` §119. Measured on an entry of fifty protected strings of a million characters each,
+a read that hands a tag out holds KeePass's thread for under a tenth of a millisecond and then
+takes about sixty milliseconds on its own connection's thread, and 48 MB a megabyte at a time:
+a copy of each protected value, digested and overwritten, so that KeePass goes on protecting the
+value in memory, `DESIGN.md` §136. A write takes its tags inside
 its own turn on KeePass's thread, where the comparison and the change are one step, beside a
 save that takes far longer; `FINDINGS.md` has the numbers. No ceiling was added for it.
 

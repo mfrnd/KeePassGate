@@ -37,6 +37,34 @@ namespace KeePassGate.Tests
         };
 
         [Test]
+        public void The_stored_bytes_of_a_value_are_handed_out_only_for_a_string_in_sight()
+        {
+            // What a tag digests a protected value from, with no string made of it. Dropped
+            // with the reader for a withheld string, and absent for a value the store keeps in
+            // the open, which is read as the string it already is.
+            var copies = 0;
+            Func<byte[]> stored = () =>
+            {
+                copies++;
+                return new byte[] { 0x30, 0x30 };
+            };
+
+            var withheld = new VaultViewField(
+                "Password", true, () => 2, OpenStringsAndAttachments, () => "00", false, stored);
+            Assert.That(withheld.IsWithheld, Is.True);
+            Assert.That(withheld.Stored(), Is.Null);
+            Assert.That(copies, Is.Zero);
+
+            var inSight = new VaultViewField(
+                "Password", true, () => 2, EveryStringAndNoAttachment, () => "00", false, stored);
+            Assert.That(inSight.Stored(), Is.EqualTo(new byte[] { 0x30, 0x30 }));
+            Assert.That(inSight.Stored(), Is.Not.SameAs(inSight.Stored()), "a copy each time, for the caller to overwrite");
+
+            var open = new VaultViewField("UserName", false, () => 2, EveryStringAndNoAttachment, () => "00");
+            Assert.That(open.Stored(), Is.Null);
+        }
+
+        [Test]
         public void A_protected_string_out_of_sight_keeps_its_name_and_holds_no_value()
         {
             var reads = 0;

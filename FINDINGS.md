@@ -484,11 +484,14 @@ the UTF-8 form of each value in turn, and 93 to 104 milliseconds and 191 MB for 
 after the values were loaded, since KeePass decrypts and decodes each value once and then keeps
 the decoded string. So a read takes its view of the entry inside the hold and asks the view for
 everything else once the hold has ended, and the tag encodes a long value a piece at a time,
-`DESIGN.md` §119. Measured the same way after that: the hold is 0.07 to 0.08 milliseconds
-whatever the entry holds, and the request then takes 40 to 42 milliseconds and 0.2 MB on its own
-connection's thread, 90 milliseconds and 143 MB the first time, which is KeePass's own decoding.
-A whole read refused for its size measures the values the first time, 46 milliseconds and 48
-MB, and is answered in a tenth of a millisecond after that, none of it inside the hold. A client
+`DESIGN.md` §119. Measured the same way after that: the hold is 0.07 to 0.09 milliseconds
+whatever the entry holds, and the request then takes about 59 milliseconds and 48 MB on its own
+connection's thread, every time: a copy of each protected value, decrypted, digested and
+overwritten, a megabyte at a time, since a protected value is no longer read the way that makes
+KeePass keep it as text, below. Fifty such strings that nothing protects take 41 to 43
+milliseconds and 0.2 MB. A whole read refused for its size measures the protected values the
+first time, 46 to 73 milliseconds and 48 MB, and is answered in a tenth of a millisecond after
+that, none of it inside the hold. A client
 that reads the entry without `protected`, the fifty being protected, reads and measures none of
 them: a withheld value is never read. A write takes its tags inside its own turn, about forty
 milliseconds each, beside a save of 2.2 seconds for the fifty protected strings and 0.3 seconds
@@ -510,17 +513,45 @@ differed and nothing threw. `KeePassContractTests` pins the public surface of bo
 the reading from two threads, and `DecidedAtTheReadTests` holds the real router and vault to an
 answer and a tag of the entry as it stood inside the hold.
 
-**Where the work is done, measured before it was moved**, on the same fifty strings in Release,
-with the view taken inside the hold in every case. Values read and digested inside: the hold is
-93 to 104 milliseconds the first time and 45 to 47 after. Values read inside and digested
-after: 53 milliseconds of hold the first time and 0.04 after, with 45 to 48 after the hold. Both
-after: 0.04 milliseconds of hold every time, with 96 to 115 after it the first time and 44 to 50
-later. Eight strings of 65,536 characters, an entry at its ceiling, cost half a millisecond
+**`ProtectedString.ReadString` ends KeePass's protection of the value it reads, and the gate
+read every value with it.** Read off KeePass 2.61.1, decompiled, and asked of the object's own
+field. A protected string made from bytes, which is how a loaded file's are made, holds them
+encrypted. `Length` and `ReadUtf8` each decrypt a copy, and `Equals` compares two such copies,
+all of them leaving the object as it was. `ReadString` decodes the value, keeps the string in
+`m_strPlainText` and lets the encrypted bytes go, for as long as the object lives, and a string
+made from text keeps that text whatever its flag. A tag digests every value in its caller's
+sight, so a listing of an entry's fields, or a read of its title, left every protected value of
+the entry in the open in KeePass's memory, the values nobody asked for with them, and a
+protected value written through the gate was in the open from the start. A protected value is
+now read with `ReadUtf8`, digested from that copy, or decoded from it where it is served, and the
+copy overwritten; and a protected value is handed to KeePass as bytes, `StoredStrings`. What
+that costs is the copy for every request, where KeePass keeping the text made every request
+after the first cheaper: the 59 milliseconds and 48 MB above, against 40 to 42 milliseconds and
+0.2 MB with the values left in the open after a first request of 90 milliseconds and 143 MB.
+What it does not do: a value that is served is a string in the process until the runtime reuses
+its memory, and so is the answer it is written into, and neither can be overwritten.
+
+**KeePass's own save reads some values as text.** `KdbxFile.WriteObject` writes each of an
+entry's five own strings protected or not by the database's setting for that name, whatever the
+string's flag, and reads with `ReadString` what the setting leaves unprotected. Measured: after
+a save, a title and an address flagged protected in a database that protects neither were text
+in memory, by KeePass's own hand, and a password and a protected custom string were not.
+`ProtectedInMemoryTests` holds every read and every write through the real router to leaving
+each protected value as KeePass held it, in a database whose settings protect the strings it
+flags, and `KeePassContractTests` pins the field and what each of those members does to it.
+
+**Where the work is done, measured before it was moved**, on the same fifty strings in Release, with
+the view taken inside the hold in every case and every value read with `ReadString`, so the first
+time is KeePass decoding a value and every later time finds the text kept. Values read and digested
+inside: the hold is 93 to 104 milliseconds the first time and 45 to 47 after. Values read inside and
+digested after: 53 milliseconds of hold the first time and 0.04 after, with 45 to 48 after the hold.
+Both after: 0.04 milliseconds of hold every time, with 96 to 115 after it the first time and 44 to
+50 later. Eight strings of 65,536 characters, an entry at its ceiling, cost half a millisecond
 wherever it is done. A hundred attachments of 512 KiB, the most that is served, cost 60 to 90
 milliseconds and 50 MB the first time their digests are taken, wherever that is, and 0.15 after,
-since a digest is kept against the object. Encoding each value for the digest in pieces of
-16,384 characters through one buffer gave the digest of the value encoded whole with 0.1 MB
-allocated against 47.7 MB, in 39 to 42 milliseconds against 49 to 56.
+since a digest is kept against the object. Encoding each value for the digest in pieces of 16,384
+characters through one buffer gave the digest of the value encoded whole with 0.1 MB allocated
+against 47.7 MB, in 39 to 42 milliseconds against 49 to 56.
 
 **KeePass counts a protected string's characters by decrypting it, the first time it is asked,
 which "measured with nothing decrypted" had wrong.** `ProtectedString.Length` answers from a count

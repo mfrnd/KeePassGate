@@ -117,6 +117,15 @@ namespace KeePassGate.Bridge
     /// million characters, against a tenth of a megabyte in pieces, with the same bytes
     /// digested. A value no longer than a piece is still encoded whole, which for the entries
     /// people keep is every value.
+    ///
+    /// **A value KeePass protects in memory is digested from a copy of its bytes**, and no
+    /// string is made of it, <see cref="Stored"/>. `ProtectedString.ReadString` keeps the text
+    /// it decodes inside KeePass's object and lets the encrypted bytes go, so a tag that read
+    /// its values that way left every protected value in its caller's sight in the open in
+    /// KeePass's memory, for a request that served none of them. The copy is the store's
+    /// bytes, so nothing is encoded, and it is overwritten once digested. That is a copy of
+    /// each protected value for every tag, which KeePass keeping the text had spared every
+    /// tag after the first: `StoredStrings` has what it is for.
     /// </remarks>
     public sealed class NodeTags
     {
@@ -128,6 +137,9 @@ namespace KeePassGate.Bridge
 
         private static readonly ConditionalWeakTable<ProtectedBinary, Lazy<byte[]>> Digests =
             new ConditionalWeakTable<ProtectedBinary, Lazy<byte[]>>();
+
+        /// <summary>UTF-8 that refuses what the ordinary encoding replaces.</summary>
+        private static readonly UTF8Encoding Strict = new UTF8Encoding(false, true);
 
         private readonly byte[] _key;
         private bool _cleared;
@@ -226,11 +238,26 @@ namespace KeePassGate.Bridge
                     // The value as a read serves it, and not the bytes the store keeps: a file
                     // another program wrote can hold bytes that are not UTF-8, which the read
                     // serves with each bad sequence replaced, and a tag over the stored bytes was a
-                    // tag over a value nobody was ever served. The view keeps the string once it
-                    // has been read, so asking for it decrypts nothing twice; the encoded copy is
-                    // wiped.
+                    // tag over a value nobody was ever served. A value KeePass protects in
+                    // memory is digested from a copy of its bytes, which is overwritten, so that
+                    // taking a tag makes no string of a value nobody asked to read and leaves
+                    // KeePass protecting it, `StoredStrings`.
                     Put(hmac, "value");
-                    Value(hmac, field.Value, pieces);
+                    var stored = field.Stored();
+                    if (stored == null)
+                    {
+                        Value(hmac, field.Value, pieces);
+                        continue;
+                    }
+
+                    try
+                    {
+                        Stored(hmac, stored, pieces);
+                    }
+                    finally
+                    {
+                        MemUtil.ZeroByteArray(stored);
+                    }
                 }
 
                 // What the view holds of the attachments and no mark for how far the sight
@@ -376,6 +403,46 @@ namespace KeePassGate.Bridge
             var length = Length((uint)Encoding.UTF8.GetByteCount(value));
             hash.TransformBlock(length, 0, length.Length, null, 0);
             pieces.Into(hash, value);
+        }
+
+        /// <summary>
+        /// One value as a part, from the bytes the store keeps for it, digested as the value a
+        /// read serves is.
+        /// </summary>
+        /// <remarks>
+        /// Bytes that are UTF-8 are the bytes the served value encodes to, so they are digested
+        /// as they are and no string is made of them. Bytes that are not are served with each
+        /// bad sequence replaced, so they are decoded as a read decodes them and that value is
+        /// digested, <see cref="Value"/>: the same tag either way as the tag of the string, and
+        /// a string made only of a value another program stored badly. The caller overwrites
+        /// the bytes.
+        /// </remarks>
+        internal static void Stored(HashAlgorithm hash, byte[] stored, Pieces pieces)
+        {
+            if (IsUtf8(stored))
+            {
+                Put(hash, stored);
+                return;
+            }
+
+            Value(hash, Encoding.UTF8.GetString(stored), pieces);
+        }
+
+        /// <summary>
+        /// Whether bytes decode with nothing replaced, which is whether decoding them and
+        /// encoding the result gives the same bytes back.
+        /// </summary>
+        private static bool IsUtf8(byte[] bytes)
+        {
+            try
+            {
+                Strict.GetCharCount(bytes);
+                return true;
+            }
+            catch (DecoderFallbackException)
+            {
+                return false;
+            }
         }
 
         /// <summary>One part, behind its length, so that no two different nodes write the same stream.</summary>

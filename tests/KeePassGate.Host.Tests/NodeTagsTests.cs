@@ -65,6 +65,56 @@ namespace KeePassGate.Host.Tests
         }
 
         [Test]
+        public void A_value_is_digested_from_its_stored_bytes_as_the_value_a_read_serves_is()
+        {
+            // A value KeePass protects in memory is digested from a copy of its bytes, so that
+            // a tag makes no string of it. The bytes are the store's, and a file another
+            // program wrote can hold bytes that are not UTF-8, which a read serves with each
+            // bad sequence replaced. Either way the part digested has to be the part the served
+            // string would have been, or a tag would move with how a value was read.
+            const int Piece = NodeTags.Pieces.Characters;
+            var values = new List<byte[]>
+            {
+                Array.Empty<byte>(),
+                Encoding.UTF8.GetBytes("short"),
+                Encoding.UTF8.GetBytes(new string('\u20AC', Piece + 5)),
+                Encoding.UTF8.GetBytes("\U0001F511 a key"),
+                new byte[] { 0xEF, 0xBB, 0xBF, 0x61 },
+                new byte[] { 0x61, 0xFF, 0x62 },
+                new byte[] { 0x61, 0xE2, 0x82 },
+                new byte[] { 0xC0, 0x80 },
+                new byte[] { 0xED, 0xA0, 0x80, 0x61 },
+                new byte[] { 0xF4, 0x90, 0x80, 0x80 },
+                Enumerable.Repeat((byte)0x61, Piece + 1).Concat(new byte[] { 0xFF }).ToArray(),
+                Enumerable.Repeat((byte)0xFF, (2 * Piece) + 3).ToArray(),
+            };
+
+            using (var pieces = new NodeTags.Pieces())
+            {
+                foreach (var stored in values)
+                {
+                    byte[] fromBytes;
+                    using (var sha256 = SHA256.Create())
+                    {
+                        NodeTags.Stored(sha256, stored, pieces);
+                        sha256.TransformFinalBlock(Array.Empty<byte>(), 0, 0);
+                        fromBytes = sha256.Hash;
+                    }
+
+                    byte[] fromText;
+                    using (var sha256 = SHA256.Create())
+                    {
+                        NodeTags.Value(sha256, Encoding.UTF8.GetString(stored), pieces);
+                        sha256.TransformFinalBlock(Array.Empty<byte>(), 0, 0);
+                        fromText = sha256.Hash;
+                    }
+
+                    Assert.That(fromBytes, Is.EqualTo(fromText), BitConverter.ToString(stored.Take(8).ToArray()));
+                }
+            }
+        }
+
+        [Test]
         public void A_long_value_is_digested_in_pieces_as_the_value_whole_is()
         {
             // A value longer than a piece is encoded a piece at a time, so that a tag over

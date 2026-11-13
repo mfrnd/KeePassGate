@@ -530,6 +530,25 @@ switch, a rule that grants `read` still answers with the entry, its title, its d
 every field it holds and the values of the ones nothing protects, and the protected values come back
 as `null`. With it, they come back as themselves.
 
+**The gate leaves a protected value encrypted in KeePass's memory.** KeePass holds a protected
+value a file was loaded with as encrypted bytes, and `ProtectedString.ReadString` decodes it,
+keeps the string inside the object and lets the bytes go, so a value read that way is in memory
+in the open for as long as the entry is loaded. Every value was read that way, and a tag reads
+every value in its caller's sight: a listing of an entry's fields left every protected value of
+the entry in the open, the values nobody asked for among them. So a protected value is read with
+`ReadUtf8`, which hands back a copy and keeps nothing; a tag digests that copy and a route
+serving the value decodes it, and the copy is overwritten; and a protected value written through
+the gate is handed to KeePass as bytes, since a `ProtectedString` made from text keeps the text.
+`StoredStrings` is the whole of it. **What that is and is not.** KeePass's protection is of
+memory that leaves the process, a crash dump or the page file, and what is kept is that the gate
+does not undo it for a value KeePass has not itself decoded. A value that is served is a string
+in the process until the runtime reuses its memory, and so is the answer it is written into,
+and neither can be overwritten; KeePass decodes a value itself when the operator uses the
+entry, and at a save for a string its settings leave unprotected. Nothing here defends against
+code running as the user, which is conceded throughout. It costs a copy of each protected value
+in sight for every tag, where KeePass keeping the text made every tag after the first cheaper;
+`FINDINGS.md` has the numbers.
+
 **Neither switch is asked about for a removal.** They say how far the verbs a rule grants see or
 change inside an entry, and removing something shows nobody anything. A rule that may remove an
 entry already takes every attachment and every protected value with it, so asking for a scope before
@@ -1779,10 +1798,10 @@ What is given up, and written down so that it is not rediscovered as a defect:
   of those writes is in the audit.
 - **A tag is taken over a caller's whole view, however large.** A read refused for its size takes
   none, and every other answer handing a tag out reads every value in sight. A read does so once
-  the hold of KeePass's thread has ended, §119, so for an entry of fifty strings of a million
-  characters that is about forty milliseconds of the connection's own thread and none of
-  KeePass's. A change takes its tags inside its turn, beside its save. No ceiling was added for
-  it.
+  the hold of KeePass's thread has ended, §119, so for an entry of fifty protected strings of a
+  million characters that is about sixty milliseconds of the connection's own thread, with a
+  copy of each value made and overwritten, §136, and none of KeePass's. A change takes its tags
+  inside its turn, beside its save. No ceiling was added for it.
 
 Refused as ways to keep the write's refusal, and not to be proposed again without new evidence: a
 floor or a rounding for each string, a ceiling for each protection class, the message without its

@@ -260,10 +260,19 @@ namespace KeePassGate.Bridge
             {
                 // As stored, and never compiled: KeePass resolves a reference against the whole
                 // open database, which knows nothing about the rules this answer was allowed by.
+                // Read so that a value KeePass protects in memory is still protected there once
+                // it has been read, `StoredStrings`: the view decodes a copy for a value it
+                // serves, and hands the tag a copy to digest and overwrite.
                 var held = strings[index].Value;
                 var name = strings[index].Key;
                 fields.Add(new VaultViewField(
-                    name, guarded[index], () => held.Length, sight, held.ReadString, Listed(name)));
+                    name,
+                    guarded[index],
+                    () => held.Length,
+                    sight,
+                    () => StoredStrings.Read(held),
+                    Listed(name),
+                    held.IsProtected ? held.ReadUtf8 : (Func<byte[]>)null));
             }
 
             List<VaultViewAttachment> attachments = null;
@@ -702,7 +711,7 @@ namespace KeePassGate.Bridge
 
                         entry.Strings.Set(field.Key, existing == null
                             ? Protect(field.Key, field.Value)
-                            : new ProtectedString(existing.IsProtected, field.Value ?? string.Empty));
+                            : StoredStrings.Of(existing.IsProtected, field.Value));
                     }
                 }
 
@@ -824,7 +833,7 @@ namespace KeePassGate.Bridge
 
                 var restore = Restoring(entry);
                 var restoreHistory = Backing(entry);
-                entry.Strings.Set(name, new ProtectedString(guarded, value ?? string.Empty));
+                entry.Strings.Set(name, StoredStrings.Of(guarded, value));
                 entry.Touch(true, false);
 
                 return VaultChange.Made(() => VaultWrite.Created(name, After(asking, entry)), () =>
@@ -878,7 +887,7 @@ namespace KeePassGate.Bridge
                 // value would be this API deciding something the operator decided.
                 var existing = entry.Strings.Get(name);
                 var flagged = existing != null && existing.IsProtected;
-                var replacement = new ProtectedString(flagged, value ?? string.Empty);
+                var replacement = StoredStrings.Of(flagged, value);
 
                 // Skipped only for a caller that may read the value: `VaultEntryView.Reads` has
                 // the reason.
@@ -1535,7 +1544,7 @@ namespace KeePassGate.Bridge
             {
                 var existing = entry.Strings.Get(field.Key);
                 if (existing == null
-                    || !existing.Equals(new ProtectedString(existing.IsProtected, field.Value ?? string.Empty), false))
+                    || !existing.Equals(StoredStrings.Of(existing.IsProtected, field.Value), false))
                 {
                     return false;
                 }
@@ -1811,7 +1820,7 @@ namespace KeePassGate.Bridge
 
         private ProtectedString Protect(string name, string value)
         {
-            return new ProtectedString(Protects(name), value ?? string.Empty);
+            return StoredStrings.Of(Protects(name), value);
         }
 
         /// <summary>Gives a new entry the expiry its create asked for.</summary>
@@ -2205,8 +2214,8 @@ namespace KeePassGate.Bridge
             return new VaultEntry(
                 entry.Uuid.ToHexString(),
                 entry.ParentGroup == null ? null : entry.ParentGroup.Uuid.ToHexString(),
-                entry.Strings.ReadSafe(PwDefs.TitleField),
-                entry.Strings.ReadSafe(PwDefs.UrlField),
+                StoredStrings.Read(entry.Strings.Get(PwDefs.TitleField)),
+                StoredStrings.Read(entry.Strings.Get(PwDefs.UrlField)),
                 When(entry.CreationTime),
                 When(entry.LastModificationTime),
                 KdbxNodes.Of(entry, _hold),

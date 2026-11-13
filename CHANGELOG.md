@@ -27,6 +27,15 @@ none, since it releases both.
   under, and nothing bounds what a client holding `update` or `create` adds to an entry beyond
   what a request carries. PyKeePassGate raises `RouteRefused` on a read refused this way and
   does not go on to read field by field. `API.md` §412.
+- **A protected value read or written through the gate stays encrypted in KeePass's memory.**
+  KeePass keeps a protected value encrypted in memory until something reads it as text, and
+  from then on keeps the text. The gate read every value that way, and an entry's `ETag` reads
+  every value its client may read, so a listing of an entry's fields left every protected value
+  of the entry in the open in KeePass's memory until the database was locked, and a protected
+  value written through the gate was in the open from the start. A protected value is now read
+  as a copy that is overwritten once it has been digested or served, and written so that
+  KeePass encrypts it at once. A value a client is served is still in the plugin's memory, as
+  text that cannot be overwritten, until that memory is reused.
 - **Every client holding `read` is handed an entry's `ETag`, taken over what that client may
   read.** A tag covered the whole entry and went only to a client whose one rule read all of it,
   attachments and protected values included, so a rule without `protected` was handed no tag for

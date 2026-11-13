@@ -147,6 +147,7 @@ namespace KeePassGate.Vault
         private Func<int> _measure;
         private int _length;
         private Func<string> _read;
+        private readonly Func<byte[]> _stored;
         private string _value;
 
         /// <summary>A string of an entry, as far as <paramref name="sight"/> reaches it.</summary>
@@ -166,13 +167,18 @@ namespace KeePassGate.Vault
         /// Whether a listing of entries shows this string, as the vault decides it: an entry's
         /// title and its URL.
         /// </param>
+        /// <param name="stored">
+        /// What copies out the UTF-8 form of a value the store keeps protected in memory, kept
+        /// only for a string in sight, or null for a value the store keeps in the open.
+        /// </param>
         public VaultViewField(
             string name,
             bool isProtected,
             Func<int> measure,
             VaultSight sight,
             Func<string> read,
-            bool isListed = false)
+            bool isListed = false,
+            Func<byte[]> stored = null)
         {
             if (name == null)
             {
@@ -198,6 +204,7 @@ namespace KeePassGate.Vault
 
                 _measure = measure;
                 _read = read;
+                _stored = stored;
             }
         }
 
@@ -282,6 +289,24 @@ namespace KeePassGate.Vault
 
                 return _value;
             }
+        }
+
+        /// <summary>
+        /// The UTF-8 form of a value the store keeps protected in memory, as a copy of its own
+        /// for the caller to overwrite when it is done, or null for a withheld value and for a
+        /// value the store keeps in the open.
+        /// </summary>
+        /// <remarks>
+        /// For the tag, which digests every value in sight and serves none of them: digested
+        /// from this, a value nobody asked to read is never made into a string, which could not
+        /// be overwritten, and the store goes on protecting it. Where this is null the value is
+        /// already a string in the store's memory, and <see cref="Value"/> hands that out at
+        /// no cost. The bytes are the store's, so they can hold what is not UTF-8, which
+        /// <see cref="Value"/> serves with each such sequence replaced.
+        /// </remarks>
+        public byte[] Stored()
+        {
+            return _stored == null ? null : _stored();
         }
     }
 

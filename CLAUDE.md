@@ -695,6 +695,18 @@ and answers a different question.
   moved the file it was locked from, reachable through `MainForm.DocumentManager.FindDocument`.
   Anything that fills the gap from a single remembered string instead names whichever database last
   closed with a name. `MainWindowDatabasesTests` drives the four handlers in KeePass's own order.
+- **`ProtectedString.ReadString` ends KeePass's protection of the value it reads.** A protected
+  string a file was loaded with holds encrypted bytes; `ReadString` decodes them, keeps the
+  string in `m_strPlainText` and lets the bytes go, so the value is in memory in the open for as
+  long as the entry is loaded, and a `ProtectedString` made from text keeps that text whatever
+  its flag. `Length`, `ReadUtf8` and `Equals` work on copies and leave the object as it was. So
+  nothing in the plugin calls `ReadString` on a protected string or makes such a string from text:
+  `StoredStrings` reads with `ReadUtf8` and overwrites the copy, and hands KeePass a protected
+  value as bytes, and a tag digests a protected value from such a copy,
+  `VaultViewField.Stored`. KeePass's own save reads with `ReadString` each of an entry's five
+  own strings that the database's setting for the name leaves unprotected, whatever the
+  string's flag. `ProtectedInMemoryTests` asks the object's own field after every read and
+  write route, and `KeePassContractTests` pins what each member does to it.
 - **KeePass tells two database paths apart by lowering them in the current culture**,
   `Trim().ToLower()`, so under a Turkish culture `I` and `i` are different letters and two paths
   differing only there are two databases. A path matched against one of KeePass's has to be

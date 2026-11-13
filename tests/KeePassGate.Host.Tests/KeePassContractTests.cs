@@ -411,6 +411,46 @@ namespace KeePassGate.Host.Tests
         }
 
         [Test]
+        public void Reading_a_protected_string_as_text_still_ends_its_protection_and_copying_its_bytes_does_not()
+        {
+            // Why the gate reads a protected value with `ReadUtf8` and hands KeePass a value to
+            // store as bytes, `StoredStrings`. A protected string made from bytes is held
+            // encrypted; asking its length or copying its bytes out leaves it so; `ReadString`
+            // keeps the decoded text inside the object, where it stays; and a string made from
+            // text keeps that text whatever its flag. `ProtectedInMemoryTests` asks the same
+            // field what the gate left behind, so the field has to be there and mean this.
+            var loaded = new ProtectedString(true, System.Text.Encoding.UTF8.GetBytes("not-a-real-password"));
+            Assert.That(KeePassMemory.KeepsText(loaded), Is.False, "made from bytes");
+
+            Assert.That(loaded.Length, Is.EqualTo("not-a-real-password".Length));
+            Assert.That(KeePassMemory.KeepsText(loaded), Is.False, "measured");
+
+            Assert.That(System.Text.Encoding.UTF8.GetString(loaded.ReadUtf8()), Is.EqualTo("not-a-real-password"));
+            Assert.That(KeePassMemory.KeepsText(loaded), Is.False, "copied out as bytes");
+
+            Assert.That(loaded.Equals(new ProtectedString(true, "not-a-real-password"), false), Is.True);
+            Assert.That(KeePassMemory.KeepsText(loaded), Is.False, "compared");
+
+            Assert.That(loaded.ReadString(), Is.EqualTo("not-a-real-password"));
+            Assert.That(KeePassMemory.KeepsText(loaded), Is.True, "read as text");
+
+            Assert.That(KeePassMemory.KeepsText(new ProtectedString(true, "not-a-real-password")), Is.True,
+                "made from text, protected");
+            Assert.That(
+                KeePassMemory.KeepsText(
+                    new ProtectedString(false, System.Text.Encoding.UTF8.GetBytes("an invented name"))),
+                Is.True,
+                "made from bytes, not protected");
+
+            // The bytes a protected string is made from are copied, so the caller's can be
+            // overwritten once the string is made.
+            var bytes = System.Text.Encoding.UTF8.GetBytes("not-a-real-password");
+            var made = new ProtectedString(true, bytes);
+            Array.Clear(bytes, 0, bytes.Length);
+            Assert.That(System.Text.Encoding.UTF8.GetString(made.ReadUtf8()), Is.EqualTo("not-a-real-password"));
+        }
+
+        [Test]
         public void A_string_and_an_attachment_can_still_be_read_from_two_threads_at_once()
         {
             // A read asks its view for values on the connection's thread while KeePass's own
