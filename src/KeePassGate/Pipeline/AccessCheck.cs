@@ -167,16 +167,18 @@ namespace KeePassGate.Pipeline
         /// when it may not.
         /// </summary>
         /// <remarks>
-        /// **The question a handler asks of the protected values inside an answer the router has
-        /// already allowed**, through the <see cref="ProtectedReach"/> the router hands it. The
-        /// walk that answers is the walk written down, so what the handler acts on and what the
-        /// line holds cannot disagree. Decided by the handler and asked again here only to be
-        /// written, a rule edit landing between the two walks left a withheld value unrecorded,
-        /// and the strip guard, which asks profile by profile, was written down by a walk pooling
-        /// every profile, which permitted, and so wrote nothing at all.
+        /// **The question the handler of a change asks of the protected values inside a body the
+        /// router has already allowed**, through the <see cref="ProtectedReach"/> the router hands
+        /// it. The walk that answers is the walk written down, so what the handler acts on and
+        /// what the line holds cannot disagree. Decided by the handler and asked again here only
+        /// to be written, a rule edit landing between the two walks left a refused value
+        /// unrecorded, and the strip guard, which asks profile by profile, was written down by a
+        /// walk pooling every profile, which permitted, and so wrote nothing at all. A read asks
+        /// nothing here: a value its view withholds is written by <see cref="Withheld"/>, from
+        /// the decision the view was taken by.
         ///
-        /// **Written only when it refuses.** A protected value handed over is covered by the line
-        /// the router wrote before dispatch, and a line for every ordinary read would be the noise
+        /// **Written only when it refuses.** A protected value set is covered by the line the
+        /// router wrote before dispatch, and a line for every ordinary change would be the noise
         /// `A_listing_is_recorded_once_and_not_once_per_item` keeps out, burying the refusal an
         /// operator opens the file to find.
         ///
@@ -226,6 +228,57 @@ namespace KeePassGate.Pipeline
         }
 
         /// <summary>
+        /// Writes down a refusal that was decided elsewhere and already acted on: a protected
+        /// value a read's view of an entry withheld.
+        /// </summary>
+        /// <remarks>
+        /// **The line follows from the decision, and nothing is asked again.** A read is served
+        /// from the caller's view of the entry, and the view is taken with a sight the handler
+        /// asked the rules for without a line. The refusal that sight was decided by is handed
+        /// here to be written as `Reaches` writes a refusal of its own. Asked of the rules a
+        /// second time to be written, the answer could come to differ from what was served, and
+        /// a withheld value went unwritten whenever it did.
+        ///
+        /// **Removed profiles are named where putting them back would have served the value**,
+        /// on either reach that serves it. Every protected value is served on `read` with
+        /// `protected`, so that is asked of the removed profiles first. A title or a URL is
+        /// served on `list` with `protected` beside `read` as well, so where nothing else was
+        /// withheld that reach is asked of them too: a client whose profile carrying `list`
+        /// with `protected` was taken off the list is refused its title for that reason, and
+        /// the line names the profile, where a line of the rules would send an operator looking
+        /// for a rule that is not the reason. Still one line for the request.
+        ///
+        /// A decision that permits is no refusal and writes nothing.
+        /// </remarks>
+        /// <param name="listed">
+        /// Whether every value withheld is a string the listings show, a title or a URL.
+        /// </param>
+        public void Withheld(
+            ClientIdentity client,
+            string operationId,
+            AclVerb verb,
+            AclReach reach,
+            IAclNode node,
+            AclDecision decision,
+            bool listed,
+            DecisionLines lines)
+        {
+            if (decision == null || decision.Permitted)
+            {
+                return;
+            }
+
+            AclDecision restored;
+            var removed = Restoring(client, verb, reach, node, out restored);
+            if (removed == null && listed)
+            {
+                removed = Restoring(client, AclVerb.List, reach, node, out restored);
+            }
+
+            Written(client, operationId, node, decision, removed, restored, null, lines, false);
+        }
+
+        /// <summary>
         /// Writes a decision down: as the rules made it, or, for a refusal the removed profiles
         /// would have permitted, as <see cref="ProfileRemoved"/>.
         /// </summary>
@@ -246,10 +299,31 @@ namespace KeePassGate.Pipeline
             DecisionLines lines,
             bool decides)
         {
-            var name = node == null ? null : node.Name;
-
             AclDecision restored = null;
             var removed = decision.Permitted || !restoring ? null : Restoring(client, verb, reach, node, out restored);
+
+            Written(client, operationId, node, decision, removed, restored, requested, lines, decides);
+        }
+
+        /// <summary>
+        /// Writes a decision down, given what the removed profiles would have done about it.
+        /// </summary>
+        /// <param name="removed">
+        /// The removed profiles that would have permitted it, or null when there are none.
+        /// </param>
+        /// <param name="restored">What the rules answered with those profiles put back.</param>
+        private void Written(
+            ClientIdentity client,
+            string operationId,
+            IAclNode node,
+            AclDecision decision,
+            IReadOnlyList<string> removed,
+            AclDecision restored,
+            string requested,
+            DecisionLines lines,
+            bool decides)
+        {
+            var name = node == null ? null : node.Name;
 
             if (removed == null || restored == null)
             {

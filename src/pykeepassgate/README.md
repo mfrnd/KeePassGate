@@ -105,9 +105,11 @@ prints an entry that way.
 **A write can wait on the node still holding what was read.** A group, an entry, a field or an
 attachment read on its own carries `etag`, and every write about one takes `if_match=`: the write
 is refused with `PreconditionFailed`, and nothing changed, when somebody changed the node after it
-was read, the operator in KeePass among them. An entry's tag covers everything in it, and a write
-answers with the tag it left, for the next write to name. The gate hands tags only to a client
-whose rule reads everything a tag covers, and answers any other client's `if_match` with
+was read, the operator in KeePass among them. An entry's tag covers everything in it that this
+client may read, and a write answers with the tag it left, for the next write to name. The gate
+hands a tag to every client holding `read`, so two clients that see different things of an entry
+hold different tags for it, and a client writing a value it may not read is not told by its tag
+that the value changed in between. It answers the `if_match` of a client without `read` with
 `PreconditionFailed`.
 
 **Nothing it hands back prints a value.** The `repr` of an entry, its fields, a field, an
@@ -177,7 +179,7 @@ catches whatever this client raises of its own and nothing the standard library 
 | `StorageError` | From `pair`, before anything is sent: the directory cannot hold credentials, and the message says why. Nothing is spent, so fix that and pair again. Afterwards: what is stored for this client will not read, or could not be written, and the message names the file or the directory to look at. A key stored under a password is one of these when no password was given, or the one given does not open it. |
 | `TransportError` | No whole answer arrived: nothing is listening, the socket a `dial` handed back could not be used, closed or never connected, the handshake failed, as below, or the connection broke or timed out once the request was on its way. After a read, send it again. After a write, the change may have landed, so look before sending it again: read or list what it changed, where the rules allow that, or ask the operator. |
 | `ValueError` | A setting or an argument that could not work, refused where it is given and before anything is dialed, stored or spent: a port, a host, a timeout, a retry budget, a response cap, a lifetime, a profile's name, an expiry, a key password or a `dial`. The message names it. |
-| `AttributeError` | Something this client never read: a listed entry's `username`, `password`, `notes`, `protected`, `expires` or `custom()`, a listed group's `notes`, a listed field's `value`, a listed attachment's `content`, a listed group's or entry's `etag`. Read it first. Also the `etag` of a read the gate gave no tag for, because this client's rule does not read everything a tag covers, which the message says. Never raised for a withheld value. |
+| `AttributeError` | Something this client never read: a listed entry's `username`, `password`, `notes`, `protected`, `expires` or `custom()`, a listed group's `notes`, a listed field's `value`, a listed attachment's `content`, a listed group's or entry's `etag`. Read it first. Also the `etag` of an answer the gate gave no tag for, because this client holds no `read` on the node, which the message names. Never raised for a withheld value. |
 | `KeyError` | A name `entry.fields` or `entry.custom()` does not hold, as from any mapping. |
 | `TypeError` | A `dial` that handed back something other than a connected stream socket, such as a datagram socket, which is a mistake in the program's own `dial`; what it handed back is closed first, if it can be. A socket it handed back already closed or never connected is a `TransportError`, whose message is that the socket could not be used rather than that a handshake failed. |
 

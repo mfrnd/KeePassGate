@@ -107,17 +107,50 @@ def test_an_entry_s_listings_hand_out_its_tag_with_each_name(
     assert [item.etag for item in listed] == [TAG, TAG]
 
 
-def test_a_read_the_gate_gave_no_tag_for_has_none_and_says_why(
+@pytest.mark.parametrize(
+    ("listing", "body"),
+    [
+        (
+            lambda client: client.fields(UUID),
+            {"fields": [{"name": "Title", "protected": False}]},
+        ),
+        (
+            lambda client: client.attachments(UUID),
+            {"attachments": [{"name": "a.txt", "size": 1}]},
+        ),
+    ],
+    ids=["fields", "attachments"],
+)
+def test_a_listing_the_gate_gave_no_tag_for_has_none_and_says_why(
+    gate: FakeGate,
+    paired: GateClient,
+    listing: Callable[[GateClient], list[Any]],
+    body: dict[str, Any],
+) -> None:
+    # What a client holding `list` without `read` meets: the listings of an entry's fields and
+    # attachments are the answers the gate gives about an entry without a tag. Reading an entry
+    # or a group takes `read`, and every client holding `read` is handed a tag.
+    tagging(gate, body, None)
+
+    (listed,) = listing(paired)
+
+    assert not hasattr(listed, "etag")
+    with pytest.raises(AttributeError, match=r"gave no tag.*every client holding `read`"):
+        _ = listed.etag
+
+
+def test_a_read_that_withholds_a_value_is_tagged_all_the_same(
     gate: FakeGate, paired: GateClient
 ) -> None:
-    # What a client meets whose rule does not read everything the tag covers.
-    tagging(gate, ENTRY, None)
+    # A client holding `read` without `protected`: the value comes back withheld, and the tag
+    # is of what this client may read, handed out as to any reader.
+    withheld = dict(ENTRY, fields={"Title": "an invented service", "Password": None})
+    withheld["protected"] = ["Password"]
+    tagging(gate, withheld, TAG)
 
     entry = paired.entry(UUID)
 
-    assert not hasattr(entry, "etag")
-    with pytest.raises(AttributeError, match=r"gave no tag.*whose rule reads everything"):
-        _ = entry.etag
+    assert entry.etag == TAG
 
 
 def test_a_listed_node_has_no_tag_and_says_where_to_get_one(

@@ -104,32 +104,39 @@ namespace KeePassGate.Host.Tests
             Assert.That(entry.Group, Is.EqualTo(group));
             Assert.That(entry.Title, Is.EqualTo("an invented service"));
 
-            var read = _vault.Read(uuid);
+            var read = _vault.Whole(uuid);
 
-            Assert.That(read.Fields[PwDefs.UserNameField], Is.EqualTo("agent-fictitious"));
+            Assert.That(read.Field(PwDefs.UserNameField).Value, Is.EqualTo("agent-fictitious"));
             Assert.That(read.Protected, Does.Contain(PwDefs.PasswordField),
                 "a password is protected because this database says that kind of field is");
         }
 
         [Test]
-        public void An_entry_over_the_ceiling_is_measured_and_handed_back_with_no_strings()
+        public void An_entry_over_the_ceiling_is_measured_off_its_view_string_by_string()
         {
             // Planted as KeePass would hold it, since no write here can make such an entry. A
-            // protected string's length is kept beside its encrypted bytes, so the measure needs
-            // none of it.
+            // protected string's length is kept beside its encrypted bytes, so the view measures
+            // the entry and each string with none of them read, which is what lets a route refuse
+            // the entry, or the one string, before anything is decrypted.
             var uuid = Created(_vault.CreateEntry(_vault.RootAlias, Named("an invented service")));
             var entry = Kept(uuid);
-            entry.Strings.Set("Big", new ProtectedString(true, new string('x', VaultEntryDetail.MostCharacters)));
+            entry.Strings.Set("Big", new ProtectedString(true, new string('x', VaultEntryView.MostCharacters)));
             var characters = entry.Strings.Sum(pair => pair.Key.Length + pair.Value.Length);
 
-            var read = _vault.Read(uuid, VaultEntryDetail.MostCharacters);
+            var read = _vault.Whole(uuid);
 
-            Assert.That(read.Fields, Is.Null);
             Assert.That(read.Characters, Is.EqualTo(characters));
+            Assert.That(read.Characters, Is.GreaterThan(VaultEntryView.MostCharacters));
             Assert.That(read.Protected, Does.Contain("Big"), "which strings are protected is still told");
-            Assert.That(_vault.Field(uuid, "Big", VaultEntryDetail.MostCharacters).Value, Is.Null);
             Assert.That(
-                _vault.Field(uuid, PwDefs.TitleField, VaultEntryDetail.MostCharacters).Value,
+                read.Field("Big").Characters,
+                Is.EqualTo("Big".Length + VaultEntryView.MostCharacters),
+                "the string over the ceiling is measured with its name");
+            Assert.That(
+                read.Field(PwDefs.TitleField).Characters,
+                Is.EqualTo(PwDefs.TitleField.Length + "an invented service".Length));
+            Assert.That(
+                read.Field(PwDefs.TitleField).Value,
                 Is.EqualTo("an invented service"),
                 "a field under it in the same entry is still read");
         }
@@ -139,13 +146,13 @@ namespace KeePassGate.Host.Tests
         {
             var uuid = Created(_vault.CreateEntry(_vault.RootAlias, Named("an invented service")));
             var entry = Kept(uuid);
-            var room = VaultEntryDetail.MostCharacters - entry.Strings.Sum(pair => pair.Key.Length + pair.Value.Length);
+            var room = VaultEntryView.MostCharacters - entry.Strings.Sum(pair => pair.Key.Length + pair.Value.Length);
             entry.Strings.Set("Filler", new ProtectedString(false, new string('x', room - "Filler".Length - "More".Length - 10)));
 
             var refused = _vault.CreateField(uuid, "More", new string('y', 11), false, VaultAskings.Free);
 
             Assert.That(refused.IsTooLarge, Is.True, refused.Reason);
-            Assert.That(refused.Characters, Is.EqualTo(VaultEntryDetail.MostCharacters + 1));
+            Assert.That(refused.Characters, Is.EqualTo(VaultEntryView.MostCharacters + 1));
             Assert.That(entry.Strings.Exists("More"), Is.False);
 
             Assert.That(_vault.CreateField(uuid, "More", new string('y', 10), false, VaultAskings.Free).Ok, Is.True,
@@ -167,7 +174,7 @@ namespace KeePassGate.Host.Tests
 
             var refused = _vault.CreateEntry(_vault.RootAlias, new Dictionary<string, string>
             {
-                { PwDefs.NotesField, new string('x', VaultEntryDetail.MostCharacters) },
+                { PwDefs.NotesField, new string('x', VaultEntryView.MostCharacters) },
             });
 
             Assert.That(refused.IsTooLarge, Is.True, refused.Reason);
@@ -222,7 +229,7 @@ namespace KeePassGate.Host.Tests
             var uuid = Created(_vault.CreateEntry(_vault.RootAlias, Named("an invented service")));
             _vault.CreateField(uuid, "Invented", "a value", false, VaultAskings.Free);
 
-            var fields = _vault.Fields(uuid);
+            var fields = _vault.Whole(uuid).Fields;
 
             Assert.That(fields.Select(f => f.Name), Does.Contain("Invented"));
             Assert.That(fields.Single(f => f.Name == PwDefs.PasswordField).IsProtected, Is.True);
@@ -255,7 +262,7 @@ namespace KeePassGate.Host.Tests
 
             _vault.UpdateField(uuid, PwDefs.PasswordField, "a different one", VaultAskings.Free);
 
-            Assert.That(_vault.Read(uuid).Protected, Does.Contain(PwDefs.PasswordField));
+            Assert.That(_vault.Whole(uuid).Protected, Does.Contain(PwDefs.PasswordField));
         }
 
         [Test]
@@ -272,9 +279,9 @@ namespace KeePassGate.Host.Tests
 
             Unflag(uuid, PwDefs.PasswordField, "not-a-real-password");
 
-            Assert.That(_vault.Read(uuid).Protected, Does.Contain(PwDefs.PasswordField),
+            Assert.That(_vault.Whole(uuid).Protected, Does.Contain(PwDefs.PasswordField),
                 "the database protects the name, so the value is a secret however it was stored");
-            Assert.That(_vault.Fields(uuid).Single(f => f.Name == PwDefs.PasswordField).IsProtected, Is.True,
+            Assert.That(_vault.Whole(uuid).Fields.Single(f => f.Name == PwDefs.PasswordField).IsProtected, Is.True,
                 "and the field listing, which is what the field route reads, has to agree");
         }
 
@@ -307,7 +314,7 @@ namespace KeePassGate.Host.Tests
             var entry = _database.Database.RootGroup.FindEntry(new PwUuid(KeePassLib.Utility.MemUtil.HexStringToByteArray(uuid)), true);
             Assume.That(entry, Is.Not.Null);
 
-            Assert.That(_vault.Read(uuid).Fields.Keys, Is.EqualTo(entry.Strings.GetKeys()));
+            Assert.That(_vault.Whole(uuid).Fields.Select(field => field.Name), Is.EqualTo(entry.Strings.GetKeys()));
         }
 
         [Test]
@@ -321,8 +328,8 @@ namespace KeePassGate.Host.Tests
             Assert.That(_vault.CreateField(uuid, "Invented", "a value", false, VaultAskings.Free).Ok, Is.True);
             Assert.That(_vault.CreateField(uuid, "AlsoInvented", "a value", true, VaultAskings.Free).Ok, Is.True);
 
-            Assert.That(_vault.Read(uuid).Protected, Has.No.Member("Invented"));
-            Assert.That(_vault.Read(uuid).Protected, Does.Contain("AlsoInvented"));
+            Assert.That(_vault.Whole(uuid).Protected, Has.No.Member("Invented"));
+            Assert.That(_vault.Whole(uuid).Protected, Does.Contain("AlsoInvented"));
         }
 
         /// <summary>
@@ -354,8 +361,8 @@ namespace KeePassGate.Host.Tests
                 "KeePass itself reads this as the entry's password");
 
             Assert.That(_vault.Protects(PasswordAlias), Is.True);
-            Assert.That(_vault.Read(uuid).Protected, Does.Contain(PasswordAlias));
-            Assert.That(_vault.Fields(uuid).Single(f => f.Name == PasswordAlias).IsProtected, Is.True,
+            Assert.That(_vault.Whole(uuid).Protected, Does.Contain(PasswordAlias));
+            Assert.That(_vault.Whole(uuid).Fields.Single(f => f.Name == PasswordAlias).IsProtected, Is.True,
                 "and the field listing, which is what the field route reads, has to agree");
         }
 
@@ -378,7 +385,7 @@ namespace KeePassGate.Host.Tests
 
             Assert.That(_vault.CreateAttachment(uuid, "notes..txt", content, VaultAskings.Free).Ok, Is.True);
 
-            var listed = _vault.Attachments(uuid).Single();
+            var listed = _vault.Whole(uuid).Attachments.Single();
 
             Assert.That(listed.Name, Is.EqualTo("notes..txt"));
             Assert.That(listed.Size, Is.EqualTo(content.Length));
@@ -386,20 +393,25 @@ namespace KeePassGate.Host.Tests
         }
 
         [Test]
-        public void An_attachment_larger_than_asked_for_comes_back_measured_and_not_read()
+        public void An_attachment_larger_than_the_gate_serves_comes_back_measured_and_not_read()
         {
             // KeePass keeps an attachment's length beside its encrypted bytes, so the size is
             // answered without the plaintext, which is the copy a refusal for size is there to
-            // avoid, and in the same read, so nothing can replace it in between.
+            // avoid, and in the same read, so nothing can replace it in between. Planted as
+            // KeePass would hold them, at the ceiling and a byte over it.
             var uuid = Created(_vault.CreateEntry(_vault.RootAlias, Named("an invented service")));
-            Assume.That(_vault.CreateAttachment(uuid, "big.bin", new byte[] { 1, 2, 3, 4 }, VaultAskings.Free).Ok, Is.True);
+            var entry = Kept(uuid);
+            entry.Binaries.Set("big.bin", new ProtectedBinary(true, new byte[VaultViewAttachment.MostServed + 1]));
+            entry.Binaries.Set("largest.bin", new ProtectedBinary(true, new byte[VaultViewAttachment.MostServed]));
 
-            var measured = _vault.Attachment(uuid, "big.bin", 3);
+            var read = _vault.Whole(uuid);
+            var measured = read.Attachment("big.bin");
 
-            Assert.That(measured.Size, Is.EqualTo(4));
+            Assert.That(measured.Size, Is.EqualTo(VaultViewAttachment.MostServed + 1));
             Assert.That(measured.Content, Is.Null);
-            Assert.That(_vault.Attachment(uuid, "big.bin", 4).Content, Is.EqualTo(new byte[] { 1, 2, 3, 4 }),
-                "and one no larger than that is read");
+            Assert.That(measured.Digest, Is.Null, "and bytes no route serves are not digested for a tag either");
+            Assert.That(read.Attachment("largest.bin").Content, Has.Length.EqualTo(VaultViewAttachment.MostServed),
+                "and an attachment no larger than that is read");
         }
 
         [Test]
@@ -414,7 +426,7 @@ namespace KeePassGate.Host.Tests
             Assert.That(Stored(uuid, "one"), Is.EqualTo(new byte[] { 3, 4 }));
 
             Assert.That(_vault.DeleteAttachment(uuid, "one", VaultAskings.Free).Ok, Is.True);
-            Assert.That(_vault.Attachments(uuid), Is.Empty);
+            Assert.That(_vault.Whole(uuid).Attachments, Is.Empty);
         }
 
         /// <summary>
@@ -451,7 +463,7 @@ namespace KeePassGate.Host.Tests
                 "and putting one there is the conflict a name the entry already has gets");
 
             Assert.That(Entry(uuid).Strings.ReadSafe(PwDefs.PasswordField), Is.EqualTo("not-a-real-password"));
-            Assert.That(_vault.Read(uuid).Protected, Does.Contain(PwDefs.PasswordField));
+            Assert.That(_vault.Whole(uuid).Protected, Does.Contain(PwDefs.PasswordField));
         }
 
         [TestCase("de-DE")]
@@ -516,7 +528,7 @@ namespace KeePassGate.Host.Tests
             var alias = "notes\u00AD.txt";
             Assume.That(Entry(uuid).Binaries.Get(alias), Is.Not.Null, "the same collation, on the other dictionary");
 
-            Assert.That(_vault.Attachment(uuid, alias, int.MaxValue), Is.Null);
+            Assert.That(_vault.Whole(uuid).Attachment(alias), Is.Null);
             Assert.That(_vault.UpdateAttachment(uuid, alias, new byte[] { 9 }, VaultAskings.Free).Ok, Is.False);
             Assert.That(_vault.DeleteAttachment(uuid, alias, VaultAskings.Free).Ok, Is.False);
             Assert.That(_vault.CreateAttachment(uuid, alias, new byte[] { 9 }, VaultAskings.Free).IsConflict, Is.True);
@@ -554,7 +566,7 @@ namespace KeePassGate.Host.Tests
             };
 
             Assert.That(_vault.UpdateEntry(uuid, both, VaultAskings.Free).IsConflict, Is.True);
-            Assert.That(_vault.Fields(uuid).Select(f => f.Name), Has.No.Member("Caf\u00E9"));
+            Assert.That(_vault.Whole(uuid).Fields.Select(f => f.Name), Has.No.Member("Caf\u00E9"));
         }
 
         [Test]
@@ -670,12 +682,11 @@ namespace KeePassGate.Host.Tests
 
             Assert.That(_vault.Subgroups(group), Is.Empty, "a group with nothing in it is empty");
             Assert.That(_vault.Entries(group), Is.Empty);
-            Assert.That(_vault.Attachments(uuid), Is.Empty, "and so is an entry with no attachments");
+            Assert.That(_vault.Whole(uuid).Attachments, Is.Empty, "and so is an entry with no attachments");
 
             Assert.That(_vault.Subgroups(nowhere), Is.Null);
             Assert.That(_vault.Entries(nowhere), Is.Null);
-            Assert.That(_vault.Fields(nowhere), Is.Null);
-            Assert.That(_vault.Attachments(nowhere), Is.Null);
+            Assert.That(_vault.Whole(nowhere), Is.Null);
             Assert.That(_vault.IsOpen, Is.True, "and the database is open, so these are absences");
         }
 
@@ -695,12 +706,12 @@ namespace KeePassGate.Host.Tests
             Assert.That(_vault.Entries(), Is.Null);
             Assert.That(_vault.Subgroups(_vault.RootAlias), Is.Null);
             Assert.That(_vault.Entries(_vault.RootAlias), Is.Null);
-            Assert.That(_vault.Fields(uuid), Is.Null);
+            Assert.That(_vault.Whole(uuid), Is.Null);
 
             _database.Unlock();
 
             Assert.That(_vault.IsOpen, Is.True, "the same object, open again, as after an unlock");
-            Assert.That(_vault.Fields(uuid), Is.Not.Empty);
+            Assert.That(_vault.Whole(uuid).Fields, Is.Not.Empty);
         }
 
         /// <summary>A node's identifier as this API spells it, which is what the tests compare.</summary>
@@ -806,7 +817,7 @@ namespace KeePassGate.Host.Tests
             // A caller that may write a value and not read it would otherwise be told, by a time
             // that did not move or an answer that came at once, that the value it sent is the
             // value stored. So its update is a change like any other, and only a request naming
-            // nothing is still skipped for it. `VaultTagging.Sees` has the ruling.
+            // nothing is still skipped for it. `VaultEntryView.Reads` has the ruling.
             var group = Created(_vault.CreateGroup(_vault.RootAlias, "Fictitious", "invented notes"));
             var uuid = Created(_vault.CreateEntry(group, Named("an invented service"), VaultExpiry.At(Moment)));
             Assume.That(_vault.UpdateField(uuid, PwDefs.PasswordField, "not-a-real-password", VaultAskings.Free).Ok, Is.True);
@@ -946,12 +957,12 @@ namespace KeePassGate.Host.Tests
             var uuid = Created(_vault.CreateEntry(group, Named("an invented service")));
 
             Assert.That(_vault.CreateField(uuid, "Invented", "a value", true, VaultAskings.Free).Ok, Is.True);
-            Assume.That(_vault.Read(uuid).Protected, Does.Contain("Invented"));
+            Assume.That(_vault.Whole(uuid).Protected, Does.Contain("Invented"));
 
             Assert.That(_vault.UpdateEntry(uuid, new Dictionary<string, string> { { "Invented", "another" } }, VaultAskings.Free).Ok,
                 Is.True);
 
-            Assert.That(_vault.Read(uuid).Protected, Does.Contain("Invented"),
+            Assert.That(_vault.Whole(uuid).Protected, Does.Contain("Invented"),
                 "an update must not quietly unprotect what it writes");
 
             _database.SaveCloseAndReopen();
@@ -959,7 +970,7 @@ namespace KeePassGate.Host.Tests
             // A new vault, because reopening builds a new `PwDatabase` and the old one is closed.
             var reopened = new KdbxVault(_database.Database, Writer(), TestTags.Fixed, null);
 
-            Assert.That(reopened.Read(uuid).Protected, Does.Contain("Invented"),
+            Assert.That(reopened.Whole(uuid).Protected, Does.Contain("Invented"),
                 "and the file has to agree, because this name is not one KeePass puts back");
         }
 
@@ -1111,7 +1122,7 @@ namespace KeePassGate.Host.Tests
             entry.Expires = true;
 
             Assert.That(_vault.Entry(uuid).Expires, Is.EqualTo(Moment));
-            Assert.That(_vault.Read(uuid).Entry.Expires, Is.EqualTo(Moment));
+            Assert.That(_vault.Whole(uuid).Entry.Expires, Is.EqualTo(Moment));
             Assert.That(_vault.Entries().Single(e => e.Uuid == uuid).Expires, Is.EqualTo(Moment),
                 "and a listing carries it for the handler to judge");
         }
@@ -1380,7 +1391,7 @@ namespace KeePassGate.Host.Tests
             Assert.That(_vault.CreateField(uuid, "Variable", "%TEMP%", false, VaultAskings.Free).Ok, Is.True);
 
             Assert.That(_vault.Entry(uuid).Title, Is.EqualTo(reference), "a listing");
-            Assert.That(_vault.Read(uuid).Fields["Pointer"], Is.EqualTo(reference), "a read");
+            Assert.That(_vault.Whole(uuid).Field("Pointer").Value, Is.EqualTo(reference), "a read");
             Assert.That(_vault.Field(uuid, "Pointer"), Is.EqualTo(reference), "one field");
             Assert.That(_vault.Field(uuid, "Variable"), Is.EqualTo("%TEMP%"), "a placeholder");
         }
@@ -1399,8 +1410,8 @@ namespace KeePassGate.Host.Tests
                 "an attachment");
 
             Assert.That(_vault.Groups(), Has.Count.EqualTo(1), "no group was made");
-            Assert.That(_vault.Fields(uuid).Select(f => f.Name), Has.No.Member(string.Empty));
-            Assert.That(_vault.Attachments(uuid), Is.Empty);
+            Assert.That(_vault.Whole(uuid).Fields.Select(f => f.Name), Has.No.Member(string.Empty));
+            Assert.That(_vault.Whole(uuid).Attachments, Is.Empty);
             Assert.That(_saves, Is.EqualTo(1), "and nothing but the entry was saved");
         }
 
@@ -1417,7 +1428,7 @@ namespace KeePassGate.Host.Tests
                 Assert.That(_vault.DeleteField(uuid, name, VaultAskings.Free).IsConflict, Is.True, name);
             }
 
-            Assert.That(_vault.Fields(uuid).Select(f => f.Name),
+            Assert.That(_vault.Whole(uuid).Fields.Select(f => f.Name),
                 Is.SupersetOf(new[] { "Title", "UserName", "Password", "URL", "Notes" }));
             Assert.That(_vault.UpdateField(uuid, "Title", string.Empty, VaultAskings.Free).Ok, Is.True, "emptying is the way");
             Assert.That(_vault.CreateField(uuid, "Invented", "a value", false, VaultAskings.Free).Ok, Is.True);
@@ -1688,10 +1699,14 @@ namespace KeePassGate.Host.Tests
             return write.Uuid;
         }
 
-        /// <summary>What an attachment holds, read with no ceiling, or null when it is not there.</summary>
+        /// <summary>
+        /// What an attachment holds, or null when it is not there or is larger than the gate
+        /// serves.
+        /// </summary>
         private byte[] Stored(string uuid, string name)
         {
-            var read = _vault.Attachment(uuid, name, int.MaxValue);
+            var view = _vault.Whole(uuid);
+            var read = view == null ? null : view.Attachment(name);
             return read == null ? null : read.Content;
         }
     }

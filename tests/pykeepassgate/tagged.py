@@ -25,8 +25,8 @@ def tagging(
     """Answer every request with this, carrying `etag` where the plugin carries one.
 
     A read's tag in the `ETag` header, and a write's that worked in its body, as `etag`, which is
-    how the plugin hands each out. `None` is a gate that hands none, which is what a client whose
-    rule does not read everything a tag covers meets. What comes back fills with the `If-Match`
+    how the plugin hands each out. `None` is a gate that hands none, which is what a client
+    without `read` on the node meets. What comes back fills with the `If-Match`
     of every request answered, in order.
     """
     conditions: list[str | None] = []

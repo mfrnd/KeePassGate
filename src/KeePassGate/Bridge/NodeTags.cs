@@ -38,21 +38,42 @@ namespace KeePassGate.Bridge
     ///
     /// **The key keeps tags from being computed, and it does not keep them from being compared.**
     /// A client that can make a write under `If-Match` learns whether the node held what its tag
-    /// named, and a write it can make changes the content in a way it chooses, so a tag handed to a
-    /// client that may not read every part it covers would let that client test guesses at the
-    /// rest one request at a time. That is why the routes hand a tag, and honor `If-Match`, only to
-    /// a caller whose rule may read everything the tag covers, `API.md` §410, and why nothing here
-    /// tries to make a tag safe for anybody else.
+    /// named, and a write it can make changes the content in a way it chooses, so a tag covering
+    /// a part its holder may not read would let that holder test guesses at the part one request
+    /// at a time. That is why an entry's tag covers what its caller may read and nothing else,
+    /// `API.md` §410: the tag of a caller that may not read a value holds nothing derived from
+    /// the value, so a guess written blind moves that tag the same whether the guess was
+    /// right, through the entry's `modified` and through nothing else. This
+    /// reverses the rule that a tag covered the whole entry and was handed only to a caller
+    /// whose one rule read all of it, the operator's ruling of 2026-11-10.
     ///
-    /// **Exactly what the routes serve, as they serve it, and nothing else.** An entry's tag covers
-    /// its identifier, the group it is in, when it was created and last changed, every string with
-    /// its name, whether it is served as protected and its value, every attachment with its name,
-    /// its size and its bytes, and when it expires; a group's covers its identifier, the group it
+    /// **What the entry's own routes serve its caller, as they serve it, and nothing a caller
+    /// may not read.** A protected title or URL a listing of entries shows a caller is in its
+    /// view of the entry, so a read serves it and the tag covers it. A caller holding `read`
+    /// with `attachments` and no `list` has every attachment in its tag, since it reads any of
+    /// them by name though no route lists them to it, `API.md` §410. An
+    /// entry's tag covers its identifier, the group it is in, when it was created and last
+    /// changed, every string with its name, whether it is served as protected and, where its
+    /// caller may read it, its value, every attachment with its name and its size where its
+    /// caller may list attachments and with its bytes where its caller may read them, and when
+    /// it expires; a group's covers its identifier, the group it
     /// is in, its name, its notes and its two times. The identifier is there so that two nodes
     /// holding the same never share a tag, which would tell a client they do. A time enters as the
     /// wire writes it, to the second, because a file reopened keeps no more than that: a fraction
     /// in the tag changed every tag across a reload for nothing anybody wrote. A rule is left out,
     /// since no route serves one.
+    ///
+    /// **An entry's tag is taken of the view the routes answer from**, a
+    /// <see cref="VaultEntryView"/>, and never of the entry itself, so the tag and the answer are
+    /// one projection and cannot come to cover different things. A value the view withholds
+    /// enters as a fixed mark, with nothing derived from what is withheld, and attachments the
+    /// view does not hold enter nothing at all. **Nothing about the rule enters**, no scope, no
+    /// mark of how far a rule reaches and no client: the content already differs wherever two
+    /// views differ, and two callers with the same view hold the same tag, so a reader can hand
+    /// its tag to a writer that sees what it sees. **So a rule widened over an entry where
+    /// nothing new comes into sight moves no tag**: an entry holding no attachment is tagged
+    /// alike for a caller that may read attachments and for a caller that may not, since
+    /// neither is shown any, and a `412` is never the answer to a change nobody could see.
     ///
     /// **Strings and attachments enter in an order of the tag's own**, by name, ordinal. KeePass
     /// keeps both in dictionaries sorted by the current culture, in the order their names were
@@ -147,14 +168,28 @@ namespace KeePassGate.Bridge
             Array.Clear(_key, 0, _key.Length);
         }
 
-        /// <summary>An entry's tag.</summary>
-        /// <param name="guarded">
-        /// Whether a string is served as protected, which is the flag or the database's own setting
-        /// for the name, so that the tag follows what a client is told rather than one half of it.
-        /// </param>
-        public string Of(PwEntry entry, Func<string, ProtectedString, bool> guarded)
+        /// <summary>An entry's tag, as one caller may read the entry.</summary>
+        /// <remarks>
+        /// **Of the view and of nothing else.** The routes answer from the same view, so a part
+        /// that is served is a part that is hashed, and what the view leaves out cannot enter:
+        /// this never sees the entry the view was taken of.
+        ///
+        /// **A withheld value enters as a mark that it is withheld**, the same mark whatever the
+        /// value is and however long, so the tag of a view moves with nothing its caller may not
+        /// read.
+        ///
+        /// **Attachments enter as far as the view holds them, and no mark of how far that is.**
+        /// Nothing when the view holds none, each name and size when they are listed, and each
+        /// name, size and digest when they are read. A view that holds no attachment is tagged
+        /// alike whether its caller's rules reach attachments or the entry has none, so a rule
+        /// widened over an entry where nothing new comes into sight moves no tag.
+        ///
+        /// **No tag for a view whose sight does not read**, which the view itself already
+        /// answers by never asking, `VaultEntryView.Tag`.
+        /// </remarks>
+        public string Of(VaultEntryView view)
         {
-            if (entry == null)
+            if (view == null || !view.Sight.Reads)
             {
                 return null;
             }
@@ -162,24 +197,31 @@ namespace KeePassGate.Bridge
             using (var hmac = Keyed())
             {
                 Put(hmac, "entry");
-                Put(hmac, entry.Uuid.ToHexString());
-                Put(hmac, Parent(entry.ParentGroup));
-                Put(hmac, Served(entry.CreationTime));
-                Put(hmac, Served(entry.LastModificationTime));
+                Put(hmac, view.Entry.Uuid);
+                Put(hmac, view.Entry.Group ?? string.Empty);
+                Put(hmac, Moments.Wire(view.Entry.Created));
+                Put(hmac, Moments.Wire(view.Entry.Modified));
 
-                foreach (var pair in entry.Strings.OrderBy(pair => pair.Key, StringComparer.Ordinal))
+                foreach (var field in view.Fields.OrderBy(field => field.Name, StringComparer.Ordinal))
                 {
                     Put(hmac, "string");
-                    Put(hmac, pair.Key);
-                    Put(hmac, guarded(pair.Key, pair.Value) ? "protected" : "plain");
+                    Put(hmac, field.Name);
+                    Put(hmac, field.IsProtected ? "protected" : "plain");
+
+                    if (field.IsWithheld)
+                    {
+                        Put(hmac, "withheld");
+                        continue;
+                    }
 
                     // The value as a read serves it, and not the bytes the store keeps: a file
                     // another program wrote can hold bytes that are not UTF-8, which the read
                     // serves with each bad sequence replaced, and a tag over the stored bytes was a
-                    // tag over a value nobody was ever served. The string is the one KeePass keeps
-                    // once it has been read, so asking for it decrypts nothing twice; the encoded
-                    // copy is wiped.
-                    var value = Encoding.UTF8.GetBytes(pair.Value.ReadString());
+                    // tag over a value nobody was ever served. The view keeps the string once it
+                    // has been read, so asking for it decrypts nothing twice; the encoded copy is
+                    // wiped.
+                    Put(hmac, "value");
+                    var value = Encoding.UTF8.GetBytes(field.Value);
                     try
                     {
                         Put(hmac, value);
@@ -190,22 +232,47 @@ namespace KeePassGate.Bridge
                     }
                 }
 
-                foreach (var pair in entry.Binaries.OrderBy(pair => pair.Key, StringComparer.Ordinal))
+                // What the view holds of the attachments and no mark for how far the sight
+                // reaches: a view holding no attachment is tagged alike whether its caller's rule
+                // reaches attachments or the entry has none, since neither caller is shown any.
+                // A rule widened over an entry where nothing new comes into sight therefore moves
+                // no tag, and a `412` is never the answer to a change nobody could see.
+                var held = view.Attachments ?? Array.Empty<VaultViewAttachment>();
+
+                foreach (var attachment in held.OrderBy(attachment => attachment.Name, StringComparer.Ordinal))
                 {
                     Put(hmac, "attachment");
-                    Put(hmac, pair.Key);
-                    Put(hmac, Length(pair.Value.Length));
+                    Put(hmac, attachment.Name);
+                    Put(hmac, Length((uint)attachment.Size));
 
-                    if (pair.Value.Length <= VaultAttachment.MostServed)
+                    // Null for an attachment whose bytes are out of sight, and for an attachment
+                    // larger than the gate serves: each enters by its name and size alone.
+                    var digest = attachment.Digest;
+                    if (digest != null)
                     {
-                        Put(hmac, Digests.GetValue(pair.Value, Deferred).Value);
+                        Put(hmac, "bytes");
+                        Put(hmac, digest);
                     }
                 }
 
-                Put(hmac, entry.Expires ? Served(entry.ExpiryTime) : "never");
+                Put(hmac, view.Entry.Expires.HasValue ? Moments.Wire(view.Entry.Expires.Value) : "never");
 
                 return Done(hmac);
             }
+        }
+
+        /// <summary>
+        /// The SHA-256 of an attachment's bytes, taken once for as long as KeePass keeps the
+        /// attachment.
+        /// </summary>
+        /// <remarks>
+        /// What a view's attachment answers its digest with. Kept against the object, for the
+        /// reasons the class gives: the bytes behind a `ProtectedBinary` never change, and a
+        /// failure is never kept.
+        /// </remarks>
+        internal static byte[] DigestOf(ProtectedBinary binary)
+        {
+            return Digests.GetValue(binary, Deferred).Value;
         }
 
         /// <summary>A group's tag.</summary>

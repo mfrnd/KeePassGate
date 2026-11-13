@@ -99,6 +99,11 @@ namespace KeePassGate.Spec
         public const string ReachItem = "kpg.reach";
 
         /// <summary>
+        /// Where the router leaves what records a protected value a read's view withheld.
+        /// </summary>
+        public const string WithheldItem = "kpg.withheld";
+
+        /// <summary>
         /// Where the router leaves what `If-Match` asks, for an operation that declares it and a
         /// request that carried one: a <see cref="VaultPrecondition"/>, absent otherwise.
         /// </summary>
@@ -885,6 +890,10 @@ namespace KeePassGate.Spec
             // so that the answer the handler acts on is the answer recorded.
             context.Items[ReachItem] = Reach(context.Client, operation, lines);
 
+            // And for a read, whose view decides what it serves: what writes down a value the
+            // view withheld, as the walk that withheld it and about this client and operation.
+            context.Items[WithheldItem] = Withheld(context.Client, operation, lines);
+
             // The identifier asked for goes on the line when it found nothing, so the operator can
             // see which reference a request was following; the check keeps only a well-formed one.
             var decision = _access.Decide(
@@ -924,6 +933,19 @@ namespace KeePassGate.Spec
 
             return (node, verb, profiles) =>
                 access.Reaches(client, operationId, verb, AclReach.Protected, node, profiles, lines);
+        }
+
+        /// <summary>
+        /// What records, for one client, a protected value a read's view withheld, keeping the
+        /// line with the request's other lines.
+        /// </summary>
+        private ProtectedWithheld Withheld(ClientIdentity client, SpecOperation operation, DecisionLines lines)
+        {
+            var access = _access;
+            var operationId = operation.OperationId;
+
+            return (node, verb, decision, listed) =>
+                access.Withheld(client, operationId, verb, AclReach.Protected, node, decision, listed, lines);
         }
 
         /// <summary>

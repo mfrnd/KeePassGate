@@ -130,24 +130,103 @@ collection and the gate's own routes: those declare no `If-Match` and never read
 which is what a server may do for a resource it has no tag for, and the only conditional header
 read anywhere is this one.
 
-**Only for a client whose rule may read everything the tag covers.** For a group that is `read`;
-for an entry, `read` reaching its attachments, and its protected values too when it holds any, in
-one rule, since a switch belongs to the rule it is written in. An entry KeePass or `createEntry`
-makes holds a protected value from the start, its `Password`, protected by default however
-empty, so there the rule needs `protected` as well. Any other caller is handed no tag,
-on a read or in a write's answer, and any `If-Match` it sends is answered `412` without anything
-being written, because a condition it can never be told the answer to is one it cannot meet and
-ignoring it would make the write unconditional. **This is the second answer, and the first was
-wrong.** Every caller was handed the tag, and the tag is a digest of the content: a client that may
-update a password and not read it wrote a guess, compared the tag that came back with the one it
-held, and had the password in as many writes as it had guesses, measured at 614 writes and under
-eight seconds; a client holding `list` alone polled the tag to learn when a protected value changed.
-A key keeps a tag from being computed and does nothing about it being compared. Mixing a time or a
-counter into the tag stops a write reproducing an old tag, and leaves the comparison between two
-reads, which a client that may not read the value can still make; a signed token over a counter is
-the same thing with a second key. Handing the tag only to a caller that may read everything it
-covers takes the question away, since such a caller learns nothing from a tag that a read does not
-already tell it.
+**A tag covers what its caller may read, and every caller holding `read` is handed a tag.** A
+group's tag covers what `read` serves, and a group has no switches to scope it by. An entry's
+covers the entry as its caller's rules open it: every string's name and whether it is protected,
+the value of every string nothing protects, the values of protected strings where `read` and
+`protected` stand in one rule, a protected title or URL also where `list` and `protected` stand
+in one rule beside `read`, which is what a listing of entries shows such a caller, the
+attachments' names, sizes and bytes where `read` and
+`attachments` stand in one rule, and their names and sizes alone where `attachments` stands with
+`list` and not with `read`, which is what the listing of attachments serves such a caller. A
+switch counts in the rule it is written in, and profiles are combined with or, as a read combines
+them. A value the caller may not read enters as a fixed mark beside its name, the same mark
+whatever the value is and however long, and attachments the caller is shown nothing of enter
+nothing at all, with no mark of how far its rules reach. So an entry holding no attachment has
+the same tag for a caller that may read attachments and for a caller that may not, since neither
+is shown any, and a rule widened over an entry where nothing new comes into sight moves no tag.
+A caller without `read` is handed no tag, on a read or in a write's answer, and any `If-Match` it
+sends is answered `412` without anything being written, because a condition it can never be told
+the answer to is one it cannot meet and ignoring it would make the write unconditional.
+
+**So a caller has one tag for an entry, whichever route hands it out**, and a write is asked
+against that tag and answers with it: what a caller may read depends on its rules and the entry
+and never on the route. Nothing about the rule is in the tag, no scope, no mask and no client, so
+two callers that see the same of an entry hold the same tag, and a reader can hand its tag to a
+writer that sees what it sees. Mixing the scope in was considered and dropped: the content
+already differs wherever two views differ, and a scope would move a tag when an operator widens a
+rule over an entry where nothing new comes into sight, a `412` for nothing anybody can see.
+Binding the tag to the client's certificate would move every tag at a renewal, for nothing
+anybody wrote, and would close no attack, since the guessing attack compares a client's own tags.
+
+**This is the third answer.** The first handed every caller the tag of the whole node, and the
+tag is a digest of the content: a client that may update a password and not read it wrote a
+guess, compared the tag that came back with the tag it held, and had the password in as many
+writes as it had guesses, measured at 614 writes and under eight seconds; a client holding `list`
+alone polled the tag to learn when a protected value changed. A key keeps a tag from being
+computed and does nothing about it being compared. Mixing a time or a counter into the tag stops
+a write reproducing an old tag, and leaves the comparison between two reads, which a client that
+may not read the value can still make; a signed token over a counter is the same thing with a
+second key. The second answer kept the tag of the whole node and handed it only to a caller
+whose one rule read everything it covered, `read` reaching attachments and protected values in
+one rule. That closed the attack and left most agents with no tag at all: an entry KeePass or
+`createEntry` makes holds a protected value from the start, its `Password`, so a rule without
+`protected`, which is the rule an operator writes for a program that should not see passwords,
+was never handed a tag, and its writes could not be made against what it had read. **The
+operator ruled on 2026-11-10 to reverse it**: the tag follows the view. A tag holds nothing its
+holder may not read, so comparing two of its tags tells a caller nothing a read does not. A guess
+written blind does move the tag, through the entry's `modified`, which is in every view, and it
+moves it the same whether the guess was right or wrong, with nothing derived from the value in
+either tag. That rests on an update that would change nothing being written for a caller that
+may not read what it names, below: a skipped guess would leave `modified`, and with it the tag,
+where it was, and show there exactly as it shows in a listing.
+
+**What the third answer costs.** A client writing a protected value it may not read is told that
+the value changed in between only by the entry's `modified`, which is in every view: a change
+that moves the served second moves its tag, and a change that does not is missed. That is what
+`modified` misses, two changes inside one second, a synchronize taking the other copy's strings
+at an equal time, and a plugin that never calls `Touch`, and for a value in sight the content
+catches all three. The client never read the old value, so nothing it read is carried over a
+change it was not told of. A caller's tag changes when the operator widens or narrows its rules
+in a way that changes what it sees of the node, so its next `If-Match` fails once and it reads
+again, which is right, since it now sees something else. And two callers that see different
+things of one node hold different tags for it, so a tag passed from one program to another is
+good only between programs that see the same.
+
+**A caller's view of an entry holds everything any route shows that caller of the entry**, and
+the read routes serve what the view holds. The listing of entries shows a protected title or URL
+to a caller holding `list` and `protected` in one rule, §401, so for a caller holding that beside
+`read` the title and the URL are in its view: `readEntry` and `readField` serve them and its tag
+covers them, while every other protected string still needs `read` with `protected`. **This
+reverses a view that read protected values under `read` with `protected` alone**, under which
+such a caller was shown a title by a listing and refused the same title by a read, and held a tag
+that did not move when the title it had been shown changed, so its conditional write went ahead
+over a change a listing would have shown it. That was first written down as a cost and then
+closed, on the operator's word that a listing and a read have to agree: `list` with `protected`
+brings
+the listed strings into the view the way `list` with `attachments` brings in names and sizes.
+Without `read` it brings nothing in, since a view that does not read holds no value. **And the
+same rule decides the listing, so the two agree in both directions**: a protected title or URL
+is shown to a caller, by a listing and by a read alike, when the caller may list or read the
+entry on that route's own verb and holds `protected` beside `list` or beside `read` in one rule
+on that entry. So a listing also shows the title to a caller holding `read` with `protected`
+beside `list` without it, where it answered `null` for a title the same caller's read served.
+The condition is in one place that the listing and the view both ask, and what a listing shows
+of an entry's title and URL is what that caller's view holds of them whenever it reads the
+entry. A caller that lists and does not read the entry is shown the title by the listing under
+`list` with `protected`, as it was, and its view of the entry holds no value. One edge
+of another kind is kept: a caller holding `read` and `attachments` with no `list` is
+listed no attachments and reads any of them by its name, so every attachment is in its view and
+in its tag, and its tag moves for an attachment it has not named.
+
+**Rejected on the way, so they are not proposed again.** A counter or version number: KeePass
+offers nothing that serves as either, the modification time having been measured and refused, the
+history stopping at its ceiling and the usage count counting use; a counter of the plugin's own
+in an entry's custom data, moved only on API writes, has to report the operator's edits as the
+counter plus one without storing it, so two edits in a row share a number and an update is lost
+between them, and closing that means writing on every edit the operator makes. A random token
+per state, kept in memory, is gone at every restart, which is the behavior the key's own
+reversal below took away.
 
 **`If-Match` is optional**, at the operator's word, and that was argued rather than assumed. A
 required one, answering `428` without it, would make the safe write the easy one for an agent; it
@@ -160,7 +239,8 @@ tag and was measured before it was used, `FINDINGS.md` under "What a version of 
 of": it steps every half to one and a half milliseconds, so two changes inside one step share it; a
 synchronize takes the other copy's strings at an equal time and leaves it alone; a move does not
 touch it; and a plugin that never calls `Touch` moves nothing. A digest of what the routes serve
-misses none of those. What it covers is what the routes serve, as they serve them: the times to the
+misses none of those, for whatever its caller may read. What it covers is what the routes serve
+that caller, as they serve them: the times to the
 second, which is all a file keeps of them, the strings as a read decodes them, and an attachment's
 bytes up to the largest the gate hands out, above which its size stands for it, since no client can
 read or write those bytes through the gate.
@@ -180,7 +260,10 @@ them: a node gone is `404`, a name taken or a group not empty `409`, and a dialo
 `503 busy`, whatever the tag says. An update that would change nothing is asked the condition too,
 under the same lock, and then writes nothing, for a caller that may read every value it names; for
 any other caller it is written like any change, so that a guess at a value it may not read costs
-the same right or wrong. A read's is decided against the tag it is answered
+the same right or wrong. What a caller may read is read off its view of the node, the view its
+tag is taken of, so a protected title or URL a listing shows the caller counts as read, on
+`protected` beside `list` as well as beside `read`. A read's is decided against the tag it is
+answered
 with, and the tag and what it is answered with are of one moment, taken inside the hold of
 KeePass's thread the read is decided and served in, `DESIGN.md` §119. **That reverses a tag taken
 before its content**, which was the safe order while a change could land between the two: a
@@ -189,17 +272,24 @@ newer tag over older content, which its next write would have carried straight o
 
 **A write answers with the tag it left, in its body as `etag`** and not as an `ETag` header: RFC
 9110 section 9.3.4 makes an `ETag` on the answer to a `PUT` say the body sent was stored as sent,
-and on a `POST` or a `DELETE` it names nothing the request had, while this is the tag of the whole
-node. Taking a field or an attachment off answers the entry's tag, since the entry is still there;
-removing a group or an entry, or creating one, answers none.
+and on a `POST` or a `DELETE` it names nothing the request had, while this is the tag of the
+caller's view of the whole node. It is taken of the node as the change left it, and of what the
+caller may read of that: a change that makes a string protected leaves a view its own caller
+reads less of, and the tag in the answer is of the view after. Taking a field or an attachment off
+answers the entry's tag, since the entry is still there; removing a group or an entry, or creating
+one, answers none.
 
 **A condition says nothing about a node the caller may not reach.** It is asked after the router
 has decided, so a refused node is the same `404` whatever tag was named.
 
-**It does tell a client that is never handed a tag which names an entry carries.** Such a client's
-condition is refused `412` wherever it is asked, and it is asked after a field or an attachment the
-entry does not carry has been answered `404`, so a client that may change or strip an entry without
-reading all of it learns, a name at a time and without writing anything, which names are there. A
+**It does tell a client which names an entry carries, where the client may change or strip a part
+it is not shown.** A condition is asked after a field or an attachment the entry does not carry
+has been answered `404`, so a condition that cannot hold, any condition from a client handed no
+tag and a made-up tag from any other, is answered `412` for a name that is there and `404` for a
+name that is not. A client that may change or strip an entry without holding `read` on it learns
+the entry's names that way, a name at a time and without writing anything, and so does a client
+that reads the entry without `attachments` and may strip: it is handed a tag, is shown nothing of
+the attachments, and a strip asks no switch, so it learns their names the same way. A
 write without the condition tells it as much, by making the change wherever the name is there, and
 answering the condition first would go against RFC 9110 section 13.2.1, which has a server ignore a
 condition on a request that would be refused without it. The same is conceded to `create`, whose

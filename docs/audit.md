@@ -97,8 +97,9 @@ time on a line is when the rules answered. The line reaches the file a moment la
 is free again, so two lines close together can stand in the file out of the order of their times.
 
 **A `412` does not always mean the node changed.** It answers a program whose tag no longer matches
-what the group or entry holds, and it also answers every `If-Match` from a program the gate hands
-no tag to, because its rules do not read everything a tag covers, and an `If-Match` that does not
+what the program may read of the group or entry, which a rule widened or narrowed over it brings
+about as an edit does, and it also answers every `If-Match` from a program the gate hands
+no tag to, because its rules do not hold `read` there, and an `If-Match` that does not
 read as a tag at all: neither can ever be met, whether anything changed or not. Every `412` is in
 the log, a change's and a read's alike, each a warning with its reason. A program refused `412`
 over and over is writing over somebody, guessing, or naming a tag it was never handed, and each

@@ -136,7 +136,8 @@ namespace KeePassGate.Vault
         /// </summary>
         /// <remarks>
         /// **For a change, which asks under the writer's lock on KeePass's thread**, where a tag is
-        /// a digest over every string and attachment the node holds. Three answers need none: no
+        /// a digest over every string and attachment its caller may read. Three answers need
+        /// none: no
         /// precondition refuses nothing, `*` is met by every node that is there, and a precondition
         /// naming no tag, which a field that will not read and a caller handed no tags both ask, is
         /// met by none.

@@ -143,16 +143,42 @@ wants. It still learns one thing about what is there: adding a field or an attac
 the entry already holds is refused as taken, so such a program can find out, one guess at a time,
 which names an entry holds. It never learns a value that way.
 
-**A program that may change or strip what an entry holds, without reading all of it, learns the
-same and changes nothing doing so.** It is handed no tag, the token a program names to change an
-entry only if nothing changed since it read it, so any tag it names is refused. But a field or an
-attachment the entry does not hold is refused as missing before that, so naming a tag anyway tells
-it whether a name is there: one guess at a time again, and never a value.
+**A program that may change or strip a part of an entry it is not shown learns the same and
+changes nothing doing so.** A tag is the token a program names to change an entry only if nothing
+changed since it read it, and a tag that does not match is refused. But a field or an attachment
+the entry does not hold is refused as missing before that, so naming a tag that cannot match tells
+the program whether a name is there: one guess at a time again, and never a value. That is open to
+a program without `R` on the entry, which is handed no tag at all, and to a program with `R` and
+`S` and no `A`, which is shown nothing of the attachments and may still strip them.
+
+**A program holding `R` is handed a tag of what its rules let it read, and of nothing else.**
+With `P` in the same rule the protected values are in its tag, with `A` in the same rule the
+attachments are, and with `A` beside `L` alone their names and sizes are, since that is what
+listing them shows. A value a program may not read is in its tag as a mark that something is
+there, the same mark whatever the value is, so its tag holds nothing of the value: when such a
+program writes a guess at a value it may not read, its tag moves the same whether the guess was
+right, with the entry's modification time and with nothing else. A protected title or address
+that a listing shows the program, under `L` with `P`, is shown to it by a read as well once it
+holds `R`, and is in its tag: what a program is shown of an entry does not depend on which way
+it asks.
+Two programs that see different
+things of an entry hold different tags for it, so a tag passed from one program to another works
+only between programs that see the same. A rule widened or narrowed so that a program sees more
+of an entry or less makes the tag it holds stale, so its next write under that tag is refused
+once and it reads again; a rule widened where nothing new comes into sight, `A` granted over an
+entry with no attachments, leaves the tag as it was. And a program that writes a value it may
+not read, a password it rotates without `P` beside its `R`, is told that somebody else changed
+that value in between only when the change moved the entry's modification time, to the second,
+which every edit made in KeePass does. **This replaces an earlier rule**, under which a tag
+covered the whole entry and went only to a program whose one rule read all of it, attachments and
+protected values included: every entry KeePass makes holds a password, so a program without `P`
+was handed no tag at all and could not write against what it had read.
 
 **Nor does writing a value tell such a program what was there.** An update naming only what an
 entry, an attachment or a group already holds writes nothing for a program that may read those
 values. For a program that may not, it is written like any change, so sending a guess at a value
-costs the same and looks the same whether the guess was right.
+costs the same and looks the same whether the guess was right. What a program may read here is
+what reading the entry would show it, a protected title or address under `L` with `P` included.
 
 **`L` sits below `R` on purpose.** Knowing that an entry exists is not knowing what is in it.
 
@@ -187,6 +213,16 @@ switches and no verb grants nothing at all.
 grants `R` still answers with the title, the address, the names of every field and the values of the
 ones nothing protects; where a protected value would be, the answer is `null`. `.R...L.P` is the same
 rule with the passwords in it.
+
+**`P` beside `L` shows a protected title and address, and nothing else that is protected.** A
+database can protect titles and addresses as it protects passwords. A program is then shown them
+when a rule it holds on the entry carries `P` beside `L` or beside `R`, and it is shown them the
+same way by a listing and by reading the entry, whichever of the two its rules let it do: what a
+program is shown of an entry does not depend on which way it asks. So a program that lists under
+`L` with `P` and reads under `R` reads the title it was listed, and a program that reads under `R`
+with `P` and lists under `L` is listed the title it reads. The password and every other protected
+field still need `R` and `P` in one rule. Without `R` a rule holding `L` with `P` shows the title
+in listings and nothing by reading, since reading is not something it grants.
 
 That is the grant to give a program that has to work out which entry it is looking at. `L` alone
 does not tell it enough to tell two entries apart, and `R` used to tell it everything.
@@ -330,7 +366,7 @@ holding two profiles may reach what either of them reaches. A change has to be a
 profile, though: removing an entry needs `D` from one profile in both places, and two profiles
 holding one `D` each do not add up to it. Listings are where profiles work together: a listing can
 be taken from a group one profile may list, and shows every item in it that any profile the program
-holds may list, with a protected title where that profile reaches protected values.
+holds may list, with a protected title where a profile it holds carries `P` beside `L` or `R` there.
 
 An empty mask is a rule too. `........` on a group grants that profile nothing from there down, which
 is how a subtree is closed off for one profile while leaving the rest alone. A profile just

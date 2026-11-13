@@ -54,16 +54,16 @@ def _tag_of(etag: str | None, what: str, read: bool, how: str) -> str:
     """A tag the gate answered with, or the reason there is none, as `AttributeError`.
 
     Absent rather than empty: a listing carries no tag, because it answers about a collection, and
-    a read carries none to a client whose rule does not read everything the tag covers, which the
-    gate decides and says nothing more about. Either way there is nothing to hand to `if_match`,
-    and an empty string there would ask for something no node holds.
+    an answer about a node carries none to a client without `read` on that node, which the routes
+    listing an entry's fields and attachments do not ask for. The gate hands every client holding
+    `read` a tag, taken over what that client may read. Either way there is nothing to hand to
+    `if_match`, and an empty string there would ask for something no node holds.
     """
     if etag is None:
         raise AttributeError(
-            f"the gate gave no tag for this {what}: it hands one only to a client whose rule reads "
-            "everything the tag covers, which for an entry is its attachments as well and, when "
-            "it holds any, its protected values, so a write from this client cannot be made "
-            "conditional on it"
+            f"the gate gave no tag for this {what}: it hands a tag to every client holding `read` "
+            "on the node, over what that client may read, and sent none with this answer, so a "
+            "write from this client cannot be made conditional on a tag"
             if read
             else f"this {what} was listed rather than read, so the gate gave no tag for it. "
             f"Read it with {how} first."
@@ -472,8 +472,8 @@ class Entry:
         """The tag the gate read this entry with, for `if_match`, once it has been read.
 
         One tag for the entry and everything in it, so a write to one of its fields or attachments
-        handed it is refused with `PreconditionFailed` when anything in the entry changed since,
-        not only that field. Opaque, and kept exactly as the gate sent it.
+        handed it is refused with `PreconditionFailed` when anything this client may read in the
+        entry changed since, not only that field. Opaque, and kept exactly as the gate sent it.
         """
         return _tag_of(self.read_etag, "entry", self.is_read, "GateClient.entry()")
 
@@ -580,8 +580,9 @@ class Entry:
     @classmethod
     def listed(cls, body: dict[str, Any]) -> Entry:
         """One out of a listing, which carries no values beyond a title and a URL."""
-        # A protected title or URL comes back as `null` when the rule lacks `P`, which `Fields`
-        # keeps as a name whose value is withheld rather than as the word "None" or as nothing.
+        # A protected title or URL comes back as `null` when no rule this client holds on the
+        # entry carries `P` beside `list` or `read`, which `Fields` keeps as a name whose value
+        # is withheld rather than as the word "None" or as nothing.
         summary = {TITLE: _nullable(body, "title"), URL: _nullable(body, "url")}
 
         return cls(
@@ -837,7 +838,9 @@ class Access:
 
     **One mask per profile, because a switch belongs to its rule.** One profile's `R` and another's
     `P` do not add up to reading a protected value, so a question about a verb and a switch is a
-    question about one mask at a time, which is what `allows` asks.
+    question about one mask at a time, which is what `allows` asks. An entry's title and URL are
+    the exception: where either is protected, the gate serves it to a client holding `R` in one
+    mask and `L` with `P` in another, since a listing shows that client both.
     """
 
     #: Each profile's mask, by the profile's name.
@@ -849,7 +852,10 @@ class Access:
         `"RP"` asks whether this client may read the protected values here, `"CA"` whether it may
         add an attachment to this entry, and `"C"` whether it may add to this group. Each mask is
         asked on its own, so a profile granting `R` and another granting `P` answer no: the gate
-        refuses that read, because a switch reaches only the verbs of its own rule.
+        refuses that read, because a switch reaches only the verbs of its own rule. It does serve
+        a protected title or URL to a client holding `R` in one mask and `L` with `P` in another,
+        which a listing shows it as well, so for those `allows("RP") or allows("LP")` beside
+        `allows("R")` is the question.
 
         **A switch says nothing about a removal**, which shows nobody anything, and a rule that may
         remove an entry already takes everything in it: the gate asks no switch of `S` or `D`, and

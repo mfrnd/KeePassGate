@@ -53,7 +53,7 @@ namespace KeePassGate.Vault
         public VaultEntry(
             string uuid, string group, string title, string url,
             DateTimeOffset created, DateTimeOffset modified, IAclNode node,
-            bool titleProtected, bool urlProtected, DateTimeOffset? expires, bool? holdsProtected)
+            bool titleProtected, bool urlProtected, DateTimeOffset? expires)
         {
             Uuid = uuid;
             Group = group;
@@ -65,7 +65,6 @@ namespace KeePassGate.Vault
             TitleProtected = titleProtected;
             UrlProtected = urlProtected;
             Expires = expires;
-            HoldsProtected = holdsProtected;
         }
 
         public string Uuid { get; private set; }
@@ -83,6 +82,10 @@ namespace KeePassGate.Vault
         /// Either of them can be protected, and then `list` is not enough on its own:
         /// <see cref="TitleProtected"/> and <see cref="UrlProtected"/> say which, and the
         /// handler withholds those without the `protected` switch, as the read route does.
+        ///
+        /// **Null, both of them, in the description a view carries**, <see cref="VaultEntryView"/>:
+        /// a view holds a string only as one of its fields, where the caller's sight decides
+        /// whether the value is there, and reads neither to be built.
         /// </remarks>
         public string Title { get; private set; }
 
@@ -116,105 +119,6 @@ namespace KeePassGate.Vault
         public DateTimeOffset? Expires { get; private set; }
 
         public IAclNode Node { get; private set; }
-
-        /// <summary>
-        /// Whether any of the entry's strings is protected, said by a lookup of the one entry and
-        /// null in a listing, which is not asked.
-        /// </summary>
-        /// <remarks>
-        /// What decides whether a client's rule has to carry `protected` before it is handed the
-        /// entry's tag. Nothing new is told by it: a client that may read the entry is told which
-        /// of its fields are protected anyway.
-        /// </remarks>
-        public bool? HoldsProtected { get; private set; }
-    }
-
-    /// <summary>One of an entry's strings, named and described but not quoted.</summary>
-    /// <remarks>
-    /// **No length.** A `list` grant says which fields exist; the length of a password is worth
-    /// something to whoever is guessing it, and handing that over is not what listing means.
-    /// </remarks>
-    public sealed class VaultField
-    {
-        public VaultField(string name, bool isProtected)
-        {
-            Name = name;
-            IsProtected = isProtected;
-        }
-
-        public string Name { get; private set; }
-
-        /// <summary>
-        /// Whether it is kept protected in memory, as a password is, either because the string
-        /// carries the flag or because the database protects a field of that name.
-        /// </summary>
-        public bool IsProtected { get; private set; }
-    }
-
-    /// <summary>
-    /// A string's value, or its size alone when it is more than a read may hand over.
-    /// </summary>
-    public sealed class VaultValue
-    {
-        public VaultValue(int characters, string value)
-        {
-            Characters = characters;
-            Value = value;
-        }
-
-        /// <summary>
-        /// The string's name and value together, in characters, measured before anything was
-        /// decrypted.
-        /// </summary>
-        public int Characters { get; private set; }
-
-        /// <summary>
-        /// The value, or null when it was more than the read was allowed to hand over.
-        /// </summary>
-        public string Value { get; private set; }
-    }
-
-    /// <summary>
-    /// One of an entry's attachments, named and sized.
-    /// </summary>
-    /// <remarks>
-    /// The size stays, unlike a field's length, because a client has to decide whether to ask for
-    /// something before it asks, and an attachment can be megabytes.
-    /// </remarks>
-    public sealed class VaultAttachment
-    {
-        public VaultAttachment(string name, int size)
-            : this(name, size, null)
-        {
-        }
-
-        public VaultAttachment(string name, int size, byte[] content)
-        {
-            Name = name;
-            Size = size;
-            Content = content;
-        }
-
-        /// <summary>
-        /// The largest attachment the gate hands out, which is also the largest it takes and the
-        /// largest whose bytes a node's tag is taken over.
-        /// </summary>
-        /// <remarks>
-        /// Here rather than with the routes, so that the vault, which tags a node, and the routes,
-        /// which serve one, read the same number. `VaultHandlers.MaxAttachmentBytes` says why it is
-        /// this one.
-        /// </remarks>
-        public const int MostServed = 512 * 1024;
-
-        public string Name { get; private set; }
-
-        public int Size { get; private set; }
-
-        /// <summary>
-        /// What it holds, or null when that was not read: a listing reads none, and a read leaves
-        /// out one larger than it was allowed to hand over.
-        /// </summary>
-        public byte[] Content { get; private set; }
     }
 
     /// <summary>
@@ -225,6 +129,11 @@ namespace KeePassGate.Vault
     /// The entry for a change to an entry or to anything inside it, the group for a change to a
     /// group, and the group that would hold it for a group or an entry being created: the node
     /// the routing table has the router ask about, found again by the write itself.
+    ///
+    /// **A view asks with the same thing**, the entry it is about to be taken of, so that what
+    /// a caller may read is answered about the entry as the read finds it:
+    /// <see cref="IVault.View"/>. A view names no string, so <see cref="Guarded"/> is false
+    /// for it: how far a caller may read is asked whatever the entry holds.
     /// </remarks>
     public sealed class VaultFound
     {
@@ -267,7 +176,7 @@ namespace KeePassGate.Vault
         /// <summary>
         /// Whether the change sets or takes away a string that is protected, by the database for
         /// what it is called or by the flag the string itself carries. False for a change that
-        /// touches no string.
+        /// touches no string, and for a view.
         /// </summary>
         public bool Guarded { get; private set; }
 
@@ -293,16 +202,19 @@ namespace KeePassGate.Vault
     /// told nothing of a name already taken, a dialog open on the entry or a tag that no longer
     /// matches, since each of those is a fact about a node it may not reach.
     ///
-    /// **The tag is asked about twice**, of the node as the change found it, for the request's
-    /// `If-Match`, and of the node as the change left it, for the tag in the answer: a change
-    /// that makes a string protected leaves a node whose tag covers a value its own caller may no
-    /// longer read. Only a caller whose rule may read everything the tag covers is handed a tag
-    /// or has its `If-Match` asked, which is what keeps a tag from telling a client anything
-    /// about a value its rule does not let it read, `API.md` §410.
+    /// **What the caller may read is asked about twice**, of the node as the change found it,
+    /// for the request's `If-Match`, and of the node as the change left it, for the tag in the
+    /// answer: a change that makes a string protected leaves a view its own caller reads less
+    /// of, and the tag in the answer is of the view after. A tag is taken of what its caller may
+    /// read and handed to every caller holding `read`, which is what keeps a tag from telling a
+    /// client anything about a value its rule does not let it read, `API.md` §410. This
+    /// reverses the rule that only a caller whose one rule read the whole node was handed a
+    /// tag, the operator's ruling of 2026-11-10.
     ///
-    /// **And whether the caller may read what the change names**, which decides whether an
-    /// update that would change nothing is skipped: <see cref="VaultTagging.Sees"/> has the
-    /// argument.
+    /// **One answer for the tag and for the skip.** Whether an update that would change
+    /// nothing is skipped is decided by whether the caller may read what the change names,
+    /// <see cref="VaultEntryView.Reads"/>, and that is read off the view the tag is taken of,
+    /// so the two cannot come to disagree about what the caller reads.
     ///
     /// **A change handed no questions is refused**, as is a change whose questions are answered
     /// by nobody, so a caller that forgets the rules does not compile into a write that ignores
@@ -311,33 +223,27 @@ namespace KeePassGate.Vault
     public sealed class VaultAsking
     {
         private readonly Func<VaultFound, bool> _allowed;
-        private readonly Func<VaultFound, bool> _mayTag;
-        private readonly Func<VaultFound, bool> _sees;
+        private readonly Func<VaultFound, VaultSight> _sight;
         private readonly VaultPrecondition _precondition;
         private readonly bool _answers;
 
         /// <summary>The questions one change asks, each of the node the change finds.</summary>
         /// <param name="allowed">Whether the caller may make this change to what was found.</param>
-        /// <param name="mayTag">
-        /// Whether the caller may be handed the tag of what was found and have its `If-Match`
-        /// asked, or null for a change that deals in no tag.
-        /// </param>
-        /// <param name="sees">
-        /// Whether the caller may read every value the change names on what was found, or null
-        /// for a caller that may read none of them.
+        /// <param name="sight">
+        /// How far the caller may read into what was found, or null for a caller that may read
+        /// nothing, which deals in no tag. For a group, whether the caller holds `read` is the
+        /// whole of the answer.
         /// </param>
         /// <param name="precondition">What `If-Match` asked of the node, or null.</param>
         /// <param name="answers">Whether the answer carries the tag the change leaves.</param>
         public VaultAsking(
             Func<VaultFound, bool> allowed,
-            Func<VaultFound, bool> mayTag,
-            Func<VaultFound, bool> sees,
+            Func<VaultFound, VaultSight> sight,
             VaultPrecondition precondition,
             bool answers)
         {
             _allowed = allowed;
-            _mayTag = mayTag;
-            _sees = sees;
+            _sight = sight;
             _precondition = precondition;
             _answers = answers;
         }
@@ -349,37 +255,45 @@ namespace KeePassGate.Vault
         }
 
         /// <summary>
-        /// What the change does about the tag of the node as it stands, and whether its caller
-        /// may read what it names there: asked once of the node the change found, and again of
-        /// the node the change left.
+        /// What the change does about the tag of the node as it stands, and how far its caller
+        /// may read there: asked once of the node the change found, and again of the node the
+        /// change left.
         /// </summary>
         /// <remarks>
-        /// **A caller that may not be handed the tag has its `If-Match` failed rather than
-        /// ignored.** Ignoring it would make the write unconditional, which is the one thing a
-        /// client sending a precondition did not ask for. Failed where the vault asks it, so
-        /// that a node gone, taken or busy is still answered first, as RFC 9110 section 13.2.1
-        /// orders it.
+        /// **The sight is asked once per asking**, and the precondition, the tag in the answer
+        /// and, through the view taken with it, the skip are all read off that answer. A
+        /// question nobody answers is <see cref="VaultSight.Least"/>, which reads nothing and is
+        /// handed no tag.
+        ///
+        /// **A caller that is handed no tag has its `If-Match` failed rather than ignored.**
+        /// Ignoring it would make the write unconditional, which is the one thing a client
+        /// sending a precondition did not ask for. Failed where the vault asks it, so that a
+        /// node gone, taken or busy is still answered first, as RFC 9110 section 13.2.1 orders
+        /// it.
         /// </remarks>
         public VaultTagging Tagging(VaultFound found)
         {
-            var mayTag = _mayTag != null && found != null && _mayTag(found);
+            // Nothing found is nothing in sight: no tag, a condition nothing meets, and nothing
+            // its caller reads.
+            var sight = found == null || _sight == null ? null : _sight(found);
+            sight = sight ?? VaultSight.Least;
 
             var precondition = _precondition;
-            if (!mayTag && precondition != null)
+            if (!sight.Reads && precondition != null)
             {
                 precondition = VaultPrecondition.Withheld();
             }
 
-            var sees = _sees != null && found != null && _sees(found);
-
-            return new VaultTagging(precondition, mayTag && _answers, sees);
+            return new VaultTagging(precondition, sight.Reads && _answers, sight);
         }
     }
 
     /// <summary>
     /// What a change does about the node as the node stands at one moment, decided from who is
     /// asking: whether it is made only while the node still holds what `If-Match` named, whether
-    /// it answers with the tag it leaves, and whether its caller may read the values it names.
+    /// it answers with the tag it leaves, and how far its caller may read, which is the view
+    /// both tags are taken of and the view that decides whether its caller reads the values it
+    /// names.
     /// </summary>
     /// <remarks>
     /// Answered by <see cref="VaultAsking.Tagging"/> inside the change's turn, never handed in
@@ -390,11 +304,11 @@ namespace KeePassGate.Vault
     /// </remarks>
     public sealed class VaultTagging
     {
-        public VaultTagging(VaultPrecondition precondition, bool answers, bool sees)
+        public VaultTagging(VaultPrecondition precondition, bool answers, VaultSight sight)
         {
             Precondition = precondition;
             Answers = answers;
-            Sees = sees;
+            Sight = sight ?? VaultSight.Least;
         }
 
         /// <summary>What `If-Match` asked of the node, or null when nothing is asked.</summary>
@@ -404,23 +318,21 @@ namespace KeePassGate.Vault
         public bool Answers { get; private set; }
 
         /// <summary>
-        /// Whether the caller may read every value the change names: a group's name and notes
-        /// under `read`, an entry's strings and expiry under `read`, reaching protected values
-        /// where a named string is protected, and an attachment's bytes under `read` reaching
-        /// attachments.
+        /// How far the caller may read into the node as it stands, never null: the sight an
+        /// entry's tag is taken with, for the precondition and for the answer alike.
         /// </summary>
         /// <remarks>
-        /// **An update that would change nothing is skipped only for a caller this is true of**,
-        /// the operator's ruling of 2026-11-10. A skipped update moves no time, takes no revision
-        /// and saves nothing, and an update that writes does all three, so a caller that may
-        /// write a value and not read it could send a guess and learn from the listing's
-        /// `modified`, or from how long the answer took, whether the stored value was its guess.
-        /// For such a caller the update is written like any change, so a guess that is right and
-        /// a guess that is wrong do the same work. A caller that may read the value learns
-        /// nothing from the skip that a read would not tell it, and a request naming nothing has
-        /// nothing in it to guess, so it is skipped for everybody.
+        /// The tag a change is asked against and the tag it answers with are the tags of the
+        /// caller's own view, the tag every read route hands the same caller, `API.md` §410. A
+        /// sight that does not read has no tag, so its caller is handed none and its `If-Match`
+        /// fails.
+        ///
+        /// **And the sight the skip is decided with.** Whether an update that would change
+        /// nothing is skipped is whether the view taken with this sight holds every value the
+        /// update names, <see cref="VaultEntryView.Reads"/>, and for a group, which has no
+        /// view, whether this sight reads.
         /// </remarks>
-        public bool Sees { get; private set; }
+        public VaultSight Sight { get; private set; }
     }
 
     /// <summary>What happened to a change, and whether it is worth trying again.</summary>
@@ -519,7 +431,7 @@ namespace KeePassGate.Vault
         /// A refusal about the request, answered `413`, and decided under the writer's lock against
         /// the entry as the change would have found it, as <see cref="IsPreconditionFailed"/>
         /// is, so that two writes landing in turn cannot each be measured against what the entry
-        /// held before the other. <see cref="VaultEntryDetail.MostCharacters"/> is the
+        /// held before the other. <see cref="VaultEntryView.MostCharacters"/> is the
         /// ceiling, and <see cref="Characters"/> what the entry would have come to.
         /// </remarks>
         public bool IsTooLarge { get; private set; }
@@ -638,55 +550,6 @@ namespace KeePassGate.Vault
         {
             return new VaultWrite(false, false, false, null, "the rules refuse it");
         }
-    }
-
-    /// <summary>An entry and everything it holds, which is what `read` answers with.</summary>
-    public sealed class VaultEntryDetail
-    {
-        /// <summary>
-        /// The most characters an entry's strings, names and values together, may come to and
-        /// still be read whole or written to.
-        /// </summary>
-        /// <remarks>
-        /// Here rather than with the routes, so that the vault, which measures an entry and refuses
-        /// a write taking an entry past it, and the routes, which refuse to read an entry past it,
-        /// read the same number. `VaultHandlers.MaxEntryCharacters` gives the reason for this
-        /// number.
-        /// </remarks>
-        public const int MostCharacters = 512 * 1024;
-
-        public VaultEntryDetail(
-            VaultEntry entry,
-            IReadOnlyDictionary<string, string> fields,
-            IReadOnlyList<string> protectedFields,
-            int characters)
-        {
-            Entry = entry;
-            Fields = fields;
-            Protected = protectedFields;
-            Characters = characters;
-        }
-
-        public VaultEntry Entry { get; private set; }
-
-        /// <summary>
-        /// Every string the entry holds, by KeePass's own names, values included, enumerated in
-        /// the order KeePass keeps them, which is the order `read` writes them in, or null when
-        /// they come to more characters than the read was allowed to hand over.
-        /// </summary>
-        public IReadOnlyDictionary<string, string> Fields { get; private set; }
-
-        /// <summary>
-        /// What the entry's strings, names and values together, come to in characters, measured
-        /// before anything was decrypted.
-        /// </summary>
-        public int Characters { get; private set; }
-
-        /// <summary>
-        /// Which of them are kept protected, by the string's own flag or by the database's setting
-        /// for a field of that name.
-        /// </summary>
-        public IReadOnlyList<string> Protected { get; private set; }
     }
 
     /// <summary>What a create or an update asks of an entry's expiry.</summary>

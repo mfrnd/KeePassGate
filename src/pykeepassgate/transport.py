@@ -61,7 +61,7 @@ LOOPBACK = "127.0.0.1"
 #: (`VaultHandlers.MaxAttachmentBytes`), under 700 KiB once it is base64 inside a JSON answer. What
 #: can outgrow it is a listing, since the plugin does not page (`API.md` §407), and the read of an
 #: entry whose strings were made to: they are held to 524288 characters
-#: (`VaultEntryDetail.MostCharacters`), which come to more than this only when most of them are
+#: (`VaultEntryView.MostCharacters`), which come to more than this only when most of them are
 #: characters JSON escapes, a protected field's name going out twice. An answer that outgrows it
 #: fails whole rather than being truncated. So a caller whose database is large enough gets a
 #: setting to raise rather than a number to patch.
@@ -498,8 +498,8 @@ class Response:
     unavailable_word: str | None = None
 
     #: The `ETag` the gate answered with, quotes and all, or `None` when it sent none. A read about
-    #: one group or one entry carries one, to a client whose rule may read everything it covers,
-    #: and nothing else does: a write hands back the tag it left in its body, as `etag`.
+    #: one group or one entry carries one, to a client holding `read` on it, over what that client
+    #: may read, and nothing else does: a write hands back the tag it left in its body, as `etag`.
     etag: str | None = None
 
     def json(self) -> dict[str, Any]:

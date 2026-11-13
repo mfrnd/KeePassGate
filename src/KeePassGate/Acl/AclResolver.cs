@@ -379,55 +379,6 @@ namespace KeePassGate.Acl
         }
 
         /// <summary>
-        /// Whether one of these profiles may, under a single rule, read this node as far in as
-        /// every one of these reaches.
-        /// </summary>
-        /// <remarks>
-        /// **One rule, never several added up**, for the reason <see cref="DecideAny"/> answers
-        /// profile by profile: a switch belongs to the rule it is written in, so one profile's
-        /// `read` over attachments and another's over protected values do not make a client that
-        /// may read an entry whole, and the gate refuses a request that would need both at once.
-        ///
-        /// Asked by the routes before they hand a client a node's tag, which is a digest over
-        /// everything the node holds. A tag handed to a client that may not read all of it is a
-        /// way to test guesses at the part it may not read, `API.md` §410, so the question is
-        /// exactly whether there is such a part.
-        /// </remarks>
-        public static bool ReadsWhole(IAclNode node, IEnumerable<string> profiles, params AclReach[] reaches)
-        {
-            if (node == null || profiles == null)
-            {
-                return false;
-            }
-
-            return node.Held(() => Whole(node, profiles, reaches));
-        }
-
-        private static bool Whole(IAclNode node, IEnumerable<string> profiles, AclReach[] reaches)
-        {
-            var read = new AclDocuments();
-
-            foreach (var profile in profiles)
-            {
-                if (string.IsNullOrEmpty(profile)
-                    || !Decide(node, profile, AclVerb.Read, AclReach.Fields, read).Permitted)
-                {
-                    continue;
-                }
-
-                var whole = (reaches ?? Array.Empty<AclReach>())
-                    .All(reach => Decide(node, profile, AclVerb.Read, reach, read).Permitted);
-
-                if (whole)
-                {
-                    return true;
-                }
-            }
-
-            return false;
-        }
-
-        /// <summary>
         /// Whether a switch reaches one of these verbs, all granted to this profile here, that a
         /// switch can qualify.
         /// </summary>
@@ -446,7 +397,16 @@ namespace KeePassGate.Acl
             return false;
         }
 
-        private static AclDecision Decide(
+        /// <summary>
+        /// The same question, with what answered it, reading each rule through documents one
+        /// request has already read.
+        /// </summary>
+        /// <remarks>
+        /// For a caller that asks several questions of one node and keeps a refusal to write
+        /// down, so that the line written is the walk that decided: see
+        /// <see cref="AclDocuments"/>.
+        /// </remarks>
+        public static AclDecision Decide(
             IAclNode node, IEnumerable<string> profiles, AclVerb verb, AclReach reach, AclDocuments read)
         {
             if (node == null)

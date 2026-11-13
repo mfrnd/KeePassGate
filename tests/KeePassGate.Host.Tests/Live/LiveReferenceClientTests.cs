@@ -43,8 +43,8 @@ namespace KeePassGate.Host.Tests.Live
     /// **The grant is written before KeePass starts**, for the reason `LiveApiTests` gives, and
     /// names the profile the client asks for, which the approval then names in the database. It
     /// grants `protected` with `create`, `read`, `update` and `list`, so the password the client
-    /// stores is one it may read back and change, and `attachments` beside them, so that the rule
-    /// reads everything an entry's tag covers and the plugin hands the client one. The invitation
+    /// stores is one it may read back and change, and `attachments` beside them, so that the tag
+    /// the plugin hands the client covers everything an entry holds. The invitation
     /// is read off the screen and handed over on standard input, the way the command line reads
     /// one it was not given.
     ///
