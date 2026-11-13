@@ -1956,13 +1956,15 @@ namespace KeePassGate.Tests
         public void An_entry_over_the_ceiling_is_refused_without_its_strings_being_read()
         {
             // An entry's answer costs about four times its strings, all live at once, on each of
-            // thirty-two connections inside KeePass. KeePass or a merge can make an entry this
-            // large, so the refusal has to come before the strings are decrypted, which is why
-            // this counts the reads.
+            // thirty-two connections inside KeePass. Writes, KeePass or a merge can make an entry
+            // this large, so the refusal has to come before any value is read, which is why this
+            // counts the reads. Each string in sight is measured for it, once, and measuring is
+            // KeePass's own count, which can decrypt a value inside its own type the first time.
             _vault.Granting(_group, AllButProtected);
             _vault.Plant(_entry, "Big", new string('x', VaultHandlers.MaxEntryCharacters));
 
             _vault.StringReads = 0;
+            _vault.StringMeasures = 0;
             var read = Get("/entries/" + _entry);
 
             Assert.That(read.Status, Is.EqualTo(413));
@@ -1971,7 +1973,9 @@ namespace KeePassGate.Tests
                 Does.Contain(VaultHandlers.MaxEntryCharacters.ToString(CultureInfo.InvariantCulture)),
                 "the refusal has to name the ceiling");
             Assert.That(_vault.StringReads, Is.Zero,
-                "an entry refused for its size must not be decrypted to find that out");
+                "no value of an entry refused for its size is read to find that out");
+            Assert.That(_vault.StringMeasures, Is.EqualTo(_vault.Whole(_entry).Fields.Count),
+                "and each string in sight is measured once");
         }
 
         [TestCase("L")]
@@ -1980,14 +1984,15 @@ namespace KeePassGate.Tests
         {
             // The view of a caller without `read` holds no value of any string and no bytes of
             // any attachment, so the routes `list` opens serve what they always served, names,
-            // flags and sizes, and nothing is decrypted for them. No tag either, since that
-            // caller is handed none.
+            // flags and sizes, and no value is read or measured for them. No tag either, since
+            // that caller is handed none.
             _vault.Granting(_group, Rules.Granting(("agent", mask)));
             _vault.Plant(_entry, "Password", "not-a-real-password");
             Assume.That(_vault.CreateAttachment(_entry, "notes.txt", new byte[] { 1, 2, 3 }, VaultAskings.Free).Ok, Is.True);
             var entry = "/entries/" + _entry;
 
             _vault.StringReads = 0;
+            _vault.StringMeasures = 0;
             _vault.AttachmentReads = 0;
 
             var fields = Get(entry + "/fields");
@@ -2012,6 +2017,7 @@ namespace KeePassGate.Tests
             Assert.That(Get(entry + "/fields/Title").Status, Is.EqualTo(404));
             Assert.That(Get(entry + "/attachments/notes.txt").Status, Is.EqualTo(404));
             Assert.That(_vault.StringReads, Is.Zero, "a value was read for a caller that only lists");
+            Assert.That(_vault.StringMeasures, Is.Zero, "a value was measured for a caller that only lists");
             Assert.That(_vault.AttachmentReads, Is.Zero, "an attachment was read for a caller that only lists");
         }
 
@@ -2090,35 +2096,103 @@ namespace KeePassGate.Tests
         }
 
         [Test]
-        public void A_write_taking_an_entry_over_the_ceiling_is_refused_and_changes_nothing()
+        public void A_write_taking_an_entry_over_the_ceiling_is_made_and_the_entry_is_then_read_field_by_field()
         {
-            // Nothing bounded how far writes grew an entry, so a client holding create and read
-            // could make every read of it cost a hundred megabytes, a field at a time. Held to the
-            // ceiling a read is, so that what a write leaves can be read back.
+            // No write is refused for what an entry's strings come to, since the refusal told a
+            // caller that may not read how long the values it was withheld were. The ceiling is
+            // a read's, so an entry written past it is refused whole and read a field at a time.
             _vault.Granting(_group, AllButProtected);
             var room = VaultHandlers.MaxEntryCharacters - "Title".Length - "an invented service".Length;
             _vault.Plant(_entry, "Filler", new string('x', room - "Filler".Length - "More".Length - 10));
 
-            var refused = Send("POST", "/entries/" + _entry + "/fields",
-                Bodies.Of(("name", "More"), ("value", new string('y', 11))));
-            Assert.That(refused.Status, Is.EqualTo(413));
-            Assert.That(
-                refused.Json,
-                Does.Contain(VaultHandlers.MaxEntryCharacters.ToString(CultureInfo.InvariantCulture)));
-            Assert.That(_vault.Field(_entry, "More"), Is.Null, "nothing is added");
-
             Assert.That(Send("POST", "/entries/" + _entry + "/fields",
-                Bodies.Of(("name", "More"), ("value", new string('y', 10)))).Status, Is.EqualTo(201),
-                "exactly the ceiling is a write like any other");
-            Assert.That(Get("/entries/" + _entry).Status, Is.EqualTo(200), "and it reads back whole");
+                Bodies.Of(("name", "More"), ("value", new string('y', 10)))).Status, Is.EqualTo(201));
+            Assert.That(Get("/entries/" + _entry).Status, Is.EqualTo(200), "exactly the ceiling reads back whole");
 
             Assert.That(Send("PUT", "/entries/" + _entry + "/fields/More",
-                Bodies.Of(("value", new string('y', 11)))).Status, Is.EqualTo(413));
-            Assert.That(Send("PUT", "/entries/" + _entry, "{\"Notes\":\"z\"}").Status, Is.EqualTo(413),
+                Bodies.Of(("value", new string('y', 11)))).Status, Is.EqualTo(200));
+            Assert.That(Send("PUT", "/entries/" + _entry, "{\"Notes\":\"z\"}").Status, Is.EqualTo(200),
                 "an update naming a string the entry does not hold adds it");
-            Assert.That(_vault.Field(_entry, "More"), Is.EqualTo(new string('y', 10)),
-                "what was there is left alone");
-            Assert.That(_vault.Field(_entry, "Notes"), Is.Null);
+            Assert.That(Send("POST", "/entries/" + _entry + "/fields",
+                Bodies.Of(("name", "Again"), ("value", "w"))).Status, Is.EqualTo(201));
+            Assert.That(_vault.Field(_entry, "More"), Is.EqualTo(new string('y', 11)));
+            Assert.That(_vault.Field(_entry, "Notes"), Is.EqualTo("z"));
+
+            var whole = Get("/entries/" + _entry);
+            Assert.That(whole.Status, Is.EqualTo(413), "past the ceiling it is no longer handed out whole");
+            Assert.That(whole.Json, Does.Contain((VaultHandlers.MaxEntryCharacters + 1 + "Notes".Length + 1
+                + "Again".Length + 1).ToString(CultureInfo.InvariantCulture)));
+
+            Assert.That(Get("/entries/" + _entry + "/fields").Status, Is.EqualTo(200), "its names are listed");
+            foreach (var name in new[] { "Title", "Filler", "More", "Notes", "Again" })
+            {
+                Assert.That(Get("/entries/" + _entry + "/fields/" + name).Status, Is.EqualTo(200), name);
+            }
+        }
+
+        [Test]
+        public void A_read_is_measured_over_what_its_caller_is_handed()
+        {
+            // A protected string past the ceiling is no part of the answer to a caller that may
+            // not read protected values, so that caller is handed the entry, with the value as
+            // the `null` every withheld value is. A caller that reads protected values would be
+            // handed it, and is refused.
+            _vault.Plant(_entry, "Big", new string('x', VaultHandlers.MaxEntryCharacters));
+            _vault.Protect(_entry, "Big");
+
+            _vault.Granting(_group, AllButProtected);
+            _vault.StringReads = 0;
+            _vault.StringMeasures = 0;
+            var narrow = Get("/entries/" + _entry);
+
+            Assert.That(narrow.Status, Is.EqualTo(200), narrow.Json);
+            Assert.That(narrow.Json, Does.Contain("\"Big\":null"));
+            Assert.That(_vault.StringReads, Is.EqualTo(1), "the title, and nothing of the withheld value");
+            Assert.That(_vault.StringMeasures, Is.EqualTo(1), "the title, and the withheld value is not measured either");
+
+            _vault.StringMeasures = 0;
+            var field = Get("/entries/" + _entry + "/fields/Big");
+            Assert.That(field.Status, Is.EqualTo(200), "a withheld value is answered as withheld, never as too large");
+            Assert.That(field.Json, Is.EqualTo("{\"name\":\"Big\",\"value\":null,\"protected\":true}"));
+            Assert.That(_vault.StringMeasures, Is.Zero, "a withheld field is answered with nothing measured");
+
+            _vault.Granting(_group, Rules.Granting(("agent", "CRUSDLAP")));
+            _vault.StringReads = 0;
+
+            Assert.That(Get("/entries/" + _entry).Status, Is.EqualTo(413));
+            Assert.That(Get("/entries/" + _entry + "/fields/Big").Status, Is.EqualTo(413));
+            Assert.That(_vault.StringReads, Is.Zero, "and no value is read or digested for either refusal");
+        }
+
+        [TestCase("L")]
+        [TestCase("RL")]
+        public void A_listing_of_fields_is_held_to_the_names_it_serves(string mask)
+        {
+            // Nothing bounds how many strings writes give an entry, and the listing serves every
+            // name, so the names are what it is measured by, for a caller that reads as for a
+            // caller that only lists. Refused before the tag, so nothing is digested for it.
+            _vault.Granting(_group, Rules.Granting(("agent", mask)));
+            var name = new string('n', 512);
+            var held = "Title".Length;
+            var index = 0;
+            for (; held + name.Length + 8 <= VaultHandlers.MaxEntryCharacters; index++)
+            {
+                var numbered = name + index.ToString("D8", CultureInfo.InvariantCulture);
+                _vault.Plant(_entry, numbered, "v");
+                held += numbered.Length;
+            }
+
+            Assert.That(Get("/entries/" + _entry + "/fields").Status, Is.EqualTo(200), "at the ceiling or under");
+
+            _vault.Plant(_entry, name + index.ToString("D8", CultureInfo.InvariantCulture), "v");
+            _vault.StringReads = 0;
+            var listed = Get("/entries/" + _entry + "/fields");
+
+            Assert.That(listed.Status, Is.EqualTo(413), listed.Json);
+            Assert.That(
+                listed.Json,
+                Does.Contain(VaultHandlers.MaxEntryCharacters.ToString(CultureInfo.InvariantCulture)));
+            Assert.That(_vault.StringReads, Is.Zero);
         }
 
         [Test]

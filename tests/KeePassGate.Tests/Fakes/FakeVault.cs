@@ -289,8 +289,8 @@ namespace KeePassGate.Tests.Fakes
         }
 
         /// <summary>
-        /// Sets a string on an entry without going through the rules or the ceiling, as KeePass or
-        /// a merge can.
+        /// Sets a string on an entry without going through the rules or a route's own limits, as
+        /// KeePass or a merge can.
         /// </summary>
         public void Plant(string entryUuid, string field, string value)
         {
@@ -430,14 +430,17 @@ namespace KeePassGate.Tests.Fakes
 
         /// <summary>
         /// An entry as far as a sight reaches into it, as the real vault builds a view: nothing
-        /// read until it is asked for, a protected string out of sight holding no value, no
+        /// read or measured until it is asked for, a protected string out of sight holding no
+        /// value and nothing its value could be measured with, no
         /// string holding a value for a sight that does not read, no attachments at all when
         /// nothing about them is in sight, and attachments holding no bytes when they are listed
         /// and not read.
         /// </summary>
         /// <remarks>
-        /// Each value read counts in <see cref="StringReads"/> and each attachment read or
-        /// digested in <see cref="AttachmentReads"/>, since the real vault decrypts for both.
+        /// Each value read counts in <see cref="StringReads"/>, each value measured in
+        /// <see cref="StringMeasures"/>, and each attachment read or digested in
+        /// <see cref="AttachmentReads"/>, since the real vault decrypts for a read and a digest,
+        /// and KeePass can for a measurement.
         /// With <see cref="IgnoresCeiling"/> every length and size is told as nothing, which is a
         /// view handing over more than it measured.
         /// </remarks>
@@ -450,7 +453,11 @@ namespace KeePassGate.Tests.Fakes
                 fields.Add(new VaultViewField(
                     pair.Key,
                     Guards(entry, pair.Key),
-                    IgnoresCeiling ? 0 : value.Length,
+                    () =>
+                    {
+                        StringMeasures++;
+                        return IgnoresCeiling ? 0 : value.Length;
+                    },
                     sight,
                     () =>
                     {
@@ -592,28 +599,6 @@ namespace KeePassGate.Tests.Fakes
         /// </remarks>
         public string Vanishes { get; set; }
 
-        /// <summary>
-        /// What these strings, names and values together, come to, as the real vault counts them.
-        /// </summary>
-        private static int Characters(IEnumerable<KeyValuePair<string, string>> strings)
-        {
-            return strings.Sum(pair => pair.Key.Length + (pair.Value ?? string.Empty).Length);
-        }
-
-        /// <summary>What an entry's strings would come to with these values set on it.</summary>
-        private static int Characters(
-            SortedDictionary<string, string> held, IEnumerable<KeyValuePair<string, string>> setting)
-        {
-            // Under the entry's own comparer, so a name it holds is replaced rather than added.
-            var after = new SortedDictionary<string, string>(held, held.Comparer);
-            foreach (var field in setting ?? Enumerable.Empty<KeyValuePair<string, string>>())
-            {
-                after[field.Key] = field.Value;
-            }
-
-            return Characters(after);
-        }
-
         public IReadOnlyList<VaultEntry> Entries(string groupUuid)
         {
             Looking();
@@ -646,15 +631,22 @@ namespace KeePassGate.Tests.Fakes
 
         /// <summary>
         /// How many string values have been read off a view, each of which the real vault
-        /// decrypts, so that a test can tell an answer was refused before anything was decrypted
+        /// decrypts, so that a test can tell an answer was refused before any value was read
         /// rather than after, and that a value out of the caller's sight was never read.
         /// </summary>
         public int StringReads { get; set; }
 
         /// <summary>
+        /// How many string values a view has been asked the length of, each of which KeePass may
+        /// decrypt to count, so that a test can tell a value out of the caller's sight was never
+        /// measured, and that an answer asking no size measured nothing.
+        /// </summary>
+        public int StringMeasures { get; set; }
+
+        /// <summary>
         /// How many times an attachment's contents have been read off a view, to hand over or to
         /// digest for a tag, each of which the real vault decrypts, so that a test can tell an
-        /// answer was refused before anything was decrypted rather than after.
+        /// answer was refused before an attachment was decrypted rather than after.
         /// </summary>
         public int AttachmentReads { get; set; }
 
@@ -818,13 +810,6 @@ namespace KeePassGate.Tests.Fakes
                     }
                 }
 
-                var characters = Characters(entry.Fields);
-                if (characters > VaultEntryView.MostCharacters)
-                {
-                    _entries.Remove(uuid);
-                    return VaultWrite.TooLarge(characters);
-                }
-
                 // The real vault's rule, templates group aside, which nothing here has.
                 if (expiry != null && expiry.IsAuto)
                 {
@@ -874,17 +859,9 @@ namespace KeePassGate.Tests.Fakes
                     return VaultWrite.Conflict("that field is already there");
                 }
 
-                // Busy before too large, which is the real vault's order: a dialog on the entry is
-                // answered before the entry is measured.
                 if (Busy != null)
                 {
                     return VaultWrite.Busy(Busy);
-                }
-
-                var characters = Characters(entry.Fields, fields);
-                if (characters > VaultEntryView.MostCharacters)
-                {
-                    return VaultWrite.TooLarge(characters);
                 }
 
                 var refused = Refused(tagging, () => Found(entry, tagging));
@@ -963,17 +940,9 @@ namespace KeePassGate.Tests.Fakes
                     return VaultWrite.Conflict("that field is already there");
                 }
 
-                // Busy before too large, which is the real vault's order: a dialog on the entry is
-                // answered before the entry is measured.
                 if (Busy != null)
                 {
                     return VaultWrite.Busy(Busy);
-                }
-
-                var characters = Characters(entry.Fields, new Dictionary<string, string> { { name, value } });
-                if (characters > VaultEntryView.MostCharacters)
-                {
-                    return VaultWrite.TooLarge(characters);
                 }
 
                 var refused = Refused(tagging, () => Found(entry, tagging));
@@ -1017,17 +986,9 @@ namespace KeePassGate.Tests.Fakes
                     return VaultWrite.Missing();
                 }
 
-                // Busy before too large, which is the real vault's order: a dialog on the entry is
-                // answered before the entry is measured.
                 if (Busy != null)
                 {
                     return VaultWrite.Busy(Busy);
-                }
-
-                var characters = Characters(entry.Fields, new Dictionary<string, string> { { name, value } });
-                if (characters > VaultEntryView.MostCharacters)
-                {
-                    return VaultWrite.TooLarge(characters);
                 }
 
                 var refused = Refused(tagging, () => Found(entry, tagging));

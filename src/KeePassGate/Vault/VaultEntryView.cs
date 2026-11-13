@@ -62,9 +62,9 @@ namespace KeePassGate.Vault
         /// mistake above the vault makes a sight that withholds the tag and hands out the
         /// values. A view taken with such a sight holds no value of any string, protected or
         /// not, <see cref="VaultViewField.IsWithheld"/>: names and flags are what `list`
-        /// opens, a value is `read`'s, and a length is kept for the ceiling and served to
-        /// nobody. The listing's reach into protected strings is dropped the same way: it
-        /// brings a value into a view, and a view that does not read holds none.
+        /// opens, a value is `read`'s, and a view holds no length of a value it withholds. The
+        /// listing's reach into protected strings is dropped the same way: it brings a value
+        /// into a view, and a view that does not read holds none.
         /// </remarks>
         /// <param name="reads">Whether the caller holds `read` on the entry.</param>
         /// <param name="reachesProtected">
@@ -112,19 +112,31 @@ namespace KeePassGate.Vault
     /// in sight.
     /// </summary>
     /// <remarks>
-    /// **The value is read the first time it is asked for**, so a view taken to measure an
-    /// entry, or for an answer refused before anything is rendered, decrypts nothing. The
-    /// view's tag asks for every value in sight, so an answer that hands the tag out reads
-    /// them all, whichever string the route was about.
+    /// **The value is read the first time it is asked for, and measured the first time its size
+    /// is**, so no value is handed anywhere until something asks for it, and a view built for
+    /// an answer refused before either is asked reads and measures nothing. The view's tag asks
+    /// for every value in sight, so an answer that hands the tag out reads them all, whichever
+    /// string the route was about.
     ///
-    /// **A withheld string holds nothing its value could be read with.** The constructor drops
-    /// the reader for a string out of sight, so no later mistake above the vault can reach the
-    /// value through the view: there is nothing behind <see cref="Value"/> to reach.
+    /// **Measuring a value in sight can decrypt it, inside KeePass's own type.** KeePass counts
+    /// the characters of a protected string it holds as bytes, which is how a file's protected
+    /// values are held once loaded, by decrypting them, the first time the count is asked, and
+    /// keeps the count: `FINDINGS.md`, under "What a version of a node can be made of". The
+    /// plaintext stays inside `ProtectedString`, and what comes out is a number. So a refusal
+    /// for size reads no value through the view, and is not always free of a decryption.
+    ///
+    /// **A withheld string holds nothing its value could be read or measured with.** The
+    /// constructor drops the reader and what measures the value for a string out of sight, so a
+    /// withheld value is neither read nor measured, and no later mistake above the vault can
+    /// reach the value, or its size, through the view: there is nothing behind
+    /// <see cref="Value"/> to reach, and <see cref="Characters"/> is the name alone. The length
+    /// was kept, for a ceiling measured over the whole entry, and a refusal quoting that count
+    /// told a caller how long the values it was withheld were:
+    /// <see cref="VaultEntryView.MostCharacters"/> has the reversal.
     ///
     /// **Out of sight is every string for a sight that does not read, and a protected string
     /// for a sight that reads without reaching protected values.** A caller that only lists is
-    /// served names and flags, so its view holds those and the lengths the ceiling is measured
-    /// by, and no value.
+    /// served names and flags, so its view holds those, and no value.
     ///
     /// **A protected string a listing of entries shows is in sight on the listing's own reach
     /// as well**, for a sight that reads: a caller shown a protected title by a listing is
@@ -132,7 +144,8 @@ namespace KeePassGate.Vault
     /// </remarks>
     public sealed class VaultViewField
     {
-        private readonly int _length;
+        private Func<int> _measure;
+        private int _length;
         private Func<string> _read;
         private string _value;
 
@@ -141,8 +154,9 @@ namespace KeePassGate.Vault
         /// Whether it is kept protected, by the string's own flag or by the database's setting
         /// for a field of that name.
         /// </param>
-        /// <param name="length">
-        /// The value's length in characters, known without decrypting it.
+        /// <param name="measure">
+        /// What answers the value's length in characters, kept only for a string in sight and
+        /// asked the first time the string is measured.
         /// </param>
         /// <param name="sight">
         /// What the caller may read, where null is <see cref="VaultSight.Least"/>.
@@ -153,7 +167,12 @@ namespace KeePassGate.Vault
         /// title and its URL.
         /// </param>
         public VaultViewField(
-            string name, bool isProtected, int length, VaultSight sight, Func<string> read, bool isListed = false)
+            string name,
+            bool isProtected,
+            Func<int> measure,
+            VaultSight sight,
+            Func<string> read,
+            bool isListed = false)
         {
             if (name == null)
             {
@@ -163,16 +182,21 @@ namespace KeePassGate.Vault
             Name = name;
             IsProtected = isProtected;
             IsListed = isListed;
-            _length = length;
             IsWithheld = !InSight(sight, isProtected, isListed);
 
             if (!IsWithheld)
             {
+                if (measure == null)
+                {
+                    throw new ArgumentNullException(nameof(measure));
+                }
+
                 if (read == null)
                 {
                     throw new ArgumentNullException(nameof(read));
                 }
 
+                _measure = measure;
                 _read = read;
             }
         }
@@ -216,12 +240,27 @@ namespace KeePassGate.Vault
         public bool IsWithheld { get; private set; }
 
         /// <summary>
-        /// The string's name and value together, in characters, measured without decrypting
-        /// anything, and the same whether or not the value is in sight.
+        /// What of this string the caller is handed, in characters, with no value handed out to
+        /// count it: its name and its value together for a string in sight, and its name alone
+        /// for a withheld string, whose name is served beside a `null` and whose value is never
+        /// measured.
         /// </summary>
+        /// <remarks>
+        /// The value is measured the first time this is asked, and the length kept for as long
+        /// as the view is. A measurement that fails is tried again by the next asking.
+        /// </remarks>
         public int Characters
         {
-            get { return Name.Length + _length; }
+            get
+            {
+                if (_measure != null)
+                {
+                    _length = _measure();
+                    _measure = null;
+                }
+
+                return Name.Length + _length;
+            }
         }
 
         /// <summary>
@@ -381,22 +420,35 @@ namespace KeePassGate.Vault
     /// held: <see cref="Tag"/> is null for a sight that does not read, so no route and no change
     /// rendering from the view can hand a tag to a caller that may not have a tag.
     ///
-    /// **Nothing is decrypted to build it.** Names, flags and sizes are kept beside the encrypted
-    /// values, so an entry is found, measured against <see cref="MostCharacters"/> and refused
-    /// with every value still encrypted. Values, attachments' bytes, their digests and the tag are
-    /// each read when first asked for, and the tag asks for every value and digest in sight.
+    /// **Nothing is read or measured to build it, and no value is handed anywhere until it is
+    /// asked for.** Names and flags are kept in the open and an attachment's size beside its
+    /// encrypted bytes, so building a view asks KeePass for no value and no length. Values,
+    /// their lengths, attachments' bytes, their digests and the tag are each taken when first
+    /// asked for, and the tag asks for every value and digest in sight. So an entry is found,
+    /// what its caller would be handed is measured against <see cref="MostCharacters"/>, and a
+    /// read is refused with no value read. Measuring is not always free of a decryption:
+    /// the first measurement of a protected value KeePass holds as bytes decrypts it once inside
+    /// KeePass's own type, <see cref="VaultViewField"/>. A withheld value is neither read nor
+    /// measured.
     /// </remarks>
     public sealed class VaultEntryView
     {
         /// <summary>
-        /// The most characters an entry's strings, names and values together, may come to and
-        /// still be read whole or written to.
+        /// The most characters a caller's view of an entry may come to and still be read whole:
+        /// <see cref="Characters"/>, which is what that caller would be handed.
         /// </summary>
         /// <remarks>
-        /// Here rather than with the routes, so that the vault, which measures an entry and refuses
-        /// a write taking an entry past it, and the routes, which refuse to read an entry past it,
-        /// read the same number. `VaultHandlers.MaxEntryCharacters` gives the reason for this
-        /// number.
+        /// **A ceiling on reads alone, measured over the caller's own view.** It was a ceiling
+        /// on the whole entry, protected values included, held on writes as well, so that what
+        /// the gate let a client write it also handed back whole. A write past it was refused
+        /// with the entry's count, and a caller that may write and not read padded an entry up
+        /// to the ceiling and read off the refusal how long the values it was withheld were.
+        /// The operator's ruling of 2026-11-10 reverses it: no write is refused for what an
+        /// entry's strings come to, and a read is held to what its caller is handed, never to a
+        /// value it is withheld. `VaultHandlers.MaxEntryCharacters` gives the reason for the
+        /// number and what the reversal gives up.
+        ///
+        /// Here rather than with the routes, beside the count it is compared with.
         /// </remarks>
         public const int MostCharacters = 512 * 1024;
 
@@ -441,20 +493,8 @@ namespace KeePassGate.Vault
             Attachments = Sight.Attachments == VaultAttachmentSight.None ? null : attachments;
             _tagger = Sight.Reads ? tagger : null;
 
-            var characters = 0;
-            var guarded = new List<string>();
-            foreach (var field in fields)
-            {
-                characters += field.Characters;
-
-                if (field.IsProtected)
-                {
-                    guarded.Add(field.Name);
-                }
-            }
-
-            Characters = characters;
-            Protected = guarded;
+            NameCharacters = fields.Sum(field => field.Name.Length);
+            Protected = fields.Where(field => field.IsProtected).Select(field => field.Name).ToList();
         }
 
         public VaultEntry Entry { get; private set; }
@@ -476,10 +516,26 @@ namespace KeePassGate.Vault
         public IReadOnlyList<VaultViewAttachment> Attachments { get; private set; }
 
         /// <summary>
-        /// What the entry's strings, names and values together, come to in characters, measured
-        /// without decrypting anything, and counting every string whether or not it is in sight.
+        /// What a read of the whole entry would hand this view's caller, in characters, counted
+        /// with no value handed out: the name of every string, since a withheld string is served
+        /// by its name beside a `null`, and the value of every string in sight. Nothing of a
+        /// withheld value is in it, its length included.
         /// </summary>
-        public int Characters { get; private set; }
+        /// <remarks>
+        /// Asking it measures every value in sight that nothing has measured yet,
+        /// <see cref="VaultViewField.Characters"/>, so a view nothing asks this of measures
+        /// none.
+        /// </remarks>
+        public int Characters
+        {
+            get { return Fields.Sum(field => field.Characters); }
+        }
+
+        /// <summary>
+        /// What the names of the entry's strings come to in characters, which is what a listing
+        /// of the entry's fields hands out, whatever the sight.
+        /// </summary>
+        public int NameCharacters { get; private set; }
 
         /// <summary>
         /// Which of the strings are kept protected, by the string's own flag or by the database's

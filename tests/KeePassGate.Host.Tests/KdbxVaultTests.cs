@@ -114,14 +114,23 @@ namespace KeePassGate.Host.Tests
         [Test]
         public void An_entry_over_the_ceiling_is_measured_off_its_view_string_by_string()
         {
-            // Planted as KeePass would hold it, since no write here can make such an entry. A
-            // protected string's length is kept beside its encrypted bytes, so the view measures
-            // the entry and each string with none of them read, which is what lets a route refuse
-            // the entry, or the one string, before anything is decrypted.
+            // Planted as KeePass or a merge would leave it, though writes through the gate can
+            // make such an entry as well. KeePass answers a string's length without handing its
+            // value out, so the view measures the entry and each string in sight with none of
+            // them read, which is what lets a route refuse the entry, or the string alone,
+            // before any value is read.
             var uuid = Created(_vault.CreateEntry(_vault.RootAlias, Named("an invented service")));
             var entry = Kept(uuid);
             entry.Strings.Set("Big", new ProtectedString(true, new string('x', VaultEntryView.MostCharacters)));
             var characters = entry.Strings.Sum(pair => pair.Key.Length + pair.Value.Length);
+            var names = entry.Strings.Sum(pair => pair.Key.Length);
+
+            // A view that reads no protected value holds no length of the string over the
+            // ceiling, so it comes to what its caller is handed: the names and the open values.
+            var narrow = _vault.View(uuid, found => new VaultSight(true, false, VaultAttachmentSight.None));
+            Assert.That(narrow.Field("Big").Characters, Is.EqualTo("Big".Length));
+            Assert.That(narrow.Characters, Is.EqualTo(names + "an invented service".Length));
+            Assert.That(narrow.NameCharacters, Is.EqualTo(names));
 
             var read = _vault.Whole(uuid);
 
@@ -142,43 +151,39 @@ namespace KeePassGate.Host.Tests
         }
 
         [Test]
-        public void A_write_that_would_take_an_entry_over_the_ceiling_changes_nothing()
+        public void A_write_taking_an_entry_over_the_ceiling_is_a_write_like_any_other()
         {
+            // No write is refused for what an entry's strings come to: the refusal told its
+            // caller the count, protected values included. The ceiling is a read's.
             var uuid = Created(_vault.CreateEntry(_vault.RootAlias, Named("an invented service")));
             var entry = Kept(uuid);
             var room = VaultEntryView.MostCharacters - entry.Strings.Sum(pair => pair.Key.Length + pair.Value.Length);
             entry.Strings.Set("Filler", new ProtectedString(false, new string('x', room - "Filler".Length - "More".Length - 10)));
-
-            var refused = _vault.CreateField(uuid, "More", new string('y', 11), false, VaultAskings.Free);
-
-            Assert.That(refused.IsTooLarge, Is.True, refused.Reason);
-            Assert.That(refused.Characters, Is.EqualTo(VaultEntryView.MostCharacters + 1));
-            Assert.That(entry.Strings.Exists("More"), Is.False);
-
-            Assert.That(_vault.CreateField(uuid, "More", new string('y', 10), false, VaultAskings.Free).Ok, Is.True,
-                "exactly the ceiling is a write like any other");
             var saves = _saves;
 
-            Assert.That(_vault.UpdateField(uuid, "More", new string('y', 11), VaultAskings.Free).IsTooLarge, Is.True);
+            Assert.That(_vault.CreateField(uuid, "More", new string('y', 11), false, VaultAskings.Free).Ok, Is.True);
+            Assert.That(_vault.UpdateField(uuid, "More", new string('y', 12), VaultAskings.Free).Ok, Is.True);
             Assert.That(_vault.UpdateEntry(uuid, new Dictionary<string, string> { { PwDefs.NotesField, "z" } },
-                VaultAskings.Free).IsTooLarge, Is.True);
-            Assert.That(entry.Strings.ReadSafe("More"), Is.EqualTo(new string('y', 10)));
-            Assert.That(entry.Strings.ReadSafe(PwDefs.NotesField), Is.Empty);
-            Assert.That(_saves, Is.EqualTo(saves), "a refusal saves nothing");
+                VaultAskings.Free).Ok, Is.True);
+
+            Assert.That(entry.Strings.ReadSafe("More"), Is.EqualTo(new string('y', 12)));
+            Assert.That(entry.Strings.ReadSafe(PwDefs.NotesField), Is.EqualTo("z"));
+            Assert.That(_saves, Is.EqualTo(saves + 3), "each was saved");
+            Assert.That(_vault.Whole(uuid).Characters, Is.EqualTo(VaultEntryView.MostCharacters + 3));
         }
 
         [Test]
-        public void A_new_entry_over_the_ceiling_is_never_put_in_its_group()
+        public void A_new_entry_over_the_ceiling_is_made()
         {
             var before = _database.RootGroup.Entries.UCount;
 
-            var refused = _vault.CreateEntry(_vault.RootAlias, new Dictionary<string, string>
+            var made = _vault.CreateEntry(_vault.RootAlias, new Dictionary<string, string>
             {
                 { PwDefs.NotesField, new string('x', VaultEntryView.MostCharacters) },
             });
 
-            Assert.That(refused.IsTooLarge, Is.True, refused.Reason);
-            Assert.That(_database.RootGroup.Entries.UCount, Is.EqualTo(before));
+            Assert.That(made.Ok, Is.True, made.Reason);
+            Assert.That(_database.RootGroup.Entries.UCount, Is.EqualTo(before + 1));
         }
 
         [Test]

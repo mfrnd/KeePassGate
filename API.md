@@ -295,6 +295,63 @@ answering the condition first would go against RFC 9110 section 13.2.1, which ha
 condition on a request that would be refused without it. The same is conceded to `create`, whose
 `409` tells a client that may add and not list that a name is taken.
 
+## An entry's ceiling is a read's §412
+
+**A read hands out at most 524288 characters of an entry's names and values, and what is counted
+is what its caller is handed.** Building an entry's answer costs about four times its strings in
+memory inside KeePass, so a read of an entry is held down as a read of an attachment is. Counted
+are the name of every string the answer serves and the value of every string the caller's rules
+let it read. A value the caller is withheld counts nothing and is never measured: the view the
+count is taken of, `VaultEntryView.Characters`, holds nothing to measure it with. So two clients
+can be answered differently about one entry, each by what it would have been handed. Every read
+of an entry's strings is held to the ceiling by that one rule, over what the route hands out:
+`readEntry` over the caller's whole view, `readField` over a string in the caller's sight with
+its name, and `listFields` over the names, which are all it serves, so a listing of fields can
+answer `413` as well. Each is `413` with that count, before any value is read and before the tag
+is taken, and in the order a read's refusals had already: `404`, then `413`, then `412`.
+`readField` decides whether a value is withheld before it measures anything, so a withheld value
+is answered `null` whatever its length and never `413`. `openapi.yaml` §513 is the response the
+routes declare.
+
+**Refused before any value is read is not refused before anything is decrypted.** No value is
+handed anywhere until an answer asks for it, and a view asks a string's length only when its
+size is asked and only of a string in its caller's sight. That length is KeePass's own count,
+and KeePass counts a protected value it holds as bytes, which is how a file's protected values
+are held once loaded, by decrypting it once inside its own type and keeping the count. So the
+first measurement of such a value costs a decryption, and what comes out of it is a number.
+`FINDINGS.md` has the measurement. An attachment's size is kept beside its encrypted bytes, so
+an attachment is measured and refused with nothing decrypted.
+
+**No write is refused for what an entry's strings come to, which reverses a ceiling held in both
+directions**, the operator's ruling of 2026-11-10. A create, an update or a new field that would
+take an entry's strings past the ceiling was refused `413` under the writer's lock, so that what
+the gate let a client write it also handed back whole, and the refusal named what the strings
+would come to, protected values included. That count was a measurement of what its caller may not
+read. A client holding `update` and not `read`, or `read` without `protected`, padded an entry to
+just under the ceiling and read the length of the values it was withheld off the refusal, and
+with the count left out of the message it would have searched for the padding the refusals began
+at. `FINDINGS.md` has the measurement, under "What a version of a node can be made of".
+Considered in its place and refused, because each keeps a refusal that depends on a value its
+caller may not read: a floor or a rounding for each string, a ceiling for each protection class,
+the message without its count, random slack in the ceiling, and pacing the refusals.
+
+**What the reversal gives up.** An entry can be written through the gate past what a read hands
+back whole, as KeePass or a merge could always leave an entry. Such an entry is read a field at a
+time, `listFields` and then `readField`, and stripping a field is how it is brought back under.
+Nothing bounds what a client holding `update` or `create` can add to an entry beyond what a
+request may carry, 65536 characters in a value and 1 MiB in a body, so how large an entry and the
+file around it grow is that client's to decide, a request at a time. PyKeePassGate raises on a
+whole read refused this way and does not go on to read field by field: which strings to fetch of
+an entry too large to hand over is its caller's decision.
+
+**A tag is still taken over the whole of a caller's view, however large.** A read refused for its
+size takes no tag, so it digests nothing. Every other answer that hands a tag out, a listing of
+the fields and a read of a short field among them, and every write under `If-Match` or answered
+with an `etag`, reads every value in its caller's sight. Measured on an entry of fifty strings of
+a million characters each, that is about fifty milliseconds inside the hold of KeePass's thread
+and 48 MB allocated a megabyte at a time, for each such request; `FINDINGS.md` has the numbers.
+No ceiling was added for it.
+
 ## Durability §408
 
 Every write goes through the plugin's single writer: it takes one lock, marshals to the thread that

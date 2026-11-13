@@ -456,6 +456,58 @@ router and vault for an open field, a protected one, an entry, an attachment and
 cases in `SkippedOnlyForAReaderTests`, each reaching no save where it now reaches one. An update
 is skipped only for a caller that may read every value it names.
 
+**A write refused for an entry's size was a way to measure a value, with no guess in it.** An
+entry's strings were held to 524288 characters in both directions, and a write that would take
+them past it was refused `413` with what they would come to, protected values included. A client
+whose rule held `update` and not `read`, or `read` without `protected`, padded the entry with
+strings of its own to just under the ceiling and sent a last write: the refusal named the whole
+count, and the count less the client's own padding is the length of what it was withheld. With
+the count left out, the padding at which the refusals begin tells the same, in a search of about
+twenty writes. Reproduced through the real router and vault in `NoSizeToldToAWriterTests`: two
+entries alike but for a password ten characters longer in the second, the same padding in both,
+and the same write answered `200` for the first and `413` with `524293 characters` for the
+second, for a field updated, an entry updated and a field added. The same count went to a single
+field read: a protected string past the ceiling was `413` with its length to a client that may
+not read it. The operator ruled on 2026-11-10 that no write is refused for an entry's size and
+that a read is measured over what its caller is handed, `API.md` §412: the view a read is
+measured by holds no length for a value it withholds, both writes are now made and answered
+alike, and the withheld field is the `null` every withheld value is.
+
+**What a tag costs on an entry far past the ceiling**, now that writes can make such an entry:
+fifty strings of a million characters each, on the development machine in a Debug build, through
+the real router and vault. A read of the whole entry is refused in about a millisecond with 0.3
+MB allocated, and takes no tag. Every other request that hands a tag to a client with all fifty
+values in sight, a listing of the fields or a read of the title, took 45 to 50 milliseconds and
+allocated 48 MB, the UTF-8 form of each value in turn for the digest, a megabyte at a time and
+never all live at once. The first such request after the strings were loaded as a file loads
+protected values took 116 milliseconds and 191 MB, since KeePass decrypts and decodes each value
+once and then keeps the decoded string. A client that reads the entry without `protected`, the
+fifty being protected, was answered in under two milliseconds with 0.4 MB: a withheld value is
+never read. A write answered with a tag allocated 48 MB more than the same write by a client
+handed none, 193 MB against 145 MB, beside a save of 2.2 seconds for the fifty protected strings
+and 0.3 seconds for fifty open ones, which the write causes whoever sends it.
+
+**KeePass counts a protected string's characters by decrypting it, the first time it is asked,
+which "measured with nothing decrypted" had wrong.** `ProtectedString.Length` answers from a count
+it keeps, `m_nCachedLength`, and fills that count the first time: from the string, where KeePass
+holds the value as a string, which is how it holds a value constructed from a string, a protected
+one included, and every value once `ReadString` has read it; and by `ProtectedBinary.ReadData`,
+`GetCharCount` and zeroing the copy, where it holds the value as bytes, which is how a file's
+protected values are held once loaded. Read off the getter's IL in 2.61.1 and measured: a
+protected value of a million characters held as bytes took 4.7 milliseconds to measure the first
+time and 0.02 the second, and the first request to measure the fifty strings above took 196
+milliseconds and 49 MB where every later request took a millisecond. An attachment is not so:
+`ProtectedBinary.Length` returns a field. Nothing public answers a string's length without that
+decryption; the UTF-8 byte count beside the encrypted bytes is private and is a bound on the
+characters and not their count. So what holds is narrower than what was written: no value is
+handed anywhere until it is asked for, building a view asks no length, a view asks the length
+only of a value in its caller's sight and only when the size is asked, so a withheld value is
+neither read nor measured, and the first measurement of a value in sight after a file load
+decrypts it once, inside KeePass's own type, with a number coming out.
+`NodeTagsTests.A_protected_value_held_as_bytes_is_decrypted_once_to_be_measured_and_never_for_a_view_withholding_it`
+counts the decryptions. The view asked every string's length as it was built until this was
+measured, a withheld string's among them.
+
 **A value a read decodes is not always the bytes the store keeps.** A protected string another
 program wrote with bytes that are not UTF-8 is served with each bad sequence replaced, and KeePass
 keeps the decoded form once it has been read, so a tag over the stored bytes changed the first time

@@ -423,7 +423,7 @@ namespace KeePassGate.Host.Tests
             Func<VaultSight, string, VaultEntryView> viewed = (sight, value) => new VaultEntryView(
                 Described("A1", "B1", created, created, null),
                 sight,
-                new[] { new VaultViewField("Password", true, value.Length, sight, () => value) },
+                new[] { new VaultViewField("Password", true, () => value.Length, sight, () => value) },
                 Array.Empty<VaultViewAttachment>(),
                 null);
 
@@ -669,13 +669,15 @@ namespace KeePassGate.Host.Tests
         }
 
         [Test]
-        public void A_view_is_built_and_measured_with_nothing_decrypted_and_reads_a_value_when_asked_for_it()
+        public void A_view_is_built_and_measured_with_no_attachment_decrypted_and_reads_a_value_when_asked_for_it()
         {
             // Counted through the same hook, which KeePass decrypts a protected attachment through
-            // and, measured here, not a protected string of this size: so what is counted is the
-            // attachment, made while the hook stands, and the strings are held to the rest by
-            // what the view carries. A view carries neither the title nor the URL beside its
-            // fields, which is what a description of the entry would have read to build it.
+            // and, measured here, not a protected string made from a string, which KeePass keeps
+            // as it was given: so what is counted is the attachment, made while the hook stands,
+            // and the strings are held to the rest by what the view carries. A protected string
+            // KeePass holds as bytes is the test after this. A view carries neither the title nor
+            // the URL beside its fields, which is what a description of the entry would have read
+            // to build it.
             var decrypted = 0;
             var was = ProtectedBinary.ExtCrypt;
             ProtectedBinary.ExtCrypt = (data, flags, id) =>
@@ -706,8 +708,11 @@ namespace KeePassGate.Host.Tests
                     Assert.That(view.Entry.Title, Is.Null, "a title is in a view as a field or not at all");
                     Assert.That(view.Entry.Url, Is.Null);
                     Assert.That(view.Characters, Is.GreaterThan("a protected title".Length));
-                    Assert.That(view.Field(PwDefs.PasswordField).Characters,
-                        Is.EqualTo(PwDefs.PasswordField.Length + "not-a-real-password".Length));
+                    Assert.That(
+                        view.Field(PwDefs.PasswordField).Characters,
+                        Is.EqualTo(PwDefs.PasswordField.Length
+                            + (view.Sight.Protected ? "not-a-real-password".Length : 0)),
+                        "a value is measured for a view holding it, and a withheld value has no length in a view");
                     Assert.That(view.Protected, Does.Contain(PwDefs.TitleField).And.Contain(PwDefs.PasswordField));
 
                     if (view.Attachments != null)
@@ -716,7 +721,7 @@ namespace KeePassGate.Host.Tests
                     }
                 }
 
-                Assert.That(Volatile.Read(ref decrypted), Is.Zero, "building and measuring a view decrypted something");
+                Assert.That(Volatile.Read(ref decrypted), Is.Zero, "building and measuring a view decrypted an attachment");
 
                 var whole = Seen(Sights.Whole);
                 Assert.That(whole.Field(PwDefs.PasswordField).Value, Is.EqualTo("not-a-real-password"));
@@ -734,6 +739,55 @@ namespace KeePassGate.Host.Tests
                 Assert.That(narrow.Field(PwDefs.TitleField).Value, Is.Null);
                 Assert.That(listed.Tag, Is.Not.Null.And.Not.EqualTo(narrow.Tag));
                 Assert.That(Volatile.Read(ref decrypted), Is.Zero, "a tag decrypted bytes its view withholds");
+            }
+            finally
+            {
+                ProtectedBinary.ExtCrypt = was;
+            }
+        }
+
+        [Test]
+        public void A_protected_value_held_as_bytes_is_decrypted_once_to_be_measured_and_never_for_a_view_withholding_it()
+        {
+            // A file's protected values are held as bytes once loaded, and KeePass counts the
+            // characters of such a value by decrypting it, the first time its length is asked,
+            // and keeps the count. So building a view asks no length, a view that withholds the
+            // value neither reads nor measures it, whatever is asked of the view, and the first
+            // measurement by a view holding it is a decryption inside KeePass's own type.
+            var decrypted = 0;
+            var was = ProtectedBinary.ExtCrypt;
+            ProtectedBinary.ExtCrypt = (data, flags, id) =>
+            {
+                if (flags == PbCryptFlags.Decrypt)
+                {
+                    Interlocked.Increment(ref decrypted);
+                }
+            };
+
+            try
+            {
+                var secret = Encoding.UTF8.GetBytes("not-a-real-password");
+                _entry.Strings.Set(PwDefs.PasswordField, new ProtectedString(true, secret));
+                Volatile.Write(ref decrypted, 0);
+
+                var narrow = Seen(new VaultSight(true, false, VaultAttachmentSight.None));
+                Assert.That(narrow.Field(PwDefs.PasswordField).Characters, Is.EqualTo(PwDefs.PasswordField.Length));
+                Assert.That(narrow.Characters, Is.GreaterThan(0));
+                Assert.That(narrow.Field(PwDefs.PasswordField).Value, Is.Null);
+                Assert.That(narrow.Tag, Is.Not.Null);
+                Assert.That(Volatile.Read(ref decrypted), Is.Zero, "a withheld value was read or measured");
+
+                var whole = Seen(Sights.Whole);
+                Assert.That(whole.NameCharacters, Is.GreaterThan(0));
+                Assert.That(Volatile.Read(ref decrypted), Is.Zero, "building a view measured a value");
+
+                Assert.That(
+                    whole.Field(PwDefs.PasswordField).Characters,
+                    Is.EqualTo(PwDefs.PasswordField.Length + "not-a-real-password".Length));
+                Assert.That(Volatile.Read(ref decrypted), Is.EqualTo(1), "KeePass decrypts the value to count it");
+
+                Assert.That(Seen(Sights.Whole).Characters, Is.GreaterThan("not-a-real-password".Length));
+                Assert.That(Volatile.Read(ref decrypted), Is.EqualTo(1), "and keeps the count");
             }
             finally
             {
@@ -1037,7 +1091,7 @@ namespace KeePassGate.Host.Tests
             var view = new VaultEntryView(
                 Described(uuid, group, created, modified, expires),
                 Sights.Whole,
-                new[] { new VaultViewField("Invented", guarded, value.Length, Sights.Whole, () => value) },
+                new[] { new VaultViewField("Invented", guarded, () => value.Length, Sights.Whole, () => value) },
                 new[] { new VaultViewAttachment(attachment, bytes.Length, Sights.Whole, () => bytes, digest) },
                 null);
 

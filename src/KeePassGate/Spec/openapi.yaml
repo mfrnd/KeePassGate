@@ -1027,8 +1027,6 @@ paths:
           $ref: "#/components/responses/Unpaired"
         "404":
           $ref: "#/components/responses/Unreachable"
-        "413":
-          $ref: "#/components/responses/EntryTooLarge"
         "415":
           $ref: "#/components/responses/UnsupportedMediaType"
         "500":
@@ -1233,8 +1231,6 @@ paths:
           $ref: "#/components/responses/Conflict"
         "412":
           $ref: "#/components/responses/PreconditionFailed"
-        "413":
-          $ref: "#/components/responses/EntryTooLarge"
         "415":
           $ref: "#/components/responses/UnsupportedMediaType"
         "500":
@@ -1274,7 +1270,9 @@ paths:
       summary: The names of an entry's strings.
       description: |
         Names and whether each is protected, never a value and never a length. The length of a
-        password is worth something to whoever is guessing it, and listing is not reading.
+        password is worth something to whoever is guessing it, and listing is not reading. The
+        names are what this answer is held to, `EntryTooLarge`: no write is refused for how many
+        strings an entry holds, so the names are refused past what the gate hands out.
       x-kpg-verb: list
       parameters:
         - $ref: "#/components/parameters/EntryUuid"
@@ -1294,6 +1292,8 @@ paths:
           $ref: "#/components/responses/Unreachable"
         "412":
           $ref: "#/components/responses/PreconditionFailed"
+        "413":
+          $ref: "#/components/responses/EntryTooLarge"
         "503":
           $ref: "#/components/responses/Unavailable"
     head:
@@ -1318,6 +1318,8 @@ paths:
           $ref: "#/components/responses/Unreachable"
         "412":
           $ref: "#/components/responses/PreconditionFailed"
+        "413":
+          $ref: "#/components/responses/EntryTooLarge"
         "503":
           $ref: "#/components/responses/Unavailable"
     post:
@@ -1400,8 +1402,6 @@ paths:
           $ref: "#/components/responses/Conflict"
         "412":
           $ref: "#/components/responses/PreconditionFailed"
-        "413":
-          $ref: "#/components/responses/EntryTooLarge"
         "415":
           $ref: "#/components/responses/UnsupportedMediaType"
         "500":
@@ -1512,8 +1512,6 @@ paths:
           $ref: "#/components/responses/Unreachable"
         "412":
           $ref: "#/components/responses/PreconditionFailed"
-        "413":
-          $ref: "#/components/responses/EntryTooLarge"
         "415":
           $ref: "#/components/responses/UnsupportedMediaType"
         "500":
@@ -2462,25 +2460,40 @@ components:
           schema:
             $ref: "#/components/schemas/Error"
 
-    # The transport serves thirty-two connections at once, so ten times an attachment's size, at
-    # once on every one of them, is what the ceiling holds down.
     # An entry's answer costs about four times its strings, on each of the thirty-two
-    # connections the transport serves at once, so its strings are held down as an attachment is.
+    # connections the transport serves at once, so what a read hands out is held down as an
+    # attachment is.
+    #
+    # On reads alone, and over what the client is handed. It was one number for reading and for
+    # writing, so that what this gate let a client write it also handed back whole: a write that
+    # would take an entry's strings over it was refused `413` with what they would come to,
+    # protected values included. A client that may write and not read padded an entry up to the
+    # ceiling and learned from the count, or from where the refusals began, how long the values
+    # it was withheld were. The operator's ruling of 2026-11-10 reverses it and accepts what
+    # that costs: an entry can be written past what a read hands back whole, such an entry is
+    # read a field at a time, and nothing bounds what a client holding `update` or `create` adds
+    # to an entry beyond the body a request may carry. §513
     EntryTooLarge:
       description: |
-        The entry's strings, names and values together, come to more than this gate hands out or
-        keeps: 524288 characters, half a million. A read of an entry over it, which KeePass or a
-        merge can make, is refused before anything is decrypted, and so is a read of one field
-        over it with its name; a write that would take the entry over it is refused with nothing
-        changed. The same number for both, so that what this gate lets a client write it also
-        hands back. Stripping a field is never refused for it, which is how an entry over it is
-        brought back under. The body names the size and the ceiling in a sentence rather than a
-        word, so a client knows this refusal by its status.
+        What this read would hand its client comes to more than this gate hands out, which is
+        524288 characters, half a million. Counted are the names of the strings the answer serves
+        and the values the client's rules let it read, and nothing of a value it is withheld, so
+        two clients can be answered differently about one entry. `readEntry` is held to it over
+        the whole entry, `readField` over a string in the client's sight with its name, and
+        `listFields` over the names, each refused before any value is read. A value a client
+        is withheld is answered `null` whatever its length, and never with this. No write is
+        refused for what an entry's strings come to, so an entry can be written, here or in
+        KeePass, past what a read hands back whole: its strings are then read with `readField`,
+        each on its own, and stripping a field is how the entry is brought back under. The body
+        names the count and the ceiling in a sentence rather than a word, so a client knows this
+        refusal by its status.
       content:
         application/json:
           schema:
             $ref: "#/components/schemas/Error"
 
+    # The transport serves thirty-two connections at once, so ten times an attachment's size, at
+    # once on every one of them, is what the ceiling holds down.
     TooLarge:
       description: |
         The attachment is larger than this gate will hand out. Building one costs about ten times

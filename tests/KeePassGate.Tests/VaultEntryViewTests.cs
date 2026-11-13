@@ -40,7 +40,7 @@ namespace KeePassGate.Tests
         public void A_protected_string_out_of_sight_keeps_its_name_and_holds_no_value()
         {
             var reads = 0;
-            var field = new VaultViewField("Password", true, 19, OpenStringsAndAttachments, () =>
+            var field = new VaultViewField("Password", true, () => 19, OpenStringsAndAttachments, () =>
             {
                 reads++;
                 return "not-a-real-password";
@@ -51,7 +51,8 @@ namespace KeePassGate.Tests
             Assert.That(field.IsWithheld, Is.True);
             Assert.That(field.Value, Is.Null);
             Assert.That(reads, Is.Zero, "the reader handed in was dropped, so nothing can read the value through the view");
-            Assert.That(field.Characters, Is.EqualTo("Password".Length + 19), "and it still counts toward the entry's size");
+            Assert.That(field.Characters, Is.EqualTo("Password".Length),
+                "its name is all of it that is served, so all that is counted: the length was dropped with the reader");
         }
 
         [Test]
@@ -59,12 +60,12 @@ namespace KeePassGate.Tests
         {
             var reader = new VaultSight(true, false, VaultAttachmentSight.None);
 
-            Assert.That(new VaultViewField("Password", true, 3, reader, null).Value, Is.Null);
-            Assert.That(new VaultViewField("Password", true, 3, VaultSight.Least, null).Value, Is.Null);
-            Assert.That(new VaultViewField("Title", false, 3, VaultSight.Least, null).Value, Is.Null,
+            Assert.That(new VaultViewField("Password", true, () => 3, reader, null).Value, Is.Null);
+            Assert.That(new VaultViewField("Password", true, () => 3, VaultSight.Least, null).Value, Is.Null);
+            Assert.That(new VaultViewField("Title", false, () => 3, VaultSight.Least, null).Value, Is.Null,
                 "a string nothing protects is withheld too from a sight that does not read");
-            Assert.Throws<ArgumentNullException>(() => new VaultViewField("Title", false, 3, reader, null));
-            Assert.Throws<ArgumentNullException>(() => new VaultViewField("Password", true, 3, Sights.Whole, null));
+            Assert.Throws<ArgumentNullException>(() => new VaultViewField("Title", false, () => 3, reader, null));
+            Assert.Throws<ArgumentNullException>(() => new VaultViewField("Password", true, () => 3, Sights.Whole, null));
         }
 
         [Test]
@@ -84,8 +85,8 @@ namespace KeePassGate.Tests
                 sight,
                 new[]
                 {
-                    new VaultViewField("Title", false, 3, sight, counted),
-                    new VaultViewField("Password", true, 3, sight, counted),
+                    new VaultViewField("Title", false, () => 3, sight, counted),
+                    new VaultViewField("Password", true, () => 3, sight, counted),
                 },
                 Array.Empty<VaultViewAttachment>(),
                 null));
@@ -96,7 +97,9 @@ namespace KeePassGate.Tests
                 Assert.That(view.Fields.Select(field => field.Value), Is.All.Null);
                 Assert.That(view.Fields.Select(field => field.Name), Is.EqualTo(new[] { "Title", "Password" }));
                 Assert.That(view.Protected, Is.EqualTo(new[] { "Password" }), "which strings are protected is still told");
-                Assert.That(view.Characters, Is.EqualTo("Title".Length + 3 + "Password".Length + 3));
+                Assert.That(view.Characters, Is.EqualTo("Title".Length + "Password".Length),
+                    "names, which are what such a caller is served, and nothing of a value");
+                Assert.That(view.NameCharacters, Is.EqualTo("Title".Length + "Password".Length));
             }
 
             Assert.That(reads, Is.Zero, "the readers handed in were dropped");
@@ -105,8 +108,8 @@ namespace KeePassGate.Tests
         [Test]
         public void No_sight_at_all_is_the_least_sight()
         {
-            var guarded = new VaultViewField("Password", true, 3, null, () => "abc");
-            var open = new VaultViewField("Title", false, 3, null, () => "abc");
+            var guarded = new VaultViewField("Password", true, () => 3, null, () => "abc");
+            var open = new VaultViewField("Title", false, () => 3, null, () => "abc");
             var view = new VaultEntryView(
                 Entry(), null, new[] { guarded, open }, new[] { Attachment("notes.txt", 3) }, null);
 
@@ -160,7 +163,7 @@ namespace KeePassGate.Tests
             var blind = new VaultSight(false, false, VaultAttachmentSight.None, true);
 
             Func<VaultSight, bool, bool, VaultViewField> made = (sight, guarded, listed) =>
-                new VaultViewField("Invented", guarded, 3, sight, () => "abc", listed);
+                new VaultViewField("Invented", guarded, () => 3, sight, () => "abc", listed);
 
             Assert.That(made(listing, true, true).Value, Is.EqualTo("abc"));
             Assert.That(made(listing, true, false).IsWithheld, Is.True, "the listing's reach opens no other string");
@@ -233,7 +236,7 @@ namespace KeePassGate.Tests
         {
             var reads = 0;
             var reader = new VaultSight(true, false, VaultAttachmentSight.None);
-            var field = new VaultViewField("Title", false, 7, reader, () =>
+            var field = new VaultViewField("Title", false, () => 7, reader, () =>
             {
                 reads++;
                 return "a title";
@@ -248,10 +251,45 @@ namespace KeePassGate.Tests
         }
 
         [Test]
+        public void A_value_is_measured_when_its_size_is_first_asked_and_once_and_a_withheld_value_never()
+        {
+            // KeePass may decrypt a protected value to count its characters, so a view asks a
+            // length only when something asks the size, and never of a value it withholds.
+            var measures = 0;
+            Func<int> measured = () =>
+            {
+                measures++;
+                return 7;
+            };
+
+            var reader = new VaultSight(true, false, VaultAttachmentSight.None);
+            var open = new VaultViewField("Title", false, measured, reader, () => "a title");
+            var withheld = new VaultViewField("Password", true, measured, reader, null);
+            var view = new VaultEntryView(
+                Entry(), reader, new[] { open, withheld }, Array.Empty<VaultViewAttachment>(), null);
+
+            Assert.That(view.NameCharacters, Is.EqualTo("Title".Length + "Password".Length));
+            Assert.That(view.Protected, Is.EqualTo(new[] { "Password" }));
+            Assert.That(open.Value, Is.EqualTo("a title"));
+            Assert.That(measures, Is.Zero, "building a view, its names and reading a value measure nothing");
+
+            Assert.That(withheld.Characters, Is.EqualTo("Password".Length));
+            Assert.That(measures, Is.Zero, "a withheld value is not measured");
+
+            Assert.That(view.Characters, Is.EqualTo("Title".Length + 7 + "Password".Length));
+            Assert.That(view.Characters, Is.EqualTo(open.Characters + withheld.Characters));
+            Assert.That(measures, Is.EqualTo(1), "the value in sight, once");
+
+            Assert.Throws<ArgumentNullException>(() => new VaultViewField("Title", false, null, reader, () => "a title"));
+            Assert.That(new VaultViewField("Password", true, null, reader, null).Characters, Is.EqualTo("Password".Length),
+                "a withheld string needs nothing to measure it with");
+        }
+
+        [Test]
         public void A_value_that_could_not_be_read_is_read_again_by_the_next_asking()
         {
             var failing = true;
-            var field = new VaultViewField("Title", false, 7, Sights.Whole, () =>
+            var field = new VaultViewField("Title", false, () => 7, Sights.Whole, () =>
             {
                 if (failing)
                 {
@@ -268,7 +306,7 @@ namespace KeePassGate.Tests
         }
 
         [Test]
-        public void An_entry_is_measured_with_every_string_counted_and_none_read()
+        public void An_entry_is_measured_by_what_its_caller_is_handed_with_no_string_read()
         {
             var reads = 0;
             Func<string> counted = () =>
@@ -282,15 +320,31 @@ namespace KeePassGate.Tests
                 OpenStringsAndAttachments,
                 new[]
                 {
-                    new VaultViewField("Title", false, 3, OpenStringsAndAttachments, counted),
-                    new VaultViewField("Password", true, 40, OpenStringsAndAttachments, counted),
-                    new VaultViewField("PIN", true, 4, OpenStringsAndAttachments, counted),
+                    new VaultViewField("Title", false, () => 3, OpenStringsAndAttachments, counted),
+                    new VaultViewField("Password", true, () => 40, OpenStringsAndAttachments, counted),
+                    new VaultViewField("PIN", true, () => 4, OpenStringsAndAttachments, counted),
                 },
                 Array.Empty<VaultViewAttachment>(),
                 null);
 
-            Assert.That(view.Characters, Is.EqualTo("Title".Length + 3 + "Password".Length + 40 + "PIN".Length + 4),
-                "what the ceiling is asked about is the whole entry, in sight or not");
+            Assert.That(view.Characters, Is.EqualTo("Title".Length + 3 + "Password".Length + "PIN".Length),
+                "what the ceiling is asked about is every name and the values in sight, and no withheld value");
+            Assert.That(view.NameCharacters, Is.EqualTo("Title".Length + "Password".Length + "PIN".Length));
+
+            var all = new VaultEntryView(
+                Entry(),
+                EveryStringAndNoAttachment,
+                new[]
+                {
+                    new VaultViewField("Title", false, () => 3, EveryStringAndNoAttachment, counted),
+                    new VaultViewField("Password", true, () => 40, EveryStringAndNoAttachment, counted),
+                    new VaultViewField("PIN", true, () => 4, EveryStringAndNoAttachment, counted),
+                },
+                Array.Empty<VaultViewAttachment>(),
+                null);
+
+            Assert.That(all.Characters, Is.EqualTo("Title".Length + 3 + "Password".Length + 40 + "PIN".Length + 4),
+                "a caller reading protected values is handed them, so they count for that caller");
             Assert.That(view.Protected, Is.EqualTo(new[] { "Password", "PIN" }));
             Assert.That(view.Fields.Select(field => field.Name), Is.EqualTo(new[] { "Title", "Password", "PIN" }),
                 "in the order they were handed in, which is the order KeePass keeps them");
@@ -303,7 +357,7 @@ namespace KeePassGate.Tests
             var view = new VaultEntryView(
                 Entry(),
                 Sights.Whole,
-                new[] { new VaultViewField("Title", false, 3, Sights.Whole, () => "abc") },
+                new[] { new VaultViewField("Title", false, () => 3, Sights.Whole, () => "abc") },
                 new[] { Attachment("notes.txt", 3) },
                 null);
 

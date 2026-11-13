@@ -193,26 +193,40 @@ namespace KeePassGate.Pipeline
         }
 
         /// <summary>
-        /// The most characters of names and values an entry's strings may come to and still be
-        /// handed out whole, which is also the most a write may take an entry to.
+        /// The most characters of names and values a read of an entry hands its caller: the
+        /// whole entry as that caller's view holds it, a single field with its name, and the
+        /// names a listing of the entry's fields serves.
         /// </summary>
         /// <remarks>
         /// **A ceiling on what an answer costs, for the reason <see cref="MaxAttachmentBytes"/>
-        /// is a ceiling.** An entry's answer is every string it holds, decrypted, written into a
+        /// is a ceiling.** An entry's answer is every string it serves, decrypted, written into a
         /// document, copied out of the writer and encoded again, which measured at about four
         /// times the strings in managed memory, all live at once: 94.5 MB for one read of two
-        /// hundred fields of 64K characters. Nothing bounded how far writes could grow an entry,
-        /// so a client holding `create` and `read` on an entry could make every read of it cost
-        /// that, on all `GateOptions.MaxConnections` at once, inside the password manager's own
-        /// process.
+        /// hundred fields of 64K characters. Nothing bounds how far writes can grow an entry,
+        /// so without it a client holding `create` and `read` on an entry could make every read
+        /// of it cost that, on all `GateOptions.MaxConnections` at once, inside the password
+        /// manager's own process.
         ///
-        /// **The same number for reading and for writing**, so that what the gate lets a client
-        /// write it also hands back: a write that would take an entry over it is refused under the
-        /// writer's lock, and an entry over it, which KeePass or a merge can make, is refused to
-        /// `read` with its size, and nothing decrypted. A single field is held to it as well, with
-        /// its name. It is <see cref="VaultEntryView.MostCharacters"/>, so that the vault, which
-        /// measures, and the routes, which refuse, read the same number, and it is the
-        /// attachments' half a megabyte, counted in characters.
+        /// **Measured over what the caller is handed, and held on reads alone.** What counts is
+        /// the name of every string a route serves and the value of every string in the
+        /// caller's sight; a withheld value counts nothing, and its length is not in the view,
+        /// <see cref="VaultEntryView.Characters"/>. So two callers can be answered differently
+        /// about one entry, each by what it would have been handed, and a refusal's count tells
+        /// its caller nothing a read of the fields in its sight would not.
+        ///
+        /// **This reverses one number for reading and for writing**, the operator's ruling of
+        /// 2026-11-10. A write that would take an entry over the ceiling was refused under the
+        /// writer's lock, so that what the gate let a client write it also handed back whole,
+        /// and the refusal named what the entry's strings came to, protected values included. A
+        /// caller that may write and not read padded an entry up to the ceiling and learned
+        /// from the count, or from where the refusals began, how long each value it was
+        /// withheld was. No write is refused for an entry's size now. What that gives up: a
+        /// client can write an entry past what a read hands back whole, such an entry is read
+        /// a field at a time, and nothing bounds what a client holding `update` or `create` can
+        /// add to an entry beyond what one request's body may carry.
+        ///
+        /// It is <see cref="VaultEntryView.MostCharacters"/>, and it is the attachments' half a
+        /// megabyte, counted in characters.
         /// </remarks>
         public const int MaxEntryCharacters = VaultEntryView.MostCharacters;
 
@@ -226,8 +240,11 @@ namespace KeePassGate.Pipeline
 
             var uuid = Captured(context, "uuid");
 
-            // The view is taken with nothing decrypted, so an entry over the ceiling is measured
-            // and refused with its strings still encrypted, as an attachment is.
+            // The view is taken with nothing read or measured, and measured here, so a view over
+            // the ceiling is refused with no value read. What is measured is what this caller
+            // would be handed: every name, and the values in its sight, never a withheld value.
+            // Measuring is not always free: KeePass decrypts a protected value it holds as bytes
+            // to count its characters, once and inside its own type, `VaultViewField`.
             Reading asked;
             var view = View(context, vault, uuid, out asked);
             if (view == null)
@@ -373,14 +390,28 @@ namespace KeePassGate.Pipeline
 
             // One read, which answers for the entry as well as for its strings: null is an entry
             // that is not there, and never an entry holding no strings. The listing itself is
-            // names and flags, so nothing is decrypted for a caller that only lists, whose view
-            // holds no value and has no tag. A caller holding `read` beside `list` is handed the
-            // entry's tag, and taking the tag reads every value in that caller's sight.
+            // names and flags, so nothing is read or measured for a caller that only lists, whose
+            // view holds no value and has no tag. A caller holding `read` beside `list` is handed
+            // the entry's tag, and taking the tag reads every value in that caller's sight.
             var uuid = Captured(context, "uuid");
             var view = View(context, vault, uuid);
             if (view == null)
             {
                 Unreachable(context);
+                return;
+            }
+
+            // The names are what this answer hands out, so the names are what it is held to,
+            // whatever the caller's sight: no write is refused for how many strings an entry
+            // holds, and nothing else bounds this listing. Before the tag, so a listing too
+            // large to hand out digests nothing either.
+            if (view.NameCharacters > MaxEntryCharacters)
+            {
+                context.Respond(413, HttpResponse.ErrorBody(string.Format(
+                    CultureInfo.InvariantCulture,
+                    "the names of this entry's fields come to {0} characters, and this gate hands out at most {1}",
+                    view.NameCharacters,
+                    MaxEntryCharacters)));
                 return;
             }
 
@@ -417,9 +448,10 @@ namespace KeePassGate.Pipeline
             var name = Captured(context, "name");
 
             // The entry's view, and the string in it. The view carries the node the rules are
-            // asked about, the string's name, its flag and its size, and reads a value only when
-            // asked for that value, so a request refused before the tag is taken, for a name the
-            // entry does not hold or a field over the ceiling, decrypts nothing. An answer that
+            // asked about, the string's name and its flag, measures a value in sight when asked
+            // its size and reads a value only when asked for that value, so a request refused
+            // before the tag is taken, for a name the entry does not hold or a field over the
+            // ceiling, reads no value, and measures at most the one string. An answer that
             // is served carries the tag, which every caller reaching this route is handed, and
             // taking the tag reads every value in the caller's sight; a value out of that sight
             // is never read. Null is an entry that is not there or a name the entry does not
@@ -439,19 +471,25 @@ namespace KeePassGate.Pipeline
                 return;
             }
 
-            // Measured before the value is read, and again on what came back, as `readEntry`
-            // measures. Before the condition, for the reason `ReadAttachment` gives. A value out
-            // of the caller's sight is not in the view, and comes back as null.
-            var value = field.Characters > MaxEntryCharacters ? null : field.Value;
-            var characters = value == null ? field.Characters : name.Length + value.Length;
-            if (characters > MaxEntryCharacters)
+            // Whether the value is withheld is decided first, by the view, and a withheld value
+            // has no size here: the view holds nothing to measure it with, so it is answered as
+            // the `null` every withheld value is, however long it is, and never as too large. A
+            // value in sight is measured before it is read, and again on what came back, as
+            // `readEntry` measures. Before the condition, for the reason `ReadAttachment` gives.
+            string value = null;
+            if (!field.IsWithheld)
             {
-                context.Respond(413, HttpResponse.ErrorBody(string.Format(
-                    CultureInfo.InvariantCulture,
-                    "this field holds {0} characters with its name, and this gate hands out at most {1}",
-                    characters,
-                    MaxEntryCharacters)));
-                return;
+                value = field.Characters > MaxEntryCharacters ? null : field.Value;
+                var characters = value == null ? field.Characters : name.Length + value.Length;
+                if (characters > MaxEntryCharacters)
+                {
+                    context.Respond(413, HttpResponse.ErrorBody(string.Format(
+                        CultureInfo.InvariantCulture,
+                        "this field comes to {0} characters with its name, and this gate hands out at most {1}",
+                        characters,
+                        MaxEntryCharacters)));
+                    return;
+                }
             }
 
             // After the ceiling, as `readEntry` takes it.
@@ -1440,12 +1478,15 @@ namespace KeePassGate.Pipeline
             return new Reading(sight, protectedValues);
         }
 
-        /// <summary>Answers that an entry's strings come to more than a read hands out.</summary>
+        /// <summary>
+        /// Answers that what a read of an entry would hand its caller comes to more than a read
+        /// hands out, with that caller's own count.
+        /// </summary>
         private static void EntryTooLarge(IGateContext context, int characters)
         {
             context.Respond(413, HttpResponse.ErrorBody(string.Format(
                 CultureInfo.InvariantCulture,
-                "this entry holds {0} characters of names and values, and this gate hands out at most {1}",
+                "a read of this entry would hand over {0} characters of names and values, and this gate hands out at most {1}",
                 characters,
                 MaxEntryCharacters)));
         }
@@ -1862,17 +1903,6 @@ namespace KeePassGate.Pipeline
                 // Not retried and not a conflict: the node is there and holds something other
                 // than what the request was written against, and only reading it again says what.
                 PreconditionFailed(context);
-                return;
-            }
-
-            if (write.IsTooLarge)
-            {
-                // About the request, as `412` is: nothing was changed, and the entry is as it was.
-                context.Respond(413, HttpResponse.ErrorBody(string.Format(
-                    CultureInfo.InvariantCulture,
-                    "this would leave the entry holding {0} characters of names and values, and this gate keeps at most {1}",
-                    write.Characters,
-                    MaxEntryCharacters)));
                 return;
             }
 

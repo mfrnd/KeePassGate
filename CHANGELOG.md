@@ -11,6 +11,22 @@ none, since it releases both.
 
 ## 0.2.0, unreleased
 
+- **A read of an entry hands out at most 524288 characters of names and values, counted over
+  what its client is handed, and no write is refused for an entry's size.** Reading an entry
+  built an answer of every string it held with no ceiling, at about four times their size in
+  memory inside KeePass, measured at 94.5 MB for two hundred fields of 64K characters. A read is
+  now refused with `413`, before any value is read, when what it would hand its client is past
+  the ceiling: a read of the entry, over the names of its strings and the values that client may
+  read; a read of one field in that client's sight, with its name; and the listing of an entry's
+  fields, over the names it serves, so the field listing can answer `413` too, for an entry
+  holding very many fields. A value a client is withheld counts nothing, is not measured, and is
+  answered `null` whatever its length. Writes are not held to the ceiling, because a refusal
+  that moves with what an entry's strings come to tells a client that may write and not read how
+  long the values it is withheld are. So an entry can be written past what a read hands back
+  whole, such an entry is read a field at a time, stripping a field is how it is brought back
+  under, and nothing bounds what a client holding `update` or `create` adds to an entry beyond
+  what a request carries. PyKeePassGate raises `RouteRefused` on a read refused this way and
+  does not go on to read field by field. `API.md` §412.
 - **Every client holding `read` is handed an entry's `ETag`, taken over what that client may
   read.** A tag covered the whole entry and went only to a client whose one rule read all of it,
   attachments and protected values included, so a rule without `protected` was handed no tag for
@@ -811,13 +827,6 @@ none, since it releases both.
   that kind it refused as `Unresolved`: a standard string held under a look-alike name, and a
   placeholder naming a field only in another case beyond ASCII. A program catching `Unresolved`
   for either catches `AmbiguousName` now.
-- **An entry's strings are held to 524288 characters, names and values together**, read and
-  written alike. Reading an entry built an answer of every string it held with no ceiling, at
-  about four times their size in memory inside KeePass, measured at 94.5 MB for two hundred
-  fields of 64K characters, and nothing bounded how far writes could grow an entry. A read of an
-  entry over it, or of one field over it with its name, is now refused with `413` before
-  anything is decrypted, and a write that would take an entry over it is refused with `413`
-  and changes nothing. Stripping a field is never refused for it.
 - **A write to an entry is refused `503 busy` while KeePass's own attachment editor is open on an
   attachment of that entry's.** The editor holds the attachment and not the entry, and KeePass
   writes the edited bytes back onto the entry as it closes, so a removal of the attachment

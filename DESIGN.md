@@ -1730,6 +1730,43 @@ KeePass**, applying different controls by it. Until that exists, every URL is st
 `docs/access-control.md` warns the operator against opening one a program may have written, and
 nothing here claims more. A refusal for one more case is not the fix: it is the shape this replaced.
 
+### C10. A client that may write can grow an entry past what a read hands back §142
+
+**The objection stands, and is accepted: it is what closing a leak cost.** An entry's strings were
+held to 524288 characters, names and values together, read and written alike, so that what the
+gate let a client write it also handed back whole. The write half of that was a refusal that
+depended on values its caller may not read. It named what the entry's strings would come to,
+protected values included, so a client that may write and not read padded an entry up to the
+ceiling and was told how long the values it was withheld were, and a refusal naming no count
+would have told it the same by where it began. `FINDINGS.md` has the measurement.
+
+The operator ruled on 2026-11-10: **no write is refused for what an entry's strings come to, and
+the ceiling is a read's, measured over what that reader would be handed.** A view of an entry,
+`VaultEntryView`, neither reads nor measures a value it withholds, so the count a read is refused
+with is made of nothing its caller may not read, and a single field the caller is withheld is
+answered as withheld whatever its length. The same rule holds every read of an entry's strings,
+the listing of its fields by the names it serves among them. `API.md` §412 has what counts, the
+order of the refusals, and what measuring a value in sight costs inside KeePass.
+
+What is given up, and written down so that it is not rediscovered as a defect:
+
+- **An entry can be written past what a read hands back whole.** Such an entry is read a field at
+  a time, and stripping a field brings it back under. KeePass and a merge could always leave such
+  an entry, so every reader already had to meet it.
+- **Nothing bounds what a client holding `update` or `create` adds to an entry** beyond what a
+  request carries, 65536 characters in a value and 1 MiB in a body. The entry grows in the
+  database's memory, in the file and in the time every save takes, a request at a time, and each
+  of those writes is in the audit.
+- **A tag is taken over a caller's whole view, however large.** A read refused for its size takes
+  none, and every other answer handing a tag out reads every value in sight: about fifty
+  milliseconds inside a hold of KeePass's thread, and 48 MB allocated a megabyte at a time, for
+  an entry of fifty strings of a million characters. No ceiling was added for it.
+
+Refused as ways to keep the write's refusal, and not to be proposed again without new evidence: a
+floor or a rounding for each string, a ceiling for each protection class, the message without its
+count, random slack in the ceiling, and pacing the refusals. Each leaves an answer to a write
+that moves with a value the writer may not read, which a patient client reads all the same.
+
 ## The objections that do not stand, and why §126
 
 ### C5. "Terminating TLS ourselves is riskier than letting a library do it" §127

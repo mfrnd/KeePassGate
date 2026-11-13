@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Globalization;
 using KeePassGate.Acl;
 
 namespace KeePassGate.Vault
@@ -423,25 +422,6 @@ namespace KeePassGate.Vault
         /// </remarks>
         public bool IsPreconditionFailed { get; private set; }
 
-        /// <summary>
-        /// The change would take the entry's strings over what this gate keeps, so nothing was
-        /// changed.
-        /// </summary>
-        /// <remarks>
-        /// A refusal about the request, answered `413`, and decided under the writer's lock against
-        /// the entry as the change would have found it, as <see cref="IsPreconditionFailed"/>
-        /// is, so that two writes landing in turn cannot each be measured against what the entry
-        /// held before the other. <see cref="VaultEntryView.MostCharacters"/> is the
-        /// ceiling, and <see cref="Characters"/> what the entry would have come to.
-        /// </remarks>
-        public bool IsTooLarge { get; private set; }
-
-        /// <summary>
-        /// What the entry's strings, names and values together, would have come to in characters,
-        /// when <see cref="IsTooLarge"/>.
-        /// </summary>
-        public int Characters { get; private set; }
-
         /// <summary>What was created, when something was.</summary>
         public string Uuid { get; private set; }
 
@@ -487,24 +467,6 @@ namespace KeePassGate.Vault
             return new VaultWrite(false, false, false, null, precondition.Refusal)
             {
                 IsPreconditionFailed = true,
-            };
-        }
-
-        /// <summary>
-        /// The entry would hold more than this gate keeps, and nothing was changed.
-        /// </summary>
-        public static VaultWrite TooLarge(int characters)
-        {
-            return new VaultWrite(
-                false,
-                false,
-                false,
-                null,
-                "the entry would hold " + characters.ToString(CultureInfo.InvariantCulture)
-                    + " characters of names and values")
-            {
-                IsTooLarge = true,
-                Characters = characters,
             };
         }
 
