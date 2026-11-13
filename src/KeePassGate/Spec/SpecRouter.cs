@@ -104,6 +104,13 @@ namespace KeePassGate.Spec
         public const string WithheldItem = "kpg.withheld";
 
         /// <summary>
+        /// Where the router leaves a <see cref="ServedAfter"/> for a request it decides inside
+        /// a hold: what takes the part of an entry's answer that is made of the entry's values,
+        /// to be run once the hold has ended.
+        /// </summary>
+        public const string AfterItem = "kpg.after";
+
+        /// <summary>
         /// Where the router leaves what `If-Match` asks, for an operation that declares it and a
         /// request that carried one: a <see cref="VaultPrecondition"/>, absent otherwise.
         /// </summary>
@@ -563,8 +570,8 @@ namespace KeePassGate.Spec
             // answered one moving database two ways, and the answer on the earlier hop was the
             // wrong one.
             //
-            // **The decisions are kept and written last.** A read is decided inside the hold
-            // it is served in, and a change is decided twice, here and again inside its own turn
+            // **The decisions are kept and written last.** A read is decided inside its
+            // hold, and a change is decided twice, here and again inside its own turn
             // on KeePass's thread. A line written in either would put the audit's pacing on the
             // thread the operator is typing into. So every line the request's decisions come to
             // gathers in one place, the later decision in place of the earlier, and is written
@@ -613,8 +620,8 @@ namespace KeePassGate.Spec
         }
 
         /// <summary>
-        /// A request that changes nothing, decided and served while KeePass's thread is held
-        /// still once.
+        /// A request that changes nothing, decided while KeePass's thread is held still once
+        /// and answered with the database as it stood in that hold.
         /// </summary>
         /// <remarks>
         /// **One hold for the client, the rules and the answer.** The client's record and the
@@ -625,6 +632,14 @@ namespace KeePassGate.Spec
         /// read served was the database as it stood after the edit. Nothing about a read is
         /// decided before this hold, because an answer from before it is an answer about another
         /// moment, which is what a change's first answer is and why a change asks again.
+        ///
+        /// **An entry's values are read once the hold has ended, and are still of that
+        /// moment.** What the handler takes of an entry inside the hold is the caller's view,
+        /// which keeps the objects the entry's values were held in and reads none of them. The
+        /// handler leaves the rest with <see cref="AfterItem"/>: measuring the values, reading
+        /// them, taking the tag and asking the condition of it. That part grows with the entry
+        /// and no write is refused for an entry's size, so it runs on the connection's thread
+        /// with KeePass's own free, <see cref="ServedAfter"/>.
         ///
         /// **The answer is handed over once the hold has ended**, for the reason
         /// <see cref="DecidedContext"/> gives, and a hold that could not be taken or did not
@@ -657,6 +672,7 @@ namespace KeePassGate.Spec
             var client = ClientCredentials.Again(
                 context.Client, ServedDatabase.TargetOf(context), ServedDatabase.LogOf(context));
             var read = new DecidedContext(context, client, true);
+            read.Items[AfterItem] = (ServedAfter)read.After;
 
             if (!client.IsPaired)
             {
@@ -936,16 +952,39 @@ namespace KeePassGate.Spec
         }
 
         /// <summary>
-        /// What records, for one client, a protected value a read's view withheld, keeping the
-        /// line with the request's other lines.
+        /// What records, for one client, a protected value a read's view withheld: the line is
+        /// composed when this is asked, and kept with the request's other lines by what comes
+        /// back.
         /// </summary>
+        /// <remarks>
+        /// Composed and added apart, for the reason <see cref="ProtectedWithheld"/> gives: the
+        /// line is composed inside the read's hold, from the database, and a read that goes on
+        /// to serve nothing never adds it.
+        /// </remarks>
         private ProtectedWithheld Withheld(ClientIdentity client, SpecOperation operation, DecisionLines lines)
         {
             var access = _access;
             var operationId = operation.OperationId;
 
+            if (lines == null)
+            {
+                // An operation no rule governs keeps no lines and serves no entry. A line asked
+                // for here all the same is written where it is asked, as every line is that has
+                // nowhere to be kept.
+                return (node, verb, decision, listed) =>
+                {
+                    access.Withheld(client, operationId, verb, AclReach.Protected, node, decision, listed, null);
+                    return () => { };
+                };
+            }
+
             return (node, verb, decision, listed) =>
-                access.Withheld(client, operationId, verb, AclReach.Protected, node, decision, listed, lines);
+            {
+                var composed = new DecisionLines();
+                access.Withheld(client, operationId, verb, AclReach.Protected, node, decision, listed, composed);
+
+                return () => lines.Asked(composed);
+            };
         }
 
         /// <summary>

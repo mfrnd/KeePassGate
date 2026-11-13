@@ -65,6 +65,64 @@ namespace KeePassGate.Host.Tests
         }
 
         [Test]
+        public void A_long_value_is_digested_in_pieces_as_the_value_whole_is()
+        {
+            // A value longer than a piece is encoded a piece at a time, so that a tag over
+            // megabytes allocates no second copy of them. The bytes digested have to be the
+            // bytes of the value encoded whole, wherever a piece ends: inside a character of
+            // several bytes, between the halves of a pair of surrogates, on a surrogate with no
+            // other half, which the encoding replaces. Held against the same part written whole,
+            // its length before its bytes.
+            const int Piece = NodeTags.Pieces.Characters;
+            const string Pair = "\U0001F511";
+            var values = new List<string>
+            {
+                string.Empty,
+                "short",
+                new string('a', Piece),
+                new string('a', Piece + 1),
+                new string('\u00E9', (2 * Piece) + 1),
+                new string('\u20AC', (3 * Piece) + 7),
+                new string('a', Piece - 1) + Pair + new string('b', Piece),
+                new string('a', Piece - 2) + Pair + new string('b', Piece),
+                new string('a', (2 * Piece) - 1) + Pair,
+                new string('a', Piece - 1) + "\uD83D" + new string('b', Piece),
+                new string('a', Piece) + "\uDD11" + new string('b', Piece),
+                new string('a', Piece - 1) + "\uDD11\uD83D" + new string('b', Piece),
+                new string('a', (2 * Piece) - 1) + "\uD83D",
+                string.Concat(Enumerable.Repeat(Pair, Piece + 3)),
+            };
+
+            using (var pieces = new NodeTags.Pieces())
+            {
+                foreach (var value in values)
+                {
+                    byte[] digested;
+                    using (var sha256 = SHA256.Create())
+                    {
+                        NodeTags.Value(sha256, value, pieces);
+                        sha256.TransformFinalBlock(Array.Empty<byte>(), 0, 0);
+                        digested = sha256.Hash;
+                    }
+
+                    var bytes = Encoding.UTF8.GetBytes(value);
+                    var length = new[]
+                    {
+                        (byte)(bytes.Length >> 24), (byte)(bytes.Length >> 16), (byte)(bytes.Length >> 8), (byte)bytes.Length,
+                    };
+
+                    byte[] whole;
+                    using (var sha256 = SHA256.Create())
+                    {
+                        whole = sha256.ComputeHash(length.Concat(bytes).ToArray());
+                    }
+
+                    Assert.That(digested, Is.EqualTo(whole), "a value of " + value.Length + " characters");
+                }
+            }
+        }
+
+        [Test]
         public void One_entry_holding_the_same_gives_the_same_tag_however_often_it_is_asked()
         {
             var tag = EntryTag();

@@ -110,6 +110,17 @@ namespace KeePassGate.Tests.Fakes
         /// </remarks>
         public int LooseLookups { get; private set; }
 
+        /// <summary>
+        /// How many times a value was measured or read, an attachment read or digested, or a
+        /// tag taken, with a hold standing.
+        /// </summary>
+        /// <remarks>
+        /// What a read of an entry may never do: each of those grows with the entry, and the
+        /// hold is KeePass's own thread standing still. A view is taken inside the hold and
+        /// asked for its values after it.
+        /// </remarks>
+        public int ValueWorkHeld { get; private set; }
+
         /// <summary>Set to refuse every hold, as KeePass's thread does while it cannot be held.</summary>
         public bool RefusesHolds { get; set; }
 
@@ -456,12 +467,14 @@ namespace KeePassGate.Tests.Fakes
                     () =>
                     {
                         StringMeasures++;
+                        Working();
                         return IgnoresCeiling ? 0 : value.Length;
                     },
                     sight,
                     () =>
                     {
                         StringReads++;
+                        Working();
                         return value;
                     },
                     Listed(pair.Key)));
@@ -481,11 +494,13 @@ namespace KeePassGate.Tests.Fakes
                         () =>
                         {
                             AttachmentReads++;
+                            Working();
                             return content;
                         },
                         () =>
                         {
                             AttachmentReads++;
+                            Working();
                             using (var sha256 = System.Security.Cryptography.SHA256.Create())
                             {
                                 return sha256.ComputeHash(content);
@@ -495,6 +510,15 @@ namespace KeePassGate.Tests.Fakes
             }
 
             return new VaultEntryView(described, sight, fields, attachments, Tag);
+        }
+
+        /// <summary>Counts work on an entry's values that is done with a hold standing.</summary>
+        private void Working()
+        {
+            if (_held > 0)
+            {
+                ValueWorkHeld++;
+            }
         }
 
         /// <summary>
@@ -514,6 +538,7 @@ namespace KeePassGate.Tests.Fakes
         private string Tag(VaultEntryView view)
         {
             TagsTaken++;
+            Working();
 
             var parts = new List<string>
             {

@@ -878,20 +878,39 @@ So the rules here:
   same way, and a tag was of one moment and the content beside it of another. So a request that
   changes nothing is decided and served inside one hold, the operator's ruling of 2026-11-10:
   the caller's admission record and the profile list are read again, the node is found, the
-  rules are asked, the handler reads what it serves and takes its tag, and the answer is made,
-  all of one moment. The rules are asked once, there, and no longer before it. A caller the
+  rules are asked, the handler reads what it serves, and the answer and its tag are made of
+  that, all of one moment. The rules are asked once, there, and no longer before it. A caller the
   database stopped admitting while its request waited is answered inside the hold as its next
   request would be: `401 unpaired`, or the `503` of a database that locked or holds two
   authorities. **What is not a request keeps a hold per step**: the admission record a
   connection is judged on as it arrives, and the databases the gate is serving.
 
+  **What is made of an entry's values is made once the hold has ended, and is still of that
+  moment.** This reverses the handler reading an entry's values and taking its tag inside the
+  hold, decided on 2026-11-13 on a measurement. No write is refused for an entry's size, §142,
+  so measuring an entry's values, reading them and digesting them into its tag grow with
+  whatever a client wrote there, and inside the hold that work was KeePass's thread standing
+  still for it: about forty-five milliseconds for every request handing out the tag of an entry
+  of fifty strings of a million characters. What a read takes of an entry inside the hold is
+  the caller's view of it, `VaultEntryView`, which keeps the objects the strings and
+  attachments were held in at that moment and reads none of them. KeePass replaces a
+  `ProtectedString` and a `ProtectedBinary` and changes neither in place, and both are built to
+  be read from a second thread, which `KeePassContractTests` pins. So the lengths, the values,
+  the attachments' bytes and digests, the tag, the condition asked of it and the answer are made
+  on the connection's own thread once the hold is over, of the entry as it stood inside, whatever
+  the operator has done to it since: the same request then held KeePass's thread for under a
+  tenth of a millisecond. Everything that reads the database stays inside the hold, the audit
+  line for a withheld value with it, which is composed there and written where the answer is
+  served. A change still takes its tags inside its own turn, where the comparison and the
+  change are one step. A group, a listing and what a client may do at a node are read and
+  answered inside the hold as before, since none of them grows with what a client wrote.
+
   **What a whole request holds the thread for is still short.** Over a thousand groups and ten
   thousand entries, through the real router and vault: about fifty-five milliseconds to list
-  every entry, 2.3 MB of JSON, where the sweep alone held seventeen; two and a half to list
-  every group, or to serve an entry or an attachment at its ceiling; under a millisecond for an
-  ordinary entry. The first read of an entry holding forty attachments at the ceiling took
-  forty-seven, since a tag digests each attachment once. `FINDINGS.md` has the table, under
-  "Reading while KeePass changes the tree".
+  every entry, 2.3 MB of JSON, where the sweep alone held seventeen, and two and a half to list
+  every group. A read of an entry holds it to find the entry and ask the rules, and no longer for
+  what the entry holds. `FINDINGS.md` has the table, under "Reading while KeePass changes the
+  tree".
 
   **Nothing that waits runs inside a hold**, since the operator's window waits with it: not the
   writer, which waits on that thread itself and is refused as a defect, not the audit's pacing or
@@ -1364,7 +1383,7 @@ A line records the authorization and not what the request then did, so a permitt
 stands for a request answered afterwards with a malformed body, a conflict, `503 busy` or a
 failure, none of which gets a line of its own. **A line is composed where the decision is made and
 written once KeePass's thread is free again**, which reverses writing it before the handler ran:
-a request is decided inside the hold its read is served in or the turn its change is made in,
+a request is decided inside the hold of its read or the turn its change is made in,
 §119, and the audit's file and the pace a client's lines are held to are waits that belong on the
 caller's connection. So a line carries the moment of its decision and reaches the file after the
 handler, before the answer goes out. **A request is still one decision.** A change is asked about
@@ -1434,9 +1453,10 @@ recorded as KeePass closes is not lost; a line still queued when the process end
 **A thread holding KeePass's thread still for a read is such a thread too**, to the audit and to
 the plugin's log alike, since the window waits for the reader as it waits for its own thread. A
 line the log was given inside a hold went to the file with KeePass's window waiting for it, which
-mattered little while a hold was one step of a read. A request is now served inside one hold,
+mattered little while a hold was one step of a read. A request is now decided inside one hold,
 §119, and a caller can have a line logged there as often as it asks, since a precondition nothing
-meets is logged where the read is refused. `ControlUiThread.MayNotWait` is the question both ask.
+meets on a group is logged where the read is refused. `ControlUiThread.MayNotWait` is the question
+both ask.
 
 Three things are settled about it. It defaults to this user's own application data rather than
 beside the `.kdbx`, because a database is often on a share or in a cloud folder and a record of
@@ -1758,9 +1778,11 @@ What is given up, and written down so that it is not rediscovered as a defect:
   database's memory, in the file and in the time every save takes, a request at a time, and each
   of those writes is in the audit.
 - **A tag is taken over a caller's whole view, however large.** A read refused for its size takes
-  none, and every other answer handing a tag out reads every value in sight: about fifty
-  milliseconds inside a hold of KeePass's thread, and 48 MB allocated a megabyte at a time, for
-  an entry of fifty strings of a million characters. No ceiling was added for it.
+  none, and every other answer handing a tag out reads every value in sight. A read does so once
+  the hold of KeePass's thread has ended, §119, so for an entry of fifty strings of a million
+  characters that is about forty milliseconds of the connection's own thread and none of
+  KeePass's. A change takes its tags inside its turn, beside its save. No ceiling was added for
+  it.
 
 Refused as ways to keep the write's refusal, and not to be proposed again without new evidence: a
 floor or a rounding for each string, a ceiling for each protection class, the message without its

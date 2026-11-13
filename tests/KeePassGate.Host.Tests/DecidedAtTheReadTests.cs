@@ -126,6 +126,54 @@ namespace KeePassGate.Host.Tests
             Assert.That(answer.Json, Does.Not.Contain(Typed));
         }
 
+        [TestCase("/entries/{entry}")]
+        [TestCase("/entries/{entry}/fields")]
+        [TestCase("/entries/{entry}/fields/Longer")]
+        [TestCase("/entries/{entry}/attachments")]
+        [TestCase("/entries/{entry}/attachments/notes.txt")]
+        public void What_the_operator_does_once_the_hold_has_ended_is_in_neither_the_answer_nor_its_tag(string path)
+        {
+            // A read takes its view of the entry inside the hold and asks the view for values,
+            // lengths, attachments and the tag once the hold has ended, on its own thread. The
+            // operator's edit is the first thing KeePass's thread does when the hold is let go,
+            // so it lands before any of that. The view keeps the objects the entry held, which
+            // KeePass replaces and does not change, so the answer and its tag are of the entry
+            // as it stood inside the hold. One value is protected, held as bytes the way a
+            // file's are and longer than the tag encodes whole.
+            _database.RootGroup.CustomData.Set(AclDocument.CustomDataKey, Rules.Granting(("agent", "RLAP")));
+            var longer = new string('k', 40000);
+            _entry.Strings.Set("Longer", new ProtectedString(true, System.Text.Encoding.UTF8.GetBytes(longer)));
+
+            var before = Send(CurrentThread.Instance, path);
+            Assume.That(before.Status, Is.EqualTo(200), before.Json);
+            Assume.That(before.Headers["ETag"], Is.Not.Null);
+
+            _entry.Strings.Set("Longer", new ProtectedString(true, System.Text.Encoding.UTF8.GetBytes(longer)));
+            var operatorNext = new OperatorNext(1, () =>
+            {
+                _entry.Strings.Set(PwDefs.TitleField, new ProtectedString(false, Typed));
+                _entry.Strings.Set("Longer", new ProtectedString(true, Typed));
+                _entry.Strings.Remove(Name);
+                _entry.Strings.Set("Added", new ProtectedString(false, Typed));
+                _entry.Binaries.Set("notes.txt", new ProtectedBinary(false, new byte[] { 9, 9, 9, 9 }));
+                _entry.Binaries.Set("more.txt", new ProtectedBinary(false, new byte[] { 7 }));
+                _entry.Expires = true;
+                _entry.ExpiryTime = DateTime.UtcNow.AddDays(3);
+                _entry.Touch(true, false);
+            });
+
+            var answer = Send(operatorNext, path);
+
+            Assert.That(operatorNext.Ran, Is.True);
+            Assert.That(answer.Status, Is.EqualTo(200), answer.Json);
+            Assert.That(answer.Json, Is.EqualTo(before.Json));
+            Assert.That(answer.Headers["ETag"], Is.EqualTo(before.Headers["ETag"]));
+
+            var after = Send(CurrentThread.Instance, path);
+            Assert.That(after.Status, Is.EqualTo(200), after.Json);
+            Assert.That(after.Headers["ETag"], Is.Not.EqualTo(before.Headers["ETag"]), "the edit did move the tag");
+        }
+
         [TestCase("/groups")]
         [TestCase("/groups/{group}")]
         [TestCase("/groups/{group}/groups")]

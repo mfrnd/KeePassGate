@@ -354,6 +354,112 @@ namespace KeePassGate.Host.Tests
                 + "the bytes staying put either");
         }
 
+        [Test]
+        public void A_string_still_cannot_be_changed_once_it_is_made()
+        {
+            // What a read's view rests on: it keeps the objects an entry's strings were held in
+            // when it was taken and reads them once the hold of KeePass's thread has ended, so a
+            // value read then is the value the entry held inside the hold only while nothing
+            // changes such an object in place. What this pins is the public surface: every
+            // public instance member reads or hands back another string, and no public
+            // property can be set. A KeePass that added a way to change a string in place would
+            // let an operator's edit into an answer the rules were asked about before it.
+            var type = typeof(ProtectedString);
+
+            // cspell:ignore Xorred
+            var readers = new[]
+            {
+                "get_IsProtected", "get_IsEmpty", "get_Length", "ReadString", "ReadChars", "ReadUtf8",
+                "ReadXorredString", "Equals", "GetHashCode", "ToString",
+            };
+            var makers = new[] { "WithProtection", "Insert", "Remove", "Trim" };
+
+            foreach (var method in type.GetMethods(BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly))
+            {
+                if (makers.Contains(method.Name))
+                {
+                    Assert.That(method.ReturnType, Is.EqualTo(type),
+                        "ProtectedString." + method.Name + " no longer hands back another string");
+                    continue;
+                }
+
+                Assert.That(readers, Does.Contain(method.Name),
+                    "ProtectedString has a public " + method.Name + " that may change it in place");
+            }
+
+            foreach (var property in type.GetProperties(BindingFlags.Public | BindingFlags.Instance))
+            {
+                Assert.That(property.CanWrite, Is.False, "ProtectedString." + property.Name + " can be set");
+            }
+
+            // And what those members do to the string they are asked of, which is nothing.
+            var kept = new ProtectedString(true, System.Text.Encoding.UTF8.GetBytes("  as it was made  "));
+            Assert.That(kept.Insert(2, "not ").ReadString(), Is.EqualTo("  not as it was made  "));
+            Assert.That(kept.Remove(0, 5).ReadString(), Is.EqualTo("it was made  "));
+            Assert.That(kept.Trim().ReadString(), Is.EqualTo("as it was made"));
+            Assert.That(kept.WithProtection(false).IsProtected, Is.False);
+            Assert.That(kept.ReadString(), Is.EqualTo("  as it was made  "));
+            Assert.That(kept.IsProtected, Is.True);
+
+            // A value set under a name an entry already holds is another object in the
+            // dictionary, and the object that was there is left as it was.
+            var strings = new ProtectedStringDictionary();
+            strings.Set("Password", kept);
+            strings.Set("Password", new ProtectedString(true, "typed over it"));
+            Assert.That(strings.Get("Password"), Is.Not.SameAs(kept));
+            Assert.That(kept.ReadString(), Is.EqualTo("  as it was made  "));
+        }
+
+        [Test]
+        public void A_string_and_an_attachment_can_still_be_read_from_two_threads_at_once()
+        {
+            // A read asks its view for values on the connection's thread while KeePass's own
+            // thread is free to read the same objects: the entry list drawing a title, an
+            // operator opening the entry. `ProtectedBinary.ReadData` copies under a lock of its
+            // own and `ProtectedString.ReadString` keeps the text it decoded before it lets the
+            // bytes go, read off 2.61.1. A race proves nothing by passing, and this fails,
+            // sooner or later, on a KeePass that lost either property.
+            const int Rounds = 12;
+            var expected = new string('k', 150000);
+
+            for (var round = 0; round < Rounds; round++)
+            {
+                var text = new ProtectedString(true, System.Text.Encoding.UTF8.GetBytes(expected));
+                var bytes = new ProtectedBinary(true, System.Text.Encoding.UTF8.GetBytes(expected));
+
+                string elsewhere = null;
+                var length = -1;
+                byte[] copied = null;
+
+                using (var together = new Barrier(2))
+                {
+                    var other = System.Threading.Tasks.Task.Run(() =>
+                    {
+                        together.SignalAndWait();
+                        length = text.Length;
+                        elsewhere = text.ReadString();
+                        copied = bytes.ReadData();
+                    });
+
+                    together.SignalAndWait();
+                    var here = text.ReadString();
+                    var measured = text.Length;
+                    var read = bytes.ReadData();
+
+                    // Whatever the other thread threw is thrown here.
+                    other.GetAwaiter().GetResult();
+
+                    Assert.That(here, Is.EqualTo(expected));
+                    Assert.That(measured, Is.EqualTo(expected.Length));
+                    Assert.That(System.Text.Encoding.UTF8.GetString(read), Is.EqualTo(expected));
+                }
+
+                Assert.That(elsewhere, Is.EqualTo(expected));
+                Assert.That(length, Is.EqualTo(expected.Length));
+                Assert.That(System.Text.Encoding.UTF8.GetString(copied), Is.EqualTo(expected));
+            }
+        }
+
         [TestCase(KeePassContract.GroupFormTypeName)]
         [TestCase(KeePassContract.EntryFormTypeName)]
         public void Both_node_dialogs_still_keep_their_own_copy_of_custom_data(string typeName)

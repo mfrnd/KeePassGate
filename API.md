@@ -264,8 +264,9 @@ the same right or wrong. What a caller may read is read off its view of the node
 tag is taken of, so a protected title or URL a listing shows the caller counts as read, on
 `protected` beside `list` as well as beside `read`. A read's is decided against the tag it is
 answered
-with, and the tag and what it is answered with are of one moment, taken inside the hold of
-KeePass's thread the read is decided and served in, `DESIGN.md` §119. **That reverses a tag taken
+with, and the tag and what it is answered with are of one moment: a group's are taken inside the
+hold of KeePass's thread the read is decided in, and an entry's are both made of the view of the
+entry taken inside that hold, `DESIGN.md` §119. **That reverses a tag taken
 before its content**, which was the safe order while a change could land between the two: a
 client was left an older tag over newer content, which its next write failed over, and never a
 newer tag over older content, which its next write would have carried straight over the change.
@@ -344,13 +345,17 @@ file around it grow is that client's to decide, a request at a time. PyKeePassGa
 whole read refused this way and does not go on to read field by field: which strings to fetch of
 an entry too large to hand over is its caller's decision.
 
-**A tag is still taken over the whole of a caller's view, however large.** A read refused for its
-size takes no tag, so it digests nothing. Every other answer that hands a tag out, a listing of
-the fields and a read of a short field among them, and every write under `If-Match` or answered
-with an `etag`, reads every value in its caller's sight. Measured on an entry of fifty strings of
-a million characters each, that is about fifty milliseconds inside the hold of KeePass's thread
-and 48 MB allocated a megabyte at a time, for each such request; `FINDINGS.md` has the numbers.
-No ceiling was added for it.
+**A tag is still taken over the whole of a caller's view, however large, and a read takes it
+with KeePass's thread free.** A read refused for its size takes no tag, so it digests nothing.
+Every other answer that hands a tag out, a listing of the fields and a read of a short field
+among them, and every write under `If-Match` or answered with an `etag`, reads every value in its
+caller's sight. A read does that once the hold of KeePass's thread has ended, from the view of
+the entry it took inside the hold, and encodes a long value for the digest a piece at a time,
+`DESIGN.md` §119. Measured on an entry of fifty strings of a million characters each, a read
+that hands a tag out holds KeePass's thread for under a tenth of a millisecond and then takes
+about forty milliseconds and 0.2 MB on its own connection's thread. A write takes its tags inside
+its own turn on KeePass's thread, where the comparison and the change are one step, beside a
+save that takes far longer; `FINDINGS.md` has the numbers. No ceiling was added for it.
 
 ## Durability §408
 

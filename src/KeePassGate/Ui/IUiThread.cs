@@ -222,9 +222,9 @@ namespace KeePassGate.Ui
         /// waits for its own thread, and for as long as a read holds that thread it waits for the
         /// reader as well, so a line logged inside a hold that waited on slow or unreachable
         /// storage held the window for that file, up to the hold's limit, and then cost the
-        /// request its answer. A request that changes nothing is decided and served inside one
-        /// hold, and a caller can make that log a line as often as it asks: a precondition
-        /// nothing meets is logged where it is refused.
+        /// request its answer. A request that changes nothing is decided inside one hold, and
+        /// a caller can make that log a line as often as it asks: a precondition nothing meets
+        /// on a group is logged where it is refused.
         /// </remarks>
         /// <param name="keePass">The thread KeePass's windows belong to.</param>
         internal static Func<bool> MayNotWait(Thread keePass)

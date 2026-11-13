@@ -8,7 +8,7 @@ namespace KeePassGate.Pipeline
     /// </summary>
     /// <remarks>
     /// **A decision is made where the database stands still, and its line is written where a wait
-    /// costs nobody else anything.** A request is decided inside the hold its read is served in, or
+    /// costs nobody else anything.** A request is decided inside the hold of its read, or
     /// inside the turn its write is made in, and both stop KeePass's own thread: writing a line
     /// there would put the audit file's disk, and the wait <see cref="DecisionPace"/> imposes on a
     /// client that writes too fast, on the thread the operator is typing into. So
@@ -24,7 +24,9 @@ namespace KeePassGate.Pipeline
     ///
     /// Filled on KeePass's thread and written from the connection's, one after the other and
     /// never at once: `IUiThread.Run` returns only when the work it was given has finished or
-    /// been withdrawn. The lock is for the reader that cannot know that.
+    /// been withdrawn. The lock is for the reader that cannot know that. A line composed inside
+    /// a read's hold for a value its view withheld is added from the connection's thread, where
+    /// the read is served, and before anything is written.
     /// </remarks>
     public sealed class DecisionLines
     {
@@ -47,6 +49,24 @@ namespace KeePassGate.Pipeline
             lock (_lock)
             {
                 _asked.Add(new Line(entry, allowance));
+            }
+        }
+
+        /// <summary>
+        /// Everything another set of lines kept, added after the questions kept here, with
+        /// nothing left behind there.
+        /// </summary>
+        /// <remarks>
+        /// For a line composed where a read is decided and added only once the read is known to
+        /// be served, <see cref="ProtectedWithheld"/>.
+        /// </remarks>
+        internal void Asked(DecisionLines composed)
+        {
+            var taken = composed.Taken();
+
+            lock (_lock)
+            {
+                _asked.AddRange(taken);
             }
         }
 

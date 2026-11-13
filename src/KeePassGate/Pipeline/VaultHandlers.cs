@@ -29,6 +29,13 @@ namespace KeePassGate.Pipeline
     /// not hold. Anything else missing is a hold that did not last, and the router answers that
     /// `503 busy` whatever was made of it here.
     ///
+    /// **A read of an entry leaves the hold with the caller's view and makes its answer after
+    /// it**, <see cref="Later"/>. The view keeps the objects the entry's values were held in
+    /// when it was taken, so the values, their lengths, the tag and the answer made from them
+    /// afterwards are still of that one moment, and none of that work, which grows with the
+    /// entry, is done on KeePass's thread. Everything that reads the database stays inside:
+    /// finding the entry and the name in it, the rules, and the line for a value withheld.
+    ///
     /// **A change is decided again where it is made**, and still not by its handler. The router
     /// answered before the change waited for its turn on KeePass's thread, so the handler of a
     /// change looks nothing up and decides nothing: it hands the vault the router's question and
@@ -240,11 +247,8 @@ namespace KeePassGate.Pipeline
 
             var uuid = Captured(context, "uuid");
 
-            // The view is taken with nothing read or measured, and measured here, so a view over
-            // the ceiling is refused with no value read. What is measured is what this caller
-            // would be handed: every name, and the values in its sight, never a withheld value.
-            // Measuring is not always free: KeePass decrypts a protected value it holds as bytes
-            // to count its characters, once and inside its own type, `VaultViewField`.
+            // The view is taken inside the hold with nothing read or measured, and everything
+            // made of its values is left for after the hold, `Later`.
             Reading asked;
             var view = View(context, vault, uuid, out asked);
             if (view == null)
@@ -253,80 +257,94 @@ namespace KeePassGate.Pipeline
                 return;
             }
 
-            if (view.Characters > MaxEntryCharacters)
-            {
-                EntryTooLarge(context, view.Characters);
-                return;
-            }
-
-            // Measured again on what came back, because a view handing over more than it
-            // measured must not be the way past the ceiling either. Before the condition, for the
-            // reason `ReadAttachment` gives. A value out of the caller's sight is not in the view,
-            // and comes back as null.
-            var values = new List<string>(view.Fields.Count);
-            var handed = 0;
-            foreach (var field in view.Fields)
-            {
-                var value = field.Value;
-                values.Add(value);
-                handed += field.Name.Length + (value == null ? 0 : value.Length);
-            }
-
-            if (handed > MaxEntryCharacters)
-            {
-                EntryTooLarge(context, handed);
-                return;
-            }
-
-            // After the ceiling, so an entry too large to hand out is not digested either. The
-            // view's own tag, so it is of exactly what this caller may read, and null from a view
-            // whose sight does not read.
-            var tag = view.Tag;
-            if (PreconditionFails(context, tag))
-            {
-                return;
-            }
-
-            var json = new JsonWriter();
-            json.Text("uuid", view.Entry.Uuid);
-            json.Text("group", view.Entry.Group);
-            json.Text("created", Moments.Wire(view.Entry.Created));
-            json.Text("modified", Moments.Wire(view.Entry.Modified));
-
-            // `null` for an entry that does not expire, as `parent` is for the group with nothing
-            // above it. `read` is all it needs, since when an entry expires is not a value the
-            // database protects, and a listing leaves it out, because `list` gives names.
-            json.Text(ExpiresMember, view.Entry.Expires.HasValue ? Moments.Wire(view.Entry.Expires.Value) : null);
-
             // The view decides what is served: a value is in the answer exactly when the view
             // holds it, and the view holds what any route shows this caller, a protected title
             // a listing shows it among them. Where the view withholds a value the refusal is
-            // written down, once, however many it withholds, from the walk the view's sight was
-            // decided by, with nothing asked of the rules again.
-            Withholding(context, view, view.Fields, asked);
+            // composed here, once, however many it withholds, from the walk the view's sight was
+            // decided by, with nothing asked of the rules again, and written down where the
+            // entry is served.
+            var withheld = Withholding(context, view, view.Fields, asked);
 
-            json.Object("fields");
-            for (var index = 0; index < view.Fields.Count; index++)
+            Later(context, () =>
             {
-                // Withheld as `null` rather than left out, so a client can tell a value it may not
-                // have from a field that is not there. The `protected` member below names which
-                // could have been, which is what makes the difference readable rather than
-                // guessed at. A withheld field has no value behind it, so what is written for it
-                // is the null the view answered.
-                json.Text(view.Fields[index].Name, values[index]);
-            }
+                // Measured before anything is read, so a view over the ceiling is refused with
+                // no value read. What is measured is what this caller would be handed: every
+                // name, and the values in its sight, never a withheld value. Measuring is not
+                // always free: KeePass decrypts a protected value it holds as bytes to count its
+                // characters, once and inside its own type, `VaultViewField`.
+                if (view.Characters > MaxEntryCharacters)
+                {
+                    EntryTooLarge(context, view.Characters);
+                    return;
+                }
 
-            json.End();
+                // Measured again on what came back, because a view handing over more than it
+                // measured must not be the way past the ceiling either. Before the condition,
+                // for the reason `ReadAttachment` gives. A value out of the caller's sight is
+                // not in the view, and comes back as null.
+                var values = new List<string>(view.Fields.Count);
+                var handed = 0;
+                foreach (var field in view.Fields)
+                {
+                    var value = field.Value;
+                    values.Add(value);
+                    handed += field.Name.Length + (value == null ? 0 : value.Length);
+                }
 
-            json.Array("protected");
-            foreach (var name in view.Protected)
-            {
-                json.Item(name);
-            }
+                if (handed > MaxEntryCharacters)
+                {
+                    EntryTooLarge(context, handed);
+                    return;
+                }
 
-            json.End();
+                // After the ceiling, so an entry too large to hand out is not digested either.
+                // The view's own tag, so it is of exactly what this caller may read, and null
+                // from a view whose sight does not read.
+                var tag = view.Tag;
+                if (PreconditionFails(context, tag))
+                {
+                    return;
+                }
 
-            context.Respond(200, json.Done(), Tagged(tag));
+                var json = new JsonWriter();
+                json.Text("uuid", view.Entry.Uuid);
+                json.Text("group", view.Entry.Group);
+                json.Text("created", Moments.Wire(view.Entry.Created));
+                json.Text("modified", Moments.Wire(view.Entry.Modified));
+
+                // `null` for an entry that does not expire, as `parent` is for the group with
+                // nothing above it. `read` is all it needs, since when an entry expires is not a
+                // value the database protects, and a listing leaves it out, because `list` gives
+                // names.
+                json.Text(
+                    ExpiresMember, view.Entry.Expires.HasValue ? Moments.Wire(view.Entry.Expires.Value) : null);
+
+                // Served, so the refusal composed inside the hold is written down.
+                withheld();
+
+                json.Object("fields");
+                for (var index = 0; index < view.Fields.Count; index++)
+                {
+                    // Withheld as `null` rather than left out, so a client can tell a value it
+                    // may not have from a field that is not there. The `protected` member below
+                    // names which could have been, which is what makes the difference readable
+                    // rather than guessed at. A withheld field has no value behind it, so what
+                    // is written for it is the null the view answered.
+                    json.Text(view.Fields[index].Name, values[index]);
+                }
+
+                json.End();
+
+                json.Array("protected");
+                foreach (var name in view.Protected)
+                {
+                    json.Item(name);
+                }
+
+                json.End();
+
+                context.Respond(200, json.Done(), Tagged(tag));
+            });
         }
 
         public static void CreateEntry(IGateContext context)
@@ -392,7 +410,8 @@ namespace KeePassGate.Pipeline
             // that is not there, and never an entry holding no strings. The listing itself is
             // names and flags, so nothing is read or measured for a caller that only lists, whose
             // view holds no value and has no tag. A caller holding `read` beside `list` is handed
-            // the entry's tag, and taking the tag reads every value in that caller's sight.
+            // the entry's tag, and taking the tag reads every value in that caller's sight, which
+            // is why the tag and the answer it travels with are left for after the hold.
             var uuid = Captured(context, "uuid");
             var view = View(context, vault, uuid);
             if (view == null)
@@ -404,7 +423,8 @@ namespace KeePassGate.Pipeline
             // The names are what this answer hands out, so the names are what it is held to,
             // whatever the caller's sight: no write is refused for how many strings an entry
             // holds, and nothing else bounds this listing. Before the tag, so a listing too
-            // large to hand out digests nothing either.
+            // large to hand out digests nothing either. The view counted the names as it was
+            // built, so nothing is measured to answer this.
             if (view.NameCharacters > MaxEntryCharacters)
             {
                 context.Respond(413, HttpResponse.ErrorBody(string.Format(
@@ -415,25 +435,28 @@ namespace KeePassGate.Pipeline
                 return;
             }
 
-            var tag = view.Tag;
-            if (PreconditionFails(context, tag))
+            Later(context, () =>
             {
-                return;
-            }
+                var tag = view.Tag;
+                if (PreconditionFails(context, tag))
+                {
+                    return;
+                }
 
-            var json = new JsonWriter();
-            json.Array("fields");
+                var json = new JsonWriter();
+                json.Array("fields");
 
-            foreach (var field in view.Fields)
-            {
-                json.Item();
-                json.Text("name", field.Name);
-                json.Flag("protected", field.IsProtected);
+                foreach (var field in view.Fields)
+                {
+                    json.Item();
+                    json.Text("name", field.Name);
+                    json.Flag("protected", field.IsProtected);
+                    json.End();
+                }
+
                 json.End();
-            }
-
-            json.End();
-            context.Respond(200, json.Done(), Tagged(tag));
+                context.Respond(200, json.Done(), Tagged(tag));
+            });
         }
 
         public static void ReadField(IGateContext context)
@@ -455,7 +478,8 @@ namespace KeePassGate.Pipeline
             // is served carries the tag, which every caller reaching this route is handed, and
             // taking the tag reads every value in the caller's sight; a value out of that sight
             // is never read. Null is an entry that is not there or a name the entry does not
-            // hold.
+            // hold. The view and the name are found inside the hold, and the value is measured
+            // and read, and the tag taken, after it, `Later`.
             //
             // The saving on a refusal is the whole of the reason for reading late. It is not a
             // claim that a value a caller is refused is safer for not having been decrypted:
@@ -471,46 +495,53 @@ namespace KeePassGate.Pipeline
                 return;
             }
 
-            // Whether the value is withheld is decided first, by the view, and a withheld value
-            // has no size here: the view holds nothing to measure it with, so it is answered as
-            // the `null` every withheld value is, however long it is, and never as too large. A
-            // value in sight is measured before it is read, and again on what came back, as
-            // `readEntry` measures. Before the condition, for the reason `ReadAttachment` gives.
-            string value = null;
-            if (!field.IsWithheld)
+            // The view decides: the value is served exactly when the view holds it, and a refusal
+            // is composed here where it does not and written down where the field is served, as
+            // `readEntry` does. The flag and the value are of one string of one view, so neither
+            // is ever answered about a string the other was not read from.
+            var withheld = Withholding(context, view, new[] { field }, asked);
+
+            Later(context, () =>
             {
-                value = field.Characters > MaxEntryCharacters ? null : field.Value;
-                var characters = value == null ? field.Characters : name.Length + value.Length;
-                if (characters > MaxEntryCharacters)
+                // Whether the value is withheld is decided first, by the view, and a withheld
+                // value has no size here: the view holds nothing to measure it with, so it is
+                // answered as the `null` every withheld value is, however long it is, and never
+                // as too large. A value in sight is measured before it is read, and again on
+                // what came back, as `readEntry` measures. Before the condition, for the reason
+                // `ReadAttachment` gives.
+                string value = null;
+                if (!field.IsWithheld)
                 {
-                    context.Respond(413, HttpResponse.ErrorBody(string.Format(
-                        CultureInfo.InvariantCulture,
-                        "this field comes to {0} characters with its name, and this gate hands out at most {1}",
-                        characters,
-                        MaxEntryCharacters)));
+                    value = field.Characters > MaxEntryCharacters ? null : field.Value;
+                    var characters = value == null ? field.Characters : name.Length + value.Length;
+                    if (characters > MaxEntryCharacters)
+                    {
+                        context.Respond(413, HttpResponse.ErrorBody(string.Format(
+                            CultureInfo.InvariantCulture,
+                            "this field comes to {0} characters with its name, and this gate hands out at most {1}",
+                            characters,
+                            MaxEntryCharacters)));
+                        return;
+                    }
+                }
+
+                // After the ceiling, as `readEntry` takes it.
+                var tag = view.Tag;
+                if (PreconditionFails(context, tag))
+                {
                     return;
                 }
-            }
 
-            // After the ceiling, as `readEntry` takes it.
-            var tag = view.Tag;
-            if (PreconditionFails(context, tag))
-            {
-                return;
-            }
+                // Served, so the refusal composed inside the hold is written down.
+                withheld();
 
-            // The view decides: the value is served exactly when the view holds it, and a refusal
-            // is written down where it does not, as `readEntry` does. The flag and the value are
-            // of one string of one view, so neither is ever answered about a string the other
-            // was not read from.
-            Withholding(context, view, new[] { field }, asked);
+                var json = new JsonWriter();
+                json.Text("name", name);
+                json.Text("value", value);
+                json.Flag("protected", field.IsProtected);
 
-            var json = new JsonWriter();
-            json.Text("name", name);
-            json.Text("value", value);
-            json.Flag("protected", field.IsProtected);
-
-            context.Respond(200, json.Done(), Tagged(tag));
+                context.Respond(200, json.Done(), Tagged(tag));
+            });
         }
 
         public static void CreateField(IGateContext context)
@@ -647,25 +678,30 @@ namespace KeePassGate.Pipeline
                 return;
             }
 
-            var tag = view.Tag;
-            if (PreconditionFails(context, tag))
+            // The tag reads every value in the caller's sight, so it and the answer it travels
+            // with are left for after the hold, as `ListFields` leaves them.
+            Later(context, () =>
             {
-                return;
-            }
+                var tag = view.Tag;
+                if (PreconditionFails(context, tag))
+                {
+                    return;
+                }
 
-            var json = new JsonWriter();
-            json.Array("attachments");
+                var json = new JsonWriter();
+                json.Array("attachments");
 
-            foreach (var attachment in view.Attachments)
-            {
-                json.Item();
-                json.Text("name", attachment.Name);
-                json.Number("size", attachment.Size);
+                foreach (var attachment in view.Attachments)
+                {
+                    json.Item();
+                    json.Text("name", attachment.Name);
+                    json.Number("size", attachment.Size);
+                    json.End();
+                }
+
                 json.End();
-            }
-
-            json.End();
-            context.Respond(200, json.Done(), Tagged(tag));
+                context.Respond(200, json.Done(), Tagged(tag));
+            });
         }
 
         /// <summary>
@@ -716,36 +752,42 @@ namespace KeePassGate.Pipeline
                 return;
             }
 
-            // Measured again on what came back, because a view handing over more than it
-            // measured must not be the way past the ceiling either. Before the condition, which
-            // RFC 9110 section 13.2.1 orders after every refusal that does not depend on the tag:
-            // asked first, an attachment over the ceiling answered a stale tag `412`, and a client
-            // never handed a tag was told `412` every time and never that it was too large.
-            var content = attachment.Content;
-            var size = content == null ? attachment.Size : content.Length;
-            if (content == null || size > MaxAttachmentBytes)
+            // The bytes are read, and the tag taken, after the hold: the view keeps the object
+            // the attachment was held in when it was taken, `Later`.
+            Later(context, () =>
             {
-                context.Respond(413, HttpResponse.ErrorBody(string.Format(
-                    CultureInfo.InvariantCulture,
-                    "this attachment is {0} bytes, and this gate hands out at most {1}",
-                    size,
-                    MaxAttachmentBytes)));
-                return;
-            }
+                // Measured again on what came back, because a view handing over more than it
+                // measured must not be the way past the ceiling either. Before the condition,
+                // which RFC 9110 section 13.2.1 orders after every refusal that does not depend
+                // on the tag: asked first, an attachment over the ceiling answered a stale tag
+                // `412`, and a client never handed a tag was told `412` every time and never
+                // that it was too large.
+                var content = attachment.Content;
+                var size = content == null ? attachment.Size : content.Length;
+                if (content == null || size > MaxAttachmentBytes)
+                {
+                    context.Respond(413, HttpResponse.ErrorBody(string.Format(
+                        CultureInfo.InvariantCulture,
+                        "this attachment is {0} bytes, and this gate hands out at most {1}",
+                        size,
+                        MaxAttachmentBytes)));
+                    return;
+                }
 
-            // After the ceiling, as `readEntry` takes it.
-            var tag = view.Tag;
-            if (PreconditionFails(context, tag))
-            {
-                return;
-            }
+                // After the ceiling, as `readEntry` takes it.
+                var tag = view.Tag;
+                if (PreconditionFails(context, tag))
+                {
+                    return;
+                }
 
-            var json = new JsonWriter();
-            json.Text("name", name);
-            json.Number("size", content.Length);
-            json.Text("content", Convert.ToBase64String(content));
+                var json = new JsonWriter();
+                json.Text("name", name);
+                json.Number("size", content.Length);
+                json.Text("content", Convert.ToBase64String(content));
 
-            context.Respond(200, json.Done(), Tagged(tag));
+                context.Respond(200, json.Done(), Tagged(tag));
+            });
         }
 
         public static void CreateAttachment(IGateContext context)
@@ -1566,8 +1608,31 @@ namespace KeePassGate.Pipeline
         }
 
         /// <summary>
-        /// Writes down that a value is withheld from an answer, where the view withholds the
-        /// value of one of these strings.
+        /// Runs the part of a read's answer that is made of an entry's values once the hold the
+        /// read was decided in has ended, or where it stands for a request nothing holds.
+        /// </summary>
+        /// <remarks>
+        /// <see cref="ServedAfter"/> has the reason and what may be left: the view, and what
+        /// the hold already decided, and nothing that reads the database. Every read of an
+        /// entry leaves its measuring, its reading, its tag, its condition and its answer here,
+        /// so no such read does work that grows with the entry on KeePass's thread.
+        /// </remarks>
+        private static void Later(IGateContext context, Action serve)
+        {
+            object left;
+            var after = context.Items.TryGetValue(SpecRouter.AfterItem, out left) ? left as ServedAfter : null;
+            if (after == null)
+            {
+                serve();
+                return;
+            }
+
+            after(serve);
+        }
+
+        /// <summary>
+        /// Composes the line for a value withheld from an answer, where the view withholds the
+        /// value of one of these strings, and hands back what writes it down.
         /// </summary>
         /// <remarks>
         /// **The view decides what a read serves, and this records what it left out.** A value
@@ -1578,9 +1643,16 @@ namespace KeePassGate.Pipeline
         /// asked that could answer otherwise: asked again, a refusal went unwritten whenever
         /// the two disagreed.
         ///
-        /// **A value withheld is always written down.** A view that withholds with no refusal
-        /// behind it, which a sight nobody decided comes to, is recorded as that, and a request
-        /// the router left no recorder for writes nothing and still serves nothing withheld.
+        /// **A value withheld from an answer is always written down.** A view that withholds
+        /// with no refusal behind it, which a sight nobody decided comes to, is recorded as
+        /// that, and a request the router left no recorder for writes nothing and still serves
+        /// nothing withheld.
+        ///
+        /// **Composed here, inside the hold, and written by what comes back**, which the read
+        /// runs where it serves the answer, after the hold: the line names the node and asks
+        /// the rules what a removed profile would have allowed, which reads the database, and
+        /// a read refused for its size or by its condition serves nothing and writes no line,
+        /// <see cref="ProtectedWithheld"/>. What comes back is never null.
         ///
         /// Not written where the view serves every value, so a caller shown a protected title
         /// through the listing's reach, reading an entry with nothing else protected on it,
@@ -1591,13 +1663,13 @@ namespace KeePassGate.Pipeline
         /// taken off the database's list can be the reason on that reach too, and the line
         /// names it: `AccessCheck.Withheld`.
         /// </remarks>
-        private static void Withholding(
+        private static Action Withholding(
             IGateContext context, VaultEntryView view, IEnumerable<VaultViewField> fields, Reading asked)
         {
             var withheld = fields.Where(field => field.IsWithheld).ToList();
             if (withheld.Count == 0)
             {
-                return;
+                return Nothing;
             }
 
             var decided = asked == null ? null : asked.ProtectedValues;
@@ -1607,10 +1679,17 @@ namespace KeePassGate.Pipeline
 
             object found;
             var record = context.Items.TryGetValue(SpecRouter.WithheldItem, out found) ? found as ProtectedWithheld : null;
-            if (record != null)
+            if (record == null)
             {
-                record(view.Entry.Node, AclVerb.Read, refusal, withheld.All(field => field.IsListed));
+                return Nothing;
             }
+
+            return record(view.Entry.Node, AclVerb.Read, refusal, withheld.All(field => field.IsListed)) ?? Nothing;
+        }
+
+        /// <summary>What writes nothing down, for a read that withheld nothing.</summary>
+        private static void Nothing()
+        {
         }
 
         /// <summary>

@@ -430,6 +430,13 @@ namespace KeePassGate.Vault
     /// the first measurement of a protected value KeePass holds as bytes decrypts it once inside
     /// KeePass's own type, <see cref="VaultViewField"/>. A withheld value is neither read nor
     /// measured.
+    ///
+    /// **A view is of the moment it was taken, whenever it is asked.** The vault takes it with
+    /// KeePass's thread held still and hands every field and attachment what reads the object
+    /// the entry held then, an object KeePass replaces and does not change. So a read asks its
+    /// view for lengths, values, bytes and the tag once that hold has ended, on its own thread,
+    /// and is answered about the entry as it stood inside the hold. A view is one request's
+    /// and is asked from one thread at a time.
     /// </remarks>
     public sealed class VaultEntryView
     {

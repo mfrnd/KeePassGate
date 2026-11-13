@@ -474,18 +474,53 @@ measured by holds no length for a value it withholds, both writes are now made a
 alike, and the withheld field is the `null` every withheld value is.
 
 **What a tag costs on an entry far past the ceiling**, now that writes can make such an entry:
-fifty strings of a million characters each, on the development machine in a Debug build, through
-the real router and vault. A read of the whole entry is refused in about a millisecond with 0.3
-MB allocated, and takes no tag. Every other request that hands a tag to a client with all fifty
-values in sight, a listing of the fields or a read of the title, took 45 to 50 milliseconds and
-allocated 48 MB, the UTF-8 form of each value in turn for the digest, a megabyte at a time and
-never all live at once. The first such request after the strings were loaded as a file loads
-protected values took 116 milliseconds and 191 MB, since KeePass decrypts and decodes each value
-once and then keeps the decoded string. A client that reads the entry without `protected`, the
-fifty being protected, was answered in under two milliseconds with 0.4 MB: a withheld value is
-never read. A write answered with a tag allocated 48 MB more than the same write by a client
-handed none, 193 MB against 145 MB, beside a save of 2.2 seconds for the fifty protected strings
-and 0.3 seconds for fifty open ones, which the write causes whoever sends it.
+fifty strings of a million characters each, protected and held as bytes the way a file's are, on
+the development machine in a Release build, through the real router and vault. A read of the
+whole entry is refused and takes no tag. Every other request that hands a tag to a client with
+all fifty values in sight, a listing of the fields or a read of the title, digests the fifty
+megabytes, which takes about forty milliseconds. **Taken inside the hold, that was KeePass's
+thread standing still for every such request**: 45 to 47 milliseconds, with 48 MB allocated for
+the UTF-8 form of each value in turn, and 93 to 104 milliseconds and 191 MB for the first request
+after the values were loaded, since KeePass decrypts and decodes each value once and then keeps
+the decoded string. So a read takes its view of the entry inside the hold and asks the view for
+everything else once the hold has ended, and the tag encodes a long value a piece at a time,
+`DESIGN.md` §119. Measured the same way after that: the hold is 0.07 to 0.08 milliseconds
+whatever the entry holds, and the request then takes 40 to 42 milliseconds and 0.2 MB on its own
+connection's thread, 90 milliseconds and 143 MB the first time, which is KeePass's own decoding.
+A whole read refused for its size measures the values the first time, 46 milliseconds and 48
+MB, and is answered in a tenth of a millisecond after that, none of it inside the hold. A client
+that reads the entry without `protected`, the fifty being protected, reads and measures none of
+them: a withheld value is never read. A write takes its tags inside its own turn, about forty
+milliseconds each, beside a save of 2.2 seconds for the fifty protected strings and 0.3 seconds
+for fifty open ones, which the write causes whoever sends it.
+
+**A view of an entry can be asked after the hold it was taken in, because KeePass replaces the
+object a value is held in and never changes it.** Read off KeePass 2.61.1, decompiled, and
+measured against it. `ProtectedStringDictionary.Set` and `ProtectedBinaryDictionary.Set` put
+another object under the name, and no public member of `ProtectedString` or `ProtectedBinary`
+changes an object in place: `Insert`, `Remove`, `Trim` and `WithProtection` each hand back
+another string. Both are built for a second reader. `ProtectedBinary.ReadData` decrypts its
+bytes, copies them and encrypts them again under a lock of its own, and `ProtectedString`
+takes its bytes into a local before it reads them, keeps the string it decoded and only then
+lets the bytes go, in that order. Measured: a view kept while its entry had values and
+attachments replaced, removed and added, its times moved, the entry moved to another group and
+the database locked gave the tag it gave when it was taken; and in forty rounds of a tag taken
+on a second thread while the first read the same twelve values of 200,000 characters, no tag
+differed and nothing threw. `KeePassContractTests` pins the public surface of both types and
+the reading from two threads, and `DecidedAtTheReadTests` holds the real router and vault to an
+answer and a tag of the entry as it stood inside the hold.
+
+**Where the work is done, measured before it was moved**, on the same fifty strings in Release,
+with the view taken inside the hold in every case. Values read and digested inside: the hold is
+93 to 104 milliseconds the first time and 45 to 47 after. Values read inside and digested
+after: 53 milliseconds of hold the first time and 0.04 after, with 45 to 48 after the hold. Both
+after: 0.04 milliseconds of hold every time, with 96 to 115 after it the first time and 44 to 50
+later. Eight strings of 65,536 characters, an entry at its ceiling, cost half a millisecond
+wherever it is done. A hundred attachments of 512 KiB, the most that is served, cost 60 to 90
+milliseconds and 50 MB the first time their digests are taken, wherever that is, and 0.15 after,
+since a digest is kept against the object. Encoding each value for the digest in pieces of
+16,384 characters through one buffer gave the digest of the value encoded whole with 0.1 MB
+allocated against 47.7 MB, in 39 to 42 milliseconds against 49 to 56.
 
 **KeePass counts a protected string's characters by decrypting it, the first time it is asked,
 which "measured with nothing decrypted" had wrong.** `ProtectedString.Length` answers from a count
@@ -552,7 +587,7 @@ changes a list, and then what each way of keeping the two apart costs. The probe
 | **`List<T>` moves its version after its size, so a reader that checks the version finds almost nothing wrong.** Checking it either side of a walk caught 5 to 27 of about twelve thousand misses, and waiting 100 µs before trusting it still missed 32 while flagging 7,350 of 7,814 good walks | the same churn, with the version read through reflection |
 | **Holding KeePass's thread still for the read closes it.** A `BeginInvoke` callback that waits on KeePass's thread until the reader, on its own thread, is done: no misses and nothing thrown in 71,503 and 46,297 walks, against 224 and 128 misses and 91,770 and 58,745 exceptions for a reader beside it that held nothing. Waiting for the hold took 0.07 ms at the median, under a millisecond at p99, and 115 ms at worst, the longest handler | the same churn |
 | **A read holds the thread for its own length, and that is short.** Over a thousand groups and ten thousand entries: a full sweep 16.9 ms at the median in Release, a lookup 0.17 ms, the structure alone 0.055 ms | timed in Release and Debug |
-| **A whole request decided and served inside one hold is still short.** Over a thousand groups and ten thousand entries, with an authority and an admitted client, at the median in Release: every entry listed, 2.3 MB of JSON, 55 ms in one run and 43 in another, 69 at worst; every group listed 2.3 ms; a group 0.11 ms; an entry 0.81 ms; an entry of fifty fields of ten thousand characters 2.4 ms; an attachment of 512 KiB, the most that is served, 2.6 ms and 15 at worst. The first read of an entry holding forty such attachments 47 ms, its tag digesting 20 MiB once, and 0.83 ms after that. Reading the caller's record and the profile list again is about 0.03 ms of each | the real router and vault over a database made for it, one timed hold a request and forty-one runs of each, in Release and Debug |
+| **A whole request decided and served inside one hold is still short**, measured while every read made its whole answer inside the hold; what is made of an entry's values is made after the hold now, section 20, so the entry and attachment figures here are no longer time on KeePass's thread. Over a thousand groups and ten thousand entries, with an authority and an admitted client, at the median in Release: every entry listed, 2.3 MB of JSON, 55 ms in one run and 43 in another, 69 at worst; every group listed 2.3 ms; a group 0.11 ms; an entry 0.81 ms; an entry of fifty fields of ten thousand characters 2.4 ms; an attachment of 512 KiB, the most that is served, 2.6 ms and 15 at worst. The first read of an entry holding forty such attachments 47 ms, its tag digesting 20 MiB once, and 0.83 ms after that. Reading the caller's record and the profile list again is about 0.03 ms of each | the real router and vault over a database made for it, one timed hold a request and forty-one runs of each, in Release and Debug |
 | **KeePass changes some live entries in place outside its dialogs**, so a hold over the structure alone would not be exact: placeholders that generate a value, opening an attachment, editing several entries at once, XML Replace, the OTP generator settings and a merge's database properties | KeePass 2.61.1's IL, every caller of the in-place mutators of an entry's dictionaries |
 | **A read needs a turn where Idle is never raised too.** Inside a `MessageBox`, whose loop raises no Idle, a 50 ms fallback timer kept reads going at fifteen a second, and the window's own timer stayed on time | the window section 21 measured, inside a message box |
 | **That timer served a read from inside a merge, of a tree the merge had not finished.** A merge pumps through its status logger between one step and the next, and a read asked for at the first step of a merge bringing forty entries was served inside the pump and counted none of them. A read inside a pump had been held harmless, which is true of a save and not of a merge | `PwDatabase.MergeIn` over two real databases on a message loop, with a logger pumping `DoEvents` for 300 ms at its first call and another thread asking for the read there |

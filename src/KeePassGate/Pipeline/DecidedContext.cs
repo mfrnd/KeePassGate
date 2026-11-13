@@ -28,6 +28,11 @@ namespace KeePassGate.Pipeline
     /// running the change itself and cannot be let go under it: there is nothing to wait for,
     /// whether the handler answers on the connection's thread once the turn is over or a client
     /// is turned away inside the turn.
+    ///
+    /// **What a read leaves for after its hold runs here too**, <see cref="After"/>: the part of
+    /// an entry's answer made of its values, which is run by <see cref="Deliver"/> on the
+    /// connection's own thread, before the answer is handed on. A read whose hold lapsed never
+    /// reaches <see cref="Deliver"/>, so what it left is dropped with its answer.
     /// </remarks>
     internal sealed class DecidedContext : IGateContext
     {
@@ -40,6 +45,7 @@ namespace KeePassGate.Pipeline
         private int _status;
         private string _json;
         private WebHeaderCollection _headers;
+        private Action _after;
 
         /// <summary>The request, asked by the client as it was read again.</summary>
         public DecidedContext(IGateContext request, ClientIdentity client)
@@ -136,9 +142,44 @@ namespace KeePassGate.Pipeline
             _headers = headers;
         }
 
-        /// <summary>Hands the answer kept here to the request, when there is an answer.</summary>
+        /// <summary>
+        /// Leaves the rest of a read to be run once its hold has ended, by <see cref="Deliver"/>.
+        /// </summary>
+        /// <remarks>
+        /// <see cref="ServedAfter"/> has what may be left. A context that keeps no answer has
+        /// no hold to wait for, so the work is run where it is.
+        /// </remarks>
+        public void After(Action serve)
+        {
+            if (serve == null)
+            {
+                throw new ArgumentNullException(nameof(serve));
+            }
+
+            if (!_keeps)
+            {
+                serve();
+                return;
+            }
+
+            _after = serve;
+        }
+
+        /// <summary>
+        /// Runs what the read left for after its hold, and hands the answer kept here to the
+        /// request, when there is an answer.
+        /// </summary>
         public void Deliver()
         {
+            var after = _after;
+            _after = null;
+
+            // An answer given inside the hold stands, so nothing left for later runs over it.
+            if (after != null && !_answered)
+            {
+                after();
+            }
+
             if (_answered)
             {
                 Send(_status, _json, _headers);

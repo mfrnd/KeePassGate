@@ -68,12 +68,14 @@ none, since it releases both.
   its group was sealed went out to the client the seal was for. A change that waited behind a
   save wrote over a string marked protected in the meantime for a rule without `protected`, or
   removed an entry by the rule of the group the entry had just left. A request that changes
-  nothing is now decided and served with KeePass's thread held still once, from the caller's
-  admission record to the answer, and a change is asked about again inside its own turn, where
-  that answer is acted on and written to the audit in place of the earlier line. A read's `ETag`
-  and its content are of one moment as well, where a tag could be older than what it arrived
-  beside. The longest such hold measured is about fifty-five milliseconds, listing ten thousand
-  entries.
+  nothing is now decided with KeePass's thread held still once, from the caller's admission
+  record to what it is answered with, and a change is asked about again inside its own turn,
+  where that answer is acted on and written to the audit in place of the earlier line. A read's
+  `ETag` and its content are of one moment as well, where a tag could be older than what it
+  arrived beside. The longest such hold measured is about fifty-five milliseconds, listing ten
+  thousand entries. An entry's values are read, and its tag taken, once the hold has ended, from
+  what the entry held inside it, so reading an entry does not hold KeePass for longer the more
+  the entry holds.
 - **A client revoked while its request waited for KeePass is answered `401 unpaired`**, as its
   next request is, where the request was served as though still admitted. A database that came
   to hold two authorities in that wait answers `503 undecided` the same way.

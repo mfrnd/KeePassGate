@@ -198,8 +198,9 @@ info:
     client's rules open, its fields and attachments, one at a time or listed. A client has the
     same tag for an entry whichever of those routes hands it out, and two clients that see
     different things of an entry hold different tags for it.
-    It is taken at the moment of what it is answered with, since a read is decided and served
-    with KeePass's thread held still, so a tag never arrives beside content of another moment.
+    It is of the moment of what it is answered with, since a read is decided with KeePass's
+    thread held still and answered with what the node held then, so a tag never arrives beside
+    content of another moment.
     A change answers with the tag it left in its body, as `etag`, rather than in a header. A
     listing of groups or entries carries none.
 

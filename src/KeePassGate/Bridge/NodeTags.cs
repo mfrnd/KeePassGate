@@ -109,6 +109,14 @@ namespace KeePassGate.Bridge
     /// two tags, the one a change is asked against and the one it leaves, and a hasher kept between
     /// requests would be one shared across connection threads,
     /// while a buffer of the parts would be one more copy of every value to wipe.
+    ///
+    /// **A long value is encoded a piece at a time**, <see cref="Pieces"/>, into a buffer the
+    /// tag keeps for all of its long values and wipes when it is done. No write is refused for
+    /// an entry's size, so a value can be megabytes, and encoded whole each was a second copy
+    /// of itself to allocate and wipe for every tag: 48 MB for an entry of fifty strings of a
+    /// million characters, against a tenth of a megabyte in pieces, with the same bytes
+    /// digested. A value no longer than a piece is still encoded whole, which for the entries
+    /// people keep is every value.
     /// </remarks>
     public sealed class NodeTags
     {
@@ -195,6 +203,7 @@ namespace KeePassGate.Bridge
             }
 
             using (var hmac = Keyed())
+            using (var pieces = new Pieces())
             {
                 Put(hmac, "entry");
                 Put(hmac, view.Entry.Uuid);
@@ -221,15 +230,7 @@ namespace KeePassGate.Bridge
                     // has been read, so asking for it decrypts nothing twice; the encoded copy is
                     // wiped.
                     Put(hmac, "value");
-                    var value = Encoding.UTF8.GetBytes(field.Value);
-                    try
-                    {
-                        Put(hmac, value);
-                    }
-                    finally
-                    {
-                        MemUtil.ZeroByteArray(value);
-                    }
+                    Value(hmac, field.Value, pieces);
                 }
 
                 // What the view holds of the attachments and no mark for how far the sight
@@ -345,6 +346,38 @@ namespace KeePassGate.Bridge
             Put(hash, Encoding.UTF8.GetBytes(text));
         }
 
+        /// <summary>
+        /// One value as a part, behind its length as every part is, with every encoded copy of
+        /// it wiped: whole for a value no longer than a piece, and a piece at a time past that.
+        /// </summary>
+        /// <remarks>
+        /// The same bytes either way, so a value's tag does not depend on which side of the
+        /// length it falls: the length written first is the count the encoding answers for the
+        /// whole value, and the pieces are what one encoder makes of the value from end to end,
+        /// a pair of surrogates split between two pieces included.
+        /// </remarks>
+        internal static void Value(HashAlgorithm hash, string value, Pieces pieces)
+        {
+            if (value.Length <= Pieces.Characters)
+            {
+                var whole = Encoding.UTF8.GetBytes(value);
+                try
+                {
+                    Put(hash, whole);
+                }
+                finally
+                {
+                    MemUtil.ZeroByteArray(whole);
+                }
+
+                return;
+            }
+
+            var length = Length((uint)Encoding.UTF8.GetByteCount(value));
+            hash.TransformBlock(length, 0, length.Length, null, 0);
+            pieces.Into(hash, value);
+        }
+
         /// <summary>One part, behind its length, so that no two different nodes write the same stream.</summary>
         private static void Put(HashAlgorithm hash, byte[] part)
         {
@@ -372,6 +405,65 @@ namespace KeePassGate.Bridge
             var truncated = new byte[Width];
             Array.Copy(hash.Hash, truncated, Width);
             return Hex.Of(truncated);
+        }
+
+        /// <summary>
+        /// The buffers a tag encodes its long values through, a piece at a time, made when the
+        /// first long value asks for them and wiped when the tag is done.
+        /// </summary>
+        /// <remarks>
+        /// Both hold a piece of a value in the clear while it is digested, so both are
+        /// overwritten on the way out, as the copy of a value encoded whole is. Each is under
+        /// the size the runtime keeps apart for large objects, so a tag over values of any
+        /// length allocates the same little.
+        /// </remarks>
+        internal sealed class Pieces : IDisposable
+        {
+            /// <summary>How many characters of a value are encoded at a time.</summary>
+            public const int Characters = 16 * 1024;
+
+            private char[] _text;
+            private byte[] _encoded;
+            private Encoder _encoder;
+
+            /// <summary>Digests the UTF-8 form of a value, and nothing before or after it.</summary>
+            public void Into(HashAlgorithm hash, string value)
+            {
+                if (_text == null)
+                {
+                    // Room for what a piece can come to, and for a surrogate the piece before
+                    // it left with the encoder, so every piece is taken whole.
+                    _text = new char[Characters];
+                    _encoded = new byte[Encoding.UTF8.GetMaxByteCount(Characters)];
+                    _encoder = Encoding.UTF8.GetEncoder();
+                }
+
+                _encoder.Reset();
+
+                var at = 0;
+                while (at < value.Length)
+                {
+                    var taken = Math.Min(Characters, value.Length - at);
+                    value.CopyTo(at, _text, 0, taken);
+                    at += taken;
+
+                    // The buffer has room for whatever a piece comes to, so every character
+                    // handed over is used and nothing is left to ask about but the bytes made.
+                    int made;
+                    _encoder.Convert(
+                        _text, 0, taken, _encoded, 0, _encoded.Length, at == value.Length, out _, out made, out _);
+                    hash.TransformBlock(_encoded, 0, made, null, 0);
+                }
+            }
+
+            public void Dispose()
+            {
+                if (_text != null)
+                {
+                    Array.Clear(_text, 0, _text.Length);
+                    MemUtil.ZeroByteArray(_encoded);
+                }
+            }
         }
     }
 }

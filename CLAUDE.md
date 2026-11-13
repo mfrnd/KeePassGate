@@ -390,9 +390,10 @@ designing around them.
   and refused, in `FINDINGS.md` under "What a version of a node can be made of": it misses two
   changes inside one step, a merge at an equal time, a move and a plugin that never calls `Touch`.
   An entry has one tag for itself, its fields and its attachments, as the rules answer for all three
-  by the entry. **A tag and what it is served with are of one moment**: a read is decided and
-  served inside one hold of KeePass's thread, and its handler takes the tag and makes the answer
-  there, so no change lands between the two. Attachment
+  by the entry. **A tag and what it is served with are of one moment**: a read is decided
+  inside one hold of KeePass's thread, a group's tag and answer are made there, and an entry's
+  are both made of the view of the entry taken there, so no change lands between the two.
+  Attachment
   digests are kept per `ProtectedBinary` in a `ConditionalWeakTable` of `Lazy` values, so two
   readers decrypt one once between them, on the strength of KeePass never changing one in place,
   which `KeePassContractTests` pins. A lookup takes no tag: `VaultEntryView.Tag` and
@@ -484,7 +485,8 @@ designing around them.
   values it was withheld were, `NoSizeToldToAWriterTests`. What it costs, `DESIGN.md` §142: an
   entry can be written past what a read hands back whole and is then read a field at a time,
   nothing bounds what a client holding `update` or `create` adds to an entry beyond a request's
-  own limits, and a tag is still taken over a caller's whole view however large. **Do not
+  own limits, and a tag is still taken over a caller's whole view however large, by a read with
+  KeePass's thread free. **Do not
   re-propose** a floor or rounding for each string, a ceiling for each protection class, the
   refusal without its count, random slack or pacing: each keeps an answer to a write that moves
   with a value its caller may not read. The attachment's ceiling and the transport's limit on a
@@ -1332,6 +1334,22 @@ thread, where the vault asks the router's question, left as a `DecidedInside` an
 database stopped admitting while its request waited is answered there as its next request would be:
 `401 unpaired` with the refused certificate's line, or the `503` of a database that locked or came
 to hold two authorities. `DESIGN.md` §119 has the argument and what a hold costs.
+
+**What is made of an entry's values is made after the hold.** No write is refused for an entry's
+size, so measuring an entry's values, reading them and digesting them into its tag grow with
+whatever a client wrote. A read of an entry takes the caller's `VaultEntryView` inside the hold,
+which keeps the `ProtectedString` and `ProtectedBinary` objects the entry held and reads none,
+and leaves the rest to `ServedAfter`, run by `DecidedContext.Deliver` on the connection's thread:
+the lengths, the values, the tag, the condition asked of it and the answer. KeePass replaces
+those objects and changes neither in place, and both can be read from a second thread, which
+`KeePassContractTests` pins, so the answer is of the entry as it stood when the rules were asked.
+**Nothing left for after the hold may read the database**: no lookup, no walk of the rules, no
+node's name. The line for a value a view withholds is composed inside the hold, by
+`ProtectedWithheld`, and what that hands back adds the line where the answer is served, so a
+read refused for its size or by its condition writes none. A change takes its tags inside its
+own turn, where the comparison and the change are one step. `NodeTags` encodes a value longer
+than `NodeTags.Pieces.Characters` a piece at a time, so a tag allocates no second copy of a long
+value.
 
 **A request has one decision line, written once KeePass's thread is free.** `AccessCheck` composes
 a line where it decides and keeps it in a `DecisionLines`, the answer inside a change's turn in

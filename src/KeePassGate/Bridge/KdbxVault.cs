@@ -237,9 +237,10 @@ namespace KeePassGate.Bridge
         /// "What a version of a node can be made of". Each value is read when the
         /// view is first asked for it, and KeePass changes neither a `ProtectedString` nor a
         /// `ProtectedBinary` in place, so what is read or measured then is what the entry held
-        /// when the view was taken. The entry is described for the view without its title and
-        /// its URL, <see cref="Placed"/>, since a description holding either would have read both
-        /// whatever the sight.
+        /// when the view was taken, however long after: a read asks its view once the hold
+        /// it took the view in has ended, `Pipeline.ServedAfter`. The entry is described for the
+        /// view without its title and its URL, <see cref="Placed"/>, since a description holding
+        /// either would have read both whatever the sight.
         /// </remarks>
         /// <param name="asked">
         /// What the caller may read, asked of the entry as described here. Null is answered as
