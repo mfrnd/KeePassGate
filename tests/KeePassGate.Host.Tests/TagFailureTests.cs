@@ -293,6 +293,10 @@ namespace KeePassGate.Host.Tests
             var before = Asked("GET", path, "agent");
             Assert.That(before.Status, Is.EqualTo(200));
 
+            // Written here, while the attachment is still read in place: an answer's content
+            // is read when it is written.
+            var served = before.Document();
+
             var notes = _entry.Binaries.Get("notes.txt");
             Assume.That(KeePassMemory.KeptAs(notes), Is.EqualTo("ProtectedMemory"));
             Assert.That(notes.ReadData(), Is.EqualTo(Encoding.UTF8.GetBytes("invented")));
@@ -304,7 +308,7 @@ namespace KeePassGate.Host.Tests
             var after = Asked("GET", path, "agent");
             Assert.That(after.Status, Is.EqualTo(200));
             Assert.That(after.Headers["ETag"], Is.EqualTo(before.Headers["ETag"]));
-            Assert.That(after.Document(), Is.EqualTo(before.Document()));
+            Assert.That(after.Document(), Is.EqualTo(served));
             Assert.That(
                 (string)Newtonsoft.Json.Linq.JObject.Parse(after.Document())["content"],
                 Is.EqualTo(Convert.ToBase64String(Encoding.UTF8.GetBytes("invented"))));

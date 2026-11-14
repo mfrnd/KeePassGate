@@ -40,8 +40,17 @@ namespace KeePassGate.Transport
         private const int Base64Step = 12 * 1024;
 
         /// <summary>
-        /// How many characters of an escaped piece of text are handed to the writer underneath
-        /// at a time.
+        /// How many characters of a piece of text are escaped at a time. A piece no longer
+        /// than this is escaped as it is, with nothing cut out of it, which is every piece a
+        /// value read from its bytes comes in; a step and what it is escaped to are each
+        /// under the size the runtime keeps apart for large objects, for text that is not
+        /// mostly characters JSON escapes.
+        /// </summary>
+        private const int TextStep = 20 * 1024;
+
+        /// <summary>
+        /// How many characters of an escaped step are handed to the writer underneath at a
+        /// time.
         /// </summary>
         private const int EscapedStep = 8 * 1024;
 
@@ -51,6 +60,7 @@ namespace KeePassGate.Transport
 
         private string _done;
         private bool _disposed;
+        private char[] _escaped;
 
         public JsonWriter()
         {
@@ -228,7 +238,7 @@ namespace KeePassGate.Transport
         }
 
         /// <summary>
-        /// Writes a string from the text handed over, a piece at a time, as it is handed over.
+        /// Writes a string from the text handed over, a piece at a time.
         /// </summary>
         /// <remarks>
         /// **For a field's value, which is read a piece at a time from where KeePass keeps
@@ -241,11 +251,12 @@ namespace KeePassGate.Transport
         /// is what the same text is escaped to inside a longer string. It puts each piece
         /// between quotes of its own, and those are left out.
         ///
-        /// **A value handed over in a single piece is written by Json.NET as any string is**,
-        /// straight from the string, with no copy made of it: the string KeePass keeps for a
-        /// value held in the open is handed over that way, whatever its length. Whether a
-        /// piece is the only piece is known once the piece after it comes or the read is
-        /// over, so a piece is written when that is known and not as it is handed over.
+        /// **A piece of any length is escaped a step at a time.** The string KeePass keeps
+        /// for a value held in the open is handed over whole, whatever its length, and
+        /// Json.NET's own writer copies each run of a string between two characters it
+        /// escapes into a buffer it keeps, as long as the run: megabytes, for a long value
+        /// that ends in a line break. So what is alive of a value while it is written is a
+        /// step of it and what that step was escaped to, whether it came in pieces or whole.
         /// </remarks>
         /// <param name="read">
         /// What hands the text over in order, and nothing for a string of no characters.
@@ -259,8 +270,10 @@ namespace KeePassGate.Transport
 
             _writer.WritePropertyName(name);
 
-            string last = null;
-            char[] through = null;
+            // The opening quote goes through Json.NET as the value it expects here, as the
+            // opening quote of base64 does.
+            _writer.WriteRawValue("\"");
+
             try
             {
                 read(piece =>
@@ -270,36 +283,15 @@ namespace KeePassGate.Transport
                         throw new ArgumentNullException(nameof(piece));
                     }
 
-                    if (last != null)
-                    {
-                        if (through == null)
-                        {
-                            // The opening quote goes through Json.NET as the value it expects
-                            // here, as the opening quote of base64 does.
-                            _writer.WriteRawValue("\"");
-                            through = new char[EscapedStep];
-                        }
-
-                        Escaped(last, through);
-                    }
-
-                    last = piece;
+                    Escaped(piece);
                 });
-
-                if (through == null)
-                {
-                    _writer.WriteValue(last ?? string.Empty);
-                    return this;
-                }
-
-                Escaped(last, through);
             }
             finally
             {
-                if (through != null)
+                if (_escaped != null)
                 {
                     // The only copy of the escaped text here that can be overwritten.
-                    System.Array.Clear(through, 0, through.Length);
+                    System.Array.Clear(_escaped, 0, _escaped.Length);
                 }
             }
 
@@ -308,18 +300,29 @@ namespace KeePassGate.Transport
         }
 
         /// <summary>
-        /// Writes a piece of text as Json.NET escapes it, without the quotes Json.NET puts
-        /// around it.
+        /// Writes a piece of text as Json.NET escapes it, a step at a time, without the quotes
+        /// Json.NET puts around each step.
         /// </summary>
-        private void Escaped(string piece, char[] through)
+        private void Escaped(string piece)
         {
-            var quoted = JsonConvert.ToString(piece);
-            for (var at = 1; at < quoted.Length - 1;)
+            for (var from = 0; from < piece.Length;)
             {
-                var count = Math.Min(through.Length, quoted.Length - 1 - at);
-                quoted.CopyTo(at, through, 0, count);
-                _into.Write(through, 0, count);
-                at += count;
+                var taken = Math.Min(TextStep, piece.Length - from);
+                var quoted = JsonConvert.ToString(taken == piece.Length ? piece : piece.Substring(from, taken));
+                from += taken;
+
+                if (_escaped == null)
+                {
+                    _escaped = new char[EscapedStep];
+                }
+
+                for (var at = 1; at < quoted.Length - 1;)
+                {
+                    var count = Math.Min(_escaped.Length, quoted.Length - 1 - at);
+                    quoted.CopyTo(at, _escaped, 0, count);
+                    _into.Write(_escaped, 0, count);
+                    at += count;
+                }
             }
         }
 

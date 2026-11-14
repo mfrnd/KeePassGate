@@ -4,6 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading;
+using System.Threading.Tasks;
 using KeePassGate.Bridge;
 using KeePassLib.Security;
 using NUnit.Framework;
@@ -309,6 +310,179 @@ namespace KeePassGate.Host.Tests
             Assert.That(pieces, Has.Count.GreaterThan(1));
             Assert.That(string.Concat(pieces) == text, Is.True);
             Assert.That(Pieces(value), Is.EqualTo(new[] { value.ReadString() }));
+        }
+
+        [Test]
+        public void A_value_is_read_right_while_KeePass_reads_it_as_a_string_on_another_thread()
+        {
+            // The same, with the two on threads of their own, as a connection's thread and
+            // KeePass's are: KeePass's `ReadString` sets the string and then lets the bytes
+            // go, with no lock, while the reader asks for the bytes and then for the string.
+            // Asked in that order the value is found in the bytes or in the string. Asked the
+            // other way round, a reader between KeePass's two steps finds neither. A race
+            // proves nothing by passing, and this fails, sooner or later, on a reader that
+            // asks the other way round or a KeePass that lets the bytes go first. Each value
+            // is raced a single time, since KeePass moves a value once, and KeePass's thread
+            // is held back to the value the reader is coming to, so that the two meet on
+            // every value.
+            const int Values = 4000;
+            var text = "not-a-real-password, and long enough to take a moment: " + new string('\u20AC', 200);
+            var stored = Encoding.UTF8.GetBytes(text);
+            byte[] expected;
+            using (var pieces = new NodeTags.Pieces())
+            {
+                expected = NodeTags.Digested(text, pieces);
+            }
+
+            var values = Enumerable.Range(0, Values).Select(index => new ProtectedString(true, stored)).ToArray();
+            var wrong = new List<string>();
+            var reading = -1;
+
+            using (var together = new Barrier(2))
+            {
+                var keePass = Task.Factory.StartNew(
+                    () =>
+                    {
+                        together.SignalAndWait();
+                        for (var index = 0; index < values.Length; index++)
+                        {
+                            var wait = default(SpinWait);
+                            while (Volatile.Read(ref reading) < index)
+                            {
+                                wait.SpinOnce();
+                            }
+
+                            if (values[index].ReadString() != text)
+                            {
+                                lock (wrong)
+                                {
+                                    wrong.Add("KeePass read another value");
+                                }
+                            }
+                        }
+                    },
+                    TaskCreationOptions.LongRunning);
+
+                together.SignalAndWait();
+                var asStrings = 0;
+                for (var index = 0; index < values.Length; index++)
+                {
+                    // KeePass is let at the value, and the reader comes to it a moment later,
+                    // a different moment for each value, so that it asks while KeePass is
+                    // before, between and past its two steps.
+                    Volatile.Write(ref reading, index);
+                    Thread.SpinWait((index * 37) % 6000);
+                    var pieces = Pieces(values[index]);
+                    if (string.Concat(pieces) != text)
+                    {
+                        lock (wrong)
+                        {
+                            wrong.Add("value " + index + " was handed out as other text");
+                        }
+                    }
+
+                    if (pieces.Count == 1 && ReferenceEquals(pieces[0], values[index].ReadString()))
+                    {
+                        asStrings++;
+                    }
+
+                    if (!NodeTags.Digested(values[index], true).SequenceEqual(expected))
+                    {
+                        lock (wrong)
+                        {
+                            wrong.Add("value " + index + " was digested to another digest");
+                        }
+                    }
+                }
+
+                keePass.GetAwaiter().GetResult();
+
+                lock (wrong)
+                {
+                    Assert.That(wrong, Is.Empty);
+                }
+
+                // Told and not asserted, since which thread is first is the machine's to
+                // decide: a run in which every value was read from one side raced nothing.
+                TestContext.Progress.WriteLine(
+                    "read beside KeePass: " + asStrings + " of " + Values + " values were read as the string KeePass kept");
+            }
+        }
+
+        [Test]
+        public void A_value_read_through_KeePass_alone_is_the_value_and_is_left_protected()
+        {
+            // What a read is on a KeePass that keeps a value otherwise than the reader looks,
+            // asked for here since the KeePass the tests run on is no such KeePass: a value
+            // that is not protected is the string KeePass hands out, and a protected value is
+            // a copy of its bytes, decoded whole. `ReadString` is never asked of a protected
+            // value, which would have KeePass keep it as a string from then on: with the two
+            // ways swapped, every protected value served on such a KeePass would be left in
+            // the open in KeePass's memory. The digest is the digest a read in place takes.
+            var text = new string('\u20AC', Step + 5) + " \U0001F511";
+            var values = new List<ProtectedString>
+            {
+                new ProtectedString(true, Encoding.UTF8.GetBytes(text)),
+                new ProtectedString(true, Encoding.UTF8.GetBytes("not-a-real-password")),
+                new ProtectedString(true, Array.Empty<byte>()),
+            };
+            values.AddRange(Malformed().Select(stored => new ProtectedString(true, stored)));
+
+            foreach (var value in values)
+            {
+                var expected = Encoding.UTF8.GetString(value.ReadUtf8());
+                var pieces = new List<string>();
+                StoredStrings.Read(value, pieces.Add, false);
+
+                Assert.That(string.Concat(pieces) == expected, Is.True, "read through KeePass, the value is other text");
+                Assert.That(pieces, Has.Count.EqualTo(expected.Length == 0 ? 0 : 1), "KeePass's own read hands the value out whole");
+                Assert.That(KeePassMemory.KeepsText(value), Is.False, "KeePass was asked for a protected value as a string");
+                Assert.That(KeePassMemory.Bytes(value), Is.Not.Null);
+                Assert.That(NodeTags.Digested(value, false), Is.EqualTo(NodeTags.Digested(value, true)));
+                Assert.That(KeePassMemory.KeepsText(value), Is.False, "a digest asked KeePass for a protected value as a string");
+            }
+
+            var open = new ProtectedString(false, text);
+            var kept = new List<string>();
+            StoredStrings.Read(open, kept.Add, false);
+            Assert.That(kept, Has.Count.EqualTo(1));
+            Assert.That(kept[0], Is.SameAs(open.ReadString()), "a value held in the open was copied");
+            Assert.That(NodeTags.Digested(open, false), Is.EqualTo(NodeTags.Digested(open, true)));
+
+            // A protected value KeePass keeps as a string is in the open already, and is read
+            // as a protected value all the same.
+            var typed = new ProtectedString(true, text);
+            var copied = new List<string>();
+            StoredStrings.Read(typed, copied.Add, false);
+            Assert.That(string.Concat(copied) == text, Is.True);
+            Assert.That(NodeTags.Digested(typed, false), Is.EqualTo(NodeTags.Digested(typed, true)));
+
+            StoredStrings.Read(null, piece => Assert.Fail("a name the entry does not hold handed out a piece"), false);
+        }
+
+        [Test]
+        public void A_short_value_is_decoded_through_a_buffer_of_its_own_length()
+        {
+            // A title is decoded for every entry a listing shows, and a password for every
+            // read: a buffer of a whole step for each was 32 KB allocated and overwritten for a
+            // few characters, hundreds of megabytes for a listing of a few thousand entries.
+            var value = new ProtectedString(true, Encoding.UTF8.GetBytes("an invented title"));
+            long handed = 0;
+            Action<string> counting = piece => handed += piece.Length;
+            StoredStrings.Read(value, counting);
+            NodeTags.DigestOf(new ProtectedString(true, Encoding.UTF8.GetBytes("warmed")));
+
+            var before = GC.GetAllocatedBytesForCurrentThread();
+            StoredStrings.Read(value, counting);
+            var read = GC.GetAllocatedBytesForCurrentThread() - before;
+
+            before = GC.GetAllocatedBytesForCurrentThread();
+            NodeTags.DigestOf(new ProtectedString(true, Encoding.UTF8.GetBytes("another invented title")));
+            var digested = GC.GetAllocatedBytesForCurrentThread() - before;
+
+            Assert.That(handed, Is.EqualTo(2 * "an invented title".Length));
+            Assert.That(read, Is.LessThan(16 * 1024), "a short value was read through a buffer of a whole step");
+            Assert.That(digested, Is.LessThan(16 * 1024), "a short value was digested through a buffer of a whole step");
         }
 
         [Test]

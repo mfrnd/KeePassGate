@@ -673,7 +673,8 @@ namespace KeePassGate.Pipeline
         /// it, so that what the gate handed out it could also be given back, and because an
         /// answer built whole kept about eight times the attachment alive at once. An attachment is
         /// read a piece at a time from where KeePass keeps it, `StoredBinaries`, and written
-        /// as it is sent, so a read keeps a piece of it alive, whatever its size. The operator
+        /// as it is sent, so a read in place keeps a piece of it alive, whatever its size, and
+        /// a read through KeePass's own read a copy of it. The operator
         /// ruled on 2026-11-14 that what others have written is to be readable: a file
         /// attached in KeePass can be read through the gate at any size, and what is written
         /// through the gate is still held to this. `API.md` §412.
@@ -720,9 +721,9 @@ namespace KeePassGate.Pipeline
                 }
 
                 // Written as it is sent, a piece of the attachment at a time, read from where
-                // KeePass keeps it, so that what is alive is the piece being written, whatever
-                // the attachment's size, and no read is refused for it. A HEAD writes none of
-                // it.
+                // KeePass keeps it wherever it can be read there, so that what is alive is the
+                // piece being written, whatever the attachment's size, and no read is refused
+                // for it. A HEAD writes none of it.
                 context.Respond(
                     200,
                     text => JsonWriter.Into(text, json =>

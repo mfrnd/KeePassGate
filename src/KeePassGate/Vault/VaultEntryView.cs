@@ -289,9 +289,10 @@ namespace KeePassGate.Vault
     /// ask for an attachment before it asks, and an attachment can be megabytes.
     ///
     /// **Its bytes are handed out a piece at a time and never whole**, by <see cref="Read"/>,
-    /// so that an attachment of any size is served and digested with a piece of it alive, and
-    /// no read is refused for an attachment's size. The store decides what a piece is read
-    /// from.
+    /// so that an attachment of any size is served and digested with no more of it alive
+    /// than the store's own read keeps, and no read is refused for an attachment's size. The
+    /// store decides what a piece is read from: KeePass's own buffer wherever that can be
+    /// read, and a copy of the whole attachment where it cannot.
     ///
     /// **An attachment that is listed and not read holds nothing its bytes could be read with**,
     /// as a withheld string holds no reader. The constructor drops what reads the bytes and what

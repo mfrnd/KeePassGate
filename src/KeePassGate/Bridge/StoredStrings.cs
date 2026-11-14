@@ -31,24 +31,27 @@ namespace KeePassGate.Bridge
     /// is between two attachments: in the open, or protected.
     ///
     /// **A value kept as a string is that string.** It is handed out as it is, whole and in a
-    /// single piece, with nothing copied: what Json.NET writes of a string it writes a
-    /// character at a time, so no copy of the value is made for an answer either.
+    /// single piece, with nothing copied here. What writes it into an answer takes it a step
+    /// at a time, `JsonWriter.TextInPieces`.
     ///
     /// **A value kept as bytes is decrypted and decoded a piece at a time.** The bytes are read
     /// as an attachment's are, `StoredBinaries`, 48 KiB at a time from a copy of each piece,
     /// and decoded in steps of <see cref="Step"/> by a decoder that carries a sequence cut by
     /// a step into the step after it, so the pieces joined are the string the bytes decode to
     /// whole, a sequence that is not UTF-8 replaced as a decoding of the whole replaces it.
-    /// Neither the value's bytes nor its text ever stand whole for a read, and the buffer a
-    /// step is decoded into is overwritten.
+    /// Read so, neither the value's bytes nor its text stand whole for a read of a field, a
+    /// value shorter than a step being a single piece, and the buffer a step is decoded into
+    /// is overwritten. A title or an address a listing shows is joined into a single string,
+    /// <see cref="Read(ProtectedString)"/>.
     ///
     /// **Where that cannot be done, KeePass reads**, as it does for an attachment. On a
     /// KeePass that keeps a value otherwise, checked once and logged as the plugin loads,
     /// <see cref="WhyNotInPlace"/>, a value that is not protected is read with `ReadString`,
     /// which hands back the string KeePass keeps, and a protected value with `ReadUtf8`, a
     /// copy of the whole value that is decoded and overwritten. And the bytes of a value kept
-    /// through another cipher than Windows' are read through KeePass by the reader
-    /// underneath, `StoredBinaries`. `KeePassContractTests` pins the two fields and what
+    /// through another cipher than Windows', or on a KeePass or a Windows where no protected
+    /// attachment is read in place, are read through KeePass by the reader underneath, a copy
+    /// of the whole, `StoredBinaries`. `KeePassContractTests` pins the two fields and what
     /// KeePass keeps in each.
     ///
     /// **A value written is handed to KeePass as bytes**, since a `ProtectedString` made from
@@ -81,10 +84,27 @@ namespace KeePassGate.Bridge
         /// nothing for a value of no characters or a name the entry does not hold.
         /// </summary>
         /// <param name="piece">
-        /// Handed the string KeePass keeps, whole, for a value kept as a string, and a string
-        /// of at most <see cref="Step"/> characters at a time for a value kept as bytes.
+        /// Handed the string KeePass keeps, whole, for a value kept as a string, and for a
+        /// value kept as bytes what a step decodes to at a time: at most <see cref="Step"/>
+        /// characters, and one more where a step ends a pair of surrogates the step before it
+        /// began.
         /// </param>
         public static void Read(ProtectedString held, Action<string> piece)
+        {
+            Read(held, piece, true);
+        }
+
+        /// <summary>
+        /// Hands out the value of a stored string from where KeePass keeps it where
+        /// <paramref name="inPlace"/> is set and KeePass keeps it as it was measured, and
+        /// through KeePass's own read otherwise.
+        /// </summary>
+        /// <remarks>
+        /// Apart from <see cref="Read(ProtectedString, Action{string})"/> so that the read
+        /// through KeePass can be asked for on a KeePass that keeps a value as it was
+        /// measured, which is every KeePass the tests run on.
+        /// </remarks>
+        internal static void Read(ProtectedString held, Action<string> piece, bool inPlace)
         {
             if (piece == null)
             {
@@ -97,8 +117,8 @@ namespace KeePassGate.Bridge
             }
 
             string text;
-            ProtectedBinary bytes;
-            if (Found(held, out text, out bytes))
+            ProtectedBinary bytes = null;
+            if (inPlace && Found(held, out text, out bytes))
             {
                 if (bytes != null)
                 {
@@ -200,8 +220,17 @@ namespace KeePassGate.Bridge
         /// </summary>
         internal static void Decoded(ProtectedBinary bytes, Action<string> piece)
         {
+            var length = checked((int)bytes.Length);
+            if (length == 0)
+            {
+                return;
+            }
+
+            // Room for what a step decodes to, and no more than the value needs: a title is
+            // decoded for every entry a listing shows, and a buffer of a whole step for each
+            // was megabytes allocated and overwritten for a few hundred characters.
             var decoder = Encoding.UTF8.GetDecoder();
-            var text = new char[Encoding.UTF8.GetMaxCharCount(Step)];
+            var text = new char[Encoding.UTF8.GetMaxCharCount(Math.Min(Step, length))];
             try
             {
                 StoredBinaries.Read(bytes, (held, offset, count) =>
@@ -242,7 +271,9 @@ namespace KeePassGate.Bridge
         /// <remarks>
         /// Asked as the plugin loads, `KeePassGateExt`, which logs what it is answered, so
         /// that a KeePass on which every read of a protected value copies the whole value is
-        /// in the log, and by the test that pins it.
+        /// in the log, and by the test that pins it. A KeePass or a Windows on which the
+        /// bytes of a protected value cannot be read in place is in the log by what
+        /// `StoredBinaries.WhyNoProtectedInPlace` answers.
         /// </remarks>
         public static string WhyNotInPlace
         {

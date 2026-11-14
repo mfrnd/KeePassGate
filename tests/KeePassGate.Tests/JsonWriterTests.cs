@@ -240,24 +240,36 @@ namespace KeePassGate.Tests
         }
 
         [Test]
-        public void Text_handed_over_in_a_single_piece_is_written_by_Json_NET_as_any_string_is()
+        public void A_piece_of_any_length_reaches_the_writer_underneath_a_step_at_a_time()
         {
             // The string KeePass keeps for a value held in the open is handed over whole,
-            // whatever its length, and Json.NET writes a string straight from the string. So a
-            // single piece is never escaped into a copy: nothing as long as the piece is
-            // allocated to write it.
-            var text = new string('a', 4 * 1024 * 1024);
-            Action<Action<string>> read = piece => piece(text);
-
-            using (var nowhere = new StreamWriter(Stream.Null))
+            // whatever its length. Json.NET's own writer hands a string with nothing to escape
+            // to the writer underneath whole, and copies each run between two characters it
+            // escapes into a buffer as long as the run: megabytes at once, for a long value
+            // that ends in a line break. Escaped a step at a time, nothing longer than a step
+            // of the escaped text is ever handed on, whatever the piece holds and wherever the
+            // characters to escape stand in it.
+            var clean = new string('a', 3 * 1024 * 1024);
+            var texts = new[]
             {
-                JsonWriter.Into(nowhere, json => json.TextInPieces("value", piece => piece("warmed")));
+                clean,
+                clean + "\n",
+                "\"" + clean,
+                clean.Substring(0, clean.Length / 2) + "\\" + clean.Substring(clean.Length / 2),
+            };
 
-                var before = GC.GetAllocatedBytesForCurrentThread();
-                JsonWriter.Into(nowhere, json => json.TextInPieces("value", read));
-                var allocated = GC.GetAllocatedBytesForCurrentThread() - before;
+            foreach (var text in texts)
+            {
+                using (var counted = new Longest())
+                {
+                    JsonWriter.Into(counted, json => json.TextInPieces("value", piece => piece(text)));
 
-                Assert.That(allocated, Is.LessThan(text.Length / 8), "a copy of the piece was made to write it");
+                    Assert.That(counted.Most, Is.LessThanOrEqualTo(8 * 1024), "more than a step was handed on at once");
+                    Assert.That(
+                        counted.ToString() == new JsonWriter().Text("value", text).Done(),
+                        Is.True,
+                        "a piece written a step at a time is other text than the piece written whole");
+                }
             }
 
             Assert.That(
@@ -345,12 +357,12 @@ namespace KeePassGate.Tests
                 var thrown = Assert.Throws<IOException>(() => JsonWriter.Into(text, json => json.TextInPieces("value", piece =>
                 {
                     piece("first");
-                    piece("second");
+                    piece(" second");
                     throw failure;
                 })));
 
                 Assert.That(thrown, Is.SameAs(failure));
-                Assert.That(text.ToString(), Is.EqualTo("{\"value\":\"first"));
+                Assert.That(text.ToString(), Is.EqualTo("{\"value\":\"first second"));
             }
         }
 
@@ -595,6 +607,26 @@ namespace KeePassGate.Tests
             var bytes = new byte[size];
             new Random(size).NextBytes(bytes);
             return bytes;
+        }
+
+        /// <summary>
+        /// A writer that keeps what it is given and the most characters it was given at once.
+        /// </summary>
+        private sealed class Longest : StringWriter
+        {
+            public int Most { get; private set; }
+
+            public override void Write(char[] buffer, int index, int count)
+            {
+                Most = Math.Max(Most, count);
+                base.Write(buffer, index, count);
+            }
+
+            public override void Write(string value)
+            {
+                Most = Math.Max(Most, value == null ? 0 : value.Length);
+                base.Write(value);
+            }
         }
 
         /// <summary>What hands text over in pieces of a length, the last as long as is left.</summary>

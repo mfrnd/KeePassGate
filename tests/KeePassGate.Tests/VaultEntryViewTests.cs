@@ -289,6 +289,28 @@ namespace KeePassGate.Tests
         }
 
         [Test]
+        public void A_value_of_no_characters_hands_out_no_piece_and_is_written_as_an_empty_string()
+        {
+            // A value of no characters hands out no piece and is in sight all the same, so it
+            // is written as the empty string. `null` is for a withheld value, which is what the
+            // view answers for itself and nothing a reader hands out.
+            var field = new VaultViewField("Notes", false, Sights.Whole, piece => { });
+
+            Assert.That(field.IsWithheld, Is.False);
+            field.Read(piece => Assert.Fail("a value of no characters handed out a piece"));
+            Assert.That(
+                new KeePassGate.Transport.JsonWriter().TextInPieces("Notes", field.Read).Done(),
+                Is.EqualTo("{\"Notes\":\"\"}"));
+
+            var withheld = new VaultViewField("Notes", true, VaultSight.Least, piece => piece("not-a-real-password"));
+            Assert.That(withheld.IsWithheld, Is.True);
+            withheld.Read(piece => Assert.Fail("a withheld value handed out a piece"));
+
+            Assert.Throws<ArgumentNullException>(() => field.Read(null));
+            Assert.Throws<ArgumentNullException>(() => withheld.Read(null));
+        }
+
+        [Test]
         public void A_value_the_store_holds_as_nothing_is_read_as_an_empty_string_and_never_as_withheld()
         {
             // Null is what a withheld value is answered with, so a string in sight never

@@ -90,18 +90,18 @@ namespace KeePassGate.Testing
 
         /// <summary>
         /// A string's value whole, its pieces joined in the order they came, or null for a
-        /// value that is withheld.
+        /// value that is withheld and hands out nothing.
         /// </summary>
+        /// <remarks>
+        /// The view is asked whether or not it withholds the value, so that a view which kept
+        /// what reads a withheld value hands that value out here, and a test that counts its
+        /// reads counts that read.
+        /// </remarks>
         public static string Read(this VaultViewField field)
         {
-            if (field.IsWithheld)
-            {
-                return null;
-            }
-
             var joined = new System.Text.StringBuilder();
             field.Read(piece => joined.Append(piece));
-            return joined.ToString();
+            return field.IsWithheld && joined.Length == 0 ? null : joined.ToString();
         }
 
         /// <summary>

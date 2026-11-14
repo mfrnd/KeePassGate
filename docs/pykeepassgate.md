@@ -686,8 +686,9 @@ a field is protected. `strip-field` takes a string off the entry, which needs `S
 standard ones are refused, and `update` empties one instead.
 
 **A read of an entry is never refused for its size.** The gate writes the answer to a read of
-an entry, and of a single field, as it is sent, a value at a time, so reading a large entry
-costs KeePass the value being written and little more. What bounds a read is the client's own
+an entry, and of a single field, as it is sent, a value at a time and a long value a piece at
+a time, so reading a large entry costs KeePass the piece being written and little more. What
+bounds a read is the client's own
 cap on an answer, 4 MiB unless `max_response_bytes` raises it,
 [below](#read-a-larger-answer): an entry whose answer is larger raises `ProtocolError`, and is
 read with the cap raised or a field at a time, `fields` and then `field`. A value the client

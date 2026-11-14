@@ -39,17 +39,20 @@ namespace KeePassGate.Bridge
     ///
     /// **Where that cannot be done, KeePass reads.** The operator's ruling of 2026-11-14,
     /// which reversed a ruling of the same day that nothing be read there: an attachment
-    /// KeePass can read is an attachment a client is handed. A KeePass that keeps an
-    /// attachment otherwise and a Windows that no longer protects memory the way a piece is
-    /// read by, both checked once and logged as the plugin loads, <see cref="WhyNotInPlace"/>;
+    /// KeePass can read is an attachment a client is handed. Every attachment on a KeePass
+    /// that keeps its buffer otherwise, <see cref="WhyNothingInPlace"/>; a protected
+    /// attachment on a KeePass that keeps its lock or its kind otherwise and on a Windows
+    /// that no longer protects memory the way a piece is read by,
+    /// <see cref="WhyNoProtectedInPlace"/>, each checked once and logged as the plugin loads;
     /// a protected attachment kept any other way, by KeePass's own cipher where
     /// `ProtectedMemory` is not supported or by the cipher another plugin gave KeePass
     /// through `ProtectedBinary.ExtCrypt`; and a buffer that is not the shape a piece is read
     /// from: each is read through `ReadData`, a single copy of the whole attachment, handed
     /// out in the same pieces and overwritten once the read is over. That copy lives for as
-    /// long as the read does, at whatever size the attachment is, as a field's value does,
-    /// `StoredStrings`. `KeePassContractTests` pins what the read in place rests on in
-    /// KeePass and in Windows.
+    /// long as the read does, at whatever size the attachment is. An attachment held in the
+    /// open rests on nothing of Windows, so it is read in place wherever its buffer is
+    /// found. `KeePassContractTests` pins what the read in place rests on in KeePass and in
+    /// Windows.
     ///
     /// **How an attachment is kept is of the moment, and is asked at every piece.** `ReadData`
     /// encrypts the buffer again through whatever cipher stands when it runs, and KeePass's
@@ -112,6 +115,20 @@ namespace KeePassGate.Bridge
         /// </param>
         public static void Read(ProtectedBinary binary, Action<byte[], int, int> piece)
         {
+            Read(binary, piece, true);
+        }
+
+        /// <summary>
+        /// Hands out what an attachment holds, in place as far as that goes where
+        /// <paramref name="inPlace"/> is set, and through KeePass's own read from there on.
+        /// </summary>
+        /// <remarks>
+        /// Apart from <see cref="Read(ProtectedBinary, Action{byte[], int, int})"/> so that
+        /// the read through KeePass can be asked for on a KeePass and a Windows where
+        /// everything is read in place, which is every machine the tests run on.
+        /// </remarks>
+        internal static void Read(ProtectedBinary binary, Action<byte[], int, int> piece, bool inPlace)
+        {
             if (binary == null)
             {
                 throw new ArgumentNullException(nameof(binary));
@@ -130,7 +147,7 @@ namespace KeePassGate.Bridge
                 return;
             }
 
-            var at = InPlace(binary, length, piece);
+            var at = inPlace ? InPlace(binary, length, piece) : 0;
             if (at < length)
             {
                 Whole(binary, at, length, piece);
@@ -145,7 +162,7 @@ namespace KeePassGate.Bridge
         private static int InPlace(ProtectedBinary binary, int length, Action<byte[], int, int> piece)
         {
             var layout = Kept.Value;
-            if (layout.Missing != null)
+            if (layout.Data == null)
             {
                 return 0;
             }
@@ -170,6 +187,11 @@ namespace KeePassGate.Bridge
                 }
 
                 return at;
+            }
+
+            if (layout.NoProtected != null)
+            {
+                return 0;
             }
 
             var sync = layout.Sync.GetValue(binary);
@@ -277,28 +299,44 @@ namespace KeePassGate.Bridge
         }
 
         /// <summary>
-        /// Why no attachment is read where KeePass keeps it, or null where everything the read
-        /// in place rests on in KeePass and in Windows is as it was measured.
+        /// Why nothing is read where KeePass keeps it, an attachment held in the open
+        /// included, or null where KeePass keeps a buffer as it was measured.
         /// </summary>
         /// <remarks>
         /// Asked as the plugin loads, `KeePassGateExt`, which logs what it is answered, so
-        /// that a KeePass or a Windows on which every read of an attachment copies the whole
-        /// attachment is in the log, and by the test that pins it.
+        /// that a KeePass on which every read of an attachment and of a protected value
+        /// copies the whole of it is in the log, and by the test that pins it.
         /// </remarks>
-        public static string WhyNotInPlace
+        public static string WhyNothingInPlace
         {
-            get { return Kept.Value.Missing; }
+            get { return Kept.Value.Data == null ? Kept.Value.NoProtected : null; }
         }
 
         /// <summary>
-        /// What this reads of a `ProtectedBinary`, found once, with what is missing where
-        /// nothing can be read in place.
+        /// Why no protected attachment is read where KeePass keeps it, or null where
+        /// everything the read in place rests on in KeePass and in Windows is as it was
+        /// measured.
+        /// </summary>
+        /// <remarks>
+        /// The bytes of a protected value are read through here as well, `StoredStrings`, so
+        /// what this answers holds for a protected value too. Asked as the plugin loads and
+        /// by the test that pins it, as <see cref="WhyNothingInPlace"/> is.
+        /// </remarks>
+        public static string WhyNoProtectedInPlace
+        {
+            get { return Kept.Value.NoProtected; }
+        }
+
+        /// <summary>
+        /// What this reads of a `ProtectedBinary`, found once, with what is missing where an
+        /// attachment cannot be read in place.
         /// </summary>
         private sealed class Layout
         {
-            private Layout(string missing)
+            private Layout(FieldInfo data, string noProtected)
             {
-                Missing = missing;
+                Data = data;
+                NoProtected = noProtected;
             }
 
             private Layout(FieldInfo data, FieldInfo sync, FieldInfo kind, object byWindows)
@@ -309,9 +347,13 @@ namespace KeePassGate.Bridge
                 ByWindows = byWindows;
             }
 
-            public string Missing { get; private set; }
+            /// <summary>
+            /// Why no protected attachment is read in place, or null where every part of that
+            /// was found. Where <see cref="Data"/> is null as well, nothing is.
+            /// </summary>
+            public string NoProtected { get; private set; }
 
-            /// <summary>The buffer, `m_pbData`.</summary>
+            /// <summary>The buffer, `m_pbData`, or null where KeePass keeps none of that name.</summary>
             public FieldInfo Data { get; private set; }
 
             /// <summary>The lock `ReadData` decrypts the buffer under, `m_objSync`.</summary>
@@ -331,17 +373,24 @@ namespace KeePassGate.Bridge
                 var data = type.GetField("m_pbData", Private);
                 var sync = type.GetField("m_objSync", Private);
                 var kind = type.GetField("m_mp", Private);
-                if (data == null || data.FieldType != typeof(byte[])
-                    || sync == null
+                if (data == null || data.FieldType != typeof(byte[]))
+                {
+                    return new Layout(null, "this KeePass keeps an attachment otherwise than the gate reads it in place");
+                }
+
+                // From here on an attachment held in the open is read in place: its buffer is
+                // its bytes, and nothing below is about it.
+                if (sync == null
                     || kind == null || !kind.FieldType.IsEnum
                     || !Enum.IsDefined(kind.FieldType, "ProtectedMemory"))
                 {
-                    return new Layout("this KeePass keeps an attachment otherwise than the gate reads it in place");
+                    return new Layout(
+                        data, "this KeePass keeps a protected attachment otherwise than the gate reads it in place");
                 }
 
                 if (!Chains())
                 {
-                    return new Layout("this Windows does not decrypt a piece of protected memory on its own");
+                    return new Layout(data, "this Windows does not decrypt a piece of protected memory on its own");
                 }
 
                 return new Layout(data, sync, kind, Enum.Parse(kind.FieldType, "ProtectedMemory"));

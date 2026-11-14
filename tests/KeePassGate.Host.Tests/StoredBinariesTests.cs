@@ -590,10 +590,110 @@ namespace KeePassGate.Host.Tests
             // decrypting on its own once the block ahead is decrypted with it, the start of a
             // buffer decrypting on its own from its first byte, and the same bytes protected to
             // the same bytes, each checked by the reader itself. On a KeePass or a Windows
-            // where that is no longer so, every read of an attachment goes through KeePass's
-            // own read and copies the attachment whole, and that is told here before it is
-            // met. The plugin asks the same as it loads, and logs the answer.
-            Assert.That(StoredBinaries.WhyNotInPlace, Is.Null);
+            // where that is no longer so, every read of a protected attachment goes through
+            // KeePass's own read and copies the attachment whole, and on a KeePass that keeps
+            // no buffer where the reader looks, every read of any attachment does. That is
+            // told here before it is met. The plugin asks the same as it loads, and logs the
+            // answer.
+            Assert.That(StoredBinaries.WhyNothingInPlace, Is.Null);
+            Assert.That(StoredBinaries.WhyNoProtectedInPlace, Is.Null);
+        }
+
+        [Test]
+        public void An_attachment_read_through_KeePass_alone_is_handed_out_in_the_same_pieces_from_a_single_copy(
+            [Values(false, true)] bool isProtected, [ValueSource(nameof(Sizes))] int size)
+        {
+            // What a read is on a KeePass or a Windows where nothing is read in place, asked
+            // for here since no machine the tests run on is such a machine: KeePass's own
+            // read, for an attachment held in the open as for a protected attachment. The
+            // pieces are the pieces a read in place hands out, from a single copy of the
+            // whole, which is overwritten, and which is no array of KeePass's: overwriting it
+            // leaves the attachment what it was.
+            var content = Invented(size);
+            var binary = new ProtectedBinary(isProtected, content);
+            var held = KeePassMemory.Buffer(binary);
+            var kept = (byte[])held.Clone();
+
+            var counts = new List<int>();
+            var arrays = new List<byte[]>();
+            using (var joined = new MemoryStream())
+            {
+                StoredBinaries.Read(
+                    binary,
+                    (bytes, offset, count) =>
+                    {
+                        counts.Add(count);
+                        arrays.Add(bytes);
+                        joined.Write(bytes, offset, count);
+                    },
+                    false);
+
+                Assert.That(joined.ToArray().SequenceEqual(content), Is.True, "the pieces are other bytes than were stored");
+            }
+
+            Assert.That(counts, Has.Count.EqualTo((size + Piece - 1) / Piece));
+            Assert.That(counts.Take(Math.Max(0, counts.Count - 1)), Has.All.EqualTo(Piece));
+            Assert.That(counts.Sum(), Is.EqualTo(size));
+            Assert.That(arrays.Distinct().Count(), Is.EqualTo(size == 0 ? 0 : 1), "more than a single copy was made");
+
+            foreach (var copy in arrays)
+            {
+                Assert.That(copy, Is.Not.SameAs(held), "a piece came in KeePass's own buffer");
+                Assert.That(copy, Has.Length.EqualTo(size));
+                Assert.That(copy, Has.All.EqualTo(0), "the copy was left as it was read");
+            }
+
+            Assert.That(KeePassMemory.Buffer(binary), Is.SameAs(held));
+            Assert.That(held.SequenceEqual(kept), Is.True, "KeePass's buffer holds other bytes than it held");
+            Assert.That(binary.ReadData().SequenceEqual(content), Is.True, "KeePass reads other bytes once the gate has read");
+            Assert.That(Joined(binary).SequenceEqual(content), Is.True, "and a read in place after it hands out other bytes");
+        }
+
+        [Test]
+        public void What_takes_the_pieces_throwing_leaves_no_copy_of_the_whole_in_the_clear()
+        {
+            // A peer that goes away part way through an attachment read through KeePass: the
+            // read stops there, what was thrown comes out as it was thrown, and the copy of the
+            // whole attachment is overwritten all the same. Overwritten once its pieces were
+            // handed out and not whatever happens, the copy stays decrypted in memory for
+            // every answer a client left unread.
+            var content = Invented((3 * Piece) + 5);
+            var failure = new IOException("an invented peer that went away");
+            var handed = new List<byte[]>();
+            var was = ProtectedBinary.ExtCrypt;
+            ProtectedBinary.ExtCrypt = (data, flags, id) =>
+            {
+                for (var i = 0; i < data.Length; i++)
+                {
+                    data[i] ^= 0x5A;
+                }
+            };
+
+            try
+            {
+                var binary = new ProtectedBinary(true, content);
+                Assume.That(KeePassMemory.KeptAs(binary), Is.EqualTo("ExtCrypt"));
+
+                var thrown = Assert.Throws<IOException>(() => StoredBinaries.Read(binary, (bytes, offset, count) =>
+                {
+                    handed.Add(bytes);
+                    if (handed.Count == 2)
+                    {
+                        throw failure;
+                    }
+                }));
+
+                Assert.That(thrown, Is.SameAs(failure));
+                Assert.That(handed, Has.Count.EqualTo(2), "a piece was handed out once the read had failed");
+                Assert.That(handed[0], Is.SameAs(handed[1]));
+                Assert.That(handed[0], Has.Length.EqualTo(content.Length));
+                Assert.That(handed[0], Has.All.EqualTo(0), "the copy of the whole was left in the clear");
+                Assert.That(Joined(binary).SequenceEqual(content), Is.True, "and the read after it hands out the whole");
+            }
+            finally
+            {
+                ProtectedBinary.ExtCrypt = was;
+            }
         }
 
         [Test]

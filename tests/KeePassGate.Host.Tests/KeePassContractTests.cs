@@ -413,8 +413,9 @@ namespace KeePassGate.Host.Tests
         [Test]
         public void Reading_a_protected_string_as_text_still_ends_its_protection_and_copying_its_bytes_does_not()
         {
-            // Why the gate reads a protected value with `ReadUtf8` and hands KeePass a value to
-            // store as bytes, `StoredStrings`. A protected string made from bytes is held
+            // Why the gate reads a protected value from the bytes KeePass keeps for it, and
+            // with `ReadUtf8` where it cannot, never with `ReadString`, and hands KeePass a
+            // value to store as bytes, `StoredStrings`. A protected string made from bytes is held
             // encrypted; asking its length or copying its bytes out leaves it so; `ReadString`
             // keeps the decoded text inside the object, where it stays; and a string made from
             // text keeps that text whatever its flag. `ProtectedInMemoryTests` asks the same
@@ -479,8 +480,9 @@ namespace KeePassGate.Host.Tests
             // operator opening the entry. `ProtectedBinary.ReadData` copies under a lock of its
             // own and `ProtectedString.ReadString` keeps the text it decoded before it lets the
             // bytes go, read off 2.61.1. `ProtectedString.ReadUtf8` is what the gate reads a
-            // protected value with, and copies from whichever of the two the object holds at
-            // that moment. Each thread asks for that copy first, while the value is still held
+            // protected value with where it cannot read the bytes KeePass keeps, and copies
+            // from whichever of the two the object holds at that moment; the reader the gate
+            // reads with otherwise is raced the same way in `StoredStringsTests`. Each thread asks for that copy first, while the value is still held
             // as bytes, and then reads the text, so a copy can also be taken while the other
             // thread is letting the bytes go. A race proves nothing by passing, and this fails,
             // sooner or later, on a KeePass that lost any of those properties.
@@ -564,9 +566,20 @@ namespace KeePassGate.Host.Tests
                 Is.EquivalentTo(new[] { "IsProtected", "Length" }));
             Assert.That(type.GetFields(BindingFlags.Public | BindingFlags.Instance), Is.Empty);
 
-            var whole = new ProtectedBinary(true, new byte[] { 1, 2, 3, 4, 5 });
-            Assert.That(whole.ReadData(), Is.EqualTo(new byte[] { 1, 2, 3, 4, 5 }));
-            Assert.That(whole.ReadData(), Is.Not.SameAs(whole.ReadData()), "a copy every time it is asked");
+            // A copy every time it is asked, and never the buffer itself, held in the open or
+            // protected: the gate overwrites what `ReadData` hands it where it reads through
+            // KeePass, `StoredBinaries`, which would wipe the attachment if it were the buffer.
+            foreach (var guarded in new[] { true, false })
+            {
+                var whole = new ProtectedBinary(guarded, new byte[] { 1, 2, 3, 4, 5 });
+                var copy = whole.ReadData();
+                Assert.That(copy, Is.EqualTo(new byte[] { 1, 2, 3, 4, 5 }));
+                Assert.That(copy, Is.Not.SameAs(whole.ReadData()), "a copy every time it is asked");
+                Assert.That(copy, Is.Not.SameAs(KeePassMemory.Buffer(whole)), "the buffer itself was handed out");
+
+                Array.Clear(copy, 0, copy.Length);
+                Assert.That(whole.ReadData(), Is.EqualTo(new byte[] { 1, 2, 3, 4, 5 }));
+            }
         }
 
         [Test]
@@ -576,10 +589,10 @@ namespace KeePassGate.Host.Tests
             // by: the buffer, the lock KeePass's own read decrypts the buffer under, how the
             // buffer is kept at this moment, and the length kept beside the buffer, which is
             // what makes asking an attachment's size decrypt nothing. A KeePass that renames
-            // or retypes any of them has the reader refuse every attachment, with nothing to
-            // fall back to, so it is told here first. The kinds are held to the whole list: a
-            // way of keeping an attachment added to KeePass is a way the reader refuses, and
-            // worth knowing of.
+            // or retypes any of them has the reader read through KeePass's own read, a copy of
+            // the whole attachment, so it is told here first. The kinds are held to the whole
+            // list: a way of keeping an attachment added to KeePass is a way the reader reads
+            // through that copy, and worth knowing of.
             const BindingFlags Private = BindingFlags.NonPublic | BindingFlags.Instance;
             var type = typeof(ProtectedBinary);
 
@@ -635,8 +648,9 @@ namespace KeePassGate.Host.Tests
             // piece of it is the buffer at an offset with nothing copied. A protected
             // attachment is kept encrypted in place by Windows' protection of process memory,
             // which is the only cipher the reader decrypts a piece by: where KeePass finds that
-            // unsupported it keeps the buffer under a cipher of its own, and the reader refuses
-            // every protected attachment. The buffer is padded to whole blocks either way, and
+            // unsupported it keeps the buffer under a cipher of its own, and the reader reads
+            // every protected attachment through KeePass's own read, a copy of the whole. The
+            // buffer is padded to whole blocks either way, and
             // an attachment of no bytes is kept as it is, whatever its flag.
             var supported = typeof(ProtectedBinary).GetProperty(
                 "ProtectedMemorySupported", BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Static);
@@ -823,7 +837,7 @@ namespace KeePassGate.Host.Tests
             // attachment with the constant false for its protection, loaded straight ahead of
             // the bytes. A KeePass that attached files protected would have every large
             // attachment read through a copy of each piece, and a KeePass that kept them some
-            // other way could have them refused.
+            // other way would have them read through a copy of the whole.
             var import = typeof(PwEntryForm).GetMethod(
                 "BinImportFiles", BindingFlags.Instance | BindingFlags.NonPublic);
             var made = typeof(ProtectedBinary).GetConstructor(new[] { typeof(bool), typeof(byte[]) });

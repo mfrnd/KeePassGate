@@ -863,25 +863,32 @@ namespace KeePassGate
                     null);
             }
 
-            // An attachment is read out of KeePass's own buffer and through Windows' protection
-            // of process memory, `StoredBinaries`, and through KeePass's own read, a copy of
-            // the whole attachment, on a KeePass or a Windows that cannot be done on. Asked
-            // here, so that which it is, is in the log as the plugin loads.
-            var whole = StoredBinaries.WhyNotInPlace;
-            if (whole != null)
+            // An attachment and the bytes of a protected value are read out of KeePass's own
+            // buffer and through Windows' protection of process memory, `StoredBinaries`, and
+            // through KeePass's own read, a copy of the whole, on a KeePass or a Windows that
+            // cannot be done on. Asked here, so that which it is, is in the log as the plugin
+            // loads: for everything, or for what KeePass protects alone.
+            var nothing = StoredBinaries.WhyNothingInPlace;
+            var guarded = StoredBinaries.WhyNoProtectedInPlace;
+            if (nothing != null)
             {
                 _log.Warn(
-                    "no attachment is read in place: " + whole + ", so every read of an attachment " +
-                    "and every digest of an attachment copies the whole attachment for as long as it runs");
+                    "nothing is read in place: " + nothing + ", so every read and every digest of an " +
+                    "attachment or of a protected value copies the whole of it for as long as it runs");
+            }
+            else if (guarded != null)
+            {
+                _log.Warn(
+                    "no protected attachment and no protected value is read in place: " + guarded + ", so " +
+                    "every read and every digest of either copies the whole of it for as long as it runs");
             }
 
-            // And a protected value likewise, out of the bytes KeePass keeps for it,
-            // `StoredStrings`.
-            whole = StoredStrings.WhyNotInPlace;
-            if (whole != null)
+            // And where KeePass keeps a string's value, `StoredStrings`.
+            var values = StoredStrings.WhyNotInPlace;
+            if (values != null)
             {
                 _log.Warn(
-                    "no protected value is read in place: " + whole + ", so every read of a protected " +
+                    "no protected value is read in place: " + values + ", so every read of a protected " +
                     "value and every digest of a protected value copies the whole value for as long as it runs");
             }
 

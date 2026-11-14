@@ -296,19 +296,17 @@ chunked answer is not that, §143.
 
 ### Answers written as they are sent §143
 
-**The gate writes an answer in chunks where the answer grows with what the database holds, and
-reads no chunked request**, the operator's ruling of 2026-11-14. Every listing and the reads of
-an entry, of a field and of an attachment hand the
-transport what writes their answer in place of the answer, `IGateContext.Respond`, and the
-transport writes it under `Transfer-Encoding: chunked`, `ChunkedContent`: each value is read
-where it is written, and nothing of the answer is kept. An answer handed over whole is alive
-several times over while it is sent, its values, the document, the document's text and the
-bytes of that text, which is what held a read of an entry to a ceiling, `API.md` §412. Written
-as it is sent, what is alive is the value being written, and for a listing the descriptions it
-is written from, and for an attachment a piece of it, §144. An answer of a bounded size, a
-single group and everything about the gate and the caller, is handed over whole under a
-`Content-Length`.
-`FINDINGS.md` has both measured.
+**The gate writes an answer in chunks where the answer grows with what the database holds, and reads
+no chunked request**, the operator's ruling of 2026-11-14. Every listing and the reads of an entry,
+of a field and of an attachment hand the transport what writes their answer in place of the answer,
+`IGateContext.Respond`, and the transport writes it under `Transfer-Encoding: chunked`,
+`ChunkedContent`: each value is read where it is written, and nothing of the answer is kept. An
+answer handed over whole is alive several times over while it is sent, its values, the document, the
+document's text and the bytes of that text, which is what held a read of an entry to a ceiling,
+`API.md` §412. Written as it is sent, what is alive is a piece of the value being written, §145, and
+for a listing the descriptions it is written from, and for an attachment a piece of it, §144. An
+answer of a bounded size, a single group and everything about the gate and the caller, is handed
+over whole under a `Content-Length`. `FINDINGS.md` has both measured.
 
 **This is the chunked body the paragraph above names, in the direction it does not weigh.**
 What that trigger weighs is this plugin's own parser accumulating cases, and a chunked request
@@ -365,16 +363,16 @@ pairing is not yet verified, which is who that strictness is for.
 ### An attachment is read where KeePass keeps it §144
 
 **The gate reads an attachment a piece at a time out of KeePass's own buffer, at any size, and
-neither a read nor a digest asks KeePass for the whole of it wherever it can be read there**,
-the operator's rulings of 2026-11-14. KeePass hands an attachment out whole or not at all: `ProtectedBinary` is sealed and
-offers `ReadData` and `ReadXorredData`, each a copy of everything. An answer made of such a
-copy holds the attachment for every connection reading it, for as long as each peer takes, and
-the answer built whole around it kept about eight times the attachment alive at once, which is
-what held a read to the 512 KiB a write takes. `StoredBinaries` reads the private buffer, 48 KiB
-at a time, and `readAttachment` writes each piece as base64 as it is sent, §143. `FINDINGS.md`
-has it measured, each answer written into a stream that keeps none of it, with no TLS under it
-and no tag taken: 64 MiB in about a tenth of a second with a tenth of a megabyte alive, against
-a quarter of a second and 491 MB.
+neither a read nor a digest asks KeePass for the whole of it wherever it can be read there**, the
+operator's rulings of 2026-11-14. KeePass hands an attachment out whole or not at all:
+`ProtectedBinary` is sealed and offers `ReadData` and `ReadXorredData`, each a copy of everything.
+An answer made of such a copy holds the attachment for every connection reading it, for as long as
+each peer takes, and the answer built whole around it kept about eight times the attachment alive at
+once, which is what held a read to the 512 KiB a write takes. `StoredBinaries` reads the private
+buffer, 48 KiB at a time, and `readAttachment` writes each piece as base64 as it is sent, §143.
+`FINDINGS.md` has it measured, each answer written into a stream that keeps none of it, with no TLS
+under it and no tag taken: 64 MiB in about a tenth of a second with a tenth of a megabyte alive,
+against a quarter of a second and 491 MB.
 
 **This reverses "what the gate hands out it can also be given back".** A read and a write of an
 attachment were held to the same number, so that nothing was read out that could not be put
@@ -387,17 +385,16 @@ changes, so a piece is the buffer at an offset and nothing is copied. A file att
 KeePass's own dialog is held that way, and so is an importer's, read off KeePass 2.61.1, and a
 file that is loaded keeps each attachment as it was marked.
 
-**A protected attachment is decrypted a piece at a time.** KeePass keeps it encrypted in place
-with Windows' protection of process memory, and reads it by decrypting the whole buffer where it
-stands, under the object's lock. That protection chains its blocks: a copy of a piece of the
-buffer decrypts on its own to the right bytes in every block but its first, and in all of it
-when the block ahead is decrypted with it and thrown away. So a piece is copied with the block
-ahead, decrypted, handed out and overwritten, and the attachment never stands decrypted for a
-read of the gate's. The copy is taken under KeePass's own lock, for the length of the copy and
-no longer: a reader of KeePass's may have the buffer standing decrypted at that moment, and the
-lock held across a write to a peer would stop KeePass's own save behind a slow client. The
-gate's own attachments are protected, and so are other software's: pykeepass marks an
-attachment protected unless told otherwise.
+**A protected attachment is decrypted a piece at a time.** KeePass keeps it encrypted in place with
+Windows' protection of process memory, and reads it by decrypting the whole buffer where it stands,
+under the object's lock. That protection chains its blocks: a copy of a piece of the buffer decrypts
+on its own to the right bytes in every block but its first, and in all of it when the block ahead is
+decrypted with it and thrown away. So a piece is copied with the block ahead, decrypted, handed out
+and overwritten, and the attachment never stands decrypted for a read the gate makes in place. The
+copy is taken under KeePass's own lock, for the length of the copy and no longer: a reader of
+KeePass's may have the buffer standing decrypted at that moment, and the lock held across a write to
+a peer would stop KeePass's own save behind a slow client. The gate's own attachments are protected,
+and so are other software's: pykeepass marks an attachment protected unless told otherwise.
 
 **That holds for a read and for a digest, and for nothing else.** KeePass's own reads still
 decrypt the buffer where it stands, a save among them. And `updateAttachment`, for a caller
@@ -413,12 +410,17 @@ which §136 concedes for a value that is served.
 it.** Private fields of `ProtectedBinary`, and a chaining of blocks that Microsoft does not
 document for `CryptProtectMemory`. `KeePassContractTests` pins both against the pinned KeePass
 and the machine the tests run on, and the running plugin checks them again as it loads,
-`StoredBinaries.WhyNotInPlace`: that the fields are there, that a piece decrypts right with the
-block ahead, that the start of a buffer decrypts right from its first byte with no block ahead
-and shorter than the buffer, and that the same bytes are protected to the same bytes. On a
-KeePass or a Windows that fails the check, logged as a warning as the plugin loads with what
-failed, every attachment is read through `ReadData`: a single copy of the whole attachment,
-handed out in the same pieces and overwritten once the read or the digest is over.
+`StoredBinaries.WhyNoProtectedInPlace`: that the fields are there, that a piece decrypts right
+with the block ahead, that the start of a buffer decrypts right from its first byte with no
+block ahead and shorter than the buffer, and that the same bytes are protected to the same
+bytes. On a KeePass or a Windows that fails the check, logged as a warning as the plugin loads
+with what failed, every protected attachment is read through `ReadData`: a single copy of the
+whole attachment, handed out in the same pieces and overwritten once the read or the digest is
+over. An attachment held in the open rests on nothing of Windows and on the buffer alone, so
+it is still read in place there, and goes through `ReadData` only on a KeePass that keeps no
+buffer where the reader looks, `StoredBinaries.WhyNothingInPlace`. The bytes of a protected
+value are read through the same reader, §145, so what holds for a protected attachment here
+holds for them.
 
 **How KeePass keeps a protected attachment is of the moment, and an attachment kept another
 way is read through KeePass as well.** `ReadData` encrypts the buffer again through whatever
@@ -461,22 +463,24 @@ Considered and refused:
   a client to write to a file as it arrives, and the only answer of this server that is not
   JSON. The operator kept the JSON.
 
-**A tag covers every attachment in its caller's sight, at any size.** The digest is taken in
-place, once for as long as KeePass keeps the attachment, §136: 27 ms for 64 MiB held in the
+**A tag covers every attachment in its caller's sight, at any size.** The digest is taken as
+the attachment is read, in place wherever that can be done, once for as long as KeePass keeps
+the attachment, §136: 27 ms for 64 MiB held in the
 open with nothing allocated, 47 ms protected. It covered an attachment's bytes up to the
 ceiling only, since a digest took a copy: review 4 measured 201 MiB of memory for every request
 that looked such an entry up.
 
-**What it costs.** A read of a large attachment takes a connection's thread for as long as its
-peer reads, within the budget a connection is given to have its answer read, so an attachment
-that cannot be sent in that time cannot be read through the gate. A client bounds what it
-holds: PyKeePassGate keeps a whole answer in memory under `max_response_bytes`, and an
-attachment arrives as base64, four thirds of its size. What is read through the gate can be
-larger than what is written through it. The gate takes KeePass's own lock on a protected
-attachment, for a copy of 48 KiB at a time. And a change that is the first to take a tag over
-a large attachment digests it inside its turn on KeePass's thread, beside its save: 27 ms for
-64 MiB held in the open and about 47 ms protected, once for as long as KeePass keeps the
-attachment. A read's first tag is taken with KeePass's thread free.
+**What it costs.** A read of a large attachment takes a connection's thread for as long as its peer
+reads, within the budget a connection is given to have its answer read, so an attachment that cannot
+be sent in that time cannot be read through the gate. A client bounds what it holds: PyKeePassGate
+keeps a whole answer in memory under `max_response_bytes`, and an attachment arrives as base64, four
+thirds of its size. What is read through the gate can be larger than what is written through it. The
+gate takes KeePass's own lock on a protected attachment, for a copy of 48 KiB at a time where it
+reads in place, and KeePass takes it for its own read of the whole where the gate reads through
+that. And a change that is the first to take a tag over a large attachment digests it inside its
+turn on KeePass's thread, beside its save: 27 ms for 64 MiB held in the open and about 47 ms
+protected, once for as long as KeePass keeps the attachment. A read's first tag is taken with
+KeePass's thread free.
 
 ### A field's value is read where KeePass keeps it §145
 
@@ -496,8 +500,8 @@ the gate, is kept as UTF-8 in a `ProtectedBinary` of the string's own, protected
 attachment is.
 
 **A value kept as a string is handed out as that string**, in a single piece and with nothing
-copied, as an attachment held in the open is its buffer. Json.NET writes a string a character
-at a time, so nothing is copied for the answer either.
+copied, as an attachment held in the open is its buffer. What writes it into an answer takes
+it a step at a time, below.
 
 **A value kept as bytes is decrypted, decoded and escaped a piece at a time.** `StoredStrings`
 reads the bytes through `StoredBinaries`, as an attachment's are read, decodes them 16 KiB at
@@ -506,8 +510,18 @@ each step out as text. `JsonWriter.TextInPieces` has Json.NET escape each piece 
 pieces between a single pair of quotes, as it writes the base64 of an attachment. The answer
 is byte for byte the answer made of the value whole, for every character and for stored bytes
 that are not UTF-8, which a file another program wrote can hold: `FINDINGS.md` has both
-measured. KeePass is never asked for the value, as a string or as bytes, so its buffer stays
-encrypted, and the value is never whole in the gate's memory.
+measured. Read so, KeePass is never asked for the value, as a string or as bytes, so its
+buffer stays encrypted, and a read of the field holds no more of the value than a piece at a
+time, a value shorter than a piece being that piece. A title or an address a listing shows is
+joined into a single string, §136.
+
+**A piece of any length is escaped a step at a time**, the string KeePass keeps for a long
+value among them. Json.NET's own writer hands a string with nothing to escape on whole, and
+copies each run between two characters it escapes into a buffer as long as the run, which it
+keeps for the document: megabytes alive at once, for a long value held in the open that ends
+in a line break. So `TextInPieces` cuts a piece into steps of 20480 characters and has Json.NET
+escape each, and what is alive of any value while it is written is a step and what the step
+was escaped to.
 
 **A tag's digest of a value is taken the same way, and is the digest it was.** Of the string,
 for a value kept as a string. For a value kept as bytes, of those bytes as they are read, while
@@ -515,21 +529,27 @@ a decoder that refuses what is not UTF-8 runs over them; bytes that are not UTF-
 second time and digested as a read decodes them. No tag moves, and no string is made of a
 protected value for its digest.
 
-**Where that cannot be done, KeePass reads**, as for an attachment, §144. On a KeePass that
-keeps a value otherwise, checked as the plugin loads and logged there as a warning,
-`StoredStrings.WhyNotInPlace`, a protected value is read with `ReadUtf8`, a copy of the whole.
-The bytes of a value kept through another cipher than Windows' are read through `ReadData` by
-the reader underneath, and decoded a step at a time all the same. And KeePass can read a value
-as a string on its own thread while a connection is part way through its bytes: KeePass sets
-the string before it lets the bytes go, so the reader asks for the bytes first and finds the
-value in the bytes or in the string, and bytes it found stay the value, since a
-`ProtectedBinary` is never changed.
+**Where that cannot be done, KeePass reads**, as for an attachment, §144. On a KeePass that keeps a
+value otherwise, checked as the plugin loads and logged there as a warning,
+`StoredStrings.WhyNotInPlace`, a protected value is read with `ReadUtf8`, a copy of the whole. The
+bytes of a value kept through another cipher than Windows', and of every protected value on a
+KeePass or a Windows where no protected attachment is read in place, which the plugin logs as it
+loads as well, are read through `ReadData` by the reader underneath, a copy of the whole, and
+decoded a step at a time all the same. `StoredStringsTests` and `StoredBinariesTests` ask for each
+of those reads by name, since no machine the tests run on needs them. And KeePass can read a value
+as a string on its own thread while a connection is part way through its bytes: KeePass sets the
+string before it lets the bytes go, so the reader asks for the bytes first and finds the value in
+the bytes or in the string, and bytes it found stay the value, since a `ProtectedBinary` is never
+changed.
 
 **What it costs, and what it leaves as it was.** Measured in a Release build into a stream
-that keeps nothing, a protected value of 64 MiB is read in 441 to 465 ms with 0.2 MB alive,
-against 414 to 516 ms with 128 MB alive; of 16 MiB in 131 ms against 114 to 130 ms; and of
-64 KiB in 1.5 ms either way. A read in pieces allocates about eight times the value over its
-length, in strings of 32 KB and under that are each let go as the next is made. What a write
+that keeps nothing, a protected value of 64 MiB is read in 306 to 307 ms with 0.2 MB alive,
+against 339 to 347 ms with 128 MB alive; of 16 MiB in 79 to 88 ms against 82 to 83 ms; and of
+64 KiB in half a millisecond either way. A value of 64 MiB held in the open is written in 215
+to 216 ms, against 192 to 203 ms by Json.NET's own writer. A value written a step at a time
+allocates seven to eight times its length over the whole of it, in strings of about 40 KB and
+under that are each let go as the next is made, where a value held in the open allocated nothing
+unless it held a long run with nothing to escape ahead of a character to escape. What a write
 takes for a value is unchanged, 65536 characters, and so is the wire: a client reads the JSON
 it read. A piece of a value that is served is a string in the process until the runtime
 reuses its memory, as the whole value was, §136. `StoredStringsTests`, `JsonWriterTests` and
@@ -794,11 +814,11 @@ request carried, and for an attachment's bytes once they are written into an ans
 a value itself when the operator uses the entry, and at a save for a string its settings leave
 unprotected. Nothing here defends against code running as the user, which is conceded throughout. A
 title or an address a caller is not shown is not read at all: an entry is described without them,
-and a listing reads each only where it shows it. It costs a copy of each protected value in sight
-for the first tag taken over it, and a copy of each protected title and address a listing shows, for
-every listing, where KeePass keeping the text made every listing after the first cheaper. A read's
-tag is taken, and a listing written, with KeePass's thread free; a change's tags are inside its
-turn. `FINDINGS.md` has the numbers.
+and a listing reads each only where it shows it. It costs a read of each protected value in sight
+for the first tag taken over it, a piece at a time since §145 and a copy of the whole before, and a
+copy of each protected title and address a listing shows, for every listing, where KeePass keeping
+the text made every listing after the first cheaper. A read's tag is taken, and a listing written,
+with KeePass's thread free; a change's tags are inside its turn. `FINDINGS.md` has the numbers.
 
 **A tag keeps a digest of each value, and the digest of a protected value is kept as the value is.**
 A tag takes a value by its SHA-256, taken once for as long as KeePass keeps the object the value is
@@ -2108,13 +2128,13 @@ same way and is no longer parted. `API.md` §412 has the order of a read's refus
 
 What is given up, and written down so that it is not rediscovered as a defect:
 
-- **A read costs what the entry holds, and is refused for none of it.** Reading an entry a
-  client has grown reads and writes all of it on the connection's own thread: for fifty
-  protected strings of a million characters, about a quarter of a second and 143 MB of
-  short-lived copies for the writing alone, `FINDINGS.md`, beside the tag before it and the TLS
-  under it, within the budget a connection is given to have its answer read.
-  What it keeps alive is the value being written. A client reads as much of an answer as its
-  own cap allows, and reads a larger entry a field at a time.
+- **A read costs what the entry holds, and is refused for none of it.** Reading an entry a client
+  has grown reads and writes all of it on the connection's own thread: for fifty protected strings
+  of a million characters, about a quarter of a second and 401 MB of short-lived pieces for the
+  writing alone, `FINDINGS.md`, beside the tag before it and the TLS under it, within the budget a
+  connection is given to have its answer read. What it keeps alive is a piece of the value being
+  written, §145. A client reads as much of an answer as its own cap allows, and reads a larger entry
+  a field at a time.
 - **Nothing bounds what a client holding `update` or `create` adds to an entry** beyond what a
   request carries, 65536 characters in a value and 1 MiB in a body. The entry grows in the
   database's memory, in the file and in the time every save takes, a request at a time, and each

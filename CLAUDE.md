@@ -470,60 +470,61 @@ designing around them.
   section 13.2.1 orders them, and one that cannot be read matches nothing, because every way of
   ignoring it ends with the write going ahead. A write answers with its tag in the body, as
   `etag`, since RFC 9110 section 9.3.4 gives an `ETag` header on a `PUT` another meaning.
-- **A read of an entry or of a field is written as it is sent and held to no size, and no write
-  is refused for an entry's size.** `readEntry` and `readField` hand the transport what writes
-  their answer, `IGateContext.Respond` with content, and the transport writes it under
-  `Transfer-Encoding: chunked`, the operator's ruling of 2026-11-14: each value is read where it
-  is written, `VaultViewField.Read`, and kept nowhere, so what a read keeps alive is the value it
-  is writing. Everything that can refuse, the lookup, the rules, the tag and `If-Match`, comes
-  before the first byte, and so does the audit line for a withheld value; what the content
-  throws afterwards cannot be answered: it is thrown on as `AnswerContentFailed`, counted as a
-  defect, and ends the connection with the last chunk never sent, which is how a client tells an
-  answer cut short, `DESIGN.md` §143. A HEAD runs no content, so no value is read for its
-  answer; its tag is taken first, and a tag reads each value in sight the first time a tag is
-  taken over that value. A `VaultViewField` keeps nothing a withheld value could be read with
-  and no length of any value, so nothing rendered from a view can tell how long a withheld value
-  is. **`listFields` is written the same way, every name in a single answer**, since no write
-  bounds how many strings an entry holds: it was served in parts while it was handed over
-  whole, and there is no `from` and no `next`. So is `listAttachments`, names and sizes, and so
-  are the listings of groups and of entries, which grow with the database: the rule is that an
-  answer growing with what the database holds is written as it is sent, an attachment among
-  them, and an answer of a bounded size, a single group and the gate's own routes, is handed
-  over whole with a `Content-Length`. PyKeePassGate reads a chunked answer with its own
-  strict reader, never `http.client`, and holds an answer to its own `max_response_bytes`.
-  **This reverses a ceiling on reads**, 524288 characters over what the caller would be handed,
-  answered `413`, the ruling of 2026-11-10,
-  **which had reversed a ceiling held on writes as well**, "what the gate lets a client write it
-  also hands back whole": the write's refusal named the entry's whole count, so a client that
-  may write and not read padded an entry to the ceiling and read off how long the values it was
-  withheld were, `NoSizeToldToAWriterTests`. What it costs, `DESIGN.md` §142: nothing bounds what
-  a client holding `update` or `create` adds to an entry beyond a request's own limits, a read
-  of such an entry costs its size in time on its own connection, and a tag is still taken over
-  a caller's whole view however large, by a read with KeePass's thread free. **Do not
-  re-propose** a floor or rounding for each string, a ceiling for each protection class, the
-  refusal without its count, random slack or pacing: each keeps an answer to a write that moves
-  with a value its caller may not read. The ceiling on an attachment a write takes and the
-  transport's limit on a body stay, since each measures what the caller itself sent.
+- **A read of an entry or of a field is written as it is sent and held to no size, and no write is
+  refused for an entry's size.** `readEntry` and `readField` hand the transport what writes their
+  answer, `IGateContext.Respond` with content, and the transport writes it under `Transfer-Encoding:
+  chunked`, the operator's ruling of 2026-11-14: each value is read where it is written,
+  `VaultViewField.Read`, and kept nowhere, so what a read keeps alive is a piece of the value it is
+  writing. Everything that can refuse, the lookup, the rules, the tag and `If-Match`, comes before
+  the first byte, and so does the audit line for a withheld value; what the content throws
+  afterwards cannot be answered: it is thrown on as `AnswerContentFailed`, counted as a defect, and
+  ends the connection with the last chunk never sent, which is how a client tells an answer cut
+  short, `DESIGN.md` §143. A HEAD runs no content, so no value is read for its answer; its tag is
+  taken first, and a tag reads each value in sight the first time a tag is taken over that value. A
+  `VaultViewField` keeps nothing a withheld value could be read with and no length of any value, so
+  nothing rendered from a view can tell how long a withheld value is. **`listFields` is written the
+  same way, every name in a single answer**, since no write bounds how many strings an entry holds:
+  it was served in parts while it was handed over whole, and there is no `from` and no `next`. So is
+  `listAttachments`, names and sizes, and so are the listings of groups and of entries, which grow
+  with the database: the rule is that an answer growing with what the database holds is written as
+  it is sent, an attachment among them, and an answer of a bounded size, a single group and the
+  gate's own routes, is handed over whole with a `Content-Length`. PyKeePassGate reads a chunked
+  answer with its own strict reader, never `http.client`, and holds an answer to its own
+  `max_response_bytes`. **This reverses a ceiling on reads**, 524288 characters over what the caller
+  would be handed, answered `413`, the ruling of 2026-11-10, **which had reversed a ceiling held on
+  writes as well**, "what the gate lets a client write it also hands back whole": the write's
+  refusal named the entry's whole count, so a client that may write and not read padded an entry to
+  the ceiling and read off how long the values it was withheld were, `NoSizeToldToAWriterTests`.
+  What it costs, `DESIGN.md` §142: nothing bounds what a client holding `update` or `create` adds to
+  an entry beyond a request's own limits, a read of such an entry costs its size in time on its own
+  connection, and a tag is still taken over a caller's whole view however large, by a read with
+  KeePass's thread free. **Do not re-propose** a floor or rounding for each string, a ceiling for
+  each protection class, the refusal without its count, random slack or pacing: each keeps an answer
+  to a write that moves with a value its caller may not read. The ceiling on an attachment a write
+  takes and the transport's limit on a body stay, since each measures what the caller itself sent.
 - **An attachment is read at any size, a piece at a time from where KeePass keeps it, and
   written at up to 512 KiB.** `StoredBinaries` reads KeePass's own buffer, the private
   `m_pbData` of a `ProtectedBinary`, 48 KiB at a time, and `readAttachment` writes each piece as
-  base64 as it is sent, the operator's rulings of 2026-11-14: no copy of the whole is made, so
-  a read keeps a piece alive and none is refused for size. An attachment held in the open, as
-  a file attached in KeePass's dialog is, is read in place. A protected attachment, as the
-  gate's own are, is kept encrypted in place by Windows' protection of process memory, which
-  chains its blocks: a piece is copied with the block ahead of it under KeePass's own lock,
-  `m_objSync`, held for the copy alone, then decrypted, handed out and overwritten. **Where
-  that cannot be done, KeePass reads**: on a KeePass or a Windows the read in place no longer
-  fits, checked as the plugin loads, `StoredBinaries.WhyNotInPlace`, and logged as a warning
-  where it fails, and for a protected attachment KeePass keeps any other way, above all through
-  the cipher another plugin put in place by `ProtectedBinary.ExtCrypt`, asked at every piece,
-  the attachment is read through `ReadData`: a single copy of the whole, handed out in the same
-  pieces and overwritten, at any size. **Do not re-propose refusing such an attachment**:
-  `500 unreadable` was ruled and reversed on 2026-11-14, so that a field and an attachment are
-  read alike. `KeePassContractTests` pins the fields and the chaining. A tag covers every
-  attachment its caller may read at any size, its digest taken the same way. What makes no
-  copy of the whole, where an attachment is read in place, is a read and a digest:What makes no
-  copy of the whole is a read and a digest: `updateAttachment` still compares a replacement of
+  base64 as it is sent, the operator's rulings of 2026-11-14: read in place, no copy of the
+  whole is made, so a read keeps a piece alive, and none is refused for size. An attachment
+  held in the open, as a file attached in KeePass's dialog is, is read in place wherever
+  KeePass keeps the buffer where the reader looks, since that rests on nothing of Windows. A
+  protected attachment, as the gate's own are, is kept encrypted in place by Windows'
+  protection of process memory, which chains its blocks: a piece is copied with the block
+  ahead of it under KeePass's own lock, `m_objSync`, held for the copy alone, then decrypted,
+  handed out and overwritten. **Where that cannot be done, KeePass reads**: for every
+  attachment on a KeePass that keeps the buffer otherwise, `StoredBinaries.WhyNothingInPlace`,
+  for a protected attachment on a KeePass or a Windows the read in place no longer fits,
+  `StoredBinaries.WhyNoProtectedInPlace`, each checked as the plugin loads and logged as a
+  warning, and for a protected attachment KeePass keeps any other way, above all through the
+  cipher another plugin put in place by `ProtectedBinary.ExtCrypt`, asked at every piece, the
+  attachment is read through `ReadData`: a single copy of the whole, handed out in the same
+  pieces and overwritten, at any size, and alive for as long as the read takes. **Do not
+  re-propose refusing such an attachment**: `500 unreadable` was ruled and reversed on
+  2026-11-14, so that a field and an attachment are read alike. `KeePassContractTests` pins
+  the fields and the chaining. A tag covers every attachment its caller may read at any size,
+  its digest taken the same way. What makes no copy of the whole, where an attachment is read
+  in place, is a read and a digest: `updateAttachment` still compares a replacement of
   the stored length through KeePass's own `ProtectedBinary.Equals`, which reads both whole,
   within the 512 KiB a write takes. `MaxAttachmentBytes` is what a write takes and nothing
   else. `JsonWriter.Base64` writes the base64 itself, between quotes, which is no second way of
@@ -537,15 +538,20 @@ designing around them.
   any value KeePass has read as a string; bytes for a protected value a file was loaded with
   or the gate wrote. `StoredStrings` hands a value kept as a string out as that string, in a
   single piece with nothing copied, and reads a value kept as bytes through `StoredBinaries`,
-  decoding 16 KiB at a time, so neither the bytes nor the text of a protected value is ever
-  whole in the gate's memory. `JsonWriter.TextInPieces` writes the pieces between a single pair
-  of quotes, each escaped by Json.NET, which is no second way of escaping, and a single piece
-  as Json.NET writes any string. The answer and every tag are byte for byte what they were,
-  stored bytes that are not UTF-8 included. The bytes are asked for ahead of the string, since
-  KeePass's own `ReadString` sets the string before it lets the bytes go. **Where that cannot
-  be done, KeePass reads**, as for an attachment: `ReadUtf8` on a KeePass that keeps a value
-  otherwise, `StoredStrings.WhyNotInPlace`, logged as a warning as the plugin loads.
-  `VaultViewField.Read` hands out pieces and no whole value. `DESIGN.md` §145.
+  decoding 16 KiB at a time, so a read of a protected field in place holds no more of its
+  bytes or its text than a piece at a time, a value shorter than a piece being that piece. A
+  title or an address a listing shows is joined into a single string, `DESIGN.md` §136.
+  `JsonWriter.TextInPieces` writes the pieces between a single pair of quotes, each escaped by
+  Json.NET a step at a time, which is no second way of escaping: a piece of any length, the
+  string KeePass keeps for a long value among them, is escaped in steps, since Json.NET's own
+  writer copies each run of a string between two characters it escapes into a buffer as long
+  as the run. The answer and every tag are byte for byte what they were, stored bytes that
+  are not UTF-8 included. The bytes are asked for ahead of the string, since KeePass's own
+  `ReadString` sets the string before it lets the bytes go. **Where that cannot be done,
+  KeePass reads**, as for an attachment: `ReadUtf8`, a copy of the whole value, on a KeePass
+  that keeps a value otherwise, `StoredStrings.WhyNotInPlace`, and `ReadData` for the bytes of
+  a value wherever a protected attachment is read through it, each logged as a warning as the
+  plugin loads. `VaultViewField.Read` hands out pieces and no whole value. `DESIGN.md` §145.
 - **A plain DLL on .NET Framework 4.8**, not a `.plgx`.
 - **The access control model is one document per node**: `AclDocument`, `AclResolver`, `AclGrant`,
   `AclVerb`, `AclDefault`, with `KdbxNodes` adapting a `PwGroup` or a `PwEntry`. Grants live under

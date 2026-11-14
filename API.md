@@ -331,8 +331,8 @@ names and values,
 counted over what its caller would be handed, and answered `413` past that, the ruling of
 2026-11-10. An entry past the ceiling was read a field at a time, which took `list` beside
 `read`, and a single value past it could not be read through the gate at all. `FINDINGS.md`
-has both forms measured: the two hundred fields are 38 MB of short-lived copies where they are
-protected and nothing where they are not, a value at a time, and a quarter less time.
+has both forms measured: the two hundred fields are about a hundred megabytes of short-lived
+pieces, with a tenth of a megabyte alive at once, and a quarter less time.
 
 **How much of an answer a client holds is the client's to decide.** The gate hands out an entry
 of any size, so the bound on what a client reads is its own: PyKeePassGate reads at most
@@ -370,7 +370,8 @@ the read takes, at any size, with the answer and its tag what they are for any a
 **This reverses `500 unreadable`**, which answered every request that took a tag over such an
 attachment and every write of an attachment while such a cipher stood, under a ruling of
 2026-11-14 that the operator reversed the same day: a field and an attachment are read alike,
-and a field is read through KeePass whatever keeps it. It was never released. `DESIGN.md` §144.
+and a field was read through KeePass whatever kept it, and is read as an attachment is since,
+`DESIGN.md` §145. It was never released. `DESIGN.md` §144.
 
 **No write is refused for what an entry's strings come to, which reverses a ceiling held in both
 directions**, the operator's ruling of 2026-11-10. A create, an update or a new field that would
@@ -390,7 +391,7 @@ can add to an entry beyond what a request may carry, 65536 characters in a value
 body, so how large an entry and the file around it grow is that client's to decide, a request
 at a time. And a read of such an entry costs what the entry holds, in time and in short-lived
 memory, on its own connection's thread: for fifty protected strings of a million characters,
-about a quarter of a second and 143 MB of copies made and let go for the writing alone,
+about a quarter of a second and 401 MB of pieces made and let go for the writing alone,
 beside the tag taken before it and the TLS under it, for as long as its peer takes to read it
 within the budget a connection is given to have its answer read. A client holding
 `read` on an entry it or another client can grow can keep a connection's thread that busy, on
@@ -399,19 +400,20 @@ its own cap and does not go on to read field by field: which strings to fetch of
 large for it is its caller's decision.
 
 **A tag is still taken over the whole of a caller's view, however large, and it reads each value
-once.** Every answer that hands a tag out, a listing
-of the fields and a read of a short field among them, and every write under `If-Match` or answered
-with an `etag`, covers every value in its caller's sight. A value enters a tag by its digest, and
-the digest is taken once for as long as KeePass keeps the object the value is held in, as an
-attachment's is: KeePass replaces that object when the value changes and never changes it in
-place. So the first tag anybody is handed over a value reads it, and every tag after it costs by how
-many strings the entry holds and not by how long they are. Measured on an entry of fifty protected
-strings of a million characters each: the first tagged read takes about sixty to ninety milliseconds
-and 48 MB on its own connection's thread, a copy of each protected value digested and overwritten,
-so that KeePass goes on protecting the value in memory, `DESIGN.md` §136, and every tagged read
-after it a quarter of a millisecond. A read takes its tag once the hold of KeePass's thread has
-ended, `DESIGN.md` §119, and a write inside its own turn on that thread, where the comparison and
-the change are one step. `FINDINGS.md` has the numbers. No ceiling was added for it.
+once.** Every answer that hands a tag out, a listing of the fields and a read of a short field among
+them, and every write under `If-Match` or answered with an `etag`, covers every value in its
+caller's sight. A value enters a tag by its digest, and the digest is taken once for as long as
+KeePass keeps the object the value is held in, as an attachment's is: KeePass replaces that object
+when the value changes and never changes it in place. So the first tag anybody is handed over a
+value reads it, and every tag after it costs by how many strings the entry holds and not by how long
+they are. Measured on an entry of fifty protected strings of a million characters each: the first
+tagged read takes about sixty to ninety milliseconds and 48 MB on its own connection's thread,
+measured while a copy of each protected value was digested and overwritten, where each is digested a
+piece at a time since, `DESIGN.md` §145, so that KeePass goes on protecting the value in memory,
+`DESIGN.md` §136, and every tagged read after it a quarter of a millisecond. A read takes its tag
+once the hold of KeePass's thread has ended, `DESIGN.md` §119, and a write inside its own turn on
+that thread, where the comparison and the change are one step. `FINDINGS.md` has the numbers. No
+ceiling was added for it.
 
 ## Durability §408
 

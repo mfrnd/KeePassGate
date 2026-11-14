@@ -438,11 +438,21 @@ namespace KeePassGate.Bridge
         /// </remarks>
         private static byte[] Digested(ProtectedString value)
         {
+            return Digested(value, true);
+        }
+
+        /// <summary>
+        /// The SHA-256 of a stored string's value, taken from where KeePass keeps it where
+        /// <paramref name="inPlace"/> is set and KeePass keeps it as it was measured, and
+        /// through KeePass's own read otherwise, as `StoredStrings.Read` reads.
+        /// </summary>
+        internal static byte[] Digested(ProtectedString value, bool inPlace)
+        {
             using (var pieces = new Pieces())
             {
                 string text;
                 ProtectedBinary bytes;
-                if (StoredStrings.Found(value, out text, out bytes))
+                if (inPlace && StoredStrings.Found(value, out text, out bytes))
                 {
                     return text != null ? Digested(text, pieces) : Digested(bytes, pieces);
                 }
@@ -507,8 +517,15 @@ namespace KeePassGate.Bridge
         /// </summary>
         private static bool Utf8Into(HashAlgorithm hash, ProtectedBinary stored)
         {
+            var length = checked((int)stored.Length);
+            if (length == 0)
+            {
+                return true;
+            }
+
+            // Room for what a step decodes to, and no more than the value needs.
             var strict = Strict.GetDecoder();
-            var text = new char[Strict.GetMaxCharCount(StoredStrings.Step)];
+            var text = new char[Strict.GetMaxCharCount(Math.Min(StoredStrings.Step, length))];
             try
             {
                 StoredBinaries.Read(stored, (held, offset, count) =>
