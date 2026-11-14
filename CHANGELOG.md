@@ -46,7 +46,7 @@ none, since it releases both.
   in-memory cipher, answers `500 unreadable`, and so does any answer carrying a tag over it; a
   write of an attachment is refused the same way while such a cipher stands, and changes
   nothing. PyKeePassGate holds a whole answer under `max_response_bytes`, so an attachment over
-  about 3 MiB needs it raised.
+  about 3 MiB needs it raised, and its stand-in gate frames an attachment as the plugin does.
   `API.md` §412.
 - **A protected value read or written through the gate stays encrypted in KeePass's memory.**
   KeePass keeps a protected value encrypted in memory until something reads it as text, and
