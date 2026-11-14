@@ -473,6 +473,38 @@ that a read is measured over what its caller is handed, `API.md` §412: the view
 measured by holds no length for a value it withholds, both writes are now made and answered
 alike, and the withheld field is the `null` every withheld value is.
 
+**An answer built whole is alive several times over while it is written, and an answer written
+as it is sent is alive a value at a time.** Built whole, an answer made of an entry's values is
+every value read, the document they are written into, the text taken of that document and the
+bytes the text encodes to, all alive when the first byte goes out. Written as it is sent,
+`HttpResponse.Write` with content, each value is read where it is written and goes out in
+chunks. Measured on the development machine in a Release build, over KeePass's own strings, each
+form writing its whole answer, head and all, into a stream that keeps a digest of it and
+nothing else:
+
+| Strings | Answer | Built whole | Written as it is sent |
+| --- | --- | --- | --- |
+| 8 protected, of 65536 characters | 0.6 MB | 3.6 to 3.9 ms, 4.5 MB allocated, 4.0 MB alive at once | 2.6 to 3.1 ms, 1.5 MB allocated |
+| 200 protected, of 65536 | 14.8 MB | 92 to 96 ms, 112 MB, 99 MB alive | 69 to 74 ms, 38 MB |
+| 200 held in the open, of 65536 | 14.8 MB | 74 to 79 ms, 74 MB, 74 MB alive | 53 to 54 ms, nothing |
+| 50 protected, of a million | 56.6 MB | 340 to 354 ms, 427 MB, 379 MB alive | 254 to 265 ms, 143 MB |
+| 50 held in the open, of a million | 56.6 MB | 277 to 297 ms, 284 MB, 284 MB alive | 200 to 208 ms, nothing |
+
+Alive at once as it is sent, collected and counted after each value, came to under a tenth of a
+megabyte in every row: the chunk being gathered and the writers' own buffers. Beside that stands
+the value being written, two bytes a character, and for a protected value the bytes it was
+decrypted to while they are decoded, and nothing that grows with how many values an entry
+holds. A value held in the open is the string KeePass already keeps, so writing it allocates
+nothing. A protected value is decrypted and decoded to be written, which is the 1.5, 38 and
+143 MB, each of it short-lived. Written as it is sent an answer also takes a quarter to a third
+less time, since nothing is copied into a document, out of it again and into bytes.
+
+**Counting the length first, to keep `Content-Length`, was measured and refused.** The same
+answer written twice over, into a stream that only counts and then into the connection, keeps
+as little alive and took thirty to forty percent longer than the answer built whole, 5.3 ms
+against 3.5 in the first row and 473 to 508 against 340 to 430 in the fourth, since every
+protected value is decrypted and escaped twice. `DESIGN.md` §143 has what was chosen.
+
 **What a tag costs on an entry far past the ceiling**, now that writes can make such an entry: fifty
 strings of a million characters each, on the development machine in a Release build, through the
 real router and vault. A read of the whole entry is refused and takes no tag. Every other request

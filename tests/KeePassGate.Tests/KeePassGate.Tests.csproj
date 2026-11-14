@@ -32,6 +32,7 @@
          test assemblies. One copy, because the loopback tests and the end to end tests have to be
          talking to the same protocol for either of them to mean anything. -->
     <Compile Include="..\Shared\HttpAnswer.cs" Link="Shared\HttpAnswer.cs" />
+    <Compile Include="..\Shared\GateAnswers.cs" Link="Shared\GateAnswers.cs" />
     <Compile Include="..\Shared\VaultAskings.cs" Link="Shared\VaultAskings.cs" />
     <Compile Include="..\Shared\VaultReads.cs" Link="Shared\VaultReads.cs" />
     <Compile Include="..\Shared\PairingClient.cs" Link="Shared\PairingClient.cs" />

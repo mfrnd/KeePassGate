@@ -328,7 +328,10 @@ designing around them.
   rules and refusing to change them.
 - **No third-party HTTP dependency.** `uHttpSharp` fits the seam natively with zero changes and is
   ruled out on **license** (LGPL-2.1) and liveness (no commits since 2021), not on fit. Wanting
-  WebSocket, HTTP/2 or chunked bodies flips this; nothing else does.
+  WebSocket, HTTP/2 or chunked request bodies flips this; nothing else does. **Writing a chunked
+  answer does not**: `ChunkedContent` puts a size line ahead of bytes the plugin already writes,
+  parses nothing and takes nothing from a peer, and a request carrying `Transfer-Encoding` is
+  refused as before, `DESIGN.md` §143.
 - **The TLS is Bouncy Castle, not SChannel**, and that reverses an earlier decision on a
   measurement: SChannel will not serve with a key that has not been written to the user's profile,
   so the platform's own TLS meant a host key on the disk. `Org.BouncyCastle.Tls` is MIT, alive, and

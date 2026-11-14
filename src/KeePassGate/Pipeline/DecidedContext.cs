@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Net;
 
 namespace KeePassGate.Pipeline
@@ -44,6 +45,7 @@ namespace KeePassGate.Pipeline
         private bool _answered;
         private int _status;
         private string _json;
+        private Action<TextWriter> _content;
         private WebHeaderCollection _headers;
         private Action _after;
 
@@ -126,7 +128,7 @@ namespace KeePassGate.Pipeline
         {
             if (!_keeps)
             {
-                Send(status, json, headers);
+                Send(status, json, null, headers);
                 return;
             }
 
@@ -139,6 +141,38 @@ namespace KeePassGate.Pipeline
             _answered = true;
             _status = status;
             _json = json;
+            _headers = headers;
+        }
+
+        /// <summary>
+        /// Answers with content that is written as it is sent, kept here as an answer handed
+        /// over whole is.
+        /// </summary>
+        /// <remarks>
+        /// What is kept is what writes the content, and nothing is written until the request
+        /// itself is answered, so an answer dropped with this context has made nothing.
+        /// </remarks>
+        public void Respond(int status, Action<TextWriter> content, WebHeaderCollection headers)
+        {
+            if (content == null)
+            {
+                throw new ArgumentNullException(nameof(content));
+            }
+
+            if (!_keeps)
+            {
+                Send(status, null, content, headers);
+                return;
+            }
+
+            if (_answered)
+            {
+                return;
+            }
+
+            _answered = true;
+            _status = status;
+            _content = content;
             _headers = headers;
         }
 
@@ -183,12 +217,18 @@ namespace KeePassGate.Pipeline
 
             if (_answered)
             {
-                Send(_status, _json, _headers);
+                Send(_status, _json, _content, _headers);
             }
         }
 
-        private void Send(int status, string json, WebHeaderCollection headers)
+        private void Send(int status, string json, Action<TextWriter> content, WebHeaderCollection headers)
         {
+            if (content != null)
+            {
+                _request.Respond(status, content, headers);
+                return;
+            }
+
             if (headers == null)
             {
                 _request.Respond(status, json);

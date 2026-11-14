@@ -286,9 +286,70 @@ never offer keep-alive or upgrade. That is a smaller and better understood liabi
 alternative, and it sits behind the gate and behind TLS, unlike the ClientHello parser we already
 have to write.
 
-**What would flip this.** Wanting WebSocket, HTTP/2 or chunked bodies makes writing it here a bad
-trade immediately. If that happens, uHttpSharp is the candidate to reopen and the license question
-is the one to answer first, because the fit was never in doubt.
+**What would flip this.** Wanting WebSocket, HTTP/2 or chunked request bodies makes writing it
+here a bad trade immediately. If that happens, uHttpSharp is the candidate to reopen and the
+license question is the one to answer first, because the fit was never in doubt. Writing a
+chunked answer is not that, §143.
+
+### Answers written as they are sent §143
+
+**The transport writes an answer in chunks where it is handed what writes the answer, and reads
+no chunked request**, the operator's ruling of 2026-11-14. A handler hands the
+transport what writes its answer in place of the answer, `IGateContext.Respond`, and the
+transport writes it under `Transfer-Encoding: chunked`, `ChunkedContent`: each value is read
+where it is written, and nothing of the answer is kept. An answer handed over whole is alive
+several times over while it is sent, its values, the document, the document's text and the
+bytes of that text, which is what holds a read of an entry to a ceiling, `API.md` §412, and the
+reads of an entry are what this is for. Written
+as it is sent, what is alive is the value being written. `FINDINGS.md` has both measured.
+
+**This is the chunked body the paragraph above names, in the direction it does not weigh.**
+What that trigger weighs is this plugin's own parser accumulating cases, and a chunked request
+is such a case: a second way for a peer to mark where a body ends, read by hand-written code
+on the only surface a peer writes to. A chunked answer is a size line ahead of bytes this
+plugin already writes. It parses nothing and gives a peer no new input, so the parser is what
+it was, and a request carrying `Transfer-Encoding` is refused as before, §110.
+
+Considered in its place:
+
+- **Two passes, the first counting the length.** `Content-Length` stays and nothing changes on
+  the wire. Measured at thirty to forty percent more time than an answer built whole, since
+  every protected value is decrypted and escaped twice.
+- **No length, ended by closing the connection**, which RFC 9112 section 6.3 allows and the
+  gate's closing of every connection would mark. An answer cut short is then told from a whole
+  answer only by the TLS close notice, which a client has to be made to insist on: Python's
+  `ssl` reads a connection dropped without it as an ordinary end unless told otherwise. The
+  last chunk tells the same in the framing itself.
+- **A library.** Nothing here needs what a library adds, and the reasons against the candidates
+  are above.
+
+**Still a single request for each connection.** Chunks mark the end of an answer without
+closing, which is what keep-alive would need, and keep-alive stays refused, §135.
+
+**A failure part way cannot be answered.** The status has gone out, so what the content throws
+ends the connection with the last chunk never sent: `ChunkedContent` sends it only once the
+content is whole. So a client takes an answer for whole only when its last chunk arrived, and
+PyKeePassGate reads a cut answer as a connection that failed. A handler refuses
+everything it can refuse before it answers this way, so what is left to fail is what its
+content reads and the connection itself. A failure there is taken as any failure of
+writing an answer is: what a connection that went away throws is an answer lost, and anything
+else reaches the connection's thread, which counts it, §141. What the writer of a failed
+answer still holds is dropped, `ChunkedContent.Abandon`, so nothing of the answer follows the
+failure and a peer that is gone as well does not put its own failure in its place.
+
+**Writing the answer is the peer's to slow down, and now holds the reading of the values.**
+The connection's deadline is armed again as an answer is written, `GateListener.Deadline.Writing`,
+since how fast an answer is read is the peer's doing. For these answers that window holds this
+plugin's reading of the values as well. It reads no database, holds no lock and waits on
+nothing of KeePass's, §119, so what the deadline cuts short there is the answer to a read and
+never a change.
+
+**The client's reader is its own, and strict**, the ruling of the same day, over
+`http.client.HTTPResponse`, which was measured to accept a chunk size with a sign, a `0x`, an
+underscore or spaces around it, a chunk extension, any bytes in place of the line end after a
+chunk, a folded header, and a body cut short of its `Content-Length` when read in pieces.
+PyKeePassGate's reader takes hex digits and line ends and refuses the rest, and a peer of a
+pairing is not yet verified, which is who that strictness is for.
 
 ### Refused at our boundary §110
 
@@ -1959,9 +2020,9 @@ Written down so that it is possible to be wrong about this on purpose rather tha
   for a turn and with a bounded wait (§119), and so does every read now. If that wait cannot be made
   reliable, the alternative is to issue only from the UI thread outright and let the request poll.
 - **If our own request parser accumulates cases.** It is justified only while the HTTP subset stays
-  trivial. If chunked bodies, keep-alive or upgrade become necessary, writing it here stops being the
-  cheaper trade, and uHttpSharp is the candidate to reopen, with its license the question to answer
-  first, §107.
+  trivial. If chunked request bodies, keep-alive or upgrade become necessary, writing it here
+  stops being the cheaper trade, and uHttpSharp is the candidate to reopen, with its license the
+  question to answer first, §107.
 - **If a stale copy of the database's custom data proves unavoidable in practice**, rather than
   merely survivable. The design absorbs it by making a lost admission record fail closed, and
   `SnapshotHazardTests` and the end to end tier exercise it deliberately. If records turn out to be
