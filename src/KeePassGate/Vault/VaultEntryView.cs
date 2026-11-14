@@ -125,7 +125,8 @@ namespace KeePassGate.Vault
     /// reach. A view held a value's length, for a ceiling on what a read hands out, and a
     /// refusal quoting a count told a caller how long the values it was withheld were. No
     /// read of an entry or of a field is refused for size, `API.md` §412, and a view holds no
-    /// length of any string's value. An attachment keeps its size, its ceiling and its `413`.
+    /// length of any string's value. An attachment keeps its size, which its caller is told,
+    /// and no read of an attachment is refused for size either, <see cref="VaultViewAttachment"/>.
     ///
     /// **Out of sight is every string for a sight that does not read, and a protected string
     /// for a sight that reads without reaching protected values.** A caller that only lists is

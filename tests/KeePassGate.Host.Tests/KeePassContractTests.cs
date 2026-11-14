@@ -648,8 +648,13 @@ namespace KeePassGate.Host.Tests
                 var encrypted = KeePassMemory.Buffer(guarded);
                 Assert.That(KeePassMemory.KeptAs(guarded), Is.EqualTo("ProtectedMemory"));
                 Assert.That(encrypted.Length, Is.EqualTo(kept.Length), "padded as an open attachment is");
+
+                // The whole first block against the open attachment's, which is the same bytes
+                // with the same padding: compared over the attachment's own bytes alone, an
+                // attachment of a single byte matched its encrypted byte by chance in a run in
+                // every few hundred.
                 Assert.That(
-                    encrypted.Take(Math.Min(size, 16)).SequenceEqual(content.Take(Math.Min(size, 16))),
+                    encrypted.Take(16).SequenceEqual(kept.Take(16)),
                     Is.False,
                     "a protected attachment's buffer starts with its bytes");
             }
@@ -706,9 +711,9 @@ namespace KeePassGate.Host.Tests
             // encrypted buffer decrypts on its own to the right bytes in every block but its
             // first, and to the right bytes throughout when the block ahead of it is decrypted
             // with it and thrown away. The piece at the start of the buffer has no block ahead
-            // and is right from its first block. `StoredBinaries` checks the same thing a
-            // single time before it reads anything, on a few blocks. Here it is held over
-            // KeePass's own buffer for a megabyte, at each end and in the middle.
+            // and is right from its first block. `StoredBinaries` checks the same, the start of
+            // a buffer among it, on a few blocks of its own as the plugin loads. Here it is
+            // held over KeePass's own buffer for a megabyte, at each end and in the middle.
             const int Block = 16;
             const int Megabyte = 1024 * 1024;
             var content = new byte[Megabyte];
@@ -840,7 +845,9 @@ namespace KeePassGate.Host.Tests
         /// <summary>
         /// Where a method's body holds this opcode with the other method as its operand.
         /// </summary>
-        /// <remarks>Scanned as <see cref="Calls"/> scans, and wrong only the way it can be.</remarks>
+        /// <remarks>
+        /// Scanned as <see cref="Calls"/> scans, and wrong only the way it can be.
+        /// </remarks>
         private static System.Collections.Generic.List<int> Sites(MethodBase caller, MethodBase callee, byte opcode)
         {
             var body = caller.GetMethodBody().GetILAsByteArray();

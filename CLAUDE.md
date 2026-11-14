@@ -366,9 +366,12 @@ designing around them.
 
   **And nothing here escapes a JSON string.** A response, an audit line, an ACL document, a
   profile list, a pairing bundle: every value this plugin writes as one goes out through that
-  library, because two implementations of escaping can only ever be found to disagree by
-  something a caller sent. There was a second one, forty lines on `HttpResponse`, written
-  before anything referenced could do it and deleted the moment something could.
+  library, the base64 of an attachment excepted, because two implementations of escaping can
+  only ever be found to disagree by something a caller sent. There was a second one, forty lines
+  on `HttpResponse`, written before anything referenced could do it and deleted the moment
+  something could. The exception is to who writes and not to who escapes: the library writes no
+  string in pieces, so `JsonWriter.Base64` writes the base64 of an attachment itself, a piece at
+  a time between quotes, and base64 holds nothing JSON escapes.
 - **Every GET declares the HEAD that answers for it**, bound to the same handler and carrying
   the same `x-kpg-verb`. Declared rather than derived, so the document stays the whole account
   of what the API answers; one handler, so the two cannot come to disagree about whether
@@ -511,15 +514,21 @@ designing around them.
   chains its blocks: a piece is copied with the block ahead of it under KeePass's own lock,
   `m_objSync`, held for the copy alone, then decrypted, handed out and overwritten. **There is
   no second way of reading, and re-proposing a fallback to `ReadData` reopens the operator's
-  ruling.** `KeePassContractTests` pins the fields and the chaining, and the chaining is checked
-  in the running plugin the first time an attachment is read. A protected attachment KeePass
-  keeps any other way, above all through the cipher another plugin put in place by
-  `ProtectedBinary.ExtCrypt`, is `AttachmentUnreadable`: `500 unreadable` and an incident, for
-  a read of it, for every tag over it and for a write that would store an attachment while that
-  cipher stands. A tag covers every attachment in sight at any size, its digest taken in place
-  and asked whether it can be read every time. `MaxAttachmentBytes` is what a write takes and
-  nothing else. `JsonWriter.Base64` writes the base64 itself, between quotes, which is no second
-  way of escaping: base64 holds nothing JSON escapes. **This reverses "what the gate hands out
+  ruling.** `KeePassContractTests` pins the fields and the chaining, and what the reader rests
+  on of KeePass and of Windows is checked in the running plugin as it loads,
+  `StoredBinaries.Refusal`, logged where it fails, and asked again by whatever reads first
+  where that did not run. A protected attachment KeePass keeps any other way, above all through
+  the cipher another plugin put in place by `ProtectedBinary.ExtCrypt`, is
+  `AttachmentUnreadable`: `500 unreadable` and an incident, for a read of it, for every answer
+  and every change that takes a tag over it, the change taken back out, and for a write that
+  would store an attachment while that cipher stands. `DESIGN.md` §144 has which requests those
+  are and what still goes through. A tag covers every attachment its caller may read at any
+  size, its digest taken in place and asked whether it can be read every time. What makes no
+  copy of the whole is a read and a digest: `updateAttachment` still compares a replacement of
+  the stored length through KeePass's own `ProtectedBinary.Equals`, which reads both whole,
+  within the 512 KiB a write takes. `MaxAttachmentBytes` is what a write takes and nothing
+  else. `JsonWriter.Base64` writes the base64 itself, between quotes, which is no second way of
+  escaping: base64 holds nothing JSON escapes. **This reverses "what the gate hands out
   it can also be given back"**: what others have written is readable, and what cannot be
   written through the gate is written in KeePass. `DESIGN.md` §144.
 - **A plain DLL on .NET Framework 4.8**, not a `.plgx`.
@@ -686,6 +695,8 @@ and answers a different question.
   plugin set as `ProtectedBinary.ExtCrypt` if any stands then, and a save reads every
   attachment. So how an attachment is kept is read at every use and never remembered:
   `StoredBinariesTests.An_attachment_is_refused_or_read_by_how_KeePass_keeps_it_at_that_moment`.
+  And at every piece of a read, since no lock is held while a piece is written to a peer:
+  `An_attachment_KeePass_comes_to_keep_another_way_between_two_pieces_is_refused_at_the_next_piece`.
 - **Windows decrypts a piece of protected memory on its own, but for its first block.**
   `ProtectedMemory.Unprotect` on a copy of a piece of a buffer protected whole gives the right
   bytes in every block after the first, since the protection chains sixteen byte blocks, and

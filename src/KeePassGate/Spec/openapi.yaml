@@ -82,11 +82,17 @@ info:
     method that is a token reaches the router, which answers it as the paragraph above describes.
     Nor is the `500 internal error` declared that a read would give if the vault behind it broke
     its own contract, which nothing here does: it shares a status with `500 not saved` and not its
-    meaning, which is why the body names which. Nor is `500 unreadable`, which answers a request
-    that had to read an attachment the gate cannot read where KeePass keeps it, for its content
-    or for the `ETag` of its entry: the gate reads a protected attachment as KeePass itself
-    keeps one, and an attachment kept through the cipher another KeePass plugin put in its place
-    is none it can read. Nothing the client sent is wrong and asking again mends nothing.
+    meaning, which is why the body names which. Nor is the `500 unreadable` a read gives, which
+    answers a request that had to read an attachment the gate cannot read where KeePass keeps
+    it, for its content or for the `ETag` of its entry. The gate reads a protected attachment
+    from the memory KeePass has Windows protect, and cannot read a protected attachment that
+    KeePass keeps, at that moment, through a cipher another KeePass plugin put in place of that
+    protection. For a client holding `read` and `attachments` in one rule, every answer carrying
+    the tag of an entry that holds such an attachment is `500 unreadable`: the entry, its
+    fields, each field, the listing of its attachments and each attachment. A change declares
+    its `500`, and that response names the same word for a change that met such an attachment:
+    it changed nothing. Nothing the client sent is wrong, and asking again mends nothing until
+    the operator has settled it in KeePass.
 
     **A field or an attachment is named within its entry, percent encoded, separator included**:
     the gate splits a path into segments before it decodes each one, which is what makes an
@@ -1883,7 +1889,8 @@ components:
             `busy` on a `503`; `proof` on a `401` from pairing; `no invitation` and `no exchange` on
             a `409` from pairing, and `this session`, `too early` and `forever` on a `409` from
             renewal; `malformed`, `name` and `profile` on a `400` from `pairRequest`; and
-            `not saved`, `not verified`, `not recorded` and `internal error` on a `500`. The rest
+            `not saved`, `not verified`, `not recorded`, `unreadable` and `internal error` on a
+            `500`. The rest
             are told apart by the status and read by a person. None of them carries anything the
             caller sent back to it.
 
@@ -2499,15 +2506,22 @@ components:
     # request had nowhere to go while the database held the change, and a retry made a second one.
     Internal:
       description: |
-        The gate failed, rather than the request being wrong or the node being out of reach. Three
-        things reach this. `not saved` means the change was made and the save never got to the
+        The gate failed, rather than the request being wrong or the node being out of reach, and
+        the body names how. `not saved` means the change was made and the save never got to the
         disk, and it has been taken back out again. `internal error` means it could not be
         attempted at all, in a database that is still open: KeePass answered the attempt with an
-        error. A database that locked or closed under the request is `503 locked` instead. Neither
-        leaves anything behind that a retry would duplicate, which is why this is not the `404` a
-        refusal gives: that answer means the request had nowhere to go, and it is the one an absent
-        node and a forbidden one share. Neither is worth retrying either, for the same reason.
-        `not verified` is the third and the one that does leave something
+        error. A database that locked or closed under the request is `503 locked` instead.
+        `unreadable` means the change met an attachment the gate cannot read where KeePass keeps
+        it, which the description at the top explains: the entry holds such an attachment where
+        this client may read attachments, so the tag `If-Match` named, or the tag the answer
+        carries, could not be taken, or the change would itself have stored an attachment while
+        another KeePass plugin's cipher stands. Such a change is refused before it is made, or
+        made and taken back out again. None of these leaves anything behind that a retry would
+        duplicate, which is why this is not the `404` a refusal gives: that answer means the
+        request had nowhere to go, and it is the one an absent node and a forbidden one share.
+        None is worth retrying either: `not saved` and `internal error` for the same reason, and
+        `unreadable` because it is the operator's to settle in KeePass.
+        `not verified` is the word that does leave something
         behind: the change was made and saved, and the file KeePass hashed back afterwards is not
         the one it wrote, so nothing knows whether the file holds the change and it is not taken
         back out. So is a change whose database KeePass closed as its save ended, which a lock can
@@ -2703,7 +2717,7 @@ components:
         **What it covers is what these routes serve this client, as they serve it, and nothing
         more**: for an entry its identifier, the group it is in, when it was created and last
         changed, every string with its name, whether it is protected and its value, every
-        attachment with its name, its size and, up to the largest this gate hands out, its bytes,
+        attachment with its name, its size and its bytes, whatever its size,
         and when it expires; for a group its identifier, the group it is in, its two times, its
         name and its notes. A protected value is in it only for a client holding `read` and
         `protected` in one rule, and for any other client enters as a mark that a value is there,

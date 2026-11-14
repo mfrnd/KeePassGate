@@ -670,7 +670,7 @@ namespace KeePassGate.Pipeline
         ///
         /// **A read is held to no size.** It was held to this number, and answered `413` past
         /// it, so that what the gate handed out it could also be given back, and because an
-        /// answer built whole took about ten times the attachment in memory. An attachment is
+        /// answer built whole kept about eight times the attachment alive at once. An attachment is
         /// read a piece at a time from where KeePass keeps it, `StoredBinaries`, and written
         /// as it is sent, so a read keeps a piece of it alive, whatever its size. The operator
         /// ruled on 2026-11-14 that what others have written is to be readable: a file
@@ -1161,9 +1161,10 @@ namespace KeePassGate.Pipeline
 
             // The document's `maxLength` counts characters, and base64 spells the ceiling and one
             // byte more in the same number of them: 524288 bytes pad to 699052, 524289 need no
-            // padding and are 699052 too. So the ceiling is asked again of the bytes, or one size
-            // is stored that every read then refuses. Refused the way the next size up already
-            // is, by the document, so a client meets one answer for too large however it got there.
+            // padding and are 699052 too. So the ceiling a write is held to is asked again of
+            // the bytes, or an attachment a byte over it is taken. Refused the way the next size
+            // up already is, by the document, so a client meets one answer for too large however
+            // it got there.
             if (content.Length > MaxAttachmentBytes)
             {
                 content = null;

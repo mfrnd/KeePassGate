@@ -11,7 +11,7 @@ namespace KeePassGate.Bridge
 
     /// <summary>
     /// Reads the bytes KeePass keeps for an attachment a piece at a time, from where KeePass
-    /// keeps them, so that no copy of the whole attachment is ever made.
+    /// keeps them, so that neither a read nor a digest makes a copy of the whole attachment.
     /// </summary>
     /// <remarks>
     /// **KeePass hands an attachment out whole or not at all.** `ProtectedBinary` offers
@@ -35,16 +35,25 @@ namespace KeePassGate.Bridge
     /// is decrypted with it and thrown away. So a piece is copied out with the block ahead,
     /// under KeePass's lock so that no buffer standing decrypted for another reader is
     /// copied, the copy is decrypted, handed out and overwritten, and the attachment itself
-    /// never stands decrypted.
+    /// never stands decrypted for a read made here.
+    ///
+    /// **A read and a digest, and nothing else of KeePass's.** KeePass's own reads still
+    /// decrypt the buffer where it stands, a save among them. And a write that replaces an
+    /// attachment compares the stored attachment with the replacement through KeePass's own
+    /// `ProtectedBinary.Equals` when their lengths match, `KdbxVault.UpdateAttachment`, which
+    /// reads both whole: bounded by the 512 KiB a write takes, since the lengths have to
+    /// match first.
     ///
     /// **Where this cannot be done, nothing is read.** A KeePass that keeps an attachment
-    /// otherwise, a Windows that no longer decrypts a piece on its own, which is checked the
-    /// first time anything is read, and a protected attachment kept any other way, by KeePass's
-    /// own cipher where `ProtectedMemory` is not supported or by the cipher another plugin
-    /// gave KeePass through `ProtectedBinary.ExtCrypt`, each refuse the read with what is
-    /// wrong, <see cref="AttachmentUnreadable"/>, which a client is answered `500 unreadable`
-    /// for. There is no second way of reading to fall back to, the operator's ruling of
-    /// 2026-11-14. `KeePassContractTests` pins what this reads of KeePass and of Windows.
+    /// otherwise and a Windows that no longer protects memory the way a piece is read by,
+    /// both checked as the plugin loads, <see cref="Refusal"/>, and logged there, and a
+    /// protected attachment kept any other way, by KeePass's own cipher where
+    /// `ProtectedMemory` is not supported or by the cipher another plugin gave KeePass
+    /// through `ProtectedBinary.ExtCrypt`, each refuse the read with what is wrong,
+    /// <see cref="AttachmentUnreadable"/>, which a client is answered `500 unreadable` for.
+    /// Whatever reads first asks the same check where the plugin's load did not run it. There
+    /// is no second way of reading to fall back to, the operator's ruling of 2026-11-14.
+    /// `KeePassContractTests` pins what this reads of KeePass and of Windows.
     ///
     /// **How an attachment is kept is of the moment, and is asked at every read.** `ReadData`
     /// encrypts the buffer again through whatever cipher stands when it runs, and KeePass's
@@ -53,9 +62,15 @@ namespace KeePassGate.Bridge
     /// under Windows' protection again once KeePass has read it with the cipher gone. Which
     /// it is, is read under KeePass's lock for every piece.
     ///
-    /// Nothing here is a control against code running as the user, which `CLAUDE.md`
-    /// concedes: what it keeps is that the gate does not undo, for longer than a piece is being
-    /// sent, the protection KeePass gives an attachment against memory that leaves the process.
+    /// **What this keeps and what it does not.** KeePass's protection of an attachment is of
+    /// memory that leaves the process, and what is kept is that a read made here leaves
+    /// KeePass's buffer encrypted and that every copy the gate itself makes of a protected
+    /// attachment's bytes is overwritten: the decrypted piece here, the block a hasher keeps,
+    /// <see cref="Digest"/>, and the base64 made of a piece, `JsonWriter.Base64`. What was
+    /// written into an answer stays in the buffers of the text writer and of the TLS under
+    /// it, which cannot be overwritten, until the runtime reuses that memory, as a served
+    /// string does, `StoredStrings`. Nothing here is a control against code running as the
+    /// user, which `CLAUDE.md` concedes.
     /// </remarks>
     internal static class StoredBinaries
     {
@@ -69,7 +84,11 @@ namespace KeePassGate.Bridge
         /// <summary>The block Windows' protection of process memory works in.</summary>
         private const int Block = 16;
 
-        private static readonly Lazy<Layout> Kept = new Lazy<Layout>(Layout.Read);
+        // Published once it is found and never while finding it failed, so that a failure
+        // nothing here names, memory that ran out among them, is tried again by the next read
+        // and is not what every later read throws.
+        private static readonly Lazy<Layout> Kept =
+            new Lazy<Layout>(Layout.Read, System.Threading.LazyThreadSafetyMode.PublicationOnly);
 
         /// <summary>
         /// Hands out what an attachment holds, in order, a piece at a time.
@@ -114,9 +133,14 @@ namespace KeePassGate.Bridge
 
             if (!binary.IsProtected)
             {
-                for (var at = 0; at < length; at += Piece)
+                // Stepped by what was handed out, so that the offset ends at the length and
+                // never past it: stepped by a whole piece, it wrapped for an attachment within
+                // a piece of the most an array holds.
+                for (var at = 0; at < length;)
                 {
-                    piece(held, at, Math.Min(Piece, length - at));
+                    var count = Math.Min(Piece, length - at);
+                    piece(held, at, count);
+                    at += count;
                 }
 
                 return;
@@ -128,14 +152,14 @@ namespace KeePassGate.Bridge
                 throw new AttachmentUnreadable("KeePass keeps a protected attachment with no lock to read it under");
             }
 
-            for (var at = 0; at < length; at += Piece)
+            for (var at = 0; at < length;)
             {
                 // The block ahead of the piece is decrypted with it and thrown away, since the
                 // first block of whatever is decrypted is the block the chaining gets wrong.
                 var lead = at == 0 ? 0 : Block;
                 var count = Math.Min(Piece, length - at);
                 var whole = ((count + Block - 1) / Block) * Block;
-                if (at + whole > held.Length)
+                if ((long)at + whole > held.Length)
                 {
                     throw new AttachmentUnreadable("KeePass keeps a protected attachment in a buffer that ends inside a block");
                 }
@@ -165,6 +189,8 @@ namespace KeePassGate.Bridge
                 {
                     Array.Clear(copy, 0, copy.Length);
                 }
+
+                at += count;
             }
         }
 
@@ -227,9 +253,20 @@ namespace KeePassGate.Bridge
         {
             using (var sha256 = SHA256.Create())
             {
-                Read(binary, (bytes, offset, count) => sha256.TransformBlock(bytes, offset, count, null, 0));
-                sha256.TransformFinalBlock(Array.Empty<byte>(), 0, 0);
-                return sha256.Hash;
+                try
+                {
+                    Read(binary, (bytes, offset, count) => sha256.TransformBlock(bytes, offset, count, null, 0));
+                    sha256.TransformFinalBlock(Array.Empty<byte>(), 0, 0);
+                    return sha256.Hash;
+                }
+                finally
+                {
+                    // The hasher keeps the end of what it was fed in a block of its own until it
+                    // is started again, and letting go of it clears nothing but the digest: for
+                    // an attachment shorter than a block that is the whole attachment. Started
+                    // again whatever happened, a read that failed part way among it.
+                    sha256.Initialize();
+                }
             }
         }
 
@@ -237,7 +274,11 @@ namespace KeePassGate.Bridge
         /// Why nothing can be read here, or null where everything this reads of KeePass and of
         /// Windows is as it was measured.
         /// </summary>
-        /// <remarks>For the test that pins it, and for whoever wants the reason without a read.</remarks>
+        /// <remarks>
+        /// Asked as the plugin loads, `KeePassGateExt`, which logs what it is answered, so
+        /// that a KeePass or a Windows no attachment can be read on is in the log before any
+        /// client meets it, and by the test that pins it.
+        /// </remarks>
         public static string Refusal
         {
             get { return Kept.Value.Refusal; }
@@ -301,9 +342,12 @@ namespace KeePassGate.Bridge
             }
 
             /// <summary>
-            /// Whether Windows still decrypts a piece of protected memory on its own once the
-            /// block ahead of it is decrypted with it, which is what a protected attachment is
-            /// read by and nothing Windows documents.
+            /// Whether Windows still protects memory the way a protected attachment is read
+            /// by, none of which Windows documents: a piece decrypts on its own once the block
+            /// ahead of it is decrypted with it; the start of a buffer decrypts on its own,
+            /// with no block ahead and whatever the length it was protected at; and the same
+            /// bytes are protected to the same bytes, so that pieces copied before and after
+            /// KeePass read the attachment itself are pieces of the same encryption.
             /// </summary>
             private static bool Chains()
             {
@@ -318,15 +362,28 @@ namespace KeePassGate.Bridge
                     var kept = (byte[])known.Clone();
                     ProtectedMemory.Protect(kept, MemoryProtectionScope.SameProcess);
 
+                    var again = (byte[])known.Clone();
+                    ProtectedMemory.Protect(again, MemoryProtectionScope.SameProcess);
+                    for (var i = 0; i < kept.Length; i++)
+                    {
+                        if (kept[i] != again[i])
+                        {
+                            return false;
+                        }
+                    }
+
                     for (var at = Block; at < known.Length; at += Block)
                     {
                         var copy = new byte[2 * Block];
                         Buffer.BlockCopy(kept, at - Block, copy, 0, copy.Length);
                         ProtectedMemory.Unprotect(copy, MemoryProtectionScope.SameProcess);
 
-                        for (var i = 0; i < Block; i++)
+                        // The first pass decrypts the start of the buffer, shorter than the
+                        // buffer and with no block ahead, so all of it has to be right. Later
+                        // passes are right from their second block.
+                        for (var i = at == Block ? 0 : Block; i < copy.Length; i++)
                         {
-                            if (copy[Block + i] != known[at + i])
+                            if (copy[i] != known[at - Block + i])
                             {
                                 return false;
                             }
@@ -337,12 +394,13 @@ namespace KeePassGate.Bridge
                 }
                 catch (CryptographicException)
                 {
-                    // Protection of process memory that is not there at all is no way to read
-                    // a protected attachment either.
+                    // Windows refused to protect or to unprotect the buffer, which is no way to
+                    // read a protected attachment either.
                     return false;
                 }
-                catch (PlatformNotSupportedException)
+                catch (NotSupportedException)
                 {
+                    // Protection of process memory that is not there at all.
                     return false;
                 }
             }

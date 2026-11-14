@@ -25,8 +25,9 @@ namespace KeePassGate.Transport
     /// and its line ends is as much as such a record carries.
     ///
     /// **What it gathered is overwritten when it is let go.** An answer holds the values a
-    /// caller asked for, so the buffer here held them, and it is the only copy of them on the
-    /// way out that this plugin can overwrite: `StoredStrings` has what cannot be.
+    /// caller asked for, so the buffer here held them, and it is a copy of them on the way out
+    /// that this plugin can overwrite, as the base64 `JsonWriter.Base64` makes of an
+    /// attachment's bytes is: `StoredStrings` has what cannot be.
     ///
     /// Writing only, and the stream underneath is somebody else's: neither closed nor flushed
     /// beyond what was written here.

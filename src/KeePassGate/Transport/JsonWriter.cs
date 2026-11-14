@@ -16,9 +16,12 @@ namespace KeePassGate.Transport
     /// with a boolean before any of this existed.
     ///
     /// Json.NET does the writing, including every escape, so nothing here can produce something
-    /// that is not JSON. What this adds is the shape a handler wants to write in: a fluent call per
-    /// member, with the punctuation and the closing of whatever is still open left to the writer
-    /// rather than to whoever is describing an entry.
+    /// that is not JSON. The base64 of an attachment is the exception to who writes, and none to
+    /// who escapes: <see cref="Base64"/> writes that string itself, a piece at a time, between
+    /// quotes of its own, and base64 holds nothing JSON escapes. What this adds is the shape a
+    /// handler wants to write in: a fluent call per member, with the punctuation and the closing
+    /// of whatever is still open left to the writer rather than to whoever is describing an
+    /// entry.
     ///
     /// **A document is kept here whole, or written into a writer that is somebody else's.**
     /// Kept, it is handed back by <see cref="Done"/> as text. Written by <see cref="Into"/>,
@@ -186,20 +189,31 @@ namespace KeePassGate.Transport
 
             var text = new char[(Base64Step / 3) * 4];
             var ended = false;
-            read((bytes, offset, count) =>
+            try
             {
-                if (ended)
+                read((bytes, offset, count) =>
                 {
-                    throw new InvalidOperationException("bytes were handed over after the piece that ended them");
-                }
+                    if (ended)
+                    {
+                        throw new InvalidOperationException("bytes were handed over after the piece that ended them");
+                    }
 
-                ended = count % 3 != 0;
-                for (var at = 0; at < count; at += Base64Step)
-                {
-                    var written = Convert.ToBase64CharArray(bytes, offset + at, Math.Min(Base64Step, count - at), text, 0);
-                    _into.Write(text, 0, written);
-                }
-            });
+                    ended = count % 3 != 0;
+                    for (var at = 0; at < count; at += Base64Step)
+                    {
+                        var written = Convert.ToBase64CharArray(
+                            bytes, offset + at, Math.Min(Base64Step, count - at), text, 0);
+                        _into.Write(text, 0, written);
+                    }
+                });
+            }
+            finally
+            {
+                // What the bytes were made into is the bytes, to whoever reads memory that
+                // left the process, and this is the only copy of that text here that can be
+                // overwritten: the writer underneath keeps its own for as long as it lives.
+                System.Array.Clear(text, 0, text.Length);
+            }
 
             _into.Write('"');
             return this;

@@ -91,7 +91,7 @@ with no database open at all:
 | | |
 | --- | --- |
 | **Listening** | the address a client connects to, or that nothing is listening. |
-| **Incidents** | only appears if something went wrong in a way nobody predicted, directly under the address. [The plugin's log](#the-plugins-log) states what. |
+| **Incidents** | only appears once something went wrong, directly under the address: a failure nobody predicted, or a request that met [an attachment the gate cannot read](#when-a-program-is-told-an-attachment-is-unreadable). [The plugin's log](#the-plugins-log) states which. |
 | **Listen on** | the addresses the gate binds. There is one, `127.0.0.1`, and it cannot be turned off: nothing off this machine can reach the gate, and the rest of the plugin's security is written on that basis. |
 | **Listen on port** | the port the next start of KeePass binds: the one chosen here, or while none has been, the one it is listening on. It is the only thing on this window that can be changed. What OK does with it is below. |
 
@@ -320,6 +320,47 @@ the same tab, and all three are off until they are turned on. KeePass ignores su
 is saving, and a program's write is a save, so the plugin catches a lock that arrives during its
 own save and has KeePass lock as soon as the program that wrote has been answered, a few seconds
 later at most. Windows has locked the screen by then, so this happens behind it.
+
+## When a program is told an attachment is unreadable
+
+The gate reads a protected attachment out of the memory KeePass has Windows protect, and in no
+other way. **Another KeePass plugin can put a cipher of its own in place of that protection**,
+and a protected attachment KeePass keeps through such a cipher is an attachment the gate cannot
+read. KeePass keeps each protected attachment through whatever cipher is in place when the
+attachment is made, and after that when KeePass itself last read it, and a save reads every
+attachment. So beside such a plugin every protected attachment of a database is out of the
+gate's reach once the database has been saved, and an attachment made while the cipher is in
+place is from the start. An attachment a program wrote through the gate is protected. A file
+attached in KeePass's own entry dialog is not, and an attachment that is not protected is read
+whatever another plugin does.
+
+What shows it:
+
+- A program that may read attachments is answered `500 unreadable` for every read about an entry
+  holding such an attachment, a read of its strings included, and for every change to that
+  entry, which changes nothing. A program that may not read attachments is served as ever.
+- Any program is answered `500 unreadable` for writing an attachment while that cipher is in
+  place, and nothing is written.
+- Each of those answers is counted under **Incidents** on the plugin's window, and
+  [the plugin's log](#the-plugins-log) holds an `UNEXPECTED` line for it, `a handler failed on`
+  and the method, with the reason: `KeePass keeps this protected attachment as ExtCrypt, which is
+  not read a piece at a time`.
+
+**What mends it is taking that cipher away and having KeePass read the attachments again.**
+Remove the other plugin, or turn its cipher off where it offers that, and start KeePass again: a
+database opened with no such cipher in place keeps its attachments under Windows' protection.
+Where the cipher was turned off in a running KeePass, save the database, which has KeePass read
+every attachment, and the gate reads them again. Where the other plugin has to stay, keep the
+attachments programs are to read unprotected: take such an attachment off its entry and attach
+the file again in KeePass's own entry dialog. A program asking again changes nothing before
+that.
+
+**A KeePass or a Windows the plugin cannot read attachments on at all** is told apart in the
+log. The plugin checks as it loads that this KeePass keeps attachments where it reads them and
+that Windows protects memory the way it reads it, and where either fails, the log holds an
+`ERROR` line beginning `no attachment can be read`, with the reason. Every attachment that holds
+any bytes is then unreadable, protected or not, and programs are answered as above. No setting
+mends that: it takes a release of the plugin made for that KeePass and that Windows.
 
 ## Removing the plugin
 

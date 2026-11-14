@@ -269,7 +269,7 @@ namespace KeePassGate.Transport
                 //
                 // An attachment the gate cannot read where KeePass keeps it is no defect of a
                 // handler's, and is counted all the same, since whoever runs the gate has to
-                // know. The client is told which of the two it met.
+                // know. The client is told which it met.
                 incidents.Record("a handler failed on " + head.Method, error);
                 answering?.Invoke();
                 Answer(

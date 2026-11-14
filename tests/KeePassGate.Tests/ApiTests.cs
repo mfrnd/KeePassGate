@@ -1875,8 +1875,8 @@ namespace KeePassGate.Tests
         public void An_attachment_of_any_size_is_served_whole_and_read_a_single_time(int size)
         {
             // A read of an attachment was refused `413` past the size a write takes, since its
-            // answer was built whole and cost about ten times the attachment in memory. The
-            // answer is written as it is sent, a piece of the attachment at a time, so no read
+            // answer was built whole and kept about eight times the attachment alive at once.
+            // The answer is written as it is sent, a piece of the attachment at a time, so no read
             // is refused for size: an attachment planted as KeePass or a merge can leave it, at
             // the size a write takes, a byte over it and several times it, is served with its
             // size and every byte, and read a single time, as the answer is written.

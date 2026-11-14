@@ -863,6 +863,20 @@ namespace KeePassGate
                     null);
             }
 
+            // An attachment is read out of KeePass's own buffer and through Windows' protection
+            // of process memory, `StoredBinaries`, and there is no second way of reading. Asked
+            // here, so that a KeePass or a Windows it cannot be done on is in the log as the
+            // plugin loads, and not first met as a client's `500 unreadable`.
+            var unreadable = StoredBinaries.Refusal;
+            if (unreadable != null)
+            {
+                _log.Error(
+                    "no attachment can be read: " + unreadable + ", so every read of an attachment, " +
+                    "every answer carrying a tag over an attachment and every write of an attachment " +
+                    "is answered 500 unreadable",
+                    null);
+            }
+
             var ui = new ControlUiThread(mainWindow, merging);
             _ui = ui;
 

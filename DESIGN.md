@@ -365,14 +365,16 @@ pairing is not yet verified, which is who that strictness is for.
 ### An attachment is read where KeePass keeps it §144
 
 **The gate reads an attachment a piece at a time out of KeePass's own buffer, at any size, and
-never asks KeePass for the whole of it**, the operator's rulings of 2026-11-14. KeePass hands an
-attachment out whole or not at all: `ProtectedBinary` is sealed and offers `ReadData` and
-`ReadXorredData`, each a copy of everything. An answer made of such a copy holds the attachment
-for every connection reading it, for as long as each peer takes, and the answer built whole
-around it held it about eight times over, which is what held a read to the 512 KiB a write
-takes. `StoredBinaries` reads the private buffer, 48 KiB at a time, and `readAttachment` writes
-each piece as base64 as it is sent, §143. `FINDINGS.md` has it measured: 64 MiB in about a tenth
-of a second with a tenth of a megabyte alive, against a quarter of a second and 491 MB.
+neither a read nor a digest asks KeePass for the whole of it**, the operator's rulings of
+2026-11-14. KeePass hands an attachment out whole or not at all: `ProtectedBinary` is sealed and
+offers `ReadData` and `ReadXorredData`, each a copy of everything. An answer made of such a
+copy holds the attachment for every connection reading it, for as long as each peer takes, and
+the answer built whole around it kept about eight times the attachment alive at once, which is
+what held a read to the 512 KiB a write takes. `StoredBinaries` reads the private buffer, 48 KiB
+at a time, and `readAttachment` writes each piece as base64 as it is sent, §143. `FINDINGS.md`
+has it measured, each answer written into a stream that keeps none of it, with no TLS under it
+and no tag taken: 64 MiB in about a tenth of a second with a tenth of a megabyte alive, against
+a quarter of a second and 491 MB.
 
 **This reverses "what the gate hands out it can also be given back".** A read and a write of an
 attachment were held to the same number, so that nothing was read out that could not be put
@@ -390,20 +392,34 @@ with Windows' protection of process memory, and reads it by decrypting the whole
 stands, under the object's lock. That protection chains its blocks: a copy of a piece of the
 buffer decrypts on its own to the right bytes in every block but its first, and in all of it
 when the block ahead is decrypted with it and thrown away. So a piece is copied with the block
-ahead, decrypted, handed out and overwritten, and the attachment never stands decrypted. The
-copy is taken under KeePass's own lock, for the length of the copy and no longer: a reader of
-KeePass's may have the buffer standing decrypted at that moment, and the lock held across a
-write to a peer would stop KeePass's own save behind a slow client. The gate's own attachments
-are protected, and so are other software's: pykeepass marks an attachment protected unless
-told otherwise.
+ahead, decrypted, handed out and overwritten, and the attachment never stands decrypted for a
+read of the gate's. The copy is taken under KeePass's own lock, for the length of the copy and
+no longer: a reader of KeePass's may have the buffer standing decrypted at that moment, and the
+lock held across a write to a peer would stop KeePass's own save behind a slow client. The
+gate's own attachments are protected, and so are other software's: pykeepass marks an
+attachment protected unless told otherwise.
+
+**That holds for a read and for a digest, and for nothing else.** KeePass's own reads still
+decrypt the buffer where it stands, a save among them. And `updateAttachment`, for a caller
+that may read the attachment, compares the stored attachment with the replacement through
+KeePass's own `ProtectedBinary.Equals` when their lengths match, which reads both whole: a
+copy bounded by the 512 KiB a write takes, since the lengths have to match first. What the
+gate itself copies of a protected attachment it overwrites: the decrypted piece, the block a
+hasher keeps of what it was fed, and the base64 made of a piece. What was written into an
+answer stays in the buffers of the writer and of the TLS under it until that memory is reused,
+which §136 concedes for a value that is served.
 
 **It rests on what neither KeePass nor Windows promises, and there is no second way of
 reading.** Private fields of `ProtectedBinary`, and a chaining of blocks that Microsoft does not
 document for `CryptProtectMemory`. `KeePassContractTests` pins both against the pinned KeePass
-and the machine the tests run on, and the chaining is checked again in the running plugin the
-first time an attachment is read. A fallback to `ReadData` under the old ceiling was considered
-and refused by the operator: a second way of reading, met only when the first breaks, is logic
-nothing exercises.
+and the machine the tests run on, and the running plugin checks them again as it loads,
+`StoredBinaries.Refusal`: that the fields are there, that a piece decrypts right with the block
+ahead, that the start of a buffer decrypts right from its first byte with no block ahead and
+shorter than the buffer, and that the same bytes are protected to the same bytes. A KeePass or
+a Windows that fails the check is logged as an error as the plugin loads, naming why no
+attachment can be read, and whatever reads first asks again where that did not run. A fallback
+to `ReadData` under the old ceiling was considered and refused by the operator: a second way of
+reading, met only when the first breaks, is logic nothing exercises.
 
 **How KeePass keeps a protected attachment is of the moment, and an attachment kept another
 way is refused.** `ReadData` encrypts the buffer again through whatever cipher stands when it
@@ -412,11 +428,33 @@ runs, and another plugin can put a cipher of its own in place of Windows', throu
 while such a cipher stood, every protected attachment is kept through it, the gate's own among
 them, and the gate reads none of them until KeePass has read them again with the cipher gone.
 Such an attachment is refused as `AttachmentUnreadable`, which the transport answers
-`500 unreadable` and counts as an incident: for a read of it, for every answer carrying a tag
-over it, whether or not its digest was kept while it could be read, and for a write that would
-store an attachment while such a cipher stands, before anything is changed. Attachments held in
-the open are read as ever. A database run beside such a plugin therefore has no protected
-attachment the gate can read, which is what refusing a fallback costs.
+`500 unreadable` and counts as an incident. Attachments held in the open are read as ever. A
+database run beside such a plugin therefore has no protected attachment the gate can read,
+which is what refusing a fallback costs.
+
+**What `500 unreadable` answers.** How an attachment is kept is asked for every tag over it,
+whether or not its digest was kept while it could be read, and a tag covers an attachment's
+bytes for a caller holding `read` and `attachments` in one rule. For that caller every answer
+carrying the tag of an entry that holds such an attachment is refused before any status is
+given: a read of the entry, of a field, of the listing of its fields or of its attachments,
+and of any attachment of the entry. So is every change to that entry asked under an `If-Match`
+naming a tag, refused before it is made, and every change that answers with the entry's tag,
+which is every change to an entry's strings and attachments: the change is made, the tag of
+what it left cannot be taken, and it is taken back out, `VaultChange.Made`, with nothing
+saved. And for any caller, a write that would store an attachment holding any bytes while such
+a cipher stands is refused before anything is changed, since KeePass would keep it through
+that cipher and the gate could not read it back.
+
+**What still goes through.** A caller whose rules do not read attachments meets none of it,
+but for that write: its tag covers no attachment's bytes, so its reads and its changes to the
+entry's strings are served, and a caller holding `list` and `attachments` is listed names and
+sizes. `deleteEntry` with no `If-Match`, or with `*`, takes no tag, so the entry can still be
+removed. And a `stripAttachment` of the last such attachment on an entry, with no `If-Match`
+or with `*`, answers with the tag of the entry without that attachment, so it lands; while
+another such attachment stays on the entry, it is taken back for a caller that reads
+attachments. `TagFailureTests` pins the refusals, the strip that lands and the callers that
+are served. What mends it is the operator's: the other plugin's cipher gone, and KeePass
+reading the attachments again, which a save does.
 
 Considered and refused:
 
@@ -440,8 +478,11 @@ peer reads, within the budget a connection is given to have its answer read, so 
 that cannot be sent in that time cannot be read through the gate. A client bounds what it
 holds: PyKeePassGate keeps a whole answer in memory under `max_response_bytes`, and an
 attachment arrives as base64, four thirds of its size. What is read through the gate can be
-larger than what is written through it. And the gate takes KeePass's own lock on a protected
-attachment, for a copy of 48 KiB at a time.
+larger than what is written through it. The gate takes KeePass's own lock on a protected
+attachment, for a copy of 48 KiB at a time. And a change that is the first to take a tag over
+a large attachment digests it inside its turn on KeePass's thread, beside its save: 27 ms for
+64 MiB held in the open and about 47 ms protected, once for as long as KeePass keeps the
+attachment. A read's first tag is taken with KeePass's thread free.
 
 ### Refused at our boundary §110
 
@@ -2033,7 +2074,8 @@ What is given up, and written down so that it is not rediscovered as a defect:
   milliseconds with a copy of each made and overwritten, and every tag after it does not. A
   read's first tag is taken on the connection's own thread once the hold has ended, §119; a
   change that is the first to take a tag over a value pays for it inside its turn, beside its
-  save. No ceiling was added for it.
+  save, and so does a change that is the first to take a tag over an attachment its caller may
+  read, whatever the attachment's size, §144. No ceiling was added for it.
 
 Refused as ways to keep the write's refusal, and not to be proposed again without new evidence: a
 floor or a rounding for each string, a ceiling for each protection class, the message without its

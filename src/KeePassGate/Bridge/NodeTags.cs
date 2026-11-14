@@ -83,11 +83,11 @@ namespace KeePassGate.Bridge
     /// changed once the regional format or Windows' collation moved between two sessions, and a
     /// write under the earlier tag was refused `412`.
     ///
-    /// **An attachment larger than the gate serves enters by its size alone.** Its bytes cannot be
-    /// read through the gate and cannot be written through it either, so no client holds a copy
-    /// to lose an update to, and hashing megabytes on a connection thread for a tag that protects
-    /// nothing is a cost with no return. One replaced in KeePass by another of the same size
-    /// leaves the tag alone, which costs a client nothing it could have read.
+    /// **An attachment's bytes enter at any size**, where its caller may read them. A read hands
+    /// an attachment out whatever its size, so a client can hold a copy of any attachment to
+    /// lose an update to, and an attachment replaced in KeePass by another of the same size
+    /// moves the tag. The digest is taken a piece at a time from where KeePass keeps the
+    /// attachment, `StoredBinaries`, with no copy of the whole made, `DESIGN.md` §144.
     ///
     /// **An attachment's bytes are hashed once.** KeePass never changes a `ProtectedBinary` in
     /// place, so a digest kept against the object stays true for as long as the object lives, and

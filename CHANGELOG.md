@@ -35,19 +35,24 @@ none, since it releases both.
   those answers in chunks as the plugin does. A 0.1 client does not read a chunked answer, and
   raises `ProtocolError` for every such answer of a 0.2 gate, `API.md` §411. `API.md` §412.
 - **An attachment is read at any size, and a write still takes 512 KiB.** A read of an
-  attachment over 512 KiB was refused with `413`, since its answer was built whole at about
-  eight times the attachment in memory, so a file attached in KeePass could not be fetched
-  through the gate. `readAttachment` is now written as it is sent, and the attachment is read a
-  piece at a time from where KeePass keeps it in memory, with no copy of the whole: 64 MiB went
-  out in about a tenth of a second with a tenth of a megabyte alive, against a quarter of a
-  second and 491 MB. An entry's tag covers every attachment its client may read, at any size. A
-  write takes at most 512 KiB as before, since it arrives in a request's body. An attachment the
-  gate cannot read where KeePass keeps it, because another KeePass plugin replaced KeePass's
-  in-memory cipher, answers `500 unreadable`, and so does any answer carrying a tag over it; a
-  write of an attachment is refused the same way while such a cipher stands, and changes
-  nothing. PyKeePassGate holds a whole answer under `max_response_bytes`, so an attachment over
-  about 3 MiB needs it raised, and its stand-in gate frames an attachment as the plugin does.
-  `API.md` §412.
+  attachment over 512 KiB was refused with `413`, since its answer was built whole and kept
+  about eight times the attachment alive at once, so a file attached in KeePass could not be
+  fetched through the gate. `readAttachment` is now written as it is sent, and the attachment
+  is read a piece at a time from where KeePass keeps it in memory, with no copy of the whole:
+  the answer for 64 MiB was written in about a tenth of a second with a tenth of a megabyte
+  alive, against a quarter of a second and 491 MB, each measured into a stream that keeps none
+  of it, with no TLS under it and no tag taken. An entry's tag covers every attachment its
+  client may read, at any size. A write takes at most 512 KiB as before, since it arrives in a
+  request's body. A protected attachment that KeePass keeps through a cipher another KeePass
+  plugin put in place of Windows' memory protection is an attachment the gate cannot read, and
+  answers `500 unreadable`: to a client that may read attachments, for every answer carrying
+  the tag of the entry holding it and for every write to that entry under `If-Match` or
+  answered with a tag, which changes nothing, and to any client for a write of an attachment
+  while such a cipher stands. Asking again mends nothing, and `docs/getting-started.md` has
+  what the operator does about it. The plugin checks as it loads that it can read attachments
+  on this KeePass and this Windows, and logs an error where it cannot. PyKeePassGate holds a
+  whole answer under `max_response_bytes`, so an attachment over about 3 MiB needs it raised,
+  and its stand-in gate frames an attachment as the plugin does. `API.md` §412.
 - **A protected value read or written through the gate stays encrypted in KeePass's memory.**
   KeePass keeps a protected value encrypted in memory until something reads it as text, and
   from then on keeps the text. The gate read every value that way, and an entry's `ETag` reads
@@ -981,10 +986,6 @@ none, since it releases both.
 - **A change to an entry that reached the disk is never answered `503 busy`.** Its answer reads the
   entry again to confirm the tag it hands back, and a read that could not hold KeePass's thread was
   answered `busy`, so a client retried a change already made. It is answered without the tag.
-- **A read too large to serve is `413` whatever its `If-Match`**, for an attachment, an entry and a
-  field alike, as RFC 9110 section 13.2.1 orders it and the routing document already stated. The
-  condition was asked first, so a stale tag was told `412`, and a client handed no tag was told
-  `412` every time and never that the read was too large.
 - **A new field or attachment name holding a Unicode format character is `400 malformed`**, the
   zero-width spaces and joiners, the soft hyphen and the byte order mark among them, beside the
   bidirectional controls already refused. A name holding such a character is drawn as the name

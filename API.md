@@ -247,8 +247,8 @@ touch it; and a plugin that never calls `Touch` moves nothing. A digest of what 
 misses none of those, for whatever its caller may read. What it covers is what the routes serve
 that caller, as they serve them: the times to the
 second, which is all a file keeps of them, the strings as a read decodes them, and an attachment's
-bytes up to the largest the gate hands out, above which its size stands for it, since no client can
-read or write those bytes through the gate.
+bytes at any size, since a read hands an attachment out whatever its size, §412. An attachment's
+size stood for its bytes above the largest the gate handed out, while a read was held to that.
 
 **It is an HMAC under a key derived from the database's host certificate**, as the database stores
 it, which no client holds: the gate key would have been the obvious choice and every paired client
@@ -308,7 +308,7 @@ answering the condition first would go against RFC 9110 section 13.2.1, which ha
 condition on a request that would be refused without it. The same is conceded to `create`, whose
 `409` tells a client that may add and not list that a name is taken.
 
-## A read of an entry is written as it is sent §412
+## A read is written as it is sent §412
 
 **No read of an entry or of a field is refused for its size.** The answer to `readEntry` and to
 `readField` is written as it is sent: each value is read where it is written into the answer,
@@ -355,16 +355,39 @@ none is refused for size. A write is held to 524288 bytes, since it arrives as b
 request's body. **This reverses a ceiling held alike on reads and writes**, "what the gate hands
 out it can also be given back", the operator's ruling of 2026-11-14: a file attached in KeePass
 is to be readable through the gate whatever its size, and what cannot be written through the
-gate is written in KeePass. A read past the ceiling was `413`, since an answer built whole held
-about eight times the attachment in memory. A tag covers the bytes of every attachment in its
-caller's sight, at any size, where it covered them up to the ceiling.
+gate is written in KeePass. A read past the ceiling was `413`, since an answer built whole kept
+about eight times the attachment alive at once. A tag covers the bytes of every attachment its
+caller may read, at any size, where it covered them up to the ceiling.
 
 **An attachment the gate cannot read is `500 unreadable`.** The gate reads a protected
-attachment as KeePass itself keeps it in memory. Where another KeePass plugin has put a cipher
-of its own in place of that, the attachments KeePass keeps through it are refused: a read of
-such an attachment, every answer carrying a tag over it, and a write of an attachment while
-that cipher stands, which changes nothing. Nothing the client sent is wrong and asking again
-mends nothing. `DESIGN.md` §144 has why there is no second way of reading.
+attachment from the memory KeePass has Windows protect, and another KeePass plugin can put a
+cipher of its own in place of that protection, `ProtectedBinary.ExtCrypt`. A protected
+attachment KeePass keeps through such a cipher, at that moment, is refused. KeePass keeps an
+attachment through whatever cipher stands when the attachment is made, and after that when
+KeePass itself last read it, and a save reads every attachment: after a save under such a
+cipher that is every protected attachment in the database, and each is readable again once
+KeePass has read it with the cipher gone. An attachment held in the open is never affected.
+
+**It answers every request that takes a tag over such an attachment, and every write of an
+attachment while such a cipher stands.** A tag covers an attachment's bytes for a client
+holding `read` and `attachments` in one rule, §410. For that client every answer carrying the
+tag of an entry that holds such an attachment is `500 unreadable`: a read of the entry, of a
+field, of the listing of its fields or of its attachments and of any attachment of the entry,
+readable or not, and a `HEAD` of each. So is every write to that entry that names a tag in
+`If-Match` or answers with the entry's tag, which every write to an entry's strings and
+attachments does: it is refused before it is made, or made and taken back out, and changes
+nothing. And for any client, a `createAttachment` or an `updateAttachment` whose content
+holds any bytes is refused before anything is changed while such a cipher stands, since
+KeePass would keep what was written through it.
+
+**What still goes through** is everything else for a client whose rules do not read
+attachments, whose tag covers no attachment's bytes: its reads and writes of the entry's
+strings, and the listing of attachments by name and size for a client holding `list` and
+`attachments`. `deleteEntry` goes through with no `If-Match`, or with `*`, since it takes no
+tag. So does `stripAttachment` of the last such attachment on an entry, with no `If-Match` or
+with `*`, since the tag it answers with is of the entry without that attachment. Nothing the
+client sent is wrong, and asking again mends nothing until the operator has settled it in
+KeePass. `DESIGN.md` §144 has why there is no second way of reading.
 
 **No write is refused for what an entry's strings come to, which reverses a ceiling held in both
 directions**, the operator's ruling of 2026-11-10. A create, an update or a new field that would
@@ -449,4 +472,4 @@ had no users, so the operator ruled on 2026-11-08 that the changes of 0.2 that b
 0.2, and that the consequence above holds from 0.2.0 on. A 0.1 client checks no version and
 reads an answer under a `Content-Length` and nothing else, so against a 0.2 gate it raises
 `ProtocolError` for every answer written as it is sent, §412: each listing and each read of an
-entry or of a field.
+entry, of a field or of an attachment.
