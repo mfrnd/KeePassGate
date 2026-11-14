@@ -87,8 +87,8 @@ none, since it releases both.
   arrived beside. The longest such hold measured is about fifty-five milliseconds, listing ten
   thousand entries, and about ninety where the database protects their titles and the client
   is shown them. An entry's values are read, and its tag taken, once the hold has ended, from
-  what the entry held inside it, so reading an entry does not hold KeePass for longer the
-  longer the entry's values are.
+  what the entry held inside it, so reading an entry does not hold KeePass for longer the more
+  the entry holds.
 - **A client revoked while its request waited for KeePass is answered `401 unpaired`**, as its
   next request is, where the request was served as though still admitted. A database that came
   to hold two authorities in that wait answers `503 undecided` the same way.

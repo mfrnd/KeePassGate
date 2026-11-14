@@ -504,6 +504,11 @@ namespace KeePassGate.Vault
 
         private readonly Func<VaultEntryView, string> _tagger;
         private string _tag;
+        private Func<IReadOnlyList<VaultViewField>> _makeFields;
+        private Func<IReadOnlyList<VaultViewAttachment>> _makeAttachments;
+        private IReadOnlyList<VaultViewField> _fields;
+        private IReadOnlyList<VaultViewAttachment> _attachments;
+        private IReadOnlyList<string> _protected;
 
         /// <summary>An entry as far as <paramref name="sight"/> reaches into it.</summary>
         /// <param name="entry">The entry as a single lookup describes it.</param>
@@ -526,6 +531,35 @@ namespace KeePassGate.Vault
             IReadOnlyList<VaultViewField> fields,
             IReadOnlyList<VaultViewAttachment> attachments,
             Func<VaultEntryView, string> tagger)
+            : this(entry, sight, Made(fields), attachments == null ? null : Made(attachments), tagger)
+        {
+        }
+
+        /// <summary>
+        /// The same entry, with its strings and its attachments made into what the view holds
+        /// when the view is first asked for them.
+        /// </summary>
+        /// <remarks>
+        /// **So that taking a view costs what finding the entry costs, however many strings the
+        /// entry holds.** A view is taken with KeePass's thread held still, and whether each
+        /// string is protected and whether a listing shows it are several comparisons of its
+        /// name by the culture's collation. No write is refused for how many strings an entry
+        /// holds, so made as the view was taken, that work held KeePass's thread for as long as
+        /// a client had made the entry wide. The vault hands over what makes the lists from a
+        /// copy of the entry's own lists, taken inside the hold, and a read asks for them once
+        /// the hold has ended.
+        /// </remarks>
+        /// <param name="fields">What makes every string, in the order KeePass keeps them.</param>
+        /// <param name="attachments">
+        /// What makes every attachment, or null for an entry described with none. Dropped here
+        /// when the sight reaches nothing about attachments.
+        /// </param>
+        public VaultEntryView(
+            VaultEntry entry,
+            VaultSight sight,
+            Func<IReadOnlyList<VaultViewField>> fields,
+            Func<IReadOnlyList<VaultViewAttachment>> attachments,
+            Func<VaultEntryView, string> tagger)
         {
             if (entry == null)
             {
@@ -539,11 +573,20 @@ namespace KeePassGate.Vault
 
             Entry = entry;
             Sight = sight ?? VaultSight.Least;
-            Fields = fields;
-            Attachments = Sight.Attachments == VaultAttachmentSight.None ? null : attachments;
+            _makeFields = fields;
+            _makeAttachments = Sight.Attachments == VaultAttachmentSight.None ? null : attachments;
             _tagger = Sight.Reads ? tagger : null;
+        }
 
-            Protected = fields.Where(field => field.IsProtected).Select(field => field.Name).ToList();
+        /// <summary>What hands back a list that is already made.</summary>
+        private static Func<IReadOnlyList<T>> Made<T>(IReadOnlyList<T> made)
+        {
+            if (made == null)
+            {
+                throw new ArgumentNullException(nameof(made));
+            }
+
+            return () => made;
         }
 
         public VaultEntry Entry { get; private set; }
@@ -555,14 +598,38 @@ namespace KeePassGate.Vault
         /// Every string the entry holds, by KeePass's own names, in the order KeePass keeps them,
         /// which is the order `read` writes them in.
         /// </summary>
-        public IReadOnlyList<VaultViewField> Fields { get; private set; }
+        public IReadOnlyList<VaultViewField> Fields
+        {
+            get
+            {
+                if (_makeFields != null)
+                {
+                    _fields = _makeFields() ?? throw new InvalidOperationException("a view was handed no strings");
+                    _makeFields = null;
+                }
+
+                return _fields;
+            }
+        }
 
         /// <summary>
         /// Every attachment the entry holds, or null when the caller's sight reaches nothing
         /// about attachments. Never empty for that: an empty list is an entry holding none.
         /// Each holds its bytes only where the sight reads attachments.
         /// </summary>
-        public IReadOnlyList<VaultViewAttachment> Attachments { get; private set; }
+        public IReadOnlyList<VaultViewAttachment> Attachments
+        {
+            get
+            {
+                if (_makeAttachments != null)
+                {
+                    _attachments = _makeAttachments();
+                    _makeAttachments = null;
+                }
+
+                return _attachments;
+            }
+        }
 
         /// <summary>
         /// What a read of the whole entry would hand this view's caller, in characters, counted
@@ -584,7 +651,14 @@ namespace KeePassGate.Vault
         /// Which of the strings are kept protected, by the string's own flag or by the database's
         /// setting for a field of that name.
         /// </summary>
-        public IReadOnlyList<string> Protected { get; private set; }
+        public IReadOnlyList<string> Protected
+        {
+            get
+            {
+                return _protected
+                    ?? (_protected = Fields.Where(field => field.IsProtected).Select(field => field.Name).ToList());
+            }
+        }
 
         /// <summary>
         /// The tag of this view, taken the first time it is asked for, so a request that hands

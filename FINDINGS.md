@@ -497,17 +497,22 @@ milliseconds and 48 MB each over the fifty protected strings, 40 to 43 milliseco
 in the open, beside a save of 2.2 seconds for the protected strings and 0.3 seconds for the strings
 held in the open, which the write causes whoever sends it.
 
-**The hold still grows with how many strings an entry holds, and a listing with what it shows.**
-What left the hold is the work that grows with how long values are. Taking the view stays inside,
-and walks every string to find which the database protects and which a listing shows: 4.0
-milliseconds of hold for an entry of ten thousand strings of one character, and 54 to 59 for a
-hundred thousand, in Release, whichever of the entry's reads is asked. No write bounds how many
-strings an entry holds. The tag over a hundred thousand names takes about a hundred milliseconds
-more on the connection's thread. A listing of ten thousand entries holds KeePass's thread for 38 to
-54 milliseconds where titles and addresses are held in the open and 42 to 44 where the database
-protects them and the caller is shown neither, since a title is read only for a caller it is shown
-to; where the caller is shown them it is 91 to 94, a copy of each title and address decrypted for
-every listing, which KeePass keeping the text had made 40 after the first.
+**The hold grew with how many strings an entry holds, until a view's strings were made after it, and
+a listing's still grows with what it shows.** With the values read after the hold, taking the view
+stayed inside, and walked every string to find which the database protects and which a listing
+shows, several comparisons of each name by the culture's collation: 4.0 milliseconds of hold for an
+entry of ten thousand strings of one character, and 54 to 59 for a hundred thousand, in Release,
+whichever of the entry's reads was asked. No write bounds how many strings an entry holds. So the
+view's strings and attachments are made after the hold, of a copy of the entry's lists and of the
+database's settings taken inside it, `DESIGN.md` §119. Measured the same way after that: the hold
+for an entry of ten thousand strings is 0.29 to 0.50 milliseconds and for a hundred thousand 2.7 to
+4.1, which is the copy of the list, and the request then takes about 12 and about 150 milliseconds
+on its own connection's thread, making the strings and taking the tag over their names. A listing of
+ten thousand entries holds KeePass's thread for 38 to 54 milliseconds where titles and addresses are
+held in the open and 42 to 44 where the database protects them and the caller is shown neither,
+since a title is read only for a caller it is shown to; where the caller is shown them it is 91 to
+94, a copy of each title and address decrypted for every listing, which KeePass keeping the text had
+made 40 after the first.
 
 **A view of an entry can be asked after the hold it was taken in, because KeePass replaces the
 object a value is held in and never changes it.** Read off KeePass 2.61.1, decompiled, and

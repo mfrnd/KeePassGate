@@ -18,11 +18,12 @@ namespace KeePassGate.Pipeline
     ///
     /// **Composed inside the hold and added after it.** The line names the node and the
     /// profiles a removal took away, which are read from the database, so it is composed where
-    /// the read is decided. Whether it is written is known only once the values have been
-    /// measured and the tag taken, after the hold: a read refused for its size or by its
-    /// condition serves nothing, and writes no line for a value it did not withhold from an
-    /// answer. So what comes back is run by the part of the read left for later,
-    /// <see cref="ServedAfter"/>, and reads nothing.
+    /// the read is decided. Whether it is written is known only once the view's strings have
+    /// been made, the values measured and the tag taken, after the hold: a view that withholds
+    /// nothing has no line, and a read refused for its size or by its condition serves
+    /// nothing, and writes no line for a value it did not withhold from an answer. So what
+    /// comes back is run by the part of the read left for later, <see cref="ServedAfter"/>,
+    /// and reads nothing.
     /// </remarks>
     /// <param name="decision">The refusal the view's sight was decided by.</param>
     /// <param name="listed">

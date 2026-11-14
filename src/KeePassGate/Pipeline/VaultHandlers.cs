@@ -34,7 +34,9 @@ namespace KeePassGate.Pipeline
     /// when it was taken, so the values, their lengths, the tag and the answer made from them
     /// afterwards are still of that one moment, and none of that work, which grows with the
     /// entry, is done on KeePass's thread. Everything that reads the database stays inside:
-    /// finding the entry and the name in it, the rules, and the line for a value withheld.
+    /// finding the entry, the rules, and the line for a value withheld. A name in the entry is
+    /// looked for after the hold, in the view, since the view's strings are made of a copy of
+    /// the entry's own list when they are first asked for.
     ///
     /// **A change is decided again where it is made**, and still not by its handler. The router
     /// answered before the change waited for its turn on KeePass's thread, so the handler of a
@@ -286,7 +288,7 @@ namespace KeePassGate.Pipeline
             // composed here, once, however many it withholds, from the walk the view's sight was
             // decided by, with nothing asked of the rules again, and written down where the
             // entry is served.
-            var withheld = Withholding(context, view, view.Fields, asked);
+            var withholding = Withholding(context, view, asked);
 
             Later(context, () =>
             {
@@ -342,8 +344,9 @@ namespace KeePassGate.Pipeline
                 json.Text(
                     ExpiresMember, view.Entry.Expires.HasValue ? Moments.Wire(view.Entry.Expires.Value) : null);
 
-                // Served, so the refusal composed inside the hold is written down.
-                withheld();
+                // Served, so the refusal composed inside the hold is written down, where the
+                // view withholds a value.
+                withholding(view.Fields)();
 
                 json.Object("fields");
                 for (var index = 0; index < view.Fields.Count; index++)
@@ -458,25 +461,28 @@ namespace KeePassGate.Pipeline
             // as they fit what a read hands out, each counted by its name and what its item is
             // written with, and names where the part after it starts while there is any. Always
             // a field where any is left, however long its name, so that asking again moves on.
-            var part = new List<VaultViewField>();
-            var written = 0;
-            var at = Math.Min(from, view.Fields.Count);
-            for (; at < view.Fields.Count; at++)
-            {
-                var cost = view.Fields[at].Name.Length + FieldItemCharacters;
-                if (part.Count > 0 && cost > MaxEntryCharacters - written)
-                {
-                    break;
-                }
-
-                part.Add(view.Fields[at]);
-                written += Math.Min(cost, MaxEntryCharacters);
-            }
-
-            var next = at < view.Fields.Count ? at : (int?)null;
-
+            //
+            // Parted once the hold has ended, with the rest: walking the strings makes them,
+            // and that grows with how many the entry holds.
             Later(context, () =>
             {
+                var part = new List<VaultViewField>();
+                var written = 0;
+                var at = Math.Min(from, view.Fields.Count);
+                for (; at < view.Fields.Count; at++)
+                {
+                    var cost = view.Fields[at].Name.Length + FieldItemCharacters;
+                    if (part.Count > 0 && cost > MaxEntryCharacters - written)
+                    {
+                        break;
+                    }
+
+                    part.Add(view.Fields[at]);
+                    written += Math.Min(cost, MaxEntryCharacters);
+                }
+
+                var next = at < view.Fields.Count ? at : (int?)null;
+
                 var tag = view.Tag;
                 if (PreconditionFails(context, tag))
                 {
@@ -524,8 +530,9 @@ namespace KeePassGate.Pipeline
             // is served carries the tag, which every caller reaching this route is handed, and
             // taking the tag reads every value in the caller's sight; a value out of that sight
             // is never read. Null is an entry that is not there or a name the entry does not
-            // hold. The view and the name are found inside the hold, and the value is measured
-            // and read, and the tag taken, after it, `Later`.
+            // hold. The view is taken inside the hold, and the name is looked for in it, the
+            // value measured and read, and the tag taken, after it, `Later`: finding a name
+            // makes the view's strings, which grows with how many the entry holds.
             //
             // The saving on a refusal is the whole of the reason for reading late. It is not a
             // claim that a value a caller is refused is safer for not having been decrypted:
@@ -534,8 +541,7 @@ namespace KeePassGate.Pipeline
             // would be.
             Reading asked;
             var view = View(context, vault, uuid, out asked);
-            var field = view == null ? null : view.Field(name);
-            if (field == null)
+            if (view == null)
             {
                 Unreachable(context);
                 return;
@@ -545,10 +551,17 @@ namespace KeePassGate.Pipeline
             // is composed here where it does not and written down where the field is served, as
             // `readEntry` does. The flag and the value are of one string of one view, so neither
             // is ever answered about a string the other was not read from.
-            var withheld = Withholding(context, view, new[] { field }, asked);
+            var withholding = Withholding(context, view, asked);
 
             Later(context, () =>
             {
+                var field = view.Field(name);
+                if (field == null)
+                {
+                    Unreachable(context);
+                    return;
+                }
+
                 // Whether the value is withheld is decided first, by the view, and a withheld
                 // value has no size here: the view holds nothing to measure it with, so it is
                 // answered as the `null` every withheld value is, however long it is, and never
@@ -578,8 +591,9 @@ namespace KeePassGate.Pipeline
                     return;
                 }
 
-                // Served, so the refusal composed inside the hold is written down.
-                withheld();
+                // Served, so the refusal composed inside the hold is written down, where the
+                // view withholds this value.
+                withholding(new[] { field })();
 
                 var json = new JsonWriter();
                 json.Text("name", name);
@@ -718,7 +732,7 @@ namespace KeePassGate.Pipeline
             // are all this route serves.
             var uuid = Captured(context, "uuid");
             var view = View(context, vault, uuid);
-            if (view == null || view.Attachments == null)
+            if (view == null || view.Sight.Attachments == VaultAttachmentSight.None)
             {
                 Unreachable(context);
                 return;
@@ -791,17 +805,23 @@ namespace KeePassGate.Pipeline
             // no bytes behind it, and is answered as the same absence: the router refused that
             // caller before this ran.
             var view = View(context, vault, uuid);
-            var attachment = view == null ? null : view.Attachment(name);
-            if (attachment == null || attachment.IsWithheld)
+            if (view == null || view.Sight.Attachments != VaultAttachmentSight.Read)
             {
                 Unreachable(context);
                 return;
             }
 
-            // The bytes are read, and the tag taken, after the hold: the view keeps the object
-            // the attachment was held in when it was taken, `Later`.
+            // The name is looked for, the bytes are read, and the tag taken, after the hold: the
+            // view keeps the object each attachment was held in when it was taken, `Later`.
             Later(context, () =>
             {
+                var attachment = view.Attachment(name);
+                if (attachment == null)
+                {
+                    Unreachable(context);
+                    return;
+                }
+
                 // Measured again on what came back, because a view handing over more than it
                 // measured must not be the way past the ceiling either. Before the condition,
                 // which RFC 9110 section 13.2.1 orders after every refusal that does not depend
@@ -1703,9 +1723,9 @@ namespace KeePassGate.Pipeline
         /// <see cref="ServedAfter"/> has the reason and what may be left: the view, and what
         /// the hold already decided, and nothing that reads the database. Every read of an
         /// entry leaves its measuring, its reading, its tag, its condition and its answer here,
-        /// so no such read does work on KeePass's thread that grows with how long the entry's
-        /// values and attachments are. Taking the view stays inside the hold and grows with how
-        /// many strings and attachments the entry holds.
+        /// and asks its view for its strings and attachments only here, so no such read does
+        /// work on KeePass's thread that grows with how long the entry's values are or with how
+        /// many it holds, beyond the copy of its lists the view is taken with.
         /// </remarks>
         private static void Later(IGateContext context, Action serve)
         {
@@ -1721,8 +1741,9 @@ namespace KeePassGate.Pipeline
         }
 
         /// <summary>
-        /// Composes the line for a value withheld from an answer, where the view withholds the
-        /// value of one of these strings, and hands back what writes it down.
+        /// Composes the line for a value withheld from an answer, and hands back what answers,
+        /// for the strings a read goes on to serve, with what writes the line down where the
+        /// view withholds the value of any of them.
         /// </summary>
         /// <remarks>
         /// **The view decides what a read serves, and this records what it left out.** A value
@@ -1742,7 +1763,10 @@ namespace KeePassGate.Pipeline
         /// runs where it serves the answer, after the hold: the line names the node and asks
         /// the rules what a removed profile would have allowed, which reads the database, and
         /// a read refused for its size or by its condition serves nothing and writes no line,
-        /// <see cref="ProtectedWithheld"/>. What comes back is never null.
+        /// <see cref="ProtectedWithheld"/>. **Composed before it is known that anything is
+        /// withheld**, for any sight that could withhold a value: which strings a view
+        /// withholds is known once its strings are made, and those are made after the hold,
+        /// `VaultEntryView`. What comes back is never null, and neither is what that answers.
         ///
         /// Not written where the view serves every value, so a caller shown a protected title
         /// through the listing's reach, reading an entry with nothing else protected on it,
@@ -1753,13 +1777,21 @@ namespace KeePassGate.Pipeline
         /// taken off the database's list can be the reason on that reach too, and the line
         /// names it: `AccessCheck.Withheld`.
         /// </remarks>
-        private static Action Withholding(
-            IGateContext context, VaultEntryView view, IEnumerable<VaultViewField> fields, Reading asked)
+        private static Func<IEnumerable<VaultViewField>, Action> Withholding(
+            IGateContext context, VaultEntryView view, Reading asked)
         {
-            var withheld = fields.Where(field => field.IsWithheld).ToList();
-            if (withheld.Count == 0)
+            // A sight that reads and reaches protected values holds every value, so there is
+            // nothing a view taken with it could withhold, and nothing to compose.
+            if (view.Sight.Reads && view.Sight.Protected)
             {
-                return Nothing;
+                return served => Nothing;
+            }
+
+            object found;
+            var record = context.Items.TryGetValue(SpecRouter.WithheldItem, out found) ? found as ProtectedWithheld : null;
+            if (record == null)
+            {
+                return served => Nothing;
             }
 
             var decided = asked == null ? null : asked.ProtectedValues;
@@ -1767,14 +1799,22 @@ namespace KeePassGate.Pipeline
                 ? decided
                 : AclDecisions.Refused("a value was withheld by a view with no refusal behind it");
 
-            object found;
-            var record = context.Items.TryGetValue(SpecRouter.WithheldItem, out found) ? found as ProtectedWithheld : null;
-            if (record == null)
-            {
-                return Nothing;
-            }
+            // Both forms of the line, since which of them is written depends on which strings
+            // turn out withheld, and that is known once the view's strings are made, after the
+            // hold. The line itself reads the database, so both are composed here.
+            var listed = record(view.Entry.Node, AclVerb.Read, refusal, true) ?? Nothing;
+            var other = record(view.Entry.Node, AclVerb.Read, refusal, false) ?? Nothing;
 
-            return record(view.Entry.Node, AclVerb.Read, refusal, withheld.All(field => field.IsListed)) ?? Nothing;
+            return served =>
+            {
+                var withheld = served.Where(field => field.IsWithheld).ToList();
+                if (withheld.Count == 0)
+                {
+                    return Nothing;
+                }
+
+                return withheld.All(field => field.IsListed) ? listed : other;
+            };
         }
 
         /// <summary>What writes nothing down, for a read that withheld nothing.</summary>

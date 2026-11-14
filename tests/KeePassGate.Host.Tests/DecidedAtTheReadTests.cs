@@ -184,6 +184,37 @@ namespace KeePassGate.Host.Tests
             Assert.That(after.Headers["ETag"], Is.Not.EqualTo(before.Headers["ETag"]), "the edit did move the tag");
         }
 
+        [TestCase("/entries/{entry}")]
+        [TestCase("/entries/{entry}/fields")]
+        [TestCase("/entries/{entry}/fields/Password")]
+        public void A_setting_the_operator_changes_once_the_hold_has_ended_does_not_open_a_value(string path)
+        {
+            // Whether the database protects a name is one of its settings, and a view's strings
+            // are made after the hold. The settings are copied inside the hold, so a password
+            // the database protected when the rules were asked is withheld from a caller
+            // without `protected`, though the operator unprotects passwords the moment the hold
+            // is let go. Read from the live settings afterwards, the value went out to a rule
+            // that had been asked about a protected string.
+            _entry.Strings.Set(PwDefs.PasswordField, new ProtectedString(false, "not-a-real-password"));
+            Assume.That(_database.Database.MemoryProtection.ProtectPassword, Is.True);
+
+            var operatorNext = new OperatorNext(
+                1, () => _database.Database.MemoryProtection.ProtectPassword = false);
+
+            var answer = Send(operatorNext, path);
+
+            Assert.That(operatorNext.Ran, Is.True);
+            Assert.That(answer.Status, Is.EqualTo(200), answer.Json);
+            Assert.That(answer.Json, Does.Not.Contain("not-a-real-password"));
+            Assert.That(answer.Json, Does.Contain("Password"));
+
+            if (!path.EndsWith("/fields", StringComparison.Ordinal))
+            {
+                var after = Send(CurrentThread.Instance, path);
+                Assert.That(after.Json, Does.Contain("not-a-real-password"), "the setting did change what is read");
+            }
+        }
+
         [TestCase("/groups")]
         [TestCase("/groups/{group}")]
         [TestCase("/groups/{group}/groups")]
