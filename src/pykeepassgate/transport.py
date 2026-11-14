@@ -59,12 +59,19 @@ LOOPBACK = "127.0.0.1"
 #: `max_response_bytes` does, so that no answer can make this client hold as much memory as it
 #: likes. An attachment is not what decides it: the gate hands out at most 512 KiB of one
 #: (`VaultHandlers.MaxAttachmentBytes`), under 700 KiB once it is base64 inside a JSON answer. What
-#: can outgrow it is a listing, since the plugin does not page (`API.md` §407), and the read of an
-#: entry whose strings were made to: they are held to 524288 characters
+#: can outgrow it is a listing of groups or of entries, which the plugin serves whole however
+#: large the database (`API.md` §407), and the read of an entry whose strings were made to: what
+#: a read of an entry hands a client is held to 524288 characters
 #: (`VaultEntryView.MostCharacters`), which come to more than this only when most of them are
-#: characters JSON escapes, a protected field's name going out twice. An answer that outgrows it
-#: fails whole rather than being truncated. So a caller whose database is large enough gets a
-#: setting to raise rather than a number to patch.
+#: characters JSON escapes, a protected field's name going out twice. The gate holds no write to
+#: that number, so an entry can be past it, and the read of such an entry is refused `413` by the
+#: gate rather than cut short here (`API.md` §412). The names of an entry's strings do not
+#: outgrow it: the gate serves that listing in parts, and a part holds names that come to at most
+#: 524288 characters before JSON escapes any, each name counted with 32 more for its field, which
+#: stays under this at the six bytes the longest escape spends on a character. Only a single name
+#: longer than that by itself makes a larger part, since every part holds a field. An answer that
+#: outgrows it fails whole rather than being truncated. So a caller whose database is large
+#: enough gets a setting to raise rather than a number to patch.
 MAX_RESPONSE_BYTES = 4 * 1024 * 1024
 
 #: What marks the certificate a locked database answers with, and the whole of what tells one

@@ -456,6 +456,137 @@ router and vault for an open field, a protected one, an entry, an attachment and
 cases in `SkippedOnlyForAReaderTests`, each reaching no save where it now reaches one. An update
 is skipped only for a caller that may read every value it names.
 
+**A write refused for an entry's size was a way to measure a value, with no guess in it.** An
+entry's strings were held to 524288 characters in both directions, and a write that would take
+them past it was refused `413` with what they would come to, protected values included. A client
+whose rule held `update` and not `read`, or `read` without `protected`, padded the entry with
+strings of its own to just under the ceiling and sent a last write: the refusal named the whole
+count, and the count less the client's own padding is the length of what it was withheld. With
+the count left out, the padding at which the refusals begin tells the same, in a search of about
+twenty writes. Reproduced through the real router and vault in `NoSizeToldToAWriterTests`: two
+entries alike but for a password ten characters longer in the second, the same padding in both,
+and the same write answered `200` for the first and `413` with `524293 characters` for the
+second, for a field updated, an entry updated and a field added. The same count went to a single
+field read: a protected string past the ceiling was `413` with its length to a client that may
+not read it. The operator ruled on 2026-11-10 that no write is refused for an entry's size and
+that a read is measured over what its caller is handed, `API.md` §412: the view a read is
+measured by holds no length for a value it withholds, both writes are now made and answered
+alike, and the withheld field is the `null` every withheld value is.
+
+**What a tag costs on an entry far past the ceiling**, now that writes can make such an entry: fifty
+strings of a million characters each, on the development machine in a Release build, through the
+real router and vault. A read of the whole entry is refused and takes no tag. Every other request
+that hands a tag to a client with all fifty values in sight, a listing of the fields or a read of
+the title, digests the fifty megabytes. **Taken inside the hold, that was KeePass's thread standing
+still for every such request**: 45 to 47 milliseconds, with 48 MB allocated for the UTF-8 form of
+each value in turn, and 93 to 104 milliseconds and 191 MB for the first request after the values
+were loaded, since KeePass decrypts and decodes each value once when it is read as text and then
+keeps the text. So a read takes its view of the entry inside the hold and asks the view for
+everything else once the hold has ended, `DESIGN.md` §119. Measured the same way after that, the
+hold for those fifty strings is 0.07 to 0.09 milliseconds, and what the request takes on its own
+connection's thread depends on how KeePass holds the values. Protected and held as bytes, the way a
+file's are: about 59 milliseconds and 48 MB, every time, a copy of each value decrypted, digested
+and overwritten, a megabyte at a time, since a protected value is no longer read the way that makes
+KeePass keep it as text, below. Held in the open: 41 to 43 milliseconds and 0.2 MB, the tag encoding
+a long value a piece at a time. A whole read refused for its size measures the protected values the
+first time, 46 to 73 milliseconds and 48 MB, and is answered in a tenth of a millisecond after that,
+none of it inside the hold. A client that reads the entry without `protected`, the fifty being
+protected, reads and measures none of them: a withheld value is never read. A write takes its tags
+inside its own turn on KeePass's thread, the tag it is asked against and the tag it leaves: 58 to 65
+milliseconds and 48 MB each over the fifty protected strings, 40 to 43 milliseconds over fifty held
+in the open, beside a save of 2.2 seconds for the protected strings and 0.3 seconds for the strings
+held in the open, which the write causes whoever sends it.
+
+**The hold still grows with how many strings an entry holds, and a listing with what it shows.**
+What left the hold is the work that grows with how long values are. Taking the view stays inside,
+and walks every string to find which the database protects and which a listing shows: 4.0
+milliseconds of hold for an entry of ten thousand strings of one character, and 54 to 59 for a
+hundred thousand, in Release, whichever of the entry's reads is asked. No write bounds how many
+strings an entry holds. The tag over a hundred thousand names takes about a hundred milliseconds
+more on the connection's thread. A listing of ten thousand entries holds KeePass's thread for 38 to
+54 milliseconds where titles and addresses are held in the open and 42 to 44 where the database
+protects them and the caller is shown neither, since a title is read only for a caller it is shown
+to; where the caller is shown them it is 91 to 94, a copy of each title and address decrypted for
+every listing, which KeePass keeping the text had made 40 after the first.
+
+**A view of an entry can be asked after the hold it was taken in, because KeePass replaces the
+object a value is held in and never changes it.** Read off KeePass 2.61.1, decompiled, and
+measured against it. `ProtectedStringDictionary.Set` and `ProtectedBinaryDictionary.Set` put
+another object under the name, and no public member of `ProtectedString` or `ProtectedBinary`
+changes an object in place: `Insert`, `Remove`, `Trim` and `WithProtection` each hand back
+another string. Both are built for a second reader. `ProtectedBinary.ReadData` decrypts its
+bytes, copies them and encrypts them again under a lock of its own, and `ProtectedString`
+takes its bytes into a local before it reads them, keeps the string it decoded and only then
+lets the bytes go, in that order. Measured: a view kept while its entry had values and
+attachments replaced, removed and added, its times moved, the entry moved to another group and
+the database locked gave the tag it gave when it was taken; and in forty rounds of a tag taken
+on a second thread while the first read the same twelve values of 200,000 characters, no tag
+differed and nothing threw. `KeePassContractTests` pins the public surface of both types and
+the reading from two threads, and `DecidedAtTheReadTests` holds the real router and vault to an
+answer and a tag of the entry as it stood inside the hold.
+
+**`ProtectedString.ReadString` ends KeePass's protection of the value it reads, and the gate
+read every value with it.** Read off KeePass 2.61.1, decompiled, and asked of the object's own
+field. A protected string made from bytes, which is how a loaded file's are made, holds them
+encrypted. `Length` and `ReadUtf8` each decrypt a copy, and `Equals` compares two such copies,
+all of them leaving the object as it was. `ReadString` decodes the value, keeps the string in
+`m_strPlainText` and lets the encrypted bytes go, for as long as the object lives, and a string
+made from text keeps that text whatever its flag. A tag digests every value in its caller's
+sight, so a listing of an entry's fields, or a read of its title, left every protected value of
+the entry in the open in KeePass's memory, the values nobody asked for with them, and a
+protected value written through the gate was in the open from the start. A protected value is
+now read with `ReadUtf8`, digested from that copy, or decoded from it where it is served, and the
+copy overwritten; and a protected value is handed to KeePass as bytes, `StoredStrings`. What
+that costs is the copy for every request, where KeePass keeping the text made every request
+after the first cheaper: the 59 milliseconds and 48 MB above, against 40 to 42 milliseconds and
+0.2 MB with the values left in the open after a first request of 90 milliseconds and 143 MB.
+What it does not do: a value that is served is a string in the process until the runtime reuses
+its memory, and so is the answer it is written into, and neither can be overwritten.
+
+**KeePass's own save reads some values as text.** `KdbxFile.WriteObject` writes each of an
+entry's five own strings protected or not by the database's setting for that name, whatever the
+string's flag, and reads with `ReadString` what the setting leaves unprotected. Measured: after
+a save, a title and an address flagged protected in a database that protects neither were text
+in memory, by KeePass's own hand, and a password and a protected custom string were not.
+`ProtectedInMemoryTests` holds every read and every write through the real router to leaving
+each protected value as KeePass held it, in a database whose settings protect the strings it
+flags, and `KeePassContractTests` pins the field and what each of those members does to it.
+
+**Where the work is done, measured before it was moved**, on the same fifty strings in Release, with
+the view taken inside the hold in every case and every value read with `ReadString`, so the first
+time is KeePass decoding a value and every later time finds the text kept. Values read and digested
+inside: the hold is 93 to 104 milliseconds the first time and 45 to 47 after. Values read inside and
+digested after: 53 milliseconds of hold the first time and 0.04 after, with 45 to 48 after the hold.
+Both after: 0.04 milliseconds of hold every time, with 96 to 115 after it the first time and 44 to
+50 later. Eight strings of 65,536 characters, an entry at its ceiling, cost half a millisecond
+wherever it is done. A hundred attachments of 512 KiB, the most that is served, cost 60 to 90
+milliseconds and 50 MB the first time their digests are taken, wherever that is, and 0.15 after,
+since a digest is kept against the object. Encoding each value for the digest in pieces of 16,384
+characters through one buffer gave the digest of the value encoded whole with 0.1 MB allocated
+against 47.7 MB, in 39 to 42 milliseconds against 49 to 56.
+
+**KeePass counts a protected string's characters by decrypting it, the first time it is asked,
+which "measured with nothing decrypted" had wrong.** `ProtectedString.Length` answers from a count
+it keeps, `m_nCachedLength`, and fills that count the first time: from the string, where KeePass
+holds the value as a string, which is how it holds a value constructed from a string, a protected
+one included, and every value once `ReadString` has read it; and by `ProtectedBinary.ReadData`,
+`GetCharCount` and zeroing the copy, where it holds the value as bytes, which is how a file's
+protected values are held once loaded. Read off the getter's IL in 2.61.1 and measured: a
+protected value of a million characters held as bytes took 4.7 milliseconds to measure the first
+time and 0.02 the second, and the first request to measure the fifty strings above took 196
+milliseconds and 49 MB where every later request took a millisecond, in a Debug build; the
+figures above for the same request are a Release build's. An attachment is not so:
+`ProtectedBinary.Length` returns a field. Nothing public answers a string's length without that
+decryption; the UTF-8 byte count beside the encrypted bytes is private and is a bound on the
+characters and not their count. So what holds is narrower than what was written: no value is
+handed anywhere until it is asked for, building a view asks no length, a view asks the length
+only of a value in its caller's sight and only when the size is asked, so a withheld value is
+neither read nor measured, and the first measurement of a value in sight after a file load
+decrypts it once, inside KeePass's own type, with a number coming out.
+`NodeTagsTests.A_protected_value_held_as_bytes_is_decrypted_once_to_be_measured_and_never_for_a_view_withholding_it`
+counts the decryptions. The view asked every string's length as it was built until this was
+measured, a withheld string's among them.
+
 **A value a read decodes is not always the bytes the store keeps.** A protected string another
 program wrote with bytes that are not UTF-8 is served with each bad sequence replaced, and KeePass
 keeps the decoded form once it has been read, so a tag over the stored bytes changed the first time
@@ -500,7 +631,7 @@ changes a list, and then what each way of keeping the two apart costs. The probe
 | **`List<T>` moves its version after its size, so a reader that checks the version finds almost nothing wrong.** Checking it either side of a walk caught 5 to 27 of about twelve thousand misses, and waiting 100 µs before trusting it still missed 32 while flagging 7,350 of 7,814 good walks | the same churn, with the version read through reflection |
 | **Holding KeePass's thread still for the read closes it.** A `BeginInvoke` callback that waits on KeePass's thread until the reader, on its own thread, is done: no misses and nothing thrown in 71,503 and 46,297 walks, against 224 and 128 misses and 91,770 and 58,745 exceptions for a reader beside it that held nothing. Waiting for the hold took 0.07 ms at the median, under a millisecond at p99, and 115 ms at worst, the longest handler | the same churn |
 | **A read holds the thread for its own length, and that is short.** Over a thousand groups and ten thousand entries: a full sweep 16.9 ms at the median in Release, a lookup 0.17 ms, the structure alone 0.055 ms | timed in Release and Debug |
-| **A whole request decided and served inside one hold is still short.** Over a thousand groups and ten thousand entries, with an authority and an admitted client, at the median in Release: every entry listed, 2.3 MB of JSON, 55 ms in one run and 43 in another, 69 at worst; every group listed 2.3 ms; a group 0.11 ms; an entry 0.81 ms; an entry of fifty fields of ten thousand characters 2.4 ms; an attachment of 512 KiB, the most that is served, 2.6 ms and 15 at worst. The first read of an entry holding forty such attachments 47 ms, its tag digesting 20 MiB once, and 0.83 ms after that. Reading the caller's record and the profile list again is about 0.03 ms of each | the real router and vault over a database made for it, one timed hold a request and forty-one runs of each, in Release and Debug |
+| **A whole request decided and served inside one hold is still short**, measured while every read made its whole answer inside the hold; what is made of an entry's values is made after the hold now, section 20, so the entry and attachment figures here are no longer time on KeePass's thread. Over a thousand groups and ten thousand entries, with an authority and an admitted client, at the median in Release: every entry listed, 2.3 MB of JSON, 55 ms in one run and 43 in another, 69 at worst; every group listed 2.3 ms; a group 0.11 ms; an entry 0.81 ms; an entry of fifty fields of ten thousand characters 2.4 ms; an attachment of 512 KiB, the most that is served, 2.6 ms and 15 at worst. The first read of an entry holding forty such attachments 47 ms, its tag digesting 20 MiB once, and 0.83 ms after that. Reading the caller's record and the profile list again is about 0.03 ms of each | the real router and vault over a database made for it, one timed hold a request and forty-one runs of each, in Release and Debug |
 | **KeePass changes some live entries in place outside its dialogs**, so a hold over the structure alone would not be exact: placeholders that generate a value, opening an attachment, editing several entries at once, XML Replace, the OTP generator settings and a merge's database properties | KeePass 2.61.1's IL, every caller of the in-place mutators of an entry's dictionaries |
 | **A read needs a turn where Idle is never raised too.** Inside a `MessageBox`, whose loop raises no Idle, a 50 ms fallback timer kept reads going at fifteen a second, and the window's own timer stayed on time | the window section 21 measured, inside a message box |
 | **That timer served a read from inside a merge, of a tree the merge had not finished.** A merge pumps through its status logger between one step and the next, and a read asked for at the first step of a merge bringing forty entries was served inside the pump and counted none of them. A read inside a pump had been held harmless, which is true of a save and not of a merge | `PwDatabase.MergeIn` over two real databases on a message loop, with a logger pumping `DoEvents` for 300 ms at its first call and another thread asking for the read there |

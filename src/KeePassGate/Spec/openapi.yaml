@@ -198,8 +198,9 @@ info:
     client's rules open, its fields and attachments, one at a time or listed. A client has the
     same tag for an entry whichever of those routes hands it out, and two clients that see
     different things of an entry hold different tags for it.
-    It is taken at the moment of what it is answered with, since a read is decided and served
-    with KeePass's thread held still, so a tag never arrives beside content of another moment.
+    It is of the moment of what it is answered with, since a read is decided with KeePass's
+    thread held still and answered with what the node held then, so a tag never arrives beside
+    content of another moment.
     A change answers with the tag it left in its body, as `etag`, rather than in a header. A
     listing of groups or entries carries none.
 
@@ -1027,8 +1028,6 @@ paths:
           $ref: "#/components/responses/Unpaired"
         "404":
           $ref: "#/components/responses/Unreachable"
-        "413":
-          $ref: "#/components/responses/EntryTooLarge"
         "415":
           $ref: "#/components/responses/UnsupportedMediaType"
         "500":
@@ -1233,8 +1232,6 @@ paths:
           $ref: "#/components/responses/Conflict"
         "412":
           $ref: "#/components/responses/PreconditionFailed"
-        "413":
-          $ref: "#/components/responses/EntryTooLarge"
         "415":
           $ref: "#/components/responses/UnsupportedMediaType"
         "500":
@@ -1275,12 +1272,22 @@ paths:
       description: |
         Names and whether each is protected, never a value and never a length. The length of a
         password is worth something to whoever is guessing it, and listing is not reading.
+
+        **Served in parts, and never refused for its size.** No write is refused for how many
+        strings an entry holds, so the names can come to more than an answer hands out. A part
+        holds the fields from the position `from` names, in the entry's own order, for as long
+        as they come to at most 524288 characters, each counted by its name and 32 characters
+        for what its item is written with, and always a field where any is left. While the
+        entry holds fields past the part, the answer carries `next`, the position to ask the
+        part after it `from`. The parts are requests of their own, so the entry can change
+        between two of them: a client handed tags sees that by the tag moving.
       x-kpg-verb: list
       parameters:
         - $ref: "#/components/parameters/EntryUuid"
+        - $ref: "#/components/parameters/FieldsFrom"
       responses:
         "200":
-          description: The field names.
+          description: The field names, or a part of them.
           headers:
             ETag:
               $ref: "#/components/headers/ETag"
@@ -1288,6 +1295,8 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/FieldList"
+        "400":
+          $ref: "#/components/responses/Malformed"
         "401":
           $ref: "#/components/responses/Unpaired"
         "404":
@@ -1306,12 +1315,15 @@ paths:
       x-kpg-verb: list
       parameters:
         - $ref: "#/components/parameters/EntryUuid"
+        - $ref: "#/components/parameters/FieldsFrom"
       responses:
         "200":
           description: There, and reachable by this client.
           headers:
             ETag:
               $ref: "#/components/headers/ETag"
+        "400":
+          $ref: "#/components/responses/Malformed"
         "401":
           $ref: "#/components/responses/Unpaired"
         "404":
@@ -1400,8 +1412,6 @@ paths:
           $ref: "#/components/responses/Conflict"
         "412":
           $ref: "#/components/responses/PreconditionFailed"
-        "413":
-          $ref: "#/components/responses/EntryTooLarge"
         "415":
           $ref: "#/components/responses/UnsupportedMediaType"
         "500":
@@ -1512,8 +1522,6 @@ paths:
           $ref: "#/components/responses/Unreachable"
         "412":
           $ref: "#/components/responses/PreconditionFailed"
-        "413":
-          $ref: "#/components/responses/EntryTooLarge"
         "415":
           $ref: "#/components/responses/UnsupportedMediaType"
         "500":
@@ -2245,6 +2253,11 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/FieldSummary"
+        next:
+          description: |
+            The position of the first field past this part, to be asked as `from`. Absent from
+            the part that holds the entry's last field.
+          type: integer
 
     AttachmentSummary:
       type: object
@@ -2354,9 +2367,10 @@ components:
 
         `busy` is five things, and a read meets the first as readily as a write meets the others.
         KeePass's own thread could not be held still for the read: every read waits its turn on that
-        thread and holds it from the rules being asked to the answer being made, so neither the
-        tree nor the rules can move under it, and a turn that does not come round within ten
-        seconds, or a read that outlasts five, is answered `busy` rather than trusted. That is
+        thread and holds it from the rules being asked until what it is answered with has been
+        taken, so neither the tree nor the rules can move under it, and a turn that does not
+        come round within ten seconds, or a hold that outlasts five, is answered `busy` rather
+        than trusted. That is
         KeePass busy with something it does not pause in, such as deriving a key, rather than a
         fault here, or KeePass part way through a merge, which no read is started inside: a
         synchronize, an import and XML Replace leave the tree between two databases until they
@@ -2462,25 +2476,42 @@ components:
           schema:
             $ref: "#/components/schemas/Error"
 
-    # The transport serves thirty-two connections at once, so ten times an attachment's size, at
-    # once on every one of them, is what the ceiling holds down.
     # An entry's answer costs about four times its strings, on each of the thirty-two
-    # connections the transport serves at once, so its strings are held down as an attachment is.
+    # connections the transport serves at once, so what a read hands out is held down as an
+    # attachment is.
+    #
+    # On reads alone, and over what the client is handed. It was one number for reading and for
+    # writing, so that what this gate let a client write it also handed back whole: a write that
+    # would take an entry's strings over it was refused `413` with what they would come to,
+    # protected values included. A client that may write and not read padded an entry up to the
+    # ceiling and learned from the count, or from where the refusals began, how long the values
+    # it was withheld were. The operator's ruling of 2026-11-10 reverses it and accepts what
+    # that costs: an entry can be written past what a read hands back whole, such an entry is
+    # read a field at a time, and nothing bounds what a client holding `update` or `create` adds
+    # to an entry beyond the body a request may carry. §513
     EntryTooLarge:
       description: |
-        The entry's strings, names and values together, come to more than this gate hands out or
-        keeps: 524288 characters, half a million. A read of an entry over it, which KeePass or a
-        merge can make, is refused before anything is decrypted, and so is a read of one field
-        over it with its name; a write that would take the entry over it is refused with nothing
-        changed. The same number for both, so that what this gate lets a client write it also
-        hands back. Stripping a field is never refused for it, which is how an entry over it is
-        brought back under. The body names the size and the ceiling in a sentence rather than a
-        word, so a client knows this refusal by its status.
+        What this read would hand its client comes to more than this gate hands out, which is
+        524288 characters, half a million. Counted are the names of the strings the answer serves
+        and the values the client's rules let it read, and nothing of a value it is withheld, so
+        two clients can be answered differently about one entry. `readEntry` is held to it over
+        the whole entry and `readField` over a string in the client's sight with its name, each
+        refused before any value is read. A value a client is withheld is answered `null`
+        whatever its length, and never with this. No write is refused for what an entry's
+        strings come to, so an entry can be written, here or in KeePass, past what a read hands
+        back whole: its strings are then named by `listFields`, which is served in parts and
+        never refused for its size, and read with `readField`, each on its own, and stripping a
+        field is how the entry is brought back under. Naming the strings takes `list`: a client
+        holding `read` without it reads, of an entry past the ceiling, only the strings whose
+        names it already knows. The body names the count and the ceiling in a sentence rather
+        than a word, so a client knows this refusal by its status.
       content:
         application/json:
           schema:
             $ref: "#/components/schemas/Error"
 
+    # The transport serves thirty-two connections at once, so ten times an attachment's size, at
+    # once on every one of them, is what the ceiling holds down.
     TooLarge:
       description: |
         The attachment is larger than this gate will hand out. Building one costs about ten times
@@ -2880,6 +2911,20 @@ components:
         type: string
         minLength: 1
         maxLength: 512
+
+    FieldsFrom:
+      name: from
+      in: query
+      required: false
+      description: |
+        The position, in the entry's own order and counted from 0, of the first field a part of
+        the listing holds. Leaving it out asks for the part the listing begins with. Digits
+        alone, and at most nine of them: anything else is `400 malformed`, because a caller
+        that asked for a later part and misspelled it must not be handed the first part in its
+        place. A position past the entry's last field is answered with a part holding no
+        field.
+      schema:
+        type: string
 
     IncludeExpired:
       name: includeExpired

@@ -139,6 +139,93 @@ def test_a_listing_the_gate_gave_no_tag_for_has_none_and_says_why(
         _ = listed.etag
 
 
+def in_parts(
+    gate: FakeGate, first: str | None, later: str | None, changed: bool = False
+) -> list[str | None]:
+    """Serve a field listing in a first part and a later part, each under the tag given for it.
+
+    `changed` is an entry that changed between the parts, which the gate answers `412` to a
+    later part asked for under a condition. What comes back fills with the `If-Match` of every
+    request answered, in order.
+    """
+    conditions: list[str | None] = []
+
+    def answer(path: str, sent: str, client: bytes | None) -> tuple[int, str]:
+        conditions.append(gate.if_match())
+        asked_later = path.endswith("?from=1")
+        if asked_later and changed and gate.if_match() is not None:
+            return 412, '{"error":"precondition failed"}'
+
+        tag = later if asked_later else first
+        if tag is not None:
+            gate.tag(tag)
+
+        if asked_later:
+            return 200, json.dumps({"fields": [{"name": "PIN", "protected": True}]})
+
+        return 200, json.dumps({"fields": [{"name": "Title", "protected": False}], "next": 1})
+
+    gate.handler = answer
+    return conditions
+
+
+@pytest.mark.parametrize("given", [None, "*", TAG], ids=["no condition", "any", "the tag"])
+def test_the_later_parts_of_a_field_listing_are_asked_for_under_the_tag_of_the_first(
+    gate: FakeGate, paired: GateClient, given: str | None
+) -> None:
+    # The parts are separate requests, so the gate is what holds them to the entry as the first
+    # part found it, whatever the caller's own condition was.
+    conditions = in_parts(gate, TAG, TAG)
+
+    listed = paired.fields(UUID, if_match=given)
+
+    assert conditions == [given, TAG]
+    assert [(field.name, field.etag) for field in listed] == [("Title", TAG), ("PIN", TAG)]
+
+
+def test_an_entry_that_changes_while_its_fields_are_listed_is_a_condition_that_did_not_hold(
+    gate: FakeGate, paired: GateClient
+) -> None:
+    # With no `if_match` given: the names of several moments would read as a listing of the
+    # entry, with a name missing or listed twice, so the refusal is what comes back.
+    conditions = in_parts(gate, TAG, NEXT, changed=True)
+
+    with pytest.raises(PreconditionFailed):
+        paired.fields(UUID)
+
+    assert conditions == [None, TAG]
+    assert len(gate.requests) == 2, "and the listing is not begun again"
+
+
+def test_a_field_listing_the_gate_gave_no_tag_for_is_asked_for_part_by_part_with_no_condition(
+    gate: FakeGate, paired: GateClient
+) -> None:
+    # A client holding `list` without `read`: nothing holds its parts to a moment.
+    conditions = in_parts(gate, None, None)
+
+    listed = paired.fields(UUID)
+
+    assert conditions == [None, None]
+    assert [field.name for field in listed] == ["Title", "PIN"]
+    assert not any(hasattr(field, "etag") for field in listed)
+
+
+def test_a_later_part_answered_with_another_tag_than_it_was_asked_under_is_refused(
+    gate: FakeGate, paired: GateClient
+) -> None:
+    # The gate serves a part under `If-Match` only while the entry holds that tag, so a part
+    # served with another tag, or with none, is an answer outside the contract.
+    in_parts(gate, TAG, NEXT)
+
+    with pytest.raises(ProtocolError, match="another tag"):
+        paired.fields(UUID)
+
+    in_parts(gate, TAG, None)
+
+    with pytest.raises(ProtocolError, match="another tag"):
+        paired.fields(UUID)
+
+
 def test_a_read_that_withholds_a_value_is_tagged_all_the_same(
     gate: FakeGate, paired: GateClient
 ) -> None:

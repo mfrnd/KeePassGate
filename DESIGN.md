@@ -530,6 +530,31 @@ switch, a rule that grants `read` still answers with the entry, its title, its d
 every field it holds and the values of the ones nothing protects, and the protected values come back
 as `null`. With it, they come back as themselves.
 
+**The gate leaves a protected value encrypted in KeePass's memory.** KeePass holds a protected
+value a file was loaded with as encrypted bytes, and `ProtectedString.ReadString` decodes it,
+keeps the string inside the object and lets the bytes go, so a value read that way is in memory
+in the open for as long as the entry is loaded. Every value was read that way, and a tag reads
+every value in its caller's sight: a listing of an entry's fields left every protected value of
+the entry in the open, the values nobody asked for among them. So a protected value is read with
+`ReadUtf8`, which hands back a copy and keeps nothing; a tag digests that copy and a route
+serving the value decodes it, and the copy is overwritten; and a protected value written through
+the gate is handed to KeePass as bytes, since a `ProtectedString` made from text keeps the text.
+`StoredStrings` is the whole of it. **What that is and is not.** KeePass's protection is of
+memory that leaves the process, a crash dump or the page file, and what is kept is that the gate
+does not undo it for a value KeePass has not itself decoded. A value that is served is a string
+in the process until the runtime reuses its memory, and so is the answer it is written into,
+and neither can be overwritten; the same holds for a protected title or address a listing
+shows, for the body a request carried, and for an attachment's bytes once they are written
+into an answer. KeePass decodes a value itself when the operator uses the entry, and at a save
+for a string its settings leave unprotected. Nothing here defends against code running as the
+user, which is conceded throughout. A title or an address a caller is not shown is not read at
+all: an entry is described without them, and a listing reads each only where it shows it. It
+costs a copy of each protected value in sight for every tag, a read's and a change's alike,
+and a copy of each protected title and address a listing shows, where KeePass keeping the text
+made every tag and every listing after the first cheaper. A read's tag is taken with KeePass's
+thread free; a change's tags and a listing are inside a turn and a hold. `FINDINGS.md` has the
+numbers.
+
 **Neither switch is asked about for a removal.** They say how far the verbs a rule grants see or
 change inside an entry, and removing something shows nobody anything. A rule that may remove an
 entry already takes every attachment and every protected value with it, so asking for a scope before
@@ -876,22 +901,49 @@ So the rules here:
   the edit, so a value typed into an entry once its group was sealed went out to the client the
   seal was for. A client revoked or a profile taken off the list between the two was served the
   same way, and a tag was of one moment and the content beside it of another. So a request that
-  changes nothing is decided and served inside one hold, the operator's ruling of 2026-11-10:
+  changes nothing is decided inside one hold and answered with the database as it stood there,
+  the operator's ruling of 2026-11-10:
   the caller's admission record and the profile list are read again, the node is found, the
-  rules are asked, the handler reads what it serves and takes its tag, and the answer is made,
-  all of one moment. The rules are asked once, there, and no longer before it. A caller the
+  rules are asked, the handler reads what it serves, and the answer and its tag are made of
+  that, all of one moment. The rules are asked once, there, and no longer before it. A caller the
   database stopped admitting while its request waited is answered inside the hold as its next
   request would be: `401 unpaired`, or the `503` of a database that locked or holds two
   authorities. **What is not a request keeps a hold per step**: the admission record a
   connection is judged on as it arrives, and the databases the gate is serving.
 
+  **What is made of an entry's values is made once the hold has ended, and is still of that
+  moment.** This reverses the handler reading an entry's values and taking its tag inside the
+  hold, decided on 2026-11-13 on a measurement. No write is refused for an entry's size, §142,
+  so measuring an entry's values, reading them and digesting them into its tag grow with
+  whatever a client wrote there, and inside the hold that work was KeePass's thread standing
+  still for it: about forty-five milliseconds for every request handing out the tag of an entry
+  of fifty strings of a million characters. What a read takes of an entry inside the hold is
+  the caller's view of it, `VaultEntryView`, which keeps the objects the strings and
+  attachments were held in at that moment and reads none of them. KeePass replaces a
+  `ProtectedString` and a `ProtectedBinary` and changes neither in place, and both are built to
+  be read from a second thread, which `KeePassContractTests` pins. So the lengths, the values,
+  the attachments' bytes and digests, the tag, the condition asked of it and the answer are made
+  on the connection's own thread once the hold is over, of the entry as it stood inside, whatever
+  the operator has done to it since: the same request then held KeePass's thread for under a
+  tenth of a millisecond. Everything that reads the database stays inside the hold, the audit
+  line for a withheld value with it, which is composed there and written where the answer is
+  served. A change still takes its tags inside its own turn, where the comparison and the
+  change are one step. **What left the hold is the work that grows with how long an entry's
+  values and attachments are.** Taking the view stays inside and still grows with how many
+  strings and attachments the entry holds, which no write bounds either: four milliseconds for
+  an entry of ten thousand strings, and fifty-five for a hundred thousand. A group, a listing
+  and what a client may do at a node are read and answered inside the hold as before; a
+  listing grows with the entries and the titles that clients wrote, and is the longest hold
+  measured.
+
   **What a whole request holds the thread for is still short.** Over a thousand groups and ten
   thousand entries, through the real router and vault: about fifty-five milliseconds to list
-  every entry, 2.3 MB of JSON, where the sweep alone held seventeen; two and a half to list
-  every group, or to serve an entry or an attachment at its ceiling; under a millisecond for an
-  ordinary entry. The first read of an entry holding forty attachments at the ceiling took
-  forty-seven, since a tag digests each attachment once. `FINDINGS.md` has the table, under
-  "Reading while KeePass changes the tree".
+  every entry, 2.3 MB of JSON, where the sweep alone held seventeen, and two and a half to list
+  every group. Where the database protects titles and addresses and the caller is shown them,
+  the listing decrypts a copy of each for every request and holds about ninety, §136. A read of
+  an entry holds it to find the entry, ask the rules and take the view, and no longer for what
+  the entry's values come to. `FINDINGS.md` has the table, under "Reading while KeePass changes
+  the tree".
 
   **Nothing that waits runs inside a hold**, since the operator's window waits with it: not the
   writer, which waits on that thread itself and is refused as a defect, not the audit's pacing or
@@ -1364,7 +1416,7 @@ A line records the authorization and not what the request then did, so a permitt
 stands for a request answered afterwards with a malformed body, a conflict, `503 busy` or a
 failure, none of which gets a line of its own. **A line is composed where the decision is made and
 written once KeePass's thread is free again**, which reverses writing it before the handler ran:
-a request is decided inside the hold its read is served in or the turn its change is made in,
+a request is decided inside the hold of its read or the turn its change is made in,
 §119, and the audit's file and the pace a client's lines are held to are waits that belong on the
 caller's connection. So a line carries the moment of its decision and reaches the file after the
 handler, before the answer goes out. **A request is still one decision.** A change is asked about
@@ -1434,9 +1486,10 @@ recorded as KeePass closes is not lost; a line still queued when the process end
 **A thread holding KeePass's thread still for a read is such a thread too**, to the audit and to
 the plugin's log alike, since the window waits for the reader as it waits for its own thread. A
 line the log was given inside a hold went to the file with KeePass's window waiting for it, which
-mattered little while a hold was one step of a read. A request is now served inside one hold,
+mattered little while a hold was one step of a read. A request is now decided inside one hold,
 §119, and a caller can have a line logged there as often as it asks, since a precondition nothing
-meets is logged where the read is refused. `ControlUiThread.MayNotWait` is the question both ask.
+meets on a group is logged where the read is refused. `ControlUiThread.MayNotWait` is the question
+both ask.
 
 Three things are settled about it. It defaults to this user's own application data rather than
 beside the `.kdbx`, because a database is often on a share or in a cloud folder and a record of
@@ -1729,6 +1782,50 @@ wrote it, so what is to answer this is **one URL checker given the context of th
 KeePass**, applying different controls by it. Until that exists, every URL is stored as written,
 `docs/access-control.md` warns the operator against opening one a program may have written, and
 nothing here claims more. A refusal for one more case is not the fix: it is the shape this replaced.
+
+### C10. A client that may write can grow an entry past what a read hands back §142
+
+**The objection stands, and is accepted: it is what closing a leak cost.** An entry's strings were
+held to 524288 characters, names and values together, read and written alike, so that what the
+gate let a client write it also handed back whole. The write half of that was a refusal that
+depended on values its caller may not read. It named what the entry's strings would come to,
+protected values included, so a client that may write and not read padded an entry up to the
+ceiling and was told how long the values it was withheld were, and a refusal naming no count
+would have told it the same by where it began. `FINDINGS.md` has the measurement.
+
+The operator ruled on 2026-11-10: **no write is refused for what an entry's strings come to, and
+the ceiling is a read's, measured over what that reader would be handed.** A view of an entry,
+`VaultEntryView`, neither reads nor measures a value it withholds, so the count a read is refused
+with is made of nothing its caller may not read, and a single field the caller is withheld is
+answered as withheld whatever its length. The listing of an entry's fields is held to the same
+number by being served in parts, and is never refused: refused, it left an entry whose names
+alone pass the ceiling with no route naming its strings. `API.md` §412 has what counts, the
+order of the refusals, how the listing is parted, and what measuring a value in sight costs
+inside KeePass.
+
+What is given up, and written down so that it is not rediscovered as a defect:
+
+- **An entry can be written past what a read hands back whole.** Such an entry is read a field at
+  a time, and stripping a field brings it back under. KeePass and a merge could always leave such
+  an entry, so every reader already had to meet it. **Reading it a field at a time takes
+  `list`**, since the listing is what names the fields: a client holding `read` without `list`
+  reads, of an entry past the ceiling in its view, only the strings whose names it already
+  knows.
+- **Nothing bounds what a client holding `update` or `create` adds to an entry** beyond what a
+  request carries, 65536 characters in a value and 1 MiB in a body. The entry grows in the
+  database's memory, in the file and in the time every save takes, a request at a time, and each
+  of those writes is in the audit.
+- **A tag is taken over a caller's whole view, however large.** A read refused for its size takes
+  none, and every other answer handing a tag out reads every value in sight. A read does so once
+  the hold of KeePass's thread has ended, §119, so for an entry of fifty protected strings of a
+  million characters that is about sixty milliseconds of the connection's own thread, with a
+  copy of each value made and overwritten, §136, and none of KeePass's. A change takes its tags
+  inside its turn, beside its save. No ceiling was added for it.
+
+Refused as ways to keep the write's refusal, and not to be proposed again without new evidence: a
+floor or a rounding for each string, a ceiling for each protection class, the message without its
+count, random slack in the ceiling, and pacing the refusals. Each leaves an answer to a write
+that moves with a value the writer may not read, which a patient client reads all the same.
 
 ## The objections that do not stand, and why §126
 

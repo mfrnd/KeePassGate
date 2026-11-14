@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Globalization;
 using KeePassGate.Acl;
 
 namespace KeePassGate.Vault
@@ -50,15 +49,37 @@ namespace KeePassGate.Vault
     /// <summary>An entry, without its fields, which are asked for separately.</summary>
     public sealed class VaultEntry
     {
+        private Func<string> _readTitle;
+        private Func<string> _readUrl;
+        private string _title;
+        private string _url;
+
+        /// <summary>An entry whose title and URL are already in hand.</summary>
         public VaultEntry(
             string uuid, string group, string title, string url,
+            DateTimeOffset created, DateTimeOffset modified, IAclNode node,
+            bool titleProtected, bool urlProtected, DateTimeOffset? expires)
+            : this(uuid, group, (Func<string>)null, null, created, modified, node, titleProtected, urlProtected, expires)
+        {
+            _title = title;
+            _url = url;
+        }
+
+        /// <summary>
+        /// An entry whose title and URL are read when they are first asked for, and not at all
+        /// when nothing asks.
+        /// </summary>
+        /// <param name="title">What reads the title, or null for a description holding none.</param>
+        /// <param name="url">What reads the URL, or null for a description holding none.</param>
+        public VaultEntry(
+            string uuid, string group, Func<string> title, Func<string> url,
             DateTimeOffset created, DateTimeOffset modified, IAclNode node,
             bool titleProtected, bool urlProtected, DateTimeOffset? expires)
         {
             Uuid = uuid;
             Group = group;
-            Title = title;
-            Url = url;
+            _readTitle = title;
+            _readUrl = url;
             Created = created;
             Modified = modified;
             Node = node;
@@ -86,10 +107,41 @@ namespace KeePassGate.Vault
         /// **Null, both of them, in the description a view carries**, <see cref="VaultEntryView"/>:
         /// a view holds a string only as one of its fields, where the caller's sight decides
         /// whether the value is there, and reads neither to be built.
+        ///
+        /// **Read when first asked for, and kept.** An entry is described to find the node the
+        /// rules are asked about, for every request about it and every change to it, and for
+        /// every entry a listing walks, and only a listing that shows a title or a URL asks
+        /// for it. Read as the description is made, a protected title was decoded for a
+        /// caller it is withheld from and for a request that serves no title at all.
         /// </remarks>
-        public string Title { get; private set; }
+        public string Title
+        {
+            get
+            {
+                if (_readTitle != null)
+                {
+                    _title = _readTitle();
+                    _readTitle = null;
+                }
 
-        public string Url { get; private set; }
+                return _title;
+            }
+        }
+
+        /// <summary>The entry's URL, read as <see cref="Title"/> is.</summary>
+        public string Url
+        {
+            get
+            {
+                if (_readUrl != null)
+                {
+                    _url = _readUrl();
+                    _readUrl = null;
+                }
+
+                return _url;
+            }
+        }
 
         /// <summary>Whether the title is protected.</summary>
         /// <remarks>
@@ -423,25 +475,6 @@ namespace KeePassGate.Vault
         /// </remarks>
         public bool IsPreconditionFailed { get; private set; }
 
-        /// <summary>
-        /// The change would take the entry's strings over what this gate keeps, so nothing was
-        /// changed.
-        /// </summary>
-        /// <remarks>
-        /// A refusal about the request, answered `413`, and decided under the writer's lock against
-        /// the entry as the change would have found it, as <see cref="IsPreconditionFailed"/>
-        /// is, so that two writes landing in turn cannot each be measured against what the entry
-        /// held before the other. <see cref="VaultEntryView.MostCharacters"/> is the
-        /// ceiling, and <see cref="Characters"/> what the entry would have come to.
-        /// </remarks>
-        public bool IsTooLarge { get; private set; }
-
-        /// <summary>
-        /// What the entry's strings, names and values together, would have come to in characters,
-        /// when <see cref="IsTooLarge"/>.
-        /// </summary>
-        public int Characters { get; private set; }
-
         /// <summary>What was created, when something was.</summary>
         public string Uuid { get; private set; }
 
@@ -487,24 +520,6 @@ namespace KeePassGate.Vault
             return new VaultWrite(false, false, false, null, precondition.Refusal)
             {
                 IsPreconditionFailed = true,
-            };
-        }
-
-        /// <summary>
-        /// The entry would hold more than this gate keeps, and nothing was changed.
-        /// </summary>
-        public static VaultWrite TooLarge(int characters)
-        {
-            return new VaultWrite(
-                false,
-                false,
-                false,
-                null,
-                "the entry would hold " + characters.ToString(CultureInfo.InvariantCulture)
-                    + " characters of names and values")
-            {
-                IsTooLarge = true,
-                Characters = characters,
             };
         }
 

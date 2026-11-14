@@ -11,7 +11,7 @@ namespace KeePassGate.Pipeline
     /// <remarks>
     /// <see cref="ClientCredentials.Again"/> has the reason an identity is read again. A change
     /// is handed this by its <see cref="DecidedInside"/>, inside its turn, and a read is decided
-    /// and served against this for the whole of its hold. Everything but the caller is the
+    /// against this inside its hold and answered on it. Everything but the caller is the
     /// request's own: the method, the path and the body are the ones of the context this wraps,
     /// so there is still one request and one answer.
     ///
@@ -28,6 +28,11 @@ namespace KeePassGate.Pipeline
     /// running the change itself and cannot be let go under it: there is nothing to wait for,
     /// whether the handler answers on the connection's thread once the turn is over or a client
     /// is turned away inside the turn.
+    ///
+    /// **What a read leaves for after its hold runs here too**, <see cref="After"/>: the part of
+    /// an entry's answer made of its values, which is run by <see cref="Deliver"/> on the
+    /// connection's own thread, before the answer is handed on. A read whose hold lapsed never
+    /// reaches <see cref="Deliver"/>, so what it left is dropped with its answer.
     /// </remarks>
     internal sealed class DecidedContext : IGateContext
     {
@@ -40,6 +45,7 @@ namespace KeePassGate.Pipeline
         private int _status;
         private string _json;
         private WebHeaderCollection _headers;
+        private Action _after;
 
         /// <summary>The request, asked by the client as it was read again.</summary>
         public DecidedContext(IGateContext request, ClientIdentity client)
@@ -50,7 +56,7 @@ namespace KeePassGate.Pipeline
         /// <summary>The same, naming where the answer goes.</summary>
         /// <param name="keeps">
         /// Whether the answer is kept until <see cref="Deliver"/> hands it to the request, which
-        /// is what a read served inside a hold needs.
+        /// is what a read decided inside a hold needs.
         /// </param>
         public DecidedContext(IGateContext request, ClientIdentity client, bool keeps)
         {
@@ -136,9 +142,45 @@ namespace KeePassGate.Pipeline
             _headers = headers;
         }
 
-        /// <summary>Hands the answer kept here to the request, when there is an answer.</summary>
+        /// <summary>
+        /// Leaves the rest of a read to be run once its hold has ended, by <see cref="Deliver"/>.
+        /// </summary>
+        /// <remarks>
+        /// <see cref="ServedAfter"/> has what may be left. Only a read decided inside a hold
+        /// is handed this, on a context that keeps its answer: a change's context answers on
+        /// the request at once and has no <see cref="Deliver"/> to run anything later, so work
+        /// left on it would never run, and is refused as the defect it would be.
+        /// </remarks>
+        public void After(Action serve)
+        {
+            if (serve == null)
+            {
+                throw new ArgumentNullException(nameof(serve));
+            }
+
+            if (!_keeps)
+            {
+                throw new InvalidOperationException("a request that keeps no answer has nothing to run work after");
+            }
+
+            _after = serve;
+        }
+
+        /// <summary>
+        /// Runs what the read left for after its hold, and hands the answer kept here to the
+        /// request, when there is an answer.
+        /// </summary>
         public void Deliver()
         {
+            var after = _after;
+            _after = null;
+
+            // An answer given inside the hold stands, so nothing left for later runs over it.
+            if (after != null && !_answered)
+            {
+                after();
+            }
+
             if (_answered)
             {
                 Send(_status, _json, _headers);

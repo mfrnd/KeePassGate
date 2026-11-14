@@ -11,6 +11,34 @@ none, since it releases both.
 
 ## 0.2.0, unreleased
 
+- **A read of an entry hands out at most 524288 characters of names and values, counted over
+  what its client is handed, and no write is refused for an entry's size.** Reading an entry
+  built an answer of every string it held with no ceiling, at about four times their size in
+  memory inside KeePass, measured at 94.5 MB for two hundred fields of 64K characters. A read is
+  now refused with `413`, before any value is read, when what it would hand its client is past
+  the ceiling: a read of the entry, over the names of its strings and the values that client may
+  read; and a read of one field in that client's sight, with its name. The listing of an entry's
+  fields is held to the same size by being served in parts: an answer that does not reach the
+  entry's last field carries `next`, and the part after it is asked for with `from`. A value a
+  client is withheld counts nothing, is not measured, and is answered `null` whatever its
+  length. Writes are not held to the ceiling, because a refusal
+  that moves with what an entry's strings come to tells a client that may write and not read how
+  long the values it is withheld are. So an entry can be written past what a read hands back
+  whole, such an entry is read a field at a time, which takes `list` as well as `read`,
+  stripping a field is how it is brought back under, and nothing bounds what a client holding
+  `update` or `create` adds to an entry beyond what a request carries. PyKeePassGate raises
+  `RouteRefused` on a read refused this way and does not go on to read field by field, and its
+  listing of an entry's fields asks for every part. `API.md` §412.
+- **A protected value read or written through the gate stays encrypted in KeePass's memory.**
+  KeePass keeps a protected value encrypted in memory until something reads it as text, and
+  from then on keeps the text. The gate read every value that way, and an entry's `ETag` reads
+  every value its client may read, so a listing of an entry's fields left every protected value
+  of the entry in the open in KeePass's memory until the database was locked, and a protected
+  value written through the gate was in the open from the start. A protected value is now read
+  as a copy that is overwritten once it has been digested or served, and written so that
+  KeePass encrypts it at once, and a protected title or address is read only by a listing that
+  shows it. A value a client is served is still in the plugin's memory, as text that cannot be
+  overwritten, until that memory is reused.
 - **Every client holding `read` is handed an entry's `ETag`, taken over what that client may
   read.** A tag covered the whole entry and went only to a client whose one rule read all of it,
   attachments and protected values included, so a rule without `protected` was handed no tag for
@@ -52,12 +80,15 @@ none, since it releases both.
   its group was sealed went out to the client the seal was for. A change that waited behind a
   save wrote over a string marked protected in the meantime for a rule without `protected`, or
   removed an entry by the rule of the group the entry had just left. A request that changes
-  nothing is now decided and served with KeePass's thread held still once, from the caller's
-  admission record to the answer, and a change is asked about again inside its own turn, where
-  that answer is acted on and written to the audit in place of the earlier line. A read's `ETag`
-  and its content are of one moment as well, where a tag could be older than what it arrived
-  beside. The longest such hold measured is about fifty-five milliseconds, listing ten thousand
-  entries.
+  nothing is now decided with KeePass's thread held still once, from the caller's admission
+  record to what it is answered with, and a change is asked about again inside its own turn,
+  where that answer is acted on and written to the audit in place of the earlier line. A read's
+  `ETag` and its content are of one moment as well, where a tag could be older than what it
+  arrived beside. The longest such hold measured is about fifty-five milliseconds, listing ten
+  thousand entries, and about ninety where the database protects their titles and the client
+  is shown them. An entry's values are read, and its tag taken, once the hold has ended, from
+  what the entry held inside it, so reading an entry does not hold KeePass for longer the
+  longer the entry's values are.
 - **A client revoked while its request waited for KeePass is answered `401 unpaired`**, as its
   next request is, where the request was served as though still admitted. A database that came
   to hold two authorities in that wait answers `503 undecided` the same way.
@@ -811,13 +842,6 @@ none, since it releases both.
   that kind it refused as `Unresolved`: a standard string held under a look-alike name, and a
   placeholder naming a field only in another case beyond ASCII. A program catching `Unresolved`
   for either catches `AmbiguousName` now.
-- **An entry's strings are held to 524288 characters, names and values together**, read and
-  written alike. Reading an entry built an answer of every string it held with no ceiling, at
-  about four times their size in memory inside KeePass, measured at 94.5 MB for two hundred
-  fields of 64K characters, and nothing bounded how far writes could grow an entry. A read of an
-  entry over it, or of one field over it with its name, is now refused with `413` before
-  anything is decrypted, and a write that would take an entry over it is refused with `413`
-  and changes nothing. Stripping a field is never refused for it.
 - **A write to an entry is refused `503 busy` while KeePass's own attachment editor is open on an
   attachment of that entry's.** The editor holds the attachment and not the entry, and KeePass
   writes the edited bytes back onto the entry as it closes, so a removal of the attachment

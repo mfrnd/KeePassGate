@@ -65,6 +65,114 @@ namespace KeePassGate.Host.Tests
         }
 
         [Test]
+        public void A_value_is_digested_from_its_stored_bytes_as_the_value_a_read_serves_is()
+        {
+            // A value KeePass protects in memory is digested from a copy of its bytes, so that
+            // a tag makes no string of it. The bytes are the store's, and a file another
+            // program wrote can hold bytes that are not UTF-8, which a read serves with each
+            // bad sequence replaced. Either way the part digested has to be the part the served
+            // string would have been, or a tag would move with how a value was read.
+            const int Piece = NodeTags.Pieces.Characters;
+            var values = new List<byte[]>
+            {
+                Array.Empty<byte>(),
+                Encoding.UTF8.GetBytes("short"),
+                Encoding.UTF8.GetBytes(new string('\u20AC', Piece + 5)),
+                Encoding.UTF8.GetBytes("\U0001F511 a key"),
+                new byte[] { 0xEF, 0xBB, 0xBF, 0x61 },
+                new byte[] { 0x61, 0xFF, 0x62 },
+                new byte[] { 0x61, 0xE2, 0x82 },
+                new byte[] { 0xC0, 0x80 },
+                new byte[] { 0xED, 0xA0, 0x80, 0x61 },
+                new byte[] { 0xF4, 0x90, 0x80, 0x80 },
+                Enumerable.Repeat((byte)0x61, Piece + 1).Concat(new byte[] { 0xFF }).ToArray(),
+                Enumerable.Repeat((byte)0xFF, (2 * Piece) + 3).ToArray(),
+            };
+
+            using (var pieces = new NodeTags.Pieces())
+            {
+                foreach (var stored in values)
+                {
+                    byte[] fromBytes;
+                    using (var sha256 = SHA256.Create())
+                    {
+                        NodeTags.Stored(sha256, stored, pieces);
+                        sha256.TransformFinalBlock(Array.Empty<byte>(), 0, 0);
+                        fromBytes = sha256.Hash;
+                    }
+
+                    byte[] fromText;
+                    using (var sha256 = SHA256.Create())
+                    {
+                        NodeTags.Value(sha256, Encoding.UTF8.GetString(stored), pieces);
+                        sha256.TransformFinalBlock(Array.Empty<byte>(), 0, 0);
+                        fromText = sha256.Hash;
+                    }
+
+                    Assert.That(fromBytes, Is.EqualTo(fromText), BitConverter.ToString(stored.Take(8).ToArray()));
+                }
+            }
+        }
+
+        [Test]
+        public void A_long_value_is_digested_in_pieces_as_the_value_whole_is()
+        {
+            // A value longer than a piece is encoded a piece at a time, so that a tag over
+            // megabytes allocates no second copy of them. The bytes digested have to be the
+            // bytes of the value encoded whole, wherever a piece ends: inside a character of
+            // several bytes, between the halves of a pair of surrogates, on a surrogate with no
+            // other half, which the encoding replaces. Held against the same part written whole,
+            // its length before its bytes.
+            const int Piece = NodeTags.Pieces.Characters;
+            const string Pair = "\U0001F511";
+            var values = new List<string>
+            {
+                string.Empty,
+                "short",
+                new string('a', Piece),
+                new string('a', Piece + 1),
+                new string('\u00E9', (2 * Piece) + 1),
+                new string('\u20AC', (3 * Piece) + 7),
+                new string('a', Piece - 1) + Pair + new string('b', Piece),
+                new string('a', Piece - 2) + Pair + new string('b', Piece),
+                new string('a', (2 * Piece) - 1) + Pair,
+                new string('a', Piece - 1) + "\uD83D" + new string('b', Piece),
+                new string('a', Piece) + "\uDD11" + new string('b', Piece),
+                new string('a', Piece - 1) + "\uDD11\uD83D" + new string('b', Piece),
+                new string('a', (2 * Piece) - 1) + "\uD83D",
+                string.Concat(Enumerable.Repeat(Pair, Piece + 3)),
+            };
+
+            using (var pieces = new NodeTags.Pieces())
+            {
+                foreach (var value in values)
+                {
+                    byte[] digested;
+                    using (var sha256 = SHA256.Create())
+                    {
+                        NodeTags.Value(sha256, value, pieces);
+                        sha256.TransformFinalBlock(Array.Empty<byte>(), 0, 0);
+                        digested = sha256.Hash;
+                    }
+
+                    var bytes = Encoding.UTF8.GetBytes(value);
+                    var length = new[]
+                    {
+                        (byte)(bytes.Length >> 24), (byte)(bytes.Length >> 16), (byte)(bytes.Length >> 8), (byte)bytes.Length,
+                    };
+
+                    byte[] whole;
+                    using (var sha256 = SHA256.Create())
+                    {
+                        whole = sha256.ComputeHash(length.Concat(bytes).ToArray());
+                    }
+
+                    Assert.That(digested, Is.EqualTo(whole), "a value of " + value.Length + " characters");
+                }
+            }
+        }
+
+        [Test]
         public void One_entry_holding_the_same_gives_the_same_tag_however_often_it_is_asked()
         {
             var tag = EntryTag();
@@ -423,7 +531,7 @@ namespace KeePassGate.Host.Tests
             Func<VaultSight, string, VaultEntryView> viewed = (sight, value) => new VaultEntryView(
                 Described("A1", "B1", created, created, null),
                 sight,
-                new[] { new VaultViewField("Password", true, value.Length, sight, () => value) },
+                new[] { new VaultViewField("Password", true, () => value.Length, sight, () => value) },
                 Array.Empty<VaultViewAttachment>(),
                 null);
 
@@ -433,6 +541,53 @@ namespace KeePassGate.Host.Tests
             Assert.That(tags.Of(viewed(blind, "withheld")), Is.Not.EqualTo(tags.Of(viewed(Sights.Whole, "withheld"))),
                 "and a value that spells the mark is not the mark");
             Assert.That(tags.Of(viewed(Sights.Whole, "one")), Is.Not.EqualTo(tags.Of(viewed(Sights.Whole, "another"))));
+        }
+
+        [Test]
+        public void A_tag_digests_a_protected_value_from_its_stored_bytes_and_makes_no_string_of_it()
+        {
+            // The digest itself, apart from any vault, so that what is pinned is which of a
+            // field's two answers a tag asks for. A view hands a tag a copy of the bytes the
+            // store keeps for a protected value, beside what reads the value as a string. A tag
+            // that asked for the string made a string of every protected value in its caller's
+            // sight, which nothing can overwrite, for a request that served none of them. The
+            // vault's own reader leaves KeePass's object alone either way, so only a reader
+            // that counts shows which was asked. The copy is the tag's to overwrite.
+            const string Value = "not-a-real-password";
+            var created = new DateTimeOffset(Moment);
+            var reads = 0;
+            var handed = new List<byte[]>();
+
+            Func<string> read = () =>
+            {
+                reads++;
+                return Value;
+            };
+            Func<byte[]> copied = () =>
+            {
+                var copy = Encoding.UTF8.GetBytes(Value);
+                handed.Add(copy);
+                return copy;
+            };
+            Func<Func<byte[]>, VaultEntryView> viewed = stored => new VaultEntryView(
+                Described("A1", "B1", created, created, null),
+                Sights.Whole,
+                new[] { new VaultViewField("Password", true, () => Value.Length, Sights.Whole, read, false, stored) },
+                Array.Empty<VaultViewAttachment>(),
+                null);
+
+            var tags = TestTags.Fixed;
+            var tag = tags.Of(viewed(copied));
+
+            Assert.That(tag, Does.Match("^[0-9a-f]{32}$"));
+            Assert.That(reads, Is.Zero, "the tag read a protected value as a string");
+            Assert.That(handed, Is.Not.Empty, "the tag never asked for the stored bytes");
+            Assert.That(handed.SelectMany(bytes => bytes), Has.All.EqualTo(0), "a copy the tag digested was left as it was");
+
+            // The same tag as the string gives, which is what a view holding no stored bytes
+            // is digested from: a value the store keeps in the open.
+            Assert.That(tags.Of(viewed(null)), Is.EqualTo(tag));
+            Assert.That(reads, Is.EqualTo(1), "a value with no stored bytes is read as the string it already is");
         }
 
         [Test]
@@ -497,13 +652,32 @@ namespace KeePassGate.Host.Tests
         public void A_value_that_is_not_UTF_8_is_tagged_as_it_is_served()
         {
             // Bytes another program could have written, and which a read serves with the bad
-            // sequence replaced. A tag taken of the stored bytes changed the first time the value
-            // was read as a string, so a client's first tag was refused for nothing anybody wrote.
-            _entry.Strings.Set("Invented", new ProtectedString(true, new byte[] { 0x41, 0xFF, 0x42 }));
+            // sequence replaced. KeePass replaces it the same way the first time anything reads
+            // the value as text, `ProtectedString.ReadString`, which KeePass's own code and any
+            // other plugin are free to do, and from then on its object holds the text and hands
+            // out the encoding of that: other bytes than the file held. A tag of whatever bytes
+            // the object hands out moved at that moment, so a client's tag was refused for
+            // nothing anybody wrote. The gate's own read copies the bytes and leaves KeePass's
+            // object as it was, so KeePass is made to decode the value here, and the tag is
+            // held to the value served on both sides of that.
+            var stored = new byte[] { 0x41, 0xFF, 0x42 };
+            var served = Encoding.UTF8.GetString(stored);
+            _entry.Strings.Set("Invented", new ProtectedString(true, stored));
             var tag = EntryTag();
 
-            Assert.That(_vault.Field(Uuid(_entry), "Invented"), Is.Not.Null, "read as a string, as a route reads it");
+            Assert.That(_vault.Field(Uuid(_entry), "Invented"), Is.EqualTo(served), "read as a route reads it");
 
+            var held = _entry.Strings.Get("Invented");
+            Assert.That(KeePassMemory.KeepsText(held), Is.False, "a tag and a read by the gate left KeePass the bytes");
+
+            Assert.That(held.ReadString(), Is.EqualTo(served), "decoded by KeePass, as anything reading it as text has it decoded");
+            Assert.That(KeePassMemory.KeepsText(held), Is.True, "and KeePass now holds the text in place of the bytes");
+            Assert.That(held.ReadUtf8(), Is.Not.EqualTo(stored), "so the bytes it hands out are no longer the bytes stored");
+            Assert.That(EntryTag(), Is.EqualTo(tag), "the tag is of the value served, whichever of the two KeePass holds");
+
+            // And the value made from that text to begin with, as a value typed into KeePass
+            // is. Setting a string moves none of the entry's times, which a tag covers.
+            _entry.Strings.Set("Invented", new ProtectedString(true, served));
             Assert.That(EntryTag(), Is.EqualTo(tag));
         }
 
@@ -669,13 +843,15 @@ namespace KeePassGate.Host.Tests
         }
 
         [Test]
-        public void A_view_is_built_and_measured_with_nothing_decrypted_and_reads_a_value_when_asked_for_it()
+        public void A_view_is_built_and_measured_with_no_attachment_decrypted_and_reads_a_value_when_asked_for_it()
         {
             // Counted through the same hook, which KeePass decrypts a protected attachment through
-            // and, measured here, not a protected string of this size: so what is counted is the
-            // attachment, made while the hook stands, and the strings are held to the rest by
-            // what the view carries. A view carries neither the title nor the URL beside its
-            // fields, which is what a description of the entry would have read to build it.
+            // and, measured here, not a protected string made from a string, which KeePass keeps
+            // as it was given: so what is counted is the attachment, made while the hook stands,
+            // and the strings are held to the rest by what the view carries. A protected string
+            // KeePass holds as bytes is the test after this. A view carries neither the title nor
+            // the URL beside its fields, which is what a description of the entry would have read
+            // to build it.
             var decrypted = 0;
             var was = ProtectedBinary.ExtCrypt;
             ProtectedBinary.ExtCrypt = (data, flags, id) =>
@@ -706,8 +882,11 @@ namespace KeePassGate.Host.Tests
                     Assert.That(view.Entry.Title, Is.Null, "a title is in a view as a field or not at all");
                     Assert.That(view.Entry.Url, Is.Null);
                     Assert.That(view.Characters, Is.GreaterThan("a protected title".Length));
-                    Assert.That(view.Field(PwDefs.PasswordField).Characters,
-                        Is.EqualTo(PwDefs.PasswordField.Length + "not-a-real-password".Length));
+                    Assert.That(
+                        view.Field(PwDefs.PasswordField).Characters,
+                        Is.EqualTo(PwDefs.PasswordField.Length
+                            + (view.Sight.Protected ? "not-a-real-password".Length : 0)),
+                        "a value is measured for a view holding it, and a withheld value has no length in a view");
                     Assert.That(view.Protected, Does.Contain(PwDefs.TitleField).And.Contain(PwDefs.PasswordField));
 
                     if (view.Attachments != null)
@@ -716,7 +895,7 @@ namespace KeePassGate.Host.Tests
                     }
                 }
 
-                Assert.That(Volatile.Read(ref decrypted), Is.Zero, "building and measuring a view decrypted something");
+                Assert.That(Volatile.Read(ref decrypted), Is.Zero, "building and measuring a view decrypted an attachment");
 
                 var whole = Seen(Sights.Whole);
                 Assert.That(whole.Field(PwDefs.PasswordField).Value, Is.EqualTo("not-a-real-password"));
@@ -734,6 +913,55 @@ namespace KeePassGate.Host.Tests
                 Assert.That(narrow.Field(PwDefs.TitleField).Value, Is.Null);
                 Assert.That(listed.Tag, Is.Not.Null.And.Not.EqualTo(narrow.Tag));
                 Assert.That(Volatile.Read(ref decrypted), Is.Zero, "a tag decrypted bytes its view withholds");
+            }
+            finally
+            {
+                ProtectedBinary.ExtCrypt = was;
+            }
+        }
+
+        [Test]
+        public void A_protected_value_held_as_bytes_is_decrypted_once_to_be_measured_and_never_for_a_view_withholding_it()
+        {
+            // A file's protected values are held as bytes once loaded, and KeePass counts the
+            // characters of such a value by decrypting it, the first time its length is asked,
+            // and keeps the count. So building a view asks no length, a view that withholds the
+            // value neither reads nor measures it, whatever is asked of the view, and the first
+            // measurement by a view holding it is a decryption inside KeePass's own type.
+            var decrypted = 0;
+            var was = ProtectedBinary.ExtCrypt;
+            ProtectedBinary.ExtCrypt = (data, flags, id) =>
+            {
+                if (flags == PbCryptFlags.Decrypt)
+                {
+                    Interlocked.Increment(ref decrypted);
+                }
+            };
+
+            try
+            {
+                var secret = Encoding.UTF8.GetBytes("not-a-real-password");
+                _entry.Strings.Set(PwDefs.PasswordField, new ProtectedString(true, secret));
+                Volatile.Write(ref decrypted, 0);
+
+                var narrow = Seen(new VaultSight(true, false, VaultAttachmentSight.None));
+                Assert.That(narrow.Field(PwDefs.PasswordField).Characters, Is.EqualTo(PwDefs.PasswordField.Length));
+                Assert.That(narrow.Characters, Is.GreaterThan(0));
+                Assert.That(narrow.Field(PwDefs.PasswordField).Value, Is.Null);
+                Assert.That(narrow.Tag, Is.Not.Null);
+                Assert.That(Volatile.Read(ref decrypted), Is.Zero, "a withheld value was read or measured");
+
+                var whole = Seen(Sights.Whole);
+                Assert.That(whole.Fields.Sum(field => field.Name.Length), Is.GreaterThan(0));
+                Assert.That(Volatile.Read(ref decrypted), Is.Zero, "building a view measured a value");
+
+                Assert.That(
+                    whole.Field(PwDefs.PasswordField).Characters,
+                    Is.EqualTo(PwDefs.PasswordField.Length + "not-a-real-password".Length));
+                Assert.That(Volatile.Read(ref decrypted), Is.EqualTo(1), "KeePass decrypts the value to count it");
+
+                Assert.That(Seen(Sights.Whole).Characters, Is.GreaterThan("not-a-real-password".Length));
+                Assert.That(Volatile.Read(ref decrypted), Is.EqualTo(1), "and keeps the count");
             }
             finally
             {
@@ -1037,7 +1265,7 @@ namespace KeePassGate.Host.Tests
             var view = new VaultEntryView(
                 Described(uuid, group, created, modified, expires),
                 Sights.Whole,
-                new[] { new VaultViewField("Invented", guarded, value.Length, Sights.Whole, () => value) },
+                new[] { new VaultViewField("Invented", guarded, () => value.Length, Sights.Whole, () => value) },
                 new[] { new VaultViewAttachment(attachment, bytes.Length, Sights.Whole, () => bytes, digest) },
                 null);
 

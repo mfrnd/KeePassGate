@@ -224,15 +224,23 @@ namespace KeePassGate.Bridge
         /// attachments are turned into what a route answers with and a tag is taken of.
         /// </summary>
         /// <remarks>
-        /// **Nothing is decrypted here.** Which strings are protected is read from their flags and
-        /// the database's setting, how long they are from the length KeePass keeps beside their
-        /// encrypted bytes, and an attachment's size the same way, so an entry over a ceiling is
-        /// measured off the view with every value still encrypted. Each value is read when the
+        /// **Nothing is read or measured here, and no value is handed anywhere until the view is
+        /// asked for it.** Which strings are protected is read from their flags and the
+        /// database's setting, and an attachment's size from the length KeePass keeps beside its
+        /// encrypted bytes. A string's length is not asked here: the view is handed what asks
+        /// it, keeps that only for a string in sight, and asks it the first time the string is
+        /// measured, so a withheld value is neither read nor measured. **Measuring a value in
+        /// sight is not always free.** `ProtectedString.Length` answers from a count it keeps,
+        /// and the first time it is asked of a protected value held as bytes, which is how a
+        /// file's protected values are held once loaded, it decrypts the value inside KeePass's
+        /// own type to count its characters, read off its IL and measured, `FINDINGS.md` under
+        /// "What a version of a node can be made of". Each value is read when the
         /// view is first asked for it, and KeePass changes neither a `ProtectedString` nor a
-        /// `ProtectedBinary` in place, so what is read then is what the entry held when the view
-        /// was taken. The entry is described for the view without its title and its URL,
-        /// <see cref="Placed"/>, since a description holding either would have read both whatever
-        /// the sight.
+        /// `ProtectedBinary` in place, so what is read or measured then is what the entry held
+        /// when the view was taken, however long after: a read asks its view once the hold
+        /// it took the view in has ended, `Pipeline.ServedAfter`. The entry is described for the
+        /// view without its title and its URL, <see cref="Placed"/>, since a description holding
+        /// either would have read both whatever the sight.
         /// </remarks>
         /// <param name="asked">
         /// What the caller may read, asked of the entry as described here. Null is answered as
@@ -252,9 +260,19 @@ namespace KeePassGate.Bridge
             {
                 // As stored, and never compiled: KeePass resolves a reference against the whole
                 // open database, which knows nothing about the rules this answer was allowed by.
+                // Read so that a value KeePass protects in memory is still protected there once
+                // it has been read, `StoredStrings`: the view decodes a copy for a value it
+                // serves, and hands the tag a copy to digest and overwrite.
                 var held = strings[index].Value;
                 var name = strings[index].Key;
-                fields.Add(new VaultViewField(name, guarded[index], held.Length, sight, held.ReadString, Listed(name)));
+                fields.Add(new VaultViewField(
+                    name,
+                    guarded[index],
+                    () => held.Length,
+                    sight,
+                    () => StoredStrings.Read(held),
+                    Listed(name),
+                    held.IsProtected ? held.ReadUtf8 : (Func<byte[]>)null));
             }
 
             List<VaultViewAttachment> attachments = null;
@@ -316,41 +334,6 @@ namespace KeePassGate.Bridge
             }
 
             return found;
-        }
-
-        /// <summary>
-        /// What an entry's strings, names and values together, come to in characters, measured
-        /// without decrypting anything.
-        /// </summary>
-        /// <remarks>
-        /// `ProtectedString.Length` is kept beside the encrypted value, so a protected password is
-        /// measured as cheaply as a title.
-        /// </remarks>
-        private static int Characters(PwEntry entry)
-        {
-            return entry.Strings.Sum(pair => pair.Key.Length + pair.Value.Length);
-        }
-
-        /// <summary>
-        /// What an entry's strings would come to with these values set on it: a name it holds
-        /// counted with the new value in place of the old, and a name it does not hold as added.
-        /// </summary>
-        private static int Characters(PwEntry entry, IReadOnlyDictionary<string, string> setting)
-        {
-            var characters = Characters(entry);
-            if (setting == null)
-            {
-                return characters;
-            }
-
-            foreach (var field in setting)
-            {
-                var held = entry.Strings.Get(field.Key);
-                var value = (field.Value ?? string.Empty).Length;
-                characters += held == null ? field.Key.Length + value : value - held.Length;
-            }
-
-            return characters;
         }
 
         public VaultWrite CreateGroup(string parentUuid, string name, string notes, VaultAsking asking)
@@ -629,13 +612,6 @@ namespace KeePassGate.Bridge
                     }
                 }
 
-                // Measured as it would be added, so nothing is put into the group to be taken out.
-                var characters = Characters(entry);
-                if (characters > VaultEntryView.MostCharacters)
-                {
-                    return VaultWrite.TooLarge(characters);
-                }
-
                 ExpireAsAsked(entry, group, expiry);
                 group.AddEntry(entry, true);
 
@@ -688,12 +664,6 @@ namespace KeePassGate.Bridge
                     return VaultWrite.Busy(blocked);
                 }
 
-                var characters = Characters(entry, fields);
-                if (characters > VaultEntryView.MostCharacters)
-                {
-                    return VaultWrite.TooLarge(characters);
-                }
-
                 var tag = Before(entry, tagging);
                 if (VaultPrecondition.Fails(tagging.Precondition, tag))
                 {
@@ -741,7 +711,7 @@ namespace KeePassGate.Bridge
 
                         entry.Strings.Set(field.Key, existing == null
                             ? Protect(field.Key, field.Value)
-                            : new ProtectedString(existing.IsProtected, field.Value ?? string.Empty));
+                            : StoredStrings.Of(existing.IsProtected, field.Value));
                     }
                 }
 
@@ -856,12 +826,6 @@ namespace KeePassGate.Bridge
                     return VaultWrite.Busy(blocked);
                 }
 
-                var characters = Characters(entry, new Dictionary<string, string> { { name, value } });
-                if (characters > VaultEntryView.MostCharacters)
-                {
-                    return VaultWrite.TooLarge(characters);
-                }
-
                 if (VaultPrecondition.Fails(tagging.Precondition, Before(entry, tagging)))
                 {
                     return VaultWrite.PreconditionFailed(tagging.Precondition);
@@ -869,7 +833,7 @@ namespace KeePassGate.Bridge
 
                 var restore = Restoring(entry);
                 var restoreHistory = Backing(entry);
-                entry.Strings.Set(name, new ProtectedString(guarded, value ?? string.Empty));
+                entry.Strings.Set(name, StoredStrings.Of(guarded, value));
                 entry.Touch(true, false);
 
                 return VaultChange.Made(() => VaultWrite.Created(name, After(asking, entry)), () =>
@@ -911,12 +875,6 @@ namespace KeePassGate.Bridge
                     return VaultWrite.Busy(blocked);
                 }
 
-                var characters = Characters(entry, new Dictionary<string, string> { { name, value } });
-                if (characters > VaultEntryView.MostCharacters)
-                {
-                    return VaultWrite.TooLarge(characters);
-                }
-
                 // The entry's tag, since the entry is what answers for the field.
                 var tag = Before(entry, tagging);
                 if (VaultPrecondition.Fails(tagging.Precondition, tag))
@@ -929,7 +887,7 @@ namespace KeePassGate.Bridge
                 // value would be this API deciding something the operator decided.
                 var existing = entry.Strings.Get(name);
                 var flagged = existing != null && existing.IsProtected;
-                var replacement = new ProtectedString(flagged, value ?? string.Empty);
+                var replacement = StoredStrings.Of(flagged, value);
 
                 // Skipped only for a caller that may read the value: `VaultEntryView.Reads` has
                 // the reason.
@@ -1586,7 +1544,7 @@ namespace KeePassGate.Bridge
             {
                 var existing = entry.Strings.Get(field.Key);
                 if (existing == null
-                    || !existing.Equals(new ProtectedString(existing.IsProtected, field.Value ?? string.Empty), false))
+                    || !existing.Equals(StoredStrings.Of(existing.IsProtected, field.Value), false))
                 {
                     return false;
                 }
@@ -1862,7 +1820,7 @@ namespace KeePassGate.Bridge
 
         private ProtectedString Protect(string name, string value)
         {
-            return new ProtectedString(Protects(name), value ?? string.Empty);
+            return StoredStrings.Of(Protects(name), value);
         }
 
         /// <summary>Gives a new entry the expiry its create asked for.</summary>
@@ -2253,11 +2211,19 @@ namespace KeePassGate.Bridge
                 return null;
             }
 
+            // The two strings a listing shows, found here and read only when a listing asks for
+            // them: a description is made for every request about an entry and every change to
+            // it, to find the node the rules are asked about, and for every entry a listing
+            // walks, shown or not. KeePass replaces a stored string and does not change it, so
+            // what is read later is what the entry held here.
+            var title = entry.Strings.Get(PwDefs.TitleField);
+            var url = entry.Strings.Get(PwDefs.UrlField);
+
             return new VaultEntry(
                 entry.Uuid.ToHexString(),
                 entry.ParentGroup == null ? null : entry.ParentGroup.Uuid.ToHexString(),
-                entry.Strings.ReadSafe(PwDefs.TitleField),
-                entry.Strings.ReadSafe(PwDefs.UrlField),
+                () => StoredStrings.Read(title),
+                () => StoredStrings.Read(url),
                 When(entry.CreationTime),
                 When(entry.LastModificationTime),
                 KdbxNodes.Of(entry, _hold),
@@ -2282,7 +2248,7 @@ namespace KeePassGate.Bridge
             return new VaultEntry(
                 entry.Uuid.ToHexString(),
                 entry.ParentGroup == null ? null : entry.ParentGroup.Uuid.ToHexString(),
-                null,
+                (string)null,
                 null,
                 When(entry.CreationTime),
                 When(entry.LastModificationTime),

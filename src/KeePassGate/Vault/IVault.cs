@@ -128,13 +128,18 @@ namespace KeePassGate.Vault
         /// <remarks>
         /// **The only read of what an entry holds.** Its strings, its attachments and its tag are
         /// all read off the view, so the tag is the tag of what the same request is answered
-        /// with, by construction and for the reason <see cref="GroupTag"/> gives: nothing takes
-        /// the tag by a second look at the entry.
+        /// with, by construction: nothing takes the tag by a second look at the entry. The view
+        /// is taken with KeePass's thread held still and keeps the objects the entry held then,
+        /// so what a read makes of it once the hold has ended is still of that moment.
         ///
-        /// **Nothing is decrypted to take it**, as <see cref="VaultEntryView"/> describes. KeePass
-        /// keeps a protected string's length and an attachment's beside their encrypted bytes, so
-        /// an entry or an attachment over its ceiling is measured from the view and refused, and
-        /// a caller refusing it never pays for the plaintext. An attachment asked for in a
+        /// **Nothing is read or measured to take it, and no value is handed anywhere until the
+        /// view is asked for it**, as <see cref="VaultEntryView"/> describes. KeePass keeps an
+        /// attachment's size beside its encrypted bytes, so an attachment over its ceiling is
+        /// measured from the view and refused with nothing decrypted. A string is measured when
+        /// the view is first asked its size, and only a string in the caller's sight: a view
+        /// over its ceiling is refused with no value read, though KeePass decrypts a protected
+        /// value it holds as bytes, once and inside its own type, to count its characters the
+        /// first time. A withheld value is neither read nor measured. An attachment asked for in a
         /// second read, after a listing, could be replaced in between and decrypted whole, at
         /// whatever size it had become, before anything could refuse it.
         /// </remarks>

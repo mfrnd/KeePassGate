@@ -15,8 +15,9 @@ using NUnit.Framework;
 namespace KeePassGate.Tests
 {
     /// <summary>
-    /// A request that changes nothing is decided and served inside one hold: the client's record,
-    /// the rules and what is read are all of the database at one moment.
+    /// A request that changes nothing is decided inside one hold and answered with the database
+    /// as it stood there: the client's record, the rules and what is read are all of one
+    /// moment, and what is made of an entry's values is made once the hold has ended.
     /// </summary>
     /// <remarks>
     /// Through the real router, against a database in a dictionary and an authority that admits
@@ -91,6 +92,118 @@ namespace KeePassGate.Tests
                 Assert.That(vault.HeldReads - held, Is.EqualTo(1), method + " " + path);
                 Assert.That(vault.LooseLookups, Is.Zero, method + " " + path);
             }
+        }
+
+        [TestCase("/entries/{entry}")]
+        [TestCase("/entries/{entry}/fields")]
+        [TestCase("/entries/{entry}/fields/Title")]
+        [TestCase("/entries/{entry}/attachments")]
+        [TestCase("/entries/{entry}/attachments/notes.txt")]
+        public void Nothing_is_made_of_an_entry_s_values_while_the_hold_stands(string path)
+        {
+            // Measuring a value, reading it, reading or digesting an attachment and taking the
+            // tag each grow with the entry, and no write is refused for an entry's size. The
+            // hold is KeePass's own thread standing still, so the view is taken inside it and
+            // asked for all of those once it has ended.
+            foreach (var method in new[] { "GET", "HEAD" })
+            {
+                var tags = _vault.TagsTaken;
+
+                var context = Asked(method, path);
+
+                Assert.That(context.Status, Is.EqualTo(200), method + " " + path + " " + context.Json);
+                Assert.That(context.Headers["ETag"], Is.Not.Null, method + " " + path);
+                Assert.That(_vault.TagsTaken, Is.GreaterThan(tags), method + " " + path);
+                Assert.That(_vault.ValueWorkHeld, Is.Zero, method + " " + path);
+            }
+        }
+
+        [Test]
+        public void A_tag_taken_inside_a_change_is_what_the_count_of_held_work_does_not_see()
+        {
+            // A change takes its tags inside its own turn, where the comparison and the change
+            // have to be one step, and a turn is not a hold. Here so that the count above is
+            // about reads and stays none for the right reason.
+            _vault.Granting(_vault.RootAlias, Rules.Granting(("agent", "RUL")));
+            var tags = _vault.TagsTaken;
+
+            var context = Asked("PUT", "/entries/{entry}", Bodies.Of(("Title", "an invented name")));
+
+            Assert.That(context.Status, Is.EqualTo(200), context.Json);
+            Assert.That(_vault.TagsTaken, Is.GreaterThan(tags));
+            Assert.That(_vault.ValueWorkHeld, Is.Zero);
+        }
+
+        [TestCase("/entries/{entry}")]
+        [TestCase("/entries/{entry}/fields/Title")]
+        public void An_entry_changed_once_the_hold_has_ended_is_answered_as_it_stood_inside(string path)
+        {
+            // The operator's edit lands on KeePass's thread the moment the hold is let go, which
+            // is before the read has asked its view for a value. The view keeps what the entry
+            // held when it was taken, so the answer and its tag are of the entry as the rules
+            // were asked about it.
+            var before = Asked("GET", path);
+            Assume.That(before.Status, Is.EqualTo(200), before.Json);
+
+            var landed = false;
+            _vault.After(1, () =>
+            {
+                landed = true;
+                Assume.That(
+                    _vault.UpdateField(_entry, "Title", "typed once the hold had ended", VaultAskings.Free).Ok,
+                    Is.True);
+            });
+
+            var context = Asked("GET", path);
+            _vault.After(0, null);
+
+            Assert.That(landed, Is.True);
+            Assert.That(context.Status, Is.EqualTo(200), context.Json);
+            Assert.That(context.Json, Is.EqualTo(before.Json));
+            Assert.That(context.Headers["ETag"], Is.EqualTo(before.Headers["ETag"]));
+
+            var after = Asked("GET", path);
+            Assert.That(after.Json, Does.Contain("typed once the hold had ended"));
+            Assert.That(after.Headers["ETag"], Is.Not.EqualTo(before.Headers["ETag"]));
+        }
+
+        [TestCase("/entries/{entry}", "the entry's size")]
+        [TestCase("/entries/{entry}", "its condition")]
+        [TestCase("/entries/{entry}/fields/Password", "its condition")]
+        public void A_read_that_serves_nothing_writes_no_line_for_a_value_it_withheld(string path, string refusedBy)
+        {
+            // The line for a withheld value is composed inside the hold, where the rules and the
+            // node's name can be read, and written only where the answer is served. A read
+            // refused for its size or by its condition withheld nothing from an answer.
+            Assume.That(
+                _vault.CreateField(_entry, "Password", "not-a-real-password", true, VaultAskings.Free).Ok,
+                Is.True);
+
+            var served = Asked("GET", path);
+            Assert.That(served.Status, Is.EqualTo(200), served.Json);
+            Assert.That(_audit.Entries.Count, Is.EqualTo(2), "the read was let through and the value was not");
+            Assert.That(_audit.Entries[1].Permitted, Is.False);
+            var lines = _audit.Entries.Count;
+
+            GateContext refused;
+            if (refusedBy == "its condition")
+            {
+                refused = Asked("GET", path, null, Connected(), "\"00000000000000000000000000000000\"");
+                Assert.That(refused.Status, Is.EqualTo(412), refused.Json);
+            }
+            else
+            {
+                Assume.That(
+                    _vault.CreateField(
+                        _entry, "Longer", new string('k', VaultEntryView.MostCharacters), false, VaultAskings.Free).Ok,
+                    Is.True);
+                refused = Asked("GET", path);
+                Assert.That(refused.Status, Is.EqualTo(413), refused.Json);
+            }
+
+            Assert.That(_audit.Entries.Count, Is.EqualTo(lines + 1), "the decision, and no line beside it");
+            Assert.That(_audit.Entries[lines].Permitted, Is.True);
+            Assert.That(_vault.ValueWorkHeld, Is.Zero);
         }
 
         [Test]
@@ -294,12 +407,23 @@ namespace KeePassGate.Tests
 
         private GateContext Asked(string method, string path, string body, ClientIdentity client)
         {
+            return Asked(method, path, body, client, null);
+        }
+
+        private GateContext Asked(string method, string path, string body, ClientIdentity client, string ifMatch)
+        {
             var text = body ?? string.Empty;
+            var headers = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+            if (ifMatch != null)
+            {
+                headers["If-Match"] = ifMatch;
+            }
+
             var head = new HttpRequestHead(
                 method,
                 path.Replace("{group}", _group).Replace("{entry}", _entry),
                 new Dictionary<string, string>(),
-                new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase),
+                headers,
                 Bodies.LengthOf(text));
 
             var context = new GateContext(head, text, client);
