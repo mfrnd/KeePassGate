@@ -49,8 +49,9 @@ info:
     **An answer that grows with what the database holds is written as it is sent.** Every
     listing, `readEntry` and `readField` answer with `Transfer-Encoding: chunked` and no
     `Content-Length`, RFC 9112 section 7.1, each value read as it is written, so none of them is
-    refused for the size of what it hands out. An attachment itself is not among them: it has a
-    ceiling and a length. Every other answer carries a `Content-Length`. No chunk carries an
+    refused for the size of what it hands out. `readAttachment` answers the same way, the
+    attachment read a piece at a time, at any size. Every other answer carries a
+    `Content-Length`. No chunk carries an
     extension and the content no trailer. A failure once the status has gone out cannot be
     answered: the connection is closed with the last chunk never sent, so an answer is whole
     only when its last chunk arrived. A `head` of any of them names no framing, as it names no
@@ -81,7 +82,11 @@ info:
     method that is a token reaches the router, which answers it as the paragraph above describes.
     Nor is the `500 internal error` declared that a read would give if the vault behind it broke
     its own contract, which nothing here does: it shares a status with `500 not saved` and not its
-    meaning, which is why the body names which.
+    meaning, which is why the body names which. Nor is `500 unreadable`, which answers a request
+    that had to read an attachment the gate cannot read where KeePass keeps it, for its content
+    or for the `ETag` of its entry: the gate reads a protected attachment as KeePass itself
+    keeps one, and an attachment kept through the cipher another KeePass plugin put in its place
+    is none it can read. Nothing the client sent is wrong and asking again mends nothing.
 
     **A field or an attachment is named within its entry, percent encoded, separator included**:
     the gate splits a path into segments before it decodes each one, which is what makes an
@@ -1663,9 +1668,10 @@ paths:
                   maxLength: 699052
                   description: |
                     The bytes, base64 encoded as `readAttachment` answers them: at most 524288,
-                    the largest attachment a read hands out, which is the length above in base64.
-                    A string that does not decode as base64, or decodes to more bytes than that,
-                    is `400 malformed`.
+                    which is the length above in base64 and what fits a request's body. A string
+                    that does not decode as base64, or decodes to more bytes than that, is
+                    `400 malformed`. A read is held to no size, so an attachment made in
+                    KeePass can be read here at a size that cannot be written here.
       responses:
         "201":
           $ref: "#/components/responses/Made"
@@ -1692,6 +1698,11 @@ paths:
     get:
       operationId: readAttachment
       summary: One attachment's contents, base64 encoded.
+      description: |
+        At any size: the answer is written as it is sent, in chunks, the attachment read a
+        piece at a time, and is never refused for the attachment's size. This document's own
+        description has the framing. What a write takes is smaller, since a write arrives in
+        a request's body.
       x-kpg-verb: read
       x-kpg-attachments: true
       parameters:
@@ -1713,8 +1724,6 @@ paths:
           $ref: "#/components/responses/Unreachable"
         "412":
           $ref: "#/components/responses/PreconditionFailed"
-        "413":
-          $ref: "#/components/responses/TooLarge"
         "503":
           $ref: "#/components/responses/Unavailable"
     head:
@@ -1741,8 +1750,6 @@ paths:
           $ref: "#/components/responses/Unreachable"
         "412":
           $ref: "#/components/responses/PreconditionFailed"
-        "413":
-          $ref: "#/components/responses/TooLarge"
         "503":
           $ref: "#/components/responses/Unavailable"
     put:
@@ -1869,8 +1876,8 @@ components:
           type: string
           description: |
             A fixed word or phrase, matched whole rather than parsed, except where a response names
-            its body a sentence: the transport's refusals but its `417`, and `TooLarge`, each
-            known by its status. Where several share a status, the response
+            its body a sentence: the transport's refusals but its `417`, each known by its
+            status. Where several share a status, the response
             declaring them names what each means, and those are the words worth matching on,
             because each is a different thing for a client to do next: `locked`, `undecided` and
             `busy` on a `503`; `proof` on a `401` from pairing; `no invitation` and `no exchange` on
@@ -2464,20 +2471,6 @@ components:
         No admission record for this certificate. Also what revocation looks like, to a request
         that was waiting for KeePass's thread when its client was revoked as to every request
         after it.
-      content:
-        application/json:
-          schema:
-            $ref: "#/components/schemas/Error"
-
-    # The transport serves thirty-two connections at once, so ten times an attachment's size, at
-    # once on every one of them, is what the ceiling holds down.
-    TooLarge:
-      description: |
-        The attachment is larger than this gate will hand out. Building one costs about ten times
-        its size in memory inside the password manager's own process, so there is a ceiling, and it
-        is the same size a write accepts: what this gate gives out it can also be given back. The
-        refusal comes before anything is decrypted. The body names the size and the ceiling in a
-        sentence rather than a word, so a client knows this refusal by its status.
       content:
         application/json:
           schema:

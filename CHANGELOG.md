@@ -22,9 +22,9 @@ none, since it releases both.
   invented entries, a listing of ten thousand kept 11 MB alive beside them while it went out, and
   keeps 0.03 MB. So are `listFields` and `listAttachments`, and the listing of an entry's fields
   is a single answer holding every name. An answer of a bounded size carries a `Content-Length`
-  as before: a single group, an attachment, a change, a refusal, and the routes about the gate
-  and the caller. A request with `Transfer-Encoding` is still refused. No read of an entry or of
-  a field is refused for its size, and an attachment's bytes keep their ceiling and their `413`.
+  as before: a single group, a change, a refusal, and the routes about the gate and the caller.
+  A request with `Transfer-Encoding` is still refused. No read of an entry or of a field is
+  refused for its size.
   No write is refused for an entry's size, because a refusal that moves with what an entry's
   strings come to tells a client that may write and not read how long the values it is withheld
   are. So nothing bounds what a client holding `update` or `create` adds to an entry beyond what
@@ -34,6 +34,20 @@ none, since it releases both.
   of its last chunk or of its length. The stand-in gate, `pykeepassgate.testing.FakeGate`, frames
   those answers in chunks as the plugin does. A 0.1 client does not read a chunked answer, and
   raises `ProtocolError` for every such answer of a 0.2 gate, `API.md` §411. `API.md` §412.
+- **An attachment is read at any size, and a write still takes 512 KiB.** A read of an
+  attachment over 512 KiB was refused with `413`, since its answer was built whole at about
+  eight times the attachment in memory, so a file attached in KeePass could not be fetched
+  through the gate. `readAttachment` is now written as it is sent, and the attachment is read a
+  piece at a time from where KeePass keeps it in memory, with no copy of the whole: 64 MiB went
+  out in about a tenth of a second with a tenth of a megabyte alive, against a quarter of a
+  second and 491 MB. An entry's tag covers every attachment its client may read, at any size. A
+  write takes at most 512 KiB as before, since it arrives in a request's body. An attachment the
+  gate cannot read where KeePass keeps it, because another KeePass plugin replaced KeePass's
+  in-memory cipher, answers `500 unreadable`, and so does any answer carrying a tag over it; a
+  write of an attachment is refused the same way while such a cipher stands, and changes
+  nothing. PyKeePassGate holds a whole answer under `max_response_bytes`, so an attachment over
+  about 3 MiB needs it raised.
+  `API.md` §412.
 - **A protected value read or written through the gate stays encrypted in KeePass's memory.**
   KeePass keeps a protected value encrypted in memory until something reads it as text, and
   from then on keeps the text. The gate read every value that way, and an entry's `ETag` reads

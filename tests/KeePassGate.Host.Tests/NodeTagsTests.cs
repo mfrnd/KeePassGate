@@ -366,7 +366,7 @@ namespace KeePassGate.Host.Tests
             Assert.That(attachment.Name, Is.EqualTo("notes.txt"));
             Assert.That(attachment.Size, Is.EqualTo(8));
             Assert.That(attachment.IsWithheld, Is.True);
-            Assert.That(attachment.Content, Is.Null, "nothing reads the bytes of an attachment that is only listed");
+            Assert.That(attachment.Bytes(), Is.Empty, "nothing reads the bytes of an attachment that is only listed");
             Assert.That(attachment.Digest, Is.Null);
             Assert.That(Seen(read).Attachment("notes.txt").IsWithheld, Is.False);
 
@@ -408,16 +408,29 @@ namespace KeePassGate.Host.Tests
         }
 
         [Test]
-        public void An_attachment_larger_than_the_gate_serves_is_tagged_alike_listed_and_read()
+        public void An_attachment_larger_than_a_write_takes_is_tagged_apart_listed_and_read(
+            [Values(true, false)] bool isProtected)
         {
-            // Its bytes are in neither view, so its name and size are all either holds of it.
-            _entry.Binaries.Set("notes.txt", new ProtectedBinary(true, Filled(VaultViewAttachment.MostServed + 1, 7)));
+            // Such an attachment was served by no route, so its bytes were in neither view and
+            // the two were tagged alike. A read serves it at any size now, so its bytes are in
+            // the view that reads attachments and in its tag, as a short attachment's are, and
+            // in the view that lists them by name and size alone.
+            var size = KeePassGate.Pipeline.VaultHandlers.MaxAttachmentBytes + 1;
+            _entry.Binaries.Set("notes.txt", new ProtectedBinary(isProtected, Filled(size, 7)));
 
             var none = new VaultSight(true, true, VaultAttachmentSight.None);
             var listed = new VaultSight(true, true, VaultAttachmentSight.Listed);
 
-            Assert.That(Seen(listed).Tag, Is.EqualTo(EntryTag()));
-            Assert.That(Seen(none).Tag, Is.Not.EqualTo(EntryTag()), "while a view holding no attachment is another");
+            var tags = new[] { Seen(none).Tag, Seen(listed).Tag, EntryTag() };
+            Assert.That(tags, Is.Unique, "three views holding different things of the attachment");
+
+            _entry.Binaries.Set("notes.txt", new ProtectedBinary(isProtected, Filled(size, 8)));
+            Assert.That(Seen(none).Tag, Is.EqualTo(tags[0]), "bytes changed, to a view holding no attachment");
+            Assert.That(
+                Seen(listed).Tag,
+                Is.EqualTo(tags[1]),
+                "bytes changed at the same size, to a view listing them");
+            Assert.That(EntryTag(), Is.Not.EqualTo(tags[2]), "bytes changed, to a view reading them");
         }
 
         [Test]
@@ -434,7 +447,7 @@ namespace KeePassGate.Host.Tests
             var lister = new VaultSight(false, false, VaultAttachmentSight.Listed);
             var view = Seen(lister);
             Assert.That(view.Attachments, Has.Count.EqualTo(1));
-            Assert.That(view.Attachment("notes.txt").Content, Is.Null);
+            Assert.That(view.Attachment("notes.txt").Bytes(), Is.Empty);
             Assert.That(view.Tag, Is.Null);
 
             // And no value of any string, protected or not: names and flags are what a
@@ -741,22 +754,36 @@ namespace KeePassGate.Host.Tests
         }
 
         [Test]
-        public void An_attachment_larger_than_the_gate_serves_enters_by_its_size_alone()
+        public void An_attachment_of_any_size_enters_by_every_byte_it_holds(
+            [Values(true, false)] bool isProtected,
+            [Values(
+                KeePassGate.Pipeline.VaultHandlers.MaxAttachmentBytes,
+                KeePassGate.Pipeline.VaultHandlers.MaxAttachmentBytes + 1,
+                (2 * 1024 * 1024) + 5)] int size)
         {
-            var size = VaultViewAttachment.MostServed + 1;
-            _entry.Binaries.Set("large.bin", new ProtectedBinary(true, Filled(size, 1)));
-            var tag = EntryTag();
+            // An attachment larger than a write takes entered a tag by its name and size
+            // alone, since no route read its bytes. A read serves it at any size now, so a tag
+            // covers its bytes whatever its size, held in the open or protected: the tag moves
+            // with a byte changed in its first piece, in its last and between them, and with
+            // its size.
+            var bytes = Filled(size, 1);
+            _entry.Binaries.Set("large.bin", new ProtectedBinary(isProtected, bytes));
+            var seen = new HashSet<string> { EntryTag() };
 
-            _entry.Binaries.Set("large.bin", new ProtectedBinary(true, Filled(size, 2)));
-            Assert.That(EntryTag(), Is.EqualTo(tag), "bytes no route can read or write are not hashed");
+            foreach (var at in new[] { 0, size / 2, size - 1 })
+            {
+                var changed = (byte[])bytes.Clone();
+                changed[at] ^= 0x01;
+                _entry.Binaries.Set("large.bin", new ProtectedBinary(isProtected, changed));
 
-            _entry.Binaries.Set("large.bin", new ProtectedBinary(true, Filled(size + 1, 2)));
-            Assert.That(EntryTag(), Is.Not.EqualTo(tag), "and its size is still served, so it still counts");
+                Assert.That(seen.Add(EntryTag()), Is.True, "a byte changed at " + at + " left the tag where it was");
+            }
 
-            _entry.Binaries.Set("large.bin", new ProtectedBinary(true, Filled(VaultViewAttachment.MostServed, 1)));
-            var served = EntryTag();
-            _entry.Binaries.Set("large.bin", new ProtectedBinary(true, Filled(VaultViewAttachment.MostServed, 2)));
-            Assert.That(EntryTag(), Is.Not.EqualTo(served), "one the gate does serve is hashed whole");
+            _entry.Binaries.Set("large.bin", new ProtectedBinary(isProtected, Filled(size + 1, 1)));
+            Assert.That(seen.Add(EntryTag()), Is.True, "a byte more left the tag where it was");
+
+            _entry.Binaries.Set("large.bin", new ProtectedBinary(isProtected, bytes));
+            Assert.That(seen.Add(EntryTag()), Is.False, "and the bytes it held give the tag it had");
         }
 
         [Test]
@@ -962,53 +989,56 @@ namespace KeePassGate.Host.Tests
         }
 
         [Test]
-        public void An_attachment_is_decrypted_for_the_first_tag_and_not_for_the_tags_after_it()
+        public void An_attachment_is_read_for_the_first_tag_and_not_for_the_tags_after_it()
         {
-            // Counted through `ProtectedBinary.ExtCrypt`, the hook KeePass decrypts a protected
-            // attachment through whenever one is set, and set here only for this test. Nothing else
-            // on the entry is protected in memory. The digest kept for a protected attachment is
-            // kept encrypted as well, and every tag decrypts it, so what is counted is what is
-            // longer than a digest: the attachment's own bytes.
-            const int LongerThanADigest = 64;
-            var decrypted = 0;
-            var was = ProtectedBinary.ExtCrypt;
-            ProtectedBinary.ExtCrypt = (data, flags, id) =>
-            {
-                if (flags == PbCryptFlags.Decrypt && data.Length > LongerThanADigest)
-                {
-                    Interlocked.Increment(ref decrypted);
-                }
-            };
+            // Counted in what each tag allocates, as the digest of a string is above. An
+            // attachment is read a piece at a time out of KeePass's own buffer, which no hook of
+            // KeePass's sees, and a protected attachment is read through a copy of each piece,
+            // so the first tag over a protected attachment allocates about the attachment's
+            // size and a tag after it, handed the digest kept against the object, does not. An
+            // attachment held in the open is read with nothing copied, so what shows there is
+            // the digest kept: the same object for every tag.
+            const int Size = 4 * 1024 * 1024;
+            _entry.Binaries.Remove("notes.txt");
+            var counted = new ProtectedBinary(true, Filled(Size, 0x69));
+            var open = new ProtectedBinary(false, Filled(Size, 0x6A));
+            _entry.Binaries.Set("counted.bin", counted);
+            _entry.Binaries.Set("open.bin", open);
 
-            try
-            {
-                _entry.Strings.Set(PwDefs.PasswordField, new ProtectedString(false, "not-a-real-password"));
-                _entry.Binaries.Remove("notes.txt");
-                Attach("counted.txt", new string('i', 1000));
+            var before = GC.GetAllocatedBytesForCurrentThread();
+            var first = EntryTag();
+            var taken = GC.GetAllocatedBytesForCurrentThread() - before;
 
-                var first = EntryTag();
-                var once = Volatile.Read(ref decrypted);
+            var kept = new[] { Kept(counted), Kept(open) };
 
-                Assert.That(EntryTag(), Is.EqualTo(first));
-                Assert.That(EntryTag(), Is.EqualTo(first));
-                Assert.That(once, Is.EqualTo(1), "the first tag decrypts the attachment to hash it");
-                Assert.That(Volatile.Read(ref decrypted), Is.EqualTo(once), "and the tags after it hash it again");
-            }
-            finally
-            {
-                ProtectedBinary.ExtCrypt = was;
-            }
+            before = GC.GetAllocatedBytesForCurrentThread();
+            Assert.That(EntryTag(), Is.EqualTo(first));
+            Assert.That(EntryTag(), Is.EqualTo(first));
+            var after = GC.GetAllocatedBytesForCurrentThread() - before;
+
+            Assert.That(
+                taken,
+                Is.GreaterThanOrEqualTo(Size),
+                "the first tag reads the protected attachment to hash it");
+            Assert.That(taken, Is.LessThan(2 * Size), "and copies neither attachment whole beside the pieces");
+            Assert.That(after, Is.LessThan(Size / 8), "the tags after it read an attachment again");
+            Assert.That(Kept(counted), Is.SameAs(kept[0]), "the digest of the protected attachment was taken again");
+            Assert.That(Kept(open), Is.SameAs(kept[1]), "the digest of the open attachment was taken again");
         }
 
         [Test]
-        public void A_view_is_built_with_no_attachment_decrypted_and_reads_a_value_when_asked_for_it()
+        public void A_view_is_built_with_no_attachment_read_and_reads_a_value_when_asked_for_it()
         {
-            // Counted through the same hook, which KeePass decrypts a protected attachment through
-            // and, measured here, not a protected string made from a string, which KeePass keeps
-            // as it was given: so what is counted is the attachment, made while the hook stands,
-            // and the strings are held to the rest by what the view carries. A protected string
-            // KeePass holds as bytes is the test after this. A view carries neither the title nor
-            // the URL beside its fields, which is what a description of the entry would have read
+            // Shown by an attachment the gate reads no piece of: made while another plugin's
+            // cipher stands, `ProtectedBinary.ExtCrypt`, KeePass keeps a protected attachment
+            // through that cipher, and every read of it by the gate is refused. So whatever
+            // goes through here without that refusal read nothing of the attachment, and the
+            // hook counts what KeePass itself decrypts of it, which is nothing either: KeePass
+            // decrypts a protected attachment through the hook and, measured here, not a
+            // protected string made from a string, which KeePass keeps as it was given. The
+            // strings are held to the rest by what the view carries. A protected string KeePass
+            // holds as bytes is the test after this. A view carries neither the title nor the
+            // URL beside its fields, which is what a description of the entry would have read
             // to build it.
             var decrypted = 0;
             var was = ProtectedBinary.ExtCrypt;
@@ -1026,6 +1056,7 @@ namespace KeePassGate.Host.Tests
                 _entry.Strings.Set(PwDefs.UrlField, new ProtectedString(true, "https://invented.example/"));
                 _entry.Strings.Set(PwDefs.PasswordField, new ProtectedString(true, "not-a-real-password"));
                 Attach("notes.txt", "invented");
+                Assume.That(KeePassMemory.KeptAs(_entry.Binaries.Get("notes.txt")), Is.EqualTo("ExtCrypt"));
                 Volatile.Write(ref decrypted, 0);
 
                 var sights = new[]
@@ -1057,23 +1088,41 @@ namespace KeePassGate.Host.Tests
                 Assert.That(whole.Field(PwDefs.PasswordField).Read(), Is.EqualTo("not-a-real-password"));
                 Assert.That(Volatile.Read(ref decrypted), Is.Zero, "reading a string read the attachment");
 
-                Assert.That(whole.Attachment("notes.txt").Content, Has.Length.EqualTo(8));
-                Assert.That(whole.Attachment("notes.txt").Content, Has.Length.EqualTo(8));
-                Assert.That(Volatile.Read(ref decrypted), Is.EqualTo(1), "bytes are read when asked for, and once");
-
                 // A view that holds no bytes of the attachment reads none of them for its tag,
                 // whether it lists the attachment or is shown nothing of it.
-                Volatile.Write(ref decrypted, 0);
                 var listed = Seen(new VaultSight(true, false, VaultAttachmentSight.Listed));
                 var narrow = Seen(new VaultSight(true, false, VaultAttachmentSight.None));
                 Assert.That(narrow.Field(PwDefs.TitleField).Read(), Is.Null);
                 Assert.That(listed.Tag, Is.Not.Null.And.Not.EqualTo(narrow.Tag));
-                Assert.That(Volatile.Read(ref decrypted), Is.Zero, "a tag decrypted bytes its view withholds");
+                Assert.That(listed.Attachment("notes.txt").Bytes(), Is.Empty);
+
+                // The bytes are read when they are asked for, which is where the refusal is
+                // met, with no piece handed out and nothing decrypted.
+                var handed = 0;
+                Assert.Throws<KeePassGate.Diagnostics.AttachmentUnreadable>(
+                    () => whole.Attachment("notes.txt").Read((bytes, offset, count) => handed++));
+                Assert.That(handed, Is.Zero);
+                Assert.That(
+                    Volatile.Read(ref decrypted),
+                    Is.Zero,
+                    "the gate read an attachment through KeePass's own reader");
+
+                // And when a tag covers them. Nothing is counted past here: the digests a tag
+                // keeps for the protected strings are kept in containers of KeePass's, which
+                // are read through the hook while it stands.
+                Assert.Throws<KeePassGate.Diagnostics.AttachmentUnreadable>(() => _ = whole.Tag);
             }
             finally
             {
                 ProtectedBinary.ExtCrypt = was;
             }
+
+            // And an attachment KeePass keeps as it keeps any is read when asked for, by every
+            // asking, since a view keeps nothing it read.
+            Attach("notes.txt", "invented");
+            var read = Seen(Sights.Whole).Attachment("notes.txt");
+            Assert.That(read.Bytes(), Is.EqualTo(Encoding.UTF8.GetBytes("invented")));
+            Assert.That(read.Bytes(), Is.EqualTo(Encoding.UTF8.GetBytes("invented")));
         }
 
         [Test]
@@ -1455,7 +1504,11 @@ namespace KeePassGate.Host.Tests
                 Described(uuid, group, created, modified, expires),
                 Sights.Whole,
                 new[] { new VaultViewField("Invented", guarded, Sights.Whole, () => value, false, Digesting(value)) },
-                new[] { new VaultViewAttachment(attachment, bytes.Length, Sights.Whole, () => bytes, digest) },
+                new[]
+                {
+                    new VaultViewAttachment(
+                        attachment, bytes.Length, Sights.Whole, piece => piece(bytes, 0, bytes.Length), digest),
+                },
                 null);
 
             return new KeyValuePair<string, VaultEntryView>(what, view);

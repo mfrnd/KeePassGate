@@ -381,8 +381,8 @@ designing around them.
   a plain hash.** `NodeTags` takes an HMAC-SHA256 over exactly what the routes serve that caller,
   as they serve it: an entry's identifier, its group, its two times to the second, every string
   with its name, whether it is protected and, where it is in sight, the SHA-256 of its value as
-  a read decodes it, every attachment's name, size and, up to `VaultViewAttachment.MostServed`, the SHA-256 of
-  its bytes, as far as attachments are in sight, and its expiry; a group's identifier, its
+  a read decodes it, every attachment's name, size and the SHA-256 of its bytes, as far as
+  attachments are in sight, and its expiry; a group's identifier, its
   parent, its two times, its name and its notes. Rules stay out. **An entry's
   answer and its tag are one projection**: `IVault.View` hands back a `VaultEntryView`, the whole
   of the entry as one caller may read it, every route about an entry renders from it, and
@@ -484,9 +484,9 @@ designing around them.
   bounds how many strings an entry holds: it was served in parts while it was handed over
   whole, and there is no `from` and no `next`. So is `listAttachments`, names and sizes, and so
   are the listings of groups and of entries, which grow with the database: the rule is that an
-  answer growing with what the database holds is written as it is sent, and an answer of a
-  bounded size, a single group, an attachment under its ceiling, the gate's own routes, is
-  handed over whole with a `Content-Length`. PyKeePassGate reads a chunked answer with its own
+  answer growing with what the database holds is written as it is sent, an attachment among
+  them, and an answer of a bounded size, a single group and the gate's own routes, is handed
+  over whole with a `Content-Length`. PyKeePassGate reads a chunked answer with its own
   strict reader, never `http.client`, and holds an answer to its own `max_response_bytes`.
   **This reverses a ceiling on reads**, 524288 characters over what the caller would be handed,
   answered `413`, the ruling of 2026-11-10,
@@ -499,8 +499,29 @@ designing around them.
   a caller's whole view however large, by a read with KeePass's thread free. **Do not
   re-propose** a floor or rounding for each string, a ceiling for each protection class, the
   refusal without its count, random slack or pacing: each keeps an answer to a write that moves
-  with a value its caller may not read. The attachment's ceiling and the transport's limit on a
-  body stay, since each measures what the caller itself sent.
+  with a value its caller may not read. The ceiling on an attachment a write takes and the
+  transport's limit on a body stay, since each measures what the caller itself sent.
+- **An attachment is read at any size, a piece at a time from where KeePass keeps it, and
+  written at up to 512 KiB.** `StoredBinaries` reads KeePass's own buffer, the private
+  `m_pbData` of a `ProtectedBinary`, 48 KiB at a time, and `readAttachment` writes each piece as
+  base64 as it is sent, the operator's rulings of 2026-11-14: no copy of the whole is made, so
+  a read keeps a piece alive and none is refused for size. An attachment held in the open, as
+  a file attached in KeePass's dialog is, is read in place. A protected attachment, as the
+  gate's own are, is kept encrypted in place by Windows' protection of process memory, which
+  chains its blocks: a piece is copied with the block ahead of it under KeePass's own lock,
+  `m_objSync`, held for the copy alone, then decrypted, handed out and overwritten. **There is
+  no second way of reading, and re-proposing a fallback to `ReadData` reopens the operator's
+  ruling.** `KeePassContractTests` pins the fields and the chaining, and the chaining is checked
+  in the running plugin the first time an attachment is read. A protected attachment KeePass
+  keeps any other way, above all through the cipher another plugin put in place by
+  `ProtectedBinary.ExtCrypt`, is `AttachmentUnreadable`: `500 unreadable` and an incident, for
+  a read of it, for every tag over it and for a write that would store an attachment while that
+  cipher stands. A tag covers every attachment in sight at any size, its digest taken in place
+  and asked whether it can be read every time. `MaxAttachmentBytes` is what a write takes and
+  nothing else. `JsonWriter.Base64` writes the base64 itself, between quotes, which is no second
+  way of escaping: base64 holds nothing JSON escapes. **This reverses "what the gate hands out
+  it can also be given back"**: what others have written is readable, and what cannot be
+  written through the gate is written in KeePass. `DESIGN.md` §144.
 - **A plain DLL on .NET Framework 4.8**, not a `.plgx`.
 - **The access control model is one document per node**: `AclDocument`, `AclResolver`, `AclGrant`,
   `AclVerb`, `AclDefault`, with `KdbxNodes` adapting a `PwGroup` or a `PwEntry`. Grants live under

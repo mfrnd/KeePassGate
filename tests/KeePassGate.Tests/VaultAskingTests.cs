@@ -174,7 +174,11 @@ namespace KeePassGate.Tests
                     new VaultViewField("Password", true, sight, () => "abc"),
                     new VaultViewField("Account", false, sight, () => "abc"),
                 },
-                new[] { new VaultViewAttachment("notes.txt", 3, sight, () => new byte[3], () => new byte[32]) },
+                new[]
+                {
+                    new VaultViewAttachment(
+                        "notes.txt", 3, sight, piece => piece(new byte[3], 0, 3), () => new byte[32]),
+                },
                 null);
         }
 

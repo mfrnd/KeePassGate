@@ -19,24 +19,65 @@ namespace KeePassGate.Tests
     public sealed class EmbeddedDocumentTests
     {
         [Test]
-        public void What_the_gate_hands_out_is_what_it_will_take_back()
+        public void A_write_takes_the_base64_of_the_largest_attachment_and_a_read_declares_no_length()
         {
-            // Two numbers that have to agree: the ceiling `ReadAttachment` refuses above, and the
-            // longest base64 the document accepts on a write. An attachment that can be read and
-            // never restored is what they buy when they drift.
+            // The longest base64 the document accepts on a write is the base64 of the largest
+            // attachment a write takes, `VaultHandlers.MaxAttachmentBytes`, and the handlers
+            // refuse by that constant what the document's length lets through. A read is held to
+            // no size: the schema a read answers with declares no length for its content, since
+            // a length there has a generated client refuse an attachment the gate serves, and
+            // neither the read nor its `head` declares a refusal for size.
             var longest = 4 * ((VaultHandlers.MaxAttachmentBytes + 2) / 3);
 
             var writes = SpecDocument.Embedded().Operations
                 .Where(o => o.Body != null && o.Body.Properties.ContainsKey("content"))
                 .ToList();
 
-            Assert.That(writes, Is.Not.Empty, "the attachment writes are what this is about");
+            Assert.That(
+                writes.Select(write => write.OperationId),
+                Is.EquivalentTo(new[] { "createAttachment", "updateAttachment" }),
+                "the attachment writes are what this is about");
 
             foreach (var write in writes)
             {
-                Assert.That(write.Body.Properties["content"].MaxLength, Is.EqualTo(longest),
-                    write.OperationId + " accepts a size other than the largest a read hands out");
+                Assert.That(
+                    write.Body.Properties["content"].MaxLength,
+                    Is.EqualTo(longest),
+                    write.OperationId + " accepts a length other than the base64 of the largest a write takes");
             }
+
+            Microsoft.OpenApi.Models.OpenApiDocument document;
+            using (var stream = typeof(SpecDocument).Assembly.GetManifestResourceStream(
+                "KeePassGate.Spec.openapi.yaml"))
+            {
+                Microsoft.OpenApi.Readers.OpenApiDiagnostic diagnostic;
+                document = new Microsoft.OpenApi.Readers.OpenApiStreamReader().Read(stream, out diagnostic);
+            }
+
+            var operations = document.Paths.Values
+                .SelectMany(path => path.Operations.Values)
+                .ToDictionary(operation => operation.OperationId, StringComparer.Ordinal);
+
+            var answered = operations["readAttachment"].Responses["200"].Content["application/json"].Schema;
+            Assert.That(
+                answered.Reference.Id,
+                Is.EqualTo("Attachment"),
+                "the schema a read of an attachment answers with");
+
+            var content = document.Components.Schemas["Attachment"].Properties["content"];
+            Assert.That(content.Type, Is.EqualTo("string"));
+            Assert.That(content.MaxLength, Is.Null, "a read of an attachment declares a longest content");
+            Assert.That(answered.Properties["content"].MaxLength, Is.Null);
+            Assert.That(document.Components.Schemas["Attachment"].Properties["size"].Maximum, Is.Null,
+                "a read of an attachment declares a largest size");
+
+            foreach (var read in new[] { "readAttachment", "headAttachment" })
+            {
+                Assert.That(operations[read].Responses.Keys, Has.None.EqualTo("413"),
+                    read + " declares a refusal for an attachment's size");
+            }
+
+            Assert.That(document.Components.Responses.Keys, Has.None.EqualTo("TooLarge"));
         }
 
         [Test]
@@ -54,18 +95,18 @@ namespace KeePassGate.Tests
             {
                 Assert.That(write.Body.Properties["content"].Description, Does.Contain(
                     VaultHandlers.MaxAttachmentBytes.ToString(System.Globalization.CultureInfo.InvariantCulture)),
-                    write.OperationId + " names a ceiling other than the largest attachment a read hands out");
+                    write.OperationId + " names a ceiling other than the largest attachment a write takes");
             }
         }
 
         [Test]
         public void The_largest_attachment_write_fits_the_body_the_transport_reads()
         {
-            // The third number in the round trip. The transport refuses a body over its cap by
-            // `Content-Length` before the document is consulted, so a ceiling the document accepts
-            // and the transport does not is one more attachment that can be read and never put
-            // back, and nothing but this relates the two. Counted at its worst: base64 is ASCII,
-            // and any other string may be every character escaped as six bytes of `\uXXXX`.
+            // What the ceiling on a write is for. The transport refuses a body over its cap by
+            // `Content-Length` before the document is consulted, so a length the document accepts
+            // and the transport does not is a write the document declares and nothing takes, and
+            // nothing but this relates the two. Counted at its worst: base64 is ASCII, and any
+            // other string may be every character escaped as six bytes of `\uXXXX`.
             const int EscapedCharacter = 6;
             const int Punctuation = 6;
 

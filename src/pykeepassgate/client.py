@@ -156,9 +156,9 @@ class GateClient:
 
         `max_response_bytes` is how much of one answer this client will read, and an answer over
         it fails whole with `ProtocolError` naming the setting, rather than arriving cut short.
-        The plugin serves every listing whole and an entry at any size, so an answer grows with
-        what the database holds, and a caller whose database is large enough to outgrow the
-        default raises this.
+        The plugin serves every listing whole and an entry or an attachment at any size, so an
+        answer grows with what the database holds, and a caller whose database is large enough
+        to outgrow the default raises this.
 
         **A setting that could not work is refused here**, with a `ValueError` naming it, before
         anything is dialed, and the command line refuses the same ones: a cap that is not a
@@ -1102,7 +1102,16 @@ class GateClient:
         retry_locked_timeout: transport.Given = transport.KEEP,
         retry_undecided_timeout: transport.Given = transport.KEEP,
     ) -> Attachment:
-        """One attachment, contents and all, and the `etag` of the entry holding it."""
+        """One attachment, contents and all, and the `etag` of the entry holding it.
+
+        **Whatever the attachment's size.** The gate writes the answer as it is sent, a piece of the
+        attachment at a time, and refuses no read for the attachment's size, so an attachment
+        added in KeePass is read here at a size `create_attachment` and `update_attachment`
+        could not write, which take at most 512 KiB. What bounds the read is this client's
+        `max_response_bytes`: the whole answer is held in memory, the attachment arrives in it as
+        base64, four thirds of its size, and an answer over the cap raises `ProtocolError`
+        naming the setting.
+        """
         path = f"/entries/{_segment(uuid)}/attachments/{_segment(name)}"
         found = self._read_tagged(
             path,

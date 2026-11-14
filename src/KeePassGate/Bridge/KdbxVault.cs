@@ -294,10 +294,28 @@ namespace KeePassGate.Bridge
                     {
                         // `Length` is kept beside the encrypted bytes, so asking it decrypts
                         // nothing. The attachment keeps what reads its bytes only for a sight
-                        // that reads attachments.
+                        // that reads attachments, and they are read a piece at a time from
+                        // where KeePass keeps them, `StoredBinaries`.
+                        //
+                        // Whether the gate can read the attachment is asked for every tag,
+                        // whether or not its digest is kept. KeePass keeps an attachment
+                        // through whatever cipher stands when KeePass itself last read it, a
+                        // save among those reads, so an attachment digested while it could be
+                        // read can be unreadable by now: tagged from the digest kept, a read of
+                        // it was answered `200` and failed where its content was written.
+                        // Asked here, every answer that carries a tag over it is refused the
+                        // same way, before any status is given.
                         var binary = pair.Value;
                         made.Add(new VaultViewAttachment(
-                            pair.Key, (int)binary.Length, sight, binary.ReadData, () => NodeTags.DigestOf(binary)));
+                            pair.Key,
+                            checked((int)binary.Length),
+                            sight,
+                            piece => StoredBinaries.Read(binary, piece),
+                            () =>
+                            {
+                                StoredBinaries.Check(binary);
+                                return NodeTags.DigestOf(binary);
+                            }));
                     }
 
                     return made;
@@ -1026,9 +1044,14 @@ namespace KeePassGate.Bridge
                     return VaultWrite.PreconditionFailed(tagging.Precondition);
                 }
 
+                // Refused before anything is changed where the gate could not read it back,
+                // `StoredBinaries.Check`.
+                var made = new ProtectedBinary(true, content ?? Array.Empty<byte>());
+                StoredBinaries.Check(made);
+
                 var restore = Restoring(entry);
                 var restoreHistory = Backing(entry);
-                entry.Binaries.Set(name, new ProtectedBinary(true, content ?? Array.Empty<byte>()));
+                entry.Binaries.Set(name, made);
                 entry.Touch(true, false);
 
                 return VaultChange.Made(() => VaultWrite.Created(name, After(asking, entry)), () =>
@@ -1078,6 +1101,10 @@ namespace KeePassGate.Bridge
 
                 var was = entry.Binaries.Get(name);
                 var replacement = new ProtectedBinary(true, content ?? Array.Empty<byte>());
+
+                // Refused before anything is changed where the gate could not read it back,
+                // `StoredBinaries.Check`.
+                StoredBinaries.Check(replacement);
 
                 // The bytes and not the protection flag, which is this route's own choice for
                 // what it stores rather than anything the request asked for. KeePass's comparison

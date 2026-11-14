@@ -3,6 +3,9 @@
 <!-- A policy flag of KeePass's own, named the way KeePass names it. -->
 <!-- cspell:ignore Unhide -->
 
+<!-- A method of KeePass's own, named the way KeePass names it. -->
+<!-- cspell:ignore Xorred -->
+
 What to build, and why each part is shaped the way it is. Everything here rests on
 [`FINDINGS.md`](FINDINGS.md), which records what was measured rather than assumed;
 [`ANALYSIS.md`](ANALYSIS.md) carries the arguments and the rejected alternatives.
@@ -295,15 +298,16 @@ chunked answer is not that, §143.
 
 **The gate writes an answer in chunks where the answer grows with what the database holds, and
 reads no chunked request**, the operator's ruling of 2026-11-14. Every listing and the reads of
-an entry and of a field hand the
+an entry, of a field and of an attachment hand the
 transport what writes their answer in place of the answer, `IGateContext.Respond`, and the
 transport writes it under `Transfer-Encoding: chunked`, `ChunkedContent`: each value is read
 where it is written, and nothing of the answer is kept. An answer handed over whole is alive
 several times over while it is sent, its values, the document, the document's text and the
 bytes of that text, which is what held a read of an entry to a ceiling, `API.md` §412. Written
 as it is sent, what is alive is the value being written, and for a listing the descriptions it
-is written from. An answer of a bounded size, a single group, an attachment under its ceiling
-and everything about the gate and the caller, is handed over whole under a `Content-Length`.
+is written from, and for an attachment a piece of it, §144. An answer of a bounded size, a
+single group and everything about the gate and the caller, is handed over whole under a
+`Content-Length`.
 `FINDINGS.md` has both measured.
 
 **This is the chunked body the paragraph above names, in the direction it does not weigh.**
@@ -357,6 +361,87 @@ underscore or spaces around it, a chunk extension, any bytes in place of the lin
 chunk, a folded header, and a body cut short of its `Content-Length` when read in pieces.
 PyKeePassGate's reader takes hex digits and line ends and refuses the rest, and a peer of a
 pairing is not yet verified, which is who that strictness is for.
+
+### An attachment is read where KeePass keeps it §144
+
+**The gate reads an attachment a piece at a time out of KeePass's own buffer, at any size, and
+never asks KeePass for the whole of it**, the operator's rulings of 2026-11-14. KeePass hands an
+attachment out whole or not at all: `ProtectedBinary` is sealed and offers `ReadData` and
+`ReadXorredData`, each a copy of everything. An answer made of such a copy holds the attachment
+for every connection reading it, for as long as each peer takes, and the answer built whole
+around it held it about eight times over, which is what held a read to the 512 KiB a write
+takes. `StoredBinaries` reads the private buffer, 48 KiB at a time, and `readAttachment` writes
+each piece as base64 as it is sent, §143. `FINDINGS.md` has it measured: 64 MiB in about a tenth
+of a second with a tenth of a megabyte alive, against a quarter of a second and 491 MB.
+
+**This reverses "what the gate hands out it can also be given back".** A read and a write of an
+attachment were held to the same number, so that nothing was read out that could not be put
+back. A write is still held to it, since it arrives as base64 in a request's body. A read is
+held to nothing: what others have written is to be readable, a file attached in KeePass above
+all, and what cannot be written through the gate is written in KeePass.
+
+**An attachment held in the open is read in place.** Its buffer is its content and never
+changes, so a piece is the buffer at an offset and nothing is copied. A file attached in
+KeePass's own dialog is held that way, and so is an importer's, read off KeePass 2.61.1, and a
+file that is loaded keeps each attachment as it was marked.
+
+**A protected attachment is decrypted a piece at a time.** KeePass keeps it encrypted in place
+with Windows' protection of process memory, and reads it by decrypting the whole buffer where it
+stands, under the object's lock. That protection chains its blocks: a copy of a piece of the
+buffer decrypts on its own to the right bytes in every block but its first, and in all of it
+when the block ahead is decrypted with it and thrown away. So a piece is copied with the block
+ahead, decrypted, handed out and overwritten, and the attachment never stands decrypted. The
+copy is taken under KeePass's own lock, for the length of the copy and no longer: a reader of
+KeePass's may have the buffer standing decrypted at that moment, and the lock held across a
+write to a peer would stop KeePass's own save behind a slow client. The gate's own attachments
+are protected, and so are other software's: pykeepass marks an attachment protected unless
+told otherwise.
+
+**It rests on what neither KeePass nor Windows promises, and there is no second way of
+reading.** Private fields of `ProtectedBinary`, and a chaining of blocks that Microsoft does not
+document for `CryptProtectMemory`. `KeePassContractTests` pins both against the pinned KeePass
+and the machine the tests run on, and the chaining is checked again in the running plugin the
+first time an attachment is read. A fallback to `ReadData` under the old ceiling was considered
+and refused by the operator: a second way of reading, met only when the first breaks, is logic
+nothing exercises.
+
+**How KeePass keeps a protected attachment is of the moment, and an attachment kept another
+way is refused.** `ReadData` encrypts the buffer again through whatever cipher stands when it
+runs, and another plugin can put a cipher of its own in place of Windows', through
+`ProtectedBinary.ExtCrypt`. KeePass's save reads every attachment. So once KeePass has saved
+while such a cipher stood, every protected attachment is kept through it, the gate's own among
+them, and the gate reads none of them until KeePass has read them again with the cipher gone.
+Such an attachment is refused as `AttachmentUnreadable`, which the transport answers
+`500 unreadable` and counts as an incident: for a read of it, for every answer carrying a tag
+over it, whether or not its digest was kept while it could be read, and for a write that would
+store an attachment while such a cipher stands, before anything is changed. Attachments held in
+the open are read as ever. A database run beside such a plugin therefore has no protected
+attachment the gate can read, which is what refusing a fallback costs.
+
+Considered and refused:
+
+- **Taking over the cipher through `ExtCrypt`**, so that the gate could decrypt any piece
+  itself: every protected string and attachment in KeePass would be kept under this plugin's
+  cipher.
+- **A budget of attachment bytes copied at once**, with `503 busy` beyond it, and a fixed
+  higher ceiling: each bounds a copy that reading in place does not make.
+- **A raw answer in place of JSON with base64**: a quarter smaller on the wire and simple for
+  a client to write to a file as it arrives, and the only answer of this server that is not
+  JSON. The operator kept the JSON.
+
+**A tag covers every attachment in its caller's sight, at any size.** The digest is taken in
+place, once for as long as KeePass keeps the attachment, §136: 27 ms for 64 MiB held in the
+open with nothing allocated, 47 ms protected. It covered an attachment's bytes up to the
+ceiling only, since a digest took a copy: review 4 measured 201 MiB of memory for every request
+that looked such an entry up.
+
+**What it costs.** A read of a large attachment takes a connection's thread for as long as its
+peer reads, within the budget a connection is given to have its answer read, so an attachment
+that cannot be sent in that time cannot be read through the gate. A client bounds what it
+holds: PyKeePassGate keeps a whole answer in memory under `max_response_bytes`, and an
+attachment arrives as base64, four thirds of its size. What is read through the gate can be
+larger than what is written through it. And the gate takes KeePass's own lock on a protected
+attachment, for a copy of 48 KiB at a time.
 
 ### Refused at our boundary §110
 

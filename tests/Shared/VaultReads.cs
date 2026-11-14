@@ -50,5 +50,23 @@ namespace KeePassGate.Testing
             var field = view == null ? null : view.Field(name);
             return field == null ? null : field.Read();
         }
+
+        /// <summary>
+        /// Every byte an attachment hands out, joined in the order its pieces came: nothing for
+        /// an attachment that is withheld.
+        /// </summary>
+        /// <remarks>
+        /// Each piece is copied where it is handed over, since the array it comes in is the
+        /// store's: KeePass's own buffer for an attachment held in the open, and a copy that
+        /// is overwritten once the read is over for a protected attachment.
+        /// </remarks>
+        public static byte[] Bytes(this VaultViewAttachment attachment)
+        {
+            using (var joined = new System.IO.MemoryStream())
+            {
+                attachment.Read(joined.Write);
+                return joined.ToArray();
+            }
+        }
     }
 }

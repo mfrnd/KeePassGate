@@ -196,7 +196,7 @@ def test_an_empty_answer_is_an_empty_object_rather_than_a_failure(
         (405, "method not allowed", RouteRefused),
         (400, "malformed", RouteRefused),
         (409, "conflict", RouteRefused),
-        (413, "this attachment is 600000 bytes", RouteRefused),
+        (413, "the body is over 1048576 bytes", RouteRefused),
         (500, "internal error", RouteRefused),
     ],
 )
@@ -208,8 +208,9 @@ def test_every_refusal_becomes_something_a_caller_can_act_on(
     expected: type[Exception],
 ) -> None:
     # The four at the end are what the client's documentation tells a caller not to wait out:
-    # `400` and `409` are about the request, `413` about what was asked for, and `500` is the
-    # gate failing. A mapping that sent one of them to `GateBusy` would tell a caller to retry.
+    # `400` and `409` are about the request, `413` about a body longer than the gate takes, and
+    # `500` is the gate failing. A mapping that sent one of them to `GateBusy` would tell a caller
+    # to retry.
     gate.version = None
     gate.handler = lambda path, body, client: (status, json.dumps({"error": error}))
 

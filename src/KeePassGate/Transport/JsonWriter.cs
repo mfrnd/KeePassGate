@@ -28,7 +28,14 @@ namespace KeePassGate.Transport
     /// </remarks>
     internal sealed class JsonWriter : IDisposable
     {
+        /// <summary>
+        /// How many bytes are made into base64 at a time: a multiple of three, so that each
+        /// step's text ends where a step of base64 does.
+        /// </summary>
+        private const int Base64Step = 12 * 1024;
+
         private readonly StringWriter _text;
+        private readonly TextWriter _into;
         private readonly JsonTextWriter _writer;
 
         private string _done;
@@ -37,6 +44,7 @@ namespace KeePassGate.Transport
         public JsonWriter()
         {
             _text = new StringWriter(CultureInfo.InvariantCulture);
+            _into = _text;
             _writer = new JsonTextWriter(_text) { Formatting = Formatting.None };
             _writer.WriteStartObject();
         }
@@ -49,6 +57,7 @@ namespace KeePassGate.Transport
         /// </remarks>
         private JsonWriter(TextWriter into)
         {
+            _into = into;
             _writer = new JsonTextWriter(into)
             {
                 Formatting = Formatting.None,
@@ -140,6 +149,59 @@ namespace KeePassGate.Transport
         {
             _writer.WritePropertyName(name);
             _writer.WriteValue(value);
+            return this;
+        }
+
+        /// <summary>
+        /// Writes bytes as a base64 string, a piece at a time, as they are handed over.
+        /// </summary>
+        /// <remarks>
+        /// **For an attachment, which is read a piece at a time and never whole.** Json.NET
+        /// writes a string it is handed whole, and a byte array likewise, so there is nothing
+        /// of it to write a string in pieces with. The quotes and the base64 between them
+        /// are therefore written here, straight to the writer underneath.
+        ///
+        /// **That is no second way of escaping a string**, which is what keeping every value
+        /// to Json.NET is for: the text between the quotes is what `Convert` makes of bytes,
+        /// letters, digits, `+`, `/` and `=`, and JSON escapes none of those whatever the
+        /// bytes are.
+        /// </remarks>
+        /// <param name="read">
+        /// What hands the bytes over in order, each piece an array, an offset and a count. A
+        /// piece that is not a whole number of threes ends the bytes: base64 pads there, so
+        /// nothing may follow it.
+        /// </param>
+        public JsonWriter Base64(string name, Action<Action<byte[], int, int>> read)
+        {
+            if (read == null)
+            {
+                throw new ArgumentNullException(nameof(read));
+            }
+
+            _writer.WritePropertyName(name);
+
+            // The opening quote goes through Json.NET as the value it expects here, so that it
+            // goes on to write the comma and the name of whatever follows.
+            _writer.WriteRawValue("\"");
+
+            var text = new char[(Base64Step / 3) * 4];
+            var ended = false;
+            read((bytes, offset, count) =>
+            {
+                if (ended)
+                {
+                    throw new InvalidOperationException("bytes were handed over after the piece that ended them");
+                }
+
+                ended = count % 3 != 0;
+                for (var at = 0; at < count; at += Base64Step)
+                {
+                    var written = Convert.ToBase64CharArray(bytes, offset + at, Math.Min(Base64Step, count - at), text, 0);
+                    _into.Write(text, 0, written);
+                }
+            });
+
+            _into.Write('"');
             return this;
         }
 

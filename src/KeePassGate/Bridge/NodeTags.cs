@@ -290,9 +290,9 @@ namespace KeePassGate.Bridge
                     Put(hmac, attachment.Name);
                     Put(hmac, Length((uint)attachment.Size));
 
-                    // Null for an attachment whose bytes are out of sight, and for an attachment
-                    // larger than the gate serves: each enters by its name and size alone. A
-                    // copy of the digest kept, overwritten once it has entered.
+                    // Null for an attachment whose bytes are out of sight, which enters by its
+                    // name and size alone. A copy of the digest kept, overwritten once it has
+                    // entered.
                     var digest = attachment.Digest;
                     if (digest != null)
                     {
@@ -397,21 +397,13 @@ namespace KeePassGate.Bridge
                 () => new KeptDigest(Digest(binary), binary.IsProtected), LazyThreadSafetyMode.PublicationOnly);
         }
 
-        /// <summary>One attachment's SHA-256, from a copy of its bytes that is wiped afterwards.</summary>
+        /// <summary>
+        /// One attachment's SHA-256, taken a piece at a time from where KeePass keeps the
+        /// attachment, with no copy of the whole made: `StoredBinaries`.
+        /// </summary>
         private static byte[] Digest(ProtectedBinary binary)
         {
-            var bytes = binary.ReadData();
-            try
-            {
-                using (var sha256 = SHA256.Create())
-                {
-                    return sha256.ComputeHash(bytes);
-                }
-            }
-            finally
-            {
-                MemUtil.ZeroByteArray(bytes);
-            }
+            return StoredBinaries.Digest(binary);
         }
 
         private static void Put(HashAlgorithm hash, string text)

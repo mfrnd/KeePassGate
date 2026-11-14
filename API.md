@@ -346,8 +346,25 @@ strings. Handed over whole it was served in parts of 524288 characters, by a `fr
 `next`, each part a request of its own decided at its own moment, and before that it was
 refused past that size, which left an entry with no route naming its strings. Neither form
 was released. `listAttachments` is written as it is sent for the same reason: names and sizes,
-of as many attachments as writes gave the entry. An attachment's own bytes keep their ceiling
-and their `413`, since what can be read out is held to what can be put back.
+of as many attachments as writes gave the entry.
+
+**An attachment is read at any size, and written at up to 512 KiB.** `readAttachment` is
+written as it is sent as well, and what it sends is read a piece at a time from where KeePass
+keeps the attachment, `DESIGN.md` §144, so a read keeps a piece of the attachment alive and
+none is refused for size. A write is held to 524288 bytes, since it arrives as base64 in a
+request's body. **This reverses a ceiling held alike on reads and writes**, "what the gate hands
+out it can also be given back", the operator's ruling of 2026-11-14: a file attached in KeePass
+is to be readable through the gate whatever its size, and what cannot be written through the
+gate is written in KeePass. A read past the ceiling was `413`, since an answer built whole held
+about eight times the attachment in memory. A tag covers the bytes of every attachment in its
+caller's sight, at any size, where it covered them up to the ceiling.
+
+**An attachment the gate cannot read is `500 unreadable`.** The gate reads a protected
+attachment as KeePass itself keeps it in memory. Where another KeePass plugin has put a cipher
+of its own in place of that, the attachments KeePass keeps through it are refused: a read of
+such an attachment, every answer carrying a tag over it, and a write of an attachment while
+that cipher stands, which changes nothing. Nothing the client sent is wrong and asking again
+mends nothing. `DESIGN.md` §144 has why there is no second way of reading.
 
 **No write is refused for what an entry's strings come to, which reverses a ceiling held in both
 directions**, the operator's ruling of 2026-11-10. A create, an update or a new field that would

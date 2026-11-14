@@ -476,7 +476,7 @@ that a read is measured over what its caller is handed: the view a read was
 measured by held no length for a value it withholds, both writes are now made and answered
 alike, and the withheld field is the `null` every withheld value is. No read of an entry or of
 a field is held to a size since 2026-11-14, `API.md` §412, and a view holds no length of any
-string's value; an attachment's bytes keep their ceiling and their `413`.
+string's value. A read of an attachment is held to no size since the same day.
 
 **An answer built whole is alive several times over while it is written, and an answer written
 as it is sent is alive a value at a time.** Built whole, an answer made of an entry's values is
@@ -539,6 +539,22 @@ kept through that cipher from then on, and through Windows' again once KeePass h
 with the cipher gone. KeePass's entry dialog and its importers make an attachment held in the
 open, a constant in their IL; a file that is loaded keeps each attachment as it was marked;
 pykeepass marks an attachment protected unless told otherwise, and KeePass holds it so.
+
+**What a read of an attachment costs, built whole and read in place.** In a Release build, each
+form writing its whole answer into a stream that keeps a digest of it and nothing else:
+
+| Attachment | Built whole | In place, held in the open | In place, protected |
+| --- | --- | --- | --- |
+| 0.5 MiB | about 3 ms, 3.9 MB alive at once | 0.8 to 1.3 ms | 1.0 to 1.2 ms |
+| 8 MiB | 31 to 51 ms, 61 MB alive | 11.4 to 11.5 ms | 14 to 19 ms |
+| 64 MiB | 230 to 301 ms, 491 MB alive | 89 to 91 ms | 109 to 116 ms |
+
+Read in place, what is alive at once came to a tenth of a megabyte at every size. An attachment
+held in the open allocates nothing that grows with it; a protected attachment a copy of each
+piece in turn, its own size in all, each overwritten and let go. A digest taken in place: 27 ms
+for 64 MiB held in the open with nothing allocated, and 47 to 48 ms protected. A copy from
+`ReadData` written as it is sent, the form that was not built, kept the attachment alive once
+for each read and took 122 to 171 ms for 64 MiB.
 
 **What a tag costs on an entry far past the ceiling a read was held to**, measured while a read
 was held to 524288 characters: fifty
@@ -660,7 +676,7 @@ inside: the hold is 93 to 104 milliseconds the first time and 45 to 47 after. Va
 digested after: 53 milliseconds of hold the first time and 0.04 after, with 45 to 48 after the hold.
 Both after: 0.04 milliseconds of hold every time, with 96 to 115 after it the first time and 44 to
 50 later. Eight strings of 65,536 characters, an entry at its ceiling, cost half a millisecond
-wherever it is done. A hundred attachments of 512 KiB, the most that is served, cost 60 to 90
+wherever it is done. A hundred attachments of 512 KiB, the most that was served then, cost 60 to 90
 milliseconds and 50 MB the first time their digests are taken, wherever that is, and 0.15 after,
 since a digest is kept against the object. Encoding each value for the digest in pieces of 16,384
 characters through one buffer gave the digest of the value encoded whole with 0.1 MB allocated
@@ -698,10 +714,12 @@ the value was read as a string. The tag hashes the value as a read decodes it.
 **What a digest costs, on the development machine under .NET Framework 4.8:** six microseconds for
 a group, and the same for an entry's ten strings with two kilobytes of notes, protected ones
 decrypted. Attachment bytes go through SHA-256 at about 2 GB/s, which is 5 milliseconds for
-10 MB, against 8 milliseconds to decrypt a protected attachment of that size, and only up to the
-largest attachment the gate hands out, 512 KiB, above which the size stands for the bytes: the
-review measured a 201 MiB attachment costing 260 milliseconds and 201 MiB of memory to every
-request that looked the entry up, the router's among them, and 32 at once holding 1.6 GB. **And
+10 MB, against 8 milliseconds to decrypt a protected attachment of that size. That was taken
+of a copy of the attachment, and so only up to the largest attachment the gate handed out,
+512 KiB, above which the size stood for the bytes: the review measured a 201 MiB attachment
+costing 260 milliseconds and 201 MiB of memory to every request that looked the entry up, the
+router's among them, and 32 at once holding 1.6 GB. A digest is taken in place since
+2026-11-14, with no copy, of an attachment of any size, below. **And
 attachments are hashed once per object**, because `ProtectedBinary` offers nothing that changes its
 bytes and KeePass keeps the object's own hash code inside it; `KeePassContractTests` pins that, and
 two readers asking at once wait on one digest rather than taking two. The probes that measured all

@@ -17,8 +17,8 @@ namespace KeePassGate.Bridge
     /// **KeePass hands an attachment out whole or not at all.** `ProtectedBinary` offers
     /// `ReadData` and `ReadXorredData`, each a copy of everything, and the class is sealed, read
     /// off KeePass 2.61.1. An answer made of such a copy holds the whole attachment for as long
-    /// as its peer takes to read it, on every connection at once, which is what holds a read
-    /// of an attachment to a ceiling. Here the bytes are read out of KeePass's own buffer, the
+    /// as its peer takes to read it, on every connection at once, which is what held a read
+    /// of an attachment to a ceiling. So the bytes are read out of KeePass's own buffer, the
     /// private field `m_pbData`, a piece at a time.
     ///
     /// **An attachment held in the open is its buffer.** KeePass keeps the bytes as they are,
@@ -42,9 +42,9 @@ namespace KeePassGate.Bridge
     /// first time anything is read, and a protected attachment kept any other way, by KeePass's
     /// own cipher where `ProtectedMemory` is not supported or by the cipher another plugin
     /// gave KeePass through `ProtectedBinary.ExtCrypt`, each refuse the read with what is
-    /// wrong, <see cref="AttachmentUnreadable"/>. There is no second way of reading to fall
-    /// back to, the operator's ruling of 2026-11-14. `KeePassContractTests` pins what this
-    /// reads of KeePass and of Windows.
+    /// wrong, <see cref="AttachmentUnreadable"/>, which a client is answered `500 unreadable`
+    /// for. There is no second way of reading to fall back to, the operator's ruling of
+    /// 2026-11-14. `KeePassContractTests` pins what this reads of KeePass and of Windows.
     ///
     /// **How an attachment is kept is of the moment, and is asked at every read.** `ReadData`
     /// encrypts the buffer again through whatever cipher stands when it runs, and KeePass's
@@ -172,10 +172,13 @@ namespace KeePassGate.Bridge
         /// Refuses an attachment that <see cref="Read"/> would refuse, with nothing read.
         /// </summary>
         /// <remarks>
-        /// For whoever has to know before anything is read. KeePass keeps what it is handed
-        /// through whatever cipher is set at that moment, and keeps it otherwise once KeePass
-        /// has read it under another, so whether an attachment can be read is asked where it
-        /// matters and never remembered.
+        /// For a write, before the attachment it made is put on an entry: an attachment the
+        /// gate cannot read back would fail the tag of the change that stored it, once the
+        /// change was made, and every read of its entry after that. KeePass keeps what it is
+        /// handed through whatever cipher is set at that moment, so a write made while another
+        /// plugin's cipher stands makes such an attachment. And for every tag over an
+        /// attachment, `KdbxVault.Seen`, since how an attachment is kept can change after its
+        /// digest was kept.
         /// </remarks>
         public static void Check(ProtectedBinary binary)
         {

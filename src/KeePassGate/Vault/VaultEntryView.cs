@@ -267,6 +267,11 @@ namespace KeePassGate.Vault
     /// The size is known without decrypting anything, because a client has to decide whether to
     /// ask for an attachment before it asks, and an attachment can be megabytes.
     ///
+    /// **Its bytes are handed out a piece at a time and never whole**, by <see cref="Read"/>,
+    /// so that an attachment of any size is served and digested with a piece of it alive, and
+    /// no read is refused for an attachment's size. The store decides what a piece is read
+    /// from.
+    ///
     /// **An attachment that is listed and not read holds nothing its bytes could be read with**,
     /// as a withheld string holds no reader. The constructor drops what reads the bytes and what
     /// digests them unless the sight reads attachments, so a view taken for a caller that may
@@ -274,32 +279,23 @@ namespace KeePassGate.Vault
     /// </remarks>
     public sealed class VaultViewAttachment
     {
-        /// <summary>
-        /// The largest attachment the gate hands out, which is also the largest it takes and the
-        /// largest whose bytes a node's tag is taken over.
-        /// </summary>
-        /// <remarks>
-        /// Here rather than with the routes, so that the view, which a tag is taken of, and the
-        /// routes, which serve an attachment, read the same number.
-        /// `VaultHandlers.MaxAttachmentBytes` gives the reason for this number.
-        /// </remarks>
-        public const int MostServed = 512 * 1024;
-
-        private readonly Func<byte[]> _read;
+        private readonly Action<Action<byte[], int, int>> _read;
         private readonly Func<byte[]> _digest;
-        private byte[] _content;
 
         /// <summary>An attachment of an entry, as far as <paramref name="sight"/> reaches it.</summary>
         /// <param name="size">Its length in bytes, known without decrypting it.</param>
         /// <param name="sight">
         /// What the caller may read, where null is <see cref="VaultSight.Least"/>.
         /// </param>
-        /// <param name="read">What reads its bytes, kept only where they are in sight.</param>
+        /// <param name="read">
+        /// What hands its bytes out a piece at a time, in order, kept only where they are in
+        /// sight.
+        /// </param>
         /// <param name="digest">
         /// What takes the SHA-256 of its bytes, kept only where they are in sight.
         /// </param>
         public VaultViewAttachment(
-            string name, int size, VaultSight sight, Func<byte[]> read, Func<byte[]> digest)
+            string name, int size, VaultSight sight, Action<Action<byte[], int, int>> read, Func<byte[]> digest)
         {
             if (name == null)
             {
@@ -338,49 +334,40 @@ namespace KeePassGate.Vault
         public bool IsWithheld { get; private set; }
 
         /// <summary>
-        /// What it holds, read the first time it is asked for, or null for an attachment that is
-        /// withheld and for an attachment larger than <see cref="MostServed"/>, which is measured
-        /// and never decrypted.
-        /// </summary>
-        public byte[] Content
-        {
-            get
-            {
-                if (IsWithheld || Size > MostServed)
-                {
-                    return null;
-                }
-
-                return _content ?? (_content = _read());
-            }
-        }
-
-        /// <summary>
-        /// Overwrites the bytes this view read for <see cref="Content"/> and lets them go, so
-        /// that asking again reads them again.
+        /// Hands out what it holds, in order, a piece at a time, and nothing for an attachment
+        /// that is withheld.
         /// </summary>
         /// <remarks>
-        /// For the route that serves an attachment, once its answer is made or refused: the
-        /// bytes are a copy in the clear of what the store keeps encrypted, and a copy that can
-        /// be overwritten is. The answer they were written into cannot be.
+        /// **Read every time it is asked, and kept nowhere here**, as a string's value is: an
+        /// answer writes each piece as it is handed over, so that what is alive of an
+        /// attachment is the piece being written.
         /// </remarks>
-        public void Discard()
+        /// <param name="piece">
+        /// Handed an array, an offset into it and a count, to read where it is handed over
+        /// and neither keep nor change: the array is the store's, and can be the buffer the
+        /// attachment itself is kept in.
+        /// </param>
+        public void Read(Action<byte[], int, int> piece)
         {
-            if (_content != null)
+            if (piece == null)
             {
-                Array.Clear(_content, 0, _content.Length);
-                _content = null;
+                throw new ArgumentNullException(nameof(piece));
+            }
+
+            if (_read != null)
+            {
+                _read(piece);
             }
         }
 
         /// <summary>
         /// The SHA-256 of what it holds, as a copy for the caller to overwrite when it is done,
-        /// or null for an attachment that is withheld and for an attachment larger than
-        /// <see cref="MostServed"/>, whose bytes no route serves and no tag covers.
+        /// or null for an attachment that is withheld, whose bytes no route serves its caller
+        /// and no tag of that caller covers.
         /// </summary>
         public byte[] Digest
         {
-            get { return IsWithheld || Size > MostServed ? null : _digest(); }
+            get { return IsWithheld ? null : _digest(); }
         }
     }
 

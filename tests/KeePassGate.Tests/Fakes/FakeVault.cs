@@ -453,10 +453,13 @@ namespace KeePassGate.Tests.Fakes
         /// <see cref="StringDigests"/> and not as a read: the real vault reads a value for a
         /// tag the first time a tag is taken over that value, and hands every later tag the
         /// digest its store keeps against the value, so a digest is counted apart from what
-        /// an answer's content reads. Each attachment read or digested counts in
-        /// <see cref="AttachmentReads"/>, since the real vault decrypts for both. With
-        /// <see cref="IgnoresCeiling"/> every attachment's size is told as nothing, which is a
-        /// view handing over more than it measured.
+        /// an answer's content reads. An attachment is counted apart the same way: each time
+        /// its bytes are handed out counts in <see cref="AttachmentReads"/>, which is when
+        /// an answer's content is written, and each digest of it for a tag counts in
+        /// <see cref="AttachmentDigests"/>. Its bytes are handed out as the real vault hands
+        /// out a protected attachment: in pieces of at most <see cref="Piece"/> bytes, each
+        /// a copy that is overwritten once the piece has been taken, so that a route keeping
+        /// what it was handed answers with zeros.
         /// </remarks>
         private VaultEntryView Seen(Kept entry, VaultEntry described, VaultSight sight)
         {
@@ -503,7 +506,6 @@ namespace KeePassGate.Tests.Fakes
             if (sight != null && sight.Attachments != VaultAttachmentSight.None)
             {
                 var binaries = entry.Attachments.ToList();
-                var ignores = IgnoresCeiling;
                 attachments = () =>
                 {
                     Working();
@@ -514,19 +516,17 @@ namespace KeePassGate.Tests.Fakes
                         var content = pair.Value;
                         made.Add(new VaultViewAttachment(
                             pair.Key,
-                            ignores ? 0 : content.Length,
+                            content.Length,
                             sight,
-                            () =>
+                            piece =>
                             {
-                                // A copy, as the real vault hands out: the route serving an
-                                // attachment overwrites what it read.
                                 AttachmentReads++;
                                 Working();
-                                return (byte[])content.Clone();
+                                HandOut(content, piece);
                             },
                             () =>
                             {
-                                AttachmentReads++;
+                                AttachmentDigests++;
                                 Working();
                                 using (var sha256 = System.Security.Cryptography.SHA256.Create())
                                 {
@@ -540,6 +540,29 @@ namespace KeePassGate.Tests.Fakes
             }
 
             return new VaultEntryView(described, sight, fields, attachments, Tag);
+        }
+
+        /// <summary>
+        /// Hands an attachment's bytes out in order, in pieces of at most <see cref="Piece"/>
+        /// bytes, each a copy overwritten once the piece has been taken.
+        /// </summary>
+        private void HandOut(byte[] content, Action<byte[], int, int> piece)
+        {
+            for (var at = 0; at < content.Length; at += Piece)
+            {
+                var count = Math.Min(Piece, content.Length - at);
+                var copy = new byte[count];
+                Buffer.BlockCopy(content, at, copy, 0, count);
+                try
+                {
+                    AttachmentPieces++;
+                    piece(copy, 0, count);
+                }
+                finally
+                {
+                    Array.Clear(copy, 0, copy.Length);
+                }
+            }
         }
 
         /// <summary>Counts work on an entry's values that is done with a hold standing.</summary>
@@ -556,9 +579,9 @@ namespace KeePassGate.Tests.Fakes
         /// alone: protection as the database decides it, a value in sight by its digest and
         /// never by reading it, a withheld value as a fixed mark, each
         /// attachment the view holds by name and size, with its digest only where attachments
-        /// are read and only up to the largest the gate serves, and nothing for attachments the
-        /// view does not hold, with no mark of how far the sight reaches. The view never asks
-        /// this for a sight that does not read.
+        /// are read, whatever its size, and nothing for attachments the view does not hold,
+        /// with no mark of how far the sight reaches. The view never asks this for a sight that
+        /// does not read.
         /// </summary>
         /// <remarks>
         /// **Less the two times**, because nothing here keeps any. The real vault's tag carries
@@ -707,15 +730,11 @@ namespace KeePassGate.Tests.Fakes
         }
 
         /// <summary>
-        /// Hands over an attachment's contents whatever size they are when set, by measuring
-        /// each as nothing, as a vault that broke its promise would.
+        /// The most bytes of an attachment handed out at a time, which is the real vault's
+        /// piece: a multiple of three, so that the base64 of a piece joins the base64 of the
+        /// piece after it.
         /// </summary>
-        /// <remarks>
-        /// What `ReadAttachment`'s own check of what it was handed is for, and without this
-        /// nothing here could ever hand it more than it measured. A string has no ceiling, so
-        /// nothing about a string is measured here.
-        /// </remarks>
-        public bool IgnoresCeiling { get; set; }
+        public const int Piece = KeePassGate.Bridge.StoredBinaries.Piece;
 
         /// <summary>
         /// How many times a string value has been read off a view, each of which the real
@@ -737,15 +756,31 @@ namespace KeePassGate.Tests.Fakes
         public int StringDigests { get; set; }
 
         /// <summary>
-        /// How many times an attachment's contents have been read off a view, to hand over or to
-        /// digest for a tag, each of which the real vault decrypts, so that a test can tell an
-        /// answer was refused before an attachment was decrypted rather than after.
+        /// How many times an attachment's bytes have been read off a view, each of which the
+        /// real vault reads out of KeePass's own buffer, so that a test can tell an answer was
+        /// refused, or handed over and never written, with no piece of an attachment read.
         /// </summary>
+        /// <remarks>
+        /// A tag reads nothing here, <see cref="AttachmentDigests"/>, so what this counts is
+        /// what an answer's content read, and that is counted when the content is written.
+        /// </remarks>
         public int AttachmentReads { get; set; }
 
         /// <summary>
-        /// What is stored under this name, for a test to look at: nothing is counted and no
-        /// ceiling applies.
+        /// How many pieces of attachments have been handed out, over every read counted in
+        /// <see cref="AttachmentReads"/>.
+        /// </summary>
+        public int AttachmentPieces { get; set; }
+
+        /// <summary>
+        /// How many times an attachment has been digested for a tag, so that a test can tell
+        /// an attachment out of the caller's sight was never digested, and that an answer
+        /// carrying no tag digested nothing.
+        /// </summary>
+        public int AttachmentDigests { get; set; }
+
+        /// <summary>
+        /// What is stored under this name, for a test to look at: nothing is counted.
         /// </summary>
         public byte[] Attachment(string entryUuid, string name)
         {

@@ -147,6 +147,106 @@ namespace KeePassGate.Host.Tests
             Assert.That(InTheOpen(), Is.Empty, "a value read a second time was left in the open");
         }
 
+        [TestCase(3)]
+        [TestCase(StoredBinaries.Piece)]
+        [TestCase((3 * StoredBinaries.Piece) + 5)]
+        public void A_read_of_a_protected_attachment_leaves_KeePass_s_buffer_encrypted_as_it_was(int size)
+        {
+            // KeePass keeps a protected attachment encrypted in place, and its own read
+            // decrypts the whole buffer where it stands. The gate reads a copy of a piece at a
+            // time, so the attachment never stands decrypted for it: once the answer has been
+            // written, the content read where it was written, KeePass's buffer is the array it
+            // was, holding the encrypted bytes it held, and the answer holds the attachment.
+            var content = new byte[size];
+            new Random(size).NextBytes(content);
+            var binary = new ProtectedBinary(true, content);
+            _entry.Binaries.Set("notes.txt", binary);
+
+            var held = KeePassMemory.Buffer(binary);
+            var encrypted = (byte[])held.Clone();
+            Assume.That(KeePassMemory.KeptAs(binary), Is.EqualTo("ProtectedMemory"));
+
+            var answer = Asked("GET", "/entries/{entry}/attachments/notes.txt", null);
+
+            Assert.That(answer.Status, Is.EqualTo(200));
+            Assert.That(answer.Headers["ETag"], Is.Not.Null);
+            Assert.That(answer.Content, Is.Not.Null, "the answer is written as it is sent");
+            Assert.That(answer.Json, Is.Null, "and was made into no document by the handler");
+
+            var document = Newtonsoft.Json.Linq.JObject.Parse(answer.Document());
+            Assert.That((string)document["name"], Is.EqualTo("notes.txt"));
+            Assert.That((int)document["size"], Is.EqualTo(size));
+            Assert.That(
+                (string)document["content"] == Convert.ToBase64String(content),
+                Is.True,
+                "the answer holds other base64 than the attachment's");
+
+            Assert.That(KeePassMemory.Buffer(binary), Is.SameAs(held));
+            Assert.That(
+                held.SequenceEqual(encrypted),
+                Is.True,
+                "the read left other bytes in KeePass's buffer than it found");
+            Assert.That(KeePassMemory.KeptAs(binary), Is.EqualTo("ProtectedMemory"));
+
+            // Written a second time, as the bytes are read again by every asking.
+            using (var again = new System.IO.StringWriter())
+            {
+                answer.Content(again);
+
+                Assert.That(again.ToString() == answer.Document(), Is.True);
+            }
+
+            Assert.That(held.SequenceEqual(encrypted), Is.True, "a second read left other bytes in KeePass's buffer");
+            Assert.That(InTheOpen(), Is.Empty);
+            Assert.That(binary.ReadData().SequenceEqual(content), Is.True, "and KeePass still reads the attachment");
+        }
+
+        [TestCase("/entries/{entry}")]
+        [TestCase("/entries/{entry}/fields")]
+        [TestCase("/entries/{entry}/fields/UserName")]
+        [TestCase("/entries/{entry}/attachments")]
+        [TestCase("/entries/{entry}/attachments/notes.txt")]
+        public void An_answer_carrying_a_tag_over_a_protected_attachment_leaves_its_buffer_encrypted_as_it_was(
+            string path)
+        {
+            // A tag covers the bytes of every attachment in its caller's sight, at any size,
+            // so every read of the entry digests the attachment the first time, a piece at a
+            // time, and a change asked against the tag takes it as it finds the entry and as it
+            // leaves it. None of them leaves the attachment's buffer other than it was.
+            var content = new byte[(2 * StoredBinaries.Piece) + 7];
+            new Random(11).NextBytes(content);
+            var binary = new ProtectedBinary(true, content);
+            _entry.Binaries.Set("notes.txt", binary);
+
+            var held = KeePassMemory.Buffer(binary);
+            var encrypted = (byte[])held.Clone();
+
+            string tag = null;
+            foreach (var method in new[] { "HEAD", "GET" })
+            {
+                var answer = Asked(method, path, null);
+
+                Assert.That(answer.Status, Is.EqualTo(200), method + " " + path);
+                tag = answer.Headers["ETag"];
+                Assert.That(tag, Is.Not.Null, method + " " + path);
+                Assert.That(KeePassMemory.Buffer(binary), Is.SameAs(held), method + " " + path);
+                Assert.That(
+                    held.SequenceEqual(encrypted),
+                    Is.True,
+                    method + " " + path + " left other bytes in KeePass's buffer");
+            }
+
+            var written = Asked(
+                "PUT", "/entries/{entry}/fields/UserName", Bodies.Of(("value", "another invented name")), tag);
+
+            Assert.That(written.Status, Is.EqualTo(200), written.Document());
+            Assert.That(written.Document(), Does.Contain("\"etag\""));
+            Assert.That(_entry.Binaries.Get("notes.txt"), Is.SameAs(binary));
+            Assert.That(held.SequenceEqual(encrypted), Is.True, "a change left other bytes in KeePass's buffer");
+            Assert.That(KeePassMemory.KeptAs(binary), Is.EqualTo("ProtectedMemory"));
+            Assert.That(InTheOpen(), Is.Empty);
+        }
+
         [Test]
         public void A_change_asked_against_a_tag_leaves_every_protected_value_as_KeePass_held_it()
         {

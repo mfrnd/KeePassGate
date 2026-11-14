@@ -1422,26 +1422,28 @@ namespace KeePassGate.Tests
         public void An_attachment_asked_for_under_such_a_spelling_hands_nothing_over()
         {
             // `readAttachment` served the stored attachment's bytes under the caller's spelling,
-            // and got there past the ceiling the listing is asked about first, because the listing
-            // compares names the way the guards do and found nothing to measure.
+            // because the listing compares names the way the guards do. An attachment of a few
+            // bytes and an attachment larger than a write takes, since a read of the second is
+            // written a piece at a time.
             _vault.Granting(_group, AllButProtected);
             var content = Convert.ToBase64String(Encoding.UTF8.GetBytes("an invented attachment"));
             Send("POST", "/entries/" + _entry + "/attachments",
                 Bodies.Of(("name", "notes.txt"), ("content", content)));
-            var oversize = new byte[VaultHandlers.MaxAttachmentBytes + 1];
-            Assert.That(_vault.CreateAttachment(_entry, "big.bin", oversize, VaultAskings.Free).Ok, Is.True);
+            var large = new byte[VaultHandlers.MaxAttachmentBytes + 1];
+            Assert.That(_vault.CreateAttachment(_entry, "big.bin", large, VaultAskings.Free).Ok, Is.True);
 
             // Nothing is read at all. The name is asked for first, and the entry's tag, which
-            // digests every attachment up to the ceiling and which the real vault decrypts them
-            // to take, is taken only for an answer that hands it out.
+            // digests every attachment, is taken only for an answer that hands it out.
             foreach (var spelling in new[] { "notes%C2%AD.txt", "big%C2%AD.bin" })
             {
                 _vault.AttachmentReads = 0;
+                _vault.AttachmentDigests = 0;
                 var asked = Get("/entries/" + _entry + "/attachments/" + spelling);
 
                 Assert.That(asked.Status, Is.EqualTo(404), spelling);
                 Assert.That(asked.Json, Does.Not.Contain("content"), spelling);
                 Assert.That(_vault.AttachmentReads, Is.Zero, spelling + " was read");
+                Assert.That(_vault.AttachmentDigests, Is.Zero, spelling + " had a tag taken for it");
             }
 
             Assert.That(Get("/entries/" + _entry + "/attachments/notes.txt").Json,
@@ -1860,104 +1862,176 @@ namespace KeePassGate.Tests
             Assert.That(read.Json, Does.Contain("\"size\":22"));
         }
 
-        [Test]
-        public void An_attachment_over_the_ceiling_is_refused_without_being_read()
+        [TestCase(0)]
+        [TestCase(1)]
+        [TestCase(2)]
+        [TestCase(3)]
+        [TestCase(FakeVault.Piece - 1)]
+        [TestCase(FakeVault.Piece)]
+        [TestCase(FakeVault.Piece + 1)]
+        [TestCase(VaultHandlers.MaxAttachmentBytes)]
+        [TestCase(VaultHandlers.MaxAttachmentBytes + 1)]
+        [TestCase(4 * VaultHandlers.MaxAttachmentBytes)]
+        public void An_attachment_of_any_size_is_served_whole_and_read_a_single_time(int size)
         {
-            // Building one of these costs about ten times its size in managed memory, all live at
-            // once, and the transport serves thirty-two connections at a time inside KeePass. The
-            // refusal has to come before the read, which is why this counts the reads.
+            // A read of an attachment was refused `413` past the size a write takes, since its
+            // answer was built whole and cost about ten times the attachment in memory. The
+            // answer is written as it is sent, a piece of the attachment at a time, so no read
+            // is refused for size: an attachment planted as KeePass or a merge can leave it, at
+            // the size a write takes, a byte over it and several times it, is served with its
+            // size and every byte, and read a single time, as the answer is written.
             _vault.Granting(_group, AllButProtected);
-            var oversize = new byte[VaultHandlers.MaxAttachmentBytes + 1];
-            Assume.That(_vault.CreateAttachment(_entry, "big.bin", oversize, VaultAskings.Free).Ok, Is.True);
+            var bytes = Invented(size);
+            Assume.That(_vault.CreateAttachment(_entry, "big.bin", bytes, VaultAskings.Free).Ok, Is.True);
 
             _vault.AttachmentReads = 0;
-            var read = Get("/entries/" + _entry + "/attachments/big.bin");
-
-            Assert.That(read.Status, Is.EqualTo(413));
-            Assert.That(
-                read.Json,
-                Does.Contain(VaultHandlers.MaxAttachmentBytes.ToString(CultureInfo.InvariantCulture)),
-                "the refusal has to say what the ceiling is");
-            Assert.That(_vault.AttachmentReads, Is.Zero,
-                "an attachment refused for its size must not be decrypted to find that out");
-        }
-
-        [Test]
-        public void An_attachment_a_vault_hands_over_past_the_ceiling_is_still_refused()
-        {
-            // A view measures an attachment and hands over no bytes of an attachment past the
-            // ceiling. When it measures short and hands over more anyway, the check of what came
-            // back is the only thing between that attachment and an answer over the ceiling.
-            _vault.Granting(_group, AllButProtected);
-            var oversize = new byte[VaultHandlers.MaxAttachmentBytes + 1];
-            Assume.That(_vault.CreateAttachment(_entry, "big.bin", oversize, VaultAskings.Free).Ok, Is.True);
-            _vault.IgnoresCeiling = true;
-
-            _vault.AttachmentReads = 0;
-            var read = Get("/entries/" + _entry + "/attachments/big.bin");
-
-            Assert.That(_vault.AttachmentReads, Is.EqualTo(1),
-                "the vault handed it over, so this is the check of what came back");
-            Assert.That(read.Status, Is.EqualTo(413));
-            Assert.That(read.Json, Does.Not.Contain("content"),
-                "nothing of the attachment is handed out");
-        }
-
-        [Test]
-        public void An_attachment_at_the_ceiling_is_still_handed_out()
-        {
-            // The boundary, on the side that has to keep working: exactly the ceiling is allowed,
-            // and it is the same size a write accepts.
-            _vault.Granting(_group, AllButProtected);
-            var largest = new byte[VaultHandlers.MaxAttachmentBytes];
-            Assume.That(_vault.CreateAttachment(_entry, "big.bin", largest, VaultAskings.Free).Ok, Is.True);
-
+            _vault.AttachmentPieces = 0;
             var read = Get("/entries/" + _entry + "/attachments/big.bin");
 
             Assert.That(read.Status, Is.EqualTo(200));
+            Assert.That(read.Tag, Is.Not.Null);
+
+            var answer = Newtonsoft.Json.Linq.JObject.Parse(read.Json);
+            Assert.That(
+                answer.Properties().Select(member => member.Name), Is.EqualTo(new[] { "name", "size", "content" }));
+            Assert.That((string)answer["name"], Is.EqualTo("big.bin"));
+            Assert.That((int)answer["size"], Is.EqualTo(size), "the size is the attachment's");
+            Assert.That(
+                Convert.FromBase64String((string)answer["content"]).SequenceEqual(bytes),
+                Is.True,
+                "the content came back other than it is stored");
             Assert.That(
                 read.Json,
-                Does.Contain("\"size\":" + VaultHandlers.MaxAttachmentBytes.ToString(CultureInfo.InvariantCulture)));
+                Does.EndWith("\"content\":\"" + Convert.ToBase64String(bytes) + "\"}"),
+                "the base64 of the pieces is the base64 of the whole, padded where the whole ends and nowhere else");
+            Assert.That(_vault.AttachmentReads, Is.EqualTo(1), "read where it is written, and nowhere else");
+            Assert.That(
+                _vault.AttachmentPieces,
+                Is.EqualTo((size + FakeVault.Piece - 1) / FakeVault.Piece),
+                "a piece at a time, and no piece twice");
+        }
+
+        [Test]
+        public void Asking_whether_an_attachment_is_there_reads_no_piece_of_it()
+        {
+            // The handler answering a read of an attachment hands over what writes the answer
+            // and reads no piece for the answer itself, and the transport does not run that for
+            // a HEAD, `HttpResponseContentTests`. So a HEAD is answered with the status and the
+            // tag a GET carries and no piece of the attachment is read, whatever its size. The
+            // tag is taken from a digest, which the fake counts apart from a read.
+            //
+            // Asked of the router, which runs no content, as the HEAD of an entry is asked, and
+            // of a GET as well: its pieces are read where its content is written.
+            _vault.Granting(_group, AllButProtected);
+            Assume.That(
+                _vault.CreateAttachment(
+                    _entry, "big.bin", Invented(4 * VaultHandlers.MaxAttachmentBytes), VaultAskings.Free).Ok,
+                Is.True);
+            var path = "/entries/" + _entry + "/attachments/big.bin";
+
+            var got = Get(path);
+            Assume.That(got.Status, Is.EqualTo(200));
+
+            foreach (var method in new[] { "HEAD", "GET" })
+            {
+                _vault.AttachmentReads = 0;
+                _vault.AttachmentDigests = 0;
+
+                var context = Context(method, path, null);
+                _router.Handle(context);
+
+                Assert.That(context.Status, Is.EqualTo(200), method);
+                Assert.That(context.Headers == null ? null : context.Headers["ETag"], Is.EqualTo(got.Tag), method);
+                Assert.That(context.Content, Is.Not.Null, method + " was not handed over as what writes it");
+                Assert.That(context.Json, Is.Null, method + " was handed over as a document as well");
+                Assert.That(_vault.AttachmentDigests, Is.EqualTo(1), method + ": the tag is taken from the digest");
+                Assert.That(_vault.AttachmentReads, Is.Zero, method + " read a piece before its content was written");
+
+                // What the transport does with each: the content of a HEAD is never run.
+                Assert.That(context.Document() == got.Json, Is.EqualTo(method == "GET"), method);
+                Assert.That(_vault.AttachmentReads, Is.EqualTo(method == "GET" ? 1 : 0), method);
+            }
         }
 
         [Test]
         public void An_attachment_written_at_the_ceiling_can_be_read_back()
         {
-            // The round trip through the routes on both sides, which is what the ceiling promises:
-            // the tests above plant their attachments in the vault and so never ask the write.
+            // The round trip through the routes on both sides, at the largest size a write
+            // takes: the tests above plant their attachments in the vault and so never ask the
+            // write.
             _vault.Granting(_group, AllButProtected);
-            var largest = Convert.ToBase64String(new byte[VaultHandlers.MaxAttachmentBytes]);
+            var first = Invented(VaultHandlers.MaxAttachmentBytes);
+            var second = first.Reverse().ToArray();
 
             Assert.That(Send("POST", "/entries/" + _entry + "/attachments",
-                Bodies.Of(("name", "big.bin"), ("content", largest))).Status, Is.EqualTo(201));
-            Assert.That(Send("PUT", "/entries/" + _entry + "/attachments/big.bin",
-                Bodies.Of(("content", largest))).Status, Is.EqualTo(200));
+                Bodies.Of(("name", "big.bin"), ("content", Convert.ToBase64String(first)))).Status, Is.EqualTo(201));
+            Assert.That(
+                Get("/entries/" + _entry + "/attachments/big.bin").Json,
+                Does.EndWith("\"content\":\"" + Convert.ToBase64String(first) + "\"}"));
 
-            Assert.That(Get("/entries/" + _entry + "/attachments/big.bin").Status, Is.EqualTo(200));
+            Assert.That(Send("PUT", "/entries/" + _entry + "/attachments/big.bin",
+                Bodies.Of(("content", Convert.ToBase64String(second)))).Status, Is.EqualTo(200));
+
+            var read = Get("/entries/" + _entry + "/attachments/big.bin");
+            Assert.That(read.Status, Is.EqualTo(200));
+            Assert.That(read.Json, Does.EndWith("\"content\":\"" + Convert.ToBase64String(second) + "\"}"));
         }
 
         [Test]
         public void A_write_one_byte_over_the_ceiling_is_refused()
         {
             // The one size the document cannot refuse: one byte over the ceiling is a multiple of
-            // three and so spells as many base64 characters as the ceiling does. Stored, it would be
-            // an attachment every read answers 413, so the write refuses it the way it refuses the
+            // three and so spells as many base64 characters as the ceiling does. A read is held
+            // to no size, and a write still is, so the write refuses it the way it refuses the
             // next size up, and leaves what was there alone.
             _vault.Granting(_group, AllButProtected);
             var over = Convert.ToBase64String(new byte[VaultHandlers.MaxAttachmentBytes + 1]);
             Assume.That(over.Length, Is.EqualTo(4 * ((VaultHandlers.MaxAttachmentBytes + 2) / 3)),
                 "this is about the size the document's length admits");
 
-            Assert.That(Send("POST", "/entries/" + _entry + "/attachments",
-                Bodies.Of(("name", "big.bin"), ("content", over))).Status, Is.EqualTo(400));
+            var made = Send("POST", "/entries/" + _entry + "/attachments",
+                Bodies.Of(("name", "big.bin"), ("content", over)));
+            Assert.That(made.Status, Is.EqualTo(400));
+            Assert.That(made.Json, Is.EqualTo(HttpResponse.ErrorBody("malformed")));
             Assert.That(_vault.Whole(_entry).Attachments, Is.Empty, "nothing is stored");
 
             Assume.That(_vault.CreateAttachment(_entry, "small.bin", new byte[] { 1 }, VaultAskings.Free).Ok, Is.True);
 
-            Assert.That(Send("PUT", "/entries/" + _entry + "/attachments/small.bin",
-                Bodies.Of(("content", over))).Status, Is.EqualTo(400));
+            var changed = Send("PUT", "/entries/" + _entry + "/attachments/small.bin",
+                Bodies.Of(("content", over)));
+            Assert.That(changed.Status, Is.EqualTo(400));
+            Assert.That(changed.Json, Is.EqualTo(HttpResponse.ErrorBody("malformed")));
             Assert.That(_vault.Attachment(_entry, "small.bin"), Is.EqualTo(new byte[] { 1 }),
                 "what was there is left alone");
+        }
+
+        [Test]
+        public void A_write_far_over_the_ceiling_is_refused_though_a_read_of_that_size_is_served()
+        {
+            // What a write takes and what a read hands out are two sizes now. An attachment of
+            // the size refused here is served when KeePass holds it, and a write of it is still
+            // `400 malformed`, on both writes, with nothing stored.
+            _vault.Granting(_group, AllButProtected);
+            var bytes = Invented(VaultHandlers.MaxAttachmentBytes + (64 * 1024));
+            var over = Convert.ToBase64String(bytes);
+
+            var made = Send("POST", "/entries/" + _entry + "/attachments",
+                Bodies.Of(("name", "big.bin"), ("content", over)));
+            Assert.That(made.Status, Is.EqualTo(400));
+            Assert.That(made.Json, Is.EqualTo(HttpResponse.ErrorBody("malformed")));
+            Assert.That(_vault.Whole(_entry).Attachments, Is.Empty, "nothing is stored");
+
+            Assume.That(_vault.CreateAttachment(_entry, "big.bin", bytes, VaultAskings.Free).Ok, Is.True);
+
+            var changed = Send("PUT", "/entries/" + _entry + "/attachments/big.bin",
+                Bodies.Of(("content", Convert.ToBase64String(bytes.Reverse().ToArray()))));
+            Assert.That(changed.Status, Is.EqualTo(400));
+            Assert.That(changed.Json, Is.EqualTo(HttpResponse.ErrorBody("malformed")));
+            Assert.That(_vault.Attachment(_entry, "big.bin"), Is.EqualTo(bytes), "what was there is left alone");
+
+            var read = Get("/entries/" + _entry + "/attachments/big.bin");
+            Assert.That(read.Status, Is.EqualTo(200));
+            Assert.That(read.Json, Does.EndWith("\"content\":\"" + over + "\"}"));
         }
 
         [Test]
@@ -2064,6 +2138,7 @@ namespace KeePassGate.Tests
             _vault.StringReads = 0;
             _vault.StringDigests = 0;
             _vault.AttachmentReads = 0;
+            _vault.AttachmentDigests = 0;
 
             var fields = Get(entry + "/fields");
             Assert.That(fields.Status, Is.EqualTo(200), fields.Json);
@@ -2089,6 +2164,7 @@ namespace KeePassGate.Tests
             Assert.That(_vault.StringReads, Is.Zero, "a value was read for a caller that only lists");
             Assert.That(_vault.StringDigests, Is.Zero, "a value was digested for a caller that only lists");
             Assert.That(_vault.AttachmentReads, Is.Zero, "an attachment was read for a caller that only lists");
+            Assert.That(_vault.AttachmentDigests, Is.Zero, "an attachment was digested for a caller that only lists");
         }
 
         [Test]
@@ -2113,33 +2189,56 @@ namespace KeePassGate.Tests
             Assert.That(_vault.StringReads, Is.EqualTo(1), "the value asked for, and no other value of the entry");
         }
 
+        [TestCase(false, TestName = "An attachment asked for under a stale tag is refused with no piece read")]
         [TestCase(
-            "\"00000000000000000000000000000000\"",
-            false,
-            TestName = "An attachment over the ceiling asked for under a stale tag is too large")]
-        [TestCase(
-            "*",
             true,
-            TestName = "An attachment over the ceiling asked for under any tag beside a withheld value is too large")]
-        public void An_attachment_over_the_ceiling_is_too_large_whatever_its_condition(
-            string ifMatch, bool holdsProtected)
+            TestName = "An attachment beside a withheld value asked for under a stale tag is refused unread")]
+        public void An_attachment_whose_condition_fails_is_refused_with_no_piece_read(bool holdsProtected)
         {
-            // RFC 9110 section 13.2.1 asks the condition only of a request that would otherwise
-            // succeed, and the size does not depend on the tag. Asked first, a stale tag was told
-            // `412`, read again, and only then told the read could not be served. A caller whose
-            // view withholds a password is handed a tag like any reader, and `*` holds for it.
+            // An attachment larger than a write takes was refused for its size before its
+            // condition was asked, since RFC 9110 section 13.2.1 asks the condition only of a
+            // request that would otherwise succeed. No read is refused for size, so every such
+            // read would succeed and the order is the absent name, the tag, the condition and
+            // then the answer: a stale tag is told `412` with nothing of the attachment read,
+            // and the same read under the tag the entry has, or under `*`, is served whole. A
+            // caller whose view withholds a password is handed a tag like any reader.
             _vault.Granting(_group, AllButProtected);
             if (holdsProtected)
             {
                 _vault.CreateField(_entry, "Password", "not-a-real-password", true, VaultAskings.Free);
             }
 
-            Assume.That(_vault.CreateAttachment(
-                _entry, "big.bin", new byte[VaultHandlers.MaxAttachmentBytes + 1], VaultAskings.Free).Ok, Is.True);
+            var bytes = Invented(VaultHandlers.MaxAttachmentBytes + 1);
+            Assume.That(_vault.CreateAttachment(_entry, "big.bin", bytes, VaultAskings.Free).Ok, Is.True);
+            var path = "/entries/" + _entry + "/attachments/big.bin";
+            var tag = Get(path).Tag;
+            const string Stale = "\"00000000000000000000000000000000\"";
 
-            var read = Conditioned("GET", "/entries/" + _entry + "/attachments/big.bin", null, ifMatch);
+            foreach (var method in new[] { "GET", "HEAD" })
+            {
+                _vault.AttachmentReads = 0;
+                var stale = Conditioned(method, path, null, Stale);
 
-            Assert.That(read.Status, Is.EqualTo(413), read.Json);
+                Assert.That(stale.Status, Is.EqualTo(412), method + " " + stale.Json);
+                Assert.That(stale.Json, Does.Not.Contain("content"), "nothing of the attachment is handed out");
+                Assert.That(_vault.AttachmentReads, Is.Zero, method + " read a piece for an answer that was refused");
+            }
+
+            Assert.That(
+                Conditioned("GET", "/entries/" + _entry + "/attachments/absent.bin", null, Stale).Status,
+                Is.EqualTo(404),
+                "a name the entry does not hold is absent whatever the condition");
+
+            foreach (var holding in new[] { tag, "*" })
+            {
+                var current = Conditioned("GET", path, null, holding);
+
+                Assert.That(current.Status, Is.EqualTo(200), holding);
+                Assert.That(
+                    current.Json,
+                    Does.EndWith("\"content\":\"" + Convert.ToBase64String(bytes) + "\"}"),
+                    holding);
+            }
         }
 
         [TestCase("", TestName = "An entry asked for under a stale tag is refused with no value read")]
@@ -2344,12 +2443,14 @@ namespace KeePassGate.Tests
         [TestCase("/fields", true)]
         [TestCase("/fields/Title", true)]
         [TestCase("/attachments", true)]
-        [TestCase("/attachments/notes.txt", false)]
+        [TestCase("/attachments/notes.txt", true)]
+        [TestCase("/access", false)]
         public void What_grows_with_what_an_entry_holds_is_handed_over_as_what_writes_it(string under, bool written)
         {
             // Written as it is sent, an answer keeps nothing of itself alive, so the answers
-            // that grow with what clients wrote into an entry are handed to the transport as
-            // what writes them, and an answer of a bounded size as the document it is.
+            // that grow with what an entry holds are handed to the transport as what writes
+            // them, an attachment among them, which is read a piece at a time and held to no
+            // size, and an answer of a bounded size as the document it is.
             _vault.Granting(_group, Rules.Granting(("agent", "CRUSDLAP")));
             Assert.That(
                 Send("POST", "/entries/" + _entry + "/attachments", Bodies.Of(
@@ -3692,6 +3793,17 @@ namespace KeePassGate.Tests
         private static string Base64(string text)
         {
             return Convert.ToBase64String(Encoding.UTF8.GetBytes(text));
+        }
+
+        /// <summary>
+        /// Invented bytes for an attachment, the same for the same size, and no two pieces of
+        /// them alike, so that a piece written twice, dropped or out of its place shows.
+        /// </summary>
+        private static byte[] Invented(int size)
+        {
+            var bytes = new byte[size];
+            new Random(size).NextBytes(bytes);
+            return bytes;
         }
 
         /// <summary>The same request, carrying an `If-Match`.</summary>

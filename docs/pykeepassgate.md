@@ -714,12 +714,29 @@ before a body comes near the 1 MiB that is answered `413`.
 Attachments need the `A` switch on the rule as well as the verb, which is what makes "read this
 entry" and "read the files inside it" two separate decisions.
 
-**512 KiB is the largest attachment this API carries**, in either direction. Reading one costs
-about ten times its size in memory inside KeePass itself, so a bigger one is refused rather than
-built, and the same size is what a write accepts: nothing can be read out and then not put back.
-Reading a bigger one is refused with `413`, and the message names its size and the ceiling. Writing
-one is refused as `400 malformed`, like any body the routing table does not allow, and a body over
-1 MiB as `413` before any route sees it.
+**A read of an attachment is held to no size by the gate.** It writes the answer as it is sent,
+a piece of the attachment at a time, so an attachment added in KeePass is fetched at any size,
+a size that cannot be written through the gate included. What bounds a fetch is the client's own
+cap on an answer, 4 MiB unless `max_response_bytes` raises it, [below](#read-a-larger-answer),
+and the client holds the whole answer in memory before `fetch` writes the file. An attachment
+arrives as base64, four thirds of its size, so the default takes an attachment of a little under
+3 MiB, and a larger attachment raises `ProtocolError` until the cap is raised. A cap of 64 MiB
+takes an attachment of a little under 48 MiB:
+
+```shell
+pykeepassgate fetch <uuid> big.iso --to ./big.iso --max-response-bytes 67108864
+```
+
+**An attachment the gate cannot read answers `500 unreadable`**, raised as `RouteRefused`, and
+so does a read of its entry that carries the entry's tag. The gate reads a protected attachment
+as KeePass itself keeps it in memory, and an attachment KeePass keeps through a cipher another
+KeePass plugin put in its place is not readable that way. Nothing in the request is wrong and
+asking again mends nothing: it is the operator's to settle in KeePass. Writing an attachment
+while such a cipher stands is refused the same way, and changes nothing.
+
+**512 KiB is the largest attachment a write takes**, since a write carries the attachment in the
+request's body. A larger attachment is refused as `400 malformed`, like any body the routing
+table does not allow, and a body over 1 MiB as `413` before any route sees it.
 
 ```shell
 pykeepassgate attachments <uuid>
@@ -979,7 +996,7 @@ except api.RouteRefused:
 | `GateUnavailable` | The base of the three above, so catching it catches every `503`, and raised on its own for a `503` whose word this client does not know, or that names none. A `503` to a `head` names its word as well, in `KPG-Unavailable`, since its answer carries no body, so it is `GateBusy`, `DatabaseLocked` or `AuthorityUndecided` and waited out as a `get` is. `.error` is the word, and `.retry_after` the delay the gate asked for. No budget waits it out, because nothing on this side knows what ends it. |
 | `NotAdmitted` | The gate does not admit this certificate: it was never admitted, it was revoked, or it has expired. One that has expired by this machine's clock, by more than the five minutes a clock running ahead of the gate's is allowed, is named as expired, with the moment, before anything is dialed, rather than left for the gate to refuse as it refuses a stranger. To go on reaching the gate, pair again: a renewal needs a certificate that has not expired. To give the identity up, `revoke` removes what is stored for it, and `forget` from a program. |
 | `PreconditionFailed` | A request made with `if_match` that the gate did not serve, so nothing was read or changed: `412`. Most often the node no longer holds what the tag states: another client, the operator in KeePass, a merge or a plugin changed it after the tag was taken, and what mends it is reading the node again, which hands back its tag as it is now, and deciding again whether the change still makes sense. A tag is taken over what this client may read of the node, so rules widened or narrowed over what it sees answer the same once. The same `412` answers any `if_match` from a client the gate hands no tag to, which holds no `read` on the node; what mends that is sending none. An `if_match` the gate could not read, a tag without its quotes or a weak tag, would be answered the same, and this client refuses it with `ProtocolError` before it is sent. Not retried, since asking again asks the same question of the same node. It is a `RouteRefused` with `.status` `412`, so a caller catching that already catches this. |
-| `RouteRefused` | The gate refused it. `.status` tells which: `404` is absent or not reachable and nothing can be done, while `400` and `409` are about the request itself, and `413` is something too large to carry, an attachment bigger than this gate hands out or a body bigger than it takes, which `.error` tells in a sentence. `500` is none of those: the gate failed, and the operator's KeePass is where to look. After `500 not saved` or `500 internal error` nothing was left written that sending it again would duplicate; after `500 not verified` the change may be on the disk, so look first, and until the operator saves the database in KeePass every write to it is `GateBusy`, as [Wait out a refusal](#wait-out-a-refusal-instead-of-reporting-it) explains. `500 not recorded` is told only to `pair` and `renew`: the operator approved, the record did not reach the disk and was taken back out, and nothing was handed over, so asking again puts the dialog in front of the operator again; a renewing client's certificate still works, and a pairing's invitation is spent. |
+| `RouteRefused` | The gate refused it. `.status` tells which: `404` is absent or not reachable and nothing can be done, while `400` and `409` are about the request itself, and `413` is a request whose body is over the 1 MiB the gate takes, which `.error` tells in a sentence. `500` is none of those: the gate failed, and the operator's KeePass is where to look. After `500 not saved` or `500 internal error` nothing was left written that sending it again would duplicate; after `500 not verified` the change may be on the disk, so look first, and until the operator saves the database in KeePass every write to it is `GateBusy`, as [Wait out a refusal](#wait-out-a-refusal-instead-of-reporting-it) explains. `500 not recorded` is told only to `pair` and `renew`: the operator approved, the record did not reach the disk and was taken back out, and nothing was handed over, so asking again puts the dialog in front of the operator again; a renewing client's certificate still works, and a pairing's invitation is spent. |
 | `Withheld` | A protected value this client may not read, from every way of reading one: the database protects it, and the rule that lets this client read or list the entry does not grant `P`. The message names the field; the operator can add `P` to that rule. The rest of the answer stands, and `entry.withheld` or `field.withheld` states the same without a `try`: `{name: entry.fields[name] for name in entry.fields if name not in entry.withheld}` reads every value this client may read. |
 | `Unresolved` | From `refs.resolve` alone: a value it will not give as KeePass would, and the message tells why. A reference searching by anything but a whole identifier, a reference to an entry this client cannot read, a placeholder KeePass replaces and the resolver does not, references going round in a circle or deeper than KeePass follows, or a value that takes more work than `refs.COMPILES` and `refs.CHARACTERS` allow. Use the value as stored, refer by identifier, or ask the operator to let this client read the entry referred to. |
 | `AmbiguousName` | A name only KeePass's own comparison can match, which this client will not guess at: an entry's `title`, `username`, `password`, `url` or `notes`, or a placeholder or a reference standing for such a string, when the entry holds the string under no name spelled exactly so beside a name beyond ASCII or with a null in it, and from `refs.resolve` a placeholder that names a field only in another case beyond ASCII. The message names the string or the placeholder. Rename the field in KeePass to the name spelled exactly, in ASCII. |
@@ -1132,11 +1149,13 @@ and asking again reads the same answer to the same cap.
 
 The plugin serves a listing of groups or of entries whole ([`../API.md`](../API.md) §407), so
 that listing grows with the database, and a very large database can outgrow the default. So can
-an entry, and the listing of its fields with it: the plugin hands out an entry of any size
+an entry, and the listing of its fields with it, and so can an attachment, which arrives as
+base64, four thirds of its size: the plugin hands out an entry and an attachment of any size
 ([`../API.md`](../API.md) §412). Raise it for that client:
 
 ```shell
 pykeepassgate groups --max-response-bytes 16777216
+pykeepassgate fetch <uuid> big.iso --to ./big.iso --max-response-bytes 67108864
 ```
 
 ```python

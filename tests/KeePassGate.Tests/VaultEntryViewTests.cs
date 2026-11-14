@@ -231,28 +231,39 @@ namespace KeePassGate.Tests
         public void An_attachment_listed_and_not_read_keeps_its_name_and_size_and_holds_no_bytes()
         {
             var read = 0;
-            Func<byte[]> counted = () =>
+            Action<Action<byte[], int, int>> counted = piece =>
             {
                 read++;
-                return new byte[] { 1, 2, 3 };
+                piece(new byte[] { 1, 2, 3 }, 0, 3);
+            };
+
+            Func<byte[]> digested = () =>
+            {
+                read++;
+                return new byte[32];
             };
 
             var listed = new VaultSight(true, true, VaultAttachmentSight.Listed);
-            var attachment = new VaultViewAttachment("notes.txt", 3, listed, counted, counted);
+            var attachment = new VaultViewAttachment("notes.txt", 3, listed, counted, digested);
             var view = new VaultEntryView(Entry(), listed, Array.Empty<VaultViewField>(), new[] { attachment }, null);
 
             Assert.That(view.Attachments, Has.Count.EqualTo(1));
             Assert.That(view.Attachment("notes.txt").Name, Is.EqualTo("notes.txt"));
             Assert.That(view.Attachment("notes.txt").Size, Is.EqualTo(3));
             Assert.That(attachment.IsWithheld, Is.True);
-            Assert.That(attachment.Content, Is.Null);
+            Assert.That(attachment.Bytes(), Is.Empty, "a withheld attachment hands out no piece");
             Assert.That(attachment.Digest, Is.Null);
             Assert.That(read, Is.Zero, "the readers handed in were dropped, so nothing can read the bytes through the view");
 
-            Assert.That(new VaultViewAttachment("notes.txt", 3, listed, null, null).Content, Is.Null);
-            Assert.That(new VaultViewAttachment("notes.txt", 3, null, counted, counted).IsWithheld, Is.True);
-            Assert.Throws<ArgumentNullException>(() => new VaultViewAttachment("notes.txt", 3, Sights.Whole, null, counted));
-            Assert.Throws<ArgumentNullException>(() => new VaultViewAttachment("notes.txt", 3, Sights.Whole, counted, null));
+            Assert.That(new VaultViewAttachment("notes.txt", 3, listed, null, null).Bytes(), Is.Empty);
+            Assert.That(new VaultViewAttachment("notes.txt", 3, null, counted, digested).IsWithheld, Is.True);
+            Assert.Throws<ArgumentNullException>(
+                () => new VaultViewAttachment("notes.txt", 3, Sights.Whole, null, digested));
+            Assert.Throws<ArgumentNullException>(
+                () => new VaultViewAttachment("notes.txt", 3, Sights.Whole, counted, null));
+            Assert.Throws<ArgumentNullException>(
+                () => attachment.Read(null),
+                "withheld or not, a read names what takes its pieces");
         }
 
         [Test]
@@ -380,10 +391,10 @@ namespace KeePassGate.Tests
                 "notes.txt",
                 3,
                 Sights.Whole,
-                () =>
+                piece =>
                 {
                     read++;
-                    return new byte[] { 1, 2, 3 };
+                    piece(new byte[] { 1, 2, 3 }, 0, 3);
                 },
                 () =>
                 {
@@ -403,27 +414,94 @@ namespace KeePassGate.Tests
         }
 
         [Test]
-        public void An_attachment_larger_than_the_gate_serves_is_measured_and_neither_read_nor_digested()
+        public void An_attachment_of_any_size_is_read_in_the_pieces_it_is_handed_and_digested()
         {
+            // A read of an attachment was held to a size, past which the view measured the
+            // attachment and neither read nor digested it. No size is asked about now: the
+            // view passes on each piece its reader hands out, in order, and asks for the
+            // digest, whatever size the attachment is told as.
             var read = 0;
-            Func<byte[]> counted = () =>
+            var digested = 0;
+            Action<Action<byte[], int, int>> reader = piece =>
             {
                 read++;
-                return new byte[] { 1 };
+                var held = new byte[] { 9, 1, 2, 3, 4, 5, 9 };
+                piece(held, 1, 3);
+                piece(held, 4, 2);
             };
 
-            var over = new VaultViewAttachment("big.bin", VaultViewAttachment.MostServed + 1, Sights.Whole, counted, counted);
-            var largest = new VaultViewAttachment("largest.bin", VaultViewAttachment.MostServed, Sights.Whole, counted, counted);
+            Func<byte[]> digest = () =>
+            {
+                digested++;
+                return new byte[32];
+            };
 
-            Assert.That(over.Size, Is.EqualTo(VaultViewAttachment.MostServed + 1));
-            Assert.That(over.Content, Is.Null);
-            Assert.That(over.Digest, Is.Null);
-            Assert.That(read, Is.Zero);
+            foreach (var size in new[] { 5, (512 * 1024) + 1, int.MaxValue })
+            {
+                var attachment = new VaultViewAttachment("big.bin", size, Sights.Whole, reader, digest);
+                var counts = new List<int>();
 
-            Assert.That(largest.Content, Is.Not.Null);
-            Assert.That(largest.Content, Is.Not.Null);
-            Assert.That(read, Is.EqualTo(1), "an attachment the gate serves is read when asked for, and once");
-            Assert.That(largest.Digest, Is.Not.Null);
+                Assert.That(attachment.Size, Is.EqualTo(size));
+                Assert.That(attachment.IsWithheld, Is.False);
+
+                attachment.Read((bytes, offset, count) => counts.Add(count));
+
+                Assert.That(counts, Is.EqualTo(new[] { 3, 2 }), "each piece as the reader handed it out, in order");
+                Assert.That(attachment.Bytes(), Is.EqualTo(new byte[] { 1, 2, 3, 4, 5 }));
+                Assert.That(attachment.Digest, Is.Not.Null);
+            }
+
+            Assert.That(read, Is.EqualTo(6), "every asking reads again, and the view keeps nothing of a read");
+            Assert.That(digested, Is.EqualTo(3));
+        }
+
+        [Test]
+        public void Nothing_of_an_attachment_is_read_until_its_bytes_are_asked_for()
+        {
+            var read = 0;
+            var attachment = new VaultViewAttachment(
+                "notes.txt",
+                3,
+                Sights.Whole,
+                piece =>
+                {
+                    read++;
+                    piece(new byte[] { 1, 2, 3 }, 0, 3);
+                },
+                () => new byte[32]);
+            var view = new VaultEntryView(
+                Entry(), Sights.Whole, Array.Empty<VaultViewField>(), new[] { attachment }, null);
+
+            Assert.That(view.Attachment("notes.txt").Size, Is.EqualTo(3));
+            Assert.That(view.Attachment("notes.txt").Name, Is.EqualTo("notes.txt"));
+            Assert.That(view.Attachment("notes.txt").Digest, Is.Not.Null);
+            Assert.That(read, Is.Zero, "its name, its size and its digest are told with no byte read");
+
+            Assert.That(attachment.Bytes(), Is.EqualTo(new byte[] { 1, 2, 3 }));
+            Assert.That(read, Is.EqualTo(1));
+        }
+
+        [Test]
+        public void A_read_of_an_attachment_that_fails_is_thrown_to_whoever_asked()
+        {
+            // The view catches nothing of a read: a store that refuses an attachment refuses it
+            // to whoever is writing the answer, with the pieces before the refusal handed over.
+            var attachment = new VaultViewAttachment(
+                "notes.txt",
+                6,
+                Sights.Whole,
+                piece =>
+                {
+                    piece(new byte[] { 1, 2, 3 }, 0, 3);
+                    throw new InvalidOperationException("an invented read that fails");
+                },
+                () => new byte[32]);
+
+            var handed = 0;
+            Assert.That(
+                () => attachment.Read((bytes, offset, count) => handed += count),
+                Throws.InvalidOperationException);
+            Assert.That(handed, Is.EqualTo(3));
         }
 
         [Test]
@@ -591,7 +669,8 @@ namespace KeePassGate.Tests
             var listing = new VaultSight(true, true, VaultAttachmentSight.Listed);
             var listed = vault.View(entry, found => listing);
             Assert.That(listed.Attachment("notes.txt").Size, Is.EqualTo(1));
-            Assert.That(listed.Attachment("notes.txt").Content, Is.Null);
+            Assert.That(listed.Attachment("notes.txt").Bytes(), Is.Empty);
+            Assert.That(vault.AttachmentReads, Is.Zero, "nothing reads the bytes of an attachment that is only listed");
             Assert.That(
                 new[] { listed.Tag, vault.View(entry, found => EveryStringAndNoAttachment).Tag, vault.Whole(entry).Tag },
                 Is.Unique);
@@ -626,7 +705,8 @@ namespace KeePassGate.Tests
 
         private static VaultViewAttachment Attachment(string name, int size)
         {
-            return new VaultViewAttachment(name, size, Sights.Whole, () => new byte[size], () => new byte[32]);
+            return new VaultViewAttachment(
+                name, size, Sights.Whole, piece => piece(new byte[size], 0, size), () => new byte[32]);
         }
     }
 }

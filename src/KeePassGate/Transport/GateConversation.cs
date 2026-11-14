@@ -26,6 +26,17 @@ namespace KeePassGate.Transport
         public const string LockedError = Gate.LockedTarget.Error;
 
         /// <summary>
+        /// What a request is answered that had to read an attachment the gate cannot read where
+        /// KeePass keeps it, <see cref="AttachmentUnreadable"/>, under `500`.
+        /// </summary>
+        /// <remarks>
+        /// A word of its own beside `internal error`, so that a client can tell what it met
+        /// from a defect: nothing it sent is wrong and asking again mends nothing, until
+        /// whoever runs KeePass changes what keeps the attachment that way.
+        /// </remarks>
+        public const string UnreadableError = "unreadable";
+
+        /// <summary>
         /// Answers a connection to a locked database, having decided before it asked.
         /// </summary>
         /// <remarks>
@@ -255,10 +266,17 @@ namespace KeePassGate.Transport
                 // The method and not the path. A path names what it is about, a field or an
                 // attachment by what it is called, and a name does not go into a log that somebody
                 // with no right to the database may read. The exception says which handler it was.
+                //
+                // An attachment the gate cannot read where KeePass keeps it is no defect of a
+                // handler's, and is counted all the same, since whoever runs the gate has to
+                // know. The client is told which of the two it met.
                 incidents.Record("a handler failed on " + head.Method, error);
                 answering?.Invoke();
                 Answer(
-                    stream, 500, HttpResponse.ErrorBody("internal error"), logger,
+                    stream,
+                    500,
+                    HttpResponse.ErrorBody(Unreadable(error) ? UnreadableError : "internal error"),
+                    logger,
                     IsHead(head.Method));
                 return;
             }
@@ -336,6 +354,23 @@ namespace KeePassGate.Transport
                 log.Info("a client left before sending the body it announced");
                 return false;
             }
+        }
+
+        /// <summary>
+        /// Whether what a handler threw is, or was thrown on for, an attachment the gate
+        /// cannot read where KeePass keeps it.
+        /// </summary>
+        private static bool Unreadable(Exception error)
+        {
+            for (var cause = error; cause != null; cause = cause.InnerException)
+            {
+                if (cause is AttachmentUnreadable)
+                {
+                    return true;
+                }
+            }
+
+            return false;
         }
 
         /// <summary>Whether this method's answer may carry content at all.</summary>
