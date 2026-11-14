@@ -273,8 +273,8 @@ namespace KeePassGate.Bridge
                     // whole open database, which knows nothing about the rules this answer was
                     // allowed by. Read so that a value KeePass protects in memory is still
                     // protected there once it has been read, `StoredStrings`: the view decodes
-                    // a copy for a value it serves, and hands the tag a copy to digest and
-                    // overwrite.
+                    // a copy for a value it serves, and hands the tag the digest kept against
+                    // the string.
                     var held = pair.Value;
                     var name = pair.Key;
                     made.Add(new VaultViewField(
@@ -284,7 +284,7 @@ namespace KeePassGate.Bridge
                         sight,
                         () => StoredStrings.Read(held),
                         Listed(name),
-                        held.IsProtected ? held.ReadUtf8 : (Func<byte[]>)null));
+                        () => NodeTags.DigestOf(held)));
                 }
 
                 return made;

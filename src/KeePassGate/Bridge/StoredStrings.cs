@@ -13,11 +13,12 @@ namespace KeePassGate.Bridge
     /// protected value a file was loaded with is held encrypted, as bytes. The first
     /// `ReadString` decodes it, keeps the decoded string inside the object and lets the
     /// encrypted bytes go, read off KeePass 2.61.1, so from then on the value is in KeePass's
-    /// memory in the open for as long as the entry is loaded. A tag reads every value in its
+    /// memory in the open for as long as the entry is loaded. A tag covers every value in its
     /// caller's sight, so read that way, a listing of an entry's fields left every protected
     /// value the caller could have read in the open, the values it never asked for among them.
     /// `ReadUtf8` hands back a copy and keeps nothing, so that is what a protected value is
-    /// read with here, and the copy is overwritten.
+    /// read with here, and the copy is overwritten. The digest a tag takes a value by is taken
+    /// the same way, `NodeTags.DigestOf`.
     ///
     /// **A value written is handed to KeePass as bytes for the same reason.** A
     /// `ProtectedString` made from a string keeps that string, whatever its flag, and a

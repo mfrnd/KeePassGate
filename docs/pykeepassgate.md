@@ -836,7 +836,8 @@ read then tags.
 secret derived from the database's own host key, which no client holds, so a client
 cannot compute a tag for a guess. The same content keeps the same tag across a lock, a KeePass
 restart and a reload, and recreating the database's certificate authority changes every tag,
-which costs a `412` and never an overwrite.
+which costs a `412` and never an overwrite. A new version of the plugin can change every tag
+once as well, so a tag kept across an upgrade is read again when it is refused.
 
 From the command line, `-o json` prints a read's tag as `etag`, and every write about one group or
 one entry takes it back as `--if-match`, exactly as printed, quotes and all, and so does every read

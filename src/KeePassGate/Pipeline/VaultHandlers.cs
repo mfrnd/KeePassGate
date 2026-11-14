@@ -444,8 +444,9 @@ namespace KeePassGate.Pipeline
             // that is not there, and never an entry holding no strings. The listing itself is
             // names and flags, so nothing is read or measured for a caller that only lists, whose
             // view holds no value and has no tag. A caller holding `read` beside `list` is handed
-            // the entry's tag, and taking the tag reads every value in that caller's sight, which
-            // is why the tag and the answer it travels with are left for after the hold.
+            // the entry's tag, and the first tag taken over a value reads it, every value in that
+            // caller's sight at worst, which is why the tag and the answer it travels with are
+            // left for after the hold.
             var uuid = Captured(context, "uuid");
             var view = View(context, vault, uuid);
             if (view == null)
@@ -529,8 +530,8 @@ namespace KeePassGate.Pipeline
             // before the tag is taken, for a name the entry does not hold or a field over the
             // ceiling, reads no value, and measures at most the one string. An answer that
             // is served carries the tag, which every caller reaching this route is handed, and
-            // taking the tag reads every value in the caller's sight; a value out of that sight
-            // is never read. Null is an entry that is not there or a name the entry does not
+            // the first tag taken over a value reads it, every value in the caller's sight at
+            // worst; a value out of that sight is never read. Null is an entry that is not there or a name the entry does not
             // hold. The view is taken inside the hold, and the name is looked for in it, the
             // value measured and read, and the tag taken, after it, `Later`: finding a name
             // makes the view's strings, which grows with how many the entry holds.
@@ -739,7 +740,7 @@ namespace KeePassGate.Pipeline
                 return;
             }
 
-            // The tag reads every value in the caller's sight, so it and the answer it travels
+            // The first tag taken over a value reads it, so the tag and the answer it travels
             // with are left for after the hold, as `ListFields` leaves them.
             Later(context, () =>
             {

@@ -37,31 +37,31 @@ namespace KeePassGate.Tests
         };
 
         [Test]
-        public void The_stored_bytes_of_a_value_are_handed_out_only_for_a_string_in_sight()
+        public void The_digest_of_a_value_is_handed_out_only_for_a_string_in_sight()
         {
-            // What a tag digests a protected value from, with no string made of it. Dropped
-            // with the reader for a withheld string, and absent for a value the store keeps in
-            // the open, which is read as the string it already is.
-            var copies = 0;
-            Func<byte[]> stored = () =>
+            // What a tag takes a value by, with the value never read for it. Dropped with the
+            // reader for a withheld string, so nothing about a withheld value can reach a tag
+            // through the view, and absent where the store keeps none.
+            var asked = 0;
+            Func<byte[]> digest = () =>
             {
-                copies++;
+                asked++;
                 return new byte[] { 0x30, 0x30 };
             };
 
             var withheld = new VaultViewField(
-                "Password", true, () => 2, OpenStringsAndAttachments, () => "00", false, stored);
+                "Password", true, () => 2, OpenStringsAndAttachments, () => "00", false, digest);
             Assert.That(withheld.IsWithheld, Is.True);
-            Assert.That(withheld.Stored(), Is.Null);
-            Assert.That(copies, Is.Zero);
+            Assert.That(withheld.Digest(), Is.Null);
+            Assert.That(asked, Is.Zero);
 
             var inSight = new VaultViewField(
-                "Password", true, () => 2, EveryStringAndNoAttachment, () => "00", false, stored);
-            Assert.That(inSight.Stored(), Is.EqualTo(new byte[] { 0x30, 0x30 }));
-            Assert.That(inSight.Stored(), Is.Not.SameAs(inSight.Stored()), "a copy each time, for the caller to overwrite");
+                "Password", true, () => 2, EveryStringAndNoAttachment, () => "00", false, digest);
+            Assert.That(inSight.Digest(), Is.EqualTo(new byte[] { 0x30, 0x30 }));
+            Assert.That(asked, Is.EqualTo(1));
 
-            var open = new VaultViewField("UserName", false, () => 2, EveryStringAndNoAttachment, () => "00");
-            Assert.That(open.Stored(), Is.Null);
+            var none = new VaultViewField("UserName", false, () => 2, EveryStringAndNoAttachment, () => "00");
+            Assert.That(none.Digest(), Is.Null);
         }
 
         [Test]

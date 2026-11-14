@@ -377,8 +377,8 @@ designing around them.
 - **A node's `ETag` is a keyed digest of what its caller may read of it, never a clock and never
   a plain hash.** `NodeTags` takes an HMAC-SHA256 over exactly what the routes serve that caller,
   as they serve it: an entry's identifier, its group, its two times to the second, every string
-  with its name, whether it is protected and, where it is in sight, its value as a read decodes
-  it, every attachment's name, size and, up to `VaultViewAttachment.MostServed`, the SHA-256 of
+  with its name, whether it is protected and, where it is in sight, the SHA-256 of its value as
+  a read decodes it, every attachment's name, size and, up to `VaultViewAttachment.MostServed`, the SHA-256 of
   its bytes, as far as attachments are in sight, and its expiry; a group's identifier, its
   parent, its two times, its name and its notes. Rules stay out. **An entry's
   answer and its tag are one projection**: `IVault.View` hands back a `VaultEntryView`, the whole
@@ -401,7 +401,8 @@ designing around them.
 
   **The key is derived from the host certificate's stored PKCS#12**, `NodeTags.KeyFrom`, never the
   gate key, which every paired client holds. So a tag is the same across a lock, a restart and a
-  reload, and changes only when the authority is recreated. **This reverses a key drawn when the
+  reload, and changes when the authority is recreated, or when a version of the plugin makes a
+  tag of other bytes, which is no part of the contract. **This reverses a key drawn when the
   plugin loaded**, which changed every tag whenever KeePass started, for nothing anybody wrote.
 
   **A tag covers what its caller may read, and every client holding `read` is handed a tag.** The
@@ -707,8 +708,8 @@ and answers a different question.
   its flag. `Length`, `ReadUtf8` and `Equals` work on copies and leave the object as it was. So
   nothing in the plugin calls `ReadString` on a protected string or makes such a string from text:
   `StoredStrings` reads with `ReadUtf8` and overwrites the copy, and hands KeePass a protected
-  value as bytes, and a tag digests a protected value from such a copy,
-  `VaultViewField.Stored`. A title or a URL is read only by a listing that shows it:
+  value as bytes, and the digest a tag takes a protected value by is taken from such a copy,
+  `NodeTags.DigestOf`. A title or a URL is read only by a listing that shows it:
   `VaultEntry.Title` and `Url` read when first asked, so describing an entry to find its node
   reads neither. KeePass's own save reads with `ReadString` each of an entry's five own strings
   that the database's setting for the name leaves unprotected, whatever the string's flag.
@@ -1366,10 +1367,22 @@ those objects and changes neither in place, and both can be read from a second t
 node's name. The line for a value a view withholds is composed inside the hold, by
 `ProtectedWithheld`, and what that hands back adds the line where the answer is served, so a
 read refused for its size or by its condition writes none. A change takes its tags inside its
-own turn, where the comparison and the change are one step. `NodeTags` encodes a value KeePass
-keeps in the open and longer than `NodeTags.Pieces.Characters` a piece at a time, so a tag
-allocates no second copy of such a value; a value KeePass protects is digested from a copy of
-its stored bytes, overwritten afterwards. **A view's strings and attachments are made after the
+own turn, where the comparison and the change are one step. **A value enters a tag by a digest
+kept against its `ProtectedString`**, `NodeTags.DigestOf`, taken once for as long as KeePass
+keeps the object, as an attachment's is kept against its `ProtectedBinary`: KeePass replaces
+the object when a value changes and never changes it in place, `KeePassContractTests`, so a
+synchronize, a lock or an edit needs nothing told. The digest of a value KeePass holds
+encrypted, by the string's own flag, is kept inside a `ProtectedBinary` and handed out as a
+copy the tag overwrites; nothing bounds or evicts the digests, which live as long as their
+objects. An attachment's digest is kept and handed out the same way, encrypted where its
+`ProtectedBinary` is protected. `NodeTags.Of` refuses a string in sight that carries no digest
+and never reads the value in its place. Whether a digest was already kept shows in a tag's
+timing for a long
+value, after anything that makes KeePass put the value in another object, accepted on the
+operator's ruling of 2026-11-14 over a digest kept for each client, `DESIGN.md` §136. Do not
+re-propose a size threshold for which values
+get a digest, an upper bound on them, or a cache for each client without new evidence. **A
+view's strings and attachments are made after the
 hold too, and a listing is written after it.** `KdbxVault.Seen` copies the lists the entry keeps
 them in, which KeePass changes in place, and the database's settings for which names it
 protects, and hands `VaultEntryView` what makes the view's lists of those when first asked;

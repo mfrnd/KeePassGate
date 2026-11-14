@@ -115,8 +115,8 @@ namespace KeePassGate.Vault
     /// **The value is read the first time it is asked for, and measured the first time its size
     /// is**, so no value is handed anywhere until something asks for it, and a view built for
     /// an answer refused before either is asked reads and measures nothing. The view's tag asks
-    /// for every value in sight, so an answer that hands the tag out reads them all, whichever
-    /// string the route was about.
+    /// for the digest of every value in sight, whichever string the route was about, and the
+    /// store reads a value for its digest the first time and keeps the digest.
     ///
     /// **Measuring a value in sight can decrypt it, inside KeePass's own type.** KeePass counts
     /// the characters of a protected string it holds as bytes, which is how a file's protected
@@ -147,7 +147,7 @@ namespace KeePassGate.Vault
         private Func<int> _measure;
         private int _length;
         private Func<string> _read;
-        private readonly Func<byte[]> _stored;
+        private readonly Func<byte[]> _digest;
         private string _value;
 
         /// <summary>A string of an entry, as far as <paramref name="sight"/> reaches it.</summary>
@@ -167,9 +167,10 @@ namespace KeePassGate.Vault
         /// Whether a listing of entries shows this string, as the vault decides it: an entry's
         /// title and its URL.
         /// </param>
-        /// <param name="stored">
-        /// What copies out the UTF-8 form of a value the store keeps protected in memory, kept
-        /// only for a string in sight, or null for a value the store keeps in the open.
+        /// <param name="digest">
+        /// What hands out the SHA-256 of the value as a read serves it, where the store keeps
+        /// that against the value, kept here only for a string in sight. Null where the store
+        /// keeps none.
         /// </param>
         public VaultViewField(
             string name,
@@ -178,7 +179,7 @@ namespace KeePassGate.Vault
             VaultSight sight,
             Func<string> read,
             bool isListed = false,
-            Func<byte[]> stored = null)
+            Func<byte[]> digest = null)
         {
             if (name == null)
             {
@@ -204,7 +205,7 @@ namespace KeePassGate.Vault
 
                 _measure = measure;
                 _read = read;
-                _stored = stored;
+                _digest = digest;
             }
         }
 
@@ -292,21 +293,20 @@ namespace KeePassGate.Vault
         }
 
         /// <summary>
-        /// The UTF-8 form of a value the store keeps protected in memory, as a copy of its own
-        /// for the caller to overwrite when it is done, or null for a withheld value and for a
-        /// value the store keeps in the open.
+        /// The SHA-256 of the value as <see cref="Value"/> serves it, as a copy for the caller
+        /// to overwrite when it is done, or null for a withheld value and where the store
+        /// keeps no digest.
         /// </summary>
         /// <remarks>
-        /// For the tag, which digests every value in sight and serves none of them: digested
-        /// from this, a value nobody asked to read is never made into a string, which could not
-        /// be overwritten, and the store goes on protecting it. Where this is null the value is
-        /// already a string in the store's memory, and <see cref="Value"/> hands that out at
-        /// no cost. The bytes are the store's, so they can hold what is not UTF-8, which
-        /// <see cref="Value"/> serves with each such sequence replaced.
+        /// For the tag, which covers every value in sight and serves none of them. The store
+        /// takes the digest once for as long as it keeps the value, so a tag reads no value it
+        /// has been handed the digest of, however long the value is, and a value nobody asked
+        /// to read is never made into a string. A tag refuses a string in sight that answers
+        /// this with null, and never reads <see cref="Value"/> in its place.
         /// </remarks>
-        public byte[] Stored()
+        public byte[] Digest()
         {
-            return _stored == null ? null : _stored();
+            return _digest == null ? null : _digest();
         }
     }
 
@@ -425,9 +425,9 @@ namespace KeePassGate.Vault
         }
 
         /// <summary>
-        /// The SHA-256 of what it holds, or null for an attachment that is withheld and for an
-        /// attachment larger than <see cref="MostServed"/>, whose bytes no route serves and no
-        /// tag covers.
+        /// The SHA-256 of what it holds, as a copy for the caller to overwrite when it is done,
+        /// or null for an attachment that is withheld and for an attachment larger than
+        /// <see cref="MostServed"/>, whose bytes no route serves and no tag covers.
         /// </summary>
         public byte[] Digest
         {
@@ -467,7 +467,8 @@ namespace KeePassGate.Vault
     /// asked for.** Names and flags are kept in the open and an attachment's size beside its
     /// encrypted bytes, so building a view asks KeePass for no value and no length. Values,
     /// their lengths, attachments' bytes, their digests and the tag are each taken when first
-    /// asked for, and the tag asks for every value and digest in sight. So an entry is found,
+    /// asked for, and the tag asks for the digest of every value and attachment in sight. So an
+    /// entry is found,
     /// what its caller would be handed is measured against <see cref="MostCharacters"/>, and a
     /// read is refused with no value read. Measuring is not always free of a decryption:
     /// the first measurement of a protected value KeePass holds as bytes decrypts it once inside

@@ -549,11 +549,42 @@ into an answer. KeePass decodes a value itself when the operator uses the entry,
 for a string its settings leave unprotected. Nothing here defends against code running as the
 user, which is conceded throughout. A title or an address a caller is not shown is not read at
 all: an entry is described without them, and a listing reads each only where it shows it. It
-costs a copy of each protected value in sight for every tag, a read's and a change's alike,
-and a copy of each protected title and address a listing shows, where KeePass keeping the text
-made every tag and every listing after the first cheaper. A read's tag is taken, and a listing
-written, with KeePass's thread free; a change's tags are inside its turn. `FINDINGS.md` has the
-numbers.
+costs a copy of each protected value in sight for the first tag taken over it, and a copy of
+each protected title and address a listing shows, for every listing, where KeePass keeping the
+text made every listing after the first cheaper. A read's tag is taken, and a listing written,
+with KeePass's thread free; a change's tags are inside its turn. `FINDINGS.md` has the numbers.
+
+**A tag keeps a digest of each value, and the digest of a protected value is kept as the value is.**
+A tag takes a value by its SHA-256, taken once for as long as KeePass keeps the object the value is
+held in and kept against that object, so that a tag does not read megabytes for every request, §142.
+A digest of a short secret is a way to guess the secret for whoever reads memory that left the
+process, and kept in the open it would be weaker than the value, which KeePass keeps encrypted with
+a key Windows holds. So the digest of a protected value is kept inside a `ProtectedBinary`, and a
+tag is handed a copy that it overwrites; the digest of a value held in the open is kept in the open,
+beside the value. An attachment's digest is kept the same way, encrypted where KeePass keeps the
+attachment encrypted, since a protected attachment can be as short as a password: it was kept in the
+open whatever the attachment until a string's was kept at all. Which of the two it is goes by the
+string's own flag, which is how KeePass holds the value: a string the database protects by its name
+alone is held as text, and so is its digest. **Whether a digest was already kept shows in how long a
+tag takes**, for a long value: the first tag after KeePass puts a value in another object digests
+it, and the tags after it do not. KeePass does that when the value changes, and with the value
+unchanged when the database is locked and unlocked or closed and opened again, and when a
+synchronize takes the entry. So a client that sees the value can tell from the timing whether
+anybody has been handed a tag over it since its object was last replaced: that some other client
+that sees it read the entry, that a change was made by a client that sees it, or that the operator
+locked the database or synchronized it in between. The operator ruled on 2026-11-14 to accept that,
+over a digest kept for each client: the attachments' digests and KeePass's own count of a value's
+characters show the same, it is about what clients, the operator and KeePass did and never about a
+value, and no digest is taken for a caller the value is withheld from. **Every value gets a digest,
+whatever its length**, the same ruling: a threshold, with short values digested afresh for every
+tag, would have kept passwords out of the digests kept and was refused as a second way through the
+tag for the sake of a saving nobody would notice, with the digest of a protected value kept
+encrypted in its place. **Nothing bounds the digests kept and nothing evicts any**: each lives as
+long as its value's object, so they come to no more than the database holds, about 12 MB for ten
+thousand entries of six strings, and evicting a digest would be a second thing a client could time.
+**Every entry's tag changed once with this**, since a tag is made of other bytes, which the operator
+accepted: what a tag is made of is no part of the contract, `API.md` §410, and it costs a client one
+`412` and a read.
 
 **Neither switch is asked about for a removal.** They say how far the verbs a rule grants see or
 change inside an entry, and removing something shows nobody anything. A rule that may remove an
@@ -1828,11 +1859,13 @@ What is given up, and written down so that it is not rediscovered as a defect:
   database's memory, in the file and in the time every save takes, a request at a time, and each
   of those writes is in the audit.
 - **A tag is taken over a caller's whole view, however large.** A read refused for its size takes
-  none, and every other answer handing a tag out reads every value in sight. A read does so once
-  the hold of KeePass's thread has ended, §119, so for an entry of fifty protected strings of a
-  million characters that is about sixty milliseconds of the connection's own thread, with a
-  copy of each value made and overwritten, §136, and none of KeePass's. A change takes its tags
-  inside its turn, beside its save. No ceiling was added for it.
+  none, and every other answer handing a tag out covers every value in sight. A value enters by
+  a digest taken once for as long as KeePass keeps the value's object, §136, so the first tag
+  over an entry of fifty protected strings of a million characters reads them, sixty to ninety
+  milliseconds with a copy of each made and overwritten, and every tag after it does not. A
+  read's first tag is taken on the connection's own thread once the hold has ended, §119; a
+  change that is the first to take a tag over a value pays for it inside its turn, beside its
+  save. No ceiling was added for it.
 
 Refused as ways to keep the write's refusal, and not to be proposed again without new evidence: a
 floor or a rounding for each string, a ceiling for each protection class, the message without its

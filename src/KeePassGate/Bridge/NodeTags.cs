@@ -30,7 +30,9 @@ namespace KeePassGate.Bridge
     /// in every handshake, and the private key beside it is what no client holds. So nothing
     /// outside the gate can compute a tag for a guess, and one content gives one tag for as long as
     /// the authority stands: across a lock, a restart and a reload alike. Recreating the authority
-    /// changes every tag, which costs a `412` and never an overwrite.
+    /// changes every tag, which costs a `412` and never an overwrite, and so can a version of
+    /// the plugin that makes a tag of other bytes: what a tag is made of is no part of the
+    /// contract, `API.md` §410.
     ///
     /// **The key is overwritten when the database stops being served**, by <see cref="Clear"/>, as
     /// every other array the plugin keeps of the host's material is, `CA.md` §208. A tag asked for
@@ -103,29 +105,41 @@ namespace KeePassGate.Bridge
     /// attachment until KeePass let the object go. The price is that two readers asking at once may
     /// each decrypt it, and one digest of the two stands.
     ///
-    /// **A new hasher per tag, and a part at a time**, which was measured against the obvious
-    /// economies and kept: reusing the hasher saved a fifth of a microsecond, and buffering the
-    /// parts to hash them at once about three, on a tag of about eleven. No request takes more than
-    /// two tags, the one a change is asked against and the one it leaves, and a hasher kept between
-    /// requests would be one shared across connection threads,
-    /// while a buffer of the parts would be one more copy of every value to wipe.
+    /// **A new hasher per tag, and a part at a time.** The parts are names, flags, moments and
+    /// digests, so a tag hashes little, and no request takes more than two tags, the tag a
+    /// change is asked against and the tag it leaves. A hasher kept between requests would be
+    /// shared across connection threads, and a buffer of the parts would be a second copy of
+    /// every digest to wipe.
     ///
-    /// **A long value is encoded a piece at a time**, <see cref="Pieces"/>, into a buffer the
-    /// tag keeps for all of its long values and wipes when it is done. No write is refused for
-    /// an entry's size, so a value can be megabytes, and encoded whole each was a second copy
-    /// of itself to allocate and wipe for every tag: 48 MB for an entry of fifty strings of a
-    /// million characters, against a tenth of a megabyte in pieces, with the same bytes
-    /// digested. A value no longer than a piece is still encoded whole, which for the entries
-    /// people keep is every value.
+    /// **A string's value enters by its digest, and the digest is taken once for as long as
+    /// KeePass keeps the string.** The SHA-256 of the value as a read serves it, kept against
+    /// the `ProtectedString` as an attachment's is kept against its `ProtectedBinary`, and on
+    /// the same strength: KeePass replaces the object when a value changes and never changes
+    /// it in place, which `KeePassContractTests` pins. No write is refused for an entry's
+    /// size, so a value can be megabytes, and digested afresh for every tag, fifty protected
+    /// strings of a million characters cost every tagged answer about sixty milliseconds and a
+    /// copy of each. So a tag costs by how many strings an entry holds and not by how long
+    /// they are, once somebody has been handed a tag over them. This changed what an entry's
+    /// tag is made of, so every entry's tag changed once with it, which costs a client a `412`
+    /// and a read. A group's tag is made as it was.
     ///
-    /// **A value KeePass protects in memory is digested from a copy of its bytes**, and no
-    /// string is made of it, <see cref="Stored"/>. `ProtectedString.ReadString` keeps the text
-    /// it decodes inside KeePass's object and lets the encrypted bytes go, so a tag that read
-    /// its values that way left every protected value in its caller's sight in the open in
-    /// KeePass's memory, for a request that served none of them. The copy is the store's
-    /// bytes, so nothing is encoded, and it is overwritten once digested. That is a copy of
-    /// each protected value for every tag, which KeePass keeping the text had spared every
-    /// tag after the first: `StoredStrings` has what it is for.
+    /// **The digest of a value KeePass holds encrypted is kept encrypted**,
+    /// <see cref="KeptDigest"/>, by the string's own flag, and a tag is handed a copy that it
+    /// overwrites. Taking it reads such a value as a copy of its bytes, the copy overwritten
+    /// and no string made of it unless its stored bytes are not UTF-8, so that KeePass goes on
+    /// protecting the value, `StoredStrings`; a long value KeePass holds in the open is encoded
+    /// a piece at a time, <see cref="Pieces"/>, with no second copy of it made.
+    ///
+    /// **Whether a digest was already kept shows in how long a tag takes**, for a long value:
+    /// the first tag after KeePass puts a value in another object digests it, and the tags
+    /// after it do not. KeePass does that when the value changes, and also with the value
+    /// unchanged: when the database is locked and unlocked or closed and opened again, and
+    /// when a synchronize takes the entry. So a client that sees the value can tell from the
+    /// timing whether anybody was handed a tag over it since its object was last replaced,
+    /// which is about what other clients, the operator or KeePass did, and never about a
+    /// value. The operator's ruling of 2026-11-14 accepts that over a digest kept for each
+    /// client: the attachments' digests and KeePass's own count of a value's characters show
+    /// the same, and a value out of a caller's sight is never digested for that caller.
     /// </remarks>
     public sealed class NodeTags
     {
@@ -135,8 +149,11 @@ namespace KeePassGate.Bridge
         /// <summary>What the key is derived under, so that it is this key and no other the same bytes could make.</summary>
         private const string Purpose = "KeePassGate node tags";
 
-        private static readonly ConditionalWeakTable<ProtectedBinary, Lazy<byte[]>> Digests =
-            new ConditionalWeakTable<ProtectedBinary, Lazy<byte[]>>();
+        private static readonly ConditionalWeakTable<ProtectedBinary, Lazy<KeptDigest>> Digests =
+            new ConditionalWeakTable<ProtectedBinary, Lazy<KeptDigest>>();
+
+        private static readonly ConditionalWeakTable<ProtectedString, Lazy<KeptDigest>> ValueDigests =
+            new ConditionalWeakTable<ProtectedString, Lazy<KeptDigest>>();
 
         /// <summary>UTF-8 that refuses what the ordinary encoding replaces.</summary>
         private static readonly UTF8Encoding Strict = new UTF8Encoding(false, true);
@@ -215,7 +232,6 @@ namespace KeePassGate.Bridge
             }
 
             using (var hmac = Keyed())
-            using (var pieces = new Pieces())
             {
                 Put(hmac, "entry");
                 Put(hmac, view.Entry.Uuid);
@@ -238,25 +254,26 @@ namespace KeePassGate.Bridge
                     // The value as a read serves it, and not the bytes the store keeps: a file
                     // another program wrote can hold bytes that are not UTF-8, which the read
                     // serves with each bad sequence replaced, and a tag over the stored bytes was a
-                    // tag over a value nobody was ever served. A value KeePass protects in
-                    // memory is digested from a copy of its bytes, which is overwritten, so that
-                    // taking a tag makes no string of a value nobody asked to read and leaves
-                    // KeePass protecting it, `StoredStrings`.
+                    // tag over a value nobody was ever served. By its digest, which the store
+                    // keeps against the object the value is held in, `DigestOf`,
+                    // so a tag reads a value once for as long as KeePass keeps that object. A
+                    // string in sight with no digest is refused and never read in its place:
+                    // read here, a protected value became a string for every tag, and nothing
+                    // would have shown it.
                     Put(hmac, "value");
-                    var stored = field.Stored();
-                    if (stored == null)
+                    var digest = field.Digest();
+                    if (digest == null)
                     {
-                        Value(hmac, field.Value, pieces);
-                        continue;
+                        throw new InvalidOperationException("a string in sight came to a tag with no digest of its value");
                     }
 
                     try
                     {
-                        Stored(hmac, stored, pieces);
+                        Put(hmac, digest);
                     }
                     finally
                     {
-                        MemUtil.ZeroByteArray(stored);
+                        MemUtil.ZeroByteArray(digest);
                     }
                 }
 
@@ -274,12 +291,20 @@ namespace KeePassGate.Bridge
                     Put(hmac, Length((uint)attachment.Size));
 
                     // Null for an attachment whose bytes are out of sight, and for an attachment
-                    // larger than the gate serves: each enters by its name and size alone.
+                    // larger than the gate serves: each enters by its name and size alone. A
+                    // copy of the digest kept, overwritten once it has entered.
                     var digest = attachment.Digest;
                     if (digest != null)
                     {
                         Put(hmac, "bytes");
-                        Put(hmac, digest);
+                        try
+                        {
+                            Put(hmac, digest);
+                        }
+                        finally
+                        {
+                            MemUtil.ZeroByteArray(digest);
+                        }
                     }
                 }
 
@@ -291,16 +316,36 @@ namespace KeePassGate.Bridge
 
         /// <summary>
         /// The SHA-256 of an attachment's bytes, taken once for as long as KeePass keeps the
-        /// attachment.
+        /// attachment, as a copy for the caller to overwrite.
         /// </summary>
         /// <remarks>
         /// What a view's attachment answers its digest with. Kept against the object, for the
         /// reasons the class gives: the bytes behind a `ProtectedBinary` never change, and a
-        /// failure is never kept.
+        /// failure is never kept. Kept and handed out as a string's digest is,
+        /// <see cref="DigestOf(ProtectedString)"/>: encrypted where KeePass keeps the
+        /// attachment encrypted, and as a copy either way, so that both digests are the
+        /// caller's to overwrite and neither is the kept array itself.
         /// </remarks>
         internal static byte[] DigestOf(ProtectedBinary binary)
         {
-            return Digests.GetValue(binary, Deferred).Value;
+            return Digests.GetValue(binary, Deferred).Value.Copy();
+        }
+
+        /// <summary>
+        /// The SHA-256 of a string's value as a read serves it, taken once for as long as
+        /// KeePass keeps the string, as a copy for the caller to overwrite.
+        /// </summary>
+        /// <remarks>
+        /// What a view's string answers its digest with. Kept against the object, for the
+        /// reasons the class gives: KeePass replaces a `ProtectedString` and never changes it,
+        /// and a failure is never kept. The digest of a protected value is kept as KeePass
+        /// keeps the value, so what is handed out is decrypted for the caller and is the
+        /// caller's to overwrite; the digest of a value held in the open is copied, so that the
+        /// caller overwriting it leaves the kept digest whole.
+        /// </remarks>
+        internal static byte[] DigestOf(ProtectedString value)
+        {
+            return ValueDigests.GetValue(value, DeferredValue).Value.Copy();
         }
 
         /// <summary>A group's tag.</summary>
@@ -346,9 +391,10 @@ namespace KeePassGate.Bridge
             return Moments.Wire(KdbxVault.When(time));
         }
 
-        private static Lazy<byte[]> Deferred(ProtectedBinary binary)
+        private static Lazy<KeptDigest> Deferred(ProtectedBinary binary)
         {
-            return new Lazy<byte[]>(() => Digest(binary), LazyThreadSafetyMode.PublicationOnly);
+            return new Lazy<KeptDigest>(
+                () => new KeptDigest(Digest(binary), binary.IsProtected), LazyThreadSafetyMode.PublicationOnly);
         }
 
         /// <summary>One attachment's SHA-256, from a copy of its bytes that is wiped afterwards.</summary>
@@ -373,59 +419,103 @@ namespace KeePassGate.Bridge
             Put(hash, Encoding.UTF8.GetBytes(text));
         }
 
-        /// <summary>
-        /// One value as a part, behind its length as every part is, with every encoded copy of
-        /// it wiped: whole for a value no longer than a piece, and a piece at a time past that.
-        /// </summary>
-        /// <remarks>
-        /// The same bytes either way, so a value's tag does not depend on which side of the
-        /// length it falls: the length written first is the count the encoding answers for the
-        /// whole value, and the pieces are what one encoder makes of the value from end to end,
-        /// a pair of surrogates split between two pieces included.
-        /// </remarks>
-        internal static void Value(HashAlgorithm hash, string value, Pieces pieces)
+        private static Lazy<KeptDigest> DeferredValue(ProtectedString value)
         {
-            if (value.Length <= Pieces.Characters)
-            {
-                var whole = Encoding.UTF8.GetBytes(value);
-                try
-                {
-                    Put(hash, whole);
-                }
-                finally
-                {
-                    MemUtil.ZeroByteArray(whole);
-                }
-
-                return;
-            }
-
-            var length = Length((uint)Encoding.UTF8.GetByteCount(value));
-            hash.TransformBlock(length, 0, length.Length, null, 0);
-            pieces.Into(hash, value);
+            return new Lazy<KeptDigest>(
+                () => new KeptDigest(Digested(value), value.IsProtected), LazyThreadSafetyMode.PublicationOnly);
         }
 
         /// <summary>
-        /// One value as a part, from the bytes the store keeps for it, digested as the value a
+        /// The SHA-256 of a stored string's value as a read serves it, with every copy of a
+        /// value KeePass protects overwritten, and no string made of it unless its stored
+        /// bytes are not UTF-8.
+        /// </summary>
+        /// <remarks>
+        /// Buffers of its own for each value: the first tag over an entry of long values held
+        /// in the open allocates them once for each such value, about 80 KB, and no tag after
+        /// it allocates any.
+        /// </remarks>
+        private static byte[] Digested(ProtectedString value)
+        {
+            using (var pieces = new Pieces())
+            {
+                if (!value.IsProtected)
+                {
+                    // Held in the open: KeePass keeps the string, and hands the same string out.
+                    return Digested(value.ReadString(), pieces);
+                }
+
+                var stored = value.ReadUtf8();
+                try
+                {
+                    return Digested(stored, pieces);
+                }
+                finally
+                {
+                    MemUtil.ZeroByteArray(stored);
+                }
+            }
+        }
+
+        /// <summary>
+        /// The SHA-256 of a value's UTF-8 form, with every encoded copy of it wiped: encoded
+        /// whole for a value no longer than a piece, and a piece at a time past that.
+        /// </summary>
+        /// <remarks>
+        /// The same bytes either way, so a value's digest does not depend on which side of the
+        /// length it falls: the pieces are what one encoder makes of the value from end to end,
+        /// a pair of surrogates split between two pieces included.
+        /// </remarks>
+        internal static byte[] Digested(string value, Pieces pieces)
+        {
+            using (var sha256 = SHA256.Create())
+            {
+                if (value.Length <= Pieces.Characters)
+                {
+                    var whole = Encoding.UTF8.GetBytes(value);
+                    try
+                    {
+                        return sha256.ComputeHash(whole);
+                    }
+                    finally
+                    {
+                        MemUtil.ZeroByteArray(whole);
+                    }
+                }
+
+                pieces.Into(sha256, value);
+                sha256.TransformFinalBlock(Array.Empty<byte>(), 0, 0);
+                var digest = sha256.Hash;
+
+                // The hasher keeps the end of the value in a block of its own until it is
+                // started again, which the whole-value path above does for itself.
+                sha256.Initialize();
+                return digest;
+            }
+        }
+
+        /// <summary>
+        /// The SHA-256 of a value from the bytes the store keeps for it, digested as the value a
         /// read serves is.
         /// </summary>
         /// <remarks>
         /// Bytes that are UTF-8 are the bytes the served value encodes to, so they are digested
         /// as they are and no string is made of them. Bytes that are not are served with each
         /// bad sequence replaced, so they are decoded as a read decodes them and that value is
-        /// digested, <see cref="Value"/>: the same tag either way as the tag of the string, and
-        /// a string made only of a value another program stored badly. The caller overwrites
-        /// the bytes.
+        /// digested: the same digest either way as the digest of the string, and a string made
+        /// only of a value another program stored badly. The caller overwrites the bytes.
         /// </remarks>
-        internal static void Stored(HashAlgorithm hash, byte[] stored, Pieces pieces)
+        internal static byte[] Digested(byte[] stored, Pieces pieces)
         {
-            if (IsUtf8(stored))
+            if (!IsUtf8(stored))
             {
-                Put(hash, stored);
-                return;
+                return Digested(Encoding.UTF8.GetString(stored), pieces);
             }
 
-            Value(hash, Encoding.UTF8.GetString(stored), pieces);
+            using (var sha256 = SHA256.Create())
+            {
+                return sha256.ComputeHash(stored);
+            }
         }
 
         /// <summary>
@@ -471,19 +561,75 @@ namespace KeePassGate.Bridge
 
             var truncated = new byte[Width];
             Array.Copy(hash.Hash, truncated, Width);
+
+            // The hasher keeps the end of what it was fed in a block of its own, and the last
+            // parts of a tag are digests of values. Starting it again clears that block.
+            hash.Initialize();
             return Hex.Of(truncated);
         }
 
         /// <summary>
-        /// The buffers a tag encodes its long values through, a piece at a time, made when the
-        /// first long value asks for them and wiped when the tag is done.
+        /// The digest of a string's value or of an attachment's bytes as it is kept for as long
+        /// as KeePass keeps the string or the attachment: as KeePass keeps what it was taken of.
+        /// </summary>
+        /// <remarks>
+        /// **The digest of what KeePass keeps encrypted is kept inside a `ProtectedBinary`.** A
+        /// digest of a short secret is a way to guess the secret for whoever reads memory that
+        /// left the process, a crash dump or the page file, and kept in the open it would be
+        /// weaker than what it was taken of, which KeePass keeps encrypted. A value or an
+        /// attachment KeePass holds in the open is in that memory already, and so its digest is
+        /// kept in the open. The same for both, since a protected attachment can be as short
+        /// and as guessable as a password.
+        ///
+        /// **A digest kept encrypted is decrypted for every tag it enters**, which is a
+        /// decryption that can fail as any can, through memory protection or another plugin's
+        /// `ProtectedBinary.ExtCrypt`. A tag that cannot be taken throws, as it throws where a
+        /// value cannot be read, and the next tag tries again.
+        /// </remarks>
+        private sealed class KeptDigest
+        {
+            private readonly ProtectedBinary _protected;
+            private readonly byte[] _open;
+
+            /// <summary>A digest to keep, in the open or encrypted.</summary>
+            /// <param name="digest">The digest, which is overwritten here where it is kept encrypted.</param>
+            /// <param name="isProtected">Whether KeePass keeps what the digest was taken of encrypted.</param>
+            public KeptDigest(byte[] digest, bool isProtected)
+            {
+                if (!isProtected)
+                {
+                    _open = digest;
+                    return;
+                }
+
+                try
+                {
+                    _protected = new ProtectedBinary(true, digest);
+                }
+                finally
+                {
+                    MemUtil.ZeroByteArray(digest);
+                }
+            }
+
+            /// <summary>A copy of the digest, for the caller to overwrite.</summary>
+            public byte[] Copy()
+            {
+                return _protected != null ? _protected.ReadData() : (byte[])_open.Clone();
+            }
+        }
+
+        /// <summary>
+        /// The buffers a long value held in the open is encoded through for its digest, a piece
+        /// at a time, made when a long value asks for them and wiped when its digest is done.
         /// </summary>
         /// <remarks>
         /// Both hold a piece of a value in the clear while it is digested, so both are
         /// overwritten on the way out, as the copy of a value encoded whole is. Each is under
-        /// the size the runtime keeps apart for large objects, so a tag allocates the same
-        /// little for values KeePass keeps in the open, however long they are. A value KeePass
-        /// protects never comes here: it is digested from a copy of its stored bytes.
+        /// the size the runtime keeps apart for large objects, so digesting a value KeePass
+        /// keeps in the open allocates the same little however long the value is. A value
+        /// KeePass protects comes here only where its stored bytes are not UTF-8: it is
+        /// digested from a copy of those bytes.
         /// </remarks>
         internal sealed class Pieces : IDisposable
         {
