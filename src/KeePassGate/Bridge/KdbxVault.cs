@@ -248,46 +248,67 @@ namespace KeePassGate.Bridge
         /// </param>
         private VaultEntryView Seen(PwEntry entry, Func<VaultEntry, VaultSight> asked)
         {
-            var strings = entry.Strings.ToList();
-            var guarded = strings.Select(pair => Guards(pair.Key, pair.Value)).ToList();
-
             var described = Placed(entry);
             var sight = asked(described) ?? VaultSight.Least;
 
-            // In the order KeePass keeps them, which is the order `read` writes them in.
-            var fields = new List<VaultViewField>();
-            for (var index = 0; index < strings.Count; index++)
-            {
-                // As stored, and never compiled: KeePass resolves a reference against the whole
-                // open database, which knows nothing about the rules this answer was allowed by.
-                // Read so that a value KeePass protects in memory is still protected there once
-                // it has been read, `StoredStrings`: the view decodes a copy for a value it
-                // serves, and hands the tag a copy to digest and overwrite.
-                var held = strings[index].Value;
-                var name = strings[index].Key;
-                fields.Add(new VaultViewField(
-                    name,
-                    guarded[index],
-                    () => held.Length,
-                    sight,
-                    () => StoredStrings.Read(held),
-                    Listed(name),
-                    held.IsProtected ? held.ReadUtf8 : (Func<byte[]>)null));
-            }
+            // **What is taken here is a copy of the entry's own lists and of the database's
+            // settings, and nothing is made of them yet.** Whether each string is protected and
+            // whether a listing shows it are comparisons of its name by the culture's collation,
+            // several for each string, and no write is refused for how many strings an entry
+            // holds. Made here, with KeePass's thread held still, that work grew with whatever
+            // a client had written. The lists KeePass keeps are copied, since KeePass changes
+            // those in place, and the strings and attachments in them are kept as they are,
+            // since KeePass replaces those and changes none. The settings are copied too: the
+            // operator can change them between this and the moment the view is asked.
+            var strings = entry.Strings.ToList();
+            var protection = new Protection(_database.MemoryProtection);
 
-            List<VaultViewAttachment> attachments = null;
+            Func<IReadOnlyList<VaultViewField>> fields = () =>
+            {
+                // In the order KeePass keeps them, which is the order `read` writes them in.
+                var made = new List<VaultViewField>(strings.Count);
+                foreach (var pair in strings)
+                {
+                    // As stored, and never compiled: KeePass resolves a reference against the
+                    // whole open database, which knows nothing about the rules this answer was
+                    // allowed by. Read so that a value KeePass protects in memory is still
+                    // protected there once it has been read, `StoredStrings`: the view decodes
+                    // a copy for a value it serves, and hands the tag a copy to digest and
+                    // overwrite.
+                    var held = pair.Value;
+                    var name = pair.Key;
+                    made.Add(new VaultViewField(
+                        name,
+                        held.IsProtected || protection.Protects(name),
+                        () => held.Length,
+                        sight,
+                        () => StoredStrings.Read(held),
+                        Listed(name),
+                        held.IsProtected ? held.ReadUtf8 : (Func<byte[]>)null));
+                }
+
+                return made;
+            };
+
+            Func<IReadOnlyList<VaultViewAttachment>> attachments = null;
             if (sight.Attachments != VaultAttachmentSight.None)
             {
-                attachments = new List<VaultViewAttachment>();
-                foreach (var pair in entry.Binaries)
+                var binaries = entry.Binaries.ToList();
+                attachments = () =>
                 {
-                    // `Length` is kept beside the encrypted bytes, so asking it decrypts nothing.
-                    // The attachment keeps what reads its bytes only for a sight that reads
-                    // attachments.
-                    var binary = pair.Value;
-                    attachments.Add(new VaultViewAttachment(
-                        pair.Key, (int)binary.Length, sight, binary.ReadData, () => NodeTags.DigestOf(binary)));
-                }
+                    var made = new List<VaultViewAttachment>(binaries.Count);
+                    foreach (var pair in binaries)
+                    {
+                        // `Length` is kept beside the encrypted bytes, so asking it decrypts
+                        // nothing. The attachment keeps what reads its bytes only for a sight
+                        // that reads attachments.
+                        var binary = pair.Value;
+                        made.Add(new VaultViewAttachment(
+                            pair.Key, (int)binary.Length, sight, binary.ReadData, () => NodeTags.DigestOf(binary)));
+                    }
+
+                    return made;
+                };
             }
 
             return new VaultEntryView(described, sight, fields, attachments, _tags.Of);
@@ -1772,19 +1793,48 @@ namespace KeePassGate.Bridge
         /// </remarks>
         public bool Protects(string field)
         {
-            if (field == null)
+            return new Protection(_database.MemoryProtection).Protects(field);
+        }
+
+        /// <summary>
+        /// Which of the five strings every entry has the database protects, as its settings
+        /// stood when this was made.
+        /// </summary>
+        /// <remarks>
+        /// A copy, so that the answer can be asked once KeePass's thread is no longer held
+        /// still, of a view taken while it was: the operator can change the settings in
+        /// between, and what a view holds is of the moment it was taken.
+        ///
+        /// **Kept as the names the database protects**, and not as a switch beside each of the
+        /// five. A string is then protected when its name is any of those names, which is the
+        /// table read as a list, and a string is compared with the names whose switch is on
+        /// and with no others: with KeePass's own settings that is the password alone, and
+        /// this is asked of every string of every view.
+        /// </remarks>
+        private sealed class Protection
+        {
+            private readonly IReadOnlyList<string> _protected;
+
+            public Protection(MemoryProtectionConfig settings)
             {
-                return false;
+                // The five strings every entry has, each beside the database's switch for it.
+                var standard = new[]
+                {
+                    new KeyValuePair<string, bool>(PwDefs.TitleField, settings.ProtectTitle),
+                    new KeyValuePair<string, bool>(PwDefs.UserNameField, settings.ProtectUserName),
+                    new KeyValuePair<string, bool>(PwDefs.PasswordField, settings.ProtectPassword),
+                    new KeyValuePair<string, bool>(PwDefs.UrlField, settings.ProtectUrl),
+                    new KeyValuePair<string, bool>(PwDefs.NotesField, settings.ProtectNotes),
+                };
+
+                _protected = standard.Where(name => name.Value).Select(name => name.Key).ToList();
             }
 
-            var protection = _database.MemoryProtection;
-
-            // codeql[cs/complex-condition] the five standard fields as a table, each beside its own switch
-            return (Names(field, PwDefs.TitleField) && protection.ProtectTitle)
-                || (Names(field, PwDefs.UserNameField) && protection.ProtectUserName)
-                || (Names(field, PwDefs.PasswordField) && protection.ProtectPassword)
-                || (Names(field, PwDefs.UrlField) && protection.ProtectUrl)
-                || (Names(field, PwDefs.NotesField) && protection.ProtectNotes);
+            /// <summary>Whether a string of this name is protected by the database's settings.</summary>
+            public bool Protects(string field)
+            {
+                return field != null && _protected.Any(name => Names(field, name));
+            }
         }
 
         /// <summary>
@@ -2280,7 +2330,8 @@ namespace KeePassGate.Bridge
         /// The flag term stays, because a custom field's protection is only ever the flag: the
         /// database says nothing about a name it does not know, and `UpdateField` keeps whatever
         /// the operator marked. It is asked first, being one field read where the database's
-        /// answer is five comparisons by the current culture, and a tag asks this of every string.
+        /// answer is a comparison by the current culture for each name it protects, and a tag
+        /// asks this of every string.
         /// </remarks>
         private bool Guards(string field, ProtectedString value)
         {

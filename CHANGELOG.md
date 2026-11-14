@@ -84,11 +84,10 @@ none, since it releases both.
   record to what it is answered with, and a change is asked about again inside its own turn,
   where that answer is acted on and written to the audit in place of the earlier line. A read's
   `ETag` and its content are of one moment as well, where a tag could be older than what it
-  arrived beside. The longest such hold measured is about fifty-five milliseconds, listing ten
-  thousand entries, and about ninety where the database protects their titles and the client
-  is shown them. An entry's values are read, and its tag taken, once the hold has ended, from
-  what the entry held inside it, so reading an entry does not hold KeePass for longer the
-  longer the entry's values are.
+  arrived beside. The longest such hold measured is about thirty milliseconds, listing ten
+  thousand entries. An entry's values are read, its tag taken and a listing written once the
+  hold has ended, from what the database held inside it, so a read does not hold KeePass for
+  longer the more an entry holds or the more a listing writes.
 - **A client revoked while its request waited for KeePass is answered `401 unpaired`**, as its
   next request is, where the request was served as though still admitted. A database that came
   to hold two authorities in that wait answers `503 undecided` the same way.

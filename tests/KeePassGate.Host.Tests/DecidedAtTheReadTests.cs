@@ -184,6 +184,71 @@ namespace KeePassGate.Host.Tests
             Assert.That(after.Headers["ETag"], Is.Not.EqualTo(before.Headers["ETag"]), "the edit did move the tag");
         }
 
+        [TestCase("/entries")]
+        [TestCase("/groups/{group}/entries")]
+        public void A_listing_written_once_the_hold_has_ended_is_of_the_entries_as_they_stood_inside(string path)
+        {
+            // Which entries a caller is shown is decided inside the hold, and the listing is
+            // written after it, each title and address read then. The description a listing is
+            // written from keeps the string the entry held inside the hold, so a title the
+            // operator types the moment the hold is let go, an entry added and an entry removed
+            // are in the listing that follows and not in this listing.
+            var before = Send(CurrentThread.Instance, path);
+            Assume.That(before.Status, Is.EqualTo(200), before.Json);
+            Assume.That(before.Json, Does.Contain("an invented service"));
+
+            var operatorNext = new OperatorNext(1, () =>
+            {
+                _entry.Strings.Set(PwDefs.TitleField, new ProtectedString(false, Typed));
+                _entry.Strings.Set(PwDefs.UrlField, new ProtectedString(false, "https://typed.example/"));
+
+                var added = new PwEntry(true, true);
+                added.Strings.Set(PwDefs.TitleField, new ProtectedString(false, "added once the hold had ended"));
+                _group.AddEntry(added, true);
+            });
+
+            var answer = Send(operatorNext, path);
+
+            Assert.That(operatorNext.Ran, Is.True);
+            Assert.That(answer.Status, Is.EqualTo(200), answer.Json);
+            Assert.That(answer.Json, Is.EqualTo(before.Json));
+
+            var after = Send(CurrentThread.Instance, path);
+            Assert.That(after.Json, Does.Contain(Typed));
+            Assert.That(after.Json, Does.Contain("added once the hold had ended"));
+        }
+
+        [TestCase("/entries/{entry}")]
+        [TestCase("/entries/{entry}/fields")]
+        [TestCase("/entries/{entry}/fields/Password")]
+        public void A_setting_the_operator_changes_once_the_hold_has_ended_does_not_open_a_value(string path)
+        {
+            // Whether the database protects a name is one of its settings, and a view's strings
+            // are made after the hold. The settings are copied inside the hold, so a password
+            // the database protected when the rules were asked is withheld from a caller
+            // without `protected`, though the operator unprotects passwords the moment the hold
+            // is let go. Read from the live settings afterwards, the value went out to a rule
+            // that had been asked about a protected string.
+            _entry.Strings.Set(PwDefs.PasswordField, new ProtectedString(false, "not-a-real-password"));
+            Assume.That(_database.Database.MemoryProtection.ProtectPassword, Is.True);
+
+            var operatorNext = new OperatorNext(
+                1, () => _database.Database.MemoryProtection.ProtectPassword = false);
+
+            var answer = Send(operatorNext, path);
+
+            Assert.That(operatorNext.Ran, Is.True);
+            Assert.That(answer.Status, Is.EqualTo(200), answer.Json);
+            Assert.That(answer.Json, Does.Not.Contain("not-a-real-password"));
+            Assert.That(answer.Json, Does.Contain("Password"));
+
+            if (!path.EndsWith("/fields", StringComparison.Ordinal))
+            {
+                var after = Send(CurrentThread.Instance, path);
+                Assert.That(after.Json, Does.Contain("not-a-real-password"), "the setting did change what is read");
+            }
+        }
+
         [TestCase("/groups")]
         [TestCase("/groups/{group}")]
         [TestCase("/groups/{group}/groups")]

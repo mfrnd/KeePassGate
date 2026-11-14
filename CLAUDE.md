@@ -1369,9 +1369,17 @@ read refused for its size or by its condition writes none. A change takes its ta
 own turn, where the comparison and the change are one step. `NodeTags` encodes a value KeePass
 keeps in the open and longer than `NodeTags.Pieces.Characters` a piece at a time, so a tag
 allocates no second copy of such a value; a value KeePass protects is digested from a copy of
-its stored bytes, overwritten afterwards. **What left the hold is the work that grows with how
-long values and attachments are**: taking the view stays inside and grows with how many strings
-and attachments an entry holds, and a listing with how many entries there are.
+its stored bytes, overwritten afterwards. **A view's strings and attachments are made after the
+hold too, and a listing is written after it.** `KdbxVault.Seen` copies the lists the entry keeps
+them in, which KeePass changes in place, and the database's settings for which names it
+protects, and hands `VaultEntryView` what makes the view's lists of those when first asked;
+whether each string is protected is several comparisons by the culture's collation, and no
+write bounds how many strings an entry holds. So no handler of a read asks a view for its
+`Fields`, its `Attachments` or a name in them inside the hold: `HeldReadTests` counts it. A
+listing decides inside the hold which entries and which titles a caller is shown and hands
+`Listed` what writes it, run by `Later`. `Withholding` composes both forms of a withheld
+value's line inside the hold, for any sight that could withhold, since which strings are
+withheld is known once they are made.
 
 **A request has one decision line, written once KeePass's thread is free.** `AccessCheck` composes
 a line where it decides and keeps it in a `DecisionLines`, the answer inside a change's turn in

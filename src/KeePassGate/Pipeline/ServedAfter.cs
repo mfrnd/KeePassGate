@@ -17,7 +17,9 @@ namespace KeePassGate.Pipeline
     /// that tag and writing the answer need no hold, and each of them grows with the entry,
     /// which no write is refused for the size of. Left inside, a tag over fifty megabytes of
     /// strings held KeePass's thread for about forty-five milliseconds a request,
-    /// `FINDINGS.md`.
+    /// `FINDINGS.md`. The view's strings and attachments are made here as well, of a copy of
+    /// the entry's lists taken inside the hold, and a listing of groups or entries is written
+    /// here from the descriptions taken inside it: both grow with what clients wrote.
     ///
     /// **Nothing left here may read the database.** No lookup, no walk of the rules and no
     /// node's name: only the view, and what the hold already decided. A line for the audit that

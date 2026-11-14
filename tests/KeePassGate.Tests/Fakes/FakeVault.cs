@@ -111,13 +111,14 @@ namespace KeePassGate.Tests.Fakes
         public int LooseLookups { get; private set; }
 
         /// <summary>
-        /// How many times a value was measured or read, an attachment read or digested, or a
-        /// tag taken, with a hold standing.
+        /// How many times a view's strings or attachments were made, a value was measured or
+        /// read, an attachment read or digested, a tag taken, or a title or a URL read for a
+        /// listing, with a hold standing.
         /// </summary>
         /// <remarks>
-        /// What a read of an entry may never do: each of those grows with the entry, and the
-        /// hold is KeePass's own thread standing still. A view is taken inside the hold and
-        /// asked for its values after it.
+        /// What a read may never do: each of those grows with what a client wrote, and the
+        /// hold is KeePass's own thread standing still. A view and a listing's descriptions
+        /// are taken inside the hold and asked for all of that after it.
         /// </remarks>
         public int ValueWorkHeld { get; private set; }
 
@@ -457,58 +458,80 @@ namespace KeePassGate.Tests.Fakes
         /// </remarks>
         private VaultEntryView Seen(Kept entry, VaultEntry described, VaultSight sight)
         {
-            var fields = new List<VaultViewField>();
-            foreach (var pair in entry.Fields)
-            {
-                var value = pair.Value ?? string.Empty;
-                fields.Add(new VaultViewField(
-                    pair.Key,
-                    Guards(entry, pair.Key),
-                    () =>
-                    {
-                        StringMeasures++;
-                        Working();
-                        return IgnoresCeiling ? 0 : value.Length;
-                    },
-                    sight,
-                    () =>
-                    {
-                        StringReads++;
-                        Working();
-                        return value;
-                    },
-                    Listed(pair.Key)));
-            }
+            // Copies of what the entry holds, taken as the view is, and made into the view's
+            // strings and attachments when the view is first asked for them, as the real vault
+            // does: making them is work that grows with the entry.
+            var strings = entry.Fields.ToList();
+            var guarded = strings.Select(pair => Guards(entry, pair.Key)).ToList();
 
-            List<VaultViewAttachment> attachments = null;
-            if (sight != null && sight.Attachments != VaultAttachmentSight.None)
+            Func<IReadOnlyList<VaultViewField>> fields = () =>
             {
-                attachments = new List<VaultViewAttachment>();
-                foreach (var pair in entry.Attachments)
+                Working();
+
+                var made = new List<VaultViewField>();
+                for (var index = 0; index < strings.Count; index++)
                 {
-                    var content = pair.Value;
-                    attachments.Add(new VaultViewAttachment(
-                        pair.Key,
-                        IgnoresCeiling ? 0 : content.Length,
+                    var value = strings[index].Value ?? string.Empty;
+                    made.Add(new VaultViewField(
+                        strings[index].Key,
+                        guarded[index],
+                        () =>
+                        {
+                            StringMeasures++;
+                            Working();
+                            return IgnoresCeiling ? 0 : value.Length;
+                        },
                         sight,
                         () =>
                         {
-                            // A copy, as the real vault hands out: the route serving an
-                            // attachment overwrites what it read.
-                            AttachmentReads++;
+                            StringReads++;
                             Working();
-                            return (byte[])content.Clone();
+                            return value;
                         },
-                        () =>
-                        {
-                            AttachmentReads++;
-                            Working();
-                            using (var sha256 = System.Security.Cryptography.SHA256.Create())
-                            {
-                                return sha256.ComputeHash(content);
-                            }
-                        }));
+                        Listed(strings[index].Key)));
                 }
+
+                return made;
+            };
+
+            Func<IReadOnlyList<VaultViewAttachment>> attachments = null;
+            if (sight != null && sight.Attachments != VaultAttachmentSight.None)
+            {
+                var binaries = entry.Attachments.ToList();
+                var ignores = IgnoresCeiling;
+                attachments = () =>
+                {
+                    Working();
+
+                    var made = new List<VaultViewAttachment>();
+                    foreach (var pair in binaries)
+                    {
+                        var content = pair.Value;
+                        made.Add(new VaultViewAttachment(
+                            pair.Key,
+                            ignores ? 0 : content.Length,
+                            sight,
+                            () =>
+                            {
+                                // A copy, as the real vault hands out: the route serving an
+                                // attachment overwrites what it read.
+                                AttachmentReads++;
+                                Working();
+                                return (byte[])content.Clone();
+                            },
+                            () =>
+                            {
+                                AttachmentReads++;
+                                Working();
+                                using (var sha256 = System.Security.Cryptography.SHA256.Create())
+                                {
+                                    return sha256.ComputeHash(content);
+                                }
+                            }));
+                    }
+
+                    return made;
+                };
             }
 
             return new VaultEntryView(described, sight, fields, attachments, Tag);
@@ -634,14 +657,47 @@ namespace KeePassGate.Tests.Fakes
 
             return group == null
                 ? null
-                : _entries.Values.Where(e => e.Group == group.Uuid).Select(e => e.Describe()).ToList();
+                : _entries.Values.Where(e => e.Group == group.Uuid).Select(Listable).ToList();
+        }
+
+        /// <summary>
+        /// An entry as a listing is handed it, as the real vault describes an entry: its title
+        /// and its URL read when first asked for, which is counted as work on a value.
+        /// </summary>
+        private VaultEntry Listable(Kept entry)
+        {
+            string title;
+            string url;
+
+            entry.Fields.TryGetValue("Title", out title);
+            entry.Fields.TryGetValue("URL", out url);
+
+            return new VaultEntry(
+                entry.Uuid,
+                entry.Group,
+                () =>
+                {
+                    Working();
+                    return title ?? string.Empty;
+                },
+                () =>
+                {
+                    Working();
+                    return url ?? string.Empty;
+                },
+                DateTimeOffset.MinValue,
+                DateTimeOffset.MinValue,
+                entry.Node,
+                entry.Protected.Contains("Title"),
+                entry.Protected.Contains("URL"),
+                entry.Expires);
         }
 
         public IReadOnlyList<VaultEntry> Entries()
         {
             Looking();
 
-            return IsOpen ? _entries.Values.Select(e => e.Describe()).ToList() : null;
+            return IsOpen ? _entries.Values.Select(Listable).ToList() : null;
         }
 
         /// <summary>

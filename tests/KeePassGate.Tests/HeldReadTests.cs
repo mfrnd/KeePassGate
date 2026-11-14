@@ -118,6 +118,50 @@ namespace KeePassGate.Tests
             }
         }
 
+        [TestCase("/entries")]
+        [TestCase("/groups/{group}/entries")]
+        [TestCase("/groups")]
+        [TestCase("/groups/{group}/groups")]
+        public void A_listing_is_written_once_the_hold_has_ended(string path)
+        {
+            // Which groups and entries a caller is shown is the rules' answer, asked inside the
+            // hold. Writing the listing out needs nothing of the database but the descriptions
+            // taken there, and it grows with the database, megabytes of it for a large database,
+            // with every title it shows read for it.
+            var context = Asked("GET", path);
+
+            Assert.That(context.Status, Is.EqualTo(200), path + " " + context.Json);
+            Assert.That(_vault.ValueWorkHeld, Is.Zero, path);
+            if (path.EndsWith("/entries", StringComparison.Ordinal))
+            {
+                Assert.That(context.Json, Does.Contain("an invented service"));
+            }
+        }
+
+        [Test]
+        public void Making_a_view_s_strings_inside_a_hold_is_what_the_count_of_held_work_does_see()
+        {
+            // Here so that a count of none above is a count that counts: asked for its strings
+            // with the hold standing, a view makes them there.
+            var made = _vault.Held(() => _vault.View(_entry, found => Sights.Whole).Fields.Count);
+
+            Assert.That(made, Is.GreaterThan(0));
+            Assert.That(_vault.ValueWorkHeld, Is.GreaterThan(0));
+        }
+
+        [TestCase("/entries/{entry}/fields/Absent")]
+        [TestCase("/entries/{entry}/attachments/absent.txt")]
+        public void A_name_an_entry_does_not_hold_is_found_missing_once_the_hold_has_ended(string path)
+        {
+            // Looking a name up makes the view's strings or attachments, so it is done after the
+            // hold with the rest, and answered as it always was.
+            var context = Asked("GET", path);
+
+            Assert.That(context.Status, Is.EqualTo(404), context.Json);
+            Assert.That(context.Json, Is.EqualTo(HttpResponse.ErrorBody(SpecRouter.UnreachableError)));
+            Assert.That(_vault.ValueWorkHeld, Is.Zero);
+        }
+
         [Test]
         public void A_tag_taken_inside_a_change_is_what_the_count_of_held_work_does_not_see()
         {
