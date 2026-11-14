@@ -277,6 +277,58 @@ namespace KeePassGate.Host.Tests
             Assert.That(InTheOpen(), Is.Empty);
         }
 
+        [TestCase("/entries/{entry}")]
+        [TestCase("/entries/{entry}/fields/Long")]
+        [NonParallelizable]
+        public void A_read_of_a_long_protected_value_leaves_its_bytes_encrypted_as_they_were(string path)
+        {
+            // A protected value is read as a protected attachment is: a piece at a time from
+            // a copy of each piece of the bytes KeePass keeps for it, decoded and escaped as
+            // it goes, for the tag and for the content. KeePass never reads the value, held
+            // through KeePass's own hook, `OtherCipher`, and never makes a string of it. The
+            // answer holds the value, whatever a piece ends inside: a character of several
+            // bytes, a pair, a character JSON escapes.
+            var value = string.Concat(Enumerable.Repeat("\u20AC \" \\ \U0001F511\r\n\u0001", 12000));
+            var stored = new ProtectedString(true, Encoding.UTF8.GetBytes(value));
+            _entry.Strings.Set("Long", stored);
+
+            var bytes = KeePassMemory.Bytes(stored);
+            var held = KeePassMemory.Buffer(bytes);
+            var encrypted = (byte[])held.Clone();
+            Assume.That(KeePassMemory.KeptAs(bytes), Is.EqualTo("ProtectedMemory"));
+            Assume.That(held.Length, Is.GreaterThan(3 * StoredBinaries.Piece));
+
+            using (var cipher = new OtherCipher(held))
+            {
+                var answer = Asked("GET", path, null);
+
+                Assert.That(answer.Status, Is.EqualTo(200));
+                Assert.That(answer.Headers["ETag"], Is.Not.Null);
+
+                var document = Newtonsoft.Json.Linq.JObject.Parse(answer.Document());
+                var served = path.EndsWith("/Long", StringComparison.Ordinal)
+                    ? (string)document["value"]
+                    : (string)document["fields"]["Long"];
+                Assert.That(served == value, Is.True, "the answer holds another value than was stored");
+
+                // Written a second time, as a value is read again by every asking.
+                using (var again = new System.IO.StringWriter())
+                {
+                    answer.Content(again);
+
+                    Assert.That(again.ToString() == answer.Document(), Is.True);
+                }
+
+                Assert.That(cipher.Handed, Is.Zero, "KeePass itself read the value");
+                Assert.That(KeePassMemory.Bytes(stored), Is.SameAs(bytes));
+                Assert.That(KeePassMemory.Buffer(bytes), Is.SameAs(held));
+                Assert.That(held.SequenceEqual(encrypted), Is.True, "the read left other bytes in KeePass's buffer");
+                Assert.That(KeePassMemory.KeptAs(bytes), Is.EqualTo("ProtectedMemory"));
+            }
+
+            Assert.That(InTheOpen(), Is.Empty);
+        }
+
         [Test]
         public void A_change_asked_against_a_tag_leaves_every_protected_value_as_KeePass_held_it()
         {
@@ -586,10 +638,11 @@ namespace KeePassGate.Host.Tests
     /// What KeePass keeps of a protected string in memory, read off the object itself.
     /// </summary>
     /// <remarks>
-    /// Through a private field of KeePass's, `m_strPlainText`, which is where
-    /// `ProtectedString.ReadString` keeps the text it decoded. Nothing public answers it.
-    /// `KeePassContractTests` holds the field to being there and to meaning this, so a KeePass
-    /// that keeps the text elsewhere fails there and not as a test here passing for nothing.
+    /// Through private fields of KeePass's: `m_strPlainText`, which is where
+    /// `ProtectedString.ReadString` keeps the text it decoded, and `m_pbUtf8`, which is where
+    /// a value is kept as bytes until then. Nothing public answers either.
+    /// `KeePassContractTests` holds the fields to being there and to meaning this, so a KeePass
+    /// that keeps a value elsewhere fails there and not as a test here passing for nothing.
     /// </remarks>
     internal static class KeePassMemory
     {
@@ -603,6 +656,24 @@ namespace KeePassGate.Host.Tests
             Assert.That(field, Is.Not.Null, "KeePass no longer keeps a string's text under " + TextField);
 
             return field.GetValue(value) != null;
+        }
+
+        /// <summary>
+        /// The name of the field a `ProtectedString` keeps its value in as bytes, for as long
+        /// as it keeps no text.
+        /// </summary>
+        public const string BytesField = "m_pbUtf8";
+
+        /// <summary>
+        /// What KeePass keeps this string's value in as bytes, itself and no copy of it, or
+        /// null for a value it keeps as text.
+        /// </summary>
+        public static ProtectedBinary Bytes(ProtectedString value)
+        {
+            var field = typeof(ProtectedString).GetField(BytesField, BindingFlags.NonPublic | BindingFlags.Instance);
+            Assert.That(field, Is.Not.Null, "KeePass no longer keeps a string's bytes under " + BytesField);
+
+            return (ProtectedBinary)field.GetValue(value);
         }
 
         /// <summary>The name of the field a `ProtectedBinary` keeps its bytes in.</summary>

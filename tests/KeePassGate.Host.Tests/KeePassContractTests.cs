@@ -422,6 +422,15 @@ namespace KeePassGate.Host.Tests
             var loaded = new ProtectedString(true, System.Text.Encoding.UTF8.GetBytes("not-a-real-password"));
             Assert.That(KeePassMemory.KeepsText(loaded), Is.False, "made from bytes");
 
+            // And where the value is until then, which is what the gate reads a protected
+            // value from a piece at a time, `StoredStrings`: its UTF-8 in a protected
+            // `ProtectedBinary` of the string's own, kept as a protected attachment is.
+            var utf8 = KeePassMemory.Bytes(loaded);
+            Assert.That(utf8, Is.Not.Null, "a protected string made from bytes keeps no bytes");
+            Assert.That(utf8.IsProtected, Is.True);
+            Assert.That(KeePassMemory.KeptAs(utf8), Is.EqualTo("ProtectedMemory"));
+            Assert.That(utf8.ReadData(), Is.EqualTo(System.Text.Encoding.UTF8.GetBytes("not-a-real-password")));
+
             Assert.That(loaded.Length, Is.EqualTo("not-a-real-password".Length));
             Assert.That(KeePassMemory.KeepsText(loaded), Is.False, "measured");
 
@@ -431,8 +440,20 @@ namespace KeePassGate.Host.Tests
             Assert.That(loaded.Equals(new ProtectedString(true, "not-a-real-password"), false), Is.True);
             Assert.That(KeePassMemory.KeepsText(loaded), Is.False, "compared");
 
+            Assert.That(KeePassMemory.Bytes(loaded), Is.SameAs(utf8), "the bytes are another object by now");
+
             Assert.That(loaded.ReadString(), Is.EqualTo("not-a-real-password"));
             Assert.That(KeePassMemory.KeepsText(loaded), Is.True, "read as text");
+            Assert.That(KeePassMemory.Bytes(loaded), Is.Null, "and the bytes are let go");
+            Assert.That(loaded.ReadString(), Is.SameAs(loaded.ReadString()), "the text kept is the text handed out");
+            Assert.That(
+                utf8.ReadData(),
+                Is.EqualTo(System.Text.Encoding.UTF8.GetBytes("not-a-real-password")),
+                "the bytes let go are still the value, for a read that found them first");
+
+            // A string kept as text keeps no bytes beside it.
+            Assert.That(KeePassMemory.Bytes(new ProtectedString(true, "not-a-real-password")), Is.Null);
+            Assert.That(KeePassMemory.Bytes(new ProtectedString(false, "an invented name")), Is.Null);
 
             Assert.That(KeePassMemory.KeepsText(new ProtectedString(true, "not-a-real-password")), Is.True,
                 "made from text, protected");

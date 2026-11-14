@@ -68,12 +68,15 @@ namespace KeePassGate.Host.Tests
         [Test]
         public void A_value_is_digested_from_its_stored_bytes_as_the_value_a_read_serves_is()
         {
-            // A value KeePass protects in memory is digested from a copy of its bytes, so that
-            // no string is made of it. The bytes are the store's, and a file another program
-            // wrote can hold bytes that are not UTF-8, which a read serves with each bad
-            // sequence replaced. Either way the digest has to be the digest of the string a
-            // read serves, or a tag would move with how a value is held.
+            // A value KeePass protects in memory is digested from its bytes, a piece at a time
+            // from where KeePass keeps them, so that no string is made of it. The bytes are the
+            // store's, and a file another program wrote can hold bytes that are not UTF-8,
+            // which a read serves with each bad sequence replaced. Either way the digest has
+            // to be the digest of the string a read serves, or a tag would move with how a
+            // value is held, wherever a piece of the bytes or a step of the decoder ends.
             const int Piece = NodeTags.Pieces.Characters;
+            const int Step = StoredStrings.Step;
+            const int Bytes = StoredBinaries.Piece;
             var values = new List<byte[]>
             {
                 Array.Empty<byte>(),
@@ -88,6 +91,13 @@ namespace KeePassGate.Host.Tests
                 new byte[] { 0xF4, 0x90, 0x80, 0x80 },
                 Enumerable.Repeat((byte)0x61, Piece + 1).Concat(new byte[] { 0xFF }).ToArray(),
                 Enumerable.Repeat((byte)0xFF, (2 * Piece) + 3).ToArray(),
+                Encoding.UTF8.GetBytes(new string('\u20AC', Bytes + 1)),
+                Encoding.UTF8.GetBytes("a" + string.Concat(Enumerable.Repeat("\U0001F511", Bytes / 2))),
+                Enumerable.Repeat((byte)0x61, Step - 1).Concat(new byte[] { 0xE2, 0x82, 0x61, 0x62 }).ToArray(),
+                Enumerable.Repeat((byte)0x61, Step - 2).Concat(new byte[] { 0xF0, 0x9F, 0x98, 0x41 }).ToArray(),
+                Enumerable.Repeat((byte)0x61, Bytes - 1).Concat(new byte[] { 0xE2, 0x82, 0x61, 0x62 }).ToArray(),
+                Enumerable.Repeat((byte)0x61, Bytes - 1).Concat(new byte[] { 0xF0, 0x9F }).ToArray(),
+                Enumerable.Repeat((byte)0x61, Bytes + 3).Concat(new byte[] { 0xE2, 0x82 }).ToArray(),
             };
 
             using (var pieces = new NodeTags.Pieces())
@@ -100,6 +110,15 @@ namespace KeePassGate.Host.Tests
                         NodeTags.Digested(stored, pieces),
                         Is.EqualTo(NodeTags.Digested(served, pieces)),
                         BitConverter.ToString(stored.Take(8).ToArray()));
+
+                    // And from the bytes where KeePass keeps them, protected or in the open.
+                    foreach (var guarded in new[] { true, false })
+                    {
+                        Assert.That(
+                            NodeTags.Digested(new ProtectedBinary(guarded, stored), pieces),
+                            Is.EqualTo(NodeTags.Digested(served, pieces)),
+                            BitConverter.ToString(stored.Take(8).ToArray()));
+                    }
 
                     // And as KeePass holds either: protected, as bytes, and in the open, as text.
                     Assert.That(
@@ -563,7 +582,7 @@ namespace KeePassGate.Host.Tests
             Func<VaultSight, string, VaultEntryView> viewed = (sight, value) => new VaultEntryView(
                 Described("A1", "B1", created, created, null),
                 sight,
-                new[] { new VaultViewField("Password", true, sight, () => value, false, Digesting(value)) },
+                new[] { ViewFields.Of("Password", true, sight, () => value, false, Digesting(value)) },
                 Array.Empty<VaultViewAttachment>(),
                 null);
 
@@ -607,7 +626,7 @@ namespace KeePassGate.Host.Tests
             Func<Func<byte[]>, VaultEntryView> viewed = digest => new VaultEntryView(
                 Described("A1", "B1", created, created, null),
                 Sights.Whole,
-                new[] { new VaultViewField("Password", true, Sights.Whole, read, false, digest) },
+                new[] { ViewFields.Of("Password", true, Sights.Whole, read, false, digest) },
                 Array.Empty<VaultViewAttachment>(),
                 null);
 
@@ -1500,7 +1519,7 @@ namespace KeePassGate.Host.Tests
             var view = new VaultEntryView(
                 Described(uuid, group, created, modified, expires),
                 Sights.Whole,
-                new[] { new VaultViewField("Invented", guarded, Sights.Whole, () => value, false, Digesting(value)) },
+                new[] { ViewFields.Of("Invented", guarded, Sights.Whole, () => value, false, Digesting(value)) },
                 new[]
                 {
                     new VaultViewAttachment(

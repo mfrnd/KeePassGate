@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using KeePassGate.Acl;
 using KeePassGate.Diagnostics;
+using KeePassGate.Testing;
 using KeePassGate.Vault;
 
 namespace KeePassGate.Tests.Fakes
@@ -477,7 +478,7 @@ namespace KeePassGate.Tests.Fakes
                 for (var index = 0; index < strings.Count; index++)
                 {
                     var value = strings[index].Value ?? string.Empty;
-                    made.Add(new VaultViewField(
+                    made.Add(ViewFields.Of(
                         strings[index].Key,
                         guarded[index],
                         sight,

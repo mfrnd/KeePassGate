@@ -47,19 +47,27 @@ none, since it releases both.
   plugin put in place of Windows' memory protection is read through KeePass's own read, a copy
   of the whole attachment for as long as the read takes, and so is every attachment on a
   KeePass or a Windows the read in place does not fit, which the plugin checks as it loads and
-  logs as a warning. PyKeePassGate holds a
-  whole answer under `max_response_bytes`, so an attachment over about 3 MiB needs it raised,
-  and its stand-in gate frames an attachment as the plugin does. `API.md` §412.
+  logs as a warning. PyKeePassGate holds a whole answer under `max_response_bytes`, so an
+  attachment over about 3 MiB needs it raised, and its stand-in gate frames an attachment as
+  the plugin does. `API.md` §412.
+- **A protected field's value is read a piece at a time, as an attachment is.** A read
+  decrypted a copy of the whole value and decoded it into a string, so a long protected value
+  was alive as text for as long as its answer was sent, and its bytes beside that while it was
+  decoded. It is now decrypted, decoded and written 16 KiB at a time from where KeePass keeps
+  its bytes, and a value KeePass keeps as text is written straight from that text: a protected
+  value of 64 MiB was read with 0.2 MB alive, against 128 MB, in about the time it took. The
+  answer and every `ETag` are what they were. On a KeePass that keeps a value otherwise, the
+  plugin reads through KeePass's own read and logs a warning as it loads. `DESIGN.md` §145.
 - **A protected value read or written through the gate stays encrypted in KeePass's memory.**
-  KeePass keeps a protected value encrypted in memory until something reads it as text, and
-  from then on keeps the text. The gate read every value that way, and an entry's `ETag` reads
-  every value its client may read, so a listing of an entry's fields left every protected value
-  of the entry in the open in KeePass's memory until the database was locked, and a protected
-  value written through the gate was in the open from the start. A protected value is now read
-  as a copy that is overwritten once it has been digested or served, and written so that
-  KeePass encrypts it at once, and a protected title or address is read only by a listing that
-  shows it. A value a client is served is still in the plugin's memory, as text that cannot be
-  overwritten, until that memory is reused.
+  KeePass keeps a protected value encrypted in memory until something reads it as text, and from
+  then on keeps the text. The gate read every value that way, and an entry's `ETag` reads every
+  value its client may read, so a listing of an entry's fields left every protected value of the
+  entry in the open in KeePass's memory until the database was locked, and a protected value written
+  through the gate was in the open from the start. A protected value is now read from the encrypted
+  bytes KeePass keeps for it, with every copy of those bytes overwritten once it has been digested
+  or decoded, and written so that KeePass encrypts it at once, and a protected title or address is
+  read only by a listing that shows it. A value a client is served is still in the plugin's memory,
+  as text that cannot be overwritten, until that memory is reused.
 - **Every client holding `read` is handed an entry's `ETag`, taken over what that client may
   read.** A tag covered the whole entry and went only to a client whose one rule read all of it,
   attachments and protected values included, so a rule without `protected` was handed no tag for

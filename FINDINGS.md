@@ -558,6 +558,34 @@ for 64 MiB held in the open with nothing allocated, and 47 to 48 ms protected. A
 `ReadData` written as it is sent, the form a read takes where an attachment cannot be read in
 place, kept the attachment alive once for each read and took 122 to 171 ms for 64 MiB.
 
+**Where KeePass keeps a string's value, and what reading it in pieces costs.** Read off
+KeePass 2.61.1 and asked of the objects: a `ProtectedString` keeps its value in one of two
+private fields. `m_strPlainText` holds the string for a value that is not protected, whether
+made from a string or from bytes, for a protected value made from a string, and for any value
+once `ReadString` has read it, which hands out that same string every time after.
+`m_pbUtf8` holds a protected value made from bytes, as UTF-8 in a protected `ProtectedBinary`
+kept as an attachment is, until `ReadString` lets it go, which it does after it has set the
+string; `ReadUtf8` and `Length` leave it. Bytes decoded a piece at a time by a single decoder
+are the string the bytes decode to whole: 209392 runs over hand-made and random bytes, most
+of them not UTF-8, cut every 1 to 64 bytes, of which none differed, in the text or in whether
+a decoder that refuses bad bytes refuses them. Text escaped a piece at a time by
+`JsonConvert.ToString` and joined between a single pair of quotes is the text Json.NET's
+writer writes of the whole, for every character from U+0000 to U+FFFF in pieces of 1 to 16384
+characters. In a Release build, each answer written into a stream that keeps nothing, with no
+TLS under it, for a protected value kept as bytes:
+
+| Value | Read whole, as before | Read in pieces | Digest of a copy, as before | Digest in pieces |
+| --- | --- | --- | --- | --- |
+| 64 KiB | 1.4 to 1.5 ms | 1.5 ms | 2.2 to 2.3 ms | 2.2 ms |
+| 1 MiB | 8.4 to 9.6 ms, 2.0 MB alive | 10.3 to 12.4 ms, 0.2 MB alive | 5.5 to 6.0 ms, 1.0 MB alive | 5.5 to 7.7 ms |
+| 16 MiB | 114 to 130 ms, 32 MB alive | 131 to 132 ms, 0.2 MB alive | 46 to 52 ms, 16.5 MB alive | 33 to 35 ms |
+| 64 MiB | 414 to 516 ms, 128 MB alive | 441 to 465 ms, 0.2 MB alive | 97 to 99 ms, 65.9 MB alive | 110 to 114 ms |
+
+Read whole, what is alive while the answer is written is the decoded string, and the copy of
+the bytes was alive beside it while it was decoded. Read in pieces, about eight times the value
+is allocated over its length, in strings of 32 KB and under, each let go as the next is made,
+and a digest in pieces keeps nothing alive that grows with the value.
+
 **What a tag costs on an entry far past the ceiling a read was held to**, measured while a read
 was held to 524288 characters: fifty
 strings of a million characters each, on the development machine in a Release build, through the
@@ -641,26 +669,26 @@ differed and nothing threw. `KeePassContractTests` pins the public surface of bo
 the reading from two threads, and `DecidedAtTheReadTests` holds the real router and vault to an
 answer and a tag of the entry as it stood inside the hold.
 
-**`ProtectedString.ReadString` ends KeePass's protection of the value it reads, and the gate
-read every value with it.** Read off KeePass 2.61.1, decompiled, and asked of the object's own
-field. A protected string made from bytes, which is how a loaded file's are made, holds them
-encrypted. `Length` and `ReadUtf8` each decrypt a copy, and `Equals` compares two such copies,
-all of them leaving the object as it was. `ReadString` decodes the value, keeps the string in
-`m_strPlainText` and lets the encrypted bytes go, for as long as the object lives, and a string
-made from text keeps that text whatever its flag. A tag digests every value in its caller's
-sight, so a listing of an entry's fields, or a read of its title, left every protected value of
-the entry in the open in KeePass's memory, the values nobody asked for with them, and a
-protected value written through the gate was in the open from the start. A protected value is
-now read with `ReadUtf8`, digested from that copy, or decoded from it where it is served, and the
-copy overwritten; and a protected value is handed to KeePass as bytes, `StoredStrings`. What
-that cost, while a tag read every value, was the copy for every request, where KeePass keeping
-the text made every request after the first cheaper: the 59 milliseconds and 48 MB above,
-against 40 to 42 milliseconds and 0.2 MB with the values left in the open after a first request
-of 90 milliseconds and 143 MB. With a digest of each value kept, above, it is the copy for the
-first tag over a value, and a copy of each protected title and address a listing shows, for
-every listing.
-What it does not do: a value that is served is a string in the process until the runtime reuses
-its memory, and so is the answer it is written into, and neither can be overwritten.
+**`ProtectedString.ReadString` ends KeePass's protection of the value it reads, and the gate read
+every value with it.** Read off KeePass 2.61.1, decompiled, and asked of the object's own field. A
+protected string made from bytes, which is how a loaded file's are made, holds them encrypted.
+`Length` and `ReadUtf8` each decrypt a copy, and `Equals` compares two such copies, all of them
+leaving the object as it was. `ReadString` decodes the value, keeps the string in `m_strPlainText`
+and lets the encrypted bytes go, for as long as the object lives, and a string made from text keeps
+that text whatever its flag. A tag digests every value in its caller's sight, so a listing of an
+entry's fields, or a read of its title, left every protected value of the entry in the open in
+KeePass's memory, the values nobody asked for with them, and a protected value written through the
+gate was in the open from the start. A protected value was read from then on with `ReadUtf8`,
+digested from that copy, or decoded from it where it is served, and the copy overwritten, and is
+read a piece at a time from the bytes KeePass keeps for it since 2026-11-14, below; and a protected
+value is handed to KeePass as bytes, `StoredStrings`. What that cost, while a tag read every value,
+was the copy for every request, where KeePass keeping the text made every request after the first
+cheaper: the 59 milliseconds and 48 MB above, against 40 to 42 milliseconds and 0.2 MB with the
+values left in the open after a first request of 90 milliseconds and 143 MB. With a digest of each
+value kept, above, it is the copy for the first tag over a value, and a copy of each protected title
+and address a listing shows, for every listing. What it does not do: a value that is served is a
+string in the process until the runtime reuses its memory, and so is the answer it is written into,
+and neither can be overwritten.
 
 **KeePass's own save reads some values as text.** `KdbxFile.WriteObject` writes each of an
 entry's five own strings protected or not by the database's setting for that name, whatever the

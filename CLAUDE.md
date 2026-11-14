@@ -530,6 +530,22 @@ designing around them.
   escaping: base64 holds nothing JSON escapes. **This reverses "what the gate hands out
   it can also be given back"**: what others have written is readable, and what cannot be
   written through the gate is written in KeePass. `DESIGN.md` §144.
+- **A field's value is read as an attachment is, and the two differ in nothing but being
+  protected or not**, the operator's ruling of 2026-11-14. KeePass keeps a value as a string,
+  `m_strPlainText`, or as UTF-8 in a `ProtectedBinary` of the string's own, `m_pbUtf8`: a
+  string for a value that is not protected, for a protected value made from a string and for
+  any value KeePass has read as a string; bytes for a protected value a file was loaded with
+  or the gate wrote. `StoredStrings` hands a value kept as a string out as that string, in a
+  single piece with nothing copied, and reads a value kept as bytes through `StoredBinaries`,
+  decoding 16 KiB at a time, so neither the bytes nor the text of a protected value is ever
+  whole in the gate's memory. `JsonWriter.TextInPieces` writes the pieces between a single pair
+  of quotes, each escaped by Json.NET, which is no second way of escaping, and a single piece
+  as Json.NET writes any string. The answer and every tag are byte for byte what they were,
+  stored bytes that are not UTF-8 included. The bytes are asked for ahead of the string, since
+  KeePass's own `ReadString` sets the string before it lets the bytes go. **Where that cannot
+  be done, KeePass reads**, as for an attachment: `ReadUtf8` on a KeePass that keeps a value
+  otherwise, `StoredStrings.WhyNotInPlace`, logged as a warning as the plugin loads.
+  `VaultViewField.Read` hands out pieces and no whole value. `DESIGN.md` §145.
 - **A plain DLL on .NET Framework 4.8**, not a `.plgx`.
 - **The access control model is one document per node**: `AclDocument`, `AclResolver`, `AclGrant`,
   `AclVerb`, `AclDefault`, with `KdbxNodes` adapting a `PwGroup` or a `PwEntry`. Grants live under
@@ -755,9 +771,10 @@ and answers a different question.
   long as the entry is loaded, and a `ProtectedString` made from text keeps that text whatever
   its flag. `Length`, `ReadUtf8` and `Equals` work on copies and leave the object as it was. So
   nothing in the plugin calls `ReadString` on a protected string or makes such a string from text:
-  `StoredStrings` reads with `ReadUtf8` and overwrites the copy, and hands KeePass a protected
-  value as bytes, and the digest a tag takes a protected value by is taken from such a copy,
-  `NodeTags.DigestOf`. A title or a URL is read only by a listing that shows it:
+  `StoredStrings` reads a protected value a piece at a time from the bytes KeePass keeps for it,
+  `m_pbUtf8`, and with `ReadUtf8` only on a KeePass that keeps a value otherwise, and hands
+  KeePass a protected value as bytes, and the digest a tag takes a protected value by is taken
+  the same way, `NodeTags.DigestOf`. A title or a URL is read only by a listing that shows it:
   `VaultEntry.Title` and `Url` read when first asked, so describing an entry to find its node
   reads neither. KeePass's own save reads with `ReadString` each of an entry's five own strings
   that the database's setting for the name leaves unprotected, whatever the string's flag.

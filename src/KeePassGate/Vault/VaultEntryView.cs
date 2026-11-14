@@ -118,6 +118,11 @@ namespace KeePassGate.Vault
     /// whichever string the route was about, and the store reads a value for its digest the
     /// first time and keeps the digest.
     ///
+    /// **Its value is handed out as text a piece at a time**, by <see cref="Read"/>, as an
+    /// attachment's bytes are, <see cref="VaultViewAttachment"/>, so that a value of any
+    /// length is served with a piece of it made. The store decides what a piece is read
+    /// from.
+    ///
     /// **A withheld string holds nothing its value could be read with.** The constructor drops
     /// the reader and what digests the value for a string out of sight, so a withheld value is
     /// never read, and no later mistake above the vault can reach the value, or anything
@@ -138,7 +143,7 @@ namespace KeePassGate.Vault
     /// </remarks>
     public sealed class VaultViewField
     {
-        private readonly Func<string> _read;
+        private readonly Action<Action<string>> _read;
         private readonly Func<byte[]> _digest;
 
         /// <summary>A string of an entry, as far as <paramref name="sight"/> reaches it.</summary>
@@ -149,7 +154,10 @@ namespace KeePassGate.Vault
         /// <param name="sight">
         /// What the caller may read, where null is <see cref="VaultSight.Least"/>.
         /// </param>
-        /// <param name="read">What reads the value, kept only for a string in sight.</param>
+        /// <param name="read">
+        /// What hands out the value as text, in order, a piece at a time, and nothing for a
+        /// value of no characters, kept only for a string in sight.
+        /// </param>
         /// <param name="isListed">
         /// Whether a listing of entries shows this string, as the vault decides it: an entry's
         /// title and its URL.
@@ -163,7 +171,7 @@ namespace KeePassGate.Vault
             string name,
             bool isProtected,
             VaultSight sight,
-            Func<string> read,
+            Action<Action<string>> read,
             bool isListed = false,
             Func<byte[]> digest = null)
         {
@@ -228,18 +236,30 @@ namespace KeePassGate.Vault
         public bool IsWithheld { get; private set; }
 
         /// <summary>
-        /// Reads the value as stored, never compiled, or answers null when it is withheld.
+        /// Hands out the value as stored, never compiled, as text, in order and a piece at a
+        /// time: nothing for a value of no characters, and nothing when it is withheld.
         /// </summary>
         /// <remarks>
         /// **Read every time it is asked, and kept nowhere here.** An answer is written a value
-        /// at a time as it is sent, `HttpResponse.Write`, so that what is alive of an entry is
-        /// the value being written; a view that kept each value it had read would hold the
-        /// whole entry for as long as the answer took. So a caller asks once, where it writes
-        /// the value, and asking again reads again.
+        /// at a time as it is sent, `HttpResponse.Write`, and a value a piece at a time, so
+        /// that what is alive of an entry is the piece being written; a view that kept each
+        /// value it had read would hold the whole entry for as long as the answer took. So a
+        /// caller asks once, where it writes the value, and asking again reads again.
+        ///
+        /// Whether a value is withheld is <see cref="IsWithheld"/>, which is asked ahead of
+        /// this by whatever has to tell a withheld value from a value of no characters.
         /// </remarks>
-        public string Read()
+        public void Read(Action<string> piece)
         {
-            return _read == null ? null : _read() ?? string.Empty;
+            if (piece == null)
+            {
+                throw new ArgumentNullException(nameof(piece));
+            }
+
+            if (_read != null)
+            {
+                _read(piece);
+            }
         }
 
         /// <summary>

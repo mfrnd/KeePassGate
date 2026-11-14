@@ -251,8 +251,9 @@ namespace KeePassGate.Pipeline
                 // nothing can be written down once the answer's content is being sent.
                 withholding(fields)();
 
-                // Written as it is sent, a value at a time, so that what is alive of the entry
-                // is the value being written, however much the entry holds, and no read is
+                // Written as it is sent, a value at a time and a protected value a piece at a
+                // time, so that what is alive of the entry is the string KeePass keeps or the
+                // piece being written, however much the entry holds, and no read is
                 // refused for an entry's size. Everything that can refuse stands above: what
                 // this writes follows a `200` that is already on the wire. A HEAD is answered
                 // without it, so no value is read for a HEAD's answer, and asking whether an
@@ -281,8 +282,8 @@ namespace KeePassGate.Pipeline
                             // `protected` member below names which could have been, which is
                             // what makes the difference readable rather than guessed at. A
                             // withheld field has no value behind it, so what is written for
-                            // it is the null the view answers. Read here and kept nowhere.
-                            json.Text(field.Name, field.Read());
+                            // it is `null`. Read here, a piece at a time, and kept nowhere.
+                            Value(json, field.Name, field);
                         }
 
                         json.End();
@@ -482,7 +483,7 @@ namespace KeePassGate.Pipeline
                     text => JsonWriter.Into(text, json =>
                     {
                         json.Text("name", name);
-                        json.Text("value", field.Read());
+                        Value(json, "value", field);
                         json.Flag("protected", field.IsProtected);
                     }),
                     Tagged(tag));
@@ -838,6 +839,21 @@ namespace KeePassGate.Pipeline
 
             var root = vault.Group(vault.RootAlias);
             return root == null ? null : root.Node;
+        }
+
+        /// <summary>
+        /// Writes a string's value under a name as it is read, a piece at a time, or `null`
+        /// for a value the view withholds.
+        /// </summary>
+        private static void Value(JsonWriter json, string name, VaultViewField field)
+        {
+            if (field.IsWithheld)
+            {
+                json.Text(name, null);
+                return;
+            }
+
+            json.TextInPieces(name, field.Read);
         }
 
         private static IVault Vault(IGateContext context)

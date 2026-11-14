@@ -206,6 +206,155 @@ namespace KeePassGate.Tests
         }
 
         [Test]
+        public void Text_handed_over_in_pieces_is_written_as_the_text_whole_is(
+            [Values(1, 2, 3, 100, 8 * 1024, (8 * 1024) + 1, 16 * 1024, 70000)] int piece)
+        {
+            // A field's value is written this way, a piece at a time as it is read. Json.NET
+            // escapes each piece, and escapes a character at a time, so the pieces between a
+            // single pair of quotes are the text Json.NET writes of the whole: every character
+            // there is, each escaped or not as it is in a string written whole, with a pair of
+            // surrogates split between two pieces among them. The same text from a writer that
+            // keeps its document and from a writer that writes into another.
+            var every = new System.Text.StringBuilder();
+            for (var character = 0; character <= char.MaxValue; character++)
+            {
+                every.Append((char)character);
+            }
+
+            every.Append("\U0001F511 and a line\r\nafter it");
+            var text = every.ToString();
+            var expected = new JsonWriter().Text("value", text).Done();
+            Action<JsonWriter> describe = json => json.TextInPieces("value", InPieces(text, piece));
+
+            var kept = new JsonWriter();
+            describe(kept);
+            Assert.That(kept.Done() == expected, Is.True, "a kept writer wrote other text than of the whole");
+
+            using (var written = new StringWriter())
+            {
+                JsonWriter.Into(written, describe);
+
+                Assert.That(written.ToString() == expected, Is.True, "written into another writer, the text differs");
+                Assert.That((string)JObject.Parse(written.ToString())["value"] == text, Is.True);
+            }
+        }
+
+        [Test]
+        public void Text_handed_over_in_a_single_piece_is_written_by_Json_NET_as_any_string_is()
+        {
+            // The string KeePass keeps for a value held in the open is handed over whole,
+            // whatever its length, and Json.NET writes a string straight from the string. So a
+            // single piece is never escaped into a copy: nothing as long as the piece is
+            // allocated to write it.
+            var text = new string('a', 4 * 1024 * 1024);
+            Action<Action<string>> read = piece => piece(text);
+
+            using (var nowhere = new StreamWriter(Stream.Null))
+            {
+                JsonWriter.Into(nowhere, json => json.TextInPieces("value", piece => piece("warmed")));
+
+                var before = GC.GetAllocatedBytesForCurrentThread();
+                JsonWriter.Into(nowhere, json => json.TextInPieces("value", read));
+                var allocated = GC.GetAllocatedBytesForCurrentThread() - before;
+
+                Assert.That(allocated, Is.LessThan(text.Length / 8), "a copy of the piece was made to write it");
+            }
+
+            Assert.That(
+                new JsonWriter().TextInPieces("value", piece => piece("a \" quoted")).Done(),
+                Is.EqualTo("{\"value\":\"a \\\" quoted\"}"));
+        }
+
+        [Test]
+        public void No_text_is_written_as_an_empty_string()
+        {
+            // A value of no characters hands out no piece, and a reader may as well hand over
+            // pieces holding nothing: each is the empty string, quoted, and still a value.
+            Action<Action<string>> nothing = piece => { };
+            Action<Action<string>> empty = piece => piece(string.Empty);
+            Action<Action<string>> empties = piece =>
+            {
+                piece(string.Empty);
+                piece(string.Empty);
+                piece(string.Empty);
+            };
+
+            foreach (var read in new[] { nothing, empty, empties })
+            {
+                Assert.That(new JsonWriter().TextInPieces("value", read).Done(), Is.EqualTo("{\"value\":\"\"}"));
+
+                using (var text = new StringWriter())
+                {
+                    JsonWriter.Into(text, json => json.TextInPieces("value", read));
+
+                    Assert.That(text.ToString(), Is.EqualTo("{\"value\":\"\"}"));
+                }
+            }
+        }
+
+        [Test]
+        public void A_member_written_after_text_in_pieces_is_separated_from_it_as_from_any_value()
+        {
+            // The quotes and the pieces between them go straight to the writer underneath,
+            // past Json.NET, which still has to know a value was written: the member after it
+            // needs its comma, and whatever is left open its closing. In a single piece and in
+            // several, first in the document and inside an object.
+            Action<JsonWriter> describe = json => json
+                .TextInPieces("first", InPieces("in \"three\" pieces", 7))
+                .Text("name", "Notes")
+                .TextInPieces("single", InPieces("whole", 100))
+                .TextInPieces("none", piece => { })
+                .Object("o").TextInPieces("inside", InPieces("a\\b", 1)).Flag("f", true);
+
+            const string Expected = "{\"first\":\"in \\\"three\\\" pieces\",\"name\":\"Notes\",\"single\":\"whole\","
+                + "\"none\":\"\",\"o\":{\"inside\":\"a\\\\b\",\"f\":true}}";
+
+            var kept = new JsonWriter();
+            describe(kept);
+            Assert.That(kept.Done(), Is.EqualTo(Expected));
+
+            using (var text = new StringWriter())
+            {
+                JsonWriter.Into(text, describe);
+                Assert.That(text.ToString(), Is.EqualTo(Expected));
+            }
+        }
+
+        [Test]
+        public void Text_in_pieces_needs_what_reads_it_and_takes_no_piece_that_is_null()
+        {
+            Assert.Throws<ArgumentNullException>(() => new JsonWriter().TextInPieces("value", null));
+            Assert.Throws<ArgumentNullException>(() => new JsonWriter().TextInPieces("value", piece => piece(null)));
+            Assert.Throws<ArgumentNullException>(() => new JsonWriter().TextInPieces("value", piece =>
+            {
+                piece("a");
+                piece(null);
+            }));
+        }
+
+        [Test]
+        public void Text_whose_read_fails_part_way_leaves_the_document_open_where_it_stopped()
+        {
+            // A read that fails after pieces were written is an answer that failed part way:
+            // what was thrown comes out as it was thrown, and nothing closes the string or the
+            // document after it, so nothing downstream takes half a value for a whole.
+            var failure = new IOException("an invented read that failed");
+
+            using (var text = new StringWriter())
+            {
+                var thrown = Assert.Throws<IOException>(() => JsonWriter.Into(text, json => json.TextInPieces("value", piece =>
+                {
+                    piece("first");
+                    piece("second");
+                    throw failure;
+                })));
+
+                Assert.That(thrown, Is.SameAs(failure));
+                Assert.That(text.ToString(), Is.EqualTo("{\"value\":\"first"));
+            }
+        }
+
+        [Test]
         public void Bytes_handed_over_in_pieces_are_written_as_the_base64_of_the_whole(
             [Values(1, 2, 3, 4, 5, 6, 12 * 1024, (12 * 1024) + 1, 48 * 1024, (48 * 1024) + 2, 100000, 150001)] int size,
             [Values(3, 21, 12 * 1024, 48 * 1024)] int piece)
@@ -446,6 +595,18 @@ namespace KeePassGate.Tests
             var bytes = new byte[size];
             new Random(size).NextBytes(bytes);
             return bytes;
+        }
+
+        /// <summary>What hands text over in pieces of a length, the last as long as is left.</summary>
+        private static Action<Action<string>> InPieces(string text, int piece)
+        {
+            return take =>
+            {
+                for (var at = 0; at < text.Length; at += piece)
+                {
+                    take(text.Substring(at, Math.Min(piece, text.Length - at)));
+                }
+            };
         }
 
         /// <summary>

@@ -311,16 +311,18 @@ condition on a request that would be refused without it. The same is conceded to
 ## A read is written as it is sent §412
 
 **No read of an entry or of a field is refused for its size.** The answer to `readEntry` and to
-`readField` is written as it is sent: each value is read where it is written into the answer,
-the answer goes out in chunks, `Transfer-Encoding: chunked`, and nothing of it is kept. So what
-such a read keeps alive inside KeePass is the value it is writing and a chunk of the answer,
-whatever the entry holds. Everything that can refuse comes before the first byte, in the order
-a read's refusals had already, `404` and then `412`, and the audit line for a withheld value
-with them. A failure once the status has gone out cannot be answered: the connection is closed
-with the last chunk never sent, so a client takes an answer for whole only when its last chunk
-arrived. A `HEAD` of either runs none of it, so no value is read for its answer. It carries the
-tag, which is taken first, and the first tag taken over a value reads that value, as below.
-`DESIGN.md` §143 has the transport's half.
+`readField` is written as it is sent: each value is read where it is written into the answer, the
+answer goes out in chunks, `Transfer-Encoding: chunked`, and nothing of it is kept. So what such a
+read keeps alive inside KeePass is a piece of the value it is writing and a chunk of the answer,
+whatever the entry holds: a protected value is decrypted, decoded and written a piece at a time from
+where KeePass keeps it, as an attachment is, and a value held in the open is written from the string
+KeePass keeps, `DESIGN.md` §145. Everything that can refuse comes before the first byte, in the
+order a read's refusals had already, `404` and then `412`, and the audit line for a withheld value
+with them. A failure once the status has gone out cannot be answered: the connection is closed with
+the last chunk never sent, so a client takes an answer for whole only when its last chunk arrived. A
+`HEAD` of either runs none of it, so no value is read for its answer. It carries the tag, which is
+taken first, and the first tag taken over a value reads that value, as below. `DESIGN.md` §143 has
+the transport's half.
 
 **This reverses a ceiling on reads**, the operator's ruling of 2026-11-14. An answer was built
 whole, at several times the entry's strings in memory inside KeePass, 99 MB alive at once for

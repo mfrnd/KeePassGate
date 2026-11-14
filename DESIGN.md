@@ -433,21 +433,21 @@ changes, so the pieces still to come are the same bytes either way. Attachments 
 open are read in place as ever.
 
 **The read through KeePass is held to no size, and it reverses "there is no second way of
-reading".** That ruling, given earlier on 2026-11-14, refused a fallback as logic nothing
-exercises, and answered `500 unreadable` for a protected attachment kept through another
-plugin's cipher: for a read of it, for every answer and every change that took a tag over it,
-and for a write of an attachment while such a cipher stood. The operator reversed it the same
-day, so that a field and an attachment are read alike and differ in nothing but being
-protected or not: a field's value is read through KeePass's own read whatever keeps it and at
-whatever size, `StoredStrings`, so an attachment KeePass itself can read and a client was
-refused differed from a field in nothing but its reader. What the reversal costs is a copy of
-the whole attachment for each read that goes that way, alive for as long as its peer takes to
-read it and held to no ceiling, as a field's value is held to none; and a second way of
-reading that runs only beside such a plugin, or on a KeePass or a Windows the first way no
-longer fits. `StoredBinariesTests` and `TagFailureTests` run it through KeePass's own hook: for
-an attachment kept through another cipher from the start, since KeePass last read it, and from
-between two pieces of a read. Measured as a copy written as it is sent, 64 MiB took 122 to
-171 ms, `FINDINGS.md`. Nothing of `500 unreadable` was released.
+reading".** That ruling, given earlier on 2026-11-14, refused a fallback as logic nothing exercises,
+and answered `500 unreadable` for a protected attachment kept through another plugin's cipher: for a
+read of it, for every answer and every change that took a tag over it, and for a write of an
+attachment while such a cipher stood. The operator reversed it the same day, so that a field and an
+attachment are read alike and differ in nothing but being protected or not: a field's value was read
+through KeePass's own read whatever kept it and at whatever size, so an attachment KeePass itself
+can read and a client was refused differed from a field in nothing but its reader, and a field is
+read as an attachment is since, §145. What the reversal costs is a copy of the whole attachment for
+each read that goes that way, alive for as long as its peer takes to read it and held to no ceiling,
+as a field's value is held to none; and a second way of reading that runs only beside such a plugin,
+or on a KeePass or a Windows the first way no longer fits. `StoredBinariesTests` and
+`TagFailureTests` run it through KeePass's own hook: for an attachment kept through another cipher
+from the start, since KeePass last read it, and from between two pieces of a read. Measured as a
+copy written as it is sent, 64 MiB took 122 to 171 ms, `FINDINGS.md`. Nothing of `500 unreadable`
+was released.
 
 Considered and refused:
 
@@ -477,6 +477,63 @@ attachment, for a copy of 48 KiB at a time. And a change that is the first to ta
 a large attachment digests it inside its turn on KeePass's thread, beside its save: 27 ms for
 64 MiB held in the open and about 47 ms protected, once for as long as KeePass keeps the
 attachment. A read's first tag is taken with KeePass's thread free.
+
+### A field's value is read where KeePass keeps it §145
+
+**A field and an attachment are read alike, and differ in nothing but being protected or
+not**, the operator's ruling of 2026-11-14. A field's value was read whole: the string KeePass
+keeps for a value held in the open, and for a protected value a copy of its bytes from
+`ReadUtf8`, decoded into a string and overwritten, §136. So a read of a long protected value
+kept the whole value alive as text for as long as its answer took to send, and its bytes
+beside that while it was decoded, where a protected attachment of the same size kept a piece.
+
+**KeePass keeps a value as a string or as bytes**, read off KeePass 2.61.1: the private
+fields `m_strPlainText` and `m_pbUtf8` of a `ProtectedString`. A value that is not protected
+is kept as a string. So is a protected value made from a string, and a protected value KeePass
+itself has read as a string since, which it does when the operator uses the entry. A protected
+value made from bytes, which is a value a file was loaded with and a value written through
+the gate, is kept as UTF-8 in a `ProtectedBinary` of the string's own, protected as an
+attachment is.
+
+**A value kept as a string is handed out as that string**, in a single piece and with nothing
+copied, as an attachment held in the open is its buffer. Json.NET writes a string a character
+at a time, so nothing is copied for the answer either.
+
+**A value kept as bytes is decrypted, decoded and escaped a piece at a time.** `StoredStrings`
+reads the bytes through `StoredBinaries`, as an attachment's are read, decodes them 16 KiB at
+a time with a decoder that carries a sequence cut by a step into the step after it, and hands
+each step out as text. `JsonWriter.TextInPieces` has Json.NET escape each piece and writes the
+pieces between a single pair of quotes, as it writes the base64 of an attachment. The answer
+is byte for byte the answer made of the value whole, for every character and for stored bytes
+that are not UTF-8, which a file another program wrote can hold: `FINDINGS.md` has both
+measured. KeePass is never asked for the value, as a string or as bytes, so its buffer stays
+encrypted, and the value is never whole in the gate's memory.
+
+**A tag's digest of a value is taken the same way, and is the digest it was.** Of the string,
+for a value kept as a string. For a value kept as bytes, of those bytes as they are read, while
+a decoder that refuses what is not UTF-8 runs over them; bytes that are not UTF-8 are read a
+second time and digested as a read decodes them. No tag moves, and no string is made of a
+protected value for its digest.
+
+**Where that cannot be done, KeePass reads**, as for an attachment, §144. On a KeePass that
+keeps a value otherwise, checked as the plugin loads and logged there as a warning,
+`StoredStrings.WhyNotInPlace`, a protected value is read with `ReadUtf8`, a copy of the whole.
+The bytes of a value kept through another cipher than Windows' are read through `ReadData` by
+the reader underneath, and decoded a step at a time all the same. And KeePass can read a value
+as a string on its own thread while a connection is part way through its bytes: KeePass sets
+the string before it lets the bytes go, so the reader asks for the bytes first and finds the
+value in the bytes or in the string, and bytes it found stay the value, since a
+`ProtectedBinary` is never changed.
+
+**What it costs, and what it leaves as it was.** Measured in a Release build into a stream
+that keeps nothing, a protected value of 64 MiB is read in 441 to 465 ms with 0.2 MB alive,
+against 414 to 516 ms with 128 MB alive; of 16 MiB in 131 ms against 114 to 130 ms; and of
+64 KiB in 1.5 ms either way. A read in pieces allocates about eight times the value over its
+length, in strings of 32 KB and under that are each let go as the next is made. What a write
+takes for a value is unchanged, 65536 characters, and so is the wire: a client reads the JSON
+it read. A piece of a value that is served is a string in the process until the runtime
+reuses its memory, as the whole value was, §136. `StoredStringsTests`, `JsonWriterTests` and
+`ProtectedInMemoryTests` hold the reader, the writer and the two together.
 
 ### Refused at our boundary §110
 
@@ -718,29 +775,30 @@ switch, a rule that grants `read` still answers with the entry, its title, its d
 every field it holds and the values of the ones nothing protects, and the protected values come back
 as `null`. With it, they come back as themselves.
 
-**The gate leaves a protected value encrypted in KeePass's memory.** KeePass holds a protected
-value a file was loaded with as encrypted bytes, and `ProtectedString.ReadString` decodes it,
-keeps the string inside the object and lets the bytes go, so a value read that way is in memory
-in the open for as long as the entry is loaded. Every value was read that way, and a tag reads
-every value in its caller's sight: a listing of an entry's fields left every protected value of
-the entry in the open, the values nobody asked for among them. So a protected value is read with
-`ReadUtf8`, which hands back a copy and keeps nothing; a tag digests that copy and a route
-serving the value decodes it, and the copy is overwritten; and a protected value written through
+**The gate leaves a protected value encrypted in KeePass's memory.** KeePass holds a protected value
+a file was loaded with as encrypted bytes, and `ProtectedString.ReadString` decodes it, keeps the
+string inside the object and lets the bytes go, so a value read that way is in memory in the open
+for as long as the entry is loaded. Every value was read that way, and a tag reads every value in
+its caller's sight: a listing of an entry's fields left every protected value of the entry in the
+open, the values nobody asked for among them. So a protected value is never asked of KeePass as a
+string. It was read with `ReadUtf8`, which hands back a copy and keeps nothing, a tag digesting that
+copy and a route serving the value decoding it, and is read a piece at a time from the bytes KeePass
+keeps for it since, §145, each copy of a piece overwritten; and a protected value written through
 the gate is handed to KeePass as bytes, since a `ProtectedString` made from text keeps the text.
-`StoredStrings` is the whole of it. **What that is and is not.** KeePass's protection is of
-memory that leaves the process, a crash dump or the page file, and what is kept is that the gate
-does not undo it for a value KeePass has not itself decoded. A value that is served is a string
-in the process until the runtime reuses its memory, and so is the answer it is written into,
-and neither can be overwritten; the same holds for a protected title or address a listing
-shows, for the body a request carried, and for an attachment's bytes once they are written
-into an answer. KeePass decodes a value itself when the operator uses the entry, and at a save
-for a string its settings leave unprotected. Nothing here defends against code running as the
-user, which is conceded throughout. A title or an address a caller is not shown is not read at
-all: an entry is described without them, and a listing reads each only where it shows it. It
-costs a copy of each protected value in sight for the first tag taken over it, and a copy of
-each protected title and address a listing shows, for every listing, where KeePass keeping the
-text made every listing after the first cheaper. A read's tag is taken, and a listing written,
-with KeePass's thread free; a change's tags are inside its turn. `FINDINGS.md` has the numbers.
+`StoredStrings` is the whole of it. **What that is and is not.** KeePass's protection is of memory
+that leaves the process, a crash dump or the page file, and what is kept is that the gate does not
+undo it for a value KeePass has not itself decoded. A value that is served is a string in the
+process until the runtime reuses its memory, and so is the answer it is written into, and neither
+can be overwritten; the same holds for a protected title or address a listing shows, for the body a
+request carried, and for an attachment's bytes once they are written into an answer. KeePass decodes
+a value itself when the operator uses the entry, and at a save for a string its settings leave
+unprotected. Nothing here defends against code running as the user, which is conceded throughout. A
+title or an address a caller is not shown is not read at all: an entry is described without them,
+and a listing reads each only where it shows it. It costs a copy of each protected value in sight
+for the first tag taken over it, and a copy of each protected title and address a listing shows, for
+every listing, where KeePass keeping the text made every listing after the first cheaper. A read's
+tag is taken, and a listing written, with KeePass's thread free; a change's tags are inside its
+turn. `FINDINGS.md` has the numbers.
 
 **A tag keeps a digest of each value, and the digest of a protected value is kept as the value is.**
 A tag takes a value by its SHA-256, taken once for as long as KeePass keeps the object the value is

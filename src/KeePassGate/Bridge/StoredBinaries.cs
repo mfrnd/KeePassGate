@@ -61,6 +61,11 @@ namespace KeePassGate.Bridge
     /// stands through `ReadData`: what an attachment holds never changes, so the pieces
     /// still to come are the same bytes either way.
     ///
+    /// **The bytes of a protected string are read the same way.** KeePass keeps the value of
+    /// a protected string a file was loaded with as UTF-8 in a `ProtectedBinary` of the
+    /// string's own, and `StoredStrings` reads that through here, so what holds for an
+    /// attachment below holds for a field's value.
+    ///
     /// **A read and a digest, and nothing else of KeePass's.** KeePass's own reads still
     /// decrypt the buffer where it stands, a save among them. And a write that replaces an
     /// attachment compares the stored attachment with the replacement through KeePass's own

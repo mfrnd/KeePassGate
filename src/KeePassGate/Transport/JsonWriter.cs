@@ -18,7 +18,9 @@ namespace KeePassGate.Transport
     /// Json.NET does the writing, including every escape, so nothing here can produce something
     /// that is not JSON. The base64 of an attachment is the exception to who writes, and none to
     /// who escapes: <see cref="Base64"/> writes that string itself, a piece at a time, between
-    /// quotes of its own, and base64 holds nothing JSON escapes. What this adds is the shape a
+    /// quotes of its own, and base64 holds nothing JSON escapes. A value handed over in pieces
+    /// is written between quotes of this writer's own as well, each piece escaped by Json.NET,
+    /// <see cref="TextInPieces"/>. What this adds is the shape a
     /// handler wants to write in: a fluent call per member, with the punctuation and the closing
     /// of whatever is still open left to the writer rather than to whoever is describing an
     /// entry.
@@ -36,6 +38,12 @@ namespace KeePassGate.Transport
         /// step's text ends where a step of base64 does.
         /// </summary>
         private const int Base64Step = 12 * 1024;
+
+        /// <summary>
+        /// How many characters of an escaped piece of text are handed to the writer underneath
+        /// at a time.
+        /// </summary>
+        private const int EscapedStep = 8 * 1024;
 
         private readonly StringWriter _text;
         private readonly TextWriter _into;
@@ -217,6 +225,102 @@ namespace KeePassGate.Transport
 
             _into.Write('"');
             return this;
+        }
+
+        /// <summary>
+        /// Writes a string from the text handed over, a piece at a time, as it is handed over.
+        /// </summary>
+        /// <remarks>
+        /// **For a field's value, which is read a piece at a time from where KeePass keeps
+        /// it.** Json.NET writes a string it is handed whole, quotes included, so a string in
+        /// pieces has its quotes written here, straight to the writer underneath, as
+        /// <see cref="Base64"/> writes its own.
+        ///
+        /// **Json.NET escapes every piece all the same**, through `JsonConvert.ToString`, which
+        /// escapes as its writer does and a character at a time, so what a piece is escaped to
+        /// is what the same text is escaped to inside a longer string. It puts each piece
+        /// between quotes of its own, and those are left out.
+        ///
+        /// **A value handed over in a single piece is written by Json.NET as any string is**,
+        /// straight from the string, with no copy made of it: the string KeePass keeps for a
+        /// value held in the open is handed over that way, whatever its length. Whether a
+        /// piece is the only piece is known once the piece after it comes or the read is
+        /// over, so a piece is written when that is known and not as it is handed over.
+        /// </remarks>
+        /// <param name="read">
+        /// What hands the text over in order, and nothing for a string of no characters.
+        /// </param>
+        public JsonWriter TextInPieces(string name, Action<Action<string>> read)
+        {
+            if (read == null)
+            {
+                throw new ArgumentNullException(nameof(read));
+            }
+
+            _writer.WritePropertyName(name);
+
+            string last = null;
+            char[] through = null;
+            try
+            {
+                read(piece =>
+                {
+                    if (piece == null)
+                    {
+                        throw new ArgumentNullException(nameof(piece));
+                    }
+
+                    if (last != null)
+                    {
+                        if (through == null)
+                        {
+                            // The opening quote goes through Json.NET as the value it expects
+                            // here, as the opening quote of base64 does.
+                            _writer.WriteRawValue("\"");
+                            through = new char[EscapedStep];
+                        }
+
+                        Escaped(last, through);
+                    }
+
+                    last = piece;
+                });
+
+                if (through == null)
+                {
+                    _writer.WriteValue(last ?? string.Empty);
+                    return this;
+                }
+
+                Escaped(last, through);
+            }
+            finally
+            {
+                if (through != null)
+                {
+                    // The only copy of the escaped text here that can be overwritten.
+                    System.Array.Clear(through, 0, through.Length);
+                }
+            }
+
+            _into.Write('"');
+            return this;
+        }
+
+        /// <summary>
+        /// Writes a piece of text as Json.NET escapes it, without the quotes Json.NET puts
+        /// around it.
+        /// </summary>
+        private void Escaped(string piece, char[] through)
+        {
+            var quoted = JsonConvert.ToString(piece);
+            for (var at = 1; at < quoted.Length - 1;)
+            {
+                var count = Math.Min(through.Length, quoted.Length - 1 - at);
+                quoted.CopyTo(at, through, 0, count);
+                _into.Write(through, 0, count);
+                at += count;
+            }
         }
 
         public JsonWriter Flag(string name, bool value)

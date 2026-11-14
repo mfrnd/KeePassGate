@@ -205,8 +205,9 @@ namespace KeePassGate.Transport
         /// **For an answer that grows with what a database holds and is made of values.** Handed
         /// over whole, an answer is alive several times over while it is written: its values,
         /// the document they were written into, the text taken of that document and the bytes
-        /// the text encodes to. Written as it is sent, what is alive is the value being written
-        /// and what <see cref="ChunkedContent"/> gathers of it. `FINDINGS.md` has both measured.
+        /// the text encodes to. Written as it is sent, what is alive is the piece of a value
+        /// being written and what <see cref="ChunkedContent"/> gathers of it. `FINDINGS.md` has
+        /// both measured.
         ///
         /// **Its length is not known when its head goes out**, so it carries none and goes out
         /// in chunks, which is how RFC 9112 section 7.1 frames such content.

@@ -875,6 +875,16 @@ namespace KeePassGate
                     "and every digest of an attachment copies the whole attachment for as long as it runs");
             }
 
+            // And a protected value likewise, out of the bytes KeePass keeps for it,
+            // `StoredStrings`.
+            whole = StoredStrings.WhyNotInPlace;
+            if (whole != null)
+            {
+                _log.Warn(
+                    "no protected value is read in place: " + whole + ", so every read of a protected " +
+                    "value and every digest of a protected value copies the whole value for as long as it runs");
+            }
+
             var ui = new ControlUiThread(mainWindow, merging);
             _ui = ui;
 

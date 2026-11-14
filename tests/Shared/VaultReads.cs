@@ -19,6 +19,43 @@ namespace KeePassGate.Testing
     }
 
     /// <summary>
+    /// A string of an entry as a view holds it, made from what reads its value whole.
+    /// </summary>
+    /// <remarks>
+    /// A view hands a value out a piece at a time, since the store reads a value so. A test
+    /// that is not about the pieces has a value, or something that counts how often the value
+    /// is asked for, and this hands that out as a single piece, and as none where it is null
+    /// or of no characters.
+    /// </remarks>
+    public static class ViewFields
+    {
+        /// <summary>A string whose value is what <paramref name="read"/> answers.</summary>
+        public static VaultViewField Of(
+            string name,
+            bool isProtected,
+            VaultSight sight,
+            System.Func<string> read,
+            bool isListed = false,
+            System.Func<byte[]> digest = null)
+        {
+            return new VaultViewField(name, isProtected, sight, read == null ? null : Whole(read), isListed, digest);
+        }
+
+        /// <summary>What hands out, as a single piece, the value something answers whole.</summary>
+        public static System.Action<System.Action<string>> Whole(System.Func<string> read)
+        {
+            return piece =>
+            {
+                var value = read();
+                if (!string.IsNullOrEmpty(value))
+                {
+                    piece(value);
+                }
+            };
+        }
+    }
+
+    /// <summary>
     /// The reads a test asks of a vault to see what a write left: the whole of an entry, with
     /// nothing withheld.
     /// </summary>
@@ -49,6 +86,22 @@ namespace KeePassGate.Testing
             var view = vault.Whole(entryUuid);
             var field = view == null ? null : view.Field(name);
             return field == null ? null : field.Read();
+        }
+
+        /// <summary>
+        /// A string's value whole, its pieces joined in the order they came, or null for a
+        /// value that is withheld.
+        /// </summary>
+        public static string Read(this VaultViewField field)
+        {
+            if (field.IsWithheld)
+            {
+                return null;
+            }
+
+            var joined = new System.Text.StringBuilder();
+            field.Read(piece => joined.Append(piece));
+            return joined.ToString();
         }
 
         /// <summary>

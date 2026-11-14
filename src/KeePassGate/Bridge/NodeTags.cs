@@ -126,10 +126,11 @@ namespace KeePassGate.Bridge
     ///
     /// **The digest of a value KeePass holds encrypted is kept encrypted**,
     /// <see cref="KeptDigest"/>, by the string's own flag, and a tag is handed a copy that it
-    /// overwrites. Taking it reads such a value as a copy of its bytes, the copy overwritten
-    /// and no string made of it unless its stored bytes are not UTF-8, so that KeePass goes on
-    /// protecting the value, `StoredStrings`; a long value KeePass holds in the open is encoded
-    /// a piece at a time, <see cref="Pieces"/>, with no second copy of it made.
+    /// overwrites. Taking it reads such a value a piece at a time from the bytes KeePass
+    /// keeps for it, every copy of a piece overwritten and no string made of it unless its
+    /// stored bytes are not UTF-8, so that KeePass goes on protecting the value,
+    /// `StoredStrings`; a long value KeePass holds in the open is encoded a piece at a time,
+    /// <see cref="Pieces"/>, with no second copy of it made.
     ///
     /// **Whether a digest was already kept shows in how long a tag takes**, for a long value:
     /// the first tag after KeePass puts a value in another object digests it, and the tags
@@ -420,11 +421,17 @@ namespace KeePassGate.Bridge
         }
 
         /// <summary>
-        /// The SHA-256 of a stored string's value as a read serves it, with every copy of a
-        /// value KeePass protects overwritten, and no string made of it unless its stored
-        /// bytes are not UTF-8.
+        /// The SHA-256 of a stored string's value as a read serves it, taken from where
+        /// KeePass keeps the value, with every copy of a value KeePass protects overwritten,
+        /// and no string made of it unless its stored bytes are not UTF-8.
         /// </summary>
         /// <remarks>
+        /// A value KeePass keeps as a string is digested from that string, whatever its flag,
+        /// and a value KeePass keeps as bytes a piece at a time from those bytes,
+        /// `StoredStrings`. On a KeePass that keeps a value otherwise, a value that is not
+        /// protected is digested from the string KeePass hands out and a protected value from
+        /// a copy of its bytes, which is overwritten.
+        ///
         /// Buffers of its own for each value: the first tag over an entry of long values held
         /// in the open allocates them once for each such value, about 80 KB, and no tag after
         /// it allocates any.
@@ -433,6 +440,13 @@ namespace KeePassGate.Bridge
         {
             using (var pieces = new Pieces())
             {
+                string text;
+                ProtectedBinary bytes;
+                if (StoredStrings.Found(value, out text, out bytes))
+                {
+                    return text != null ? Digested(text, pieces) : Digested(bytes, pieces);
+                }
+
                 if (!value.IsProtected)
                 {
                     // Held in the open: KeePass keeps the string, and hands the same string out.
@@ -448,6 +462,79 @@ namespace KeePassGate.Bridge
                 {
                     MemUtil.ZeroByteArray(stored);
                 }
+            }
+        }
+
+        /// <summary>
+        /// The SHA-256 of a value from the bytes KeePass keeps for it, read a piece at a time
+        /// and digested as the value a read serves is.
+        /// </summary>
+        /// <remarks>
+        /// Bytes that are UTF-8 are the bytes the served value encodes to, so they are
+        /// digested as they are read, while a decoder that refuses what is not UTF-8 is run
+        /// over them, and no string is made of them. Bytes that are not are served with each
+        /// bad sequence replaced, so they are read a second time, decoded as a read decodes
+        /// them, and that text is digested: the same digest as
+        /// <see cref="Digested(byte[], Pieces)"/> takes of a copy of the whole.
+        /// </remarks>
+        internal static byte[] Digested(ProtectedBinary stored, Pieces pieces)
+        {
+            using (var sha256 = SHA256.Create())
+            {
+                try
+                {
+                    if (!Utf8Into(sha256, stored))
+                    {
+                        sha256.Initialize();
+                        StoredStrings.Decoded(stored, piece => pieces.Into(sha256, piece));
+                    }
+
+                    sha256.TransformFinalBlock(Array.Empty<byte>(), 0, 0);
+                    return sha256.Hash;
+                }
+                finally
+                {
+                    // The hasher keeps the end of the value in a block of its own until it is
+                    // started again, whatever happened.
+                    sha256.Initialize();
+                }
+            }
+        }
+
+        /// <summary>
+        /// Digests a value's stored bytes as they are, a piece at a time, and answers whether
+        /// they are UTF-8, which is whether what was digested is the digest of the value.
+        /// </summary>
+        private static bool Utf8Into(HashAlgorithm hash, ProtectedBinary stored)
+        {
+            var strict = Strict.GetDecoder();
+            var text = new char[Strict.GetMaxCharCount(StoredStrings.Step)];
+            try
+            {
+                StoredBinaries.Read(stored, (held, offset, count) =>
+                {
+                    hash.TransformBlock(held, offset, count, null, 0);
+                    for (var at = 0; at < count;)
+                    {
+                        var taken = Math.Min(StoredStrings.Step, count - at);
+                        strict.GetChars(held, offset + at, taken, text, 0, false);
+                        at += taken;
+                    }
+                });
+
+                strict.GetChars(Array.Empty<byte>(), 0, 0, text, 0, true);
+                return true;
+            }
+            catch (DecoderFallbackException)
+            {
+                return false;
+            }
+            finally
+            {
+                // The decoder keeps the bytes of a sequence a step cut, and the buffer the text
+                // of the last step.
+                strict.Reset();
+                Array.Clear(text, 0, text.Length);
             }
         }
 
@@ -622,8 +709,8 @@ namespace KeePassGate.Bridge
         /// overwritten on the way out, as the copy of a value encoded whole is. Each is under
         /// the size the runtime keeps apart for large objects, so digesting a value KeePass
         /// keeps in the open allocates the same little however long the value is. A value
-        /// KeePass protects comes here only where its stored bytes are not UTF-8: it is
-        /// digested from a copy of those bytes.
+        /// KeePass keeps as bytes comes here only where those bytes are not UTF-8, a piece of
+        /// its text at a time: it is digested from the bytes as they are read.
         /// </remarks>
         internal sealed class Pieces : IDisposable
         {
