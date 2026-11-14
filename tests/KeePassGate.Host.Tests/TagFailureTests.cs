@@ -52,6 +52,12 @@ namespace KeePassGate.Host.Tests
             _database.RootGroup.AddEntry(_entry, true);
             _database.Save();
 
+            // The entry's tag once before the hook stands, so that the digest kept for the
+            // attachment made above is kept as that attachment is, outside the hook. A digest
+            // kept under the hook is refused with everything else the hook decrypts, and the
+            // cases here are about which attachment a tag has to read.
+            _vault.EntryTag(Uuid(_entry));
+
             ProtectedBinary.ExtCrypt = (data, flags, id) =>
             {
                 if (flags == PbCryptFlags.Decrypt && _refusing)

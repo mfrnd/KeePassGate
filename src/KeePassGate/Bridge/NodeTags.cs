@@ -149,8 +149,8 @@ namespace KeePassGate.Bridge
         /// <summary>What the key is derived under, so that it is this key and no other the same bytes could make.</summary>
         private const string Purpose = "KeePassGate node tags";
 
-        private static readonly ConditionalWeakTable<ProtectedBinary, Lazy<byte[]>> Digests =
-            new ConditionalWeakTable<ProtectedBinary, Lazy<byte[]>>();
+        private static readonly ConditionalWeakTable<ProtectedBinary, Lazy<KeptDigest>> Digests =
+            new ConditionalWeakTable<ProtectedBinary, Lazy<KeptDigest>>();
 
         private static readonly ConditionalWeakTable<ProtectedString, Lazy<KeptDigest>> ValueDigests =
             new ConditionalWeakTable<ProtectedString, Lazy<KeptDigest>>();
@@ -291,12 +291,20 @@ namespace KeePassGate.Bridge
                     Put(hmac, Length((uint)attachment.Size));
 
                     // Null for an attachment whose bytes are out of sight, and for an attachment
-                    // larger than the gate serves: each enters by its name and size alone.
+                    // larger than the gate serves: each enters by its name and size alone. A
+                    // copy of the digest kept, overwritten once it has entered.
                     var digest = attachment.Digest;
                     if (digest != null)
                     {
                         Put(hmac, "bytes");
-                        Put(hmac, digest);
+                        try
+                        {
+                            Put(hmac, digest);
+                        }
+                        finally
+                        {
+                            MemUtil.ZeroByteArray(digest);
+                        }
                     }
                 }
 
@@ -308,16 +316,19 @@ namespace KeePassGate.Bridge
 
         /// <summary>
         /// The SHA-256 of an attachment's bytes, taken once for as long as KeePass keeps the
-        /// attachment.
+        /// attachment, as a copy for the caller to overwrite.
         /// </summary>
         /// <remarks>
         /// What a view's attachment answers its digest with. Kept against the object, for the
         /// reasons the class gives: the bytes behind a `ProtectedBinary` never change, and a
-        /// failure is never kept.
+        /// failure is never kept. Kept and handed out as a string's digest is,
+        /// <see cref="DigestOf(ProtectedString)"/>: encrypted where KeePass keeps the
+        /// attachment encrypted, and as a copy either way, so that both digests are the
+        /// caller's to overwrite and neither is the kept array itself.
         /// </remarks>
         internal static byte[] DigestOf(ProtectedBinary binary)
         {
-            return Digests.GetValue(binary, Deferred).Value;
+            return Digests.GetValue(binary, Deferred).Value.Copy();
         }
 
         /// <summary>
@@ -380,9 +391,10 @@ namespace KeePassGate.Bridge
             return Moments.Wire(KdbxVault.When(time));
         }
 
-        private static Lazy<byte[]> Deferred(ProtectedBinary binary)
+        private static Lazy<KeptDigest> Deferred(ProtectedBinary binary)
         {
-            return new Lazy<byte[]>(() => Digest(binary), LazyThreadSafetyMode.PublicationOnly);
+            return new Lazy<KeptDigest>(
+                () => new KeptDigest(Digest(binary), binary.IsProtected), LazyThreadSafetyMode.PublicationOnly);
         }
 
         /// <summary>One attachment's SHA-256, from a copy of its bytes that is wiped afterwards.</summary>
@@ -409,7 +421,8 @@ namespace KeePassGate.Bridge
 
         private static Lazy<KeptDigest> DeferredValue(ProtectedString value)
         {
-            return new Lazy<KeptDigest>(() => new KeptDigest(value), LazyThreadSafetyMode.PublicationOnly);
+            return new Lazy<KeptDigest>(
+                () => new KeptDigest(Digested(value), value.IsProtected), LazyThreadSafetyMode.PublicationOnly);
         }
 
         /// <summary>
@@ -556,25 +569,34 @@ namespace KeePassGate.Bridge
         }
 
         /// <summary>
-        /// The digest of a string's value as it is kept for as long as KeePass keeps the string:
-        /// as KeePass keeps the value itself.
+        /// The digest of a string's value or of an attachment's bytes as it is kept for as long
+        /// as KeePass keeps the string or the attachment: as KeePass keeps what it was taken of.
         /// </summary>
         /// <remarks>
-        /// **A protected value's digest is kept inside a `ProtectedBinary`.** A digest of a
-        /// short secret is a way to guess the secret for whoever reads memory that left the
-        /// process, a crash dump or the page file, and kept in the open it would be weaker than
-        /// the value it was taken of, which KeePass keeps encrypted. A value KeePass holds in
-        /// the open is in that memory already, and so its digest is kept in the open.
+        /// **The digest of what KeePass keeps encrypted is kept inside a `ProtectedBinary`.** A
+        /// digest of a short secret is a way to guess the secret for whoever reads memory that
+        /// left the process, a crash dump or the page file, and kept in the open it would be
+        /// weaker than what it was taken of, which KeePass keeps encrypted. A value or an
+        /// attachment KeePass holds in the open is in that memory already, and so its digest is
+        /// kept in the open. The same for both, since a protected attachment can be as short
+        /// and as guessable as a password.
+        ///
+        /// **A digest kept encrypted is decrypted for every tag it enters**, which is a
+        /// decryption that can fail as any can, through memory protection or another plugin's
+        /// `ProtectedBinary.ExtCrypt`. A tag that cannot be taken throws, as it throws where a
+        /// value cannot be read, and the next tag tries again.
         /// </remarks>
         private sealed class KeptDigest
         {
             private readonly ProtectedBinary _protected;
             private readonly byte[] _open;
 
-            public KeptDigest(ProtectedString value)
+            /// <summary>A digest to keep, in the open or encrypted.</summary>
+            /// <param name="digest">The digest, which is overwritten here where it is kept encrypted.</param>
+            /// <param name="isProtected">Whether KeePass keeps what the digest was taken of encrypted.</param>
+            public KeptDigest(byte[] digest, bool isProtected)
             {
-                var digest = Digested(value);
-                if (!value.IsProtected)
+                if (!isProtected)
                 {
                     _open = digest;
                     return;

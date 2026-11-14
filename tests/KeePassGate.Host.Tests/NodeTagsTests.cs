@@ -637,6 +637,37 @@ namespace KeePassGate.Host.Tests
         }
 
         [Test]
+        public void An_attachment_s_digest_is_kept_as_the_attachment_is_and_handed_out_as_a_copy()
+        {
+            // A protected attachment can be as short and as guessable as a password, so its
+            // digest is kept as a string's is: encrypted where KeePass keeps the attachment
+            // encrypted, in the open where it does not. And handed out as a copy either way,
+            // which the tag overwrites: handed the kept array itself, a tag overwriting it
+            // would have left every later tag over that attachment wrong.
+            foreach (var isProtected in new[] { true, false })
+            {
+                var attachment = new ProtectedBinary(isProtected, Encoding.UTF8.GetBytes("an invented attachment"));
+
+                byte[] expected;
+                using (var sha256 = SHA256.Create())
+                {
+                    expected = sha256.ComputeHash(Encoding.UTF8.GetBytes("an invented attachment"));
+                }
+
+                var first = NodeTags.DigestOf(attachment);
+                Assert.That(first, Is.EqualTo(expected), "protected: " + isProtected);
+
+                Array.Clear(first, 0, first.Length);
+                Assert.That(NodeTags.DigestOf(attachment), Is.EqualTo(expected), "the kept digest was overwritten through a copy of it");
+
+                var kept = Kept(attachment);
+                var guarded = (ProtectedBinary)kept.GetType()
+                    .GetField("_protected", BindingFlags.NonPublic | BindingFlags.Instance).GetValue(kept);
+                Assert.That(guarded != null, Is.EqualTo(isProtected), "protected: " + isProtected);
+            }
+        }
+
+        [Test]
         public void The_digest_of_a_string_KeePass_holds_encrypted_is_kept_encrypted()
         {
             // A digest of a short secret is a way to guess the secret for whoever reads memory
@@ -936,12 +967,15 @@ namespace KeePassGate.Host.Tests
         {
             // Counted through `ProtectedBinary.ExtCrypt`, the hook KeePass decrypts a protected
             // attachment through whenever one is set, and set here only for this test. Nothing else
-            // on the entry is protected in memory, so every decryption counted is the attachment's.
+            // on the entry is protected in memory. The digest kept for a protected attachment is
+            // kept encrypted as well, and every tag decrypts it, so what is counted is what is
+            // longer than a digest: the attachment's own bytes.
+            const int LongerThanADigest = 64;
             var decrypted = 0;
             var was = ProtectedBinary.ExtCrypt;
             ProtectedBinary.ExtCrypt = (data, flags, id) =>
             {
-                if (flags == PbCryptFlags.Decrypt)
+                if (flags == PbCryptFlags.Decrypt && data.Length > LongerThanADigest)
                 {
                     Interlocked.Increment(ref decrypted);
                 }
@@ -951,7 +985,7 @@ namespace KeePassGate.Host.Tests
             {
                 _entry.Strings.Set(PwDefs.PasswordField, new ProtectedString(false, "not-a-real-password"));
                 _entry.Binaries.Remove("notes.txt");
-                Attach("counted.txt", "invented");
+                Attach("counted.txt", new string('i', 1000));
 
                 var first = EntryTag();
                 var once = Volatile.Read(ref decrypted);
@@ -1358,18 +1392,19 @@ namespace KeePassGate.Host.Tests
         }
 
         /// <summary>
-        /// What NodeTags keeps for a string it has digested, read off its own table by the
-        /// names the table and its members have, or a failure naming which went.
+        /// What NodeTags keeps for a string or an attachment it has digested, read off its own
+        /// table by the names the table and its members have, or a failure naming which went.
         /// </summary>
-        private static object Kept(ProtectedString value)
+        private static object Kept(object value)
         {
-            var table = typeof(NodeTags).GetField("ValueDigests", BindingFlags.NonPublic | BindingFlags.Static);
-            Assert.That(table, Is.Not.Null, "NodeTags no longer keeps its strings' digests under ValueDigests");
+            var name = value is ProtectedString ? "ValueDigests" : "Digests";
+            var table = typeof(NodeTags).GetField(name, BindingFlags.NonPublic | BindingFlags.Static);
+            Assert.That(table, Is.Not.Null, "NodeTags no longer keeps these digests under " + name);
 
             var digests = table.GetValue(null);
-            var arguments = new object[] { value, null };
+            var arguments = new[] { value, null };
             var found = (bool)digests.GetType().GetMethod("TryGetValue").Invoke(digests, arguments);
-            Assert.That(found, Is.True, "no digest is kept against a string that was digested");
+            Assert.That(found, Is.True, "no digest is kept against what was digested");
 
             var deferred = arguments[1];
             return deferred.GetType().GetProperty("Value").GetValue(deferred);

@@ -425,9 +425,9 @@ namespace KeePassGate.Vault
         }
 
         /// <summary>
-        /// The SHA-256 of what it holds, or null for an attachment that is withheld and for an
-        /// attachment larger than <see cref="MostServed"/>, whose bytes no route serves and no
-        /// tag covers.
+        /// The SHA-256 of what it holds, as a copy for the caller to overwrite when it is done,
+        /// or null for an attachment that is withheld and for an attachment larger than
+        /// <see cref="MostServed"/>, whose bytes no route serves and no tag covers.
         /// </summary>
         public byte[] Digest
         {

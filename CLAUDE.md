@@ -1374,8 +1374,10 @@ the object when a value changes and never changes it in place, `KeePassContractT
 synchronize, a lock or an edit needs nothing told. The digest of a value KeePass holds
 encrypted, by the string's own flag, is kept inside a `ProtectedBinary` and handed out as a
 copy the tag overwrites; nothing bounds or evicts the digests, which live as long as their
-objects. `NodeTags.Of` refuses a string in sight that carries no digest and never reads the
-value in its place. Whether a digest was already kept shows in a tag's timing for a long
+objects. An attachment's digest is kept and handed out the same way, encrypted where its
+`ProtectedBinary` is protected. `NodeTags.Of` refuses a string in sight that carries no digest
+and never reads the value in its place. Whether a digest was already kept shows in a tag's
+timing for a long
 value, after anything that makes KeePass put the value in another object, accepted on the
 operator's ruling of 2026-11-14 over a digest kept for each client, `DESIGN.md` §136. Do not
 re-propose a size threshold for which values

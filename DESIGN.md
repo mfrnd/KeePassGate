@@ -554,14 +554,16 @@ each protected title and address a listing shows, for every listing, where KeePa
 text made every listing after the first cheaper. A read's tag is taken, and a listing written,
 with KeePass's thread free; a change's tags are inside its turn. `FINDINGS.md` has the numbers.
 
-**A tag keeps a digest of each value, and the digest of a protected value is kept as the value
-is.** A tag takes a value by its SHA-256, taken once for as long as KeePass keeps the object
-the value is held in and kept against that object, so that a tag does not read megabytes for
-every request, §142. A digest of a short secret is a way to guess the secret for whoever reads
-memory that left the process, and kept in the open it would be weaker than the value, which
-KeePass keeps encrypted with a key Windows holds. So the digest of a protected value is kept
-inside a `ProtectedBinary`, and a tag is handed a copy that it overwrites; the digest of a
-value held in the open is kept in the open, beside the value. Which of the two it is goes by the
+**A tag keeps a digest of each value, and the digest of a protected value is kept as the value is.**
+A tag takes a value by its SHA-256, taken once for as long as KeePass keeps the object the value is
+held in and kept against that object, so that a tag does not read megabytes for every request, §142.
+A digest of a short secret is a way to guess the secret for whoever reads memory that left the
+process, and kept in the open it would be weaker than the value, which KeePass keeps encrypted with
+a key Windows holds. So the digest of a protected value is kept inside a `ProtectedBinary`, and a
+tag is handed a copy that it overwrites; the digest of a value held in the open is kept in the open,
+beside the value. An attachment's digest is kept the same way, encrypted where KeePass keeps the
+attachment encrypted, since a protected attachment can be as short as a password: it was kept in the
+open whatever the attachment until a string's was kept at all. Which of the two it is goes by the
 string's own flag, which is how KeePass holds the value: a string the database protects by its name
 alone is held as text, and so is its digest. **Whether a digest was already kept shows in how long a
 tag takes**, for a long value: the first tag after KeePass puts a value in another object digests
