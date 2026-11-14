@@ -294,8 +294,8 @@ chunked answer is not that, §143.
 ### Answers written as they are sent §143
 
 **The gate writes an answer in chunks where the answer is made of what an entry holds, and reads
-no chunked request**, the operator's ruling of 2026-11-14. `readEntry`, `readField` and
-`listFields` hand the
+no chunked request**, the operator's ruling of 2026-11-14. `readEntry`, `readField`,
+`listFields` and `listAttachments` hand the
 transport what writes their answer in place of the answer, `IGateContext.Respond`, and the
 transport writes it under `Transfer-Encoding: chunked`, `ChunkedContent`: each value is read
 where it is written, and nothing of the answer is kept. An answer handed over whole is alive

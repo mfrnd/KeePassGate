@@ -2312,13 +2312,19 @@ namespace KeePassGate.Tests
         [TestCase("", true)]
         [TestCase("/fields", true)]
         [TestCase("/fields/Title", true)]
-        [TestCase("/attachments", false)]
+        [TestCase("/attachments", true)]
+        [TestCase("/attachments/notes.txt", false)]
         public void What_grows_with_what_an_entry_holds_is_handed_over_as_what_writes_it(string under, bool written)
         {
             // Written as it is sent, an answer keeps nothing of itself alive, so the answers
             // that grow with what clients wrote into an entry are handed to the transport as
             // what writes them, and an answer of a bounded size as the document it is.
             _vault.Granting(_group, Rules.Granting(("agent", "CRUSDLAP")));
+            Assert.That(
+                Send("POST", "/entries/" + _entry + "/attachments", Bodies.Of(
+                    ("name", "notes.txt"),
+                    ("content", Convert.ToBase64String(Encoding.UTF8.GetBytes("an invented attachment"))))).Status,
+                Is.EqualTo(201));
 
             foreach (var method in new[] { "GET", "HEAD" })
             {

@@ -621,7 +621,9 @@ namespace KeePassGate.Pipeline
             }
 
             // The first tag taken over a value reads it, so the tag and the answer it travels
-            // with are left for after the hold, as `ListFields` leaves them.
+            // with are left for after the hold, as `ListFields` leaves them, and the answer is
+            // written as it is sent for the reason `ListFields` gives: no write is refused for
+            // how many attachments an entry holds, so their names can come to any size.
             Later(context, () =>
             {
                 var tag = view.Tag;
@@ -630,19 +632,24 @@ namespace KeePassGate.Pipeline
                     return;
                 }
 
-                var json = new JsonWriter();
-                json.Array("attachments");
+                var attachments = view.Attachments;
+                context.Respond(
+                    200,
+                    text => JsonWriter.Into(text, json =>
+                    {
+                        json.Array("attachments");
 
-                foreach (var attachment in view.Attachments)
-                {
-                    json.Item();
-                    json.Text("name", attachment.Name);
-                    json.Number("size", attachment.Size);
-                    json.End();
-                }
+                        foreach (var attachment in attachments)
+                        {
+                            json.Item();
+                            json.Text("name", attachment.Name);
+                            json.Number("size", attachment.Size);
+                            json.End();
+                        }
 
-                json.End();
-                context.Respond(200, json.Done(), Tagged(tag));
+                        json.End();
+                    }),
+                    Tagged(tag));
             });
         }
 

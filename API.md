@@ -341,7 +341,9 @@ never refused, it is of the entry at a single moment, and what it keeps alive is
 strings. Handed over whole it was served in parts of 524288 characters, by a `from` and a
 `next`, each part a request of its own decided at its own moment, and before that it was
 refused past that size, which left an entry with no route naming its strings. Neither form
-was released.
+was released. `listAttachments` is written as it is sent for the same reason: names and sizes,
+of as many attachments as writes gave the entry. An attachment's own bytes keep their ceiling
+and their `413`, since what can be read out is held to what can be put back.
 
 **No write is refused for what an entry's strings come to, which reverses a ceiling held in both
 directions**, the operator's ruling of 2026-11-10. A create, an update or a new field that would

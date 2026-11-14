@@ -11,11 +11,12 @@ none, since it releases both.
 
 ## 0.2.0, unreleased
 
-- **A read of an entry or of a field and the listing of an entry's fields are written as they
-  are sent and never refused for their size, and no write is refused for an entry's size.**
+- **A read of an entry or of a field and the listings of an entry's fields and attachments are
+  written as they are sent and never refused for their size, and no write is refused for an
+  entry's size.**
   Reading an entry built an answer of every string it held, at about four times their
   size in memory inside KeePass, measured at 94.5 MB for two hundred fields of 64K characters.
-  The answers to `readEntry`, `readField` and `listFields` now go out with
+  The answers to `readEntry`, `readField`, `listFields` and `listAttachments` now go out with
   `Transfer-Encoding: chunked`, each
   value read as it is written, so what a read keeps alive is the value it is writing, whatever
   the entry holds. A client has to read a chunked answer: PyKeePassGate does, and takes an
