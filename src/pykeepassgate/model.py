@@ -44,48 +44,10 @@ STANDARD = (TITLE, USERNAME, PASSWORD, URL, NOTES)
 EXPIRES = "expires"
 """The member an entry's expiry travels under, in a read and in a create or an update."""
 
-NEXT = "next"
-"""The member a part of a field listing names the position of the part after it under."""
-
-LAST_POSITION = 999_999_999
-"""The furthest position the gate reads a part of a field listing from: nine decimal digits."""
-
 
 def made(body: dict[str, Any]) -> str:
     """What a create answered with, which is what addresses the thing it made."""
     return _text(body, "uuid")
-
-
-def following(body: dict[str, Any], asked: int, held: int) -> int | None:
-    """Where the part after this part of a field listing starts, or `None` after the last part.
-
-    The gate hands the names of an entry's strings out in parts. `asked` is the position this
-    part was asked from and `held` how many fields it carries. While the entry holds fields
-    past this part the answer names the position of the part after it, as `next`, and the
-    last part has no such member.
-
-    **A `next` that cannot be followed is refused rather than followed**, since the listing is
-    put together by asking again: a `next` that is no whole number, a `next` at or before the
-    position asked from, a negative `next` among them, which would ask for a part already
-    answered without end, a `next` past `LAST_POSITION`, which the gate would refuse as a
-    request it cannot read, and a `next` beside no field at all, since every part holds a
-    field while any remain. A `null` is none of the forms the gate writes either: the last
-    part leaves the member out.
-    """
-    if NEXT not in body:
-        return None
-
-    value = body[NEXT]
-    if isinstance(value, bool) or not isinstance(value, int):
-        raise ProtocolError(f"the gate's answer has no {NEXT} this client can read")
-
-    if not asked < value <= LAST_POSITION or not held:
-        raise ProtocolError(
-            f"the gate's answer names a {NEXT} that does not follow the part it was asked for, "
-            "so the rest of the field listing cannot be asked for"
-        )
-
-    return value
 
 
 def _tag_of(etag: str | None, what: str, read: bool, how: str) -> str:
@@ -706,9 +668,7 @@ class Field:
 
         With the tag of the entry the listing was answered with, when it carried one: the entry
         answers for its fields, so a client that may list them and take one off names that tag in
-        its `if_match` without reading any of them. An answer is a part of the listing, which
-        `GateClient.fields` puts together, giving every part the tag its first part came with,
-        and `following` reads where the part after it starts.
+        its `if_match` without reading any of them. The answer names every field the entry holds.
         """
         return [
             cls(name=_text(item, "name"), protected=_flag(item, "protected"), read_etag=etag)

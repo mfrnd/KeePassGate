@@ -293,8 +293,9 @@ chunked answer is not that, §143.
 
 ### Answers written as they are sent §143
 
-**The gate writes an answer in chunks where the answer is made of an entry's values, and reads
-no chunked request**, the operator's ruling of 2026-11-14. `readEntry` and `readField` hand the
+**The gate writes an answer in chunks where the answer is made of what an entry holds, and reads
+no chunked request**, the operator's ruling of 2026-11-14. `readEntry`, `readField` and
+`listFields` hand the
 transport what writes their answer in place of the answer, `IGateContext.Respond`, and the
 transport writes it under `Transfer-Encoding: chunked`, `ChunkedContent`: each value is read
 where it is written, and nothing of the answer is kept. An answer handed over whole is alive
@@ -1901,14 +1902,14 @@ The operator ruled on 2026-11-10: **no write is refused for what an entry's stri
 the ceiling is a read's, measured over what that reader would be handed.** A view of an entry,
 `VaultEntryView`, neither read nor measured a value it withheld, so the count a read was refused
 with was made of nothing its caller may not read, and a single field the caller is withheld was
-answered as withheld whatever its length. The listing of an entry's fields is held to the same
-number by being served in parts, and is never refused: refused, it left an entry whose names
+answered as withheld whatever its length. The listing of an entry's fields was held to the same
+number by being served in parts, and was never refused: refused, it left an entry whose names
 alone pass the ceiling with no route naming its strings.
 
 The operator ruled on 2026-11-14 that **a read is held to no ceiling either**: its answer is
 written as it is sent, a value at a time, §143, so the memory the ceiling held down is no
-longer spent, and no view measures a value. `API.md` §412 has the order of a read's refusals
-and how the listing is parted.
+longer spent, and no view measures a value. The listing of an entry's fields is written the
+same way and is no longer parted. `API.md` §412 has the order of a read's refusals.
 
 What is given up, and written down so that it is not rediscovered as a defect:
 

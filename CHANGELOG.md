@@ -11,18 +11,16 @@ none, since it releases both.
 
 ## 0.2.0, unreleased
 
-- **A read of an entry or of a field is written as it is sent and never refused for its size,
-  the listing of an entry's fields is served in parts, and no write is refused for an entry's
-  size.** Reading an entry built an answer of every string it held, at about four times their
+- **A read of an entry or of a field and the listing of an entry's fields are written as they
+  are sent and never refused for their size, and no write is refused for an entry's size.**
+  Reading an entry built an answer of every string it held, at about four times their
   size in memory inside KeePass, measured at 94.5 MB for two hundred fields of 64K characters.
-  The answers to `readEntry` and `readField` now go out with `Transfer-Encoding: chunked`, each
+  The answers to `readEntry`, `readField` and `listFields` now go out with
+  `Transfer-Encoding: chunked`, each
   value read as it is written, so what a read keeps alive is the value it is writing, whatever
   the entry holds. A client has to read a chunked answer: PyKeePassGate does, and takes an
   answer whose last chunk never arrived for a failed connection. Every other answer carries a
-  `Content-Length` as before, and a request with `Transfer-Encoding` is still refused. The
-  listing of an entry's fields is handed over whole, so it is held to 524288 characters by
-  being served in parts: an answer that does not reach the entry's last field carries `next`,
-  and the part after it is asked for with `from`. PyKeePassGate's listing asks for every part.
+  `Content-Length` as before, and a request with `Transfer-Encoding` is still refused.
   Writes are not held to a size, because a refusal that moves with what an entry's strings come
   to tells a client that may write and not read how long the values it is withheld are. So
   nothing bounds what a client holding `update` or `create` adds to an entry beyond what a

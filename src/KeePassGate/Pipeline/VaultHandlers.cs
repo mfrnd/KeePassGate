@@ -77,30 +77,6 @@ namespace KeePassGate.Pipeline
         /// <summary>The query parameter that leaves expired entries out of a listing when it is `false`.</summary>
         private const string IncludeExpiredParameter = "includeExpired";
 
-        /// <summary>
-        /// The query parameter naming where a part of an entry's field listing starts: the
-        /// position of its first field, counted from nothing.
-        /// </summary>
-        private const string FromParameter = "from";
-
-        /// <summary>
-        /// The member a part of a field listing names the position of the part after it under,
-        /// present only while the entry holds fields past the part.
-        /// </summary>
-        private const string NextMember = "next";
-
-        /// <summary>
-        /// What a field costs a listing beyond its name, in characters: the members and the
-        /// punctuation its item is written with.
-        /// </summary>
-        /// <remarks>
-        /// Counted so that a part is held to what it writes and not to its names alone. An entry
-        /// of very many short names would otherwise come to several times what a part is held
-        /// to in a single answer, since the item around a name of three characters is ten times
-        /// the name.
-        /// </remarks>
-        private const int FieldItemCharacters = 32;
-
         public static void ListGroups(IGateContext context)
         {
             var vault = Vault(context);
@@ -225,28 +201,6 @@ namespace KeePassGate.Pipeline
             var uuid = Captured(context, "uuid");
             Listed(context, Entries(context, vault.Entries(uuid), withExpired));
         }
-
-        /// <summary>
-        /// The most characters a part of a listing of an entry's fields is written with: the
-        /// name of every field in the part, each counted with what its item costs.
-        /// </summary>
-        /// <remarks>
-        /// **What holds a listing of names to an answer of a known size.** A listing is handed
-        /// over whole, so what it is written with is alive several times over while it is
-        /// sent, and no write is refused for how many strings an entry holds or for how long
-        /// their names are. `listFields` is therefore served in parts of at most this.
-        ///
-        /// **A read of an entry or of a field is held to no number.** Both were held to this
-        /// number, over what their caller would be handed, and answered `413` past it, the
-        /// operator's ruling of 2026-11-10: each answer was built whole and cost several times
-        /// its values in memory, 94.5 MB for two hundred fields of 64K characters. Their
-        /// answers are written as they are sent, a value at a time, the ruling of 2026-11-14,
-        /// so what such a read keeps alive is the value it is writing, and neither is refused
-        /// for size. `API.md` §412 has what that gives up.
-        ///
-        /// Half a megabyte, as <see cref="MaxAttachmentBytes"/> is, counted in characters.
-        /// </remarks>
-        public const int MaxPartCharacters = 512 * 1024;
 
         public static void ReadEntry(IGateContext context)
         {
@@ -402,13 +356,6 @@ namespace KeePassGate.Pipeline
                 return;
             }
 
-            int from;
-            if (!Starting(context, out from))
-            {
-                context.Respond(400, HttpResponse.ErrorBody(BodyCheck.Refusal));
-                return;
-            }
-
             // One read, which answers for the entry as well as for its strings: null is an entry
             // that is not there, and never an entry holding no strings. The listing itself is
             // names and flags, so nothing is read for a caller that only lists, whose
@@ -424,62 +371,41 @@ namespace KeePassGate.Pipeline
                 return;
             }
 
-            // **Served in parts, and never refused for its size.** No write is refused for how
-            // many strings an entry holds, so the names can come to more than an answer hands
-            // out, and a listing refused for that left such an entry with no route naming its
-            // strings: nothing to read a field at a time by, and nothing to strip to bring it
-            // back under. So a part holds the fields from where the request starts for as long
-            // as they fit a part, `MaxPartCharacters`, each counted by its name and what its
-            // item is written with, and names where the part after it starts while there is
-            // any. Always
-            // a field where any is left, however long its name, so that asking again moves on.
+            // **Every name in a single answer, written as it is sent, and never refused for its
+            // size.** No write is refused for how many strings an entry holds, so the names can
+            // come to any size, and a listing handed over whole is alive several times over
+            // while it goes out. Written as it is sent, what stays alive is the view's own
+            // strings, which finding the entry already holds, so nothing has to part the
+            // listing or refuse it.
             //
-            // Parted once the hold has ended, with the rest: walking the strings makes them,
+            // Walked once the hold has ended, with the tag: walking the strings makes them,
             // and that grows with how many the entry holds.
             Later(context, () =>
             {
-                var part = new List<VaultViewField>();
-                var written = 0;
-                var at = Math.Min(from, view.Fields.Count);
-                for (; at < view.Fields.Count; at++)
-                {
-                    var cost = view.Fields[at].Name.Length + FieldItemCharacters;
-                    if (part.Count > 0 && cost > MaxPartCharacters - written)
-                    {
-                        break;
-                    }
-
-                    part.Add(view.Fields[at]);
-                    written += Math.Min(cost, MaxPartCharacters);
-                }
-
-                var next = at < view.Fields.Count ? at : (int?)null;
-
                 var tag = view.Tag;
                 if (PreconditionFails(context, tag))
                 {
                     return;
                 }
 
-                var json = new JsonWriter();
-                json.Array("fields");
+                var fields = view.Fields;
+                context.Respond(
+                    200,
+                    text => JsonWriter.Into(text, json =>
+                    {
+                        json.Array("fields");
 
-                foreach (var field in part)
-                {
-                    json.Item();
-                    json.Text("name", field.Name);
-                    json.Flag("protected", field.IsProtected);
-                    json.End();
-                }
+                        foreach (var field in fields)
+                        {
+                            json.Item();
+                            json.Text("name", field.Name);
+                            json.Flag("protected", field.IsProtected);
+                            json.End();
+                        }
 
-                json.End();
-
-                if (next.HasValue)
-                {
-                    json.Number(NextMember, next.Value);
-                }
-
-                context.Respond(200, json.Done(), Tagged(tag));
+                        json.End();
+                    }),
+                    Tagged(tag));
             });
         }
 
@@ -1084,39 +1010,6 @@ namespace KeePassGate.Pipeline
             }
 
             return false;
-        }
-
-        /// <summary>
-        /// Whether the position a field listing is asked from is a position this gate reads,
-        /// and which position that is: the entry's first field where the query names none.
-        /// </summary>
-        /// <remarks>
-        /// Digits alone, and few enough to be a position: anything else is refused and never
-        /// read as the start, since a caller that asked for a later part and spelled it badly
-        /// would be handed the first part again and take it for the part it asked for. The
-        /// document declares the name and cannot hold it to digits, for the reason
-        /// <see cref="IncludesExpired"/> gives. A position past the entry's last field is no
-        /// refusal: it is a part holding nothing, which is what is there.
-        /// </remarks>
-        private static bool Starting(IGateContext context, out int from)
-        {
-            from = 0;
-
-            string asked;
-            if (context.Query == null || !context.Query.TryGetValue(FromParameter, out asked))
-            {
-                return true;
-            }
-
-            const int MostDigits = 9;
-            var counts = asked.Length > 0 && asked.Length <= MostDigits;
-            if (!counts || !asked.All(digit => digit >= '0' && digit <= '9'))
-            {
-                return false;
-            }
-
-            from = int.Parse(asked, NumberStyles.None, CultureInfo.InvariantCulture);
-            return true;
         }
 
         /// <summary>

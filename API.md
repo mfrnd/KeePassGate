@@ -42,13 +42,11 @@ Responses are not bound by the reader: a list of entries is an array of objects,
 `GET /groups/{uuid}/entries` rather than `?group=`. Filtering and paging of groups and entries
 were proposed and cut; when a database is large enough to need them, they arrive as query
 parameters on the list routes, which is where selecting among a collection belongs, and where
-those there are arrived: `includeExpired`, on the two entry listings and the heads beside them,
-and `from`, on the listing of an entry's fields and its head. **That listing is served in
-parts, which is the paging the others were cut**, and it arrived for a reason they do not have:
-no write is refused for how many strings an entry holds, so its names can pass what an answer
-hands out, and refused for that it left an entry nothing could name the strings of, §412. A
-query name nothing declares is refused, `openapi.yaml` §507, rather than every query being
-refused for all time, so paging arrives by being declared.
+the only query parameter there is arrived: `includeExpired`, on the two entry listings and the
+heads beside them. The listing of an entry's fields was paged for a while, since no write is
+refused for how many strings an entry holds, and is a single answer written as it is sent
+instead, §412. A query name nothing declares is refused, `openapi.yaml` §507, rather than every
+query being refused for all time, so paging arrives by being declared.
 
 **Moving an entry or a group between parents.** It is the one operation about two nodes, and the
 router authorizes exactly one. A client holding `create` in the destination and `delete` in the
@@ -336,21 +334,14 @@ of any size, so the bound on what a client reads is its own: PyKeePassGate reads
 entry past that is read with the setting raised or a field at a time, `listFields` and then
 `readField`.
 
-**The names are served in parts, and never refused.** `listFields` serves names and nothing
-else and is handed over whole, and no write is refused for how many strings an entry holds, so
-a part of it is held to 524288 characters, `VaultHandlers.MaxPartCharacters`. Refused for its
-size, the listing left an entry with no route naming its strings: nothing to read a field at a
-time by, and nothing to strip. So a part of the listing holds the fields from the position
-`from` names, in the entry's own order, for as long as they come to at most that, each field
-counted by its name and
-32 characters for what its item is written with, and always a field where any is left; and it
-carries `next`, the position the part after it starts at, while there is any. Counted by what is
-written and not by the names alone, since the item around a name of three characters is ten
-times the name. The parts are requests of their own, each decided at its own moment, so the
-entry can change between two of them, which a client handed tags sees by the tag moving and a
-client that only lists does not. PyKeePassGate asks for every part and hands back the whole
-listing, and asks every part after the first under the tag the first came with, so a reader's
-listing is of the entry as the first part found it or is refused `412`.
+**The names are listed in a single answer, written as it is sent.** `listFields` serves names
+and nothing else, and no write is refused for how many strings an entry holds, so the names
+can come to any size. The listing is written as it is sent, as a read of the entry is, so it is
+never refused, it is of the entry at a single moment, and what it keeps alive is the view's own
+strings. Handed over whole it was served in parts of 524288 characters, by a `from` and a
+`next`, each part a request of its own decided at its own moment, and before that it was
+refused past that size, which left an entry with no route naming its strings. Neither form
+was released.
 
 **No write is refused for what an entry's strings come to, which reverses a ceiling held in both
 directions**, the operator's ruling of 2026-11-10. A create, an update or a new field that would

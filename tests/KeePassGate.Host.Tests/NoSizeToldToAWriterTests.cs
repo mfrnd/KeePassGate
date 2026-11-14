@@ -37,10 +37,10 @@ namespace KeePassGate.Host.Tests
     public sealed class NoSizeToldToAWriterTests
     {
         /// <summary>
-        /// The number a write was refused past, and a read after it: what a part of a listing
-        /// of fields is still held to, and nothing else.
+        /// The number a write was refused past, and a read after it. Nothing is held to it
+        /// now.
         /// </summary>
-        private const int Ceiling = VaultHandlers.MaxPartCharacters;
+        private const int Ceiling = 512 * 1024;
 
         private const string Title = "an invented service";
         private const string Pad = "Pad";

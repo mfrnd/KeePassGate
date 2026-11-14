@@ -182,10 +182,9 @@ namespace KeePassGate.Host.Tests
         }
 
         /// <summary>
-        /// A length several times what a part of a listing of fields is held to, which a read
-        /// of an entry was once refused past.
+        /// A length several times the number a read of an entry was once refused past.
         /// </summary>
-        private const int Long = 4 * KeePassGate.Pipeline.VaultHandlers.MaxPartCharacters;
+        private const int Long = 4 * 512 * 1024;
         [Test]
         public void Listing_a_group_is_one_level_and_listing_the_database_is_all_of_them()
         {

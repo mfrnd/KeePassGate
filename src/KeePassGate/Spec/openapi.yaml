@@ -46,13 +46,14 @@ info:
     `Content-Length` rather than sending a wrong one, which section 9.3.2 permits for a value
     determined only while generating content, and section 8.6 requires of anything else.
 
-    **An answer made of an entry's values is written as it is sent.** `readEntry` and `readField`
-    answer with `Transfer-Encoding: chunked` and no `Content-Length`, RFC 9112 section 7.1, each
-    value read as it is written, so neither is refused for the size of what it hands out. Every
-    other answer carries a `Content-Length`. No chunk carries an extension and the content no
-    trailer. A failure once the status has gone out cannot be answered: the connection is closed
-    with the last chunk never sent, so an answer is whole only when its last chunk arrived. A
-    `head` of either names no framing, as it names no length, and reads no value.
+    **An answer made of what an entry holds is written as it is sent.** `readEntry`, `readField`
+    and `listFields` answer with `Transfer-Encoding: chunked` and no `Content-Length`, RFC 9112
+    section 7.1, each value read as it is written, so none of them is refused for the size of
+    what it hands out. Every other answer carries a `Content-Length`. No chunk carries an
+    extension and the content no trailer. A failure once the status has gone out cannot be
+    answered: the connection is closed with the last chunk never sent, so an answer is whole
+    only when its last chunk arrived. A `head` of any of them names no framing, as it names no
+    length, and reads no value.
 
     **A declared path asked for with a method it does not declare answers `405`, carrying the
     methods it does.** RFC 9110 section 15.5.6 requires that list, and it is read off this
@@ -1280,19 +1281,12 @@ paths:
         Names and whether each is protected, never a value and never a length. The length of a
         password is worth something to whoever is guessing it, and listing is not reading.
 
-        **Served in parts, and never refused for its size.** No write is refused for how many
-        strings an entry holds, and this listing is handed over whole, so a part of it is held
-        to a size. A part
-        holds the fields from the position `from` names, in the entry's own order, for as long
-        as they come to at most 524288 characters, each counted by its name and 32 characters
-        for what its item is written with, and always a field where any is left. While the
-        entry holds fields past the part, the answer carries `next`, the position to ask the
-        part after it `from`. The parts are requests of their own, so the entry can change
-        between two of them: a client handed tags sees that by the tag moving.
+        **Every name in a single answer, never refused for its size.** No write is refused for
+        how many strings an entry holds, so the names can come to any size, and the answer is
+        written as it is sent, in chunks: this document's own description has the framing.
       x-kpg-verb: list
       parameters:
         - $ref: "#/components/parameters/EntryUuid"
-        - $ref: "#/components/parameters/FieldsFrom"
       responses:
         "200":
           description: The field names, or a part of them.
@@ -1323,7 +1317,6 @@ paths:
       x-kpg-verb: list
       parameters:
         - $ref: "#/components/parameters/EntryUuid"
-        - $ref: "#/components/parameters/FieldsFrom"
       responses:
         "200":
           description: There, and reachable by this client.
@@ -2260,11 +2253,6 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/FieldSummary"
-        next:
-          description: |
-            The position of the first field past this part, to be asked as `from`. Absent from
-            the part that holds the entry's last field.
-          type: integer
 
     AttachmentSummary:
       type: object
@@ -2886,20 +2874,6 @@ components:
         type: string
         minLength: 1
         maxLength: 512
-
-    FieldsFrom:
-      name: from
-      in: query
-      required: false
-      description: |
-        The position, in the entry's own order and counted from 0, of the first field a part of
-        the listing holds. Leaving it out asks for the part the listing begins with. Digits
-        alone, and at most nine of them: anything else is `400 malformed`, because a caller
-        that asked for a later part and misspelled it must not be handed the first part in its
-        place. A position past the entry's last field is answered with a part holding no
-        field.
-      schema:
-        type: string
 
     IncludeExpired:
       name: includeExpired

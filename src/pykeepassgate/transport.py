@@ -59,17 +59,13 @@ LOOPBACK = "127.0.0.1"
 #: `max_response_bytes` does, so that no answer can make this client hold as much memory as it
 #: likes. An attachment is not what decides it: the gate hands out at most 512 KiB of one
 #: (`VaultHandlers.MaxAttachmentBytes`), under 700 KiB once it is base64 inside a JSON answer. What
-#: can outgrow it is a listing of groups or of entries, which the plugin serves whole however
-#: large the database (`API.md` §407), and the read of an entry or of a single field, which the
-#: plugin writes as it is sent, in chunks, and holds to no size (`API.md` §412): a write through
-#: the gate is held to 65536 characters in a value and to no number of values, and KeePass
-#: itself to neither. The names of an entry's strings do not
-#: outgrow it: the gate serves that listing in parts, and a part holds names that come to at most
-#: 524288 characters before JSON escapes any, each name counted with 32 more for its field, which
-#: stays under this at the six bytes the longest escape spends on a character. Only a single name
-#: longer than that by itself makes a larger part, since every part holds a field. An answer that
-#: outgrows it fails whole rather than being truncated. So a caller whose database is large
-#: enough gets a setting to raise rather than a number to patch.
+#: can outgrow it is an answer that grows with what a database holds: a listing of groups or of
+#: entries, served whole however large the database (`API.md` §407), and the read of an entry
+#: or of a single field and the listing of an entry's fields, held to no size (`API.md` §412),
+#: since a write through the gate is held to 65536 characters in a value and to no number of
+#: values, and KeePass itself to neither. An answer that outgrows it fails whole rather than
+#: being truncated. So a caller whose database is large enough gets a setting to raise rather
+#: than a number to patch.
 MAX_RESPONSE_BYTES = 4 * 1024 * 1024
 
 #: What marks the certificate a locked database answers with, and the whole of what tells one

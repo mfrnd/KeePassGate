@@ -478,13 +478,12 @@ designing around them.
   which is how a client tells an answer cut short, `DESIGN.md` §143. A HEAD runs no content, so
   it reads no value. A `VaultViewField` keeps nothing a withheld value could be read with and no
   length of any value, so nothing rendered from a view can tell how long a withheld value is.
-  **Every other answer is handed over whole with a `Content-Length`.** **`listFields` is served
-  in parts and never refused**, since it is handed over whole and no write bounds how many
-  strings an entry holds: a part starts at the position `from` names, holds what comes to at
-  most `VaultHandlers.MaxPartCharacters`, each field counted by its name and
-  `FieldItemCharacters`, and names the part after it as `next`. PyKeePassGate asks for every
-  part, reads a chunked answer with its own strict reader, never `http.client`, and holds an
-  answer to its own `max_response_bytes`. **This reverses a ceiling on reads**, 524288
+  **`listFields` is written the same way, every name in a single answer**, since no write
+  bounds how many strings an entry holds: it was served in parts while it was handed over
+  whole, and there is no `from` and no `next`. **Every other answer is handed over whole with
+  a `Content-Length`.** PyKeePassGate reads a chunked answer with its own strict reader, never
+  `http.client`, and holds an answer to its own `max_response_bytes`. **This reverses a
+  ceiling on reads**, 524288
   characters over what the caller would be handed, answered `413`, the ruling of 2026-11-10,
   **which had reversed a ceiling held on writes as well**, "what the gate lets a client write it
   also hands back whole": the write's refusal named the entry's whole count, so a client that

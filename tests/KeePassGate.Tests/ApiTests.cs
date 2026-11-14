@@ -64,6 +64,12 @@ namespace KeePassGate.Tests
         private string[] _removed;
         private SpecRouter _router;
 
+        /// <summary>
+        /// The number of characters a read of an entry was once held to, which the tests of
+        /// long values and of many names go well past.
+        /// </summary>
+        private const int HalfAMegabyte = 512 * 1024;
+
         /// <summary>The plugin's log as the requests here are served with it.</summary>
         private RecordingGateLog _log;
 
@@ -1955,7 +1961,7 @@ namespace KeePassGate.Tests
         }
 
         [Test]
-        public void An_entry_far_over_what_a_part_is_held_to_is_served_with_every_value_intact()
+        public void An_entry_far_over_what_a_read_was_once_held_to_is_served_with_every_value_intact()
         {
             // A read of an entry was refused past half a megabyte of names and values, since its
             // answer was built whole and cost several times that in memory. The answer is written
@@ -1963,8 +1969,8 @@ namespace KeePassGate.Tests
             // several times that number is served, each value as it is stored, and each value
             // read a single time, as the answer is written.
             _vault.Granting(_group, AllButProtected);
-            var big = new string('x', 4 * VaultHandlers.MaxPartCharacters);
-            var other = new string('y', VaultHandlers.MaxPartCharacters + 1);
+            var big = new string('x', 4 * HalfAMegabyte);
+            var other = new string('y', HalfAMegabyte + 1);
             _vault.Plant(_entry, "Big", big);
             _vault.Plant(_entry, "Other", other);
 
@@ -2078,12 +2084,12 @@ namespace KeePassGate.Tests
         }
 
         [Test]
-        public void A_field_far_over_what_a_part_is_held_to_is_served_whole_and_read_a_single_time()
+        public void A_field_far_over_what_a_read_was_once_held_to_is_served_whole_and_read_a_single_time()
         {
             // A field's answer is written as it is sent, as an entry's is, so a value of any
             // length is served, and the value asked for is the only value read.
             _vault.Granting(_group, AllButProtected);
-            var big = new string('x', 4 * VaultHandlers.MaxPartCharacters);
+            var big = new string('x', 4 * HalfAMegabyte);
             _vault.Plant(_entry, "Big", big);
             _vault.StringReads = 0;
 
@@ -2137,7 +2143,7 @@ namespace KeePassGate.Tests
             // nothing and read nothing, however much the entry holds, and the same read under
             // the tag the entry has is served.
             _vault.Granting(_group, AllButProtected);
-            _vault.Plant(_entry, "Big", new string('x', 2 * VaultHandlers.MaxPartCharacters));
+            _vault.Plant(_entry, "Big", new string('x', 2 * HalfAMegabyte));
             var path = "/entries/" + _entry + under;
             var tag = Get(path).Tag;
             _vault.StringReads = 0;
@@ -2159,10 +2165,10 @@ namespace KeePassGate.Tests
         {
             // No write is refused for what an entry's strings come to, since the refusal told a
             // caller that may not read how long the values it was withheld were. No read is
-            // refused for it either, so an entry grown past what a part of a listing is held to,
+            // refused for it either, so an entry grown past what a read was once held to,
             // a write at a time, is read back whole and a field at a time.
             _vault.Granting(_group, AllButProtected);
-            _vault.Plant(_entry, "Filler", new string('x', VaultHandlers.MaxPartCharacters));
+            _vault.Plant(_entry, "Filler", new string('x', HalfAMegabyte));
 
             Assert.That(Send("POST", "/entries/" + _entry + "/fields",
                 Bodies.Of(("name", "More"), ("value", new string('y', 10)))).Status, Is.EqualTo(201));
@@ -2177,7 +2183,7 @@ namespace KeePassGate.Tests
             Assert.That(whole.Status, Is.EqualTo(200), "an entry is handed out whole whatever its strings come to");
 
             var fields = Newtonsoft.Json.Linq.JObject.Parse(whole.Json)["fields"];
-            Assert.That(((string)fields["Filler"]).Length, Is.EqualTo(VaultHandlers.MaxPartCharacters));
+            Assert.That(((string)fields["Filler"]).Length, Is.EqualTo(HalfAMegabyte));
             Assert.That((string)fields["More"], Is.EqualTo(new string('y', 11)));
             Assert.That((string)fields["Notes"], Is.EqualTo("z"));
             Assert.That((string)fields["Again"], Is.EqualTo("w"));
@@ -2196,7 +2202,7 @@ namespace KeePassGate.Tests
             // protected values, whatever its length: that caller is handed the entry with the
             // value as the `null` every withheld value is, and nothing reads or digests the
             // value. A caller that reads protected values is handed it whole.
-            var big = new string('x', 4 * VaultHandlers.MaxPartCharacters);
+            var big = new string('x', 4 * HalfAMegabyte);
             _vault.Plant(_entry, "Big", big);
             _vault.Protect(_entry, "Big");
 
@@ -2232,14 +2238,11 @@ namespace KeePassGate.Tests
         }
         [TestCase("L")]
         [TestCase("RL")]
-        public void A_listing_of_fields_past_what_an_answer_hands_out_is_served_in_parts(string mask)
+        public void A_listing_of_fields_is_a_single_answer_whatever_its_names_come_to(string mask)
         {
             // Nothing bounds how many strings writes give an entry, and the listing serves every
-            // name, so the names alone can pass what an answer hands out. Refused for that, the
-            // listing left such an entry with no route naming its strings. So it is served in
-            // parts, for a caller that reads as for a caller that only lists: each part within
-            // what a part is held to by what it writes, each naming where the part after it
-            // starts, and every field in a single part.
+            // name. It is written as it is sent, so it is neither refused nor parted, for a
+            // caller that reads as for a caller that only lists.
             _vault.Granting(_group, Rules.Granting(("agent", mask)));
             var planted = new List<string> { "Title" };
             for (var index = 0; index < 2500; index++)
@@ -2249,176 +2252,82 @@ namespace KeePassGate.Tests
                 planted.Add(numbered);
             }
 
-            Assume.That(planted.Sum(name => name.Length), Is.GreaterThan(2 * VaultHandlers.MaxPartCharacters));
-
-            var whole = Get("/entries/" + _entry);
-            Assert.That(
-                whole.Status,
-                Is.EqualTo(mask == "L" ? 404 : 200),
-                "a read of the entry is held to no size, for a caller that may read the entry at all");
-
-            var listed = new List<string>();
-            var parts = 0;
-            var from = (string)null;
-            while (true)
-            {
-                var part = from == null
-                    ? Get("/entries/" + _entry + "/fields")
-                    : Request("GET", "/entries/" + _entry + "/fields", null, null, null, "from", from);
-                Assert.That(part.Status, Is.EqualTo(200), part.Json);
-                Assert.That(part.Tag == null, Is.EqualTo(mask == "L"), "a tag on every part, for a caller that reads");
-                parts++;
-
-                var answer = Newtonsoft.Json.Linq.JObject.Parse(part.Json);
-                var names = answer["fields"].Select(field => (string)field["name"]).ToList();
-                Assert.That(names, Is.Not.Empty);
-                Assert.That(
-                    names.Sum(name => name.Length + 32),
-                    Is.LessThanOrEqualTo(VaultHandlers.MaxPartCharacters),
-                    "a part is held to what it writes");
-                listed.AddRange(names);
-
-                var next = answer["next"];
-                if (next == null)
-                {
-                    break;
-                }
-
-                Assert.That((int)next, Is.EqualTo(listed.Count), "the position of the first field past the part");
-                from = ((int)next).ToString(CultureInfo.InvariantCulture);
-            }
-
-            Assert.That(parts, Is.GreaterThan(2));
-            Assert.That(listed, Is.EquivalentTo(planted));
-            Assert.That(listed, Is.Unique);
-        }
-
-        [Test]
-        public void A_listing_of_fields_that_fits_is_one_part_and_names_no_part_after_it()
-        {
-            _vault.Granting(_group, Rules.Granting(("agent", "RL")));
-            _vault.Plant(_entry, "PIN", "0000");
+            Assume.That(planted.Sum(name => name.Length), Is.GreaterThan(2 * HalfAMegabyte));
 
             var listed = Get("/entries/" + _entry + "/fields");
 
-            Assert.That(listed.Status, Is.EqualTo(200), listed.Json);
-            Assert.That(listed.Json, Does.Not.Contain("\"next\""));
-            Assert.That(listed.Json, Does.Contain("\"PIN\""));
+            Assert.That(listed.Status, Is.EqualTo(200));
+            Assert.That(listed.Tag == null, Is.EqualTo(mask == "L"), "a tag for a caller that reads");
+
+            var answer = Newtonsoft.Json.Linq.JObject.Parse(listed.Json);
+            var names = answer["fields"].Select(field => (string)field["name"]).ToList();
+            Assert.That(names, Is.EquivalentTo(planted));
+            Assert.That(names, Is.Unique);
+            Assert.That(
+                answer.Properties().Select(member => member.Name),
+                Is.EqualTo(new[] { "fields" }),
+                "the fields, and no member naming a part after them");
         }
 
         [Test]
-        public void A_part_of_a_listing_is_cut_by_what_it_writes_and_not_by_its_names_alone()
+        public void A_name_of_any_length_is_listed_with_the_names_beside_it()
         {
-            // Very many short names come to little, and the item each is written in is ten times
-            // a name of three characters. Counted by its names, such a listing was one answer of
-            // several times what a part is held to.
+            // A name KeePass or an import left longer than any answer was ever held to.
             _vault.Granting(_group, Rules.Granting(("agent", "L")));
-            var fields = (VaultHandlers.MaxPartCharacters / 35) + 50;
-            for (var index = 0; index < fields; index++)
-            {
-                _vault.Plant(_entry, index.ToString("x5", CultureInfo.InvariantCulture), string.Empty);
-            }
-
-            var first = Get("/entries/" + _entry + "/fields");
-
-            Assert.That(first.Status, Is.EqualTo(200), first.Json);
-            var answer = Newtonsoft.Json.Linq.JObject.Parse(first.Json);
-            Assert.That(answer["next"], Is.Not.Null, "the names come to under a part, and the items do not");
-            Assert.That(first.Json.Length, Is.LessThan(VaultHandlers.MaxPartCharacters + 1024));
-        }
-
-        [Test]
-        public void A_part_always_holds_a_field_however_long_its_name()
-        {
-            // A name KeePass or an import left longer than a whole part: the part that reaches it
-            // holds it and nothing else, so asking for the part after it moves on.
-            _vault.Granting(_group, Rules.Granting(("agent", "L")));
-            _vault.Plant(_entry, new string('a', VaultHandlers.MaxPartCharacters + 10), "v");
+            var longest = new string('a', HalfAMegabyte + 10);
+            _vault.Plant(_entry, longest, "v");
             _vault.Plant(_entry, "b", "v");
 
-            var first = Newtonsoft.Json.Linq.JObject.Parse(Get("/entries/" + _entry + "/fields").Json);
-            var listed = first["fields"].Select(field => (string)field["name"]).ToList();
-            var from = first["next"];
+            var listed = Newtonsoft.Json.Linq.JObject.Parse(Get("/entries/" + _entry + "/fields").Json);
+            var names = listed["fields"].Select(field => (string)field["name"]).ToList();
 
-            while (from != null)
-            {
-                var part = Request(
-                    "GET", "/entries/" + _entry + "/fields", null, null, null,
-                    "from", ((int)from).ToString(CultureInfo.InvariantCulture));
-                Assert.That(part.Status, Is.EqualTo(200), part.Json);
-
-                var answer = Newtonsoft.Json.Linq.JObject.Parse(part.Json);
-                Assert.That(answer["fields"].Count(), Is.GreaterThan(0));
-                listed.AddRange(answer["fields"].Select(field => (string)field["name"]));
-                from = answer["next"];
-            }
-
-            Assert.That(listed.Count, Is.EqualTo(3));
-            Assert.That(listed, Does.Contain("b"));
+            Assert.That(names.Count, Is.EqualTo(3));
+            Assert.That(names.Contains(longest), Is.True);
+            Assert.That(names, Does.Contain("b"));
         }
 
-        [TestCase("1", 200)]
-        [TestCase("0", 200)]
-        [TestCase("999999999", 200)]
-        [TestCase("", 400)]
-        [TestCase("-1", 400)]
-        [TestCase("+1", 400)]
-        [TestCase(" 1", 400)]
-        [TestCase("1.0", 400)]
-        [TestCase("0x1", 400)]
-        [TestCase("1234567890", 400)]
-        [TestCase("\u0661", 400)]
-        [TestCase("next", 400)]
-        public void Where_a_part_starts_is_digits_or_the_request_is_refused(string from, int status)
+        [TestCase("from", "1")]
+        [TestCase("from", "nonsense")]
+        [TestCase("next", "1")]
+        public void A_listing_of_fields_takes_no_query(string name, string value)
         {
-            // A position this cannot read is refused and never read as the start: a caller that
-            // asked for a later part and spelled it badly would be handed the first part again
-            // and take it for the part it asked for. A digit of another script is not a digit
-            // here. A position past the last field is a part holding nothing.
-            _vault.Granting(_group, Rules.Granting(("agent", "RL")));
-            _vault.Plant(_entry, "PIN", "0000");
+            // The listing is a single answer and nothing selects among its fields, so a query
+            // on it is a target the document does not declare, answered as an undeclared path
+            // is, whatever the query holds and whether or not the caller may list the entry.
+            foreach (var mask in new[] { "RL", "R" })
+            {
+                _vault.Granting(_group, Rules.Granting(("agent", mask)));
+
+                foreach (var method in new[] { "GET", "HEAD" })
+                {
+                    var asked = Request(method, "/entries/" + _entry + "/fields", null, null, null, name, value);
+                    var undeclared = Request(method, "/groups/" + _group + "/nothing-is-declared-here", null, null, null, null, null);
+
+                    Assert.That(asked.Status, Is.EqualTo(undeclared.Status), mask + " " + method);
+                    Assert.That(asked.Json, Is.EqualTo(undeclared.Json), mask + " " + method);
+                }
+            }
+        }
+
+        [TestCase("", true)]
+        [TestCase("/fields", true)]
+        [TestCase("/fields/Title", true)]
+        [TestCase("/attachments", false)]
+        public void What_grows_with_what_an_entry_holds_is_handed_over_as_what_writes_it(string under, bool written)
+        {
+            // Written as it is sent, an answer keeps nothing of itself alive, so the answers
+            // that grow with what clients wrote into an entry are handed to the transport as
+            // what writes them, and an answer of a bounded size as the document it is.
+            _vault.Granting(_group, Rules.Granting(("agent", "CRUSDLAP")));
 
             foreach (var method in new[] { "GET", "HEAD" })
             {
-                var part = Request(method, "/entries/" + _entry + "/fields", null, null, null, "from", from);
+                var context = Context(method, "/entries/" + _entry + under, null);
+                _router.Handle(context);
 
-                Assert.That(part.Status, Is.EqualTo(status), method + " " + part.Json);
-                if (status == 400 && method == "GET")
-                {
-                    Assert.That(part.Json, Is.EqualTo(HttpResponse.ErrorBody(BodyCheck.Refusal)));
-                }
-            }
-
-            if (from == "1")
-            {
-                var json = Request("GET", "/entries/" + _entry + "/fields", null, null, null, "from", from).Json;
-                Assert.That(json, Does.Contain("\"Title\"").Or.Contain("\"PIN\""));
-                Assert.That(
-                    Newtonsoft.Json.Linq.JObject.Parse(json)["fields"].Count(), Is.EqualTo(1),
-                    "the fields from the position named, and not the field before it");
-            }
-
-            if (from == "999999999")
-            {
-                var json = Request("GET", "/entries/" + _entry + "/fields", null, null, null, "from", from).Json;
-                Assert.That(Newtonsoft.Json.Linq.JObject.Parse(json)["fields"].Count(), Is.Zero);
-                Assert.That(json, Does.Not.Contain("\"next\""));
-            }
-        }
-
-        [Test]
-        public void A_part_asked_of_an_entry_the_caller_may_not_list_is_the_entry_not_being_there()
-        {
-            // Whatever the position asked for, a malformed position included: the rules answer
-            // before the query is read, so nothing about the query tells a caller the entry is
-            // there.
-            _vault.Granting(_group, Rules.Granting(("agent", "R")));
-
-            foreach (var from in new[] { "0", "7", "nonsense" })
-            {
-                var part = Request("GET", "/entries/" + _entry + "/fields", null, null, null, "from", from);
-
-                Assert.That(part.Status, Is.EqualTo(404), from);
+                Assert.That(context.Status, Is.EqualTo(200), method + " " + under);
+                Assert.That(context.Content != null, Is.EqualTo(written), method + " " + under);
+                Assert.That(context.Json == null, Is.EqualTo(written), method + " " + under);
             }
         }
 

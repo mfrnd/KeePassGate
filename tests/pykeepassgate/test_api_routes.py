@@ -643,7 +643,7 @@ def test_a_field_name_that_needs_escaping_gets_it(gate: FakeGate, paired: GateCl
     )
 
 
-#: Where the names of the invented entry's strings are listed, which is the first part's target.
+#: Where the names of the invented entry's strings are listed.
 LISTING = f"/entries/{UUID}/fields"
 
 
@@ -652,115 +652,29 @@ def named(*names: str) -> list[dict[str, Any]]:
     return [{"name": name, "protected": False} for name in names]
 
 
-def parted(gate: FakeGate, parts: dict[str, dict[str, Any]]) -> None:
-    """Answer each target with the part scripted for it, and any other target with a `500`."""
-    gate.handler = lambda path, sent, client: (200, json.dumps(parts[path]))
-
-
-def test_a_field_listing_served_in_three_parts_is_returned_whole_and_in_order(
+def test_a_field_listing_is_a_single_request_answered_with_every_name_in_order(
     gate: FakeGate, paired: GateClient
 ) -> None:
-    parted(
-        gate,
-        {
-            LISTING: {"fields": named("Title", "Account"), "next": 2},
-            f"{LISTING}?from=2": {"fields": named("Environment"), "next": 3},
-            f"{LISTING}?from=3": {"fields": named("Region", "Tier")},
-        },
-    )
+    answering(gate, {"fields": named("Title", "Account", "Environment", "Region", "Tier")})
 
     listed = paired.fields(UUID)
 
     assert [field.name for field in listed] == ["Title", "Account", "Environment", "Region", "Tier"]
-    assert gate.requests == [
-        ("GET", LISTING),
-        ("GET", f"{LISTING}?from=2"),
-        ("GET", f"{LISTING}?from=3"),
-    ], "no position for the first part, and for each part after it the `next` before it"
+    assert gate.requests == [("GET", LISTING)], "asked for once, with no query"
     assert gate.failures == []
 
 
-def test_a_field_listing_that_names_no_next_part_is_a_single_request(
+def test_a_field_listing_of_two_thousand_names_is_returned_whole(
     gate: FakeGate, paired: GateClient
 ) -> None:
-    parted(gate, {LISTING: {"fields": named("Title", "Account")}})
+    # Far more than a chunk holds, so the stand-in writes the answer in several chunks, as the
+    # plugin writes a listing of that length, and the client reads them as a single answer.
+    names = [f"An invented field, number {number:04}" for number in range(2000)]
+    answering(gate, {"fields": named(*names)})
 
     listed = paired.fields(UUID)
 
-    assert [field.name for field in listed] == ["Title", "Account"]
-    assert gate.requests == [("GET", LISTING)]
-
-
-def test_an_empty_last_part_ends_a_field_listing(gate: FakeGate, paired: GateClient) -> None:
-    # What a position at or past the number of fields is answered with, which is where an entry
-    # that lost a field between the parts leaves a client the gate hands no tag to.
-    parted(
-        gate,
-        {
-            LISTING: {"fields": named("Title"), "next": 1},
-            f"{LISTING}?from=1": {"fields": []},
-        },
-    )
-
-    listed = paired.fields(UUID)
-
-    assert [field.name for field in listed] == ["Title"]
-    assert gate.requests == [("GET", LISTING), ("GET", f"{LISTING}?from=1")]
-
-
-@pytest.mark.parametrize(
-    "position",
-    [0, -1, "2", 2.0, True, None, 1_000_000_000],
-    ids=[
-        "the position just asked for",
-        "a negative position",
-        "a position that is a string",
-        "a position with a fraction",
-        "a flag",
-        "a null",
-        "a position longer than the gate reads",
-    ],
-)
-def test_a_next_part_that_cannot_be_asked_for_is_refused_rather_than_followed(
-    gate: FakeGate, paired: GateClient, position: object
-) -> None:
-    # Followed, the first of these would ask for the same part without end. Each is a gate
-    # answering outside its contract, so it is the error for an answer this client cannot read.
-    parted(gate, {LISTING: {"fields": named("Title"), "next": position}})
-
-    with pytest.raises(ProtocolError, match="next"):
-        paired.fields(UUID)
-
-    assert gate.requests == [("GET", LISTING)], "asked for once, and nothing after it"
-
-
-def test_a_later_part_whose_next_does_not_move_on_is_refused_rather_than_asked_for_again(
-    gate: FakeGate, paired: GateClient
-) -> None:
-    parted(
-        gate,
-        {
-            LISTING: {"fields": named("Title"), "next": 1},
-            f"{LISTING}?from=1": {"fields": named("Account"), "next": 1},
-        },
-    )
-
-    with pytest.raises(ProtocolError, match="does not follow"):
-        paired.fields(UUID)
-
-    assert gate.requests == [("GET", LISTING), ("GET", f"{LISTING}?from=1")]
-
-
-def test_a_part_that_holds_no_field_and_names_a_next_part_is_refused(
-    gate: FakeGate, paired: GateClient
-) -> None:
-    # Every part holds a field while any remain, so a script of empty parts, each naming the
-    # position after it, would otherwise be followed for as long as it went on.
-    parted(gate, {LISTING: {"fields": [], "next": 1}})
-
-    with pytest.raises(ProtocolError, match="does not follow"):
-        paired.fields(UUID)
-
+    assert [field.name for field in listed] == names
     assert gate.requests == [("GET", LISTING)]
 
 
