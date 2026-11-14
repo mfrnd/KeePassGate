@@ -506,6 +506,15 @@ as little alive and took thirty to forty percent longer than the answer built wh
 against 3.5 in the first row and 473 to 508 against 340 to 430 in the fourth, since every
 protected value is decrypted and escaped twice. `DESIGN.md` §143 has what was chosen.
 
+**A listing handed over whole is alive five times over beside what it is written from, and
+written as it is sent it adds nothing.** Measured the same way, over invented entries of the
+six members a listing of entries writes for each. Ten thousand entries are an answer of 2.2 MB:
+handed over whole, 9 to 11 ms with 11 MB alive at once beyond the entries it is written from,
+and as it is sent, 5.6 to 6.3 ms with 0.03 MB. A hundred thousand are 21.8 MB: 124 to 127 ms
+with 109 MB alive, against 58 to 59 ms with 0.03 MB. So the listings of groups and of entries
+are written as they are sent too, and what a listing keeps alive is the descriptions taken
+inside its hold.
+
 **What a tag costs on an entry far past the ceiling a read was held to**, measured while a read
 was held to 524288 characters: fifty
 strings of a million characters each, on the development machine in a Release build, through the

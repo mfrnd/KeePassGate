@@ -1206,10 +1206,16 @@ namespace KeePassGate.Pipeline
         /// database, with a copy of every protected title it shows decrypted, needs nothing of
         /// the database but the descriptions already taken.
         ///
+        /// **Written as it is sent**, `IGateContext.Respond`, since a listing grows with the
+        /// database. Handed over whole it was a document, the text of that document and the
+        /// bytes of that text beside the descriptions it was written from; written as it is
+        /// sent, the descriptions are what is alive, and a HEAD writes none of it, so asking
+        /// whether a listing is there decrypts no title.
+        ///
         /// Null is a listing of something that is not there, which `IVault` never answers as an
         /// empty list, and is never an empty list here either.
         /// </remarks>
-        private static void Listed(IGateContext context, Func<string> listing)
+        private static void Listed(IGateContext context, Action<JsonWriter> listing)
         {
             if (listing == null)
             {
@@ -1217,14 +1223,14 @@ namespace KeePassGate.Pipeline
                 return;
             }
 
-            Later(context, () => context.Respond(200, listing()));
+            Later(context, () => context.Respond(200, text => JsonWriter.Into(text, listing), null));
         }
 
         /// <summary>
         /// What writes the listing of these groups the client may see, or null when there are
         /// none to list.
         /// </summary>
-        private static Func<string> Groups(IGateContext context, IReadOnlyList<VaultGroup> groups)
+        private static Action<JsonWriter> Groups(IGateContext context, IReadOnlyList<VaultGroup> groups)
         {
             if (groups == null)
             {
@@ -1234,9 +1240,8 @@ namespace KeePassGate.Pipeline
             var read = new AclDocuments();
             var shown = groups.Where(group => Visible(context, group.Node, read)).ToList();
 
-            return () =>
+            return json =>
             {
-                var json = new JsonWriter();
                 json.Array("groups");
 
                 foreach (var group in shown)
@@ -1248,8 +1253,6 @@ namespace KeePassGate.Pipeline
 
                 json.End();
                 json.Number("count", shown.Count);
-
-                return json.Done();
             };
         }
 
@@ -1257,7 +1260,8 @@ namespace KeePassGate.Pipeline
         /// What writes the listing of these entries the client may see, or null when there are
         /// none to list.
         /// </summary>
-        private static Func<string> Entries(IGateContext context, IReadOnlyList<VaultEntry> entries, bool withExpired)
+        private static Action<JsonWriter> Entries(
+            IGateContext context, IReadOnlyList<VaultEntry> entries, bool withExpired)
         {
             if (entries == null)
             {
@@ -1301,9 +1305,8 @@ namespace KeePassGate.Pipeline
                 shown.Add(new KeyValuePair<VaultEntry, bool>(entry, withheld));
             }
 
-            return () =>
+            return json =>
             {
-                var json = new JsonWriter();
                 json.Array("entries");
 
                 foreach (var listed in shown)
@@ -1326,8 +1329,6 @@ namespace KeePassGate.Pipeline
 
                 json.End();
                 json.Number("count", shown.Count);
-
-                return json.Done();
             };
         }
 

@@ -46,8 +46,8 @@ info:
     `Content-Length` rather than sending a wrong one, which section 9.3.2 permits for a value
     determined only while generating content, and section 8.6 requires of anything else.
 
-    **An answer made of what an entry holds is written as it is sent.** `readEntry`, `readField`,
-    `listFields` and `listAttachments` answer with `Transfer-Encoding: chunked` and no
+    **An answer that grows with what the database holds is written as it is sent.** Every
+    listing, `readEntry` and `readField` answer with `Transfer-Encoding: chunked` and no
     `Content-Length`, RFC 9112 section 7.1, each value read as it is written, so none of them is
     refused for the size of what it hands out. An attachment itself is not among them: it has a
     ceiling and a length. Every other answer carries a `Content-Length`. No chunk carries an

@@ -40,7 +40,9 @@ Responses are not bound by the reader: a list of entries is an array of objects,
 
 **Query parameters, but for what a listing needs.** Scoping is a path, so
 `GET /groups/{uuid}/entries` rather than `?group=`. Filtering and paging of groups and entries
-were proposed and cut; when a database is large enough to need them, they arrive as query
+were proposed and cut, and a listing is served whole, written as it is sent, so that what it
+costs the gate is the descriptions it is written from, `DESIGN.md` §143; when a database is
+large enough to need them, they arrive as query
 parameters on the list routes, which is where selecting among a collection belongs, and where
 the only query parameter there is arrived: `includeExpired`, on the two entry listings and the
 heads beside them. The listing of an entry's fields was paged for a while, since no write is

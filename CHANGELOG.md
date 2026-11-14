@@ -21,7 +21,10 @@ none, since it releases both.
   value read as it is written, so what a read keeps alive is the value it is writing, whatever
   the entry holds. A client has to read a chunked answer: PyKeePassGate does, and takes an
   answer whose last chunk never arrived for a failed connection. Every other answer carries a
-  `Content-Length` as before, and a request with `Transfer-Encoding` is still refused.
+  `Content-Length` as before, and a request with `Transfer-Encoding` is still refused. The
+  listings of groups and of entries, which grow with the database, are written the same way:
+  ten thousand entries kept 11 MB alive while their listing went out, and now keep nothing
+  beyond the entries themselves.
   Writes are not held to a size, because a refusal that moves with what an entry's strings come
   to tells a client that may write and not read how long the values it is withheld are. So
   nothing bounds what a client holding `update` or `create` adds to an entry beyond what a

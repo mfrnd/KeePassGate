@@ -293,15 +293,18 @@ chunked answer is not that, §143.
 
 ### Answers written as they are sent §143
 
-**The gate writes an answer in chunks where the answer is made of what an entry holds, and reads
-no chunked request**, the operator's ruling of 2026-11-14. `readEntry`, `readField`,
-`listFields` and `listAttachments` hand the
+**The gate writes an answer in chunks where the answer grows with what the database holds, and
+reads no chunked request**, the operator's ruling of 2026-11-14. Every listing and the reads of
+an entry and of a field hand the
 transport what writes their answer in place of the answer, `IGateContext.Respond`, and the
 transport writes it under `Transfer-Encoding: chunked`, `ChunkedContent`: each value is read
 where it is written, and nothing of the answer is kept. An answer handed over whole is alive
 several times over while it is sent, its values, the document, the document's text and the
 bytes of that text, which is what held a read of an entry to a ceiling, `API.md` §412. Written
-as it is sent, what is alive is the value being written. `FINDINGS.md` has both measured.
+as it is sent, what is alive is the value being written, and for a listing the descriptions it
+is written from. An answer of a bounded size, a single group, an attachment under its ceiling
+and everything about the gate and the caller, is handed over whole under a `Content-Length`.
+`FINDINGS.md` has both measured.
 
 **This is the chunked body the paragraph above names, in the direction it does not weigh.**
 What that trigger weighs is this plugin's own parser accumulating cases, and a chunked request

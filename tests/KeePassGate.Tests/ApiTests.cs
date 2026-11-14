@@ -2309,6 +2309,29 @@ namespace KeePassGate.Tests
             }
         }
 
+        [TestCase("/groups", true)]
+        [TestCase("/groups/{group}/groups", true)]
+        [TestCase("/groups/{group}/entries", true)]
+        [TestCase("/entries", true)]
+        [TestCase("/groups/{group}", false)]
+        [TestCase("/gate/status", false)]
+        public void What_grows_with_the_database_is_handed_over_as_what_writes_it(string path, bool written)
+        {
+            // A listing grows with the database, so it is handed to the transport as what
+            // writes it; a single group is of a bounded size and handed over whole.
+            _vault.Granting(_vault.RootAlias, Rules.Granting(("agent", "CRUSDLAP")));
+
+            foreach (var method in new[] { "GET", "HEAD" })
+            {
+                var context = Context(method, path.Replace("{group}", _group), null);
+                _router.Handle(context);
+
+                Assert.That(context.Status, Is.EqualTo(200), method + " " + path);
+                Assert.That(context.Content != null, Is.EqualTo(written), method + " " + path);
+                Assert.That(context.Json == null, Is.EqualTo(written), method + " " + path);
+            }
+        }
+
         [TestCase("", true)]
         [TestCase("/fields", true)]
         [TestCase("/fields/Title", true)]

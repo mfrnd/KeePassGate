@@ -480,9 +480,12 @@ designing around them.
   length of any value, so nothing rendered from a view can tell how long a withheld value is.
   **`listFields` is written the same way, every name in a single answer**, since no write
   bounds how many strings an entry holds: it was served in parts while it was handed over
-  whole, and there is no `from` and no `next`. So is `listAttachments`, names and sizes; an
-  attachment's bytes keep their ceiling. **Every other answer is handed over whole with
-  a `Content-Length`.** PyKeePassGate reads a chunked answer with its own strict reader, never
+  whole, and there is no `from` and no `next`. So is `listAttachments`, names and sizes, and so
+  are the listings of groups and of entries, which grow with the database: the rule is that an
+  answer growing with what the database holds is written as it is sent, and an answer of a
+  bounded size, a single group, an attachment under its ceiling, the gate's own routes, is
+  handed over whole with a `Content-Length`. PyKeePassGate reads a chunked answer with its own
+  strict reader, never
   `http.client`, and holds an answer to its own `max_response_bytes`. **This reverses a
   ceiling on reads**, 524288
   characters over what the caller would be handed, answered `413`, the ruling of 2026-11-10,
