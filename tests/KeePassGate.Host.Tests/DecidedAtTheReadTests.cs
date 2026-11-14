@@ -84,9 +84,9 @@ namespace KeePassGate.Host.Tests
 
             var answer = Send(operatorNext, path);
 
-            Assert.That(answer.Json, Does.Not.Contain(Typed), answer.Status + " " + answer.Json);
-            Assert.That(answer.Status, Is.EqualTo(200), answer.Json);
-            Assert.That(answer.Json, Does.Contain("kept in the open"));
+            Assert.That(answer.Document(), Does.Not.Contain(Typed), answer.Status + " " + answer.Document());
+            Assert.That(answer.Status, Is.EqualTo(200), answer.Document());
+            Assert.That(answer.Document(), Does.Contain("kept in the open"));
         }
 
         [Test]
@@ -106,9 +106,9 @@ namespace KeePassGate.Host.Tests
 
             var answer = Send(operatorNext, "/entries/{entry}");
 
-            Assert.That(answer.Json, Does.Not.Contain(Typed), answer.Status + " " + answer.Json);
-            Assert.That(answer.Status, Is.EqualTo(200), answer.Json);
-            Assert.That(answer.Json, Does.Contain("an invented service"));
+            Assert.That(answer.Document(), Does.Not.Contain(Typed), answer.Status + " " + answer.Document());
+            Assert.That(answer.Status, Is.EqualTo(200), answer.Document());
+            Assert.That(answer.Document(), Does.Contain("an invented service"));
         }
 
         [Test]
@@ -122,8 +122,8 @@ namespace KeePassGate.Host.Tests
             var answer = Send(operatorNext, "/entries/{entry}");
 
             Assert.That(operatorNext.Ran, Is.True);
-            Assert.That(answer.Status, Is.EqualTo(200), answer.Json);
-            Assert.That(answer.Json, Does.Not.Contain(Typed));
+            Assert.That(answer.Status, Is.EqualTo(200), answer.Document());
+            Assert.That(answer.Document(), Does.Not.Contain(Typed));
         }
 
         [TestCase("/entries/{entry}")]
@@ -151,7 +151,7 @@ namespace KeePassGate.Host.Tests
             var held = _entry.Strings.Get("Longer");
 
             var before = Send(CurrentThread.Instance, path);
-            Assume.That(before.Status, Is.EqualTo(200), before.Json);
+            Assume.That(before.Status, Is.EqualTo(200), before.Document());
             Assume.That(before.Headers["ETag"], Is.Not.Null);
 
             // The first request left the protected value as it found it: a read copies the
@@ -180,12 +180,12 @@ namespace KeePassGate.Host.Tests
             var answer = Send(operatorNext, path);
 
             Assert.That(operatorNext.Ran, Is.True);
-            Assert.That(answer.Status, Is.EqualTo(200), answer.Json);
-            Assert.That(answer.Json, Is.EqualTo(before.Json));
+            Assert.That(answer.Status, Is.EqualTo(200), answer.Document());
+            Assert.That(answer.Document(), Is.EqualTo(before.Document()));
             Assert.That(answer.Headers["ETag"], Is.EqualTo(before.Headers["ETag"]));
 
             var after = Send(CurrentThread.Instance, path);
-            Assert.That(after.Status, Is.EqualTo(200), after.Json);
+            Assert.That(after.Status, Is.EqualTo(200), after.Document());
             Assert.That(after.Headers["ETag"], Is.Not.EqualTo(before.Headers["ETag"]), "the edit did move the tag");
         }
 
@@ -199,8 +199,8 @@ namespace KeePassGate.Host.Tests
             // operator types the moment the hold is let go, an entry added and an entry removed
             // are in the listing that follows and not in this listing.
             var before = Send(CurrentThread.Instance, path);
-            Assume.That(before.Status, Is.EqualTo(200), before.Json);
-            Assume.That(before.Json, Does.Contain("an invented service"));
+            Assume.That(before.Status, Is.EqualTo(200), before.Document());
+            Assume.That(before.Document(), Does.Contain("an invented service"));
 
             var operatorNext = new OperatorNext(1, () =>
             {
@@ -215,12 +215,12 @@ namespace KeePassGate.Host.Tests
             var answer = Send(operatorNext, path);
 
             Assert.That(operatorNext.Ran, Is.True);
-            Assert.That(answer.Status, Is.EqualTo(200), answer.Json);
-            Assert.That(answer.Json, Is.EqualTo(before.Json));
+            Assert.That(answer.Status, Is.EqualTo(200), answer.Document());
+            Assert.That(answer.Document(), Is.EqualTo(before.Document()));
 
             var after = Send(CurrentThread.Instance, path);
-            Assert.That(after.Json, Does.Contain(Typed));
-            Assert.That(after.Json, Does.Contain("added once the hold had ended"));
+            Assert.That(after.Document(), Does.Contain(Typed));
+            Assert.That(after.Document(), Does.Contain("added once the hold had ended"));
         }
 
         [TestCase("/entries/{entry}")]
@@ -243,14 +243,15 @@ namespace KeePassGate.Host.Tests
             var answer = Send(operatorNext, path);
 
             Assert.That(operatorNext.Ran, Is.True);
-            Assert.That(answer.Status, Is.EqualTo(200), answer.Json);
-            Assert.That(answer.Json, Does.Not.Contain("not-a-real-password"));
-            Assert.That(answer.Json, Does.Contain("Password"));
+            Assert.That(answer.Status, Is.EqualTo(200), answer.Document());
+            Assert.That(answer.Document(), Does.Not.Contain("not-a-real-password"));
+            Assert.That(answer.Document(), Does.Contain("Password"));
 
             if (!path.EndsWith("/fields", StringComparison.Ordinal))
             {
                 var after = Send(CurrentThread.Instance, path);
-                Assert.That(after.Json, Does.Contain("not-a-real-password"), "the setting did change what is read");
+                Assert.That(
+                    after.Document(), Does.Contain("not-a-real-password"), "the setting did change what is read");
             }
         }
 
@@ -272,7 +273,7 @@ namespace KeePassGate.Host.Tests
 
             var answer = Send(operatorNext, path);
 
-            Assert.That(answer.Status, Is.EqualTo(200), answer.Json);
+            Assert.That(answer.Status, Is.EqualTo(200), answer.Document());
             Assert.That(operatorNext.Holds, Is.EqualTo(1));
         }
 
@@ -299,6 +300,10 @@ namespace KeePassGate.Host.Tests
                 new ServedDatabase(vault).PutOn(context);
 
                 _router.Handle(context);
+
+                // An answer written as it is sent is written here, as the transport writes it, so
+                // a read of an entry or of a field driven from here reads its values.
+                context.Document();
                 return context;
             }
         }

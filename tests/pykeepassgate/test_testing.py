@@ -163,6 +163,107 @@ def test_an_answer_carries_the_head_the_plugin_writes(
     assert not any(line.startswith("Retry-After") for line in head), "only a 503 carries it"
 
 
+def asked(line: str) -> bytes:
+    """A request of a request line and the `Host` every request carries."""
+    return f"{line} HTTP/1.1\r\nHost: abc.def.kpg\r\n\r\n".encode("ascii")
+
+
+@pytest.mark.parametrize(
+    "path",
+    [
+        "/groups",
+        "/groups/0123/groups",
+        "/groups/0123/entries",
+        "/groups/0123/entries?includeExpired=false",
+        "/entries",
+        "/entries?includeExpired=false",
+        "/entries/0123",
+        "/entries/0123/fields",
+        "/entries/0123/fields/Title",
+        "/entries/0123/attachments",
+    ],
+)
+def test_an_answer_that_grows_with_the_database_is_in_chunks_as_the_plugin_answers_it(
+    gate: FakeGate, authority: Authority, path: str
+) -> None:
+    # `HttpResponse.Write` on the plugin's side writes these answers as they are sent, so a
+    # client asking this gate for a listing, an entry or a field reads the framing it meets at
+    # the plugin, whatever query the path carries.
+    gate.handler = lambda path, body, client: (200, '{"ok":true}')
+
+    head, _, body = answered(gate, authority, asked(f"GET {path}")).partition(b"\r\n\r\n")
+
+    assert b"Transfer-Encoding: chunked" in head
+    assert b"Content-Length" not in head
+    assert body == b'b\r\n{"ok":true}\r\n0\r\n\r\n'
+
+
+@pytest.mark.parametrize(
+    ("line", "status"),
+    [
+        ("GET /groups/0123", 200),
+        ("GET /entries/0123/attachments/key.pem", 200),
+        ("GET /entries/0123/access", 200),
+        ("GET /gate/whoami", 200),
+        ("GET /entries/0123", 404),
+        ("DELETE /entries/0123", 200),
+    ],
+    ids=[
+        "a group",
+        "an attachment",
+        "what the caller may do at an entry",
+        "who the caller is",
+        "a refused read",
+        "a removal",
+    ],
+)
+def test_every_other_answer_is_under_a_length(
+    gate: FakeGate, authority: Authority, line: str, status: int
+) -> None:
+    gate.handler = lambda path, body, client: (status, '{"ok":true}')
+
+    head, _, body = answered(gate, authority, asked(line)).partition(b"\r\n\r\n")
+
+    assert b"Content-Length: 11" in head
+    assert b"Transfer-Encoding" not in head
+    assert body == b'{"ok":true}'
+
+
+def test_a_head_of_an_entry_names_no_framing(gate: FakeGate, authority: Authority) -> None:
+    gate.handler = lambda path, body, client: (200, '{"ok":true}')
+
+    head, _, body = answered(gate, authority, asked("HEAD /entries/0123")).partition(b"\r\n\r\n")
+
+    assert b"Transfer-Encoding" not in head
+    assert b"Content-Length" not in head
+    assert body == b""
+
+
+def test_a_chunk_holds_as_much_as_the_plugin_puts_in_a_chunk(
+    gate: FakeGate, authority: Authority
+) -> None:
+    # `ChunkedContent.Most`: 16376 bytes, which is 3ff8 in hex, and 7248 left over, 1c50.
+    gate.handler = lambda path, body, client: (200, "x" * 40000)
+
+    _, _, body = answered(gate, authority, asked("GET /entries/0123")).partition(b"\r\n\r\n")
+
+    whole = b"3ff8\r\n" + b"x" * 16376 + b"\r\n"
+    assert body == whole + whole + b"1c50\r\n" + b"x" * 7248 + b"\r\n0\r\n\r\n"
+
+
+def test_a_declared_length_frames_an_answer_the_plugin_writes_in_chunks(
+    gate: FakeGate, authority: Authority
+) -> None:
+    gate.declare = "11"
+    gate.handler = lambda path, body, client: (200, '{"ok":true}')
+
+    head, _, body = answered(gate, authority, asked("GET /entries/0123")).partition(b"\r\n\r\n")
+
+    assert b"Content-Length: 11" in head
+    assert b"Transfer-Encoding" not in head
+    assert body == b'{"ok":true}'
+
+
 @pytest.mark.parametrize(("given", "sent"), [("2", "Retry-After: 2"), (None, None)])
 def test_a_503_carries_the_retry_after_the_plugin_sends_unless_told_otherwise(
     gate: FakeGate, authority: Authority, given: str | None, sent: str | None

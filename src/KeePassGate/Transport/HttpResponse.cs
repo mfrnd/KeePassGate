@@ -17,7 +17,8 @@ namespace KeePassGate.Transport
     /// The status codes and their reason phrases are RFC 9110 section 15.
     /// https://www.rfc-editor.org/rfc/rfc9110#section-15
     /// The message framing is RFC 9112: a status line, headers, a blank line, then exactly
-    /// `Content-Length` bytes. https://www.rfc-editor.org/rfc/rfc9112#section-6
+    /// `Content-Length` bytes, or, for content written as it is sent, the same content in
+    /// chunks, <see cref="ChunkedContent"/>. https://www.rfc-editor.org/rfc/rfc9112#section-6
     /// </remarks>
     public static class HttpResponse
     {
@@ -59,6 +60,7 @@ namespace KeePassGate.Transport
             {
                 "Content-Type",
                 "Content-Length",
+                "Transfer-Encoding",
                 "Cache-Control",
                 "X-Content-Type-Options",
                 "Connection",
@@ -114,6 +116,15 @@ namespace KeePassGate.Transport
         /// told until when, `ApprovalBook`, and that is what keeps it.
         /// </remarks>
         public const int RetryAfterSeconds = 2;
+
+        /// <summary>
+        /// How many characters of content written as it is sent are gathered before they are
+        /// encoded.
+        /// </summary>
+        private const int TextCharacters = 4096;
+
+        /// <summary>UTF-8 with no mark ahead of it, which is what a JSON answer is written in.</summary>
+        private static readonly Encoding Utf8 = new UTF8Encoding(false);
 
         public static string ReasonFor(int status)
         {
@@ -172,16 +183,108 @@ namespace KeePassGate.Transport
             }
 
             var body = head ? Array.Empty<byte>() : Encoding.UTF8.GetBytes(json ?? string.Empty);
+            var framing = head
+                ? null
+                : "Content-Length: " + body.Length.ToString(CultureInfo.InvariantCulture);
 
+            var headBytes = Head(status, framing, status == 503 ? UnavailableWord(json) : null, headers);
+            stream.Write(headBytes, 0, headBytes.Length);
+            if (body.Length > 0)
+            {
+                stream.Write(body, 0, body.Length);
+            }
+
+            stream.Flush();
+        }
+
+        /// <summary>
+        /// One answer whose content is written as it is sent: the status line, the fields, and
+        /// the content in chunks unless there is to be none.
+        /// </summary>
+        /// <remarks>
+        /// **For an answer that grows with what a database holds and is made of values.** Handed
+        /// over whole, an answer is alive several times over while it is written: its values,
+        /// the document they were written into, the text taken of that document and the bytes
+        /// the text encodes to. Written as it is sent, what is alive is the value being written
+        /// and what <see cref="ChunkedContent"/> gathers of it. `FINDINGS.md` has both measured.
+        ///
+        /// **Its length is not known when its head goes out**, so it carries none and goes out
+        /// in chunks, which is how RFC 9112 section 7.1 frames such content.
+        ///
+        /// **A failure part way cannot be answered.** The status is on the wire by then, so
+        /// whatever <paramref name="content"/> throws is thrown on from here with the content
+        /// left without its last chunk, and the connection is closed over it: a client reads
+        /// an answer cut short, and takes none of it.
+        ///
+        /// **A HEAD asks for no content, and none is made**: <paramref name="content"/> is not
+        /// run, and the answer names no framing, as a HEAD's answer names no length above.
+        /// </remarks>
+        /// <param name="content">
+        /// What writes the content, as text this writer encodes as UTF-8. Run once, here.
+        /// </param>
+        /// <param name="headers">As the answer above takes them.</param>
+        public static void Write(
+            Stream stream, int status, Action<TextWriter> content, bool head, WebHeaderCollection headers)
+        {
+            if (stream == null)
+            {
+                throw new ArgumentNullException(nameof(stream));
+            }
+
+            if (content == null)
+            {
+                throw new ArgumentNullException(nameof(content));
+            }
+
+            var headBytes = Head(status, head ? null : "Transfer-Encoding: chunked", null, headers);
+            stream.Write(headBytes, 0, headBytes.Length);
+            if (!head)
+            {
+                using (var chunks = new ChunkedContent(stream))
+                using (var text = new StreamWriter(chunks, Utf8, TextCharacters, true))
+                {
+                    var whole = false;
+                    try
+                    {
+                        content(text);
+                        text.Flush();
+                        chunks.End();
+                        whole = true;
+                    }
+                    finally
+                    {
+                        if (!whole)
+                        {
+                            // What failed is thrown on as it is. The writer above is let go
+                            // after this and hands on the text it still holds: dropped, so
+                            // that nothing of a failed answer follows the failure, and a peer
+                            // that is gone as well does not put its own failure in its place.
+                            chunks.Abandon();
+                        }
+                    }
+                }
+            }
+
+            stream.Flush();
+        }
+
+        /// <summary>The status line and the fields of an answer, with the blank line after them.</summary>
+        /// <param name="framing">
+        /// The field that tells where the content ends, or null for an answer that carries no
+        /// content.
+        /// </param>
+        /// <param name="unavailable">
+        /// The word a `503` names its refusal with, or null where it names none.
+        /// </param>
+        private static byte[] Head(int status, string framing, string unavailable, WebHeaderCollection headers)
+        {
             var lines = new StringBuilder();
             lines.Append("HTTP/1.1 ").Append(status.ToString(CultureInfo.InvariantCulture))
                 .Append(' ').Append(ReasonFor(status)).Append("\r\n");
             lines.Append("Content-Type: application/json; charset=utf-8\r\n");
-            if (!head)
+            if (framing != null)
             {
-                lines.Append("Content-Length: ")
-                    .Append(body.Length.ToString(CultureInfo.InvariantCulture))
-                    .Append("\r\n");
+                lines.Append(framing).Append("\r\n");
             }
 
             lines.Append("Cache-Control: no-store\r\n");
@@ -198,10 +301,9 @@ namespace KeePassGate.Transport
                     .Append(RetryAfterSeconds.ToString(CultureInfo.InvariantCulture))
                     .Append("\r\n");
 
-                var word = UnavailableWord(json);
-                if (word != null)
+                if (unavailable != null)
                 {
-                    lines.Append(UnavailableField).Append(": ").Append(word).Append("\r\n");
+                    lines.Append(UnavailableField).Append(": ").Append(unavailable).Append("\r\n");
                 }
             }
 
@@ -220,14 +322,7 @@ namespace KeePassGate.Transport
 
             lines.Append("\r\n");
 
-            var headBytes = Encoding.ASCII.GetBytes(lines.ToString());
-            stream.Write(headBytes, 0, headBytes.Length);
-            if (body.Length > 0)
-            {
-                stream.Write(body, 0, body.Length);
-            }
-
-            stream.Flush();
+            return Encoding.ASCII.GetBytes(lines.ToString());
         }
 
         /// <summary>

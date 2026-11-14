@@ -21,19 +21,27 @@ namespace KeePassGate.Host.Tests
     /// caller how long a value it may not read is.
     /// </summary>
     /// <remarks>
-    /// A write that would take an entry's strings past <see cref="VaultEntryView.MostCharacters"/>
-    /// was refused `413` with the entry's whole count, protected values included. A caller that
-    /// may write and not read padded the entry to just under the ceiling and read the count off
-    /// the refusal, or searched for the padding the refusal began at, and had the length of every
-    /// value it was withheld. Every case here is the real router over the real vault and the
-    /// rules as an operator writes them: two entries alike but for the length of a password the
-    /// caller may not read, the same padding in both, and the same write sent to each. The
-    /// operator's ruling of 2026-11-10 takes the refusal away, so both writes are made and
-    /// answered alike, and the ceiling is held on reads, over what the reader is handed.
+    /// A write that would take an entry's strings past <see cref="Ceiling"/> was refused `413`
+    /// with the entry's whole count, protected values included. A caller that may write and not
+    /// read padded the entry to just under the ceiling and read the count off the refusal, or
+    /// searched for the padding the refusal began at, and had the length of every value it was
+    /// withheld. Every case here is the real router over the real vault and the rules as an
+    /// operator writes them: two entries alike but for the length of a password the caller may
+    /// not read, the same padding in both, and the same write sent to each. The operator's
+    /// ruling of 2026-11-10 takes the refusal away, so both writes are made and answered alike.
+    /// The ruling of 2026-11-14 takes the ceiling off reads as well: the answer to a read of an
+    /// entry or of a field is written as it is sent, so no read is refused for size, and a
+    /// withheld value is still no part of what its caller is handed.
     /// </remarks>
     [TestFixture]
     public sealed class NoSizeToldToAWriterTests
     {
+        /// <summary>
+        /// The number a write was refused past, and a read after it. Nothing is held to it
+        /// now.
+        /// </summary>
+        private const int Ceiling = 512 * 1024;
+
         private const string Title = "an invented service";
         private const string Pad = "Pad";
 
@@ -75,7 +83,7 @@ namespace KeePassGate.Host.Tests
         [TestCase("entry", "UP", TestName = "An entry updated by a caller that may not read")]
         [TestCase("new field", "CP", TestName = "A field added by a caller that may not read")]
         [TestCase("field", "RU", TestName = "A field updated by a caller that reads no protected value")]
-        public void A_write_past_the_ceiling_is_answered_alike_whatever_a_withheld_value_holds(
+        public void A_write_past_the_number_is_answered_alike_whatever_a_withheld_value_holds(
             string what, string mask)
         {
             _group.CustomData.Set(AclDocument.CustomDataKey, Rules.Granting(("agent", mask)));
@@ -85,19 +93,19 @@ namespace KeePassGate.Host.Tests
             var first = Send(what, shorter);
             var second = Send(what, longer);
 
-            Assert.That(first.Status, Is.EqualTo(what == "new field" ? 201 : 200), first.Json);
-            Assert.That(second.Status, Is.EqualTo(first.Status), second.Json);
-            Assert.That(WithoutTag(second.Json), Is.EqualTo(WithoutTag(first.Json)));
+            Assert.That(first.Status, Is.EqualTo(what == "new field" ? 201 : 200), first.Document());
+            Assert.That(second.Status, Is.EqualTo(first.Status), second.Document());
+            Assert.That(WithoutTag(second.Document()), Is.EqualTo(WithoutTag(first.Document())));
             Assert.That(_saves, Is.EqualTo(2), "both writes were made");
-            Assert.That(Characters(shorter), Is.LessThanOrEqualTo(VaultEntryView.MostCharacters));
-            Assert.That(Characters(longer), Is.GreaterThan(VaultEntryView.MostCharacters),
-                "the second entry is past what a read hands out whole, and was written to all the same");
+            Assert.That(Characters(shorter), Is.LessThanOrEqualTo(Ceiling));
+            Assert.That(Characters(longer), Is.GreaterThan(Ceiling),
+                "the second entry is past the number a write was refused at, and was written to all the same");
             Assert.That(shorter.Strings.ReadSafe(PwDefs.PasswordField), Is.EqualTo(Shorter));
             Assert.That(longer.Strings.ReadSafe(PwDefs.PasswordField), Is.EqualTo(Longer));
         }
 
         [Test]
-        public void A_read_is_held_to_what_its_caller_is_handed_and_never_to_a_withheld_value()
+        public void A_read_is_answered_alike_whatever_a_withheld_value_holds_and_however_much_is_in_sight()
         {
             // The same two entries, read by a caller whose rule reaches no protected value. Each
             // view holds the same names and the same open values, so each read is answered the
@@ -107,45 +115,61 @@ namespace KeePassGate.Host.Tests
             var longer = Padded(Longer);
             Assume.That(Send("field", shorter).Status, Is.EqualTo(200));
             Assume.That(Send("field", longer).Status, Is.EqualTo(200));
-            Assume.That(Characters(longer), Is.GreaterThan(VaultEntryView.MostCharacters));
+            Assume.That(Characters(longer), Is.GreaterThan(Ceiling));
 
             var first = Asked("GET", Path(shorter), null, "agent");
             var second = Asked("GET", Path(longer), null, "agent");
 
-            Assert.That(first.Status, Is.EqualTo(200), "what this caller is handed is under the ceiling");
-            Assert.That(second.Status, Is.EqualTo(200), "and the longer password it is withheld adds nothing");
+            Assert.That(first.Status, Is.EqualTo(200));
+            Assert.That(second.Status, Is.EqualTo(200));
+            Assert.That(Fields(second), Is.EqualTo(Fields(first)), "the longer password it is withheld adds nothing");
+            Assert.That(Fields(first), Does.Contain("\"Password\":null"));
 
-            // Each view stands under the ceiling by the room left and by the shorter password,
-            // which is in neither. A character more than that in sight takes both views over, by
-            // the same count.
+            // What is in sight grows past the number a read was refused at, in both entries
+            // alike. Both are still served, each value as it is stored, and still alike.
             var over = new string('u', Written.Length + Room + Shorter.Length + 1);
             Assume.That(Asked("PUT", Path(shorter) + "/fields/" + PwDefs.UserNameField,
                 Bodies.Of(("value", over)), "agent").Status, Is.EqualTo(200));
             Assume.That(Asked("PUT", Path(longer) + "/fields/" + PwDefs.UserNameField,
                 Bodies.Of(("value", over)), "agent").Status, Is.EqualTo(200));
+            Assume.That(
+                Characters(shorter) - Shorter.Length,
+                Is.GreaterThan(Ceiling),
+                "what this caller is handed has to be past the number for this to test anything");
 
             first = Asked("GET", Path(shorter), null, "agent");
             second = Asked("GET", Path(longer), null, "agent");
 
-            Assert.That(first.Status, Is.EqualTo(413));
-            Assert.That(second.Status, Is.EqualTo(413));
-            Assert.That(second.Json, Is.EqualTo(first.Json), "the count is of the view, which is the same for both");
+            Assert.That(first.Status, Is.EqualTo(200), "no read is refused for what it hands over");
+            Assert.That(second.Status, Is.EqualTo(200));
+            Assert.That(Fields(second) == Fields(first), Is.True, "the answers differ in what they hand over");
+            Assert.That(Fields(first), Does.Contain("\"UserName\":\"" + over + "\"").And.Contain("\"Password\":null"));
         }
 
         [Test]
-        public void A_withheld_field_past_the_ceiling_is_answered_as_withheld()
+        public void A_withheld_field_of_any_length_is_answered_as_withheld_and_read_whole_by_a_caller_it_is_open_to()
         {
-            // The single field read decides whether the value is withheld before it measures
-            // anything, so a protected string of any length is the `null` every withheld value is.
-            _group.CustomData.Set(AclDocument.CustomDataKey, Rules.Granting(("agent", "R")));
-            var entry = Padded(new string('p', VaultEntryView.MostCharacters + 1));
+            // A withheld value has nothing behind it to read, so a protected string of any
+            // length is the `null` every withheld value is. A caller whose rule reaches
+            // protected values is handed the same string whole, since no read is refused for
+            // how long a value is.
+            _group.CustomData.Set(AclDocument.CustomDataKey, Rules.Granting(("agent", "R"), ("keeper", "RP")));
+            var password = new string('p', Ceiling + 1);
+            var entry = Padded(password);
 
             var read = Asked("GET", Path(entry) + "/fields/" + PwDefs.PasswordField, null, "agent");
 
-            Assert.That(read.Status, Is.EqualTo(200), read.Json);
-            Assert.That(read.Json, Is.EqualTo("{\"name\":\"Password\",\"value\":null,\"protected\":true}"));
-        }
+            Assert.That(read.Status, Is.EqualTo(200), read.Document());
+            Assert.That(read.Document(), Is.EqualTo("{\"name\":\"Password\",\"value\":null,\"protected\":true}"));
 
+            var open = Asked("GET", Path(entry) + "/fields/" + PwDefs.PasswordField, null, "keeper");
+
+            Assert.That(open.Status, Is.EqualTo(200));
+            Assert.That(
+                open.Document() == "{\"name\":\"Password\",\"value\":\"" + password + "\",\"protected\":true}",
+                Is.True,
+                "the value came back other than it is stored");
+        }
         /// <summary>
         /// An entry holding this password and padding in the open, left so that the write
         /// <see cref="Send"/> makes brings its open strings, with a password of
@@ -164,7 +188,7 @@ namespace KeePassGate.Host.Tests
             entry.Strings.Set(Pad, new ProtectedString(false, string.Empty));
 
             var held = Characters(entry) - password.Length + Shorter.Length;
-            var padding = VaultEntryView.MostCharacters - Room - held - Written.Length;
+            var padding = Ceiling - Room - held - Written.Length;
             entry.Strings.Set(Pad, new ProtectedString(false, new string('x', padding)));
 
             _group.AddEntry(entry, true);
@@ -208,6 +232,19 @@ namespace KeePassGate.Host.Tests
             return at < 0 ? json : json.Substring(0, at) + "}";
         }
 
+        /// <summary>
+        /// The strings a read of an entry answered with, as they were written: what two entries
+        /// alike in what their caller is handed answer alike, where their identifiers and times
+        /// differ.
+        /// </summary>
+        private static string Fields(GateContext read)
+        {
+            var json = read.Document();
+            var at = json.IndexOf("\"fields\":", StringComparison.Ordinal);
+            Assert.That(at, Is.GreaterThan(0), "the answer names no fields");
+            return json.Substring(at);
+        }
+
         private GateContext Asked(string method, string path, string body, params string[] profiles)
         {
             var vault = new KdbxVault(
@@ -239,6 +276,10 @@ namespace KeePassGate.Host.Tests
                 new ServedDatabase(vault).PutOn(context);
 
                 _router.Handle(context);
+
+                // An answer written as it is sent is written here, as the transport writes it, so
+                // a read of an entry or of a field driven from here reads its values.
+                context.Document();
                 return context;
             }
         }

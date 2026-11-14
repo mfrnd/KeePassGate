@@ -40,15 +40,15 @@ Responses are not bound by the reader: a list of entries is an array of objects,
 
 **Query parameters, but for what a listing needs.** Scoping is a path, so
 `GET /groups/{uuid}/entries` rather than `?group=`. Filtering and paging of groups and entries
-were proposed and cut; when a database is large enough to need them, they arrive as query
+were proposed and cut, and a listing is served whole, written as it is sent, so that what it
+costs the gate is the descriptions it is written from, `DESIGN.md` §143; when a database is
+large enough to need them, they arrive as query
 parameters on the list routes, which is where selecting among a collection belongs, and where
-those there are arrived: `includeExpired`, on the two entry listings and the heads beside them,
-and `from`, on the listing of an entry's fields and its head. **That listing is served in
-parts, which is the paging the others were cut**, and it arrived for a reason they do not have:
-no write is refused for how many strings an entry holds, so its names can pass what an answer
-hands out, and refused for that it left an entry nothing could name the strings of, §412. A
-query name nothing declares is refused, `openapi.yaml` §507, rather than every query being
-refused for all time, so paging arrives by being declared.
+the only query parameter there is arrived: `includeExpired`, on the two entry listings and the
+heads beside them. The listing of an entry's fields was paged for a while, since no write is
+refused for how many strings an entry holds, and is a single answer written as it is sent
+instead, §412. A query name nothing declares is refused, `openapi.yaml` §507, rather than every
+query being refused for all time, so paging arrives by being declared.
 
 **Moving an entry or a group between parents.** It is the one operation about two nodes, and the
 router authorizes exactly one. A client holding `create` in the destination and `delete` in the
@@ -308,46 +308,44 @@ answering the condition first would go against RFC 9110 section 13.2.1, which ha
 condition on a request that would be refused without it. The same is conceded to `create`, whose
 `409` tells a client that may add and not list that a name is taken.
 
-## An entry's ceiling is a read's §412
+## A read of an entry is written as it is sent §412
 
-**A read hands out at most 524288 characters of an entry's names and values, and what is counted
-is what its caller is handed.** Building an entry's answer costs about four times its strings in
-memory inside KeePass, so a read of an entry is held down as a read of an attachment is. Counted
-are the name of every string the answer serves and the value of every string the caller's rules
-let it read. A value the caller is withheld counts nothing and is never measured: the view the
-count is taken of, `VaultEntryView.Characters`, holds nothing to measure it with. So two clients
-can be answered differently about one entry, each by what it would have been handed. Every read
-of an entry's values is held to the ceiling by that one rule, over what the route hands out:
-`readEntry` over the caller's whole view, and `readField` over a string in the caller's sight
-with its name. Each is `413` with that count, before any value is read and before the tag is
-taken, and in the order a read's refusals had already: `404`, then `413`, then `412`.
-`readField` decides whether a value is withheld before it measures anything, so a withheld value
-is answered `null` whatever its length and never `413`. `openapi.yaml` §513 is the response the
-routes declare.
+**No read of an entry or of a field is refused for its size.** The answer to `readEntry` and to
+`readField` is written as it is sent: each value is read where it is written into the answer,
+the answer goes out in chunks, `Transfer-Encoding: chunked`, and nothing of it is kept. So what
+such a read keeps alive inside KeePass is the value it is writing and a chunk of the answer,
+whatever the entry holds. Everything that can refuse comes before the first byte, in the order
+a read's refusals had already, `404` and then `412`, and the audit line for a withheld value
+with them. A failure once the status has gone out cannot be answered: the connection is closed
+with the last chunk never sent, so a client takes an answer for whole only when its last chunk
+arrived. A `HEAD` of either runs none of it and reads no value. `DESIGN.md` §143 has the
+transport's half.
 
-**The names are held to the same number by being served in parts, and never refused.**
-`listFields` serves names and nothing else, and no write is refused for how many strings an
-entry holds, so the names alone can pass the ceiling. Refused for that, the listing left such an
-entry with no route naming its strings: nothing to read a field at a time by, and nothing to
-strip. So a part of the listing holds the fields from the position `from` names, in the entry's
-own order, for as long as they come to at most the ceiling, each field counted by its name and
-32 characters for what its item is written with, and always a field where any is left; and it
-carries `next`, the position the part after it starts at, while there is any. Counted by what is
-written and not by the names alone, since the item around a name of three characters is ten
-times the name. The parts are requests of their own, each decided at its own moment, so the
-entry can change between two of them, which a client handed tags sees by the tag moving and a
-client that only lists does not. PyKeePassGate asks for every part and hands back the whole
-listing, and asks every part after the first under the tag the first came with, so a reader's
-listing is of the entry as the first part found it or is refused `412`.
+**This reverses a ceiling on reads**, the operator's ruling of 2026-11-14. An answer was built
+whole, at about four times the entry's strings in memory inside KeePass, 94.5 MB for two
+hundred fields of 64K characters, so a read was held to 524288 characters of names and values,
+counted over what its caller would be handed, and answered `413` past that, the ruling of
+2026-11-10. An entry past the ceiling was read a field at a time, which took `list` beside
+`read`, and a single value past it could not be read through the gate at all. `FINDINGS.md`
+has both forms measured: the two hundred fields are 38 MB of short-lived copies where they are
+protected and nothing where they are not, a value at a time, and a quarter less time.
 
-**Refused before any value is read is not refused before anything is decrypted.** No value is
-handed anywhere until an answer asks for it, and a view asks a string's length only when its
-size is asked and only of a string in its caller's sight. That length is KeePass's own count,
-and KeePass counts a protected value it holds as bytes, which is how a file's protected values
-are held once loaded, by decrypting it once inside its own type and keeping the count. So the
-first measurement of such a value costs a decryption, and what comes out of it is a number.
-`FINDINGS.md` has the measurement. An attachment's size is kept beside its encrypted bytes, so
-an attachment is measured and refused with nothing decrypted.
+**How much of an answer a client holds is the client's to decide.** The gate hands out an entry
+of any size, so the bound on what a client reads is its own: PyKeePassGate reads at most
+`max_response_bytes` of an answer, 4 MiB unless raised, and refuses a larger answer whole. An
+entry past that is read with the setting raised or a field at a time, `listFields` and then
+`readField`.
+
+**The names are listed in a single answer, written as it is sent.** `listFields` serves names
+and nothing else, and no write is refused for how many strings an entry holds, so the names
+can come to any size. The listing is written as it is sent, as a read of the entry is, so it is
+never refused, it is of the entry at a single moment, and what it keeps alive is the view's own
+strings. Handed over whole it was served in parts of 524288 characters, by a `from` and a
+`next`, each part a request of its own decided at its own moment, and before that it was
+refused past that size, which left an entry with no route naming its strings. Neither form
+was released. `listAttachments` is written as it is sent for the same reason: names and sizes,
+of as many attachments as writes gave the entry. An attachment's own bytes keep their ceiling
+and their `413`, since what can be read out is held to what can be put back.
 
 **No write is refused for what an entry's strings come to, which reverses a ceiling held in both
 directions**, the operator's ruling of 2026-11-10. A create, an update or a new field that would
@@ -362,22 +360,20 @@ Considered in its place and refused, because each keeps a refusal that depends o
 caller may not read: a floor or a rounding for each string, a ceiling for each protection class,
 the message without its count, random slack in the ceiling, and pacing the refusals.
 
-**What the reversal gives up.** An entry can be written through the gate past what a read hands
-back whole, as KeePass or a merge could always leave an entry. Such an entry is read a field at a
-time, `listFields` and then `readField`, and stripping a field is how it is brought back under.
-**That way takes `list`.** A client holding `read` without `list` is named an entry's strings by
-`readEntry` alone, so once its view of an entry passes the ceiling it reads only the strings
-whose names it already knows, the five every entry has among them, and a client holding `strip`
-without `list` strips only by such names. An operator who wants a program to cope with an entry
-another program can grow gives it `list` beside `read`.
-Nothing bounds what a client holding `update` or `create` can add to an entry beyond what a
-request may carry, 65536 characters in a value and 1 MiB in a body, so how large an entry and the
-file around it grow is that client's to decide, a request at a time. PyKeePassGate raises on a
-whole read refused this way and does not go on to read field by field: which strings to fetch of
-an entry too large to hand over is its caller's decision.
+**What the two reversals give up.** Nothing bounds what a client holding `update` or `create`
+can add to an entry beyond what a request may carry, 65536 characters in a value and 1 MiB in a
+body, so how large an entry and the file around it grow is that client's to decide, a request
+at a time. And a read of such an entry costs what the entry holds, in time and in short-lived
+memory, on its own connection's thread: about a quarter of a second and 143 MB of copies made
+and let go for fifty protected strings of a million characters, for as long as its peer takes
+to read it within the budget a connection is given to have its answer read. A client holding
+`read` on an entry it or another client can grow can keep a connection's thread that busy, on
+each of the connections the transport serves at once. PyKeePassGate raises on an answer past
+its own cap and does not go on to read field by field: which strings to fetch of an entry too
+large for it is its caller's decision.
 
 **A tag is still taken over the whole of a caller's view, however large, and it reads each value
-once.** A read refused for its size takes no tag. Every other answer that hands a tag out, a listing
+once.** Every answer that hands a tag out, a listing
 of the fields and a read of a short field among them, and every write under `If-Match` or answered
 with an `etag`, covers every value in its caller's sight. A value enters a tag by its digest, and
 the digest is taken once for as long as KeePass keeps the object the value is held in, as an

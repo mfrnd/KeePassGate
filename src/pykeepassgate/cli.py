@@ -1069,8 +1069,8 @@ def _dialed(parser: argparse.ArgumentParser) -> None:
     )
 
     # How much of one answer to read, beside the socket's timeout because it too bounds what one
-    # connection may cost. The plugin serves a listing of groups or of entries whole, so that
-    # listing grows with the database; the names of an entry's strings come in parts.
+    # connection may cost. The plugin serves every listing whole and an entry at any size, so an
+    # answer grows with what the database holds.
     parser.add_argument(
         "--max-response-bytes",
         type=_byte_count,

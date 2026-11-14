@@ -75,6 +75,132 @@ namespace KeePassGate.Tests
         }
 
         [Test]
+        public void An_answer_handed_over_as_what_writes_it_goes_out_in_chunks()
+        {
+            // A read of an entry or of a field answers with what writes its content, and the
+            // transport writes that as it is sent: no length, the content in chunks, and the
+            // last chunk once the content has been written whole.
+            var stream = new ConversationStream("GET /entries/x HTTP/1.1\r\nHost: gate\r\n\r\n");
+            var named = new WebHeaderCollection();
+            named.Add("ETag", "\"0123456789abcdef0123456789abcdef\"");
+
+            GateConversation.Serve(
+                stream,
+                Paired(),
+                new SpyHandler(c => c.Respond(200, text => text.Write("{\"uuid\":\"x\"}"), named)),
+                _options,
+                _log);
+
+            Assert.That(stream.Status, Is.EqualTo(200));
+            Assert.That(stream.Response, Does.Contain("Transfer-Encoding: chunked\r\n"));
+            Assert.That(stream.Response, Does.Not.Contain("Content-Length"));
+            Assert.That(stream.Response, Does.Contain("ETag: \"0123456789abcdef0123456789abcdef\"\r\n"));
+            Assert.That(stream.Response, Does.Contain("Connection: close"));
+            Assert.That(stream.Response, Does.EndWith("\r\n\r\nc\r\n{\"uuid\":\"x\"}\r\n0\r\n\r\n"));
+            Assert.That(stream.Body, Is.EqualTo("{\"uuid\":\"x\"}"));
+        }
+
+        [Test]
+        public void A_head_of_an_answer_written_as_it_is_sent_carries_its_fields_and_runs_no_content()
+        {
+            // The content is an entry's values, read as they are written. A HEAD is answered
+            // without it, so none of it is made: the handler's fields go out and nothing else.
+            var stream = new ConversationStream("HEAD /entries/x HTTP/1.1\r\nHost: gate\r\n\r\n");
+            var named = new WebHeaderCollection();
+            named.Add("ETag", "\"0123456789abcdef0123456789abcdef\"");
+            var ran = false;
+
+            GateConversation.Serve(
+                stream,
+                Paired(),
+                new SpyHandler(c => c.Respond(
+                    200,
+                    text =>
+                    {
+                        ran = true;
+                        text.Write("{\"uuid\":\"x\"}");
+                    },
+                    named)),
+                _options,
+                _log);
+
+            Assert.That(ran, Is.False, "the content was run for a HEAD");
+            Assert.That(stream.Status, Is.EqualTo(200));
+            Assert.That(stream.Response, Does.Contain("ETag: \"0123456789abcdef0123456789abcdef\"\r\n"));
+            Assert.That(stream.Response, Does.Not.Contain("Transfer-Encoding"));
+            Assert.That(stream.Response, Does.Not.Contain("Content-Length"));
+            Assert.That(stream.Response, Does.EndWith("\r\n\r\n"));
+            Assert.That(stream.Body, Is.Empty);
+        }
+
+        [Test]
+        public void Content_that_throws_comes_out_of_the_conversation_and_no_last_chunk_is_written()
+        {
+            // The handler has returned and the status is on the wire, so there is no answer
+            // left to give: what the content throws goes on to the connection's thread, which
+            // counts it and closes the connection. Nothing here writes a second answer after
+            // the first, and the content is left without the chunk that would close it.
+            var stream = new ConversationStream("GET /entries/x HTTP/1.1\r\nHost: gate\r\n\r\n");
+            var announced = 0;
+            var announcedBeforeContent = false;
+
+            var thrown = Assert.Throws<InvalidOperationException>(() => GateConversation.Serve(
+                stream,
+                Paired(),
+                new SpyHandler(c => c.Respond(
+                    200,
+                    text =>
+                    {
+                        announcedBeforeContent = announced == 1;
+                        text.Write("{\"half\":");
+                        throw new InvalidOperationException("an invented read that fails");
+                    },
+                    null)),
+                _options,
+                _log,
+                null,
+                null,
+                null,
+                null,
+                null,
+                () => announced++));
+
+            Assert.That(thrown.Message, Is.EqualTo("an invented read that fails"));
+            Assert.That(announcedBeforeContent, Is.True, "the write was announced before any content was made");
+            Assert.That(announced, Is.EqualTo(1));
+            Assert.That(stream.Status, Is.EqualTo(200), "the status went out before the content was run");
+            Assert.That(stream.Response, Does.Not.EndWith("0\r\n\r\n"));
+            Assert.That(
+                stream.Response.Split(new[] { "HTTP/1.1 " }, StringSplitOptions.None).Length - 1,
+                Is.EqualTo(1),
+                "nothing was written after the answer that failed");
+            Assert.That(
+                () => stream.Body,
+                Throws.TypeOf<System.IO.InvalidDataException>(),
+                "a reader that decodes the chunks finds the answer cut short");
+        }
+
+        [Test]
+        public void A_handler_that_fails_before_it_answers_is_still_answered_whole()
+        {
+            // The other side of the line above: a handler that throws has decided nothing, so
+            // the client is answered `500` with a length, as it always was.
+            var stream = new ConversationStream("GET /entries/x HTTP/1.1\r\nHost: gate\r\n\r\n");
+
+            GateConversation.Serve(
+                stream,
+                Paired(),
+                new SpyHandler(c => throw new InvalidOperationException("an invented defect")),
+                _options,
+                _log);
+
+            Assert.That(stream.Status, Is.EqualTo(500));
+            Assert.That(stream.Response, Does.Contain("Content-Length: "));
+            Assert.That(stream.Response, Does.Not.Contain("Transfer-Encoding"));
+            Assert.That(stream.Body, Is.EqualTo(HttpResponse.ErrorBody("internal error")));
+        }
+
+        [Test]
         public void A_field_the_answer_named_is_written_after_the_ones_every_answer_carries()
         {
             var stream = new ConversationStream("OPTIONS /gate/status HTTP/1.1\r\nHost: gate\r\n\r\n");
@@ -438,6 +564,54 @@ namespace KeePassGate.Tests
             Assert.That(context.Answered, Is.True);
             Assert.That(context.Status, Is.EqualTo(200));
             Assert.That(context.Json, Is.EqualTo("{\"first\":true}"));
+        }
+
+        [Test]
+        public void An_answer_written_as_it_is_sent_is_kept_as_what_writes_it_and_as_no_document()
+        {
+            var context = NewContext();
+            var ran = 0;
+            var named = new WebHeaderCollection();
+            named.Add("ETag", "\"0123456789abcdef0123456789abcdef\"");
+
+            context.Respond(200, text => ran++, named);
+
+            Assert.That(context.Answered, Is.True);
+            Assert.That(context.Status, Is.EqualTo(200));
+            Assert.That(context.Json, Is.Null, "nothing was made into a document");
+            Assert.That(context.Content, Is.Not.Null);
+            Assert.That(context.Headers, Is.SameAs(named));
+            Assert.That(ran, Is.Zero, "answering runs nothing: the transport does, as it sends");
+        }
+
+        [Test]
+        public void The_first_answer_stands_whichever_way_each_was_given()
+        {
+            var whole = NewContext();
+            whole.Respond(404, "{\"first\":true}");
+            whole.Respond(200, text => text.Write("{\"second\":true}"), null);
+
+            Assert.That(whole.Status, Is.EqualTo(404));
+            Assert.That(whole.Json, Is.EqualTo("{\"first\":true}"));
+            Assert.That(whole.Content, Is.Null, "content given second is not written over a document");
+
+            var written = NewContext();
+            written.Respond(200, text => text.Write("{\"first\":true}"), null);
+            written.Respond(500, "{\"second\":true}");
+
+            Assert.That(written.Status, Is.EqualTo(200));
+            Assert.That(written.Json, Is.Null);
+            Assert.That(written.Content, Is.Not.Null);
+        }
+
+        [Test]
+        public void An_answer_written_as_it_is_sent_needs_something_to_write_it()
+        {
+            var context = NewContext();
+
+            Assert.Throws<ArgumentNullException>(() => context.Respond(200, (Action<System.IO.TextWriter>)null, null));
+            Assert.That(context.Answered, Is.False);
+            Assert.That(context.Content, Is.Null);
         }
 
         [Test]

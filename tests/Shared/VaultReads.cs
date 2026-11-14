@@ -43,15 +43,12 @@ namespace KeePassGate.Testing
             return view == null ? null : view.Tag;
         }
 
-        /// <summary>
-        /// One string's value, or null when it is not there or comes, with its name, to more than
-        /// the routes hand out.
-        /// </summary>
+        /// <summary>One string's value, however long it is, or null when it is not there.</summary>
         public static string Field(this IVault vault, string entryUuid, string name)
         {
             var view = vault.Whole(entryUuid);
             var field = view == null ? null : view.Field(name);
-            return field == null || field.Characters > VaultEntryView.MostCharacters ? null : field.Value;
+            return field == null ? null : field.Read();
         }
     }
 }

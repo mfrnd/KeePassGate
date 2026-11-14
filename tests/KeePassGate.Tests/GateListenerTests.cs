@@ -1114,6 +1114,57 @@ namespace KeePassGate.Tests
             }
         }
 
+        [Test]
+        public void An_answer_written_as_it_is_sent_reaches_a_client_whole_over_the_socket()
+        {
+            // The answer to a read of an entry or of a field, over real TLS: several chunks,
+            // each a record, with text beyond ASCII in the last of them. What the client takes
+            // out of the chunks is the text the handler wrote, and nothing else.
+            var text = "{\"notes\":\"" + new string('n', 5 * 16 * 1024) + " naïve ✓\"}";
+            var handler = new WritingHandler(writer => writer.Write(text));
+            using (var listener = new GateListener(
+                new GateOptions { Port = 0 }, new GateResolver(_targets, _log), handler, _log))
+            {
+                Assert.That(listener.Start(), Is.True);
+
+                var reply = GateClient.Get(listener.Port, _first.NewName(), null, GateOperations.StatusPath);
+
+                Assert.That(reply.Answered, Is.True, reply.Failure);
+                Assert.That(reply.Status, Is.EqualTo(200));
+                Assert.That(reply.Raw.Contains("Transfer-Encoding: chunked\r\n"), Is.True, "the answer names no chunks");
+                Assert.That(reply.Raw.Contains("Content-Length"), Is.False, "an answer in chunks names a length");
+                Assert.That(reply.Body == text, Is.True, "the chunks carry other text than the handler wrote");
+            }
+        }
+
+        [Test]
+        public void Content_that_fails_part_way_is_counted_and_the_client_is_handed_no_whole_answer()
+        {
+            // What the content of an answer throws has no answer left to give: the status is on
+            // the wire. It reaches the connection's thread, which counts it where the operator
+            // sees it and closes the connection, and the client finds an answer with no last
+            // chunk, or no answer at all where the close reached it first.
+            var log = new QueueLog();
+            var incidents = new KeePassGate.Diagnostics.GateIncidents(log);
+            var handler = new WritingHandler(writer =>
+            {
+                writer.Write("{\"half\":");
+                throw new InvalidOperationException("an invented read that fails");
+            });
+
+            using (var listener = new GateListener(
+                new GateOptions { Port = 0 }, new GateResolver(_targets, log), handler, incidents, log))
+            {
+                Assert.That(listener.Start(), Is.True);
+
+                var reply = GateClient.Get(listener.Port, _first.NewName(), null, GateOperations.StatusPath);
+
+                Assert.That(reply.Answered, Is.False, "an answer cut short was taken for a whole answer: " + reply.Raw);
+                Assert.That(Waited(() => incidents.Count == 1), Is.True, string.Join("\n", log.Lines));
+                Assert.That(incidents.Recent.Single(), Does.Contain("a connection failed"));
+            }
+        }
+
         [TestCase("\r\n")]
         [TestCase("GET /gate/status HTTP/1.1\r\nHost: gate\r\n\r\n")]
         public void A_client_that_sends_more_after_its_request_still_reads_the_answer(string more)
@@ -1617,6 +1668,25 @@ namespace KeePassGate.Tests
             public void Handle(IGateContext context)
             {
                 context.Respond(200, _answer);
+            }
+        }
+
+        /// <summary>
+        /// A handler whose answer is written as it is sent, by what it was handed, as a read
+        /// of an entry is answered.
+        /// </summary>
+        private sealed class WritingHandler : IGateHandler
+        {
+            private readonly Action<TextWriter> _content;
+
+            public WritingHandler(Action<TextWriter> content)
+            {
+                _content = content;
+            }
+
+            public void Handle(IGateContext context)
+            {
+                context.Respond(200, _content, null);
             }
         }
 

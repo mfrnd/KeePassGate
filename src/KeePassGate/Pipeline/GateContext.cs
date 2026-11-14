@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Net;
 using KeePassGate.Transport;
 
@@ -15,6 +16,7 @@ namespace KeePassGate.Pipeline
 
         private int _status;
         private string _json;
+        private Action<TextWriter> _content;
         private WebHeaderCollection _headers;
         private bool _answered;
 
@@ -76,9 +78,21 @@ namespace KeePassGate.Pipeline
             get { return _answered ? _status : 500; }
         }
 
+        /// <summary>
+        /// The answer as it was handed over whole, or null for an answer that
+        /// <see cref="Content"/> writes.
+        /// </summary>
         public string Json
         {
             get { return _answered ? _json : HttpResponse.ErrorBody("no answer"); }
+        }
+
+        /// <summary>
+        /// What writes the answer as it is sent, or null for an answer handed over whole.
+        /// </summary>
+        public Action<TextWriter> Content
+        {
+            get { return _content; }
         }
 
         public string GetHeader(string name)
@@ -105,6 +119,25 @@ namespace KeePassGate.Pipeline
             _answered = true;
             _status = status;
             _json = json ?? string.Empty;
+            _headers = headers;
+        }
+
+        public void Respond(int status, Action<TextWriter> content, WebHeaderCollection headers)
+        {
+            if (content == null)
+            {
+                throw new ArgumentNullException(nameof(content));
+            }
+
+            if (_answered)
+            {
+                // The first answer stands, as above.
+                return;
+            }
+
+            _answered = true;
+            _status = status;
+            _content = content;
             _headers = headers;
         }
 

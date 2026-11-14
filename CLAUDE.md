@@ -328,7 +328,10 @@ designing around them.
   rules and refusing to change them.
 - **No third-party HTTP dependency.** `uHttpSharp` fits the seam natively with zero changes and is
   ruled out on **license** (LGPL-2.1) and liveness (no commits since 2021), not on fit. Wanting
-  WebSocket, HTTP/2 or chunked bodies flips this; nothing else does.
+  WebSocket, HTTP/2 or chunked request bodies flips this; nothing else does. **Writing a chunked
+  answer does not**: `ChunkedContent` puts a size line ahead of bytes the plugin already writes,
+  parses nothing and takes nothing from a peer, and a request carrying `Transfer-Encoding` is
+  refused as before, `DESIGN.md` §143.
 - **The TLS is Bouncy Castle, not SChannel**, and that reverses an earlier decision on a
   measurement: SChannel will not serve with a key that has not been written to the user's profile,
   so the platform's own TLS meant a host key on the disk. `Org.BouncyCastle.Tls` is MIT, alive, and
@@ -464,35 +467,35 @@ designing around them.
   section 13.2.1 orders them, and one that cannot be read matches nothing, because every way of
   ignoring it ends with the write going ahead. A write answers with its tag in the body, as
   `etag`, since RFC 9110 section 9.3.4 gives an `ETag` header on a `PUT` another meaning.
-- **An entry's ceiling is a read's, measured over what its caller is handed, and no write is
-  refused for an entry's size.** `VaultEntryView.MostCharacters`, 512 * 1024 characters, is held
-  against `VaultEntryView.Characters`: the name of every string, since a withheld string is served
-  by its name beside a `null`, and the value of every string in the caller's sight. A
-  `VaultViewField` keeps nothing a withheld value could be read or measured with, so nothing
-  rendered from a view can tell how long a withheld value is. The one rule, a read is held to
-  what its caller is handed, covers every read of an entry's values: `readEntry` is refused over
-  the whole view, and `readField` over a string in sight with its name, deciding whether the
-  value is withheld before it measures; each `413` comes before any value is read and before
-  the tag is taken. **`listFields` is served in parts and never refused**, since the names alone
-  can pass the ceiling and a listing refused for that left no route naming an entry's strings:
-  a part starts at the position `from` names, holds what comes to at most the ceiling, each
-  field counted by its name and `FieldItemCharacters`, and names the part after it as `next`.
-  PyKeePassGate asks for every part. Reading an entry past the ceiling a field at a time takes
-  `list`, which is recorded as a cost. **No value is handed anywhere until it
-  is asked for, and that is all "nothing is decrypted" may claim for a string.** A view asks no
-  length as it is built and asks a string's length only when the size is asked, of a string in
-  sight; `ProtectedString.Length` then decrypts a protected value KeePass holds as bytes, as a
-  loaded file's are, once and inside KeePass's own type, to count it, `FINDINGS.md` under "What a
-  version of a node can be made of". An attachment's size is a field, so an attachment is
-  measured with nothing decrypted. **This reverses a
-  ceiling held on writes as well**, "what the gate lets a client write it also hands back whole",
-  the operator's ruling of 2026-11-10: the write's refusal named the entry's whole count, so a
-  client that may write and not read padded an entry to the ceiling and read off how long the
-  values it was withheld were, `NoSizeToldToAWriterTests`. What it costs, `DESIGN.md` §142: an
-  entry can be written past what a read hands back whole and is then read a field at a time,
-  nothing bounds what a client holding `update` or `create` adds to an entry beyond a request's
-  own limits, and a tag is still taken over a caller's whole view however large, by a read with
-  KeePass's thread free. **Do not
+- **A read of an entry or of a field is written as it is sent and held to no size, and no write
+  is refused for an entry's size.** `readEntry` and `readField` hand the transport what writes
+  their answer, `IGateContext.Respond` with content, and the transport writes it under
+  `Transfer-Encoding: chunked`, the operator's ruling of 2026-11-14: each value is read where it
+  is written, `VaultViewField.Read`, and kept nowhere, so what a read keeps alive is the value it
+  is writing. Everything that can refuse, the lookup, the rules, the tag and `If-Match`, comes
+  before the first byte, and so does the audit line for a withheld value; what the content
+  throws afterwards cannot be answered and ends the connection with the last chunk never sent,
+  which is how a client tells an answer cut short, `DESIGN.md` §143. A HEAD runs no content, so
+  it reads no value. A `VaultViewField` keeps nothing a withheld value could be read with and no
+  length of any value, so nothing rendered from a view can tell how long a withheld value is.
+  **`listFields` is written the same way, every name in a single answer**, since no write
+  bounds how many strings an entry holds: it was served in parts while it was handed over
+  whole, and there is no `from` and no `next`. So is `listAttachments`, names and sizes, and so
+  are the listings of groups and of entries, which grow with the database: the rule is that an
+  answer growing with what the database holds is written as it is sent, and an answer of a
+  bounded size, a single group, an attachment under its ceiling, the gate's own routes, is
+  handed over whole with a `Content-Length`. PyKeePassGate reads a chunked answer with its own
+  strict reader, never
+  `http.client`, and holds an answer to its own `max_response_bytes`. **This reverses a
+  ceiling on reads**, 524288
+  characters over what the caller would be handed, answered `413`, the ruling of 2026-11-10,
+  **which had reversed a ceiling held on writes as well**, "what the gate lets a client write it
+  also hands back whole": the write's refusal named the entry's whole count, so a client that
+  may write and not read padded an entry to the ceiling and read off how long the values it was
+  withheld were, `NoSizeToldToAWriterTests`. What it costs, `DESIGN.md` §142: nothing bounds what
+  a client holding `update` or `create` adds to an entry beyond a request's own limits, a read
+  of such an entry costs its size in time on its own connection, and a tag is still taken over
+  a caller's whole view however large, by a read with KeePass's thread free. **Do not
   re-propose** a floor or rounding for each string, a ceiling for each protection class, the
   refusal without its count, random slack or pacing: each keeps an answer to a write that moves
   with a value its caller may not read. The attachment's ceiling and the transport's limit on a

@@ -280,11 +280,9 @@ def test_every_query_parameter_the_gate_reads_is_one_this_client_sends(
     """A query name the gate reads and this client never sends is a gap, as a route would be.
 
     The flag that leaves expired entries out of the entry listings, which
-    `entries(include_expired=False)` sends under the name `client.INCLUDE_EXPIRED` spells, and
-    the position a part of a field listing starts at, which `fields` sends for every part after
-    the first under the name `client.FROM` spells. A `head` of the field listing declares the
-    position as its `get` does and has no content to be served in parts, so `head` sends none.
-    Declared on the path item or on the operation, since OpenAPI allows either.
+    `entries(include_expired=False)` sends under the name `client.INCLUDE_EXPIRED` spells, is
+    the only query name the document declares. Declared on the path item or on the operation,
+    since OpenAPI allows either.
     """
     declared: dict[str, set[str]] = {}
     for methods in document["paths"].values():
@@ -301,12 +299,11 @@ def test_every_query_parameter_the_gate_reads_is_one_this_client_sends(
         client_module.INCLUDE_EXPIRED: {
             "listEntries", "headEntries", "listGroupEntries", "headGroupEntries",
         },
-        client_module.FROM: {"listFields", "headFields"},
     }
     assert "include_expired" in inspect.signature(GateClient.entries).parameters
     assert list(inspect.signature(GateClient.fields).parameters) == list(
         inspect.signature(GateClient.attachments).parameters
-    ), "a caller is handed the whole listing, and is offered no position to ask for a part from"
+    ), "a listing of an entry's fields takes what a listing of its attachments takes"
 
 
 def test_every_operation_the_gate_holds_to_a_tag_can_be_sent_one_from_here(
@@ -353,11 +350,10 @@ def test_the_expiry_this_client_reads_and_writes_is_the_member_the_document_decl
     assert "expires" in inspect.signature(GateClient.update_entry).parameters
 
 
-def test_the_part_a_field_listing_goes_on_from_is_the_member_the_document_declares(
+def test_a_field_listing_declares_its_fields_and_no_other_member(
     document: dict[str, Any],
 ) -> None:
-    """Named by a part with fields past it, and by no other, under the name `model` spells."""
+    """Every member the gate answers a field listing with is the member `Field.listing` reads."""
     listed = document["components"]["schemas"]["FieldList"]
 
-    assert model_module.NEXT in listed["properties"]
-    assert model_module.NEXT not in listed["required"], "the last part carries none"
+    assert set(listed["required"]) == set(listed["properties"]) == {"fields"}

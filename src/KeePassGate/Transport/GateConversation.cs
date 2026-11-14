@@ -261,8 +261,20 @@ namespace KeePassGate.Transport
                 return;
             }
 
-            // The one answer a handler decided, so the one that can carry a field of its own.
+            // The one answer a handler decided, so the one that can carry a field of its own,
+            // and the one whose content can be written as it is sent. A failure while that
+            // content is written has no answer left to give, and is taken as any failure of
+            // writing an answer is, `Answer`: what a connection that went away throws is an
+            // answer lost, and anything else goes on to the connection's thread, which counts
+            // it. Either way the connection is closed over an answer left without its end.
             answering?.Invoke();
+            if (context.Content != null)
+            {
+                Answer(
+                    stream, context.Status, context.Content, logger, IsHead(head.Method), context.Headers);
+                return;
+            }
+
             Answer(
                 stream, context.Status, context.Json, logger, IsHead(head.Method), context.Headers);
         }
@@ -343,9 +355,25 @@ namespace KeePassGate.Transport
         private static void Answer(
             Stream stream, int status, string json, IGateLog log, bool head, WebHeaderCollection headers)
         {
+            Answer(status, log, () => HttpResponse.Write(stream, status, json, head, headers));
+        }
+
+        private static void Answer(
+            Stream stream,
+            int status,
+            Action<TextWriter> content,
+            IGateLog log,
+            bool head,
+            WebHeaderCollection headers)
+        {
+            Answer(status, log, () => HttpResponse.Write(stream, status, content, head, headers));
+        }
+
+        private static void Answer(int status, IGateLog log, Action write)
+        {
             try
             {
-                HttpResponse.Write(stream, status, json, head, headers);
+                write();
             }
             catch (IOException error)
             {
