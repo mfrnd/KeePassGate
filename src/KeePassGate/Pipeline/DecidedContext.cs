@@ -11,7 +11,7 @@ namespace KeePassGate.Pipeline
     /// <remarks>
     /// <see cref="ClientCredentials.Again"/> has the reason an identity is read again. A change
     /// is handed this by its <see cref="DecidedInside"/>, inside its turn, and a read is decided
-    /// and served against this for the whole of its hold. Everything but the caller is the
+    /// against this inside its hold and answered on it. Everything but the caller is the
     /// request's own: the method, the path and the body are the ones of the context this wraps,
     /// so there is still one request and one answer.
     ///
@@ -56,7 +56,7 @@ namespace KeePassGate.Pipeline
         /// <summary>The same, naming where the answer goes.</summary>
         /// <param name="keeps">
         /// Whether the answer is kept until <see cref="Deliver"/> hands it to the request, which
-        /// is what a read served inside a hold needs.
+        /// is what a read decided inside a hold needs.
         /// </param>
         public DecidedContext(IGateContext request, ClientIdentity client, bool keeps)
         {
@@ -146,8 +146,10 @@ namespace KeePassGate.Pipeline
         /// Leaves the rest of a read to be run once its hold has ended, by <see cref="Deliver"/>.
         /// </summary>
         /// <remarks>
-        /// <see cref="ServedAfter"/> has what may be left. A context that keeps no answer has
-        /// no hold to wait for, so the work is run where it is.
+        /// <see cref="ServedAfter"/> has what may be left. Only a read decided inside a hold
+        /// is handed this, on a context that keeps its answer: a change's context answers on
+        /// the request at once and has no <see cref="Deliver"/> to run anything later, so work
+        /// left on it would never run, and is refused as the defect it would be.
         /// </remarks>
         public void After(Action serve)
         {
@@ -158,8 +160,7 @@ namespace KeePassGate.Pipeline
 
             if (!_keeps)
             {
-                serve();
-                return;
+                throw new InvalidOperationException("a request that keeps no answer has nothing to run work after");
             }
 
             _after = serve;

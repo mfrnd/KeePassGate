@@ -2211,11 +2211,19 @@ namespace KeePassGate.Bridge
                 return null;
             }
 
+            // The two strings a listing shows, found here and read only when a listing asks for
+            // them: a description is made for every request about an entry and every change to
+            // it, to find the node the rules are asked about, and for every entry a listing
+            // walks, shown or not. KeePass replaces a stored string and does not change it, so
+            // what is read later is what the entry held here.
+            var title = entry.Strings.Get(PwDefs.TitleField);
+            var url = entry.Strings.Get(PwDefs.UrlField);
+
             return new VaultEntry(
                 entry.Uuid.ToHexString(),
                 entry.ParentGroup == null ? null : entry.ParentGroup.Uuid.ToHexString(),
-                StoredStrings.Read(entry.Strings.Get(PwDefs.TitleField)),
-                StoredStrings.Read(entry.Strings.Get(PwDefs.UrlField)),
+                () => StoredStrings.Read(title),
+                () => StoredStrings.Read(url),
                 When(entry.CreationTime),
                 When(entry.LastModificationTime),
                 KdbxNodes.Of(entry, _hold),
@@ -2240,7 +2248,7 @@ namespace KeePassGate.Bridge
             return new VaultEntry(
                 entry.Uuid.ToHexString(),
                 entry.ParentGroup == null ? null : entry.ParentGroup.Uuid.ToHexString(),
-                null,
+                (string)null,
                 null,
                 When(entry.CreationTime),
                 When(entry.LastModificationTime),

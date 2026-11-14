@@ -74,6 +74,29 @@ namespace KeePassGate.Pipeline
         /// <summary>The query parameter that leaves expired entries out of a listing when it is `false`.</summary>
         private const string IncludeExpiredParameter = "includeExpired";
 
+        /// <summary>
+        /// The query parameter naming where a part of an entry's field listing starts: the
+        /// position of its first field, counted from nothing.
+        /// </summary>
+        private const string FromParameter = "from";
+
+        /// <summary>
+        /// The member a part of a field listing names the position of the part after it under,
+        /// present only while the entry holds fields past the part.
+        /// </summary>
+        private const string NextMember = "next";
+
+        /// <summary>
+        /// What a field costs a listing beyond its name, in characters: the members and the
+        /// punctuation its item is written with.
+        /// </summary>
+        /// <remarks>
+        /// Counted so that a part is held to what it writes and not to its names alone. An entry
+        /// of very many short names would otherwise come to several times the ceiling in one
+        /// answer, since the item around a name of three characters is ten times the name.
+        /// </remarks>
+        private const int FieldItemCharacters = 32;
+
         public static void ListGroups(IGateContext context)
         {
             var vault = Vault(context);
@@ -201,8 +224,8 @@ namespace KeePassGate.Pipeline
 
         /// <summary>
         /// The most characters of names and values a read of an entry hands its caller: the
-        /// whole entry as that caller's view holds it, a single field with its name, and the
-        /// names a listing of the entry's fields serves.
+        /// whole entry as that caller's view holds it, a single field with its name, and what a
+        /// part of a listing of the entry's fields is written with.
         /// </summary>
         /// <remarks>
         /// **A ceiling on what an answer costs, for the reason <see cref="MaxAttachmentBytes"/>
@@ -406,6 +429,13 @@ namespace KeePassGate.Pipeline
                 return;
             }
 
+            int from;
+            if (!Starting(context, out from))
+            {
+                context.Respond(400, HttpResponse.ErrorBody(BodyCheck.Refusal));
+                return;
+            }
+
             // One read, which answers for the entry as well as for its strings: null is an entry
             // that is not there, and never an entry holding no strings. The listing itself is
             // names and flags, so nothing is read or measured for a caller that only lists, whose
@@ -420,20 +450,30 @@ namespace KeePassGate.Pipeline
                 return;
             }
 
-            // The names are what this answer hands out, so the names are what it is held to,
-            // whatever the caller's sight: no write is refused for how many strings an entry
-            // holds, and nothing else bounds this listing. Before the tag, so a listing too
-            // large to hand out digests nothing either. The view counted the names as it was
-            // built, so nothing is measured to answer this.
-            if (view.NameCharacters > MaxEntryCharacters)
+            // **Served in parts, and never refused for its size.** No write is refused for how
+            // many strings an entry holds, so the names can come to more than an answer hands
+            // out, and a listing refused for that left such an entry with no route naming its
+            // strings: nothing to read a field at a time by, and nothing to strip to bring it
+            // back under. So a part holds the fields from where the request starts for as long
+            // as they fit what a read hands out, each counted by its name and what its item is
+            // written with, and names where the part after it starts while there is any. Always
+            // a field where any is left, however long its name, so that asking again moves on.
+            var part = new List<VaultViewField>();
+            var written = 0;
+            var at = Math.Min(from, view.Fields.Count);
+            for (; at < view.Fields.Count; at++)
             {
-                context.Respond(413, HttpResponse.ErrorBody(string.Format(
-                    CultureInfo.InvariantCulture,
-                    "the names of this entry's fields come to {0} characters, and this gate hands out at most {1}",
-                    view.NameCharacters,
-                    MaxEntryCharacters)));
-                return;
+                var cost = view.Fields[at].Name.Length + FieldItemCharacters;
+                if (part.Count > 0 && cost > MaxEntryCharacters - written)
+                {
+                    break;
+                }
+
+                part.Add(view.Fields[at]);
+                written += Math.Min(cost, MaxEntryCharacters);
             }
+
+            var next = at < view.Fields.Count ? at : (int?)null;
 
             Later(context, () =>
             {
@@ -446,7 +486,7 @@ namespace KeePassGate.Pipeline
                 var json = new JsonWriter();
                 json.Array("fields");
 
-                foreach (var field in view.Fields)
+                foreach (var field in part)
                 {
                     json.Item();
                     json.Text("name", field.Name);
@@ -455,6 +495,12 @@ namespace KeePassGate.Pipeline
                 }
 
                 json.End();
+
+                if (next.HasValue)
+                {
+                    json.Number(NextMember, next.Value);
+                }
+
                 context.Respond(200, json.Done(), Tagged(tag));
             });
         }
@@ -763,30 +809,39 @@ namespace KeePassGate.Pipeline
                 // `412`, and a client never handed a tag was told `412` every time and never
                 // that it was too large.
                 var content = attachment.Content;
-                var size = content == null ? attachment.Size : content.Length;
-                if (content == null || size > MaxAttachmentBytes)
+                try
                 {
-                    context.Respond(413, HttpResponse.ErrorBody(string.Format(
-                        CultureInfo.InvariantCulture,
-                        "this attachment is {0} bytes, and this gate hands out at most {1}",
-                        size,
-                        MaxAttachmentBytes)));
-                    return;
-                }
+                    var size = content == null ? attachment.Size : content.Length;
+                    if (content == null || size > MaxAttachmentBytes)
+                    {
+                        context.Respond(413, HttpResponse.ErrorBody(string.Format(
+                            CultureInfo.InvariantCulture,
+                            "this attachment is {0} bytes, and this gate hands out at most {1}",
+                            size,
+                            MaxAttachmentBytes)));
+                        return;
+                    }
 
-                // After the ceiling, as `readEntry` takes it.
-                var tag = view.Tag;
-                if (PreconditionFails(context, tag))
+                    // After the ceiling, as `readEntry` takes it.
+                    var tag = view.Tag;
+                    if (PreconditionFails(context, tag))
+                    {
+                        return;
+                    }
+
+                    var json = new JsonWriter();
+                    json.Text("name", name);
+                    json.Number("size", content.Length);
+                    json.Text("content", Convert.ToBase64String(content));
+
+                    context.Respond(200, json.Done(), Tagged(tag));
+                }
+                finally
                 {
-                    return;
+                    // The copy read here is overwritten whatever the answer, a refusal that
+                    // served none of it included.
+                    attachment.Discard();
                 }
-
-                var json = new JsonWriter();
-                json.Text("name", name);
-                json.Number("size", content.Length);
-                json.Text("content", Convert.ToBase64String(content));
-
-                context.Respond(200, json.Done(), Tagged(tag));
             });
         }
 
@@ -1053,6 +1108,39 @@ namespace KeePassGate.Pipeline
             }
 
             return false;
+        }
+
+        /// <summary>
+        /// Whether the position a field listing is asked from is a position this gate reads,
+        /// and which position that is: the entry's first field where the query names none.
+        /// </summary>
+        /// <remarks>
+        /// Digits alone, and few enough to be a position: anything else is refused and never
+        /// read as the start, since a caller that asked for a later part and spelled it badly
+        /// would be handed the first part again and take it for the part it asked for. The
+        /// document declares the name and cannot hold it to digits, for the reason
+        /// <see cref="IncludesExpired"/> gives. A position past the entry's last field is no
+        /// refusal: it is a part holding nothing, which is what is there.
+        /// </remarks>
+        private static bool Starting(IGateContext context, out int from)
+        {
+            from = 0;
+
+            string asked;
+            if (context.Query == null || !context.Query.TryGetValue(FromParameter, out asked))
+            {
+                return true;
+            }
+
+            const int MostDigits = 9;
+            var counts = asked.Length > 0 && asked.Length <= MostDigits;
+            if (!counts || !asked.All(digit => digit >= '0' && digit <= '9'))
+            {
+                return false;
+            }
+
+            from = int.Parse(asked, NumberStyles.None, CultureInfo.InvariantCulture);
+            return true;
         }
 
         /// <summary>
@@ -1615,7 +1703,9 @@ namespace KeePassGate.Pipeline
         /// <see cref="ServedAfter"/> has the reason and what may be left: the view, and what
         /// the hold already decided, and nothing that reads the database. Every read of an
         /// entry leaves its measuring, its reading, its tag, its condition and its answer here,
-        /// so no such read does work that grows with the entry on KeePass's thread.
+        /// so no such read does work on KeePass's thread that grows with how long the entry's
+        /// values and attachments are. Taking the view stays inside the hold and grows with how
+        /// many strings and attachments the entry holds.
         /// </remarks>
         private static void Later(IGateContext context, Action serve)
         {

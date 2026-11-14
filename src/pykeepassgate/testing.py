@@ -77,7 +77,9 @@ CURVE = ec.SECP256R1()
 
 #: Answers a request: the path, the body, and the client certificate if one was offered, with the
 #: status and the body to answer it with. The method is asked of the gate, with `FakeGate.method`,
-#: so that one path answered differently for `GET` and `DELETE` needs no counting of calls.
+#: so that one path answered differently for `GET` and `DELETE` needs no counting of calls. The
+#: path is the request's target as it was sent, with its query, so a script of a field listing
+#: served in parts answers each `from` with the part that starts there.
 Handler = Callable[[str, str, bytes | None], tuple[int, str]]
 
 #: The plugin's `GateOptions.MaxHeadBytes`, the blank line that ends a head counted in it.

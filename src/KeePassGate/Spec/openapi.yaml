@@ -1271,15 +1271,23 @@ paths:
       summary: The names of an entry's strings.
       description: |
         Names and whether each is protected, never a value and never a length. The length of a
-        password is worth something to whoever is guessing it, and listing is not reading. The
-        names are what this answer is held to, `EntryTooLarge`: no write is refused for how many
-        strings an entry holds, so the names are refused past what the gate hands out.
+        password is worth something to whoever is guessing it, and listing is not reading.
+
+        **Served in parts, and never refused for its size.** No write is refused for how many
+        strings an entry holds, so the names can come to more than an answer hands out. A part
+        holds the fields from the position `from` names, in the entry's own order, for as long
+        as they come to at most 524288 characters, each counted by its name and 32 characters
+        for what its item is written with, and always a field where any is left. While the
+        entry holds fields past the part, the answer carries `next`, the position to ask the
+        part after it `from`. The parts are requests of their own, so the entry can change
+        between two of them: a client handed tags sees that by the tag moving.
       x-kpg-verb: list
       parameters:
         - $ref: "#/components/parameters/EntryUuid"
+        - $ref: "#/components/parameters/FieldsFrom"
       responses:
         "200":
-          description: The field names.
+          description: The field names, or a part of them.
           headers:
             ETag:
               $ref: "#/components/headers/ETag"
@@ -1287,14 +1295,14 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/FieldList"
+        "400":
+          $ref: "#/components/responses/Malformed"
         "401":
           $ref: "#/components/responses/Unpaired"
         "404":
           $ref: "#/components/responses/Unreachable"
         "412":
           $ref: "#/components/responses/PreconditionFailed"
-        "413":
-          $ref: "#/components/responses/EntryTooLarge"
         "503":
           $ref: "#/components/responses/Unavailable"
     head:
@@ -1307,20 +1315,21 @@ paths:
       x-kpg-verb: list
       parameters:
         - $ref: "#/components/parameters/EntryUuid"
+        - $ref: "#/components/parameters/FieldsFrom"
       responses:
         "200":
           description: There, and reachable by this client.
           headers:
             ETag:
               $ref: "#/components/headers/ETag"
+        "400":
+          $ref: "#/components/responses/Malformed"
         "401":
           $ref: "#/components/responses/Unpaired"
         "404":
           $ref: "#/components/responses/Unreachable"
         "412":
           $ref: "#/components/responses/PreconditionFailed"
-        "413":
-          $ref: "#/components/responses/EntryTooLarge"
         "503":
           $ref: "#/components/responses/Unavailable"
     post:
@@ -2244,6 +2253,11 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/FieldSummary"
+        next:
+          description: |
+            The position of the first field past this part, to be asked as `from`. Absent from
+            the part that holds the entry's last field.
+          type: integer
 
     AttachmentSummary:
       type: object
@@ -2353,9 +2367,10 @@ components:
 
         `busy` is five things, and a read meets the first as readily as a write meets the others.
         KeePass's own thread could not be held still for the read: every read waits its turn on that
-        thread and holds it from the rules being asked to the answer being made, so neither the
-        tree nor the rules can move under it, and a turn that does not come round within ten
-        seconds, or a read that outlasts five, is answered `busy` rather than trusted. That is
+        thread and holds it from the rules being asked until what it is answered with has been
+        taken, so neither the tree nor the rules can move under it, and a turn that does not
+        come round within ten seconds, or a hold that outlasts five, is answered `busy` rather
+        than trusted. That is
         KeePass busy with something it does not pause in, such as deriving a key, rather than a
         fault here, or KeePass part way through a merge, which no read is started inside: a
         synchronize, an import and XML Replace leave the tree between two databases until they
@@ -2480,14 +2495,16 @@ components:
         524288 characters, half a million. Counted are the names of the strings the answer serves
         and the values the client's rules let it read, and nothing of a value it is withheld, so
         two clients can be answered differently about one entry. `readEntry` is held to it over
-        the whole entry, `readField` over a string in the client's sight with its name, and
-        `listFields` over the names, each refused before any value is read. A value a client
-        is withheld is answered `null` whatever its length, and never with this. No write is
-        refused for what an entry's strings come to, so an entry can be written, here or in
-        KeePass, past what a read hands back whole: its strings are then read with `readField`,
-        each on its own, and stripping a field is how the entry is brought back under. The body
-        names the count and the ceiling in a sentence rather than a word, so a client knows this
-        refusal by its status.
+        the whole entry and `readField` over a string in the client's sight with its name, each
+        refused before any value is read. A value a client is withheld is answered `null`
+        whatever its length, and never with this. No write is refused for what an entry's
+        strings come to, so an entry can be written, here or in KeePass, past what a read hands
+        back whole: its strings are then named by `listFields`, which is served in parts and
+        never refused for its size, and read with `readField`, each on its own, and stripping a
+        field is how the entry is brought back under. Naming the strings takes `list`: a client
+        holding `read` without it reads, of an entry past the ceiling, only the strings whose
+        names it already knows. The body names the count and the ceiling in a sentence rather
+        than a word, so a client knows this refusal by its status.
       content:
         application/json:
           schema:
@@ -2894,6 +2911,20 @@ components:
         type: string
         minLength: 1
         maxLength: 512
+
+    FieldsFrom:
+      name: from
+      in: query
+      required: false
+      description: |
+        The position, in the entry's own order and counted from 0, of the first field a part of
+        the listing holds. Leaving it out asks for the part the listing begins with. Digits
+        alone, and at most nine of them: anything else is `400 malformed`, because a caller
+        that asked for a later part and misspelled it must not be handed the first part in its
+        place. A position past the entry's last field is answered with a part holding no
+        field.
+      schema:
+        type: string
 
     IncludeExpired:
       name: includeExpired

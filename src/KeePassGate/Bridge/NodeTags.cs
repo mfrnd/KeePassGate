@@ -481,8 +481,9 @@ namespace KeePassGate.Bridge
         /// <remarks>
         /// Both hold a piece of a value in the clear while it is digested, so both are
         /// overwritten on the way out, as the copy of a value encoded whole is. Each is under
-        /// the size the runtime keeps apart for large objects, so a tag over values of any
-        /// length allocates the same little.
+        /// the size the runtime keeps apart for large objects, so a tag allocates the same
+        /// little for values KeePass keeps in the open, however long they are. A value KeePass
+        /// protects never comes here: it is digested from a copy of its stored bytes.
         /// </remarks>
         internal sealed class Pieces : IDisposable
         {

@@ -127,7 +127,6 @@ namespace KeePassGate.Tests
                 Assert.That(view.Protected, Is.EqualTo(new[] { "Password" }), "which strings are protected is still told");
                 Assert.That(view.Characters, Is.EqualTo("Title".Length + "Password".Length),
                     "names, which are what such a caller is served, and nothing of a value");
-                Assert.That(view.NameCharacters, Is.EqualTo("Title".Length + "Password".Length));
             }
 
             Assert.That(reads, Is.Zero, "the readers handed in were dropped");
@@ -296,7 +295,6 @@ namespace KeePassGate.Tests
             var view = new VaultEntryView(
                 Entry(), reader, new[] { open, withheld }, Array.Empty<VaultViewAttachment>(), null);
 
-            Assert.That(view.NameCharacters, Is.EqualTo("Title".Length + "Password".Length));
             Assert.That(view.Protected, Is.EqualTo(new[] { "Password" }));
             Assert.That(open.Value, Is.EqualTo("a title"));
             Assert.That(measures, Is.Zero, "building a view, its names and reading a value measure nothing");
@@ -357,7 +355,6 @@ namespace KeePassGate.Tests
 
             Assert.That(view.Characters, Is.EqualTo("Title".Length + 3 + "Password".Length + "PIN".Length),
                 "what the ceiling is asked about is every name and the values in sight, and no withheld value");
-            Assert.That(view.NameCharacters, Is.EqualTo("Title".Length + "Password".Length + "PIN".Length));
 
             var all = new VaultEntryView(
                 Entry(),

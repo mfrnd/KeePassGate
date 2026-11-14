@@ -130,7 +130,6 @@ namespace KeePassGate.Host.Tests
             var narrow = _vault.View(uuid, found => new VaultSight(true, false, VaultAttachmentSight.None));
             Assert.That(narrow.Field("Big").Characters, Is.EqualTo("Big".Length));
             Assert.That(narrow.Characters, Is.EqualTo(names + "an invented service".Length));
-            Assert.That(narrow.NameCharacters, Is.EqualTo(names));
 
             var read = _vault.Whole(uuid);
 

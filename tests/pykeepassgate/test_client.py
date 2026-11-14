@@ -589,7 +589,8 @@ def test_an_answer_over_the_client_s_cap_fails_whole(
 def test_a_cap_raised_past_an_answer_takes_it(
     tmp_path: Path, bundle: dict[str, Any], gate: FakeGate
 ) -> None:
-    # What a caller with a database too large for the default does, since the gate does not page.
+    # What a caller with a database too large for the default does, since the gate serves a
+    # listing of groups or of entries whole.
     credentials_module.save(tmp_path / "kept", gate.port, bundle)
     gate.handler = lambda path, body, client: (200, json.dumps({"ok": True, "pad": "x" * 4096}))
 

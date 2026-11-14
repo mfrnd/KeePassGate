@@ -292,8 +292,10 @@ by writing the value that is already there, since for that program every update 
 entry, so a program holding `U` or `C` on an entry can grow it, and the database file and the
 time every save takes with it, a request at a time; the audit names each of those writes. An
 entry grown past 524288 characters of what a program may read of it is no longer handed to that
-program whole: it reads the entry a field at a time, and a program holding `S` brings the entry
-back under by stripping fields. The gate used to refuse the write that would take an entry past
+program whole: it lists the entry's fields and reads the entry a field at a time, and a program
+holding `S` brings the entry back under by stripping fields. Listing the fields takes `L`, so a
+program holding `R` without `L` reads only the fields whose names it already knows of such an
+entry. The gate used to refuse the write that would take an entry past
 that size, and stopped because the refusal told a program how long the values it may not read
 were.
 

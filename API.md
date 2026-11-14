@@ -38,12 +38,17 @@ Responses are not bound by the reader: a list of entries is an array of objects,
 
 ## Deliberately not here §407
 
-**Query parameters, but one.** Scoping is a path, so `GET /groups/{uuid}/entries` rather than
-`?group=`. Filtering and paging were proposed and cut; when a database is large enough to need them,
-they arrive as query parameters on the list routes, which is where selecting among a collection
-belongs, and where the one there is arrived: `includeExpired`, on the two entry listings and the
-heads beside them. A query name nothing declares is refused, `openapi.yaml` §507, rather than
-every query being refused for all time, so the paging arrives by being declared.
+**Query parameters, but for what a listing needs.** Scoping is a path, so
+`GET /groups/{uuid}/entries` rather than `?group=`. Filtering and paging of groups and entries
+were proposed and cut; when a database is large enough to need them, they arrive as query
+parameters on the list routes, which is where selecting among a collection belongs, and where
+those there are arrived: `includeExpired`, on the two entry listings and the heads beside them,
+and `from`, on the listing of an entry's fields and its head. **That listing is served in
+parts, which is the paging the others were cut**, and it arrived for a reason they do not have:
+no write is refused for how many strings an entry holds, so its names can pass what an answer
+hands out, and refused for that it left an entry nothing could name the strings of, §412. A
+query name nothing declares is refused, `openapi.yaml` §507, rather than every query being
+refused for all time, so paging arrives by being declared.
 
 **Moving an entry or a group between parents.** It is the one operation about two nodes, and the
 router authorizes exactly one. A client holding `create` in the destination and `delete` in the
@@ -305,14 +310,28 @@ are the name of every string the answer serves and the value of every string the
 let it read. A value the caller is withheld counts nothing and is never measured: the view the
 count is taken of, `VaultEntryView.Characters`, holds nothing to measure it with. So two clients
 can be answered differently about one entry, each by what it would have been handed. Every read
-of an entry's strings is held to the ceiling by that one rule, over what the route hands out:
-`readEntry` over the caller's whole view, `readField` over a string in the caller's sight with
-its name, and `listFields` over the names, which are all it serves, so a listing of fields can
-answer `413` as well. Each is `413` with that count, before any value is read and before the tag
-is taken, and in the order a read's refusals had already: `404`, then `413`, then `412`.
+of an entry's values is held to the ceiling by that one rule, over what the route hands out:
+`readEntry` over the caller's whole view, and `readField` over a string in the caller's sight
+with its name. Each is `413` with that count, before any value is read and before the tag is
+taken, and in the order a read's refusals had already: `404`, then `413`, then `412`.
 `readField` decides whether a value is withheld before it measures anything, so a withheld value
 is answered `null` whatever its length and never `413`. `openapi.yaml` §513 is the response the
 routes declare.
+
+**The names are held to the same number by being served in parts, and never refused.**
+`listFields` serves names and nothing else, and no write is refused for how many strings an
+entry holds, so the names alone can pass the ceiling. Refused for that, the listing left such an
+entry with no route naming its strings: nothing to read a field at a time by, and nothing to
+strip. So a part of the listing holds the fields from the position `from` names, in the entry's
+own order, for as long as they come to at most the ceiling, each field counted by its name and
+32 characters for what its item is written with, and always a field where any is left; and it
+carries `next`, the position the part after it starts at, while there is any. Counted by what is
+written and not by the names alone, since the item around a name of three characters is ten
+times the name. The parts are requests of their own, each decided at its own moment, so the
+entry can change between two of them, which a client handed tags sees by the tag moving and a
+client that only lists does not. PyKeePassGate asks for every part and hands back the whole
+listing, and asks every part after the first under the tag the first came with, so a reader's
+listing is of the entry as the first part found it or is refused `412`.
 
 **Refused before any value is read is not refused before anything is decrypted.** No value is
 handed anywhere until an answer asks for it, and a view asks a string's length only when its
@@ -339,6 +358,11 @@ the message without its count, random slack in the ceiling, and pacing the refus
 **What the reversal gives up.** An entry can be written through the gate past what a read hands
 back whole, as KeePass or a merge could always leave an entry. Such an entry is read a field at a
 time, `listFields` and then `readField`, and stripping a field is how it is brought back under.
+**That way takes `list`.** A client holding `read` without `list` is named an entry's strings by
+`readEntry` alone, so once its view of an entry passes the ceiling it reads only the strings
+whose names it already knows, the five every entry has among them, and a client holding `strip`
+without `list` strips only by such names. An operator who wants a program to cope with an entry
+another program can grow gives it `list` beside `read`.
 Nothing bounds what a client holding `update` or `create` can add to an entry beyond what a
 request may carry, 65536 characters in a value and 1 MiB in a body, so how large an entry and the
 file around it grow is that client's to decide, a request at a time. PyKeePassGate raises on a

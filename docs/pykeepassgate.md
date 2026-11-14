@@ -687,11 +687,28 @@ standard ones are refused, and `update` empties one instead.
 counted over what the client is handed: the names of the entry's strings and the values its
 rules let it read, and nothing of a value it is withheld. Reading an entry costs about four
 times its strings in memory inside KeePass, so a read of an entry past that is refused with
-`413` before any value is read, and so is a read of one field past it with its name, and a
-listing of fields whose names alone are past it, while the entry's other fields still read. The
-client raises `RouteRefused` for it, and does not go on to read the entry a field at a time:
-`fields` and then `field` are how a program reads such an entry, and which fields it wants is
-its own decision. A value the client is withheld raises `Withheld` whatever its length.
+`413` before any value is read, and so is a read of one field past it with its name, while the
+entry's other fields still read. The client raises `RouteRefused` for it, and does not go on to
+read the entry a field at a time: `fields` and then `field` are how a program reads such an
+entry, and which fields it wants is its own decision. A value the client is withheld raises
+`Withheld` whatever its length.
+
+**The names are listed whatever they come to.** The gate hands the names of an entry's strings
+out in parts, each holding names that come to at most 524288 characters with 32 counted for
+every field, and `fields` asks for every part and returns the whole listing, as
+`pykeepassgate fields` prints it, so a program has nothing to do about the parts. Listing the
+names needs `list`, though, and reading a value does not: a program holding `read` without
+`list` reads, of an entry past the ceiling, only the fields whose names it already knows.
+
+**The parts are separate requests, so the entry can change between them.** A client holding
+`read` is handed the entry's tag with every part, and `fields` asks for every part after the
+first under the tag the first part came with: the listing is of the entry as the first part
+found it, or it is `PreconditionFailed`, raised with no `if_match` given as well and exit code 1
+from the command line, and listing again is what mends that. A client holding `list` without
+`read` is handed no tag, so nothing holds its parts to a moment, and an entry that changed while
+it was being listed can come back with a name missing or a name listed twice. `get` on the path
+returns a single part as the gate answered it, with `next` naming the position of the part
+after it, and is not followed.
 
 **No write is refused for what an entry's strings come to**, so a create, an update or a new
 field can take an entry past what a read hands back whole, and what a client writes it cannot
@@ -972,7 +989,7 @@ except api.RouteRefused:
 | `AuthorityUndecided` | The database holds more than one certificate authority, because copies of it that each made an authority of their own met in a synchronize, and the operator has not yet kept any of them. The gate answers this to every request until somebody chooses at KeePass, which asks on its own screen, so it waits on a person rather than ending on its own. A client of an authority that is not kept stops reaching the database once another authority is kept, and pairs again. |
 | `GateUnavailable` | The base of the three above, so catching it catches every `503`, and raised on its own for a `503` whose word this client does not know, or that names none. A `503` to a `head` names its word as well, in `KPG-Unavailable`, since its answer carries no body, so it is `GateBusy`, `DatabaseLocked` or `AuthorityUndecided` and waited out as a `get` is. `.error` is the word, and `.retry_after` the delay the gate asked for. No budget waits it out, because nothing on this side knows what ends it. |
 | `NotAdmitted` | The gate does not admit this certificate: it was never admitted, it was revoked, or it has expired. One that has expired by this machine's clock, by more than the five minutes a clock running ahead of the gate's is allowed, is named as expired, with the moment, before anything is dialed, rather than left for the gate to refuse as it refuses a stranger. To go on reaching the gate, pair again: a renewal needs a certificate that has not expired. To give the identity up, `revoke` removes what is stored for it, and `forget` from a program. |
-| `PreconditionFailed` | A request made with `if_match` that the gate did not serve, so nothing was read or changed: `412`. Most often the node no longer holds what the tag states: another client, the operator in KeePass, a merge or a plugin changed it after the tag was taken, and what mends it is reading the node again, which hands back its tag as it is now, and deciding again whether the change still makes sense. A tag is taken over what this client may read of the node, so rules widened or narrowed over what it sees answer the same once. The same `412` answers any `if_match` from a client the gate hands no tag to, which holds no `read` on the node; what mends that is sending none. An `if_match` the gate could not read, a tag without its quotes or a weak tag, would be answered the same, and this client refuses it with `ProtocolError` before it is sent. Not retried, since asking again asks the same question of the same node. It is a `RouteRefused` with `.status` `412`, so a caller catching that already catches this. |
+| `PreconditionFailed` | A request made with `if_match` that the gate did not serve, so nothing was read or changed: `412`. Most often the node no longer holds what the tag states: another client, the operator in KeePass, a merge or a plugin changed it after the tag was taken, and what mends it is reading the node again, which hands back its tag as it is now, and deciding again whether the change still makes sense. A tag is taken over what this client may read of the node, so rules widened or narrowed over what it sees answer the same once. The same `412` answers any `if_match` from a client the gate hands no tag to, which holds no `read` on the node; what mends that is sending none. An `if_match` the gate could not read, a tag without its quotes or a weak tag, would be answered the same, and this client refuses it with `ProtocolError` before it is sent. Not retried, since asking again asks the same question of the same node. `fields` raises it with no `if_match` given as well, when the entry changed between the parts its names are listed in, each part after the first being asked for under the tag of the first: list again. It is a `RouteRefused` with `.status` `412`, so a caller catching that already catches this. |
 | `RouteRefused` | The gate refused it. `.status` tells which: `404` is absent or not reachable and nothing can be done, while `400` and `409` are about the request itself, and `413` is something too large to carry, an attachment bigger than this gate hands out, a read of an entry that would hand over more characters than it hands out, or a body bigger than it takes, which `.error` tells in a sentence. `500` is none of those: the gate failed, and the operator's KeePass is where to look. After `500 not saved` or `500 internal error` nothing was left written that sending it again would duplicate; after `500 not verified` the change may be on the disk, so look first, and until the operator saves the database in KeePass every write to it is `GateBusy`, as [Wait out a refusal](#wait-out-a-refusal-instead-of-reporting-it) explains. `500 not recorded` is told only to `pair` and `renew`: the operator approved, the record did not reach the disk and was taken back out, and nothing was handed over, so asking again puts the dialog in front of the operator again; a renewing client's certificate still works, and a pairing's invitation is spent. |
 | `Withheld` | A protected value this client may not read, from every way of reading one: the database protects it, and the rule that lets this client read or list the entry does not grant `P`. The message names the field; the operator can add `P` to that rule. The rest of the answer stands, and `entry.withheld` or `field.withheld` states the same without a `try`: `{name: entry.fields[name] for name in entry.fields if name not in entry.withheld}` reads every value this client may read. |
 | `Unresolved` | From `refs.resolve` alone: a value it will not give as KeePass would, and the message tells why. A reference searching by anything but a whole identifier, a reference to an entry this client cannot read, a placeholder KeePass replaces and the resolver does not, references going round in a circle or deeper than KeePass follows, or a value that takes more work than `refs.COMPILES` and `refs.CHARACTERS` allow. Use the value as stored, refer by identifier, or ask the operator to let this client read the entry referred to. |
@@ -1124,8 +1141,10 @@ socket can make it hold as much memory as it likes. An answer over that fails wh
 missing its tail would read as a complete one. It is not a `TransportError`: the connection worked,
 and asking again reads the same answer to the same cap.
 
-The plugin does not page ([`../API.md`](../API.md) §407), so a listing grows with the database, and a
-very large database can outgrow the default. Raise it for that client:
+The plugin serves a listing of groups or of entries whole ([`../API.md`](../API.md) §407), where
+the names of an entry's strings come in parts that `fields` puts together, so a listing of groups
+or of entries grows with the database, and a very large database can outgrow the default. Raise
+it for that client:
 
 ```shell
 pykeepassgate groups --max-response-bytes 16777216
@@ -1185,6 +1204,12 @@ def entry(path: str, body: str, client: bytes | None) -> tuple[int, str]:
         return 200, '{"ok":true}'
     return 200, '{"uuid":"..."}'
 ```
+
+The path arrives as it was sent, with its query, which is how a script tells the parts of a
+field listing apart: `/entries/<uuid>/fields` asks for the first part, and
+`/entries/<uuid>/fields?from=<next>` for the part an answer's `next` named. An answer with no
+`next` ends the listing, and after a part the script tagged, every later part is asked for with
+that tag as its `If-Match`.
 
 `gate.if_match()` is the request's `If-Match`, as its value arrived, or `None`. `gate.tag(etag)`
 puts an `ETag` on the read being answered, as the plugin tags a read, and `written(etag)` is the

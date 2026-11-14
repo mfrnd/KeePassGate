@@ -469,10 +469,15 @@ designing around them.
   by its name beside a `null`, and the value of every string in the caller's sight. A
   `VaultViewField` keeps nothing a withheld value could be read or measured with, so nothing
   rendered from a view can tell how long a withheld value is. The one rule, a read is held to
-  what its caller is handed, covers every read of an entry's strings: `readEntry` is refused over
-  the whole view, `readField` over a string in sight with its name, deciding whether the value is
-  withheld before it measures, and `listFields` over the names it serves; each `413` comes
-  before any value is read and before the tag is taken. **No value is handed anywhere until it
+  what its caller is handed, covers every read of an entry's values: `readEntry` is refused over
+  the whole view, and `readField` over a string in sight with its name, deciding whether the
+  value is withheld before it measures; each `413` comes before any value is read and before
+  the tag is taken. **`listFields` is served in parts and never refused**, since the names alone
+  can pass the ceiling and a listing refused for that left no route naming an entry's strings:
+  a part starts at the position `from` names, holds what comes to at most the ceiling, each
+  field counted by its name and `FieldItemCharacters`, and names the part after it as `next`.
+  PyKeePassGate asks for every part. Reading an entry past the ceiling a field at a time takes
+  `list`, which is recorded as a cost. **No value is handed anywhere until it
   is asked for, and that is all "nothing is decrypted" may claim for a string.** A view asks no
   length as it is built and asks a string's length only when the size is asked, of a string in
   sight; `ProtectedString.Length` then decrypts a protected value KeePass holds as bytes, as a
@@ -703,10 +708,12 @@ and answers a different question.
   nothing in the plugin calls `ReadString` on a protected string or makes such a string from text:
   `StoredStrings` reads with `ReadUtf8` and overwrites the copy, and hands KeePass a protected
   value as bytes, and a tag digests a protected value from such a copy,
-  `VaultViewField.Stored`. KeePass's own save reads with `ReadString` each of an entry's five
-  own strings that the database's setting for the name leaves unprotected, whatever the
-  string's flag. `ProtectedInMemoryTests` asks the object's own field after every read and
-  write route, and `KeePassContractTests` pins what each member does to it.
+  `VaultViewField.Stored`. A title or a URL is read only by a listing that shows it:
+  `VaultEntry.Title` and `Url` read when first asked, so describing an entry to find its node
+  reads neither. KeePass's own save reads with `ReadString` each of an entry's five own strings
+  that the database's setting for the name leaves unprotected, whatever the string's flag.
+  `ProtectedInMemoryTests` asks the object's own field after each read and each write route it
+  sends, and `KeePassContractTests` pins what each member does to it.
 - **KeePass tells two database paths apart by lowering them in the current culture**,
   `Trim().ToLower()`, so under a Turkish culture `I` and `i` are different letters and two paths
   differing only there are two databases. A path matched against one of KeePass's has to be
@@ -1359,9 +1366,12 @@ those objects and changes neither in place, and both can be read from a second t
 node's name. The line for a value a view withholds is composed inside the hold, by
 `ProtectedWithheld`, and what that hands back adds the line where the answer is served, so a
 read refused for its size or by its condition writes none. A change takes its tags inside its
-own turn, where the comparison and the change are one step. `NodeTags` encodes a value longer
-than `NodeTags.Pieces.Characters` a piece at a time, so a tag allocates no second copy of a long
-value.
+own turn, where the comparison and the change are one step. `NodeTags` encodes a value KeePass
+keeps in the open and longer than `NodeTags.Pieces.Characters` a piece at a time, so a tag
+allocates no second copy of such a value; a value KeePass protects is digested from a copy of
+its stored bytes, overwritten afterwards. **What left the hold is the work that grows with how
+long values and attachments are**: taking the view stays inside and grows with how many strings
+and attachments an entry holds, and a listing with how many entries there are.
 
 **A request has one decision line, written once KeePass's thread is free.** `AccessCheck` composes
 a line where it decides and keeps it in a `DecisionLines`, the answer inside a change's turn in

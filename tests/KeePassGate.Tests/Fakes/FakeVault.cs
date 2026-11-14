@@ -493,9 +493,11 @@ namespace KeePassGate.Tests.Fakes
                         sight,
                         () =>
                         {
+                            // A copy, as the real vault hands out: the route serving an
+                            // attachment overwrites what it read.
                             AttachmentReads++;
                             Working();
-                            return content;
+                            return (byte[])content.Clone();
                         },
                         () =>
                         {
@@ -1459,7 +1461,7 @@ namespace KeePassGate.Tests.Fakes
             public VaultEntry Placed()
             {
                 return new VaultEntry(
-                    Uuid, Group, null, null,
+                    Uuid, Group, (string)null, null,
                     DateTimeOffset.MinValue, DateTimeOffset.MinValue, Node,
                     false, false, Expires);
             }

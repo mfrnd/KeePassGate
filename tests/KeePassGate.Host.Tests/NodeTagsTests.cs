@@ -544,6 +544,53 @@ namespace KeePassGate.Host.Tests
         }
 
         [Test]
+        public void A_tag_digests_a_protected_value_from_its_stored_bytes_and_makes_no_string_of_it()
+        {
+            // The digest itself, apart from any vault, so that what is pinned is which of a
+            // field's two answers a tag asks for. A view hands a tag a copy of the bytes the
+            // store keeps for a protected value, beside what reads the value as a string. A tag
+            // that asked for the string made a string of every protected value in its caller's
+            // sight, which nothing can overwrite, for a request that served none of them. The
+            // vault's own reader leaves KeePass's object alone either way, so only a reader
+            // that counts shows which was asked. The copy is the tag's to overwrite.
+            const string Value = "not-a-real-password";
+            var created = new DateTimeOffset(Moment);
+            var reads = 0;
+            var handed = new List<byte[]>();
+
+            Func<string> read = () =>
+            {
+                reads++;
+                return Value;
+            };
+            Func<byte[]> copied = () =>
+            {
+                var copy = Encoding.UTF8.GetBytes(Value);
+                handed.Add(copy);
+                return copy;
+            };
+            Func<Func<byte[]>, VaultEntryView> viewed = stored => new VaultEntryView(
+                Described("A1", "B1", created, created, null),
+                Sights.Whole,
+                new[] { new VaultViewField("Password", true, () => Value.Length, Sights.Whole, read, false, stored) },
+                Array.Empty<VaultViewAttachment>(),
+                null);
+
+            var tags = TestTags.Fixed;
+            var tag = tags.Of(viewed(copied));
+
+            Assert.That(tag, Does.Match("^[0-9a-f]{32}$"));
+            Assert.That(reads, Is.Zero, "the tag read a protected value as a string");
+            Assert.That(handed, Is.Not.Empty, "the tag never asked for the stored bytes");
+            Assert.That(handed.SelectMany(bytes => bytes), Has.All.EqualTo(0), "a copy the tag digested was left as it was");
+
+            // The same tag as the string gives, which is what a view holding no stored bytes
+            // is digested from: a value the store keeps in the open.
+            Assert.That(tags.Of(viewed(null)), Is.EqualTo(tag));
+            Assert.That(reads, Is.EqualTo(1), "a value with no stored bytes is read as the string it already is");
+        }
+
+        [Test]
         public void What_no_route_serves_leaves_the_tag_where_it_was()
         {
             // The rules, the history, the access time and the usage count are not in what a route
@@ -605,13 +652,32 @@ namespace KeePassGate.Host.Tests
         public void A_value_that_is_not_UTF_8_is_tagged_as_it_is_served()
         {
             // Bytes another program could have written, and which a read serves with the bad
-            // sequence replaced. A tag taken of the stored bytes changed the first time the value
-            // was read as a string, so a client's first tag was refused for nothing anybody wrote.
-            _entry.Strings.Set("Invented", new ProtectedString(true, new byte[] { 0x41, 0xFF, 0x42 }));
+            // sequence replaced. KeePass replaces it the same way the first time anything reads
+            // the value as text, `ProtectedString.ReadString`, which KeePass's own code and any
+            // other plugin are free to do, and from then on its object holds the text and hands
+            // out the encoding of that: other bytes than the file held. A tag of whatever bytes
+            // the object hands out moved at that moment, so a client's tag was refused for
+            // nothing anybody wrote. The gate's own read copies the bytes and leaves KeePass's
+            // object as it was, so KeePass is made to decode the value here, and the tag is
+            // held to the value served on both sides of that.
+            var stored = new byte[] { 0x41, 0xFF, 0x42 };
+            var served = Encoding.UTF8.GetString(stored);
+            _entry.Strings.Set("Invented", new ProtectedString(true, stored));
             var tag = EntryTag();
 
-            Assert.That(_vault.Field(Uuid(_entry), "Invented"), Is.Not.Null, "read as a string, as a route reads it");
+            Assert.That(_vault.Field(Uuid(_entry), "Invented"), Is.EqualTo(served), "read as a route reads it");
 
+            var held = _entry.Strings.Get("Invented");
+            Assert.That(KeePassMemory.KeepsText(held), Is.False, "a tag and a read by the gate left KeePass the bytes");
+
+            Assert.That(held.ReadString(), Is.EqualTo(served), "decoded by KeePass, as anything reading it as text has it decoded");
+            Assert.That(KeePassMemory.KeepsText(held), Is.True, "and KeePass now holds the text in place of the bytes");
+            Assert.That(held.ReadUtf8(), Is.Not.EqualTo(stored), "so the bytes it hands out are no longer the bytes stored");
+            Assert.That(EntryTag(), Is.EqualTo(tag), "the tag is of the value served, whichever of the two KeePass holds");
+
+            // And the value made from that text to begin with, as a value typed into KeePass
+            // is. Setting a string moves none of the entry's times, which a tag covers.
+            _entry.Strings.Set("Invented", new ProtectedString(true, served));
             Assert.That(EntryTag(), Is.EqualTo(tag));
         }
 
@@ -886,7 +952,7 @@ namespace KeePassGate.Host.Tests
                 Assert.That(Volatile.Read(ref decrypted), Is.Zero, "a withheld value was read or measured");
 
                 var whole = Seen(Sights.Whole);
-                Assert.That(whole.NameCharacters, Is.GreaterThan(0));
+                Assert.That(whole.Fields.Sum(field => field.Name.Length), Is.GreaterThan(0));
                 Assert.That(Volatile.Read(ref decrypted), Is.Zero, "building a view measured a value");
 
                 Assert.That(

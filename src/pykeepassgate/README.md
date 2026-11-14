@@ -167,7 +167,7 @@ catches whatever this client raises of its own and nothing the standard library 
 | `RenewalRefusedForever` | The operator refused every renewal of this certificate. Ask again once the operator has allowed renewal again on the KPG tab's clients page, or pair again, with an invitation from the operator, before the certificate this client holds expires. |
 | `RenewalUnanswered` | Nobody answered the renewal dialog, and nothing changed. Ask again when somebody is at the screen. |
 | `RenewalError` | The base of the five above, for a caller that only wants to know whether the operator let the renewal happen. Never raised on its own. |
-| `PreconditionFailed` | The gate did not serve a request made with `if_match`, so nothing was read or changed: `412`. Most often the node no longer holds what the tag named: somebody changed it after the tag was taken, another client, the operator in KeePass, a merge or a plugin. Read it again, which hands back its tag as it is now, and decide again. Any `if_match` from a client the gate hands no tag to is answered the same; send none. An `if_match` the gate could not read, a tag without its quotes or a weak tag, is a `ProtocolError` before anything is sent. A `RouteRefused` with `status` `412`, so catching that catches this. |
+| `PreconditionFailed` | The gate did not serve a request made with `if_match`, so nothing was read or changed: `412`. Most often the node no longer holds what the tag named: somebody changed it after the tag was taken, another client, the operator in KeePass, a merge or a plugin. Read it again, which hands back its tag as it is now, and decide again. Any `if_match` from a client the gate hands no tag to is answered the same; send none. An `if_match` the gate could not read, a tag without its quotes or a weak tag, is a `ProtocolError` before anything is sent. `fields` raises it with no `if_match` given as well, when the entry changed between the parts its names are listed in: list again. A `RouteRefused` with `status` `412`, so catching that catches this. |
 | `RouteRefused` | Everything else the gate refuses, carrying the status and the reason it gave, usually one word: a `413` tells in a sentence what was too large, an attachment, a body or what a read of an entry would hand over. A refused `head` carries the status alone, because its answer has no body to tell anything in, a `503` aside, whose word the gate names in a field as well. A `404` is deliberately both "no such node" and "not yours", so a client cannot map a database by asking: if the node should be there, the rule is too narrow and the operator has to widen it. |
 | `Withheld` | A protected value this client may not read, from every way of reading one: the rule that lets it read or list the entry does not grant `P`, which the operator can add. Never `None` or an empty string in its place; `entry.withheld` and `field.withheld` name what is kept back without a `try`, so `{name: entry.fields[name] for name in entry.fields if name not in entry.withheld}` reads every value this client may read. |
 | `Unresolved` | From `pykeepassgate.refs.resolve` alone: a value it will not give as KeePass would, such as a reference that searches by title or names an entry this client cannot read, a placeholder KeePass replaces and it does not, or a value that takes more work than it spends. The message names which. |
@@ -195,9 +195,11 @@ longer than ninety days, which unlocking it in KeePass mends.
 gives the other reasons.
 
 **An answer over 4 MiB fails whole with `ProtocolError`** rather than arriving cut short, and
-asking again reads the same answer to the same cap. The plugin does not page, so a listing grows
-with the database, and a very large one can need more: `max_response_bytes=` on the client, or
-`--max-response-bytes` on the command line, raises it, and the message names both.
+asking again reads the same answer to the same cap. The plugin serves a listing of groups or of
+entries whole, so that listing grows with the database, and a very large database can need more:
+`max_response_bytes=` on the client, or `--max-response-bytes` on the command line, raises it, and
+the message names both. The names of an entry's strings are served in parts, which `fields` puts
+together, and a part stays under the default cap.
 
 ## Test a program built on it
 

@@ -473,29 +473,41 @@ that a read is measured over what its caller is handed, `API.md` §412: the view
 measured by holds no length for a value it withholds, both writes are now made and answered
 alike, and the withheld field is the `null` every withheld value is.
 
-**What a tag costs on an entry far past the ceiling**, now that writes can make such an entry:
-fifty strings of a million characters each, protected and held as bytes the way a file's are, on
-the development machine in a Release build, through the real router and vault. A read of the
-whole entry is refused and takes no tag. Every other request that hands a tag to a client with
-all fifty values in sight, a listing of the fields or a read of the title, digests the fifty
-megabytes, which takes about forty milliseconds. **Taken inside the hold, that was KeePass's
-thread standing still for every such request**: 45 to 47 milliseconds, with 48 MB allocated for
-the UTF-8 form of each value in turn, and 93 to 104 milliseconds and 191 MB for the first request
-after the values were loaded, since KeePass decrypts and decodes each value once and then keeps
-the decoded string. So a read takes its view of the entry inside the hold and asks the view for
-everything else once the hold has ended, and the tag encodes a long value a piece at a time,
-`DESIGN.md` §119. Measured the same way after that: the hold is 0.07 to 0.09 milliseconds
-whatever the entry holds, and the request then takes about 59 milliseconds and 48 MB on its own
-connection's thread, every time: a copy of each protected value, decrypted, digested and
-overwritten, a megabyte at a time, since a protected value is no longer read the way that makes
-KeePass keep it as text, below. Fifty such strings that nothing protects take 41 to 43
-milliseconds and 0.2 MB. A whole read refused for its size measures the protected values the
-first time, 46 to 73 milliseconds and 48 MB, and is answered in a tenth of a millisecond after
-that, none of it inside the hold. A client
-that reads the entry without `protected`, the fifty being protected, reads and measures none of
-them: a withheld value is never read. A write takes its tags inside its own turn, about forty
-milliseconds each, beside a save of 2.2 seconds for the fifty protected strings and 0.3 seconds
-for fifty open ones, which the write causes whoever sends it.
+**What a tag costs on an entry far past the ceiling**, now that writes can make such an entry: fifty
+strings of a million characters each, on the development machine in a Release build, through the
+real router and vault. A read of the whole entry is refused and takes no tag. Every other request
+that hands a tag to a client with all fifty values in sight, a listing of the fields or a read of
+the title, digests the fifty megabytes. **Taken inside the hold, that was KeePass's thread standing
+still for every such request**: 45 to 47 milliseconds, with 48 MB allocated for the UTF-8 form of
+each value in turn, and 93 to 104 milliseconds and 191 MB for the first request after the values
+were loaded, since KeePass decrypts and decodes each value once when it is read as text and then
+keeps the text. So a read takes its view of the entry inside the hold and asks the view for
+everything else once the hold has ended, `DESIGN.md` §119. Measured the same way after that, the
+hold for those fifty strings is 0.07 to 0.09 milliseconds, and what the request takes on its own
+connection's thread depends on how KeePass holds the values. Protected and held as bytes, the way a
+file's are: about 59 milliseconds and 48 MB, every time, a copy of each value decrypted, digested
+and overwritten, a megabyte at a time, since a protected value is no longer read the way that makes
+KeePass keep it as text, below. Held in the open: 41 to 43 milliseconds and 0.2 MB, the tag encoding
+a long value a piece at a time. A whole read refused for its size measures the protected values the
+first time, 46 to 73 milliseconds and 48 MB, and is answered in a tenth of a millisecond after that,
+none of it inside the hold. A client that reads the entry without `protected`, the fifty being
+protected, reads and measures none of them: a withheld value is never read. A write takes its tags
+inside its own turn on KeePass's thread, the tag it is asked against and the tag it leaves: 58 to 65
+milliseconds and 48 MB each over the fifty protected strings, 40 to 43 milliseconds over fifty held
+in the open, beside a save of 2.2 seconds for the protected strings and 0.3 seconds for the strings
+held in the open, which the write causes whoever sends it.
+
+**The hold still grows with how many strings an entry holds, and a listing with what it shows.**
+What left the hold is the work that grows with how long values are. Taking the view stays inside,
+and walks every string to find which the database protects and which a listing shows: 4.0
+milliseconds of hold for an entry of ten thousand strings of one character, and 54 to 59 for a
+hundred thousand, in Release, whichever of the entry's reads is asked. No write bounds how many
+strings an entry holds. The tag over a hundred thousand names takes about a hundred milliseconds
+more on the connection's thread. A listing of ten thousand entries holds KeePass's thread for 38 to
+54 milliseconds where titles and addresses are held in the open and 42 to 44 where the database
+protects them and the caller is shown neither, since a title is read only for a caller it is shown
+to; where the caller is shown them it is 91 to 94, a copy of each title and address decrypted for
+every listing, which KeePass keeping the text had made 40 after the first.
 
 **A view of an entry can be asked after the hold it was taken in, because KeePass replaces the
 object a value is held in and never changes it.** Read off KeePass 2.61.1, decompiled, and
@@ -562,7 +574,8 @@ one included, and every value once `ReadString` has read it; and by `ProtectedBi
 protected values are held once loaded. Read off the getter's IL in 2.61.1 and measured: a
 protected value of a million characters held as bytes took 4.7 milliseconds to measure the first
 time and 0.02 the second, and the first request to measure the fifty strings above took 196
-milliseconds and 49 MB where every later request took a millisecond. An attachment is not so:
+milliseconds and 49 MB where every later request took a millisecond, in a Debug build; the
+figures above for the same request are a Release build's. An attachment is not so:
 `ProtectedBinary.Length` returns a field. Nothing public answers a string's length without that
 decryption; the UTF-8 byte count beside the encrypted bytes is private and is a bound on the
 characters and not their count. So what holds is narrower than what was written: no value is

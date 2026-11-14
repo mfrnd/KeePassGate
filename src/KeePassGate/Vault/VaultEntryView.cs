@@ -407,6 +407,24 @@ namespace KeePassGate.Vault
         }
 
         /// <summary>
+        /// Overwrites the bytes this view read for <see cref="Content"/> and lets them go, so
+        /// that asking again reads them again.
+        /// </summary>
+        /// <remarks>
+        /// For the route that serves an attachment, once its answer is made or refused: the
+        /// bytes are a copy in the clear of what the store keeps encrypted, and a copy that can
+        /// be overwritten is. The answer they were written into cannot be.
+        /// </remarks>
+        public void Discard()
+        {
+            if (_content != null)
+            {
+                Array.Clear(_content, 0, _content.Length);
+                _content = null;
+            }
+        }
+
+        /// <summary>
         /// The SHA-256 of what it holds, or null for an attachment that is withheld and for an
         /// attachment larger than <see cref="MostServed"/>, whose bytes no route serves and no
         /// tag covers.
@@ -525,7 +543,6 @@ namespace KeePassGate.Vault
             Attachments = Sight.Attachments == VaultAttachmentSight.None ? null : attachments;
             _tagger = Sight.Reads ? tagger : null;
 
-            NameCharacters = fields.Sum(field => field.Name.Length);
             Protected = fields.Where(field => field.IsProtected).Select(field => field.Name).ToList();
         }
 
@@ -562,12 +579,6 @@ namespace KeePassGate.Vault
         {
             get { return Fields.Sum(field => field.Characters); }
         }
-
-        /// <summary>
-        /// What the names of the entry's strings come to in characters, which is what a listing
-        /// of the entry's fields hands out, whatever the sight.
-        /// </summary>
-        public int NameCharacters { get; private set; }
 
         /// <summary>
         /// Which of the strings are kept protected, by the string's own flag or by the database's

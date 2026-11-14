@@ -128,8 +128,9 @@ namespace KeePassGate.Vault
         /// <remarks>
         /// **The only read of what an entry holds.** Its strings, its attachments and its tag are
         /// all read off the view, so the tag is the tag of what the same request is answered
-        /// with, by construction and for the reason <see cref="GroupTag"/> gives: nothing takes
-        /// the tag by a second look at the entry.
+        /// with, by construction: nothing takes the tag by a second look at the entry. The view
+        /// is taken with KeePass's thread held still and keeps the objects the entry held then,
+        /// so what a read makes of it once the hold has ended is still of that moment.
         ///
         /// **Nothing is read or measured to take it, and no value is handed anywhere until the
         /// view is asked for it**, as <see cref="VaultEntryView"/> describes. KeePass keeps an

@@ -1069,7 +1069,8 @@ def _dialed(parser: argparse.ArgumentParser) -> None:
     )
 
     # How much of one answer to read, beside the socket's timeout because it too bounds what one
-    # connection may cost. The plugin does not page, so a listing grows with the database.
+    # connection may cost. The plugin serves a listing of groups or of entries whole, so that
+    # listing grows with the database; the names of an entry's strings come in parts.
     parser.add_argument(
         "--max-response-bytes",
         type=_byte_count,
@@ -1077,8 +1078,9 @@ def _dialed(parser: argparse.ArgumentParser) -> None:
         metavar="BYTES",
         help=(
             f"the most of one answer to read, {api.MAX_RESPONSE_BYTES} unless this says "
-            "otherwise. The gate does not page, so a very large database may need it raised; an "
-            "answer over it fails whole rather than arriving cut short."
+            "otherwise. The gate serves a listing of groups or of entries whole, so a very large "
+            "database may need it raised; an answer over it fails whole rather than arriving cut "
+            "short."
         ),
     )
 

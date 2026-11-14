@@ -729,7 +729,9 @@ namespace KeePassGate.Spec
 
             // After everything that refuses, so that a condition reveals nothing about a node the
             // caller may not reach: a refused node is the same `404` whatever the tag. The
-            // handler asks it of the node, inside the read's hold or under the writer's lock.
+            // handler asks it of the node's tag: a group's inside the read's hold, an entry's
+            // once that hold has ended, of the view taken inside it, and a change's under the
+            // writer's lock.
             if (operation.TakesIfMatch)
             {
                 var precondition = VaultPrecondition.Read(context.GetHeader(SpecDocument.IfMatchHeader));
@@ -963,20 +965,15 @@ namespace KeePassGate.Spec
         /// </remarks>
         private ProtectedWithheld Withheld(ClientIdentity client, SpecOperation operation, DecisionLines lines)
         {
-            var access = _access;
-            var operationId = operation.OperationId;
-
+            // Every operation a rule governs keeps its lines, and no other reaches this: a line
+            // with nowhere to be kept would be written where it is composed, inside the hold.
             if (lines == null)
             {
-                // An operation no rule governs keeps no lines and serves no entry. A line asked
-                // for here all the same is written where it is asked, as every line is that has
-                // nowhere to be kept.
-                return (node, verb, decision, listed) =>
-                {
-                    access.Withheld(client, operationId, verb, AclReach.Protected, node, decision, listed, null);
-                    return () => { };
-                };
+                throw new ArgumentNullException(nameof(lines));
             }
+
+            var access = _access;
+            var operationId = operation.OperationId;
 
             return (node, verb, decision, listed) =>
             {

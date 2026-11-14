@@ -41,7 +41,7 @@ from .errors import (
     RouteRefused,
     StorageError,
 )
-from .model import EXPIRES, Access, Attachment, Entry, Field, Group, Identity, made
+from .model import EXPIRES, Access, Attachment, Entry, Field, Group, Identity, following, made
 from .pairing import lifetime_text
 
 STATUS_PATH = "/gate/status"
@@ -64,6 +64,9 @@ ROOT = "root"
 
 INCLUDE_EXPIRED = "includeExpired"
 """The query parameter that leaves expired entries out of a listing when it says `false`."""
+
+FROM = "from"
+"""The query parameter naming the position a part of a field listing starts at, absent for 0."""
 
 AUTO = "auto"
 """What a create's expiry says to ask for the one KeePass's options give every new entry."""
@@ -156,8 +159,9 @@ class GateClient:
 
         `max_response_bytes` is how much of one answer this client will read, and an answer over
         it fails whole with `ProtocolError` naming the setting, rather than arriving cut short.
-        The plugin does not page, so a listing grows with the database, and a database large
-        enough to outgrow the default is one whose caller raises this.
+        The plugin serves the names of an entry's strings in parts and no other listing, so a
+        listing of groups or of entries grows with the database, and a caller whose database is
+        large enough to outgrow the default raises this.
 
         **A setting that could not work is refused here**, with a `ValueError` naming it, before
         anything is dialed, and the command line refuses the same ones: a cap that is not a
@@ -922,16 +926,58 @@ class GateClient:
         retry_locked_timeout: transport.Given = transport.KEEP,
         retry_undecided_timeout: transport.Given = transport.KEEP,
     ) -> list[Field]:
-        """The names of an entry's strings, never their values, each with the entry's `etag`."""
-        found = self._read_tagged(
-            f"/entries/{_segment(uuid)}/fields",
-            if_match,
-            connection_timeout=connection_timeout,
-            retry_busy_timeout=retry_busy_timeout,
-            retry_locked_timeout=retry_locked_timeout,
-            retry_undecided_timeout=retry_undecided_timeout,
-        )
-        return Field.listing(*found)
+        """The names of an entry's strings, never their values, each with the entry's `etag`.
+
+        **The whole listing, however many names the entry holds.** The gate hands the names out
+        in parts, since no write is refused for what an entry's strings come to and an entry can
+        hold more names than an answer carries. This asks for the part after each part, by the
+        position the gate names as `next`, until a part names none, so a caller has nothing to
+        do about the parts. Each part is a request of its own, under the timeout and the budgets
+        given, and a `next` that cannot be followed is `ProtocolError`, as `model.following`
+        refuses it.
+
+        **The parts are separate requests, so the entry can change between them.** A client
+        holding `read` is handed the entry's tag with every part, and every part after the first
+        is asked for under the tag the first part came with, whatever `if_match` was given. So
+        the listing is of the entry as the first part found it, or it is `PreconditionFailed`,
+        with no `if_match` given as well: the entry changed while it was being listed, and
+        listing it again is what mends that. A client without `read` is handed no tag, so
+        nothing holds the parts of its listing to a moment, and an entry that changed in between
+        can come back with a name missing or a name listed twice. `if_match` itself is asked of
+        the first part, and of the later parts as well where the first part came with no tag.
+        """
+        path = f"/entries/{_segment(uuid)}/fields"
+        found: list[Field] = []
+        condition = if_match
+        tag: str | None = None
+        asked = 0
+        while True:
+            body, etag = self._read_tagged(
+                path if asked == 0 else f"{path}?{FROM}={asked}",
+                condition,
+                connection_timeout=connection_timeout,
+                retry_busy_timeout=retry_busy_timeout,
+                retry_locked_timeout=retry_locked_timeout,
+                retry_undecided_timeout=retry_undecided_timeout,
+            )
+            if asked == 0:
+                # The tag every field is handed out with, and the condition every later part
+                # is asked under, so the gate refuses a part of an entry that changed since.
+                tag = etag
+                condition = if_match if etag is None else etag
+            elif tag is not None and etag != tag:
+                raise ProtocolError(
+                    "the gate answered a part of a field listing with another tag than the tag "
+                    "that part was asked for under, or with none"
+                )
+
+            part = Field.listing(body, tag)
+            found.extend(part)
+            position = following(body, asked, len(part))
+            if position is None:
+                return found
+
+            asked = position
 
     def field(
         self,

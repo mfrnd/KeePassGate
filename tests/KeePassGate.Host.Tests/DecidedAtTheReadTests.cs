@@ -129,6 +129,7 @@ namespace KeePassGate.Host.Tests
         [TestCase("/entries/{entry}")]
         [TestCase("/entries/{entry}/fields")]
         [TestCase("/entries/{entry}/fields/Longer")]
+        [TestCase("/entries/{entry}/fields/Open")]
         [TestCase("/entries/{entry}/attachments")]
         [TestCase("/entries/{entry}/attachments/notes.txt")]
         public void What_the_operator_does_once_the_hold_has_ended_is_in_neither_the_answer_nor_its_tag(string path)
@@ -138,21 +139,30 @@ namespace KeePassGate.Host.Tests
             // operator's edit is the first thing KeePass's thread does when the hold is let go,
             // so it lands before any of that. The view keeps the objects the entry held, which
             // KeePass replaces and does not change, so the answer and its tag are of the entry
-            // as it stood inside the hold. One value is protected, held as bytes the way a
-            // file's are and longer than the tag encodes whole.
+            // as it stood inside the hold. One value is protected and held as bytes the way a
+            // file's are, which the tag digests from a copy of those bytes, whole. Another is
+            // kept in the open and is longer than the tag encodes whole, so the tag digests it
+            // a piece at a time.
             _database.RootGroup.CustomData.Set(AclDocument.CustomDataKey, Rules.Granting(("agent", "RLAP")));
             var longer = new string('k', 40000);
             _entry.Strings.Set("Longer", new ProtectedString(true, System.Text.Encoding.UTF8.GetBytes(longer)));
+            _entry.Strings.Set("Open", new ProtectedString(false, new string('m', (2 * NodeTags.Pieces.Characters) + 7)));
+            var held = _entry.Strings.Get("Longer");
 
             var before = Send(CurrentThread.Instance, path);
             Assume.That(before.Status, Is.EqualTo(200), before.Json);
             Assume.That(before.Headers["ETag"], Is.Not.Null);
 
-            _entry.Strings.Set("Longer", new ProtectedString(true, System.Text.Encoding.UTF8.GetBytes(longer)));
+            // The request that follows finds the protected value as the first found it: a read
+            // copies the bytes out and leaves KeePass's object holding them.
+            Assert.That(_entry.Strings.Get("Longer"), Is.SameAs(held));
+            Assert.That(KeePassMemory.KeepsText(held), Is.False, "a read left KeePass the text of a protected value");
+
             var operatorNext = new OperatorNext(1, () =>
             {
                 _entry.Strings.Set(PwDefs.TitleField, new ProtectedString(false, Typed));
                 _entry.Strings.Set("Longer", new ProtectedString(true, Typed));
+                _entry.Strings.Set("Open", new ProtectedString(false, Typed));
                 _entry.Strings.Remove(Name);
                 _entry.Strings.Set("Added", new ProtectedString(false, Typed));
                 _entry.Binaries.Set("notes.txt", new ProtectedBinary(false, new byte[] { 9, 9, 9, 9 }));

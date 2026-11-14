@@ -31,6 +31,18 @@ namespace KeePassGate.Host.Tests
     /// whether it keeps the text: `KeePassContractTests` pins that the question still means
     /// what it meant.
     ///
+    /// **Every route that reads or changes an entry is sent.** Each read of the entry, of its
+    /// strings and of its attachments, under `GET` and under `HEAD`, the listings of entries
+    /// and what the caller may do at the entry; and each change: a string made, updated and
+    /// stripped, an attachment made, replaced and stripped, the entry updated, made and
+    /// removed. The routes about a group alone and about the gate itself are left out, since
+    /// none of them is answered from an entry's strings.
+    ///
+    /// **The question is asked of the entry's strings and of every revision in its history.**
+    /// A change keeps the entry as it was in a revision, which holds the same objects, so a
+    /// value a change replaced or took off is still in KeePass's memory there and is asked
+    /// as the rest are.
+    ///
     /// Everything in here is invented.
     /// </remarks>
     [TestFixture]
@@ -50,7 +62,7 @@ namespace KeePassGate.Host.Tests
             _database = TemporaryDatabase.New();
 
             _group = new PwGroup(true, true, "Fictitious", PwIcon.Folder);
-            _database.RootGroup.CustomData.Set(AclDocument.CustomDataKey, Rules.Granting(("agent", "CRUSLAP")));
+            _database.RootGroup.CustomData.Set(AclDocument.CustomDataKey, Rules.Granting(("agent", "CRUSDLAP")));
             _database.RootGroup.AddGroup(_group, true);
 
             // A database that protects titles and addresses as well as passwords, so that the
@@ -90,6 +102,7 @@ namespace KeePassGate.Host.Tests
         [TestCase("/entries/{entry}/fields/UserName", "an invented name")]
         [TestCase("/entries/{entry}/attachments", "notes.txt")]
         [TestCase("/entries/{entry}/attachments/notes.txt", "notes.txt")]
+        [TestCase("/entries/{entry}/access", "\"agent\"")]
         [TestCase("/groups/{group}/entries", "an invented service")]
         [TestCase("/entries", "https://invented.example/")]
         public void A_read_leaves_every_protected_value_as_KeePass_held_it(string path, string served)
@@ -127,10 +140,62 @@ namespace KeePassGate.Host.Tests
         [Test]
         public void An_update_that_would_change_nothing_is_found_so_without_opening_a_value()
         {
-            // The stored value is compared with what was sent, for a caller that may read it.
+            // The stored value is compared with what was sent, for a caller that may read it,
+            // and an update found to change nothing writes nothing. Held to that, since a
+            // comparison that answered "different" would write the same value over the stored
+            // string and leave nothing in the open either: the string the entry holds is the
+            // object it held, and no revision was taken.
+            var held = _entry.Strings.Get("PIN");
+            var revisions = _entry.History.UCount;
+
             var answer = Asked("PUT", "/entries/{entry}/fields/PIN", Bodies.Of(("value", Pin)));
 
             Assert.That(answer.Status, Is.EqualTo(200), answer.Json);
+            Assert.That(_entry.Strings.Get("PIN"), Is.SameAs(held), "the value was written over");
+            Assert.That(_entry.History.UCount, Is.EqualTo(revisions), "a revision was taken for a change that changed nothing");
+            Assert.That(InTheOpen(), Is.Empty);
+        }
+
+        [TestCase("DELETE", "/entries/{entry}/fields/PIN", TestName = "A protected field stripped is still protected in memory")]
+        [TestCase("POST", "/entries/{entry}/attachments", TestName = "An attachment made leaves every protected value protected in memory")]
+        [TestCase("PUT", "/entries/{entry}/attachments/notes.txt", TestName = "An attachment replaced leaves every protected value protected in memory")]
+        [TestCase("DELETE", "/entries/{entry}/attachments/notes.txt", TestName = "An attachment stripped leaves every protected value protected in memory")]
+        public void A_change_that_sets_no_string_leaves_every_protected_value_as_KeePass_held_it(string method, string path)
+        {
+            // Asked against the entry's tag, so each takes the tag of the entry as it finds it
+            // and again as it leaves it, over every value in its caller's sight. A removal asks
+            // no switch and shows nobody anything, and its tags are taken all the same.
+            var pin = _entry.Strings.Get("PIN");
+            var tag = Asked("GET", "/entries/{entry}/fields/UserName", null).Headers["ETag"];
+            Assume.That(tag, Is.Not.Null);
+
+            var answer = Asked(method, path, Attaching(method), tag);
+
+            Assert.That(answer.Status, Is.EqualTo(method == "POST" ? 201 : 200), method + " " + path + " " + answer.Json);
+            Assert.That(answer.Json, Does.Contain("\"etag\""), method + " " + path);
+            Assert.That(InTheOpen(), Is.Empty, method + " " + path);
+
+            // A string a strip took off is in none of the entry's own strings any longer. The
+            // revision the change kept holds it, where it is asked with the rest, and it is
+            // asked here as the object it is, for a database that keeps no history.
+            Assert.That(KeePassMemory.KeepsText(pin), Is.False, method + " " + path);
+        }
+
+        [Test]
+        public void An_entry_removed_holds_every_protected_value_as_KeePass_held_it_wherever_the_entry_went()
+        {
+            // To the recycle bin where the database keeps a bin, and out of the tree where it
+            // keeps none. The entry is the same object either way and its strings the same
+            // objects, so the question is asked of the entry this fixture still holds. Asked
+            // against the entry's tag, so the removal takes that tag as it finds the entry,
+            // over every value in its caller's sight.
+            var tag = Asked("GET", "/entries/{entry}/fields/UserName", null).Headers["ETag"];
+            Assume.That(tag, Is.Not.Null);
+
+            var answer = Asked("DELETE", "/entries/{entry}", null, tag);
+
+            Assert.That(answer.Status, Is.EqualTo(200), answer.Json);
+            Assert.That(_group.Entries.IndexOf(_entry), Is.LessThan(0), "the entry is still in its group");
             Assert.That(InTheOpen(), Is.Empty);
         }
 
@@ -200,19 +265,58 @@ namespace KeePassGate.Host.Tests
                 : Bodies.Of(("value", value));
         }
 
+        /// <summary>
+        /// The body a change to an attachment carries: a name and bytes for an attachment made,
+        /// bytes for an attachment replaced, and none for a removal.
+        /// </summary>
+        private static string Attaching(string method)
+        {
+            var content = Convert.ToBase64String(new byte[] { 4, 5, 6, 7 });
+
+            switch (method)
+            {
+                case "POST":
+                    return Bodies.Of(("name", "added.txt"), ("content", content));
+                case "PUT":
+                    return Bodies.Of(("content", content));
+                default:
+                    return null;
+            }
+        }
+
         /// <summary>A protected string held as KeePass holds a loaded file's: as bytes.</summary>
         private static ProtectedString Sealed(string value)
         {
             return new ProtectedString(true, Encoding.UTF8.GetBytes(value));
         }
 
-        /// <summary>The names of the entry's protected strings KeePass now keeps as text.</summary>
+        /// <summary>
+        /// The names of the protected strings KeePass now keeps as text: the entry's own, and
+        /// those of every revision in its history, each named for the revision it is in.
+        /// </summary>
+        /// <remarks>
+        /// The revisions too, because a change keeps the entry as it was in a revision, which
+        /// holds the same objects: a value a change replaced or took off is in none of the
+        /// entry's own strings afterwards and is still in KeePass's memory.
+        /// </remarks>
         private List<string> InTheOpen()
         {
-            return _entry.Strings
-                .Where(pair => pair.Value.IsProtected && KeePassMemory.KeepsText(pair.Value))
-                .Select(pair => pair.Key)
+            return Open(_entry.Strings, string.Empty)
+                .Concat(_entry.History.SelectMany(
+                    (revision, index) => Open(revision.Strings, "revision " + index + " holds ")))
                 .ToList();
+        }
+
+        /// <summary>
+        /// The protected strings among these that KeePass keeps as text, each by its name
+        /// behind what tells where it was found.
+        /// </summary>
+        private static IEnumerable<string> Open(
+            IEnumerable<KeyValuePair<string, ProtectedString>> strings, string found)
+        {
+            return strings
+                .Where(pair => pair.Value.IsProtected && KeePassMemory.KeepsText(pair.Value))
+                .Select(pair => found + pair.Key);
         }
 
         private GateContext Asked(string method, string path, string body)

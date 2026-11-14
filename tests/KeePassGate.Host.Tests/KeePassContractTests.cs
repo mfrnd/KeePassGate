@@ -457,8 +457,12 @@ namespace KeePassGate.Host.Tests
             // thread is free to read the same objects: the entry list drawing a title, an
             // operator opening the entry. `ProtectedBinary.ReadData` copies under a lock of its
             // own and `ProtectedString.ReadString` keeps the text it decoded before it lets the
-            // bytes go, read off 2.61.1. A race proves nothing by passing, and this fails,
-            // sooner or later, on a KeePass that lost either property.
+            // bytes go, read off 2.61.1. `ProtectedString.ReadUtf8` is what the gate reads a
+            // protected value with, and copies from whichever of the two the object holds at
+            // that moment. Each thread asks for that copy first, while the value is still held
+            // as bytes, and then reads the text, so a copy can also be taken while the other
+            // thread is letting the bytes go. A race proves nothing by passing, and this fails,
+            // sooner or later, on a KeePass that lost any of those properties.
             const int Rounds = 12;
             var expected = new string('k', 150000);
 
@@ -467,6 +471,7 @@ namespace KeePassGate.Host.Tests
                 var text = new ProtectedString(true, System.Text.Encoding.UTF8.GetBytes(expected));
                 var bytes = new ProtectedBinary(true, System.Text.Encoding.UTF8.GetBytes(expected));
 
+                byte[] encodedElsewhere = null;
                 string elsewhere = null;
                 var length = -1;
                 byte[] copied = null;
@@ -476,12 +481,14 @@ namespace KeePassGate.Host.Tests
                     var other = System.Threading.Tasks.Task.Run(() =>
                     {
                         together.SignalAndWait();
+                        encodedElsewhere = text.ReadUtf8();
                         length = text.Length;
                         elsewhere = text.ReadString();
                         copied = bytes.ReadData();
                     });
 
                     together.SignalAndWait();
+                    var encoded = text.ReadUtf8();
                     var here = text.ReadString();
                     var measured = text.Length;
                     var read = bytes.ReadData();
@@ -489,11 +496,13 @@ namespace KeePassGate.Host.Tests
                     // Whatever the other thread threw is thrown here.
                     other.GetAwaiter().GetResult();
 
+                    Assert.That(System.Text.Encoding.UTF8.GetString(encoded), Is.EqualTo(expected));
                     Assert.That(here, Is.EqualTo(expected));
                     Assert.That(measured, Is.EqualTo(expected.Length));
                     Assert.That(System.Text.Encoding.UTF8.GetString(read), Is.EqualTo(expected));
                 }
 
+                Assert.That(System.Text.Encoding.UTF8.GetString(encodedElsewhere), Is.EqualTo(expected));
                 Assert.That(elsewhere, Is.EqualTo(expected));
                 Assert.That(length, Is.EqualTo(expected.Length));
                 Assert.That(System.Text.Encoding.UTF8.GetString(copied), Is.EqualTo(expected));
