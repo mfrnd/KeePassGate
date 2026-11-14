@@ -225,7 +225,8 @@ namespace KeePassGate.Tests
         {
             // The line for a withheld value is composed inside the hold, where the rules and the
             // node's name can be read, and written only where the answer is served. A read
-            // refused by its condition withheld nothing from an answer, and read no value.
+            // refused by its condition withheld nothing from an answer, and read no value for an
+            // answer.
             Assume.That(
                 _vault.CreateField(_entry, "Password", "not-a-real-password", true, VaultAskings.Free).Ok,
                 Is.True);

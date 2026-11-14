@@ -316,8 +316,8 @@ it was, and a request carrying `Transfer-Encoding` is refused as before, §110.
 Considered in its place:
 
 - **Two passes, the first counting the length.** `Content-Length` stays and nothing changes on
-  the wire. Measured at thirty to forty percent more time than an answer built whole, since
-  every protected value is decrypted and escaped twice.
+  the wire. Measured at a quarter to a half more time than an answer built whole, since every
+  protected value is decrypted and escaped twice.
 - **No length, ended by closing the connection**, which RFC 9112 section 6.3 allows and the
   gate's closing of every connection would mark. An answer cut short is then told from a whole
   answer only by the TLS close notice, which a client has to be made to insist on: Python's
@@ -335,11 +335,14 @@ content is whole. So a client takes an answer for whole only when its last chunk
 PyKeePassGate reads a cut answer as a connection that failed. Everything that can refuse, the
 lookup, the rules, the tag and the condition, comes before the first byte, and the audit line
 for a withheld value is written before the answer is given, so what is left to fail is the
-reading of a value and the connection itself. A failure there is taken as any failure of
-writing an answer is: what a connection that went away throws is an answer lost, and anything
-else reaches the connection's thread, which counts it, §141. What the writer of a failed
-answer still holds is dropped, `ChunkedContent.Abandon`, so nothing of the answer follows the
-failure and a peer that is gone as well does not put its own failure in its place.
+reading of a value and the connection itself. The two are told apart by whether the stream
+underneath failed, `ChunkedContent.Failed`. What the connection throws is an answer lost, as
+for any answer. What the content throws is thrown again as `AnswerContentFailed`, which no
+filter written for a connection takes, so it reaches the connection's thread and is counted,
+§141: a value that cannot be decrypted throws a `CryptographicException`, which that thread
+otherwise takes for host material released at a close. What the writer of a failed answer
+still holds is dropped, `ChunkedContent.Abandon`, so nothing of the answer follows the failure
+and a peer that is gone as well does not put its own failure in its place.
 
 **Writing the answer is the peer's to slow down, and now holds the reading of the values.**
 The connection's deadline is armed again as an answer is written, `GateListener.Deadline.Writing`,
@@ -1010,20 +1013,22 @@ So the rules here:
   **What is made of an entry's values is made once the hold has ended, and is still of that
   moment.** This reverses the handler reading an entry's values and taking its tag inside the
   hold, decided on 2026-11-13 on a measurement. No write is refused for an entry's size, §142,
-  so measuring an entry's values, reading them and digesting them into its tag grow with
-  whatever a client wrote there, and inside the hold that work was KeePass's thread standing
-  still for it: about forty-five milliseconds for every request handing out the tag of an entry
-  of fifty strings of a million characters. What a read takes of an entry inside the hold is
-  the caller's view of it, `VaultEntryView`, which keeps the objects the strings and
-  attachments were held in at that moment and reads none of them. KeePass replaces a
-  `ProtectedString` and a `ProtectedBinary` and changes neither in place, and both are built to
-  be read from a second thread, which `KeePassContractTests` pins. So the lengths, the values,
-  the attachments' bytes and digests, the tag, the condition asked of it and the answer are made
-  on the connection's own thread once the hold is over, of the entry as it stood inside, whatever
-  the operator has done to it since: the same request then held KeePass's thread for under a
-  tenth of a millisecond. Everything that reads the database stays inside the hold, the audit
-  line for a withheld value with it, which is composed there and written where the answer is
-  served. A change still takes its tags inside its own turn, where the comparison and the
+  so reading an entry's values and digesting them into its tag grow with whatever a client wrote
+  there, and inside the hold that work was KeePass's thread standing still for it: about
+  forty-five milliseconds for every request handing out the tag of an entry of fifty strings of a
+  million characters. What a read takes of an entry inside the hold is the caller's view of it,
+  `VaultEntryView`, which keeps the objects the strings and attachments were held in at that
+  moment and reads none of them. KeePass replaces a `ProtectedString` and a `ProtectedBinary` and
+  changes neither in place, and both are built to be read from a second thread, which
+  `KeePassContractTests` pins. So the values, the attachments' bytes and digests, the tag, the
+  condition asked of it and the answer are made on the connection's own thread once the hold is
+  over, of the entry as it stood inside, whatever the operator has done to it since: the same
+  request then held KeePass's thread for under a tenth of a millisecond. A read measured an
+  entry's strings there as well while it was held to a ceiling, §142. No length of a string is
+  taken now, and the values of an answer written as it is sent are read later still, where the
+  transport writes them, §143. Everything that reads the database stays inside the hold, the
+  audit line for a withheld value with it, which is composed there and written where the answer
+  is served. A change still takes its tags inside its own turn, where the comparison and the
   change are one step.
 
   **The strings of a view are made after the hold as well, and a listing is written after it.**
@@ -1371,8 +1376,10 @@ So the rules here:
   is read is the peer's doing as much as how fast a request is sent. The socket's send timeout
   does not bound it, since it bounds one send, which is one TLS record: a peer reading a record
   inside every timeout held a thread and a connection slot for as long as a large answer lasted,
-  minutes for an attachment. By then the plugin's own work is over, so closing the socket there
-  costs only an answer its peer was not reading.
+  minutes for an attachment. For an answer handed over whole the plugin's own work is over by
+  then, so closing the socket there costs only an answer its peer was not reading. An answer
+  written as it is sent has its values read inside that span as well, so the deadline can cut
+  short an answer its peer was reading: the answer to a read and never a change, §143.
 
   **This section used to claim a floor instead**, `DatabaseWriter.LockTimeout +
   DatabaseWriter.WriteTimeout`, and say that a budget above the sum prevented the loss. It does
@@ -1431,7 +1438,11 @@ So the rules here:
   incident, counted on the plugin's window under Tools and logged at `UNEXPECTED`, because an
   unhandled exception in this process takes KeePass with it. It is not audited, which this bullet
   used to claim: the request's audit line is the permitted line its decision got, since the audit
-  records the authorization and not what the request then did (§120).
+  records the authorization and not what the request then did (§120). **The content of an answer
+  written as it is sent is the exception**, since it runs once the status is on the wire and has
+  no `500` left to become: what it throws comes out of the write as `AnswerContentFailed`, the
+  connection is closed with the last chunk never sent, and the failure is counted as an incident
+  the same way, §143.
 - Distribution is a **plain DLL** targeting .NET Framework 4.8, not a `.plgx`, which is what allows
   modern C# and what the packaging measurement showed.
 
@@ -1496,6 +1507,9 @@ a place of a kind sees it, or must add no exception of its own:
 - `GateTlsServer`'s callbacks, because Bouncy Castle turns whatever a callback throws into a fatal
   alert, and the call `ControlUiThread` marshals, because WinForms would answer an exception
   escaping it with that dialog, both keeping what they caught for a place of a kind to see.
+- `HttpResponse.Write`, around the content of an answer written as it is sent, which throws what
+  the content threw again as `AnswerContentFailed`, for the connection thread to count, since
+  the filters around the write of an answer are written for what a connection throws, §143.
 - `Initialize`, which calls `Terminate` and throws what it caught to KeePass, since KeePass warns
   the operator that the plugin cannot be loaded, with the exception's message, and undoes nothing.
 - The reporters, none of which may add an exception of its own: the log, `TraceGateLog`, which the
@@ -1917,9 +1931,10 @@ same way and is no longer parted. `API.md` §412 has the order of a read's refus
 What is given up, and written down so that it is not rediscovered as a defect:
 
 - **A read costs what the entry holds, and is refused for none of it.** Reading an entry a
-  client has grown reads and writes all of it on the connection's own thread, about a quarter of
-  a second and 143 MB of short-lived copies for fifty protected strings of a million
-  characters, `FINDINGS.md`, within the budget a connection is given to have its answer read.
+  client has grown reads and writes all of it on the connection's own thread: for fifty
+  protected strings of a million characters, about a quarter of a second and 143 MB of
+  short-lived copies for the writing alone, `FINDINGS.md`, beside the tag before it and the TLS
+  under it, within the budget a connection is given to have its answer read.
   What it keeps alive is the value being written. A client reads as much of an answer as its
   own cap allows, and reads a larger entry a field at a time.
 - **Nothing bounds what a client holding `update` or `create` adds to an entry** beyond what a

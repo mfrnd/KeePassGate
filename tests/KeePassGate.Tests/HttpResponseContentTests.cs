@@ -115,7 +115,7 @@ namespace KeePassGate.Tests
             // chunk that would close it, so a reader takes none of it for a whole answer.
             using (var stream = new MemoryStream())
             {
-                var thrown = Assert.Throws<InvalidOperationException>(() => HttpResponse.Write(
+                var thrown = Assert.Throws<AnswerContentFailed>(() => HttpResponse.Write(
                     stream,
                     200,
                     text =>
@@ -126,7 +126,8 @@ namespace KeePassGate.Tests
                     false,
                     null));
 
-                Assert.That(thrown.Message, Is.EqualTo("an invented failure part way"));
+                Assert.That(thrown.InnerException, Is.TypeOf<InvalidOperationException>());
+                Assert.That(thrown.InnerException.Message, Is.EqualTo("an invented failure part way"));
 
                 var raw = stream.ToArray();
                 var written = Encoding.UTF8.GetString(raw);
@@ -150,7 +151,7 @@ namespace KeePassGate.Tests
             // lost where there was a defect to count.
             var under = new RecordingStream();
 
-            var thrown = Assert.Throws<InvalidOperationException>(() => HttpResponse.Write(
+            var thrown = Assert.Throws<AnswerContentFailed>(() => HttpResponse.Write(
                 under,
                 200,
                 text =>
@@ -162,8 +163,58 @@ namespace KeePassGate.Tests
                 false,
                 null));
 
-            Assert.That(thrown.Message, Is.EqualTo("an invented failure part way"));
+            Assert.That(thrown.InnerException.Message, Is.EqualTo("an invented failure part way"));
             Assert.That(Encoding.ASCII.GetString(under.Bytes), Does.Not.Contain("half"));
+        }
+
+        [TestCase("an input or output failure")]
+        [TestCase("something let go")]
+        [TestCase("a decryption that failed")]
+        [TestCase("a failure of the gate's own")]
+        public void What_the_content_throws_is_told_from_what_the_connection_throws_whatever_its_kind(string kind)
+        {
+            // The filters around the write of an answer are written for a connection: an
+            // `IOException`, an `ObjectDisposedException`, and on the connection's thread a
+            // `CryptographicException`. Thrown by the content while the stream is sound, each is
+            // the plugin's own failure, the reading of a value among them, and comes out under
+            // a name none of those filters takes.
+            Exception failure;
+            switch (kind)
+            {
+                case "an input or output failure":
+                    failure = new IOException("an invented failure");
+                    break;
+                case "something let go":
+                    failure = new ObjectDisposedException("an invented object");
+                    break;
+                case "a decryption that failed":
+                    failure = new System.Security.Cryptography.CryptographicException("an invented failure");
+                    break;
+                default:
+                    failure = new KeePassGate.Diagnostics.VaultUnsettled("an invented failure");
+                    break;
+            }
+
+            Assert.That(KeePassGate.Diagnostics.Expected.OfConnection(failure)
+                || failure is System.Security.Cryptography.CryptographicException, Is.True, "a kind a filter takes");
+
+            using (var stream = new MemoryStream())
+            {
+                var thrown = Assert.Throws<AnswerContentFailed>(() => HttpResponse.Write(
+                    stream,
+                    200,
+                    text =>
+                    {
+                        text.Write("{\"half\":");
+                        throw failure;
+                    },
+                    false,
+                    null));
+
+                Assert.That(thrown.InnerException, Is.SameAs(failure));
+                Assert.That(KeePassGate.Diagnostics.Expected.OfConnection(thrown), Is.False);
+                Assert.That(Encoding.UTF8.GetString(stream.ToArray()), Does.Not.EndWith("0\r\n\r\n"));
+            }
         }
 
         [Test]
@@ -171,7 +222,7 @@ namespace KeePassGate.Tests
         {
             using (var stream = new MemoryStream())
             {
-                Assert.Throws<InvalidOperationException>(() => HttpResponse.Write(
+                Assert.Throws<AnswerContentFailed>(() => HttpResponse.Write(
                     stream,
                     200,
                     text =>

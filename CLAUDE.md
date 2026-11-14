@@ -474,21 +474,22 @@ designing around them.
   is written, `VaultViewField.Read`, and kept nowhere, so what a read keeps alive is the value it
   is writing. Everything that can refuse, the lookup, the rules, the tag and `If-Match`, comes
   before the first byte, and so does the audit line for a withheld value; what the content
-  throws afterwards cannot be answered and ends the connection with the last chunk never sent,
-  which is how a client tells an answer cut short, `DESIGN.md` §143. A HEAD runs no content, so
-  it reads no value. A `VaultViewField` keeps nothing a withheld value could be read with and no
-  length of any value, so nothing rendered from a view can tell how long a withheld value is.
-  **`listFields` is written the same way, every name in a single answer**, since no write
+  throws afterwards cannot be answered: it is thrown on as `AnswerContentFailed`, counted as a
+  defect, and ends the connection with the last chunk never sent, which is how a client tells an
+  answer cut short, `DESIGN.md` §143. A HEAD runs no content, so no value is read for its
+  answer; its tag is taken first, and a tag reads each value in sight the first time a tag is
+  taken over that value. A `VaultViewField` keeps nothing a withheld value could be read with
+  and no length of any value, so nothing rendered from a view can tell how long a withheld value
+  is. **`listFields` is written the same way, every name in a single answer**, since no write
   bounds how many strings an entry holds: it was served in parts while it was handed over
   whole, and there is no `from` and no `next`. So is `listAttachments`, names and sizes, and so
   are the listings of groups and of entries, which grow with the database: the rule is that an
   answer growing with what the database holds is written as it is sent, and an answer of a
   bounded size, a single group, an attachment under its ceiling, the gate's own routes, is
   handed over whole with a `Content-Length`. PyKeePassGate reads a chunked answer with its own
-  strict reader, never
-  `http.client`, and holds an answer to its own `max_response_bytes`. **This reverses a
-  ceiling on reads**, 524288
-  characters over what the caller would be handed, answered `413`, the ruling of 2026-11-10,
+  strict reader, never `http.client`, and holds an answer to its own `max_response_bytes`.
+  **This reverses a ceiling on reads**, 524288 characters over what the caller would be handed,
+  answered `413`, the ruling of 2026-11-10,
   **which had reversed a ceiling held on writes as well**, "what the gate lets a client write it
   also hands back whole": the write's refusal named the entry's whole count, so a client that
   may write and not read padded an entry to the ceiling and read off how long the values it was
@@ -1359,17 +1360,18 @@ database stopped admitting while its request waited is answered there as its nex
 to hold two authorities. `DESIGN.md` §119 has the argument and what a hold costs.
 
 **What is made of an entry's values is made after the hold.** No write is refused for an entry's
-size, so measuring an entry's values, reading them and digesting them into its tag grow with
-whatever a client wrote. A read of an entry takes the caller's `VaultEntryView` inside the hold,
-which keeps the `ProtectedString` and `ProtectedBinary` objects the entry held and reads none,
-and leaves the rest to `ServedAfter`, run by `DecidedContext.Deliver` on the connection's thread:
-the lengths, the values, the tag, the condition asked of it and the answer. KeePass replaces
-those objects and changes neither in place, and both can be read from a second thread, which
+size, so reading an entry's values and digesting them into its tag grow with whatever a client
+wrote. A read of an entry takes the caller's `VaultEntryView` inside the hold, which keeps the
+`ProtectedString` and `ProtectedBinary` objects the entry held and reads none, and leaves the
+rest to `ServedAfter`, run by `DecidedContext.Deliver` on the connection's thread: the tag, the
+condition asked of it and the handing over of what writes the answer. The values are read later
+still, by the transport as it writes the answer, `DESIGN.md` §143. KeePass replaces those
+objects and changes neither in place, and both can be read from a second thread, which
 `KeePassContractTests` pins, so the answer is of the entry as it stood when the rules were asked.
 **Nothing left for after the hold may read the database**: no lookup, no walk of the rules, no
 node's name. The line for a value a view withholds is composed inside the hold, by
 `ProtectedWithheld`, and what that hands back adds the line where the answer is served, so a
-read refused for its size or by its condition writes none. A change takes its tags inside its
+read refused by its condition writes none. A change takes its tags inside its
 own turn, where the comparison and the change are one step. **A value enters a tag by a digest
 kept against its `ProtectedString`**, `NodeTags.DigestOf`, taken once for as long as KeePass
 keeps the object, as an attachment's is kept against its `ProtectedBinary`: KeePass replaces
@@ -1496,7 +1498,9 @@ request arrived.
 **And it starts again for the answer.** Once the handler has decided, an ordinary connection's
 answer is written under the ordinary budget counted afresh, `GateListener.Deadline.Writing`,
 because how fast it is read is the peer's doing again, and the socket's send timeout bounds one
-TLS record rather than an answer.
+TLS record rather than an answer. For an answer written as it is sent that span holds the
+plugin's reading of the values as well, so what the deadline cuts short there is the answer to a
+read and never a change, `DESIGN.md` §143.
 
 **This used to claim a floor for both**, `DatabaseWriter.LockTimeout + DatabaseWriter.WriteTimeout`,
 and it was wrong: `WriteTimeout` bounds the wait for the marshaled call to *start*, and a call that

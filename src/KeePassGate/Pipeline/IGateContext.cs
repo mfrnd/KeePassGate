@@ -65,16 +65,19 @@ namespace KeePassGate.Pipeline
         /// Answers, once, with content that is written as it is sent and kept nowhere.
         /// </summary>
         /// <remarks>
-        /// **For an answer made of an entry's values**, which no write is refused for the size
-        /// of. Handed over whole, such an answer is alive several times over in the password
-        /// manager's own process; written as it is sent, what is alive is the value being
-        /// written. `HttpResponse.Write` has the measurement and the framing.
+        /// **For an answer that grows with what the database holds**: an entry's values, which
+        /// no write is refused for the size of, or a listing. Handed over whole, such an answer
+        /// is alive several times over in the password manager's own process; written as it is
+        /// sent, what is alive is the value being written. `HttpResponse.Write` has the
+        /// measurement and the framing.
         ///
-        /// **Everything that can refuse comes before this.** Calling it decides the status,
-        /// and <paramref name="content"/> runs once that status is on the wire, so what it
-        /// throws cannot be answered: the connection is closed over an answer left without its
-        /// end, which a client takes none of. It is not run for a HEAD, and not at all where
-        /// the answer is dropped.
+        /// **Everything that can refuse comes before this, and this is for no refusal.**
+        /// Calling it decides the status, and <paramref name="content"/> runs once that status
+        /// is on the wire, so what it throws cannot be answered: it is counted as a defect,
+        /// and the connection is closed over an answer left without its end, which a client
+        /// takes none of. A refusal is of a bounded size and is handed over whole, and a `503`
+        /// answered this way would name no word in `KPG-Unavailable`, which is read out of a
+        /// body. It is not run for a HEAD, and not at all where the answer is dropped.
         ///
         /// **What it writes is the whole document and nothing else, and it reads no
         /// database.** It runs on the connection's thread once the router is done with the

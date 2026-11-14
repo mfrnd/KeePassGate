@@ -142,7 +142,9 @@ namespace KeePassGate.Transport
         /// Told that the handler has decided and its answer is about to be written, which is the
         /// instant the peer has something to do with how long the rest takes again: how fast it
         /// reads. The listener gives the write a deadline of its own here, see
-        /// `GateListener.Deadline.Writing`. Null where nothing is counting.
+        /// `GateListener.Deadline.Writing`. For an answer written as it is sent the rest holds
+        /// the plugin's reading of the values as well, `DESIGN.md` §143. Null where nothing is
+        /// counting.
         /// </param>
         public static void Serve(
             Stream stream,
@@ -261,12 +263,13 @@ namespace KeePassGate.Transport
                 return;
             }
 
-            // The one answer a handler decided, so the one that can carry a field of its own,
-            // and the one whose content can be written as it is sent. A failure while that
-            // content is written has no answer left to give, and is taken as any failure of
-            // writing an answer is, `Answer`: what a connection that went away throws is an
-            // answer lost, and anything else goes on to the connection's thread, which counts
-            // it. Either way the connection is closed over an answer left without its end.
+            // The only answer a handler decided, so the only answer that can carry a field of
+            // its own or have its content written as it is sent. A failure while that
+            // content is written has no answer left to give. What the connection throws is an
+            // answer lost, as for any answer, `Answer`. What the content itself throws comes
+            // out of the writer as `AnswerContentFailed`, which nothing below filters, so it
+            // goes on to the connection's thread, which counts it. Either way the connection
+            // is closed over an answer left without its end.
             answering?.Invoke();
             if (context.Content != null)
             {

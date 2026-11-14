@@ -1362,9 +1362,9 @@ def _parse(raw: bytes) -> Response:
 
     An answer is framed by a `Content-Length` or in chunks, and the body is what follows the
     blank line under either: the bytes as they stand, or what the chunks hold, joined in order
-    by the walker `_read_all` found the end of the answer with. The gate writes the answer to a
-    read of an entry or of a single field in chunks, as it is sent, and every other answer under
-    a length.
+    by the walker `_read_all` found the end of the answer with. The gate writes an answer that
+    grows with what the database holds in chunks, as it is sent: each listing, and a read of an
+    entry or of a single field. Every other answer goes out under a length.
 
     **The framing is read rather than assumed.** Believing the close instead makes a truncated
     answer indistinguishable from a complete answer, and an answer whose body never arrived

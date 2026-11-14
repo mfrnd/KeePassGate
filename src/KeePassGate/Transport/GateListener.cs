@@ -1156,9 +1156,13 @@ namespace KeePassGate.Transport
             /// an attachment of half a megabyte, two thirds of a megabyte as base64, read at under
             /// two kilobytes a second, is about seven minutes.
             ///
-            /// The plugin's own work is over by now, so closing the socket here costs only an
-            /// answer the peer was not reading. A pairing or a renewal keeps the deadline it was
-            /// given with its request, which already outlasts the answer it writes.
+            /// For an answer handed over whole the plugin's own work is over by now, so closing
+            /// the socket here costs only an answer the peer was not reading. For an answer
+            /// written as it is sent, the window also holds the plugin's reading of the values,
+            /// which reads no database and holds no lock, so the deadline can cut short an
+            /// answer the peer was reading: the answer to a read and never a change,
+            /// `DESIGN.md` §143. A pairing or a renewal keeps the deadline it was given with its
+            /// request, which already outlasts the answer it writes.
             /// </remarks>
             public void Writing(TimeSpan budget)
             {

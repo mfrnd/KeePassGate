@@ -450,11 +450,13 @@ namespace KeePassGate.Tests.Fakes
         /// <remarks>
         /// Each value read counts in <see cref="StringReads"/>, every time it is read, since a
         /// view keeps no value it read. Each value digested for a tag counts in
-        /// <see cref="StringDigests"/> and not as a read: the real vault hands a tag the
-        /// digest its store keeps against a value, so a tag reads no value. Each attachment
-        /// read or digested counts in <see cref="AttachmentReads"/>, since the real vault
-        /// decrypts for both. With <see cref="IgnoresCeiling"/> every attachment's size is
-        /// told as nothing, which is a view handing over more than it measured.
+        /// <see cref="StringDigests"/> and not as a read: the real vault reads a value for a
+        /// tag the first time a tag is taken over that value, and hands every later tag the
+        /// digest its store keeps against the value, so a digest is counted apart from what
+        /// an answer's content reads. Each attachment read or digested counts in
+        /// <see cref="AttachmentReads"/>, since the real vault decrypts for both. With
+        /// <see cref="IgnoresCeiling"/> every attachment's size is told as nothing, which is a
+        /// view handing over more than it measured.
         /// </remarks>
         private VaultEntryView Seen(Kept entry, VaultEntry described, VaultSight sight)
         {

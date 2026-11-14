@@ -212,9 +212,12 @@ namespace KeePassGate.Transport
         /// in chunks, which is how RFC 9112 section 7.1 frames such content.
         ///
         /// **A failure part way cannot be answered.** The status is on the wire by then, so
-        /// whatever <paramref name="content"/> throws is thrown on from here with the content
-        /// left without its last chunk, and the connection is closed over it: a client reads
-        /// an answer cut short, and takes none of it.
+        /// the content is left without its last chunk and the connection is closed over it: a
+        /// client reads an answer cut short, and takes none of it. What the stream underneath
+        /// throws is thrown on as it is, for whoever handles a connection that went away.
+        /// What <paramref name="content"/> itself throws is thrown on as
+        /// <see cref="AnswerContentFailed"/>, so that no filter written for a connection takes
+        /// a failure of the plugin's own reading for a peer that left.
         ///
         /// **A HEAD asks for no content, and none is made**: <paramref name="content"/> is not
         /// run, and the answer names no framing, as a HEAD's answer names no length above.
@@ -251,14 +254,21 @@ namespace KeePassGate.Transport
                         chunks.End();
                         whole = true;
                     }
+                    catch (Exception error) when (!chunks.Failed)
+                    {
+                        // A place `DESIGN.md` §141 lists as catching everything without being
+                        // a kind: the stream did not fail, so this is the content's own, and
+                        // it is thrown again under a name no filter for a connection takes.
+                        throw new AnswerContentFailed(error);
+                    }
                     finally
                     {
                         if (!whole)
                         {
-                            // What failed is thrown on as it is. The writer above is let go
-                            // after this and hands on the text it still holds: dropped, so
-                            // that nothing of a failed answer follows the failure, and a peer
-                            // that is gone as well does not put its own failure in its place.
+                            // The writer above is let go after this and hands on the text it
+                            // still holds: dropped, so that nothing of a failed answer follows
+                            // the failure, and a peer that is gone as well does not put its
+                            // own failure in place of what failed.
                             chunks.Abandon();
                         }
                     }

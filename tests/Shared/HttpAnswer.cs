@@ -86,10 +86,11 @@ namespace KeePassGate.Testing
         /// content, taken out of its chunks where the head names `Transfer-Encoding: chunked`.
         /// </summary>
         /// <remarks>
-        /// **Taken out of the chunks before anything is decoded.** The gate writes the answer to
-        /// a read of an entry or of a field in chunks, and a chunk ends wherever its bytes ran
-        /// out, in the middle of a character as readily as between two. Decoded first, the
-        /// character on each side of a chunk's size line would be a replacement character.
+        /// **Taken out of the chunks before anything is decoded.** The gate writes each listing
+        /// and each read of an entry or of a field in chunks, and a chunk ends wherever its
+        /// bytes ran out, in the middle of a character as readily as between two. Decoded
+        /// first, the character on each side of a chunk's size line would be a replacement
+        /// character.
         ///
         /// **Strict, and a chunk it does not understand fails whoever asked.** What the gate
         /// writes is a size in hex, a line end, that many bytes, a line end, and a last chunk

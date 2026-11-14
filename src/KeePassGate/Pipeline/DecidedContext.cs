@@ -30,10 +30,12 @@ namespace KeePassGate.Pipeline
     /// whether the handler answers on the connection's thread once the turn is over or a client
     /// is turned away inside the turn.
     ///
-    /// **What a read leaves for after its hold runs here too**, <see cref="After"/>: the part of
-    /// an entry's answer made of its values, which is run by <see cref="Deliver"/> on the
-    /// connection's own thread, before the answer is handed on. A read whose hold lapsed never
-    /// reaches <see cref="Deliver"/>, so what it left is dropped with its answer.
+    /// **What a read leaves for after its hold runs here too**, <see cref="After"/>: the tag,
+    /// the condition asked of it and the handing over of what writes the answer, which is run
+    /// by <see cref="Deliver"/> on the connection's own thread, before the answer is handed on.
+    /// The values themselves are read as the answer is written, once it has been handed on. A
+    /// read whose hold lapsed never reaches <see cref="Deliver"/>, so what it left is dropped
+    /// with its answer.
     /// </remarks>
     internal sealed class DecidedContext : IGateContext
     {

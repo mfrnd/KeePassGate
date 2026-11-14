@@ -1078,9 +1078,9 @@ def _dialed(parser: argparse.ArgumentParser) -> None:
         metavar="BYTES",
         help=(
             f"the most of one answer to read, {api.MAX_RESPONSE_BYTES} unless this says "
-            "otherwise. The gate serves a listing of groups or of entries whole, so a very large "
-            "database may need it raised; an answer over it fails whole rather than arriving cut "
-            "short."
+            "otherwise. The gate serves every listing whole and an entry at any size, so a very "
+            "large database or entry may need it raised; an answer over it fails whole rather "
+            "than arriving cut short."
         ),
     )
 

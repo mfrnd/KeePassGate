@@ -31,9 +31,9 @@ namespace KeePassGate.Pipeline
     ///
     /// **A read of an entry leaves the hold with the caller's view and makes its answer after
     /// it**, <see cref="Later"/>. The view keeps the objects the entry's values were held in
-    /// when it was taken, so the values, their lengths, the tag and the answer made from them
-    /// afterwards are still of that one moment, and none of that work, which grows with the
-    /// entry, is done on KeePass's thread. Everything that reads the database stays inside:
+    /// when it was taken, so the values, the tag and the answer made from them afterwards are
+    /// still of that one moment, and none of that work, which grows with the entry, is done on
+    /// KeePass's thread. Everything that reads the database stays inside:
     /// finding the entry, the rules, and the line for a value withheld. A name in the entry is
     /// looked for after the hold, in the view, since the view's strings are made of a copy of
     /// the entry's own list when they are first asked for. A listing leaves the hold the same
@@ -255,7 +255,9 @@ namespace KeePassGate.Pipeline
                 // is the value being written, however much the entry holds, and no read is
                 // refused for an entry's size. Everything that can refuse stands above: what
                 // this writes follows a `200` that is already on the wire. A HEAD is answered
-                // without it, so asking whether an entry is there reads none of its values.
+                // without it, so no value is read for a HEAD's answer, and asking whether an
+                // entry is there reads what the tag above reads and nothing more: a value no
+                // tag was taken over before.
                 context.Respond(
                     200,
                     text => JsonWriter.Into(text, json =>
@@ -421,11 +423,12 @@ namespace KeePassGate.Pipeline
             var name = Captured(context, "name");
 
             // The entry's view, and the string in it. The view carries the node the rules are
-            // asked about, the string's name and its flag, and reads a value only when asked
-            // for that value, which is as the answer is written: a request refused before
-            // that, for a name the entry does not hold or by its condition, reads no value. An
-            // answer that is served carries the tag, which every caller reaching this route is
-            // handed, and the first tag taken over a value reads it, every value in the
+            // asked about, the string's name and its flag, and reads a value for an answer only
+            // when asked for that value, which is as the answer is written. A request refused
+            // for a name the entry does not hold is refused before the tag is taken, and reads
+            // no value. A request refused by its condition has taken the tag, and reads no
+            // value beyond that. The tag, which every caller reaching this route is handed,
+            // reads a value the first time a tag is taken over that value, every value in the
             // caller's sight at worst; a value out of that sight is never read. Null is an
             // entry that is not there or a name the entry does not hold. The view is taken
             // inside the hold, and the name is looked for in it and the tag taken after it,
@@ -1594,8 +1597,8 @@ namespace KeePassGate.Pipeline
         /// strings and attachments only here, so no such read does work on KeePass's thread
         /// that grows with how long the entry's values are or with how many it holds, beyond
         /// the copy of its lists the view is taken with. An entry's values are read later
-        /// still, as the answer is written, `IGateContext.Respond`. A listing is written here
-        /// too.
+        /// still, as the answer is written, `IGateContext.Respond`. What writes a listing is
+        /// handed over here too, and the listing is written later still, the same way.
         /// </remarks>
         private static void Later(IGateContext context, Action serve)
         {
@@ -1632,7 +1635,7 @@ namespace KeePassGate.Pipeline
         /// **Composed here, inside the hold, and written by what comes back**, which the read
         /// runs where it serves the answer, after the hold: the line names the node and asks
         /// the rules what a removed profile would have allowed, which reads the database, and
-        /// a read refused for its size or by its condition serves nothing and writes no line,
+        /// a read refused by its condition serves nothing and writes no line,
         /// <see cref="ProtectedWithheld"/>. **Composed before it is known that anything is
         /// withheld**, for any sight that could withhold a value: which strings a view
         /// withholds is known once its strings are made, and those are made after the hold,

@@ -471,8 +471,9 @@ field read: a protected string past the ceiling was `413` with its length to a c
 not read it. The operator ruled on 2026-11-10 that no write is refused for an entry's size and
 that a read is measured over what its caller is handed: the view a read was
 measured by held no length for a value it withholds, both writes are now made and answered
-alike, and the withheld field is the `null` every withheld value is. No read is held to a
-size since 2026-11-14, `API.md` §412, and a view holds no length of any value.
+alike, and the withheld field is the `null` every withheld value is. No read of an entry or of
+a field is held to a size since 2026-11-14, `API.md` §412, and a view holds no length of any
+string's value; an attachment's bytes keep their ceiling and their `413`.
 
 **An answer built whole is alive several times over while it is written, and an answer written
 as it is sent is alive a value at a time.** Built whole, an answer made of an entry's values is
@@ -502,9 +503,12 @@ less time, since nothing is copied into a document, out of it again and into byt
 
 **Counting the length first, to keep `Content-Length`, was measured and refused.** The same
 answer written twice over, into a stream that only counts and then into the connection, keeps
-as little alive and took thirty to forty percent longer than the answer built whole, 5.3 ms
-against 3.5 in the first row and 473 to 508 against 340 to 430 in the fourth, since every
-protected value is decrypted and escaped twice. `DESIGN.md` §143 has what was chosen.
+as little alive and took a quarter to a half longer than the answer built whole, since every
+protected value is decrypted and escaped twice. Measured in an earlier run of its own, against
+the answer built whole in that run: 5.3 ms against 3.5 for the first row of the table, 127 to
+132 against 89 to 96 for the second, 93 to 96 against 65 to 73 for the third, 473 to 508
+against 340 to 430 for the fourth and 351 to 359 against 275 to 300 for the fifth. `DESIGN.md`
+§143 has what was chosen.
 
 **A listing handed over whole is alive five times over beside what it is written from, and
 written as it is sent it adds nothing.** Measured the same way, over invented entries of the
@@ -654,14 +658,16 @@ milliseconds and 49 MB where every later request took a millisecond, in a Debug 
 figures above for the same request are a Release build's. An attachment is not so:
 `ProtectedBinary.Length` returns a field. Nothing public answers a string's length without that
 decryption; the UTF-8 byte count beside the encrypted bytes is private and is a bound on the
-characters and not their count. So what holds is narrower than what was written: no value is
-handed anywhere until it is asked for, building a view asks no length, a view asks the length
-only of a value in its caller's sight and only when the size is asked, so a withheld value is
+characters and not their count. So what held was narrower than what was written: no value was
+handed anywhere until it was asked for, building a view asked no length, a view asked the length
+only of a value in its caller's sight and only when the size was asked, so a withheld value was
 neither read nor measured, and the first measurement of a value in sight after a file load
-decrypts it once, inside KeePass's own type, with a number coming out.
-`NodeTagsTests.A_protected_value_held_as_bytes_is_decrypted_once_to_be_measured_and_never_for_a_view_withholding_it`
-counts the decryptions. The view asked every string's length as it was built until this was
-measured, a withheld string's among them.
+decrypted it once, inside KeePass's own type, with a number coming out. The view asked every
+string's length as it was built until this was measured, a withheld string's among them. No view
+measures a string's value since 2026-11-14, `API.md` §412: a value in sight is decrypted where
+it is read, every time, and a withheld value never, and
+`NodeTagsTests.A_protected_value_held_as_bytes_is_decrypted_each_time_it_is_read_and_never_where_it_is_withheld`
+counts those decryptions.
 
 **A value a read decodes is not always the bytes the store keeps.** A protected string another
 program wrote with bytes that are not UTF-8 is served with each bad sequence replaced, and KeePass

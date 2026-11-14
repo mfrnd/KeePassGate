@@ -19,8 +19,8 @@ uv tool install pykeepassgate     # or the command line on its own
 ```
 
 `pip install pykeepassgate` takes the same path. A client works with a plugin of its own major
-version whose major and minor it does not lead, whatever the patch on either side, so `0.1` works
-with `0.1` and `0.2` and not `0.0`, and it refuses any other before it sends anything else, as
+version whose major and minor it does not lead, whatever the patch on either side, so `0.2` works
+with `0.2` and `0.3` and not `0.1`, and it refuses any other before it sends anything else, as
 [`API.md`](https://github.com/mfrnd/KeePassGate/blob/master/API.md) §411 has it. One dependency,
 `cryptography`, because the gate
 hands over a PKCS#12 and Python's `ssl` reads PEM. Everything else, the command line included, is

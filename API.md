@@ -318,12 +318,14 @@ whatever the entry holds. Everything that can refuse comes before the first byte
 a read's refusals had already, `404` and then `412`, and the audit line for a withheld value
 with them. A failure once the status has gone out cannot be answered: the connection is closed
 with the last chunk never sent, so a client takes an answer for whole only when its last chunk
-arrived. A `HEAD` of either runs none of it and reads no value. `DESIGN.md` §143 has the
-transport's half.
+arrived. A `HEAD` of either runs none of it, so no value is read for its answer. It carries the
+tag, which is taken first, and the first tag taken over a value reads that value, as below.
+`DESIGN.md` §143 has the transport's half.
 
 **This reverses a ceiling on reads**, the operator's ruling of 2026-11-14. An answer was built
-whole, at about four times the entry's strings in memory inside KeePass, 94.5 MB for two
-hundred fields of 64K characters, so a read was held to 524288 characters of names and values,
+whole, at several times the entry's strings in memory inside KeePass, 99 MB alive at once for
+two hundred protected fields of 65536 characters, so a read was held to 524288 characters of
+names and values,
 counted over what its caller would be handed, and answered `413` past that, the ruling of
 2026-11-10. An entry past the ceiling was read a field at a time, which took `list` beside
 `read`, and a single value past it could not be read through the gate at all. `FINDINGS.md`
@@ -360,13 +362,14 @@ Considered in its place and refused, because each keeps a refusal that depends o
 caller may not read: a floor or a rounding for each string, a ceiling for each protection class,
 the message without its count, random slack in the ceiling, and pacing the refusals.
 
-**What the two reversals give up.** Nothing bounds what a client holding `update` or `create`
+**What these reversals give up.** Nothing bounds what a client holding `update` or `create`
 can add to an entry beyond what a request may carry, 65536 characters in a value and 1 MiB in a
 body, so how large an entry and the file around it grow is that client's to decide, a request
 at a time. And a read of such an entry costs what the entry holds, in time and in short-lived
-memory, on its own connection's thread: about a quarter of a second and 143 MB of copies made
-and let go for fifty protected strings of a million characters, for as long as its peer takes
-to read it within the budget a connection is given to have its answer read. A client holding
+memory, on its own connection's thread: for fifty protected strings of a million characters,
+about a quarter of a second and 143 MB of copies made and let go for the writing alone,
+beside the tag taken before it and the TLS under it, for as long as its peer takes to read it
+within the budget a connection is given to have its answer read. A client holding
 `read` on an entry it or another client can grow can keep a connection's thread that busy, on
 each of the connections the transport serves at once. PyKeePassGate raises on an answer past
 its own cap and does not go on to read field by field: which strings to fetch of an entry too
@@ -409,8 +412,8 @@ convention a release checks: nothing enforces it but whoever makes the change.
 **A client works with a gate when their major versions are equal and the client's major and minor
 do not lead the gate's.** Patches are released on each side on their own, so they are not
 compared, and a gate ahead of its client is a working pair, since everything the client relies on
-is still served. A `0.1` client works with a `0.2` gate, and a `0.2` client does not work with a
-`0.1` gate.
+is still served. A `0.2` client works with a `0.3` gate, and a `0.3` client does not work with a
+`0.2` gate.
 
 **And the client refuses any other gate, before it sends anything else.** A paired client asks
 the status route before its first request, and the pairing hello carries the version beside the
@@ -423,3 +426,10 @@ be compared.
 **Under 0.x the rule has a consequence.** With the major versions required to be equal, a change
 that breaks an existing client can no longer be a 0.x minor version, since the client it breaks
 would still take the gate for a gate it works with. So the next such change is 1.0.
+
+**0.2 breaks the 0.1 client, the single time that rule was set aside.** 0.1.0 was released and
+had no users, so the operator ruled on 2026-11-08 that the changes of 0.2 that break it stay in
+0.2, and that the consequence above holds from 0.2.0 on. A 0.1 client checks no version and
+reads an answer under a `Content-Length` and nothing else, so against a 0.2 gate it raises
+`ProtocolError` for every answer written as it is sent, §412: each listing and each read of an
+entry or of a field.

@@ -54,7 +54,8 @@ info:
     extension and the content no trailer. A failure once the status has gone out cannot be
     answered: the connection is closed with the last chunk never sent, so an answer is whole
     only when its last chunk arrived. A `head` of any of them names no framing, as it names no
-    length, and reads no value.
+    length, and no value is read for its answer. Where it carries an `ETag`, that tag is taken
+    first, and the first tag taken over a value reads that value.
 
     **A declared path asked for with a method it does not declare answers `405`, carrying the
     methods it does.** RFC 9110 section 15.5.6 requires that list, and it is read off this
@@ -1290,7 +1291,7 @@ paths:
         - $ref: "#/components/parameters/EntryUuid"
       responses:
         "200":
-          description: The field names, or a part of them.
+          description: The field names.
           headers:
             ETag:
               $ref: "#/components/headers/ETag"
@@ -1298,8 +1299,6 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/FieldList"
-        "400":
-          $ref: "#/components/responses/Malformed"
         "401":
           $ref: "#/components/responses/Unpaired"
         "404":
@@ -1324,8 +1323,6 @@ paths:
           headers:
             ETag:
               $ref: "#/components/headers/ETag"
-        "400":
-          $ref: "#/components/responses/Malformed"
         "401":
           $ref: "#/components/responses/Unpaired"
         "404":

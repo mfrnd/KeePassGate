@@ -144,7 +144,7 @@ namespace KeePassGate.Tests
             var announced = 0;
             var announcedBeforeContent = false;
 
-            var thrown = Assert.Throws<InvalidOperationException>(() => GateConversation.Serve(
+            var thrown = Assert.Throws<AnswerContentFailed>(() => GateConversation.Serve(
                 stream,
                 Paired(),
                 new SpyHandler(c => c.Respond(
@@ -153,7 +153,7 @@ namespace KeePassGate.Tests
                     {
                         announcedBeforeContent = announced == 1;
                         text.Write("{\"half\":");
-                        throw new InvalidOperationException("an invented read that fails");
+                        throw new System.IO.IOException("an invented read that fails");
                     },
                     null)),
                 _options,
@@ -165,7 +165,8 @@ namespace KeePassGate.Tests
                 null,
                 () => announced++));
 
-            Assert.That(thrown.Message, Is.EqualTo("an invented read that fails"));
+            Assert.That(thrown.InnerException, Is.TypeOf<System.IO.IOException>(), "the content's own, and no answer lost");
+            Assert.That(thrown.InnerException.Message, Is.EqualTo("an invented read that fails"));
             Assert.That(announcedBeforeContent, Is.True, "the write was announced before any content was made");
             Assert.That(announced, Is.EqualTo(1));
             Assert.That(stream.Status, Is.EqualTo(200), "the status went out before the content was run");

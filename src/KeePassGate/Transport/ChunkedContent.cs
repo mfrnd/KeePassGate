@@ -53,6 +53,7 @@ namespace KeePassGate.Transport
         private int _held;
         private bool _ended;
         private bool _abandoned;
+        private bool _failed;
 
         public ChunkedContent(Stream stream)
         {
@@ -62,6 +63,15 @@ namespace KeePassGate.Transport
             }
 
             _stream = stream;
+        }
+
+        /// <summary>
+        /// Whether a write to the stream underneath failed, which is how a failure of the
+        /// connection is told from a failure of whatever writes the content.
+        /// </summary>
+        public bool Failed
+        {
+            get { return _failed; }
         }
 
         public override bool CanRead
@@ -140,7 +150,9 @@ namespace KeePassGate.Transport
             }
 
             Send();
+            _failed = true;
             _stream.Flush();
+            _failed = false;
         }
 
         /// <summary>
@@ -155,7 +167,9 @@ namespace KeePassGate.Transport
 
             Send();
             _ended = true;
+            _failed = true;
             _stream.Write(Last, 0, Last.Length);
+            _failed = false;
         }
 
         /// <summary>
@@ -223,9 +237,12 @@ namespace KeePassGate.Transport
             _chunk[end++] = (byte)'\n';
 
             // Emptied before the write, so a write that fails is not sent again by whatever
-            // lets go of this afterwards.
+            // lets go of this afterwards, and marked failed until the write has returned, so a
+            // write that throws leaves the mark standing without anything here catching it.
             _held = 0;
+            _failed = true;
             _stream.Write(_chunk, at, end - at);
+            _failed = false;
         }
     }
 }

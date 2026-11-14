@@ -1137,18 +1137,27 @@ namespace KeePassGate.Tests
             }
         }
 
-        [Test]
-        public void Content_that_fails_part_way_is_counted_and_the_client_is_handed_no_whole_answer()
+        [TestCase(false)]
+        [TestCase(true)]
+        public void Content_that_fails_part_way_is_counted_and_the_client_is_handed_no_whole_answer(bool decrypting)
         {
             // What the content of an answer throws has no answer left to give: the status is on
             // the wire. It reaches the connection's thread, which counts it where the operator
             // sees it and closes the connection, and the client finds an answer with no last
-            // chunk, or no answer at all where the close reached it first.
+            // chunk, or no answer at all where the close reached it first. A value that cannot
+            // be decrypted is counted as well: the connection's thread takes a
+            // `CryptographicException` of its own for material released at a close, and the
+            // content's is no such thing.
             var log = new QueueLog();
             var incidents = new KeePassGate.Diagnostics.GateIncidents(log);
             var handler = new WritingHandler(writer =>
             {
                 writer.Write("{\"half\":");
+                if (decrypting)
+                {
+                    throw new System.Security.Cryptography.CryptographicException("an invented read that fails");
+                }
+
                 throw new InvalidOperationException("an invented read that fails");
             });
 

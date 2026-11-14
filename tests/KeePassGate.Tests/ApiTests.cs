@@ -1991,9 +1991,9 @@ namespace KeePassGate.Tests
         [Test]
         public void A_read_of_an_entry_reads_each_value_in_sight_a_single_time_and_no_withheld_value()
         {
-            // The tag is taken from digests and reads nothing, so what is read is what the
-            // answer writes: each value in the caller's sight, where it is written, and never a
-            // value the caller's rule withholds.
+            // The tag is taken from digests, which the fake counts apart from a read, so what is
+            // counted is what the answer writes: each value in the caller's sight, where it is
+            // written, and never a value the caller's rule withholds.
             _vault.CreateField(_entry, "Password", "not-a-real-password", true, VaultAskings.Free);
             _vault.CreateField(_entry, "Account", "an invented account", false, VaultAskings.Free);
             _vault.Granting(_group, Rules.Granting(("agent", "RL")));
@@ -2020,9 +2020,14 @@ namespace KeePassGate.Tests
         public void Asking_whether_an_entry_or_a_field_is_there_reads_no_value()
         {
             // A handler answering a read of an entry or of a field hands over what writes the
-            // values and reads none of them itself, and the transport does not run that for a
-            // HEAD, `HttpResponseTests`. So a HEAD is answered with the status and the tag a GET
-            // carries, with no value read anywhere.
+            // values and reads none of them for the answer itself, and the transport does not
+            // run that for a HEAD, `HttpResponseContentTests`. So a HEAD is answered with the
+            // status and the tag a GET carries, and no value is read for its answer. The tag is
+            // taken from digests, which the fake counts apart from a read.
+            //
+            // Asked of the router, which runs no content, and not through `Send`, whose helper
+            // leaves the content of a HEAD out itself: what is held here is that the handler
+            // handed over what writes the answer and made no document.
             _vault.Granting(_group, AllButProtected);
             _vault.Plant(_entry, "Account", "an invented account");
 
@@ -2032,14 +2037,17 @@ namespace KeePassGate.Tests
                 Assume.That(got.Status, Is.EqualTo(200), path);
                 _vault.StringReads = 0;
 
-                var head = Send("HEAD", path, null);
+                var head = Context("HEAD", path, null);
+                _router.Handle(head);
 
                 Assert.That(head.Status, Is.EqualTo(200), path);
-                Assert.That(head.Tag, Is.EqualTo(got.Tag), path);
-                Assert.That(head.Json, Is.Empty, path);
+                Assert.That(head.Headers == null ? null : head.Headers["ETag"], Is.EqualTo(got.Tag), path);
+                Assert.That(head.Content, Is.Not.Null, path + " was not handed over as what writes it");
+                Assert.That(head.Json, Is.Null, path + " was handed over as a document as well");
                 Assert.That(_vault.StringReads, Is.Zero, path + " read a value for an answer with no content");
             }
         }
+
         [TestCase("L")]
         [TestCase("LA")]
         public void A_caller_that_only_lists_is_served_names_flags_and_sizes_and_no_value_is_read(string mask)
@@ -2140,8 +2148,8 @@ namespace KeePassGate.Tests
         {
             // The condition is asked of the tag, which is taken from digests, and it is asked
             // before the answer is handed over. So a read refused by its condition has written
-            // nothing and read nothing, however much the entry holds, and the same read under
-            // the tag the entry has is served.
+            // nothing and read no value for an answer, however much the entry holds, and the
+            // same read under the tag the entry has is served.
             _vault.Granting(_group, AllButProtected);
             _vault.Plant(_entry, "Big", new string('x', 2 * HalfAMegabyte));
             var path = "/entries/" + _entry + under;
