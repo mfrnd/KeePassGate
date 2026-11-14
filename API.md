@@ -253,7 +253,14 @@ read or write those bytes through the gate.
 **It is an HMAC under a key derived from the database's host certificate**, as the database stores
 it, which no client holds: the gate key would have been the obvious choice and every paired client
 has it. So nothing outside the gate can compute a tag for a guess, and one content gives one tag
-across a lock, a restart and a reload, until the authority is recreated. **This reverses a key drawn
+across a lock, a restart and a reload, until the authority is recreated. **What a tag is made of
+is no part of the contract.** A client is promised that a tag it was handed matches while what it
+may read of the node is unchanged, and that a tag that does not match is refused `412`; it is
+not promised the bytes. So a version of the plugin may make a tag of other bytes, which changes
+every tag it touches once, and costs a client that kept a tag across the upgrade a `412` and a
+read, as recreating the authority does. That moves no version number by §411, since no program
+that worked has to change: 0.2.0 does it to every entry's tag, which enters a value by a digest
+kept for as long as KeePass keeps the value, `DESIGN.md` §136. **This reverses a key drawn
 when the plugin loaded and kept in memory**, which made every tag change whenever KeePass started:
 a client that read on one day and wrote on the next was refused for nothing anybody wrote, and the
 operator asked why a tag should change when the node had not.
@@ -369,19 +376,20 @@ file around it grow is that client's to decide, a request at a time. PyKeePassGa
 whole read refused this way and does not go on to read field by field: which strings to fetch of
 an entry too large to hand over is its caller's decision.
 
-**A tag is still taken over the whole of a caller's view, however large, and a read takes it
-with KeePass's thread free.** A read refused for its size takes no tag, so it digests nothing.
-Every other answer that hands a tag out, a listing of the fields and a read of a short field
-among them, and every write under `If-Match` or answered with an `etag`, reads every value in its
-caller's sight. A read does that once the hold of KeePass's thread has ended, from the view of
-the entry it took inside the hold, and encodes a long value for the digest a piece at a time,
-`DESIGN.md` §119. Measured on an entry of fifty protected strings of a million characters each,
-a read that hands a tag out holds KeePass's thread for under a tenth of a millisecond and then
-takes about sixty milliseconds on its own connection's thread, and 48 MB a megabyte at a time:
-a copy of each protected value, digested and overwritten, so that KeePass goes on protecting the
-value in memory, `DESIGN.md` §136. A write takes its tags inside
-its own turn on KeePass's thread, where the comparison and the change are one step, beside a
-save that takes far longer; `FINDINGS.md` has the numbers. No ceiling was added for it.
+**A tag is still taken over the whole of a caller's view, however large, and it reads each value
+once.** A read refused for its size takes no tag. Every other answer that hands a tag out, a listing
+of the fields and a read of a short field among them, and every write under `If-Match` or answered
+with an `etag`, covers every value in its caller's sight. A value enters a tag by its digest, and
+the digest is taken once for as long as KeePass keeps the object the value is held in, as an
+attachment's is: KeePass replaces that object when the value changes and never changes it in
+place. So the first tag anybody is handed over a value reads it, and every tag after it costs by how
+many strings the entry holds and not by how long they are. Measured on an entry of fifty protected
+strings of a million characters each: the first tagged read takes about sixty to ninety milliseconds
+and 48 MB on its own connection's thread, a copy of each protected value digested and overwritten,
+so that KeePass goes on protecting the value in memory, `DESIGN.md` §136, and every tagged read
+after it a quarter of a millisecond. A read takes its tag once the hold of KeePass's thread has
+ended, `DESIGN.md` §119, and a write inside its own turn on that thread, where the comparison and
+the change are one step. `FINDINGS.md` has the numbers. No ceiling was added for it.
 
 ## Durability §408
 

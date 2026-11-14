@@ -483,11 +483,12 @@ each value in turn, and 93 to 104 milliseconds and 191 MB for the first request 
 were loaded, since KeePass decrypts and decodes each value once when it is read as text and then
 keeps the text. So a read takes its view of the entry inside the hold and asks the view for
 everything else once the hold has ended, `DESIGN.md` §119. Measured the same way after that, the
-hold for those fifty strings is 0.07 to 0.09 milliseconds, and what the request takes on its own
-connection's thread depends on how KeePass holds the values. Protected and held as bytes, the way a
-file's are: about 59 milliseconds and 48 MB, every time, a copy of each value decrypted, digested
-and overwritten, a megabyte at a time, since a protected value is no longer read the way that makes
-KeePass keep it as text, below. Held in the open: 41 to 43 milliseconds and 0.2 MB, the tag encoding
+hold for those fifty strings is 0.07 to 0.09 milliseconds, and what the request took on its own
+connection's thread, while a tag read every value for every request, depended on how KeePass holds
+the values. Protected and held as bytes, the way a file's are: about 59 milliseconds and 48 MB,
+every time, a copy of each value decrypted, digested and overwritten, a megabyte at a time, since a
+protected value is no longer read the way that makes KeePass keep it as text, below. Held in the
+open: 41 to 43 milliseconds and 0.2 MB, the tag encoding
 a long value a piece at a time. A whole read refused for its size measures the protected values the
 first time, 46 to 73 milliseconds and 48 MB, and is answered in a tenth of a millisecond after that,
 none of it inside the hold. A client that reads the entry without `protected`, the fifty being
@@ -495,7 +496,9 @@ protected, reads and measures none of them: a withheld value is never read. A wr
 inside its own turn on KeePass's thread, the tag it is asked against and the tag it leaves: 58 to 65
 milliseconds and 48 MB each over the fifty protected strings, 40 to 43 milliseconds over fifty held
 in the open, beside a save of 2.2 seconds for the protected strings and 0.3 seconds for the strings
-held in the open, which the write causes whoever sends it.
+held in the open, which the write causes whoever sends it. Each of those figures for a tag is the
+cost of the first tag over a value now, and no tag after it pays it: a digest of each value is
+kept, below.
 
 **The hold grew with how many strings an entry holds, and a listing's with what it wrote, until both
 were made after the hold.** With the values read after the hold, taking the view stayed inside, and
@@ -517,6 +520,24 @@ and for 30 to 33 where the database protects them, shown to the caller or not, s
 are shown is a rule asked of each entry; the 2.3 MB is then written in 15 to 17 milliseconds where
 titles are in the open and about 62 where each protected title shown is decrypted, on the
 connection's thread.
+
+**A tag read every value in sight for every request until it kept a digest of each.** With the
+values read after the hold and a protected value left as KeePass held it, every tagged answer over
+the fifty protected strings of a million characters cost about 59 milliseconds and 48 MB on the
+connection's thread, and a write twice that inside its turn. A tag now takes a value by its SHA-256,
+taken once for as long as KeePass keeps the object the value is held in and kept against that
+object, as an attachment's digest is, `DESIGN.md` §136. Measured the same way, in Release: the first
+tagged read of that entry takes 62 to 88 milliseconds and 48 MB, and every tagged read after it 0.23
+to 0.30 milliseconds and 0.08 MB; fifty such strings held in the open take 36 milliseconds and 4 MB
+the first time and 0.13 to 0.21 milliseconds after; an entry of six strings of twenty characters
+takes a tenth of a millisecond either way. The digests kept for ten thousand entries of six strings,
+a third of them protected, come to 12.0 MB, about two hundred bytes for each value, each living as
+long as its value's object. A synchronize needs nothing told: a value a merge changes is held in
+another object, which has no digest kept, `NodeTagsTests`. What shows is the first tag over a long
+value taking longer than the tags after it, to a client that sees the value, after anything that
+makes KeePass put the value in another object: a change to it, a lock and unlock, a synchronize
+that takes the entry. The buffers a long value held in the open is encoded through are made for
+each value, which is the 4 MB of the first tag over the fifty.
 
 **A view of an entry can be asked after the hold it was taken in, because KeePass replaces the
 object a value is held in and never changes it.** Read off KeePass 2.61.1, decompiled, and
@@ -546,9 +567,12 @@ the entry in the open in KeePass's memory, the values nobody asked for with them
 protected value written through the gate was in the open from the start. A protected value is
 now read with `ReadUtf8`, digested from that copy, or decoded from it where it is served, and the
 copy overwritten; and a protected value is handed to KeePass as bytes, `StoredStrings`. What
-that costs is the copy for every request, where KeePass keeping the text made every request
-after the first cheaper: the 59 milliseconds and 48 MB above, against 40 to 42 milliseconds and
-0.2 MB with the values left in the open after a first request of 90 milliseconds and 143 MB.
+that cost, while a tag read every value, was the copy for every request, where KeePass keeping
+the text made every request after the first cheaper: the 59 milliseconds and 48 MB above,
+against 40 to 42 milliseconds and 0.2 MB with the values left in the open after a first request
+of 90 milliseconds and 143 MB. With a digest of each value kept, above, it is the copy for the
+first tag over a value, and a copy of each protected title and address a listing shows, for
+every listing.
 What it does not do: a value that is served is a string in the process until the runtime reuses
 its memory, and so is the answer it is written into, and neither can be overwritten.
 

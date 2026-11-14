@@ -25,7 +25,7 @@ namespace KeePassGate.Host.Tests
     /// KeePass holds a protected value a file was loaded with as encrypted bytes, and
     /// `ProtectedString.ReadString` decodes it, keeps the decoded string inside the object and
     /// lets the bytes go, so read that way a value is in KeePass's memory in the open for as
-    /// long as the entry is loaded. A tag reads every value in its caller's sight, so a listing
+    /// long as the entry is loaded. A tag covers every value in its caller's sight, so a listing
     /// of an entry's fields left every protected value of the entry in the open. Every case
     /// here is the real router over the real vault, and asks KeePass's own object afterwards
     /// whether it keeps the text: `KeePassContractTests` pins that the question still means

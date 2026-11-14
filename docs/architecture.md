@@ -165,7 +165,8 @@ program whose rule read all of it, which left a program without `P` no tag for a
 a password. [Access control](access-control.md) has what follows from it. A tag is made with a
 secret derived from the database's own host key, so it tells anyone
 else nothing about what is in the entry, and it stays the same when KeePass starts again; recreating
-the database's authority changes every tag.
+the database's authority changes every tag, and so can installing a new version of the plugin,
+once.
 
 **The lock after global user inactivity is the one writes cannot postpone.** KeePass has two
 timeouts, both under **Tools**, **Options**, **Security**. **Lock workspace after KeePass

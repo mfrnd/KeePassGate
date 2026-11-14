@@ -60,7 +60,10 @@ none, since it releases both.
   an entry hold different tags for it, and two that see the same hold the same. A client without
   `read` is still handed no tag, and its `If-Match` still fails. This reverses the earlier rule,
   on the operator's ruling of 2026-11-10, and it moves the minor version by `API.md` §411, since
-  a client that was handed no tag may now rely on being handed a tag. What it costs: a client
+  a client that was handed no tag may now rely on being handed a tag. An entry's tag is also
+  made differently, of a digest of each value kept for as long as KeePass keeps the value, so
+  that it does not read every value for every request, and every entry's `ETag` handed out by
+  an earlier version fails its next `If-Match` once. What it costs: a client
   writing a protected value it may not read is told the value changed in between only when the
   change moved the entry's `modified`, and a client whose rules are widened or narrowed over
   what it sees of an entry has its next `If-Match` fail once. Guessing a value by comparing tags

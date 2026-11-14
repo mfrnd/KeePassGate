@@ -140,9 +140,10 @@ namespace KeePassGate.Host.Tests
             // so it lands before any of that. The view keeps the objects the entry held, which
             // KeePass replaces and does not change, so the answer and its tag are of the entry
             // as it stood inside the hold. One value is protected and held as bytes the way a
-            // file's are, which the tag digests from a copy of those bytes, whole. Another is
-            // kept in the open and is longer than the tag encodes whole, so the tag digests it
-            // a piece at a time.
+            // file's are, and is digested from a copy of those bytes. Another is kept in the
+            // open and is longer than a piece, so it is digested a piece at a time. Both are
+            // put back in new objects before the request the operator follows, so that its tag
+            // is the first over them and their digests are taken after the edit has landed.
             _database.RootGroup.CustomData.Set(AclDocument.CustomDataKey, Rules.Granting(("agent", "RLAP")));
             var longer = new string('k', 40000);
             _entry.Strings.Set("Longer", new ProtectedString(true, System.Text.Encoding.UTF8.GetBytes(longer)));
@@ -153,10 +154,14 @@ namespace KeePassGate.Host.Tests
             Assume.That(before.Status, Is.EqualTo(200), before.Json);
             Assume.That(before.Headers["ETag"], Is.Not.Null);
 
-            // The request that follows finds the protected value as the first found it: a read
-            // copies the bytes out and leaves KeePass's object holding them.
+            // The first request left the protected value as it found it: a read copies the
+            // bytes out and leaves KeePass's object holding them.
             Assert.That(_entry.Strings.Get("Longer"), Is.SameAs(held));
             Assert.That(KeePassMemory.KeepsText(held), Is.False, "a read left KeePass the text of a protected value");
+
+            // The same values in objects no tag has been taken over.
+            _entry.Strings.Set("Longer", new ProtectedString(true, System.Text.Encoding.UTF8.GetBytes(longer)));
+            _entry.Strings.Set("Open", new ProtectedString(false, new string('m', (2 * NodeTags.Pieces.Characters) + 7)));
 
             var operatorNext = new OperatorNext(1, () =>
             {

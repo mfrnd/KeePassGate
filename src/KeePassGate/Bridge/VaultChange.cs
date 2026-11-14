@@ -48,8 +48,9 @@ namespace KeePassGate.Bridge
         /// </summary>
         /// <remarks>
         /// **For an outcome that can throw**, which is one carrying the tag the change left: taking
-        /// it decrypts every value in its caller's sight and digests every attachment there that
-        /// has not been digested before, and a decryption can fail, through memory protection,
+        /// it decrypts the kept digest of every protected value in its caller's sight, and
+        /// digests every value and attachment there that has not been digested before, and a
+        /// decryption can fail, through memory protection,
         /// another plugin's
         /// `ProtectedBinary.ExtCrypt` or an allocation. Asked as an argument of the constructor, the
         /// outcome ran before the undo existed, so a tag that threw left the change in memory with

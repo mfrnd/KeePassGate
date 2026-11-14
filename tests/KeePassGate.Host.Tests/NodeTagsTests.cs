@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Linq;
+using System.Reflection;
 using System.Security.Cryptography;
 using System.Text;
 using System.Threading;
@@ -68,10 +69,10 @@ namespace KeePassGate.Host.Tests
         public void A_value_is_digested_from_its_stored_bytes_as_the_value_a_read_serves_is()
         {
             // A value KeePass protects in memory is digested from a copy of its bytes, so that
-            // a tag makes no string of it. The bytes are the store's, and a file another
-            // program wrote can hold bytes that are not UTF-8, which a read serves with each
-            // bad sequence replaced. Either way the part digested has to be the part the served
-            // string would have been, or a tag would move with how a value was read.
+            // no string is made of it. The bytes are the store's, and a file another program
+            // wrote can hold bytes that are not UTF-8, which a read serves with each bad
+            // sequence replaced. Either way the digest has to be the digest of the string a
+            // read serves, or a tag would move with how a value is held.
             const int Piece = NodeTags.Pieces.Characters;
             var values = new List<byte[]>
             {
@@ -93,23 +94,18 @@ namespace KeePassGate.Host.Tests
             {
                 foreach (var stored in values)
                 {
-                    byte[] fromBytes;
-                    using (var sha256 = SHA256.Create())
-                    {
-                        NodeTags.Stored(sha256, stored, pieces);
-                        sha256.TransformFinalBlock(Array.Empty<byte>(), 0, 0);
-                        fromBytes = sha256.Hash;
-                    }
+                    var served = Encoding.UTF8.GetString(stored);
 
-                    byte[] fromText;
-                    using (var sha256 = SHA256.Create())
-                    {
-                        NodeTags.Value(sha256, Encoding.UTF8.GetString(stored), pieces);
-                        sha256.TransformFinalBlock(Array.Empty<byte>(), 0, 0);
-                        fromText = sha256.Hash;
-                    }
+                    Assert.That(
+                        NodeTags.Digested(stored, pieces),
+                        Is.EqualTo(NodeTags.Digested(served, pieces)),
+                        BitConverter.ToString(stored.Take(8).ToArray()));
 
-                    Assert.That(fromBytes, Is.EqualTo(fromText), BitConverter.ToString(stored.Take(8).ToArray()));
+                    // And as KeePass holds either: protected, as bytes, and in the open, as text.
+                    Assert.That(
+                        NodeTags.DigestOf(new ProtectedString(true, stored)),
+                        Is.EqualTo(NodeTags.DigestOf(new ProtectedString(false, served))),
+                        BitConverter.ToString(stored.Take(8).ToArray()));
                 }
             }
         }
@@ -117,12 +113,11 @@ namespace KeePassGate.Host.Tests
         [Test]
         public void A_long_value_is_digested_in_pieces_as_the_value_whole_is()
         {
-            // A value longer than a piece is encoded a piece at a time, so that a tag over
-            // megabytes allocates no second copy of them. The bytes digested have to be the
-            // bytes of the value encoded whole, wherever a piece ends: inside a character of
-            // several bytes, between the halves of a pair of surrogates, on a surrogate with no
-            // other half, which the encoding replaces. Held against the same part written whole,
-            // its length before its bytes.
+            // A value held in the open and longer than a piece is encoded a piece at a time, so
+            // that digesting megabytes allocates no second copy of them. The bytes digested
+            // have to be the bytes of the value encoded whole, wherever a piece ends: inside a
+            // character of several bytes, between the halves of a pair of surrogates, on a
+            // surrogate with no other half, which the encoding replaces.
             const int Piece = NodeTags.Pieces.Characters;
             const string Pair = "\U0001F511";
             var values = new List<string>
@@ -147,29 +142,54 @@ namespace KeePassGate.Host.Tests
             {
                 foreach (var value in values)
                 {
-                    byte[] digested;
-                    using (var sha256 = SHA256.Create())
-                    {
-                        NodeTags.Value(sha256, value, pieces);
-                        sha256.TransformFinalBlock(Array.Empty<byte>(), 0, 0);
-                        digested = sha256.Hash;
-                    }
-
-                    var bytes = Encoding.UTF8.GetBytes(value);
-                    var length = new[]
-                    {
-                        (byte)(bytes.Length >> 24), (byte)(bytes.Length >> 16), (byte)(bytes.Length >> 8), (byte)bytes.Length,
-                    };
-
                     byte[] whole;
                     using (var sha256 = SHA256.Create())
                     {
-                        whole = sha256.ComputeHash(length.Concat(bytes).ToArray());
+                        whole = sha256.ComputeHash(Encoding.UTF8.GetBytes(value));
                     }
 
-                    Assert.That(digested, Is.EqualTo(whole), "a value of " + value.Length + " characters");
+                    Assert.That(
+                        NodeTags.Digested(value, pieces), Is.EqualTo(whole), "a value of " + value.Length + " characters");
                 }
             }
+        }
+
+        [Test]
+        public void A_string_s_digest_is_kept_against_its_object_and_handed_out_as_a_copy()
+        {
+            // The digest is taken once for as long as KeePass keeps the string, so what is
+            // handed out has to be a copy: a tag overwrites the digest it was handed, and
+            // overwriting the kept digest would leave every later tag over that value wrong.
+            // A protected value's digest is taken with the value left as KeePass held it.
+            foreach (var isProtected in new[] { true, false })
+            {
+                var value = new ProtectedString(isProtected, Encoding.UTF8.GetBytes("not-a-real-password"));
+
+                byte[] expected;
+                using (var sha256 = SHA256.Create())
+                {
+                    expected = sha256.ComputeHash(Encoding.UTF8.GetBytes("not-a-real-password"));
+                }
+
+                var first = NodeTags.DigestOf(value);
+                Assert.That(first, Is.EqualTo(expected), "protected: " + isProtected);
+
+                Array.Clear(first, 0, first.Length);
+                var second = NodeTags.DigestOf(value);
+                Assert.That(second, Is.Not.SameAs(first));
+                Assert.That(second, Is.EqualTo(expected), "the kept digest was overwritten through a copy of it");
+
+                Assert.That(KeePassMemory.KeepsText(value), Is.EqualTo(!isProtected));
+            }
+
+            // Another object holding the same value has the same digest, and another value
+            // another.
+            Assert.That(
+                NodeTags.DigestOf(new ProtectedString(true, Encoding.UTF8.GetBytes("the same"))),
+                Is.EqualTo(NodeTags.DigestOf(new ProtectedString(true, Encoding.UTF8.GetBytes("the same")))));
+            Assert.That(
+                NodeTags.DigestOf(new ProtectedString(true, Encoding.UTF8.GetBytes("the same"))),
+                Is.Not.EqualTo(NodeTags.DigestOf(new ProtectedString(true, Encoding.UTF8.GetBytes("another")))));
         }
 
         [Test]
@@ -531,7 +551,7 @@ namespace KeePassGate.Host.Tests
             Func<VaultSight, string, VaultEntryView> viewed = (sight, value) => new VaultEntryView(
                 Described("A1", "B1", created, created, null),
                 sight,
-                new[] { new VaultViewField("Password", true, () => value.Length, sight, () => value) },
+                new[] { new VaultViewField("Password", true, () => value.Length, sight, () => value, false, Digesting(value)) },
                 Array.Empty<VaultViewAttachment>(),
                 null);
 
@@ -544,15 +564,15 @@ namespace KeePassGate.Host.Tests
         }
 
         [Test]
-        public void A_tag_digests_a_protected_value_from_its_stored_bytes_and_makes_no_string_of_it()
+        public void A_tag_takes_a_value_by_the_digest_its_view_hands_it_and_reads_no_value()
         {
-            // The digest itself, apart from any vault, so that what is pinned is which of a
-            // field's two answers a tag asks for. A view hands a tag a copy of the bytes the
-            // store keeps for a protected value, beside what reads the value as a string. A tag
-            // that asked for the string made a string of every protected value in its caller's
-            // sight, which nothing can overwrite, for a request that served none of them. The
-            // vault's own reader leaves KeePass's object alone either way, so only a reader
-            // that counts shows which was asked. The copy is the tag's to overwrite.
+            // The tag itself, apart from any vault, so that what is pinned is which of a
+            // field's answers a tag asks for. A view hands a tag the digest the store keeps for
+            // a value, beside what reads the value as a string. A tag that asked for the string
+            // read every value in its caller's sight for a request that served none of them,
+            // however long they are, and made a string of every protected value among them,
+            // which nothing can overwrite. Only a reader that counts shows which was asked.
+            // The digest handed over is a copy, and the tag's to overwrite.
             const string Value = "not-a-real-password";
             var created = new DateTimeOffset(Moment);
             var reads = 0;
@@ -563,31 +583,92 @@ namespace KeePassGate.Host.Tests
                 reads++;
                 return Value;
             };
-            Func<byte[]> copied = () =>
+            Func<byte[]> kept = () =>
             {
-                var copy = Encoding.UTF8.GetBytes(Value);
-                handed.Add(copy);
-                return copy;
+                using (var sha256 = SHA256.Create())
+                {
+                    var copy = sha256.ComputeHash(Encoding.UTF8.GetBytes(Value));
+                    handed.Add(copy);
+                    return copy;
+                }
             };
-            Func<Func<byte[]>, VaultEntryView> viewed = stored => new VaultEntryView(
+            Func<Func<byte[]>, VaultEntryView> viewed = digest => new VaultEntryView(
                 Described("A1", "B1", created, created, null),
                 Sights.Whole,
-                new[] { new VaultViewField("Password", true, () => Value.Length, Sights.Whole, read, false, stored) },
+                new[] { new VaultViewField("Password", true, () => Value.Length, Sights.Whole, read, false, digest) },
                 Array.Empty<VaultViewAttachment>(),
                 null);
 
             var tags = TestTags.Fixed;
-            var tag = tags.Of(viewed(copied));
+            var tag = tags.Of(viewed(kept));
 
             Assert.That(tag, Does.Match("^[0-9a-f]{32}$"));
-            Assert.That(reads, Is.Zero, "the tag read a protected value as a string");
-            Assert.That(handed, Is.Not.Empty, "the tag never asked for the stored bytes");
-            Assert.That(handed.SelectMany(bytes => bytes), Has.All.EqualTo(0), "a copy the tag digested was left as it was");
+            Assert.That(reads, Is.Zero, "the tag read a value it was handed the digest of");
+            Assert.That(handed, Is.Not.Empty, "the tag never asked for the digest");
+            Assert.That(handed.SelectMany(bytes => bytes), Has.All.EqualTo(0), "a digest the tag was handed was left as it was");
 
-            // The same tag as the string gives, which is what a view holding no stored bytes
-            // is digested from: a value the store keeps in the open.
-            Assert.That(tags.Of(viewed(null)), Is.EqualTo(tag));
-            Assert.That(reads, Is.EqualTo(1), "a value with no stored bytes is read as the string it already is");
+            // A string in sight that carries no digest is refused, and its value is not read in
+            // the digest's place: read there, a protected value became a string for every tag
+            // with the same tag coming out, and nothing would have shown it.
+            Assert.Throws<InvalidOperationException>(() => tags.Of(viewed(null)));
+            Assert.That(reads, Is.Zero, "a value was read where its digest was missing");
+        }
+
+        [Test]
+        public void A_digest_is_taken_once_for_as_long_as_KeePass_keeps_the_string()
+        {
+            // What the digests are kept for: the first digest of a protected value copies the
+            // value out to read it, and a digest of the same string after it reads nothing.
+            // Counted in what each call allocates, since nothing else shows a value being read.
+            const int Characters = 1000000;
+            var value = new ProtectedString(true, Encoding.UTF8.GetBytes(new string('k', Characters)));
+
+            var before = GC.GetAllocatedBytesForCurrentThread();
+            var first = NodeTags.DigestOf(value);
+            var taken = GC.GetAllocatedBytesForCurrentThread() - before;
+
+            before = GC.GetAllocatedBytesForCurrentThread();
+            var second = NodeTags.DigestOf(value);
+            var kept = GC.GetAllocatedBytesForCurrentThread() - before;
+
+            Assert.That(second, Is.EqualTo(first));
+            Assert.That(taken, Is.GreaterThanOrEqualTo(Characters), "digesting a protected value copies it out");
+            Assert.That(kept, Is.LessThan(16 * 1024), "a second digest of the same string read the value again");
+        }
+
+        [Test]
+        public void The_digest_of_a_string_KeePass_holds_encrypted_is_kept_encrypted()
+        {
+            // A digest of a short secret is a way to guess the secret for whoever reads memory
+            // that left the process, so the digest of a value KeePass keeps encrypted is kept
+            // as the value is, inside KeePass's own protected container, and the digest of a
+            // value KeePass keeps in the open is kept in the open beside it. By the string's
+            // own flag, which is how KeePass holds the value. Read off the object the digest is
+            // kept in, by the names it has here.
+            foreach (var isProtected in new[] { true, false })
+            {
+                var value = new ProtectedString(isProtected, Encoding.UTF8.GetBytes("not-a-real-password"));
+                var digest = NodeTags.DigestOf(value);
+
+                var kept = Kept(value);
+                var guarded = kept.GetType().GetField("_protected", BindingFlags.NonPublic | BindingFlags.Instance);
+                var open = kept.GetType().GetField("_open", BindingFlags.NonPublic | BindingFlags.Instance);
+                Assert.That(guarded, Is.Not.Null, "a kept digest no longer names what it keeps encrypted _protected");
+                Assert.That(open, Is.Not.Null, "a kept digest no longer names what it keeps in the open _open");
+
+                var container = guarded.GetValue(kept) as ProtectedBinary;
+                if (container == null)
+                {
+                    Assert.That(isProtected, Is.False, "the digest of a protected value is kept nowhere encrypted");
+                    Assert.That(open.GetValue(kept), Is.EqualTo(digest));
+                    continue;
+                }
+
+                Assert.That(isProtected, Is.True, "the digest of a value held in the open is kept encrypted");
+                Assert.That(open.GetValue(kept), Is.Null, "a digest kept encrypted is kept in the open beside it");
+                Assert.That(container.IsProtected, Is.True);
+                Assert.That(container.ReadData(), Is.EqualTo(digest));
+            }
         }
 
         [Test]
@@ -674,6 +755,16 @@ namespace KeePassGate.Host.Tests
             Assert.That(KeePassMemory.KeepsText(held), Is.True, "and KeePass now holds the text in place of the bytes");
             Assert.That(held.ReadUtf8(), Is.Not.EqualTo(stored), "so the bytes it hands out are no longer the bytes stored");
             Assert.That(EntryTag(), Is.EqualTo(tag), "the tag is of the value served, whichever of the two KeePass holds");
+
+            // That tag came of the digest kept from the bytes, before KeePass swapped them for
+            // the text inside the same object. It is still the digest of what a read serves.
+            using (var pieces = new NodeTags.Pieces())
+            {
+                Assert.That(
+                    NodeTags.DigestOf(held),
+                    Is.EqualTo(NodeTags.Digested(StoredStrings.Read(held), pieces)),
+                    "the digest kept across KeePass decoding the value in place");
+            }
 
             // And the value made from that text to begin with, as a value typed into KeePass
             // is. Setting a string moves none of the entry's times, which a tag covers.
@@ -778,6 +869,40 @@ namespace KeePassGate.Host.Tests
             Assert.That(merged.Strings.ReadSafe(PwDefs.TitleField), Is.EqualTo("changed elsewhere"));
             Assert.That(merged.LastModificationTime, Is.EqualTo(moment), "KeePass left the time as it was");
             Assert.That(EntryTag(), Is.Not.EqualTo(tag), "and the tag moved anyway");
+        }
+
+        [Test]
+        public void A_synchronize_needs_nothing_told_about_the_digests_a_tag_keeps()
+        {
+            // A tag is made of digests kept against the objects an entry's values are held in,
+            // and nothing tells this plugin that a synchronize ran. Nothing has to: KeePass
+            // replaces the object of a value a merge changes, which has no digest kept, and a
+            // value a merge leaves as it was is the value its digest was taken of, whichever
+            // object now holds it.
+            _entry.Strings.Set(PwDefs.PasswordField, new ProtectedString(true, Encoding.UTF8.GetBytes("not-a-real-password")));
+            var tag = EntryTag();
+
+            _database.Database.MergeIn(Copied(_database.Database), PwMergeMethod.Synchronize, null);
+            Assert.That(EntryTag(), Is.EqualTo(tag), "a synchronize that brought nothing");
+
+            var source = Copied(_database.Database);
+            var theirs = source.RootGroup.FindEntry(_entry.Uuid, true);
+            theirs.Strings.Set(PwDefs.PasswordField, new ProtectedString(true, Encoding.UTF8.GetBytes("changed elsewhere")));
+
+            // At the moment the entry already carries, which KeePass takes the other copy's
+            // strings at and leaves where it was: nothing but the password's digest is left to
+            // move the tag, so a digest kept past the merge would leave the tag standing.
+            theirs.LastModificationTime = _entry.LastModificationTime;
+            var moment = _entry.LastModificationTime;
+
+            _database.Database.MergeIn(source, PwMergeMethod.Synchronize, null);
+
+            var merged = _database.RootGroup.FindEntry(_entry.Uuid, true);
+            Assert.That(
+                Encoding.UTF8.GetString(merged.Strings.Get(PwDefs.PasswordField).ReadUtf8()),
+                Is.EqualTo("changed elsewhere"));
+            Assert.That(merged.LastModificationTime, Is.EqualTo(moment), "KeePass left the time as it was");
+            Assert.That(EntryTag(), Is.Not.EqualTo(tag), "a synchronize that brought a password");
         }
 
         [Test]
@@ -1217,6 +1342,39 @@ namespace KeePassGate.Host.Tests
             return bytes;
         }
 
+        /// <summary>
+        /// What hands a view built by hand the digest of a value, as the store hands a view the
+        /// digest it keeps: a copy each time, for the tag to overwrite.
+        /// </summary>
+        private static Func<byte[]> Digesting(string value)
+        {
+            return () =>
+            {
+                using (var sha256 = SHA256.Create())
+                {
+                    return sha256.ComputeHash(Encoding.UTF8.GetBytes(value));
+                }
+            };
+        }
+
+        /// <summary>
+        /// What NodeTags keeps for a string it has digested, read off its own table by the
+        /// names the table and its members have, or a failure naming which went.
+        /// </summary>
+        private static object Kept(ProtectedString value)
+        {
+            var table = typeof(NodeTags).GetField("ValueDigests", BindingFlags.NonPublic | BindingFlags.Static);
+            Assert.That(table, Is.Not.Null, "NodeTags no longer keeps its strings' digests under ValueDigests");
+
+            var digests = table.GetValue(null);
+            var arguments = new object[] { value, null };
+            var found = (bool)digests.GetType().GetMethod("TryGetValue").Invoke(digests, arguments);
+            Assert.That(found, Is.True, "no digest is kept against a string that was digested");
+
+            var deferred = arguments[1];
+            return deferred.GetType().GetProperty("Value").GetValue(deferred);
+        }
+
         private string EntryTag()
         {
             return _vault.EntryTag(Uuid(_entry));
@@ -1265,7 +1423,7 @@ namespace KeePassGate.Host.Tests
             var view = new VaultEntryView(
                 Described(uuid, group, created, modified, expires),
                 Sights.Whole,
-                new[] { new VaultViewField("Invented", guarded, () => value.Length, Sights.Whole, () => value) },
+                new[] { new VaultViewField("Invented", guarded, () => value.Length, Sights.Whole, () => value, false, Digesting(value)) },
                 new[] { new VaultViewAttachment(attachment, bytes.Length, Sights.Whole, () => bytes, digest) },
                 null);
 
