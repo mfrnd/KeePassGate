@@ -7,12 +7,14 @@ before the body is written, and whether loading one authority really is a pin.
 
 from __future__ import annotations
 
+import contextlib
 import datetime as dt
 import math
 import socket
 import ssl
+import threading
 import time
-from collections.abc import Callable
+from collections.abc import Callable, Iterator, Sequence
 from pathlib import Path
 from typing import Any, cast
 
@@ -32,6 +34,58 @@ from pykeepassgate.errors import (
 from pykeepassgate.testing import Authority, FakeGate, Issued
 
 Answers = Callable[[int, "dict[str, Any] | str"], Any]
+
+
+def _in_chunks(body: bytes, head: str = "Transfer-Encoding: chunked\r\n") -> bytes:
+    """An answer whose head names chunks, over a body exactly as a test wrote it."""
+    return f"HTTP/1.1 200 OK\r\n{head}\r\n".encode() + body
+
+
+@contextlib.contextmanager
+def _peer(host: Issued, sends: Sequence[bytes], hold: bool = False) -> Iterator[int]:
+    """A TLS 1.3 server that answers a single request with these bytes, a send for each piece.
+
+    `FakeGate` frames an answer itself and writes it whole, so a test about the bytes of
+    an answer, and about where the sends fall in them, is a peer of its own. Each send is a TLS
+    record, and a read hands over what a record carries, so the pieces arrive as they were
+    sent. With `hold`, the connection stays open after the last piece until the test is over,
+    which is a peer that framed its answer and did not close.
+    """
+    context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
+    context.load_cert_chain(certfile=str(host.pem))
+    context.minimum_version = ssl.TLSVersion.TLSv1_3
+    over = threading.Event()
+
+    def answer(listener: socket.socket) -> None:
+        # Whatever ends the connection early is the client refusing the answer, which is what
+        # the test asserts, or a test that failed for a reason of its own.
+        with contextlib.suppress(OSError):
+            raw, _ = listener.accept()
+            raw.settimeout(10.0)
+            with raw, context.wrap_socket(raw, server_side=True) as wrapped:
+                request = b""
+                while not request.endswith(b"\r\n\r\n"):
+                    read = wrapped.recv(4096)
+                    if not read:
+                        return
+
+                    request += read
+
+                for piece in sends:
+                    wrapped.sendall(piece)
+
+                if hold:
+                    over.wait(10.0)
+
+    with socket.create_server((transport.LOOPBACK, 0)) as listener:
+        listener.settimeout(10.0)
+        thread = threading.Thread(target=answer, args=(listener,), daemon=True)
+        thread.start()
+        try:
+            yield listener.getsockname()[1]
+        finally:
+            over.set()
+            thread.join(timeout=10.0)
 
 
 class TestResponse:
@@ -154,6 +208,256 @@ class TestParsing:
 
         with pytest.raises(ProtocolError, match="not a content length"):
             transport._parse(raw)
+
+
+class TestParsingChunks:
+    """A body in chunks is what its chunks hold, and nothing short of the grammar is read."""
+
+    def test_a_body_in_a_single_chunk_is_what_the_chunk_holds(self) -> None:
+        # The rest of the head is read as it is under a length.
+        head = 'ETag: "abc"\r\nTransfer-Encoding: chunked\r\n'
+        reply = transport._parse(_in_chunks(b'8\r\n{"ok":1}\r\n0\r\n\r\n', head))
+
+        assert (reply.status, reply.body, reply.etag) == (200, '{"ok":1}', '"abc"')
+
+    def test_what_several_chunks_hold_is_joined_in_order(self) -> None:
+        raw = _in_chunks(b'2\r\n{"\r\n3\r\nok"\r\n3\r\n:1}\r\n0\r\n\r\n')
+
+        assert transport._parse(raw).body == '{"ok":1}'
+
+    @pytest.mark.parametrize(
+        ("size", "count"),
+        [
+            ("a", 10),
+            ("A", 10),
+            ("1a", 26),
+            ("1A", 26),
+            ("fF", 255),
+            ("0010", 16),
+            ("000000000000001b", 27),
+        ],
+    )
+    def test_a_size_is_hex_digits_in_either_case(self, size: str, count: int) -> None:
+        body = "x" * count
+        raw = _in_chunks(f"{size}\r\n{body}\r\n0\r\n\r\n".encode())
+
+        assert transport._parse(raw).body == body
+
+    @pytest.mark.parametrize("last", ["0", "000", "0000000000000000"])
+    def test_a_body_of_the_last_chunk_alone_is_empty(self, last: str) -> None:
+        assert transport._parse(_in_chunks(f"{last}\r\n\r\n".encode())).body == ""
+
+    def test_a_character_split_across_chunks_decodes(self) -> None:
+        # Decoded a chunk at a time, each half is a byte that is no UTF-8 by itself.
+        first, second = "é".encode()
+        raw = _in_chunks(
+            b"1\r\n" + bytes([first]) + b"\r\n1\r\n" + bytes([second]) + b"\r\n0\r\n\r\n"
+        )
+
+        assert transport._parse(raw).body == "é"
+
+    def test_a_body_that_is_not_utf_8_is_refused_in_chunks_as_under_a_length(self) -> None:
+        with pytest.raises(ProtocolError, match="not UTF-8"):
+            transport._parse(_in_chunks(b"1\r\n\xff\r\n0\r\n\r\n"))
+
+    @pytest.mark.parametrize(
+        "field",
+        [
+            "Transfer-Encoding: Chunked",
+            "transfer-encoding:CHUNKED",
+            "Transfer-Encoding: \t chunked \t ",
+        ],
+    )
+    def test_the_encoding_is_named_without_case_and_with_spaces_around_it(
+        self, field: str
+    ) -> None:
+        raw = _in_chunks(b"2\r\n{}\r\n0\r\n\r\n", f"{field}\r\n")
+
+        assert transport._parse(raw).body == "{}"
+
+    @pytest.mark.parametrize(
+        "size",
+        [
+            pytest.param("+7", id="a plus sign"),
+            pytest.param("-7", id="a minus sign"),
+            pytest.param("0x7", id="a prefix"),
+            pytest.param("0_7", id="an underscore"),
+            pytest.param(" 7", id="a space before"),
+            pytest.param("7 ", id="a space after"),
+            pytest.param("", id="no digit"),
+            pytest.param("0" * 16 + "7", id="more digits than a size is read from"),
+            pytest.param("٢", id="a digit beyond ASCII"),
+            pytest.param("7;name=value", id="an extension"),
+        ],
+    )
+    def test_a_size_is_hex_digits_and_nothing_int_reads_besides(self, size: str) -> None:
+        # `int` with a base of sixteen takes a sign, a prefix, an underscore, white space and
+        # digits beyond ASCII, and each is a size a peer never wrote.
+        raw = _in_chunks(f"{size}\r\n1234567\r\n0\r\n\r\n".encode())
+
+        with pytest.raises(ProtocolError, match="not a chunk size"):
+            transport._parse(raw)
+
+    @pytest.mark.parametrize(
+        "body",
+        [
+            pytest.param(b"7;", id="an extension begun"),
+            pytest.param(b"0" * 17, id="more digits than a size is read from"),
+            pytest.param(b"7\rx", id="a carriage return and no line feed"),
+        ],
+    )
+    def test_a_size_line_is_refused_at_the_byte_that_breaks_it(self, body: bytes) -> None:
+        # Not as an answer cut short, which is what waiting for the rest of the line would make
+        # of it: asking again reads the same line.
+        with pytest.raises(ProtocolError, match="not a chunk size"):
+            transport._parse(_in_chunks(body))
+
+    @pytest.mark.parametrize(
+        ("body", "refusal"),
+        [
+            pytest.param(b"7\n1234567\n0\n\n", "not a chunk size", id="bare line feeds"),
+            pytest.param(
+                b"7\r\n1234567890\r\n0\r\n\r\n",
+                "not followed by the line end that closes the chunk",
+                id="more bytes than the size",
+            ),
+            pytest.param(
+                b"7\r\n1234567\n0\r\n\r\n",
+                "not followed by the line end that closes the chunk",
+                id="a chunk closed by a bare line feed",
+            ),
+            pytest.param(
+                b"7\r\n1234567\r0\r\n\r\n",
+                "not followed by the line end that closes the chunk",
+                id="a chunk closed by a carriage return alone",
+            ),
+            pytest.param(b"0\r\nExpires: never\r\n\r\n", "reads no trailer", id="a trailer"),
+            pytest.param(
+                b"0\r\n\n", "reads no trailer", id="a last chunk ended by a bare line feed"
+            ),
+            pytest.param(
+                b"0\r\n\r\r\n",
+                "reads no trailer",
+                id="a carriage return where the last line feed belongs",
+            ),
+            pytest.param(
+                b"2\r\n{}\r\n0\r\n\r\n\r\n",
+                "goes on after the chunk that ends it",
+                id="bytes after the last line end",
+            ),
+            pytest.param(
+                b"0\r\n\r\n0\r\n\r\n", "goes on after the chunk that ends it", id="a second end"
+            ),
+        ],
+    )
+    def test_a_body_the_grammar_does_not_allow_is_refused(self, body: bytes, refusal: str) -> None:
+        with pytest.raises(ProtocolError, match=refusal):
+            transport._parse(_in_chunks(body))
+
+    @pytest.mark.parametrize(
+        ("head", "refusal"),
+        [
+            pytest.param(
+                "Content-Length: 13\r\nTransfer-Encoding: chunked\r\n",
+                "a Transfer-Encoding beside a Content-Length",
+                id="a length ahead of it",
+            ),
+            pytest.param(
+                "Transfer-Encoding: chunked\r\nContent-Length: 13\r\n",
+                "a Transfer-Encoding beside a Content-Length",
+                id="a length after it",
+            ),
+            pytest.param(
+                "Transfer-Encoding: chunked\r\ntransfer-encoding: chunked\r\n",
+                "a Transfer-Encoding more than once",
+                id="named twice",
+            ),
+            pytest.param(
+                "Transfer-Encoding: gzip, chunked\r\n",
+                "not a transfer encoding this client reads: 'gzip, chunked'",
+                id="a coding ahead of it",
+            ),
+            pytest.param(
+                "Transfer-Encoding: chunked, chunked\r\n",
+                "not a transfer encoding this client reads",
+                id="chunked twice over",
+            ),
+            pytest.param(
+                "Transfer-Encoding: identity\r\n",
+                "not a transfer encoding this client reads: 'identity'",
+                id="identity",
+            ),
+            pytest.param(
+                "Transfer-Encoding:\r\n", "not a transfer encoding this client reads", id="no value"
+            ),
+        ],
+    )
+    def test_a_head_that_frames_an_answer_some_other_way_is_refused(
+        self, head: str, refusal: str
+    ) -> None:
+        # The body reads under either framing the head names, so the head alone is what is
+        # refused.
+        with pytest.raises(ProtocolError, match=refusal):
+            transport._parse(_in_chunks(b"2\r\n{}\r\n0\r\n\r\n", head))
+
+    @pytest.mark.parametrize(
+        ("body", "stopped"),
+        [
+            pytest.param(b"1", "inside the size line of a chunk", id="inside a size"),
+            pytest.param(
+                b"7\r", "inside the size line of a chunk", id="inside the line end of a size"
+            ),
+            pytest.param(
+                b"7\r\n1234", "3 bytes short of a chunk of 7", id="inside the bytes of a chunk"
+            ),
+            pytest.param(
+                b"7\r\n1234567",
+                "before the line end that closes a chunk",
+                id="after the bytes of a chunk",
+            ),
+            pytest.param(
+                b"7\r\n1234567\r",
+                "before the line end that closes a chunk",
+                id="inside the line end of a chunk",
+            ),
+            pytest.param(b"", "before its last chunk", id="before any chunk"),
+            pytest.param(b"7\r\n1234567\r\n", "before its last chunk", id="before the last chunk"),
+            pytest.param(
+                b"7\r\n1234567\r\n0",
+                "inside the size line of a chunk",
+                id="inside the size of the last chunk",
+            ),
+            pytest.param(
+                b"7\r\n1234567\r\n0\r\n",
+                "before the line end that closes its last chunk",
+                id="after the size line of the last chunk",
+            ),
+            pytest.param(
+                b"0\r\n\r",
+                "before the line end that closes its last chunk",
+                id="inside the last line end",
+            ),
+        ],
+    )
+    def test_a_body_cut_short_is_told_from_a_whole_body(self, body: bytes, stopped: str) -> None:
+        # Read to the close, each of these is a complete answer holding less than was sent.
+        with pytest.raises(TransportError, match=f"the answer stopped {stopped}$"):
+            transport._parse(_in_chunks(body))
+
+    def test_a_walk_goes_on_from_where_it_stopped_however_the_answer_is_split(self) -> None:
+        # What a read does with the walker, at every place a read could end. The second walk is
+        # handed the bytes the first walk examined overwritten, which a read never does, so that
+        # a walker going back over them is refused by what it finds there.
+        answer = _in_chunks(b'1a\r\n{"name": "something long"}\r\n0\r\n\r\n')
+        body_at = answer.index(b"\r\n\r\n") + 4
+
+        for cut in range(body_at, len(answer)):
+            data = bytearray()
+            chunks = transport._ChunkedBody(body_at, data)
+
+            assert not chunks.walk(answer[:cut])
+            assert chunks.walk(b"!" * cut + answer[cut:])
+            assert data == b'{"name": "something long"}'
 
 
 class TestConnecting:
@@ -626,7 +930,7 @@ class TestWhatThisClientWillNotSend:
 
 
 class TestTheAnswerIsFramedRatherThanEnded:
-    """The gate sends a length. Believing the close instead cannot tell short from complete."""
+    """The gate frames its answers. Believing the close instead cannot tell short from complete."""
 
     def test_a_body_shorter_than_its_own_length_is_refused(
         self, gate: FakeGate, authority: Authority, client_certificate: Issued
@@ -737,6 +1041,94 @@ class TestTheAnswerIsFramedRatherThanEnded:
         # record for.
         assert transport.PAIRING_CONNECTION_TIMEOUT > 120.0 + 120.0 + 15.0 + 2.0 + 20.0 + 30.0
         assert transport.PAIRING_CONNECTION_TIMEOUT > transport.DEFAULT_CONNECTION_TIMEOUT
+
+
+class TestAnAnswerInChunks:
+    """An answer in chunks is whole at its last chunk, wherever the sends fall in it."""
+
+    HEAD = b"HTTP/1.1 200 OK\r\nTransfer-Encoding: chunked\r\n\r\n"
+
+    @staticmethod
+    def _ask(port: int, max_response_bytes: int = transport.MAX_RESPONSE_BYTES) -> str:
+        with transport.connect(
+            port,
+            transport.unpaired_context(),
+            "abc.def.kpg",
+            connection_timeout=10.0,
+            max_response_bytes=max_response_bytes,
+        ) as connection:
+            return connection.send("GET", "/gate/whoami").body
+
+    def test_the_answer_is_returned_while_the_peer_holds_the_connection_open(
+        self, host: Issued
+    ) -> None:
+        # Reading to the close would wait out the whole timeout here and then throw away an answer
+        # it already held complete. The last chunk is what makes the answer whole.
+        started = time.monotonic()
+        with _peer(host, [self.HEAD + b'c\r\n{"ok": true}\r\n0\r\n\r\n'], hold=True) as port:
+            assert self._ask(port) == '{"ok": true}'
+            waited = time.monotonic() - started
+
+        assert waited < 3.0, "it did not wait for a close it did not need"
+
+    def test_chunks_split_across_sends_in_awkward_places_are_read(self, host: Issued) -> None:
+        # A size, the line end after it, the bytes of a chunk and the line ends that close the
+        # answer, each cut by where a send ended.
+        sends = [
+            self.HEAD + b"1",
+            b"a\r",
+            b'\n{"name": "',
+            b'something long"}\r',
+            b"\n3\r\n12",
+            b"3\r\n0",
+            b"\r\n\r",
+            b"\n",
+        ]
+
+        with _peer(host, sends) as port:
+            assert self._ask(port) == '{"name": "something long"}123'
+
+    def test_an_answer_sent_a_byte_at_a_time_is_read(self, host: Issued) -> None:
+        # Every place a send could end, the head's among them.
+        answer = self.HEAD + b'6\r\n{"ok":\r\n6\r\n true}\r\n0\r\n\r\n'
+
+        with _peer(host, [answer[at : at + 1] for at in range(len(answer))]) as port:
+            assert self._ask(port) == '{"ok": true}'
+
+    def test_the_cap_counts_the_bytes_received_and_not_what_the_chunks_hold(
+        self, host: Issued
+    ) -> None:
+        # In chunks of a byte each, a body is several times as long on the wire as what it
+        # holds, and what this client holds of an answer is what came off the wire.
+        answer = self.HEAD + b"1\r\nx\r\n" * 200 + b"0\r\n\r\n"
+
+        with _peer(host, [answer]) as port, pytest.raises(ProtocolError, match="over 1024 bytes"):
+            self._ask(port, max_response_bytes=1024)
+
+        with _peer(host, [answer]) as port:
+            assert self._ask(port, max_response_bytes=2048) == "x" * 200
+
+    def test_an_answer_cut_short_is_a_transport_error(self, host: Issued) -> None:
+        # What a writer that failed part way leaves: chunks, and no last chunk. Read to the
+        # close, this is a complete answer holding the first bytes of a longer value.
+        with _peer(host, [self.HEAD + b"7\r\n1234"]) as port, pytest.raises(
+            TransportError, match="the answer stopped 3 bytes short of a chunk of 7"
+        ):
+            self._ask(port)
+
+    def test_a_size_that_is_not_a_size_is_refused_without_waiting_for_the_peer(
+        self, host: Issued
+    ) -> None:
+        # Refused at the byte that breaks the grammar, with the line it is on not yet ended and
+        # the connection still open, rather than once the timeout has run out.
+        started = time.monotonic()
+        with _peer(host, [self.HEAD + b"7;"], hold=True) as port:
+            with pytest.raises(ProtocolError, match="not a chunk size"):
+                self._ask(port)
+
+            waited = time.monotonic() - started
+
+        assert waited < 3.0, "it did not wait for the rest of a line it had already refused"
 
 
 class TestWhenToComeBack:

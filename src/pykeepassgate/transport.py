@@ -7,8 +7,8 @@ socket is closed. That is also why the name is rebuilt every time.
 **Why this is written out rather than handed to a library.** The name in the ClientHello rotates
 per connection and is not a host name anybody resolves, so the connection has to be made to an
 address and the name given separately. `http.client` derives the name it sends from the host it
-dials, which is exactly the coupling this protocol breaks. What is left to write is a status line
-and a header block.
+dials, which is exactly the coupling this protocol breaks. What is left to write is a status line,
+a header block and the framing of a body.
 
 **Why the server certificate is exposed before the body is written.** During pairing the request
 body carries a proof over ``tls-server-end-point``, which is a hash of the certificate the server
@@ -753,29 +753,36 @@ class Connection:
             self._socket.close()
 
     def _read_all(self) -> bytes:
-        """Read until the answer is whole, which is what it said rather than when it ends.
+        """Read until the answer is whole by its own framing, whenever the peer closes.
 
-        The gate frames every response and closes after it, so reading to the close gives the
-        right answer for one that completed. It gives the wrong one for everything else: a
-        response cut short reads as a complete one, and a peer that frames correctly and does
-        not close costs the whole timeout and then has its answer thrown away. Neither peer
-        has to be the gate, because during pairing this client has no anchor and verifies
-        nothing.
+        An answer is framed by a `Content-Length` or in chunks, and this takes either: it returns
+        once the length is met or the last chunk is complete. Reading to the close instead gives
+        the right answer only for an answer that completed. An answer cut short reads as a
+        complete answer, and a peer that frames correctly and does not close costs the whole
+        timeout and then has its answer thrown away. Neither peer has to be the gate, because
+        during pairing this client has no anchor and verifies nothing.
+
+        **A body in chunks is walked as it arrives**, by the walker `_parse` decodes it with, so
+        the read and the parse cannot disagree about where an answer ends. The walker remembers
+        where it stopped, so each byte of the body is examined once however the reads fall, and
+        a body that breaks the grammar is refused at the byte that breaks it rather than read on
+        to the cap or to the timeout.
         """
         buffer = bytearray()
         declared: int | None = None
+        chunks: _ChunkedBody | None = None
         body_at = -1
 
         while True:
-            chunk = self._socket.recv(65536)
-            if not chunk:
-                # Nothing declared a length, or the peer stopped early. `_parse` says which.
+            received = self._socket.recv(65536)
+            if not received:
+                # Nothing framed the answer, or the peer stopped early. `_parse` tells which.
                 return bytes(buffer)
 
-            buffer += chunk
+            buffer += received
 
             # Checked after the append rather than before it. Before, the loop enters `recv` with
-            # the buffer already at the cap, so a peer feeding it gets one whole chunk past the
+            # the buffer already at the cap, so a peer feeding it gets one whole read past the
             # number this is here to enforce.
             #
             # A `ProtocolError` rather than a `TransportError`, which says the connection failed
@@ -794,9 +801,16 @@ class Connection:
                     continue
 
                 body_at = blank + 4
-                declared = _declared_length(bytes(buffer[:blank]).decode("ascii", "replace"))
+                head = bytes(buffer[:blank]).decode("ascii", "replace")
+                if _chunked(head):
+                    chunks = _ChunkedBody(body_at)
+                else:
+                    declared = _declared_length(head)
 
-            if declared is not None and len(buffer) - body_at >= declared:
+            if chunks is not None:
+                if chunks.walk(buffer):
+                    return bytes(buffer)
+            elif declared is not None and len(buffer) - body_at >= declared:
                 return bytes(buffer)
 
 
@@ -1088,18 +1102,28 @@ def _past_spaces(text: str, at: int) -> int:
     return at
 
 
-def _header(head: str, wanted: str) -> str | None:
-    """The first value of one header in an answer's head, without the spaces around it, or `None`.
+def _values(head: str, wanted: str) -> list[str]:
+    """Every value of one header in an answer's head, in order, without the spaces around each.
 
     One reader for every header this client reads, so that what counts as present, and which of
-    two is the one, cannot come to differ between them. The gate writes each header once.
+    several values is taken, cannot come to differ between them.
     """
+    values = []
     for line in head.split("\r\n")[1:]:
         name, colon, value = line.partition(":")
         if colon and name.strip().lower() == wanted:
-            return value.strip(" \t")
+            values.append(value.strip(" \t"))
 
-    return None
+    return values
+
+
+def _header(head: str, wanted: str) -> str | None:
+    """The first value of one header in an answer's head, without the spaces around it, or `None`.
+
+    Read by `_values`, as every header is. The gate writes each header once.
+    """
+    values = _values(head, wanted)
+    return values[0] if values else None
 
 
 def _digits(value: str) -> int | None:
@@ -1132,19 +1156,228 @@ def _declared_length(head: str) -> int | None:
     return length
 
 
+def _chunked(head: str) -> bool:
+    """Whether the head frames the answer in chunks, refusing a `Transfer-Encoding` it cannot read.
+
+    The value is `chunked` and nothing else, compared without case, and in ASCII, since the head
+    was decoded as ASCII and holds no other letter. A coding ahead of it, as in `gzip, chunked`,
+    makes a body this client does not decode, and `identity` is no coding RFC 9112 has.
+
+    **A head that frames an answer twice is refused rather than settled.** RFC 9112 section 6.3
+    lets a `Transfer-Encoding` override a `Content-Length` beside it, and a reader that applies
+    that order and a reader that does not are what come to disagree about where an answer ends.
+    A head naming `Transfer-Encoding` more than once is refused for the same reason, where
+    `_header` would have read its first value alone.
+    """
+    codings = _values(head, "transfer-encoding")
+    if not codings:
+        return False
+
+    if len(codings) > 1:
+        raise ProtocolError("the answer names a Transfer-Encoding more than once")
+
+    if codings[0].lower() != "chunked":
+        raise ProtocolError(f"that is not a transfer encoding this client reads: {codings[0]!r}")
+
+    if _values(head, "content-length"):
+        raise ProtocolError(
+            "the answer names a Transfer-Encoding beside a Content-Length, and this client "
+            "reads an answer framed by either alone"
+        )
+
+    return True
+
+
+#: The bytes that end a line, as a walk over a body in chunks meets them.
+_CR = 0x0D
+_LF = 0x0A
+
+#: The most hex digits a chunk's size is read from. The grammar sets no bound on them, so this
+#: does: sixteen digits are what a length of 64 bits takes, and a size line that runs past them
+#: is refused where it does rather than read on for its line end.
+_MOST_SIZE_DIGITS = 16
+
+#: What each hex digit of a chunk's size is worth, by its byte, in either case.
+_HEX_VALUES = {ord(digit): int(digit, 16) for digit in string.hexdigits}
+
+
+class _Stage(enum.Enum):
+    """What stands next in a body in chunks, which is all a walk over it has to remember."""
+
+    #: The hex digits of a chunk's size, or the carriage return that ends them.
+    SIZE = enum.auto()
+
+    #: The line feed that ends a size line.
+    SIZE_LF = enum.auto()
+
+    #: The bytes of a chunk.
+    DATA = enum.auto()
+
+    #: The line end that closes a chunk's bytes, a byte of it at a time.
+    DATA_CR = enum.auto()
+    DATA_LF = enum.auto()
+
+    #: The line end after the size line of the last chunk, where a trailer would begin if this
+    #: client read a trailer.
+    LAST_CR = enum.auto()
+    LAST_LF = enum.auto()
+
+    #: Nothing: the last chunk is complete, and the answer with it.
+    WHOLE = enum.auto()
+
+
+#: What a body that breaks the grammar is refused with, by where it breaks it: at a size line,
+#: after the bytes of a chunk, and after the last chunk. None quotes what stood there, and
+#: `_ChunkedBody` has the reason.
+_NO_SIZE = (
+    f"that is not a chunk size: a size is from 1 to {_MOST_SIZE_DIGITS} hex digits and then a "
+    "line end, with nothing else on its line"
+)
+
+_NO_CLOSE = "the bytes of a chunk are not followed by the line end that closes the chunk"
+
+_NO_END = (
+    "the last chunk is not followed by the line end that ends the answer, and this client "
+    "reads no trailer"
+)
+
+#: The line ends a walk meets a byte at a time: the byte each stage expects, the stage after it,
+#: and what the answer is refused with when some other byte stands there.
+_LINE_ENDS = {
+    _Stage.DATA_CR: (_CR, _Stage.DATA_LF, _NO_CLOSE),
+    _Stage.DATA_LF: (_LF, _Stage.SIZE, _NO_CLOSE),
+    _Stage.LAST_CR: (_CR, _Stage.LAST_LF, _NO_END),
+    _Stage.LAST_LF: (_LF, _Stage.WHOLE, _NO_END),
+}
+
+
+class _ChunkedBody:
+    """A walk over a body framed in chunks, as far as the bytes in hand go.
+
+    RFC 9112 section 7.1, held to less than its grammar allows: a size line of hex digits and
+    nothing else, that many bytes, a line end, and after the chunk of no bytes a line end with
+    no trailer before it. A chunk extension, a trailer and a bare line feed are each refused,
+    and so is what `int` reads besides digits: a sign, a prefix, an underscore, a space around
+    them. A reader that takes more than a writer writes is where readers of the same bytes come
+    to disagree about where an answer ends, and during pairing the peer is not yet known to be
+    the gate.
+
+    **The walker is the same for the read and for the parse.** `_read_all` needs to know when
+    the answer is whole and `_parse` needs what the chunks hold, and with a walker each they
+    could come to differ on either. It remembers where it stopped and what it expects there, so
+    each byte is examined once however the answer is split across reads, and a byte the grammar
+    does not allow is refused when it is met rather than once its whole line has arrived.
+
+    **No refusal quotes what it met.** Under a head that names chunks, a body that is not in
+    chunks puts its first bytes where a size line belongs, and those bytes are whatever was
+    asked for, a password among them. A refusal is what a log line or a traceback carries, so
+    it names the rule and leaves the bytes out.
+    """
+
+    def __init__(self, at: int, data: bytearray | None = None) -> None:
+        """Start where the body starts in the answer, gathering what the chunks hold if asked to.
+
+        `data` is where the bytes of every chunk are appended, in order. Given none, the walk
+        only finds where the answer ends, which is all a read needs of it.
+        """
+        self._at = at
+        self._data = data
+        self._stage = _Stage.SIZE
+        self._digits = 0
+        self._size = 0
+        self._left = 0
+
+    def walk(self, answer: bytes | bytearray) -> bool:
+        """Go on from where the last walk stopped, and tell whether the last chunk is complete.
+
+        `answer` is the answer from its first byte, head and all, as far as it has arrived, and
+        the same bytes each time with more after them. A byte after the last chunk is refused
+        like any other the grammar does not allow, so a walk that returns true has examined
+        everything it was given.
+        """
+        end = len(answer)
+        while self._at < end:
+            stage = self._stage
+            if stage is _Stage.DATA:
+                taken = min(self._left, end - self._at)
+                if self._data is not None:
+                    self._data += answer[self._at : self._at + taken]
+
+                self._at += taken
+                self._left -= taken
+                if not self._left:
+                    self._stage = _Stage.DATA_CR
+
+                continue
+
+            byte = answer[self._at]
+            self._at += 1
+            if stage is _Stage.SIZE:
+                worth = _HEX_VALUES.get(byte)
+                if worth is not None and self._digits < _MOST_SIZE_DIGITS:
+                    self._digits += 1
+                    self._size = self._size * 16 + worth
+                elif byte == _CR and self._digits:
+                    self._stage = _Stage.SIZE_LF
+                else:
+                    raise ProtocolError(_NO_SIZE)
+            elif stage is _Stage.SIZE_LF:
+                if byte != _LF:
+                    raise ProtocolError(_NO_SIZE)
+
+                # A size of zero, however many digits spell it, is the last chunk.
+                self._left = self._size
+                self._stage = _Stage.DATA if self._size else _Stage.LAST_CR
+            elif stage is _Stage.WHOLE:
+                raise ProtocolError("the answer goes on after the chunk that ends it")
+            else:
+                expected, then, refusal = _LINE_ENDS[stage]
+                if byte != expected:
+                    raise ProtocolError(refusal)
+
+                self._stage = then
+                if then is _Stage.SIZE:
+                    self._digits = 0
+                    self._size = 0
+
+        return self._stage is _Stage.WHOLE
+
+    def stopped(self) -> str:
+        """Where a walk that ran out of answer stands, for the refusal of an answer cut short.
+
+        Worded to follow "the answer stopped", as the refusal of an answer short of its
+        `Content-Length` is, and naming how much of a chunk is missing where that is known.
+        """
+        if self._stage is _Stage.DATA:
+            return f"{self._left} bytes short of a chunk of {self._size}"
+
+        if self._stage in {_Stage.DATA_CR, _Stage.DATA_LF}:
+            return "before the line end that closes a chunk"
+
+        if self._stage in {_Stage.LAST_CR, _Stage.LAST_LF}:
+            return "before the line end that closes its last chunk"
+
+        if self._digits:
+            return "inside the size line of a chunk"
+
+        return "before its last chunk"
+
+
 def _parse(raw: bytes) -> Response:
     """Read the status line and the body, and nothing else.
 
-    The gate sends a `Content-Length` and closes, so the body is what follows the blank line. There
-    is no chunked encoding to handle because the gate refuses to produce one.
+    An answer is framed by a `Content-Length` or in chunks, and the body is what follows the
+    blank line under either: the bytes as they stand, or what the chunks hold, joined in order
+    by the walker `_read_all` found the end of the answer with.
 
-    **The length is read rather than assumed.** Believing the close instead makes a truncated
-    answer indistinguishable from a complete one, and an answer whose body never arrived would
-    become an empty object. A caller cannot tell that from a gate that said so.
+    **The framing is read rather than assumed.** Believing the close instead makes a truncated
+    answer indistinguishable from a complete answer, and an answer whose body never arrived
+    would become an empty object. A caller cannot tell that from a gate that answered so.
 
-    **Except on the answer to a `HEAD`**, which carries no `Content-Length` at all, as RFC 9110
-    section 9.3.2 permits, and is read to the close. It has no body, so there is nothing a close
-    could cut short, and a length that is missing is not the peer's defect there.
+    **Except on an answer framed by neither**, which is what the answer to a `HEAD` is: it
+    carries no `Content-Length` at all, as RFC 9110 section 9.3.2 permits, and is read to the
+    close. It has no body, so there is nothing a close could cut short, and a length that is
+    missing is not the peer's defect there.
     """
     if not raw:
         raise TransportError("the connection was closed without an answer")
@@ -1163,13 +1396,21 @@ def _parse(raw: bytes) -> Response:
     if status is None:
         raise ProtocolError(f"that is not a status: {parts[1]!r}")
 
-    body = raw[blank + 4 :]
     head = raw[:blank].decode("ascii", "replace")
-    declared = _declared_length(head)
-    if declared is not None and len(body) < declared:
-        raise TransportError(
-            f"the answer stopped {declared - len(body)} bytes short of its own content length"
-        )
+    if _chunked(head):
+        data = bytearray()
+        chunks = _ChunkedBody(blank + 4, data)
+        if not chunks.walk(raw):
+            raise TransportError(f"the answer stopped {chunks.stopped()}")
+
+        body = bytes(data)
+    else:
+        body = raw[blank + 4 :]
+        declared = _declared_length(head)
+        if declared is not None and len(body) < declared:
+            raise TransportError(
+                f"the answer stopped {declared - len(body)} bytes short of its own content length"
+            )
 
     # Strictly, because a body decoded leniently hands a value over with U+FFFD where its bytes
     # were, a password among them, as though it were the value stored: wrong data is worse than an
