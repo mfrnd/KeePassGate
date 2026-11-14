@@ -425,5 +425,36 @@ namespace KeePassGate.Host.Tests
 
             return field.GetValue(value) != null;
         }
+
+        /// <summary>The name of the field a `ProtectedBinary` keeps its bytes in.</summary>
+        public const string BufferField = "m_pbData";
+
+        /// <summary>The name of the field a `ProtectedBinary` keeps how its bytes are kept in.</summary>
+        public const string KindField = "m_mp";
+
+        /// <summary>
+        /// The buffer KeePass keeps an attachment in, itself and no copy of it: the bytes as
+        /// they are for an attachment held in the open, and encrypted for a protected
+        /// attachment.
+        /// </summary>
+        public static byte[] Buffer(ProtectedBinary binary)
+        {
+            var field = typeof(ProtectedBinary).GetField(BufferField, BindingFlags.NonPublic | BindingFlags.Instance);
+            Assert.That(field, Is.Not.Null, "KeePass no longer keeps an attachment's bytes under " + BufferField);
+
+            return (byte[])field.GetValue(binary);
+        }
+
+        /// <summary>
+        /// How KeePass keeps an attachment's buffer at this moment, by the name KeePass gives
+        /// it: `None`, `ProtectedMemory`, `ChaCha20` or `ExtCrypt`.
+        /// </summary>
+        public static string KeptAs(ProtectedBinary binary)
+        {
+            var field = typeof(ProtectedBinary).GetField(KindField, BindingFlags.NonPublic | BindingFlags.Instance);
+            Assert.That(field, Is.Not.Null, "KeePass no longer keeps how an attachment is kept under " + KindField);
+
+            return field.GetValue(binary).ToString();
+        }
     }
 }

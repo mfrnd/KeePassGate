@@ -1,5 +1,8 @@
 # Findings
 
+<!-- A method of KeePass's own, named the way KeePass names it. -->
+<!-- cspell:ignore Xorred -->
+
 What was established by building things, kept after the proofs themselves left the mainline for
 branches of their own. Everything here was measured or executed rather than reasoned about, and each
 entry states how, so that a doubtful reader can redo it rather than trust it.
@@ -518,6 +521,24 @@ and as it is sent, 5.6 to 6.3 ms with 0.03 MB. A hundred thousand are 21.8 MB: 1
 with 109 MB alive, against 58 to 59 ms with 0.03 MB. So the listings of groups and of entries
 are written as they are sent too, and what a listing keeps alive is the descriptions taken
 inside its hold.
+
+**KeePass hands an attachment out whole or not at all, and keeps it where a piece of it can be
+read.** Read off KeePass 2.61.1 and driven on the development machine. `ProtectedBinary` is
+sealed, and `ReadData` and `ReadXorredData`, each a copy of everything, are its only ways out.
+An attachment held in the open keeps its content as it is in the private buffer `m_pbData`,
+padded to sixteen bytes, and never changes it. A protected attachment is kept there encrypted
+in place by Windows' protection of process memory, `ProtectedMemory`, and `ReadData` decrypts
+the whole buffer where it stands, under the lock `m_objSync`, copies it and encrypts it again,
+after which the buffer holds the same bytes as before. A copy of a piece of that buffer,
+decrypted on its own with the same call, is right in every block but its first, and right
+throughout when the sixteen bytes ahead of the piece are decrypted with it: tried for pieces
+of 1, 4 and 4096 blocks at the start, the middle and the end of a megabyte. Windows documents
+nothing of that. `ReadData` encrypts through whatever cipher stands when it runs, so an
+attachment read by KeePass while another plugin's cipher is set, `ProtectedBinary.ExtCrypt`, is
+kept through that cipher from then on, and through Windows' again once KeePass has read it
+with the cipher gone. KeePass's entry dialog and its importers make an attachment held in the
+open, a constant in their IL; a file that is loaded keeps each attachment as it was marked;
+pykeepass marks an attachment protected unless told otherwise, and KeePass holds it so.
 
 **What a tag costs on an entry far past the ceiling a read was held to**, measured while a read
 was held to 524288 characters: fifty

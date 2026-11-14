@@ -659,6 +659,19 @@ and answers a different question.
   wrong once: KeePassXC decides the version a file is written as from the rest of the tree, and the
   times on the database's own custom data do not count toward it. CA.md §204 states what all of
   that does to a paired database.
+- **KeePass keeps a protected attachment through whatever cipher stands when it last read
+  it.** `ProtectedBinary.ReadData` decrypts the buffer in place under the object's lock and
+  encrypts it again, through Windows' protection of process memory, or through the cipher a
+  plugin set as `ProtectedBinary.ExtCrypt` if any stands then, and a save reads every
+  attachment. So how an attachment is kept is read at every use and never remembered:
+  `StoredBinariesTests.An_attachment_is_refused_or_read_by_how_KeePass_keeps_it_at_that_moment`.
+- **Windows decrypts a piece of protected memory on its own, but for its first block.**
+  `ProtectedMemory.Unprotect` on a copy of a piece of a buffer protected whole gives the right
+  bytes in every block after the first, since the protection chains sixteen byte blocks, and
+  the right bytes throughout once the block ahead is decrypted with the piece. Microsoft
+  documents only the whole buffer.
+  `KeePassContractTests` pins it, in
+  `Windows_still_decrypts_a_piece_of_protected_memory_alone_once_the_block_ahead_is_decrypted_with_it`.
 - **Never parse a SAN with `X509Extension.Format` or `GetNameInfo`.** `AddDnsName` accepts text that
   renders as a URI claim, the labels are localized, and `GetNameInfo` returns one entry. Read the
   ASN.1 tags: `0x86` URI, `0x82` dNSName, `0x81` rfc822Name. `SanProbe`. **The plugin reads

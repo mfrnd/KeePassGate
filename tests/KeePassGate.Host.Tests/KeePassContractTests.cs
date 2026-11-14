@@ -509,6 +509,409 @@ namespace KeePassGate.Host.Tests
             }
         }
 
+        [Test]
+        public void An_attachment_can_still_be_read_only_whole()
+        {
+            // Why `StoredBinaries` reads an attachment out of KeePass's own buffer. The class
+            // is sealed and hands its bytes out two ways, each a copy of everything, so an
+            // answer made through either holds the whole attachment for as long as its peer
+            // takes to read it. A KeePass that offered a part of an attachment, by an offset
+            // or as a stream, would be a KeePass to read through, and the reader's reach into
+            // private fields would have no reason left.
+            var type = typeof(ProtectedBinary);
+            Assert.That(
+                type.IsSealed,
+                Is.True,
+                "ProtectedBinary can be derived from, so a reader of parts could be added to it");
+
+            // cspell:ignore Xorred
+            var handing = type
+                .GetMethods(BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly)
+                .Where(method => method.ReturnType != typeof(bool)
+                    && method.ReturnType != typeof(int)
+                    && method.ReturnType != typeof(uint))
+                .Select(method => method.Name + "("
+                    + string.Join(",", method.GetParameters().Select(parameter => parameter.ParameterType.Name)) + ")")
+                .ToList();
+
+            Assert.That(
+                handing,
+                Is.EquivalentTo(new[] { "ReadData()", "ReadXorredData(CryptoRandomStream)" }),
+                "ProtectedBinary hands its bytes out another way than whole");
+            Assert.That(
+                type.GetProperties(BindingFlags.Public | BindingFlags.Instance).Select(property => property.Name),
+                Is.EquivalentTo(new[] { "IsProtected", "Length" }));
+            Assert.That(type.GetFields(BindingFlags.Public | BindingFlags.Instance), Is.Empty);
+
+            var whole = new ProtectedBinary(true, new byte[] { 1, 2, 3, 4, 5 });
+            Assert.That(whole.ReadData(), Is.EqualTo(new byte[] { 1, 2, 3, 4, 5 }));
+            Assert.That(whole.ReadData(), Is.Not.SameAs(whole.ReadData()), "a copy every time it is asked");
+        }
+
+        [Test]
+        public void An_attachment_still_keeps_its_bytes_its_lock_and_how_they_are_kept_where_the_reader_looks()
+        {
+            // The private fields `StoredBinaries` reads, by the names and types it reads them
+            // by: the buffer, the lock KeePass's own read decrypts the buffer under, how the
+            // buffer is kept at this moment, and the length kept beside the buffer, which is
+            // what makes asking an attachment's size decrypt nothing. A KeePass that renames
+            // or retypes any of them has the reader refuse every attachment, with nothing to
+            // fall back to, so it is told here first. The kinds are held to the whole list: a
+            // way of keeping an attachment added to KeePass is a way the reader refuses, and
+            // worth knowing of.
+            const BindingFlags Private = BindingFlags.NonPublic | BindingFlags.Instance;
+            var type = typeof(ProtectedBinary);
+
+            var data = type.GetField(KeePassMemory.BufferField, Private);
+            var sync = type.GetField("m_objSync", Private);
+            var kind = type.GetField(KeePassMemory.KindField, Private);
+            var length = type.GetField("m_uDataLen", Private);
+
+            Assert.That(data, Is.Not.Null, "KeePass no longer keeps an attachment's bytes in m_pbData");
+            Assert.That(data.FieldType, Is.EqualTo(typeof(byte[])));
+            Assert.That(sync, Is.Not.Null, "KeePass no longer keeps the lock an attachment is read under in m_objSync");
+            Assert.That(sync.FieldType.IsValueType, Is.False, "a lock that is a value locks nothing");
+            Assert.That(kind, Is.Not.Null, "KeePass no longer keeps how an attachment is kept in m_mp");
+            Assert.That(kind.FieldType.IsEnum, Is.True);
+            Assert.That(
+                Enum.GetNames(kind.FieldType),
+                Is.EquivalentTo(new[] { "None", "ProtectedMemory", "ChaCha20", "ExtCrypt" }),
+                "KeePass keeps an attachment in ways the reader was not measured against");
+            Assert.That(length, Is.Not.Null, "KeePass no longer keeps an attachment's length in m_uDataLen");
+            Assert.That(length.FieldType, Is.EqualTo(typeof(uint)));
+
+            // And the lock is the lock `ReadData` takes, around a buffer it decrypts where it
+            // stands: read off the IL, since a copy taken outside that lock can be a copy of
+            // the buffer standing decrypted.
+            var read = type.GetMethod("ReadData", Type.EmptyTypes);
+            var decrypt = type.GetMethod("Decrypt", Private, null, Type.EmptyTypes, null);
+            var encrypt = type.GetMethod("Encrypt", Private, null, Type.EmptyTypes, null);
+
+            // A `lock` compiles to either form of `Monitor.Enter`, by the compiler's age.
+            var enters = new[]
+            {
+                typeof(Monitor).GetMethod("Enter", new[] { typeof(object), typeof(bool).MakeByRefType() }),
+                typeof(Monitor).GetMethod("Enter", new[] { typeof(object) }),
+            };
+
+            Assert.That(decrypt, Is.Not.Null, "what decrypts the buffer where it stands is gone");
+            Assert.That(encrypt, Is.Not.Null, "what encrypts the buffer again is gone");
+            Assert.That(enters.Any(enter => Calls(read, enter)), Is.True, "KeePass's read no longer takes a lock");
+            Assert.That(Reads(read, sync), Is.True, "KeePass's read no longer locks on m_objSync");
+            Assert.That(Calls(read, decrypt), Is.True, "KeePass's read no longer decrypts the buffer where it stands");
+            Assert.That(Calls(read, encrypt), Is.True, "KeePass's read no longer encrypts the buffer again");
+
+            var made = new ProtectedBinary(true, new byte[100]);
+            Assert.That(length.GetValue(made), Is.EqualTo(100u));
+            Assert.That(made.Length, Is.EqualTo(100u));
+            Assert.That(sync.GetValue(made), Is.Not.Null);
+        }
+
+        [Test]
+        public void A_protected_attachment_is_still_kept_by_Windows_and_an_open_attachment_as_it_is()
+        {
+            // The two ways the reader reads. An attachment held in the open is its buffer, so a
+            // piece of it is the buffer at an offset with nothing copied. A protected
+            // attachment is kept encrypted in place by Windows' protection of process memory,
+            // which is the only cipher the reader decrypts a piece by: where KeePass finds that
+            // unsupported it keeps the buffer under a cipher of its own, and the reader refuses
+            // every protected attachment. The buffer is padded to whole blocks either way, and
+            // an attachment of no bytes is kept as it is, whatever its flag.
+            var supported = typeof(ProtectedBinary).GetProperty(
+                "ProtectedMemorySupported", BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Static);
+            Assert.That(supported, Is.Not.Null, "KeePass no longer tells whether Windows protects its memory");
+            Assert.That(
+                supported.GetValue(null),
+                Is.EqualTo(true),
+                "KeePass finds no protection of process memory here");
+
+            foreach (var size in new[] { 1, 16, 100, 4096, 100000 })
+            {
+                var content = new byte[size];
+                new Random(size).NextBytes(content);
+
+                var open = new ProtectedBinary(false, content);
+                var kept = KeePassMemory.Buffer(open);
+                Assert.That(KeePassMemory.KeptAs(open), Is.EqualTo("None"));
+                Assert.That(kept.Length % 16, Is.Zero);
+                Assert.That(kept.Length, Is.GreaterThanOrEqualTo(size).And.LessThan(size + 16));
+                Assert.That(
+                    kept.Take(size).SequenceEqual(content),
+                    Is.True,
+                    "an open attachment's buffer is not its bytes");
+                Assert.That(
+                    kept,
+                    Is.Not.SameAs(content),
+                    "KeePass keeps the array it was handed, which its caller can change");
+
+                var guarded = new ProtectedBinary(true, content);
+                var encrypted = KeePassMemory.Buffer(guarded);
+                Assert.That(KeePassMemory.KeptAs(guarded), Is.EqualTo("ProtectedMemory"));
+                Assert.That(encrypted.Length, Is.EqualTo(kept.Length), "padded as an open attachment is");
+                Assert.That(
+                    encrypted.Take(Math.Min(size, 16)).SequenceEqual(content.Take(Math.Min(size, 16))),
+                    Is.False,
+                    "a protected attachment's buffer starts with its bytes");
+            }
+
+            foreach (var isProtected in new[] { true, false })
+            {
+                var empty = new ProtectedBinary(isProtected, Array.Empty<byte>());
+                Assert.That(KeePassMemory.Buffer(empty), Is.Empty);
+                Assert.That(KeePassMemory.KeptAs(empty), Is.EqualTo("None"));
+                Assert.That(empty.IsProtected, Is.EqualTo(isProtected));
+            }
+        }
+
+        [Test]
+        public void KeePass_s_own_read_still_leaves_the_encrypted_buffer_holding_what_it_held()
+        {
+            // KeePass's read decrypts the buffer where it stands, copies it and encrypts it
+            // again. The reader takes copies of pieces of that buffer between KeePass's reads,
+            // a piece at each taking of the lock, so a read of KeePass's between two pieces has
+            // to leave the same array holding the same encrypted bytes: encrypted again under
+            // another key or into another array, the piece after it would decrypt beside the
+            // piece before it to bytes of two different attachments.
+            var content = new byte[100000];
+            new Random(7).NextBytes(content);
+            var binary = new ProtectedBinary(true, content);
+            var buffer = KeePassMemory.Buffer(binary);
+            var before = (byte[])buffer.Clone();
+
+            Assert.That(binary.ReadData(), Is.EqualTo(content));
+            Assert.That(binary.ReadData(), Is.EqualTo(content));
+
+            Assert.That(
+                KeePassMemory.Buffer(binary),
+                Is.SameAs(buffer),
+                "KeePass's read left the attachment in another array");
+            Assert.That(
+                buffer.SequenceEqual(before),
+                Is.True,
+                "KeePass's read left other encrypted bytes than it found");
+            Assert.That(KeePassMemory.KeptAs(binary), Is.EqualTo("ProtectedMemory"));
+
+            // And two attachments of the same bytes are kept as the same encrypted bytes, which
+            // is the same fact from the other side: nothing of the object or the moment is in
+            // how Windows encrypts within this process.
+            Assert.That(KeePassMemory.Buffer(new ProtectedBinary(true, content)).SequenceEqual(before), Is.True);
+        }
+
+        [Test]
+        public void Windows_still_decrypts_a_piece_of_protected_memory_alone_once_the_block_ahead_is_decrypted_with_it(
+            [Values(1, 4, 4096)] int blocks, [Values("start", "middle", "end")] string place)
+        {
+            // What a protected attachment is read by, measured and nothing Windows documents:
+            // its protection of process memory chains its blocks, so a copy of a piece of the
+            // encrypted buffer decrypts on its own to the right bytes in every block but its
+            // first, and to the right bytes throughout when the block ahead of it is decrypted
+            // with it and thrown away. The piece at the start of the buffer has no block ahead
+            // and is right from its first block. `StoredBinaries` checks the same thing a
+            // single time before it reads anything, on a few blocks. Here it is held over
+            // KeePass's own buffer for a megabyte, at each end and in the middle.
+            const int Block = 16;
+            const int Megabyte = 1024 * 1024;
+            var content = new byte[Megabyte];
+            new Random(blocks).NextBytes(content);
+            var encrypted = KeePassMemory.Buffer(new ProtectedBinary(true, content));
+            var kept = (byte[])encrypted.Clone();
+
+            var count = blocks * Block;
+            var at = place == "start" ? 0 : place == "end" ? Megabyte - count : ((Megabyte / 2) / Block) * Block;
+
+            var alone = new byte[count];
+            Buffer.BlockCopy(encrypted, at, alone, 0, count);
+            Unprotect(alone);
+
+            var firstBlockRight = alone.Take(Block).SequenceEqual(content.Skip(at).Take(Block));
+            Assert.That(firstBlockRight, Is.EqualTo(at == 0), "the first block of a piece decrypted on its own");
+            Assert.That(
+                alone.Skip(Block).SequenceEqual(content.Skip(at + Block).Take(count - Block)),
+                Is.True,
+                "a block after the first of a piece decrypted on its own is wrong");
+
+            if (at > 0)
+            {
+                var led = new byte[Block + count];
+                Buffer.BlockCopy(encrypted, at - Block, led, 0, led.Length);
+                Unprotect(led);
+
+                Assert.That(
+                    led.Skip(Block).SequenceEqual(content.Skip(at).Take(count)),
+                    Is.True,
+                    "a piece decrypted with the block ahead of it is wrong");
+            }
+
+            Assert.That(
+                encrypted.SequenceEqual(kept),
+                Is.True,
+                "decrypting a copy changed the buffer it was copied from");
+        }
+
+        [Test]
+        public void An_attachment_loaded_from_a_file_still_keeps_its_flag()
+        {
+            // Which way an attachment is read is decided by its flag, and what the flag is for
+            // a file attached in KeePass is decided when it is attached, the test after this.
+            // So the flag has to come back from the file as it went in: an attachment held in
+            // the open that came back protected would be read through a copy of every piece,
+            // and a protected attachment that came back in the open would stand in KeePass's
+            // memory as its bytes.
+            var open = new byte[70000];
+            var guarded = new byte[70000];
+            new Random(1).NextBytes(open);
+            new Random(2).NextBytes(guarded);
+
+            using (var database = TemporaryDatabase.New())
+            {
+                var entry = new KeePassLib.PwEntry(true, true);
+                entry.Strings.Set(KeePassLib.PwDefs.TitleField, new ProtectedString(false, "an invented service"));
+                entry.Binaries.Set("open.bin", new ProtectedBinary(false, open));
+                entry.Binaries.Set("protected.bin", new ProtectedBinary(true, guarded));
+                database.RootGroup.AddEntry(entry, true);
+
+                database.SaveCloseAndReopen();
+
+                var loaded = database.RootGroup.FindEntry(entry.Uuid, true);
+                Assert.That(loaded, Is.Not.Null.And.Not.SameAs(entry));
+
+                var openAgain = loaded.Binaries.Get("open.bin");
+                Assert.That(openAgain.IsProtected, Is.False, "an attachment held in the open came back protected");
+                Assert.That(KeePassMemory.KeptAs(openAgain), Is.EqualTo("None"));
+                Assert.That(KeePassMemory.Buffer(openAgain).Take(open.Length).SequenceEqual(open), Is.True);
+
+                var guardedAgain = loaded.Binaries.Get("protected.bin");
+                Assert.That(guardedAgain.IsProtected, Is.True, "a protected attachment came back in the open");
+                Assert.That(KeePassMemory.KeptAs(guardedAgain), Is.EqualTo("ProtectedMemory"));
+                Assert.That(guardedAgain.ReadData().SequenceEqual(guarded), Is.True);
+            }
+        }
+
+        [Test]
+        public void The_entry_dialog_still_attaches_a_file_in_the_open()
+        {
+            // What a file attached in KeePass is held as, which is what the gate reads at any
+            // size: in the open, so its pieces are KeePass's own buffer with nothing copied and
+            // nothing decrypted. Read off the IL of the method behind the dialog's Attach
+            // File(s), since the dialog needs a file chooser to be driven: it constructs the
+            // attachment with the constant false for its protection, loaded straight ahead of
+            // the bytes. A KeePass that attached files protected would have every large
+            // attachment read through a copy of each piece, and a KeePass that kept them some
+            // other way could have them refused.
+            var import = typeof(PwEntryForm).GetMethod(
+                "BinImportFiles", BindingFlags.Instance | BindingFlags.NonPublic);
+            var made = typeof(ProtectedBinary).GetConstructor(new[] { typeof(bool), typeof(byte[]) });
+
+            Assert.That(import, Is.Not.Null, "the method behind Attach File(s) is gone");
+            Assert.That(made, Is.Not.Null, "an attachment is no longer made from a flag and its bytes");
+
+            var body = import.GetMethodBody().GetILAsByteArray();
+            var sites = Sites(import, made, 0x73);
+            Assert.That(
+                sites,
+                Is.Not.Empty,
+                "attaching a file no longer makes the attachment from a flag and its bytes");
+
+            foreach (var site in sites)
+            {
+                // The bytes are loaded last, from a local, and the flag ahead of them: by the
+                // form that names the local by an index, 0x11 and the index, or by a form for
+                // each of the first four locals, 0x06 to 0x09.
+                int flag;
+                if (site >= 3 && body[site - 2] == 0x11)
+                {
+                    flag = body[site - 3];
+                }
+                else if (site >= 2 && body[site - 1] >= 0x06 && body[site - 1] <= 0x09)
+                {
+                    flag = body[site - 2];
+                }
+                else
+                {
+                    Assert.Fail("attaching a file no longer hands the constructor a constant and a local");
+                    return;
+                }
+
+                // The constant zero, where true is the constant after it, 0x17.
+                Assert.That(flag, Is.EqualTo(0x16), "attaching a file no longer makes an attachment held in the open");
+            }
+        }
+
+        /// <summary>
+        /// Where a method's body holds this opcode with the other method as its operand.
+        /// </summary>
+        /// <remarks>Scanned as <see cref="Calls"/> scans, and wrong only the way it can be.</remarks>
+        private static System.Collections.Generic.List<int> Sites(MethodBase caller, MethodBase callee, byte opcode)
+        {
+            var body = caller.GetMethodBody().GetILAsByteArray();
+            var sites = new System.Collections.Generic.List<int>();
+
+            for (var i = 0; i + 4 < body.Length; i++)
+            {
+                if (body[i] != opcode)
+                {
+                    continue;
+                }
+
+                try
+                {
+                    var called = caller.Module.ResolveMethod(BitConverter.ToInt32(body, i + 1));
+                    if (called.Module == callee.Module && called.MetadataToken == callee.MetadataToken)
+                    {
+                        sites.Add(i);
+                    }
+                }
+                catch (ArgumentException)
+                {
+                    // Not a method token, which the byte by byte scan meets in operands.
+                }
+                catch (BadImageFormatException)
+                {
+                    // The same, for a token that names no row.
+                }
+            }
+
+            return sites;
+        }
+
+        /// <summary>Whether a method's body loads this field, or its address.</summary>
+        /// <remarks>
+        /// The token after every opcode in the body that loads a field or its address, 0x7B
+        /// and 0x7C, compared with the field's, scanned as <see cref="Calls"/> scans.
+        /// </remarks>
+        private static bool Reads(MethodBase reader, FieldInfo field)
+        {
+            var body = reader.GetMethodBody().GetILAsByteArray();
+
+            for (var i = 0; i + 4 < body.Length; i++)
+            {
+                if ((body[i] == 0x7B || body[i] == 0x7C) && BitConverter.ToInt32(body, i + 1) == field.MetadataToken)
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        /// <summary>
+        /// Decrypts a buffer in place with Windows' protection of process memory, as KeePass
+        /// and the gate's reader both do.
+        /// </summary>
+        /// <remarks>
+        /// Reached by name, since the class is in `System.Security`, which KeePass and the
+        /// plugin reference and this project does not.
+        /// </remarks>
+        private static void Unprotect(byte[] buffer)
+        {
+            const string Library = "System.Security, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a";
+            var memory = Type.GetType("System.Security.Cryptography.ProtectedMemory, " + Library, true);
+            var scope = Type.GetType("System.Security.Cryptography.MemoryProtectionScope, " + Library, true);
+
+            memory.GetMethod("Unprotect", new[] { typeof(byte[]), scope })
+                .Invoke(null, new[] { buffer, Enum.Parse(scope, "SameProcess") });
+        }
+
         [TestCase(KeePassContract.GroupFormTypeName)]
         [TestCase(KeePassContract.EntryFormTypeName)]
         public void Both_node_dialogs_still_keep_their_own_copy_of_custom_data(string typeName)
