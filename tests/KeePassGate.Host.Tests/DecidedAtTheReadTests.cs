@@ -184,6 +184,40 @@ namespace KeePassGate.Host.Tests
             Assert.That(after.Headers["ETag"], Is.Not.EqualTo(before.Headers["ETag"]), "the edit did move the tag");
         }
 
+        [TestCase("/entries")]
+        [TestCase("/groups/{group}/entries")]
+        public void A_listing_written_once_the_hold_has_ended_is_of_the_entries_as_they_stood_inside(string path)
+        {
+            // Which entries a caller is shown is decided inside the hold, and the listing is
+            // written after it, each title and address read then. The description a listing is
+            // written from keeps the string the entry held inside the hold, so a title the
+            // operator types the moment the hold is let go, an entry added and an entry removed
+            // are in the listing that follows and not in this listing.
+            var before = Send(CurrentThread.Instance, path);
+            Assume.That(before.Status, Is.EqualTo(200), before.Json);
+            Assume.That(before.Json, Does.Contain("an invented service"));
+
+            var operatorNext = new OperatorNext(1, () =>
+            {
+                _entry.Strings.Set(PwDefs.TitleField, new ProtectedString(false, Typed));
+                _entry.Strings.Set(PwDefs.UrlField, new ProtectedString(false, "https://typed.example/"));
+
+                var added = new PwEntry(true, true);
+                added.Strings.Set(PwDefs.TitleField, new ProtectedString(false, "added once the hold had ended"));
+                _group.AddEntry(added, true);
+            });
+
+            var answer = Send(operatorNext, path);
+
+            Assert.That(operatorNext.Ran, Is.True);
+            Assert.That(answer.Status, Is.EqualTo(200), answer.Json);
+            Assert.That(answer.Json, Is.EqualTo(before.Json));
+
+            var after = Send(CurrentThread.Instance, path);
+            Assert.That(after.Json, Does.Contain(Typed));
+            Assert.That(after.Json, Does.Contain("added once the hold had ended"));
+        }
+
         [TestCase("/entries/{entry}")]
         [TestCase("/entries/{entry}/fields")]
         [TestCase("/entries/{entry}/fields/Password")]

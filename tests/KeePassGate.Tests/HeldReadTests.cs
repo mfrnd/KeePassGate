@@ -118,6 +118,26 @@ namespace KeePassGate.Tests
             }
         }
 
+        [TestCase("/entries")]
+        [TestCase("/groups/{group}/entries")]
+        [TestCase("/groups")]
+        [TestCase("/groups/{group}/groups")]
+        public void A_listing_is_written_once_the_hold_has_ended(string path)
+        {
+            // Which groups and entries a caller is shown is the rules' answer, asked inside the
+            // hold. Writing the listing out needs nothing of the database but the descriptions
+            // taken there, and it grows with the database, megabytes of it for a large database,
+            // with every title it shows read for it.
+            var context = Asked("GET", path);
+
+            Assert.That(context.Status, Is.EqualTo(200), path + " " + context.Json);
+            Assert.That(_vault.ValueWorkHeld, Is.Zero, path);
+            if (path.EndsWith("/entries", StringComparison.Ordinal))
+            {
+                Assert.That(context.Json, Does.Contain("an invented service"));
+            }
+        }
+
         [Test]
         public void Making_a_view_s_strings_inside_a_hold_is_what_the_count_of_held_work_does_see()
         {

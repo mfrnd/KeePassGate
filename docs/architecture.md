@@ -134,7 +134,8 @@ regularly keeps KeePass from locking itself after a period of KeePass inactivity
 nothing KeePass does can change the database under it, and whether the program may have the
 answer is decided at that same moment: a rule changed, a profile removed or a client revoked
 while a read waited is what the read is answered by. That is under a millisecond for an entry,
-whose values are read once KeePass is free again, and about fifty-five to list ten thousand.
+whose values are read once KeePass is free again, and about thirty to list ten thousand, which
+are written out once KeePass is free again as well.
 A read waits for KeePass to have nothing else to do first, so what is typed or clicked in
 the window goes ahead of it, and so do KeePass's own timers, among them the one that locks it after
 a period of inactivity. A read that KeePass cannot make room for within ten seconds, because it is

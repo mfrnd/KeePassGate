@@ -112,12 +112,13 @@ namespace KeePassGate.Tests.Fakes
 
         /// <summary>
         /// How many times a view's strings or attachments were made, a value was measured or
-        /// read, an attachment read or digested, or a tag taken, with a hold standing.
+        /// read, an attachment read or digested, a tag taken, or a title or a URL read for a
+        /// listing, with a hold standing.
         /// </summary>
         /// <remarks>
-        /// What a read of an entry may never do: each of those grows with the entry, and the
-        /// hold is KeePass's own thread standing still. A view is taken inside the hold and
-        /// asked for all of that after it.
+        /// What a read may never do: each of those grows with what a client wrote, and the
+        /// hold is KeePass's own thread standing still. A view and a listing's descriptions
+        /// are taken inside the hold and asked for all of that after it.
         /// </remarks>
         public int ValueWorkHeld { get; private set; }
 
@@ -656,14 +657,47 @@ namespace KeePassGate.Tests.Fakes
 
             return group == null
                 ? null
-                : _entries.Values.Where(e => e.Group == group.Uuid).Select(e => e.Describe()).ToList();
+                : _entries.Values.Where(e => e.Group == group.Uuid).Select(Listable).ToList();
+        }
+
+        /// <summary>
+        /// An entry as a listing is handed it, as the real vault describes an entry: its title
+        /// and its URL read when first asked for, which is counted as work on a value.
+        /// </summary>
+        private VaultEntry Listable(Kept entry)
+        {
+            string title;
+            string url;
+
+            entry.Fields.TryGetValue("Title", out title);
+            entry.Fields.TryGetValue("URL", out url);
+
+            return new VaultEntry(
+                entry.Uuid,
+                entry.Group,
+                () =>
+                {
+                    Working();
+                    return title ?? string.Empty;
+                },
+                () =>
+                {
+                    Working();
+                    return url ?? string.Empty;
+                },
+                DateTimeOffset.MinValue,
+                DateTimeOffset.MinValue,
+                entry.Node,
+                entry.Protected.Contains("Title"),
+                entry.Protected.Contains("URL"),
+                entry.Expires);
         }
 
         public IReadOnlyList<VaultEntry> Entries()
         {
             Looking();
 
-            return IsOpen ? _entries.Values.Select(e => e.Describe()).ToList() : null;
+            return IsOpen ? _entries.Values.Select(Listable).ToList() : null;
         }
 
         /// <summary>

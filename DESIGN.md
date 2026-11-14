@@ -551,8 +551,8 @@ user, which is conceded throughout. A title or an address a caller is not shown 
 all: an entry is described without them, and a listing reads each only where it shows it. It
 costs a copy of each protected value in sight for every tag, a read's and a change's alike,
 and a copy of each protected title and address a listing shows, where KeePass keeping the text
-made every tag and every listing after the first cheaper. A read's tag is taken with KeePass's
-thread free; a change's tags and a listing are inside a turn and a hold. `FINDINGS.md` has the
+made every tag and every listing after the first cheaper. A read's tag is taken, and a listing
+written, with KeePass's thread free; a change's tags are inside its turn. `FINDINGS.md` has the
 numbers.
 
 **Neither switch is asked about for a removal.** They say how far the verbs a rule grants see or
@@ -930,26 +930,32 @@ So the rules here:
   served. A change still takes its tags inside its own turn, where the comparison and the
   change are one step.
 
-  **The strings of a view are made after the hold as well.** Whether each of an entry's strings is
-  protected and whether a listing shows it are several comparisons of its name by the culture's
-  collation, and no write bounds how many strings an entry holds either: made as the view was taken,
-  that held KeePass's thread four milliseconds for an entry of ten thousand strings and fifty-five
-  for a hundred thousand. So what is taken inside the hold is a copy of the lists the entry keeps
-  its strings and attachments in, which KeePass does change in place, and of the database's settings
-  for which names it protects, which the operator can change in between; the view's strings and
-  attachments are made of those the first time the view is asked for them, after the hold, and a
-  name the entry does not hold is found missing there. The copy is what still grows with the entry:
-  0.3 milliseconds for ten thousand strings and three for a hundred thousand. A group, a listing and
-  what a client may do at a node are read and answered inside the hold as before; a listing grows
-  with the entries and the titles that clients wrote, and is the longest hold measured.
+  **The strings of a view are made after the hold as well, and a listing is written after it.**
+  Whether each of an entry's strings is protected and whether a listing shows it are several
+  comparisons of its name by the culture's collation, and no write bounds how many strings an entry
+  holds either: made as the view was taken, that held KeePass's thread four milliseconds for an
+  entry of ten thousand strings and fifty-five for a hundred thousand. So what is taken inside the
+  hold is a copy of the lists the entry keeps its strings and attachments in, which KeePass does
+  change in place, and of the database's settings for which names it protects, which the operator
+  can change in between; the view's strings and attachments are made of those the first time the
+  view is asked for them, after the hold, and a name the entry does not hold is found missing there.
+  The copy is what still grows with the entry: 0.3 milliseconds for ten thousand strings and three
+  for a hundred thousand. A listing is parted the same way. Which groups and entries a caller is
+  shown, and which titles and addresses of them, are the rules' answers and are asked inside the
+  hold; the listing is written from the descriptions taken there once the hold has ended, each title
+  read then, since writing it is megabytes for a large database and a copy of every protected title
+  it shows decrypted. A group, and what a client may do at a node, are read and answered inside the
+  hold as before.
 
-  **What a whole request holds the thread for is still short.** Over a thousand groups and ten
-  thousand entries, through the real router and vault: about fifty-five milliseconds to list every
-  entry, 2.3 MB of JSON, where the sweep alone held seventeen, and two and a half to list every
-  group. Where the database protects titles and addresses and the caller is shown them, the listing
-  decrypts a copy of each for every request and holds about ninety, §136. A read of an entry holds
-  the thread to find the entry, ask the rules and copy its lists, and no longer for what the entry
-  holds. `FINDINGS.md` has the table, under "Reading while KeePass changes the tree".
+  **What a whole request holds the thread for is still short.** Over ten thousand entries, through
+  the real router and vault: twenty-two to twenty-six milliseconds to list every entry, which is the
+  sweep and the rules asked of each, and about thirty-one where the database protects titles and
+  addresses, whether or not the caller is shown them, since whether it is shown them is asked of
+  each entry. The 2.3 MB of JSON is written after the hold, which took the listing to fifty-five
+  milliseconds of hold while it was written inside, and to about ninety where a copy of each
+  protected title was decrypted there, §136. A read of an entry holds the thread to find the entry,
+  ask the rules and copy its lists, and no longer for what the entry holds. `FINDINGS.md` has the
+  table, under "Reading while KeePass changes the tree".
 
   **Nothing that waits runs inside a hold**, since the operator's window waits with it: not the
   writer, which waits on that thread itself and is refused as a defect, not the audit's pacing or

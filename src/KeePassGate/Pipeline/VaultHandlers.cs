@@ -36,7 +36,8 @@ namespace KeePassGate.Pipeline
     /// entry, is done on KeePass's thread. Everything that reads the database stays inside:
     /// finding the entry, the rules, and the line for a value withheld. A name in the entry is
     /// looked for after the hold, in the view, since the view's strings are made of a copy of
-    /// the entry's own list when they are first asked for.
+    /// the entry's own list when they are first asked for. A listing leaves the hold the same
+    /// way, with which groups or entries its caller is shown decided, and is written after it.
     ///
     /// **A change is decided again where it is made**, and still not by its handler. The router
     /// answered before the change waited for its turn on KeePass's thread, so the handler of a
@@ -1343,13 +1344,17 @@ namespace KeePassGate.Pipeline
         /// <remarks>
         /// **A listing is judged against the tree it was taken from.** The sweep and the rules
         /// asked of everything in it run inside the hold the router decided the request in, which
-        /// is one turn on KeePass's thread rather than one an entry. What it writes is a string,
-        /// kept until that hold is let go, so the answer goes out with the thread free.
+        /// is one turn on KeePass's thread rather than one an entry. **What it is written from
+        /// is decided there, and it is written once that hold is let go**, `Later`: which
+        /// groups and entries the caller is shown, and which titles and addresses of them, are
+        /// rules asked inside the hold, and writing them out, megabytes of it for a large
+        /// database, with a copy of every protected title it shows decrypted, needs nothing of
+        /// the database but the descriptions already taken.
         ///
         /// Null is a listing of something that is not there, which `IVault` never answers as an
         /// empty list, and is never an empty list here either.
         /// </remarks>
-        private static void Listed(IGateContext context, string listing)
+        private static void Listed(IGateContext context, Func<string> listing)
         {
             if (listing == null)
             {
@@ -1357,52 +1362,56 @@ namespace KeePassGate.Pipeline
                 return;
             }
 
-            context.Respond(200, listing);
+            Later(context, () => context.Respond(200, listing()));
         }
 
-        /// <summary>The listing of these groups the client may see, or null when there are none to list.</summary>
-        private static string Groups(IGateContext context, IReadOnlyList<VaultGroup> groups)
+        /// <summary>
+        /// What writes the listing of these groups the client may see, or null when there are
+        /// none to list.
+        /// </summary>
+        private static Func<string> Groups(IGateContext context, IReadOnlyList<VaultGroup> groups)
         {
             if (groups == null)
             {
                 return null;
             }
 
-            var json = new JsonWriter();
-            json.Array("groups");
-            var shown = 0;
             var read = new AclDocuments();
+            var shown = groups.Where(group => Visible(context, group.Node, read)).ToList();
 
-            foreach (var group in groups)
+            return () =>
             {
-                if (!Visible(context, group.Node, read))
+                var json = new JsonWriter();
+                json.Array("groups");
+
+                foreach (var group in shown)
                 {
-                    continue;
+                    json.Item();
+                    Summarize(json, group);
+                    json.End();
                 }
 
-                json.Item();
-                Summarize(json, group);
                 json.End();
-                shown++;
-            }
+                json.Number("count", shown.Count);
 
-            json.End();
-            json.Number("count", shown);
-
-            return json.Done();
+                return json.Done();
+            };
         }
 
-        /// <summary>The listing of these entries the client may see, or null when there are none to list.</summary>
-        private static string Entries(IGateContext context, IReadOnlyList<VaultEntry> entries, bool withExpired)
+        /// <summary>
+        /// What writes the listing of these entries the client may see, or null when there are
+        /// none to list.
+        /// </summary>
+        private static Func<string> Entries(IGateContext context, IReadOnlyList<VaultEntry> entries, bool withExpired)
         {
             if (entries == null)
             {
                 return null;
             }
 
-            var json = new JsonWriter();
-            json.Array("entries");
-            var shown = 0;
+            // Each entry the caller is shown, with whether its protected title and address are
+            // withheld from it: everything the rules decide, decided here, inside the hold.
+            var shown = new List<KeyValuePair<VaultEntry, bool>>();
 
             // One rules document is read once per listing, however many entries lie under it,
             // rather than once for every entry and every question asked of it.
@@ -1434,21 +1443,37 @@ namespace KeePassGate.Pipeline
                 var withheld = (entry.TitleProtected || entry.UrlProtected)
                                && !ShowsListedProtected(context, entry.Node, read);
 
-                json.Item();
-                json.Text("uuid", entry.Uuid);
-                json.Text("group", entry.Group);
-                json.Text("title", withheld && entry.TitleProtected ? null : entry.Title);
-                json.Text("url", withheld && entry.UrlProtected ? null : entry.Url);
-                json.Text("created", Moments.Wire(entry.Created));
-                json.Text("modified", Moments.Wire(entry.Modified));
-                json.End();
-                shown++;
+                shown.Add(new KeyValuePair<VaultEntry, bool>(entry, withheld));
             }
 
-            json.End();
-            json.Number("count", shown);
+            return () =>
+            {
+                var json = new JsonWriter();
+                json.Array("entries");
 
-            return json.Done();
+                foreach (var listed in shown)
+                {
+                    // A title or an address is read here, the first time it is asked for, and
+                    // only where it is shown: the description keeps the string the entry held
+                    // inside the hold, and a protected string is decrypted to be read.
+                    var entry = listed.Key;
+                    var withheld = listed.Value;
+
+                    json.Item();
+                    json.Text("uuid", entry.Uuid);
+                    json.Text("group", entry.Group);
+                    json.Text("title", withheld && entry.TitleProtected ? null : entry.Title);
+                    json.Text("url", withheld && entry.UrlProtected ? null : entry.Url);
+                    json.Text("created", Moments.Wire(entry.Created));
+                    json.Text("modified", Moments.Wire(entry.Modified));
+                    json.End();
+                }
+
+                json.End();
+                json.Number("count", shown.Count);
+
+                return json.Done();
+            };
         }
 
         /// <summary>
@@ -1725,7 +1750,8 @@ namespace KeePassGate.Pipeline
         /// entry leaves its measuring, its reading, its tag, its condition and its answer here,
         /// and asks its view for its strings and attachments only here, so no such read does
         /// work on KeePass's thread that grows with how long the entry's values are or with how
-        /// many it holds, beyond the copy of its lists the view is taken with.
+        /// many it holds, beyond the copy of its lists the view is taken with. A listing is
+        /// written here too.
         /// </remarks>
         private static void Later(IGateContext context, Action serve)
         {
