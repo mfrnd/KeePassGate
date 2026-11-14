@@ -132,14 +132,12 @@ namespace KeePassGate.Vault
         /// is taken with KeePass's thread held still and keeps the objects the entry held then,
         /// so what a read makes of it once the hold has ended is still of that moment.
         ///
-        /// **Nothing is read or measured to take it, and no value is handed anywhere until the
-        /// view is asked for it**, as <see cref="VaultEntryView"/> describes. KeePass keeps an
+        /// **Nothing is read to take it, and no value is handed anywhere until the view is
+        /// asked for it**, as <see cref="VaultEntryView"/> describes. KeePass keeps an
         /// attachment's size beside its encrypted bytes, so an attachment over its ceiling is
-        /// measured from the view and refused with nothing decrypted. A string is measured when
-        /// the view is first asked its size, and only a string in the caller's sight: a view
-        /// over its ceiling is refused with no value read, though KeePass decrypts a protected
-        /// value it holds as bytes, once and inside its own type, to count its characters the
-        /// first time. A withheld value is neither read nor measured. An attachment asked for in a
+        /// measured from the view and refused with nothing decrypted. A string has no
+        /// ceiling and is never measured: its value is read as the answer is written, and a
+        /// withheld value is never read. An attachment asked for in a
         /// second read, after a listing, could be replaced in between and decrypted whole, at
         /// whatever size it had become, before anything could refuse it.
         /// </remarks>

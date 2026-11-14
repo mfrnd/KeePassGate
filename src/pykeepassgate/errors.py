@@ -397,11 +397,6 @@ class PreconditionFailed(RouteRefused):
     which hands back the tag it holds now, and deciding again whether the change still makes sense
     with what it holds; what mends the second is sending none. A `RouteRefused`, so a caller that
     catches every refusal already catches this refusal, with `status` `412`.
-
-    `GateClient.fields` meets it with no `if_match` given as well: the gate hands the names of an
-    entry's strings out in parts, and every part after the first is asked for under the tag the
-    first part came with, so an entry that changed while it was being listed is this refusal
-    rather than a listing put together from several moments. Listing again is what mends it.
     """
 
     def __init__(self, error: str) -> None:

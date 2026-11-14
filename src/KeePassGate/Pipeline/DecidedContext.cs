@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Net;
 
 namespace KeePassGate.Pipeline
@@ -29,10 +30,12 @@ namespace KeePassGate.Pipeline
     /// whether the handler answers on the connection's thread once the turn is over or a client
     /// is turned away inside the turn.
     ///
-    /// **What a read leaves for after its hold runs here too**, <see cref="After"/>: the part of
-    /// an entry's answer made of its values, which is run by <see cref="Deliver"/> on the
-    /// connection's own thread, before the answer is handed on. A read whose hold lapsed never
-    /// reaches <see cref="Deliver"/>, so what it left is dropped with its answer.
+    /// **What a read leaves for after its hold runs here too**, <see cref="After"/>: the tag,
+    /// the condition asked of it and the handing over of what writes the answer, which is run
+    /// by <see cref="Deliver"/> on the connection's own thread, before the answer is handed on.
+    /// The values themselves are read as the answer is written, once it has been handed on. A
+    /// read whose hold lapsed never reaches <see cref="Deliver"/>, so what it left is dropped
+    /// with its answer.
     /// </remarks>
     internal sealed class DecidedContext : IGateContext
     {
@@ -44,6 +47,7 @@ namespace KeePassGate.Pipeline
         private bool _answered;
         private int _status;
         private string _json;
+        private Action<TextWriter> _content;
         private WebHeaderCollection _headers;
         private Action _after;
 
@@ -126,7 +130,7 @@ namespace KeePassGate.Pipeline
         {
             if (!_keeps)
             {
-                Send(status, json, headers);
+                Send(status, json, null, headers);
                 return;
             }
 
@@ -139,6 +143,38 @@ namespace KeePassGate.Pipeline
             _answered = true;
             _status = status;
             _json = json;
+            _headers = headers;
+        }
+
+        /// <summary>
+        /// Answers with content that is written as it is sent, kept here as an answer handed
+        /// over whole is.
+        /// </summary>
+        /// <remarks>
+        /// What is kept is what writes the content, and nothing is written until the request
+        /// itself is answered, so an answer dropped with this context has made nothing.
+        /// </remarks>
+        public void Respond(int status, Action<TextWriter> content, WebHeaderCollection headers)
+        {
+            if (content == null)
+            {
+                throw new ArgumentNullException(nameof(content));
+            }
+
+            if (!_keeps)
+            {
+                Send(status, null, content, headers);
+                return;
+            }
+
+            if (_answered)
+            {
+                return;
+            }
+
+            _answered = true;
+            _status = status;
+            _content = content;
             _headers = headers;
         }
 
@@ -183,12 +219,18 @@ namespace KeePassGate.Pipeline
 
             if (_answered)
             {
-                Send(_status, _json, _headers);
+                Send(_status, _json, _content, _headers);
             }
         }
 
-        private void Send(int status, string json, WebHeaderCollection headers)
+        private void Send(int status, string json, Action<TextWriter> content, WebHeaderCollection headers)
         {
+            if (content != null)
+            {
+                _request.Respond(status, content, headers);
+                return;
+            }
+
             if (headers == null)
             {
                 _request.Respond(status, json);

@@ -636,10 +636,10 @@ namespace KeePassGate.Spec
         /// **An entry's values are read once the hold has ended, and are still of that
         /// moment.** What the handler takes of an entry inside the hold is the caller's view,
         /// which keeps the objects the entry's values were held in and reads none of them. The
-        /// handler leaves the rest with <see cref="AfterItem"/>: measuring the values, reading
-        /// them, taking the tag and asking the condition of it. That part grows with the entry
-        /// and no write is refused for an entry's size, so it runs on the connection's thread
-        /// with KeePass's own free, <see cref="ServedAfter"/>.
+        /// handler leaves the rest with <see cref="AfterItem"/>: taking the tag, asking the
+        /// condition of it, and handing over what writes the values as the answer is sent.
+        /// That part grows with the entry and no write is refused for an entry's size, so it
+        /// runs on the connection's thread with KeePass's own free, <see cref="ServedAfter"/>.
         ///
         /// **The answer is handed over once the hold has ended**, for the reason
         /// <see cref="DecidedContext"/> gives, and a hold that could not be taken or did not

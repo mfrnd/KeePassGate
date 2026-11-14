@@ -1,4 +1,6 @@
+using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Net;
 
 namespace KeePassGate.Pipeline
@@ -14,7 +16,8 @@ namespace KeePassGate.Pipeline
     ///
     /// <see cref="Body"/> is a string, read once and bounded, because the transport is what
     /// enforces the limit and refuses a framing it does not understand. Nothing above here thinks
-    /// about framing.
+    /// about framing, of an answer either: an answer is handed over as text, whole or as what
+    /// writes it, and how its end is marked on the wire is the transport's.
     /// </remarks>
     public interface IGateContext
     {
@@ -57,6 +60,33 @@ namespace KeePassGate.Pipeline
         /// writer refuses the fields it owns itself.
         /// </remarks>
         void Respond(int status, string json, WebHeaderCollection headers);
+
+        /// <summary>
+        /// Answers, once, with content that is written as it is sent and kept nowhere.
+        /// </summary>
+        /// <remarks>
+        /// **For an answer that grows with what the database holds**: an entry's values, which
+        /// no write is refused for the size of, or a listing. Handed over whole, such an answer
+        /// is alive several times over in the password manager's own process; written as it is
+        /// sent, what is alive is the value being written. `HttpResponse.Write` has the
+        /// measurement and the framing.
+        ///
+        /// **Everything that can refuse comes before this, and this is for no refusal.**
+        /// Calling it decides the status, and <paramref name="content"/> runs once that status
+        /// is on the wire, so what it throws cannot be answered: it is counted as a defect,
+        /// and the connection is closed over an answer left without its end, which a client
+        /// takes none of. A refusal is of a bounded size and is handed over whole, and a `503`
+        /// answered this way would name no word in `KPG-Unavailable`, which is read out of a
+        /// body. It is not run for a HEAD, and not at all where the answer is dropped.
+        ///
+        /// **What it writes is the whole document and nothing else, and it reads no
+        /// database.** It runs on the connection's thread once the router is done with the
+        /// request, after any hold and outside any turn, so it is handed what was taken
+        /// inside them, as <see cref="ServedAfter"/> holds of the work a read leaves.
+        /// </remarks>
+        /// <param name="content">What writes the answer's JSON, as text.</param>
+        /// <param name="headers">Fields the writer has no way to know, or null.</param>
+        void Respond(int status, Action<TextWriter> content, WebHeaderCollection headers);
 
         bool Answered { get; }
     }

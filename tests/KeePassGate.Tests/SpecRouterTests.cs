@@ -560,28 +560,25 @@ namespace KeePassGate.Tests
         }
 
         [Test]
-        public void The_only_query_parameters_are_the_expiry_flag_on_the_entry_listings_and_where_a_field_listing_starts()
+        public void The_only_query_parameter_is_the_expiry_flag_on_the_entry_listings()
         {
             // `API.md` §407: scoping is a path here, and filtering and paging were cut but for
-            // the expiry flag on the listings of entries and the position a part of a field
-            // listing starts at. The check reads the document rather than refusing every query
-            // for all time, so this is what holds the document to not having quietly grown
-            // another: a name declared is a name the router lets through to a handler.
+            // the expiry flag on the listings of entries. The check reads the document rather
+            // than refusing every query for all time, so this is what holds the document to
+            // not having quietly grown another: a name declared is a name the router lets
+            // through to a handler.
             var declaring = GateOperations.Document.Operations.Where(o => o.Query.Count > 0).ToList();
 
             Assert.That(
                 declaring.Select(o => o.OperationId).OrderBy(name => name, StringComparer.Ordinal),
                 Is.EqualTo(new[]
                 {
-                    "headEntries", "headFields", "headGroupEntries", "listEntries", "listFields", "listGroupEntries",
+                    "headEntries", "headGroupEntries", "listEntries", "listGroupEntries",
                 }));
 
             foreach (var operation in declaring)
             {
-                var declared = operation.OperationId.EndsWith("Fields", StringComparison.Ordinal)
-                    ? "from"
-                    : "includeExpired";
-                Assert.That(operation.Query, Is.EquivalentTo(new[] { declared }), operation.OperationId);
+                Assert.That(operation.Query, Is.EquivalentTo(new[] { "includeExpired" }), operation.OperationId);
             }
         }
 

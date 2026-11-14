@@ -40,27 +40,6 @@ namespace KeePassGate.Tests
         }
 
         [Test]
-        public void The_document_names_the_ceiling_an_entry_is_held_to()
-        {
-            // Written into `EntryTooLarge` for a reader, and nothing else relates the two: a
-            // ceiling moved in the code and not there would tell every client a size it is not
-            // held to.
-            string document;
-            using (var stream = typeof(SpecDocument).Assembly.GetManifestResourceStream("KeePassGate.Spec.openapi.yaml"))
-            using (var reader = new System.IO.StreamReader(stream))
-            {
-                document = reader.ReadToEnd();
-            }
-
-            var response = document.Substring(document.IndexOf("    EntryTooLarge:", StringComparison.Ordinal));
-            response = response.Substring(0, response.IndexOf("content:", StringComparison.Ordinal));
-
-            Assert.That(response, Does.Contain(
-                VaultHandlers.MaxEntryCharacters.ToString(System.Globalization.CultureInfo.InvariantCulture)
-                + " characters"));
-        }
-
-        [Test]
         public void The_attachment_writes_name_the_ceiling_their_bytes_are_held_to()
         {
             // The same number in words for whoever writes a body, beside the length that spells it

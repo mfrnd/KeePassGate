@@ -135,7 +135,9 @@ namespace KeePassGate.Tests.Fakes
                     body.Write(buffer, 0, read);
                 }
 
-                return Encoding.UTF8.GetString(body.ToArray());
+                // With content that arrived in chunks put back together, strictly, so an answer
+                // cut short of its last chunk fails whoever asked for it.
+                return HttpAnswer.Decoded(body.ToArray());
             }
         }
 

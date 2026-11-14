@@ -103,6 +103,9 @@ namespace KeePassGate.Transport
         /// no identifier for the entry if it did. `GateListener.Deadline.Disarm` is where that is,
         /// with the argument. It is set again, counted afresh, once the answer is being written,
         /// because how fast an answer is read is the peer's doing: `GateListener.Deadline.Writing`.
+        /// For an answer written as it is sent, that second span holds the plugin's reading of
+        /// the values as well, so what it can cut short is the answer to a read and never a
+        /// change, `DESIGN.md` §143.
         ///
         /// **It used to be said to have a floor**, and the floor was `DatabaseWriter.LockTimeout`
         /// plus `DatabaseWriter.WriteTimeout`, on the ground that the second of those bounds the

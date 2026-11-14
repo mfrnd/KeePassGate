@@ -142,7 +142,9 @@ namespace KeePassGate.Transport
         /// Told that the handler has decided and its answer is about to be written, which is the
         /// instant the peer has something to do with how long the rest takes again: how fast it
         /// reads. The listener gives the write a deadline of its own here, see
-        /// `GateListener.Deadline.Writing`. Null where nothing is counting.
+        /// `GateListener.Deadline.Writing`. For an answer written as it is sent the rest holds
+        /// the plugin's reading of the values as well, `DESIGN.md` §143. Null where nothing is
+        /// counting.
         /// </param>
         public static void Serve(
             Stream stream,
@@ -261,8 +263,21 @@ namespace KeePassGate.Transport
                 return;
             }
 
-            // The one answer a handler decided, so the one that can carry a field of its own.
+            // The only answer a handler decided, so the only answer that can carry a field of
+            // its own or have its content written as it is sent. A failure while that
+            // content is written has no answer left to give. What the connection throws is an
+            // answer lost, as for any answer, `Answer`. What the content itself throws comes
+            // out of the writer as `AnswerContentFailed`, which nothing below filters, so it
+            // goes on to the connection's thread, which counts it. Either way the connection
+            // is closed over an answer left without its end.
             answering?.Invoke();
+            if (context.Content != null)
+            {
+                Answer(
+                    stream, context.Status, context.Content, logger, IsHead(head.Method), context.Headers);
+                return;
+            }
+
             Answer(
                 stream, context.Status, context.Json, logger, IsHead(head.Method), context.Headers);
         }
@@ -343,9 +358,25 @@ namespace KeePassGate.Transport
         private static void Answer(
             Stream stream, int status, string json, IGateLog log, bool head, WebHeaderCollection headers)
         {
+            Answer(status, log, () => HttpResponse.Write(stream, status, json, head, headers));
+        }
+
+        private static void Answer(
+            Stream stream,
+            int status,
+            Action<TextWriter> content,
+            IGateLog log,
+            bool head,
+            WebHeaderCollection headers)
+        {
+            Answer(status, log, () => HttpResponse.Write(stream, status, content, head, headers));
+        }
+
+        private static void Answer(int status, IGateLog log, Action write)
+        {
             try
             {
-                HttpResponse.Write(stream, status, json, head, headers);
+                write();
             }
             catch (IOException error)
             {

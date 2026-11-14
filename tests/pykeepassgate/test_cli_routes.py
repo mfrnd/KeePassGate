@@ -180,22 +180,6 @@ def test_fields_lists_names_and_says_which_are_protected(
     assert capsys.readouterr().out.splitlines() == ["Title", "Password (protected)"]
 
 
-def test_fields_prints_every_part_of_a_listing_the_gate_serves_in_parts(
-    gate: FakeGate, kept: Path, capsys: pytest.CaptureFixture[str]
-) -> None:
-    listing = f"/entries/{UUID}/fields"
-    parts: dict[str, dict[str, Any]] = {
-        listing: {"fields": [{"name": "Title", "protected": False}], "next": 1},
-        f"{listing}?from=1": {"fields": [{"name": "Password", "protected": True}]},
-    }
-    gate.handler = lambda path, sent, client: (200, json.dumps(parts[path]))
-
-    assert cli.main(["fields", UUID, "--directory", str(kept)]) == 0
-
-    assert gate.requests == [("GET", listing), ("GET", f"{listing}?from=1")]
-    assert capsys.readouterr().out.splitlines() == ["Title", "Password (protected)"]
-
-
 def test_field_prints_the_value_alone(
     gate: FakeGate, kept: Path, capsys: pytest.CaptureFixture[str]
 ) -> None:

@@ -111,14 +111,40 @@ namespace KeePassGate.Host.Tests
             {
                 var answer = Asked(method, path, null);
 
-                Assert.That(answer.Status, Is.EqualTo(200), method + " " + path + " " + answer.Json);
+                Assert.That(answer.Status, Is.EqualTo(200), method + " " + path + " " + answer.Document());
                 Assert.That(InTheOpen(), Is.Empty, method + " " + path);
 
                 if (method == "GET")
                 {
-                    Assert.That(answer.Json, Does.Contain(served), path);
+                    Assert.That(answer.Document(), Does.Contain(served), path);
                 }
             }
+        }
+
+        [TestCase("/entries/{entry}")]
+        [TestCase("/entries/{entry}/fields/Password")]
+        public void An_answer_written_as_it_is_sent_reads_its_values_and_leaves_them_as_KeePass_held_them(string path)
+        {
+            // A read of an entry or of a field hands over what writes the answer, and a value
+            // is read where the answer is written: once the router is done, a value at a time.
+            // Held to that here, so the case above is known to have read the values it asks
+            // about, and written a second time, so a value read again is still held as it was.
+            var answer = Asked("GET", path, null);
+
+            Assert.That(answer.Status, Is.EqualTo(200));
+            Assert.That(answer.Content, Is.Not.Null, "the answer is written as it is sent");
+            Assert.That(answer.Json, Is.Null, "and was made into no document by the handler");
+            Assert.That(answer.Document(), Does.Contain(Password), "the protected value was read for the answer");
+            Assert.That(InTheOpen(), Is.Empty);
+
+            using (var again = new System.IO.StringWriter())
+            {
+                answer.Content(again);
+
+                Assert.That(again.ToString(), Is.EqualTo(answer.Document()));
+            }
+
+            Assert.That(InTheOpen(), Is.Empty, "a value read a second time was left in the open");
         }
 
         [Test]
@@ -132,8 +158,8 @@ namespace KeePassGate.Host.Tests
             var answer = Asked(
                 "PUT", "/entries/{entry}/fields/UserName", Bodies.Of(("value", "another invented name")), tag);
 
-            Assert.That(answer.Status, Is.EqualTo(200), answer.Json);
-            Assert.That(answer.Json, Does.Contain("\"etag\""));
+            Assert.That(answer.Status, Is.EqualTo(200), answer.Document());
+            Assert.That(answer.Document(), Does.Contain("\"etag\""));
             Assert.That(InTheOpen(), Is.Empty);
         }
 
@@ -150,7 +176,7 @@ namespace KeePassGate.Host.Tests
 
             var answer = Asked("PUT", "/entries/{entry}/fields/PIN", Bodies.Of(("value", Pin)));
 
-            Assert.That(answer.Status, Is.EqualTo(200), answer.Json);
+            Assert.That(answer.Status, Is.EqualTo(200), answer.Document());
             Assert.That(_entry.Strings.Get("PIN"), Is.SameAs(held), "the value was written over");
             Assert.That(_entry.History.UCount, Is.EqualTo(revisions), "a revision was taken for a change that changed nothing");
             Assert.That(InTheOpen(), Is.Empty);
@@ -171,8 +197,8 @@ namespace KeePassGate.Host.Tests
 
             var answer = Asked(method, path, Attaching(method), tag);
 
-            Assert.That(answer.Status, Is.EqualTo(method == "POST" ? 201 : 200), method + " " + path + " " + answer.Json);
-            Assert.That(answer.Json, Does.Contain("\"etag\""), method + " " + path);
+            Assert.That(answer.Status, Is.EqualTo(method == "POST" ? 201 : 200), method + " " + path + " " + answer.Document());
+            Assert.That(answer.Document(), Does.Contain("\"etag\""), method + " " + path);
             Assert.That(InTheOpen(), Is.Empty, method + " " + path);
 
             // A string a strip took off is in none of the entry's own strings any longer. The
@@ -194,7 +220,7 @@ namespace KeePassGate.Host.Tests
 
             var answer = Asked("DELETE", "/entries/{entry}", null, tag);
 
-            Assert.That(answer.Status, Is.EqualTo(200), answer.Json);
+            Assert.That(answer.Status, Is.EqualTo(200), answer.Document());
             Assert.That(_group.Entries.IndexOf(_entry), Is.LessThan(0), "the entry is still in its group");
             Assert.That(InTheOpen(), Is.Empty);
         }
@@ -209,7 +235,7 @@ namespace KeePassGate.Host.Tests
 
             var answer = Asked(method, path, Writing(method, path, name, Chosen));
 
-            Assert.That(answer.Status, Is.EqualTo(method == "POST" ? 201 : 200), answer.Json);
+            Assert.That(answer.Status, Is.EqualTo(method == "POST" ? 201 : 200), answer.Document());
 
             var written = _entry.Strings.Get(name);
             Assert.That(written, Is.Not.Null);
@@ -226,7 +252,7 @@ namespace KeePassGate.Host.Tests
                 "/groups/{group}/entries",
                 Bodies.Of(("Title", "another invented service"), ("Password", Password)));
 
-            Assert.That(answer.Status, Is.EqualTo(201), answer.Json);
+            Assert.That(answer.Status, Is.EqualTo(201), answer.Document());
 
             var created = _group.Entries.Single(entry => !ReferenceEquals(entry, _entry));
             var password = created.Strings.Get(PwDefs.PasswordField);
@@ -245,8 +271,8 @@ namespace KeePassGate.Host.Tests
 
             var answer = Asked("GET", "/entries/{entry}/fields/UserName", null);
 
-            Assert.That(answer.Status, Is.EqualTo(200), answer.Json);
-            Assert.That(answer.Json, Does.Contain("an invented name"));
+            Assert.That(answer.Status, Is.EqualTo(200), answer.Document());
+            Assert.That(answer.Document(), Does.Contain("an invented name"));
         }
 
         /// <summary>
@@ -353,6 +379,10 @@ namespace KeePassGate.Host.Tests
                 new ServedDatabase(vault).PutOn(context);
 
                 _router.Handle(context);
+
+                // An answer written as it is sent is written here, as the transport writes it, so
+                // a read of an entry or of a field driven from here reads its values.
+                context.Document();
                 return context;
             }
         }

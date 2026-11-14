@@ -224,19 +224,13 @@ namespace KeePassGate.Bridge
         /// attachments are turned into what a route answers with and a tag is taken of.
         /// </summary>
         /// <remarks>
-        /// **Nothing is read or measured here, and no value is handed anywhere until the view is
-        /// asked for it.** Which strings are protected is read from their flags and the
-        /// database's setting, and an attachment's size from the length KeePass keeps beside its
-        /// encrypted bytes. A string's length is not asked here: the view is handed what asks
-        /// it, keeps that only for a string in sight, and asks it the first time the string is
-        /// measured, so a withheld value is neither read nor measured. **Measuring a value in
-        /// sight is not always free.** `ProtectedString.Length` answers from a count it keeps,
-        /// and the first time it is asked of a protected value held as bytes, which is how a
-        /// file's protected values are held once loaded, it decrypts the value inside KeePass's
-        /// own type to count its characters, read off its IL and measured, `FINDINGS.md` under
-        /// "What a version of a node can be made of". Each value is read when the
-        /// view is first asked for it, and KeePass changes neither a `ProtectedString` nor a
-        /// `ProtectedBinary` in place, so what is read or measured then is what the entry held
+        /// **Nothing is read here, and no value is handed anywhere until the view is asked
+        /// for it.** Which strings are protected is read from their flags and the database's
+        /// setting, and an attachment's size from the length KeePass keeps beside its
+        /// encrypted bytes. The view is handed what reads a string, keeps that only for a
+        /// string in sight, and reads when it is asked, so a withheld value is never read.
+        /// KeePass changes neither a `ProtectedString` nor a
+        /// `ProtectedBinary` in place, so what is read then is what the entry held
         /// when the view was taken, however long after: a read asks its view once the hold
         /// it took the view in has ended, `Pipeline.ServedAfter`. The entry is described for the
         /// view without its title and its URL, <see cref="Placed"/>, since a description holding
@@ -280,7 +274,6 @@ namespace KeePassGate.Bridge
                     made.Add(new VaultViewField(
                         name,
                         held.IsProtected || protection.Protects(name),
-                        () => held.Length,
                         sight,
                         () => StoredStrings.Read(held),
                         Listed(name),

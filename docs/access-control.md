@@ -180,15 +180,13 @@ values. For a program that may not, it is written like any change, so sending a 
 costs the same and looks the same whether the guess was right. What a program may read here is
 what reading the entry would show it, a protected title or address under `L` with `P` included.
 
-**Nor does anything tell a program how long a value it may not read is.** The gate hands out at
-most 524288 characters of an entry in an answer, and what it counts is what that program would be
-handed: the names of the entry's fields and the values its rules let it read. A value it is
-withheld counts nothing, so the refusal of a read too large is the same whatever a password it
-may not read holds, and reading that password's field alone answers that it is withheld, however
-long it is. **This replaces an earlier rule**, under which a write that would take an entry past
-that size was refused with the entry's whole size in the refusal: a program that may write and
-not read could fill an entry up to the limit and learn from the refusal how long its password
-was. No write is refused for an entry's size now.
+**Nor does anything tell a program how long a value it may not read is.** No read and no write
+is refused for an entry's size, so no refusal moves with a value: an entry is read whole
+whatever it holds, with a value the program is withheld left out, and reading that value's
+field alone answers that it is withheld, however long it is. **This replaces an earlier
+rule**, under which a write that would take an entry past a size was refused with the entry's
+whole size in the refusal: a program that may write and not read could fill an entry up to the
+limit and learn from the refusal how long its password was.
 
 **`L` sits below `R` on purpose.** Knowing that an entry exists is not knowing what is in it.
 
@@ -290,14 +288,12 @@ by writing the value that is already there, since for that program every update 
 **A write verb can also make an entry as large as its program likes.** A request carries at most
 65536 characters in a value and 1 MiB in all, and nothing limits how many requests add to an
 entry, so a program holding `U` or `C` on an entry can grow it, and the database file and the
-time every save takes with it, a request at a time; the audit names each of those writes. An
-entry grown past 524288 characters of what a program may read of it is no longer handed to that
-program whole: it lists the entry's fields and reads the entry a field at a time, and a program
-holding `S` brings the entry back under by stripping fields. Listing the fields takes `L`, so a
-program holding `R` without `L` reads only the fields whose names it already knows of such an
-entry. The gate used to refuse the write that would take an entry past
-that size, and stopped because the refusal told a program how long the values it may not read
-were.
+time every save takes with it, a request at a time; the audit names each of those writes.
+Reading such an entry is not refused: the gate writes the answer as it is sent, so a large
+entry costs KeePass little memory, and costs time on the connection that reads it. A program
+holding `S` makes the entry smaller by stripping fields. The gate used to refuse the write
+that would take an entry past a size, and stopped because the refusal told a program how long
+the values it may not read were.
 
 **An attachment is opened by its name.** A program holding `C` with `A` chooses what an attachment
 is called, and KeePass hands an attachment it cannot show itself to whatever Windows starts for its

@@ -21,6 +21,16 @@ answered without content, as the plugin's is. And a handler that raises is answe
 internal error`, as the plugin answers a defect of its own, with what it raised kept in
 `FakeGate.failures`.
 
+**And the framing it gives an answer is the plugin's.** The plugin writes every answer that grows
+with what a database holds as it is sent, in chunks: each listing, of groups, of a group's
+subgroups or entries, of entries, and of an entry's fields or attachments, and a read of an entry
+or of a single field. So a `GET` of any of those paths that a handler answers `200` goes out here
+under `Transfer-Encoding: chunked`, in chunks of the size the plugin writes, whatever query the
+path carries. Every other answer goes out under a `Content-Length`: a single group, an
+attachment, the routes about the gate and the caller, every refusal, and the answer to any
+method but `GET`. A client that only ever met answers under a length would not be tested against
+the gate it has. `FakeGate.declare` puts such an answer back under a length.
+
 **And one route it answers on its own, unless told not to**: `GET /gate/status`, which a paired
 client asks before its first request to compare the gate's version with its own. It answers with
 `FakeGate.version`, this client's own unless a test sets another, so a program's script need not
@@ -52,6 +62,7 @@ import contextlib
 import datetime as dt
 import hashlib
 import json
+import re
 import socket
 import ssl
 import string
@@ -78,8 +89,8 @@ CURVE = ec.SECP256R1()
 #: Answers a request: the path, the body, and the client certificate if one was offered, with the
 #: status and the body to answer it with. The method is asked of the gate, with `FakeGate.method`,
 #: so that one path answered differently for `GET` and `DELETE` needs no counting of calls. The
-#: path is the request's target as it was sent, with its query, so a script of a field listing
-#: served in parts answers each `from` with the part that starts there.
+#: path is the request's target as it was sent, with its query, so a script answers a listing of
+#: entries asked for with `?includeExpired=false` apart from the listing asked for without it.
 Handler = Callable[[str, str, bytes | None], tuple[int, str]]
 
 #: The plugin's `GateOptions.MaxHeadBytes`, the blank line that ends a head counted in it.
@@ -286,12 +297,14 @@ class FakeGate:
         self.requests: list[tuple[str, str]] = []
 
         #: Bytes to cut off the end of the answer, so a test can produce what a budget expiring
-        #: mid-write produces: a complete head, a `Content-Length`, and a body short of it.
+        #: mid-write produces: a complete head, a `Content-Length`, and a body short of it, or an
+        #: answer in chunks that stops before its last chunk is whole.
         self.truncate = 0
 
         #: What to put in `Content-Length` instead of the real one. The empty string writes no
         #: header at all, which is what an answer to a HEAD does: RFC 9110 section 9.3.2 permits
-        #: the missing length, and this gate has to be able to produce one.
+        #: the missing length, and this gate has to be able to produce one. Set, it frames every
+        #: answer by that length, an answer the plugin writes in chunks among them.
         self.declare: str | None = None
 
         #: What to put in `Retry-After` on a `503`, which is where the gate sends it and the only
@@ -535,7 +548,17 @@ class FakeGate:
                 if method == "HEAD":
                     written = _response(status, "", "", retry_after, etag, word)
                 else:
-                    written = _response(status, answer, self.declare, retry_after, etag, word)
+                    # In chunks where the plugin writes the answer as it is sent, for the reason
+                    # a HEAD is modeled above. The query takes no part in which answer that is.
+                    chunked = (
+                        method == "GET"
+                        and status == 200
+                        and self.declare is None
+                        and _SENT_IN_CHUNKS.fullmatch(path.partition("?")[0]) is not None
+                    )
+                    written = _response(
+                        status, answer, self.declare, retry_after, etag, word, chunked
+                    )
                 if self.truncate:
                     written = written[: len(written) - self.truncate]
 
@@ -781,6 +804,7 @@ def _response(
     retry_after: str | None = None,
     etag: str | None = None,
     unavailable: str | None = None,
+    chunked: bool = False,
 ) -> bytes:
     """The head the plugin's `HttpResponse.Write` writes, and the body.
 
@@ -788,9 +812,17 @@ def _response(
     browser's guessing are there as the plugin sends them. The one header a script cannot give is
     `Allow`, which the plugin puts on every `405` and this does not. `unavailable` is the word a
     `503` names in `KPG-Unavailable` as well as in its body, which the answer to a HEAD keeps.
+    With `chunked`, the body goes out as the plugin writes an answer it sends as it is written:
+    under `Transfer-Encoding: chunked` and no length.
     """
     payload = body.encode("utf-8")
-    length = str(len(payload)) if declare is None else declare
+    if chunked:
+        framing = "Transfer-Encoding: chunked\r\n"
+        payload = _in_chunks(payload)
+    else:
+        length = str(len(payload)) if declare is None else declare
+        framing = f"Content-Length: {length}\r\n" if length else ""
+
     try:
         phrase = HTTPStatus(status).phrase
     except ValueError:
@@ -799,7 +831,7 @@ def _response(
     head = (
         f"HTTP/1.1 {status} {phrase}\r\n"
         "Content-Type: application/json; charset=utf-8\r\n"
-        + (f"Content-Length: {length}\r\n" if length else "")
+        + framing
         + "Cache-Control: no-store\r\n"
         "X-Content-Type-Options: nosniff\r\n"
         + (f"Retry-After: {retry_after}\r\n" if retry_after is not None else "")
@@ -810,6 +842,29 @@ def _response(
     )
 
     return head.encode("ascii") + payload
+
+
+#: The paths whose `200` to a `GET` the plugin writes as it is sent, in chunks, which is every
+#: answer that grows with what a database holds: each listing, and a read of an entry or of a
+#: single field. A read of a single group or of an attachment goes out under a length, as every
+#: other answer does. Matched against the path of a target, without its query.
+_SENT_IN_CHUNKS = re.compile(
+    r"/groups(/[^/]+/(groups|entries))?"
+    r"|/entries(/[^/]+(/fields(/[^/]+)?|/attachments)?)?"
+)
+
+#: The most bytes of content the plugin puts in a chunk, `ChunkedContent.Most` on its side.
+_MOST_IN_A_CHUNK = 16376
+
+
+def _in_chunks(payload: bytes) -> bytes:
+    """A body framed as the plugin's `ChunkedContent` frames it.
+
+    Each chunk is its size in hex, a line end, at most `_MOST_IN_A_CHUNK` bytes and a line end,
+    and the chunk of no bytes ends the body, with no extension and no trailer.
+    """
+    parts = (payload[at : at + _MOST_IN_A_CHUNK] for at in range(0, len(payload), _MOST_IN_A_CHUNK))
+    return b"".join(b"%x\r\n%s\r\n" % (len(part), part) for part in parts) + b"0\r\n\r\n"
 
 
 def _unavailable_word(answer: str) -> str | None:

@@ -50,17 +50,17 @@ namespace KeePassGate.Tests
             };
 
             var withheld = new VaultViewField(
-                "Password", true, () => 2, OpenStringsAndAttachments, () => "00", false, digest);
+                "Password", true, OpenStringsAndAttachments, () => "00", false, digest);
             Assert.That(withheld.IsWithheld, Is.True);
             Assert.That(withheld.Digest(), Is.Null);
             Assert.That(asked, Is.Zero);
 
             var inSight = new VaultViewField(
-                "Password", true, () => 2, EveryStringAndNoAttachment, () => "00", false, digest);
+                "Password", true, EveryStringAndNoAttachment, () => "00", false, digest);
             Assert.That(inSight.Digest(), Is.EqualTo(new byte[] { 0x30, 0x30 }));
             Assert.That(asked, Is.EqualTo(1));
 
-            var none = new VaultViewField("UserName", false, () => 2, EveryStringAndNoAttachment, () => "00");
+            var none = new VaultViewField("UserName", false, EveryStringAndNoAttachment, () => "00");
             Assert.That(none.Digest(), Is.Null);
         }
 
@@ -68,7 +68,7 @@ namespace KeePassGate.Tests
         public void A_protected_string_out_of_sight_keeps_its_name_and_holds_no_value()
         {
             var reads = 0;
-            var field = new VaultViewField("Password", true, () => 19, OpenStringsAndAttachments, () =>
+            var field = new VaultViewField("Password", true, OpenStringsAndAttachments, () =>
             {
                 reads++;
                 return "not-a-real-password";
@@ -77,10 +77,9 @@ namespace KeePassGate.Tests
             Assert.That(field.Name, Is.EqualTo("Password"));
             Assert.That(field.IsProtected, Is.True);
             Assert.That(field.IsWithheld, Is.True);
-            Assert.That(field.Value, Is.Null);
+            Assert.That(field.Read(), Is.Null);
+            Assert.That(field.Read(), Is.Null, "however often it is asked");
             Assert.That(reads, Is.Zero, "the reader handed in was dropped, so nothing can read the value through the view");
-            Assert.That(field.Characters, Is.EqualTo("Password".Length),
-                "its name is all of it that is served, so all that is counted: the length was dropped with the reader");
         }
 
         [Test]
@@ -88,19 +87,19 @@ namespace KeePassGate.Tests
         {
             var reader = new VaultSight(true, false, VaultAttachmentSight.None);
 
-            Assert.That(new VaultViewField("Password", true, () => 3, reader, null).Value, Is.Null);
-            Assert.That(new VaultViewField("Password", true, () => 3, VaultSight.Least, null).Value, Is.Null);
-            Assert.That(new VaultViewField("Title", false, () => 3, VaultSight.Least, null).Value, Is.Null,
+            Assert.That(new VaultViewField("Password", true, reader, null).Read(), Is.Null);
+            Assert.That(new VaultViewField("Password", true, VaultSight.Least, null).Read(), Is.Null);
+            Assert.That(new VaultViewField("Title", false, VaultSight.Least, null).Read(), Is.Null,
                 "a string nothing protects is withheld too from a sight that does not read");
-            Assert.Throws<ArgumentNullException>(() => new VaultViewField("Title", false, () => 3, reader, null));
-            Assert.Throws<ArgumentNullException>(() => new VaultViewField("Password", true, () => 3, Sights.Whole, null));
+            Assert.Throws<ArgumentNullException>(() => new VaultViewField("Title", false, reader, null));
+            Assert.Throws<ArgumentNullException>(() => new VaultViewField("Password", true, Sights.Whole, null));
         }
 
         [Test]
         public void A_view_whose_sight_does_not_read_holds_no_value_for_any_string()
         {
-            // A caller that only lists is served names and flags. Its view holds those and the
-            // lengths the ceiling is measured by, and nothing a value could be read with.
+            // A caller that only lists is served names and flags. Its view holds those, and
+            // nothing a value could be read with.
             var reads = 0;
             Func<string> counted = () =>
             {
@@ -113,8 +112,8 @@ namespace KeePassGate.Tests
                 sight,
                 new[]
                 {
-                    new VaultViewField("Title", false, () => 3, sight, counted),
-                    new VaultViewField("Password", true, () => 3, sight, counted),
+                    new VaultViewField("Title", false, sight, counted),
+                    new VaultViewField("Password", true, sight, counted),
                 },
                 Array.Empty<VaultViewAttachment>(),
                 null));
@@ -122,11 +121,9 @@ namespace KeePassGate.Tests
             foreach (var view in views)
             {
                 Assert.That(view.Fields.Select(field => field.IsWithheld), Is.All.True);
-                Assert.That(view.Fields.Select(field => field.Value), Is.All.Null);
+                Assert.That(view.Fields.Select(field => field.Read()), Is.All.Null);
                 Assert.That(view.Fields.Select(field => field.Name), Is.EqualTo(new[] { "Title", "Password" }));
                 Assert.That(view.Protected, Is.EqualTo(new[] { "Password" }), "which strings are protected is still told");
-                Assert.That(view.Characters, Is.EqualTo("Title".Length + "Password".Length),
-                    "names, which are what such a caller is served, and nothing of a value");
             }
 
             Assert.That(reads, Is.Zero, "the readers handed in were dropped");
@@ -135,14 +132,14 @@ namespace KeePassGate.Tests
         [Test]
         public void No_sight_at_all_is_the_least_sight()
         {
-            var guarded = new VaultViewField("Password", true, () => 3, null, () => "abc");
-            var open = new VaultViewField("Title", false, () => 3, null, () => "abc");
+            var guarded = new VaultViewField("Password", true, null, () => "abc");
+            var open = new VaultViewField("Title", false, null, () => "abc");
             var view = new VaultEntryView(
                 Entry(), null, new[] { guarded, open }, new[] { Attachment("notes.txt", 3) }, null);
 
             Assert.That(guarded.IsWithheld, Is.True);
             Assert.That(open.IsWithheld, Is.True);
-            Assert.That(open.Value, Is.Null, "the least sight does not read, so no string's value is in it");
+            Assert.That(open.Read(), Is.Null, "the least sight does not read, so no string's value is in it");
             Assert.That(view.Attachments, Is.Null);
             Assert.That(view.Sight, Is.SameAs(VaultSight.Least));
             Assert.That(VaultSight.Least.Reads || VaultSight.Least.Protected, Is.False);
@@ -190,16 +187,16 @@ namespace KeePassGate.Tests
             var blind = new VaultSight(false, false, VaultAttachmentSight.None, true);
 
             Func<VaultSight, bool, bool, VaultViewField> made = (sight, guarded, listed) =>
-                new VaultViewField("Invented", guarded, () => 3, sight, () => "abc", listed);
+                new VaultViewField("Invented", guarded, sight, () => "abc", listed);
 
-            Assert.That(made(listing, true, true).Value, Is.EqualTo("abc"));
+            Assert.That(made(listing, true, true).Read(), Is.EqualTo("abc"));
             Assert.That(made(listing, true, false).IsWithheld, Is.True, "the listing's reach opens no other string");
             Assert.That(made(reading, true, true).IsWithheld, Is.True, "`read` alone opens no protected string");
             Assert.That(made(blind, true, true).IsWithheld, Is.True, "and without `read` a view holds no value");
             Assert.That(made(blind, false, true).IsWithheld, Is.True);
             Assert.That(made(null, true, true).IsWithheld, Is.True);
-            Assert.That(made(reading, false, true).Value, Is.EqualTo("abc"), "a string nothing protects, as ever");
-            Assert.That(made(Sights.Whole, true, false).Value, Is.EqualTo("abc"));
+            Assert.That(made(reading, false, true).Read(), Is.EqualTo("abc"), "a string nothing protects, as ever");
+            Assert.That(made(Sights.Whole, true, false).Read(), Is.EqualTo("abc"));
         }
 
         [Test]
@@ -259,63 +256,45 @@ namespace KeePassGate.Tests
         }
 
         [Test]
-        public void A_value_is_read_when_it_is_first_asked_for_and_once()
+        public void A_value_is_read_every_time_it_is_asked_for_and_kept_nowhere()
         {
+            // An answer is written a value at a time, so a view that kept what it read would
+            // hold the whole entry for as long as the answer took. Each asking reads, and what
+            // an asking is handed is what the reader answered that time.
             var reads = 0;
             var reader = new VaultSight(true, false, VaultAttachmentSight.None);
-            var field = new VaultViewField("Title", false, () => 7, reader, () =>
+            var field = new VaultViewField("Title", false, reader, () =>
             {
                 reads++;
-                return "a title";
+                return "a title, read " + reads;
             });
 
-            Assert.That(field.Characters, Is.EqualTo("Title".Length + 7));
-            Assert.That(reads, Is.Zero, "measuring reads nothing");
+            Assert.That(reads, Is.Zero, "nothing is read until the value is asked for");
 
-            Assert.That(field.Value, Is.EqualTo("a title"));
-            Assert.That(field.Value, Is.EqualTo("a title"));
-            Assert.That(reads, Is.EqualTo(1));
+            Assert.That(field.Read(), Is.EqualTo("a title, read 1"));
+            Assert.That(field.Read(), Is.EqualTo("a title, read 2"), "the first value read was not kept");
+            Assert.That(field.Read(), Is.EqualTo("a title, read 3"));
+            Assert.That(reads, Is.EqualTo(3), "every asking read again");
         }
 
         [Test]
-        public void A_value_is_measured_when_its_size_is_first_asked_and_once_and_a_withheld_value_never()
+        public void A_value_the_store_holds_as_nothing_is_read_as_an_empty_string_and_never_as_withheld()
         {
-            // KeePass may decrypt a protected value to count its characters, so a view asks a
-            // length only when something asks the size, and never of a value it withholds.
-            var measures = 0;
-            Func<int> measured = () =>
-            {
-                measures++;
-                return 7;
-            };
+            // Null is what a withheld value is answered with, so a string in sight never
+            // answers it, whatever the reader handed back.
+            var field = new VaultViewField("Notes", false, Sights.Whole, () => null);
 
-            var reader = new VaultSight(true, false, VaultAttachmentSight.None);
-            var open = new VaultViewField("Title", false, measured, reader, () => "a title");
-            var withheld = new VaultViewField("Password", true, measured, reader, null);
-            var view = new VaultEntryView(
-                Entry(), reader, new[] { open, withheld }, Array.Empty<VaultViewAttachment>(), null);
-
-            Assert.That(view.Protected, Is.EqualTo(new[] { "Password" }));
-            Assert.That(open.Value, Is.EqualTo("a title"));
-            Assert.That(measures, Is.Zero, "building a view, its names and reading a value measure nothing");
-
-            Assert.That(withheld.Characters, Is.EqualTo("Password".Length));
-            Assert.That(measures, Is.Zero, "a withheld value is not measured");
-
-            Assert.That(view.Characters, Is.EqualTo("Title".Length + 7 + "Password".Length));
-            Assert.That(view.Characters, Is.EqualTo(open.Characters + withheld.Characters));
-            Assert.That(measures, Is.EqualTo(1), "the value in sight, once");
-
-            Assert.Throws<ArgumentNullException>(() => new VaultViewField("Title", false, null, reader, () => "a title"));
-            Assert.That(new VaultViewField("Password", true, null, reader, null).Characters, Is.EqualTo("Password".Length),
-                "a withheld string needs nothing to measure it with");
+            Assert.That(field.IsWithheld, Is.False);
+            Assert.That(field.Read(), Is.Empty);
         }
 
         [Test]
-        public void A_value_that_could_not_be_read_is_read_again_by_the_next_asking()
+        public void A_read_that_fails_is_thrown_to_whoever_asked_and_the_next_asking_reads_again()
         {
+            // Nothing is kept of a read, a failure included: the asking after a failure reads,
+            // and a failure after a value was read is thrown as the first was.
             var failing = true;
-            var field = new VaultViewField("Title", false, () => 7, Sights.Whole, () =>
+            var field = new VaultViewField("Title", false, Sights.Whole, () =>
             {
                 if (failing)
                 {
@@ -325,14 +304,18 @@ namespace KeePassGate.Tests
                 return "a title";
             });
 
-            Assert.That(() => field.Value, Throws.InvalidOperationException);
+            Assert.That(() => field.Read(), Throws.InvalidOperationException);
             failing = false;
 
-            Assert.That(field.Value, Is.EqualTo("a title"));
+            Assert.That(field.Read(), Is.EqualTo("a title"));
+
+            failing = true;
+            Assert.That(() => field.Read(), Throws.InvalidOperationException,
+                "the value read a moment ago was not kept to answer with");
         }
 
         [Test]
-        public void An_entry_is_measured_by_what_its_caller_is_handed_with_no_string_read()
+        public void A_view_tells_its_names_and_which_are_protected_with_no_string_read_or_digested()
         {
             var reads = 0;
             Func<string> counted = () =>
@@ -341,39 +324,33 @@ namespace KeePassGate.Tests
                 return "abc";
             };
 
-            var view = new VaultEntryView(
-                Entry(),
-                OpenStringsAndAttachments,
-                new[]
-                {
-                    new VaultViewField("Title", false, () => 3, OpenStringsAndAttachments, counted),
-                    new VaultViewField("Password", true, () => 40, OpenStringsAndAttachments, counted),
-                    new VaultViewField("PIN", true, () => 4, OpenStringsAndAttachments, counted),
-                },
-                Array.Empty<VaultViewAttachment>(),
-                null);
+            Func<byte[]> digested = () =>
+            {
+                reads++;
+                return new byte[32];
+            };
 
-            Assert.That(view.Characters, Is.EqualTo("Title".Length + 3 + "Password".Length + "PIN".Length),
-                "what the ceiling is asked about is every name and the values in sight, and no withheld value");
+            foreach (var sight in new[] { OpenStringsAndAttachments, EveryStringAndNoAttachment })
+            {
+                var view = new VaultEntryView(
+                    Entry(),
+                    sight,
+                    new[]
+                    {
+                        new VaultViewField("Title", false, sight, counted, false, digested),
+                        new VaultViewField("Password", true, sight, counted, false, digested),
+                        new VaultViewField("PIN", true, sight, counted, false, digested),
+                    },
+                    Array.Empty<VaultViewAttachment>(),
+                    null);
 
-            var all = new VaultEntryView(
-                Entry(),
-                EveryStringAndNoAttachment,
-                new[]
-                {
-                    new VaultViewField("Title", false, () => 3, EveryStringAndNoAttachment, counted),
-                    new VaultViewField("Password", true, () => 40, EveryStringAndNoAttachment, counted),
-                    new VaultViewField("PIN", true, () => 4, EveryStringAndNoAttachment, counted),
-                },
-                Array.Empty<VaultViewAttachment>(),
-                null);
+                Assert.That(view.Protected, Is.EqualTo(new[] { "Password", "PIN" }));
+                Assert.That(view.Fields.Select(field => field.Name), Is.EqualTo(new[] { "Title", "Password", "PIN" }),
+                    "in the order they were handed in, which is the order KeePass keeps them");
+                Assert.That(view.Field("PIN").IsWithheld, Is.EqualTo(!sight.Protected));
+            }
 
-            Assert.That(all.Characters, Is.EqualTo("Title".Length + 3 + "Password".Length + 40 + "PIN".Length + 4),
-                "a caller reading protected values is handed them, so they count for that caller");
-            Assert.That(view.Protected, Is.EqualTo(new[] { "Password", "PIN" }));
-            Assert.That(view.Fields.Select(field => field.Name), Is.EqualTo(new[] { "Title", "Password", "PIN" }),
-                "in the order they were handed in, which is the order KeePass keeps them");
-            Assert.That(reads, Is.Zero);
+            Assert.That(reads, Is.Zero, "names, flags and what is withheld are told with no value touched");
         }
 
         [Test]
@@ -382,7 +359,7 @@ namespace KeePassGate.Tests
             var view = new VaultEntryView(
                 Entry(),
                 Sights.Whole,
-                new[] { new VaultViewField("Title", false, () => 3, Sights.Whole, () => "abc") },
+                new[] { new VaultViewField("Title", false, Sights.Whole, () => "abc") },
                 new[] { Attachment("notes.txt", 3) },
                 null);
 
@@ -540,14 +517,15 @@ namespace KeePassGate.Tests
             foreach (var view in new[] { vault.View(entry, null), vault.View(entry, found => null) })
             {
                 Assert.That(view.Field("Password").IsWithheld, Is.True);
-                Assert.That(view.Field("Password").Value, Is.Null);
+                Assert.That(view.Field("Password").Read(), Is.Null);
                 Assert.That(view.Field("Title").IsWithheld, Is.True);
-                Assert.That(view.Field("Title").Value, Is.Null, "a string nothing protects among them");
+                Assert.That(view.Field("Title").Read(), Is.Null, "a string nothing protects among them");
                 Assert.That(view.Attachments, Is.Null);
                 Assert.That(view.Tag, Is.Null, "and is handed no tag");
             }
 
             Assert.That(vault.StringReads, Is.Zero);
+            Assert.That(vault.StringDigests, Is.Zero);
         }
 
         [Test]

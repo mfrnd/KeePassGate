@@ -45,11 +45,21 @@ namespace KeePassGate.Tests.Fakes
             }
         }
 
+        /// <summary>Everything written back, byte for byte.</summary>
+        public byte[] Written
+        {
+            get { return _outgoing.ToArray(); }
+        }
+
+        /// <summary>
+        /// What follows the head, with content that was written in chunks put back together,
+        /// strictly: content left without its last chunk throws here.
+        /// </summary>
         public string Body
         {
             get
             {
-                var response = Response;
+                var response = KeePassGate.Testing.HttpAnswer.Decoded(_outgoing.ToArray());
                 var blank = response.IndexOf("\r\n\r\n", StringComparison.Ordinal);
                 return blank < 0 ? string.Empty : response.Substring(blank + 4);
             }

@@ -19,6 +19,12 @@ namespace KeePassGate.Transport
     /// that is not JSON. What this adds is the shape a handler wants to write in: a fluent call per
     /// member, with the punctuation and the closing of whatever is still open left to the writer
     /// rather than to whoever is describing an entry.
+    ///
+    /// **A document is kept here whole, or written into a writer that is somebody else's.**
+    /// Kept, it is handed back by <see cref="Done"/> as text. Written by <see cref="Into"/>,
+    /// nothing of it is kept: each member goes to the writer underneath as it is described,
+    /// which is how an answer made of an entry's values is written as it is sent,
+    /// `HttpResponse.Write`.
     /// </remarks>
     internal sealed class JsonWriter : IDisposable
     {
@@ -35,12 +41,62 @@ namespace KeePassGate.Transport
             _writer.WriteStartObject();
         }
 
+        /// <summary>A document written into <paramref name="into"/> and kept nowhere.</summary>
+        /// <remarks>
+        /// Json.NET closes whatever is open when its writer is let go, which finishes a
+        /// document nobody finished: turned off, so a document whose description failed part
+        /// way is left as far as it got. The writer underneath is not closed with it.
+        /// </remarks>
+        private JsonWriter(TextWriter into)
+        {
+            _writer = new JsonTextWriter(into)
+            {
+                Formatting = Formatting.None,
+                CloseOutput = false,
+                AutoCompleteOnClose = false,
+            };
+            _writer.WriteStartObject();
+        }
+
+        /// <summary>
+        /// Writes a document into a writer that is somebody else's, as it is described, and
+        /// closes whatever the description left open.
+        /// </summary>
+        /// <remarks>
+        /// The document is closed and flushed only once <paramref name="describe"/> has
+        /// returned. A description that throws leaves the document open where it stopped, so
+        /// nothing downstream takes half a document for a whole.
+        /// </remarks>
+        public static void Into(TextWriter text, Action<JsonWriter> describe)
+        {
+            if (text == null)
+            {
+                throw new ArgumentNullException(nameof(text));
+            }
+
+            if (describe == null)
+            {
+                throw new ArgumentNullException(nameof(describe));
+            }
+
+            using (var json = new JsonWriter(text))
+            {
+                describe(json);
+                json.Close();
+            }
+        }
+
         /// <summary>The document, closed. Asking twice is asking for the same string.</summary>
         public string Done()
         {
             if (_done != null)
             {
                 return _done;
+            }
+
+            if (_text == null)
+            {
+                throw new InvalidOperationException("a document written into another writer is kept nowhere");
             }
 
             if (_disposed)
@@ -51,6 +107,15 @@ namespace KeePassGate.Transport
                 throw new ObjectDisposedException(nameof(JsonWriter), "Done comes before Dispose.");
             }
 
+            Close();
+
+            _done = _text.ToString();
+            return _done;
+        }
+
+        /// <summary>Closes whatever is still open, and hands on everything written.</summary>
+        private void Close()
+        {
             // Whatever is still open is closed here, innermost first, so a handler that describes
             // something and stops does not have to count its own brackets. One at a time, because
             // Json.NET closes only as far as the nearest object when asked to end an object: an
@@ -62,9 +127,6 @@ namespace KeePassGate.Transport
             }
 
             _writer.Flush();
-
-            _done = _text.ToString();
-            return _done;
         }
 
         public JsonWriter Text(string name, string value)
@@ -132,7 +194,7 @@ namespace KeePassGate.Transport
         }
 
         /// <summary>
-        /// Lets go of the writer and the buffer under it.
+        /// Lets go of the writer and the buffer under it, where the document is kept here.
         /// </summary>
         /// <remarks>
         /// Neither holds anything a handler has to release in time, so this exists because they are
@@ -144,7 +206,10 @@ namespace KeePassGate.Transport
         {
             _disposed = true;
             ((IDisposable)_writer).Dispose();
-            _text.Dispose();
+            if (_text != null)
+            {
+                _text.Dispose();
+            }
         }
     }
 }

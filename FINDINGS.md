@@ -469,13 +469,60 @@ and the same write answered `200` for the first and `413` with `524293 character
 second, for a field updated, an entry updated and a field added. The same count went to a single
 field read: a protected string past the ceiling was `413` with its length to a client that may
 not read it. The operator ruled on 2026-11-10 that no write is refused for an entry's size and
-that a read is measured over what its caller is handed, `API.md` §412: the view a read is
-measured by holds no length for a value it withholds, both writes are now made and answered
-alike, and the withheld field is the `null` every withheld value is.
+that a read is measured over what its caller is handed: the view a read was
+measured by held no length for a value it withholds, both writes are now made and answered
+alike, and the withheld field is the `null` every withheld value is. No read of an entry or of
+a field is held to a size since 2026-11-14, `API.md` §412, and a view holds no length of any
+string's value; an attachment's bytes keep their ceiling and their `413`.
 
-**What a tag costs on an entry far past the ceiling**, now that writes can make such an entry: fifty
+**An answer built whole is alive several times over while it is written, and an answer written
+as it is sent is alive a value at a time.** Built whole, an answer made of an entry's values is
+every value read, the document they are written into, the text taken of that document and the
+bytes the text encodes to, all alive when the first byte goes out. Written as it is sent,
+`HttpResponse.Write` with content, each value is read where it is written and goes out in
+chunks. Measured on the development machine in a Release build, over KeePass's own strings, each
+form writing its whole answer, head and all, into a stream that keeps a digest of it and
+nothing else:
+
+| Strings | Answer | Built whole | Written as it is sent |
+| --- | --- | --- | --- |
+| 8 protected, of 65536 characters | 0.6 MB | 3.6 to 3.9 ms, 4.5 MB allocated, 4.0 MB alive at once | 2.6 to 3.1 ms, 1.5 MB allocated |
+| 200 protected, of 65536 | 14.8 MB | 92 to 96 ms, 112 MB, 99 MB alive | 69 to 74 ms, 38 MB |
+| 200 held in the open, of 65536 | 14.8 MB | 74 to 79 ms, 74 MB, 74 MB alive | 53 to 54 ms, nothing |
+| 50 protected, of a million | 56.6 MB | 340 to 354 ms, 427 MB, 379 MB alive | 254 to 265 ms, 143 MB |
+| 50 held in the open, of a million | 56.6 MB | 277 to 297 ms, 284 MB, 284 MB alive | 200 to 208 ms, nothing |
+
+Alive at once as it is sent, collected and counted after each value, came to under a tenth of a
+megabyte in every row: the chunk being gathered and the writers' own buffers. Beside that stands
+the value being written, two bytes a character, and for a protected value the bytes it was
+decrypted to while they are decoded, and nothing that grows with how many values an entry
+holds. A value held in the open is the string KeePass already keeps, so writing it allocates
+nothing. A protected value is decrypted and decoded to be written, which is the 1.5, 38 and
+143 MB, each of it short-lived. Written as it is sent an answer also takes a quarter to a third
+less time, since nothing is copied into a document, out of it again and into bytes.
+
+**Counting the length first, to keep `Content-Length`, was measured and refused.** The same
+answer written twice over, into a stream that only counts and then into the connection, keeps
+as little alive and took a quarter to a half longer than the answer built whole, since every
+protected value is decrypted and escaped twice. Measured in an earlier run of its own, against
+the answer built whole in that run: 5.3 ms against 3.5 for the first row of the table, 127 to
+132 against 89 to 96 for the second, 93 to 96 against 65 to 73 for the third, 473 to 508
+against 340 to 430 for the fourth and 351 to 359 against 275 to 300 for the fifth. `DESIGN.md`
+§143 has what was chosen.
+
+**A listing handed over whole is alive five times over beside what it is written from, and
+written as it is sent it adds nothing.** Measured the same way, over invented entries of the
+six members a listing of entries writes for each. Ten thousand entries are an answer of 2.2 MB:
+handed over whole, 9 to 11 ms with 11 MB alive at once beyond the entries it is written from,
+and as it is sent, 5.6 to 6.3 ms with 0.03 MB. A hundred thousand are 21.8 MB: 124 to 127 ms
+with 109 MB alive, against 58 to 59 ms with 0.03 MB. So the listings of groups and of entries
+are written as they are sent too, and what a listing keeps alive is the descriptions taken
+inside its hold.
+
+**What a tag costs on an entry far past the ceiling a read was held to**, measured while a read
+was held to 524288 characters: fifty
 strings of a million characters each, on the development machine in a Release build, through the
-real router and vault. A read of the whole entry is refused and takes no tag. Every other request
+real router and vault. A read of the whole entry was refused then and took no tag. Every other request
 that hands a tag to a client with all fifty values in sight, a listing of the fields or a read of
 the title, digests the fifty megabytes. **Taken inside the hold, that was KeePass's thread standing
 still for every such request**: 45 to 47 milliseconds, with 48 MB allocated for the UTF-8 form of
@@ -489,10 +536,10 @@ the values. Protected and held as bytes, the way a file's are: about 59 millisec
 every time, a copy of each value decrypted, digested and overwritten, a megabyte at a time, since a
 protected value is no longer read the way that makes KeePass keep it as text, below. Held in the
 open: 41 to 43 milliseconds and 0.2 MB, the tag encoding
-a long value a piece at a time. A whole read refused for its size measures the protected values the
-first time, 46 to 73 milliseconds and 48 MB, and is answered in a tenth of a millisecond after that,
+a long value a piece at a time. A whole read refused for its size measured the protected values the
+first time, 46 to 73 milliseconds and 48 MB, and was answered in a tenth of a millisecond after that,
 none of it inside the hold. A client that reads the entry without `protected`, the fifty being
-protected, reads and measures none of them: a withheld value is never read. A write takes its tags
+protected, reads none of them: a withheld value is never read. A write takes its tags
 inside its own turn on KeePass's thread, the tag it is asked against and the tag it leaves: 58 to 65
 milliseconds and 48 MB each over the fifty protected strings, 40 to 43 milliseconds over fifty held
 in the open, beside a save of 2.2 seconds for the protected strings and 0.3 seconds for the strings
@@ -611,14 +658,16 @@ milliseconds and 49 MB where every later request took a millisecond, in a Debug 
 figures above for the same request are a Release build's. An attachment is not so:
 `ProtectedBinary.Length` returns a field. Nothing public answers a string's length without that
 decryption; the UTF-8 byte count beside the encrypted bytes is private and is a bound on the
-characters and not their count. So what holds is narrower than what was written: no value is
-handed anywhere until it is asked for, building a view asks no length, a view asks the length
-only of a value in its caller's sight and only when the size is asked, so a withheld value is
+characters and not their count. So what held was narrower than what was written: no value was
+handed anywhere until it was asked for, building a view asked no length, a view asked the length
+only of a value in its caller's sight and only when the size was asked, so a withheld value was
 neither read nor measured, and the first measurement of a value in sight after a file load
-decrypts it once, inside KeePass's own type, with a number coming out.
-`NodeTagsTests.A_protected_value_held_as_bytes_is_decrypted_once_to_be_measured_and_never_for_a_view_withholding_it`
-counts the decryptions. The view asked every string's length as it was built until this was
-measured, a withheld string's among them.
+decrypted it once, inside KeePass's own type, with a number coming out. The view asked every
+string's length as it was built until this was measured, a withheld string's among them. No view
+measures a string's value since 2026-11-14, `API.md` §412: a value in sight is decrypted where
+it is read, every time, and a withheld value never, and
+`NodeTagsTests.A_protected_value_held_as_bytes_is_decrypted_each_time_it_is_read_and_never_where_it_is_withheld`
+counts those decryptions.
 
 **A value a read decodes is not always the bytes the store keeps.** A protected string another
 program wrote with bytes that are not UTF-8 is served with each bad sequence replaced, and KeePass
