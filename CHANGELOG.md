@@ -44,13 +44,10 @@ none, since it releases both.
   of it, with no TLS under it and no tag taken. An entry's tag covers every attachment its
   client may read, at any size. A write takes at most 512 KiB as before, since it arrives in a
   request's body. A protected attachment that KeePass keeps through a cipher another KeePass
-  plugin put in place of Windows' memory protection is an attachment the gate cannot read, and
-  answers `500 unreadable`: to a client that may read attachments, for every answer carrying
-  the tag of the entry holding it and for every write to that entry under `If-Match` or
-  answered with a tag, which changes nothing, and to any client for a write of an attachment
-  while such a cipher stands. Asking again mends nothing, and `docs/getting-started.md` has
-  what the operator does about it. The plugin checks as it loads that it can read attachments
-  on this KeePass and this Windows, and logs an error where it cannot. PyKeePassGate holds a
+  plugin put in place of Windows' memory protection is read through KeePass's own read, a copy
+  of the whole attachment for as long as the read takes, and so is every attachment on a
+  KeePass or a Windows the read in place does not fit, which the plugin checks as it loads and
+  logs as a warning. PyKeePassGate holds a
   whole answer under `max_response_bytes`, so an attachment over about 3 MiB needs it raised,
   and its stand-in gate frames an attachment as the plugin does. `API.md` §412.
 - **A protected value read or written through the gate stays encrypted in KeePass's memory.**

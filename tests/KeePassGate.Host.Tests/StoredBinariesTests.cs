@@ -6,7 +6,6 @@ using System.Security.Cryptography;
 using System.Threading;
 using System.Threading.Tasks;
 using KeePassGate.Bridge;
-using KeePassGate.Diagnostics;
 using KeePassLib.Security;
 using NUnit.Framework;
 
@@ -15,17 +14,19 @@ namespace KeePassGate.Host.Tests
     /// <summary>
     /// The reader that hands an attachment out a piece at a time from where KeePass keeps it,
     /// against real `ProtectedBinary` objects: what it hands out, what it leaves behind, and
-    /// what it refuses.
+    /// what it reads through KeePass's own read.
     /// </summary>
     /// <remarks>
-    /// An attachment is read through the gate at any size, with no copy of the whole made and
-    /// no second way of reading, the operator's ruling of 2026-11-14. So what is held here is
-    /// that the pieces are the attachment, byte for byte, at every size around a block and
-    /// around a piece; that an attachment held in the open is read out of KeePass's own buffer
-    /// with nothing copied; that a protected attachment is never decrypted where it stands and
+    /// An attachment is read through the gate at any size, with no copy of the whole made
+    /// wherever it can be read in place, and through KeePass's own read wherever it cannot,
+    /// the operator's ruling of 2026-11-14. So what is held here is that the pieces are the
+    /// attachment, byte for byte, at every size around a block and around a piece; that an
+    /// attachment held in the open is read out of KeePass's own buffer with nothing copied;
+    /// that a protected attachment is never decrypted where it stands by a read in place and
     /// leaves no piece of itself in the clear once the read is over; and that an attachment
-    /// kept any other way is refused with nothing read. `KeePassContractTests` pins what the
-    /// reader rests on in KeePass and in Windows.
+    /// kept any other way is read through KeePass, in the same pieces, from a copy that is
+    /// overwritten. `KeePassContractTests` pins what the read in place rests on in KeePass
+    /// and in Windows.
     ///
     /// Some cases set `ProtectedBinary.ExtCrypt`, a static of KeePass's that another plugin can
     /// set, and each takes it away again whatever happens.
@@ -357,14 +358,15 @@ namespace KeePassGate.Host.Tests
         }
 
         [Test]
-        public void A_protected_attachment_kept_through_another_plugin_s_cipher_is_refused_with_nothing_read()
+        public void A_protected_attachment_kept_through_another_plugin_s_cipher_is_read_through_KeePass_s_own_read()
         {
             // KeePass keeps a protected attachment made while `ProtectedBinary.ExtCrypt` is set
             // through that cipher, of which the gate knows nothing a piece could be decrypted
-            // by. There is no second way of reading, so the read, the digest and the check a
-            // write makes are each refused, no piece is handed out and nothing is decrypted.
-            // An attachment held in the open is not encrypted by anything, and an attachment of
-            // no bytes is kept as it is, so both are read as ever.
+            // by. KeePass itself reads what it keeps that way, so the gate has KeePass read
+            // it: a single copy of the whole attachment, handed out in the pieces a read in
+            // place hands out and overwritten once the read is over. An attachment held in
+            // the open is not encrypted by anything, and an attachment of no bytes is kept as
+            // it is, so both are read as ever, with KeePass reading nothing.
             var decrypted = 0;
             var content = Invented(Piece + 5);
             var was = ProtectedBinary.ExtCrypt;
@@ -387,30 +389,48 @@ namespace KeePassGate.Host.Tests
                 var open = new ProtectedBinary(false, content);
                 var empty = new ProtectedBinary(true, Array.Empty<byte>());
                 Assume.That(KeePassMemory.KeptAs(hooked), Is.EqualTo("ExtCrypt"));
-                var held = (byte[])KeePassMemory.Buffer(hooked).Clone();
 
-                var handed = 0;
-                var refused = Assert.Throws<AttachmentUnreadable>(
-                    () => StoredBinaries.Read(hooked, (bytes, offset, count) => handed++));
-                Assert.That(refused.Message, Does.Contain("ExtCrypt"), "the refusal names how the attachment is kept");
-                Assert.Throws<AttachmentUnreadable>(() => StoredBinaries.Digest(hooked));
-                Assert.Throws<AttachmentUnreadable>(() => StoredBinaries.Check(hooked));
+                var counts = new List<int>();
+                var arrays = new List<byte[]>();
+                using (var joined = new MemoryStream())
+                {
+                    StoredBinaries.Read(hooked, (bytes, offset, count) =>
+                    {
+                        counts.Add(count);
+                        arrays.Add(bytes);
+                        joined.Write(bytes, offset, count);
+                    });
 
-                Assert.That(handed, Is.Zero, "a piece was handed out of an attachment that was refused");
-                Assert.That(Volatile.Read(ref decrypted), Is.Zero, "the attachment was decrypted to refuse it");
-                Assert.That(KeePassMemory.Buffer(hooked).SequenceEqual(held), Is.True);
+                    Assert.That(
+                        joined.ToArray().SequenceEqual(content),
+                        Is.True,
+                        "the pieces are other bytes than were stored");
+                }
 
+                Assert.That(counts, Is.EqualTo(new[] { Piece, 5 }), "the pieces are other pieces than a read in place hands out");
+                Assert.That(arrays.Distinct().Count(), Is.EqualTo(1), "more than a single copy was made");
+                Assert.That(arrays[0], Has.Length.EqualTo(content.Length), "the copy is not the attachment whole");
+                Assert.That(arrays[0], Has.All.EqualTo(0), "the copy was left in the clear");
+                Assert.That(Volatile.Read(ref decrypted), Is.EqualTo(1), "KeePass read the attachment other than a single time");
+                Assert.That(KeePassMemory.KeptAs(hooked), Is.EqualTo("ExtCrypt"));
+
+                byte[] expected;
+                using (var sha256 = SHA256.Create())
+                {
+                    expected = sha256.ComputeHash(content);
+                }
+
+                Assert.That(StoredBinaries.Digest(hooked), Is.EqualTo(expected));
+                Assert.That(Volatile.Read(ref decrypted), Is.EqualTo(2), "a digest reads the attachment a single time");
+
+                var held = KeePassMemory.Buffer(open);
+                StoredBinaries.Read(open, (bytes, offset, count) => Assert.That(bytes, Is.SameAs(held)));
                 Assert.That(
                     Joined(open).SequenceEqual(content),
                     Is.True,
-                    "an attachment held in the open is still read");
-                Assert.DoesNotThrow(() => StoredBinaries.Check(open));
+                    "an attachment held in the open is read as ever");
                 Assert.That(Joined(empty), Is.Empty);
-                Assert.DoesNotThrow(() => StoredBinaries.Check(empty));
-                Assert.That(Volatile.Read(ref decrypted), Is.Zero);
-
-                // And KeePass itself still reads what it keeps that way.
-                Assert.That(hooked.ReadData().SequenceEqual(content), Is.True);
+                Assert.That(Volatile.Read(ref decrypted), Is.EqualTo(2), "KeePass read what is read in place");
             }
             finally
             {
@@ -419,23 +439,30 @@ namespace KeePassGate.Host.Tests
         }
 
         [Test]
-        public void An_attachment_is_refused_or_read_by_how_KeePass_keeps_it_at_that_moment()
+        public void An_attachment_is_read_in_place_or_through_KeePass_by_how_KeePass_keeps_it_at_that_moment()
         {
             // KeePass's own read decrypts a protected attachment and encrypts it again through
             // whatever cipher stands by then, and a save reads every attachment. So how an
             // attachment is kept is no property of the object for good: an attachment the gate
-            // read is refused once KeePass has read it under another plugin's cipher, and read
-            // again once KeePass has read it with that cipher gone. Which is why the reader
-            // asks how the buffer is kept at every read. That it asks at every piece of a read
-            // is held by the test after this.
+            // read in place is read through KeePass once KeePass has read it under another
+            // plugin's cipher, and in place again once KeePass has read it with that cipher
+            // gone, the gate's own read through KeePass among those reads. Which is why the
+            // reader asks how the buffer is kept at every read. That it asks at every piece of
+            // a read is held by the test after this.
             var content = Invented(Piece + 5);
             var binary = new ProtectedBinary(true, content);
             Assume.That(KeePassMemory.KeptAs(binary), Is.EqualTo("ProtectedMemory"));
-            Assert.That(Joined(binary).SequenceEqual(content), Is.True);
+            Assert.That(Longest(binary, content), Is.LessThanOrEqualTo(Piece + Block), "read through a copy of the whole");
 
+            var decrypted = 0;
             var was = ProtectedBinary.ExtCrypt;
             ProtectedBinary.ExtCrypt = (data, flags, id) =>
             {
+                if (flags == PbCryptFlags.Decrypt)
+                {
+                    Interlocked.Increment(ref decrypted);
+                }
+
                 for (var i = 0; i < data.Length; i++)
                 {
                     data[i] ^= 0x5A;
@@ -445,10 +472,10 @@ namespace KeePassGate.Host.Tests
             try
             {
                 Assert.That(
-                    Joined(binary).SequenceEqual(content),
-                    Is.True,
+                    Longest(binary, content),
+                    Is.LessThanOrEqualTo(Piece + Block),
                     "a cipher being set changes nothing KeePass keeps");
-                Assert.DoesNotThrow(() => StoredBinaries.Check(binary));
+                Assert.That(KeePassMemory.KeptAs(binary), Is.EqualTo("ProtectedMemory"));
 
                 Assert.That(binary.ReadData().SequenceEqual(content), Is.True);
                 Assert.That(
@@ -456,52 +483,57 @@ namespace KeePassGate.Host.Tests
                     Is.EqualTo("ExtCrypt"),
                     "KeePass no longer keeps what it read through the cipher that stands");
 
-                Assert.Throws<AttachmentUnreadable>(() => Joined(binary));
-                Assert.Throws<AttachmentUnreadable>(() => StoredBinaries.Check(binary));
+                Assert.That(Longest(binary, content), Is.EqualTo(content.Length), "read in place, of another cipher's bytes");
+                Assert.That(Volatile.Read(ref decrypted), Is.EqualTo(1), "KeePass read it other than a single time");
+                Assert.That(KeePassMemory.KeptAs(binary), Is.EqualTo("ExtCrypt"));
             }
             finally
             {
                 ProtectedBinary.ExtCrypt = was;
             }
 
-            Assert.Throws<AttachmentUnreadable>(
-                () => Joined(binary),
-                "the cipher going away changes nothing KeePass keeps");
-
-            Assert.That(binary.ReadData().SequenceEqual(content), Is.True);
+            // The cipher going away changes nothing KeePass keeps, so the read after it still
+            // goes through KeePass, which decrypts through the cipher it encrypted with and
+            // keeps the attachment under Windows' protection from then on.
+            Assert.That(Longest(binary, content), Is.EqualTo(content.Length));
+            Assert.That(Volatile.Read(ref decrypted), Is.EqualTo(2));
             Assert.That(KeePassMemory.KeptAs(binary), Is.EqualTo("ProtectedMemory"));
+
             Assert.That(
-                Joined(binary).SequenceEqual(content),
-                Is.True,
-                "and it is read again once KeePass keeps it as it keeps any");
-            Assert.DoesNotThrow(() => StoredBinaries.Check(binary));
+                Longest(binary, content),
+                Is.LessThanOrEqualTo(Piece + Block),
+                "and it is read in place again once KeePass keeps it as it keeps any");
+            Assert.That(Volatile.Read(ref decrypted), Is.EqualTo(2));
         }
 
         [Test]
-        public void An_attachment_KeePass_comes_to_keep_another_way_between_two_pieces_is_refused_at_the_next_piece()
+        public void An_attachment_KeePass_comes_to_keep_another_way_between_two_pieces_is_read_on_through_KeePass()
         {
             // The reader holds no lock while a piece is handed over, which is a write to a
             // peer, so KeePass can read the attachment between two pieces of a single read, a
             // save among those reads, and keep it from then on through whatever cipher stands.
             // The pieces still to come would be that cipher's bytes run through Windows'
             // protection, which checks nothing and hands back noise. So how the buffer is kept
-            // is asked under KeePass's lock for every piece: a reader that asked a single
-            // time, ahead of the first piece, hands out the whole attachment here, its later
-            // pieces noise, and throws nothing.
+            // is asked under KeePass's lock for every piece, and a read that finds it changed
+            // goes on through KeePass's own read from where it stands: a reader that asked a
+            // single time, ahead of the first piece, hands out the whole attachment here, its
+            // later pieces noise.
             var content = Invented((3 * Piece) + 5);
             var binary = new ProtectedBinary(true, content);
             Assume.That(KeePassMemory.KeptAs(binary), Is.EqualTo("ProtectedMemory"));
 
             var counts = new List<int>();
+            var arrays = new List<byte[]>();
             byte[] handed;
             var was = ProtectedBinary.ExtCrypt;
             try
             {
                 using (var joined = new MemoryStream())
                 {
-                    Action<byte[], int, int> piece = (bytes, offset, count) =>
+                    StoredBinaries.Read(binary, (bytes, offset, count) =>
                     {
                         counts.Add(count);
+                        arrays.Add(bytes);
                         joined.Write(bytes, offset, count);
                         if (counts.Count > 1)
                         {
@@ -523,10 +555,8 @@ namespace KeePassGate.Host.Tests
                             KeePassMemory.KeptAs(binary),
                             Is.EqualTo("ExtCrypt"),
                             "KeePass no longer keeps what it read through the cipher that stands");
-                    };
+                    });
 
-                    var refused = Assert.Throws<AttachmentUnreadable>(() => StoredBinaries.Read(binary, piece));
-                    Assert.That(refused.Message, Does.Contain("ExtCrypt"), "the refusal names how the attachment is kept");
                     handed = joined.ToArray();
                 }
             }
@@ -535,66 +565,35 @@ namespace KeePassGate.Host.Tests
                 ProtectedBinary.ExtCrypt = was;
             }
 
+            Assert.That(counts, Is.EqualTo(new[] { Piece, Piece, Piece, 5 }), "the pieces are other pieces than a read in place hands out");
+            Assert.That(handed.SequenceEqual(content), Is.True, "what was handed out is other bytes than the attachment");
+            Assert.That(arrays[0], Has.Length.LessThanOrEqualTo(Piece + Block), "the first piece was read in place");
             Assert.That(
-                counts,
-                Is.EqualTo(new[] { Piece }),
-                "a piece was handed out of a buffer KeePass had come to keep another way");
-            Assert.That(
-                handed.SequenceEqual(content.Take(Piece)),
-                Is.True,
-                "what was handed out before the refusal is other bytes than the attachment starts with");
+                arrays.Skip(1).Distinct().Count(),
+                Is.EqualTo(1),
+                "the pieces after it came from more than a single copy");
+            Assert.That(arrays[1], Has.Length.EqualTo(content.Length));
+            foreach (var copy in arrays)
+            {
+                Assert.That(copy, Has.All.EqualTo(0), "a copy was left in the clear");
+            }
 
-            // And the attachment is read whole again once KeePass has read it with that cipher
-            // gone.
+            // And KeePass still reads it, and the gate after it.
             Assert.That(binary.ReadData().SequenceEqual(content), Is.True);
-            Assert.That(KeePassMemory.KeptAs(binary), Is.EqualTo("ProtectedMemory"));
             Assert.That(Joined(binary).SequenceEqual(content), Is.True);
         }
 
         [Test]
-        public void The_check_a_write_makes_passes_what_a_read_reads_and_reads_nothing()
-        {
-            // An attachment held in the open, a protected attachment and an attachment of no
-            // bytes, each of which a read hands out, pass. Nothing is read to find that out:
-            // KeePass's buffer is the bytes it was, and for a protected attachment a check
-            // allocates no copy of a piece.
-            var content = Invented((2 * Piece) + 1);
-            var attachments = new[]
-            {
-                new ProtectedBinary(false, content),
-                new ProtectedBinary(true, content),
-                new ProtectedBinary(false, Array.Empty<byte>()),
-                new ProtectedBinary(true, Array.Empty<byte>()),
-                new ProtectedBinary(),
-            };
-
-            foreach (var binary in attachments)
-            {
-                var held = (byte[])KeePassMemory.Buffer(binary).Clone();
-                StoredBinaries.Check(binary);
-
-                var before = GC.GetAllocatedBytesForCurrentThread();
-                StoredBinaries.Check(binary);
-                var allocated = GC.GetAllocatedBytesForCurrentThread() - before;
-
-                Assert.That(allocated, Is.LessThan(4 * 1024), "a check copied something");
-                Assert.That(KeePassMemory.Buffer(binary).SequenceEqual(held), Is.True);
-                Assert.That(Joined(binary).Length, Is.EqualTo((int)binary.Length), "what passed the check is read");
-            }
-
-            Assert.Throws<ArgumentNullException>(() => StoredBinaries.Check(null));
-        }
-
-        [Test]
-        public void Everything_the_reader_rests_on_is_as_it_was_measured_here()
+        public void Everything_the_read_in_place_rests_on_is_as_it_was_measured_here()
         {
             // The fields it reads of KeePass, and what it rests on of Windows: a piece
             // decrypting on its own once the block ahead is decrypted with it, the start of a
             // buffer decrypting on its own from its first byte, and the same bytes protected to
-            // the same bytes, each checked by the reader itself. A KeePass or a Windows where
-            // that is no longer so refuses every read of an attachment, and is told so here
-            // before a client is. The plugin asks the same as it loads, and logs the answer.
-            Assert.That(StoredBinaries.Refusal, Is.Null);
+            // the same bytes, each checked by the reader itself. On a KeePass or a Windows
+            // where that is no longer so, every read of an attachment goes through KeePass's
+            // own read and copies the attachment whole, and that is told here before it is
+            // met. The plugin asks the same as it loads, and logs the answer.
+            Assert.That(StoredBinaries.WhyNotInPlace, Is.Null);
         }
 
         [Test]
@@ -629,6 +628,28 @@ namespace KeePassGate.Host.Tests
                 StoredBinaries.Read(binary, joined.Write);
                 return joined.ToArray();
             }
+        }
+
+        /// <summary>
+        /// The longest array a read of an attachment hands its pieces in, the read held to
+        /// handing out the content: a piece and the block ahead of it at most for a protected
+        /// attachment read in place, and the whole attachment for a read through KeePass.
+        /// </summary>
+        private static int Longest(ProtectedBinary binary, byte[] content)
+        {
+            var longest = 0;
+            using (var joined = new MemoryStream())
+            {
+                StoredBinaries.Read(binary, (bytes, offset, count) =>
+                {
+                    longest = Math.Max(longest, bytes.Length);
+                    joined.Write(bytes, offset, count);
+                });
+
+                Assert.That(joined.ToArray().SequenceEqual(content), Is.True, "a read handed out other bytes");
+            }
+
+            return longest;
         }
 
         /// <summary>

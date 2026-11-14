@@ -87,7 +87,8 @@ namespace KeePassGate.Bridge
     /// an attachment out whatever its size, so a client can hold a copy of any attachment to
     /// lose an update to, and an attachment replaced in KeePass by another of the same size
     /// moves the tag. The digest is taken a piece at a time from where KeePass keeps the
-    /// attachment, `StoredBinaries`, with no copy of the whole made, `DESIGN.md` §144.
+    /// attachment, with no copy of the whole made wherever it can be read there,
+    /// `StoredBinaries`, `DESIGN.md` §144.
     ///
     /// **An attachment's bytes are hashed once.** KeePass never changes a `ProtectedBinary` in
     /// place, so a digest kept against the object stays true for as long as the object lives, and
@@ -399,7 +400,8 @@ namespace KeePassGate.Bridge
 
         /// <summary>
         /// One attachment's SHA-256, taken a piece at a time from where KeePass keeps the
-        /// attachment, with no copy of the whole made: `StoredBinaries`.
+        /// attachment, with no copy of the whole made wherever it can be read there:
+        /// `StoredBinaries`.
         /// </summary>
         private static byte[] Digest(ProtectedBinary binary)
         {

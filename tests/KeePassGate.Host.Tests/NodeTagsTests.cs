@@ -1029,11 +1029,11 @@ namespace KeePassGate.Host.Tests
         [Test]
         public void A_view_is_built_with_no_attachment_read_and_reads_a_value_when_asked_for_it()
         {
-            // Shown by an attachment the gate reads no piece of: made while another plugin's
-            // cipher stands, `ProtectedBinary.ExtCrypt`, KeePass keeps a protected attachment
-            // through that cipher, and every read of it by the gate is refused. So whatever
-            // goes through here without that refusal read nothing of the attachment, and the
-            // hook counts what KeePass itself decrypts of it, which is nothing either: KeePass
+            // Shown through KeePass's own hook: made while another plugin's cipher stands,
+            // `ProtectedBinary.ExtCrypt`, KeePass keeps a protected attachment through that
+            // cipher, and the gate reads such an attachment through KeePass's own read, which
+            // decrypts through the hook. So the hook counts every read of the attachment, and
+            // whatever goes through here with nothing counted read nothing of it. KeePass
             // decrypts a protected attachment through the hook and, measured here, not a
             // protected string made from a string, which KeePass keeps as it was given. The
             // strings are held to the rest by what the view carries. A protected string KeePass
@@ -1096,21 +1096,18 @@ namespace KeePassGate.Host.Tests
                 Assert.That(listed.Tag, Is.Not.Null.And.Not.EqualTo(narrow.Tag));
                 Assert.That(listed.Attachment("notes.txt").Bytes(), Is.Empty);
 
-                // The bytes are read when they are asked for, which is where the refusal is
-                // met, with no piece handed out and nothing decrypted.
-                var handed = 0;
-                Assert.Throws<KeePassGate.Diagnostics.AttachmentUnreadable>(
-                    () => whole.Attachment("notes.txt").Read((bytes, offset, count) => handed++));
-                Assert.That(handed, Is.Zero);
-                Assert.That(
-                    Volatile.Read(ref decrypted),
-                    Is.Zero,
-                    "the gate read an attachment through KeePass's own reader");
+                // The bytes are read when they are asked for, by every asking, since a view
+                // keeps nothing it read.
+                var asked = whole.Attachment("notes.txt");
+                Assert.That(asked.Bytes(), Is.EqualTo(Encoding.UTF8.GetBytes("invented")));
+                Assert.That(Volatile.Read(ref decrypted), Is.EqualTo(1), "the attachment was read when asked for");
+                Assert.That(asked.Bytes(), Is.EqualTo(Encoding.UTF8.GetBytes("invented")));
+                Assert.That(Volatile.Read(ref decrypted), Is.EqualTo(2), "a view kept what it read");
 
                 // And when a tag covers them. Nothing is counted past here: the digests a tag
                 // keeps for the protected strings are kept in containers of KeePass's, which
                 // are read through the hook while it stands.
-                Assert.Throws<KeePassGate.Diagnostics.AttachmentUnreadable>(() => _ = whole.Tag);
+                Assert.That(whole.Tag, Is.Not.Null);
             }
             finally
             {

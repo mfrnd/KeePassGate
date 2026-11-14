@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Net;
 using System.Text;
 using KeePassGate.Pipeline;
@@ -428,90 +427,6 @@ namespace KeePassGate.Tests
             // refusal, and it is counted where the operator will see it rather than logged as one
             // more thing that went wrong.
             Assert.That(_log.Surprises, Is.Not.Empty);
-        }
-
-        [TestCase(false, TestName = "A handler meeting an attachment the gate cannot read is answered 500 unreadable")]
-        [TestCase(true, TestName = "A handler failing over an attachment the gate cannot read is answered the same")]
-        public void An_attachment_the_gate_cannot_read_is_answered_with_a_word_of_its_own(bool wrapped)
-        {
-            // Nothing the client sent is wrong and asking again mends nothing, and it is no
-            // defect of a handler's either, so the answer names it apart from `internal error`,
-            // thrown as it is or as what something between the store and the transport threw
-            // on for. Counted all the same, a single time, since whoever runs the gate has to
-            // know, and the client is told the word and nothing of the reason.
-            var stream = new ConversationStream("GET /entries/x/attachments/notes.txt HTTP/1.1\r\nHost: gate\r\n\r\n");
-            var incidents = new KeePassGate.Diagnostics.GateIncidents(_log);
-            var unreadable = new KeePassGate.Diagnostics.AttachmentUnreadable("an invented reason nothing is read");
-            var handler = new SpyHandler(context =>
-            {
-                if (wrapped)
-                {
-                    throw new InvalidOperationException(
-                        "an invented failure", new System.Reflection.TargetInvocationException(unreadable));
-                }
-
-                throw unreadable;
-            });
-
-            Assert.DoesNotThrow(
-                () => GateConversation.Serve(stream, Paired(), handler, _options, _log, null, incidents));
-
-            Assert.That(stream.Status, Is.EqualTo(500));
-            Assert.That(GateConversation.UnreadableError, Is.EqualTo("unreadable"));
-            Assert.That(stream.Body, Is.EqualTo("{\"error\":\"unreadable\"}"));
-            Assert.That(stream.Response, Does.Contain("Content-Length: "));
-            Assert.That(stream.Response, Does.Not.Contain("invented"), "a client is told nothing of the reason");
-            Assert.That(incidents.Count, Is.EqualTo(1));
-            Assert.That(_log.Surprises.Count(), Is.EqualTo(1));
-        }
-
-        [Test]
-        public void Anything_else_a_handler_throws_is_still_an_internal_error()
-        {
-            // The word is for that exception and no other: a failure that only resembles it, by
-            // its message or by the exception it is thrown on for, is the defect it always was.
-            var failures = new Exception[]
-            {
-                new InvalidOperationException("unreadable"),
-                new InvalidOperationException("an invented failure", new System.IO.IOException("unreadable")),
-                new System.Security.Cryptography.CryptographicException("an invented decryption that fails"),
-            };
-
-            foreach (var failure in failures)
-            {
-                var stream = new ConversationStream(
-                    "GET /entries/x/attachments/notes.txt HTTP/1.1\r\nHost: gate\r\n\r\n");
-                var incidents = new KeePassGate.Diagnostics.GateIncidents(_log);
-
-                GateConversation.Serve(
-                    stream, Paired(), new SpyHandler(context => throw failure), _options, _log, null, incidents);
-
-                Assert.That(stream.Status, Is.EqualTo(500), failure.GetType().Name);
-                Assert.That(stream.Body, Is.EqualTo(HttpResponse.ErrorBody("internal error")), failure.GetType().Name);
-                Assert.That(incidents.Count, Is.EqualTo(1), failure.GetType().Name);
-            }
-        }
-
-        [Test]
-        public void A_head_that_meets_an_attachment_the_gate_cannot_read_carries_no_body()
-        {
-            // A HEAD takes the tag, and the tag is what reads the attachment, so a HEAD meets
-            // it as its GET does. Its answer is the status and the length its GET names, with
-            // no content, RFC 9110 section 9.3.2.
-            var stream = new ConversationStream("HEAD /entries/x/attachments/notes.txt HTTP/1.1\r\nHost: gate\r\n\r\n");
-            var incidents = new KeePassGate.Diagnostics.GateIncidents(_log);
-            var handler = new SpyHandler(context =>
-            {
-                throw new KeePassGate.Diagnostics.AttachmentUnreadable("an invented reason nothing is read");
-            });
-
-            GateConversation.Serve(stream, Paired(), handler, _options, _log, null, incidents);
-
-            Assert.That(stream.Status, Is.EqualTo(500));
-            Assert.That(stream.Body, Is.Empty);
-            Assert.That(stream.Response, Does.EndWith("\r\n\r\n"), "something follows the fields of a HEAD");
-            Assert.That(stream.Response, Does.Not.Contain("unreadable"));
-            Assert.That(incidents.Count, Is.EqualTo(1));
         }
 
         [Test]

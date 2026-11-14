@@ -512,18 +512,17 @@ designing around them.
   a file attached in KeePass's dialog is, is read in place. A protected attachment, as the
   gate's own are, is kept encrypted in place by Windows' protection of process memory, which
   chains its blocks: a piece is copied with the block ahead of it under KeePass's own lock,
-  `m_objSync`, held for the copy alone, then decrypted, handed out and overwritten. **There is
-  no second way of reading, and re-proposing a fallback to `ReadData` reopens the operator's
-  ruling.** `KeePassContractTests` pins the fields and the chaining, and what the reader rests
-  on of KeePass and of Windows is checked in the running plugin as it loads,
-  `StoredBinaries.Refusal`, logged where it fails, and asked again by whatever reads first
-  where that did not run. A protected attachment KeePass keeps any other way, above all through
-  the cipher another plugin put in place by `ProtectedBinary.ExtCrypt`, is
-  `AttachmentUnreadable`: `500 unreadable` and an incident, for a read of it, for every answer
-  and every change that takes a tag over it, the change taken back out, and for a write that
-  would store an attachment while that cipher stands. `DESIGN.md` §144 has which requests those
-  are and what still goes through. A tag covers every attachment its caller may read at any
-  size, its digest taken in place and asked whether it can be read every time. What makes no
+  `m_objSync`, held for the copy alone, then decrypted, handed out and overwritten. **Where
+  that cannot be done, KeePass reads**: on a KeePass or a Windows the read in place no longer
+  fits, checked as the plugin loads, `StoredBinaries.WhyNotInPlace`, and logged as a warning
+  where it fails, and for a protected attachment KeePass keeps any other way, above all through
+  the cipher another plugin put in place by `ProtectedBinary.ExtCrypt`, asked at every piece,
+  the attachment is read through `ReadData`: a single copy of the whole, handed out in the same
+  pieces and overwritten, at any size. **Do not re-propose refusing such an attachment**:
+  `500 unreadable` was ruled and reversed on 2026-11-14, so that a field and an attachment are
+  read alike. `KeePassContractTests` pins the fields and the chaining. A tag covers every
+  attachment its caller may read at any size, its digest taken the same way. What makes no
+  copy of the whole, where an attachment is read in place, is a read and a digest:What makes no
   copy of the whole is a read and a digest: `updateAttachment` still compares a replacement of
   the stored length through KeePass's own `ProtectedBinary.Equals`, which reads both whole,
   within the 512 KiB a write takes. `MaxAttachmentBytes` is what a write takes and nothing
@@ -694,9 +693,9 @@ and answers a different question.
   encrypts it again, through Windows' protection of process memory, or through the cipher a
   plugin set as `ProtectedBinary.ExtCrypt` if any stands then, and a save reads every
   attachment. So how an attachment is kept is read at every use and never remembered:
-  `StoredBinariesTests.An_attachment_is_refused_or_read_by_how_KeePass_keeps_it_at_that_moment`.
+  `StoredBinariesTests.An_attachment_is_read_in_place_or_through_KeePass_by_how_KeePass_keeps_it_at_that_moment`.
   And at every piece of a read, since no lock is held while a piece is written to a peer:
-  `An_attachment_KeePass_comes_to_keep_another_way_between_two_pieces_is_refused_at_the_next_piece`.
+  `An_attachment_KeePass_comes_to_keep_another_way_between_two_pieces_is_read_on_through_KeePass`.
 - **Windows decrypts a piece of protected memory on its own, but for its first block.**
   `ProtectedMemory.Unprotect` on a copy of a piece of a buffer protected whole gives the right
   bytes in every block after the first, since the protection chains sixteen byte blocks, and

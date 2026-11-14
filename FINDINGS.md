@@ -533,9 +533,9 @@ after which the buffer holds the same bytes as before. A copy of a piece of that
 decrypted on its own with the same call, is right in every block but its first, and right
 throughout when the sixteen bytes ahead of the piece are decrypted with it: tried for pieces
 of 1, 4 and 4096 blocks at the start, the middle and the end of a megabyte. Windows documents
-nothing of that, so the plugin checks it again as it loads, on a buffer of its own, and logs an
-error where it fails, `StoredBinaries.Refusal`. `ReadData` encrypts through whatever cipher
-stands when it runs, so an
+nothing of that, so the plugin checks it again as it loads, on a buffer of its own, and logs a
+warning where it fails, `StoredBinaries.WhyNotInPlace`, after which every attachment is read
+through `ReadData`. `ReadData` encrypts through whatever cipher stands when it runs, so an
 attachment read by KeePass while another plugin's cipher is set, `ProtectedBinary.ExtCrypt`, is
 kept through that cipher from then on, and through Windows' again once KeePass has read it
 with the cipher gone. KeePass's entry dialog and its importers make an attachment held in the
@@ -555,8 +555,8 @@ Read in place, what is alive at once came to a tenth of a megabyte at every size
 held in the open allocates nothing that grows with it; a protected attachment a copy of each
 piece in turn, its own size in all, each overwritten and let go. A digest taken in place: 27 ms
 for 64 MiB held in the open with nothing allocated, and 47 to 48 ms protected. A copy from
-`ReadData` written as it is sent, the form that was not built, kept the attachment alive once
-for each read and took 122 to 171 ms for 64 MiB.
+`ReadData` written as it is sent, the form a read takes where an attachment cannot be read in
+place, kept the attachment alive once for each read and took 122 to 171 ms for 64 MiB.
 
 **What a tag costs on an entry far past the ceiling a read was held to**, measured while a read
 was held to 524288 characters: fifty

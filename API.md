@@ -359,35 +359,16 @@ gate is written in KeePass. A read past the ceiling was `413`, since an answer b
 about eight times the attachment alive at once. A tag covers the bytes of every attachment its
 caller may read, at any size, where it covered them up to the ceiling.
 
-**An attachment the gate cannot read is `500 unreadable`.** The gate reads a protected
-attachment from the memory KeePass has Windows protect, and another KeePass plugin can put a
-cipher of its own in place of that protection, `ProtectedBinary.ExtCrypt`. A protected
-attachment KeePass keeps through such a cipher, at that moment, is refused. KeePass keeps an
-attachment through whatever cipher stands when the attachment is made, and after that when
-KeePass itself last read it, and a save reads every attachment: after a save under such a
-cipher that is every protected attachment in the database, and each is readable again once
-KeePass has read it with the cipher gone. An attachment held in the open is never affected.
-
-**It answers every request that takes a tag over such an attachment, and every write of an
-attachment while such a cipher stands.** A tag covers an attachment's bytes for a client
-holding `read` and `attachments` in one rule, §410. For that client every answer carrying the
-tag of an entry that holds such an attachment is `500 unreadable`: a read of the entry, of a
-field, of the listing of its fields or of its attachments and of any attachment of the entry,
-readable or not, and a `HEAD` of each. So is every write to that entry that names a tag in
-`If-Match` or answers with the entry's tag, which every write to an entry's strings and
-attachments does: it is refused before it is made, or made and taken back out, and changes
-nothing. And for any client, a `createAttachment` or an `updateAttachment` whose content
-holds any bytes is refused before anything is changed while such a cipher stands, since
-KeePass would keep what was written through it.
-
-**What still goes through** is everything else for a client whose rules do not read
-attachments, whose tag covers no attachment's bytes: its reads and writes of the entry's
-strings, and the listing of attachments by name and size for a client holding `list` and
-`attachments`. `deleteEntry` goes through with no `If-Match`, or with `*`, since it takes no
-tag. So does `stripAttachment` of the last such attachment on an entry, with no `If-Match` or
-with `*`, since the tag it answers with is of the entry without that attachment. Nothing the
-client sent is wrong, and asking again mends nothing until the operator has settled it in
-KeePass. `DESIGN.md` §144 has why there is no second way of reading.
+**An attachment KeePass keeps another way is read through KeePass's own read, and none is
+refused.** The gate reads a protected attachment in place only from the memory KeePass has
+Windows protect, and another KeePass plugin can put a cipher of its own in place of that
+protection, `ProtectedBinary.ExtCrypt`. A protected attachment KeePass keeps through such a
+cipher, at that moment, is read through KeePass: a copy of the whole attachment for as long as
+the read takes, at any size, with the answer and its tag what they are for any attachment.
+**This reverses `500 unreadable`**, which answered every request that took a tag over such an
+attachment and every write of an attachment while such a cipher stood, under a ruling of
+2026-11-14 that the operator reversed the same day: a field and an attachment are read alike,
+and a field is read through KeePass whatever keeps it. It was never released. `DESIGN.md` §144.
 
 **No write is refused for what an entry's strings come to, which reverses a ceiling held in both
 directions**, the operator's ruling of 2026-11-10. A create, an update or a new field that would

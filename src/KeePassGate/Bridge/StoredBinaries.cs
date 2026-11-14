@@ -1,7 +1,6 @@
 using System;
 using System.Reflection;
 using System.Security.Cryptography;
-using KeePassGate.Diagnostics;
 using KeePassLib.Security;
 
 namespace KeePassGate.Bridge
@@ -11,7 +10,8 @@ namespace KeePassGate.Bridge
 
     /// <summary>
     /// Reads the bytes KeePass keeps for an attachment a piece at a time, from where KeePass
-    /// keeps them, so that neither a read nor a digest makes a copy of the whole attachment.
+    /// keeps them, so that neither a read nor a digest makes a copy of the whole attachment,
+    /// and through KeePass's own read where that cannot be done.
     /// </summary>
     /// <remarks>
     /// **KeePass hands an attachment out whole or not at all.** `ProtectedBinary` offers
@@ -35,7 +35,31 @@ namespace KeePassGate.Bridge
     /// is decrypted with it and thrown away. So a piece is copied out with the block ahead,
     /// under KeePass's lock so that no buffer standing decrypted for another reader is
     /// copied, the copy is decrypted, handed out and overwritten, and the attachment itself
-    /// never stands decrypted for a read made here.
+    /// never stands decrypted for a read made in place.
+    ///
+    /// **Where that cannot be done, KeePass reads.** The operator's ruling of 2026-11-14,
+    /// which reversed a ruling of the same day that nothing be read there: an attachment
+    /// KeePass can read is an attachment a client is handed. A KeePass that keeps an
+    /// attachment otherwise and a Windows that no longer protects memory the way a piece is
+    /// read by, both checked once and logged as the plugin loads, <see cref="WhyNotInPlace"/>;
+    /// a protected attachment kept any other way, by KeePass's own cipher where
+    /// `ProtectedMemory` is not supported or by the cipher another plugin gave KeePass
+    /// through `ProtectedBinary.ExtCrypt`; and a buffer that is not the shape a piece is read
+    /// from: each is read through `ReadData`, a single copy of the whole attachment, handed
+    /// out in the same pieces and overwritten once the read is over. That copy lives for as
+    /// long as the read does, at whatever size the attachment is, as a field's value does,
+    /// `StoredStrings`. `KeePassContractTests` pins what the read in place rests on in
+    /// KeePass and in Windows.
+    ///
+    /// **How an attachment is kept is of the moment, and is asked at every piece.** `ReadData`
+    /// encrypts the buffer again through whatever cipher stands when it runs, and KeePass's
+    /// save reads every attachment, so an attachment made under Windows' protection is kept
+    /// through another plugin's cipher once KeePass has read it while that cipher stood, and
+    /// under Windows' protection again once KeePass has read it with the cipher gone, the
+    /// read made here among those reads. Which it is, is read under KeePass's lock for every
+    /// piece, and a read that finds it changed between two pieces goes on from where it
+    /// stands through `ReadData`: what an attachment holds never changes, so the pieces
+    /// still to come are the same bytes either way.
     ///
     /// **A read and a digest, and nothing else of KeePass's.** KeePass's own reads still
     /// decrypt the buffer where it stands, a save among them. And a write that replaces an
@@ -44,33 +68,15 @@ namespace KeePassGate.Bridge
     /// reads both whole: bounded by the 512 KiB a write takes, since the lengths have to
     /// match first.
     ///
-    /// **Where this cannot be done, nothing is read.** A KeePass that keeps an attachment
-    /// otherwise and a Windows that no longer protects memory the way a piece is read by,
-    /// both checked as the plugin loads, <see cref="Refusal"/>, and logged there, and a
-    /// protected attachment kept any other way, by KeePass's own cipher where
-    /// `ProtectedMemory` is not supported or by the cipher another plugin gave KeePass
-    /// through `ProtectedBinary.ExtCrypt`, each refuse the read with what is wrong,
-    /// <see cref="AttachmentUnreadable"/>, which a client is answered `500 unreadable` for.
-    /// Whatever reads first asks the same check where the plugin's load did not run it. There
-    /// is no second way of reading to fall back to, the operator's ruling of 2026-11-14.
-    /// `KeePassContractTests` pins what this reads of KeePass and of Windows.
-    ///
-    /// **How an attachment is kept is of the moment, and is asked at every read.** `ReadData`
-    /// encrypts the buffer again through whatever cipher stands when it runs, and KeePass's
-    /// save reads every attachment, so an attachment made under Windows' protection is kept
-    /// through another plugin's cipher once KeePass has read it while that cipher stood, and
-    /// under Windows' protection again once KeePass has read it with the cipher gone. Which
-    /// it is, is read under KeePass's lock for every piece.
-    ///
     /// **What this keeps and what it does not.** KeePass's protection of an attachment is of
-    /// memory that leaves the process, and what is kept is that a read made here leaves
-    /// KeePass's buffer encrypted and that every copy the gate itself makes of a protected
-    /// attachment's bytes is overwritten: the decrypted piece here, the block a hasher keeps,
-    /// <see cref="Digest"/>, and the base64 made of a piece, `JsonWriter.Base64`. What was
-    /// written into an answer stays in the buffers of the text writer and of the TLS under
-    /// it, which cannot be overwritten, until the runtime reuses that memory, as a served
-    /// string does, `StoredStrings`. Nothing here is a control against code running as the
-    /// user, which `CLAUDE.md` concedes.
+    /// memory that leaves the process, and what is kept is that a read made in place leaves
+    /// KeePass's buffer encrypted and that every copy the gate itself makes of an
+    /// attachment's bytes is overwritten: the decrypted piece and the whole copy here, the
+    /// block a hasher keeps, <see cref="Digest"/>, and the base64 made of a piece,
+    /// `JsonWriter.Base64`. What was written into an answer stays in the buffers of the text
+    /// writer and of the TLS under it, which cannot be overwritten, until the runtime reuses
+    /// that memory, as a served string does, `StoredStrings`. Nothing here is a control
+    /// against code running as the user, which `CLAUDE.md` concedes.
     /// </remarks>
     internal static class StoredBinaries
     {
@@ -95,9 +101,9 @@ namespace KeePassGate.Bridge
         /// </summary>
         /// <param name="piece">
         /// Handed an array, an offset into it and a count. The array is KeePass's own buffer
-        /// for an attachment held in the open, and a copy that is overwritten once this
-        /// returns for a protected attachment: it is read where it is handed over, and neither
-        /// kept nor changed.
+        /// for an attachment held in the open and read in place, and otherwise a copy that is
+        /// overwritten once this is done with it: it is read where it is handed over, and
+        /// neither kept nor changed.
         /// </param>
         public static void Read(ProtectedBinary binary, Action<byte[], int, int> piece)
         {
@@ -119,40 +125,55 @@ namespace KeePassGate.Bridge
                 return;
             }
 
-            var layout = Kept.Value;
-            if (layout.Refusal != null)
+            var at = InPlace(binary, length, piece);
+            if (at < length)
             {
-                throw new AttachmentUnreadable(layout.Refusal);
+                Whole(binary, at, length, piece);
+            }
+        }
+
+        /// <summary>
+        /// Hands out as much of an attachment as can be read where KeePass keeps it, from its
+        /// start, and answers how many bytes that was: all of them, wherever KeePass and
+        /// Windows are as they were measured and the attachment stays kept as it was.
+        /// </summary>
+        private static int InPlace(ProtectedBinary binary, int length, Action<byte[], int, int> piece)
+        {
+            var layout = Kept.Value;
+            if (layout.Missing != null)
+            {
+                return 0;
             }
 
             var held = (byte[])layout.Data.GetValue(binary);
             if (held == null || held.Length < length)
             {
-                throw new AttachmentUnreadable("KeePass keeps an attachment in a buffer shorter than the attachment");
+                return 0;
             }
 
+            var at = 0;
             if (!binary.IsProtected)
             {
                 // Stepped by what was handed out, so that the offset ends at the length and
                 // never past it: stepped by a whole piece, it wrapped for an attachment within
                 // a piece of the most an array holds.
-                for (var at = 0; at < length;)
+                while (at < length)
                 {
                     var count = Math.Min(Piece, length - at);
                     piece(held, at, count);
                     at += count;
                 }
 
-                return;
+                return at;
             }
 
             var sync = layout.Sync.GetValue(binary);
             if (sync == null)
             {
-                throw new AttachmentUnreadable("KeePass keeps a protected attachment with no lock to read it under");
+                return 0;
             }
 
-            for (var at = 0; at < length;)
+            while (at < length)
             {
                 // The block ahead of the piece is decrypted with it and thrown away, since the
                 // first block of whatever is decrypted is the block the chaining gets wrong.
@@ -161,7 +182,8 @@ namespace KeePassGate.Bridge
                 var whole = ((count + Block - 1) / Block) * Block;
                 if ((long)at + whole > held.Length)
                 {
-                    throw new AttachmentUnreadable("KeePass keeps a protected attachment in a buffer that ends inside a block");
+                    // A buffer that ends inside a block is no buffer Windows protected.
+                    return at;
                 }
 
                 var copy = new byte[lead + whole];
@@ -172,11 +194,12 @@ namespace KeePassGate.Bridge
                     // could be of a buffer standing decrypted, or of half of each.
                     lock (sync)
                     {
-                        var kind = layout.Kind.GetValue(binary);
-                        if (!Equals(kind, layout.ByWindows))
+                        if (!Equals(layout.Kind.GetValue(binary), layout.ByWindows))
                         {
-                            throw new AttachmentUnreadable(
-                                "KeePass keeps this protected attachment as " + kind + ", which is not read a piece at a time");
+                            // Kept through another cipher, from the start or since the piece
+                            // ahead of this, which Windows' protection would make noise of
+                            // and report nothing.
+                            return at;
                         }
 
                         Buffer.BlockCopy(held, at - lead, copy, 0, copy.Length);
@@ -192,57 +215,35 @@ namespace KeePassGate.Bridge
 
                 at += count;
             }
+
+            return at;
         }
 
         /// <summary>
-        /// Refuses an attachment that <see cref="Read"/> would refuse, with nothing read.
+        /// Hands out what an attachment holds from an offset on, through KeePass's own read:
+        /// a copy of the whole attachment, in the pieces a read in place hands out, overwritten
+        /// whatever happens.
         /// </summary>
-        /// <remarks>
-        /// For a write, before the attachment it made is put on an entry: an attachment the
-        /// gate cannot read back would fail the tag of the change that stored it, once the
-        /// change was made, and every read of its entry after that. KeePass keeps what it is
-        /// handed through whatever cipher is set at that moment, so a write made while another
-        /// plugin's cipher stands makes such an attachment. And for every tag over an
-        /// attachment, `KdbxVault.Seen`, since how an attachment is kept can change after its
-        /// digest was kept.
-        /// </remarks>
-        public static void Check(ProtectedBinary binary)
+        private static void Whole(ProtectedBinary binary, int from, int length, Action<byte[], int, int> piece)
         {
-            if (binary == null)
+            var copy = binary.ReadData();
+            try
             {
-                throw new ArgumentNullException(nameof(binary));
-            }
-
-            if (binary.Length == 0)
-            {
-                return;
-            }
-
-            var layout = Kept.Value;
-            if (layout.Refusal != null)
-            {
-                throw new AttachmentUnreadable(layout.Refusal);
-            }
-
-            if (!binary.IsProtected)
-            {
-                return;
-            }
-
-            var sync = layout.Sync.GetValue(binary);
-            if (sync == null)
-            {
-                throw new AttachmentUnreadable("KeePass keeps a protected attachment with no lock to read it under");
-            }
-
-            lock (sync)
-            {
-                var kind = layout.Kind.GetValue(binary);
-                if (!Equals(kind, layout.ByWindows))
+                if (copy.Length != length)
                 {
-                    throw new AttachmentUnreadable(
-                        "KeePass keeps this protected attachment as " + kind + ", which is not read a piece at a time");
+                    throw new InvalidOperationException("KeePass read an attachment to another length than it holds");
                 }
+
+                for (var at = from; at < length;)
+                {
+                    var count = Math.Min(Piece, length - at);
+                    piece(copy, at, count);
+                    at += count;
+                }
+            }
+            finally
+            {
+                Array.Clear(copy, 0, copy.Length);
             }
         }
 
@@ -271,28 +272,28 @@ namespace KeePassGate.Bridge
         }
 
         /// <summary>
-        /// Why nothing can be read here, or null where everything this reads of KeePass and of
-        /// Windows is as it was measured.
+        /// Why no attachment is read where KeePass keeps it, or null where everything the read
+        /// in place rests on in KeePass and in Windows is as it was measured.
         /// </summary>
         /// <remarks>
         /// Asked as the plugin loads, `KeePassGateExt`, which logs what it is answered, so
-        /// that a KeePass or a Windows no attachment can be read on is in the log before any
-        /// client meets it, and by the test that pins it.
+        /// that a KeePass or a Windows on which every read of an attachment copies the whole
+        /// attachment is in the log, and by the test that pins it.
         /// </remarks>
-        public static string Refusal
+        public static string WhyNotInPlace
         {
-            get { return Kept.Value.Refusal; }
+            get { return Kept.Value.Missing; }
         }
 
         /// <summary>
-        /// What this reads of a `ProtectedBinary`, found once, with why it cannot be read where
-        /// anything is missing.
+        /// What this reads of a `ProtectedBinary`, found once, with what is missing where
+        /// nothing can be read in place.
         /// </summary>
         private sealed class Layout
         {
-            private Layout(string refusal)
+            private Layout(string missing)
             {
-                Refusal = refusal;
+                Missing = missing;
             }
 
             private Layout(FieldInfo data, FieldInfo sync, FieldInfo kind, object byWindows)
@@ -303,7 +304,7 @@ namespace KeePassGate.Bridge
                 ByWindows = byWindows;
             }
 
-            public string Refusal { get; private set; }
+            public string Missing { get; private set; }
 
             /// <summary>The buffer, `m_pbData`.</summary>
             public FieldInfo Data { get; private set; }
@@ -330,7 +331,7 @@ namespace KeePassGate.Bridge
                     || kind == null || !kind.FieldType.IsEnum
                     || !Enum.IsDefined(kind.FieldType, "ProtectedMemory"))
                 {
-                    return new Layout("this KeePass keeps an attachment otherwise than the gate reads it");
+                    return new Layout("this KeePass keeps an attachment otherwise than the gate reads it in place");
                 }
 
                 if (!Chains())
@@ -395,7 +396,7 @@ namespace KeePassGate.Bridge
                 catch (CryptographicException)
                 {
                     // Windows refused to protect or to unprotect the buffer, which is no way to
-                    // read a protected attachment either.
+                    // read a piece of a protected attachment either.
                     return false;
                 }
                 catch (NotSupportedException)
