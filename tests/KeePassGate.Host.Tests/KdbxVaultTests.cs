@@ -397,25 +397,51 @@ namespace KeePassGate.Host.Tests
         }
 
         [Test]
-        public void An_attachment_larger_than_the_gate_serves_comes_back_measured_and_not_read()
+        public void An_attachment_of_any_size_is_measured_read_and_digested_as_KeePass_holds_it(
+            [Values(true, false)] bool isProtected,
+            [Values(
+                0,
+                1,
+                KeePassGate.Pipeline.VaultHandlers.MaxAttachmentBytes,
+                KeePassGate.Pipeline.VaultHandlers.MaxAttachmentBytes + 1,
+                3 * 1024 * 1024)] int size)
         {
-            // KeePass keeps an attachment's length beside its encrypted bytes, so the size is
-            // answered without the plaintext, which is the copy a refusal for size is there to
-            // avoid, and in the same read, so nothing can replace it in between. Planted as
-            // KeePass would hold them, at the ceiling and a byte over it.
+            // A view measured an attachment larger than a write takes and neither read nor
+            // digested it, since no route served it. A read is held to no size now, so an
+            // attachment planted as KeePass holds a file attached in its own dialog, in the
+            // open, or as the gate's own writes are held, protected, is in the view at any size:
+            // measured from the length KeePass keeps beside the bytes, read whole a piece at a
+            // time, by every asking, and digested.
             var uuid = Created(_vault.CreateEntry(_vault.RootAlias, Named("an invented service")));
-            var entry = Kept(uuid);
-            entry.Binaries.Set("big.bin", new ProtectedBinary(true, new byte[VaultViewAttachment.MostServed + 1]));
-            entry.Binaries.Set("largest.bin", new ProtectedBinary(true, new byte[VaultViewAttachment.MostServed]));
+            var bytes = new byte[size];
+            new Random(size + 1).NextBytes(bytes);
+            Kept(uuid).Binaries.Set("big.bin", new ProtectedBinary(isProtected, bytes));
 
-            var read = _vault.Whole(uuid);
-            var measured = read.Attachment("big.bin");
+            var read = _vault.Whole(uuid).Attachment("big.bin");
 
-            Assert.That(measured.Size, Is.EqualTo(VaultViewAttachment.MostServed + 1));
-            Assert.That(measured.Content, Is.Null);
-            Assert.That(measured.Digest, Is.Null, "and bytes no route serves are not digested for a tag either");
-            Assert.That(read.Attachment("largest.bin").Content, Has.Length.EqualTo(VaultViewAttachment.MostServed),
-                "and an attachment no larger than that is read");
+            Assert.That(read.Size, Is.EqualTo(size));
+            Assert.That(read.IsWithheld, Is.False);
+
+            var pieces = new List<int>();
+            read.Read((held, offset, count) => pieces.Add(count));
+            Assert.That(pieces.Sum(), Is.EqualTo(size));
+            Assert.That(pieces, Has.All.LessThanOrEqualTo(StoredBinaries.Piece), "a piece at a time");
+
+            Assert.That(read.Bytes().SequenceEqual(bytes), Is.True, "the bytes came back other than they are stored");
+            Assert.That(read.Bytes().SequenceEqual(bytes), Is.True, "and again by the asking after");
+
+            using (var sha256 = System.Security.Cryptography.SHA256.Create())
+            {
+                Assert.That(read.Digest, Is.EqualTo(sha256.ComputeHash(bytes)), "digested whole, whatever its size");
+            }
+
+            // And a view that lists attachments and does not read them holds the size and no
+            // way to the bytes.
+            var listed = _vault.View(uuid, found => new VaultSight(true, true, VaultAttachmentSight.Listed))
+                .Attachment("big.bin");
+            Assert.That(listed.Size, Is.EqualTo(size));
+            Assert.That(listed.Bytes(), Is.Empty);
+            Assert.That(listed.Digest, Is.Null);
         }
 
         [Test]
@@ -1703,15 +1729,12 @@ namespace KeePassGate.Host.Tests
             return write.Uuid;
         }
 
-        /// <summary>
-        /// What an attachment holds, or null when it is not there or is larger than the gate
-        /// serves.
-        /// </summary>
+        /// <summary>What an attachment holds, or null when it is not there.</summary>
         private byte[] Stored(string uuid, string name)
         {
             var view = _vault.Whole(uuid);
             var read = view == null ? null : view.Attachment(name);
-            return read == null ? null : read.Content;
+            return read == null ? null : read.Bytes();
         }
     }
 }

@@ -57,15 +57,18 @@ LOOPBACK = "127.0.0.1"
 
 #: How much of an answer a client reads before giving up on it unless it is told otherwise, which
 #: `max_response_bytes` does, so that no answer can make this client hold as much memory as it
-#: likes. An attachment is not what decides it: the gate hands out at most 512 KiB of one
-#: (`VaultHandlers.MaxAttachmentBytes`), under 700 KiB once it is base64 inside a JSON answer. What
-#: can outgrow it is an answer that grows with what a database holds: a listing of groups or of
-#: entries, served whole however large the database (`API.md` §407), and the read of an entry
-#: or of a single field and the listing of an entry's fields, held to no size (`API.md` §412),
-#: since a write through the gate is held to 65536 characters in a value and to no number of
-#: values, and KeePass itself to neither. An answer that outgrows it fails whole rather than
-#: being truncated. So a caller whose database is large enough gets a setting to raise rather
-#: than a number to patch.
+#: likes. What can outgrow it is an answer that grows with what a database holds: a listing of
+#: groups or of entries, served whole however large the database (`API.md` §407), and the read of
+#: an entry or of a single field and the listing of an entry's fields, held to no size (`API.md`
+#: §412), since a write through the gate is held to 65536 characters in a value and to no number
+#: of values, and KeePass itself to neither. The read of an attachment can outgrow it as well: the
+#: gate hands out an attachment at any size (`API.md` §412), a write through it takes at most
+#: 512 KiB of an attachment (`VaultHandlers.MaxAttachmentBytes`) and KeePass itself is held to no
+#: such size, and an attachment arrives as base64 inside a JSON answer, four thirds of its size,
+#: so an attachment of 3 MiB or more is past the default. An answer that outgrows it fails whole
+#: rather than being truncated, and this client holds a whole answer in memory, an attachment's
+#: included. So a caller whose database is large enough gets a setting to raise rather than a
+#: number to patch.
 MAX_RESPONSE_BYTES = 4 * 1024 * 1024
 
 #: What marks the certificate a locked database answers with, and the whole of what tells one
@@ -1364,7 +1367,8 @@ def _parse(raw: bytes) -> Response:
     blank line under either: the bytes as they stand, or what the chunks hold, joined in order
     by the walker `_read_all` found the end of the answer with. The gate writes an answer that
     grows with what the database holds in chunks, as it is sent: each listing, and a read of an
-    entry or of a single field. Every other answer goes out under a length.
+    entry, of a single field or of a single attachment. Every other answer goes out under a
+    length.
 
     **The framing is read rather than assumed.** Believing the close instead makes a truncated
     answer indistinguishable from a complete answer, and an answer whose body never arrived

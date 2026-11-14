@@ -104,14 +104,16 @@ namespace KeePassGate.Tests
             // Reading a value, digesting it, reading or digesting an attachment and taking the
             // tag each grow with the entry, and no write is refused for an entry's size. The
             // hold is KeePass's own thread standing still, so the view is taken inside it and
-            // asked for all of those once it has ended, a value last of all, as the answer is
-            // written.
+            // asked for all of those once it has ended, a value or an attachment's bytes last of
+            // all, as the answer is written.
             var served = path == "/entries/{entry}" || path.EndsWith("/fields/Title", StringComparison.Ordinal);
+            var attached = path.EndsWith("/attachments/notes.txt", StringComparison.Ordinal);
 
             foreach (var method in new[] { "GET", "HEAD" })
             {
                 var tags = _vault.TagsTaken;
                 var reads = _vault.StringReads;
+                var pieces = _vault.AttachmentReads;
 
                 var context = Asked(method, path);
 
@@ -123,6 +125,10 @@ namespace KeePassGate.Tests
                     _vault.StringReads > reads,
                     Is.EqualTo(served && method == "GET"),
                     method + " " + path + ": a value is read where an answer writes it, and nowhere else");
+                Assert.That(
+                    _vault.AttachmentReads > pieces,
+                    Is.EqualTo(attached && method == "GET"),
+                    method + " " + path + ": an attachment is read where an answer writes it, and nowhere else");
             }
         }
 

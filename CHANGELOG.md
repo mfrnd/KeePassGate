@@ -11,39 +11,63 @@ none, since it releases both.
 
 ## 0.2.0, unreleased
 
-- **An answer that grows with what the database holds is written as it is sent and never refused
-  for its size, and no write is refused for an entry's size.** Each listing goes out with
+- **An answer that grows with what the database holds is written as it is sent and never refused for
+  its size, and no write is refused for an entry's size.** Each listing goes out with
   `Transfer-Encoding: chunked` and no `Content-Length`, and so does a read of an entry or of a
   single field, `readEntry` and `readField`. Reading an entry built an answer of every string it
   held, at several times their size in memory inside KeePass, measured at 99 MB alive at once for
-  two hundred protected fields of 65536 characters. Each value is now read as it is written, so
-  what a read keeps alive is the value it is writing, whatever the entry holds. The listings of
-  groups and of entries, which grow with the database, are written the same way: measured over
+  two hundred protected fields of 65536 characters. Each value is now read as it is written, so what
+  a read keeps alive is a piece of the value it is writing, whatever the entry holds. The listings
+  of groups and of entries, which grow with the database, are written the same way: measured over
   invented entries, a listing of ten thousand kept 11 MB alive beside them while it went out, and
-  keeps 0.03 MB. So are `listFields` and `listAttachments`, and the listing of an entry's fields
-  is a single answer holding every name. An answer of a bounded size carries a `Content-Length`
-  as before: a single group, an attachment, a change, a refusal, and the routes about the gate
-  and the caller. A request with `Transfer-Encoding` is still refused. No read of an entry or of
-  a field is refused for its size, and an attachment's bytes keep their ceiling and their `413`.
-  No write is refused for an entry's size, because a refusal that moves with what an entry's
-  strings come to tells a client that may write and not read how long the values it is withheld
-  are. So nothing bounds what a client holding `update` or `create` adds to an entry beyond what
-  a request carries, and how much of an answer a client reads is the client's own setting:
-  PyKeePassGate's `max_response_bytes`, 4 MiB unless raised. A client has to read a chunked
-  answer. PyKeePassGate reads either framing, and raises `TransportError` for an answer cut short
-  of its last chunk or of its length. The stand-in gate, `pykeepassgate.testing.FakeGate`, frames
-  those answers in chunks as the plugin does. A 0.1 client does not read a chunked answer, and
-  raises `ProtocolError` for every such answer of a 0.2 gate, `API.md` §411. `API.md` §412.
+  keeps 0.03 MB. So are `listFields` and `listAttachments`, and the listing of an entry's fields is
+  a single answer holding every name. An answer of a bounded size carries a `Content-Length` as
+  before: a single group, a change, a refusal, and the routes about the gate and the caller. A
+  request with `Transfer-Encoding` is still refused. No read of an entry or of a field is refused
+  for its size. No write is refused for an entry's size, because a refusal that moves with what an
+  entry's strings come to tells a client that may write and not read how long the values it is
+  withheld are. So nothing bounds what a client holding `update` or `create` adds to an entry beyond
+  what a request carries, and how much of an answer a client reads is the client's own setting:
+  PyKeePassGate's `max_response_bytes`, 4 MiB unless raised. A client has to read a chunked answer.
+  PyKeePassGate reads either framing, and raises `TransportError` for an answer cut short of its
+  last chunk or of its length. The stand-in gate, `pykeepassgate.testing.FakeGate`, frames those
+  answers in chunks as the plugin does. A 0.1 client does not read a chunked answer, and raises
+  `ProtocolError` for every such answer of a 0.2 gate, `API.md` §411. `API.md` §412.
+- **An attachment is read at any size, and a write still takes 512 KiB.** A read of an attachment
+  over 512 KiB was refused with `413`, since its answer was built whole and kept about eight times
+  the attachment alive at once, so a file attached in KeePass could not be fetched through the gate.
+  `readAttachment` is now written as it is sent, and the attachment is read a piece at a time from
+  where KeePass keeps it in memory, with no copy of the whole: the answer for 64 MiB was written in
+  about a tenth of a second with a tenth of a megabyte alive, against a quarter of a second and 491
+  MB, each measured into a stream that keeps none of it, with no TLS under it and no tag taken. An
+  entry's tag covers every attachment its client may read, at any size. A write takes at most 512
+  KiB as before, since it arrives in a request's body. A protected attachment that KeePass keeps
+  through a cipher another KeePass plugin put in place of Windows' memory protection is read through
+  KeePass's own read, a copy of the whole attachment for as long as the read takes, and so is every
+  attachment on a KeePass that keeps an attachment otherwise and every protected attachment on a
+  Windows the read in place does not fit, which the plugin checks as it loads and logs as a warning.
+  PyKeePassGate holds a whole answer under `max_response_bytes`, so an attachment over about 3 MiB
+  needs it raised, and its stand-in gate frames an attachment as the plugin does. `API.md` §412.
+- **A field's value is read and written a piece at a time, as an attachment is.** A read of a
+  protected value decrypted a copy of the whole value and decoded it into a string, so a long
+  protected value was alive as text for as long as its answer was sent, and its bytes beside
+  that while it was decoded. It is now decrypted, decoded and written 16 KiB at a time from
+  where KeePass keeps its bytes: a protected value of 64 MiB was read with 0.2 MB alive,
+  against 128 MB, in the time it took. A value KeePass keeps as text is handed over as that
+  text and escaped a step at a time, where a long value with nothing to escape ahead of a line
+  break was copied whole to be written. The answer and every `ETag` are what they were. On a
+  KeePass or a Windows where that cannot be done, the plugin reads through KeePass's own read,
+  a copy of the whole value, and logs a warning as it loads. `DESIGN.md` §145.
 - **A protected value read or written through the gate stays encrypted in KeePass's memory.**
-  KeePass keeps a protected value encrypted in memory until something reads it as text, and
-  from then on keeps the text. The gate read every value that way, and an entry's `ETag` reads
-  every value its client may read, so a listing of an entry's fields left every protected value
-  of the entry in the open in KeePass's memory until the database was locked, and a protected
-  value written through the gate was in the open from the start. A protected value is now read
-  as a copy that is overwritten once it has been digested or served, and written so that
-  KeePass encrypts it at once, and a protected title or address is read only by a listing that
-  shows it. A value a client is served is still in the plugin's memory, as text that cannot be
-  overwritten, until that memory is reused.
+  KeePass keeps a protected value encrypted in memory until something reads it as text, and from
+  then on keeps the text. The gate read every value that way, and an entry's `ETag` reads every
+  value its client may read, so a listing of an entry's fields left every protected value of the
+  entry in the open in KeePass's memory until the database was locked, and a protected value written
+  through the gate was in the open from the start. A protected value is now read from the encrypted
+  bytes KeePass keeps for it, with every copy of those bytes overwritten once it has been digested
+  or decoded, and written so that KeePass encrypts it at once, and a protected title or address is
+  read only by a listing that shows it. A value a client is served is still in the plugin's memory,
+  as text that cannot be overwritten, until that memory is reused.
 - **Every client holding `read` is handed an entry's `ETag`, taken over what that client may
   read.** A tag covered the whole entry and went only to a client whose one rule read all of it,
   attachments and protected values included, so a rule without `protected` was handed no tag for
@@ -967,10 +991,6 @@ none, since it releases both.
 - **A change to an entry that reached the disk is never answered `503 busy`.** Its answer reads the
   entry again to confirm the tag it hands back, and a read that could not hold KeePass's thread was
   answered `busy`, so a client retried a change already made. It is answered without the tag.
-- **A read too large to serve is `413` whatever its `If-Match`**, for an attachment, an entry and a
-  field alike, as RFC 9110 section 13.2.1 orders it and the routing document already stated. The
-  condition was asked first, so a stale tag was told `412`, and a client handed no tag was told
-  `412` every time and never that the read was too large.
 - **A new field or attachment name holding a Unicode format character is `400 malformed`**, the
   zero-width spaces and joiners, the soft hyphen and the byte order mark among them, beside the
   bidirectional controls already refused. A name holding such a character is drawn as the name

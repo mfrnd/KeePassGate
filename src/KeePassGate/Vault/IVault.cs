@@ -134,12 +134,11 @@ namespace KeePassGate.Vault
         ///
         /// **Nothing is read to take it, and no value is handed anywhere until the view is
         /// asked for it**, as <see cref="VaultEntryView"/> describes. KeePass keeps an
-        /// attachment's size beside its encrypted bytes, so an attachment over its ceiling is
-        /// measured from the view and refused with nothing decrypted. A string has no
-        /// ceiling and is never measured: its value is read as the answer is written, and a
-        /// withheld value is never read. An attachment asked for in a
-        /// second read, after a listing, could be replaced in between and decrypted whole, at
-        /// whatever size it had become, before anything could refuse it.
+        /// attachment's size beside its stored bytes, so the size is answered from the view
+        /// with nothing decrypted. No read is refused for the size of a string or of an
+        /// attachment, `API.md` §412, and neither is measured for a refusal: a string's value
+        /// is read as the answer is written, an attachment's bytes are read a piece at a time
+        /// as the answer is written, and a withheld value is never read.
         /// </remarks>
         VaultEntryView View(string uuid, Func<VaultFound, VaultSight> sight);
 

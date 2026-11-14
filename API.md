@@ -247,8 +247,8 @@ touch it; and a plugin that never calls `Touch` moves nothing. A digest of what 
 misses none of those, for whatever its caller may read. What it covers is what the routes serve
 that caller, as they serve them: the times to the
 second, which is all a file keeps of them, the strings as a read decodes them, and an attachment's
-bytes up to the largest the gate hands out, above which its size stands for it, since no client can
-read or write those bytes through the gate.
+bytes at any size, since a read hands an attachment out whatever its size, §412. An attachment's
+size stood for its bytes above the largest the gate handed out, while a read was held to that.
 
 **It is an HMAC under a key derived from the database's host certificate**, as the database stores
 it, which no client holds: the gate key would have been the obvious choice and every paired client
@@ -308,19 +308,21 @@ answering the condition first would go against RFC 9110 section 13.2.1, which ha
 condition on a request that would be refused without it. The same is conceded to `create`, whose
 `409` tells a client that may add and not list that a name is taken.
 
-## A read of an entry is written as it is sent §412
+## A read is written as it is sent §412
 
 **No read of an entry or of a field is refused for its size.** The answer to `readEntry` and to
-`readField` is written as it is sent: each value is read where it is written into the answer,
-the answer goes out in chunks, `Transfer-Encoding: chunked`, and nothing of it is kept. So what
-such a read keeps alive inside KeePass is the value it is writing and a chunk of the answer,
-whatever the entry holds. Everything that can refuse comes before the first byte, in the order
-a read's refusals had already, `404` and then `412`, and the audit line for a withheld value
-with them. A failure once the status has gone out cannot be answered: the connection is closed
-with the last chunk never sent, so a client takes an answer for whole only when its last chunk
-arrived. A `HEAD` of either runs none of it, so no value is read for its answer. It carries the
-tag, which is taken first, and the first tag taken over a value reads that value, as below.
-`DESIGN.md` §143 has the transport's half.
+`readField` is written as it is sent: each value is read where it is written into the answer, the
+answer goes out in chunks, `Transfer-Encoding: chunked`, and nothing of it is kept. So what such a
+read keeps alive inside KeePass is a piece of the value it is writing and a chunk of the answer,
+whatever the entry holds: a protected value is decrypted, decoded and written a piece at a time from
+where KeePass keeps it, as an attachment is, and a value held in the open is written from the string
+KeePass keeps, `DESIGN.md` §145. Everything that can refuse comes before the first byte, in the
+order a read's refusals had already, `404` and then `412`, and the audit line for a withheld value
+with them. A failure once the status has gone out cannot be answered: the connection is closed with
+the last chunk never sent, so a client takes an answer for whole only when its last chunk arrived. A
+`HEAD` of either runs none of it, so no value is read for its answer. It carries the tag, which is
+taken first, and the first tag taken over a value reads that value, as below. `DESIGN.md` §143 has
+the transport's half.
 
 **This reverses a ceiling on reads**, the operator's ruling of 2026-11-14. An answer was built
 whole, at several times the entry's strings in memory inside KeePass, 99 MB alive at once for
@@ -329,8 +331,8 @@ names and values,
 counted over what its caller would be handed, and answered `413` past that, the ruling of
 2026-11-10. An entry past the ceiling was read a field at a time, which took `list` beside
 `read`, and a single value past it could not be read through the gate at all. `FINDINGS.md`
-has both forms measured: the two hundred fields are 38 MB of short-lived copies where they are
-protected and nothing where they are not, a value at a time, and a quarter less time.
+has both forms measured: the two hundred fields are about a hundred megabytes of short-lived
+pieces, with a tenth of a megabyte alive at once, and a quarter less time.
 
 **How much of an answer a client holds is the client's to decide.** The gate hands out an entry
 of any size, so the bound on what a client reads is its own: PyKeePassGate reads at most
@@ -346,8 +348,30 @@ strings. Handed over whole it was served in parts of 524288 characters, by a `fr
 `next`, each part a request of its own decided at its own moment, and before that it was
 refused past that size, which left an entry with no route naming its strings. Neither form
 was released. `listAttachments` is written as it is sent for the same reason: names and sizes,
-of as many attachments as writes gave the entry. An attachment's own bytes keep their ceiling
-and their `413`, since what can be read out is held to what can be put back.
+of as many attachments as writes gave the entry.
+
+**An attachment is read at any size, and written at up to 512 KiB.** `readAttachment` is
+written as it is sent as well, and what it sends is read a piece at a time from where KeePass
+keeps the attachment, `DESIGN.md` §144, so a read keeps a piece of the attachment alive and
+none is refused for size. A write is held to 524288 bytes, since it arrives as base64 in a
+request's body. **This reverses a ceiling held alike on reads and writes**, "what the gate hands
+out it can also be given back", the operator's ruling of 2026-11-14: a file attached in KeePass
+is to be readable through the gate whatever its size, and what cannot be written through the
+gate is written in KeePass. A read past the ceiling was `413`, since an answer built whole kept
+about eight times the attachment alive at once. A tag covers the bytes of every attachment its
+caller may read, at any size, where it covered them up to the ceiling.
+
+**An attachment KeePass keeps another way is read through KeePass's own read, and none is
+refused.** The gate reads a protected attachment in place only from the memory KeePass has
+Windows protect, and another KeePass plugin can put a cipher of its own in place of that
+protection, `ProtectedBinary.ExtCrypt`. A protected attachment KeePass keeps through such a
+cipher, at that moment, is read through KeePass: a copy of the whole attachment for as long as
+the read takes, at any size, with the answer and its tag what they are for any attachment.
+**This reverses `500 unreadable`**, which answered every request that took a tag over such an
+attachment and every write of an attachment while such a cipher stood, under a ruling of
+2026-11-14 that the operator reversed the same day: a field and an attachment are read alike,
+and a field was read through KeePass whatever kept it, and is read as an attachment is since,
+`DESIGN.md` §145. It was never released. `DESIGN.md` §144.
 
 **No write is refused for what an entry's strings come to, which reverses a ceiling held in both
 directions**, the operator's ruling of 2026-11-10. A create, an update or a new field that would
@@ -367,7 +391,7 @@ can add to an entry beyond what a request may carry, 65536 characters in a value
 body, so how large an entry and the file around it grow is that client's to decide, a request
 at a time. And a read of such an entry costs what the entry holds, in time and in short-lived
 memory, on its own connection's thread: for fifty protected strings of a million characters,
-about a quarter of a second and 143 MB of copies made and let go for the writing alone,
+about a quarter of a second and 401 MB of pieces made and let go for the writing alone,
 beside the tag taken before it and the TLS under it, for as long as its peer takes to read it
 within the budget a connection is given to have its answer read. A client holding
 `read` on an entry it or another client can grow can keep a connection's thread that busy, on
@@ -376,19 +400,20 @@ its own cap and does not go on to read field by field: which strings to fetch of
 large for it is its caller's decision.
 
 **A tag is still taken over the whole of a caller's view, however large, and it reads each value
-once.** Every answer that hands a tag out, a listing
-of the fields and a read of a short field among them, and every write under `If-Match` or answered
-with an `etag`, covers every value in its caller's sight. A value enters a tag by its digest, and
-the digest is taken once for as long as KeePass keeps the object the value is held in, as an
-attachment's is: KeePass replaces that object when the value changes and never changes it in
-place. So the first tag anybody is handed over a value reads it, and every tag after it costs by how
-many strings the entry holds and not by how long they are. Measured on an entry of fifty protected
-strings of a million characters each: the first tagged read takes about sixty to ninety milliseconds
-and 48 MB on its own connection's thread, a copy of each protected value digested and overwritten,
-so that KeePass goes on protecting the value in memory, `DESIGN.md` §136, and every tagged read
-after it a quarter of a millisecond. A read takes its tag once the hold of KeePass's thread has
-ended, `DESIGN.md` §119, and a write inside its own turn on that thread, where the comparison and
-the change are one step. `FINDINGS.md` has the numbers. No ceiling was added for it.
+once.** Every answer that hands a tag out, a listing of the fields and a read of a short field among
+them, and every write under `If-Match` or answered with an `etag`, covers every value in its
+caller's sight. A value enters a tag by its digest, and the digest is taken once for as long as
+KeePass keeps the object the value is held in, as an attachment's is: KeePass replaces that object
+when the value changes and never changes it in place. So the first tag anybody is handed over a
+value reads it, and every tag after it costs by how many strings the entry holds and not by how long
+they are. Measured on an entry of fifty protected strings of a million characters each: the first
+tagged read takes about sixty to ninety milliseconds and 48 MB on its own connection's thread,
+measured while a copy of each protected value was digested and overwritten, where each is digested a
+piece at a time since, `DESIGN.md` §145, so that KeePass goes on protecting the value in memory,
+`DESIGN.md` §136, and every tagged read after it a quarter of a millisecond. A read takes its tag
+once the hold of KeePass's thread has ended, `DESIGN.md` §119, and a write inside its own turn on
+that thread, where the comparison and the change are one step. `FINDINGS.md` has the numbers. No
+ceiling was added for it.
 
 ## Durability §408
 
@@ -432,4 +457,4 @@ had no users, so the operator ruled on 2026-11-08 that the changes of 0.2 that b
 0.2, and that the consequence above holds from 0.2.0 on. A 0.1 client checks no version and
 reads an answer under a `Content-Length` and nothing else, so against a 0.2 gate it raises
 `ProtocolError` for every answer written as it is sent, §412: each listing and each read of an
-entry or of a field.
+entry, of a field or of an attachment.

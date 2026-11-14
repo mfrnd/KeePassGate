@@ -266,16 +266,16 @@ namespace KeePassGate.Bridge
                     // As stored, and never compiled: KeePass resolves a reference against the
                     // whole open database, which knows nothing about the rules this answer was
                     // allowed by. Read so that a value KeePass protects in memory is still
-                    // protected there once it has been read, `StoredStrings`: the view decodes
-                    // a copy for a value it serves, and hands the tag the digest kept against
-                    // the string.
+                    // protected there once it has been read, a piece at a time from where
+                    // KeePass keeps it, `StoredStrings`: the view hands out the pieces of a
+                    // value it serves, and hands the tag the digest kept against the string.
                     var held = pair.Value;
                     var name = pair.Key;
                     made.Add(new VaultViewField(
                         name,
                         held.IsProtected || protection.Protects(name),
                         sight,
-                        () => StoredStrings.Read(held),
+                        piece => StoredStrings.Read(held, piece),
                         Listed(name),
                         () => NodeTags.DigestOf(held)));
                 }
@@ -294,10 +294,15 @@ namespace KeePassGate.Bridge
                     {
                         // `Length` is kept beside the encrypted bytes, so asking it decrypts
                         // nothing. The attachment keeps what reads its bytes only for a sight
-                        // that reads attachments.
+                        // that reads attachments, and they are read a piece at a time from
+                        // where KeePass keeps them, `StoredBinaries`.
                         var binary = pair.Value;
                         made.Add(new VaultViewAttachment(
-                            pair.Key, (int)binary.Length, sight, binary.ReadData, () => NodeTags.DigestOf(binary)));
+                            pair.Key,
+                            checked((int)binary.Length),
+                            sight,
+                            piece => StoredBinaries.Read(binary, piece),
+                            () => NodeTags.DigestOf(binary)));
                     }
 
                     return made;

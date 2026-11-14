@@ -715,6 +715,58 @@ def test_attachments_are_listed_read_added_changed_and_removed(
     assert gate.requests[-1] == ("DELETE", f"/entries/{UUID}/attachments/notes.txt")
 
 
+def attached(gate: FakeGate, name: str, content: bytes) -> None:
+    """Answer every request with an attachment of this name holding these bytes."""
+    encoded = base64.b64encode(content).decode("ascii")
+    answering(gate, {"name": name, "size": len(content), "content": encoded})
+
+
+def test_an_attachment_larger_than_a_write_takes_is_read_whole(
+    gate: FakeGate, paired: GateClient
+) -> None:
+    # The gate hands out an attachment at any size, written in chunks as it is sent, where a
+    # write takes at most 512 KiB: 2 MiB here, as a file attached in KeePass can be. Base64 makes
+    # the answer four thirds of that, which is under the 4 MiB a client reads unless told
+    # otherwise, so nothing has to be raised.
+    content = bytes(range(256)) * 8192
+    attached(gate, "disk.img", content)
+
+    read = paired.attachment(UUID, "disk.img")
+
+    assert len(content) == 2 * 1024 * 1024
+    assert (read.name, read.size) == ("disk.img", len(content))
+    assert read.content == content
+    assert gate.requests == [("GET", f"/entries/{UUID}/attachments/disk.img")]
+
+
+def test_an_attachment_whose_answer_is_over_the_cap_fails_whole_and_names_the_setting(
+    gate: FakeGate, paired: GateClient
+) -> None:
+    # 3 MiB is 4 MiB as base64, so its answer is past the 4 MiB a client reads unless told
+    # otherwise. The gate refuses no read for its size, so the cap is what a caller meets, and
+    # the message names what raises it: no bytes of half an attachment are handed over.
+    content = bytes(range(256)) * 12288
+    attached(gate, "disk.img", content)
+
+    with pytest.raises(ProtocolError, match=r"over 4194304 bytes.*max_response_bytes"):
+        paired.attachment(UUID, "disk.img")
+
+
+def test_a_cap_raised_past_an_attachment_reads_it_whole(
+    gate: FakeGate, paired: GateClient
+) -> None:
+    content = bytes(range(256)) * 12288
+    attached(gate, "disk.img", content)
+    raised = GateClient(
+        paired.credentials, connection_timeout=10.0, max_response_bytes=8 * 1024 * 1024
+    )
+
+    read = raised.attachment(UUID, "disk.img")
+
+    assert len(content) == 3 * 1024 * 1024
+    assert read.content == content
+
+
 def test_a_moment_the_gate_did_not_write_is_absent_rather_than_wrong(
     gate: FakeGate, paired: GateClient
 ) -> None:

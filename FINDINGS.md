@@ -1,5 +1,8 @@
 # Findings
 
+<!-- A method of KeePass's own, named the way KeePass names it. -->
+<!-- cspell:ignore Xorred -->
+
 What was established by building things, kept after the proofs themselves left the mainline for
 branches of their own. Everything here was measured or executed rather than reasoned about, and each
 entry states how, so that a doubtful reader can redo it rather than trust it.
@@ -473,7 +476,7 @@ that a read is measured over what its caller is handed: the view a read was
 measured by held no length for a value it withholds, both writes are now made and answered
 alike, and the withheld field is the `null` every withheld value is. No read of an entry or of
 a field is held to a size since 2026-11-14, `API.md` §412, and a view holds no length of any
-string's value; an attachment's bytes keep their ceiling and their `413`.
+string's value. A read of an attachment is held to no size since the same day.
 
 **An answer built whole is alive several times over while it is written, and an answer written
 as it is sent is alive a value at a time.** Built whole, an answer made of an entry's values is
@@ -493,13 +496,15 @@ nothing else:
 | 50 held in the open, of a million | 56.6 MB | 277 to 297 ms, 284 MB, 284 MB alive | 200 to 208 ms, nothing |
 
 Alive at once as it is sent, collected and counted after each value, came to under a tenth of a
-megabyte in every row: the chunk being gathered and the writers' own buffers. Beside that stands
-the value being written, two bytes a character, and for a protected value the bytes it was
-decrypted to while they are decoded, and nothing that grows with how many values an entry
-holds. A value held in the open is the string KeePass already keeps, so writing it allocates
-nothing. A protected value is decrypted and decoded to be written, which is the 1.5, 38 and
-143 MB, each of it short-lived. Written as it is sent an answer also takes a quarter to a third
-less time, since nothing is copied into a document, out of it again and into bytes.
+megabyte in every row: the chunk being gathered and the writers' own buffers. Beside that stood the
+value being written, two bytes a character, and for a protected value the bytes it was decrypted to
+while they were decoded, and nothing that grows with how many values an entry holds. That is the
+form measured here, in which a value was read whole: a value held in the open was the string KeePass
+already keeps, so writing it allocated nothing, and a protected value was decrypted and decoded to
+be written, which is the 1.5, 38 and 143 MB, each of it short-lived. A value is read and written a
+piece at a time since, and the same rows are measured in that form below. Written as it is sent an
+answer also takes a quarter to a third less time, since nothing is copied into a document, out of it
+again and into bytes.
 
 **Counting the length first, to keep `Content-Length`, was measured and refused.** The same
 answer written twice over, into a stream that only counts and then into the connection, keeps
@@ -518,6 +523,93 @@ and as it is sent, 5.6 to 6.3 ms with 0.03 MB. A hundred thousand are 21.8 MB: 1
 with 109 MB alive, against 58 to 59 ms with 0.03 MB. So the listings of groups and of entries
 are written as they are sent too, and what a listing keeps alive is the descriptions taken
 inside its hold.
+
+**KeePass hands an attachment out whole or not at all, and keeps it where a piece of it can be
+read.** Read off KeePass 2.61.1 and driven on the development machine. `ProtectedBinary` is sealed,
+and `ReadData` and `ReadXorredData`, each a copy of everything, are its only ways out. An attachment
+held in the open keeps its content as it is in the private buffer `m_pbData`, padded to sixteen
+bytes, and never changes it. A protected attachment is kept there encrypted in place by Windows'
+protection of process memory, `ProtectedMemory`, and `ReadData` decrypts the whole buffer where it
+stands, under the lock `m_objSync`, copies it and encrypts it again, after which the buffer holds
+the same bytes as before. A copy of a piece of that buffer, decrypted on its own with the same call,
+is right in every block but its first, and right throughout when the sixteen bytes ahead of the
+piece are decrypted with it: tried for pieces of 1, 4 and 4096 blocks at the start, the middle and
+the end of a megabyte. Windows documents nothing of that, so the plugin checks it again as it loads,
+on a buffer of its own, and logs a warning where it fails, `StoredBinaries.WhyNoProtectedInPlace`,
+after which every protected attachment is read through `ReadData`. `ReadData` encrypts through
+whatever cipher stands when it runs, so an attachment read by KeePass while another plugin's cipher
+is set, `ProtectedBinary.ExtCrypt`, is kept through that cipher from then on, and through Windows'
+again once KeePass has read it with the cipher gone. KeePass's entry dialog and its importers make
+an attachment held in the open, a constant in their IL; a file that is loaded keeps each attachment
+as it was marked; pykeepass marks an attachment protected unless told otherwise, and KeePass holds
+it so.
+
+**What a read of an attachment costs, built whole and read in place.** In a Release build, each
+form writing its whole answer into a stream that keeps a digest of it and nothing else:
+
+| Attachment | Built whole | In place, held in the open | In place, protected |
+| --- | --- | --- | --- |
+| 0.5 MiB | about 3 ms, 3.9 MB alive at once | 0.8 to 1.3 ms | 1.0 to 1.2 ms |
+| 8 MiB | 31 to 51 ms, 61 MB alive | 11.4 to 11.5 ms | 14 to 19 ms |
+| 64 MiB | 230 to 301 ms, 491 MB alive | 89 to 91 ms | 109 to 116 ms |
+
+Read in place, what is alive at once came to a tenth of a megabyte at every size. An attachment
+held in the open allocates nothing that grows with it; a protected attachment a copy of each
+piece in turn, its own size in all, each overwritten and let go. A digest taken in place: 27 ms
+for 64 MiB held in the open with nothing allocated, and 47 to 48 ms protected. A copy from
+`ReadData` written as it is sent, the form a read takes where an attachment cannot be read in
+place, kept the attachment alive once for each read and took 122 to 171 ms for 64 MiB.
+
+**Where KeePass keeps a string's value, and what reading it in pieces costs.** Read off KeePass
+2.61.1 and asked of the objects: a `ProtectedString` keeps its value in one of two private fields.
+`m_strPlainText` holds the string for a value that is not protected, whether made from a string or
+from bytes, for a protected value made from a string, and for any value once `ReadString` has read
+it, which hands out that same string every time after. `m_pbUtf8` holds a protected value made from
+bytes, as UTF-8 in a protected `ProtectedBinary` kept as an attachment is, until `ReadString` lets
+it go, which it does after it has set the string; `ReadUtf8` and `Length` leave it. Bytes decoded a
+piece at a time by a single decoder are the string the bytes decode to whole: 209392 runs over
+hand-made and random bytes, most of them not UTF-8, cut every 1 to 64 bytes, of which none differed,
+in the text or in whether a decoder that refuses bad bytes refuses them, by a probe run for this
+change and kept nowhere; `StoredStringsTests` and `NodeTagsTests` hold the same at the steps the
+reader cuts at. Text escaped a piece at a time by `JsonConvert.ToString` and joined between a single
+pair of quotes is the text Json.NET's writer writes of the whole, for every character from U+0000 to
+U+FFFF in pieces of 1 to 16384 characters, which `JsonWriterTests` holds. Json.NET's own writer
+hands a string with nothing to escape to the writer under it whole, and copies each run between two
+characters it escapes into a buffer as long as the run: four million characters with nothing to
+escape allocated nothing, the same with a line break at their end 8.4 MB, and with a quote in their
+middle 4.2 MB, measured on Json.NET 13.0.4, which the plugin ships. So a piece of any length is
+escaped in steps of 20480 characters. In a Release build, each answer written into a stream that
+keeps nothing, with no TLS under it, the second and third pass of each, for a single value of lines
+of about eighty characters:
+
+| Value | Protected, read whole, as before | Protected, in pieces | In the open, by Json.NET, as before | In the open, in steps |
+| --- | --- | --- | --- | --- |
+| 64 KiB | 0.4 to 0.5 ms | 0.5 to 0.6 ms | 0.3 to 0.4 ms | 0.3 to 0.4 ms |
+| 1 MiB | 5.2 ms, 2.0 MB alive | 5.5 to 5.6 ms, 0.2 MB alive | 3.1 to 3.3 ms | 3.9 to 6.4 ms, 0.1 MB alive |
+| 16 MiB | 82 to 83 ms, 32 MB alive | 79 to 88 ms, 0.2 MB alive | 48 ms | 55 ms, 0.1 MB alive |
+| 64 MiB | 339 to 347 ms, 128 MB alive | 306 to 307 ms, 0.2 MB alive | 192 to 203 ms | 215 to 216 ms, 0.1 MB alive |
+
+The times are taken with no collection forced, and what is alive at once in a run of its own
+with a collection forced at every sixty-fourth write. Read whole, what is alive while the
+answer is written is the decoded string, and the copy of the bytes was alive beside it while
+it was decoded. Written a piece at a time, seven to eight times the value is allocated over
+its length, in strings of about 40 KB and under, each let go as the next is made; Json.NET's own
+writer allocated nothing for a value of short lines. A digest of a protected value from a copy
+of its bytes took 26 to 28 ms for 16 MiB and 96 to 98 ms for 64 MiB, with the copy alive; taken
+a piece at a time it takes 29 ms and 111 to 112 ms, and keeps nothing alive that grows with
+the value.
+
+The entries measured above, read in this form, each value a piece at a time:
+
+| Strings | Written as it is sent, a piece at a time |
+| --- | --- |
+| 8 protected, of 65536 characters | 2.7 ms, 4.5 MB allocated |
+| 200 protected, of 65536 | 66 to 68 ms, 111 MB |
+| 200 held in the open, of 65536 | 57 ms, 91 MB |
+| 50 protected, of a million | 237 to 240 ms, 401 MB |
+| 50 held in the open, of a million | 224 to 225 ms, 342 MB |
+
+Alive at once came to a tenth of a megabyte in every row.
 
 **What a tag costs on an entry far past the ceiling a read was held to**, measured while a read
 was held to 524288 characters: fifty
@@ -602,26 +694,26 @@ differed and nothing threw. `KeePassContractTests` pins the public surface of bo
 the reading from two threads, and `DecidedAtTheReadTests` holds the real router and vault to an
 answer and a tag of the entry as it stood inside the hold.
 
-**`ProtectedString.ReadString` ends KeePass's protection of the value it reads, and the gate
-read every value with it.** Read off KeePass 2.61.1, decompiled, and asked of the object's own
-field. A protected string made from bytes, which is how a loaded file's are made, holds them
-encrypted. `Length` and `ReadUtf8` each decrypt a copy, and `Equals` compares two such copies,
-all of them leaving the object as it was. `ReadString` decodes the value, keeps the string in
-`m_strPlainText` and lets the encrypted bytes go, for as long as the object lives, and a string
-made from text keeps that text whatever its flag. A tag digests every value in its caller's
-sight, so a listing of an entry's fields, or a read of its title, left every protected value of
-the entry in the open in KeePass's memory, the values nobody asked for with them, and a
-protected value written through the gate was in the open from the start. A protected value is
-now read with `ReadUtf8`, digested from that copy, or decoded from it where it is served, and the
-copy overwritten; and a protected value is handed to KeePass as bytes, `StoredStrings`. What
-that cost, while a tag read every value, was the copy for every request, where KeePass keeping
-the text made every request after the first cheaper: the 59 milliseconds and 48 MB above,
-against 40 to 42 milliseconds and 0.2 MB with the values left in the open after a first request
-of 90 milliseconds and 143 MB. With a digest of each value kept, above, it is the copy for the
-first tag over a value, and a copy of each protected title and address a listing shows, for
-every listing.
-What it does not do: a value that is served is a string in the process until the runtime reuses
-its memory, and so is the answer it is written into, and neither can be overwritten.
+**`ProtectedString.ReadString` ends KeePass's protection of the value it reads, and the gate read
+every value with it.** Read off KeePass 2.61.1, decompiled, and asked of the object's own field. A
+protected string made from bytes, which is how a loaded file's are made, holds them encrypted.
+`Length` and `ReadUtf8` each decrypt a copy, and `Equals` compares two such copies, all of them
+leaving the object as it was. `ReadString` decodes the value, keeps the string in `m_strPlainText`
+and lets the encrypted bytes go, for as long as the object lives, and a string made from text keeps
+that text whatever its flag. A tag digests every value in its caller's sight, so a listing of an
+entry's fields, or a read of its title, left every protected value of the entry in the open in
+KeePass's memory, the values nobody asked for with them, and a protected value written through the
+gate was in the open from the start. A protected value was read from then on with `ReadUtf8`,
+digested from that copy, or decoded from it where it is served, and the copy overwritten, and is
+read a piece at a time from the bytes KeePass keeps for it since 2026-11-14, above; and a protected
+value is handed to KeePass as bytes, `StoredStrings`. What that cost, while a tag read every value,
+was the copy for every request, where KeePass keeping the text made every request after the first
+cheaper: the 59 milliseconds and 48 MB above, against 40 to 42 milliseconds and 0.2 MB with the
+values left in the open after a first request of 90 milliseconds and 143 MB. With a digest of each
+value kept, above, it was the copy for the first tag over a value, which reads the value a piece at
+a time since, and a copy of each protected title and address a listing shows, for every listing.
+What it does not do: a value that is served is a string in the process until the runtime reuses its
+memory, and so is the answer it is written into, and neither can be overwritten.
 
 **KeePass's own save reads some values as text.** `KdbxFile.WriteObject` writes each of an
 entry's five own strings protected or not by the database's setting for that name, whatever the
@@ -639,7 +731,7 @@ inside: the hold is 93 to 104 milliseconds the first time and 45 to 47 after. Va
 digested after: 53 milliseconds of hold the first time and 0.04 after, with 45 to 48 after the hold.
 Both after: 0.04 milliseconds of hold every time, with 96 to 115 after it the first time and 44 to
 50 later. Eight strings of 65,536 characters, an entry at its ceiling, cost half a millisecond
-wherever it is done. A hundred attachments of 512 KiB, the most that is served, cost 60 to 90
+wherever it is done. A hundred attachments of 512 KiB, the most that was served then, cost 60 to 90
 milliseconds and 50 MB the first time their digests are taken, wherever that is, and 0.15 after,
 since a digest is kept against the object. Encoding each value for the digest in pieces of 16,384
 characters through one buffer gave the digest of the value encoded whole with 0.1 MB allocated
@@ -677,10 +769,12 @@ the value was read as a string. The tag hashes the value as a read decodes it.
 **What a digest costs, on the development machine under .NET Framework 4.8:** six microseconds for
 a group, and the same for an entry's ten strings with two kilobytes of notes, protected ones
 decrypted. Attachment bytes go through SHA-256 at about 2 GB/s, which is 5 milliseconds for
-10 MB, against 8 milliseconds to decrypt a protected attachment of that size, and only up to the
-largest attachment the gate hands out, 512 KiB, above which the size stands for the bytes: the
-review measured a 201 MiB attachment costing 260 milliseconds and 201 MiB of memory to every
-request that looked the entry up, the router's among them, and 32 at once holding 1.6 GB. **And
+10 MB, against 8 milliseconds to decrypt a protected attachment of that size. That was taken
+of a copy of the attachment, and so only up to the largest attachment the gate handed out,
+512 KiB, above which the size stood for the bytes: the review measured a 201 MiB attachment
+costing 260 milliseconds and 201 MiB of memory to every request that looked the entry up, the
+router's among them, and 32 at once holding 1.6 GB. A digest is taken in place since
+2026-11-14, with no copy, of an attachment of any size, above. **And
 attachments are hashed once per object**, because `ProtectedBinary` offers nothing that changes its
 bytes and KeePass keeps the object's own hash code inside it; `KeePassContractTests` pins that, and
 two readers asking at once wait on one digest rather than taking two. The probes that measured all
@@ -713,7 +807,7 @@ changes a list, and then what each way of keeping the two apart costs. The probe
 | **`List<T>` moves its version after its size, so a reader that checks the version finds almost nothing wrong.** Checking it either side of a walk caught 5 to 27 of about twelve thousand misses, and waiting 100 µs before trusting it still missed 32 while flagging 7,350 of 7,814 good walks | the same churn, with the version read through reflection |
 | **Holding KeePass's thread still for the read closes it.** A `BeginInvoke` callback that waits on KeePass's thread until the reader, on its own thread, is done: no misses and nothing thrown in 71,503 and 46,297 walks, against 224 and 128 misses and 91,770 and 58,745 exceptions for a reader beside it that held nothing. Waiting for the hold took 0.07 ms at the median, under a millisecond at p99, and 115 ms at worst, the longest handler | the same churn |
 | **A read holds the thread for its own length, and that is short.** Over a thousand groups and ten thousand entries: a full sweep 16.9 ms at the median in Release, a lookup 0.17 ms, the structure alone 0.055 ms | timed in Release and Debug |
-| **A whole request decided and served inside one hold is still short**, measured while every read made its whole answer inside the hold; what is made of an entry's values is made after the hold now, section 20, so the entry and attachment figures here are no longer time on KeePass's thread. Over a thousand groups and ten thousand entries, with an authority and an admitted client, at the median in Release: every entry listed, 2.3 MB of JSON, 55 ms in one run and 43 in another, 69 at worst; every group listed 2.3 ms; a group 0.11 ms; an entry 0.81 ms; an entry of fifty fields of ten thousand characters 2.4 ms; an attachment of 512 KiB, the most that is served, 2.6 ms and 15 at worst. The first read of an entry holding forty such attachments 47 ms, its tag digesting 20 MiB once, and 0.83 ms after that. Reading the caller's record and the profile list again is about 0.03 ms of each | the real router and vault over a database made for it, one timed hold a request and forty-one runs of each, in Release and Debug |
+| **A whole request decided and served inside one hold is still short**, measured while every read made its whole answer inside the hold; what is made of an entry's values is made after the hold now, section 20, so the entry and attachment figures here are no longer time on KeePass's thread. Over a thousand groups and ten thousand entries, with an authority and an admitted client, at the median in Release: every entry listed, 2.3 MB of JSON, 55 ms in one run and 43 in another, 69 at worst; every group listed 2.3 ms; a group 0.11 ms; an entry 0.81 ms; an entry of fifty fields of ten thousand characters 2.4 ms; an attachment of 512 KiB, the most that was served then, 2.6 ms and 15 at worst. The first read of an entry holding forty such attachments 47 ms, its tag digesting 20 MiB once, and 0.83 ms after that. Reading the caller's record and the profile list again is about 0.03 ms of each | the real router and vault over a database made for it, one timed hold a request and forty-one runs of each, in Release and Debug |
 | **KeePass changes some live entries in place outside its dialogs**, so a hold over the structure alone would not be exact: placeholders that generate a value, opening an attachment, editing several entries at once, XML Replace, the OTP generator settings and a merge's database properties | KeePass 2.61.1's IL, every caller of the in-place mutators of an entry's dictionaries |
 | **A read needs a turn where Idle is never raised too.** Inside a `MessageBox`, whose loop raises no Idle, a 50 ms fallback timer kept reads going at fifteen a second, and the window's own timer stayed on time | the window section 21 measured, inside a message box |
 | **That timer served a read from inside a merge, of a tree the merge had not finished.** A merge pumps through its status logger between one step and the next, and a read asked for at the first step of a merge bringing forty entries was served inside the pump and counted none of them. A read inside a pump had been held harmless, which is true of a save and not of a merge | `PwDatabase.MergeIn` over two real databases on a message loop, with a logger pumping `DoEvents` for 300 ms at its first call and another thread asking for the read there |

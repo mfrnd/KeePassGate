@@ -219,6 +219,70 @@ namespace KeePassGate.Host.Tests
             Moved(before, "an open value changed", Cases.Keys.ToArray());
         }
 
+        [TestCase(false, TestName = "An open attachment of megabytes is served whole and covered by the tag")]
+        [TestCase(true, TestName = "A protected attachment of megabytes is served whole and covered by the tag")]
+        public void An_attachment_far_larger_than_a_write_takes_is_served_whole_and_covered_by_the_tag(bool isProtected)
+        {
+            // A file attached in KeePass is as large as its operator made it, and held in the
+            // open; what the gate wrote is protected. Either is read through the gate at any
+            // size, a piece at a time: the answer carries its size and every byte, compared
+            // here by digest, and the tag its reader holds covers the bytes, so it moves when
+            // the attachment is replaced by other bytes of the same size, and a change asked
+            // against the tag from before is refused.
+            const int Size = 3 * 1024 * 1024;
+            var first = new byte[Size];
+            var second = new byte[Size];
+            new Random(3).NextBytes(first);
+            new Random(4).NextBytes(second);
+            Assume.That(Size, Is.GreaterThan(KeePassGate.Pipeline.VaultHandlers.MaxAttachmentBytes));
+
+            Granting(ReadsAttachments);
+            var path = Entry() + "/attachments/large.bin";
+            var tags = new List<string>();
+
+            foreach (var bytes in new[] { first, second })
+            {
+                _entry.Binaries.Set("large.bin", new ProtectedBinary(isProtected, bytes));
+
+                var answer = Send("GET", path, null, null, ReadsAttachments);
+                Assert.That(answer.Status, Is.EqualTo(200));
+                Assert.That(answer.Content, Is.Not.Null, "the answer is written as it is sent");
+
+                var document = JObject.Parse(answer.Document());
+                Assert.That((string)document["name"], Is.EqualTo("large.bin"));
+                Assert.That((int)document["size"], Is.EqualTo(Size));
+
+                using (var sha256 = System.Security.Cryptography.SHA256.Create())
+                {
+                    Assert.That(
+                        sha256.ComputeHash(Convert.FromBase64String((string)document["content"])),
+                        Is.EqualTo(sha256.ComputeHash(bytes)),
+                        "the content served is other bytes than the attachment's");
+                }
+
+                var tag = Handed(answer);
+                Assert.That(tag, Does.Match("^\"[0-9a-f]{32}\"$"));
+                Assert.That(Handed(Send("HEAD", path, null, null, ReadsAttachments)), Is.EqualTo(tag));
+                Assert.That(Tag(ReadsAttachments), Is.EqualTo(tag), "the entry is handed the tag its attachment is");
+                tags.Add(tag);
+            }
+
+            Assert.That(tags[1], Is.Not.EqualTo(tags[0]), "other bytes of the same size left the tag where it was");
+
+            // The tag from before the attachment was replaced meets no condition any longer.
+            Assert.That(Send("GET", path, null, tags[0], ReadsAttachments).Status, Is.EqualTo(412));
+            var user = Entry() + "/fields/" + PwDefs.UserNameField;
+            var stale = Send("PUT", user, Bodies.Of(("value", "lost")), tags[0], ReadsAttachments);
+            Assert.That(stale.Status, Is.EqualTo(412));
+            Assert.That(_entry.Strings.ReadSafe(PwDefs.UserNameField), Is.EqualTo("an invented name"));
+
+            // While a caller that reads no attachment holds a tag the bytes are not in.
+            Granting(Reads);
+            var narrow = Tag(Reads);
+            _entry.Binaries.Set("large.bin", new ProtectedBinary(isProtected, first));
+            Assert.That(Tag(Reads), Is.EqualTo(narrow));
+        }
+
         [Test]
         public void A_rule_widened_over_an_entry_where_nothing_new_comes_into_sight_moves_no_tag()
         {

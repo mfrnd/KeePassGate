@@ -204,5 +204,456 @@ namespace KeePassGate.Tests
                 Assert.That(text.ToString(), Is.Empty);
             }
         }
+
+        [Test]
+        public void Text_handed_over_in_pieces_is_written_as_the_text_whole_is(
+            [Values(1, 2, 3, 100, 8 * 1024, (8 * 1024) + 1, 16 * 1024, 70000)] int piece)
+        {
+            // A field's value is written this way, a piece at a time as it is read. Json.NET
+            // escapes each piece, and escapes a character at a time, so the pieces between a
+            // single pair of quotes are the text Json.NET writes of the whole: every character
+            // there is, each escaped or not as it is in a string written whole, with a pair of
+            // surrogates split between two pieces among them. The same text from a writer that
+            // keeps its document and from a writer that writes into another.
+            var every = new System.Text.StringBuilder();
+            for (var character = 0; character <= char.MaxValue; character++)
+            {
+                every.Append((char)character);
+            }
+
+            every.Append("\U0001F511 and a line\r\nafter it");
+            var text = every.ToString();
+            var expected = new JsonWriter().Text("value", text).Done();
+            Action<JsonWriter> describe = json => json.TextInPieces("value", InPieces(text, piece));
+
+            var kept = new JsonWriter();
+            describe(kept);
+            Assert.That(kept.Done() == expected, Is.True, "a kept writer wrote other text than of the whole");
+
+            using (var written = new StringWriter())
+            {
+                JsonWriter.Into(written, describe);
+
+                Assert.That(written.ToString() == expected, Is.True, "written into another writer, the text differs");
+                Assert.That((string)JObject.Parse(written.ToString())["value"] == text, Is.True);
+            }
+        }
+
+        [Test]
+        public void A_piece_of_any_length_reaches_the_writer_underneath_a_step_at_a_time()
+        {
+            // The string KeePass keeps for a value held in the open is handed over whole,
+            // whatever its length. Json.NET's own writer hands a string with nothing to escape
+            // to the writer underneath whole, and copies each run between two characters it
+            // escapes into a buffer as long as the run: megabytes at once, for a long value
+            // that ends in a line break. Escaped a step at a time, nothing longer than a step
+            // of the escaped text is ever handed on, whatever the piece holds and wherever the
+            // characters to escape stand in it.
+            var clean = new string('a', 3 * 1024 * 1024);
+            var texts = new[]
+            {
+                clean,
+                clean + "\n",
+                "\"" + clean,
+                clean.Substring(0, clean.Length / 2) + "\\" + clean.Substring(clean.Length / 2),
+            };
+
+            foreach (var text in texts)
+            {
+                using (var counted = new Longest())
+                {
+                    JsonWriter.Into(counted, json => json.TextInPieces("value", piece => piece(text)));
+
+                    Assert.That(counted.Most, Is.LessThanOrEqualTo(8 * 1024), "more than a step was handed on at once");
+                    Assert.That(
+                        counted.ToString() == new JsonWriter().Text("value", text).Done(),
+                        Is.True,
+                        "a piece written a step at a time is other text than the piece written whole");
+                }
+            }
+
+            Assert.That(
+                new JsonWriter().TextInPieces("value", piece => piece("a \" quoted")).Done(),
+                Is.EqualTo("{\"value\":\"a \\\" quoted\"}"));
+        }
+
+        [Test]
+        public void No_text_is_written_as_an_empty_string()
+        {
+            // A value of no characters hands out no piece, and a reader may as well hand over
+            // pieces holding nothing: each is the empty string, quoted, and still a value.
+            Action<Action<string>> nothing = piece => { };
+            Action<Action<string>> empty = piece => piece(string.Empty);
+            Action<Action<string>> empties = piece =>
+            {
+                piece(string.Empty);
+                piece(string.Empty);
+                piece(string.Empty);
+            };
+
+            foreach (var read in new[] { nothing, empty, empties })
+            {
+                Assert.That(new JsonWriter().TextInPieces("value", read).Done(), Is.EqualTo("{\"value\":\"\"}"));
+
+                using (var text = new StringWriter())
+                {
+                    JsonWriter.Into(text, json => json.TextInPieces("value", read));
+
+                    Assert.That(text.ToString(), Is.EqualTo("{\"value\":\"\"}"));
+                }
+            }
+        }
+
+        [Test]
+        public void A_member_written_after_text_in_pieces_is_separated_from_it_as_from_any_value()
+        {
+            // The quotes and the pieces between them go straight to the writer underneath,
+            // past Json.NET, which still has to know a value was written: the member after it
+            // needs its comma, and whatever is left open its closing. In a single piece and in
+            // several, first in the document and inside an object.
+            Action<JsonWriter> describe = json => json
+                .TextInPieces("first", InPieces("in \"three\" pieces", 7))
+                .Text("name", "Notes")
+                .TextInPieces("single", InPieces("whole", 100))
+                .TextInPieces("none", piece => { })
+                .Object("o").TextInPieces("inside", InPieces("a\\b", 1)).Flag("f", true);
+
+            const string Expected = "{\"first\":\"in \\\"three\\\" pieces\",\"name\":\"Notes\",\"single\":\"whole\","
+                + "\"none\":\"\",\"o\":{\"inside\":\"a\\\\b\",\"f\":true}}";
+
+            var kept = new JsonWriter();
+            describe(kept);
+            Assert.That(kept.Done(), Is.EqualTo(Expected));
+
+            using (var text = new StringWriter())
+            {
+                JsonWriter.Into(text, describe);
+                Assert.That(text.ToString(), Is.EqualTo(Expected));
+            }
+        }
+
+        [Test]
+        public void Text_in_pieces_needs_what_reads_it_and_takes_no_piece_that_is_null()
+        {
+            Assert.Throws<ArgumentNullException>(() => new JsonWriter().TextInPieces("value", null));
+            Assert.Throws<ArgumentNullException>(() => new JsonWriter().TextInPieces("value", piece => piece(null)));
+            Assert.Throws<ArgumentNullException>(() => new JsonWriter().TextInPieces("value", piece =>
+            {
+                piece("a");
+                piece(null);
+            }));
+        }
+
+        [Test]
+        public void Text_whose_read_fails_part_way_leaves_the_document_open_where_it_stopped()
+        {
+            // A read that fails after pieces were written is an answer that failed part way:
+            // what was thrown comes out as it was thrown, and nothing closes the string or the
+            // document after it, so nothing downstream takes half a value for a whole.
+            var failure = new IOException("an invented read that failed");
+
+            using (var text = new StringWriter())
+            {
+                var thrown = Assert.Throws<IOException>(() => JsonWriter.Into(text, json => json.TextInPieces("value", piece =>
+                {
+                    piece("first");
+                    piece(" second");
+                    throw failure;
+                })));
+
+                Assert.That(thrown, Is.SameAs(failure));
+                Assert.That(text.ToString(), Is.EqualTo("{\"value\":\"first second"));
+            }
+        }
+
+        [Test]
+        public void Bytes_handed_over_in_pieces_are_written_as_the_base64_of_the_whole(
+            [Values(1, 2, 3, 4, 5, 6, 12 * 1024, (12 * 1024) + 1, 48 * 1024, (48 * 1024) + 2, 100000, 150001)] int size,
+            [Values(3, 21, 12 * 1024, 48 * 1024)] int piece)
+        {
+            // An attachment is written this way, a piece at a time as it is read. Base64 turns
+            // three bytes into four characters, so the text of pieces that are each a whole
+            // number of threes joins into the text of the whole, with padding only where the
+            // last piece ends. The same text from a writer that keeps its document and from a
+            // writer that writes into another, as every other member is.
+            var bytes = Invented(size);
+            var expected = "{\"content\":\"" + Convert.ToBase64String(bytes) + "\"}";
+            Action<JsonWriter> describe = json => json.Base64("content", InPieces(bytes, piece));
+
+            var kept = new JsonWriter();
+            describe(kept);
+            Assert.That(
+                kept.Done() == expected,
+                Is.True,
+                "a kept writer wrote other text than the base64 of the whole");
+
+            using (var text = new StringWriter())
+            {
+                JsonWriter.Into(text, describe);
+
+                Assert.That(text.ToString() == expected, Is.True, "written into another writer, the text differs");
+                Assert.That(
+                    Convert.FromBase64String((string)JObject.Parse(text.ToString())["content"]),
+                    Is.EqualTo(bytes));
+            }
+        }
+
+        [Test]
+        public void No_bytes_are_written_as_an_empty_string()
+        {
+            // An attachment of no bytes hands out no piece, and a reader may as well hand over
+            // a piece holding nothing: either is the empty string, quoted, and still a value.
+            Action<Action<byte[], int, int>> nothing = piece => { };
+            Action<Action<byte[], int, int>> empty = piece => piece(new byte[] { 1, 2, 3 }, 3, 0);
+
+            foreach (var read in new[] { nothing, empty })
+            {
+                Assert.That(new JsonWriter().Base64("content", read).Done(), Is.EqualTo("{\"content\":\"\"}"));
+
+                using (var text = new StringWriter())
+                {
+                    JsonWriter.Into(text, json => json.Base64("content", read));
+
+                    Assert.That(text.ToString(), Is.EqualTo("{\"content\":\"\"}"));
+                    Assert.That((string)JObject.Parse(text.ToString())["content"], Is.Empty);
+                }
+            }
+        }
+
+        [Test]
+        public void A_member_written_after_the_bytes_is_separated_from_them_as_from_any_value()
+        {
+            // The quotes and the text between them go straight to the writer underneath, past
+            // Json.NET, which still has to know a value was written: the member after it needs
+            // its comma, and whatever is left open its closing.
+            var bytes = Invented(100);
+            var base64 = Convert.ToBase64String(bytes);
+            Action<JsonWriter> describe = json => json
+                .Text("name", "notes.txt")
+                .Number("size", bytes.Length)
+                .Base64("content", InPieces(bytes, 33))
+                .Text("after", "an invented value")
+                .Base64("again", InPieces(bytes, 99))
+                .Object("o").Base64("inside", InPieces(bytes, 3)).Flag("f", true);
+
+            var expected = "{\"name\":\"notes.txt\",\"size\":100,\"content\":\"" + base64
+                + "\",\"after\":\"an invented value\",\"again\":\"" + base64
+                + "\",\"o\":{\"inside\":\"" + base64 + "\",\"f\":true}}";
+
+            var kept = new JsonWriter();
+            describe(kept);
+            Assert.That(kept.Done(), Is.EqualTo(expected));
+
+            using (var text = new StringWriter())
+            {
+                JsonWriter.Into(text, describe);
+                Assert.That(text.ToString(), Is.EqualTo(expected));
+
+                var parsed = JObject.Parse(text.ToString());
+                Assert.That(Convert.FromBase64String((string)parsed["content"]), Is.EqualTo(bytes));
+                Assert.That(Convert.FromBase64String((string)parsed["again"]), Is.EqualTo(bytes));
+                Assert.That(Convert.FromBase64String((string)parsed["o"]["inside"]), Is.EqualTo(bytes));
+                Assert.That((string)parsed["after"], Is.EqualTo("an invented value"));
+                Assert.That((bool)parsed["o"]["f"], Is.True);
+            }
+        }
+
+        [Test]
+        public void Bytes_as_the_first_member_follow_no_comma()
+        {
+            var written = new JsonWriter().Base64("content", InPieces(new byte[] { 1, 2, 3 }, 3)).Text("a", "b").Done();
+
+            Assert.That(
+                written,
+                Is.EqualTo("{\"content\":\"" + Convert.ToBase64String(new byte[] { 1, 2, 3 }) + "\",\"a\":\"b\"}"));
+        }
+
+        [Test]
+        public void A_piece_larger_than_a_step_of_the_writer_is_written_whole()
+        {
+            // The writer makes base64 of a few kilobytes at a time, whatever it is handed, so a
+            // piece of many steps is cut into them, and only where the piece itself ends short of
+            // a three is anything padded.
+            var bytes = Invented(100000);
+            Assume.That(bytes.Length % 3, Is.Not.Zero, "a last piece that ends inside a three is what this hands over");
+
+            var written = new JsonWriter().Base64("content", piece => piece(bytes, 0, bytes.Length)).Done();
+
+            Assert.That(written == "{\"content\":\"" + Convert.ToBase64String(bytes) + "\"}", Is.True);
+        }
+
+        [Test]
+        public void A_piece_is_read_from_its_offset_for_its_count_and_no_further()
+        {
+            // An attachment held in the open is handed over as KeePass's own buffer at an offset,
+            // and a protected attachment as a copy with a block ahead of the piece, so what is
+            // written is the count from the offset and nothing either side of it.
+            var held = Invented(64 * 1024);
+            var expected = new byte[30000];
+            Buffer.BlockCopy(held, 16, expected, 0, 30000);
+
+            var written = new JsonWriter()
+                .Base64("content", piece =>
+                {
+                    piece(held, 16, 12000);
+                    piece(held, 12016, 18000);
+                })
+                .Done();
+
+            Assert.That(written == "{\"content\":\"" + Convert.ToBase64String(expected) + "\"}", Is.True);
+        }
+
+        [Test]
+        public void A_piece_after_the_piece_that_ended_the_bytes_is_refused()
+        {
+            // A piece that is not a whole number of threes is padded, and base64 pads only at
+            // its end. Bytes written after it would be text no reader takes for what was handed
+            // over, so the piece after it is refused and the document is left unfinished.
+            using (var text = new StringWriter())
+            {
+                Action<Action<byte[], int, int>> past = piece =>
+                {
+                    piece(new byte[] { 1, 2, 3 }, 0, 3);
+                    piece(new byte[] { 4, 5, 6, 7 }, 0, 4);
+                    piece(new byte[] { 8, 9, 10 }, 0, 3);
+                };
+
+                Assert.Throws<InvalidOperationException>(
+                    () => JsonWriter.Into(text, json => json.Base64("content", past)));
+
+                Assert.That(
+                    text.ToString(),
+                    Is.EqualTo("{\"content\":\"" + Convert.ToBase64String(new byte[] { 1, 2, 3, 4, 5, 6, 7 })),
+                    "nothing follows the padding");
+                Assert.That(text.ToString(), Does.EndWith("=="));
+                Assert.That(
+                    () => JObject.Parse(text.ToString()),
+                    Throws.InstanceOf<Newtonsoft.Json.JsonException>(),
+                    "what is left reads as no document at all");
+            }
+
+            Assert.Throws<InvalidOperationException>(() => new JsonWriter().Base64("content", piece =>
+            {
+                piece(new byte[] { 1 }, 0, 1);
+                piece(new byte[] { 2 }, 0, 1);
+            }));
+        }
+
+        [Test]
+        public void Each_piece_reaches_the_other_writer_as_it_is_handed_over()
+        {
+            // Nothing of the bytes is kept here, which is the point of writing them this way: a
+            // piece is with the writer underneath before the piece after it is read.
+            using (var text = new StringWriter())
+            {
+                var seen = new System.Collections.Generic.List<string>();
+
+                JsonWriter.Into(text, json => json.Text("name", "notes.txt").Base64("content", piece =>
+                {
+                    seen.Add(text.ToString());
+                    piece(new byte[] { 1, 2, 3 }, 0, 3);
+                    seen.Add(text.ToString());
+                    piece(new byte[] { 4, 5, 6 }, 0, 3);
+                    seen.Add(text.ToString());
+                }));
+
+                const string Opened = "{\"name\":\"notes.txt\",\"content\":\"";
+                var first = Convert.ToBase64String(new byte[] { 1, 2, 3 });
+                var both = Convert.ToBase64String(new byte[] { 1, 2, 3, 4, 5, 6 });
+
+                Assert.That(seen, Is.EqualTo(new[] { Opened, Opened + first, Opened + both }));
+                Assert.That(text.ToString(), Is.EqualTo(Opened + both + "\"}"));
+            }
+        }
+
+        [Test]
+        public void A_read_of_the_bytes_that_throws_leaves_text_that_is_not_a_finished_document()
+        {
+            // An attachment the store refuses part way is refused where its pieces are being
+            // written, with the status long gone. What is left is open inside the string, so no
+            // reader takes it for the attachment.
+            using (var text = new StringWriter())
+            {
+                var thrown = Assert.Throws<InvalidOperationException>(() => JsonWriter.Into(text, json => json
+                    .Number("size", 6)
+                    .Base64("content", piece =>
+                    {
+                        piece(new byte[] { 1, 2, 3 }, 0, 3);
+                        throw new InvalidOperationException("an invented read that fails");
+                    })));
+
+                Assert.That(thrown.Message, Is.EqualTo("an invented read that fails"));
+                Assert.That(
+                    text.ToString(),
+                    Is.EqualTo("{\"size\":6,\"content\":\"" + Convert.ToBase64String(new byte[] { 1, 2, 3 })));
+                Assert.That(
+                    () => JObject.Parse(text.ToString()),
+                    Throws.InstanceOf<Newtonsoft.Json.JsonException>());
+            }
+        }
+
+        [Test]
+        public void Writing_bytes_needs_what_hands_them_over()
+        {
+            var writer = new JsonWriter();
+
+            Assert.Throws<ArgumentNullException>(() => writer.Base64("content", null));
+            Assert.That(writer.Done(), Is.EqualTo("{}"), "and nothing was written for the member");
+        }
+
+        /// <summary>Invented bytes, the same for the same size.</summary>
+        private static byte[] Invented(int size)
+        {
+            var bytes = new byte[size];
+            new Random(size).NextBytes(bytes);
+            return bytes;
+        }
+
+        /// <summary>
+        /// A writer that keeps what it is given and the most characters it was given at once.
+        /// </summary>
+        private sealed class Longest : StringWriter
+        {
+            public int Most { get; private set; }
+
+            public override void Write(char[] buffer, int index, int count)
+            {
+                Most = Math.Max(Most, count);
+                base.Write(buffer, index, count);
+            }
+
+            public override void Write(string value)
+            {
+                Most = Math.Max(Most, value == null ? 0 : value.Length);
+                base.Write(value);
+            }
+        }
+
+        /// <summary>What hands text over in pieces of a length, the last as long as is left.</summary>
+        private static Action<Action<string>> InPieces(string text, int piece)
+        {
+            return take =>
+            {
+                for (var at = 0; at < text.Length; at += piece)
+                {
+                    take(text.Substring(at, Math.Min(piece, text.Length - at)));
+                }
+            };
+        }
+
+        /// <summary>
+        /// What hands bytes over in order, in pieces of this many, the last holding what is
+        /// left.
+        /// </summary>
+        private static Action<Action<byte[], int, int>> InPieces(byte[] bytes, int size)
+        {
+            return piece =>
+            {
+                for (var at = 0; at < bytes.Length; at += size)
+                {
+                    piece(bytes, at, Math.Min(size, bytes.Length - at));
+                }
+            };
+        }
     }
 }

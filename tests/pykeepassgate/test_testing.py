@@ -181,14 +181,16 @@ def asked(line: str) -> bytes:
         "/entries/0123/fields",
         "/entries/0123/fields/Title",
         "/entries/0123/attachments",
+        "/entries/0123/attachments/key.pem",
+        "/entries/0123/attachments/a%2Fb%C3%A9",
     ],
 )
 def test_an_answer_that_grows_with_the_database_is_in_chunks_as_the_plugin_answers_it(
     gate: FakeGate, authority: Authority, path: str
 ) -> None:
     # `HttpResponse.Write` on the plugin's side writes these answers as they are sent, so a
-    # client asking this gate for a listing, an entry or a field reads the framing it meets at
-    # the plugin, whatever query the path carries.
+    # client asking this gate for a listing, an entry, a field or an attachment reads the framing
+    # it meets at the plugin, whatever query the path carries.
     gate.handler = lambda path, body, client: (200, '{"ok":true}')
 
     head, _, body = answered(gate, authority, asked(f"GET {path}")).partition(b"\r\n\r\n")
@@ -202,19 +204,23 @@ def test_an_answer_that_grows_with_the_database_is_in_chunks_as_the_plugin_answe
     ("line", "status"),
     [
         ("GET /groups/0123", 200),
-        ("GET /entries/0123/attachments/key.pem", 200),
+        ("GET /groups/0123/access", 200),
         ("GET /entries/0123/access", 200),
         ("GET /gate/whoami", 200),
         ("GET /entries/0123", 404),
+        ("GET /entries/0123/attachments/key.pem", 404),
         ("DELETE /entries/0123", 200),
+        ("DELETE /entries/0123/attachments/key.pem", 200),
     ],
     ids=[
         "a group",
-        "an attachment",
+        "what the caller may do at a group",
         "what the caller may do at an entry",
         "who the caller is",
         "a refused read",
+        "a refused read of an attachment",
         "a removal",
+        "an attachment stripped",
     ],
 )
 def test_every_other_answer_is_under_a_length(

@@ -251,8 +251,9 @@ namespace KeePassGate.Pipeline
                 // nothing can be written down once the answer's content is being sent.
                 withholding(fields)();
 
-                // Written as it is sent, a value at a time, so that what is alive of the entry
-                // is the value being written, however much the entry holds, and no read is
+                // Written as it is sent, a value at a time and a protected value a piece at a
+                // time, so that what is alive of the entry is the string KeePass keeps or the
+                // piece being written, however much the entry holds, and no read is
                 // refused for an entry's size. Everything that can refuse stands above: what
                 // this writes follows a `200` that is already on the wire. A HEAD is answered
                 // without it, so no value is read for a HEAD's answer, and asking whether an
@@ -281,8 +282,8 @@ namespace KeePassGate.Pipeline
                             // `protected` member below names which could have been, which is
                             // what makes the difference readable rather than guessed at. A
                             // withheld field has no value behind it, so what is written for
-                            // it is the null the view answers. Read here and kept nowhere.
-                            json.Text(field.Name, field.Read());
+                            // it is `null`. Read here, a piece at a time, and kept nowhere.
+                            Value(json, field.Name, field);
                         }
 
                         json.End();
@@ -482,7 +483,7 @@ namespace KeePassGate.Pipeline
                     text => JsonWriter.Into(text, json =>
                     {
                         json.Text("name", name);
-                        json.Text("value", field.Read());
+                        Value(json, "value", field);
                         json.Flag("protected", field.IsProtected);
                     }),
                     Tagged(tag));
@@ -657,27 +658,28 @@ namespace KeePassGate.Pipeline
         }
 
         /// <summary>
-        /// The largest attachment this gate will hand out, which is also the largest it will take.
+        /// The largest attachment this gate will take. An attachment is handed out at any
+        /// size.
         /// </summary>
         /// <remarks>
-        /// **A ceiling on what an answer costs, and the reason is where this runs.** Building one
-        /// of these takes about ten times the attachment in managed memory, all live at once: the
-        /// plaintext KeePass decrypts, the base64 string, the document that string is written
-        /// into, the copy `JsonWriter.Done` takes of it, and the bytes the response is encoded to.
-        /// The transport serves `GateOptions.MaxConnections` of those at a time, inside the
-        /// password manager's own process, so with nothing here an admitted client could ask for
-        /// as much memory as KeePass can get and take the user interface down with it.
+        /// **What a write is held to, by what a request carries.** An attachment arrives as
+        /// base64 inside a body, and a body is held to `GateOptions.MaxBodyBytes`, so half a
+        /// megabyte of bytes is what fits with room for the rest of the request. The routing
+        /// document names it as a length of base64, and it cannot name it exactly, since a
+        /// base64 length names two sizes at this size, so `Decoded` asks it of what it decoded
+        /// as well.
         ///
-        /// The number is the one a write already accepts, so that what the gate hands out it can
-        /// also be given back.
-        /// `EmbeddedDocumentTests.What_the_gate_hands_out_is_what_it_will_take_back` pins the two
-        /// together, because a document and a constant that drift apart make an attachment that can
-        /// be read and never restored. The document alone cannot say it exactly, since a base64
-        /// length names two sizes at this one, so `Decoded` asks the constant of what it decoded as
-        /// well. It is <see cref="VaultViewAttachment.MostServed"/>, so that the largest
-        /// attachment a node's tag hashes is the largest a route serves.
+        /// **A read is held to no size.** It was held to this number, and answered `413` past
+        /// it, so that what the gate handed out it could also be given back, and because an
+        /// answer built whole kept about eight times the attachment alive at once. An attachment is
+        /// read a piece at a time from where KeePass keeps it, `StoredBinaries`, and written
+        /// as it is sent, so a read in place keeps a piece of it alive, whatever its size, and
+        /// a read through KeePass's own read a copy of it. The operator
+        /// ruled on 2026-11-14 that what others have written is to be readable: a file
+        /// attached in KeePass can be read through the gate at any size, and what is written
+        /// through the gate is still held to this. `API.md` §412.
         /// </remarks>
-        public const int MaxAttachmentBytes = VaultViewAttachment.MostServed;
+        public const int MaxAttachmentBytes = 512 * 1024;
 
         public static void ReadAttachment(IGateContext context)
         {
@@ -690,12 +692,10 @@ namespace KeePassGate.Pipeline
             var uuid = Captured(context, "uuid");
             var name = Captured(context, "name");
 
-            // The view hands over no bytes of an attachment over the ceiling, which comes back
-            // measured and not decrypted: its size is kept beside its encrypted bytes. Null is an
-            // entry that is not there, a name the entry does not hold, or attachments out of the
-            // caller's sight. An attachment the caller may list and not read is in the view with
-            // no bytes behind it, and is answered as the same absence: the router refused that
-            // caller before this ran.
+            // Null is an entry that is not there, a name the entry does not hold, or attachments
+            // out of the caller's sight. An attachment the caller may list and not read is in
+            // the view with no bytes behind it, and is answered as the same absence: the router
+            // refused that caller before this ran.
             var view = View(context, vault, uuid);
             if (view == null || view.Sight.Attachments != VaultAttachmentSight.Read)
             {
@@ -703,8 +703,8 @@ namespace KeePassGate.Pipeline
                 return;
             }
 
-            // The name is looked for, the bytes are read, and the tag taken, after the hold: the
-            // view keeps the object each attachment was held in when it was taken, `Later`.
+            // The name is looked for and the tag taken after the hold: the view keeps the object
+            // each attachment was held in when it was taken, `Later`.
             Later(context, () =>
             {
                 var attachment = view.Attachment(name);
@@ -714,46 +714,25 @@ namespace KeePassGate.Pipeline
                     return;
                 }
 
-                // Measured again on what came back, because a view handing over more than it
-                // measured must not be the way past the ceiling either. Before the condition,
-                // which RFC 9110 section 13.2.1 orders after every refusal that does not depend
-                // on the tag: asked first, an attachment over the ceiling answered a stale tag
-                // `412`, and a client never handed a tag was told `412` every time and never
-                // that it was too large.
-                var content = attachment.Content;
-                try
+                var tag = view.Tag;
+                if (PreconditionFails(context, tag))
                 {
-                    var size = content == null ? attachment.Size : content.Length;
-                    if (content == null || size > MaxAttachmentBytes)
-                    {
-                        context.Respond(413, HttpResponse.ErrorBody(string.Format(
-                            CultureInfo.InvariantCulture,
-                            "this attachment is {0} bytes, and this gate hands out at most {1}",
-                            size,
-                            MaxAttachmentBytes)));
-                        return;
-                    }
-
-                    // After the ceiling, so a refusal for size takes no tag.
-                    var tag = view.Tag;
-                    if (PreconditionFails(context, tag))
-                    {
-                        return;
-                    }
-
-                    var json = new JsonWriter();
-                    json.Text("name", name);
-                    json.Number("size", content.Length);
-                    json.Text("content", Convert.ToBase64String(content));
-
-                    context.Respond(200, json.Done(), Tagged(tag));
+                    return;
                 }
-                finally
-                {
-                    // The copy read here is overwritten whatever the answer, a refusal that
-                    // served none of it included.
-                    attachment.Discard();
-                }
+
+                // Written as it is sent, a piece of the attachment at a time, read from where
+                // KeePass keeps it wherever it can be read there, so that what is alive is the
+                // piece being written, whatever the attachment's size, and no read is refused
+                // for it. A HEAD writes none of it.
+                context.Respond(
+                    200,
+                    text => JsonWriter.Into(text, json =>
+                    {
+                        json.Text("name", name);
+                        json.Number("size", attachment.Size);
+                        json.Base64("content", attachment.Read);
+                    }),
+                    Tagged(tag));
             });
         }
 
@@ -861,6 +840,21 @@ namespace KeePassGate.Pipeline
 
             var root = vault.Group(vault.RootAlias);
             return root == null ? null : root.Node;
+        }
+
+        /// <summary>
+        /// Writes a string's value under a name as it is read, a piece at a time, or `null`
+        /// for a value the view withholds.
+        /// </summary>
+        private static void Value(JsonWriter json, string name, VaultViewField field)
+        {
+            if (field.IsWithheld)
+            {
+                json.Text(name, null);
+                return;
+            }
+
+            json.TextInPieces(name, field.Read);
         }
 
         private static IVault Vault(IGateContext context)
@@ -1184,9 +1178,10 @@ namespace KeePassGate.Pipeline
 
             // The document's `maxLength` counts characters, and base64 spells the ceiling and one
             // byte more in the same number of them: 524288 bytes pad to 699052, 524289 need no
-            // padding and are 699052 too. So the ceiling is asked again of the bytes, or one size
-            // is stored that every read then refuses. Refused the way the next size up already
-            // is, by the document, so a client meets one answer for too large however it got there.
+            // padding and are 699052 too. So the ceiling a write is held to is asked again of
+            // the bytes, or an attachment a byte over it is taken. Refused the way the next size
+            // up already is, by the document, so a client meets one answer for too large however
+            // it got there.
             if (content.Length > MaxAttachmentBytes)
             {
                 content = null;

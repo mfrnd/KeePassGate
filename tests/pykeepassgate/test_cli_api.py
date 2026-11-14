@@ -930,6 +930,43 @@ def _fetched(gate: FakeGate, content: bytes) -> None:
     )
 
 
+def test_fetch_writes_an_attachment_larger_than_a_write_takes(
+    gate: FakeGate, kept: Path, tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    # 2 MiB, well over the 512 KiB `add-attachment` can send: the gate hands out an attachment at
+    # any size, as a file attached in KeePass can be, and its answer is under the default cap.
+    content = bytes(range(256)) * 8192
+    _fetched(gate, content)
+    where = tmp_path / "fetched.bin"
+
+    assert cli.main(["fetch", UUID, "key.pem", "--to", str(where), "--directory", str(kept)]) == 0
+    assert where.read_bytes() == content
+    assert "wrote 2097152 bytes" in capsys.readouterr().out
+
+
+def test_fetch_of_an_attachment_over_the_cap_writes_nothing_until_the_cap_is_raised(
+    gate: FakeGate, kept: Path, tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    # 3 MiB is 4 MiB as base64, so its answer is past the default cap. The gate refuses no read
+    # for its size, so what fails is the client's own cap, with the option that raises it named
+    # and no file left behind holding part of an attachment.
+    content = bytes(range(256)) * 12288
+    _fetched(gate, content)
+    where = tmp_path / "fetched.bin"
+    fetch = ["fetch", UUID, "key.pem", "--to", str(where), "--directory", str(kept)]
+
+    assert cli.main(fetch) == 1
+
+    printed = capsys.readouterr().err
+    assert printed.startswith("ProtocolError: ")
+    assert "over 4194304 bytes" in printed
+    assert "--max-response-bytes" in printed
+    assert not where.exists()
+
+    assert cli.main([*fetch, "--max-response-bytes", "8388608"]) == 0
+    assert where.read_bytes() == content
+
+
 @pytest.mark.skipif(os.name == "nt", reason="the directory's ACL decides there, not a mode")
 def test_fetch_writes_a_file_only_its_owner_may_read(
     gate: FakeGate, kept: Path, tmp_path: Path

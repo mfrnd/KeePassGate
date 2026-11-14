@@ -23,13 +23,15 @@ internal error`, as the plugin answers a defect of its own, with what it raised 
 
 **And the framing it gives an answer is the plugin's.** The plugin writes every answer that grows
 with what a database holds as it is sent, in chunks: each listing, of groups, of a group's
-subgroups or entries, of entries, and of an entry's fields or attachments, and a read of an entry
-or of a single field. So a `GET` of any of those paths that a handler answers `200` goes out here
-under `Transfer-Encoding: chunked`, in chunks of the size the plugin writes, whatever query the
-path carries. Every other answer goes out under a `Content-Length`: a single group, an
-attachment, the routes about the gate and the caller, every refusal, and the answer to any
-method but `GET`. A client that only ever met answers under a length would not be tested against
-the gate it has. `FakeGate.declare` puts such an answer back under a length.
+subgroups or entries, of entries, and of an entry's fields or attachments, and a read of an
+entry, of a single field or of a single attachment, which the plugin hands out at any size. So a
+`GET` of any of those paths that a handler answers `200` goes out here under
+`Transfer-Encoding: chunked`, in chunks of the size the plugin writes, whatever query the path
+carries. Every other answer goes out under a `Content-Length`: a single group, the routes about
+the gate and the caller, what the caller may do at a group or an entry among them, every
+refusal, and the answer to any method but `GET`. A client that only ever met answers under a
+length would not be tested against the gate it has. `FakeGate.declare` puts such an answer back
+under a length.
 
 **And one route it answers on its own, unless told not to**: `GET /gate/status`, which a paired
 client asks before its first request to compare the gate's version with its own. It answers with
@@ -845,12 +847,13 @@ def _response(
 
 
 #: The paths whose `200` to a `GET` the plugin writes as it is sent, in chunks, which is every
-#: answer that grows with what a database holds: each listing, and a read of an entry or of a
-#: single field. A read of a single group or of an attachment goes out under a length, as every
-#: other answer does. Matched against the path of a target, without its query.
+#: answer that grows with what a database holds: each listing, and a read of an entry, of a
+#: single field or of a single attachment. A read of a single group goes out under a length, as
+#: every other answer does, what the caller may do at a group or an entry included. Matched
+#: against the path of a target, without its query.
 _SENT_IN_CHUNKS = re.compile(
     r"/groups(/[^/]+/(groups|entries))?"
-    r"|/entries(/[^/]+(/fields(/[^/]+)?|/attachments)?)?"
+    r"|/entries(/[^/]+(/(fields|attachments)(/[^/]+)?)?)?"
 )
 
 #: The most bytes of content the plugin puts in a chunk, `ChunkedContent.Most` on its side.

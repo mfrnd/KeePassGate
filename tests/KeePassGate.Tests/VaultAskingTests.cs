@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using KeePassGate.Testing;
 using KeePassGate.Vault;
 using NUnit.Framework;
 
@@ -170,11 +171,15 @@ namespace KeePassGate.Tests
                 sight,
                 new[]
                 {
-                    new VaultViewField("Title", true, sight, () => "abc", true),
-                    new VaultViewField("Password", true, sight, () => "abc"),
-                    new VaultViewField("Account", false, sight, () => "abc"),
+                    ViewFields.Of("Title", true, sight, () => "abc", true),
+                    ViewFields.Of("Password", true, sight, () => "abc"),
+                    ViewFields.Of("Account", false, sight, () => "abc"),
                 },
-                new[] { new VaultViewAttachment("notes.txt", 3, sight, () => new byte[3], () => new byte[32]) },
+                new[]
+                {
+                    new VaultViewAttachment(
+                        "notes.txt", 3, sight, piece => piece(new byte[3], 0, 3), () => new byte[32]),
+                },
                 null);
         }
 

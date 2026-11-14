@@ -68,7 +68,7 @@ namespace KeePassGate.Pipeline
         /// **For an answer that grows with what the database holds**: an entry's values, which
         /// no write is refused for the size of, or a listing. Handed over whole, such an answer
         /// is alive several times over in the password manager's own process; written as it is
-        /// sent, what is alive is the value being written. `HttpResponse.Write` has the
+        /// sent, what is alive is the piece of a value being written. `HttpResponse.Write` has the
         /// measurement and the framing.
         ///
         /// **Everything that can refuse comes before this, and this is for no refusal.**
