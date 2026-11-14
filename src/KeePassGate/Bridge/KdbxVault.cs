@@ -1804,38 +1804,36 @@ namespace KeePassGate.Bridge
         /// A copy, so that the answer can be asked once KeePass's thread is no longer held
         /// still, of a view taken while it was: the operator can change the settings in
         /// between, and what a view holds is of the moment it was taken.
+        ///
+        /// **Kept as the names the database protects**, and not as a switch beside each of the
+        /// five. A string is then protected when its name is any of those names, which is the
+        /// table read as a list, and a string is compared with the names whose switch is on
+        /// and with no others: with KeePass's own settings that is the password alone, and
+        /// this is asked of every string of every view.
         /// </remarks>
-        private readonly struct Protection
+        private sealed class Protection
         {
-            private readonly bool _title;
-            private readonly bool _userName;
-            private readonly bool _password;
-            private readonly bool _url;
-            private readonly bool _notes;
+            private readonly IReadOnlyList<string> _protected;
 
             public Protection(MemoryProtectionConfig settings)
             {
-                _title = settings.ProtectTitle;
-                _userName = settings.ProtectUserName;
-                _password = settings.ProtectPassword;
-                _url = settings.ProtectUrl;
-                _notes = settings.ProtectNotes;
+                // The five strings every entry has, each beside the database's switch for it.
+                var standard = new[]
+                {
+                    new KeyValuePair<string, bool>(PwDefs.TitleField, settings.ProtectTitle),
+                    new KeyValuePair<string, bool>(PwDefs.UserNameField, settings.ProtectUserName),
+                    new KeyValuePair<string, bool>(PwDefs.PasswordField, settings.ProtectPassword),
+                    new KeyValuePair<string, bool>(PwDefs.UrlField, settings.ProtectUrl),
+                    new KeyValuePair<string, bool>(PwDefs.NotesField, settings.ProtectNotes),
+                };
+
+                _protected = standard.Where(name => name.Value).Select(name => name.Key).ToList();
             }
 
             /// <summary>Whether a string of this name is protected by the database's settings.</summary>
             public bool Protects(string field)
             {
-                if (field == null)
-                {
-                    return false;
-                }
-
-                // codeql[cs/complex-condition] the five standard fields as a table, each beside its own switch
-                return (Names(field, PwDefs.TitleField) && _title)
-                    || (Names(field, PwDefs.UserNameField) && _userName)
-                    || (Names(field, PwDefs.PasswordField) && _password)
-                    || (Names(field, PwDefs.UrlField) && _url)
-                    || (Names(field, PwDefs.NotesField) && _notes);
+                return field != null && _protected.Any(name => Names(field, name));
             }
         }
 
@@ -2332,7 +2330,8 @@ namespace KeePassGate.Bridge
         /// The flag term stays, because a custom field's protection is only ever the flag: the
         /// database says nothing about a name it does not know, and `UpdateField` keeps whatever
         /// the operator marked. It is asked first, being one field read where the database's
-        /// answer is five comparisons by the current culture, and a tag asks this of every string.
+        /// answer is a comparison by the current culture for each name it protects, and a tag
+        /// asks this of every string.
         /// </remarks>
         private bool Guards(string field, ProtectedString value)
         {
