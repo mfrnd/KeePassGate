@@ -1222,6 +1222,10 @@ pairing or a renewal whose approval it holds until a moment, `503 busy` with `he
 handler to return while a test watches `pair` or `renew` ask again. `identified(...)` is its
 answer to `whoami`, from the subject, the admission key, the expiry and the profiles, with
 `profiles_unreadable=True` for a database whose list of profiles will not read.
+**It frames an answer as the plugin does**: a `GET` answered `200` goes out in chunks wherever
+the plugin writes the answer as it is sent, which is every listing and a read of an entry or of
+a single field, whatever query the path carries, and every other answer under a
+`Content-Length`, which `declare` puts back on any answer.
 **Its answers carry the head the plugin's do**:
 the reason phrase, `Content-Type: application/json; charset=utf-8`, `Cache-Control: no-store`,
 `X-Content-Type-Options: nosniff`, and on a `503` `Retry-After: 2`, which `retry_after` changes,
