@@ -46,6 +46,14 @@ info:
     `Content-Length` rather than sending a wrong one, which section 9.3.2 permits for a value
     determined only while generating content, and section 8.6 requires of anything else.
 
+    **An answer made of an entry's values is written as it is sent.** `readEntry` and `readField`
+    answer with `Transfer-Encoding: chunked` and no `Content-Length`, RFC 9112 section 7.1, each
+    value read as it is written, so neither is refused for the size of what it hands out. Every
+    other answer carries a `Content-Length`. No chunk carries an extension and the content no
+    trailer. A failure once the status has gone out cannot be answered: the connection is closed
+    with the last chunk never sent, so an answer is whole only when its last chunk arrived. A
+    `head` of either names no framing, as it names no length, and reads no value.
+
     **A declared path asked for with a method it does not declare answers `405`, carrying the
     methods it does.** RFC 9110 section 15.5.6 requires that list, and it is read off this
     document rather than written anywhere, so it cannot fall out of step with what the server
@@ -1152,6 +1160,9 @@ paths:
         not here,
         because reaching those needs the attachment switch as well and a response whose contents
         depend on a second permission is a response nobody can predict.
+
+        The answer is written as it is sent, in chunks, a value at a time, and is never refused
+        for the size of the entry: this document's own description has the framing.
       x-kpg-verb: read
       parameters:
         - $ref: "#/components/parameters/EntryUuid"
@@ -1171,8 +1182,6 @@ paths:
           $ref: "#/components/responses/Unreachable"
         "412":
           $ref: "#/components/responses/PreconditionFailed"
-        "413":
-          $ref: "#/components/responses/EntryTooLarge"
         "503":
           $ref: "#/components/responses/Unavailable"
     head:
@@ -1197,8 +1206,6 @@ paths:
           $ref: "#/components/responses/Unreachable"
         "412":
           $ref: "#/components/responses/PreconditionFailed"
-        "413":
-          $ref: "#/components/responses/EntryTooLarge"
         "503":
           $ref: "#/components/responses/Unavailable"
     put:
@@ -1274,7 +1281,8 @@ paths:
         password is worth something to whoever is guessing it, and listing is not reading.
 
         **Served in parts, and never refused for its size.** No write is refused for how many
-        strings an entry holds, so the names can come to more than an answer hands out. A part
+        strings an entry holds, and this listing is handed over whole, so a part of it is held
+        to a size. A part
         holds the fields from the position `from` names, in the entry's own order, for as long
         as they come to at most 524288 characters, each counted by its name and 32 characters
         for what its item is written with, and always a field where any is left. While the
@@ -1431,6 +1439,9 @@ paths:
         `fields`. Only an entry neither KeePass nor the gate made can lack one of the five, since
         both make all five and the gate empties one rather than taking it off: an entry written by
         other software, or imported from another program's format and not edited in KeePass since.
+
+        The answer is written as it is sent, in chunks, and is never refused for the length of
+        the value: this document's own description has the framing.
       # The `404` is the answer `updateField` gives on the same path, which changes only a string
       # that is there: a read answering `""` would promise a string an update is then refused.
       x-kpg-verb: read
@@ -1453,8 +1464,6 @@ paths:
           $ref: "#/components/responses/Unreachable"
         "412":
           $ref: "#/components/responses/PreconditionFailed"
-        "413":
-          $ref: "#/components/responses/EntryTooLarge"
         "503":
           $ref: "#/components/responses/Unavailable"
     head:
@@ -1480,8 +1489,6 @@ paths:
           $ref: "#/components/responses/Unreachable"
         "412":
           $ref: "#/components/responses/PreconditionFailed"
-        "413":
-          $ref: "#/components/responses/EntryTooLarge"
         "503":
           $ref: "#/components/responses/Unavailable"
     put:
@@ -1871,8 +1878,8 @@ components:
           type: string
           description: |
             A fixed word or phrase, matched whole rather than parsed, except where a response names
-            its body a sentence: the transport's refusals but its `417`, and `EntryTooLarge` and
-            `TooLarge`, each known by its status. Where several share a status, the response
+            its body a sentence: the transport's refusals but its `417`, and `TooLarge`, each
+            known by its status. Where several share a status, the response
             declaring them names what each means, and those are the words worth matching on,
             because each is a different thing for a client to do next: `locked`, `undecided` and
             `busy` on a `503`; `proof` on a `401` from pairing; `no invitation` and `no exchange` on
@@ -2471,40 +2478,6 @@ components:
         No admission record for this certificate. Also what revocation looks like, to a request
         that was waiting for KeePass's thread when its client was revoked as to every request
         after it.
-      content:
-        application/json:
-          schema:
-            $ref: "#/components/schemas/Error"
-
-    # An entry's answer costs about four times its strings, on each of the thirty-two
-    # connections the transport serves at once, so what a read hands out is held down as an
-    # attachment is.
-    #
-    # On reads alone, and over what the client is handed. It was one number for reading and for
-    # writing, so that what this gate let a client write it also handed back whole: a write that
-    # would take an entry's strings over it was refused `413` with what they would come to,
-    # protected values included. A client that may write and not read padded an entry up to the
-    # ceiling and learned from the count, or from where the refusals began, how long the values
-    # it was withheld were. The operator's ruling of 2026-11-10 reverses it and accepts what
-    # that costs: an entry can be written past what a read hands back whole, such an entry is
-    # read a field at a time, and nothing bounds what a client holding `update` or `create` adds
-    # to an entry beyond the body a request may carry. §513
-    EntryTooLarge:
-      description: |
-        What this read would hand its client comes to more than this gate hands out, which is
-        524288 characters, half a million. Counted are the names of the strings the answer serves
-        and the values the client's rules let it read, and nothing of a value it is withheld, so
-        two clients can be answered differently about one entry. `readEntry` is held to it over
-        the whole entry and `readField` over a string in the client's sight with its name, each
-        refused before any value is read. A value a client is withheld is answered `null`
-        whatever its length, and never with this. No write is refused for what an entry's
-        strings come to, so an entry can be written, here or in KeePass, past what a read hands
-        back whole: its strings are then named by `listFields`, which is served in parts and
-        never refused for its size, and read with `readField`, each on its own, and stripping a
-        field is how the entry is brought back under. Naming the strings takes `list`: a client
-        holding `read` without it reads, of an entry past the ceiling, only the strings whose
-        names it already knows. The body names the count and the ceiling in a sentence rather
-        than a word, so a client knows this refusal by its status.
       content:
         application/json:
           schema:

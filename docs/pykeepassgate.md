@@ -683,22 +683,19 @@ the value if it protects that name, as it does `Password`, and `update-field` ne
 a field is protected. `strip-field` takes a string off the entry, which needs `S`; the five
 standard ones are refused, and `update` empties one instead.
 
-**524288 characters is the most a read of an entry hands out**, names and values together,
-counted over what the client is handed: the names of the entry's strings and the values its
-rules let it read, and nothing of a value it is withheld. Reading an entry costs about four
-times its strings in memory inside KeePass, so a read of an entry past that is refused with
-`413` before any value is read, and so is a read of one field past it with its name, while the
-entry's other fields still read. The client raises `RouteRefused` for it, and does not go on to
-read the entry a field at a time: `fields` and then `field` are how a program reads such an
-entry, and which fields it wants is its own decision. A value the client is withheld raises
-`Withheld` whatever its length.
+**A read of an entry is never refused for its size.** The gate writes the answer to a read of
+an entry, and of a single field, as it is sent, a value at a time, so reading a large entry
+costs KeePass the value being written and little more. What bounds a read is the client's own
+cap on an answer, 4 MiB unless `max_response_bytes` raises it,
+[below](#read-a-larger-answer): an entry whose answer is larger raises `ProtocolError`, and is
+read with the cap raised or a field at a time, `fields` and then `field`. A value the client
+is withheld raises `Withheld` whatever its length.
 
 **The names are listed whatever they come to.** The gate hands the names of an entry's strings
 out in parts, each holding names that come to at most 524288 characters with 32 counted for
 every field, and `fields` asks for every part and returns the whole listing, as
 `pykeepassgate fields` prints it, so a program has nothing to do about the parts. Listing the
-names needs `list`, though, and reading a value does not: a program holding `read` without
-`list` reads, of an entry past the ceiling, only the fields whose names it already knows.
+names needs `list`.
 
 **The parts are separate requests, so the entry can change between them.** A client holding
 `read` is handed the entry's tag with every part, and `fields` asks for every part after the
@@ -711,11 +708,10 @@ returns a single part as the gate answered it, with `next` naming the position o
 after it, and is not followed.
 
 **No write is refused for what an entry's strings come to**, so a create, an update or a new
-field can take an entry past what a read hands back whole, and what a client writes it cannot
-always read back in one answer. That replaces a ceiling held in either direction, under which
-such a write was refused with `413` and changed nothing: the refusal named the entry's whole
-size, which told a client that may write how long the values it may not read were. Stripping a
-field is how an entry is brought back under.
+field can make an entry as large as its program likes, a request at a time. That replaces a
+ceiling under which such a write was refused with `413` and changed nothing: the refusal named
+the entry's whole size, which told a client that may write how long the values it may not read
+were. Stripping a field is how an entry is made smaller.
 
 **Each string has a ceiling of its own as well**, which a write is held to: 65536 characters for a
 password, notes, a group's notes and the value of a field of the entry's own, 8192 for a URL, and
@@ -1144,7 +1140,8 @@ and asking again reads the same answer to the same cap.
 
 The plugin serves a listing of groups or of entries whole ([`../API.md`](../API.md) §407), where
 the names of an entry's strings come in parts that `fields` puts together, so a listing of groups
-or of entries grows with the database, and a very large database can outgrow the default. Raise
+or of entries grows with the database, and a very large database can outgrow the default. So
+can an entry: the plugin hands out an entry of any size ([`../API.md`](../API.md) §412). Raise
 it for that client:
 
 ```shell

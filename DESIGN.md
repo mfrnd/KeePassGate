@@ -293,14 +293,13 @@ chunked answer is not that, §143.
 
 ### Answers written as they are sent §143
 
-**The transport writes an answer in chunks where it is handed what writes the answer, and reads
-no chunked request**, the operator's ruling of 2026-11-14. A handler hands the
-transport what writes its answer in place of the answer, `IGateContext.Respond`, and the
+**The gate writes an answer in chunks where the answer is made of an entry's values, and reads
+no chunked request**, the operator's ruling of 2026-11-14. `readEntry` and `readField` hand the
+transport what writes their answer in place of the answer, `IGateContext.Respond`, and the
 transport writes it under `Transfer-Encoding: chunked`, `ChunkedContent`: each value is read
 where it is written, and nothing of the answer is kept. An answer handed over whole is alive
 several times over while it is sent, its values, the document, the document's text and the
-bytes of that text, which is what holds a read of an entry to a ceiling, `API.md` §412, and the
-reads of an entry are what this is for. Written
+bytes of that text, which is what held a read of an entry to a ceiling, `API.md` §412. Written
 as it is sent, what is alive is the value being written. `FINDINGS.md` has both measured.
 
 **This is the chunked body the paragraph above names, in the direction it does not weigh.**
@@ -329,9 +328,10 @@ closing, which is what keep-alive would need, and keep-alive stays refused, §13
 **A failure part way cannot be answered.** The status has gone out, so what the content throws
 ends the connection with the last chunk never sent: `ChunkedContent` sends it only once the
 content is whole. So a client takes an answer for whole only when its last chunk arrived, and
-PyKeePassGate reads a cut answer as a connection that failed. A handler refuses
-everything it can refuse before it answers this way, so what is left to fail is what its
-content reads and the connection itself. A failure there is taken as any failure of
+PyKeePassGate reads a cut answer as a connection that failed. Everything that can refuse, the
+lookup, the rules, the tag and the condition, comes before the first byte, and the audit line
+for a withheld value is written before the answer is given, so what is left to fail is the
+reading of a value and the connection itself. A failure there is taken as any failure of
 writing an answer is: what a connection that went away throws is an answer lost, and anything
 else reaches the connection's thread, which counts it, §141. What the writer of a failed
 answer still holds is dropped, `ChunkedContent.Abandon`, so nothing of the answer follows the
@@ -1887,7 +1887,7 @@ KeePass**, applying different controls by it. Until that exists, every URL is st
 `docs/access-control.md` warns the operator against opening one a program may have written, and
 nothing here claims more. A refusal for one more case is not the fix: it is the shape this replaced.
 
-### C10. A client that may write can grow an entry past what a read hands back §142
+### C10. A client that may write can grow an entry as far as it likes §142
 
 **The objection stands, and is accepted: it is what closing a leak cost.** An entry's strings were
 held to 524288 characters, names and values together, read and written alike, so that what the
@@ -1899,28 +1899,31 @@ would have told it the same by where it began. `FINDINGS.md` has the measurement
 
 The operator ruled on 2026-11-10: **no write is refused for what an entry's strings come to, and
 the ceiling is a read's, measured over what that reader would be handed.** A view of an entry,
-`VaultEntryView`, neither reads nor measures a value it withholds, so the count a read is refused
-with is made of nothing its caller may not read, and a single field the caller is withheld is
+`VaultEntryView`, neither read nor measured a value it withheld, so the count a read was refused
+with was made of nothing its caller may not read, and a single field the caller is withheld was
 answered as withheld whatever its length. The listing of an entry's fields is held to the same
 number by being served in parts, and is never refused: refused, it left an entry whose names
-alone pass the ceiling with no route naming its strings. `API.md` §412 has what counts, the
-order of the refusals, how the listing is parted, and what measuring a value in sight costs
-inside KeePass.
+alone pass the ceiling with no route naming its strings.
+
+The operator ruled on 2026-11-14 that **a read is held to no ceiling either**: its answer is
+written as it is sent, a value at a time, §143, so the memory the ceiling held down is no
+longer spent, and no view measures a value. `API.md` §412 has the order of a read's refusals
+and how the listing is parted.
 
 What is given up, and written down so that it is not rediscovered as a defect:
 
-- **An entry can be written past what a read hands back whole.** Such an entry is read a field at
-  a time, and stripping a field brings it back under. KeePass and a merge could always leave such
-  an entry, so every reader already had to meet it. **Reading it a field at a time takes
-  `list`**, since the listing is what names the fields: a client holding `read` without `list`
-  reads, of an entry past the ceiling in its view, only the strings whose names it already
-  knows.
+- **A read costs what the entry holds, and is refused for none of it.** Reading an entry a
+  client has grown reads and writes all of it on the connection's own thread, about a quarter of
+  a second and 143 MB of short-lived copies for fifty protected strings of a million
+  characters, `FINDINGS.md`, within the budget a connection is given to have its answer read.
+  What it keeps alive is the value being written. A client reads as much of an answer as its
+  own cap allows, and reads a larger entry a field at a time.
 - **Nothing bounds what a client holding `update` or `create` adds to an entry** beyond what a
   request carries, 65536 characters in a value and 1 MiB in a body. The entry grows in the
   database's memory, in the file and in the time every save takes, a request at a time, and each
   of those writes is in the audit.
-- **A tag is taken over a caller's whole view, however large.** A read refused for its size takes
-  none, and every other answer handing a tag out covers every value in sight. A value enters by
+- **A tag is taken over a caller's whole view, however large.** Every answer handing a tag out
+  covers every value in sight. A value enters by
   a digest taken once for as long as KeePass keeps the value's object, §136, so the first tag
   over an entry of fifty protected strings of a million characters reads them, sixty to ninety
   milliseconds with a copy of each made and overwritten, and every tag after it does not. A

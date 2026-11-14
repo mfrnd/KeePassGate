@@ -13,9 +13,9 @@ namespace KeePassGate.Pipeline
     /// attachment objects the entry held at that moment, and KeePass replaces those objects
     /// and changes none of them in place, so a value read from the view later is the value the
     /// entry held when the view was taken, whatever the operator has done to the entry since.
-    /// So measuring the values, reading them, digesting them into the tag, asking `If-Match` of
-    /// that tag and writing the answer need no hold, and each of them grows with the entry,
-    /// which no write is refused for the size of. Left inside, a tag over fifty megabytes of
+    /// So reading the values, digesting them into the tag, asking `If-Match` of that tag and
+    /// writing the answer need no hold, and each of them grows with the entry, which no write
+    /// is refused for the size of. Left inside, a tag over fifty megabytes of
     /// strings held KeePass's thread for about forty-five milliseconds a request,
     /// `FINDINGS.md`. The view's strings and attachments are made here as well, of a copy of
     /// the entry's lists taken inside the hold, and a listing of groups or entries is written

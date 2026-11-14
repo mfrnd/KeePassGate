@@ -40,11 +40,11 @@ namespace KeePassGate.Tests
         }
 
         [Test]
-        public void The_document_names_the_ceiling_an_entry_is_held_to()
+        public void The_document_names_the_size_a_part_of_the_field_listing_is_held_to()
         {
-            // Written into `EntryTooLarge` for a reader, and nothing else relates the two: a
-            // ceiling moved in the code and not there would tell every client a size it is not
-            // held to.
+            // Written into the description of `listFields` for a reader, and nothing else
+            // relates the two: a size moved in the code and not there would tell every client
+            // a part other than the part it is served.
             string document;
             using (var stream = typeof(SpecDocument).Assembly.GetManifestResourceStream("KeePassGate.Spec.openapi.yaml"))
             using (var reader = new System.IO.StreamReader(stream))
@@ -52,11 +52,15 @@ namespace KeePassGate.Tests
                 document = reader.ReadToEnd();
             }
 
-            var response = document.Substring(document.IndexOf("    EntryTooLarge:", StringComparison.Ordinal));
-            response = response.Substring(0, response.IndexOf("content:", StringComparison.Ordinal));
+            var at = document.IndexOf("operationId: listFields", StringComparison.Ordinal);
+            Assert.That(at, Is.GreaterThanOrEqualTo(0), "the document declares no listFields");
 
-            Assert.That(response, Does.Contain(
-                VaultHandlers.MaxEntryCharacters.ToString(System.Globalization.CultureInfo.InvariantCulture)
+            var operation = document.Substring(at);
+            var end = operation.IndexOf("x-kpg-verb:", StringComparison.Ordinal);
+            Assert.That(end, Is.GreaterThan(0), "listFields declares no verb to end its description at");
+
+            Assert.That(operation.Substring(0, end), Does.Contain(
+                VaultHandlers.MaxPartCharacters.ToString(System.Globalization.CultureInfo.InvariantCulture)
                 + " characters"));
         }
 

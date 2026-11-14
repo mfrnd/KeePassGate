@@ -88,7 +88,7 @@ namespace KeePassGate.Tests
 
                 var context = Asked(method, path);
 
-                Assert.That(context.Status, Is.EqualTo(200), method + " " + path + " " + context.Json);
+                Assert.That(context.Status, Is.EqualTo(200), method + " " + path + " " + context.Document());
                 Assert.That(vault.HeldReads - held, Is.EqualTo(1), method + " " + path);
                 Assert.That(vault.LooseLookups, Is.Zero, method + " " + path);
             }
@@ -101,20 +101,28 @@ namespace KeePassGate.Tests
         [TestCase("/entries/{entry}/attachments/notes.txt")]
         public void Nothing_is_made_of_an_entry_s_values_while_the_hold_stands(string path)
         {
-            // Measuring a value, reading it, reading or digesting an attachment and taking the
+            // Reading a value, digesting it, reading or digesting an attachment and taking the
             // tag each grow with the entry, and no write is refused for an entry's size. The
             // hold is KeePass's own thread standing still, so the view is taken inside it and
-            // asked for all of those once it has ended.
+            // asked for all of those once it has ended, a value last of all, as the answer is
+            // written.
+            var served = path == "/entries/{entry}" || path.EndsWith("/fields/Title", StringComparison.Ordinal);
+
             foreach (var method in new[] { "GET", "HEAD" })
             {
                 var tags = _vault.TagsTaken;
+                var reads = _vault.StringReads;
 
                 var context = Asked(method, path);
 
-                Assert.That(context.Status, Is.EqualTo(200), method + " " + path + " " + context.Json);
+                Assert.That(context.Status, Is.EqualTo(200), method + " " + path + " " + context.Document());
                 Assert.That(context.Headers["ETag"], Is.Not.Null, method + " " + path);
                 Assert.That(_vault.TagsTaken, Is.GreaterThan(tags), method + " " + path);
                 Assert.That(_vault.ValueWorkHeld, Is.Zero, method + " " + path);
+                Assert.That(
+                    _vault.StringReads > reads,
+                    Is.EqualTo(served && method == "GET"),
+                    method + " " + path + ": a value is read where an answer writes it, and nowhere else");
             }
         }
 
@@ -130,11 +138,11 @@ namespace KeePassGate.Tests
             // with every title it shows read for it.
             var context = Asked("GET", path);
 
-            Assert.That(context.Status, Is.EqualTo(200), path + " " + context.Json);
+            Assert.That(context.Status, Is.EqualTo(200), path + " " + context.Document());
             Assert.That(_vault.ValueWorkHeld, Is.Zero, path);
             if (path.EndsWith("/entries", StringComparison.Ordinal))
             {
-                Assert.That(context.Json, Does.Contain("an invented service"));
+                Assert.That(context.Document(), Does.Contain("an invented service"));
             }
         }
 
@@ -157,8 +165,8 @@ namespace KeePassGate.Tests
             // hold with the rest, and answered as it always was.
             var context = Asked("GET", path);
 
-            Assert.That(context.Status, Is.EqualTo(404), context.Json);
-            Assert.That(context.Json, Is.EqualTo(HttpResponse.ErrorBody(SpecRouter.UnreachableError)));
+            Assert.That(context.Status, Is.EqualTo(404), context.Document());
+            Assert.That(context.Document(), Is.EqualTo(HttpResponse.ErrorBody(SpecRouter.UnreachableError)));
             Assert.That(_vault.ValueWorkHeld, Is.Zero);
         }
 
@@ -173,7 +181,7 @@ namespace KeePassGate.Tests
 
             var context = Asked("PUT", "/entries/{entry}", Bodies.Of(("Title", "an invented name")));
 
-            Assert.That(context.Status, Is.EqualTo(200), context.Json);
+            Assert.That(context.Status, Is.EqualTo(200), context.Document());
             Assert.That(_vault.TagsTaken, Is.GreaterThan(tags));
             Assert.That(_vault.ValueWorkHeld, Is.Zero);
         }
@@ -187,7 +195,7 @@ namespace KeePassGate.Tests
             // held when it was taken, so the answer and its tag are of the entry as the rules
             // were asked about it.
             var before = Asked("GET", path);
-            Assume.That(before.Status, Is.EqualTo(200), before.Json);
+            Assume.That(before.Status, Is.EqualTo(200), before.Document());
 
             var landed = false;
             _vault.After(1, () =>
@@ -202,51 +210,41 @@ namespace KeePassGate.Tests
             _vault.After(0, null);
 
             Assert.That(landed, Is.True);
-            Assert.That(context.Status, Is.EqualTo(200), context.Json);
-            Assert.That(context.Json, Is.EqualTo(before.Json));
+            Assert.That(context.Status, Is.EqualTo(200), context.Document());
+            Assert.That(context.Document(), Is.EqualTo(before.Document()));
             Assert.That(context.Headers["ETag"], Is.EqualTo(before.Headers["ETag"]));
 
             var after = Asked("GET", path);
-            Assert.That(after.Json, Does.Contain("typed once the hold had ended"));
+            Assert.That(after.Document(), Does.Contain("typed once the hold had ended"));
             Assert.That(after.Headers["ETag"], Is.Not.EqualTo(before.Headers["ETag"]));
         }
 
-        [TestCase("/entries/{entry}", "the entry's size")]
-        [TestCase("/entries/{entry}", "its condition")]
-        [TestCase("/entries/{entry}/fields/Password", "its condition")]
-        public void A_read_that_serves_nothing_writes_no_line_for_a_value_it_withheld(string path, string refusedBy)
+        [TestCase("/entries/{entry}")]
+        [TestCase("/entries/{entry}/fields/Password")]
+        public void A_read_that_serves_nothing_writes_no_line_for_a_value_it_withheld(string path)
         {
             // The line for a withheld value is composed inside the hold, where the rules and the
             // node's name can be read, and written only where the answer is served. A read
-            // refused for its size or by its condition withheld nothing from an answer.
+            // refused by its condition withheld nothing from an answer, and read no value.
             Assume.That(
                 _vault.CreateField(_entry, "Password", "not-a-real-password", true, VaultAskings.Free).Ok,
                 Is.True);
 
             var served = Asked("GET", path);
-            Assert.That(served.Status, Is.EqualTo(200), served.Json);
+            Assert.That(served.Status, Is.EqualTo(200), served.Document());
             Assert.That(_audit.Entries.Count, Is.EqualTo(2), "the read was let through and the value was not");
             Assert.That(_audit.Entries[1].Permitted, Is.False);
             var lines = _audit.Entries.Count;
 
-            GateContext refused;
-            if (refusedBy == "its condition")
-            {
-                refused = Asked("GET", path, null, Connected(), "\"00000000000000000000000000000000\"");
-                Assert.That(refused.Status, Is.EqualTo(412), refused.Json);
-            }
-            else
-            {
-                Assume.That(
-                    _vault.CreateField(
-                        _entry, "Longer", new string('k', VaultEntryView.MostCharacters), false, VaultAskings.Free).Ok,
-                    Is.True);
-                refused = Asked("GET", path);
-                Assert.That(refused.Status, Is.EqualTo(413), refused.Json);
-            }
+            var reads = _vault.StringReads;
 
+            var refused = Asked("GET", path, null, Connected(), "\"00000000000000000000000000000000\"");
+
+            Assert.That(refused.Status, Is.EqualTo(412), refused.Document());
+            Assert.That(refused.Content, Is.Null, "a refusal is handed over whole, with nothing left to write");
             Assert.That(_audit.Entries.Count, Is.EqualTo(lines + 1), "the decision, and no line beside it");
             Assert.That(_audit.Entries[lines].Permitted, Is.True);
+            Assert.That(_vault.StringReads, Is.EqualTo(reads), "no value is read for an answer that is not served");
             Assert.That(_vault.ValueWorkHeld, Is.Zero);
         }
 
@@ -260,7 +258,7 @@ namespace KeePassGate.Tests
 
             var context = Asked("PUT", "/entries/{entry}", Bodies.Of(("Title", "an invented name")));
 
-            Assert.That(context.Status, Is.EqualTo(200), context.Json);
+            Assert.That(context.Status, Is.EqualTo(200), context.Document());
             Assert.That(_vault.LooseLookups, Is.GreaterThan(0));
         }
 
@@ -275,7 +273,7 @@ namespace KeePassGate.Tests
             var context = Asked("GET", path);
 
             Assert.That(context.Status, Is.EqualTo(503), path);
-            Assert.That(context.Json, Is.EqualTo(HttpResponse.ErrorBody("busy")), path);
+            Assert.That(context.Document(), Is.EqualTo(HttpResponse.ErrorBody("busy")), path);
             Assert.That(_audit.Entries.Single().Permitted, Is.True, "what was decided is written down all the same");
         }
 
@@ -299,7 +297,7 @@ namespace KeePassGate.Tests
             var context = Asked("GET", path);
             _vault.After(0, null);
 
-            Assert.That(context.Status, Is.EqualTo(200), path + " " + context.Json);
+            Assert.That(context.Status, Is.EqualTo(200), path + " " + context.Document());
             if (landed)
             {
                 Assert.That(what == "lock" ? !_vault.IsOpen : _vault.Group(_group) == null, Is.True,
@@ -323,8 +321,8 @@ namespace KeePassGate.Tests
             var context = Asked("GET", path);
             _vault.After(0, null);
 
-            Assert.That(context.Status, Is.EqualTo(503), path + " " + context.Json);
-            Assert.That(context.Json, Is.EqualTo(HttpResponse.ErrorBody("busy")), path);
+            Assert.That(context.Status, Is.EqualTo(503), path + " " + context.Document());
+            Assert.That(context.Document(), Is.EqualTo(HttpResponse.ErrorBody("busy")), path);
         }
 
         [Test]
@@ -335,7 +333,7 @@ namespace KeePassGate.Tests
             var context = Asked("GET", "/entries/{entry}");
 
             Assert.That(context.Status, Is.EqualTo(503));
-            Assert.That(context.Json, Is.EqualTo(HttpResponse.ErrorBody("busy")));
+            Assert.That(context.Document(), Is.EqualTo(HttpResponse.ErrorBody("busy")));
             Assert.That(_audit.Entries, Is.Empty);
             Assert.That(_vault.LooseLookups, Is.Zero);
         }
@@ -352,7 +350,7 @@ namespace KeePassGate.Tests
             var context = Asked("GET", "/entries/{entry}", null, client);
 
             Assert.That(context.Status, Is.EqualTo(401));
-            Assert.That(context.Json, Is.EqualTo("{\"error\":\"unpaired\"}"));
+            Assert.That(context.Document(), Is.EqualTo("{\"error\":\"unpaired\"}"));
 
             var line = _audit.Entries.Single();
             Assert.That(line.Permitted, Is.False);
@@ -369,8 +367,8 @@ namespace KeePassGate.Tests
             var context = Asked("GET", "/entries/{entry}", null, client);
 
             Assert.That(context.Status, Is.EqualTo(404));
-            Assert.That(context.Json, Is.EqualTo(HttpResponse.ErrorBody(SpecRouter.UnreachableError)));
-            Assert.That(context.Json, Does.Not.Contain("an invented service"));
+            Assert.That(context.Document(), Is.EqualTo(HttpResponse.ErrorBody(SpecRouter.UnreachableError)));
+            Assert.That(context.Document(), Does.Not.Contain("an invented service"));
             Assert.That(_audit.Entries.Single().Permitted, Is.False);
         }
 
@@ -386,7 +384,7 @@ namespace KeePassGate.Tests
 
             var context = Asked("GET", "/entries/{entry}", null, client);
 
-            Assert.That(context.Status, Is.EqualTo(200), context.Json);
+            Assert.That(context.Status, Is.EqualTo(200), context.Document());
             Assert.That(_audit.Entries.Single().Permitted, Is.True);
         }
 
@@ -399,7 +397,7 @@ namespace KeePassGate.Tests
             var context = Asked("GET", "/entries/{entry}", null, client);
 
             Assert.That(context.Status, Is.EqualTo(503));
-            Assert.That(context.Json, Is.EqualTo(HttpResponse.ErrorBody("locked")));
+            Assert.That(context.Document(), Is.EqualTo(HttpResponse.ErrorBody("locked")));
             Assert.That(_audit.Entries, Is.Empty, "a lock is not a decision");
         }
 
@@ -412,7 +410,7 @@ namespace KeePassGate.Tests
             var context = Asked("GET", "/entries/{entry}", null, client);
 
             Assert.That(context.Status, Is.EqualTo(503));
-            Assert.That(context.Json, Is.EqualTo(HttpResponse.ErrorBody("busy")));
+            Assert.That(context.Document(), Is.EqualTo(HttpResponse.ErrorBody("busy")));
             Assert.That(_audit.Entries, Is.Empty);
         }
 
@@ -474,6 +472,10 @@ namespace KeePassGate.Tests
             new ServedDatabase(_vault, _authority, NullGateLog.Instance).PutOn(context);
 
             _router.Handle(context);
+
+            // An answer written as it is sent is written here, as the transport writes it, so a
+            // read of an entry or of a field driven from here reads its values.
+            context.Document();
             return context;
         }
     }

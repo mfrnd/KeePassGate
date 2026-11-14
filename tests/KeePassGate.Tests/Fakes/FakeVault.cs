@@ -111,9 +111,9 @@ namespace KeePassGate.Tests.Fakes
         public int LooseLookups { get; private set; }
 
         /// <summary>
-        /// How many times a view's strings or attachments were made, a value was measured or
-        /// read, an attachment read or digested, a tag taken, or a title or a URL read for a
-        /// listing, with a hold standing.
+        /// How many times a view's strings or attachments were made, a value was read or
+        /// digested, an attachment read or digested, a tag taken, or a title or a URL read for
+        /// a listing, with a hold standing.
         /// </summary>
         /// <remarks>
         /// What a read may never do: each of those grows with what a client wrote, and the
@@ -442,19 +442,19 @@ namespace KeePassGate.Tests.Fakes
 
         /// <summary>
         /// An entry as far as a sight reaches into it, as the real vault builds a view: nothing
-        /// read or measured until it is asked for, a protected string out of sight holding no
-        /// value and nothing its value could be measured with, no
-        /// string holding a value for a sight that does not read, no attachments at all when
-        /// nothing about them is in sight, and attachments holding no bytes when they are listed
-        /// and not read.
+        /// read until it is asked for, a protected string out of sight holding no value and
+        /// nothing its value could be digested with, no string holding a value for a sight
+        /// that does not read, no attachments at all when nothing about them is in sight, and
+        /// attachments holding no bytes when they are listed and not read.
         /// </summary>
         /// <remarks>
-        /// Each value read counts in <see cref="StringReads"/>, each value measured in
-        /// <see cref="StringMeasures"/>, and each attachment read or digested in
-        /// <see cref="AttachmentReads"/>, since the real vault decrypts for a read and a digest,
-        /// and KeePass can for a measurement.
-        /// With <see cref="IgnoresCeiling"/> every length and size is told as nothing, which is a
-        /// view handing over more than it measured.
+        /// Each value read counts in <see cref="StringReads"/>, every time it is read, since a
+        /// view keeps no value it read. Each value digested for a tag counts in
+        /// <see cref="StringDigests"/> and not as a read: the real vault hands a tag the
+        /// digest its store keeps against a value, so a tag reads no value. Each attachment
+        /// read or digested counts in <see cref="AttachmentReads"/>, since the real vault
+        /// decrypts for both. With <see cref="IgnoresCeiling"/> every attachment's size is
+        /// told as nothing, which is a view handing over more than it measured.
         /// </remarks>
         private VaultEntryView Seen(Kept entry, VaultEntry described, VaultSight sight)
         {
@@ -475,12 +475,6 @@ namespace KeePassGate.Tests.Fakes
                     made.Add(new VaultViewField(
                         strings[index].Key,
                         guarded[index],
-                        () =>
-                        {
-                            StringMeasures++;
-                            Working();
-                            return IgnoresCeiling ? 0 : value.Length;
-                        },
                         sight,
                         () =>
                         {
@@ -488,7 +482,16 @@ namespace KeePassGate.Tests.Fakes
                             Working();
                             return value;
                         },
-                        Listed(strings[index].Key)));
+                        Listed(strings[index].Key),
+                        () =>
+                        {
+                            StringDigests++;
+                            Working();
+                            using (var sha256 = System.Security.Cryptography.SHA256.Create())
+                            {
+                                return sha256.ComputeHash(System.Text.Encoding.UTF8.GetBytes(value));
+                            }
+                        }));
                 }
 
                 return made;
@@ -548,7 +551,8 @@ namespace KeePassGate.Tests.Fakes
 
         /// <summary>
         /// What a view holds, condensed as the real vault condenses a view and from the view
-        /// alone: protection as the database decides it, a withheld value as a fixed mark, each
+        /// alone: protection as the database decides it, a value in sight by its digest and
+        /// never by reading it, a withheld value as a fixed mark, each
         /// attachment the view holds by name and size, with its digest only where attachments
         /// are read and only up to the largest the gate serves, and nothing for attachments the
         /// view does not hold, with no mark of how far the sight reaches. The view never asks
@@ -580,7 +584,7 @@ namespace KeePassGate.Tests.Fakes
                 parts.Add(field.Name);
                 parts.Add(field.IsProtected ? "protected" : "plain");
                 parts.Add(field.IsWithheld ? "withheld" : "value");
-                parts.Add(field.IsWithheld ? string.Empty : field.Value);
+                parts.Add(field.IsWithheld ? string.Empty : Convert.ToBase64String(field.Digest()));
             }
 
             // What the view holds of the attachments, and no mark for how far the sight reaches,
@@ -701,30 +705,34 @@ namespace KeePassGate.Tests.Fakes
         }
 
         /// <summary>
-        /// Hands over an attachment's contents, an entry's strings or a field's value whatever size
-        /// they are when set, by measuring each as nothing, as a vault that broke its promise
-        /// would.
+        /// Hands over an attachment's contents whatever size they are when set, by measuring
+        /// each as nothing, as a vault that broke its promise would.
         /// </summary>
         /// <remarks>
-        /// What `ReadAttachment`'s, `ReadEntry`'s and `ReadField`'s own checks of what they were
-        /// handed are for, and without this nothing here could ever hand them more than it
-        /// measured.
+        /// What `ReadAttachment`'s own check of what it was handed is for, and without this
+        /// nothing here could ever hand it more than it measured. A string has no ceiling, so
+        /// nothing about a string is measured here.
         /// </remarks>
         public bool IgnoresCeiling { get; set; }
 
         /// <summary>
-        /// How many string values have been read off a view, each of which the real vault
-        /// decrypts, so that a test can tell an answer was refused before any value was read
-        /// rather than after, and that a value out of the caller's sight was never read.
+        /// How many times a string value has been read off a view, each of which the real
+        /// vault decrypts, so that a test can tell an answer was refused before any value was
+        /// read rather than after, that a value out of the caller's sight was never read, and
+        /// that an answer read each value it wrote a single time.
         /// </summary>
+        /// <remarks>
+        /// A tag reads nothing here, <see cref="StringDigests"/>, so what this counts is what an
+        /// answer's content read, and that is counted when the content is written.
+        /// </remarks>
         public int StringReads { get; set; }
 
         /// <summary>
-        /// How many string values a view has been asked the length of, each of which KeePass may
-        /// decrypt to count, so that a test can tell a value out of the caller's sight was never
-        /// measured, and that an answer asking no size measured nothing.
+        /// How many times a string value has been digested for a tag, so that a test can tell
+        /// a value out of the caller's sight was never digested, and that an answer carrying
+        /// no tag digested nothing.
         /// </summary>
-        public int StringMeasures { get; set; }
+        public int StringDigests { get; set; }
 
         /// <summary>
         /// How many times an attachment's contents have been read off a view, to hand over or to

@@ -141,7 +141,7 @@ namespace KeePassGate.Host.Tests
             // A write under that tag goes ahead, and answers with the tag every route then
             // hands the same caller.
             var written = Send("PUT", Entry() + "/fields/" + PwDefs.UserNameField, Bodies.Of(("value", "renamed")), tag, rules);
-            Assert.That(written.Status, Is.EqualTo(200), written.Json);
+            Assert.That(written.Status, Is.EqualTo(200), written.Document());
             Assert.That(_entry.Strings.ReadSafe(PwDefs.UserNameField), Is.EqualTo("renamed"));
 
             var left = Written(written);
@@ -243,7 +243,7 @@ namespace KeePassGate.Host.Tests
 
             var written = Send(
                 "PUT", Entry() + "/fields/" + PwDefs.UserNameField, Bodies.Of(("value", "renamed")), narrow, ReadsAttachments);
-            Assert.That(written.Status, Is.EqualTo(200), written.Json);
+            Assert.That(written.Status, Is.EqualTo(200), written.Document());
             Assert.That(_entry.Strings.ReadSafe(PwDefs.UserNameField), Is.EqualTo("renamed"));
 
             // And an attachment arriving is something the wider rule sees and the narrower
@@ -269,14 +269,17 @@ namespace KeePassGate.Host.Tests
                 var listed = Send("GET", listing, null, null, profiles);
 
                 Assert.That(listed.Status, Is.EqualTo(200), listing);
-                Assert.That(listed.Json, Does.Contain(listing.EndsWith("/fields", StringComparison.Ordinal) ? PwDefs.PasswordField : "note.txt"));
-                Assert.That(listed.Json, Does.Not.Contain("not-a-real-password").And.Not.Contain("an invented"));
+                Assert.That(
+                    listed.Document(),
+                    Does.Contain(
+                        listing.EndsWith("/fields", StringComparison.Ordinal) ? PwDefs.PasswordField : "note.txt"));
+                Assert.That(listed.Document(), Does.Not.Contain("not-a-real-password").And.Not.Contain("an invented"));
                 Assert.That(Handed(listed), Is.Null, listing);
                 Assert.That(Send("GET", listing, null, "*", profiles).Status, Is.EqualTo(412), listing);
             }
 
             var written = Send("PUT", password, Bodies.Of(("value", "a-guess")), null, profiles);
-            Assert.That(written.Status, Is.EqualTo(200), written.Json);
+            Assert.That(written.Status, Is.EqualTo(200), written.Document());
             Assert.That(Written(written), Is.Null);
 
             Assert.That(Send("PUT", password, Bodies.Of(("value", "overwritten")), "*", profiles).Status, Is.EqualTo(412));
@@ -323,13 +326,14 @@ namespace KeePassGate.Host.Tests
 
                 var written = Send("PUT", password, Bodies.Of(("value", guess)), held, profiles);
 
-                Assert.That(written.Status, Is.EqualTo(200), guess + ": " + written.Json);
+                Assert.That(written.Status, Is.EqualTo(200), guess + ": " + written.Document());
                 Assert.That(_saves, Is.EqualTo(saves + 1), guess + ": saves");
                 Assert.That(_entry.History.UCount, Is.EqualTo(revisions + 1), guess + ": revisions");
                 Assert.That(_entry.Strings.ReadSafe(PwDefs.PasswordField), Is.EqualTo(guess));
                 Assert.That(Written(written), Is.Not.Null.And.EqualTo(Handed(Send("GET", Entry(), null, null, profiles))), guess);
 
-                shapes.Add(string.Join(",", JObject.Parse(written.Json).Properties().Select(member => member.Name)));
+                shapes.Add(string.Join(
+                    ",", JObject.Parse(written.Document()).Properties().Select(member => member.Name)));
             }
 
             Assert.That(shapes[1], Is.EqualTo(shapes[0]), "the answer to a wrong guess and to a right guess");
@@ -353,13 +357,13 @@ namespace KeePassGate.Host.Tests
                 before,
                 profiles);
 
-            Assert.That(made.Status, Is.EqualTo(201), made.Json);
+            Assert.That(made.Status, Is.EqualTo(201), made.Document());
             Assert.That(_entry.Strings.Get("PIN").IsProtected, Is.True);
 
             var left = Written(made);
             Assert.That(left, Is.Not.Null.And.Not.EqualTo(before), "a name added is in every view");
             Assert.That(Handed(Send("GET", Entry(), null, null, profiles)), Is.EqualTo(left));
-            Assert.That(Send("GET", Entry(), null, null, profiles).Json, Does.Not.Contain("not-a-real-pin"));
+            Assert.That(Send("GET", Entry(), null, null, profiles).Document(), Does.Not.Contain("not-a-real-pin"));
 
             // Another value under the same name, set with nothing touched, is the same view.
             _entry.Strings.Set("PIN", new ProtectedString(true, "another-invented-pin, and longer"));
@@ -388,7 +392,7 @@ namespace KeePassGate.Host.Tests
 
             var written = Send(
                 "PUT", Entry() + "/fields/" + PwDefs.UserNameField, Bodies.Of(("value", "renamed")), first, Reads);
-            Assert.That(written.Status, Is.EqualTo(200), written.Json);
+            Assert.That(written.Status, Is.EqualTo(200), written.Document());
         }
 
         [TestCase(true, TestName = "A title the database protects, shown by a listing, is served by a read and covered by the tag")]
@@ -407,15 +411,15 @@ namespace KeePassGate.Host.Tests
             Assert.That(Listed(profiles), Is.EqualTo("an invented service"));
 
             var read = Send("GET", Entry(), null, null, profiles);
-            Assert.That(read.Status, Is.EqualTo(200), read.Json);
+            Assert.That(read.Status, Is.EqualTo(200), read.Document());
             Assert.That(Value(read, PwDefs.TitleField), Is.EqualTo("an invented service"));
             Assert.That(Value(read, PwDefs.PasswordField), Is.Null, "the password is still withheld");
-            Assert.That(read.Json, Does.Not.Contain("not-a-real-password"));
+            Assert.That(read.Document(), Does.Not.Contain("not-a-real-password"));
 
             var field = Send("GET", Entry() + "/fields/" + PwDefs.TitleField, null, null, profiles);
-            Assert.That((string)JObject.Parse(field.Json)["value"], Is.EqualTo("an invented service"));
+            Assert.That((string)JObject.Parse(field.Document())["value"], Is.EqualTo("an invented service"));
             var secret = Send("GET", Entry() + "/fields/" + PwDefs.PasswordField, null, null, profiles);
-            Assert.That(JObject.Parse(secret.Json)["value"].Type, Is.EqualTo(JTokenType.Null));
+            Assert.That(JObject.Parse(secret.Document())["value"].Type, Is.EqualTo(JTokenType.Null));
 
             var tag = Handed(read);
             Assert.That(tag, Is.Not.Null);
@@ -469,9 +473,9 @@ namespace KeePassGate.Host.Tests
             Assert.That(Send("GET", Entry() + "/fields/" + PwDefs.TitleField, null, null, profiles).Status, Is.EqualTo(404));
 
             var names = Send("GET", Entry() + "/fields", null, null, profiles);
-            Assert.That(names.Status, Is.EqualTo(200), names.Json);
+            Assert.That(names.Status, Is.EqualTo(200), names.Document());
             Assert.That(Handed(names), Is.Null);
-            Assert.That(names.Json, Does.Not.Contain("renamed by the operator"));
+            Assert.That(names.Document(), Does.Not.Contain("renamed by the operator"));
 
             // `read` with `protected` in one rule, as it always was: the read serves the title
             // and the password, and the tag moves with either.
@@ -553,7 +557,9 @@ namespace KeePassGate.Host.Tests
             var read = Send("GET", Entry(), null, null, profiles);
             Assert.That(Value(read, PwDefs.UrlField), Is.EqualTo(address));
             Assert.That(Value(read, PwDefs.PasswordField), Is.Null, "the password is still withheld");
-            Assert.That((string)JObject.Parse(Send("GET", field, null, null, profiles).Json)["value"], Is.EqualTo(address));
+            Assert.That(
+                (string)JObject.Parse(Send("GET", field, null, null, profiles).Document())["value"],
+                Is.EqualTo(address));
 
             var tag = Handed(read);
             Assert.That(Handed(Send("GET", field, null, null, profiles)), Is.EqualTo(tag));
@@ -581,7 +587,7 @@ namespace KeePassGate.Host.Tests
 
             saves = _saves;
             var blind = Send("PUT", field, Bodies.Of(("value", "https://invented.example/again")), null, profiles);
-            Assert.That(blind.Status, Is.EqualTo(200), blind.Json);
+            Assert.That(blind.Status, Is.EqualTo(200), blind.Document());
             Assert.That(_saves, Is.EqualTo(saves + 1));
         }
 
@@ -657,8 +663,8 @@ namespace KeePassGate.Host.Tests
         {
             var listing = Send("GET", path, null, null, profiles);
 
-            Assert.That(listing.Status, Is.EqualTo(200), listing.Json);
-            var shown = JObject.Parse(listing.Json)["entries"]
+            Assert.That(listing.Status, Is.EqualTo(200), listing.Document());
+            var shown = JObject.Parse(listing.Document())["entries"]
                 .Single(entry => (string)entry["uuid"] == _entry.Uuid.ToHexString());
 
             return (string)shown[member];
@@ -667,7 +673,7 @@ namespace KeePassGate.Host.Tests
         /// <summary>The value a read of the entry served for this string, or null.</summary>
         private static string Value(GateContext read, string name)
         {
-            return (string)JObject.Parse(read.Json)["fields"][name];
+            return (string)JObject.Parse(read.Document())["fields"][name];
         }
 
         /// <summary>The routes that answer about the entry, by a short name each.</summary>
@@ -698,7 +704,7 @@ namespace KeePassGate.Host.Tests
         {
             var read = Send("GET", Entry(), null, null, rules);
 
-            Assert.That(read.Status, Is.EqualTo(200), rules + ": " + read.Json);
+            Assert.That(read.Status, Is.EqualTo(200), rules + ": " + read.Document());
             return Handed(read);
         }
 
@@ -747,7 +753,7 @@ namespace KeePassGate.Host.Tests
         /// <summary>The tag a change answered with in its body, quotes and all, or null.</summary>
         private static string Written(GateContext answer)
         {
-            var etag = JObject.Parse(answer.Json)["etag"];
+            var etag = JObject.Parse(answer.Document())["etag"];
             return etag == null ? null : (string)etag;
         }
 
@@ -788,6 +794,10 @@ namespace KeePassGate.Host.Tests
                 new ServedDatabase(vault).PutOn(context);
 
                 _router.Handle(context);
+
+                // An answer written as it is sent is written here, as the transport writes it, so
+                // a read of an entry or of a field driven from here reads its values.
+                context.Document();
                 return context;
             }
         }

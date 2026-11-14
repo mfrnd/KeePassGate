@@ -1955,38 +1955,92 @@ namespace KeePassGate.Tests
         }
 
         [Test]
-        public void An_entry_over_the_ceiling_is_refused_without_its_strings_being_read()
+        public void An_entry_far_over_what_a_part_is_held_to_is_served_with_every_value_intact()
         {
-            // An entry's answer costs about four times its strings, all live at once, on each of
-            // thirty-two connections inside KeePass. Writes, KeePass or a merge can make an entry
-            // this large, so the refusal has to come before any value is read, which is why this
-            // counts the reads. Each string in sight is measured for it, once, and measuring is
-            // KeePass's own count, which can decrypt a value inside its own type the first time.
+            // A read of an entry was refused past half a megabyte of names and values, since its
+            // answer was built whole and cost several times that in memory. The answer is written
+            // as it is sent, a value at a time, so no read is refused for size: an entry of
+            // several times that number is served, each value as it is stored, and each value
+            // read a single time, as the answer is written.
             _vault.Granting(_group, AllButProtected);
-            _vault.Plant(_entry, "Big", new string('x', VaultHandlers.MaxEntryCharacters));
+            var big = new string('x', 4 * VaultHandlers.MaxPartCharacters);
+            var other = new string('y', VaultHandlers.MaxPartCharacters + 1);
+            _vault.Plant(_entry, "Big", big);
+            _vault.Plant(_entry, "Other", other);
 
             _vault.StringReads = 0;
-            _vault.StringMeasures = 0;
             var read = Get("/entries/" + _entry);
 
-            Assert.That(read.Status, Is.EqualTo(413));
-            Assert.That(
-                read.Json,
-                Does.Contain(VaultHandlers.MaxEntryCharacters.ToString(CultureInfo.InvariantCulture)),
-                "the refusal has to name the ceiling");
-            Assert.That(_vault.StringReads, Is.Zero,
-                "no value of an entry refused for its size is read to find that out");
-            Assert.That(_vault.StringMeasures, Is.EqualTo(_vault.Whole(_entry).Fields.Count),
-                "and each string in sight is measured once");
+            Assert.That(read.Status, Is.EqualTo(200));
+            Assert.That(read.Tag, Is.Not.Null);
+
+            var fields = Newtonsoft.Json.Linq.JObject.Parse(read.Json)["fields"];
+            Assert.That((string)fields["Big"] == big, Is.True, "the longest value came back other than it is stored");
+            Assert.That((string)fields["Other"] == other, Is.True, "a value came back other than it is stored");
+            Assert.That((string)fields["Title"], Is.EqualTo("an invented service"));
+            Assert.That(_vault.StringReads, Is.EqualTo(_vault.Whole(_entry).Fields.Count),
+                "each value is read where it is written, and nowhere else");
         }
 
+        [Test]
+        public void A_read_of_an_entry_reads_each_value_in_sight_a_single_time_and_no_withheld_value()
+        {
+            // The tag is taken from digests and reads nothing, so what is read is what the
+            // answer writes: each value in the caller's sight, where it is written, and never a
+            // value the caller's rule withholds.
+            _vault.CreateField(_entry, "Password", "not-a-real-password", true, VaultAskings.Free);
+            _vault.CreateField(_entry, "Account", "an invented account", false, VaultAskings.Free);
+            _vault.Granting(_group, Rules.Granting(("agent", "RL")));
+
+            _vault.StringReads = 0;
+            var narrow = Get("/entries/" + _entry);
+
+            Assert.That(narrow.Status, Is.EqualTo(200), narrow.Json);
+            Assert.That(narrow.Tag, Is.Not.Null);
+            Assert.That(
+                narrow.Json, Does.Contain("\"Account\":\"an invented account\"").And.Contain("\"Password\":null"));
+            Assert.That(_vault.StringReads, Is.EqualTo(2),
+                "`Title` and `Account` are in this caller's sight, and `Password` is not");
+
+            _vault.Granting(_group, Rules.Granting(("agent", "RLP")));
+            _vault.StringReads = 0;
+            var whole = Get("/entries/" + _entry);
+
+            Assert.That(whole.Json, Does.Contain("\"Password\":\"not-a-real-password\""));
+            Assert.That(_vault.StringReads, Is.EqualTo(3), "every value, each a single time");
+        }
+
+        [Test]
+        public void Asking_whether_an_entry_or_a_field_is_there_reads_no_value()
+        {
+            // A handler answering a read of an entry or of a field hands over what writes the
+            // values and reads none of them itself, and the transport does not run that for a
+            // HEAD, `HttpResponseTests`. So a HEAD is answered with the status and the tag a GET
+            // carries, with no value read anywhere.
+            _vault.Granting(_group, AllButProtected);
+            _vault.Plant(_entry, "Account", "an invented account");
+
+            foreach (var path in new[] { "/entries/" + _entry, "/entries/" + _entry + "/fields/Account" })
+            {
+                var got = Get(path);
+                Assume.That(got.Status, Is.EqualTo(200), path);
+                _vault.StringReads = 0;
+
+                var head = Send("HEAD", path, null);
+
+                Assert.That(head.Status, Is.EqualTo(200), path);
+                Assert.That(head.Tag, Is.EqualTo(got.Tag), path);
+                Assert.That(head.Json, Is.Empty, path);
+                Assert.That(_vault.StringReads, Is.Zero, path + " read a value for an answer with no content");
+            }
+        }
         [TestCase("L")]
         [TestCase("LA")]
         public void A_caller_that_only_lists_is_served_names_flags_and_sizes_and_no_value_is_read(string mask)
         {
             // The view of a caller without `read` holds no value of any string and no bytes of
             // any attachment, so the routes `list` opens serve what they always served, names,
-            // flags and sizes, and no value is read or measured for them. No tag either, since
+            // flags and sizes, and no value is read or digested for them. No tag either, since
             // that caller is handed none.
             _vault.Granting(_group, Rules.Granting(("agent", mask)));
             _vault.Plant(_entry, "Password", "not-a-real-password");
@@ -1994,7 +2048,7 @@ namespace KeePassGate.Tests
             var entry = "/entries/" + _entry;
 
             _vault.StringReads = 0;
-            _vault.StringMeasures = 0;
+            _vault.StringDigests = 0;
             _vault.AttachmentReads = 0;
 
             var fields = Get(entry + "/fields");
@@ -2019,58 +2073,42 @@ namespace KeePassGate.Tests
             Assert.That(Get(entry + "/fields/Title").Status, Is.EqualTo(404));
             Assert.That(Get(entry + "/attachments/notes.txt").Status, Is.EqualTo(404));
             Assert.That(_vault.StringReads, Is.Zero, "a value was read for a caller that only lists");
-            Assert.That(_vault.StringMeasures, Is.Zero, "a value was measured for a caller that only lists");
+            Assert.That(_vault.StringDigests, Is.Zero, "a value was digested for a caller that only lists");
             Assert.That(_vault.AttachmentReads, Is.Zero, "an attachment was read for a caller that only lists");
         }
 
         [Test]
-        public void An_entry_a_vault_hands_over_past_the_ceiling_is_still_refused()
+        public void A_field_far_over_what_a_part_is_held_to_is_served_whole_and_read_a_single_time()
         {
+            // A field's answer is written as it is sent, as an entry's is, so a value of any
+            // length is served, and the value asked for is the only value read.
             _vault.Granting(_group, AllButProtected);
-            _vault.Plant(_entry, "Big", new string('x', VaultHandlers.MaxEntryCharacters));
-            _vault.IgnoresCeiling = true;
-
-            // The view measured its strings short and handed them over whole, a value at a time.
-            _vault.StringReads = 0;
-            var read = Get("/entries/" + _entry);
-
-            Assert.That(_vault.StringReads, Is.EqualTo(_vault.Whole(_entry).Fields.Count),
-                "the vault handed them over, so this is the check of what came back");
-            Assert.That(read.Status, Is.EqualTo(413));
-            Assert.That(read.Json, Does.Not.Contain("xxxx"), "nothing of the entry is handed out");
-        }
-
-        [Test]
-        public void An_entry_at_the_ceiling_is_still_handed_out()
-        {
-            _vault.Granting(_group, AllButProtected);
-            var held = "Title".Length + "an invented service".Length + "Big".Length;
-            _vault.Plant(_entry, "Big", new string('x', VaultHandlers.MaxEntryCharacters - held));
-
-            Assert.That(Get("/entries/" + _entry).Status, Is.EqualTo(200));
-        }
-
-        [Test]
-        public void A_field_over_the_ceiling_is_refused_without_being_read()
-        {
-            _vault.Granting(_group, AllButProtected);
-            _vault.Plant(_entry, "Big", new string('x', VaultHandlers.MaxEntryCharacters));
+            var big = new string('x', 4 * VaultHandlers.MaxPartCharacters);
+            _vault.Plant(_entry, "Big", big);
             _vault.StringReads = 0;
 
             var read = Get("/entries/" + _entry + "/fields/Big");
 
-            Assert.That(read.Status, Is.EqualTo(413));
-            Assert.That(_vault.StringReads, Is.Zero);
-            Assert.That(Get("/entries/" + _entry + "/fields/Title").Status, Is.EqualTo(200),
-                "a field under it in the same entry is still read");
+            Assert.That(read.Status, Is.EqualTo(200));
+            Assert.That(read.Tag, Is.Not.Null);
+
+            var answer = Newtonsoft.Json.Linq.JObject.Parse(read.Json);
+            Assert.That((string)answer["name"], Is.EqualTo("Big"));
+            Assert.That((string)answer["value"] == big, Is.True, "the value came back other than it is stored");
+            Assert.That((bool)answer["protected"], Is.False);
+            Assert.That(_vault.StringReads, Is.EqualTo(1), "the value asked for, and no other value of the entry");
         }
 
-        [TestCase("/attachments/big.bin", "\"00000000000000000000000000000000\"", false, TestName = "An attachment over the ceiling asked for under a stale tag is too large")]
-        [TestCase("/attachments/big.bin", "*", true, TestName = "An attachment over the ceiling asked for under any tag beside a withheld value is too large")]
-        [TestCase("", "\"00000000000000000000000000000000\"", false, TestName = "An entry over the ceiling asked for under a stale tag is too large")]
-        [TestCase("/fields/Big", "\"00000000000000000000000000000000\"", false, TestName = "A field over the ceiling asked for under a stale tag is too large")]
-        public void A_read_over_the_ceiling_is_too_large_whatever_its_condition(
-            string under, string ifMatch, bool holdsProtected)
+        [TestCase(
+            "\"00000000000000000000000000000000\"",
+            false,
+            TestName = "An attachment over the ceiling asked for under a stale tag is too large")]
+        [TestCase(
+            "*",
+            true,
+            TestName = "An attachment over the ceiling asked for under any tag beside a withheld value is too large")]
+        public void An_attachment_over_the_ceiling_is_too_large_whatever_its_condition(
+            string ifMatch, bool holdsProtected)
         {
             // RFC 9110 section 13.2.1 asks the condition only of a request that would otherwise
             // succeed, and the size does not depend on the tag. Asked first, a stale tag was told
@@ -2082,48 +2120,67 @@ namespace KeePassGate.Tests
                 _vault.CreateField(_entry, "Password", "not-a-real-password", true, VaultAskings.Free);
             }
 
-            if (under.StartsWith("/attachments/", StringComparison.Ordinal))
-            {
-                Assume.That(_vault.CreateAttachment(
-                    _entry, "big.bin", new byte[VaultHandlers.MaxAttachmentBytes + 1], VaultAskings.Free).Ok, Is.True);
-            }
-            else
-            {
-                _vault.Plant(_entry, "Big", new string('x', VaultHandlers.MaxEntryCharacters));
-            }
+            Assume.That(_vault.CreateAttachment(
+                _entry, "big.bin", new byte[VaultHandlers.MaxAttachmentBytes + 1], VaultAskings.Free).Ok, Is.True);
 
-            var read = Conditioned("GET", "/entries/" + _entry + under, null, ifMatch);
+            var read = Conditioned("GET", "/entries/" + _entry + "/attachments/big.bin", null, ifMatch);
 
             Assert.That(read.Status, Is.EqualTo(413), read.Json);
         }
 
+        [TestCase("", TestName = "An entry asked for under a stale tag is refused with no value read")]
+        [TestCase("/fields/Big", TestName = "A field asked for under a stale tag is refused with no value read")]
+        public void A_read_whose_condition_fails_reads_no_value_for_an_answer(string under)
+        {
+            // The condition is asked of the tag, which is taken from digests, and it is asked
+            // before the answer is handed over. So a read refused by its condition has written
+            // nothing and read nothing, however much the entry holds, and the same read under
+            // the tag the entry has is served.
+            _vault.Granting(_group, AllButProtected);
+            _vault.Plant(_entry, "Big", new string('x', 2 * VaultHandlers.MaxPartCharacters));
+            var path = "/entries/" + _entry + under;
+            var tag = Get(path).Tag;
+            _vault.StringReads = 0;
+
+            var stale = Conditioned("GET", path, null, "\"00000000000000000000000000000000\"");
+
+            Assert.That(stale.Status, Is.EqualTo(412), stale.Json);
+            Assert.That(stale.Json, Does.Not.Contain("xxxx"), "nothing of the entry is handed out");
+            Assert.That(_vault.StringReads, Is.Zero, "a value was read for an answer that was refused");
+
+            var current = Conditioned("GET", path, null, tag);
+
+            Assert.That(current.Status, Is.EqualTo(200));
+            Assert.That(current.Json, Does.Contain("xxxx"));
+        }
+
         [Test]
-        public void A_write_taking_an_entry_over_the_ceiling_is_made_and_the_entry_is_then_read_field_by_field()
+        public void A_write_however_far_it_grows_an_entry_is_made_and_the_entry_still_reads_back_whole()
         {
             // No write is refused for what an entry's strings come to, since the refusal told a
-            // caller that may not read how long the values it was withheld were. The ceiling is
-            // a read's, so an entry written past it is refused whole and read a field at a time.
+            // caller that may not read how long the values it was withheld were. No read is
+            // refused for it either, so an entry grown past what a part of a listing is held to,
+            // a write at a time, is read back whole and a field at a time.
             _vault.Granting(_group, AllButProtected);
-            var room = VaultHandlers.MaxEntryCharacters - "Title".Length - "an invented service".Length;
-            _vault.Plant(_entry, "Filler", new string('x', room - "Filler".Length - "More".Length - 10));
+            _vault.Plant(_entry, "Filler", new string('x', VaultHandlers.MaxPartCharacters));
 
             Assert.That(Send("POST", "/entries/" + _entry + "/fields",
                 Bodies.Of(("name", "More"), ("value", new string('y', 10)))).Status, Is.EqualTo(201));
-            Assert.That(Get("/entries/" + _entry).Status, Is.EqualTo(200), "exactly the ceiling reads back whole");
-
             Assert.That(Send("PUT", "/entries/" + _entry + "/fields/More",
                 Bodies.Of(("value", new string('y', 11)))).Status, Is.EqualTo(200));
             Assert.That(Send("PUT", "/entries/" + _entry, "{\"Notes\":\"z\"}").Status, Is.EqualTo(200),
                 "an update naming a string the entry does not hold adds it");
             Assert.That(Send("POST", "/entries/" + _entry + "/fields",
                 Bodies.Of(("name", "Again"), ("value", "w"))).Status, Is.EqualTo(201));
-            Assert.That(_vault.Field(_entry, "More"), Is.EqualTo(new string('y', 11)));
-            Assert.That(_vault.Field(_entry, "Notes"), Is.EqualTo("z"));
 
             var whole = Get("/entries/" + _entry);
-            Assert.That(whole.Status, Is.EqualTo(413), "past the ceiling it is no longer handed out whole");
-            Assert.That(whole.Json, Does.Contain((VaultHandlers.MaxEntryCharacters + 1 + "Notes".Length + 1
-                + "Again".Length + 1).ToString(CultureInfo.InvariantCulture)));
+            Assert.That(whole.Status, Is.EqualTo(200), "an entry is handed out whole whatever its strings come to");
+
+            var fields = Newtonsoft.Json.Linq.JObject.Parse(whole.Json)["fields"];
+            Assert.That(((string)fields["Filler"]).Length, Is.EqualTo(VaultHandlers.MaxPartCharacters));
+            Assert.That((string)fields["More"], Is.EqualTo(new string('y', 11)));
+            Assert.That((string)fields["Notes"], Is.EqualTo("z"));
+            Assert.That((string)fields["Again"], Is.EqualTo("w"));
 
             Assert.That(Get("/entries/" + _entry + "/fields").Status, Is.EqualTo(200), "its names are listed");
             foreach (var name in new[] { "Title", "Filler", "More", "Notes", "Again" })
@@ -2133,39 +2190,46 @@ namespace KeePassGate.Tests
         }
 
         [Test]
-        public void A_read_is_measured_over_what_its_caller_is_handed()
+        public void A_withheld_value_is_served_as_null_however_long_it_is_and_is_never_read()
         {
-            // A protected string past the ceiling is no part of the answer to a caller that may
-            // not read protected values, so that caller is handed the entry, with the value as
-            // the `null` every withheld value is. A caller that reads protected values would be
-            // handed it, and is refused.
-            _vault.Plant(_entry, "Big", new string('x', VaultHandlers.MaxEntryCharacters));
+            // A protected string is no part of the answer to a caller that may not read
+            // protected values, whatever its length: that caller is handed the entry with the
+            // value as the `null` every withheld value is, and nothing reads or digests the
+            // value. A caller that reads protected values is handed it whole.
+            var big = new string('x', 4 * VaultHandlers.MaxPartCharacters);
+            _vault.Plant(_entry, "Big", big);
             _vault.Protect(_entry, "Big");
 
             _vault.Granting(_group, AllButProtected);
             _vault.StringReads = 0;
-            _vault.StringMeasures = 0;
+            _vault.StringDigests = 0;
             var narrow = Get("/entries/" + _entry);
 
             Assert.That(narrow.Status, Is.EqualTo(200), narrow.Json);
             Assert.That(narrow.Json, Does.Contain("\"Big\":null"));
             Assert.That(_vault.StringReads, Is.EqualTo(1), "the title, and nothing of the withheld value");
-            Assert.That(_vault.StringMeasures, Is.EqualTo(1), "the title, and the withheld value is not measured either");
+            Assert.That(
+                _vault.StringDigests, Is.EqualTo(1), "the title, and the withheld value is not digested either");
 
-            _vault.StringMeasures = 0;
+            _vault.StringReads = 0;
             var field = Get("/entries/" + _entry + "/fields/Big");
-            Assert.That(field.Status, Is.EqualTo(200), "a withheld value is answered as withheld, never as too large");
+            Assert.That(field.Status, Is.EqualTo(200));
             Assert.That(field.Json, Is.EqualTo("{\"name\":\"Big\",\"value\":null,\"protected\":true}"));
-            Assert.That(_vault.StringMeasures, Is.Zero, "a withheld field is answered with nothing measured");
+            Assert.That(_vault.StringReads, Is.Zero, "a withheld field is answered with nothing read");
 
             _vault.Granting(_group, Rules.Granting(("agent", "CRUSDLAP")));
-            _vault.StringReads = 0;
 
-            Assert.That(Get("/entries/" + _entry).Status, Is.EqualTo(413));
-            Assert.That(Get("/entries/" + _entry + "/fields/Big").Status, Is.EqualTo(413));
-            Assert.That(_vault.StringReads, Is.Zero, "and no value is read or digested for either refusal");
+            var whole = Get("/entries/" + _entry);
+            Assert.That(whole.Status, Is.EqualTo(200));
+            Assert.That(
+                (string)Newtonsoft.Json.Linq.JObject.Parse(whole.Json)["fields"]["Big"] == big,
+                Is.True,
+                "a caller reading protected values is handed the value as it is stored");
+
+            var single = Get("/entries/" + _entry + "/fields/Big");
+            Assert.That(single.Status, Is.EqualTo(200));
+            Assert.That((string)Newtonsoft.Json.Linq.JObject.Parse(single.Json)["value"] == big, Is.True);
         }
-
         [TestCase("L")]
         [TestCase("RL")]
         public void A_listing_of_fields_past_what_an_answer_hands_out_is_served_in_parts(string mask)
@@ -2174,8 +2238,8 @@ namespace KeePassGate.Tests
             // name, so the names alone can pass what an answer hands out. Refused for that, the
             // listing left such an entry with no route naming its strings. So it is served in
             // parts, for a caller that reads as for a caller that only lists: each part within
-            // the ceiling by what it writes, each naming where the part after it starts, and
-            // every field in a single part.
+            // what a part is held to by what it writes, each naming where the part after it
+            // starts, and every field in a single part.
             _vault.Granting(_group, Rules.Granting(("agent", mask)));
             var planted = new List<string> { "Title" };
             for (var index = 0; index < 2500; index++)
@@ -2185,13 +2249,13 @@ namespace KeePassGate.Tests
                 planted.Add(numbered);
             }
 
-            Assume.That(planted.Sum(name => name.Length), Is.GreaterThan(2 * VaultHandlers.MaxEntryCharacters));
+            Assume.That(planted.Sum(name => name.Length), Is.GreaterThan(2 * VaultHandlers.MaxPartCharacters));
 
             var whole = Get("/entries/" + _entry);
             Assert.That(
                 whole.Status,
-                Is.EqualTo(mask == "L" ? 404 : 413),
-                "past the ceiling by its names alone, for a caller that may read the entry at all");
+                Is.EqualTo(mask == "L" ? 404 : 200),
+                "a read of the entry is held to no size, for a caller that may read the entry at all");
 
             var listed = new List<string>();
             var parts = 0;
@@ -2210,7 +2274,7 @@ namespace KeePassGate.Tests
                 Assert.That(names, Is.Not.Empty);
                 Assert.That(
                     names.Sum(name => name.Length + 32),
-                    Is.LessThanOrEqualTo(VaultHandlers.MaxEntryCharacters),
+                    Is.LessThanOrEqualTo(VaultHandlers.MaxPartCharacters),
                     "a part is held to what it writes");
                 listed.AddRange(names);
 
@@ -2247,9 +2311,9 @@ namespace KeePassGate.Tests
         {
             // Very many short names come to little, and the item each is written in is ten times
             // a name of three characters. Counted by its names, such a listing was one answer of
-            // several times the ceiling.
+            // several times what a part is held to.
             _vault.Granting(_group, Rules.Granting(("agent", "L")));
-            var fields = (VaultHandlers.MaxEntryCharacters / 35) + 50;
+            var fields = (VaultHandlers.MaxPartCharacters / 35) + 50;
             for (var index = 0; index < fields; index++)
             {
                 _vault.Plant(_entry, index.ToString("x5", CultureInfo.InvariantCulture), string.Empty);
@@ -2259,8 +2323,8 @@ namespace KeePassGate.Tests
 
             Assert.That(first.Status, Is.EqualTo(200), first.Json);
             var answer = Newtonsoft.Json.Linq.JObject.Parse(first.Json);
-            Assert.That(answer["next"], Is.Not.Null, "the names come to under the ceiling, and the items do not");
-            Assert.That(first.Json.Length, Is.LessThan(VaultHandlers.MaxEntryCharacters + 1024));
+            Assert.That(answer["next"], Is.Not.Null, "the names come to under a part, and the items do not");
+            Assert.That(first.Json.Length, Is.LessThan(VaultHandlers.MaxPartCharacters + 1024));
         }
 
         [Test]
@@ -2269,7 +2333,7 @@ namespace KeePassGate.Tests
             // A name KeePass or an import left longer than a whole part: the part that reaches it
             // holds it and nothing else, so asking for the part after it moves on.
             _vault.Granting(_group, Rules.Granting(("agent", "L")));
-            _vault.Plant(_entry, new string('a', VaultHandlers.MaxEntryCharacters + 10), "v");
+            _vault.Plant(_entry, new string('a', VaultHandlers.MaxPartCharacters + 10), "v");
             _vault.Plant(_entry, "b", "v");
 
             var first = Newtonsoft.Json.Linq.JObject.Parse(Get("/entries/" + _entry + "/fields").Json);
@@ -2356,17 +2420,6 @@ namespace KeePassGate.Tests
 
                 Assert.That(part.Status, Is.EqualTo(404), from);
             }
-        }
-
-        [Test]
-        public void Stripping_a_field_is_how_an_entry_over_the_ceiling_comes_back_under()
-        {
-            _vault.Granting(_group, AllButProtected);
-            _vault.Plant(_entry, "Big", new string('x', VaultHandlers.MaxEntryCharacters));
-            Assume.That(Get("/entries/" + _entry).Status, Is.EqualTo(413));
-
-            Assert.That(Send("DELETE", "/entries/" + _entry + "/fields/Big", null).Status, Is.EqualTo(200));
-            Assert.That(Get("/entries/" + _entry).Status, Is.EqualTo(200));
         }
 
         [Test]
@@ -2550,7 +2603,7 @@ namespace KeePassGate.Tests
                 _router.Handle(context);
 
                 Assert.That(context.Status, Is.EqualTo(401), request[0] + " " + request[1]);
-                Assert.That(context.Json, Is.EqualTo("{\"error\":\"unpaired\"}"), request[0] + " " + request[1]);
+                Assert.That(context.Document(), Is.EqualTo("{\"error\":\"unpaired\"}"), request[0] + " " + request[1]);
             }
         }
 
@@ -2634,8 +2687,10 @@ namespace KeePassGate.Tests
             var whole = Context("GET", entry, null);
             router.Handle(whole);
 
-            Assert.That(whole.Status, Is.EqualTo(200), whole.Json);
-            Assert.That(whole.Json, Does.Contain("\"Title\":\"an invented service\"").And.Contain("\"Password\":null"));
+            Assert.That(whole.Status, Is.EqualTo(200), whole.Document());
+            Assert.That(
+                whole.Document(),
+                Does.Contain("\"Title\":\"an invented service\"").And.Contain("\"Password\":null"));
             Assert.That(audit.Entries.Count, Is.EqualTo(2), "the read was granted and a value in it was not");
             Assert.That(audit.Entries[0].Permitted, Is.True);
             Assert.That(audit.Entries[1].Permitted, Is.False);
@@ -2645,7 +2700,7 @@ namespace KeePassGate.Tests
             var secret = Context("GET", entry + "/fields/Password", null);
             router.Handle(secret);
 
-            Assert.That(secret.Status, Is.EqualTo(200), secret.Json);
+            Assert.That(secret.Status, Is.EqualTo(200), secret.Document());
             Assert.That(audit.Entries.Count, Is.EqualTo(4));
             Assert.That(audit.Entries[3].Permitted, Is.False);
             Assert.That(audit.Entries[3].OperationId, Is.EqualTo("readField"));
@@ -2654,10 +2709,39 @@ namespace KeePassGate.Tests
             var title = Context("GET", entry + "/fields/Title", null);
             router.Handle(title);
 
-            Assert.That(title.Status, Is.EqualTo(200), title.Json);
-            Assert.That(title.Json, Does.Contain("\"value\":\"an invented service\""));
+            Assert.That(title.Status, Is.EqualTo(200), title.Document());
+            Assert.That(title.Document(), Does.Contain("\"value\":\"an invented service\""));
             Assert.That(audit.Entries.Count, Is.EqualTo(5), "the view served the title, so nothing was withheld to write down");
             Assert.That(audit.Entries[4].Permitted, Is.True);
+        }
+
+        [TestCase("", "readEntry", "\"Password\":null")]
+        [TestCase("/fields/Password", "readField", "\"value\":null")]
+        public void The_line_for_a_withheld_value_is_written_before_any_of_the_answer_is(
+            string under, string operation, string withheld)
+        {
+            // The answer to a read of an entry or of a field is written as it is sent, and
+            // nothing can be written down once its content is going out. So the line for a
+            // value the view withholds is on record when the handler hands the answer over,
+            // with nothing of the answer written, and writing the answer records nothing more.
+            var audit = new RecordingAudit();
+            var router = GateOperations.Router("9.9.9", null, new AccessCheck(audit));
+            _vault.CreateField(_entry, "Password", "not-a-real-password", true, VaultAskings.Free);
+            _vault.Granting(_group, Rules.Granting(("agent", "RL")));
+
+            var context = Context("GET", "/entries/" + _entry + under, null);
+            router.Handle(context);
+
+            Assert.That(context.Status, Is.EqualTo(200));
+            Assert.That(context.Content, Is.Not.Null, "the answer is handed over as what writes it");
+            Assert.That(context.Json, Is.Null, "and not as a document made already");
+            Assert.That(audit.Entries.Count, Is.EqualTo(2), "the read was granted and a value in it was not");
+            Assert.That(audit.Entries[1].Permitted, Is.False);
+            Assert.That(audit.Entries[1].OperationId, Is.EqualTo(operation));
+            Assert.That(audit.Entries[1].Reason, Is.EqualTo(NoProtectedReach));
+
+            Assert.That(context.Document(), Does.Contain(withheld));
+            Assert.That(audit.Entries.Count, Is.EqualTo(2), "writing the answer records nothing further");
         }
 
         [Test]
@@ -2676,7 +2760,7 @@ namespace KeePassGate.Tests
             var context = Withholding(operation);
             router.Handle(context);
 
-            Assert.That(context.Status, Is.EqualTo(404), context.Json);
+            Assert.That(context.Status, Is.EqualTo(404), context.Document());
             Assert.That(audit.Entries.Count, Is.EqualTo(2), "the route was granted and the value was not");
             Assert.That(audit.Entries[0].Permitted, Is.True);
             Assert.That(audit.Entries[1].Permitted, Is.False);
@@ -2701,7 +2785,7 @@ namespace KeePassGate.Tests
             var context = Context("DELETE", "/entries/" + _entry + "/fields/PIN", null);
             router.Handle(context);
 
-            Assert.That(context.Status, Is.EqualTo(404), context.Json);
+            Assert.That(context.Status, Is.EqualTo(404), context.Document());
             Assert.That(_vault.Field(_entry, "PIN"), Is.EqualTo("not-a-real-secret"));
             Assert.That(audit.Entries.Count, Is.EqualTo(2), "the strip was granted and the guard refused it");
             Assert.That(audit.Entries[0].Permitted, Is.True);
@@ -2726,8 +2810,8 @@ namespace KeePassGate.Tests
             var context = Context("GET", "/entries/" + _entry, null);
             router.Handle(context);
 
-            Assert.That(context.Status, Is.EqualTo(200), context.Json);
-            Assert.That(context.Json, Does.Contain("\"Password\":null"));
+            Assert.That(context.Status, Is.EqualTo(200), context.Document());
+            Assert.That(context.Document(), Does.Contain("\"Password\":null"));
             Assert.That(audit.Entries.Count, Is.EqualTo(2), "the read was granted and two values were withheld in it");
             Assert.That(audit.Entries[0].Permitted, Is.True);
             Assert.That(audit.Entries[1].Permitted, Is.False);
@@ -2749,14 +2833,14 @@ namespace KeePassGate.Tests
             var title = Context("GET", "/entries/" + _entry + "/fields/Title", null);
             router.Handle(title);
 
-            Assert.That(title.Status, Is.EqualTo(200), title.Json);
+            Assert.That(title.Status, Is.EqualTo(200), title.Document());
             Assert.That(audit.Entries.Count, Is.EqualTo(1), "nothing was withheld from it");
 
             var password = Context("GET", "/entries/" + _entry + "/fields/Password", null);
             router.Handle(password);
 
-            Assert.That(password.Status, Is.EqualTo(200), password.Json);
-            Assert.That(password.Json, Does.Contain("\"value\":null"));
+            Assert.That(password.Status, Is.EqualTo(200), password.Document());
+            Assert.That(password.Document(), Does.Contain("\"value\":null"));
             Assert.That(audit.Entries.Count, Is.EqualTo(3), "and this read withheld its value");
             Assert.That(audit.Entries[1].Permitted, Is.True);
             Assert.That(audit.Entries[2].Permitted, Is.False);
@@ -2781,8 +2865,8 @@ namespace KeePassGate.Tests
             var context = Context("GET", "/entries/" + _entry, null);
             router.Handle(context);
 
-            Assert.That(context.Status, Is.EqualTo(200), context.Json);
-            Assert.That(context.Json, Does.Contain("\"Password\":null"));
+            Assert.That(context.Status, Is.EqualTo(200), context.Document());
+            Assert.That(context.Document(), Does.Contain("\"Password\":null"));
             Assert.That(audit.Entries.Count, Is.EqualTo(2));
             Assert.That(audit.Entries[1].Permitted, Is.False);
             Assert.That(audit.Entries[1].Reason, Is.EqualTo(AccessCheck.ProfileRemoved));
@@ -2810,8 +2894,8 @@ namespace KeePassGate.Tests
             var context = Context("GET", path, null);
             router.Handle(context);
 
-            Assert.That(context.Status, Is.EqualTo(200), context.Json);
-            Assert.That(context.Json, Does.Contain(route == "field" ? "\"value\":null" : "\"Title\":null"));
+            Assert.That(context.Status, Is.EqualTo(200), context.Document());
+            Assert.That(context.Document(), Does.Contain(route == "field" ? "\"value\":null" : "\"Title\":null"));
             Assert.That(audit.Entries.Count, Is.EqualTo(2), "still one line for the value withheld");
             Assert.That(audit.Entries[1].Permitted, Is.False);
             Assert.That(audit.Entries[1].Reason, Is.EqualTo(AccessCheck.ProfileRemoved));
@@ -2834,7 +2918,7 @@ namespace KeePassGate.Tests
             var context = Context("GET", "/entries/" + _entry, null);
             router.Handle(context);
 
-            Assert.That(context.Status, Is.EqualTo(200), context.Json);
+            Assert.That(context.Status, Is.EqualTo(200), context.Document());
             Assert.That(audit.Entries.Count, Is.EqualTo(2));
             Assert.That(audit.Entries[1].Reason, Is.EqualTo(NoProtectedReach));
             Assert.That(audit.Entries[1].RemovedProfiles, Is.Null.Or.Empty);
@@ -3260,8 +3344,8 @@ namespace KeePassGate.Tests
             router.Handle(read);
             router.Handle(write);
 
-            Assert.That(read.Status, Is.EqualTo(503), read.Json);
-            Assert.That(read.Json, Is.EqualTo("{\"error\":\"locked\"}"));
+            Assert.That(read.Status, Is.EqualTo(503), read.Document());
+            Assert.That(read.Document(), Is.EqualTo("{\"error\":\"locked\"}"));
             Assert.That(write.Status, Is.EqualTo(503), "a write meets it here as a read does, before anything was attempted");
             Assert.That(audit.Entries, Is.Empty);
         }
@@ -3279,7 +3363,7 @@ namespace KeePassGate.Tests
             var context = Context("GET", "/entries/" + new string('a', 32), null);
             router.Handle(context);
 
-            Assert.That(context.Status, Is.EqualTo(404), context.Json);
+            Assert.That(context.Status, Is.EqualTo(404), context.Document());
             Assert.That(audit.Entries.Count, Is.EqualTo(1));
             Assert.That(audit.Entries[0].Permitted, Is.False);
             Assert.That(audit.Entries[0].Node, Is.Null);
@@ -3288,28 +3372,33 @@ namespace KeePassGate.Tests
         [Test]
         public void Reading_one_field_reads_the_values_in_its_caller_s_sight_and_no_value_out_of_it()
         {
-            // The view of an entry reads a value when that value is asked for. A field read is
-            // answered with the entry's tag, which every caller reaching the route is handed, and
-            // the tag asks for every value in that caller's sight: the string asked about and
-            // the other open strings, each once. A value the caller's rule withholds is never
-            // read, for the answer or for the tag.
+            // The view of an entry reads a value when that value is asked for, which is as the
+            // answer is written: the string asked about, and no other. A field read is answered
+            // with the entry's tag, which every caller reaching the route is handed, and the
+            // tag asks for the digest of every value in that caller's sight: the string asked
+            // about and the other open strings. A value the caller's rule withholds is never
+            // read or digested, for the answer or for the tag.
             _vault.CreateField(_entry, "Password", "not-a-real-password", true, VaultAskings.Free);
             _vault.CreateField(_entry, "Account", "an invented account", false, VaultAskings.Free);
             _vault.CreateField(_entry, "PIN", "not-a-real-pin", true, VaultAskings.Free);
             _vault.Granting(_group, Rules.Granting(("agent", "RL")));
             _vault.StringReads = 0;
+            _vault.StringDigests = 0;
 
             var answer = Get("/entries/" + _entry + "/fields/Title");
 
             Assert.That(answer.Status, Is.EqualTo(200), answer.Json);
             Assert.That(answer.Tag, Is.Not.Null);
-            Assert.That(_vault.StringReads, Is.EqualTo(2),
+            Assert.That(_vault.StringReads, Is.EqualTo(1), "`Title`, which is the value the answer writes");
+            Assert.That(_vault.StringDigests, Is.EqualTo(2),
                 "`Title` and `Account` are in this caller's sight, and `Password` and `PIN` are not");
 
-            // And a field read refused before the tag reads nothing at all.
+            // And a field read refused before the tag reads and digests nothing at all.
             _vault.StringReads = 0;
+            _vault.StringDigests = 0;
             Assert.That(Get("/entries/" + _entry + "/fields/Absent").Status, Is.EqualTo(404));
             Assert.That(_vault.StringReads, Is.Zero);
+            Assert.That(_vault.StringDigests, Is.Zero);
         }
 
         [Test]
@@ -3455,7 +3544,7 @@ namespace KeePassGate.Tests
 
             _router.Handle(context);
 
-            Assert.That(context.Status, Is.EqualTo(404), context.Json);
+            Assert.That(context.Status, Is.EqualTo(404), context.Document());
         }
 
         [Test]
@@ -3697,9 +3786,13 @@ namespace KeePassGate.Tests
             new ServedDatabase(_vault, null, _log).PutOn(context);
 
             _router.Handle(context);
-            Declared(method, path, context.Status, context.Json ?? string.Empty);
 
-            return new Answer(context.Status, context.Json, context.Headers);
+            // An answer written as it is sent is written here, as the transport writes it, so
+            // every read of an entry or of a field driven from here reads its values.
+            var json = context.Document();
+            Declared(method, path, context.Status, json ?? string.Empty);
+
+            return new Answer(context.Status, json, context.Headers);
         }
 
         /// <summary>

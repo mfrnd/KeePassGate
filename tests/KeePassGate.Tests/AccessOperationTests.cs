@@ -268,7 +268,8 @@ namespace KeePassGate.Tests
             var context = Context(method, path, profiles);
             _router.Handle(context);
 
-            return new Answer(context.Status, context.Json);
+            // A read of an entry is answered with what writes it, so it is written here.
+            return new Answer(context.Status, context.Document());
         }
 
         private GateContext Context(string method, string path, params string[] profiles)
