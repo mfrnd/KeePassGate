@@ -188,6 +188,13 @@ namespace KeePassGate.Host.Tests.Live
         /// Builds the installation. The KeePass to copy is the one this test assembly was built
         /// against, so the live test and the in process tests can never drift onto two builds.
         /// </summary>
+        /// <remarks>
+        /// **Unless another KeePass was named to run in**, `KeePassDev.RunInVariable`, which is
+        /// how the plugin as built is run in a KeePass released after it. The plugin installed is
+        /// the build beside the tests either way, and everything this class writes and reads
+        /// back, the database among it, goes through the KeePassLib the tests were built against,
+        /// in this process: the KeePass copied is only ever started.
+        /// </remarks>
         public static ThrowawayKeePass Create(string workingDirectory)
         {
             return Create(workingDirectory, false);
@@ -212,7 +219,7 @@ namespace KeePassGate.Host.Tests.Live
             var root = Paths.Join(workingDirectory, "keepass");
             Directory.CreateDirectory(root);
 
-            var source = KeePassDev.Directory;
+            var source = KeePassDev.SourceDirectory;
             foreach (var name in RequiredFiles)
             {
                 var from = Paths.Join(source, name);

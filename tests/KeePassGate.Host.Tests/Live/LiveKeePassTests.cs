@@ -197,8 +197,21 @@ namespace KeePassGate.Host.Tests.Live
         /// <summary>The same, with KeePass's own inactivity lock set, for the fixture that runs it.</summary>
         public static LiveSession Begin(bool withAuthority, int lockAfterSeconds)
         {
+            // Which KeePass the session copies is settled before anything is made. Left to itself
+            // the tier runs in the KeePass it was built against and ignores itself over any other,
+            // and a KeePass named to run in is taken whatever its release, which is what naming it
+            // asked for.
             string reason;
-            if (!KeePassDev.MatchesTheAssemblyUnderTest(out reason))
+            if (KeePassDev.RunInDirectory != null)
+            {
+                if (!KeePassDev.NamedToRunInIsThere(out reason))
+                {
+                    Assert.Fail(reason);
+                }
+
+                TestContext.Progress.WriteLine(reason);
+            }
+            else if (!KeePassDev.MatchesTheAssemblyUnderTest(out reason))
             {
                 Assert.Ignore(reason);
             }
