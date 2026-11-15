@@ -725,7 +725,6 @@ def test_pairing_from_the_command_line_passes_on_what_it_was_given(
             "connection_timeout": transport.PAIRING_CONNECTION_TIMEOUT,
             "host": "gate.invalid",
             "dial": transport.create_connection,
-            "max_response_bytes": transport.MAX_RESPONSE_BYTES,
         }
     ]
     assert handler.asked is not None
@@ -965,7 +964,7 @@ def test_naming_the_identity_twice_is_an_argument_error(tmp_path: Path) -> None:
         "--retry-busy-timeout",
         "--retry-locked-timeout",
         "--retry-undecided-timeout",
-        "--max-response-bytes",
+        "--max-response-kilobytes",
     ],
 )
 def test_identity_takes_no_option_about_a_connection_it_never_makes(

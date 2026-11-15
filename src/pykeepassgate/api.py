@@ -57,12 +57,13 @@ from .pairing import (
     refuse_unusable,
 )
 from .transport import (
+    BOUNDED_RESPONSE_KILOBYTES,
     DEFAULT_CONNECTION_TIMEOUT,
     DEFAULT_RETRY_BUSY_TIMEOUT,
     DEFAULT_RETRY_LOCKED_TIMEOUT,
     DEFAULT_RETRY_UNDECIDED_TIMEOUT,
     LOOPBACK,
-    MAX_RESPONSE_BYTES,
+    MAX_RESPONSE_KILOBYTES,
     PAIRING_CONNECTION_TIMEOUT,
     Dial,
     KeyPassword,
@@ -74,10 +75,10 @@ from .transport import (
     key_password_limit,
     key_secret,
     port_number,
-    response_limit,
 )
 
 __all__ = [
+    "BOUNDED_RESPONSE_KILOBYTES",
     "DEFAULT_CONNECTION_TIMEOUT",
     "DEFAULT_PORT",
     "DEFAULT_RETRY_BUSY_TIMEOUT",
@@ -85,7 +86,7 @@ __all__ = [
     "DEFAULT_RETRY_UNDECIDED_TIMEOUT",
     "LONGEST_LIFETIME",
     "LOOPBACK",
-    "MAX_RESPONSE_BYTES",
+    "MAX_RESPONSE_KILOBYTES",
     "PAIRING_CONNECTION_TIMEOUT",
     "ROOT",
     "SHORTEST_LIFETIME",
@@ -164,7 +165,6 @@ def pair(
     retry_locked_timeout: float | None = DEFAULT_RETRY_LOCKED_TIMEOUT,
     retry_undecided_timeout: float | None = DEFAULT_RETRY_UNDECIDED_TIMEOUT,
     allow_shared_directory: bool = False,
-    max_response_bytes: int = MAX_RESPONSE_BYTES,
     lifetime: timedelta | None = None,
     key_password: KeyPassword | None = None,
 ) -> Credentials:
@@ -212,7 +212,6 @@ def pair(
     # which `Retry` holds to the same rule, and a key password that is none.
     port_number(port)
     connection_limit(connection_timeout)
-    response_limit(max_response_bytes)
     dial_limit(dial)
     host_limit(host, dial)
     if lifetime is not None:
@@ -244,7 +243,6 @@ def pair(
                 connection_timeout=connection_timeout,
                 host=host,
                 dial=dial,
-                max_response_bytes=max_response_bytes,
             )
 
             try:

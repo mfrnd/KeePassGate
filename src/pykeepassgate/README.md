@@ -174,11 +174,11 @@ catches whatever this client raises of its own and nothing the standard library 
 | `AmbiguousName` | A name only KeePass's own comparison can match: an entry's standard strings, `password` among them, when the entry holds the string under no name spelled exactly so beside a name beyond ASCII or with a null in it that KeePass may read as it, and a placeholder naming a field only in another case beyond ASCII. Never an empty string in its place. |
 | `IncompatibleGate` | This client does not work with the gate's version: another major version, or a minor version this client is ahead of. Raised before anything else is sent, naming both versions, which are `.client` and `.gate` as well. Update whichever half is behind. |
 | `MalformedToken` | The text handed over is not an invitation, so nothing was sent. Check what was pasted. |
-| `ProtocolError` | Something on the wire is not what the protocol allows: an answer this client cannot read, or a request it will not send. Do not retry an answer it cannot read: the two halves disagree about the wire, which `tests/pykeepassgate/test_protocol.py` exists to stop. An answer longer than `max_response_bytes` is refused this way too, and the message says so: raise the setting rather than retry. |
+| `ProtocolError` | Something on the wire is not what the protocol allows: an answer this client cannot read, or a request it will not send. Do not retry an answer it cannot read: the two halves disagree about the wire, which `tests/pykeepassgate/test_protocol.py` exists to stop. An answer longer than the `max_response_kilobytes` it was read under is refused this way too, and the message names the setting: raise it, for that read or for the client, rather than retry. |
 | `NotPaired` | Nothing is stored for a paired client where this looked: nothing has paired under that profile, its identity was given up, or the directory named is not the one the pairing used. Pair, or name the profile or the directory it used. A `StorageError`, so catching that catches this as well. |
 | `StorageError` | From `pair`, before anything is sent: the directory cannot hold credentials, and the message says why. Nothing is spent, so fix that and pair again. Afterwards: what is stored for this client will not read, or could not be written, and the message names the file or the directory to look at. A key stored under a password is one of these when no password was given, or the one given does not open it. |
 | `TransportError` | No whole answer arrived: nothing is listening, the socket a `dial` handed back could not be used, closed or never connected, the handshake failed, as below, or the connection broke or timed out once the request was on its way. After a read, send it again. After a write, the change may have landed, so look before sending it again: read or list what it changed, where the rules allow that, or ask the operator. |
-| `ValueError` | A setting or an argument that could not work, refused where it is given and before anything is dialed, stored or spent: a port, a host, a timeout, a retry budget, a response cap, a lifetime, a profile's name, an expiry, a key password or a `dial`. The message names it. |
+| `ValueError` | A setting or an argument that could not work, refused where it is given and before anything is dialed, stored or spent: a port, a host, a timeout, a retry budget, a response limit, a lifetime, a profile's name, an expiry, a key password or a `dial`. The message names it. |
 | `AttributeError` | Something this client never read: a listed entry's `username`, `password`, `notes`, `protected`, `expires` or `custom()`, a listed group's `notes`, a listed field's `value`, a listed attachment's `content`, a listed group's or entry's `etag`. Read it first. Also the `etag` of an answer the gate gave no tag for, because this client holds no `read` on the node, which the message names. Never raised for a withheld value. |
 | `KeyError` | A name `entry.fields` or `entry.custom()` does not hold, as from any mapping. |
 | `TypeError` | A `dial` that handed back something other than a connected stream socket, such as a datagram socket, which is a mistake in the program's own `dial`; what it handed back is closed first, if it can be. A socket it handed back already closed or never connected is a `TransportError`, whose message is that the socket could not be used rather than that a handshake failed. |
@@ -194,13 +194,15 @@ longer than ninety days, which unlocking it in KeePass mends.
 [`docs/pykeepassgate.md`](https://github.com/mfrnd/KeePassGate/blob/master/docs/pykeepassgate.md)
 gives the other reasons.
 
-**An answer over 4 MiB fails whole with `ProtocolError`** rather than arriving cut short, and
-asking again reads the same answer to the same cap. The plugin serves a listing of groups, of
-entries or of an entry's fields whole and an entry or an attachment at any size, so an answer
-grows with the database, and a very large database or entry can need more, and so can an
-attachment of 3 MiB or more, which arrives as base64, four thirds of its size:
-`max_response_bytes=` on the client, or `--max-response-bytes` on the command line, raises it, and
-the message names both.
+**A read's answer over 4096 kilobytes fails whole with `ProtocolError`** rather than arriving cut
+short, and asking again reads the same answer to the same limit. The plugin serves a listing of
+groups, of entries or of an entry's fields whole and an entry or an attachment at any size, so
+an answer grows with the database, and a very large database or entry can need more, and so can
+an attachment of 3 MiB or more, which arrives as base64, four thirds of its size:
+`max_response_kilobytes=` on the read that needs it or on the client, or
+`--max-response-kilobytes` on the command line, raises it, and the message names them. A
+kilobyte is 1024 bytes. Pairing, a renewal, the status and the answer to a write have a bounded
+shape and are read under a limit of their own, so no setting can stop them.
 
 ## Test a program built on it
 

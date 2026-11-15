@@ -19,9 +19,16 @@ from typing import Any
 
 import pytest
 
-from pykeepassgate import refs
+from pykeepassgate import refs, transport
 from pykeepassgate.client import GateClient
-from pykeepassgate.errors import AmbiguousName, GateBusy, RouteRefused, Unresolved, Withheld
+from pykeepassgate.errors import (
+    AmbiguousName,
+    GateBusy,
+    ProtocolError,
+    RouteRefused,
+    Unresolved,
+    Withheld,
+)
 from pykeepassgate.model import Entry
 from pykeepassgate.testing import FakeGate
 from test_reference import REPOSITORY
@@ -68,9 +75,15 @@ class Database:
         self._entries = {entry["uuid"].upper(): entry for entry in entries}
         self.asked: list[str] = []
 
-    def entry(self, uuid: str) -> Entry:
+        #: How much of its answer each read was told to take, in the order of `asked`.
+        self.limits: list[object] = []
+
+    def entry(
+        self, uuid: str, *, max_response_kilobytes: int | transport.Keep = transport.KEEP
+    ) -> Entry:
         """One entry by identifier in either case, or the `404` the gate gives anything else."""
         self.asked.append(uuid)
+        self.limits.append(max_response_kilobytes)
         found = self._entries.get(uuid.upper())
         if found is None:
             raise RouteRefused(404, "no such route")
@@ -280,7 +293,9 @@ def test_a_reference_to_an_entry_this_client_cannot_read_names_the_reference() -
 def test_any_other_refusal_on_the_way_is_the_one_the_gate_gave() -> None:
     # Not the reference's fault: whatever a read would raise anywhere, it raises here.
     class Busy:
-        def entry(self, uuid: str) -> Entry:
+        def entry(
+            self, uuid: str, *, max_response_kilobytes: int | transport.Keep = transport.KEEP
+        ) -> Entry:
             raise GateBusy("the gate cannot serve this right now")
 
     entry = Entry.read(answer(SERVICE, {"Title": "Invented Service"}))
@@ -291,7 +306,9 @@ def test_any_other_refusal_on_the_way_is_the_one_the_gate_gave() -> None:
 
 def test_another_refusal_status_is_raised_as_it_came() -> None:
     class Teapot:
-        def entry(self, uuid: str) -> Entry:
+        def entry(
+            self, uuid: str, *, max_response_kilobytes: int | transport.Keep = transport.KEEP
+        ) -> Entry:
             raise RouteRefused(418, "teapot")
 
     entry = Entry.read(answer(SERVICE, {"Title": "Invented Service"}))
@@ -538,6 +555,55 @@ def test_a_string_a_protected_value_goes_into_is_protected() -> None:
     assert resolved["URL"].value == "https://u:not-a-real-one@host.example"
 
 
+def test_the_limit_a_resolution_was_given_goes_to_every_entry_it_reads() -> None:
+    # An entry a reference names can be as large as any other, so the caller that raised the
+    # limit to read the entry has the same reason to raise it for the entries it leads to: the
+    # entry a reference names, and the entry that entry's own reference names in turn.
+    database = Database(
+        [
+            {"uuid": VAULT, "fields": {"UserName": "{REF:T@I:" + ABSENT + "}"}},
+            {"uuid": ABSENT, "fields": {"Title": "Invented Vault"}},
+        ]
+    )
+    entry = Entry.read(answer(SERVICE, {"UserName": "{REF:U@I:" + VAULT + "}"}))
+
+    assert refs.resolve(database, entry, "{USERNAME}", max_response_kilobytes=65536) == (
+        "Invented Vault"
+    )
+    assert database.limits == [65536, 65536]
+
+    refs.resolve_entry(database, entry, max_response_kilobytes=8)
+    assert database.limits[2:] == [8, 8]
+
+
+def test_a_resolution_given_no_limit_leaves_each_read_to_the_client_s_own() -> None:
+    database = Database([{"uuid": VAULT, "fields": {"Title": "Invented Vault"}}])
+    entry = Entry.read(answer(SERVICE, {"URL": "{REF:T@I:" + VAULT + "}"}))
+
+    refs.resolve(database, entry, "{URL}")
+    refs.resolve_entry(database, entry)
+
+    assert database.limits == [transport.KEEP, transport.KEEP]
+
+
+@pytest.mark.parametrize("limit", [0, -1, True, 1.5, "8", None])
+def test_a_limit_no_read_could_take_is_refused_whether_or_not_anything_would_be_read(
+    limit: Any,
+) -> None:
+    # Refused where it is given: left to the first entry read, a limit that could not work
+    # would pass or fail by whether the value happens to name another entry.
+    database = Database([])
+    entry = Entry.read(answer(SERVICE, {"Title": "Invented Service"}))
+
+    with pytest.raises(ValueError, match="max_response_kilobytes"):
+        refs.resolve(database, entry, "no braces here", max_response_kilobytes=limit)
+
+    with pytest.raises(ValueError, match="max_response_kilobytes"):
+        refs.resolve_entry(database, entry, max_response_kilobytes=limit)
+
+    assert database.asked == []
+
+
 def test_a_search_is_refused_without_repeating_what_it_searched_for() -> None:
     # The search text is part of the value, and a refusal is what gets logged.
     entry = Entry.read(answer(SERVICE, {"Title": "Invented Service"}))
@@ -580,3 +646,24 @@ def test_a_reference_is_followed_through_the_gate(
 
     with pytest.raises(Unresolved, match="cannot read"):
         refs.resolve(client, entry, "{REF:P@I:" + ABSENT + "}")
+
+
+def test_an_entry_a_reference_names_is_read_under_the_limit_the_resolution_was_given(
+    tmp_path: Path, bundle: dict[str, Any], gate: FakeGate
+) -> None:
+    # All the way down to the connection: the entry the reference names is over the limit the
+    # client was built with, and the limit given for the resolution is what reads it.
+    from pykeepassgate import credentials as credentials_module
+
+    stored = credentials_module.save(tmp_path / "kept", gate.port, bundle)
+    client = GateClient(stored, connection_timeout=10.0, max_response_kilobytes=1)
+    gate.handler = lambda path, body, presented: (
+        200, json.dumps(answer(VAULT, {"Notes": "n" * 4096}))
+    )
+    entry = Entry.read(answer(SERVICE, {"Notes": "{REF:N@I:" + VAULT + "}"}))
+
+    with pytest.raises(ProtocolError, match="over 1 kilobyte"):
+        refs.resolve(client, entry, "{NOTES}")
+
+    assert refs.resolve(client, entry, "{NOTES}", max_response_kilobytes=8) == "n" * 4096
+    assert refs.resolve_entry(client, entry, max_response_kilobytes=8)["Notes"].value == "n" * 4096

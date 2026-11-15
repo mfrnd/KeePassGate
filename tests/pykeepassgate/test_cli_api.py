@@ -19,6 +19,7 @@ from pykeepassgate import api, cli, transport
 from pykeepassgate import client as client_module
 from pykeepassgate import credentials as credentials_module
 from pykeepassgate.testing import FakeGate, identified
+from test_cli_output import commands
 from test_credentials import linked
 
 UUID = "7b1c" * 8
@@ -944,12 +945,12 @@ def test_fetch_writes_an_attachment_larger_than_a_write_takes(
     assert "wrote 2097152 bytes" in capsys.readouterr().out
 
 
-def test_fetch_of_an_attachment_over_the_cap_writes_nothing_until_the_cap_is_raised(
+def test_fetch_of_an_attachment_over_the_limit_writes_nothing_until_the_limit_is_raised(
     gate: FakeGate, kept: Path, tmp_path: Path, capsys: pytest.CaptureFixture[str]
 ) -> None:
-    # 3 MiB is 4 MiB as base64, so its answer is past the default cap. The gate refuses no read
-    # for its size, so what fails is the client's own cap, with the option that raises it named
-    # and no file left behind holding part of an attachment.
+    # 3 MiB is 4 MiB as base64, so its answer is past the default limit. The gate refuses no
+    # read for its size, so what fails is the client's own limit, with the option that raises
+    # it named and no file left behind holding part of an attachment.
     content = bytes(range(256)) * 12288
     _fetched(gate, content)
     where = tmp_path / "fetched.bin"
@@ -959,11 +960,11 @@ def test_fetch_of_an_attachment_over_the_cap_writes_nothing_until_the_cap_is_rai
 
     printed = capsys.readouterr().err
     assert printed.startswith("ProtocolError: ")
-    assert "over 4194304 bytes" in printed
-    assert "--max-response-bytes" in printed
+    assert "over 4096 kilobytes" in printed
+    assert "--max-response-kilobytes" in printed
     assert not where.exists()
 
-    assert cli.main([*fetch, "--max-response-bytes", "8388608"]) == 0
+    assert cli.main([*fetch, "--max-response-kilobytes", "8192"]) == 0
     assert where.read_bytes() == content
 
 
@@ -1208,10 +1209,10 @@ def test_pairing_takes_the_retry_budgets_as_well(
     assert "retry_locked_timeout" not in asked
 
 
-def test_the_response_cap_reaches_the_client_and_nothing_is_passed_when_it_was_not_given(
+def test_the_response_limit_reaches_the_client_and_nothing_is_passed_when_it_was_not_given(
     gate: FakeGate, kept: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    # Saying nothing leaves the library's default, which is the one place that number lives.
+    # Giving none leaves the library's default, which is the one place that number lives.
     answering(gate, {"groups": []})
     asked: list[dict[str, Any]] = []
 
@@ -1230,63 +1231,104 @@ def test_the_response_cap_reaches_the_client_and_nothing_is_passed_when_it_was_n
 
     assert cli.main(["groups", "--directory", str(kept)]) == 0
     assert cli.main(
-        ["groups", "--directory", str(kept), "--max-response-bytes", "16777216"]
+        ["groups", "--directory", str(kept), "--max-response-kilobytes", "16384"]
     ) == 0
 
-    assert asked == [{}, {"max_response_bytes": 16777216}]
+    assert asked == [{}, {"max_response_kilobytes": 16384}]
 
 
-def test_a_cap_the_client_was_given_is_the_one_it_reads_under(
+def test_a_limit_the_client_was_given_is_the_limit_it_reads_under(
     gate: FakeGate, kept: Path, capsys: pytest.CaptureFixture[str]
 ) -> None:
-    # All the way down, rather than stopping at the keyword: the answer is over the cap given.
+    # All the way down, rather than stopping at the keyword: the answer is over the limit given.
     answering(gate, {"groups": [{"uuid": UUID, "name": "x" * 4096, "parent": None}]})
 
-    assert cli.main(["groups", "--directory", str(kept), "--max-response-bytes", "1024"]) == 1
+    assert cli.main(["groups", "--directory", str(kept), "--max-response-kilobytes", "1"]) == 1
 
     printed = capsys.readouterr().err
     assert printed.startswith("ProtocolError: ")
-    assert "over 1024 bytes" in printed
-    assert "--max-response-bytes" in printed, "the message names what raises the cap"
+    assert "over 1 kilobyte" in printed
+    assert "--max-response-kilobytes" in printed, "the message names what raises the limit"
+
+    assert cli.main(["groups", "--directory", str(kept), "--max-response-kilobytes", "8"]) == 0
 
 
-def test_pairing_takes_the_response_cap_as_well(
-    gate: FakeGate, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+def test_the_entries_a_resolution_follows_are_read_under_the_limit_the_command_was_given(
+    gate: FakeGate, kept: Path, capsys: pytest.CaptureFixture[str]
 ) -> None:
-    asked: dict[str, Any] = {}
+    # The option is the client's own for the invocation, so a read made on the way to an
+    # answer is under it as well: the entry `show --resolve` follows a reference to, here.
+    long = {**READS[LENDING], "fields": {"Title": "x" * 4096}, "protected": []}
+    fields = {"Title": "{REF:T@I:" + LENDING + "}"}
+    borrowing = {**READS[BORROWING], "fields": fields, "protected": []}
+    reads = {BORROWING: borrowing, LENDING: long}
 
-    def watching(**rest: Any) -> Any:
-        asked.update(rest)
-        raise api.PairingRefused("not going any further than this")
+    def answer(path: str, sent: str, client: bytes | None) -> tuple[int, str]:
+        return 200, json.dumps(reads[path.rsplit("/", 1)[-1]])
 
-    monkeypatch.setattr(api, "pair", watching)
+    gate.handler = answer
+    show = ["show", BORROWING, "--resolve", "--directory", str(kept)]
 
-    assert cli.main(
-        [
-            "pair",
-            "--port",
-            str(gate.port),
-            "--name",
-            "agent-invented",
-            "--invitation",
-            "x",
-            "--directory",
-            str(tmp_path / "kept"),
-            "--max-response-bytes",
-            "65536",
-        ]
-    ) == 1
+    assert cli.main([*show, "--max-response-kilobytes", "1"]) == 1
+    assert "over 1 kilobyte" in capsys.readouterr().err
+    assert gate.requests[-1] == ("GET", f"/entries/{LENDING}"), "the read that was over it"
 
-    assert asked["max_response_bytes"] == 65536
+    assert cli.main([*show, "--max-response-kilobytes", "8"]) == 0
+    assert "Title: " + "x" * 4096 in capsys.readouterr().out.splitlines()
+
+
+#: The commands that read an answer growing with what the database holds, which are the
+#: commands a limit on the answer can change anything for.
+READING = {"groups", "group", "entries", "show", "fields", "field", "attachments", "fetch"}
+
+
+def test_only_the_commands_that_read_what_grows_offer_a_response_limit() -> None:
+    # Every other command's answer has a bounded shape and is read under a limit no setting
+    # reaches, so the option there would be an option that changes nothing: pairing above all,
+    # and a renewal, a revocation, the status, the identity, an access question, a write and a
+    # `head`. By construction, so a command added later is on one side or the other.
+    offering = {
+        name
+        for name, command in commands().items()
+        if any("--max-response-kilobytes" in action.option_strings for action in command._actions)
+    }
+
+    assert offering == READING
+
+
+@pytest.mark.parametrize(
+    "command",
+    [
+        ["pair", "--name", "agent-invented", "--invitation", "x"],
+        ["renew"],
+        ["revoke"],
+        ["status"],
+        ["whoami"],
+        ["add-group", "--name", "Invented"],
+        ["head", "entry", UUID],
+    ],
+    ids=["pair", "renew", "revoke", "status", "whoami", "add-group", "head entry"],
+)
+def test_a_command_with_an_answer_of_a_bounded_shape_refuses_a_response_limit(
+    command: list[str], gate: FakeGate, kept: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    # Exit code 2 and nothing dialed, rather than accepted and ignored: a pairing given a
+    # limit would look as though the limit could lose it the bundle.
+    with pytest.raises(SystemExit) as raised:
+        cli.main([*command, "--directory", str(kept), "--max-response-kilobytes", "65536"])
+
+    assert raised.value.code == 2
+    assert "--max-response-kilobytes" in capsys.readouterr().err
+    assert gate.names == []
 
 
 @pytest.mark.parametrize("given", ["0", "-5", "4MiB", "1.5"])
-def test_a_cap_that_is_not_a_positive_number_of_bytes_is_refused_as_an_argument(
+def test_a_limit_that_is_not_a_whole_number_of_kilobytes_from_1_is_refused_as_an_argument(
     given: str, kept: Path, gate: FakeGate
 ) -> None:
     # Exit code 2, which the module reserves for arguments that are wrong, and nothing dialed.
     with pytest.raises(SystemExit) as raised:
-        cli.main(["groups", "--directory", str(kept), "--max-response-bytes", given])
+        cli.main(["groups", "--directory", str(kept), "--max-response-kilobytes", given])
 
     assert raised.value.code == 2
     assert gate.requests == []
@@ -1370,6 +1412,10 @@ def test_the_edges_of_every_numeric_option_are_accepted() -> None:
     assert parsed.retry_undecided_timeout == 86400.0
     assert cli._parser().parse_args(["pair", "--port", "1", "--name", "agent"]).port == 1
 
+    # A kilobyte is the smallest limit there is, on a command that reads under it.
+    limited = cli._parser().parse_args(["groups", "--max-response-kilobytes", "1"])
+    assert limited.max_response_kilobytes == 1
+
 
 #: Every number the command line refuses as an argument, by the option that refuses it.
 REFUSED_BY_BOTH: list[tuple[str, str]] = [
@@ -1383,8 +1429,8 @@ REFUSED_BY_BOTH: list[tuple[str, str]] = [
     ("--retry-busy-timeout", "nan"),
     ("--retry-locked-timeout", "inf"),
     ("--retry-undecided-timeout", "nan"),
-    ("--max-response-bytes", "0"),
-    ("--max-response-bytes", "-5"),
+    ("--max-response-kilobytes", "0"),
+    ("--max-response-kilobytes", "-5"),
 ]
 
 #: What the library asks of the same setting, given the text converted as the option converts it.
@@ -1398,21 +1444,29 @@ LIBRARY: dict[str, Callable[[str], object]] = {
     "--retry-undecided-timeout": lambda text: transport.retry_limit(
         "retry_undecided_timeout", float(text)
     ),
-    "--max-response-bytes": lambda text: transport.response_limit(int(text)),
+    "--max-response-kilobytes": lambda text: transport.response_limit(int(text)),
 }
 
 
 @pytest.mark.parametrize(("option", "given"), REFUSED_BY_BOTH)
 def test_the_library_refuses_every_number_the_command_line_refuses(
-    option: str, given: str
+    option: str, given: str, capsys: pytest.CaptureFixture[str]
 ) -> None:
     # The command line does nothing the library cannot, and it refuses nothing the library takes
     # either: a program calling `api.pair` or `GateClient` meets each of these as a `ValueError`
-    # naming the setting, where the command line exits 2.
+    # naming the setting, where the command line exits 2. Asked of a command that takes the
+    # option, which for the limit on an answer is a command that reads: the refusal has to be
+    # of the number, and a command without the option refuses the option whatever it holds.
+    command = (
+        ["groups"]
+        if option == "--max-response-kilobytes"
+        else ["pair", "--port", "1", "--name", "agent"]
+    )
     with pytest.raises(SystemExit) as raised:
-        cli._parser().parse_args(["pair", "--port", "1", "--name", "agent", option, given])
+        cli._parser().parse_args([*command, option, given])
 
     assert raised.value.code == 2
+    assert f"argument {option}" in capsys.readouterr().err
 
     with pytest.raises(ValueError):
         LIBRARY[option](given)

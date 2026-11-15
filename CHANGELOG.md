@@ -28,11 +28,12 @@ none, since it releases both.
   entry's strings come to tells a client that may write and not read how long the values it is
   withheld are. So nothing bounds what a client holding `update` or `create` adds to an entry beyond
   what a request carries, and how much of an answer a client reads is the client's own setting:
-  PyKeePassGate's `max_response_bytes`, 4 MiB unless raised. A client has to read a chunked answer.
-  PyKeePassGate reads either framing, and raises `TransportError` for an answer cut short of its
-  last chunk or of its length. The stand-in gate, `pykeepassgate.testing.FakeGate`, frames those
-  answers in chunks as the plugin does. A 0.1 client does not read a chunked answer, and raises
-  `ProtocolError` for every such answer of a 0.2 gate, `API.md` §411. `API.md` §412.
+  PyKeePassGate's `max_response_kilobytes`, 4096 kilobytes for a read unless raised. A client has
+  to read a chunked answer. PyKeePassGate reads either framing, and raises `TransportError` for
+  an answer cut short of its last chunk or of its length. The stand-in gate,
+  `pykeepassgate.testing.FakeGate`, frames those answers in chunks as the plugin does. A 0.1
+  client does not read a chunked answer, and raises `ProtocolError` for every such answer of a
+  0.2 gate, `API.md` §411. `API.md` §412.
 - **An attachment is read at any size, and a write still takes 512 KiB.** A read of an attachment
   over 512 KiB was refused with `413`, since its answer was built whole and kept about eight times
   the attachment alive at once, so a file attached in KeePass could not be fetched through the gate.
@@ -46,8 +47,9 @@ none, since it releases both.
   KeePass's own read, a copy of the whole attachment for as long as the read takes, and so is every
   attachment on a KeePass that keeps an attachment otherwise and every protected attachment on a
   Windows the read in place does not fit, which the plugin checks as it loads and logs as a warning.
-  PyKeePassGate holds a whole answer under `max_response_bytes`, so an attachment over about 3 MiB
-  needs it raised, and its stand-in gate frames an attachment as the plugin does. `API.md` §412.
+  PyKeePassGate holds a whole answer under `max_response_kilobytes`, so an attachment over about
+  3 MiB needs it raised, and its stand-in gate frames an attachment as the plugin does. `API.md`
+  §412.
 - **A field's value is read and written a piece at a time, as an attachment is.** A read of a
   protected value decrypted a copy of the whole value and decoded it into a string, so a long
   protected value was alive as text for as long as its answer was sent, and its bytes beside
@@ -58,6 +60,24 @@ none, since it releases both.
   break was copied whole to be written. The answer and every `ETag` are what they were. On a
   KeePass or a Windows where that cannot be done, the plugin reads through KeePass's own read,
   a copy of the whole value, and logs a warning as it loads. `DESIGN.md` §145.
+- **PyKeePassGate's limit on an answer is given per read and in kilobytes, and an answer of a
+  bounded shape is no longer under it.** `max_response_bytes` was a setting of the client and of
+  a pairing, and every answer was read under it. It is `max_response_kilobytes` now, a whole
+  number of kilobytes of 1024 bytes, 1 or more and 4096 unless given, with no alias for the name
+  it replaces. Each read whose answer grows with what the database holds takes it for that call
+  alone: `groups`, `subgroups`, `group`, `entries`, `entry`, `fields`, `field`, `attachments`,
+  `attachment`, `get` and `send`, and `refs.resolve` and `refs.resolve_entry` for the entries a
+  reference leads to. `GateClient` takes it as what a read given none is under, so a program
+  raises the limit for the attachment it knows is large and not for every answer. The command
+  line's option is `--max-response-kilobytes`, on the commands that make such a read. A pairing,
+  a renewal, the status, the identity, what a client may do at a node, a write and a revocation
+  are read under a limit of their own, `BOUNDED_RESPONSE_KILOBYTES`, whatever the client was
+  given, and `api.pair`, `Pairing` and the commands that make no such read take no limit: the
+  answer to a pairing or a renewal was measured at 2.4 kB and grows with the profiles approved,
+  so a limit lowered for the reads refused an identity the gate had already written and saved.
+  A refusal needs no room of its own: the largest refusal the gate sends was measured at 270
+  bytes on the wire, so a read under the smallest limit still reads a `404`, a `412` or a `503`.
+  `docs/pykeepassgate.md`.
 - **A protected value read or written through the gate stays encrypted in KeePass's memory.**
   KeePass keeps a protected value encrypted in memory until something reads it as text, and from
   then on keeps the text. The gate read every value that way, and an entry's `ETag` reads every

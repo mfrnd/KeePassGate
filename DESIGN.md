@@ -473,14 +473,14 @@ that looked such an entry up.
 **What it costs.** A read of a large attachment takes a connection's thread for as long as its peer
 reads, within the budget a connection is given to have its answer read, so an attachment that cannot
 be sent in that time cannot be read through the gate. A client bounds what it holds: PyKeePassGate
-keeps a whole answer in memory under `max_response_bytes`, and an attachment arrives as base64, four
-thirds of its size. What is read through the gate can be larger than what is written through it. The
-gate takes KeePass's own lock on a protected attachment, for a copy of 48 KiB at a time where it
-reads in place, and KeePass takes it for its own read of the whole where the gate reads through
-that. And a change that is the first to take a tag over a large attachment digests it inside its
-turn on KeePass's thread, beside its save: 27 ms for 64 MiB held in the open and about 47 ms
-protected, once for as long as KeePass keeps the attachment. A read's first tag is taken with
-KeePass's thread free.
+keeps a whole answer in memory under `max_response_kilobytes`, given for the read or for the
+client, and an attachment arrives as base64, four thirds of its size. What is read through the
+gate can be larger than what is written through it. The gate takes KeePass's own lock on a
+protected attachment, for a copy of 48 KiB at a time where it reads in place, and KeePass takes
+it for its own read of the whole where the gate reads through that. And a change that is the
+first to take a tag over a large attachment digests it inside its turn on KeePass's thread,
+beside its save: 27 ms for 64 MiB held in the open and about 47 ms protected, once for as long
+as KeePass keeps the attachment. A read's first tag is taken with KeePass's thread free.
 
 ### A field's value is read where KeePass keeps it §145
 

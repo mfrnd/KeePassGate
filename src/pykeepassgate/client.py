@@ -139,7 +139,7 @@ class GateClient:
         retry_busy_timeout: float | None = transport.DEFAULT_RETRY_BUSY_TIMEOUT,
         retry_locked_timeout: float | None = transport.DEFAULT_RETRY_LOCKED_TIMEOUT,
         retry_undecided_timeout: float | None = transport.DEFAULT_RETRY_UNDECIDED_TIMEOUT,
-        max_response_bytes: int = transport.MAX_RESPONSE_BYTES,
+        max_response_kilobytes: int = transport.MAX_RESPONSE_KILOBYTES,
         key_password: transport.KeyPassword | None = None,
     ) -> None:
         """Take a paired identity, how long to wait on its socket, and where to dial it.
@@ -154,18 +154,27 @@ class GateClient:
         with them, which `send` takes, and so does every method that reads or writes a group or
         an entry with its tag.
 
-        `max_response_bytes` is how much of one answer this client will read, and an answer over
-        it fails whole with `ProtocolError` naming the setting, rather than arriving cut short.
-        The plugin serves every listing whole and an entry or an attachment at any size, so an
-        answer grows with what the database holds, and a caller whose database is large enough
-        to outgrow the default raises this.
+        `max_response_kilobytes` is how much of its answer a read takes, in kilobytes of 1024
+        bytes, unless the read is given its own, and an answer over it fails whole with
+        `ProtocolError` naming the setting, rather than arriving cut short. The plugin serves
+        every listing whole and an entry or an attachment at any size, so those answers grow with
+        what the database holds, and they are what the setting bounds: the listings of groups
+        and of entries, the reads of a group, an entry, a field and an attachment, the listings
+        of an entry's fields and attachments, and whatever `get` and `send` ask. Each takes a
+        limit of its own for one call, so a caller raises it for the read that needs it rather
+        than for every read. **Every other exchange is read under
+        `transport.BOUNDED_RESPONSE_KILOBYTES` whatever this holds**, since its answer has a
+        bounded shape: the status, the identity, what this client may do at a node, `head`, the
+        answer to a write, a revocation and a renewal. So a limit lowered for the reads cannot
+        stop this client renewing its certificate or giving it up.
 
         **A setting that could not work is refused here**, with a `ValueError` naming it, before
-        anything is dialed, and the command line refuses the same ones: a cap that is not a
-        positive whole number of bytes, a socket timeout that is not a finite number of seconds
-        above zero, a budget that is neither `None` nor a finite number of seconds from zero, a
-        port in the credentials that TCP does not have, and a host that is not text, or for the
-        `dial` a client has unless given another, a name `socket` could not encode to resolve.
+        anything is dialed, and the command line refuses the same: a limit on an answer that is
+        not a whole number of kilobytes, 1 or more, a socket timeout that is not a finite
+        number of seconds above zero, a budget that is neither `None` nor a finite number of
+        seconds from zero, a port in the credentials that TCP does not have, and a host that is
+        not text, or for the `dial` a client has unless given another, a name `socket` could not
+        encode to resolve.
 
         `key_password` opens a key that pairing or a renewal stored under one: the password, as text
         or bytes, or a callable returning it, which is asked only if the key turns out to be
@@ -208,7 +217,7 @@ class GateClient:
         self._retry_undecided_timeout = transport.retry_limit(
             "retry_undecided_timeout", retry_undecided_timeout
         )
-        self._max_response_bytes = transport.response_limit(max_response_bytes)
+        self._max_response_kilobytes = transport.response_limit(max_response_kilobytes)
         self._key_password = transport.key_password_limit(key_password)
         self._opened: bytes | None = None
 
@@ -238,7 +247,7 @@ class GateClient:
         retry_busy_timeout: float | None = transport.DEFAULT_RETRY_BUSY_TIMEOUT,
         retry_locked_timeout: float | None = transport.DEFAULT_RETRY_LOCKED_TIMEOUT,
         retry_undecided_timeout: float | None = transport.DEFAULT_RETRY_UNDECIDED_TIMEOUT,
-        max_response_bytes: int = transport.MAX_RESPONSE_BYTES,
+        max_response_kilobytes: int = transport.MAX_RESPONSE_KILOBYTES,
         key_password: transport.KeyPassword | None = None,
     ) -> GateClient:
         """Load a paired identity from where `pair` put it.
@@ -258,7 +267,7 @@ class GateClient:
             retry_busy_timeout=retry_busy_timeout,
             retry_locked_timeout=retry_locked_timeout,
             retry_undecided_timeout=retry_undecided_timeout,
-            max_response_bytes=max_response_bytes,
+            max_response_kilobytes=max_response_kilobytes,
             key_password=key_password,
         )
 
@@ -321,7 +330,7 @@ class GateClient:
         `profiles_unreadable` is a database whose list of profiles will not read, which removes
         every profile the record holds until the operator repairs it.
         """
-        return Identity.of(self.get(IDENTITY_PATH))
+        return Identity.of(self._request("GET", IDENTITY_PATH, None, _refuse))
 
     def revoke_certificate(self) -> None:
         """Give up this client's admission, by the certificate it presents.
@@ -342,7 +351,7 @@ class GateClient:
         `forget` is the call that takes them away, and the command line's `revoke` makes it once
         this has returned.
         """
-        self.send("DELETE", CERTIFICATE_PATH)
+        self._request("DELETE", CERTIFICATE_PATH, None, _refuse)
 
     def renew(
         self, lifetime: timedelta | None = None, allow_shared_directory: bool = False
@@ -601,7 +610,7 @@ class GateClient:
                 retry_busy_timeout=self._retry_busy_timeout,
                 retry_locked_timeout=self._retry_locked_timeout,
                 retry_undecided_timeout=self._retry_undecided_timeout,
-                max_response_bytes=self._max_response_bytes,
+                max_response_kilobytes=self._max_response_kilobytes,
                 key_password=self._key_password if self._opened is None else self._opened,
             )
             # The gate this client compared already, which the renewal has just been answered by.
@@ -638,13 +647,20 @@ class GateClient:
 
     # Groups
 
-    def groups(self) -> list[Group]:
+    def groups(
+        self, *, max_response_kilobytes: int | transport.Keep = transport.KEEP
+    ) -> list[Group]:
         """Every group in the database, root first.
 
         Anchored at the root, so it needs `list` there. A client granted less asks the group it was
         granted, with `subgroups`.
+
+        `max_response_kilobytes` is how much of this listing's answer is taken, in kilobytes of
+        1024 bytes, for this call alone: the listing is served whole however many groups the
+        database holds, and `KEEP` is the client's own. A limit that could not work is refused
+        as the client's own is, before anything is dialed.
         """
-        return Group.listing(self.get("/groups"))
+        return Group.listing(self.get("/groups", max_response_kilobytes=max_response_kilobytes))
 
     def group(
         self,
@@ -655,13 +671,16 @@ class GateClient:
         retry_busy_timeout: transport.Given = transport.KEEP,
         retry_locked_timeout: transport.Given = transport.KEEP,
         retry_undecided_timeout: transport.Given = transport.KEEP,
+        max_response_kilobytes: int | transport.Keep = transport.KEEP,
     ) -> Group:
         """One group's own settings, which needs `read` rather than `list`, and its `etag`.
 
         `if_match` reads it only while the group still holds what the tag names, and is
         `PreconditionFailed` with nothing read otherwise. `connection_timeout` and the three retry
-        budgets are `send`'s, for this read alone, and `KEEP` is the client's own. Every read
-        below takes all five the same way, about the group or the entry the route is about.
+        budgets are `send`'s, for this read alone, and so is `max_response_kilobytes`, how much
+        of this read's answer is taken, as `groups` takes it; `KEEP` is the client's own. Every
+        read below takes all six the same way, about the group or the entry the route is about,
+        and a listing of groups or of entries takes the limit alone.
         """
         found = self._read_tagged(
             f"/groups/{_segment(uuid)}",
@@ -670,12 +689,22 @@ class GateClient:
             retry_busy_timeout=retry_busy_timeout,
             retry_locked_timeout=retry_locked_timeout,
             retry_undecided_timeout=retry_undecided_timeout,
+            max_response_kilobytes=max_response_kilobytes,
         )
         return Group.read(*found)
 
-    def subgroups(self, uuid: str = ROOT) -> list[Group]:
-        """The groups directly inside this one."""
-        return Group.listing(self.get(f"/groups/{_segment(uuid)}/groups"))
+    def subgroups(
+        self,
+        uuid: str = ROOT,
+        *,
+        max_response_kilobytes: int | transport.Keep = transport.KEEP,
+    ) -> list[Group]:
+        """The groups directly inside this group, read under the limit `groups` takes."""
+        return Group.listing(
+            self.get(
+                f"/groups/{_segment(uuid)}/groups", max_response_kilobytes=max_response_kilobytes
+            )
+        )
 
     def create_group(self, name: str, parent: str = ROOT, notes: str | None = None) -> str:
         """Put a new group inside this one, and answer with what addresses it."""
@@ -683,7 +712,7 @@ class GateClient:
         if notes is not None:
             body["Notes"] = notes
 
-        return made(self.send("POST", f"/groups/{_segment(parent)}/groups", body))
+        return made(self._request("POST", f"/groups/{_segment(parent)}/groups", body, _refuse))
 
     def update_group(
         self,
@@ -770,11 +799,17 @@ class GateClient:
         a group though no operation strips a group. `Access.allows` asks the questions a caller
         has.
         """
-        return Access.of(self.get(f"/groups/{_segment(uuid)}/access"))
+        return Access.of(self._request("GET", f"/groups/{_segment(uuid)}/access", None, _refuse))
 
     # Entries
 
-    def entries(self, group: str | None = None, include_expired: bool = True) -> list[Entry]:
+    def entries(
+        self,
+        group: str | None = None,
+        include_expired: bool = True,
+        *,
+        max_response_kilobytes: int | transport.Keep = transport.KEEP,
+    ) -> list[Entry]:
         """Every entry, or the ones directly inside a group.
 
         With no group this is the flat sweep, anchored at the root and recursive. With one it is
@@ -783,12 +818,15 @@ class GateClient:
         `include_expired=False` leaves out every entry that has expired, judged by the gate on its
         own clock as KeePass judges one: it expires, at a moment that is now or earlier. The
         default keeps them, as KeePass's own list does, and asks nothing of the query.
+
+        `max_response_kilobytes` is how much of the listing's answer is taken, as `groups` takes
+        it: the sweep is served whole however many entries the database holds.
         """
         path = "/entries" if group is None else f"/groups/{_segment(group)}/entries"
         if not include_expired:
             path = f"{path}?{INCLUDE_EXPIRED}=false"
 
-        return Entry.listing(self.get(path))
+        return Entry.listing(self.get(path, max_response_kilobytes=max_response_kilobytes))
 
     def entry(
         self,
@@ -799,6 +837,7 @@ class GateClient:
         retry_busy_timeout: transport.Given = transport.KEEP,
         retry_locked_timeout: transport.Given = transport.KEEP,
         retry_undecided_timeout: transport.Given = transport.KEEP,
+        max_response_kilobytes: int | transport.Keep = transport.KEEP,
     ) -> Entry:
         """One entry and every string it holds.
 
@@ -813,6 +852,7 @@ class GateClient:
             retry_busy_timeout=retry_busy_timeout,
             retry_locked_timeout=retry_locked_timeout,
             retry_undecided_timeout=retry_undecided_timeout,
+            max_response_kilobytes=max_response_kilobytes,
         )
         return Entry.read(*found)
 
@@ -840,7 +880,7 @@ class GateClient:
         if expires is not None:
             body[EXPIRES] = _expiry(expires, creating=True)
 
-        return made(self.send("POST", f"/groups/{_segment(group)}/entries", body))
+        return made(self._request("POST", f"/groups/{_segment(group)}/entries", body, _refuse))
 
     def update_entry(
         self,
@@ -909,7 +949,7 @@ class GateClient:
         The same question as `group_access`, asked of an entry, and the answer covers its fields
         and attachments too: neither is a node of its own, so a rule about them is the entry's.
         """
-        return Access.of(self.get(f"/entries/{_segment(uuid)}/access"))
+        return Access.of(self._request("GET", f"/entries/{_segment(uuid)}/access", None, _refuse))
 
     # Fields
 
@@ -922,14 +962,15 @@ class GateClient:
         retry_busy_timeout: transport.Given = transport.KEEP,
         retry_locked_timeout: transport.Given = transport.KEEP,
         retry_undecided_timeout: transport.Given = transport.KEEP,
+        max_response_kilobytes: int | transport.Keep = transport.KEEP,
     ) -> list[Field]:
         """The names of an entry's strings, never their values, each with the entry's `etag`.
 
         **Every name in a single answer, however many names the entry holds.** The gate writes
         the listing as it is sent, so the names are listed whatever they come to, and what
-        bounds the answer is this client's `max_response_bytes`. Listing needs `list`, and a
-        client holding `read` as well is handed the entry's tag with the listing, which every
-        field here then carries.
+        bounds the answer is `max_response_kilobytes`, this call's or the client's own. Listing
+        needs `list`, and a client holding `read` as well is handed the entry's tag with the
+        listing, which every field here then carries.
         """
         path = f"/entries/{_segment(uuid)}/fields"
         found = self._read_tagged(
@@ -939,6 +980,7 @@ class GateClient:
             retry_busy_timeout=retry_busy_timeout,
             retry_locked_timeout=retry_locked_timeout,
             retry_undecided_timeout=retry_undecided_timeout,
+            max_response_kilobytes=max_response_kilobytes,
         )
         return Field.listing(*found)
 
@@ -952,6 +994,7 @@ class GateClient:
         retry_busy_timeout: transport.Given = transport.KEEP,
         retry_locked_timeout: transport.Given = transport.KEEP,
         retry_undecided_timeout: transport.Given = transport.KEEP,
+        max_response_kilobytes: int | transport.Keep = transport.KEEP,
     ) -> Field:
         """One string's value, and the `etag` of the entry holding it."""
         path = f"/entries/{_segment(uuid)}/fields/{_segment(name)}"
@@ -962,6 +1005,7 @@ class GateClient:
             retry_busy_timeout=retry_busy_timeout,
             retry_locked_timeout=retry_locked_timeout,
             retry_undecided_timeout=retry_undecided_timeout,
+            max_response_kilobytes=max_response_kilobytes,
         )
         return Field.read(*found)
 
@@ -1073,6 +1117,7 @@ class GateClient:
         retry_busy_timeout: transport.Given = transport.KEEP,
         retry_locked_timeout: transport.Given = transport.KEEP,
         retry_undecided_timeout: transport.Given = transport.KEEP,
+        max_response_kilobytes: int | transport.Keep = transport.KEEP,
     ) -> list[Attachment]:
         """The names and sizes of an entry's attachments, never their contents.
 
@@ -1088,6 +1133,7 @@ class GateClient:
             retry_busy_timeout=retry_busy_timeout,
             retry_locked_timeout=retry_locked_timeout,
             retry_undecided_timeout=retry_undecided_timeout,
+            max_response_kilobytes=max_response_kilobytes,
         )
         return Attachment.listing(*found)
 
@@ -1101,16 +1147,18 @@ class GateClient:
         retry_busy_timeout: transport.Given = transport.KEEP,
         retry_locked_timeout: transport.Given = transport.KEEP,
         retry_undecided_timeout: transport.Given = transport.KEEP,
+        max_response_kilobytes: int | transport.Keep = transport.KEEP,
     ) -> Attachment:
         """One attachment, contents and all, and the `etag` of the entry holding it.
 
         **Whatever the attachment's size.** The gate writes the answer as it is sent, a piece of the
         attachment at a time, and refuses no read for the attachment's size, so an attachment
         added in KeePass is read here at a size `create_attachment` and `update_attachment`
-        could not write, which take at most 512 KiB. What bounds the read is this client's
-        `max_response_bytes`: the whole answer is held in memory, the attachment arrives in it as
-        base64, four thirds of its size, and an answer over the cap raises `ProtocolError`
-        naming the setting.
+        could not write, which take at most 512 KiB. What bounds the read is
+        `max_response_kilobytes`, this call's or the client's own: the whole answer is held in
+        memory, the attachment arrives in it as base64, four thirds of its size, and an answer
+        over the limit raises `ProtocolError` naming the setting. So a limit of 65536 kilobytes
+        takes an attachment of a little under 48 MiB, and is given for the read that needs it.
         """
         path = f"/entries/{_segment(uuid)}/attachments/{_segment(name)}"
         found = self._read_tagged(
@@ -1120,6 +1168,7 @@ class GateClient:
             retry_busy_timeout=retry_busy_timeout,
             retry_locked_timeout=retry_locked_timeout,
             retry_undecided_timeout=retry_undecided_timeout,
+            max_response_kilobytes=max_response_kilobytes,
         )
         return Attachment.read(*found)
 
@@ -1267,6 +1316,7 @@ class GateClient:
         retry_busy_timeout: transport.Given = transport.KEEP,
         retry_locked_timeout: transport.Given = transport.KEEP,
         retry_undecided_timeout: transport.Given = transport.KEEP,
+        max_response_kilobytes: int | transport.Keep = transport.KEEP,
     ) -> dict[str, Any]:
         """One GET, on its own connection, under a name built for it."""
         return self.send(
@@ -1277,6 +1327,7 @@ class GateClient:
             retry_busy_timeout=retry_busy_timeout,
             retry_locked_timeout=retry_locked_timeout,
             retry_undecided_timeout=retry_undecided_timeout,
+            max_response_kilobytes=max_response_kilobytes,
         )
 
     def send(
@@ -1290,6 +1341,7 @@ class GateClient:
         retry_busy_timeout: transport.Given = transport.KEEP,
         retry_locked_timeout: transport.Given = transport.KEEP,
         retry_undecided_timeout: transport.Given = transport.KEEP,
+        max_response_kilobytes: int | transport.Keep = transport.KEEP,
     ) -> dict[str, Any]:
         """One request, on its own connection, retried for as long as a budget allows.
 
@@ -1313,6 +1365,17 @@ class GateClient:
         failed for any other reason may well have landed. A budget or a connection timeout given
         for one call is refused as the client's own are, before anything is dialed.
 
+        **How much of the answer is taken is overridden for one call as well**, with
+        `max_response_kilobytes`, in kilobytes of 1024 bytes, here, on `get` and on every read
+        above whose answer grows with what the database holds: the listings of groups and of
+        entries, the reads of a group, an entry, a field and an attachment, and the listings of
+        an entry's fields and attachments. `KEEP` is the client's own, and a limit given for one
+        call is refused as the client's own is, before anything is dialed. So a program raises
+        the limit for the attachment it knows is large and keeps a low limit on everything else.
+        Whatever is asked through here is read under that limit, a write as well, since this
+        cannot know what a route answers with; the methods above that do not take it are read
+        under `transport.BOUNDED_RESPONSE_KILOBYTES` whatever the client holds.
+
         `if_match` goes as `If-Match`, exactly as given: a tag as `etag` holds one, several with
         commas between, or `*`. The gate reads it on the routes about one group or one entry and
         nowhere else. A tag a read hands back comes in a header this does not return: the read
@@ -1329,6 +1392,7 @@ class GateClient:
                 retry_busy_timeout=retry_busy_timeout,
                 retry_locked_timeout=retry_locked_timeout,
                 retry_undecided_timeout=retry_undecided_timeout,
+                max_response_kilobytes=self._read_limit(max_response_kilobytes),
             )
         )
 
@@ -1343,6 +1407,13 @@ class GateClient:
         held: float | None = None,
     ) -> dict[str, Any]:
         """One request whose refusals mean what the caller says, under this client's budgets.
+
+        **And read under `transport.BOUNDED_RESPONSE_KILOBYTES`, whatever the client was built
+        with**, which is why everything with an answer of a bounded shape is asked through here
+        or through `_written` rather than through `send`: the identity, what this client may do
+        at a node, a create, a revocation and a renewal. The client's own limit is for the reads
+        that grow with the database, and a limit lowered for those must not refuse the answer to
+        a renewal, which the gate has already written and saved by the time it is read.
 
         A renewal's refusals mean things no other route's do, and one of them carries a moment in
         its body, so the route that has them says what they are rather than every route learning
@@ -1366,8 +1437,9 @@ class GateClient:
         retry_busy_timeout: transport.Given,
         retry_locked_timeout: transport.Given,
         retry_undecided_timeout: transport.Given,
+        max_response_kilobytes: int | transport.Keep,
     ) -> tuple[dict[str, Any], str | None]:
-        """One read, under `if_match` and the budgets given, and the tag it was answered with."""
+        """One read, under `if_match`, the budgets and the limit given, and the tag it came with."""
         reply = self._exchange(
             "GET",
             path,
@@ -1378,8 +1450,20 @@ class GateClient:
             retry_busy_timeout=retry_busy_timeout,
             retry_locked_timeout=retry_locked_timeout,
             retry_undecided_timeout=retry_undecided_timeout,
+            max_response_kilobytes=self._read_limit(max_response_kilobytes),
         )
         return reply.json(), reply.etag
+
+    def _read_limit(self, given: int | transport.Keep) -> int:
+        """How much of its answer a read takes, in kilobytes: what the call gave, or the client's.
+
+        A limit given for one call is refused as the client's own is, and here, which every read
+        asks before it sends anything, so before anything is dialed.
+        """
+        if isinstance(given, transport.Keep):
+            return self._max_response_kilobytes
+
+        return transport.response_limit(given)
 
     def _written(
         self,
@@ -1435,6 +1519,7 @@ class GateClient:
         retry_undecided_timeout: transport.Given = transport.KEEP,
         held: float | None = None,
         comparing: bool = True,
+        max_response_kilobytes: int = transport.BOUNDED_RESPONSE_KILOBYTES,
     ) -> transport.Response:
         """What `_request` does, answering with the whole reply, its tag among it.
 
@@ -1454,6 +1539,12 @@ class GateClient:
 
         A connection timeout given for one call is refused as the client's own is, before
         anything is dialed, and `KEEP` is the client's.
+
+        **`max_response_kilobytes` arrives settled**, by `_read_limit`, from a read whose answer
+        grows with what the database holds, and is `transport.BOUNDED_RESPONSE_KILOBYTES` from
+        everything else. The comparison is read under the bounded limit whatever the request it
+        precedes was given: the status is an answer of a bounded shape, and a limit lowered for
+        a read would otherwise refuse the request before it was sent.
         """
         transport.check_condition(if_match)
         timeout = (
@@ -1473,11 +1564,20 @@ class GateClient:
         if comparing and not self._compatible:
             self._status(
                 self._attempts(
-                    "GET", STATUS_PATH, "", _refuse, retry, self._connection_timeout, None
+                    "GET",
+                    STATUS_PATH,
+                    "",
+                    _refuse,
+                    retry,
+                    self._connection_timeout,
+                    None,
+                    transport.BOUNDED_RESPONSE_KILOBYTES,
                 )
             )
 
-        return self._attempts(method, path, payload, refuse, retry, timeout, if_match)
+        return self._attempts(
+            method, path, payload, refuse, retry, timeout, if_match, max_response_kilobytes
+        )
 
     def _attempts(
         self,
@@ -1488,11 +1588,19 @@ class GateClient:
         retry: transport.Retry,
         connection_timeout: float,
         if_match: str | None,
+        max_response_kilobytes: int,
     ) -> transport.Response:
-        """One request, sent again for as long as `retry` allows, and the reply that ended it."""
+        """One request, sent again for as long as `retry` allows, and the reply that ended it.
+
+        Every attempt is read under the same limit, a refusal among them: the largest refusal the
+        gate sends is a few hundred bytes, so the smallest limit there is still reads the `503`
+        that is being waited out.
+        """
         while True:
             try:
-                reply = self._once(method, path, payload, connection_timeout, if_match)
+                reply = self._once(
+                    method, path, payload, connection_timeout, if_match, max_response_kilobytes
+                )
                 refuse(reply)
             except GateUnavailable as refusal:
                 # Safe to repeat whichever it was: the gate refuses before it acts, so a `503` is
@@ -1512,7 +1620,8 @@ class GateClient:
         path: str,
         payload: str,
         connection_timeout: float,
-        if_match: str | None = None,
+        if_match: str | None,
+        max_response_kilobytes: int,
     ) -> transport.Response:
         """One attempt, on a connection of its own and under a name of its own.
 
@@ -1545,7 +1654,7 @@ class GateClient:
             name,
             host=self._host,
             connection_timeout=connection_timeout,
-            max_response_bytes=self._max_response_bytes,
+            max_response_kilobytes=max_response_kilobytes,
             dial=self._dial,
         ) as connection:
             return connection.send(method, path, payload, if_match)

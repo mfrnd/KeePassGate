@@ -990,7 +990,7 @@ class TestTheAnswerIsFramedRatherThanEnded:
 
         assert time.monotonic() - started < 3.0, "it did not wait for a close it did not need"
 
-    def test_an_answer_over_the_cap_it_was_given_fails_whole(
+    def test_an_answer_over_the_limit_it_was_given_fails_whole(
         self, gate: FakeGate, authority: Authority, client_certificate: Issued
     ) -> None:
         # Refused rather than cut short: a listing missing its tail would read as a complete one.
@@ -998,11 +998,13 @@ class TestTheAnswerIsFramedRatherThanEnded:
         context = transport.paired_context(authority.pem, client_certificate.pem)
 
         with transport.connect(
-            gate.port, context, "abc.def.kpg", connection_timeout=10.0, max_response_bytes=1024
-        ) as connection, pytest.raises(ProtocolError, match="over 1024 bytes"):
+            gate.port, context, "abc.def.kpg", connection_timeout=10.0, max_response_kilobytes=1
+        ) as connection, pytest.raises(
+            ProtocolError, match=r"over 1 kilobyte.*max_response_kilobytes"
+        ):
             connection.send("GET", "/gate/whoami")
 
-    def test_an_answer_under_the_cap_it_was_given_is_read(
+    def test_an_answer_under_the_limit_it_was_given_is_read(
         self, gate: FakeGate, authority: Authority, client_certificate: Issued
     ) -> None:
         body = '{"pad": "' + "x" * 4096 + '"}'
@@ -1010,28 +1012,62 @@ class TestTheAnswerIsFramedRatherThanEnded:
         context = transport.paired_context(authority.pem, client_certificate.pem)
 
         with transport.connect(
-            gate.port, context, "abc.def.kpg", connection_timeout=10.0, max_response_bytes=8192
+            gate.port, context, "abc.def.kpg", connection_timeout=10.0, max_response_kilobytes=8
         ) as connection:
             assert connection.send("GET", "/gate/whoami").body == body
 
-    @pytest.mark.parametrize("cap", [0, -1])
-    def test_a_cap_nothing_fits_under_is_refused_before_dialing(
-        self, cap: int, gate: FakeGate, authority: Authority, client_certificate: Issued
+    def test_a_kilobyte_is_1024_bytes_of_what_came_off_the_wire(
+        self, gate: FakeGate, authority: Authority, client_certificate: Issued
+    ) -> None:
+        # The head counts, as every byte received does: a body of 1024 bytes is over a limit of
+        # 1 with its head before it, and a body that leaves the head its room is under it.
+        context = transport.paired_context(authority.pem, client_certificate.pem)
+
+        def asked(length: int) -> str:
+            gate.handler = lambda path, sent, client: (200, '"' + "x" * (length - 2) + '"')
+            with transport.connect(
+                gate.port, context, "abc.def.kpg", connection_timeout=10.0, max_response_kilobytes=1
+            ) as connection:
+                return connection.send("GET", "/gate/whoami").body
+
+        assert len(asked(512)) == 512
+        with pytest.raises(ProtocolError, match="over 1 kilobyte"):
+            asked(1024)
+
+    @pytest.mark.parametrize("limit", [0, -1])
+    def test_a_limit_nothing_fits_under_is_refused_before_dialing(
+        self, limit: int, gate: FakeGate, authority: Authority, client_certificate: Issued
     ) -> None:
         context = transport.paired_context(authority.pem, client_certificate.pem)
 
-        with pytest.raises(ValueError, match="positive number of bytes"), transport.connect(
-            gate.port, context, "abc.def.kpg", max_response_bytes=cap
+        with pytest.raises(ValueError, match="kilobytes, 1 or more"), transport.connect(
+            gate.port, context, "abc.def.kpg", max_response_kilobytes=limit
         ):
             pass
 
         assert gate.requests == []
 
-    def test_the_default_cap_is_the_module_s_own(self) -> None:
-        # The name a caller compares against, as `DEFAULT_CONNECTION_TIMEOUT` is for the socket.
-        assert transport.MAX_RESPONSE_BYTES == 4 * 1024 * 1024
-        default = transport.MAX_RESPONSE_BYTES
+    def test_the_default_limits_are_the_module_s_own(self) -> None:
+        # The names a caller compares against, as `DEFAULT_CONNECTION_TIMEOUT` is for the socket:
+        # what a read takes unless it is told otherwise, and what everything else is read under.
+        assert transport.MAX_RESPONSE_KILOBYTES == 4096
+        assert transport.BOUNDED_RESPONSE_KILOBYTES == 4096
+        default = transport.MAX_RESPONSE_KILOBYTES
         assert transport.response_limit(default) == default
+
+    def test_a_connection_given_no_limit_reads_under_the_bounded_limit(
+        self, gate: FakeGate, authority: Authority, client_certificate: Issued
+    ) -> None:
+        # What a pairing, a renewal and a write are read under: no setting reaches a connection
+        # that was given none.
+        over = transport.BOUNDED_RESPONSE_KILOBYTES * 1024
+        gate.handler = lambda path, sent, client: (200, '"' + "x" * over + '"')
+        context = transport.paired_context(authority.pem, client_certificate.pem)
+
+        with transport.connect(
+            gate.port, context, "abc.def.kpg", connection_timeout=10.0
+        ) as connection, pytest.raises(ProtocolError, match="over 4096 kilobytes"):
+            connection.send("GET", "/gate/whoami")
 
     def test_the_pairing_timeout_outlasts_what_the_plugin_may_take(self) -> None:
         # `GateOptionsTests` sums the same six waits on the other side: the screen, the dialog
@@ -1049,13 +1085,15 @@ class TestAnAnswerInChunks:
     HEAD = b"HTTP/1.1 200 OK\r\nTransfer-Encoding: chunked\r\n\r\n"
 
     @staticmethod
-    def _ask(port: int, max_response_bytes: int = transport.MAX_RESPONSE_BYTES) -> str:
+    def _ask(
+        port: int, max_response_kilobytes: int = transport.MAX_RESPONSE_KILOBYTES
+    ) -> str:
         with transport.connect(
             port,
             transport.unpaired_context(),
             "abc.def.kpg",
             connection_timeout=10.0,
-            max_response_bytes=max_response_bytes,
+            max_response_kilobytes=max_response_kilobytes,
         ) as connection:
             return connection.send("GET", "/gate/whoami").body
 
@@ -1095,18 +1133,20 @@ class TestAnAnswerInChunks:
         with _peer(host, [answer[at : at + 1] for at in range(len(answer))]) as port:
             assert self._ask(port) == '{"ok": true}'
 
-    def test_the_cap_counts_the_bytes_received_and_not_what_the_chunks_hold(
+    def test_the_limit_counts_the_bytes_received_and_not_what_the_chunks_hold(
         self, host: Issued
     ) -> None:
         # In chunks of a byte each, a body is several times as long on the wire as what it
         # holds, and what this client holds of an answer is what came off the wire.
         answer = self.HEAD + b"1\r\nx\r\n" * 200 + b"0\r\n\r\n"
 
-        with _peer(host, [answer]) as port, pytest.raises(ProtocolError, match="over 1024 bytes"):
-            self._ask(port, max_response_bytes=1024)
+        with _peer(host, [answer]) as port, pytest.raises(
+            ProtocolError, match="over 1 kilobyte"
+        ):
+            self._ask(port, max_response_kilobytes=1)
 
         with _peer(host, [answer]) as port:
-            assert self._ask(port, max_response_bytes=2048) == "x" * 200
+            assert self._ask(port, max_response_kilobytes=2) == "x" * 200
 
     def test_an_answer_cut_short_is_a_transport_error(self, host: Issued) -> None:
         # What a writer that failed part way leaves: chunks, and no last chunk. Read to the
@@ -1339,11 +1379,12 @@ class TestASettingThatCannotWork:
         with pytest.raises(ValueError, match="host"):
             transport.host_limit("", relay)
 
-    @pytest.mark.parametrize("cap", [1.5, math.nan, True])
-    def test_a_cap_that_is_not_a_whole_number_of_bytes(self, cap: Any) -> None:
-        # A NaN cap compares false with every length, so it capped nothing at all.
-        with pytest.raises(ValueError, match="max_response_bytes"):
-            transport.response_limit(cap)
+    @pytest.mark.parametrize("limit", [1.5, math.nan, True, False, "4096", None, 0, -4096])
+    def test_a_limit_that_is_not_a_whole_number_of_kilobytes_from_1(self, limit: Any) -> None:
+        # A NaN limit compares false with every length, so it bounded nothing at all, and `True`
+        # is 1 to Python and a limit nobody meant.
+        with pytest.raises(ValueError, match="max_response_kilobytes"):
+            transport.response_limit(limit)
 
     def test_the_edges_of_every_setting_are_taken(self) -> None:
         # The other side of the refusals: the same edges the command line accepts.

@@ -689,14 +689,14 @@ standard ones are refused, and `update` empties one instead.
 an entry, and of a single field, as it is sent, a value at a time and a long value a piece at
 a time, so reading a large entry costs KeePass the piece being written and little more. What
 bounds a read is the client's own
-cap on an answer, 4 MiB unless `max_response_bytes` raises it,
-[below](#read-a-larger-answer): an entry whose answer is larger raises `ProtocolError`, and is
-read with the cap raised or a field at a time, `fields` and then `field`. A value the client
-is withheld raises `Withheld` whatever its length.
+limit on an answer, 4096 kilobytes unless `max_response_kilobytes` raises it for that read or
+for the client, [below](#read-a-larger-answer): an entry whose answer is larger raises
+`ProtocolError`, and is read with the limit raised or a field at a time, `fields` and then
+`field`. A value the client is withheld raises `Withheld` whatever its length.
 
 **The names are listed whatever they come to.** `fields` lists every name of an entry's strings
 in a single answer, as `pykeepassgate fields` prints it, and the gate writes that answer as it
-is sent, so what bounds it is the client's own cap on an answer,
+is sent, so what bounds it is the client's own limit on an answer,
 [below](#read-a-larger-answer). Listing the names needs `list`, and a client holding `read` is
 handed the entry's tag with the listing.
 
@@ -718,14 +718,15 @@ entry" and "read the files inside it" two separate decisions.
 **A read of an attachment is held to no size by the gate.** It writes the answer as it is sent,
 a piece of the attachment at a time, so an attachment added in KeePass is fetched at any size,
 a size that cannot be written through the gate included. What bounds a fetch is the client's own
-cap on an answer, 4 MiB unless `max_response_bytes` raises it, [below](#read-a-larger-answer),
-and the client holds the whole answer in memory before `fetch` writes the file. An attachment
-arrives as base64, four thirds of its size, so the default takes an attachment of a little under
-3 MiB, and a larger attachment raises `ProtocolError` until the cap is raised. A cap of 64 MiB
-takes an attachment of a little under 48 MiB:
+limit on an answer, 4096 kilobytes unless `max_response_kilobytes` raises it for that read or
+for the client, [below](#read-a-larger-answer), and the client holds the whole answer in memory
+before `fetch` writes the file. An attachment arrives as base64, four thirds of its size, so the
+default takes an attachment of a little under 3 MiB, and a larger attachment raises
+`ProtocolError` until the limit is raised. A limit of 65536 kilobytes takes an attachment of a
+little under 48 MiB:
 
 ```shell
-pykeepassgate fetch <uuid> big.iso --to ./big.iso --max-response-bytes 67108864
+pykeepassgate fetch <uuid> big.iso --to ./big.iso --max-response-kilobytes 65536
 ```
 
 **512 KiB is the largest attachment a write takes**, since a write carries the attachment in the
@@ -1006,11 +1007,11 @@ except api.RouteRefused:
 | `RenewalError` | The base of the five above, for a caller that only wants to know whether the operator let the renewal happen. Never raised on its own: whatever else stops a renewal is the exception any route would raise for it. |
 | `IncompatibleGate` | This client does not work with the gate's version: another major version, or a minor version this client is ahead of ([`../API.md`](../API.md) §411). Raised before anything else is sent, from the pairing hello and before a paired client's first request, naming both versions, which are `.client` and `.gate` as well. Update whichever half is behind: asking again gets the same answer. |
 | `MalformedToken` | The text handed over is not an invitation, so nothing was sent. Check what was pasted. |
-| `ProtocolError` | Something on the wire is not what the protocol allows: an answer this client cannot read, or a request it will not send, such as an `if_match` that could not be one header line or that the gate could not read, which is refused before anything is dialed. Do not retry an answer it cannot read: the two halves disagree about the wire, which `tests/pykeepassgate/test_protocol.py` exists to stop. An answer longer than `max_response_bytes` is refused this way too, and the message states so: raise the setting rather than retry. |
+| `ProtocolError` | Something on the wire is not what the protocol allows: an answer this client cannot read, or a request it will not send, such as an `if_match` that could not be one header line or that the gate could not read, which is refused before anything is dialed. Do not retry an answer it cannot read: the two halves disagree about the wire, which `tests/pykeepassgate/test_protocol.py` exists to stop. An answer longer than the `max_response_kilobytes` it was read under is refused this way too, and the message names the setting: raise it, for that read or for the client, rather than retry. |
 | `NotPaired` | Nothing is stored for a paired client where this looked: nothing has paired under that profile, its identity was given up, or the directory named is not the one the pairing used. Pair, or name the profile or the directory it used. A `StorageError`, so catching that catches this as well. |
 | `StorageError` | From `pair`, before anything is sent: the directory cannot hold credentials, and the message states why. Nothing is spent, so fix that and pair again. Afterwards: what is stored for this client will not read, or could not be written, and the message names the file or the directory to look at. A key stored under a password is one of these when no password was given, or the one given does not open it, and the message names `identity.pem`. |
 | `TransportError` | No whole answer arrived: nothing is listening, the socket a `dial` handed back could not be used, closed or never connected, the handshake failed, which a paragraph below explains, or the connection broke or timed out once the request was on its way. After a read, send it again. After a write, the change may have landed, so look before sending it again: read or list what it changed, where the rules allow that, or ask the operator. |
-| `ValueError` | A setting or an argument that could not work, refused where it is given and before anything is dialed, stored or spent: a port, a host, a timeout, a retry budget, a response cap, a lifetime, a profile's name, an expiry, a key password or a `dial`. The message names it, and never repeats a password. Correct it in the calling program. |
+| `ValueError` | A setting or an argument that could not work, refused where it is given and before anything is dialed, stored or spent: a port, a host, a timeout, a retry budget, a response limit, a lifetime, a profile's name, an expiry, a key password or a `dial`. The message names it, and never repeats a password. Correct it in the calling program. |
 | `AttributeError` | Something this client never read, which is absence and not emptiness: a listed entry's `username`, `password`, `notes`, `protected`, `expires` or `custom()`, a listed group's `notes`, a listed field's `value`, a listed attachment's `content`, or the `etag` of a group or an entry only listed. Read the node first. The `etag` of an answer the gate gave no tag for is this as well, and asking again does not change it: the gate hands a tag to every client holding `read` on the node and to no other, which the message states. A withheld value is never this, so `getattr` with a default and `hasattr` cannot turn one into a default. |
 | `KeyError` | A name `entry.fields` or `entry.custom()` does not hold, as from any mapping. `get` answers its default for that, and for nothing else. |
 | `TypeError` | A `dial` that handed back something other than a connected stream socket, such as a datagram socket, which is a mistake in the program's own `dial`; what it handed back is closed first, if it can be. A socket it handed back already closed or never connected is a `TransportError`, whose message is that the socket could not be used rather than that a handshake failed, and is closed as well. |
@@ -1135,29 +1136,59 @@ which is the most a key can be stored and opened under, or text UTF-8 cannot enc
 
 ## Read a larger answer
 
-A client reads at most 4 MiB of one answer, `api.MAX_RESPONSE_BYTES`, so that nothing answering the
-socket can make it hold as much memory as it likes. An answer over that fails whole with
-`ProtocolError`, whose message names the setting below; nothing is cut short, because a listing
-missing its tail would read as a complete one. It is not a `TransportError`: the connection worked,
-and asking again reads the same answer to the same cap.
+A read takes at most 4096 kilobytes of its answer, `api.MAX_RESPONSE_KILOBYTES`, so that nothing
+answering the socket can make the client hold as much memory as it likes. A kilobyte here is
+1024 bytes, so the default is 4 MiB. An answer over the limit fails whole with `ProtocolError`,
+whose message names the setting below; nothing is cut short, because a listing missing its tail
+would read as a complete listing. It is not a `TransportError`: the connection worked, and
+asking again reads the same answer to the same limit.
 
 The plugin serves a listing of groups or of entries whole ([`../API.md`](../API.md) §407), so
 that listing grows with the database, and a very large database can outgrow the default. So can
-an entry, and the listing of its fields with it, and so can an attachment, which arrives as
-base64, four thirds of its size: the plugin hands out an entry and an attachment of any size
-([`../API.md`](../API.md) §412). Raise it for that client:
+an entry, and the listing of its fields with it, and so can an attachment: the plugin hands out
+an entry and an attachment of any size ([`../API.md`](../API.md) §412). An attachment arrives as
+base64, four thirds of its size, so the default takes an attachment of a little under 3 MiB and a
+limit of 65536 takes an attachment of a little under 48 MiB.
 
-```shell
-pykeepassgate groups --max-response-bytes 16777216
-pykeepassgate fetch <uuid> big.iso --to ./big.iso --max-response-bytes 67108864
-```
+**Raise it for the read that needs it.** `max_response_kilobytes` is taken by every read whose
+answer grows with what the database holds: `groups`, `subgroups`, `group`, `entries`, `entry`,
+`fields`, `field`, `attachments` and `attachment`, by `get` and `send`, and by `refs.resolve` and
+`refs.resolve_entry` for the entries a reference leads to. It holds for that call alone, so a
+program that knows which attachment is large raises the limit there and leaves every other read
+at a limit that suits it:
 
 ```python
-client = GateClient.open(max_response_bytes=16 * 1024 * 1024)
+backup = client.attachment(uuid, "backup.tar", max_response_kilobytes=65536)
+entry = client.entry(uuid, max_response_kilobytes=16384)
 ```
 
-It is a setting of the client, taken by `GateClient`, `GateClient.open` and `api.pair`, and anything
-but a positive whole number of bytes is refused with `ValueError` before anything is dialed.
+**Or set what every read of a client takes**, which a read given no limit of its own is under:
+
+```python
+client = GateClient.open(max_response_kilobytes=16384)
+```
+
+**On the command line the option sets the client's own for that invocation**, on the commands
+that make such a read: `groups`, `group`, `entries`, `show`, `fields`, `field`, `attachments` and
+`fetch`.
+
+```shell
+pykeepassgate groups --max-response-kilobytes 16384
+pykeepassgate fetch <uuid> big.iso --to ./big.iso --max-response-kilobytes 65536
+```
+
+**Everything else is outside the setting.** A pairing, a renewal, the status, the identity, what
+a client may do at a group or an entry, and the answer to a write or to a revocation each have a
+bounded shape, so each is read under a limit of its own, `api.BOUNDED_RESPONSE_KILOBYTES`,
+whatever the client was given. A limit lowered to hold the reads down therefore cannot stop a
+client pairing or renewing, whose answers carry a certificate and its key, and `api.pair` and the
+commands that make no such read take no limit at all. A refusal is read under whichever limit
+its request had, and the smallest of them is enough: the largest refusal the gate sends is a few
+hundred bytes.
+
+**A limit is a whole number of kilobytes, 1 or more**, and anything else is refused with
+`ValueError` before anything is dialed, given to `GateClient`, to `GateClient.open` or to one
+read. The command line refuses the same as a wrong argument, exit 2.
 
 ## Test a program against a stand-in gate
 

@@ -335,10 +335,10 @@ has both forms measured: the two hundred fields are about a hundred megabytes of
 pieces, with a tenth of a megabyte alive at once, and a quarter less time.
 
 **How much of an answer a client holds is the client's to decide.** The gate hands out an entry
-of any size, so the bound on what a client reads is its own: PyKeePassGate reads at most
-`max_response_bytes` of an answer, 4 MiB unless raised, and refuses a larger answer whole. An
-entry past that is read with the setting raised or a field at a time, `listFields` and then
-`readField`.
+of any size, so the bound on what a client reads is its own: a read by PyKeePassGate takes at
+most `max_response_kilobytes` of its answer, 4096 kilobytes unless raised for that read or for
+the client, and refuses a larger answer whole. An entry past that is read with the limit raised
+or a field at a time, `listFields` and then `readField`.
 
 **The names are listed in a single answer, written as it is sent.** `listFields` serves names
 and nothing else, and no write is refused for how many strings an entry holds, so the names

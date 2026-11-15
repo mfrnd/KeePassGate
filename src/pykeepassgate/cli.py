@@ -462,6 +462,7 @@ def _parser() -> argparse.ArgumentParser:
     )
     _shared(groups)
     _dialed(groups)
+    _limited(groups)
     groups.set_defaults(run=_groups)
 
     group = commands.add_parser(
@@ -473,6 +474,7 @@ def _parser() -> argparse.ArgumentParser:
     _read_conditioned(group)
     _shared(group)
     _dialed(group)
+    _limited(group)
     group.set_defaults(run=_group_read)
 
     add_group = commands.add_parser("add-group", help="create a group inside another")
@@ -527,6 +529,7 @@ def _parser() -> argparse.ArgumentParser:
     )
     _shared(entries)
     _dialed(entries)
+    _limited(entries)
     entries.set_defaults(run=_entries)
 
     show = commands.add_parser(
@@ -554,6 +557,7 @@ def _parser() -> argparse.ArgumentParser:
     _read_conditioned(show)
     _shared(show)
     _dialed(show)
+    _limited(show)
     show.set_defaults(run=_show)
 
     add = commands.add_parser("add", help="create an entry in a group")
@@ -629,6 +633,7 @@ def _parser() -> argparse.ArgumentParser:
     _read_conditioned(fields)
     _shared(fields)
     _dialed(fields)
+    _limited(fields)
     fields.set_defaults(run=_fields)
 
     field = commands.add_parser(
@@ -645,6 +650,7 @@ def _parser() -> argparse.ArgumentParser:
     _read_conditioned(field)
     _shared(field)
     _dialed(field)
+    _limited(field)
     field.set_defaults(run=_field)
 
     add_field = commands.add_parser("add-field", help="add a string the entry does not have")
@@ -691,6 +697,7 @@ def _parser() -> argparse.ArgumentParser:
     _read_conditioned(files)
     _shared(files)
     _dialed(files)
+    _limited(files)
     files.set_defaults(run=_attachments)
 
     fetch = commands.add_parser("fetch", help="write one attachment to a file")
@@ -700,6 +707,7 @@ def _parser() -> argparse.ArgumentParser:
     _read_conditioned(fetch)
     _shared(fetch)
     _dialed(fetch)
+    _limited(fetch)
     fetch.set_defaults(run=_fetch)
 
     # Named as `fetch` is, the entry and the attachment's name first, and the file after.
@@ -1068,20 +1076,27 @@ def _dialed(parser: argparse.ArgumentParser) -> None:
         ),
     )
 
-    # How much of one answer to read, beside the socket's timeout because it too bounds what one
-    # connection may cost. The plugin serves every listing whole and an entry or an attachment at
-    # any size, so an answer grows with what the database holds.
+
+def _limited(parser: argparse.ArgumentParser) -> None:
+    """How much of its answer to take, for the commands that read what grows with the database.
+
+    The plugin serves every listing whole and an entry or an attachment at any size, so those
+    answers have no bound of their own and the option is theirs. Not on a command whose answer
+    has a bounded shape, pairing, a renewal, the status or a write among them: the library reads
+    those under `transport.BOUNDED_RESPONSE_KILOBYTES` whatever it is given, so the option could
+    change nothing such a command does, which is `_dialed`'s rule about `identity`.
+    """
     parser.add_argument(
-        "--max-response-bytes",
-        type=_byte_count,
+        "--max-response-kilobytes",
+        type=_kilobytes,
         default=None,
-        metavar="BYTES",
+        metavar="KILOBYTES",
         help=(
-            f"the most of one answer to read, {api.MAX_RESPONSE_BYTES} unless this says "
-            "otherwise. The gate serves every listing whole and an entry or an attachment at "
-            "any size, so a very large database, entry or attachment may need it raised, an "
-            "attachment at four thirds of its size; an answer over it fails whole rather than "
-            "arriving cut short."
+            "the most of the answer to take, in kilobytes of 1024 bytes, "
+            f"{api.MAX_RESPONSE_KILOBYTES} unless this gives another. The gate serves every "
+            "listing whole and an entry or an attachment at any size, so a very large "
+            "database, entry or attachment may need it raised, an attachment at four thirds "
+            "of its size; an answer over it fails whole rather than arriving cut short."
         ),
     )
 
@@ -1120,15 +1135,19 @@ def _host(text: str) -> str:
         raise argparse.ArgumentTypeError(str(error)) from None
 
 
-def _byte_count(text: str) -> int:
-    """A cap on an answer, refused here as an argument rather than later as a failed call."""
+def _kilobytes(text: str) -> int:
+    """A limit on an answer, refused here as an argument rather than later as a failed call."""
     try:
         value = int(text)
     except ValueError:
-        raise argparse.ArgumentTypeError(f"{text!r} is not a whole number of bytes") from None
+        raise argparse.ArgumentTypeError(
+            f"{text!r} is not a whole number of kilobytes"
+        ) from None
 
-    if value <= 0:
-        raise argparse.ArgumentTypeError(f"an answer is capped at a positive number, not {value}")
+    if value < 1:
+        raise argparse.ArgumentTypeError(
+            f"an answer is read under a limit of 1 kilobyte or more, not {value}"
+        )
 
     return value
 
@@ -1312,7 +1331,12 @@ class _Dialing(TypedDict, total=False):
     retry_busy_timeout: float
     retry_locked_timeout: float
     retry_undecided_timeout: float
-    max_response_bytes: int
+
+
+class _Reading(_Dialing, total=False):
+    """What a command that reads may pass on besides: how much of its answer to take."""
+
+    max_response_kilobytes: int
 
 
 def _dialing(arguments: argparse.Namespace) -> _Dialing:
@@ -1326,7 +1350,15 @@ def _dialing(arguments: argparse.Namespace) -> _Dialing:
     Only the commands that connect are asked, which is every command `_dialed` reaches.
     """
     given = _Dialing()
+    _waits(arguments, given)
+    return given
 
+
+def _waits(arguments: argparse.Namespace, given: _Dialing) -> None:
+    """Fill in the socket's timeout and the three budgets, each only when the command line gave it.
+
+    In place, so that `_reading` fills the same settings into what it passes on beside the limit.
+    """
     if arguments.connection_timeout is not None:
         given["connection_timeout"] = arguments.connection_timeout
     if arguments.retry_busy_timeout is not None:
@@ -1335,8 +1367,20 @@ def _dialing(arguments: argparse.Namespace) -> _Dialing:
         given["retry_locked_timeout"] = arguments.retry_locked_timeout
     if arguments.retry_undecided_timeout is not None:
         given["retry_undecided_timeout"] = arguments.retry_undecided_timeout
-    if arguments.max_response_bytes is not None:
-        given["max_response_bytes"] = arguments.max_response_bytes
+
+
+def _reading(arguments: argparse.Namespace) -> _Reading:
+    """What `_dialing` passes on, and the limit on an answer when the command line gave it.
+
+    The client's own setting for this invocation, which every read the command makes is then
+    under, the entries `show --resolve` follows among them. Only the commands `_limited` reaches
+    are asked, since no other command carries the option.
+    """
+    given = _Reading()
+    _waits(arguments, given)
+
+    if arguments.max_response_kilobytes is not None:
+        given["max_response_kilobytes"] = arguments.max_response_kilobytes
 
     return given
 
@@ -1919,7 +1963,7 @@ def _groups(arguments: argparse.Namespace) -> int:
         arguments.profile,
         host=arguments.host,
         key_password=_key_password(arguments),
-        **_dialing(arguments),
+        **_reading(arguments),
     )
     found = client.subgroups(arguments.under) if arguments.under is not None else client.groups()
 
@@ -1937,7 +1981,7 @@ def _group_read(arguments: argparse.Namespace) -> int:
         arguments.profile,
         host=arguments.host,
         key_password=_key_password(arguments),
-        **_dialing(arguments),
+        **_reading(arguments),
     )
     found = client.group(arguments.uuid, if_match=arguments.if_match)
 
@@ -2023,7 +2067,7 @@ def _entries(arguments: argparse.Namespace) -> int:
         arguments.profile,
         host=arguments.host,
         key_password=_key_password(arguments),
-        **_dialing(arguments),
+        **_reading(arguments),
     )
 
     found = client.entries(arguments.group, include_expired=arguments.include_expired)
@@ -2059,7 +2103,7 @@ def _show(arguments: argparse.Namespace) -> int:
         arguments.profile,
         host=arguments.host,
         key_password=_key_password(arguments),
-        **_dialing(arguments),
+        **_reading(arguments),
     )
     entry = client.entry(arguments.uuid, if_match=arguments.if_match)
     # `GateClient.entry` never answers without the strings: `Entry.read` refuses such an answer.
@@ -2203,7 +2247,7 @@ def _fields(arguments: argparse.Namespace) -> int:
         arguments.profile,
         host=arguments.host,
         key_password=_key_password(arguments),
-        **_dialing(arguments),
+        **_reading(arguments),
     )
     found = client.fields(arguments.uuid, if_match=arguments.if_match)
 
@@ -2229,7 +2273,7 @@ def _field(arguments: argparse.Namespace) -> int:
         arguments.profile,
         host=arguments.host,
         key_password=_key_password(arguments),
-        **_dialing(arguments),
+        **_reading(arguments),
     )
     found = client.field(arguments.uuid, arguments.name, if_match=arguments.if_match)
 
@@ -2320,7 +2364,7 @@ def _attachments(arguments: argparse.Namespace) -> int:
         arguments.profile,
         host=arguments.host,
         key_password=_key_password(arguments),
-        **_dialing(arguments),
+        **_reading(arguments),
     )
 
     found = client.attachments(arguments.uuid, if_match=arguments.if_match)
@@ -2342,7 +2386,7 @@ def _fetch(arguments: argparse.Namespace) -> int:
         arguments.profile,
         host=arguments.host,
         key_password=_key_password(arguments),
-        **_dialing(arguments),
+        **_reading(arguments),
     )
     attachment = client.attachment(
         arguments.uuid, arguments.name, if_match=arguments.if_match
