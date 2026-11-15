@@ -1045,9 +1045,9 @@ those are two different failures.
 `PwDatabase.CustomData`**, which is where this plugin's own keys now live. Worse in two ways than
 the group dialog. Its write-back is conditional on the key count differing rather than on anything
 the operator did, so a pairing landing while it is open is destroyed with the Plugin Data tab never
-opened. And its one button is both the accept and the cancel button, with `DialogResult.Cancel`, so
-the button, Enter and Escape all write the copy back, and only the close box and Alt+F4 do not,
-which nothing on screen tells the operator. `GroupDialogs` watches for it and `DatabaseWriter`
+opened. And the copy is written back as the dialog closes, whichever way it is closed: its one
+button, which is both the accept and the cancel button, Enter, Escape, the close box and Alt+F4
+alike, so there is no way to decline it. `GroupDialogs` watches for it and `DatabaseWriter`
 refuses while it is open.
 
 **A dialog that is adding something is about a group it does not hold**, which a watch keyed on the
