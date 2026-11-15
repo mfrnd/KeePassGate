@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import base64
 import datetime as dt
+import inspect
 import json
 import math
 import os
@@ -648,7 +649,6 @@ def test_pairing_through_the_library_passes_on_what_it_was_given(
             "connection_timeout": transport.PAIRING_CONNECTION_TIMEOUT,
             "host": "gate.invalid",
             "dial": transport.create_connection,
-            "max_response_bytes": transport.MAX_RESPONSE_BYTES,
         }
     ]
     assert handler.asked is not None
@@ -658,21 +658,40 @@ def test_pairing_through_the_library_passes_on_what_it_was_given(
     assert api.load(tmp_path / "kept").port == gate.port, "the port stored is the one paired on"
 
 
-def test_a_pairing_with_a_cap_nothing_fits_under_is_refused_before_anything_is_touched(
-    gate: FakeGate, tmp_path: Path
+def test_a_pairing_s_answers_are_read_under_the_bounded_limit_and_no_setting(
+    gate: FakeGate,
+    host: Issued,
+    tmp_path: Path,
+    bundle: dict[str, Any],
+    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    # Before `prepare`, which opens files, and before a hello the gate would count as an attempt.
-    with pytest.raises(ValueError, match="positive number of bytes"):
-        api.pair(
-            port=gate.port,
-            invitation=INVITATION,
-            name="agent-invented",
-            directory=tmp_path / "kept",
-            max_response_bytes=0,
-        )
+    # A hello's answer and a bundle have a bounded shape, so no limit a caller keeps for its
+    # reads reaches either, and the gate has spent the invitation by the time the bundle is
+    # read. Observed on the way into the connection, where a limit would have to arrive to
+    # change anything: what arrives is no number, which a connection reads under the bounded
+    # limit, as `test_transport.py` holds it to.
+    gate.handler = Gate(gate, host, bundle=bundle)
+    limits: list[object] = []
+    connect = transport.connect
 
-    assert not (tmp_path / "kept").exists()
-    assert gate.requests == []
+    def recorded(*positional: Any, **named: Any) -> Any:
+        limits.append(named.get("max_response_kilobytes"))
+        return connect(*positional, **named)
+
+    monkeypatch.setattr(transport, "connect", recorded)
+
+    stored = api.pair(
+        port=gate.port,
+        invitation=INVITATION,
+        name="agent-invented",
+        directory=tmp_path / "kept",
+        connection_timeout=10.0,
+    )
+
+    assert limits == [None, None], "the hello and the request, and a limit of its own for neither"
+    assert stored.subject == "CN=agent-invented"
+    for taking in (api.pair, Pairing):
+        assert "max_response_kilobytes" not in inspect.signature(taking).parameters
 
 
 @pytest.mark.parametrize(

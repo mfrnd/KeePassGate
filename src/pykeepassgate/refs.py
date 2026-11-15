@@ -51,6 +51,7 @@ import string
 from dataclasses import dataclass
 from typing import Protocol
 
+from . import transport
 from .errors import AmbiguousName, RouteRefused, Unresolved, Withheld
 from .model import (
     NOTES,
@@ -183,11 +184,19 @@ LATE = (*REFUSED, "{URL}")
 class Entries(Protocol):
     """What the resolver reads other entries through, which `GateClient` is."""
 
-    def entry(self, uuid: str) -> Entry:
-        """One entry, read, by its identifier."""
+    def entry(
+        self, uuid: str, *, max_response_kilobytes: int | transport.Keep = transport.KEEP
+    ) -> Entry:
+        """One entry, read, by its identifier, taking that much of the answer."""
 
 
-def resolve(client: Entries, entry: Entry, value: str) -> str:
+def resolve(
+    client: Entries,
+    entry: Entry,
+    value: str,
+    *,
+    max_response_kilobytes: int | transport.Keep = transport.KEEP,
+) -> str:
     """What KeePass would give for this value of this entry, or a refusal saying why not.
 
     `entry` is the entry the value came from, read rather than listed, since the placeholders for
@@ -195,13 +204,20 @@ def resolve(client: Entries, entry: Entry, value: str) -> str:
     a string does. `client` reads every entry a reference names, with `GateClient.entry`, but for
     `entry` itself, which a reference to it is answered out of rather than read again.
 
+    `max_response_kilobytes` is how much of its answer each of those reads takes, handed to
+    `GateClient.entry` as given, and `KEEP` is the client's own: an entry a reference names can
+    be as large as any other, and the caller that raised the limit to read `entry` has the same
+    reason to raise it here. A limit that could not work is refused with `ValueError` before
+    anything is resolved, whether or not the value names another entry.
+
     A value with nothing in it KeePass could replace comes back as it is, and nothing is asked.
     """
+    _limit(max_response_kilobytes)
     _fields(entry)
     if not _might_change(value):
         return value
 
-    return _Resolution(client, entry).resolved(value, entry)[0]
+    return _Resolution(client, entry, max_response_kilobytes).resolved(value, entry)[0]
 
 
 @dataclass(frozen=True)
@@ -217,7 +233,12 @@ class Resolved:
     protected: bool
 
 
-def resolve_entry(client: Entries, entry: Entry) -> dict[str, Resolved]:
+def resolve_entry(
+    client: Entries,
+    entry: Entry,
+    *,
+    max_response_kilobytes: int | transport.Keep = transport.KEEP,
+) -> dict[str, Resolved]:
     """Every string of a read entry as KeePass would give it, in one resolution, by its name.
 
     One moment, as KeePass compiles every string out of the one database it holds: each entry a
@@ -225,10 +246,12 @@ def resolve_entry(client: Entries, entry: Entry) -> dict[str, Resolved]:
     no string and a reference to its own entry, answer out of two versions of one entry. Each
     string keeps a reference cache and a budget of its own, as KeePass gives each value a context
     of its own. A string the rule withholds is left out, as `withheld` names it, and the first
-    string that cannot be given raises, with nothing given.
+    string that cannot be given raises, with nothing given. `max_response_kilobytes` is
+    `resolve`'s, for every entry read on the way.
     """
+    _limit(max_response_kilobytes)
     fields = _fields(entry)
-    resolution = _Resolution(client, entry)
+    resolution = _Resolution(client, entry, max_response_kilobytes)
     given: dict[str, Resolved] = {}
     for name in fields:
         if name in entry.withheld:
@@ -241,6 +264,17 @@ def resolve_entry(client: Entries, entry: Entry) -> dict[str, Resolved]:
         given[name] = Resolved(value, borrowed or name in entry.protected)
 
     return given
+
+
+def _limit(given: int | transport.Keep) -> None:
+    """Refuse a limit no read could take, where it is given rather than at the first reference.
+
+    The client refuses it as well, at the read it is handed to, which a value naming no other
+    entry never reaches: refused there alone, a limit that could not work would pass or fail by
+    what the value happens to hold.
+    """
+    if not isinstance(given, transport.Keep):
+        transport.response_limit(given)
 
 
 def _fields(entry: Entry) -> Fields:
@@ -387,10 +421,12 @@ class _Resolution:
     begun again by `resolved`. `read` is the resolution's, kept for every value it is asked for,
     since one resolution is one moment: each entry a reference named, and the entry the values came
     from, from the start, so that a reference to it is answered out of the read the caller holds.
+    `limit` is how much of its answer each of those reads takes, as the caller gave it.
     """
 
-    def __init__(self, client: Entries, entry: Entry) -> None:
+    def __init__(self, client: Entries, entry: Entry, limit: int | transport.Keep) -> None:
         self._client = client
+        self._limit = limit
         self._read: dict[str, Entry] = {entry.uuid.upper(): entry}
         self._cache: list[tuple[str, str]] = []
         self._path: list[tuple[str, str]] = []
@@ -572,7 +608,7 @@ class _Resolution:
         key = uuid.upper()
         if key not in self._read:
             try:
-                self._read[key] = self._client.entry(uuid)
+                self._read[key] = self._client.entry(uuid, max_response_kilobytes=self._limit)
             except RouteRefused as refused:
                 if refused.status != 404:
                     raise

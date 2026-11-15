@@ -25,6 +25,7 @@ from pykeepassgate.errors import (
     GateBusy,
     GateUnavailable,
     NotAdmitted,
+    PreconditionFailed,
     ProtocolError,
     RouteRefused,
     StorageError,
@@ -573,45 +574,57 @@ def test_a_client_opened_from_disk_takes_a_host_too(
     assert client.host == "localhost", "the identity says which gate, the caller says where it is"
 
 
-def test_an_answer_over_the_client_s_cap_fails_whole(
+def test_an_answer_over_the_client_s_limit_fails_whole(
     tmp_path: Path, bundle: dict[str, Any], gate: FakeGate
 ) -> None:
-    # The cap a client was built with is the one its connections read under, rather than the
-    # module's default: the answer here is far under 4 MiB and over the number given.
+    # The limit a client was built with is the limit its reads are under, rather than the
+    # module's default: the answer here is far under 4096 kilobytes and over the number given.
     stored = credentials_module.save(tmp_path / "kept", gate.port, bundle)
     gate.handler = lambda path, body, client: (200, json.dumps({"groups": ["x" * 4096]}))
 
-    # Not a connection that failed, which is what `TransportError` says and what a caller retries:
-    # the same answer would meet the same cap. The message names what raises it.
-    with pytest.raises(ProtocolError, match=r"over 1024 bytes.*max_response_bytes"):
-        GateClient(stored, connection_timeout=10.0, max_response_bytes=1024).groups()
+    # Not a connection that failed, which is what `TransportError` reports and what a caller
+    # retries: the same answer would meet the same limit. The message names what raises it.
+    with pytest.raises(ProtocolError, match=r"over 1 kilobyte.*max_response_kilobytes"):
+        GateClient(stored, connection_timeout=10.0, max_response_kilobytes=1).groups()
 
 
-def test_a_cap_raised_past_an_answer_takes_it(
+def test_a_limit_raised_past_an_answer_takes_it(
     tmp_path: Path, bundle: dict[str, Any], gate: FakeGate
 ) -> None:
-    # What a caller with a database too large for the default does, since the gate serves a
-    # listing of groups or of entries whole.
+    # What a caller with a database too large for the default does for every read it makes,
+    # since the gate serves a listing of groups or of entries whole.
     credentials_module.save(tmp_path / "kept", gate.port, bundle)
     gate.handler = lambda path, body, client: (200, json.dumps({"ok": True, "pad": "x" * 4096}))
 
-    client = GateClient.open(
-        tmp_path / "kept", connection_timeout=10.0, max_response_bytes=8192
-    )
+    low = GateClient.open(tmp_path / "kept", connection_timeout=10.0, max_response_kilobytes=1)
+    with pytest.raises(ProtocolError, match="over 1 kilobyte"):
+        low.get("/gate/whoami")
 
-    assert client.get("/gate/whoami")["ok"] is True
+    raised = GateClient.open(tmp_path / "kept", connection_timeout=10.0, max_response_kilobytes=8)
+    assert raised.get("/gate/whoami")["ok"] is True
 
 
-@pytest.mark.parametrize("cap", [0, -1])
-def test_a_cap_nothing_fits_under_is_refused_before_anything_is_dialed(
-    cap: int, tmp_path: Path, bundle: dict[str, Any], gate: FakeGate
+@pytest.mark.parametrize("limit", [0, -1, True, False, 1.5, "4096", None])
+def test_a_limit_nothing_fits_under_is_refused_before_anything_is_dialed(
+    limit: Any, tmp_path: Path, bundle: dict[str, Any], gate: FakeGate
 ) -> None:
+    # A whole number of kilobytes from 1: `True` is 1 to Python and a limit nobody meant, and
+    # text from a configuration file is no number until somebody has converted it.
     stored = credentials_module.save(tmp_path / "kept", gate.port, bundle)
 
-    with pytest.raises(ValueError, match="positive number of bytes"):
-        GateClient(stored, max_response_bytes=cap)
+    with pytest.raises(ValueError, match="max_response_kilobytes"):
+        GateClient(stored, max_response_kilobytes=limit)
 
-    assert gate.requests == []
+    assert gate.names == []
+
+
+def test_the_smallest_limit_is_a_kilobyte_and_a_client_takes_it(
+    tmp_path: Path, bundle: dict[str, Any], gate: FakeGate
+) -> None:
+    stored = credentials_module.save(tmp_path / "kept", gate.port, bundle)
+    gate.handler = lambda path, body, client: (200, json.dumps({"groups": []}))
+
+    assert GateClient(stored, connection_timeout=10.0, max_response_kilobytes=1).groups() == []
 
 
 def test_a_head_asks_whether_a_route_answers_without_taking_the_answer(
@@ -975,6 +988,19 @@ class TestWaitingOutARefusal:
 
         assert waited == []
 
+    def test_a_refusal_waited_out_is_read_under_the_smallest_limit(
+        self, gate: FakeGate, paired: GateClient, waited: list[float]
+    ) -> None:
+        # Every attempt is read under the limit the read was given, the `503`s among them: the
+        # largest refusal the gate sends is a few hundred bytes, so a kilobyte reads each as the
+        # refusal it is, and the read is waited out rather than failed as an answer too long.
+        self._busy_then(gate, 2, TAGGED_ENTRY)
+
+        read = paired.entry("7b1c" * 8, retry_busy_timeout=30.0, max_response_kilobytes=1)
+
+        assert read.uuid == "7b1c" * 8
+        assert waited == [2.0, 2.0]
+
 
 @pytest.mark.parametrize(
     ("setting", "value"),
@@ -986,7 +1012,8 @@ class TestWaitingOutARefusal:
         ("retry_locked_timeout", -1.0),
         ("retry_locked_timeout", math.inf),
         ("retry_undecided_timeout", math.nan),
-        ("max_response_bytes", 1.5),
+        ("max_response_kilobytes", 1.5),
+        ("max_response_kilobytes", 0),
     ],
 )
 def test_a_client_given_a_setting_that_cannot_work_is_refused_before_anything_is_dialed(
@@ -1081,6 +1108,301 @@ def test_a_connection_timeout_given_to_a_tagged_call_is_the_one_it_dials_with(
     TAGGED[call](client)
 
     assert dialed == [10.0, 3.5, 10.0]
+
+
+#: What makes an answer longer than the smallest limit a read can be given, as a member no
+#: reader asks for.
+PAD = "x" * 2048
+
+#: Every read whose answer grows with what the database holds, each made with whatever it is
+#: handed, and an answer of the shape the gate gives it.
+GROWING: dict[str, tuple[Callable[..., object], dict[str, Any]]] = {
+    "groups": (lambda client, **given: client.groups(**given), {"groups": []}),
+    "group": (
+        lambda client, **given: client.group("7b1c" * 8, **given),
+        {"uuid": "7b1c" * 8, "name": "Invented", "parent": None, "notes": ""},
+    ),
+    "subgroups": (lambda client, **given: client.subgroups(**given), {"groups": []}),
+    "entries": (lambda client, **given: client.entries(**given), {"entries": []}),
+    "entry": (
+        lambda client, **given: client.entry("7b1c" * 8, **given),
+        {"uuid": "7b1c" * 8, "group": "g", "fields": {}, "protected": [], "expires": None},
+    ),
+    "fields": (lambda client, **given: client.fields("7b1c" * 8, **given), {"fields": []}),
+    "field": (
+        lambda client, **given: client.field("7b1c" * 8, "Token", **given),
+        {"name": "Token", "value": "invented", "protected": False},
+    ),
+    "attachments": (
+        lambda client, **given: client.attachments("7b1c" * 8, **given),
+        {"attachments": []},
+    ),
+    "attachment": (
+        lambda client, **given: client.attachment("7b1c" * 8, "a.pem", **given),
+        {"name": "a.pem", "size": 0, "content": ""},
+    ),
+    "get": (lambda client, **given: client.get("/entries", **given), {"entries": []}),
+    "send": (lambda client, **given: client.send("GET", "/entries", **given), {"entries": []}),
+}
+
+#: What the status route answers, for a test that scripts it.
+SERVING = {"ok": True, "database": "abcdef01", "version": __version__, "revision": "0123abcd"}
+
+
+def _head(client: GateClient) -> None:
+    """Ask with HEAD, whose answer `_padded` makes long by its tag, having no body to pad."""
+    assert client.head("/groups/" + "7b1c" * 8) == '"' + PAD + '"'
+
+
+#: The exchanges whose answer has a bounded shape, which no setting reaches, each with its
+#: answer. With `GROWING` and `ELSEWHERE` they are every request a client makes, which
+#: `test_every_request_a_client_makes_is_held_to_a_limit_by_a_test` holds them to.
+BOUNDED: dict[str, tuple[Callable[[GateClient], object], dict[str, Any]]] = {
+    "status": (lambda client: client.status(), SERVING),
+    "identity": (
+        lambda client: client.identity(),
+        {
+            "subject": "CN=agent-invented",
+            "clientKey": "3a" * 32,
+            "admissionKey": "5f" * 32,
+            "expires": "2027-02-03T04:05:06Z",
+            "profiles": ["reader"],
+            "removedProfiles": [],
+            "profilesUnreadable": False,
+        },
+    ),
+    "group_access": (lambda client: client.group_access(), {"grants": {}}),
+    "entry_access": (lambda client: client.entry_access("7b1c" * 8), {"grants": {}}),
+    "create_group": (lambda client: client.create_group("Invented"), {"uuid": "7b1c" * 8}),
+    "update_group": (lambda client: client.update_group("7b1c" * 8, name="Renamed"), {}),
+    "delete_group": (lambda client: client.delete_group("7b1c" * 8), {}),
+    "create_entry": (lambda client: client.create_entry(title="Invented"), {"uuid": "7b1c" * 8}),
+    "update_entry": (lambda client: client.update_entry("7b1c" * 8, title="Renamed"), {}),
+    "delete_entry": (lambda client: client.delete_entry("7b1c" * 8), {}),
+    "create_field": (lambda client: client.create_field("7b1c" * 8, "Token", "invented"), {}),
+    "update_field": (lambda client: client.update_field("7b1c" * 8, "Token", "invented"), {}),
+    "strip_field": (lambda client: client.strip_field("7b1c" * 8, "Token"), {}),
+    "create_attachment": (
+        lambda client: client.create_attachment("7b1c" * 8, "a.pem", b"invented"),
+        {},
+    ),
+    "update_attachment": (
+        lambda client: client.update_attachment("7b1c" * 8, "a.pem", b"invented"),
+        {},
+    ),
+    "strip_attachment": (lambda client: client.strip_attachment("7b1c" * 8, "a.pem"), {}),
+    "revoke_certificate": (lambda client: client.revoke_certificate(), {"ok": True}),
+    "head": (_head, {}),
+}
+
+#: What is read under the bounded limit and tested where its exchange is scripted: a renewal,
+#: in `test_renewal.py`, by a client built to read a kilobyte.
+ELSEWHERE = {"renew"}
+
+
+def _padded(gate: FakeGate, answer: dict[str, Any]) -> None:
+    """Answer every request with this made longer than a kilobyte, and the status route too.
+
+    The answer to a HEAD has no body to make longer, so it carries a tag of that length.
+    """
+    gate.version = None
+
+    def handler(path: str, body: str, client: bytes | None) -> tuple[int, str]:
+        if gate.method() == "HEAD":
+            gate.tag('"' + PAD + '"')
+
+        return 200, json.dumps((SERVING if path == "/gate/status" else answer) | {"pad": PAD})
+
+    gate.handler = handler
+
+
+@pytest.mark.parametrize("read", GROWING)
+def test_every_read_that_grows_takes_a_limit_as_send_takes_it(read: str) -> None:
+    taken = inspect.signature(getattr(GateClient, read)).parameters["max_response_kilobytes"]
+    sent = inspect.signature(GateClient.send).parameters["max_response_kilobytes"]
+
+    assert taken.kind is inspect.Parameter.KEYWORD_ONLY
+    assert taken.default is transport.KEEP
+    assert taken.annotation == sent.annotation
+
+
+def test_nothing_but_a_read_that_grows_takes_a_limit() -> None:
+    # A limit offered where the answer has a bounded shape would be a setting that changes
+    # nothing, or a setting that could stop a renewal. `open` builds a client, with its own.
+    limited = {
+        name
+        for name, member in inspect.getmembers(GateClient, inspect.isfunction)
+        if not name.startswith("_")
+        and "max_response_kilobytes" in inspect.signature(member).parameters
+    }
+
+    assert limited == set(GROWING)
+    assert not limited & set(BOUNDED)
+
+
+def test_every_request_a_client_makes_is_held_to_a_limit_by_a_test() -> None:
+    # A method that takes no limit and asks through `get` or `send` is under the client's own
+    # setting unseen, and a bounded exchange that hands the client's setting on is stopped by
+    # a limit lowered for the reads. Neither shows in a signature, so each method is in a table
+    # the tests below make every request of, and a method written later belongs in a table
+    # before this passes.
+    public = {
+        name
+        for name, _ in inspect.getmembers(GateClient, inspect.isfunction)
+        if not name.startswith("_")
+    }
+
+    assert public == set(GROWING) | set(BOUNDED) | ELSEWHERE
+    assert not set(GROWING) & set(BOUNDED)
+    assert not ELSEWHERE & (set(GROWING) | set(BOUNDED))
+
+
+@pytest.mark.parametrize("read", GROWING)
+def test_a_read_given_a_limit_under_its_answer_fails_whole_where_the_client_s_own_takes_it(
+    gate: FakeGate, paired: GateClient, read: str
+) -> None:
+    call, answer = GROWING[read]
+    _padded(gate, answer)
+
+    call(paired)
+    with pytest.raises(ProtocolError, match=r"over 1 kilobyte.*max_response_kilobytes"):
+        call(paired, max_response_kilobytes=1)
+
+
+@pytest.mark.parametrize("read", GROWING)
+def test_a_read_given_a_limit_over_the_client_s_own_takes_what_the_client_s_own_refuses(
+    tmp_path: Path, bundle: dict[str, Any], gate: FakeGate, read: str
+) -> None:
+    # What a program does for the attachment it knows is large: the limit on that read alone,
+    # and a low limit left on everything else.
+    call, answer = GROWING[read]
+    _padded(gate, answer)
+    stored = credentials_module.save(tmp_path / "kept", gate.port, bundle)
+    client = GateClient(stored, connection_timeout=10.0, max_response_kilobytes=1)
+
+    with pytest.raises(ProtocolError, match="over 1 kilobyte"):
+        call(client)
+
+    # The comparison that precedes a client's first request is over a kilobyte here as well,
+    # and is read under the bounded limit whatever the read was given: what was refused is
+    # the read, which was sent, and the refusal names the setting that raises its limit.
+    assert gate.requests[0][1] == "/gate/status"
+    assert gate.requests[-1][1] != "/gate/status", "the read was refused, not the comparison"
+
+    with pytest.raises(ProtocolError, match=r"over 1 kilobyte.*max_response_kilobytes"):
+        call(client, max_response_kilobytes=transport.KEEP)
+
+    call(client, max_response_kilobytes=8)
+
+
+def test_a_first_request_given_the_smallest_limit_is_still_preceded_by_its_comparison(
+    tmp_path: Path, bundle: dict[str, Any], gate: FakeGate
+) -> None:
+    # The limit a read is given is the read's alone. The status this client compares before
+    # its first request is over a kilobyte here, and it is read under the bounded limit, so
+    # the read is sent and is what the limit refuses.
+    _padded(gate, GROWING["entry"][1])
+    stored = credentials_module.save(tmp_path / "kept", gate.port, bundle)
+    client = GateClient(stored, connection_timeout=10.0)
+
+    with pytest.raises(ProtocolError, match="over 1 kilobyte"):
+        client.entry("7b1c" * 8, max_response_kilobytes=1)
+
+    assert [path for _, path in gate.requests] == ["/gate/status", "/entries/" + "7b1c" * 8]
+    assert client.entry("7b1c" * 8).uuid == "7b1c" * 8, "and the comparison is not asked again"
+    assert len(gate.requests) == 3
+
+
+def test_a_write_through_send_is_read_under_the_client_s_own_limit(
+    tmp_path: Path, bundle: dict[str, Any], gate: FakeGate
+) -> None:
+    # `send` cannot know what a route answers with, so whatever it asks is under the client's
+    # setting or the call's, a write as well as a read: the same write through `create_group`
+    # is read under the bounded limit, which the table of bounded exchanges holds.
+    _padded(gate, {"uuid": "7b1c" * 8})
+    stored = credentials_module.save(tmp_path / "kept", gate.port, bundle)
+    client = GateClient(stored, connection_timeout=10.0, max_response_kilobytes=1)
+
+    with pytest.raises(ProtocolError, match=r"over 1 kilobyte.*max_response_kilobytes"):
+        client.send("POST", "/groups/root/groups", {"Name": "Invented"})
+
+    made = client.send(
+        "POST", "/groups/root/groups", {"Name": "Invented"}, max_response_kilobytes=8
+    )
+
+    assert made["uuid"] == "7b1c" * 8
+    assert [method for method, path in gate.requests if path != "/gate/status"] == ["POST", "POST"]
+
+
+@pytest.mark.parametrize("read", GROWING)
+def test_a_read_given_a_limit_that_cannot_work_is_refused_before_anything_is_dialed(
+    gate: FakeGate, paired: GateClient, read: str
+) -> None:
+    call, _ = GROWING[read]
+
+    with pytest.raises(ValueError, match="max_response_kilobytes"):
+        call(paired, max_response_kilobytes=0)
+
+    assert gate.names == [], "not even the comparison that precedes a first request"
+
+
+@pytest.mark.parametrize("limit", [0, -1, True, False, 1.5, "4096", None])
+def test_a_limit_given_for_one_read_is_held_to_the_client_s_rule(
+    gate: FakeGate, paired: GateClient, limit: Any
+) -> None:
+    with pytest.raises(ValueError, match="max_response_kilobytes"):
+        paired.entry("7b1c" * 8, max_response_kilobytes=limit)
+
+    assert gate.names == []
+
+
+@pytest.mark.parametrize("exchange", BOUNDED)
+def test_an_answer_of_a_bounded_shape_is_read_whatever_limit_the_client_was_built_with(
+    tmp_path: Path,
+    bundle: dict[str, Any],
+    gate: FakeGate,
+    monkeypatch: pytest.MonkeyPatch,
+    exchange: str,
+) -> None:
+    # A limit lowered for the reads must not be what refuses a status, an identity, the answer
+    # to a write or a revocation: each is over a kilobyte here, the status that precedes a
+    # first request among them, and the client was built to take 1.
+    call, answer = BOUNDED[exchange]
+    _padded(gate, answer)
+    stored = credentials_module.save(tmp_path / "kept", gate.port, bundle)
+    client = GateClient(stored, connection_timeout=10.0, max_response_kilobytes=1)
+    limits: list[object] = []
+    connect = transport.connect
+
+    def recorded(*positional: Any, **named: Any) -> Any:
+        limits.append(named.get("max_response_kilobytes"))
+        return connect(*positional, **named)
+
+    monkeypatch.setattr(transport, "connect", recorded)
+
+    call(client)
+
+    # No number reaches the connection, the bounded limit's own included: a connection given
+    # a number takes it for a setting, and words an answer over it as a setting could raise.
+    assert set(limits) == {None}, "the comparison and the exchange"
+    assert len(json.dumps(answer | {"pad": PAD})) > 1024
+    assert gate.failures == []
+    with pytest.raises(ProtocolError, match="over 1 kilobyte"):
+        client.get("/gate/whoami")
+
+
+@pytest.mark.parametrize(
+    ("status", "raised"), [(404, RouteRefused), (412, PreconditionFailed), (401, NotAdmitted)]
+)
+def test_a_refusal_is_read_as_that_refusal_under_the_smallest_limit(
+    gate: FakeGate, paired: GateClient, status: int, raised: type[Exception]
+) -> None:
+    # A refusal is far under a kilobyte, so a read given the smallest limit there is still
+    # reads why it was refused rather than failing on the length of the refusal.
+    gate.handler = lambda path, body, client: (status, json.dumps({"error": "invented"}))
+
+    with pytest.raises(raised):
+        paired.entry("7b1c" * 8, max_response_kilobytes=1)
 
 
 def test_credentials_naming_a_port_tcp_does_not_have_make_no_client(

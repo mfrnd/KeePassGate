@@ -34,6 +34,7 @@ from pykeepassgate.errors import (
     GateBusy,
     GateUnavailable,
     NotAdmitted,
+    ProtocolError,
     RenewalRefused,
     RenewalRefusedForever,
     RenewalRefusedThisSession,
@@ -231,6 +232,30 @@ def test_the_client_carries_on_as_the_new_identity(
 
     assert renewing.seen[-1][2] == der(renewed_certificate)
     assert paired.credentials.expires == "2127-01-02T03:04:05Z"
+
+
+def test_a_client_built_to_read_a_kilobyte_still_renews_and_gives_the_old_certificate_up(
+    tmp_path: Path, gate: FakeGate, bundle: dict[str, Any], renewing: Gate
+) -> None:
+    # A renewal's answer carries a certificate, its key and the profiles approved, which is
+    # over the smallest limit a read can be given, and the gate has written and saved the new
+    # record by the time it is read: under the client's own limit the approval would be lost.
+    # Neither the renewal nor the revocation after it is read under that limit.
+    renewing.revocation = (200, json.dumps({"ok": True, "pad": "x" * 2048}))
+    stored = credentials_module.save(tmp_path / "profiles" / "default", gate.port, bundle)
+    client = GateClient(stored, connection_timeout=10.0, max_response_kilobytes=1)
+
+    renewal = client.renew()
+
+    assert len(renewing.renewal[1]) > 1024
+    assert renewal.unrevoked is None, "the old certificate was given up, its answer read too"
+    assert renewal.retired is None
+    assert renewal.credentials.expires == "2127-01-02T03:04:05Z"
+
+    # And the client it became keeps the limit it was built with, for the reads under it.
+    gate.handler = lambda path, body, presented: (200, json.dumps({"groups": ["x" * 4096]}))
+    with pytest.raises(ProtocolError, match="over 1 kilobyte"):
+        client.groups()
 
 
 @pytest.mark.parametrize(

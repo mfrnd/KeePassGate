@@ -462,6 +462,8 @@ Considered and refused:
 - **A raw answer in place of JSON with base64**: a quarter smaller on the wire and simple for
   a client to write to a file as it arrives, and the only answer of this server that is not
   JSON. The operator kept the JSON.
+- **Streaming a fetch to a file as it arrives**, so that a large attachment would need no
+  limit: the operator set it aside on 2026-11-15 for a limit that each read names, below.
 
 **A tag covers every attachment in its caller's sight, at any size.** The digest is taken as
 the attachment is read, in place wherever that can be done, once for as long as KeePass keeps
@@ -473,14 +475,21 @@ that looked such an entry up.
 **What it costs.** A read of a large attachment takes a connection's thread for as long as its peer
 reads, within the budget a connection is given to have its answer read, so an attachment that cannot
 be sent in that time cannot be read through the gate. A client bounds what it holds: PyKeePassGate
-keeps a whole answer in memory under `max_response_bytes`, and an attachment arrives as base64, four
-thirds of its size. What is read through the gate can be larger than what is written through it. The
-gate takes KeePass's own lock on a protected attachment, for a copy of 48 KiB at a time where it
-reads in place, and KeePass takes it for its own read of the whole where the gate reads through
-that. And a change that is the first to take a tag over a large attachment digests it inside its
-turn on KeePass's thread, beside its save: 27 ms for 64 MiB held in the open and about 47 ms
-protected, once for as long as KeePass keeps the attachment. A read's first tag is taken with
-KeePass's thread free.
+keeps a whole answer in memory under `max_response_kilobytes`, given for the read or for the
+client, and an attachment arrives as base64, four thirds of its size. What is read through the
+gate can be larger than what is written through it. The gate takes KeePass's own lock on a
+protected attachment, for a copy of 48 KiB at a time where it reads in place, and KeePass takes
+it for its own read of the whole where the gate reads through that. And a change that is the
+first to take a tag over a large attachment digests it inside its turn on KeePass's thread,
+beside its save: 27 ms for 64 MiB held in the open and about 47 ms protected, once for as long
+as KeePass keeps the attachment. A read's first tag is taken with KeePass's thread free.
+
+**The client's limit on an answer is given for each read, and an exchange with a bounded answer
+is outside it**, the operator's ruling of 2026-11-15. `max_response_kilobytes` is in kilobytes
+of 1024 bytes, 4096 unless given and 1 at the least. **This reverses a single setting of the
+client**, in bytes, that every answer was read under, a pairing's among them. An exchange with
+a bounded answer is under a limit of its own, because a pairing's and a renewal's answer is
+written and saved by the gate before it is sent.
 
 ### A field's value is read where KeePass keeps it §145
 
@@ -2133,8 +2142,8 @@ What is given up, and written down so that it is not rediscovered as a defect:
   of a million characters, about a quarter of a second and 401 MB of short-lived pieces for the
   writing alone, `FINDINGS.md`, beside the tag before it and the TLS under it, within the budget a
   connection is given to have its answer read. What it keeps alive is a piece of the value being
-  written, §145. A client reads as much of an answer as its own cap allows, and reads a larger entry
-  a field at a time.
+  written, §145. A client reads as much of an answer as its own limit allows, and reads a larger
+  entry a field at a time.
 - **Nothing bounds what a client holding `update` or `create` adds to an entry** beyond what a
   request carries, 65536 characters in a value and 1 MiB in a body. The entry grows in the
   database's memory, in the file and in the time every save takes, a request at a time, and each

@@ -297,6 +297,15 @@ it.
 | **A `PwEntry` KeePass makes has the five standard strings and one `new PwEntry` has none**, so an entry created through the gate looked wrong in the user interface and made an update of `Password` a create | two host tests failed on a created entry having no `Password` at all |
 | The response side was already wider than the request side before any of this: the status route answers `"ok":true`, and `JsonBody` refuses booleans | asserting an entry read back through the request reader failed, correctly, because a read carries a nested `fields` object |
 
+**How long the plugin's answers of a bounded shape are on the wire, head included**, measured on
+2026-11-15: every whole answer the plugin wrote across its unit and host tests was recorded by a
+probe in `HttpResponse.Write`, which is not kept. The largest refusal was 270 bytes, a `503 busy`
+with `heldUntil`. A pairing's or a renewal's answer was 2399 bytes, and grows with the profiles
+approved. A write's answer was at most 892 bytes, and in the tests' databases the identity was
+467 bytes and the status 237. PyKeePassGate's smallest limit on a read's answer, 1 kilobyte of
+1024 bytes, rests on the first figure, which `HttpResponseTests` holds the largest refusal of
+each kind to, and its reading a pairing and a renewal under a limit of their own on the second.
+
 ## 17. Reconstruction
 
 The proofs left the mainline once they had answered their questions, and are kept on branches of

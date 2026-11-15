@@ -113,7 +113,6 @@ class Pairing:
         retry_busy_timeout: float | None = transport.DEFAULT_RETRY_BUSY_TIMEOUT,
         retry_locked_timeout: float | None = transport.DEFAULT_RETRY_LOCKED_TIMEOUT,
         retry_undecided_timeout: float | None = transport.DEFAULT_RETRY_UNDECIDED_TIMEOUT,
-        max_response_bytes: int = transport.MAX_RESPONSE_BYTES,
     ) -> None:
         """Take the port the operator gave, the token from the tab, and where to dial.
 
@@ -126,8 +125,11 @@ class Pairing:
         class. There is no per-call override here as there is on `GateClient`: one `Pairing` is
         one invitation used once, so there is no second call for a different number to apply to.
 
-        `max_response_bytes` caps each answer as it does on `GateClient`, and it, the port, the
-        socket timeout and the three budgets are refused the same way, here and before any hello.
+        The port, the socket timeout and the three budgets are refused as `GateClient` refuses
+        them, here and before any hello. How much of an answer is read is no setting here: each
+        answer has a bounded shape, a challenge and a proof and then the bundle, so each is
+        read under `transport.BOUNDED_RESPONSE_KILOBYTES`, and nothing a caller lowers for its
+        reads can lose a bundle the gate has already spent the invitation on.
         """
         self._port = transport.port_number(port)
         # Stripped here rather than in `token.decode`, which refuses anything that is not
@@ -145,7 +147,6 @@ class Pairing:
         self._retry_undecided_timeout = transport.retry_limit(
             "retry_undecided_timeout", retry_undecided_timeout
         )
-        self._max_response_bytes = transport.response_limit(max_response_bytes)
 
     def hello(self) -> Exchange:
         """Phase 3: prove the token, then check that the answer proves it too.
@@ -211,7 +212,6 @@ class Pairing:
         with transport.connect(
             self._port, context, name, host=self._host,
             connection_timeout=self._connection_timeout,
-            max_response_bytes=self._max_response_bytes,
             dial=self._dial,
         ) as connection:
             bound = proofs.binding(connection.server_certificate)
@@ -276,7 +276,6 @@ class Pairing:
         with transport.connect(
             self._port, context, server_name, host=self._host,
             connection_timeout=max(self._connection_timeout, transport.PAIRING_CONNECTION_TIMEOUT),
-            max_response_bytes=self._max_response_bytes,
             dial=self._dial,
         ) as connection:
             # The hello's proof was over the certificate the *hello* was served with,

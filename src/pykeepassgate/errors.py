@@ -38,9 +38,12 @@ class ProtocolError(GateError):
     """Something on this wire is not what the protocol allows.
 
     Either direction: an answer this client cannot read, or a request it will not send. An answer
-    longer than `max_response_bytes` is one this client will not read, and it is here rather than
-    under `TransportError` because the connection worked: asking again reads the same answer to
-    the same cap, and what changes it is raising the setting, which the message names.
+    longer than the limit it was read under is refused whole, and it is here rather than under
+    `TransportError` because the connection worked: asking again reads the same answer to the
+    same limit. For a read under `max_response_kilobytes`, what changes it is raising that
+    limit, on the read or on the client, which the message names. An answer of a bounded shape,
+    a pairing's, a renewal's, the status or a write's among them, is read under
+    `transport.BOUNDED_RESPONSE_KILOBYTES`, which no setting raises, and the message names none.
     """
 
 

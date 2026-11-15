@@ -489,12 +489,14 @@ designing around them.
   with the database: the rule is that an answer growing with what the database holds is written as
   it is sent, an attachment among them, and an answer of a bounded size, a single group and the
   gate's own routes, is handed over whole with a `Content-Length`. PyKeePassGate reads a chunked
-  answer with its own strict reader, never `http.client`, and holds an answer to its own
-  `max_response_bytes`. **This reverses a ceiling on reads**, 524288 characters over what the caller
-  would be handed, answered `413`, the ruling of 2026-11-10, **which had reversed a ceiling held on
-  writes as well**, "what the gate lets a client write it also hands back whole": the write's
-  refusal named the entry's whole count, so a client that may write and not read padded an entry to
-  the ceiling and read off how long the values it was withheld were, `NoSizeToldToAWriterTests`.
+  answer with its own strict reader, never `http.client`. It holds an answer of a bounded shape,
+  a pairing's among them, to a limit no setting reaches, and a read's answer to its own
+  `max_response_kilobytes`, given for that read or for the client, `DESIGN.md` §144. **This
+  reverses a ceiling on reads**, 524288 characters over what the caller would be handed, answered
+  `413`, the ruling of 2026-11-10, **which had reversed a ceiling held on writes as well**, "what
+  the gate lets a client write it also hands back whole": the write's refusal named the entry's
+  whole count, so a client that may write and not read padded an entry to the ceiling and read
+  off how long the values it was withheld were, `NoSizeToldToAWriterTests`.
   What it costs, `DESIGN.md` §142: nothing bounds what a client holding `update` or `create` adds to
   an entry beyond a request's own limits, a read of such an entry costs its size in time on its own
   connection, and a tag is still taken over a caller's whole view however large, by a read with

@@ -1,6 +1,11 @@
 using System;
+using System.Globalization;
 using System.IO;
 using System.Text;
+using KeePassGate.Gate;
+using KeePassGate.Pairing;
+using KeePassGate.Pipeline;
+using KeePassGate.Spec;
 using KeePassGate.Transport;
 using NUnit.Framework;
 
@@ -148,6 +153,83 @@ namespace KeePassGate.Tests
                 Assert.That(written, Does.Not.Contain("600"));
                 Assert.That(written, Does.Contain("KPG-Unavailable: busy\r\n"));
                 Assert.That(written, Does.Not.Contain("teapot"));
+            }
+        }
+
+        [Test]
+        public void Every_refusal_fits_in_the_one_kilobyte_the_client_s_smallest_response_limit_reads()
+        {
+            // A number of the client's, held on this side because this side is what can break
+            // it. A read given the smallest limit has to read every refusal as what it is: a `503`
+            // over that limit is a `ProtocolError` to the read, where it is `GateBusy` or
+            // `DatabaseLocked` to any other, so no retry budget waits it out, and a `404` or a
+            // `412` over it tells the caller nothing about the node. A field or a longer sentence
+            // added to a refusal fails here, in the tier of the half that added it.
+            //
+            // The largest of each kind the plugin writes. Every word a `503` carries, and the
+            // `busy` that holds an approval, which is the longest of them.
+            var held = Moments.Wire(new DateTimeOffset(2026, 11, 7, 10, 0, 0, TimeSpan.Zero));
+            Fits("503 busy with heldUntil", 503, PairingHandler.HeldBody(held), null);
+            Fits("503 busy", 503, HttpResponse.ErrorBody("busy"), null);
+            Fits("503 locked", 503, HttpResponse.ErrorBody(LockedTarget.Error), null);
+            Fits("503 undecided", 503, HttpResponse.ErrorBody(UndecidedTarget.Error), null);
+
+            // What a read of a node is refused with. A `412` carries no tag: the node's tag goes
+            // out on a read that is answered, and in the body of a write that landed.
+            Fits("404", 404, HttpResponse.ErrorBody(SpecRouter.UnreachableError), null);
+            Fits("412", 412, HttpResponse.ErrorBody(VaultHandlers.PreconditionFailedError), null);
+
+            // A `405` names what the path serves, which is at most every method the document
+            // declares.
+            var allowed = new System.Net.WebHeaderCollection { { "Allow", "GET, HEAD, POST, PUT, DELETE" } };
+            Fits("405", 405, HttpResponse.ErrorBody("method not allowed"), allowed);
+
+            // The request reader refuses in a sentence where a route refuses in a word. Taken
+            // from the reader, so that a sentence made longer is measured as it is.
+            var options = new GateOptions();
+            Fits(Refused(431, "GET / HTTP/1.1\r\nHost: gate\r\nX-Pad: " + new string('a', options.MaxHeadBytes)
+                + "\r\n\r\n", options));
+            Fits(Refused(413, "POST /thing HTTP/1.1\r\nHost: gate\r\nContent-Length: "
+                + ((long)options.MaxBodyBytes + 1).ToString(CultureInfo.InvariantCulture) + "\r\n\r\n", options));
+            Fits(Refused(414, "GET /" + new string('a', HttpRequestReader.MaxTargetCharacters)
+                + " HTTP/1.1\r\nHost: gate\r\n\r\n", options));
+            Fits(Refused(400, "GET /thing?name=first&name=second HTTP/1.1\r\nHost: gate\r\n\r\n", options));
+        }
+
+        /// <summary>
+        /// The most a whole refusal may be on the wire, its head included: the smallest limit
+        /// PyKeePassGate lets a read be given, 1 kilobyte of 1024 bytes, which is
+        /// `transport.response_limit` in `src/pykeepassgate/transport.py`.
+        /// </summary>
+        private const int SmallestClientLimit = 1024;
+
+        private static void Fits(HttpReadResult refused)
+        {
+            Fits(refused.Status + " (" + refused.Reason + ")", refused.Status,
+                HttpResponse.ErrorBody(refused.Reason), null);
+        }
+
+        private static void Fits(string what, int status, string json, System.Net.WebHeaderCollection headers)
+        {
+            using (var stream = new MemoryStream())
+            {
+                HttpResponse.Write(stream, status, json, false, headers);
+
+                Assert.That(stream.Length, Is.LessThanOrEqualTo(SmallestClientLimit),
+                    "a " + what + ", head and all, is over the smallest limit PyKeePassGate reads an answer "
+                    + "under, `transport.response_limit` on its side");
+            }
+        }
+
+        /// <summary>What the request reader refuses this request with, which is this status.</summary>
+        private static HttpReadResult Refused(int status, string request, GateOptions options)
+        {
+            using (var stream = new MemoryStream(Encoding.ASCII.GetBytes(request)))
+            {
+                var read = HttpRequestReader.ReadHead(stream, options);
+
+                Assert.That(read.Status, Is.EqualTo(status), "refused as " + read.Reason);
+                return read;
             }
         }
 
