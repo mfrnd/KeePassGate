@@ -1,6 +1,6 @@
 {
   "about": "What KeePass's own placeholder engine makes of field references and placeholders, held against pykeepassgate.refs. The host test ReferenceVectorsTests compiles every value with SprEngine, in the context of its entry, on a throwaway database holding these entries and with KPG_INVENTED_VARIABLE set, and holds keepass to what it makes; it rewrites keepass, and the order of each entry's strings, when KPG_WRITE_REFERENCE_VECTORS is set. resolver says what the client does with each: follows gives what KeePass gives, refuses raises, keeps gives the value as it is.",
-  "keepass": "2.61.1",
+  "keepass": "2.62",
   "entries": [
     {
       "uuid": "A1000000000000000000000000000001",

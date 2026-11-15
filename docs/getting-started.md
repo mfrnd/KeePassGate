@@ -5,7 +5,7 @@ programs in; until then it can do nothing at all.
 
 ## Install the plugin
 
-KeePassGate is a plain DLL, built against KeePass 2.61.1, and it needs that release or a later one:
+KeePassGate is a plain DLL, built against KeePass 2.62, and it needs that release or a later one:
 an older KeePass cannot load it. Make a directory named `KeePassGate` inside the `plugins` directory
 of the KeePass installation, copy `KeePassGate.dll` **and every DLL beside it** into that, with
 `KeePassGate.pdb` where it is there too, then restart KeePass. KeePass looks for plugins in the
@@ -143,7 +143,7 @@ so: a client is told that its handshake failed, and [the plugin's log](#the-plug
 reason.
 
 If the item is not in the menu at all, the plugin did not load, for one of four reasons: the DLL is
-in the wrong place, KeePass is older than 2.61.1, a DLL it needs is missing, or the plugin refused
+in the wrong place, KeePass is older than 2.62, a DLL it needs is missing, or the plugin refused
 to start. Where KeePass put up a box stating that the plugin cannot be loaded, the box names what it
 could not find or why the plugin refused to start, and [the plugin's own log](#the-plugins-log)
 has more. A refusal with no box is in that log alone. **Tools**, **Plugins** is KeePass's own list

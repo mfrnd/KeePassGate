@@ -136,7 +136,7 @@ dates anyway, and the next revocation takes the mark away, and the emptied recor
 record that could not be read is the exception**: it gives no date, so the mark its removal writes
 carries none, and that mark and the emptied record stay until the authority is recreated or deleted.
 
-**All of that holds in KeePass with the plugin in it, which is 2.61.1 or later, and only there.**
+**All of that holds in KeePass with the plugin in it, which is 2.62 or later, and only there.**
 Other programs can open the database, KeePassXC and KeePass before 2.48 among them. **Merging an
 older copy into it in KeePassXC quietly brings back every revoked client, replaced authority and
 removed profile** the older copy still had, and a merge either way keeps a group's access rules as

@@ -4,7 +4,7 @@
 the file or the master password.** Access is granted rule by rule, can be taken back at any time,
 and every decision about it is recorded.
 
-KeePassGate is a plugin for KeePass 2.61.1 and later, on Windows. It serves a small HTTP API on the
+KeePassGate is a plugin for KeePass 2.62 and later, on Windows. It serves a small HTTP API on the
 local machine over mutual TLS, and each program sees only what it has been approved for.
 
 ![From a database with entries to a program that reads one folder, is refused the other, and is shut out once revoked](docs/images/lifecycle.gif)

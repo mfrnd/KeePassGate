@@ -1045,9 +1045,9 @@ those are two different failures.
 `PwDatabase.CustomData`**, which is where this plugin's own keys now live. Worse in two ways than
 the group dialog. Its write-back is conditional on the key count differing rather than on anything
 the operator did, so a pairing landing while it is open is destroyed with the Plugin Data tab never
-opened. And its one button is both the accept and the cancel button, with `DialogResult.Cancel`, so
-the button, Enter and Escape all write the copy back, and only the close box and Alt+F4 do not,
-which nothing on screen tells the operator. `GroupDialogs` watches for it and `DatabaseWriter`
+opened. And the copy is written back as the dialog closes, whichever way it is closed: its one
+button, which is both the accept and the cancel button, Enter, Escape, the close box and Alt+F4
+alike, so there is no way to decline it. `GroupDialogs` watches for it and `DatabaseWriter`
 refuses while it is open.
 
 **A dialog that is adding something is about a group it does not hold**, which a watch keyed on the
@@ -1153,6 +1153,17 @@ it is asked once, by a person, when the hash is written down.
 
 A KeePass launched from there writes its own `KeePass.config.xml` next to the exe, which is why
 testing there cannot damage the real configuration.
+
+**The end to end tier can be run in another KeePass than the build is against**:
+`build.ps1 -Task Live -RunInKeePassDir <directory>` has each session copy and start the KeePass
+named, while the plugin and the tests stay compiled against the pinned release or the KeePass
+`-KeePassDir` names. That is the question a new KeePass release asks of a plugin already
+shipped, whether it loads and serves there as it was built, which no tier that builds and runs
+against the same KeePass answers. The plugin's DLL names the KeePass it was compiled against by
+version and loads in a later KeePass because that KeePass redirects every earlier version to
+itself; the reverse does not load. The directory reaches the fixtures in
+`KPG_RUN_IN_KEEPASS_DIR`, and `build.ps1` refuses the parameter with any other task.
+`TESTING.md` has the rest.
 
 **The plugin's `ProductName` must be exactly `KeePass Plugin`**, which `src/KeePassGate/KeePassGate.csproj`
 sets with `<Product>`. KeePass reads it from the file before it opens the assembly and **silently

@@ -360,6 +360,40 @@ machine, or a failure means nothing until somebody asks what was installed.
 tests drive has to hold the same KeePass the tests compiled against, or the live tier is measuring
 something the rest of the suite is not.
 
+**Unless another KeePass is named to run in, which is a different question asked on purpose.** A
+KeePass release asks of a plugin already shipped whether that plugin, as it was built, loads and
+serves in the new release, and no tier that builds and runs against the same KeePass can answer
+it. `-RunInKeePassDir` can, with the end to end tier and nothing else:
+
+```powershell
+.\build.ps1 -Task Live -Configuration Release `
+    -KeePassDir "$PWD\.keepass\<earlier>" -RunInKeePassDir "$PWD\.keepass\<later>"
+```
+
+The plugin and the tests are compiled against the KeePass `-KeePassDir` names, or the pinned
+release without it, and each session copies and starts the KeePass `-RunInKeePassDir` names. The
+directory reaches the fixtures in `KPG_RUN_IN_KEEPASS_DIR`, as the directory of the pictures
+reaches the screenshot run, and with it set no release is compared with any other: the fixtures
+write which release was built against and which is run in, and fail, where otherwise they would
+ignore themselves, over a directory with no KeePass in it. What such a run is:
+
+- **The plugin installed is the build beside the tests**, so it names the KeePass it was compiled
+  against, by version. It loads in the later KeePass because that KeePass's own
+  `KeePass.exe.config` redirects every earlier version of KeePass to itself, which is the
+  arrangement every plugin shipped as a DLL relies on. The reverse does not load: a KeePass
+  redirects nothing newer than itself, so a plugin built against a release needs that release or
+  a later release.
+- **The test process keeps the KeePass it was built against.** Everything a fixture does to the
+  database outside the KeePass under test, making it, seeding it and reading it back once KeePass
+  has gone, goes through that KeePassLib, so the file one release wrote is opened by the other in
+  both directions. That is part of what such a run measures, and a release that changed the file
+  format would show there first.
+- **Only the end to end tier takes it.** The unit and host tiers run KeePass's types in the test
+  process, where there is one KeePass, and the pictures are of the KeePass the build is against,
+  so `build.ps1` refuses the parameter with any other task. A directory for an earlier release is
+  provided the way any release is: by pinning it in `keepass.version` for one run of
+  `.\build.ps1 -Task KeePass`, which `keepass.sha256` allows for every release it has a line for.
+
 ## What the client tier is for
 
 PyKeePassGate has four tiers of its own, and the first two draw the same line the C# ones do.

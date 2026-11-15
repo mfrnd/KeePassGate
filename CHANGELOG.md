@@ -11,6 +11,16 @@ none, since it releases both.
 
 ## 0.2.0, unreleased
 
+- **The plugin is built against KeePass 2.62 and needs that release or a later release.** It
+  was built against 2.61.1. A plugin loads in the KeePass it was built against and in every
+  later release, since a KeePass redirects every earlier version to itself, and in no earlier
+  release: this build does not load in KeePass 2.61.1. Before the pin moved, the plugin as
+  built against 2.61.1 was run in KeePass 2.62, and the end to end tier passed there, so a
+  0.1 plugin goes on working in 2.62. Nothing the plugin reads of KeePass by name changed
+  between the two releases. KeePass 2.62 writes the copy of a database's custom data that its
+  Database Maintenance dialog holds back whichever way the dialog is closed, the close box
+  included, which the plugin's refusal of a write while that dialog is open already covers.
+  `FINDINGS.md` section 8.
 - **An answer that grows with what the database holds is written as it is sent and never refused for
   its size, and no write is refused for an entry's size.** Each listing goes out with
   `Transfer-Encoding: chunked` and no `Content-Length`, and so does a read of an entry or of a

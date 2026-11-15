@@ -32,6 +32,13 @@
     A KeePass to use instead of the one this repository pins. No default: leave it off and the
     pinned version is provided, which is the only arrangement anything is tested against.
 
+.PARAMETER RunInKeePassDir
+    With -Task Live alone: a KeePass for the end to end tier to copy and start that is another
+    release than the plugin and the tests are built against, which stays the pinned release or
+    the KeePass -KeePassDir names. It answers whether the plugin as built loads and serves in a
+    KeePass released after it. No default: left off, the tier runs in the KeePass it was built
+    against.
+
 .PARAMETER CoverageFloor
     The percentage of the plugin's own lines the tests may not fall below. Defaults to 80.
 
@@ -40,6 +47,7 @@
     .\build.ps1 -Task All
     .\build.ps1 -Task Screenshots
     .\build.ps1 -Task Deploy -Configuration Release
+    .\build.ps1 -Task Live -Configuration Release -KeePassDir "$PWD\.keepass\<earlier>" -RunInKeePassDir "$PWD\.keepass\<later>"
 #>
 
 [CmdletBinding()]
@@ -53,6 +61,10 @@ param(
     # No default, deliberately. A default here would be a second answer to a question
     # `keepass.version` already answers, and the two would drift.
     [string] $KeePassDir,
+
+    # The KeePass the end to end tier starts, when that is meant to be another release than the
+    # build is against. No default, for the reason above: left off, both are the same KeePass.
+    [string] $RunInKeePassDir,
 
     # The percentage the plugin's own lines may not fall below. A parameter rather than a
     # constant so that finding out where the number sits costs nothing, and moving the floor is a
@@ -216,6 +228,31 @@ function Resolve-KeePass {
     }
 
     return $script:keePassHome
+}
+
+# The KeePass the end to end tier is to copy and start, when a KeePass was named for that which is
+# not the KeePass everything is built against, and nothing when none was named.
+#
+# **Built against one release and run in another**, which is what a KeePass release asks of a
+# plugin already shipped: the plugin's DLL names the KeePass it was compiled against by version,
+# and loads in a later KeePass only because that KeePass's own configuration redirects every
+# earlier version to itself. So the build stays against `Resolve-KeePass`, the pin or `-KeePassDir`,
+# and only what the fixtures start moves. The reverse does not load at all: a KeePass redirects
+# nothing newer than itself.
+#
+# **A full path**, since the fixtures read it in a test host that runs from the build output.
+function Resolve-RunInKeePass {
+    if (-not $RunInKeePassDir) {
+        return ''
+    }
+
+    $directory = $ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath($RunInKeePassDir)
+    $directory = $directory.TrimEnd('\', '/')
+    if (-not (Test-Path -LiteralPath (Join-Path $directory 'KeePass.exe'))) {
+        throw "No KeePass.exe in $directory. -RunInKeePassDir names the KeePass the end to end tier starts."
+    }
+
+    return $directory
 }
 
 function Invoke-Build {
@@ -752,9 +789,14 @@ function Invoke-Live {
 
     Invoke-Build
     $keePass = Resolve-KeePass
+    $runIn = Resolve-RunInKeePass
     Write-Host ''
     Write-Host 'The end to end tests start a throwaway KeePass and type into it.' -ForegroundColor Yellow
     Write-Host 'Leave the desktop alone for about a minute.' -ForegroundColor Yellow
+    if ($runIn) {
+        Write-Host "The plugin and the tests are built against $keePass, and the plugin runs in $runIn." -ForegroundColor Yellow
+    }
+
     # Written to a file rather than read off the console, because what this has to judge is a
     # count and the console text is localized.
     $results = Join-Path $root '.tmp'
@@ -762,10 +804,20 @@ function Invoke-Live {
     if (Test-Path $trx) { Remove-Item $trx -Force }
     $started = Get-Date
 
-    Invoke-Step 'end to end tests' {
-        dotnet test $hostTests -c $Configuration -p:KeePassDevDir=$keePass --no-build --nologo `
-            --filter 'TestCategory=Live&TestCategory!=Screenshots' `
-            --results-directory $results --logger 'trx;LogFileName=live.trx'
+    # The KeePass to run in arrives in the environment, as the directory of the pictures does,
+    # and it is set or taken away on every run: a value left in the session by an earlier run or
+    # by hand would otherwise have this tier run in a KeePass nobody named to this run.
+    $previousRunIn = $env:KPG_RUN_IN_KEEPASS_DIR
+    $env:KPG_RUN_IN_KEEPASS_DIR = if ($runIn) { $runIn } else { $null }
+    try {
+        Invoke-Step 'end to end tests' {
+            dotnet test $hostTests -c $Configuration -p:KeePassDevDir=$keePass --no-build --nologo `
+                --filter 'TestCategory=Live&TestCategory!=Screenshots' `
+                --results-directory $results --logger 'trx;LogFileName=live.trx'
+        }
+    }
+    finally {
+        $env:KPG_RUN_IN_KEEPASS_DIR = $previousRunIn
     }
 
     Assert-Executed $trx 'end to end'
@@ -810,6 +862,10 @@ function Invoke-Screenshots {
     $trx = Join-Path $results 'screenshots.trx'
     if (Test-Path $trx) { Remove-Item $trx -Force }
 
+    # The pictures are of the KeePass the build is against, so a KeePass to run in that the
+    # session still holds from somewhere is taken away for as long as they are retaken.
+    $previousRunIn = $env:KPG_RUN_IN_KEEPASS_DIR
+    $env:KPG_RUN_IN_KEEPASS_DIR = $null
     $env:KPG_SCREENSHOT_DIR = $images
     try {
         Invoke-Step 'screenshots' {
@@ -820,6 +876,7 @@ function Invoke-Screenshots {
     }
     finally {
         Remove-Item Env:\KPG_SCREENSHOT_DIR -ErrorAction SilentlyContinue
+        $env:KPG_RUN_IN_KEEPASS_DIR = $previousRunIn
     }
 
     # The guard every tier has, and it is worth more here. A fixture that ignores itself exits zero
@@ -1629,6 +1686,14 @@ function Invoke-Clean {
             Write-Host "removing $($_.FullName)"
             Remove-Item $_.FullName -Recurse -Force
         }
+}
+
+# Refused, where ignoring it would be quieter: a run that was given a KeePass to run in and ran
+# every tier in the other KeePass would read as an answer about the release named. The tiers
+# beside the end to end tier run KeePass's own types in the test process, which holds the KeePass
+# the tests were built against and no other.
+if ($RunInKeePassDir -and $Task -ne 'Live') {
+    throw "-RunInKeePassDir goes with -Task Live alone: it names the KeePass the end to end tier starts, and '$Task' takes none."
 }
 
 switch ($Task) {
