@@ -79,7 +79,9 @@ MAX_RESPONSE_KILOBYTES = 4096
 #: must not be what stops a client pairing or renewing: a renewal's answer carries a certificate,
 #: a key and a name for every profile approved, which is over the smallest limit a read can be
 #: given. Held to a limit all the same, because during pairing this client has no anchor yet and
-#: whatever answers the port chooses how much to send.
+#: whatever answers the port chooses how much to send. Each of them is asked through the method
+#: for it: what `GateClient.get` and `GateClient.send` ask is under the caller's setting whichever
+#: route it is, since neither can know what a route answers with.
 BOUNDED_RESPONSE_KILOBYTES = 4096
 
 #: What marks the certificate a locked database answers with, and the whole of what tells one
@@ -142,9 +144,12 @@ FALLBACK_RETRY_AFTER = 2.0
 def response_limit(max_response_kilobytes: int) -> int:
     """Refuse a limit on an answer that no answer fits under, and hand back a limit that will do.
 
-    In kilobytes of 1024 bytes, and at least 1, which is room for every refusal the gate sends.
-    Refused where it is given rather than where it is first used, so a client built with nothing
-    to read into, or a read given nothing to read into, is refused before anything is dialed.
+    In kilobytes of 1024 bytes, and at least 1, which is room for every refusal the gate sends:
+    the largest was measured at 270 bytes on the wire, `FINDINGS.md` section 16, and the
+    plugin's `HttpResponseTests` holds the largest of each kind to this kilobyte, so that a read
+    given the smallest limit still reads a `503` as what it is and waits it out. Refused where
+    it is given rather than where it is first used, so a client built with nothing to read into,
+    or a read given nothing to read into, is refused before anything is dialed.
     """
     # A whole number, as the command line takes one: NaN compares false with every length, so a
     # limit of NaN would bound nothing, and `True` is a limit of 1 kilobyte nobody meant.
@@ -522,8 +527,9 @@ class Response:
         """The body as an object, or a refusal if it is not one.
 
         A body nested deeper than the decoder's stack allows raises `RecursionError` there, which
-        is no `ValueError`, and a hundred thousand bytes of `[` is far under any cap; it is refused
-        as any other body that will not read, so `except GateError` still catches it.
+        is no `ValueError`, and a hundred thousand bytes of `[` is far under the limit a read takes
+        unless given another; it is refused as any other body that will not read, so
+        `except GateError` still catches it.
         """
         try:
             parsed = json.loads(self.body)
@@ -694,17 +700,27 @@ class Connection:
     """One open connection. Not reusable, because the gate does not reuse them either."""
 
     def __init__(
-        self, wrapped: ssl.SSLSocket, max_response_kilobytes: int = BOUNDED_RESPONSE_KILOBYTES
+        self, wrapped: ssl.SSLSocket, *, max_response_kilobytes: int | None = None
     ) -> None:
         """Take a socket that has already shaken hands, and how much of an answer to read.
 
         Keeps the certificate it was served with, which the proofs are computed over, and reads
         off it whether the identity that answered is a locked database's. The limit on the
-        answer is in kilobytes, and is `BOUNDED_RESPONSE_KILOBYTES` unless the request is a read
-        that was given its own.
+        answer is in kilobytes, and a number is the limit of a request under a caller's setting:
+        a read whose answer grows with what the database holds, or whatever `GateClient.get` and
+        `GateClient.send` ask. `None` is every other exchange, read under
+        `BOUNDED_RESPONSE_KILOBYTES`. Which of the two it is stays known, because an answer over
+        the limit is refused in different words: a setting raises a read's limit, and none
+        raises the bounded limit. By keyword only, so a number written for another unit cannot
+        arrive by position.
         """
         self._socket = wrapped
-        self._max_response_kilobytes = response_limit(max_response_kilobytes)
+        self._bounded = max_response_kilobytes is None
+        self._max_response_kilobytes = (
+            BOUNDED_RESPONSE_KILOBYTES
+            if max_response_kilobytes is None
+            else response_limit(max_response_kilobytes)
+        )
         der = wrapped.getpeercert(binary_form=True)
         if not der:
             raise TransportError("the server sent no certificate")
@@ -803,6 +819,15 @@ class Connection:
             if len(buffer) > most:
                 limit = self._max_response_kilobytes
                 unit = "kilobyte" if limit == 1 else "kilobytes"
+                if self._bounded:
+                    # No setting is named, because none reaches this limit: naming the reads'
+                    # setting here would send a caller to an option a pairing does not take.
+                    raise ProtocolError(
+                        f"the answer is over {limit} {unit}, the limit an answer of its shape "
+                        "is held to. No setting raises that limit: what was asked has an answer "
+                        "that does not grow with what the database holds"
+                    )
+
                 raise ProtocolError(
                     f"the answer is over {limit} {unit}, the most this client was told to "
                     "take of it. A read takes more when max_response_kilobytes, on the call or "
@@ -835,7 +860,8 @@ def connect(
     server_name: str,
     host: str = LOOPBACK,
     connection_timeout: float = DEFAULT_CONNECTION_TIMEOUT,
-    max_response_kilobytes: int = BOUNDED_RESPONSE_KILOBYTES,
+    *,
+    max_response_kilobytes: int | None = None,
     dial: Dial = create_connection,
 ) -> Iterator[Connection]:
     """Open one connection, hand it over, and close it however this ends.
@@ -844,11 +870,16 @@ def connect(
     then bounded by `connection_timeout` whatever made it, so a `dial` that returns a blocking
     socket cannot take away the bound on the handshake and the reads.
 
-    `max_response_kilobytes` is how much of the answer is taken over this connection, which is
-    `BOUNDED_RESPONSE_KILOBYTES` for every exchange but a read whose answer grows with what the
-    database holds, and that read gives its own.
+    `max_response_kilobytes` is how much of the answer is taken over this connection, given by
+    a request under a caller's setting: a read whose answer grows with what the database holds,
+    or whatever `GateClient.get` and `GateClient.send` ask. `None` is every other exchange, read
+    under `BOUNDED_RESPONSE_KILOBYTES`, which no setting reaches. It and `dial` are given by
+    keyword only, so a call that hands a number by position, written for another unit, is
+    refused rather than read in kilobytes.
     """
-    response_limit(max_response_kilobytes)
+    if max_response_kilobytes is not None:
+        response_limit(max_response_kilobytes)
+
     port_number(port)
     connection_limit(connection_timeout)
     dial_limit(dial)
@@ -920,7 +951,7 @@ def connect(
         raise TransportError(f"the handshake failed: {error}") from error
 
     try:
-        connection = Connection(wrapped, max_response_kilobytes)
+        connection = Connection(wrapped, max_response_kilobytes=max_response_kilobytes)
     except BaseException:
         # A server that sent no certificate, refused there, still holds the socket.
         wrapped.close()

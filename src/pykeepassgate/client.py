@@ -610,7 +610,6 @@ class GateClient:
                 retry_busy_timeout=self._retry_busy_timeout,
                 retry_locked_timeout=self._retry_locked_timeout,
                 retry_undecided_timeout=self._retry_undecided_timeout,
-                max_response_kilobytes=self._max_response_kilobytes,
                 key_password=self._key_password if self._opened is None else self._opened,
             )
             # The gate this client compared already, which the renewal has just been answered by.
@@ -679,8 +678,10 @@ class GateClient:
         `PreconditionFailed` with nothing read otherwise. `connection_timeout` and the three retry
         budgets are `send`'s, for this read alone, and so is `max_response_kilobytes`, how much
         of this read's answer is taken, as `groups` takes it; `KEEP` is the client's own. Every
-        read below takes all six the same way, about the group or the entry the route is about,
-        and a listing of groups or of entries takes the limit alone.
+        read below of an entry, a field or an attachment, and of an entry's fields and
+        attachments, takes them the same way, about the entry the route is about, and so do `get`
+        and `send`, about the group or the entry theirs is. A listing of groups or of entries
+        takes the limit alone, and `head` takes all but the limit.
         """
         found = self._read_tagged(
             f"/groups/{_segment(uuid)}",
@@ -1519,7 +1520,7 @@ class GateClient:
         retry_undecided_timeout: transport.Given = transport.KEEP,
         held: float | None = None,
         comparing: bool = True,
-        max_response_kilobytes: int = transport.BOUNDED_RESPONSE_KILOBYTES,
+        max_response_kilobytes: int | None = None,
     ) -> transport.Response:
         """What `_request` does, answering with the whole reply, its tag among it.
 
@@ -1541,10 +1542,13 @@ class GateClient:
         anything is dialed, and `KEEP` is the client's.
 
         **`max_response_kilobytes` arrives settled**, by `_read_limit`, from a read whose answer
-        grows with what the database holds, and is `transport.BOUNDED_RESPONSE_KILOBYTES` from
-        everything else. The comparison is read under the bounded limit whatever the request it
-        precedes was given: the status is an answer of a bounded shape, and a limit lowered for
-        a read would otherwise refuse the request before it was sent.
+        grows with what the database holds and from `send`, and is `None` from everything else,
+        which the connection reads under `transport.BOUNDED_RESPONSE_KILOBYTES`. A number and
+        `None` are kept apart all the way to the connection, which words an answer over the
+        limit for whichever it was: a setting raises the first and nothing raises the second.
+        The comparison is read under the bounded limit whatever the request it precedes was
+        given: the status is an answer of a bounded shape, and a limit lowered for a read would
+        otherwise refuse the request before it was sent.
         """
         transport.check_condition(if_match)
         timeout = (
@@ -1571,7 +1575,7 @@ class GateClient:
                     retry,
                     self._connection_timeout,
                     None,
-                    transport.BOUNDED_RESPONSE_KILOBYTES,
+                    None,
                 )
             )
 
@@ -1588,13 +1592,14 @@ class GateClient:
         retry: transport.Retry,
         connection_timeout: float,
         if_match: str | None,
-        max_response_kilobytes: int,
+        max_response_kilobytes: int | None,
     ) -> transport.Response:
         """One request, sent again for as long as `retry` allows, and the reply that ended it.
 
         Every attempt is read under the same limit, a refusal among them: the largest refusal the
         gate sends is a few hundred bytes, so the smallest limit there is still reads the `503`
-        that is being waited out.
+        that is being waited out. The plugin's own tests hold the largest refusal of each kind
+        to a kilobyte, in `HttpResponseTests`, so that this stays true.
         """
         while True:
             try:
@@ -1621,7 +1626,7 @@ class GateClient:
         payload: str,
         connection_timeout: float,
         if_match: str | None,
-        max_response_kilobytes: int,
+        max_response_kilobytes: int | None,
     ) -> transport.Response:
         """One attempt, on a connection of its own and under a name of its own.
 

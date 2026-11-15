@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import contextlib
 import datetime as dt
+import inspect
 import math
 import socket
 import ssl
@@ -1016,23 +1017,38 @@ class TestTheAnswerIsFramedRatherThanEnded:
         ) as connection:
             assert connection.send("GET", "/gate/whoami").body == body
 
-    def test_a_kilobyte_is_1024_bytes_of_what_came_off_the_wire(
-        self, gate: FakeGate, authority: Authority, client_certificate: Issued
-    ) -> None:
-        # The head counts, as every byte received does: a body of 1024 bytes is over a limit of
-        # 1 with its head before it, and a body that leaves the head its room is under it.
-        context = transport.paired_context(authority.pem, client_certificate.pem)
+    def test_a_kilobyte_is_1024_bytes_of_what_came_off_the_wire(self, host: Issued) -> None:
+        # The head counts, as every byte received does, so each answer here is measured whole,
+        # and sent by a peer that writes the bytes it is given, so that the head counted here
+        # is the head that arrives. An answer of exactly 1024 bytes is read under a limit of 1,
+        # and a byte more is over it: a kilobyte of 1000 bytes refuses the first, and so does a
+        # limit that refuses an answer of exactly its size.
+        def whole(size: int) -> tuple[bytes, str]:
+            # The length is three digits in both answers, which the comparison below holds.
+            body = "x" * (size - len(b"HTTP/1.1 200 OK\r\nContent-Length: 000\r\n\r\n"))
+            answer = f"HTTP/1.1 200 OK\r\nContent-Length: {len(body)}\r\n\r\n{body}".encode()
+            assert len(answer) == size
+            return answer, body
 
-        def asked(length: int) -> str:
-            gate.handler = lambda path, sent, client: (200, '"' + "x" * (length - 2) + '"')
+        def asked(port: int) -> str:
             with transport.connect(
-                gate.port, context, "abc.def.kpg", connection_timeout=10.0, max_response_kilobytes=1
+                port,
+                transport.unpaired_context(),
+                "abc.def.kpg",
+                connection_timeout=10.0,
+                max_response_kilobytes=1,
             ) as connection:
                 return connection.send("GET", "/gate/whoami").body
 
-        assert len(asked(512)) == 512
-        with pytest.raises(ProtocolError, match="over 1 kilobyte"):
-            asked(1024)
+        at_the_limit, body = whole(1024)
+        with _peer(host, [at_the_limit]) as port:
+            assert asked(port) == body
+
+        a_byte_over, _ = whole(1025)
+        with _peer(host, [a_byte_over]) as port, pytest.raises(
+            ProtocolError, match="over 1 kilobyte"
+        ):
+            asked(port)
 
     @pytest.mark.parametrize("limit", [0, -1])
     def test_a_limit_nothing_fits_under_is_refused_before_dialing(
@@ -1045,7 +1061,7 @@ class TestTheAnswerIsFramedRatherThanEnded:
         ):
             pass
 
-        assert gate.requests == []
+        assert gate.names == [], "no handshake was begun"
 
     def test_the_default_limits_are_the_module_s_own(self) -> None:
         # The names a caller compares against, as `DEFAULT_CONNECTION_TIMEOUT` is for the socket:
@@ -1059,15 +1075,38 @@ class TestTheAnswerIsFramedRatherThanEnded:
         self, gate: FakeGate, authority: Authority, client_certificate: Issued
     ) -> None:
         # What a pairing, a renewal and a write are read under: no setting reaches a connection
-        # that was given none.
+        # that was given none, so the refusal names none. A caller sent to the reads' setting
+        # from here would raise something a pairing does not take.
         over = transport.BOUNDED_RESPONSE_KILOBYTES * 1024
         gate.handler = lambda path, sent, client: (200, '"' + "x" * over + '"')
         context = transport.paired_context(authority.pem, client_certificate.pem)
 
         with transport.connect(
             gate.port, context, "abc.def.kpg", connection_timeout=10.0
-        ) as connection, pytest.raises(ProtocolError, match="over 4096 kilobytes"):
+        ) as connection, pytest.raises(
+            ProtocolError, match=r"over 4096 kilobytes.*No setting raises"
+        ) as refused:
             connection.send("GET", "/gate/whoami")
+
+        assert "max_response_kilobytes" not in str(refused.value)
+
+    def test_a_limit_is_given_to_a_connection_by_keyword_alone(
+        self, gate: FakeGate, authority: Authority, client_certificate: Issued
+    ) -> None:
+        # A number handed by position names no unit, so it is refused rather than read as that
+        # many kilobytes: a number of bytes taken so would be a limit 1024 times what was meant.
+        context = transport.paired_context(authority.pem, client_certificate.pem)
+        by_position: Any = transport.connect
+
+        with pytest.raises(TypeError, match="positional"):
+            by_position(gate.port, context, "abc.def.kpg", transport.LOOPBACK, 10.0, 1048576)
+
+        for taking in (transport.connect, transport.Connection.__init__):
+            limit = inspect.signature(taking).parameters["max_response_kilobytes"]
+            assert limit.kind is inspect.Parameter.KEYWORD_ONLY
+            assert limit.default is None
+
+        assert gate.names == [], "nothing was dialed"
 
     def test_the_pairing_timeout_outlasts_what_the_plugin_may_take(self) -> None:
         # `GateOptionsTests` sums the same six waits on the other side: the screen, the dialog

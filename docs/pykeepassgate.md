@@ -689,8 +689,8 @@ standard ones are refused, and `update` empties one instead.
 an entry, and of a single field, as it is sent, a value at a time and a long value a piece at
 a time, so reading a large entry costs KeePass the piece being written and little more. What
 bounds a read is the client's own
-limit on an answer, 4096 kilobytes unless `max_response_kilobytes` raises it for that read or
-for the client, [below](#read-a-larger-answer): an entry whose answer is larger raises
+limit on an answer, 4096 kilobytes of 1024 bytes unless `max_response_kilobytes` raises it for
+that read or for the client, [below](#read-a-larger-answer): an entry whose answer is larger raises
 `ProtocolError`, and is read with the limit raised or a field at a time, `fields` and then
 `field`. A value the client is withheld raises `Withheld` whatever its length.
 
@@ -1007,7 +1007,7 @@ except api.RouteRefused:
 | `RenewalError` | The base of the five above, for a caller that only wants to know whether the operator let the renewal happen. Never raised on its own: whatever else stops a renewal is the exception any route would raise for it. |
 | `IncompatibleGate` | This client does not work with the gate's version: another major version, or a minor version this client is ahead of ([`../API.md`](../API.md) §411). Raised before anything else is sent, from the pairing hello and before a paired client's first request, naming both versions, which are `.client` and `.gate` as well. Update whichever half is behind: asking again gets the same answer. |
 | `MalformedToken` | The text handed over is not an invitation, so nothing was sent. Check what was pasted. |
-| `ProtocolError` | Something on the wire is not what the protocol allows: an answer this client cannot read, or a request it will not send, such as an `if_match` that could not be one header line or that the gate could not read, which is refused before anything is dialed. Do not retry an answer it cannot read: the two halves disagree about the wire, which `tests/pykeepassgate/test_protocol.py` exists to stop. An answer longer than the `max_response_kilobytes` it was read under is refused this way too, and the message names the setting: raise it, for that read or for the client, rather than retry. |
+| `ProtocolError` | Something on the wire is not what the protocol allows: an answer this client cannot read, or a request it will not send, such as an `if_match` that could not be one header line or that the gate could not read, which is refused before anything is dialed. Do not retry an answer it cannot read: the two halves disagree about the wire, which `tests/pykeepassgate/test_protocol.py` exists to stop. An answer longer than the limit it was read under is refused this way too. For a read under `max_response_kilobytes` the message names the setting: raise it, for that read or for the client, rather than retry. An answer of a bounded shape, a pairing's or a write's among them, is read under a limit no setting raises, and its message names none: asking again reads the same answer. |
 | `NotPaired` | Nothing is stored for a paired client where this looked: nothing has paired under that profile, its identity was given up, or the directory named is not the one the pairing used. Pair, or name the profile or the directory it used. A `StorageError`, so catching that catches this as well. |
 | `StorageError` | From `pair`, before anything is sent: the directory cannot hold credentials, and the message states why. Nothing is spent, so fix that and pair again. Afterwards: what is stored for this client will not read, or could not be written, and the message names the file or the directory to look at. A key stored under a password is one of these when no password was given, or the one given does not open it, and the message names `identity.pem`. |
 | `TransportError` | No whole answer arrived: nothing is listening, the socket a `dial` handed back could not be used, closed or never connected, the handshake failed, which a paragraph below explains, or the connection broke or timed out once the request was on its way. After a read, send it again. After a write, the change may have landed, so look before sending it again: read or list what it changed, where the rules allow that, or ask the operator. |
@@ -1178,13 +1178,20 @@ pykeepassgate fetch <uuid> big.iso --to ./big.iso --max-response-kilobytes 65536
 ```
 
 **Everything else is outside the setting.** A pairing, a renewal, the status, the identity, what
-a client may do at a group or an entry, and the answer to a write or to a revocation each have a
-bounded shape, so each is read under a limit of its own, `api.BOUNDED_RESPONSE_KILOBYTES`,
-whatever the client was given. A limit lowered to hold the reads down therefore cannot stop a
-client pairing or renewing, whose answers carry a certificate and its key, and `api.pair` and the
-commands that make no such read take no limit at all. A refusal is read under whichever limit
-its request had, and the smallest of them is enough: the largest refusal the gate sends is a few
-hundred bytes.
+a client may do at a group or an entry, a `head`, and the answer to a write or to a revocation,
+each asked through its own method, have a bounded shape, so each is read under a limit of its
+own, `api.BOUNDED_RESPONSE_KILOBYTES`, which is 4096 kilobytes whatever the client was given. A
+limit lowered to hold the reads down therefore cannot stop a client pairing or renewing, whose
+answers carry a certificate and its key, and `api.pair` and the commands that make no such read
+take no limit at all. An answer over that limit is a `ProtocolError` too, and its message names
+no setting, since none raises it. **Whatever is asked through `get` or `send` is under the
+setting**, the call's or the client's, a write and a route about the gate included, since
+neither can know what a route answers with.
+
+A refusal is read under whichever limit its request had, and the smallest of them is enough:
+the largest refusal the gate sends was measured at 270 bytes on the wire, and the plugin's
+tests hold the largest refusal of each kind to a kilobyte ([`../FINDINGS.md`](../FINDINGS.md)
+section 16).
 
 **A limit is a whole number of kilobytes, 1 or more**, and anything else is refused with
 `ValueError` before anything is dialed, given to `GateClient`, to `GateClient.open` or to one

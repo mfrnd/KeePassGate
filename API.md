@@ -336,9 +336,12 @@ pieces, with a tenth of a megabyte alive at once, and a quarter less time.
 
 **How much of an answer a client holds is the client's to decide.** The gate hands out an entry
 of any size, so the bound on what a client reads is its own: a read by PyKeePassGate takes at
-most `max_response_kilobytes` of its answer, 4096 kilobytes unless raised for that read or for
-the client, and refuses a larger answer whole. An entry past that is read with the limit raised
-or a field at a time, `listFields` and then `readField`.
+most `max_response_kilobytes` of its answer, 4096 kilobytes of 1024 bytes unless raised for
+that read or for the client, and refuses a larger answer whole. An entry past that is read with
+the limit raised or a field at a time, `listFields` and then `readField`. The limit is given for
+each read by the operator's ruling of 2026-11-15, which reversed a single setting of the client,
+in bytes, that every answer was read under; an exchange with a bounded answer, a pairing's among
+them, is read under a limit of its own, `DESIGN.md` §144.
 
 **The names are listed in a single answer, written as it is sent.** `listFields` serves names
 and nothing else, and no write is refused for how many strings an entry holds, so the names
@@ -396,7 +399,7 @@ beside the tag taken before it and the TLS under it, for as long as its peer tak
 within the budget a connection is given to have its answer read. A client holding
 `read` on an entry it or another client can grow can keep a connection's thread that busy, on
 each of the connections the transport serves at once. PyKeePassGate raises on an answer past
-its own cap and does not go on to read field by field: which strings to fetch of an entry too
+its own limit and does not go on to read field by field: which strings to fetch of an entry too
 large for it is its caller's decision.
 
 **A tag is still taken over the whole of a caller's view, however large, and it reads each value

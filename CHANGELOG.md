@@ -67,17 +67,22 @@ none, since it releases both.
   it replaces. Each read whose answer grows with what the database holds takes it for that call
   alone: `groups`, `subgroups`, `group`, `entries`, `entry`, `fields`, `field`, `attachments`,
   `attachment`, `get` and `send`, and `refs.resolve` and `refs.resolve_entry` for the entries a
-  reference leads to. `GateClient` takes it as what a read given none is under, so a program
-  raises the limit for the attachment it knows is large and not for every answer. The command
-  line's option is `--max-response-kilobytes`, on the commands that make such a read. A pairing,
-  a renewal, the status, the identity, what a client may do at a node, a write and a revocation
-  are read under a limit of their own, `BOUNDED_RESPONSE_KILOBYTES`, whatever the client was
-  given, and `api.pair`, `Pairing` and the commands that make no such read take no limit: the
-  answer to a pairing or a renewal was measured at 2.4 kB and grows with the profiles approved,
-  so a limit lowered for the reads refused an identity the gate had already written and saved.
-  A refusal needs no room of its own: the largest refusal the gate sends was measured at 270
-  bytes on the wire, so a read under the smallest limit still reads a `404`, a `412` or a `503`.
-  `docs/pykeepassgate.md`.
+  reference leads to. Those two hand it to `client.entry` as a keyword, so a reader of a
+  program's own given to them, `refs.Entries`, has to take a keyword-only
+  `max_response_kilobytes`. `GateClient` takes it as what a read given none is under, so a
+  program raises the limit for the attachment it knows is large and not for every answer. The
+  command line's option is `--max-response-kilobytes`, on the commands that make such a read,
+  and `transport.connect` takes the limit and `dial` by keyword only. A pairing, a renewal, the
+  status, the identity, what a client may do at a node, a write and a revocation are read under
+  a limit of their own, `BOUNDED_RESPONSE_KILOBYTES`, whatever the client was given, and
+  `api.pair`, `Pairing` and the commands that make no such read take no limit: the answer to a
+  pairing or a renewal was measured at 2399 bytes and grows with the profiles approved, so a
+  limit lowered for the reads refused an identity the gate had already written and saved. An
+  answer over that limit is a `ProtocolError` that names no setting, since none raises it. A
+  refusal needs no room of its own: the largest refusal the gate sends was measured at 270 bytes
+  on the wire, so a read under the smallest limit still reads a `404`, a `412` or a `503`, and
+  the plugin's tests hold the largest refusal of each kind to that kilobyte. `FINDINGS.md`
+  section 16 has the measurements. `docs/pykeepassgate.md`.
 - **A protected value read or written through the gate stays encrypted in KeePass's memory.**
   KeePass keeps a protected value encrypted in memory until something reads it as text, and from
   then on keeps the text. The gate read every value that way, and an entry's `ETag` reads every

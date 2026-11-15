@@ -935,7 +935,7 @@ def test_fetch_writes_an_attachment_larger_than_a_write_takes(
     gate: FakeGate, kept: Path, tmp_path: Path, capsys: pytest.CaptureFixture[str]
 ) -> None:
     # 2 MiB, well over the 512 KiB `add-attachment` can send: the gate hands out an attachment at
-    # any size, as a file attached in KeePass can be, and its answer is under the default cap.
+    # any size, as a file attached in KeePass can be, and its answer is under the default limit.
     content = bytes(range(256)) * 8192
     _fetched(gate, content)
     where = tmp_path / "fetched.bin"
@@ -1209,14 +1209,32 @@ def test_pairing_takes_the_retry_budgets_as_well(
     assert "retry_locked_timeout" not in asked
 
 
+#: The commands that read an answer growing with what the database holds, which are the
+#: commands a limit on the answer can change anything for, each with a command line for it.
+READING = {
+    "groups": ["groups"],
+    "group": ["group", UUID],
+    "entries": ["entries"],
+    "show": ["show", UUID],
+    "fields": ["fields", UUID],
+    "field": ["field", UUID, "Title"],
+    "attachments": ["attachments", UUID],
+    "fetch": ["fetch", UUID, "key.pem", "--to", "fetched.bin"],
+}
+
+
+@pytest.mark.parametrize("command", READING)
 def test_the_response_limit_reaches_the_client_and_nothing_is_passed_when_it_was_not_given(
-    gate: FakeGate, kept: Path, monkeypatch: pytest.MonkeyPatch
+    kept: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch, command: str
 ) -> None:
-    # Giving none leaves the library's default, which is the one place that number lives.
-    answering(gate, {"groups": []})
+    # Giving none leaves the library's default, which is the one place that number lives. Each
+    # command opens its client itself, so each is asked: an option a command takes and does
+    # not hand on parses, and reads under the default without a word. What is asserted is
+    # what the client was opened with, so the stand-in ends the command there, as a refusal.
     asked: list[dict[str, Any]] = []
 
-    opened = api.GateClient.open
+    class Opened(api.GateError):
+        """What ends a command once what it opened its client with is recorded."""
 
     def watching(
         directory: Path | None = None,
@@ -1225,16 +1243,20 @@ def test_the_response_limit_reaches_the_client_and_nothing_is_passed_when_it_was
         **rest: Any,
     ) -> Any:
         asked.append(given(rest))
-        return opened(directory, profile, host=host, **rest)
+        raise Opened("nothing is asked of a gate here")
 
     monkeypatch.setattr(api.GateClient, "open", watching)
+    # Where a path a command line names would land, which is the file `fetch` writes to.
+    working = tmp_path / "working"
+    working.mkdir()
+    monkeypatch.chdir(working)
+    line = [*READING[command], "--directory", str(kept)]
 
-    assert cli.main(["groups", "--directory", str(kept)]) == 0
-    assert cli.main(
-        ["groups", "--directory", str(kept), "--max-response-kilobytes", "16384"]
-    ) == 0
+    assert cli.main(line) == 1
+    assert cli.main([*line, "--max-response-kilobytes", "16384"]) == 1
 
     assert asked == [{}, {"max_response_kilobytes": 16384}]
+    assert list(working.iterdir()) == [], "and nothing was written"
 
 
 def test_a_limit_the_client_was_given_is_the_limit_it_reads_under(
@@ -1277,11 +1299,6 @@ def test_the_entries_a_resolution_follows_are_read_under_the_limit_the_command_w
     assert "Title: " + "x" * 4096 in capsys.readouterr().out.splitlines()
 
 
-#: The commands that read an answer growing with what the database holds, which are the
-#: commands a limit on the answer can change anything for.
-READING = {"groups", "group", "entries", "show", "fields", "field", "attachments", "fetch"}
-
-
 def test_only_the_commands_that_read_what_grows_offer_a_response_limit() -> None:
     # Every other command's answer has a bounded shape and is read under a limit no setting
     # reaches, so the option there would be an option that changes nothing: pairing above all,
@@ -1293,7 +1310,7 @@ def test_only_the_commands_that_read_what_grows_offer_a_response_limit() -> None
         if any("--max-response-kilobytes" in action.option_strings for action in command._actions)
     }
 
-    assert offering == READING
+    assert offering == set(READING)
 
 
 @pytest.mark.parametrize(

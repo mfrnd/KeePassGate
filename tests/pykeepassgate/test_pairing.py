@@ -666,15 +666,16 @@ def test_a_pairing_s_answers_are_read_under_the_bounded_limit_and_no_setting(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     # A hello's answer and a bundle have a bounded shape, so no limit a caller keeps for its
-    # reads reaches either: the bundle here is over the smallest limit a read can be given, and
-    # the gate has spent the invitation by the time it is read. Observed on the way into the
-    # connection, where a limit would have to arrive to change anything.
+    # reads reaches either, and the gate has spent the invitation by the time the bundle is
+    # read. Observed on the way into the connection, where a limit would have to arrive to
+    # change anything: what arrives is no number, which a connection reads under the bounded
+    # limit, as `test_transport.py` holds it to.
     gate.handler = Gate(gate, host, bundle=bundle)
     limits: list[object] = []
     connect = transport.connect
 
     def recorded(*positional: Any, **named: Any) -> Any:
-        limits.append(named.get("max_response_kilobytes", transport.BOUNDED_RESPONSE_KILOBYTES))
+        limits.append(named.get("max_response_kilobytes"))
         return connect(*positional, **named)
 
     monkeypatch.setattr(transport, "connect", recorded)
@@ -687,8 +688,7 @@ def test_a_pairing_s_answers_are_read_under_the_bounded_limit_and_no_setting(
         connection_timeout=10.0,
     )
 
-    assert len(json.dumps(bundle)) > 1024
-    assert limits == [transport.BOUNDED_RESPONSE_KILOBYTES] * 2, "the hello and the request"
+    assert limits == [None, None], "the hello and the request, and a limit of its own for neither"
     assert stored.subject == "CN=agent-invented"
     for taking in (api.pair, Pairing):
         assert "max_response_kilobytes" not in inspect.signature(taking).parameters
