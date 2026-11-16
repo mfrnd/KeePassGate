@@ -121,3 +121,10 @@ words:
   - customdata
   - KeePassium
   - gokeepasslib
+  # Identifiers in the ground-measured probe, which is carried unchanged: the key derivation sets
+  # `slowm` the re-read's list selects, and the directories `kpdx-<release>` of the Android
+  # results its checks read. And `apksigner`, Android's own tool, which the pin file
+  # `android.sha256` names.
+  - slowm
+  - kpdx
+  - apksigner

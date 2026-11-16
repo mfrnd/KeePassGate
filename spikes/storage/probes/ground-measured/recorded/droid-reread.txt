@@ -1,0 +1,658 @@
+KeePassLib 2.62
+A\k2a-1.08d-r5\P-moved-fast.kdbx | kdbx 4.0 | HistoryMaxItems 10 HistoryMaxSize 6291456 MaintenanceHistoryDays 365 | SettingsChanged 2026-11-10T10:23:43Z | RecycleBin True | deleted 0
+  group Root A27CEC85 mtime 2026-01-01T00:00:00Z rule - entries 1
+  group G 79E3BEF2 mtime 2026-02-01T06:00:00Z rule P entries 1
+  group H 5137BA8C mtime 2026-01-01T00:00:00Z rule - entries 1
+  entry droid-added 8E64B0CD in Root mtime 2026-11-10T20:44:39Z rule - tags [] binaries 0 strings {Notes=; Password=<protected 0>; Title=droid-added; URL=; UserName=}
+  entry E1 DF6E2D85 in G mtime 2026-02-01T07:00:00Z rule P tags [] binaries 0 strings {Password=<protected 17>; Title=E1}
+  entry E2 42377F17 in H mtime 2026-01-01T00:00:00Z rule - tags [] binaries 0 strings {Password=<protected 17>; Title=E2}
+A\k2a-1.08d-r5\P-plain-aes.kdbx | kdbx 4.0 | HistoryMaxItems 10 HistoryMaxSize 6291456 MaintenanceHistoryDays 365 | SettingsChanged 2026-11-10T10:23:55Z | RecycleBin True | deleted 0
+  group Root BADF6137 mtime 2026-01-01T00:00:00Z rule - entries 1
+  group G 01F7A351 mtime 2026-02-01T06:00:00Z rule P entries 2
+  group H BF965CEE mtime 2026-01-01T00:00:00Z rule - entries 0
+  entry droid-added DE461226 in Root mtime 2026-11-10T20:46:04Z rule - tags [] binaries 0 strings {Notes=; Password=<protected 0>; Title=droid-added; URL=; UserName=}
+  entry E1 CF6C7430 in G mtime 2026-02-01T07:00:00Z rule P tags [] binaries 0 strings {Password=<protected 17>; Title=E1}
+  entry E2 427F4B41 in G mtime 2026-01-01T00:00:00Z rule - tags [] binaries 0 strings {Password=<protected 17>; Title=E2}
+A\k2a-1.08d-r5\P-plain-aesb.kdbx | kdbx 3.1 | HistoryMaxItems 10 HistoryMaxSize 6291456 MaintenanceHistoryDays 365 | SettingsChanged 2026-11-15T14:38:49Z | RecycleBin True | deleted 0
+  group Root 0AFE112C mtime 2026-01-01T00:00:00Z rule - entries 1
+  group G 0E43DCBB mtime 2026-02-01T06:00:00Z rule - entries 2
+  group H 32BB9E82 mtime 2026-01-01T00:00:00Z rule - entries 0
+  entry droid-added 20A60F3B in Root mtime 2026-11-10T20:48:53Z rule - tags [] binaries 0 strings {Notes=; Password=<protected 0>; Title=droid-added; URL=; UserName=}
+  entry E1 C5352F3A in G mtime 2026-02-01T07:00:00Z rule - tags [] binaries 0 strings {Password=<protected 17>; Title=E1}
+  entry E2 78A6BE93 in G mtime 2026-01-01T00:00:00Z rule - tags [] binaries 0 strings {Password=<protected 17>; Title=E2}
+A\k2a-1.08d-r5\P-plain-fast.kdbx | kdbx 4.0 | HistoryMaxItems 10 HistoryMaxSize 6291456 MaintenanceHistoryDays 365 | SettingsChanged 2026-11-10T10:23:43Z | RecycleBin True | deleted 0
+  group Root A27CEC85 mtime 2026-01-01T00:00:00Z rule - entries 1
+  group G 79E3BEF2 mtime 2026-02-01T06:00:00Z rule P entries 2
+  group H 5137BA8C mtime 2026-01-01T00:00:00Z rule - entries 0
+  entry droid-added 2E47735E in Root mtime 2026-11-10T20:42:58Z rule - tags [] binaries 0 strings {Notes=; Password=<protected 0>; Title=droid-added; URL=; UserName=}
+  entry E1 DF6E2D85 in G mtime 2026-02-01T07:00:00Z rule P tags [] binaries 0 strings {Password=<protected 17>; Title=E1}
+  entry E2 42377F17 in G mtime 2026-01-01T00:00:00Z rule - tags [] binaries 0 strings {Password=<protected 17>; Title=E2}
+A\k2a-1.08d-r5\P-plain-fastb.kdbx | kdbx 4.0 | HistoryMaxItems 10 HistoryMaxSize 6291456 MaintenanceHistoryDays 365 | SettingsChanged 2026-11-10T10:40:38Z | RecycleBin True | deleted 0
+  group Root 3EC8970D mtime 2026-01-01T00:00:00Z rule - entries 1
+  group G 0A02A298 mtime 2026-02-01T06:00:00Z rule - entries 2
+  group H 9DE67C54 mtime 2026-01-01T00:00:00Z rule - entries 0
+  entry droid-added E7F8B728 in Root mtime 2026-11-10T20:47:30Z rule - tags [] binaries 0 strings {Notes=; Password=<protected 0>; Title=droid-added; URL=; UserName=}
+  entry E1 191D5217 in G mtime 2026-02-01T07:00:00Z rule - tags [] binaries 0 strings {Password=<protected 17>; Title=E1}
+  entry E2 2009E066 in G mtime 2026-01-01T00:00:00Z rule - tags [] binaries 0 strings {Password=<protected 17>; Title=E2}
+A\k2a-1.15-r6\P-moved-fast.kdbx | kdbx 4.0 | HistoryMaxItems 10 HistoryMaxSize 6291456 MaintenanceHistoryDays 365 | SettingsChanged 2026-11-10T10:23:43Z | RecycleBin True | deleted 0
+  group Root A27CEC85 mtime 2026-01-01T00:00:00Z rule - entries 1
+  group G 79E3BEF2 mtime 2026-02-01T06:00:00Z rule P entries 1
+  group H 5137BA8C mtime 2026-01-01T00:00:00Z rule - entries 1
+  entry droid-added 75E4AC7D in Root mtime 2026-11-10T18:28:17Z rule - tags [] binaries 0 strings {Notes=; Password=<protected 0>; Title=droid-added; URL=; UserName=}
+  entry E1 DF6E2D85 in G mtime 2026-02-01T07:00:00Z rule P tags [] binaries 0 strings {Password=<protected 17>; Title=E1}
+  entry E2 42377F17 in H mtime 2026-01-01T00:00:00Z rule - tags [] binaries 0 strings {Password=<protected 17>; Title=E2}
+A\k2a-1.15-r6\P-plain-aes.kdbx | kdbx 4.0 | HistoryMaxItems 10 HistoryMaxSize 6291456 MaintenanceHistoryDays 365 | SettingsChanged 2026-11-10T10:23:55Z | RecycleBin True | deleted 0
+  group Root BADF6137 mtime 2026-01-01T00:00:00Z rule - entries 1
+  group G 01F7A351 mtime 2026-02-01T06:00:00Z rule P entries 2
+  group H BF965CEE mtime 2026-01-01T00:00:00Z rule - entries 0
+  entry droid-added 8591A5C2 in Root mtime 2026-11-10T18:30:16Z rule - tags [] binaries 0 strings {Notes=; Password=<protected 0>; Title=droid-added; URL=; UserName=}
+  entry E1 CF6C7430 in G mtime 2026-02-01T07:00:00Z rule P tags [] binaries 0 strings {Password=<protected 17>; Title=E1}
+  entry E2 427F4B41 in G mtime 2026-01-01T00:00:00Z rule - tags [] binaries 0 strings {Password=<protected 17>; Title=E2}
+A\k2a-1.15-r6\P-plain-aesb.kdbx | kdbx 3.1 | HistoryMaxItems 10 HistoryMaxSize 6291456 MaintenanceHistoryDays 365 | SettingsChanged 2026-11-15T14:38:49Z | RecycleBin True | deleted 0
+  group Root 0AFE112C mtime 2026-01-01T00:00:00Z rule - entries 1
+  group G 0E43DCBB mtime 2026-02-01T06:00:00Z rule - entries 2
+  group H 32BB9E82 mtime 2026-01-01T00:00:00Z rule - entries 0
+  entry droid-added A29A8CAC in Root mtime 2026-11-10T18:33:57Z rule - tags [] binaries 0 strings {Notes=; Password=<protected 0>; Title=droid-added; URL=; UserName=}
+  entry E1 C5352F3A in G mtime 2026-02-01T07:00:00Z rule - tags [] binaries 0 strings {Password=<protected 17>; Title=E1}
+  entry E2 78A6BE93 in G mtime 2026-01-01T00:00:00Z rule - tags [] binaries 0 strings {Password=<protected 17>; Title=E2}
+A\k2a-1.15-r6\P-plain-fast.kdbx | kdbx 4.0 | HistoryMaxItems 10 HistoryMaxSize 6291456 MaintenanceHistoryDays 365 | SettingsChanged 2026-11-10T10:23:43Z | RecycleBin True | deleted 0
+  group Root A27CEC85 mtime 2026-01-01T00:00:00Z rule - entries 1
+  group G 79E3BEF2 mtime 2026-02-01T06:00:00Z rule P entries 2
+  group H 5137BA8C mtime 2026-01-01T00:00:00Z rule - entries 0
+  entry droid-added C7C266C5 in Root mtime 2026-11-10T18:26:06Z rule - tags [] binaries 0 strings {Notes=; Password=<protected 0>; Title=droid-added; URL=; UserName=}
+  entry E1 DF6E2D85 in G mtime 2026-02-01T07:00:00Z rule P tags [] binaries 0 strings {Password=<protected 17>; Title=E1}
+  entry E2 42377F17 in G mtime 2026-01-01T00:00:00Z rule - tags [] binaries 0 strings {Password=<protected 17>; Title=E2}
+A\k2a-1.15-r6\P-plain-fastb.kdbx | kdbx 4.0 | HistoryMaxItems 10 HistoryMaxSize 6291456 MaintenanceHistoryDays 365 | SettingsChanged 2026-11-10T10:40:38Z | RecycleBin True | deleted 0
+  group Root 3EC8970D mtime 2026-01-01T00:00:00Z rule - entries 1
+  group G 0A02A298 mtime 2026-02-01T06:00:00Z rule - entries 2
+  group H 9DE67C54 mtime 2026-01-01T00:00:00Z rule - entries 0
+  entry droid-added F49815D9 in Root mtime 2026-11-10T18:32:06Z rule - tags [] binaries 0 strings {Notes=; Password=<protected 0>; Title=droid-added; URL=; UserName=}
+  entry E1 191D5217 in G mtime 2026-02-01T07:00:00Z rule - tags [] binaries 0 strings {Password=<protected 17>; Title=E1}
+  entry E2 2009E066 in G mtime 2026-01-01T00:00:00Z rule - tags [] binaries 0 strings {Password=<protected 17>; Title=E2}
+A\kpd-2.7-menu\P-plain-fast.kdbx | kdbx 4.1 | HistoryMaxItems 10 HistoryMaxSize 6291456 MaintenanceHistoryDays 365 | SettingsChanged 2026-11-10T10:23:43Z | RecycleBin True | deleted 0
+  group Root A27CEC85 mtime 2026-01-01T00:00:00Z rule - entries 0
+  group G 79E3BEF2 mtime 2026-02-01T06:00:00Z rule P entries 2
+  group H 5137BA8C mtime 2026-01-01T00:00:00Z rule - entries 0
+  entry E1 DF6E2D85 in G mtime 2026-02-01T07:00:00Z rule P tags [] binaries 0 strings {Password=<protected 17>; Title=E1}
+  entry E2 42377F17 in G mtime 2026-01-01T00:00:00Z rule - tags [] binaries 0 strings {Password=<protected 17>; Title=E2}
+A\kpd-2.7\P-moved-fast.kdbx | kdbx 4.1 | HistoryMaxItems 10 HistoryMaxSize 6291456 MaintenanceHistoryDays 365 | SettingsChanged 2026-11-15T14:38:49Z | RecycleBin True | deleted 0
+  group Root A27CEC85 mtime 2026-01-01T00:00:00Z rule - entries 1
+  group G 79E3BEF2 mtime 2026-02-01T06:00:00Z rule - entries 1
+  group H 5137BA8C mtime 2026-01-01T00:00:00Z rule - entries 1
+  entry droid-added 8F45530E in Root mtime 2026-11-10T20:37:49Z rule - tags [] binaries 0 strings {Notes=; Password=<protected 0>; Title=droid-added; URL=; UserName=}
+    history 1: mtime 2026-11-10T20:37:33Z rule - strings {}
+  entry E1 DF6E2D85 in G mtime 2026-02-01T07:00:00Z rule - tags [] binaries 0 strings {Password=<protected 17>; Title=E1}
+  entry E2 42377F17 in H mtime 2026-01-01T00:00:00Z rule - tags [] binaries 0 strings {Password=<protected 17>; Title=E2}
+A\kpd-2.7\P-plain-aes.kdbx | kdbx 4.1 | HistoryMaxItems 10 HistoryMaxSize 6291456 MaintenanceHistoryDays 365 | SettingsChanged 2026-11-15T14:38:49Z | RecycleBin True | deleted 0
+  group Root BADF6137 mtime 2026-01-01T00:00:00Z rule - entries 1
+  group G 01F7A351 mtime 2026-02-01T06:00:00Z rule - entries 2
+  group H BF965CEE mtime 2026-01-01T00:00:00Z rule - entries 0
+  entry droid-added 2F4D931B in Root mtime 2026-11-10T20:39:00Z rule - tags [] binaries 0 strings {Notes=; Password=<protected 0>; Title=droid-added; URL=; UserName=}
+    history 1: mtime 2026-11-10T20:38:44Z rule - strings {}
+  entry E1 CF6C7430 in G mtime 2026-02-01T07:00:00Z rule - tags [] binaries 0 strings {Password=<protected 17>; Title=E1}
+  entry E2 427F4B41 in G mtime 2026-01-01T00:00:00Z rule - tags [] binaries 0 strings {Password=<protected 17>; Title=E2}
+A\kpd-2.7\P-plain-aesb.kdbx | kdbx 4.1 | HistoryMaxItems 10 HistoryMaxSize 6291456 MaintenanceHistoryDays 365 | SettingsChanged 2026-11-15T14:38:49Z | RecycleBin True | deleted 0
+  group Root 0AFE112C mtime 2026-01-01T00:00:00Z rule - entries 1
+  group G 0E43DCBB mtime 2026-02-01T06:00:00Z rule - entries 2
+  group H 32BB9E82 mtime 2026-01-01T00:00:00Z rule - entries 0
+  entry droid-added 8848952B in Root mtime 2026-11-10T20:41:21Z rule - tags [] binaries 0 strings {Notes=; Password=<protected 0>; Title=droid-added; URL=; UserName=}
+    history 1: mtime 2026-11-10T20:41:06Z rule - strings {}
+  entry E1 C5352F3A in G mtime 2026-02-01T07:00:00Z rule - tags [] binaries 0 strings {Password=<protected 17>; Title=E1}
+  entry E2 78A6BE93 in G mtime 2026-01-01T00:00:00Z rule - tags [] binaries 0 strings {Password=<protected 17>; Title=E2}
+A\kpd-2.7\P-plain-fast.kdbx | kdbx 4.1 | HistoryMaxItems 10 HistoryMaxSize 6291456 MaintenanceHistoryDays 365 | SettingsChanged 2026-11-15T14:38:49Z | RecycleBin True | deleted 0
+  group Root A27CEC85 mtime 2026-01-01T00:00:00Z rule - entries 1
+  group G 79E3BEF2 mtime 2026-02-01T06:00:00Z rule - entries 2
+  group H 5137BA8C mtime 2026-01-01T00:00:00Z rule - entries 0
+  entry droid-added EA4F67F1 in Root mtime 2026-11-10T20:36:36Z rule - tags [] binaries 0 strings {Notes=; Password=<protected 0>; Title=droid-added; URL=; UserName=}
+    history 1: mtime 2026-11-10T20:36:20Z rule - strings {}
+  entry E1 DF6E2D85 in G mtime 2026-02-01T07:00:00Z rule - tags [] binaries 0 strings {Password=<protected 17>; Title=E1}
+  entry E2 42377F17 in G mtime 2026-01-01T00:00:00Z rule - tags [] binaries 0 strings {Password=<protected 17>; Title=E2}
+A\kpd-2.7\P-plain-fastb.kdbx | kdbx 4.1 | HistoryMaxItems 10 HistoryMaxSize 6291456 MaintenanceHistoryDays 365 | SettingsChanged 2026-11-15T14:38:49Z | RecycleBin True | deleted 0
+  group Root 3EC8970D mtime 2026-01-01T00:00:00Z rule - entries 1
+  group G 0A02A298 mtime 2026-02-01T06:00:00Z rule - entries 2
+  group H 9DE67C54 mtime 2026-01-01T00:00:00Z rule - entries 0
+  entry droid-added 4B4E0528 in Root mtime 2026-11-10T20:40:11Z rule - tags [] binaries 0 strings {Notes=; Password=<protected 0>; Title=droid-added; URL=; UserName=}
+    history 1: mtime 2026-11-10T20:39:56Z rule - strings {}
+  entry E1 191D5217 in G mtime 2026-02-01T07:00:00Z rule - tags [] binaries 0 strings {Password=<protected 17>; Title=E1}
+  entry E2 2009E066 in G mtime 2026-01-01T00:00:00Z rule - tags [] binaries 0 strings {Password=<protected 17>; Title=E2}
+A\kpdx-3.2.0\P-moved-fast.kdbx | kdbx 4.1 | HistoryMaxItems 10 HistoryMaxSize 6291456 MaintenanceHistoryDays 365 | SettingsChanged 2026-11-10T10:23:43Z | RecycleBin True | deleted 0
+  group Root A27CEC85 mtime 2026-11-10T21:12:32Z rule - entries 1
+  group G 79E3BEF2 mtime 2026-02-01T06:00:00Z rule - entries 1
+  group H 5137BA8C mtime 2026-01-01T00:00:00Z rule - entries 1
+  entry droid-added D7440877 in Root mtime 2026-11-10T21:12:32Z rule - tags [] binaries 0 strings {Notes=; Password=<protected 0>; Title=droid-added; URL=; UserName=}
+  entry E1 DF6E2D85 in G mtime 2026-02-01T07:00:00Z rule P tags [] binaries 0 strings {Password=<protected 17>; Title=E1}
+  entry E2 42377F17 in H mtime 2026-01-01T00:00:00Z rule - tags [] binaries 0 strings {Password=<protected 17>; Title=E2}
+A\kpdx-3.2.0\P-plain-aes.kdbx | kdbx 4.1 | HistoryMaxItems 10 HistoryMaxSize 6291456 MaintenanceHistoryDays 365 | SettingsChanged 2026-11-10T10:23:55Z | RecycleBin True | deleted 0
+  group Root BADF6137 mtime 2026-11-10T21:14:45Z rule - entries 1
+  group G 01F7A351 mtime 2026-02-01T06:00:00Z rule - entries 2
+  group H BF965CEE mtime 2026-01-01T00:00:00Z rule - entries 0
+  entry droid-added C143BFD2 in Root mtime 2026-11-10T21:14:45Z rule - tags [] binaries 0 strings {Notes=; Password=<protected 0>; Title=droid-added; URL=; UserName=}
+  entry E1 CF6C7430 in G mtime 2026-02-01T07:00:00Z rule P tags [] binaries 0 strings {Password=<protected 17>; Title=E1}
+  entry E2 427F4B41 in G mtime 2026-01-01T00:00:00Z rule - tags [] binaries 0 strings {Password=<protected 17>; Title=E2}
+A\kpdx-3.2.0\P-plain-aesb.kdbx | kdbx 4.1 | HistoryMaxItems 10 HistoryMaxSize 6291456 MaintenanceHistoryDays 365 | SettingsChanged 2026-11-10T10:40:39Z | RecycleBin True | deleted 0
+  group Root 0AFE112C mtime 2026-11-10T21:19:37Z rule - entries 1
+  group G 0E43DCBB mtime 2026-02-01T06:00:00Z rule - entries 2
+  group H 32BB9E82 mtime 2026-01-01T00:00:00Z rule - entries 0
+  entry droid-added AD49A1A5 in Root mtime 2026-11-10T21:19:37Z rule - tags [] binaries 0 strings {Notes=; Password=<protected 0>; Title=droid-added; URL=; UserName=}
+  entry E1 C5352F3A in G mtime 2026-02-01T07:00:00Z rule - tags [] binaries 0 strings {Password=<protected 17>; Title=E1}
+  entry E2 78A6BE93 in G mtime 2026-01-01T00:00:00Z rule - tags [] binaries 0 strings {Password=<protected 17>; Title=E2}
+A\kpdx-3.2.0\P-plain-fast.kdbx | kdbx 4.1 | HistoryMaxItems 10 HistoryMaxSize 6291456 MaintenanceHistoryDays 365 | SettingsChanged 2026-11-10T10:23:43Z | RecycleBin True | deleted 0
+  group Root A27CEC85 mtime 2026-11-10T21:10:19Z rule - entries 1
+  group G 79E3BEF2 mtime 2026-02-01T06:00:00Z rule - entries 2
+  group H 5137BA8C mtime 2026-01-01T00:00:00Z rule - entries 0
+  entry droid-added F04A4920 in Root mtime 2026-11-10T21:10:19Z rule - tags [] binaries 0 strings {Notes=; Password=<protected 0>; Title=droid-added; URL=; UserName=}
+  entry E1 DF6E2D85 in G mtime 2026-02-01T07:00:00Z rule P tags [] binaries 0 strings {Password=<protected 17>; Title=E1}
+  entry E2 42377F17 in G mtime 2026-01-01T00:00:00Z rule - tags [] binaries 0 strings {Password=<protected 17>; Title=E2}
+A\kpdx-3.2.0\P-plain-fastb.kdbx | kdbx 4.1 | HistoryMaxItems 10 HistoryMaxSize 6291456 MaintenanceHistoryDays 365 | SettingsChanged 2026-11-10T10:40:38Z | RecycleBin True | deleted 0
+  group Root 3EC8970D mtime 2026-11-10T21:17:18Z rule - entries 1
+  group G 0A02A298 mtime 2026-02-01T06:00:00Z rule - entries 2
+  group H 9DE67C54 mtime 2026-01-01T00:00:00Z rule - entries 0
+  entry droid-added BA46806C in Root mtime 2026-11-10T21:17:18Z rule - tags [] binaries 0 strings {Notes=; Password=<protected 0>; Title=droid-added; URL=; UserName=}
+  entry E1 191D5217 in G mtime 2026-02-01T07:00:00Z rule - tags [] binaries 0 strings {Password=<protected 17>; Title=E1}
+  entry E2 2009E066 in G mtime 2026-01-01T00:00:00Z rule - tags [] binaries 0 strings {Password=<protected 17>; Title=E2}
+A\kpdx-3.3.0\P-moved-fast.kdbx | kdbx 4.1 | HistoryMaxItems 10 HistoryMaxSize 6291456 MaintenanceHistoryDays 365 | SettingsChanged 2026-11-10T10:23:43Z | RecycleBin True | deleted 0
+  group Root A27CEC85 mtime 2026-11-10T21:41:09Z rule - entries 1
+  group G 79E3BEF2 mtime 2026-02-01T06:00:00Z rule - entries 1
+  group H 5137BA8C mtime 2026-01-01T00:00:00Z rule - entries 1
+  entry droid-added B0421A4F in Root mtime 2026-11-10T21:41:09Z rule - tags [] binaries 0 strings {Notes=; Password=<protected 0>; Title=droid-added; URL=; UserName=}
+  entry E1 DF6E2D85 in G mtime 2026-02-01T07:00:00Z rule P tags [] binaries 0 strings {Password=<protected 17>; Title=E1}
+  entry E2 42377F17 in H mtime 2026-01-01T00:00:00Z rule - tags [] binaries 0 strings {Password=<protected 17>; Title=E2}
+A\kpdx-3.3.0\P-plain-fast.kdbx | kdbx 4.1 | HistoryMaxItems 10 HistoryMaxSize 6291456 MaintenanceHistoryDays 365 | SettingsChanged 2026-11-10T10:23:43Z | RecycleBin True | deleted 0
+  group Root A27CEC85 mtime 2026-11-10T21:38:50Z rule - entries 1
+  group G 79E3BEF2 mtime 2026-02-01T06:00:00Z rule - entries 2
+  group H 5137BA8C mtime 2026-01-01T00:00:00Z rule - entries 0
+  entry droid-added F4456C4E in Root mtime 2026-11-10T21:38:50Z rule - tags [] binaries 0 strings {Notes=; Password=<protected 0>; Title=droid-added; URL=; UserName=}
+  entry E1 DF6E2D85 in G mtime 2026-02-01T07:00:00Z rule P tags [] binaries 0 strings {Password=<protected 17>; Title=E1}
+  entry E2 42377F17 in G mtime 2026-01-01T00:00:00Z rule - tags [] binaries 0 strings {Password=<protected 17>; Title=E2}
+A\kpdx-4.5.8\P-moved-fast.kdbx | kdbx 4.1 | HistoryMaxItems 10 HistoryMaxSize 6291456 MaintenanceHistoryDays 365 | SettingsChanged 2026-11-10T10:23:43Z | RecycleBin True | deleted 0
+  group Root A27CEC85 mtime 2026-11-10T19:09:03Z rule - entries 1
+  group G 79E3BEF2 mtime 2026-02-01T06:00:00Z rule P entries 1
+  group H 5137BA8C mtime 2026-01-01T00:00:00Z rule - entries 1
+  entry droid-added C74A1A54 in Root mtime 2026-11-10T19:09:03Z rule - tags [] binaries 0 strings {Notes=; Password=<protected 0>; Title=droid-added; URL=; UserName=}
+  entry E1 DF6E2D85 in G mtime 2026-02-01T07:00:00Z rule P tags [] binaries 0 strings {Password=<protected 17>; Title=E1}
+  entry E2 42377F17 in H mtime 2026-01-01T00:00:00Z rule - tags [] binaries 0 strings {Password=<protected 17>; Title=E2}
+A\kpdx-4.5.8\P-plain-aes.kdbx | kdbx 4.1 | HistoryMaxItems 10 HistoryMaxSize 6291456 MaintenanceHistoryDays 365 | SettingsChanged 2026-11-10T10:23:55Z | RecycleBin True | deleted 0
+  group Root BADF6137 mtime 2026-11-10T19:12:56Z rule - entries 1
+  group G 01F7A351 mtime 2026-02-01T06:00:00Z rule P entries 2
+  group H BF965CEE mtime 2026-01-01T00:00:00Z rule - entries 0
+  entry droid-added B34E4EAC in Root mtime 2026-11-10T19:12:56Z rule - tags [] binaries 0 strings {Notes=; Password=<protected 0>; Title=droid-added; URL=; UserName=}
+  entry E1 CF6C7430 in G mtime 2026-02-01T07:00:00Z rule P tags [] binaries 0 strings {Password=<protected 17>; Title=E1}
+  entry E2 427F4B41 in G mtime 2026-01-01T00:00:00Z rule - tags [] binaries 0 strings {Password=<protected 17>; Title=E2}
+A\kpdx-4.5.8\P-plain-aesb.kdbx | kdbx 4.1 | HistoryMaxItems 10 HistoryMaxSize 6291456 MaintenanceHistoryDays 365 | SettingsChanged 2026-11-10T10:40:39Z | RecycleBin True | deleted 0
+  group Root 0AFE112C mtime 2026-11-10T19:20:59Z rule - entries 1
+  group G 0E43DCBB mtime 2026-02-01T06:00:00Z rule - entries 2
+  group H 32BB9E82 mtime 2026-01-01T00:00:00Z rule - entries 0
+  entry droid-added 4740B509 in Root mtime 2026-11-10T19:20:59Z rule - tags [] binaries 0 strings {Notes=; Password=<protected 0>; Title=droid-added; URL=; UserName=}
+  entry E1 C5352F3A in G mtime 2026-02-01T07:00:00Z rule - tags [] binaries 0 strings {Password=<protected 17>; Title=E1}
+  entry E2 78A6BE93 in G mtime 2026-01-01T00:00:00Z rule - tags [] binaries 0 strings {Password=<protected 17>; Title=E2}
+A\kpdx-4.5.8\P-plain-fast.kdbx | kdbx 4.1 | HistoryMaxItems 10 HistoryMaxSize 6291456 MaintenanceHistoryDays 365 | SettingsChanged 2026-11-10T10:23:43Z | RecycleBin True | deleted 0
+  group Root A27CEC85 mtime 2026-11-10T19:05:06Z rule - entries 1
+  group G 79E3BEF2 mtime 2026-02-01T06:00:00Z rule P entries 2
+  group H 5137BA8C mtime 2026-01-01T00:00:00Z rule - entries 0
+  entry droid-added 4245E69E in Root mtime 2026-11-10T19:05:06Z rule - tags [] binaries 0 strings {Notes=; Password=<protected 0>; Title=droid-added; URL=; UserName=}
+  entry E1 DF6E2D85 in G mtime 2026-02-01T07:00:00Z rule P tags [] binaries 0 strings {Password=<protected 17>; Title=E1}
+  entry E2 42377F17 in G mtime 2026-01-01T00:00:00Z rule - tags [] binaries 0 strings {Password=<protected 17>; Title=E2}
+A\kpdx-4.5.8\P-plain-fastb.kdbx | kdbx 4.1 | HistoryMaxItems 10 HistoryMaxSize 6291456 MaintenanceHistoryDays 365 | SettingsChanged 2026-11-10T10:40:38Z | RecycleBin True | deleted 0
+  group Root 3EC8970D mtime 2026-11-10T19:16:59Z rule - entries 1
+  group G 0A02A298 mtime 2026-02-01T06:00:00Z rule - entries 2
+  group H 9DE67C54 mtime 2026-01-01T00:00:00Z rule - entries 0
+  entry droid-added C04B510B in Root mtime 2026-11-10T19:16:59Z rule - tags [] binaries 0 strings {Notes=; Password=<protected 0>; Title=droid-added; URL=; UserName=}
+  entry E1 191D5217 in G mtime 2026-02-01T07:00:00Z rule - tags [] binaries 0 strings {Password=<protected 17>; Title=E1}
+  entry E2 2009E066 in G mtime 2026-01-01T00:00:00Z rule - tags [] binaries 0 strings {Password=<protected 17>; Title=E2}
+B\k2a-1.08d-r5\CP-r1\k2a-1.08d-r5-CP.kdbx | kdbx 4.0 | HistoryMaxItems 10 HistoryMaxSize 6291456 MaintenanceHistoryDays 365 | SettingsChanged 2026-11-10T10:23:43Z | RecycleBin True | deleted 0
+  group Root A27CEC85 mtime 2026-01-01T00:00:00Z rule - entries 1
+  group G 79E3BEF2 mtime 2026-02-01T06:00:00Z rule P entries 2
+  group H 5137BA8C mtime 2026-01-01T00:00:00Z rule - entries 0
+  entry droid-merge 62D34733 in Root mtime 2026-11-10T20:55:04Z rule - tags [] binaries 0 strings {Notes=; Password=<protected 0>; Title=droid-merge; URL=; UserName=}
+  entry E1 DF6E2D85 in G mtime 2026-02-01T07:00:00Z rule P tags [] binaries 0 strings {Password=<protected 17>; Title=E1}
+    history 1: mtime 2026-01-01T10:00:00Z rule C strings {Password=<protected 17>; Title=E1}
+  entry E2 42377F17 in G mtime 2026-01-01T00:00:00Z rule - tags [] binaries 0 strings {Password=<protected 17>; Title=E2}
+B\k2a-1.08d-r5\CP-r2\k2a-1.08d-r5-CP.kdbx | kdbx 4.0 | HistoryMaxItems 10 HistoryMaxSize 6291456 MaintenanceHistoryDays 365 | SettingsChanged 2026-11-10T10:23:43Z | RecycleBin True | deleted 0
+  group Root A27CEC85 mtime 2026-01-01T00:00:00Z rule - entries 1
+  group G 79E3BEF2 mtime 2026-02-01T06:00:00Z rule P entries 2
+  group H 5137BA8C mtime 2026-01-01T00:00:00Z rule - entries 0
+  entry droid-merge F1CBD1A7 in Root mtime 2026-11-10T20:56:39Z rule - tags [] binaries 0 strings {Notes=; Password=<protected 0>; Title=droid-merge; URL=; UserName=}
+  entry E1 DF6E2D85 in G mtime 2026-02-01T07:00:00Z rule P tags [] binaries 0 strings {Password=<protected 17>; Title=E1}
+    history 1: mtime 2026-01-01T10:00:00Z rule C strings {Password=<protected 17>; Title=E1}
+  entry E2 42377F17 in G mtime 2026-01-01T00:00:00Z rule - tags [] binaries 0 strings {Password=<protected 17>; Title=E2}
+B\k2a-1.08d-r5\CP-r3\k2a-1.08d-r5-CP.kdbx | kdbx 4.0 | HistoryMaxItems 10 HistoryMaxSize 6291456 MaintenanceHistoryDays 365 | SettingsChanged 2026-11-10T10:23:43Z | RecycleBin True | deleted 0
+  group Root A27CEC85 mtime 2026-01-01T00:00:00Z rule - entries 1
+  group G 79E3BEF2 mtime 2026-02-01T06:00:00Z rule P entries 2
+  group H 5137BA8C mtime 2026-01-01T00:00:00Z rule - entries 0
+  entry droid-merge FDA4F3C7 in Root mtime 2026-11-10T20:58:14Z rule - tags [] binaries 0 strings {Notes=; Password=<protected 0>; Title=droid-merge; URL=; UserName=}
+  entry E1 DF6E2D85 in G mtime 2026-02-01T07:00:00Z rule P tags [] binaries 0 strings {Password=<protected 17>; Title=E1}
+    history 1: mtime 2026-01-01T10:00:00Z rule C strings {Password=<protected 17>; Title=E1}
+  entry E2 42377F17 in G mtime 2026-01-01T00:00:00Z rule - tags [] binaries 0 strings {Password=<protected 17>; Title=E2}
+B\k2a-1.08d-r5\PC-r1\k2a-1.08d-r5-PC.kdbx | kdbx 4.0 | HistoryMaxItems 10 HistoryMaxSize 6291456 MaintenanceHistoryDays 365 | SettingsChanged 2026-11-10T10:23:43Z | RecycleBin True | deleted 0
+  group Root A27CEC85 mtime 2026-01-01T00:00:00Z rule - entries 1
+  group G 79E3BEF2 mtime 2026-02-01T06:00:00Z rule P entries 2
+  group H 5137BA8C mtime 2026-01-01T00:00:00Z rule - entries 0
+  entry droid-merge 96F2191F in Root mtime 2026-11-10T20:50:22Z rule - tags [] binaries 0 strings {Notes=; Password=<protected 0>; Title=droid-merge; URL=; UserName=}
+  entry E1 DF6E2D85 in G mtime 2026-02-01T07:00:00Z rule P tags [] binaries 0 strings {Password=<protected 17>; Title=E1}
+    history 1: mtime 2026-01-01T10:00:00Z rule C strings {Password=<protected 17>; Title=E1}
+  entry E2 42377F17 in G mtime 2026-01-01T00:00:00Z rule - tags [] binaries 0 strings {Password=<protected 17>; Title=E2}
+B\k2a-1.08d-r5\PC-r2\k2a-1.08d-r5-PC.kdbx | kdbx 4.0 | HistoryMaxItems 10 HistoryMaxSize 6291456 MaintenanceHistoryDays 365 | SettingsChanged 2026-11-10T10:23:43Z | RecycleBin True | deleted 0
+  group Root A27CEC85 mtime 2026-01-01T00:00:00Z rule - entries 1
+  group G 79E3BEF2 mtime 2026-02-01T06:00:00Z rule P entries 2
+  group H 5137BA8C mtime 2026-01-01T00:00:00Z rule - entries 0
+  entry droid-merge C55BF8FA in Root mtime 2026-11-10T20:51:57Z rule - tags [] binaries 0 strings {Notes=; Password=<protected 0>; Title=droid-merge; URL=; UserName=}
+  entry E1 DF6E2D85 in G mtime 2026-02-01T07:00:00Z rule P tags [] binaries 0 strings {Password=<protected 17>; Title=E1}
+    history 1: mtime 2026-01-01T10:00:00Z rule C strings {Password=<protected 17>; Title=E1}
+  entry E2 42377F17 in G mtime 2026-01-01T00:00:00Z rule - tags [] binaries 0 strings {Password=<protected 17>; Title=E2}
+B\k2a-1.08d-r5\PC-r3\k2a-1.08d-r5-PC.kdbx | kdbx 4.0 | HistoryMaxItems 10 HistoryMaxSize 6291456 MaintenanceHistoryDays 365 | SettingsChanged 2026-11-10T10:23:43Z | RecycleBin True | deleted 0
+  group Root A27CEC85 mtime 2026-01-01T00:00:00Z rule - entries 1
+  group G 79E3BEF2 mtime 2026-02-01T06:00:00Z rule P entries 2
+  group H 5137BA8C mtime 2026-01-01T00:00:00Z rule - entries 0
+  entry droid-merge A0794325 in Root mtime 2026-11-10T20:53:31Z rule - tags [] binaries 0 strings {Notes=; Password=<protected 0>; Title=droid-merge; URL=; UserName=}
+  entry E1 DF6E2D85 in G mtime 2026-02-01T07:00:00Z rule P tags [] binaries 0 strings {Password=<protected 17>; Title=E1}
+    history 1: mtime 2026-01-01T10:00:00Z rule C strings {Password=<protected 17>; Title=E1}
+  entry E2 42377F17 in G mtime 2026-01-01T00:00:00Z rule - tags [] binaries 0 strings {Password=<protected 17>; Title=E2}
+B\k2a-1.15-r6\CP-r1\k2a-1.15-r6-CP.kdbx | kdbx 4.0 | HistoryMaxItems 10 HistoryMaxSize 6291456 MaintenanceHistoryDays 365 | SettingsChanged 2026-11-10T10:23:43Z | RecycleBin True | deleted 0
+  group Root A27CEC85 mtime 2026-01-01T00:00:00Z rule - entries 1
+  group G 79E3BEF2 mtime 2026-02-01T06:00:00Z rule P entries 2
+  group H 5137BA8C mtime 2026-01-01T00:00:00Z rule - entries 0
+  entry droid-merge 97E19E52 in Root mtime 2026-11-10T18:45:24Z rule - tags [] binaries 0 strings {Notes=; Password=<protected 0>; Title=droid-merge; URL=; UserName=}
+  entry E1 DF6E2D85 in G mtime 2026-02-01T07:00:00Z rule P tags [] binaries 0 strings {Password=<protected 17>; Title=E1}
+    history 1: mtime 2026-01-01T10:00:00Z rule C strings {Password=<protected 17>; Title=E1}
+  entry E2 42377F17 in G mtime 2026-01-01T00:00:00Z rule - tags [] binaries 0 strings {Password=<protected 17>; Title=E2}
+B\k2a-1.15-r6\CP-r2\k2a-1.15-r6-CP.kdbx | kdbx 4.0 | HistoryMaxItems 10 HistoryMaxSize 6291456 MaintenanceHistoryDays 365 | SettingsChanged 2026-11-10T10:23:43Z | RecycleBin True | deleted 0
+  group Root A27CEC85 mtime 2026-01-01T00:00:00Z rule - entries 1
+  group G 79E3BEF2 mtime 2026-02-01T06:00:00Z rule P entries 2
+  group H 5137BA8C mtime 2026-01-01T00:00:00Z rule - entries 0
+  entry droid-merge AD3A0923 in Root mtime 2026-11-10T18:50:19Z rule - tags [] binaries 0 strings {Notes=; Password=<protected 0>; Title=droid-merge; URL=; UserName=}
+  entry E1 DF6E2D85 in G mtime 2026-02-01T07:00:00Z rule P tags [] binaries 0 strings {Password=<protected 17>; Title=E1}
+    history 1: mtime 2026-01-01T10:00:00Z rule C strings {Password=<protected 17>; Title=E1}
+  entry E2 42377F17 in G mtime 2026-01-01T00:00:00Z rule - tags [] binaries 0 strings {Password=<protected 17>; Title=E2}
+B\k2a-1.15-r6\CP-r3\k2a-1.15-r6-CP.kdbx | kdbx 4.0 | HistoryMaxItems 10 HistoryMaxSize 6291456 MaintenanceHistoryDays 365 | SettingsChanged 2026-11-10T10:23:43Z | RecycleBin True | deleted 0
+  group Root A27CEC85 mtime 2026-01-01T00:00:00Z rule - entries 1
+  group G 79E3BEF2 mtime 2026-02-01T06:00:00Z rule P entries 2
+  group H 5137BA8C mtime 2026-01-01T00:00:00Z rule - entries 0
+  entry droid-merge F4121364 in Root mtime 2026-11-10T18:55:39Z rule - tags [] binaries 0 strings {Notes=; Password=<protected 0>; Title=droid-merge; URL=; UserName=}
+  entry E1 DF6E2D85 in G mtime 2026-02-01T07:00:00Z rule P tags [] binaries 0 strings {Password=<protected 17>; Title=E1}
+    history 1: mtime 2026-01-01T10:00:00Z rule C strings {Password=<protected 17>; Title=E1}
+  entry E2 42377F17 in G mtime 2026-01-01T00:00:00Z rule - tags [] binaries 0 strings {Password=<protected 17>; Title=E2}
+B\k2a-1.15-r6\CPs-r1\k2a-1.15-r6-CPs.kdbx | kdbx 4.0 | HistoryMaxItems 10 HistoryMaxSize 6291456 MaintenanceHistoryDays 365 | SettingsChanged 2026-11-10T12:00:00Z | RecycleBin True | deleted 0
+  group Root A27CEC85 mtime 2026-01-01T00:00:00Z rule - entries 1
+  group G 79E3BEF2 mtime 2026-02-01T06:00:00Z rule P entries 2
+  group H 5137BA8C mtime 2026-01-01T00:00:00Z rule - entries 0
+  entry droid-merge 08A0A910 in Root mtime 2026-11-10T20:23:58Z rule - tags [] binaries 0 strings {Notes=; Password=<protected 0>; Title=droid-merge; URL=; UserName=}
+  entry E1 DF6E2D85 in G mtime 2026-02-01T07:00:00Z rule P tags [] binaries 0 strings {Password=<protected 17>; Title=E1}
+    history 1: mtime 2026-01-01T10:00:00Z rule C strings {Password=<protected 17>; Title=E1}
+  entry E2 42377F17 in G mtime 2026-01-01T00:00:00Z rule - tags [] binaries 0 strings {Password=<protected 17>; Title=E2}
+B\k2a-1.15-r6\CPs-r2\k2a-1.15-r6-CPs.kdbx | kdbx 4.0 | HistoryMaxItems 10 HistoryMaxSize 6291456 MaintenanceHistoryDays 365 | SettingsChanged 2026-11-10T12:00:00Z | RecycleBin True | deleted 0
+  group Root A27CEC85 mtime 2026-01-01T00:00:00Z rule - entries 1
+  group G 79E3BEF2 mtime 2026-02-01T06:00:00Z rule P entries 2
+  group H 5137BA8C mtime 2026-01-01T00:00:00Z rule - entries 0
+  entry droid-merge FA06A8BD in Root mtime 2026-11-10T20:25:35Z rule - tags [] binaries 0 strings {Notes=; Password=<protected 0>; Title=droid-merge; URL=; UserName=}
+  entry E1 DF6E2D85 in G mtime 2026-02-01T07:00:00Z rule P tags [] binaries 0 strings {Password=<protected 17>; Title=E1}
+    history 1: mtime 2026-01-01T10:00:00Z rule C strings {Password=<protected 17>; Title=E1}
+  entry E2 42377F17 in G mtime 2026-01-01T00:00:00Z rule - tags [] binaries 0 strings {Password=<protected 17>; Title=E2}
+B\k2a-1.15-r6\CPs-r3\k2a-1.15-r6-CPs.kdbx | kdbx 4.0 | HistoryMaxItems 10 HistoryMaxSize 6291456 MaintenanceHistoryDays 365 | SettingsChanged 2026-11-10T12:00:00Z | RecycleBin True | deleted 0
+  group Root A27CEC85 mtime 2026-01-01T00:00:00Z rule - entries 1
+  group G 79E3BEF2 mtime 2026-02-01T06:00:00Z rule P entries 2
+  group H 5137BA8C mtime 2026-01-01T00:00:00Z rule - entries 0
+  entry droid-merge 30B9F7C0 in Root mtime 2026-11-10T20:27:12Z rule - tags [] binaries 0 strings {Notes=; Password=<protected 0>; Title=droid-merge; URL=; UserName=}
+  entry E1 DF6E2D85 in G mtime 2026-02-01T07:00:00Z rule P tags [] binaries 0 strings {Password=<protected 17>; Title=E1}
+    history 1: mtime 2026-01-01T10:00:00Z rule C strings {Password=<protected 17>; Title=E1}
+  entry E2 42377F17 in G mtime 2026-01-01T00:00:00Z rule - tags [] binaries 0 strings {Password=<protected 17>; Title=E2}
+B\k2a-1.15-r6\PC-r1\k2a-1.15-r6-PC.kdbx | kdbx 4.0 | HistoryMaxItems 10 HistoryMaxSize 6291456 MaintenanceHistoryDays 365 | SettingsChanged 2026-11-10T10:23:43Z | RecycleBin True | deleted 0
+  group Root A27CEC85 mtime 2026-01-01T00:00:00Z rule - entries 1
+  group G 79E3BEF2 mtime 2026-02-01T06:00:00Z rule P entries 2
+  group H 5137BA8C mtime 2026-01-01T00:00:00Z rule - entries 0
+  entry droid-merge F652AED5 in Root mtime 2026-11-10T18:36:11Z rule - tags [] binaries 0 strings {Notes=; Password=<protected 0>; Title=droid-merge; URL=; UserName=}
+  entry E1 DF6E2D85 in G mtime 2026-02-01T07:00:00Z rule P tags [] binaries 0 strings {Password=<protected 17>; Title=E1}
+    history 1: mtime 2026-01-01T10:00:00Z rule C strings {Password=<protected 17>; Title=E1}
+  entry E2 42377F17 in G mtime 2026-01-01T00:00:00Z rule - tags [] binaries 0 strings {Password=<protected 17>; Title=E2}
+B\k2a-1.15-r6\PC-r2\k2a-1.15-r6-PC.kdbx | kdbx 4.0 | HistoryMaxItems 10 HistoryMaxSize 6291456 MaintenanceHistoryDays 365 | SettingsChanged 2026-11-10T10:23:43Z | RecycleBin True | deleted 0
+  group Root A27CEC85 mtime 2026-01-01T00:00:00Z rule - entries 1
+  group G 79E3BEF2 mtime 2026-02-01T06:00:00Z rule P entries 2
+  group H 5137BA8C mtime 2026-01-01T00:00:00Z rule - entries 0
+  entry droid-merge 2473C374 in Root mtime 2026-11-10T18:38:41Z rule - tags [] binaries 0 strings {Notes=; Password=<protected 0>; Title=droid-merge; URL=; UserName=}
+  entry E1 DF6E2D85 in G mtime 2026-02-01T07:00:00Z rule P tags [] binaries 0 strings {Password=<protected 17>; Title=E1}
+    history 1: mtime 2026-01-01T10:00:00Z rule C strings {Password=<protected 17>; Title=E1}
+  entry E2 42377F17 in G mtime 2026-01-01T00:00:00Z rule - tags [] binaries 0 strings {Password=<protected 17>; Title=E2}
+B\k2a-1.15-r6\PC-r3\k2a-1.15-r6-PC.kdbx | kdbx 4.0 | HistoryMaxItems 10 HistoryMaxSize 6291456 MaintenanceHistoryDays 365 | SettingsChanged 2026-11-10T10:23:43Z | RecycleBin True | deleted 0
+  group Root A27CEC85 mtime 2026-01-01T00:00:00Z rule - entries 1
+  group G 79E3BEF2 mtime 2026-02-01T06:00:00Z rule P entries 2
+  group H 5137BA8C mtime 2026-01-01T00:00:00Z rule - entries 0
+  entry droid-merge 13C28C06 in Root mtime 2026-11-10T18:40:52Z rule - tags [] binaries 0 strings {Notes=; Password=<protected 0>; Title=droid-merge; URL=; UserName=}
+  entry E1 DF6E2D85 in G mtime 2026-02-01T07:00:00Z rule P tags [] binaries 0 strings {Password=<protected 17>; Title=E1}
+    history 1: mtime 2026-01-01T10:00:00Z rule C strings {Password=<protected 17>; Title=E1}
+  entry E2 42377F17 in G mtime 2026-01-01T00:00:00Z rule - tags [] binaries 0 strings {Password=<protected 17>; Title=E2}
+B\k2a-1.15-r6\PCs-r1\k2a-1.15-r6-PCs.kdbx | kdbx 4.0 | HistoryMaxItems 10 HistoryMaxSize 6291456 MaintenanceHistoryDays 365 | SettingsChanged 2026-11-10T12:00:00Z | RecycleBin True | deleted 0
+  group Root A27CEC85 mtime 2026-01-01T00:00:00Z rule - entries 1
+  group G 79E3BEF2 mtime 2026-02-01T06:00:00Z rule P entries 2
+  group H 5137BA8C mtime 2026-01-01T00:00:00Z rule - entries 0
+  entry droid-merge 317FBB22 in Root mtime 2026-11-10T20:19:10Z rule - tags [] binaries 0 strings {Notes=; Password=<protected 0>; Title=droid-merge; URL=; UserName=}
+  entry E1 DF6E2D85 in G mtime 2026-02-01T07:00:00Z rule P tags [] binaries 0 strings {Password=<protected 17>; Title=E1}
+    history 1: mtime 2026-01-01T10:00:00Z rule C strings {Password=<protected 17>; Title=E1}
+  entry E2 42377F17 in G mtime 2026-01-01T00:00:00Z rule - tags [] binaries 0 strings {Password=<protected 17>; Title=E2}
+B\k2a-1.15-r6\PCs-r2\k2a-1.15-r6-PCs.kdbx | kdbx 4.0 | HistoryMaxItems 10 HistoryMaxSize 6291456 MaintenanceHistoryDays 365 | SettingsChanged 2026-11-10T12:00:00Z | RecycleBin True | deleted 0
+  group Root A27CEC85 mtime 2026-01-01T00:00:00Z rule - entries 1
+  group G 79E3BEF2 mtime 2026-02-01T06:00:00Z rule P entries 2
+  group H 5137BA8C mtime 2026-01-01T00:00:00Z rule - entries 0
+  entry droid-merge 91EDA55C in Root mtime 2026-11-10T20:20:44Z rule - tags [] binaries 0 strings {Notes=; Password=<protected 0>; Title=droid-merge; URL=; UserName=}
+  entry E1 DF6E2D85 in G mtime 2026-02-01T07:00:00Z rule P tags [] binaries 0 strings {Password=<protected 17>; Title=E1}
+    history 1: mtime 2026-01-01T10:00:00Z rule C strings {Password=<protected 17>; Title=E1}
+  entry E2 42377F17 in G mtime 2026-01-01T00:00:00Z rule - tags [] binaries 0 strings {Password=<protected 17>; Title=E2}
+B\k2a-1.15-r6\PCs-r3\k2a-1.15-r6-PCs.kdbx | kdbx 4.0 | HistoryMaxItems 10 HistoryMaxSize 6291456 MaintenanceHistoryDays 365 | SettingsChanged 2026-11-10T12:00:00Z | RecycleBin True | deleted 0
+  group Root A27CEC85 mtime 2026-01-01T00:00:00Z rule - entries 1
+  group G 79E3BEF2 mtime 2026-02-01T06:00:00Z rule P entries 2
+  group H 5137BA8C mtime 2026-01-01T00:00:00Z rule - entries 0
+  entry droid-merge A8485BC6 in Root mtime 2026-11-10T20:22:18Z rule - tags [] binaries 0 strings {Notes=; Password=<protected 0>; Title=droid-merge; URL=; UserName=}
+  entry E1 DF6E2D85 in G mtime 2026-02-01T07:00:00Z rule P tags [] binaries 0 strings {Password=<protected 17>; Title=E1}
+    history 1: mtime 2026-01-01T10:00:00Z rule C strings {Password=<protected 17>; Title=E1}
+  entry E2 42377F17 in G mtime 2026-01-01T00:00:00Z rule - tags [] binaries 0 strings {Password=<protected 17>; Title=E2}
+B\kpdx-3.2.0\extCP-r1\kpdx-3.2.0-extCP.kdbx | kdbx 4.1 | HistoryMaxItems 10 HistoryMaxSize 6291456 MaintenanceHistoryDays 365 | SettingsChanged 2026-11-10T10:23:43Z | RecycleBin True | deleted 0
+  group Root A27CEC85 mtime 2026-01-01T00:00:00Z rule - entries 0
+  group G 79E3BEF2 mtime 2026-02-01T06:00:00Z rule - entries 2
+  group H 5137BA8C mtime 2026-01-01T00:00:00Z rule - entries 0
+  entry E1 DF6E2D85 in G mtime 2026-02-01T07:00:00Z rule P tags [] binaries 0 strings {Password=<protected 17>; Title=E1}
+    history 1: mtime 2026-01-01T10:00:00Z rule P strings {Password=<protected 17>; Title=E1}
+  entry E2 42377F17 in G mtime 2026-01-01T00:00:00Z rule - tags [] binaries 0 strings {Password=<protected 17>; Title=E2}
+B\kpdx-3.2.0\extCP-r2\kpdx-3.2.0-extCP.kdbx | kdbx 4.1 | HistoryMaxItems 10 HistoryMaxSize 6291456 MaintenanceHistoryDays 365 | SettingsChanged 2026-11-10T10:23:43Z | RecycleBin True | deleted 0
+  group Root A27CEC85 mtime 2026-01-01T00:00:00Z rule - entries 0
+  group G 79E3BEF2 mtime 2026-02-01T06:00:00Z rule - entries 2
+  group H 5137BA8C mtime 2026-01-01T00:00:00Z rule - entries 0
+  entry E1 DF6E2D85 in G mtime 2026-02-01T07:00:00Z rule P tags [] binaries 0 strings {Password=<protected 17>; Title=E1}
+    history 1: mtime 2026-01-01T10:00:00Z rule P strings {Password=<protected 17>; Title=E1}
+  entry E2 42377F17 in G mtime 2026-01-01T00:00:00Z rule - tags [] binaries 0 strings {Password=<protected 17>; Title=E2}
+B\kpdx-3.2.0\extCP-r3\kpdx-3.2.0-extCP.kdbx | kdbx 4.1 | HistoryMaxItems 10 HistoryMaxSize 6291456 MaintenanceHistoryDays 365 | SettingsChanged 2026-11-10T10:23:43Z | RecycleBin True | deleted 0
+  group Root A27CEC85 mtime 2026-01-01T00:00:00Z rule - entries 0
+  group G 79E3BEF2 mtime 2026-02-01T06:00:00Z rule - entries 2
+  group H 5137BA8C mtime 2026-01-01T00:00:00Z rule - entries 0
+  entry E1 DF6E2D85 in G mtime 2026-02-01T07:00:00Z rule P tags [] binaries 0 strings {Password=<protected 17>; Title=E1}
+    history 1: mtime 2026-01-01T10:00:00Z rule P strings {Password=<protected 17>; Title=E1}
+  entry E2 42377F17 in G mtime 2026-01-01T00:00:00Z rule - tags [] binaries 0 strings {Password=<protected 17>; Title=E2}
+B\kpdx-3.2.0\extPC-r1.failed-overflow\kpdx-3.2.0-extPC.kdbx | kdbx 4.1 | HistoryMaxItems 10 HistoryMaxSize 6291456 MaintenanceHistoryDays 365 | SettingsChanged 2026-11-10T10:23:43Z | RecycleBin True | deleted 0
+  group Root A27CEC85 mtime 2026-01-01T00:00:00Z rule - entries 0
+  group G 79E3BEF2 mtime 2026-01-01T09:00:00Z rule C entries 2
+  group H 5137BA8C mtime 2026-01-01T00:00:00Z rule - entries 0
+  entry E1 DF6E2D85 in G mtime 2026-01-01T10:00:00Z rule C tags [] binaries 0 strings {Password=<protected 17>; Title=E1}
+  entry E2 42377F17 in G mtime 2026-01-01T00:00:00Z rule - tags [] binaries 0 strings {Password=<protected 17>; Title=E2}
+B\kpdx-3.2.0\extPC-r1\kpdx-3.2.0-extPC.kdbx | kdbx 4.1 | HistoryMaxItems 10 HistoryMaxSize 6291456 MaintenanceHistoryDays 365 | SettingsChanged 2026-11-10T10:23:43Z | RecycleBin True | deleted 0
+  group Root A27CEC85 mtime 2026-01-01T00:00:00Z rule - entries 0
+  group G 79E3BEF2 mtime 2026-02-01T06:00:00Z rule - entries 2
+  group H 5137BA8C mtime 2026-01-01T00:00:00Z rule - entries 0
+  entry E1 DF6E2D85 in G mtime 2026-02-01T07:00:00Z rule C tags [] binaries 0 strings {Password=<protected 17>; Title=E1}
+    history 1: mtime 2026-01-01T10:00:00Z rule C strings {Password=<protected 17>; Title=E1}
+  entry E2 42377F17 in G mtime 2026-01-01T00:00:00Z rule - tags [] binaries 0 strings {Password=<protected 17>; Title=E2}
+B\kpdx-3.2.0\extPC-r2\kpdx-3.2.0-extPC.kdbx | kdbx 4.1 | HistoryMaxItems 10 HistoryMaxSize 6291456 MaintenanceHistoryDays 365 | SettingsChanged 2026-11-10T10:23:43Z | RecycleBin True | deleted 0
+  group Root A27CEC85 mtime 2026-01-01T00:00:00Z rule - entries 0
+  group G 79E3BEF2 mtime 2026-02-01T06:00:00Z rule - entries 2
+  group H 5137BA8C mtime 2026-01-01T00:00:00Z rule - entries 0
+  entry E1 DF6E2D85 in G mtime 2026-02-01T07:00:00Z rule C tags [] binaries 0 strings {Password=<protected 17>; Title=E1}
+    history 1: mtime 2026-01-01T10:00:00Z rule C strings {Password=<protected 17>; Title=E1}
+  entry E2 42377F17 in G mtime 2026-01-01T00:00:00Z rule - tags [] binaries 0 strings {Password=<protected 17>; Title=E2}
+B\kpdx-3.2.0\extPC-r3\kpdx-3.2.0-extPC.kdbx | kdbx 4.1 | HistoryMaxItems 10 HistoryMaxSize 6291456 MaintenanceHistoryDays 365 | SettingsChanged 2026-11-10T10:23:43Z | RecycleBin True | deleted 0
+  group Root A27CEC85 mtime 2026-01-01T00:00:00Z rule - entries 0
+  group G 79E3BEF2 mtime 2026-02-01T06:00:00Z rule - entries 2
+  group H 5137BA8C mtime 2026-01-01T00:00:00Z rule - entries 0
+  entry E1 DF6E2D85 in G mtime 2026-02-01T07:00:00Z rule C tags [] binaries 0 strings {Password=<protected 17>; Title=E1}
+    history 1: mtime 2026-01-01T10:00:00Z rule C strings {Password=<protected 17>; Title=E1}
+  entry E2 42377F17 in G mtime 2026-01-01T00:00:00Z rule - tags [] binaries 0 strings {Password=<protected 17>; Title=E2}
+B\kpdx-4.5.8\extCP-r1\kpdx-4.5.8-extCP.kdbx | kdbx 4.1 | HistoryMaxItems 10 HistoryMaxSize 6291456 MaintenanceHistoryDays 365 | SettingsChanged 2026-11-10T10:23:43Z | RecycleBin True | deleted 0
+  group Root A27CEC85 mtime 2026-01-01T00:00:00Z rule - entries 0
+  group G 79E3BEF2 mtime 2026-02-01T06:00:00Z rule P entries 2
+  group H 5137BA8C mtime 2026-01-01T00:00:00Z rule - entries 0
+  entry E1 DF6E2D85 in G mtime 2026-02-01T07:00:00Z rule P tags [] binaries 0 strings {Password=<protected 17>; Title=E1}
+    history 1: mtime 2026-01-01T10:00:00Z rule P strings {Password=<protected 17>; Title=E1}
+  entry E2 42377F17 in G mtime 2026-01-01T00:00:00Z rule - tags [] binaries 0 strings {Password=<protected 17>; Title=E2}
+B\kpdx-4.5.8\extCP-r2\kpdx-4.5.8-extCP.kdbx | kdbx 4.1 | HistoryMaxItems 10 HistoryMaxSize 6291456 MaintenanceHistoryDays 365 | SettingsChanged 2026-11-10T10:23:43Z | RecycleBin True | deleted 0
+  group Root A27CEC85 mtime 2026-01-01T00:00:00Z rule - entries 0
+  group G 79E3BEF2 mtime 2026-02-01T06:00:00Z rule P entries 2
+  group H 5137BA8C mtime 2026-01-01T00:00:00Z rule - entries 0
+  entry E1 DF6E2D85 in G mtime 2026-02-01T07:00:00Z rule P tags [] binaries 0 strings {Password=<protected 17>; Title=E1}
+    history 1: mtime 2026-01-01T10:00:00Z rule P strings {Password=<protected 17>; Title=E1}
+  entry E2 42377F17 in G mtime 2026-01-01T00:00:00Z rule - tags [] binaries 0 strings {Password=<protected 17>; Title=E2}
+B\kpdx-4.5.8\extCP-r3\kpdx-4.5.8-extCP.kdbx | kdbx 4.1 | HistoryMaxItems 10 HistoryMaxSize 6291456 MaintenanceHistoryDays 365 | SettingsChanged 2026-11-10T10:23:43Z | RecycleBin True | deleted 0
+  group Root A27CEC85 mtime 2026-01-01T00:00:00Z rule - entries 0
+  group G 79E3BEF2 mtime 2026-02-01T06:00:00Z rule P entries 2
+  group H 5137BA8C mtime 2026-01-01T00:00:00Z rule - entries 0
+  entry E1 DF6E2D85 in G mtime 2026-02-01T07:00:00Z rule P tags [] binaries 0 strings {Password=<protected 17>; Title=E1}
+    history 1: mtime 2026-01-01T10:00:00Z rule P strings {Password=<protected 17>; Title=E1}
+  entry E2 42377F17 in G mtime 2026-01-01T00:00:00Z rule - tags [] binaries 0 strings {Password=<protected 17>; Title=E2}
+B\kpdx-4.5.8\extPC-r1\kpdx-4.5.8-extPC.kdbx | kdbx 4.1 | HistoryMaxItems 10 HistoryMaxSize 6291456 MaintenanceHistoryDays 365 | SettingsChanged 2026-11-10T10:23:43Z | RecycleBin True | deleted 0
+  group Root A27CEC85 mtime 2026-01-01T00:00:00Z rule - entries 0
+  group G 79E3BEF2 mtime 2026-02-01T06:00:00Z rule C entries 2
+  group H 5137BA8C mtime 2026-01-01T00:00:00Z rule - entries 0
+  entry E1 DF6E2D85 in G mtime 2026-02-01T07:00:00Z rule C tags [] binaries 0 strings {Password=<protected 17>; Title=E1}
+    history 1: mtime 2026-01-01T10:00:00Z rule C strings {Password=<protected 17>; Title=E1}
+  entry E2 42377F17 in G mtime 2026-01-01T00:00:00Z rule - tags [] binaries 0 strings {Password=<protected 17>; Title=E2}
+B\kpdx-4.5.8\extPC-r2\kpdx-4.5.8-extPC.kdbx | kdbx 4.1 | HistoryMaxItems 10 HistoryMaxSize 6291456 MaintenanceHistoryDays 365 | SettingsChanged 2026-11-10T10:23:43Z | RecycleBin True | deleted 0
+  group Root A27CEC85 mtime 2026-01-01T00:00:00Z rule - entries 0
+  group G 79E3BEF2 mtime 2026-02-01T06:00:00Z rule C entries 2
+  group H 5137BA8C mtime 2026-01-01T00:00:00Z rule - entries 0
+  entry E1 DF6E2D85 in G mtime 2026-02-01T07:00:00Z rule C tags [] binaries 0 strings {Password=<protected 17>; Title=E1}
+    history 1: mtime 2026-01-01T10:00:00Z rule C strings {Password=<protected 17>; Title=E1}
+  entry E2 42377F17 in G mtime 2026-01-01T00:00:00Z rule - tags [] binaries 0 strings {Password=<protected 17>; Title=E2}
+B\kpdx-4.5.8\extPC-r3\kpdx-4.5.8-extPC.kdbx | kdbx 4.1 | HistoryMaxItems 10 HistoryMaxSize 6291456 MaintenanceHistoryDays 365 | SettingsChanged 2026-11-10T10:23:43Z | RecycleBin True | deleted 0
+  group Root A27CEC85 mtime 2026-01-01T00:00:00Z rule - entries 0
+  group G 79E3BEF2 mtime 2026-02-01T06:00:00Z rule C entries 2
+  group H 5137BA8C mtime 2026-01-01T00:00:00Z rule - entries 0
+  entry E1 DF6E2D85 in G mtime 2026-02-01T07:00:00Z rule C tags [] binaries 0 strings {Password=<protected 17>; Title=E1}
+    history 1: mtime 2026-01-01T10:00:00Z rule C strings {Password=<protected 17>; Title=E1}
+  entry E2 42377F17 in G mtime 2026-01-01T00:00:00Z rule - tags [] binaries 0 strings {Password=<protected 17>; Title=E2}
+B\kpdx-4.5.8\fromCP-r1\kpdx-4.5.8-fromCP-src.kdbx | kdbx 4.1 | HistoryMaxItems 10 HistoryMaxSize 6291456 MaintenanceHistoryDays 365 | SettingsChanged 2026-11-10T10:23:43Z | RecycleBin True | deleted 0
+  group Root A27CEC85 mtime 2026-01-01T00:00:00Z rule - entries 0
+  group G 79E3BEF2 mtime 2026-02-01T06:00:00Z rule P entries 2
+  group H 5137BA8C mtime 2026-01-01T00:00:00Z rule - entries 0
+  entry E1 DF6E2D85 in G mtime 2026-02-01T07:00:00Z rule P tags [] binaries 0 strings {Password=<protected 17>; Title=E1}
+  entry E2 42377F17 in G mtime 2026-01-01T00:00:00Z rule - tags [] binaries 0 strings {Password=<protected 17>; Title=E2}
+B\kpdx-4.5.8\fromCP-r1\kpdx-4.5.8-fromCP.kdbx | kdbx 4.1 | HistoryMaxItems 10 HistoryMaxSize 6291456 MaintenanceHistoryDays 365 | SettingsChanged 2026-11-10T10:23:43Z | RecycleBin True | deleted 0
+  group Root A27CEC85 mtime 2026-01-01T00:00:00Z rule - entries 0
+  group G 79E3BEF2 mtime 2026-02-01T06:00:00Z rule P entries 2
+  group H 5137BA8C mtime 2026-01-01T00:00:00Z rule - entries 0
+  entry E1 DF6E2D85 in G mtime 2026-02-01T07:00:00Z rule P tags [] binaries 0 strings {Password=<protected 17>; Title=E1}
+    history 1: mtime 2026-01-01T10:00:00Z rule P strings {Password=<protected 17>; Title=E1}
+  entry E2 42377F17 in G mtime 2026-01-01T00:00:00Z rule - tags [] binaries 0 strings {Password=<protected 17>; Title=E2}
+B\kpdx-4.5.8\fromCP-r2\kpdx-4.5.8-fromCP-src.kdbx | kdbx 4.1 | HistoryMaxItems 10 HistoryMaxSize 6291456 MaintenanceHistoryDays 365 | SettingsChanged 2026-11-10T10:23:43Z | RecycleBin True | deleted 0
+  group Root A27CEC85 mtime 2026-01-01T00:00:00Z rule - entries 0
+  group G 79E3BEF2 mtime 2026-02-01T06:00:00Z rule P entries 2
+  group H 5137BA8C mtime 2026-01-01T00:00:00Z rule - entries 0
+  entry E1 DF6E2D85 in G mtime 2026-02-01T07:00:00Z rule P tags [] binaries 0 strings {Password=<protected 17>; Title=E1}
+  entry E2 42377F17 in G mtime 2026-01-01T00:00:00Z rule - tags [] binaries 0 strings {Password=<protected 17>; Title=E2}
+B\kpdx-4.5.8\fromCP-r2\kpdx-4.5.8-fromCP.kdbx | kdbx 4.1 | HistoryMaxItems 10 HistoryMaxSize 6291456 MaintenanceHistoryDays 365 | SettingsChanged 2026-11-10T10:23:43Z | RecycleBin True | deleted 0
+  group Root A27CEC85 mtime 2026-01-01T00:00:00Z rule - entries 0
+  group G 79E3BEF2 mtime 2026-02-01T06:00:00Z rule P entries 2
+  group H 5137BA8C mtime 2026-01-01T00:00:00Z rule - entries 0
+  entry E1 DF6E2D85 in G mtime 2026-02-01T07:00:00Z rule P tags [] binaries 0 strings {Password=<protected 17>; Title=E1}
+    history 1: mtime 2026-01-01T10:00:00Z rule P strings {Password=<protected 17>; Title=E1}
+  entry E2 42377F17 in G mtime 2026-01-01T00:00:00Z rule - tags [] binaries 0 strings {Password=<protected 17>; Title=E2}
+B\kpdx-4.5.8\fromCP-r3\kpdx-4.5.8-fromCP-src.kdbx | kdbx 4.1 | HistoryMaxItems 10 HistoryMaxSize 6291456 MaintenanceHistoryDays 365 | SettingsChanged 2026-11-10T10:23:43Z | RecycleBin True | deleted 0
+  group Root A27CEC85 mtime 2026-01-01T00:00:00Z rule - entries 0
+  group G 79E3BEF2 mtime 2026-02-01T06:00:00Z rule P entries 2
+  group H 5137BA8C mtime 2026-01-01T00:00:00Z rule - entries 0
+  entry E1 DF6E2D85 in G mtime 2026-02-01T07:00:00Z rule P tags [] binaries 0 strings {Password=<protected 17>; Title=E1}
+  entry E2 42377F17 in G mtime 2026-01-01T00:00:00Z rule - tags [] binaries 0 strings {Password=<protected 17>; Title=E2}
+B\kpdx-4.5.8\fromCP-r3\kpdx-4.5.8-fromCP.kdbx | kdbx 4.1 | HistoryMaxItems 10 HistoryMaxSize 6291456 MaintenanceHistoryDays 365 | SettingsChanged 2026-11-10T10:23:43Z | RecycleBin True | deleted 0
+  group Root A27CEC85 mtime 2026-01-01T00:00:00Z rule - entries 0
+  group G 79E3BEF2 mtime 2026-02-01T06:00:00Z rule P entries 2
+  group H 5137BA8C mtime 2026-01-01T00:00:00Z rule - entries 0
+  entry E1 DF6E2D85 in G mtime 2026-02-01T07:00:00Z rule P tags [] binaries 0 strings {Password=<protected 17>; Title=E1}
+    history 1: mtime 2026-01-01T10:00:00Z rule P strings {Password=<protected 17>; Title=E1}
+  entry E2 42377F17 in G mtime 2026-01-01T00:00:00Z rule - tags [] binaries 0 strings {Password=<protected 17>; Title=E2}
+B\kpdx-4.5.8\fromPC-r1.aborted-drawer\kpdx-4.5.8-fromPC-src.kdbx | kdbx 4.1 | HistoryMaxItems 10 HistoryMaxSize 6291456 MaintenanceHistoryDays 365 | SettingsChanged 2026-11-10T10:23:43Z | RecycleBin True | deleted 0
+  group Root A27CEC85 mtime 2026-01-01T00:00:00Z rule - entries 0
+  group G 79E3BEF2 mtime 2026-01-01T09:00:00Z rule C entries 2
+  group H 5137BA8C mtime 2026-01-01T00:00:00Z rule - entries 0
+  entry E1 DF6E2D85 in G mtime 2026-01-01T10:00:00Z rule C tags [] binaries 0 strings {Password=<protected 17>; Title=E1}
+  entry E2 42377F17 in G mtime 2026-01-01T00:00:00Z rule - tags [] binaries 0 strings {Password=<protected 17>; Title=E2}
+B\kpdx-4.5.8\fromPC-r1.aborted-drawer\kpdx-4.5.8-fromPC.kdbx | kdbx 4.1 | HistoryMaxItems 10 HistoryMaxSize 6291456 MaintenanceHistoryDays 365 | SettingsChanged 2026-11-10T10:23:43Z | RecycleBin True | deleted 0
+  group Root A27CEC85 mtime 2026-01-01T00:00:00Z rule - entries 0
+  group G 79E3BEF2 mtime 2026-02-01T06:00:00Z rule P entries 2
+  group H 5137BA8C mtime 2026-01-01T00:00:00Z rule - entries 0
+  entry E1 DF6E2D85 in G mtime 2026-02-01T07:00:00Z rule P tags [] binaries 0 strings {Password=<protected 17>; Title=E1}
+  entry E2 42377F17 in G mtime 2026-01-01T00:00:00Z rule - tags [] binaries 0 strings {Password=<protected 17>; Title=E2}
+B\kpdx-4.5.8\fromPC-r1\kpdx-4.5.8-fromPC-src.kdbx | kdbx 4.1 | HistoryMaxItems 10 HistoryMaxSize 6291456 MaintenanceHistoryDays 365 | SettingsChanged 2026-11-10T10:23:43Z | RecycleBin True | deleted 0
+  group Root A27CEC85 mtime 2026-01-01T00:00:00Z rule - entries 0
+  group G 79E3BEF2 mtime 2026-01-01T09:00:00Z rule C entries 2
+  group H 5137BA8C mtime 2026-01-01T00:00:00Z rule - entries 0
+  entry E1 DF6E2D85 in G mtime 2026-01-01T10:00:00Z rule C tags [] binaries 0 strings {Password=<protected 17>; Title=E1}
+  entry E2 42377F17 in G mtime 2026-01-01T00:00:00Z rule - tags [] binaries 0 strings {Password=<protected 17>; Title=E2}
+B\kpdx-4.5.8\fromPC-r1\kpdx-4.5.8-fromPC.kdbx | kdbx 4.1 | HistoryMaxItems 10 HistoryMaxSize 6291456 MaintenanceHistoryDays 365 | SettingsChanged 2026-11-10T10:23:43Z | RecycleBin True | deleted 0
+  group Root A27CEC85 mtime 2026-01-01T00:00:00Z rule - entries 0
+  group G 79E3BEF2 mtime 2026-02-01T06:00:00Z rule C entries 2
+  group H 5137BA8C mtime 2026-01-01T00:00:00Z rule - entries 0
+  entry E1 DF6E2D85 in G mtime 2026-02-01T07:00:00Z rule C tags [] binaries 0 strings {Password=<protected 17>; Title=E1}
+    history 1: mtime 2026-01-01T10:00:00Z rule C strings {Password=<protected 17>; Title=E1}
+  entry E2 42377F17 in G mtime 2026-01-01T00:00:00Z rule - tags [] binaries 0 strings {Password=<protected 17>; Title=E2}
+B\kpdx-4.5.8\fromPC-r2\kpdx-4.5.8-fromPC-src.kdbx | kdbx 4.1 | HistoryMaxItems 10 HistoryMaxSize 6291456 MaintenanceHistoryDays 365 | SettingsChanged 2026-11-10T10:23:43Z | RecycleBin True | deleted 0
+  group Root A27CEC85 mtime 2026-01-01T00:00:00Z rule - entries 0
+  group G 79E3BEF2 mtime 2026-01-01T09:00:00Z rule C entries 2
+  group H 5137BA8C mtime 2026-01-01T00:00:00Z rule - entries 0
+  entry E1 DF6E2D85 in G mtime 2026-01-01T10:00:00Z rule C tags [] binaries 0 strings {Password=<protected 17>; Title=E1}
+  entry E2 42377F17 in G mtime 2026-01-01T00:00:00Z rule - tags [] binaries 0 strings {Password=<protected 17>; Title=E2}
+B\kpdx-4.5.8\fromPC-r2\kpdx-4.5.8-fromPC.kdbx | kdbx 4.1 | HistoryMaxItems 10 HistoryMaxSize 6291456 MaintenanceHistoryDays 365 | SettingsChanged 2026-11-10T10:23:43Z | RecycleBin True | deleted 0
+  group Root A27CEC85 mtime 2026-01-01T00:00:00Z rule - entries 0
+  group G 79E3BEF2 mtime 2026-02-01T06:00:00Z rule C entries 2
+  group H 5137BA8C mtime 2026-01-01T00:00:00Z rule - entries 0
+  entry E1 DF6E2D85 in G mtime 2026-02-01T07:00:00Z rule C tags [] binaries 0 strings {Password=<protected 17>; Title=E1}
+    history 1: mtime 2026-01-01T10:00:00Z rule C strings {Password=<protected 17>; Title=E1}
+  entry E2 42377F17 in G mtime 2026-01-01T00:00:00Z rule - tags [] binaries 0 strings {Password=<protected 17>; Title=E2}
+B\kpdx-4.5.8\fromPC-r3\kpdx-4.5.8-fromPC-src.kdbx | kdbx 4.1 | HistoryMaxItems 10 HistoryMaxSize 6291456 MaintenanceHistoryDays 365 | SettingsChanged 2026-11-10T10:23:43Z | RecycleBin True | deleted 0
+  group Root A27CEC85 mtime 2026-01-01T00:00:00Z rule - entries 0
+  group G 79E3BEF2 mtime 2026-01-01T09:00:00Z rule C entries 2
+  group H 5137BA8C mtime 2026-01-01T00:00:00Z rule - entries 0
+  entry E1 DF6E2D85 in G mtime 2026-01-01T10:00:00Z rule C tags [] binaries 0 strings {Password=<protected 17>; Title=E1}
+  entry E2 42377F17 in G mtime 2026-01-01T00:00:00Z rule - tags [] binaries 0 strings {Password=<protected 17>; Title=E2}
+B\kpdx-4.5.8\fromPC-r3\kpdx-4.5.8-fromPC.kdbx | kdbx 4.1 | HistoryMaxItems 10 HistoryMaxSize 6291456 MaintenanceHistoryDays 365 | SettingsChanged 2026-11-10T10:23:43Z | RecycleBin True | deleted 0
+  group Root A27CEC85 mtime 2026-01-01T00:00:00Z rule - entries 0
+  group G 79E3BEF2 mtime 2026-02-01T06:00:00Z rule C entries 2
+  group H 5137BA8C mtime 2026-01-01T00:00:00Z rule - entries 0
+  entry E1 DF6E2D85 in G mtime 2026-02-01T07:00:00Z rule C tags [] binaries 0 strings {Password=<protected 17>; Title=E1}
+    history 1: mtime 2026-01-01T10:00:00Z rule C strings {Password=<protected 17>; Title=E1}
+  entry E2 42377F17 in G mtime 2026-01-01T00:00:00Z rule - tags [] binaries 0 strings {Password=<protected 17>; Title=E2}
+B\kpdx-4.5.8\keepPC-r1\kpdx-4.5.8-keepPC.kdbx | kdbx 4.1 | HistoryMaxItems 10 HistoryMaxSize 6291456 MaintenanceHistoryDays 365 | SettingsChanged 2026-11-10T10:23:43Z | RecycleBin True | deleted 0
+  group Root A27CEC85 mtime 2026-11-10T20:17:38Z rule - entries 1
+  group G 79E3BEF2 mtime 2026-02-01T06:00:00Z rule P entries 2
+  group H 5137BA8C mtime 2026-01-01T00:00:00Z rule - entries 0
+  entry droid-merge 35458B2C in Root mtime 2026-11-10T20:17:38Z rule - tags [] binaries 0 strings {Notes=; Password=<protected 0>; Title=droid-merge; URL=; UserName=}
+  entry E1 DF6E2D85 in G mtime 2026-02-01T07:00:00Z rule P tags [] binaries 0 strings {Password=<protected 17>; Title=E1}
+  entry E2 42377F17 in G mtime 2026-01-01T00:00:00Z rule - tags [] binaries 0 strings {Password=<protected 17>; Title=E2}
+base\C-aes.kdbx | kdbx 4.1 | HistoryMaxItems 10 HistoryMaxSize 6291456 MaintenanceHistoryDays 365 | SettingsChanged 2026-11-10T10:23:55Z | RecycleBin True | deleted 0
+  group Root BADF6137 mtime 2026-01-01T00:00:00Z rule - entries 0
+  group G 01F7A351 mtime 2026-01-01T09:00:00Z rule C entries 2
+  group H BF965CEE mtime 2026-01-01T00:00:00Z rule - entries 0
+  entry E1 CF6C7430 in G mtime 2026-01-01T10:00:00Z rule C tags [] binaries 0 strings {Password=<protected 17>; Title=E1}
+  entry E2 427F4B41 in G mtime 2026-01-01T00:00:00Z rule - tags [] binaries 0 strings {Password=<protected 17>; Title=E2}
+base\C-aesb.kdbx | kdbx 4.1 | HistoryMaxItems 10 HistoryMaxSize 6291456 MaintenanceHistoryDays 365 | SettingsChanged 2026-11-10T10:40:39Z | RecycleBin True | deleted 0
+  group Root 0AFE112C mtime 2026-01-01T00:00:00Z rule - entries 0
+  group G 0E43DCBB mtime 2026-01-01T09:00:00Z rule - entries 2
+  group H 32BB9E82 mtime 2026-01-01T00:00:00Z rule - entries 0
+  entry E1 C5352F3A in G mtime 2026-01-01T10:00:00Z rule - tags [] binaries 0 strings {Password=<protected 17>; Title=E1}
+  entry E2 78A6BE93 in G mtime 2026-01-01T00:00:00Z rule - tags [] binaries 0 strings {Password=<protected 17>; Title=E2}
+base\C-fast.kdbx | kdbx 4.1 | HistoryMaxItems 10 HistoryMaxSize 6291456 MaintenanceHistoryDays 365 | SettingsChanged 2026-11-10T10:23:43Z | RecycleBin True | deleted 0
+  group Root A27CEC85 mtime 2026-01-01T00:00:00Z rule - entries 0
+  group G 79E3BEF2 mtime 2026-01-01T09:00:00Z rule C entries 2
+  group H 5137BA8C mtime 2026-01-01T00:00:00Z rule - entries 0
+  entry E1 DF6E2D85 in G mtime 2026-01-01T10:00:00Z rule C tags [] binaries 0 strings {Password=<protected 17>; Title=E1}
+  entry E2 42377F17 in G mtime 2026-01-01T00:00:00Z rule - tags [] binaries 0 strings {Password=<protected 17>; Title=E2}
+base\C-fastb.kdbx | kdbx 4.1 | HistoryMaxItems 10 HistoryMaxSize 6291456 MaintenanceHistoryDays 365 | SettingsChanged 2026-11-10T10:40:38Z | RecycleBin True | deleted 0
+  group Root 3EC8970D mtime 2026-01-01T00:00:00Z rule - entries 0
+  group G 0A02A298 mtime 2026-01-01T09:00:00Z rule - entries 2
+  group H 9DE67C54 mtime 2026-01-01T00:00:00Z rule - entries 0
+  entry E1 191D5217 in G mtime 2026-01-01T10:00:00Z rule - tags [] binaries 0 strings {Password=<protected 17>; Title=E1}
+  entry E2 2009E066 in G mtime 2026-01-01T00:00:00Z rule - tags [] binaries 0 strings {Password=<protected 17>; Title=E2}
+base\C-fastm.kdbx | kdbx 4.1 | HistoryMaxItems 10 HistoryMaxSize 6291456 MaintenanceHistoryDays 365 | SettingsChanged 2026-11-10T10:27:23Z | RecycleBin True | deleted 0
+  group Root 073345F9 mtime 2026-01-01T00:00:00Z rule - entries 0
+  group G 10748330 mtime 2026-01-01T09:00:00Z rule C entries 1
+  group H A8ACEA95 mtime 2026-01-01T00:00:00Z rule - entries 1
+  entry E1 725979D2 in G mtime 2026-01-01T10:00:00Z rule C tags [] binaries 0 strings {Password=<protected 17>; Title=E1}
+  entry E2 2ACD574C in H mtime 2026-01-01T00:00:00Z rule - tags [] binaries 0 strings {Password=<protected 17>; Title=E2}
+base\C-slow.kdbx | kdbx 4.1 | HistoryMaxItems 10 HistoryMaxSize 6291456 MaintenanceHistoryDays 365 | SettingsChanged 2026-11-10T10:23:44Z | RecycleBin True | deleted 0
+  group Root 00F9727A mtime 2026-01-01T00:00:00Z rule - entries 0
+  group G 76E76914 mtime 2026-01-01T09:00:00Z rule C entries 2
+  group H F54D24CD mtime 2026-01-01T00:00:00Z rule - entries 0
+  entry E1 31ED1919 in G mtime 2026-01-01T10:00:00Z rule C tags [] binaries 0 strings {Password=<protected 17>; Title=E1}
+  entry E2 86C65B32 in G mtime 2026-01-01T00:00:00Z rule - tags [] binaries 0 strings {Password=<protected 17>; Title=E2}
+base\C-slowm.kdbx | kdbx 4.1 | HistoryMaxItems 10 HistoryMaxSize 6291456 MaintenanceHistoryDays 365 | SettingsChanged 2026-11-10T10:27:24Z | RecycleBin True | deleted 0
+  group Root 82B0411D mtime 2026-01-01T00:00:00Z rule - entries 0
+  group G 246EDD04 mtime 2026-01-01T09:00:00Z rule C entries 1
+  group H AC8BCC13 mtime 2026-01-01T00:00:00Z rule - entries 1
+  entry E1 24195E3D in G mtime 2026-01-01T10:00:00Z rule C tags [] binaries 0 strings {Password=<protected 17>; Title=E1}
+  entry E2 BEA849C6 in H mtime 2026-01-01T00:00:00Z rule - tags [] binaries 0 strings {Password=<protected 17>; Title=E2}
+base\P-moved-aes.kdbx | kdbx 4.1 | HistoryMaxItems 10 HistoryMaxSize 6291456 MaintenanceHistoryDays 365 | SettingsChanged 2026-11-10T10:23:55Z | RecycleBin True | deleted 0
+  group Root BADF6137 mtime 2026-01-01T00:00:00Z rule - entries 0
+  group G 01F7A351 mtime 2026-02-01T06:00:00Z rule P entries 1
+  group H BF965CEE mtime 2026-01-01T00:00:00Z rule - entries 1
+  entry E1 CF6C7430 in G mtime 2026-02-01T07:00:00Z rule P tags [] binaries 0 strings {Password=<protected 17>; Title=E1}
+  entry E2 427F4B41 in H mtime 2026-01-01T00:00:00Z rule - tags [] binaries 0 strings {Password=<protected 17>; Title=E2}
+base\P-moved-aesb.kdbx | kdbx 4.1 | HistoryMaxItems 10 HistoryMaxSize 6291456 MaintenanceHistoryDays 365 | SettingsChanged 2026-11-10T10:40:39Z | RecycleBin True | deleted 0
+  group Root 0AFE112C mtime 2026-01-01T00:00:00Z rule - entries 0
+  group G 0E43DCBB mtime 2026-02-01T06:00:00Z rule - entries 1
+  group H 32BB9E82 mtime 2026-01-01T00:00:00Z rule - entries 1
+  entry E1 C5352F3A in G mtime 2026-02-01T07:00:00Z rule - tags [] binaries 0 strings {Password=<protected 17>; Title=E1}
+  entry E2 78A6BE93 in H mtime 2026-01-01T00:00:00Z rule - tags [] binaries 0 strings {Password=<protected 17>; Title=E2}
+base\P-moved-fast.kdbx | kdbx 4.1 | HistoryMaxItems 10 HistoryMaxSize 6291456 MaintenanceHistoryDays 365 | SettingsChanged 2026-11-10T10:23:43Z | RecycleBin True | deleted 0
+  group Root A27CEC85 mtime 2026-01-01T00:00:00Z rule - entries 0
+  group G 79E3BEF2 mtime 2026-02-01T06:00:00Z rule P entries 1
+  group H 5137BA8C mtime 2026-01-01T00:00:00Z rule - entries 1
+  entry E1 DF6E2D85 in G mtime 2026-02-01T07:00:00Z rule P tags [] binaries 0 strings {Password=<protected 17>; Title=E1}
+  entry E2 42377F17 in H mtime 2026-01-01T00:00:00Z rule - tags [] binaries 0 strings {Password=<protected 17>; Title=E2}
+base\P-moved-fastb.kdbx | kdbx 4.1 | HistoryMaxItems 10 HistoryMaxSize 6291456 MaintenanceHistoryDays 365 | SettingsChanged 2026-11-10T10:40:38Z | RecycleBin True | deleted 0
+  group Root 3EC8970D mtime 2026-01-01T00:00:00Z rule - entries 0
+  group G 0A02A298 mtime 2026-02-01T06:00:00Z rule - entries 1
+  group H 9DE67C54 mtime 2026-01-01T00:00:00Z rule - entries 1
+  entry E1 191D5217 in G mtime 2026-02-01T07:00:00Z rule - tags [] binaries 0 strings {Password=<protected 17>; Title=E1}
+  entry E2 2009E066 in H mtime 2026-01-01T00:00:00Z rule - tags [] binaries 0 strings {Password=<protected 17>; Title=E2}
+base\P-moved-slow.kdbx | kdbx 4.1 | HistoryMaxItems 10 HistoryMaxSize 6291456 MaintenanceHistoryDays 365 | SettingsChanged 2026-11-10T10:23:44Z | RecycleBin True | deleted 0
+  group Root 00F9727A mtime 2026-01-01T00:00:00Z rule - entries 0
+  group G 76E76914 mtime 2026-02-01T06:00:00Z rule P entries 1
+  group H F54D24CD mtime 2026-01-01T00:00:00Z rule - entries 1
+  entry E1 31ED1919 in G mtime 2026-02-01T07:00:00Z rule P tags [] binaries 0 strings {Password=<protected 17>; Title=E1}
+  entry E2 86C65B32 in H mtime 2026-01-01T00:00:00Z rule - tags [] binaries 0 strings {Password=<protected 17>; Title=E2}
+base\P-plain-aes.kdbx | kdbx 4.1 | HistoryMaxItems 10 HistoryMaxSize 6291456 MaintenanceHistoryDays 365 | SettingsChanged 2026-11-10T10:23:55Z | RecycleBin True | deleted 0
+  group Root BADF6137 mtime 2026-01-01T00:00:00Z rule - entries 0
+  group G 01F7A351 mtime 2026-02-01T06:00:00Z rule P entries 2
+  group H BF965CEE mtime 2026-01-01T00:00:00Z rule - entries 0
+  entry E1 CF6C7430 in G mtime 2026-02-01T07:00:00Z rule P tags [] binaries 0 strings {Password=<protected 17>; Title=E1}
+  entry E2 427F4B41 in G mtime 2026-01-01T00:00:00Z rule - tags [] binaries 0 strings {Password=<protected 17>; Title=E2}
+base\P-plain-aesb.kdbx | kdbx 4.1 | HistoryMaxItems 10 HistoryMaxSize 6291456 MaintenanceHistoryDays 365 | SettingsChanged 2026-11-10T10:40:39Z | RecycleBin True | deleted 0
+  group Root 0AFE112C mtime 2026-01-01T00:00:00Z rule - entries 0
+  group G 0E43DCBB mtime 2026-02-01T06:00:00Z rule - entries 2
+  group H 32BB9E82 mtime 2026-01-01T00:00:00Z rule - entries 0
+  entry E1 C5352F3A in G mtime 2026-02-01T07:00:00Z rule - tags [] binaries 0 strings {Password=<protected 17>; Title=E1}
+  entry E2 78A6BE93 in G mtime 2026-01-01T00:00:00Z rule - tags [] binaries 0 strings {Password=<protected 17>; Title=E2}
+base\P-plain-fast.kdbx | kdbx 4.1 | HistoryMaxItems 10 HistoryMaxSize 6291456 MaintenanceHistoryDays 365 | SettingsChanged 2026-11-10T10:23:43Z | RecycleBin True | deleted 0
+  group Root A27CEC85 mtime 2026-01-01T00:00:00Z rule - entries 0
+  group G 79E3BEF2 mtime 2026-02-01T06:00:00Z rule P entries 2
+  group H 5137BA8C mtime 2026-01-01T00:00:00Z rule - entries 0
+  entry E1 DF6E2D85 in G mtime 2026-02-01T07:00:00Z rule P tags [] binaries 0 strings {Password=<protected 17>; Title=E1}
+  entry E2 42377F17 in G mtime 2026-01-01T00:00:00Z rule - tags [] binaries 0 strings {Password=<protected 17>; Title=E2}
+base\P-plain-fastb.kdbx | kdbx 4.1 | HistoryMaxItems 10 HistoryMaxSize 6291456 MaintenanceHistoryDays 365 | SettingsChanged 2026-11-10T10:40:38Z | RecycleBin True | deleted 0
+  group Root 3EC8970D mtime 2026-01-01T00:00:00Z rule - entries 0
+  group G 0A02A298 mtime 2026-02-01T06:00:00Z rule - entries 2
+  group H 9DE67C54 mtime 2026-01-01T00:00:00Z rule - entries 0
+  entry E1 191D5217 in G mtime 2026-02-01T07:00:00Z rule - tags [] binaries 0 strings {Password=<protected 17>; Title=E1}
+  entry E2 2009E066 in G mtime 2026-01-01T00:00:00Z rule - tags [] binaries 0 strings {Password=<protected 17>; Title=E2}
+base\P-plain-fastm.kdbx | kdbx 4.1 | HistoryMaxItems 10 HistoryMaxSize 6291456 MaintenanceHistoryDays 365 | SettingsChanged 2026-11-10T10:27:23Z | RecycleBin True | deleted 0
+  group Root 073345F9 mtime 2026-01-01T00:00:00Z rule - entries 0
+  group G 10748330 mtime 2026-02-01T06:00:00Z rule P entries 1
+  group H A8ACEA95 mtime 2026-01-01T00:00:00Z rule - entries 1
+  entry E1 725979D2 in G mtime 2026-02-01T07:00:00Z rule P tags [] binaries 0 strings {Password=<protected 17>; Title=E1}
+  entry E2 2ACD574C in H mtime 2026-01-01T00:00:00Z rule - tags [] binaries 0 strings {Password=<protected 17>; Title=E2}
+base\P-plain-slow.kdbx | kdbx 4.1 | HistoryMaxItems 10 HistoryMaxSize 6291456 MaintenanceHistoryDays 365 | SettingsChanged 2026-11-10T10:23:44Z | RecycleBin True | deleted 0
+  group Root 00F9727A mtime 2026-01-01T00:00:00Z rule - entries 0
+  group G 76E76914 mtime 2026-02-01T06:00:00Z rule P entries 2
+  group H F54D24CD mtime 2026-01-01T00:00:00Z rule - entries 0
+  entry E1 31ED1919 in G mtime 2026-02-01T07:00:00Z rule P tags [] binaries 0 strings {Password=<protected 17>; Title=E1}
+  entry E2 86C65B32 in G mtime 2026-01-01T00:00:00Z rule - tags [] binaries 0 strings {Password=<protected 17>; Title=E2}
+base\P-plain-slowm.kdbx | kdbx 4.1 | HistoryMaxItems 10 HistoryMaxSize 6291456 MaintenanceHistoryDays 365 | SettingsChanged 2026-11-10T10:27:24Z | RecycleBin True | deleted 0
+  group Root 82B0411D mtime 2026-01-01T00:00:00Z rule - entries 0
+  group G 246EDD04 mtime 2026-02-01T06:00:00Z rule P entries 1
+  group H AC8BCC13 mtime 2026-01-01T00:00:00Z rule - entries 1
+  entry E1 24195E3D in G mtime 2026-02-01T07:00:00Z rule P tags [] binaries 0 strings {Password=<protected 17>; Title=E1}
+  entry E2 BEA849C6 in H mtime 2026-01-01T00:00:00Z rule - tags [] binaries 0 strings {Password=<protected 17>; Title=E2}
+base2\C-fast-s.kdbx | kdbx 4.1 | HistoryMaxItems 10 HistoryMaxSize 6291456 MaintenanceHistoryDays 365 | SettingsChanged 2026-11-10T12:00:00Z | RecycleBin True | deleted 0
+  group Root A27CEC85 mtime 2026-01-01T00:00:00Z rule - entries 0
+  group G 79E3BEF2 mtime 2026-01-01T09:00:00Z rule C entries 2
+  group H 5137BA8C mtime 2026-01-01T00:00:00Z rule - entries 0
+  entry E1 DF6E2D85 in G mtime 2026-01-01T10:00:00Z rule C tags [] binaries 0 strings {Password=<protected 17>; Title=E1}
+  entry E2 42377F17 in G mtime 2026-01-01T00:00:00Z rule - tags [] binaries 0 strings {Password=<protected 17>; Title=E2}
+base2\P-plain-fast-s.kdbx | kdbx 4.1 | HistoryMaxItems 10 HistoryMaxSize 6291456 MaintenanceHistoryDays 365 | SettingsChanged 2026-11-10T12:00:00Z | RecycleBin True | deleted 0
+  group Root A27CEC85 mtime 2026-01-01T00:00:00Z rule - entries 0
+  group G 79E3BEF2 mtime 2026-02-01T06:00:00Z rule P entries 2
+  group H 5137BA8C mtime 2026-01-01T00:00:00Z rule - entries 0
+  entry E1 DF6E2D85 in G mtime 2026-02-01T07:00:00Z rule P tags [] binaries 0 strings {Password=<protected 17>; Title=E1}
+  entry E2 42377F17 in G mtime 2026-01-01T00:00:00Z rule - tags [] binaries 0 strings {Password=<protected 17>; Title=E2}

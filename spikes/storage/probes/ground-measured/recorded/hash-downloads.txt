@@ -1,0 +1,13 @@
+KeePass-2.47.zip  MATCH
+KeePassXC-2.4.1-Win64-portable.zip  MATCH
+KeePassXC-2.4.2-Win64-portable.zip  MATCH
+KeePassXC-2.6.6-Win64-portable.zip  MATCH
+KeePassXC-2.7.0-Win64.zip  MATCH
+KeePassXC-2.7.12-Win64.zip  MATCH
+KeePassXC-2.8.0-x64.zip  MATCH
+keepass2android.keepass2android-1.08d-r5.apk  MATCH
+keepass2android.keepass2android-Signed-x64.apk  MATCH
+app-general-release.apk  MATCH
+KeePassDX-3.2.0.apk  MATCH
+KeePassDX-3.3.0.apk  MATCH
+KeePassDX-4.5.8-libre.apk  MATCH

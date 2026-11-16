@@ -1,0 +1,7 @@
+lines 427
+0
+1
+0
+0
+0
+B\kpdx-3.2.0\extPC-r1.failed-overflow\kpdx-3.2.0-extPC.kdbx | kdbx 4.1 | HistoryMaxItems 10 HistoryMaxSize 6291456 MaintenanceHistoryDays 365 | SettingsChanged 2026-11-10T10:23:43Z | RecycleBin True | deleted 0

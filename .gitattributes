@@ -12,6 +12,7 @@
 *.sh text eol=lf
 *.flow text eol=lf
 *.py text eol=lf
+/android.sha256 text eol=lf
 
 *.cs text diff=csharp
 *.csproj text

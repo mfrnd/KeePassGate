@@ -1,0 +1,43 @@
+KeePassLib 2.62
+C\2.4.2\slow-fresh-CP-r1\C.kdbx | kdbx 4.0 | HistoryMaxItems 10 HistoryMaxSize 6291456 MaintenanceHistoryDays 365 | SettingsChanged 2026-11-10T10:23:44Z | RecycleBin True | deleted 0
+  group Root 00F9727A mtime 2026-01-01T00:00:00Z rule - entries 0
+  group G 76E76914 mtime 2026-02-01T06:00:00Z rule C entries 2 other customdata [_LAST_MODIFIED]
+  group H F54D24CD mtime 2026-01-01T00:00:00Z rule - entries 0
+  entry E2 86C65B32 in G mtime 2026-01-01T00:00:00Z rule - tags [] binaries 0 strings {Notes=; Password=<protected 17>; Title=E2; URL=; UserName=}
+  entry E1 31ED1919 in G mtime 2026-02-01T07:00:00Z rule P tags [] binaries 0 strings {Notes=; Password=<protected 17>; Title=E1; URL=; UserName=} other customdata [_LAST_MODIFIED]
+    history 1: mtime 2026-01-01T10:00:00Z rule C strings {Notes=; Password=<protected 17>; Title=E1; URL=; UserName=} other customdata [_LAST_MODIFIED]
+C\2.4.2\slow-fresh-PC-r1\P.kdbx | kdbx 4.0 | HistoryMaxItems 10 HistoryMaxSize 6291456 MaintenanceHistoryDays 365 | SettingsChanged 2026-11-10T10:23:44Z | RecycleBin True | deleted 0
+  group Root 00F9727A mtime 2026-01-01T00:00:00Z rule - entries 0
+  group G 76E76914 mtime 2026-02-01T06:00:00Z rule P entries 2 other customdata [_LAST_MODIFIED]
+  group H F54D24CD mtime 2026-01-01T00:00:00Z rule - entries 0
+  entry E1 31ED1919 in G mtime 2026-02-01T07:00:00Z rule P tags [] binaries 0 strings {Notes=; Password=<protected 17>; Title=E1; URL=; UserName=} other customdata [_LAST_MODIFIED]
+    history 1: mtime 2026-01-01T10:00:00Z rule C strings {Notes=; Password=<protected 17>; Title=E1; URL=; UserName=} other customdata [_LAST_MODIFIED]
+  entry E2 86C65B32 in G mtime 2026-01-01T00:00:00Z rule - tags [] binaries 0 strings {Notes=; Password=<protected 17>; Title=E2; URL=; UserName=}
+C\2.8.0\slow-fresh-CP-r1\C.kdbx | kdbx 4.0 | HistoryMaxItems 10 HistoryMaxSize 6291456 MaintenanceHistoryDays 365 | SettingsChanged 2026-11-10T10:23:44Z | RecycleBin True | deleted 0
+  group Root 00F9727A mtime 2026-01-01T00:00:00Z rule - entries 0
+  group G 76E76914 mtime 2026-02-01T06:00:00Z rule C entries 2 other customdata [_LAST_MODIFIED]
+  group H F54D24CD mtime 2026-01-01T00:00:00Z rule - entries 0
+  entry E2 86C65B32 in G mtime 2026-01-01T00:00:00Z rule - tags [] binaries 0 strings {Notes=; Password=<protected 17>; Title=E2; URL=; UserName=}
+  entry E1 31ED1919 in G mtime 2026-02-01T07:00:00Z rule P tags [] binaries 0 strings {Notes=; Password=<protected 17>; Title=E1; URL=; UserName=} other customdata [_LAST_MODIFIED]
+    history 1: mtime 2026-01-01T10:00:00Z rule C strings {Notes=; Password=<protected 17>; Title=E1; URL=; UserName=} other customdata [_LAST_MODIFIED]
+C\2.8.0\slow-fresh-PC-r1\P.kdbx | kdbx 4.0 | HistoryMaxItems 10 HistoryMaxSize 6291456 MaintenanceHistoryDays 365 | SettingsChanged 2026-11-10T10:23:44Z | RecycleBin True | deleted 0
+  group Root 00F9727A mtime 2026-01-01T00:00:00Z rule - entries 0
+  group G 76E76914 mtime 2026-02-01T06:00:00Z rule P entries 2 other customdata [_LAST_MODIFIED]
+  group H F54D24CD mtime 2026-01-01T00:00:00Z rule - entries 0
+  entry E1 31ED1919 in G mtime 2026-02-01T07:00:00Z rule P tags [] binaries 0 strings {Notes=; Password=<protected 17>; Title=E1; URL=; UserName=} other customdata [_LAST_MODIFIED]
+    history 1: mtime 2026-01-01T10:00:00Z rule C strings {Notes=; Password=<protected 17>; Title=E1; URL=; UserName=} other customdata [_LAST_MODIFIED]
+  entry E2 86C65B32 in G mtime 2026-01-01T00:00:00Z rule - tags [] binaries 0 strings {Notes=; Password=<protected 17>; Title=E2; URL=; UserName=}
+C\2.8.0\slowm-fresh-CP-r1\C.kdbx | kdbx 4.1 | HistoryMaxItems 10 HistoryMaxSize 6291456 MaintenanceHistoryDays 365 | SettingsChanged 2026-11-10T10:27:24Z | RecycleBin True | deleted 0
+  group Root 82B0411D mtime 2026-01-01T00:00:00Z rule - entries 0
+  group G 246EDD04 mtime 2026-02-01T06:00:00Z rule C entries 1 other customdata [_LAST_MODIFIED]
+  group H AC8BCC13 mtime 2026-01-01T00:00:00Z rule - entries 1
+  entry E1 24195E3D in G mtime 2026-02-01T07:00:00Z rule P tags [] binaries 0 strings {Notes=; Password=<protected 17>; Title=E1; URL=; UserName=} other customdata [_LAST_MODIFIED]
+    history 1: mtime 2026-01-01T10:00:00Z rule C strings {Notes=; Password=<protected 17>; Title=E1; URL=; UserName=} other customdata [_LAST_MODIFIED]
+  entry E2 BEA849C6 in H mtime 2026-01-01T00:00:00Z rule - tags [] binaries 0 strings {Notes=; Password=<protected 17>; Title=E2; URL=; UserName=}
+C\2.8.0\slowm-fresh-PC-r1\P.kdbx | kdbx 4.1 | HistoryMaxItems 10 HistoryMaxSize 6291456 MaintenanceHistoryDays 365 | SettingsChanged 2026-11-10T10:27:24Z | RecycleBin True | deleted 0
+  group Root 82B0411D mtime 2026-01-01T00:00:00Z rule - entries 0
+  group G 246EDD04 mtime 2026-02-01T06:00:00Z rule P entries 1 other customdata [_LAST_MODIFIED]
+  group H AC8BCC13 mtime 2026-01-01T00:00:00Z rule - entries 1
+  entry E1 24195E3D in G mtime 2026-02-01T07:00:00Z rule P tags [] binaries 0 strings {Notes=; Password=<protected 17>; Title=E1; URL=; UserName=} other customdata [_LAST_MODIFIED]
+    history 1: mtime 2026-01-01T10:00:00Z rule C strings {Notes=; Password=<protected 17>; Title=E1; URL=; UserName=} other customdata [_LAST_MODIFIED]
+  entry E2 BEA849C6 in H mtime 2026-01-01T00:00:00Z rule - tags [] binaries 0 strings {Notes=; Password=<protected 17>; Title=E2; URL=; UserName=}
