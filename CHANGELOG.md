@@ -338,7 +338,9 @@ none, since it releases both.
   answered, and an approval went with it: the command printed `interrupted` and kept nothing,
   while the gate had spent the invitation and saved a record for a key nobody held, and a renewal
   left a second record for the client the same way. Every read now waits on the socket half a
-  second at a time, and still waits out its whole timeout.
+  second at a time, and still waits out its whole timeout. Ctrl+C still ends only the client's
+  side: the request stands at KeePass until the operator answers it, which the client's page now
+  states, with what to ask the operator to do.
 - **The stand-in's `tag` and `written` take an entity tag and nothing else**: visible ASCII
   between two quotes, with no quote inside. `tag` took a quote inside, and `written` took
   anything, though its tag is the tag a later `If-Match` sends back.

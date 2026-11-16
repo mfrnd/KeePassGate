@@ -955,6 +955,12 @@ Ctrl+C, the way out of the wait `pair` and `renew` spend on the operator, ends a
 line `interrupted` and exit code 130, as a shell has it, and a reader that stops reading, as
 `head -1` does, ends it with exit code 1 and nothing more on standard error.
 
+**Ctrl+C ends only this side of that wait.** The request still stands at KeePass, and approving it
+after the client has gone spends the invitation, or grants the renewal, all the same: the
+[clients page](clients.md) then lists a certificate this client never received. Ask the operator
+to refuse it instead, or to revoke that row once it is there; after `renew`, the certificate this
+client already holds goes on working.
+
 ## What to catch
 
 Every exception states what to do next rather than what went wrong, because that is the part a
