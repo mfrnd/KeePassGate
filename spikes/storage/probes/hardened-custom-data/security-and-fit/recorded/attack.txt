@@ -1,0 +1,37 @@
+﻿== S1 fork: A g2 [{"#":"2","default":"inherit","agent":[]}] at +1d then g3 [{"#":"3","default":"inherit","agent":["read","list"]}] at +2d; B g2 [{"#":"2","default":"inherit","agent":["list"]}] at +3d
+   KeePass 2.62 Synchronize intoA: kdbx 4.0; N time 2026-01-04 10:00:00Z; N rule [{"#":"2","default":"inherit","agent":["list"]}]; history 3
+   state: BEHIND (node holds g2) | in force: head g3 [{"#":"3","default":"inherit","agent":["read","list"]}] | recorded: g1={"#":"1","default":"inherit","agent":["read","list"]}  g2={"#":"2","default":"inherit","agent":["list"]}  g2={"#":"2","default":"inherit","agent":[]}  g3={"#":"3","default":"inherit","agent":["read","list"]}
+   KeePass 2.62 Synchronize intoB: kdbx 4.0; N time 2026-01-04 10:00:00Z; N rule [{"#":"2","default":"inherit","agent":["list"]}]; history 3
+   state: BEHIND (node holds g2) | in force: head g3 [{"#":"3","default":"inherit","agent":["read","list"]}] | recorded: g1={"#":"1","default":"inherit","agent":["read","list"]}  g2={"#":"2","default":"inherit","agent":["list"]}  g2={"#":"2","default":"inherit","agent":[]}  g3={"#":"3","default":"inherit","agent":["read","list"]}
+== S3 import with Create new IDs of a copy of the same database
+   group [Probe] root=True parent=[-] custom data: KPG | KPG.Authority.a1 | KPG.Client.c1
+   group [G] root=False parent=[Probe] custom data: 
+   group [Probe] root=False parent=[Probe] custom data: KPG | KPG.Authority.a1 | KPG.Client.c1
+   group [G] root=False parent=[Probe] custom data: 
+   after Delete authority: database dictionary holds it: False; groups holding it: [Probe]
+== S4 profiles: union KPG.Profile.writer.in.1 | KPG.Profile.writer.in.2 | KPG.Profile.writer.out.1; writer in force: True
+-- S2 ledger pruned, merge intoA
+   keepassxc-cli 2.8.0 merge -s "<work>\prune\pruned-intoA-A.kdbx" "<work>\prune\pruned-intoA-C.kdbx": exit 0, 12,8 s
+   N is back; rule [{"#":"1","default":"inherit","agent":["read","list"]}]; kdbx 4.0
+   state: agrees | in force: [{"#":"1","default":"inherit","agent":["read","list"]}] | recorded: g1={"#":"1","default":"inherit","agent":["read","list"]}
+-- S2 ledger pruned, merge intoC
+   keepassxc-cli 2.8.0 merge -s "<work>\prune\pruned-intoC-C.kdbx" "<work>\prune\pruned-intoC-A.kdbx": exit 0, 7,4 s
+   N is back; rule [{"#":"1","default":"inherit","agent":["read","list"]}]; kdbx 4.0
+   state: agrees | in force: [{"#":"1","default":"inherit","agent":["read","list"]}] | recorded: g1={"#":"1","default":"inherit","agent":["read","list"]}
+   control, KeePass 2.62 Synchronize into A (pruned): N not in the result
+-- S2 ledger kept, merge intoA
+   keepassxc-cli 2.8.0 merge -s "<work>\prune\kept-intoA-A.kdbx" "<work>\prune\kept-intoA-C.kdbx": exit 0, 18,2 s
+   N is back; rule [{"#":"1","default":"inherit","agent":["read","list"]}]; kdbx 4.0
+   state: BEHIND (node holds g1) | in force: head g2 [{"#":"2","default":"inherit","agent":[]}] | recorded: g1={"#":"1","default":"inherit","agent":["read","list"]}  g2={"#":"2","default":"inherit","agent":[]}
+-- S2 ledger kept, merge intoC
+   keepassxc-cli 2.8.0 merge -s "<work>\prune\kept-intoC-C.kdbx" "<work>\prune\kept-intoC-A.kdbx": exit 0, 8,8 s
+   N is back; rule [{"#":"1","default":"inherit","agent":["read","list"]}]; kdbx 4.0
+   state: BEHIND (node holds g1) | in force: head g2 [{"#":"2","default":"inherit","agent":[]}] | recorded: g1={"#":"1","default":"inherit","agent":["read","list"]}  g2={"#":"2","default":"inherit","agent":[]}
+   control, KeePass 2.62 Synchronize into A (kept): N not in the result
+== S5 base kdbx 4.1, P kdbx 4.1
+   keepassxc-cli 2.8.0 merge -s "<work>\xc41\intoP-P.kdbx" "<work>\xc41\intoP-C.kdbx": exit 0, 8,2 s
+   intoP: kdbx 4.1; dictionary KPG keys [KPG.Authority.a1, KPG.Client.c1]; carrying a time [KPG.Authority.a1, KPG.Client.c1]
+   keepassxc-cli 2.8.0 merge -s "<work>\xc41\intoC-C.kdbx" "<work>\xc41\intoC-P.kdbx": exit 0, 7,9 s
+   intoC: kdbx 4.1; dictionary KPG keys [KPG.Authority.a1, KPG.Client.c1, KPG.Client.c2, KPG.Revoked.c1]; carrying a time [KPG.Authority.a1, KPG.Client.c1, KPG.Client.c2, KPG.Revoked.c1]
+   keepassxc-cli 2.8.0 add "<work>\xc41\save-P.kdbx" xc-added: exit 0, 5,5 s
+== S5b plain save of the 4.1 P: kdbx 4.1; dictionary KPG keys [KPG.Authority.a1, KPG.Client.c1, KPG.Client.c2, KPG.Revoked.c1]; carrying a time [KPG.Authority.a1, KPG.Client.c1, KPG.Client.c2, KPG.Revoked.c1]

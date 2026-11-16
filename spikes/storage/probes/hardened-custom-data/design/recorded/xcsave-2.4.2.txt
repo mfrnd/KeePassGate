@@ -1,0 +1,13 @@
+﻿-- keepassxc-cli 2.4.2 add, a plain save of P
+   cli 2.4.2 add "spikes\storage\probes\hardened-custom-data\design\work\xcsave-2.4.2\P.kdbx" xc-added: exit 0, 0,2 s
+   cli said: Insert password to unlock spikes\storage\probes\hardened-custom-data\design\work\xcsave-2.4.2\P.kdbx: Successfully added entry xc-added.
+== keepassxc 2.4.2 save: kdbx 4.0
+   dictionary (13): KPG.Authority.a2 | KPG.Client.c1 | KPG.Client.c3 | KPG.Profile.reader.in.1 | KPG.Profile.writer.in.1 | KPG.Profile.writer.out.1 | KPG.RetiredAuthority.a1 | KPG.Revoked.c2 | KPG.Rule.6645244350FF7F478092FC681A13370D.1.wide | KPG.Rule.6645244350FF7F478092FC681A13370D.2.narrow | KPG.Rule.6DA2ED43FA79A943AA2C58AA11A6DB04.1.wide | KPG.Rule.6DA2ED43FA79A943AA2C58AA11A6DB04.2.narrow | _LAST_MODIFIED
+   dictionary keys carrying a time: 0
+   root mirror (14): KPG | KPG.Authority.a2 | KPG.Client.c1 | KPG.Client.c3 | KPG.Profile.reader.in.1 | KPG.Profile.writer.in.1 | KPG.Profile.writer.out.1 | KPG.RetiredAuthority.a1 | KPG.Revoked.c2 | KPG.Rule.6645244350FF7F478092FC681A13370D.1.wide | KPG.Rule.6645244350FF7F478092FC681A13370D.2.narrow | KPG.Rule.6DA2ED43FA79A943AA2C58AA11A6DB04.1.wide | KPG.Rule.6DA2ED43FA79A943AA2C58AA11A6DB04.2.narrow | _LAST_MODIFIED
+   root time 2026-11-15 16:25:03Z
+   union of KPG. keys (12): KPG.Authority.a2 | KPG.Client.c1 | KPG.Client.c3 | KPG.Profile.reader.in.1 | KPG.Profile.writer.in.1 | KPG.Profile.writer.out.1 | KPG.RetiredAuthority.a1 | KPG.Revoked.c2 | KPG.Rule.6645244350FF7F478092FC681A13370D.1.wide | KPG.Rule.6645244350FF7F478092FC681A13370D.2.narrow | KPG.Rule.6DA2ED43FA79A943AA2C58AA11A6DB04.1.wide | KPG.Rule.6DA2ED43FA79A943AA2C58AA11A6DB04.2.narrow
+   keys both hold with different values: 0
+   G rule [{"reader":[]}] time 2026-02-01 10:00:00Z
+   E1 rule [{"reader":[]}] time 2026-02-01 10:00:00Z history 1
+   root rule [{"reader":["list"]}]

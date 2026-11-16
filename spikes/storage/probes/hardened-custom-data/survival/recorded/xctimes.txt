@@ -1,0 +1,3 @@
+﻿== before: kdbx 4.1, KPG keys carrying a time: 0
+   keepassxc-cli 2.8.0 add "<work>\xctimes\T.kdbx" xc-added: exit 0, 0,1 s
+== after a KeePassXC 2.8.0 save: kdbx 4.1, KPG keys and times: Client.c1@15.11.2026 16:53:51 Revoked.c2@15.11.2026 16:53:51

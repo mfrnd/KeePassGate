@@ -1,0 +1,13 @@
+﻿made at 2026-11-15 16:48:25Z with KeePassLib 2.62
+== C, the stale copy: kdbx 4.0, root time 2026-01-01 10:00:00Z
+   dictionary 7 keys (0 timed): Authority.a1 Client.c1 Client.c2 Profile.reader.in.1 Profile.writer.in.1 Rule.2E6B17AE.1.wide Rule.EAF749DE.1.wide
+   root mirror 7 keys: Authority.a1 Client.c1 Client.c2 Profile.reader.in.1 Profile.writer.in.1 Rule.2E6B17AE.1.wide Rule.EAF749DE.1.wide
+   union 7 keys
+   gate: client c2 RECORD WITH NO REVOCATION: ADMITTED; authority a1 A1 UNRETIRED AND PRESENT; a2 gone; client c3 gone; profile writer WRITER IN FORCE
+   G rule {"#":"1","reader":["read","list"]} @2026-01-01 10:00:00Z; E1 rule {"#":"1","reader":["read","list"]} @2026-01-01 10:00:00Z; ledger generation-2 keys in union: 0
+== P, the fresh copy: kdbx 4.0, root time 2026-01-01 10:00:00Z
+   dictionary 12 keys (0 timed): Authority.a2 Client.c1 Client.c3 Profile.reader.in.1 Profile.writer.in.1 Profile.writer.out.1 RetiredAuthority.a1 Revoked.c2 Rule.2E6B17AE.1.wide Rule.2E6B17AE.2.narrow Rule.EAF749DE.1.wide Rule.EAF749DE.2.narrow
+   root mirror 12 keys: Authority.a2 Client.c1 Client.c3 Profile.reader.in.1 Profile.writer.in.1 Profile.writer.out.1 RetiredAuthority.a1 Revoked.c2 Rule.2E6B17AE.1.wide Rule.2E6B17AE.2.narrow Rule.EAF749DE.1.wide Rule.EAF749DE.2.narrow
+   union 12 keys
+   gate: client c2 no record: refused; authority a1 retired; a2 present; client c3 present; profile writer removed
+   G rule {"#":"2","reader":[]} @2026-02-01 10:00:00Z; E1 rule {"#":"2","reader":[]} @2026-02-01 10:00:00Z; ledger generation-2 keys in union: 2

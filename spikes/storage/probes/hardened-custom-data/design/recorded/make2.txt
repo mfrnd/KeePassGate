@@ -1,0 +1,41 @@
+﻿made at 2026-11-15 16:22:07Z with KeePassLib 2.62
+== timeless-slow C: kdbx 4.0
+   dictionary (7): KPG.Authority.a1 | KPG.Client.c1 | KPG.Client.c2 | KPG.Profile.reader.in.1 | KPG.Profile.writer.in.1 | KPG.Rule.134B1E1221E8CA46A5DFBE943A817ACE.1.wide | KPG.Rule.BBC4E85EFCDC6F4C826EDE38972777F1.1.wide
+   dictionary keys carrying a time: 0
+   root mirror (8): KPG | KPG.Authority.a1 | KPG.Client.c1 | KPG.Client.c2 | KPG.Profile.reader.in.1 | KPG.Profile.writer.in.1 | KPG.Rule.134B1E1221E8CA46A5DFBE943A817ACE.1.wide | KPG.Rule.BBC4E85EFCDC6F4C826EDE38972777F1.1.wide
+   root time 2026-01-01 10:00:00Z
+   union of KPG. keys (7): KPG.Authority.a1 | KPG.Client.c1 | KPG.Client.c2 | KPG.Profile.reader.in.1 | KPG.Profile.writer.in.1 | KPG.Rule.134B1E1221E8CA46A5DFBE943A817ACE.1.wide | KPG.Rule.BBC4E85EFCDC6F4C826EDE38972777F1.1.wide
+   keys both hold with different values: 0
+   G rule [{"reader":["read","list"]}] time 2026-01-01 10:00:00Z
+   E1 rule [{"reader":["read","list"]}] time 2026-01-01 10:00:00Z history 0
+   root rule [{"reader":["list"]}]
+== timeless-slow P: kdbx 4.0
+   dictionary (12): KPG.Authority.a2 | KPG.Client.c1 | KPG.Client.c3 | KPG.Profile.reader.in.1 | KPG.Profile.writer.in.1 | KPG.Profile.writer.out.1 | KPG.RetiredAuthority.a1 | KPG.Revoked.c2 | KPG.Rule.134B1E1221E8CA46A5DFBE943A817ACE.1.wide | KPG.Rule.134B1E1221E8CA46A5DFBE943A817ACE.2.narrow | KPG.Rule.BBC4E85EFCDC6F4C826EDE38972777F1.1.wide | KPG.Rule.BBC4E85EFCDC6F4C826EDE38972777F1.2.narrow
+   dictionary keys carrying a time: 0
+   root mirror (13): KPG | KPG.Authority.a2 | KPG.Client.c1 | KPG.Client.c3 | KPG.Profile.reader.in.1 | KPG.Profile.writer.in.1 | KPG.Profile.writer.out.1 | KPG.RetiredAuthority.a1 | KPG.Revoked.c2 | KPG.Rule.134B1E1221E8CA46A5DFBE943A817ACE.1.wide | KPG.Rule.134B1E1221E8CA46A5DFBE943A817ACE.2.narrow | KPG.Rule.BBC4E85EFCDC6F4C826EDE38972777F1.1.wide | KPG.Rule.BBC4E85EFCDC6F4C826EDE38972777F1.2.narrow
+   root time 2026-01-01 10:00:00Z
+   union of KPG. keys (12): KPG.Authority.a2 | KPG.Client.c1 | KPG.Client.c3 | KPG.Profile.reader.in.1 | KPG.Profile.writer.in.1 | KPG.Profile.writer.out.1 | KPG.RetiredAuthority.a1 | KPG.Revoked.c2 | KPG.Rule.134B1E1221E8CA46A5DFBE943A817ACE.1.wide | KPG.Rule.134B1E1221E8CA46A5DFBE943A817ACE.2.narrow | KPG.Rule.BBC4E85EFCDC6F4C826EDE38972777F1.1.wide | KPG.Rule.BBC4E85EFCDC6F4C826EDE38972777F1.2.narrow
+   keys both hold with different values: 0
+   G rule [{"reader":[]}] time 2026-02-01 10:00:00Z
+   E1 rule [{"reader":[]}] time 2026-02-01 10:00:00Z history 1
+   root rule [{"reader":["list"]}]
+== timed-slow C: kdbx 4.1
+   dictionary (7): KPG.Authority.a1 | KPG.Client.c1 | KPG.Client.c2 | KPG.Profile.reader.in.1 | KPG.Profile.writer.in.1 | KPG.Rule.361A8B9DB65AD44DA064C1A3D59294FF.1.wide | KPG.Rule.A902A1ACAAAEFC468BD774E2FEA5C219.1.wide
+   dictionary keys carrying a time: 7
+   root mirror (8): KPG | KPG.Authority.a1 | KPG.Client.c1 | KPG.Client.c2 | KPG.Profile.reader.in.1 | KPG.Profile.writer.in.1 | KPG.Rule.361A8B9DB65AD44DA064C1A3D59294FF.1.wide | KPG.Rule.A902A1ACAAAEFC468BD774E2FEA5C219.1.wide
+   root time 2026-01-01 10:00:00Z
+   union of KPG. keys (7): KPG.Authority.a1 | KPG.Client.c1 | KPG.Client.c2 | KPG.Profile.reader.in.1 | KPG.Profile.writer.in.1 | KPG.Rule.361A8B9DB65AD44DA064C1A3D59294FF.1.wide | KPG.Rule.A902A1ACAAAEFC468BD774E2FEA5C219.1.wide
+   keys both hold with different values: 0
+   G rule [{"reader":["read","list"]}] time 2026-01-01 10:00:00Z
+   E1 rule [{"reader":["read","list"]}] time 2026-01-01 10:00:00Z history 0
+   root rule [{"reader":["list"]}]
+== timed-slow P: kdbx 4.1
+   dictionary (12): KPG.Authority.a2 | KPG.Client.c1 | KPG.Client.c3 | KPG.Profile.reader.in.1 | KPG.Profile.writer.in.1 | KPG.Profile.writer.out.1 | KPG.RetiredAuthority.a1 | KPG.Revoked.c2 | KPG.Rule.361A8B9DB65AD44DA064C1A3D59294FF.1.wide | KPG.Rule.361A8B9DB65AD44DA064C1A3D59294FF.2.narrow | KPG.Rule.A902A1ACAAAEFC468BD774E2FEA5C219.1.wide | KPG.Rule.A902A1ACAAAEFC468BD774E2FEA5C219.2.narrow
+   dictionary keys carrying a time: 12
+   root mirror (13): KPG | KPG.Authority.a2 | KPG.Client.c1 | KPG.Client.c3 | KPG.Profile.reader.in.1 | KPG.Profile.writer.in.1 | KPG.Profile.writer.out.1 | KPG.RetiredAuthority.a1 | KPG.Revoked.c2 | KPG.Rule.361A8B9DB65AD44DA064C1A3D59294FF.1.wide | KPG.Rule.361A8B9DB65AD44DA064C1A3D59294FF.2.narrow | KPG.Rule.A902A1ACAAAEFC468BD774E2FEA5C219.1.wide | KPG.Rule.A902A1ACAAAEFC468BD774E2FEA5C219.2.narrow
+   root time 2026-01-01 10:00:00Z
+   union of KPG. keys (12): KPG.Authority.a2 | KPG.Client.c1 | KPG.Client.c3 | KPG.Profile.reader.in.1 | KPG.Profile.writer.in.1 | KPG.Profile.writer.out.1 | KPG.RetiredAuthority.a1 | KPG.Revoked.c2 | KPG.Rule.361A8B9DB65AD44DA064C1A3D59294FF.1.wide | KPG.Rule.361A8B9DB65AD44DA064C1A3D59294FF.2.narrow | KPG.Rule.A902A1ACAAAEFC468BD774E2FEA5C219.1.wide | KPG.Rule.A902A1ACAAAEFC468BD774E2FEA5C219.2.narrow
+   keys both hold with different values: 0
+   G rule [{"reader":[]}] time 2026-02-01 10:00:00Z
+   E1 rule [{"reader":[]}] time 2026-02-01 10:00:00Z history 1
+   root rule [{"reader":["list"]}]

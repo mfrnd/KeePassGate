@@ -154,6 +154,14 @@ words:
   - delgroup
   - dedup
   - Rlsf
+  # Identifiers in the hardened-custom-data probes, which are carried unchanged: the case
+  # `rootlater` of the design's `Probe.ps1`, the task `xctimes` of the survival probe, the type name
+  # `psobject` the security probe passes to `New-Object`, and the prefix of KeePassXC's own custom
+  # data key `KPXC_RANDOM_SLUG`, which the probes print and `RUN.md` names.
+  - rootlater
+  - xctimes
+  - psobject
+  - KPXC
   # Identifiers in the outside-file probes, which are carried unchanged: the directory `kpfast`
   # and the copy `anchored-notimes` of the design's `Probe.exe`, the extension `.kpgw` of its
   # sealed writer files, the output `xcsaved.txt` of the survival critic's script and the German

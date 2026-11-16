@@ -1,0 +1,26 @@
+﻿-- keepassxc-cli 2.4.2 merge -s, slow KDF, intoP
+   cli 2.4.2 merge -s "spikes\storage\probes\hardened-custom-data\design\work\xc-2.4.2-slow\intoP-P.kdbx" "spikes\storage\probes\hardened-custom-data\design\work\xc-2.4.2-slow\intoP-C.kdbx": exit 0, 10,2 s
+   cli said: Insert password to unlock spikes\storage\probes\hardened-custom-data\design\work\xc-2.4.2-slow\intoP-P.kdbx: Successfully merged the database files.
+== keepassxc 2.4.2 merge, slow, intoP: kdbx 4.0
+   dictionary (8): KPG.Authority.a1 | KPG.Client.c1 | KPG.Client.c2 | KPG.Profile.reader.in.1 | KPG.Profile.writer.in.1 | KPG.Rule.134B1E1221E8CA46A5DFBE943A817ACE.1.wide | KPG.Rule.BBC4E85EFCDC6F4C826EDE38972777F1.1.wide | _LAST_MODIFIED
+   dictionary keys carrying a time: 0
+   root mirror (14): KPG | KPG.Authority.a2 | KPG.Client.c1 | KPG.Client.c3 | KPG.Profile.reader.in.1 | KPG.Profile.writer.in.1 | KPG.Profile.writer.out.1 | KPG.RetiredAuthority.a1 | KPG.Revoked.c2 | KPG.Rule.134B1E1221E8CA46A5DFBE943A817ACE.1.wide | KPG.Rule.134B1E1221E8CA46A5DFBE943A817ACE.2.narrow | KPG.Rule.BBC4E85EFCDC6F4C826EDE38972777F1.1.wide | KPG.Rule.BBC4E85EFCDC6F4C826EDE38972777F1.2.narrow | _LAST_MODIFIED
+   root time 2026-01-01 10:00:00Z
+   union of KPG. keys (14): KPG.Authority.a1 | KPG.Authority.a2 | KPG.Client.c1 | KPG.Client.c2 | KPG.Client.c3 | KPG.Profile.reader.in.1 | KPG.Profile.writer.in.1 | KPG.Profile.writer.out.1 | KPG.RetiredAuthority.a1 | KPG.Revoked.c2 | KPG.Rule.134B1E1221E8CA46A5DFBE943A817ACE.1.wide | KPG.Rule.134B1E1221E8CA46A5DFBE943A817ACE.2.narrow | KPG.Rule.BBC4E85EFCDC6F4C826EDE38972777F1.1.wide | KPG.Rule.BBC4E85EFCDC6F4C826EDE38972777F1.2.narrow
+   keys both hold with different values: 0
+   G rule [{"reader":[]}] time 2026-02-01 10:00:00Z
+   E1 rule [{"reader":[]}] time 2026-02-01 10:00:00Z history 1
+   root rule [{"reader":["list"]}]
+-- keepassxc-cli 2.4.2 merge -s, slow KDF, intoC
+   cli 2.4.2 merge -s "spikes\storage\probes\hardened-custom-data\design\work\xc-2.4.2-slow\intoC-C.kdbx" "spikes\storage\probes\hardened-custom-data\design\work\xc-2.4.2-slow\intoC-P.kdbx": exit 0, 10,4 s
+   cli said: Insert password to unlock spikes\storage\probes\hardened-custom-data\design\work\xc-2.4.2-slow\intoC-C.kdbx: Successfully merged the database files.
+== keepassxc 2.4.2 merge, slow, intoC: kdbx 4.0
+   dictionary (13): KPG.Authority.a2 | KPG.Client.c1 | KPG.Client.c3 | KPG.Profile.reader.in.1 | KPG.Profile.writer.in.1 | KPG.Profile.writer.out.1 | KPG.RetiredAuthority.a1 | KPG.Revoked.c2 | KPG.Rule.134B1E1221E8CA46A5DFBE943A817ACE.1.wide | KPG.Rule.134B1E1221E8CA46A5DFBE943A817ACE.2.narrow | KPG.Rule.BBC4E85EFCDC6F4C826EDE38972777F1.1.wide | KPG.Rule.BBC4E85EFCDC6F4C826EDE38972777F1.2.narrow | _LAST_MODIFIED
+   dictionary keys carrying a time: 0
+   root mirror (9): KPG | KPG.Authority.a1 | KPG.Client.c1 | KPG.Client.c2 | KPG.Profile.reader.in.1 | KPG.Profile.writer.in.1 | KPG.Rule.134B1E1221E8CA46A5DFBE943A817ACE.1.wide | KPG.Rule.BBC4E85EFCDC6F4C826EDE38972777F1.1.wide | _LAST_MODIFIED
+   root time 2026-01-01 10:00:00Z
+   union of KPG. keys (14): KPG.Authority.a1 | KPG.Authority.a2 | KPG.Client.c1 | KPG.Client.c2 | KPG.Client.c3 | KPG.Profile.reader.in.1 | KPG.Profile.writer.in.1 | KPG.Profile.writer.out.1 | KPG.RetiredAuthority.a1 | KPG.Revoked.c2 | KPG.Rule.134B1E1221E8CA46A5DFBE943A817ACE.1.wide | KPG.Rule.134B1E1221E8CA46A5DFBE943A817ACE.2.narrow | KPG.Rule.BBC4E85EFCDC6F4C826EDE38972777F1.1.wide | KPG.Rule.BBC4E85EFCDC6F4C826EDE38972777F1.2.narrow
+   keys both hold with different values: 0
+   G rule [{"reader":["read","list"]}] time 2026-02-01 10:00:00Z
+   E1 rule [{"reader":[]}] time 2026-02-01 10:00:00Z history 1
+   root rule [{"reader":["list"]}]

@@ -1,0 +1,2 @@
+﻿== branch, A open, B arriving: E1 rule {"#":"2","reader":[]} @2026-01-01 13:00:00Z; ledger generations in the dictionary: 1.x 2.w 2.y 3.v
+== branch, B open, A arriving: E1 rule {"#":"2","reader":[]} @2026-01-01 13:00:00Z; ledger generations in the dictionary: 1.x 2.w 2.y 3.v
