@@ -7,3 +7,30 @@
 
 # Per machine, and not everybody's business: the checked-in `.claude/settings.json` is.
 /.claude/settings.local.json
+
+# What `tools/KeePass.ps1` and `tools/KeePassXC.ps1` fetch, named after the version so that changing
+# the pin cannot quietly reuse the last one. Provided rather than committed: they are somebody
+# else's programs.
+/.keepass/
+/.keepassxc/
+
+# What `tools/Product.ps1` exports of the product at the commit it names. Cited rather than carried:
+# the product's code lives on its own branches.
+/.product/
+
+# The probes' build output, what a run writes fresh, and the throwaway databases they make. Every
+# probe family is a directory of its own under `spikes/storage`, so these are anchored there and
+# match at any depth below it: `out` is a fresh run's output, compared with the `recorded` beside
+# it, and `work` is where a probe that does not use the system's temporary directory makes its
+# databases.
+/spikes/storage/**/bin/
+/spikes/storage/**/obj/
+/spikes/storage/**/out/
+/spikes/storage/**/work/
+/spikes/storage/**/node_modules/
+/spikes/storage/**/__pycache__/
+/work/
+
+# **A database is never committed, wherever it was made**, which is the one rule here that is not
+# anchored, on purpose: a `.kdbx` is refused in any directory, including one nobody thought of.
+*.kdbx
