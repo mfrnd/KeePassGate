@@ -272,7 +272,7 @@ namespace KeePassGate.Bridge
                 var kept = _writer.Keep(database, chosen, offered);
                 if (kept.IsOvertaken)
                 {
-                    PutAgain(database);
+                    PutAgain(database, chosen);
                 }
                 else if (!kept.Succeeded)
                 {
@@ -340,7 +340,7 @@ namespace KeePassGate.Bridge
 
                 if (kept.IsOvertaken)
                 {
-                    PutAgain(database);
+                    PutAgain(database, chosen);
                     return;
                 }
 
@@ -354,17 +354,54 @@ namespace KeePassGate.Bridge
         /// </summary>
         /// <remarks>
         /// Not tried again, since the same answer is refused for as long as the database holds
-        /// what it holds now, and nothing is told: the question that follows lists what changed.
-        /// A database decided meanwhile, by another copy's answer arriving in a synchronize, is
-        /// left as that answer made it, and nobody is asked.
+        /// what it holds now, and for a database still holding several nothing is told: the
+        /// question that follows lists what changed.
+        ///
+        /// **A database decided meanwhile is not asked about, and the operator is told what it
+        /// serves.** That is another copy's answer arriving in a synchronize while the question
+        /// stood. Tried again like any refusal, the answer here was refused every time, each try
+        /// logged as an error, and then reported with the sentence that nothing is served, over
+        /// a database serving the authority the other copy kept and with nothing left on the tab
+        /// to choose. Nothing is told where the authority served is the authority chosen, since
+        /// the database is then as the operator asked for it.
         /// </remarks>
-        private void PutAgain(PwDatabase database)
+        private void PutAgain(PwDatabase database, string chosen)
         {
-            _log.Info("the authorities changed under the question of which to keep, so the answer was " +
-                      "not written, and the database is asked about again if it still holds several");
             _asking.Remove(database);
-            _targets.AskAgain(new[] { database });
-            Later();
+
+            string served;
+            using (var reading = new AuthorityStore(new CustomDataStore(database), _log).Read())
+            {
+                if (reading.Presence == AuthorityPresence.Undecided)
+                {
+                    _log.Info("the authorities changed under the question of which to keep, so the answer " +
+                              "was not written and the question is put again");
+                    _targets.AskAgain(new[] { database });
+                    Later();
+                    return;
+                }
+
+                served = reading.IsPresent ? reading.Material.AuthorityDigest : null;
+            }
+
+            if (string.Equals(served, chosen, StringComparison.Ordinal))
+            {
+                _log.Info("the database came to serve the authority the operator chose while the question " +
+                          "stood, so there was nothing left to write");
+                return;
+            }
+
+            _log.Warn("the authority the operator chose was not kept, because the database was decided " +
+                      "while the question stood: " +
+                      (served == null ? "it serves nothing" : "it serves authority " + AuthorityKeys.Shown(served)));
+            _prompt.Tell(
+                GateName.Full,
+                "The authority was not kept: a synchronize changed which authorities this database holds " +
+                "while the question was open." + Environment.NewLine + Environment.NewLine +
+                (served == null
+                    ? "Nothing is served for this database. "
+                    : "The database now serves authority " + AuthorityKeys.Shown(served) + ". ") +
+                "The " + GateName.OnATab + " tab of the database settings shows what it holds.");
         }
 
         /// <summary>

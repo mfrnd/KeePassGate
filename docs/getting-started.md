@@ -289,7 +289,8 @@ while the window is open, started by a trigger on a timer for instance, and chan
 authorities the database holds. **Keep this authority** then retires nothing, and the window opens
 again listing the authorities the database holds now; it opens again in the same way after
 **Cancel**. If the synchronize brought an answer given on another copy, the database is served as
-that answer left it, and the window does not open again.
+that answer left it, and the window does not open again: a message names the authority the
+database serves, unless that is the authority chosen.
 
 **Cancel** serves nothing. The Certificate Authority page then states the database holds more than
 one authority, and **Choose authority** there asks again; a choice made from there waits for OK

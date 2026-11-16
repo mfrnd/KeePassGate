@@ -24,8 +24,9 @@ none, since it releases both.
   the authorities its window listed and is not written to a database holding any other set, an
   authority more or an authority fewer: the window opens again, listing the authorities the
   database holds, and does so after **Cancel** as well. A database that an answer given on
-  another copy decided meanwhile is served as that answer left it. The question on the KPG tab
-  is held to the same rule. `CA.md` §204.
+  another copy decided meanwhile is served as that answer left it, and a message names the
+  authority it serves, where it used to state that nothing is served. The question on the KPG
+  tab is held to the same rule. `CA.md` §204.
 - **The window asking which authority to keep waits for a synchronize to end.** A synchronize
   that a trigger starts as KeePass opens its first database is shown in KeePass's progress
   window, which pumps before KeePass blocks its own interaction, and the window was put up

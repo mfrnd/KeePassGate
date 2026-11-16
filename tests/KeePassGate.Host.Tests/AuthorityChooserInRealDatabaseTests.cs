@@ -358,6 +358,77 @@ namespace KeePassGate.Host.Tests
         }
 
         [Test]
+        public void A_choice_another_copy_s_answer_made_moot_is_not_tried_again_and_names_what_is_served()
+        {
+            // While the question stood, a synchronize brought the retirement another copy wrote,
+            // so the database serves what that copy kept. Tried again like any refusal, the
+            // answer here was refused every quarter of a second, each try logged as an error,
+            // and then reported as nothing being served, over a database being served.
+            var log = new LinesLog();
+            var tries = 0;
+            var chooser = new AuthorityChooser(
+                new NoEvents(), _targets, _writer, _owner, null, _prompt, null, log)
+            {
+                After = (delay, work) =>
+                {
+                    tries++;
+                    Waited(delay, work);
+                },
+                AskWhichToKeep = (choice, name) =>
+                {
+                    new CustomDataStore(_database.Database).Set(
+                        AuthorityKeys.RetirementKey(_candidates[0]), AuthorityKeys.RetiredValue);
+                    return _candidates[0];
+                }
+            };
+
+            using (chooser)
+            {
+                chooser.AskAll();
+            }
+
+            Assert.That(tries, Is.Zero, "an answer no later try can make right is not tried again");
+            Assert.That(log.Lines, Has.None.Contains("could not be kept"), "nor logged as an error");
+            Assert.That(_prompt.Told, Does.Contain(AuthorityKeys.Shown(_candidates[1])),
+                "the operator is told which authority is served");
+            Assert.That(_prompt.Told, Does.Not.Contain("Nothing is served"));
+
+            using (var served = _targets.Current().Single())
+            {
+                Assert.That(served.DatabaseId, Is.EqualTo(_candidates[1]), "the other copy's answer stands");
+            }
+        }
+
+        [Test]
+        public void A_choice_the_database_came_to_serve_alone_tells_nothing()
+        {
+            // The other copy kept the same authority, so the database is as the operator asked.
+            var tries = 0;
+            _chooser.After = (delay, work) =>
+            {
+                tries++;
+                Waited(delay, work);
+            };
+            _chooser.AskWhichToKeep = (choice, name) =>
+            {
+                new CustomDataStore(_database.Database).Set(
+                    AuthorityKeys.RetirementKey(_candidates[1]), AuthorityKeys.RetiredValue);
+                return _candidates[0];
+            };
+
+            _chooser.AskAll();
+            _chooser.AskAll();
+
+            Assert.That(tries, Is.Zero);
+            Assert.That(_prompt.Told, Is.Null);
+
+            using (var served = _targets.Current().Single())
+            {
+                Assert.That(served.DatabaseId, Is.EqualTo(_candidates[0]));
+            }
+        }
+
+        [Test]
         public void A_defect_asking_about_one_database_leaves_the_others_to_be_asked()
         {
             // B167. Every database a round would ask about is marked as asked before the first

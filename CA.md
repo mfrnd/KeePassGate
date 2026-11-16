@@ -298,8 +298,10 @@ authority fewer. The operator is then asked again about the authorities the data
 state the plugin has not asked about always is: the round that noticed the new state at the
 synchronize's save can ask nothing on top of the dialog standing, so it comes round again until
 that dialog has closed, whichever way it closed. A database another copy's answer decided
-meanwhile is served as that answer left it, and nobody is asked. The KPG tab's own question is
-held to the same rule.
+meanwhile is served as that answer left it, and nobody is asked: the operator is told which
+authority it serves, unless that is the authority chosen. The answer used to be tried again there
+like a refusal that might clear, each try logged as an error, and then reported with the sentence
+that nothing is served. The KPG tab's own question is held to the same rule.
 
 **Copies that keep different authorities retire every authority.** Each copy asks on its own, and
 the last requests it shows come from that machine's own audit, so copies asked before any answer is
