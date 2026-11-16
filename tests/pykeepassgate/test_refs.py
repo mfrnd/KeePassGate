@@ -496,6 +496,35 @@ def test_a_value_that_comes_to_more_than_a_client_holds_is_refused() -> None:
         refs.resolve(Database([]), entry, "{S:Big}{NOTES}")
 
 
+def test_a_long_string_is_folded_once_rather_than_once_for_every_name_its_entry_holds(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    # Folding the whole text again for every name took 0.4 seconds a compilation for a string of
+    # 300,000 characters beyond ASCII in an entry of 200 names, and `COMPILES` of them took
+    # minutes. Every name is in the string, so each is replaced, as well as looked for.
+    names = {f"N{index}": "" for index in range(200)}
+    unit = "".join("{S:" + name + "}é" for name in names)
+    long = unit * (300_000 // len(unit))
+    entry = Entry.read(answer(SERVICE, {**names, "Long": long}))
+
+    folded = 0
+    fold, wide = refs._fold, refs._wide
+
+    def counted(through: Any) -> Any:
+        def folding(text: str) -> str:
+            nonlocal folded
+            folded += len(text)
+            return str(through(text))
+
+        return folding
+
+    monkeypatch.setattr(refs, "_fold", counted(fold))
+    monkeypatch.setattr(refs, "_wide", counted(wide))
+
+    assert refs.resolve(Database([]), entry, "{S:Long}") == "é" * long.count("é")
+    assert folded < 10 * len(long), "the string is folded a few times, not once for every name"
+
+
 def test_a_reference_to_the_entry_a_value_came_from_is_answered_out_of_it() -> None:
     # One resolution is one moment: read again through the gate, the entry could answer as a
     # newer version than the version its own placeholders were answered out of.

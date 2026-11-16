@@ -1182,6 +1182,12 @@ none, since it releases both.
   pairs.** The edit takes back only the code made on the dialog, so a code from an accepted dialog
   stays good, and the band over the invite button told the operator to press OK and reopen the
   dialog to pair while a program could pair with that code at once.
+- **PyKeePassGate compiles a long string in an entry of many fields in time that grows with the
+  string alone.** Each field's placeholder was looked for by folding the case out of the whole
+  string again, so a string of a few hundred KiB beyond ASCII in an entry of a few hundred fields
+  took 0.4 seconds a compilation and minutes inside the limit on compilations; the folded string
+  is now kept beside the string and changed where the string changes. What resolves to what is as
+  before.
 
 ## 0.1.0, 2026-10-25
 

@@ -300,7 +300,7 @@ def _might_change(value: str) -> bool:
 
 #: ASCII's lower case letters to their upper case, which is all `_fold` changes. A table, so that
 #: folding is the interpreter's work rather than a step of Python's for every character: a value is
-#: folded again for every name its entry holds.
+#: folded again at every step of its compilation.
 _ASCII_UPPER = str.maketrans(string.ascii_lowercase, string.ascii_uppercase)
 
 
@@ -342,27 +342,29 @@ def _wide(text: str) -> str:
     return text.translate(_WIDE)
 
 
-def _present(text: str, placeholder: str) -> bool:
-    """Whether the placeholder is in the text, compared without case as KeePass compares.
+def _present(folded: str, wide: str, placeholder: str) -> list[int]:
+    """Where the placeholder is in a text, compared without case as KeePass compares.
 
-    For ASCII that is certain. Beyond it, `_wide` finds every spelling a comparison without case
-    could take for the placeholder, and one that `_fold` does not also find is a spelling whose
-    fate is KeePass's own comparison to decide, which this will not guess at. **Where they are
-    found is compared, not how many**: a placeholder that begins with what it ends with can be
-    found at different places the same number of times, and KeePass replaces the first it finds.
+    `folded` and `wide` are the text as `_fold` and `_wide` make it, which the caller keeps from
+    one placeholder to the next rather than this making them again for each. For ASCII the answer
+    is certain. Beyond it, `_wide` finds every spelling a comparison without case could take for
+    the placeholder, and one that `_fold` does not also find is a spelling whose fate is KeePass's
+    own comparison to decide, which this will not guess at. **Where they are found is compared,
+    not how many**: a placeholder that begins with what it ends with can be found at different
+    places the same number of times, and KeePass replaces the first it finds.
     """
-    folded, wide = _fold(placeholder), _wide(placeholder)
-    if _found(_wide(text), wide) != _found(_fold(text), folded):
+    found = _found(folded, _fold(placeholder))
+    if _found(wide, _wide(placeholder)) != found:
         raise AmbiguousName(
             f"{placeholder} is spelled here in a case other than the field's, in letters beyond "
             "ASCII, and whether KeePass reads the two as one name is its own comparison to make"
         )
 
-    return folded in _fold(text)
+    return found
 
 
 def _found(text: str, wanted: str) -> list[int]:
-    """Where `_replace` would replace, left to right and each past the last: KeePass's order."""
+    """Where `_splice` replaces, left to right and each past the last: KeePass's order."""
     found: list[int] = []
     position = text.find(wanted)
     while position >= 0:
@@ -372,29 +374,28 @@ def _found(text: str, wanted: str) -> list[int]:
     return found
 
 
-def _replace(text: str, placeholder: str, value: str) -> str:
-    """Every occurrence of the placeholder, in any case, replaced: `StrUtil.ReplaceCaseInsensitive`.
+def _splice(text: str, found: list[int], length: int, value: str) -> str:
+    """The text with `value` in place of `length` characters at each place `_found` found.
 
+    Every occurrence of a placeholder, in any case, replaced: `StrUtil.ReplaceCaseInsensitive`.
     Left to right, and the search goes on after what was put in, so a value is never searched for
-    the placeholder it replaced. So every occurrence is found in the text as it was, folded once,
-    since `_fold` keeps each character where it is: one pass, where searching the text again after
-    each replacement took a pass per occurrence. **Refused with `Unresolved`** once the text would
-    come to more than `CHARACTERS`, before it is made.
+    the placeholder it replaced. So every occurrence is found in the text as it was, folded, since
+    `_fold` and `_wide` keep each character where it is, which is also why splicing the folded
+    text gives what folding the spliced text would: each placeholder is found in a folded copy
+    kept beside the text rather than in the text folded again, which took a pass over the whole
+    text for every name an entry holds. **Refused with `Unresolved`** once the text would come to
+    more than `CHARACTERS`, before it is made.
     """
-    wanted = _fold(placeholder)
-    folded = _fold(text)
     pieces: list[str] = []
-    length = 0
+    made = 0
     position = 0
-    found = folded.find(wanted)
-    while found >= 0:
-        length += found - position + len(value)
-        if length > CHARACTERS:
+    for at in found:
+        made += at - position + len(value)
+        if made > CHARACTERS:
             raise Unresolved(_TOO_LONG)
 
-        pieces += (text[position:found], value)
-        position = found + len(placeholder)
-        found = folded.find(wanted, position)
+        pieces += (text[position:at], value)
+        position = at + length
 
     pieces.append(text[position:])
     return "".join(pieces)
@@ -482,10 +483,15 @@ class _Resolution:
         fields = _fields(entry)
         names = [*fields, *(name for name in STANDARD if name not in fields)]
 
+        folded, wide = _fold(text), _wide(text)
         for name in names:
             placeholder = "{" + name + "}" if name in STANDARD else "{S:" + name + "}"
-            if _present(text, placeholder):
-                text = _replace(text, placeholder, self._compiled(entry, name, placeholder, level))
+            found = _present(folded, wide, placeholder)
+            if found:
+                value = self._compiled(entry, name, placeholder, level)
+                text = _splice(text, found, len(placeholder), value)
+                folded = _splice(folded, found, len(placeholder), _fold(value))
+                wide = _splice(wide, found, len(placeholder), _wide(value))
 
         return text
 
@@ -566,8 +572,12 @@ class _Resolution:
 
     def _cached(self, text: str) -> str:
         """Every reference followed so far put back, in the order they were: `SprRefCache.Fill`."""
+        folded = _fold(text)
         for reference, followed in self._cache:
-            text = _replace(text, reference, followed)
+            found = _found(folded, _fold(reference))
+            if found:
+                text = _splice(text, found, len(reference), followed)
+                folded = _splice(folded, found, len(reference), _fold(followed))
 
         return text
 
