@@ -1,0 +1,73 @@
+# after File then Import with new identifiers
+# newids.kdbx
+  write entries 3 (version fields 11), markers 2, copies of write entries under other identifiers 7, deletion records: the plugin's own 10, made elsewhere 0, versions of another database 0
+  authority fpA: in service  ['KPG 2026-01-01 00:00:00 authority']
+  client c1: REFUSED, revoked  [revocation in: 'KPG 2026-01-01 01:30:00 tidy', 'KPG 2026-01-01 01:30:00 tidy (second copy)']  [no record]
+  client c2: admitted  [record in: 'KPG 2026-01-01 01:30:00 tidy', 'KPG 2026-01-01 01:30:00 tidy (second copy)']
+  profile reader: on the list  (additions 1, removals 0)
+  rule on group U: default=inherit;reader=read,list  [newest in: node 'KPG rule for this group', 'KPG 2026-01-01 01:30:00 tidy', 'KPG 2026-01-01 01:30:00 tidy (second copy)']  (versions 1)
+  rule on entry X@U: default=inherit;reader=read  [newest in: node 'X', 'KPG 2026-01-01 01:30:00 tidy', 'KPG 2026-01-01 01:30:00 tidy (second copy)']  (versions 2)
+  rule on entry X@U: REFUSES: copied from a ruled entry (398205E5)  (versions 0)
+  rule on group U: REFUSES: copied from a ruled group (363647E2)  (versions 0)
+# Delete Duplicate Entries deleted 4
+# newids.kdbx after Delete Duplicate Entries
+  write entries 2 (version fields 10), markers 1, copies of write entries under other identifiers 7, deletion records: the plugin's own 10, made elsewhere 1 (entry present again: 0), versions of another database 0
+  CLOSED until accepted on the tab: 1 write entry was deleted outside the plugin
+  client c1: REFUSED, revoked  [revocation in: 'KPG 2026-01-01 01:30:00 tidy', 'KPG 2026-01-01 01:30:00 tidy (second copy)']  [no record]
+  client c2: admitted  [record in: 'KPG 2026-01-01 01:30:00 tidy', 'KPG 2026-01-01 01:30:00 tidy (second copy)']
+  profile reader: on the list  (additions 1, removals 0)
+  rule on group U: default=inherit;reader=read,list  [newest in: 'KPG 2026-01-01 01:30:00 tidy', 'KPG 2026-01-01 01:30:00 tidy (second copy)']  (versions 1)
+  rule on entry X@U: default=inherit;reader=read  [newest in: node 'X', 'KPG 2026-01-01 01:30:00 tidy', 'KPG 2026-01-01 01:30:00 tidy (second copy)']  (versions 2)
+  rule on entry X@U: REFUSES: copied from a ruled entry (398205E5)  (versions 0)
+  rule on group U: REFUSES: copied from a ruled group (363647E2)  (versions 0)
+# newids.kdbx after Delete Duplicate Entries, copies searched
+  write entries 2 (version fields 18), markers 1, copies of write entries under other identifiers 7, deletion records: the plugin's own 10, made elsewhere 1 (entry present again: 0), versions of another database 0
+  CLOSED until accepted on the tab: 1 write entry was deleted outside the plugin
+  authority fpA: in service  ['KPG 2026-01-01 00:00:00 authority']
+  client c1: REFUSED, revoked  [revocation in: 'KPG 2026-01-01 01:30:00 tidy', 'KPG 2026-01-01 01:30:00 tidy (second copy)']  [record in: 'KPG 2026-01-01 00:00:00 pairing']
+  client c2: admitted  [record in: 'KPG 2026-01-01 01:30:00 tidy', 'KPG 2026-01-01 01:30:00 tidy (second copy)', 'KPG 2026-01-01 00:00:00 pairing']
+  profile reader: on the list  (additions 1, removals 0)
+  rule on group U: default=inherit;reader=read,list  [newest in: 'KPG 2026-01-01 01:30:00 tidy', 'KPG 2026-01-01 01:30:00 tidy (second copy)', 'KPG 2026-01-01 00:00:00 rule', 'KPG 2026-01-01 00:00:00 rule (second copy)']  (versions 1)
+  rule on entry X@U: default=inherit;reader=read  [newest in: node 'X', 'KPG 2026-01-01 01:30:00 tidy', 'KPG 2026-01-01 01:30:00 tidy (second copy)']  (versions 2)
+  rule on entry X@U: REFUSES: copied from a ruled entry (398205E5)  (versions 0)
+  rule on group U: REFUSES: copied from a ruled group (363647E2)  (versions 0)
+
+## the file afterwards
+# newids.kdbx kdbx 4.0 dbCustomData=[]
+  deleted 2B82E624F660C36B @11-15T17:17:19
+  deleted 367B11D16955B900 @01-01T00:00:01
+  deleted 367B11D16955B900 @01-01T00:00:01
+  deleted 367B11D16955B900 @01-01T00:00:01
+  deleted 367B11D16955B900 @01-01T00:00:01
+  deleted 367B11D16955B900 @01-01T00:00:01
+  deleted 367B11D16955B900 @01-01T00:00:01
+  deleted 367B11D16955B900 @11-15T17:17:19
+  deleted 367B11D16955C710 @01-01T01:00:01
+  deleted 367B11D16955C710 @01-01T01:00:01
+  deleted 367B11D16955C710 @01-01T01:00:01
+  deleted 367B11D16955C710 @01-01T01:00:01
+  deleted 7181497346BA83CE @11-15T17:17:19
+  deleted 87A0C20E1772FE6C @11-15T17:17:19
+  G 'Root' u=F6A7AC0E mod=01-01T00:00:00 search=inherit autotype=inherit
+  G 'Root/General' u=8514DEFD mod=01-01T00:00:00 search=inherit autotype=inherit
+  G 'Root/General' u=149AF4AD mod=01-01T00:00:00 search=inherit autotype=inherit
+    E 'user entry' u=7F8C4836E8836446 mod=01-01T00:00:00 :: Password[P](17)
+  G 'Root/KeePassGate' u=A1B1D236 mod=01-01T00:00:00 search=False autotype=False
+    E 'KPG 2026-01-01 01:30:00 tidy' u=367B11D16955CE18 mod=01-01T01:30:00 :: KPG.20260101T000000Z.02F713008103A986.01(857) KPG.20260101T000000Z.48FEB38DD2C6006F.02(175) KPG.20260101T000000Z.E6768FB277F89374.01(230) KPG.20260101T010000Z.38EAA81EC5B19B83.01(205) KPG.20260101T010000Z.FCA1CB5B4417FC1D.01(242) KPG.Write(16) Notes(105)
+    E 'KPG 2026-01-01 01:30:00 tidy (second copy)' u=367B11D16955CE18 mod=01-01T01:30:00 :: KPG.20260101T000000Z.02F713008103A986.01(857) KPG.20260101T000000Z.48FEB38DD2C6006F.02(175) KPG.20260101T000000Z.E6768FB277F89374.01(230) KPG.20260101T010000Z.38EAA81EC5B19B83.01(205) KPG.20260101T010000Z.FCA1CB5B4417FC1D.01(242) KPG.Write(16) Notes(105)
+  G 'Root/KeePassGate' u=28392DE1 mod=01-01T00:00:00 search=False autotype=False
+    E 'KPG 2026-01-01 00:00:00 authority' u=E073A6BE3CA09540 mod=01-01T00:00:00 :: KPG.20260101T000000Z.E61B7D65E6FEBE5D.01[P](3063) KPG.Write(16) Notes(105)
+    E 'KPG 2026-01-01 00:00:00 pairing' u=5315A340539A1E4C mod=01-01T00:00:00 :: KPG.20260101T000000Z.48FEB38DD2C6006F.01(857) KPG.20260101T000000Z.48FEB38DD2C6006F.02(175) KPG.Write(16) Notes(105)
+    E 'KPG 2026-01-01 00:00:00 pairing' u=B20F8D2904FD0D4A mod=01-01T00:00:00 :: KPG.20260101T000000Z.02F713008103A986.01(857) KPG.Write(16) Notes(105)
+    E 'KPG 2026-01-01 00:00:00 rule' u=434959344BD69A46 mod=01-01T00:00:00 :: KPG.20260101T000000Z.E6768FB277F89374.01(230) KPG.Write(16) Notes(105)
+    E 'KPG 2026-01-01 00:00:00 rule' u=1090182D2C9E8C41 mod=01-01T00:00:00 :: KPG.20260101T000000Z.F7F2880642347F9D.01(237) KPG.Write(16) Notes(105)
+    E 'KPG 2026-01-01 00:00:00 rule (second copy)' u=F3204DE9DB94304F mod=01-01T00:00:00 :: KPG.20260101T000000Z.E6768FB277F89374.01(230) KPG.Write(16) Notes(105)
+    E 'KPG 2026-01-01 00:00:00 rule (second copy)' u=9F3A1D34EF1C254F mod=01-01T00:00:00 :: KPG.20260101T000000Z.F7F2880642347F9D.01(237) KPG.Write(16) Notes(105)
+  G 'Root/Root' u=5EB78E84 mod=01-01T00:00:00 search=inherit autotype=inherit
+  G 'Root/U' u=363647E2 mod=01-01T00:00:00 search=inherit autotype=inherit
+    E 'X' u=398205E53F09B6B4 mod=01-01T01:00:00 :: KPG.Rule(242) Password[P](10)
+      history @01-01T00:00:00 :: KPG.Rule(237) Password[P](10)
+  G 'Root/U' u=BBFB0A1E mod=01-01T00:00:00 search=inherit autotype=inherit
+    E 'KPG rule for this group' u=AC29CD107EE78E4A mod=01-01T00:00:00 :: KPG.GroupRule(230) Notes(102)
+    E 'X' u=77BC07EF49C53B45 mod=01-01T00:00:00 :: KPG.Rule(237) Password[P](10)
+    E 'Y' u=92D4BD1E34A2C146 mod=01-01T00:00:00 :: Password[P](10)

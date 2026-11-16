@@ -162,6 +162,17 @@ words:
   - xctimes
   - psobject
   - KPXC
+  # Identifiers in the versioned-fields probes, which are carried unchanged: the verbs
+  # `foldcopies` and `cdcontrol`, the local `wret` and the seed `certc9` of the survival probe's
+  # `Vfs.exe`, the word stem `entr` both probes complete to "entry" or "entries", the label
+  # `norecord` of the design's summary script, and `lastmod` in the line the security probe prints.
+  - foldcopies
+  - cdcontrol
+  - wret
+  - certc
+  - entr
+  - norecord
+  - lastmod
   # Identifiers in the outside-file probes, which are carried unchanged: the directory `kpfast`
   # and the copy `anchored-notimes` of the design's `Probe.exe`, the extension `.kpgw` of its
   # sealed writer files, the output `xcsaved.txt` of the survival critic's script and the German

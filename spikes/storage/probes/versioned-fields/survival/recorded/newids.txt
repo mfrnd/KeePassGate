@@ -1,0 +1,163 @@
+## inputs
+# R-B.kdbx kdbx 4.0
+  (design's history rule) node 398205E5: history not read
+  (design's history rule) node 363647E2: history not read
+  write entries 8 (version fields 9), markers 1, copies of write entries under other identifiers 0, deletion records: the plugin's own 2, made elsewhere 0, versions of another database 0
+  authority fpA: in service  ['KPG 2026-01-01 00:00:00 authority']
+  client c1: admitted  [record in: 'KPG 2026-01-01 00:00:00 pairing']
+  client c2: admitted  [record in: 'KPG 2026-01-01 00:00:00 pairing']
+  client c4: admitted  [record in: 'KPG 2026-01-01 02:00:00 pairing']
+  profile reader: on the list  (additions 1, removals 0)
+  rule on group U: default=deny;reader=list  [newest in: node 'KPG rule for this group', 'KPG 2026-01-01 02:00:00 rule', 'KPG 2026-01-01 02:00:00 rule (second copy)']  (versions 1)
+  rule on entry X@U: default=inherit;reader=read,list,update  [newest in: node 'X', 'KPG 2026-01-01 00:00:00 rule', 'KPG 2026-01-01 00:00:00 rule (second copy)']  (versions 1)
+# R-A1.kdbx kdbx 4.0
+  (design's history rule) node 398205E5: history not read
+  write entries 8 (version fields 10), markers 1, copies of write entries under other identifiers 0, deletion records: the plugin's own 3, made elsewhere 0, versions of another database 0
+  authority fpA: in service  ['KPG 2026-01-01 00:00:00 authority']
+  client c1: REFUSED, revoked  [revocation in: 'KPG 2026-01-01 01:00:00 revocation', 'KPG 2026-01-01 01:00:00 revocation (second copy)']  [no record]
+  client c2: admitted  [record in: 'KPG 2026-01-01 00:00:00 pairing']
+  profile reader: on the list  (additions 1, removals 0)
+  rule on group U: default=inherit;reader=read,list  [newest in: node 'KPG rule for this group', 'KPG 2026-01-01 00:00:00 rule', 'KPG 2026-01-01 00:00:00 rule (second copy)']  (versions 1)
+  rule on entry X@U: default=inherit;reader=read  [newest in: node 'X', 'KPG 2026-01-01 01:00:00 rule', 'KPG 2026-01-01 01:00:00 rule (second copy)']  (versions 1)
+# R-A2.kdbx kdbx 4.0
+  (design's history rule) node 398205E5: history not read
+  write entries 3 (version fields 11), markers 1, copies of write entries under other identifiers 0, deletion records: the plugin's own 10, made elsewhere 0, versions of another database 0
+  authority fpA: in service  ['KPG 2026-01-01 00:00:00 authority']
+  client c1: REFUSED, revoked  [revocation in: 'KPG 2026-01-01 01:30:00 tidy', 'KPG 2026-01-01 01:30:00 tidy (second copy)']  [no record]
+  client c2: admitted  [record in: 'KPG 2026-01-01 01:30:00 tidy', 'KPG 2026-01-01 01:30:00 tidy (second copy)']
+  profile reader: on the list  (additions 1, removals 0)
+  rule on group U: default=inherit;reader=read,list  [newest in: node 'KPG rule for this group', 'KPG 2026-01-01 01:30:00 tidy', 'KPG 2026-01-01 01:30:00 tidy (second copy)']  (versions 1)
+  rule on entry X@U: default=inherit;reader=read  [newest in: node 'X', 'KPG 2026-01-01 01:30:00 tidy', 'KPG 2026-01-01 01:30:00 tidy (second copy)']  (versions 1)
+# R-A2-recreated.kdbx kdbx 4.0
+  (design's history rule) node 398205E5: history not read
+  write entries 4 (version fields 10), markers 1, copies of write entries under other identifiers 0, deletion records: the plugin's own 13, made elsewhere 0, versions of another database 0
+  authority fpB: in service  ['KPG 2026-01-01 04:00:00 authority']
+  client c9: admitted  [record in: 'KPG 2026-01-01 04:05:00 pairing']
+  profile reader: on the list  (additions 1, removals 0)
+  rule on group U: default=inherit;reader=read,list  [newest in: node 'KPG rule for this group', 'KPG 2026-01-01 04:00:00 authority recreated', 'KPG 2026-01-01 04:00:00 authority recreated (second copy)']  (versions 1)
+  rule on entry X@U: default=inherit;reader=read  [newest in: node 'X', 'KPG 2026-01-01 04:00:00 authority recreated', 'KPG 2026-01-01 04:00:00 authority recreated (second copy)']  (versions 1)
+
+## R-A1.kdbx merged into R-B (stale) by CreateNewUuids, the design's rule
+# B-import-R-A1-CreateNewUuids.kdbx kdbx 4.0
+  (design's history rule) node 398205E5: history not read
+  (design's history rule) node 363647E2: history not read
+  write entries 8 (version fields 9), markers 2, copies of write entries under other identifiers 8, deletion records: the plugin's own 2, made elsewhere 0, versions of another database 0
+  authority fpA: in service  ['KPG 2026-01-01 00:00:00 authority']
+  client c1: admitted  [record in: 'KPG 2026-01-01 00:00:00 pairing']
+  client c2: admitted  [record in: 'KPG 2026-01-01 00:00:00 pairing']
+  client c4: admitted  [record in: 'KPG 2026-01-01 02:00:00 pairing']
+  profile reader: on the list  (additions 1, removals 0)
+  rule on group U: default=deny;reader=list  [newest in: node 'KPG rule for this group', 'KPG 2026-01-01 02:00:00 rule', 'KPG 2026-01-01 02:00:00 rule (second copy)']  (versions 1)
+  rule on entry X@U: default=inherit;reader=read,list,update  [newest in: node 'X', 'KPG 2026-01-01 00:00:00 rule', 'KPG 2026-01-01 00:00:00 rule (second copy)']  (versions 1)
+  rule on group U: REFUSES: copied from a ruled group (363647E2)  (versions 0)
+  rule on entry X@U: REFUSES: copied from a ruled entry (398205E5)  (versions 0)
+## the same file, if closing versions were also read from entries under other identifiers
+# B-import-R-A1-CreateNewUuids.kdbx (copies under other identifiers searched too)
+  write entries 8 (version fields 19), markers 2, copies of write entries under other identifiers 8, deletion records: the plugin's own 2, made elsewhere 0, versions of another database 0
+  authority fpA: in service  ['KPG 2026-01-01 00:00:00 authority']
+  client c1: REFUSED, revoked  [revocation in: 'KPG 2026-01-01 01:00:00 revocation', 'KPG 2026-01-01 01:00:00 revocation (second copy)']  [record in: 'KPG 2026-01-01 00:00:00 pairing']
+  client c2: admitted  [record in: 'KPG 2026-01-01 00:00:00 pairing']
+  client c4: admitted  [record in: 'KPG 2026-01-01 02:00:00 pairing']
+  profile reader: on the list  (additions 1, removals 0)
+  rule on group U: default=deny;reader=list  [newest in: node 'KPG rule for this group', 'KPG 2026-01-01 02:00:00 rule', 'KPG 2026-01-01 02:00:00 rule (second copy)']  (versions 2)
+  rule on entry X@U: default=inherit;reader=read  [newest in: 'KPG 2026-01-01 01:00:00 rule', 'KPG 2026-01-01 01:00:00 rule (second copy)']  (versions 2)
+  rule on group U: REFUSES: copied from a ruled group (363647E2)  (versions 0)
+  rule on entry X@U: REFUSES: copied from a ruled entry (398205E5)  (versions 0)
+
+## R-A1.kdbx merged into R-B (stale) by Synchronize, the design's rule
+# B-import-R-A1-Synchronize.kdbx kdbx 4.0
+  (design's history rule) node 398205E5: history not read
+  (design's history rule) node 363647E2: history not read
+  write entries 9 (version fields 11), markers 1, copies of write entries under other identifiers 0, deletion records: the plugin's own 5, made elsewhere 0, versions of another database 0
+  authority fpA: in service  ['KPG 2026-01-01 00:00:00 authority']
+  client c1: REFUSED, revoked  [revocation in: 'KPG 2026-01-01 01:00:00 revocation', 'KPG 2026-01-01 01:00:00 revocation (second copy)']  [no record]
+  client c2: admitted  [record in: 'KPG 2026-01-01 00:00:00 pairing']
+  client c4: admitted  [record in: 'KPG 2026-01-01 02:00:00 pairing']
+  profile reader: on the list  (additions 1, removals 0)
+  rule on group U: default=deny;reader=list  [newest in: node 'KPG rule for this group', 'KPG 2026-01-01 02:00:00 rule', 'KPG 2026-01-01 02:00:00 rule (second copy)']  (versions 1)
+  rule on entry X@U: default=inherit;reader=read  [newest in: 'KPG 2026-01-01 01:00:00 rule', 'KPG 2026-01-01 01:00:00 rule (second copy)']  (versions 2)
+
+## R-A2.kdbx merged into R-B (stale) by CreateNewUuids, the design's rule
+# B-import-R-A2-CreateNewUuids.kdbx kdbx 4.0
+  (design's history rule) node 398205E5: history not read
+  (design's history rule) node 363647E2: history not read
+  write entries 8 (version fields 9), markers 2, copies of write entries under other identifiers 3, deletion records: the plugin's own 2, made elsewhere 0, versions of another database 0
+  authority fpA: in service  ['KPG 2026-01-01 00:00:00 authority']
+  client c1: admitted  [record in: 'KPG 2026-01-01 00:00:00 pairing']
+  client c2: admitted  [record in: 'KPG 2026-01-01 00:00:00 pairing']
+  client c4: admitted  [record in: 'KPG 2026-01-01 02:00:00 pairing']
+  profile reader: on the list  (additions 1, removals 0)
+  rule on group U: default=deny;reader=list  [newest in: node 'KPG rule for this group', 'KPG 2026-01-01 02:00:00 rule', 'KPG 2026-01-01 02:00:00 rule (second copy)']  (versions 1)
+  rule on entry X@U: default=inherit;reader=read,list,update  [newest in: node 'X', 'KPG 2026-01-01 00:00:00 rule', 'KPG 2026-01-01 00:00:00 rule (second copy)']  (versions 1)
+  rule on entry X@U: REFUSES: copied from a ruled entry (398205E5)  (versions 0)
+  rule on group U: REFUSES: copied from a ruled group (363647E2)  (versions 0)
+## the same file, if closing versions were also read from entries under other identifiers
+# B-import-R-A2-CreateNewUuids.kdbx (copies under other identifiers searched too)
+  write entries 8 (version fields 20), markers 2, copies of write entries under other identifiers 3, deletion records: the plugin's own 2, made elsewhere 0, versions of another database 0
+  authority fpA: in service  ['KPG 2026-01-01 00:00:00 authority']
+  client c1: REFUSED, revoked  [revocation in: 'KPG 2026-01-01 01:30:00 tidy', 'KPG 2026-01-01 01:30:00 tidy (second copy)']  [record in: 'KPG 2026-01-01 00:00:00 pairing']
+  client c2: admitted  [record in: 'KPG 2026-01-01 00:00:00 pairing', 'KPG 2026-01-01 01:30:00 tidy', 'KPG 2026-01-01 01:30:00 tidy (second copy)']
+  client c4: admitted  [record in: 'KPG 2026-01-01 02:00:00 pairing']
+  profile reader: on the list  (additions 1, removals 0)
+  rule on group U: default=deny;reader=list  [newest in: node 'KPG rule for this group', 'KPG 2026-01-01 02:00:00 rule', 'KPG 2026-01-01 02:00:00 rule (second copy)']  (versions 2)
+  rule on entry X@U: default=inherit;reader=read  [newest in: 'KPG 2026-01-01 01:30:00 tidy', 'KPG 2026-01-01 01:30:00 tidy (second copy)']  (versions 2)
+  rule on entry X@U: REFUSES: copied from a ruled entry (398205E5)  (versions 0)
+  rule on group U: REFUSES: copied from a ruled group (363647E2)  (versions 0)
+
+## R-A2.kdbx merged into R-B (stale) by Synchronize, the design's rule
+# B-import-R-A2-Synchronize.kdbx kdbx 4.0
+  (design's history rule) node 398205E5: history not read
+  (design's history rule) node 363647E2: history not read
+  write entries 6 (version fields 14), markers 1, copies of write entries under other identifiers 0, deletion records: the plugin's own 10, made elsewhere 0, versions of another database 0
+  authority fpA: in service  ['KPG 2026-01-01 00:00:00 authority']
+  client c1: REFUSED, revoked  [revocation in: 'KPG 2026-01-01 01:30:00 tidy', 'KPG 2026-01-01 01:30:00 tidy (second copy)']  [no record]
+  client c2: admitted  [record in: 'KPG 2026-01-01 01:30:00 tidy', 'KPG 2026-01-01 01:30:00 tidy (second copy)']
+  client c4: admitted  [record in: 'KPG 2026-01-01 02:00:00 pairing']
+  profile reader: on the list  (additions 1, removals 0)
+  rule on group U: default=deny;reader=list  [newest in: node 'KPG rule for this group', 'KPG 2026-01-01 02:00:00 rule', 'KPG 2026-01-01 02:00:00 rule (second copy)']  (versions 2)
+  rule on entry X@U: default=inherit;reader=read  [newest in: 'KPG 2026-01-01 01:30:00 tidy', 'KPG 2026-01-01 01:30:00 tidy (second copy)']  (versions 2)
+
+## R-A2-recreated.kdbx merged into R-B (stale) by CreateNewUuids, the design's rule
+# B-import-R-A2-recreated-CreateNewUuids.kdbx kdbx 4.0
+  (design's history rule) node 398205E5: history not read
+  (design's history rule) node 363647E2: history not read
+  write entries 8 (version fields 9), markers 2, copies of write entries under other identifiers 4, deletion records: the plugin's own 2, made elsewhere 0, versions of another database 0
+  authority fpA: in service  ['KPG 2026-01-01 00:00:00 authority']
+  client c1: admitted  [record in: 'KPG 2026-01-01 00:00:00 pairing']
+  client c2: admitted  [record in: 'KPG 2026-01-01 00:00:00 pairing']
+  client c4: admitted  [record in: 'KPG 2026-01-01 02:00:00 pairing']
+  profile reader: on the list  (additions 1, removals 0)
+  rule on entry X@U: REFUSES: copied from a ruled entry (398205E5)  (versions 0)
+  rule on group U: REFUSES: copied from a ruled group (363647E2)  (versions 0)
+  rule on group U: default=deny;reader=list  [newest in: node 'KPG rule for this group', 'KPG 2026-01-01 02:00:00 rule', 'KPG 2026-01-01 02:00:00 rule (second copy)']  (versions 1)
+  rule on entry X@U: default=inherit;reader=read,list,update  [newest in: node 'X', 'KPG 2026-01-01 00:00:00 rule', 'KPG 2026-01-01 00:00:00 rule (second copy)']  (versions 1)
+## the same file, if closing versions were also read from entries under other identifiers
+# B-import-R-A2-recreated-CreateNewUuids.kdbx (copies under other identifiers searched too)
+  write entries 8 (version fields 19), markers 2, copies of write entries under other identifiers 4, deletion records: the plugin's own 2, made elsewhere 0, versions of another database 0
+  authority fpA: retired  ['KPG 2026-01-01 00:00:00 authority']
+  authority fpB: in service  ['KPG 2026-01-01 04:00:00 authority']
+  client c1: admitted  [record in: 'KPG 2026-01-01 00:00:00 pairing']
+  client c2: admitted  [record in: 'KPG 2026-01-01 00:00:00 pairing']
+  client c4: admitted  [record in: 'KPG 2026-01-01 02:00:00 pairing']
+  client c9: admitted  [record in: 'KPG 2026-01-01 04:05:00 pairing']
+  profile reader: on the list  (additions 1, removals 0)
+  rule on entry X@U: REFUSES: copied from a ruled entry (398205E5)  (versions 0)
+  rule on group U: REFUSES: copied from a ruled group (363647E2)  (versions 0)
+  rule on group U: default=deny;reader=list  [newest in: node 'KPG rule for this group', 'KPG 2026-01-01 02:00:00 rule', 'KPG 2026-01-01 02:00:00 rule (second copy)']  (versions 2)
+  rule on entry X@U: default=inherit;reader=read  [newest in: 'KPG 2026-01-01 04:00:00 authority recreated', 'KPG 2026-01-01 04:00:00 authority recreated (second copy)']  (versions 2)
+
+## R-A2-recreated.kdbx merged into R-B (stale) by Synchronize, the design's rule
+# B-import-R-A2-recreated-Synchronize.kdbx kdbx 4.0
+  (design's history rule) node 398205E5: history not read
+  (design's history rule) node 363647E2: history not read
+  write entries 7 (version fields 13), markers 1, copies of write entries under other identifiers 0, deletion records: the plugin's own 13, made elsewhere 0, versions of another database 0
+  authority fpB: in service  ['KPG 2026-01-01 04:00:00 authority']
+  client c4: admitted  [record in: 'KPG 2026-01-01 02:00:00 pairing']
+  client c9: admitted  [record in: 'KPG 2026-01-01 04:05:00 pairing']
+  profile reader: on the list  (additions 1, removals 0)
+  rule on group U: default=deny;reader=list  [newest in: node 'KPG rule for this group', 'KPG 2026-01-01 02:00:00 rule', 'KPG 2026-01-01 02:00:00 rule (second copy)']  (versions 2)
+  rule on entry X@U: default=inherit;reader=read  [newest in: 'KPG 2026-01-01 04:00:00 authority recreated', 'KPG 2026-01-01 04:00:00 authority recreated (second copy)']  (versions 2)
+
+## today's store for comparison (database custom data keys)
+today's store, revoking copy imported into the stale copy by CreateNewUuids: KPG.Authority.fpA=authority document, KPG.Client.c1=record of c1, KPG.RetiredAuthority.fpA=retired, KPG.Revoked.c1=2027-01-01T00:00:00Z fpA
+today's store, revoking copy imported into the stale copy by Synchronize: KPG.Authority.fpA=authority document, KPG.Client.c1=record of c1, KPG.RetiredAuthority.fpA=retired, KPG.Revoked.c1=2027-01-01T00:00:00Z fpA

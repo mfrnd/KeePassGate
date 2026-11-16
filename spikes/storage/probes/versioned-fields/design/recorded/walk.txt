@@ -1,0 +1,10 @@
+entries 10030, groups 501, deletion records 5000, write entries 30
+  find the plugin's entries and deletion records by identifier: 0,133 ms
+  the same, and compare every version field with the last request's (unchanged: True): 0,151 ms
+  read and check every version from nothing (142 versions, the protected authority included): 2,884 ms
+  one lookup of KPG.Rule on each user entry (60 found): 1,513 ms
+entries 50030, groups 2501, deletion records 5000, write entries 30
+  find the plugin's entries and deletion records by identifier: 0,955 ms
+  the same, and compare every version field with the last request's (unchanged: True): 0,947 ms
+  read and check every version from nothing (142 versions, the protected authority included): 2,488 ms
+  one lookup of KPG.Rule on each user entry (60 found): 12,043 ms

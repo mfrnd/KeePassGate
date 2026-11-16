@@ -1,0 +1,56 @@
+## h5-intoA-KeepExisting, refined condition
+  (design's history rule) node 398205E5: history READ
+  (design's history rule) node 363647E2: history not read
+  rule on entry X@U: default=inherit;reader=read  [newest in: node 'X', node 'X' history]  (versions 2)
+## h5-intoA-OverwriteExisting, refined condition
+  (design's history rule) node 398205E5: history READ
+  (design's history rule) node 363647E2: history not read
+  rule on entry X@U: default=inherit;reader=read  [newest in: node 'X' history]  (versions 2)
+## h5-intoA-OverwriteIfNewer, refined condition
+  (design's history rule) node 398205E5: history READ
+  (design's history rule) node 363647E2: history not read
+  rule on entry X@U: default=inherit;reader=read  [newest in: node 'X' history]  (versions 2)
+## h5-intoA-Synchronize, refined condition
+  (design's history rule) node 398205E5: history READ
+  (design's history rule) node 363647E2: history not read
+  rule on entry X@U: default=inherit;reader=read  [newest in: node 'X' history]  (versions 2)
+## h5-intoA-xc2.4.2, refined condition
+  (design's history rule) node 398205E5: history READ
+  (design's history rule) node 363647E2: history not read
+  rule on entry X@U: default=inherit;reader=read  [newest in: node 'X' history]  (versions 2)
+## h5-intoA-xc2.8.0, refined condition
+  (design's history rule) node 398205E5: history READ
+  (design's history rule) node 363647E2: history not read
+  rule on entry X@U: default=inherit;reader=read  [newest in: node 'X' history]  (versions 2)
+## h5-intoB-KeepExisting, refined condition
+  (design's history rule) node 398205E5: history not read
+  (design's history rule) node 363647E2: history not read
+  rule on entry X@U: default=inherit;reader=read,list,update  [newest in: node 'X', 'KPG 2026-01-01 00:00:00 rule', 'KPG 2026-01-01 00:00:00 rule (second copy)']  (versions 1)
+## h5-intoB-OverwriteExisting, refined condition
+  (design's history rule) node 398205E5: history READ
+  (design's history rule) node 363647E2: history not read
+  rule on entry X@U: default=inherit;reader=read  [newest in: node 'X']  (versions 2)
+## h5-intoB-OverwriteIfNewer, refined condition
+  (design's history rule) node 398205E5: history not read
+  (design's history rule) node 363647E2: history not read
+  rule on entry X@U: default=inherit;reader=read,list,update  [newest in: node 'X', 'KPG 2026-01-01 00:00:00 rule', 'KPG 2026-01-01 00:00:00 rule (second copy)']  (versions 1)
+## h5-intoB-Synchronize, refined condition
+  (design's history rule) node 398205E5: history READ
+  (design's history rule) node 363647E2: history not read
+  rule on entry X@U: default=inherit;reader=read  [newest in: node 'X' history]  (versions 2)
+## h5-intoB-xc2.4.2, refined condition
+  (design's history rule) node 398205E5: history not read
+  (design's history rule) node 363647E2: history not read
+  rule on entry X@U: default=inherit;reader=read,list,update  [newest in: node 'X', 'KPG 2026-01-01 00:00:00 rule', 'KPG 2026-01-01 00:00:00 rule (second copy)']  (versions 1)
+## h5-intoB-xc2.8.0, refined condition
+  (design's history rule) node 398205E5: history not read
+  (design's history rule) node 363647E2: history not read
+  rule on entry X@U: default=inherit;reader=read,list,update  [newest in: node 'X', 'KPG 2026-01-01 00:00:00 rule', 'KPG 2026-01-01 00:00:00 rule (second copy)']  (versions 1)
+## gone/xc2.4.2-B-into-A-pressed, refined condition
+  (design's history rule) node 398205E5: history READ
+  (design's history rule) node 363647E2: history not read
+  rule on entry X@U: default=inherit;reader=read,list,update  [newest in: node 'X', 'KPG 2026-01-01 00:00:00 rule', 'KPG 2026-01-01 00:00:00 rule (second copy)', node 'X' history]  (versions 1)
+## gone/xc2.8.0-B-into-A-pressed, refined condition
+  (design's history rule) node 398205E5: history READ
+  (design's history rule) node 363647E2: history not read
+  rule on entry X@U: default=inherit;reader=read,list,update  [newest in: node 'X', 'KPG 2026-01-01 00:00:00 rule', 'KPG 2026-01-01 00:00:00 rule (second copy)', node 'X' history]  (versions 1)

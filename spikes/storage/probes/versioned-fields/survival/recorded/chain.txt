@@ -1,0 +1,62 @@
+## start: both copies are R-A2
+xc-A.kdbx: write entries 3, version fields 11 (6 distinct), characters in version fields 6481, deletion records naming write entries 10, file bytes 6885
+## round 1, keepassxc-cli 2.8.0 merging both ways
+xc-A.kdbx: write entries 5, version fields 25 (8 distinct), characters in version fields 12023, deletion records naming write entries 13, file bytes 8437
+xc-X.kdbx: write entries 5, version fields 25 (8 distinct), characters in version fields 12023, deletion records naming write entries 10, file bytes 8517
+## round 1, KeePassLib Synchronize
+kp-A.kdbx: write entries 3, version fields 15 (8 distinct), characters in version fields 8605, deletion records naming write entries 13, file bytes 7557
+## round 2, keepassxc-cli 2.8.0 merging both ways
+xc-A.kdbx: write entries 7, version fields 41 (10 distinct), characters in version fields 17975, deletion records naming write entries 18, file bytes 9301
+xc-X.kdbx: write entries 7, version fields 41 (10 distinct), characters in version fields 17975, deletion records naming write entries 10, file bytes 8933
+## round 2, KeePassLib Synchronize
+kp-A.kdbx: write entries 3, version fields 17 (9 distinct), characters in version fields 9015, deletion records naming write entries 16, file bytes 7653
+## round 3, keepassxc-cli 2.8.0 merging both ways
+xc-A.kdbx: write entries 9, version fields 59 (12 distinct), characters in version fields 24337, deletion records naming write entries 25, file bytes 10005
+xc-X.kdbx: write entries 9, version fields 59 (12 distinct), characters in version fields 24337, deletion records naming write entries 10, file bytes 9797
+## round 3, KeePassLib Synchronize
+kp-A.kdbx: write entries 3, version fields 19 (10 distinct), characters in version fields 9425, deletion records naming write entries 19, file bytes 7749
+## round 4, keepassxc-cli 2.8.0 merging both ways
+xc-A.kdbx: write entries 11, version fields 79 (14 distinct), characters in version fields 31109, deletion records naming write entries 34, file bytes 10981
+xc-X.kdbx: write entries 11, version fields 79 (14 distinct), characters in version fields 31109, deletion records naming write entries 10, file bytes 10773
+## round 4, KeePassLib Synchronize
+kp-A.kdbx: write entries 3, version fields 21 (11 distinct), characters in version fields 9835, deletion records naming write entries 22, file bytes 7845
+## round 5, keepassxc-cli 2.8.0 merging both ways
+xc-A.kdbx: write entries 13, version fields 101 (16 distinct), characters in version fields 38291, deletion records naming write entries 45, file bytes 12229
+xc-X.kdbx: write entries 13, version fields 101 (16 distinct), characters in version fields 38291, deletion records naming write entries 10, file bytes 11893
+## round 5, KeePassLib Synchronize
+kp-A.kdbx: write entries 3, version fields 23 (12 distinct), characters in version fields 10245, deletion records naming write entries 25, file bytes 7957
+## round 6, keepassxc-cli 2.8.0 merging both ways
+xc-A.kdbx: write entries 15, version fields 125 (18 distinct), characters in version fields 45883, deletion records naming write entries 58, file bytes 13093
+xc-X.kdbx: write entries 15, version fields 125 (18 distinct), characters in version fields 45883, deletion records naming write entries 10, file bytes 12597
+## round 6, KeePassLib Synchronize
+kp-A.kdbx: write entries 3, version fields 25 (13 distinct), characters in version fields 10655, deletion records naming write entries 28, file bytes 8037
+## round 7, keepassxc-cli 2.8.0 merging both ways
+xc-A.kdbx: write entries 17, version fields 151 (20 distinct), characters in version fields 53885, deletion records naming write entries 73, file bytes 13861
+xc-X.kdbx: write entries 17, version fields 151 (20 distinct), characters in version fields 53885, deletion records naming write entries 10, file bytes 13605
+## round 7, KeePassLib Synchronize
+kp-A.kdbx: write entries 3, version fields 27 (14 distinct), characters in version fields 11065, deletion records naming write entries 31, file bytes 8133
+## round 8, keepassxc-cli 2.8.0 merging both ways
+xc-A.kdbx: write entries 19, version fields 179 (22 distinct), characters in version fields 62297, deletion records naming write entries 90, file bytes 15013
+xc-X.kdbx: write entries 19, version fields 179 (22 distinct), characters in version fields 62297, deletion records naming write entries 10, file bytes 14373
+## round 8, KeePassLib Synchronize
+kp-A.kdbx: write entries 3, version fields 29 (15 distinct), characters in version fields 11475, deletion records naming write entries 34, file bytes 8229
+
+## after round 8, what the design's rule reads in the KeePassXC-merged copy
+# xc-A.kdbx kdbx 4.0
+  (design's history rule) node 398205E5: history not read
+  write entries 19 (version fields 179), markers 1, copies of write entries under other identifiers 0, deletion records: the plugin's own 90, made elsewhere 0, versions of another database 0
+  authority fpA: in service  ['KPG 2026-01-01 00:00:00 authority']
+  client c1: REFUSED, revoked  [revocation in: 'KPG 2026-01-10 00:01:00 state', 'KPG 2026-01-10 00:01:00 state (second copy)', 'KPG 2026-01-01 01:30:00 tidy', 'KPG 2026-01-01 01:30:00 tidy (second copy)', 'KPG 2026-01-03 00:01:00 state', 'KPG 2026-01-03 00:01:00 state (second copy)', 'KPG 2026-01-04 00:01:00 state', 'KPG 2026-01-04 00:01:00 state (second copy)', 'KPG 2026-01-05 00:01:00 state', 'KPG 2026-01-05 00:01:00 state (second copy)', 'KPG 2026-01-06 00:01:00 state', 'KPG 2026-01-06 00:01:00 state (second copy)', 'KPG 2026-01-07 00:01:00 state', 'KPG 2026-01-07 00:01:00 state (second copy)', 'KPG 2026-01-08 00:01:00 state', 'KPG 2026-01-08 00:01:00 state (second copy)', 'KPG 2026-01-09 00:01:00 state', 'KPG 2026-01-09 00:01:00 state (second copy)']  [no record]
+  client c2: admitted  [record in: 'KPG 2026-01-10 00:01:00 state', 'KPG 2026-01-10 00:01:00 state (second copy)', 'KPG 2026-01-01 01:30:00 tidy', 'KPG 2026-01-01 01:30:00 tidy (second copy)', 'KPG 2026-01-03 00:01:00 state', 'KPG 2026-01-03 00:01:00 state (second copy)', 'KPG 2026-01-04 00:01:00 state', 'KPG 2026-01-04 00:01:00 state (second copy)', 'KPG 2026-01-05 00:01:00 state', 'KPG 2026-01-05 00:01:00 state (second copy)', 'KPG 2026-01-06 00:01:00 state', 'KPG 2026-01-06 00:01:00 state (second copy)', 'KPG 2026-01-07 00:01:00 state', 'KPG 2026-01-07 00:01:00 state (second copy)', 'KPG 2026-01-08 00:01:00 state', 'KPG 2026-01-08 00:01:00 state (second copy)', 'KPG 2026-01-09 00:01:00 state', 'KPG 2026-01-09 00:01:00 state (second copy)']
+  client k0: REFUSED, revoked  [revocation in: 'KPG 2026-01-10 00:01:00 state', 'KPG 2026-01-10 00:01:00 state (second copy)', 'KPG 2026-01-03 00:01:00 state', 'KPG 2026-01-03 00:01:00 state (second copy)', 'KPG 2026-01-04 00:01:00 state', 'KPG 2026-01-04 00:01:00 state (second copy)', 'KPG 2026-01-05 00:01:00 state', 'KPG 2026-01-05 00:01:00 state (second copy)', 'KPG 2026-01-06 00:01:00 state', 'KPG 2026-01-06 00:01:00 state (second copy)', 'KPG 2026-01-07 00:01:00 state', 'KPG 2026-01-07 00:01:00 state (second copy)', 'KPG 2026-01-08 00:01:00 state', 'KPG 2026-01-08 00:01:00 state (second copy)', 'KPG 2026-01-09 00:01:00 state', 'KPG 2026-01-09 00:01:00 state (second copy)']  [no record]
+  client k1: REFUSED, revoked  [revocation in: 'KPG 2026-01-10 00:01:00 state', 'KPG 2026-01-10 00:01:00 state (second copy)', 'KPG 2026-01-04 00:01:00 state', 'KPG 2026-01-04 00:01:00 state (second copy)', 'KPG 2026-01-05 00:01:00 state', 'KPG 2026-01-05 00:01:00 state (second copy)', 'KPG 2026-01-06 00:01:00 state', 'KPG 2026-01-06 00:01:00 state (second copy)', 'KPG 2026-01-07 00:01:00 state', 'KPG 2026-01-07 00:01:00 state (second copy)', 'KPG 2026-01-08 00:01:00 state', 'KPG 2026-01-08 00:01:00 state (second copy)', 'KPG 2026-01-09 00:01:00 state', 'KPG 2026-01-09 00:01:00 state (second copy)']  [record in: 'KPG 2026-01-03 00:01:00 state', 'KPG 2026-01-03 00:01:00 state (second copy)']
+  client k2: REFUSED, revoked  [revocation in: 'KPG 2026-01-10 00:01:00 state', 'KPG 2026-01-10 00:01:00 state (second copy)', 'KPG 2026-01-05 00:01:00 state', 'KPG 2026-01-05 00:01:00 state (second copy)', 'KPG 2026-01-06 00:01:00 state', 'KPG 2026-01-06 00:01:00 state (second copy)', 'KPG 2026-01-07 00:01:00 state', 'KPG 2026-01-07 00:01:00 state (second copy)', 'KPG 2026-01-08 00:01:00 state', 'KPG 2026-01-08 00:01:00 state (second copy)', 'KPG 2026-01-09 00:01:00 state', 'KPG 2026-01-09 00:01:00 state (second copy)']  [record in: 'KPG 2026-01-04 00:01:00 state', 'KPG 2026-01-04 00:01:00 state (second copy)']
+  client k3: REFUSED, revoked  [revocation in: 'KPG 2026-01-10 00:01:00 state', 'KPG 2026-01-10 00:01:00 state (second copy)', 'KPG 2026-01-06 00:01:00 state', 'KPG 2026-01-06 00:01:00 state (second copy)', 'KPG 2026-01-07 00:01:00 state', 'KPG 2026-01-07 00:01:00 state (second copy)', 'KPG 2026-01-08 00:01:00 state', 'KPG 2026-01-08 00:01:00 state (second copy)', 'KPG 2026-01-09 00:01:00 state', 'KPG 2026-01-09 00:01:00 state (second copy)']  [record in: 'KPG 2026-01-05 00:01:00 state', 'KPG 2026-01-05 00:01:00 state (second copy)']
+  client k4: REFUSED, revoked  [revocation in: 'KPG 2026-01-10 00:01:00 state', 'KPG 2026-01-10 00:01:00 state (second copy)', 'KPG 2026-01-07 00:01:00 state', 'KPG 2026-01-07 00:01:00 state (second copy)', 'KPG 2026-01-08 00:01:00 state', 'KPG 2026-01-08 00:01:00 state (second copy)', 'KPG 2026-01-09 00:01:00 state', 'KPG 2026-01-09 00:01:00 state (second copy)']  [record in: 'KPG 2026-01-06 00:01:00 state', 'KPG 2026-01-06 00:01:00 state (second copy)']
+  client k5: REFUSED, revoked  [revocation in: 'KPG 2026-01-10 00:01:00 state', 'KPG 2026-01-10 00:01:00 state (second copy)', 'KPG 2026-01-08 00:01:00 state', 'KPG 2026-01-08 00:01:00 state (second copy)', 'KPG 2026-01-09 00:01:00 state', 'KPG 2026-01-09 00:01:00 state (second copy)']  [record in: 'KPG 2026-01-07 00:01:00 state', 'KPG 2026-01-07 00:01:00 state (second copy)']
+  client k6: REFUSED, revoked  [revocation in: 'KPG 2026-01-10 00:01:00 state', 'KPG 2026-01-10 00:01:00 state (second copy)', 'KPG 2026-01-09 00:01:00 state', 'KPG 2026-01-09 00:01:00 state (second copy)']  [record in: 'KPG 2026-01-08 00:01:00 state', 'KPG 2026-01-08 00:01:00 state (second copy)']
+  client k7: REFUSED, revoked  [revocation in: 'KPG 2026-01-10 00:01:00 state', 'KPG 2026-01-10 00:01:00 state (second copy)']  [record in: 'KPG 2026-01-09 00:01:00 state', 'KPG 2026-01-09 00:01:00 state (second copy)']
+  client k8: admitted  [record in: 'KPG 2026-01-10 00:01:00 state', 'KPG 2026-01-10 00:01:00 state (second copy)']
+  profile reader: on the list  (additions 1, removals 0)
+  rule on group U: default=inherit;reader=read,list  [newest in: node 'KPG rule for this group', 'KPG 2026-01-10 00:01:00 state', 'KPG 2026-01-10 00:01:00 state (second copy)', 'KPG 2026-01-01 01:30:00 tidy', 'KPG 2026-01-01 01:30:00 tidy (second copy)', 'KPG 2026-01-03 00:01:00 state', 'KPG 2026-01-03 00:01:00 state (second copy)', 'KPG 2026-01-04 00:01:00 state', 'KPG 2026-01-04 00:01:00 state (second copy)', 'KPG 2026-01-05 00:01:00 state', 'KPG 2026-01-05 00:01:00 state (second copy)', 'KPG 2026-01-06 00:01:00 state', 'KPG 2026-01-06 00:01:00 state (second copy)', 'KPG 2026-01-07 00:01:00 state', 'KPG 2026-01-07 00:01:00 state (second copy)', 'KPG 2026-01-08 00:01:00 state', 'KPG 2026-01-08 00:01:00 state (second copy)', 'KPG 2026-01-09 00:01:00 state', 'KPG 2026-01-09 00:01:00 state (second copy)']  (versions 1)
+  rule on entry X@U: default=inherit;reader=read  [newest in: node 'X', 'KPG 2026-01-10 00:01:00 state', 'KPG 2026-01-10 00:01:00 state (second copy)', 'KPG 2026-01-01 01:30:00 tidy', 'KPG 2026-01-01 01:30:00 tidy (second copy)', 'KPG 2026-01-03 00:01:00 state', 'KPG 2026-01-03 00:01:00 state (second copy)', 'KPG 2026-01-04 00:01:00 state', 'KPG 2026-01-04 00:01:00 state (second copy)', 'KPG 2026-01-05 00:01:00 state', 'KPG 2026-01-05 00:01:00 state (second copy)', 'KPG 2026-01-06 00:01:00 state', 'KPG 2026-01-06 00:01:00 state (second copy)', 'KPG 2026-01-07 00:01:00 state', 'KPG 2026-01-07 00:01:00 state (second copy)', 'KPG 2026-01-08 00:01:00 state', 'KPG 2026-01-08 00:01:00 state (second copy)', 'KPG 2026-01-09 00:01:00 state', 'KPG 2026-01-09 00:01:00 state (second copy)']  (versions 1)

@@ -1,0 +1,4 @@
+write entry mark  367B11D1  (first 4 bytes of SHA-256 over 'KPG/1/write')
+marker mark       2B82E624  (first 4 bytes of SHA-256 over 'KPG/1/marker')
+group mark        A1B1D236  (first 4 bytes of SHA-256 over 'KPG/1/group')
+example write entry UUID 367B11D16AF98626D110E16556F73DB5, version name KPG.20261115T101502Z.D110E16556F73DB5.01

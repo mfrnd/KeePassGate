@@ -1,0 +1,152 @@
+== keepassxc-cli 2.4.2 add (a plain save), on R-A2, exit 0
+   W3/F11/M1/copies0/own-del10/hand-del0/foreign0 | authority fpA: in service | c1=REVOKEDx2 | c2=admitted | reader=on | rule[group U]=default=inherit;reader=read,list | rule[entry X@U]=default=inherit;reader=read
+== keepassxc-cli 2.6.6 add (a plain save), on R-A2, exit 0
+   W3/F11/M1/copies0/own-del10/hand-del0/foreign0 | authority fpA: in service | c1=REVOKEDx2 | c2=admitted | reader=on | rule[group U]=default=inherit;reader=read,list | rule[entry X@U]=default=inherit;reader=read
+== keepassxc-cli 2.7.12 add (a plain save), on R-A2, exit 0
+   W3/F11/M1/copies0/own-del10/hand-del0/foreign0 | authority fpA: in service | c1=REVOKEDx2 | c2=admitted | reader=on | rule[group U]=default=inherit;reader=read,list | rule[entry X@U]=default=inherit;reader=read
+== keepassxc-cli 2.8.0 add (a plain save), on R-A2, exit 0
+   W3/F11/M1/copies0/own-del10/hand-del0/foreign0 | authority fpA: in service | c1=REVOKEDx2 | c2=admitted | reader=on | rule[group U]=default=inherit;reader=read,list | rule[entry X@U]=default=inherit;reader=read
+== chain: keepassxc-cli 2.8.0 merged stale R-B into tidied R-A2, then KeePassLib 2.62 Synchronize of that result with R-B
+   W6/F14/M1/copies0/own-del10/hand-del0/foreign0 | authority fpA: in service | c1=REVOKEDx2 | c2=admitted | c4=admitted | reader=on | rule[group U]=default=deny;reader=list | rule[entry X@U]=default=inherit;reader=read
+== the ruled group U duplicated as KeePass Duplicate Group does (PwGroup.Duplicate), in R-A2
+   W3/F11/M2/copies0/own-del10/hand-del0/foreign0 | authority fpA: in service | c1=REVOKEDx2 | c2=admitted | reader=on | rule[group U]=default=inherit;reader=read,list | rule[entry X@U]=default=inherit;reader=read | rule[group U - Copy]=REFUSES: copied from a ruled group (363647E2) | rule[entry X@U - Copy]=REFUSES: copied from a ruled entry (398205E5)
+== File then Import with new identifiers: R-base imported into R-A2, then Delete Duplicate Entries
+   
+   W3/F11/M2/copies7/own-del10/hand-del0/foreign0 | authority fpA: in service | c1=REVOKEDx2 | c2=admitted | reader=on | rule[group U]=default=inherit;reader=read,list | rule[entry X@U]=default=inherit;reader=read | rule[entry X@U]=REFUSES: copied from a ruled entry (398205E5) | rule[group U]=REFUSES: copied from a ruled group (363647E2)
+   
+   W2/F10/M1/copies7/own-del10/hand-del1(back 0)/foreign0 | CLOSED | c1=REVOKEDx2 | c2=admitted | reader=on | rule[group U]=default=inherit;reader=read,list | rule[entry X@U]=default=inherit;reader=read | rule[entry X@U]=REFUSES: copied from a ruled entry (398205E5) | rule[group U]=REFUSES: copied from a ruled group (363647E2)
+   W2/F18/M1/copies7/own-del10/hand-del1(back 0)/foreign0 | CLOSED | authority fpA: in service | c1=REVOKEDx2 | c2=admitted | reader=on | rule[group U]=default=inherit;reader=read,list | rule[entry X@U]=default=inherit;reader=read | rule[entry X@U]=REFUSES: copied from a ruled entry (398205E5) | rule[group U]=REFUSES: copied from a ruled group (363647E2)
+
+== pair R1, R-B into R-A1
+  [KP Synchronize]
+     W9/F11/M1/copies0/own-del5/hand-del0/foreign0 | authority fpA: in service | c1=REVOKEDx2 | c2=admitted | c4=admitted | reader=on | rule[group U]=default=deny;reader=list | rule[entry X@U]=default=inherit;reader=read
+  [KP OverwriteIfNewer, KP OverwriteExisting, KP KeepExisting]
+     W11/F13/M1/copies0/own-del3/hand-del0/foreign0 | authority fpA: in service | c1=REVOKEDx2 | c2=admitted | c4=admitted | reader=on | rule[group U]=default=deny;reader=list | rule[entry X@U]=default=inherit;reader=read
+  [XC 2.4.2, XC 2.6.6, XC 2.7.12, XC 2.8.0]
+     W14/F17/M1/copies0/own-del3/hand-del0/foreign0 | authority fpA: in service | c1=REVOKEDx2 | c2=admitted | c4=admitted | reader=on | rule[group U]=default=deny;reader=list | rule[entry X@U]=default=inherit;reader=read
+
+== pair R1, R-A1 into R-B
+  [KP Synchronize]
+     W9/F11/M1/copies0/own-del5/hand-del0/foreign0 | authority fpA: in service | c1=REVOKEDx2 | c2=admitted | c4=admitted | reader=on | rule[group U]=default=deny;reader=list | rule[entry X@U]=default=inherit;reader=read
+  [KP OverwriteIfNewer, KP OverwriteExisting, KP KeepExisting]
+     W12/F15/M1/copies0/own-del2/hand-del0/foreign0 | authority fpA: in service | c1=REVOKEDx2 | c2=admitted | c4=admitted | reader=on | rule[group U]=default=deny;reader=list | rule[entry X@U]=default=inherit;reader=read
+  [XC 2.4.2, XC 2.6.6, XC 2.7.12, XC 2.8.0]
+     W14/F17/M1/copies0/own-del2/hand-del0/foreign0 | authority fpA: in service | c1=REVOKEDx2 | c2=admitted | c4=admitted | reader=on | rule[group U]=default=deny;reader=list | rule[entry X@U]=default=inherit;reader=read
+
+== pair R2, R-B into R-A2
+  [KP Synchronize, KP OverwriteIfNewer, KP OverwriteExisting, KP KeepExisting]
+     W6/F14/M1/copies0/own-del10/hand-del0/foreign0 | authority fpA: in service | c1=REVOKEDx2 | c2=admitted | c4=admitted | reader=on | rule[group U]=default=deny;reader=list | rule[entry X@U]=default=inherit;reader=read
+  [XC 2.4.2, XC 2.6.6, XC 2.7.12, XC 2.8.0]
+     W10/F19/M1/copies0/own-del10/hand-del0/foreign0 | authority fpA: in service | c1=REVOKEDx2 | c2=admitted | c4=admitted | reader=on | rule[group U]=default=deny;reader=list | rule[entry X@U]=default=inherit;reader=read
+
+== pair R2, R-A2 into R-B
+  [KP Synchronize]
+     W6/F14/M1/copies0/own-del10/hand-del0/foreign0 | authority fpA: in service | c1=REVOKEDx2 | c2=admitted | c4=admitted | reader=on | rule[group U]=default=deny;reader=list | rule[entry X@U]=default=inherit;reader=read
+  [KP OverwriteIfNewer, KP OverwriteExisting, KP KeepExisting, XC 2.4.2, XC 2.6.6, XC 2.7.12, XC 2.8.0]
+     W10/F19/M1/copies0/own-del2/hand-del0/foreign0 | authority fpA: in service | c1=REVOKEDx2 | c2=admitted | c4=admitted | reader=on | rule[group U]=default=deny;reader=list | rule[entry X@U]=default=inherit;reader=read
+
+== pair C, C-B into C-A
+  [KP Synchronize, KP OverwriteIfNewer, KP OverwriteExisting, KP KeepExisting]
+     W11/F14/M1/copies0/own-del3/hand-del0/foreign0 | authority fpA: in service | c1=admitted | c2=admitted | c5=admitted | ops=on | reader=OFF | rule[group U]=default=inherit;reader=read,list | rule[entry X@U]=two versions, what both allow: default=deny;ops=;reader=read
+  [XC 2.4.2, XC 2.6.6, XC 2.7.12, XC 2.8.0]
+     W12/F16/M1/copies0/own-del3/hand-del0/foreign0 | authority fpA: in service | c1=admitted | c2=admitted | c5=admitted | ops=on | reader=OFF | rule[group U]=default=inherit;reader=read,list | rule[entry X@U]=two versions, what both allow: default=deny;ops=;reader=read
+
+== pair C, C-A into C-B
+  [KP Synchronize]
+     W11/F14/M1/copies0/own-del3/hand-del0/foreign0 | authority fpA: in service | c1=admitted | c2=admitted | c5=admitted | ops=on | reader=OFF | rule[group U]=default=inherit;reader=read,list | rule[entry X@U]=two versions, what both allow: default=deny;ops=;reader=read
+  [KP OverwriteIfNewer, KP OverwriteExisting, KP KeepExisting, XC 2.4.2, XC 2.6.6, XC 2.7.12, XC 2.8.0]
+     W12/F16/M1/copies0/own-del2/hand-del0/foreign0 | authority fpA: in service | c1=admitted | c2=admitted | c5=admitted | ops=on | reader=OFF | rule[group U]=default=inherit;reader=read,list | rule[entry X@U]=two versions, what both allow: default=deny;ops=;reader=read
+
+== pair P, P-B into P-A
+  [KP Synchronize]
+     W9/F12/M1/copies0/own-del3/hand-del0/foreign0 | authority fpA: in service | c1=admitted | c2=admitted | reader=OFF | rule[group U]=default=inherit;reader=read,list | rule[entry X@U]=default=inherit;reader=read,list,update
+  [KP OverwriteIfNewer, KP OverwriteExisting, KP KeepExisting, XC 2.4.2, XC 2.6.6, XC 2.7.12, XC 2.8.0]
+     W9/F12/M1/copies0/own-del1/hand-del0/foreign0 | authority fpA: in service | c1=admitted | c2=admitted | reader=OFF | rule[group U]=default=inherit;reader=read,list | rule[entry X@U]=default=inherit;reader=read,list,update
+
+== pair P, P-A into P-B
+  [KP Synchronize, KP OverwriteIfNewer, KP OverwriteExisting, KP KeepExisting, XC 2.4.2, XC 2.6.6, XC 2.7.12, XC 2.8.0]
+     W9/F12/M1/copies0/own-del3/hand-del0/foreign0 | authority fpA: in service | c1=admitted | c2=admitted | reader=OFF | rule[group U]=default=inherit;reader=read,list | rule[entry X@U]=default=inherit;reader=read,list,update
+
+== pair H1, R-B into H1
+  [KP Synchronize]
+     W8/F9/M1/copies0/own-del5/hand-del0/foreign0 | authority fpA: in service | c1=REVOKEDx1 | c2=admitted | c4=admitted | reader=on | rule[group U]=default=deny;reader=list | rule[entry X@U]=default=inherit;reader=read
+  [KP OverwriteIfNewer, KP OverwriteExisting, KP KeepExisting]
+     W10/F11/M1/copies0/own-del3/hand-del0/foreign0 | authority fpA: in service | c1=REVOKEDx1 | c2=admitted | c4=admitted | reader=on | rule[group U]=default=deny;reader=list | rule[entry X@U]=default=inherit;reader=read
+  [XC 2.4.2, XC 2.6.6, XC 2.7.12, XC 2.8.0]
+     W13/F15/M1/copies0/own-del3/hand-del0/foreign0 | authority fpA: in service | c1=REVOKEDx1 | c2=admitted | c4=admitted | reader=on | rule[group U]=default=deny;reader=list | rule[entry X@U]=default=inherit;reader=read
+
+== pair H1, H1 into R-B
+  [KP Synchronize]
+     W8/F9/M1/copies0/own-del5/hand-del0/foreign0 | authority fpA: in service | c1=REVOKEDx1 | c2=admitted | c4=admitted | reader=on | rule[group U]=default=deny;reader=list | rule[entry X@U]=default=inherit;reader=read
+  [KP OverwriteIfNewer, KP OverwriteExisting, KP KeepExisting]
+     W11/F13/M1/copies0/own-del2/hand-del0/foreign0 | authority fpA: in service | c1=REVOKEDx1 | c2=admitted | c4=admitted | reader=on | rule[group U]=default=deny;reader=list | rule[entry X@U]=default=inherit;reader=read
+  [XC 2.4.2, XC 2.6.6, XC 2.7.12, XC 2.8.0]
+     W13/F15/M1/copies0/own-del2/hand-del0/foreign0 | authority fpA: in service | c1=REVOKEDx1 | c2=admitted | c4=admitted | reader=on | rule[group U]=default=deny;reader=list | rule[entry X@U]=default=inherit;reader=read
+
+== pair H2, R-B into H2
+  [KP Synchronize]
+     W7/F7/M1/copies0/own-del5/hand-del0/foreign0 | authority fpA: in service | c2=admitted | c4=admitted | rule[group U]=default=deny;reader=list | rule[entry X@U]=default=inherit;reader=read
+  [KP OverwriteIfNewer, KP OverwriteExisting, KP KeepExisting]
+     W9/F9/M1/copies0/own-del3/hand-del0/foreign0 | authority fpA: in service | c2=admitted | c4=admitted | rule[group U]=default=deny;reader=list | rule[entry X@U]=default=inherit;reader=read
+  [XC 2.4.2, XC 2.6.6, XC 2.7.12, XC 2.8.0]
+     W12/F13/M1/copies0/own-del3/hand-del0/foreign0 | authority fpA: in service | c1=norecord | c2=admitted | c4=admitted | reader=OFF | rule[group U]=default=deny;reader=list | rule[entry X@U]=default=inherit;reader=read
+
+== pair H2, H2 into R-B
+  [KP Synchronize]
+     W7/F7/M1/copies0/own-del5/hand-del0/foreign0 | authority fpA: in service | c2=admitted | c4=admitted | rule[group U]=default=deny;reader=list | rule[entry X@U]=default=inherit;reader=read
+  [KP OverwriteIfNewer, KP OverwriteExisting, KP KeepExisting]
+     W10/F11/M1/copies0/own-del2/hand-del0/foreign0 | authority fpA: in service | c1=admitted | c2=admitted | c4=admitted | reader=on | rule[group U]=default=deny;reader=list | rule[entry X@U]=default=inherit;reader=read
+  [XC 2.4.2, XC 2.6.6, XC 2.7.12, XC 2.8.0]
+     W12/F13/M1/copies0/own-del2/hand-del0/foreign0 | authority fpA: in service | c1=admitted | c2=admitted | c4=admitted | reader=on | rule[group U]=default=deny;reader=list | rule[entry X@U]=default=inherit;reader=read
+
+== pair H3, R-B into H3
+  [KP Synchronize, KP OverwriteIfNewer, KP OverwriteExisting, KP KeepExisting]
+     W5/F9/M1/copies0/own-del10/hand-del0/foreign0 | authority fpA: in service | c1=REVOKEDx1 | c2=admitted | c4=admitted | reader=on | rule[group U]=default=deny;reader=list | rule[entry X@U]=default=inherit;reader=read
+  [XC 2.4.2, XC 2.6.6, XC 2.7.12, XC 2.8.0]
+     W9/F14/M1/copies0/own-del10/hand-del0/foreign0 | authority fpA: in service | c1=REVOKEDx1 | c2=admitted | c4=admitted | reader=on | rule[group U]=default=deny;reader=list | rule[entry X@U]=default=inherit;reader=read
+
+== pair H3, H3 into R-B
+  [KP Synchronize]
+     W5/F9/M1/copies0/own-del10/hand-del0/foreign0 | authority fpA: in service | c1=REVOKEDx1 | c2=admitted | c4=admitted | reader=on | rule[group U]=default=deny;reader=list | rule[entry X@U]=default=inherit;reader=read
+  [KP OverwriteIfNewer, KP OverwriteExisting, KP KeepExisting, XC 2.4.2, XC 2.6.6, XC 2.7.12, XC 2.8.0]
+     W9/F14/M1/copies0/own-del2/hand-del0/foreign0 | authority fpA: in service | c1=REVOKEDx1 | c2=admitted | c4=admitted | reader=on | rule[group U]=default=deny;reader=list | rule[entry X@U]=default=inherit;reader=read
+
+== pair H4, R-B into H4
+  [KP Synchronize]
+     W8/F9/M1/copies0/own-del5/hand-del1(back 0)/foreign0 | CLOSED | authority fpA: in service | c1=REVOKEDx1 | c2=admitted | c4=admitted | reader=on | rule[group U]=default=deny;reader=list | rule[entry X@U]=default=inherit;reader=read
+  [KP OverwriteIfNewer, KP OverwriteExisting, KP KeepExisting]
+     W10/F11/M1/copies0/own-del3/hand-del1(back 0)/foreign0 | CLOSED | authority fpA: in service | c1=REVOKEDx1 | c2=admitted | c4=admitted | reader=on | rule[group U]=default=deny;reader=list | rule[entry X@U]=default=inherit;reader=read
+  [XC 2.4.2, XC 2.6.6, XC 2.7.12, XC 2.8.0]
+     W13/F15/M1/copies0/own-del3/hand-del1(back 0)/foreign0 | CLOSED | authority fpA: in service | c1=REVOKEDx1 | c2=admitted | c4=admitted | reader=on | rule[group U]=default=deny;reader=list | rule[entry X@U]=default=inherit;reader=read
+
+== pair H4, H4 into R-B
+  [KP Synchronize]
+     W8/F9/M1/copies0/own-del5/hand-del1(back 0)/foreign0 | CLOSED | authority fpA: in service | c1=REVOKEDx1 | c2=admitted | c4=admitted | reader=on | rule[group U]=default=deny;reader=list | rule[entry X@U]=default=inherit;reader=read
+  [KP OverwriteIfNewer, KP OverwriteExisting, KP KeepExisting]
+     W11/F13/M1/copies0/own-del2/hand-del0/foreign0 | authority fpA: in service | c1=REVOKEDx1 | c2=admitted | c4=admitted | reader=on | rule[group U]=default=deny;reader=list | rule[entry X@U]=default=inherit;reader=read
+  [XC 2.4.2, XC 2.6.6, XC 2.7.12, XC 2.8.0]
+     W13/F15/M1/copies0/own-del2/hand-del0/foreign0 | authority fpA: in service | c1=REVOKEDx1 | c2=admitted | c4=admitted | reader=on | rule[group U]=default=deny;reader=list | rule[entry X@U]=default=inherit;reader=read
+
+== pair H5, R-B into H5
+  [KP Synchronize, KP OverwriteIfNewer, KP OverwriteExisting, KP KeepExisting]
+     W4/F4/M1/copies0/own-del10/hand-del0/foreign0 | authority fpA: in service | c4=admitted | rule[group U]=default=deny;reader=list | rule[entry X@U]=default=inherit;reader=read
+  [XC 2.4.2, XC 2.6.6, XC 2.7.12, XC 2.8.0]
+     W8/F9/M1/copies0/own-del10/hand-del0/foreign0 | authority fpA: in service | c1=norecord | c2=norecord | c4=admitted | reader=OFF | rule[group U]=default=deny;reader=list | rule[entry X@U]=default=inherit;reader=read
+
+== pair H5, H5 into R-B
+  [KP Synchronize]
+     W4/F4/M1/copies0/own-del10/hand-del0/foreign0 | authority fpA: in service | c4=admitted | rule[group U]=default=deny;reader=list | rule[entry X@U]=default=inherit;reader=read
+  [KP OverwriteIfNewer, KP OverwriteExisting, KP KeepExisting, XC 2.4.2, XC 2.6.6, XC 2.7.12, XC 2.8.0]
+     W8/F9/M1/copies0/own-del2/hand-del0/foreign0 | authority fpA: in service | c1=admitted | c2=admitted | c4=admitted | reader=on | rule[group U]=default=deny;reader=list | rule[entry X@U]=default=inherit;reader=read
+
+== pair H6, R-B into H6
+  [KP Synchronize, KP OverwriteIfNewer, KP OverwriteExisting, KP KeepExisting]
+     W3/F3/M1/copies0/own-del10/hand-del3(back 0)/foreign0 | CLOSED | c4=admitted | rule[group U]=default=deny;reader=list | rule[entry X@U]=default=inherit;reader=read
+  [XC 2.4.2, XC 2.6.6, XC 2.7.12, XC 2.8.0]
+     W8/F9/M1/copies0/own-del10/hand-del3(back 1)/foreign0 | CLOSED | authority fpA: not counted (its entry was deleted elsewhere) | c1=norecord | c2=norecord | c4=admitted | reader=OFF | rule[group U]=default=deny;reader=list | rule[entry X@U]=default=inherit;reader=read
+
+== pair H6, H6 into R-B
+  [KP Synchronize]
+     W3/F3/M1/copies0/own-del10/hand-del3(back 0)/foreign0 | CLOSED | c4=admitted | rule[group U]=default=deny;reader=list | rule[entry X@U]=default=inherit;reader=read
+  [KP OverwriteIfNewer, KP OverwriteExisting, KP KeepExisting, XC 2.4.2, XC 2.6.6, XC 2.7.12, XC 2.8.0]
+     W8/F9/M1/copies0/own-del2/hand-del0/foreign0 | authority fpA: in service | c1=admitted | c2=admitted | c4=admitted | reader=on | rule[group U]=default=deny;reader=list | rule[entry X@U]=default=inherit;reader=read

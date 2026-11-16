@@ -1,0 +1,246 @@
+
+## H5, KeePassLib Synchronize, intoA: the probe's fold (history always read)
+# result.kdbx kdbx 4.0
+  write entries 4 (version fields 4), markers 1, copies of write entries under other identifiers 0, deletion records: the plugin's own 10, made elsewhere 0, versions of another database 0
+  authority fpA: in service  ['KPG 2026-01-01 00:00:00 authority']
+  client c4: admitted  [record in: 'KPG 2026-01-01 02:00:00 pairing']
+  rule on group U: default=deny;reader=list  [newest in: node 'KPG rule for this group', 'KPG 2026-01-01 02:00:00 rule', 'KPG 2026-01-01 02:00:00 rule (second copy)']  (versions 2)
+  rule on entry X@U: default=inherit;reader=read  [newest in: node 'X' history]  (versions 2)
+## H5, KeePassLib Synchronize, intoA: the design's rule (history read only when the node's copy is newest and no write entry holds it)
+# result.kdbx kdbx 4.0
+  (design's history rule) node 398205E5: history READ
+  (design's history rule) node 363647E2: history not read
+  write entries 4 (version fields 4), markers 1, copies of write entries under other identifiers 0, deletion records: the plugin's own 10, made elsewhere 0, versions of another database 0
+  authority fpA: in service  ['KPG 2026-01-01 00:00:00 authority']
+  client c4: admitted  [record in: 'KPG 2026-01-01 02:00:00 pairing']
+  rule on group U: default=deny;reader=list  [newest in: node 'KPG rule for this group', 'KPG 2026-01-01 02:00:00 rule', 'KPG 2026-01-01 02:00:00 rule (second copy)']  (versions 1)
+  rule on entry X@U: default=inherit;reader=read  [newest in: node 'X' history]  (versions 2)
+
+## H5, KeePassLib OverwriteIfNewer, intoA: the probe's fold (history always read)
+# result.kdbx kdbx 4.0
+  write entries 4 (version fields 4), markers 1, copies of write entries under other identifiers 0, deletion records: the plugin's own 10, made elsewhere 0, versions of another database 0
+  authority fpA: in service  ['KPG 2026-01-01 00:00:00 authority']
+  client c4: admitted  [record in: 'KPG 2026-01-01 02:00:00 pairing']
+  rule on group U: default=deny;reader=list  [newest in: node 'KPG rule for this group', 'KPG 2026-01-01 02:00:00 rule', 'KPG 2026-01-01 02:00:00 rule (second copy)']  (versions 2)
+  rule on entry X@U: default=inherit;reader=read  [newest in: node 'X' history]  (versions 2)
+## H5, KeePassLib OverwriteIfNewer, intoA: the design's rule (history read only when the node's copy is newest and no write entry holds it)
+# result.kdbx kdbx 4.0
+  (design's history rule) node 398205E5: history READ
+  (design's history rule) node 363647E2: history not read
+  write entries 4 (version fields 4), markers 1, copies of write entries under other identifiers 0, deletion records: the plugin's own 10, made elsewhere 0, versions of another database 0
+  authority fpA: in service  ['KPG 2026-01-01 00:00:00 authority']
+  client c4: admitted  [record in: 'KPG 2026-01-01 02:00:00 pairing']
+  rule on group U: default=deny;reader=list  [newest in: node 'KPG rule for this group', 'KPG 2026-01-01 02:00:00 rule', 'KPG 2026-01-01 02:00:00 rule (second copy)']  (versions 1)
+  rule on entry X@U: default=inherit;reader=read  [newest in: node 'X' history]  (versions 2)
+
+## H5, KeePassLib OverwriteExisting, intoA: the probe's fold (history always read)
+# result.kdbx kdbx 4.0
+  write entries 4 (version fields 4), markers 1, copies of write entries under other identifiers 0, deletion records: the plugin's own 10, made elsewhere 0, versions of another database 0
+  authority fpA: in service  ['KPG 2026-01-01 00:00:00 authority']
+  client c4: admitted  [record in: 'KPG 2026-01-01 02:00:00 pairing']
+  rule on group U: default=deny;reader=list  [newest in: node 'KPG rule for this group', 'KPG 2026-01-01 02:00:00 rule', 'KPG 2026-01-01 02:00:00 rule (second copy)']  (versions 2)
+  rule on entry X@U: default=inherit;reader=read  [newest in: node 'X' history]  (versions 2)
+## H5, KeePassLib OverwriteExisting, intoA: the design's rule (history read only when the node's copy is newest and no write entry holds it)
+# result.kdbx kdbx 4.0
+  (design's history rule) node 398205E5: history READ
+  (design's history rule) node 363647E2: history not read
+  write entries 4 (version fields 4), markers 1, copies of write entries under other identifiers 0, deletion records: the plugin's own 10, made elsewhere 0, versions of another database 0
+  authority fpA: in service  ['KPG 2026-01-01 00:00:00 authority']
+  client c4: admitted  [record in: 'KPG 2026-01-01 02:00:00 pairing']
+  rule on group U: default=deny;reader=list  [newest in: node 'KPG rule for this group', 'KPG 2026-01-01 02:00:00 rule', 'KPG 2026-01-01 02:00:00 rule (second copy)']  (versions 1)
+  rule on entry X@U: default=inherit;reader=read  [newest in: node 'X' history]  (versions 2)
+
+## H5, KeePassLib KeepExisting, intoA: the probe's fold (history always read)
+# result.kdbx kdbx 4.0
+  write entries 4 (version fields 4), markers 1, copies of write entries under other identifiers 0, deletion records: the plugin's own 10, made elsewhere 0, versions of another database 0
+  authority fpA: in service  ['KPG 2026-01-01 00:00:00 authority']
+  client c4: admitted  [record in: 'KPG 2026-01-01 02:00:00 pairing']
+  rule on group U: default=deny;reader=list  [newest in: 'KPG 2026-01-01 02:00:00 rule', 'KPG 2026-01-01 02:00:00 rule (second copy)']  (versions 2)
+  rule on entry X@U: default=inherit;reader=read  [newest in: node 'X', node 'X' history]  (versions 2)
+## H5, KeePassLib KeepExisting, intoA: the design's rule (history read only when the node's copy is newest and no write entry holds it)
+# result.kdbx kdbx 4.0
+  (design's history rule) node 398205E5: history READ
+  (design's history rule) node 363647E2: history not read
+  write entries 4 (version fields 4), markers 1, copies of write entries under other identifiers 0, deletion records: the plugin's own 10, made elsewhere 0, versions of another database 0
+  authority fpA: in service  ['KPG 2026-01-01 00:00:00 authority']
+  client c4: admitted  [record in: 'KPG 2026-01-01 02:00:00 pairing']
+  rule on group U: default=deny;reader=list  [newest in: 'KPG 2026-01-01 02:00:00 rule', 'KPG 2026-01-01 02:00:00 rule (second copy)']  (versions 2)
+  rule on entry X@U: default=inherit;reader=read  [newest in: node 'X', node 'X' history]  (versions 2)
+
+## H5, keepassxc-cli 2.4.2, intoA: the probe's fold (history always read)
+# target.kdbx kdbx 4.0
+  write entries 8 (version fields 9), markers 1, copies of write entries under other identifiers 0, deletion records: the plugin's own 10, made elsewhere 0, versions of another database 0
+  authority fpA: in service  ['KPG 2026-01-01 00:00:00 authority']
+  client c1: refused, no record that counts  [only in: 'KPG 2026-01-01 00:00:00 pairing']
+  client c2: refused, no record that counts  [only in: 'KPG 2026-01-01 00:00:00 pairing']
+  client c4: admitted  [record in: 'KPG 2026-01-01 02:00:00 pairing']
+  profile reader: OFF the list  (additions 1, removals 0)
+  rule on group U: default=deny;reader=list  [newest in: node 'KPG rule for this group', 'KPG 2026-01-01 02:00:00 rule', 'KPG 2026-01-01 02:00:00 rule (second copy)']  (versions 2)
+  rule on entry X@U: default=inherit;reader=read  [newest in: node 'X' history]  (versions 2)
+## H5, keepassxc-cli 2.4.2, intoA: the design's rule
+# target.kdbx kdbx 4.0
+  (design's history rule) node 398205E5: history not read
+  (design's history rule) node 363647E2: history not read
+  write entries 8 (version fields 9), markers 1, copies of write entries under other identifiers 0, deletion records: the plugin's own 10, made elsewhere 0, versions of another database 0
+  authority fpA: in service  ['KPG 2026-01-01 00:00:00 authority']
+  client c1: refused, no record that counts  [only in: 'KPG 2026-01-01 00:00:00 pairing']
+  client c2: refused, no record that counts  [only in: 'KPG 2026-01-01 00:00:00 pairing']
+  client c4: admitted  [record in: 'KPG 2026-01-01 02:00:00 pairing']
+  profile reader: OFF the list  (additions 1, removals 0)
+  rule on group U: default=deny;reader=list  [newest in: node 'KPG rule for this group', 'KPG 2026-01-01 02:00:00 rule', 'KPG 2026-01-01 02:00:00 rule (second copy)']  (versions 1)
+  rule on entry X@U: default=inherit;reader=read,list,update  [newest in: node 'X', 'KPG 2026-01-01 00:00:00 rule', 'KPG 2026-01-01 00:00:00 rule (second copy)']  (versions 1)
+
+## H5, keepassxc-cli 2.8.0, intoA: the probe's fold (history always read)
+# target.kdbx kdbx 4.0
+  write entries 8 (version fields 9), markers 1, copies of write entries under other identifiers 0, deletion records: the plugin's own 10, made elsewhere 0, versions of another database 0
+  authority fpA: in service  ['KPG 2026-01-01 00:00:00 authority']
+  client c1: refused, no record that counts  [only in: 'KPG 2026-01-01 00:00:00 pairing']
+  client c2: refused, no record that counts  [only in: 'KPG 2026-01-01 00:00:00 pairing']
+  client c4: admitted  [record in: 'KPG 2026-01-01 02:00:00 pairing']
+  profile reader: OFF the list  (additions 1, removals 0)
+  rule on group U: default=deny;reader=list  [newest in: node 'KPG rule for this group', 'KPG 2026-01-01 02:00:00 rule', 'KPG 2026-01-01 02:00:00 rule (second copy)']  (versions 2)
+  rule on entry X@U: default=inherit;reader=read  [newest in: node 'X' history]  (versions 2)
+## H5, keepassxc-cli 2.8.0, intoA: the design's rule
+# target.kdbx kdbx 4.0
+  (design's history rule) node 398205E5: history not read
+  (design's history rule) node 363647E2: history not read
+  write entries 8 (version fields 9), markers 1, copies of write entries under other identifiers 0, deletion records: the plugin's own 10, made elsewhere 0, versions of another database 0
+  authority fpA: in service  ['KPG 2026-01-01 00:00:00 authority']
+  client c1: refused, no record that counts  [only in: 'KPG 2026-01-01 00:00:00 pairing']
+  client c2: refused, no record that counts  [only in: 'KPG 2026-01-01 00:00:00 pairing']
+  client c4: admitted  [record in: 'KPG 2026-01-01 02:00:00 pairing']
+  profile reader: OFF the list  (additions 1, removals 0)
+  rule on group U: default=deny;reader=list  [newest in: node 'KPG rule for this group', 'KPG 2026-01-01 02:00:00 rule', 'KPG 2026-01-01 02:00:00 rule (second copy)']  (versions 1)
+  rule on entry X@U: default=inherit;reader=read,list,update  [newest in: node 'X', 'KPG 2026-01-01 00:00:00 rule', 'KPG 2026-01-01 00:00:00 rule (second copy)']  (versions 1)
+
+## H5, KeePassLib Synchronize, intoB: the probe's fold (history always read)
+# result.kdbx kdbx 4.0
+  write entries 4 (version fields 4), markers 1, copies of write entries under other identifiers 0, deletion records: the plugin's own 10, made elsewhere 0, versions of another database 0
+  authority fpA: in service  ['KPG 2026-01-01 00:00:00 authority']
+  client c4: admitted  [record in: 'KPG 2026-01-01 02:00:00 pairing']
+  rule on group U: default=deny;reader=list  [newest in: node 'KPG rule for this group', 'KPG 2026-01-01 02:00:00 rule', 'KPG 2026-01-01 02:00:00 rule (second copy)']  (versions 2)
+  rule on entry X@U: default=inherit;reader=read  [newest in: node 'X' history]  (versions 2)
+## H5, KeePassLib Synchronize, intoB: the design's rule (history read only when the node's copy is newest and no write entry holds it)
+# result.kdbx kdbx 4.0
+  (design's history rule) node 398205E5: history READ
+  (design's history rule) node 363647E2: history not read
+  write entries 4 (version fields 4), markers 1, copies of write entries under other identifiers 0, deletion records: the plugin's own 10, made elsewhere 0, versions of another database 0
+  authority fpA: in service  ['KPG 2026-01-01 00:00:00 authority']
+  client c4: admitted  [record in: 'KPG 2026-01-01 02:00:00 pairing']
+  rule on group U: default=deny;reader=list  [newest in: node 'KPG rule for this group', 'KPG 2026-01-01 02:00:00 rule', 'KPG 2026-01-01 02:00:00 rule (second copy)']  (versions 1)
+  rule on entry X@U: default=inherit;reader=read  [newest in: node 'X' history]  (versions 2)
+
+## H5, KeePassLib OverwriteIfNewer, intoB: the probe's fold (history always read)
+# result.kdbx kdbx 4.0
+  write entries 8 (version fields 9), markers 1, copies of write entries under other identifiers 0, deletion records: the plugin's own 2, made elsewhere 0, versions of another database 0
+  authority fpA: in service  ['KPG 2026-01-01 00:00:00 authority']
+  client c1: admitted  [record in: 'KPG 2026-01-01 00:00:00 pairing']
+  client c2: admitted  [record in: 'KPG 2026-01-01 00:00:00 pairing']
+  client c4: admitted  [record in: 'KPG 2026-01-01 02:00:00 pairing']
+  profile reader: on the list  (additions 1, removals 0)
+  rule on group U: default=deny;reader=list  [newest in: node 'KPG rule for this group', 'KPG 2026-01-01 02:00:00 rule', 'KPG 2026-01-01 02:00:00 rule (second copy)']  (versions 2)
+  rule on entry X@U: default=inherit;reader=read  [newest in: node 'X' history]  (versions 2)
+## H5, KeePassLib OverwriteIfNewer, intoB: the design's rule (history read only when the node's copy is newest and no write entry holds it)
+# result.kdbx kdbx 4.0
+  (design's history rule) node 398205E5: history not read
+  (design's history rule) node 363647E2: history not read
+  write entries 8 (version fields 9), markers 1, copies of write entries under other identifiers 0, deletion records: the plugin's own 2, made elsewhere 0, versions of another database 0
+  authority fpA: in service  ['KPG 2026-01-01 00:00:00 authority']
+  client c1: admitted  [record in: 'KPG 2026-01-01 00:00:00 pairing']
+  client c2: admitted  [record in: 'KPG 2026-01-01 00:00:00 pairing']
+  client c4: admitted  [record in: 'KPG 2026-01-01 02:00:00 pairing']
+  profile reader: on the list  (additions 1, removals 0)
+  rule on group U: default=deny;reader=list  [newest in: node 'KPG rule for this group', 'KPG 2026-01-01 02:00:00 rule', 'KPG 2026-01-01 02:00:00 rule (second copy)']  (versions 1)
+  rule on entry X@U: default=inherit;reader=read,list,update  [newest in: node 'X', 'KPG 2026-01-01 00:00:00 rule', 'KPG 2026-01-01 00:00:00 rule (second copy)']  (versions 1)
+
+## H5, KeePassLib OverwriteExisting, intoB: the probe's fold (history always read)
+# result.kdbx kdbx 4.0
+  write entries 8 (version fields 9), markers 1, copies of write entries under other identifiers 0, deletion records: the plugin's own 2, made elsewhere 0, versions of another database 0
+  authority fpA: in service  ['KPG 2026-01-01 00:00:00 authority']
+  client c1: admitted  [record in: 'KPG 2026-01-01 00:00:00 pairing']
+  client c2: admitted  [record in: 'KPG 2026-01-01 00:00:00 pairing']
+  client c4: admitted  [record in: 'KPG 2026-01-01 02:00:00 pairing']
+  profile reader: on the list  (additions 1, removals 0)
+  rule on group U: default=deny;reader=list  [newest in: node 'KPG rule for this group' history, 'KPG 2026-01-01 02:00:00 rule', 'KPG 2026-01-01 02:00:00 rule (second copy)']  (versions 2)
+  rule on entry X@U: default=inherit;reader=read  [newest in: node 'X']  (versions 2)
+## H5, KeePassLib OverwriteExisting, intoB: the design's rule (history read only when the node's copy is newest and no write entry holds it)
+# result.kdbx kdbx 4.0
+  (design's history rule) node 398205E5: history READ
+  (design's history rule) node 363647E2: history not read
+  write entries 8 (version fields 9), markers 1, copies of write entries under other identifiers 0, deletion records: the plugin's own 2, made elsewhere 0, versions of another database 0
+  authority fpA: in service  ['KPG 2026-01-01 00:00:00 authority']
+  client c1: admitted  [record in: 'KPG 2026-01-01 00:00:00 pairing']
+  client c2: admitted  [record in: 'KPG 2026-01-01 00:00:00 pairing']
+  client c4: admitted  [record in: 'KPG 2026-01-01 02:00:00 pairing']
+  profile reader: on the list  (additions 1, removals 0)
+  rule on group U: default=deny;reader=list  [newest in: 'KPG 2026-01-01 02:00:00 rule', 'KPG 2026-01-01 02:00:00 rule (second copy)']  (versions 2)
+  rule on entry X@U: default=inherit;reader=read  [newest in: node 'X']  (versions 2)
+
+## H5, KeePassLib KeepExisting, intoB: the probe's fold (history always read)
+# result.kdbx kdbx 4.0
+  write entries 8 (version fields 9), markers 1, copies of write entries under other identifiers 0, deletion records: the plugin's own 2, made elsewhere 0, versions of another database 0
+  authority fpA: in service  ['KPG 2026-01-01 00:00:00 authority']
+  client c1: admitted  [record in: 'KPG 2026-01-01 00:00:00 pairing']
+  client c2: admitted  [record in: 'KPG 2026-01-01 00:00:00 pairing']
+  client c4: admitted  [record in: 'KPG 2026-01-01 02:00:00 pairing']
+  profile reader: on the list  (additions 1, removals 0)
+  rule on group U: default=deny;reader=list  [newest in: node 'KPG rule for this group', 'KPG 2026-01-01 02:00:00 rule', 'KPG 2026-01-01 02:00:00 rule (second copy)']  (versions 2)
+  rule on entry X@U: default=inherit;reader=read  [newest in: node 'X' history]  (versions 2)
+## H5, KeePassLib KeepExisting, intoB: the design's rule (history read only when the node's copy is newest and no write entry holds it)
+# result.kdbx kdbx 4.0
+  (design's history rule) node 398205E5: history not read
+  (design's history rule) node 363647E2: history not read
+  write entries 8 (version fields 9), markers 1, copies of write entries under other identifiers 0, deletion records: the plugin's own 2, made elsewhere 0, versions of another database 0
+  authority fpA: in service  ['KPG 2026-01-01 00:00:00 authority']
+  client c1: admitted  [record in: 'KPG 2026-01-01 00:00:00 pairing']
+  client c2: admitted  [record in: 'KPG 2026-01-01 00:00:00 pairing']
+  client c4: admitted  [record in: 'KPG 2026-01-01 02:00:00 pairing']
+  profile reader: on the list  (additions 1, removals 0)
+  rule on group U: default=deny;reader=list  [newest in: node 'KPG rule for this group', 'KPG 2026-01-01 02:00:00 rule', 'KPG 2026-01-01 02:00:00 rule (second copy)']  (versions 1)
+  rule on entry X@U: default=inherit;reader=read,list,update  [newest in: node 'X', 'KPG 2026-01-01 00:00:00 rule', 'KPG 2026-01-01 00:00:00 rule (second copy)']  (versions 1)
+
+## H5, keepassxc-cli 2.4.2, intoB: the probe's fold (history always read)
+# target.kdbx kdbx 4.0
+  write entries 8 (version fields 9), markers 1, copies of write entries under other identifiers 0, deletion records: the plugin's own 2, made elsewhere 0, versions of another database 0
+  authority fpA: in service  ['KPG 2026-01-01 00:00:00 authority']
+  client c1: admitted  [record in: 'KPG 2026-01-01 00:00:00 pairing']
+  client c2: admitted  [record in: 'KPG 2026-01-01 00:00:00 pairing']
+  client c4: admitted  [record in: 'KPG 2026-01-01 02:00:00 pairing']
+  profile reader: on the list  (additions 1, removals 0)
+  rule on group U: default=deny;reader=list  [newest in: node 'KPG rule for this group', 'KPG 2026-01-01 02:00:00 rule', 'KPG 2026-01-01 02:00:00 rule (second copy)']  (versions 2)
+  rule on entry X@U: default=inherit;reader=read  [newest in: node 'X' history]  (versions 2)
+## H5, keepassxc-cli 2.4.2, intoB: the design's rule
+# target.kdbx kdbx 4.0
+  (design's history rule) node 398205E5: history not read
+  (design's history rule) node 363647E2: history not read
+  write entries 8 (version fields 9), markers 1, copies of write entries under other identifiers 0, deletion records: the plugin's own 2, made elsewhere 0, versions of another database 0
+  authority fpA: in service  ['KPG 2026-01-01 00:00:00 authority']
+  client c1: admitted  [record in: 'KPG 2026-01-01 00:00:00 pairing']
+  client c2: admitted  [record in: 'KPG 2026-01-01 00:00:00 pairing']
+  client c4: admitted  [record in: 'KPG 2026-01-01 02:00:00 pairing']
+  profile reader: on the list  (additions 1, removals 0)
+  rule on group U: default=deny;reader=list  [newest in: node 'KPG rule for this group', 'KPG 2026-01-01 02:00:00 rule', 'KPG 2026-01-01 02:00:00 rule (second copy)']  (versions 1)
+  rule on entry X@U: default=inherit;reader=read,list,update  [newest in: node 'X', 'KPG 2026-01-01 00:00:00 rule', 'KPG 2026-01-01 00:00:00 rule (second copy)']  (versions 1)
+
+## H5, keepassxc-cli 2.8.0, intoB: the probe's fold (history always read)
+# target.kdbx kdbx 4.0
+  write entries 8 (version fields 9), markers 1, copies of write entries under other identifiers 0, deletion records: the plugin's own 2, made elsewhere 0, versions of another database 0
+  authority fpA: in service  ['KPG 2026-01-01 00:00:00 authority']
+  client c1: admitted  [record in: 'KPG 2026-01-01 00:00:00 pairing']
+  client c2: admitted  [record in: 'KPG 2026-01-01 00:00:00 pairing']
+  client c4: admitted  [record in: 'KPG 2026-01-01 02:00:00 pairing']
+  profile reader: on the list  (additions 1, removals 0)
+  rule on group U: default=deny;reader=list  [newest in: node 'KPG rule for this group', 'KPG 2026-01-01 02:00:00 rule', 'KPG 2026-01-01 02:00:00 rule (second copy)']  (versions 2)
+  rule on entry X@U: default=inherit;reader=read  [newest in: node 'X' history]  (versions 2)
+## H5, keepassxc-cli 2.8.0, intoB: the design's rule
+# target.kdbx kdbx 4.0
+  (design's history rule) node 398205E5: history not read
+  (design's history rule) node 363647E2: history not read
+  write entries 8 (version fields 9), markers 1, copies of write entries under other identifiers 0, deletion records: the plugin's own 2, made elsewhere 0, versions of another database 0
+  authority fpA: in service  ['KPG 2026-01-01 00:00:00 authority']
+  client c1: admitted  [record in: 'KPG 2026-01-01 00:00:00 pairing']
+  client c2: admitted  [record in: 'KPG 2026-01-01 00:00:00 pairing']
+  client c4: admitted  [record in: 'KPG 2026-01-01 02:00:00 pairing']
+  profile reader: on the list  (additions 1, removals 0)
+  rule on group U: default=deny;reader=list  [newest in: node 'KPG rule for this group', 'KPG 2026-01-01 02:00:00 rule', 'KPG 2026-01-01 02:00:00 rule (second copy)']  (versions 1)
+  rule on entry X@U: default=inherit;reader=read,list,update  [newest in: node 'X', 'KPG 2026-01-01 00:00:00 rule', 'KPG 2026-01-01 00:00:00 rule (second copy)']  (versions 1)

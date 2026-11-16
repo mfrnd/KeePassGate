@@ -1,0 +1,6 @@
+extendTitle=True: copy group custom data KPG={"default":"deny"}; copy marker title='KPG rule for this group - Copy'; copy marker KPG.GroupRule names original=True; copy marker lastmod equals original=True
+  Delete Duplicate Entries deleted 0; original marker kept=True; copy marker kept=True; deletion records=0
+extendTitle=False: copy group custom data KPG={"default":"deny"}; copy marker title='KPG rule for this group'; copy marker KPG.GroupRule names original=True; copy marker lastmod equals original=True
+  Delete Duplicate Entries deleted 2; original marker kept=False; copy marker kept=True; deletion records=2
+entry Duplicate: copy custom data KPG={"default":"deny"}; copy KPG.Rule names original=True; copy has its own UUID=True
+KeePassLib 2.62
