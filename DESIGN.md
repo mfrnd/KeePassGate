@@ -1582,10 +1582,32 @@ So the rules here:
   transport closes a connection that takes more than `GateOptions.Budget`, and phase 4 exceeds that
   by design because it is waiting on a person rather than on the wire. Closing the socket there does
   not cancel anything: the invitation is still spent and the record still saved, and only the answer
-  is lost. `GateOptions.PairingBudget` covers the whole of what a pairing waits for, and a test pins
-  it against the five waits it has to outlast: the screen, because one pairing is put to the
-  operator at a time and a second waits as long again just to get in front of them, then the dialog,
-  the grace on it, the turn at the writer and the write.
+  is lost. `GateOptions.PairingBudget` covers the whole of what a pairing waits for: the screen,
+  because one pairing is put to the operator at a time and a second waits as long again just to get
+  in front of them, then its turn on KeePass's thread, the dialog, the grace on it, a busy KeePass
+  settling, the turn at the writer and the write.
+
+  **A dialog that comes up late is given only what is left of that budget**, which reverses a
+  decision rather than refining it. The sum used to count the dialog as two minutes and the grace,
+  while the dialog's own countdown starts when the dialog is built, and a request that waited its
+  two minutes for the screen and then for its turn, which the prompt allows two minutes and the
+  grace as well, still gave the operator the whole of their two minutes, on purpose. The worst case
+  came to 427 seconds against the 360 the connection is given, and the deadline then closed the
+  socket under the write: the invitation spent and the record saved, with no certificate handed
+  back. The operator's ruling of 2026-11-16 keeps the budget and shortens the dialog instead. Each
+  dialog is given the operator's two minutes or what is left of the budget, counted from when the
+  request arrived, less what follows the dialog as the budget adds it up, whichever is less: the
+  grace of fifteen seconds, the two a busy KeePass is given to settle, and the twenty and thirty of
+  the turn at the writer and the write, sixty-seven seconds in all. The countdown on the dialog
+  starts from the shorter time, so the operator is shown how long they have.
+
+  **And a dialog left less than thirty seconds is not shown**: the request is answered `503 busy`
+  with nothing spent, as a request that never got the screen is. Thirty seconds is enough to read
+  the request once and press a button, which a dialog that flashed up and closed again is not. It is
+  also under the thirty-eight seconds a dialog has left when it comes up as late as the waits above
+  allow, two minutes for the screen and two minutes and the grace for the turn, so the floor never
+  turns away a request those waits alone delayed; what it turns away is a request that lost time
+  before it reached the screen as well. `GateOptionsTests` pins that relation.
 
   **And the ordinary budget stops at the end of the request**, which is the half that was got wrong
   while pairing was being counted. A connection's deadline is dropped the moment the whole request

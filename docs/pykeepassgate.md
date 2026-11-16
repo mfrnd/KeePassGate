@@ -1126,10 +1126,10 @@ on, and one that goes on answering, however slowly, is not: a program that needs
 whole call puts one around the call. Given for one call, it bounds that call's waits, and the
 status route a client asks before its first request waits the client's own, since it waits on
 nothing. **A refusal is not always quick either**: a pairing's or a renewal's `503 busy` comes
-after the gate waited up to two minutes for the screen, and a write's after up to twenty seconds
-for its turn, so a busy budget of ten seconds can hold a pairing for six attempts of up to two
-minutes each, the first and five more; the budget counts only the pauses between them, two
-seconds each.
+after the gate waited up to two minutes for the screen and two and a quarter more for KeePass to
+put the dialog up, and a write's after up to twenty seconds for its turn, so a busy budget of ten
+seconds can hold a pairing for six attempts of up to four and a quarter minutes each, the first and
+five more; the budget counts only the pauses between them, two seconds each.
 
 **A setting that cannot work is refused where it is given**, with a `ValueError` naming it, before
 anything is dialed or stored: a budget that is neither `None` nor a finite number of seconds from

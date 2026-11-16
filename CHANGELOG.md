@@ -74,6 +74,15 @@ none, since it releases both.
   looked the same. The authority chooser's list of clients names each client and its profiles
   whole in the row's tooltip, where it showed no tooltip and a name its columns cut was shown
   nowhere.
+- **A pairing or renewal dialog that comes up late is given only what is left of the six minutes
+  its connection has, and is not shown with under thirty seconds left.** A dialog waits behind
+  another on the screen and for KeePass to show it, and used to give the operator the whole of its
+  two minutes however late it came up, which could take the exchange to about seven minutes. The
+  gate closes the connection at six, so an approval given that late was written and saved, the
+  invitation spent, with no certificate handed back. The countdown on the dialog now starts from the
+  time left once the write after it is allowed for, when that is under two minutes, and a request
+  with under thirty seconds left is answered `503 busy` with nothing spent, as a request that never
+  got the screen is. `DESIGN.md` §119.
 - **The plugin is built against KeePass 2.62 and needs that release or a later release.** It
   was built against 2.61.1. A plugin loads in the KeePass it was built against and in every
   later release, since a KeePass redirects every earlier version to itself, and in no earlier
