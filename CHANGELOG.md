@@ -1207,6 +1207,11 @@ none, since it releases both.
   documentation stated that the certificates a program renewed out of gave it nothing more. They
   give it one more allowance between them, however many it kept, so a client flooding on both
   pushes a line out of both files in about a quarter of an hour rather than half an hour.
+- **The design states when a lingering close still loses an answer**: the two seconds of quiet
+  are counted from the gate's last write, so a client still reading a large answer that sends
+  anything after them meets a reset and loses what it had not read. The design claimed every
+  answer survived whatever the client sent after its request. A TLS and a TCP half close after
+  the request, and a client that reads and stays open, are now tested against the gate.
 
 ## 0.1.0, 2026-10-25
 
