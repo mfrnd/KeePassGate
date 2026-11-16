@@ -862,8 +862,7 @@ namespace KeePassGate.Ui
                     _profiles.Describe();
                 }
 
-                _notice.Text = InviteNotice();
-                _notice.Visible = _notice.Text.Length > 0;
+                ShowNotice(OutstandingCodes(DateTimeOffset.UtcNow).Any);
             }
             catch (Exception error) when (Expected.OfUserInterface(error) || Expected.OfCustomData(error))
             {
@@ -881,8 +880,14 @@ namespace KeePassGate.Ui
         /// sentence anywhere on the tab about it leaves the operator nothing to act on.
         ///
         /// The authority comes first, because it is the one that stops a code resolving at all.
+        ///
+        /// **A profile edit over a code still out is worded for that code.** The edit takes back
+        /// the code made on this dialog, and a code from an accepted dialog stays good, so whatever
+        /// is still out is the second kind, and a program can pair with it before OK. Telling the
+        /// operator to press OK and reopen the dialog to pair, over that code's countdown, denied
+        /// a pairing that could happen at once.
         /// </remarks>
-        private string InviteNotice()
+        private string InviteNotice(bool codeOut)
         {
             // Against what the dialog is holding, as `_offered` was read: a change that leaves an
             // authority is one to pair with once OK has landed it, and a delete is not.
@@ -891,7 +896,23 @@ namespace KeePassGate.Ui
                 return _offered == null ? GateTab.PendingDeleteNotice : GateTab.PendingAuthorityNotice;
             }
 
-            return ProfilesAreWaiting ? GateTab.PendingProfilesNotice : string.Empty;
+            if (!ProfilesAreWaiting)
+            {
+                return string.Empty;
+            }
+
+            return codeOut ? GateTab.PendingProfilesCodeOutNotice : GateTab.PendingProfilesNotice;
+        }
+
+        /// <summary>Puts the band over the invite button up to date, and hides it when empty.</summary>
+        /// <remarks>
+        /// Also from <see cref="ShowOutstanding"/>, because which sentence a profile edit gets
+        /// turns on whether a code is out, and that changes on the clock as well as on a redraw.
+        /// </remarks>
+        private void ShowNotice(bool codeOut)
+        {
+            _notice.Text = InviteNotice(codeOut);
+            _notice.Visible = _notice.Text.Length > 0;
         }
 
         /// <summary>
@@ -1020,6 +1041,7 @@ namespace KeePassGate.Ui
             // did nothing at all, said nothing, and looked exactly like a clipboard failure.
             _copy.Enabled = !string.IsNullOrEmpty(_token.Text);
 
+            ShowNotice(outstanding.Any);
             Schedule(outstanding);
         }
 

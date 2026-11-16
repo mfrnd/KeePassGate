@@ -1178,6 +1178,10 @@ none, since it releases both.
   identity while its files are written over. Each directory it makes is flushed into the
   directory above, and each directory it writes an identity into once the files are in it; a
   directory that cannot be flushed is a `StorageError`. Windows is unchanged.
+- **A profile edit on the KPG tab over a code kept by an earlier OK states that the code still
+  pairs.** The edit takes back only the code made on the dialog, so a code from an accepted dialog
+  stays good, and the band over the invite button told the operator to press OK and reopen the
+  dialog to pair while a program could pair with that code at once.
 
 ## 0.1.0, 2026-10-25
 

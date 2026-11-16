@@ -63,8 +63,9 @@ back sooner, open the dialog, press **Renew invite** and then **Cancel**: the ol
 when it is replaced, and Cancel takes back the new code. Adding or removing a profile on the
 **Profiles** page takes back a code made on the dialog too, since the list a program would be
 approved against is about to change, and a new code waits for **OK** and the dialog opened again. A
-code a program has already used stays used, and the client it admitted is taken back by revoking
-it.
+code kept by an earlier **OK** is not the edit's to take back: it still pairs, and the page states
+so over the invite button. A code a program has already used stays used, and the client it admitted
+is taken back by revoking it.
 
 **Send it over a second channel.** Whoever holds the code may ask to pair, and the answer to the
 dialog below is the only thing standing there.
