@@ -84,8 +84,8 @@ namespace KeePassGate.Ui
 
         /// <summary>
         /// Writes the answers still owed to the log and, unless Windows is ending the session, puts
-        /// them in front of the operator. Nothing at all when nothing is owed, or when this has
-        /// told it already.
+        /// them in front of the operator with KeePass's main window hidden. Nothing at all when
+        /// nothing is owed, or when this has told it already.
         /// </summary>
         public void Tell(IGateLog log)
         {
@@ -109,6 +109,7 @@ namespace KeePassGate.Ui
 
             if (!SessionEnding)
             {
+                HideWindow();
                 _prompt.Tell(GateName.Full, OwedAnswerNotice.Message(owed));
             }
         }
@@ -119,6 +120,25 @@ namespace KeePassGate.Ui
             {
                 _window.FormClosing -= OnClosing;
                 _window = null;
+            }
+        }
+
+        /// <summary>
+        /// Takes KeePass's main window off the screen before the box goes up, when it is there.
+        /// </summary>
+        /// <remarks>
+        /// KeePass hides it itself straight after unloading its plugins, and this is that step
+        /// taken earlier. Until then the window still lists the closed database's groups and
+        /// entries: an exit closes the databases without redrawing, and with no database open no
+        /// inactivity lock clears it, so a box left unanswered would keep the listing on the
+        /// screen of a desk the operator has left. Hidden, the box has no window to be owned by
+        /// and stands alone, as it does for a KeePass minimized or in the tray.
+        /// </remarks>
+        private void HideWindow()
+        {
+            if (_window != null && !_window.IsDisposed && _window.Visible)
+            {
+                _window.Hide();
             }
         }
 

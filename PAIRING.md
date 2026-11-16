@@ -698,9 +698,12 @@ dialog:
   An answer that no save has taken when KeePass exits goes with it, and the operator is told so on
   the way out rather than only in the log, except at a Windows logoff or shutdown, where a message
   would hold the session's end up with nobody there to answer it and the log is all there is, which
-  is the operator's ruling of 2026-11-08. It is written only while the key still holds what it held
-  when the answer was given, and while the answer still refuses, so an answer written there since,
-  on a later dialog or by a synchronize, is the later word.
+  is the operator's ruling of 2026-11-08. KeePass's main window is hidden before that message goes
+  up, because an exit closes the databases without redrawing it, and the window would otherwise go
+  on listing the closed database's groups and entries for as long as the message waits. It is
+  written only while the key still holds what it held when the answer was given, and while the
+  answer still refuses, so an answer written there since, on a later dialog or by a synchronize, is
+  the later word.
 
 **The operator can take any of the three back**, which is the operator's ruling on review 3: on the
 clients page a client with a standing answer has its name in red, the row's tooltip and its

@@ -48,6 +48,44 @@ namespace KeePassGate.Tests
         }
 
         [Test]
+        public void The_box_stands_without_the_main_window_behind_it()
+        {
+            // KeePass has closed its databases by now and not redrawn, so its window still lists
+            // the closed database's groups and entries until it hides itself after the plugins.
+            using (var window = OffScreenForm.New())
+            {
+                window.Show();
+                var prompt = new WindowPrompt(window);
+                using (var notice = new OwedAnswersAtExit(Owing, prompt))
+                {
+                    notice.Watch(window);
+                    notice.OnClosing(null, new FormClosingEventArgs(CloseReason.UserClosing, false));
+                    notice.Tell(new RecordingGateLog());
+
+                    Assert.That(prompt.Told, Is.True);
+                    Assert.That(prompt.WindowVisible, Is.False, "the box stood over KeePass's main window");
+                }
+            }
+        }
+
+        [Test]
+        public void A_windows_logoff_leaves_the_main_window_alone()
+        {
+            using (var window = OffScreenForm.New())
+            {
+                window.Show();
+                using (var notice = new OwedAnswersAtExit(Owing, new FakePrompt(true)))
+                {
+                    notice.Watch(window);
+                    notice.OnClosing(null, new FormClosingEventArgs(CloseReason.WindowsShutDown, false));
+                    notice.Tell(new RecordingGateLog());
+
+                    Assert.That(window.Visible, Is.True);
+                }
+            }
+        }
+
+        [Test]
         public void A_windows_logoff_writes_what_is_owed_to_the_log_alone()
         {
             var prompt = new FakePrompt(true);
@@ -146,6 +184,32 @@ namespace KeePassGate.Tests
         private static IReadOnlyList<OwedAnswer> Owing()
         {
             return new[] { new OwedAnswer(Database, Certificate, RenewalRefusal.Forever(), null) };
+        }
+
+        /// <summary>A prompt that notes whether the window was on screen when it was told.</summary>
+        private sealed class WindowPrompt : IOperatorPrompt
+        {
+            private readonly Form _window;
+
+            public WindowPrompt(Form window)
+            {
+                _window = window;
+            }
+
+            public bool Told { get; private set; }
+
+            public bool WindowVisible { get; private set; }
+
+            public bool Confirm(string title, string question)
+            {
+                return false;
+            }
+
+            public void Tell(string title, string news)
+            {
+                Told = true;
+                WindowVisible = _window.Visible;
+            }
         }
 
         private sealed class CountingPrompt : IOperatorPrompt

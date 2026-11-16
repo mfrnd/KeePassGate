@@ -1166,6 +1166,12 @@ none, since it releases both.
   client it admitted, so the recovery from an authority no longer trusted now names recreating or
   deleting the authority in such a copy as well. An empty mask grants a profile nothing from there
   down only until a nearer rule below names the profile again.
+- **KeePass's main window is hidden before the plugin tells of a standing answer lost at exit.**
+  File, Exit closes the databases without redrawing the window, and the box naming a refusal of
+  a renewal that no save took went up over it, so the window went on listing the closed
+  database's groups and entries, titles, user names and URLs among them, until somebody pressed
+  OK. With no database open, no inactivity lock cleared it. KeePass hides the window itself right
+  after its plugins unload, and the plugin now takes that step before the box goes up.
 
 ## 0.1.0, 2026-10-25
 

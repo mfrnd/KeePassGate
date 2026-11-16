@@ -279,6 +279,12 @@ refused once: the one end to end test of Allow renewal. After that the client gi
 certificate up by presenting it and is refused with it, and once KeePass has gone the file holds the
 new record and not the old one.
 
+**A standing answer lost at exit**, in `LiveOwedAnswerAtExitTests`. A renewal is refused forever
+while the database's file has been saved again from outside, so the answer holds from memory, and
+KeePass is then closed by File, Exit. The box naming the lost answer comes up with KeePass's main
+window already off the screen, which only the real window can show: an exit closes the databases
+without redrawing it, so the window behind the box would still list the closed database.
+
 **The authority chooser**, in `LiveAuthorityChooserTests`: two copies of one database each replace
 the authority they share and admit a client of their own, the copy KeePass opens is merged with the
 other through File, Synchronize, and the dialog that raises is answered through its own buttons. It
