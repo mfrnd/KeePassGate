@@ -922,6 +922,10 @@ namespace KeePassGate
             // The standing answers the operator gave while a database could not take them, which
             // every save of that database writes as well, whoever asks for it.
             writer.Owed = _sessionRefusals;
+
+            // The look for a merge that the queue takes before a turn, for the write that takes
+            // no turn: the answer to which authority to keep, and the question that waits on it.
+            writer.Merging = merging;
             _owedAnswerSaves = new OwedAnswerSaves(mainWindow, writer, _incidents);
             _owedAnswerSaves.Start();
 

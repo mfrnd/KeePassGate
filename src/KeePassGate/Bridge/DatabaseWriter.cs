@@ -483,12 +483,25 @@ namespace KeePassGate.Bridge
         /// and the dialog watch is what sees windows, so `GroupDialogs.Working` is asked after the
         /// seam.
         ///
+        /// **And a merge another plugin runs announces itself in none of them**, so the thread's
+        /// own stack is asked first, <see cref="Merging"/>. A queued write never meets a merge,
+        /// since a turn starts outside it. The write that takes no turn does: the operator's
+        /// answer to which authority to keep, <see cref="Keep"/>, written from a post or a
+        /// timer's tick on KeePass's own thread, which the pump of a merge's status logger
+        /// delivers inside the merge, and the chooser's question, which waits on this answer.
+        ///
         /// **A question that cannot be answered refuses**, like every other guard in this class.
         /// A write is worth losing; a client told its write landed when the operator's import
         /// took it back is not.
         /// </remarks>
         private string Interrupting()
         {
+            var merging = Merging;
+            if (merging != null && merging())
+            {
+                return "KeePass is merging another database into this database";
+            }
+
             if (_busy != null)
             {
                 try
@@ -1652,6 +1665,16 @@ namespace KeePassGate.Bridge
         /// tests build writers with nothing owed. `SessionRefusals` is the one there is.
         /// </remarks>
         public IOwedAnswers Owed { get; set; }
+
+        /// <summary>
+        /// Whether the calling thread is inside a merge KeePass is running, which is
+        /// `MergeWatch.Over` for KeePass's own merge method, or null where there is nothing to ask.
+        /// </summary>
+        /// <remarks>
+        /// Settable for the reason <see cref="Owed"/> is. It is the question `ControlUiThread`
+        /// asks before it serves a turn, asked here for the write that takes none.
+        /// </remarks>
+        public Func<bool> Merging { get; set; }
 
         /// <summary>
         /// Writes every standing answer owed to this database into it, and says what it wrote and

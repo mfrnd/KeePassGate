@@ -649,6 +649,50 @@ namespace KeePassGate.Host.Tests
         }
 
         [Test]
+        public void A_merge_is_waited_for_rather_than_asked_inside()
+        {
+            // A merge another plugin runs pumps from its status logger and raises neither of
+            // KeePass's signals nor its progress window. The round waiting was delivered there,
+            // the question was put over a tree half merged, and the answer was written inside
+            // the merge that could have been bringing another copy's.
+            _writer.Merging = KeePassMerges.Watch();
+            Assume.That((object)_writer.Merging, Is.Not.Null, "this KeePass has no merge to look for");
+            _answer = _candidates[0];
+
+            var rounds = Merged(() => _chooser.AskAll());
+
+            Assert.That(rounds, Is.GreaterThan(0), "the merge came back to its logger, where it pumps");
+            Assert.That(_asked, Is.Zero, "nobody is asked inside a merge");
+            Assert.That(_database.Database.CustomData.Exists(AuthorityKeys.RetirementKey(_candidates[1])), Is.False);
+
+            // The round a moment later, with the merge over.
+            _chooser.AskAll();
+
+            Assert.That(_asked, Is.EqualTo(1));
+            Assert.That(_database.Database.CustomData.Exists(AuthorityKeys.RetirementKey(_candidates[1])), Is.True);
+        }
+
+        [Test]
+        public void The_writer_refuses_to_keep_inside_a_merge()
+        {
+            // The chooser's retries are timer ticks, which a merge's pump delivers as it does a
+            // round, and this write takes no turn that would keep it out.
+            _writer.Merging = KeePassMerges.Watch();
+            Assume.That((object)_writer.Merging, Is.Not.Null, "this KeePass has no merge to look for");
+
+            var answers = new List<AuthorityChange>();
+            Merged(() => answers.Add(_writer.Keep(_database.Database, _candidates[0], _candidates)));
+
+            Assert.That(answers, Is.Not.Empty);
+            Assert.That(answers.Select(kept => kept.Succeeded), Has.All.False);
+            Assert.That(answers.Select(kept => kept.Message), Has.All.Contains("merging"));
+            Assert.That(_database.Database.CustomData.Exists(AuthorityKeys.RetirementKey(_candidates[1])), Is.False);
+
+            Assert.That(_writer.Keep(_database.Database, _candidates[0], _candidates).Succeeded, Is.True,
+                "and takes the same answer once the merge is over");
+        }
+
+        [Test]
         public void The_writer_refuses_to_keep_while_KeePass_is_part_way_through_something()
         {
             var writer = new DatabaseWriter(
@@ -851,6 +895,76 @@ namespace KeePassGate.Host.Tests
 
             _candidates = _candidates.Concat(new[] { third }).ToArray();
             return third;
+        }
+
+        /// <summary>
+        /// Merges another copy into the database with KeePass's own merge, doing something
+        /// wherever the merge comes back to its status logger, which is where a merge pumps.
+        /// Answers with how often it came back.
+        /// </summary>
+        private int Merged(Action inside)
+        {
+            using (var elsewhere = TemporaryDatabase.New())
+            {
+                // A copy of the same database, as KeePass matches them, with entries of its own
+                // for the merge to bring.
+                elsewhere.Database.RootGroup.Uuid = _database.Database.RootGroup.Uuid;
+                for (var i = 0; i < 20; i++)
+                {
+                    var entry = new PwEntry(true, true);
+                    entry.Strings.Set(
+                        PwDefs.TitleField, new KeePassLib.Security.ProtectedString(false, "an invented service " + i));
+                    elsewhere.Database.RootGroup.AddEntry(entry, true);
+                }
+
+                var calls = 0;
+                _database.Database.MergeIn(
+                    elsewhere.Database,
+                    PwMergeMethod.Synchronize,
+                    new Calling(() =>
+                    {
+                        calls++;
+                        inside();
+                    }));
+                return calls;
+            }
+        }
+
+        /// <summary>A status logger that does one thing wherever the merge comes back to it.</summary>
+        private sealed class Calling : KeePassLib.Interfaces.IStatusLogger
+        {
+            private readonly Action _called;
+
+            public Calling(Action called)
+            {
+                _called = called;
+            }
+
+            public void StartLogging(string strOperation, bool bWriteOperationToLog)
+            {
+            }
+
+            public void EndLogging()
+            {
+            }
+
+            public bool SetProgress(uint uPercent)
+            {
+                _called();
+                return true;
+            }
+
+            public bool SetText(string strNewText, KeePassLib.Interfaces.LogStatusType lsType)
+            {
+                _called();
+                return true;
+            }
+
+            public bool ContinueWork()
+            {
+                _called();
+                return true;
+            }
         }
 
         private sealed class NoEvents : IDatabaseEvents

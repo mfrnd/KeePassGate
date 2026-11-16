@@ -285,7 +285,10 @@ block, and KeePass uses it for a synchronize a trigger starts while the first da
 question was delivered there, over a synchronize that had not merged and with no main window on
 the screen, and its answer was refused for the progress window. So the question waits on the
 writer's own answer about KeePass, the progress window included, which is the answer the write is
-refused on, and the two cannot differ.
+refused on, and the two cannot differ. **That answer looks for a merge as well**, on the stack of
+KeePass's own thread, as the queue of turns does, `DESIGN.md` §119. A merge another plugin runs
+raises none of KeePass's signals and pumps as any merge does, and the answer to this question is
+the one write that takes no turn, so nothing else kept it, or the question, out of such a merge.
 
 **An answer retires nothing the dialog did not list.** KeePass raises a periodic trigger under a
 dialog the plugin does not register, so a synchronize can run while the dialog stands and bring an

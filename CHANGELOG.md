@@ -34,7 +34,9 @@ none, since it releases both.
   answer the plugin then refused because of the progress window, and gave up on with a message
   when the synchronize went on for a few seconds more. The window now waits on the same answer
   about KeePass that the write of its answer is refused on, so it opens once the synchronize is
-  over. `CA.md` §204.
+  over. That answer now covers a merge another KeePass plugin runs as well, which nothing of
+  KeePass's announces: the window does not open inside such a merge, and no answer is written
+  inside it. `CA.md` §204.
 - **The plugin is built against KeePass 2.62 and needs that release or a later release.** It
   was built against 2.61.1. A plugin loads in the KeePass it was built against and in every
   later release, since a KeePass redirects every earlier version to itself, and in no earlier
