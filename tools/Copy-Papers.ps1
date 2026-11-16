@@ -57,7 +57,11 @@
       the family's `scripts\`, `scripts\flows\` and `probe\overwrite\`. A path below the evidence
       that the record keeps, `base\`, `runs\`, `logs\` or `server\`, is left as written, since it
       holds below the record as it held below the evidence. `measured-android.md` keeps its
-      `android-evidence\` as written, which the family's `RUN.md` maps.
+      `android-evidence\` as written, which the family's `RUN.md` maps, and so do the reports of
+      the measurements made after the first draft: they were written with no path of the machine
+      in them, each naming its family on the branch, and the `desktop-evidence\` or
+      `android-evidence\` they name beside them is mapped by the `RUN.md` of that family or of
+      `spikes\storage\android`.
 
     **Then the wording, by a table of exact replacements per report.** The reports were written
     inside a working session, and in places they name a person where the evaluation means which
@@ -119,6 +123,13 @@ $options = @(
     'grant-only'
 )
 $grounds = @('inventory', 'measured', 'keepass', 'keepassxc', 'android', 'others')
+# The measurements made after the evaluation's first draft, each a report of its own. They name no
+# working directory: each names its family on the branch, or its evidence beside it, which the
+# family's `RUN.md` maps.
+$measuredLater = @(
+    'rollback-rule-models', 'desktop-windows', 'store-as-a-whole', 'kdbx-places', 'source-harness',
+    'keepassdx', 'edited-refusals', 'hide-and-lock', 'k2a-background'
+)
 
 # Each report, and where it goes. Renamed only where the directory it lands in already tells what
 # the old name did.
@@ -129,6 +140,9 @@ foreach ($key in $grounds) {
 $reports['measured-android.md'] = 'papers\ground\measured-android.md'
 $reports['measured-overwrite.md'] = 'papers\ground\measured-overwrite.md'
 $reports['measured-k2a-synchronize.md'] = 'papers\ground\measured-k2a-synchronize.md'
+foreach ($key in $measuredLater) {
+    $reports["measured-$key.md"] = "papers\ground\measured-$key.md"
+}
 foreach ($key in $options) {
     $reports["option-$key.md"] = "papers\options\$key\design.md"
     $reports["critique-$key-survival.md"] = "papers\options\$key\critique-survival.md"
