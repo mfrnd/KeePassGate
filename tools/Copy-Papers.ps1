@@ -128,7 +128,7 @@ $grounds = @('inventory', 'measured', 'keepass', 'keepassxc', 'android', 'others
 # family's `RUN.md` maps.
 $measuredLater = @(
     'rollback-rule-models', 'desktop-windows', 'store-as-a-whole', 'kdbx-places', 'source-harness',
-    'keepassdx', 'edited-refusals', 'hide-and-lock', 'k2a-background'
+    'keepassdx', 'edited-refusals', 'hide-and-lock', 'k2a-background', 'decided-store'
 )
 
 # Each report, and where it goes. Renamed only where the directory it lands in already tells what
