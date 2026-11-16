@@ -1,0 +1,70 @@
+# Item 1, chain G: group edits, one dialog and one autosave each, the file pulled after each.
+include kpdx-open.flow
+waitfor node_text@^G$ 20
+sleep 2
+set SEL ^G$
+log s01 rename G
+mark /sdcard/Download/${NAME}.kdbx
+include kpdx-sel-group.flow
+list
+appendto group_edit_name@.* -r
+tap ^OK$
+waitfor node_text@^G-r$ 30
+waitchange /sdcard/Download/${NAME}.kdbx 45
+pull ${OUT}/s01-rename.kdbx /sdcard/Download/${NAME}.kdbx
+set SEL ^G-r$
+log s02 notes of G
+mark /sdcard/Download/${NAME}.kdbx
+include kpdx-sel-group.flow
+appendto group_edit_note@.* -n
+tap ^OK$
+waitchange /sdcard/Download/${NAME}.kdbx 45
+pull ${OUT}/s02-notes.kdbx /sdcard/Download/${NAME}.kdbx
+log s03 icon of G
+mark /sdcard/Download/${NAME}.kdbx
+include kpdx-sel-group.flow
+tap group_edit_icon_button
+sleep 3
+tapxy 400 700
+sleep 1
+tap icon_picker_upload
+sleep 2
+waitfor group_edit_name 20
+tap ^OK$
+waitchange /sdcard/Download/${NAME}.kdbx 45
+pull ${OUT}/s03-icon.kdbx /sdcard/Download/${NAME}.kdbx
+log s04 tags of G
+mark /sdcard/Download/${NAME}.kdbx
+include kpdx-sel-group.flow
+sh input swipe 540 1500 540 700 800
+sleep 2
+list
+appendto group_tags_completion_view added,
+tap ^OK$
+waitchange /sdcard/Download/${NAME}.kdbx 45
+pull ${OUT}/s04-tags.kdbx /sdcard/Download/${NAME}.kdbx
+log s05 expiry of G
+mark /sdcard/Download/${NAME}.kdbx
+include kpdx-sel-group.flow
+tapuntil group_edit_expiration ^OK$ 20
+dialog
+list
+tap ^OK$
+sleep 2
+dialog
+maybe ^OK$ 4
+sleep 2
+list
+tap ^OK$
+waitchange /sdcard/Download/${NAME}.kdbx 45
+pull ${OUT}/s05-expiry.kdbx /sdcard/Download/${NAME}.kdbx
+log s06 rename the plugin's group KeePassGate
+mark /sdcard/Download/${NAME}.kdbx
+set SEL ^KeePassGate$
+include kpdx-sel-group.flow
+appendto group_edit_name@.* -r
+tap ^OK$
+waitfor node_text@^KeePassGate-r$ 30
+waitchange /sdcard/Download/${NAME}.kdbx 45
+pull ${OUT}/s06-rename-kg.kdbx /sdcard/Download/${NAME}.kdbx
+list

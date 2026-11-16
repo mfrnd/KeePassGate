@@ -1,0 +1,62 @@
+5d4
+< D NA 2026-11-01T18:00:00Z
+7d5
+< D NB 2026-11-01T18:00:00Z
+9d6
+< D NC 2026-11-01T18:00:00Z
+11c8
+< D count 10
+---
+> D count 7
+813c810
+< F groups 10 entries 38
+---
+> F groups 13 entries 38
+907a905,943
+> G NA children groups=1 entries=0
+> G NA flags icon=48 customIcon=- search=inherit autotype=inherit expanded=1 seq="" lastTop=-
+> G NA name "NA"
+> G NA notes ""
+> G NA parent Root (Storage probe)
+> G NA prev -
+> G NA t.accessed 2026-11-01T10:05:00Z
+> G NA t.created 2026-11-01T10:05:00Z
+> G NA t.expires 0 2026-11-01T10:00:00Z
+> G NA t.location 2026-11-01T10:05:00Z
+> G NA t.modified 2026-11-01T10:05:00Z
+> G NA tags []
+> G NA usage 0
+> G NB children groups=1 entries=0
+> G NB flags icon=48 customIcon=- search=inherit autotype=inherit expanded=1 seq="" lastTop=-
+> G NB name "NB"
+> G NB notes ""
+> G NB parent NA (NA)
+> G NB prev -
+> G NB t.accessed 2026-11-01T10:05:00Z
+> G NB t.created 2026-11-01T10:05:00Z
+> G NB t.expires 0 2026-11-01T10:00:00Z
+> G NB t.location 2026-11-01T10:05:00Z
+> G NB t.modified 2026-11-01T10:05:00Z
+> G NB tags []
+> G NB usage 0
+> G NC children groups=0 entries=0
+> G NC flags icon=48 customIcon=- search=inherit autotype=inherit expanded=1 seq="" lastTop=-
+> G NC name "NC"
+> G NC notes "changed after the deletion"
+> G NC parent NB (NB)
+> G NC prev -
+> G NC t.accessed 2026-11-01T10:05:00Z
+> G NC t.created 2026-11-01T10:05:00Z
+> G NC t.expires 0 2026-11-01T10:00:00Z
+> G NC t.location 2026-11-01T10:05:00Z
+> G NC t.modified 2026-11-01T19:00:00Z
+> G NC tags []
+> G NC usage 0
+934c970
+< G Root children groups=7 entries=0
+---
+> G Root children groups=8 entries=0
+940c976
+< G Root t.accessed 2026-11-01T10:00:00Z
+---
+> G Root t.accessed 2026-11-16T12:16:58Z

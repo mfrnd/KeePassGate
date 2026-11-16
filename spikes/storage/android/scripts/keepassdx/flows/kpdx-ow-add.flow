@@ -1,0 +1,11 @@
+# Item 3 helper: add an entry phone-${TAG} at the root through the entry editor; the external-change
+# dialog, wherever it shows, is logged and answered OK.
+mark /sdcard/Download/${NAME}.kdbx
+tapuntil add_button fab_add_entry 20
+tapuntil fab_add_entry (entry_edit_validate|modified.outside) 30
+ifthen modified.outside 6 kpdx-ow-dialog.flow
+waitfor entry_edit_validate 20
+type ^Title$ phone-ow
+tapuntil entry_edit_validate (add_button|modified.outside) 30
+ifthen modified.outside 6 kpdx-ow-dialog.flow
+waitchange /sdcard/Download/${NAME}.kdbx 45

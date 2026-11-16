@@ -1,0 +1,4 @@
+# Validate the entry editor (autosave writes the file) and wait for the group screen.
+tapuntil entry_edit_validate (add_button|modified.outside) 30
+ifthen modified.outside 4 kpdx-ow-dialog.flow
+waitchange /sdcard/Download/${NAME}.kdbx 45

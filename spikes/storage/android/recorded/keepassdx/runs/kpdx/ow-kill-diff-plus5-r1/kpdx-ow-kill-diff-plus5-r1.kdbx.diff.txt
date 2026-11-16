@@ -1,0 +1,231 @@
+5c5,7
+< D count 4
+---
+> D DRV2 2026-11-01T18:00:00Z
+> D X1 2026-11-01T18:00:00Z
+> D count 6
+402a405,419
+> E P1 H2026-11-01T10:20:00Z S Notes p=0 ""
+> E P1 H2026-11-01T10:20:00Z S Password p=1 "p1-old"
+> E P1 H2026-11-01T10:20:00Z S Title p=0 "P1"
+> E P1 H2026-11-01T10:20:00Z S URL p=0 ""
+> E P1 H2026-11-01T10:20:00Z S UserName p=0 "user-p1"
+> E P1 H2026-11-01T10:20:00Z autotype enabled=1 obfuscation=0 seq="" assoc=0
+> E P1 H2026-11-01T10:20:00Z misc icon=0 customIcon=- fg=00000000 bg=00000000 overrideUrl="" quality=1
+> E P1 H2026-11-01T10:20:00Z prev -
+> E P1 H2026-11-01T10:20:00Z t.accessed 2026-11-01T10:20:00Z
+> E P1 H2026-11-01T10:20:00Z t.created 2026-11-01T10:20:00Z
+> E P1 H2026-11-01T10:20:00Z t.expires 0 2026-11-01T10:00:00Z
+> E P1 H2026-11-01T10:20:00Z t.location 2026-11-01T10:20:00Z
+> E P1 H2026-11-01T10:20:00Z t.modified 2026-11-01T10:20:00Z
+> E P1 H2026-11-01T10:20:00Z tags []
+> E P1 H2026-11-01T10:20:00Z usage 0
+404c421
+< E P1 S Password p=1 "p1-old"
+---
+> E P1 S Password p=1 "p1-desktop"
+409c426
+< E P1 history.count 0
+---
+> E P1 history.count 1
+413c430
+< E P1 t.accessed 2026-11-01T10:20:00Z
+---
+> E P1 t.accessed 2026-11-01T18:00:00Z
+417c434
+< E P1 t.modified 2026-11-01T10:20:00Z
+---
+> E P1 t.modified 2026-11-01T18:00:00Z
+700a718,736
+> E RV2 S KPG.Kind p=0 "revocation"
+> E RV2 S KPG.Record p=0 "{\"certificate\":\"5722b6a518fc677ef9292e33ebb15f947af2c1685acc2ec17073532033d9a603\",\"name\":\"ci-runner\"}"
+> E RV2 S Notes p=0 len=4000 sha=3dd3ca681dc60fc6 "b18q3EQGNwOuq8R1dXWo8IsmYMDB3ytgGdNDC0SKfNvdG8BAyS4UjoBTIVRr..."
+> E RV2 S Password p=1 ""
+> E RV2 S Title p=0 "KPG revoked ci-runner"
+> E RV2 S URL p=0 ""
+> E RV2 S UserName p=0 ""
+> E RV2 autotype enabled=1 obfuscation=0 seq="" assoc=0
+> E RV2 history.count 0
+> E RV2 misc icon=0 customIcon=- fg=00000000 bg=00000000 overrideUrl="" quality=1
+> E RV2 parent KG (KeePassGate)
+> E RV2 prev -
+> E RV2 t.accessed 2026-11-01T18:00:00Z
+> E RV2 t.created 2026-11-01T18:00:00Z
+> E RV2 t.expires 0 2026-11-01T10:00:00Z
+> E RV2 t.location 2026-11-01T18:00:00Z
+> E RV2 t.modified 2026-11-01T18:00:00Z
+> E RV2 tags []
+> E RV2 usage 0
+720,736d755
+< E X1 S Notes p=0 len=1500 sha=5657257250e9dad5 "dCc4KKz7UUYDMLq3ey8jRh02wlYfk6PVsQdOI2OM6vZgrdEnNpqpmtY5MkHj..."
+< E X1 S Password p=1 "x1-old"
+< E X1 S Title p=0 "X1"
+< E X1 S URL p=0 ""
+< E X1 S UserName p=0 "user-x1"
+< E X1 autotype enabled=1 obfuscation=0 seq="" assoc=0
+< E X1 history.count 0
+< E X1 misc icon=0 customIcon=- fg=00000000 bg=00000000 overrideUrl="" quality=1
+< E X1 parent PW (Passwords)
+< E X1 prev -
+< E X1 t.accessed 2026-11-01T10:20:00Z
+< E X1 t.created 2026-11-01T10:20:00Z
+< E X1 t.expires 0 2026-11-01T10:00:00Z
+< E X1 t.location 2026-11-01T10:20:00Z
+< E X1 t.modified 2026-11-01T10:20:00Z
+< E X1 tags []
+< E X1 usage 0
+855a875,891
+> E ~064d524c S Notes p=0 ""
+> E ~064d524c S Password p=1 ""
+> E ~064d524c S Title p=0 "phone-ow-kill-diff-plus5-r1"
+> E ~064d524c S URL p=0 ""
+> E ~064d524c S UserName p=0 "invented-default-user"
+> E ~064d524c autotype enabled=1 obfuscation=0 seq="" assoc=0
+> E ~064d524c history.count 0
+> E ~064d524c misc icon=49 customIcon=- fg=00000000 bg=00000000 overrideUrl="" quality=1
+> E ~064d524c parent Root (Storage probe)
+> E ~064d524c prev -
+> E ~064d524c t.accessed 2026-11-16T10:52:01Z
+> E ~064d524c t.created 2026-11-16T10:52:00Z
+> E ~064d524c t.expires 0 2999-11-28T23:59:59Z
+> E ~064d524c t.location 2026-11-16T10:52:01Z
+> E ~064d524c t.modified 2026-11-16T10:52:01Z
+> E ~064d524c tags []
+> E ~064d524c usage 1
+858c894
+< F groups 13 entries 41
+---
+> F groups 13 entries 42
+927c963
+< G KG children groups=0 entries=14
+---
+> G KG children groups=0 entries=15
+1005c1041
+< G PW children groups=0 entries=14
+---
+> G PW children groups=0 entries=13
+1018c1054
+< G Root children groups=8 entries=0
+---
+> G Root children groups=8 entries=1
+1024c1060
+< G Root t.accessed 2026-11-01T10:00:00Z
+---
+> G Root t.accessed 2026-11-16T10:52:01Z
+1028c1064
+< G Root t.modified 2026-11-01T10:00:00Z
+---
+> G Root t.modified 2026-11-16T10:52:01Z
+1037a1074
+> M CD KPG.Revoked.5722b6a518fc677ef9292e33ebb15f947af2c1685acc2ec17073532033d9a603 = "{\"at\":\"2026-11-01T18:00:00Z\"}" @2026-11-01T18:00:00Z
+1063c1100
+< R meta Generator = (empty)
+---
+> R meta Generator = "KeePassDX"
+1080,1083c1117,1120
+< X KeePassFile/Meta/CustomData/Item 12
+< X KeePassFile/Meta/CustomData/Item/Key 12
+< X KeePassFile/Meta/CustomData/Item/LastModificationTime 11
+< X KeePassFile/Meta/CustomData/Item/Value 12
+---
+> X KeePassFile/Meta/CustomData/Item 13
+> X KeePassFile/Meta/CustomData/Item/Key 13
+> X KeePassFile/Meta/CustomData/Item/LastModificationTime 12
+> X KeePassFile/Meta/CustomData/Item/Value 13
+1092a1130
+> X KeePassFile/Meta/HeaderHash 1
+1113,1115c1151,1153
+< X KeePassFile/Root/DeletedObjects/DeletedObject 4
+< X KeePassFile/Root/DeletedObjects/DeletedObject/DeletionTime 4
+< X KeePassFile/Root/DeletedObjects/DeletedObject/UUID 4
+---
+> X KeePassFile/Root/DeletedObjects/DeletedObject 6
+> X KeePassFile/Root/DeletedObjects/DeletedObject/DeletionTime 6
+> X KeePassFile/Root/DeletedObjects/DeletedObject/UUID 6
+1119a1158,1179
+> X KeePassFile/Root/Group/Entry 1
+> X KeePassFile/Root/Group/Entry/AutoType 1
+> X KeePassFile/Root/Group/Entry/AutoType/DataTransferObfuscation 1
+> X KeePassFile/Root/Group/Entry/AutoType/Enabled 1
+> X KeePassFile/Root/Group/Entry/BackgroundColor 1
+> X KeePassFile/Root/Group/Entry/ForegroundColor 1
+> X KeePassFile/Root/Group/Entry/History 1
+> X KeePassFile/Root/Group/Entry/IconID 1
+> X KeePassFile/Root/Group/Entry/OverrideURL 1
+> X KeePassFile/Root/Group/Entry/String 5
+> X KeePassFile/Root/Group/Entry/String/Key 5
+> X KeePassFile/Root/Group/Entry/String/Value 5
+> X KeePassFile/Root/Group/Entry/String/Value@Protected=True 1
+> X KeePassFile/Root/Group/Entry/Times 1
+> X KeePassFile/Root/Group/Entry/Times/CreationTime 1
+> X KeePassFile/Root/Group/Entry/Times/Expires 1
+> X KeePassFile/Root/Group/Entry/Times/ExpiryTime 1
+> X KeePassFile/Root/Group/Entry/Times/LastAccessTime 1
+> X KeePassFile/Root/Group/Entry/Times/LastModificationTime 1
+> X KeePassFile/Root/Group/Entry/Times/LocationChanged 1
+> X KeePassFile/Root/Group/Entry/Times/UsageCount 1
+> X KeePassFile/Root/Group/Entry/UUID 1
+1143,1147c1203,1207
+< X KeePassFile/Root/Group/Group/Entry/History/Entry 6
+< X KeePassFile/Root/Group/Group/Entry/History/Entry/AutoType 6
+< X KeePassFile/Root/Group/Group/Entry/History/Entry/AutoType/DataTransferObfuscation 6
+< X KeePassFile/Root/Group/Group/Entry/History/Entry/AutoType/Enabled 6
+< X KeePassFile/Root/Group/Group/Entry/History/Entry/BackgroundColor 6
+---
+> X KeePassFile/Root/Group/Group/Entry/History/Entry 7
+> X KeePassFile/Root/Group/Group/Entry/History/Entry/AutoType 7
+> X KeePassFile/Root/Group/Group/Entry/History/Entry/AutoType/DataTransferObfuscation 7
+> X KeePassFile/Root/Group/Group/Entry/History/Entry/AutoType/Enabled 7
+> X KeePassFile/Root/Group/Group/Entry/History/Entry/BackgroundColor 7
+1152,1168c1212,1228
+< X KeePassFile/Root/Group/Group/Entry/History/Entry/ForegroundColor 6
+< X KeePassFile/Root/Group/Group/Entry/History/Entry/IconID 6
+< X KeePassFile/Root/Group/Group/Entry/History/Entry/OverrideURL 6
+< X KeePassFile/Root/Group/Group/Entry/History/Entry/String 40
+< X KeePassFile/Root/Group/Group/Entry/History/Entry/String/Key 40
+< X KeePassFile/Root/Group/Group/Entry/History/Entry/String/Value 40
+< X KeePassFile/Root/Group/Group/Entry/History/Entry/String/Value@Protected=True 8
+< X KeePassFile/Root/Group/Group/Entry/History/Entry/Tags 6
+< X KeePassFile/Root/Group/Group/Entry/History/Entry/Times 6
+< X KeePassFile/Root/Group/Group/Entry/History/Entry/Times/CreationTime 6
+< X KeePassFile/Root/Group/Group/Entry/History/Entry/Times/Expires 6
+< X KeePassFile/Root/Group/Group/Entry/History/Entry/Times/ExpiryTime 6
+< X KeePassFile/Root/Group/Group/Entry/History/Entry/Times/LastAccessTime 6
+< X KeePassFile/Root/Group/Group/Entry/History/Entry/Times/LastModificationTime 6
+< X KeePassFile/Root/Group/Group/Entry/History/Entry/Times/LocationChanged 6
+< X KeePassFile/Root/Group/Group/Entry/History/Entry/Times/UsageCount 6
+< X KeePassFile/Root/Group/Group/Entry/History/Entry/UUID 6
+---
+> X KeePassFile/Root/Group/Group/Entry/History/Entry/ForegroundColor 7
+> X KeePassFile/Root/Group/Group/Entry/History/Entry/IconID 7
+> X KeePassFile/Root/Group/Group/Entry/History/Entry/OverrideURL 7
+> X KeePassFile/Root/Group/Group/Entry/History/Entry/String 45
+> X KeePassFile/Root/Group/Group/Entry/History/Entry/String/Key 45
+> X KeePassFile/Root/Group/Group/Entry/History/Entry/String/Value 45
+> X KeePassFile/Root/Group/Group/Entry/History/Entry/String/Value@Protected=True 9
+> X KeePassFile/Root/Group/Group/Entry/History/Entry/Tags 1
+> X KeePassFile/Root/Group/Group/Entry/History/Entry/Times 7
+> X KeePassFile/Root/Group/Group/Entry/History/Entry/Times/CreationTime 7
+> X KeePassFile/Root/Group/Group/Entry/History/Entry/Times/Expires 7
+> X KeePassFile/Root/Group/Group/Entry/History/Entry/Times/ExpiryTime 7
+> X KeePassFile/Root/Group/Group/Entry/History/Entry/Times/LastAccessTime 7
+> X KeePassFile/Root/Group/Group/Entry/History/Entry/Times/LastModificationTime 7
+> X KeePassFile/Root/Group/Group/Entry/History/Entry/Times/LocationChanged 7
+> X KeePassFile/Root/Group/Group/Entry/History/Entry/Times/UsageCount 7
+> X KeePassFile/Root/Group/Group/Entry/History/Entry/UUID 7
+1172,1174c1232,1234
+< X KeePassFile/Root/Group/Group/Entry/String 226
+< X KeePassFile/Root/Group/Group/Entry/String/Key 226
+< X KeePassFile/Root/Group/Group/Entry/String/Value 226
+---
+> X KeePassFile/Root/Group/Group/Entry/String 228
+> X KeePassFile/Root/Group/Group/Entry/String/Key 228
+> X KeePassFile/Root/Group/Group/Entry/String/Value 228
+1176c1236
+< X KeePassFile/Root/Group/Group/Entry/Tags 36
+---
+> X KeePassFile/Root/Group/Group/Entry/Tags 3
+1204d1263
+< X KeePassFile/Root/Group/Group/Group/Entry/Tags 4
+1231d1289
+< X KeePassFile/Root/Group/Group/Group/Group/Entry/Tags 1

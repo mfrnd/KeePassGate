@@ -1,0 +1,109 @@
+### 2026-11-16T08:52:03.961Z B kpdx extmPD r3 target=PHONE source=DESK (versionName=4.5.8)
+Success
+<work>/work/base/PHONE.kdbx: 1 file pushed, 0 skipped. 0.7 MB/s (16517 bytes in 0.024s)
+target sha256 1ef101223f5596760cbfb538a37148a3b18a68d95dddef47ec1716e40cf3959a
+[2026-11-16T08:52:06.709Z] kpdx-ext-merge.flow:4 include kpdx-open.flow
+[2026-11-16T08:52:06.722Z] kpdx-open.flow:4 sh monkey -p com.kunzisoft.keepass.libre -c android.intent.category.LAUNCHER 1
+  bash arg: -p
+  bash arg: com.kunzisoft.keepass.libre
+  bash arg: -c
+  bash arg: android.intent.category.LAUNCHER
+  bash arg: 1
+Events injected: 1
+## Network stats: elapsed time=116ms (0ms mobile, 0ms wifi, 116ms not connected)
+args: [-p, com.kunzisoft.keepass.libre, -c, android.intent.category.LAUNCHER, 1]
+ arg: "-p"
+ arg: "com.kunzisoft.keepass.libre"
+ arg: "-c"
+ arg: "android.intent.category.LAUNCHER"
+ arg: "1"
+data="com.kunzisoft.keepass.libre"
+data="android.intent.category.LAUNCHER"
+[2026-11-16T08:52:08.579Z] kpdx-open.flow:5 waitfor open_database_button 30
+[2026-11-16T08:52:15.265Z] kpdx-open.flow:6 tapuntil open_database_button Show.roots 40
+[2026-11-16T08:52:19.771Z]   tapped (799, 2051) 'Open existing vault'
+[2026-11-16T08:52:30.478Z]   tapped (799, 2051) 'Open existing vault'
+[2026-11-16T08:52:35.040Z] kpdx-open.flow:7 include picker.flow
+[2026-11-16T08:52:35.062Z] picker.flow:4 pick kpdx-extmPD.kdbx
+[2026-11-16T08:52:50.026Z]   focused and entered '^kpdx\\-extmPD\\.kdbx$'
+[2026-11-16T08:52:50.028Z] kpdx-open.flow:8 waitfor password_text_view 40
+[2026-11-16T08:52:55.413Z] kpdx-open.flow:9 typepwdx dummy-password-for-a-throwaway-file
+[2026-11-16T08:53:19.105Z]   typepwdx: the field reads 8 characters, not 35 (attempt 1)
+[2026-11-16T08:53:43.733Z]   typed the password and read it back (35 characters)
+[2026-11-16T08:53:43.735Z] kpdx-open.flow:10 tapuntil activity_password_open_button add_button 60
+[2026-11-16T08:53:47.911Z]   tapped (895, 1435) 'Unlock'
+[2026-11-16T08:53:58.002Z]   tapped (895, 1435) 'Unlock'
+[2026-11-16T08:54:10.564Z]   tapped (895, 1435) 'Unlock'
+[2026-11-16T08:54:23.913Z] kpdx-ext-merge.flow:5 sleep 11
+[2026-11-16T08:54:34.916Z] kpdx-ext-merge.flow:6 sh stat -c '%s bytes, mtime %y' /sdcard/Download/kpdx-extmPD.kdbx
+16517 bytes, mtime 2026-11-16 08:16:22.000000000 +0100
+[2026-11-16T08:54:35.005Z] kpdx-ext-merge.flow:7 adb push <work>/work/base/DESK.kdbx /sdcard/Download/kpdx-extmPD.kdbx
+<work>/work/base/DESK.kdbx: 1 file pushed, 0 skipped. 0.6 MB/s (16901 bytes in 0.028s)
+[2026-11-16T08:54:35.116Z] kpdx-ext-merge.flow:8 sh touch /sdcard/Download/kpdx-extmPD.kdbx
+[2026-11-16T08:54:35.147Z] kpdx-ext-merge.flow:9 sh stat -c '%s bytes, mtime %y' /sdcard/Download/kpdx-extmPD.kdbx
+16901 bytes, mtime 2026-11-16 09:54:34.124000000 +0100
+[2026-11-16T08:54:35.227Z] kpdx-ext-merge.flow:10 sh sha256sum /sdcard/Download/kpdx-extmPD.kdbx
+2e9c41595aa4df3710b594660120f7bd8b2e1dbb214b148f329495c3e92f4774  /sdcard/Download/kpdx-extmPD.kdbx
+[2026-11-16T08:54:35.305Z] kpdx-ext-merge.flow:11 mark /sdcard/Download/kpdx-extmPD.kdbx
+[2026-11-16T08:54:35.403Z]   marked /sdcard/Download/kpdx-extmPD.kdbx sha256 2e9c41595aa4df37
+[2026-11-16T08:54:35.406Z] kpdx-ext-merge.flow:12 key HOME
+[2026-11-16T08:54:36.514Z] kpdx-ext-merge.flow:13 sleep 2
+[2026-11-16T08:54:38.518Z] kpdx-ext-merge.flow:14 sh monkey -p com.kunzisoft.keepass.libre -c android.intent.category.LAUNCHER 1
+  bash arg: -p
+  bash arg: com.kunzisoft.keepass.libre
+  bash arg: -c
+  bash arg: android.intent.category.LAUNCHER
+  bash arg: 1
+Events injected: 1
+## Network stats: elapsed time=465ms (0ms mobile, 0ms wifi, 465ms not connected)
+args: [-p, com.kunzisoft.keepass.libre, -c, android.intent.category.LAUNCHER, 1]
+ arg: "-p"
+ arg: "com.kunzisoft.keepass.libre"
+ arg: "-c"
+ arg: "android.intent.category.LAUNCHER"
+ arg: "1"
+data="com.kunzisoft.keepass.libre"
+data="android.intent.category.LAUNCHER"
+[2026-11-16T08:54:43.063Z] kpdx-ext-merge.flow:15 waitfor modified.outside 40
+[2026-11-16T08:54:50.951Z] kpdx-ext-merge.flow:16 dialog
+[2026-11-16T08:54:53.917Z]   dialog message: 'The information contained in your database has been modified outside the app.\n\nNov 16, 2026 8:16:22 AM, 16.52 kB\n→\nNov 16, 2026 9:54:34 AM, 16.90 kB\n\nMerge the data, overwrite the external modifications by saving the database or reload it with the latest changes.'
+[2026-11-16T08:54:53.921Z]   dialog button1: 'OK'
+[2026-11-16T08:54:53.923Z] kpdx-ext-merge.flow:17 list
+  FrameLayout         (540, 1176)  id=action_bar_root              text='' desc=''
+  FrameLayout         (540, 1176)  id=content                      text='' desc=''
+  LinearLayoutCompat      (540, 1176)  id=parentPanel                  text='' desc=''
+  FrameLayout         (540, 1099)  id=contentPanel                 text='' desc=''
+  ScrollView          (540, 1099)  id=scrollView                   text='' desc=''
+  View                (540, 806)   id=textSpacerNoTitle            text='' desc=''
+  TextView            (540, 1124)  id=message                      text='The information contained in your database has been modified outside the app.\n\nNov 16, 2026 8:16:22 AM, 16.52 kB\n→\nNov 16, 2026 9:54:34 AM, 16.90 kB\n\nMerge the data, overwrite the external modifications by saving the database or reload it with the latest changes.' desc=''
+  ScrollView     f    (540, 1495)  id=buttonPanel                  text='' desc=''
+  Button         c    (887, 1495)  id=button1                      text='OK' desc=''
+[2026-11-16T08:54:56.237Z] kpdx-ext-merge.flow:18 tap ^OK$
+[2026-11-16T08:55:00.766Z]   tapped (887, 1495) 'OK'
+[2026-11-16T08:55:00.771Z] kpdx-ext-merge.flow:19 sleep 3
+[2026-11-16T08:55:03.777Z] kpdx-ext-merge.flow:20 tapuntil More.options ^Merge.data$ 30
+[2026-11-16T08:55:08.209Z]   tapped (1024, 233) 'More options'
+[2026-11-16T08:55:18.574Z]   tapped (1024, 233) 'More options'
+[2026-11-16T08:55:22.206Z] kpdx-ext-merge.flow:21 tap ^Merge.data$
+[2026-11-16T08:55:26.664Z]   tapped (799, 387) 'Merge data'
+[2026-11-16T08:55:26.666Z] kpdx-ext-merge.flow:22 waitchange /sdcard/Download/kpdx-extmPD.kdbx 90
+[2026-11-16T08:56:57.060Z]   waitchange: /sdcard/Download/kpdx-extmPD.kdbx UNCHANGED after 90 s
+[2026-11-16T08:56:57.063Z] kpdx-ext-merge.flow:23 sleep 10
+[2026-11-16T08:57:07.064Z] kpdx-ext-merge.flow:24 dialog
+[2026-11-16T08:57:10.117Z] kpdx-ext-merge.flow:25 sh stat -c '%s bytes, mtime %y' /sdcard/Download/kpdx-extmPD.kdbx
+16901 bytes, mtime 2026-11-16 09:54:34.124000000 +0100
+[2026-11-16T08:57:10.211Z] kpdx-ext-merge.flow:26 list
+  FrameLayout         (540, 1176)  id=action_bar_root              text='' desc=''
+  FrameLayout         (540, 1176)  id=content                      text='' desc=''
+  LinearLayoutCompat      (540, 1176)  id=parentPanel                  text='' desc=''
+  FrameLayout         (540, 1176)  id=customPanel                  text='' desc=''
+  FrameLayout         (540, 1176)  id=custom                       text='' desc=''
+  TextView            (540, 1065)  id=progress_dialog_title        text='Loading database…' desc=''
+  TextView            (540, 1178)  id=progress_dialog_message      text='Decrypting database content…' desc=''
+  TextView            (540, 1284)  id=progress_dialog_warning      text='Do not kill the app…' desc=''
+  ProgressBar         (540, 1369)  id=progress_dialog_bar          text='' desc=''
+total 24
+-rw------- 1 u0_a160 u0_a160 16901 2026-11-16 09:54:34.124000000 +0100 kpdx-extmPD.kdbx
+device kpdx-extmPD.kdbx sha256 2e9c41595aa4df3710b594660120f7bd8b2e1dbb214b148f329495c3e92f4774
+/sdcard/Download/kpdx-extmPD.kdbx: 1 file pulled, 0 skipped. 0.3 MB/s (16901 bytes in 0.054s)
+### flow rc=0 2026-11-16T08:57:16.524Z

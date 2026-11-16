@@ -1,0 +1,10 @@
+k2a-bg-b-run.flow bg-b-amcon-r1 ALWAYSMERGE=on SETTING=^Always.merge.on.conflict$ ANSWER=none SANSWER=none PREFS=A
+k2a-bg-a-run.flow bg-a-amcoff-r1 ALWAYSMERGE=off ANSWER=none SANSWER=none PREFS=B
+k2a-bg-a-run.flow bg-a-amcon-r1 ALWAYSMERGE=on SETTING=^Always.merge.on.conflict$ ANSWER=none SANSWER=none PREFS=A
+k2a-bg-c-run.flow bg-c-amcoff-r1 ALWAYSMERGE=off ANSWER=none SANSWER=none PREFS=B
+k2a-bg-c-run.flow bg-c-amcon-r1 ALWAYSMERGE=on SETTING=^Always.merge.on.conflict$ ANSWER=none SANSWER=none PREFS=A
+k2a-bg-d-run.flow bg-d-amcoff-r1 ALWAYSMERGE=off ANSWER=none SANSWER=none PREFS=B
+k2a-bg-d-run.flow bg-d-amcon-r1 ALWAYSMERGE=on SETTING=^Always.merge.on.conflict$ ANSWER=none SANSWER=none PREFS=A
+k2a-cancel-sync-A.flow cancel-A-r1 ANSWER=none SANSWER=merge PREFS=A
+k2a-cancel-sync-B.flow cancel-B-r1 ANSWER=cancelsync SANSWER=merge PREFS=B
+k2a-adv-run.flow adv-r1 SETTING=^Always.merge.on.conflict$ ANSWER=none SANSWER=none ENTRY=phone-new PREFS=A

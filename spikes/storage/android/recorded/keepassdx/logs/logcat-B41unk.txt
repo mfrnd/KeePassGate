@@ -1,0 +1,25 @@
+11-16 14:50:47.921 D/com.kunzisoft.keepass.database.file.input.DatabaseInput(24509): Start retrieving database key...
+11-16 14:50:48.115 D/com.kunzisoft.keepass.database.file.input.DatabaseInput(24509): Stop retrieving database key... 193 ms
+11-16 14:50:48.116 D/com.kunzisoft.keepass.database.file.input.DatabaseInput(24509): Start decrypting database content...
+11-16 14:50:51.508 E/com.kunzisoft.keepass.database.element.Database(24509): Unable to load the database
+11-16 14:50:51.510 E/ActionRunnable(24509): success=false, message=Invalid end element: Context MetaEnd element: KPGUnknownMeta
+11-16 14:50:51.510 E/ActionRunnable(24509): com.kunzisoft.keepass.database.exception.XMLMalformedDatabaseException: Invalid end element: Context MetaEnd element: KPGUnknownMeta
+11-16 14:50:51.510 E/ActionRunnable(24509): 	at com.kunzisoft.keepass.database.file.input.DatabaseInputKDBX.endXmlElement(DatabaseInputKDBX.kt:848)
+11-16 14:50:51.510 E/ActionRunnable(24509): 	at com.kunzisoft.keepass.database.file.input.DatabaseInputKDBX.readDocumentStreamed(DatabaseInputKDBX.kt:338)
+11-16 14:50:51.510 E/ActionRunnable(24509): 	at com.kunzisoft.keepass.database.file.input.DatabaseInputKDBX.openDatabase(DatabaseInputKDBX.kt:222)
+11-16 14:50:51.510 E/ActionRunnable(24509): 	at com.kunzisoft.keepass.database.element.Database.loadData$lambda$28(Database.kt:588)
+11-16 14:50:51.510 E/ActionRunnable(24509): 	at com.kunzisoft.keepass.database.element.Database.$r8$lambda$3KwVR2SIdHAgVRKxSoxQ4w7MpcU(Unknown Source:0)
+11-16 14:50:51.510 E/ActionRunnable(24509): 	at com.kunzisoft.keepass.database.element.Database$$ExternalSyntheticLambda7.invoke(D8$$SyntheticClass:0)
+11-16 14:50:51.510 E/ActionRunnable(24509): 	at com.kunzisoft.keepass.database.element.Database.readDatabaseStream(Database.kt:773)
+11-16 14:50:51.510 E/ActionRunnable(24509): 	at com.kunzisoft.keepass.database.element.Database.loadData(Database.kt:562)
+11-16 14:50:51.510 E/ActionRunnable(24509): 	at com.kunzisoft.keepass.database.action.LoadDatabaseRunnable.onActionRun(LoadDatabaseRunnable.kt:62)
+11-16 14:50:51.510 E/ActionRunnable(24509): 	at com.kunzisoft.keepass.tasks.ActionRunnable.run(ActionRunnable.kt:36)
+11-16 14:50:51.510 E/ActionRunnable(24509): 	at com.kunzisoft.keepass.services.DatabaseTaskNotificationService$executeAction$2$1$asyncResult$1.invokeSuspend(DatabaseTaskNotificationService.kt:660)
+11-16 14:50:51.510 E/ActionRunnable(24509): 	at kotlin.coroutines.jvm.internal.BaseContinuationImpl.resumeWith(ContinuationImpl.kt:33)
+11-16 14:50:51.510 E/ActionRunnable(24509): 	at kotlinx.coroutines.DispatchedTask.run(DispatchedTask.kt:104)
+11-16 14:50:51.510 E/ActionRunnable(24509): 	at kotlinx.coroutines.internal.LimitedDispatcher$Worker.run(LimitedDispatcher.kt:111)
+11-16 14:50:51.510 E/ActionRunnable(24509): 	at kotlinx.coroutines.scheduling.TaskImpl.run(Tasks.kt:99)
+11-16 14:50:51.510 E/ActionRunnable(24509): 	at kotlinx.coroutines.scheduling.CoroutineScheduler.runSafely(CoroutineScheduler.kt:584)
+11-16 14:50:51.510 E/ActionRunnable(24509): 	at kotlinx.coroutines.scheduling.CoroutineScheduler$Worker.executeTask(CoroutineScheduler.kt:811)
+11-16 14:50:51.510 E/ActionRunnable(24509): 	at kotlinx.coroutines.scheduling.CoroutineScheduler$Worker.runWorker(CoroutineScheduler.kt:715)
+11-16 14:50:51.510 E/ActionRunnable(24509): 	at kotlinx.coroutines.scheduling.CoroutineScheduler$Worker.run(CoroutineScheduler.kt:702)

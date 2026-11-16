@@ -1,0 +1,20 @@
+# Item 3, after the program's process ends: open OLD; KeePassDX force-stopped; ${ARR} put over the file
+# at ${MODE}; started again and the file opened and unlocked as at first; then an entry added and saved.
+include kpdx-open.flow
+sleep 3
+sh am force-stop ${PKG}
+sleep 2
+host sh ${P}/replace.sh /sdcard/Download/${NAME}.kdbx ${SRCDIR}/${ARR}.kdbx ${MODE}
+sleep 1
+sh monkey -p ${PKG} -c android.intent.category.LAUNCHER 1
+sleep 4
+list
+ifthen open_database_button 8 kpdx-ow-reopen.flow
+waitfor password_text_view 40
+typepwdx dummy-password-for-a-throwaway-file
+tapuntil activity_password_open_button add_button 60
+sleep 2
+ifthen modified.outside 6 kpdx-ow-dialog.flow
+include kpdx-ow-add.flow
+host sh ${P}/devstat.sh /sdcard/Download/${NAME}.kdbx after-save
+list

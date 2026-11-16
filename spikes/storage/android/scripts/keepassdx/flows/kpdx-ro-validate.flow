@@ -1,0 +1,7 @@
+# Item 4 helper: the entry editor opened in write-protected mode; type a title and validate.
+type ^Title$ ro-entry
+tap entry_edit_validate
+sleep 3
+dialog
+list
+waitchange /sdcard/Download/${NAME}.kdbx 15

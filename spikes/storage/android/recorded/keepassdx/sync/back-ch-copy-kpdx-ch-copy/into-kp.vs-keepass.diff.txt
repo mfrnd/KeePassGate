@@ -1,0 +1,75 @@
+855a856,893
+> E ~a847a5c1 S Notes p=0 ""
+> E ~a847a5c1 S Password p=1 ""
+> E ~a847a5c1 S Title p=0 "phone-entry-in-kg"
+> E ~a847a5c1 S URL p=0 ""
+> E ~a847a5c1 S UserName p=0 "invented-default-user"
+> E ~a847a5c1 autotype enabled=1 obfuscation=0 seq="" assoc=0
+> E ~a847a5c1 history.count 0
+> E ~a847a5c1 misc icon=0 customIcon=- fg=00000000 bg=00000000 overrideUrl="" quality=1
+> E ~a847a5c1 parent KG (KeePassGate)
+> E ~a847a5c1 prev -
+> E ~a847a5c1 t.accessed 2026-11-16T15:18:26Z
+> E ~a847a5c1 t.created 2026-11-16T15:18:26Z
+> E ~a847a5c1 t.expires 0 2999-11-28T23:59:59Z
+> E ~a847a5c1 t.location 2026-11-16T15:18:26Z
+> E ~a847a5c1 t.modified 2026-11-16T15:18:26Z
+> E ~a847a5c1 tags []
+> E ~a847a5c1 usage 1
+> E ~bc44fdfc A e1.txt p=0 len=600 sha=259674a04e10f900
+> E ~bc44fdfc CD KPG = "{\"reader\":[\"read\",\"list\"]}"
+> E ~bc44fdfc S Extra p=0 "extra-value-e1"
+> E ~bc44fdfc S Notes p=0 "ordinary notes"
+> E ~bc44fdfc S Password p=1 "pw-e1-not-real"
+> E ~bc44fdfc S Secret p=1 "protected-custom-e1"
+> E ~bc44fdfc S Title p=0 "E1 (~)"
+> E ~bc44fdfc S URL p=0 "https://e1.example.invalid/"
+> E ~bc44fdfc S UserName p=0 "alice-invented"
+> E ~bc44fdfc autotype enabled=1 obfuscation=0 seq="" assoc=0
+> E ~bc44fdfc history.count 0
+> E ~bc44fdfc misc icon=0 customIcon=- fg=00000000 bg=00000000 overrideUrl="" quality=1
+> E ~bc44fdfc parent G (G)
+> E ~bc44fdfc prev -
+> E ~bc44fdfc t.accessed 2026-11-16T15:17:24Z
+> E ~bc44fdfc t.created 2026-11-01T11:00:00Z
+> E ~bc44fdfc t.expires 0 2026-11-01T10:00:00Z
+> E ~bc44fdfc t.location 2026-11-16T15:17:24Z
+> E ~bc44fdfc t.modified 2026-11-16T15:17:24Z
+> E ~bc44fdfc tags [work]
+> E ~bc44fdfc usage 1
+858c896
+< F groups 13 entries 41
+---
+> F groups 13 entries 43
+875c913
+< G G children groups=1 entries=4
+---
+> G G children groups=1 entries=5
+881c919
+< G G t.accessed 2026-11-01T10:00:00Z
+---
+> G G t.accessed 2026-11-16T15:17:26Z
+885c923
+< G G t.modified 2026-11-01T10:30:00Z
+---
+> G G t.modified 2026-11-16T15:17:24Z
+927c965
+< G KG children groups=0 entries=14
+---
+> G KG children groups=0 entries=15
+933c971
+< G KG t.accessed 2026-11-01T10:05:00Z
+---
+> G KG t.accessed 2026-11-16T15:18:26Z
+937c975
+< G KG t.modified 2026-11-01T10:05:00Z
+---
+> G KG t.modified 2026-11-16T15:18:26Z
+1024c1062
+< G Root t.accessed 2026-11-01T10:00:00Z
+---
+> G Root t.accessed 2026-11-16T15:18:26Z
+1028c1066
+< G Root t.modified 2026-11-01T10:00:00Z
+---
+> G Root t.modified 2026-11-16T15:18:26Z

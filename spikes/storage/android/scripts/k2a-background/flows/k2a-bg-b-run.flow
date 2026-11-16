@@ -1,0 +1,12 @@
+# Item 1, state b: open; with ALWAYSMERGE=on the File handling screen shown and "Always merge on
+# conflict" pressed (k2a-setting.flow); SNEW-fixed put on the server; the save with the server
+# frozen; state b; nobody there; back to it; a second save.
+include k2a-sy-open.flow
+include k2a-bg-amc-${ALWAYSMERGE}.flow
+host sh ${P}/prefs.sh before-run
+host sh ${P}/srv-put.sh ${SNAME} ${SRCDIR}/SNEW-fixed.kdbx
+include k2a-bg-save-frozen.flow
+include k2a-bg-b.flow
+include k2a-bg-unattended.flow
+include k2a-bg-return-b.flow
+include k2a-bg-after.flow

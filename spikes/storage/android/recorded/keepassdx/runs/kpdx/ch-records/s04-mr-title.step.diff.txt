@@ -1,0 +1,91 @@
+368a369,384
+> E MR H2026-11-01T11:06:00Z S KPG.Mark p=0 "E30F91E7153A50C03BA239446D1457E4"
+> E MR H2026-11-01T11:06:00Z S Notes p=0 ""
+> E MR H2026-11-01T11:06:00Z S Password p=1 ""
+> E MR H2026-11-01T11:06:00Z S Title p=0 "KPG mark"
+> E MR H2026-11-01T11:06:00Z S URL p=0 ""
+> E MR H2026-11-01T11:06:00Z S UserName p=0 ""
+> E MR H2026-11-01T11:06:00Z autotype enabled=1 obfuscation=0 seq="" assoc=0
+> E MR H2026-11-01T11:06:00Z misc icon=0 customIcon=- fg=00000000 bg=00000000 overrideUrl="" quality=1
+> E MR H2026-11-01T11:06:00Z prev -
+> E MR H2026-11-01T11:06:00Z t.accessed 2026-11-01T11:06:00Z
+> E MR H2026-11-01T11:06:00Z t.created 2026-11-01T11:06:00Z
+> E MR H2026-11-01T11:06:00Z t.expires 0 2026-11-01T10:00:00Z
+> E MR H2026-11-01T11:06:00Z t.location 2026-11-01T11:06:00Z
+> E MR H2026-11-01T11:06:00Z t.modified 2026-11-01T11:06:00Z
+> E MR H2026-11-01T11:06:00Z tags []
+> E MR H2026-11-01T11:06:00Z usage 0
+372c388
+< E MR S Title p=0 "KPG mark"
+---
+> E MR S Title p=0 "KPG mark-phone"
+376c392
+< E MR history.count 0
+---
+> E MR history.count 1
+380c396
+< E MR t.accessed 2026-11-01T11:06:00Z
+---
+> E MR t.accessed 2026-11-16T14:58:52Z
+382c398
+< E MR t.expires 0 2026-11-01T10:00:00Z
+---
+> E MR t.expires 0 2999-11-28T23:59:59Z
+384c400
+< E MR t.modified 2026-11-01T11:06:00Z
+---
+> E MR t.modified 2026-11-16T14:58:52Z
+386c402
+< E MR usage 0
+---
+> E MR usage 1
+933c949
+< G G t.accessed 2026-11-16T14:56:55Z
+---
+> G G t.accessed 2026-11-16T14:56:58Z
+972c988
+< G HE t.accessed 2026-11-01T10:05:00Z
+---
+> G HE t.accessed 2026-11-16T14:58:52Z
+976c992
+< G HE t.modified 2026-11-01T10:05:00Z
+---
+> G HE t.modified 2026-11-16T14:58:52Z
+1050c1066
+< G PS t.accessed 2026-11-01T10:05:00Z
+---
+> G PS t.accessed 2026-11-16T14:58:52Z
+1054c1070
+< G PS t.modified 2026-11-01T10:05:00Z
+---
+> G PS t.modified 2026-11-16T14:58:52Z
+1076c1092
+< G Root t.accessed 2026-11-16T14:56:55Z
+---
+> G Root t.accessed 2026-11-16T14:58:52Z
+1080c1096
+< G Root t.modified 2026-11-16T14:56:55Z
+---
+> G Root t.modified 2026-11-16T14:58:52Z
+1249a1266,1286
+> X KeePassFile/Root/Group/Group/Group/Entry/History/Entry 1
+> X KeePassFile/Root/Group/Group/Group/Entry/History/Entry/AutoType 1
+> X KeePassFile/Root/Group/Group/Group/Entry/History/Entry/AutoType/DataTransferObfuscation 1
+> X KeePassFile/Root/Group/Group/Group/Entry/History/Entry/AutoType/Enabled 1
+> X KeePassFile/Root/Group/Group/Group/Entry/History/Entry/BackgroundColor 1
+> X KeePassFile/Root/Group/Group/Group/Entry/History/Entry/ForegroundColor 1
+> X KeePassFile/Root/Group/Group/Group/Entry/History/Entry/IconID 1
+> X KeePassFile/Root/Group/Group/Group/Entry/History/Entry/OverrideURL 1
+> X KeePassFile/Root/Group/Group/Group/Entry/History/Entry/String 6
+> X KeePassFile/Root/Group/Group/Group/Entry/History/Entry/String/Key 6
+> X KeePassFile/Root/Group/Group/Group/Entry/History/Entry/String/Value 6
+> X KeePassFile/Root/Group/Group/Group/Entry/History/Entry/String/Value@Protected=True 1
+> X KeePassFile/Root/Group/Group/Group/Entry/History/Entry/Times 1
+> X KeePassFile/Root/Group/Group/Group/Entry/History/Entry/Times/CreationTime 1
+> X KeePassFile/Root/Group/Group/Group/Entry/History/Entry/Times/Expires 1
+> X KeePassFile/Root/Group/Group/Group/Entry/History/Entry/Times/ExpiryTime 1
+> X KeePassFile/Root/Group/Group/Group/Entry/History/Entry/Times/LastAccessTime 1
+> X KeePassFile/Root/Group/Group/Group/Entry/History/Entry/Times/LastModificationTime 1
+> X KeePassFile/Root/Group/Group/Group/Entry/History/Entry/Times/LocationChanged 1
+> X KeePassFile/Root/Group/Group/Group/Entry/History/Entry/Times/UsageCount 1
+> X KeePassFile/Root/Group/Group/Group/Entry/History/Entry/UUID 1

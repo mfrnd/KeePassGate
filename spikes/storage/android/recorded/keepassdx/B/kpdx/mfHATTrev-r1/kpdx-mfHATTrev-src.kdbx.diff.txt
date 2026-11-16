@@ -1,0 +1,93 @@
+24,41d23
+< E A4 A b.bin p=0 len=48 sha=9b0f7af00b2e6084
+< E A4 S Notes p=0 ""
+< E A4 S Password p=1 ""
+< E A4 S Title p=0 "A4"
+< E A4 S URL p=0 ""
+< E A4 S UserName p=0 ""
+< E A4 autotype enabled=1 obfuscation=0 seq="" assoc=0
+< E A4 history.count 0
+< E A4 misc icon=0 customIcon=- fg=00000000 bg=00000000 overrideUrl="" quality=1
+< E A4 parent AT (Attach)
+< E A4 prev -
+< E A4 t.accessed 2026-11-01T16:00:00Z
+< E A4 t.created 2026-11-01T16:00:00Z
+< E A4 t.expires 0 2026-11-01T10:00:00Z
+< E A4 t.location 2026-11-01T16:00:00Z
+< E A4 t.modified 2026-11-01T16:00:00Z
+< E A4 tags []
+< E A4 usage 0
+894c876
+< F groups 14 entries 43
+---
+> F groups 14 entries 42
+897c879
+< G AT children groups=0 entries=2
+---
+> G AT children groups=0 entries=1
+1107c1089
+< R inner streamId=3 binaries=4 flags=0,1,0,0
+---
+> R inner streamId=3 binaries=3 flags=0,1,0
+1177,1185c1159,1167
+< X KeePassFile/Root/Group/Group/Entry 38
+< X KeePassFile/Root/Group/Group/Entry/AutoType 38
+< X KeePassFile/Root/Group/Group/Entry/AutoType/DataTransferObfuscation 38
+< X KeePassFile/Root/Group/Group/Entry/AutoType/Enabled 38
+< X KeePassFile/Root/Group/Group/Entry/BackgroundColor 38
+< X KeePassFile/Root/Group/Group/Entry/Binary 5
+< X KeePassFile/Root/Group/Group/Entry/Binary/Key 5
+< X KeePassFile/Root/Group/Group/Entry/Binary/Value 5
+< X KeePassFile/Root/Group/Group/Entry/Binary/Value@Ref 5
+---
+> X KeePassFile/Root/Group/Group/Entry 37
+> X KeePassFile/Root/Group/Group/Entry/AutoType 37
+> X KeePassFile/Root/Group/Group/Entry/AutoType/DataTransferObfuscation 37
+> X KeePassFile/Root/Group/Group/Entry/AutoType/Enabled 37
+> X KeePassFile/Root/Group/Group/Entry/BackgroundColor 37
+> X KeePassFile/Root/Group/Group/Entry/Binary 4
+> X KeePassFile/Root/Group/Group/Entry/Binary/Key 4
+> X KeePassFile/Root/Group/Group/Entry/Binary/Value 4
+> X KeePassFile/Root/Group/Group/Entry/Binary/Value@Ref 4
+1190,1191c1172,1173
+< X KeePassFile/Root/Group/Group/Entry/ForegroundColor 38
+< X KeePassFile/Root/Group/Group/Entry/History 38
+---
+> X KeePassFile/Root/Group/Group/Entry/ForegroundColor 37
+> X KeePassFile/Root/Group/Group/Entry/History 37
+1218,1219c1200,1201
+< X KeePassFile/Root/Group/Group/Entry/IconID 38
+< X KeePassFile/Root/Group/Group/Entry/OverrideURL 38
+---
+> X KeePassFile/Root/Group/Group/Entry/IconID 37
+> X KeePassFile/Root/Group/Group/Entry/OverrideURL 37
+1221,1234c1203,1216
+< X KeePassFile/Root/Group/Group/Entry/String 236
+< X KeePassFile/Root/Group/Group/Entry/String/Key 236
+< X KeePassFile/Root/Group/Group/Entry/String/Value 236
+< X KeePassFile/Root/Group/Group/Entry/String/Value@Protected=True 41
+< X KeePassFile/Root/Group/Group/Entry/Tags 38
+< X KeePassFile/Root/Group/Group/Entry/Times 38
+< X KeePassFile/Root/Group/Group/Entry/Times/CreationTime 38
+< X KeePassFile/Root/Group/Group/Entry/Times/Expires 38
+< X KeePassFile/Root/Group/Group/Entry/Times/ExpiryTime 38
+< X KeePassFile/Root/Group/Group/Entry/Times/LastAccessTime 38
+< X KeePassFile/Root/Group/Group/Entry/Times/LastModificationTime 38
+< X KeePassFile/Root/Group/Group/Entry/Times/LocationChanged 38
+< X KeePassFile/Root/Group/Group/Entry/Times/UsageCount 38
+< X KeePassFile/Root/Group/Group/Entry/UUID 38
+---
+> X KeePassFile/Root/Group/Group/Entry/String 231
+> X KeePassFile/Root/Group/Group/Entry/String/Key 231
+> X KeePassFile/Root/Group/Group/Entry/String/Value 231
+> X KeePassFile/Root/Group/Group/Entry/String/Value@Protected=True 40
+> X KeePassFile/Root/Group/Group/Entry/Tags 37
+> X KeePassFile/Root/Group/Group/Entry/Times 37
+> X KeePassFile/Root/Group/Group/Entry/Times/CreationTime 37
+> X KeePassFile/Root/Group/Group/Entry/Times/Expires 37
+> X KeePassFile/Root/Group/Group/Entry/Times/ExpiryTime 37
+> X KeePassFile/Root/Group/Group/Entry/Times/LastAccessTime 37
+> X KeePassFile/Root/Group/Group/Entry/Times/LastModificationTime 37
+> X KeePassFile/Root/Group/Group/Entry/Times/LocationChanged 37
+> X KeePassFile/Root/Group/Group/Entry/Times/UsageCount 37
+> X KeePassFile/Root/Group/Group/Entry/UUID 37

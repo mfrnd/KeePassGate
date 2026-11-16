@@ -1,0 +1,45 @@
+# Item 1, chain R: accidental edits of the store's entries: the title of an admission record (AD1),
+# of a grant (GR1), of the marked entry E3, and of the mark's reference entry in Personal/Health.
+include kpdx-open.flow
+tapuntil node_text@^KeePassGate$ node_text@^KPG.client.build-agent$ 40
+sleep 3
+set SEL ^KPG.client.build-agent$
+log s01 title of the admission record AD1
+mark /sdcard/Download/${NAME}.kdbx
+include kpdx-sel-edit.flow
+list
+appendto ^KPG.client.build-agent$ -phone
+include kpdx-edit-validate.flow
+pull ${OUT}/s01-ad1-title.kdbx /sdcard/Download/${NAME}.kdbx
+set SEL ^KPG.grant.reader
+log s02 title of the grant GR1
+mark /sdcard/Download/${NAME}.kdbx
+include kpdx-sel-edit.flow
+appendto ^KPG.grant.reader..R...L.P.Passwords$ -phone
+include kpdx-edit-validate.flow
+pull ${OUT}/s02-gr1-title.kdbx /sdcard/Download/${NAME}.kdbx
+key BACK
+waitfor node_text@^G$ 20
+tapuntil node_text@^G$ node_text@^E3$ 40
+sleep 3
+set SEL ^E3$
+log s03 title of the marked entry E3
+mark /sdcard/Download/${NAME}.kdbx
+include kpdx-sel-edit.flow
+appendto ^E3$ -phone
+include kpdx-edit-validate.flow
+pull ${OUT}/s03-e3-title.kdbx /sdcard/Download/${NAME}.kdbx
+key BACK
+waitfor node_text@^Personal$ 20
+tapuntil node_text@^Personal$ node_text@^Health$ 40
+sleep 2
+tapuntil node_text@^Health$ node_text@^HE1$ 40
+sleep 3
+set SEL ^KPG.mark$
+log s04 title of the mark's reference entry MR in Personal/Health
+mark /sdcard/Download/${NAME}.kdbx
+include kpdx-sel-edit.flow
+appendto ^KPG.mark$ -phone
+include kpdx-edit-validate.flow
+pull ${OUT}/s04-mr-title.kdbx /sdcard/Download/${NAME}.kdbx
+list

@@ -1,0 +1,20 @@
+878c878
+< G G notes "{\"kpg.rules\":{\"reader\":\".R...L..\",\"writer\":\"CRU..L..\"}}"
+---
+> G G notes "{\"kpg.rules\":{\"reader\":\".R...L..\",\"writer\":\"CRU..L..\"-n}}"
+881c881
+< G G t.accessed 2026-11-16T15:02:45Z
+---
+> G G t.accessed 2026-11-16T15:04:05Z
+885c885
+< G G t.modified 2026-11-16T15:02:45Z
+---
+> G G t.modified 2026-11-16T15:04:05Z
+1024c1024
+< G Root t.accessed 2026-11-16T15:02:45Z
+---
+> G Root t.accessed 2026-11-16T15:04:05Z
+1028c1028
+< G Root t.modified 2026-11-16T15:02:45Z
+---
+> G Root t.modified 2026-11-16T15:04:05Z

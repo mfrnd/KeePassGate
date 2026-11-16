@@ -1,0 +1,2 @@
+# "Always merge on conflict" left off: the preferences as setprefs.sh wrote them (B).
+host sh ${P}/prefs.sh as-written

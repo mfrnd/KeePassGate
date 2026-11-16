@@ -1,0 +1,7 @@
+# KeePassDX, an open database at its root group: add one entry titled ${ENTRY} at the root; it saves
+# at once.
+tapuntil add_button fab_add_entry 20
+tapuntil fab_add_entry entry_edit_validate 30
+type ^Title$ ${ENTRY}
+tapuntil entry_edit_validate add_button 30
+sleep 5

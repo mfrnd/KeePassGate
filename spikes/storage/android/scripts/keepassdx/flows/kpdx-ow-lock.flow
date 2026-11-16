@@ -1,0 +1,20 @@
+# Item 3, after KeePassDX's own lock: open OLD; the lock button; ${ARR} put over the file at ${MODE}
+# while locked; unlocked again with the password; then an entry added and saved.
+include kpdx-open.flow
+sleep 3
+drawer menu_lock_all
+tap menu_lock_all
+waitfor (password_text_view|open_database_button) 30
+sleep 4
+list
+host sh ${P}/replace.sh /sdcard/Download/${NAME}.kdbx ${SRCDIR}/${ARR}.kdbx ${MODE}
+sleep 2
+ifthen open_database_button 5 kpdx-ow-reopen.flow
+waitfor password_text_view 40
+typepwdx dummy-password-for-a-throwaway-file
+tapuntil activity_password_open_button add_button 60
+sleep 2
+ifthen modified.outside 6 kpdx-ow-dialog.flow
+include kpdx-ow-add.flow
+host sh ${P}/devstat.sh /sdcard/Download/${NAME}.kdbx after-save
+list

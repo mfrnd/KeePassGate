@@ -1,0 +1,131 @@
+### 2026-11-16T11:13:33.747Z ow kpdx save-HATT-r2 flow=kpdx-save.flow base=HATT  (versionName=4.5.8)
+Success
+<work>/work/base/HATT.kdbx: 1 file pushed, 0 skipped. 0.9 MB/s (16325 bytes in 0.018s)
+given 16325 bytes, mtime 2026-11-16 12:03:34.000000000 +0100 sha256 d7ca32b3556d0e087218501708724e94532ee5f422f745f3488c7ebe6c7bf5fc
+[2026-11-16T11:13:35.759Z] kpdx-save.flow:2 include kpdx-open.flow
+[2026-11-16T11:13:35.777Z] kpdx-open.flow:4 sh monkey -p com.kunzisoft.keepass.libre -c android.intent.category.LAUNCHER 1
+  bash arg: -p
+  bash arg: com.kunzisoft.keepass.libre
+  bash arg: -c
+  bash arg: android.intent.category.LAUNCHER
+  bash arg: 1
+Events injected: 1
+## Network stats: elapsed time=312ms (0ms mobile, 0ms wifi, 312ms not connected)
+args: [-p, com.kunzisoft.keepass.libre, -c, android.intent.category.LAUNCHER, 1]
+ arg: "-p"
+ arg: "com.kunzisoft.keepass.libre"
+ arg: "-c"
+ arg: "android.intent.category.LAUNCHER"
+ arg: "1"
+data="com.kunzisoft.keepass.libre"
+data="android.intent.category.LAUNCHER"
+[2026-11-16T11:13:36.875Z] kpdx-open.flow:5 waitfor open_database_button 30
+[2026-11-16T11:13:41.150Z] kpdx-open.flow:6 tapuntil open_database_button Show.roots 40
+[2026-11-16T11:13:45.203Z]   tapped (799, 2051) 'Open existing vault'
+[2026-11-16T11:13:54.968Z]   tapped (799, 2051) 'Open existing vault'
+[2026-11-16T11:13:58.255Z] kpdx-open.flow:7 include picker.flow
+[2026-11-16T11:13:58.269Z] picker.flow:4 pick kpdx-save-HATT-r2.kdbx
+[2026-11-16T11:14:11.305Z]   focused and entered '^kpdx\\-save\\-HATT\\-r2\\.kdbx$'
+[2026-11-16T11:14:11.307Z] kpdx-open.flow:8 waitfor password_text_view 40
+[2026-11-16T11:14:16.042Z] kpdx-open.flow:9 typepwdx dummy-password-for-a-throwaway-file
+[2026-11-16T11:14:36.472Z]   typepwdx: the field reads 8 characters, not 35 (attempt 1)
+[2026-11-16T11:14:55.693Z]   typepwdx: the field reads 2 characters, not 35 (attempt 2)
+[2026-11-16T11:15:19.351Z]   typed the password and read it back (35 characters)
+[2026-11-16T11:15:19.355Z] kpdx-open.flow:10 tapuntil activity_password_open_button add_button 60
+[2026-11-16T11:15:24.589Z]   tapped (895, 1435) 'Unlock'
+[2026-11-16T11:15:36.615Z] kpdx-save.flow:3 sleep 3
+[2026-11-16T11:15:39.617Z] kpdx-save.flow:4 mark /sdcard/Download/kpdx-save-HATT-r2.kdbx
+[2026-11-16T11:15:39.691Z]   marked /sdcard/Download/kpdx-save-HATT-r2.kdbx sha256 d7ca32b3556d0e08
+[2026-11-16T11:15:39.692Z] kpdx-save.flow:5 tapuntil More.options ^Save.data$ 30
+[2026-11-16T11:15:44.010Z]   tapped (1024, 233) 'More options'
+[2026-11-16T11:15:55.492Z]   tapped (1024, 233) 'More options'
+[2026-11-16T11:15:59.427Z] kpdx-save.flow:6 tap ^Save.data$
+[2026-11-16T11:16:04.004Z]   tapped (799, 255) 'Save data'
+[2026-11-16T11:16:04.007Z] kpdx-save.flow:7 waitchange /sdcard/Download/kpdx-save-HATT-r2.kdbx 45
+[2026-11-16T11:16:08.913Z]   waitchange: /sdcard/Download/kpdx-save-HATT-r2.kdbx changed after 1.4 s, stable, sha256 ee7136843b27e7e1
+[2026-11-16T11:16:08.915Z] kpdx-save.flow:8 host sh <work>/scripts/devstat.sh /sdcard/Download/kpdx-save-HATT-r2.kdbx after-save
+[2026-11-16T11:16:09.154Z]   | devstat after-save: 15273 bytes, mtime 2026-11-16 12:16:03.884000000 +0100 sha256 ee7136843b27e7e15847ffd80c1af793dfc51d2d6241a4117a61bcf774cb0d92
+[2026-11-16T11:16:09.155Z] kpdx-save.flow:9 list
+  LinearLayout        (540, 1036)  id=action_bar_root              text='' desc=''
+  FrameLayout         (540, 1036)  id=content                      text='' desc=''
+  DrawerLayout        (540, 1036)  id=drawer_layout                text='' desc=''
+  ViewGroup           (540, 1108)  id=activity_group_container_view text='' desc=''
+  FrameLayout         (540, 1108)  id=search_content_view          text='' desc=''
+  ViewGroup           (540, 1108)  id=error_coordinator            text='' desc=''
+  ViewGroup           (540, 233)   id=activity_group_header        text='' desc=''
+  ViewGroup           (540, 233)   id=toolbar                      text='' desc=''
+  ImageButton    c    (77, 233)    id=                             text='' desc='Navigation drawer open'
+  TextView            (446, 233)   id=database_name                text='Storage probe DX (invented)' desc=''
+  Button         c    (771, 233)   id=menu_search                  text='' desc='Search'
+  Button         c    (903, 233)   id=menu_sort                    text='' desc='Sort'
+  ImageView      c    (1024, 233)  id=                             text='' desc='More options'
+  ImageView           (148, 233)   id=database_color               text='' desc='Database color'
+  ImageView           (148, 233)   id=database_modified            text='' desc='Save'
+  ScrollView          (540, 1196)  id=group_coordinator            text='' desc=''
+  RelativeLayout      (540, 1196)  id=add_node_button              text='' desc=''
+  ImageButton    c    (970, 2013)  id=add_button                   text='' desc='Add node'
+  LinearLayout        (540, 409)   id=app_bar                      text='' desc=''
+  RecyclerView        (540, 409)   id=breadcrumb_list              text='' desc=''
+  CardView       c    (267, 409)   id=breadcrumb_group             text='' desc=''
+  TextView            (77, 389)    id=group_numbers                text='44' desc=''
+  ImageView           (113, 409)   id=group_icon                   text='' desc=''
+  TextView            (333, 408)   id=group_name                   text='Storage probe' desc=''
+  FrameLayout         (540, 1284)  id=nodes_list_fragment_container text='' desc=''
+  RecyclerView        (540, 1284)  id=nodes_list                   text='' desc='Node children'
+  RelativeLayout c    (534, 585)   id=node_container               text='' desc=''
+  TextView            (74, 565)    id=node_child_numbers           text='14' desc=''
+  ImageView           (127, 585)   id=node_icon                    text='' desc=''
+  TextView            (363, 584)   id=node_text                    text='KeePassGate' desc=''
+  ImageView           (981, 585)   id=node_image_identifier        text='' desc=''
+  RelativeLayout c    (534, 739)   id=node_container               text='' desc=''
+  TextView            (64, 719)    id=node_child_numbers           text='5' desc=''
+  ImageView           (127, 739)   id=node_icon                    text='' desc=''
+  TextView            (247, 713)   id=node_text                    text='G' desc=''
+  RecyclerView        (389, 768)   id=node_tags_list_view          text='' desc=''
+  TextView       c    (328, 765)   id=tag_name                     text='kpg.reader' desc=''
+  TextView       c    (486, 765)   id=tag_name                     text='team' desc=''
+  ImageView           (981, 739)   id=node_image_identifier        text='' desc=''
+  RelativeLayout c    (534, 893)   id=node_container               text='' desc=''
+  TextView            (64, 873)    id=node_child_numbers           text='2' desc=''
+  ImageView           (127, 893)   id=node_icon                    text='' desc=''
+  TextView            (309, 892)   id=node_text                    text='Carriers' desc=''
+  ImageView           (981, 893)   id=node_image_identifier        text='' desc=''
+  RelativeLayout c    (534, 1047)  id=node_container               text='' desc=''
+  TextView            (74, 1027)   id=node_child_numbers           text='14' desc=''
+  ImageView           (127, 1047)  id=node_icon                    text='' desc=''
+  TextView            (341, 1046)  id=node_text                    text='Passwords' desc=''
+  ImageView           (981, 1047)  id=node_image_identifier        text='' desc=''
+  RelativeLayout c    (534, 1201)  id=node_container               text='' desc=''
+  TextView            (64, 1181)   id=node_child_numbers           text='1' desc=''
+  ImageView           (127, 1201)  id=node_icon                    text='' desc=''
+  TextView            (261, 1200)  id=node_text                    text='GD' desc=''
+  ImageView           (981, 1201)  id=node_image_identifier        text='' desc=''
+  RelativeLayout c    (534, 1355)  id=node_container               text='' desc=''
+  TextView            (64, 1335)   id=node_child_numbers           text='3' desc=''
+  ImageView           (127, 1355)  id=node_icon                    text='' desc=''
+  TextView            (262, 1354)  id=node_text                    text='NA' desc=''
+  ImageView           (981, 1355)  id=node_image_identifier        text='' desc=''
+  RelativeLayout c    (534, 1509)  id=node_container               text='' desc=''
+  TextView            (64, 1489)   id=node_child_numbers           text='2' desc=''
+  ImageView           (127, 1509)  id=node_icon                    text='' desc=''
+  TextView            (318, 1508)  id=node_text                    text='Personal' desc=''
+  ImageView           (981, 1509)  id=node_image_identifier        text='' desc=''
+  RelativeLayout c    (534, 1663)  id=node_container               text='' desc=''
+  TextView            (64, 1643)   id=node_child_numbers           text='3' desc=''
+  ImageView           (127, 1663)  id=node_icon                    text='' desc=''
+  TextView            (296, 1662)  id=node_text                    text='Attach' desc=''
+  ImageView           (981, 1663)  id=node_image_identifier        text='' desc=''
+  RelativeLayout c    (534, 1817)  id=node_container               text='' desc=''
+  TextView            (64, 1797)   id=node_child_numbers           text='0' desc=''
+  ImageView           (127, 1817)  id=node_icon                    text='' desc=''
+  TextView            (344, 1816)  id=node_text                    text='Recycle Bin' desc=''
+  ImageView           (981, 1817)  id=node_image_identifier        text='' desc=''
+  ViewGroup           (540, 2033)  id=activity_group_footer        text='' desc=''
+  ImageButton    c    (90, 2033)   id=lock_button                  text='' desc='Lock'
+  View                (540, 72)    id=statusBarBackground          text='' desc=''
+  View                (0, 0)       id=navigationBarBackground      text='' desc=''
+total 20
+-rw------- 1 u0_a160 u0_a160 15273 2026-11-16 12:16:03.884000000 +0100 kpdx-save-HATT-r2.kdbx
+device kpdx-save-HATT-r2.kdbx sha256 ee7136843b27e7e15847ffd80c1af793dfc51d2d6241a4117a61bcf774cb0d92 15273 bytes, mtime 2026-11-16 12:16:03.884000000 +0100
+/sdcard/Download/kpdx-save-HATT-r2.kdbx: 1 file pulled, 0 skipped. 0.3 MB/s (15273 bytes in 0.052s)
+### flow rc=0 2026-11-16T11:16:15.879Z

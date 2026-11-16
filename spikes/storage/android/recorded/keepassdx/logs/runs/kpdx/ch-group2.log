@@ -1,0 +1,300 @@
+### 2026-11-16T16:12:58.694Z ow kpdx ch-group2 flow=kpdx-ch-group2.flow base=B41  (versionName=4.5.8)
+Success
+<work>/work/base/B41.kdbx: 1 file pushed, 0 skipped. 0.8 MB/s (16085 bytes in 0.020s)
+given 16085 bytes, mtime 2026-11-16 17:02:59.000000000 +0100 sha256 92909efea553cdd099e1d603f4a90b4c57b729c6d4b2e723fb8403728cd79da7
+[2026-11-16T16:13:00.484Z] kpdx-ch-group2.flow:3 include kpdx-open.flow
+[2026-11-16T16:13:00.495Z] kpdx-open.flow:4 sh monkey -p com.kunzisoft.keepass.libre -c android.intent.category.LAUNCHER 1
+  bash arg: -p
+  bash arg: com.kunzisoft.keepass.libre
+  bash arg: -c
+  bash arg: android.intent.category.LAUNCHER
+  bash arg: 1
+Events injected: 1
+## Network stats: elapsed time=103ms (0ms mobile, 0ms wifi, 103ms not connected)
+args: [-p, com.kunzisoft.keepass.libre, -c, android.intent.category.LAUNCHER, 1]
+ arg: "-p"
+ arg: "com.kunzisoft.keepass.libre"
+ arg: "-c"
+ arg: "android.intent.category.LAUNCHER"
+ arg: "1"
+data="com.kunzisoft.keepass.libre"
+data="android.intent.category.LAUNCHER"
+[2026-11-16T16:13:01.270Z] kpdx-open.flow:5 waitfor open_database_button 30
+[2026-11-16T16:13:06.960Z] kpdx-open.flow:6 tapuntil open_database_button Show.roots 40
+[2026-11-16T16:13:09.932Z]   tapped (799, 2051) 'Open existing vault'
+[2026-11-16T16:13:18.960Z]   tapped (799, 2051) 'Open existing vault'
+[2026-11-16T16:13:21.617Z] kpdx-open.flow:7 include picker.flow
+[2026-11-16T16:13:21.623Z] picker.flow:4 pick kpdx-ch-group2.kdbx
+[2026-11-16T16:13:29.797Z]   focused and entered '^kpdx\\-ch\\-group2\\.kdbx$'
+[2026-11-16T16:13:29.802Z] kpdx-open.flow:8 waitfor password_text_view 40
+[2026-11-16T16:13:33.768Z] kpdx-open.flow:9 typepwdx dummy-password-for-a-throwaway-file
+[2026-11-16T16:13:48.175Z]   typepwdx: the field reads 8 characters, not 35 (attempt 1)
+[2026-11-16T16:14:03.716Z]   typed the password and read it back (35 characters)
+[2026-11-16T16:14:03.717Z] kpdx-open.flow:10 tapuntil activity_password_open_button add_button 60
+[2026-11-16T16:14:07.086Z]   tapped (895, 1435) 'Unlock'
+[2026-11-16T16:14:17.785Z]   tapped (895, 1435) 'Unlock'
+[2026-11-16T16:14:29.990Z]   tapped (895, 1435) 'Unlock'
+[2026-11-16T16:14:36.121Z] kpdx-ch-group2.flow:4 waitfor node_text@^G$ 20
+[2026-11-16T16:14:38.040Z] kpdx-ch-group2.flow:5 sleep 2
+[2026-11-16T16:14:40.042Z] kpdx-ch-group2.flow:6 set SEL ^G$
+[2026-11-16T16:14:40.047Z] kpdx-ch-group2.flow:7 log s04 tags of G
+[2026-11-16T16:14:40.053Z]   s04 tags of G
+[2026-11-16T16:14:40.054Z] kpdx-ch-group2.flow:8 mark /sdcard/Download/kpdx-ch-group2.kdbx
+[2026-11-16T16:14:40.115Z]   marked /sdcard/Download/kpdx-ch-group2.kdbx sha256 92909efea553cdd0
+[2026-11-16T16:14:40.115Z] kpdx-ch-group2.flow:9 include kpdx-sel-group.flow
+[2026-11-16T16:14:40.128Z] kpdx-sel-group.flow:3 longpressuntil node_text@^G$ menu_move 60 2000 600
+[2026-11-16T16:14:44.989Z]   long-pressed (600, 713) for 2000 ms on the line of 'G'
+[2026-11-16T16:14:57.946Z]   long-pressed (600, 713) for 2000 ms on the line of 'G'
+[2026-11-16T16:15:00.087Z] kpdx-sel-group.flow:4 tapuntil More.options#2 ^Edit$ 30
+[2026-11-16T16:15:03.018Z]   tapped (1024, 2063) 'More options'
+[2026-11-16T16:15:15.338Z]   tapped (1024, 2063) 'More options'
+[2026-11-16T16:15:18.347Z] kpdx-sel-group.flow:5 tap ^Edit$
+[2026-11-16T16:15:21.942Z]   tapped (799, 1966) 'Edit'
+[2026-11-16T16:15:21.944Z] kpdx-sel-group.flow:6 waitfor group_edit_name 20
+[2026-11-16T16:15:25.312Z] kpdx-ch-group2.flow:11 sleep 2
+[2026-11-16T16:15:27.336Z] kpdx-ch-group2.flow:12 list
+  FrameLayout         (540, 1176)  id=action_bar_root              text='' desc=''
+  FrameLayout         (540, 1176)  id=content                      text='' desc=''
+  LinearLayoutCompat      (540, 1176)  id=parentPanel                  text='' desc=''
+  FrameLayout         (540, 1099)  id=customPanel                  text='' desc=''
+  FrameLayout         (540, 1099)  id=custom                       text='' desc=''
+  ImageButton    c    (540, 612)   id=group_edit_icon_button       text='' desc=''
+  LinearLayout        (540, 823)   id=group_edit_name_container    text='' desc=''
+  EditText       c    (540, 830)   id=group_edit_name              text='G' desc=''
+  LinearLayout        (540, 1043)  id=group_edit_note_container    text='' desc=''
+  EditText       c    (540, 1050)  id=group_edit_note              text='{"kpg.rules":{"reader":".R...L..","writer":"CRU..L.."}}' desc=''
+  FrameLayout         (540, 1268)  id=group_edit_expiration        text='' desc=''
+  LinearLayout        (457, 1268)  id=expiration_label             text='' desc=''
+  EditText       c    (457, 1270)  id=expiration_text              text='Never' desc=''
+  Switch         cx   (886, 1269)  id=expiration_checkbox          text='' desc=''
+  LinearLayout        (540, 1442)  id=group_edit_searchable_container text='' desc=''
+  Spinner        c    (540, 1449)  id=group_edit_searchable        text='Inherit' desc=''
+  ImageButton    cx   (892, 1449)  id=text_input_end_icon          text='' desc='Show dropdown menu'
+  LinearLayout        (540, 1619)  id=group_tags_label             text='' desc=''
+  EditText       c    (540, 1627)  id=group_tags_completion_view   text='kpg.reader, team, ' desc=''
+  ImageButton    cx   (892, 1627)  id=text_input_end_icon          text='' desc='Show dropdown menu'
+  ScrollView          (540, 1840)  id=buttonPanel                  text='' desc=''
+  Button         c    (683, 1840)  id=button2                      text='Cancel' desc=''
+  Button         c    (887, 1840)  id=button1                      text='OK' desc=''
+[2026-11-16T16:15:29.703Z] kpdx-ch-group2.flow:13 appendto group_tags_completion_view added,
+[2026-11-16T16:15:46.421Z]   appended 'added,': 'kpg.reader, added, '
+[2026-11-16T16:15:46.426Z] kpdx-ch-group2.flow:14 tap ^OK$
+[2026-11-16T16:15:50.290Z]   tapped (887, 1402) 'OK'
+[2026-11-16T16:15:50.291Z] kpdx-ch-group2.flow:15 waitchange /sdcard/Download/kpdx-ch-group2.kdbx 45
+[2026-11-16T16:15:53.925Z]   waitchange: /sdcard/Download/kpdx-ch-group2.kdbx changed after 0.2 s, stable, sha256 0c9443ec88a96cb9
+[2026-11-16T16:15:53.927Z] kpdx-ch-group2.flow:16 pull <work>/work/runs/kpdx/ch-group2/s04-tags.kdbx /sdcard/Download/kpdx-ch-group2.kdbx
+15081 bytes, mtime 2026-11-16 17:15:49.264000000 +0100
+0c9443ec88a96cb9722777e3c5d0c70455b84db6b3963ebdd575f1339c6bc998  /sdcard/Download/kpdx-ch-group2.kdbx
+/sdcard/Download/kpdx-ch-group2.kdbx: 1 file pulled, 0 skipped. 0.4 MB/s (15081 bytes in 0.034s)
+[2026-11-16T16:15:54.500Z]   pulled /sdcard/Download/kpdx-ch-group2.kdbx to <work>/work/runs/kpdx/ch-group2/s04-tags.kdbx
+[2026-11-16T16:15:54.501Z] kpdx-ch-group2.flow:17 log s05 expiry of G
+[2026-11-16T16:15:54.503Z]   s05 expiry of G
+[2026-11-16T16:15:54.503Z] kpdx-ch-group2.flow:18 mark /sdcard/Download/kpdx-ch-group2.kdbx
+[2026-11-16T16:15:54.712Z]   marked /sdcard/Download/kpdx-ch-group2.kdbx sha256 0c9443ec88a96cb9
+[2026-11-16T16:15:54.714Z] kpdx-ch-group2.flow:19 include kpdx-sel-group.flow
+[2026-11-16T16:15:54.727Z] kpdx-sel-group.flow:3 longpressuntil node_text@^G$ menu_move 60 2000 600
+[2026-11-16T16:16:00.278Z]   long-pressed (600, 713) for 2000 ms on the line of 'G'
+[2026-11-16T16:16:10.523Z]   long-pressed (600, 713) for 2000 ms on the line of 'G'
+[2026-11-16T16:16:22.201Z]   long-pressed (600, 713) for 2000 ms on the line of 'G'
+[2026-11-16T16:16:25.088Z] kpdx-sel-group.flow:4 tapuntil More.options#2 ^Edit$ 30
+[2026-11-16T16:16:28.200Z]   tapped (1024, 2063) 'More options'
+[2026-11-16T16:16:30.639Z] kpdx-sel-group.flow:5 tap ^Edit$
+[2026-11-16T16:16:34.353Z]   tapped (799, 1966) 'Edit'
+[2026-11-16T16:16:34.358Z] kpdx-sel-group.flow:6 waitfor group_edit_name 20
+[2026-11-16T16:16:38.105Z] kpdx-ch-group2.flow:20 tapuntil group_edit_expiration ^OK$ 20
+[2026-11-16T16:16:40.308Z] kpdx-ch-group2.flow:21 dialog
+[2026-11-16T16:16:43.097Z]   dialog group_edit_icon_button: ''
+[2026-11-16T16:16:43.098Z]   dialog text_input_end_icon: ''
+[2026-11-16T16:16:43.099Z]   dialog text_input_end_icon: ''
+[2026-11-16T16:16:43.099Z]   dialog button2: 'Cancel'
+[2026-11-16T16:16:43.101Z]   dialog button1: 'OK'
+[2026-11-16T16:16:43.102Z] kpdx-ch-group2.flow:22 list
+  FrameLayout         (540, 1176)  id=action_bar_root              text='' desc=''
+  FrameLayout         (540, 1176)  id=content                      text='' desc=''
+  LinearLayoutCompat      (540, 1176)  id=parentPanel                  text='' desc=''
+  FrameLayout         (540, 1099)  id=customPanel                  text='' desc=''
+  FrameLayout         (540, 1099)  id=custom                       text='' desc=''
+  ImageButton    c    (540, 612)   id=group_edit_icon_button       text='' desc=''
+  LinearLayout        (540, 823)   id=group_edit_name_container    text='' desc=''
+  EditText       c    (540, 830)   id=group_edit_name              text='G' desc=''
+  LinearLayout        (540, 1043)  id=group_edit_note_container    text='' desc=''
+  EditText       c    (540, 1050)  id=group_edit_note              text='{"kpg.rules":{"reader":".R...L..","writer":"CRU..L.."}}' desc=''
+  FrameLayout         (540, 1268)  id=group_edit_expiration        text='' desc=''
+  LinearLayout        (457, 1268)  id=expiration_label             text='' desc=''
+  EditText       c    (457, 1270)  id=expiration_text              text='Never' desc=''
+  Switch         cx   (886, 1269)  id=expiration_checkbox          text='' desc=''
+  LinearLayout        (540, 1442)  id=group_edit_searchable_container text='' desc=''
+  Spinner        c    (540, 1449)  id=group_edit_searchable        text='Inherit' desc=''
+  ImageButton    cx   (892, 1449)  id=text_input_end_icon          text='' desc='Show dropdown menu'
+  LinearLayout        (540, 1619)  id=group_tags_label             text='' desc=''
+  EditText       c    (540, 1627)  id=group_tags_completion_view   text='added, kpg.reader, ' desc=''
+  ImageButton    cx   (892, 1627)  id=text_input_end_icon          text='' desc='Show dropdown menu'
+  ScrollView          (540, 1840)  id=buttonPanel                  text='' desc=''
+  Button         c    (683, 1840)  id=button2                      text='Cancel' desc=''
+  Button         c    (887, 1840)  id=button1                      text='OK' desc=''
+[2026-11-16T16:16:45.026Z] kpdx-ch-group2.flow:23 tap ^OK$
+[2026-11-16T16:16:48.557Z]   tapped (887, 1840) 'OK'
+[2026-11-16T16:16:48.561Z] kpdx-ch-group2.flow:24 sleep 2
+[2026-11-16T16:16:50.562Z] kpdx-ch-group2.flow:25 dialog
+[2026-11-16T16:16:53.238Z]   dialog android.widget.ImageButton: ''
+[2026-11-16T16:16:53.328Z]   dialog menu_search: ''
+[2026-11-16T16:16:53.330Z]   dialog menu_sort: ''
+[2026-11-16T16:16:53.332Z]   dialog add_button: ''
+[2026-11-16T16:16:53.333Z]   dialog lock_button: ''
+[2026-11-16T16:16:53.334Z] kpdx-ch-group2.flow:26 maybe ^OK$ 4
+[2026-11-16T16:16:59.073Z]   maybe: absent
+[2026-11-16T16:16:59.075Z] kpdx-ch-group2.flow:27 sleep 2
+[2026-11-16T16:17:01.077Z] kpdx-ch-group2.flow:28 list
+  LinearLayout        (540, 1036)  id=action_bar_root              text='' desc=''
+  FrameLayout         (540, 1036)  id=content                      text='' desc=''
+  DrawerLayout        (540, 1036)  id=drawer_layout                text='' desc=''
+  ViewGroup           (540, 1108)  id=activity_group_container_view text='' desc=''
+  FrameLayout         (540, 1108)  id=search_content_view          text='' desc=''
+  ViewGroup           (540, 1108)  id=error_coordinator            text='' desc=''
+  ViewGroup           (540, 233)   id=activity_group_header        text='' desc=''
+  ViewGroup           (540, 233)   id=toolbar                      text='' desc=''
+  ImageButton    c    (77, 233)    id=                             text='' desc='Navigation drawer open'
+  TextView            (446, 233)   id=database_name                text='Storage probe DX (invented)' desc=''
+  Button         c    (771, 233)   id=menu_search                  text='' desc='Search'
+  Button         c    (903, 233)   id=menu_sort                    text='' desc='Sort'
+  ImageView      c    (1024, 233)  id=                             text='' desc='More options'
+  ImageView           (148, 233)   id=database_color               text='' desc='Database color'
+  ImageView           (148, 233)   id=database_modified            text='' desc='Save'
+  ScrollView          (540, 1196)  id=group_coordinator            text='' desc=''
+  RelativeLayout      (540, 1196)  id=add_node_button              text='' desc=''
+  ImageButton    c    (970, 2013)  id=add_button                   text='' desc='Add node'
+  LinearLayout        (540, 409)   id=app_bar                      text='' desc=''
+  RecyclerView   f    (540, 409)   id=breadcrumb_list              text='' desc=''
+  CardView       c    (267, 409)   id=breadcrumb_group             text='' desc=''
+  TextView            (77, 389)    id=group_numbers                text='41' desc=''
+  ImageView           (113, 409)   id=group_icon                   text='' desc=''
+  TextView            (333, 408)   id=group_name                   text='Storage probe' desc=''
+  FrameLayout         (540, 1284)  id=nodes_list_fragment_container text='' desc=''
+  RecyclerView        (540, 1284)  id=nodes_list                   text='' desc='Node children'
+  RelativeLayout c    (534, 585)   id=node_container               text='' desc=''
+  TextView            (74, 565)    id=node_child_numbers           text='14' desc=''
+  ImageView           (127, 585)   id=node_icon                    text='' desc=''
+  TextView            (363, 584)   id=node_text                    text='KeePassGate' desc=''
+  ImageView           (981, 585)   id=node_image_identifier        text='' desc=''
+  RelativeLayout c    (534, 739)   id=node_container               text='' desc=''
+  TextView            (64, 719)    id=node_child_numbers           text='5' desc=''
+  ImageView           (127, 739)   id=node_icon                    text='' desc=''
+  TextView            (247, 713)   id=node_text                    text='G' desc=''
+  RecyclerView        (398, 768)   id=node_tags_list_view          text='' desc=''
+  TextView       c    (295, 765)   id=tag_name                     text='added' desc=''
+  TextView       c    (461, 765)   id=tag_name                     text='kpg.reader' desc=''
+  ImageView           (981, 739)   id=node_image_identifier        text='' desc=''
+  RelativeLayout c    (534, 893)   id=node_container               text='' desc=''
+  TextView            (64, 873)    id=node_child_numbers           text='2' desc=''
+  ImageView           (127, 893)   id=node_icon                    text='' desc=''
+  TextView            (309, 892)   id=node_text                    text='Carriers' desc=''
+  ImageView           (981, 893)   id=node_image_identifier        text='' desc=''
+  RelativeLayout c    (534, 1047)  id=node_container               text='' desc=''
+  TextView            (74, 1027)   id=node_child_numbers           text='14' desc=''
+  ImageView           (127, 1047)  id=node_icon                    text='' desc=''
+  TextView            (341, 1046)  id=node_text                    text='Passwords' desc=''
+  ImageView           (981, 1047)  id=node_image_identifier        text='' desc=''
+  RelativeLayout c    (534, 1201)  id=node_container               text='' desc=''
+  TextView            (64, 1181)   id=node_child_numbers           text='1' desc=''
+  ImageView           (127, 1201)  id=node_icon                    text='' desc=''
+  TextView            (261, 1200)  id=node_text                    text='GD' desc=''
+  ImageView           (981, 1201)  id=node_image_identifier        text='' desc=''
+  RelativeLayout c    (534, 1355)  id=node_container               text='' desc=''
+  TextView            (64, 1335)   id=node_child_numbers           text='3' desc=''
+  ImageView           (127, 1355)  id=node_icon                    text='' desc=''
+  TextView            (262, 1354)  id=node_text                    text='NA' desc=''
+  ImageView           (981, 1355)  id=node_image_identifier        text='' desc=''
+  RelativeLayout c    (534, 1509)  id=node_container               text='' desc=''
+  TextView            (64, 1489)   id=node_child_numbers           text='2' desc=''
+  ImageView           (127, 1509)  id=node_icon                    text='' desc=''
+  TextView            (318, 1508)  id=node_text                    text='Personal' desc=''
+  ImageView           (981, 1509)  id=node_image_identifier        text='' desc=''
+  RelativeLayout c    (534, 1663)  id=node_container               text='' desc=''
+  TextView            (64, 1643)   id=node_child_numbers           text='0' desc=''
+  ImageView           (127, 1663)  id=node_icon                    text='' desc=''
+  TextView            (344, 1662)  id=node_text                    text='Recycle Bin' desc=''
+  ImageView           (981, 1663)  id=node_image_identifier        text='' desc=''
+  ViewGroup           (540, 2033)  id=activity_group_footer        text='' desc=''
+  ImageButton    c    (90, 2033)   id=lock_button                  text='' desc='Lock'
+  View                (540, 72)    id=statusBarBackground          text='' desc=''
+  View                (0, 0)       id=navigationBarBackground      text='' desc=''
+[2026-11-16T16:17:03.199Z] kpdx-ch-group2.flow:29 tap ^OK$
+  LinearLayout        (540, 1036)  id=action_bar_root              text='' desc=''
+  FrameLayout         (540, 1036)  id=content                      text='' desc=''
+  DrawerLayout        (540, 1036)  id=drawer_layout                text='' desc=''
+  ViewGroup           (540, 1108)  id=activity_group_container_view text='' desc=''
+  FrameLayout         (540, 1108)  id=search_content_view          text='' desc=''
+  ViewGroup           (540, 1108)  id=error_coordinator            text='' desc=''
+  ViewGroup           (540, 233)   id=activity_group_header        text='' desc=''
+  ViewGroup           (540, 233)   id=toolbar                      text='' desc=''
+  ImageButton    c    (77, 233)    id=                             text='' desc='Navigation drawer open'
+  TextView            (446, 233)   id=database_name                text='Storage probe DX (invented)' desc=''
+  Button         c    (771, 233)   id=menu_search                  text='' desc='Search'
+  Button         c    (903, 233)   id=menu_sort                    text='' desc='Sort'
+  ImageView      c    (1024, 233)  id=                             text='' desc='More options'
+  ImageView           (148, 233)   id=database_color               text='' desc='Database color'
+  ImageView           (148, 233)   id=database_modified            text='' desc='Save'
+  ScrollView          (540, 1196)  id=group_coordinator            text='' desc=''
+  RelativeLayout      (540, 1196)  id=add_node_button              text='' desc=''
+  ImageButton    c    (970, 2013)  id=add_button                   text='' desc='Add node'
+  LinearLayout        (540, 409)   id=app_bar                      text='' desc=''
+  RecyclerView   f    (540, 409)   id=breadcrumb_list              text='' desc=''
+  CardView       c    (267, 409)   id=breadcrumb_group             text='' desc=''
+  TextView            (77, 389)    id=group_numbers                text='41' desc=''
+  ImageView           (113, 409)   id=group_icon                   text='' desc=''
+  TextView            (333, 408)   id=group_name                   text='Storage probe' desc=''
+  FrameLayout         (540, 1284)  id=nodes_list_fragment_container text='' desc=''
+  RecyclerView        (540, 1284)  id=nodes_list                   text='' desc='Node children'
+  RelativeLayout c    (534, 585)   id=node_container               text='' desc=''
+  TextView            (74, 565)    id=node_child_numbers           text='14' desc=''
+  ImageView           (127, 585)   id=node_icon                    text='' desc=''
+  TextView            (363, 584)   id=node_text                    text='KeePassGate' desc=''
+  ImageView           (981, 585)   id=node_image_identifier        text='' desc=''
+  RelativeLayout c    (534, 739)   id=node_container               text='' desc=''
+  TextView            (64, 719)    id=node_child_numbers           text='5' desc=''
+  ImageView           (127, 739)   id=node_icon                    text='' desc=''
+  TextView            (247, 713)   id=node_text                    text='G' desc=''
+  RecyclerView        (398, 768)   id=node_tags_list_view          text='' desc=''
+  TextView       c    (295, 765)   id=tag_name                     text='added' desc=''
+  TextView       c    (461, 765)   id=tag_name                     text='kpg.reader' desc=''
+  ImageView           (981, 739)   id=node_image_identifier        text='' desc=''
+  RelativeLayout c    (534, 893)   id=node_container               text='' desc=''
+  TextView            (64, 873)    id=node_child_numbers           text='2' desc=''
+  ImageView           (127, 893)   id=node_icon                    text='' desc=''
+  TextView            (309, 892)   id=node_text                    text='Carriers' desc=''
+  ImageView           (981, 893)   id=node_image_identifier        text='' desc=''
+  RelativeLayout c    (534, 1047)  id=node_container               text='' desc=''
+  TextView            (74, 1027)   id=node_child_numbers           text='14' desc=''
+  ImageView           (127, 1047)  id=node_icon                    text='' desc=''
+  TextView            (341, 1046)  id=node_text                    text='Passwords' desc=''
+  ImageView           (981, 1047)  id=node_image_identifier        text='' desc=''
+  RelativeLayout c    (534, 1201)  id=node_container               text='' desc=''
+  TextView            (64, 1181)   id=node_child_numbers           text='1' desc=''
+  ImageView           (127, 1201)  id=node_icon                    text='' desc=''
+  TextView            (261, 1200)  id=node_text                    text='GD' desc=''
+  ImageView           (981, 1201)  id=node_image_identifier        text='' desc=''
+  RelativeLayout c    (534, 1355)  id=node_container               text='' desc=''
+  TextView            (64, 1335)   id=node_child_numbers           text='3' desc=''
+  ImageView           (127, 1355)  id=node_icon                    text='' desc=''
+  TextView            (262, 1354)  id=node_text                    text='NA' desc=''
+  ImageView           (981, 1355)  id=node_image_identifier        text='' desc=''
+  RelativeLayout c    (534, 1509)  id=node_container               text='' desc=''
+  TextView            (64, 1489)   id=node_child_numbers           text='2' desc=''
+  ImageView           (127, 1509)  id=node_icon                    text='' desc=''
+  TextView            (318, 1508)  id=node_text                    text='Personal' desc=''
+  ImageView           (981, 1509)  id=node_image_identifier        text='' desc=''
+  RelativeLayout c    (534, 1663)  id=node_container               text='' desc=''
+  TextView            (64, 1643)   id=node_child_numbers           text='0' desc=''
+  ImageView           (127, 1663)  id=node_icon                    text='' desc=''
+  TextView            (344, 1662)  id=node_text                    text='Recycle Bin' desc=''
+  ImageView           (981, 1663)  id=node_image_identifier        text='' desc=''
+  ViewGroup           (540, 2033)  id=activity_group_footer        text='' desc=''
+  ImageButton    c    (90, 2033)   id=lock_button                  text='' desc='Lock'
+  View                (540, 72)    id=statusBarBackground          text='' desc=''
+  View                (0, 0)       id=navigationBarBackground      text='' desc=''
+[2026-11-16T16:17:21.009Z] FAILED: tap: no node matches ^OK$
+total 20
+-rw------- 1 u0_a160 u0_a160 15081 2026-11-16 17:16:47.640000000 +0100 kpdx-ch-group2.kdbx
+device kpdx-ch-group2.kdbx sha256 381631842eff5ff01b2ac72aaaa75fe108294eb0f94791c63b525d6575e53f0f 15081 bytes, mtime 2026-11-16 17:16:47.640000000 +0100
+/sdcard/Download/kpdx-ch-group2.kdbx: 1 file pulled, 0 skipped. 0.2 MB/s (15081 bytes in 0.089s)
+### flow rc=1 2026-11-16T16:17:26.967Z

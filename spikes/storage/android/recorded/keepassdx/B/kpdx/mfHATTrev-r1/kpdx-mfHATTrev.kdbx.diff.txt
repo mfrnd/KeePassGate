@@ -1,0 +1,30 @@
+24c24
+< E A4 A b.bin p=0 len=48 sha=9b0f7af00b2e6084
+---
+> E A4 A b.bin p=0 len=48 sha=a9467b6b13353ae6
+1073c1073
+< G Root t.accessed 2026-11-01T10:00:00Z
+---
+> G Root t.accessed 2026-11-16T11:29:30Z
+1107c1107
+< R inner streamId=3 binaries=4 flags=0,1,0,0
+---
+> R inner streamId=3 binaries=3 flags=0,1,0
+1112c1112
+< R meta Generator = (empty)
+---
+> R meta Generator = "KeePassDX"
+1141a1142
+> X KeePassFile/Meta/HeaderHash 1
+1208c1209
+< X KeePassFile/Root/Group/Group/Entry/History/Entry/Tags 6
+---
+> X KeePassFile/Root/Group/Group/Entry/History/Entry/Tags 1
+1225c1226
+< X KeePassFile/Root/Group/Group/Entry/Tags 38
+---
+> X KeePassFile/Root/Group/Group/Entry/Tags 3
+1253d1253
+< X KeePassFile/Root/Group/Group/Group/Entry/Tags 4
+1280d1279
+< X KeePassFile/Root/Group/Group/Group/Group/Entry/Tags 1

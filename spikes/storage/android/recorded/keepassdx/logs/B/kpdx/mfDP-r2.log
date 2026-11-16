@@ -1,0 +1,173 @@
+### 2026-11-16T07:41:28.425Z B kpdx mfDP r2 target=DESK source=PHONE (versionName=4.5.8)
+Success
+<work>/work/base/DESK.kdbx: 1 file pushed, 0 skipped. 1.7 MB/s (16901 bytes in 0.009s)
+target sha256 2e9c41595aa4df3710b594660120f7bd8b2e1dbb214b148f329495c3e92f4774
+[2026-11-16T07:41:29.294Z] kpdx-B-from.flow:5 include kpdx-open.flow
+[2026-11-16T07:41:29.301Z] kpdx-open.flow:4 sh monkey -p com.kunzisoft.keepass.libre -c android.intent.category.LAUNCHER 1
+  bash arg: -p
+  bash arg: com.kunzisoft.keepass.libre
+  bash arg: -c
+  bash arg: android.intent.category.LAUNCHER
+  bash arg: 1
+Events injected: 1
+## Network stats: elapsed time=86ms (0ms mobile, 0ms wifi, 86ms not connected)
+args: [-p, com.kunzisoft.keepass.libre, -c, android.intent.category.LAUNCHER, 1]
+ arg: "-p"
+ arg: "com.kunzisoft.keepass.libre"
+ arg: "-c"
+ arg: "android.intent.category.LAUNCHER"
+ arg: "1"
+data="com.kunzisoft.keepass.libre"
+data="android.intent.category.LAUNCHER"
+[2026-11-16T07:41:29.960Z] kpdx-open.flow:5 waitfor open_database_button 30
+[2026-11-16T07:41:33.097Z] kpdx-open.flow:6 tapuntil open_database_button Show.roots 40
+[2026-11-16T07:41:35.717Z]   tapped (799, 2051) 'Open existing vault'
+[2026-11-16T07:41:45.864Z]   tapped (799, 2051) 'Open existing vault'
+[2026-11-16T07:41:48.360Z] kpdx-open.flow:7 include picker.flow
+[2026-11-16T07:41:48.368Z] picker.flow:4 pick kpdx-mfDP.kdbx
+[2026-11-16T07:41:56.091Z]   focused and entered '^kpdx\\-mfDP\\.kdbx$'
+[2026-11-16T07:41:56.093Z] kpdx-open.flow:8 waitfor password_text_view 40
+[2026-11-16T07:41:59.442Z] kpdx-open.flow:9 typepw password_text_view dummy-password-for-a-throwaway-file
+[2026-11-16T07:42:11.702Z]   type: field never took the focus (attempt 1)
+[2026-11-16T07:42:24.819Z]   type: field never took the focus (attempt 2)
+[2026-11-16T07:42:34.302Z]   typed into the focused field
+[2026-11-16T07:42:34.304Z] kpdx-open.flow:10 tapuntil activity_password_open_button add_button 60
+[2026-11-16T07:42:37.227Z]   tapped (895, 1435) 'Unlock'
+[2026-11-16T07:42:47.159Z]   tapped (895, 1435) 'Unlock'
+[2026-11-16T07:42:55.247Z]   tapped (895, 1435) 'Unlock'
+[2026-11-16T07:43:01.345Z] kpdx-B-from.flow:6 adb push <work>/work/base/PHONE.kdbx /sdcard/Download/kpdx-mfDP-src.kdbx
+<work>/work/base/PHONE.kdbx: 1 file pushed, 0 skipped. 1.8 MB/s (16517 bytes in 0.009s)
+[2026-11-16T07:43:01.397Z] kpdx-B-from.flow:7 sh sha256sum /sdcard/Download/kpdx-mfDP-src.kdbx
+1ef101223f5596760cbfb538a37148a3b18a68d95dddef47ec1716e40cf3959a  /sdcard/Download/kpdx-mfDP-src.kdbx
+[2026-11-16T07:43:01.451Z] kpdx-B-from.flow:8 sleep 4
+[2026-11-16T07:43:05.453Z] kpdx-B-from.flow:9 drawer menu_merge_from
+[2026-11-16T07:43:35.784Z]   drawer open after 5 attempt(s)
+[2026-11-16T07:43:35.786Z] kpdx-B-from.flow:10 tap menu_merge_from
+[2026-11-16T07:43:38.293Z]   tapped (452, 918) 'com.kunzisoft.keepass.libre:id/menu_merge_from'
+[2026-11-16T07:43:38.294Z] kpdx-B-from.flow:11 waitfor setup_check_password_edit_text 20
+[2026-11-16T07:43:40.651Z] kpdx-B-from.flow:12 type setup_check_password_edit_text dumm
+[2026-11-16T07:43:53.607Z]   type: field never took the focus (attempt 1)
+[2026-11-16T07:44:02.357Z]   typed 'dumm'
+[2026-11-16T07:44:02.359Z] kpdx-B-from.flow:13 tapuntil ^Check$ Show.roots 30
+[2026-11-16T07:44:05.276Z]   tapped (887, 1111) 'Check'
+[2026-11-16T07:44:08.501Z] kpdx-B-from.flow:14 include picker-src.flow
+[2026-11-16T07:44:08.507Z] picker-src.flow:2 pick kpdx-mfDP-src.kdbx
+[2026-11-16T07:44:16.421Z]   focused and entered '^kpdx\\-mfDP\\-src\\.kdbx$'
+[2026-11-16T07:44:16.423Z] kpdx-B-from.flow:15 waitfor title_database 30
+[2026-11-16T07:44:21.751Z] kpdx-B-from.flow:16 typepw password_text_view dummy-password-for-a-throwaway-file
+[2026-11-16T07:44:34.870Z]   type: field never took the focus (attempt 1)
+[2026-11-16T07:44:43.991Z]   typed into the focused field
+[2026-11-16T07:44:43.993Z] kpdx-B-from.flow:17 mark /sdcard/Download/kpdx-mfDP.kdbx
+[2026-11-16T07:44:44.072Z]   marked /sdcard/Download/kpdx-mfDP.kdbx sha256 2e9c41595aa4df37
+[2026-11-16T07:44:44.074Z] kpdx-B-from.flow:18 tap ^OK$
+[2026-11-16T07:44:46.996Z]   tapped (887, 1173) 'OK'
+[2026-11-16T07:44:46.998Z] kpdx-B-from.flow:19 waitchange /sdcard/Download/kpdx-mfDP.kdbx 90
+[2026-11-16T07:44:51.432Z]   waitchange: /sdcard/Download/kpdx-mfDP.kdbx changed after 1.1 s, stable, sha256 af94bfe93c023b82
+[2026-11-16T07:44:51.433Z] kpdx-B-from.flow:20 sleep 2
+[2026-11-16T07:44:53.434Z] kpdx-B-from.flow:21 dialog
+[2026-11-16T07:44:55.530Z]   dialog android.widget.ImageButton: ''
+[2026-11-16T07:44:55.538Z]   dialog menu_search: ''
+[2026-11-16T07:44:55.538Z]   dialog menu_sort: ''
+[2026-11-16T07:44:55.539Z]   dialog add_button: ''
+[2026-11-16T07:44:55.540Z]   dialog lock_button: ''
+[2026-11-16T07:44:55.541Z] kpdx-B-from.flow:22 list
+  LinearLayout        (540, 1036)  id=action_bar_root              text='' desc=''
+  FrameLayout         (540, 1036)  id=content                      text='' desc=''
+  DrawerLayout        (540, 1036)  id=drawer_layout                text='' desc=''
+  FrameLayout         (452, 1036)  id=database_nav_view            text='' desc=''
+  RecyclerView        (452, 1108)  id=design_navigation_view       text='' desc=''
+  LinearLayout        (452, 409)   id=navigation_header_container  text='' desc=''
+  TextView       c    (747, 215)   id=nav_database_version         text='V2 - KDBX4.1' desc=''
+  ImageView      c    (149, 318)   id=nav_database_icon            text='' desc='Navigation header'
+  TextView       c    (427, 471)   id=nav_database_name            text='Storage probe DX (invented)' desc=''
+  ImageView           (829, 483)   id=nav_database_color           text='' desc='Database color'
+  TextView       c    (452, 563)   id=nav_database_path            text='content://com.android.externalstorage.documents/document/primary%3ADownload%2Fkpdx-mfDP.kdbx' desc=''
+  LinearLayoutCompat c    (452, 739)   id=menu_app_settings            text='' desc=''
+  CheckedTextView      (452, 739)   id=design_menu_item_text        text='Settings' desc=''
+  LinearLayoutCompat c    (452, 918)   id=menu_merge_from              text='' desc=''
+  CheckedTextView      (452, 918)   id=design_menu_item_text        text='Merge from …' desc=''
+  LinearLayoutCompat c    (452, 1050)  id=menu_save_copy_to            text='' desc=''
+  CheckedTextView      (452, 1050)  id=design_menu_item_text        text='Save a copy to …' desc=''
+  LinearLayoutCompat c    (452, 1182)  id=menu_lock_all                text='' desc=''
+  CheckedTextView      (452, 1182)  id=design_menu_item_text        text='Lock' desc=''
+  LinearLayoutCompat c    (452, 1361)  id=menu_about                   text='' desc=''
+  CheckedTextView      (452, 1361)  id=design_menu_item_text        text='About' desc=''
+  LinearLayoutCompat c    (452, 1493)  id=menu_contribute              text='' desc=''
+  CheckedTextView      (452, 1493)  id=design_menu_item_text        text='Contribute' desc=''
+  ViewGroup           (540, 1108)  id=activity_group_container_view text='' desc=''
+  FrameLayout         (540, 1108)  id=search_content_view          text='' desc=''
+  ViewGroup           (540, 1108)  id=error_coordinator            text='' desc=''
+  ViewGroup           (540, 233)   id=activity_group_header        text='' desc=''
+  ViewGroup           (540, 233)   id=toolbar                      text='' desc=''
+  ImageButton    c    (77, 233)    id=                             text='' desc='Navigation drawer open'
+  TextView            (446, 233)   id=database_name                text='Storage probe DX (invented)' desc=''
+  Button         c    (771, 233)   id=menu_search                  text='' desc='Search'
+  Button         c    (903, 233)   id=menu_sort                    text='' desc='Sort'
+  ImageView      c    (1024, 233)  id=                             text='' desc='More options'
+  ImageView           (148, 233)   id=database_color               text='' desc='Database color'
+  ScrollView          (540, 1196)  id=group_coordinator            text='' desc=''
+  RelativeLayout      (540, 1196)  id=add_node_button              text='' desc=''
+  ImageButton    c    (970, 2013)  id=add_button                   text='' desc='Add node'
+  LinearLayout        (540, 409)   id=app_bar                      text='' desc=''
+  RecyclerView   f    (540, 409)   id=breadcrumb_list              text='' desc=''
+  CardView       c    (267, 409)   id=breadcrumb_group             text='' desc=''
+  TextView            (77, 389)    id=group_numbers                text='43' desc=''
+  ImageView           (113, 409)   id=group_icon                   text='' desc=''
+  TextView            (333, 408)   id=group_name                   text='Storage probe' desc=''
+  FrameLayout         (540, 1284)  id=nodes_list_fragment_container text='' desc=''
+  RecyclerView        (540, 1284)  id=nodes_list                   text='' desc='Node children'
+  RelativeLayout c    (534, 585)   id=node_container               text='' desc=''
+  TextView            (74, 565)    id=node_child_numbers           text='19' desc=''
+  ImageView           (127, 585)   id=node_icon                    text='' desc=''
+  TextView            (363, 584)   id=node_text                    text='KeePassGate' desc=''
+  ImageView           (981, 585)   id=node_image_identifier        text='' desc=''
+  RelativeLayout c    (534, 739)   id=node_container               text='' desc=''
+  TextView            (64, 719)    id=node_child_numbers           text='8' desc=''
+  ImageView           (127, 739)   id=node_icon                    text='' desc=''
+  TextView            (247, 713)   id=node_text                    text='G' desc=''
+  RecyclerView        (389, 768)   id=node_tags_list_view          text='' desc=''
+  TextView       c    (328, 765)   id=tag_name                     text='kpg.reader' desc=''
+  TextView       c    (486, 765)   id=tag_name                     text='team' desc=''
+  ImageView           (981, 739)   id=node_image_identifier        text='' desc=''
+  RelativeLayout c    (534, 893)   id=node_container               text='' desc=''
+  TextView            (64, 873)    id=node_child_numbers           text='2' desc=''
+  ImageView           (127, 893)   id=node_icon                    text='' desc=''
+  TextView            (309, 892)   id=node_text                    text='Carriers' desc=''
+  ImageView           (981, 893)   id=node_image_identifier        text='' desc=''
+  RelativeLayout c    (534, 1047)  id=node_container               text='' desc=''
+  TextView            (74, 1027)   id=node_child_numbers           text='11' desc=''
+  ImageView           (127, 1047)  id=node_icon                    text='' desc=''
+  TextView            (341, 1046)  id=node_text                    text='Passwords' desc=''
+  ImageView           (981, 1047)  id=node_image_identifier        text='' desc=''
+  RelativeLayout c    (534, 1201)  id=node_container               text='' desc=''
+  TextView            (64, 1181)   id=node_child_numbers           text='1' desc=''
+  ImageView           (127, 1201)  id=node_icon                    text='' desc=''
+  TextView            (261, 1200)  id=node_text                    text='GD' desc=''
+  ImageView           (981, 1201)  id=node_image_identifier        text='' desc=''
+  RelativeLayout c    (534, 1355)  id=node_container               text='' desc=''
+  TextView            (64, 1335)   id=node_child_numbers           text='0' desc=''
+  ImageView           (127, 1355)  id=node_icon                    text='' desc=''
+  TextView            (262, 1354)  id=node_text                    text='NA' desc=''
+  ImageView           (981, 1355)  id=node_image_identifier        text='' desc=''
+  RelativeLayout c    (534, 1509)  id=node_container               text='' desc=''
+  TextView            (64, 1489)   id=node_child_numbers           text='2' desc=''
+  ImageView           (127, 1509)  id=node_icon                    text='' desc=''
+  TextView            (318, 1508)  id=node_text                    text='Personal' desc=''
+  ImageView           (981, 1509)  id=node_image_identifier        text='' desc=''
+  RelativeLayout c    (534, 1663)  id=node_container               text='' desc=''
+  TextView            (64, 1643)   id=node_child_numbers           text='0' desc=''
+  ImageView           (127, 1663)  id=node_icon                    text='' desc=''
+  TextView            (344, 1662)  id=node_text                    text='Recycle Bin' desc=''
+  ImageView           (981, 1663)  id=node_image_identifier        text='' desc=''
+  ViewGroup           (540, 2033)  id=activity_group_footer        text='' desc=''
+  ImageButton    c    (90, 2033)   id=lock_button                  text='' desc='Lock'
+  View                (540, 72)    id=statusBarBackground          text='' desc=''
+  View                (0, 0)       id=navigationBarBackground      text='' desc=''
+total 44
+-rw------- 1 u0_a160 u0_a160 16517 2026-11-16 08:16:22.000000000 +0100 kpdx-mfDP-src.kdbx
+-rw------- 1 u0_a160 u0_a160 16217 2026-11-16 08:44:46.408000000 +0100 kpdx-mfDP.kdbx
+device kpdx-mfDP-src.kdbx sha256 1ef101223f5596760cbfb538a37148a3b18a68d95dddef47ec1716e40cf3959a
+/sdcard/Download/kpdx-mfDP-src.kdbx: 1 file pulled, 0 skipped. 0.3 MB/s (16517 bytes in 0.049s)
+device kpdx-mfDP.kdbx sha256 af94bfe93c023b82ce0c74ba772be5a0aa2d305f222e3c5d0a3d4ce6d11fb709
+/sdcard/Download/kpdx-mfDP.kdbx: 1 file pulled, 0 skipped. 1.4 MB/s (16217 bytes in 0.011s)
+### flow rc=0 2026-11-16T07:45:00.407Z

@@ -1,0 +1,6 @@
+sync bg-d-amcon-r2: ### flow rc=0 2026-11-16T18:12:53.631Z, 0 failures, cache-after-return.kdbx cache-localbackup.kdbx cache-second-save.kdbx cache-unattended.kdbx cache.kdbx server-after-return.kdbx server-second-save.kdbx server-unattended.kdbx server.kdbx 
+sync bg-d-amcon-r3: ### flow rc=0 2026-11-16T18:19:34.083Z, 0 failures, cache-after-return.kdbx cache-localbackup.kdbx cache-second-save.kdbx cache-unattended.kdbx cache.kdbx server-after-return.kdbx server-second-save.kdbx server-unattended.kdbx server.kdbx 
+sync bg-b-amcon-r2: ### flow rc=0 2026-11-16T18:26:04.342Z, 0 failures, cache-after-return.kdbx cache-localbackup.kdbx cache-second-save.kdbx cache-unattended.kdbx cache-unattended.kdbx.dump.txt cache-unattended.kdbx.vs-SNEW.diff.txt cache-unattended.kdbx.vs-SOLD.diff.txt cache.kdbx server-after-return.kdbx server-second-save.kdbx server-unattended.kdbx server-unattended.kdbx.dump.txt server-unattended.kdbx.vs-SNEW.diff.txt server-unattended.kdbx.vs-SOLD.diff.txt server.kdbx 
+sync sftp-s2-r1: ### flow rc=1 2026-11-16T18:27:55.573Z, 1 failures, server.kdbx 
+sync sftp-s4-merge-r1: ### flow rc=1 2026-11-16T18:29:50.366Z, 1 failures, server.kdbx 
+### batch bg-more.txt done 2026-11-16T18:29:50.418Z

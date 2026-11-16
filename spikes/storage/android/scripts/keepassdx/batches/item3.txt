@@ -1,0 +1,27 @@
+kpdx kpdx-ow-fg.flow com.kunzisoft.keepass.libre OLD ow-fg-diff-equal-r1 ARR=NEW-diff MODE=equal TAG=ow-fg-diff-equal-r1
+kpdx kpdx-ow-fg.flow com.kunzisoft.keepass.libre OLD ow-fg-diff-plus1-r1 ARR=NEW-diff MODE=plus1 TAG=ow-fg-diff-plus1-r1
+kpdx kpdx-ow-fg.flow com.kunzisoft.keepass.libre OLD ow-fg-diff-plus5-r1 ARR=NEW-diff MODE=plus5 TAG=ow-fg-diff-plus5-r1
+kpdx kpdx-ow-fg.flow com.kunzisoft.keepass.libre OLD ow-fg-diff-plus5-r2 ARR=NEW-diff MODE=plus5 TAG=ow-fg-diff-plus5-r2
+kpdx kpdx-ow-fg.flow com.kunzisoft.keepass.libre OLD ow-fg-diff-plus9-r1 ARR=NEW-diff MODE=plus9 TAG=ow-fg-diff-plus9-r1
+kpdx kpdx-ow-fg.flow com.kunzisoft.keepass.libre OLD ow-fg-diff-plus10-r1 ARR=NEW-diff MODE=plus10 TAG=ow-fg-diff-plus10-r1
+kpdx kpdx-ow-fg.flow com.kunzisoft.keepass.libre OLD ow-fg-diff-plus10-r2 ARR=NEW-diff MODE=plus10 TAG=ow-fg-diff-plus10-r2
+kpdx kpdx-ow-fg.flow com.kunzisoft.keepass.libre OLD ow-fg-diff-plus11-r1 ARR=NEW-diff MODE=plus11 TAG=ow-fg-diff-plus11-r1
+kpdx kpdx-ow-fg.flow com.kunzisoft.keepass.libre OLD ow-fg-diff-plus11-r2 ARR=NEW-diff MODE=plus11 TAG=ow-fg-diff-plus11-r2
+kpdx kpdx-ow-fg.flow com.kunzisoft.keepass.libre OLD ow-fg-diff-plus15-r1 ARR=NEW-diff MODE=plus15 TAG=ow-fg-diff-plus15-r1
+kpdx kpdx-ow-fg.flow com.kunzisoft.keepass.libre OLD ow-fg-diff-plus60-r1 ARR=NEW-diff MODE=plus60 TAG=ow-fg-diff-plus60-r1
+kpdx kpdx-ow-fg.flow com.kunzisoft.keepass.libre OLD ow-fg-diff-plus60-r2 ARR=NEW-diff MODE=plus60 TAG=ow-fg-diff-plus60-r2
+kpdx kpdx-ow-fg.flow com.kunzisoft.keepass.libre OLD ow-fg-diff-earlier-r1 ARR=NEW-diff MODE=earlier TAG=ow-fg-diff-earlier-r1
+kpdx kpdx-ow-fg.flow com.kunzisoft.keepass.libre OLD ow-fg-same-equal-r1 ARR=NEW-same MODE=equal TAG=ow-fg-same-equal-r1
+kpdx kpdx-ow-fg.flow com.kunzisoft.keepass.libre OLD ow-fg-same-plus5-r1 ARR=NEW-same MODE=plus5 TAG=ow-fg-same-plus5-r1
+kpdx kpdx-ow-fg.flow com.kunzisoft.keepass.libre OLD ow-fg-same-plus60-r1 ARR=NEW-same MODE=plus60 TAG=ow-fg-same-plus60-r1
+kpdx kpdx-ow-fg.flow com.kunzisoft.keepass.libre OLD ow-fg-ident-plus60-r1 ARR=NEW-ident MODE=plus60 TAG=ow-fg-ident-plus60-r1
+kpdx kpdx-ow-bg.flow com.kunzisoft.keepass.libre OLD ow-bg-diff-plus60-r1 ARR=NEW-diff MODE=plus60 TAG=ow-bg-diff-plus60-r1
+kpdx kpdx-ow-bg.flow com.kunzisoft.keepass.libre OLD ow-bg-diff-plus60-r2 ARR=NEW-diff MODE=plus60 TAG=ow-bg-diff-plus60-r2
+kpdx kpdx-ow-bg.flow com.kunzisoft.keepass.libre OLD ow-bg-diff-plus5-r1 ARR=NEW-diff MODE=plus5 TAG=ow-bg-diff-plus5-r1
+kpdx kpdx-ow-inplace.flow com.kunzisoft.keepass.libre OLD ow-inplace-diff-plus60-r1 ARR=NEW-diff MODE=plus60 TAG=ow-inplace-diff-plus60-r1
+kpdx kpdx-ow-inplace.flow com.kunzisoft.keepass.libre OLD ow-inplace-diff-plus5-r1 ARR=NEW-diff MODE=plus5 TAG=ow-inplace-diff-plus5-r1
+kpdx kpdx-ow-noauto.flow com.kunzisoft.keepass.libre OLD ow-noauto-save-plus60-r1 ARR=NEW-diff MODE=plus60 TAG=ow-noauto-save-plus60-r1 ANSWER=Save.data
+kpdx kpdx-ow-noauto.flow com.kunzisoft.keepass.libre OLD ow-noauto-merge-plus60-r1 ARR=NEW-diff MODE=plus60 TAG=ow-noauto-merge-plus60-r1 ANSWER=Merge.data
+kpdx kpdx-ow-lock.flow com.kunzisoft.keepass.libre OLD ow-lock-diff-plus5-r1 ARR=NEW-diff MODE=plus5 TAG=ow-lock-diff-plus5-r1
+kpdx kpdx-ow-lock.flow com.kunzisoft.keepass.libre OLD ow-lock-diff-plus60-r1 ARR=NEW-diff MODE=plus60 TAG=ow-lock-diff-plus60-r1
+kpdx kpdx-ow-kill.flow com.kunzisoft.keepass.libre OLD ow-kill-diff-plus5-r1 ARR=NEW-diff MODE=plus5 TAG=ow-kill-diff-plus5-r1

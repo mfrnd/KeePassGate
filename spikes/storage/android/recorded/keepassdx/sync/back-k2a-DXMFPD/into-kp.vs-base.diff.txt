@@ -1,0 +1,52 @@
+5c5,15
+< D X3 2026-11-01T16:00:00Z
+---
+> D DRV2 2026-11-01T18:00:00Z
+> D DZ 2026-11-01T18:00:00Z
+> D GD 2026-11-01T15:00:00Z
+> D GD1 2026-11-01T15:00:00Z
+> D NA 2026-11-01T18:00:00Z
+> D NA1 2026-11-01T18:00:00Z
+> D NB 2026-11-01T18:00:00Z
+> D NB1 2026-11-01T18:00:00Z
+> D NC 2026-11-01T18:00:00Z
+> D NC1 2026-11-01T18:00:00Z
+> D X1 2026-11-01T18:00:00Z
+7c17
+< D count 6
+---
+> D count 16
+963c973
+< E Y3 prev -
+---
+> E Y3 prev PW
+967c977
+< E Y3 t.location 2026-11-01T10:20:00Z
+---
+> E Y3 t.location 2026-11-01T16:00:00Z
+1051a1062,1078
+> E ~6a888d88 S Notes p=0 ""
+> E ~6a888d88 S Password p=1 ""
+> E ~6a888d88 S Title p=0 "k2a-added"
+> E ~6a888d88 S URL p=0 ""
+> E ~6a888d88 S UserName p=0 "invented-default-user"
+> E ~6a888d88 autotype enabled=1 obfuscation=0 seq="" assoc=0
+> E ~6a888d88 history.count 0
+> E ~6a888d88 misc icon=0 customIcon=- fg=00000000 bg=00000000 overrideUrl="" quality=1
+> E ~6a888d88 parent Root (Storage probe)
+> E ~6a888d88 prev -
+> E ~6a888d88 t.accessed 2026-11-16T14:26:34Z
+> E ~6a888d88 t.created 2026-11-16T14:26:08Z
+> E ~6a888d88 t.expires 0 2026-11-16T14:25:32Z
+> E ~6a888d88 t.location 2026-11-16T14:26:08Z
+> E ~6a888d88 t.modified 2026-11-16T14:26:34Z
+> E ~6a888d88 tags []
+> E ~6a888d88 usage 1
+1054c1081
+< F groups 9 entries 42
+---
+> F groups 9 entries 43
+1162c1189
+< G Root children groups=6 entries=0
+---
+> G Root children groups=6 entries=1

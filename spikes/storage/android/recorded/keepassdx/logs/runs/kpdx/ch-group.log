@@ -1,0 +1,164 @@
+### 2026-11-16T14:59:11.878Z ow kpdx ch-group flow=kpdx-ch-group.flow base=B41  (versionName=4.5.8)
+Success
+<work>/work/base/B41.kdbx: 1 file pushed, 0 skipped. 1.7 MB/s (16085 bytes in 0.009s)
+given 16085 bytes, mtime 2026-11-16 15:49:12.000000000 +0100 sha256 92909efea553cdd099e1d603f4a90b4c57b729c6d4b2e723fb8403728cd79da7
+[2026-11-16T14:59:13.595Z] kpdx-ch-group.flow:2 include kpdx-open.flow
+[2026-11-16T14:59:13.609Z] kpdx-open.flow:4 sh monkey -p com.kunzisoft.keepass.libre -c android.intent.category.LAUNCHER 1
+  bash arg: -p
+  bash arg: com.kunzisoft.keepass.libre
+  bash arg: -c
+  bash arg: android.intent.category.LAUNCHER
+  bash arg: 1
+Events injected: 1
+## Network stats: elapsed time=259ms (0ms mobile, 0ms wifi, 259ms not connected)
+args: [-p, com.kunzisoft.keepass.libre, -c, android.intent.category.LAUNCHER, 1]
+ arg: "-p"
+ arg: "com.kunzisoft.keepass.libre"
+ arg: "-c"
+ arg: "android.intent.category.LAUNCHER"
+ arg: "1"
+data="com.kunzisoft.keepass.libre"
+data="android.intent.category.LAUNCHER"
+[2026-11-16T14:59:14.823Z] kpdx-open.flow:5 waitfor open_database_button 30
+[2026-11-16T14:59:20.630Z] kpdx-open.flow:6 tapuntil open_database_button Show.roots 40
+[2026-11-16T14:59:24.059Z]   tapped (799, 2051) 'Open existing vault'
+[2026-11-16T14:59:33.382Z]   tapped (799, 2051) 'Open existing vault'
+[2026-11-16T14:59:39.879Z] kpdx-open.flow:7 include picker.flow
+[2026-11-16T14:59:39.891Z] picker.flow:4 pick kpdx-ch-group.kdbx
+[2026-11-16T14:59:48.309Z]   focused and entered '^kpdx\\-ch\\-group\\.kdbx$'
+[2026-11-16T14:59:59.821Z] kpdx-open.flow:8 waitfor password_text_view 40
+[2026-11-16T15:00:02.061Z] kpdx-open.flow:9 typepwdx dummy-password-for-a-throwaway-file
+[2026-11-16T15:00:16.164Z]   typepwdx: the field reads 8 characters, not 35 (attempt 1)
+[2026-11-16T15:00:32.203Z]   typed the password and read it back (35 characters)
+[2026-11-16T15:00:32.209Z] kpdx-open.flow:10 tapuntil activity_password_open_button add_button 60
+[2026-11-16T15:00:35.068Z]   tapped (895, 1435) 'Unlock'
+[2026-11-16T15:00:43.787Z]   tapped (895, 1435) 'Unlock'
+[2026-11-16T15:00:51.629Z]   tapped (895, 1435) 'Unlock'
+[2026-11-16T15:00:59.710Z] kpdx-ch-group.flow:3 waitfor node_text@^G$ 20
+[2026-11-16T15:01:07.714Z] kpdx-ch-group.flow:4 sleep 2
+[2026-11-16T15:01:15.074Z] kpdx-ch-group.flow:5 set SEL ^G$
+[2026-11-16T15:01:21.276Z] kpdx-ch-group.flow:6 log s01 rename G
+[2026-11-16T15:01:21.279Z]   s01 rename G
+[2026-11-16T15:01:21.280Z] kpdx-ch-group.flow:7 mark /sdcard/Download/kpdx-ch-group.kdbx
+[2026-11-16T15:01:21.404Z]   marked /sdcard/Download/kpdx-ch-group.kdbx sha256 92909efea553cdd0
+[2026-11-16T15:01:21.409Z] kpdx-ch-group.flow:8 include kpdx-sel-group.flow
+[2026-11-16T15:01:21.435Z] kpdx-sel-group.flow:3 longpressuntil node_text@^G$ menu_move 60 2000 600
+[2026-11-16T15:01:26.453Z]   long-pressed (600, 713) for 2000 ms on the line of 'G'
+[2026-11-16T15:01:40.698Z]   long-pressed (600, 713) for 2000 ms on the line of 'G'
+[2026-11-16T15:01:42.997Z] kpdx-sel-group.flow:4 tapuntil More.options#2 ^Edit$ 30
+[2026-11-16T15:01:48.425Z]   tapped (1024, 2063) 'More options'
+[2026-11-16T15:01:56.909Z]   tapped (1024, 2063) 'More options'
+[2026-11-16T15:01:59.196Z] kpdx-sel-group.flow:5 tap ^Edit$
+[2026-11-16T15:02:02.438Z]   tapped (799, 1966) 'Edit'
+[2026-11-16T15:02:02.440Z] kpdx-sel-group.flow:6 waitfor group_edit_name 20
+[2026-11-16T15:02:06.352Z] kpdx-ch-group.flow:9 list
+  FrameLayout         (540, 1176)  id=action_bar_root              text='' desc=''
+  FrameLayout         (540, 1176)  id=content                      text='' desc=''
+  LinearLayoutCompat      (540, 1176)  id=parentPanel                  text='' desc=''
+  FrameLayout         (540, 1099)  id=customPanel                  text='' desc=''
+  FrameLayout         (540, 1099)  id=custom                       text='' desc=''
+  ImageButton    c    (540, 612)   id=group_edit_icon_button       text='' desc=''
+  LinearLayout        (540, 823)   id=group_edit_name_container    text='' desc=''
+  EditText       c    (540, 830)   id=group_edit_name              text='G' desc=''
+  LinearLayout        (540, 1043)  id=group_edit_note_container    text='' desc=''
+  EditText       c    (540, 1050)  id=group_edit_note              text='{"kpg.rules":{"reader":".R...L..","writer":"CRU..L.."}}' desc=''
+  FrameLayout         (540, 1268)  id=group_edit_expiration        text='' desc=''
+  LinearLayout        (457, 1268)  id=expiration_label             text='' desc=''
+  EditText       c    (457, 1270)  id=expiration_text              text='Never' desc=''
+  Switch         cx   (886, 1269)  id=expiration_checkbox          text='' desc=''
+  LinearLayout        (540, 1442)  id=group_edit_searchable_container text='' desc=''
+  Spinner        c    (540, 1449)  id=group_edit_searchable        text='Inherit' desc=''
+  ImageButton    cx   (892, 1449)  id=text_input_end_icon          text='' desc='Show dropdown menu'
+  LinearLayout        (540, 1619)  id=group_tags_label             text='' desc=''
+  EditText       c    (540, 1627)  id=group_tags_completion_view   text='kpg.reader, team, ' desc=''
+  ImageButton    cx   (892, 1627)  id=text_input_end_icon          text='' desc='Show dropdown menu'
+  ScrollView          (540, 1840)  id=buttonPanel                  text='' desc=''
+  Button         c    (683, 1840)  id=button2                      text='Cancel' desc=''
+  Button         c    (887, 1840)  id=button1                      text='OK' desc=''
+[2026-11-16T15:02:08.791Z] kpdx-ch-group.flow:10 appendto group_edit_name@.* -r
+[2026-11-16T15:02:28.156Z]   appendto: 'group_edit_name@.*' never took the focus (attempt 1)
+[2026-11-16T15:02:44.333Z]   appended '-r': 'G-r'
+[2026-11-16T15:02:44.335Z] kpdx-ch-group.flow:11 tap ^OK$
+[2026-11-16T15:02:47.145Z]   tapped (887, 1402) 'OK'
+[2026-11-16T15:02:47.147Z] kpdx-ch-group.flow:12 waitfor node_text@^G-r$ 30
+[2026-11-16T15:02:50.543Z] kpdx-ch-group.flow:13 waitchange /sdcard/Download/kpdx-ch-group.kdbx 45
+[2026-11-16T15:02:53.736Z]   waitchange: /sdcard/Download/kpdx-ch-group.kdbx changed after 0.0 s, stable, sha256 a5b5e4bd624be4d5
+[2026-11-16T15:02:53.738Z] kpdx-ch-group.flow:14 pull <work>/work/runs/kpdx/ch-group/s01-rename.kdbx /sdcard/Download/kpdx-ch-group.kdbx
+15081 bytes, mtime 2026-11-16 16:02:46.172000000 +0100
+a5b5e4bd624be4d5d28c8b46d263a0f2baced11ea8b149c2216b6eab42c43dd8  /sdcard/Download/kpdx-ch-group.kdbx
+/sdcard/Download/kpdx-ch-group.kdbx: 1 file pulled, 0 skipped. 0.9 MB/s (15081 bytes in 0.016s)
+[2026-11-16T15:02:53.848Z]   pulled /sdcard/Download/kpdx-ch-group.kdbx to <work>/work/runs/kpdx/ch-group/s01-rename.kdbx
+[2026-11-16T15:02:53.850Z] kpdx-ch-group.flow:15 set SEL ^G-r$
+[2026-11-16T15:02:53.851Z] kpdx-ch-group.flow:16 log s02 notes of G
+[2026-11-16T15:02:53.853Z]   s02 notes of G
+[2026-11-16T15:02:53.855Z] kpdx-ch-group.flow:17 mark /sdcard/Download/kpdx-ch-group.kdbx
+[2026-11-16T15:02:53.907Z]   marked /sdcard/Download/kpdx-ch-group.kdbx sha256 a5b5e4bd624be4d5
+[2026-11-16T15:02:53.908Z] kpdx-ch-group.flow:18 include kpdx-sel-group.flow
+[2026-11-16T15:02:53.914Z] kpdx-sel-group.flow:3 longpressuntil node_text@^G-r$ menu_move 60 2000 600
+[2026-11-16T15:02:58.745Z]   long-pressed (600, 713) for 2000 ms on the line of 'G-r'
+[2026-11-16T15:03:11.927Z]   long-pressed (600, 713) for 2000 ms on the line of 'G-r'
+[2026-11-16T15:03:22.084Z]   long-pressed (600, 713) for 2000 ms on the line of 'G-r'
+[2026-11-16T15:03:24.201Z] kpdx-sel-group.flow:4 tapuntil More.options#2 ^Edit$ 30
+[2026-11-16T15:03:27.184Z]   tapped (1024, 2063) 'More options'
+[2026-11-16T15:03:29.655Z] kpdx-sel-group.flow:5 tap ^Edit$
+[2026-11-16T15:03:32.542Z]   tapped (799, 1966) 'Edit'
+[2026-11-16T15:03:32.543Z] kpdx-sel-group.flow:6 waitfor group_edit_name 20
+[2026-11-16T15:03:35.514Z] kpdx-ch-group.flow:19 appendto group_edit_note@.* -n
+[2026-11-16T15:03:52.197Z]   appendto: 'group_edit_note@.*' never took the focus (attempt 1)
+[2026-11-16T15:04:03.165Z]   appended '-n': '{"kpg.rules":{"reader":".R...L..","writer":"CRU..L.."-n}}'
+[2026-11-16T15:04:04.218Z] kpdx-ch-group.flow:20 tap ^OK$
+[2026-11-16T15:04:07.217Z]   tapped (887, 1402) 'OK'
+[2026-11-16T15:04:07.219Z] kpdx-ch-group.flow:21 waitchange /sdcard/Download/kpdx-ch-group.kdbx 45
+[2026-11-16T15:04:10.515Z]   waitchange: /sdcard/Download/kpdx-ch-group.kdbx changed after 0.1 s, stable, sha256 b5a2e31d25a3e6a9
+[2026-11-16T15:04:10.516Z] kpdx-ch-group.flow:22 pull <work>/work/runs/kpdx/ch-group/s02-notes.kdbx /sdcard/Download/kpdx-ch-group.kdbx
+15065 bytes, mtime 2026-11-16 16:04:06.196000000 +0100
+b5a2e31d25a3e6a93107105e29058a4ded52ea875860730097a0a84e98729c5f  /sdcard/Download/kpdx-ch-group.kdbx
+/sdcard/Download/kpdx-ch-group.kdbx: 1 file pulled, 0 skipped. 0.9 MB/s (15065 bytes in 0.015s)
+[2026-11-16T15:04:10.601Z]   pulled /sdcard/Download/kpdx-ch-group.kdbx to <work>/work/runs/kpdx/ch-group/s02-notes.kdbx
+[2026-11-16T15:04:10.603Z] kpdx-ch-group.flow:23 log s03 icon of G
+[2026-11-16T15:04:10.603Z]   s03 icon of G
+[2026-11-16T15:04:10.606Z] kpdx-ch-group.flow:24 mark /sdcard/Download/kpdx-ch-group.kdbx
+[2026-11-16T15:04:10.637Z]   marked /sdcard/Download/kpdx-ch-group.kdbx sha256 b5a2e31d25a3e6a9
+[2026-11-16T15:04:10.638Z] kpdx-ch-group.flow:25 include kpdx-sel-group.flow
+[2026-11-16T15:04:10.643Z] kpdx-sel-group.flow:3 longpressuntil node_text@^G-r$ menu_move 60 2000 600
+[2026-11-16T15:04:15.489Z]   long-pressed (600, 713) for 2000 ms on the line of 'G-r'
+[2026-11-16T15:04:17.466Z] kpdx-sel-group.flow:4 tapuntil More.options#2 ^Edit$ 30
+[2026-11-16T15:04:20.379Z]   tapped (1024, 2063) 'More options'
+[2026-11-16T15:04:22.500Z] kpdx-sel-group.flow:5 tap ^Edit$
+[2026-11-16T15:04:25.178Z]   tapped (799, 1966) 'Edit'
+[2026-11-16T15:04:25.186Z] kpdx-sel-group.flow:6 waitfor group_edit_name 20
+[2026-11-16T15:04:27.792Z] kpdx-ch-group.flow:26 tap group_edit_icon_button
+[2026-11-16T15:04:30.626Z]   tapped (540, 612) 'com.kunzisoft.keepass.libre:id/group_edit_icon_button'
+[2026-11-16T15:04:30.628Z] kpdx-ch-group.flow:27 sleep 3
+[2026-11-16T15:04:33.630Z] kpdx-ch-group.flow:28 tapxy 400 700
+[2026-11-16T15:04:34.371Z] kpdx-ch-group.flow:29 sleep 1
+[2026-11-16T15:04:35.374Z] kpdx-ch-group.flow:30 tap icon_picker_upload
+  FrameLayout         (540, 1176)  id=action_bar_root              text='' desc=''
+  FrameLayout         (540, 1176)  id=content                      text='' desc=''
+  LinearLayoutCompat      (540, 1176)  id=parentPanel                  text='' desc=''
+  FrameLayout         (540, 1099)  id=customPanel                  text='' desc=''
+  FrameLayout         (540, 1099)  id=custom                       text='' desc=''
+  ImageButton    c    (540, 612)   id=group_edit_icon_button       text='' desc=''
+  LinearLayout        (540, 823)   id=group_edit_name_container    text='' desc=''
+  EditText       c    (540, 830)   id=group_edit_name              text='G-r' desc=''
+  LinearLayout        (540, 1043)  id=group_edit_note_container    text='' desc=''
+  EditText       c    (540, 1050)  id=group_edit_note              text='{"kpg.rules":{"reader":".R...L..","writer":"CRU..L.."-n}}' desc=''
+  FrameLayout         (540, 1268)  id=group_edit_expiration        text='' desc=''
+  LinearLayout        (457, 1268)  id=expiration_label             text='' desc=''
+  EditText       c    (457, 1270)  id=expiration_text              text='Never' desc=''
+  Switch         cx   (886, 1269)  id=expiration_checkbox          text='' desc=''
+  LinearLayout        (540, 1442)  id=group_edit_searchable_container text='' desc=''
+  Spinner        c    (540, 1449)  id=group_edit_searchable        text='Inherit' desc=''
+  ImageButton    cx   (892, 1449)  id=text_input_end_icon          text='' desc='Show dropdown menu'
+  LinearLayout        (540, 1619)  id=group_tags_label             text='' desc=''
+  EditText       c    (540, 1627)  id=group_tags_completion_view   text='kpg.reader, team, ' desc=''
+  ImageButton    cx   (892, 1627)  id=text_input_end_icon          text='' desc='Show dropdown menu'
+  ScrollView          (540, 1840)  id=buttonPanel                  text='' desc=''
+  Button         c    (683, 1840)  id=button2                      text='Cancel' desc=''
+  Button         c    (887, 1840)  id=button1                      text='OK' desc=''
+[2026-11-16T15:04:50.941Z] FAILED: tap: no node matches icon_picker_upload
+total 20
+-rw------- 1 u0_a160 u0_a160 15065 2026-11-16 16:04:06.196000000 +0100 kpdx-ch-group.kdbx
+device kpdx-ch-group.kdbx sha256 b5a2e31d25a3e6a93107105e29058a4ded52ea875860730097a0a84e98729c5f 15065 bytes, mtime 2026-11-16 16:04:06.196000000 +0100
+/sdcard/Download/kpdx-ch-group.kdbx: 1 file pulled, 0 skipped. 1.0 MB/s (15065 bytes in 0.014s)
+### flow rc=1 2026-11-16T15:04:53.553Z

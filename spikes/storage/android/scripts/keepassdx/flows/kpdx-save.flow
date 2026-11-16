@@ -1,0 +1,9 @@
+# Item 1, open and save unchanged: open, unlock, the overflow menu's Save data, nothing else.
+include kpdx-open.flow
+sleep 3
+mark /sdcard/Download/${NAME}.kdbx
+tapuntil More.options ^Save.data$ 30
+tap ^Save.data$
+waitchange /sdcard/Download/${NAME}.kdbx 45
+host sh ${P}/devstat.sh /sdcard/Download/${NAME}.kdbx after-save
+list

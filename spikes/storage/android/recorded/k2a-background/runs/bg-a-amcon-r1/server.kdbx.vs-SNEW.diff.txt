@@ -1,0 +1,100 @@
+1c1
+< # file SNEW-fixed.kdbx size=2517 sha256=88d9855975361fe9879ab327e9ff95e91775716e68a281f53b9c4d9d548ff99b
+---
+> # file server.kdbx size=2613 sha256=7932aa18ac790e156b10d7ca54c6a074408e47cc949442a5d4aab5529ad021a4
+109a110,124
+> E P2 H2026-11-01T10:20:00Z S Notes p=0 ""
+> E P2 H2026-11-01T10:20:00Z S Password p=1 "p2-old"
+> E P2 H2026-11-01T10:20:00Z S Title p=0 "P2"
+> E P2 H2026-11-01T10:20:00Z S URL p=0 ""
+> E P2 H2026-11-01T10:20:00Z S UserName p=0 "user-p2"
+> E P2 H2026-11-01T10:20:00Z autotype enabled=1 obfuscation=0 seq="" assoc=0
+> E P2 H2026-11-01T10:20:00Z misc icon=0 customIcon=- fg=00000000 bg=00000000 overrideUrl="" quality=1
+> E P2 H2026-11-01T10:20:00Z prev -
+> E P2 H2026-11-01T10:20:00Z t.accessed 2026-11-16T17:16:12Z
+> E P2 H2026-11-01T10:20:00Z t.created 2026-11-01T10:20:00Z
+> E P2 H2026-11-01T10:20:00Z t.expires 0 2026-11-01T10:00:00Z
+> E P2 H2026-11-01T10:20:00Z t.location 2026-11-01T10:20:00Z
+> E P2 H2026-11-01T10:20:00Z t.modified 2026-11-01T10:20:00Z
+> E P2 H2026-11-01T10:20:00Z tags []
+> E P2 H2026-11-01T10:20:00Z usage 1
+111c126
+< E P2 S Password p=1 "p2-old"
+---
+> E P2 S Password p=1 "p2-old-phone"
+116c131
+< E P2 history.count 0
+---
+> E P2 history.count 1
+120c135
+< E P2 t.accessed 2026-11-01T10:20:00Z
+---
+> E P2 t.accessed 2026-11-16T17:16:35Z
+124c139
+< E P2 t.modified 2026-11-01T10:20:00Z
+---
+> E P2 t.modified 2026-11-16T17:16:33Z
+126c141
+< E P2 usage 0
+---
+> E P2 usage 3
+141a157,171
+> E Q1 H2026-11-01T18:00:00Z S Notes p=0 ""
+> E Q1 H2026-11-01T18:00:00Z S Password p=1 "q1-desktop"
+> E Q1 H2026-11-01T18:00:00Z S Title p=0 "Q1"
+> E Q1 H2026-11-01T18:00:00Z S URL p=0 ""
+> E Q1 H2026-11-01T18:00:00Z S UserName p=0 "user-q1"
+> E Q1 H2026-11-01T18:00:00Z autotype enabled=1 obfuscation=0 seq="" assoc=0
+> E Q1 H2026-11-01T18:00:00Z misc icon=0 customIcon=- fg=00000000 bg=00000000 overrideUrl="" quality=1
+> E Q1 H2026-11-01T18:00:00Z prev -
+> E Q1 H2026-11-01T18:00:00Z t.accessed 2026-11-16T17:18:40Z
+> E Q1 H2026-11-01T18:00:00Z t.created 2026-11-01T10:20:00Z
+> E Q1 H2026-11-01T18:00:00Z t.expires 0 2026-11-01T10:00:00Z
+> E Q1 H2026-11-01T18:00:00Z t.location 2026-11-01T10:20:00Z
+> E Q1 H2026-11-01T18:00:00Z t.modified 2026-11-01T18:00:00Z
+> E Q1 H2026-11-01T18:00:00Z tags []
+> E Q1 H2026-11-01T18:00:00Z usage 1
+143c173
+< E Q1 S Password p=1 "q1-desktop"
+---
+> E Q1 S Password p=1 "q1-desktop-phone"
+148c178
+< E Q1 history.count 1
+---
+> E Q1 history.count 2
+152c182
+< E Q1 t.accessed 2026-11-01T18:00:00Z
+---
+> E Q1 t.accessed 2026-11-16T17:19:00Z
+156c186
+< E Q1 t.modified 2026-11-01T18:00:00Z
+---
+> E Q1 t.modified 2026-11-16T17:19:00Z
+158c188
+< E Q1 usage 0
+---
+> E Q1 usage 2
+227c257
+< F version 4.1
+---
+> F version 4.0
+260c290
+< G PW t.accessed 2026-11-01T10:05:00Z
+---
+> G PW t.accessed 2026-11-16T17:18:40Z
+266c296
+< G PW usage 0
+---
+> G PW usage 1
+273c303
+< G Root t.accessed 2026-11-01T10:00:00Z
+---
+> G Root t.accessed 2026-11-16T17:18:40Z
+279,281c309,311
+< G Root usage 0
+< M CD KPG.NewKey = "{\"added\":\"by the desktop\"}" @2026-11-01T18:00:00Z
+< M CD KPG.Profiles = "[\"reader\",\"writer\"]" @2026-11-01T10:15:00Z
+---
+> G Root usage 1
+> M CD KPG.NewKey = "{\"added\":\"by the desktop\"}" @none
+> M CD KPG.Profiles = "[\"reader\",\"writer\"]" @none

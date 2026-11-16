@@ -1,0 +1,69 @@
+### 2026-11-16T10:34:14.587Z ow kpdx ow-noauto-save-plus60-r1 flow=kpdx-ow-noauto.flow base=OLD ARR=NEW-diff MODE=plus60 TAG=ow-noauto-save-plus60-r1 ANSWER=Save.data (versionName=4.5.8)
+Success
+<work>/work/base/OLD.kdbx: 1 file pushed, 0 skipped. 1.3 MB/s (17365 bytes in 0.013s)
+given 17365 bytes, mtime 2026-11-16 11:24:15.000000000 +0100 sha256 6e25ae9b994a21f69404250dec2c751c358472bca635467c042d70f119402d6b
+[2026-11-16T10:34:16.893Z] kpdx-ow-noauto.flow:4 host sh <work>/scripts/kpdx-prefs.sh autosave-off
+[2026-11-16T10:34:17.282Z]   | prefs written: <?xml version='1.0' encoding='utf-8' standalone='yes' ?> <map>     <boolean name="enable_auto_save_database_key" value="false" /> </map> 
+[2026-11-16T10:34:17.285Z]   | SELinux: Loaded file_contexts
+[2026-11-16T10:34:17.286Z] kpdx-ow-noauto.flow:5 include kpdx-open.flow
+[2026-11-16T10:34:17.299Z] kpdx-open.flow:4 sh monkey -p com.kunzisoft.keepass.libre -c android.intent.category.LAUNCHER 1
+  bash arg: -p
+  bash arg: com.kunzisoft.keepass.libre
+  bash arg: -c
+  bash arg: android.intent.category.LAUNCHER
+  bash arg: 1
+Events injected: 1
+## Network stats: elapsed time=119ms (0ms mobile, 0ms wifi, 119ms not connected)
+args: [-p, com.kunzisoft.keepass.libre, -c, android.intent.category.LAUNCHER, 1]
+ arg: "-p"
+ arg: "com.kunzisoft.keepass.libre"
+ arg: "-c"
+ arg: "android.intent.category.LAUNCHER"
+ arg: "1"
+data="com.kunzisoft.keepass.libre"
+data="android.intent.category.LAUNCHER"
+[2026-11-16T10:34:19.061Z] kpdx-open.flow:5 waitfor open_database_button 30
+[2026-11-16T10:34:26.457Z] kpdx-open.flow:6 tapuntil open_database_button Show.roots 40
+[2026-11-16T10:34:29.842Z]   tapped (799, 2051) 'Open existing vault'
+[2026-11-16T10:34:41.345Z]   tapped (799, 2051) 'Open existing vault'
+[2026-11-16T10:34:45.377Z] kpdx-open.flow:7 include picker.flow
+[2026-11-16T10:34:45.388Z] picker.flow:4 pick kpdx-ow-noauto-save-plus60-r1.kdbx
+[2026-11-16T10:34:56.878Z]   focused and entered '^kpdx\\-ow\\-noauto\\-save\\-plus60\\-r1\\.kdbx$'
+[2026-11-16T10:34:56.889Z] kpdx-open.flow:8 waitfor password_text_view 40
+[2026-11-16T10:35:02.582Z] kpdx-open.flow:9 typepwdx dummy-password-for-a-throwaway-file
+[2026-11-16T10:35:22.946Z]   typepwdx: the field reads 8 characters, not 35 (attempt 1)
+[2026-11-16T10:35:46.352Z]   typed the password and read it back (35 characters)
+[2026-11-16T10:35:46.354Z] kpdx-open.flow:10 tapuntil activity_password_open_button add_button 60
+[2026-11-16T10:35:50.522Z]   tapped (895, 1435) 'Unlock'
+[2026-11-16T10:36:00.675Z]   tapped (895, 1435) 'Unlock'
+[2026-11-16T10:36:12.456Z]   tapped (895, 1435) 'Unlock'
+[2026-11-16T10:36:24.209Z] kpdx-ow-noauto.flow:6 host sh <work>/scripts/kpdx-prefs.sh show after-open
+[2026-11-16T10:36:24.335Z]   | prefs after-open:  <boolean name="read_only_key" value="false" />  <boolean name="enable_auto_save_database_key" value="false" />  <long name="timeout_backup_key" value="1794825376110" /> 
+[2026-11-16T10:36:24.338Z] kpdx-ow-noauto.flow:7 sleep 3
+[2026-11-16T10:36:27.340Z] kpdx-ow-noauto.flow:8 host sh <work>/scripts/replace.sh /sdcard/Download/kpdx-ow-noauto-save-plus60-r1.kdbx <work>/work/base/NEW-diff.kdbx plus60
+[2026-11-16T10:36:28.090Z]   | replace: before 17365 bytes, mtime 2026-11-16 11:24:15.000000000 +0100 sha256 6e25ae9b994a21f69404250dec2c751c358472bca635467c042d70f119402d6b
+[2026-11-16T10:36:28.093Z]   | <work>/work/base/NEW-diff.kdbx: 1 file pushed, 0 skipped. 1.6 MB/s (19509 bytes in 0.012s)
+[2026-11-16T10:36:28.095Z]   | replace: after  19509 bytes, mtime 2026-11-16 11:25:15.000000000 +0100 sha256 4c67b2a5698c8133dd00cb61d228b9911a4ed9b3f1f7b9ddbf375a08b91d5d3c (mode plus60, from NEW-diff.kdbx)
+[2026-11-16T10:36:28.096Z] kpdx-ow-noauto.flow:9 sleep 2
+[2026-11-16T10:36:30.098Z] kpdx-ow-noauto.flow:10 include kpdx-ow-add.flow
+[2026-11-16T10:36:30.108Z] kpdx-ow-add.flow:3 mark /sdcard/Download/kpdx-ow-noauto-save-plus60-r1.kdbx
+[2026-11-16T10:36:30.160Z]   marked /sdcard/Download/kpdx-ow-noauto-save-plus60-r1.kdbx sha256 4c67b2a5698c8133
+[2026-11-16T10:36:30.163Z] kpdx-ow-add.flow:4 tapuntil add_button fab_add_entry 20
+[2026-11-16T10:36:33.737Z]   tapped (970, 2013) 'Add node'
+[2026-11-16T10:36:36.661Z] kpdx-ow-add.flow:5 tapuntil fab_add_entry entry_edit_validate 30
+[2026-11-16T10:36:40.446Z]   tapped (885, 1691) 'Add entry'
+  FrameLayout         (540, 1176)  id=action_bar_root              text='' desc=''
+  FrameLayout         (540, 1176)  id=content                      text='' desc=''
+  LinearLayoutCompat      (540, 1176)  id=parentPanel                  text='' desc=''
+  FrameLayout         (540, 1099)  id=contentPanel                 text='' desc=''
+  ScrollView          (540, 1099)  id=scrollView                   text='' desc=''
+  View                (540, 806)   id=textSpacerNoTitle            text='' desc=''
+  TextView            (540, 1124)  id=message                      text='The information contained in your database has been modified outside the app.\n\nNov 16, 2026 11:24:15 AM, 17.36 kB\n→\nNov 16, 2026 11:25:15 AM, 19.51 kB\n\nMerge the data, overwrite the external modifications by saving the database or reload it with the latest changes.' desc=''
+  ScrollView          (540, 1495)  id=buttonPanel                  text='' desc=''
+  Button         c    (887, 1495)  id=button1                      text='OK' desc=''
+[2026-11-16T10:37:07.055Z] FAILED: tapuntil: never reached entry_edit_validate
+total 24
+-rw------- 1 u0_a160 u0_a160 19509 2026-11-16 11:25:15.000000000 +0100 kpdx-ow-noauto-save-plus60-r1.kdbx
+device kpdx-ow-noauto-save-plus60-r1.kdbx sha256 4c67b2a5698c8133dd00cb61d228b9911a4ed9b3f1f7b9ddbf375a08b91d5d3c 19509 bytes, mtime 2026-11-16 11:25:15.000000000 +0100
+/sdcard/Download/kpdx-ow-noauto-save-plus60-r1.kdbx: 1 file pulled, 0 skipped. 0.3 MB/s (19509 bytes in 0.074s)
+### flow rc=1 2026-11-16T10:37:10.756Z

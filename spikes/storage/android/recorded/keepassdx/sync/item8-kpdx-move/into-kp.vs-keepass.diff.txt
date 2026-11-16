@@ -1,0 +1,83 @@
+53a54,71
+> E E1 H2026-11-01T14:00:00Z A e1.txt p=0 len=600 sha=259674a04e10f900
+> E E1 H2026-11-01T14:00:00Z CD KPG = "{\"reader\":[\"read\",\"list\"]}"
+> E E1 H2026-11-01T14:00:00Z S Extra p=0 "extra-value-e1"
+> E E1 H2026-11-01T14:00:00Z S Notes p=0 "ordinary notes"
+> E E1 H2026-11-01T14:00:00Z S Password p=1 "pw-e1-not-real"
+> E E1 H2026-11-01T14:00:00Z S Title p=0 "E1"
+> E E1 H2026-11-01T14:00:00Z S URL p=0 "https://e1.example.invalid/"
+> E E1 H2026-11-01T14:00:00Z S UserName p=0 "alice-invented"
+> E E1 H2026-11-01T14:00:00Z autotype enabled=1 obfuscation=0 seq="" assoc=0
+> E E1 H2026-11-01T14:00:00Z misc icon=0 customIcon=- fg=00000000 bg=00000000 overrideUrl="" quality=1
+> E E1 H2026-11-01T14:00:00Z prev -
+> E E1 H2026-11-01T14:00:00Z t.accessed 2026-11-01T14:00:00Z
+> E E1 H2026-11-01T14:00:00Z t.created 2026-11-01T11:00:00Z
+> E E1 H2026-11-01T14:00:00Z t.expires 0 2026-11-01T10:00:00Z
+> E E1 H2026-11-01T14:00:00Z t.location 2026-11-01T11:00:00Z
+> E E1 H2026-11-01T14:00:00Z t.modified 2026-11-01T14:00:00Z
+> E E1 H2026-11-01T14:00:00Z tags [work]
+> E E1 H2026-11-01T14:00:00Z usage 0
+61c79
+< E E1 history.count 3
+---
+> E E1 history.count 4
+63,65c81,83
+< E E1 parent G (G)
+< E E1 prev -
+< E E1 t.accessed 2026-11-01T14:00:00Z
+---
+> E E1 parent N (N)
+> E E1 prev G
+> E E1 t.accessed 2026-11-15T19:31:19Z
+68,69c86,87
+< E E1 t.location 2026-11-01T11:00:00Z
+< E E1 t.modified 2026-11-01T14:00:00Z
+---
+> E E1 t.location 2026-11-15T19:31:19Z
+> E E1 t.modified 2026-11-15T19:31:19Z
+71c89
+< E E1 usage 0
+---
+> E E1 usage 2
+359c377
+< G G children groups=1 entries=8
+---
+> G G children groups=0 entries=7
+365c383
+< G G t.accessed 2026-11-01T10:00:00Z
+---
+> G G t.accessed 2026-11-15T19:31:54Z
+369c387
+< G G t.modified 2026-11-01T10:30:00Z
+---
+> G G t.modified 2026-11-15T19:31:54Z
+385c403
+< G N children groups=0 entries=1
+---
+> G N children groups=0 entries=2
+389,391c407,409
+< G N parent G (G)
+< G N prev -
+< G N t.accessed 2026-11-01T10:20:00Z
+---
+> G N parent Root (Storage probe)
+> G N prev G
+> G N t.accessed 2026-11-15T19:31:54Z
+394,395c412,413
+< G N t.location 2026-11-01T10:20:00Z
+< G N t.modified 2026-11-01T10:20:00Z
+---
+> G N t.location 2026-11-15T19:31:54Z
+> G N t.modified 2026-11-15T19:31:54Z
+398c416
+< G Root children groups=3 entries=0
+---
+> G Root children groups=4 entries=0
+404c422
+< G Root t.accessed 2026-11-01T10:00:00Z
+---
+> G Root t.accessed 2026-11-15T19:31:54Z
+408c426
+< G Root t.modified 2026-11-01T10:00:00Z
+---
+> G Root t.modified 2026-11-15T19:31:54Z

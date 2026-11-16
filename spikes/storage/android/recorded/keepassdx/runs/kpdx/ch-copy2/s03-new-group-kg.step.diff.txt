@@ -1,0 +1,96 @@
+858c858
+< F groups 13 entries 41
+---
+> F groups 14 entries 41
+927c927
+< G KG children groups=0 entries=14
+---
+> G KG children groups=1 entries=14
+933c933
+< G KG t.accessed 2026-11-01T10:05:00Z
+---
+> G KG t.accessed 2026-11-16T16:10:39Z
+937c937
+< G KG t.modified 2026-11-01T10:05:00Z
+---
+> G KG t.modified 2026-11-16T16:10:39Z
+1024c1024
+< G Root t.accessed 2026-11-01T10:00:00Z
+---
+> G Root t.accessed 2026-11-16T16:10:39Z
+1028c1028
+< G Root t.modified 2026-11-01T10:00:00Z
+---
+> G Root t.modified 2026-11-16T16:10:39Z
+1030a1031,1043
+> G ~884e8028 children groups=0 entries=0
+> G ~884e8028 flags icon=48 customIcon=- search=inherit autotype=inherit expanded=1 seq="" lastTop=-
+> G ~884e8028 name "phone-group-in-kg"
+> G ~884e8028 notes ""
+> G ~884e8028 parent KG (KeePassGate)
+> G ~884e8028 prev -
+> G ~884e8028 t.accessed 2026-11-16T16:10:39Z
+> G ~884e8028 t.created 2026-11-16T16:10:02Z
+> G ~884e8028 t.expires 0 2999-11-28T23:59:59Z
+> G ~884e8028 t.location 2026-11-16T16:10:39Z
+> G ~884e8028 t.modified 2026-11-16T16:10:39Z
+> G ~884e8028 tags []
+> G ~884e8028 usage 0
+1063c1076
+< R meta Generator = (empty)
+---
+> R meta Generator = "KeePassDX"
+1092a1106
+> X KeePassFile/Meta/HeaderHash 1
+1159c1173
+< X KeePassFile/Root/Group/Group/Entry/History/Entry/Tags 6
+---
+> X KeePassFile/Root/Group/Group/Entry/History/Entry/Tags 1
+1176c1190
+< X KeePassFile/Root/Group/Group/Entry/Tags 36
+---
+> X KeePassFile/Root/Group/Group/Entry/Tags 3
+1186,1189c1200,1203
+< X KeePassFile/Root/Group/Group/Group 3
+< X KeePassFile/Root/Group/Group/Group/DefaultAutoTypeSequence 3
+< X KeePassFile/Root/Group/Group/Group/EnableAutoType 3
+< X KeePassFile/Root/Group/Group/Group/EnableSearching 3
+---
+> X KeePassFile/Root/Group/Group/Group 4
+> X KeePassFile/Root/Group/Group/Group/DefaultAutoTypeSequence 4
+> X KeePassFile/Root/Group/Group/Group/EnableAutoType 4
+> X KeePassFile/Root/Group/Group/Group/EnableSearching 4
+1204d1217
+< X KeePassFile/Root/Group/Group/Group/Entry/Tags 4
+1231d1243
+< X KeePassFile/Root/Group/Group/Group/Group/Entry/Tags 1
+1255,1268c1267,1280
+< X KeePassFile/Root/Group/Group/Group/IconID 3
+< X KeePassFile/Root/Group/Group/Group/IsExpanded 3
+< X KeePassFile/Root/Group/Group/Group/LastTopVisibleEntry 3
+< X KeePassFile/Root/Group/Group/Group/Name 3
+< X KeePassFile/Root/Group/Group/Group/Notes 3
+< X KeePassFile/Root/Group/Group/Group/Times 3
+< X KeePassFile/Root/Group/Group/Group/Times/CreationTime 3
+< X KeePassFile/Root/Group/Group/Group/Times/Expires 3
+< X KeePassFile/Root/Group/Group/Group/Times/ExpiryTime 3
+< X KeePassFile/Root/Group/Group/Group/Times/LastAccessTime 3
+< X KeePassFile/Root/Group/Group/Group/Times/LastModificationTime 3
+< X KeePassFile/Root/Group/Group/Group/Times/LocationChanged 3
+< X KeePassFile/Root/Group/Group/Group/Times/UsageCount 3
+< X KeePassFile/Root/Group/Group/Group/UUID 3
+---
+> X KeePassFile/Root/Group/Group/Group/IconID 4
+> X KeePassFile/Root/Group/Group/Group/IsExpanded 4
+> X KeePassFile/Root/Group/Group/Group/LastTopVisibleEntry 4
+> X KeePassFile/Root/Group/Group/Group/Name 4
+> X KeePassFile/Root/Group/Group/Group/Notes 4
+> X KeePassFile/Root/Group/Group/Group/Times 4
+> X KeePassFile/Root/Group/Group/Group/Times/CreationTime 4
+> X KeePassFile/Root/Group/Group/Group/Times/Expires 4
+> X KeePassFile/Root/Group/Group/Group/Times/ExpiryTime 4
+> X KeePassFile/Root/Group/Group/Group/Times/LastAccessTime 4
+> X KeePassFile/Root/Group/Group/Group/Times/LastModificationTime 4
+> X KeePassFile/Root/Group/Group/Group/Times/LocationChanged 4
+> X KeePassFile/Root/Group/Group/Group/Times/UsageCount 4
+> X KeePassFile/Root/Group/Group/Group/UUID 4

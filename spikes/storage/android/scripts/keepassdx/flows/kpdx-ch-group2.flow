@@ -1,0 +1,55 @@
+# Item 1, chain G, second part from the base again (the first part stopped at s03, the icon
+# picker never opened): s04 tags, s05 expiry, s06 the plugin's group renamed, then s07 the icon.
+include kpdx-open.flow
+waitfor node_text@^G$ 20
+sleep 2
+set SEL ^G$
+log s04 tags of G
+mark /sdcard/Download/${NAME}.kdbx
+include kpdx-sel-group.flow
+
+sleep 2
+list
+appendto group_tags_completion_view added,
+tap ^OK$
+waitchange /sdcard/Download/${NAME}.kdbx 45
+pull ${OUT}/s04-tags.kdbx /sdcard/Download/${NAME}.kdbx
+log s05 expiry of G
+mark /sdcard/Download/${NAME}.kdbx
+include kpdx-sel-group.flow
+tapuntil group_edit_expiration ^OK$ 20
+dialog
+list
+tap ^OK$
+sleep 2
+dialog
+maybe ^OK$ 4
+sleep 2
+list
+tap ^OK$
+waitchange /sdcard/Download/${NAME}.kdbx 45
+pull ${OUT}/s05-expiry.kdbx /sdcard/Download/${NAME}.kdbx
+log s06 rename the plugin's group KeePassGate
+mark /sdcard/Download/${NAME}.kdbx
+set SEL ^KeePassGate$
+include kpdx-sel-group.flow
+appendto group_edit_name@.* -r
+tap ^OK$
+waitfor node_text@^KeePassGate-r$ 30
+waitchange /sdcard/Download/${NAME}.kdbx 45
+pull ${OUT}/s06-rename-kg.kdbx /sdcard/Download/${NAME}.kdbx
+set SEL ^G$
+log s07 icon of G
+mark /sdcard/Download/${NAME}.kdbx
+include kpdx-sel-group.flow
+tapuntil group_edit_icon_button icon_picker_upload 30
+sleep 2
+tapxy 400 700
+sleep 1
+tap icon_picker_upload
+sleep 2
+waitfor group_edit_name 20
+tap ^OK$
+waitchange /sdcard/Download/${NAME}.kdbx 45
+pull ${OUT}/s07-icon.kdbx /sdcard/Download/${NAME}.kdbx
+list

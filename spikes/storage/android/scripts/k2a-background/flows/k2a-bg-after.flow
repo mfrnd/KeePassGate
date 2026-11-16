@@ -1,0 +1,8 @@
+# After the return: notifications, device, a question if one stands (k2a-bg-pending.flow), 20 s
+# watched, the files kept; then a second save if the root group is reachable.
+host sh ${P}/notif.sh on-return
+host sh ${P}/devstate.sh on-return
+ifthen Merge.changes 5 k2a-bg-pending.flow
+host sh ${P}/watch.sh ${SNAME} 20 after-return
+host sh ${P}/snap.sh ${W} ${SNAME} after-return
+ifthen fabAddNew 8 k2a-bg-second.flow

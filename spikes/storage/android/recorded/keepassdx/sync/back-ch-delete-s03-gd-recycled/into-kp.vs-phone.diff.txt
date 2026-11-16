@@ -1,0 +1,43 @@
+5a6,23
+> E AD1 H2026-11-01T11:00:00Z S KPG.Check p=0 "3213ef56134fb97ede1b571793181cf1863832e0978887154b2f169d716d056c"
+> E AD1 H2026-11-01T11:00:00Z S KPG.Kind p=0 "admission"
+> E AD1 H2026-11-01T11:00:00Z S KPG.Record p=0 len=159 sha=530ece65f760f0cd "{\"certificate\":\"d2d31ae42311e216978c55ae62b98315483da922e..."
+> E AD1 H2026-11-01T11:00:00Z S Notes p=0 ""
+> E AD1 H2026-11-01T11:00:00Z S Password p=1 ""
+> E AD1 H2026-11-01T11:00:00Z S Title p=0 "KPG client build-agent"
+> E AD1 H2026-11-01T11:00:00Z S URL p=0 ""
+> E AD1 H2026-11-01T11:00:00Z S UserName p=0 ""
+> E AD1 H2026-11-01T11:00:00Z autotype enabled=1 obfuscation=0 seq="" assoc=0
+> E AD1 H2026-11-01T11:00:00Z misc icon=0 customIcon=- fg=00000000 bg=00000000 overrideUrl="" quality=1
+> E AD1 H2026-11-01T11:00:00Z prev -
+> E AD1 H2026-11-01T11:00:00Z t.accessed 2026-11-01T11:00:00Z
+> E AD1 H2026-11-01T11:00:00Z t.created 2026-11-01T11:00:00Z
+> E AD1 H2026-11-01T11:00:00Z t.expires 0 2026-11-01T10:00:00Z
+> E AD1 H2026-11-01T11:00:00Z t.location 2026-11-01T11:00:00Z
+> E AD1 H2026-11-01T11:00:00Z t.modified 2026-11-01T11:00:00Z
+> E AD1 H2026-11-01T11:00:00Z tags []
+> E AD1 H2026-11-01T11:00:00Z usage 0
+15c33
+< E AD1 history.count 0
+---
+> E AD1 history.count 1
+114a133,147
+> E E2 H2026-11-01T10:45:00Z S Notes p=0 ""
+> E E2 H2026-11-01T10:45:00Z S Password p=1 "pw-e2-not-real"
+> E E2 H2026-11-01T10:45:00Z S Title p=0 "E2"
+> E E2 H2026-11-01T10:45:00Z S URL p=0 ""
+> E E2 H2026-11-01T10:45:00Z S UserName p=0 "bob-invented"
+> E E2 H2026-11-01T10:45:00Z autotype enabled=1 obfuscation=0 seq="" assoc=0
+> E E2 H2026-11-01T10:45:00Z misc icon=0 customIcon=- fg=00000000 bg=00000000 overrideUrl="" quality=1
+> E E2 H2026-11-01T10:45:00Z prev -
+> E E2 H2026-11-01T10:45:00Z t.accessed 2026-11-01T10:45:00Z
+> E E2 H2026-11-01T10:45:00Z t.created 2026-11-01T10:45:00Z
+> E E2 H2026-11-01T10:45:00Z t.expires 0 2026-11-01T10:00:00Z
+> E E2 H2026-11-01T10:45:00Z t.location 2026-11-01T10:45:00Z
+> E E2 H2026-11-01T10:45:00Z t.modified 2026-11-01T10:45:00Z
+> E E2 H2026-11-01T10:45:00Z tags []
+> E E2 H2026-11-01T10:45:00Z usage 0
+121c154
+< E E2 history.count 0
+---
+> E E2 history.count 1

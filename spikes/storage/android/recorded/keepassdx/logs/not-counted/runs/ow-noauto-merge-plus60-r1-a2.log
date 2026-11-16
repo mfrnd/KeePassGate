@@ -1,0 +1,109 @@
+### 2026-11-16T13:33:44.517Z ow kpdx ow-noauto-merge-plus60-r1 flow=kpdx-ow-noauto.flow base=OLD ARR=NEW-diff MODE=plus60 TAG=ow-noauto-merge-plus60-r1 ANSWER=Merge.data (versionName=4.5.8)
+Success
+<work>/work/base/OLD.kdbx: 1 file pushed, 0 skipped. 0.9 MB/s (17365 bytes in 0.018s)
+given 17365 bytes, mtime 2026-11-16 14:23:46.000000000 +0100 sha256 6e25ae9b994a21f69404250dec2c751c358472bca635467c042d70f119402d6b
+[2026-11-16T13:33:47.695Z] kpdx-ow-noauto.flow:4 host sh <work>/scripts/kpdx-prefs.sh autosave-off
+[2026-11-16T13:33:48.287Z]   | prefs written: <?xml version='1.0' encoding='utf-8' standalone='yes' ?> <map>     <boolean name="enable_auto_save_database_key" value="false" /> </map> 
+[2026-11-16T13:33:48.289Z]   | SELinux: Loaded file_contexts
+[2026-11-16T13:33:48.290Z] kpdx-ow-noauto.flow:5 include kpdx-open.flow
+[2026-11-16T13:33:48.302Z] kpdx-open.flow:4 sh monkey -p com.kunzisoft.keepass.libre -c android.intent.category.LAUNCHER 1
+  bash arg: -p
+  bash arg: com.kunzisoft.keepass.libre
+  bash arg: -c
+  bash arg: android.intent.category.LAUNCHER
+  bash arg: 1
+Events injected: 1
+## Network stats: elapsed time=59ms (0ms mobile, 0ms wifi, 59ms not connected)
+args: [-p, com.kunzisoft.keepass.libre, -c, android.intent.category.LAUNCHER, 1]
+ arg: "-p"
+ arg: "com.kunzisoft.keepass.libre"
+ arg: "-c"
+ arg: "android.intent.category.LAUNCHER"
+ arg: "1"
+data="com.kunzisoft.keepass.libre"
+data="android.intent.category.LAUNCHER"
+[2026-11-16T13:33:50.045Z] kpdx-open.flow:5 waitfor open_database_button 30
+[2026-11-16T13:33:56.826Z] kpdx-open.flow:6 tapuntil open_database_button Show.roots 40
+[2026-11-16T13:34:01.916Z]   tapped (799, 2051) 'Open existing vault'
+[2026-11-16T13:34:15.749Z]   tapped (799, 2051) 'Open existing vault'
+[2026-11-16T13:34:23.273Z] kpdx-open.flow:7 include picker.flow
+[2026-11-16T13:34:23.287Z] picker.flow:4 pick kpdx-ow-noauto-merge-plus60-r1.kdbx
+[2026-11-16T13:34:39.806Z]   focused and entered '^kpdx\\-ow\\-noauto\\-merge\\-plus60\\-r1\\.kdbx$'
+[2026-11-16T13:34:39.808Z] kpdx-open.flow:8 waitfor password_text_view 40
+[2026-11-16T13:34:49.033Z] kpdx-open.flow:9 typepwdx dummy-password-for-a-throwaway-file
+[2026-11-16T13:35:12.893Z]   typepwdx: the field reads 8 characters, not 35 (attempt 1)
+[2026-11-16T13:35:48.026Z]   typed the password and read it back (35 characters)
+[2026-11-16T13:35:48.027Z] kpdx-open.flow:10 tapuntil activity_password_open_button add_button 60
+[2026-11-16T13:35:53.462Z]   tapped (895, 1435) 'Unlock'
+[2026-11-16T13:36:05.907Z]   tapped (895, 1435) 'Unlock'
+[2026-11-16T13:36:17.924Z]   tapped (895, 1435) 'Unlock'
+[2026-11-16T13:36:33.421Z] kpdx-ow-noauto.flow:6 host sh <work>/scripts/kpdx-prefs.sh show after-open
+[2026-11-16T13:36:33.938Z]   | prefs after-open:  <boolean name="read_only_key" value="false" />  <boolean name="enable_auto_save_database_key" value="false" />  <long name="timeout_backup_key" value="1794836183372" /> 
+[2026-11-16T13:36:33.939Z] kpdx-ow-noauto.flow:7 sleep 3
+[2026-11-16T13:36:36.941Z] kpdx-ow-noauto.flow:8 host sh <work>/scripts/replace.sh /sdcard/Download/kpdx-ow-noauto-merge-plus60-r1.kdbx <work>/work/base/NEW-diff.kdbx plus60
+[2026-11-16T13:36:41.161Z]   | replace: before 17365 bytes, mtime 2026-11-16 14:23:46.000000000 +0100 sha256 6e25ae9b994a21f69404250dec2c751c358472bca635467c042d70f119402d6b
+[2026-11-16T13:36:41.163Z]   | <work>/work/base/NEW-diff.kdbx: 1 file pushed, 0 skipped. 1.2 MB/s (19509 bytes in 0.016s)
+[2026-11-16T13:36:41.164Z]   | replace: after  19509 bytes, mtime 2026-11-16 14:24:46.000000000 +0100 sha256 4c67b2a5698c8133dd00cb61d228b9911a4ed9b3f1f7b9ddbf375a08b91d5d3c (mode plus60, from NEW-diff.kdbx)
+[2026-11-16T13:36:41.166Z] kpdx-ow-noauto.flow:9 sleep 2
+[2026-11-16T13:36:43.167Z] kpdx-ow-noauto.flow:10 include kpdx-ow-add.flow
+[2026-11-16T13:36:43.178Z] kpdx-ow-add.flow:3 mark /sdcard/Download/kpdx-ow-noauto-merge-plus60-r1.kdbx
+[2026-11-16T13:36:43.290Z]   marked /sdcard/Download/kpdx-ow-noauto-merge-plus60-r1.kdbx sha256 4c67b2a5698c8133
+[2026-11-16T13:36:43.293Z] kpdx-ow-add.flow:4 tapuntil add_button fab_add_entry 20
+[2026-11-16T13:36:49.785Z]   tapped (970, 2013) 'Add node'
+[2026-11-16T13:36:52.758Z] kpdx-ow-add.flow:5 tapuntil fab_add_entry (entry_edit_validate|modified.outside) 30
+[2026-11-16T13:36:58.293Z]   tapped (885, 1691) 'Add entry'
+[2026-11-16T13:37:07.386Z] kpdx-ow-add.flow:6 ifthen modified.outside 6 kpdx-ow-dialog.flow
+[2026-11-16T13:37:10.862Z]   'modified.outside' is there: running kpdx-ow-dialog.flow
+[2026-11-16T13:37:10.875Z] kpdx-ow-dialog.flow:2 dialog
+[2026-11-16T13:37:14.826Z]   dialog message: 'The information contained in your database has been modified outside the app.\n\nNov 16, 2026 2:23:46 PM, 17.36 kB\n→\nNov 16, 2026 2:24:46 PM, 19.51 kB\n\nMerge the data, overwrite the external modifications by saving the database or reload it with the latest changes.'
+[2026-11-16T13:37:14.828Z]   dialog button1: 'OK'
+[2026-11-16T13:37:14.830Z] kpdx-ow-dialog.flow:3 tap ^OK$
+[2026-11-16T13:37:22.088Z]   tapped (887, 1495) 'OK'
+[2026-11-16T13:37:22.093Z] kpdx-ow-dialog.flow:4 sleep 2
+[2026-11-16T13:37:24.095Z] kpdx-ow-add.flow:7 waitfor entry_edit_validate 20
+[2026-11-16T13:37:30.063Z] kpdx-ow-add.flow:8 type ^Title$ phone-ow
+[2026-11-16T13:37:55.215Z]   type: field never took the focus (attempt 1)
+[2026-11-16T13:38:18.153Z]   typed 'phone-ow'
+[2026-11-16T13:38:18.157Z] kpdx-ow-add.flow:9 tapuntil entry_edit_validate (add_button|modified.outside) 30
+[2026-11-16T13:38:24.721Z]   tapped (970, 1413) 'Validate'
+[2026-11-16T13:38:41.002Z] kpdx-ow-add.flow:10 ifthen modified.outside 6 kpdx-ow-dialog.flow
+[2026-11-16T13:38:44.837Z]   'modified.outside' is there: running kpdx-ow-dialog.flow
+[2026-11-16T13:38:44.851Z] kpdx-ow-dialog.flow:2 dialog
+[2026-11-16T13:38:48.323Z]   dialog message: 'The information contained in your database has been modified outside the app.\n\nNov 16, 2026 2:23:46 PM, 17.36 kB\n→\nNov 16, 2026 2:24:46 PM, 19.51 kB\n\nMerge the data, overwrite the external modifications by saving the database or reload it with the latest changes.'
+[2026-11-16T13:38:48.325Z]   dialog button1: 'OK'
+[2026-11-16T13:38:48.326Z] kpdx-ow-dialog.flow:3 tap ^OK$
+[2026-11-16T13:38:53.396Z]   tapped (887, 1495) 'OK'
+[2026-11-16T13:38:53.399Z] kpdx-ow-dialog.flow:4 sleep 2
+[2026-11-16T13:38:55.401Z] kpdx-ow-add.flow:11 waitchange /sdcard/Download/kpdx-ow-noauto-merge-plus60-r1.kdbx 45
+[2026-11-16T13:39:40.809Z]   waitchange: /sdcard/Download/kpdx-ow-noauto-merge-plus60-r1.kdbx UNCHANGED after 45 s
+[2026-11-16T13:39:40.812Z] kpdx-ow-noauto.flow:11 host sh <work>/scripts/devstat.sh /sdcard/Download/kpdx-ow-noauto-merge-plus60-r1.kdbx after-add-before-answer
+[2026-11-16T13:39:40.942Z]   | devstat after-add-before-answer: 19509 bytes, mtime 2026-11-16 14:24:46.000000000 +0100 sha256 4c67b2a5698c8133dd00cb61d228b9911a4ed9b3f1f7b9ddbf375a08b91d5d3c
+[2026-11-16T13:39:40.944Z] kpdx-ow-noauto.flow:12 tapuntil More.options ^Merge.data$ 30
+[2026-11-16T13:39:46.820Z]   tapped (1024, 233) 'More options'
+[2026-11-16T13:39:57.018Z]   tapped (1024, 233) 'More options'
+  FrameLayout         (540, 1176)  id=action_bar_root              text='' desc=''
+  FrameLayout         (540, 1176)  id=content                      text='' desc=''
+  LinearLayoutCompat      (540, 1176)  id=parentPanel                  text='' desc=''
+  LinearLayout        (540, 505)   id=topPanel                     text='' desc=''
+  LinearLayout        (540, 505)   id=title_template               text='' desc=''
+  TextView            (540, 530)   id=alertTitle                   text='Sort' desc=''
+  FrameLayout         (540, 1161)  id=customPanel                  text='' desc=''
+  FrameLayout         (540, 1161)  id=custom                       text='' desc=''
+  RadioGroup          (540, 1013)  id=sort_selection_radio_group   text='' desc=''
+  RadioButton    ckx  (284, 683)   id=sort_selection_db            text='Natural order' desc=''
+  RadioButton    cx   (205, 815)   id=sort_selection_title         text='Title' desc=''
+  RadioButton    cx   (257, 947)   id=sort_selection_username      text='Username' desc=''
+  RadioButton    cx   (242, 1079)  id=sort_selection_creation_time text='Creation' desc=''
+  RadioButton    cx   (278, 1211)  id=sort_selection_last_modify_time text='Modification' desc=''
+  RadioButton    cx   (231, 1343)  id=sort_selection_last_access_time text='Access' desc=''
+  CheckBox       ckx  (288, 1508)  id=sort_selection_ascending     text='Lowest first ↓' desc=''
+  CheckBox       ckx  (295, 1640)  id=sort_selection_groups_before text='Groups before' desc=''
+  ScrollView          (540, 1833)  id=buttonPanel                  text='' desc=''
+  Button         c    (683, 1833)  id=button2                      text='Cancel' desc=''
+  Button         c    (887, 1833)  id=button1                      text='OK' desc=''
+[2026-11-16T13:40:23.191Z] FAILED: tapuntil: never reached ^Merge.data$
+total 24
+-rw------- 1 u0_a160 u0_a160 19509 2026-11-16 14:24:46.000000000 +0100 kpdx-ow-noauto-merge-plus60-r1.kdbx
+device kpdx-ow-noauto-merge-plus60-r1.kdbx sha256 4c67b2a5698c8133dd00cb61d228b9911a4ed9b3f1f7b9ddbf375a08b91d5d3c 19509 bytes, mtime 2026-11-16 14:24:46.000000000 +0100
+/sdcard/Download/kpdx-ow-noauto-merge-plus60-r1.kdbx: 1 file pulled, 0 skipped. 0.3 MB/s (19509 bytes in 0.062s)
+### flow rc=1 2026-11-16T13:40:26.261Z

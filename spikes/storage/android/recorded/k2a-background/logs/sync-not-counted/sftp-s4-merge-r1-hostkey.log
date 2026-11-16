@@ -1,0 +1,165 @@
+### 2026-11-16T18:27:55.677Z sync sftp-s4-merge-r1 flow=k2a-sftp-s4.flow ANSWER=none SANSWER=merge ENTRY=phone-new PREFS=A (versionName=1.15-r6)
+Success
+server thawed (18457) 2026-11-16T18:27:57.195Z
+server already running (18457)
+server kpg-sftp-s4-merge-r1.kdbx after:  2165 bytes, mtime 2026-11-16 19:27:57.258887400 +0100 sha256 1019e391b75edfe8eb32c81be3e3cfb88a7b0efec39f10a7281da04f0d0469a3 (from SOLD.kdbx)
+SELinux: Loaded file_contexts
+prefs set A:  <boolean name="permit_cleartext_traffic" value="true" /> 
+[2026-11-16T18:27:57.599Z] k2a-sftp-s4.flow:6 include k2a-sftp-open.flow
+[2026-11-16T18:27:57.607Z] k2a-sftp-open.flow:3 sh monkey -p keepass2android.keepass2android -c android.intent.category.LAUNCHER 1
+  bash arg: -p
+  bash arg: keepass2android.keepass2android
+  bash arg: -c
+  bash arg: android.intent.category.LAUNCHER
+  bash arg: 1
+Events injected: 1
+## Network stats: elapsed time=71ms (0ms mobile, 0ms wifi, 71ms not connected)
+args: [-p, keepass2android.keepass2android, -c, android.intent.category.LAUNCHER, 1]
+ arg: "-p"
+ arg: "keepass2android.keepass2android"
+ arg: "-c"
+ arg: "android.intent.category.LAUNCHER"
+ arg: "1"
+data="keepass2android.keepass2android"
+data="android.intent.category.LAUNCHER"
+[2026-11-16T18:27:58.135Z] k2a-sftp-open.flow:4 clear ^OK$ start_open_file 40
+[2026-11-16T18:28:02.653Z]   cleared 'Change log' with (832, 1311)
+[2026-11-16T18:28:06.917Z]   cleared 'Change log' with (859, 1883)
+[2026-11-16T18:28:10.146Z] k2a-sftp-open.flow:5 tap start_open_file
+[2026-11-16T18:28:12.821Z]   tapped (540, 1025) 'Open file...'
+[2026-11-16T18:28:12.825Z] k2a-sftp-open.flow:6 tap ^SFTP..SSH.File.Transfer.$
+[2026-11-16T18:28:16.411Z]   tapped (229, 1174) 'SFTP (SSH File Transfer)'
+[2026-11-16T18:28:16.412Z] k2a-sftp-open.flow:7 waitfor sftp_host 20
+[2026-11-16T18:28:19.161Z] k2a-sftp-open.flow:8 list
+  FrameLayout         (540, 1176)  id=action_bar_root              text='' desc=''
+  FrameLayout         (540, 1176)  id=content                      text='' desc=''
+  LinearLayoutCompat      (540, 1176)  id=parentPanel                  text='' desc=''
+  LinearLayout        (540, 443)   id=topPanel                     text='' desc=''
+  LinearLayout        (540, 443)   id=title_template               text='' desc=''
+  TextView            (406, 468)   id=alertTitle                   text='Enter SFTP login data:' desc=''
+  FrameLayout         (540, 1130)  id=customPanel                  text='' desc=''
+  FrameLayout         (540, 1130)  id=custom                       text='' desc=''
+  EditText       c    (456, 597)   id=sftp_host                    text='host (ex: 192.168.0.1)' desc=''
+  TextView            (790, 599)   id=portsep                      text=':' desc=''
+  EditText       c    (874, 597)   id=sftp_port                    text='22' desc=''
+  EditText       c    (540, 721)   id=sftp_user                    text='username' desc=''
+  TextView            (308, 817)   id=auth_mode_title              text='Authentication mode' desc=''
+  Spinner        c    (715, 816)   id=sftp_auth_mode_spinner       text='' desc=''
+  TextView            (649, 815)   id=text1                        text='Password' desc=''
+  EditText       c    (540, 911)   id=sftp_password                text='password' desc=''
+  TextView            (354, 1010)  id=initial_dir                  text='Initial directory (optional)' desc=''
+  EditText       c    (540, 1099)  id=sftp_initial_dir             text='/' desc=''
+  TextView            (476, 1198)  id=connect_timeout              text='Connection timeout seconds (optional)' desc=''
+  EditText       c    (540, 1287)  id=sftp_connect_timeout         text='' desc=''
+  TextView            (512, 1386)  id=sftp_kex_title               text='Key Exchange (KEX) Algorithm(s) (optional)' desc=''
+  EditText       c    (540, 1475)  id=sftp_kex                     text='Comma-separated names/spec' desc=''
+  TextView            (477, 1574)  id=sftp_shk_title               text='Server Host Key Algorithm(s) (optional)' desc=''
+  EditText       c    (540, 1663)  id=sftp_shk                     text='Comma-separated names/spec' desc=''
+  ScrollView          (540, 1863)  id=buttonPanel                  text='' desc=''
+  Button         c    (628, 1863)  id=button2                      text='Cancel' desc=''
+  Button         c    (832, 1863)  id=button1                      text='OK' desc=''
+[2026-11-16T18:28:21.116Z] k2a-sftp-open.flow:9 type sftp_host 10.0.2.2
+[2026-11-16T18:28:33.443Z]   type: field never took the focus (attempt 1)
+[2026-11-16T18:28:42.534Z]   typed '10.0.2.2'
+[2026-11-16T18:28:42.536Z] k2a-sftp-open.flow:10 tap sftp_port
+[2026-11-16T18:28:45.352Z]   tapped (874, 577) '22'
+[2026-11-16T18:28:45.354Z] k2a-sftp-open.flow:11 key MOVE_END
+[2026-11-16T18:28:46.506Z] k2a-sftp-open.flow:12 key DEL
+[2026-11-16T18:28:47.273Z] k2a-sftp-open.flow:13 key DEL
+[2026-11-16T18:28:48.067Z] k2a-sftp-open.flow:14 text 2022
+[2026-11-16T18:28:49.226Z] k2a-sftp-open.flow:15 type sftp_user kpg
+[2026-11-16T18:28:57.998Z]   typed 'kpg'
+[2026-11-16T18:28:57.999Z] k2a-sftp-open.flow:16 typepw sftp_password <invented>
+[2026-11-16T18:29:05.791Z]   typed into the focused field
+[2026-11-16T18:29:05.793Z] k2a-sftp-open.flow:17 list
+  FrameLayout         (540, 834)   id=action_bar_root              text='' desc=''
+  FrameLayout         (540, 834)   id=content                      text='' desc=''
+  LinearLayoutCompat      (540, 834)   id=parentPanel                  text='' desc=''
+  LinearLayout        (540, 423)   id=topPanel                     text='' desc=''
+  LinearLayout        (540, 423)   id=title_template               text='' desc=''
+  TextView            (406, 448)   id=alertTitle                   text='Enter SFTP login data:' desc=''
+  FrameLayout         (540, 787)   id=customPanel                  text='' desc=''
+  FrameLayout         (540, 787)   id=custom                       text='' desc=''
+  EditText       c    (456, 577)   id=sftp_host                    text='10.0.2.2' desc=''
+  TextView            (790, 579)   id=portsep                      text=':' desc=''
+  EditText       c    (874, 577)   id=sftp_port                    text='2022' desc=''
+  EditText       c    (540, 701)   id=sftp_user                    text='kpg' desc=''
+  TextView            (308, 797)   id=auth_mode_title              text='Authentication mode' desc=''
+  Spinner        c    (715, 796)   id=sftp_auth_mode_spinner       text='' desc=''
+  TextView            (649, 795)   id=text1                        text='Password' desc=''
+  EditText       cf   (540, 891)   id=sftp_password                text='•••••••••••••••••••' desc=''
+  TextView            (354, 990)   id=initial_dir                  text='Initial directory (optional)' desc=''
+  EditText       c    (540, 1055)  id=sftp_initial_dir             text='/' desc=''
+  ScrollView          (540, 1198)  id=buttonPanel                  text='' desc=''
+  Button         c    (628, 1198)  id=button2                      text='Cancel' desc=''
+  Button         c    (832, 1198)  id=button1                      text='OK' desc=''
+[2026-11-16T18:29:07.643Z] k2a-sftp-open.flow:18 dialog
+[2026-11-16T18:29:09.670Z]   dialog alertTitle: 'Enter SFTP login data:'
+[2026-11-16T18:29:09.671Z]   dialog button2: 'Cancel'
+[2026-11-16T18:29:09.672Z]   dialog button1: 'OK'
+[2026-11-16T18:29:09.673Z] k2a-sftp-open.flow:19 tap ^OK$
+[2026-11-16T18:29:12.660Z]   tapped (832, 1198) 'OK'
+[2026-11-16T18:29:12.662Z] k2a-sftp-open.flow:20 sleep 6
+[2026-11-16T18:29:18.663Z] k2a-sftp-open.flow:21 dialog
+[2026-11-16T18:29:20.681Z]   dialog alertTitle: 'Keepass2Android'
+[2026-11-16T18:29:20.682Z]   dialog message: "The authenticity of host '[10.0.2.2]:2022' can't be established.\nECDSA key fingerprint is SHA256:E0c9jKEnDL3UK9+LXO+kk+NlDsr2TtoHJjWkSzFBg5w.\nAre you sure you want to continue connecting?"
+[2026-11-16T18:29:20.683Z]   dialog button2: 'No'
+[2026-11-16T18:29:20.684Z]   dialog button1: 'Yes'
+[2026-11-16T18:29:20.685Z] k2a-sftp-open.flow:22 list
+  FrameLayout         (540, 1176)  id=content                      text='' desc=''
+  LinearLayout        (540, 1176)  id=parentPanel                  text='' desc=''
+  LinearLayout        (540, 902)   id=topPanel                     text='' desc=''
+  LinearLayout        (540, 891)   id=title_template               text='' desc=''
+  TextView            (540, 916)   id=alertTitle                   text='Keepass2Android' desc=''
+  View                (540, 964)   id=titleDividerNoCustom         text='' desc=''
+  FrameLayout         (540, 1164)  id=contentPanel                 text='' desc=''
+  ScrollView          (540, 1164)  id=scrollView                   text='' desc=''
+  TextView            (540, 1164)  id=message                      text="The authenticity of host '[10.0.2.2]:2022' can't be established.\nECDSA key fingerprint is SHA256:E0c9jKEnDL3UK9+LXO+kk+NlDsr2TtoHJjWkSzFBg5w.\nAre you sure you want to continue connecting?" desc=''
+  ScrollView          (540, 1438)  id=buttonPanel                  text='' desc=''
+  Button         c    (711, 1438)  id=button2                      text='No' desc=''
+  Button         c    (887, 1438)  id=button1                      text='Yes' desc=''
+[2026-11-16T18:29:22.548Z] k2a-sftp-open.flow:23 maybe ^(Yes|OK|Accept|Trust|Connect)$ 3
+[2026-11-16T18:29:25.427Z]   maybe tapped (887, 1438) 'Yes'
+[2026-11-16T18:29:25.428Z] k2a-sftp-open.flow:24 sleep 3
+[2026-11-16T18:29:28.430Z] k2a-sftp-open.flow:25 dialog
+[2026-11-16T18:29:30.450Z]   dialog alertTitle: 'Keepass2Android'
+[2026-11-16T18:29:30.451Z]   dialog message: '/data/user/0/keepass2android.keepass2android/files/known_hosts does not exist.\nAre you sure you want to create it?'
+[2026-11-16T18:29:30.452Z]   dialog button2: 'No'
+[2026-11-16T18:29:30.453Z]   dialog button1: 'Yes'
+[2026-11-16T18:29:30.454Z] k2a-sftp-open.flow:26 list
+  FrameLayout         (540, 1176)  id=content                      text='' desc=''
+  LinearLayout        (540, 1176)  id=parentPanel                  text='' desc=''
+  LinearLayout        (540, 983)   id=topPanel                     text='' desc=''
+  LinearLayout        (540, 972)   id=title_template               text='' desc=''
+  TextView            (540, 997)   id=alertTitle                   text='Keepass2Android' desc=''
+  View                (540, 1045)  id=titleDividerNoCustom         text='' desc=''
+  FrameLayout         (540, 1163)  id=contentPanel                 text='' desc=''
+  ScrollView          (540, 1163)  id=scrollView                   text='' desc=''
+  TextView            (540, 1163)  id=message                      text='/data/user/0/keepass2android.keepass2android/files/known_hosts does not exist.\nAre you sure you want to create it?' desc=''
+  ScrollView          (540, 1356)  id=buttonPanel                  text='' desc=''
+  Button         c    (711, 1356)  id=button2                      text='No' desc=''
+  Button         c    (887, 1356)  id=button1                      text='Yes' desc=''
+[2026-11-16T18:29:32.498Z] k2a-sftp-open.flow:27 tap ^kpg-sftp-s4-merge-r1.kdbx$
+  FrameLayout         (540, 1176)  id=content                      text='' desc=''
+  LinearLayout        (540, 1176)  id=parentPanel                  text='' desc=''
+  LinearLayout        (540, 983)   id=topPanel                     text='' desc=''
+  LinearLayout        (540, 972)   id=title_template               text='' desc=''
+  TextView            (540, 997)   id=alertTitle                   text='Keepass2Android' desc=''
+  View                (540, 1045)  id=titleDividerNoCustom         text='' desc=''
+  FrameLayout         (540, 1163)  id=contentPanel                 text='' desc=''
+  ScrollView          (540, 1163)  id=scrollView                   text='' desc=''
+  TextView            (540, 1163)  id=message                      text='/data/user/0/keepass2android.keepass2android/files/known_hosts does not exist.\nAre you sure you want to create it?' desc=''
+  ScrollView          (540, 1356)  id=buttonPanel                  text='' desc=''
+  Button         c    (711, 1356)  id=button2                      text='No' desc=''
+  Button         c    (887, 1356)  id=button1                      text='Yes' desc=''
+[2026-11-16T18:29:47.717Z] FAILED: tap: no node matches ^kpg-sftp-s4-merge-r1.kdbx$
+server thawed (18457) 2026-11-16T18:29:49.748Z
+server already running (18457)
+server kpg-sftp-s4-merge-r1.kdbx at end: 2165 bytes, mtime 2026-11-16 19:27:57.258887400 +0100 sha256 1019e391b75edfe8eb32c81be3e3cfb88a7b0efec39f10a7281da04f0d0469a3
+no cache file
+logcat: 0 fatal exception(s) in the run
+total 4
+drwxrwxrwx 1 <user> <user>  512 Nov 16 19:27 .
+drwxrwxrwx 1 <user> <user>  512 Nov 16 18:07 ..
+-rwxrwxrwx 1 <user> <user> 2165 Nov 16 19:27 kpg-sftp-s4-merge-r1.kdbx
+### flow rc=1 2026-11-16T18:29:50.366Z

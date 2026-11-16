@@ -1,0 +1,15 @@
+# A question stands: logged; BACK pressed and the screen logged again; then left unanswered (HOME)
+# for 30 s watched; the program stopped (force-stop), started again and unlocked; what it shows.
+dialog
+key BACK
+sleep 2
+dialog
+list
+key HOME
+host sh ${P}/watch.sh ${SNAME} 30 question-left
+host sh ${P}/notif.sh question-left
+host sh ${P}/snap.sh ${W} ${SNAME} question-left
+sh am force-stop ${PKG}
+sleep 2
+include k2a-bg-reopen.flow
+host sh ${P}/notif.sh after-restart

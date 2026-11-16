@@ -1,0 +1,70 @@
+== kp-PHONE-open-DESK-arriving.kdbx
+  RV2 revocation entry        in KG
+  RV2 key KPG.Revoked.c3      present
+  RV2 record DRV2             present
+  AD3 admission entry         in KG
+  GR3 grant entry             in KG
+  PR2 removal entry           in KG
+  PR2 key                     present
+  WD2 withdrawal entry        in KG
+  WD2 key                     present
+  NewKey custom data          present
+  DZ record (no entry)        present
+  X1 desk-deleted             absent (record)
+  X2 desk-del, phone-later    x2-old in PW user=x2-changed-on-phone
+  X3 phone-del, desk-later    x3-old in PW user=x3-changed-on-desktop
+  X4 phone-deleted            absent (record)
+  P1 desk only                p1-desktop in PW [history: p1-old]
+  P2 phone only               p2-phone in PW [history: p2-old]
+  Q1 desk older               q1-phone in PW [history: q1-old,q1-desktop]
+  Q2 desk newer               q2-desktop in PW [history: q2-old,q2-phone]
+  Q3 equal times              q3-desktop in PW [history: q3-old]
+  ND desk new                 in PW
+  NPh phone new               in PW
+  Y3 desk move PW->N          in N prev=PW
+  Y4 desk->N, phone->G        in G
+  Y5 phone ->N, mod time      in N
+  Y6 phone ->N, no mod        in N
+  GD group desk-deleted       under Root, no record
+  GD1 phone-later             gd1-phone in GD [history: gd1-old]
+  NA tree desk-deleted        absent, record; NB absent, record; NC absent, record
+  NA1 NB1 NC1                 absent (record); absent (record); absent (record)
+  base records                AD1:y AD2:y PA1:y PA2:y GR1:y GR2:y LF1:y RA1:y RT1:y RV1:y PR1:y WD1:y MK1:y MK2:y MR:y
+  base keys                   16 KPG. keys
+  deletion records            14: D1 D2 DRT1 DRV1 DRV2 DZ NA NA1 NB NB1 NC NC1 X1 X4
+  deletion order              D1 D2 DRT1 DRV1 X4 DRV2 DZ X1 NA1 NB1 NC1 NC NB NA
+== kp-DESK-open-PHONE-arriving.kdbx
+  RV2 revocation entry        in KG
+  RV2 key KPG.Revoked.c3      present
+  RV2 record DRV2             present
+  AD3 admission entry         in KG
+  GR3 grant entry             in KG
+  PR2 removal entry           in KG
+  PR2 key                     present
+  WD2 withdrawal entry        in KG
+  WD2 key                     present
+  NewKey custom data          present
+  DZ record (no entry)        present
+  X1 desk-deleted             absent (record)
+  X2 desk-del, phone-later    x2-old in PW user=x2-changed-on-phone
+  X3 phone-del, desk-later    x3-old in PW user=x3-changed-on-desktop
+  X4 phone-deleted            absent (record)
+  P1 desk only                p1-desktop in PW [history: p1-old]
+  P2 phone only               p2-phone in PW [history: p2-old]
+  Q1 desk older               q1-phone in PW [history: q1-old,q1-desktop]
+  Q2 desk newer               q2-desktop in PW [history: q2-old,q2-phone]
+  Q3 equal times              q3-phone in PW [history: q3-old]
+  ND desk new                 in PW
+  NPh phone new               in PW
+  Y3 desk move PW->N          in N prev=PW
+  Y4 desk->N, phone->G        in G
+  Y5 phone ->N, mod time      in N
+  Y6 phone ->N, no mod        in N
+  GD group desk-deleted       under Root, no record
+  GD1 phone-later             gd1-phone in GD [history: gd1-old]
+  NA tree desk-deleted        absent, record; NB absent, record; NC absent, record
+  NA1 NB1 NC1                 absent (record); absent (record); absent (record)
+  base records                AD1:y AD2:y PA1:y PA2:y GR1:y GR2:y LF1:y RA1:y RT1:y RV1:y PR1:y WD1:y MK1:y MK2:y MR:y
+  base keys                   16 KPG. keys
+  deletion records            14: D1 D2 DRT1 DRV1 DRV2 DZ NA NA1 NB NB1 NC NC1 X1 X4
+  deletion order              D1 D2 DRT1 DRV1 DRV2 DZ X1 NA1 NB1 NC1 NC NB NA X4

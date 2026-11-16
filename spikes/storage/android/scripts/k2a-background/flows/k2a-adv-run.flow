@@ -1,0 +1,40 @@
+# Item 3, the advised settings: open through the program's own WebDAV access; "Always merge on
+# conflict" turned on on its screen (which leaves "Synchronize in background" on); six alternating
+# changes, the server's file and the cache kept after each:
+#   1 the desktop, step a (KG3, KPG.NewKey, P1), the server reachable
+#   2 the phone, P2 saved, the server reachable
+#   3 the desktop, step b (X1 deleted, DZ, Q1 at 18:00Z), the server reachable
+#   4 the phone, Q1, Q2 and Q3 saved with the server stopped
+#   5 the desktop, step c (Q2 an hour after the phone's edit, Q3 at the same second), the server
+#     still stopped for the phone (the file changed on its disk)
+#   6 the phone, phone-new added with the server stopped
+# then the phone's cache and the server's file kept as phone-before-sync and SNEW, the server
+# started, 60 s watched, Synchronize database..., 15 s watched, look.
+include k2a-sy-open.flow
+include k2a-setting.flow
+host sh ${P}/prefs.sh before-run
+host sh ${P}/deskstep.sh ${W} ${SNAME} a
+host sh ${P}/snap.sh ${W} ${SNAME} turn-1
+include k2a-sy-pw-P2.flow
+host sh ${P}/watch.sh ${SNAME} 20 turn-2
+host sh ${P}/notif.sh turn-2
+host sh ${P}/snap.sh ${W} ${SNAME} turn-2
+host sh ${P}/deskstep.sh ${W} ${SNAME} b
+host sh ${P}/snap.sh ${W} ${SNAME} turn-3
+host sh ${P}/server.sh stop
+include k2a-sy-pw-Q1-offline.flow
+include k2a-sy-pw-Q2-offline.flow
+include k2a-sy-pw-Q3-offline.flow
+host sh ${P}/notif.sh turn-4
+host sh ${P}/snap.sh ${W} ${SNAME} turn-4
+host sh ${P}/deskstep.sh ${W} ${SNAME} c
+host sh ${P}/snap.sh ${W} ${SNAME} turn-5
+include k2a-ow-edit-offline.flow
+host sh ${P}/notif.sh turn-6
+host sh ${P}/pull-cache.sh ${W} phone-before-sync
+host sh ${P}/keep.sh ${W} ${SNAME} SNEW.kdbx
+host sh ${P}/server.sh start
+host sh ${P}/watch.sh ${SNAME} 60 server-back
+include k2a-sy-sync.flow
+host sh ${P}/watch.sh ${SNAME} 15 after-sync
+include k2a-sy-look.flow

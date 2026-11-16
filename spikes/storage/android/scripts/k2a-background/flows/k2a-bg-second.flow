@@ -1,0 +1,14 @@
+# A second save: Q1's password edited and saved; 30 s watched; what is shown, a question left
+# unanswered; the files kept.
+tap ^Passwords$
+tap ^Q1$
+waitfor entry_edit 20
+tap entry_edit
+waitfor entry_password 20
+appendpw entry_password -phone
+tap menu_save
+host sh ${P}/watch.sh ${SNAME} 30 second-save
+dialog
+list
+host sh ${P}/notif.sh second-save
+host sh ${P}/snap.sh ${W} ${SNAME} second-save

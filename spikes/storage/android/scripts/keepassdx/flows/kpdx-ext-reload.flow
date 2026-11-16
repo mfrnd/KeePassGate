@@ -1,0 +1,32 @@
+# Item 2, the external-change path, answer Reload data: as kpdx-ext-merge.flow, then Reload data;
+# its confirmation, if any, is logged and answered OK.
+include kpdx-open.flow
+sleep 11
+sh stat -c '%s bytes, mtime %y' /sdcard/Download/${NAME}.kdbx
+adb push ${SRC} /sdcard/Download/${NAME}.kdbx
+sh touch /sdcard/Download/${NAME}.kdbx
+sh stat -c '%s bytes, mtime %y' /sdcard/Download/${NAME}.kdbx
+sh sha256sum /sdcard/Download/${NAME}.kdbx
+mark /sdcard/Download/${NAME}.kdbx
+key HOME
+sleep 2
+sh monkey -p ${PKG} -c android.intent.category.LAUNCHER 1
+waitfor modified.outside 40
+dialog
+list
+tap ^OK$
+sleep 3
+tapuntil More.options ^Reload.data$ 30
+tap ^Reload.data$
+sleep 3
+dialog
+maybe ^OK$ 5
+waitchange /sdcard/Download/${NAME}.kdbx 30
+sleep 10
+sh stat -c '%s bytes, mtime %y' /sdcard/Download/${NAME}.kdbx
+list
+log after the reload: an entry phone-after-reload added and saved, to read what the program holds
+set TAG after-reload
+include kpdx-ow-add.flow
+host sh ${P}/devstat.sh /sdcard/Download/${NAME}.kdbx after-add
+list

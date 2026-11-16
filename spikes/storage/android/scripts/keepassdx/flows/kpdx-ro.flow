@@ -1,0 +1,60 @@
+# Item 4, write-protected opening: the unlock screen's mode switched from Modifiable to
+# Write-protected before unlocking; then what each screen still offers is listed and every write it
+# offers is tried, each followed by a check of the file (waitchange logs UNCHANGED when nothing was
+# written): the toolbar, the add button, a long press on an entry, the entry's own screen, the
+# navigation drawer, the lock.
+sh monkey -p ${PKG} -c android.intent.category.LAUNCHER 1
+waitfor open_database_button 30
+tapuntil open_database_button Show.roots 40
+include picker.flow
+waitfor password_text_view 40
+tapuntil menu_open_file_read_mode_key Write.protected 40
+typepwdx dummy-password-for-a-throwaway-file
+list
+mark /sdcard/Download/${NAME}.kdbx
+tapuntil activity_password_open_button node_text@^KeePassGate$ 60
+sleep 3
+log the group screen
+list
+maybe add_button 3
+sleep 1
+list
+ifthen fab_add_entry 3 kpdx-ro-add.flow
+key BACK
+sleep 1
+tapuntil node_text@^G$ node_text@^E1$ 40
+sleep 3
+log a long press on E1
+longpress node_text@^E1$ 2000 600
+sleep 2
+list
+maybe More.options#2 3
+sleep 1
+list
+key BACK
+sleep 1
+key BACK
+sleep 1
+log a tap on E1's row
+tapxy 600 856
+sleep 2
+sleep 2
+list
+maybe More.options 3
+sleep 1
+list
+key BACK
+sleep 1
+key BACK
+sleep 2
+log the navigation drawer
+drawer menu_app_settings
+list
+key BACK
+sleep 1
+waitchange /sdcard/Download/${NAME}.kdbx 10
+log the lock
+tap lock_button
+sleep 4
+waitchange /sdcard/Download/${NAME}.kdbx 10
+list

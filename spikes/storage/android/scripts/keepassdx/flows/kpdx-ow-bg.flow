@@ -1,0 +1,14 @@
+# Item 3, from the background: open OLD; HOME; ${ARR} put over the file at ${MODE}; KeePassDX brought
+# back by its launcher; the dialog, if any, logged and answered OK; then an entry added and saved.
+include kpdx-open.flow
+sleep 3
+key HOME
+sleep 2
+host sh ${P}/replace.sh /sdcard/Download/${NAME}.kdbx ${SRCDIR}/${ARR}.kdbx ${MODE}
+sleep 1
+sh monkey -p ${PKG} -c android.intent.category.LAUNCHER 1
+sleep 4
+ifthen modified.outside 8 kpdx-ow-dialog.flow
+include kpdx-ow-add.flow
+host sh ${P}/devstat.sh /sdcard/Download/${NAME}.kdbx after-save
+list

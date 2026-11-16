@@ -1,0 +1,102 @@
+5a6,23
+> E AD1 H2026-11-01T11:00:00Z S KPG.Check p=0 "3213ef56134fb97ede1b571793181cf1863832e0978887154b2f169d716d056c"
+> E AD1 H2026-11-01T11:00:00Z S KPG.Kind p=0 "admission"
+> E AD1 H2026-11-01T11:00:00Z S KPG.Record p=0 len=159 sha=530ece65f760f0cd "{\"certificate\":\"d2d31ae42311e216978c55ae62b98315483da922e..."
+> E AD1 H2026-11-01T11:00:00Z S Notes p=0 ""
+> E AD1 H2026-11-01T11:00:00Z S Password p=1 ""
+> E AD1 H2026-11-01T11:00:00Z S Title p=0 "KPG client build-agent"
+> E AD1 H2026-11-01T11:00:00Z S URL p=0 ""
+> E AD1 H2026-11-01T11:00:00Z S UserName p=0 ""
+> E AD1 H2026-11-01T11:00:00Z autotype enabled=1 obfuscation=0 seq="" assoc=0
+> E AD1 H2026-11-01T11:00:00Z misc icon=0 customIcon=- fg=00000000 bg=00000000 overrideUrl="" quality=1
+> E AD1 H2026-11-01T11:00:00Z prev -
+> E AD1 H2026-11-01T11:00:00Z t.accessed 2026-11-01T11:00:00Z
+> E AD1 H2026-11-01T11:00:00Z t.created 2026-11-01T11:00:00Z
+> E AD1 H2026-11-01T11:00:00Z t.expires 0 2026-11-01T10:00:00Z
+> E AD1 H2026-11-01T11:00:00Z t.location 2026-11-01T11:00:00Z
+> E AD1 H2026-11-01T11:00:00Z t.modified 2026-11-01T11:00:00Z
+> E AD1 H2026-11-01T11:00:00Z tags []
+> E AD1 H2026-11-01T11:00:00Z usage 0
+11c29
+< E AD1 S Title p=0 "KPG client build-agent"
+---
+> E AD1 S Title p=0 "KPG client build-agent-phone"
+15c33
+< E AD1 history.count 0
+---
+> E AD1 history.count 1
+19c37
+< E AD1 t.accessed 2026-11-01T11:00:00Z
+---
+> E AD1 t.accessed 2026-11-16T14:53:29Z
+21c39
+< E AD1 t.expires 0 2026-11-01T10:00:00Z
+---
+> E AD1 t.expires 0 2999-11-28T23:59:59Z
+23c41
+< E AD1 t.modified 2026-11-01T11:00:00Z
+---
+> E AD1 t.modified 2026-11-16T14:53:29Z
+25c43
+< E AD1 usage 0
+---
+> E AD1 usage 1
+166a185,202
+> E GR1 H2026-11-01T11:02:00Z S KPG.Check p=0 "ec73866efeb68f7ed857cb24566fe2b2732c61e30f248e34825cb4e913e57266"
+> E GR1 H2026-11-01T11:02:00Z S KPG.Kind p=0 "grant"
+> E GR1 H2026-11-01T11:02:00Z S KPG.Record p=0 "{\"node\":\"4B504750570000000000000000000000\",\"profile\":\"reader\",\"letters\":\".R...L.P\",\"sawWithdrawals\":[]}"
+> E GR1 H2026-11-01T11:02:00Z S Notes p=0 ""
+> E GR1 H2026-11-01T11:02:00Z S Password p=1 ""
+> E GR1 H2026-11-01T11:02:00Z S Title p=0 "KPG grant reader .R...L.P Passwords"
+> E GR1 H2026-11-01T11:02:00Z S URL p=0 ""
+> E GR1 H2026-11-01T11:02:00Z S UserName p=0 ""
+> E GR1 H2026-11-01T11:02:00Z autotype enabled=1 obfuscation=0 seq="" assoc=0
+> E GR1 H2026-11-01T11:02:00Z misc icon=0 customIcon=- fg=00000000 bg=00000000 overrideUrl="" quality=1
+> E GR1 H2026-11-01T11:02:00Z prev -
+> E GR1 H2026-11-01T11:02:00Z t.accessed 2026-11-01T11:02:00Z
+> E GR1 H2026-11-01T11:02:00Z t.created 2026-11-01T11:02:00Z
+> E GR1 H2026-11-01T11:02:00Z t.expires 0 2026-11-01T10:00:00Z
+> E GR1 H2026-11-01T11:02:00Z t.location 2026-11-01T11:02:00Z
+> E GR1 H2026-11-01T11:02:00Z t.modified 2026-11-01T11:02:00Z
+> E GR1 H2026-11-01T11:02:00Z tags []
+> E GR1 H2026-11-01T11:02:00Z usage 0
+172c208
+< E GR1 S Title p=0 "KPG grant reader .R...L.P Passwords"
+---
+> E GR1 S Title p=0 "KPG grant reader .R...L.P Passwords-phone"
+176c212
+< E GR1 history.count 0
+---
+> E GR1 history.count 1
+180c216
+< E GR1 t.accessed 2026-11-01T11:02:00Z
+---
+> E GR1 t.accessed 2026-11-16T14:55:05Z
+182c218
+< E GR1 t.expires 0 2026-11-01T10:00:00Z
+---
+> E GR1 t.expires 0 2999-11-28T23:59:59Z
+184c220
+< E GR1 t.modified 2026-11-01T11:02:00Z
+---
+> E GR1 t.modified 2026-11-16T14:55:05Z
+186c222
+< E GR1 usage 0
+---
+> E GR1 usage 1
+933c969
+< G KG t.accessed 2026-11-01T10:05:00Z
+---
+> G KG t.accessed 2026-11-16T14:55:05Z
+937c973
+< G KG t.modified 2026-11-01T10:05:00Z
+---
+> G KG t.modified 2026-11-16T14:55:05Z
+1024c1060
+< G Root t.accessed 2026-11-01T10:00:00Z
+---
+> G Root t.accessed 2026-11-16T14:55:05Z
+1028c1064
+< G Root t.modified 2026-11-01T10:00:00Z
+---
+> G Root t.modified 2026-11-16T14:55:05Z

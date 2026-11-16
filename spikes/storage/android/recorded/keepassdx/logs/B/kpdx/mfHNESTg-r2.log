@@ -1,0 +1,912 @@
+### 2026-11-16T11:48:37.796Z B kpdx mfHNESTg r2 target=HNESTg source=HNESTa (versionName=4.5.8)
+Success
+<work>/work/base/HNESTg.kdbx: 1 file pushed, 0 skipped. 0.9 MB/s (16117 bytes in 0.018s)
+target sha256 e7c988ecafa5d088485ebc0b7074a0a2c017ba0c588b2921b866933fe387b87d
+[2026-11-16T11:48:40.258Z] kpdx-B-from-hang.flow:4 include kpdx-open.flow
+[2026-11-16T11:48:40.279Z] kpdx-open.flow:4 sh monkey -p com.kunzisoft.keepass.libre -c android.intent.category.LAUNCHER 1
+  bash arg: -p
+  bash arg: com.kunzisoft.keepass.libre
+  bash arg: -c
+  bash arg: android.intent.category.LAUNCHER
+  bash arg: 1
+Events injected: 1
+## Network stats: elapsed time=343ms (0ms mobile, 0ms wifi, 343ms not connected)
+args: [-p, com.kunzisoft.keepass.libre, -c, android.intent.category.LAUNCHER, 1]
+ arg: "-p"
+ arg: "com.kunzisoft.keepass.libre"
+ arg: "-c"
+ arg: "android.intent.category.LAUNCHER"
+ arg: "1"
+data="com.kunzisoft.keepass.libre"
+data="android.intent.category.LAUNCHER"
+[2026-11-16T11:48:42.065Z] kpdx-open.flow:5 waitfor open_database_button 30
+[2026-11-16T11:48:49.020Z] kpdx-open.flow:6 tapuntil open_database_button Show.roots 40
+[2026-11-16T11:48:52.754Z]   tapped (799, 2051) 'Open existing vault'
+[2026-11-16T11:49:03.257Z]   tapped (799, 2051) 'Open existing vault'
+[2026-11-16T11:49:06.958Z] kpdx-open.flow:7 include picker.flow
+[2026-11-16T11:49:06.975Z] picker.flow:4 pick kpdx-mfHNESTg.kdbx
+[2026-11-16T11:49:18.548Z]   focused and entered '^kpdx\\-mfHNESTg\\.kdbx$'
+[2026-11-16T11:49:18.553Z] kpdx-open.flow:8 waitfor password_text_view 40
+[2026-11-16T11:49:24.298Z] kpdx-open.flow:9 typepwdx dummy-password-for-a-throwaway-file
+[2026-11-16T11:49:43.880Z]   typepwdx: the field reads 8 characters, not 35 (attempt 1)
+[2026-11-16T11:50:07.234Z]   typed the password and read it back (35 characters)
+[2026-11-16T11:50:07.237Z] kpdx-open.flow:10 tapuntil activity_password_open_button add_button 60
+[2026-11-16T11:50:12.676Z]   tapped (895, 1435) 'Unlock'
+[2026-11-16T11:50:22.226Z]   tapped (895, 1435) 'Unlock'
+[2026-11-16T11:50:35.022Z]   tapped (895, 1435) 'Unlock'
+[2026-11-16T11:50:48.833Z] kpdx-B-from-hang.flow:5 adb push <work>/work/base/HNESTa.kdbx /sdcard/Download/kpdx-mfHNESTg-src.kdbx
+<work>/work/base/HNESTa.kdbx: 1 file pushed, 0 skipped. 0.4 MB/s (15877 bytes in 0.034s)
+[2026-11-16T11:50:49.042Z] kpdx-B-from-hang.flow:6 sh sha256sum /sdcard/Download/kpdx-mfHNESTg-src.kdbx
+fbc44fc5b78eed60ba72c9116fc668a5d613a8ecc4d51c1a5a88a3e2088444ac  /sdcard/Download/kpdx-mfHNESTg-src.kdbx
+[2026-11-16T11:50:49.118Z] kpdx-B-from-hang.flow:7 sh stat -c '%s bytes, mtime %y' /sdcard/Download/kpdx-mfHNESTg.kdbx
+16117 bytes, mtime 2026-11-16 08:16:44.000000000 +0100
+[2026-11-16T11:50:49.217Z] kpdx-B-from-hang.flow:8 sleep 4
+[2026-11-16T11:50:53.219Z] kpdx-B-from-hang.flow:9 drawer menu_merge_from
+[2026-11-16T11:51:38.921Z]   drawer open after 5 attempt(s)
+[2026-11-16T11:51:38.928Z] kpdx-B-from-hang.flow:10 tap menu_merge_from
+[2026-11-16T11:51:43.719Z]   tapped (452, 918) 'com.kunzisoft.keepass.libre:id/menu_merge_from'
+[2026-11-16T11:51:43.722Z] kpdx-B-from-hang.flow:11 waitfor setup_check_password_edit_text 20
+[2026-11-16T11:51:47.684Z] kpdx-B-from-hang.flow:12 type setup_check_password_edit_text dumm
+[2026-11-16T11:52:07.979Z]   type: field never took the focus (attempt 1)
+[2026-11-16T11:52:21.644Z]   typed 'dumm'
+[2026-11-16T11:52:21.645Z] kpdx-B-from-hang.flow:13 tapuntil ^Check$ Show.roots 30
+[2026-11-16T11:52:26.498Z]   tapped (887, 1111) 'Check'
+[2026-11-16T11:52:30.986Z] kpdx-B-from-hang.flow:14 include picker-src.flow
+[2026-11-16T11:52:31.003Z] picker-src.flow:2 pick kpdx-mfHNESTg-src.kdbx
+[2026-11-16T11:52:43.528Z]   focused and entered '^kpdx\\-mfHNESTg\\-src\\.kdbx$'
+[2026-11-16T11:52:43.530Z] kpdx-B-from-hang.flow:15 waitfor title_database 30
+[2026-11-16T11:52:51.251Z] kpdx-B-from-hang.flow:16 typepw password_text_view dummy-password-for-a-throwaway-file
+[2026-11-16T11:53:09.842Z]   type: field never took the focus (attempt 1)
+[2026-11-16T11:53:25.782Z]   typed into the focused field
+[2026-11-16T11:53:25.785Z] kpdx-B-from-hang.flow:17 tap ^OK$
+[2026-11-16T11:53:30.865Z]   tapped (887, 1173) 'OK'
+[2026-11-16T11:53:30.867Z] kpdx-B-from-hang.flow:18 sleep 15
+[2026-11-16T11:53:45.870Z] kpdx-B-from-hang.flow:19 log 15 s after OK
+[2026-11-16T11:53:45.871Z]   15 s after OK
+[2026-11-16T11:53:45.873Z] kpdx-B-from-hang.flow:20 list
+  FrameLayout         (540, 1176)  id=action_bar_root              text='' desc=''
+  FrameLayout         (540, 1176)  id=content                      text='' desc=''
+  LinearLayoutCompat      (540, 1176)  id=parentPanel                  text='' desc=''
+  FrameLayout         (540, 1176)  id=customPanel                  text='' desc=''
+  FrameLayout         (540, 1176)  id=custom                       text='' desc=''
+  TextView            (540, 1065)  id=progress_dialog_title        text='Loading database…' desc=''
+  TextView            (540, 1178)  id=progress_dialog_message      text='Decrypting database content…' desc=''
+  TextView            (540, 1284)  id=progress_dialog_warning      text='Do not kill the app…' desc=''
+  ProgressBar         (540, 1369)  id=progress_dialog_bar          text='' desc=''
+[2026-11-16T11:53:48.332Z] kpdx-B-from-hang.flow:21 sh top -b -n 1 -o PID,USER,%CPU,S,TIME+,ARGS
+Tasks: 252 total,   1 running, 251 sleeping,   0 stopped,   0 zombie
+  Mem:  3057292K total,  2548460K used,   508832K free,    97740K buffers
+ Swap:  2292964K total,         0 used,  2292964K free,  1445948K cached
+400%cpu 112%user  26%nice 162%sys  88%idle   0%iow   0%irq  12%sirq   0%host
+   PID USER         %CPU S     TIME+[ARGS]
+   300 root          0.0 S   0:11.41 zygote64
+   301 root          0.0 S   0:02.49 zygote
+   657 wifi          0.0 S   0:09.04 wpa_supplicant -Dnl80211 -iwlan0 -c/vendor/etc/wifi/wpa_supplicant.conf -g@android:wpa_wlan0
+   455 wifi          0.0 S   0:17.48 wificond
+   825 webview_zygote 0.0 S  0:00.21 webview_zygote
+   193 root          0.0 S   0:01.81 vold --blkid_context=u:r:blkid:s0 --blkid_untrusted_context=u:r:blkid_untrusted:s0 --fsck_context=u:r:fsck:s0 --fsck_untrusted_context=u:r:fsck_untrusted:s0
+   155 root          0.0 S   0:01.01 ueventd
+   434 nobody        0.0 S   0:54.01 traced_probes
+   436 nobody        0.0 S   0:07.56 traced
+ 23885 root         91.1 R   0:00.10 top -b -n 1 -o PID,USER,%CPU,S,TIME+,ARGS
+   290 tombstoned    0.0 S   0:00.01 tombstoned
+   515 system       14.7 S  75:45.42 system_server
+   369 system        0.0 S  37:27.36 surfaceflinger
+   454 root          0.0 S   0:03.47 storaged
+   295 statsd        0.0 S   1:18.60 statsd
+   189 shell         0.0 S   0:00.02 sh
+   182 system        0.0 S   1:09.18 servicemanager
+   190 root          0.0 S   0:01.45 qemu-props
+   299 root          0.0 S   0:10.61 netd
+   453 media         0.0 S   0:00.24 mediaserver
+   460 mediacodec    0.0 S   0:00.76 media.swcodec oid.media.swcodec/bin/mediaswcodec
+   452 media         0.0 S   0:08.77 media.metrics diametrics
+   353 audioserver   0.0 S   0:23.38 media.log n/audioserver
+   450 mediaex       0.0 S   0:00.16 media.extractor aextractor
+   456 mediacodec    0.0 S   0:00.22 media.codec hw/android.hardware.media.omx@1.0-service
+   428 mdnsr         0.0 S   0:01.34 mdnsd
+   180 logd          2.9 S   4:28.05 logd
+   389 logd          0.0 S   1:11.27 logcat -Q
+   181 lmkd          0.0 S   0:25.85 lmkd
+   471 llkd          0.0 S   0:35.13 llkd
+   457 radio         0.0 S   0:10.99 libgoldfish-rild
+   445 keystore      0.0 S   0:00.38 keystore /data/misc/keystore
+   302 root          0.0 S   0:00.21 iptables-restore --noflush -w -v
+   303 root          0.0 S   0:00.13 ip6tables-restore --noflush -w -v
+   444 iorapd        0.0 S   0:11.28 iorapd
+   589 iorapd        0.0 S   0:00.02 iorap.prefetcherd --input-fd 7 --output-fd 8
+   443 root          0.0 S   0:01.17 installd
+   153 root          0.0 S   0:00.04 init subcontext u:r:vendor_init:s0 15
+     1 root          0.0 S   0:54.01 init second_stage
+   442 incidentd     0.0 S   0:00.01 incidentd
+   188 system        0.0 S   0:12.91 hwservicemanager
+   362 gpu_service   0.0 S   0:00.10 gpuservice
+   461 system        0.0 S   0:00.02 gatekeeperd /data/misc/gatekeeper
+   439 drm           0.0 S   0:00.06 drmserver
+   419 root          0.0 S   0:00.82 dhcpclient -i wlan0 --no-gateway
+   429 root          0.0 S   0:00.02 dhcpclient -i eth0 --no-gateway
+   355 credstore     0.0 S   0:00.02 credstore /data/misc/credstore
+   285 root          0.0 S   0:00.03 createns router
+ 22121 u0_a169       191 S   1:28.98 com.kunzisoft.keepass.libre
+  1282 u0_a119       0.0 S   0:07.30 com.google.process.gservices
+  2078 u0_a119       0.0 S   0:12.70 com.google.process.gapps
+  1309 u0_a160       0.0 S   0:55.81 com.google.android.providers.media.module
+  3484 u0_a159       0.0 S   0:02.24 com.google.android.permissioncontroller
+  1241 u0_a132       0.0 S  14:16.95 com.google.android.inputmethod.latin
+  2226 u0_a115       0.0 S   0:19.99 com.google.android.ims
+  1458 u0_a123       0.0 S   3:20.53 com.google.android.googlequicksearchbox:search
+  1362 u0_a123       0.0 S   0:01.11 com.google.android.googlequicksearchbox:interactor
+ 17950 u0_a119       0.0 S   0:04.73 com.google.android.gms.unstable
+  1170 u0_a119       0.0 S   3:42.73 com.google.android.gms.persistent
+  1682 u0_a119       0.0 S   3:14.69 com.google.android.gms
+   965 u0_a165       0.0 S   0:14.66 com.google.android.ext.services
+  4855 u0_a92        0.0 S   4:04.17 com.google.android.documentsui
+  2944 u0_a138       0.0 S   1:06.04 com.google.android.apps.photos
+  1044 u0_a153       0.0 S   2:20.77 com.google.android.apps.nexuslauncher
+  4982 u0_a140       0.0 S   1:26.03 com.google.android.apps.docs
+   670 u0_a157       0.0 S  13:46.50 com.android.systemui
+   852 secure_element 0.0 S  0:00.57 com.android.se
+   916 radio         0.0 S   3:43.45 com.android.phone
+   813 network_stack 0.0 S   0:37.33 com.android.networkstack.process
+  1393 radio         0.0 S   0:00.17 com.android.ims.rcsservice
+  4882 u0_a85        0.0 S   1:03.50 com.android.externalstorage
+  1418 system        0.0 S   0:00.09 com.android.emulator.multidisplay
+  4821 u0_a130       0.0 S   0:02.15 com.android.chrome
+   659 bluetooth     0.0 S   0:11.18 com.android.bluetooth
+   438 cameraserver  0.0 S   0:04.62 cameraserver
+   396 audioserver  23.5 S  25:14.21 audioserver
+   217 system        0.0 S   0:05.40 android.system.suspend@1.0-service
+   305 system        0.0 S   0:00.00 android.hidl.allocator@1.0-service
+   344 wifi          0.0 S   0:33.49 android.hardware.wifi@1.0-service
+   351 system        0.0 S   0:00.08 android.hardware.vibrator-service.example
+   343 system        0.0 S   0:00.20 android.hardware.usb@1.0-service
+   340 system        0.0 S   0:00.01 android.hardware.thermal@2.0-service.mock
+   339 system        8.8 S   8:07.61 android.hardware.sensors@2.1-service.multihal
+   350 system        0.0 S   0:00.00 android.hardware.rebootescrow-service.default
+   338 system        0.0 S   0:00.01 android.hardware.power.stats@1.0-service.mock
+   348 nobody        0.0 S   0:00.00 android.hardware.power-service.example
+   337 system        0.0 S   0:00.02 android.hardware.neuralnetworks@1.3-service-sample-quant
+   336 system        0.0 S   0:00.02 android.hardware.neuralnetworks@1.3-service-sample-minimal
+   335 system        0.0 S   0:00.03 android.hardware.neuralnetworks@1.3-service-sample-float-slow
+   334 system        0.0 S   0:00.02 android.hardware.neuralnetworks@1.3-service-sample-float-fast
+   333 system        0.0 S   0:00.04 android.hardware.neuralnetworks@1.3-service-sample-all
+   347 nobody        0.0 S   0:00.00 android.hardware.lights-service.example
+   201 system        0.0 S   0:00.03 android.hardware.keymaster@4.1-service
+   597 nobody        0.0 S   0:00.00 android.hardware.input.classifier@1.0-service.default
+   345 nobody        0.0 S   0:00.04 android.hardware.identity-service.example
+   332 system        0.0 S   0:07.93 android.hardware.health@2.1-service
+   330 system        5.8 S  29:42.73 android.hardware.graphics.composer@2.3-service
+   329 system        0.0 S   0:30.00 android.hardware.graphics.allocator@3.0-service
+   766 gps           0.0 S   0:35.82 android.hardware.gnss@2.0-service.ranchu
+   328 system        0.0 S   0:00.13 android.hardware.gatekeeper@1.0-service.software
+   321 media         0.0 S   0:00.05 android.hardware.drm@1.3-service.widevine
+   320 media         0.0 S   0:00.01 android.hardware.drm@1.3-service.clearkey
+   319 media         0.0 S   0:00.05 android.hardware.drm@1.0-service
+   318 context_hub   0.0 S   0:00.00 android.hardware.contexthub@1.1-service.mock
+   312 media         0.0 S   0:00.03 android.hardware.cas@1.2-service
+   311 system        0.0 S   0:00.11 android.hardware.camera.provider@2.6-service-google
+   310 cameraserver  0.0 S   0:00.21 android.hardware.camera.provider@2.4-service
+   308 bluetooth     5.8 S  14:52.66 android.hardware.bluetooth@1.1-service.sim
+   464 system        0.0 S   0:05.30 android.hardware.biometrics.fingerprint@2.1-service
+   463 system        0.0 S   0:00.00 android.hardware.biometrics.face@1.0-service.example
+   307 system        0.0 S   0:00.02 android.hardware.authsecret@1.0-service
+   306 audioserver  29.4 S  27:04.66 android.hardware.audio.service.ranchu
+   218 system        0.0 S   0:00.00 android.hardware.atrace@1.0-service
+  4521 root          0.0 S   5:05.04 adbd --root_seclabel=u:r:su:s0
+    33 root          0.0 I   0:00.00 [writeback]
+    90 root          0.0 S   0:00.00 [watchdogd]
+   131 root          0.0 I   0:00.00 [usbip_event]
+   101 root          0.0 I   0:00.00 [uas]
+   125 root          0.0 S   0:00.00 [sugov:3]
+   124 root          0.0 S   0:00.00 [sugov:2]
+   123 root          0.0 S   0:00.00 [sugov:1]
+   122 root          0.0 S   0:00.00 [sugov:0]
+    30 root          0.0 S   0:00.00 [rcu_tasks_kthre]
+    10 root          2.9 I   4:14.34 [rcu_preempt]
+     4 root          0.0 I   0:00.00 [rcu_par_gp]
+     3 root          0.0 I   0:00.00 [rcu_gp]
+   183 root          0.0 S   0:00.00 [psimon]
+    32 root          0.0 S   0:00.00 [oom_reaper]
+    29 root          0.0 I   0:00.00 [netns]
+     8 root          0.0 I   0:00.00 [mm_percpu_wq]
+    25 root          0.0 S   0:02.57 [migration/3]
+    20 root          0.0 S   0:02.63 [migration/2]
+    15 root          0.0 S   0:02.83 [migration/1]
+    11 root          0.0 S   0:02.53 [migration/0]
+   127 root          0.0 I   0:00.00 [md]
+   238 root          0.0 S   0:00.02 [loop9]
+   236 root          0.0 S   0:00.00 [loop8]
+   233 root          0.0 S   0:00.00 [loop7]
+   231 root          0.0 S   0:00.00 [loop6]
+   173 root          0.0 S   0:00.00 [loop5]
+   171 root          0.0 S   0:00.00 [loop4]
+   169 root          0.0 S   0:00.00 [loop3]
+   167 root          0.0 S   0:00.00 [loop2]
+   274 root          0.0 S   0:00.01 [loop27]
+   272 root          0.0 S   0:00.01 [loop26]
+   270 root          0.0 S   0:00.00 [loop25]
+   268 root          0.0 S   0:00.01 [loop24]
+   266 root          0.0 S   0:00.00 [loop23]
+   264 root          0.0 S   0:00.02 [loop22]
+   262 root          0.0 S   0:00.02 [loop21]
+   260 root          0.0 S   0:00.00 [loop20]
+   165 root          0.0 S   0:00.03 [loop1]
+   258 root          0.0 S   0:00.23 [loop19]
+   256 root          0.0 S   0:00.04 [loop18]
+   254 root          0.0 S   0:00.01 [loop17]
+   252 root          0.0 S   0:00.01 [loop16]
+   250 root          0.0 S   0:00.01 [loop15]
+   248 root          0.0 S   0:00.08 [loop14]
+   246 root          0.0 S   0:00.01 [loop13]
+   244 root          0.0 S   0:00.00 [loop12]
+   242 root          0.0 S   0:00.00 [loop11]
+   240 root          0.0 S   0:00.14 [loop10]
+   163 root          0.0 S   0:00.03 [loop0]
+ 26435 root          0.0 I   0:00.00 [kworker/u9:2-blk_crypto_wq]
+  8630 root          0.0 I   0:00.01 [kworker/u9:1-blk_crypto_wq]
+ 17359 root          0.0 I   0:04.19 [kworker/u8:3-phy0]
+ 21111 root          0.0 I   0:02.63 [kworker/u8:1-phy0]
+ 23395 root          0.0 I   0:00.33 [kworker/u8:0-events_unbound]
+ 16236 root          0.0 I   0:01.03 [kworker/3:2-cgroup_destroy]
+   133 root          0.0 I   0:02.13 [kworker/3:1H-kblockd]
+ 22756 root          0.0 I   0:00.17 [kworker/3:1-events]
+    28 root          0.0 I   0:00.00 [kworker/3:0H-kblockd]
+ 13435 root          0.0 I   0:00.39 [kworker/3:0-cgroup_pidlist_destroy]
+  3647 root          0.0 I   0:01.91 [kworker/2:2-mm_percpu_wq]
+   135 root          0.0 I   0:02.12 [kworker/2:1H-kblockd]
+    23 root          0.0 I   0:00.00 [kworker/2:0H-kblockd]
+ 13524 root          0.0 I   0:00.14 [kworker/2:0-cgroup_destroy]
+   132 root          0.0 I   0:15.71 [kworker/1:1H-kblockd]
+ 20984 root          0.0 I   0:12.11 [kworker/1:1-events]
+    18 root          0.0 I   0:00.00 [kworker/1:0H-kblockd]
+ 19059 root          0.0 I   0:04.81 [kworker/1:0-events]
+   134 root          0.0 I   0:01.77 [kworker/0:1H-kblockd]
+ 19869 root          0.0 I   0:01.03 [kworker/0:1-events]
+     6 root          0.0 I   0:00.00 [kworker/0:0H-kblockd]
+  9186 root          0.0 I   0:03.82 [kworker/0:0-events]
+   144 root          0.0 I   0:00.00 [kverityd]
+     2 root          0.0 S   0:00.21 [kthreadd]
+    97 root          0.0 S   0:00.00 [kswapd0]
+    26 root          2.9 S   1:13.76 [ksoftirqd/3]
+    21 root          0.0 S   1:04.92 [ksoftirqd/2]
+    16 root          2.9 S   3:27.42 [ksoftirqd/1]
+     9 root          0.0 S   1:17.81 [ksoftirqd/0]
+   105 root          0.0 S   0:00.00 [krfcommd]
+   203 root          0.0 I   0:00.00 [kdmflush]
+   143 root          0.0 I   0:00.00 [kdmflush]
+   142 root          0.0 I   0:00.00 [kdmflush]
+   141 root          0.0 I   0:00.00 [kdmflush]
+   140 root          0.0 I   0:00.00 [kdmflush]
+   139 root          0.0 I   0:00.00 [kdmflush]
+    34 root          0.0 S   0:00.00 [kcompactd0]
+    84 root          0.0 I   0:00.00 [kblockd]
+    31 root          0.0 S   0:00.02 [kauditd]
+   137 root          0.0 S   0:00.00 [jbd2/vdd1-8]
+   213 root          0.0 S   1:08.97 [jbd2/dm-5-8]
+   104 root          0.0 I   0:00.00 [ipv6_addrconf]
+    88 root          0.0 S   0:00.00 [ion_system_heap]
+   136 root          0.0 S   0:00.56 [hwrng]
+   275 root          0.0 I   0:00.00 [ext4-rsv-conver]
+   273 root          0.0 I   0:00.00 [ext4-rsv-conver]
+   271 root          0.0 I   0:00.00 [ext4-rsv-conver]
+   269 root          0.0 I   0:00.00 [ext4-rsv-conver]
+   267 root          0.0 I   0:00.00 [ext4-rsv-conver]
+   265 root          0.0 I   0:00.00 [ext4-rsv-conver]
+   263 root          0.0 I   0:00.00 [ext4-rsv-conver]
+   261 root          0.0 I   0:00.00 [ext4-rsv-conver]
+   259 root          0.0 I   0:00.00 [ext4-rsv-conver]
+   257 root          0.0 I   0:00.00 [ext4-rsv-conver]
+   255 root          0.0 I   0:00.00 [ext4-rsv-conver]
+   253 root          0.0 I   0:00.00 [ext4-rsv-conver]
+   251 root          0.0 I   0:00.00 [ext4-rsv-conver]
+   249 root          0.0 I   0:00.00 [ext4-rsv-conver]
+   247 root          0.0 I   0:00.00 [ext4-rsv-conver]
+   245 root          0.0 I   0:00.00 [ext4-rsv-conver]
+   243 root          0.0 I   0:00.00 [ext4-rsv-conver]
+   241 root          0.0 I   0:00.00 [ext4-rsv-conver]
+   239 root          0.0 I   0:00.00 [ext4-rsv-conver]
+   237 root          0.0 I   0:00.00 [ext4-rsv-conver]
+   235 root          0.0 I   0:00.00 [ext4-rsv-conver]
+   232 root          0.0 I   0:00.00 [ext4-rsv-conver]
+   214 root          0.0 I   0:00.00 [ext4-rsv-conver]
+   174 root          0.0 I   0:00.00 [ext4-rsv-conver]
+   172 root          0.0 I   0:00.00 [ext4-rsv-conver]
+   170 root          0.0 I   0:00.00 [ext4-rsv-conver]
+   168 root          0.0 I   0:00.00 [ext4-rsv-conver]
+   166 root          0.0 I   0:00.00 [ext4-rsv-conver]
+   164 root          0.0 I   0:00.00 [ext4-rsv-conver]
+   150 root          0.0 I   0:00.00 [ext4-rsv-conver]
+   149 root          0.0 I   0:00.00 [ext4-rsv-conver]
+   148 root          0.0 I   0:00.00 [ext4-rsv-conver]
+   145 root          0.0 I   0:00.00 [ext4-rsv-conver]
+   138 root          0.0 I   0:00.00 [ext4-rsv-conver]
+   102 root          0.0 I   0:00.00 [dm_bufio_cache]
+    89 root          0.0 I   0:00.00 [devfreq_wq]
+    52 root          0.0 I   0:00.00 [cryptd]
+    24 root          0.0 S   0:00.00 [cpuhp/3]
+    19 root          0.0 S   0:00.00 [cpuhp/2]
+    14 root          0.0 S   0:00.00 [cpuhp/1]
+    13 root          0.0 S   0:00.00 [cpuhp/0]
+    92 root          0.0 I   0:00.00 [cfg80211]
+    87 root          0.0 I   0:00.00 [blkcg_punt_bio]
+    86 root          0.0 I   0:00.00 [blk_crypto_wq]
+    99 root          0.0 I   0:00.00 [acpi_thermal_pm]
+[2026-11-16T11:53:49.103Z] kpdx-B-from-hang.flow:22 sleep 45
+[2026-11-16T11:54:34.106Z] kpdx-B-from-hang.flow:23 log 60 s after OK
+[2026-11-16T11:54:34.110Z]   60 s after OK
+[2026-11-16T11:54:34.112Z] kpdx-B-from-hang.flow:24 list
+  FrameLayout         (540, 1176)  id=action_bar_root              text='' desc=''
+  FrameLayout         (540, 1176)  id=content                      text='' desc=''
+  LinearLayoutCompat      (540, 1176)  id=parentPanel                  text='' desc=''
+  FrameLayout         (540, 1176)  id=customPanel                  text='' desc=''
+  FrameLayout         (540, 1176)  id=custom                       text='' desc=''
+  TextView            (540, 1065)  id=progress_dialog_title        text='Loading database…' desc=''
+  TextView            (540, 1178)  id=progress_dialog_message      text='Decrypting database content…' desc=''
+  TextView            (540, 1284)  id=progress_dialog_warning      text='Do not kill the app…' desc=''
+  ProgressBar         (540, 1369)  id=progress_dialog_bar          text='' desc=''
+[2026-11-16T11:54:37.297Z] kpdx-B-from-hang.flow:25 sh top -b -n 1 -o PID,USER,%CPU,S,TIME+,ARGS
+Tasks: 252 total,   1 running, 251 sleeping,   0 stopped,   0 zombie
+  Mem:  3057292K total,  2543924K used,   513368K free,    97744K buffers
+ Swap:  2292964K total,         0 used,  2292964K free,  1445948K cached
+400%cpu  55%user  26%nice  58%sys 258%idle   0%iow   0%irq   3%sirq   0%host
+   PID USER         %CPU S     TIME+[ARGS]
+   300 root          0.0 S   0:11.41 zygote64
+   301 root          0.0 S   0:02.49 zygote
+   657 wifi          0.0 S   0:09.07 wpa_supplicant -Dnl80211 -iwlan0 -c/vendor/etc/wifi/wpa_supplicant.conf -g@android:wpa_wlan0
+   455 wifi          0.0 S   0:17.53 wificond
+   825 webview_zygote 0.0 S  0:00.21 webview_zygote
+   193 root          0.0 S   0:01.81 vold --blkid_context=u:r:blkid:s0 --blkid_untrusted_context=u:r:blkid_untrusted:s0 --fsck_context=u:r:fsck:s0 --fsck_untrusted_context=u:r:fsck_untrusted:s0
+   155 root          0.0 S   0:01.01 ueventd
+   434 nobody        0.0 S   0:54.01 traced_probes
+   436 nobody        0.0 S   0:07.56 traced
+ 23905 root         19.3 R   0:00.10 top -b -n 1 -o PID,USER,%CPU,S,TIME+,ARGS
+   290 tombstoned    0.0 S   0:00.01 tombstoned
+   515 system        6.4 S  75:50.32 system_server
+   369 system        0.0 S  37:27.68 surfaceflinger
+   454 root          0.0 S   0:03.48 storaged
+   295 statsd        0.0 S   1:18.63 statsd
+   189 shell         0.0 S   0:00.02 sh
+   182 system        0.0 S   1:09.23 servicemanager
+   190 root          0.0 S   0:01.45 qemu-props
+   299 root          0.0 S   0:10.61 netd
+   453 media         0.0 S   0:00.24 mediaserver
+   460 mediacodec    0.0 S   0:00.76 media.swcodec oid.media.swcodec/bin/mediaswcodec
+   452 media         0.0 S   0:08.77 media.metrics diametrics
+   353 audioserver   0.0 S   0:23.39 media.log n/audioserver
+   450 mediaex       0.0 S   0:00.16 media.extractor aextractor
+   456 mediacodec    0.0 S   0:00.22 media.codec hw/android.hardware.media.omx@1.0-service
+   428 mdnsr         0.0 S   0:01.34 mdnsd
+   180 logd          0.0 S   4:28.36 logd
+   389 logd          3.2 S   1:11.40 logcat -Q
+   181 lmkd          0.0 S   0:25.85 lmkd
+   471 llkd          0.0 S   0:35.41 llkd
+   457 radio         0.0 S   0:11.01 libgoldfish-rild
+   445 keystore      0.0 S   0:00.38 keystore /data/misc/keystore
+   302 root          0.0 S   0:00.21 iptables-restore --noflush -w -v
+   303 root          0.0 S   0:00.13 ip6tables-restore --noflush -w -v
+   444 iorapd        0.0 S   0:11.28 iorapd
+   589 iorapd        0.0 S   0:00.02 iorap.prefetcherd --input-fd 7 --output-fd 8
+   443 root          0.0 S   0:01.17 installd
+   153 root          0.0 S   0:00.04 init subcontext u:r:vendor_init:s0 15
+     1 root          0.0 S   0:54.04 init second_stage
+   442 incidentd     0.0 S   0:00.01 incidentd
+   188 system        0.0 S   0:12.98 hwservicemanager
+   362 gpu_service   0.0 S   0:00.10 gpuservice
+   461 system        0.0 S   0:00.02 gatekeeperd /data/misc/gatekeeper
+   439 drm           0.0 S   0:00.06 drmserver
+   419 root          0.0 S   0:00.82 dhcpclient -i wlan0 --no-gateway
+   429 root          0.0 S   0:00.02 dhcpclient -i eth0 --no-gateway
+   355 credstore     0.0 S   0:00.02 credstore /data/misc/credstore
+   285 root          0.0 S   0:00.03 createns router
+ 22121 u0_a169       125 S   2:28.48 com.kunzisoft.keepass.libre
+  1282 u0_a119       0.0 S   0:07.30 com.google.process.gservices
+  2078 u0_a119       0.0 S   0:12.70 com.google.process.gapps
+  1309 u0_a160       0.0 S   0:55.81 com.google.android.providers.media.module
+  3484 u0_a159       0.0 S   0:02.24 com.google.android.permissioncontroller
+  1241 u0_a132       0.0 S  14:17.04 com.google.android.inputmethod.latin
+  2226 u0_a115       0.0 S   0:20.05 com.google.android.ims
+  1458 u0_a123       0.0 S   3:20.57 com.google.android.googlequicksearchbox:search
+  1362 u0_a123       0.0 S   0:01.11 com.google.android.googlequicksearchbox:interactor
+ 17950 u0_a119       0.0 S   0:04.77 com.google.android.gms.unstable
+  1170 u0_a119       0.0 S   3:42.75 com.google.android.gms.persistent
+  1682 u0_a119       0.0 S   3:14.69 com.google.android.gms
+   965 u0_a165       0.0 S   0:14.66 com.google.android.ext.services
+  4855 u0_a92        0.0 S   4:04.17 com.google.android.documentsui
+  2944 u0_a138       0.0 S   1:06.08 com.google.android.apps.photos
+  1044 u0_a153       0.0 S   2:20.83 com.google.android.apps.nexuslauncher
+  4982 u0_a140       0.0 S   1:26.14 com.google.android.apps.docs
+   670 u0_a157       0.0 S  13:46.81 com.android.systemui
+   852 secure_element 0.0 S  0:00.57 com.android.se
+   916 radio         0.0 S   3:43.98 com.android.phone
+   813 network_stack 0.0 S   0:37.40 com.android.networkstack.process
+  1393 radio         0.0 S   0:00.17 com.android.ims.rcsservice
+  4882 u0_a85        0.0 S   1:03.50 com.android.externalstorage
+  1418 system        0.0 S   0:00.09 com.android.emulator.multidisplay
+  4821 u0_a130       0.0 S   0:02.15 com.android.chrome
+   659 bluetooth     0.0 S   0:11.18 com.android.bluetooth
+   438 cameraserver  0.0 S   0:04.62 cameraserver
+   396 audioserver   0.0 S  25:14.59 audioserver
+   217 system        0.0 S   0:05.42 android.system.suspend@1.0-service
+   305 system        0.0 S   0:00.00 android.hidl.allocator@1.0-service
+   344 wifi          0.0 S   0:33.59 android.hardware.wifi@1.0-service
+   351 system        0.0 S   0:00.08 android.hardware.vibrator-service.example
+   343 system        0.0 S   0:00.20 android.hardware.usb@1.0-service
+   340 system        0.0 S   0:00.01 android.hardware.thermal@2.0-service.mock
+   339 system        3.2 S   8:08.84 android.hardware.sensors@2.1-service.multihal
+   350 system        0.0 S   0:00.00 android.hardware.rebootescrow-service.default
+   338 system        0.0 S   0:00.01 android.hardware.power.stats@1.0-service.mock
+   348 nobody        0.0 S   0:00.00 android.hardware.power-service.example
+   337 system        0.0 S   0:00.02 android.hardware.neuralnetworks@1.3-service-sample-quant
+   336 system        0.0 S   0:00.02 android.hardware.neuralnetworks@1.3-service-sample-minimal
+   335 system        0.0 S   0:00.03 android.hardware.neuralnetworks@1.3-service-sample-float-slow
+   334 system        0.0 S   0:00.02 android.hardware.neuralnetworks@1.3-service-sample-float-fast
+   333 system        0.0 S   0:00.04 android.hardware.neuralnetworks@1.3-service-sample-all
+   347 nobody        0.0 S   0:00.00 android.hardware.lights-service.example
+   201 system        0.0 S   0:00.03 android.hardware.keymaster@4.1-service
+   597 nobody        0.0 S   0:00.00 android.hardware.input.classifier@1.0-service.default
+   345 nobody        0.0 S   0:00.04 android.hardware.identity-service.example
+   332 system        0.0 S   0:07.97 android.hardware.health@2.1-service
+   330 system        3.2 S  29:43.93 android.hardware.graphics.composer@2.3-service
+   329 system        0.0 S   0:30.00 android.hardware.graphics.allocator@3.0-service
+   766 gps           0.0 S   0:35.89 android.hardware.gnss@2.0-service.ranchu
+   328 system        0.0 S   0:00.13 android.hardware.gatekeeper@1.0-service.software
+   321 media         0.0 S   0:00.05 android.hardware.drm@1.3-service.widevine
+   320 media         0.0 S   0:00.01 android.hardware.drm@1.3-service.clearkey
+   319 media         0.0 S   0:00.05 android.hardware.drm@1.0-service
+   318 context_hub   0.0 S   0:00.00 android.hardware.contexthub@1.1-service.mock
+   312 media         0.0 S   0:00.03 android.hardware.cas@1.2-service
+   311 system        0.0 S   0:00.11 android.hardware.camera.provider@2.6-service-google
+   310 cameraserver  0.0 S   0:00.21 android.hardware.camera.provider@2.4-service
+   308 bluetooth     6.4 S  14:54.67 android.hardware.bluetooth@1.1-service.sim
+   464 system        0.0 S   0:05.31 android.hardware.biometrics.fingerprint@2.1-service
+   463 system        0.0 S   0:00.00 android.hardware.biometrics.face@1.0-service.example
+   307 system        0.0 S   0:00.02 android.hardware.authsecret@1.0-service
+   306 audioserver   0.0 S  27:05.13 android.hardware.audio.service.ranchu
+   218 system        0.0 S   0:00.00 android.hardware.atrace@1.0-service
+  4521 root          0.0 S   5:05.15 adbd --root_seclabel=u:r:su:s0
+    33 root          0.0 I   0:00.00 [writeback]
+    90 root          0.0 S   0:00.00 [watchdogd]
+   131 root          0.0 I   0:00.00 [usbip_event]
+   101 root          0.0 I   0:00.00 [uas]
+   125 root          0.0 S   0:00.00 [sugov:3]
+   124 root          0.0 S   0:00.00 [sugov:2]
+   123 root          0.0 S   0:00.00 [sugov:1]
+   122 root          0.0 S   0:00.00 [sugov:0]
+    30 root          0.0 S   0:00.00 [rcu_tasks_kthre]
+    10 root          0.0 I   4:14.62 [rcu_preempt]
+     4 root          0.0 I   0:00.00 [rcu_par_gp]
+     3 root          0.0 I   0:00.00 [rcu_gp]
+   183 root          0.0 S   0:00.00 [psimon]
+    32 root          0.0 S   0:00.00 [oom_reaper]
+    29 root          0.0 I   0:00.00 [netns]
+     8 root          0.0 I   0:00.00 [mm_percpu_wq]
+    25 root          0.0 S   0:02.57 [migration/3]
+    20 root          0.0 S   0:02.63 [migration/2]
+    15 root          0.0 S   0:02.84 [migration/1]
+    11 root          0.0 S   0:02.53 [migration/0]
+   127 root          0.0 I   0:00.00 [md]
+   238 root          0.0 S   0:00.02 [loop9]
+   236 root          0.0 S   0:00.00 [loop8]
+   233 root          0.0 S   0:00.00 [loop7]
+   231 root          0.0 S   0:00.00 [loop6]
+   173 root          0.0 S   0:00.00 [loop5]
+   171 root          0.0 S   0:00.00 [loop4]
+   169 root          0.0 S   0:00.00 [loop3]
+   167 root          0.0 S   0:00.00 [loop2]
+   274 root          0.0 S   0:00.01 [loop27]
+   272 root          0.0 S   0:00.01 [loop26]
+   270 root          0.0 S   0:00.00 [loop25]
+   268 root          0.0 S   0:00.01 [loop24]
+   266 root          0.0 S   0:00.00 [loop23]
+   264 root          0.0 S   0:00.02 [loop22]
+   262 root          0.0 S   0:00.02 [loop21]
+   260 root          0.0 S   0:00.00 [loop20]
+   165 root          0.0 S   0:00.03 [loop1]
+   258 root          0.0 S   0:00.23 [loop19]
+   256 root          0.0 S   0:00.04 [loop18]
+   254 root          0.0 S   0:00.01 [loop17]
+   252 root          0.0 S   0:00.01 [loop16]
+   250 root          0.0 S   0:00.01 [loop15]
+   248 root          0.0 S   0:00.08 [loop14]
+   246 root          0.0 S   0:00.01 [loop13]
+   244 root          0.0 S   0:00.00 [loop12]
+   242 root          0.0 S   0:00.00 [loop11]
+   240 root          0.0 S   0:00.14 [loop10]
+   163 root          0.0 S   0:00.03 [loop0]
+ 26435 root          0.0 I   0:00.00 [kworker/u9:2-blk_crypto_wq]
+  8630 root          0.0 I   0:00.01 [kworker/u9:1-blk_crypto_wq]
+ 17359 root          3.2 I   0:04.62 [kworker/u8:3-phy0]
+ 21111 root          0.0 I   0:02.63 [kworker/u8:1-phy0]
+ 23395 root          0.0 I   0:00.33 [kworker/u8:0-events_unbound]
+ 16236 root          0.0 I   0:01.03 [kworker/3:2-cgroup_destroy]
+   133 root          0.0 I   0:02.13 [kworker/3:1H-kblockd]
+ 22756 root          0.0 I   0:00.19 [kworker/3:1-events]
+    28 root          0.0 I   0:00.00 [kworker/3:0H-kblockd]
+ 13435 root          0.0 I   0:00.39 [kworker/3:0-cgroup_pidlist_destroy]
+  3647 root          0.0 I   0:01.92 [kworker/2:2-events]
+   135 root          0.0 I   0:02.12 [kworker/2:1H-kblockd]
+    23 root          0.0 I   0:00.00 [kworker/2:0H-kblockd]
+ 13524 root          0.0 I   0:00.14 [kworker/2:0-cgroup_destroy]
+   132 root          0.0 I   0:15.71 [kworker/1:1H-kblockd]
+ 20984 root          0.0 I   0:12.73 [kworker/1:1-events]
+    18 root          0.0 I   0:00.00 [kworker/1:0H-kblockd]
+ 19059 root          0.0 I   0:04.81 [kworker/1:0-events]
+   134 root          0.0 I   0:01.77 [kworker/0:1H-kblockd]
+ 19869 root          0.0 I   0:01.13 [kworker/0:1-events]
+     6 root          0.0 I   0:00.00 [kworker/0:0H-kblockd]
+  9186 root          0.0 I   0:03.82 [kworker/0:0-events]
+   144 root          0.0 I   0:00.00 [kverityd]
+     2 root          0.0 S   0:00.21 [kthreadd]
+    97 root          0.0 S   0:00.00 [kswapd0]
+    26 root          6.4 S   1:13.81 [ksoftirqd/3]
+    21 root          0.0 S   1:04.98 [ksoftirqd/2]
+    16 root          3.2 S   3:27.74 [ksoftirqd/1]
+     9 root          0.0 S   1:17.90 [ksoftirqd/0]
+   105 root          0.0 S   0:00.00 [krfcommd]
+   203 root          0.0 I   0:00.00 [kdmflush]
+   143 root          0.0 I   0:00.00 [kdmflush]
+   142 root          0.0 I   0:00.00 [kdmflush]
+   141 root          0.0 I   0:00.00 [kdmflush]
+   140 root          0.0 I   0:00.00 [kdmflush]
+   139 root          0.0 I   0:00.00 [kdmflush]
+    34 root          0.0 S   0:00.00 [kcompactd0]
+    84 root          0.0 I   0:00.00 [kblockd]
+    31 root          0.0 S   0:00.02 [kauditd]
+   137 root          0.0 S   0:00.00 [jbd2/vdd1-8]
+   213 root          0.0 S   1:08.99 [jbd2/dm-5-8]
+   104 root          0.0 I   0:00.00 [ipv6_addrconf]
+    88 root          0.0 S   0:00.00 [ion_system_heap]
+   136 root          0.0 S   0:00.56 [hwrng]
+   275 root          0.0 I   0:00.00 [ext4-rsv-conver]
+   273 root          0.0 I   0:00.00 [ext4-rsv-conver]
+   271 root          0.0 I   0:00.00 [ext4-rsv-conver]
+   269 root          0.0 I   0:00.00 [ext4-rsv-conver]
+   267 root          0.0 I   0:00.00 [ext4-rsv-conver]
+   265 root          0.0 I   0:00.00 [ext4-rsv-conver]
+   263 root          0.0 I   0:00.00 [ext4-rsv-conver]
+   261 root          0.0 I   0:00.00 [ext4-rsv-conver]
+   259 root          0.0 I   0:00.00 [ext4-rsv-conver]
+   257 root          0.0 I   0:00.00 [ext4-rsv-conver]
+   255 root          0.0 I   0:00.00 [ext4-rsv-conver]
+   253 root          0.0 I   0:00.00 [ext4-rsv-conver]
+   251 root          0.0 I   0:00.00 [ext4-rsv-conver]
+   249 root          0.0 I   0:00.00 [ext4-rsv-conver]
+   247 root          0.0 I   0:00.00 [ext4-rsv-conver]
+   245 root          0.0 I   0:00.00 [ext4-rsv-conver]
+   243 root          0.0 I   0:00.00 [ext4-rsv-conver]
+   241 root          0.0 I   0:00.00 [ext4-rsv-conver]
+   239 root          0.0 I   0:00.00 [ext4-rsv-conver]
+   237 root          0.0 I   0:00.00 [ext4-rsv-conver]
+   235 root          0.0 I   0:00.00 [ext4-rsv-conver]
+   232 root          0.0 I   0:00.00 [ext4-rsv-conver]
+   214 root          0.0 I   0:00.00 [ext4-rsv-conver]
+   174 root          0.0 I   0:00.00 [ext4-rsv-conver]
+   172 root          0.0 I   0:00.00 [ext4-rsv-conver]
+   170 root          0.0 I   0:00.00 [ext4-rsv-conver]
+   168 root          0.0 I   0:00.00 [ext4-rsv-conver]
+   166 root          0.0 I   0:00.00 [ext4-rsv-conver]
+   164 root          0.0 I   0:00.00 [ext4-rsv-conver]
+   150 root          0.0 I   0:00.00 [ext4-rsv-conver]
+   149 root          0.0 I   0:00.00 [ext4-rsv-conver]
+   148 root          0.0 I   0:00.00 [ext4-rsv-conver]
+   145 root          0.0 I   0:00.00 [ext4-rsv-conver]
+   138 root          0.0 I   0:00.00 [ext4-rsv-conver]
+   102 root          0.0 I   0:00.00 [dm_bufio_cache]
+    89 root          0.0 I   0:00.00 [devfreq_wq]
+    52 root          0.0 I   0:00.00 [cryptd]
+    24 root          0.0 S   0:00.00 [cpuhp/3]
+    19 root          0.0 S   0:00.00 [cpuhp/2]
+    14 root          0.0 S   0:00.00 [cpuhp/1]
+    13 root          0.0 S   0:00.00 [cpuhp/0]
+    92 root          0.0 I   0:00.00 [cfg80211]
+    87 root          0.0 I   0:00.00 [blkcg_punt_bio]
+    86 root          0.0 I   0:00.00 [blk_crypto_wq]
+    99 root          0.0 I   0:00.00 [acpi_thermal_pm]
+[2026-11-16T11:54:37.774Z] kpdx-B-from-hang.flow:26 sleep 90
+[2026-11-16T11:56:07.782Z] kpdx-B-from-hang.flow:27 log 150 s after OK
+[2026-11-16T11:56:07.804Z]   150 s after OK
+[2026-11-16T11:56:07.806Z] kpdx-B-from-hang.flow:28 list
+  FrameLayout         (540, 1176)  id=action_bar_root              text='' desc=''
+  FrameLayout         (540, 1176)  id=content                      text='' desc=''
+  LinearLayoutCompat      (540, 1176)  id=parentPanel                  text='' desc=''
+  FrameLayout         (540, 1176)  id=customPanel                  text='' desc=''
+  FrameLayout         (540, 1176)  id=custom                       text='' desc=''
+  TextView            (540, 1065)  id=progress_dialog_title        text='Loading database…' desc=''
+  TextView            (540, 1178)  id=progress_dialog_message      text='Decrypting database content…' desc=''
+  TextView            (540, 1284)  id=progress_dialog_warning      text='Do not kill the app…' desc=''
+  ProgressBar         (540, 1369)  id=progress_dialog_bar          text='' desc=''
+[2026-11-16T11:56:10.179Z] kpdx-B-from-hang.flow:29 sh top -b -n 1 -o PID,USER,%CPU,S,TIME+,ARGS
+Tasks: 251 total,   1 running, 250 sleeping,   0 stopped,   0 zombie
+  Mem:  3057292K total,  2523268K used,   534024K free,    97764K buffers
+ Swap:  2292964K total,         0 used,  2292964K free,  1445948K cached
+400%cpu  87%user  53%nice 103%sys 150%idle   0%iow   0%irq   7%sirq   0%host
+   PID USER         %CPU S     TIME+[ARGS]
+   300 root          0.0 S   0:11.41 zygote64
+   301 root          0.0 S   0:02.49 zygote
+   657 wifi          0.0 S   0:09.09 wpa_supplicant -Dnl80211 -iwlan0 -c/vendor/etc/wifi/wpa_supplicant.conf -g@android:wpa_wlan0
+   455 wifi          0.0 S   0:17.61 wificond
+   825 webview_zygote 0.0 S  0:00.21 webview_zygote
+   193 root          0.0 S   0:01.81 vold --blkid_context=u:r:blkid:s0 --blkid_untrusted_context=u:r:blkid_untrusted:s0 --fsck_context=u:r:fsck:s0 --fsck_untrusted_context=u:r:fsck_untrusted:s0
+   155 root          0.0 S   0:01.01 ueventd
+   434 nobody        0.0 S   0:54.01 traced_probes
+   436 nobody        0.0 S   0:07.57 traced
+ 23925 root         43.3 R   0:00.05 top -b -n 1 -o PID,USER,%CPU,S,TIME+,ARGS
+   290 tombstoned    0.0 S   0:00.01 tombstoned
+   515 system       13.3 S  75:58.67 system_server
+   369 system        0.0 S  37:28.04 surfaceflinger
+   454 root          0.0 S   0:03.48 storaged
+   295 statsd        0.0 S   1:18.72 statsd
+   189 shell         0.0 S   0:00.02 sh
+   182 system        0.0 S   1:09.30 servicemanager
+   190 root          0.0 S   0:01.46 qemu-props
+   299 root          0.0 S   0:10.72 netd
+   453 media         0.0 S   0:00.24 mediaserver
+   460 mediacodec    0.0 S   0:00.76 media.swcodec oid.media.swcodec/bin/mediaswcodec
+   452 media         0.0 S   0:08.77 media.metrics diametrics
+   353 audioserver   0.0 S   0:23.39 media.log n/audioserver
+   450 mediaex       0.0 S   0:00.16 media.extractor aextractor
+   456 mediacodec    0.0 S   0:00.22 media.codec hw/android.hardware.media.omx@1.0-service
+   428 mdnsr         0.0 S   0:01.34 mdnsd
+   180 logd          0.0 S   4:28.88 logd
+   389 logd          0.0 S   1:11.59 logcat -Q
+   181 lmkd          0.0 S   0:25.86 lmkd
+   471 llkd          0.0 S   0:35.54 llkd
+   457 radio         0.0 S   0:11.06 libgoldfish-rild
+   445 keystore      0.0 S   0:00.38 keystore /data/misc/keystore
+   302 root          0.0 S   0:00.21 iptables-restore --noflush -w -v
+   303 root          0.0 S   0:00.13 ip6tables-restore --noflush -w -v
+   444 iorapd        0.0 S   0:11.28 iorapd
+   589 iorapd        0.0 S   0:00.02 iorap.prefetcherd --input-fd 7 --output-fd 8
+   443 root          0.0 S   0:01.17 installd
+   153 root          0.0 S   0:00.04 init subcontext u:r:vendor_init:s0 15
+     1 root          0.0 S   0:54.04 init second_stage
+   442 incidentd     0.0 S   0:00.01 incidentd
+   188 system        0.0 S   0:13.08 hwservicemanager
+   362 gpu_service   0.0 S   0:00.10 gpuservice
+   461 system        0.0 S   0:00.02 gatekeeperd /data/misc/gatekeeper
+   439 drm           0.0 S   0:00.06 drmserver
+   419 root          0.0 S   0:00.82 dhcpclient -i wlan0 --no-gateway
+   429 root          0.0 S   0:00.02 dhcpclient -i eth0 --no-gateway
+   355 credstore     0.0 S   0:00.02 credstore /data/misc/credstore
+   285 root          0.0 S   0:00.03 createns router
+ 22121 u0_a169       183 S   4:28.87 com.kunzisoft.keepass.libre
+  1282 u0_a119       0.0 S   0:07.30 com.google.process.gservices
+  2078 u0_a119       0.0 S   0:12.70 com.google.process.gapps
+  1309 u0_a160       0.0 S   0:55.81 com.google.android.providers.media.module
+  3484 u0_a159       0.0 S   0:02.24 com.google.android.permissioncontroller
+  1241 u0_a132       3.3 S  14:17.12 com.google.android.inputmethod.latin
+  2226 u0_a115       0.0 S   0:20.14 com.google.android.ims
+  1458 u0_a123       0.0 S   3:20.59 com.google.android.googlequicksearchbox:search
+  1362 u0_a123       0.0 S   0:01.11 com.google.android.googlequicksearchbox:interactor
+ 17950 u0_a119       0.0 S   0:04.78 com.google.android.gms.unstable
+  1170 u0_a119       0.0 S   3:42.99 com.google.android.gms.persistent
+  1682 u0_a119       0.0 S   3:14.69 com.google.android.gms
+   965 u0_a165       0.0 S   0:14.66 com.google.android.ext.services
+  4855 u0_a92        0.0 S   4:04.19 com.google.android.documentsui
+  2944 u0_a138       0.0 S   1:06.11 com.google.android.apps.photos
+  1044 u0_a153       0.0 S   2:20.86 com.google.android.apps.nexuslauncher
+  4982 u0_a140       0.0 S   1:26.38 com.google.android.apps.docs
+   670 u0_a157       0.0 S  13:47.16 com.android.systemui
+   852 secure_element 0.0 S  0:00.57 com.android.se
+   916 radio         0.0 S   3:44.93 com.android.phone
+   813 network_stack 0.0 S   0:37.50 com.android.networkstack.process
+  1393 radio         0.0 S   0:00.17 com.android.ims.rcsservice
+  4882 u0_a85        0.0 S   1:03.50 com.android.externalstorage
+  1418 system        0.0 S   0:00.09 com.android.emulator.multidisplay
+  4821 u0_a130       0.0 S   0:02.15 com.android.chrome
+   659 bluetooth     0.0 S   0:11.18 com.android.bluetooth
+   438 cameraserver  0.0 S   0:04.62 cameraserver
+   396 audioserver   0.0 S  25:14.60 audioserver
+   217 system        0.0 S   0:05.44 android.system.suspend@1.0-service
+   305 system        0.0 S   0:00.00 android.hidl.allocator@1.0-service
+   344 wifi          0.0 S   0:33.84 android.hardware.wifi@1.0-service
+   351 system        0.0 S   0:00.08 android.hardware.vibrator-service.example
+   343 system        0.0 S   0:00.20 android.hardware.usb@1.0-service
+   340 system        0.0 S   0:00.01 android.hardware.thermal@2.0-service.mock
+   339 system        3.3 S   8:11.10 android.hardware.sensors@2.1-service.multihal
+   350 system        0.0 S   0:00.00 android.hardware.rebootescrow-service.default
+   338 system        0.0 S   0:00.01 android.hardware.power.stats@1.0-service.mock
+   348 nobody        0.0 S   0:00.00 android.hardware.power-service.example
+   337 system        0.0 S   0:00.02 android.hardware.neuralnetworks@1.3-service-sample-quant
+   336 system        0.0 S   0:00.02 android.hardware.neuralnetworks@1.3-service-sample-minimal
+   335 system        0.0 S   0:00.03 android.hardware.neuralnetworks@1.3-service-sample-float-slow
+   334 system        0.0 S   0:00.02 android.hardware.neuralnetworks@1.3-service-sample-float-fast
+   333 system        0.0 S   0:00.04 android.hardware.neuralnetworks@1.3-service-sample-all
+   347 nobody        0.0 S   0:00.00 android.hardware.lights-service.example
+   201 system        0.0 S   0:00.03 android.hardware.keymaster@4.1-service
+   597 nobody        0.0 S   0:00.00 android.hardware.input.classifier@1.0-service.default
+   345 nobody        0.0 S   0:00.04 android.hardware.identity-service.example
+   332 system        0.0 S   0:08.00 android.hardware.health@2.1-service
+   330 system        0.0 S  29:45.80 android.hardware.graphics.composer@2.3-service
+   329 system        0.0 S   0:30.00 android.hardware.graphics.allocator@3.0-service
+   766 gps           0.0 S   0:36.05 android.hardware.gnss@2.0-service.ranchu
+   328 system        0.0 S   0:00.13 android.hardware.gatekeeper@1.0-service.software
+   321 media         0.0 S   0:00.05 android.hardware.drm@1.3-service.widevine
+   320 media         0.0 S   0:00.01 android.hardware.drm@1.3-service.clearkey
+   319 media         0.0 S   0:00.05 android.hardware.drm@1.0-service
+   318 context_hub   0.0 S   0:00.00 android.hardware.contexthub@1.1-service.mock
+   312 media         0.0 S   0:00.03 android.hardware.cas@1.2-service
+   311 system        0.0 S   0:00.11 android.hardware.camera.provider@2.6-service-google
+   310 cameraserver  0.0 S   0:00.21 android.hardware.camera.provider@2.4-service
+   308 bluetooth     3.3 S  14:58.10 android.hardware.bluetooth@1.1-service.sim
+   464 system        0.0 S   0:05.34 android.hardware.biometrics.fingerprint@2.1-service
+   463 system        0.0 S   0:00.00 android.hardware.biometrics.face@1.0-service.example
+   307 system        0.0 S   0:00.02 android.hardware.authsecret@1.0-service
+   306 audioserver   0.0 S  27:05.13 android.hardware.audio.service.ranchu
+   218 system        0.0 S   0:00.00 android.hardware.atrace@1.0-service
+  4521 root          0.0 S   5:05.22 adbd --root_seclabel=u:r:su:s0
+    33 root          0.0 I   0:00.00 [writeback]
+    90 root          0.0 S   0:00.00 [watchdogd]
+   131 root          0.0 I   0:00.00 [usbip_event]
+   101 root          0.0 I   0:00.00 [uas]
+   125 root          0.0 S   0:00.00 [sugov:3]
+   124 root          0.0 S   0:00.00 [sugov:2]
+   123 root          0.0 S   0:00.00 [sugov:1]
+   122 root          0.0 S   0:00.00 [sugov:0]
+    30 root          0.0 S   0:00.00 [rcu_tasks_kthre]
+    10 root          3.3 I   4:15.09 [rcu_preempt]
+     4 root          0.0 I   0:00.00 [rcu_par_gp]
+     3 root          0.0 I   0:00.00 [rcu_gp]
+   183 root          0.0 S   0:00.00 [psimon]
+    32 root          0.0 S   0:00.00 [oom_reaper]
+    29 root          0.0 I   0:00.00 [netns]
+     8 root          0.0 I   0:00.00 [mm_percpu_wq]
+    25 root          0.0 S   0:02.58 [migration/3]
+    20 root          0.0 S   0:02.64 [migration/2]
+    15 root          0.0 S   0:02.84 [migration/1]
+    11 root          0.0 S   0:02.54 [migration/0]
+   127 root          0.0 I   0:00.00 [md]
+   238 root          0.0 S   0:00.02 [loop9]
+   236 root          0.0 S   0:00.00 [loop8]
+   233 root          0.0 S   0:00.00 [loop7]
+   231 root          0.0 S   0:00.00 [loop6]
+   173 root          0.0 S   0:00.00 [loop5]
+   171 root          0.0 S   0:00.00 [loop4]
+   169 root          0.0 S   0:00.00 [loop3]
+   167 root          0.0 S   0:00.00 [loop2]
+   274 root          0.0 S   0:00.01 [loop27]
+   272 root          0.0 S   0:00.01 [loop26]
+   270 root          0.0 S   0:00.00 [loop25]
+   268 root          0.0 S   0:00.01 [loop24]
+   266 root          0.0 S   0:00.00 [loop23]
+   264 root          0.0 S   0:00.02 [loop22]
+   262 root          0.0 S   0:00.02 [loop21]
+   260 root          0.0 S   0:00.00 [loop20]
+   165 root          0.0 S   0:00.03 [loop1]
+   258 root          0.0 S   0:00.23 [loop19]
+   256 root          0.0 S   0:00.04 [loop18]
+   254 root          0.0 S   0:00.01 [loop17]
+   252 root          0.0 S   0:00.01 [loop16]
+   250 root          0.0 S   0:00.01 [loop15]
+   248 root          0.0 S   0:00.08 [loop14]
+   246 root          0.0 S   0:00.01 [loop13]
+   244 root          0.0 S   0:00.00 [loop12]
+   242 root          0.0 S   0:00.00 [loop11]
+   240 root          0.0 S   0:00.14 [loop10]
+   163 root          0.0 S   0:00.03 [loop0]
+ 26435 root          0.0 I   0:00.00 [kworker/u9:2-blk_crypto_wq]
+  8630 root          0.0 I   0:00.01 [kworker/u9:1-blk_crypto_wq]
+ 17359 root          0.0 I   0:05.44 [kworker/u8:3-phy0]
+ 21111 root          0.0 I   0:02.63 [kworker/u8:1-phy0]
+ 23395 root          0.0 I   0:00.33 [kworker/u8:0-cfg80211]
+ 16236 root          0.0 I   0:01.03 [kworker/3:2-cgroup_destroy]
+   133 root          0.0 I   0:02.13 [kworker/3:1H-kblockd]
+ 22756 root          0.0 I   0:00.20 [kworker/3:1-events]
+    28 root          0.0 I   0:00.00 [kworker/3:0H-kblockd]
+  3647 root          0.0 I   0:01.95 [kworker/2:2-events]
+   135 root          0.0 I   0:02.12 [kworker/2:1H-kblockd]
+    23 root          0.0 I   0:00.00 [kworker/2:0H-kblockd]
+ 13524 root          0.0 I   0:00.14 [kworker/2:0-cgroup_destroy]
+   132 root          0.0 I   0:15.72 [kworker/1:1H-kblockd]
+ 20984 root          0.0 I   0:14.01 [kworker/1:1-events]
+    18 root          0.0 I   0:00.00 [kworker/1:0H-kblockd]
+ 19059 root          0.0 I   0:04.81 [kworker/1:0-events]
+   134 root          0.0 I   0:01.77 [kworker/0:1H-kblockd]
+ 19869 root          0.0 I   0:01.21 [kworker/0:1-events]
+     6 root          0.0 I   0:00.00 [kworker/0:0H-kblockd]
+  9186 root          0.0 I   0:03.82 [kworker/0:0-events]
+   144 root          0.0 I   0:00.00 [kverityd]
+     2 root          0.0 S   0:00.21 [kthreadd]
+    97 root          0.0 S   0:00.00 [kswapd0]
+    26 root          0.0 S   1:13.90 [ksoftirqd/3]
+    21 root          3.3 S   1:05.15 [ksoftirqd/2]
+    16 root          0.0 S   3:28.61 [ksoftirqd/1]
+     9 root          0.0 S   1:18.10 [ksoftirqd/0]
+   105 root          0.0 S   0:00.00 [krfcommd]
+   203 root          0.0 I   0:00.00 [kdmflush]
+   143 root          0.0 I   0:00.00 [kdmflush]
+   142 root          0.0 I   0:00.00 [kdmflush]
+   141 root          0.0 I   0:00.00 [kdmflush]
+   140 root          0.0 I   0:00.00 [kdmflush]
+   139 root          0.0 I   0:00.00 [kdmflush]
+    34 root          0.0 S   0:00.00 [kcompactd0]
+    84 root          0.0 I   0:00.00 [kblockd]
+    31 root          0.0 S   0:00.02 [kauditd]
+   137 root          0.0 S   0:00.00 [jbd2/vdd1-8]
+   213 root          0.0 S   1:09.02 [jbd2/dm-5-8]
+   104 root          0.0 I   0:00.00 [ipv6_addrconf]
+    88 root          0.0 S   0:00.00 [ion_system_heap]
+   136 root          0.0 S   0:00.57 [hwrng]
+   275 root          0.0 I   0:00.00 [ext4-rsv-conver]
+   273 root          0.0 I   0:00.00 [ext4-rsv-conver]
+   271 root          0.0 I   0:00.00 [ext4-rsv-conver]
+   269 root          0.0 I   0:00.00 [ext4-rsv-conver]
+   267 root          0.0 I   0:00.00 [ext4-rsv-conver]
+   265 root          0.0 I   0:00.00 [ext4-rsv-conver]
+   263 root          0.0 I   0:00.00 [ext4-rsv-conver]
+   261 root          0.0 I   0:00.00 [ext4-rsv-conver]
+   259 root          0.0 I   0:00.00 [ext4-rsv-conver]
+   257 root          0.0 I   0:00.00 [ext4-rsv-conver]
+   255 root          0.0 I   0:00.00 [ext4-rsv-conver]
+   253 root          0.0 I   0:00.00 [ext4-rsv-conver]
+   251 root          0.0 I   0:00.00 [ext4-rsv-conver]
+   249 root          0.0 I   0:00.00 [ext4-rsv-conver]
+   247 root          0.0 I   0:00.00 [ext4-rsv-conver]
+   245 root          0.0 I   0:00.00 [ext4-rsv-conver]
+   243 root          0.0 I   0:00.00 [ext4-rsv-conver]
+   241 root          0.0 I   0:00.00 [ext4-rsv-conver]
+   239 root          0.0 I   0:00.00 [ext4-rsv-conver]
+   237 root          0.0 I   0:00.00 [ext4-rsv-conver]
+   235 root          0.0 I   0:00.00 [ext4-rsv-conver]
+   232 root          0.0 I   0:00.00 [ext4-rsv-conver]
+   214 root          0.0 I   0:00.00 [ext4-rsv-conver]
+   174 root          0.0 I   0:00.00 [ext4-rsv-conver]
+   172 root          0.0 I   0:00.00 [ext4-rsv-conver]
+   170 root          0.0 I   0:00.00 [ext4-rsv-conver]
+   168 root          0.0 I   0:00.00 [ext4-rsv-conver]
+   166 root          0.0 I   0:00.00 [ext4-rsv-conver]
+   164 root          0.0 I   0:00.00 [ext4-rsv-conver]
+   150 root          0.0 I   0:00.00 [ext4-rsv-conver]
+   149 root          0.0 I   0:00.00 [ext4-rsv-conver]
+   148 root          0.0 I   0:00.00 [ext4-rsv-conver]
+   145 root          0.0 I   0:00.00 [ext4-rsv-conver]
+   138 root          0.0 I   0:00.00 [ext4-rsv-conver]
+   102 root          0.0 I   0:00.00 [dm_bufio_cache]
+    89 root          0.0 I   0:00.00 [devfreq_wq]
+    52 root          0.0 I   0:00.00 [cryptd]
+    24 root          0.0 S   0:00.00 [cpuhp/3]
+    19 root          0.0 S   0:00.00 [cpuhp/2]
+    14 root          0.0 S   0:00.00 [cpuhp/1]
+    13 root          0.0 S   0:00.00 [cpuhp/0]
+    92 root          0.0 I   0:00.00 [cfg80211]
+    87 root          0.0 I   0:00.00 [blkcg_punt_bio]
+    86 root          0.0 I   0:00.00 [blk_crypto_wq]
+    99 root          0.0 I   0:00.00 [acpi_thermal_pm]
+[2026-11-16T11:56:10.675Z] kpdx-B-from-hang.flow:30 sh stat -c '%s bytes, mtime %y' /sdcard/Download/kpdx-mfHNESTg.kdbx
+16117 bytes, mtime 2026-11-16 08:16:44.000000000 +0100
+[2026-11-16T11:56:10.766Z] kpdx-B-from-hang.flow:31 sh sha256sum /sdcard/Download/kpdx-mfHNESTg.kdbx
+e7c988ecafa5d088485ebc0b7074a0a2c017ba0c588b2921b866933fe387b87d  /sdcard/Download/kpdx-mfHNESTg.kdbx
+[2026-11-16T11:56:10.811Z] kpdx-B-from-hang.flow:32 sh logcat -d -t 300 -s DatabaseTaskNotificationService:* AndroidRuntime:* ActivityManager:W
+--------- beginning of main
+11-16 12:53:25.946 23823 23823 D AndroidRuntime: Calling main entry com.android.commands.uiautomator.Launcher
+--------- beginning of system
+11-16 12:53:27.289 23823 23823 D AndroidRuntime: Shutting down VM
+11-16 12:53:28.278 23842 23842 D AndroidRuntime: >>>>>> START com.android.internal.os.RuntimeInit uid 0 <<<<<<
+11-16 12:53:28.290 23842 23842 I AndroidRuntime: Using default boot image
+11-16 12:53:28.290 23842 23842 I AndroidRuntime: Leaving lock profiling enabled
+11-16 12:53:29.143 23842 23842 D AndroidRuntime: Calling main entry com.android.commands.input.Input
+11-16 12:53:29.194 23842 23842 D AndroidRuntime: Shutting down VM
+11-16 12:53:45.118 23869 23869 D AndroidRuntime: >>>>>> START com.android.internal.os.RuntimeInit uid 0 <<<<<<
+11-16 12:53:45.128 23869 23869 I AndroidRuntime: Using default boot image
+11-16 12:53:45.128 23869 23869 I AndroidRuntime: Leaving lock profiling enabled
+11-16 12:53:45.371 23869 23869 D AndroidRuntime: Calling main entry com.android.commands.uiautomator.Launcher
+11-16 12:53:46.718 23869 23869 D AndroidRuntime: Shutting down VM
+--------- beginning of kernel
+11-16 12:54:33.430 23889 23889 D AndroidRuntime: >>>>>> START com.android.internal.os.RuntimeInit uid 0 <<<<<<
+11-16 12:54:33.440 23889 23889 I AndroidRuntime: Using default boot image
+11-16 12:54:33.441 23889 23889 I AndroidRuntime: Leaving lock profiling enabled
+11-16 12:54:34.021 23889 23889 D AndroidRuntime: Calling main entry com.android.commands.uiautomator.Launcher
+11-16 12:54:35.671 23889 23889 D AndroidRuntime: Shutting down VM
+11-16 12:56:07.052 23909 23909 D AndroidRuntime: >>>>>> START com.android.internal.os.RuntimeInit uid 0 <<<<<<
+11-16 12:56:07.058 23909 23909 I AndroidRuntime: Using default boot image
+11-16 12:56:07.058 23909 23909 I AndroidRuntime: Leaving lock profiling enabled
+11-16 12:56:07.267 23909 23909 D AndroidRuntime: Calling main entry com.android.commands.uiautomator.Launcher
+11-16 12:56:08.655 23909 23909 D AndroidRuntime: Shutting down VM
+total 40
+-rw------- 1 u0_a160 u0_a160 15877 2026-11-16 08:16:44.000000000 +0100 kpdx-mfHNESTg-src.kdbx
+-rw------- 1 u0_a160 u0_a160 16117 2026-11-16 08:16:44.000000000 +0100 kpdx-mfHNESTg.kdbx
+device kpdx-mfHNESTg-src.kdbx sha256 fbc44fc5b78eed60ba72c9116fc668a5d613a8ecc4d51c1a5a88a3e2088444ac
+/sdcard/Download/kpdx-mfHNESTg-src.kdbx: 1 file pulled, 0 skipped. 0.5 MB/s (15877 bytes in 0.030s)
+device kpdx-mfHNESTg.kdbx sha256 e7c988ecafa5d088485ebc0b7074a0a2c017ba0c588b2921b866933fe387b87d
+/sdcard/Download/kpdx-mfHNESTg.kdbx: 1 file pulled, 0 skipped. 0.3 MB/s (16117 bytes in 0.049s)
+### flow rc=0 2026-11-16T11:56:14.308Z

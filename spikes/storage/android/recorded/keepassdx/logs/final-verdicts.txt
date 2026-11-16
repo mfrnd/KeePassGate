@@ -1,0 +1,167 @@
+### batch summaries
+kpdx ow-noauto-save-plus60-r1: ### flow rc=1 2026-11-16T15:41:59.091Z, 1 failures, kpdx-ow-noauto-save-plus60-r1.kdbx 
+kpdx ow-noauto-merge-plus60-r1: ### flow rc=0 2026-11-16T15:46:53.297Z, 0 failures, kpdx-ow-noauto-merge-plus60-r1.kdbx 
+kpdx ow-lock-diff-plus5-r1: ### flow rc=0 2026-11-16T15:51:29.602Z, 0 failures, kpdx-ow-lock-diff-plus5-r1.kdbx 
+kpdx ow-lock-diff-plus60-r1: ### flow rc=0 2026-11-16T15:55:48.684Z, 0 failures, kpdx-ow-lock-diff-plus60-r1.kdbx 
+kpdx ro-r1: ### flow rc=1 2026-11-16T15:57:10.500Z, 1 failures, kpdx-ro-r1.kdbx 
+kpdx ro-r2: ### flow rc=1 2026-11-16T15:58:47.783Z, 1 failures, kpdx-ro-r2.kdbx 
+kpdx ch-entry3: ### flow rc=1 2026-11-16T16:02:54.655Z, 1 failures, kpdx-ch-entry3.kdbx 
+kpdx ch-move: ### flow rc=1 2026-11-16T16:07:47.822Z, 1 failures, kpdx-ch-move.kdbx s01-e1-into-n.kdbx 
+kpdx ch-copy2: ### flow rc=0 2026-11-16T16:12:58.530Z, 0 failures, kpdx-ch-copy2.kdbx s03-new-group-kg.kdbx s04-new-group-root.kdbx s05-new-entry-root.kdbx 
+kpdx ch-group2: ### flow rc=1 2026-11-16T16:17:26.967Z, 1 failures, kpdx-ch-group2.kdbx s04-tags.kdbx 
+### batch after done 2026-11-16T16:17:27.051Z
+kpdx ow-noauto-save-plus60-r2: ### flow rc=0 2026-11-16T16:22:24.431Z, 0 failures, kpdx-ow-noauto-save-plus60-r2.kdbx 
+### batch final done 2026-11-16T16:22:24.494Z
+### ow-lock-diff-plus60-r1 dialogs 0
+devstat after-save: 18589 bytes, mtime 2026-11-16 16:55:25.912000000 +0100 sha256 a589037dd9dfe355
+kpdx-ow-lock-diff-plus60-r1.kdbx: NEW's changes KEPT | RV2 entry, key yes, record yes, P1 p1-desktop, X1 gone with record | phone: phone-ow
+### ow-noauto-save-plus60-r2 dialogs 2
+devstat after-add-before-answer: 19509 bytes, mtime 2026-11-16 17:08:50.000000000 +0100 sha256 4c67b2a5698c8133
+devstat after-answer: 16425 bytes, mtime 2026-11-16 17:21:58.984000000 +0100 sha256 1f122bfa73e7ca61
+kpdx-ow-noauto-save-plus60-r2.kdbx: NEW's changes LOST | RV2 no entry, key no, record no, P1 p1-old, X1 there no record | phone: phone-ow
+### ro-r1
+[2026-11-16T15:57:07.355Z] FAILED: tapuntil: never reached Write.protected
+device kpdx-ro-r1.kdbx sha256 92909efea553cdd099e1d603f4a90b4c57b729c6d4b2e723fb8403728cd79da7 16085 bytes, mtime 2026-11-16 16:45:49.000000000 +0100
+      2 desc='Show password'
+      2 desc='About'
+      1 text='kpdx-ro-r1.kdbx'
+      1 text='Unlock'
+      1 text='Password'
+      1 text='Keyfile'
+      1 text='Hardware key'
+      1 desc='User Verification enabled'
+      1 desc='Show dropdown menu'
+      1 desc='Password checkbox'
+      1 desc='Navigate up'
+      1 desc='More options'
+      1 desc='Modifiable'
+      1 desc='Keyfile checkbox'
+      1 desc='KeePassDX'
+      1 desc='Hardware key checkbox'
+### ro-r2
+[2026-11-16T15:58:44.878Z] FAILED: tapuntil: never reached Write.protected
+device kpdx-ro-r2.kdbx sha256 92909efea553cdd099e1d603f4a90b4c57b729c6d4b2e723fb8403728cd79da7 16085 bytes, mtime 2026-11-16 16:47:10.000000000 +0100
+      2 desc='Show password'
+      2 desc='About'
+      1 text='kpdx-ro-r2.kdbx'
+      1 text='Unlock'
+      1 text='Password'
+      1 text='Keyfile'
+      1 text='Hardware key'
+      1 desc='User Verification enabled'
+      1 desc='Show dropdown menu'
+      1 desc='Password checkbox'
+      1 desc='Navigate up'
+      1 desc='More options'
+      1 desc='Modifiable'
+      1 desc='Keyfile checkbox'
+      1 desc='KeePassDX'
+      1 desc='Hardware key checkbox'
+### ch-entry3
+[2026-11-16T16:00:52.781Z] kpdx-ch-entry3.flow:8 log s06 a custom field added
+[2026-11-16T16:02:51.669Z] FAILED: tap: no node matches ^OK$
+### ch-move
+[2026-11-16T16:04:53.217Z] kpdx-ch-move.flow:7 log s01 E1 from G into N
+[2026-11-16T16:06:08.527Z]   waitchange: /sdcard/Download/kpdx-ch-move.kdbx changed after 0.1 s, stable, sha256 73b6261909e850af
+[2026-11-16T16:06:28.483Z] kpdx-ch-move.flow:19 log s02 AD2 out of KeePassGate into Passwords
+[2026-11-16T16:07:44.543Z] FAILED: tapuntil: never reached node_text@^KPG.client.ci-runner$
+== s01-e1-into-n: 28 item lines
+< E E1 parent G (G)
+< E E1 prev -
+> E E1 parent N (N)
+> E E1 prev G
+< E E1 t.location 2026-11-01T11:00:00Z
+< E E1 t.modified 2026-11-01T14:00:00Z
+> E E1 t.location 2026-11-16T16:05:59Z
+> E E1 t.modified 2026-11-16T16:05:59Z
+< G G children groups=1 entries=4
+> G G children groups=1 entries=3
+< G G t.modified 2026-11-01T10:30:00Z
+> G G t.modified 2026-11-16T16:05:59Z
+< G N children groups=0 entries=1
+> G N children groups=0 entries=2
+< G N t.modified 2026-11-01T10:20:00Z
+> G N t.modified 2026-11-16T16:05:59Z
+< G Root t.modified 2026-11-01T10:00:00Z
+> G Root t.modified 2026-11-16T16:05:59Z
+### ch-copy2
+[2026-11-16T16:09:44.431Z] kpdx-ch-copy2.flow:6 log s03 a new group in KeePassGate
+[2026-11-16T16:10:45.482Z]   waitchange: /sdcard/Download/kpdx-ch-copy2.kdbx changed after 1.2 s, stable, sha256 30073d3298330f80
+[2026-11-16T16:11:12.529Z] kpdx-ch-copy2.flow:17 log s04 a new group at the root
+[2026-11-16T16:12:00.626Z]   waitchange: /sdcard/Download/kpdx-ch-copy2.kdbx changed after 0.2 s, stable, sha256 3766c5f2b330dfed
+[2026-11-16T16:12:00.768Z] kpdx-ch-copy2.flow:25 log s05 a new entry at the root
+[2026-11-16T16:12:50.331Z]   waitchange: /sdcard/Download/kpdx-ch-copy2.kdbx changed after 0.0 s, stable, sha256 203d27c0400d2b7c
+== s03-new-group-kg: 25 item lines
+< F groups 13 entries 41
+> F groups 14 entries 41
+< G KG children groups=0 entries=14
+> G KG children groups=1 entries=14
+< G KG t.modified 2026-11-01T10:05:00Z
+> G KG t.modified 2026-11-16T16:10:39Z
+< G Root t.modified 2026-11-01T10:00:00Z
+> G Root t.modified 2026-11-16T16:10:39Z
+> G ~884e8028 children groups=0 entries=0
+> G ~884e8028 flags icon=48 customIcon=- search=inherit autotype=inherit expanded=1 seq="" lastTop=-
+> G ~884e8028 name "phone-group-in-kg"
+> G ~884e8028 notes ""
+> G ~884e8028 parent KG (KeePassGate)
+> G ~884e8028 prev -
+> G ~884e8028 t.created 2026-11-16T16:10:02Z
+> G ~884e8028 t.expires 0 2999-11-28T23:59:59Z
+> G ~884e8028 t.location 2026-11-16T16:10:39Z
+> G ~884e8028 t.modified 2026-11-16T16:10:39Z
+> G ~884e8028 tags []
+== s04-new-group-root: 23 item lines
+< F groups 14 entries 41
+> F groups 15 entries 41
+< G Root children groups=8 entries=0
+> G Root children groups=9 entries=0
+< G Root t.modified 2026-11-16T16:10:39Z
+> G Root t.modified 2026-11-16T16:11:56Z
+> G ~c94a0201 children groups=0 entries=0
+> G ~c94a0201 flags icon=48 customIcon=- search=inherit autotype=inherit expanded=1 seq="" lastTop=-
+> G ~c94a0201 name "phone-group-root"
+> G ~c94a0201 notes ""
+> G ~c94a0201 parent Root (Storage probe)
+> G ~c94a0201 prev -
+> G ~c94a0201 t.created 2026-11-16T16:11:19Z
+> G ~c94a0201 t.expires 0 2999-11-28T23:59:59Z
+> G ~c94a0201 t.location 2026-11-16T16:11:56Z
+> G ~c94a0201 t.modified 2026-11-16T16:11:56Z
+> G ~c94a0201 tags []
+== s05-new-entry-root: 25 item lines
+> E ~694b5ddf S Notes p=0 ""
+> E ~694b5ddf S Password p=1 ""
+> E ~694b5ddf S Title p=0 "phone-entry-root"
+> E ~694b5ddf S URL p=0 ""
+> E ~694b5ddf S UserName p=0 "invented-default-user"
+> E ~694b5ddf autotype enabled=1 obfuscation=0 seq="" assoc=0
+> E ~694b5ddf history.count 0
+> E ~694b5ddf misc icon=49 customIcon=- fg=00000000 bg=00000000 overrideUrl="" quality=1
+> E ~694b5ddf parent Root (Storage probe)
+> E ~694b5ddf prev -
+> E ~694b5ddf t.created 2026-11-16T16:12:40Z
+> E ~694b5ddf t.expires 0 2999-11-28T23:59:59Z
+> E ~694b5ddf t.location 2026-11-16T16:12:40Z
+> E ~694b5ddf t.modified 2026-11-16T16:12:40Z
+> E ~694b5ddf tags []
+< F groups 15 entries 41
+> F groups 15 entries 42
+< G Root children groups=9 entries=0
+> G Root children groups=9 entries=1
+< G Root t.modified 2026-11-16T16:11:56Z
+> G Root t.modified 2026-11-16T16:12:40Z
+### ch-group2
+[2026-11-16T16:14:40.047Z] kpdx-ch-group2.flow:7 log s04 tags of G
+[2026-11-16T16:15:53.925Z]   waitchange: /sdcard/Download/kpdx-ch-group2.kdbx changed after 0.2 s, stable, sha256 0c9443ec88a96cb9
+[2026-11-16T16:15:54.501Z] kpdx-ch-group2.flow:17 log s05 expiry of G
+[2026-11-16T16:17:21.009Z] FAILED: tap: no node matches ^OK$
+== s04-tags: 12 item lines
+< G G t.expires 0 2026-11-01T10:00:00Z
+> G G t.expires 0 2999-11-28T23:59:59Z
+< G G t.modified 2026-11-01T10:30:00Z
+< G G tags [kpg.reader;team]
+> G G t.modified 2026-11-16T16:15:49Z
+> G G tags [added;kpg.reader]
+< G Root t.modified 2026-11-01T10:00:00Z
+> G Root t.modified 2026-11-16T16:15:49Z

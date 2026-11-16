@@ -1,0 +1,7 @@
+kpdx kpdx-save.flow com.kunzisoft.keepass.libre B41 save-B41
+kpdx kpdx-save.flow com.kunzisoft.keepass.libre B41id save-B41id
+kpdx kpdx-save.flow com.kunzisoft.keepass.libre B41aes save-B41aes
+kpdx kpdx-save.flow com.kunzisoft.keepass.libre B40 save-B40
+kpdx kpdx-save.flow com.kunzisoft.keepass.libre B40id save-B40id
+kpdx kpdx-save.flow com.kunzisoft.keepass.libre B40aes save-B40aes
+kpdx kpdx-save.flow com.kunzisoft.keepass.libre B41unk save-B41unk

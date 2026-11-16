@@ -1,0 +1,338 @@
+171a172,188
+> E GD1 S Notes p=0 ""
+> E GD1 S Password p=1 "gd1-old"
+> E GD1 S Title p=0 "GD1"
+> E GD1 S URL p=0 ""
+> E GD1 S UserName p=0 "user-gd1"
+> E GD1 autotype enabled=1 obfuscation=0 seq="" assoc=0
+> E GD1 history.count 0
+> E GD1 misc icon=0 customIcon=- fg=00000000 bg=00000000 overrideUrl="" quality=1
+> E GD1 parent GD (GD)
+> E GD1 prev -
+> E GD1 t.accessed 2026-11-01T10:20:00Z
+> E GD1 t.created 2026-11-01T10:20:00Z
+> E GD1 t.expires 0 2026-11-01T10:00:00Z
+> E GD1 t.location 2026-11-01T10:20:00Z
+> E GD1 t.modified 2026-11-01T10:20:00Z
+> E GD1 tags []
+> E GD1 usage 0
+376a394,444
+> E NA1 S Notes p=0 ""
+> E NA1 S Password p=1 "na1-old"
+> E NA1 S Title p=0 "NA1"
+> E NA1 S URL p=0 ""
+> E NA1 S UserName p=0 "user-na1"
+> E NA1 autotype enabled=1 obfuscation=0 seq="" assoc=0
+> E NA1 history.count 0
+> E NA1 misc icon=0 customIcon=- fg=00000000 bg=00000000 overrideUrl="" quality=1
+> E NA1 parent NA (NA)
+> E NA1 prev -
+> E NA1 t.accessed 2026-11-01T10:20:00Z
+> E NA1 t.created 2026-11-01T10:20:00Z
+> E NA1 t.expires 0 2026-11-01T10:00:00Z
+> E NA1 t.location 2026-11-01T10:20:00Z
+> E NA1 t.modified 2026-11-01T10:20:00Z
+> E NA1 tags []
+> E NA1 usage 0
+> E NB1 S Notes p=0 ""
+> E NB1 S Password p=1 "nb1-old"
+> E NB1 S Title p=0 "NB1"
+> E NB1 S URL p=0 ""
+> E NB1 S UserName p=0 "user-nb1"
+> E NB1 autotype enabled=1 obfuscation=0 seq="" assoc=0
+> E NB1 history.count 0
+> E NB1 misc icon=0 customIcon=- fg=00000000 bg=00000000 overrideUrl="" quality=1
+> E NB1 parent NB (NB)
+> E NB1 prev -
+> E NB1 t.accessed 2026-11-01T10:20:00Z
+> E NB1 t.created 2026-11-01T10:20:00Z
+> E NB1 t.expires 0 2026-11-01T10:00:00Z
+> E NB1 t.location 2026-11-01T10:20:00Z
+> E NB1 t.modified 2026-11-01T10:20:00Z
+> E NB1 tags []
+> E NB1 usage 0
+> E NC1 S Notes p=0 ""
+> E NC1 S Password p=1 "nc1-old"
+> E NC1 S Title p=0 "NC1"
+> E NC1 S URL p=0 ""
+> E NC1 S UserName p=0 "user-nc1"
+> E NC1 autotype enabled=1 obfuscation=0 seq="" assoc=0
+> E NC1 history.count 0
+> E NC1 misc icon=0 customIcon=- fg=00000000 bg=00000000 overrideUrl="" quality=1
+> E NC1 parent NC (NC)
+> E NC1 prev -
+> E NC1 t.accessed 2026-11-01T10:20:00Z
+> E NC1 t.created 2026-11-01T10:20:00Z
+> E NC1 t.expires 0 2026-11-01T10:00:00Z
+> E NC1 t.location 2026-11-01T10:20:00Z
+> E NC1 t.modified 2026-11-01T10:20:00Z
+> E NC1 tags []
+> E NC1 usage 0
+889a958,974
+> E X1 S Notes p=0 ""
+> E X1 S Password p=1 "x1-old"
+> E X1 S Title p=0 "X1"
+> E X1 S URL p=0 ""
+> E X1 S UserName p=0 "user-x1"
+> E X1 autotype enabled=1 obfuscation=0 seq="" assoc=0
+> E X1 history.count 0
+> E X1 misc icon=0 customIcon=- fg=00000000 bg=00000000 overrideUrl="" quality=1
+> E X1 parent PW (Passwords)
+> E X1 prev -
+> E X1 t.accessed 2026-11-01T10:20:00Z
+> E X1 t.created 2026-11-01T10:20:00Z
+> E X1 t.expires 0 2026-11-01T10:00:00Z
+> E X1 t.location 2026-11-01T10:20:00Z
+> E X1 t.modified 2026-11-01T10:20:00Z
+> E X1 tags []
+> E X1 usage 0
+962c1047
+< E Y3 parent N (N)
+---
+> E Y3 parent PW (Passwords)
+1054c1139
+< F groups 9 entries 42
+---
+> F groups 13 entries 47
+1083a1169,1181
+> G GD children groups=0 entries=1
+> G GD flags icon=48 customIcon=- search=inherit autotype=inherit expanded=1 seq="" lastTop=-
+> G GD name "GD"
+> G GD notes ""
+> G GD parent Root (Storage probe)
+> G GD prev -
+> G GD t.accessed 2026-11-01T10:05:00Z
+> G GD t.created 2026-11-01T10:05:00Z
+> G GD t.expires 0 2026-11-01T10:00:00Z
+> G GD t.location 2026-11-01T10:05:00Z
+> G GD t.modified 2026-11-01T10:05:00Z
+> G GD tags []
+> G GD usage 0
+1123c1221
+< G N children groups=0 entries=3
+---
+> G N children groups=0 entries=2
+1135a1234,1272
+> G NA children groups=1 entries=1
+> G NA flags icon=48 customIcon=- search=inherit autotype=inherit expanded=1 seq="" lastTop=-
+> G NA name "NA"
+> G NA notes ""
+> G NA parent Root (Storage probe)
+> G NA prev -
+> G NA t.accessed 2026-11-01T10:05:00Z
+> G NA t.created 2026-11-01T10:05:00Z
+> G NA t.expires 0 2026-11-01T10:00:00Z
+> G NA t.location 2026-11-01T10:05:00Z
+> G NA t.modified 2026-11-01T10:05:00Z
+> G NA tags []
+> G NA usage 0
+> G NB children groups=1 entries=1
+> G NB flags icon=48 customIcon=- search=inherit autotype=inherit expanded=1 seq="" lastTop=-
+> G NB name "NB"
+> G NB notes ""
+> G NB parent NA (NA)
+> G NB prev -
+> G NB t.accessed 2026-11-01T10:05:00Z
+> G NB t.created 2026-11-01T10:05:00Z
+> G NB t.expires 0 2026-11-01T10:00:00Z
+> G NB t.location 2026-11-01T10:05:00Z
+> G NB t.modified 2026-11-01T10:05:00Z
+> G NB tags []
+> G NB usage 0
+> G NC children groups=0 entries=1
+> G NC flags icon=48 customIcon=- search=inherit autotype=inherit expanded=1 seq="" lastTop=-
+> G NC name "NC"
+> G NC notes ""
+> G NC parent NB (NB)
+> G NC prev -
+> G NC t.accessed 2026-11-01T10:05:00Z
+> G NC t.created 2026-11-01T10:05:00Z
+> G NC t.expires 0 2026-11-01T10:00:00Z
+> G NC t.location 2026-11-01T10:05:00Z
+> G NC t.modified 2026-11-01T10:05:00Z
+> G NC tags []
+> G NC usage 0
+1149c1286
+< G PW children groups=0 entries=11
+---
+> G PW children groups=0 entries=13
+1162c1299
+< G Root children groups=6 entries=0
+---
+> G Root children groups=8 entries=0
+1168c1305
+< G Root t.accessed 2026-11-16T07:28:04Z
+---
+> G Root t.accessed 2026-11-16T14:22:29Z
+1269c1406
+< X KeePassFile/Root/Group/Group 6
+---
+> X KeePassFile/Root/Group/Group 8
+1274,1281c1411,1418
+< X KeePassFile/Root/Group/Group/DefaultAutoTypeSequence 6
+< X KeePassFile/Root/Group/Group/EnableAutoType 6
+< X KeePassFile/Root/Group/Group/EnableSearching 6
+< X KeePassFile/Root/Group/Group/Entry 37
+< X KeePassFile/Root/Group/Group/Entry/AutoType 37
+< X KeePassFile/Root/Group/Group/Entry/AutoType/DataTransferObfuscation 37
+< X KeePassFile/Root/Group/Group/Entry/AutoType/Enabled 37
+< X KeePassFile/Root/Group/Group/Entry/BackgroundColor 37
+---
+> X KeePassFile/Root/Group/Group/DefaultAutoTypeSequence 8
+> X KeePassFile/Root/Group/Group/EnableAutoType 8
+> X KeePassFile/Root/Group/Group/EnableSearching 8
+> X KeePassFile/Root/Group/Group/Entry 41
+> X KeePassFile/Root/Group/Group/Entry/AutoType 41
+> X KeePassFile/Root/Group/Group/Entry/AutoType/DataTransferObfuscation 41
+> X KeePassFile/Root/Group/Group/Entry/AutoType/Enabled 41
+> X KeePassFile/Root/Group/Group/Entry/BackgroundColor 41
+1290,1291c1427,1428
+< X KeePassFile/Root/Group/Group/Entry/ForegroundColor 37
+< X KeePassFile/Root/Group/Group/Entry/History 37
+---
+> X KeePassFile/Root/Group/Group/Entry/ForegroundColor 41
+> X KeePassFile/Root/Group/Group/Entry/History 41
+1319,1320c1456,1457
+< X KeePassFile/Root/Group/Group/Entry/IconID 37
+< X KeePassFile/Root/Group/Group/Entry/OverrideURL 37
+---
+> X KeePassFile/Root/Group/Group/Entry/IconID 41
+> X KeePassFile/Root/Group/Group/Entry/OverrideURL 41
+1323,1326c1460,1463
+< X KeePassFile/Root/Group/Group/Entry/String 243
+< X KeePassFile/Root/Group/Group/Entry/String/Key 243
+< X KeePassFile/Root/Group/Group/Entry/String/Value 243
+< X KeePassFile/Root/Group/Group/Entry/String/Value@Protected=True 40
+---
+> X KeePassFile/Root/Group/Group/Entry/String 263
+> X KeePassFile/Root/Group/Group/Entry/String/Key 263
+> X KeePassFile/Root/Group/Group/Entry/String/Value 263
+> X KeePassFile/Root/Group/Group/Entry/String/Value@Protected=True 44
+1328,1340c1465,1477
+< X KeePassFile/Root/Group/Group/Entry/Times 37
+< X KeePassFile/Root/Group/Group/Entry/Times/CreationTime 37
+< X KeePassFile/Root/Group/Group/Entry/Times/Expires 37
+< X KeePassFile/Root/Group/Group/Entry/Times/ExpiryTime 37
+< X KeePassFile/Root/Group/Group/Entry/Times/LastAccessTime 37
+< X KeePassFile/Root/Group/Group/Entry/Times/LastModificationTime 37
+< X KeePassFile/Root/Group/Group/Entry/Times/LocationChanged 37
+< X KeePassFile/Root/Group/Group/Entry/Times/UsageCount 37
+< X KeePassFile/Root/Group/Group/Entry/UUID 37
+< X KeePassFile/Root/Group/Group/Group 2
+< X KeePassFile/Root/Group/Group/Group/DefaultAutoTypeSequence 2
+< X KeePassFile/Root/Group/Group/Group/EnableAutoType 2
+< X KeePassFile/Root/Group/Group/Group/EnableSearching 2
+---
+> X KeePassFile/Root/Group/Group/Entry/Times 41
+> X KeePassFile/Root/Group/Group/Entry/Times/CreationTime 41
+> X KeePassFile/Root/Group/Group/Entry/Times/Expires 41
+> X KeePassFile/Root/Group/Group/Entry/Times/ExpiryTime 41
+> X KeePassFile/Root/Group/Group/Entry/Times/LastAccessTime 41
+> X KeePassFile/Root/Group/Group/Entry/Times/LastModificationTime 41
+> X KeePassFile/Root/Group/Group/Entry/Times/LocationChanged 41
+> X KeePassFile/Root/Group/Group/Entry/Times/UsageCount 41
+> X KeePassFile/Root/Group/Group/Entry/UUID 41
+> X KeePassFile/Root/Group/Group/Group 3
+> X KeePassFile/Root/Group/Group/Group/DefaultAutoTypeSequence 3
+> X KeePassFile/Root/Group/Group/Group/EnableAutoType 3
+> X KeePassFile/Root/Group/Group/Group/EnableSearching 3
+1385,1403c1522,1580
+< X KeePassFile/Root/Group/Group/Group/IconID 2
+< X KeePassFile/Root/Group/Group/Group/IsExpanded 2
+< X KeePassFile/Root/Group/Group/Group/LastTopVisibleEntry 2
+< X KeePassFile/Root/Group/Group/Group/Name 2
+< X KeePassFile/Root/Group/Group/Group/Notes 2
+< X KeePassFile/Root/Group/Group/Group/Times 2
+< X KeePassFile/Root/Group/Group/Group/Times/CreationTime 2
+< X KeePassFile/Root/Group/Group/Group/Times/Expires 2
+< X KeePassFile/Root/Group/Group/Group/Times/ExpiryTime 2
+< X KeePassFile/Root/Group/Group/Group/Times/LastAccessTime 2
+< X KeePassFile/Root/Group/Group/Group/Times/LastModificationTime 2
+< X KeePassFile/Root/Group/Group/Group/Times/LocationChanged 2
+< X KeePassFile/Root/Group/Group/Group/Times/UsageCount 2
+< X KeePassFile/Root/Group/Group/Group/UUID 2
+< X KeePassFile/Root/Group/Group/IconID 6
+< X KeePassFile/Root/Group/Group/IsExpanded 6
+< X KeePassFile/Root/Group/Group/LastTopVisibleEntry 6
+< X KeePassFile/Root/Group/Group/Name 6
+< X KeePassFile/Root/Group/Group/Notes 6
+---
+> X KeePassFile/Root/Group/Group/Group/Group 1
+> X KeePassFile/Root/Group/Group/Group/Group/DefaultAutoTypeSequence 1
+> X KeePassFile/Root/Group/Group/Group/Group/EnableAutoType 1
+> X KeePassFile/Root/Group/Group/Group/Group/EnableSearching 1
+> X KeePassFile/Root/Group/Group/Group/Group/Entry 1
+> X KeePassFile/Root/Group/Group/Group/Group/Entry/AutoType 1
+> X KeePassFile/Root/Group/Group/Group/Group/Entry/AutoType/DataTransferObfuscation 1
+> X KeePassFile/Root/Group/Group/Group/Group/Entry/AutoType/Enabled 1
+> X KeePassFile/Root/Group/Group/Group/Group/Entry/BackgroundColor 1
+> X KeePassFile/Root/Group/Group/Group/Group/Entry/ForegroundColor 1
+> X KeePassFile/Root/Group/Group/Group/Group/Entry/History 1
+> X KeePassFile/Root/Group/Group/Group/Group/Entry/IconID 1
+> X KeePassFile/Root/Group/Group/Group/Group/Entry/OverrideURL 1
+> X KeePassFile/Root/Group/Group/Group/Group/Entry/String 5
+> X KeePassFile/Root/Group/Group/Group/Group/Entry/String/Key 5
+> X KeePassFile/Root/Group/Group/Group/Group/Entry/String/Value 5
+> X KeePassFile/Root/Group/Group/Group/Group/Entry/String/Value@Protected=True 1
+> X KeePassFile/Root/Group/Group/Group/Group/Entry/Times 1
+> X KeePassFile/Root/Group/Group/Group/Group/Entry/Times/CreationTime 1
+> X KeePassFile/Root/Group/Group/Group/Group/Entry/Times/Expires 1
+> X KeePassFile/Root/Group/Group/Group/Group/Entry/Times/ExpiryTime 1
+> X KeePassFile/Root/Group/Group/Group/Group/Entry/Times/LastAccessTime 1
+> X KeePassFile/Root/Group/Group/Group/Group/Entry/Times/LastModificationTime 1
+> X KeePassFile/Root/Group/Group/Group/Group/Entry/Times/LocationChanged 1
+> X KeePassFile/Root/Group/Group/Group/Group/Entry/Times/UsageCount 1
+> X KeePassFile/Root/Group/Group/Group/Group/Entry/UUID 1
+> X KeePassFile/Root/Group/Group/Group/Group/IconID 1
+> X KeePassFile/Root/Group/Group/Group/Group/IsExpanded 1
+> X KeePassFile/Root/Group/Group/Group/Group/LastTopVisibleEntry 1
+> X KeePassFile/Root/Group/Group/Group/Group/Name 1
+> X KeePassFile/Root/Group/Group/Group/Group/Notes 1
+> X KeePassFile/Root/Group/Group/Group/Group/Times 1
+> X KeePassFile/Root/Group/Group/Group/Group/Times/CreationTime 1
+> X KeePassFile/Root/Group/Group/Group/Group/Times/Expires 1
+> X KeePassFile/Root/Group/Group/Group/Group/Times/ExpiryTime 1
+> X KeePassFile/Root/Group/Group/Group/Group/Times/LastAccessTime 1
+> X KeePassFile/Root/Group/Group/Group/Group/Times/LastModificationTime 1
+> X KeePassFile/Root/Group/Group/Group/Group/Times/LocationChanged 1
+> X KeePassFile/Root/Group/Group/Group/Group/Times/UsageCount 1
+> X KeePassFile/Root/Group/Group/Group/Group/UUID 1
+> X KeePassFile/Root/Group/Group/Group/IconID 3
+> X KeePassFile/Root/Group/Group/Group/IsExpanded 3
+> X KeePassFile/Root/Group/Group/Group/LastTopVisibleEntry 3
+> X KeePassFile/Root/Group/Group/Group/Name 3
+> X KeePassFile/Root/Group/Group/Group/Notes 3
+> X KeePassFile/Root/Group/Group/Group/Times 3
+> X KeePassFile/Root/Group/Group/Group/Times/CreationTime 3
+> X KeePassFile/Root/Group/Group/Group/Times/Expires 3
+> X KeePassFile/Root/Group/Group/Group/Times/ExpiryTime 3
+> X KeePassFile/Root/Group/Group/Group/Times/LastAccessTime 3
+> X KeePassFile/Root/Group/Group/Group/Times/LastModificationTime 3
+> X KeePassFile/Root/Group/Group/Group/Times/LocationChanged 3
+> X KeePassFile/Root/Group/Group/Group/Times/UsageCount 3
+> X KeePassFile/Root/Group/Group/Group/UUID 3
+> X KeePassFile/Root/Group/Group/IconID 8
+> X KeePassFile/Root/Group/Group/IsExpanded 8
+> X KeePassFile/Root/Group/Group/LastTopVisibleEntry 8
+> X KeePassFile/Root/Group/Group/Name 8
+> X KeePassFile/Root/Group/Group/Notes 8
+1405,1413c1582,1590
+< X KeePassFile/Root/Group/Group/Times 6
+< X KeePassFile/Root/Group/Group/Times/CreationTime 6
+< X KeePassFile/Root/Group/Group/Times/Expires 6
+< X KeePassFile/Root/Group/Group/Times/ExpiryTime 6
+< X KeePassFile/Root/Group/Group/Times/LastAccessTime 6
+< X KeePassFile/Root/Group/Group/Times/LastModificationTime 6
+< X KeePassFile/Root/Group/Group/Times/LocationChanged 6
+< X KeePassFile/Root/Group/Group/Times/UsageCount 6
+< X KeePassFile/Root/Group/Group/UUID 6
+---
+> X KeePassFile/Root/Group/Group/Times 8
+> X KeePassFile/Root/Group/Group/Times/CreationTime 8
+> X KeePassFile/Root/Group/Group/Times/Expires 8
+> X KeePassFile/Root/Group/Group/Times/ExpiryTime 8
+> X KeePassFile/Root/Group/Group/Times/LastAccessTime 8
+> X KeePassFile/Root/Group/Group/Times/LastModificationTime 8
+> X KeePassFile/Root/Group/Group/Times/LocationChanged 8
+> X KeePassFile/Root/Group/Group/Times/UsageCount 8
+> X KeePassFile/Root/Group/Group/UUID 8

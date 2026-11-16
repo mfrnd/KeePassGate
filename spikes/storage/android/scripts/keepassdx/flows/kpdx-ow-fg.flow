@@ -1,0 +1,9 @@
+# Item 3, on screen: open OLD; with KeePassDX in front, ${ARR} put over the file at ${MODE}; then an
+# entry added through the editor (kpdx-ow-add.flow) and saved by autosave.
+include kpdx-open.flow
+sleep 3
+host sh ${P}/replace.sh /sdcard/Download/${NAME}.kdbx ${SRCDIR}/${ARR}.kdbx ${MODE}
+sleep 2
+include kpdx-ow-add.flow
+host sh ${P}/devstat.sh /sdcard/Download/${NAME}.kdbx after-save
+list

@@ -1,0 +1,18 @@
+335c335
+< G Bin t.accessed 2026-11-15T17:44:46Z
+---
+> G Bin t.accessed 2026-11-01T10:05:00Z
+341c341
+< G Bin usage 1
+---
+> G Bin usage 0
+388c388
+< G Root t.accessed 2026-11-15T17:44:46Z
+---
+> G Root t.accessed 2026-11-01T10:00:00Z
+394,395c394,395
+< G Root usage 1
+< M CD KPG.Profiles = "[\"reader\",\"writer\"]" @none
+---
+> G Root usage 0
+> M CD KPG.Profiles = "[\"reader\",\"writer\"]" @2026-11-01T10:15:00Z

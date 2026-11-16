@@ -1,0 +1,188 @@
+### 2026-11-16T16:02:54.823Z ow kpdx ch-move flow=kpdx-ch-move.flow base=B41  (versionName=4.5.8)
+Success
+<work>/work/base/B41.kdbx: 1 file pushed, 0 skipped. 0.6 MB/s (16085 bytes in 0.024s)
+given 16085 bytes, mtime 2026-11-16 16:52:55.000000000 +0100 sha256 92909efea553cdd099e1d603f4a90b4c57b729c6d4b2e723fb8403728cd79da7
+[2026-11-16T16:02:56.952Z] kpdx-ch-move.flow:4 include kpdx-open.flow
+[2026-11-16T16:02:56.964Z] kpdx-open.flow:4 sh monkey -p com.kunzisoft.keepass.libre -c android.intent.category.LAUNCHER 1
+  bash arg: -p
+  bash arg: com.kunzisoft.keepass.libre
+  bash arg: -c
+  bash arg: android.intent.category.LAUNCHER
+  bash arg: 1
+Events injected: 1
+## Network stats: elapsed time=342ms (0ms mobile, 0ms wifi, 342ms not connected)
+args: [-p, com.kunzisoft.keepass.libre, -c, android.intent.category.LAUNCHER, 1]
+ arg: "-p"
+ arg: "com.kunzisoft.keepass.libre"
+ arg: "-c"
+ arg: "android.intent.category.LAUNCHER"
+ arg: "1"
+data="com.kunzisoft.keepass.libre"
+data="android.intent.category.LAUNCHER"
+[2026-11-16T16:02:58.275Z] kpdx-open.flow:5 waitfor open_database_button 30
+[2026-11-16T16:03:04.951Z] kpdx-open.flow:6 tapuntil open_database_button Show.roots 40
+[2026-11-16T16:03:08.012Z]   tapped (799, 2051) 'Open existing vault'
+[2026-11-16T16:03:16.277Z]   tapped (799, 2051) 'Open existing vault'
+[2026-11-16T16:03:19.259Z] kpdx-open.flow:7 include picker.flow
+[2026-11-16T16:03:19.268Z] picker.flow:4 pick kpdx-ch-move.kdbx
+[2026-11-16T16:03:27.534Z]   focused and entered '^kpdx\\-ch\\-move\\.kdbx$'
+[2026-11-16T16:03:30.287Z] kpdx-open.flow:8 waitfor password_text_view 40
+[2026-11-16T16:03:32.569Z] kpdx-open.flow:9 typepwdx dummy-password-for-a-throwaway-file
+[2026-11-16T16:03:47.946Z]   typepwdx: the field reads 8 characters, not 35 (attempt 1)
+[2026-11-16T16:04:04.694Z]   typed the password and read it back (35 characters)
+[2026-11-16T16:04:04.696Z] kpdx-open.flow:10 tapuntil activity_password_open_button add_button 60
+[2026-11-16T16:04:08.029Z]   tapped (895, 1435) 'Unlock'
+[2026-11-16T16:04:17.568Z]   tapped (895, 1435) 'Unlock'
+[2026-11-16T16:04:28.095Z]   tapped (895, 1435) 'Unlock'
+[2026-11-16T16:04:34.638Z] kpdx-ch-move.flow:5 tapuntil node_text@^G$ node_text@^E1$ 40
+[2026-11-16T16:04:37.796Z]   tapped (247, 713) 'G'
+[2026-11-16T16:04:47.101Z]   tapped (247, 713) 'G'
+[2026-11-16T16:04:50.214Z] kpdx-ch-move.flow:6 sleep 3
+[2026-11-16T16:04:53.217Z] kpdx-ch-move.flow:7 log s01 E1 from G into N
+[2026-11-16T16:04:56.486Z]   s01 E1 from G into N
+[2026-11-16T16:04:56.487Z] kpdx-ch-move.flow:8 mark /sdcard/Download/kpdx-ch-move.kdbx
+[2026-11-16T16:04:56.539Z]   marked /sdcard/Download/kpdx-ch-move.kdbx sha256 92909efea553cdd0
+[2026-11-16T16:04:56.542Z] kpdx-ch-move.flow:9 longpressuntil node_text@^E1$ menu_move 60 2000 600
+[2026-11-16T16:05:02.065Z]   long-pressed (600, 856) for 2000 ms on the line of 'E1'
+[2026-11-16T16:05:13.786Z]   long-pressed (600, 856) for 2000 ms on the line of 'E1'
+[2026-11-16T16:05:24.945Z]   long-pressed (600, 856) for 2000 ms on the line of 'E1'
+[2026-11-16T16:05:36.250Z]   long-pressed (600, 856) for 2000 ms on the line of 'E1'
+[2026-11-16T16:05:42.526Z] kpdx-ch-move.flow:10 set TARGET ^N$
+[2026-11-16T16:05:42.527Z] kpdx-ch-move.flow:11 set INSIDE ^N1$
+[2026-11-16T16:05:42.528Z] kpdx-ch-move.flow:12 set MOVED ^E1$
+[2026-11-16T16:05:42.530Z] kpdx-ch-move.flow:13 include kpdx-move-to.flow
+[2026-11-16T16:05:42.537Z] kpdx-move-to.flow:3 tap menu_move
+[2026-11-16T16:05:45.992Z]   tapped (771, 2063) 'Move'
+[2026-11-16T16:05:45.994Z] kpdx-move-to.flow:4 sleep 2
+[2026-11-16T16:05:47.995Z] kpdx-move-to.flow:5 tapuntil node_text@^N$ node_text@^N1$ 40
+[2026-11-16T16:05:51.337Z]   tapped (247, 584) 'N'
+[2026-11-16T16:05:54.851Z] kpdx-move-to.flow:6 waitfor menu_paste 20
+[2026-11-16T16:05:57.119Z] kpdx-move-to.flow:7 tapuntil menu_paste node_text@^E1$ 30
+[2026-11-16T16:06:01.040Z]   tapped (1014, 2063) 'Paste'
+[2026-11-16T16:06:05.122Z] kpdx-move-to.flow:8 waitchange /sdcard/Download/kpdx-ch-move.kdbx 45
+[2026-11-16T16:06:08.527Z]   waitchange: /sdcard/Download/kpdx-ch-move.kdbx changed after 0.1 s, stable, sha256 73b6261909e850af
+[2026-11-16T16:06:08.528Z] kpdx-ch-move.flow:14 pull <work>/work/runs/kpdx/ch-move/s01-e1-into-n.kdbx /sdcard/Download/kpdx-ch-move.kdbx
+15081 bytes, mtime 2026-11-16 17:06:00.152000000 +0100
+73b6261909e850af62d6b2528d18af7374709513fa0e019e47cf90b93497a916  /sdcard/Download/kpdx-ch-move.kdbx
+/sdcard/Download/kpdx-ch-move.kdbx: 1 file pulled, 0 skipped. 0.2 MB/s (15081 bytes in 0.090s)
+[2026-11-16T16:06:08.889Z]   pulled /sdcard/Download/kpdx-ch-move.kdbx to <work>/work/runs/kpdx/ch-move/s01-e1-into-n.kdbx
+[2026-11-16T16:06:08.891Z] kpdx-ch-move.flow:15 tapuntil group_name@^Storage.probe$ node_text@^Recycle.Bin$ 40
+[2026-11-16T16:06:12.366Z]   tapped (122, 408) 'Storage probe'
+[2026-11-16T16:06:15.631Z] kpdx-ch-move.flow:16 sleep 2
+[2026-11-16T16:06:17.632Z] kpdx-ch-move.flow:17 tapuntil node_text@^KeePassGate$ node_text@^KPG.client.ci-runner$ 40
+[2026-11-16T16:06:21.698Z]   tapped (363, 584) 'KeePassGate'
+[2026-11-16T16:06:25.480Z] kpdx-ch-move.flow:18 sleep 3
+[2026-11-16T16:06:28.483Z] kpdx-ch-move.flow:19 log s02 AD2 out of KeePassGate into Passwords
+[2026-11-16T16:06:28.486Z]   s02 AD2 out of KeePassGate into Passwords
+[2026-11-16T16:06:28.487Z] kpdx-ch-move.flow:20 mark /sdcard/Download/kpdx-ch-move.kdbx
+[2026-11-16T16:06:28.566Z]   marked /sdcard/Download/kpdx-ch-move.kdbx sha256 73b6261909e850af
+[2026-11-16T16:06:28.567Z] kpdx-ch-move.flow:21 longpressuntil node_text@^KPG.client.ci-runner$ menu_move 60 2000 600
+[2026-11-16T16:06:33.658Z]   long-pressed (600, 739) for 2000 ms on the line of 'KPG client ci-runner'
+[2026-11-16T16:06:36.467Z] kpdx-ch-move.flow:22 tap menu_move
+[2026-11-16T16:06:40.202Z]   tapped (771, 2063) 'Move'
+[2026-11-16T16:06:40.204Z] kpdx-ch-move.flow:23 sleep 2
+[2026-11-16T16:06:42.207Z] kpdx-ch-move.flow:24 tapuntil group_name@^Storage.probe$ node_text@^Passwords$ 40
+[2026-11-16T16:06:46.412Z]   tapped (298, 408) 'Storage probe'
+[2026-11-16T16:06:48.661Z] kpdx-ch-move.flow:25 set TARGET ^Passwords$
+[2026-11-16T16:06:48.662Z] kpdx-ch-move.flow:26 set INSIDE ^P1$
+[2026-11-16T16:06:48.663Z] kpdx-ch-move.flow:27 set MOVED ^KPG.client.ci-runner$
+[2026-11-16T16:06:48.664Z] kpdx-ch-move.flow:28 tapuntil node_text@^Passwords$ node_text@^P1$ 40
+[2026-11-16T16:06:52.257Z]   tapped (341, 1046) 'Passwords'
+[2026-11-16T16:06:55.788Z] kpdx-ch-move.flow:29 waitfor menu_paste 20
+[2026-11-16T16:06:58.169Z] kpdx-ch-move.flow:30 tapuntil menu_paste node_text@^KPG.client.ci-runner$ 30
+[2026-11-16T16:07:02.089Z]   tapped (1014, 2063) 'Paste'
+  LinearLayout        (540, 1036)  id=action_bar_root              text='' desc=''
+  FrameLayout         (540, 1036)  id=content                      text='' desc=''
+  DrawerLayout        (540, 1036)  id=drawer_layout                text='' desc=''
+  ViewGroup           (540, 1108)  id=activity_group_container_view text='' desc=''
+  FrameLayout         (540, 1108)  id=search_content_view          text='' desc=''
+  ViewGroup           (540, 1108)  id=error_coordinator            text='' desc=''
+  ViewGroup           (540, 233)   id=activity_group_header        text='' desc=''
+  ViewGroup           (540, 233)   id=toolbar                      text='' desc=''
+  ImageButton    c    (77, 233)    id=                             text='' desc='Navigation drawer open'
+  TextView            (446, 233)   id=database_name                text='Storage probe DX (invented)' desc=''
+  Button         c    (771, 233)   id=menu_search                  text='' desc='Search'
+  Button         c    (903, 233)   id=menu_sort                    text='' desc='Sort'
+  ImageView      c    (1024, 233)  id=                             text='' desc='More options'
+  ImageView           (148, 233)   id=database_color               text='' desc='Database color'
+  ImageView           (148, 233)   id=database_modified            text='' desc='Save'
+  ScrollView          (540, 1196)  id=group_coordinator            text='' desc=''
+  RelativeLayout      (540, 1196)  id=add_node_button              text='' desc=''
+  ImageButton    c    (970, 2013)  id=add_button                   text='' desc='Add node'
+  LinearLayout        (540, 409)   id=app_bar                      text='' desc=''
+  RecyclerView   f    (540, 409)   id=breadcrumb_list              text='' desc=''
+  CardView       c    (278, 409)   id=breadcrumb_group             text='' desc=''
+  ImageView           (86, 409)    id=group_icon                   text='' desc='Icon name'
+  TextView            (298, 408)   id=group_name                   text='Storage probe' desc=''
+  ImageView           (491, 409)   id=group_separator              text='' desc=''
+  CardView       c    (758, 409)   id=breadcrumb_group             text='' desc=''
+  TextView            (568, 389)   id=group_numbers                text='15' desc=''
+  ImageView           (604, 409)   id=group_icon                   text='' desc=''
+  TextView            (824, 408)   id=group_name                   text='Passwords' desc=''
+  FrameLayout         (540, 1284)  id=nodes_list_fragment_container text='' desc=''
+  RecyclerView        (540, 1284)  id=nodes_list                   text='' desc='Node children'
+  ViewGroup      c    (534, 585)   id=node_container               text='' desc=''
+  ImageView           (127, 585)   id=node_icon                    text='' desc=''
+  LinearLayout        (606, 585)   id=node_container_info          text='' desc=''
+  TextView            (258, 566)   id=node_text                    text='P1' desc=''
+  TextView            (292, 609)   id=node_subtext                 text='user-p1' desc=''
+  ViewGroup      c    (534, 739)   id=node_container               text='' desc=''
+  ImageView           (127, 739)   id=node_icon                    text='' desc=''
+  LinearLayout        (606, 739)   id=node_container_info          text='' desc=''
+  TextView            (258, 720)   id=node_text                    text='P2' desc=''
+  TextView            (292, 763)   id=node_subtext                 text='user-p2' desc=''
+  ViewGroup      c    (534, 893)   id=node_container               text='' desc=''
+  ImageView           (127, 893)   id=node_icon                    text='' desc=''
+  LinearLayout        (606, 893)   id=node_container_info          text='' desc=''
+  TextView            (259, 874)   id=node_text                    text='Q1' desc=''
+  TextView            (292, 917)   id=node_subtext                 text='user-q1' desc=''
+  ViewGroup      c    (534, 1047)  id=node_container               text='' desc=''
+  ImageView           (127, 1047)  id=node_icon                    text='' desc=''
+  LinearLayout        (606, 1047)  id=node_container_info          text='' desc=''
+  TextView            (259, 1028)  id=node_text                    text='Q2' desc=''
+  TextView            (292, 1071)  id=node_subtext                 text='user-q2' desc=''
+  ViewGroup      c    (534, 1201)  id=node_container               text='' desc=''
+  ImageView           (127, 1201)  id=node_icon                    text='' desc=''
+  LinearLayout        (606, 1201)  id=node_container_info          text='' desc=''
+  TextView            (259, 1182)  id=node_text                    text='Q3' desc=''
+  TextView            (292, 1225)  id=node_subtext                 text='user-q3' desc=''
+  ViewGroup      c    (534, 1355)  id=node_container               text='' desc=''
+  ImageView           (127, 1355)  id=node_icon                    text='' desc=''
+  LinearLayout        (606, 1355)  id=node_container_info          text='' desc=''
+  TextView            (258, 1336)  id=node_text                    text='X1' desc=''
+  TextView            (291, 1379)  id=node_subtext                 text='user-x1' desc=''
+  ViewGroup      c    (534, 1509)  id=node_container               text='' desc=''
+  ImageView           (127, 1509)  id=node_icon                    text='' desc=''
+  LinearLayout        (606, 1509)  id=node_container_info          text='' desc=''
+  TextView            (258, 1490)  id=node_text                    text='X2' desc=''
+  TextView            (291, 1533)  id=node_subtext                 text='user-x2' desc=''
+  ViewGroup      c    (534, 1663)  id=node_container               text='' desc=''
+  ImageView           (127, 1663)  id=node_icon                    text='' desc=''
+  LinearLayout        (606, 1663)  id=node_container_info          text='' desc=''
+  TextView            (258, 1644)  id=node_text                    text='X3' desc=''
+  TextView            (291, 1687)  id=node_subtext                 text='user-x3' desc=''
+  ViewGroup      c    (534, 1817)  id=node_container               text='' desc=''
+  ImageView           (127, 1817)  id=node_icon                    text='' desc=''
+  LinearLayout        (606, 1817)  id=node_container_info          text='' desc=''
+  TextView            (258, 1798)  id=node_text                    text='X4' desc=''
+  TextView            (291, 1841)  id=node_subtext                 text='user-x4' desc=''
+  ViewGroup      c    (534, 1971)  id=node_container               text='' desc=''
+  ImageView           (127, 1971)  id=node_icon                    text='' desc=''
+  LinearLayout        (606, 1971)  id=node_container_info          text='' desc=''
+  TextView            (257, 1952)  id=node_text                    text='Y3' desc=''
+  TextView            (290, 1995)  id=node_subtext                 text='user-y3' desc=''
+  ViewGroup      c    (534, 2065)  id=node_container               text='' desc=''
+  ImageView           (0, 0)       id=node_icon                    text='' desc=''
+  LinearLayout        (0, 0)       id=node_container_info          text='' desc=''
+  TextView            (0, 0)       id=node_text                    text='Y4' desc=''
+  TextView            (0, 0)       id=node_subtext                 text='user-y4' desc=''
+  ViewGroup           (540, 2033)  id=activity_group_footer        text='' desc=''
+  ImageButton    c    (90, 2033)   id=lock_button                  text='' desc='Lock'
+  View                (540, 72)    id=statusBarBackground          text='' desc=''
+  View                (0, 0)       id=navigationBarBackground      text='' desc=''
+[2026-11-16T16:07:44.543Z] FAILED: tapuntil: never reached node_text@^KPG.client.ci-runner$
+total 20
+-rw------- 1 u0_a160 u0_a160 15225 2026-11-16 17:07:01.144000000 +0100 kpdx-ch-move.kdbx
+device kpdx-ch-move.kdbx sha256 ffc74f579f122f8685337bd8550524351f6b4c777699b6fece5b1e454f2c646c 15225 bytes, mtime 2026-11-16 17:07:01.144000000 +0100
+/sdcard/Download/kpdx-ch-move.kdbx: 1 file pulled, 0 skipped. 0.1 MB/s (15225 bytes in 0.283s)
+### flow rc=1 2026-11-16T16:07:47.822Z

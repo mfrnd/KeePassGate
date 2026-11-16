@@ -1,0 +1,27 @@
+# Item 6, history limits by edits: HL (HistoryMaxItems 3, HistoryMaxSize 6000 bytes). HL1 holds
+# three history items, at the item limit; its password edited twice. HL2 holds two history items
+# with 2000-character notes; its password edited once, which takes it past the size limit.
+include kpdx-open.flow
+tapuntil node_text@^History$ node_text@^HL1$ 40
+sleep 3
+set SEL ^HL1$
+log s01 HL1's password, one item past the item limit
+mark /sdcard/Download/${NAME}.kdbx
+include kpdx-sel-edit.flow
+appendto ^hl1-v3$ -a
+include kpdx-edit-validate.flow
+pull ${OUT}/s01-hl1-a.kdbx /sdcard/Download/${NAME}.kdbx
+log s02 HL1's password again
+mark /sdcard/Download/${NAME}.kdbx
+include kpdx-sel-edit.flow
+appendto ^hl1-v3-a$ -b
+include kpdx-edit-validate.flow
+pull ${OUT}/s02-hl1-b.kdbx /sdcard/Download/${NAME}.kdbx
+set SEL ^HL2$
+log s03 HL2's password, past the size limit
+mark /sdcard/Download/${NAME}.kdbx
+include kpdx-sel-edit.flow
+appendto ^hl2-v0$ -a
+include kpdx-edit-validate.flow
+pull ${OUT}/s03-hl2-a.kdbx /sdcard/Download/${NAME}.kdbx
+list

@@ -1,0 +1,4 @@
+# State b: the program in the background (HOME).
+key HOME
+sleep 3
+host sh ${P}/devstate.sh state-b

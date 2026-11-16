@@ -1,0 +1,4 @@
+keepass-sync/kp-phone-open: KG1 KG2 KG3:yes NewKey:yes DZ:yes X1:gone/rec | P1=p1-desktop P2=p2-old-phone Q1=q1-old-phone[h:q1-desktop] Q2=q2-desktop[h:q2-old-phone] Q3=q3-desktop K=k-old | NP:yes | 3214f8d36acc
+keepass-sync/kp-snew-open: KG1 KG2 KG3:yes NewKey:yes DZ:yes X1:gone/rec | P1=p1-desktop P2=p2-old-phone Q1=q1-old-phone[h:q1-desktop] Q2=q2-desktop[h:q2-old-phone] Q3=q3-old-phone K=k-old | NP:yes | 1742edcb0bf0
+kp-phone-open against the server's file: 36 lines differ (access times and database custom data times left out)
+kp-snew-open against the server's file: 42 lines differ (access times and database custom data times left out)

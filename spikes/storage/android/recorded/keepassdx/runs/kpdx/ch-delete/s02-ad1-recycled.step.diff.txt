@@ -1,0 +1,58 @@
+17,19c17,19
+< E AD1 parent KG (KeePassGate)
+< E AD1 prev -
+< E AD1 t.accessed 2026-11-01T11:00:00Z
+---
+> E AD1 parent Bin (Recycle Bin)
+> E AD1 prev KG
+> E AD1 t.accessed 2026-11-16T15:08:32Z
+22,23c22,23
+< E AD1 t.location 2026-11-01T11:00:00Z
+< E AD1 t.modified 2026-11-01T11:00:00Z
+---
+> E AD1 t.location 2026-11-16T15:08:32Z
+> E AD1 t.modified 2026-11-16T15:08:32Z
+25c25
+< E AD1 usage 0
+---
+> E AD1 usage 2
+861c861
+< G Bin children groups=0 entries=1
+---
+> G Bin children groups=0 entries=2
+867c867
+< G Bin t.accessed 2026-11-16T15:07:52Z
+---
+> G Bin t.accessed 2026-11-16T15:08:32Z
+871c871
+< G Bin t.modified 2026-11-16T15:07:52Z
+---
+> G Bin t.modified 2026-11-16T15:08:32Z
+881c881
+< G G t.accessed 2026-11-16T15:07:52Z
+---
+> G G t.accessed 2026-11-16T15:07:53Z
+927c927
+< G KG children groups=0 entries=14
+---
+> G KG children groups=0 entries=13
+933c933
+< G KG t.accessed 2026-11-01T10:05:00Z
+---
+> G KG t.accessed 2026-11-16T15:08:32Z
+937c937
+< G KG t.modified 2026-11-01T10:05:00Z
+---
+> G KG t.modified 2026-11-16T15:08:32Z
+1024c1024
+< G Root t.accessed 2026-11-16T15:07:52Z
+---
+> G Root t.accessed 2026-11-16T15:08:32Z
+1028c1028
+< G Root t.modified 2026-11-16T15:07:52Z
+---
+> G Root t.modified 2026-11-16T15:08:32Z
+1172c1172
+< X KeePassFile/Root/Group/Group/Entry/PreviousParentGroup 1
+---
+> X KeePassFile/Root/Group/Group/Entry/PreviousParentGroup 2

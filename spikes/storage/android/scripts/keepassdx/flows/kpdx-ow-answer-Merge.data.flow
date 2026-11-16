@@ -1,0 +1,7 @@
+# Item 3 helper, autosave off: Merge data from the overflow menu, opened by the menu key (taps on the
+# overflow were seen to open Sort while the toolbar was laid out again).
+maybe ^Cancel$ 2
+key MENU
+sleep 2
+list
+tapuntil ^Merge.data$ (modified.outside|add_button|Reloading) 20

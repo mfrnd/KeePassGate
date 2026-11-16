@@ -1,0 +1,32 @@
+# Item 5, a merge that may never end: "Merge from ..." as kpdx-B-from.flow, then up to 150 s watched
+# (the screen, the program's CPU, its warnings), the file's time and hash logged before and after.
+# run-B.sh then pulls the file and force-stops the program, which is the timeout.
+include kpdx-open.flow
+adb push ${SRC} /sdcard/Download/${SRCNAME}.kdbx
+sh sha256sum /sdcard/Download/${SRCNAME}.kdbx
+sh stat -c '%s bytes, mtime %y' /sdcard/Download/${NAME}.kdbx
+sleep 4
+drawer menu_merge_from
+tap menu_merge_from
+waitfor setup_check_password_edit_text 20
+type setup_check_password_edit_text dumm
+tapuntil ^Check$ Show.roots 30
+include picker-src.flow
+waitfor title_database 30
+typepw password_text_view dummy-password-for-a-throwaway-file
+tap ^OK$
+sleep 15
+log 15 s after OK
+list
+sh top -b -n 1 -o PID,USER,%CPU,S,TIME+,ARGS
+sleep 45
+log 60 s after OK
+list
+sh top -b -n 1 -o PID,USER,%CPU,S,TIME+,ARGS
+sleep 90
+log 150 s after OK
+list
+sh top -b -n 1 -o PID,USER,%CPU,S,TIME+,ARGS
+sh stat -c '%s bytes, mtime %y' /sdcard/Download/${NAME}.kdbx
+sh sha256sum /sdcard/Download/${NAME}.kdbx
+sh logcat -d -t 300 -s DatabaseTaskNotificationService:* AndroidRuntime:* ActivityManager:W

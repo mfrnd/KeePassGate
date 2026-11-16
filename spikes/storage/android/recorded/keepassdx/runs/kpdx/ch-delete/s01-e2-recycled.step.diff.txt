@@ -1,0 +1,70 @@
+123,125c123,125
+< E E2 parent G (G)
+< E E2 prev -
+< E E2 t.accessed 2026-11-01T10:45:00Z
+---
+> E E2 parent Bin (Recycle Bin)
+> E E2 prev G
+> E E2 t.accessed 2026-11-16T15:07:52Z
+128,129c128,129
+< E E2 t.location 2026-11-01T10:45:00Z
+< E E2 t.modified 2026-11-01T10:45:00Z
+---
+> E E2 t.location 2026-11-16T15:07:52Z
+> E E2 t.modified 2026-11-16T15:07:52Z
+131c131
+< E E2 usage 0
+---
+> E E2 usage 2
+861c861
+< G Bin children groups=0 entries=0
+---
+> G Bin children groups=0 entries=1
+867c867
+< G Bin t.accessed 2026-11-01T10:05:00Z
+---
+> G Bin t.accessed 2026-11-16T15:07:52Z
+871c871
+< G Bin t.modified 2026-11-01T10:05:00Z
+---
+> G Bin t.modified 2026-11-16T15:07:52Z
+875c875
+< G G children groups=1 entries=4
+---
+> G G children groups=1 entries=3
+881c881
+< G G t.accessed 2026-11-01T10:00:00Z
+---
+> G G t.accessed 2026-11-16T15:07:52Z
+885c885
+< G G t.modified 2026-11-01T10:30:00Z
+---
+> G G t.modified 2026-11-16T15:07:52Z
+1024c1024
+< G Root t.accessed 2026-11-01T10:00:00Z
+---
+> G Root t.accessed 2026-11-16T15:07:52Z
+1028c1028
+< G Root t.modified 2026-11-01T10:00:00Z
+---
+> G Root t.modified 2026-11-16T15:07:52Z
+1063c1063
+< R meta Generator = (empty)
+---
+> R meta Generator = "KeePassDX"
+1092a1093
+> X KeePassFile/Meta/HeaderHash 1
+1159c1160
+< X KeePassFile/Root/Group/Group/Entry/History/Entry/Tags 6
+---
+> X KeePassFile/Root/Group/Group/Entry/History/Entry/Tags 1
+1170a1172
+> X KeePassFile/Root/Group/Group/Entry/PreviousParentGroup 1
+1176c1178
+< X KeePassFile/Root/Group/Group/Entry/Tags 36
+---
+> X KeePassFile/Root/Group/Group/Entry/Tags 3
+1204d1205
+< X KeePassFile/Root/Group/Group/Group/Entry/Tags 4
+1231d1231
+< X KeePassFile/Root/Group/Group/Group/Group/Entry/Tags 1

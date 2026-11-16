@@ -1,0 +1,111 @@
+### 2026-11-16T15:58:47.969Z ow kpdx ch-entry3 flow=kpdx-ch-entry3.flow base=B41  (versionName=4.5.8)
+Success
+<work>/work/base/B41.kdbx: 1 file pushed, 0 skipped. 1.1 MB/s (16085 bytes in 0.013s)
+given 16085 bytes, mtime 2026-11-16 16:48:48.000000000 +0100 sha256 92909efea553cdd099e1d603f4a90b4c57b729c6d4b2e723fb8403728cd79da7
+[2026-11-16T15:58:49.533Z] kpdx-ch-entry3.flow:4 include kpdx-open.flow
+[2026-11-16T15:58:49.540Z] kpdx-open.flow:4 sh monkey -p com.kunzisoft.keepass.libre -c android.intent.category.LAUNCHER 1
+  bash arg: -p
+  bash arg: com.kunzisoft.keepass.libre
+  bash arg: -c
+  bash arg: android.intent.category.LAUNCHER
+  bash arg: 1
+Events injected: 1
+## Network stats: elapsed time=150ms (0ms mobile, 0ms wifi, 150ms not connected)
+args: [-p, com.kunzisoft.keepass.libre, -c, android.intent.category.LAUNCHER, 1]
+ arg: "-p"
+ arg: "com.kunzisoft.keepass.libre"
+ arg: "-c"
+ arg: "android.intent.category.LAUNCHER"
+ arg: "1"
+data="com.kunzisoft.keepass.libre"
+data="android.intent.category.LAUNCHER"
+[2026-11-16T15:58:50.714Z] kpdx-open.flow:5 waitfor open_database_button 30
+[2026-11-16T15:58:56.513Z] kpdx-open.flow:6 tapuntil open_database_button Show.roots 40
+[2026-11-16T15:58:59.499Z]   tapped (799, 2051) 'Open existing vault'
+[2026-11-16T15:59:10.919Z]   tapped (799, 2051) 'Open existing vault'
+[2026-11-16T15:59:19.422Z] kpdx-open.flow:7 include picker.flow
+[2026-11-16T15:59:19.430Z] picker.flow:4 pick kpdx-ch-entry3.kdbx
+[2026-11-16T15:59:28.420Z]   focused and entered '^kpdx\\-ch\\-entry3\\.kdbx$'
+[2026-11-16T15:59:28.425Z] kpdx-open.flow:8 waitfor password_text_view 40
+[2026-11-16T15:59:33.169Z] kpdx-open.flow:9 typepwdx dummy-password-for-a-throwaway-file
+[2026-11-16T15:59:49.345Z]   typepwdx: the field reads 8 characters, not 35 (attempt 1)
+[2026-11-16T16:00:05.182Z]   typed the password and read it back (35 characters)
+[2026-11-16T16:00:05.183Z] kpdx-open.flow:10 tapuntil activity_password_open_button add_button 60
+[2026-11-16T16:00:08.662Z]   tapped (895, 1435) 'Unlock'
+[2026-11-16T16:00:19.338Z]   tapped (895, 1435) 'Unlock'
+[2026-11-16T16:00:29.310Z]   tapped (895, 1435) 'Unlock'
+[2026-11-16T16:00:35.966Z] kpdx-ch-entry3.flow:5 tapuntil node_text@^G$ node_text@^E1$ 40
+[2026-11-16T16:00:39.184Z]   tapped (247, 713) 'G'
+[2026-11-16T16:00:47.248Z]   tapped (247, 713) 'G'
+[2026-11-16T16:00:49.777Z] kpdx-ch-entry3.flow:6 sleep 3
+[2026-11-16T16:00:52.778Z] kpdx-ch-entry3.flow:7 set SEL ^E1
+[2026-11-16T16:00:52.781Z] kpdx-ch-entry3.flow:8 log s06 a custom field added
+[2026-11-16T16:00:52.782Z]   s06 a custom field added
+[2026-11-16T16:00:52.783Z] kpdx-ch-entry3.flow:9 mark /sdcard/Download/kpdx-ch-entry3.kdbx
+[2026-11-16T16:00:52.832Z]   marked /sdcard/Download/kpdx-ch-entry3.kdbx sha256 92909efea553cdd0
+[2026-11-16T16:00:52.834Z] kpdx-ch-entry3.flow:10 include kpdx-sel-edit.flow
+[2026-11-16T16:00:52.853Z] kpdx-sel-edit.flow:3 longpressuntil node_text@^E1 menu_move 60 2000 600
+[2026-11-16T16:00:57.644Z]   long-pressed (600, 856) for 2000 ms on the line of 'E1'
+[2026-11-16T16:01:09.944Z]   long-pressed (600, 856) for 2000 ms on the line of 'E1'
+[2026-11-16T16:01:23.178Z]   long-pressed (600, 856) for 2000 ms on the line of 'E1'
+[2026-11-16T16:01:33.714Z]   long-pressed (600, 856) for 2000 ms on the line of 'E1'
+[2026-11-16T16:01:35.808Z] kpdx-sel-edit.flow:4 tapuntil More.options#2 ^Edit$ 30
+[2026-11-16T16:01:38.801Z]   tapped (1024, 2063) 'More options'
+[2026-11-16T16:01:41.238Z] kpdx-sel-edit.flow:5 tap ^Edit$
+[2026-11-16T16:01:44.079Z]   tapped (799, 1966) 'Edit'
+[2026-11-16T16:01:44.081Z] kpdx-sel-edit.flow:6 ifthen setup_check_password_edit_text 8 kpdx-verify.flow
+[2026-11-16T16:01:47.188Z]   'setup_check_password_edit_text' is there: running kpdx-verify.flow
+[2026-11-16T16:01:49.263Z] kpdx-verify.flow:3 type setup_check_password_edit_text dumm
+[2026-11-16T16:02:04.527Z]   type: field never took the focus (attempt 1)
+[2026-11-16T16:02:15.310Z]   typed 'dumm'
+[2026-11-16T16:02:15.313Z] kpdx-verify.flow:4 tapuntil ^Check$ entry_edit_validate 30
+[2026-11-16T16:02:19.219Z]   tapped (887, 1111) 'Check'
+[2026-11-16T16:02:23.146Z] kpdx-sel-edit.flow:7 waitfor entry_edit_validate 20
+[2026-11-16T16:02:25.304Z] kpdx-ch-entry3.flow:11 tap menu_add_field
+[2026-11-16T16:02:28.709Z]   tapped (816, 2063) 'Add field'
+[2026-11-16T16:02:28.711Z] kpdx-ch-entry3.flow:12 sleep 2
+[2026-11-16T16:02:30.713Z] kpdx-ch-entry3.flow:13 typefocused Phone
+[2026-11-16T16:02:36.340Z]   typed 'Phone' into the focused field ()
+[2026-11-16T16:02:36.343Z] kpdx-ch-entry3.flow:14 tap ^OK$
+  LinearLayout        (540, 1036)  id=action_bar_root              text='' desc=''
+  FrameLayout         (540, 1036)  id=content                      text='' desc=''
+  ViewGroup           (540, 834)   id=activity_entry_edit_container text='' desc=''
+  ViewGroup           (540, 834)   id=error_coordinator            text='' desc=''
+  ViewGroup           (540, 834)   id=entry_edit_coordinator_layout text='' desc=''
+  ScrollView          (540, 834)   id=entry_edit_scroll            text='' desc=''
+  FrameLayout         (540, 834)   id=entry_edit_content           text='' desc=''
+  FrameLayout         (540, 834)   id=template_view                text='' desc=''
+  FrameLayout         (540, 258)   id=template_header_container    text='' desc=''
+  ImageButton    c    (540, 149)   id=template_icon_button         text='' desc='Entry icon'
+  FrameLayout         (540, 243)   id=template_title_container     text='' desc=''
+  EditText       cf   (540, 250)   id=                             text='PhoneE1' desc=''
+  ImageView      c    (917, 153)   id=template_foreground_color_button text='' desc='Entry background color'
+  LinearLayout        (540, 883)   id=template_fields_container    text='' desc=''
+  EditText       c    (540, 534)   id=                             text='alice-invented' desc=''
+  EditText       c    (474, 712)   id=                             text='pw-e1-not-real' desc=''
+  ImageButton    cx   (815, 712)   id=text_input_end_icon          text='' desc='Show password'
+  TextView            (751, 762)   id=                             text='Entropy: 37.82 bit' desc=''
+  ImageButton    c    (947, 715)   id=                             text='' desc='Edit'
+  EditText       c    (540, 890)   id=                             text='https://e1.example.invalid/' desc=''
+  LinearLayout        (457, 1061)  id=expiration_label             text='' desc=''
+  EditText       c    (457, 1063)  id=expiration_text              text='Never' desc=''
+  Switch         cx   (941, 1062)  id=expiration_checkbox          text='' desc=''
+  EditText       c    (540, 1247)  id=                             text='ordinary notes' desc=''
+  FrameLayout         (540, 1459)  id=custom_fields_container      text='' desc=''
+  EditText       c    (474, 1486)  id=                             text='extra-value-e1' desc=''
+  ImageButton    c    (947, 1495)  id=                             text='' desc='Edit'
+  ImageButton    c    (90, 1416)   id=lock_button                  text='' desc='Lock'
+  ViewGroup           (540, 1435)  id=entry_edit_bottom_bar        text='' desc=''
+  ImageButton    c    (209, 1435)  id=                             text='' desc='Navigate up'
+  Button         c    (552, 1435)  id=menu_add_attachment          text='' desc='Add attachment'
+  Button         c    (684, 1435)  id=menu_add_otp                 text='' desc='Set up one-time password'
+  Button         c    (816, 1435)  id=menu_add_field               text='' desc='Add field'
+  ImageButton    c    (970, 1413)  id=entry_edit_validate          text='' desc='Validate'
+  View                (540, 72)    id=statusBarBackground          text='' desc=''
+  View                (0, 0)       id=navigationBarBackground      text='' desc=''
+[2026-11-16T16:02:51.669Z] FAILED: tap: no node matches ^OK$
+total 20
+-rw------- 1 u0_a160 u0_a160 16085 2026-11-16 16:48:48.000000000 +0100 kpdx-ch-entry3.kdbx
+device kpdx-ch-entry3.kdbx sha256 92909efea553cdd099e1d603f4a90b4c57b729c6d4b2e723fb8403728cd79da7 16085 bytes, mtime 2026-11-16 16:48:48.000000000 +0100
+/sdcard/Download/kpdx-ch-entry3.kdbx: 1 file pulled, 0 skipped. 0.9 MB/s (16085 bytes in 0.016s)
+### flow rc=1 2026-11-16T16:02:54.655Z

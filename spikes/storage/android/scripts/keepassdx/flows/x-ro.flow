@@ -1,0 +1,21 @@
+# exploration: the password typed with typepwdx, write-protected mode, then what the group screen offers
+sh monkey -p ${PKG} -c android.intent.category.LAUNCHER 1
+waitfor open_database_button 30
+tapuntil open_database_button Show.roots 40
+include picker.flow
+waitfor password_text_view 40
+typepwdx dummy-password-for-a-throwaway-file
+tap menu_open_file_read_mode_key
+sleep 2
+list
+tapuntil activity_password_open_button add_button 60
+sleep 3
+list
+tapuntil More.options ^Reload.data$ 20
+list
+key BACK
+sleep 1
+tapuntil node_text@^G$ node_text@^E1$ 40
+sleep 3
+longpressuntil node_text@^E1$ menu_copy 40 2000 600
+list

@@ -1,0 +1,4 @@
+# KeePassDX's "modified outside the app" dialog: log its message and buttons, answer OK.
+dialog
+tap ^OK$
+sleep 2

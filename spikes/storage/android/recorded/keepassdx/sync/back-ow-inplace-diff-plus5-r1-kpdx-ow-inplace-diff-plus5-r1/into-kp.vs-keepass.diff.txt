@@ -1,0 +1,70 @@
+116a117,131
+> E E2 H2026-11-01T10:45:00Z S Notes p=0 ""
+> E E2 H2026-11-01T10:45:00Z S Password p=1 "pw-e2-not-real"
+> E E2 H2026-11-01T10:45:00Z S Title p=0 "E2"
+> E E2 H2026-11-01T10:45:00Z S URL p=0 ""
+> E E2 H2026-11-01T10:45:00Z S UserName p=0 "bob-invented"
+> E E2 H2026-11-01T10:45:00Z autotype enabled=1 obfuscation=0 seq="" assoc=0
+> E E2 H2026-11-01T10:45:00Z misc icon=0 customIcon=- fg=00000000 bg=00000000 overrideUrl="" quality=1
+> E E2 H2026-11-01T10:45:00Z prev -
+> E E2 H2026-11-01T10:45:00Z t.accessed 2026-11-01T10:45:00Z
+> E E2 H2026-11-01T10:45:00Z t.created 2026-11-01T10:45:00Z
+> E E2 H2026-11-01T10:45:00Z t.expires 0 2026-11-01T10:00:00Z
+> E E2 H2026-11-01T10:45:00Z t.location 2026-11-01T10:45:00Z
+> E E2 H2026-11-01T10:45:00Z t.modified 2026-11-01T10:45:00Z
+> E E2 H2026-11-01T10:45:00Z tags []
+> E E2 H2026-11-01T10:45:00Z usage 0
+123c138
+< E E2 history.count 0
+---
+> E E2 history.count 1
+125,127c140,142
+< E E2 parent G (G)
+< E E2 prev -
+< E E2 t.accessed 2026-11-01T10:45:00Z
+---
+> E E2 parent Bin (Recycle Bin)
+> E E2 prev G
+> E E2 t.accessed 2026-11-16T10:33:51Z
+130,131c145,146
+< E E2 t.location 2026-11-01T10:45:00Z
+< E E2 t.modified 2026-11-01T10:45:00Z
+---
+> E E2 t.location 2026-11-16T10:33:51Z
+> E E2 t.modified 2026-11-16T10:33:51Z
+133c148
+< E E2 usage 0
+---
+> E E2 usage 2
+880c895
+< G Bin children groups=0 entries=0
+---
+> G Bin children groups=0 entries=1
+886c901
+< G Bin t.accessed 2026-11-01T10:05:00Z
+---
+> G Bin t.accessed 2026-11-16T10:33:51Z
+890c905
+< G Bin t.modified 2026-11-01T10:05:00Z
+---
+> G Bin t.modified 2026-11-16T10:33:51Z
+894c909
+< G G children groups=1 entries=4
+---
+> G G children groups=1 entries=3
+900c915
+< G G t.accessed 2026-11-01T10:00:00Z
+---
+> G G t.accessed 2026-11-16T10:33:51Z
+904c919
+< G G t.modified 2026-11-01T10:30:00Z
+---
+> G G t.modified 2026-11-16T10:33:51Z
+1043c1058
+< G Root t.accessed 2026-11-01T10:00:00Z
+---
+> G Root t.accessed 2026-11-16T10:33:51Z
+1047c1062
+< G Root t.modified 2026-11-01T10:00:00Z
+---
+> G Root t.modified 2026-11-16T10:33:51Z

@@ -16,6 +16,13 @@ Keepass2Android's own synchronization of a database on a WebDAV server. Sections
 theirs; there "overwrite 2.1" means section 2.1 of the first and "synchronize 2" section 2 of the
 second.
 
+Two more followed on 2026-11-16, each from a working directory of its own:
+`papers\ground\measured-keepassdx.md`, KeePassDX 4.5.8 measured again in full, and
+`papers\ground\measured-k2a-background.md`, Keepass2Android's background synchronization with
+nobody to answer. Sections 15 and 16 are theirs; there "keepassdx 2.1" and "background 2" name
+sections of those two. Neither ran again for this branch, and no check holds their tables against
+their records yet.
+
 **What ran again from the branch on 2026-11-16, and what came out:**
 
 - **The probe builds against the pinned KeePass and makes the six bases again**, and every base's
@@ -746,7 +753,8 @@ the emulator's log for both later measurements.
 - from the evidence, its copies of `flows\`, `scripts\` and `probe\` and the fetch script, which
   the working directory's last state replaces: they differ from it in the paths the evidence wrote
   `<work>` and in `wsl-tidy.sh`, written after the copy;
-- `android-evidence\keepassdx\` and `measured-keepassdx.md`, a measurement still in progress.
+- `android-evidence\keepassdx\` and `measured-keepassdx.md`, a measurement still in progress when
+  these two were carried, which section 15 carries.
 
 ### 13.4 What was replaced in what was carried
 
@@ -793,3 +801,130 @@ the record and the paper, so `server.sh start` and that flow need a password of 
 three places before a run: as written, the shell reads `<invented>` as a redirection. The user,
 `kpg`, is the project's abbreviation, as in the device's name `kpg30`, and is kept. The screen lock
 PIN `pin.sh` sets for the QuickUnlock runs is the emulator's, invented, and kept.
+
+## 15. KeePassDX measured again
+
+### 15.1 What it measures
+
+On 2026-11-16 the same emulator ran KeePassDX 4.5.8, still its newest release, against bases made
+by the probe with `DX.cs` added: every operation the program offers (keepassdx 2), both of its
+merge paths against KeePass's own Synchronize (keepassdx 3), its overwrite of a file that changed
+(keepassdx 4), the hazards read from its source (keepassdx 6), its history limits (keepassdx 7),
+the way back into KeePass and through Keepass2Android 1.15-r6 (keepassdx 8) and two gaps of the
+first measurement (keepassdx 9). The write-protected opening was cut (keepassdx 5). The step logs
+run from 07:25 to 16:22 UTC.
+
+### 15.2 Where the paper's paths are
+
+The paper names its evidence's parts relative to it:
+
+| The paper writes | Here |
+| --- | --- |
+| `work\<dir>\` (`B`, `base`, `expect`, `item8`, `not-counted`, `runs`, `sync`), and `item8\` | `recorded\keepassdx\<dir>\` |
+| `logs\`, with `logs\runs\`, `logs\B\` and `not-counted\runs\` | `recorded\keepassdx\logs\`, `not-counted\` below it |
+| `release-notes.txt` | `recorded\keepassdx\release-notes.txt` |
+| `scripts\`, and the pin file `android.sha256` | `scripts\keepassdx\`, `scripts\keepassdx\android.sha256` |
+| `flows\` | `scripts\keepassdx\flows\` |
+| `probe\` | `probe\keepassdx\` |
+| `md5pair\recorded\` | the same place in this family (section 6) |
+| `<work>`, `<dl>`, `<home>` in the record and the scripts | the measurement's work directory, its APK directory inside WSL, the WSL user's home |
+
+### 15.3 The scripts, the flows and the probe
+
+The measurement's `env.sh` is a copy of the overwrite measurement's, and twelve of its scripts,
+two flows and the probe differ from the family's, so its scripts, flows and probe are carried
+whole, as its last state left them, in directories of their own: `scripts\keepassdx\`,
+`scripts\keepassdx\flows\` and `probe\keepassdx\`. Of those, 12 scripts and 8 flows are the
+family's byte for byte but for line endings; 18 scripts, the four batch files in `batches\`, 39
+flows and `DX.cs` are new; `env.sh`, `k.py`, `check.sh`, `collect.sh`, `evidence.sh`, `kk.sh`,
+`replace.sh`, `run-B.sh`, `run-ow.sh`, `runs-alike.sh`, `sync.sh`, `android.sha256`,
+`kpdx-B-from.flow`, `kpdx-open.flow`, `Store.cs` and `Probe.csproj` differ from the family's.
+
+They are carried as the measurement left them and not adapted to run from the branch: `env.sh`
+keeps `D=<work>`, so a run sets its own work directory there first, and the emulator was not
+started for this branch. Replaced here, each counted: in `evidence.sh` the evidence directory
+`E` (to `$M/out/evidence/keepassdx`), the words of its comment naming where the evidence went,
+and the five patterns that matched the temporary directory the measurement ran in, written
+`<scratch-wsl>`, `<scratch-bash>` and `<scratch-win>`; in `Probe.csproj` the `HintPath` of
+`KeePass` (to `$(KeePassExe)`) and its comment, as section 4 did for the first.
+
+### 15.4 The pins
+
+`scripts\keepassdx\android.sha256` is the measurement's copy of the pins: KeePassDX 4.5.8 libre,
+Keepass2Android 1.15-r6 and the SDK's command-line tools, each with the hash, signer and URL of
+the root `android.sha256`. `fetch-kpdx.sh` downloaded the KeePassDX APK again into a directory of
+the measurement's own; `logs\apksigner.txt` holds its hash and `logs\verify.txt` what `apksigner`
+reported of its signature. Nothing new is pinned; no APK is carried.
+
+### 15.5 The record
+
+`recorded\keepassdx\` is the evidence byte for byte: 1,804 files of `work\` (dumps, diffs and
+verdicts of every pulled file and every synchronize), 139 of `logs\` and `release-notes.txt`. No
+database was in it. Not carried: `notes\`, the measurement's working notes, which no paper quotes,
+with a second copy of `release-notes.txt`; and the evidence's top `android.sha256`, the same bytes
+as `scripts\keepassdx\android.sha256`. Searched afterwards, no carried file holds a path of this
+machine, a user's directory or a session's identifier; the emulator's log names the device serial
+`EMULATOR37X2X13X0`, as in section 13.4.
+
+### 15.6 Where the record and the paper differ
+
+- keepassdx 1.1 names `logs\check.txt` for the hash of the `base.apk` the installed package runs
+  from. The evidence holds no such file: `logs\apksigner.txt` and `logs\verify.txt` hold the
+  downloaded file's hash and signer, and nothing here shows the installed file's hash.
+
+No check holds the paper's tables against this record; a check in the manner of
+`checks\overwrite.py` is still to be written.
+
+## 16. Keepass2Android's background synchronization
+
+### 16.1 What it measures
+
+On 2026-11-16, from 16:52 to 18:43 UTC by the step logs, the emulator of section 12 ran
+Keepass2Android 1.15-r6 against the WebDAV server of section 14 with "Synchronize in background"
+held at its first request (the server stopped with `SIGSTOP` and continued with `SIGCONT`): what
+the background synchronization does when the program is not in front to ask (background 2), what
+"Cancel" at the question during a synchronize leaves (background 3), the settings considered for a
+phone over six alternating changes (background 4), and the same over an SFTP server from the same
+rclone (background 5).
+
+### 16.2 Where the paper's paths are
+
+| The paper writes | Here |
+| --- | --- |
+| `android-evidence\k2a-background\` beside it, with `base\`, `runs\` and `logs\` | `recorded\k2a-background\`, with the same three |
+| `server\`, "the servers' logs, the fetch script and the published `SHA256SUMS`" | the logs in `recorded\k2a-background\server\`; the fetch script as section 14 carries it, from the same file, and the checksums `recorded\k2a-synchronize\server\SHA256SUMS`, byte for byte the measurement's |
+| `scripts\` | `scripts\k2a-background\` |
+| `flows\` | `scripts\k2a-background\flows\` |
+| `probe\` | `probe\k2a-background\` |
+| `<work>`, `<user>`, `<wsl-home>` | the measurement's work directory, the WSL user, its home |
+| `<invented>` | the WebDAV and SFTP passwords, invented for the runs |
+
+### 16.3 The scripts, the flows and the probe
+
+Carried whole, as in section 15.3: 17 scripts and 31 flows are the family's byte for byte but for
+line endings; 11 scripts, the four batch files in `batches-ow\` and 29
+flows are new; `env.sh`, `expect.sh`, `k.py`, `mksnew.sh`, `run-sy.sh`, `server.sh`,
+`sverdict.sh`, `k2a-setting.flow`, `k2a-sy-open.flow`, `Store.cs` and `Probe.csproj` differ from
+the family's. `env.sh` reads the pins from an `android.sha256` beside it, which the evidence did
+not copy; the family's `scripts\android.sha256` pins the release of Keepass2Android it ran, with
+the hash `background 1` names. Not adapted to run from the branch, as in section 15.3. Replaced
+here, each counted: in `evidence-bg.sh` the evidence directory `E` (to
+`$M/out/evidence/k2a-background`), the words of its comment naming where the evidence went, and
+the three patterns that matched the temporary directory, written as in section 15.3; in
+`Probe.csproj` the `HintPath` and its comment.
+
+### 16.4 What was replaced in the record
+
+`recorded\k2a-background\` is the evidence byte for byte, the machine's paths written `<work>`,
+`<user>` and `<wsl-home>` by the measurement, with a replacement here: the WebDAV password and
+the SFTP password, each invented for these runs, written `<invented>`, 14 and 4 times in 18 step
+logs, and 3 and 2 times in `server.sh`, `server-sftp.sh`, `k2a-sy-open.flow` and
+`k2a-sftp-open.flow`. `server.sh`,
+`server-sftp.sh`, `k2a-sy-open.flow` and `k2a-sftp-open.flow` therefore need a password of their
+own before a run, as section 14 states for the first. Not carried: the evidence's
+`server\fetch-rclone.sh` and `server\SHA256SUMS`, byte for byte the files the branch already holds
+(section 16.2). Searched afterwards, no carried file holds a path of this machine, a user's
+directory, a session's identifier or either password.
+
+No check holds the paper's tables against this record; a check in the manner of
+`checks\k2a_synchronize.py` is still to be written.

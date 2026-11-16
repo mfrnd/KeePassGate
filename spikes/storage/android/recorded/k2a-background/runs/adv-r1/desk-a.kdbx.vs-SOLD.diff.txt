@@ -1,0 +1,64 @@
+1c1
+< # file SOLD.kdbx size=2165 sha256=1019e391b75edfe8eb32c81be3e3cfb88a7b0efec39f10a7281da04f0d0469a3
+---
+> # file desk-a.kdbx size=2389 sha256=388a16634d168e618ede94c7277ba7a4f03c9ee7529f13dd9be6edd691d95850
+57a58,90
+> E KG3 S KPG.Revoked.c2 p=0 "{\"kind\":\"revocation\",\"client\":\"client-two\"}"
+> E KG3 S Notes p=0 ""
+> E KG3 S Password p=1 ""
+> E KG3 S Title p=0 "KPG revocation"
+> E KG3 S URL p=0 ""
+> E KG3 S UserName p=0 ""
+> E KG3 autotype enabled=1 obfuscation=0 seq="" assoc=0
+> E KG3 history.count 0
+> E KG3 misc icon=0 customIcon=- fg=00000000 bg=00000000 overrideUrl="" quality=1
+> E KG3 parent KG (KeePassGate)
+> E KG3 prev -
+> E KG3 t.accessed 2026-11-01T18:00:00Z
+> E KG3 t.created 2026-11-01T18:00:00Z
+> E KG3 t.expires 0 2026-11-01T10:00:00Z
+> E KG3 t.location 2026-11-01T18:00:00Z
+> E KG3 t.modified 2026-11-01T18:00:00Z
+> E KG3 tags []
+> E KG3 usage 0
+> E P1 H2026-11-01T10:20:00Z S Notes p=0 ""
+> E P1 H2026-11-01T10:20:00Z S Password p=1 "p1-old"
+> E P1 H2026-11-01T10:20:00Z S Title p=0 "P1"
+> E P1 H2026-11-01T10:20:00Z S URL p=0 ""
+> E P1 H2026-11-01T10:20:00Z S UserName p=0 "user-p1"
+> E P1 H2026-11-01T10:20:00Z autotype enabled=1 obfuscation=0 seq="" assoc=0
+> E P1 H2026-11-01T10:20:00Z misc icon=0 customIcon=- fg=00000000 bg=00000000 overrideUrl="" quality=1
+> E P1 H2026-11-01T10:20:00Z prev -
+> E P1 H2026-11-01T10:20:00Z t.accessed 2026-11-01T10:20:00Z
+> E P1 H2026-11-01T10:20:00Z t.created 2026-11-01T10:20:00Z
+> E P1 H2026-11-01T10:20:00Z t.expires 0 2026-11-01T10:00:00Z
+> E P1 H2026-11-01T10:20:00Z t.location 2026-11-01T10:20:00Z
+> E P1 H2026-11-01T10:20:00Z t.modified 2026-11-01T10:20:00Z
+> E P1 H2026-11-01T10:20:00Z tags []
+> E P1 H2026-11-01T10:20:00Z usage 0
+59c92
+< E P1 S Password p=1 "p1-old"
+---
+> E P1 S Password p=1 "p1-desktop"
+64c97
+< E P1 history.count 0
+---
+> E P1 history.count 1
+68c101
+< E P1 t.accessed 2026-11-01T10:20:00Z
+---
+> E P1 t.accessed 2026-11-01T18:00:00Z
+72c105
+< E P1 t.modified 2026-11-01T10:20:00Z
+---
+> E P1 t.modified 2026-11-01T18:00:00Z
+162c195
+< F groups 4 entries 9
+---
+> F groups 4 entries 10
+178c211
+< G KG children groups=0 entries=2
+---
+> G KG children groups=0 entries=3
+216a250
+> M CD KPG.NewKey = "{\"added\":\"by the desktop\"}" @2026-11-01T18:00:00Z

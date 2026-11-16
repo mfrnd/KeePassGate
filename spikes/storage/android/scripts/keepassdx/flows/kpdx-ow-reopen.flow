@@ -1,0 +1,4 @@
+# Item 3 helper: from the file selection screen, open the file again (the recent list or the picker).
+list
+tapuntil open_database_button Show.roots 40
+include picker.flow

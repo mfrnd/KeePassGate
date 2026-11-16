@@ -1,0 +1,1298 @@
+# file into-phone.kdbx size=16101 sha256=7afc58d63aa9213ca2ed312ce02d53e311b03b426e159a36d4668c79938df783
+D D1 2026-11-01T10:06:00Z
+D D2 2026-11-01T10:07:00Z
+D DRT1 2026-11-01T10:40:00Z
+D DRV1 2026-11-01T11:05:00Z
+D count 4
+E AD1 S KPG.Check p=0 "3213ef56134fb97ede1b571793181cf1863832e0978887154b2f169d716d056c"
+E AD1 S KPG.Kind p=0 "admission"
+E AD1 S KPG.Record p=0 len=159 sha=530ece65f760f0cd "{\"certificate\":\"d2d31ae42311e216978c55ae62b98315483da922e..."
+E AD1 S Notes p=0 ""
+E AD1 S Password p=1 ""
+E AD1 S Title p=0 "KPG client build-agent"
+E AD1 S URL p=0 ""
+E AD1 S UserName p=0 ""
+E AD1 autotype enabled=1 obfuscation=0 seq="" assoc=0
+E AD1 history.count 0
+E AD1 misc icon=0 customIcon=- fg=00000000 bg=00000000 overrideUrl="" quality=1
+E AD1 parent KG (KeePassGate)
+E AD1 prev -
+E AD1 t.accessed 2026-11-01T11:00:00Z
+E AD1 t.created 2026-11-01T11:00:00Z
+E AD1 t.expires 0 2026-11-01T10:00:00Z
+E AD1 t.location 2026-11-01T11:00:00Z
+E AD1 t.modified 2026-11-01T11:00:00Z
+E AD1 tags []
+E AD1 usage 0
+E AD2 S KPG.Check p=0 "f81bfc70d9e45927d2275df2a3b0061acf60ee22919567c9cafb33270c822e34"
+E AD2 S KPG.Kind p=0 "admission"
+E AD2 S KPG.Record p=0 len=157 sha=663348c296bd8ed1 "{\"certificate\":\"4bf0c48987bcfbdfa1fb2094ea5cd7e4e6cb36f2c..."
+E AD2 S Notes p=0 ""
+E AD2 S Password p=1 ""
+E AD2 S Title p=0 "KPG client ci-runner"
+E AD2 S URL p=0 ""
+E AD2 S UserName p=0 ""
+E AD2 autotype enabled=1 obfuscation=0 seq="" assoc=0
+E AD2 history.count 0
+E AD2 misc icon=0 customIcon=- fg=00000000 bg=00000000 overrideUrl="" quality=1
+E AD2 parent KG (KeePassGate)
+E AD2 prev -
+E AD2 t.accessed 2026-11-01T11:01:00Z
+E AD2 t.created 2026-11-01T11:01:00Z
+E AD2 t.expires 0 2026-11-01T10:00:00Z
+E AD2 t.location 2026-11-01T11:01:00Z
+E AD2 t.modified 2026-11-01T11:01:00Z
+E AD2 tags []
+E AD2 usage 0
+E E1 A e1.txt p=0 len=600 sha=259674a04e10f900
+E E1 CD KPG = "{\"reader\":[\"read\",\"list\"]}"
+E E1 H2026-11-01T11:00:00Z S Notes p=0 "ordinary notes"
+E E1 H2026-11-01T11:00:00Z S Password p=1 "pw-e1-not-real"
+E E1 H2026-11-01T11:00:00Z S Title p=0 "E1"
+E E1 H2026-11-01T11:00:00Z S URL p=0 "https://e1.example.invalid/"
+E E1 H2026-11-01T11:00:00Z S UserName p=0 "alice-invented"
+E E1 H2026-11-01T11:00:00Z autotype enabled=1 obfuscation=0 seq="" assoc=0
+E E1 H2026-11-01T11:00:00Z misc icon=0 customIcon=- fg=00000000 bg=00000000 overrideUrl="" quality=1
+E E1 H2026-11-01T11:00:00Z prev -
+E E1 H2026-11-01T11:00:00Z t.accessed 2026-11-01T11:00:00Z
+E E1 H2026-11-01T11:00:00Z t.created 2026-11-01T11:00:00Z
+E E1 H2026-11-01T11:00:00Z t.expires 0 2026-11-01T10:00:00Z
+E E1 H2026-11-01T11:00:00Z t.location 2026-11-01T11:00:00Z
+E E1 H2026-11-01T11:00:00Z t.modified 2026-11-01T11:00:00Z
+E E1 H2026-11-01T11:00:00Z tags []
+E E1 H2026-11-01T11:00:00Z usage 0
+E E1 H2026-11-01T12:00:00Z S Extra p=0 "extra-v1"
+E E1 H2026-11-01T12:00:00Z S Notes p=0 "ordinary notes"
+E E1 H2026-11-01T12:00:00Z S Password p=1 "pw-e1-not-real"
+E E1 H2026-11-01T12:00:00Z S Title p=0 "E1"
+E E1 H2026-11-01T12:00:00Z S URL p=0 "https://e1.example.invalid/"
+E E1 H2026-11-01T12:00:00Z S UserName p=0 "alice-invented"
+E E1 H2026-11-01T12:00:00Z autotype enabled=1 obfuscation=0 seq="" assoc=0
+E E1 H2026-11-01T12:00:00Z misc icon=0 customIcon=- fg=00000000 bg=00000000 overrideUrl="" quality=1
+E E1 H2026-11-01T12:00:00Z prev -
+E E1 H2026-11-01T12:00:00Z t.accessed 2026-11-01T12:00:00Z
+E E1 H2026-11-01T12:00:00Z t.created 2026-11-01T11:00:00Z
+E E1 H2026-11-01T12:00:00Z t.expires 0 2026-11-01T10:00:00Z
+E E1 H2026-11-01T12:00:00Z t.location 2026-11-01T11:00:00Z
+E E1 H2026-11-01T12:00:00Z t.modified 2026-11-01T12:00:00Z
+E E1 H2026-11-01T12:00:00Z tags []
+E E1 H2026-11-01T12:00:00Z usage 0
+E E1 H2026-11-01T13:00:00Z S Extra p=0 "extra-v2"
+E E1 H2026-11-01T13:00:00Z S Notes p=0 "ordinary notes"
+E E1 H2026-11-01T13:00:00Z S Old p=0 "old-field"
+E E1 H2026-11-01T13:00:00Z S Password p=1 "pw-e1-not-real"
+E E1 H2026-11-01T13:00:00Z S Title p=0 "E1"
+E E1 H2026-11-01T13:00:00Z S URL p=0 "https://e1.example.invalid/"
+E E1 H2026-11-01T13:00:00Z S UserName p=0 "alice-invented"
+E E1 H2026-11-01T13:00:00Z autotype enabled=1 obfuscation=0 seq="" assoc=0
+E E1 H2026-11-01T13:00:00Z misc icon=0 customIcon=- fg=00000000 bg=00000000 overrideUrl="" quality=1
+E E1 H2026-11-01T13:00:00Z prev -
+E E1 H2026-11-01T13:00:00Z t.accessed 2026-11-01T13:00:00Z
+E E1 H2026-11-01T13:00:00Z t.created 2026-11-01T11:00:00Z
+E E1 H2026-11-01T13:00:00Z t.expires 0 2026-11-01T10:00:00Z
+E E1 H2026-11-01T13:00:00Z t.location 2026-11-01T11:00:00Z
+E E1 H2026-11-01T13:00:00Z t.modified 2026-11-01T13:00:00Z
+E E1 H2026-11-01T13:00:00Z tags []
+E E1 H2026-11-01T13:00:00Z usage 0
+E E1 S Extra p=0 "extra-value-e1"
+E E1 S Notes p=0 "ordinary notes"
+E E1 S Password p=1 "pw-e1-not-real"
+E E1 S Secret p=1 "protected-custom-e1"
+E E1 S Title p=0 "E1"
+E E1 S URL p=0 "https://e1.example.invalid/"
+E E1 S UserName p=0 "alice-invented"
+E E1 autotype enabled=1 obfuscation=0 seq="" assoc=0
+E E1 history.count 3
+E E1 misc icon=0 customIcon=- fg=00000000 bg=00000000 overrideUrl="" quality=1
+E E1 parent G (G)
+E E1 prev -
+E E1 t.accessed 2026-11-01T14:00:00Z
+E E1 t.created 2026-11-01T11:00:00Z
+E E1 t.expires 0 2026-11-01T10:00:00Z
+E E1 t.location 2026-11-01T11:00:00Z
+E E1 t.modified 2026-11-01T14:00:00Z
+E E1 tags [work]
+E E1 usage 0
+E E2 S Notes p=0 ""
+E E2 S Password p=1 "pw-e2-not-real"
+E E2 S Title p=0 "E2"
+E E2 S URL p=0 ""
+E E2 S UserName p=0 "bob-invented"
+E E2 autotype enabled=1 obfuscation=0 seq="" assoc=0
+E E2 history.count 0
+E E2 misc icon=0 customIcon=- fg=00000000 bg=00000000 overrideUrl="" quality=1
+E E2 parent G (G)
+E E2 prev -
+E E2 t.accessed 2026-11-01T10:45:00Z
+E E2 t.created 2026-11-01T10:45:00Z
+E E2 t.expires 0 2026-11-01T10:00:00Z
+E E2 t.location 2026-11-01T10:45:00Z
+E E2 t.modified 2026-11-01T10:45:00Z
+E E2 tags []
+E E2 usage 0
+E E3 S KPG.Mark p=0 "8E569577ED83EFE9D1765ED2CA85131A"
+E E3 S Notes p=0 "a marked entry"
+E E3 S Password p=1 "pw-e3-not-real"
+E E3 S Title p=0 "E3"
+E E3 S URL p=0 ""
+E E3 S UserName p=0 "carol-invented"
+E E3 autotype enabled=1 obfuscation=0 seq="" assoc=0
+E E3 history.count 0
+E E3 misc icon=0 customIcon=- fg=00000000 bg=00000000 overrideUrl="" quality=1
+E E3 parent G (G)
+E E3 prev -
+E E3 t.accessed 2026-11-01T10:45:00Z
+E E3 t.created 2026-11-01T10:45:00Z
+E E3 t.expires 0 2026-11-01T10:00:00Z
+E E3 t.location 2026-11-01T10:45:00Z
+E E3 t.modified 2026-11-01T10:45:00Z
+E E3 tags []
+E E3 usage 0
+E GD1 S Notes p=0 ""
+E GD1 S Password p=1 "gd1-old"
+E GD1 S Title p=0 "GD1"
+E GD1 S URL p=0 ""
+E GD1 S UserName p=0 "user-gd1"
+E GD1 autotype enabled=1 obfuscation=0 seq="" assoc=0
+E GD1 history.count 0
+E GD1 misc icon=0 customIcon=- fg=00000000 bg=00000000 overrideUrl="" quality=1
+E GD1 parent GD (GD)
+E GD1 prev -
+E GD1 t.accessed 2026-11-01T10:20:00Z
+E GD1 t.created 2026-11-01T10:20:00Z
+E GD1 t.expires 0 2026-11-01T10:00:00Z
+E GD1 t.location 2026-11-01T10:20:00Z
+E GD1 t.modified 2026-11-01T10:20:00Z
+E GD1 tags []
+E GD1 usage 0
+E GR1 S KPG.Check p=0 "ec73866efeb68f7ed857cb24566fe2b2732c61e30f248e34825cb4e913e57266"
+E GR1 S KPG.Kind p=0 "grant"
+E GR1 S KPG.Record p=0 "{\"node\":\"4B504750570000000000000000000000\",\"profile\":\"reader\",\"letters\":\".R...L.P\",\"sawWithdrawals\":[]}"
+E GR1 S Notes p=0 ""
+E GR1 S Password p=1 ""
+E GR1 S Title p=0 "KPG grant reader .R...L.P Passwords"
+E GR1 S URL p=0 ""
+E GR1 S UserName p=0 ""
+E GR1 autotype enabled=1 obfuscation=0 seq="" assoc=0
+E GR1 history.count 0
+E GR1 misc icon=0 customIcon=- fg=00000000 bg=00000000 overrideUrl="" quality=1
+E GR1 parent KG (KeePassGate)
+E GR1 prev -
+E GR1 t.accessed 2026-11-01T11:02:00Z
+E GR1 t.created 2026-11-01T11:02:00Z
+E GR1 t.expires 0 2026-11-01T10:00:00Z
+E GR1 t.location 2026-11-01T11:02:00Z
+E GR1 t.modified 2026-11-01T11:02:00Z
+E GR1 tags []
+E GR1 usage 0
+E GR2 S KPG.Check p=0 "4b707ce0e5a6d5b51c1e811e71535e7ed3adf6398d547383c57d9771f75faa54"
+E GR2 S KPG.Kind p=0 "grant"
+E GR2 S KPG.Record p=0 "{\"node\":\"4B504750570000000000000000000000\",\"profile\":\"writer\",\"letters\":\"CRU..L..\",\"sawWithdrawals\":[\"7ED75356CD95DD4D984DB74E4C2FB30B\"]}"
+E GR2 S Notes p=0 ""
+E GR2 S Password p=1 ""
+E GR2 S Title p=0 "KPG grant writer CRU..L.. Passwords"
+E GR2 S URL p=0 ""
+E GR2 S UserName p=0 ""
+E GR2 autotype enabled=1 obfuscation=0 seq="" assoc=0
+E GR2 history.count 0
+E GR2 misc icon=0 customIcon=- fg=00000000 bg=00000000 overrideUrl="" quality=1
+E GR2 parent KG (KeePassGate)
+E GR2 prev -
+E GR2 t.accessed 2026-11-01T11:03:00Z
+E GR2 t.created 2026-11-01T11:03:00Z
+E GR2 t.expires 0 2026-11-01T10:00:00Z
+E GR2 t.location 2026-11-01T11:03:00Z
+E GR2 t.modified 2026-11-01T11:03:00Z
+E GR2 tags []
+E GR2 usage 0
+E Gm S KPG.Marker p=0 "{\"marker\":\"G\",\"rules\":{\"reader\":\".R...L..\"}}"
+E Gm S Notes p=0 ""
+E Gm S Password p=1 ""
+E Gm S Title p=0 "KPG marker"
+E Gm S URL p=0 ""
+E Gm S UserName p=0 ""
+E Gm autotype enabled=1 obfuscation=0 seq="" assoc=0
+E Gm history.count 0
+E Gm misc icon=0 customIcon=- fg=00000000 bg=00000000 overrideUrl="" quality=1
+E Gm parent G (G)
+E Gm prev -
+E Gm t.accessed 2026-11-01T10:35:00Z
+E Gm t.created 2026-11-01T10:35:00Z
+E Gm t.expires 0 2026-11-01T10:00:00Z
+E Gm t.location 2026-11-01T10:35:00Z
+E Gm t.modified 2026-11-01T10:35:00Z
+E Gm tags []
+E Gm usage 0
+E HE1 S Notes p=0 "health notes, invented"
+E HE1 S Password p=1 "he1-old"
+E HE1 S Title p=0 "HE1"
+E HE1 S URL p=0 ""
+E HE1 S UserName p=0 "user-he1"
+E HE1 autotype enabled=1 obfuscation=0 seq="" assoc=0
+E HE1 history.count 0
+E HE1 misc icon=0 customIcon=- fg=00000000 bg=00000000 overrideUrl="" quality=1
+E HE1 parent HE (Health)
+E HE1 prev -
+E HE1 t.accessed 2026-11-01T10:20:00Z
+E HE1 t.created 2026-11-01T10:20:00Z
+E HE1 t.expires 0 2026-11-01T10:00:00Z
+E HE1 t.location 2026-11-01T10:20:00Z
+E HE1 t.modified 2026-11-01T10:20:00Z
+E HE1 tags []
+E HE1 usage 0
+E K S Notes p=0 ""
+E K S Password p=1 "k-old"
+E K S Title p=0 "K"
+E K S URL p=0 ""
+E K S UserName p=0 "user-k"
+E K autotype enabled=1 obfuscation=0 seq="" assoc=0
+E K history.count 0
+E K misc icon=0 customIcon=- fg=00000000 bg=00000000 overrideUrl="" quality=1
+E K parent PW (Passwords)
+E K prev -
+E K t.accessed 2026-11-01T10:20:00Z
+E K t.created 2026-11-01T10:20:00Z
+E K t.expires 0 2026-11-01T10:00:00Z
+E K t.location 2026-11-01T10:20:00Z
+E K t.modified 2026-11-01T10:20:00Z
+E K tags []
+E K usage 0
+E LF1 S KPG.Check p=0 "739225ddb14ebd515d42f52903a68b7dc1a7caf7d1242110d415fa58ab0dc2a7"
+E LF1 S KPG.Kind p=0 "lift"
+E LF1 S KPG.Record p=0 "{\"lifts\":[\"E30F91E7153A50C03BA239446D1457E4\"]}"
+E LF1 S Notes p=0 ""
+E LF1 S Password p=1 ""
+E LF1 S Title p=0 "KPG lift (all) Personal/Health"
+E LF1 S URL p=0 ""
+E LF1 S UserName p=0 ""
+E LF1 autotype enabled=1 obfuscation=0 seq="" assoc=0
+E LF1 history.count 0
+E LF1 misc icon=0 customIcon=- fg=00000000 bg=00000000 overrideUrl="" quality=1
+E LF1 parent KG (KeePassGate)
+E LF1 prev -
+E LF1 t.accessed 2026-11-01T11:10:00Z
+E LF1 t.created 2026-11-01T11:10:00Z
+E LF1 t.expires 0 2026-11-01T10:00:00Z
+E LF1 t.location 2026-11-01T11:10:00Z
+E LF1 t.modified 2026-11-01T11:10:00Z
+E LF1 tags []
+E LF1 usage 0
+E MK1 S KPG.Kind p=0 "mark"
+E MK1 S KPG.Record p=0 "{\"node\":\"4B504748450000000000000000000000\",\"profile\":\"(all)\",\"letters\":\"CRUSDLAP\"}"
+E MK1 S Notes p=0 ""
+E MK1 S Password p=1 ""
+E MK1 S Title p=0 "KPG withheld (all) Personal/Health"
+E MK1 S URL p=0 ""
+E MK1 S UserName p=0 ""
+E MK1 autotype enabled=1 obfuscation=0 seq="" assoc=0
+E MK1 history.count 0
+E MK1 misc icon=0 customIcon=- fg=00000000 bg=00000000 overrideUrl="" quality=1
+E MK1 parent KG (KeePassGate)
+E MK1 prev -
+E MK1 t.accessed 2026-11-01T11:06:00Z
+E MK1 t.created 2026-11-01T11:06:00Z
+E MK1 t.expires 0 2026-11-01T10:00:00Z
+E MK1 t.location 2026-11-01T11:06:00Z
+E MK1 t.modified 2026-11-01T11:06:00Z
+E MK1 tags []
+E MK1 usage 0
+E MK2 S KPG.Kind p=0 "mark"
+E MK2 S KPG.Record p=0 "{\"node\":\"4B504745330000000000000000000000\",\"profile\":\"reader\",\"letters\":\".R......\"}"
+E MK2 S Notes p=0 ""
+E MK2 S Password p=1 ""
+E MK2 S Title p=0 "KPG withheld reader G/E3"
+E MK2 S URL p=0 ""
+E MK2 S UserName p=0 ""
+E MK2 autotype enabled=1 obfuscation=0 seq="" assoc=0
+E MK2 history.count 0
+E MK2 misc icon=0 customIcon=- fg=00000000 bg=00000000 overrideUrl="" quality=1
+E MK2 parent KG (KeePassGate)
+E MK2 prev -
+E MK2 t.accessed 2026-11-01T11:07:00Z
+E MK2 t.created 2026-11-01T11:07:00Z
+E MK2 t.expires 0 2026-11-01T10:00:00Z
+E MK2 t.location 2026-11-01T11:07:00Z
+E MK2 t.modified 2026-11-01T11:07:00Z
+E MK2 tags []
+E MK2 usage 0
+E MR S KPG.Mark p=0 "E30F91E7153A50C03BA239446D1457E4"
+E MR S Notes p=0 ""
+E MR S Password p=1 ""
+E MR S Title p=0 "KPG mark"
+E MR S URL p=0 ""
+E MR S UserName p=0 ""
+E MR autotype enabled=1 obfuscation=0 seq="" assoc=0
+E MR history.count 0
+E MR misc icon=0 customIcon=- fg=00000000 bg=00000000 overrideUrl="" quality=1
+E MR parent HE (Health)
+E MR prev -
+E MR t.accessed 2026-11-01T11:06:00Z
+E MR t.created 2026-11-01T11:06:00Z
+E MR t.expires 0 2026-11-01T10:00:00Z
+E MR t.location 2026-11-01T11:06:00Z
+E MR t.modified 2026-11-01T11:06:00Z
+E MR tags []
+E MR usage 0
+E N1 S Notes p=0 ""
+E N1 S Password p=1 "pw-n1"
+E N1 S Title p=0 "N1"
+E N1 S URL p=0 ""
+E N1 S UserName p=0 "user-n1"
+E N1 autotype enabled=1 obfuscation=0 seq="" assoc=0
+E N1 history.count 0
+E N1 misc icon=0 customIcon=- fg=00000000 bg=00000000 overrideUrl="" quality=1
+E N1 parent N (N)
+E N1 prev G
+E N1 t.accessed 2026-11-01T10:25:00Z
+E N1 t.created 2026-11-01T10:25:00Z
+E N1 t.expires 0 2026-11-01T10:00:00Z
+E N1 t.location 2026-11-01T10:25:00Z
+E N1 t.modified 2026-11-01T10:25:00Z
+E N1 tags []
+E N1 usage 0
+E NA1 S Notes p=0 ""
+E NA1 S Password p=1 "na1-old"
+E NA1 S Title p=0 "NA1"
+E NA1 S URL p=0 ""
+E NA1 S UserName p=0 "user-na1"
+E NA1 autotype enabled=1 obfuscation=0 seq="" assoc=0
+E NA1 history.count 0
+E NA1 misc icon=0 customIcon=- fg=00000000 bg=00000000 overrideUrl="" quality=1
+E NA1 parent NA (NA)
+E NA1 prev -
+E NA1 t.accessed 2026-11-01T10:20:00Z
+E NA1 t.created 2026-11-01T10:20:00Z
+E NA1 t.expires 0 2026-11-01T10:00:00Z
+E NA1 t.location 2026-11-01T10:20:00Z
+E NA1 t.modified 2026-11-01T10:20:00Z
+E NA1 tags []
+E NA1 usage 0
+E NB1 S Notes p=0 ""
+E NB1 S Password p=1 "nb1-old"
+E NB1 S Title p=0 "NB1"
+E NB1 S URL p=0 ""
+E NB1 S UserName p=0 "user-nb1"
+E NB1 autotype enabled=1 obfuscation=0 seq="" assoc=0
+E NB1 history.count 0
+E NB1 misc icon=0 customIcon=- fg=00000000 bg=00000000 overrideUrl="" quality=1
+E NB1 parent NB (NB)
+E NB1 prev -
+E NB1 t.accessed 2026-11-01T10:20:00Z
+E NB1 t.created 2026-11-01T10:20:00Z
+E NB1 t.expires 0 2026-11-01T10:00:00Z
+E NB1 t.location 2026-11-01T10:20:00Z
+E NB1 t.modified 2026-11-01T10:20:00Z
+E NB1 tags []
+E NB1 usage 0
+E NC1 S Notes p=0 ""
+E NC1 S Password p=1 "nc1-old"
+E NC1 S Title p=0 "NC1"
+E NC1 S URL p=0 ""
+E NC1 S UserName p=0 "user-nc1"
+E NC1 autotype enabled=1 obfuscation=0 seq="" assoc=0
+E NC1 history.count 0
+E NC1 misc icon=0 customIcon=- fg=00000000 bg=00000000 overrideUrl="" quality=1
+E NC1 parent NC (NC)
+E NC1 prev -
+E NC1 t.accessed 2026-11-01T10:20:00Z
+E NC1 t.created 2026-11-01T10:20:00Z
+E NC1 t.expires 0 2026-11-01T10:00:00Z
+E NC1 t.location 2026-11-01T10:20:00Z
+E NC1 t.modified 2026-11-01T10:20:00Z
+E NC1 tags []
+E NC1 usage 0
+E P1 S Notes p=0 ""
+E P1 S Password p=1 "p1-old"
+E P1 S Title p=0 "P1"
+E P1 S URL p=0 ""
+E P1 S UserName p=0 "user-p1"
+E P1 autotype enabled=1 obfuscation=0 seq="" assoc=0
+E P1 history.count 0
+E P1 misc icon=0 customIcon=- fg=00000000 bg=00000000 overrideUrl="" quality=1
+E P1 parent PW (Passwords)
+E P1 prev -
+E P1 t.accessed 2026-11-01T10:20:00Z
+E P1 t.created 2026-11-01T10:20:00Z
+E P1 t.expires 0 2026-11-01T10:00:00Z
+E P1 t.location 2026-11-01T10:20:00Z
+E P1 t.modified 2026-11-01T10:20:00Z
+E P1 tags []
+E P1 usage 0
+E P2 S Notes p=0 ""
+E P2 S Password p=1 "p2-old"
+E P2 S Title p=0 "P2"
+E P2 S URL p=0 ""
+E P2 S UserName p=0 "user-p2"
+E P2 autotype enabled=1 obfuscation=0 seq="" assoc=0
+E P2 history.count 0
+E P2 misc icon=0 customIcon=- fg=00000000 bg=00000000 overrideUrl="" quality=1
+E P2 parent PW (Passwords)
+E P2 prev -
+E P2 t.accessed 2026-11-01T10:20:00Z
+E P2 t.created 2026-11-01T10:20:00Z
+E P2 t.expires 0 2026-11-01T10:00:00Z
+E P2 t.location 2026-11-01T10:20:00Z
+E P2 t.modified 2026-11-01T10:20:00Z
+E P2 tags []
+E P2 usage 0
+E PA1 S KPG.Check p=0 "3e0949220af743a655c8fe703b997c7e9e458552edf8382eeee089d30ebff11f"
+E PA1 S KPG.Kind p=0 "profile-addition"
+E PA1 S KPG.Record p=0 "{\"name\":\"reader\",\"sawRemovals\":[]}"
+E PA1 S Notes p=0 ""
+E PA1 S Password p=1 ""
+E PA1 S Title p=0 "KPG profile reader"
+E PA1 S URL p=0 ""
+E PA1 S UserName p=0 ""
+E PA1 autotype enabled=1 obfuscation=0 seq="" assoc=0
+E PA1 history.count 0
+E PA1 misc icon=0 customIcon=- fg=00000000 bg=00000000 overrideUrl="" quality=1
+E PA1 parent KG (KeePassGate)
+E PA1 prev -
+E PA1 t.accessed 2026-11-01T10:50:00Z
+E PA1 t.created 2026-11-01T10:50:00Z
+E PA1 t.expires 0 2026-11-01T10:00:00Z
+E PA1 t.location 2026-11-01T10:50:00Z
+E PA1 t.modified 2026-11-01T10:50:00Z
+E PA1 tags []
+E PA1 usage 0
+E PA2 S KPG.Check p=0 "54d139caa9f2c5954b5d1eff305aeadd59eee65edd4b7d5d6f8f7fad90dc103c"
+E PA2 S KPG.Kind p=0 "profile-addition"
+E PA2 S KPG.Record p=0 "{\"name\":\"writer\",\"sawRemovals\":[]}"
+E PA2 S Notes p=0 ""
+E PA2 S Password p=1 ""
+E PA2 S Title p=0 "KPG profile writer"
+E PA2 S URL p=0 ""
+E PA2 S UserName p=0 ""
+E PA2 autotype enabled=1 obfuscation=0 seq="" assoc=0
+E PA2 history.count 0
+E PA2 misc icon=0 customIcon=- fg=00000000 bg=00000000 overrideUrl="" quality=1
+E PA2 parent KG (KeePassGate)
+E PA2 prev -
+E PA2 t.accessed 2026-11-01T10:51:00Z
+E PA2 t.created 2026-11-01T10:51:00Z
+E PA2 t.expires 0 2026-11-01T10:00:00Z
+E PA2 t.location 2026-11-01T10:51:00Z
+E PA2 t.modified 2026-11-01T10:51:00Z
+E PA2 tags []
+E PA2 usage 0
+E PR1 S KPG.Kind p=0 "profile-removal"
+E PR1 S KPG.Record p=0 "{\"name\":\"legacy\"}"
+E PR1 S Notes p=0 ""
+E PR1 S Password p=1 ""
+E PR1 S Title p=0 "KPG profile removed legacy"
+E PR1 S URL p=0 ""
+E PR1 S UserName p=0 ""
+E PR1 autotype enabled=1 obfuscation=0 seq="" assoc=0
+E PR1 history.count 0
+E PR1 misc icon=0 customIcon=- fg=00000000 bg=00000000 overrideUrl="" quality=1
+E PR1 parent KG (KeePassGate)
+E PR1 prev -
+E PR1 t.accessed 2026-11-01T10:52:00Z
+E PR1 t.created 2026-11-01T10:52:00Z
+E PR1 t.expires 0 2026-11-01T10:00:00Z
+E PR1 t.location 2026-11-01T10:52:00Z
+E PR1 t.modified 2026-11-01T10:52:00Z
+E PR1 tags []
+E PR1 usage 0
+E Q1 S Notes p=0 ""
+E Q1 S Password p=1 "q1-old"
+E Q1 S Title p=0 "Q1"
+E Q1 S URL p=0 ""
+E Q1 S UserName p=0 "user-q1"
+E Q1 autotype enabled=1 obfuscation=0 seq="" assoc=0
+E Q1 history.count 0
+E Q1 misc icon=0 customIcon=- fg=00000000 bg=00000000 overrideUrl="" quality=1
+E Q1 parent PW (Passwords)
+E Q1 prev -
+E Q1 t.accessed 2026-11-01T10:20:00Z
+E Q1 t.created 2026-11-01T10:20:00Z
+E Q1 t.expires 0 2026-11-01T10:00:00Z
+E Q1 t.location 2026-11-01T10:20:00Z
+E Q1 t.modified 2026-11-01T10:20:00Z
+E Q1 tags []
+E Q1 usage 0
+E Q2 S Notes p=0 ""
+E Q2 S Password p=1 "q2-old"
+E Q2 S Title p=0 "Q2"
+E Q2 S URL p=0 ""
+E Q2 S UserName p=0 "user-q2"
+E Q2 autotype enabled=1 obfuscation=0 seq="" assoc=0
+E Q2 history.count 0
+E Q2 misc icon=0 customIcon=- fg=00000000 bg=00000000 overrideUrl="" quality=1
+E Q2 parent PW (Passwords)
+E Q2 prev -
+E Q2 t.accessed 2026-11-01T10:20:00Z
+E Q2 t.created 2026-11-01T10:20:00Z
+E Q2 t.expires 0 2026-11-01T10:00:00Z
+E Q2 t.location 2026-11-01T10:20:00Z
+E Q2 t.modified 2026-11-01T10:20:00Z
+E Q2 tags []
+E Q2 usage 0
+E Q3 S Notes p=0 ""
+E Q3 S Password p=1 "q3-old"
+E Q3 S Title p=0 "Q3"
+E Q3 S URL p=0 ""
+E Q3 S UserName p=0 "user-q3"
+E Q3 autotype enabled=1 obfuscation=0 seq="" assoc=0
+E Q3 history.count 0
+E Q3 misc icon=0 customIcon=- fg=00000000 bg=00000000 overrideUrl="" quality=1
+E Q3 parent PW (Passwords)
+E Q3 prev -
+E Q3 t.accessed 2026-11-01T10:20:00Z
+E Q3 t.created 2026-11-01T10:20:00Z
+E Q3 t.expires 0 2026-11-01T10:00:00Z
+E Q3 t.location 2026-11-01T10:20:00Z
+E Q3 t.modified 2026-11-01T10:20:00Z
+E Q3 tags []
+E Q3 usage 0
+E R1 A authority.p12 p=1 len=3000 sha=86f51de7a0078da7
+E R1 CD KPG.cd = "{\"control\":\"entry custom data on R1\"}"
+E R1 H2026-11-01T11:00:00Z S KPG.Record p=0 "{\"kind\":\"record\",\"version\":1}"
+E R1 H2026-11-01T11:00:00Z S Notes p=0 "{\"kind\":\"record\",\"n\":1,\"in\":\"notes\"}"
+E R1 H2026-11-01T11:00:00Z S Password p=1 "pw-r1-not-real"
+E R1 H2026-11-01T11:00:00Z S Title p=0 "KPG record 1"
+E R1 H2026-11-01T11:00:00Z S URL p=0 "kpg://record/1"
+E R1 H2026-11-01T11:00:00Z S UserName p=0 "kpg-r1"
+E R1 H2026-11-01T11:00:00Z autotype enabled=1 obfuscation=0 seq="" assoc=0
+E R1 H2026-11-01T11:00:00Z misc icon=0 customIcon=- fg=00000000 bg=00000000 overrideUrl="" quality=1
+E R1 H2026-11-01T11:00:00Z prev -
+E R1 H2026-11-01T11:00:00Z t.accessed 2026-11-01T11:00:00Z
+E R1 H2026-11-01T11:00:00Z t.created 2026-11-01T11:00:00Z
+E R1 H2026-11-01T11:00:00Z t.expires 0 2026-11-01T10:00:00Z
+E R1 H2026-11-01T11:00:00Z t.location 2026-11-01T11:00:00Z
+E R1 H2026-11-01T11:00:00Z t.modified 2026-11-01T11:00:00Z
+E R1 H2026-11-01T11:00:00Z tags []
+E R1 H2026-11-01T11:00:00Z usage 0
+E R1 H2026-11-01T12:00:00Z S KPG.20261115T101500Z.a1b2 p=0 "{\"at\":\"2026-11-15T10:15:00Z\",\"op\":\"grant\"}"
+E R1 H2026-11-01T12:00:00Z S KPG.Record p=0 "{\"kind\":\"record\",\"version\":2}"
+E R1 H2026-11-01T12:00:00Z S Notes p=0 "{\"kind\":\"record\",\"n\":1,\"in\":\"notes\"}"
+E R1 H2026-11-01T12:00:00Z S Password p=1 "pw-r1-not-real"
+E R1 H2026-11-01T12:00:00Z S Title p=0 "KPG record 1"
+E R1 H2026-11-01T12:00:00Z S URL p=0 "kpg://record/1"
+E R1 H2026-11-01T12:00:00Z S UserName p=0 "kpg-r1"
+E R1 H2026-11-01T12:00:00Z autotype enabled=1 obfuscation=0 seq="" assoc=0
+E R1 H2026-11-01T12:00:00Z misc icon=0 customIcon=- fg=00000000 bg=00000000 overrideUrl="" quality=1
+E R1 H2026-11-01T12:00:00Z prev -
+E R1 H2026-11-01T12:00:00Z t.accessed 2026-11-01T12:00:00Z
+E R1 H2026-11-01T12:00:00Z t.created 2026-11-01T11:00:00Z
+E R1 H2026-11-01T12:00:00Z t.expires 0 2026-11-01T10:00:00Z
+E R1 H2026-11-01T12:00:00Z t.location 2026-11-01T11:00:00Z
+E R1 H2026-11-01T12:00:00Z t.modified 2026-11-01T12:00:00Z
+E R1 H2026-11-01T12:00:00Z tags []
+E R1 H2026-11-01T12:00:00Z usage 0
+E R1 H2026-11-01T13:00:00Z A authority.p12 p=1 len=3000 sha=86f51de7a0078da7
+E R1 H2026-11-01T13:00:00Z S KPG.20261115T101500Z.a1b2 p=0 "{\"at\":\"2026-11-15T10:15:00Z\",\"op\":\"grant\"}"
+E R1 H2026-11-01T13:00:00Z S KPG.20261115T101501Z.c3d4 p=1 "{\"at\":\"2026-11-15T10:15:01Z\",\"op\":\"revoke\"}"
+E R1 H2026-11-01T13:00:00Z S KPG.Record p=0 len=2861 sha=50a33282b06760c8 "{\"kind\":\"record\",\"version\":3,\"items\":[{\"i\":0,\"nam..."
+E R1 H2026-11-01T13:00:00Z S KPG.Secret p=1 "{\"key\":\"invented-secret-v0\"}"
+E R1 H2026-11-01T13:00:00Z S Notes p=0 "{\"kind\":\"record\",\"n\":1,\"in\":\"notes\"}"
+E R1 H2026-11-01T13:00:00Z S Password p=1 "pw-r1-not-real"
+E R1 H2026-11-01T13:00:00Z S Title p=0 "KPG record 1"
+E R1 H2026-11-01T13:00:00Z S URL p=0 "kpg://record/1"
+E R1 H2026-11-01T13:00:00Z S UserName p=0 "kpg-r1"
+E R1 H2026-11-01T13:00:00Z autotype enabled=1 obfuscation=0 seq="" assoc=0
+E R1 H2026-11-01T13:00:00Z misc icon=0 customIcon=- fg=00000000 bg=00000000 overrideUrl="" quality=1
+E R1 H2026-11-01T13:00:00Z prev -
+E R1 H2026-11-01T13:00:00Z t.accessed 2026-11-01T13:00:00Z
+E R1 H2026-11-01T13:00:00Z t.created 2026-11-01T11:00:00Z
+E R1 H2026-11-01T13:00:00Z t.expires 0 2026-11-01T10:00:00Z
+E R1 H2026-11-01T13:00:00Z t.location 2026-11-01T11:00:00Z
+E R1 H2026-11-01T13:00:00Z t.modified 2026-11-01T13:00:00Z
+E R1 H2026-11-01T13:00:00Z tags [kpg]
+E R1 H2026-11-01T13:00:00Z usage 0
+E R1 S KPG.20261115T101500Z.a1b2 p=0 "{\"at\":\"2026-11-15T10:15:00Z\",\"op\":\"grant\"}"
+E R1 S KPG.20261115T101501Z.c3d4 p=1 "{\"at\":\"2026-11-15T10:15:01Z\",\"op\":\"revoke\"}"
+E R1 S KPG.Record p=0 len=2861 sha=50a33282b06760c8 "{\"kind\":\"record\",\"version\":3,\"items\":[{\"i\":0,\"nam..."
+E R1 S KPG.Secret p=1 "{\"key\":\"invented-secret-v1\"}"
+E R1 S Notes p=0 "{\"kind\":\"record\",\"n\":1,\"in\":\"notes\"}"
+E R1 S Password p=1 "pw-r1-not-real"
+E R1 S Title p=0 "KPG record 1"
+E R1 S URL p=0 "kpg://record/1"
+E R1 S UserName p=0 "kpg-r1"
+E R1 autotype enabled=1 obfuscation=0 seq="" assoc=0
+E R1 history.count 3
+E R1 misc icon=0 customIcon=- fg=00000000 bg=00000000 overrideUrl="" quality=1
+E R1 parent GKPG (Carriers)
+E R1 prev -
+E R1 t.accessed 2026-11-01T14:00:00Z
+E R1 t.created 2026-11-01T11:00:00Z
+E R1 t.expires 0 2026-11-01T10:00:00Z
+E R1 t.location 2026-11-01T11:00:00Z
+E R1 t.modified 2026-11-01T14:00:00Z
+E R1 tags [kpg;record]
+E R1 usage 0
+E R2 A copy.p12 p=1 len=3000 sha=86f51de7a0078da7
+E R2 S KPG.20261115T101502Z.e5f6 p=0 "{\"at\":\"2026-11-15T10:15:02Z\",\"op\":\"grant\",\"who\":\"agent-two\"}"
+E R2 S Notes p=0 ""
+E R2 S Password p=1 ""
+E R2 S Title p=0 "KPG record 2"
+E R2 S URL p=0 ""
+E R2 S UserName p=0 ""
+E R2 autotype enabled=1 obfuscation=0 seq="" assoc=0
+E R2 history.count 0
+E R2 misc icon=0 customIcon=- fg=00000000 bg=00000000 overrideUrl="" quality=0
+E R2 parent GKPG (Carriers)
+E R2 prev -
+E R2 t.accessed 2026-11-01T10:40:00Z
+E R2 t.created 2026-11-01T10:40:00Z
+E R2 t.expires 0 2026-11-01T10:00:00Z
+E R2 t.location 2026-11-01T10:40:00Z
+E R2 t.modified 2026-11-01T10:40:00Z
+E R2 tags [kpg]
+E R2 usage 0
+E RA1 S KPG.Check p=0 "8ca33b5113a7538e15ac6c6915208344c29587465c928dc1695851a0e2735dfc"
+E RA1 S KPG.Kind p=0 "renewal-answer"
+E RA1 S KPG.Record p=0 "{\"certificate\":\"4bf0c48987bcfbdfa1fb2094ea5cd7e4e6cb36f2c0441abe8daa8d39ae52d75b\",\"answer\":\"refused\",\"until\":\"2027-01-01T00:00:00Z\",\"replaces\":[]}"
+E RA1 S Notes p=0 ""
+E RA1 S Password p=1 ""
+E RA1 S Title p=0 "KPG renewal refused ci-runner"
+E RA1 S URL p=0 ""
+E RA1 S UserName p=0 ""
+E RA1 autotype enabled=1 obfuscation=0 seq="" assoc=0
+E RA1 history.count 0
+E RA1 misc icon=0 customIcon=- fg=00000000 bg=00000000 overrideUrl="" quality=1
+E RA1 parent KG (KeePassGate)
+E RA1 prev -
+E RA1 t.accessed 2026-11-01T11:11:00Z
+E RA1 t.created 2026-11-01T11:11:00Z
+E RA1 t.expires 0 2026-11-01T10:00:00Z
+E RA1 t.location 2026-11-01T11:11:00Z
+E RA1 t.modified 2026-11-01T11:11:00Z
+E RA1 tags []
+E RA1 usage 0
+E RT1 S KPG.Check p=0 "518a1fcdb2455467910f07009d9d0901ae8fb1f2b19960d5d6b74c87f5bc95cc"
+E RT1 S KPG.Kind p=0 "retirement"
+E RT1 S KPG.Record p=0 "{\"authority\":\"df0831afe5d7f3f7b16a25ef6e0e56153ba0b886c2fb02e4e628a4b6495adfc9\"}"
+E RT1 S Notes p=0 ""
+E RT1 S Password p=1 ""
+E RT1 S Title p=0 "KPG retired df0831afe5d7"
+E RT1 S URL p=0 ""
+E RT1 S UserName p=0 ""
+E RT1 autotype enabled=1 obfuscation=0 seq="" assoc=0
+E RT1 history.count 0
+E RT1 misc icon=0 customIcon=- fg=00000000 bg=00000000 overrideUrl="" quality=1
+E RT1 parent KG (KeePassGate)
+E RT1 prev -
+E RT1 t.accessed 2026-11-01T10:40:00Z
+E RT1 t.created 2026-11-01T10:40:00Z
+E RT1 t.expires 0 2026-11-01T10:00:00Z
+E RT1 t.location 2026-11-01T10:40:00Z
+E RT1 t.modified 2026-11-01T10:40:00Z
+E RT1 tags []
+E RT1 usage 0
+E RV1 S KPG.Kind p=0 "revocation"
+E RV1 S KPG.Record p=0 "{\"certificate\":\"b6d5e581aa7454dbe870052993f94be417c9bb32c2f3765d603cf3315e99a392\",\"name\":\"old-agent\"}"
+E RV1 S Notes p=0 ""
+E RV1 S Password p=1 ""
+E RV1 S Title p=0 "KPG revoked old-agent"
+E RV1 S URL p=0 ""
+E RV1 S UserName p=0 ""
+E RV1 autotype enabled=1 obfuscation=0 seq="" assoc=0
+E RV1 history.count 0
+E RV1 misc icon=0 customIcon=- fg=00000000 bg=00000000 overrideUrl="" quality=1
+E RV1 parent KG (KeePassGate)
+E RV1 prev -
+E RV1 t.accessed 2026-11-01T11:05:00Z
+E RV1 t.created 2026-11-01T11:05:00Z
+E RV1 t.expires 0 2026-11-01T10:00:00Z
+E RV1 t.location 2026-11-01T11:05:00Z
+E RV1 t.modified 2026-11-01T11:05:00Z
+E RV1 tags []
+E RV1 usage 0
+E WD1 S KPG.Kind p=0 "withdrawal"
+E WD1 S KPG.Record p=0 "{\"node\":\"4B504750570000000000000000000000\",\"profile\":\"writer\",\"letters\":\"...SD...\"}"
+E WD1 S Notes p=0 ""
+E WD1 S Password p=1 ""
+E WD1 S Title p=0 "KPG withdrawn writer CRUSDL.. Passwords"
+E WD1 S URL p=0 ""
+E WD1 S UserName p=0 ""
+E WD1 autotype enabled=1 obfuscation=0 seq="" assoc=0
+E WD1 history.count 0
+E WD1 misc icon=0 customIcon=- fg=00000000 bg=00000000 overrideUrl="" quality=1
+E WD1 parent KG (KeePassGate)
+E WD1 prev -
+E WD1 t.accessed 2026-11-01T10:53:00Z
+E WD1 t.created 2026-11-01T10:53:00Z
+E WD1 t.expires 0 2026-11-01T10:00:00Z
+E WD1 t.location 2026-11-01T10:53:00Z
+E WD1 t.modified 2026-11-01T10:53:00Z
+E WD1 tags []
+E WD1 usage 0
+E X1 S Notes p=0 ""
+E X1 S Password p=1 "x1-old"
+E X1 S Title p=0 "X1"
+E X1 S URL p=0 ""
+E X1 S UserName p=0 "user-x1"
+E X1 autotype enabled=1 obfuscation=0 seq="" assoc=0
+E X1 history.count 0
+E X1 misc icon=0 customIcon=- fg=00000000 bg=00000000 overrideUrl="" quality=1
+E X1 parent PW (Passwords)
+E X1 prev -
+E X1 t.accessed 2026-11-01T10:20:00Z
+E X1 t.created 2026-11-01T10:20:00Z
+E X1 t.expires 0 2026-11-01T10:00:00Z
+E X1 t.location 2026-11-01T10:20:00Z
+E X1 t.modified 2026-11-01T10:20:00Z
+E X1 tags []
+E X1 usage 0
+E X2 S Notes p=0 ""
+E X2 S Password p=1 "x2-old"
+E X2 S Title p=0 "X2"
+E X2 S URL p=0 ""
+E X2 S UserName p=0 "user-x2"
+E X2 autotype enabled=1 obfuscation=0 seq="" assoc=0
+E X2 history.count 0
+E X2 misc icon=0 customIcon=- fg=00000000 bg=00000000 overrideUrl="" quality=1
+E X2 parent PW (Passwords)
+E X2 prev -
+E X2 t.accessed 2026-11-01T10:20:00Z
+E X2 t.created 2026-11-01T10:20:00Z
+E X2 t.expires 0 2026-11-01T10:00:00Z
+E X2 t.location 2026-11-01T10:20:00Z
+E X2 t.modified 2026-11-01T10:20:00Z
+E X2 tags []
+E X2 usage 0
+E X3 S Notes p=0 ""
+E X3 S Password p=1 "x3-old"
+E X3 S Title p=0 "X3"
+E X3 S URL p=0 ""
+E X3 S UserName p=0 "user-x3"
+E X3 autotype enabled=1 obfuscation=0 seq="" assoc=0
+E X3 history.count 0
+E X3 misc icon=0 customIcon=- fg=00000000 bg=00000000 overrideUrl="" quality=1
+E X3 parent PW (Passwords)
+E X3 prev -
+E X3 t.accessed 2026-11-01T10:20:00Z
+E X3 t.created 2026-11-01T10:20:00Z
+E X3 t.expires 0 2026-11-01T10:00:00Z
+E X3 t.location 2026-11-01T10:20:00Z
+E X3 t.modified 2026-11-01T10:20:00Z
+E X3 tags []
+E X3 usage 0
+E X4 S Notes p=0 ""
+E X4 S Password p=1 "x4-old"
+E X4 S Title p=0 "X4"
+E X4 S URL p=0 ""
+E X4 S UserName p=0 "user-x4"
+E X4 autotype enabled=1 obfuscation=0 seq="" assoc=0
+E X4 history.count 0
+E X4 misc icon=0 customIcon=- fg=00000000 bg=00000000 overrideUrl="" quality=1
+E X4 parent PW (Passwords)
+E X4 prev -
+E X4 t.accessed 2026-11-01T10:20:00Z
+E X4 t.created 2026-11-01T10:20:00Z
+E X4 t.expires 0 2026-11-01T10:00:00Z
+E X4 t.location 2026-11-01T10:20:00Z
+E X4 t.modified 2026-11-01T10:20:00Z
+E X4 tags []
+E X4 usage 0
+E Y3 S Notes p=0 ""
+E Y3 S Password p=1 "y3-old"
+E Y3 S Title p=0 "Y3"
+E Y3 S URL p=0 ""
+E Y3 S UserName p=0 "user-y3"
+E Y3 autotype enabled=1 obfuscation=0 seq="" assoc=0
+E Y3 history.count 0
+E Y3 misc icon=0 customIcon=- fg=00000000 bg=00000000 overrideUrl="" quality=1
+E Y3 parent PW (Passwords)
+E Y3 prev -
+E Y3 t.accessed 2026-11-01T10:20:00Z
+E Y3 t.created 2026-11-01T10:20:00Z
+E Y3 t.expires 0 2026-11-01T10:00:00Z
+E Y3 t.location 2026-11-01T10:20:00Z
+E Y3 t.modified 2026-11-01T10:20:00Z
+E Y3 tags []
+E Y3 usage 0
+E Y4 S Notes p=0 ""
+E Y4 S Password p=1 "y4-old"
+E Y4 S Title p=0 "Y4"
+E Y4 S URL p=0 ""
+E Y4 S UserName p=0 "user-y4"
+E Y4 autotype enabled=1 obfuscation=0 seq="" assoc=0
+E Y4 history.count 0
+E Y4 misc icon=0 customIcon=- fg=00000000 bg=00000000 overrideUrl="" quality=1
+E Y4 parent PW (Passwords)
+E Y4 prev -
+E Y4 t.accessed 2026-11-01T10:20:00Z
+E Y4 t.created 2026-11-01T10:20:00Z
+E Y4 t.expires 0 2026-11-01T10:00:00Z
+E Y4 t.location 2026-11-01T10:20:00Z
+E Y4 t.modified 2026-11-01T10:20:00Z
+E Y4 tags []
+E Y4 usage 0
+E Y5 S Notes p=0 ""
+E Y5 S Password p=1 "y5-old"
+E Y5 S Title p=0 "Y5"
+E Y5 S URL p=0 ""
+E Y5 S UserName p=0 "user-y5"
+E Y5 autotype enabled=1 obfuscation=0 seq="" assoc=0
+E Y5 history.count 0
+E Y5 misc icon=0 customIcon=- fg=00000000 bg=00000000 overrideUrl="" quality=1
+E Y5 parent PW (Passwords)
+E Y5 prev -
+E Y5 t.accessed 2026-11-01T10:20:00Z
+E Y5 t.created 2026-11-01T10:20:00Z
+E Y5 t.expires 0 2026-11-01T10:00:00Z
+E Y5 t.location 2026-11-01T10:20:00Z
+E Y5 t.modified 2026-11-01T10:20:00Z
+E Y5 tags []
+E Y5 usage 0
+E Y6 S Notes p=0 ""
+E Y6 S Password p=1 "y6-old"
+E Y6 S Title p=0 "Y6"
+E Y6 S URL p=0 ""
+E Y6 S UserName p=0 "user-y6"
+E Y6 autotype enabled=1 obfuscation=0 seq="" assoc=0
+E Y6 history.count 0
+E Y6 misc icon=0 customIcon=- fg=00000000 bg=00000000 overrideUrl="" quality=1
+E Y6 parent PW (Passwords)
+E Y6 prev -
+E Y6 t.accessed 2026-11-01T10:20:00Z
+E Y6 t.created 2026-11-01T10:20:00Z
+E Y6 t.expires 0 2026-11-01T10:00:00Z
+E Y6 t.location 2026-11-01T10:20:00Z
+E Y6 t.modified 2026-11-01T10:20:00Z
+E Y6 tags []
+E Y6 usage 0
+F cipher AES/Rijndael (256-bit key, FIPS 197)
+F compression GZip
+F groups 13 entries 41
+F kdf Argon2d it=2 mem=1024KiB par=1 v=0x13
+F version 4.1
+G Bin children groups=0 entries=0
+G Bin flags icon=43 customIcon=- search=0 autotype=0 expanded=1 seq="" lastTop=-
+G Bin name "Recycle Bin"
+G Bin notes ""
+G Bin parent Root (Storage probe)
+G Bin prev -
+G Bin t.accessed 2026-11-01T10:05:00Z
+G Bin t.created 2026-11-01T10:05:00Z
+G Bin t.expires 0 2026-11-01T10:00:00Z
+G Bin t.location 2026-11-01T10:05:00Z
+G Bin t.modified 2026-11-01T10:05:00Z
+G Bin tags []
+G Bin usage 0
+G G CD KPG = "{\"reader\":[\"read\",\"list\"]}"
+G G children groups=1 entries=4
+G G flags icon=48 customIcon=- search=inherit autotype=inherit expanded=1 seq="" lastTop=-
+G G name "G"
+G G notes "{\"kpg.rules\":{\"reader\":\".R...L..\",\"writer\":\"CRU..L..\"}}"
+G G parent Root (Storage probe)
+G G prev -
+G G t.accessed 2026-11-01T10:00:00Z
+G G t.created 2026-11-01T10:00:00Z
+G G t.expires 0 2026-11-01T10:00:00Z
+G G t.location 2026-11-01T10:00:00Z
+G G t.modified 2026-11-01T10:30:00Z
+G G tags [kpg.reader;team]
+G G usage 0
+G GD children groups=0 entries=1
+G GD flags icon=48 customIcon=- search=inherit autotype=inherit expanded=1 seq="" lastTop=-
+G GD name "GD"
+G GD notes ""
+G GD parent Root (Storage probe)
+G GD prev -
+G GD t.accessed 2026-11-01T10:05:00Z
+G GD t.created 2026-11-01T10:05:00Z
+G GD t.expires 0 2026-11-01T10:00:00Z
+G GD t.location 2026-11-01T10:05:00Z
+G GD t.modified 2026-11-01T10:05:00Z
+G GD tags []
+G GD usage 0
+G GKPG children groups=0 entries=2
+G GKPG flags icon=48 customIcon=- search=inherit autotype=inherit expanded=1 seq="" lastTop=-
+G GKPG name "Carriers"
+G GKPG notes "Generic carriers (invented)."
+G GKPG parent Root (Storage probe)
+G GKPG prev -
+G GKPG t.accessed 2026-11-01T10:10:00Z
+G GKPG t.created 2026-11-01T10:10:00Z
+G GKPG t.expires 0 2026-11-01T10:00:00Z
+G GKPG t.location 2026-11-01T10:10:00Z
+G GKPG t.modified 2026-11-01T10:10:00Z
+G GKPG tags []
+G GKPG usage 0
+G HE children groups=0 entries=2
+G HE flags icon=48 customIcon=- search=inherit autotype=inherit expanded=1 seq="" lastTop=-
+G HE name "Health"
+G HE notes ""
+G HE parent PS (Personal)
+G HE prev -
+G HE t.accessed 2026-11-01T10:05:00Z
+G HE t.created 2026-11-01T10:05:00Z
+G HE t.expires 0 2026-11-01T10:00:00Z
+G HE t.location 2026-11-01T10:05:00Z
+G HE t.modified 2026-11-01T10:05:00Z
+G HE tags []
+G HE usage 0
+G KG children groups=0 entries=14
+G KG flags icon=48 customIcon=- search=0 autotype=0 expanded=0 seq="" lastTop=-
+G KG name "KeePassGate"
+G KG notes "The plugin's own group (invented)."
+G KG parent Root (Storage probe)
+G KG prev -
+G KG t.accessed 2026-11-01T10:05:00Z
+G KG t.created 2026-11-01T10:05:00Z
+G KG t.expires 0 2026-11-01T10:00:00Z
+G KG t.location 2026-11-01T10:05:00Z
+G KG t.modified 2026-11-01T10:05:00Z
+G KG tags []
+G KG usage 0
+G N children groups=0 entries=1
+G N flags icon=48 customIcon=- search=inherit autotype=inherit expanded=1 seq="" lastTop=-
+G N name "N"
+G N notes ""
+G N parent G (G)
+G N prev -
+G N t.accessed 2026-11-01T10:20:00Z
+G N t.created 2026-11-01T10:20:00Z
+G N t.expires 0 2026-11-01T10:00:00Z
+G N t.location 2026-11-01T10:20:00Z
+G N t.modified 2026-11-01T10:20:00Z
+G N tags []
+G N usage 0
+G NA children groups=1 entries=1
+G NA flags icon=48 customIcon=- search=inherit autotype=inherit expanded=1 seq="" lastTop=-
+G NA name "NA"
+G NA notes ""
+G NA parent Root (Storage probe)
+G NA prev -
+G NA t.accessed 2026-11-01T10:05:00Z
+G NA t.created 2026-11-01T10:05:00Z
+G NA t.expires 0 2026-11-01T10:00:00Z
+G NA t.location 2026-11-01T10:05:00Z
+G NA t.modified 2026-11-01T10:05:00Z
+G NA tags []
+G NA usage 0
+G NB children groups=1 entries=1
+G NB flags icon=48 customIcon=- search=inherit autotype=inherit expanded=1 seq="" lastTop=-
+G NB name "NB"
+G NB notes ""
+G NB parent NA (NA)
+G NB prev -
+G NB t.accessed 2026-11-01T10:05:00Z
+G NB t.created 2026-11-01T10:05:00Z
+G NB t.expires 0 2026-11-01T10:00:00Z
+G NB t.location 2026-11-01T10:05:00Z
+G NB t.modified 2026-11-01T10:05:00Z
+G NB tags []
+G NB usage 0
+G NC children groups=0 entries=1
+G NC flags icon=48 customIcon=- search=inherit autotype=inherit expanded=1 seq="" lastTop=-
+G NC name "NC"
+G NC notes ""
+G NC parent NB (NB)
+G NC prev -
+G NC t.accessed 2026-11-01T10:05:00Z
+G NC t.created 2026-11-01T10:05:00Z
+G NC t.expires 0 2026-11-01T10:00:00Z
+G NC t.location 2026-11-01T10:05:00Z
+G NC t.modified 2026-11-01T10:05:00Z
+G NC tags []
+G NC usage 0
+G PS children groups=1 entries=0
+G PS flags icon=48 customIcon=- search=inherit autotype=inherit expanded=1 seq="" lastTop=-
+G PS name "Personal"
+G PS notes ""
+G PS parent Root (Storage probe)
+G PS prev -
+G PS t.accessed 2026-11-01T10:05:00Z
+G PS t.created 2026-11-01T10:05:00Z
+G PS t.expires 0 2026-11-01T10:00:00Z
+G PS t.location 2026-11-01T10:05:00Z
+G PS t.modified 2026-11-01T10:05:00Z
+G PS tags []
+G PS usage 0
+G PW children groups=0 entries=14
+G PW flags icon=48 customIcon=- search=inherit autotype=inherit expanded=1 seq="" lastTop=-
+G PW name "Passwords"
+G PW notes ""
+G PW parent Root (Storage probe)
+G PW prev -
+G PW t.accessed 2026-11-01T10:05:00Z
+G PW t.created 2026-11-01T10:05:00Z
+G PW t.expires 0 2026-11-01T10:00:00Z
+G PW t.location 2026-11-01T10:05:00Z
+G PW t.modified 2026-11-01T10:05:00Z
+G PW tags []
+G PW usage 0
+G Root children groups=8 entries=0
+G Root flags icon=49 customIcon=- search=inherit autotype=inherit expanded=1 seq="" lastTop=-
+G Root name "Storage probe"
+G Root notes ""
+G Root parent -
+G Root prev -
+G Root t.accessed 2026-11-01T10:00:00Z
+G Root t.created 2026-11-01T10:00:00Z
+G Root t.expires 0 2026-11-01T10:00:00Z
+G Root t.location 2026-11-01T10:00:00Z
+G Root t.modified 2026-11-01T10:00:00Z
+G Root tags []
+G Root usage 0
+M CD KPG.Authority.df0831afe5d7f3f7b16a25ef6e0e56153ba0b886c2fb02e4e628a4b6495adfc9 = len=2817 sha=e09bb73aee6c8e81 "{\"kind\":\"authority\",\"fingerprint\":\"df0831afe5d7f3f7b1..." @2026-11-01T10:03:00Z
+M CD KPG.Authority.fdbcd0c82e016da9c2b2f4ebdc53ea116eb037c69a0c2be1dc3c6a0c8881c590 = len=2817 sha=dff90ae789f1899a "{\"kind\":\"authority\",\"fingerprint\":\"fdbcd0c82e016da9c2..." @2026-11-01T10:41:00Z
+M CD KPG.Client.b6d5e581aa7454dbe870052993f94be417c9bb32c2f3765d603cf3315e99a392 = "" @2026-11-01T11:05:00Z
+M CD KPG.Client.d2d31ae42311e216978c55ae62b98315483da922e9bceef352990a86f61613b2 = "{\"name\":\"build-agent\",\"profiles\":[\"reader\"]}" @2026-11-01T11:00:00Z
+M CD KPG.ProfileRemoved.7718C068C79DBE4040F4F58C61D911C4 = "{\"name\":\"legacy\"}" @2026-11-01T10:52:00Z
+M CD KPG.Profiles = "[\"reader\",\"writer\"]" @2026-11-01T10:15:00Z
+M CD KPG.RetiredAuthority.df0831afe5d7f3f7b16a25ef6e0e56153ba0b886c2fb02e4e628a4b6495adfc9 = "67aa91e2753a83630f87fbd8820e8de13f44e5ea58060bb0b59ece6dac694482" @2026-11-01T10:40:00Z
+M CD KPG.Revoked.b6d5e581aa7454dbe870052993f94be417c9bb32c2f3765d603cf3315e99a392 = "{\"at\":\"2026-11-01T11:05:00Z\"}" @2026-11-01T11:05:00Z
+M CD KPG.Untimed = "no time on this key" @none
+M CD KPG.Withdrawn.7ED75356CD95DD4D984DB74E4C2FB30B = "{\"grant\":\"writer Passwords\",\"letters\":\"...SD...\"}" @2026-11-01T10:53:00Z
+M CD KPG.Withheld.8E569577ED83EFE9D1765ED2CA85131A = "{\"node\":\"G/E3\"}" @2026-11-01T11:07:00Z
+M CD KPG.Withheld.E30F91E7153A50C03BA239446D1457E4 = "{\"node\":\"Personal/Health\"}" @2026-11-01T11:06:00Z
+M color ff3366cc
+M customIcons 0
+M defaultUserName "invented-default-user" changed 2026-11-01T10:00:00Z
+M description "Throwaway database, invented content only" changed 2026-11-01T10:00:00Z
+M historyMaxItems 8 historyMaxSize 5242880 maintenanceHistoryDays 200
+M keyChange rec=-1 force=-1 once=0
+M masterKeyChanged 2026-11-01T10:00:00Z
+M name "Storage probe DX (invented)" changed 2026-11-01T10:00:00Z
+M publicCustomData 0
+M recycleBin enabled=1 group=Bin changed 2026-11-01T10:05:00Z
+M settingsChanged 2026-11-01T10:00:00Z
+M templatesGroup - changed 2026-11-01T10:00:00Z
+R header fields 0,2,3,4,7,11 compression=gzip cipher=31C1F2E6BF714350BE5805216AFC5AFF
+R header kdf $UUID=EF636DDF8C29444B91F7A9A403E30A0C I=2 M=1048576 P=1 S=bytes32 V=19 count=6
+R header publicCustomData none
+R inner streamId=3 binaries=2 flags=0,1
+R meta Color = "#3366CC"
+R meta DatabaseName = "Storage probe DX (invented)"
+R meta DefaultUserName = "invented-default-user"
+R meta EntryTemplatesGroup = "AAAAAAAAAAAAAAAAAAAAAA=="
+R meta Generator = (empty)
+R meta HistoryMaxItems = "8"
+R meta HistoryMaxSize = "5242880"
+R meta MaintenanceHistoryDays = "200"
+R meta MasterKeyChangeForce = "-1"
+R meta MasterKeyChangeRec = "-1"
+R meta MemoryProtection/ProtectNotes = "False"
+R meta MemoryProtection/ProtectPassword = "True"
+R meta MemoryProtection/ProtectTitle = "False"
+R meta MemoryProtection/ProtectURL = "False"
+R meta MemoryProtection/ProtectUserName = "False"
+R meta RecycleBinEnabled = "True"
+R meta SettingsChanged = "oAR54g4AAAA="
+X KeePassFile 1
+X KeePassFile/Meta 1
+X KeePassFile/Meta/Color 1
+X KeePassFile/Meta/CustomData 1
+X KeePassFile/Meta/CustomData/Item 12
+X KeePassFile/Meta/CustomData/Item/Key 12
+X KeePassFile/Meta/CustomData/Item/LastModificationTime 11
+X KeePassFile/Meta/CustomData/Item/Value 12
+X KeePassFile/Meta/DatabaseDescription 1
+X KeePassFile/Meta/DatabaseDescriptionChanged 1
+X KeePassFile/Meta/DatabaseName 1
+X KeePassFile/Meta/DatabaseNameChanged 1
+X KeePassFile/Meta/DefaultUserName 1
+X KeePassFile/Meta/DefaultUserNameChanged 1
+X KeePassFile/Meta/EntryTemplatesGroup 1
+X KeePassFile/Meta/EntryTemplatesGroupChanged 1
+X KeePassFile/Meta/Generator 1
+X KeePassFile/Meta/HistoryMaxItems 1
+X KeePassFile/Meta/HistoryMaxSize 1
+X KeePassFile/Meta/LastSelectedGroup 1
+X KeePassFile/Meta/LastTopVisibleGroup 1
+X KeePassFile/Meta/MaintenanceHistoryDays 1
+X KeePassFile/Meta/MasterKeyChangeForce 1
+X KeePassFile/Meta/MasterKeyChangeRec 1
+X KeePassFile/Meta/MasterKeyChanged 1
+X KeePassFile/Meta/MemoryProtection 1
+X KeePassFile/Meta/MemoryProtection/ProtectNotes 1
+X KeePassFile/Meta/MemoryProtection/ProtectPassword 1
+X KeePassFile/Meta/MemoryProtection/ProtectTitle 1
+X KeePassFile/Meta/MemoryProtection/ProtectURL 1
+X KeePassFile/Meta/MemoryProtection/ProtectUserName 1
+X KeePassFile/Meta/RecycleBinChanged 1
+X KeePassFile/Meta/RecycleBinEnabled 1
+X KeePassFile/Meta/RecycleBinUUID 1
+X KeePassFile/Meta/SettingsChanged 1
+X KeePassFile/Root 1
+X KeePassFile/Root/DeletedObjects 1
+X KeePassFile/Root/DeletedObjects/DeletedObject 4
+X KeePassFile/Root/DeletedObjects/DeletedObject/DeletionTime 4
+X KeePassFile/Root/DeletedObjects/DeletedObject/UUID 4
+X KeePassFile/Root/Group 1
+X KeePassFile/Root/Group/DefaultAutoTypeSequence 1
+X KeePassFile/Root/Group/EnableAutoType 1
+X KeePassFile/Root/Group/EnableSearching 1
+X KeePassFile/Root/Group/Group 8
+X KeePassFile/Root/Group/Group/CustomData 1
+X KeePassFile/Root/Group/Group/CustomData/Item 1
+X KeePassFile/Root/Group/Group/CustomData/Item/Key 1
+X KeePassFile/Root/Group/Group/CustomData/Item/Value 1
+X KeePassFile/Root/Group/Group/DefaultAutoTypeSequence 8
+X KeePassFile/Root/Group/Group/EnableAutoType 8
+X KeePassFile/Root/Group/Group/EnableSearching 8
+X KeePassFile/Root/Group/Group/Entry 36
+X KeePassFile/Root/Group/Group/Entry/AutoType 36
+X KeePassFile/Root/Group/Group/Entry/AutoType/DataTransferObfuscation 36
+X KeePassFile/Root/Group/Group/Entry/AutoType/Enabled 36
+X KeePassFile/Root/Group/Group/Entry/BackgroundColor 36
+X KeePassFile/Root/Group/Group/Entry/Binary 3
+X KeePassFile/Root/Group/Group/Entry/Binary/Key 3
+X KeePassFile/Root/Group/Group/Entry/Binary/Value 3
+X KeePassFile/Root/Group/Group/Entry/Binary/Value@Ref 3
+X KeePassFile/Root/Group/Group/Entry/CustomData 2
+X KeePassFile/Root/Group/Group/Entry/CustomData/Item 2
+X KeePassFile/Root/Group/Group/Entry/CustomData/Item/Key 2
+X KeePassFile/Root/Group/Group/Entry/CustomData/Item/Value 2
+X KeePassFile/Root/Group/Group/Entry/ForegroundColor 36
+X KeePassFile/Root/Group/Group/Entry/History 36
+X KeePassFile/Root/Group/Group/Entry/History/Entry 6
+X KeePassFile/Root/Group/Group/Entry/History/Entry/AutoType 6
+X KeePassFile/Root/Group/Group/Entry/History/Entry/AutoType/DataTransferObfuscation 6
+X KeePassFile/Root/Group/Group/Entry/History/Entry/AutoType/Enabled 6
+X KeePassFile/Root/Group/Group/Entry/History/Entry/BackgroundColor 6
+X KeePassFile/Root/Group/Group/Entry/History/Entry/Binary 1
+X KeePassFile/Root/Group/Group/Entry/History/Entry/Binary/Key 1
+X KeePassFile/Root/Group/Group/Entry/History/Entry/Binary/Value 1
+X KeePassFile/Root/Group/Group/Entry/History/Entry/Binary/Value@Ref 1
+X KeePassFile/Root/Group/Group/Entry/History/Entry/ForegroundColor 6
+X KeePassFile/Root/Group/Group/Entry/History/Entry/IconID 6
+X KeePassFile/Root/Group/Group/Entry/History/Entry/OverrideURL 6
+X KeePassFile/Root/Group/Group/Entry/History/Entry/String 40
+X KeePassFile/Root/Group/Group/Entry/History/Entry/String/Key 40
+X KeePassFile/Root/Group/Group/Entry/History/Entry/String/Value 40
+X KeePassFile/Root/Group/Group/Entry/History/Entry/String/Value@Protected=True 8
+X KeePassFile/Root/Group/Group/Entry/History/Entry/Tags 6
+X KeePassFile/Root/Group/Group/Entry/History/Entry/Times 6
+X KeePassFile/Root/Group/Group/Entry/History/Entry/Times/CreationTime 6
+X KeePassFile/Root/Group/Group/Entry/History/Entry/Times/Expires 6
+X KeePassFile/Root/Group/Group/Entry/History/Entry/Times/ExpiryTime 6
+X KeePassFile/Root/Group/Group/Entry/History/Entry/Times/LastAccessTime 6
+X KeePassFile/Root/Group/Group/Entry/History/Entry/Times/LastModificationTime 6
+X KeePassFile/Root/Group/Group/Entry/History/Entry/Times/LocationChanged 6
+X KeePassFile/Root/Group/Group/Entry/History/Entry/Times/UsageCount 6
+X KeePassFile/Root/Group/Group/Entry/History/Entry/UUID 6
+X KeePassFile/Root/Group/Group/Entry/IconID 36
+X KeePassFile/Root/Group/Group/Entry/OverrideURL 36
+X KeePassFile/Root/Group/Group/Entry/QualityCheck 1
+X KeePassFile/Root/Group/Group/Entry/String 226
+X KeePassFile/Root/Group/Group/Entry/String/Key 226
+X KeePassFile/Root/Group/Group/Entry/String/Value 226
+X KeePassFile/Root/Group/Group/Entry/String/Value@Protected=True 39
+X KeePassFile/Root/Group/Group/Entry/Tags 36
+X KeePassFile/Root/Group/Group/Entry/Times 36
+X KeePassFile/Root/Group/Group/Entry/Times/CreationTime 36
+X KeePassFile/Root/Group/Group/Entry/Times/Expires 36
+X KeePassFile/Root/Group/Group/Entry/Times/ExpiryTime 36
+X KeePassFile/Root/Group/Group/Entry/Times/LastAccessTime 36
+X KeePassFile/Root/Group/Group/Entry/Times/LastModificationTime 36
+X KeePassFile/Root/Group/Group/Entry/Times/LocationChanged 36
+X KeePassFile/Root/Group/Group/Entry/Times/UsageCount 36
+X KeePassFile/Root/Group/Group/Entry/UUID 36
+X KeePassFile/Root/Group/Group/Group 3
+X KeePassFile/Root/Group/Group/Group/DefaultAutoTypeSequence 3
+X KeePassFile/Root/Group/Group/Group/EnableAutoType 3
+X KeePassFile/Root/Group/Group/Group/EnableSearching 3
+X KeePassFile/Root/Group/Group/Group/Entry 4
+X KeePassFile/Root/Group/Group/Group/Entry/AutoType 4
+X KeePassFile/Root/Group/Group/Group/Entry/AutoType/DataTransferObfuscation 4
+X KeePassFile/Root/Group/Group/Group/Entry/AutoType/Enabled 4
+X KeePassFile/Root/Group/Group/Group/Entry/BackgroundColor 4
+X KeePassFile/Root/Group/Group/Group/Entry/ForegroundColor 4
+X KeePassFile/Root/Group/Group/Group/Entry/History 4
+X KeePassFile/Root/Group/Group/Group/Entry/IconID 4
+X KeePassFile/Root/Group/Group/Group/Entry/OverrideURL 4
+X KeePassFile/Root/Group/Group/Group/Entry/PreviousParentGroup 1
+X KeePassFile/Root/Group/Group/Group/Entry/String 21
+X KeePassFile/Root/Group/Group/Group/Entry/String/Key 21
+X KeePassFile/Root/Group/Group/Group/Entry/String/Value 21
+X KeePassFile/Root/Group/Group/Group/Entry/String/Value@Protected=True 4
+X KeePassFile/Root/Group/Group/Group/Entry/Tags 4
+X KeePassFile/Root/Group/Group/Group/Entry/Times 4
+X KeePassFile/Root/Group/Group/Group/Entry/Times/CreationTime 4
+X KeePassFile/Root/Group/Group/Group/Entry/Times/Expires 4
+X KeePassFile/Root/Group/Group/Group/Entry/Times/ExpiryTime 4
+X KeePassFile/Root/Group/Group/Group/Entry/Times/LastAccessTime 4
+X KeePassFile/Root/Group/Group/Group/Entry/Times/LastModificationTime 4
+X KeePassFile/Root/Group/Group/Group/Entry/Times/LocationChanged 4
+X KeePassFile/Root/Group/Group/Group/Entry/Times/UsageCount 4
+X KeePassFile/Root/Group/Group/Group/Entry/UUID 4
+X KeePassFile/Root/Group/Group/Group/Group 1
+X KeePassFile/Root/Group/Group/Group/Group/DefaultAutoTypeSequence 1
+X KeePassFile/Root/Group/Group/Group/Group/EnableAutoType 1
+X KeePassFile/Root/Group/Group/Group/Group/EnableSearching 1
+X KeePassFile/Root/Group/Group/Group/Group/Entry 1
+X KeePassFile/Root/Group/Group/Group/Group/Entry/AutoType 1
+X KeePassFile/Root/Group/Group/Group/Group/Entry/AutoType/DataTransferObfuscation 1
+X KeePassFile/Root/Group/Group/Group/Group/Entry/AutoType/Enabled 1
+X KeePassFile/Root/Group/Group/Group/Group/Entry/BackgroundColor 1
+X KeePassFile/Root/Group/Group/Group/Group/Entry/ForegroundColor 1
+X KeePassFile/Root/Group/Group/Group/Group/Entry/History 1
+X KeePassFile/Root/Group/Group/Group/Group/Entry/IconID 1
+X KeePassFile/Root/Group/Group/Group/Group/Entry/OverrideURL 1
+X KeePassFile/Root/Group/Group/Group/Group/Entry/String 5
+X KeePassFile/Root/Group/Group/Group/Group/Entry/String/Key 5
+X KeePassFile/Root/Group/Group/Group/Group/Entry/String/Value 5
+X KeePassFile/Root/Group/Group/Group/Group/Entry/String/Value@Protected=True 1
+X KeePassFile/Root/Group/Group/Group/Group/Entry/Tags 1
+X KeePassFile/Root/Group/Group/Group/Group/Entry/Times 1
+X KeePassFile/Root/Group/Group/Group/Group/Entry/Times/CreationTime 1
+X KeePassFile/Root/Group/Group/Group/Group/Entry/Times/Expires 1
+X KeePassFile/Root/Group/Group/Group/Group/Entry/Times/ExpiryTime 1
+X KeePassFile/Root/Group/Group/Group/Group/Entry/Times/LastAccessTime 1
+X KeePassFile/Root/Group/Group/Group/Group/Entry/Times/LastModificationTime 1
+X KeePassFile/Root/Group/Group/Group/Group/Entry/Times/LocationChanged 1
+X KeePassFile/Root/Group/Group/Group/Group/Entry/Times/UsageCount 1
+X KeePassFile/Root/Group/Group/Group/Group/Entry/UUID 1
+X KeePassFile/Root/Group/Group/Group/Group/IconID 1
+X KeePassFile/Root/Group/Group/Group/Group/IsExpanded 1
+X KeePassFile/Root/Group/Group/Group/Group/LastTopVisibleEntry 1
+X KeePassFile/Root/Group/Group/Group/Group/Name 1
+X KeePassFile/Root/Group/Group/Group/Group/Notes 1
+X KeePassFile/Root/Group/Group/Group/Group/Times 1
+X KeePassFile/Root/Group/Group/Group/Group/Times/CreationTime 1
+X KeePassFile/Root/Group/Group/Group/Group/Times/Expires 1
+X KeePassFile/Root/Group/Group/Group/Group/Times/ExpiryTime 1
+X KeePassFile/Root/Group/Group/Group/Group/Times/LastAccessTime 1
+X KeePassFile/Root/Group/Group/Group/Group/Times/LastModificationTime 1
+X KeePassFile/Root/Group/Group/Group/Group/Times/LocationChanged 1
+X KeePassFile/Root/Group/Group/Group/Group/Times/UsageCount 1
+X KeePassFile/Root/Group/Group/Group/Group/UUID 1
+X KeePassFile/Root/Group/Group/Group/IconID 3
+X KeePassFile/Root/Group/Group/Group/IsExpanded 3
+X KeePassFile/Root/Group/Group/Group/LastTopVisibleEntry 3
+X KeePassFile/Root/Group/Group/Group/Name 3
+X KeePassFile/Root/Group/Group/Group/Notes 3
+X KeePassFile/Root/Group/Group/Group/Times 3
+X KeePassFile/Root/Group/Group/Group/Times/CreationTime 3
+X KeePassFile/Root/Group/Group/Group/Times/Expires 3
+X KeePassFile/Root/Group/Group/Group/Times/ExpiryTime 3
+X KeePassFile/Root/Group/Group/Group/Times/LastAccessTime 3
+X KeePassFile/Root/Group/Group/Group/Times/LastModificationTime 3
+X KeePassFile/Root/Group/Group/Group/Times/LocationChanged 3
+X KeePassFile/Root/Group/Group/Group/Times/UsageCount 3
+X KeePassFile/Root/Group/Group/Group/UUID 3
+X KeePassFile/Root/Group/Group/IconID 8
+X KeePassFile/Root/Group/Group/IsExpanded 8
+X KeePassFile/Root/Group/Group/LastTopVisibleEntry 8
+X KeePassFile/Root/Group/Group/Name 8
+X KeePassFile/Root/Group/Group/Notes 8
+X KeePassFile/Root/Group/Group/Tags 1
+X KeePassFile/Root/Group/Group/Times 8
+X KeePassFile/Root/Group/Group/Times/CreationTime 8
+X KeePassFile/Root/Group/Group/Times/Expires 8
+X KeePassFile/Root/Group/Group/Times/ExpiryTime 8
+X KeePassFile/Root/Group/Group/Times/LastAccessTime 8
+X KeePassFile/Root/Group/Group/Times/LastModificationTime 8
+X KeePassFile/Root/Group/Group/Times/LocationChanged 8
+X KeePassFile/Root/Group/Group/Times/UsageCount 8
+X KeePassFile/Root/Group/Group/UUID 8
+X KeePassFile/Root/Group/IconID 1
+X KeePassFile/Root/Group/IsExpanded 1
+X KeePassFile/Root/Group/LastTopVisibleEntry 1
+X KeePassFile/Root/Group/Name 1
+X KeePassFile/Root/Group/Notes 1
+X KeePassFile/Root/Group/Times 1
+X KeePassFile/Root/Group/Times/CreationTime 1
+X KeePassFile/Root/Group/Times/Expires 1
+X KeePassFile/Root/Group/Times/ExpiryTime 1
+X KeePassFile/Root/Group/Times/LastAccessTime 1
+X KeePassFile/Root/Group/Times/LastModificationTime 1
+X KeePassFile/Root/Group/Times/LocationChanged 1
+X KeePassFile/Root/Group/Times/UsageCount 1
+X KeePassFile/Root/Group/UUID 1

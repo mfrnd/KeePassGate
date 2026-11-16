@@ -1,0 +1,38 @@
+# Keepass2Android, fresh app state: open ${SNAME} from the SFTP server (Open file..., SFTP (SSH File
+# Transfer), host, port, user and password, then the file in its browser), and unlock it.
+sh monkey -p ${PKG} -c android.intent.category.LAUNCHER 1
+clear ^OK$ start_open_file 40
+tap start_open_file
+tap ^SFTP..SSH.File.Transfer.$
+waitfor sftp_host 20
+list
+type sftp_host 10.0.2.2
+tap sftp_port
+key MOVE_END
+key DEL
+key DEL
+text 2022
+type sftp_user kpg
+typepw sftp_password <invented>
+list
+dialog
+tap ^OK$
+sleep 6
+dialog
+list
+maybe ^Yes$ 5
+sleep 3
+dialog
+maybe ^Yes$ 5
+sleep 3
+dialog
+list
+tap ^${SNAME}$
+sleep 3
+dialog
+waitfor password_edit 40
+list
+typepwck password_edit dummy-password-for-a-throwaway-file
+tap pass_ok
+waitfor fabAddNew 90
+dialog

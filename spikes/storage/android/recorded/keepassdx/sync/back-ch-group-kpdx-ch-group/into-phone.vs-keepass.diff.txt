@@ -1,0 +1,46 @@
+106c106
+< E E1 parent G (G)
+---
+> E E1 parent G (G-r)
+123c123
+< E E2 parent G (G)
+---
+> E E2 parent G (G-r)
+141c141
+< E E3 parent G (G)
+---
+> E E3 parent G (G-r)
+216c216
+< E Gm parent G (G)
+---
+> E Gm parent G (G-r)
+877,878c877,878
+< G G name "G"
+< G G notes "{\"kpg.rules\":{\"reader\":\".R...L..\",\"writer\":\"CRU..L..\"}}"
+---
+> G G name "G-r"
+> G G notes "{\"kpg.rules\":{\"reader\":\".R...L..\",\"writer\":\"CRU..L..\"-n}}"
+881c881
+< G G t.accessed 2026-11-01T10:00:00Z
+---
+> G G t.accessed 2026-11-16T15:04:05Z
+883c883
+< G G t.expires 0 2026-11-01T10:00:00Z
+---
+> G G t.expires 0 2999-11-28T23:59:59Z
+885c885
+< G G t.modified 2026-11-01T10:30:00Z
+---
+> G G t.modified 2026-11-16T15:04:05Z
+944c944
+< G N parent G (G)
+---
+> G N parent G (G-r)
+1024c1024
+< G Root t.accessed 2026-11-01T10:00:00Z
+---
+> G Root t.accessed 2026-11-16T15:04:05Z
+1028c1028
+< G Root t.modified 2026-11-01T10:00:00Z
+---
+> G Root t.modified 2026-11-16T15:04:05Z

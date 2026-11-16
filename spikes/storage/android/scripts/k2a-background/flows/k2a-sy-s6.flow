@@ -1,0 +1,9 @@
+# Plain save with a setting changed, cases 6 and 7: open; More options, Settings, App, File
+# handling, the line ${SETTING} pressed; back; SNEW-fixed put on the server; edit P2's password and
+# save, answering a "Merge changes?" question with ${ANSWER}.
+include k2a-sy-open.flow
+include k2a-setting.flow
+host sh ${P}/srv-put.sh ${SNAME} ${SRCDIR}/SNEW-fixed.kdbx
+include k2a-sy-pw-P2.flow
+host sh ${P}/events.sh 8 after-save
+host sh ${P}/srv-stat.sh ${SNAME} after-save

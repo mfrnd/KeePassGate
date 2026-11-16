@@ -1,0 +1,4 @@
+# KeePassDX's user verification before an edit: the first characters of the open database's
+# password, then Check, until the editor shows.
+type setup_check_password_edit_text dumm
+tapuntil ^Check$ entry_edit_validate 30

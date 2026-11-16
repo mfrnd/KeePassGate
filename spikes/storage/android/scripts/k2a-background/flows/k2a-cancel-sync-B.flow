@@ -1,0 +1,12 @@
+# Item 2, preferences B: open; SNEW-fixed put on the server; P2 edited and saved, the question the
+# background synchronization raises answered Cancel (k2a-sy-pw-P2.flow with ANSWER=cancelsync);
+# 15 s watched, the files kept; Synchronize database..., answered as SANSWER; look.
+include k2a-sy-open.flow
+host sh ${P}/srv-put.sh ${SNAME} ${SRCDIR}/SNEW-fixed.kdbx
+include k2a-sy-pw-P2.flow
+host sh ${P}/watch.sh ${SNAME} 15 after-cancel
+host sh ${P}/notif.sh after-cancel
+host sh ${P}/snap.sh ${W} ${SNAME} after-cancel
+include k2a-sy-sync.flow
+host sh ${P}/srv-stat.sh ${SNAME} after-sync
+include k2a-sy-look.flow

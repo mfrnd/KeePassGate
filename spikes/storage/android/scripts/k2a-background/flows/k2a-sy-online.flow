@@ -1,0 +1,12 @@
+# Keepass2Android in "Work on internal cache only": More options, "Synchronize cache copy with
+# source" (the item that takes the place of both "Synchronize database..." and "Work on internal
+# cache only" in that mode); a "Merge changes?" question answered as k2a-ans-${SANSWER}.flow does;
+# the events of the next 15 s logged, then what is on screen.
+tap More.options
+sleep 2
+list
+tap ^Synchronize.cache.copy.with.source$
+ifthen Merge.changes 25 k2a-ans-${SANSWER}.flow
+host sh ${P}/events.sh 15 after-synchronize-cache-copy
+dialog
+list

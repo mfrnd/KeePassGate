@@ -1,0 +1,20 @@
+# Item 1: the server frozen, so that the background synchronization the save starts waits at its
+# first request; P2's password edited and saved (with "Synchronize in background" on, the save
+# writes the cache only); back to the root group; the server's file, the cache and the device logged.
+host sh ${P}/server.sh freeze
+tap ^Passwords$
+tap ^P2$
+waitfor entry_edit 20
+tap entry_edit
+waitfor entry_password 20
+appendpw entry_password -phone
+tap menu_save
+waitfor entry_edit 60
+dialog
+host sh ${P}/srv-stat.sh ${SNAME} after-save
+key BACK
+sleep 2
+key BACK
+sleep 2
+waitfor fabAddNew 20
+host sh ${P}/devstate.sh after-save

@@ -1,0 +1,112 @@
+304,318c304,318
+< E HL2 H2026-11-01T10:30:00Z S Notes p=0 len=2000 sha=dde06b01b01767e3 "PF7pZFZw8vGKeiXLwOJgoZIlebl0VvvpgDKgWC6ojzqIZqDm252vann07WK7..."
+< E HL2 H2026-11-01T10:30:00Z S Password p=1 "hl2-v0"
+< E HL2 H2026-11-01T10:30:00Z S Title p=0 "HL2"
+< E HL2 H2026-11-01T10:30:00Z S URL p=0 ""
+< E HL2 H2026-11-01T10:30:00Z S UserName p=0 "user-hl2"
+< E HL2 H2026-11-01T10:30:00Z autotype enabled=1 obfuscation=0 seq="" assoc=0
+< E HL2 H2026-11-01T10:30:00Z misc icon=0 customIcon=- fg=00000000 bg=00000000 overrideUrl="" quality=1
+< E HL2 H2026-11-01T10:30:00Z prev -
+< E HL2 H2026-11-01T10:30:00Z t.accessed 2026-11-01T10:30:00Z
+< E HL2 H2026-11-01T10:30:00Z t.created 2026-11-01T10:20:00Z
+< E HL2 H2026-11-01T10:30:00Z t.expires 0 2026-11-01T10:00:00Z
+< E HL2 H2026-11-01T10:30:00Z t.location 2026-11-01T10:20:00Z
+< E HL2 H2026-11-01T10:30:00Z t.modified 2026-11-01T10:30:00Z
+< E HL2 H2026-11-01T10:30:00Z tags []
+< E HL2 H2026-11-01T10:30:00Z usage 0
+---
+> E HL2 H2026-11-01T10:40:00Z S Notes p=0 len=2000 sha=4cc356adf7ce4d87 "wXp2171RFI07LFEyM1K4woS6kFcdmjI55EgiLsGNVHQP6jYn8D9NJ00HFsSv..."
+> E HL2 H2026-11-01T10:40:00Z S Password p=1 "hl2-v0"
+> E HL2 H2026-11-01T10:40:00Z S Title p=0 "HL2"
+> E HL2 H2026-11-01T10:40:00Z S URL p=0 ""
+> E HL2 H2026-11-01T10:40:00Z S UserName p=0 "user-hl2"
+> E HL2 H2026-11-01T10:40:00Z autotype enabled=1 obfuscation=0 seq="" assoc=0
+> E HL2 H2026-11-01T10:40:00Z misc icon=0 customIcon=- fg=00000000 bg=00000000 overrideUrl="" quality=1
+> E HL2 H2026-11-01T10:40:00Z prev -
+> E HL2 H2026-11-01T10:40:00Z t.accessed 2026-11-01T10:40:00Z
+> E HL2 H2026-11-01T10:40:00Z t.created 2026-11-01T10:20:00Z
+> E HL2 H2026-11-01T10:40:00Z t.expires 0 2026-11-01T10:00:00Z
+> E HL2 H2026-11-01T10:40:00Z t.location 2026-11-01T10:20:00Z
+> E HL2 H2026-11-01T10:40:00Z t.modified 2026-11-01T10:40:00Z
+> E HL2 H2026-11-01T10:40:00Z tags []
+> E HL2 H2026-11-01T10:40:00Z usage 0
+320c320
+< E HL2 S Password p=1 "hl2-v0"
+---
+> E HL2 S Password p=1 "hl2-v0-a"
+329c329
+< E HL2 t.accessed 2026-11-01T10:40:00Z
+---
+> E HL2 t.accessed 2026-11-16T12:31:05Z
+331c331
+< E HL2 t.expires 0 2026-11-01T10:00:00Z
+---
+> E HL2 t.expires 0 2999-11-28T23:59:59Z
+333c333
+< E HL2 t.modified 2026-11-01T10:40:00Z
+---
+> E HL2 t.modified 2026-11-16T12:31:05Z
+335c335
+< E HL2 usage 0
+---
+> E HL2 usage 1
+974c974
+< G HG t.accessed 2026-11-16T12:27:34Z
+---
+> G HG t.accessed 2026-11-16T12:31:05Z
+978c978
+< G HG t.modified 2026-11-16T12:27:34Z
+---
+> G HG t.modified 2026-11-16T12:31:05Z
+1078c1078
+< G Root t.accessed 2026-11-16T12:27:34Z
+---
+> G Root t.accessed 2026-11-16T12:31:05Z
+1082c1082
+< G Root t.modified 2026-11-16T12:27:34Z
+---
+> G Root t.modified 2026-11-16T12:31:05Z
+1198,1218c1198,1218
+< X KeePassFile/Root/Group/Group/Entry/History/Entry 7
+< X KeePassFile/Root/Group/Group/Entry/History/Entry/AutoType 7
+< X KeePassFile/Root/Group/Group/Entry/History/Entry/AutoType/DataTransferObfuscation 7
+< X KeePassFile/Root/Group/Group/Entry/History/Entry/AutoType/Enabled 7
+< X KeePassFile/Root/Group/Group/Entry/History/Entry/BackgroundColor 7
+< X KeePassFile/Root/Group/Group/Entry/History/Entry/ForegroundColor 7
+< X KeePassFile/Root/Group/Group/Entry/History/Entry/IconID 7
+< X KeePassFile/Root/Group/Group/Entry/History/Entry/OverrideURL 7
+< X KeePassFile/Root/Group/Group/Entry/History/Entry/String 38
+< X KeePassFile/Root/Group/Group/Entry/History/Entry/String/Key 38
+< X KeePassFile/Root/Group/Group/Entry/History/Entry/String/Value 38
+< X KeePassFile/Root/Group/Group/Entry/History/Entry/String/Value@Protected=True 7
+< X KeePassFile/Root/Group/Group/Entry/History/Entry/Times 7
+< X KeePassFile/Root/Group/Group/Entry/History/Entry/Times/CreationTime 7
+< X KeePassFile/Root/Group/Group/Entry/History/Entry/Times/Expires 7
+< X KeePassFile/Root/Group/Group/Entry/History/Entry/Times/ExpiryTime 7
+< X KeePassFile/Root/Group/Group/Entry/History/Entry/Times/LastAccessTime 7
+< X KeePassFile/Root/Group/Group/Entry/History/Entry/Times/LastModificationTime 7
+< X KeePassFile/Root/Group/Group/Entry/History/Entry/Times/LocationChanged 7
+< X KeePassFile/Root/Group/Group/Entry/History/Entry/Times/UsageCount 7
+< X KeePassFile/Root/Group/Group/Entry/History/Entry/UUID 7
+---
+> X KeePassFile/Root/Group/Group/Entry/History/Entry 8
+> X KeePassFile/Root/Group/Group/Entry/History/Entry/AutoType 8
+> X KeePassFile/Root/Group/Group/Entry/History/Entry/AutoType/DataTransferObfuscation 8
+> X KeePassFile/Root/Group/Group/Entry/History/Entry/AutoType/Enabled 8
+> X KeePassFile/Root/Group/Group/Entry/History/Entry/BackgroundColor 8
+> X KeePassFile/Root/Group/Group/Entry/History/Entry/ForegroundColor 8
+> X KeePassFile/Root/Group/Group/Entry/History/Entry/IconID 8
+> X KeePassFile/Root/Group/Group/Entry/History/Entry/OverrideURL 8
+> X KeePassFile/Root/Group/Group/Entry/History/Entry/String 43
+> X KeePassFile/Root/Group/Group/Entry/History/Entry/String/Key 43
+> X KeePassFile/Root/Group/Group/Entry/History/Entry/String/Value 43
+> X KeePassFile/Root/Group/Group/Entry/History/Entry/String/Value@Protected=True 8
+> X KeePassFile/Root/Group/Group/Entry/History/Entry/Times 8
+> X KeePassFile/Root/Group/Group/Entry/History/Entry/Times/CreationTime 8
+> X KeePassFile/Root/Group/Group/Entry/History/Entry/Times/Expires 8
+> X KeePassFile/Root/Group/Group/Entry/History/Entry/Times/ExpiryTime 8
+> X KeePassFile/Root/Group/Group/Entry/History/Entry/Times/LastAccessTime 8
+> X KeePassFile/Root/Group/Group/Entry/History/Entry/Times/LastModificationTime 8
+> X KeePassFile/Root/Group/Group/Entry/History/Entry/Times/LocationChanged 8
+> X KeePassFile/Root/Group/Group/Entry/History/Entry/Times/UsageCount 8
+> X KeePassFile/Root/Group/Group/Entry/History/Entry/UUID 8

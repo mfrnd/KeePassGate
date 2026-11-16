@@ -1,0 +1,164 @@
+5d4
+< D X3 2026-11-01T16:00:00Z
+7c6
+< D count 6
+---
+> D count 5
+171a171,187
+> E GD1 S Notes p=0 ""
+> E GD1 S Password p=1 "gd1-old"
+> E GD1 S Title p=0 "GD1"
+> E GD1 S URL p=0 ""
+> E GD1 S UserName p=0 "user-gd1"
+> E GD1 autotype enabled=1 obfuscation=0 seq="" assoc=0
+> E GD1 history.count 0
+> E GD1 misc icon=0 customIcon=- fg=00000000 bg=00000000 overrideUrl="" quality=1
+> E GD1 parent GD (GD)
+> E GD1 prev -
+> E GD1 t.accessed 2026-11-01T10:20:00Z
+> E GD1 t.created 2026-11-01T10:20:00Z
+> E GD1 t.expires 0 2026-11-01T10:00:00Z
+> E GD1 t.location 2026-11-01T10:20:00Z
+> E GD1 t.modified 2026-11-01T10:20:00Z
+> E GD1 tags []
+> E GD1 usage 0
+376a393,443
+> E NA1 S Notes p=0 ""
+> E NA1 S Password p=1 "na1-old"
+> E NA1 S Title p=0 "NA1"
+> E NA1 S URL p=0 ""
+> E NA1 S UserName p=0 "user-na1"
+> E NA1 autotype enabled=1 obfuscation=0 seq="" assoc=0
+> E NA1 history.count 0
+> E NA1 misc icon=0 customIcon=- fg=00000000 bg=00000000 overrideUrl="" quality=1
+> E NA1 parent NA (NA)
+> E NA1 prev -
+> E NA1 t.accessed 2026-11-01T10:20:00Z
+> E NA1 t.created 2026-11-01T10:20:00Z
+> E NA1 t.expires 0 2026-11-01T10:00:00Z
+> E NA1 t.location 2026-11-01T10:20:00Z
+> E NA1 t.modified 2026-11-01T10:20:00Z
+> E NA1 tags []
+> E NA1 usage 0
+> E NB1 S Notes p=0 ""
+> E NB1 S Password p=1 "nb1-old"
+> E NB1 S Title p=0 "NB1"
+> E NB1 S URL p=0 ""
+> E NB1 S UserName p=0 "user-nb1"
+> E NB1 autotype enabled=1 obfuscation=0 seq="" assoc=0
+> E NB1 history.count 0
+> E NB1 misc icon=0 customIcon=- fg=00000000 bg=00000000 overrideUrl="" quality=1
+> E NB1 parent NB (NB)
+> E NB1 prev -
+> E NB1 t.accessed 2026-11-01T10:20:00Z
+> E NB1 t.created 2026-11-01T10:20:00Z
+> E NB1 t.expires 0 2026-11-01T10:00:00Z
+> E NB1 t.location 2026-11-01T10:20:00Z
+> E NB1 t.modified 2026-11-01T10:20:00Z
+> E NB1 tags []
+> E NB1 usage 0
+> E NC1 S Notes p=0 ""
+> E NC1 S Password p=1 "nc1-old"
+> E NC1 S Title p=0 "NC1"
+> E NC1 S URL p=0 ""
+> E NC1 S UserName p=0 "user-nc1"
+> E NC1 autotype enabled=1 obfuscation=0 seq="" assoc=0
+> E NC1 history.count 0
+> E NC1 misc icon=0 customIcon=- fg=00000000 bg=00000000 overrideUrl="" quality=1
+> E NC1 parent NC (NC)
+> E NC1 prev -
+> E NC1 t.accessed 2026-11-01T10:20:00Z
+> E NC1 t.created 2026-11-01T10:20:00Z
+> E NC1 t.expires 0 2026-11-01T10:00:00Z
+> E NC1 t.location 2026-11-01T10:20:00Z
+> E NC1 t.modified 2026-11-01T10:20:00Z
+> E NC1 tags []
+> E NC1 usage 0
+889a957,973
+> E X1 S Notes p=0 ""
+> E X1 S Password p=1 "x1-old"
+> E X1 S Title p=0 "X1"
+> E X1 S URL p=0 ""
+> E X1 S UserName p=0 "user-x1"
+> E X1 autotype enabled=1 obfuscation=0 seq="" assoc=0
+> E X1 history.count 0
+> E X1 misc icon=0 customIcon=- fg=00000000 bg=00000000 overrideUrl="" quality=1
+> E X1 parent PW (Passwords)
+> E X1 prev -
+> E X1 t.accessed 2026-11-01T10:20:00Z
+> E X1 t.created 2026-11-01T10:20:00Z
+> E X1 t.expires 0 2026-11-01T10:00:00Z
+> E X1 t.location 2026-11-01T10:20:00Z
+> E X1 t.modified 2026-11-01T10:20:00Z
+> E X1 tags []
+> E X1 usage 0
+1054c1138
+< F groups 9 entries 42
+---
+> F groups 13 entries 47
+1083a1168,1180
+> G GD children groups=0 entries=1
+> G GD flags icon=48 customIcon=- search=inherit autotype=inherit expanded=1 seq="" lastTop=-
+> G GD name "GD"
+> G GD notes ""
+> G GD parent Root (Storage probe)
+> G GD prev -
+> G GD t.accessed 2026-11-01T10:05:00Z
+> G GD t.created 2026-11-01T10:05:00Z
+> G GD t.expires 0 2026-11-01T10:00:00Z
+> G GD t.location 2026-11-01T10:05:00Z
+> G GD t.modified 2026-11-01T10:05:00Z
+> G GD tags []
+> G GD usage 0
+1135a1233,1271
+> G NA children groups=1 entries=1
+> G NA flags icon=48 customIcon=- search=inherit autotype=inherit expanded=1 seq="" lastTop=-
+> G NA name "NA"
+> G NA notes ""
+> G NA parent Root (Storage probe)
+> G NA prev -
+> G NA t.accessed 2026-11-01T10:05:00Z
+> G NA t.created 2026-11-01T10:05:00Z
+> G NA t.expires 0 2026-11-01T10:00:00Z
+> G NA t.location 2026-11-01T10:05:00Z
+> G NA t.modified 2026-11-01T10:05:00Z
+> G NA tags []
+> G NA usage 0
+> G NB children groups=1 entries=1
+> G NB flags icon=48 customIcon=- search=inherit autotype=inherit expanded=1 seq="" lastTop=-
+> G NB name "NB"
+> G NB notes ""
+> G NB parent NA (NA)
+> G NB prev -
+> G NB t.accessed 2026-11-01T10:05:00Z
+> G NB t.created 2026-11-01T10:05:00Z
+> G NB t.expires 0 2026-11-01T10:00:00Z
+> G NB t.location 2026-11-01T10:05:00Z
+> G NB t.modified 2026-11-01T10:05:00Z
+> G NB tags []
+> G NB usage 0
+> G NC children groups=0 entries=1
+> G NC flags icon=48 customIcon=- search=inherit autotype=inherit expanded=1 seq="" lastTop=-
+> G NC name "NC"
+> G NC notes ""
+> G NC parent NB (NB)
+> G NC prev -
+> G NC t.accessed 2026-11-01T10:05:00Z
+> G NC t.created 2026-11-01T10:05:00Z
+> G NC t.expires 0 2026-11-01T10:00:00Z
+> G NC t.location 2026-11-01T10:05:00Z
+> G NC t.modified 2026-11-01T10:05:00Z
+> G NC tags []
+> G NC usage 0
+1149c1285
+< G PW children groups=0 entries=11
+---
+> G PW children groups=0 entries=12
+1162c1298
+< G Root children groups=6 entries=0
+---
+> G Root children groups=8 entries=0
+1168c1304
+< G Root t.accessed 2026-11-16T07:28:04Z
+---
+> G Root t.accessed 2026-11-01T10:00:00Z

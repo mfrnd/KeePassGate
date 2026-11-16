@@ -1,0 +1,78 @@
+858c858
+< F groups 14 entries 41
+---
+> F groups 15 entries 41
+933c933
+< G KG t.accessed 2026-11-16T16:10:39Z
+---
+> G KG t.accessed 2026-11-16T16:10:41Z
+1018c1018
+< G Root children groups=8 entries=0
+---
+> G Root children groups=9 entries=0
+1024c1024
+< G Root t.accessed 2026-11-16T16:10:39Z
+---
+> G Root t.accessed 2026-11-16T16:11:56Z
+1028c1028
+< G Root t.modified 2026-11-16T16:10:39Z
+---
+> G Root t.modified 2026-11-16T16:11:56Z
+1043a1044,1056
+> G ~c94a0201 children groups=0 entries=0
+> G ~c94a0201 flags icon=48 customIcon=- search=inherit autotype=inherit expanded=1 seq="" lastTop=-
+> G ~c94a0201 name "phone-group-root"
+> G ~c94a0201 notes ""
+> G ~c94a0201 parent Root (Storage probe)
+> G ~c94a0201 prev -
+> G ~c94a0201 t.accessed 2026-11-16T16:11:56Z
+> G ~c94a0201 t.created 2026-11-16T16:11:19Z
+> G ~c94a0201 t.expires 0 2999-11-28T23:59:59Z
+> G ~c94a0201 t.location 2026-11-16T16:11:56Z
+> G ~c94a0201 t.modified 2026-11-16T16:11:56Z
+> G ~c94a0201 tags []
+> G ~c94a0201 usage 0
+1134c1147
+< X KeePassFile/Root/Group/Group 8
+---
+> X KeePassFile/Root/Group/Group 9
+1139,1141c1152,1154
+< X KeePassFile/Root/Group/Group/DefaultAutoTypeSequence 8
+< X KeePassFile/Root/Group/Group/EnableAutoType 8
+< X KeePassFile/Root/Group/Group/EnableSearching 8
+---
+> X KeePassFile/Root/Group/Group/DefaultAutoTypeSequence 9
+> X KeePassFile/Root/Group/Group/EnableAutoType 9
+> X KeePassFile/Root/Group/Group/EnableSearching 9
+1281,1285c1294,1298
+< X KeePassFile/Root/Group/Group/IconID 8
+< X KeePassFile/Root/Group/Group/IsExpanded 8
+< X KeePassFile/Root/Group/Group/LastTopVisibleEntry 8
+< X KeePassFile/Root/Group/Group/Name 8
+< X KeePassFile/Root/Group/Group/Notes 8
+---
+> X KeePassFile/Root/Group/Group/IconID 9
+> X KeePassFile/Root/Group/Group/IsExpanded 9
+> X KeePassFile/Root/Group/Group/LastTopVisibleEntry 9
+> X KeePassFile/Root/Group/Group/Name 9
+> X KeePassFile/Root/Group/Group/Notes 9
+1287,1295c1300,1308
+< X KeePassFile/Root/Group/Group/Times 8
+< X KeePassFile/Root/Group/Group/Times/CreationTime 8
+< X KeePassFile/Root/Group/Group/Times/Expires 8
+< X KeePassFile/Root/Group/Group/Times/ExpiryTime 8
+< X KeePassFile/Root/Group/Group/Times/LastAccessTime 8
+< X KeePassFile/Root/Group/Group/Times/LastModificationTime 8
+< X KeePassFile/Root/Group/Group/Times/LocationChanged 8
+< X KeePassFile/Root/Group/Group/Times/UsageCount 8
+< X KeePassFile/Root/Group/Group/UUID 8
+---
+> X KeePassFile/Root/Group/Group/Times 9
+> X KeePassFile/Root/Group/Group/Times/CreationTime 9
+> X KeePassFile/Root/Group/Group/Times/Expires 9
+> X KeePassFile/Root/Group/Group/Times/ExpiryTime 9
+> X KeePassFile/Root/Group/Group/Times/LastAccessTime 9
+> X KeePassFile/Root/Group/Group/Times/LastModificationTime 9
+> X KeePassFile/Root/Group/Group/Times/LocationChanged 9
+> X KeePassFile/Root/Group/Group/Times/UsageCount 9
+> X KeePassFile/Root/Group/Group/UUID 9

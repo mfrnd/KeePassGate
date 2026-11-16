@@ -1,0 +1,6 @@
+kpdx kpdx-ch-entry.flow com.kunzisoft.keepass.libre B41 ch-entry
+kpdx kpdx-ch-records.flow com.kunzisoft.keepass.libre B41 ch-records
+kpdx kpdx-ch-group.flow com.kunzisoft.keepass.libre B41 ch-group
+kpdx kpdx-ch-delete.flow com.kunzisoft.keepass.libre B41 ch-delete
+kpdx kpdx-ch-move.flow com.kunzisoft.keepass.libre B41 ch-move
+kpdx kpdx-ch-copy.flow com.kunzisoft.keepass.libre B41 ch-copy

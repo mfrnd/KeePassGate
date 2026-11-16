@@ -1,0 +1,73 @@
+954a955,971
+> E ~8045a6ae S Notes p=0 ""
+> E ~8045a6ae S Password p=1 ""
+> E ~8045a6ae S Title p=0 "phone-after-reload"
+> E ~8045a6ae S URL p=0 ""
+> E ~8045a6ae S UserName p=0 "invented-default-user"
+> E ~8045a6ae autotype enabled=1 obfuscation=0 seq="" assoc=0
+> E ~8045a6ae history.count 0
+> E ~8045a6ae misc icon=49 customIcon=- fg=00000000 bg=00000000 overrideUrl="" quality=1
+> E ~8045a6ae parent Root (Storage probe)
+> E ~8045a6ae prev -
+> E ~8045a6ae t.accessed 2026-11-16T09:02:47Z
+> E ~8045a6ae t.created 2026-11-16T09:02:47Z
+> E ~8045a6ae t.expires 0 2999-11-28T23:59:59Z
+> E ~8045a6ae t.location 2026-11-16T09:02:47Z
+> E ~8045a6ae t.modified 2026-11-16T09:02:47Z
+> E ~8045a6ae tags []
+> E ~8045a6ae usage 1
+957c974
+< F groups 9 entries 41
+---
+> F groups 9 entries 42
+1065c1082
+< G Root children groups=6 entries=0
+---
+> G Root children groups=6 entries=1
+1071c1088
+< G Root t.accessed 2026-11-01T10:00:00Z
+---
+> G Root t.accessed 2026-11-16T09:02:47Z
+1075c1092
+< G Root t.modified 2026-11-01T10:00:00Z
+---
+> G Root t.modified 2026-11-16T09:02:47Z
+1114c1131
+< R meta Generator = (empty)
+---
+> R meta Generator = "KeePassDX"
+1143a1161
+> X KeePassFile/Meta/HeaderHash 1
+1170a1189,1210
+> X KeePassFile/Root/Group/Entry 1
+> X KeePassFile/Root/Group/Entry/AutoType 1
+> X KeePassFile/Root/Group/Entry/AutoType/DataTransferObfuscation 1
+> X KeePassFile/Root/Group/Entry/AutoType/Enabled 1
+> X KeePassFile/Root/Group/Entry/BackgroundColor 1
+> X KeePassFile/Root/Group/Entry/ForegroundColor 1
+> X KeePassFile/Root/Group/Entry/History 1
+> X KeePassFile/Root/Group/Entry/IconID 1
+> X KeePassFile/Root/Group/Entry/OverrideURL 1
+> X KeePassFile/Root/Group/Entry/String 5
+> X KeePassFile/Root/Group/Entry/String/Key 5
+> X KeePassFile/Root/Group/Entry/String/Value 5
+> X KeePassFile/Root/Group/Entry/String/Value@Protected=True 1
+> X KeePassFile/Root/Group/Entry/Times 1
+> X KeePassFile/Root/Group/Entry/Times/CreationTime 1
+> X KeePassFile/Root/Group/Entry/Times/Expires 1
+> X KeePassFile/Root/Group/Entry/Times/ExpiryTime 1
+> X KeePassFile/Root/Group/Entry/Times/LastAccessTime 1
+> X KeePassFile/Root/Group/Entry/Times/LastModificationTime 1
+> X KeePassFile/Root/Group/Entry/Times/LocationChanged 1
+> X KeePassFile/Root/Group/Entry/Times/UsageCount 1
+> X KeePassFile/Root/Group/Entry/UUID 1
+1210c1250
+< X KeePassFile/Root/Group/Group/Entry/History/Entry/Tags 11
+---
+> X KeePassFile/Root/Group/Group/Entry/History/Entry/Tags 1
+1227c1267
+< X KeePassFile/Root/Group/Group/Entry/Tags 36
+---
+> X KeePassFile/Root/Group/Group/Entry/Tags 3
+1255d1294
+< X KeePassFile/Root/Group/Group/Group/Entry/Tags 5

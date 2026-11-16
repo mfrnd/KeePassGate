@@ -1,0 +1,33 @@
+# Item 1, chain C, second part from the base again (the first part stopped at s03, the group
+# name field not focused): s03 a new group in KeePassGate, s04 a new group and s05 a new entry at the root.
+include kpdx-open.flow
+tapuntil node_text@^KeePassGate$ node_text@^KPG.client.build-agent$ 40
+sleep 3
+log s03 a new group in KeePassGate
+mark /sdcard/Download/${NAME}.kdbx
+tapuntil add_button fab_add_group 20
+tapuntil fab_add_group group_edit_name 30
+list
+appendto group_edit_name@.* phone-group-in-kg
+tap ^OK$
+waitchange /sdcard/Download/${NAME}.kdbx 45
+pull ${OUT}/s03-new-group-kg.kdbx /sdcard/Download/${NAME}.kdbx
+tapuntil group_name@^Storage.probe$ node_text@^Recycle.Bin$ 40
+sleep 2
+log s04 a new group at the root
+mark /sdcard/Download/${NAME}.kdbx
+tapuntil add_button fab_add_group 20
+tapuntil fab_add_group group_edit_name 30
+appendto group_edit_name@.* phone-group-root
+tap ^OK$
+waitchange /sdcard/Download/${NAME}.kdbx 45
+pull ${OUT}/s04-new-group-root.kdbx /sdcard/Download/${NAME}.kdbx
+log s05 a new entry at the root
+mark /sdcard/Download/${NAME}.kdbx
+tapuntil add_button fab_add_entry 20
+tapuntil fab_add_entry entry_edit_validate 30
+type ^Title$ phone-entry-root
+tapuntil entry_edit_validate add_button 30
+waitchange /sdcard/Download/${NAME}.kdbx 45
+pull ${OUT}/s05-new-entry-root.kdbx /sdcard/Download/${NAME}.kdbx
+list

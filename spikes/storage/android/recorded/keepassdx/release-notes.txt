@@ -1,0 +1,34 @@
+KeePassDX release notes, as GitHub's releases list gave them on 2026-11-16 (gh api
+repos/Kunzisoft/KeePassDX/releases). The newest release is 4.5.8 (tag 4.5.8, commit
+77ecfa8654a5bd0d79d512f8fa71c0af8a29b554, published 2026-10-31T20:06:43Z, GitHub's "latest").
+No release between 4.5.8 and the release measured: they are the same.
+
+==== 4.5.8 (2026-10-31), the release measured
+ * Fix KeePro for Play Store #2769
+ * Revert Play Store obfuscation #2770 #2776
+ * Fix Autofill menu presentation #2772 #2767 (@SaeedDev94)
+ * Fix extension when saving new file #1889
+Build Libre SHA256 : 8aaac6a0c55a9de760147990856726e197efbbcdc5ce2f6bfb4d4ab2a3d65f74
+
+For context, the notes from 4.5.0 to 4.5.7 that touch merge, save, synchronization, attachments,
+templates, history or the file-change check (every other line of those notes is about autofill,
+OTP, passkeys, the keyboard, icons, tags display or translations):
+
+==== 4.5.7 (2026-10-31, marked unstable): the same four lines as 4.5.8
+==== 4.5.6 (2026-10-17)
+ * Fix upload attachment in Android 12 #2745
+ * Fix synchronized method for duplicate UUIDs #2716
+ * Fix attach file in Android 12 #2745
+==== 4.5.5 (2026-09-25)
+ * Fix deleting history #2718
+ * New error message after external database file hash modification #2725
+   (commit f2c0c347651be9132f1b8ec8d3191b41d59af745: DatabaseInputKDBX throws
+   HeaderHmacMismatchException where it threw InvalidCredentialsDatabaseException when the header's
+   HMAC does not verify at load; new string invalid_db_hmac. A load-time message, no check before a save.)
+==== 4.5.4 (2026-09-10)
+ * Fix for adding attachments #2694
+==== 4.5.1 (2026-08-29), 4.5.0 betas
+ * Fix UV and Read-only modes saving #2541
+ * Fix OTP tags, change indicator and DB reloading #2541 (4.5.0beta01)
+ * Fix exception during template selection #2617 (4.5.0beta04)
+ * Fix data change indicator #2658 (4.5.0beta05)

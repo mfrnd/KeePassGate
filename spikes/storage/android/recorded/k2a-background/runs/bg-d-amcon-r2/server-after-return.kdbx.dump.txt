@@ -1,0 +1,306 @@
+# file server-after-return.kdbx size=2517 sha256=c7c500fbc9e1b8094f3842acb6a7d5cf18e59d1c237491ab70fee547d01a0a4a
+D D1 2026-11-01T10:06:00Z
+D DZ 2026-11-01T18:00:00Z
+D X1 2026-11-01T18:00:00Z
+D count 3
+E K S Notes p=0 ""
+E K S Password p=1 "k-old"
+E K S Title p=0 "K"
+E K S URL p=0 ""
+E K S UserName p=0 "user-k"
+E K autotype enabled=1 obfuscation=0 seq="" assoc=0
+E K history.count 0
+E K misc icon=0 customIcon=- fg=00000000 bg=00000000 overrideUrl="" quality=1
+E K parent PW (Passwords)
+E K prev -
+E K t.accessed 2026-11-01T10:20:00Z
+E K t.created 2026-11-01T10:20:00Z
+E K t.expires 0 2026-11-01T10:00:00Z
+E K t.location 2026-11-01T10:20:00Z
+E K t.modified 2026-11-01T10:20:00Z
+E K tags []
+E K usage 0
+E KG1 S KPG.Grant p=0 "{\"kind\":\"grant\",\"profile\":\"reader\",\"node\":\"Passwords\",\"mask\":\".R...L..\"}"
+E KG1 S Notes p=0 ""
+E KG1 S Password p=1 ""
+E KG1 S Title p=0 "KPG grant 1"
+E KG1 S URL p=0 ""
+E KG1 S UserName p=0 ""
+E KG1 autotype enabled=1 obfuscation=0 seq="" assoc=0
+E KG1 history.count 0
+E KG1 misc icon=0 customIcon=- fg=00000000 bg=00000000 overrideUrl="" quality=1
+E KG1 parent KG (KeePassGate)
+E KG1 prev -
+E KG1 t.accessed 2026-11-01T10:10:00Z
+E KG1 t.created 2026-11-01T10:10:00Z
+E KG1 t.expires 0 2026-11-01T10:00:00Z
+E KG1 t.location 2026-11-01T10:10:00Z
+E KG1 t.modified 2026-11-01T10:10:00Z
+E KG1 tags []
+E KG1 usage 0
+E KG2 S KPG.Admission p=0 "{\"kind\":\"admission\",\"client\":\"client-two\",\"profiles\":[\"reader\"]}"
+E KG2 S KPG.Secret p=1 "{\"key\":\"invented-secret\"}"
+E KG2 S Notes p=0 ""
+E KG2 S Password p=1 ""
+E KG2 S Title p=0 "KPG admission 1"
+E KG2 S URL p=0 ""
+E KG2 S UserName p=0 ""
+E KG2 autotype enabled=1 obfuscation=0 seq="" assoc=0
+E KG2 history.count 0
+E KG2 misc icon=0 customIcon=- fg=00000000 bg=00000000 overrideUrl="" quality=1
+E KG2 parent KG (KeePassGate)
+E KG2 prev -
+E KG2 t.accessed 2026-11-01T10:11:00Z
+E KG2 t.created 2026-11-01T10:11:00Z
+E KG2 t.expires 0 2026-11-01T10:00:00Z
+E KG2 t.location 2026-11-01T10:11:00Z
+E KG2 t.modified 2026-11-01T10:11:00Z
+E KG2 tags []
+E KG2 usage 0
+E KG3 S KPG.Revoked.c2 p=0 "{\"kind\":\"revocation\",\"client\":\"client-two\"}"
+E KG3 S Notes p=0 ""
+E KG3 S Password p=1 ""
+E KG3 S Title p=0 "KPG revocation"
+E KG3 S URL p=0 ""
+E KG3 S UserName p=0 ""
+E KG3 autotype enabled=1 obfuscation=0 seq="" assoc=0
+E KG3 history.count 0
+E KG3 misc icon=0 customIcon=- fg=00000000 bg=00000000 overrideUrl="" quality=1
+E KG3 parent KG (KeePassGate)
+E KG3 prev -
+E KG3 t.accessed 2026-11-01T18:00:00Z
+E KG3 t.created 2026-11-01T18:00:00Z
+E KG3 t.expires 0 2026-11-01T10:00:00Z
+E KG3 t.location 2026-11-01T18:00:00Z
+E KG3 t.modified 2026-11-01T18:00:00Z
+E KG3 tags []
+E KG3 usage 0
+E P1 H2026-11-01T10:20:00Z S Notes p=0 ""
+E P1 H2026-11-01T10:20:00Z S Password p=1 "p1-old"
+E P1 H2026-11-01T10:20:00Z S Title p=0 "P1"
+E P1 H2026-11-01T10:20:00Z S URL p=0 ""
+E P1 H2026-11-01T10:20:00Z S UserName p=0 "user-p1"
+E P1 H2026-11-01T10:20:00Z autotype enabled=1 obfuscation=0 seq="" assoc=0
+E P1 H2026-11-01T10:20:00Z misc icon=0 customIcon=- fg=00000000 bg=00000000 overrideUrl="" quality=1
+E P1 H2026-11-01T10:20:00Z prev -
+E P1 H2026-11-01T10:20:00Z t.accessed 2026-11-01T10:20:00Z
+E P1 H2026-11-01T10:20:00Z t.created 2026-11-01T10:20:00Z
+E P1 H2026-11-01T10:20:00Z t.expires 0 2026-11-01T10:00:00Z
+E P1 H2026-11-01T10:20:00Z t.location 2026-11-01T10:20:00Z
+E P1 H2026-11-01T10:20:00Z t.modified 2026-11-01T10:20:00Z
+E P1 H2026-11-01T10:20:00Z tags []
+E P1 H2026-11-01T10:20:00Z usage 0
+E P1 S Notes p=0 ""
+E P1 S Password p=1 "p1-desktop"
+E P1 S Title p=0 "P1"
+E P1 S URL p=0 ""
+E P1 S UserName p=0 "user-p1"
+E P1 autotype enabled=1 obfuscation=0 seq="" assoc=0
+E P1 history.count 1
+E P1 misc icon=0 customIcon=- fg=00000000 bg=00000000 overrideUrl="" quality=1
+E P1 parent PW (Passwords)
+E P1 prev -
+E P1 t.accessed 2026-11-01T18:00:00Z
+E P1 t.created 2026-11-01T10:20:00Z
+E P1 t.expires 0 2026-11-01T10:00:00Z
+E P1 t.location 2026-11-01T10:20:00Z
+E P1 t.modified 2026-11-01T18:00:00Z
+E P1 tags []
+E P1 usage 0
+E P2 H2026-11-01T10:20:00Z S Notes p=0 ""
+E P2 H2026-11-01T10:20:00Z S Password p=1 "p2-old"
+E P2 H2026-11-01T10:20:00Z S Title p=0 "P2"
+E P2 H2026-11-01T10:20:00Z S URL p=0 ""
+E P2 H2026-11-01T10:20:00Z S UserName p=0 "user-p2"
+E P2 H2026-11-01T10:20:00Z autotype enabled=1 obfuscation=0 seq="" assoc=0
+E P2 H2026-11-01T10:20:00Z misc icon=0 customIcon=- fg=00000000 bg=00000000 overrideUrl="" quality=1
+E P2 H2026-11-01T10:20:00Z prev -
+E P2 H2026-11-01T10:20:00Z t.accessed 2026-11-16T18:09:40Z
+E P2 H2026-11-01T10:20:00Z t.created 2026-11-01T10:20:00Z
+E P2 H2026-11-01T10:20:00Z t.expires 0 2026-11-01T10:00:00Z
+E P2 H2026-11-01T10:20:00Z t.location 2026-11-01T10:20:00Z
+E P2 H2026-11-01T10:20:00Z t.modified 2026-11-01T10:20:00Z
+E P2 H2026-11-01T10:20:00Z tags []
+E P2 H2026-11-01T10:20:00Z usage 1
+E P2 S Notes p=0 ""
+E P2 S Password p=1 "p2-old-phone"
+E P2 S Title p=0 "P2"
+E P2 S URL p=0 ""
+E P2 S UserName p=0 "user-p2"
+E P2 autotype enabled=1 obfuscation=0 seq="" assoc=0
+E P2 history.count 1
+E P2 misc icon=0 customIcon=- fg=00000000 bg=00000000 overrideUrl="" quality=1
+E P2 parent PW (Passwords)
+E P2 prev -
+E P2 t.accessed 2026-11-16T18:10:01Z
+E P2 t.created 2026-11-01T10:20:00Z
+E P2 t.expires 0 2026-11-01T10:00:00Z
+E P2 t.location 2026-11-01T10:20:00Z
+E P2 t.modified 2026-11-16T18:09:59Z
+E P2 tags []
+E P2 usage 3
+E Q1 H2026-11-01T10:20:00Z S Notes p=0 ""
+E Q1 H2026-11-01T10:20:00Z S Password p=1 "q1-old"
+E Q1 H2026-11-01T10:20:00Z S Title p=0 "Q1"
+E Q1 H2026-11-01T10:20:00Z S URL p=0 ""
+E Q1 H2026-11-01T10:20:00Z S UserName p=0 "user-q1"
+E Q1 H2026-11-01T10:20:00Z autotype enabled=1 obfuscation=0 seq="" assoc=0
+E Q1 H2026-11-01T10:20:00Z misc icon=0 customIcon=- fg=00000000 bg=00000000 overrideUrl="" quality=1
+E Q1 H2026-11-01T10:20:00Z prev -
+E Q1 H2026-11-01T10:20:00Z t.accessed 2026-11-01T10:20:00Z
+E Q1 H2026-11-01T10:20:00Z t.created 2026-11-01T10:20:00Z
+E Q1 H2026-11-01T10:20:00Z t.expires 0 2026-11-01T10:00:00Z
+E Q1 H2026-11-01T10:20:00Z t.location 2026-11-01T10:20:00Z
+E Q1 H2026-11-01T10:20:00Z t.modified 2026-11-01T10:20:00Z
+E Q1 H2026-11-01T10:20:00Z tags []
+E Q1 H2026-11-01T10:20:00Z usage 0
+E Q1 S Notes p=0 ""
+E Q1 S Password p=1 "q1-desktop"
+E Q1 S Title p=0 "Q1"
+E Q1 S URL p=0 ""
+E Q1 S UserName p=0 "user-q1"
+E Q1 autotype enabled=1 obfuscation=0 seq="" assoc=0
+E Q1 history.count 1
+E Q1 misc icon=0 customIcon=- fg=00000000 bg=00000000 overrideUrl="" quality=1
+E Q1 parent PW (Passwords)
+E Q1 prev -
+E Q1 t.accessed 2026-11-01T18:00:00Z
+E Q1 t.created 2026-11-01T10:20:00Z
+E Q1 t.expires 0 2026-11-01T10:00:00Z
+E Q1 t.location 2026-11-01T10:20:00Z
+E Q1 t.modified 2026-11-01T18:00:00Z
+E Q1 tags []
+E Q1 usage 0
+E Q2 H2026-11-01T10:20:00Z S Notes p=0 ""
+E Q2 H2026-11-01T10:20:00Z S Password p=1 "q2-old"
+E Q2 H2026-11-01T10:20:00Z S Title p=0 "Q2"
+E Q2 H2026-11-01T10:20:00Z S URL p=0 ""
+E Q2 H2026-11-01T10:20:00Z S UserName p=0 "user-q2"
+E Q2 H2026-11-01T10:20:00Z autotype enabled=1 obfuscation=0 seq="" assoc=0
+E Q2 H2026-11-01T10:20:00Z misc icon=0 customIcon=- fg=00000000 bg=00000000 overrideUrl="" quality=1
+E Q2 H2026-11-01T10:20:00Z prev -
+E Q2 H2026-11-01T10:20:00Z t.accessed 2026-11-01T10:20:00Z
+E Q2 H2026-11-01T10:20:00Z t.created 2026-11-01T10:20:00Z
+E Q2 H2026-11-01T10:20:00Z t.expires 0 2026-11-01T10:00:00Z
+E Q2 H2026-11-01T10:20:00Z t.location 2026-11-01T10:20:00Z
+E Q2 H2026-11-01T10:20:00Z t.modified 2026-11-01T10:20:00Z
+E Q2 H2026-11-01T10:20:00Z tags []
+E Q2 H2026-11-01T10:20:00Z usage 0
+E Q2 S Notes p=0 ""
+E Q2 S Password p=1 "q2-desktop"
+E Q2 S Title p=0 "Q2"
+E Q2 S URL p=0 ""
+E Q2 S UserName p=0 "user-q2"
+E Q2 autotype enabled=1 obfuscation=0 seq="" assoc=0
+E Q2 history.count 1
+E Q2 misc icon=0 customIcon=- fg=00000000 bg=00000000 overrideUrl="" quality=1
+E Q2 parent PW (Passwords)
+E Q2 prev -
+E Q2 t.accessed 2027-01-01T00:00:00Z
+E Q2 t.created 2026-11-01T10:20:00Z
+E Q2 t.expires 0 2026-11-01T10:00:00Z
+E Q2 t.location 2026-11-01T10:20:00Z
+E Q2 t.modified 2027-01-01T00:00:00Z
+E Q2 tags []
+E Q2 usage 0
+E Q3 H2026-11-01T10:20:00Z S Notes p=0 ""
+E Q3 H2026-11-01T10:20:00Z S Password p=1 "q3-old"
+E Q3 H2026-11-01T10:20:00Z S Title p=0 "Q3"
+E Q3 H2026-11-01T10:20:00Z S URL p=0 ""
+E Q3 H2026-11-01T10:20:00Z S UserName p=0 "user-q3"
+E Q3 H2026-11-01T10:20:00Z autotype enabled=1 obfuscation=0 seq="" assoc=0
+E Q3 H2026-11-01T10:20:00Z misc icon=0 customIcon=- fg=00000000 bg=00000000 overrideUrl="" quality=1
+E Q3 H2026-11-01T10:20:00Z prev -
+E Q3 H2026-11-01T10:20:00Z t.accessed 2026-11-01T10:20:00Z
+E Q3 H2026-11-01T10:20:00Z t.created 2026-11-01T10:20:00Z
+E Q3 H2026-11-01T10:20:00Z t.expires 0 2026-11-01T10:00:00Z
+E Q3 H2026-11-01T10:20:00Z t.location 2026-11-01T10:20:00Z
+E Q3 H2026-11-01T10:20:00Z t.modified 2026-11-01T10:20:00Z
+E Q3 H2026-11-01T10:20:00Z tags []
+E Q3 H2026-11-01T10:20:00Z usage 0
+E Q3 S Notes p=0 ""
+E Q3 S Password p=1 "q3-desktop"
+E Q3 S Title p=0 "Q3"
+E Q3 S URL p=0 ""
+E Q3 S UserName p=0 "user-q3"
+E Q3 autotype enabled=1 obfuscation=0 seq="" assoc=0
+E Q3 history.count 1
+E Q3 misc icon=0 customIcon=- fg=00000000 bg=00000000 overrideUrl="" quality=1
+E Q3 parent PW (Passwords)
+E Q3 prev -
+E Q3 t.accessed 2026-11-01T18:00:00Z
+E Q3 t.created 2026-11-01T10:20:00Z
+E Q3 t.expires 0 2026-11-01T10:00:00Z
+E Q3 t.location 2026-11-01T10:20:00Z
+E Q3 t.modified 2026-11-01T18:00:00Z
+E Q3 tags []
+E Q3 usage 0
+F cipher AES/Rijndael (256-bit key, FIPS 197)
+F compression GZip
+F groups 4 entries 9
+F kdf Argon2d it=2 mem=1024KiB par=1
+F version 4.0
+G Bin children groups=0 entries=0
+G Bin flags icon=43 customIcon=- search=inherit autotype=inherit expanded=1 seq="" lastTop=-
+G Bin name "Recycle Bin"
+G Bin notes ""
+G Bin parent Root (Synchronize probe)
+G Bin prev -
+G Bin t.accessed 2026-11-01T10:05:00Z
+G Bin t.created 2026-11-01T10:05:00Z
+G Bin t.expires 0 2026-11-01T10:00:00Z
+G Bin t.location 2026-11-01T10:05:00Z
+G Bin t.modified 2026-11-01T10:05:00Z
+G Bin tags []
+G Bin usage 0
+G KG children groups=0 entries=3
+G KG flags icon=48 customIcon=- search=0 autotype=0 expanded=1 seq="" lastTop=-
+G KG name "KeePassGate"
+G KG notes ""
+G KG parent Root (Synchronize probe)
+G KG prev -
+G KG t.accessed 2026-11-01T10:05:00Z
+G KG t.created 2026-11-01T10:05:00Z
+G KG t.expires 0 2026-11-01T10:00:00Z
+G KG t.location 2026-11-01T10:05:00Z
+G KG t.modified 2026-11-01T10:05:00Z
+G KG tags []
+G KG usage 0
+G PW children groups=0 entries=6
+G PW flags icon=48 customIcon=- search=inherit autotype=inherit expanded=1 seq="" lastTop=-
+G PW name "Passwords"
+G PW notes ""
+G PW parent Root (Synchronize probe)
+G PW prev -
+G PW t.accessed 2026-11-01T10:05:00Z
+G PW t.created 2026-11-01T10:05:00Z
+G PW t.expires 0 2026-11-01T10:00:00Z
+G PW t.location 2026-11-01T10:05:00Z
+G PW t.modified 2026-11-01T10:05:00Z
+G PW tags []
+G PW usage 0
+G Root children groups=3 entries=0
+G Root flags icon=49 customIcon=- search=inherit autotype=inherit expanded=1 seq="" lastTop=-
+G Root name "Synchronize probe"
+G Root notes ""
+G Root parent -
+G Root prev -
+G Root t.accessed 2026-11-01T10:00:00Z
+G Root t.created 2026-11-01T10:00:00Z
+G Root t.expires 0 2026-11-01T10:00:00Z
+G Root t.location 2026-11-01T10:00:00Z
+G Root t.modified 2026-11-01T10:00:00Z
+G Root tags []
+G Root usage 0
+M CD KPG.NewKey = "{\"added\":\"by the desktop\"}" @none
+M CD KPG.Profiles = "[\"reader\",\"writer\"]" @none
+M customIcons 0
+M defaultUserName "" changed 2026-11-01T10:00:00Z
+M description "" changed 2026-11-01T10:00:00Z
+M historyMaxItems 10 historyMaxSize 6291456 maintenanceHistoryDays 365
+M masterKeyChanged 2026-11-01T10:00:00Z
+M name "Synchronize probe (invented)" changed 2026-11-01T10:00:00Z
+M publicCustomData 0
+M recycleBin enabled=1 group=Bin changed 2026-11-01T10:05:00Z
+M settingsChanged 2026-11-01T10:00:00Z
+M templatesGroup - changed 2026-11-01T10:00:00Z

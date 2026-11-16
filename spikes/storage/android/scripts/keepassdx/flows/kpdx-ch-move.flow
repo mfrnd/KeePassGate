@@ -1,0 +1,72 @@
+# Item 1, chain M: moves. E1 from G into N; the admission record AD2 out of KeePassGate into
+# Passwords; K out of Passwords into KeePassGate; the group GD into KeePassGate; the group N from G
+# to the root. Each step from the root group's screen.
+include kpdx-open.flow
+tapuntil node_text@^G$ node_text@^E1$ 40
+sleep 3
+log s01 E1 from G into N
+mark /sdcard/Download/${NAME}.kdbx
+longpressuntil node_text@^E1$ menu_move 60 2000 600
+set TARGET ^N$
+set INSIDE ^N1$
+set MOVED ^E1$
+include kpdx-move-to.flow
+pull ${OUT}/s01-e1-into-n.kdbx /sdcard/Download/${NAME}.kdbx
+tapuntil group_name@^Storage.probe$ node_text@^Recycle.Bin$ 40
+sleep 2
+tapuntil node_text@^KeePassGate$ node_text@^KPG.client.ci-runner$ 40
+sleep 3
+log s02 AD2 out of KeePassGate into Passwords
+mark /sdcard/Download/${NAME}.kdbx
+longpressuntil node_text@^KPG.client.ci-runner$ menu_move 60 2000 600
+tap menu_move
+sleep 2
+tapuntil group_name@^Storage.probe$ node_text@^Passwords$ 40
+set TARGET ^Passwords$
+set INSIDE ^P1$
+set MOVED ^KPG.client.ci-runner$
+tapuntil node_text@${TARGET} node_text@${INSIDE} 40
+waitfor menu_paste 20
+tapuntil menu_paste node_text@${MOVED} 30
+waitchange /sdcard/Download/${NAME}.kdbx 45
+pull ${OUT}/s02-ad2-out-of-kg.kdbx /sdcard/Download/${NAME}.kdbx
+sleep 2
+log s03 K out of Passwords into KeePassGate
+mark /sdcard/Download/${NAME}.kdbx
+longpressuntil node_text@^K$ menu_move 60 2000 600
+tap menu_move
+sleep 2
+tapuntil group_name@^Storage.probe$ node_text@^KeePassGate$ 40
+set TARGET ^KeePassGate$
+set INSIDE ^KPG.client.build-agent$
+set MOVED ^K$
+tapuntil node_text@${TARGET} node_text@${INSIDE} 40
+waitfor menu_paste 20
+tapuntil menu_paste node_text@${MOVED} 30
+waitchange /sdcard/Download/${NAME}.kdbx 45
+pull ${OUT}/s03-k-into-kg.kdbx /sdcard/Download/${NAME}.kdbx
+tapuntil group_name@^Storage.probe$ node_text@^GD$ 40
+sleep 2
+log s04 the group GD into KeePassGate
+mark /sdcard/Download/${NAME}.kdbx
+longpressuntil node_text@^GD$ menu_move 60 2000 600
+set TARGET ^KeePassGate$
+set INSIDE ^KPG.client.build-agent$
+set MOVED ^GD$
+include kpdx-move-to.flow
+pull ${OUT}/s04-gd-into-kg.kdbx /sdcard/Download/${NAME}.kdbx
+tapuntil group_name@^Storage.probe$ node_text@^G$ 40
+sleep 2
+tapuntil node_text@^G$ node_text@^E2$ 40
+sleep 3
+log s05 the group N from G to the root
+mark /sdcard/Download/${NAME}.kdbx
+longpressuntil node_text@^N$ menu_move 60 2000 600
+tap menu_move
+sleep 2
+tapuntil group_name@^Storage.probe$ node_text@^Recycle.Bin$ 40
+waitfor menu_paste 20
+tapuntil menu_paste node_text@^N$ 30
+waitchange /sdcard/Download/${NAME}.kdbx 45
+pull ${OUT}/s05-n-to-root.kdbx /sdcard/Download/${NAME}.kdbx
+list

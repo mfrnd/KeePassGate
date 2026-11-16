@@ -1,0 +1,115 @@
+1c1
+< # file SNEW.kdbx size=2549 sha256=9cdb3510f4b0879aa1377836b8a7c7a1d5aaedadb2f7e6b025d33ee06c024789
+---
+> # file cache-turn-5.kdbx size=2597 sha256=f1bec08e8e714e1ab1e371133f494f017c090e95596ee50d93ddaf6d20718e95
+3,5c3
+< D DZ 2026-11-01T18:00:00Z
+< D X1 2026-11-01T18:00:00Z
+< D count 3
+---
+> D count 1
+150c148
+< E Q1 H2026-11-01T10:20:00Z t.accessed 2026-11-01T10:20:00Z
+---
+> E Q1 H2026-11-01T10:20:00Z t.accessed 2026-11-16T18:00:23Z
+156c154
+< E Q1 H2026-11-01T10:20:00Z usage 0
+---
+> E Q1 H2026-11-01T10:20:00Z usage 1
+158c156
+< E Q1 S Password p=1 "q1-desktop"
+---
+> E Q1 S Password p=1 "q1-old-phone"
+167c165
+< E Q1 t.accessed 2026-11-01T18:00:00Z
+---
+> E Q1 t.accessed 2026-11-16T18:00:43Z
+171c169
+< E Q1 t.modified 2026-11-01T18:00:00Z
+---
+> E Q1 t.modified 2026-11-16T18:00:42Z
+173c171
+< E Q1 usage 0
+---
+> E Q1 usage 3
+182c180
+< E Q2 H2026-11-01T10:20:00Z t.accessed 2026-11-01T10:20:00Z
+---
+> E Q2 H2026-11-01T10:20:00Z t.accessed 2026-11-16T18:01:19Z
+188c186
+< E Q2 H2026-11-01T10:20:00Z usage 0
+---
+> E Q2 H2026-11-01T10:20:00Z usage 1
+190c188
+< E Q2 S Password p=1 "q2-desktop"
+---
+> E Q2 S Password p=1 "q2-old-phone"
+199c197
+< E Q2 t.accessed 2026-11-16T19:01:38Z
+---
+> E Q2 t.accessed 2026-11-16T18:01:40Z
+203c201
+< E Q2 t.modified 2026-11-16T19:01:38Z
+---
+> E Q2 t.modified 2026-11-16T18:01:38Z
+205c203
+< E Q2 usage 0
+---
+> E Q2 usage 3
+214c212
+< E Q3 H2026-11-01T10:20:00Z t.accessed 2026-11-01T10:20:00Z
+---
+> E Q3 H2026-11-01T10:20:00Z t.accessed 2026-11-16T18:02:15Z
+220c218
+< E Q3 H2026-11-01T10:20:00Z usage 0
+---
+> E Q3 H2026-11-01T10:20:00Z usage 1
+222c220
+< E Q3 S Password p=1 "q3-desktop"
+---
+> E Q3 S Password p=1 "q3-old-phone"
+237c235,252
+< E Q3 usage 0
+---
+> E Q3 usage 2
+> E X1 S Notes p=0 ""
+> E X1 S Password p=1 "x1-old"
+> E X1 S Title p=0 "X1"
+> E X1 S URL p=0 ""
+> E X1 S UserName p=0 "user-x1"
+> E X1 autotype enabled=1 obfuscation=0 seq="" assoc=0
+> E X1 history.count 0
+> E X1 misc icon=0 customIcon=- fg=00000000 bg=00000000 overrideUrl="" quality=1
+> E X1 parent PW (Passwords)
+> E X1 prev -
+> E X1 t.accessed 2026-11-01T10:20:00Z
+> E X1 t.created 2026-11-01T10:20:00Z
+> E X1 t.expires 0 2026-11-01T10:00:00Z
+> E X1 t.location 2026-11-01T10:20:00Z
+> E X1 t.modified 2026-11-01T10:20:00Z
+> E X1 tags []
+> E X1 usage 0
+240c255
+< F groups 4 entries 9
+---
+> F groups 4 entries 10
+269c284
+< G PW children groups=0 entries=6
+---
+> G PW children groups=0 entries=7
+275c290
+< G PW t.accessed 2026-11-01T10:05:00Z
+---
+> G PW t.accessed 2026-11-16T18:02:15Z
+281c296
+< G PW usage 0
+---
+> G PW usage 5
+288c303
+< G Root t.accessed 2026-11-01T10:00:00Z
+---
+> G Root t.accessed 2026-11-16T18:02:15Z
+294c309
+< G Root usage 0
+---
+> G Root usage 5

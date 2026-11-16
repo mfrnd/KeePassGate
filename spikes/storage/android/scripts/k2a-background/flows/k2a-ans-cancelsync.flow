@@ -1,0 +1,6 @@
+# A synchronization asked: record the dialog, answer "Cancel", record what follows.
+dialog
+tap ^Cancel$
+sleep 4
+dialog
+list

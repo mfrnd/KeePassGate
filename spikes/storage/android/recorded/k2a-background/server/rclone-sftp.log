@@ -1,0 +1,425 @@
+2026/11/16 18:07:30 NOTICE: Config file "<wsl-home>/.config/rclone/rclone.conf" not found - using defaults
+2026/11/16 18:07:30 NOTICE: Loaded 0 authorized keys from "<wsl-home>/.ssh/authorized_keys"
+2026/11/16 18:07:30 NOTICE: Generating 2048 bit key pair at "<work>/server/sftp-cache/serve-sftp/id_rsa"
+2026/11/16 18:07:30 NOTICE: Generating ECDSA p256 key pair at "<work>/server/sftp-cache/serve-sftp/id_ecdsa"
+2026/11/16 18:07:30 NOTICE: Generating Ed25519 key pair at "<work>/server/sftp-cache/serve-sftp/id_ed25519"
+2026/11/16 18:07:30 NOTICE: SFTP server listening on [::]:2022
+2026/11/16 18:08:30 INFO  : 
+Transferred:   	          0 B / 0 B, -, 0 B/s, ETA -
+Elapsed time:       1m0.0s
+
+2026/11/16 18:09:30 INFO  : 
+Transferred:   	          0 B / 0 B, -, 0 B/s, ETA -
+Elapsed time:       2m0.0s
+
+2026/11/16 18:10:30 INFO  : 
+Transferred:   	          0 B / 0 B, -, 0 B/s, ETA -
+Elapsed time:       3m0.0s
+
+2026/11/16 18:11:30 INFO  : 
+Transferred:   	          0 B / 0 B, -, 0 B/s, ETA -
+Elapsed time:       4m0.0s
+
+2026/11/16 18:12:30 INFO  : 
+Transferred:   	          0 B / 0 B, -, 0 B/s, ETA -
+Elapsed time:       5m0.0s
+
+2026/11/16 18:13:30 INFO  : 
+Transferred:   	          0 B / 0 B, -, 0 B/s, ETA -
+Elapsed time:       6m0.0s
+
+2026/11/16 18:14:30 INFO  : 
+Transferred:   	          0 B / 0 B, -, 0 B/s, ETA -
+Elapsed time:       7m0.0s
+
+2026/11/16 18:15:30 INFO  : 
+Transferred:   	          0 B / 0 B, -, 0 B/s, ETA -
+Elapsed time:       8m0.0s
+
+2026/11/16 18:16:30 INFO  : 
+Transferred:   	          0 B / 0 B, -, 0 B/s, ETA -
+Elapsed time:       9m0.0s
+
+2026/11/16 18:17:30 INFO  : 
+Transferred:   	          0 B / 0 B, -, 0 B/s, ETA -
+Elapsed time:      10m0.0s
+
+2026/11/16 18:18:30 INFO  : 
+Transferred:   	          0 B / 0 B, -, 0 B/s, ETA -
+Elapsed time:      11m0.0s
+
+2026/11/16 18:19:30 INFO  : 
+Transferred:   	          0 B / 0 B, -, 0 B/s, ETA -
+Elapsed time:      12m0.0s
+
+2026/11/16 18:20:30 INFO  : 
+Transferred:   	          0 B / 0 B, -, 0 B/s, ETA -
+Elapsed time:      13m0.0s
+
+2026/11/16 18:21:30 INFO  : 
+Transferred:   	          0 B / 0 B, -, 0 B/s, ETA -
+Elapsed time:      14m0.0s
+
+2026/11/16 18:22:30 INFO  : 
+Transferred:   	          0 B / 0 B, -, 0 B/s, ETA -
+Elapsed time:      15m0.0s
+
+2026/11/16 18:23:30 INFO  : 
+Transferred:   	          0 B / 0 B, -, 0 B/s, ETA -
+Elapsed time:      16m0.0s
+
+2026/11/16 18:24:30 INFO  : 
+Transferred:   	          0 B / 0 B, -, 0 B/s, ETA -
+Elapsed time:      17m0.0s
+
+2026/11/16 18:25:30 INFO  : 
+Transferred:   	          0 B / 0 B, -, 0 B/s, ETA -
+Elapsed time:      18m0.0s
+
+2026/11/16 18:26:30 INFO  : 
+Transferred:   	          0 B / 0 B, -, 0 B/s, ETA -
+Elapsed time:      19m0.0s
+
+2026/11/16 18:27:30 INFO  : 
+Transferred:   	          0 B / 0 B, -, 0 B/s, ETA -
+Elapsed time:      20m0.0s
+
+2026/11/16 18:28:30 INFO  : 
+Transferred:   	          0 B / 0 B, -, 0 B/s, ETA -
+Elapsed time:      21m0.0s
+
+2026/11/16 18:29:30 INFO  : 
+Transferred:   	          0 B / 0 B, -, 0 B/s, ETA -
+Elapsed time:      22m0.0s
+
+2026/11/16 18:30:30 INFO  : 
+Transferred:   	          0 B / 0 B, -, 0 B/s, ETA -
+Elapsed time:      23m0.0s
+
+2026/11/16 18:31:30 INFO  : 
+Transferred:   	          0 B / 0 B, -, 0 B/s, ETA -
+Elapsed time:      24m0.0s
+
+2026/11/16 18:32:30 INFO  : 
+Transferred:   	          0 B / 0 B, -, 0 B/s, ETA -
+Elapsed time:      25m0.0s
+
+2026/11/16 18:33:30 INFO  : 
+Transferred:   	          0 B / 0 B, -, 0 B/s, ETA -
+Elapsed time:      26m0.0s
+
+2026/11/16 18:34:30 INFO  : 
+Transferred:   	          0 B / 0 B, -, 0 B/s, ETA -
+Elapsed time:      27m0.0s
+
+2026/11/16 18:35:30 INFO  : 
+Transferred:   	          0 B / 0 B, -, 0 B/s, ETA -
+Elapsed time:      28m0.0s
+
+2026/11/16 18:36:30 INFO  : 
+Transferred:   	          0 B / 0 B, -, 0 B/s, ETA -
+Elapsed time:      29m0.0s
+
+2026/11/16 18:37:30 INFO  : 
+Transferred:   	          0 B / 0 B, -, 0 B/s, ETA -
+Elapsed time:      30m0.0s
+
+2026/11/16 18:38:30 INFO  : 
+Transferred:   	          0 B / 0 B, -, 0 B/s, ETA -
+Elapsed time:      31m0.0s
+
+2026/11/16 18:39:30 INFO  : 
+Transferred:   	          0 B / 0 B, -, 0 B/s, ETA -
+Elapsed time:      32m0.0s
+
+2026/11/16 18:40:30 INFO  : 
+Transferred:   	          0 B / 0 B, -, 0 B/s, ETA -
+Elapsed time:      33m0.0s
+
+2026/11/16 18:41:30 INFO  : 
+Transferred:   	          0 B / 0 B, -, 0 B/s, ETA -
+Elapsed time:      34m0.0s
+
+2026/11/16 18:42:30 INFO  : 
+Transferred:   	          0 B / 0 B, -, 0 B/s, ETA -
+Elapsed time:      35m0.0s
+
+2026/11/16 18:43:30 INFO  : 
+Transferred:   	          0 B / 0 B, -, 0 B/s, ETA -
+Elapsed time:      36m0.0s
+
+2026/11/16 18:44:30 INFO  : 
+Transferred:   	          0 B / 0 B, -, 0 B/s, ETA -
+Elapsed time:      37m0.0s
+
+2026/11/16 18:45:30 INFO  : 
+Transferred:   	          0 B / 0 B, -, 0 B/s, ETA -
+Elapsed time:      38m0.0s
+
+2026/11/16 18:46:30 INFO  : 
+Transferred:   	          0 B / 0 B, -, 0 B/s, ETA -
+Elapsed time:      39m0.0s
+
+2026/11/16 18:47:30 INFO  : 
+Transferred:   	          0 B / 0 B, -, 0 B/s, ETA -
+Elapsed time:      40m0.0s
+
+2026/11/16 18:48:30 INFO  : 
+Transferred:   	          0 B / 0 B, -, 0 B/s, ETA -
+Elapsed time:      41m0.0s
+
+2026/11/16 18:49:30 INFO  : 
+Transferred:   	          0 B / 0 B, -, 0 B/s, ETA -
+Elapsed time:      42m0.0s
+
+2026/11/16 18:50:30 INFO  : 
+Transferred:   	          0 B / 0 B, -, 0 B/s, ETA -
+Elapsed time:      43m0.0s
+
+2026/11/16 18:51:30 INFO  : 
+Transferred:   	          0 B / 0 B, -, 0 B/s, ETA -
+Elapsed time:      44m0.0s
+
+2026/11/16 18:52:30 INFO  : 
+Transferred:   	          0 B / 0 B, -, 0 B/s, ETA -
+Elapsed time:      45m0.0s
+
+2026/11/16 18:53:30 INFO  : 
+Transferred:   	          0 B / 0 B, -, 0 B/s, ETA -
+Elapsed time:      46m0.0s
+
+2026/11/16 18:54:30 INFO  : 
+Transferred:   	          0 B / 0 B, -, 0 B/s, ETA -
+Elapsed time:      47m0.0s
+
+2026/11/16 18:55:30 INFO  : 
+Transferred:   	          0 B / 0 B, -, 0 B/s, ETA -
+Elapsed time:      48m0.0s
+
+2026/11/16 18:56:30 INFO  : 
+Transferred:   	          0 B / 0 B, -, 0 B/s, ETA -
+Elapsed time:      49m0.0s
+
+2026/11/16 18:57:30 INFO  : 
+Transferred:   	          0 B / 0 B, -, 0 B/s, ETA -
+Elapsed time:      50m0.0s
+
+2026/11/16 18:58:30 INFO  : 
+Transferred:   	          0 B / 0 B, -, 0 B/s, ETA -
+Elapsed time:      51m0.0s
+
+2026/11/16 18:59:30 INFO  : 
+Transferred:   	          0 B / 0 B, -, 0 B/s, ETA -
+Elapsed time:      52m0.0s
+
+2026/11/16 19:00:30 INFO  : 
+Transferred:   	          0 B / 0 B, -, 0 B/s, ETA -
+Elapsed time:      53m0.0s
+
+2026/11/16 19:01:30 INFO  : 
+Transferred:   	          0 B / 0 B, -, 0 B/s, ETA -
+Elapsed time:      54m0.0s
+
+2026/11/16 19:02:30 INFO  : 
+Transferred:   	          0 B / 0 B, -, 0 B/s, ETA -
+Elapsed time:      55m0.0s
+
+2026/11/16 19:03:30 INFO  : 
+Transferred:   	          0 B / 0 B, -, 0 B/s, ETA -
+Elapsed time:      56m0.0s
+
+2026/11/16 19:04:30 INFO  : 
+Transferred:   	          0 B / 0 B, -, 0 B/s, ETA -
+Elapsed time:      57m0.0s
+
+2026/11/16 19:05:30 INFO  : 
+Transferred:   	          0 B / 0 B, -, 0 B/s, ETA -
+Elapsed time:      58m0.0s
+
+2026/11/16 19:06:30 INFO  : 
+Transferred:   	          0 B / 0 B, -, 0 B/s, ETA -
+Elapsed time:      59m0.0s
+
+2026/11/16 19:07:30 INFO  : 
+Transferred:   	          0 B / 0 B, -, 0 B/s, ETA -
+Elapsed time:       1h0.0s
+
+2026/11/16 19:08:30 INFO  : 
+Transferred:   	          0 B / 0 B, -, 0 B/s, ETA -
+Elapsed time:     1h1m0.0s
+
+2026/11/16 19:09:30 INFO  : 
+Transferred:   	          0 B / 0 B, -, 0 B/s, ETA -
+Elapsed time:     1h2m0.0s
+
+2026/11/16 19:10:30 INFO  : 
+Transferred:   	          0 B / 0 B, -, 0 B/s, ETA -
+Elapsed time:     1h3m0.0s
+
+2026/11/16 19:11:30 INFO  : 
+Transferred:   	          0 B / 0 B, -, 0 B/s, ETA -
+Elapsed time:     1h4m0.0s
+
+2026/11/16 19:12:30 INFO  : 
+Transferred:   	          0 B / 0 B, -, 0 B/s, ETA -
+Elapsed time:     1h5m0.0s
+
+2026/11/16 19:13:30 INFO  : 
+Transferred:   	          0 B / 0 B, -, 0 B/s, ETA -
+Elapsed time:     1h6m0.0s
+
+2026/11/16 19:14:30 INFO  : 
+Transferred:   	          0 B / 0 B, -, 0 B/s, ETA -
+Elapsed time:     1h7m0.0s
+
+2026/11/16 19:15:30 INFO  : 
+Transferred:   	          0 B / 0 B, -, 0 B/s, ETA -
+Elapsed time:     1h8m0.0s
+
+2026/11/16 19:16:30 INFO  : 
+Transferred:   	          0 B / 0 B, -, 0 B/s, ETA -
+Elapsed time:     1h9m0.0s
+
+2026/11/16 19:17:30 INFO  : 
+Transferred:   	          0 B / 0 B, -, 0 B/s, ETA -
+Elapsed time:    1h10m0.0s
+
+2026/11/16 19:18:30 INFO  : 
+Transferred:   	          0 B / 0 B, -, 0 B/s, ETA -
+Elapsed time:    1h11m0.0s
+
+2026/11/16 19:19:30 INFO  : 
+Transferred:   	          0 B / 0 B, -, 0 B/s, ETA -
+Elapsed time:    1h12m0.0s
+
+2026/11/16 19:20:30 INFO  : 
+Transferred:   	          0 B / 0 B, -, 0 B/s, ETA -
+Elapsed time:    1h13m0.0s
+
+2026/11/16 19:21:30 INFO  : 
+Transferred:   	          0 B / 0 B, -, 0 B/s, ETA -
+Elapsed time:    1h14m0.0s
+
+2026/11/16 19:22:30 INFO  : 
+Transferred:   	          0 B / 0 B, -, 0 B/s, ETA -
+Elapsed time:    1h15m0.0s
+
+2026/11/16 19:23:30 INFO  : 
+Transferred:   	          0 B / 0 B, -, 0 B/s, ETA -
+Elapsed time:    1h16m0.0s
+
+2026/11/16 19:24:30 INFO  : 
+Transferred:   	          0 B / 0 B, -, 0 B/s, ETA -
+Elapsed time:    1h17m0.0s
+
+2026/11/16 19:25:30 INFO  : 
+Transferred:   	          0 B / 0 B, -, 0 B/s, ETA -
+Elapsed time:    1h18m0.0s
+
+2026/11/16 19:26:30 INFO  : 
+Transferred:   	          0 B / 0 B, -, 0 B/s, ETA -
+Elapsed time:    1h19m0.0s
+
+2026/11/16 19:27:30 INFO  : 
+Transferred:   	          0 B / 0 B, -, 0 B/s, ETA -
+Elapsed time:    1h20m0.0s
+
+2026/11/16 19:27:55 ERROR : serve sftp 127.0.0.1:58936->127.0.0.1:2022: SSH login failed: EOF
+2026/11/16 19:28:30 INFO  : 
+Transferred:   	          0 B / 0 B, -, 0 B/s, ETA -
+Elapsed time:    1h21m0.0s
+
+2026/11/16 19:29:30 INFO  : 
+Transferred:   	          0 B / 0 B, -, 0 B/s, ETA -
+Elapsed time:    1h22m0.0s
+
+2026/11/16 19:29:50 ERROR : serve sftp 127.0.0.1:51968->127.0.0.1:2022: SSH login failed: EOF
+2026/11/16 19:30:30 INFO  : 
+Transferred:   	          0 B / 0 B, -, 0 B/s, ETA -
+Elapsed time:    1h23m0.0s
+
+2026/11/16 19:31:30 INFO  : 
+Transferred:   	          0 B / 0 B, -, 0 B/s, ETA -
+Elapsed time:    1h24m0.0s
+
+2026/11/16 19:31:56 INFO  : serve sftp 127.0.0.1:52376->127.0.0.1:2022: SSH login from kpg using SSH-2.0-JSCH_2.27.2
+2026/11/16 19:31:57 INFO  : serve sftp 127.0.0.1:56740->127.0.0.1:2022: SSH login from kpg using SSH-2.0-JSCH_2.27.2
+2026/11/16 19:31:58 INFO  : serve sftp 127.0.0.1:56746->127.0.0.1:2022: SSH login from kpg using SSH-2.0-JSCH_2.27.2
+2026/11/16 19:32:08 INFO  : serve sftp 127.0.0.1:51396->127.0.0.1:2022: SSH login from kpg using SSH-2.0-JSCH_2.27.2
+2026/11/16 19:32:30 INFO  : 
+Transferred:   	    2.114 KiB / 2.114 KiB, 100%, 98 B/s, ETA 0s
+Transferred:            1 / 1, 100%
+Elapsed time:    1h25m0.0s
+
+2026/11/16 19:32:51 INFO  : serve sftp 127.0.0.1:43612->127.0.0.1:2022: SSH login from kpg using SSH-2.0-JSCH_2.27.2
+2026/11/16 19:33:30 INFO  : 
+Transferred:   	    4.572 KiB / 4.572 KiB, 100%, 60 B/s, ETA 0s
+Transferred:            2 / 2, 100%
+Elapsed time:    1h26m0.0s
+
+2026/11/16 19:34:30 INFO  : 
+Transferred:   	    4.572 KiB / 4.572 KiB, 100%, 60 B/s, ETA 0s
+Transferred:            2 / 2, 100%
+Elapsed time:    1h27m0.0s
+
+2026/11/16 19:35:30 INFO  : 
+Transferred:   	    4.572 KiB / 4.572 KiB, 100%, 60 B/s, ETA 0s
+Transferred:            2 / 2, 100%
+Elapsed time:    1h28m0.0s
+
+2026/11/16 19:36:00 INFO  : serve sftp 127.0.0.1:57192->127.0.0.1:2022: SSH login from kpg using SSH-2.0-JSCH_2.27.2
+2026/11/16 19:36:02 INFO  : serve sftp 127.0.0.1:40292->127.0.0.1:2022: SSH login from kpg using SSH-2.0-JSCH_2.27.2
+2026/11/16 19:36:03 INFO  : serve sftp 127.0.0.1:45624->127.0.0.1:2022: SSH login from kpg using SSH-2.0-JSCH_2.27.2
+2026/11/16 19:36:12 INFO  : serve sftp 127.0.0.1:45634->127.0.0.1:2022: SSH login from kpg using SSH-2.0-JSCH_2.27.2
+2026/11/16 19:36:30 INFO  : 
+Transferred:   	    6.687 KiB / 6.687 KiB, 100%, 60 B/s, ETA 0s
+Transferred:            3 / 3, 100%
+Elapsed time:    1h29m0.0s
+
+2026/11/16 19:37:30 INFO  : 
+Transferred:   	    6.687 KiB / 6.687 KiB, 100%, 60 B/s, ETA 0s
+Transferred:            3 / 3, 100%
+Elapsed time:    1h30m0.0s
+
+2026/11/16 19:38:30 INFO  : 
+Transferred:   	    6.687 KiB / 6.687 KiB, 100%, 60 B/s, ETA 0s
+Transferred:            3 / 3, 100%
+Elapsed time:    1h31m0.0s
+
+2026/11/16 19:39:30 INFO  : 
+Transferred:   	    6.687 KiB / 6.687 KiB, 100%, 60 B/s, ETA 0s
+Transferred:            3 / 3, 100%
+Elapsed time:    1h32m0.0s
+
+2026/11/16 19:40:30 INFO  : 
+Transferred:   	    6.687 KiB / 6.687 KiB, 100%, 60 B/s, ETA 0s
+Transferred:            3 / 3, 100%
+Elapsed time:    1h33m0.0s
+
+2026/11/16 19:41:30 INFO  : 
+Transferred:   	    6.687 KiB / 6.687 KiB, 100%, 60 B/s, ETA 0s
+Transferred:            3 / 3, 100%
+Elapsed time:    1h34m0.0s
+
+2026/11/16 19:42:06 INFO  : serve sftp 127.0.0.1:41342->127.0.0.1:2022: SSH login from kpg using SSH-2.0-JSCH_2.27.2
+2026/11/16 19:42:14 INFO  : serve sftp 127.0.0.1:59884->127.0.0.1:2022: SSH login from kpg using SSH-2.0-JSCH_2.27.2
+2026/11/16 19:42:14 INFO  : kpg-sftp-s4-merge-r1.kdbx.tmp: Moved (server-side) to: kpg-sftp-s4-merge-r1.kdbx
+2026/11/16 19:42:30 INFO  : 
+Transferred:   	   11.931 KiB / 11.931 KiB, 100%, 60 B/s, ETA 0s
+Checks:                 1 / 1, 100%
+Renamed:                1
+Transferred:            5 / 5, 100%
+Server Side Moves:      1 @ 2.786 KiB
+Elapsed time:    1h35m0.0s
+
+2026/11/16 19:42:39 INFO  : serve sftp 127.0.0.1:45202->127.0.0.1:2022: SSH login from kpg using SSH-2.0-JSCH_2.27.2
+2026/11/16 19:43:30 INFO  : 
+Transferred:   	   14.717 KiB / 14.717 KiB, 100%, 60 B/s, ETA 0s
+Checks:                 1 / 1, 100%
+Renamed:                1
+Transferred:            6 / 6, 100%
+Server Side Moves:      1 @ 2.786 KiB
+Elapsed time:    1h36m0.0s
+
+2026/11/16 19:44:18 INFO  : Signal received: terminated
+2026/11/16 19:44:18 INFO  : Exiting...

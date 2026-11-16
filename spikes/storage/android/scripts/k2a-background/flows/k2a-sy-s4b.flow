@@ -1,0 +1,14 @@
+# Synchronize, case 4b, both changed, the phone's changes saved while the server was stopped: as
+# case 4 with the server stopped in place of Work on internal cache only.
+include k2a-sy-open.flow
+host sh ${P}/server.sh stop
+include k2a-sy-pw-P2-offline.flow
+include k2a-sy-pw-Q1-offline.flow
+include k2a-sy-pw-Q2-offline.flow
+include k2a-sy-pw-Q3-offline.flow
+include k2a-ow-edit-offline.flow
+host sh ${P}/mksnew.sh ${W} ${SNAME}
+host sh ${P}/server.sh start
+include k2a-sy-sync.flow
+host sh ${P}/srv-stat.sh ${SNAME} after-sync
+include k2a-sy-look.flow

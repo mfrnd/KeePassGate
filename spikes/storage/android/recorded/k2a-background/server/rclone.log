@@ -1,0 +1,287 @@
+2026/11/16 17:51:54 NOTICE: Config file "<wsl-home>/.config/rclone/rclone.conf" not found - using defaults
+2026/11/16 17:51:54 INFO  : Using --user kpg --pass XXXX as authenticated user
+2026/11/16 17:51:54 NOTICE: Local file system at <work>/server/root: WebDav Server started on [http://[::]:8080/]
+2026/11/16 17:51:54 INFO  : //: PROPFIND from 127.0.0.1:33774
+2026/11/16 17:54:16 INFO  : /: 127.0.0.1:53700: Unauthorized request from 
+2026/11/16 17:54:16 INFO  : //: PROPFIND from 127.0.0.1:53700
+2026/11/16 17:54:17 INFO  : /: 127.0.0.1:53700: Unauthorized request from 
+2026/11/16 17:54:17 INFO  : //: PROPFIND from 127.0.0.1:53700
+2026/11/16 17:54:18 INFO  : /: 127.0.0.1:53700: Unauthorized request from 
+2026/11/16 17:54:18 INFO  : //: PROPFIND from 127.0.0.1:53700
+2026/11/16 17:54:29 INFO  : /kpg-bg-b-amcoff-r1.kdbx: 127.0.0.1:53700: Unauthorized request from 
+2026/11/16 17:54:29 INFO  : //kpg-bg-b-amcoff-r1.kdbx: GET from 127.0.0.1:53700
+2026/11/16 17:56:01 INFO  : /kpg-bg-b-amcoff-r1.kdbx: 127.0.0.1:53700: Unauthorized request from 
+2026/11/16 17:56:01 INFO  : //kpg-bg-b-amcoff-r1.kdbx: GET from 127.0.0.1:53700
+2026/11/16 17:58:27 INFO  : /kpg-bg-b-amcoff-r1.kdbx: 127.0.0.1:52478: Unauthorized request from 
+2026/11/16 17:58:28 INFO  : //kpg-bg-b-amcoff-r1.kdbx: GET from 127.0.0.1:52478
+2026/11/16 18:00:55 INFO  : /: 127.0.0.1:38220: Unauthorized request from 
+2026/11/16 18:00:55 INFO  : //: PROPFIND from 127.0.0.1:38220
+2026/11/16 18:00:55 INFO  : /: 127.0.0.1:38220: Unauthorized request from 
+2026/11/16 18:00:55 INFO  : //: PROPFIND from 127.0.0.1:38220
+2026/11/16 18:00:56 INFO  : /: 127.0.0.1:38220: Unauthorized request from 
+2026/11/16 18:00:56 INFO  : //: PROPFIND from 127.0.0.1:38220
+2026/11/16 18:01:07 INFO  : /kpg-bg-b-amcon-r1.kdbx: 127.0.0.1:38220: Unauthorized request from 
+2026/11/16 18:01:07 INFO  : //kpg-bg-b-amcon-r1.kdbx: GET from 127.0.0.1:38220
+2026/11/16 18:03:54 INFO  : /kpg-bg-b-amcon-r1.kdbx: 127.0.0.1:42580: Unauthorized request from 
+2026/11/16 18:03:54 INFO  : //kpg-bg-b-amcon-r1.kdbx: GET from 127.0.0.1:42580
+2026/11/16 18:03:55 INFO  : /kpg-bg-b-amcon-r1_tmp_10330114.kdbx: 127.0.0.1:42580: Unauthorized request from 
+2026/11/16 18:03:55 INFO  : //kpg-bg-b-amcon-r1_tmp_10330114.kdbx: PUT from 127.0.0.1:42580
+2026/11/16 18:03:55 INFO  : /kpg-bg-b-amcon-r1_tmp_10330114.kdbx: 127.0.0.1:51328: Unauthorized request from 
+2026/11/16 18:03:55 INFO  : kpg-bg-b-amcon-r1_tmp_10330114.kdbx: Moved (server-side) to: kpg-bg-b-amcon-r1.kdbx
+2026/11/16 18:03:55 INFO  : //kpg-bg-b-amcon-r1_tmp_10330114.kdbx: MOVE from 127.0.0.1:51328
+2026/11/16 18:03:55 ERROR : Failed to stat node: file does not exist
+2026/11/16 18:05:52 INFO  : /kpg-bg-b-amcon-r1.kdbx: 127.0.0.1:34788: Unauthorized request from 
+2026/11/16 18:05:52 INFO  : //kpg-bg-b-amcon-r1.kdbx: GET from 127.0.0.1:34788
+2026/11/16 18:05:52 INFO  : /kpg-bg-b-amcon-r1_tmp_32303271.kdbx: 127.0.0.1:34788: Unauthorized request from 
+2026/11/16 18:05:52 INFO  : //kpg-bg-b-amcon-r1_tmp_32303271.kdbx: PUT from 127.0.0.1:34788
+2026/11/16 18:05:53 INFO  : /kpg-bg-b-amcon-r1_tmp_32303271.kdbx: 127.0.0.1:40642: Unauthorized request from 
+2026/11/16 18:05:53 INFO  : kpg-bg-b-amcon-r1_tmp_32303271.kdbx: Moved (server-side) to: kpg-bg-b-amcon-r1.kdbx
+2026/11/16 18:05:53 INFO  : //kpg-bg-b-amcon-r1_tmp_32303271.kdbx: MOVE from 127.0.0.1:40642
+2026/11/16 18:05:53 ERROR : Failed to stat node: file does not exist
+2026/11/16 18:07:46 INFO  : /: 127.0.0.1:49282: Unauthorized request from 
+2026/11/16 18:07:47 INFO  : //: PROPFIND from 127.0.0.1:49282
+2026/11/16 18:07:47 INFO  : /: 127.0.0.1:49282: Unauthorized request from 
+2026/11/16 18:07:47 INFO  : //: PROPFIND from 127.0.0.1:49282
+2026/11/16 18:07:48 INFO  : /: 127.0.0.1:49282: Unauthorized request from 
+2026/11/16 18:07:48 INFO  : //: PROPFIND from 127.0.0.1:49282
+2026/11/16 18:07:58 INFO  : /kpg-bg-a-amcoff-r1.kdbx: 127.0.0.1:49282: Unauthorized request from 
+2026/11/16 18:07:58 INFO  : //kpg-bg-a-amcoff-r1.kdbx: GET from 127.0.0.1:49282
+2026/11/16 18:09:30 INFO  : /kpg-bg-a-amcoff-r1.kdbx: 127.0.0.1:60474: Unauthorized request from 
+2026/11/16 18:09:31 INFO  : //kpg-bg-a-amcoff-r1.kdbx: GET from 127.0.0.1:60474
+2026/11/16 18:11:45 INFO  : /kpg-bg-a-amcoff-r1.kdbx: 127.0.0.1:50044: Unauthorized request from 
+2026/11/16 18:11:45 INFO  : //kpg-bg-a-amcoff-r1.kdbx: GET from 127.0.0.1:50044
+2026/11/16 18:13:58 INFO  : /: 127.0.0.1:58458: Unauthorized request from 
+2026/11/16 18:13:59 INFO  : //: PROPFIND from 127.0.0.1:58458
+2026/11/16 18:13:59 INFO  : /: 127.0.0.1:58458: Unauthorized request from 
+2026/11/16 18:13:59 INFO  : //: PROPFIND from 127.0.0.1:58458
+2026/11/16 18:14:00 INFO  : /: 127.0.0.1:58458: Unauthorized request from 
+2026/11/16 18:14:02 INFO  : //: PROPFIND from 127.0.0.1:58458
+2026/11/16 18:14:11 INFO  : /kpg-bg-a-amcon-r1.kdbx: 127.0.0.1:58458: Unauthorized request from 
+2026/11/16 18:14:11 INFO  : //kpg-bg-a-amcon-r1.kdbx: GET from 127.0.0.1:58458
+2026/11/16 18:17:03 INFO  : /kpg-bg-a-amcon-r1.kdbx: 127.0.0.1:54200: Unauthorized request from 
+2026/11/16 18:17:03 INFO  : //kpg-bg-a-amcon-r1.kdbx: GET from 127.0.0.1:54200
+2026/11/16 18:17:03 INFO  : /kpg-bg-a-amcon-r1_tmp_49144235.kdbx: 127.0.0.1:54200: Unauthorized request from 
+2026/11/16 18:17:03 INFO  : //kpg-bg-a-amcon-r1_tmp_49144235.kdbx: PUT from 127.0.0.1:54200
+2026/11/16 18:17:03 INFO  : /kpg-bg-a-amcon-r1_tmp_49144235.kdbx: 127.0.0.1:52890: Unauthorized request from 
+2026/11/16 18:17:04 INFO  : kpg-bg-a-amcon-r1_tmp_49144235.kdbx: Moved (server-side) to: kpg-bg-a-amcon-r1.kdbx
+2026/11/16 18:17:04 INFO  : //kpg-bg-a-amcon-r1_tmp_49144235.kdbx: MOVE from 127.0.0.1:52890
+2026/11/16 18:17:04 ERROR : Failed to stat node: file does not exist
+2026/11/16 18:19:01 INFO  : /kpg-bg-a-amcon-r1.kdbx: 127.0.0.1:48788: Unauthorized request from 
+2026/11/16 18:19:02 INFO  : //kpg-bg-a-amcon-r1.kdbx: GET from 127.0.0.1:48788
+2026/11/16 18:19:02 INFO  : /kpg-bg-a-amcon-r1_tmp_19804716.kdbx: 127.0.0.1:48788: Unauthorized request from 
+2026/11/16 18:19:02 INFO  : //kpg-bg-a-amcon-r1_tmp_19804716.kdbx: PUT from 127.0.0.1:48788
+2026/11/16 18:19:02 INFO  : /kpg-bg-a-amcon-r1_tmp_19804716.kdbx: 127.0.0.1:48804: Unauthorized request from 
+2026/11/16 18:19:03 INFO  : kpg-bg-a-amcon-r1_tmp_19804716.kdbx: Moved (server-side) to: kpg-bg-a-amcon-r1.kdbx
+2026/11/16 18:19:03 INFO  : //kpg-bg-a-amcon-r1_tmp_19804716.kdbx: MOVE from 127.0.0.1:48804
+2026/11/16 18:19:03 ERROR : Failed to stat node: file does not exist
+2026/11/16 18:21:21 INFO  : /: 127.0.0.1:42162: Unauthorized request from 
+2026/11/16 18:21:22 INFO  : //: PROPFIND from 127.0.0.1:42162
+2026/11/16 18:21:22 INFO  : /: 127.0.0.1:42162: Unauthorized request from 
+2026/11/16 18:21:22 INFO  : //: PROPFIND from 127.0.0.1:42162
+2026/11/16 18:21:23 INFO  : /: 127.0.0.1:42162: Unauthorized request from 
+2026/11/16 18:21:23 INFO  : //: PROPFIND from 127.0.0.1:42162
+2026/11/16 18:21:36 INFO  : /kpg-bg-c-amcoff-r1.kdbx: 127.0.0.1:42162: Unauthorized request from 
+2026/11/16 18:21:43 INFO  : //kpg-bg-c-amcoff-r1.kdbx: GET from 127.0.0.1:42162
+2026/11/16 18:24:33 INFO  : /kpg-bg-c-amcoff-r1.kdbx: 127.0.0.1:35858: Unauthorized request from 
+2026/11/16 18:24:34 INFO  : //kpg-bg-c-amcoff-r1.kdbx: GET from 127.0.0.1:35858
+2026/11/16 18:26:14 INFO  : /kpg-bg-c-amcoff-r1.kdbx: 127.0.0.1:39278: Unauthorized request from 
+2026/11/16 18:26:14 INFO  : //kpg-bg-c-amcoff-r1.kdbx: GET from 127.0.0.1:39278
+2026/11/16 18:28:18 INFO  : /: 127.0.0.1:48592: Unauthorized request from 
+2026/11/16 18:28:19 INFO  : //: PROPFIND from 127.0.0.1:48592
+2026/11/16 18:28:19 INFO  : /: 127.0.0.1:48592: Unauthorized request from 
+2026/11/16 18:28:19 INFO  : //: PROPFIND from 127.0.0.1:48592
+2026/11/16 18:28:20 INFO  : /: 127.0.0.1:48592: Unauthorized request from 
+2026/11/16 18:28:20 INFO  : //: PROPFIND from 127.0.0.1:48592
+2026/11/16 18:28:31 INFO  : /kpg-bg-c-amcon-r1.kdbx: 127.0.0.1:48592: Unauthorized request from 
+2026/11/16 18:28:31 INFO  : //kpg-bg-c-amcon-r1.kdbx: GET from 127.0.0.1:48592
+2026/11/16 18:30:52 INFO  : /kpg-bg-c-amcon-r1.kdbx: 127.0.0.1:44354: Unauthorized request from 
+2026/11/16 18:32:13 INFO  : /kpg-bg-c-amcon-r1.kdbx: 127.0.0.1:39992: Unauthorized request from 
+2026/11/16 18:32:13 INFO  : //kpg-bg-c-amcon-r1.kdbx: GET from 127.0.0.1:39992
+2026/11/16 18:32:14 INFO  : /kpg-bg-c-amcon-r1_tmp_26051359.kdbx: 127.0.0.1:39992: Unauthorized request from 
+2026/11/16 18:32:14 INFO  : //kpg-bg-c-amcon-r1_tmp_26051359.kdbx: PUT from 127.0.0.1:39992
+2026/11/16 18:32:14 INFO  : /kpg-bg-c-amcon-r1_tmp_26051359.kdbx: 127.0.0.1:39994: Unauthorized request from 
+2026/11/16 18:32:14 INFO  : kpg-bg-c-amcon-r1_tmp_26051359.kdbx: Moved (server-side) to: kpg-bg-c-amcon-r1.kdbx
+2026/11/16 18:32:14 INFO  : //kpg-bg-c-amcon-r1_tmp_26051359.kdbx: MOVE from 127.0.0.1:39994
+2026/11/16 18:32:14 ERROR : Failed to stat node: file does not exist
+2026/11/16 18:33:35 INFO  : /kpg-bg-c-amcon-r1.kdbx: 127.0.0.1:37912: Unauthorized request from 
+2026/11/16 18:33:36 INFO  : //kpg-bg-c-amcon-r1.kdbx: GET from 127.0.0.1:37912
+2026/11/16 18:33:36 INFO  : /kpg-bg-c-amcon-r1_tmp_13327633.kdbx: 127.0.0.1:37912: Unauthorized request from 
+2026/11/16 18:33:36 INFO  : //kpg-bg-c-amcon-r1_tmp_13327633.kdbx: PUT from 127.0.0.1:37912
+2026/11/16 18:33:36 INFO  : /kpg-bg-c-amcon-r1_tmp_13327633.kdbx: 127.0.0.1:37920: Unauthorized request from 
+2026/11/16 18:33:37 INFO  : kpg-bg-c-amcon-r1_tmp_13327633.kdbx: Moved (server-side) to: kpg-bg-c-amcon-r1.kdbx
+2026/11/16 18:33:37 INFO  : //kpg-bg-c-amcon-r1_tmp_13327633.kdbx: MOVE from 127.0.0.1:37920
+2026/11/16 18:33:37 ERROR : Failed to stat node: file does not exist
+2026/11/16 18:35:25 INFO  : /: 127.0.0.1:37720: Unauthorized request from 
+2026/11/16 18:35:25 INFO  : //: PROPFIND from 127.0.0.1:37720
+2026/11/16 18:35:26 INFO  : /: 127.0.0.1:37720: Unauthorized request from 
+2026/11/16 18:35:26 INFO  : //: PROPFIND from 127.0.0.1:37720
+2026/11/16 18:35:26 INFO  : /: 127.0.0.1:37720: Unauthorized request from 
+2026/11/16 18:35:27 INFO  : //: PROPFIND from 127.0.0.1:37720
+2026/11/16 18:35:37 INFO  : /kpg-bg-d-amcoff-r1.kdbx: 127.0.0.1:37720: Unauthorized request from 
+2026/11/16 18:35:37 INFO  : //kpg-bg-d-amcoff-r1.kdbx: GET from 127.0.0.1:37720
+2026/11/16 18:36:56 INFO  : /kpg-bg-d-amcoff-r1.kdbx: 127.0.0.1:53412: Unauthorized request from 
+2026/11/16 18:36:57 INFO  : //kpg-bg-d-amcoff-r1.kdbx: GET from 127.0.0.1:53412
+2026/11/16 18:39:45 INFO  : /kpg-bg-d-amcoff-r1.kdbx: 127.0.0.1:46048: Unauthorized request from 
+2026/11/16 18:39:45 INFO  : //kpg-bg-d-amcoff-r1.kdbx: GET from 127.0.0.1:46048
+2026/11/16 18:42:25 INFO  : /: 127.0.0.1:53746: Unauthorized request from 
+2026/11/16 18:42:25 INFO  : //: PROPFIND from 127.0.0.1:53746
+2026/11/16 18:42:25 INFO  : /: 127.0.0.1:53746: Unauthorized request from 
+2026/11/16 18:42:25 INFO  : //: PROPFIND from 127.0.0.1:53746
+2026/11/16 18:42:26 INFO  : /: 127.0.0.1:53746: Unauthorized request from 
+2026/11/16 18:42:26 INFO  : //: PROPFIND from 127.0.0.1:53746
+2026/11/16 18:42:37 INFO  : /kpg-bg-d-amcon-r1.kdbx: 127.0.0.1:53746: Unauthorized request from 
+2026/11/16 18:42:39 INFO  : //kpg-bg-d-amcon-r1.kdbx: GET from 127.0.0.1:53746
+2026/11/16 18:45:39 INFO  : /kpg-bg-d-amcon-r1.kdbx: 127.0.0.1:34228: Unauthorized request from 
+2026/11/16 18:45:39 INFO  : //kpg-bg-d-amcon-r1.kdbx: GET from 127.0.0.1:34228
+2026/11/16 18:45:40 INFO  : /kpg-bg-d-amcon-r1_tmp_38988172.kdbx: 127.0.0.1:34228: Unauthorized request from 
+2026/11/16 18:45:40 INFO  : //kpg-bg-d-amcon-r1_tmp_38988172.kdbx: PUT from 127.0.0.1:34228
+2026/11/16 18:45:40 INFO  : /kpg-bg-d-amcon-r1_tmp_38988172.kdbx: 127.0.0.1:60714: Unauthorized request from 
+2026/11/16 18:45:43 INFO  : kpg-bg-d-amcon-r1_tmp_38988172.kdbx: Moved (server-side) to: kpg-bg-d-amcon-r1.kdbx
+2026/11/16 18:45:43 INFO  : //kpg-bg-d-amcon-r1_tmp_38988172.kdbx: MOVE from 127.0.0.1:60714
+2026/11/16 18:45:43 ERROR : Failed to stat node: file does not exist
+2026/11/16 18:48:41 INFO  : /: 127.0.0.1:40108: Unauthorized request from 
+2026/11/16 18:48:42 INFO  : //: PROPFIND from 127.0.0.1:40108
+2026/11/16 18:48:42 INFO  : /: 127.0.0.1:40108: Unauthorized request from 
+2026/11/16 18:48:42 INFO  : //: PROPFIND from 127.0.0.1:40108
+2026/11/16 18:48:43 INFO  : /: 127.0.0.1:40108: Unauthorized request from 
+2026/11/16 18:48:43 INFO  : //: PROPFIND from 127.0.0.1:40108
+2026/11/16 18:48:53 INFO  : /kpg-cancel-A-r1.kdbx: 127.0.0.1:40108: Unauthorized request from 
+2026/11/16 18:48:53 INFO  : //kpg-cancel-A-r1.kdbx: GET from 127.0.0.1:40108
+2026/11/16 18:49:27 INFO  : Signal received: terminated
+2026/11/16 18:49:27 INFO  : Exiting...
+2026/11/16 18:50:24 NOTICE: Config file "<wsl-home>/.config/rclone/rclone.conf" not found - using defaults
+2026/11/16 18:50:24 INFO  : Using --user kpg --pass XXXX as authenticated user
+2026/11/16 18:50:24 NOTICE: Local file system at <work>/server/root: WebDav Server started on [http://[::]:8080/]
+2026/11/16 18:50:26 INFO  : //: PROPFIND from 127.0.0.1:40478
+2026/11/16 18:50:32 INFO  : /kpg-cancel-A-r1.kdbx: 127.0.0.1:39750: Unauthorized request from 
+2026/11/16 18:50:32 INFO  : //kpg-cancel-A-r1.kdbx: GET from 127.0.0.1:39750
+2026/11/16 18:51:08 INFO  : /kpg-cancel-A-r1.kdbx: 127.0.0.1:39750: Unauthorized request from 
+2026/11/16 18:51:08 INFO  : //kpg-cancel-A-r1.kdbx: GET from 127.0.0.1:39750
+2026/11/16 18:51:16 INFO  : /kpg-cancel-A-r1_tmp_14838108.kdbx: 127.0.0.1:39750: Unauthorized request from 
+2026/11/16 18:51:16 INFO  : //kpg-cancel-A-r1_tmp_14838108.kdbx: PUT from 127.0.0.1:39750
+2026/11/16 18:51:16 INFO  : /kpg-cancel-A-r1_tmp_14838108.kdbx: 127.0.0.1:47028: Unauthorized request from 
+2026/11/16 18:51:16 INFO  : kpg-cancel-A-r1_tmp_14838108.kdbx: Moved (server-side) to: kpg-cancel-A-r1.kdbx
+2026/11/16 18:51:16 INFO  : //kpg-cancel-A-r1_tmp_14838108.kdbx: MOVE from 127.0.0.1:47028
+2026/11/16 18:51:16 ERROR : Failed to stat node: file does not exist
+2026/11/16 18:53:07 INFO  : /: 127.0.0.1:46004: Unauthorized request from 
+2026/11/16 18:53:08 INFO  : //: PROPFIND from 127.0.0.1:46004
+2026/11/16 18:53:08 INFO  : /: 127.0.0.1:46004: Unauthorized request from 
+2026/11/16 18:53:08 INFO  : //: PROPFIND from 127.0.0.1:46004
+2026/11/16 18:53:09 INFO  : /: 127.0.0.1:46004: Unauthorized request from 
+2026/11/16 18:53:09 INFO  : //: PROPFIND from 127.0.0.1:46004
+2026/11/16 18:53:19 INFO  : /kpg-cancel-B-r1.kdbx: 127.0.0.1:46004: Unauthorized request from 
+2026/11/16 18:53:19 INFO  : //kpg-cancel-B-r1.kdbx: GET from 127.0.0.1:46004
+2026/11/16 18:54:17 INFO  : /kpg-cancel-B-r1.kdbx: 127.0.0.1:46004: Unauthorized request from 
+2026/11/16 18:54:17 INFO  : //kpg-cancel-B-r1.kdbx: GET from 127.0.0.1:46004
+2026/11/16 18:55:11 INFO  : /kpg-cancel-B-r1.kdbx: 127.0.0.1:46004: Unauthorized request from 
+2026/11/16 18:55:11 INFO  : //kpg-cancel-B-r1.kdbx: GET from 127.0.0.1:46004
+2026/11/16 18:55:19 INFO  : /kpg-cancel-B-r1_tmp_34506872.kdbx: 127.0.0.1:46004: Unauthorized request from 
+2026/11/16 18:55:19 INFO  : //kpg-cancel-B-r1_tmp_34506872.kdbx: PUT from 127.0.0.1:46004
+2026/11/16 18:55:19 INFO  : /kpg-cancel-B-r1_tmp_34506872.kdbx: 127.0.0.1:42384: Unauthorized request from 
+2026/11/16 18:55:19 INFO  : kpg-cancel-B-r1_tmp_34506872.kdbx: Moved (server-side) to: kpg-cancel-B-r1.kdbx
+2026/11/16 18:55:19 INFO  : //kpg-cancel-B-r1_tmp_34506872.kdbx: MOVE from 127.0.0.1:42384
+2026/11/16 18:55:19 ERROR : Failed to stat node: file does not exist
+2026/11/16 18:57:07 INFO  : /: 127.0.0.1:47230: Unauthorized request from 
+2026/11/16 18:57:08 INFO  : //: PROPFIND from 127.0.0.1:47230
+2026/11/16 18:57:08 INFO  : /: 127.0.0.1:47230: Unauthorized request from 
+2026/11/16 18:57:08 INFO  : //: PROPFIND from 127.0.0.1:47230
+2026/11/16 18:57:09 INFO  : /: 127.0.0.1:47230: Unauthorized request from 
+2026/11/16 18:57:09 INFO  : //: PROPFIND from 127.0.0.1:47230
+2026/11/16 18:57:19 INFO  : /kpg-adv-r1.kdbx: 127.0.0.1:47230: Unauthorized request from 
+2026/11/16 18:57:19 INFO  : //kpg-adv-r1.kdbx: GET from 127.0.0.1:47230
+2026/11/16 18:59:25 INFO  : /kpg-adv-r1.kdbx: 127.0.0.1:58304: Unauthorized request from 
+2026/11/16 18:59:25 INFO  : //kpg-adv-r1.kdbx: GET from 127.0.0.1:58304
+2026/11/16 18:59:27 INFO  : /kpg-adv-r1_tmp_15161739.kdbx: 127.0.0.1:58304: Unauthorized request from 
+2026/11/16 18:59:27 INFO  : //kpg-adv-r1_tmp_15161739.kdbx: PUT from 127.0.0.1:58304
+2026/11/16 18:59:27 INFO  : /kpg-adv-r1_tmp_15161739.kdbx: 127.0.0.1:58320: Unauthorized request from 
+2026/11/16 18:59:28 INFO  : kpg-adv-r1_tmp_15161739.kdbx: Moved (server-side) to: kpg-adv-r1.kdbx
+2026/11/16 18:59:28 INFO  : //kpg-adv-r1_tmp_15161739.kdbx: MOVE from 127.0.0.1:58320
+2026/11/16 18:59:28 ERROR : Failed to stat node: file does not exist
+2026/11/16 19:00:17 INFO  : Signal received: terminated
+2026/11/16 19:00:17 INFO  : Exiting...
+2026/11/16 19:03:55 NOTICE: Config file "<wsl-home>/.config/rclone/rclone.conf" not found - using defaults
+2026/11/16 19:03:55 INFO  : Using --user kpg --pass XXXX as authenticated user
+2026/11/16 19:03:55 NOTICE: Local file system at <work>/server/root: WebDav Server started on [http://[::]:8080/]
+2026/11/16 19:03:57 INFO  : //: PROPFIND from 127.0.0.1:57134
+2026/11/16 19:05:03 INFO  : /kpg-adv-r1.kdbx: 127.0.0.1:33304: Unauthorized request from 
+2026/11/16 19:05:03 INFO  : //kpg-adv-r1.kdbx: GET from 127.0.0.1:33304
+2026/11/16 19:05:03 INFO  : /kpg-adv-r1_tmp_40502129.kdbx: 127.0.0.1:33304: Unauthorized request from 
+2026/11/16 19:05:03 INFO  : //kpg-adv-r1_tmp_40502129.kdbx: PUT from 127.0.0.1:33304
+2026/11/16 19:05:04 INFO  : /kpg-adv-r1_tmp_40502129.kdbx: 127.0.0.1:33318: Unauthorized request from 
+2026/11/16 19:05:04 INFO  : kpg-adv-r1_tmp_40502129.kdbx: Moved (server-side) to: kpg-adv-r1.kdbx
+2026/11/16 19:05:04 INFO  : //kpg-adv-r1_tmp_40502129.kdbx: MOVE from 127.0.0.1:33318
+2026/11/16 19:05:04 ERROR : Failed to stat node: file does not exist
+2026/11/16 19:07:40 INFO  : /: 127.0.0.1:58228: Unauthorized request from 
+2026/11/16 19:07:41 INFO  : //: PROPFIND from 127.0.0.1:58228
+2026/11/16 19:07:41 INFO  : /: 127.0.0.1:58228: Unauthorized request from 
+2026/11/16 19:07:41 INFO  : //: PROPFIND from 127.0.0.1:58228
+2026/11/16 19:07:42 INFO  : /: 127.0.0.1:58228: Unauthorized request from 
+2026/11/16 19:07:42 INFO  : //: PROPFIND from 127.0.0.1:58228
+2026/11/16 19:07:52 INFO  : /kpg-bg-d-amcon-r2.kdbx: 127.0.0.1:58228: Unauthorized request from 
+2026/11/16 19:07:52 INFO  : //kpg-bg-d-amcon-r2.kdbx: GET from 127.0.0.1:58228
+2026/11/16 19:10:20 INFO  : /kpg-bg-d-amcon-r2.kdbx: 127.0.0.1:60118: Unauthorized request from 
+2026/11/16 19:10:20 INFO  : //kpg-bg-d-amcon-r2.kdbx: GET from 127.0.0.1:60118
+2026/11/16 19:10:20 INFO  : /kpg-bg-d-amcon-r2_tmp_40562161.kdbx: 127.0.0.1:60118: Unauthorized request from 
+2026/11/16 19:10:20 INFO  : //kpg-bg-d-amcon-r2_tmp_40562161.kdbx: PUT from 127.0.0.1:60118
+2026/11/16 19:10:20 INFO  : /kpg-bg-d-amcon-r2_tmp_40562161.kdbx: 127.0.0.1:46978: Unauthorized request from 
+2026/11/16 19:10:21 INFO  : kpg-bg-d-amcon-r2_tmp_40562161.kdbx: Moved (server-side) to: kpg-bg-d-amcon-r2.kdbx
+2026/11/16 19:10:21 INFO  : //kpg-bg-d-amcon-r2_tmp_40562161.kdbx: MOVE from 127.0.0.1:46978
+2026/11/16 19:10:21 ERROR : Failed to stat node: file does not exist
+2026/11/16 19:12:15 INFO  : /kpg-bg-d-amcon-r2.kdbx: 127.0.0.1:50672: Unauthorized request from 
+2026/11/16 19:12:15 INFO  : //kpg-bg-d-amcon-r2.kdbx: GET from 127.0.0.1:50672
+2026/11/16 19:12:16 INFO  : /kpg-bg-d-amcon-r2_tmp_41473107.kdbx: 127.0.0.1:50672: Unauthorized request from 
+2026/11/16 19:12:16 INFO  : //kpg-bg-d-amcon-r2_tmp_41473107.kdbx: PUT from 127.0.0.1:50672
+2026/11/16 19:12:16 INFO  : /kpg-bg-d-amcon-r2_tmp_41473107.kdbx: 127.0.0.1:50678: Unauthorized request from 
+2026/11/16 19:12:16 INFO  : kpg-bg-d-amcon-r2_tmp_41473107.kdbx: Moved (server-side) to: kpg-bg-d-amcon-r2.kdbx
+2026/11/16 19:12:16 INFO  : //kpg-bg-d-amcon-r2_tmp_41473107.kdbx: MOVE from 127.0.0.1:50678
+2026/11/16 19:12:16 ERROR : Failed to stat node: file does not exist
+2026/11/16 19:14:13 INFO  : /: 127.0.0.1:43002: Unauthorized request from 
+2026/11/16 19:14:14 INFO  : //: PROPFIND from 127.0.0.1:43002
+2026/11/16 19:14:14 INFO  : /: 127.0.0.1:43002: Unauthorized request from 
+2026/11/16 19:14:14 INFO  : //: PROPFIND from 127.0.0.1:43002
+2026/11/16 19:14:15 INFO  : /: 127.0.0.1:43002: Unauthorized request from 
+2026/11/16 19:14:15 INFO  : //: PROPFIND from 127.0.0.1:43002
+2026/11/16 19:14:26 INFO  : /kpg-bg-d-amcon-r3.kdbx: 127.0.0.1:43002: Unauthorized request from 
+2026/11/16 19:14:26 INFO  : //kpg-bg-d-amcon-r3.kdbx: GET from 127.0.0.1:43002
+2026/11/16 19:17:02 INFO  : /kpg-bg-d-amcon-r3.kdbx: 127.0.0.1:47780: Unauthorized request from 
+2026/11/16 19:17:02 INFO  : //kpg-bg-d-amcon-r3.kdbx: GET from 127.0.0.1:47780
+2026/11/16 19:17:02 INFO  : /kpg-bg-d-amcon-r3_tmp_32328637.kdbx: 127.0.0.1:47780: Unauthorized request from 
+2026/11/16 19:17:02 INFO  : //kpg-bg-d-amcon-r3_tmp_32328637.kdbx: PUT from 127.0.0.1:47780
+2026/11/16 19:17:02 INFO  : /kpg-bg-d-amcon-r3_tmp_32328637.kdbx: 127.0.0.1:58382: Unauthorized request from 
+2026/11/16 19:17:03 INFO  : kpg-bg-d-amcon-r3_tmp_32328637.kdbx: Moved (server-side) to: kpg-bg-d-amcon-r3.kdbx
+2026/11/16 19:17:03 INFO  : //kpg-bg-d-amcon-r3_tmp_32328637.kdbx: MOVE from 127.0.0.1:58382
+2026/11/16 19:17:03 ERROR : Failed to stat node: file does not exist
+2026/11/16 19:18:55 INFO  : /kpg-bg-d-amcon-r3.kdbx: 127.0.0.1:58874: Unauthorized request from 
+2026/11/16 19:18:56 INFO  : //kpg-bg-d-amcon-r3.kdbx: GET from 127.0.0.1:58874
+2026/11/16 19:18:56 INFO  : /kpg-bg-d-amcon-r3_tmp_40613614.kdbx: 127.0.0.1:58874: Unauthorized request from 
+2026/11/16 19:18:56 INFO  : //kpg-bg-d-amcon-r3_tmp_40613614.kdbx: PUT from 127.0.0.1:58874
+2026/11/16 19:18:56 INFO  : /kpg-bg-d-amcon-r3_tmp_40613614.kdbx: 127.0.0.1:58890: Unauthorized request from 
+2026/11/16 19:18:57 INFO  : kpg-bg-d-amcon-r3_tmp_40613614.kdbx: Moved (server-side) to: kpg-bg-d-amcon-r3.kdbx
+2026/11/16 19:18:57 INFO  : //kpg-bg-d-amcon-r3_tmp_40613614.kdbx: MOVE from 127.0.0.1:58890
+2026/11/16 19:18:57 ERROR : Failed to stat node: file does not exist
+2026/11/16 19:20:40 INFO  : /: 127.0.0.1:57170: Unauthorized request from 
+2026/11/16 19:20:41 INFO  : //: PROPFIND from 127.0.0.1:57170
+2026/11/16 19:20:41 INFO  : /: 127.0.0.1:57170: Unauthorized request from 
+2026/11/16 19:20:41 INFO  : //: PROPFIND from 127.0.0.1:57170
+2026/11/16 19:20:42 INFO  : /: 127.0.0.1:57170: Unauthorized request from 
+2026/11/16 19:20:42 INFO  : //: PROPFIND from 127.0.0.1:57170
+2026/11/16 19:20:53 INFO  : /kpg-bg-b-amcon-r2.kdbx: 127.0.0.1:57170: Unauthorized request from 
+2026/11/16 19:20:53 INFO  : //kpg-bg-b-amcon-r2.kdbx: GET from 127.0.0.1:57170
+2026/11/16 19:23:32 INFO  : /kpg-bg-b-amcon-r2.kdbx: 127.0.0.1:54178: Unauthorized request from 
+2026/11/16 19:23:32 INFO  : //kpg-bg-b-amcon-r2.kdbx: GET from 127.0.0.1:54178
+2026/11/16 19:23:32 INFO  : /kpg-bg-b-amcon-r2_tmp_77295091.kdbx: 127.0.0.1:54178: Unauthorized request from 
+2026/11/16 19:23:33 INFO  : //kpg-bg-b-amcon-r2_tmp_77295091.kdbx: PUT from 127.0.0.1:54178
+2026/11/16 19:23:33 INFO  : /kpg-bg-b-amcon-r2_tmp_77295091.kdbx: 127.0.0.1:47998: Unauthorized request from 
+2026/11/16 19:23:33 INFO  : kpg-bg-b-amcon-r2_tmp_77295091.kdbx: Moved (server-side) to: kpg-bg-b-amcon-r2.kdbx
+2026/11/16 19:23:33 INFO  : //kpg-bg-b-amcon-r2_tmp_77295091.kdbx: MOVE from 127.0.0.1:47998
+2026/11/16 19:23:33 ERROR : Failed to stat node: file does not exist
+2026/11/16 19:25:26 INFO  : /kpg-bg-b-amcon-r2.kdbx: 127.0.0.1:48210: Unauthorized request from 
+2026/11/16 19:25:26 INFO  : //kpg-bg-b-amcon-r2.kdbx: GET from 127.0.0.1:48210
+2026/11/16 19:25:26 INFO  : /kpg-bg-b-amcon-r2_tmp_15594058.kdbx: 127.0.0.1:48210: Unauthorized request from 
+2026/11/16 19:25:26 INFO  : //kpg-bg-b-amcon-r2_tmp_15594058.kdbx: PUT from 127.0.0.1:48210
+2026/11/16 19:25:26 INFO  : /kpg-bg-b-amcon-r2_tmp_15594058.kdbx: 127.0.0.1:48218: Unauthorized request from 
+2026/11/16 19:25:27 INFO  : kpg-bg-b-amcon-r2_tmp_15594058.kdbx: Moved (server-side) to: kpg-bg-b-amcon-r2.kdbx
+2026/11/16 19:25:27 INFO  : //kpg-bg-b-amcon-r2_tmp_15594058.kdbx: MOVE from 127.0.0.1:48218
+2026/11/16 19:25:27 ERROR : Failed to stat node: file does not exist
+2026/11/16 19:44:19 INFO  : Signal received: terminated
+2026/11/16 19:44:19 INFO  : Exiting...

@@ -1,0 +1,107 @@
+184a185,202
+> E GR1 H2026-11-01T11:02:00Z S KPG.Check p=0 "ec73866efeb68f7ed857cb24566fe2b2732c61e30f248e34825cb4e913e57266"
+> E GR1 H2026-11-01T11:02:00Z S KPG.Kind p=0 "grant"
+> E GR1 H2026-11-01T11:02:00Z S KPG.Record p=0 "{\"node\":\"4B504750570000000000000000000000\",\"profile\":\"reader\",\"letters\":\".R...L.P\",\"sawWithdrawals\":[]}"
+> E GR1 H2026-11-01T11:02:00Z S Notes p=0 ""
+> E GR1 H2026-11-01T11:02:00Z S Password p=1 ""
+> E GR1 H2026-11-01T11:02:00Z S Title p=0 "KPG grant reader .R...L.P Passwords"
+> E GR1 H2026-11-01T11:02:00Z S URL p=0 ""
+> E GR1 H2026-11-01T11:02:00Z S UserName p=0 ""
+> E GR1 H2026-11-01T11:02:00Z autotype enabled=1 obfuscation=0 seq="" assoc=0
+> E GR1 H2026-11-01T11:02:00Z misc icon=0 customIcon=- fg=00000000 bg=00000000 overrideUrl="" quality=1
+> E GR1 H2026-11-01T11:02:00Z prev -
+> E GR1 H2026-11-01T11:02:00Z t.accessed 2026-11-01T11:02:00Z
+> E GR1 H2026-11-01T11:02:00Z t.created 2026-11-01T11:02:00Z
+> E GR1 H2026-11-01T11:02:00Z t.expires 0 2026-11-01T10:00:00Z
+> E GR1 H2026-11-01T11:02:00Z t.location 2026-11-01T11:02:00Z
+> E GR1 H2026-11-01T11:02:00Z t.modified 2026-11-01T11:02:00Z
+> E GR1 H2026-11-01T11:02:00Z tags []
+> E GR1 H2026-11-01T11:02:00Z usage 0
+190c208
+< E GR1 S Title p=0 "KPG grant reader .R...L.P Passwords"
+---
+> E GR1 S Title p=0 "KPG grant reader .R...L.P Passwords-phone"
+194c212
+< E GR1 history.count 0
+---
+> E GR1 history.count 1
+198c216
+< E GR1 t.accessed 2026-11-01T11:02:00Z
+---
+> E GR1 t.accessed 2026-11-16T14:55:05Z
+200c218
+< E GR1 t.expires 0 2026-11-01T10:00:00Z
+---
+> E GR1 t.expires 0 2999-11-28T23:59:59Z
+202c220
+< E GR1 t.modified 2026-11-01T11:02:00Z
+---
+> E GR1 t.modified 2026-11-16T14:55:05Z
+204c222
+< E GR1 usage 0
+---
+> E GR1 usage 1
+951c969
+< G KG t.accessed 2026-11-16T14:53:29Z
+---
+> G KG t.accessed 2026-11-16T14:55:05Z
+955c973
+< G KG t.modified 2026-11-16T14:53:29Z
+---
+> G KG t.modified 2026-11-16T14:55:05Z
+1042c1060
+< G Root t.accessed 2026-11-16T14:53:29Z
+---
+> G Root t.accessed 2026-11-16T14:55:05Z
+1046c1064
+< G Root t.modified 2026-11-16T14:53:29Z
+---
+> G Root t.modified 2026-11-16T14:55:05Z
+1162,1166c1180,1184
+< X KeePassFile/Root/Group/Group/Entry/History/Entry 7
+< X KeePassFile/Root/Group/Group/Entry/History/Entry/AutoType 7
+< X KeePassFile/Root/Group/Group/Entry/History/Entry/AutoType/DataTransferObfuscation 7
+< X KeePassFile/Root/Group/Group/Entry/History/Entry/AutoType/Enabled 7
+< X KeePassFile/Root/Group/Group/Entry/History/Entry/BackgroundColor 7
+---
+> X KeePassFile/Root/Group/Group/Entry/History/Entry 8
+> X KeePassFile/Root/Group/Group/Entry/History/Entry/AutoType 8
+> X KeePassFile/Root/Group/Group/Entry/History/Entry/AutoType/DataTransferObfuscation 8
+> X KeePassFile/Root/Group/Group/Entry/History/Entry/AutoType/Enabled 8
+> X KeePassFile/Root/Group/Group/Entry/History/Entry/BackgroundColor 8
+1171,1177c1189,1195
+< X KeePassFile/Root/Group/Group/Entry/History/Entry/ForegroundColor 7
+< X KeePassFile/Root/Group/Group/Entry/History/Entry/IconID 7
+< X KeePassFile/Root/Group/Group/Entry/History/Entry/OverrideURL 7
+< X KeePassFile/Root/Group/Group/Entry/History/Entry/String 48
+< X KeePassFile/Root/Group/Group/Entry/History/Entry/String/Key 48
+< X KeePassFile/Root/Group/Group/Entry/History/Entry/String/Value 48
+< X KeePassFile/Root/Group/Group/Entry/History/Entry/String/Value@Protected=True 9
+---
+> X KeePassFile/Root/Group/Group/Entry/History/Entry/ForegroundColor 8
+> X KeePassFile/Root/Group/Group/Entry/History/Entry/IconID 8
+> X KeePassFile/Root/Group/Group/Entry/History/Entry/OverrideURL 8
+> X KeePassFile/Root/Group/Group/Entry/History/Entry/String 56
+> X KeePassFile/Root/Group/Group/Entry/History/Entry/String/Key 56
+> X KeePassFile/Root/Group/Group/Entry/History/Entry/String/Value 56
+> X KeePassFile/Root/Group/Group/Entry/History/Entry/String/Value@Protected=True 10
+1179,1187c1197,1205
+< X KeePassFile/Root/Group/Group/Entry/History/Entry/Times 7
+< X KeePassFile/Root/Group/Group/Entry/History/Entry/Times/CreationTime 7
+< X KeePassFile/Root/Group/Group/Entry/History/Entry/Times/Expires 7
+< X KeePassFile/Root/Group/Group/Entry/History/Entry/Times/ExpiryTime 7
+< X KeePassFile/Root/Group/Group/Entry/History/Entry/Times/LastAccessTime 7
+< X KeePassFile/Root/Group/Group/Entry/History/Entry/Times/LastModificationTime 7
+< X KeePassFile/Root/Group/Group/Entry/History/Entry/Times/LocationChanged 7
+< X KeePassFile/Root/Group/Group/Entry/History/Entry/Times/UsageCount 7
+< X KeePassFile/Root/Group/Group/Entry/History/Entry/UUID 7
+---
+> X KeePassFile/Root/Group/Group/Entry/History/Entry/Times 8
+> X KeePassFile/Root/Group/Group/Entry/History/Entry/Times/CreationTime 8
+> X KeePassFile/Root/Group/Group/Entry/History/Entry/Times/Expires 8
+> X KeePassFile/Root/Group/Group/Entry/History/Entry/Times/ExpiryTime 8
+> X KeePassFile/Root/Group/Group/Entry/History/Entry/Times/LastAccessTime 8
+> X KeePassFile/Root/Group/Group/Entry/History/Entry/Times/LastModificationTime 8
+> X KeePassFile/Root/Group/Group/Entry/History/Entry/Times/LocationChanged 8
+> X KeePassFile/Root/Group/Group/Entry/History/Entry/Times/UsageCount 8
+> X KeePassFile/Root/Group/Group/Entry/History/Entry/UUID 8

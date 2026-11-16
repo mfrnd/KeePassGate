@@ -1,0 +1,84 @@
+242,256d241
+< E HL1 H2026-11-01T10:20:00Z S Notes p=0 ""
+< E HL1 H2026-11-01T10:20:00Z S Password p=1 "hl1-v0"
+< E HL1 H2026-11-01T10:20:00Z S Title p=0 "HL1"
+< E HL1 H2026-11-01T10:20:00Z S URL p=0 ""
+< E HL1 H2026-11-01T10:20:00Z S UserName p=0 "user-hl1"
+< E HL1 H2026-11-01T10:20:00Z autotype enabled=1 obfuscation=0 seq="" assoc=0
+< E HL1 H2026-11-01T10:20:00Z misc icon=0 customIcon=- fg=00000000 bg=00000000 overrideUrl="" quality=1
+< E HL1 H2026-11-01T10:20:00Z prev -
+< E HL1 H2026-11-01T10:20:00Z t.accessed 2026-11-01T10:20:00Z
+< E HL1 H2026-11-01T10:20:00Z t.created 2026-11-01T10:20:00Z
+< E HL1 H2026-11-01T10:20:00Z t.expires 0 2026-11-01T10:00:00Z
+< E HL1 H2026-11-01T10:20:00Z t.location 2026-11-01T10:20:00Z
+< E HL1 H2026-11-01T10:20:00Z t.modified 2026-11-01T10:20:00Z
+< E HL1 H2026-11-01T10:20:00Z tags []
+< E HL1 H2026-11-01T10:20:00Z usage 0
+286a272,286
+> E HL1 H2026-11-01T10:50:00Z S Notes p=0 ""
+> E HL1 H2026-11-01T10:50:00Z S Password p=1 "hl1-v3"
+> E HL1 H2026-11-01T10:50:00Z S Title p=0 "HL1"
+> E HL1 H2026-11-01T10:50:00Z S URL p=0 ""
+> E HL1 H2026-11-01T10:50:00Z S UserName p=0 "user-hl1"
+> E HL1 H2026-11-01T10:50:00Z autotype enabled=1 obfuscation=0 seq="" assoc=0
+> E HL1 H2026-11-01T10:50:00Z misc icon=0 customIcon=- fg=00000000 bg=00000000 overrideUrl="" quality=1
+> E HL1 H2026-11-01T10:50:00Z prev -
+> E HL1 H2026-11-01T10:50:00Z t.accessed 2026-11-01T10:50:00Z
+> E HL1 H2026-11-01T10:50:00Z t.created 2026-11-01T10:20:00Z
+> E HL1 H2026-11-01T10:50:00Z t.expires 0 2026-11-01T10:00:00Z
+> E HL1 H2026-11-01T10:50:00Z t.location 2026-11-01T10:20:00Z
+> E HL1 H2026-11-01T10:50:00Z t.modified 2026-11-01T10:50:00Z
+> E HL1 H2026-11-01T10:50:00Z tags []
+> E HL1 H2026-11-01T10:50:00Z usage 0
+288c288
+< E HL1 S Password p=1 "hl1-v3"
+---
+> E HL1 S Password p=1 "hl1-v3-a"
+297c297
+< E HL1 t.accessed 2026-11-01T10:50:00Z
+---
+> E HL1 t.accessed 2026-11-16T12:24:48Z
+299c299
+< E HL1 t.expires 0 2026-11-01T10:00:00Z
+---
+> E HL1 t.expires 0 2999-11-28T23:59:59Z
+301c301
+< E HL1 t.modified 2026-11-01T10:50:00Z
+---
+> E HL1 t.modified 2026-11-16T12:24:48Z
+303c303
+< E HL1 usage 0
+---
+> E HL1 usage 1
+974c974
+< G HG t.accessed 2026-11-01T10:05:00Z
+---
+> G HG t.accessed 2026-11-16T12:24:48Z
+978c978
+< G HG t.modified 2026-11-01T10:05:00Z
+---
+> G HG t.modified 2026-11-16T12:24:48Z
+1078c1078
+< G Root t.accessed 2026-11-01T10:00:00Z
+---
+> G Root t.accessed 2026-11-16T12:24:48Z
+1082c1082
+< G Root t.modified 2026-11-01T10:00:00Z
+---
+> G Root t.modified 2026-11-16T12:24:48Z
+1117c1117
+< R meta Generator = (empty)
+---
+> R meta Generator = "KeePassDX"
+1146a1147
+> X KeePassFile/Meta/HeaderHash 1
+1209d1209
+< X KeePassFile/Root/Group/Group/Entry/History/Entry/Tags 7
+1226c1226
+< X KeePassFile/Root/Group/Group/Entry/Tags 38
+---
+> X KeePassFile/Root/Group/Group/Entry/Tags 3
+1254d1253
+< X KeePassFile/Root/Group/Group/Group/Entry/Tags 4
+1281d1279
+< X KeePassFile/Root/Group/Group/Group/Group/Entry/Tags 1

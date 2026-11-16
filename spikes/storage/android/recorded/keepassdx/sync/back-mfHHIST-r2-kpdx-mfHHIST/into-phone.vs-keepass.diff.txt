@@ -1,0 +1,12 @@
+116c116
+< E E1 H2026-11-01T15:00:00Z A hist-a.bin p=0 len=700 sha=632acf64fdcc8d62
+---
+> E E1 H2026-11-01T15:00:00Z A hist-a.bin p=1 len=3000 sha=86f51de7a0078da7
+136c136
+< E E1 H2026-11-01T16:00:00Z A hist-b.bin p=0 len=800 sha=970c3f90e5c6aaa6
+---
+> E E1 H2026-11-01T16:00:00Z A hist-b.bin p=0 len=600 sha=259674a04e10f900
+285c285
+< E H1 H2026-11-01T15:00:00Z A h1-old.bin p=0 len=900 sha=b7316503deb55e2f
+---
+> E H1 H2026-11-01T15:00:00Z A h1-old.bin p=0 len=1000 sha=afc037c8dadab8ca

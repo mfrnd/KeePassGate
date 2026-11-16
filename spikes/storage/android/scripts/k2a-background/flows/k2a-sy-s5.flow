@@ -1,0 +1,7 @@
+# Plain save, case 5: open; SNEW-fixed put on the server; edit P2's password and save, answering a
+# "Merge changes?" question with ${ANSWER}; no Synchronize.
+include k2a-sy-open.flow
+host sh ${P}/srv-put.sh ${SNAME} ${SRCDIR}/SNEW-fixed.kdbx
+include k2a-sy-pw-P2.flow
+host sh ${P}/events.sh 6 after-save
+host sh ${P}/srv-stat.sh ${SNAME} after-save

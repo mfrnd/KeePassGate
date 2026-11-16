@@ -1,0 +1,98 @@
+# Item 1, chain E continued: steps s05 to s12 of kpdx-ch-entry.flow, from the base again (the first
+# chain stopped at s05; each step is read against the file before it, s05 against the base).
+include kpdx-open.flow
+tapuntil node_text@^G$ node_text@^E1$ 40
+sleep 3
+set SEL ^E1
+log s05 tags
+mark /sdcard/Download/${NAME}.kdbx
+include kpdx-sel-edit.flow
+tap ^protected-custom-e1$
+sleep 1
+tabto entry_tags_completion_view 14
+key MOVE_END
+typefocused added,
+include kpdx-edit-validate.flow
+pull ${OUT}/s05-tags.kdbx /sdcard/Download/${NAME}.kdbx
+log s06 a custom field added
+mark /sdcard/Download/${NAME}.kdbx
+include kpdx-sel-edit.flow
+tap menu_add_field
+sleep 2
+typefocused Phone
+tap ^OK$
+sleep 2
+list
+typefocused phone-value
+include kpdx-edit-validate.flow
+pull ${OUT}/s06-field-added.kdbx /sdcard/Download/${NAME}.kdbx
+log s07 a custom field changed
+mark /sdcard/Download/${NAME}.kdbx
+include kpdx-sel-edit.flow
+appendto ^extra-value-e1$ -c
+include kpdx-edit-validate.flow
+pull ${OUT}/s07-field-changed.kdbx /sdcard/Download/${NAME}.kdbx
+log s08 a custom field removed (Extra)
+mark /sdcard/Download/${NAME}.kdbx
+include kpdx-sel-edit.flow
+tap ^Edit$#2
+sleep 2
+list
+tap entry_custom_field_delete
+sleep 2
+dialog
+maybe ^(OK|Delete)$ 3
+sleep 1
+list
+include kpdx-edit-validate.flow
+pull ${OUT}/s08-field-removed.kdbx /sdcard/Download/${NAME}.kdbx
+log s09 an attachment added
+adb push ${SRCDIR}/attach-added.txt /sdcard/Download/attach-added.txt
+mark /sdcard/Download/${NAME}.kdbx
+include kpdx-sel-edit.flow
+tap menu_add_attachment
+pick attach-added.txt
+sleep 4
+dialog
+list
+include kpdx-edit-validate.flow
+pull ${OUT}/s09-attachment-added.kdbx /sdcard/Download/${NAME}.kdbx
+log s10 an attachment removed (e1.txt)
+mark /sdcard/Download/${NAME}.kdbx
+include kpdx-sel-edit.flow
+tap ^protected-custom-e1$
+sleep 1
+tabto item_attachment_delete_button 14
+list
+key ENTER
+sleep 2
+dialog
+list
+include kpdx-edit-validate.flow
+pull ${OUT}/s10-attachment-removed.kdbx /sdcard/Download/${NAME}.kdbx
+log s11 the icon
+mark /sdcard/Download/${NAME}.kdbx
+include kpdx-sel-edit.flow
+tap template_icon_button
+sleep 3
+tapxy 400 700
+sleep 1
+tap icon_picker_upload
+sleep 2
+include kpdx-edit-validate.flow
+pull ${OUT}/s11-icon.kdbx /sdcard/Download/${NAME}.kdbx
+log s12 the expiry
+mark /sdcard/Download/${NAME}.kdbx
+include kpdx-sel-edit.flow
+tapuntil expiration_text ^OK$ 20
+dialog
+list
+tap ^OK$
+sleep 2
+dialog
+maybe ^OK$ 4
+sleep 1
+list
+include kpdx-edit-validate.flow
+pull ${OUT}/s12-expiry.kdbx /sdcard/Download/${NAME}.kdbx
+list

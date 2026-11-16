@@ -1,0 +1,22 @@
+# Scenario B, KeePassDX "Merge from ...": open the target, put the source beside it in Download,
+# merge from it through the navigation drawer (user verification asks the first four characters of
+# the open database's password, then the source's own credentials). The merge saves the target at
+# once (auto-save on). The flow waits until the target's hash has changed and stayed (waitchange).
+include kpdx-open.flow
+adb push ${SRC} /sdcard/Download/${SRCNAME}.kdbx
+sh sha256sum /sdcard/Download/${SRCNAME}.kdbx
+sleep 4
+drawer menu_merge_from               # edge swipe or the drawer button; either was seen to be ignored now and then
+tap menu_merge_from
+waitfor setup_check_password_edit_text 20
+type setup_check_password_edit_text dumm
+tapuntil ^Check$ Show.roots 30
+include picker-src.flow
+waitfor title_database 30
+typepw password_text_view dummy-password-for-a-throwaway-file
+mark /sdcard/Download/${NAME}.kdbx
+tap ^OK$
+waitchange /sdcard/Download/${NAME}.kdbx 90
+sleep 2
+dialog
+list

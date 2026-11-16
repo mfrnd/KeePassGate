@@ -1,0 +1,20 @@
+114a115,129
+> E E2 H2026-11-01T10:45:00Z S Notes p=0 ""
+> E E2 H2026-11-01T10:45:00Z S Password p=1 "pw-e2-not-real"
+> E E2 H2026-11-01T10:45:00Z S Title p=0 "E2"
+> E E2 H2026-11-01T10:45:00Z S URL p=0 ""
+> E E2 H2026-11-01T10:45:00Z S UserName p=0 "bob-invented"
+> E E2 H2026-11-01T10:45:00Z autotype enabled=1 obfuscation=0 seq="" assoc=0
+> E E2 H2026-11-01T10:45:00Z misc icon=0 customIcon=- fg=00000000 bg=00000000 overrideUrl="" quality=1
+> E E2 H2026-11-01T10:45:00Z prev -
+> E E2 H2026-11-01T10:45:00Z t.accessed 2026-11-01T10:45:00Z
+> E E2 H2026-11-01T10:45:00Z t.created 2026-11-01T10:45:00Z
+> E E2 H2026-11-01T10:45:00Z t.expires 0 2026-11-01T10:00:00Z
+> E E2 H2026-11-01T10:45:00Z t.location 2026-11-01T10:45:00Z
+> E E2 H2026-11-01T10:45:00Z t.modified 2026-11-01T10:45:00Z
+> E E2 H2026-11-01T10:45:00Z tags []
+> E E2 H2026-11-01T10:45:00Z usage 0
+121c136
+< E E2 history.count 0
+---
+> E E2 history.count 1

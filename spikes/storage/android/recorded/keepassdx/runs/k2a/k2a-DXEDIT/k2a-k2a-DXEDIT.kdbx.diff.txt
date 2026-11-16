@@ -1,0 +1,96 @@
+931a932,948
+> E ~2d9d36b6 S Notes p=0 ""
+> E ~2d9d36b6 S Password p=1 ""
+> E ~2d9d36b6 S Title p=0 "k2a-added"
+> E ~2d9d36b6 S URL p=0 ""
+> E ~2d9d36b6 S UserName p=0 "invented-default-user"
+> E ~2d9d36b6 autotype enabled=1 obfuscation=0 seq="" assoc=0
+> E ~2d9d36b6 history.count 0
+> E ~2d9d36b6 misc icon=0 customIcon=- fg=00000000 bg=00000000 overrideUrl="" quality=1
+> E ~2d9d36b6 parent Root (Storage probe)
+> E ~2d9d36b6 prev -
+> E ~2d9d36b6 t.accessed 2026-11-16T14:34:40Z
+> E ~2d9d36b6 t.created 2026-11-16T14:34:24Z
+> E ~2d9d36b6 t.expires 0 2026-11-16T14:34:03Z
+> E ~2d9d36b6 t.location 2026-11-16T14:34:24Z
+> E ~2d9d36b6 t.modified 2026-11-16T14:34:40Z
+> E ~2d9d36b6 tags []
+> E ~2d9d36b6 usage 1
+934c951
+< F groups 13 entries 41
+---
+> F groups 13 entries 42
+1094c1111
+< G Root children groups=8 entries=0
+---
+> G Root children groups=8 entries=1
+1107,1114c1124,1131
+< M CD KPG.Authority.df0831afe5d7f3f7b16a25ef6e0e56153ba0b886c2fb02e4e628a4b6495adfc9 = len=2817 sha=e09bb73aee6c8e81 "{\"kind\":\"authority\",\"fingerprint\":\"df0831afe5d7f3f7b1..." @2026-11-01T10:03:00Z
+< M CD KPG.Authority.fdbcd0c82e016da9c2b2f4ebdc53ea116eb037c69a0c2be1dc3c6a0c8881c590 = len=2817 sha=dff90ae789f1899a "{\"kind\":\"authority\",\"fingerprint\":\"fdbcd0c82e016da9c2..." @2026-11-01T10:41:00Z
+< M CD KPG.Client.b6d5e581aa7454dbe870052993f94be417c9bb32c2f3765d603cf3315e99a392 = "" @2026-11-01T11:05:00Z
+< M CD KPG.Client.d2d31ae42311e216978c55ae62b98315483da922e9bceef352990a86f61613b2 = "{\"name\":\"build-agent\",\"profiles\":[\"reader\"]}" @2026-11-01T11:00:00Z
+< M CD KPG.ProfileRemoved.7718C068C79DBE4040F4F58C61D911C4 = "{\"name\":\"legacy\"}" @2026-11-01T10:52:00Z
+< M CD KPG.Profiles = "[\"reader\",\"writer\"]" @2026-11-01T10:15:00Z
+< M CD KPG.RetiredAuthority.df0831afe5d7f3f7b16a25ef6e0e56153ba0b886c2fb02e4e628a4b6495adfc9 = "67aa91e2753a83630f87fbd8820e8de13f44e5ea58060bb0b59ece6dac694482" @2026-11-01T10:40:00Z
+< M CD KPG.Revoked.b6d5e581aa7454dbe870052993f94be417c9bb32c2f3765d603cf3315e99a392 = "{\"at\":\"2026-11-01T11:05:00Z\"}" @2026-11-01T11:05:00Z
+---
+> M CD KPG.Authority.df0831afe5d7f3f7b16a25ef6e0e56153ba0b886c2fb02e4e628a4b6495adfc9 = len=2817 sha=e09bb73aee6c8e81 "{\"kind\":\"authority\",\"fingerprint\":\"df0831afe5d7f3f7b1..." @none
+> M CD KPG.Authority.fdbcd0c82e016da9c2b2f4ebdc53ea116eb037c69a0c2be1dc3c6a0c8881c590 = len=2817 sha=dff90ae789f1899a "{\"kind\":\"authority\",\"fingerprint\":\"fdbcd0c82e016da9c2..." @none
+> M CD KPG.Client.b6d5e581aa7454dbe870052993f94be417c9bb32c2f3765d603cf3315e99a392 = "" @none
+> M CD KPG.Client.d2d31ae42311e216978c55ae62b98315483da922e9bceef352990a86f61613b2 = "{\"name\":\"build-agent\",\"profiles\":[\"reader\"]}" @none
+> M CD KPG.ProfileRemoved.7718C068C79DBE4040F4F58C61D911C4 = "{\"name\":\"legacy\"}" @none
+> M CD KPG.Profiles = "[\"reader\",\"writer\"]" @none
+> M CD KPG.RetiredAuthority.df0831afe5d7f3f7b16a25ef6e0e56153ba0b886c2fb02e4e628a4b6495adfc9 = "67aa91e2753a83630f87fbd8820e8de13f44e5ea58060bb0b59ece6dac694482" @none
+> M CD KPG.Revoked.b6d5e581aa7454dbe870052993f94be417c9bb32c2f3765d603cf3315e99a392 = "{\"at\":\"2026-11-01T11:05:00Z\"}" @none
+1116,1118c1133,1135
+< M CD KPG.Withdrawn.7ED75356CD95DD4D984DB74E4C2FB30B = "{\"grant\":\"writer Passwords\",\"letters\":\"...SD...\"}" @2026-11-01T10:53:00Z
+< M CD KPG.Withheld.8E569577ED83EFE9D1765ED2CA85131A = "{\"node\":\"G/E3\"}" @2026-11-01T11:07:00Z
+< M CD KPG.Withheld.E30F91E7153A50C03BA239446D1457E4 = "{\"node\":\"Personal/Health\"}" @2026-11-01T11:06:00Z
+---
+> M CD KPG.Withdrawn.7ED75356CD95DD4D984DB74E4C2FB30B = "{\"grant\":\"writer Passwords\",\"letters\":\"...SD...\"}" @none
+> M CD KPG.Withheld.8E569577ED83EFE9D1765ED2CA85131A = "{\"node\":\"G/E3\"}" @none
+> M CD KPG.Withheld.E30F91E7153A50C03BA239446D1457E4 = "{\"node\":\"Personal/Health\"}" @none
+1139c1156
+< R meta Generator = "KeePassDX"
+---
+> R meta Generator = (empty)
+1158d1174
+< X KeePassFile/Meta/CustomData/Item/LastModificationTime 11
+1169d1184
+< X KeePassFile/Meta/HeaderHash 1
+1196a1212,1234
+> X KeePassFile/Root/Group/Entry 1
+> X KeePassFile/Root/Group/Entry/AutoType 1
+> X KeePassFile/Root/Group/Entry/AutoType/DataTransferObfuscation 1
+> X KeePassFile/Root/Group/Entry/AutoType/Enabled 1
+> X KeePassFile/Root/Group/Entry/BackgroundColor 1
+> X KeePassFile/Root/Group/Entry/ForegroundColor 1
+> X KeePassFile/Root/Group/Entry/History 1
+> X KeePassFile/Root/Group/Entry/IconID 1
+> X KeePassFile/Root/Group/Entry/OverrideURL 1
+> X KeePassFile/Root/Group/Entry/String 5
+> X KeePassFile/Root/Group/Entry/String/Key 5
+> X KeePassFile/Root/Group/Entry/String/Value 5
+> X KeePassFile/Root/Group/Entry/String/Value@Protected=True 1
+> X KeePassFile/Root/Group/Entry/Tags 1
+> X KeePassFile/Root/Group/Entry/Times 1
+> X KeePassFile/Root/Group/Entry/Times/CreationTime 1
+> X KeePassFile/Root/Group/Entry/Times/Expires 1
+> X KeePassFile/Root/Group/Entry/Times/ExpiryTime 1
+> X KeePassFile/Root/Group/Entry/Times/LastAccessTime 1
+> X KeePassFile/Root/Group/Entry/Times/LastModificationTime 1
+> X KeePassFile/Root/Group/Entry/Times/LocationChanged 1
+> X KeePassFile/Root/Group/Entry/Times/UsageCount 1
+> X KeePassFile/Root/Group/Entry/UUID 1
+1240c1278
+< X KeePassFile/Root/Group/Group/Entry/History/Entry/Tags 5
+---
+> X KeePassFile/Root/Group/Group/Entry/History/Entry/Tags 10
+1257c1295
+< X KeePassFile/Root/Group/Group/Entry/Tags 3
+---
+> X KeePassFile/Root/Group/Group/Entry/Tags 36
+1284a1323
+> X KeePassFile/Root/Group/Group/Group/Entry/Tags 4
+1310a1350
+> X KeePassFile/Root/Group/Group/Group/Group/Entry/Tags 1

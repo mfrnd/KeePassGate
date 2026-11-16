@@ -1,0 +1,82 @@
+7,8d6
+< D GD 2026-11-01T15:00:00Z
+< D GD1 2026-11-01T15:00:00Z
+16,17c14
+< D X2 2026-11-01T15:00:00Z
+< D count 16
+---
+> D count 13
+995a993,1009
+> E X4 S Notes p=0 ""
+> E X4 S Password p=1 "x4-old"
+> E X4 S Title p=0 "X4"
+> E X4 S URL p=0 ""
+> E X4 S UserName p=0 "user-x4"
+> E X4 autotype enabled=1 obfuscation=0 seq="" assoc=0
+> E X4 history.count 0
+> E X4 misc icon=0 customIcon=- fg=00000000 bg=00000000 overrideUrl="" quality=1
+> E X4 parent PW (Passwords)
+> E X4 prev -
+> E X4 t.accessed 2026-11-01T10:20:00Z
+> E X4 t.created 2026-11-01T10:20:00Z
+> E X4 t.expires 0 2026-11-01T10:00:00Z
+> E X4 t.location 2026-11-01T10:20:00Z
+> E X4 t.modified 2026-11-01T10:20:00Z
+> E X4 tags []
+> E X4 usage 0
+1096c1110
+< F groups 13 entries 43
+---
+> F groups 10 entries 44
+1191,1229d1204
+< G NA children groups=1 entries=0
+< G NA flags icon=48 customIcon=- search=inherit autotype=inherit expanded=1 seq="" lastTop=-
+< G NA name "NA"
+< G NA notes ""
+< G NA parent Root (Storage probe)
+< G NA prev -
+< G NA t.accessed 2026-11-01T10:05:00Z
+< G NA t.created 2026-11-01T10:05:00Z
+< G NA t.expires 0 2026-11-01T10:00:00Z
+< G NA t.location 2026-11-01T10:05:00Z
+< G NA t.modified 2026-11-01T10:05:00Z
+< G NA tags []
+< G NA usage 0
+< G NB children groups=1 entries=0
+< G NB flags icon=48 customIcon=- search=inherit autotype=inherit expanded=1 seq="" lastTop=-
+< G NB name "NB"
+< G NB notes ""
+< G NB parent NA (NA)
+< G NB prev -
+< G NB t.accessed 2026-11-01T10:05:00Z
+< G NB t.created 2026-11-01T10:05:00Z
+< G NB t.expires 0 2026-11-01T10:00:00Z
+< G NB t.location 2026-11-01T10:05:00Z
+< G NB t.modified 2026-11-01T10:05:00Z
+< G NB tags []
+< G NB usage 0
+< G NC children groups=0 entries=0
+< G NC flags icon=48 customIcon=- search=inherit autotype=inherit expanded=1 seq="" lastTop=-
+< G NC name "NC"
+< G NC notes ""
+< G NC parent NB (NB)
+< G NC prev -
+< G NC t.accessed 2026-11-01T10:05:00Z
+< G NC t.created 2026-11-01T10:05:00Z
+< G NC t.expires 0 2026-11-01T10:00:00Z
+< G NC t.location 2026-11-01T10:05:00Z
+< G NC t.modified 2026-11-01T10:05:00Z
+< G NC tags []
+< G NC usage 0
+1243c1218
+< G PW children groups=0 entries=11
+---
+> G PW children groups=0 entries=12
+1256c1231
+< G Root children groups=8 entries=0
+---
+> G Root children groups=7 entries=0
+1262c1237
+< G Root t.accessed 2026-11-16T07:44:16Z
+---
+> G Root t.accessed 2026-11-01T10:00:00Z

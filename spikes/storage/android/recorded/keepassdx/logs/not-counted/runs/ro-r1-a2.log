@@ -1,0 +1,79 @@
+### 2026-11-16T13:51:17.202Z ow kpdx ro-r1 flow=kpdx-ro.flow base=B41  (versionName=4.5.8)
+Success
+<work>/work/base/B41.kdbx: 1 file pushed, 0 skipped. 1.3 MB/s (16085 bytes in 0.012s)
+given 16085 bytes, mtime 2026-11-16 14:41:19.000000000 +0100 sha256 92909efea553cdd099e1d603f4a90b4c57b729c6d4b2e723fb8403728cd79da7
+[2026-11-16T13:51:20.720Z] kpdx-ro.flow:6 sh monkey -p com.kunzisoft.keepass.libre -c android.intent.category.LAUNCHER 1
+  bash arg: -p
+  bash arg: com.kunzisoft.keepass.libre
+  bash arg: -c
+  bash arg: android.intent.category.LAUNCHER
+  bash arg: 1
+Events injected: 1
+## Network stats: elapsed time=632ms (0ms mobile, 0ms wifi, 632ms not connected)
+args: [-p, com.kunzisoft.keepass.libre, -c, android.intent.category.LAUNCHER, 1]
+ arg: "-p"
+ arg: "com.kunzisoft.keepass.libre"
+ arg: "-c"
+ arg: "android.intent.category.LAUNCHER"
+ arg: "1"
+data="com.kunzisoft.keepass.libre"
+data="android.intent.category.LAUNCHER"
+[2026-11-16T13:51:23.292Z] kpdx-ro.flow:7 waitfor open_database_button 30
+[2026-11-16T13:51:30.636Z] kpdx-ro.flow:8 tapuntil open_database_button Show.roots 40
+[2026-11-16T13:51:36.860Z]   tapped (799, 2051) 'Open existing vault'
+[2026-11-16T13:51:50.346Z]   tapped (799, 2051) 'Open existing vault'
+[2026-11-16T13:51:54.521Z] kpdx-ro.flow:9 include picker.flow
+[2026-11-16T13:51:54.537Z] picker.flow:4 pick kpdx-ro-r1.kdbx
+[2026-11-16T13:52:10.720Z]   focused and entered '^kpdx\\-ro\\-r1\\.kdbx$'
+[2026-11-16T13:52:10.732Z] kpdx-ro.flow:10 waitfor password_text_view 40
+[2026-11-16T13:52:17.058Z] kpdx-ro.flow:11 typepwdx dummy-password-for-a-throwaway-file
+[2026-11-16T13:52:35.060Z]   typepwdx: the field reads 8 characters, not 35 (attempt 1)
+[2026-11-16T13:53:11.625Z]   typed the password and read it back (35 characters)
+[2026-11-16T13:53:11.627Z] kpdx-ro.flow:12 tapuntil menu_open_file_read_mode_key Write.protected 30
+[2026-11-16T13:53:18.451Z]   tapped (771, 233) 'Modifiable'
+[2026-11-16T13:53:33.147Z]   tapped (771, 233) 'Modifiable'
+  LinearLayout        (540, 834)   id=action_bar_root              text='' desc=''
+  FrameLayout         (540, 834)   id=content                      text='' desc=''
+  ScrollView          (540, 746)   id=activity_password_coordinator_layout text='' desc=''
+  LinearLayout        (540, 332)   id=app_bar                      text='' desc=''
+  FrameLayout         (540, 332)   id=toolbar_layout               text='' desc='KeePassDX'
+  ImageView      c    (540, 420)   id=activity_password_logotype   text='' desc='About'
+  ImageView           (540, 420)   id=                             text='' desc='About'
+  ViewGroup           (540, 233)   id=toolbar                      text='' desc=''
+  ImageButton    c    (77, 233)    id=                             text='' desc='Navigate up'
+  TextView            (429, 233)   id=filename                     text='kpdx-ro-r1.kdbx' desc=''
+  Button         c    (771, 233)   id=menu_open_file_read_mode_key text='' desc='Modifiable'
+  Button         c    (903, 233)   id=menu_open_file_user_verification_mode_key text='' desc='User Verification enabled'
+  ImageView      c    (1024, 233)  id=                             text='' desc='More options'
+  ScrollView          (540, 933)   id=scroll_container             text='' desc=''
+  FrameLayout         (540, 840)   id=activity_password_credentials text='' desc=''
+  LinearLayout        (540, 840)   id=unlock_container             text='' desc=''
+  RelativeLayout      (540, 664)   id=password_input_container     text='' desc=''
+  LinearLayout        (452, 664)   id=password_input_layout        text='' desc=''
+  EditText       cf   (452, 671)   id=password_text_view           text='dummy-password-for-a-throwaway-file' desc=''
+  ImageButton    cx   (761, 671)   id=text_input_end_icon          text='' desc='Show password'
+  Switch         ckx  (931, 669)   id=password_checkbox            text='' desc='Password checkbox'
+  RelativeLayout      (540, 832)   id=container_key_file           text='' desc=''
+  ViewGroup      c    (452, 832)   id=keyfile_selection            text='' desc=''
+  ViewGroup           (452, 832)   id=container_key_file           text='' desc=''
+  LinearLayout        (452, 832)   id=input_entry_keyfile          text='' desc=''
+  EditText       c    (452, 839)   id=keyfile_name                 text='Keyfile' desc=''
+  ImageButton    cx   (761, 839)   id=text_input_end_icon          text='' desc='Show password'
+  Switch         cx   (931, 837)   id=keyfile_checkbox             text='' desc='Keyfile checkbox'
+  RelativeLayout      (540, 1000)  id=container_hardware_key       text='' desc=''
+  ViewGroup           (452, 1000)  id=hardware_key_selection       text='' desc=''
+  FrameLayout         (452, 1000)  id=container_hardware_key       text='' desc=''
+  LinearLayout        (452, 1000)  id=input_entry_hardware_key_layout text='' desc=''
+  Spinner        c    (452, 1007)  id=input_entry_hardware_key_completion text='Hardware key' desc=''
+  ImageButton    cx   (761, 1007)  id=text_input_end_icon          text='' desc='Show dropdown menu'
+  Switch         cx   (931, 1005)  id=hardware_key_checkbox        text='' desc='Hardware key checkbox'
+  LinearLayout        (540, 1435)  id=activity_password_footer     text='' desc=''
+  Button         c    (895, 1435)  id=activity_password_open_button text='Unlock' desc=''
+  View                (540, 72)    id=statusBarBackground          text='' desc=''
+  View                (0, 0)       id=navigationBarBackground      text='' desc=''
+[2026-11-16T13:53:43.338Z] FAILED: tapuntil: never reached Write.protected
+total 20
+-rw------- 1 u0_a160 u0_a160 16085 2026-11-16 14:41:19.000000000 +0100 kpdx-ro-r1.kdbx
+device kpdx-ro-r1.kdbx sha256 92909efea553cdd099e1d603f4a90b4c57b729c6d4b2e723fb8403728cd79da7 16085 bytes, mtime 2026-11-16 14:41:19.000000000 +0100
+/sdcard/Download/kpdx-ro-r1.kdbx: 1 file pulled, 0 skipped. 0.2 MB/s (16085 bytes in 0.081s)
+### flow rc=1 2026-11-16T13:53:47.730Z

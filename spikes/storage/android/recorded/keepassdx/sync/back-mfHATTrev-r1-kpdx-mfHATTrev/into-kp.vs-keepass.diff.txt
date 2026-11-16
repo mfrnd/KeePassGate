@@ -1,0 +1,31 @@
+23a24,41
+> E A4 A b.bin p=0 len=48 sha=a9467b6b13353ae6
+> E A4 S Notes p=0 ""
+> E A4 S Password p=1 ""
+> E A4 S Title p=0 "A4"
+> E A4 S URL p=0 ""
+> E A4 S UserName p=0 ""
+> E A4 autotype enabled=1 obfuscation=0 seq="" assoc=0
+> E A4 history.count 0
+> E A4 misc icon=0 customIcon=- fg=00000000 bg=00000000 overrideUrl="" quality=1
+> E A4 parent AT (Attach)
+> E A4 prev -
+> E A4 t.accessed 2026-11-01T16:00:00Z
+> E A4 t.created 2026-11-01T16:00:00Z
+> E A4 t.expires 0 2026-11-01T10:00:00Z
+> E A4 t.location 2026-11-01T16:00:00Z
+> E A4 t.modified 2026-11-01T16:00:00Z
+> E A4 tags []
+> E A4 usage 0
+876c894
+< F groups 14 entries 42
+---
+> F groups 14 entries 43
+879c897
+< G AT children groups=0 entries=1
+---
+> G AT children groups=0 entries=2
+1055c1073
+< G Root t.accessed 2026-11-01T10:00:00Z
+---
+> G Root t.accessed 2026-11-16T11:29:30Z

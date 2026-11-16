@@ -1,0 +1,189 @@
+### 2026-11-16T15:14:22.036Z ow kpdx ch-copy flow=kpdx-ch-copy.flow base=B41  (versionName=4.5.8)
+Success
+<work>/work/base/B41.kdbx: 1 file pushed, 0 skipped. 1.1 MB/s (16085 bytes in 0.014s)
+given 16085 bytes, mtime 2026-11-16 16:04:22.000000000 +0100 sha256 92909efea553cdd099e1d603f4a90b4c57b729c6d4b2e723fb8403728cd79da7
+[2026-11-16T15:14:23.692Z] kpdx-ch-copy.flow:3 include kpdx-open.flow
+[2026-11-16T15:14:23.712Z] kpdx-open.flow:4 sh monkey -p com.kunzisoft.keepass.libre -c android.intent.category.LAUNCHER 1
+  bash arg: -p
+  bash arg: com.kunzisoft.keepass.libre
+  bash arg: -c
+  bash arg: android.intent.category.LAUNCHER
+  bash arg: 1
+Events injected: 1
+## Network stats: elapsed time=118ms (0ms mobile, 0ms wifi, 118ms not connected)
+args: [-p, com.kunzisoft.keepass.libre, -c, android.intent.category.LAUNCHER, 1]
+ arg: "-p"
+ arg: "com.kunzisoft.keepass.libre"
+ arg: "-c"
+ arg: "android.intent.category.LAUNCHER"
+ arg: "1"
+data="com.kunzisoft.keepass.libre"
+data="android.intent.category.LAUNCHER"
+[2026-11-16T15:14:24.328Z] kpdx-open.flow:5 waitfor open_database_button 30
+[2026-11-16T15:14:34.342Z] kpdx-open.flow:6 tapuntil open_database_button Show.roots 40
+[2026-11-16T15:14:37.038Z]   tapped (799, 2051) 'Open existing vault'
+[2026-11-16T15:14:51.177Z]   tapped (799, 2051) 'Open existing vault'
+[2026-11-16T15:14:56.512Z] kpdx-open.flow:7 include picker.flow
+[2026-11-16T15:15:00.391Z] picker.flow:4 pick kpdx-ch-copy.kdbx
+[2026-11-16T15:15:08.567Z]   focused and entered '^kpdx\\-ch\\-copy\\.kdbx$'
+[2026-11-16T15:15:08.575Z] kpdx-open.flow:8 waitfor password_text_view 40
+[2026-11-16T15:15:13.254Z] kpdx-open.flow:9 typepwdx dummy-password-for-a-throwaway-file
+[2026-11-16T15:15:27.149Z]   typepwdx: the field reads 8 characters, not 35 (attempt 1)
+[2026-11-16T15:15:43.380Z]   typed the password and read it back (35 characters)
+[2026-11-16T15:15:43.381Z] kpdx-open.flow:10 tapuntil activity_password_open_button add_button 60
+[2026-11-16T15:15:46.920Z]   tapped (895, 1435) 'Unlock'
+[2026-11-16T15:15:57.054Z]   tapped (895, 1435) 'Unlock'
+[2026-11-16T15:16:05.339Z]   tapped (895, 1435) 'Unlock'
+[2026-11-16T15:16:11.719Z] kpdx-ch-copy.flow:4 tapuntil node_text@^G$ node_text@^E1$ 40
+[2026-11-16T15:16:14.413Z]   tapped (247, 713) 'G'
+[2026-11-16T15:16:24.419Z]   tapped (247, 713) 'G'
+[2026-11-16T15:16:27.222Z] kpdx-ch-copy.flow:5 sleep 3
+[2026-11-16T15:16:30.224Z] kpdx-ch-copy.flow:6 log s01 E1 copied into N
+[2026-11-16T15:16:30.226Z]   s01 E1 copied into N
+[2026-11-16T15:16:30.228Z] kpdx-ch-copy.flow:7 mark /sdcard/Download/kpdx-ch-copy.kdbx
+[2026-11-16T15:16:30.291Z]   marked /sdcard/Download/kpdx-ch-copy.kdbx sha256 92909efea553cdd0
+[2026-11-16T15:16:30.295Z] kpdx-ch-copy.flow:8 longpressuntil node_text@^E1$ menu_move 60 2000 600
+[2026-11-16T15:16:35.155Z]   long-pressed (600, 856) for 2000 ms on the line of 'E1'
+[2026-11-16T15:16:47.397Z]   long-pressed (600, 856) for 2000 ms on the line of 'E1'
+[2026-11-16T15:16:59.678Z]   long-pressed (600, 856) for 2000 ms on the line of 'E1'
+[2026-11-16T15:17:11.750Z]   long-pressed (600, 856) for 2000 ms on the line of 'E1'
+[2026-11-16T15:17:14.423Z] kpdx-ch-copy.flow:9 tap menu_copy
+[2026-11-16T15:17:17.203Z]   tapped (903, 2063) 'Copy'
+[2026-11-16T15:17:17.205Z] kpdx-ch-copy.flow:10 sleep 2
+[2026-11-16T15:17:19.207Z] kpdx-ch-copy.flow:11 tapuntil node_text@^N$ menu_paste 40
+[2026-11-16T15:17:21.202Z] kpdx-ch-copy.flow:12 waitfor menu_paste 20
+[2026-11-16T15:17:23.030Z] kpdx-ch-copy.flow:13 tap menu_paste
+[2026-11-16T15:17:26.040Z]   tapped (1014, 2063) 'Paste'
+[2026-11-16T15:17:26.179Z] kpdx-ch-copy.flow:14 waitchange /sdcard/Download/kpdx-ch-copy.kdbx 45
+[2026-11-16T15:17:29.522Z]   waitchange: /sdcard/Download/kpdx-ch-copy.kdbx changed after 0.1 s, stable, sha256 55a903a53095d7b8
+[2026-11-16T15:17:29.524Z] kpdx-ch-copy.flow:15 pull <work>/work/runs/kpdx/ch-copy/s01-e1-copied.kdbx /sdcard/Download/kpdx-ch-copy.kdbx
+15177 bytes, mtime 2026-11-16 16:17:24.876000000 +0100
+55a903a53095d7b83fb1858fcede121793f5e21fe1a8738f549d7120701c575f  /sdcard/Download/kpdx-ch-copy.kdbx
+/sdcard/Download/kpdx-ch-copy.kdbx: 1 file pulled, 0 skipped. 0.6 MB/s (15177 bytes in 0.024s)
+[2026-11-16T15:17:29.711Z]   pulled /sdcard/Download/kpdx-ch-copy.kdbx to <work>/work/runs/kpdx/ch-copy/s01-e1-copied.kdbx
+[2026-11-16T15:17:29.713Z] kpdx-ch-copy.flow:16 tapuntil group_name@^Storage.probe$ node_text@^KeePassGate$ 40
+[2026-11-16T15:17:32.588Z]   tapped (298, 408) 'Storage probe'
+[2026-11-16T15:17:34.892Z] kpdx-ch-copy.flow:17 tapuntil node_text@^KeePassGate$ node_text@^KPG.client.build-agent$ 40
+[2026-11-16T15:17:37.649Z]   tapped (363, 584) 'KeePassGate'
+[2026-11-16T15:17:40.026Z] kpdx-ch-copy.flow:18 sleep 3
+[2026-11-16T15:17:43.027Z] kpdx-ch-copy.flow:19 log s02 a new entry in KeePassGate
+[2026-11-16T15:17:43.029Z]   s02 a new entry in KeePassGate
+[2026-11-16T15:17:43.029Z] kpdx-ch-copy.flow:20 mark /sdcard/Download/kpdx-ch-copy.kdbx
+[2026-11-16T15:17:43.086Z]   marked /sdcard/Download/kpdx-ch-copy.kdbx sha256 55a903a53095d7b8
+[2026-11-16T15:17:43.087Z] kpdx-ch-copy.flow:21 tapuntil add_button fab_add_entry 20
+[2026-11-16T15:17:45.615Z]   tapped (970, 2013) 'Add node'
+[2026-11-16T15:17:47.656Z] kpdx-ch-copy.flow:22 tapuntil fab_add_entry entry_edit_validate 30
+[2026-11-16T15:17:50.309Z]   tapped (885, 1691) 'Add entry'
+[2026-11-16T15:17:52.918Z] kpdx-ch-copy.flow:23 list
+  LinearLayout        (540, 1036)  id=action_bar_root              text='' desc=''
+  FrameLayout         (540, 1036)  id=content                      text='' desc=''
+  ViewGroup           (540, 1108)  id=activity_entry_edit_container text='' desc=''
+  ViewGroup           (540, 1108)  id=error_coordinator            text='' desc=''
+  ViewGroup           (540, 1108)  id=entry_edit_coordinator_layout text='' desc=''
+  ScrollView          (540, 1108)  id=entry_edit_scroll            text='' desc=''
+  FrameLayout         (540, 1013)  id=entry_edit_content           text='' desc=''
+  FrameLayout         (540, 876)   id=template_view                text='' desc=''
+  FrameLayout         (540, 378)   id=template_header_container    text='' desc=''
+  ImageButton    c    (540, 289)   id=template_icon_button         text='' desc='Entry icon'
+  FrameLayout         (540, 455)   id=template_title_container     text='' desc=''
+  EditText       c    (540, 462)   id=                             text='Title' desc=''
+  ImageView      c    (917, 308)   id=template_foreground_color_button text='' desc='Entry background color'
+  ImageView      c    (978, 247)   id=template_background_color_button text='' desc='Entry background color'
+  LinearLayout        (540, 1095)  id=template_fields_container    text='' desc=''
+  EditText       c    (540, 746)   id=                             text='invented-default-user' desc=''
+  EditText       c    (474, 924)   id=                             text='Password' desc=''
+  ImageButton    cx   (815, 924)   id=text_input_end_icon          text='' desc='Show password'
+  TextView            (759, 974)   id=                             text='Entropy: 0.00 bit' desc=''
+  ImageButton    c    (947, 927)   id=                             text='' desc='Edit'
+  EditText       c    (540, 1102)  id=                             text='URL' desc=''
+  LinearLayout        (457, 1273)  id=expiration_label             text='' desc=''
+  EditText       c    (457, 1275)  id=expiration_text              text='Never' desc=''
+  Switch         cx   (941, 1274)  id=expiration_checkbox          text='' desc=''
+  EditText       c    (540, 1459)  id=                             text='Notes' desc=''
+  FrameLayout         (540, 1731)  id=entry_tags_container         text='' desc=''
+  LinearLayout        (540, 1731)  id=entry_tags_label             text='' desc=''
+  EditText       c    (540, 1738)  id=entry_tags_completion_view   text='Tags' desc=''
+  ImageButton    cx   (947, 1738)  id=text_input_end_icon          text='' desc='Show dropdown menu'
+  ImageButton    c    (90, 2033)   id=lock_button                  text='' desc='Lock'
+  ViewGroup           (540, 2052)  id=entry_edit_bottom_bar        text='' desc=''
+  ImageButton    c    (209, 2057)  id=                             text='' desc='Navigate up'
+  Button         c    (552, 2063)  id=menu_add_attachment          text='' desc='Add attachment'
+  Button         c    (684, 2063)  id=menu_add_otp                 text='' desc='Set up one-time password'
+  Button         c    (816, 2063)  id=menu_add_field               text='' desc='Add field'
+  ImageButton    c    (970, 2046)  id=entry_edit_validate          text='' desc='Validate'
+  View                (540, 72)    id=statusBarBackground          text='' desc=''
+  View                (0, 0)       id=navigationBarBackground      text='' desc=''
+[2026-11-16T15:17:54.906Z] kpdx-ch-copy.flow:24 type ^Title$ phone-entry-in-kg
+[2026-11-16T15:18:12.123Z]   type: field never took the focus (attempt 1)
+[2026-11-16T15:18:24.826Z]   typed 'phone-entry-in-kg'
+[2026-11-16T15:18:24.827Z] kpdx-ch-copy.flow:25 tapuntil entry_edit_validate add_button 30
+[2026-11-16T15:18:27.763Z]   tapped (970, 1413) 'Validate'
+[2026-11-16T15:18:32.925Z] kpdx-ch-copy.flow:26 waitchange /sdcard/Download/kpdx-ch-copy.kdbx 45
+[2026-11-16T15:18:36.083Z]   waitchange: /sdcard/Download/kpdx-ch-copy.kdbx changed after 0.0 s, stable, sha256 dddd6bbb80270bba
+[2026-11-16T15:18:36.084Z] kpdx-ch-copy.flow:27 pull <work>/work/runs/kpdx/ch-copy/s02-new-entry-kg.kdbx /sdcard/Download/kpdx-ch-copy.kdbx
+15241 bytes, mtime 2026-11-16 16:18:26.536000000 +0100
+dddd6bbb80270bba6cb74aaf12d606273ad6d5283d571153236148465d2ac7e3  /sdcard/Download/kpdx-ch-copy.kdbx
+/sdcard/Download/kpdx-ch-copy.kdbx: 1 file pulled, 0 skipped. 0.2 MB/s (15241 bytes in 0.065s)
+[2026-11-16T15:18:36.248Z]   pulled /sdcard/Download/kpdx-ch-copy.kdbx to <work>/work/runs/kpdx/ch-copy/s02-new-entry-kg.kdbx
+[2026-11-16T15:18:36.249Z] kpdx-ch-copy.flow:28 log s03 a new group in KeePassGate
+[2026-11-16T15:18:36.250Z]   s03 a new group in KeePassGate
+[2026-11-16T15:18:36.252Z] kpdx-ch-copy.flow:29 mark /sdcard/Download/kpdx-ch-copy.kdbx
+[2026-11-16T15:18:36.275Z]   marked /sdcard/Download/kpdx-ch-copy.kdbx sha256 dddd6bbb80270bba
+[2026-11-16T15:18:36.277Z] kpdx-ch-copy.flow:30 tapuntil add_button fab_add_group 20
+[2026-11-16T15:18:39.223Z]   tapped (970, 2013) 'Add node'
+[2026-11-16T15:18:41.142Z] kpdx-ch-copy.flow:31 tapuntil fab_add_group group_edit_name 30
+[2026-11-16T15:18:43.893Z]   tapped (879, 1878) 'Add group'
+[2026-11-16T15:18:46.509Z] kpdx-ch-copy.flow:32 list
+  FrameLayout         (540, 1176)  id=action_bar_root              text='' desc=''
+  FrameLayout         (540, 1176)  id=content                      text='' desc=''
+  LinearLayoutCompat      (540, 1176)  id=parentPanel                  text='' desc=''
+  FrameLayout         (540, 1099)  id=customPanel                  text='' desc=''
+  FrameLayout         (540, 1099)  id=custom                       text='' desc=''
+  ImageButton    c    (540, 674)   id=group_edit_icon_button       text='' desc=''
+  LinearLayout        (540, 885)   id=group_edit_name_container    text='' desc=''
+  EditText       c    (540, 892)   id=group_edit_name              text='Group name' desc=''
+  LinearLayout        (540, 1053)  id=group_edit_note_container    text='' desc=''
+  EditText       c    (540, 1060)  id=group_edit_note              text='Notes' desc=''
+  FrameLayout         (540, 1226)  id=group_edit_expiration        text='' desc=''
+  LinearLayout        (457, 1226)  id=expiration_label             text='' desc=''
+  EditText       c    (457, 1228)  id=expiration_text              text='Never' desc=''
+  Switch         cx   (886, 1227)  id=expiration_checkbox          text='' desc=''
+  LinearLayout        (540, 1400)  id=group_edit_searchable_container text='' desc=''
+  Spinner        c    (540, 1407)  id=group_edit_searchable        text='Inherit' desc=''
+  ImageButton    cx   (892, 1407)  id=text_input_end_icon          text='' desc='Show dropdown menu'
+  LinearLayout        (540, 1568)  id=group_tags_label             text='' desc=''
+  EditText       c    (540, 1575)  id=group_tags_completion_view   text='Tags' desc=''
+  ImageButton    cx   (892, 1575)  id=text_input_end_icon          text='' desc='Show dropdown menu'
+  ScrollView          (540, 1779)  id=buttonPanel                  text='' desc=''
+  Button         c    (683, 1779)  id=button2                      text='Cancel' desc=''
+  Button         c    (887, 1779)  id=button1                      text='OK' desc=''
+[2026-11-16T15:18:48.532Z] kpdx-ch-copy.flow:33 typefocused phone-group-in-kg
+  FrameLayout         (540, 1176)  id=action_bar_root              text='' desc=''
+  FrameLayout         (540, 1176)  id=content                      text='' desc=''
+  LinearLayoutCompat      (540, 1176)  id=parentPanel                  text='' desc=''
+  FrameLayout         (540, 1099)  id=customPanel                  text='' desc=''
+  FrameLayout         (540, 1099)  id=custom                       text='' desc=''
+  ImageButton    cf   (540, 674)   id=group_edit_icon_button       text='' desc=''
+  LinearLayout        (540, 885)   id=group_edit_name_container    text='' desc=''
+  EditText       c    (540, 892)   id=group_edit_name              text='Group name' desc=''
+  LinearLayout        (540, 1053)  id=group_edit_note_container    text='' desc=''
+  EditText       c    (540, 1060)  id=group_edit_note              text='Notes' desc=''
+  FrameLayout         (540, 1226)  id=group_edit_expiration        text='' desc=''
+  LinearLayout        (457, 1226)  id=expiration_label             text='' desc=''
+  EditText       c    (457, 1228)  id=expiration_text              text='Never' desc=''
+  Switch         cx   (886, 1227)  id=expiration_checkbox          text='' desc=''
+  LinearLayout        (540, 1400)  id=group_edit_searchable_container text='' desc=''
+  Spinner        c    (540, 1407)  id=group_edit_searchable        text='Inherit' desc=''
+  ImageButton    cx   (892, 1407)  id=text_input_end_icon          text='' desc='Show dropdown menu'
+  LinearLayout        (540, 1568)  id=group_tags_label             text='' desc=''
+  EditText       c    (540, 1575)  id=group_tags_completion_view   text='Tags' desc=''
+  ImageButton    cx   (892, 1575)  id=text_input_end_icon          text='' desc='Show dropdown menu'
+  ScrollView          (540, 1779)  id=buttonPanel                  text='' desc=''
+  Button         c    (683, 1779)  id=button2                      text='Cancel' desc=''
+  Button         c    (887, 1779)  id=button1                      text='OK' desc=''
+[2026-11-16T15:18:54.707Z] FAILED: typefocused: text did not land
+total 20
+-rw------- 1 u0_a160 u0_a160 15241 2026-11-16 16:18:26.536000000 +0100 kpdx-ch-copy.kdbx
+device kpdx-ch-copy.kdbx sha256 dddd6bbb80270bba6cb74aaf12d606273ad6d5283d571153236148465d2ac7e3 15241 bytes, mtime 2026-11-16 16:18:26.536000000 +0100
+/sdcard/Download/kpdx-ch-copy.kdbx: 1 file pulled, 0 skipped. 0.8 MB/s (15241 bytes in 0.018s)
+### flow rc=1 2026-11-16T15:18:57.437Z

@@ -1,0 +1,26 @@
+339a340,356
+> E ~833d76a9 S Notes p=0 ""
+> E ~833d76a9 S Password p=1 ""
+> E ~833d76a9 S Title p=0 "droid-added"
+> E ~833d76a9 S URL p=0 ""
+> E ~833d76a9 S UserName p=0 ""
+> E ~833d76a9 autotype enabled=1 obfuscation=0 seq="" assoc=0
+> E ~833d76a9 history.count 0
+> E ~833d76a9 misc icon=0 customIcon=- fg=00000000 bg=00000000 overrideUrl="" quality=1
+> E ~833d76a9 parent Root (Storage probe)
+> E ~833d76a9 prev -
+> E ~833d76a9 t.accessed 2026-11-15T17:05:47Z
+> E ~833d76a9 t.created 2026-11-15T17:05:35Z
+> E ~833d76a9 t.expires 0 2026-11-15T17:05:20Z
+> E ~833d76a9 t.location 2026-11-15T17:05:35Z
+> E ~833d76a9 t.modified 2026-11-15T17:05:47Z
+> E ~833d76a9 tags []
+> E ~833d76a9 usage 1
+342c359
+< F groups 5 entries 13
+---
+> F groups 5 entries 14
+398c415
+< G Root children groups=3 entries=0
+---
+> G Root children groups=3 entries=1

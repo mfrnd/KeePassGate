@@ -1,0 +1,6 @@
+# Select the group ${SEL} on the current screen, open the selection's overflow, Edit; wait for the
+# group dialog.
+longpressuntil node_text@${SEL} menu_move 60 2000 600
+tapuntil More.options#2 ^Edit$ 30
+tap ^Edit$
+waitfor group_edit_name 20

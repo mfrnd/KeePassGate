@@ -1,0 +1,20 @@
+1071c1071
+< G Root t.accessed 2026-11-01T10:00:00Z
+---
+> G Root t.accessed 2026-11-16T09:05:34Z
+1114c1114
+< R meta Generator = (empty)
+---
+> R meta Generator = "KeePassDX"
+1143a1144
+> X KeePassFile/Meta/HeaderHash 1
+1210c1211
+< X KeePassFile/Root/Group/Group/Entry/History/Entry/Tags 11
+---
+> X KeePassFile/Root/Group/Group/Entry/History/Entry/Tags 1
+1227c1228
+< X KeePassFile/Root/Group/Group/Entry/Tags 36
+---
+> X KeePassFile/Root/Group/Group/Entry/Tags 3
+1255d1255
+< X KeePassFile/Root/Group/Group/Group/Entry/Tags 5

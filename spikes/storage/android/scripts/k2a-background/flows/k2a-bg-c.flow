@@ -1,0 +1,4 @@
+# State c: the program's process killed (SIGKILL, as the system reclaims memory) after the save
+# reached the cache.
+host sh ${P}/kill9.sh
+host sh ${P}/devstate.sh state-c

@@ -1,0 +1,80 @@
+### 2026-11-16T07:34:16.575Z B kpdx mfPD r3 target=PHONE source=DESK (versionName=4.5.8)
+Success
+<work>/work/base/PHONE.kdbx: 1 file pushed, 0 skipped. 1.4 MB/s (16517 bytes in 0.011s)
+target sha256 1ef101223f5596760cbfb538a37148a3b18a68d95dddef47ec1716e40cf3959a
+[2026-11-16T07:34:17.792Z] kpdx-B-from.flow:5 include kpdx-open.flow
+[2026-11-16T07:34:17.799Z] kpdx-open.flow:4 sh monkey -p com.kunzisoft.keepass.libre -c android.intent.category.LAUNCHER 1
+  bash arg: -p
+  bash arg: com.kunzisoft.keepass.libre
+  bash arg: -c
+  bash arg: android.intent.category.LAUNCHER
+  bash arg: 1
+Events injected: 1
+## Network stats: elapsed time=113ms (0ms mobile, 0ms wifi, 113ms not connected)
+args: [-p, com.kunzisoft.keepass.libre, -c, android.intent.category.LAUNCHER, 1]
+ arg: "-p"
+ arg: "com.kunzisoft.keepass.libre"
+ arg: "-c"
+ arg: "android.intent.category.LAUNCHER"
+ arg: "1"
+data="com.kunzisoft.keepass.libre"
+data="android.intent.category.LAUNCHER"
+[2026-11-16T07:34:18.442Z] kpdx-open.flow:5 waitfor open_database_button 30
+[2026-11-16T07:34:21.694Z] kpdx-open.flow:6 tapuntil open_database_button Show.roots 40
+[2026-11-16T07:34:24.598Z]   tapped (799, 2051) 'Open existing vault'
+[2026-11-16T07:34:34.949Z]   tapped (799, 2051) 'Open existing vault'
+[2026-11-16T07:34:37.522Z] kpdx-open.flow:7 include picker.flow
+[2026-11-16T07:34:37.528Z] picker.flow:4 pick kpdx-mfPD.kdbx
+[2026-11-16T07:34:45.040Z]   focused and entered '^kpdx\\-mfPD\\.kdbx$'
+[2026-11-16T07:34:45.042Z] kpdx-open.flow:8 waitfor password_text_view 40
+[2026-11-16T07:34:48.664Z] kpdx-open.flow:9 typepw password_text_view dummy-password-for-a-throwaway-file
+[2026-11-16T07:35:00.937Z]   type: field never took the focus (attempt 1)
+[2026-11-16T07:35:13.328Z]   type: field never took the focus (attempt 2)
+[2026-11-16T07:35:23.439Z]   typed into the focused field
+[2026-11-16T07:35:23.441Z] kpdx-open.flow:10 tapuntil activity_password_open_button add_button 60
+[2026-11-16T07:35:26.446Z]   tapped (895, 1435) 'Unlock'
+[2026-11-16T07:35:36.492Z]   tapped (895, 1435) 'Unlock'
+[2026-11-16T07:35:46.974Z]   tapped (895, 1435) 'Unlock'
+[2026-11-16T07:35:52.787Z] kpdx-B-from.flow:6 adb push <work>/work/base/DESK.kdbx /sdcard/Download/kpdx-mfPD-src.kdbx
+<work>/work/base/DESK.kdbx: 1 file pushed, 0 skipped. 2.1 MB/s (16901 bytes in 0.008s)
+[2026-11-16T07:35:52.842Z] kpdx-B-from.flow:7 sh sha256sum /sdcard/Download/kpdx-mfPD-src.kdbx
+2e9c41595aa4df3710b594660120f7bd8b2e1dbb214b148f329495c3e92f4774  /sdcard/Download/kpdx-mfPD-src.kdbx
+[2026-11-16T07:35:52.873Z] kpdx-B-from.flow:8 sleep 4
+[2026-11-16T07:35:56.875Z] kpdx-B-from.flow:9 drawer menu_merge_from
+[2026-11-16T07:36:26.495Z]   drawer open after 5 attempt(s)
+[2026-11-16T07:36:26.497Z] kpdx-B-from.flow:10 tap menu_merge_from
+[2026-11-16T07:36:29.433Z]   tapped (452, 918) 'com.kunzisoft.keepass.libre:id/menu_merge_from'
+[2026-11-16T07:36:29.438Z] kpdx-B-from.flow:11 waitfor setup_check_password_edit_text 20
+[2026-11-16T07:36:31.826Z] kpdx-B-from.flow:12 type setup_check_password_edit_text dumm
+[2026-11-16T07:36:44.652Z]   type: field never took the focus (attempt 1)
+[2026-11-16T07:36:53.555Z]   typed 'dumm'
+[2026-11-16T07:36:53.557Z] kpdx-B-from.flow:13 tapuntil ^Check$ Show.roots 30
+[2026-11-16T07:36:56.604Z]   tapped (887, 1111) 'Check'
+[2026-11-16T07:36:59.158Z] kpdx-B-from.flow:14 include picker-src.flow
+[2026-11-16T07:36:59.169Z] picker-src.flow:2 pick kpdx-mfPD-src.kdbx
+[2026-11-16T07:37:06.781Z]   focused and entered '^kpdx\\-mfPD\\-src\\.kdbx$'
+[2026-11-16T07:37:06.788Z] kpdx-B-from.flow:15 waitfor title_database 30
+[2026-11-16T07:37:10.293Z] kpdx-B-from.flow:16 typepw password_text_view dummy-password-for-a-throwaway-file
+[2026-11-16T07:37:32.324Z]   type: field never took the focus (attempt 1)
+[2026-11-16T07:37:42.214Z]   typed into the focused field
+[2026-11-16T07:37:42.216Z] kpdx-B-from.flow:17 tap ^OK$
+[2026-11-16T07:37:45.240Z]   tapped (887, 1173) 'OK'
+[2026-11-16T07:37:45.243Z] kpdx-B-from.flow:18 sleep 10
+[2026-11-16T07:37:55.244Z] kpdx-B-from.flow:19 list
+  FrameLayout         (540, 1176)  id=action_bar_root              text='' desc=''
+  FrameLayout         (540, 1176)  id=content                      text='' desc=''
+  LinearLayoutCompat      (540, 1176)  id=parentPanel                  text='' desc=''
+  FrameLayout         (540, 1176)  id=customPanel                  text='' desc=''
+  FrameLayout         (540, 1176)  id=custom                       text='' desc=''
+  TextView            (540, 1065)  id=progress_dialog_title        text='Loading database…' desc=''
+  TextView            (540, 1178)  id=progress_dialog_message      text='Decrypting database content…' desc=''
+  TextView            (540, 1284)  id=progress_dialog_warning      text='Do not kill the app…' desc=''
+  ProgressBar         (540, 1369)  id=progress_dialog_bar          text='' desc=''
+total 48
+-rw------- 1 u0_a160 u0_a160 16901 2026-11-16 08:16:22.000000000 +0100 kpdx-mfPD-src.kdbx
+-rw------- 1 u0_a160 u0_a160 16517 2026-11-16 08:16:22.000000000 +0100 kpdx-mfPD.kdbx
+device kpdx-mfPD-src.kdbx sha256 2e9c41595aa4df3710b594660120f7bd8b2e1dbb214b148f329495c3e92f4774
+/sdcard/Download/kpdx-mfPD-src.kdbx: 1 file pulled, 0 skipped. 1.3 MB/s (16901 bytes in 0.013s)
+device kpdx-mfPD.kdbx sha256 1ef101223f5596760cbfb538a37148a3b18a68d95dddef47ec1716e40cf3959a
+/sdcard/Download/kpdx-mfPD.kdbx: 1 file pulled, 0 skipped. 1.1 MB/s (16517 bytes in 0.015s)
+### flow rc=0 2026-11-16T07:37:59.901Z

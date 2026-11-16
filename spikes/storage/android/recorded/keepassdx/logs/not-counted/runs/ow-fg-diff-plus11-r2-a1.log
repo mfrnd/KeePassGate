@@ -1,0 +1,64 @@
+### 2026-11-16T09:43:22.286Z ow kpdx ow-fg-diff-plus11-r2 flow=kpdx-ow-fg.flow base=OLD ARR=NEW-diff MODE=plus11 TAG=ow-fg-diff-plus11-r2 (versionName=4.5.8)
+Success
+<work>/work/base/OLD.kdbx: 1 file pushed, 0 skipped. 1.2 MB/s (17365 bytes in 0.014s)
+given 17365 bytes, mtime 2026-11-16 10:33:23.000000000 +0100 sha256 6e25ae9b994a21f69404250dec2c751c358472bca635467c042d70f119402d6b
+[2026-11-16T09:43:25.036Z] kpdx-ow-fg.flow:3 include kpdx-open.flow
+[2026-11-16T09:43:25.063Z] kpdx-open.flow:4 sh monkey -p com.kunzisoft.keepass.libre -c android.intent.category.LAUNCHER 1
+  bash arg: -p
+  bash arg: com.kunzisoft.keepass.libre
+  bash arg: -c
+  bash arg: android.intent.category.LAUNCHER
+  bash arg: 1
+Events injected: 1
+## Network stats: elapsed time=297ms (0ms mobile, 0ms wifi, 297ms not connected)
+args: [-p, com.kunzisoft.keepass.libre, -c, android.intent.category.LAUNCHER, 1]
+ arg: "-p"
+ arg: "com.kunzisoft.keepass.libre"
+ arg: "-c"
+ arg: "android.intent.category.LAUNCHER"
+ arg: "1"
+data="com.kunzisoft.keepass.libre"
+data="android.intent.category.LAUNCHER"
+[2026-11-16T09:43:27.146Z] kpdx-open.flow:5 waitfor open_database_button 30
+[2026-11-16T09:43:34.122Z] kpdx-open.flow:6 tapuntil open_database_button Show.roots 40
+[2026-11-16T09:43:38.448Z]   tapped (799, 2051) 'Open existing vault'
+[2026-11-16T09:43:49.245Z]   tapped (799, 2051) 'Open existing vault'
+[2026-11-16T09:43:54.060Z] kpdx-open.flow:7 include picker.flow
+[2026-11-16T09:43:54.075Z] picker.flow:4 pick kpdx-ow-fg-diff-plus11-r2.kdbx
+[2026-11-16T09:44:05.789Z]   focused and entered '^kpdx\\-ow\\-fg\\-diff\\-plus11\\-r2\\.kdbx$'
+[2026-11-16T09:44:05.792Z] kpdx-open.flow:8 waitfor password_text_view 40
+[2026-11-16T09:44:12.448Z] kpdx-open.flow:9 typepwdx dummy-password-for-a-throwaway-file
+[2026-11-16T09:44:31.885Z]   typepwdx: the field reads 8 characters, not 35 (attempt 1)
+[2026-11-16T09:44:55.570Z]   typed the password and read it back (35 characters)
+[2026-11-16T09:44:55.572Z] kpdx-open.flow:10 tapuntil activity_password_open_button add_button 60
+[2026-11-16T09:45:00.799Z]   tapped (895, 1435) 'Unlock'
+[2026-11-16T09:45:11.774Z]   tapped (895, 1435) 'Unlock'
+[2026-11-16T09:45:24.993Z]   tapped (895, 1435) 'Unlock'
+[2026-11-16T09:45:37.745Z] kpdx-ow-fg.flow:4 sleep 3
+[2026-11-16T09:45:40.748Z] kpdx-ow-fg.flow:5 host sh <work>/scripts/replace.sh /sdcard/Download/kpdx-ow-fg-diff-plus11-r2.kdbx <work>/work/base/NEW-diff.kdbx plus11
+[2026-11-16T09:45:41.724Z]   | replace: before 17365 bytes, mtime 2026-11-16 10:33:23.000000000 +0100 sha256 6e25ae9b994a21f69404250dec2c751c358472bca635467c042d70f119402d6b
+[2026-11-16T09:45:41.726Z]   | <work>/work/base/NEW-diff.kdbx: 1 file pushed, 0 skipped. 0.9 MB/s (19509 bytes in 0.020s)
+[2026-11-16T09:45:41.727Z]   | replace: after  19509 bytes, mtime 2026-11-16 10:33:34.000000000 +0100 sha256 4c67b2a5698c8133dd00cb61d228b9911a4ed9b3f1f7b9ddbf375a08b91d5d3c (mode plus11, from NEW-diff.kdbx)
+[2026-11-16T09:45:41.729Z] kpdx-ow-fg.flow:6 sleep 2
+[2026-11-16T09:45:43.730Z] kpdx-ow-fg.flow:7 include kpdx-ow-add.flow
+[2026-11-16T09:45:43.746Z] kpdx-ow-add.flow:3 mark /sdcard/Download/kpdx-ow-fg-diff-plus11-r2.kdbx
+[2026-11-16T09:45:43.799Z]   marked /sdcard/Download/kpdx-ow-fg-diff-plus11-r2.kdbx sha256 4c67b2a5698c8133
+[2026-11-16T09:45:43.801Z] kpdx-ow-add.flow:4 tapuntil add_button fab_add_entry 20
+[2026-11-16T09:45:47.782Z]   tapped (970, 2013) 'Add node'
+[2026-11-16T09:45:50.816Z] kpdx-ow-add.flow:5 tapuntil fab_add_entry entry_edit_validate 30
+[2026-11-16T09:45:55.409Z]   tapped (885, 1691) 'Add entry'
+  FrameLayout         (540, 1176)  id=action_bar_root              text='' desc=''
+  FrameLayout         (540, 1176)  id=content                      text='' desc=''
+  LinearLayoutCompat      (540, 1176)  id=parentPanel                  text='' desc=''
+  FrameLayout         (540, 1099)  id=contentPanel                 text='' desc=''
+  ScrollView          (540, 1099)  id=scrollView                   text='' desc=''
+  View                (540, 806)   id=textSpacerNoTitle            text='' desc=''
+  TextView            (540, 1124)  id=message                      text='The information contained in your database has been modified outside the app.\n\nNov 16, 2026 10:33:23 AM, 17.36 kB\n→\nNov 16, 2026 10:33:34 AM, 19.51 kB\n\nMerge the data, overwrite the external modifications by saving the database or reload it with the latest changes.' desc=''
+  ScrollView          (540, 1495)  id=buttonPanel                  text='' desc=''
+  Button         c    (887, 1495)  id=button1                      text='OK' desc=''
+[2026-11-16T09:46:23.013Z] FAILED: tapuntil: never reached entry_edit_validate
+total 24
+-rw------- 1 u0_a160 u0_a160 19509 2026-11-16 10:33:34.000000000 +0100 kpdx-ow-fg-diff-plus11-r2.kdbx
+device kpdx-ow-fg-diff-plus11-r2.kdbx sha256 4c67b2a5698c8133dd00cb61d228b9911a4ed9b3f1f7b9ddbf375a08b91d5d3c 19509 bytes, mtime 2026-11-16 10:33:34.000000000 +0100
+/sdcard/Download/kpdx-ow-fg-diff-plus11-r2.kdbx: 1 file pulled, 0 skipped. 0.7 MB/s (19509 bytes in 0.027s)
+### flow rc=1 2026-11-16T09:46:26.411Z

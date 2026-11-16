@@ -360,8 +360,8 @@ words:
   # the copy `SNEW` they make; the flow commands `scrollto`, `tapb` and `checkstate` of the later
   # `k.py`; the scripts `devstat.sh`, `mksnew.sh`, `prefs.sh` and `sverdict.sh` and the labels their
   # lines print, `norec`, `localbackup`, `baseversion`, `alwaysmerge`, `quickunlock` and `webdav`;
-  # the script `setprefs.sh`; Android's `sdkmanager`; the directory `keepassdx` of a measurement the
-  # family's `RUN.md` names as not carried; and Nextcloud, spelled as its project spells it.
+  # the script `setprefs.sh`; Android's `sdkmanager`; the directory `keepassdx` of the measurement
+  # of KeePassDX; and Nextcloud, spelled as its project spells it.
   - makeow
   - makesync
   - newsync
@@ -560,4 +560,29 @@ words:
   - disyes
   - canyes
   - shiftdel
+  # Identifiers in the two Android measurements of 2026-11-16, which are carried unchanged: the
+  # flow commands `appendto`, `typepwdx`, `tabto`, `downto`, `typefocused` and `waitchange` and the
+  # variable `DEVPATH` of the KeePassDX measurement's `k.py`; the verbs `makedx`, `mverdict` and
+  # `owverdict`, the base prefixes `HATT`, `HHIS` and `HNES`, the local `outp`, .NET's `Hmac` and
+  # the mask fragment `CRUSDL` of its `DX.cs`; and the verb `deskstep` of the background
+  # measurement's `Store.cs`. And the signals `SIGSTOP` and `SIGCONT`, which hold its server.
+  - SIGSTOP
+  - SIGCONT
+  - appendto
+  - typepwdx
+  - tabto
+  - downto
+  - typefocused
+  - waitchange
+  - DEVPATH
+  - makedx
+  - mverdict
+  - owverdict
+  - HATT
+  - HHIS
+  - HNES
+  - outp
+  - Hmac
+  - CRUSDL
+  - deskstep
 

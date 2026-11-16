@@ -1,0 +1,18 @@
+# Item 2, preferences A: open; server stopped; P2 edited and saved (to the cache); SNEW-fixed put on
+# the server; server started; Synchronize database..., the question answered Cancel; 15 s watched,
+# the files kept; Synchronize database... again, answered as SANSWER; look.
+include k2a-sy-open.flow
+host sh ${P}/server.sh stop
+include k2a-sy-pw-P2-offline.flow
+host sh ${P}/srv-put.sh ${SNAME} ${SRCDIR}/SNEW-fixed.kdbx
+host sh ${P}/server.sh start
+host sh ${P}/snap.sh ${W} ${SNAME} before-sync
+tap More.options
+tap ^Synchronize.database
+ifthen Merge.changes 25 k2a-ans-cancelsync.flow
+host sh ${P}/watch.sh ${SNAME} 15 after-cancel
+host sh ${P}/notif.sh after-cancel
+host sh ${P}/snap.sh ${W} ${SNAME} after-cancel
+include k2a-sy-sync.flow
+host sh ${P}/srv-stat.sh ${SNAME} after-sync
+include k2a-sy-look.flow

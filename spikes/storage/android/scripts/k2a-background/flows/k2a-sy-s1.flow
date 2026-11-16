@@ -1,0 +1,7 @@
+# Synchronize, case 1, nothing changed anywhere: open from the server, look, Synchronize, look.
+include k2a-sy-open.flow
+include k2a-sy-look.flow
+host sh ${P}/srv-stat.sh ${SNAME} before-sync
+include k2a-sy-sync.flow
+host sh ${P}/srv-stat.sh ${SNAME} after-sync
+include k2a-sy-look.flow

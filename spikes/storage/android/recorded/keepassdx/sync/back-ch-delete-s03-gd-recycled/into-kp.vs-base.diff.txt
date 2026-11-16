@@ -1,0 +1,141 @@
+5a6,23
+> E AD1 H2026-11-01T11:00:00Z S KPG.Check p=0 "3213ef56134fb97ede1b571793181cf1863832e0978887154b2f169d716d056c"
+> E AD1 H2026-11-01T11:00:00Z S KPG.Kind p=0 "admission"
+> E AD1 H2026-11-01T11:00:00Z S KPG.Record p=0 len=159 sha=530ece65f760f0cd "{\"certificate\":\"d2d31ae42311e216978c55ae62b98315483da922e..."
+> E AD1 H2026-11-01T11:00:00Z S Notes p=0 ""
+> E AD1 H2026-11-01T11:00:00Z S Password p=1 ""
+> E AD1 H2026-11-01T11:00:00Z S Title p=0 "KPG client build-agent"
+> E AD1 H2026-11-01T11:00:00Z S URL p=0 ""
+> E AD1 H2026-11-01T11:00:00Z S UserName p=0 ""
+> E AD1 H2026-11-01T11:00:00Z autotype enabled=1 obfuscation=0 seq="" assoc=0
+> E AD1 H2026-11-01T11:00:00Z misc icon=0 customIcon=- fg=00000000 bg=00000000 overrideUrl="" quality=1
+> E AD1 H2026-11-01T11:00:00Z prev -
+> E AD1 H2026-11-01T11:00:00Z t.accessed 2026-11-01T11:00:00Z
+> E AD1 H2026-11-01T11:00:00Z t.created 2026-11-01T11:00:00Z
+> E AD1 H2026-11-01T11:00:00Z t.expires 0 2026-11-01T10:00:00Z
+> E AD1 H2026-11-01T11:00:00Z t.location 2026-11-01T11:00:00Z
+> E AD1 H2026-11-01T11:00:00Z t.modified 2026-11-01T11:00:00Z
+> E AD1 H2026-11-01T11:00:00Z tags []
+> E AD1 H2026-11-01T11:00:00Z usage 0
+15c33
+< E AD1 history.count 0
+---
+> E AD1 history.count 1
+17,19c35,37
+< E AD1 parent KG (KeePassGate)
+< E AD1 prev -
+< E AD1 t.accessed 2026-11-01T11:00:00Z
+---
+> E AD1 parent Bin (Recycle Bin)
+> E AD1 prev KG
+> E AD1 t.accessed 2026-11-16T15:08:32Z
+22,23c40,41
+< E AD1 t.location 2026-11-01T11:00:00Z
+< E AD1 t.modified 2026-11-01T11:00:00Z
+---
+> E AD1 t.location 2026-11-16T15:08:32Z
+> E AD1 t.modified 2026-11-16T15:08:32Z
+25c43
+< E AD1 usage 0
+---
+> E AD1 usage 2
+114a133,147
+> E E2 H2026-11-01T10:45:00Z S Notes p=0 ""
+> E E2 H2026-11-01T10:45:00Z S Password p=1 "pw-e2-not-real"
+> E E2 H2026-11-01T10:45:00Z S Title p=0 "E2"
+> E E2 H2026-11-01T10:45:00Z S URL p=0 ""
+> E E2 H2026-11-01T10:45:00Z S UserName p=0 "bob-invented"
+> E E2 H2026-11-01T10:45:00Z autotype enabled=1 obfuscation=0 seq="" assoc=0
+> E E2 H2026-11-01T10:45:00Z misc icon=0 customIcon=- fg=00000000 bg=00000000 overrideUrl="" quality=1
+> E E2 H2026-11-01T10:45:00Z prev -
+> E E2 H2026-11-01T10:45:00Z t.accessed 2026-11-01T10:45:00Z
+> E E2 H2026-11-01T10:45:00Z t.created 2026-11-01T10:45:00Z
+> E E2 H2026-11-01T10:45:00Z t.expires 0 2026-11-01T10:00:00Z
+> E E2 H2026-11-01T10:45:00Z t.location 2026-11-01T10:45:00Z
+> E E2 H2026-11-01T10:45:00Z t.modified 2026-11-01T10:45:00Z
+> E E2 H2026-11-01T10:45:00Z tags []
+> E E2 H2026-11-01T10:45:00Z usage 0
+121c154
+< E E2 history.count 0
+---
+> E E2 history.count 1
+123,125c156,158
+< E E2 parent G (G)
+< E E2 prev -
+< E E2 t.accessed 2026-11-01T10:45:00Z
+---
+> E E2 parent Bin (Recycle Bin)
+> E E2 prev G
+> E E2 t.accessed 2026-11-16T15:07:52Z
+128,129c161,162
+< E E2 t.location 2026-11-01T10:45:00Z
+< E E2 t.modified 2026-11-01T10:45:00Z
+---
+> E E2 t.location 2026-11-16T15:07:52Z
+> E E2 t.modified 2026-11-16T15:07:52Z
+131c164
+< E E2 usage 0
+---
+> E E2 usage 2
+861c894
+< G Bin children groups=0 entries=0
+---
+> G Bin children groups=1 entries=2
+867c900
+< G Bin t.accessed 2026-11-01T10:05:00Z
+---
+> G Bin t.accessed 2026-11-16T15:09:05Z
+871c904
+< G Bin t.modified 2026-11-01T10:05:00Z
+---
+> G Bin t.modified 2026-11-16T15:09:05Z
+875c908
+< G G children groups=1 entries=4
+---
+> G G children groups=1 entries=3
+881c914
+< G G t.accessed 2026-11-01T10:00:00Z
+---
+> G G t.accessed 2026-11-16T15:07:53Z
+885c918
+< G G t.modified 2026-11-01T10:30:00Z
+---
+> G G t.modified 2026-11-16T15:07:52Z
+892,894c925,927
+< G GD parent Root (Storage probe)
+< G GD prev -
+< G GD t.accessed 2026-11-01T10:05:00Z
+---
+> G GD parent Bin (Recycle Bin)
+> G GD prev Root
+> G GD t.accessed 2026-11-16T15:09:05Z
+897,898c930,931
+< G GD t.location 2026-11-01T10:05:00Z
+< G GD t.modified 2026-11-01T10:05:00Z
+---
+> G GD t.location 2026-11-16T15:09:05Z
+> G GD t.modified 2026-11-16T15:09:05Z
+927c960
+< G KG children groups=0 entries=14
+---
+> G KG children groups=0 entries=13
+933c966
+< G KG t.accessed 2026-11-01T10:05:00Z
+---
+> G KG t.accessed 2026-11-16T15:08:33Z
+937c970
+< G KG t.modified 2026-11-01T10:05:00Z
+---
+> G KG t.modified 2026-11-16T15:08:32Z
+1018c1051
+< G Root children groups=8 entries=0
+---
+> G Root children groups=7 entries=0
+1024c1057
+< G Root t.accessed 2026-11-01T10:00:00Z
+---
+> G Root t.accessed 2026-11-16T15:09:05Z
+1028c1061
+< G Root t.modified 2026-11-01T10:00:00Z
+---
+> G Root t.modified 2026-11-16T15:09:05Z

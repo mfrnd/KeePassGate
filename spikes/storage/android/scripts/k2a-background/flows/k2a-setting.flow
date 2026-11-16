@@ -1,0 +1,27 @@
+# Keepass2Android, at the root group: More options, Settings, App, File handling; press ${SETTING}
+# and log its state and the stored preferences before and after; back to the root.
+host sh ${P}/prefs.sh before-settings
+tap More.options
+tap ^Settings$
+sleep 2
+tap ^App$
+sleep 2
+tap ^File.handling$
+sleep 3
+host sh ${P}/prefs.sh on-file-handling-screen
+checkstate ^Synchronize.in.background
+scrollto ${SETTING}
+sh input swipe 540 1500 540 1000 400
+sleep 2
+checkstate ${SETTING}
+tapb ${SETTING}
+sleep 2
+checkstate ${SETTING}
+host sh ${P}/prefs.sh after-tap
+key BACK
+sleep 2
+key BACK
+sleep 2
+key BACK
+sleep 2
+waitfor fabAddNew 30

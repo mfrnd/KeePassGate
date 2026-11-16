@@ -1,0 +1,5 @@
+k2a-bg-d-run.flow bg-d-amcon-r2 ALWAYSMERGE=on SETTING=^Always.merge.on.conflict$ ANSWER=none SANSWER=none PREFS=A
+k2a-bg-d-run.flow bg-d-amcon-r3 ALWAYSMERGE=on SETTING=^Always.merge.on.conflict$ ANSWER=none SANSWER=none PREFS=A
+k2a-bg-b-run.flow bg-b-amcon-r2 ALWAYSMERGE=on SETTING=^Always.merge.on.conflict$ ANSWER=none SANSWER=none PREFS=A
+k2a-sftp-s2.flow sftp-s2-r1 ANSWER=none SANSWER=none PREFS=A
+k2a-sftp-s4.flow sftp-s4-merge-r1 ANSWER=none SANSWER=merge ENTRY=phone-new PREFS=A

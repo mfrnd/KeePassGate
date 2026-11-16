@@ -1,0 +1,40 @@
+881c881
+< G G t.accessed 2026-11-01T10:00:00Z
+---
+> G G t.accessed 2026-11-16T16:15:49Z
+883c883
+< G G t.expires 0 2026-11-01T10:00:00Z
+---
+> G G t.expires 0 2999-11-28T23:59:59Z
+885,886c885,886
+< G G t.modified 2026-11-01T10:30:00Z
+< G G tags [kpg.reader;team]
+---
+> G G t.modified 2026-11-16T16:15:49Z
+> G G tags [added;kpg.reader]
+1024c1024
+< G Root t.accessed 2026-11-01T10:00:00Z
+---
+> G Root t.accessed 2026-11-16T16:15:49Z
+1028c1028
+< G Root t.modified 2026-11-01T10:00:00Z
+---
+> G Root t.modified 2026-11-16T16:15:49Z
+1063c1063
+< R meta Generator = (empty)
+---
+> R meta Generator = "KeePassDX"
+1092a1093
+> X KeePassFile/Meta/HeaderHash 1
+1159c1160
+< X KeePassFile/Root/Group/Group/Entry/History/Entry/Tags 6
+---
+> X KeePassFile/Root/Group/Group/Entry/History/Entry/Tags 1
+1176c1177
+< X KeePassFile/Root/Group/Group/Entry/Tags 36
+---
+> X KeePassFile/Root/Group/Group/Entry/Tags 3
+1204d1204
+< X KeePassFile/Root/Group/Group/Group/Entry/Tags 4
+1231d1230
+< X KeePassFile/Root/Group/Group/Group/Group/Entry/Tags 1

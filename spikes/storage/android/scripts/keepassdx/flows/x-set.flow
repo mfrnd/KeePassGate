@@ -1,0 +1,17 @@
+# exploration: the settings screens a database offers, the drawer's Save a copy, and the master key
+include kpdx-open.flow
+sleep 2
+drawer menu_app_settings
+list
+tap menu_app_settings
+sleep 3
+list
+tapb ^Database.settings$
+sleep 3
+list
+scrollto ^Max.history.size 8
+list
+scrollto ^Encryption 8
+list
+scrollto ^Master.key 8
+list

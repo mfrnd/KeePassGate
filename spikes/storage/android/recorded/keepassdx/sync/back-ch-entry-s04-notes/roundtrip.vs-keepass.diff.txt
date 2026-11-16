@@ -1,0 +1,123 @@
+95a96,171
+> E E1 H2026-11-01T14:00:00Z A e1.txt p=0 len=600 sha=259674a04e10f900
+> E E1 H2026-11-01T14:00:00Z CD KPG = "{\"reader\":[\"read\",\"list\"]}"
+> E E1 H2026-11-01T14:00:00Z S Extra p=0 "extra-value-e1"
+> E E1 H2026-11-01T14:00:00Z S Notes p=0 "ordinary notes"
+> E E1 H2026-11-01T14:00:00Z S Password p=1 "pw-e1-not-real"
+> E E1 H2026-11-01T14:00:00Z S Secret p=1 "protected-custom-e1"
+> E E1 H2026-11-01T14:00:00Z S Title p=0 "E1"
+> E E1 H2026-11-01T14:00:00Z S URL p=0 "https://e1.example.invalid/"
+> E E1 H2026-11-01T14:00:00Z S UserName p=0 "alice-invented"
+> E E1 H2026-11-01T14:00:00Z autotype enabled=1 obfuscation=0 seq="" assoc=0
+> E E1 H2026-11-01T14:00:00Z misc icon=0 customIcon=- fg=00000000 bg=00000000 overrideUrl="" quality=1
+> E E1 H2026-11-01T14:00:00Z prev -
+> E E1 H2026-11-01T14:00:00Z t.accessed 2026-11-01T14:00:00Z
+> E E1 H2026-11-01T14:00:00Z t.created 2026-11-01T11:00:00Z
+> E E1 H2026-11-01T14:00:00Z t.expires 0 2026-11-01T10:00:00Z
+> E E1 H2026-11-01T14:00:00Z t.location 2026-11-01T11:00:00Z
+> E E1 H2026-11-01T14:00:00Z t.modified 2026-11-01T14:00:00Z
+> E E1 H2026-11-01T14:00:00Z tags [work]
+> E E1 H2026-11-01T14:00:00Z usage 0
+> E E1 H2026-11-16T08:30:06Z A e1.txt p=0 len=600 sha=259674a04e10f900
+> E E1 H2026-11-16T08:30:06Z CD KPG = "{\"reader\":[\"read\",\"list\"]}"
+> E E1 H2026-11-16T08:30:06Z S Extra p=0 "extra-value-e1"
+> E E1 H2026-11-16T08:30:06Z S Notes p=0 "ordinary notes"
+> E E1 H2026-11-16T08:30:06Z S Password p=1 "pw-e1-not-real"
+> E E1 H2026-11-16T08:30:06Z S Secret p=1 "protected-custom-e1"
+> E E1 H2026-11-16T08:30:06Z S Title p=0 "E1"
+> E E1 H2026-11-16T08:30:06Z S URL p=0 "https://e1.example.invalid/"
+> E E1 H2026-11-16T08:30:06Z S UserName p=0 "alice-invented"
+> E E1 H2026-11-16T08:30:06Z autotype enabled=1 obfuscation=0 seq="" assoc=0
+> E E1 H2026-11-16T08:30:06Z misc icon=0 customIcon=- fg=00000000 bg=00000000 overrideUrl="" quality=1
+> E E1 H2026-11-16T08:30:06Z prev -
+> E E1 H2026-11-16T08:30:06Z t.accessed 2026-11-16T08:30:06Z
+> E E1 H2026-11-16T08:30:06Z t.created 2026-11-01T11:00:00Z
+> E E1 H2026-11-16T08:30:06Z t.expires 0 2999-11-28T23:59:59Z
+> E E1 H2026-11-16T08:30:06Z t.location 2026-11-01T11:00:00Z
+> E E1 H2026-11-16T08:30:06Z t.modified 2026-11-16T08:30:06Z
+> E E1 H2026-11-16T08:30:06Z tags [work]
+> E E1 H2026-11-16T08:30:06Z usage 1
+> E E1 H2026-11-16T08:31:44Z A e1.txt p=0 len=600 sha=259674a04e10f900
+> E E1 H2026-11-16T08:31:44Z CD KPG = "{\"reader\":[\"read\",\"list\"]}"
+> E E1 H2026-11-16T08:31:44Z S Extra p=0 "extra-value-e1"
+> E E1 H2026-11-16T08:31:44Z S Notes p=0 "ordinary notes"
+> E E1 H2026-11-16T08:31:44Z S Password p=1 "pw-e1-not-real"
+> E E1 H2026-11-16T08:31:44Z S Secret p=1 "protected-custom-e1"
+> E E1 H2026-11-16T08:31:44Z S Title p=0 "E1-t"
+> E E1 H2026-11-16T08:31:44Z S URL p=0 "https://e1.example.invalid/"
+> E E1 H2026-11-16T08:31:44Z S UserName p=0 "alice-invented"
+> E E1 H2026-11-16T08:31:44Z autotype enabled=1 obfuscation=0 seq="" assoc=0
+> E E1 H2026-11-16T08:31:44Z misc icon=0 customIcon=- fg=00000000 bg=00000000 overrideUrl="" quality=1
+> E E1 H2026-11-16T08:31:44Z prev -
+> E E1 H2026-11-16T08:31:44Z t.accessed 2026-11-16T08:31:44Z
+> E E1 H2026-11-16T08:31:44Z t.created 2026-11-01T11:00:00Z
+> E E1 H2026-11-16T08:31:44Z t.expires 0 2999-11-28T23:59:59Z
+> E E1 H2026-11-16T08:31:44Z t.location 2026-11-01T11:00:00Z
+> E E1 H2026-11-16T08:31:44Z t.modified 2026-11-16T08:31:44Z
+> E E1 H2026-11-16T08:31:44Z tags [work]
+> E E1 H2026-11-16T08:31:44Z usage 2
+> E E1 H2026-11-16T08:33:32Z A e1.txt p=0 len=600 sha=259674a04e10f900
+> E E1 H2026-11-16T08:33:32Z CD KPG = "{\"reader\":[\"read\",\"list\"]}"
+> E E1 H2026-11-16T08:33:32Z S Extra p=0 "extra-value-e1"
+> E E1 H2026-11-16T08:33:32Z S Notes p=0 "ordinary notes"
+> E E1 H2026-11-16T08:33:32Z S Password p=1 "pw-e1-not-real-p"
+> E E1 H2026-11-16T08:33:32Z S Secret p=1 "protected-custom-e1"
+> E E1 H2026-11-16T08:33:32Z S Title p=0 "E1-t"
+> E E1 H2026-11-16T08:33:32Z S URL p=0 "https://e1.example.invalid/"
+> E E1 H2026-11-16T08:33:32Z S UserName p=0 "alice-invented"
+> E E1 H2026-11-16T08:33:32Z autotype enabled=1 obfuscation=0 seq="" assoc=0
+> E E1 H2026-11-16T08:33:32Z misc icon=0 customIcon=- fg=00000000 bg=00000000 overrideUrl="" quality=1
+> E E1 H2026-11-16T08:33:32Z prev -
+> E E1 H2026-11-16T08:33:32Z t.accessed 2026-11-16T08:33:32Z
+> E E1 H2026-11-16T08:33:32Z t.created 2026-11-01T11:00:00Z
+> E E1 H2026-11-16T08:33:32Z t.expires 0 2999-11-28T23:59:59Z
+> E E1 H2026-11-16T08:33:32Z t.location 2026-11-01T11:00:00Z
+> E E1 H2026-11-16T08:33:32Z t.modified 2026-11-16T08:33:32Z
+> E E1 H2026-11-16T08:33:32Z tags [work]
+> E E1 H2026-11-16T08:33:32Z usage 3
+97,98c173,174
+< E E1 S Notes p=0 "ordinary notes"
+< E E1 S Password p=1 "pw-e1-not-real"
+---
+> E E1 S Notes p=0 "ordinary notes-n"
+> E E1 S Password p=1 "pw-e1-not-real-p"
+100c176
+< E E1 S Title p=0 "E1"
+---
+> E E1 S Title p=0 "E1-t"
+104c180
+< E E1 history.count 3
+---
+> E E1 history.count 7
+108c184
+< E E1 t.accessed 2026-11-01T14:00:00Z
+---
+> E E1 t.accessed 2026-11-16T08:35:38Z
+110c186
+< E E1 t.expires 0 2026-11-01T10:00:00Z
+---
+> E E1 t.expires 0 2999-11-28T23:59:59Z
+112c188
+< E E1 t.modified 2026-11-01T14:00:00Z
+---
+> E E1 t.modified 2026-11-16T08:35:38Z
+114c190
+< E E1 usage 0
+---
+> E E1 usage 4
+881c957
+< G G t.accessed 2026-11-01T10:00:00Z
+---
+> G G t.accessed 2026-11-16T08:35:38Z
+885c961
+< G G t.modified 2026-11-01T10:30:00Z
+---
+> G G t.modified 2026-11-16T08:35:38Z
+1024c1100
+< G Root t.accessed 2026-11-01T10:00:00Z
+---
+> G Root t.accessed 2026-11-16T08:35:38Z
+1028c1104
+< G Root t.modified 2026-11-01T10:00:00Z
+---
+> G Root t.modified 2026-11-16T08:35:38Z

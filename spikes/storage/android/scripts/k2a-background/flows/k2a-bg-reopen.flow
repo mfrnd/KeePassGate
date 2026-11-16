@@ -1,0 +1,11 @@
+# Keepass2Android started again (tapping the file if it shows its list of recent files), the
+# password screen, unlocked with the password; 20 s; what it shows.
+sh monkey -p ${PKG} -c android.intent.category.LAUNCHER 1
+sleep 5
+dialog
+list
+ifthen start_open_file 3 k2a-tap-recent.flow
+ifthen password_edit 30 k2a-bg-unlock.flow
+host sh ${P}/watch.sh ${SNAME} 20 after-unlock
+dialog
+list

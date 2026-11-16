@@ -1,0 +1,10 @@
+# Back to it, state d: the screen woken (no screen lock is set) and the keyguard dismissed; what it
+# shows; if neither the group list nor a question is there (the program no longer running), it is
+# started from its launcher and unlocked (k2a-bg-reopen.flow).
+key WAKEUP
+sleep 2
+sh wm dismiss-keyguard
+sleep 4
+dialog
+list
+ifnot (fabAddNew|Merge.changes) 5 k2a-bg-reopen.flow

@@ -1,0 +1,177 @@
+<work>/work/base/B41unk.kdbx: 1 file pushed, 0 skipped. 1.0 MB/s (16165 bytes in 0.015s)
+[2026-11-16T12:47:07.050Z] x-unk.flow:2 sh monkey -p com.kunzisoft.keepass.libre -c android.intent.category.LAUNCHER 1
+  bash arg: -p
+  bash arg: com.kunzisoft.keepass.libre
+  bash arg: -c
+  bash arg: android.intent.category.LAUNCHER
+  bash arg: 1
+Events injected: 1
+## Network stats: elapsed time=212ms (0ms mobile, 0ms wifi, 212ms not connected)
+args: [-p, com.kunzisoft.keepass.libre, -c, android.intent.category.LAUNCHER, 1]
+ arg: "-p"
+ arg: "com.kunzisoft.keepass.libre"
+ arg: "-c"
+ arg: "android.intent.category.LAUNCHER"
+ arg: "1"
+data="com.kunzisoft.keepass.libre"
+data="android.intent.category.LAUNCHER"
+[2026-11-16T12:47:08.803Z] x-unk.flow:3 waitfor open_database_button 30
+[2026-11-16T12:47:16.745Z] x-unk.flow:4 tapuntil open_database_button Show.roots 40
+[2026-11-16T12:47:21.457Z]   tapped (799, 2051) 'Open existing vault'
+[2026-11-16T12:47:33.189Z]   tapped (799, 2051) 'Open existing vault'
+[2026-11-16T12:47:40.680Z] x-unk.flow:5 include picker.flow
+[2026-11-16T12:47:40.684Z] picker.flow:4 pick kpdx-explore.kdbx
+[2026-11-16T12:47:54.608Z]   focused and entered '^kpdx\\-explore\\.kdbx$'
+[2026-11-16T12:47:54.609Z] x-unk.flow:6 waitfor password_text_view 40
+[2026-11-16T12:48:02.606Z] x-unk.flow:7 typepwdx dummy-password-for-a-throwaway-file
+[2026-11-16T12:48:25.584Z]   typepwdx: the field reads 8 characters, not 35 (attempt 1)
+[2026-11-16T12:48:58.281Z]   typed the password and read it back (35 characters)
+[2026-11-16T12:48:58.281Z] x-unk.flow:8 tap activity_password_open_button
+[2026-11-16T12:49:04.549Z]   tapped (895, 1435) 'Unlock'
+[2026-11-16T12:49:04.549Z] x-unk.flow:9 sleep 1
+[2026-11-16T12:49:05.549Z] x-unk.flow:10 list
+  LinearLayout        (540, 834)   id=action_bar_root              text='' desc=''
+  FrameLayout         (540, 834)   id=content                      text='' desc=''
+  ScrollView          (540, 746)   id=activity_password_coordinator_layout text='' desc=''
+  LinearLayout        (540, 332)   id=app_bar                      text='' desc=''
+  FrameLayout         (540, 332)   id=toolbar_layout               text='' desc='KeePassDX'
+  ImageView      c    (540, 420)   id=activity_password_logotype   text='' desc='About'
+  ImageView           (540, 420)   id=                             text='' desc='About'
+  ViewGroup           (540, 233)   id=toolbar                      text='' desc=''
+  ImageButton    c    (77, 233)    id=                             text='' desc='Navigate up'
+  TextView            (429, 233)   id=filename                     text='kpdx-explore.kdbx' desc=''
+  Button         c    (771, 233)   id=menu_open_file_read_mode_key text='' desc='Modifiable'
+  Button         c    (903, 233)   id=menu_open_file_user_verification_mode_key text='' desc='User Verification enabled'
+  ImageView      c    (1024, 233)  id=                             text='' desc='More options'
+  ScrollView          (540, 933)   id=scroll_container             text='' desc=''
+  FrameLayout         (540, 840)   id=activity_password_credentials text='' desc=''
+  LinearLayout        (540, 840)   id=unlock_container             text='' desc=''
+  RelativeLayout      (540, 664)   id=password_input_container     text='' desc=''
+  LinearLayout        (452, 664)   id=password_input_layout        text='' desc=''
+  EditText       c    (452, 671)   id=password_text_view           text='dummy-password-for-a-throwaway-file' desc=''
+  ImageButton    cx   (761, 671)   id=text_input_end_icon          text='' desc='Show password'
+  Switch         ckx  (931, 669)   id=password_checkbox            text='' desc='Password checkbox'
+  RelativeLayout      (540, 832)   id=container_key_file           text='' desc=''
+  ViewGroup      c    (452, 832)   id=keyfile_selection            text='' desc=''
+  ViewGroup           (452, 832)   id=container_key_file           text='' desc=''
+  LinearLayout        (452, 832)   id=input_entry_keyfile          text='' desc=''
+  EditText       c    (452, 839)   id=keyfile_name                 text='Keyfile' desc=''
+  ImageButton    cx   (761, 839)   id=text_input_end_icon          text='' desc='Show password'
+  Switch         cx   (931, 837)   id=keyfile_checkbox             text='' desc='Keyfile checkbox'
+  RelativeLayout      (540, 1000)  id=container_hardware_key       text='' desc=''
+  ViewGroup           (452, 1000)  id=hardware_key_selection       text='' desc=''
+  FrameLayout         (452, 1000)  id=container_hardware_key       text='' desc=''
+  LinearLayout        (452, 1000)  id=input_entry_hardware_key_layout text='' desc=''
+  Spinner        c    (452, 1007)  id=input_entry_hardware_key_completion text='Hardware key' desc=''
+  ImageButton    cx   (761, 1007)  id=text_input_end_icon          text='' desc='Show dropdown menu'
+  Switch         cx   (931, 1005)  id=hardware_key_checkbox        text='' desc='Hardware key checkbox'
+  LinearLayout        (540, 1435)  id=activity_password_footer     text='' desc=''
+  Button         c    (895, 1435)  id=activity_password_open_button text='Unlock' desc=''
+  View                (540, 72)    id=statusBarBackground          text='' desc=''
+  View                (0, 0)       id=navigationBarBackground      text='' desc=''
+[2026-11-16T12:49:09.024Z] x-unk.flow:11 sleep 2
+[2026-11-16T12:49:11.024Z] x-unk.flow:12 list
+  LinearLayout        (540, 834)   id=action_bar_root              text='' desc=''
+  FrameLayout         (540, 834)   id=content                      text='' desc=''
+  ScrollView          (540, 746)   id=activity_password_coordinator_layout text='' desc=''
+  LinearLayout        (540, 332)   id=app_bar                      text='' desc=''
+  FrameLayout         (540, 332)   id=toolbar_layout               text='' desc='KeePassDX'
+  ImageView      c    (540, 420)   id=activity_password_logotype   text='' desc='About'
+  ImageView           (540, 420)   id=                             text='' desc='About'
+  ViewGroup           (540, 233)   id=toolbar                      text='' desc=''
+  ImageButton    c    (77, 233)    id=                             text='' desc='Navigate up'
+  TextView            (429, 233)   id=filename                     text='kpdx-explore.kdbx' desc=''
+  Button         c    (771, 233)   id=menu_open_file_read_mode_key text='' desc='Modifiable'
+  Button         c    (903, 233)   id=menu_open_file_user_verification_mode_key text='' desc='User Verification enabled'
+  ImageView      c    (1024, 233)  id=                             text='' desc='More options'
+  ScrollView          (540, 933)   id=scroll_container             text='' desc=''
+  FrameLayout         (540, 840)   id=activity_password_credentials text='' desc=''
+  LinearLayout        (540, 840)   id=unlock_container             text='' desc=''
+  RelativeLayout      (540, 664)   id=password_input_container     text='' desc=''
+  LinearLayout        (452, 664)   id=password_input_layout        text='' desc=''
+  EditText       c    (452, 671)   id=password_text_view           text='dummy-password-for-a-throwaway-file' desc=''
+  ImageButton    cx   (761, 671)   id=text_input_end_icon          text='' desc='Show password'
+  Switch         ckx  (931, 669)   id=password_checkbox            text='' desc='Password checkbox'
+  RelativeLayout      (540, 832)   id=container_key_file           text='' desc=''
+  ViewGroup      c    (452, 832)   id=keyfile_selection            text='' desc=''
+  ViewGroup           (452, 832)   id=container_key_file           text='' desc=''
+  LinearLayout        (452, 832)   id=input_entry_keyfile          text='' desc=''
+  EditText       c    (452, 839)   id=keyfile_name                 text='Keyfile' desc=''
+  ImageButton    cx   (761, 839)   id=text_input_end_icon          text='' desc='Show password'
+  Switch         cx   (931, 837)   id=keyfile_checkbox             text='' desc='Keyfile checkbox'
+  RelativeLayout      (540, 1000)  id=container_hardware_key       text='' desc=''
+  ViewGroup           (452, 1000)  id=hardware_key_selection       text='' desc=''
+  FrameLayout         (452, 1000)  id=container_hardware_key       text='' desc=''
+  LinearLayout        (452, 1000)  id=input_entry_hardware_key_layout text='' desc=''
+  Spinner        c    (452, 1007)  id=input_entry_hardware_key_completion text='Hardware key' desc=''
+  ImageButton    cx   (761, 1007)  id=text_input_end_icon          text='' desc='Show dropdown menu'
+  Switch         cx   (931, 1005)  id=hardware_key_checkbox        text='' desc='Hardware key checkbox'
+  LinearLayout        (540, 1435)  id=activity_password_footer     text='' desc=''
+  Button         c    (895, 1435)  id=activity_password_open_button text='Unlock' desc=''
+  View                (540, 72)    id=statusBarBackground          text='' desc=''
+  View                (0, 0)       id=navigationBarBackground      text='' desc=''
+[2026-11-16T12:49:14.985Z] x-unk.flow:13 sleep 3
+[2026-11-16T12:49:17.985Z] x-unk.flow:14 list
+  LinearLayout        (540, 834)   id=action_bar_root              text='' desc=''
+  FrameLayout         (540, 834)   id=content                      text='' desc=''
+  ScrollView          (540, 746)   id=activity_password_coordinator_layout text='' desc=''
+  LinearLayout        (540, 332)   id=app_bar                      text='' desc=''
+  FrameLayout         (540, 332)   id=toolbar_layout               text='' desc='KeePassDX'
+  ImageView      c    (540, 420)   id=activity_password_logotype   text='' desc='About'
+  ImageView           (540, 420)   id=                             text='' desc='About'
+  ViewGroup           (540, 233)   id=toolbar                      text='' desc=''
+  ImageButton    c    (77, 233)    id=                             text='' desc='Navigate up'
+  TextView            (429, 233)   id=filename                     text='kpdx-explore.kdbx' desc=''
+  Button         c    (771, 233)   id=menu_open_file_read_mode_key text='' desc='Modifiable'
+  Button         c    (903, 233)   id=menu_open_file_user_verification_mode_key text='' desc='User Verification enabled'
+  ImageView      c    (1024, 233)  id=                             text='' desc='More options'
+  ScrollView          (540, 933)   id=scroll_container             text='' desc=''
+  FrameLayout         (540, 840)   id=activity_password_credentials text='' desc=''
+  LinearLayout        (540, 840)   id=unlock_container             text='' desc=''
+  RelativeLayout      (540, 664)   id=password_input_container     text='' desc=''
+  LinearLayout        (452, 664)   id=password_input_layout        text='' desc=''
+  EditText       c    (452, 671)   id=password_text_view           text='dummy-password-for-a-throwaway-file' desc=''
+  ImageButton    cx   (761, 671)   id=text_input_end_icon          text='' desc='Show password'
+  Switch         ckx  (931, 669)   id=password_checkbox            text='' desc='Password checkbox'
+  RelativeLayout      (540, 832)   id=container_key_file           text='' desc=''
+  ViewGroup      c    (452, 832)   id=keyfile_selection            text='' desc=''
+  ViewGroup           (452, 832)   id=container_key_file           text='' desc=''
+  LinearLayout        (452, 832)   id=input_entry_keyfile          text='' desc=''
+  EditText       c    (452, 839)   id=keyfile_name                 text='Keyfile' desc=''
+  ImageButton    cx   (761, 839)   id=text_input_end_icon          text='' desc='Show password'
+  Switch         cx   (931, 837)   id=keyfile_checkbox             text='' desc='Keyfile checkbox'
+  RelativeLayout      (540, 1000)  id=container_hardware_key       text='' desc=''
+  ViewGroup           (452, 1000)  id=hardware_key_selection       text='' desc=''
+  FrameLayout         (452, 1000)  id=container_hardware_key       text='' desc=''
+  LinearLayout        (452, 1000)  id=input_entry_hardware_key_layout text='' desc=''
+  Spinner        c    (452, 1007)  id=input_entry_hardware_key_completion text='Hardware key' desc=''
+  ImageButton    cx   (761, 1007)  id=text_input_end_icon          text='' desc='Show dropdown menu'
+  Switch         cx   (931, 1005)  id=hardware_key_checkbox        text='' desc='Hardware key checkbox'
+  LinearLayout        (540, 1435)  id=activity_password_footer     text='' desc=''
+  Button         c    (895, 1435)  id=activity_password_open_button text='Unlock' desc=''
+  View                (540, 72)    id=statusBarBackground          text='' desc=''
+  View                (0, 0)       id=navigationBarBackground      text='' desc=''
+[2026-11-16T12:49:21.557Z] x-unk.flow:15 sh logcat -d -t 80 *:W
+--------- beginning of main
+11-16 13:49:02.489  7217  7217 W app_process: Unexpected CPU variant for X86 using defaults: x86_64
+11-16 13:49:02.660  7217  7217 W app_process: JNI RegisterNativeMethods: attempt to register 0 native methods for android.media.AudioAttributes
+11-16 13:49:02.908  7217  7217 W app_process: Suspending all threads took: 14.672ms
+11-16 13:49:03.094  1241  1241 W KeyboardModeManager: KeyboardModeManager.setInputView():302 setInputView() : inputView = com.google.android.apps.inputmethod.libs.framework.core.InputView{c2c3f32 V.E...... ......ID 0,0-1080,2063}
+11-16 13:49:05.296  7235  7235 W app_process: Unexpected CPU variant for X86 using defaults: x86_64
+11-16 13:49:05.386  7235  7235 W app_process: JNI RegisterNativeMethods: attempt to register 0 native methods for android.media.AudioAttributes
+--------- beginning of system
+11-16 13:49:05.729   515   515 W Looper  : Slow dispatch took 103ms main h=com.android.server.accessibility.AccessibilityManagerService$MainHandler c=<recycled PooledLambda@66c7549> m=0
+11-16 13:49:07.075  7235  7235 W AccessibilityNodeInfoDumper: Fetch time: 103ms
+11-16 13:49:07.096   515  1849 W WindowManager: removeWindowToken: Attempted to remove non-existing token: android.os.Binder@8cbca99
+11-16 13:49:11.035  7254  7254 W app_process: Unexpected CPU variant for X86 using defaults: x86_64
+11-16 13:49:11.332  7254  7254 W app_process: JNI RegisterNativeMethods: attempt to register 0 native methods for android.media.AudioAttributes
+11-16 13:49:11.649   515   515 W Looper  : Slow dispatch took 169ms main h=com.android.server.accessibility.AccessibilityManagerService$MainHandler c=com.android.server.accessibility.-$$Lambda$UiAutomationManager$UiAutomationService$z2oxrodQt4ZxyzsfB6p_GYgwxqk@f1246a4 m=0
+11-16 13:49:11.723   515   515 W Looper  : Slow delivery took 211ms main h=com.android.server.accessibility.AccessibilityManagerService$MainHandler c=<recycled PooledLambda@a33e995> m=0
+11-16 13:49:11.731   515   515 W Looper  : Drained
+11-16 13:49:13.115  7254  7254 W AccessibilityNodeInfoDumper: Fetch time: 72ms
+11-16 13:49:13.118   515   529 W WindowManager: removeWindowToken: Attempted to remove non-existing token: android.os.Binder@2fcee36
+11-16 13:49:17.955  7273  7273 W app_process: Unexpected CPU variant for X86 using defaults: x86_64
+11-16 13:49:18.016  7273  7273 W app_process: JNI RegisterNativeMethods: attempt to register 0 native methods for android.media.AudioAttributes
+11-16 13:49:18.211   515   515 W Looper  : Slow dispatch took 115ms main h=com.android.server.accessibility.AccessibilityManagerService$MainHandler c=com.android.server.accessibility.-$$Lambda$AccessibilityManagerService$OoFjRI6y1WlU95cVLgWQrJ3H0b0@c170a28 m=0
+11-16 13:49:19.781  7273  7273 W AccessibilityNodeInfoDumper: Fetch time: 115ms
+11-16 13:49:19.803   515  1389 W WindowManager: removeWindowToken: Attempted to remove non-existing token: android.os.Binder@d93dfc5

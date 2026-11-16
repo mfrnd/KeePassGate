@@ -1,0 +1,28 @@
+63c63
+< E E1 parent G (G)
+---
+> E E1 parent N (N)
+68c68
+< E E1 t.location 2026-11-01T11:00:00Z
+---
+> E E1 t.location 2026-11-15T17:30:11Z
+359c359
+< G G children groups=1 entries=8
+---
+> G G children groups=0 entries=7
+385c385
+< G N children groups=0 entries=1
+---
+> G N children groups=0 entries=2
+389c389
+< G N parent G (G)
+---
+> G N parent Root (Storage probe)
+394c394
+< G N t.location 2026-11-01T10:20:00Z
+---
+> G N t.location 2026-11-15T17:31:00Z
+398c398
+< G Root children groups=3 entries=0
+---
+> G Root children groups=4 entries=0

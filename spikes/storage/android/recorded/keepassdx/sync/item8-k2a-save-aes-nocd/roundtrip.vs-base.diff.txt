@@ -1,0 +1,30 @@
+337a338,354
+> E ~220a2a56 S Notes p=0 ""
+> E ~220a2a56 S Password p=1 ""
+> E ~220a2a56 S Title p=0 "droid-added"
+> E ~220a2a56 S URL p=0 ""
+> E ~220a2a56 S UserName p=0 ""
+> E ~220a2a56 autotype enabled=1 obfuscation=0 seq="" assoc=0
+> E ~220a2a56 history.count 0
+> E ~220a2a56 misc icon=0 customIcon=- fg=00000000 bg=00000000 overrideUrl="" quality=1
+> E ~220a2a56 parent Root (Storage probe)
+> E ~220a2a56 prev -
+> E ~220a2a56 t.accessed 2026-11-15T17:07:08Z
+> E ~220a2a56 t.created 2026-11-15T17:06:56Z
+> E ~220a2a56 t.expires 0 2026-11-15T17:06:40Z
+> E ~220a2a56 t.location 2026-11-15T17:06:56Z
+> E ~220a2a56 t.modified 2026-11-15T17:07:08Z
+> E ~220a2a56 tags []
+> E ~220a2a56 usage 1
+340c357
+< F groups 5 entries 13
+---
+> F groups 5 entries 14
+395c412
+< G Root children groups=3 entries=0
+---
+> G Root children groups=3 entries=1
+408c425
+< M CD KPG.Profiles = "[\"reader\",\"writer\"]" @2026-11-01T10:15:00Z
+---
+> M CD KPG.Profiles = "[\"reader\",\"writer\"]" @none

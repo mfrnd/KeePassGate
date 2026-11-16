@@ -1,0 +1,2 @@
+sftp-s2-r1-hostkey/server: KG1 KG2 KG3:NO NewKey:NO DZ:NO X1:there/norec | P1=p1-old P2=p2-old Q1=q1-old Q2=q2-old Q3=q3-old K=k-old | NP:NO | 1019e391b75e =SOLD
+sftp-s4-merge-r1-hostkey/server: KG1 KG2 KG3:NO NewKey:NO DZ:NO X1:there/norec | P1=p1-old P2=p2-old Q1=q1-old Q2=q2-old Q3=q3-old K=k-old | NP:NO | 1019e391b75e =SOLD

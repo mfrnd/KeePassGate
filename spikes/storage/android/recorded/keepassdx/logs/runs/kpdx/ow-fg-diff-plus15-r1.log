@@ -1,0 +1,101 @@
+### 2026-11-16T13:01:04.116Z ow kpdx ow-fg-diff-plus15-r1 flow=kpdx-ow-fg.flow base=OLD ARR=NEW-diff MODE=plus15 TAG=ow-fg-diff-plus15-r1 (versionName=4.5.8)
+Success
+<work>/work/base/OLD.kdbx: 1 file pushed, 0 skipped. 0.6 MB/s (17365 bytes in 0.028s)
+given 17365 bytes, mtime 2026-11-16 13:51:07.000000000 +0100 sha256 6e25ae9b994a21f69404250dec2c751c358472bca635467c042d70f119402d6b
+[2026-11-16T13:01:09.510Z] kpdx-ow-fg.flow:3 include kpdx-open.flow
+[2026-11-16T13:01:09.531Z] kpdx-open.flow:4 sh monkey -p com.kunzisoft.keepass.libre -c android.intent.category.LAUNCHER 1
+  bash arg: -p
+  bash arg: com.kunzisoft.keepass.libre
+  bash arg: -c
+  bash arg: android.intent.category.LAUNCHER
+  bash arg: 1
+Events injected: 1
+## Network stats: elapsed time=279ms (0ms mobile, 0ms wifi, 279ms not connected)
+args: [-p, com.kunzisoft.keepass.libre, -c, android.intent.category.LAUNCHER, 1]
+ arg: "-p"
+ arg: "com.kunzisoft.keepass.libre"
+ arg: "-c"
+ arg: "android.intent.category.LAUNCHER"
+ arg: "1"
+data="com.kunzisoft.keepass.libre"
+data="android.intent.category.LAUNCHER"
+[2026-11-16T13:01:11.315Z] kpdx-open.flow:5 waitfor open_database_button 30
+[2026-11-16T13:01:20.755Z] kpdx-open.flow:6 tapuntil open_database_button Show.roots 40
+[2026-11-16T13:01:24.747Z]   tapped (799, 2051) 'Open existing vault'
+[2026-11-16T13:01:37.109Z]   tapped (799, 2051) 'Open existing vault'
+[2026-11-16T13:01:44.814Z] kpdx-open.flow:7 include picker.flow
+[2026-11-16T13:01:44.823Z] picker.flow:4 pick kpdx-ow-fg-diff-plus15-r1.kdbx
+[2026-11-16T13:01:58.181Z]   focused and entered '^kpdx\\-ow\\-fg\\-diff\\-plus15\\-r1\\.kdbx$'
+[2026-11-16T13:01:58.183Z] kpdx-open.flow:8 waitfor password_text_view 40
+[2026-11-16T13:02:05.553Z] kpdx-open.flow:9 typepwdx dummy-password-for-a-throwaway-file
+[2026-11-16T13:02:31.476Z]   typepwdx: the field reads 8 characters, not 35 (attempt 1)
+[2026-11-16T13:03:02.523Z]   typed the password and read it back (35 characters)
+[2026-11-16T13:03:02.524Z] kpdx-open.flow:10 tapuntil activity_password_open_button add_button 60
+[2026-11-16T13:03:09.700Z]   tapped (895, 1435) 'Unlock'
+[2026-11-16T13:03:22.191Z]   tapped (895, 1435) 'Unlock'
+[2026-11-16T13:03:36.173Z]   tapped (895, 1435) 'Unlock'
+[2026-11-16T13:03:51.427Z] kpdx-ow-fg.flow:4 sleep 3
+[2026-11-16T13:03:54.430Z] kpdx-ow-fg.flow:5 host sh <work>/scripts/replace.sh /sdcard/Download/kpdx-ow-fg-diff-plus15-r1.kdbx <work>/work/base/NEW-diff.kdbx plus15
+[2026-11-16T13:03:55.981Z]   | replace: before 17365 bytes, mtime 2026-11-16 13:51:07.000000000 +0100 sha256 6e25ae9b994a21f69404250dec2c751c358472bca635467c042d70f119402d6b
+[2026-11-16T13:03:55.985Z]   | <work>/work/base/NEW-diff.kdbx: 1 file pushed, 0 skipped. 0.9 MB/s (19509 bytes in 0.020s)
+[2026-11-16T13:03:55.992Z]   | replace: after  19509 bytes, mtime 2026-11-16 13:51:22.000000000 +0100 sha256 4c67b2a5698c8133dd00cb61d228b9911a4ed9b3f1f7b9ddbf375a08b91d5d3c (mode plus15, from NEW-diff.kdbx)
+[2026-11-16T13:03:55.994Z] kpdx-ow-fg.flow:6 sleep 2
+[2026-11-16T13:03:57.999Z] kpdx-ow-fg.flow:7 include kpdx-ow-add.flow
+[2026-11-16T13:03:58.010Z] kpdx-ow-add.flow:3 mark /sdcard/Download/kpdx-ow-fg-diff-plus15-r1.kdbx
+[2026-11-16T13:03:58.152Z]   marked /sdcard/Download/kpdx-ow-fg-diff-plus15-r1.kdbx sha256 4c67b2a5698c8133
+[2026-11-16T13:03:58.154Z] kpdx-ow-add.flow:4 tapuntil add_button fab_add_entry 20
+[2026-11-16T13:04:04.059Z]   tapped (970, 2013) 'Add node'
+[2026-11-16T13:04:07.884Z] kpdx-ow-add.flow:5 tapuntil fab_add_entry (entry_edit_validate|modified.outside) 30
+[2026-11-16T13:04:14.447Z]   tapped (885, 1691) 'Add entry'
+[2026-11-16T13:04:25.690Z] kpdx-ow-add.flow:6 ifthen modified.outside 6 kpdx-ow-dialog.flow
+[2026-11-16T13:04:30.021Z]   'modified.outside' is there: running kpdx-ow-dialog.flow
+[2026-11-16T13:04:30.035Z] kpdx-ow-dialog.flow:2 dialog
+[2026-11-16T13:04:33.765Z]   dialog message: 'The information contained in your database has been modified outside the app.\n\nNov 16, 2026 1:51:07 PM, 17.36 kB\n→\nNov 16, 2026 1:51:22 PM, 19.51 kB\n\nMerge the data, overwrite the external modifications by saving the database or reload it with the latest changes.'
+[2026-11-16T13:04:33.769Z]   dialog button1: 'OK'
+[2026-11-16T13:04:33.770Z] kpdx-ow-dialog.flow:3 tap ^OK$
+[2026-11-16T13:04:39.034Z]   tapped (887, 1495) 'OK'
+[2026-11-16T13:04:39.037Z] kpdx-ow-dialog.flow:4 sleep 2
+[2026-11-16T13:04:41.038Z] kpdx-ow-add.flow:7 waitfor entry_edit_validate 20
+[2026-11-16T13:04:45.358Z] kpdx-ow-add.flow:8 type ^Title$ phone-ow-fg-diff-plus15-r1
+[2026-11-16T13:05:11.018Z]   type: field never took the focus (attempt 1)
+[2026-11-16T13:05:40.580Z]   type: text did not land (attempt 2)
+  LinearLayout        (540, 1036)  id=action_bar_root              text='' desc=''
+  FrameLayout         (540, 1036)  id=content                      text='' desc=''
+  ViewGroup           (540, 834)   id=activity_entry_edit_container text='' desc=''
+  ViewGroup           (540, 834)   id=error_coordinator            text='' desc=''
+  ViewGroup           (540, 834)   id=entry_edit_coordinator_layout text='' desc=''
+  ScrollView          (540, 834)   id=entry_edit_scroll            text='' desc=''
+  FrameLayout         (540, 835)   id=entry_edit_content           text='' desc=''
+  FrameLayout         (540, 835)   id=template_view                text='' desc=''
+  FrameLayout         (540, 366)   id=template_header_container    text='' desc=''
+  ImageButton    c    (540, 277)   id=template_icon_button         text='' desc='Entry icon'
+  FrameLayout         (540, 443)   id=template_title_container     text='' desc=''
+  EditText       cf   (540, 450)   id=                             text='phone-ow-fg-diff-plus15' desc=''
+  ImageView      c    (917, 296)   id=template_foreground_color_button text='' desc='Entry background color'
+  ImageView      c    (978, 235)   id=template_background_color_button text='' desc='Entry background color'
+  LinearLayout        (540, 1054)  id=template_fields_container    text='' desc=''
+  EditText       c    (540, 734)   id=                             text='invented-default-user' desc=''
+  EditText       c    (474, 912)   id=                             text='Password' desc=''
+  ImageButton    cx   (815, 912)   id=text_input_end_icon          text='' desc='Show password'
+  TextView            (759, 962)   id=                             text='Entropy: 0.00 bit' desc=''
+  ImageButton    c    (947, 915)   id=                             text='' desc='Edit'
+  EditText       c    (540, 1090)  id=                             text='URL' desc=''
+  LinearLayout        (457, 1261)  id=expiration_label             text='' desc=''
+  EditText       c    (457, 1263)  id=expiration_text              text='Never' desc=''
+  Switch         cx   (941, 1262)  id=expiration_checkbox          text='' desc=''
+  EditText       c    (540, 1444)  id=                             text='Notes' desc=''
+  ImageButton    c    (90, 1416)   id=lock_button                  text='' desc='Lock'
+  ViewGroup           (540, 1435)  id=entry_edit_bottom_bar        text='' desc=''
+  ImageButton    c    (209, 1435)  id=                             text='' desc='Navigate up'
+  Button         c    (552, 1435)  id=menu_add_attachment          text='' desc='Add attachment'
+  Button         c    (684, 1435)  id=menu_add_otp                 text='' desc='Set up one-time password'
+  Button         c    (816, 1435)  id=menu_add_field               text='' desc='Add field'
+  ImageButton    c    (970, 1413)  id=entry_edit_validate          text='' desc='Validate'
+  View                (540, 72)    id=statusBarBackground          text='' desc=''
+  View                (0, 0)       id=navigationBarBackground      text='' desc=''
+[2026-11-16T13:05:59.408Z] FAILED: type: no field matches ^Title$
+total 24
+-rw------- 1 u0_a160 u0_a160 19509 2026-11-16 13:51:22.000000000 +0100 kpdx-ow-fg-diff-plus15-r1.kdbx
+device kpdx-ow-fg-diff-plus15-r1.kdbx sha256 4c67b2a5698c8133dd00cb61d228b9911a4ed9b3f1f7b9ddbf375a08b91d5d3c 19509 bytes, mtime 2026-11-16 13:51:22.000000000 +0100
+/sdcard/Download/kpdx-ow-fg-diff-plus15-r1.kdbx: 1 file pulled, 0 skipped. 0.2 MB/s (19509 bytes in 0.085s)
+### flow rc=1 2026-11-16T13:06:03.485Z

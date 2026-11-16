@@ -1,0 +1,217 @@
+<work>/work/base/B41.kdbx: 1 file pushed, 0 skipped. 1.7 MB/s (16085 bytes in 0.009s)
+[2026-11-16T08:42:43.641Z] x-tags.flow:2 include kpdx-open.flow
+[2026-11-16T08:42:43.646Z] kpdx-open.flow:4 sh monkey -p com.kunzisoft.keepass.libre -c android.intent.category.LAUNCHER 1
+  bash arg: -p
+  bash arg: com.kunzisoft.keepass.libre
+  bash arg: -c
+  bash arg: android.intent.category.LAUNCHER
+  bash arg: 1
+Events injected: 1
+## Network stats: elapsed time=117ms (0ms mobile, 0ms wifi, 117ms not connected)
+args: [-p, com.kunzisoft.keepass.libre, -c, android.intent.category.LAUNCHER, 1]
+ arg: "-p"
+ arg: "com.kunzisoft.keepass.libre"
+ arg: "-c"
+ arg: "android.intent.category.LAUNCHER"
+ arg: "1"
+data="com.kunzisoft.keepass.libre"
+data="android.intent.category.LAUNCHER"
+[2026-11-16T08:42:44.409Z] kpdx-open.flow:5 waitfor open_database_button 30
+[2026-11-16T08:42:49.293Z] kpdx-open.flow:6 tapuntil open_database_button Show.roots 40
+[2026-11-16T08:42:51.754Z]   tapped (799, 2051) 'Open existing vault'
+[2026-11-16T08:43:01.454Z]   tapped (799, 2051) 'Open existing vault'
+[2026-11-16T08:43:03.730Z] kpdx-open.flow:7 include picker.flow
+[2026-11-16T08:43:03.733Z] picker.flow:4 pick kpdx-explore.kdbx
+[2026-11-16T08:43:11.529Z]   focused and entered '^kpdx\\-explore\\.kdbx$'
+[2026-11-16T08:43:11.529Z] kpdx-open.flow:8 waitfor password_text_view 40
+[2026-11-16T08:43:14.592Z] kpdx-open.flow:9 typepwdx dummy-password-for-a-throwaway-file
+[2026-11-16T08:43:28.031Z]   typepwdx: the field reads 8 characters, not 35 (attempt 1)
+[2026-11-16T08:43:41.841Z]   typed the password and read it back (35 characters)
+[2026-11-16T08:43:41.841Z] kpdx-open.flow:10 tapuntil activity_password_open_button add_button 60
+[2026-11-16T08:43:44.967Z]   tapped (895, 1435) 'Unlock'
+[2026-11-16T08:43:55.203Z]   tapped (895, 1435) 'Unlock'
+[2026-11-16T08:44:05.330Z]   tapped (895, 1435) 'Unlock'
+[2026-11-16T08:44:11.013Z] x-tags.flow:3 tapuntil node_text@^G$ node_text@^E1$ 40
+[2026-11-16T08:44:13.922Z]   tapped (247, 713) 'G'
+[2026-11-16T08:44:23.699Z]   tapped (247, 713) 'G'
+[2026-11-16T08:44:26.260Z] x-tags.flow:4 sleep 3
+[2026-11-16T08:44:29.261Z] x-tags.flow:5 set SEL ^E1
+[2026-11-16T08:44:29.261Z] x-tags.flow:6 include kpdx-sel-edit.flow
+[2026-11-16T08:44:29.265Z] kpdx-sel-edit.flow:3 longpressuntil node_text@^E1 menu_move 60 2000 600
+[2026-11-16T08:44:34.051Z]   long-pressed (600, 856) for 2000 ms on the line of 'E1'
+[2026-11-16T08:44:46.018Z]   long-pressed (600, 856) for 2000 ms on the line of 'E1'
+[2026-11-16T08:44:58.076Z]   long-pressed (600, 856) for 2000 ms on the line of 'E1'
+[2026-11-16T08:45:09.968Z]   long-pressed (600, 856) for 2000 ms on the line of 'E1'
+[2026-11-16T08:45:12.008Z] kpdx-sel-edit.flow:4 tapuntil More.options#2 ^Edit$ 30
+[2026-11-16T08:45:14.906Z]   tapped (1024, 2063) 'More options'
+[2026-11-16T08:45:17.284Z] kpdx-sel-edit.flow:5 tap ^Edit$
+[2026-11-16T08:45:19.928Z]   tapped (799, 1966) 'Edit'
+[2026-11-16T08:45:19.928Z] kpdx-sel-edit.flow:6 ifthen setup_check_password_edit_text 8 kpdx-verify.flow
+[2026-11-16T08:45:22.585Z]   'setup_check_password_edit_text' is there: running kpdx-verify.flow
+[2026-11-16T08:45:22.590Z] kpdx-verify.flow:3 type setup_check_password_edit_text dumm
+[2026-11-16T08:45:35.733Z]   type: field never took the focus (attempt 1)
+[2026-11-16T08:45:45.258Z]   typed 'dumm'
+[2026-11-16T08:45:45.258Z] kpdx-verify.flow:4 tapuntil ^Check$ entry_edit_validate 30
+[2026-11-16T08:45:48.448Z]   tapped (887, 1111) 'Check'
+[2026-11-16T08:45:52.425Z] kpdx-sel-edit.flow:7 waitfor entry_edit_validate 20
+[2026-11-16T08:45:54.759Z] x-tags.flow:7 list
+  LinearLayout        (540, 1036)  id=action_bar_root              text='' desc=''
+  FrameLayout         (540, 1036)  id=content                      text='' desc=''
+  ViewGroup           (540, 1108)  id=activity_entry_edit_container text='' desc=''
+  ViewGroup           (540, 1108)  id=error_coordinator            text='' desc=''
+  ViewGroup           (540, 1108)  id=entry_edit_coordinator_layout text='' desc=''
+  ScrollView          (540, 1108)  id=entry_edit_scroll            text='' desc=''
+  FrameLayout         (540, 1115)  id=entry_edit_content           text='' desc=''
+  FrameLayout         (540, 1107)  id=template_view                text='' desc=''
+  FrameLayout         (540, 378)   id=template_header_container    text='' desc=''
+  ImageButton    c    (540, 289)   id=template_icon_button         text='' desc='Entry icon'
+  FrameLayout         (540, 455)   id=template_title_container     text='' desc=''
+  EditText       c    (540, 462)   id=                             text='E1' desc=''
+  ImageView      c    (917, 308)   id=template_foreground_color_button text='' desc='Entry background color'
+  ImageView      c    (978, 247)   id=template_background_color_button text='' desc='Entry background color'
+  LinearLayout        (540, 1095)  id=template_fields_container    text='' desc=''
+  EditText       c    (540, 746)   id=                             text='alice-invented' desc=''
+  EditText       c    (474, 924)   id=                             text='pw-e1-not-real' desc=''
+  ImageButton    cx   (815, 924)   id=text_input_end_icon          text='' desc='Show password'
+  TextView            (751, 974)   id=                             text='Entropy: 37.82 bit' desc=''
+  ImageButton    c    (947, 927)   id=                             text='' desc='Edit'
+  EditText       c    (540, 1102)  id=                             text='https://e1.example.invalid/' desc=''
+  LinearLayout        (457, 1273)  id=expiration_label             text='' desc=''
+  EditText       c    (457, 1275)  id=expiration_text              text='Never' desc=''
+  Switch         cx   (941, 1274)  id=expiration_checkbox          text='' desc=''
+  EditText       c    (540, 1459)  id=                             text='ordinary notes' desc=''
+  FrameLayout         (540, 1825)  id=custom_fields_container      text='' desc=''
+  EditText       c    (474, 1743)  id=                             text='extra-value-e1' desc=''
+  ImageButton    c    (947, 1746)  id=                             text='' desc='Edit'
+  EditText       c    (474, 1921)  id=                             text='protected-custom-e1' desc=''
+  ImageButton    cx   (815, 1921)  id=text_input_end_icon          text='' desc='Show password'
+  ImageButton    c    (947, 1924)  id=                             text='' desc='Edit'
+  FrameLayout         (540, 2071)  id=entry_attachments_container  text='' desc=''
+  TextView            (0, 0)       id=entry_attachments_label      text='Attachments' desc=''
+  RecyclerView        (0, 0)       id=entry_attachments_list       text='' desc=''
+  RelativeLayout      (0, 0)       id=item_attachment_container    text='' desc=''
+  RelativeLayout c    (0, 0)       id=item_attachment_info         text='' desc=''
+  TextView            (0, 0)       id=item_attachment_title        text='e1.txt' desc=''
+  LinearLayout        (0, 0)       id=item_attachment_size_container text='' desc=''
+  TextView            (0, 0)       id=item_attachment_size         text='600 B' desc=''
+  FrameLayout         (0, 0)       id=item_attachment_action_container text='' desc=''
+  ImageButton    c    (0, 0)       id=item_attachment_delete_button text='' desc='Remove field'
+  ImageButton    c    (90, 2033)   id=lock_button                  text='' desc='Lock'
+  ViewGroup           (540, 2052)  id=entry_edit_bottom_bar        text='' desc=''
+  ImageButton    c    (209, 2057)  id=                             text='' desc='Navigate up'
+  Button         c    (552, 2063)  id=menu_add_attachment          text='' desc='Add attachment'
+  Button         c    (684, 2063)  id=menu_add_otp                 text='' desc='Set up one-time password'
+  Button         c    (816, 2063)  id=menu_add_field               text='' desc='Add field'
+  ImageButton    c    (970, 2046)  id=entry_edit_validate          text='' desc='Validate'
+  View                (540, 72)    id=statusBarBackground          text='' desc=''
+  View                (0, 0)       id=navigationBarBackground      text='' desc=''
+[2026-11-16T08:45:56.847Z] x-tags.flow:8 sh input swipe 540 1400 540 300 800
+[2026-11-16T08:45:58.344Z] x-tags.flow:9 sleep 2
+[2026-11-16T08:46:00.345Z] x-tags.flow:10 list
+  LinearLayout        (540, 1036)  id=action_bar_root              text='' desc=''
+  FrameLayout         (540, 1036)  id=content                      text='' desc=''
+  ViewGroup           (540, 1108)  id=activity_entry_edit_container text='' desc=''
+  ViewGroup           (540, 1108)  id=error_coordinator            text='' desc=''
+  ViewGroup           (540, 1108)  id=entry_edit_coordinator_layout text='' desc=''
+  ScrollView          (540, 1108)  id=entry_edit_scroll            text='' desc=''
+  FrameLayout         (540, 1108)  id=entry_edit_content           text='' desc=''
+  FrameLayout         (540, 994)   id=template_view                text='' desc=''
+  FrameLayout         (540, 258)   id=template_header_container    text='' desc=''
+  ImageButton    c    (540, 149)   id=template_icon_button         text='' desc='Entry icon'
+  FrameLayout         (540, 243)   id=template_title_container     text='' desc=''
+  EditText       c    (540, 250)   id=                             text='E1' desc=''
+  ImageView      c    (917, 153)   id=template_foreground_color_button text='' desc='Entry background color'
+  LinearLayout        (540, 883)   id=template_fields_container    text='' desc=''
+  EditText       c    (540, 534)   id=                             text='alice-invented' desc=''
+  EditText       c    (474, 712)   id=                             text='pw-e1-not-real' desc=''
+  ImageButton    cx   (815, 712)   id=text_input_end_icon          text='' desc='Show password'
+  TextView            (751, 762)   id=                             text='Entropy: 37.82 bit' desc=''
+  ImageButton    c    (947, 715)   id=                             text='' desc='Edit'
+  EditText       c    (540, 890)   id=                             text='https://e1.example.invalid/' desc=''
+  LinearLayout        (457, 1061)  id=expiration_label             text='' desc=''
+  EditText       c    (457, 1063)  id=expiration_text              text='Never' desc=''
+  Switch         cx   (941, 1062)  id=expiration_checkbox          text='' desc=''
+  EditText       c    (540, 1247)  id=                             text='ordinary notes' desc=''
+  FrameLayout         (540, 1613)  id=custom_fields_container      text='' desc=''
+  EditText       c    (474, 1531)  id=                             text='extra-value-e1' desc=''
+  ImageButton    c    (947, 1534)  id=                             text='' desc='Edit'
+  EditText       c    (474, 1709)  id=                             text='protected-custom-e1' desc=''
+  ImageButton    cx   (815, 1709)  id=text_input_end_icon          text='' desc='Show password'
+  ImageButton    c    (947, 1712)  id=                             text='' desc='Edit'
+  FrameLayout         (540, 1965)  id=entry_attachments_container  text='' desc=''
+  TextView            (540, 1919)  id=entry_attachments_label      text='Attachments' desc=''
+  RecyclerView        (540, 2006)  id=entry_attachments_list       text='' desc=''
+  RelativeLayout      (540, 2006)  id=item_attachment_container    text='' desc=''
+  RelativeLayout c    (540, 2006)  id=item_attachment_info         text='' desc=''
+  TextView            (424, 2007)  id=item_attachment_title        text='e1.txt' desc=''
+  LinearLayout        (831, 2006)  id=item_attachment_size_container text='' desc=''
+  TextView            (831, 2007)  id=item_attachment_size         text='600 B' desc=''
+  FrameLayout         (947, 2006)  id=item_attachment_action_container text='' desc=''
+  ImageButton    c    (947, 2006)  id=item_attachment_delete_button text='' desc='Remove field'
+  FrameLayout         (0, 0)       id=entry_tags_container         text='' desc=''
+  LinearLayout        (0, 0)       id=entry_tags_label             text='' desc=''
+  EditText       c    (0, 0)       id=entry_tags_completion_view   text='work, ' desc=''
+  ImageButton    c    (90, 2033)   id=lock_button                  text='' desc='Lock'
+  ViewGroup           (540, 2052)  id=entry_edit_bottom_bar        text='' desc=''
+  ImageButton    c    (209, 2057)  id=                             text='' desc='Navigate up'
+  Button         c    (552, 2063)  id=menu_add_attachment          text='' desc='Add attachment'
+  Button         c    (684, 2063)  id=menu_add_otp                 text='' desc='Set up one-time password'
+  Button         c    (816, 2063)  id=menu_add_field               text='' desc='Add field'
+  ImageButton    c    (970, 2046)  id=entry_edit_validate          text='' desc='Validate'
+  View                (540, 72)    id=statusBarBackground          text='' desc=''
+  View                (0, 0)       id=navigationBarBackground      text='' desc=''
+[2026-11-16T08:46:02.638Z] x-tags.flow:11 sh input swipe 540 1400 540 300 800
+[2026-11-16T08:46:04.491Z] x-tags.flow:12 sleep 2
+[2026-11-16T08:46:06.492Z] x-tags.flow:13 list
+  LinearLayout        (540, 1036)  id=action_bar_root              text='' desc=''
+  FrameLayout         (540, 1036)  id=content                      text='' desc=''
+  ViewGroup           (540, 1108)  id=activity_entry_edit_container text='' desc=''
+  ViewGroup           (540, 1108)  id=error_coordinator            text='' desc=''
+  ViewGroup           (540, 1108)  id=entry_edit_coordinator_layout text='' desc=''
+  ScrollView          (540, 1108)  id=entry_edit_scroll            text='' desc=''
+  FrameLayout         (540, 1108)  id=entry_edit_content           text='' desc=''
+  FrameLayout         (540, 994)   id=template_view                text='' desc=''
+  FrameLayout         (540, 258)   id=template_header_container    text='' desc=''
+  ImageButton    c    (540, 149)   id=template_icon_button         text='' desc='Entry icon'
+  FrameLayout         (540, 243)   id=template_title_container     text='' desc=''
+  EditText       cf   (540, 250)   id=                             text='E1' desc=''
+  ImageView      c    (917, 153)   id=template_foreground_color_button text='' desc='Entry background color'
+  LinearLayout        (540, 883)   id=template_fields_container    text='' desc=''
+  EditText       c    (540, 534)   id=                             text='alice-invented' desc=''
+  EditText       c    (474, 712)   id=                             text='pw-e1-not-real' desc=''
+  ImageButton    cx   (815, 712)   id=text_input_end_icon          text='' desc='Show password'
+  TextView            (751, 762)   id=                             text='Entropy: 37.82 bit' desc=''
+  ImageButton    c    (947, 715)   id=                             text='' desc='Edit'
+  EditText       c    (540, 890)   id=                             text='https://e1.example.invalid/' desc=''
+  LinearLayout        (457, 1061)  id=expiration_label             text='' desc=''
+  EditText       c    (457, 1063)  id=expiration_text              text='Never' desc=''
+  Switch         cx   (941, 1062)  id=expiration_checkbox          text='' desc=''
+  EditText       c    (540, 1247)  id=                             text='ordinary notes' desc=''
+  FrameLayout         (540, 1613)  id=custom_fields_container      text='' desc=''
+  EditText       c    (474, 1531)  id=                             text='extra-value-e1' desc=''
+  ImageButton    c    (947, 1534)  id=                             text='' desc='Edit'
+  EditText       c    (474, 1709)  id=                             text='protected-custom-e1' desc=''
+  ImageButton    cx   (815, 1709)  id=text_input_end_icon          text='' desc='Show password'
+  ImageButton    c    (947, 1712)  id=                             text='' desc='Edit'
+  FrameLayout         (540, 1965)  id=entry_attachments_container  text='' desc=''
+  TextView            (540, 1919)  id=entry_attachments_label      text='Attachments' desc=''
+  RecyclerView        (540, 2006)  id=entry_attachments_list       text='' desc=''
+  RelativeLayout      (540, 2006)  id=item_attachment_container    text='' desc=''
+  RelativeLayout c    (540, 2006)  id=item_attachment_info         text='' desc=''
+  TextView            (424, 2007)  id=item_attachment_title        text='e1.txt' desc=''
+  LinearLayout        (831, 2006)  id=item_attachment_size_container text='' desc=''
+  TextView            (831, 2007)  id=item_attachment_size         text='600 B' desc=''
+  FrameLayout         (947, 2006)  id=item_attachment_action_container text='' desc=''
+  ImageButton    c    (947, 2006)  id=item_attachment_delete_button text='' desc='Remove field'
+  FrameLayout         (0, 0)       id=entry_tags_container         text='' desc=''
+  LinearLayout        (0, 0)       id=entry_tags_label             text='' desc=''
+  EditText       c    (0, 0)       id=entry_tags_completion_view   text='work, ' desc=''
+  ImageButton    c    (90, 2033)   id=lock_button                  text='' desc='Lock'
+  ViewGroup           (540, 2052)  id=entry_edit_bottom_bar        text='' desc=''
+  ImageButton    c    (209, 2057)  id=                             text='' desc='Navigate up'
+  Button         c    (552, 2063)  id=menu_add_attachment          text='' desc='Add attachment'
+  Button         c    (684, 2063)  id=menu_add_otp                 text='' desc='Set up one-time password'
+  Button         c    (816, 2063)  id=menu_add_field               text='' desc='Add field'
+  ImageButton    c    (970, 2046)  id=entry_edit_validate          text='' desc='Validate'
+  View                (540, 72)    id=statusBarBackground          text='' desc=''
+  View                (0, 0)       id=navigationBarBackground      text='' desc=''

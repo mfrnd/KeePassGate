@@ -1,0 +1,232 @@
+0a1
+> D AD1 2026-11-16T15:10:13Z
+6,26c7,9
+< D count 5
+< E AD1 S KPG.Check p=0 "3213ef56134fb97ede1b571793181cf1863832e0978887154b2f169d716d056c"
+< E AD1 S KPG.Kind p=0 "admission"
+< E AD1 S KPG.Record p=0 len=159 sha=530ece65f760f0cd "{\"certificate\":\"d2d31ae42311e216978c55ae62b98315483da922e..."
+< E AD1 S Notes p=0 ""
+< E AD1 S Password p=1 ""
+< E AD1 S Title p=0 "KPG client build-agent"
+< E AD1 S URL p=0 ""
+< E AD1 S UserName p=0 ""
+< E AD1 autotype enabled=1 obfuscation=0 seq="" assoc=0
+< E AD1 history.count 0
+< E AD1 misc icon=0 customIcon=- fg=00000000 bg=00000000 overrideUrl="" quality=1
+< E AD1 parent Bin (Recycle Bin)
+< E AD1 prev KG
+< E AD1 t.accessed 2026-11-16T15:08:32Z
+< E AD1 t.created 2026-11-01T11:00:00Z
+< E AD1 t.expires 0 2026-11-01T10:00:00Z
+< E AD1 t.location 2026-11-16T15:08:32Z
+< E AD1 t.modified 2026-11-16T15:08:32Z
+< E AD1 tags []
+< E AD1 usage 2
+---
+> D GD 2026-11-16T15:10:13Z
+> D GD1 2026-11-16T15:10:13Z
+> D count 8
+134,150d116
+< E GD1 S Notes p=0 ""
+< E GD1 S Password p=1 "gd1-old"
+< E GD1 S Title p=0 "GD1"
+< E GD1 S URL p=0 ""
+< E GD1 S UserName p=0 "user-gd1"
+< E GD1 autotype enabled=1 obfuscation=0 seq="" assoc=0
+< E GD1 history.count 0
+< E GD1 misc icon=0 customIcon=- fg=00000000 bg=00000000 overrideUrl="" quality=1
+< E GD1 parent GD (GD)
+< E GD1 prev -
+< E GD1 t.accessed 2026-11-01T10:20:00Z
+< E GD1 t.created 2026-11-01T10:20:00Z
+< E GD1 t.expires 0 2026-11-01T10:00:00Z
+< E GD1 t.location 2026-11-01T10:20:00Z
+< E GD1 t.modified 2026-11-01T10:20:00Z
+< E GD1 tags []
+< E GD1 usage 0
+842c808
+< F groups 13 entries 40
+---
+> F groups 12 entries 38
+845c811
+< G Bin children groups=1 entries=1
+---
+> G Bin children groups=0 entries=0
+851c817
+< G Bin t.accessed 2026-11-16T15:09:50Z
+---
+> G Bin t.accessed 2026-11-16T15:10:13Z
+855c821
+< G Bin t.modified 2026-11-16T15:09:50Z
+---
+> G Bin t.modified 2026-11-16T15:10:13Z
+872,884d837
+< G GD children groups=0 entries=1
+< G GD flags icon=48 customIcon=- search=inherit autotype=inherit expanded=1 seq="" lastTop=-
+< G GD name "GD"
+< G GD notes ""
+< G GD parent Bin (Recycle Bin)
+< G GD prev Root
+< G GD t.accessed 2026-11-16T15:09:05Z
+< G GD t.created 2026-11-01T10:05:00Z
+< G GD t.expires 0 2026-11-01T10:00:00Z
+< G GD t.location 2026-11-16T15:09:05Z
+< G GD t.modified 2026-11-16T15:09:05Z
+< G GD tags []
+< G GD usage 0
+1008c961
+< G Root t.accessed 2026-11-16T15:09:50Z
+---
+> G Root t.accessed 2026-11-16T15:10:13Z
+1012c965
+< G Root t.modified 2026-11-16T15:09:50Z
+---
+> G Root t.modified 2026-11-16T15:10:13Z
+1098,1100c1051,1053
+< X KeePassFile/Root/DeletedObjects/DeletedObject 5
+< X KeePassFile/Root/DeletedObjects/DeletedObject/DeletionTime 5
+< X KeePassFile/Root/DeletedObjects/DeletedObject/UUID 5
+---
+> X KeePassFile/Root/DeletedObjects/DeletedObject 8
+> X KeePassFile/Root/DeletedObjects/DeletedObject/DeletionTime 8
+> X KeePassFile/Root/DeletedObjects/DeletedObject/UUID 8
+1113,1117c1066,1070
+< X KeePassFile/Root/Group/Group/Entry 34
+< X KeePassFile/Root/Group/Group/Entry/AutoType 34
+< X KeePassFile/Root/Group/Group/Entry/AutoType/DataTransferObfuscation 34
+< X KeePassFile/Root/Group/Group/Entry/AutoType/Enabled 34
+< X KeePassFile/Root/Group/Group/Entry/BackgroundColor 34
+---
+> X KeePassFile/Root/Group/Group/Entry 33
+> X KeePassFile/Root/Group/Group/Entry/AutoType 33
+> X KeePassFile/Root/Group/Group/Entry/AutoType/DataTransferObfuscation 33
+> X KeePassFile/Root/Group/Group/Entry/AutoType/Enabled 33
+> X KeePassFile/Root/Group/Group/Entry/BackgroundColor 33
+1126,1127c1079,1080
+< X KeePassFile/Root/Group/Group/Entry/ForegroundColor 34
+< X KeePassFile/Root/Group/Group/Entry/History 34
+---
+> X KeePassFile/Root/Group/Group/Entry/ForegroundColor 33
+> X KeePassFile/Root/Group/Group/Entry/History 33
+1154,1156c1107,1108
+< X KeePassFile/Root/Group/Group/Entry/IconID 34
+< X KeePassFile/Root/Group/Group/Entry/OverrideURL 34
+< X KeePassFile/Root/Group/Group/Entry/PreviousParentGroup 1
+---
+> X KeePassFile/Root/Group/Group/Entry/IconID 33
+> X KeePassFile/Root/Group/Group/Entry/OverrideURL 33
+1158,1161c1110,1113
+< X KeePassFile/Root/Group/Group/Entry/String 216
+< X KeePassFile/Root/Group/Group/Entry/String/Key 216
+< X KeePassFile/Root/Group/Group/Entry/String/Value 216
+< X KeePassFile/Root/Group/Group/Entry/String/Value@Protected=True 37
+---
+> X KeePassFile/Root/Group/Group/Entry/String 208
+> X KeePassFile/Root/Group/Group/Entry/String/Key 208
+> X KeePassFile/Root/Group/Group/Entry/String/Value 208
+> X KeePassFile/Root/Group/Group/Entry/String/Value@Protected=True 36
+1163,1184c1115,1136
+< X KeePassFile/Root/Group/Group/Entry/Times 34
+< X KeePassFile/Root/Group/Group/Entry/Times/CreationTime 34
+< X KeePassFile/Root/Group/Group/Entry/Times/Expires 34
+< X KeePassFile/Root/Group/Group/Entry/Times/ExpiryTime 34
+< X KeePassFile/Root/Group/Group/Entry/Times/LastAccessTime 34
+< X KeePassFile/Root/Group/Group/Entry/Times/LastModificationTime 34
+< X KeePassFile/Root/Group/Group/Entry/Times/LocationChanged 34
+< X KeePassFile/Root/Group/Group/Entry/Times/UsageCount 34
+< X KeePassFile/Root/Group/Group/Entry/UUID 34
+< X KeePassFile/Root/Group/Group/Group 4
+< X KeePassFile/Root/Group/Group/Group/DefaultAutoTypeSequence 4
+< X KeePassFile/Root/Group/Group/Group/EnableAutoType 4
+< X KeePassFile/Root/Group/Group/Group/EnableSearching 4
+< X KeePassFile/Root/Group/Group/Group/Entry 5
+< X KeePassFile/Root/Group/Group/Group/Entry/AutoType 5
+< X KeePassFile/Root/Group/Group/Group/Entry/AutoType/DataTransferObfuscation 5
+< X KeePassFile/Root/Group/Group/Group/Entry/AutoType/Enabled 5
+< X KeePassFile/Root/Group/Group/Group/Entry/BackgroundColor 5
+< X KeePassFile/Root/Group/Group/Group/Entry/ForegroundColor 5
+< X KeePassFile/Root/Group/Group/Group/Entry/History 5
+< X KeePassFile/Root/Group/Group/Group/Entry/IconID 5
+< X KeePassFile/Root/Group/Group/Group/Entry/OverrideURL 5
+---
+> X KeePassFile/Root/Group/Group/Entry/Times 33
+> X KeePassFile/Root/Group/Group/Entry/Times/CreationTime 33
+> X KeePassFile/Root/Group/Group/Entry/Times/Expires 33
+> X KeePassFile/Root/Group/Group/Entry/Times/ExpiryTime 33
+> X KeePassFile/Root/Group/Group/Entry/Times/LastAccessTime 33
+> X KeePassFile/Root/Group/Group/Entry/Times/LastModificationTime 33
+> X KeePassFile/Root/Group/Group/Entry/Times/LocationChanged 33
+> X KeePassFile/Root/Group/Group/Entry/Times/UsageCount 33
+> X KeePassFile/Root/Group/Group/Entry/UUID 33
+> X KeePassFile/Root/Group/Group/Group 3
+> X KeePassFile/Root/Group/Group/Group/DefaultAutoTypeSequence 3
+> X KeePassFile/Root/Group/Group/Group/EnableAutoType 3
+> X KeePassFile/Root/Group/Group/Group/EnableSearching 3
+> X KeePassFile/Root/Group/Group/Group/Entry 4
+> X KeePassFile/Root/Group/Group/Group/Entry/AutoType 4
+> X KeePassFile/Root/Group/Group/Group/Entry/AutoType/DataTransferObfuscation 4
+> X KeePassFile/Root/Group/Group/Group/Entry/AutoType/Enabled 4
+> X KeePassFile/Root/Group/Group/Group/Entry/BackgroundColor 4
+> X KeePassFile/Root/Group/Group/Group/Entry/ForegroundColor 4
+> X KeePassFile/Root/Group/Group/Group/Entry/History 4
+> X KeePassFile/Root/Group/Group/Group/Entry/IconID 4
+> X KeePassFile/Root/Group/Group/Group/Entry/OverrideURL 4
+1186,1198c1138,1150
+< X KeePassFile/Root/Group/Group/Group/Entry/String 26
+< X KeePassFile/Root/Group/Group/Group/Entry/String/Key 26
+< X KeePassFile/Root/Group/Group/Group/Entry/String/Value 26
+< X KeePassFile/Root/Group/Group/Group/Entry/String/Value@Protected=True 5
+< X KeePassFile/Root/Group/Group/Group/Entry/Times 5
+< X KeePassFile/Root/Group/Group/Group/Entry/Times/CreationTime 5
+< X KeePassFile/Root/Group/Group/Group/Entry/Times/Expires 5
+< X KeePassFile/Root/Group/Group/Group/Entry/Times/ExpiryTime 5
+< X KeePassFile/Root/Group/Group/Group/Entry/Times/LastAccessTime 5
+< X KeePassFile/Root/Group/Group/Group/Entry/Times/LastModificationTime 5
+< X KeePassFile/Root/Group/Group/Group/Entry/Times/LocationChanged 5
+< X KeePassFile/Root/Group/Group/Group/Entry/Times/UsageCount 5
+< X KeePassFile/Root/Group/Group/Group/Entry/UUID 5
+---
+> X KeePassFile/Root/Group/Group/Group/Entry/String 21
+> X KeePassFile/Root/Group/Group/Group/Entry/String/Key 21
+> X KeePassFile/Root/Group/Group/Group/Entry/String/Value 21
+> X KeePassFile/Root/Group/Group/Group/Entry/String/Value@Protected=True 4
+> X KeePassFile/Root/Group/Group/Group/Entry/Times 4
+> X KeePassFile/Root/Group/Group/Group/Entry/Times/CreationTime 4
+> X KeePassFile/Root/Group/Group/Group/Entry/Times/Expires 4
+> X KeePassFile/Root/Group/Group/Group/Entry/Times/ExpiryTime 4
+> X KeePassFile/Root/Group/Group/Group/Entry/Times/LastAccessTime 4
+> X KeePassFile/Root/Group/Group/Group/Entry/Times/LastModificationTime 4
+> X KeePassFile/Root/Group/Group/Group/Entry/Times/LocationChanged 4
+> X KeePassFile/Root/Group/Group/Group/Entry/Times/UsageCount 4
+> X KeePassFile/Root/Group/Group/Group/Entry/UUID 4
+1239,1253c1191,1204
+< X KeePassFile/Root/Group/Group/Group/IconID 4
+< X KeePassFile/Root/Group/Group/Group/IsExpanded 4
+< X KeePassFile/Root/Group/Group/Group/LastTopVisibleEntry 4
+< X KeePassFile/Root/Group/Group/Group/Name 4
+< X KeePassFile/Root/Group/Group/Group/Notes 4
+< X KeePassFile/Root/Group/Group/Group/PreviousParentGroup 1
+< X KeePassFile/Root/Group/Group/Group/Times 4
+< X KeePassFile/Root/Group/Group/Group/Times/CreationTime 4
+< X KeePassFile/Root/Group/Group/Group/Times/Expires 4
+< X KeePassFile/Root/Group/Group/Group/Times/ExpiryTime 4
+< X KeePassFile/Root/Group/Group/Group/Times/LastAccessTime 4
+< X KeePassFile/Root/Group/Group/Group/Times/LastModificationTime 4
+< X KeePassFile/Root/Group/Group/Group/Times/LocationChanged 4
+< X KeePassFile/Root/Group/Group/Group/Times/UsageCount 4
+< X KeePassFile/Root/Group/Group/Group/UUID 4
+---
+> X KeePassFile/Root/Group/Group/Group/IconID 3
+> X KeePassFile/Root/Group/Group/Group/IsExpanded 3
+> X KeePassFile/Root/Group/Group/Group/LastTopVisibleEntry 3
+> X KeePassFile/Root/Group/Group/Group/Name 3
+> X KeePassFile/Root/Group/Group/Group/Notes 3
+> X KeePassFile/Root/Group/Group/Group/Times 3
+> X KeePassFile/Root/Group/Group/Group/Times/CreationTime 3
+> X KeePassFile/Root/Group/Group/Group/Times/Expires 3
+> X KeePassFile/Root/Group/Group/Group/Times/ExpiryTime 3
+> X KeePassFile/Root/Group/Group/Group/Times/LastAccessTime 3
+> X KeePassFile/Root/Group/Group/Group/Times/LastModificationTime 3
+> X KeePassFile/Root/Group/Group/Group/Times/LocationChanged 3
+> X KeePassFile/Root/Group/Group/Group/Times/UsageCount 3
+> X KeePassFile/Root/Group/Group/Group/UUID 3

@@ -1,0 +1,110 @@
+### 2026-11-16T14:44:35.874Z ow kpdx ch-entry2 flow=kpdx-ch-entry2.flow base=B41  (versionName=4.5.8)
+Success
+<work>/work/base/B41.kdbx: 1 file pushed, 0 skipped. 0.6 MB/s (16085 bytes in 0.024s)
+given 16085 bytes, mtime 2026-11-16 15:34:36.000000000 +0100 sha256 92909efea553cdd099e1d603f4a90b4c57b729c6d4b2e723fb8403728cd79da7
+[2026-11-16T14:44:37.562Z] kpdx-ch-entry2.flow:3 include kpdx-open.flow
+[2026-11-16T14:44:37.568Z] kpdx-open.flow:4 sh monkey -p com.kunzisoft.keepass.libre -c android.intent.category.LAUNCHER 1
+  bash arg: -p
+  bash arg: com.kunzisoft.keepass.libre
+  bash arg: -c
+  bash arg: android.intent.category.LAUNCHER
+  bash arg: 1
+Events injected: 1
+## Network stats: elapsed time=34ms (0ms mobile, 0ms wifi, 34ms not connected)
+args: [-p, com.kunzisoft.keepass.libre, -c, android.intent.category.LAUNCHER, 1]
+ arg: "-p"
+ arg: "com.kunzisoft.keepass.libre"
+ arg: "-c"
+ arg: "android.intent.category.LAUNCHER"
+ arg: "1"
+data="com.kunzisoft.keepass.libre"
+data="android.intent.category.LAUNCHER"
+[2026-11-16T14:44:38.637Z] kpdx-open.flow:5 waitfor open_database_button 30
+[2026-11-16T14:44:45.542Z] kpdx-open.flow:6 tapuntil open_database_button Show.roots 40
+[2026-11-16T14:44:48.610Z]   tapped (799, 2051) 'Open existing vault'
+[2026-11-16T14:44:58.813Z]   tapped (799, 2051) 'Open existing vault'
+[2026-11-16T14:45:01.807Z] kpdx-open.flow:7 include picker.flow
+[2026-11-16T14:45:01.813Z] picker.flow:4 pick kpdx-ch-entry2.kdbx
+[2026-11-16T14:45:10.561Z]   focused and entered '^kpdx\\-ch\\-entry2\\.kdbx$'
+[2026-11-16T14:45:10.562Z] kpdx-open.flow:8 waitfor password_text_view 40
+[2026-11-16T14:45:15.349Z] kpdx-open.flow:9 typepwdx dummy-password-for-a-throwaway-file
+[2026-11-16T14:45:30.041Z]   typepwdx: the field reads 8 characters, not 35 (attempt 1)
+[2026-11-16T14:45:47.856Z]   typed the password and read it back (35 characters)
+[2026-11-16T14:46:09.753Z] kpdx-open.flow:10 tapuntil activity_password_open_button add_button 60
+[2026-11-16T14:46:12.881Z]   tapped (895, 1435) 'Unlock'
+[2026-11-16T14:46:28.324Z]   tapped (895, 1435) 'Unlock'
+[2026-11-16T14:46:41.040Z]   tapped (895, 1435) 'Unlock'
+[2026-11-16T14:46:48.774Z] kpdx-ch-entry2.flow:4 tapuntil node_text@^G$ node_text@^E1$ 40
+[2026-11-16T14:46:52.134Z]   tapped (247, 713) 'G'
+[2026-11-16T14:47:00.756Z]   tapped (247, 713) 'G'
+[2026-11-16T14:47:04.297Z] kpdx-ch-entry2.flow:5 sleep 3
+[2026-11-16T14:47:07.299Z] kpdx-ch-entry2.flow:6 set SEL ^E1
+[2026-11-16T14:47:07.301Z] kpdx-ch-entry2.flow:7 log s05 tags
+[2026-11-16T14:47:07.302Z]   s05 tags
+[2026-11-16T14:47:07.305Z] kpdx-ch-entry2.flow:8 mark /sdcard/Download/kpdx-ch-entry2.kdbx
+[2026-11-16T14:47:07.354Z]   marked /sdcard/Download/kpdx-ch-entry2.kdbx sha256 92909efea553cdd0
+[2026-11-16T14:47:07.355Z] kpdx-ch-entry2.flow:9 include kpdx-sel-edit.flow
+[2026-11-16T14:47:07.361Z] kpdx-sel-edit.flow:3 longpressuntil node_text@^E1 menu_move 60 2000 600
+[2026-11-16T14:47:12.427Z]   long-pressed (600, 856) for 2000 ms on the line of 'E1'
+[2026-11-16T14:47:23.728Z]   long-pressed (600, 856) for 2000 ms on the line of 'E1'
+[2026-11-16T14:47:35.778Z]   long-pressed (600, 856) for 2000 ms on the line of 'E1'
+[2026-11-16T14:47:46.167Z]   long-pressed (600, 856) for 2000 ms on the line of 'E1'
+[2026-11-16T14:47:48.699Z] kpdx-sel-edit.flow:4 tapuntil More.options#2 ^Edit$ 30
+[2026-11-16T14:47:51.885Z]   tapped (1024, 2063) 'More options'
+[2026-11-16T14:47:54.432Z] kpdx-sel-edit.flow:5 tap ^Edit$
+[2026-11-16T14:47:57.235Z]   tapped (799, 1966) 'Edit'
+[2026-11-16T14:47:57.236Z] kpdx-sel-edit.flow:6 ifthen setup_check_password_edit_text 8 kpdx-verify.flow
+[2026-11-16T14:48:00.729Z]   'setup_check_password_edit_text' is there: running kpdx-verify.flow
+[2026-11-16T14:48:00.738Z] kpdx-verify.flow:3 type setup_check_password_edit_text dumm
+[2026-11-16T14:48:15.341Z]   type: field never took the focus (attempt 1)
+[2026-11-16T14:48:26.230Z]   typed 'dumm'
+[2026-11-16T14:48:26.232Z] kpdx-verify.flow:4 tapuntil ^Check$ entry_edit_validate 30
+[2026-11-16T14:48:29.210Z]   tapped (887, 1111) 'Check'
+[2026-11-16T14:48:32.663Z] kpdx-sel-edit.flow:7 waitfor entry_edit_validate 20
+[2026-11-16T14:48:35.158Z] kpdx-ch-entry2.flow:10 tap ^protected-custom-e1$
+[2026-11-16T14:48:38.040Z]   tapped (474, 1921) 'protected-custom-e1'
+[2026-11-16T14:48:38.042Z] kpdx-ch-entry2.flow:11 sleep 1
+[2026-11-16T14:48:39.043Z] kpdx-ch-entry2.flow:12 tabto entry_tags_completion_view 14
+  LinearLayout        (540, 1036)  id=action_bar_root              text='' desc=''
+  FrameLayout         (540, 1036)  id=content                      text='' desc=''
+  ViewGroup           (540, 834)   id=activity_entry_edit_container text='' desc=''
+  ViewGroup           (540, 834)   id=error_coordinator            text='' desc=''
+  ViewGroup           (540, 834)   id=entry_edit_coordinator_layout text='' desc=''
+  ScrollView          (540, 834)   id=entry_edit_scroll            text='' desc=''
+  FrameLayout         (540, 658)   id=entry_edit_content           text='' desc=''
+  FrameLayout         (540, 370)   id=template_view                text='' desc=''
+  FrameLayout         (540, 365)   id=custom_fields_container      text='' desc=''
+  EditText       c    (474, 283)   id=                             text='extra-value-e1' desc=''
+  ImageButton    c    (947, 286)   id=                             text='' desc='Edit'
+  EditText       c    (474, 461)   id=                             text='protected-custom-e1' desc=''
+  ImageButton    cx   (815, 461)   id=text_input_end_icon          text='' desc='Show password'
+  ImageButton    cf   (947, 464)   id=                             text='' desc='Edit'
+  FrameLayout         (540, 737)   id=entry_attachments_container  text='' desc=''
+  TextView            (540, 671)   id=entry_attachments_label      text='Attachments' desc=''
+  RecyclerView        (540, 759)   id=entry_attachments_list       text='' desc=''
+  RelativeLayout      (540, 759)   id=item_attachment_container    text='' desc=''
+  RelativeLayout c    (540, 759)   id=item_attachment_info         text='' desc=''
+  TextView            (424, 759)   id=item_attachment_title        text='e1.txt' desc=''
+  LinearLayout        (831, 759)   id=item_attachment_size_container text='' desc=''
+  TextView            (831, 759)   id=item_attachment_size         text='600 B' desc=''
+  FrameLayout         (947, 759)   id=item_attachment_action_container text='' desc=''
+  ImageButton    c    (947, 759)   id=item_attachment_delete_button text='' desc='Remove field'
+  FrameLayout         (540, 1024)  id=entry_tags_container         text='' desc=''
+  LinearLayout        (540, 1024)  id=entry_tags_label             text='' desc=''
+  EditText       c    (540, 1032)  id=entry_tags_completion_view   text='work, ' desc=''
+  ImageButton    cx   (947, 1032)  id=text_input_end_icon          text='' desc='Show dropdown menu'
+  ImageButton    c    (90, 1416)   id=lock_button                  text='' desc='Lock'
+  ViewGroup           (540, 1435)  id=entry_edit_bottom_bar        text='' desc=''
+  ImageButton    c    (209, 1435)  id=                             text='' desc='Navigate up'
+  Button         c    (552, 1435)  id=menu_add_attachment          text='' desc='Add attachment'
+  Button         c    (684, 1435)  id=menu_add_otp                 text='' desc='Set up one-time password'
+  Button         c    (816, 1435)  id=menu_add_field               text='' desc='Add field'
+  ImageButton    c    (970, 1413)  id=entry_edit_validate          text='' desc='Validate'
+  View                (540, 72)    id=statusBarBackground          text='' desc=''
+  View                (0, 0)       id=navigationBarBackground      text='' desc=''
+[2026-11-16T14:49:38.459Z] FAILED: tabto: never focused entry_tags_completion_view
+total 20
+-rw------- 1 u0_a160 u0_a160 16085 2026-11-16 15:34:36.000000000 +0100 kpdx-ch-entry2.kdbx
+device kpdx-ch-entry2.kdbx sha256 92909efea553cdd099e1d603f4a90b4c57b729c6d4b2e723fb8403728cd79da7 16085 bytes, mtime 2026-11-16 15:34:36.000000000 +0100
+/sdcard/Download/kpdx-ch-entry2.kdbx: 1 file pulled, 0 skipped. 1.1 MB/s (16085 bytes in 0.014s)
+### flow rc=1 2026-11-16T14:49:41.263Z

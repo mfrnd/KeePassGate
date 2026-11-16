@@ -1,0 +1,6 @@
+# State a: the program in front on a screen other than the database's: More options, Settings.
+tap More.options
+tap ^Settings$
+sleep 3
+list
+host sh ${P}/devstate.sh state-a

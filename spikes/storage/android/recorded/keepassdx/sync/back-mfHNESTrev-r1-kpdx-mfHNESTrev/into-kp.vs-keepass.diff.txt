@@ -1,0 +1,79 @@
+5c5,8
+< D count 4
+---
+> D NA1 2026-11-01T18:00:00Z
+> D NB1 2026-11-01T18:00:00Z
+> D NC1 2026-11-01T18:00:00Z
+> D count 7
+352,402d354
+< E NA1 S Notes p=0 ""
+< E NA1 S Password p=1 "na1-old"
+< E NA1 S Title p=0 "NA1"
+< E NA1 S URL p=0 ""
+< E NA1 S UserName p=0 "user-na1"
+< E NA1 autotype enabled=1 obfuscation=0 seq="" assoc=0
+< E NA1 history.count 0
+< E NA1 misc icon=0 customIcon=- fg=00000000 bg=00000000 overrideUrl="" quality=1
+< E NA1 parent NA (NA)
+< E NA1 prev -
+< E NA1 t.accessed 2026-11-01T10:20:00Z
+< E NA1 t.created 2026-11-01T10:20:00Z
+< E NA1 t.expires 0 2026-11-01T10:00:00Z
+< E NA1 t.location 2026-11-01T10:20:00Z
+< E NA1 t.modified 2026-11-01T10:20:00Z
+< E NA1 tags []
+< E NA1 usage 0
+< E NB1 S Notes p=0 ""
+< E NB1 S Password p=1 "nb1-old"
+< E NB1 S Title p=0 "NB1"
+< E NB1 S URL p=0 ""
+< E NB1 S UserName p=0 "user-nb1"
+< E NB1 autotype enabled=1 obfuscation=0 seq="" assoc=0
+< E NB1 history.count 0
+< E NB1 misc icon=0 customIcon=- fg=00000000 bg=00000000 overrideUrl="" quality=1
+< E NB1 parent NB (NB)
+< E NB1 prev -
+< E NB1 t.accessed 2026-11-01T10:20:00Z
+< E NB1 t.created 2026-11-01T10:20:00Z
+< E NB1 t.expires 0 2026-11-01T10:00:00Z
+< E NB1 t.location 2026-11-01T10:20:00Z
+< E NB1 t.modified 2026-11-01T10:20:00Z
+< E NB1 tags []
+< E NB1 usage 0
+< E NC1 S Notes p=0 ""
+< E NC1 S Password p=1 "nc1-old"
+< E NC1 S Title p=0 "NC1"
+< E NC1 S URL p=0 ""
+< E NC1 S UserName p=0 "user-nc1"
+< E NC1 autotype enabled=1 obfuscation=0 seq="" assoc=0
+< E NC1 history.count 0
+< E NC1 misc icon=0 customIcon=- fg=00000000 bg=00000000 overrideUrl="" quality=1
+< E NC1 parent NC (NC)
+< E NC1 prev -
+< E NC1 t.accessed 2026-11-01T10:20:00Z
+< E NC1 t.created 2026-11-01T10:20:00Z
+< E NC1 t.expires 0 2026-11-01T10:00:00Z
+< E NC1 t.location 2026-11-01T10:20:00Z
+< E NC1 t.modified 2026-11-01T10:20:00Z
+< E NC1 tags []
+< E NC1 usage 0
+858c810
+< F groups 13 entries 41
+---
+> F groups 13 entries 38
+953c905
+< G NA children groups=1 entries=1
+---
+> G NA children groups=1 entries=0
+966c918
+< G NB children groups=1 entries=1
+---
+> G NB children groups=1 entries=0
+979c931
+< G NC children groups=0 entries=1
+---
+> G NC children groups=0 entries=0
+1024c976
+< G Root t.accessed 2026-11-01T10:00:00Z
+---
+> G Root t.accessed 2026-11-16T12:16:58Z

@@ -1,0 +1,20 @@
+# Item 3, autosave off: the stored preference set before KeePassDX starts; open OLD; ${ARR} put over
+# the file at ${MODE} on screen; an entry added through the editor (nothing written yet); then the
+# overflow menu's ${ANSWER} (Save data or Merge data).
+host sh ${P}/kpdx-prefs.sh autosave-off
+include kpdx-open.flow
+host sh ${P}/kpdx-prefs.sh show after-open
+sleep 3
+host sh ${P}/replace.sh /sdcard/Download/${NAME}.kdbx ${SRCDIR}/${ARR}.kdbx ${MODE}
+sleep 2
+include kpdx-ow-add.flow
+host sh ${P}/devstat.sh /sdcard/Download/${NAME}.kdbx after-add-before-answer
+sleep 5
+list
+include kpdx-ow-answer-${ANSWER}.flow
+sleep 3
+dialog
+maybe ^OK$ 4
+sleep 8
+host sh ${P}/devstat.sh /sdcard/Download/${NAME}.kdbx after-answer
+list

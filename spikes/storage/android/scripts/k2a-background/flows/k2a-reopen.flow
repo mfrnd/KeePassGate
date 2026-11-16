@@ -1,0 +1,11 @@
+# Keepass2Android, after its database was closed: start it again and unlock the file it offers
+# with the password (tapping ${NAME} first if it shows the list of recent files instead).
+sh monkey -p ${PKG} -c android.intent.category.LAUNCHER 1
+sleep 4
+dialog
+list
+ifthen start_open_file 3 k2a-tap-recent.flow
+waitfor password_edit 30
+typepwck password_edit dummy-password-for-a-throwaway-file
+tap pass_ok
+waitfor fabAddNew 60

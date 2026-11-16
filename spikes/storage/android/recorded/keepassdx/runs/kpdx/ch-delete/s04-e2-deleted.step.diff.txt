@@ -1,0 +1,111 @@
+5c5,6
+< D count 4
+---
+> D E2 2026-11-16T15:09:50Z
+> D count 5
+115,131d115
+< E E2 S Notes p=0 ""
+< E E2 S Password p=1 "pw-e2-not-real"
+< E E2 S Title p=0 "E2"
+< E E2 S URL p=0 ""
+< E E2 S UserName p=0 "bob-invented"
+< E E2 autotype enabled=1 obfuscation=0 seq="" assoc=0
+< E E2 history.count 0
+< E E2 misc icon=0 customIcon=- fg=00000000 bg=00000000 overrideUrl="" quality=1
+< E E2 parent Bin (Recycle Bin)
+< E E2 prev G
+< E E2 t.accessed 2026-11-16T15:07:52Z
+< E E2 t.created 2026-11-01T10:45:00Z
+< E E2 t.expires 0 2026-11-01T10:00:00Z
+< E E2 t.location 2026-11-16T15:07:52Z
+< E E2 t.modified 2026-11-16T15:07:52Z
+< E E2 tags []
+< E E2 usage 2
+858c842
+< F groups 13 entries 41
+---
+> F groups 13 entries 40
+861c845
+< G Bin children groups=1 entries=2
+---
+> G Bin children groups=1 entries=1
+867c851
+< G Bin t.accessed 2026-11-16T15:09:05Z
+---
+> G Bin t.accessed 2026-11-16T15:09:50Z
+871c855
+< G Bin t.modified 2026-11-16T15:09:05Z
+---
+> G Bin t.modified 2026-11-16T15:09:50Z
+1024c1008
+< G Root t.accessed 2026-11-16T15:09:05Z
+---
+> G Root t.accessed 2026-11-16T15:09:50Z
+1028c1012
+< G Root t.modified 2026-11-16T15:09:05Z
+---
+> G Root t.modified 2026-11-16T15:09:50Z
+1114,1116c1098,1100
+< X KeePassFile/Root/DeletedObjects/DeletedObject 4
+< X KeePassFile/Root/DeletedObjects/DeletedObject/DeletionTime 4
+< X KeePassFile/Root/DeletedObjects/DeletedObject/UUID 4
+---
+> X KeePassFile/Root/DeletedObjects/DeletedObject 5
+> X KeePassFile/Root/DeletedObjects/DeletedObject/DeletionTime 5
+> X KeePassFile/Root/DeletedObjects/DeletedObject/UUID 5
+1129,1133c1113,1117
+< X KeePassFile/Root/Group/Group/Entry 35
+< X KeePassFile/Root/Group/Group/Entry/AutoType 35
+< X KeePassFile/Root/Group/Group/Entry/AutoType/DataTransferObfuscation 35
+< X KeePassFile/Root/Group/Group/Entry/AutoType/Enabled 35
+< X KeePassFile/Root/Group/Group/Entry/BackgroundColor 35
+---
+> X KeePassFile/Root/Group/Group/Entry 34
+> X KeePassFile/Root/Group/Group/Entry/AutoType 34
+> X KeePassFile/Root/Group/Group/Entry/AutoType/DataTransferObfuscation 34
+> X KeePassFile/Root/Group/Group/Entry/AutoType/Enabled 34
+> X KeePassFile/Root/Group/Group/Entry/BackgroundColor 34
+1142,1143c1126,1127
+< X KeePassFile/Root/Group/Group/Entry/ForegroundColor 35
+< X KeePassFile/Root/Group/Group/Entry/History 35
+---
+> X KeePassFile/Root/Group/Group/Entry/ForegroundColor 34
+> X KeePassFile/Root/Group/Group/Entry/History 34
+1170,1172c1154,1156
+< X KeePassFile/Root/Group/Group/Entry/IconID 35
+< X KeePassFile/Root/Group/Group/Entry/OverrideURL 35
+< X KeePassFile/Root/Group/Group/Entry/PreviousParentGroup 2
+---
+> X KeePassFile/Root/Group/Group/Entry/IconID 34
+> X KeePassFile/Root/Group/Group/Entry/OverrideURL 34
+> X KeePassFile/Root/Group/Group/Entry/PreviousParentGroup 1
+1174,1177c1158,1161
+< X KeePassFile/Root/Group/Group/Entry/String 221
+< X KeePassFile/Root/Group/Group/Entry/String/Key 221
+< X KeePassFile/Root/Group/Group/Entry/String/Value 221
+< X KeePassFile/Root/Group/Group/Entry/String/Value@Protected=True 38
+---
+> X KeePassFile/Root/Group/Group/Entry/String 216
+> X KeePassFile/Root/Group/Group/Entry/String/Key 216
+> X KeePassFile/Root/Group/Group/Entry/String/Value 216
+> X KeePassFile/Root/Group/Group/Entry/String/Value@Protected=True 37
+1179,1187c1163,1171
+< X KeePassFile/Root/Group/Group/Entry/Times 35
+< X KeePassFile/Root/Group/Group/Entry/Times/CreationTime 35
+< X KeePassFile/Root/Group/Group/Entry/Times/Expires 35
+< X KeePassFile/Root/Group/Group/Entry/Times/ExpiryTime 35
+< X KeePassFile/Root/Group/Group/Entry/Times/LastAccessTime 35
+< X KeePassFile/Root/Group/Group/Entry/Times/LastModificationTime 35
+< X KeePassFile/Root/Group/Group/Entry/Times/LocationChanged 35
+< X KeePassFile/Root/Group/Group/Entry/Times/UsageCount 35
+< X KeePassFile/Root/Group/Group/Entry/UUID 35
+---
+> X KeePassFile/Root/Group/Group/Entry/Times 34
+> X KeePassFile/Root/Group/Group/Entry/Times/CreationTime 34
+> X KeePassFile/Root/Group/Group/Entry/Times/Expires 34
+> X KeePassFile/Root/Group/Group/Entry/Times/ExpiryTime 34
+> X KeePassFile/Root/Group/Group/Entry/Times/LastAccessTime 34
+> X KeePassFile/Root/Group/Group/Entry/Times/LastModificationTime 34
+> X KeePassFile/Root/Group/Group/Entry/Times/LocationChanged 34
+> X KeePassFile/Root/Group/Group/Entry/Times/UsageCount 34
+> X KeePassFile/Root/Group/Group/Entry/UUID 34

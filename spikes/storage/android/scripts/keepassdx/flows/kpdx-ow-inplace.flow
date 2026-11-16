@@ -1,0 +1,17 @@
+# Item 3, on screen with no screen change after the replacement: open OLD, go into G; ${ARR} put
+# over the file at ${MODE}; then E2 selected and deleted to the recycle bin from the same screen.
+include kpdx-open.flow
+tapuntil node_text@^G$ node_text@^E2$ 40
+sleep 3
+host sh ${P}/replace.sh /sdcard/Download/${NAME}.kdbx ${SRCDIR}/${ARR}.kdbx ${MODE}
+sleep 2
+longpressuntil node_text@^E2$ menu_move 60 2000 600
+ifthen modified.outside 4 kpdx-ow-dialog.flow
+tapuntil More.options#2 ^Delete$ 30
+mark /sdcard/Download/${NAME}.kdbx
+tap ^Delete$
+ifthen modified.outside 6 kpdx-ow-dialog.flow
+gone node_text@^E2$ 30
+waitchange /sdcard/Download/${NAME}.kdbx 45
+host sh ${P}/devstat.sh /sdcard/Download/${NAME}.kdbx after-save
+list

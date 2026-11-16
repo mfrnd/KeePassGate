@@ -1,0 +1,269 @@
+### 2026-11-16T16:17:50.217Z ow kpdx ow-noauto-save-plus60-r2 flow=kpdx-ow-noauto.flow base=OLD ARR=NEW-diff MODE=plus60 TAG=x ANSWER=Save.data (versionName=4.5.8)
+Success
+<work>/work/base/OLD.kdbx: 1 file pushed, 0 skipped. 0.5 MB/s (17365 bytes in 0.031s)
+given 17365 bytes, mtime 2026-11-16 17:07:50.000000000 +0100 sha256 6e25ae9b994a21f69404250dec2c751c358472bca635467c042d70f119402d6b
+[2026-11-16T16:17:51.242Z] kpdx-ow-noauto.flow:4 host sh <work>/scripts/kpdx-prefs.sh autosave-off
+[2026-11-16T16:17:51.432Z]   | prefs written: <?xml version='1.0' encoding='utf-8' standalone='yes' ?> <map>     <boolean name="enable_auto_save_database_key" value="false" /> </map> 
+[2026-11-16T16:17:51.433Z]   | SELinux: Loaded file_contexts
+[2026-11-16T16:17:51.434Z] kpdx-ow-noauto.flow:5 include kpdx-open.flow
+[2026-11-16T16:17:51.439Z] kpdx-open.flow:4 sh monkey -p com.kunzisoft.keepass.libre -c android.intent.category.LAUNCHER 1
+  bash arg: -p
+  bash arg: com.kunzisoft.keepass.libre
+  bash arg: -c
+  bash arg: android.intent.category.LAUNCHER
+  bash arg: 1
+Events injected: 1
+## Network stats: elapsed time=56ms (0ms mobile, 0ms wifi, 56ms not connected)
+args: [-p, com.kunzisoft.keepass.libre, -c, android.intent.category.LAUNCHER, 1]
+ arg: "-p"
+ arg: "com.kunzisoft.keepass.libre"
+ arg: "-c"
+ arg: "android.intent.category.LAUNCHER"
+ arg: "1"
+data="com.kunzisoft.keepass.libre"
+data="android.intent.category.LAUNCHER"
+[2026-11-16T16:17:52.058Z] kpdx-open.flow:5 waitfor open_database_button 30
+[2026-11-16T16:17:55.485Z] kpdx-open.flow:6 tapuntil open_database_button Show.roots 40
+[2026-11-16T16:17:58.194Z]   tapped (799, 2051) 'Open existing vault'
+[2026-11-16T16:18:08.762Z]   tapped (799, 2051) 'Open existing vault'
+[2026-11-16T16:18:11.551Z] kpdx-open.flow:7 include picker.flow
+[2026-11-16T16:18:11.558Z] picker.flow:4 pick kpdx-ow-noauto-save-plus60-r2.kdbx
+[2026-11-16T16:18:19.741Z]   focused and entered '^kpdx\\-ow\\-noauto\\-save\\-plus60\\-r2\\.kdbx$'
+[2026-11-16T16:18:23.956Z] kpdx-open.flow:8 waitfor password_text_view 40
+[2026-11-16T16:18:26.138Z] kpdx-open.flow:9 typepwdx dummy-password-for-a-throwaway-file
+[2026-11-16T16:18:53.400Z]   typepwdx: the field reads 8 characters, not 35 (attempt 1)
+[2026-11-16T16:19:07.355Z]   typed the password and read it back (35 characters)
+[2026-11-16T16:19:07.358Z] kpdx-open.flow:10 tapuntil activity_password_open_button add_button 60
+[2026-11-16T16:19:10.611Z]   tapped (895, 1435) 'Unlock'
+[2026-11-16T16:19:18.555Z]   tapped (895, 1435) 'Unlock'
+[2026-11-16T16:19:27.486Z]   tapped (895, 1435) 'Unlock'
+[2026-11-16T16:19:33.951Z] kpdx-ow-noauto.flow:6 host sh <work>/scripts/kpdx-prefs.sh show after-open
+[2026-11-16T16:19:34.091Z]   | prefs after-open:  <boolean name="read_only_key" value="false" />  <boolean name="enable_auto_save_database_key" value="false" />  <long name="timeout_backup_key" value="1794845968624" /> 
+[2026-11-16T16:19:34.093Z] kpdx-ow-noauto.flow:7 sleep 3
+[2026-11-16T16:19:37.095Z] kpdx-ow-noauto.flow:8 host sh <work>/scripts/replace.sh /sdcard/Download/kpdx-ow-noauto-save-plus60-r2.kdbx <work>/work/base/NEW-diff.kdbx plus60
+[2026-11-16T16:19:37.461Z]   | replace: before 17365 bytes, mtime 2026-11-16 17:07:50.000000000 +0100 sha256 6e25ae9b994a21f69404250dec2c751c358472bca635467c042d70f119402d6b
+[2026-11-16T16:19:37.462Z]   | <work>/work/base/NEW-diff.kdbx: 1 file pushed, 0 skipped. 2.0 MB/s (19509 bytes in 0.009s)
+[2026-11-16T16:19:37.463Z]   | replace: after  19509 bytes, mtime 2026-11-16 17:08:50.000000000 +0100 sha256 4c67b2a5698c8133dd00cb61d228b9911a4ed9b3f1f7b9ddbf375a08b91d5d3c (mode plus60, from NEW-diff.kdbx)
+[2026-11-16T16:19:37.463Z] kpdx-ow-noauto.flow:9 sleep 2
+[2026-11-16T16:19:39.465Z] kpdx-ow-noauto.flow:10 include kpdx-ow-add.flow
+[2026-11-16T16:19:39.473Z] kpdx-ow-add.flow:3 mark /sdcard/Download/kpdx-ow-noauto-save-plus60-r2.kdbx
+[2026-11-16T16:19:48.158Z]   marked /sdcard/Download/kpdx-ow-noauto-save-plus60-r2.kdbx sha256 4c67b2a5698c8133
+[2026-11-16T16:19:48.163Z] kpdx-ow-add.flow:4 tapuntil add_button fab_add_entry 20
+[2026-11-16T16:19:51.285Z]   tapped (970, 2013) 'Add node'
+[2026-11-16T16:19:53.445Z] kpdx-ow-add.flow:5 tapuntil fab_add_entry (entry_edit_validate|modified.outside) 30
+[2026-11-16T16:19:56.409Z]   tapped (885, 1691) 'Add entry'
+[2026-11-16T16:19:59.772Z] kpdx-ow-add.flow:6 ifthen modified.outside 6 kpdx-ow-dialog.flow
+[2026-11-16T16:20:01.852Z]   'modified.outside' is there: running kpdx-ow-dialog.flow
+[2026-11-16T16:20:01.863Z] kpdx-ow-dialog.flow:2 dialog
+[2026-11-16T16:20:03.947Z]   dialog message: 'The information contained in your database has been modified outside the app.\n\nNov 16, 2026 5:07:50 PM, 17.36 kB\n→\nNov 16, 2026 5:08:50 PM, 19.51 kB\n\nMerge the data, overwrite the external modifications by saving the database or reload it with the latest changes.'
+[2026-11-16T16:20:03.949Z]   dialog button1: 'OK'
+[2026-11-16T16:20:03.950Z] kpdx-ow-dialog.flow:3 tap ^OK$
+[2026-11-16T16:20:06.950Z]   tapped (887, 1495) 'OK'
+[2026-11-16T16:20:08.352Z] kpdx-ow-dialog.flow:4 sleep 2
+[2026-11-16T16:20:10.354Z] kpdx-ow-add.flow:7 waitfor entry_edit_validate 20
+[2026-11-16T16:20:12.217Z] kpdx-ow-add.flow:8 type ^Title$ phone-ow
+[2026-11-16T16:20:24.924Z]   type: field never took the focus (attempt 1)
+[2026-11-16T16:20:36.401Z]   typed 'phone-ow'
+[2026-11-16T16:20:36.403Z] kpdx-ow-add.flow:9 tapuntil entry_edit_validate (add_button|modified.outside) 30
+[2026-11-16T16:20:39.445Z]   tapped (970, 1413) 'Validate'
+[2026-11-16T16:20:46.050Z] kpdx-ow-add.flow:10 ifthen modified.outside 6 kpdx-ow-dialog.flow
+[2026-11-16T16:20:48.097Z]   'modified.outside' is there: running kpdx-ow-dialog.flow
+[2026-11-16T16:20:48.103Z] kpdx-ow-dialog.flow:2 dialog
+[2026-11-16T16:20:49.961Z]   dialog message: 'The information contained in your database has been modified outside the app.\n\nNov 16, 2026 5:07:50 PM, 17.36 kB\n→\nNov 16, 2026 5:08:50 PM, 19.51 kB\n\nMerge the data, overwrite the external modifications by saving the database or reload it with the latest changes.'
+[2026-11-16T16:20:49.962Z]   dialog button1: 'OK'
+[2026-11-16T16:20:49.964Z] kpdx-ow-dialog.flow:3 tap ^OK$
+[2026-11-16T16:20:52.876Z]   tapped (887, 1495) 'OK'
+[2026-11-16T16:20:52.878Z] kpdx-ow-dialog.flow:4 sleep 2
+[2026-11-16T16:20:54.880Z] kpdx-ow-add.flow:11 waitchange /sdcard/Download/kpdx-ow-noauto-save-plus60-r2.kdbx 45
+[2026-11-16T16:21:40.845Z]   waitchange: /sdcard/Download/kpdx-ow-noauto-save-plus60-r2.kdbx UNCHANGED after 45 s
+[2026-11-16T16:21:40.847Z] kpdx-ow-noauto.flow:11 host sh <work>/scripts/devstat.sh /sdcard/Download/kpdx-ow-noauto-save-plus60-r2.kdbx after-add-before-answer
+[2026-11-16T16:21:40.950Z]   | devstat after-add-before-answer: 19509 bytes, mtime 2026-11-16 17:08:50.000000000 +0100 sha256 4c67b2a5698c8133dd00cb61d228b9911a4ed9b3f1f7b9ddbf375a08b91d5d3c
+[2026-11-16T16:21:40.951Z] kpdx-ow-noauto.flow:12 sleep 5
+[2026-11-16T16:21:45.952Z] kpdx-ow-noauto.flow:13 list
+  LinearLayout        (540, 1036)  id=action_bar_root              text='' desc=''
+  FrameLayout         (540, 1036)  id=content                      text='' desc=''
+  DrawerLayout        (540, 1036)  id=drawer_layout                text='' desc=''
+  ViewGroup           (540, 1108)  id=activity_group_container_view text='' desc=''
+  FrameLayout         (540, 1108)  id=search_content_view          text='' desc=''
+  ViewGroup           (540, 1108)  id=error_coordinator            text='' desc=''
+  ViewGroup           (540, 233)   id=activity_group_header        text='' desc=''
+  ViewGroup           (540, 233)   id=toolbar                      text='' desc=''
+  ImageButton    c    (77, 233)    id=                             text='' desc='Navigation drawer open'
+  TextView            (446, 233)   id=database_name                text='Storage probe DX (invented)' desc=''
+  Button         c    (771, 233)   id=menu_search                  text='' desc='Search'
+  Button         c    (903, 233)   id=menu_sort                    text='' desc='Sort'
+  ImageView      c    (1024, 233)  id=                             text='' desc='More options'
+  ImageView           (148, 233)   id=database_color               text='' desc='Database color'
+  ImageView           (148, 233)   id=database_modified            text='' desc='Save'
+  ScrollView          (540, 1196)  id=group_coordinator            text='' desc=''
+  RelativeLayout      (540, 1196)  id=add_node_button              text='' desc=''
+  ImageButton    c    (970, 2013)  id=add_button                   text='' desc='Add node'
+  LinearLayout        (540, 409)   id=app_bar                      text='' desc=''
+  RecyclerView        (540, 409)   id=breadcrumb_list              text='' desc=''
+  CardView       c    (267, 409)   id=breadcrumb_group             text='' desc=''
+  TextView            (77, 389)    id=group_numbers                text='42' desc=''
+  ImageView           (113, 409)   id=group_icon                   text='' desc=''
+  TextView            (333, 408)   id=group_name                   text='Storage probe' desc=''
+  FrameLayout         (540, 1284)  id=nodes_list_fragment_container text='' desc=''
+  RecyclerView        (540, 1284)  id=nodes_list                   text='' desc='Node children'
+  RelativeLayout c    (534, 585)   id=node_container               text='' desc=''
+  TextView            (74, 565)    id=node_child_numbers           text='14' desc=''
+  ImageView           (127, 585)   id=node_icon                    text='' desc=''
+  TextView            (363, 584)   id=node_text                    text='KeePassGate' desc=''
+  ImageView           (981, 585)   id=node_image_identifier        text='' desc=''
+  RelativeLayout c    (534, 739)   id=node_container               text='' desc=''
+  TextView            (64, 719)    id=node_child_numbers           text='5' desc=''
+  ImageView           (127, 739)   id=node_icon                    text='' desc=''
+  TextView            (247, 713)   id=node_text                    text='G' desc=''
+  RecyclerView        (389, 768)   id=node_tags_list_view          text='' desc=''
+  TextView       c    (328, 765)   id=tag_name                     text='kpg.reader' desc=''
+  TextView       c    (486, 765)   id=tag_name                     text='team' desc=''
+  ImageView           (981, 739)   id=node_image_identifier        text='' desc=''
+  RelativeLayout c    (534, 893)   id=node_container               text='' desc=''
+  TextView            (64, 873)    id=node_child_numbers           text='2' desc=''
+  ImageView           (127, 893)   id=node_icon                    text='' desc=''
+  TextView            (309, 892)   id=node_text                    text='Carriers' desc=''
+  ImageView           (981, 893)   id=node_image_identifier        text='' desc=''
+  RelativeLayout c    (534, 1047)  id=node_container               text='' desc=''
+  TextView            (74, 1027)   id=node_child_numbers           text='14' desc=''
+  ImageView           (127, 1047)  id=node_icon                    text='' desc=''
+  TextView            (341, 1046)  id=node_text                    text='Passwords' desc=''
+  ImageView           (981, 1047)  id=node_image_identifier        text='' desc=''
+  RelativeLayout c    (534, 1201)  id=node_container               text='' desc=''
+  TextView            (64, 1181)   id=node_child_numbers           text='1' desc=''
+  ImageView           (127, 1201)  id=node_icon                    text='' desc=''
+  TextView            (261, 1200)  id=node_text                    text='GD' desc=''
+  ImageView           (981, 1201)  id=node_image_identifier        text='' desc=''
+  RelativeLayout c    (534, 1355)  id=node_container               text='' desc=''
+  TextView            (64, 1335)   id=node_child_numbers           text='3' desc=''
+  ImageView           (127, 1355)  id=node_icon                    text='' desc=''
+  TextView            (262, 1354)  id=node_text                    text='NA' desc=''
+  ImageView           (981, 1355)  id=node_image_identifier        text='' desc=''
+  RelativeLayout c    (534, 1509)  id=node_container               text='' desc=''
+  TextView            (64, 1489)   id=node_child_numbers           text='2' desc=''
+  ImageView           (127, 1509)  id=node_icon                    text='' desc=''
+  TextView            (318, 1508)  id=node_text                    text='Personal' desc=''
+  ImageView           (981, 1509)  id=node_image_identifier        text='' desc=''
+  RelativeLayout c    (534, 1663)  id=node_container               text='' desc=''
+  TextView            (64, 1643)   id=node_child_numbers           text='0' desc=''
+  ImageView           (127, 1663)  id=node_icon                    text='' desc=''
+  TextView            (344, 1662)  id=node_text                    text='Recycle Bin' desc=''
+  ImageView           (981, 1663)  id=node_image_identifier        text='' desc=''
+  ViewGroup      c    (534, 1817)  id=node_container               text='' desc=''
+  ImageView           (127, 1817)  id=node_icon                    text='' desc=''
+  LinearLayout        (606, 1817)  id=node_container_info          text='' desc=''
+  TextView            (327, 1798)  id=node_text                    text='phone-ow' desc=''
+  TextView            (401, 1841)  id=node_subtext                 text='invented-default-user' desc=''
+  ViewGroup           (540, 2033)  id=activity_group_footer        text='' desc=''
+  ImageButton    c    (90, 2033)   id=lock_button                  text='' desc='Lock'
+  View                (540, 72)    id=statusBarBackground          text='' desc=''
+  View                (0, 0)       id=navigationBarBackground      text='' desc=''
+[2026-11-16T16:21:48.034Z] kpdx-ow-noauto.flow:14 include kpdx-ow-answer-Save.data.flow
+[2026-11-16T16:21:48.051Z] kpdx-ow-answer-Save.data.flow:3 maybe ^Cancel$ 2
+[2026-11-16T16:21:52.569Z]   maybe: absent
+[2026-11-16T16:21:52.571Z] kpdx-ow-answer-Save.data.flow:4 key MENU
+[2026-11-16T16:21:53.428Z] kpdx-ow-answer-Save.data.flow:5 sleep 2
+[2026-11-16T16:21:55.430Z] kpdx-ow-answer-Save.data.flow:6 list
+  LinearLayout        (799, 256)   id=content                      text='' desc=''
+  TextView            (799, 255)   id=title                        text='Save data' desc=''
+  LinearLayout        (799, 388)   id=content                      text='' desc=''
+  TextView            (799, 387)   id=title                        text='Merge data' desc=''
+  LinearLayout        (799, 520)   id=content                      text='' desc=''
+  TextView            (799, 519)   id=title                        text='Reload data' desc=''
+[2026-11-16T16:21:57.418Z] kpdx-ow-answer-Save.data.flow:7 tapuntil ^Save.data$ (modified.outside|add_button|Reloading) 20
+[2026-11-16T16:22:00.122Z]   tapped (799, 255) 'Save data'
+[2026-11-16T16:22:02.329Z] kpdx-ow-noauto.flow:15 sleep 3
+[2026-11-16T16:22:05.330Z] kpdx-ow-noauto.flow:16 dialog
+[2026-11-16T16:22:07.118Z]   dialog android.widget.ImageButton: ''
+[2026-11-16T16:22:07.119Z]   dialog menu_search: ''
+[2026-11-16T16:22:07.121Z]   dialog menu_sort: ''
+[2026-11-16T16:22:07.122Z]   dialog add_button: ''
+[2026-11-16T16:22:07.122Z]   dialog lock_button: ''
+[2026-11-16T16:22:07.123Z] kpdx-ow-noauto.flow:17 maybe ^OK$ 4
+[2026-11-16T16:22:11.665Z]   maybe: absent
+[2026-11-16T16:22:11.666Z] kpdx-ow-noauto.flow:18 sleep 8
+[2026-11-16T16:22:19.667Z] kpdx-ow-noauto.flow:19 host sh <work>/scripts/devstat.sh /sdcard/Download/kpdx-ow-noauto-save-plus60-r2.kdbx after-answer
+[2026-11-16T16:22:19.808Z]   | devstat after-answer: 16425 bytes, mtime 2026-11-16 17:21:58.984000000 +0100 sha256 1f122bfa73e7ca61b20d7f0b0bafe6e80128fe75d8cc33b01dc32bbb9ad25ab5
+[2026-11-16T16:22:19.810Z] kpdx-ow-noauto.flow:20 list
+  LinearLayout        (540, 1036)  id=action_bar_root              text='' desc=''
+  FrameLayout         (540, 1036)  id=content                      text='' desc=''
+  DrawerLayout        (540, 1036)  id=drawer_layout                text='' desc=''
+  ViewGroup           (540, 1108)  id=activity_group_container_view text='' desc=''
+  FrameLayout         (540, 1108)  id=search_content_view          text='' desc=''
+  ViewGroup           (540, 1108)  id=error_coordinator            text='' desc=''
+  ViewGroup           (540, 233)   id=activity_group_header        text='' desc=''
+  ViewGroup           (540, 233)   id=toolbar                      text='' desc=''
+  ImageButton    c    (77, 233)    id=                             text='' desc='Navigation drawer open'
+  TextView            (446, 233)   id=database_name                text='Storage probe DX (invented)' desc=''
+  Button         c    (771, 233)   id=menu_search                  text='' desc='Search'
+  Button         c    (903, 233)   id=menu_sort                    text='' desc='Sort'
+  ImageView      c    (1024, 233)  id=                             text='' desc='More options'
+  ImageView           (148, 233)   id=database_color               text='' desc='Database color'
+  ScrollView          (540, 1196)  id=group_coordinator            text='' desc=''
+  RelativeLayout      (540, 1196)  id=add_node_button              text='' desc=''
+  ImageButton    c    (970, 2013)  id=add_button                   text='' desc='Add node'
+  LinearLayout        (540, 409)   id=app_bar                      text='' desc=''
+  RecyclerView        (540, 409)   id=breadcrumb_list              text='' desc=''
+  CardView       c    (267, 409)   id=breadcrumb_group             text='' desc=''
+  TextView            (77, 389)    id=group_numbers                text='42' desc=''
+  ImageView           (113, 409)   id=group_icon                   text='' desc=''
+  TextView            (333, 408)   id=group_name                   text='Storage probe' desc=''
+  FrameLayout         (540, 1284)  id=nodes_list_fragment_container text='' desc=''
+  RecyclerView        (540, 1284)  id=nodes_list                   text='' desc='Node children'
+  RelativeLayout c    (534, 585)   id=node_container               text='' desc=''
+  TextView            (74, 565)    id=node_child_numbers           text='14' desc=''
+  ImageView           (127, 585)   id=node_icon                    text='' desc=''
+  TextView            (363, 584)   id=node_text                    text='KeePassGate' desc=''
+  ImageView           (981, 585)   id=node_image_identifier        text='' desc=''
+  RelativeLayout c    (534, 739)   id=node_container               text='' desc=''
+  TextView            (64, 719)    id=node_child_numbers           text='5' desc=''
+  ImageView           (127, 739)   id=node_icon                    text='' desc=''
+  TextView            (247, 713)   id=node_text                    text='G' desc=''
+  RecyclerView        (389, 768)   id=node_tags_list_view          text='' desc=''
+  TextView       c    (328, 765)   id=tag_name                     text='kpg.reader' desc=''
+  TextView       c    (486, 765)   id=tag_name                     text='team' desc=''
+  ImageView           (981, 739)   id=node_image_identifier        text='' desc=''
+  RelativeLayout c    (534, 893)   id=node_container               text='' desc=''
+  TextView            (64, 873)    id=node_child_numbers           text='2' desc=''
+  ImageView           (127, 893)   id=node_icon                    text='' desc=''
+  TextView            (309, 892)   id=node_text                    text='Carriers' desc=''
+  ImageView           (981, 893)   id=node_image_identifier        text='' desc=''
+  RelativeLayout c    (534, 1047)  id=node_container               text='' desc=''
+  TextView            (74, 1027)   id=node_child_numbers           text='14' desc=''
+  ImageView           (127, 1047)  id=node_icon                    text='' desc=''
+  TextView            (341, 1046)  id=node_text                    text='Passwords' desc=''
+  ImageView           (981, 1047)  id=node_image_identifier        text='' desc=''
+  RelativeLayout c    (534, 1201)  id=node_container               text='' desc=''
+  TextView            (64, 1181)   id=node_child_numbers           text='1' desc=''
+  ImageView           (127, 1201)  id=node_icon                    text='' desc=''
+  TextView            (261, 1200)  id=node_text                    text='GD' desc=''
+  ImageView           (981, 1201)  id=node_image_identifier        text='' desc=''
+  RelativeLayout c    (534, 1355)  id=node_container               text='' desc=''
+  TextView            (64, 1335)   id=node_child_numbers           text='3' desc=''
+  ImageView           (127, 1355)  id=node_icon                    text='' desc=''
+  TextView            (262, 1354)  id=node_text                    text='NA' desc=''
+  ImageView           (981, 1355)  id=node_image_identifier        text='' desc=''
+  RelativeLayout c    (534, 1509)  id=node_container               text='' desc=''
+  TextView            (64, 1489)   id=node_child_numbers           text='2' desc=''
+  ImageView           (127, 1509)  id=node_icon                    text='' desc=''
+  TextView            (318, 1508)  id=node_text                    text='Personal' desc=''
+  ImageView           (981, 1509)  id=node_image_identifier        text='' desc=''
+  RelativeLayout c    (534, 1663)  id=node_container               text='' desc=''
+  TextView            (64, 1643)   id=node_child_numbers           text='0' desc=''
+  ImageView           (127, 1663)  id=node_icon                    text='' desc=''
+  TextView            (344, 1662)  id=node_text                    text='Recycle Bin' desc=''
+  ImageView           (981, 1663)  id=node_image_identifier        text='' desc=''
+  ViewGroup      c    (534, 1817)  id=node_container               text='' desc=''
+  ImageView           (127, 1817)  id=node_icon                    text='' desc=''
+  LinearLayout        (606, 1817)  id=node_container_info          text='' desc=''
+  TextView            (327, 1798)  id=node_text                    text='phone-ow' desc=''
+  TextView            (401, 1841)  id=node_subtext                 text='invented-default-user' desc=''
+  ViewGroup           (540, 2033)  id=activity_group_footer        text='' desc=''
+  ImageButton    c    (90, 2033)   id=lock_button                  text='' desc='Lock'
+  View                (540, 72)    id=statusBarBackground          text='' desc=''
+  View                (0, 0)       id=navigationBarBackground      text='' desc=''
+total 24
+-rw------- 1 u0_a160 u0_a160 16425 2026-11-16 17:21:58.984000000 +0100 kpdx-ow-noauto-save-plus60-r2.kdbx
+device kpdx-ow-noauto-save-plus60-r2.kdbx sha256 1f122bfa73e7ca61b20d7f0b0bafe6e80128fe75d8cc33b01dc32bbb9ad25ab5 16425 bytes, mtime 2026-11-16 17:21:58.984000000 +0100
+/sdcard/Download/kpdx-ow-noauto-save-plus60-r2.kdbx: 1 file pulled, 0 skipped. 1.3 MB/s (16425 bytes in 0.012s)
+### flow rc=0 2026-11-16T16:22:24.431Z

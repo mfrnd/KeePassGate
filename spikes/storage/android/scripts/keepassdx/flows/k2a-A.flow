@@ -1,0 +1,3 @@
+# Scenario A, Keepass2Android: open, unlock, add an entry at the root (saved at once), done.
+include k2a-open.flow
+include k2a-add.flow

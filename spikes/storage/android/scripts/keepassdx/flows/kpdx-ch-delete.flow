@@ -1,0 +1,68 @@
+# Item 1, chain D: deletions. E2 to the recycle bin; the admission record AD1 to the bin; the group
+# GD to the bin; E2 deleted for good from inside the bin; then the bin emptied.
+include kpdx-open.flow
+tapuntil node_text@^G$ node_text@^E2$ 40
+sleep 3
+log s01 E2 to the recycle bin
+mark /sdcard/Download/${NAME}.kdbx
+longpressuntil node_text@^E2$ menu_move 60 2000 600
+tapuntil More.options#2 ^Delete$ 30
+tap ^Delete$
+sleep 2
+dialog
+maybe ^OK$ 3
+gone node_text@^E2$ 30
+waitchange /sdcard/Download/${NAME}.kdbx 45
+pull ${OUT}/s01-e2-recycled.kdbx /sdcard/Download/${NAME}.kdbx
+key BACK
+waitfor node_text@^KeePassGate$ 20
+tapuntil node_text@^KeePassGate$ node_text@^KPG.client.build-agent$ 40
+sleep 3
+log s02 the admission record AD1 to the recycle bin
+mark /sdcard/Download/${NAME}.kdbx
+longpressuntil node_text@^KPG.client.build-agent$ menu_move 60 2000 600
+tapuntil More.options#2 ^Delete$ 30
+tap ^Delete$
+sleep 2
+dialog
+maybe ^OK$ 3
+gone node_text@^KPG.client.build-agent$ 30
+waitchange /sdcard/Download/${NAME}.kdbx 45
+pull ${OUT}/s02-ad1-recycled.kdbx /sdcard/Download/${NAME}.kdbx
+key BACK
+waitfor node_text@^GD$ 20
+sleep 2
+log s03 the group GD to the recycle bin
+mark /sdcard/Download/${NAME}.kdbx
+longpressuntil node_text@^GD$ menu_move 60 2000 600
+tapuntil More.options#2 ^Delete$ 30
+tap ^Delete$
+sleep 2
+dialog
+maybe ^OK$ 3
+gone node_text@^GD$ 30
+waitchange /sdcard/Download/${NAME}.kdbx 45
+pull ${OUT}/s03-gd-recycled.kdbx /sdcard/Download/${NAME}.kdbx
+log s04 E2 deleted for good from the bin
+mark /sdcard/Download/${NAME}.kdbx
+tapuntil node_text@^Recycle.Bin$ node_text@^E2$ 40
+sleep 3
+longpressuntil node_text@^E2$ menu_move 60 2000 600
+tapuntil More.options#2 ^Delete$ 30
+tap ^Delete$
+sleep 2
+dialog
+maybe ^OK$ 4
+gone node_text@^E2$ 30
+waitchange /sdcard/Download/${NAME}.kdbx 45
+pull ${OUT}/s04-e2-deleted.kdbx /sdcard/Download/${NAME}.kdbx
+log s05 the recycle bin emptied
+mark /sdcard/Download/${NAME}.kdbx
+tapuntil More.options ^Empty.the.recycle.bin$ 30
+tap ^Empty.the.recycle.bin$
+sleep 2
+dialog
+tap ^OK$
+waitchange /sdcard/Download/${NAME}.kdbx 45
+pull ${OUT}/s05-bin-emptied.kdbx /sdcard/Download/${NAME}.kdbx
+list

@@ -1,0 +1,12 @@
+24c24
+< E A2 A b.bin p=0 len=48 sha=a9467b6b13353ae6
+---
+> E A2 A b.bin p=0 len=48 sha=9b0f7af00b2e6084
+43c43
+< E A3 A second-b.bin p=0 len=48 sha=a9467b6b13353ae6
+---
+> E A3 A second-b.bin p=0 len=48 sha=9b0f7af00b2e6084
+1092c1092
+< G Root t.accessed 2026-11-16T11:15:31Z
+---
+> G Root t.accessed 2026-11-01T10:00:00Z

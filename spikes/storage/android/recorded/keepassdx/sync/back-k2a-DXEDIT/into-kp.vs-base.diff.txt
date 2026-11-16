@@ -1,0 +1,26 @@
+931a932,948
+> E ~2d9d36b6 S Notes p=0 ""
+> E ~2d9d36b6 S Password p=1 ""
+> E ~2d9d36b6 S Title p=0 "k2a-added"
+> E ~2d9d36b6 S URL p=0 ""
+> E ~2d9d36b6 S UserName p=0 "invented-default-user"
+> E ~2d9d36b6 autotype enabled=1 obfuscation=0 seq="" assoc=0
+> E ~2d9d36b6 history.count 0
+> E ~2d9d36b6 misc icon=0 customIcon=- fg=00000000 bg=00000000 overrideUrl="" quality=1
+> E ~2d9d36b6 parent Root (Storage probe)
+> E ~2d9d36b6 prev -
+> E ~2d9d36b6 t.accessed 2026-11-16T14:34:40Z
+> E ~2d9d36b6 t.created 2026-11-16T14:34:24Z
+> E ~2d9d36b6 t.expires 0 2026-11-16T14:34:03Z
+> E ~2d9d36b6 t.location 2026-11-16T14:34:24Z
+> E ~2d9d36b6 t.modified 2026-11-16T14:34:40Z
+> E ~2d9d36b6 tags []
+> E ~2d9d36b6 usage 1
+934c951
+< F groups 13 entries 41
+---
+> F groups 13 entries 42
+1094c1111
+< G Root children groups=8 entries=0
+---
+> G Root children groups=8 entries=1

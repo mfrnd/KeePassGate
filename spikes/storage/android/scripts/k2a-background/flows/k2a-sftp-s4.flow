@@ -1,0 +1,19 @@
+# Over SFTP: Synchronize, case 4, both changed: open; Work on internal cache only; edit the passwords of P2, Q1,
+# Q2 and Q3 and add the entry phone-new, each saved (to the cache); this run's SNEW built from SOLD
+# and the phone's cached copy (Q2 an hour after the phone's edit, Q3 at it exactly) and put on the
+# server; "Synchronize cache copy with source" (the menu item that mode shows); Synchronize
+# database... as well; look.
+include k2a-sftp-open.flow
+include k2a-sy-offline.flow
+include k2a-sy-pw-P2.flow
+include k2a-sy-pw-Q1.flow
+include k2a-sy-pw-Q2.flow
+include k2a-sy-pw-Q3.flow
+include k2a-ow-edit.flow
+host sh ${P}/mksnew.sh ${W} ${SNAME}
+include k2a-sy-online.flow
+host sh ${P}/srv-stat.sh ${SNAME} after-sync-cache-copy
+host sh ${P}/pull-cache.sh ${W} cache-after-sync-cache-copy
+include k2a-sy-sync.flow
+host sh ${P}/srv-stat.sh ${SNAME} after-sync
+include k2a-sy-look.flow

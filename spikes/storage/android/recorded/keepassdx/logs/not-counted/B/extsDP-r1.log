@@ -1,0 +1,87 @@
+### 2026-11-16T08:15:38.958Z B kpdx extsDP r1 target=DESK source=PHONE (versionName=4.5.8)
+Success
+<work>/work/base/DESK.kdbx: 1 file pushed, 0 skipped. 1.2 MB/s (16901 bytes in 0.013s)
+target sha256 2e9c41595aa4df3710b594660120f7bd8b2e1dbb214b148f329495c3e92f4774
+[2026-11-16T08:15:39.800Z] kpdx-ext-save.flow:2 include kpdx-open.flow
+[2026-11-16T08:15:39.809Z] kpdx-open.flow:4 sh monkey -p com.kunzisoft.keepass.libre -c android.intent.category.LAUNCHER 1
+  bash arg: -p
+  bash arg: com.kunzisoft.keepass.libre
+  bash arg: -c
+  bash arg: android.intent.category.LAUNCHER
+  bash arg: 1
+Events injected: 1
+## Network stats: elapsed time=73ms (0ms mobile, 0ms wifi, 73ms not connected)
+args: [-p, com.kunzisoft.keepass.libre, -c, android.intent.category.LAUNCHER, 1]
+ arg: "-p"
+ arg: "com.kunzisoft.keepass.libre"
+ arg: "-c"
+ arg: "android.intent.category.LAUNCHER"
+ arg: "1"
+data="com.kunzisoft.keepass.libre"
+data="android.intent.category.LAUNCHER"
+[2026-11-16T08:15:40.414Z] kpdx-open.flow:5 waitfor open_database_button 30
+[2026-11-16T08:15:43.604Z] kpdx-open.flow:6 tapuntil open_database_button Show.roots 40
+[2026-11-16T08:15:46.408Z]   tapped (799, 2051) 'Open existing vault'
+[2026-11-16T08:15:56.672Z]   tapped (799, 2051) 'Open existing vault'
+[2026-11-16T08:15:58.904Z] kpdx-open.flow:7 include picker.flow
+[2026-11-16T08:15:58.911Z] picker.flow:4 pick kpdx-extsDP.kdbx
+[2026-11-16T08:16:06.792Z]   focused and entered '^kpdx\\-extsDP\\.kdbx$'
+[2026-11-16T08:16:06.793Z] kpdx-open.flow:8 waitfor password_text_view 40
+[2026-11-16T08:16:09.421Z] kpdx-open.flow:9 typepw password_text_view dummy-password-for-a-throwaway-file
+[2026-11-16T08:16:21.785Z]   type: field never took the focus (attempt 1)
+[2026-11-16T08:16:33.952Z]   type: field never took the focus (attempt 2)
+[2026-11-16T08:16:46.027Z]   type: field never took the focus (attempt 3)
+[2026-11-16T08:16:53.193Z]   typed into the focused field
+[2026-11-16T08:16:53.195Z] kpdx-open.flow:10 tapuntil activity_password_open_button add_button 60
+[2026-11-16T08:16:55.961Z]   tapped (895, 1435) 'Unlock'
+[2026-11-16T08:17:04.036Z]   tapped (895, 1435) 'Unlock'
+[2026-11-16T08:17:12.820Z]   tapped (895, 1435) 'Unlock'
+[2026-11-16T08:17:23.069Z]   tapped (895, 1435) 'Unlock'
+[2026-11-16T08:17:33.505Z]   tapped (895, 1435) 'Unlock'
+[2026-11-16T08:17:43.824Z]   tapped (895, 1435) 'Unlock'
+[2026-11-16T08:17:54.355Z]   tapped (895, 1435) 'Unlock'
+  LinearLayout        (540, 834)   id=action_bar_root              text='' desc=''
+  FrameLayout         (540, 834)   id=content                      text='' desc=''
+  ViewGroup           (540, 746)   id=activity_password_coordinator_layout text='' desc=''
+  LinearLayout        (540, 332)   id=app_bar                      text='' desc=''
+  FrameLayout         (540, 332)   id=toolbar_layout               text='' desc='KeePassDX'
+  ImageView      c    (540, 420)   id=activity_password_logotype   text='' desc='About'
+  ImageView           (540, 420)   id=                             text='' desc='About'
+  ViewGroup           (540, 233)   id=toolbar                      text='' desc=''
+  ImageButton    c    (77, 233)    id=                             text='' desc='Navigate up'
+  TextView            (429, 233)   id=filename                     text='kpdx-extsDP.kdbx' desc=''
+  Button         c    (771, 233)   id=menu_open_file_read_mode_key text='' desc='Modifiable'
+  Button         c    (903, 233)   id=menu_open_file_user_verification_mode_key text='' desc='User Verification enabled'
+  ImageView      c    (1024, 233)  id=                             text='' desc='More options'
+  ScrollView          (540, 933)   id=scroll_container             text='' desc=''
+  FrameLayout         (540, 840)   id=activity_password_credentials text='' desc=''
+  LinearLayout        (540, 840)   id=unlock_container             text='' desc=''
+  RelativeLayout      (540, 664)   id=password_input_container     text='' desc=''
+  LinearLayout        (452, 664)   id=password_input_layout        text='' desc=''
+  EditText       cf   (452, 671)   id=password_text_view           text='Password' desc=''
+  ImageButton    cx   (761, 671)   id=text_input_end_icon          text='' desc='Show password'
+  Switch         cx   (931, 669)   id=password_checkbox            text='' desc='Password checkbox'
+  RelativeLayout      (540, 832)   id=container_key_file           text='' desc=''
+  ViewGroup      c    (452, 832)   id=keyfile_selection            text='' desc=''
+  ViewGroup           (452, 832)   id=container_key_file           text='' desc=''
+  LinearLayout        (452, 832)   id=input_entry_keyfile          text='' desc=''
+  EditText       c    (452, 839)   id=keyfile_name                 text='Keyfile' desc=''
+  ImageButton    cx   (761, 839)   id=text_input_end_icon          text='' desc='Show password'
+  Switch         cx   (931, 837)   id=keyfile_checkbox             text='' desc='Keyfile checkbox'
+  RelativeLayout      (540, 1000)  id=container_hardware_key       text='' desc=''
+  ViewGroup           (452, 1000)  id=hardware_key_selection       text='' desc=''
+  FrameLayout         (452, 1000)  id=container_hardware_key       text='' desc=''
+  LinearLayout        (452, 1000)  id=input_entry_hardware_key_layout text='' desc=''
+  Spinner        c    (452, 1007)  id=input_entry_hardware_key_completion text='Hardware key' desc=''
+  ImageButton    cx   (761, 1007)  id=text_input_end_icon          text='' desc='Show dropdown menu'
+  Switch         cx   (931, 1005)  id=hardware_key_checkbox        text='' desc='Hardware key checkbox'
+  LinearLayout        (540, 1435)  id=activity_password_footer     text='' desc=''
+  Button         cD   (895, 1435)  id=activity_password_open_button text='Unlock' desc=''
+  View                (540, 72)    id=statusBarBackground          text='' desc=''
+  View                (0, 0)       id=navigationBarBackground      text='' desc=''
+[2026-11-16T08:18:01.672Z] FAILED: tapuntil: never reached add_button
+total 24
+-rw------- 1 u0_a160 u0_a160 16901 2026-11-16 08:16:22.000000000 +0100 kpdx-extsDP.kdbx
+device kpdx-extsDP.kdbx sha256 2e9c41595aa4df3710b594660120f7bd8b2e1dbb214b148f329495c3e92f4774
+/sdcard/Download/kpdx-extsDP.kdbx: 1 file pulled, 0 skipped. 0.9 MB/s (16901 bytes in 0.017s)
+### flow rc=1 2026-11-16T08:18:04.261Z

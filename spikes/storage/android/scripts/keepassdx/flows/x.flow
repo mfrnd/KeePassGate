@@ -1,0 +1,10 @@
+# exploration: icon picker, then the expiration
+tap template_icon_button
+sleep 3
+list
+key BACK
+sleep 2
+waitfor entry_edit_validate 10
+tap expiration_text
+sleep 2
+list

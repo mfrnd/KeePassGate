@@ -1,0 +1,5 @@
+# Item 4 helper: the add button offered an entry; try to add one and validate it.
+tap fab_add_entry
+sleep 3
+list
+ifthen entry_edit_validate 5 kpdx-ro-validate.flow

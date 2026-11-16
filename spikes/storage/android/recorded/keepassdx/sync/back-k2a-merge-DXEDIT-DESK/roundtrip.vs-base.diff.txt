@@ -1,0 +1,540 @@
+5c5,17
+< D count 4
+---
+> D DRV2 2026-11-01T18:00:00Z
+> D DZ 2026-11-01T18:00:00Z
+> D GD 2026-11-01T15:00:00Z
+> D GD1 2026-11-01T15:00:00Z
+> D NA 2026-11-01T18:00:00Z
+> D NA1 2026-11-01T18:00:00Z
+> D NB 2026-11-01T18:00:00Z
+> D NB1 2026-11-01T18:00:00Z
+> D NC 2026-11-01T18:00:00Z
+> D NC1 2026-11-01T18:00:00Z
+> D X1 2026-11-01T18:00:00Z
+> D X2 2026-11-01T15:00:00Z
+> D count 16
+45a58,77
+> E AD3 S KPG.Check p=0 "5b693620cfccbd9a22fcc3151f3358cc12dc6bda635683409ac9122d3260cad9"
+> E AD3 S KPG.Kind p=0 "admission"
+> E AD3 S KPG.Record p=0 "{\"certificate\":\"82d16b54f20652325c884b46fa3701fc2142d08273571a857ba66688d6ac1e4d\",\"name\":\"deploy-bot\",\"profiles\":[\"writer\"]}"
+> E AD3 S Notes p=0 ""
+> E AD3 S Password p=1 ""
+> E AD3 S Title p=0 "KPG client deploy-bot"
+> E AD3 S URL p=0 ""
+> E AD3 S UserName p=0 ""
+> E AD3 autotype enabled=1 obfuscation=0 seq="" assoc=0
+> E AD3 history.count 0
+> E AD3 misc icon=0 customIcon=- fg=00000000 bg=00000000 overrideUrl="" quality=1
+> E AD3 parent KG (KeePassGate)
+> E AD3 prev -
+> E AD3 t.accessed 2026-11-01T18:00:00Z
+> E AD3 t.created 2026-11-01T18:00:00Z
+> E AD3 t.expires 0 2026-11-01T10:00:00Z
+> E AD3 t.location 2026-11-01T18:00:00Z
+> E AD3 t.modified 2026-11-01T18:00:00Z
+> E AD3 tags []
+> E AD3 usage 0
+226,242d257
+< E GD1 S Notes p=0 ""
+< E GD1 S Password p=1 "gd1-old"
+< E GD1 S Title p=0 "GD1"
+< E GD1 S URL p=0 ""
+< E GD1 S UserName p=0 "user-gd1"
+< E GD1 autotype enabled=1 obfuscation=0 seq="" assoc=0
+< E GD1 history.count 0
+< E GD1 misc icon=0 customIcon=- fg=00000000 bg=00000000 overrideUrl="" quality=1
+< E GD1 parent GD (GD)
+< E GD1 prev -
+< E GD1 t.accessed 2026-11-01T10:20:00Z
+< E GD1 t.created 2026-11-01T10:20:00Z
+< E GD1 t.expires 0 2026-11-01T10:00:00Z
+< E GD1 t.location 2026-11-01T10:20:00Z
+< E GD1 t.modified 2026-11-01T10:20:00Z
+< E GD1 tags []
+< E GD1 usage 0
+282a298,317
+> E GR3 S KPG.Check p=0 "4df222deba2f6ee00922f1a10677564c8889af52318128e0bee009f9e0209d48"
+> E GR3 S KPG.Kind p=0 "grant"
+> E GR3 S KPG.Record p=0 "{\"node\":\"4B504750530000000000000000000000\",\"profile\":\"reader\",\"letters\":\".R...L..\",\"sawWithdrawals\":[]}"
+> E GR3 S Notes p=0 ""
+> E GR3 S Password p=1 ""
+> E GR3 S Title p=0 "KPG grant reader .R...L.. Personal"
+> E GR3 S URL p=0 ""
+> E GR3 S UserName p=0 ""
+> E GR3 autotype enabled=1 obfuscation=0 seq="" assoc=0
+> E GR3 history.count 0
+> E GR3 misc icon=0 customIcon=- fg=00000000 bg=00000000 overrideUrl="" quality=1
+> E GR3 parent KG (KeePassGate)
+> E GR3 prev -
+> E GR3 t.accessed 2026-11-01T18:00:00Z
+> E GR3 t.created 2026-11-01T18:00:00Z
+> E GR3 t.expires 0 2026-11-01T10:00:00Z
+> E GR3 t.location 2026-11-01T18:00:00Z
+> E GR3 t.modified 2026-11-01T18:00:00Z
+> E GR3 tags []
+> E GR3 usage 0
+428,478c463,494
+< E NA1 S Notes p=0 ""
+< E NA1 S Password p=1 "na1-old"
+< E NA1 S Title p=0 "NA1"
+< E NA1 S URL p=0 ""
+< E NA1 S UserName p=0 "user-na1"
+< E NA1 autotype enabled=1 obfuscation=0 seq="" assoc=0
+< E NA1 history.count 0
+< E NA1 misc icon=0 customIcon=- fg=00000000 bg=00000000 overrideUrl="" quality=1
+< E NA1 parent NA (NA)
+< E NA1 prev -
+< E NA1 t.accessed 2026-11-01T10:20:00Z
+< E NA1 t.created 2026-11-01T10:20:00Z
+< E NA1 t.expires 0 2026-11-01T10:00:00Z
+< E NA1 t.location 2026-11-01T10:20:00Z
+< E NA1 t.modified 2026-11-01T10:20:00Z
+< E NA1 tags []
+< E NA1 usage 0
+< E NB1 S Notes p=0 ""
+< E NB1 S Password p=1 "nb1-old"
+< E NB1 S Title p=0 "NB1"
+< E NB1 S URL p=0 ""
+< E NB1 S UserName p=0 "user-nb1"
+< E NB1 autotype enabled=1 obfuscation=0 seq="" assoc=0
+< E NB1 history.count 0
+< E NB1 misc icon=0 customIcon=- fg=00000000 bg=00000000 overrideUrl="" quality=1
+< E NB1 parent NB (NB)
+< E NB1 prev -
+< E NB1 t.accessed 2026-11-01T10:20:00Z
+< E NB1 t.created 2026-11-01T10:20:00Z
+< E NB1 t.expires 0 2026-11-01T10:00:00Z
+< E NB1 t.location 2026-11-01T10:20:00Z
+< E NB1 t.modified 2026-11-01T10:20:00Z
+< E NB1 tags []
+< E NB1 usage 0
+< E NC1 S Notes p=0 ""
+< E NC1 S Password p=1 "nc1-old"
+< E NC1 S Title p=0 "NC1"
+< E NC1 S URL p=0 ""
+< E NC1 S UserName p=0 "user-nc1"
+< E NC1 autotype enabled=1 obfuscation=0 seq="" assoc=0
+< E NC1 history.count 0
+< E NC1 misc icon=0 customIcon=- fg=00000000 bg=00000000 overrideUrl="" quality=1
+< E NC1 parent NC (NC)
+< E NC1 prev -
+< E NC1 t.accessed 2026-11-01T10:20:00Z
+< E NC1 t.created 2026-11-01T10:20:00Z
+< E NC1 t.expires 0 2026-11-01T10:00:00Z
+< E NC1 t.location 2026-11-01T10:20:00Z
+< E NC1 t.modified 2026-11-01T10:20:00Z
+< E NC1 tags []
+< E NC1 usage 0
+---
+> E ND S Notes p=0 ""
+> E ND S Password p=1 "nd-desktop"
+> E ND S Title p=0 "ND desktop new"
+> E ND S URL p=0 ""
+> E ND S UserName p=0 "user-nd"
+> E ND autotype enabled=1 obfuscation=0 seq="" assoc=0
+> E ND history.count 0
+> E ND misc icon=0 customIcon=- fg=00000000 bg=00000000 overrideUrl="" quality=1
+> E ND parent PW (Passwords)
+> E ND prev -
+> E ND t.accessed 2026-11-01T18:00:00Z
+> E ND t.created 2026-11-01T18:00:00Z
+> E ND t.expires 0 2026-11-01T10:00:00Z
+> E ND t.location 2026-11-01T18:00:00Z
+> E ND t.modified 2026-11-01T18:00:00Z
+> E ND tags []
+> E ND usage 0
+> E P1 H2026-11-01T10:20:00Z S Notes p=0 ""
+> E P1 H2026-11-01T10:20:00Z S Password p=1 "p1-old"
+> E P1 H2026-11-01T10:20:00Z S Title p=0 "P1"
+> E P1 H2026-11-01T10:20:00Z S URL p=0 ""
+> E P1 H2026-11-01T10:20:00Z S UserName p=0 "user-p1"
+> E P1 H2026-11-01T10:20:00Z autotype enabled=1 obfuscation=0 seq="" assoc=0
+> E P1 H2026-11-01T10:20:00Z misc icon=0 customIcon=- fg=00000000 bg=00000000 overrideUrl="" quality=1
+> E P1 H2026-11-01T10:20:00Z prev -
+> E P1 H2026-11-01T10:20:00Z t.accessed 2026-11-01T10:20:00Z
+> E P1 H2026-11-01T10:20:00Z t.created 2026-11-01T10:20:00Z
+> E P1 H2026-11-01T10:20:00Z t.expires 0 2026-11-01T10:00:00Z
+> E P1 H2026-11-01T10:20:00Z t.location 2026-11-01T10:20:00Z
+> E P1 H2026-11-01T10:20:00Z t.modified 2026-11-01T10:20:00Z
+> E P1 H2026-11-01T10:20:00Z tags []
+> E P1 H2026-11-01T10:20:00Z usage 0
+480c496
+< E P1 S Password p=1 "p1-old"
+---
+> E P1 S Password p=1 "p1-desktop"
+485c501
+< E P1 history.count 0
+---
+> E P1 history.count 1
+489c505
+< E P1 t.accessed 2026-11-01T10:20:00Z
+---
+> E P1 t.accessed 2026-11-01T18:00:00Z
+493c509
+< E P1 t.modified 2026-11-01T10:20:00Z
+---
+> E P1 t.modified 2026-11-01T18:00:00Z
+571a588,621
+> E PR2 S KPG.Kind p=0 "profile-removal"
+> E PR2 S KPG.Record p=0 "{\"name\":\"writer\"}"
+> E PR2 S Notes p=0 ""
+> E PR2 S Password p=1 ""
+> E PR2 S Title p=0 "KPG profile removed writer"
+> E PR2 S URL p=0 ""
+> E PR2 S UserName p=0 ""
+> E PR2 autotype enabled=1 obfuscation=0 seq="" assoc=0
+> E PR2 history.count 0
+> E PR2 misc icon=0 customIcon=- fg=00000000 bg=00000000 overrideUrl="" quality=1
+> E PR2 parent KG (KeePassGate)
+> E PR2 prev -
+> E PR2 t.accessed 2026-11-01T18:00:00Z
+> E PR2 t.created 2026-11-01T18:00:00Z
+> E PR2 t.expires 0 2026-11-01T10:00:00Z
+> E PR2 t.location 2026-11-01T18:00:00Z
+> E PR2 t.modified 2026-11-01T18:00:00Z
+> E PR2 tags []
+> E PR2 usage 0
+> E Q1 H2026-11-01T10:20:00Z S Notes p=0 ""
+> E Q1 H2026-11-01T10:20:00Z S Password p=1 "q1-old"
+> E Q1 H2026-11-01T10:20:00Z S Title p=0 "Q1"
+> E Q1 H2026-11-01T10:20:00Z S URL p=0 ""
+> E Q1 H2026-11-01T10:20:00Z S UserName p=0 "user-q1"
+> E Q1 H2026-11-01T10:20:00Z autotype enabled=1 obfuscation=0 seq="" assoc=0
+> E Q1 H2026-11-01T10:20:00Z misc icon=0 customIcon=- fg=00000000 bg=00000000 overrideUrl="" quality=1
+> E Q1 H2026-11-01T10:20:00Z prev -
+> E Q1 H2026-11-01T10:20:00Z t.accessed 2026-11-01T10:20:00Z
+> E Q1 H2026-11-01T10:20:00Z t.created 2026-11-01T10:20:00Z
+> E Q1 H2026-11-01T10:20:00Z t.expires 0 2026-11-01T10:00:00Z
+> E Q1 H2026-11-01T10:20:00Z t.location 2026-11-01T10:20:00Z
+> E Q1 H2026-11-01T10:20:00Z t.modified 2026-11-01T10:20:00Z
+> E Q1 H2026-11-01T10:20:00Z tags []
+> E Q1 H2026-11-01T10:20:00Z usage 0
+573c623
+< E Q1 S Password p=1 "q1-old"
+---
+> E Q1 S Password p=1 "q1-desktop"
+578c628
+< E Q1 history.count 0
+---
+> E Q1 history.count 1
+582c632
+< E Q1 t.accessed 2026-11-01T10:20:00Z
+---
+> E Q1 t.accessed 2026-11-01T15:00:00Z
+586c636
+< E Q1 t.modified 2026-11-01T10:20:00Z
+---
+> E Q1 t.modified 2026-11-01T15:00:00Z
+588a639,653
+> E Q2 H2026-11-01T10:20:00Z S Notes p=0 ""
+> E Q2 H2026-11-01T10:20:00Z S Password p=1 "q2-old"
+> E Q2 H2026-11-01T10:20:00Z S Title p=0 "Q2"
+> E Q2 H2026-11-01T10:20:00Z S URL p=0 ""
+> E Q2 H2026-11-01T10:20:00Z S UserName p=0 "user-q2"
+> E Q2 H2026-11-01T10:20:00Z autotype enabled=1 obfuscation=0 seq="" assoc=0
+> E Q2 H2026-11-01T10:20:00Z misc icon=0 customIcon=- fg=00000000 bg=00000000 overrideUrl="" quality=1
+> E Q2 H2026-11-01T10:20:00Z prev -
+> E Q2 H2026-11-01T10:20:00Z t.accessed 2026-11-01T10:20:00Z
+> E Q2 H2026-11-01T10:20:00Z t.created 2026-11-01T10:20:00Z
+> E Q2 H2026-11-01T10:20:00Z t.expires 0 2026-11-01T10:00:00Z
+> E Q2 H2026-11-01T10:20:00Z t.location 2026-11-01T10:20:00Z
+> E Q2 H2026-11-01T10:20:00Z t.modified 2026-11-01T10:20:00Z
+> E Q2 H2026-11-01T10:20:00Z tags []
+> E Q2 H2026-11-01T10:20:00Z usage 0
+590c655
+< E Q2 S Password p=1 "q2-old"
+---
+> E Q2 S Password p=1 "q2-desktop"
+595c660
+< E Q2 history.count 0
+---
+> E Q2 history.count 1
+599c664
+< E Q2 t.accessed 2026-11-01T10:20:00Z
+---
+> E Q2 t.accessed 2026-11-01T17:00:00Z
+603c668
+< E Q2 t.modified 2026-11-01T10:20:00Z
+---
+> E Q2 t.modified 2026-11-01T17:00:00Z
+605a671,685
+> E Q3 H2026-11-01T10:20:00Z S Notes p=0 ""
+> E Q3 H2026-11-01T10:20:00Z S Password p=1 "q3-old"
+> E Q3 H2026-11-01T10:20:00Z S Title p=0 "Q3"
+> E Q3 H2026-11-01T10:20:00Z S URL p=0 ""
+> E Q3 H2026-11-01T10:20:00Z S UserName p=0 "user-q3"
+> E Q3 H2026-11-01T10:20:00Z autotype enabled=1 obfuscation=0 seq="" assoc=0
+> E Q3 H2026-11-01T10:20:00Z misc icon=0 customIcon=- fg=00000000 bg=00000000 overrideUrl="" quality=1
+> E Q3 H2026-11-01T10:20:00Z prev -
+> E Q3 H2026-11-01T10:20:00Z t.accessed 2026-11-01T10:20:00Z
+> E Q3 H2026-11-01T10:20:00Z t.created 2026-11-01T10:20:00Z
+> E Q3 H2026-11-01T10:20:00Z t.expires 0 2026-11-01T10:00:00Z
+> E Q3 H2026-11-01T10:20:00Z t.location 2026-11-01T10:20:00Z
+> E Q3 H2026-11-01T10:20:00Z t.modified 2026-11-01T10:20:00Z
+> E Q3 H2026-11-01T10:20:00Z tags []
+> E Q3 H2026-11-01T10:20:00Z usage 0
+607c687
+< E Q3 S Password p=1 "q3-old"
+---
+> E Q3 S Password p=1 "q3-desktop"
+612c692
+< E Q3 history.count 0
+---
+> E Q3 history.count 1
+616c696
+< E Q3 t.accessed 2026-11-01T10:20:00Z
+---
+> E Q3 t.accessed 2026-11-01T16:00:00Z
+620c700
+< E Q3 t.modified 2026-11-01T10:20:00Z
+---
+> E Q3 t.modified 2026-11-01T16:00:00Z
+776a857,875
+> E RV2 S KPG.Kind p=0 "revocation"
+> E RV2 S KPG.Record p=0 "{\"certificate\":\"5722b6a518fc677ef9292e33ebb15f947af2c1685acc2ec17073532033d9a603\",\"name\":\"ci-runner\"}"
+> E RV2 S Notes p=0 ""
+> E RV2 S Password p=1 ""
+> E RV2 S Title p=0 "KPG revoked ci-runner"
+> E RV2 S URL p=0 ""
+> E RV2 S UserName p=0 ""
+> E RV2 autotype enabled=1 obfuscation=0 seq="" assoc=0
+> E RV2 history.count 0
+> E RV2 misc icon=0 customIcon=- fg=00000000 bg=00000000 overrideUrl="" quality=1
+> E RV2 parent KG (KeePassGate)
+> E RV2 prev -
+> E RV2 t.accessed 2026-11-01T18:00:00Z
+> E RV2 t.created 2026-11-01T18:00:00Z
+> E RV2 t.expires 0 2026-11-01T10:00:00Z
+> E RV2 t.location 2026-11-01T18:00:00Z
+> E RV2 t.modified 2026-11-01T18:00:00Z
+> E RV2 tags []
+> E RV2 usage 0
+796,829c895,928
+< E X1 S Notes p=0 ""
+< E X1 S Password p=1 "x1-old"
+< E X1 S Title p=0 "X1"
+< E X1 S URL p=0 ""
+< E X1 S UserName p=0 "user-x1"
+< E X1 autotype enabled=1 obfuscation=0 seq="" assoc=0
+< E X1 history.count 0
+< E X1 misc icon=0 customIcon=- fg=00000000 bg=00000000 overrideUrl="" quality=1
+< E X1 parent PW (Passwords)
+< E X1 prev -
+< E X1 t.accessed 2026-11-01T10:20:00Z
+< E X1 t.created 2026-11-01T10:20:00Z
+< E X1 t.expires 0 2026-11-01T10:00:00Z
+< E X1 t.location 2026-11-01T10:20:00Z
+< E X1 t.modified 2026-11-01T10:20:00Z
+< E X1 tags []
+< E X1 usage 0
+< E X2 S Notes p=0 ""
+< E X2 S Password p=1 "x2-old"
+< E X2 S Title p=0 "X2"
+< E X2 S URL p=0 ""
+< E X2 S UserName p=0 "user-x2"
+< E X2 autotype enabled=1 obfuscation=0 seq="" assoc=0
+< E X2 history.count 0
+< E X2 misc icon=0 customIcon=- fg=00000000 bg=00000000 overrideUrl="" quality=1
+< E X2 parent PW (Passwords)
+< E X2 prev -
+< E X2 t.accessed 2026-11-01T10:20:00Z
+< E X2 t.created 2026-11-01T10:20:00Z
+< E X2 t.expires 0 2026-11-01T10:00:00Z
+< E X2 t.location 2026-11-01T10:20:00Z
+< E X2 t.modified 2026-11-01T10:20:00Z
+< E X2 tags []
+< E X2 usage 0
+---
+> E WD2 S KPG.Kind p=0 "withdrawal"
+> E WD2 S KPG.Record p=0 "{\"node\":\"4B504750570000000000000000000000\",\"profile\":\"reader\",\"letters\":\".......P\"}"
+> E WD2 S Notes p=0 ""
+> E WD2 S Password p=1 ""
+> E WD2 S Title p=0 "KPG withdrawn reader .R...L.P Passwords"
+> E WD2 S URL p=0 ""
+> E WD2 S UserName p=0 ""
+> E WD2 autotype enabled=1 obfuscation=0 seq="" assoc=0
+> E WD2 history.count 0
+> E WD2 misc icon=0 customIcon=- fg=00000000 bg=00000000 overrideUrl="" quality=1
+> E WD2 parent KG (KeePassGate)
+> E WD2 prev -
+> E WD2 t.accessed 2026-11-01T18:00:00Z
+> E WD2 t.created 2026-11-01T18:00:00Z
+> E WD2 t.expires 0 2026-11-01T10:00:00Z
+> E WD2 t.location 2026-11-01T18:00:00Z
+> E WD2 t.modified 2026-11-01T18:00:00Z
+> E WD2 tags []
+> E WD2 usage 0
+> E X3 H2026-11-01T10:20:00Z S Notes p=0 ""
+> E X3 H2026-11-01T10:20:00Z S Password p=1 "x3-old"
+> E X3 H2026-11-01T10:20:00Z S Title p=0 "X3"
+> E X3 H2026-11-01T10:20:00Z S URL p=0 ""
+> E X3 H2026-11-01T10:20:00Z S UserName p=0 "user-x3"
+> E X3 H2026-11-01T10:20:00Z autotype enabled=1 obfuscation=0 seq="" assoc=0
+> E X3 H2026-11-01T10:20:00Z misc icon=0 customIcon=- fg=00000000 bg=00000000 overrideUrl="" quality=1
+> E X3 H2026-11-01T10:20:00Z prev -
+> E X3 H2026-11-01T10:20:00Z t.accessed 2026-11-01T10:20:00Z
+> E X3 H2026-11-01T10:20:00Z t.created 2026-11-01T10:20:00Z
+> E X3 H2026-11-01T10:20:00Z t.expires 0 2026-11-01T10:00:00Z
+> E X3 H2026-11-01T10:20:00Z t.location 2026-11-01T10:20:00Z
+> E X3 H2026-11-01T10:20:00Z t.modified 2026-11-01T10:20:00Z
+> E X3 H2026-11-01T10:20:00Z tags []
+> E X3 H2026-11-01T10:20:00Z usage 0
+834c933
+< E X3 S UserName p=0 "user-x3"
+---
+> E X3 S UserName p=0 "x3-changed-on-desktop"
+836c935
+< E X3 history.count 0
+---
+> E X3 history.count 1
+840c939
+< E X3 t.accessed 2026-11-01T10:20:00Z
+---
+> E X3 t.accessed 2026-11-01T17:00:00Z
+844c943
+< E X3 t.modified 2026-11-01T10:20:00Z
+---
+> E X3 t.modified 2026-11-01T17:00:00Z
+872,873c971,972
+< E Y3 parent PW (Passwords)
+< E Y3 prev -
+---
+> E Y3 parent N (N)
+> E Y3 prev PW
+877c976
+< E Y3 t.location 2026-11-01T10:20:00Z
+---
+> E Y3 t.location 2026-11-01T16:00:00Z
+889,890c988,989
+< E Y4 parent PW (Passwords)
+< E Y4 prev -
+---
+> E Y4 parent N (N)
+> E Y4 prev PW
+894c993
+< E Y4 t.location 2026-11-01T10:20:00Z
+---
+> E Y4 t.location 2026-11-01T16:00:00Z
+931a1031,1047
+> E ~c3fbc3c8 S Notes p=0 ""
+> E ~c3fbc3c8 S Password p=1 ""
+> E ~c3fbc3c8 S Title p=0 "k2a-merged"
+> E ~c3fbc3c8 S URL p=0 ""
+> E ~c3fbc3c8 S UserName p=0 "invented-default-user"
+> E ~c3fbc3c8 autotype enabled=1 obfuscation=0 seq="" assoc=0
+> E ~c3fbc3c8 history.count 0
+> E ~c3fbc3c8 misc icon=0 customIcon=- fg=00000000 bg=00000000 overrideUrl="" quality=1
+> E ~c3fbc3c8 parent Root (Storage probe)
+> E ~c3fbc3c8 prev -
+> E ~c3fbc3c8 t.accessed 2026-11-16T14:36:33Z
+> E ~c3fbc3c8 t.created 2026-11-16T14:36:18Z
+> E ~c3fbc3c8 t.expires 0 2026-11-16T14:35:54Z
+> E ~c3fbc3c8 t.location 2026-11-16T14:36:18Z
+> E ~c3fbc3c8 t.modified 2026-11-16T14:36:33Z
+> E ~c3fbc3c8 tags []
+> E ~c3fbc3c8 usage 1
+934c1050
+< F groups 13 entries 41
+---
+> F groups 9 entries 42
+964,976d1079
+< G GD children groups=0 entries=1
+< G GD flags icon=48 customIcon=- search=inherit autotype=inherit expanded=1 seq="" lastTop=-
+< G GD name "GD"
+< G GD notes ""
+< G GD parent Root (Storage probe)
+< G GD prev -
+< G GD t.accessed 2026-11-01T10:05:00Z
+< G GD t.created 2026-11-01T10:05:00Z
+< G GD t.expires 0 2026-11-01T10:00:00Z
+< G GD t.location 2026-11-01T10:05:00Z
+< G GD t.modified 2026-11-01T10:05:00Z
+< G GD tags []
+< G GD usage 0
+1003c1106
+< G KG children groups=0 entries=14
+---
+> G KG children groups=0 entries=19
+1016c1119
+< G N children groups=0 entries=1
+---
+> G N children groups=0 entries=3
+1029,1067d1131
+< G NA children groups=1 entries=1
+< G NA flags icon=48 customIcon=- search=inherit autotype=inherit expanded=1 seq="" lastTop=-
+< G NA name "NA"
+< G NA notes ""
+< G NA parent Root (Storage probe)
+< G NA prev -
+< G NA t.accessed 2026-11-01T10:05:00Z
+< G NA t.created 2026-11-01T10:05:00Z
+< G NA t.expires 0 2026-11-01T10:00:00Z
+< G NA t.location 2026-11-01T10:05:00Z
+< G NA t.modified 2026-11-01T10:05:00Z
+< G NA tags []
+< G NA usage 0
+< G NB children groups=1 entries=1
+< G NB flags icon=48 customIcon=- search=inherit autotype=inherit expanded=1 seq="" lastTop=-
+< G NB name "NB"
+< G NB notes ""
+< G NB parent NA (NA)
+< G NB prev -
+< G NB t.accessed 2026-11-01T10:05:00Z
+< G NB t.created 2026-11-01T10:05:00Z
+< G NB t.expires 0 2026-11-01T10:00:00Z
+< G NB t.location 2026-11-01T10:05:00Z
+< G NB t.modified 2026-11-01T10:05:00Z
+< G NB tags []
+< G NB usage 0
+< G NC children groups=0 entries=1
+< G NC flags icon=48 customIcon=- search=inherit autotype=inherit expanded=1 seq="" lastTop=-
+< G NC name "NC"
+< G NC notes ""
+< G NC parent NB (NB)
+< G NC prev -
+< G NC t.accessed 2026-11-01T10:05:00Z
+< G NC t.created 2026-11-01T10:05:00Z
+< G NC t.expires 0 2026-11-01T10:00:00Z
+< G NC t.location 2026-11-01T10:05:00Z
+< G NC t.modified 2026-11-01T10:05:00Z
+< G NC tags []
+< G NC usage 0
+1081c1145
+< G PW children groups=0 entries=14
+---
+> G PW children groups=0 entries=11
+1094c1158
+< G Root children groups=8 entries=0
+---
+> G Root children groups=6 entries=1
+1107,1114c1171,1181
+< M CD KPG.Authority.df0831afe5d7f3f7b16a25ef6e0e56153ba0b886c2fb02e4e628a4b6495adfc9 = len=2817 sha=e09bb73aee6c8e81 "{\"kind\":\"authority\",\"fingerprint\":\"df0831afe5d7f3f7b1..." @2026-11-01T10:03:00Z
+< M CD KPG.Authority.fdbcd0c82e016da9c2b2f4ebdc53ea116eb037c69a0c2be1dc3c6a0c8881c590 = len=2817 sha=dff90ae789f1899a "{\"kind\":\"authority\",\"fingerprint\":\"fdbcd0c82e016da9c2..." @2026-11-01T10:41:00Z
+< M CD KPG.Client.b6d5e581aa7454dbe870052993f94be417c9bb32c2f3765d603cf3315e99a392 = "" @2026-11-01T11:05:00Z
+< M CD KPG.Client.d2d31ae42311e216978c55ae62b98315483da922e9bceef352990a86f61613b2 = "{\"name\":\"build-agent\",\"profiles\":[\"reader\"]}" @2026-11-01T11:00:00Z
+< M CD KPG.ProfileRemoved.7718C068C79DBE4040F4F58C61D911C4 = "{\"name\":\"legacy\"}" @2026-11-01T10:52:00Z
+< M CD KPG.Profiles = "[\"reader\",\"writer\"]" @2026-11-01T10:15:00Z
+< M CD KPG.RetiredAuthority.df0831afe5d7f3f7b16a25ef6e0e56153ba0b886c2fb02e4e628a4b6495adfc9 = "67aa91e2753a83630f87fbd8820e8de13f44e5ea58060bb0b59ece6dac694482" @2026-11-01T10:40:00Z
+< M CD KPG.Revoked.b6d5e581aa7454dbe870052993f94be417c9bb32c2f3765d603cf3315e99a392 = "{\"at\":\"2026-11-01T11:05:00Z\"}" @2026-11-01T11:05:00Z
+---
+> M CD KPG.Authority.df0831afe5d7f3f7b16a25ef6e0e56153ba0b886c2fb02e4e628a4b6495adfc9 = len=2817 sha=e09bb73aee6c8e81 "{\"kind\":\"authority\",\"fingerprint\":\"df0831afe5d7f3f7b1..." @none
+> M CD KPG.Authority.fdbcd0c82e016da9c2b2f4ebdc53ea116eb037c69a0c2be1dc3c6a0c8881c590 = len=2817 sha=dff90ae789f1899a "{\"kind\":\"authority\",\"fingerprint\":\"fdbcd0c82e016da9c2..." @none
+> M CD KPG.Client.b6d5e581aa7454dbe870052993f94be417c9bb32c2f3765d603cf3315e99a392 = "" @none
+> M CD KPG.Client.d2d31ae42311e216978c55ae62b98315483da922e9bceef352990a86f61613b2 = "{\"name\":\"build-agent\",\"profiles\":[\"reader\"]}" @none
+> M CD KPG.NewKey = "{\"added\":\"by the desktop\"}" @none
+> M CD KPG.ProfileRemoved.156ECE8119B3877AB41D2AD1246F5D73 = "{\"name\":\"writer\"}" @none
+> M CD KPG.ProfileRemoved.7718C068C79DBE4040F4F58C61D911C4 = "{\"name\":\"legacy\"}" @none
+> M CD KPG.Profiles = "[\"reader\",\"writer\"]" @none
+> M CD KPG.RetiredAuthority.df0831afe5d7f3f7b16a25ef6e0e56153ba0b886c2fb02e4e628a4b6495adfc9 = "67aa91e2753a83630f87fbd8820e8de13f44e5ea58060bb0b59ece6dac694482" @none
+> M CD KPG.Revoked.5722b6a518fc677ef9292e33ebb15f947af2c1685acc2ec17073532033d9a603 = "{\"at\":\"2026-11-01T18:00:00Z\"}" @none
+> M CD KPG.Revoked.b6d5e581aa7454dbe870052993f94be417c9bb32c2f3765d603cf3315e99a392 = "{\"at\":\"2026-11-01T11:05:00Z\"}" @none
+1116,1118c1183,1186
+< M CD KPG.Withdrawn.7ED75356CD95DD4D984DB74E4C2FB30B = "{\"grant\":\"writer Passwords\",\"letters\":\"...SD...\"}" @2026-11-01T10:53:00Z
+< M CD KPG.Withheld.8E569577ED83EFE9D1765ED2CA85131A = "{\"node\":\"G/E3\"}" @2026-11-01T11:07:00Z
+< M CD KPG.Withheld.E30F91E7153A50C03BA239446D1457E4 = "{\"node\":\"Personal/Health\"}" @2026-11-01T11:06:00Z
+---
+> M CD KPG.Withdrawn.7ED75356CD95DD4D984DB74E4C2FB30B = "{\"grant\":\"writer Passwords\",\"letters\":\"...SD...\"}" @none
+> M CD KPG.Withdrawn.87F31AEC3461C09CF9A7B4EB438E9914 = "{\"grant\":\"reader Passwords\",\"letters\":\".......P\"}" @none
+> M CD KPG.Withheld.8E569577ED83EFE9D1765ED2CA85131A = "{\"node\":\"G/E3\"}" @none
+> M CD KPG.Withheld.E30F91E7153A50C03BA239446D1457E4 = "{\"node\":\"Personal/Health\"}" @none

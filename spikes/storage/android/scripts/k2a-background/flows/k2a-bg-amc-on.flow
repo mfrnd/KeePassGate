@@ -1,0 +1,3 @@
+# "Always merge on conflict" turned on on its screen (More options, Settings, App, File handling),
+# which also stores "Synchronize in background" (its state on the screen logged).
+include k2a-setting.flow

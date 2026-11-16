@@ -1,0 +1,8 @@
+# Move the selected node: Move, then into ${TARGET} from the current screen (until ${INSIDE}, a node
+# inside it, shows), Paste (until ${MOVED} shows there), and wait for the save.
+tap menu_move
+sleep 2
+tapuntil node_text@${TARGET} node_text@${INSIDE} 40
+waitfor menu_paste 20
+tapuntil menu_paste node_text@${MOVED} 30
+waitchange /sdcard/Download/${NAME}.kdbx 45

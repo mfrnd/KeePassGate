@@ -1,0 +1,8 @@
+# Nobody there: the server thawed, 45 s watched (the server's file, the cache, the notifications),
+# then the notifications in full, the device, and the server's file and the cache kept.
+host sh ${P}/server.sh thaw
+host sh ${P}/watch.sh ${SNAME} 45 unattended
+host sh ${P}/notif.sh unattended
+host sh ${P}/devstate.sh unattended
+host sh ${P}/srv-stat.sh ${SNAME} unattended
+host sh ${P}/snap.sh ${W} ${SNAME} unattended

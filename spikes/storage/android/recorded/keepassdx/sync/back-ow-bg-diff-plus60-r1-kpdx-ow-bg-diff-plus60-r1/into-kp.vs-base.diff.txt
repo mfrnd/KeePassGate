@@ -1,0 +1,120 @@
+5c5,7
+< D count 4
+---
+> D DRV2 2026-11-01T18:00:00Z
+> D X1 2026-11-01T18:00:00Z
+> D count 6
+402a405,419
+> E P1 H2026-11-01T10:20:00Z S Notes p=0 ""
+> E P1 H2026-11-01T10:20:00Z S Password p=1 "p1-old"
+> E P1 H2026-11-01T10:20:00Z S Title p=0 "P1"
+> E P1 H2026-11-01T10:20:00Z S URL p=0 ""
+> E P1 H2026-11-01T10:20:00Z S UserName p=0 "user-p1"
+> E P1 H2026-11-01T10:20:00Z autotype enabled=1 obfuscation=0 seq="" assoc=0
+> E P1 H2026-11-01T10:20:00Z misc icon=0 customIcon=- fg=00000000 bg=00000000 overrideUrl="" quality=1
+> E P1 H2026-11-01T10:20:00Z prev -
+> E P1 H2026-11-01T10:20:00Z t.accessed 2026-11-01T10:20:00Z
+> E P1 H2026-11-01T10:20:00Z t.created 2026-11-01T10:20:00Z
+> E P1 H2026-11-01T10:20:00Z t.expires 0 2026-11-01T10:00:00Z
+> E P1 H2026-11-01T10:20:00Z t.location 2026-11-01T10:20:00Z
+> E P1 H2026-11-01T10:20:00Z t.modified 2026-11-01T10:20:00Z
+> E P1 H2026-11-01T10:20:00Z tags []
+> E P1 H2026-11-01T10:20:00Z usage 0
+404c421
+< E P1 S Password p=1 "p1-old"
+---
+> E P1 S Password p=1 "p1-desktop"
+409c426
+< E P1 history.count 0
+---
+> E P1 history.count 1
+413c430
+< E P1 t.accessed 2026-11-01T10:20:00Z
+---
+> E P1 t.accessed 2026-11-01T18:00:00Z
+417c434
+< E P1 t.modified 2026-11-01T10:20:00Z
+---
+> E P1 t.modified 2026-11-01T18:00:00Z
+700a718,736
+> E RV2 S KPG.Kind p=0 "revocation"
+> E RV2 S KPG.Record p=0 "{\"certificate\":\"5722b6a518fc677ef9292e33ebb15f947af2c1685acc2ec17073532033d9a603\",\"name\":\"ci-runner\"}"
+> E RV2 S Notes p=0 len=4000 sha=3dd3ca681dc60fc6 "b18q3EQGNwOuq8R1dXWo8IsmYMDB3ytgGdNDC0SKfNvdG8BAyS4UjoBTIVRr..."
+> E RV2 S Password p=1 ""
+> E RV2 S Title p=0 "KPG revoked ci-runner"
+> E RV2 S URL p=0 ""
+> E RV2 S UserName p=0 ""
+> E RV2 autotype enabled=1 obfuscation=0 seq="" assoc=0
+> E RV2 history.count 0
+> E RV2 misc icon=0 customIcon=- fg=00000000 bg=00000000 overrideUrl="" quality=1
+> E RV2 parent KG (KeePassGate)
+> E RV2 prev -
+> E RV2 t.accessed 2026-11-01T18:00:00Z
+> E RV2 t.created 2026-11-01T18:00:00Z
+> E RV2 t.expires 0 2026-11-01T10:00:00Z
+> E RV2 t.location 2026-11-01T18:00:00Z
+> E RV2 t.modified 2026-11-01T18:00:00Z
+> E RV2 tags []
+> E RV2 usage 0
+720,736d755
+< E X1 S Notes p=0 len=1500 sha=5657257250e9dad5 "dCc4KKz7UUYDMLq3ey8jRh02wlYfk6PVsQdOI2OM6vZgrdEnNpqpmtY5MkHj..."
+< E X1 S Password p=1 "x1-old"
+< E X1 S Title p=0 "X1"
+< E X1 S URL p=0 ""
+< E X1 S UserName p=0 "user-x1"
+< E X1 autotype enabled=1 obfuscation=0 seq="" assoc=0
+< E X1 history.count 0
+< E X1 misc icon=0 customIcon=- fg=00000000 bg=00000000 overrideUrl="" quality=1
+< E X1 parent PW (Passwords)
+< E X1 prev -
+< E X1 t.accessed 2026-11-01T10:20:00Z
+< E X1 t.created 2026-11-01T10:20:00Z
+< E X1 t.expires 0 2026-11-01T10:00:00Z
+< E X1 t.location 2026-11-01T10:20:00Z
+< E X1 t.modified 2026-11-01T10:20:00Z
+< E X1 tags []
+< E X1 usage 0
+855a875,891
+> E ~6c468c30 S Notes p=0 ""
+> E ~6c468c30 S Password p=1 ""
+> E ~6c468c30 S Title p=0 "phone-ow-bg-diff-plus60-r1"
+> E ~6c468c30 S URL p=0 ""
+> E ~6c468c30 S UserName p=0 "invented-default-user"
+> E ~6c468c30 autotype enabled=1 obfuscation=0 seq="" assoc=0
+> E ~6c468c30 history.count 0
+> E ~6c468c30 misc icon=49 customIcon=- fg=00000000 bg=00000000 overrideUrl="" quality=1
+> E ~6c468c30 parent Root (Storage probe)
+> E ~6c468c30 prev -
+> E ~6c468c30 t.accessed 2026-11-16T10:17:18Z
+> E ~6c468c30 t.created 2026-11-16T10:17:18Z
+> E ~6c468c30 t.expires 0 2999-11-28T23:59:59Z
+> E ~6c468c30 t.location 2026-11-16T10:17:18Z
+> E ~6c468c30 t.modified 2026-11-16T10:17:18Z
+> E ~6c468c30 tags []
+> E ~6c468c30 usage 1
+858c894
+< F groups 13 entries 41
+---
+> F groups 13 entries 42
+927c963
+< G KG children groups=0 entries=14
+---
+> G KG children groups=0 entries=15
+1005c1041
+< G PW children groups=0 entries=14
+---
+> G PW children groups=0 entries=13
+1018c1054
+< G Root children groups=8 entries=0
+---
+> G Root children groups=8 entries=1
+1024c1060
+< G Root t.accessed 2026-11-01T10:00:00Z
+---
+> G Root t.accessed 2026-11-16T10:17:18Z
+1028c1064
+< G Root t.modified 2026-11-01T10:00:00Z
+---
+> G Root t.modified 2026-11-16T10:17:18Z
+1037a1074
+> M CD KPG.Revoked.5722b6a518fc677ef9292e33ebb15f947af2c1685acc2ec17073532033d9a603 = "{\"at\":\"2026-11-01T18:00:00Z\"}" @2026-11-01T18:00:00Z

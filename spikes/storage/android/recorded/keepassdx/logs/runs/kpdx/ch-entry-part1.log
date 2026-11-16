@@ -1,0 +1,255 @@
+### 2026-11-16T08:26:43.689Z ow kpdx ch-entry flow=kpdx-ch-entry.flow base=B41  (versionName=4.5.8)
+Success
+<work>/work/base/B41.kdbx: 1 file pushed, 0 skipped. 1.3 MB/s (16085 bytes in 0.012s)
+given 16085 bytes, mtime 2026-11-16 09:16:43.000000000 +0100 sha256 92909efea553cdd099e1d603f4a90b4c57b729c6d4b2e723fb8403728cd79da7
+[2026-11-16T08:26:45.121Z] kpdx-ch-entry.flow:3 include kpdx-open.flow
+[2026-11-16T08:26:45.127Z] kpdx-open.flow:4 sh monkey -p com.kunzisoft.keepass.libre -c android.intent.category.LAUNCHER 1
+  bash arg: -p
+  bash arg: com.kunzisoft.keepass.libre
+  bash arg: -c
+  bash arg: android.intent.category.LAUNCHER
+  bash arg: 1
+Events injected: 1
+## Network stats: elapsed time=65ms (0ms mobile, 0ms wifi, 65ms not connected)
+args: [-p, com.kunzisoft.keepass.libre, -c, android.intent.category.LAUNCHER, 1]
+ arg: "-p"
+ arg: "com.kunzisoft.keepass.libre"
+ arg: "-c"
+ arg: "android.intent.category.LAUNCHER"
+ arg: "1"
+data="com.kunzisoft.keepass.libre"
+data="android.intent.category.LAUNCHER"
+[2026-11-16T08:26:45.642Z] kpdx-open.flow:5 waitfor open_database_button 30
+[2026-11-16T08:26:50.733Z] kpdx-open.flow:6 tapuntil open_database_button Show.roots 40
+[2026-11-16T08:26:53.536Z]   tapped (799, 2051) 'Open existing vault'
+[2026-11-16T08:27:03.237Z]   tapped (799, 2051) 'Open existing vault'
+[2026-11-16T08:27:05.612Z] kpdx-open.flow:7 include picker.flow
+[2026-11-16T08:27:05.620Z] picker.flow:4 pick kpdx-ch-entry.kdbx
+[2026-11-16T08:27:13.464Z]   focused and entered '^kpdx\\-ch\\-entry\\.kdbx$'
+[2026-11-16T08:27:13.465Z] kpdx-open.flow:8 waitfor password_text_view 40
+[2026-11-16T08:27:17.405Z] kpdx-open.flow:9 typepwdx dummy-password-for-a-throwaway-file
+[2026-11-16T08:27:31.709Z]   typepwdx: the field reads 8 characters, not 35 (attempt 1)
+[2026-11-16T08:27:45.314Z]   typed the password and read it back (35 characters)
+[2026-11-16T08:27:45.315Z] kpdx-open.flow:10 tapuntil activity_password_open_button add_button 60
+[2026-11-16T08:27:48.122Z]   tapped (895, 1435) 'Unlock'
+[2026-11-16T08:27:58.352Z]   tapped (895, 1435) 'Unlock'
+[2026-11-16T08:28:06.378Z]   tapped (895, 1435) 'Unlock'
+[2026-11-16T08:28:12.295Z] kpdx-ch-entry.flow:4 tapuntil node_text@^G$ node_text@^E1$ 40
+[2026-11-16T08:28:14.942Z]   tapped (247, 713) 'G'
+[2026-11-16T08:28:24.833Z]   tapped (247, 713) 'G'
+[2026-11-16T08:28:27.427Z] kpdx-ch-entry.flow:5 sleep 3
+[2026-11-16T08:28:30.428Z] kpdx-ch-entry.flow:6 set SEL ^E1
+[2026-11-16T08:28:30.429Z] kpdx-ch-entry.flow:7 log s01 the editor opened and validated with nothing changed
+[2026-11-16T08:28:30.430Z]   s01 the editor opened and validated with nothing changed
+[2026-11-16T08:28:30.431Z] kpdx-ch-entry.flow:8 mark /sdcard/Download/kpdx-ch-entry.kdbx
+[2026-11-16T08:28:30.487Z]   marked /sdcard/Download/kpdx-ch-entry.kdbx sha256 92909efea553cdd0
+[2026-11-16T08:28:30.488Z] kpdx-ch-entry.flow:9 include kpdx-sel-edit.flow
+[2026-11-16T08:28:30.501Z] kpdx-sel-edit.flow:3 longpressuntil node_text@^E1 menu_move 60 2000 600
+[2026-11-16T08:28:35.518Z]   long-pressed (600, 856) for 2000 ms on the line of 'E1'
+[2026-11-16T08:28:48.037Z]   long-pressed (600, 856) for 2000 ms on the line of 'E1'
+[2026-11-16T08:29:00.018Z]   long-pressed (600, 856) for 2000 ms on the line of 'E1'
+[2026-11-16T08:29:12.067Z]   long-pressed (600, 856) for 2000 ms on the line of 'E1'
+[2026-11-16T08:29:14.201Z] kpdx-sel-edit.flow:4 tapuntil More.options#2 ^Edit$ 30
+[2026-11-16T08:29:17.029Z]   tapped (1024, 2063) 'More options'
+[2026-11-16T08:29:19.175Z] kpdx-sel-edit.flow:5 tap ^Edit$
+[2026-11-16T08:29:21.937Z]   tapped (799, 1966) 'Edit'
+[2026-11-16T08:29:21.942Z] kpdx-sel-edit.flow:6 ifthen setup_check_password_edit_text 8 kpdx-verify.flow
+[2026-11-16T08:29:24.555Z]   'setup_check_password_edit_text' is there: running kpdx-verify.flow
+[2026-11-16T08:29:24.562Z] kpdx-verify.flow:3 type setup_check_password_edit_text dumm
+[2026-11-16T08:29:37.785Z]   type: field never took the focus (attempt 1)
+[2026-11-16T08:29:46.578Z]   typed 'dumm'
+[2026-11-16T08:29:46.581Z] kpdx-verify.flow:4 tapuntil ^Check$ entry_edit_validate 30
+[2026-11-16T08:29:49.846Z]   tapped (887, 1111) 'Check'
+[2026-11-16T08:29:54.231Z] kpdx-sel-edit.flow:7 waitfor entry_edit_validate 20
+[2026-11-16T08:29:56.324Z] kpdx-ch-entry.flow:10 include kpdx-edit-validate.flow
+[2026-11-16T08:29:56.331Z] kpdx-edit-validate.flow:2 tapuntil entry_edit_validate add_button 30
+[2026-11-16T08:29:58.946Z]   tapped (970, 2046) 'Validate'
+[2026-11-16T08:30:07.218Z]   tapped (970, 2046) 'Validate'
+[2026-11-16T08:30:11.411Z] kpdx-edit-validate.flow:3 ifthen modified.outside 4 kpdx-ow-dialog.flow
+[2026-11-16T08:30:16.790Z]   'modified.outside' is not there: kpdx-ow-dialog.flow skipped
+[2026-11-16T08:30:16.792Z] kpdx-edit-validate.flow:4 waitchange /sdcard/Download/kpdx-ch-entry.kdbx 45
+[2026-11-16T08:30:19.977Z]   waitchange: /sdcard/Download/kpdx-ch-entry.kdbx changed after 0.0 s, stable, sha256 429ad80c90d7848d
+[2026-11-16T08:30:19.979Z] kpdx-ch-entry.flow:11 pull <work>/work/runs/kpdx/ch-entry/s01-nochange.kdbx /sdcard/Download/kpdx-ch-entry.kdbx
+15161 bytes, mtime 2026-11-16 09:30:06.112000000 +0100
+429ad80c90d7848d43b940e48f90d6f381a31fd603c61be11eb4533fceeb0e43  /sdcard/Download/kpdx-ch-entry.kdbx
+/sdcard/Download/kpdx-ch-entry.kdbx: 1 file pulled, 0 skipped. 0.8 MB/s (15161 bytes in 0.019s)
+[2026-11-16T08:30:20.163Z]   pulled /sdcard/Download/kpdx-ch-entry.kdbx to <work>/work/runs/kpdx/ch-entry/s01-nochange.kdbx
+[2026-11-16T08:30:20.164Z] kpdx-ch-entry.flow:12 log s02 title
+[2026-11-16T08:30:20.165Z]   s02 title
+[2026-11-16T08:30:20.166Z] kpdx-ch-entry.flow:13 mark /sdcard/Download/kpdx-ch-entry.kdbx
+[2026-11-16T08:30:20.236Z]   marked /sdcard/Download/kpdx-ch-entry.kdbx sha256 429ad80c90d7848d
+[2026-11-16T08:30:20.239Z] kpdx-ch-entry.flow:14 include kpdx-sel-edit.flow
+[2026-11-16T08:30:20.248Z] kpdx-sel-edit.flow:3 longpressuntil node_text@^E1 menu_move 60 2000 600
+[2026-11-16T08:30:25.213Z]   long-pressed (600, 856) for 2000 ms on the line of 'E1'
+[2026-11-16T08:30:27.219Z] kpdx-sel-edit.flow:4 tapuntil More.options#2 ^Edit$ 30
+[2026-11-16T08:30:30.093Z]   tapped (1024, 2063) 'More options'
+[2026-11-16T08:30:32.495Z] kpdx-sel-edit.flow:5 tap ^Edit$
+[2026-11-16T08:30:35.531Z]   tapped (799, 1966) 'Edit'
+[2026-11-16T08:30:35.534Z] kpdx-sel-edit.flow:6 ifthen setup_check_password_edit_text 8 kpdx-verify.flow
+[2026-11-16T08:30:38.818Z]   'setup_check_password_edit_text' is there: running kpdx-verify.flow
+[2026-11-16T08:30:38.827Z] kpdx-verify.flow:3 type setup_check_password_edit_text dumm
+[2026-11-16T08:30:52.132Z]   type: field never took the focus (attempt 1)
+[2026-11-16T08:31:02.626Z]   typed 'dumm'
+[2026-11-16T08:31:02.628Z] kpdx-verify.flow:4 tapuntil ^Check$ entry_edit_validate 30
+[2026-11-16T08:31:06.085Z]   tapped (887, 1111) 'Check'
+[2026-11-16T08:31:09.766Z] kpdx-sel-edit.flow:7 waitfor entry_edit_validate 20
+[2026-11-16T08:31:11.744Z] kpdx-ch-entry.flow:15 appendto ^E1$ -t
+[2026-11-16T08:31:30.126Z]   appendto: '^E1$' never took the focus (attempt 1)
+[2026-11-16T08:31:42.904Z]   appended '-t': 'E1-t'
+[2026-11-16T08:31:42.905Z] kpdx-ch-entry.flow:16 include kpdx-edit-validate.flow
+[2026-11-16T08:31:42.913Z] kpdx-edit-validate.flow:2 tapuntil entry_edit_validate add_button 30
+[2026-11-16T08:31:46.391Z]   tapped (970, 1413) 'Validate'
+[2026-11-16T08:31:51.658Z] kpdx-edit-validate.flow:3 ifthen modified.outside 4 kpdx-ow-dialog.flow
+[2026-11-16T08:31:56.508Z]   'modified.outside' is not there: kpdx-ow-dialog.flow skipped
+[2026-11-16T08:31:56.511Z] kpdx-edit-validate.flow:4 waitchange /sdcard/Download/kpdx-ch-entry.kdbx 45
+[2026-11-16T08:31:59.685Z]   waitchange: /sdcard/Download/kpdx-ch-entry.kdbx changed after 0.0 s, stable, sha256 eb1836f7c15162ac
+[2026-11-16T08:31:59.687Z] kpdx-ch-entry.flow:17 pull <work>/work/runs/kpdx/ch-entry/s02-title.kdbx /sdcard/Download/kpdx-ch-entry.kdbx
+15241 bytes, mtime 2026-11-16 09:31:44.920000000 +0100
+eb1836f7c15162acd7f6b2f3a63e84a82715c80cd39b82b7682207c8ffeaa979  /sdcard/Download/kpdx-ch-entry.kdbx
+/sdcard/Download/kpdx-ch-entry.kdbx: 1 file pulled, 0 skipped. 1.2 MB/s (15241 bytes in 0.012s)
+[2026-11-16T08:31:59.761Z]   pulled /sdcard/Download/kpdx-ch-entry.kdbx to <work>/work/runs/kpdx/ch-entry/s02-title.kdbx
+[2026-11-16T08:31:59.762Z] kpdx-ch-entry.flow:18 log s03 password
+[2026-11-16T08:31:59.763Z]   s03 password
+[2026-11-16T08:31:59.764Z] kpdx-ch-entry.flow:19 mark /sdcard/Download/kpdx-ch-entry.kdbx
+[2026-11-16T08:31:59.819Z]   marked /sdcard/Download/kpdx-ch-entry.kdbx sha256 eb1836f7c15162ac
+[2026-11-16T08:31:59.821Z] kpdx-ch-entry.flow:20 include kpdx-sel-edit.flow
+[2026-11-16T08:31:59.829Z] kpdx-sel-edit.flow:3 longpressuntil node_text@^E1 menu_move 60 2000 600
+[2026-11-16T08:32:04.631Z]   long-pressed (600, 856) for 2000 ms on the line of 'E1-t'
+[2026-11-16T08:32:06.711Z] kpdx-sel-edit.flow:4 tapuntil More.options#2 ^Edit$ 30
+[2026-11-16T08:32:09.637Z]   tapped (1024, 2063) 'More options'
+[2026-11-16T08:32:11.781Z] kpdx-sel-edit.flow:5 tap ^Edit$
+[2026-11-16T08:32:14.583Z]   tapped (799, 1966) 'Edit'
+[2026-11-16T08:32:14.586Z] kpdx-sel-edit.flow:6 ifthen setup_check_password_edit_text 8 kpdx-verify.flow
+[2026-11-16T08:32:17.052Z]   'setup_check_password_edit_text' is there: running kpdx-verify.flow
+[2026-11-16T08:32:17.059Z] kpdx-verify.flow:3 type setup_check_password_edit_text dumm
+[2026-11-16T08:32:30.844Z]   type: field never took the focus (attempt 1)
+[2026-11-16T08:32:39.894Z]   typed 'dumm'
+[2026-11-16T08:32:39.895Z] kpdx-verify.flow:4 tapuntil ^Check$ entry_edit_validate 30
+[2026-11-16T08:32:43.001Z]   tapped (887, 1111) 'Check'
+[2026-11-16T08:32:46.023Z] kpdx-sel-edit.flow:7 waitfor entry_edit_validate 20
+[2026-11-16T08:32:48.156Z] kpdx-ch-entry.flow:21 appendto ^pw-e1-not-real$ -p
+[2026-11-16T08:33:03.696Z]   appendto: '^pw-e1-not-real$' never took the focus (attempt 1)
+[2026-11-16T08:33:20.213Z]   appendto: '^pw-e1-not-real$' never took the focus (attempt 2)
+[2026-11-16T08:33:31.430Z]   appended '-p': 'pw-e1-not-real-p'
+[2026-11-16T08:33:31.431Z] kpdx-ch-entry.flow:22 include kpdx-edit-validate.flow
+[2026-11-16T08:33:31.436Z] kpdx-edit-validate.flow:2 tapuntil entry_edit_validate add_button 30
+[2026-11-16T08:33:34.143Z]   tapped (970, 1413) 'Validate'
+[2026-11-16T08:33:39.547Z] kpdx-edit-validate.flow:3 ifthen modified.outside 4 kpdx-ow-dialog.flow
+[2026-11-16T08:33:44.324Z]   'modified.outside' is not there: kpdx-ow-dialog.flow skipped
+[2026-11-16T08:33:44.325Z] kpdx-edit-validate.flow:4 waitchange /sdcard/Download/kpdx-ch-entry.kdbx 45
+[2026-11-16T08:33:47.508Z]   waitchange: /sdcard/Download/kpdx-ch-entry.kdbx changed after 0.1 s, stable, sha256 1c637f4899caf5c1
+[2026-11-16T08:33:47.509Z] kpdx-ch-entry.flow:23 pull <work>/work/runs/kpdx/ch-entry/s03-password.kdbx /sdcard/Download/kpdx-ch-entry.kdbx
+15305 bytes, mtime 2026-11-16 09:33:32.844000000 +0100
+1c637f4899caf5c1716e4a4490c79f83f4bb869d1b08824fde05db7ac5a41f14  /sdcard/Download/kpdx-ch-entry.kdbx
+/sdcard/Download/kpdx-ch-entry.kdbx: 1 file pulled, 0 skipped. 1.2 MB/s (15305 bytes in 0.012s)
+[2026-11-16T08:33:47.595Z]   pulled /sdcard/Download/kpdx-ch-entry.kdbx to <work>/work/runs/kpdx/ch-entry/s03-password.kdbx
+[2026-11-16T08:33:47.596Z] kpdx-ch-entry.flow:24 log s04 notes
+[2026-11-16T08:33:47.597Z]   s04 notes
+[2026-11-16T08:33:47.598Z] kpdx-ch-entry.flow:25 mark /sdcard/Download/kpdx-ch-entry.kdbx
+[2026-11-16T08:33:47.647Z]   marked /sdcard/Download/kpdx-ch-entry.kdbx sha256 1c637f4899caf5c1
+[2026-11-16T08:33:47.648Z] kpdx-ch-entry.flow:26 include kpdx-sel-edit.flow
+[2026-11-16T08:33:47.653Z] kpdx-sel-edit.flow:3 longpressuntil node_text@^E1 menu_move 60 2000 600
+[2026-11-16T08:33:52.426Z]   long-pressed (600, 856) for 2000 ms on the line of 'E1-t'
+[2026-11-16T08:33:54.534Z] kpdx-sel-edit.flow:4 tapuntil More.options#2 ^Edit$ 30
+[2026-11-16T08:33:57.256Z]   tapped (1024, 2063) 'More options'
+[2026-11-16T08:33:59.359Z] kpdx-sel-edit.flow:5 tap ^Edit$
+[2026-11-16T08:34:02.089Z]   tapped (799, 1966) 'Edit'
+[2026-11-16T08:34:02.092Z] kpdx-sel-edit.flow:6 ifthen setup_check_password_edit_text 8 kpdx-verify.flow
+[2026-11-16T08:34:04.542Z]   'setup_check_password_edit_text' is there: running kpdx-verify.flow
+[2026-11-16T08:34:04.550Z] kpdx-verify.flow:3 type setup_check_password_edit_text dumm
+[2026-11-16T08:34:17.313Z]   type: field never took the focus (attempt 1)
+[2026-11-16T08:34:26.433Z]   typed 'dumm'
+[2026-11-16T08:34:26.434Z] kpdx-verify.flow:4 tapuntil ^Check$ entry_edit_validate 30
+[2026-11-16T08:34:29.553Z]   tapped (887, 1111) 'Check'
+[2026-11-16T08:34:32.890Z] kpdx-sel-edit.flow:7 waitfor entry_edit_validate 20
+[2026-11-16T08:34:34.832Z] kpdx-ch-entry.flow:27 appendto ^ordinary.notes$ -n
+[2026-11-16T08:34:50.446Z]   appendto: '^ordinary.notes$' never took the focus (attempt 1)
+[2026-11-16T08:35:06.039Z]   appendto: '^ordinary.notes$' never took the focus (attempt 2)
+[2026-11-16T08:35:26.767Z]   appendto: '^ordinary.notes$' never took the focus (attempt 3)
+[2026-11-16T08:35:37.535Z]   appended '-n': 'ordinary notes-n'
+[2026-11-16T08:35:37.536Z] kpdx-ch-entry.flow:28 include kpdx-edit-validate.flow
+[2026-11-16T08:35:37.543Z] kpdx-edit-validate.flow:2 tapuntil entry_edit_validate add_button 30
+[2026-11-16T08:35:40.418Z]   tapped (970, 1413) 'Validate'
+[2026-11-16T08:35:45.362Z] kpdx-edit-validate.flow:3 ifthen modified.outside 4 kpdx-ow-dialog.flow
+[2026-11-16T08:35:50.419Z]   'modified.outside' is not there: kpdx-ow-dialog.flow skipped
+[2026-11-16T08:35:50.421Z] kpdx-edit-validate.flow:4 waitchange /sdcard/Download/kpdx-ch-entry.kdbx 45
+[2026-11-16T08:35:53.587Z]   waitchange: /sdcard/Download/kpdx-ch-entry.kdbx changed after 0.1 s, stable, sha256 3de92fdf71c2d582
+[2026-11-16T08:35:53.588Z] kpdx-ch-entry.flow:29 pull <work>/work/runs/kpdx/ch-entry/s04-notes.kdbx /sdcard/Download/kpdx-ch-entry.kdbx
+15385 bytes, mtime 2026-11-16 09:35:39.068000000 +0100
+3de92fdf71c2d582e18ab7039b53fb889ee7e81e84649f8655f0a77b9fe6143c  /sdcard/Download/kpdx-ch-entry.kdbx
+/sdcard/Download/kpdx-ch-entry.kdbx: 1 file pulled, 0 skipped. 1.3 MB/s (15385 bytes in 0.012s)
+[2026-11-16T08:35:53.710Z]   pulled /sdcard/Download/kpdx-ch-entry.kdbx to <work>/work/runs/kpdx/ch-entry/s04-notes.kdbx
+[2026-11-16T08:35:53.711Z] kpdx-ch-entry.flow:30 log s05 tags
+[2026-11-16T08:35:53.712Z]   s05 tags
+[2026-11-16T08:35:53.713Z] kpdx-ch-entry.flow:31 mark /sdcard/Download/kpdx-ch-entry.kdbx
+[2026-11-16T08:35:53.742Z]   marked /sdcard/Download/kpdx-ch-entry.kdbx sha256 3de92fdf71c2d582
+[2026-11-16T08:35:53.743Z] kpdx-ch-entry.flow:32 include kpdx-sel-edit.flow
+[2026-11-16T08:35:53.750Z] kpdx-sel-edit.flow:3 longpressuntil node_text@^E1 menu_move 60 2000 600
+[2026-11-16T08:35:58.705Z]   long-pressed (600, 856) for 2000 ms on the line of 'E1-t'
+[2026-11-16T08:36:00.645Z] kpdx-sel-edit.flow:4 tapuntil More.options#2 ^Edit$ 30
+[2026-11-16T08:36:03.726Z]   tapped (1024, 2063) 'More options'
+[2026-11-16T08:36:06.050Z] kpdx-sel-edit.flow:5 tap ^Edit$
+[2026-11-16T08:36:08.817Z]   tapped (799, 1966) 'Edit'
+[2026-11-16T08:36:08.820Z] kpdx-sel-edit.flow:6 ifthen setup_check_password_edit_text 8 kpdx-verify.flow
+[2026-11-16T08:36:11.346Z]   'setup_check_password_edit_text' is there: running kpdx-verify.flow
+[2026-11-16T08:36:11.356Z] kpdx-verify.flow:3 type setup_check_password_edit_text dumm
+[2026-11-16T08:36:24.218Z]   type: field never took the focus (attempt 1)
+[2026-11-16T08:36:33.503Z]   typed 'dumm'
+[2026-11-16T08:36:33.505Z] kpdx-verify.flow:4 tapuntil ^Check$ entry_edit_validate 30
+[2026-11-16T08:36:36.294Z]   tapped (887, 1111) 'Check'
+[2026-11-16T08:36:39.788Z] kpdx-sel-edit.flow:7 waitfor entry_edit_validate 20
+[2026-11-16T08:36:41.601Z] kpdx-ch-entry.flow:33 sh input swipe 540 1400 540 300 800
+[2026-11-16T08:36:43.468Z] kpdx-ch-entry.flow:34 sleep 2
+[2026-11-16T08:36:45.471Z] kpdx-ch-entry.flow:35 appendto entry_tags_completion_view added,
+[2026-11-16T08:37:02.460Z]   appendto: 'entry_tags_completion_view' never took the focus (attempt 1)
+[2026-11-16T08:37:18.867Z]   appendto: 'entry_tags_completion_view' never took the focus (attempt 2)
+  FrameLayout         (540, 1036)  id=action_bar_root              text='' desc=''
+  FrameLayout         (540, 1036)  id=content                      text='' desc=''
+  ViewGroup           (540, 1036)  id=coordinator_layout           text='' desc=''
+  DrawerLayout        (540, 1108)  id=drawer_layout                text='' desc=''
+  LinearLayout        (540, 447)   id=app_bar                      text='' desc=''
+  FrameLayout         (540, 447)   id=collapsing_toolbar           text='' desc=''
+  LinearLayout        (540, 535)   id=directory_header             text='' desc=''
+  RecyclerView        (540, 387)   id=horizontal_breadcrumb        text='' desc=''
+  TextView            (221, 387)   id=breadcrumb_text              text='sdk_gphone_x86_64' desc=''
+  ImageView           (476, 387)   id=breadcrumb_arrow             text='' desc=''
+  TextView            (628, 387)   id=breadcrumb_text              text='Download' desc=''
+  LinearLayout        (540, 519)   id=search_chip_group            text='' desc=''
+  Chip           cx   (157, 519)   id=                             text='Images' desc=''
+  Chip           cx   (435, 519)   id=                             text='Audio' desc=''
+  Chip           cx   (708, 519)   id=                             text='Videos' desc=''
+  Chip           cx   (970, 519)   id=                             text='Documents' desc=''
+  TextView            (474, 667)   id=header_title                 text='FILES IN DOWNLOAD' desc=''
+  LinearLayoutCompat      (948, 667)   id=sub_menu                     text='' desc=''
+  TextView       c    (948, 667)   id=sub_menu_list                text='' desc='List view'
+  View                (540, 233)   id=toolbar_background_layout    text='' desc=''
+  ViewGroup           (540, 233)   id=toolbar                      text='' desc=''
+  ImageButton    c    (99, 233)    id=                             text='' desc='Show roots'
+  TextView            (342, 233)   id=                             text='Download' desc=''
+  TextView       c    (860, 233)   id=option_menu_search           text='' desc='Search'
+  ImageView      c    (992, 233)   id=                             text='' desc='More options'
+  FrameLayout         (540, 1108)  id=container_search_fragment    text='' desc=''
+  FrameLayout         (540, 1108)  id=container_directory          text='' desc=''
+  ViewGroup           (540, 1108)  id=refresh_layout               text='' desc=''
+  RecyclerView        (540, 1108)  id=dir_list                     text='' desc=''
+  FrameLayout         (297, 1063)  id=item_root                    text='' desc=''
+  FrameLayout         (297, 992)   id=thumbnail                    text='' desc=''
+  ImageView           (297, 992)   id=icon_thumb                   text='' desc=''
+  ImageView           (297, 992)   id=icon_mime_lg                 text='' desc=''
+  FrameLayout    c    (462, 828)   id=preview_icon                 text='' desc='Preview the file kpdx-ch-entry.kdbx'
+  LinearLayout        (297, 1293)  id=nameplate                    text='' desc=''
+  FrameLayout         (136, 1293)  id=icon                         text='' desc=''
+  ImageView           (141, 1293)  id=icon_mime_sm                 text='' desc=''
+  TextView            (350, 1271)  id=title                        text='kpdx-ch-entry.kdbx' desc=''
+  TextView            (270, 1320)  id=details                      text='15.39 kB' desc=''
+  TextView            (409, 1320)  id=date                         text='9:35 AM' desc=''
+  View                (16, 1108)   id=drawer_edge                  text='' desc=''
+  ViewGroup           (0, 0)       id=container_save               text='' desc=''
+  View                (540, 72)    id=statusBarBackground          text='' desc=''
+  View                (0, 0)       id=navigationBarBackground      text='' desc=''
+[2026-11-16T08:37:34.193Z] FAILED: appendto: no node matches entry_tags_completion_view
+total 20
+-rw------- 1 u0_a160 u0_a160 15385 2026-11-16 09:35:39.068000000 +0100 kpdx-ch-entry.kdbx
+device kpdx-ch-entry.kdbx sha256 3de92fdf71c2d582e18ab7039b53fb889ee7e81e84649f8655f0a77b9fe6143c 15385 bytes, mtime 2026-11-16 09:35:39.068000000 +0100
+/sdcard/Download/kpdx-ch-entry.kdbx: 1 file pulled, 0 skipped. 0.5 MB/s (15385 bytes in 0.027s)
+### flow rc=1 2026-11-16T08:37:36.604Z

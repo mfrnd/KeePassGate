@@ -1,0 +1,148 @@
+242,271d241
+< E HL1 H2026-11-01T15:40:00Z S Notes p=0 ""
+< E HL1 H2026-11-01T15:40:00Z S Password p=1 "hl1-v4"
+< E HL1 H2026-11-01T15:40:00Z S Title p=0 "HL1"
+< E HL1 H2026-11-01T15:40:00Z S URL p=0 ""
+< E HL1 H2026-11-01T15:40:00Z S UserName p=0 "user-hl1"
+< E HL1 H2026-11-01T15:40:00Z autotype enabled=1 obfuscation=0 seq="" assoc=0
+< E HL1 H2026-11-01T15:40:00Z misc icon=0 customIcon=- fg=00000000 bg=00000000 overrideUrl="" quality=1
+< E HL1 H2026-11-01T15:40:00Z prev -
+< E HL1 H2026-11-01T15:40:00Z t.accessed 2026-11-01T15:40:00Z
+< E HL1 H2026-11-01T15:40:00Z t.created 2026-11-01T10:20:00Z
+< E HL1 H2026-11-01T15:40:00Z t.expires 0 2026-11-01T10:00:00Z
+< E HL1 H2026-11-01T15:40:00Z t.location 2026-11-01T10:20:00Z
+< E HL1 H2026-11-01T15:40:00Z t.modified 2026-11-01T15:40:00Z
+< E HL1 H2026-11-01T15:40:00Z tags []
+< E HL1 H2026-11-01T15:40:00Z usage 0
+< E HL1 H2026-11-01T15:50:00Z S Notes p=0 ""
+< E HL1 H2026-11-01T15:50:00Z S Password p=1 "hl1-v5"
+< E HL1 H2026-11-01T15:50:00Z S Title p=0 "HL1"
+< E HL1 H2026-11-01T15:50:00Z S URL p=0 ""
+< E HL1 H2026-11-01T15:50:00Z S UserName p=0 "user-hl1"
+< E HL1 H2026-11-01T15:50:00Z autotype enabled=1 obfuscation=0 seq="" assoc=0
+< E HL1 H2026-11-01T15:50:00Z misc icon=0 customIcon=- fg=00000000 bg=00000000 overrideUrl="" quality=1
+< E HL1 H2026-11-01T15:50:00Z prev -
+< E HL1 H2026-11-01T15:50:00Z t.accessed 2026-11-01T15:50:00Z
+< E HL1 H2026-11-01T15:50:00Z t.created 2026-11-01T10:20:00Z
+< E HL1 H2026-11-01T15:50:00Z t.expires 0 2026-11-01T10:00:00Z
+< E HL1 H2026-11-01T15:50:00Z t.location 2026-11-01T10:20:00Z
+< E HL1 H2026-11-01T15:50:00Z t.modified 2026-11-01T15:50:00Z
+< E HL1 H2026-11-01T15:50:00Z tags []
+< E HL1 H2026-11-01T15:50:00Z usage 0
+286a257,286
+> E HL1 H2026-11-01T16:10:00Z S Notes p=0 ""
+> E HL1 H2026-11-01T16:10:00Z S Password p=1 "hl1-v7"
+> E HL1 H2026-11-01T16:10:00Z S Title p=0 "HL1"
+> E HL1 H2026-11-01T16:10:00Z S URL p=0 ""
+> E HL1 H2026-11-01T16:10:00Z S UserName p=0 "user-hl1"
+> E HL1 H2026-11-01T16:10:00Z autotype enabled=1 obfuscation=0 seq="" assoc=0
+> E HL1 H2026-11-01T16:10:00Z misc icon=0 customIcon=- fg=00000000 bg=00000000 overrideUrl="" quality=1
+> E HL1 H2026-11-01T16:10:00Z prev -
+> E HL1 H2026-11-01T16:10:00Z t.accessed 2026-11-01T16:10:00Z
+> E HL1 H2026-11-01T16:10:00Z t.created 2026-11-01T10:20:00Z
+> E HL1 H2026-11-01T16:10:00Z t.expires 0 2026-11-01T10:00:00Z
+> E HL1 H2026-11-01T16:10:00Z t.location 2026-11-01T10:20:00Z
+> E HL1 H2026-11-01T16:10:00Z t.modified 2026-11-01T16:10:00Z
+> E HL1 H2026-11-01T16:10:00Z tags []
+> E HL1 H2026-11-01T16:10:00Z usage 0
+> E HL1 H2026-11-16T12:24:48Z S Notes p=0 ""
+> E HL1 H2026-11-16T12:24:48Z S Password p=1 "hl1-v3-a"
+> E HL1 H2026-11-16T12:24:48Z S Title p=0 "HL1"
+> E HL1 H2026-11-16T12:24:48Z S URL p=0 ""
+> E HL1 H2026-11-16T12:24:48Z S UserName p=0 "user-hl1"
+> E HL1 H2026-11-16T12:24:48Z autotype enabled=1 obfuscation=0 seq="" assoc=0
+> E HL1 H2026-11-16T12:24:48Z misc icon=0 customIcon=- fg=00000000 bg=00000000 overrideUrl="" quality=1
+> E HL1 H2026-11-16T12:24:48Z prev -
+> E HL1 H2026-11-16T12:24:48Z t.accessed 2026-11-16T12:24:48Z
+> E HL1 H2026-11-16T12:24:48Z t.created 2026-11-01T10:20:00Z
+> E HL1 H2026-11-16T12:24:48Z t.expires 0 2999-11-28T23:59:59Z
+> E HL1 H2026-11-16T12:24:48Z t.location 2026-11-01T10:20:00Z
+> E HL1 H2026-11-16T12:24:48Z t.modified 2026-11-16T12:24:48Z
+> E HL1 H2026-11-16T12:24:48Z tags []
+> E HL1 H2026-11-16T12:24:48Z usage 1
+288c288
+< E HL1 S Password p=1 "hl1-v7"
+---
+> E HL1 S Password p=1 "hl1-v3-a-b"
+297c297
+< E HL1 t.accessed 2026-11-01T16:10:00Z
+---
+> E HL1 t.accessed 2026-11-16T12:27:34Z
+299c299
+< E HL1 t.expires 0 2026-11-01T10:00:00Z
+---
+> E HL1 t.expires 0 2999-11-28T23:59:59Z
+301c301
+< E HL1 t.modified 2026-11-01T16:10:00Z
+---
+> E HL1 t.modified 2026-11-16T12:27:34Z
+303,320c303,320
+< E HL1 usage 0
+< E HL2 H2026-11-01T15:50:00Z S Notes p=0 len=2000 sha=99e22c275a96595b "z8DTvruRV1TfiHdDCFOqDInoxXLrKL1ctHNo0FbW2pZd9UFpKTOGlPPqUZgX..."
+< E HL2 H2026-11-01T15:50:00Z S Password p=1 "hl2-v0"
+< E HL2 H2026-11-01T15:50:00Z S Title p=0 "HL2"
+< E HL2 H2026-11-01T15:50:00Z S URL p=0 ""
+< E HL2 H2026-11-01T15:50:00Z S UserName p=0 "user-hl2"
+< E HL2 H2026-11-01T15:50:00Z autotype enabled=1 obfuscation=0 seq="" assoc=0
+< E HL2 H2026-11-01T15:50:00Z misc icon=0 customIcon=- fg=00000000 bg=00000000 overrideUrl="" quality=1
+< E HL2 H2026-11-01T15:50:00Z prev -
+< E HL2 H2026-11-01T15:50:00Z t.accessed 2026-11-01T15:50:00Z
+< E HL2 H2026-11-01T15:50:00Z t.created 2026-11-01T10:20:00Z
+< E HL2 H2026-11-01T15:50:00Z t.expires 0 2026-11-01T10:00:00Z
+< E HL2 H2026-11-01T15:50:00Z t.location 2026-11-01T10:20:00Z
+< E HL2 H2026-11-01T15:50:00Z t.modified 2026-11-01T15:50:00Z
+< E HL2 H2026-11-01T15:50:00Z tags []
+< E HL2 H2026-11-01T15:50:00Z usage 0
+< E HL2 S Notes p=0 len=2000 sha=96b9ceb01e516bea "VQvgNkMwcODSPnKqcsPELYy93BCUb9OsIJjqpvm5o68kgMaqQbViUcb7cvnL..."
+< E HL2 S Password p=1 "hl2-v0"
+---
+> E HL1 usage 2
+> E HL2 H2026-11-01T16:00:00Z S Notes p=0 len=2000 sha=96b9ceb01e516bea "VQvgNkMwcODSPnKqcsPELYy93BCUb9OsIJjqpvm5o68kgMaqQbViUcb7cvnL..."
+> E HL2 H2026-11-01T16:00:00Z S Password p=1 "hl2-v0"
+> E HL2 H2026-11-01T16:00:00Z S Title p=0 "HL2"
+> E HL2 H2026-11-01T16:00:00Z S URL p=0 ""
+> E HL2 H2026-11-01T16:00:00Z S UserName p=0 "user-hl2"
+> E HL2 H2026-11-01T16:00:00Z autotype enabled=1 obfuscation=0 seq="" assoc=0
+> E HL2 H2026-11-01T16:00:00Z misc icon=0 customIcon=- fg=00000000 bg=00000000 overrideUrl="" quality=1
+> E HL2 H2026-11-01T16:00:00Z prev -
+> E HL2 H2026-11-01T16:00:00Z t.accessed 2026-11-01T16:00:00Z
+> E HL2 H2026-11-01T16:00:00Z t.created 2026-11-01T10:20:00Z
+> E HL2 H2026-11-01T16:00:00Z t.expires 0 2026-11-01T10:00:00Z
+> E HL2 H2026-11-01T16:00:00Z t.location 2026-11-01T10:20:00Z
+> E HL2 H2026-11-01T16:00:00Z t.modified 2026-11-01T16:00:00Z
+> E HL2 H2026-11-01T16:00:00Z tags []
+> E HL2 H2026-11-01T16:00:00Z usage 0
+> E HL2 S Notes p=0 len=2000 sha=4cc356adf7ce4d87 "wXp2171RFI07LFEyM1K4woS6kFcdmjI55EgiLsGNVHQP6jYn8D9NJ00HFsSv..."
+> E HL2 S Password p=1 "hl2-v0-a"
+329c329
+< E HL2 t.accessed 2026-11-01T16:00:00Z
+---
+> E HL2 t.accessed 2026-11-16T12:31:05Z
+331c331
+< E HL2 t.expires 0 2026-11-01T10:00:00Z
+---
+> E HL2 t.expires 0 2999-11-28T23:59:59Z
+333c333
+< E HL2 t.modified 2026-11-01T16:00:00Z
+---
+> E HL2 t.modified 2026-11-16T12:31:05Z
+335c335
+< E HL2 usage 0
+---
+> E HL2 usage 1
+974c974
+< G HG t.accessed 2026-11-01T10:05:00Z
+---
+> G HG t.accessed 2026-11-16T12:31:05Z
+978c978
+< G HG t.modified 2026-11-01T10:05:00Z
+---
+> G HG t.modified 2026-11-16T12:31:05Z
+1078c1078
+< G Root t.accessed 2026-11-01T10:00:00Z
+---
+> G Root t.accessed 2026-11-16T12:31:05Z
+1082c1082
+< G Root t.modified 2026-11-01T10:00:00Z
+---
+> G Root t.modified 2026-11-16T12:31:05Z

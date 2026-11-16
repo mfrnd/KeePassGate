@@ -1,0 +1,15 @@
+# exploration: what KeePassDX shows when unlocking the base with unknown elements
+sh monkey -p ${PKG} -c android.intent.category.LAUNCHER 1
+waitfor open_database_button 30
+tapuntil open_database_button Show.roots 40
+include picker.flow
+waitfor password_text_view 40
+typepwdx dummy-password-for-a-throwaway-file
+tap activity_password_open_button
+sleep 1
+list
+sleep 2
+list
+sleep 3
+list
+sh logcat -d -t 80 *:W

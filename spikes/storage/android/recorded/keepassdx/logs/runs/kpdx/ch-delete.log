@@ -1,0 +1,220 @@
+### 2026-11-16T15:04:53.751Z ow kpdx ch-delete flow=kpdx-ch-delete.flow base=B41  (versionName=4.5.8)
+Success
+<work>/work/base/B41.kdbx: 1 file pushed, 0 skipped. 1.2 MB/s (16085 bytes in 0.013s)
+given 16085 bytes, mtime 2026-11-16 15:54:53.000000000 +0100 sha256 92909efea553cdd099e1d603f4a90b4c57b729c6d4b2e723fb8403728cd79da7
+[2026-11-16T15:04:55.025Z] kpdx-ch-delete.flow:3 include kpdx-open.flow
+[2026-11-16T15:04:55.030Z] kpdx-open.flow:4 sh monkey -p com.kunzisoft.keepass.libre -c android.intent.category.LAUNCHER 1
+  bash arg: -p
+  bash arg: com.kunzisoft.keepass.libre
+  bash arg: -c
+  bash arg: android.intent.category.LAUNCHER
+  bash arg: 1
+Events injected: 1
+## Network stats: elapsed time=84ms (0ms mobile, 0ms wifi, 84ms not connected)
+args: [-p, com.kunzisoft.keepass.libre, -c, android.intent.category.LAUNCHER, 1]
+ arg: "-p"
+ arg: "com.kunzisoft.keepass.libre"
+ arg: "-c"
+ arg: "android.intent.category.LAUNCHER"
+ arg: "1"
+data="com.kunzisoft.keepass.libre"
+data="android.intent.category.LAUNCHER"
+[2026-11-16T15:04:55.595Z] kpdx-open.flow:5 waitfor open_database_button 30
+[2026-11-16T15:05:01.039Z] kpdx-open.flow:6 tapuntil open_database_button Show.roots 40
+[2026-11-16T15:05:03.747Z]   tapped (799, 2051) 'Open existing vault'
+[2026-11-16T15:05:14.209Z]   tapped (799, 2051) 'Open existing vault'
+[2026-11-16T15:05:16.854Z] kpdx-open.flow:7 include picker.flow
+[2026-11-16T15:05:16.861Z] picker.flow:4 pick kpdx-ch-delete.kdbx
+[2026-11-16T15:05:25.138Z]   focused and entered '^kpdx\\-ch\\-delete\\.kdbx$'
+[2026-11-16T15:05:25.139Z] kpdx-open.flow:8 waitfor password_text_view 40
+[2026-11-16T15:05:28.371Z] kpdx-open.flow:9 typepwdx dummy-password-for-a-throwaway-file
+[2026-11-16T15:05:41.837Z]   typepwdx: the field reads 8 characters, not 35 (attempt 1)
+[2026-11-16T15:05:56.029Z]   typed the password and read it back (35 characters)
+[2026-11-16T15:05:56.030Z] kpdx-open.flow:10 tapuntil activity_password_open_button add_button 60
+[2026-11-16T15:05:58.937Z]   tapped (895, 1435) 'Unlock'
+[2026-11-16T15:06:09.401Z]   tapped (895, 1435) 'Unlock'
+[2026-11-16T15:06:17.786Z]   tapped (895, 1435) 'Unlock'
+[2026-11-16T15:06:24.185Z] kpdx-ch-delete.flow:4 tapuntil node_text@^G$ node_text@^E2$ 40
+[2026-11-16T15:06:32.216Z]   tapped (247, 713) 'G'
+[2026-11-16T15:06:42.395Z]   tapped (247, 713) 'G'
+[2026-11-16T15:06:54.488Z] kpdx-ch-delete.flow:5 sleep 3
+[2026-11-16T15:06:57.490Z] kpdx-ch-delete.flow:6 log s01 E2 to the recycle bin
+[2026-11-16T15:06:57.493Z]   s01 E2 to the recycle bin
+[2026-11-16T15:06:57.494Z] kpdx-ch-delete.flow:7 mark /sdcard/Download/kpdx-ch-delete.kdbx
+[2026-11-16T15:06:57.563Z]   marked /sdcard/Download/kpdx-ch-delete.kdbx sha256 92909efea553cdd0
+[2026-11-16T15:06:57.565Z] kpdx-ch-delete.flow:8 longpressuntil node_text@^E2$ menu_move 60 2000 600
+[2026-11-16T15:07:02.274Z]   long-pressed (600, 1043) for 2000 ms on the line of 'E2'
+[2026-11-16T15:07:14.541Z]   long-pressed (600, 1043) for 2000 ms on the line of 'E2'
+[2026-11-16T15:07:26.846Z]   long-pressed (600, 1043) for 2000 ms on the line of 'E2'
+[2026-11-16T15:07:38.992Z]   long-pressed (600, 1043) for 2000 ms on the line of 'E2'
+[2026-11-16T15:07:45.186Z] kpdx-ch-delete.flow:9 tapuntil More.options#2 ^Delete$ 30
+[2026-11-16T15:07:47.823Z]   tapped (1024, 2063) 'More options'
+[2026-11-16T15:07:50.124Z] kpdx-ch-delete.flow:10 tap ^Delete$
+[2026-11-16T15:07:53.124Z]   tapped (799, 1702) 'Delete'
+[2026-11-16T15:07:53.126Z] kpdx-ch-delete.flow:11 sleep 2
+[2026-11-16T15:07:55.127Z] kpdx-ch-delete.flow:12 dialog
+[2026-11-16T15:07:57.050Z]   dialog android.widget.ImageButton: ''
+[2026-11-16T15:07:57.051Z]   dialog menu_search: ''
+[2026-11-16T15:07:57.052Z]   dialog menu_sort: ''
+[2026-11-16T15:07:57.053Z]   dialog add_button: ''
+[2026-11-16T15:07:57.054Z]   dialog lock_button: ''
+[2026-11-16T15:07:57.055Z] kpdx-ch-delete.flow:13 maybe ^OK$ 3
+[2026-11-16T15:08:01.746Z]   maybe: absent
+[2026-11-16T15:08:01.747Z] kpdx-ch-delete.flow:14 gone node_text@^E2$ 30
+[2026-11-16T15:08:03.727Z] kpdx-ch-delete.flow:15 waitchange /sdcard/Download/kpdx-ch-delete.kdbx 45
+[2026-11-16T15:08:06.891Z]   waitchange: /sdcard/Download/kpdx-ch-delete.kdbx changed after 0.0 s, stable, sha256 f5802352b6324fbc
+[2026-11-16T15:08:06.895Z] kpdx-ch-delete.flow:16 pull <work>/work/runs/kpdx/ch-delete/s01-e2-recycled.kdbx /sdcard/Download/kpdx-ch-delete.kdbx
+15097 bytes, mtime 2026-11-16 16:07:52.296000000 +0100
+f5802352b6324fbcfd64f89206550e19ae78299506cb42292051ae2542780bfe  /sdcard/Download/kpdx-ch-delete.kdbx
+/sdcard/Download/kpdx-ch-delete.kdbx: 1 file pulled, 0 skipped. 0.3 MB/s (15097 bytes in 0.052s)
+[2026-11-16T15:08:07.041Z]   pulled /sdcard/Download/kpdx-ch-delete.kdbx to <work>/work/runs/kpdx/ch-delete/s01-e2-recycled.kdbx
+[2026-11-16T15:08:07.043Z] kpdx-ch-delete.flow:17 key BACK
+[2026-11-16T15:08:08.011Z] kpdx-ch-delete.flow:18 waitfor node_text@^KeePassGate$ 20
+[2026-11-16T15:08:10.356Z] kpdx-ch-delete.flow:19 tapuntil node_text@^KeePassGate$ node_text@^KPG.client.build-agent$ 40
+[2026-11-16T15:08:13.006Z]   tapped (363, 584) 'KeePassGate'
+[2026-11-16T15:08:15.511Z] kpdx-ch-delete.flow:20 sleep 3
+[2026-11-16T15:08:18.512Z] kpdx-ch-delete.flow:21 log s02 the admission record AD1 to the recycle bin
+[2026-11-16T15:08:18.513Z]   s02 the admission record AD1 to the recycle bin
+[2026-11-16T15:08:18.514Z] kpdx-ch-delete.flow:22 mark /sdcard/Download/kpdx-ch-delete.kdbx
+[2026-11-16T15:08:18.553Z]   marked /sdcard/Download/kpdx-ch-delete.kdbx sha256 f5802352b6324fbc
+[2026-11-16T15:08:18.554Z] kpdx-ch-delete.flow:23 longpressuntil node_text@^KPG.client.build-agent$ menu_move 60 2000 600
+[2026-11-16T15:08:23.456Z]   long-pressed (600, 585) for 2000 ms on the line of 'KPG client build-agent'
+[2026-11-16T15:08:25.584Z] kpdx-ch-delete.flow:24 tapuntil More.options#2 ^Delete$ 30
+[2026-11-16T15:08:28.488Z]   tapped (1024, 2063) 'More options'
+[2026-11-16T15:08:30.944Z] kpdx-ch-delete.flow:25 tap ^Delete$
+[2026-11-16T15:08:33.733Z]   tapped (799, 1702) 'Delete'
+[2026-11-16T15:08:33.736Z] kpdx-ch-delete.flow:26 sleep 2
+[2026-11-16T15:08:35.738Z] kpdx-ch-delete.flow:27 dialog
+[2026-11-16T15:08:37.889Z]   dialog android.widget.ImageButton: ''
+[2026-11-16T15:08:37.890Z]   dialog menu_search: ''
+[2026-11-16T15:08:37.891Z]   dialog menu_sort: ''
+[2026-11-16T15:08:37.893Z]   dialog add_button: ''
+[2026-11-16T15:08:37.895Z]   dialog lock_button: ''
+[2026-11-16T15:08:37.896Z] kpdx-ch-delete.flow:28 maybe ^OK$ 3
+[2026-11-16T15:08:42.581Z]   maybe: absent
+[2026-11-16T15:08:42.582Z] kpdx-ch-delete.flow:29 gone node_text@^KPG.client.build-agent$ 30
+[2026-11-16T15:08:44.841Z] kpdx-ch-delete.flow:30 waitchange /sdcard/Download/kpdx-ch-delete.kdbx 45
+[2026-11-16T15:08:48.109Z]   waitchange: /sdcard/Download/kpdx-ch-delete.kdbx changed after 0.1 s, stable, sha256 8be849cb188bd94a
+[2026-11-16T15:08:48.111Z] kpdx-ch-delete.flow:31 pull <work>/work/runs/kpdx/ch-delete/s02-ad1-recycled.kdbx /sdcard/Download/kpdx-ch-delete.kdbx
+15257 bytes, mtime 2026-11-16 16:08:33.080000000 +0100
+8be849cb188bd94a406c97e40bcf0fed671d6d4a22c384f17d49460eea3d6149  /sdcard/Download/kpdx-ch-delete.kdbx
+/sdcard/Download/kpdx-ch-delete.kdbx: 1 file pulled, 0 skipped. 1.0 MB/s (15257 bytes in 0.015s)
+[2026-11-16T15:08:48.243Z]   pulled /sdcard/Download/kpdx-ch-delete.kdbx to <work>/work/runs/kpdx/ch-delete/s02-ad1-recycled.kdbx
+[2026-11-16T15:08:48.244Z] kpdx-ch-delete.flow:32 key BACK
+[2026-11-16T15:08:49.013Z] kpdx-ch-delete.flow:33 waitfor node_text@^GD$ 20
+[2026-11-16T15:08:51.495Z] kpdx-ch-delete.flow:34 sleep 2
+[2026-11-16T15:08:55.035Z] kpdx-ch-delete.flow:35 log s03 the group GD to the recycle bin
+[2026-11-16T15:08:55.036Z]   s03 the group GD to the recycle bin
+[2026-11-16T15:08:55.037Z] kpdx-ch-delete.flow:36 mark /sdcard/Download/kpdx-ch-delete.kdbx
+[2026-11-16T15:08:55.089Z]   marked /sdcard/Download/kpdx-ch-delete.kdbx sha256 8be849cb188bd94a
+[2026-11-16T15:08:55.091Z] kpdx-ch-delete.flow:37 longpressuntil node_text@^GD$ menu_move 60 2000 600
+[2026-11-16T15:08:59.996Z]   long-pressed (600, 1200) for 2000 ms on the line of 'GD'
+[2026-11-16T15:09:02.193Z] kpdx-ch-delete.flow:38 tapuntil More.options#2 ^Delete$ 30
+[2026-11-16T15:09:04.072Z] kpdx-ch-delete.flow:39 tap ^Delete$
+[2026-11-16T15:09:06.948Z]   tapped (903, 2063) 'Delete'
+[2026-11-16T15:09:06.949Z] kpdx-ch-delete.flow:40 sleep 2
+[2026-11-16T15:09:08.952Z] kpdx-ch-delete.flow:41 dialog
+[2026-11-16T15:09:11.275Z]   dialog android.widget.ImageButton: ''
+[2026-11-16T15:09:11.276Z]   dialog menu_search: ''
+[2026-11-16T15:09:11.278Z]   dialog menu_sort: ''
+[2026-11-16T15:09:11.281Z]   dialog add_button: ''
+[2026-11-16T15:09:11.282Z]   dialog lock_button: ''
+[2026-11-16T15:09:11.284Z] kpdx-ch-delete.flow:42 maybe ^OK$ 3
+[2026-11-16T15:09:15.874Z]   maybe: absent
+[2026-11-16T15:09:15.875Z] kpdx-ch-delete.flow:43 gone node_text@^GD$ 30
+[2026-11-16T15:09:17.936Z] kpdx-ch-delete.flow:44 waitchange /sdcard/Download/kpdx-ch-delete.kdbx 45
+[2026-11-16T15:09:21.157Z]   waitchange: /sdcard/Download/kpdx-ch-delete.kdbx changed after 0.0 s, stable, sha256 631976809e77a3c1
+[2026-11-16T15:09:21.159Z] kpdx-ch-delete.flow:45 pull <work>/work/runs/kpdx/ch-delete/s03-gd-recycled.kdbx /sdcard/Download/kpdx-ch-delete.kdbx
+15289 bytes, mtime 2026-11-16 16:09:05.712000000 +0100
+631976809e77a3c1370eac95e639aa729f745c699c05e2fd78c5eeb32a717e59  /sdcard/Download/kpdx-ch-delete.kdbx
+/sdcard/Download/kpdx-ch-delete.kdbx: 1 file pulled, 0 skipped. 0.7 MB/s (15289 bytes in 0.020s)
+[2026-11-16T15:09:21.294Z]   pulled /sdcard/Download/kpdx-ch-delete.kdbx to <work>/work/runs/kpdx/ch-delete/s03-gd-recycled.kdbx
+[2026-11-16T15:09:21.296Z] kpdx-ch-delete.flow:46 log s04 E2 deleted for good from the bin
+[2026-11-16T15:09:21.297Z]   s04 E2 deleted for good from the bin
+[2026-11-16T15:09:21.298Z] kpdx-ch-delete.flow:47 mark /sdcard/Download/kpdx-ch-delete.kdbx
+[2026-11-16T15:09:21.334Z]   marked /sdcard/Download/kpdx-ch-delete.kdbx sha256 631976809e77a3c1
+[2026-11-16T15:09:21.337Z] kpdx-ch-delete.flow:48 tapuntil node_text@^Recycle.Bin$ node_text@^E2$ 40
+[2026-11-16T15:09:24.095Z]   tapped (344, 1508) 'Recycle Bin'
+[2026-11-16T15:09:26.464Z] kpdx-ch-delete.flow:49 sleep 3
+[2026-11-16T15:09:29.465Z] kpdx-ch-delete.flow:50 longpressuntil node_text@^E2$ menu_move 60 2000 600
+[2026-11-16T15:09:34.252Z]   long-pressed (600, 720) for 2000 ms on the line of 'E2'
+[2026-11-16T15:09:36.147Z] kpdx-ch-delete.flow:51 tapuntil More.options#2 ^Delete$ 30
+[2026-11-16T15:09:38.869Z]   tapped (1024, 2063) 'More options'
+[2026-11-16T15:09:41.156Z] kpdx-ch-delete.flow:52 tap ^Delete$
+[2026-11-16T15:09:44.582Z]   tapped (799, 1702) 'Delete'
+[2026-11-16T15:09:44.584Z] kpdx-ch-delete.flow:53 sleep 2
+[2026-11-16T15:09:46.586Z] kpdx-ch-delete.flow:54 dialog
+[2026-11-16T15:09:48.808Z]   dialog message: 'Permanently delete selected nodes?'
+[2026-11-16T15:09:48.810Z]   dialog button2: 'Cancel'
+[2026-11-16T15:09:48.813Z]   dialog button1: 'OK'
+[2026-11-16T15:09:48.815Z] kpdx-ch-delete.flow:55 maybe ^OK$ 4
+[2026-11-16T15:09:52.127Z]   maybe tapped (887, 1242) 'OK'
+[2026-11-16T15:09:52.129Z] kpdx-ch-delete.flow:56 gone node_text@^E2$ 30
+[2026-11-16T15:09:55.412Z] kpdx-ch-delete.flow:57 waitchange /sdcard/Download/kpdx-ch-delete.kdbx 45
+[2026-11-16T15:09:58.598Z]   waitchange: /sdcard/Download/kpdx-ch-delete.kdbx changed after 0.0 s, stable, sha256 d6a2967d2af21fa9
+[2026-11-16T15:10:00.378Z] kpdx-ch-delete.flow:58 pull <work>/work/runs/kpdx/ch-delete/s04-e2-deleted.kdbx /sdcard/Download/kpdx-ch-delete.kdbx
+15241 bytes, mtime 2026-11-16 16:09:51.204000000 +0100
+d6a2967d2af21fa959bd7e88db7c867c30719ad3e50359106c0c350f1c9954d8  /sdcard/Download/kpdx-ch-delete.kdbx
+/sdcard/Download/kpdx-ch-delete.kdbx: 1 file pulled, 0 skipped. 0.6 MB/s (15241 bytes in 0.025s)
+[2026-11-16T15:10:00.558Z]   pulled /sdcard/Download/kpdx-ch-delete.kdbx to <work>/work/runs/kpdx/ch-delete/s04-e2-deleted.kdbx
+[2026-11-16T15:10:00.560Z] kpdx-ch-delete.flow:59 log s05 the recycle bin emptied
+[2026-11-16T15:10:00.562Z]   s05 the recycle bin emptied
+[2026-11-16T15:10:00.563Z] kpdx-ch-delete.flow:60 mark /sdcard/Download/kpdx-ch-delete.kdbx
+[2026-11-16T15:10:00.610Z]   marked /sdcard/Download/kpdx-ch-delete.kdbx sha256 d6a2967d2af21fa9
+[2026-11-16T15:10:00.612Z] kpdx-ch-delete.flow:61 tapuntil More.options ^Empty.the.recycle.bin$ 30
+[2026-11-16T15:10:02.789Z] kpdx-ch-delete.flow:62 tap ^Empty.the.recycle.bin$
+[2026-11-16T15:10:07.681Z]   tapped (903, 233) 'Empty the recycle bin'
+[2026-11-16T15:10:07.683Z] kpdx-ch-delete.flow:63 sleep 2
+[2026-11-16T15:10:09.685Z] kpdx-ch-delete.flow:64 dialog
+[2026-11-16T15:10:11.901Z]   dialog message: 'Permanently delete all nodes from the recycle bin?'
+[2026-11-16T15:10:11.904Z]   dialog button2: 'Cancel'
+[2026-11-16T15:10:11.907Z]   dialog button1: 'OK'
+[2026-11-16T15:10:11.908Z] kpdx-ch-delete.flow:65 tap ^OK$
+[2026-11-16T15:10:14.852Z]   tapped (887, 1257) 'OK'
+[2026-11-16T15:10:14.854Z] kpdx-ch-delete.flow:66 waitchange /sdcard/Download/kpdx-ch-delete.kdbx 45
+[2026-11-16T15:10:19.388Z]   waitchange: /sdcard/Download/kpdx-ch-delete.kdbx changed after 1.3 s, stable, sha256 b36151bf3cfbb3e0
+[2026-11-16T15:10:19.389Z] kpdx-ch-delete.flow:67 pull <work>/work/runs/kpdx/ch-delete/s05-bin-emptied.kdbx /sdcard/Download/kpdx-ch-delete.kdbx
+14953 bytes, mtime 2026-11-16 16:10:13.940000000 +0100
+b36151bf3cfbb3e09dcdc13cef1dd37f6a0f337f022580a4adf8be0c3d4d7e9a  /sdcard/Download/kpdx-ch-delete.kdbx
+/sdcard/Download/kpdx-ch-delete.kdbx: 1 file pulled, 0 skipped. 0.5 MB/s (14953 bytes in 0.028s)
+[2026-11-16T15:10:19.482Z]   pulled /sdcard/Download/kpdx-ch-delete.kdbx to <work>/work/runs/kpdx/ch-delete/s05-bin-emptied.kdbx
+[2026-11-16T15:10:19.483Z] kpdx-ch-delete.flow:68 list
+  LinearLayout        (540, 1036)  id=action_bar_root              text='' desc=''
+  FrameLayout         (540, 1036)  id=content                      text='' desc=''
+  DrawerLayout        (540, 1036)  id=drawer_layout                text='' desc=''
+  ViewGroup           (540, 1108)  id=activity_group_container_view text='' desc=''
+  FrameLayout         (540, 1108)  id=search_content_view          text='' desc=''
+  ViewGroup           (540, 1108)  id=error_coordinator            text='' desc=''
+  ViewGroup           (540, 233)   id=activity_group_header        text='' desc=''
+  ViewGroup           (540, 233)   id=toolbar                      text='' desc=''
+  ImageButton    c    (77, 233)    id=                             text='' desc='Navigation drawer open'
+  TextView            (446, 233)   id=database_name                text='Storage probe DX (invented)' desc=''
+  Button         c    (771, 233)   id=menu_search                  text='' desc='Search'
+  Button         c    (903, 233)   id=menu_empty_recycle_bin       text='' desc='Empty the recycle bin'
+  ImageView      c    (1024, 233)  id=                             text='' desc='More options'
+  ImageView           (148, 233)   id=database_color               text='' desc='Database color'
+  ImageView           (148, 233)   id=database_modified            text='' desc='Save'
+  ScrollView          (540, 1196)  id=group_coordinator            text='' desc=''
+  RelativeLayout      (540, 1196)  id=add_node_button              text='' desc=''
+  ImageButton    c    (970, 2013)  id=add_button                   text='' desc='Add node'
+  LinearLayout        (540, 409)   id=app_bar                      text='' desc=''
+  RecyclerView   f    (540, 409)   id=breadcrumb_list              text='' desc=''
+  CardView       c    (278, 409)   id=breadcrumb_group             text='' desc=''
+  ImageView           (86, 409)    id=group_icon                   text='' desc='Icon name'
+  TextView            (298, 408)   id=group_name                   text='Storage probe' desc=''
+  ImageView           (491, 409)   id=group_separator              text='' desc=''
+  CardView       c    (733, 409)   id=breadcrumb_group             text='' desc=''
+  TextView            (558, 389)   id=group_numbers                text='0' desc=''
+  ImageView           (604, 409)   id=group_icon                   text='' desc=''
+  TextView            (799, 408)   id=group_name                   text='Recycle Bin' desc=''
+  FrameLayout         (540, 1284)  id=nodes_list_fragment_container text='' desc=''
+  RecyclerView        (540, 1284)  id=nodes_list                   text='' desc='Node children'
+  ViewGroup           (540, 2033)  id=activity_group_footer        text='' desc=''
+  ImageButton    c    (90, 2033)   id=lock_button                  text='' desc='Lock'
+  View                (540, 72)    id=statusBarBackground          text='' desc=''
+  View                (0, 0)       id=navigationBarBackground      text='' desc=''
+total 20
+-rw------- 1 u0_a160 u0_a160 14953 2026-11-16 16:10:13.940000000 +0100 kpdx-ch-delete.kdbx
+device kpdx-ch-delete.kdbx sha256 b36151bf3cfbb3e09dcdc13cef1dd37f6a0f337f022580a4adf8be0c3d4d7e9a 14953 bytes, mtime 2026-11-16 16:10:13.940000000 +0100
+/sdcard/Download/kpdx-ch-delete.kdbx: 1 file pulled, 0 skipped. 0.2 MB/s (14953 bytes in 0.069s)
+### flow rc=0 2026-11-16T15:10:24.377Z

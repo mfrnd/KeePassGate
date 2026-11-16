@@ -1,0 +1,34 @@
+855a856,872
+> E ~75469bee S Notes p=0 ""
+> E ~75469bee S Password p=1 ""
+> E ~75469bee S Title p=0 "phone-ow-fg-diff-plus10-r1"
+> E ~75469bee S URL p=0 ""
+> E ~75469bee S UserName p=0 "invented-default-user"
+> E ~75469bee autotype enabled=1 obfuscation=0 seq="" assoc=0
+> E ~75469bee history.count 0
+> E ~75469bee misc icon=49 customIcon=- fg=00000000 bg=00000000 overrideUrl="" quality=1
+> E ~75469bee parent Root (Storage probe)
+> E ~75469bee prev -
+> E ~75469bee t.accessed 2026-11-16T09:36:15Z
+> E ~75469bee t.created 2026-11-16T09:36:14Z
+> E ~75469bee t.expires 0 2999-11-28T23:59:59Z
+> E ~75469bee t.location 2026-11-16T09:36:15Z
+> E ~75469bee t.modified 2026-11-16T09:36:15Z
+> E ~75469bee tags []
+> E ~75469bee usage 1
+858c875
+< F groups 13 entries 41
+---
+> F groups 13 entries 42
+1018c1035
+< G Root children groups=8 entries=0
+---
+> G Root children groups=8 entries=1
+1024c1041
+< G Root t.accessed 2026-11-01T10:00:00Z
+---
+> G Root t.accessed 2026-11-16T09:36:15Z
+1028c1045
+< G Root t.modified 2026-11-01T10:00:00Z
+---
+> G Root t.modified 2026-11-16T09:36:15Z

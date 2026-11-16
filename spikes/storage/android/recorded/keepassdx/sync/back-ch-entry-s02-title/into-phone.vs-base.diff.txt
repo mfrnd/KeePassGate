@@ -1,0 +1,79 @@
+95a96,133
+> E E1 H2026-11-01T14:00:00Z A e1.txt p=0 len=600 sha=259674a04e10f900
+> E E1 H2026-11-01T14:00:00Z CD KPG = "{\"reader\":[\"read\",\"list\"]}"
+> E E1 H2026-11-01T14:00:00Z S Extra p=0 "extra-value-e1"
+> E E1 H2026-11-01T14:00:00Z S Notes p=0 "ordinary notes"
+> E E1 H2026-11-01T14:00:00Z S Password p=1 "pw-e1-not-real"
+> E E1 H2026-11-01T14:00:00Z S Secret p=1 "protected-custom-e1"
+> E E1 H2026-11-01T14:00:00Z S Title p=0 "E1"
+> E E1 H2026-11-01T14:00:00Z S URL p=0 "https://e1.example.invalid/"
+> E E1 H2026-11-01T14:00:00Z S UserName p=0 "alice-invented"
+> E E1 H2026-11-01T14:00:00Z autotype enabled=1 obfuscation=0 seq="" assoc=0
+> E E1 H2026-11-01T14:00:00Z misc icon=0 customIcon=- fg=00000000 bg=00000000 overrideUrl="" quality=1
+> E E1 H2026-11-01T14:00:00Z prev -
+> E E1 H2026-11-01T14:00:00Z t.accessed 2026-11-01T14:00:00Z
+> E E1 H2026-11-01T14:00:00Z t.created 2026-11-01T11:00:00Z
+> E E1 H2026-11-01T14:00:00Z t.expires 0 2026-11-01T10:00:00Z
+> E E1 H2026-11-01T14:00:00Z t.location 2026-11-01T11:00:00Z
+> E E1 H2026-11-01T14:00:00Z t.modified 2026-11-01T14:00:00Z
+> E E1 H2026-11-01T14:00:00Z tags [work]
+> E E1 H2026-11-01T14:00:00Z usage 0
+> E E1 H2026-11-16T08:30:06Z A e1.txt p=0 len=600 sha=259674a04e10f900
+> E E1 H2026-11-16T08:30:06Z CD KPG = "{\"reader\":[\"read\",\"list\"]}"
+> E E1 H2026-11-16T08:30:06Z S Extra p=0 "extra-value-e1"
+> E E1 H2026-11-16T08:30:06Z S Notes p=0 "ordinary notes"
+> E E1 H2026-11-16T08:30:06Z S Password p=1 "pw-e1-not-real"
+> E E1 H2026-11-16T08:30:06Z S Secret p=1 "protected-custom-e1"
+> E E1 H2026-11-16T08:30:06Z S Title p=0 "E1"
+> E E1 H2026-11-16T08:30:06Z S URL p=0 "https://e1.example.invalid/"
+> E E1 H2026-11-16T08:30:06Z S UserName p=0 "alice-invented"
+> E E1 H2026-11-16T08:30:06Z autotype enabled=1 obfuscation=0 seq="" assoc=0
+> E E1 H2026-11-16T08:30:06Z misc icon=0 customIcon=- fg=00000000 bg=00000000 overrideUrl="" quality=1
+> E E1 H2026-11-16T08:30:06Z prev -
+> E E1 H2026-11-16T08:30:06Z t.accessed 2026-11-16T08:30:06Z
+> E E1 H2026-11-16T08:30:06Z t.created 2026-11-01T11:00:00Z
+> E E1 H2026-11-16T08:30:06Z t.expires 0 2999-11-28T23:59:59Z
+> E E1 H2026-11-16T08:30:06Z t.location 2026-11-01T11:00:00Z
+> E E1 H2026-11-16T08:30:06Z t.modified 2026-11-16T08:30:06Z
+> E E1 H2026-11-16T08:30:06Z tags [work]
+> E E1 H2026-11-16T08:30:06Z usage 1
+100c138
+< E E1 S Title p=0 "E1"
+---
+> E E1 S Title p=0 "E1-t"
+104c142
+< E E1 history.count 3
+---
+> E E1 history.count 5
+108c146
+< E E1 t.accessed 2026-11-01T14:00:00Z
+---
+> E E1 t.accessed 2026-11-16T08:31:44Z
+110c148
+< E E1 t.expires 0 2026-11-01T10:00:00Z
+---
+> E E1 t.expires 0 2999-11-28T23:59:59Z
+112c150
+< E E1 t.modified 2026-11-01T14:00:00Z
+---
+> E E1 t.modified 2026-11-16T08:31:44Z
+114c152
+< E E1 usage 0
+---
+> E E1 usage 2
+881c919
+< G G t.accessed 2026-11-01T10:00:00Z
+---
+> G G t.accessed 2026-11-16T08:31:44Z
+885c923
+< G G t.modified 2026-11-01T10:30:00Z
+---
+> G G t.modified 2026-11-16T08:31:44Z
+1024c1062
+< G Root t.accessed 2026-11-01T10:00:00Z
+---
+> G Root t.accessed 2026-11-16T08:31:44Z
+1028c1066
+< G Root t.modified 2026-11-01T10:00:00Z
+---
+> G Root t.modified 2026-11-16T08:31:44Z

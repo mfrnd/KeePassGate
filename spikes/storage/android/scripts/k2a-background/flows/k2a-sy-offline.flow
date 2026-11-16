@@ -1,0 +1,9 @@
+# Keepass2Android: More options, "Work on internal cache only" (a checkable item), its state logged
+# before the press, the events of the next 8 s logged.
+tap More.options
+sleep 2
+list
+checkstate ^Work.on.internal.cache.only$
+tap ^Work.on.internal.cache.only$
+host sh ${P}/events.sh 8 offline-toggle
+dialog

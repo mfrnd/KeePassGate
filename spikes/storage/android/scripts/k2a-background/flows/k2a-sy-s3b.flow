@@ -1,0 +1,9 @@
+# Synchronize, case 3b, only the phone changed, saved while the server was stopped: open; stop the
+# server; edit P2's password and save (what does it say?); start the server; Synchronize.
+include k2a-sy-open.flow
+host sh ${P}/server.sh stop
+include k2a-sy-pw-P2-offline.flow
+host sh ${P}/srv-stat.sh ${SNAME} after-save-server-stopped
+host sh ${P}/server.sh start
+include k2a-sy-sync.flow
+host sh ${P}/srv-stat.sh ${SNAME} after-sync

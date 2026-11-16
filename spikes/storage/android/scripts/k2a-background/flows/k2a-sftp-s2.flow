@@ -1,0 +1,8 @@
+# Over SFTP: Synchronize, case 2, only the server's file changed: open from the server; SNEW-fixed put on the
+# server (the desktop's later save); Synchronize; look (is KPG revocation there?).
+include k2a-sftp-open.flow
+host sh ${P}/srv-put.sh ${SNAME} ${SRCDIR}/SNEW-fixed.kdbx
+host sh ${P}/srv-stat.sh ${SNAME} before-sync
+include k2a-sy-sync.flow
+host sh ${P}/srv-stat.sh ${SNAME} after-sync
+include k2a-sy-look.flow

@@ -1,0 +1,5 @@
+# Back to it, state b: started from its launcher; what it shows.
+sh monkey -p ${PKG} -c android.intent.category.LAUNCHER 1
+sleep 6
+dialog
+list

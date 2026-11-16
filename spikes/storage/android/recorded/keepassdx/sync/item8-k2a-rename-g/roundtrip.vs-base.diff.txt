@@ -1,0 +1,66 @@
+63c63
+< E E1 parent G (G)
+---
+> E E1 parent G (G-phone)
+80c80
+< E E2 parent G (G)
+---
+> E E2 parent G (G-phone)
+98c98
+< E Gm parent G (G)
+---
+> E Gm parent G (G-phone)
+263c263
+< E X1 parent G (G)
+---
+> E X1 parent G (G-phone)
+280c280
+< E X2 parent G (G)
+---
+> E X2 parent G (G-phone)
+297c297
+< E Y1 parent G (G)
+---
+> E Y1 parent G (G-phone)
+314c314
+< E Y2 parent G (G)
+---
+> E Y2 parent G (G-phone)
+331c331
+< E Y3 parent G (G)
+---
+> E Y3 parent G (G-phone)
+361c361
+< G G name "G"
+---
+> G G name "G-phone"
+365c365
+< G G t.accessed 2026-11-01T10:00:00Z
+---
+> G G t.accessed 2026-11-15T17:43:21Z
+369c369
+< G G t.modified 2026-11-01T10:30:00Z
+---
+> G G t.modified 2026-11-15T17:43:21Z
+371c371
+< G G usage 0
+---
+> G G usage 1
+389c389
+< G N parent G (G)
+---
+> G N parent G (G-phone)
+404c404
+< G Root t.accessed 2026-11-01T10:00:00Z
+---
+> G Root t.accessed 2026-11-15T17:43:21Z
+408c408
+< G Root t.modified 2026-11-01T10:00:00Z
+---
+> G Root t.modified 2026-11-15T17:43:21Z
+410,411c410,411
+< G Root usage 0
+< M CD KPG.Profiles = "[\"reader\",\"writer\"]" @2026-11-01T10:15:00Z
+---
+> G Root usage 1
+> M CD KPG.Profiles = "[\"reader\",\"writer\"]" @none

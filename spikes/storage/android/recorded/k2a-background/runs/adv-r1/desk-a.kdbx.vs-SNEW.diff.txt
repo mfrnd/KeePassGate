@@ -1,0 +1,177 @@
+1c1
+< # file SNEW.kdbx size=2549 sha256=9cdb3510f4b0879aa1377836b8a7c7a1d5aaedadb2f7e6b025d33ee06c024789
+---
+> # file desk-a.kdbx size=2389 sha256=388a16634d168e618ede94c7277ba7a4f03c9ee7529f13dd9be6edd691d95850
+3,5c3
+< D DZ 2026-11-01T18:00:00Z
+< D X1 2026-11-01T18:00:00Z
+< D count 3
+---
+> D count 1
+110,124d107
+< E P2 H2026-11-01T10:20:00Z S Notes p=0 ""
+< E P2 H2026-11-01T10:20:00Z S Password p=1 "p2-old"
+< E P2 H2026-11-01T10:20:00Z S Title p=0 "P2"
+< E P2 H2026-11-01T10:20:00Z S URL p=0 ""
+< E P2 H2026-11-01T10:20:00Z S UserName p=0 "user-p2"
+< E P2 H2026-11-01T10:20:00Z autotype enabled=1 obfuscation=0 seq="" assoc=0
+< E P2 H2026-11-01T10:20:00Z misc icon=0 customIcon=- fg=00000000 bg=00000000 overrideUrl="" quality=1
+< E P2 H2026-11-01T10:20:00Z prev -
+< E P2 H2026-11-01T10:20:00Z t.accessed 2026-11-16T17:59:05Z
+< E P2 H2026-11-01T10:20:00Z t.created 2026-11-01T10:20:00Z
+< E P2 H2026-11-01T10:20:00Z t.expires 0 2026-11-01T10:00:00Z
+< E P2 H2026-11-01T10:20:00Z t.location 2026-11-01T10:20:00Z
+< E P2 H2026-11-01T10:20:00Z t.modified 2026-11-01T10:20:00Z
+< E P2 H2026-11-01T10:20:00Z tags []
+< E P2 H2026-11-01T10:20:00Z usage 1
+126c109
+< E P2 S Password p=1 "p2-old-phone"
+---
+> E P2 S Password p=1 "p2-old"
+131c114
+< E P2 history.count 1
+---
+> E P2 history.count 0
+135c118
+< E P2 t.accessed 2026-11-16T17:59:26Z
+---
+> E P2 t.accessed 2026-11-01T10:20:00Z
+139c122
+< E P2 t.modified 2026-11-16T17:59:24Z
+---
+> E P2 t.modified 2026-11-01T10:20:00Z
+141,156c124
+< E P2 usage 3
+< E Q1 H2026-11-01T10:20:00Z S Notes p=0 ""
+< E Q1 H2026-11-01T10:20:00Z S Password p=1 "q1-old"
+< E Q1 H2026-11-01T10:20:00Z S Title p=0 "Q1"
+< E Q1 H2026-11-01T10:20:00Z S URL p=0 ""
+< E Q1 H2026-11-01T10:20:00Z S UserName p=0 "user-q1"
+< E Q1 H2026-11-01T10:20:00Z autotype enabled=1 obfuscation=0 seq="" assoc=0
+< E Q1 H2026-11-01T10:20:00Z misc icon=0 customIcon=- fg=00000000 bg=00000000 overrideUrl="" quality=1
+< E Q1 H2026-11-01T10:20:00Z prev -
+< E Q1 H2026-11-01T10:20:00Z t.accessed 2026-11-01T10:20:00Z
+< E Q1 H2026-11-01T10:20:00Z t.created 2026-11-01T10:20:00Z
+< E Q1 H2026-11-01T10:20:00Z t.expires 0 2026-11-01T10:00:00Z
+< E Q1 H2026-11-01T10:20:00Z t.location 2026-11-01T10:20:00Z
+< E Q1 H2026-11-01T10:20:00Z t.modified 2026-11-01T10:20:00Z
+< E Q1 H2026-11-01T10:20:00Z tags []
+< E Q1 H2026-11-01T10:20:00Z usage 0
+---
+> E P2 usage 0
+158c126
+< E Q1 S Password p=1 "q1-desktop"
+---
+> E Q1 S Password p=1 "q1-old"
+163c131
+< E Q1 history.count 1
+---
+> E Q1 history.count 0
+167c135
+< E Q1 t.accessed 2026-11-01T18:00:00Z
+---
+> E Q1 t.accessed 2026-11-01T10:20:00Z
+171c139
+< E Q1 t.modified 2026-11-01T18:00:00Z
+---
+> E Q1 t.modified 2026-11-01T10:20:00Z
+174,188d141
+< E Q2 H2026-11-01T10:20:00Z S Notes p=0 ""
+< E Q2 H2026-11-01T10:20:00Z S Password p=1 "q2-old"
+< E Q2 H2026-11-01T10:20:00Z S Title p=0 "Q2"
+< E Q2 H2026-11-01T10:20:00Z S URL p=0 ""
+< E Q2 H2026-11-01T10:20:00Z S UserName p=0 "user-q2"
+< E Q2 H2026-11-01T10:20:00Z autotype enabled=1 obfuscation=0 seq="" assoc=0
+< E Q2 H2026-11-01T10:20:00Z misc icon=0 customIcon=- fg=00000000 bg=00000000 overrideUrl="" quality=1
+< E Q2 H2026-11-01T10:20:00Z prev -
+< E Q2 H2026-11-01T10:20:00Z t.accessed 2026-11-01T10:20:00Z
+< E Q2 H2026-11-01T10:20:00Z t.created 2026-11-01T10:20:00Z
+< E Q2 H2026-11-01T10:20:00Z t.expires 0 2026-11-01T10:00:00Z
+< E Q2 H2026-11-01T10:20:00Z t.location 2026-11-01T10:20:00Z
+< E Q2 H2026-11-01T10:20:00Z t.modified 2026-11-01T10:20:00Z
+< E Q2 H2026-11-01T10:20:00Z tags []
+< E Q2 H2026-11-01T10:20:00Z usage 0
+190c143
+< E Q2 S Password p=1 "q2-desktop"
+---
+> E Q2 S Password p=1 "q2-old"
+195c148
+< E Q2 history.count 1
+---
+> E Q2 history.count 0
+199c152
+< E Q2 t.accessed 2026-11-16T19:01:38Z
+---
+> E Q2 t.accessed 2026-11-01T10:20:00Z
+203c156
+< E Q2 t.modified 2026-11-16T19:01:38Z
+---
+> E Q2 t.modified 2026-11-01T10:20:00Z
+206,220d158
+< E Q3 H2026-11-01T10:20:00Z S Notes p=0 ""
+< E Q3 H2026-11-01T10:20:00Z S Password p=1 "q3-old"
+< E Q3 H2026-11-01T10:20:00Z S Title p=0 "Q3"
+< E Q3 H2026-11-01T10:20:00Z S URL p=0 ""
+< E Q3 H2026-11-01T10:20:00Z S UserName p=0 "user-q3"
+< E Q3 H2026-11-01T10:20:00Z autotype enabled=1 obfuscation=0 seq="" assoc=0
+< E Q3 H2026-11-01T10:20:00Z misc icon=0 customIcon=- fg=00000000 bg=00000000 overrideUrl="" quality=1
+< E Q3 H2026-11-01T10:20:00Z prev -
+< E Q3 H2026-11-01T10:20:00Z t.accessed 2026-11-01T10:20:00Z
+< E Q3 H2026-11-01T10:20:00Z t.created 2026-11-01T10:20:00Z
+< E Q3 H2026-11-01T10:20:00Z t.expires 0 2026-11-01T10:00:00Z
+< E Q3 H2026-11-01T10:20:00Z t.location 2026-11-01T10:20:00Z
+< E Q3 H2026-11-01T10:20:00Z t.modified 2026-11-01T10:20:00Z
+< E Q3 H2026-11-01T10:20:00Z tags []
+< E Q3 H2026-11-01T10:20:00Z usage 0
+222c160
+< E Q3 S Password p=1 "q3-desktop"
+---
+> E Q3 S Password p=1 "q3-old"
+227c165
+< E Q3 history.count 1
+---
+> E Q3 history.count 0
+231c169
+< E Q3 t.accessed 2026-11-16T18:02:35Z
+---
+> E Q3 t.accessed 2026-11-01T10:20:00Z
+235c173
+< E Q3 t.modified 2026-11-16T18:02:35Z
+---
+> E Q3 t.modified 2026-11-01T10:20:00Z
+237a176,192
+> E X1 S Notes p=0 ""
+> E X1 S Password p=1 "x1-old"
+> E X1 S Title p=0 "X1"
+> E X1 S URL p=0 ""
+> E X1 S UserName p=0 "user-x1"
+> E X1 autotype enabled=1 obfuscation=0 seq="" assoc=0
+> E X1 history.count 0
+> E X1 misc icon=0 customIcon=- fg=00000000 bg=00000000 overrideUrl="" quality=1
+> E X1 parent PW (Passwords)
+> E X1 prev -
+> E X1 t.accessed 2026-11-01T10:20:00Z
+> E X1 t.created 2026-11-01T10:20:00Z
+> E X1 t.expires 0 2026-11-01T10:00:00Z
+> E X1 t.location 2026-11-01T10:20:00Z
+> E X1 t.modified 2026-11-01T10:20:00Z
+> E X1 tags []
+> E X1 usage 0
+240c195
+< F groups 4 entries 9
+---
+> F groups 4 entries 10
+242c197
+< F version 4.0
+---
+> F version 4.1
+269c224
+< G PW children groups=0 entries=6
+---
+> G PW children groups=0 entries=7
+295,296c250,251
+< M CD KPG.NewKey = "{\"added\":\"by the desktop\"}" @none
+< M CD KPG.Profiles = "[\"reader\",\"writer\"]" @none
+---
+> M CD KPG.NewKey = "{\"added\":\"by the desktop\"}" @2026-11-01T18:00:00Z
+> M CD KPG.Profiles = "[\"reader\",\"writer\"]" @2026-11-01T10:15:00Z

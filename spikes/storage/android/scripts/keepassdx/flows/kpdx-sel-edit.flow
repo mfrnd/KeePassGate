@@ -1,0 +1,7 @@
+# Select the entry ${SEL} on the current group screen (a 2 s press on the middle of its row), open
+# the selection's overflow, Edit, and pass the user verification if asked.
+longpressuntil node_text@${SEL} menu_move 60 2000 600
+tapuntil More.options#2 ^Edit$ 30
+tap ^Edit$
+ifthen setup_check_password_edit_text 8 kpdx-verify.flow
+waitfor entry_edit_validate 20

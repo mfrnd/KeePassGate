@@ -1,0 +1,4 @@
+# State d: the device's screen off (the sleep key), the program in front before it.
+key SLEEP
+sleep 3
+host sh ${P}/devstate.sh state-d

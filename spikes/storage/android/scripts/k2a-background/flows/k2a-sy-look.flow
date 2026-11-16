@@ -1,0 +1,14 @@
+# Keepass2Android, at the root group: KeePassGate and Passwords listed, back.
+tap ^KeePassGate$
+sleep 2
+log entries listed in KeePassGate follow
+list
+key BACK
+sleep 2
+tap ^Passwords$
+sleep 2
+log entries listed in Passwords follow
+list
+key BACK
+sleep 2
+waitfor fabAddNew 20

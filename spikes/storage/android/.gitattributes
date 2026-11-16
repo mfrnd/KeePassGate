@@ -6,6 +6,10 @@ scripts/android.sha256 text eol=lf
 scripts/batches/*.txt text eol=lf
 # The later measurements' batch files, which `batch-ow.sh` and `batch-sy.sh` read the same way.
 scripts/batches-ow/*.txt text eol=lf
+# The same for the two measurements of 2026-11-16, each in a directory of its own.
+scripts/keepassdx/android.sha256 text eol=lf
+scripts/keepassdx/batches/*.txt text eol=lf
+scripts/k2a-background/batches-ow/*.txt text eol=lf
 
 # The checksums rclone publishes, kept as they arrived: a signed text, whose bytes stay as signed.
 recorded/k2a-synchronize/server/SHA256SUMS -text
