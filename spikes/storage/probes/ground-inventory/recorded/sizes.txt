@@ -1,0 +1,14 @@
+KeePass 2.62.0.0
+history defaults: items , size 
+create: True
+KPG.Authority.91a4fd776dcc9c162fe4edc22c   2903 chars
+client certificate DER: 487 bytes
+admission record: 819 chars
+admission record with 32 profiles of 62 chars: 2824 chars
+profile list of 3: 38 chars
+profile list of 32 x 62 chars: 2094 chars
+typical rule: 101 chars, reads: True
+largest rule, 31 profiles of 64 chars with all eight: 4482 chars, reads: True
+
+corrected by reflection (the line above read the constants wrongly):
+PwDatabase.DefaultHistoryMaxItems = 10, DefaultHistoryMaxSize = 6291456, new PwDatabase MaintenanceHistoryDays = 365 (KeePass 2.62)
