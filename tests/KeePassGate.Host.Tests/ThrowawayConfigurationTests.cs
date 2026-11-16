@@ -1,9 +1,15 @@
+using System;
 using System.IO;
+using System.Linq;
+using System.Reflection;
 using System.Text;
 using KeePass.App;
 using KeePass.App.Configuration;
+using KeePass.Ecas;
+using KeePass.Resources;
 using KeePass.Util.XmlSerialization;
 using KeePassGate.Host.Tests.Live;
+using KeePassLib;
 using NUnit.Framework;
 
 namespace KeePassGate.Host.Tests
@@ -55,6 +61,37 @@ namespace KeePassGate.Host.Tests
             Assert.That(read.MainWindow.EscAction, Is.EqualTo(AceEscAction.None), "and everything else as before");
             Assert.That(read.Integration.LimitToSingleInstance, Is.False);
             Assert.That(read.Meta.PreferUserConfiguration, Is.False);
+        }
+
+        [TestCase(true, "SavedDatabaseFile")]
+        [TestCase(false, "SavingDatabaseFile")]
+        public void KeePass_takes_the_trigger_that_closes_the_database_as_it_is_saved(bool afterTheFile, string theEvent)
+        {
+            // Held to KeePass's own identifiers, which it keeps where no plugin reaches: a trigger
+            // naming an event or an action KeePass does not know is one it keeps and never runs,
+            // and the end to end fixture would then measure a save nothing closed.
+            AppConfigEx read;
+            using (var stream = new MemoryStream(
+                       new UTF8Encoding(false).GetBytes(ThrowawayKeePass.ConfigurationClosingOnSave(afterTheFile))))
+            {
+                read = (AppConfigEx)new XmlSerializerEx(typeof(AppConfigEx)).Deserialize(stream);
+            }
+
+            var keePass = typeof(AppConfigEx).Assembly;
+            var events = keePass.GetType("KeePass.Ecas.EcasEventIDs", true);
+            var wanted = (PwUuid)events.GetField(theEvent, BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static)
+                .GetValue(null);
+            var provider = (EcasActionProvider)Activator.CreateInstance(
+                keePass.GetType("KeePass.Ecas.EcasDefaultActionProvider", true), true);
+            var close = provider.Find(KPRes.CloseActiveDatabase);
+            Assert.That(close, Is.Not.Null, "KeePass no longer offers Close active database");
+
+            var trigger = read.Application.TriggerSystem.TriggerCollection.Single();
+            Assert.That(trigger.On, Is.True, "a trigger that is off never runs");
+            Assert.That(trigger.EventCollection.Single().Type, Is.EqualTo(wanted));
+            Assert.That(trigger.ActionCollection.Single().Type, Is.EqualTo(close.Type), "Close active database");
+            Assert.That(read.Integration.LimitToSingleInstance, Is.False, "and everything else as before");
+            Assert.That(read.MainWindow.EscAction, Is.EqualTo(AceEscAction.None));
         }
 
         [Test]

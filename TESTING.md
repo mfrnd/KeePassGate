@@ -205,6 +205,15 @@ client is told `503 locked`. Posted rather than locked, because locking the desk
 session the tests run in, and timed by the file the save writes first rather than by a wait,
 because how long a save takes is the machine's.
 
+**A database closed inside a save**, in `LiveCloseAfterTheFileTests` and
+`LiveCloseBeforeTheFileTests`: KeePass given a trigger that closes the active database, on Saved
+database file in the first and on Saving database file with the changes discarded in the second,
+and a client revoking itself. The close ends the client's connection before the
+write has an answer, and the audit holds the revocation exactly where the file does: after the file
+was written, and not when the changes were discarded before it. The host tier reads off the IL that
+a save failing on a closed database still raises `FileSaved` as a failure; this is where KeePass
+is seen doing it.
+
 **KeePass's own dialogs over a node, for real**, in `LiveAttachmentEditorTests` and
 `LiveTanWizardTests`, for the two the host tier cannot stand up whole. KeePass's attachment editor
 writes the bytes it holds back onto the entry when it closes changed, whatever happened to the

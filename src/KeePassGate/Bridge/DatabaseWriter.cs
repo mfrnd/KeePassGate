@@ -103,6 +103,18 @@ namespace KeePassGate.Bridge
         private PwDatabase _ownSave;
 
         /// <summary>
+        /// Whether KeePass reported, through `FileSaved`, that a save of <see cref="_ownSave"/>
+        /// landed while this writer's last save ran.
+        /// </summary>
+        /// <remarks>
+        /// Asked only of a database that closed inside that save, where nothing else is left to
+        /// ask: <see cref="Concluded"/> explains why. Any save of the database counts, the save the
+        /// writer began and a save KeePass's close made of it on the operator's answer alike,
+        /// since either wrote what memory held.
+        /// </remarks>
+        private bool _ownSaveLanded;
+
+        /// <summary>
         /// What this writer's last save carried of the standing answers owed, written by
         /// <see cref="BeforeSave"/> while it ran.
         /// </summary>
@@ -313,6 +325,7 @@ namespace KeePassGate.Bridge
         {
             Interlocked.Increment(ref _saves);
             _ownSave = database;
+            _ownSaveLanded = false;
             _carried = null;
             try
             {
@@ -379,10 +392,17 @@ namespace KeePassGate.Bridge
         /// </summary>
         /// <remarks>
         /// Believed on KeePass's word, as an operator's own save is believed: only this writer's
-        /// saves read the file back, and those settle their own.
+        /// saves read the file back, and those settle their own. **What this writer keeps of
+        /// KeePass's word about its own save** is whether a save of that database landed, for the
+        /// one ending the file cannot be asked about: <see cref="_ownSaveLanded"/>.
         /// </remarks>
         public void AfterSave(PwDatabase database, bool success)
         {
+            if (success && database != null && ReferenceEquals(database, _ownSave))
+            {
+                _ownSaveLanded = true;
+            }
+
             Owing owing;
             if (database == null || ReferenceEquals(database, _ownSave) || !_carrying.TryGetValue(database, out owing))
             {
@@ -1048,8 +1068,9 @@ namespace KeePassGate.Bridge
         /// Run on the user interface thread once the change stands: saved and verified, or saved
         /// and left in place because the file could not be verified, which undoes nothing, and so
         /// too when the save ended in an exception nothing expects, before that exception goes on.
-        /// Not on any path that took the change back out. Null when nothing is drawn from what the
-        /// change wrote.
+        /// Not on any path that took the change back out, nor for a database that closed inside
+        /// its save before KeePass reported a save of it that landed. Null when nothing is drawn
+        /// from what the change wrote.
         /// </param>
         private VaultWrite Change(PwDatabase database, Func<VaultChange> change, bool lists, Action landed)
         {
@@ -1391,12 +1412,18 @@ namespace KeePassGate.Bridge
                 // whether it had or not, and the hash below would read as verified on its null.
                 // Nothing knows whether the file holds the change, which is what this answer is:
                 // not taken back out, there being no database left in memory to take it out of,
-                // written down as a change left in place is, and the standing answers the save
-                // carried kept owed.
+                // and the standing answers the save carried kept owed.
+                //
+                // **Written down as a change left in place only when KeePass reported a save of it
+                // that landed**, which a close after the file was written follows and a close
+                // before it does not: a close that discards the changes leaves no database holding
+                // the change and a file without it, and KeePass's save then fails on the closed
+                // database and raises `FileSaved` as a failure. A line written then stated a
+                // revocation that nothing held, over a certificate the next open admits again.
                 _log.Error("the database closed as its save ended, so whether the file holds the " +
                            "change is not known", failed);
 
-                if (landed != null)
+                if (landed != null && _ownSaveLanded)
                 {
                     landed();
                 }
@@ -2052,7 +2079,9 @@ namespace KeePassGate.Bridge
         ///
         /// **Once at most.** Each path that leaves a change in force runs this once, and a path
         /// that took the change back out or never made it does not run it at all, so an operation
-        /// writes no line of its own about a change it handed here.
+        /// writes no line of its own about a change it handed here. A database closed inside its
+        /// save leaves the change in force nowhere unless KeePass reported a save of it that
+        /// landed, and runs this only then.
         ///
         /// **And never waiting**, because this is KeePass's own thread inside the writer's lock.
         /// The line is written without waiting for the client's turn, and the operation takes that

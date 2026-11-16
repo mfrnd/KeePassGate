@@ -1225,6 +1225,12 @@ none, since it releases both.
   takes the dialog away. The waiting client is still told nothing at an exit: stopping the gate
   closes its connection before the answer exists, which [`PAIRING.md`](PAIRING.md) §308 now
   states, where it read as though every dialog taken away were answered `503 locked`.
+- **A program's revocation of itself whose database closed inside the save before KeePass wrote
+  the file is not written to the audit.** A trigger on saving that closes the database, answered
+  by discarding the changes, left no database holding the revocation and a file still admitting
+  the program, under an audit line recording that it had revoked itself; the next open admitted
+  it again. The line is now written for such a database only when KeePass reported a save of it
+  that landed.
 
 ## 0.1.0, 2026-10-25
 

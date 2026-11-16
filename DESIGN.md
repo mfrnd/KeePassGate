@@ -1483,10 +1483,12 @@ So the rules here:
   running. A lock of KeePass's own never does: the save pumps only while its block is up, and a
   lock arriving then is dropped, above. The close clears the flag and the hashes the write is
   believed on, so the change is neither taken back out nor reported as verified: nothing knows
-  whether the file holds it. **And the client is answered nothing**, since the close closes every
-  connection to the database, the write's own among them, before the write has an answer to give.
-  Sparing that connection would leave a socket thread serving a database KeePass has closed, which
-  is what closing them is for.
+  whether the file holds it. It is written down as in force only when KeePass raised `FileSaved`
+  for a save of that database that landed, which a close after the file was written follows and a
+  close that discarded the changes before it does not. **And the client is answered nothing**,
+  since the close closes every connection to the database, the write's own among them, before the
+  write has an answer to give. Sparing that connection would leave a socket thread serving a
+  database KeePass has closed, which is what closing them is for.
 - **No write lands inside an operation KeePass is already running.** Being on the UI thread is not
   being alone on it, which the writer's own remarks claimed for a while and which is the one
   assumption in this section that cost data. Everything KeePass takes a noticeable time over pumps

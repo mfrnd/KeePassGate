@@ -1468,8 +1468,10 @@ namespace KeePassGate.Bridge
                 }
                 else if (written.IsUnverified)
                 {
-                    // In force in the database KeePass holds, and refused from the next request,
-                    // as the audit says: only whether the file kept it is unknown.
+                    // In force in the database KeePass holds, and refused from the next request:
+                    // only whether the file kept it is unknown. Or the database closed inside the
+                    // save, and the audit holds a line only where KeePass reported a save of the
+                    // revocation that landed.
                     _log.Warn("a client revoked its own certificate, and the file was not verified to hold it: " +
                               CertificateDigest.Shorten(admissionKey) + ": " + written.Reason);
                 }

@@ -1015,6 +1015,81 @@ namespace KeePassGate.Host.Tests
         }
 
         [Test]
+        public void A_save_that_failed_still_tells_FileSaved_that_it_failed()
+        {
+            // What the writer goes by when its database closes inside its own save, which a
+            // trigger or another plugin's handler can do: the change is written down as in force
+            // only when KeePass raised `FileSaved` for a save of that database that landed. That
+            // holds only while a save that failed raises it too, as a failure, which is a database
+            // closed before the file was written: `PwDatabase.Save` throws on it, the catch around
+            // that call clears the flag the event is made from, and the event is raised after
+            // the catch. Read off the IL, because the save needs a main window a test cannot
+            // build; the end to end tier closes a database inside a real save.
+            var save = typeof(MainForm).GetMethod(
+                KeePassContract.MainFormSaveDatabaseMethod, new[] { typeof(KeePassLib.PwDatabase), typeof(object) });
+            var write = typeof(KeePassLib.PwDatabase).GetMethod(
+                "Save", new[] { typeof(KeePassLib.Interfaces.IStatusLogger) });
+            var told = typeof(FileSavedEventArgs).GetConstructor(
+                new[] { typeof(bool), typeof(KeePassLib.PwDatabase), typeof(Guid) });
+
+            Assert.That(save, Is.Not.Null, "the save the plugin names a database to is gone");
+            Assert.That(write, Is.Not.Null, "a database no longer saves through a status logger");
+            Assert.That(told, Is.Not.Null, "FileSaved no longer carries whether the save landed");
+
+            var body = save.GetMethodBody();
+            var il = body.GetILAsByteArray();
+            var writes = Sites(save, write, 0x6F);
+            var tells = Sites(save, told, 0x73);
+            Assert.That(writes, Has.Count.EqualTo(1), "the save no longer writes the file in one place");
+            Assert.That(tells, Has.Count.EqualTo(1), "the save no longer raises FileSaved in one place");
+
+            var around = body.ExceptionHandlingClauses.FirstOrDefault(clause =>
+                clause.Flags == ExceptionHandlingClauseOptions.Clause &&
+                clause.TryOffset <= writes[0] && writes[0] < clause.TryOffset + clause.TryLength);
+            Assert.That(around, Is.Not.Null, "writing the file is no longer caught, so a failure ends the save");
+
+            var handlerEnd = around.HandlerOffset + around.HandlerLength;
+            Assert.That(tells[0], Is.GreaterThanOrEqualTo(handlerEnd),
+                "FileSaved is raised inside the save's try, so a save that failed no longer raises it");
+
+            // The local the catch stores false into, by the form that names it by an index, 0x13
+            // and the index, or by a form for each of the first four, 0x0A to 0x0D.
+            var cleared = -1;
+            for (var i = around.HandlerOffset; i + 1 < handlerEnd; i++)
+            {
+                if (il[i] != 0x16)
+                {
+                    continue;
+                }
+
+                if (il[i + 1] == 0x13 && i + 2 < handlerEnd)
+                {
+                    cleared = il[i + 2];
+                }
+                else if (il[i + 1] >= 0x0A && il[i + 1] <= 0x0D)
+                {
+                    cleared = il[i + 1] - 0x0A;
+                }
+            }
+
+            Assert.That(cleared, Is.Not.Negative, "the catch no longer marks the save as failed");
+
+            // And that local is loaded between the catch and the event, by 0x11 and the index or
+            // by 0x06 to 0x09, which is the flag reaching the event. Scanned as `Sites` scans.
+            var loaded = false;
+            for (var i = handlerEnd; i < tells[0]; i++)
+            {
+                if ((il[i] == 0x11 && il[i + 1] == cleared) ||
+                    (cleared < 4 && il[i] == 0x06 + cleared))
+                {
+                    loaded = true;
+                }
+            }
+
+            Assert.That(loaded, Is.True, "FileSaved is no longer made from what the catch decided");
+        }
+
+        [Test]
         public void The_main_window_still_says_when_it_has_blocked_itself()
         {
             // The window a write refuses behind. Answered from the count `UIBlockInteraction`
