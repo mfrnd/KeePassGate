@@ -539,6 +539,56 @@ namespace KeePassGate.Host.Tests
         }
 
         [Test]
+        public void A_choice_given_up_is_told_once_KeePass_is_no_longer_part_way_through_something()
+        {
+            // The message came from the tick on which the bound passed, which KeePass's own
+            // pump delivers inside a save or a synchronize: the box stood inside that operation,
+            // and a save waited under it for as long as it was left.
+            var busy = false;
+            var writer = new DatabaseWriter(
+                CurrentThread.Instance, database => { }, () => busy ? "KeePass is saving" : null, null, null,
+                _dialogs, NullGateLog.Instance);
+
+            bool? toldWhileBusy = null;
+            _prompt.Telling = () => toldWhileBusy = busy;
+
+            var waited = TimeSpan.Zero;
+            var chooser = new AuthorityChooser(
+                new NoEvents(), _targets, writer, _owner, null, _prompt, null, NullGateLog.Instance)
+            {
+                AskWhichToKeep = (choice, name) =>
+                {
+                    // KeePass starts a save as the question is answered.
+                    busy = true;
+                    return _candidates[0];
+                },
+                After = (delay, work) =>
+                {
+                    Thread.Sleep(delay);
+                    waited += delay;
+
+                    // And is done with it a second after the bound has passed.
+                    if (waited > AuthorityChooser.KeepTrying + TimeSpan.FromSeconds(1))
+                    {
+                        busy = false;
+                    }
+
+                    work();
+                }
+            };
+
+            using (chooser)
+            {
+                chooser.AskAll();
+            }
+
+            Assert.That(_prompt.Told, Is.Not.Null.And.Contains("was not kept"));
+            Assert.That(toldWhileBusy, Is.False, "the message stood inside an operation of KeePass's own");
+            Assert.That(_database.Database.CustomData.Exists(AuthorityKeys.RetirementKey(_candidates[1])), Is.False,
+                "and the answer given up when the bound passed is not written afterwards");
+        }
+
+        [Test]
         public void A_retry_still_waiting_when_the_plugin_is_let_go_never_runs()
         {
             // The retries above wait on timers of KeePass's thread. One still waiting when KeePass
@@ -1024,6 +1074,9 @@ namespace KeePassGate.Host.Tests
         {
             public string Told { get; private set; }
 
+            /// <summary>Called as the operator is told, for a test that asks what was going on then.</summary>
+            public Action Telling { get; set; }
+
             public bool Confirm(string title, string question)
             {
                 return false;
@@ -1031,6 +1084,11 @@ namespace KeePassGate.Host.Tests
 
             public void Tell(string title, string news)
             {
+                if (Telling != null)
+                {
+                    Telling();
+                }
+
                 Told = news;
             }
         }

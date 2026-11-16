@@ -272,7 +272,10 @@ operator is told to choose again, which is the operator's rulings of 2026-10-14 
 another client's write holding the writer is waited out however long its save takes, which can be
 a minute and more for a large database, and a refusal that does not end by itself, Database
 Maintenance left open or KeePass busy with an operation of its own, is tried again for a few
-seconds and then put back in front of the operator. **A lock closes the dialog unanswered**, as it
+seconds and then put back in front of the operator. The answer is given up when those seconds
+have passed, and the operator is told once KeePass is no longer part way through an operation of
+its own: told from the retry's own tick, the message stood inside that operation, and a save was
+measured waiting under it until it was closed. **A lock closes the dialog unanswered**, as it
 closes a pairing or a renewal dialog and for their reason: KeePass locks under a dialog the plugin
 does not register, and this dialog lists every authority's clients. An answer given as the lock
 lands is not written, and the unlock asks again.

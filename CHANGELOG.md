@@ -27,6 +27,13 @@ none, since it releases both.
   another copy decided meanwhile is served as that answer left it, and a message names the
   authority it serves, where it used to state that nothing is served. The question on the KPG
   tab is held to the same rule. `CA.md` §204.
+- **The message that an authority was not kept waits for KeePass to finish what it is doing.**
+  An answer the plugin cannot write is tried again for a few seconds and then given up, with a
+  message sending the operator back to the KPG tab. That message was raised the moment the
+  seconds had passed, which could be in the middle of a save or a synchronize of KeePass's own,
+  and KeePass then waited for it: a save was measured standing still until the message was
+  closed. The answer is still given up after the same few seconds, and the message is shown once
+  KeePass is no longer part way through an operation. `CA.md` §204.
 - **The window asking which authority to keep waits for a synchronize to end.** A synchronize
   that a trigger starts as KeePass opens its first database is shown in KeePass's progress
   window, which pumps before KeePass blocks its own interaction, and the window was put up

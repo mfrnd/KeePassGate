@@ -75,7 +75,9 @@ namespace KeePassGate.Bridge
         /// not kept for a wait that would have ended by itself a moment later. **What this bounds is
         /// a refusal that does not end by itself**, Database Maintenance left open or KeePass busy
         /// with an operation of its own, counted from the last time another write held the writer,
-        /// and told once it has passed.
+        /// and told once it has passed. **Told, though, only once KeePass is no longer part way
+        /// through something**, <see cref="NotKept"/>: the answer is given up when the bound
+        /// passes, as the rulings have it, and the message about it waits.
         /// </remarks>
         public static readonly TimeSpan KeepTrying = TimeSpan.FromSeconds(3);
 
@@ -324,7 +326,7 @@ namespace KeePassGate.Bridge
 
             if (!database.IsOpen || trying.Elapsed >= KeepTrying)
             {
-                NotKept(database, last);
+                NotKept(database, last, false);
                 return;
             }
 
@@ -407,8 +409,34 @@ namespace KeePassGate.Bridge
         /// <summary>
         /// Tells the operator their choice was not kept, and lets the database be asked about again.
         /// </summary>
-        private void NotKept(PwDatabase database, AuthorityChange kept)
+        /// <remarks>
+        /// **Told once KeePass is no longer part way through something, and not from the tick
+        /// that gave the answer up.** A retry's tick is delivered wherever KeePass's thread is
+        /// pumping, the middle of a save or a synchronize included, and a message box raised there
+        /// is a modal loop inside that operation: measured, a save stood still under the box for
+        /// as long as it was left, and the file was written the moment it was closed. So the
+        /// message waits, asking the writer's own question about KeePass every
+        /// <see cref="KeepEvery"/>. Nothing is tried again meanwhile: the answer was given up when
+        /// <see cref="KeepTrying"/> passed, and the database stays marked as being asked about
+        /// until the operator has been told.
+        /// </remarks>
+        /// <param name="waiting">
+        /// Whether this is a later look at a message already held back.
+        /// </param>
+        private void NotKept(PwDatabase database, AuthorityChange kept, bool waiting)
         {
+            if (database.IsOpen && ((IWriterState)_writer).Interrupting() != null)
+            {
+                if (!waiting)
+                {
+                    _log.Info("the authority the operator chose could not be kept, which the operator is " +
+                              "told once KeePass is no longer in the middle of something: " + kept.Message);
+                }
+
+                After(KeepEvery, () => NotKept(database, kept, true));
+                return;
+            }
+
             _asking.Remove(database);
 
             if (!database.IsOpen)
