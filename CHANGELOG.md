@@ -1192,6 +1192,14 @@ none, since it releases both.
   on the plugin's window under Tools, and what the tab had made by then is let go of. It was logged
   as one more dialog the tab could not be put on and never counted, and the controls, fonts and
   timer of the half-built tab were left to the garbage collector each time the dialog opened.
+- **A pairing or a renewal whose save outlasts what is left of its six minutes is still answered.**
+  The connection's deadline ran on through the write, and the save of a large database, or of a
+  database on slow storage, could take the rest: the socket closed over a record that landed,
+  with the invitation spent and the certificate handed to nobody. The deadline is dropped where
+  the record is handed to the writer, as an ordinary request's is when it has been read, and the
+  answer is given the ordinary budget to be written in. The reference client still waits six
+  minutes for the answer unless `connection_timeout` asks for longer, which a client expecting a
+  slow save gives.
 
 ## 0.1.0, 2026-10-25
 

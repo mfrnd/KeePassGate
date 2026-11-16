@@ -820,6 +820,12 @@ namespace KeePassGate.Pairing
                     return null;
                 };
 
+                // **The waits on a person are over here, and the connection's deadline goes with
+                // them.** What follows is the writer's own bounded waits and then a save that no
+                // number bounds, with the invitation spent inside it, so a deadline still running
+                // could only lose the certificate of a record that lands anyway.
+                ConnectionDeadline.Drop(context);
+
                 AdmissionWrite written;
                 try
                 {

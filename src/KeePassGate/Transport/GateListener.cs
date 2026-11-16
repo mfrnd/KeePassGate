@@ -920,12 +920,19 @@ namespace KeePassGate.Transport
                                 // For an ordinary connection that is no deadline at all while the
                                 // plugin's own work runs, since no number bounds it, see
                                 // `Deadline.Disarm`. For a pairing it is a longer deadline, because
-                                // there the remaining work is a sum somebody wrote down: the
-                                // screen, the dialog, the grace on it, and the write. The
-                                // ordinary budget would close the socket while the dialog was
-                                // still up. Everything after that point happens anyway: the
-                                // invitation is spent and the record is written and saved, with
-                                // nothing left to hand the certificate back on.
+                                // there the work ahead of the write is a sum somebody wrote down:
+                                // the screen, the dialog, the grace on it, and the settling of a
+                                // busy KeePass. The ordinary budget would close the socket while
+                                // the dialog was still up. Everything after that point happens
+                                // anyway: the invitation is spent and the record is written and
+                                // saved, with nothing left to hand the certificate back on.
+                                //
+                                // **That longer deadline ends where the record is handed to the
+                                // writer**, which only the handler knows, so the handler marks it
+                                // through `ConnectionDeadline` and the deadline is disarmed there,
+                                // as an ordinary connection's is at the end of its request: the
+                                // write's save is as unbounded as any other, and the invitation is
+                                // spent inside it.
                                 //
                                 // **Granted where phase 4 begins, not where the name resolves.**
                                 // The reason for the longer budget is that the connection is about
@@ -944,14 +951,16 @@ namespace KeePassGate.Transport
                                 // than a condition beside it.
                                 //
                                 // **A renewal waits on a person too**, and is measured the same way
-                                // for the same reason: what is left after its request is the screen,
-                                // the dialog, the grace on it and the write. It is told apart by what
-                                // it asked for, which is only known here, once the request is read.
+                                // for the same reason: what is left after its request, up to its
+                                // write, is the screen, the dialog, the grace on it and the
+                                // settling of a busy KeePass. It is told apart by what it asked
+                                // for, which is only known here, once the request is read.
                                 //
-                                // **And the last stage is the answer's write**, which an ordinary
-                                // connection is given the ordinary budget for once more, because
-                                // how fast an answer is read is the peer's doing: see
-                                // `Deadline.Writing`. A pairing or a renewal keeps its own.
+                                // **And the last stage is the answer's write**, which a connection
+                                // whose deadline was disarmed is given the ordinary budget for once
+                                // more, because how fast an answer is read is the peer's doing: see
+                                // `Deadline.Writing`. A pairing or a renewal that is answered
+                                // before its write, a refusal or a `503`, keeps its own.
                                 Serve(
                                     raw, peek, resolution, Peer(socket),
                                     head =>
@@ -966,7 +975,8 @@ namespace KeePassGate.Transport
                                             deadline.Disarm();
                                         }
                                     },
-                                    () => deadline.Writing(_options.Budget));
+                                    () => deadline.Writing(_options.Budget),
+                                    () => deadline.Disarm());
                             }
 
                             // And closed the way an answered connection is, so that whatever the
@@ -1110,8 +1120,8 @@ namespace KeePassGate.Transport
             }
 
             /// <summary>
-            /// Stops the connection being closed at all, once there is nothing left to wait for
-            /// the peer to send.
+            /// Stops the connection being closed at all, once what is left is this plugin's own
+            /// work: at the end of the request, or for a pairing or a renewal at its write.
             /// </summary>
             /// <remarks>
             /// **The budget bounds what the peer controls, and that ends with the body.** After
@@ -1132,11 +1142,13 @@ namespace KeePassGate.Transport
             /// Writing the answer is the peer's to slow down again, and is armed afresh by
             /// <see cref="Writing"/>.
             ///
-            /// **Not for a pairing or a renewal**, the two connections whose remaining work is a sum
-            /// somebody wrote down: the screen, the dialog, the grace on it, the settling of a busy
-            /// KeePass, and the write.
+            /// **A pairing or a renewal is disarmed later, where its record is handed to the
+            /// writer**, and not with its request. What comes between is a sum somebody wrote down:
+            /// the screen, the dialog, the grace on it and the settling of a busy KeePass, and
             /// <see cref="GateOptions.PairingBudget"/> outlasts those together, so there the
-            /// deadline still means something.
+            /// deadline still means something. The write that follows is the same unbounded save as
+            /// any other, with the invitation spent inside it, and the handler marks where it begins
+            /// through `ConnectionDeadline`.
             /// </remarks>
             public void Disarm()
             {
@@ -1146,7 +1158,7 @@ namespace KeePassGate.Transport
 
             /// <summary>
             /// Gives writing the answer a budget of its own, counted from now, on a connection
-            /// whose deadline was disarmed with its request.
+            /// whose deadline was disarmed with its request or at its write.
             /// </summary>
             /// <remarks>
             /// **How fast the answer is read is the peer's doing**, as the pace of its request was,
@@ -1161,8 +1173,9 @@ namespace KeePassGate.Transport
             /// written as it is sent, the window also holds the plugin's reading of the values,
             /// which reads no database and holds no lock, so the deadline can cut short an
             /// answer the peer was reading: the answer to a read and never a change,
-            /// `DESIGN.md` §143. A pairing or a renewal keeps the deadline it was given with its
-            /// request, which already outlasts the answer it writes.
+            /// `DESIGN.md` §143. A pairing or a renewal answered after its write is armed here as
+            /// every other connection is, and a pairing or a renewal answered before its write, a
+            /// refusal or a `503`, keeps the deadline it was given with its request.
             /// </remarks>
             public void Writing(TimeSpan budget)
             {
@@ -1391,7 +1404,8 @@ namespace KeePassGate.Transport
             GateResolution resolution,
             string peer,
             Action<HttpRequestHead> arrived,
-            Action answering)
+            Action answering,
+            Action writing)
         {
             var target = resolution.Target;
             var replayed = new PrependingStream(peek.Bytes, raw);
@@ -1469,7 +1483,7 @@ namespace KeePassGate.Transport
                 GateConversation.Serve(
                     protocol.Stream, client, _handler, _options, _log,
                     Pairing(resolution, peek, target, peer), _incidents, target, peer, arrived,
-                    answering);
+                    answering, writing);
             }
             finally
             {

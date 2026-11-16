@@ -746,6 +746,11 @@ namespace KeePassGate.Pairing
                     return null;
                 };
 
+                // The connection's deadline ends here, as pairing's does: the save that follows is
+                // bounded by nothing, and a renewal it outlasts would orphan a record that lands
+                // anyway and ask the operator a second time.
+                ConnectionDeadline.Drop(context);
+
                 AdmissionWrite written;
                 try
                 {

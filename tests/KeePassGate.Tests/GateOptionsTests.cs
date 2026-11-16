@@ -18,7 +18,9 @@ namespace KeePassGate.Tests
     /// relation that replaced it is not between two constants at all: the deadline is dropped once
     /// the request is read, and
     /// `GateListenerTests.A_write_that_outlasts_the_budget_is_still_answered` is where that is
-    /// measured over a real socket.
+    /// measured over a real socket. A pairing's and a renewal's deadline is dropped at their write
+    /// for the same reason, measured by the tests of each named
+    /// `A_record_whose_save_outlasts_the_pairing_budget_is_still_handed_over`.
     /// </remarks>
     [TestFixture]
     public sealed class GateOptionsTests

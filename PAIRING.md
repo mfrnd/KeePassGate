@@ -134,13 +134,20 @@ written, since how fast that is read is the peer's doing.
 
 Phase 4 blows through it on purpose, and by more than one wait. The operator is given two minutes to
 read the dialog; a second pairing waits that long again just to get in front of them, since only one
-is put to the operator at a time; the prompt waits a little longer than the dialog does; and the
-write and save that follow have timeouts of their own. So the moment the request is off the wire,
-the connection's deadline is set again to `GateOptions.PairingBudget`, which outlasts all of them
-together: where every other connection's deadline is dropped at that point, a pairing's, and a
-renewal's, is raised. **That is the whole of the difference**: their remaining work is a list of
-waits somebody wrote down, so a number for it means something, where an ordinary write's remaining
-work is a save of unknown length.
+is put to the operator at a time; the prompt waits a little longer than the dialog does; and a busy
+KeePass is given a moment to settle once the operator has approved. So the moment the request is off
+the wire, the connection's deadline is set again to `GateOptions.PairingBudget`, which outlasts all
+of them together: where every other connection's deadline is dropped at that point, a pairing's, and
+a renewal's, is raised. **That is the whole of the difference**: what they wait for ahead of their
+write is a list of waits somebody wrote down, so a number for it means something.
+
+**And it is dropped where the record is handed to the writer**, as every other connection's is at
+the end of its request, because from there a pairing's remaining work is what an ordinary write's
+is: a save of unknown length. The invitation is spent inside that write, before the save, so a
+deadline still running through it could only close the socket over a record that lands anyway. The
+answer is then given the ordinary budget to be written in, as any other answer is. This reverses
+keeping the deadline until the answer, which rested on the write's own timeouts bounding it: they
+bound the waits for the writer's lock and turn, and not the save.
 
 **A dialog that comes up late has less than two minutes.** Its countdown starts from what is left
 of the budget once the waits after the dialog are set aside, when that is shorter, so the answer
@@ -159,10 +166,11 @@ Closing the socket underneath phase 4 does not stop the pairing, which is what m
 saying. Everything after the dialog still happens: the certificate is issued, the invitation is
 burned, and the record is written and saved. All that is lost is the answer, leaving a record on
 disk for a certificate the client never received and cannot ask for again. That is the peer hanging
-up, or its deadline running out. A lock is the other thing that closes connections, and it spares
-this one: it closes the dialog as unanswered instead, nothing is issued or spent, and the client is
-told `503 locked`, §308. A close or an unlock closes only its own database's connections, so a
-close or an unlock of another database leaves this connection alone. A close of its own database
+up, or its deadline running out before the write. A lock is the other thing that closes
+connections, and it spares this connection: it closes the dialog as unanswered instead, nothing is
+issued or spent, and the client is told `503 locked`, §308. A close or an unlock closes only its
+own database's connections, so a close or an unlock of another database leaves this connection
+alone. A close of its own database
 closes the dialog as unanswered too, and spares this connection as a lock does, so nothing is issued
 or spent there either and the client is told `503 locked`.
 
@@ -751,8 +759,8 @@ one the operator approved, so a revocation landing after the handler last read i
 on another connection among them, is found under the lock it was written under rather than
 overtaken. A renewal waits its turn for the screen with every pairing, since one raised inside a
 pairing's dialog would gray it out, and its connection is measured against
-`GateOptions.PairingBudget` from the moment its request is off the wire, since what is left after it
-is the same list of waits.
+`GateOptions.PairingBudget` from the moment its request is off the wire until its record is handed
+to the writer, since what is left between the two is the same list of waits.
 
 **One renewal per certificate is in flight at a time.** A second renewal of a certificate whose first
 is still being answered is told `503 busy` at once, before anything about it is read, and the first
@@ -766,9 +774,11 @@ the old one, which is what the reference client does. So an answer lost on the w
 database nothing, since the old certificate still works and the client can ask again, and a record
 a lost answer orphans expires and is pruned, or the operator revokes it from the clients page,
 which lists both until then. It costs the operator the dialog a second time, which is why a client
-waits on its socket for as long as `GateOptions.PairingBudget` before giving up on the answer, as
-the reference client does for a renewal as for a pairing. What each refusal says is in the route's
-own responses, [`openapi.yaml`](src/KeePassGate/Spec/openapi.yaml) §510.
+waits on its socket at least as long as `GateOptions.PairingBudget` before giving up on the answer,
+as the reference client does for a renewal as for a pairing. The gate holds the connection past
+that budget through a save that outlasts it, so a client that expects a slow save, of a large
+database or a database on slow storage, waits longer still. What each refusal means is in the
+route's own responses, [`openapi.yaml`](src/KeePassGate/Spec/openapi.yaml) §510.
 
 **The new record is the same client.** It carries the client key of the record that asked,
 `CA.md` §223, the digest of the certificate the client paired with, so the two records name one

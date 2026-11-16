@@ -118,17 +118,16 @@ namespace KeePassGate.Transport
         public TimeSpan Budget { get; set; }
 
         /// <summary>
-        /// How long a whole connection may take once it turns out to be a pairing or a renewal,
-        /// the two exchanges that wait on a person.
+        /// How long a connection may take, once it turns out to be a pairing or a renewal, the two
+        /// exchanges that wait on a person, from the end of its request to the start of its write.
         /// </summary>
         /// <remarks>
         /// **A pairing connection is not slow, it is blocked on somebody reading a dialog**, and
         /// <see cref="Budget"/> cannot tell those apart. Measured against the ordinary budget it is
-        /// always over: the operator is given two minutes to decide, the prompt waits a little
-        /// longer than that, and the write and save that follow have timeouts of their own. Closing
-        /// the socket underneath all that does not stop the pairing. The invitation is still spent
-        /// and the record still saved; it only throws away the answer, leaving a record on disk for
-        /// a certificate nobody ever received.
+        /// always over: the operator is given two minutes to decide, and the prompt waits a little
+        /// longer than that. Closing the socket underneath all that does not stop the pairing. The
+        /// invitation is still spent and the record still saved; it only throws away the answer,
+        /// leaving a record on disk for a certificate nobody ever received.
         ///
         /// **There are two waits on the screen and not one**, which is what the number was short
         /// by. `PairingApprovalPrompt` lets one pairing at a time in front of the operator, and a
@@ -137,12 +136,12 @@ namespace KeePassGate.Transport
         /// still has the whole of the dialog ahead of it.
         ///
         /// **And these are the connections that keep a deadline after their request is read**,
-        /// where <see cref="Budget"/> drops it. The difference is that the rest of a pairing is a
-        /// sum somebody can write down, so a number for it means something; the rest of an
-        /// ordinary write is a save of unknown length, so a number for it can only cut a landing
-        /// write off from its answer. The last of the waits added up below is the same
-        /// `DatabaseWriter.WriteTimeout` that does not bound a started save, and it is kept here
-        /// because this budget only has to outlast the waits, not bound them.
+        /// where <see cref="Budget"/> drops it, **until their write begins**, where it is dropped
+        /// for them too. The difference is that what a pairing waits for ahead of its write is a
+        /// sum somebody can write down, so a number for it means something; a write is a save of
+        /// unknown length, a pairing's as much as any other, so a number for it can only cut a
+        /// landing write off from its answer, and a pairing's write spends the invitation as well.
+        /// The handler marks where the write begins, through `ConnectionDeadline`.
         ///
         /// **A dialog that comes up late is given what is left of this, not the whole of
         /// `ApprovalTimeout`**, which reverses a decision. The dialog's countdown starts when it is
@@ -160,7 +159,7 @@ namespace KeePassGate.Transport
         ///
         /// **A renewal is measured against it too**, because it waits for the same things: the
         /// same screen, which it shares with every pairing, the same dialog and grace, and the same
-        /// turn at the writer, and its dialog is shortened the same way.
+        /// settling of a busy KeePass, and its dialog is shortened the same way.
         /// </remarks>
         public TimeSpan PairingBudget { get; set; }
 

@@ -1582,10 +1582,10 @@ So the rules here:
   transport closes a connection that takes more than `GateOptions.Budget`, and phase 4 exceeds that
   by design because it is waiting on a person rather than on the wire. Closing the socket there does
   not cancel anything: the invitation is still spent and the record still saved, and only the answer
-  is lost. `GateOptions.PairingBudget` covers the whole of what a pairing waits for: the screen,
-  because one pairing is put to the operator at a time and a second waits as long again just to get
-  in front of them, then its turn on KeePass's thread, the dialog, the grace on it, a busy KeePass
-  settling, the turn at the writer and the write.
+  is lost. `GateOptions.PairingBudget` covers what a pairing waits for ahead of its write: the
+  screen, because one pairing is put to the operator at a time and a second waits as long again
+  just to get in front of them, then its turn on KeePass's thread, the dialog, the grace on it and
+  a busy KeePass settling. The write is not among them, for the reason given below.
 
   **A dialog that comes up late is given only what is left of that budget**, which reverses a
   decision rather than refining it. The sum used to count the dialog as two minutes and the grace,
@@ -1634,14 +1634,25 @@ So the rules here:
   call to start, and a call that has started is waited out with no clock on it. No sum of this
   plugin's timeouts bounds a save, so no budget could be chosen that outlasts one; raising it from
   thirty seconds to ninety made the loss rarer and nothing else. **Pairing keeps its deadline
-  through all of this**, because a pairing is a connection whose remaining work is a sum
-  somebody can write down, and `PairingBudget` is what it is added up against.
+  until its write**, because what a pairing waits for ahead of its write is a sum somebody can
+  write down, and `PairingBudget` is what it is added up against. **Its write is no different
+  from any other**, and the deadline is dropped where the record is handed to the writer: the
+  handler marks it through `ConnectionDeadline`, and the listener disarms the deadline there as it
+  does at the end of an ordinary request, giving the answer's write the ordinary budget again.
 
-  **And so does a renewal**, `PAIRING.md` §312, for the same reason: what is left after its request
-  is the screen, which it waits its turn for with every pairing, the dialog, the grace on it and the
-  turn at the writer, so it is measured against `PairingBudget` too. The listener tells it apart by
-  what it asked for, which is known only once the request is off the wire, and that is where the
-  deadline is set either way.
+  **This reverses keeping it through the save.** The deadline used to run until the answer, on
+  the ground that the write's own timeouts made the whole pairing a sum. They do not, for the
+  reason above: `WriteTimeout` bounds the wait for the turn and not the save, and the invitation
+  is spent inside the write, before the save. A save that outlasted what was left of the budget
+  closed the socket over a record that landed, with the invitation gone and the certificate handed
+  to nobody, which is the loss this section removed from every other write.
+
+  **And so does a renewal**, `PAIRING.md` §312, for the same reason: what is left after its
+  request, up to its write, is the screen, which it waits its turn for with every pairing, the
+  dialog, the grace on it and the settling of a busy KeePass, so it is measured against
+  `PairingBudget` too, and its deadline is dropped at its write as a pairing's is. The listener
+  tells it apart by what it asked for, which is known only once the request is off the wire, and
+  that is where the deadline is set either way.
 
 - **A write that landed is told to the window as well as to the client.** KeePass's save ends in
   `MainForm.UpdateUIState`, which redraws the title bar and the menus and rebuilds neither the
