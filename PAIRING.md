@@ -477,6 +477,13 @@ was there. The plugin notes where it stood before the operator was asked, and an
 after a lock, or after a close of its own database, is let go as it arrives and answered
 `503 locked`.
 
+**Nor does either dialog hold KeePass's periodic triggers off**, which registering it would do as
+well, so a trigger that synchronizes or saves runs inside the dialog's modal loop, and KeePass ends
+that work by enabling its main window, which the dialog had disabled. The plugin disables the window
+again for as long as the dialog stands, so the operator cannot work in KeePass behind a request
+still waiting for an answer. It does the same under the authority chooser and the window under
+Tools, which are not registered either.
+
 **A database closed for real closes its own pairing or renewal dialog as unanswered**, as a lock
 does, which is the operator's ruling of 2026-11-08, and the answer names the close rather than a
 lock. That replaced leaving the dialog standing over the closed database, which nothing took down,
