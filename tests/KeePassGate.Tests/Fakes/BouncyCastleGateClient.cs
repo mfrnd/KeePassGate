@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Net.Sockets;
 using System.Text;
+using System.Threading;
 using KeePassGate.Testing;
 using Org.BouncyCastle.Asn1.Sec;
 using Org.BouncyCastle.Crypto;
@@ -40,6 +41,36 @@ namespace KeePassGate.Tests.Fakes
             string path,
             params ProtocolVersion[] versions)
         {
+            return Exchange(port, serverName, certificateDer, signingKey, path, null, versions);
+        }
+
+        /// <summary>
+        /// One request, with no certificate, after which the client waits
+        /// <paramref name="closeAfter"/>, shuts its own sending half of the TLS with a
+        /// `close_notify`, and reads the answer only once <paramref name="readAfter"/> has passed
+        /// after that.
+        /// </summary>
+        /// <remarks>
+        /// RFC 8446 section 6.1 lets either side close its writing half and go on reading. `SslStream`
+        /// cannot be made to send a `close_notify` and keep reading, so this is the client that
+        /// can: what it sent last arrives behind the request, where nothing that serves a request
+        /// reads it.
+        /// </remarks>
+        public static GateReply GetClosingItsSendingHalf(
+            int port, string serverName, string path, TimeSpan closeAfter, TimeSpan readAfter)
+        {
+            return Exchange(port, serverName, null, null, path, Tuple.Create(closeAfter, readAfter), null);
+        }
+
+        private static GateReply Exchange(
+            int port,
+            string serverName,
+            byte[] certificateDer,
+            AsymmetricKeyParameter signingKey,
+            string path,
+            Tuple<TimeSpan, TimeSpan> halfClosing,
+            ProtocolVersion[] versions)
+        {
             var reply = new GateReply();
 
             var thrown = Thrown.By(() =>
@@ -51,7 +82,7 @@ namespace KeePassGate.Tests.Fakes
                     tcp.SendTimeout = 10000;
                     reply.Connected = true;
 
-                    var protocol = new TlsClientProtocol(tcp.GetStream());
+                    var protocol = new HalfClosing(tcp.GetStream());
                     try
                     {
                         protocol.Connect(new Client(
@@ -61,6 +92,13 @@ namespace KeePassGate.Tests.Fakes
                             "GET " + path + " HTTP/1.1\r\nHost: " + serverName + "\r\n\r\n");
                         protocol.Stream.Write(request, 0, request.Length);
                         protocol.Stream.Flush();
+
+                        if (halfClosing != null)
+                        {
+                            Thread.Sleep(halfClosing.Item1);
+                            protocol.CloseSendingHalf();
+                            Thread.Sleep(halfClosing.Item2);
+                        }
 
                         reply.Raw = ReadToEnd(protocol.Stream);
                     }
@@ -138,6 +176,23 @@ namespace KeePassGate.Tests.Fakes
                 // With content that arrived in chunks put back together, strictly, so an answer
                 // cut short of its last chunk fails whoever asked for it.
                 return HttpAnswer.Decoded(body.ToArray());
+            }
+        }
+
+        /// <summary>
+        /// Bouncy Castle's client protocol with a way to send a `close_notify` and leave the
+        /// reading half open, which its own `Close` does not offer.
+        /// </summary>
+        private sealed class HalfClosing : TlsClientProtocol
+        {
+            public HalfClosing(Stream stream)
+                : base(stream)
+            {
+            }
+
+            public void CloseSendingHalf()
+            {
+                RaiseAlertWarning(AlertDescription.close_notify, "the request is all this client sends");
             }
         }
 

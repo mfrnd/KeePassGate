@@ -1219,6 +1219,129 @@ namespace KeePassGate.Tests
             }
         }
 
+        [TestCase(0, 1000)]
+        [TestCase(1000, 500)]
+        public void A_client_that_closes_its_sending_half_of_the_TLS_after_its_request_still_reads_the_answer(
+            int closeAfter, int readAfter)
+        {
+            // RFC 8446 section 6.1 lets a client send its `close_notify` once its request is out
+            // and go on reading. That record arrives behind the request, where nothing serving the
+            // request reads it, so a close over it unread was the same reset as any other record.
+            // Sent at once, it is there before the gate answers; sent a second later, it arrives
+            // once the gate has answered and shut its own sending half, while it lingers, and a
+            // socket closed by then would answer it with a reset. Either way the client reads only
+            // once the gate has had time to close.
+            var handler = new ThreadHandler();
+            using (var listener = new GateListener(
+                new GateOptions { Port = 0 }, new GateResolver(_targets, _log), handler, _log))
+            {
+                Assert.That(listener.Start(), Is.True);
+
+                var reply = BouncyCastleGateClient.GetClosingItsSendingHalf(
+                    listener.Port, _first.NewName(), GateOperations.StatusPath,
+                    TimeSpan.FromMilliseconds(closeAfter), TimeSpan.FromMilliseconds(readAfter));
+
+                Assert.That(reply.Answered, Is.True, "the answer was lost: " + reply.Failure);
+                Assert.That(reply.Status, Is.EqualTo(200));
+                Assert.That(reply.Body, Is.EqualTo("{}"), "and was read whole");
+            }
+        }
+
+        [Test]
+        public void A_client_that_closes_its_sending_half_of_the_socket_reads_the_answer_and_frees_its_slot_at_once()
+        {
+            // A TCP half close after the request is the peer closing, which is one of the ends the
+            // linger waits for, so the slot is given back then rather than after the quiet. The
+            // linger here is far longer than the wait, so a gate that waited out the quiet instead
+            // fails it.
+            var options = new GateOptions { Port = 0, Linger = TimeSpan.FromSeconds(60) };
+            var handler = new ThreadHandler();
+            using (var conversed = new ManualResetEventSlim())
+            using (var listener = new GateListener(
+                options, new GateResolver(_targets, _log), handler, _log))
+            {
+                listener.Answered = conversed.Set;
+                Assert.That(listener.Start(), Is.True);
+
+                string answer;
+                using (var tcp = new TcpClient())
+                {
+                    tcp.Connect(IPAddress.Loopback, listener.Port);
+                    tcp.ReceiveTimeout = 10000;
+                    using (var tls = new System.Net.Security.SslStream(
+                        tcp.GetStream(), false, delegate { return true; }))
+                    {
+                        tls.AuthenticateAsClient(
+                            _first.NewName(), null, System.Security.Authentication.SslProtocols.Tls13,
+                            false);
+
+                        var request = Encoding.ASCII.GetBytes(
+                            "GET " + GateOperations.StatusPath + " HTTP/1.1\r\nHost: gate\r\n\r\n");
+                        tls.Write(request, 0, request.Length);
+                        tls.Flush();
+                        tcp.Client.Shutdown(SocketShutdown.Send);
+
+                        // Long enough for the gate to have answered and closed before this reads.
+                        Thread.Sleep(TimeSpan.FromSeconds(1));
+                        answer = ReadAll(tls);
+
+                        Assert.That(conversed.Wait(TimeSpan.FromSeconds(10)), Is.True,
+                            "the slot was held after the client had closed its half");
+                    }
+                }
+
+                Assert.That(answer, Does.StartWith("HTTP/1.1 200 "), "the answer was lost");
+                Assert.That(answer, Does.EndWith("{}"), "and was read whole");
+            }
+        }
+
+        [Test]
+        public void A_client_that_reads_its_answer_and_stays_open_has_its_slot_back_after_the_linger()
+        {
+            // A peer that neither sends nor closes is waited on for `GateOptions.Linger` of quiet
+            // once the gate has shut its own sending half, and no longer: the quiet is what the
+            // linger ends on when the peer does neither. Counted here from the moment the client
+            // has read the whole answer, which is a little after the gate began to wait, so the
+            // slot comes back a little inside the linger and never long after it.
+            var options = new GateOptions { Port = 0 };
+            var handler = new ThreadHandler();
+            using (var conversed = new ManualResetEventSlim())
+            using (var listener = new GateListener(
+                options, new GateResolver(_targets, _log), handler, _log))
+            {
+                listener.Answered = conversed.Set;
+                Assert.That(listener.Start(), Is.True);
+
+                using (var tcp = new TcpClient())
+                {
+                    tcp.Connect(IPAddress.Loopback, listener.Port);
+                    tcp.ReceiveTimeout = 10000;
+                    using (var tls = new System.Net.Security.SslStream(
+                        tcp.GetStream(), false, delegate { return true; }))
+                    {
+                        tls.AuthenticateAsClient(
+                            _first.NewName(), null, System.Security.Authentication.SslProtocols.Tls13,
+                            false);
+
+                        var request = Encoding.ASCII.GetBytes(
+                            "GET " + GateOperations.StatusPath + " HTTP/1.1\r\nHost: gate\r\n\r\n");
+                        tls.Write(request, 0, request.Length);
+                        tls.Flush();
+
+                        var answer = ReadAll(tls);
+                        var held = Stopwatch.StartNew();
+                        Assert.That(answer, Does.EndWith("{}"), "the answer was not read whole");
+
+                        Assert.That(conversed.Wait(options.Linger + TimeSpan.FromSeconds(3)), Is.True,
+                            "the slot was still held well after the linger");
+                        held.Stop();
+                        Assert.That(held.Elapsed, Is.GreaterThan(TimeSpan.FromTicks(options.Linger.Ticks / 2)),
+                            "the slot came back long before the linger, so the linger waited on nothing");
+                    }
+                }
+            }
+        }
+
         /// <summary>What a client read before the connection ended, or why it ended without a word.</summary>
         private static string ReadAll(System.IO.Stream stream)
         {
