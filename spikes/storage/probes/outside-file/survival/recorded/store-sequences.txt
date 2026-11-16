@@ -1,0 +1,21 @@
+# 2026-11-15 16:54:35Z 4.0.30319.42000 x64
+
+## 1. two computers, one writer name, a synchronized folder
+after pairing on pc1 and a sync: pc1 serves; record present, revocation absent, certificate valid by its clock: client ADMITTED | pc2 serves; record present, revocation absent, certificate valid by its clock: client ADMITTED
+before they meet: pc1 serves; record emptied, revocation held, certificate valid by its clock: client refused | pc2 serves; record present, revocation absent, certificate valid by its clock: client ADMITTED
+conflict on a1b2c3d4e5f60718.kpgw: pc2's version kept, the other renamed a1b2c3d4e5f60718.sync-conflict-20261115-120000-DEVICE.kpgw
+after the sync: pc1 closed (a1b2c3d4e5f60718 at 2 is not the file this computer saw at that count)
+after the sync: pc2 serves; record present, revocation absent, certificate valid by its clock: client ADMITTED
+pc3 (new, no seen file) serves; record present, revocation absent, certificate valid by its clock: client ADMITTED
+pc1 after Take a new name serves; record present, revocation absent, certificate valid by its clock: client ADMITTED
+the revocation is now only in a1b2c3d4e5f60718.sync-conflict-20261115-120000-DEVICE.kpgw, which nothing reads
+
+## 2. a fast clock lets go of a revocation while the issuer's record line still stands
+after the revocation meets A: A serves; record emptied, revocation held, certificate valid by its clock: client refused
+after B's next write, B's clock 2027-01-15: A serves; record present, revocation absent, certificate valid by its clock: client ADMITTED
+A (control: B's clock right) serves; record emptied, revocation held, certificate valid by its clock: client refused
+
+## 3. one file rolled back one version, seen by a computer with no seen file
+A: serves, rule {"reader":[]} | B: serves, rule {"reader":[]}
+C: serves, rule {"reader":["read","list"]}
+A, which had loaded the newer version, given the same older file: closed (4444444444444444 at 1, this computer saw it at 2)

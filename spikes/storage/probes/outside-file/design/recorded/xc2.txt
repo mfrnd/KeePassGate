@@ -1,0 +1,13 @@
+old-other: kdbx 4.1; custom data: Other.Plugin=1@t; entries 2
+2.4.2 merge into anchored from old-other, exit 0, 9,6 s: target.kdbx: kdbx 4.0; custom data: Other.Plugin=1@none _LAST_MODIFIED=So Nov 15 16:26:05 2026 ..@none; entries 2
+2.4.2 merge into old-other from anchored, exit 0, 9,6 s: target.kdbx: kdbx 4.0; custom data: authority(2903)@none store(same)@none _LAST_MODIFIED=So Nov 15 16:26:22 2026 ..@none; entries 2
+2.4.2 merge into anchored-notimes from old-other, exit 0, 9,8 s: target.kdbx: kdbx 4.0; custom data: Other.Plugin=1@none _LAST_MODIFIED=So Nov 15 16:26:39 2026 ..@none; entries 3
+2.6.6 merge into anchored from old-other, exit 0, 9,6 s: target.kdbx: kdbx 4.0; custom data: Other.Plugin=1@none _LAST_MODIFIED=So Nov 15 16:26:55 2026 ..@none; entries 2
+2.6.6 merge into old-other from anchored, exit 0, 9,4 s: target.kdbx: kdbx 4.0; custom data: authority(2903)@none store(same)@none _LAST_MODIFIED=So Nov 15 16:27:11 2026 ..@none; entries 2
+2.6.6 merge into anchored-notimes from old-other, exit 0, 9,5 s: target.kdbx: kdbx 4.0; custom data: Other.Plugin=1@none _LAST_MODIFIED=So Nov 15 16:27:28 2026 ..@none; entries 3
+2.7.12 merge into anchored from old-other, exit 0, 10,2 s: target.kdbx: kdbx 4.0; custom data: KPXC_RANDOM_SLUG=f5d2955fee6e7eb5e2583b76..@none Other.Plugin=1@none _LAST_MODIFIED=So Nov 15 16:27:45 2026 ..@none; entries 2
+2.7.12 merge into old-other from anchored, exit 0, 10,1 s: target.kdbx: kdbx 4.0; custom data: authority(2903)@none store(same)@none KPXC_RANDOM_SLUG=cf5fc59ec67c3a50c1b440b2..@none _LAST_MODIFIED=So Nov 15 16:28:01 2026 ..@none; entries 2
+2.7.12 merge into anchored-notimes from old-other, exit 0, 10,1 s: target.kdbx: kdbx 4.0; custom data: KPXC_RANDOM_SLUG=3d655998c8e0c4103fd9313a..@none Other.Plugin=1@none _LAST_MODIFIED=So Nov 15 16:28:19 2026 ..@none; entries 3
+2.8.0 merge into anchored from old-other, exit 0, 7,3 s: target.kdbx: kdbx 4.0; custom data: KPXC_RANDOM_SLUG=d5d163ee649ea4daeb3d32e0..@none Other.Plugin=1@none _LAST_MODIFIED=Sun Nov 15 16:28:34 2026..@none; entries 2
+2.8.0 merge into old-other from anchored, exit 0, 7,4 s: target.kdbx: kdbx 4.0; custom data: authority(2903)@none store(same)@none KPXC_RANDOM_SLUG=32a6017e634c214bfa6f50d6..@none _LAST_MODIFIED=Sun Nov 15 16:28:48 2026..@none; entries 2
+2.8.0 merge into anchored-notimes from old-other, exit 0, 7,1 s: target.kdbx: kdbx 4.0; custom data: KPXC_RANDOM_SLUG=5dfc3e18259b8bf5a89498f6..@none Other.Plugin=1@none _LAST_MODIFIED=Sun Nov 15 16:29:02 2026..@none; entries 3

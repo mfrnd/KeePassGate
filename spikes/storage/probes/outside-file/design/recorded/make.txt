@@ -1,0 +1,5 @@
+# make spikes\storage\probes\outside-file\design\work\kp 200 64 2  (4.0.30319.42000, x64)
+old: kdbx 4.0; custom data: (none); entries 2
+anchored: kdbx 4.1; custom data: authority(2903)@t store(same)@t; entries 2
+anchored2: kdbx 4.1; custom data: authority(2903)@t store(same)@t; entries 3
+anchored-notimes: kdbx 4.0; custom data: authority(2903)@none store(same)@none; entries 3

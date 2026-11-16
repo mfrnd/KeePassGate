@@ -1,0 +1,22 @@
+# scenarios spikes\storage\probes\outside-file\design\work\scenarios  (4.0.30319.42000, x64)
+ok    1 one writer: three keys read back, one file
+ok    1 one writer: a name taken off is off
+ok    2 the second installation reads the first one's record
+ok    2 after the folders meet, revoked on both
+ok    2 a revocation another installation asserts cannot be taken away from here
+ok    3 two versions that do not know of each other: the node refuses on both
+ok    3 settled on one, settled on both
+ok    3 a later change that knows of the earlier one takes over
+ok    4 added here, taken off there, neither knowing: off
+ok    4 added again knowing of the removal: on
+ok    4 a name added on each: both
+ok    5 forever here, lifted there, neither knowing: forever
+ok    6 before: A reads the new revocation
+ok    6 B's file put back as it was: A is closed: writer 0f1e2d3c4b5a6978 is at 8; this installation saw it at 9
+ok    6 B's file deleted: A is closed: writer 0f1e2d3c4b5a6978 is missing; a1b2c3d4e5f60718 saw it at 7; writer 0f1e2d3c4b5a6978 is missing; this installation saw it at 9
+ok    6 the file back as it should be: A serves
+ok    7 a new installation given an older file of B beside A's: closed: writer 0f1e2d3c4b5a6978 is at 8; a1b2c3d4e5f60718 saw it at 9
+ok    8 one bit changed: closed: file of writer 0f1e2d3c4b5a6978 does not open; writer 0f1e2d3c4b5a6978 is missing; a1b2c3d4e5f60718 saw it at 9; writer 0f1e2d3c4b5a6978 is missing; this installation saw it at 9
+ok    8 B's file copied under another writer's name: closed: file of writer deadbeefdeadbeef does not open
+ok    8 opened with another key (and so another id): closed: file of writer 0f1e2d3c4b5a6978 does not open; file of writer a1b2c3d4e5f60718 does not open
+ok    8 and with the right key again: serves

@@ -1,0 +1,5 @@
+# File.Replace under a reader, PowerShell 7.7.0 (.NET 11.0.0), NTFS
+a reader holding the file with share 'Read': refused, IOException: The process cannot access the file because it is being used by another process.
+a reader holding the file with share 'ReadWrite': refused, IOException: The process cannot access the file because it is being used by another process.
+a reader holding the file with share 'Read, Delete': replaced, length now 120
+a reader holding the file with share 'ReadWrite, Delete': replaced, length now 120

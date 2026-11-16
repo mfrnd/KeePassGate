@@ -1,0 +1,42 @@
+# kpmerge spikes\storage\probes\outside-file\design\work\kpfast  (4.0.30319.42000, x64)
+into anchored from old, Synchronize: kdbx 4.1; custom data: authority(2903)@t store(same)@t; entries 2
+into anchored from old, OverwriteIfNewer: kdbx 4.1; custom data: authority(2903)@t store(same)@t; entries 2
+into anchored from old, OverwriteExisting: kdbx 4.1; custom data: authority(2903)@t store(same)@t; entries 2
+into anchored from old, KeepExisting: kdbx 4.1; custom data: authority(2903)@t store(same)@t; entries 2
+into anchored from old, CreateNewUuids: kdbx 4.1; custom data: authority(2903)@t store(same)@t; entries 4
+into old from anchored, Synchronize: kdbx 4.1; custom data: authority(2903)@t store(same)@t; entries 2
+into old from anchored, OverwriteIfNewer: kdbx 4.1; custom data: authority(2903)@t store(same)@t; entries 2
+into old from anchored, OverwriteExisting: kdbx 4.1; custom data: authority(2903)@t store(same)@t; entries 2
+into old from anchored, KeepExisting: kdbx 4.0; custom data: (none); entries 2
+into old from anchored, CreateNewUuids: kdbx 4.1; custom data: authority(2903)@t store(same)@t; entries 4
+into anchored from anchored2, Synchronize: kdbx 4.1; custom data: authority(2903)@t store(same)@t; entries 3
+into anchored from anchored2, OverwriteIfNewer: kdbx 4.1; custom data: authority(2903)@t store(same)@t; entries 3
+into anchored from anchored2, OverwriteExisting: kdbx 4.1; custom data: authority(2903)@t store(same)@t; entries 3
+into anchored from anchored2, KeepExisting: kdbx 4.1; custom data: authority(2903)@t store(same)@t; entries 3
+into anchored from anchored2, CreateNewUuids: kdbx 4.1; custom data: authority(2903)@t store(same)@t; entries 5
+into anchored2 from anchored, Synchronize: kdbx 4.1; custom data: authority(2903)@t store(same)@t; entries 3
+into anchored2 from anchored, OverwriteIfNewer: kdbx 4.1; custom data: authority(2903)@t store(same)@t; entries 3
+into anchored2 from anchored, OverwriteExisting: kdbx 4.1; custom data: authority(2903)@t store(same)@t; entries 3
+into anchored2 from anchored, KeepExisting: kdbx 4.1; custom data: authority(2903)@t store(same)@t; entries 3
+into anchored2 from anchored, CreateNewUuids: kdbx 4.1; custom data: authority(2903)@t store(same)@t; entries 5
+into anchored-notimes from old, Synchronize: kdbx 4.0; custom data: authority(2903)@none store(same)@none; entries 3
+into anchored-notimes from old, OverwriteIfNewer: kdbx 4.0; custom data: authority(2903)@none store(same)@none; entries 3
+into anchored-notimes from old, OverwriteExisting: kdbx 4.0; custom data: authority(2903)@none store(same)@none; entries 3
+into anchored-notimes from old, KeepExisting: kdbx 4.0; custom data: authority(2903)@none store(same)@none; entries 3
+into anchored-notimes from old, CreateNewUuids: kdbx 4.0; custom data: authority(2903)@none store(same)@none; entries 5
+into old from anchored-notimes, Synchronize: kdbx 4.0; custom data: authority(2903)@none store(same)@none; entries 3
+into old from anchored-notimes, OverwriteIfNewer: kdbx 4.0; custom data: authority(2903)@none store(same)@none; entries 3
+into old from anchored-notimes, OverwriteExisting: kdbx 4.0; custom data: authority(2903)@none store(same)@none; entries 3
+into old from anchored-notimes, KeepExisting: kdbx 4.0; custom data: (none); entries 3
+into old from anchored-notimes, CreateNewUuids: kdbx 4.0; custom data: authority(2903)@none store(same)@none; entries 5
+into anchored-notimes from anchored2, Synchronize: kdbx 4.1; custom data: authority(2903)@t store(same)@t; entries 4
+into anchored-notimes from anchored2, OverwriteIfNewer: kdbx 4.1; custom data: authority(2903)@t store(same)@t; entries 4
+into anchored-notimes from anchored2, OverwriteExisting: kdbx 4.1; custom data: authority(2903)@t store(same)@t; entries 4
+into anchored-notimes from anchored2, KeepExisting: kdbx 4.0; custom data: authority(2903)@none store(same)@none; entries 4
+into anchored-notimes from anchored2, CreateNewUuids: kdbx 4.1; custom data: authority(2903)@t store(same)@t; entries 6
+into anchored2 from anchored-notimes, Synchronize: kdbx 4.1; custom data: authority(2903)@t store(same)@t; entries 4
+into anchored2 from anchored-notimes, OverwriteIfNewer: kdbx 4.1; custom data: authority(2903)@t store(same)@t; entries 4
+into anchored2 from anchored-notimes, OverwriteExisting: kdbx 4.0; custom data: authority(2903)@none store(same)@none; entries 4
+into anchored2 from anchored-notimes, KeepExisting: kdbx 4.1; custom data: authority(2903)@t store(same)@t; entries 4
+into anchored2 from anchored-notimes, CreateNewUuids: kdbx 4.1; custom data: authority(2903)@t store(same)@t; entries 6
+cells 40, both keys present and unchanged in 38

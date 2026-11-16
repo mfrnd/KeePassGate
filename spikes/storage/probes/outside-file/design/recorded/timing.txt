@@ -1,0 +1,9 @@
+# timing spikes\storage\probes\outside-file\design\work\timing  (4.0.30319.42000, x64)
+three writer files, 270 keys, 81764 bytes in all
+state: serves, keys in the image 270
+a whole load (read three files, open, parse, check, join): 1,889 ms
+names, lengths and times of the folder's files, per look: 50,2 microseconds (7432738415583710336)
+a lookup in the image: 26 nanoseconds
+a write (load, seal, write, flush, replace, load again): 18,60 ms
+folder time moved by a replace: True; by a write in place: False; the file's own time moved by the write in place: True
+AES-256-GCM over 1 MiB: seal 8,3 ms, open 8,8 ms, same bytes back: True

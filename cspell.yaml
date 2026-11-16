@@ -154,6 +154,19 @@ words:
   - delgroup
   - dedup
   - Rlsf
+  # Identifiers in the outside-file probes, which are carried unchanged: the directory `kpfast`
+  # and the copy `anchored-notimes` of the design's `Probe.exe`, the extension `.kpgw` of its
+  # sealed writer files, the output `xcsaved.txt` of the survival critic's script and the German
+  # `Benutzer` its filter matches; `NTFS`, which `Replace.ps1` prints, and `Newtonsoft` and
+  # `Syncthing`, spelled as their projects spell them.
+  - kpfast
+  - notimes
+  - kpgw
+  - xcsaved
+  - Benutzer
+  - NTFS
+  - Newtonsoft
+  - Syncthing
   # Identifiers in the ground-keepass probe, which is carried unchanged: the variant `nobackup`
   # its X2 prints, which the family's `x2.py` and `RUN.md` match, and the local `scen` of X3.
   - nobackup

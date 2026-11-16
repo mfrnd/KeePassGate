@@ -1,0 +1,27 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- Added on this branch. The probe was compiled with the .NET Framework's own compiler,
+       `csc /target:exe` with no platform named, from `Survival.cs` against copies of Bouncy Castle
+       and Newtonsoft.Json in `bin\`, and had no project of its own. This one builds the same
+       source, unchanged, as `Survival.exe` into that same `bin\` beside `scripts\`. It needs no
+       KeePass. The two libraries are the packages and versions the product at `a42e38aa`
+       references, whose `net461` and `net45` assemblies are byte for byte the copies the probe
+       ran with. -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net48</TargetFramework>
+    <AssemblyName>Survival</AssemblyName>
+    <RootNamespace>Survival</RootNamespace>
+    <PlatformTarget>AnyCPU</PlatformTarget>
+    <Prefer32Bit>false</Prefer32Bit>
+    <OutputPath>..\bin\</OutputPath>
+    <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="BouncyCastle.Cryptography" Version="2.7.0" />
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.4" />
+    <PackageReference Include="Microsoft.NETFramework.ReferenceAssemblies" Version="1.0.3" PrivateAssets="all" />
+  </ItemGroup>
+
+</Project>

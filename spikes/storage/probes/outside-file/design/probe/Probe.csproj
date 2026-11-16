@@ -1,0 +1,30 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- Added on this branch. The probe was compiled with the .NET Framework's own compiler,
+       `csc /platform:x64 /optimize+`, from `Kp.cs` and `Store.cs` against copies of KeePass.exe,
+       Bouncy Castle and Newtonsoft.Json in `probe\out\`, and had no project of its own. This one
+       builds the same two sources, unchanged, as `Probe.exe` into that same `probe\out\`, where
+       `Run-Xc.ps1`, `Run-Xc2.ps1` and the survival critic's script look for it. KeePass is the
+       pinned one that `spikes\storage\Directory.Build.props` names; the two libraries are the
+       packages and versions the product at `a42e38aa` references, whose `net461` and `net45`
+       assemblies are byte for byte the copies the probe ran with. -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net48</TargetFramework>
+    <AssemblyName>Probe</AssemblyName>
+    <RootNamespace>Probe</RootNamespace>
+    <PlatformTarget>x64</PlatformTarget>
+    <OutputPath>out\</OutputPath>
+    <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Reference Include="KeePass">
+      <HintPath>$(KeePassExe)</HintPath>
+    </Reference>
+    <PackageReference Include="BouncyCastle.Cryptography" Version="2.7.0" />
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.4" />
+    <PackageReference Include="Microsoft.NETFramework.ReferenceAssemblies" Version="1.0.3" PrivateAssets="all" />
+  </ItemGroup>
+
+</Project>
