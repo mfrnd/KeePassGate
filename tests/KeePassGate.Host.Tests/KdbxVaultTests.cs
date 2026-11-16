@@ -466,9 +466,10 @@ namespace KeePassGate.Host.Tests
         /// U+00AD, the soft hyphen. KeePass keeps an entry's strings in a `SortedDictionary` under
         /// the default comparer, which compares by the current culture, and the collation gives
         /// this character no weight: measured against the pinned KeePass, `Strings.Exists` answers
-        /// true for this on an entry that carries only `Password`. U+200D, U+2060 and U+FEFF
-        /// behave the same way, and so does a name written in the other normal form, which is
-        /// why the second alias below is a `Cafe` whose accent is a combining character.
+        /// true for this on an entry that carries only `Password`. U+200D, U+2060 and U+FEFF are
+        /// among the others that behave the same way, `ß` read as `ss` joins two spellings as
+        /// well, and so does a name written in the other normal form, which is why the second
+        /// alias below is a `Cafe` whose accent is a combining character.
         /// </remarks>
         private const string PasswordAlias = "Pass\u00ADword";
 
@@ -504,8 +505,9 @@ namespace KeePassGate.Host.Tests
             // The database tells names apart by the current culture's collation, which weighs the
             // zero-width space and not the soft hyphen, so `Pass` and `word` around the first were
             // a second name to KeePass, made with `201` and drawn as `Password`, and around the
-            // second the conflict the entry's own name gets. Refused before the database is asked,
-            // the answer is the same whatever the culture makes of the name.
+            // second the conflict the entry's own name gets. The Hangul fillers are letters the
+            // collation weighs as well, which Unicode marks to be drawn as nothing. Refused before
+            // the database is asked, the answer is the same whatever the culture makes of the name.
             var uuid = Created(_vault.CreateEntry(_vault.RootAlias, Named("an invented service")));
             _vault.UpdateField(uuid, PwDefs.PasswordField, "not-a-real-password", VaultAskings.Free);
             _database.RootGroup.CustomData.Set(
@@ -520,7 +522,7 @@ namespace KeePassGate.Host.Tests
             {
                 using (var certificate = Minted.Named("CN=agent-fictitious").SelfSigned().Read())
                 {
-                    foreach (var name in new[] { "Pass\u200Bword", "Pass\u00ADword", "Pass\u200Dword", "Pass\uFEFFword" })
+                    foreach (var name in new[] { "Pass\u200Bword", "Pass\u00ADword", "Pass\u200Dword", "Pass\uFEFFword", "Pass\u115Fword", "Pass\u3164word" })
                     {
                         var body = Bodies.Of(("name", name), ("value", "chosen-by-the-caller"));
                         var context = new Pipeline.GateContext(

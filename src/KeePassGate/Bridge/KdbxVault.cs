@@ -1626,13 +1626,14 @@ namespace KeePassGate.Bridge
         /// is that KeePass's dictionary and this plugin's guards do not compare names the same
         /// way. An entry's strings are a `SortedDictionary` under the default comparer, which
         /// compares by the current culture, and the collation gives U+00AD, U+200D, U+2060 and
-        /// U+FEFF no weight at all: on an entry carrying only `Password`, `Strings.Exists` is true
-        /// for `Pass\u00ADword`, `Get` returns the password, and `Set` under that spelling
-        /// replaces the password while keeping the stored key. Everything above this decides what
-        /// a name is worth by comparing it byte for byte, so such a name was judged a custom field
-        /// and applied to the credential: a client holding `update` and not `protected` overwrote
-        /// a password, and one holding `strip` and `create` took the real one off and put an
-        /// unprotected value where KeePass reads it from.
+        /// U+FEFF among others no weight at all, and joins other spellings besides, such as `ß`
+        /// and `ss` or a squared character and its letters: on an entry carrying only
+        /// `Password`, `Strings.Exists` is true for `Pass\u00ADword`, `Get` returns the password,
+        /// and `Set` under that spelling replaces the password while keeping the stored key.
+        /// Everything above this decides what a name is worth by comparing it byte for byte, so
+        /// such a name was judged a custom field and applied to the credential: a client holding
+        /// `update` and not `protected` overwrote a password, and one holding `strip` and `create`
+        /// took the real one off and put an unprotected value where KeePass reads it from.
         ///
         /// Resolving the caller's name here is what makes the two agree. A name that is not one of
         /// the entry's own keys is a name the entry does not carry, which is the 404 every absent

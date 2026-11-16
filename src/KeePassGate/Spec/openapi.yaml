@@ -1358,8 +1358,10 @@ paths:
                 # protected field and find its own value there, in clear. The bidirectional
                 # controls are refused because KeePass acts on what a name says, as the attachment
                 # name beside `createAttachment` explains, and the rest of the format characters
-                # because a name holding them is drawn as the name without them: a client could
-                # put a second, unprotected `Password` beside the real `Password`.
+                # and the default ignorable code points because a name holding them is drawn as
+                # the name without them: a client could put a second, unprotected `Password`
+                # beside the real `Password`. A category alone missed the Hangul fillers, which are
+                # letters, and the collation weighs them, so they made a second name.
                 name:
                   type: string
                   minLength: 1
@@ -1367,12 +1369,13 @@ paths:
                   description: |
                     A name the routes can name again: a name holding any control character, line
                     breaks and tabs included, a name that decodes into a climb such as `a/../b`, or
-                    a name holding any Unicode format character, general category Cf, is
-                    `400 malformed`. The format characters are the bidirectional controls and
-                    every character drawn as nothing at all, such as the zero-width spaces and
-                    joiners, the soft hyphen and the byte order mark. A name its routes could not
-                    carry is `400 malformed` as well: percent-encoded, each byte of its UTF-8
-                    beyond ASCII takes three characters of the path, and a route naming it may
+                    a name holding any Unicode format character, general category Cf, or any
+                    default ignorable code point, is `400 malformed`. Those are the bidirectional
+                    controls and every character drawn as nothing at all, such as the zero-width
+                    spaces and joiners, the soft hyphen, the byte order mark, the variation
+                    selectors and the Hangul fillers. A name its routes could not carry is
+                    `400 malformed` as well: percent-encoded, each byte of its UTF-8 beyond
+                    ASCII takes three characters of the path, and a route naming it may
                     not run past the 2048 characters of a target the transport reads. A name the
                     entry carries, or a name the database cannot tell from a name it carries, is
                     `409`. Looking like another name in any other way, by a letter of another
@@ -1649,12 +1652,13 @@ paths:
                   description: |
                     A name the routes can name again: a name holding any control character, line
                     breaks and tabs included, a name that decodes into a climb such as `a/../b`, or
-                    a name holding any Unicode format character, general category Cf, is
-                    `400 malformed`. The format characters are the bidirectional controls and
-                    every character drawn as nothing at all, such as the zero-width spaces and
-                    joiners, the soft hyphen and the byte order mark. A name its routes could not
-                    carry is `400 malformed` as well: percent-encoded, each byte of its UTF-8
-                    beyond ASCII takes three characters of the path, and a route naming it may
+                    a name holding any Unicode format character, general category Cf, or any
+                    default ignorable code point, is `400 malformed`. Those are the bidirectional
+                    controls and every character drawn as nothing at all, such as the zero-width
+                    spaces and joiners, the soft hyphen, the byte order mark, the variation
+                    selectors and the Hangul fillers. A name its routes could not carry is
+                    `400 malformed` as well: percent-encoded, each byte of its UTF-8 beyond
+                    ASCII takes three characters of the path, and a route naming it may
                     not run past the 2048 characters of a target the transport reads. A name the
                     entry carries, or a name the database cannot tell from a name it carries, is
                     `409`. Looking like another name in any other way, by a letter of another
@@ -2820,7 +2824,10 @@ components:
 
     # KeePass keeps an entry's strings and its attachments in dictionaries that compare names the
     # way the current culture sorts them, and that collation gives `U+00AD`, `U+200D`, `U+2060` and
-    # `U+FEFF` no weight at all and reads a composed character and its decomposed spelling as one.
+    # `U+FEFF` among others no weight at all, reads a composed character and its decomposed
+    # spelling as one, and joins other spellings besides, such as `ß` and `ss`, a squared
+    # character and the letters it is made of, a mark repeating the letter before it and that
+    # letter written twice, and letters newer than Windows' sort table, which weigh nothing.
     # `Pass<U+00AD>word` therefore addressed the entry's `Password`, while the guards above the
     # store compared byte for byte and judged it a custom field, and it was applied to the
     # credential.

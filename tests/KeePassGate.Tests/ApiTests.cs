@@ -3203,6 +3203,14 @@ namespace KeePassGate.Tests
         [TestCase("Pass\\uFEFFword", "Pass\uFEFFword", TestName = "a byte order mark")]
         [TestCase("Pass\\u180Eword", "Pass\u180Eword", TestName = "the Mongolian vowel separator")]
         [TestCase("Pass\\uDB40\\uDC41word", "Pass\uDB40\uDC41word", TestName = "a tag character beyond the first plane")]
+        [TestCase("Pass\\u115Fword", "Pass\u115Fword", TestName = "the Hangul initial consonant filler")]
+        [TestCase("Pass\\u1160word", "Pass\u1160word", TestName = "the Hangul vowel filler")]
+        [TestCase("Pass\\u3164word", "Pass\u3164word", TestName = "the Hangul filler")]
+        [TestCase("Pass\\uFFA0word", "Pass\uFFA0word", TestName = "the half-width Hangul filler")]
+        [TestCase("Pass\\u034Fword", "Pass\u034Fword", TestName = "the combining grapheme joiner")]
+        [TestCase("Pass\\uFE0Fword", "Pass\uFE0Fword", TestName = "a variation selector")]
+        [TestCase("Pass\\u17B4word", "Pass\u17B4word", TestName = "a Khmer inherent vowel")]
+        [TestCase("Pass\\uDB40\\uDD00word", "Pass\uDB40\uDD00word", TestName = "a variation selector beyond the first plane")]
         public void A_name_holding_a_character_drawn_as_nothing_is_not_made(string spelled, string name)
         {
             // Each of these is drawn as nothing at all, so the name is drawn as `Password`: a
@@ -3210,7 +3218,8 @@ namespace KeePassGate.Tests
             // beside the real `Password`, holding what it chose, for the operator to type into or
             // copy from. The database tells names apart by the culture, which weighs some of these
             // and not others, so the zero-width space was a second name to it and the same name to
-            // the eye.
+            // the eye. The Hangul fillers are letters rather than format characters, which Unicode
+            // marks to be drawn as nothing and the culture weighs, so they were made with `201`.
             _vault.Granting(_group, AllButProtected);
             _vault.CreateField(_entry, "Password", "not-a-real-password", true, VaultAskings.Free);
             var content = Convert.ToBase64String(new byte[] { 1, 2, 3 });
