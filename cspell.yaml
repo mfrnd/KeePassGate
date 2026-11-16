@@ -26,6 +26,11 @@ files:
 useGitignore: true
 
 ignorePaths:
+  # The evaluation's working papers, kept as they were written and checked against nothing here.
+  # `papers/README.md` is this branch's own prose and is checked.
+  - papers/ground/**
+  - papers/options/**
+  - papers/draft/**
   # Somebody else's source, vendored or generated. Not ours to spell, and a checker that reports it
   # is a checker whose findings nobody reads. The spike branches vendor whole libraries under
   # `vendor/`, which is what that first line is for.

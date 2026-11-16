@@ -59,6 +59,12 @@ globs:
 gitignore: true
 
 ignores:
+  # The evaluation's working papers, kept as they were written. Reflowing them to this project's
+  # width would make every later comparison with the originals a diff about wrapping.
+  # `papers/README.md` is this branch's own prose and is checked.
+  - "papers/ground/**"
+  - "papers/options/**"
+  - "papers/draft/**"
   - "node_modules/**"
   - ".tmp/**"
   - "**/bin/**"
