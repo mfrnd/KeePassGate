@@ -183,6 +183,12 @@ KeePass; this is what notices a KeePass that raises them differently.
 lock, ten seconds, and lets it fall due under a renewal dialog nobody answers. The dialog closes as
 unanswered and the client is told `503 locked`, `PAIRING.md` §308.
 
+**A save KeePass abandoned**, in `LiveAbandonedSaveTests`: a second plugin, compiled by the fixture,
+rewrites the database file from inside the save a write makes, KeePass asks about the file and is
+answered Cancel, and the title bar is read once the change is taken back out. The flag stays up over
+a file that is not what KeePass read, and the title bar has to show it, which only the real window
+can.
+
 **A Windows lock during a save**, in `LiveSessionLockTests`: KeePass set to lock when Windows does,
 and the message Windows sends when the session locks posted to KeePass the moment a write's save is
 seen to begin. KeePass drops a lock asked for while its interaction is blocked, and every save
