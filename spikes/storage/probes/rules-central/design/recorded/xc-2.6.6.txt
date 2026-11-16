@@ -1,0 +1,68 @@
+probe run 2026-11-15T15:47:15.1708664Z, KeePassLib 2.62, xc
+store group FE4040A9E0FAE884FA8BECAEEE9FBB46, mark AED8E7D3
+
+== KeePassXC 2.6.6, a plain save (keepassxc-cli add, exit 0), file then KDBX 4.0 ==
+  before: X: RULE R1 [in U, pw pw-x-0, hist 0] | Y: silence (no rule) | Z: silence (no rule) | U: RULE RG0 | store: 3 versions, 0 copies, 0 deletion records of rule entries
+  after:  X: RULE R1 [in U, pw pw-x-0, hist 0] | Y: silence (no rule) | Z: silence (no rule) | U: RULE RG0 | store: 3 versions, 0 copies, 0 deletion records of rule entries
+  every rule entry's identifier, strings, protection flags and times unchanged: yes
+  store group: searching False, auto-type False, notes kept yes
+
+== KeePassXC 2.6.6, keepassxc-cli merge -s <target> <source>, the target read back with KeePassLib 2.62 ==
+
+xc2.6.6-01-other-edits: A narrows X to R1 and seals U off with RG1 at +10; B, not knowing, changes X's password, edits Z, adds an entry to U and U's own time and notes move, all at +20
+  into A (exit 0): X: RULE R1 [in U, pw pw-x-B, hist 1] | Y: silence (no rule) | Z: silence (no rule) | U: RULE RG1 | store: 4 versions, 0 copies, 0 deletion records of rule entries
+  into B (exit 0): X: RULE R1 [in U, pw pw-x-B, hist 1] | Y: silence (no rule) | Z: silence (no rule) | U: RULE RG1 | store: 4 versions, 0 copies, 0 deletion records of rule entries
+
+xc2.6.6-02-same-second: as 01 for X, both in the same second (+10)
+  into A (exit 0): X: RULE R1 [in U, pw pw-x-B, hist 1] | Y: silence (no rule) | Z: silence (no rule) | U: RULE RG0 | store: 3 versions, 0 copies, 0 deletion records of rule entries
+  into B (exit 0): X: RULE R1 [in U, pw pw-x-B, hist 1] | Y: silence (no rule) | Z: silence (no rule) | U: RULE RG0 | store: 3 versions, 0 copies, 0 deletion records of rule entries
+
+xc2.6.6-03-two-changes: A sets X's rule to R1 at +10, B sets it to R2 at +20, each replacing the base version
+  into A (exit 0): X: MEET of R1+R2 = {"default":"deny","ops":[],"reader":[]} [in U, pw pw-x-0, hist 0] | Y: silence (no rule) | Z: silence (no rule) | U: RULE RG0 | store: 4 versions, 0 copies, 0 deletion records of rule entries
+  into B (exit 0): X: MEET of R1+R2 = {"default":"deny","ops":[],"reader":[]} [in U, pw pw-x-0, hist 0] | Y: silence (no rule) | Z: silence (no rule) | U: RULE RG0 | store: 4 versions, 0 copies, 0 deletion records of rule entries
+
+xc2.6.6-04-taken-away: A takes X's rule away at +10 (a version saying nothing); B changes X's password at +20
+  into A (exit 0): X: silence (rule taken away) [in U, pw pw-x-B, hist 1] | Y: silence (no rule) | Z: silence (no rule) | U: RULE RG0 | store: 3 versions, 0 copies, 0 deletion records of rule entries
+  into B (exit 0): X: silence (rule taken away) [in U, pw pw-x-B, hist 1] | Y: silence (no rule) | Z: silence (no rule) | U: RULE RG0 | store: 3 versions, 0 copies, 0 deletion records of rule entries
+
+xc2.6.6-05-two-first-rules: A rules Y (R1) at +10, B rules Z (R2) at +20: a rule entry added in each copy
+  into A (exit 0): X: RULE R0 [in U, pw pw-x-0, hist 0] | Y: RULE R1 | Z: RULE R2 | U: RULE RG0 | store: 4 versions, 0 copies, 0 deletion records of rule entries
+  into B (exit 0): X: RULE R0 [in U, pw pw-x-0, hist 0] | Y: RULE R1 | Z: RULE R2 | U: RULE RG0 | store: 4 versions, 0 copies, 0 deletion records of rule entries
+
+xc2.6.6-06-same-decision: A sets X's rule to R1 at +10 and B makes the same change at +20
+  into A (exit 0): X: RULE R1 [in U, pw pw-x-0, hist 0] | Y: silence (no rule) | Z: silence (no rule) | U: RULE RG0 | store: 3 versions, 0 copies, 0 deletion records of rule entries, 1 history items
+  into B (exit 0): X: RULE R1 [in U, pw pw-x-0, hist 0] | Y: silence (no rule) | Z: silence (no rule) | U: RULE RG0 | store: 3 versions, 0 copies, 0 deletion records of rule entries, 1 history items
+
+xc2.6.6-07-newest-deleted: both copies hold X's rule R0 then R1; B deletes the R1 entry for good at +20 (a deletion record); A does nothing
+  into A (exit 0): X: RULE R1 [in U, pw pw-x-0, hist 0] | Y: silence (no rule) | Z: silence (no rule) | U: RULE RG0 | store: 3 versions, 0 copies, 0 deletion records of rule entries
+  into B (exit 0): X: RULE R1 [in U, pw pw-x-0, hist 0] | Y: silence (no rule) | Z: silence (no rule) | U: RULE RG0 | store: 3 versions, 0 copies, 1 deletion records of rule entries
+
+xc2.6.6-08-newest-binned: both copies hold R0 then R1; B moves the R1 entry into a recycle bin at +20; A does nothing
+  into A (exit 0): X: RULE R1 [found in Recycle Bin] [in U, pw pw-x-0, hist 0] | Y: silence (no rule) | Z: silence (no rule) | U: RULE RG0 | store: 3 versions, 0 copies, 0 deletion records of rule entries
+  into B (exit 0): X: RULE R1 [found in Recycle Bin] [in U, pw pw-x-0, hist 0] | Y: silence (no rule) | Z: silence (no rule) | U: RULE RG0 | store: 3 versions, 0 copies, 0 deletion records of rule entries
+
+xc2.6.6-09-edited-by-hand: both copies hold R0 then R1; B widens the text of the R1 entry by hand in another program at +20; A does nothing
+  into A (exit 0): X: REFUSE (a rule entry was changed by hand) [in U, pw pw-x-0, hist 0] | Y: silence (no rule) | Z: silence (no rule) | U: RULE RG0 | store: 2 versions, 0 copies, 0 deletion records of rule entries, 1 history items
+  into B (exit 0): X: REFUSE (a rule entry was changed by hand) [in U, pw pw-x-0, hist 0] | Y: silence (no rule) | Z: silence (no rule) | U: RULE RG0 | store: 2 versions, 0 copies, 0 deletion records of rule entries, 1 history items
+
+xc2.6.6-10-node-moved: A narrows X to R1 at +10; B moves X from U to W at +20
+  into A (exit 0): X: RULE R1 [in W, pw pw-x-0, hist 0] | Y: silence (no rule) | Z: silence (no rule) | U: RULE RG0 | store: 3 versions, 0 copies, 0 deletion records of rule entries
+  into B (exit 0): X: RULE R1 [in W, pw pw-x-0, hist 0] | Y: silence (no rule) | Z: silence (no rule) | U: RULE RG0 | store: 3 versions, 0 copies, 0 deletion records of rule entries
+
+xc2.6.6-11-node-deleted: A narrows X to R1 at +10; B deletes X for good at +20
+  into A (exit 0): X: RULE R1 [in U, pw pw-x-0, hist 0] | Y: silence (no rule) | Z: silence (no rule) | U: RULE RG0 | store: 3 versions, 0 copies, 0 deletion records of rule entries
+  into B (exit 0): X: RULE R1 [in U, pw pw-x-0, hist 0] | Y: silence (no rule) | Z: silence (no rule) | U: RULE RG0 | store: 3 versions, 0 copies, 0 deletion records of rule entries
+
+xc2.6.6-12-node-deleted-then-edited: B deletes X for good at +10; A changes X's password at +20
+  into A (exit 0): X: RULE R0 [in U, pw pw-x-A, hist 1] | Y: silence (no rule) | Z: silence (no rule) | U: RULE RG0 | store: 2 versions, 0 copies, 0 deletion records of rule entries
+  into B (exit 0): X: RULE R0 [in U, pw pw-x-A, hist 1] | Y: silence (no rule) | Z: silence (no rule) | U: RULE RG0 | store: 2 versions, 0 copies, 0 deletion records of rule entries
+
+xc2.6.6-13-pruned-then-back: A deletes X for good at +10 and prunes its rule entry with a deletion record; B changes X's password at +20
+  into A (exit 0): X: RULE R0 [in U, pw pw-x-B, hist 1] | Y: silence (no rule) | Z: silence (no rule) | U: RULE RG0 | store: 2 versions, 0 copies, 1 deletion records of rule entries
+  into B (exit 0): X: RULE R0 [in U, pw pw-x-B, hist 1] | Y: silence (no rule) | Z: silence (no rule) | U: RULE RG0 | store: 2 versions, 0 copies, 0 deletion records of rule entries
+
+xc2.6.6-14-pruned-newer-unseen: A narrows X to R1 at +5, then deletes X for good and prunes both rule entries with deletion records at +10; B, which never saw R1, changes X's password at +20
+  into A (exit 0): X: REFUSE (a rule entry was deleted) [in U, pw pw-x-B, hist 1] | Y: silence (no rule) | Z: silence (no rule) | U: RULE RG0 | store: 2 versions, 0 copies, 2 deletion records of rule entries
+  into B (exit 0): X: RULE R0 [in U, pw pw-x-B, hist 1] | Y: silence (no rule) | Z: silence (no rule) | U: RULE RG0 | store: 2 versions, 0 copies, 0 deletion records of rule entries
+
+KDBX versions of the targets after the merges: 4.0

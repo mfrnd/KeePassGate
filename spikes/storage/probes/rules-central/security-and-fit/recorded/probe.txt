@@ -1,0 +1,8 @@
+KeePassLib 2.62
+P1 group duplicate: new uuid=True; rule on copy={"default":"deny"}; entry inside new uuid=True; entry password kept=True
+P1 entry duplicate: new uuid=True; rule on copy={"default":"inherit","agent":[]}
+P2 store group uuid FE4040A9E0FAE884FA8BECAEEE9FBB46, mark AED8E7D3
+P2 victim C uuid FC84A49A71E1D7428161B9A718B05612, rules in store 2
+P2 Synchronize: rule entries naming C: marked, in 'Shared passwords' (the store group) | store group name now 'Shared passwords', searching inherit, auto-type inherit | C modified 2026-01-01T00:00:00 (was 2026-01-01T00:00:00) | X modified 2026-01-01T00:00:00, X history 0
+P2 KeepExisting: rule entries naming C: marked, in 'KeePassGate' (the store group) | store group name now 'KeePassGate', searching False, auto-type False | C modified 2026-01-01T00:00:00 (was 2026-01-01T00:00:00) | X modified 2026-01-01T00:00:00, X history 0
+P2 CreateNewUuids: rule entries naming C: unmarked copy, in 'Shared passwords' | store group name now 'KeePassGate', searching False, auto-type False | C modified 2026-01-01T00:00:00 (was 2026-01-01T00:00:00) | X modified 2026-01-01T00:00:00, X history 0

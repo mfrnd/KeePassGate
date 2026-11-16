@@ -1,0 +1,20 @@
+probe run 2026-11-15T15:47:06.5369341Z, KeePassLib 2.62, cost
+store group FE4040A9E0FAE884FA8BECAEEE9FBB46, mark AED8E7D3
+
+== Cost, in memory, KeePass 2.62: 10060 entries in 501 groups, 60 rule entries for 20 nodes, 5000 deletion records ==
+  every entry's identifier tested for the mark: 0.167 ms (60 found)
+  the same, and every unmarked entry asked for a KPG.Kind string: 1.131 ms
+  5000 deletion records tested for the mark: 0.031 ms
+  the whole reading (walk, string test, 60 digests, the index, the deletion records): 1.426 ms; 60 versions for 20 nodes
+  one index lookup for each of 10000 entries: 0.143 ms
+  today's read for comparison, CustomData.Get("KPG") on each of them: 0.553 ms
+  one rule entry with a 50 character rule and one predecessor holds 232 characters of strings
+
+== Cost, in memory, KeePass 2.62: 50060 entries in 501 groups, 60 rule entries for 20 nodes, 5000 deletion records ==
+  every entry's identifier tested for the mark: 0.859 ms (60 found)
+  the same, and every unmarked entry asked for a KPG.Kind string: 8.162 ms
+  5000 deletion records tested for the mark: 0.030 ms
+  the whole reading (walk, string test, 60 digests, the index, the deletion records): 9.383 ms; 60 versions for 20 nodes
+  one index lookup for each of 50000 entries: 1.061 ms
+  today's read for comparison, CustomData.Get("KPG") on each of them: 4.541 ms
+  one rule entry with a 50 character rule and one predecessor holds 232 characters of strings

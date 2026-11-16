@@ -1,0 +1,52 @@
+probe run 2026-11-15T16:16:35.3891473Z, KeePassLib 2.62
+store group FE4040A9E0FAE884FA8BECAEEE9FBB46, mark AED8E7D3; U grants agent [read,update,list]; RX1 narrows X to [read,list]; RX2 to [list]
+
+== C1: the Rules page's Remove, the node back from another copy, then a KeePassDX merge ==
+base: agent: [read,list] from X | store present, 2 versions, 0 deletion records of rule entries, 0 copies
+A (X deleted for good at +10, then Remove of its rule entry, as the Rules page does): entry absent | store present, 1 versions, 1 deletion records of rule entries, 0 copies
+B (X's password changed at +20, B never saw the deletion): agent: [read,list] from X | store present, 2 versions, 0 deletion records of rule entries, 0 copies
+DX-model, B open, A arriving: agent: [read,update,list] from U | store present, 1 versions, 0 deletion records of rule entries, 0 copies
+DX-model, A open, B arriving: REFUSED at X (a rule entry was deleted) | store present, 1 versions, 1 deletion records of rule entries, 0 copies
+KeePassLib Synchronize, B open, A arriving: REFUSED at X (a rule entry was deleted) | store present, 1 versions, 1 deletion records of rule entries, 0 copies
+KeePassLib OverwriteIfNewer, B open, A arriving: agent: [read,list] from X | store present, 2 versions, 0 deletion records of rule entries, 0 copies
+KeePassLib KeepExisting, B open, A arriving: agent: [read,list] from X | store present, 2 versions, 0 deletion records of rule entries, 0 copies
+KeePassLib Synchronize, the DX result open, A arriving: REFUSED at X (a rule entry was deleted) | store present, 1 versions, 1 deletion records of rule entries, 0 copies
+keepassxc-cli 2.8.0 merge -s, the DX result as target, A as source (exit 0, said: Datenbank wurde beim Zusammenführen nicht verändert.   Passwort zum Entsperren von <scratch>): agent: [read,update,list] from U | store present, 1 versions, 0 deletion records of rule entries, 0 copies
+keepassxc-cli 2.4.2 merge -s, the DX result as target, A as source (exit 0, said: Insert password to unlock spikes\storage\probes\rules-central\survival): agent: [read,update,list] from U | store present, 1 versions, 0 deletion records of rule entries, 0 copies
+
+== C2: the newest rule entry deleted for good in one copy, then a KeePassDX merge into another; and pykeepass ==
+base (X: RX1 then RX2): agent: [list] from X | store present, 3 versions, 0 deletion records of rule entries, 0 copies
+P (RX2's entry deleted for good at +10): REFUSED at X (a rule entry was deleted) | store present, 2 versions, 1 deletion records of rule entries, 0 copies
+Q (an unrelated edit of Y at +5): agent: [list] from X | store present, 3 versions, 0 deletion records of rule entries, 0 copies
+KeePassLib Synchronize, Q open, P arriving: REFUSED at X (a rule entry was deleted) | store present, 2 versions, 1 deletion records of rule entries, 0 copies
+DX-model, Q open, P arriving: agent: [read,list] from X | store present, 2 versions, 0 deletion records of rule entries, 0 copies
+KeePassLib Synchronize, the DX result open, P arriving: REFUSED at X (a rule entry was deleted) | store present, 2 versions, 1 deletion records of rule entries, 0 copies
+KeePassLib Synchronize, the DX result open, base arriving: agent: [list] from X | store present, 3 versions, 0 deletion records of rule entries, 0 copies
+pykeepass deletes RX2's entry from a copy of the base (exit 0, said: pykeepass 4.2.0 deleted KPG rule 411ECF25 ; deletion records 0 -> 0): agent: [read,list] from X | store present, 2 versions, 0 deletion records of rule entries, 0 copies
+KeePassLib Synchronize, the pykeepass file open, base arriving: agent: [list] from X | store present, 3 versions, 0 deletion records of rule entries, 0 copies
+
+== C3: the repair of section 5.2 on an OK the operator pressed for something else, and where it travels ==
+P (RX2's entry deleted for good): REFUSED at X (a rule entry was deleted) | store present, 2 versions, 1 deletion records of rule entries, 0 copies
+P after X's dialog was used to change X's password and OK pressed (repair wrote {"default":"inherit","agent":["read","list"]} naming 2 predecessor(s), as AED8E7D3): agent: [read,list] from X | store present, 3 versions, 1 deletion records of rule entries, 0 copies
+S (a copy that still holds RX2 and never saw the deletion): agent: [list] from X | store present, 3 versions, 0 deletion records of rule entries, 0 copies
+KeePassLib Synchronize, S open, repaired P arriving: agent: [read,list] from X | store present, 3 versions, 1 deletion records of rule entries, 0 copies
+KeePassLib OverwriteIfNewer, S open, repaired P arriving: agent: [read,list] from X | store present, 4 versions, 0 deletion records of rule entries, 0 copies
+KeePassLib OverwriteExisting, S open, repaired P arriving: agent: [read,list] from X | store present, 4 versions, 0 deletion records of rule entries, 0 copies
+KeePassLib KeepExisting, S open, repaired P arriving: agent: [read,list] from X | store present, 4 versions, 0 deletion records of rule entries, 0 copies
+keepassxc-cli 2.8.0 merge -s, S as target, repaired P as source (exit 0, said: Geändert: '/probe/U'/'X' [{411ecf25-0793-1e17-404b-395cab04d01b}] (Passwort, History (lokale Änderungen zum neuen Eintrag hinzufügen))  	Hinzugefügt: '/probe/Ke): agent: [read,list] from X | store present, 4 versions, 0 deletion records of rule entries, 0 copies
+keepassxc-cli 2.4.2 merge -s, S as target, repaired P as source (exit 0, said: Insert password to unlock spikes\storage\probes\rules-central\survival): agent: [read,list] from X | store present, 4 versions, 0 deletion records of rule entries, 0 copies
+DX-model, S open, repaired P arriving: agent: [read,list] from X | store present, 3 versions, 0 deletion records of rule entries, 0 copies
+
+== C4: the store group deleted for good, a later grant in another copy, then a KeePassDX merge; and the repair after it ==
+G (the KeePassGate group deleted for good, with KeePass's own DeleteAllObjects): REFUSED at X (a rule entry was deleted) | store ABSENT, 0 versions, 3 deletion records of rule entries, 0 copies
+Q (never saw the deletion; the operator widened U's rule to add create, a minute after it): agent: [list] from X | store present, 4 versions, 0 deletion records of rule entries, 0 copies
+KeePassLib Synchronize, Q open, G arriving: REFUSED at X (a rule entry was deleted) | store present, 1 versions, 3 deletion records of rule entries, 0 copies
+DX-model, Q open, G arriving: agent: [create,read,update,list] from U | store ABSENT, 1 versions, 0 deletion records of rule entries, 0 copies
+G after U's rule was entered again and X's dialog OK'd for a password (U given RU again, naming 1; X: repair wrote {"default":"inherit"} naming 2 predecessor(s), as AED8E7D3): agent: [read,update,list] from U | store present, 2 versions, 3 deletion records of rule entries, 0 copies
+keepassxc-cli 2.8.0 merge -s, the base as target, repaired G as source (exit 0, said: Geändert: '/probe/U'/'X' [{411ecf25-0793-1e17-404b-395cab04d01b}] (Passwort, History (lokale Änderungen zum neuen Eintrag hinzufügen))  	Geändert: '/probe/KeePa): agent: [read,update,list] from U | store present, 5 versions, 0 deletion records of rule entries, 0 copies
+
+== C5: a rule entry edited by hand, the repair, and a KeePassXC merge ==
+H (RX2's KPG.Data retyped by hand with one space added, at +20): REFUSED at X (a rule entry was changed by hand) | store present, 2 versions, 0 deletion records of rule entries, 0 copies
+H after OK on X's dialog (repair wrote {"default":"inherit","agent":["read","list"]} naming 2 predecessor(s), as AED8E7D3): agent: [read,list] from X | store present, 3 versions, 1 deletion records of rule entries, 0 copies
+keepassxc-cli 2.8.0 merge -s, repaired H as target, an unrepaired copy of H as source (exit 0, said: Hinzugefügt: '/probe/KeePassGate'/'KPG rule 411ECF25' [{aed8e7d3-411e-cf25-0793-c7e91f260db4}]  <scratch>): REFUSED at X (a rule entry was changed by hand) | store present, 3 versions, 1 deletion records of rule entries, 0 copies
+KeePassLib Synchronize, repaired H open, H arriving: agent: [read,list] from X | store present, 3 versions, 1 deletion records of rule entries, 0 copies

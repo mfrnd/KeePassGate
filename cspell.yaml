@@ -116,6 +116,15 @@ words:
   # the design's `Sep.exe`, and `unretired` in the survival critique's `Surv.cs`.
   - kpmerge
   - unretired
+  # Identifiers in the rules-central probes, which are carried unchanged: the security probe's
+  # duplicates `gdup`, `xdup` and `ydup` and its merged store `vstore`, and in the survival probe's
+  # `Rcs.cs` the file name `xc280-Hrep+H.kdbx` and `unrepaired` in the label it prints beside it.
+  - gdup
+  - xdup
+  - ydup
+  - vstore
+  - Hrep
+  - unrepaired
   # Identifiers in the rules-marker-entry probes, which are carried unchanged: the verbs `handcopy`,
   # `killhead` and `dedupe` and the locals `rdoc`, `rwhy` and `gwhy` of the design's `Rme.exe`, the
   # name `newids` and the label `XCsave` of its summary scripts, the bin `Papierkorb` its `Run.ps1`
