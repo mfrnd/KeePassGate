@@ -7,12 +7,14 @@ at either end leaves something a person can act on rather than nothing, or two h
 
 from __future__ import annotations
 
+import _thread
 import base64
 import hashlib
 import json
 import os
 import re
 import socket
+import threading
 import time
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
@@ -944,6 +946,40 @@ def test_a_renewal_whose_answer_outlasts_its_wait_keeps_the_old_identity(
 
     assert api.load(where).expires == "2126-08-15T09:00:00Z"
     assert not (tmp_path / "kept.renewing").exists()
+
+
+def test_an_interrupt_while_the_operator_reads_ends_the_renewal_with_the_identity_unchanged(
+    gate: FakeGate, paired: GateClient, renewing: Gate
+) -> None:
+    # Ctrl+C while the renewal dialog stands, made the way Windows makes it: noted, with nothing
+    # woken. Taken only once the operator had answered, it threw the renewed identity away, and
+    # the gate held a second record for the client under a key nobody kept.
+    released = threading.Event()
+    approved = threading.Event()
+
+    def reading(path: str, body: str, client: bytes | None) -> tuple[int, str]:
+        if path == "/gate/renew":
+            time.sleep(0.3)
+            _thread.interrupt_main()
+            released.wait(5.0)
+            approved.set()
+
+        return renewing(path, body, client)
+
+    gate.handler = reading
+    where = paired.credentials.directory
+
+    try:
+        with pytest.raises(KeyboardInterrupt):
+            paired.renew()
+        approved_first = approved.is_set()
+    finally:
+        released.set()
+
+    assert not approved_first, "the interrupt was taken only once the operator had answered"
+    assert api.load(where).expires == "2126-08-15T09:00:00Z"
+    assert not where.with_name("default.renewing").exists()
+    assert not where.with_name("default.retired").exists()
 
 
 def test_too_early_says_from_when_to_ask_again(paired: GateClient, renewing: Gate) -> None:

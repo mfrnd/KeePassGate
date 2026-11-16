@@ -7,6 +7,7 @@ before the body is written, and whether loading one authority really is a pin.
 
 from __future__ import annotations
 
+import _thread
 import contextlib
 import datetime as dt
 import inspect
@@ -1116,6 +1117,91 @@ class TestTheAnswerIsFramedRatherThanEnded:
         # record for.
         assert transport.PAIRING_CONNECTION_TIMEOUT > 120.0 + 120.0 + 15.0 + 2.0 + 20.0 + 30.0
         assert transport.PAIRING_CONNECTION_TIMEOUT > transport.DEFAULT_CONNECTION_TIMEOUT
+
+
+class TestAWaitOnThePeer:
+    """A read waits on the peer in short waits, so that Ctrl+C ends it on every platform.
+
+    Windows does not wake a wait on a socket for a console's Ctrl+C: the interrupt is noted, and
+    acted on only once the wait returns, which for a pairing or a renewal is once the operator has
+    answered. `_thread.interrupt_main` notes an interrupt the same way and wakes nothing, on every
+    platform, so the interrupts here are made with it.
+    """
+
+    def test_an_interrupt_ends_the_wait_before_the_peer_answers(
+        self, gate: FakeGate, authority: Authority, client_certificate: Issued
+    ) -> None:
+        # What `pair` and `renew` wait in while the operator reads the dialog. Taken only once the
+        # answer had arrived, an interrupt threw away an identity the gate had just admitted.
+        released = threading.Event()
+        answered = threading.Event()
+
+        def holding(path: str, body: str, client: bytes | None) -> tuple[int, str]:
+            # Long enough after the request for the client to be waiting on the answer.
+            time.sleep(0.3)
+            _thread.interrupt_main()
+            released.wait(5.0)
+            answered.set()
+            return 200, '{"ok": true}'
+
+        gate.handler = holding
+        context = transport.paired_context(authority.pem, client_certificate.pem)
+
+        try:
+            with transport.connect(
+                gate.port, context, "abc.def.kpg", connection_timeout=60.0
+            ) as connection, pytest.raises(KeyboardInterrupt):
+                connection.send("GET", "/gate/whoami")
+            answered_first = answered.is_set()
+        finally:
+            released.set()
+
+        assert not answered_first, "the interrupt was taken only once the peer had answered"
+
+    def test_a_read_still_waits_out_its_whole_timeout(
+        self, gate: FakeGate, authority: Authority, client_certificate: Issued
+    ) -> None:
+        # The timeout is the read's own, however many short waits it takes: a short wait running
+        # out is not the read running out.
+        released = threading.Event()
+
+        def holding(path: str, body: str, client: bytes | None) -> tuple[int, str]:
+            released.wait(10.0)
+            return 200, '{"ok": true}'
+
+        gate.handler = holding
+        context = transport.paired_context(authority.pem, client_certificate.pem)
+
+        try:
+            with transport.connect(
+                gate.port, context, "abc.def.kpg", connection_timeout=1.5
+            ) as connection:
+                started = time.monotonic()
+                with pytest.raises(TransportError, match="timed out"):
+                    connection.send("GET", "/gate/whoami")
+                waited = time.monotonic() - started
+        finally:
+            released.set()
+
+        assert waited >= 1.5
+
+    def test_an_answer_that_arrives_after_several_short_waits_is_read(
+        self, gate: FakeGate, authority: Authority, client_certificate: Issued
+    ) -> None:
+        # A read of TLS that ran out of time is taken up again where it stopped, and the socket is
+        # left with the timeout it was given.
+        def slow(path: str, body: str, client: bytes | None) -> tuple[int, str]:
+            time.sleep(1.2)
+            return 200, '{"ok": true}'
+
+        gate.handler = slow
+        context = transport.paired_context(authority.pem, client_certificate.pem)
+
+        with transport.connect(
+            gate.port, context, "abc.def.kpg", connection_timeout=10.0
+        ) as connection:
+            assert connection.send("GET", "/gate/whoami").body == '{"ok": true}'
+            assert connection._socket.gettimeout() == 10.0
 
 
 class TestAnAnswerInChunks:
