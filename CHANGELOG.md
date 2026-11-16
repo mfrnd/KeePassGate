@@ -681,13 +681,18 @@ none, since it releases both.
   filed another copy's edit to a binned entry in the entry's history. A removal no longer changes
   its parent's tag either.
 - **The documents no longer promise that the recycle bin stays out of a client's reach whatever
-  happens to the database.** The bin the gate leaves out is the group the database names as its
-  recycle bin when a request is served, and no other group. A synchronize or an import keeps one
-  copy's choice of bin, so where both copies had a bin, the group that loses stays in the database
-  as an ordinary group, and a client reaches it, with everything deleted into it, under the rules
-  where it sits: for a bin KeePass made under the root, the root's. After a synchronize or an
-  import, check which group Database Settings names as the recycle bin, and empty or delete every
-  other group that was a bin. `DESIGN.md` §138.
+  happens to the database, or that saving in another program keeps what the plugin wrote.** The
+  bin the gate leaves out is the group the database names as its recycle bin when a request is
+  served, and no other group. A synchronize or an import keeps one copy's choice of bin, so where
+  both copies had a bin, the group that loses stays in the database as an ordinary group, and a
+  client reaches it, with everything deleted into it, under the rules where it sits: for a bin
+  KeePass made under the root, the root's. After a synchronize or an import, check which group
+  Database Settings names as the recycle bin, and empty or delete every other group that was a
+  bin. A save in KeePassDroid 2.7 was measured to delete the access rules on every group and
+  entry, and a save in KeePassDX 3.2.0 or 3.3.0 the rules on every group, while a save in KeePassDX
+  4.5.8 or Keepass2Android 1.15-r6 keeps them. A group or entry left without its rules answers
+  with the nearest rule above it, which reaches more wherever the rules narrowed it, so after a
+  save in such a program, check the rules on the KPG tab. `DESIGN.md` §138, `CA.md` §204.
 - **A pairing, a renewal or a program's revocation of itself that reached the database is always
   written to the audit.** A defect in KeePass or in another plugin, raised while the database was
   saved or while KeePass's window was redrawn, ended the request with the change in force and no
