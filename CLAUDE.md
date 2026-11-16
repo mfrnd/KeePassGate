@@ -648,10 +648,10 @@ Every one of these was established by running code, and most contradict what the
 suggests. The code is on branches of its own, each gathering what it settled in its own
 `RESULTS.md`: `spikes/tls-and-certificates` measured TLS and X.509, `spikes/build-environment`
 whether the gate can fail while nothing is wrong, `spikes/revocation-merge` how KeePass merges a
-database's custom data and what KeePassXC does to it, `spikes/entity-tags` what a node's version
-could be made of, and `spikes/automation-unload` why a domain that drove KeePass through UI
-automation cannot unload. Run them from **Windows PowerShell**, not PowerShell 7, which is .NET Core
-and answers a different question.
+database's custom data and what KeePassXC and the Android programs do to it, `spikes/entity-tags`
+what a node's version could be made of, and `spikes/automation-unload` why a domain that drove
+KeePass through UI automation cannot unload. Run them from **Windows PowerShell**, not PowerShell
+7, which is .NET Core and answers a different question.
 
 - **`X509Chain` does not pin an anchor.** `ExtraStore` plus `AllowUnknownCertificateAuthority`
   accepts a certificate from a completely foreign authority. `X509ChainTrustMode.CustomRootTrust`
@@ -712,6 +712,12 @@ and answers a different question.
   wrong once: KeePassXC decides the version a file is written as from the rest of the tree, and the
   times on the database's own custom data do not count toward it. CA.md §204 states what all of
   that does to a paired database.
+- **A save in KeePassDroid 2.7 deletes the rules on every group and entry, and a save in KeePassDX
+  3.2.0 or 3.3.0 the rules on every group**, moving no modification time, so nothing on the node
+  shows that the rules went. Measured on `spikes/revocation-merge` in an emulator of Android 11,
+  beside Keepass2Android 1.15-r6 and 1.08d-r5 and KeePassDX 4.5.8, whose saves keep the rules. No
+  save and no merge in any of them removed a key from the database's custom data. CA.md §204
+  states what their saves and merges do to a paired database.
 - **KeePass keeps a protected attachment through whatever cipher stands when it last read
   it.** `ProtectedBinary.ReadData` decrypts the buffer in place under the object's lock and
   encrypts it again, through Windows' protection of process memory, or through the cipher a

@@ -137,14 +137,28 @@ record that could not be read is the exception**: it gives no date, so the mark 
 carries none, and that mark and the emptied record stay until the authority is recreated or deleted.
 
 **All of that holds in KeePass with the plugin in it, which is 2.62 or later, and only there.**
-Other programs can open the database, KeePassXC and KeePass before 2.48 among them. **Merging an
-older copy into it in KeePassXC quietly brings back every revoked client, replaced authority and
-removed profile** the older copy still had, and a merge either way keeps a group's access rules as
-they were in the database merged into, however the other copy narrowed them. Saving in any of them
-keeps what the plugin wrote but usually drops the times it was written at, and a later synchronize
-in KeePass can then bring back a removed profile. [`CA.md`](../CA.md) §204 has what was measured.
+Other programs can open the database, KeePassXC, KeePass before 2.48 and programs on Android among
+them. **Merging an older copy into it in KeePassXC quietly brings back every revoked client,
+replaced authority and removed profile** the older copy still had, and a merge either way keeps a
+group's access rules as they were in the database merged into, however the other copy narrowed
+them. Saving in KeePassXC, from 2.4.1 to 2.8.0, or in KeePass 2.47 keeps what the plugin wrote but
+usually drops the times it was written at, and a later synchronize in KeePass can then bring back a
+removed profile.
+
+**A save in KeePassDroid 2.7 was measured to delete the access rules on every group and entry**,
+and a save in KeePassDX 3.2.0 or 3.3.0 the rules on every group, while a save in KeePassDX 4.5.8 or
+in Keepass2Android 1.15-r6 keeps them. Nothing on a group or entry shows that its rules went. Such
+a group or entry then answers each profile with the nearest rule above it, or refuses a profile no
+rule above names, and its **Refuse any profile not named here** check mark goes with the rules, so
+wherever they narrowed what a group above grants, a program now reaches more. Releases not named
+here were not measured. [`CA.md`](../CA.md) §204 has what was measured.
+
 So save and merge a paired database only in KeePass with the plugin in it, and after any change
-made anywhere else, look at this list, the Profiles page and the Certificate Authority page.
+made anywhere else, look at this list, the Profiles page and the Certificate Authority page. After
+a save in a program that deletes rules, also look at the
+[**KPG** tab](access-control.md#where-the-rules-go) of every group and entry that had rules: the
+**Rules** column on the Profiles page counts, for each profile, the groups and entries left with a
+rule for it.
 
 **Nor is anything here managed from KeePass's own Database Maintenance dialog.** Its **Plugin Data**
 tab lists what the plugin keeps, each revocation's mark among it, and deletes a row on request.

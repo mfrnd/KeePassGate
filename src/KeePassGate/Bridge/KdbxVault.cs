@@ -2120,6 +2120,12 @@ namespace KeePassGate.Bridge
         /// read. Making the destination unreachable closes that without asking anybody to write a
         /// rule for it, and it is right on its own account: the bin holds what the operator decided
         /// they were finished with.
+        ///
+        /// **The bin is the group `RecycleBinUuid` names when this is asked, and no other group.**
+        /// A synchronize or an import keeps one copy's choice of bin and leaves a group that was a
+        /// bin, in either copy, as an ordinary group. Nothing here remembers that it was a bin, so
+        /// what was removed into it is reached under the rules where it sits, and `DESIGN.md` §138
+        /// leaves closing that to the operator, in KeePass.
         /// </remarks>
         internal static bool Discarded(PwGroup group, PwGroup bin)
         {

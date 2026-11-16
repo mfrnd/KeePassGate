@@ -2206,7 +2206,8 @@ may not read into a group where a rule at the root may well let it read what it 
 **The recycle bin is therefore off limits to this API.** It is not listed, not readable, not
 writable and not addressable: a request naming it is answered the way any other node the rules
 refuse is answered, with the 404 that tells a client nothing about what is there. That closes the
-relocation path, because what a removal moves an entry into is somewhere no client can reach.
+relocation path, because what a removal moves an entry into is somewhere no client can reach, for
+as long as that group is the bin, which a merge can end, below.
 
 It is the right answer for a second reason, which would hold even without the escalation. The bin is
 where the operator's own deletions land, and it is the one place in the database whose contents are
@@ -2225,16 +2226,32 @@ operator makes agent removals final.
 Two consequences to keep in mind rather than to fix. A removal through the API is not destruction
 while the database keeps a bin, so an operator who wants agent removals to be final turns the bin off
 in KeePass's own settings, which is a KeePass decision rather than one this plugin should make for
-them. And an entry that goes into the bin leaves the reach of every rule, so its rule is no longer
-consulted for anything: recovering it is the operator's job, in KeePass, where they can see it.
+them. And an entry that goes into the bin leaves the reach of every rule while that group stays the
+bin, so its rule is no longer consulted for anything: recovering it is the operator's job, in
+KeePass, where they can see it.
 
-**One case reopens the question, and it is refused rather than repaired.** A database that has never
-had a bin gets one the first time something is removed, and the database settings dialog holds a copy
-of that choice from the moment it opens: a bin made underneath it is undone by its OK, which would
-leave the entry sitting in a group that no longer is one. So a removal that would make the first bin
-is refused with `503 busy` while that dialog is open, the way every other write a dialog would take
-back is refused. A database that already has a bin is unaffected, because the dialog is putting back
-the same answer it copied.
+**A dialog reopens the question, and that is refused rather than repaired.** A database that has
+never had a bin gets a bin the first time something is removed, and the database settings dialog
+holds a copy of that choice from the moment it opens: a bin made underneath it is undone by its OK,
+which would leave the entry sitting in a group that is no longer the bin. So a removal that would
+make the first bin is refused with `503 busy` while that dialog is open, the way every other write
+a dialog would take back is refused. A database that already has a bin is unaffected, because the
+dialog is putting back the same answer it copied.
+
+**A merge reopens it as well, and nothing refuses or repairs that.** The bin is the group
+`RecycleBinUuid` names in the database the plugin holds, read when a request is served, and nothing
+else marks a group as the bin. A synchronize or an import keeps a single `RecycleBinUuid`: it takes
+the other copy's only when that copy's `RecycleBinChanged` is later, or under an import that
+overwrites existing data, and it never brings two bins together. KeePass stamps `RecycleBinChanged`
+when the operator changes the bin in Database Settings and not when it makes a bin, so two copies
+that each made a bin tie, and the copy synchronized into keeps its own. Either way the group that
+loses, the other copy's bin or this copy's own, stays in the tree as an ordinary group, and
+everything removed into it, the operator's deletions as much as a client's, is reached under
+whatever rule reaches it where it sits. An import that gives what it brings new identifiers brings
+the other database's bin in the same way. The plugin remembers no group as having been a bin, so it
+cannot tell such a group from any other, and the operator closes the path in KeePass: after a
+synchronize or an import, the operator checks which group Database Settings names as the bin and
+empties or deletes every other group that was a bin, as `docs/access-control.md` asks.
 
 ## What would falsify the design §131
 

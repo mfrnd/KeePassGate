@@ -317,9 +317,28 @@ profile list among them, stamped, where the file keeps times, with the time of t
 later synchronize in KeePass takes as the newest. A group both copies hold keeps the rules of the
 database merged into, however the other copy changed them, and takes the newer of the two times,
 so a narrowing made in the other copy is lost without looking older. Merging the other way, the
-paired database into an older copy, gives that copy the paired database's keys. Nothing here
-detects any of it. After any change made outside KeePass, the clients page, the Profiles page and
-the authority are where to look.
+paired database into an older copy, gives that copy the paired database's keys.
+
+**Android programs that open KDBX 4 files were measured on the same branch**, in an emulator of
+Android 11: Keepass2Android 1.15-r6 and 1.08d-r5, KeePassDX 4.5.8, 3.2.0 and 3.3.0, and
+KeePassDroid 2.7. No save and no merge in any of them removed a key from the database's custom
+data, so a revocation and a retirement hold there. **A save in KeePassDroid 2.7 deletes the rules
+on every group and entry, and a save in KeePassDX 3.2.0 or 3.3.0 the rules on every group**,
+without moving the modification time of the group or entry, so nothing on the node shows that its
+rules went. A save in KeePassDX 4.5.8 keeps the rules and the times, and a save in Keepass2Android
+keeps the rules and drops the times, as a save in KeePass 2.47 does. A Keepass2Android merge gives
+a key both copies hold the value of the copy that is open unless the arriving copy's settings were
+changed later, so the admission record and the profile list went back to the older copy's values
+whenever the older copy was the open copy or arrived with the later settings. A KeePassDX merge,
+in 4.5.8 and 3.2.0, puts the arriving copy's rules on a group or an entry whichever copy is newer,
+so an older, wider rule arrives under the newer time. KeePassDroid 2.7 showed no merge to run. A
+group or an entry whose rules went answers each profile with the nearest rule above it, or refuses
+a profile no rule above names, and its **Refuse any profile not named here** check mark goes with
+the rules, so wherever they narrowed what a group above grants, a client now reaches more.
+
+Nothing here detects any of it. After any change made outside KeePass, the clients page, the
+Profiles page and the authority are where to look, and after a save in a program that deletes
+rules, the rules on every group and entry that had any.
 
 **KeePass's own Database Maintenance dialog lists every one of these keys on its Plugin Data tab,
 and deletes any of them on request.** None of that is a way to manage what this plugin keeps.
