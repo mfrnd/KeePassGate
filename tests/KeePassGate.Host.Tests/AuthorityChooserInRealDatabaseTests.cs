@@ -60,7 +60,7 @@ namespace KeePassGate.Host.Tests
             _owner = new Form();
             _prompt = new TellingPrompt();
             _chooser = new AuthorityChooser(
-                new NoEvents(), _targets, _writer, _owner, null, null, _prompt, null, NullGateLog.Instance);
+                new NoEvents(), _targets, _writer, _owner, null, _prompt, null, NullGateLog.Instance);
 
             _asked = 0;
             _answer = null;
@@ -112,7 +112,7 @@ namespace KeePassGate.Host.Tests
             // The tab, or another save, can decide it between the notice and the question.
             var log = new LinesLog();
             var chooser = new AuthorityChooser(
-                new NoEvents(), _targets, _writer, _owner, null, null, _prompt, null, log);
+                new NoEvents(), _targets, _writer, _owner, null, _prompt, null, log);
             chooser.AskWhichToKeep = (choice, name) =>
             {
                 _asked++;
@@ -231,7 +231,7 @@ namespace KeePassGate.Host.Tests
                     NullGateLog.Instance);
                 var asked = 0;
                 var chooser = new AuthorityChooser(
-                    new NoEvents(), targets, _writer, _owner, null, null, _prompt, null, NullGateLog.Instance)
+                    new NoEvents(), targets, _writer, _owner, null, _prompt, null, NullGateLog.Instance)
                 {
                     After = Waited,
                     AskWhichToKeep = (choice, name) =>
@@ -291,13 +291,20 @@ namespace KeePassGate.Host.Tests
         public void A_choice_the_writer_refuses_for_a_moment_is_kept_without_asking_again()
         {
             // Another client's write, or KeePass saving: over in a moment, and not something the
-            // operator should have to choose again for. Tried again for a few seconds first.
+            // operator should have to choose again for. Tried again for a few seconds first. It
+            // begins once the question is answered, since the question waits for a KeePass that
+            // is already busy.
             var refusals = 2;
             var writer = new DatabaseWriter(
-                CurrentThread.Instance, database => { }, () => refusals-- > 0 ? "KeePass is saving" : null, null, null,
-                _dialogs, NullGateLog.Instance);
+                CurrentThread.Instance,
+                database => { },
+                () => _asked > 0 && refusals-- > 0 ? "KeePass is saving" : null,
+                null,
+                null,
+                _dialogs,
+                NullGateLog.Instance);
             var chooser = new AuthorityChooser(
-                new NoEvents(), _targets, writer, _owner, null, null, _prompt, null, NullGateLog.Instance)
+                new NoEvents(), _targets, writer, _owner, null, _prompt, null, NullGateLog.Instance)
             {
                 After = Waited,
                 AskWhichToKeep = (choice, name) =>
@@ -322,11 +329,17 @@ namespace KeePassGate.Host.Tests
         {
             // The retries above wait on timers of KeePass's thread. One still waiting when KeePass
             // let the plugin go ticked at the next pump, tried to keep the authority for a plugin
-            // that had gone and told the operator it was not kept.
+            // that had gone and told the operator it was not kept. KeePass is busy from the moment
+            // the question is answered, since the question waits for a KeePass already busy.
             var tries = 0;
             var writer = new DatabaseWriter(
                 CurrentThread.Instance, database => { }, () =>
                 {
+                    if (_asked == 0)
+                    {
+                        return null;
+                    }
+
                     tries++;
                     return "KeePass is saving";
                 }, null, null, _dialogs, NullGateLog.Instance);
@@ -337,9 +350,13 @@ namespace KeePassGate.Host.Tests
 
                 // Disposed twice, by the test and by the `using`, which a dispose has to take.
                 using (var chooser = new AuthorityChooser(
-                           new NoEvents(), _targets, writer, owner, null, null, _prompt, null, NullGateLog.Instance)
+                           new NoEvents(), _targets, writer, owner, null, _prompt, null, NullGateLog.Instance)
                        {
-                           AskWhichToKeep = (choice, name) => _candidates[0]
+                           AskWhichToKeep = (choice, name) =>
+                           {
+                               _asked++;
+                               return _candidates[0];
+                           }
                        })
                 {
                     chooser.AskAll();
@@ -363,9 +380,12 @@ namespace KeePassGate.Host.Tests
         [Test]
         public void KeePass_busy_with_something_of_its_own_is_waited_for_rather_than_asked_through()
         {
-            var chooser = new AuthorityChooser(
-                new NoEvents(), _targets, _writer, _owner, () => "KeePass is synchronizing", null, _prompt, null,
+            // The writer's own question, which is what the answer would be refused on.
+            var writer = new DatabaseWriter(
+                CurrentThread.Instance, database => { }, () => "KeePass is synchronizing", null, null, _dialogs,
                 NullGateLog.Instance);
+            var chooser = new AuthorityChooser(
+                new NoEvents(), _targets, writer, _owner, null, _prompt, null, NullGateLog.Instance);
             chooser.AskWhichToKeep = (choice, name) =>
             {
                 _asked++;
@@ -378,6 +398,40 @@ namespace KeePassGate.Host.Tests
             }
 
             Assert.That(_asked, Is.Zero);
+        }
+
+        [Test]
+        public void KeePass_s_progress_window_is_waited_for_rather_than_asked_under()
+        {
+            // A synchronize shown in KeePass's status dialog pumps with that window open before
+            // it blocks interaction, and the writer refuses every choice while the window stands:
+            // the question was put over a synchronize that had not merged, for an answer that
+            // could not be written.
+            _answer = _candidates[0];
+
+            using (var window = new StatusProgressForm())
+            {
+                window.InitEx("Synchronizing", true, false, null);
+                GlobalWindowManager.AddWindow(window);
+
+                try
+                {
+                    _chooser.AskAll();
+
+                    Assert.That(_asked, Is.Zero, "nobody is asked while the answer would be refused");
+                }
+                finally
+                {
+                    GlobalWindowManager.RemoveWindow(window);
+                }
+            }
+
+            // The round a moment later, with the synchronize over.
+            _chooser.AskAll();
+
+            Assert.That(_asked, Is.EqualTo(1));
+            Assert.That(_prompt.Told, Is.Null);
+            Assert.That(_database.Database.CustomData.Exists(AuthorityKeys.RetirementKey(_candidates[1])), Is.True);
         }
 
         [Test]
@@ -455,7 +509,7 @@ namespace KeePassGate.Host.Tests
 
             var tries = 0;
             var chooser = new AuthorityChooser(
-                new NoEvents(), _targets, writer, _owner, null, null, _prompt, null, NullGateLog.Instance)
+                new NoEvents(), _targets, writer, _owner, null, _prompt, null, NullGateLog.Instance)
             {
                 AskWhichToKeep = (choice, name) => _candidates[0],
                 After = (delay, work) =>

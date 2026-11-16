@@ -17,6 +17,14 @@ none, since it releases both.
   unloading the plugin. The picker is now let go of a message later, and what it held is dropped,
   since the dialog it was for has closed. An operator's own ways of leaving the dialog, a press
   outside the picker or Alt and F4, close the picker first and never reached this.
+- **The window asking which authority to keep waits for a synchronize to end.** A synchronize
+  that a trigger starts as KeePass opens its first database is shown in KeePass's progress
+  window, which pumps before KeePass blocks its own interaction, and the window was put up
+  there: over a synchronize that had not merged, with no main window on the screen, for an
+  answer the plugin then refused because of the progress window, and gave up on with a message
+  when the synchronize went on for a few seconds more. The window now waits on the same answer
+  about KeePass that the write of its answer is refused on, so it opens once the synchronize is
+  over. `CA.md` §204.
 - **The plugin is built against KeePass 2.62 and needs that release or a later release.** It
   was built against 2.61.1. A plugin loads in the KeePass it was built against and in every
   later release, since a KeePass redirects every earlier version to itself, and in no earlier

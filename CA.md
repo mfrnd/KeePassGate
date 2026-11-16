@@ -277,6 +277,16 @@ closes a pairing or a renewal dialog and for their reason: KeePass locks under a
 does not register, and this dialog lists every authority's clients. An answer given as the lock
 lands is not written, and the unlock asks again.
 
+**The dialog waits for whatever would refuse its answer.** The question is posted at the open and
+at the save, and it used to be held back by KeePass's two signals alone, `DESIGN.md` §119, on the
+reading that a synchronize blocks interaction from its start. A synchronize shown in KeePass's
+status dialog does not: that dialog opens the progress window, which pumps, before it raises the
+block, and KeePass uses it for a synchronize a trigger starts while the first database opens. The
+question was delivered there, over a synchronize that had not merged and with no main window on
+the screen, and its answer was refused for the progress window. So the question waits on the
+writer's own answer about KeePass, the progress window included, which is the answer the write is
+refused on, and the two cannot differ.
+
 **Copies that keep different authorities retire every authority.** Each copy asks on its own, and
 the last requests it shows come from that machine's own audit, so copies asked before any answer is
 synchronized can each keep a different authority. Each answer retires every authority it did not

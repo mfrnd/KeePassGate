@@ -18,7 +18,8 @@ namespace KeePassGate.Bridge
     ///
     /// **Nothing KeePass announces is that question.** `MainForm.UIIsInteractionBlocked` is raised
     /// around a synchronize and an import, and around every save as well, during which the tree
-    /// stands still and a read is welcome. The progress window is XML Replace's alone. A merge a
+    /// stands still and a read is welcome. The progress window is XML Replace's, and a
+    /// synchronize's or an import's only where KeePass shows them in its status dialog. A merge a
     /// plugin runs raises neither, and `PwDatabase` keeps no flag for the passes that add and
     /// overwrite.
     ///

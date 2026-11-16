@@ -23,6 +23,15 @@ namespace KeePassGate.Bridge
     /// the middle of an operation that has not finished writing its own state. A connection never
     /// raises it. One that meets the state answers `503 undecided` and nothing more.
     ///
+    /// **Posting does not always arrive after the operation, so the question also waits for the
+    /// writer's own answer about KeePass**, `IWriterState.Interrupting`, which is what the write
+    /// of the answer is refused on. A synchronize shown in KeePass's status dialog, as every
+    /// synchronize a trigger starts while KeePass opens its first database is, pumps with its
+    /// progress window open before it blocks interaction, and the post made at the open is
+    /// delivered there. Asked about KeePass's two signals alone, the question was put over a
+    /// synchronize that had not merged, with no main window on the screen, for an answer the
+    /// writer then refused.
+    ///
     /// **Once per database at a time, and once per state.** `OpenDatabaseTargets.Unasked` marks a
     /// state as asked when it hands the database out, so a Cancel is not answered by the same
     /// question a moment later; and a database already being asked about is not asked twice at
@@ -69,7 +78,6 @@ namespace KeePassGate.Bridge
         private readonly OpenDatabaseTargets _targets;
         private readonly DatabaseWriter _writer;
         private readonly Control _owner;
-        private readonly Func<string> _busy;
         private readonly Func<string> _auditPath;
         private readonly IOperatorPrompt _prompt;
         private readonly GateIncidents _incidents;
@@ -95,7 +103,6 @@ namespace KeePassGate.Bridge
             OpenDatabaseTargets targets,
             DatabaseWriter writer,
             Control owner,
-            Func<string> busy,
             Func<string> auditPath,
             IOperatorPrompt prompt,
             GateIncidents incidents,
@@ -125,7 +132,6 @@ namespace KeePassGate.Bridge
             _targets = targets;
             _writer = writer;
             _owner = owner;
-            _busy = busy;
             _auditPath = auditPath;
             _prompt = prompt ?? new MessageBoxPrompt();
             _log = log ?? NullGateLog.Instance;
@@ -186,7 +192,9 @@ namespace KeePassGate.Bridge
         /// </summary>
         public void AskAll()
         {
-            var busy = Busy();
+            // The writer's own question about KeePass, the progress window among its answers, so
+            // that what holds the question back and what refuses its answer cannot differ.
+            var busy = ((IWriterState)_writer).Interrupting();
             if (busy != null)
             {
                 // Asked again shortly rather than now, because a choice made now would be refused
@@ -481,23 +489,6 @@ namespace KeePassGate.Bridge
         private IDictionary<string, DateTimeOffset> LastSeen(ICollection<string> clients)
         {
             return JsonLinesAudit.LastSeen(_auditPath == null ? null : _auditPath(), clients);
-        }
-
-        private string Busy()
-        {
-            if (_busy == null)
-            {
-                return null;
-            }
-
-            try
-            {
-                return _busy();
-            }
-            catch (Exception error) when (Expected.OfUserInterface(error))
-            {
-                return "KeePass could not be asked whether it is in the middle of something: " + error.Message;
-            }
         }
 
         /// <summary>Asks again once, a moment from now.</summary>

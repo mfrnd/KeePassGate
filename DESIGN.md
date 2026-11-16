@@ -1353,7 +1353,8 @@ So the rules here:
   forty entries, a read asked for at the merge's first step was answered inside it, with none
   of the forty. Nothing KeePass announces is that question. `MainForm.UIIsInteractionBlocked`
   is raised around a synchronize and an import and around every save as well, where a read is
-  welcome; the progress window is XML Replace's alone; a merge another plugin runs raises
+  welcome; the progress window is XML Replace's, and a synchronize's or an import's only where
+  KeePass shows them in its status dialog; a merge another plugin runs raises
   neither. **So the queue looks for the merge where it cannot be missed, on the stack of
   KeePass's own thread**: every merge KeePass runs ends in the one method, whose body is far too
   long to be compiled into its caller, so a thread inside it has its frame, and `MergeWatch`
@@ -1502,7 +1503,13 @@ So the rules here:
   progress window as its status logger, and that window pumps on every step of the merge. A group
   created under the root there makes the merge throw out of `ApplyDeletions`, with the write's own
   save already on the disk. So the dialog watch also answers whether that window is open, and the
-  writer asks it after KeePass's two signals. **Reads are not refused by it**, since
+  writer asks it after KeePass's two signals. **And a merge shown in KeePass's status dialog
+  raises its block late**: a synchronize or an import with `ShowImportStatusDialog` set, and any
+  that runs before KeePass's main window has loaded, opens that same progress window first, which
+  pumps as it starts logging, and blocks interaction only after, so for those pumps the window is
+  the only sign of them as well. The question of which authority to keep, which is posted rather
+  than queued, was delivered there, and waits on the writer's whole answer for that reason,
+  `CA.md` §204. **Reads are not refused by it**, since
   every one of these hazards is a write: what keeps a read out of a merge is the queue's own
   look at the thread, above. **And a database with unsaved changes is not refused
   either**: an API write still saves what is in memory, the operator's own edits included, which is
