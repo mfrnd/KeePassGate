@@ -15,15 +15,16 @@ just approved.
 | | |
 | --- | --- |
 | **Client** | the name the program asked to be called when it paired |
-| **Profiles** | the profiles approved for it, which is what its rules are worked out from. One this database no longer names is dimmed and marked "(removed)": the client still holds it, and it grants nothing unless the name is added back |
+| **Profiles** | the profiles approved for it, which is what its rules are worked out from. A profile this database no longer names is dimmed and marked "(removed)": the client still holds it, and it grants nothing unless the name is added back. A name too long for the column ends in "...", and the row's tooltip holds it whole |
 | **Admitted (UTC)** | when it was approved, to the second |
 | **Until (UTC)** | when its certificate stops working, or why it does not work at all |
 | **X** | takes this client's admission away |
 
-**Resting the pointer on a row names its keys in full**: the **client key**, which is the
-fingerprint of the certificate the client paired with and stays the same through every renewal, and
-the **certificate**, the fingerprint of the one this row admits. The [audit file](audit.md) names
-both on every line, as `clientKey` and `admissionKey`. A name is the program's own choice and need not be unique, so
+**Resting the pointer on a row names its profiles and its keys in full**: each profile as the row
+marks it, the **client key**, which is the fingerprint of the certificate the client paired with
+and stays the same through every renewal, and the **certificate**, the fingerprint of the
+certificate this row admits. The [audit file](audit.md) names both on every line, as `clientKey` and
+`admissionKey`. A name is the program's own choice and need not be unique, so
 two rows under one name are either one client that [renewed](#expiry) and still holds its older
 certificate, both rows with one client key, or two programs that chose the same name, such as one
 program on two machines, with two. Every count of clients on these pages counts client keys, and a

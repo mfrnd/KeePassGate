@@ -686,11 +686,15 @@ namespace KeePassGate.Tests
             return tip.Replace(Tooltips.LeftToRightMark.ToString(), string.Empty);
         }
 
-        /// <summary>What a row's tooltip holds, without the marks: the name, the answer, if any, and the two keys.</summary>
+        /// <summary>
+        /// What a row's tooltip holds, without the marks: the name, the answer, if any, the
+        /// profiles, none of them removed, and the two keys.
+        /// </summary>
         private static string Keys(string answer, AdmissionRecord record)
         {
             return ClientList.Describe(record) + Environment.NewLine
                    + (answer == null ? string.Empty : answer + Environment.NewLine)
+                   + string.Concat(record.Profiles.Select(profile => "Profile " + profile + Environment.NewLine))
                    + "Client key " + record.ClientKey + Environment.NewLine
                    + "Certificate " + record.AdmissionKey;
         }
@@ -739,6 +743,175 @@ namespace KeePassGate.Tests
                 Assert.That(Held(list, 0), Is.EqualTo(new[] { "reader", "ops" }),
                     "a list nobody was asked about marks nothing");
             }
+        }
+
+        [Test]
+        public void Every_profile_a_row_holds_is_named_whole_in_its_tooltip()
+        {
+            // A profile name may be as long as `Longest`, and the column is about sixteen
+            // characters wide on the settings page, so a name is cut there. The tooltip is where it
+            // is read whole, marked as removed where it is, because the row is where the operator
+            // looks to see what revoking the client takes away.
+            var record = Record("agent-fictitious", Longest, "ops");
+
+            using (var list = new ClientList(Allows))
+            {
+                list.Fill(new AdmissionListing(new[] { record }, true), null, new[] { "ops" });
+
+                var tip = Plain(Grid(list).Rows[0].Cells[1].ToolTipText)
+                    .Split(new[] { Environment.NewLine }, StringSplitOptions.None);
+
+                Assert.That(tip, Does.Contain("Profile " + Longest + ClientList.RemovedSuffix), string.Join(" | ", tip));
+                Assert.That(tip, Does.Contain("Profile ops"), string.Join(" | ", tip));
+            }
+        }
+
+        [Test]
+        [Apartment(System.Threading.ApartmentState.STA)]
+        [NonParallelizable]
+        [Desktop]
+        public void A_profile_after_a_name_wider_than_its_column_is_drawn_in_the_row()
+        {
+            // The grid sized the row a line per profile, since a name has no space to fold at,
+            // and then drew the list folded into the column: the long name took more lines than
+            // it was given, and `ops` after it went below the row, where nobody could see that
+            // the client holds it. Shown, so it runs alone and holds the desktop.
+            Drawn(Record("agent-fictitious", Longest, "ops"), null, (picture, text, line, font) =>
+            {
+                Assert.That(text.Height, Is.GreaterThanOrEqualTo(2 * line).And.LessThan(3 * line),
+                    "the row is not a line per profile");
+                Assert.That(Ink(picture, Band(text, line, 0)), Is.Not.Null, "the long name is not drawn");
+                AssertDrawn(picture, Band(text, line, 1), "ops", font, SystemColors.WindowText);
+            });
+        }
+
+        [Test]
+        [Apartment(System.Threading.ApartmentState.STA)]
+        [NonParallelizable]
+        [Desktop]
+        public void A_removed_name_wider_than_its_column_keeps_its_mark_whole()
+        {
+            // The mark is what tells the operator the name grants nothing, so it is the part that
+            // may not be cut: the name is cut where it has to be, and the mark goes on the next
+            // line, where the grid already gave it room when it sized the row.
+            Drawn(Record("agent-fictitious", Longest, "ops"), new[] { "ops" }, (picture, text, line, font) =>
+            {
+                Assert.That(text.Height, Is.GreaterThanOrEqualTo(3 * line).And.LessThan(4 * line),
+                    "the row is not a line each for the name, its mark and ops");
+                Assert.That(Ink(picture, Band(text, line, 0)), Is.Not.Null, "the long name is not drawn");
+                AssertDrawn(picture, Band(text, line, 1), ClientList.RemovedSuffix.Trim(), font, SystemColors.GrayText);
+                AssertDrawn(picture, Band(text, line, 2), "ops", font, SystemColors.WindowText);
+            });
+        }
+
+        /// <summary>
+        /// The longest name a profile may have, with no space in it for a line to fold at.
+        /// </summary>
+        private static readonly string Longest = "a-profile-named-at-the-greatest-length-" + new string('x', 25);
+
+        /// <summary>
+        /// The one row of a list holding this record, drawn at the size of the settings page with
+        /// nothing selected, handed over as a picture of the grid, the rectangle the profiles cell
+        /// draws its text in, the height of one line of it and its font.
+        /// </summary>
+        private static void Drawn(
+            AdmissionRecord record, ICollection<string> named, Action<Bitmap, Rectangle, int, Font> look)
+        {
+            Assert.That(Longest.Length, Is.EqualTo(64));
+            Assert.That(AuthorityIssuer.IsUsableProfileName(Longest), Is.True);
+
+            using (var form = Fakes.OffScreenForm.New())
+            using (var list = new ClientList(Allows) { Dock = DockStyle.Fill })
+            {
+                form.ClientSize = Gallery.Gallery.SettingsPage;
+                form.Controls.Add(list);
+                form.Show();
+                list.Fill(new AdmissionListing(new[] { record }, true), null, named);
+                Fakes.OffScreenForm.Pump();
+
+                var grid = Grid(list);
+                grid.ClearSelection();
+                Fakes.OffScreenForm.Pump();
+
+                var style = grid.Rows[0].Cells[1].InheritedStyle;
+                var cell = grid.GetCellDisplayRectangle(1, 0, false);
+                Assert.That(cell.Width, Is.GreaterThan(0), "the cell was never laid out");
+
+                // Where a wrapping text box cell draws: inside the border it owns on the right and
+                // at the bottom, inside the padding, a pixel down and a pixel short of the border.
+                var text = new Rectangle(
+                    cell.Left + style.Padding.Left,
+                    cell.Top + style.Padding.Top + 1,
+                    cell.Width - 1 - style.Padding.Horizontal,
+                    cell.Height - 1 - style.Padding.Vertical - 2);
+
+                using (var picture = new Bitmap(grid.Width, grid.Height))
+                {
+                    grid.DrawToBitmap(picture, new Rectangle(Point.Empty, grid.Size));
+                    look(picture, text, TextRenderer.MeasureText("ops", style.Font).Height, style.Font);
+                }
+
+                form.Controls.Remove(list);
+            }
+        }
+
+        /// <summary>The band of a cell's text one line holds, counted from the top.</summary>
+        private static Rectangle Band(Rectangle text, int line, int index)
+        {
+            return new Rectangle(text.Left, text.Top + (index * line), text.Width, line);
+        }
+
+        /// <summary>
+        /// Asserts that a band holds this text and nothing else: drawn from its left edge, and as
+        /// wide as the same text drawn alone in the same font and color.
+        /// </summary>
+        private static void AssertDrawn(Bitmap picture, Rectangle band, string text, Font font, Color color)
+        {
+            var drawn = Ink(picture, band);
+            Assert.That(drawn, Is.Not.Null, "nothing is drawn where \"" + text + "\" belongs");
+
+            int[] alone;
+            var size = TextRenderer.MeasureText(text, font);
+            using (var reference = new Bitmap(size.Width, size.Height))
+            {
+                using (var canvas = Graphics.FromImage(reference))
+                {
+                    canvas.Clear(SystemColors.Window);
+                    TextRenderer.DrawText(canvas, text, font, Point.Empty, color, SystemColors.Window, TextFormatFlags.NoPrefix);
+                }
+
+                alone = Ink(reference, new Rectangle(Point.Empty, reference.Size));
+            }
+
+            Assert.That(drawn[0] - band.Left, Is.EqualTo(alone[0]).Within(1),
+                "\"" + text + "\" does not start where its line does");
+            Assert.That(drawn[1] - drawn[0], Is.EqualTo(alone[1] - alone[0]).Within(1),
+                "what is drawn where \"" + text + "\" belongs is not that text, whole");
+        }
+
+        /// <summary>
+        /// The first and last columns of a band that hold anything darker than the paper, or null
+        /// when the band is empty.
+        /// </summary>
+        private static int[] Ink(Bitmap picture, Rectangle band)
+        {
+            band.Intersect(new Rectangle(Point.Empty, picture.Size));
+
+            int[] found = null;
+            for (var x = band.Left; x < band.Right; x++)
+            {
+                for (var y = band.Top; y < band.Bottom; y++)
+                {
+                    var pixel = picture.GetPixel(x, y);
+                    if (((pixel.R + pixel.G + pixel.B) / 3) < 224)
+                    {
+                        found = found == null ? new[] { x, x } : new[] { found[0], x };
+                        break;
+                    }
+                }
+            }
+
+            return found;
         }
 
         [Test]

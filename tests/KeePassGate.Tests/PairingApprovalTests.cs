@@ -151,6 +151,70 @@ namespace KeePassGate.Tests
         }
 
         [Test]
+        [TestCase(1.00f)]
+        [TestCase(2.00f)]
+        public void A_profile_as_long_as_a_name_may_be_is_listed_whole_with_its_mark(float scaling)
+        {
+            // The client chooses its profile names, up to sixty-four letters, digits, hyphens and
+            // underscores, and the list was as wide as a line of the dialog's text. A row of wide
+            // letters ran past its edge, and the mark after the name, the one thing on screen
+            // telling the operator that approving adds the name or gives it back to other
+            // clients, was the part that was cut.
+            var added = new string('W', 64);
+            var returned = "W-" + new string('W', 62);
+
+            using (var authority = TestAuthority.New())
+            using (var holder = authority.IssueClient("ci-runner"))
+            using (var larger = Scaled(Control.DefaultFont, scaling))
+            {
+                var request = new PairingRequest(
+                    "aaaabbbbccccdddd", "Invented Vault", "abcdef01", "agent-fictitious",
+                    new[] { "reader", added, returned }, new[] { "reader" }, "127.0.0.1:60001",
+                    new Dictionary<string, IReadOnlyList<AdmissionRecord>>
+                    {
+                        { returned, new[] { AdmissionRecord.For(holder, DateTimeOffset.UtcNow, new[] { returned }) } }
+                    });
+
+                using (var dialog = new PairingApprovalForm(request, Timeout, larger))
+                {
+                    dialog.CreateControl();
+                    dialog.PerformLayout();
+
+                    var list = Profiles(dialog);
+                    Assert.That(list.Items.Cast<string>(), Is.EqualTo(new[]
+                    {
+                        "reader", added + PairingApprovalForm.NewSuffix, returned + PairingApprovalForm.RemovedSuffix
+                    }));
+
+                    ListedWhole(list);
+
+                    var approve = Button(dialog, GateTab.ApproveButtonName);
+                    Assert.That(InDialog(approve, dialog).Right, Is.EqualTo(InDialog(list, dialog).Right),
+                        "the buttons do not end where the list does at " + scaling);
+                    Assert.That(InDialog(list, dialog).Right, Is.LessThanOrEqualTo(Asked(dialog).Width),
+                        "the list is off the side of the dialog at " + scaling);
+                    Assert.That(dialog.PreferredSize.Width, Is.LessThanOrEqualTo(SmallestScreenWidth * scaling),
+                        "the dialog is wider than the smallest screen at " + scaling);
+                }
+            }
+        }
+
+        /// <summary>
+        /// Asserts that every row of a list of check boxes is drawn whole: its text, measured as a
+        /// list box draws it, fits beside a check box no wider than the row is tall.
+        /// </summary>
+        internal static void ListedWhole(CheckedListBox list)
+        {
+            foreach (var row in list.Items.Cast<string>())
+            {
+                var width = TextRenderer.MeasureText(row, list.Font).Width;
+                Assert.That(list.ItemHeight + width, Is.LessThanOrEqualTo(list.ClientSize.Width),
+                    "\"" + row + "\" is " + width + " pixels beside a check box of " + list.ItemHeight
+                    + " in a list " + list.ClientSize.Width + " wide");
+            }
+        }
+
+        [Test]
         public void The_dialog_grows_with_the_font_rather_than_clipping()
         {
             // The other half of the same claim: the window is sized by what is in it, so a larger

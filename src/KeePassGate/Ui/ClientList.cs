@@ -815,10 +815,11 @@ namespace KeePassGate.Ui
                 // that ran along a column narrow enough to need reading twice, and a profile that
                 // wrapped mid-name read as two. A line each is the shape of the thing: a list.
                 //
-                // The row grows to hold them rather than the list being cut, and the cells are
-                // read across as well as down, so everything in the row starts at the same line:
-                // a name level with the middle of three profiles is a name that looks like it
-                // belongs to the second one.
+                // The row grows a line for each rather than the list being cut. A name wider than
+                // the column keeps its one line and ends in an ellipsis, read whole in the row's
+                // tooltip, as `PaintProfiles` sets out. The cells are read across as well as down,
+                // so everything in the row starts at the same line: a name level with the middle
+                // of three profiles is a name that looks like it belongs to the second one.
                 AutoSizeRowsMode = DataGridViewAutoSizeRowsMode.AllCells
             };
 
@@ -979,7 +980,7 @@ namespace KeePassGate.Ui
         /// tells two clients under one name apart, and the audit file names a certificate by its
         /// whole key. The description a screen reader is told stays the answer alone.
         /// </remarks>
-        private static void Mark(DataGridViewRow row, AdmissionRecord record, RenewalRefusal standing)
+        private void Mark(DataGridViewRow row, AdmissionRecord record, RenewalRefusal standing)
         {
             var answer = AnswerText(standing);
 
@@ -989,7 +990,7 @@ namespace KeePassGate.Ui
                 described.Answer = answer;
             }
 
-            var tip = Tooltips.Wrapped(Identified(record, answer));
+            var tip = Tooltips.Wrapped(Identified(record, answer, Profiles(record)));
             foreach (DataGridViewCell cell in row.Cells)
             {
                 if (cell.ColumnIndex == RevokeColumn)
@@ -1005,8 +1006,8 @@ namespace KeePassGate.Ui
 
         /// <summary>
         /// What a client's row shows when the pointer rests on it: the client's whole name, the
-        /// standing answer, when one stands, then the client key and the certificate's own key,
-        /// each whole on a line.
+        /// standing answer, when one stands, each profile it holds, as its cell shows it, then the
+        /// client key and the certificate's own key, each whole on a line.
         /// </summary>
         /// <remarks>
         /// Broken into lines here, which `Tooltips.Wrapped` leaves as they are, because a key is
@@ -1016,8 +1017,12 @@ namespace KeePassGate.Ui
         /// **The name first**, because the column cuts a long name and a cell with a tip of its own
         /// never shows its cut value whole: two programs named alike but for their last characters
         /// read as the same row, and only a key told them apart.
+        ///
+        /// **And every profile whole**, for the same reason: a profile name may be sixty-four
+        /// characters, which the column ends in an ellipsis, and what the client holds is what the
+        /// operator reads the row for before revoking it.
         /// </remarks>
-        internal static string Identified(AdmissionRecord record, string answer)
+        internal static string Identified(AdmissionRecord record, string answer, IEnumerable<string> profiles)
         {
             var lines = new List<string> { Describe(record) };
             if (answer != null)
@@ -1025,6 +1030,7 @@ namespace KeePassGate.Ui
                 lines.Add(answer);
             }
 
+            lines.AddRange(profiles.Select(profile => "Profile " + profile));
             lines.Add("Client key " + record.ClientKey);
             lines.Add("Certificate " + record.AdmissionKey);
             return string.Join(Environment.NewLine, lines);
@@ -1327,33 +1333,35 @@ namespace KeePassGate.Ui
         }
 
         /// <summary>
-        /// Draws a profiles cell holding a removed name one line at a time, the removed ones in
-        /// gray.
+        /// Draws a profiles cell one profile at a time, the removed ones in gray, a name wider than
+        /// the column ending in an ellipsis and its mark whole.
         /// </summary>
         /// <remarks>
         /// A cell has one color, and the point is that a row holding `reader` and a removed `ops`
         /// says which of the two still grants anything; the words say it and the gray says it at a
-        /// glance. Drawn only where there is something to dim, so every other cell is the grid's own
-        /// painting and nothing about it can drift from the rest.
+        /// glance.
+        ///
+        /// **Every cell holding a profile is drawn here**, where only a cell holding a removed name
+        /// used to be, and the grid painted the rest. A profile name has no space to fold at, so
+        /// the grid sizes the row a line per profile, and its own painting folds the whole list
+        /// into the column: a name wider than the column took two lines where it was given a
+        /// single line, and every profile after it was drawn below the row, where the operator
+        /// deciding on a revocation could not see that the client holds it. A line at a time,
+        /// each profile gets the lines the grid sized the row for it, so nothing after a long name
+        /// moves.
+        ///
+        /// **The name is what is cut, never the mark.** A name wider than its line ends in an
+        /// ellipsis and the row's tooltip holds it whole; a removed name that does not fit beside
+        /// its mark has the mark on the next line, which is where the grid's measurement put it.
         /// </remarks>
         private void PaintProfiles(DataGridViewCellPaintingEventArgs e)
         {
-            if (e.RowIndex >= _records.Count)
+            if (e.RowIndex >= _records.Count || _records[e.RowIndex].Profiles.Count == 0)
             {
                 return;
             }
 
             var record = _records[e.RowIndex];
-            var any = false;
-            foreach (var profile in record.Profiles)
-            {
-                any |= Removed(profile);
-            }
-
-            if (!any)
-            {
-                return;
-            }
 
             e.Paint(e.ClipBounds, DataGridViewPaintParts.All & ~DataGridViewPaintParts.ContentForeground);
 
@@ -1366,12 +1374,19 @@ namespace KeePassGate.Ui
                 ? ControlPaint.Light(e.CellStyle.SelectionBackColor)
                 : SystemColors.GrayText;
 
-            var flags = TextFormatFlags.Left | TextFormatFlags.Top | TextFormatFlags.WordBreak
-                        | TextFormatFlags.NoPrefix | TextFormatFlags.PreserveGraphicsClipping;
+            // How the grid measured the row, which decides how many lines each profile has.
+            var measured = TextFormatFlags.Left | TextFormatFlags.Top | TextFormatFlags.WordBreak
+                           | TextFormatFlags.NoPrefix | TextFormatFlags.PreserveGraphicsClipping;
+
+            // How each line is drawn: never folded, and cut with an ellipsis where it has to be.
+            var drawn = TextFormatFlags.Left | TextFormatFlags.Top | TextFormatFlags.SingleLine
+                        | TextFormatFlags.EndEllipsis | TextFormatFlags.NoPrefix
+                        | TextFormatFlags.PreserveGraphicsClipping;
 
             // Where a wrapping text box cell draws its text: inside the border it owns on the right
-            // and at the bottom, inside the padding, and one pixel down. Anything narrower wraps a
-            // line the grid sized the row for as one, and the row cuts it off.
+            // and at the bottom, inside the padding, and one pixel down. A line that fits is then
+            // drawn exactly where the grid's own painting drew it, and its measurement agrees with
+            // the grid's about which lines fit.
             var bounds = new Rectangle(
                 e.CellBounds.Left + e.CellStyle.Padding.Left,
                 e.CellBounds.Top + e.CellStyle.Padding.Top + 1,
@@ -1382,22 +1397,35 @@ namespace KeePassGate.Ui
             foreach (var profile in record.Profiles)
             {
                 var removed = Removed(profile);
-                var line = removed ? profile + RemovedSuffix : profile;
+                var color = removed ? dim : ink;
+                var shown = removed ? profile + RemovedSuffix : profile;
                 var height = TextRenderer.MeasureText(
-                    e.Graphics, line, e.CellStyle.Font, new Size(bounds.Width, 0), flags).Height;
+                    e.Graphics, shown, e.CellStyle.Font, new Size(bounds.Width, 0), measured).Height;
+                var line = TextRenderer.MeasureText(
+                    e.Graphics, shown, e.CellStyle.Font, new Size(bounds.Width, 0), drawn).Height;
 
-                TextRenderer.DrawText(
-                    e.Graphics,
-                    line,
-                    e.CellStyle.Font,
-                    new Rectangle(bounds.Left, top, bounds.Width, height),
-                    removed ? dim : ink,
-                    flags);
+                if (removed && height > line)
+                {
+                    // Folded at the only space there is, the space before the mark.
+                    Draw(e, profile, new Rectangle(bounds.Left, top, bounds.Width, line), color, drawn);
+                    Draw(e, RemovedSuffix.Trim(), new Rectangle(bounds.Left, top + line, bounds.Width, height - line),
+                        color, drawn);
+                }
+                else
+                {
+                    Draw(e, shown, new Rectangle(bounds.Left, top, bounds.Width, height), color, drawn);
+                }
 
                 top += height;
             }
 
             e.Handled = true;
+        }
+
+        private static void Draw(
+            DataGridViewCellPaintingEventArgs e, string text, Rectangle where, Color color, TextFormatFlags flags)
+        {
+            TextRenderer.DrawText(e.Graphics, text, e.CellStyle.Font, where, color, flags);
         }
 
         /// <summary>

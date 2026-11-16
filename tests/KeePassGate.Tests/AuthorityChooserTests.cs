@@ -195,6 +195,30 @@ namespace KeePassGate.Tests
         }
 
         [Test]
+        public void A_client_and_its_profiles_are_named_whole_in_its_rows_tooltip()
+        {
+            // A client's name and each of its profiles may be as long as these, which no column
+            // sharing the list's width holds, and the list showed no tooltips at all: the part cut
+            // off was shown nowhere while the operator chose whose clients to keep.
+            var name = "a-client-named-at-the-greatest-length-" + new string('x', 26);
+            var profile = "a-profile-named-at-the-greatest-length-" + new string('x', 25);
+            AdmitUnder(_candidates[1], name, profile, "ops");
+
+            using (var dialog = new AuthorityChooserForm(Choice(null), null))
+            {
+                dialog.Select(_candidates[1]);
+
+                var clients = List(dialog, GateTab.ChooserClientListName);
+                Assert.That(clients.ShowItemToolTips, Is.True, "the list shows no tooltips");
+
+                var tip = clients.Items[0].ToolTipText
+                    .Replace(Tooltips.LeftToRightMark.ToString(), string.Empty)
+                    .Split(new[] { Environment.NewLine }, StringSplitOptions.None);
+                Assert.That(tip, Is.EqualTo(new[] { name, "Profile " + profile, "Profile ops" }));
+            }
+        }
+
+        [Test]
         public void Every_authority_is_a_row_named_by_the_short_fingerprint_the_tab_shows()
         {
             using (var dialog = new AuthorityChooserForm(Choice(null), null))
