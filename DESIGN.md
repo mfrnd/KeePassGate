@@ -1598,8 +1598,13 @@ So the rules here:
   dialog is given the operator's two minutes or what is left of the budget, counted from when the
   request arrived, less what follows the dialog as the budget adds it up, whichever is less: the
   grace of fifteen seconds, the two a busy KeePass is given to settle, and the twenty and thirty of
-  the turn at the writer and the write, sixty-seven seconds in all. The countdown on the dialog
-  starts from the shorter time, so the operator is shown how long they have.
+  the writer's lock and turn, sixty-seven seconds in all. The countdown on the dialog starts from
+  the shorter time, so the operator is shown how long they have. The deadline is dropped before
+  the writer's two waits, where the record is handed to the writer, so the connection outlives
+  them whatever they take; they are set aside all the same because the client counts them, and a
+  client waiting as long as the budget, as the reference client does, is then still waiting when
+  the save begins. Everything ahead of the save ends inside the six minutes, and only the save is
+  left to a longer connection timeout.
 
   **And a dialog left less than thirty seconds is not shown**: the request is answered `503 busy`
   with nothing spent, as a request that never got the screen is. Thirty seconds is enough to read

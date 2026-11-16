@@ -36,9 +36,10 @@ namespace KeePassGate.Tests
             Assert.That(pairing.ApprovalHeld, Is.EqualTo(options.PairingBudget));
 
             // What follows the dialog, as the budget adds it up: the grace the prompt keeps beyond
-            // the dialog, a busy KeePass settling once the operator has approved, and the turn at
-            // the writer and the write. The dialog is given no more than the budget less these, so
-            // the whole of a pairing is inside the budget by construction.
+            // the dialog, a busy KeePass settling once the operator has approved, and the writer's
+            // lock and turn. The deadline is dropped before the writer's two waits, and they are
+            // set aside all the same, so that everything ahead of the save is inside the budget by
+            // construction, which is as long as the reference client waits.
             var afterTheDialog = PairingApprovalPrompt.Grace + pairing.ApprovalSettle
                 + DatabaseWriter.LockTimeout + DatabaseWriter.WriteTimeout;
             Assert.That(pairing.AfterTheDialog, Is.EqualTo(afterTheDialog));

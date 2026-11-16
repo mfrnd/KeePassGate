@@ -1602,12 +1602,13 @@ than an exception to it, since what a pairing waits for ahead of its write is a 
 somebody wrote down: the screen, because one pairing at a time is put to the operator and a second
 waits as long again just to get in front of them, then the dialog and the grace on it, then the
 settling of a busy KeePass. `PairingBudget` is what those are added up against. **A dialog that
-comes up late is given only what is left of it**, once what follows the dialog is set aside, and is
-not shown at all with under thirty seconds left: that reverses giving every dialog its whole two
-minutes, which took the worst case past the budget, `DESIGN.md` §119. `GateOptionsTests` pins the
-floor against the waits. A renewal waits for the same things on the same screen, so the listener
-gives it the same deadline once it has read which request arrived, and its dialog is shortened the
-same way.
+comes up late is given only what is left of it**, once what follows the dialog up to the save is
+set aside, the writer's lock and turn included so that a client waiting the same six minutes is
+still waiting when the save begins, and is not shown at all with under thirty seconds left: that
+reverses giving every dialog its whole two minutes, which took the worst case past the budget,
+`DESIGN.md` §119. `GateOptionsTests` pins the floor against the waits. A renewal waits for the
+same things on the same screen, so the listener gives it the same deadline once it has read which
+request arrived, and its dialog is shortened the same way.
 
 **And both drop it at their write**, through `ConnectionDeadline`, which the handler calls just
 before handing the record to the writer. The write is a save like any other, and the invitation is

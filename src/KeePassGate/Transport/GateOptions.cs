@@ -151,7 +151,9 @@ namespace KeePassGate.Transport
         /// these 360. Now `PairingOptions.DialogLeft` sets aside what follows the dialog,
         /// `PairingOptions.AfterTheDialog`: the grace, `ApprovalSettle` for a busy KeePass to
         /// settle once the operator has approved, and `DatabaseWriter.LockTimeout +
-        /// DatabaseWriter.WriteTimeout` for the write. The dialog is given the rest or
+        /// DatabaseWriter.WriteTimeout` for the writer's lock and turn. Those two run after the
+        /// deadline is dropped and are set aside all the same, so that a client waiting as long
+        /// as this budget is still waiting when the save begins. The dialog is given the rest or
         /// `ApprovalTimeout`, whichever is less, and is not shown with less than
         /// `PairingApprovalPrompt.Shortest` left.
         /// `GateOptionsTests.The_pairing_budget_outlasts_everything_a_pairing_waits_for` keeps that

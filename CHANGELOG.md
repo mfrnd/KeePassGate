@@ -80,9 +80,10 @@ none, since it releases both.
   two minutes however late it came up, which could take the exchange to about seven minutes. The
   gate closes the connection at six, so an approval given that late was written and saved, the
   invitation spent, with no certificate handed back. The countdown on the dialog now starts from the
-  time left once the write after it is allowed for, when that is under two minutes, and a request
-  with under thirty seconds left is answered `503 busy` with nothing spent, as a request that never
-  got the screen is. `DESIGN.md` §119.
+  time left once the waits after it up to the save are allowed for, when that is under two minutes,
+  so a client waiting six minutes is still waiting when the save begins, and a request with under
+  thirty seconds left is answered `503 busy` with nothing spent, as a request that never got the
+  screen is. `DESIGN.md` §119.
 - **The plugin is built against KeePass 2.62 and needs that release or a later release.** It
   was built against 2.61.1. A plugin loads in the KeePass it was built against and in every
   later release, since a KeePass redirects every earlier version to itself, and in no earlier

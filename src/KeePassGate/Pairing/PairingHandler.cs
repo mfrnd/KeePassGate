@@ -67,10 +67,18 @@ namespace KeePassGate.Pairing
         public TimeSpan ApprovalTimeout { get; set; }
 
         /// <summary>
-        /// What a pairing or a renewal still waits for once its dialog has closed, as the pairing
-        /// budget is added up: the grace the prompt keeps beyond the dialog, a busy KeePass
-        /// settling, and the turn at the writer and the write.
+        /// What a pairing or a renewal still waits for once its dialog has closed and before its
+        /// save begins: the grace the prompt keeps beyond the dialog, a busy KeePass settling, and
+        /// the writer's lock and turn.
         /// </summary>
+        /// <remarks>
+        /// **The writer's two waits are set aside although the deadline no longer runs through
+        /// them.** The connection's deadline is dropped where the record is handed to the writer,
+        /// <see cref="Pipeline.ConnectionDeadline"/>, so the gate would wait them out anyway. The
+        /// client is what still counts them: it waits as long as the gate's budget, and with them
+        /// set aside everything ahead of the save ends inside that wait, leaving only the save,
+        /// which no number bounds, to a longer connection timeout.
+        /// </remarks>
         public TimeSpan AfterTheDialog
         {
             get

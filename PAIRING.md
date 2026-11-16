@@ -150,11 +150,11 @@ keeping the deadline until the answer, which rested on the write's own timeouts 
 bound the waits for the writer's lock and turn, and not the save.
 
 **A dialog that comes up late has less than two minutes.** Its countdown starts from what is left
-of the budget once the waits after the dialog are set aside, when that is shorter, so the answer
-still reaches the client inside the budget; with less than thirty seconds left the dialog is not
-shown at all, and the request is answered `503 busy` with nothing spent. That reverses giving every
-dialog its whole two minutes however late it came up, which took the worst case past the budget:
-`DESIGN.md` §119 has the arithmetic.
+of the budget once the waits after the dialog are set aside, when that is shorter, so everything
+ahead of the save, the writer's lock and turn included, still ends inside the budget; with less
+than thirty seconds left the dialog is not shown at all, and the request is answered `503 busy`
+with nothing spent. That reverses giving every dialog its whole two minutes however late it came
+up, which took the worst case past the budget: `DESIGN.md` §119 has the arithmetic.
 
 **Not when the name resolves**, which is earlier and asks for less. The reason for the longer
 budget is that the connection is about to wait on a person, and a connection that has named an
