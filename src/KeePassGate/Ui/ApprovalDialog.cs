@@ -73,7 +73,11 @@ namespace KeePassGate.Ui
         /// True for a close of the dialog's database, whose answer names the close, and false for
         /// a lock.
         /// </param>
-        internal abstract void Withdraw(bool databaseClosed);
+        /// <returns>
+        /// Whether it was still unanswered, so that the withdrawal is its answer, and false for a
+        /// dialog the operator answered first, whose answer stands.
+        /// </returns>
+        internal abstract bool Withdraw(bool databaseClosed);
 
         /// <summary>
         /// Enter and Escape refuse, with Shift or without it, whatever has the focus.

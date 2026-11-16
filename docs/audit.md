@@ -196,11 +196,14 @@ ended that way hands over no certificate, so the program asks again.
 **KeePass never waits for this file.** These lines, and the operator's revocation at **OK**, are
 written while KeePass's own window is busy with the change, so each is handed to a writer of the
 plugin's own at once rather than written there, and a file on slow or unreachable storage costs
-KeePass nothing. The lines still reach the file in the order they happened. Beyond what can stop
-any line being written, below, such a line is lost only if KeePass ends before the writer reaches it.
-Closing KeePass waits two seconds at most for that writer, which on storage that answers is far more
-than it needs, so the lines written as KeePass closes reach the file; on storage that does not
-answer, KeePass closes after those two seconds and the lines still waiting are lost.
+KeePass nothing. So is the `unanswered` line of a pairing or renewal dialog that locking KeePass,
+closing its database or exiting KeePass takes away, which is written as the dialog goes, so that
+an exit under a dialog still leaves the line in the file. The lines still reach the file in the
+order they happened. Beyond what can stop any line being written, below, such a line is lost only
+if KeePass ends before the writer reaches it. Closing KeePass waits two seconds at most for that
+writer, which on storage that answers is far more than it needs, so the lines written as KeePass
+closes reach the file; on storage that does not answer, KeePass closes after those two seconds and
+the lines still waiting are lost.
 
 **Not everything that changes who is admitted is here yet.** Recreating or deleting the authority
 takes every record away and is not written down, and neither is a change to the rules or to the

@@ -411,7 +411,8 @@ namespace KeePassGate.Tests
             Assert.That(context.Status, Is.EqualTo(503));
             Assert.That(context.Json, Is.EqualTo(HttpResponse.ErrorBody(LockedTarget.Error)));
             Assert.That(_book.Outstanding().Count, Is.EqualTo(1));
-            Assert.That(_audit.Entries.Single().Decision, Is.EqualTo(AuditEntry.Unanswered));
+            Assert.That(_audit.Entries, Is.Empty,
+                "the screen that took the question away wrote it down as it did, so the handler writes nothing");
         }
 
         [Test]
@@ -421,7 +422,9 @@ namespace KeePassGate.Tests
             // The operator's ruling of 2026-11-08: the dialog goes with its database, as with a
             // lock, so nothing can be approved over a database that is gone. It is answered as a
             // dialog a lock closed is, unanswered, and the log names the close.
-            var prompt = new KeePassGate.Ui.PairingApprovalPrompt(KeePassGate.Ui.CurrentThread.Instance, _log);
+            var prompt = new KeePassGate.Ui.PairingApprovalPrompt(
+                KeePassGate.Ui.CurrentThread.Instance, null, null, new AdmissionAudit(_audit), _log);
+            var writtenAsItClosed = -1;
             prompt.Dialog = (request, timeout) =>
             {
                 using (var dialog = new KeePassGate.Ui.PairingApprovalForm(request, timeout))
@@ -438,6 +441,7 @@ namespace KeePassGate.Tests
                             if (++ticks == 1)
                             {
                                 prompt.Closed(new[] { _target.DatabaseId });
+                                writtenAsItClosed = _audit.Entries.Count;
                                 return;
                             }
 
@@ -463,6 +467,10 @@ namespace KeePassGate.Tests
             Assert.That(_book.Outstanding(), Has.Count.EqualTo(1), "nor is the invitation spent");
             Assert.That(_held.Count, Is.Zero);
             Assert.That(_audit.Entries.Single().Decision, Is.EqualTo(AuditEntry.Unanswered));
+            Assert.That(writtenAsItClosed, Is.EqualTo(1),
+                "written down as the close took the dialog away, on KeePass's thread, before the " +
+                "dialog's loop could hand anything back: at KeePass's exit that close runs inside the " +
+                "same press that unloads the plugin, and nothing waits for this thread after that");
             Assert.That(_log.Warnings.Any(w => w.Message.Contains(PairingApproval.ClosedReason)), Is.True);
         }
 

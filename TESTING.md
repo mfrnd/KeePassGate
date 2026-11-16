@@ -189,6 +189,14 @@ answered Cancel, and the title bar is read once the change is taken back out. Th
 a file that is not what KeePass read, and the title bar has to show it, which only the real window
 can.
 
+**An exit under an approval dialog**, in `LiveExitUnderARenewalTests` and
+`LiveExitUnderAPairingTests`: Exit pressed on KeePass's tray menu with the pointer while a renewal's
+or a pairing's dialog stands, which closes every database and unloads the plugin inside the
+dialog's own modal loop. The audit holds the request as unanswered once KeePass has gone, and the
+client sees its connection end with no answer, `PAIRING.md` §308. The menu is opened on the real
+notification icon where the taskbar or its overflow shows it, and otherwise by posting the shell's
+message for a right press to the icon's window.
+
 **A Windows lock during a save**, in `LiveSessionLockTests`: KeePass set to lock when Windows does,
 and the message Windows sends when the session locks posted to KeePass the moment a write's save is
 seen to begin. KeePass drops a lock asked for while its interaction is blocked, and every save

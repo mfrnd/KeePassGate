@@ -5,13 +5,14 @@ using System.Text;
 namespace KeePassGate.Testing
 {
     /// <summary>
-    /// Every call the tests make into Windows' window manager, each through the method here of the
-    /// same name.
+    /// Every call the tests make into Windows' window manager and its shell, each through the
+    /// method here of the same name.
     /// </summary>
     /// <remarks>
     /// What the tests ask Windows directly is what WinForms and UI automation either do not offer
     /// or offer only as their own account of it: a key posted to a window's queue, the focus and
-    /// the activation as Windows holds them, the windows of another process, a real pointer.
+    /// the activation as Windows holds them, the windows of another process, a real pointer,
+    /// and where the shell drew a window's icon in the notification area.
     ///
     /// **Each declaration is called once, by the method of its name in this class**, which is what
     /// every test calls. CodeQL reports every declaration of unmanaged code and every call to one,
@@ -197,10 +198,30 @@ namespace KeePassGate.Testing
             return Imported.SetWindowPos(window, after, x, y, width, height, flags);
         }
 
+        internal static int Shell_NotifyIconGetRect(
+            ref NotifyIconIdentifier identifier, out Rect where)
+        {
+            // codeql[cs/call-to-unmanaged-code] the one call to it, for every caller in the tests
+            return Imported.Shell_NotifyIconGetRect(ref identifier, out where);
+        }
+
         internal static bool ShowWindow(IntPtr window, int command)
         {
             // codeql[cs/call-to-unmanaged-code] the one call to it, for every caller in the tests
             return Imported.ShowWindow(window, command);
+        }
+
+        /// <summary>
+        /// An icon in the notification area as `Shell_NotifyIconGetRect` takes it: by the window
+        /// that put it there and the number that window gave it.
+        /// </summary>
+        [StructLayout(LayoutKind.Sequential)]
+        internal struct NotifyIconIdentifier
+        {
+            public uint Size;
+            public IntPtr Window;
+            public uint Id;
+            public Guid Item;
         }
 
         /// <summary>`RECT`, the four edges of a rectangle in pixels.</summary>
@@ -353,6 +374,12 @@ namespace KeePassGate.Testing
             // codeql[cs/unmanaged-code] nothing managed puts a window directly behind another
             internal static extern bool SetWindowPos(
                 IntPtr window, IntPtr after, int x, int y, int width, int height, uint flags);
+
+            [DllImport("shell32.dll")]
+            [DefaultDllImportSearchPaths(DllImportSearchPath.System32)]
+            // codeql[cs/unmanaged-code] nothing managed asks the shell where a tray icon is
+            internal static extern int Shell_NotifyIconGetRect(
+                ref NotifyIconIdentifier identifier, out Rect where);
 
             [DllImport("user32.dll")]
             [return: MarshalAs(UnmanagedType.Bool)]

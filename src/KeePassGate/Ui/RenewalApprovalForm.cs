@@ -496,14 +496,16 @@ namespace KeePassGate.Ui
             Refuse();
         }
 
-        internal override void Withdraw(bool databaseClosed)
+        internal override bool Withdraw(bool databaseClosed)
         {
-            if (!_decided)
+            var unanswered = !_decided;
+            if (unanswered)
             {
                 _closedWithDatabase = databaseClosed;
             }
 
             Finish(PairingDecision.Locked, null);
+            return unanswered;
         }
 
         /// <summary>Refuses it and every later renewal of this certificate until KeePass exits.</summary>

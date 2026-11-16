@@ -961,8 +961,9 @@ namespace KeePassGate
             // One prompt for both, because a pairing and a renewal wait their turn for the same
             // screen. The writer too, because a dialog is a turn on KeePass's thread like a write
             // and meets what a write meets there: the prompt waits out the writer's own save and
-            // refuses inside KeePass's, as the writer does.
-            var prompt = new PairingApprovalPrompt(ui, _targets.Serving, writer, _log);
+            // refuses inside KeePass's, as the writer does. The admissions' audit as well, since a
+            // dialog a lock or a close takes away is written down by the prompt as it goes.
+            var prompt = new PairingApprovalPrompt(ui, _targets.Serving, writer, access.Admissions, _log);
             var router = GateOperations.Router(
                 GateVersion.Current,
                 GateVersion.Revision,

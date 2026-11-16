@@ -1528,6 +1528,75 @@ namespace KeePassGate.Tests
             Assert.That(answer.Reason, Is.EqualTo(PairingApproval.ClosedReason));
         }
 
+        [Test]
+        [Apartment(ApartmentState.STA)]
+        public void A_dialog_a_lock_or_a_close_takes_away_is_written_down_once_as_it_goes()
+        {
+            // At KeePass's exit, the close that takes the dialog away runs inside the press that
+            // unloads the plugin, which waits for the lines queued by then and for nothing after.
+            // So the line is recorded here, on KeePass's thread, before the dialog's loop returns.
+            var audit = new RecordingAudit();
+            var prompt = new PairingApprovalPrompt(
+                CurrentThread.Instance, null, null, new KeePassGate.Pipeline.AdmissionAudit(audit), _log);
+            var writtenAsItWent = -1;
+            OffScreenRenewal(prompt, () =>
+            {
+                prompt.Closed(new[] { Renewal().DatabaseId });
+                prompt.Locked();
+                prompt.Closed(null);
+                writtenAsItWent = audit.Entries.Count;
+            });
+
+            var answer = prompt.Ask(Renewal(), Timeout, Ample);
+
+            Assert.That(answer.Decision, Is.EqualTo(PairingDecision.Locked));
+            Assert.That(writtenAsItWent, Is.EqualTo(1), "written as the dialog went, and once");
+            var line = audit.Entries.Single();
+            Assert.That(line.Decision, Is.EqualTo(KeePassGate.Audit.AuditEntry.Unanswered));
+            Assert.That(line.AdmissionKey, Is.EqualTo(Renewal().Client));
+            Assert.That(line.ClientKey, Is.EqualTo(Renewal().ClientKey));
+        }
+
+        [Test]
+        [Apartment(ApartmentState.STA)]
+        public void A_dialog_answered_before_a_lock_takes_it_away_is_not_written_down_as_unanswered()
+        {
+            // The operator's answer stands, and the handler writes that down: the lock found it
+            // already answered and closed nothing that was still a question.
+            var audit = new RecordingAudit();
+            var prompt = new PairingApprovalPrompt(
+                CurrentThread.Instance, null, null, new KeePassGate.Pipeline.AdmissionAudit(audit), _log);
+            prompt.Dialog = (request, timeout) =>
+            {
+                using (var dialog = new PairingApprovalForm(request, timeout))
+                {
+                    dialog.StartPosition = FormStartPosition.Manual;
+                    dialog.Location = new System.Drawing.Point(-4000, -4000);
+                    dialog.ShowInTaskbar = false;
+
+                    using (var timer = new System.Windows.Forms.Timer { Interval = 100 })
+                    {
+                        timer.Tick += delegate
+                        {
+                            timer.Stop();
+                            dialog.Refuse();
+                            prompt.Locked();
+                        };
+
+                        timer.Start();
+                        prompt.Show(dialog, request.DatabaseId);
+                    }
+
+                    return dialog.Answer();
+                }
+            };
+
+            var answer = prompt.Ask(Request(), Timeout, Ample);
+
+            Assert.That(answer.Decision, Is.EqualTo(PairingDecision.Refused));
+            Assert.That(audit.Entries, Is.Empty);
+        }
+
         /// <summary>
         /// A renewal dialog shown where nobody sees it, through the prompt's own show: what is given
         /// runs once it stands, and a lock comes after that to end it, should nothing else have.
@@ -1663,7 +1732,9 @@ namespace KeePassGate.Tests
                 new[] { "ops" },
                 Array.Empty<string>(),
                 "127.0.0.1:60001",
-                null);
+                null,
+                "9f86d081",
+                "c0ffee11");
         }
 
         /// <summary>The plugin's writes, saying what a test tells them to.</summary>

@@ -191,7 +191,8 @@ namespace KeePassGate.Pairing
 
         /// <summary>
         /// KeePass locked while the question was up or waiting to be, which closes the dialog as
-        /// unanswered. Nothing is spent, and the client is told the database is locked.
+        /// unanswered. Nothing is spent, and the client is told the database is locked. A dialog
+        /// closed this way was written down as unanswered by the screen that closed it, as it did.
         /// </summary>
         Locked
     }

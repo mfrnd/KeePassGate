@@ -572,14 +572,11 @@ namespace KeePassGate.Pairing
                     // Unanswered, as a timeout is, so nothing is spent; told as every connection to
                     // a locked database is told, since that is what this connection now is. A dialog
                     // its database's close took away is answered the same, its reason naming the
-                    // close. A request the lock kept off the screen was put to nobody, and the
-                    // audit records nothing of it, as of a request with no screen to ask.
+                    // close. Nothing is written down here: the screen recorded a dialog it took
+                    // away as it took it, since at KeePass's exit nothing waits for this thread. A
+                    // request the lock kept off the screen was put to nobody, and the audit records
+                    // nothing of it, as of a request with no screen to ask.
                     _log.Warn("pairing on invitation " + invitation.Id + " was " + decision.Reason);
-                    if (decision.Shown)
-                    {
-                        _audit.PairingUnanswered(target.DatabaseId, invitation.Id);
-                    }
-
                     context.Respond(503, HttpResponse.ErrorBody(LockedTarget.Error));
                     return null;
 

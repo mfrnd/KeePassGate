@@ -323,6 +323,30 @@ namespace KeePassGate.Tests
         }
 
         [Test]
+        public void A_renewal_dialog_taken_away_is_the_unanswered_line_written_without_waiting()
+        {
+            // Recorded by the screen from KeePass's own thread as a lock or a close takes the
+            // dialog away, which must not be held, so the turn is the handler's to take.
+            var client = Client("reader");
+            var entry = TestNode.Root("root").Granting("reader", AclVerb.Read).Child("an entry");
+
+            for (var i = 0; i < DecisionPace.Burst + 1; i++)
+            {
+                _check.Decide(client, "readEntry", AclVerb.Read, AclReach.Fields, entry);
+            }
+
+            _waits.Clear();
+
+            _check.Admissions.RenewalWithdrawn(Database, client.AdmissionKey, client.ClientKey);
+
+            Assert.That(_waits, Is.Empty, "the line does not wait where it is written");
+            Assert.That(Described().Last(), Is.EqualTo(
+                "renewCertificate | " + client.AdmissionKey + " | " + client.ClientKey +
+                " | unanswered | nobody answered | - | -"),
+                "and reads as a renewal nobody answered does");
+        }
+
+        [Test]
         public void A_pairing_and_the_operator_s_revocation_never_wait()
         {
             // A pairing waits on a person, who is its pace, whether or not it names a client; the

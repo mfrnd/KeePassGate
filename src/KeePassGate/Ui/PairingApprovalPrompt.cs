@@ -6,6 +6,7 @@ using System.Threading;
 using KeePassGate.Diagnostics;
 using KeePassGate.Gate;
 using KeePassGate.Pairing;
+using KeePassGate.Pipeline;
 
 namespace KeePassGate.Ui
 {
@@ -33,6 +34,12 @@ namespace KeePassGate.Ui
     /// nothing. `PAIRING.md` §308: the lock closes the open dialog as unanswered, a request still
     /// waiting for the screen is never shown, and both are answered `503 locked`. **So does a
     /// close of the database the dialog is about**, which is answered as the lock is.
+    ///
+    /// **A dialog taken away is written down here, as it goes**, on KeePass's thread, where the
+    /// line is queued for the audit's own writer. KeePass's exit closes every database inside the
+    /// same press that unloads the plugin, and the unload waits for the lines queued by then: the
+    /// answer reaches the connection thread only once that press is over, and a line written there
+    /// raced the end of the process and was usually lost.
     /// </remarks>
     public sealed class PairingApprovalPrompt : IPairingApproval, IRenewalApproval, IApprovalScreen
     {
@@ -76,6 +83,9 @@ namespace KeePassGate.Ui
         /// <summary>The plugin's writes, or null where there are none to wait for.</summary>
         private readonly IWriterState _writes;
 
+        /// <summary>Where a dialog taken away is written down, or null where nothing is.</summary>
+        private readonly AdmissionAudit _audit;
+
         /// <summary>
         /// The dialog on the screen until it closes, or a lock or a close of its database withdraws
         /// it, touched only on KeePass's thread.
@@ -84,6 +94,12 @@ namespace KeePassGate.Ui
 
         /// <summary>The database the dialog on the screen is about, beside it.</summary>
         private string _showingFor;
+
+        /// <summary>
+        /// What the audit records of the request being put to the operator if a lock or a close
+        /// takes its dialog away, or null; touched only on KeePass's thread, as the dialog is.
+        /// </summary>
+        private Action _unanswered;
 
         public PairingApprovalPrompt(IUiThread ui, IGateLog log)
             : this(ui, null, log)
@@ -111,6 +127,18 @@ namespace KeePassGate.Ui
         /// shown, and waited for on the connection's, or null where nothing writes.
         /// </param>
         public PairingApprovalPrompt(IUiThread ui, Func<string, bool> serving, IWriterState writes, IGateLog log)
+            : this(ui, serving, writes, null, log)
+        {
+        }
+
+        /// <summary>The same, and writing down a dialog a lock or a close takes away.</summary>
+        /// <param name="audit">
+        /// Where the line for a dialog taken away unanswered is recorded, on KeePass's thread as it
+        /// is taken away, or null where nothing is written down. The handlers write every other
+        /// answer, and leave this line to the screen.
+        /// </param>
+        public PairingApprovalPrompt(
+            IUiThread ui, Func<string, bool> serving, IWriterState writes, AdmissionAudit audit, IGateLog log)
         {
             if (ui == null)
             {
@@ -120,6 +148,7 @@ namespace KeePassGate.Ui
             _ui = ui;
             _serving = serving ?? (databaseId => true);
             _writes = writes;
+            _audit = audit;
             _log = log ?? NullGateLog.Instance;
             Dialog = ShowDialog;
             RenewalDialog = ShowRenewalDialog;
@@ -150,7 +179,10 @@ namespace KeePassGate.Ui
                 "pairing",
                 PairingApproval.Unavailable,
                 PairingApproval.TimedOut,
-                PairingApproval.LockedWhileWaiting);
+                PairingApproval.LockedWhileWaiting,
+                _audit == null
+                    ? (Action)null
+                    : () => _audit.PairingUnanswered(request.DatabaseId, request.InvitationId));
         }
 
         public RenewalApproval Ask(RenewalRequest request, TimeSpan timeout, TimeSpan left)
@@ -168,7 +200,10 @@ namespace KeePassGate.Ui
                 "renewal",
                 RenewalApproval.Unavailable,
                 RenewalApproval.TimedOut,
-                RenewalApproval.LockedWhileWaiting);
+                RenewalApproval.LockedWhileWaiting,
+                _audit == null
+                    ? (Action)null
+                    : () => _audit.RenewalWithdrawn(request.DatabaseId, request.Client, request.ClientKey));
         }
 
         /// <summary>
@@ -196,7 +231,7 @@ namespace KeePassGate.Ui
             _showing = null;
             _showingFor = null;
             _log.Warn("KeePass locked while a request was in front of the operator, so it was closed unanswered");
-            showing.Withdraw(databaseClosed: false);
+            Withdraw(showing, databaseClosed: false);
         }
 
         /// <summary>
@@ -229,7 +264,26 @@ namespace KeePassGate.Ui
             _showingFor = null;
             _log.Warn("a database closed while a request about it was in front of the operator, so it was " +
                       "closed unanswered");
-            showing.Withdraw(databaseClosed: true);
+            Withdraw(showing, databaseClosed: true);
+        }
+
+        /// <summary>
+        /// Closes the dialog as unanswered, and writes it down as unanswered unless the operator
+        /// answered it first.
+        /// </summary>
+        /// <remarks>
+        /// Recorded here rather than by the handler once the answer reaches its connection, as the
+        /// class remarks set out: at KeePass's exit, nothing waits for that thread. Only once,
+        /// since a dialog is withdrawn once and the line goes with it.
+        /// </remarks>
+        private void Withdraw(ApprovalDialog showing, bool databaseClosed)
+        {
+            var unanswered = _unanswered;
+            _unanswered = null;
+            if (showing.Withdraw(databaseClosed) && unanswered != null)
+            {
+                unanswered();
+            }
         }
 
         /// <summary>
@@ -249,6 +303,10 @@ namespace KeePassGate.Ui
         /// which is never shown. A dialog the lock or the close takes away answers for itself, as
         /// unanswered.
         /// </param>
+        /// <param name="unanswered">
+        /// What the audit records of the request if a lock or a close takes its dialog away, or
+        /// null for nothing.
+        /// </param>
         private TAnswer OnScreen<TAnswer>(
             Func<TimeSpan, TAnswer> dialog,
             string databaseId,
@@ -257,7 +315,8 @@ namespace KeePassGate.Ui
             string what,
             Func<string, TAnswer> unavailable,
             Func<TAnswer> timedOut,
-            Func<TAnswer> lockedWhileWaiting)
+            Func<TAnswer> lockedWhileWaiting,
+            Action unanswered)
             where TAnswer : class
         {
             // Waited for rather than queued behind indefinitely: a request that cannot get the
@@ -361,11 +420,19 @@ namespace KeePassGate.Ui
                                 {
                                     _log.Info("the " + what + " dialog came up late, so the operator " +
                                               "was given " + Seconds(remaining) + " s to answer it");
-                                    answer = dialog(remaining);
-                                    return;
                                 }
 
-                                answer = dialog(timeout);
+                                // For as long as this request's dialog can stand, on the thread
+                                // that withdraws it.
+                                _unanswered = unanswered;
+                                try
+                                {
+                                    answer = dialog(remaining < timeout ? remaining : timeout);
+                                }
+                                finally
+                                {
+                                    _unanswered = null;
+                                }
                             },
                             timeout + Grace);
                     }
