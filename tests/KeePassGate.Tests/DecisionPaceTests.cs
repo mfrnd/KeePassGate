@@ -102,7 +102,11 @@ namespace KeePassGate.Tests
             var started = new DateTimeOffset(2026, 3, 4, 5, 6, 7, TimeSpan.Zero);
             var check = new AccessCheck(audit, () => started + _now, _pace);
             var entry = TestNode.Root("root").Granting("reader", AclVerb.Read).Child("an entry");
-            var client = Client("reader");
+
+            // A client that has renewed, so that its certificate's key and its client key differ
+            // and the refused renewal waits only if it is counted by the client.
+            var client = Renewed("reader");
+            Assume.That(client.AdmissionKey, Is.Not.EqualTo(client.ClientKey), "two keys");
 
             for (var i = 0; i < DecisionPace.Burst; i++)
             {
@@ -116,7 +120,7 @@ namespace KeePassGate.Tests
             var refused = started + _now;
             check.Admissions.RenewalRefusedWithoutAsking(
                 "d1e2f3", client.AdmissionKey, client.ClientKey, RenewalRefusal.Forever());
-            Assume.That(_waits, Has.Count.EqualTo(2), "and so did the refused renewal");
+            Assert.That(_waits, Has.Count.EqualTo(2), "and so did the refused renewal, on the client's allowance");
 
             var lines = audit.Entries;
             Assert.That(lines[lines.Count - 2].At, Is.EqualTo(decided));
@@ -166,6 +170,21 @@ namespace KeePassGate.Tests
             using (var certificate = authority.IssueClient("agent-fictitious"))
             {
                 return ClientIdentity.Paired("d1e2f3", certificate, profiles);
+            }
+        }
+
+        /// <summary>
+        /// A certificate a client renewed into, on a record carrying the client key of the
+        /// certificate it paired with.
+        /// </summary>
+        private static ClientIdentity Renewed(params string[] profiles)
+        {
+            var paired = Client(profiles);
+
+            using (var authority = TestAuthority.New())
+            using (var certificate = authority.IssueClient("agent-fictitious"))
+            {
+                return ClientIdentity.Paired("d1e2f3", certificate, profiles, null, paired.ClientKey);
             }
         }
     }

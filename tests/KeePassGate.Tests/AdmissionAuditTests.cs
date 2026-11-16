@@ -140,21 +140,25 @@ namespace KeePassGate.Tests
         public void A_client_s_renewals_and_revocation_are_paced_on_the_allowance_its_decisions_spend()
         {
             // One allowance for everything a client can make the file say. Split by kind, one
-            // flooding client could push twice as much out of the file as the pace allows.
-            var client = Client("reader");
+            // flooding client could push twice as much out of the file as the pace allows. Asked
+            // by a certificate the client renewed into, whose admission key is not its client
+            // key, so that a line counted by the certificate rather than the client is seen.
+            var paired = Client("reader");
+            var renewed = Renewed(paired.ClientKey, "reader");
             var entry = TestNode.Root("root").Granting("reader", AclVerb.Read).Child("an entry");
+            Assume.That(renewed.AdmissionKey, Is.Not.EqualTo(renewed.ClientKey), "two keys");
 
             for (var i = 0; i < DecisionPace.Burst; i++)
             {
-                _check.Decide(client, "readEntry", AclVerb.Read, AclReach.Fields, entry);
+                _check.Decide(paired, "readEntry", AclVerb.Read, AclReach.Fields, entry);
             }
 
             Assume.That(_waits, Is.Empty, "the burst itself is never held back");
 
             _check.Admissions.RenewalRefusedWithoutAsking(
-                Database, client.AdmissionKey, client.ClientKey, RenewalRefusal.Forever());
-            _check.Admissions.RevokedItself(Database, client.AdmissionKey, client.ClientKey);
-            _check.Admissions.TakeTurn(client.ClientKey);
+                Database, renewed.AdmissionKey, renewed.ClientKey, RenewalRefusal.Forever());
+            _check.Admissions.RevokedItself(Database, renewed.AdmissionKey, renewed.ClientKey);
+            _check.Admissions.TakeTurn(renewed.ClientKey);
 
             Assert.That(_waits, Has.Count.EqualTo(2), "the revocation's turn is taken, as the refusal's is");
         }
@@ -240,6 +244,33 @@ namespace KeePassGate.Tests
             _check.Decide(client, "readEntry", AclVerb.Read, AclReach.Fields, entry);
 
             Assert.That(_waits, Is.Empty);
+        }
+
+        [Test]
+        public void A_client_holding_refused_certificates_is_recorded_on_two_allowances_and_no_more()
+        {
+            // A revoked record is emptied and an expired one is taken away, so nothing names the
+            // client a refused certificate belonged to: its lines count against the database's
+            // refused allowance, beside the client's own, and a client presenting both is recorded
+            // at up to twice the pace. However many certificates it renewed out of, no more.
+            var entry = TestNode.Root("root").Granting("reader", AclVerb.Read).Child("an entry");
+            var client = Client("reader");
+            var first = Refused();
+            var second = Refused();
+
+            for (var i = 0; i < DecisionPace.Burst; i++)
+            {
+                _check.Decide(client, "readEntry", AclVerb.Read, AclReach.Fields, entry);
+                _check.Refuse(i % 2 == 0 ? first : second, "readEntry");
+            }
+
+            Assert.That(_waits, Is.Empty, "two bursts, the client's own and the refused certificates'");
+
+            _check.Refuse(first, "readEntry");
+            _check.Refuse(second, "readEntry");
+            _check.Decide(client, "readEntry", AclVerb.Read, AclReach.Fields, entry);
+
+            Assert.That(_waits, Has.Count.EqualTo(3), "and past them every line waits");
         }
 
         [Test]

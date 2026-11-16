@@ -1201,6 +1201,12 @@ none, since it releases both.
   answer is given the ordinary budget to be written in. The reference client still waits six
   minutes for the answer unless `connection_timeout` asks for longer, which a client expecting a
   slow save gives.
+- **The audit's documentation states that a program keeping refused certificates is recorded at
+  up to twice the pace.** Every certificate refused for a database shares an allowance apart from
+  every client's own, since no record names the client a refused certificate belonged to, and the
+  documentation stated that the certificates a program renewed out of gave it nothing more. They
+  give it one more allowance between them, however many it kept, so a client flooding on both
+  pushes a line out of both files in about a quarter of an hour rather than half an hour.
 
 ## 0.1.0, 2026-10-25
 
