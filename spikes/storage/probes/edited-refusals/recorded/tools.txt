@@ -1,0 +1,5 @@
+KeePass.exe SHA-256 AFB89B74AE1B8519F483D600095F4DF8D86628178AF6ACDC5F2B23888C89C3F3, version 2.62.0.0
+keepassxc-cli 2.4.2: Valid, CN="DroidMonkey Apps, LLC", O="DroidMonkey Apps, LLC", STREET=3474 Raintree Circle, L=Suffolk, S=VA, PostalCode=23435, C=US
+keepassxc-cli 2.6.6: Valid, CN="DroidMonkey Apps, LLC", O="DroidMonkey Apps, LLC", STREET=6653 Audrey Kay Ct, L=Franconia, S=Virginia, PostalCode=22315, C=US
+keepassxc-cli 2.7.12: Valid, CN="DroidMonkey Apps, LLC", O="DroidMonkey Apps, LLC", S=Virginia, C=US
+keepassxc-cli 2.8.0: Valid, CN="DroidMonkey Apps, LLC", O="DroidMonkey Apps, LLC", S=Virginia, C=US

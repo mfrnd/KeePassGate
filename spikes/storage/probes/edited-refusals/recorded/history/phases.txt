@@ -1,0 +1,7 @@
+make: 25 s
+pykeepass edits: 18 s
+reads: 4 s
+KeePassLib merges: 75 s
+keepassxc-cli merges: 273 s
+condense: 3 s
+judge: 6 s

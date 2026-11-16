@@ -1,0 +1,8 @@
+make, fast derivation: 1 s
+make, slow derivation: 888 s
+reads: 3 s
+KeePassLib merges: 16 s
+keepassxc-cli merges: 7.041 s
+condense: 1 s
+verdicts: 2 s
+everything after the build: 7.952 s

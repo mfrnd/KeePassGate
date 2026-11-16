@@ -1,0 +1,11 @@
+pykeepass 4.2.0
+retirement.pykeepass-character.untouched: 0 history items
+retirement.pykeepass-delete-string.untouched: 0 history items
+revocation.pykeepass-character.untouched: 0 history items
+revocation.pykeepass-delete-string.untouched: 0 history items
+removal.pykeepass-character.untouched: 0 history items
+removal.pykeepass-delete-string.untouched: 0 history items
+marker.pykeepass-character.untouched: 0 history items
+marker.pykeepass-delete-string.untouched: 0 history items
+admission.pykeepass-character.untouched: 0 history items
+admission.pykeepass-delete-string.untouched: 0 history items

@@ -1,0 +1,13 @@
+R1 on the unedited copy: a1 serves, c1 and c2 admitted, auditor reader writer on the list, g:bin hidden: yes
+R2 on the unedited copy: a1 serves, c1 and c2 admitted, auditor reader writer on the list, g:bin hidden: yes
+R3 on the unedited copy: a1 serves, c1 and c2 admitted, auditor reader writer on the list, g:bin hidden: yes
+R4 on the unedited copy: a1 serves, c1 and c2 admitted, auditor reader writer on the list, g:bin hidden: yes
+R5 on the unedited copy: a1 serves, c1 and c2 admitted, auditor reader writer on the list, g:bin hidden: yes
+kinds whose table in contents.md equals the retirement's cell for cell: 5 of 5
+cells of contents.md where the four keepassxc-cli releases differ: 0
+files whose recycle bin is not g:bin: 0 of 4120
+files holding the witness w:retired-a0: 4120 of 4120
+files holding the witness w:revoked-c3: 4120 of 4120
+no-edit merge cells not unchanged under some rule: 0
+control cells wider under some rule: 0
+cells 4120, merge cells 3708, distinct files 926

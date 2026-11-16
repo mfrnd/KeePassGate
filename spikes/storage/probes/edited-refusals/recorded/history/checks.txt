@@ -1,0 +1,10 @@
+R1 on the unedited copy: the decided state: yes
+R2 on the unedited copy: the decided state: yes
+R3 on the unedited copy: the decided state: yes
+R4 on the unedited copy: the decided state: yes
+R5 on the unedited copy: the decided state: yes
+R6 on the unedited copy: the decided state: yes
+holdings of the five records the same cell for cell: yes
+scenarios and directions in which the four keepassxc-cli releases leave different holdings: 0
+revocation scenarios whose copy B holds no written version: 28; their merges: copy 28, current 96, history 89, lost 291
+cells 4400, merge cells 3960, distinct files 711
