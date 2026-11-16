@@ -94,7 +94,7 @@ jobs:
           path: .keepass/KeePass-*.zip
           key: keepass-${{ hashFiles('keepass.version', 'keepass.sha256') }}
 
-      - uses: github/codeql-action/init@9b3254085494b55a0f7c4c2b3d2d52cc712ce370 # v4.39.1
+      - uses: github/codeql-action/init@33d7b85da1a04171e211befe2c739303b9a4c066 # v4.39.3
         with:
           languages: ${{ matrix.language }}
           build-mode: ${{ matrix.build-mode }}
@@ -109,7 +109,7 @@ jobs:
         run: ./build.ps1 -Task Build
 
       # Kept rather than uploaded, since the last job decides what each upload holds.
-      - uses: github/codeql-action/analyze@9b3254085494b55a0f7c4c2b3d2d52cc712ce370 # v4.39.1
+      - uses: github/codeql-action/analyze@33d7b85da1a04171e211befe2c739303b9a4c066 # v4.39.3
         with:
           category: /language:${{ matrix.language }}
           output: analyzed
@@ -167,21 +167,21 @@ jobs:
         run: uv run --locked python tools/code_scanning.py prepare --analyzed analyzed --upload upload --event "$EVENT"
 
       - id: csharp
-        uses: github/codeql-action/upload-sarif@9b3254085494b55a0f7c4c2b3d2d52cc712ce370 # v4.39.1
+        uses: github/codeql-action/upload-sarif@33d7b85da1a04171e211befe2c739303b9a4c066 # v4.39.3
         with:
           sarif_file: upload/csharp.sarif
           category: /language:csharp
           wait-for-processing: true
 
       - id: python
-        uses: github/codeql-action/upload-sarif@9b3254085494b55a0f7c4c2b3d2d52cc712ce370 # v4.39.1
+        uses: github/codeql-action/upload-sarif@33d7b85da1a04171e211befe2c739303b9a4c066 # v4.39.3
         with:
           sarif_file: upload/python.sarif
           category: /language:python
           wait-for-processing: true
 
       - id: actions
-        uses: github/codeql-action/upload-sarif@9b3254085494b55a0f7c4c2b3d2d52cc712ce370 # v4.39.1
+        uses: github/codeql-action/upload-sarif@33d7b85da1a04171e211befe2c739303b9a4c066 # v4.39.3
         with:
           sarif_file: upload/actions.sarif
           category: /language:actions
