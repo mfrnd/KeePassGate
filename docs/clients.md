@@ -264,7 +264,9 @@ session, and the menu's first line states which one that is before anything is c
 **It waits for OK, as a revocation does.** The name stops being red at once, and nothing has
 changed yet: until **OK** is pressed on the settings dialog the program's renewals are still
 refused without asking, and **Cancel** leaves the answer standing. After OK the next renewal raises
-the dialog again, to be answered afresh. An answer forever or until a day is kept in the database,
+the dialog again, to be answered afresh. An answer given on a renewal dialog before OK, which a
+day that has passed makes possible, is newer than the choice: its client's name is red again, and
+OK leaves that answer standing. An answer forever or until a day is kept in the database,
 so taking it back is a change to save; one in this session is kept only in KeePass's memory, so
 there is nothing to save. A copy of the database from before the answer was taken back brings it
 back when merged in, and its client's name is red again.
