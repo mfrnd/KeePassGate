@@ -680,6 +680,14 @@ none, since it releases both.
   parent whole from this copy, undoing a rule the operator had narrowed on it in another copy, and
   filed another copy's edit to a binned entry in the entry's history. A removal no longer changes
   its parent's tag either.
+- **The documents no longer promise that the recycle bin stays out of a client's reach whatever
+  happens to the database.** The bin the gate leaves out is the group the database names as its
+  recycle bin when a request is served, and no other group. A synchronize or an import keeps one
+  copy's choice of bin, so where both copies had a bin, the group that loses stays in the database
+  as an ordinary group, and a client reaches it, with everything deleted into it, under the rules
+  where it sits: for a bin KeePass made under the root, the root's. After a synchronize or an
+  import, check which group Database Settings names as the recycle bin, and empty or delete every
+  other group that was a bin. `DESIGN.md` §138.
 - **A pairing, a renewal or a program's revocation of itself that reached the database is always
   written to the audit.** A defect in KeePass or in another plugin, raised while the database was
   saved or while KeePass's window was redrawn, ended the request with the change in force and no

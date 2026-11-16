@@ -210,8 +210,20 @@ though never what.
 
 **Where a removed entry goes is out of the program's reach.** KeePass moves it to the recycle bin
 when the database keeps one, and this API cannot see the bin at all: it is not listed, not
-readable, and not addressable. So a program cannot read something by removing it first, and getting
-a removed entry back is done in KeePass, where it is visible.
+readable, and not addressable. So a program cannot read something by removing it first, unless a
+merge later leaves that bin an ordinary group, and getting a removed entry back is done in KeePass,
+where it is visible.
+
+**The bin is the group the database names as its recycle bin when a request is served, and no
+other group.** A synchronize or an import can change which group that is. When two copies of the
+database each made a recycle bin, the merge keeps the choice of one copy, and the group the other
+copy used, or this copy's own bin when the other copy's choice is taken, stays in the tree as an
+ordinary group. An import can bring another database's bin in as an ordinary group as well. Nothing
+remembers that such a group was a bin, so a program reaches it, and everything deleted into it,
+the operator's own deletions included, under the rules that reach it where it sits: for a bin
+KeePass made under the root, the root's. After a synchronize or an import, check which group
+**File**, **Database Settings**, **Recycle Bin** names as the recycle bin, and empty or delete every
+other group that was a bin.
 
 **`A` and `P` are switches, not verbs.** Neither means "may read attachments" or "may read
 passwords". Each means "and those too", for whatever else the same rule grants, so a rule holding
