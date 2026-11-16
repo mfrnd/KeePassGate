@@ -59,6 +59,19 @@ none, since it releases both.
   so an operator could approve a name without being told that approving adds it or gives it back
   to other clients. The list is now as wide as its widest row, and the dialog grows with it for
   such a name.
+- **The clients page, the pairing dialog and the renewal dialog show every profile, whatever the
+  length of its name.** A profile name may be sixty-four characters with no space in it, and on
+  the clients page a name wider than its column pushed every profile after it below the row, where
+  nothing drew it: a client holding `ops` after a long name showed no `ops` to the operator
+  deciding whether to revoke it. Each profile now keeps a line of its own, a name too long for the
+  column ends in an ellipsis, the mark "(removed)" is never the part that is cut, and the row's
+  tooltip names every profile whole, marked as the row marks it. On the pairing dialog a row of
+  wide letters ran past the edge of the list, and the mark after the name, "(new)" or "(removed)",
+  was the part cut off, so an operator could approve a name without being told that approving adds
+  it or gives it back to other clients. The list is now as wide as its widest row, and the dialog
+  grows with it for such a name. The renewal dialog's list of the profiles a client holds is
+  widened the same way, where such a name ran past its edge and two names alike but for their ends
+  looked the same.
 - **The plugin is built against KeePass 2.62 and needs that release or a later release.** It
   was built against 2.61.1. A plugin loads in the KeePass it was built against and in every
   later release, since a KeePass redirects every earlier version to itself, and in no earlier

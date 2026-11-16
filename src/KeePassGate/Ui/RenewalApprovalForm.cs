@@ -256,7 +256,6 @@ namespace KeePassGate.Ui
             {
                 Name = GateTab.RenewalProfilesListName,
                 AccessibleName = GateTab.ApprovalProfilesListLabel,
-                Width = _wrap,
                 CheckOnClick = true,
                 Font = Font,
                 IntegralHeight = false,
@@ -269,6 +268,11 @@ namespace KeePassGate.Ui
             }
 
             _profiles.Height = PairingApprovalForm.ListHeight(_profiles, request.Profiles.Count);
+
+            // Wide enough for every name whole, as the pairing dialog's list is: what is kept or
+            // dropped here is a name, and a name cut at the edge reads as any other name that
+            // starts alike.
+            _profiles.Width = PairingApprovalForm.ListWidth(_profiles, _wrap);
             layout.Controls.Add(_profiles);
 
             var scrolling = Scrolling(request);
@@ -307,7 +311,9 @@ namespace KeePassGate.Ui
                 AutoSize = true,
                 AutoSizeMode = AutoSizeMode.GrowAndShrink,
                 GrowStyle = TableLayoutPanelGrowStyle.FixedSize,
-                MinimumSize = new Size(_wrap, 0),
+
+                // As wide as the list, so that the buttons end where it does.
+                MinimumSize = new Size(_profiles.Width, 0),
                 Margin = new Padding(0, LogicalToDeviceUnits(Spacing.Gap), 0, 0)
             };
 

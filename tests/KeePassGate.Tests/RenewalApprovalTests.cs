@@ -793,6 +793,32 @@ namespace KeePassGate.Tests
 
         [TestCase(1.0f)]
         [TestCase(2.0f)]
+        public void A_profile_as_long_as_a_name_may_be_is_listed_whole(float scaling)
+        {
+            // What is kept or dropped here is a name, whole: a name approved at the greatest length
+            // a profile name may have ran past the edge of a list as wide as a line of the
+            // dialog's text, and two names alike but for their ends looked the same.
+            var held = new[] { "reader", new string('W', 64) };
+
+            using (var larger = new Font(Control.DefaultFont.FontFamily, Control.DefaultFont.Size * scaling))
+            using (var dialog = new RenewalApprovalForm(Request(held, 40), Timeout, larger, Today, null))
+            {
+                dialog.CreateControl();
+                dialog.PerformLayout();
+
+                var list = Profiles(dialog);
+                PairingApprovalFormTests.ListedWhole(list);
+
+                var approve = ControlTree.FindByName<Button>(dialog, GateTab.ApproveButtonName);
+                Assert.That(InDialog(approve, dialog).Right, Is.EqualTo(InDialog(list, dialog).Right),
+                    "the buttons do not end where the list does at " + scaling);
+                Assert.That(dialog.PreferredSize.Width, Is.LessThanOrEqualTo(SmallestScreenWidth * scaling),
+                    "the dialog is wider than the smallest screen at " + scaling);
+            }
+        }
+
+        [TestCase(1.0f)]
+        [TestCase(2.0f)]
         public void The_question_of_a_day_can_be_seen_whole_at_any_scaling(float scaling)
         {
             using (var larger = new Font(Control.DefaultFont.FontFamily, Control.DefaultFont.Size * scaling))
