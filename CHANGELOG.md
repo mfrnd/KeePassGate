@@ -71,7 +71,9 @@ none, since it releases both.
   it or gives it back to other clients. The list is now as wide as its widest row, and the dialog
   grows with it for such a name. The renewal dialog's list of the profiles a client holds is
   widened the same way, where such a name ran past its edge and two names alike but for their ends
-  looked the same.
+  looked the same. The authority chooser's list of clients names each client and its profiles
+  whole in the row's tooltip, where it showed no tooltip and a name its columns cut was shown
+  nowhere.
 - **The plugin is built against KeePass 2.62 and needs that release or a later release.** It
   was built against 2.61.1. A plugin loads in the KeePass it was built against and in every
   later release, since a KeePass redirects every earlier version to itself, and in no earlier

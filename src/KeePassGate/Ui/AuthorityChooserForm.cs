@@ -196,6 +196,10 @@ namespace KeePassGate.Ui
             AddColumns(_clients, ClientColumns, ClientShares);
             _clients.Height = ListHeight(_clients, MostClients(choice), FewestClientRows, MostClientRows);
             _clients.Margin = new Padding(0);
+
+            // A name and its profiles may be sixty-four characters each, which columns sharing the
+            // list's width cut, so each row's tooltip holds them whole, as on the clients page.
+            _clients.ShowItemToolTips = true;
             layout.Controls.Add(_clients);
 
             var footer = new TableLayoutPanel
@@ -470,7 +474,16 @@ namespace KeePassGate.Ui
 
                 foreach (var client in option.Clients)
                 {
-                    var row = new ListViewItem(client.Name);
+                    var whole = new List<string> { client.Name };
+                    foreach (var profile in client.Profiles)
+                    {
+                        whole.Add("Profile " + profile);
+                    }
+
+                    var row = new ListViewItem(client.Name)
+                    {
+                        ToolTipText = Tooltips.Wrapped(string.Join(Environment.NewLine, whole))
+                    };
                     row.SubItems.Add(string.Join(", ", client.Profiles));
                     row.SubItems.Add(Moments.OnScreen(client.Admitted));
                     row.SubItems.Add(LastRequest(client, _choice.LastSeenKnown));
