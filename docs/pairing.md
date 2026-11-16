@@ -161,8 +161,9 @@ record that was never written would be a program that is refused forever and can
 
 **Every answer is written to [the audit file](audit.md)**, by the invitation the request arrived on:
 approved, with the key of the certificate it admitted, once the record is saved; refused; or
-unanswered, when the dialog closed by itself. An approval whose record never landed admitted nobody
-and is not written down, and neither are the profiles, whichever were asked for or kept.
+unanswered, when the dialog closed by itself, or locking KeePass, closing the database or exiting
+KeePass took it away. An approval whose record never landed admitted nobody and is not written
+down, and neither are the profiles, whichever were asked for or kept.
 
 **If KeePass is busy when Approve is pressed**, saving or with a dialog open that would take the
 record back, the approval is not lost. The plugin keeps it in memory, nothing is issued yet, and

@@ -1216,6 +1216,13 @@ none, since it releases both.
   title bar and on its save button. A save KeePass abandoned before writing, over a file another
   program rewrote, returned without redrawing the window, and the change taken back out left the
   flag up with nothing on screen to show it.
+- **A pairing or renewal dialog that KeePass's exit takes away is in the audit as `unanswered`.**
+  The line was written once the dialog's answer reached the waiting connection, which at an exit
+  comes after the plugin has unloaded and stopped waiting for the audit's writer, so most exits
+  under a dialog left no line. It is now written as a lock, a close of its database or the exit
+  takes the dialog away. The waiting client is still told nothing at an exit: stopping the gate
+  closes its connection before the answer exists, which [`PAIRING.md`](PAIRING.md) §308 now
+  states, where it read as though every dialog taken away were answered `503 locked`.
 
 ## 0.1.0, 2026-10-25
 

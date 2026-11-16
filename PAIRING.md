@@ -172,7 +172,9 @@ issued or spent, and the client is told `503 locked`, §308. A close or an unloc
 own database's connections, so a close or an unlock of another database leaves this connection
 alone. A close of its own database
 closes the dialog as unanswered too, and spares this connection as a lock does, so nothing is issued
-or spent there either and the client is told `503 locked`.
+or spent there either and the client is told `503 locked`. KeePass's exit takes the dialog away the
+same way and spares nothing: stopping the gate closes this connection with the rest, before the
+answer exists, §308.
 
 **One pairing is put to the operator at a time.** Two connections can reach phase 4 together, and
 each asks the user interface thread to show a dialog. The second would open inside the first one's
@@ -487,6 +489,21 @@ close spares the connections waiting on its operator, as a lock does, the operat
 2026-11-08 on the same day. It ended them with the database's other connections, so the dialog it
 closed answered into a closed socket and the client saw only its connection end. A request still
 waiting for the screen is spared too, is never shown, and is told `503 locked` the same way.
+
+**The line is written as the dialog is taken away**, by the lock or the close, on KeePass's thread,
+and not once the answer has reached the connection. **It used to be written there**, and KeePass's
+exit is what that lost: KeePass closes every database and then unloads the plugin inside the one
+press, before the dialog's loop can hand its answer back, and the unload waits for the audit lines
+handed over by then and for nothing after. The connection's line raced the end of the process and
+was missing from the file after most exits. A renewal's line is written there without waiting for
+the client's pace, and the connection takes its turn for it, as for an approved renewal.
+
+**An exit answers nothing.** The same press stops the gate, and stopping it closes every connection
+it holds, the connection spared for the dialog's answer included, before that answer exists. A
+client waiting on a dialog when KeePass exits sees its connection end with no answer, which the
+reference client raises as `TransportError`. Nothing was spent and nothing written, as for a lock,
+and the request is in the audit as unanswered. Answering first would need the stop to wait for a
+thread that can only go on once the stop has returned, on the same thread.
 
 **An unlock that lifts no lock closes nothing**, which is a refinement the end to end tier forced
 rather than a weakening. KeePass announces a database being opened and a database being unlocked

@@ -1845,10 +1845,13 @@ meaning only that the rules allowed something; `node` and `decidedAt` are null, 
 `operation` on the operator's revocation, which no route asked for. **`approved` always names a key
 that was admitted.** An approval whose record never landed, whose invitation was spent elsewhere or
 whose certificate could not be issued admitted nobody, was answered as a failure and said so in the
-plugin's log, and gets no line; nor does a request nobody could be asked about. Recreating or
-deleting the authority, which takes every record away, and the operator's changes to rules and
-profiles are not recorded: they wait for a design of audit levels. Never a profile: the one place
-the file names profiles is a refusal that a removed profile would have permitted, below.
+plugin's log, and gets no line; nor does a request nobody could be asked about. A dialog a lock, a
+close of its database or KeePass's exit takes away is written `unanswered` as it goes, on KeePass's
+thread, since at an exit nothing waits for the connection that would otherwise write it,
+`PAIRING.md` §308. Recreating or deleting the authority, which takes every record away, and the
+operator's changes to rules and profiles are not recorded: they wait for a design of audit levels.
+Never a profile: the one place the file names profiles is a refusal that a removed profile would
+have permitted, below.
 
 **Every line names the client as well as the certificate**, under the two names `/gate/whoami`
 answers with, so one word means one thing wherever it is read. `admissionKey` is the certificate on
