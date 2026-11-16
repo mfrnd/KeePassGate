@@ -439,7 +439,6 @@ namespace KeePassGate.Ui
             {
                 Name = GateTab.ApprovalProfilesListName,
                 AccessibleName = GateTab.ApprovalProfilesListLabel,
-                Width = _wrap,
                 CheckOnClick = true,
 
                 // The dialog's own, given before it is measured below: a list not yet on the dialog
@@ -463,6 +462,9 @@ namespace KeePassGate.Ui
             // control the operator has to act on, so it is sized from the list it holds rather
             // than from whatever two docked bands leave over.
             _profiles.Height = ListHeight(_profiles, request.Profiles.Count);
+
+            // And wide enough for every row whole, the name and its mark.
+            _profiles.Width = ListWidth(_profiles, _wrap);
 
             // Straight under the list, because it is about the list: a list longer than it shows
             // grants what is scrolled out of sight too.
@@ -495,7 +497,7 @@ namespace KeePassGate.Ui
 
             // A table rather than a flow, because the buttons go against the right edge and a flow
             // panel lays every child out at its own left one. A cell is what `Anchor` answers to.
-            // The width is the width of everything else on the dialog, since a column that sized
+            // The width is the list's, the widest thing on the dialog, since a column that sized
             // itself to its widest child would put the right edge wherever the buttons happen to
             // end and right align them against themselves.
             // One row of two. What is left is a sentence and what is right is the pair of
@@ -511,7 +513,7 @@ namespace KeePassGate.Ui
                 AutoSize = true,
                 AutoSizeMode = AutoSizeMode.GrowAndShrink,
                 GrowStyle = TableLayoutPanelGrowStyle.FixedSize,
-                MinimumSize = new Size(_wrap, 0),
+                MinimumSize = new Size(_profiles.Width, 0),
 
                 // A gap above, which is what separates this row from the list it answers
                 // about. Nothing below: the form's own padding closes the dialog.
@@ -665,6 +667,37 @@ namespace KeePassGate.Ui
 
         /// <summary>The most rows the profile list shows at once, past which it scrolls.</summary>
         internal const int MostRows = 10;
+
+        /// <summary>
+        /// How wide the profile list should be for the rows it holds: a line of the dialog's text,
+        /// or its widest row where that is wider.
+        /// </summary>
+        /// <remarks>
+        /// **Every row whole, the name and its mark.** A profile name is the client's to choose, up
+        /// to sixty-four letters, digits, hyphens and underscores, and a list as wide as a line of
+        /// text cut a row of wide letters at its edge: the mark after the name, the one thing on
+        /// screen telling the operator that approving adds the name or gives it back to the clients
+        /// holding it, was the part that went, and two names alike but for their ends looked the
+        /// same. A list box cuts a row with no ellipsis and has no tooltip for a row, so the list
+        /// is made wide enough instead, and the dialog, which is sized by what is in it, grows with
+        /// it for such a name and is as it was for every other name.
+        ///
+        /// Beside the text is a check box, which is square and no taller than a row; round the
+        /// whole is the border, as <see cref="ListHeight"/> counts it; and a list holding more rows
+        /// than it shows gives a scroll bar's width to it as well.
+        /// </remarks>
+        internal static int ListWidth(CheckedListBox list, int wrap)
+        {
+            var widest = 0;
+            foreach (var row in list.Items)
+            {
+                widest = Math.Max(
+                    widest, TextRenderer.MeasureText(Convert.ToString(row, CultureInfo.InvariantCulture), list.Font).Width);
+            }
+
+            var scrollBar = list.Items.Count > MostRows ? SystemInformation.VerticalScrollBarWidth : 0;
+            return Math.Max(wrap, list.ItemHeight + widest + scrollBar + (SystemInformation.BorderSize.Width * 4));
+        }
 
         /// <summary>
         /// Approves it, exactly as the button does. Public because a button press needs a window on
