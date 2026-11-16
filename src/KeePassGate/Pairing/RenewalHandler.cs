@@ -501,8 +501,8 @@ namespace KeePassGate.Pairing
                 return StandingAnswer.Unreadable;
             }
 
-            // What the database holds, whether or not it still refuses, for an answer the
-            // operator gives now that the database cannot take: `OwedAnswer.Baseline`.
+            // What the database holds, whether or not it still refuses, for `OwedAnswer.Baseline`
+            // when the read made once the operator answers fails.
             stored = standing;
 
             var now = _clock.Now;
@@ -577,6 +577,20 @@ namespace KeePassGate.Pairing
                 _log.Warn("a renewal by " + CertificateDigest.Shorten(key) + " was refused in this session, " +
                           "which holds until KeePass exits");
                 return;
+            }
+
+            // What the database holds as the answer is given, for `OwedAnswer.Baseline`, rather
+            // than what it held when the dialog was raised: a key changed while the dialog stood,
+            // by Allow renewal accepted or a synchronize, is older than this answer, and compared
+            // with the earlier read it made the next save let this answer go unwritten.
+            try
+            {
+                stored = target.StandingRefusal(key);
+            }
+            catch (Exception error) when (Expected.OfCustomData(error))
+            {
+                _log.Warn("a standing answer to a renewal could not be read again once the operator " +
+                          "answered, so the answer read before the dialog stands for it: " + error.Message);
             }
 
             Vault.VaultWrite written;

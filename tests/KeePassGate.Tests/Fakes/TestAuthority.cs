@@ -383,6 +383,12 @@ namespace KeePassGate.Tests.Fakes
             return KeePassGate.Vault.VaultWrite.Done();
         }
 
+        /// <summary>Takes a standing answer away, as the clients page's Allow renewal does at OK.</summary>
+        public bool LiftRenewalRefusal(string admissionKey)
+        {
+            return _admissions.LiftRenewalRefusal(admissionKey);
+        }
+
         /// <summary>
         /// A client's revocation of itself, made in this fake's own records, with its audit line
         /// written as the writer writes it: whenever the revocation is left in force, saved and

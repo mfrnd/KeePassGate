@@ -649,6 +649,30 @@ namespace KeePassGate.Tests
         }
 
         [Test]
+        public void An_owed_answer_is_given_over_what_the_database_holds_when_the_dialog_returns()
+        {
+            // A stored answer until a date whose day has begun raises the dialog, and Allow
+            // renewal accepted while it stands takes the key away. The operator's answer is
+            // given after that, so the key as it is then is what the answer was given over:
+            // with the key as it was before the dialog, the next save found the key changed
+            // since and let the operator's answer go unwritten.
+            var operatorAt = new FakeRenewalApproval(RenewalApproval.Refused(RenewalRefusal.Forever()));
+
+            using (var old = _authority.IssueAdmittedClient("reader"))
+            {
+                var key = CertificateDigest.Of(old);
+                _authority.RefuseRenewal(key, RenewalRefusal.Until(_now.AddDays(-1)));
+                _authority.RefuseRenewalAnswers = VaultWrite.Busy("a dialog is open");
+                operatorAt.Meanwhile = () => _authority.LiftRenewalRefusal(key);
+
+                Assert.That(Renew(operatorAt, old, "{}").Status, Is.EqualTo(403));
+
+                Assert.That(_session.Owed().Single().Baseline, Is.Null,
+                    "the key held nothing once the operator answered");
+            }
+        }
+
+        [Test]
         public void A_refusal_in_this_session_is_not_hidden_by_an_owed_answer_whose_day_has_begun()
         {
             // The plugin's memory gave the owed answer before this session's whether or not it

@@ -1059,6 +1059,10 @@ none, since it releases both.
   clients page shows it. Allow renewal on an answer until a day that has passed lets the renewal
   dialog come up again before OK, and a refusal for this session given there was taken back by
   the OK as well, which had never seen it.
+- **A standing answer KeePass was too busy to take is written by the next save even when the
+  database's answer changed while the renewal dialog stood**, Allow renewal accepted or a
+  synchronize among the changes. It was compared with what the database held when the dialog
+  came up, so that save took the change for a later answer and let the operator's go unwritten.
 
 ## 0.1.0, 2026-10-25
 
