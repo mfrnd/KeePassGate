@@ -1,0 +1,37 @@
+16:57:16.714 Initialize options=menus=hideonly tree=True list=True
+16:57:17.163 UIStateUpdated#1 treeRebuilt=True listRebuilt=True storeNodes=1 storeItems=9 listItems=9 entries=0 group=KeePassGate(store) storeSelected=True
+16:57:17.203 Menus at=UIStateUpdated entries=0 group=KeePassGate(store) foundEnabled=0 changed=24
+16:57:17.209 Store at=UIStateUpdated store=12 groups=2 records=0 modified=0 [KPG grant 1@KeePassGate t=20261101101000 h=0 icon=0; KPG admission 10@Archive t=20261101101900 h=0 icon=0; KPG grant 11@Recycle Bin t=20261101102000 h=0 icon=0; KPG profile 12@KeePassGate t=20261101102100 h=0 icon=0; KPG grant 2@KeePassGate t=20261101101100 h=0 icon=0 exp; KPG admission 1@KeePassGate t=20261101101200 h=0 icon=0; KPG admission 2@KeePassGate t=20261101101300 h=0 icon=0; KPG revocation 1@KeePassGate t=20261101101400 h=0 icon=0; KPG profile 1@KeePassGate t=20261101101500 h=0 icon=0; KPG authority 1@KeePassGate t=20261101101600 h=0 icon=0; KPG retirement 1@KeePassGate t=20261101101700 h=0 icon=0; KPG grant 9@Archive t=20261101101800 h=0 icon=0; ]
+16:57:26.932 DRIVER hideonly menus
+16:57:27.252 UIStateUpdated#2 treeRebuilt=False listRebuilt=True storeNodes=1 storeItems=9 listItems=9 entries=0 group=KeePassGate(store) storeSelected=True
+16:57:27.254 Menus at=UIStateUpdated entries=0 group=KeePassGate(store) foundEnabled=0 changed=5
+16:57:28.082 UIStateUpdated#3 treeRebuilt=False listRebuilt=False storeNodes=1 storeItems=9 listItems=9 entries=1(store) group=KeePassGate(store) storeSelected=True
+16:57:28.110 Menus at=UIStateUpdated entries=1(store) group=KeePassGate(store) foundEnabled=0 changed=29
+16:57:28.120 Menus at=UIStateUpdated entries=1(store) group=KeePassGate(store) foundEnabled=0 changed=10
+16:57:28.698 Menus at=DropDownOpening m_menuEntry entries=1(store) group=KeePassGate(store) foundEnabled=0 changed=9
+16:57:31.960 DRIVER hideonly Ctrl+D on a hidden item
+16:57:32.309 UIStateUpdated#5 treeRebuilt=False listRebuilt=True storeNodes=1 storeItems=9 listItems=9 entries=0 group=KeePassGate(store) storeSelected=True
+16:57:32.321 Menus at=UIStateUpdated entries=0 group=KeePassGate(store) foundEnabled=0 changed=6
+16:57:33.142 UIStateUpdated#6 treeRebuilt=False listRebuilt=False storeNodes=1 storeItems=9 listItems=9 entries=1(store) group=KeePassGate(store) storeSelected=True
+16:57:33.154 Menus at=UIStateUpdated entries=1(store) group=KeePassGate(store) foundEnabled=0 changed=28
+16:57:33.162 Menus at=UIStateUpdated entries=1(store) group=KeePassGate(store) foundEnabled=0 changed=9
+16:57:33.646 WindowAdded DuplicationForm <<Duplication Options>> entries=1(store) group=KeePassGate(store) store=True action=off
+16:57:41.459 WindowRemoved DuplicationForm <<Duplication Options>> result=Cancel
+16:57:44.492 DRIVER hideonly Ctrl+I on a hidden item
+16:57:44.981 UIStateUpdated#8 treeRebuilt=False listRebuilt=True storeNodes=1 storeItems=9 listItems=9 entries=0 group=KeePassGate(store) storeSelected=True
+16:57:44.991 Menus at=UIStateUpdated entries=0 group=KeePassGate(store) foundEnabled=0 changed=6
+16:57:45.656 WindowAdded PwEntryForm <<<DYN>>> mode=AddNewEntry entries=1 first= multi=False parent=KeePassGate selectedGroup=KeePassGate store=True action=off
+16:57:53.684 WindowRemoved PwEntryForm <<Add Entry>> result=Cancel
+16:57:53.742 UIStateUpdated#9 treeRebuilt=False listRebuilt=False storeNodes=1 storeItems=9 listItems=9 entries=0 group=KeePassGate(store) storeSelected=True
+16:57:53.742 Menus at=UIStateUpdated entries=0 group=KeePassGate(store) foundEnabled=0 changed=5
+16:57:56.839 DRIVER hideonly Delete
+16:57:57.290 UIStateUpdated#10 treeRebuilt=False listRebuilt=True storeNodes=1 storeItems=9 listItems=9 entries=0 group=KeePassGate(store) storeSelected=True
+16:57:57.292 Menus at=UIStateUpdated entries=0 group=KeePassGate(store) foundEnabled=0 changed=5
+16:57:58.168 UIStateUpdated#11 treeRebuilt=False listRebuilt=False storeNodes=1 storeItems=9 listItems=9 entries=1(store) group=KeePassGate(store) storeSelected=True
+16:57:58.180 Menus at=UIStateUpdated entries=1(store) group=KeePassGate(store) foundEnabled=0 changed=28
+16:57:58.190 Menus at=UIStateUpdated entries=1(store) group=KeePassGate(store) foundEnabled=0 changed=9
+16:58:08.819 UIStateUpdated#13 treeRebuilt=False listRebuilt=True storeNodes=1 storeItems=8 listItems=8 entries=0 group=KeePassGate(store) storeSelected=True
+16:58:08.838 Menus at=UIStateUpdated entries=0 group=KeePassGate(store) foundEnabled=0 changed=6
+16:58:08.838 Store at=UIStateUpdated store=12 groups=2 records=0 modified=1 [KPG grant 1@Recycle Bin t=20261101101000 h=0 icon=0; KPG admission 10@Archive t=20261101101900 h=0 icon=0; KPG grant 11@Recycle Bin t=20261101102000 h=0 icon=0; KPG profile 12@KeePassGate t=20261101102100 h=0 icon=0; KPG grant 2@KeePassGate t=20261101101100 h=0 icon=0 exp; KPG admission 1@KeePassGate t=20261101101200 h=0 icon=0; KPG admission 2@KeePassGate t=20261101101300 h=0 icon=0; KPG revocation 1@KeePassGate t=20261101101400 h=0 icon=0; KPG profile 1@KeePassGate t=20261101101500 h=0 icon=0; KPG authority 1@KeePassGate t=20261101101600 h=0 icon=0; KPG retirement 1@KeePassGate t=20261101101700 h=0 icon=0; KPG grant 9@Archive t=20261101101800 h=0 icon=0; ]
+16:58:14.645 DRIVER hideonly end
+16:58:17.273 Terminate uiStateUpdated=13 firstChance=0

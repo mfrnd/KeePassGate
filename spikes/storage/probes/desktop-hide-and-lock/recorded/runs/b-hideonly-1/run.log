@@ -1,0 +1,109 @@
+17:57:11.507 case b-hideonly run 1 place=top switches=menus=hideonly
+17:57:12.379 config: 
+17:57:25.824 started KeePass pid=8596 token: TokenIsElevated=1 ElevationType=2 Integrity=0x3000 AdministratorsEnabled=False
+17:57:25.903 main window: <<db.kdbx - KeePass>>
+17:57:26.101 group rows: Archive, Desk store, Empty group, KeePassGate, Passwords, Recycle Bin
+17:57:26.929 == hideonly menus
+17:57:30.132 [hideonly-00-entry-menu] item <<Copy User Name>> enabled=True
+17:57:30.136 [hideonly-00-entry-menu] item <<Copy Password>> enabled=True
+17:57:30.140 [hideonly-00-entry-menu] item <<URL(s)>> enabled=False
+17:57:30.142 [hideonly-00-entry-menu] item <<Other Data>> enabled=True
+17:57:30.145 [hideonly-00-entry-menu] item <<Attachments>> enabled=False
+17:57:31.177 [hideonly-00-entry-menu] item <<Perform Auto-Type>> enabled=False
+17:57:31.181 [hideonly-00-entry-menu] item <<Select All>> enabled=True
+17:57:31.183 [hideonly-00-entry-menu] item <<File>> enabled=True
+17:57:31.185 [hideonly-00-entry-menu] item <<Group>> enabled=True
+17:57:31.187 [hideonly-00-entry-menu] item <<Entry>> enabled=True
+17:57:31.197 [hideonly-00-entry-menu] item <<Find>> enabled=True
+17:57:31.199 [hideonly-00-entry-menu] item <<View>> enabled=True
+17:57:31.201 [hideonly-00-entry-menu] item <<Tools>> enabled=True
+17:57:31.203 [hideonly-00-entry-menu] item <<Help>> enabled=True
+17:57:31.958 == hideonly Ctrl+D on a hidden item
+17:57:35.789 [hideonly-01-dup-1] WINDOW title=<<Duplication Options>> class=WindowsForms10.Window.8.app.0.2bf8098_r6_ad1
+17:57:35.826 [hideonly-01-dup-1]   Pane name=<<Copy history>>
+17:57:35.828 [hideonly-01-dup-1]   Pane name=<<Help: Field References>>
+17:57:35.834 [hideonly-01-dup-1]   Text name=<<If this option is enabled, the copies will reference the user names and passwords of the original entries. When a user name or password is changed in an original entry, the copy will automatically use the new data, too.>>
+17:57:35.836 [hideonly-01-dup-1]   Pane name=<<Replace user names and passwords by references>>
+17:57:35.838 [hideonly-01-dup-1]   Pane name=<<Append "- Copy" to entry titles>>
+17:57:35.840 [hideonly-01-dup-1]   Pane name=<<Cancel>>
+17:57:35.842 [hideonly-01-dup-1]   Pane name=<<OK>>
+17:57:35.846 [hideonly-01-dup-1]   win32 BUTTON <<Copy &history>>
+17:57:35.846 [hideonly-01-dup-1]   win32 STATIC <<Help: Field References>>
+17:57:35.848 [hideonly-01-dup-1]   win32 STATIC <<If this option is enabled, the copies will reference the user names and passwords of the original entries. When a user name or password is changed in an original entry, the copy will automatically use the new data, too.>>
+17:57:35.850 [hideonly-01-dup-1]   win32 BUTTON <<&Replace user names and passwords by references>>
+17:57:35.852 [hideonly-01-dup-1]   win32 BUTTON <<&Append "- Copy" to entry titles>>
+17:57:35.852 [hideonly-01-dup-1]   win32 BUTTON <<Cancel>>
+17:57:35.854 [hideonly-01-dup-1]   win32 BUTTON <<OK>>
+17:57:36.239 shot hideonly-01-dup-1.png (375 x 236)
+17:57:39.649 [hideonly-01-dup] windows: Duplication Options
+17:57:44.490 == hideonly Ctrl+I on a hidden item
+17:57:47.752 [hideonly-02-add-1] WINDOW title=<<Add Entry>> class=WindowsForms10.Window.8.app.0.2bf8098_r6_ad1
+17:57:47.890 [hideonly-02-add-1]   Pane name=<<General>>
+17:57:47.895 [hideonly-02-add-1]   Text name=<<Title:>>
+17:57:47.899 [hideonly-02-add-1]   Document name=<<Title:>> text=<<>>
+17:57:47.901 [hideonly-02-add-1]   Pane name=<<Expires:>>
+17:57:47.907 [hideonly-02-add-1]   Text name=<<20 ch.>>
+17:57:47.915 [hideonly-02-add-1]   Text name=<<Icon:>>
+17:57:47.920 [hideonly-02-add-1]   Pane name=<<●●●●●●●●●●●●●●●●●●●●>>
+17:57:47.923 [hideonly-02-add-1]   Pane name=<<●●●●●●●●●●●●●●●●●●●●>>
+17:57:47.929 [hideonly-02-add-1]   Text name=<<Notes:>>
+17:57:47.936 [hideonly-02-add-1]   Pane name=<<16.11.2026 00:00:00>>
+17:57:47.943 [hideonly-02-add-1]   Text name=<<URL:>>
+17:57:47.947 [hideonly-02-add-1]   Text name=<<Quality:>>
+17:57:47.947 [hideonly-02-add-1]   Text name=<<Password:>>
+17:57:47.947 [hideonly-02-add-1]   Text name=<<Repeat:>>
+17:57:47.967 [hideonly-02-add-1]   Text name=<<User name:>>
+17:57:47.970 [hideonly-02-add-1]   Text name=<<UUID:>>
+17:57:47.974 [hideonly-02-add-1]   Pane name=<<Tools>>
+17:57:47.976 [hideonly-02-add-1]   Pane name=<<Cancel>>
+17:57:47.978 [hideonly-02-add-1]   Pane name=<<OK>>
+17:57:47.985 [hideonly-02-add-1]   win32 Window.8 <<General>>
+17:57:47.987 [hideonly-02-add-1]   win32 STATIC <<&Title:>>
+17:57:47.990 [hideonly-02-add-1]   win32 BUTTON <<&Expires:>>
+17:57:47.990 [hideonly-02-add-1]   win32 STATIC <<20 ch.>>
+17:57:47.993 [hideonly-02-add-1]   win32 STATIC <<&Icon:>>
+17:57:47.995 [hideonly-02-add-1]   win32 EDIT <<●●●●●●●●●●●●●●●●●●●●>>
+17:57:47.997 [hideonly-02-add-1]   win32 EDIT <<●●●●●●●●●●●●●●●●●●●●>>
+17:57:48.001 [hideonly-02-add-1]   win32 STATIC <<&Notes:>>
+17:57:48.003 [hideonly-02-add-1]   win32 SysDateTimePick32 <<16.11.2026 00:00:00>>
+17:57:48.006 [hideonly-02-add-1]   win32 STATIC <<UR&L:>>
+17:57:48.009 [hideonly-02-add-1]   win32 STATIC <<Quality:>>
+17:57:48.011 [hideonly-02-add-1]   win32 STATIC <<&Password:>>
+17:57:48.011 [hideonly-02-add-1]   win32 STATIC <<&Repeat:>>
+17:57:48.015 [hideonly-02-add-1]   win32 STATIC <<&User name:>>
+17:57:48.017 [hideonly-02-add-1]   win32 BUTTON <<T&ools>>
+17:57:48.017 [hideonly-02-add-1]   win32 BUTTON <<Cancel>>
+17:57:48.019 [hideonly-02-add-1]   win32 BUTTON <<OK>>
+17:57:48.415 shot hideonly-02-add-1.png (491 x 513)
+17:57:52.117 [hideonly-02-add] windows: Add Entry
+17:57:56.837 == hideonly Delete
+17:58:08.132 [hideonly-03-del-1] WINDOW title=<<KeePass>> class=#32770
+17:58:08.210 [hideonly-03-del-1]   Image name=<<MainInstructionIcon>>
+17:58:08.214 [hideonly-03-del-1]   Text name=<<Are you sure you want to move the selected entry to the recycle bin?>>
+17:58:08.220 [hideonly-03-del-1]   Text name=<<- KPG grant 1>>
+17:58:08.226 [hideonly-03-del-1]   CheckBox name=<<Do not show this dialog again; always 'Yes'.>>
+17:58:08.230 [hideonly-03-del-1]   Pane name=<<Yes>>
+17:58:08.236 [hideonly-03-del-1]   Pane name=<<No>>
+17:58:08.246 [hideonly-03-del-1]   win32 Button <<&Yes>>
+17:58:08.246 [hideonly-03-del-1]   win32 Button <<&No>>
+17:58:08.641 shot hideonly-03-del-1.png (442 x 165)
+17:58:08.765 [hideonly-03-del-1] pressed <<&Yes (clicked)>>
+17:58:14.641 [hideonly-03-del] windows: KeePass
+17:58:14.643 == hideonly end
+17:58:14.980 [hideonly-04-end] title <<db.kdbx* - KeePass>>; tree [Desk store, Passwords, Recycle Bin, KeePassGate, Archive, Empty group]; list [KPG grant 2, KPG admission 1, KPG admission 2, KPG revocation 1, KPG profile 1, KPG authority 1, KPG retirement 1, KPG profile 12]; status <<Ready.>>
+17:58:15.094 FLOW DONE
+17:58:16.548 [b-hideonly-exit-1] WINDOW title=<<KeePass>> class=#32770
+17:58:16.660 [b-hideonly-exit-1]   Image name=<<MainInstructionIcon>>
+17:58:16.669 [b-hideonly-exit-1]   Text name=<<Save database changes before exiting KeePass?>>
+17:58:16.676 [b-hideonly-exit-1]   Text name=<<Database file:
+<work>\runs\b-hideonly-1\db.kdbx>>
+17:58:16.681 [b-hideonly-exit-1]   Pane name=<<Save>> help=<<Save all changes made to the database and exit KeePass.>>
+17:58:16.691 [b-hideonly-exit-1]   Pane name=<<Discard changes>> help=<<Discard all changes made to the database and exit KeePass.>>
+17:58:16.699 [b-hideonly-exit-1]   Pane name=<<Cancel>> help=<<Abort the current operation. KeePass will not be closed.>>
+17:58:16.703 [b-hideonly-exit-1]   CheckBox name=<<Automatically save when closing/locking the database>>
+17:58:16.715 [b-hideonly-exit-1]   win32 Button <<&Save>>
+17:58:16.718 [b-hideonly-exit-1]   win32 Button <<&Discard changes>>
+17:58:16.719 [b-hideonly-exit-1]   win32 Button <<Cancel>>
+17:58:17.119 shot b-hideonly-exit-1.png (442 x 352)
+17:58:17.241 [b-hideonly-exit-1] pressed <<&Discard changes (clicked)>>
+17:58:24.380 case b-hideonly done in 73 s

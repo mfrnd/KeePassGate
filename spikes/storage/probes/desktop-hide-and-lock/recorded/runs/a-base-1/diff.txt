@@ -1,0 +1,41 @@
+=> # file db.kdbx size=3365 sha256=d6e2d156ae99506054c43befee381aa85eaf91d273ad3922b0b98d14e3e7acdd
+=> E S13 S KPG.Body p=0 "{\"kind\":\"grant 13\",\"n\":\"S13\",\"zqx\":\"zqxstore-s13\"}"
+=> E S13 S KPG.Kind p=0 "grant 13"
+=> E S13 S KPG.Secret p=1 "zqxsecret-s13"
+=> E S13 S Notes p=0 ""
+=> E S13 S Password p=1 ""
+=> E S13 S Title p=0 "KPG grant 13"
+=> E S13 S URL p=0 ""
+=> E S13 S UserName p=0 ""
+=> E S13 autotype enabled=1 obfuscation=0 seq="" assoc=0
+=> E S13 history.count 0
+=> E S13 index 9
+=> E S13 misc icon=0 customIcon=- fg=00000000 bg=00000000 overrideUrl="" quality=1
+=> E S13 parent KG (KeePassGate)
+=> E S13 prev -
+=> E S13 t.accessed 2026-11-01T20:00:00Z
+=> E S13 t.created 2026-11-01T20:00:00Z
+=> E S13 t.expires 0 2026-11-01T10:00:00Z
+=> E S13 t.location 2026-11-01T20:00:00Z
+=> E S13 t.modified 2026-11-01T20:00:00Z
+=> E S13 tags []
+=> E S13 usage 0
+=> E U2 index 0
+=> E U2 parent Root (Desk store)
+=> E U2 t.location 2026-11-16T16:20:52Z
+=> E U3 index 1
+=> F groups 6 entries 16
+=> G KG children groups=1 entries=10
+=> G PW children groups=0 entries=2
+=> G PW flags icon=48 customIcon=- search=inherit autotype=inherit expanded=1 seq="" lastTop=U3
+=> G Root children groups=4 entries=1
+<= # file db.kdbx size=3205 sha256=ed53ad99a4bb1c3992bbbfa331f8e1582007a65c3635216ab291c81f9cd8bbd1
+<= E U2 index 1
+<= E U2 parent PW (Passwords)
+<= E U2 t.location 2026-11-01T10:30:00Z
+<= E U3 index 2
+<= F groups 6 entries 15
+<= G KG children groups=1 entries=9
+<= G PW children groups=0 entries=3
+<= G PW flags icon=48 customIcon=- search=inherit autotype=inherit expanded=1 seq="" lastTop=-
+<= G Root children groups=4 entries=0

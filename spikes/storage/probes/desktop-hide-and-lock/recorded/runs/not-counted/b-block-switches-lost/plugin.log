@@ -1,0 +1,29 @@
+17:03:40.455 Initialize options=filter= tree=True list=True
+17:03:40.726 UIStateUpdated#1 treeRebuilt=True listRebuilt=True storeNodes=1 storeItems=9 listItems=9 entries=0 group=KeePassGate(store) storeSelected=True
+17:03:40.729 Store at=UIStateUpdated store=12 groups=2 records=0 modified=0 [KPG grant 1@KeePassGate t=20261101101000 h=0 icon=0; KPG admission 10@Archive t=20261101101900 h=0 icon=0; KPG grant 11@Recycle Bin t=20261101102000 h=0 icon=0; KPG profile 12@KeePassGate t=20261101102100 h=0 icon=0; KPG grant 2@KeePassGate t=20261101101100 h=0 icon=0 exp; KPG admission 1@KeePassGate t=20261101101200 h=0 icon=0; KPG admission 2@KeePassGate t=20261101101300 h=0 icon=0; KPG revocation 1@KeePassGate t=20261101101400 h=0 icon=0; KPG profile 1@KeePassGate t=20261101101500 h=0 icon=0; KPG authority 1@KeePassGate t=20261101101600 h=0 icon=0; KPG retirement 1@KeePassGate t=20261101101700 h=0 icon=0; KPG grant 9@Archive t=20261101101800 h=0 icon=0; ]
+17:03:50.970 DRIVER block menus with S1 selected
+17:03:51.500 UIStateUpdated#2 treeRebuilt=False listRebuilt=True storeNodes=1 storeItems=9 listItems=9 entries=0 group=KeePassGate(store) storeSelected=True
+17:03:54.871 UIStateUpdated#3 treeRebuilt=False listRebuilt=False storeNodes=1 storeItems=9 listItems=9 entries=1(store) group=KeePassGate(store) storeSelected=True
+17:04:09.958 UIStateUpdated#5 treeRebuilt=False listRebuilt=True storeNodes=1 storeItems=9 listItems=9 entries=0 group=KeePassGate(store) storeSelected=True
+17:04:10.857 UIStateUpdated#6 treeRebuilt=False listRebuilt=False storeNodes=1 storeItems=9 listItems=9 entries=1(store) group=KeePassGate(store) storeSelected=True
+17:04:13.247 UIStateUpdated#8 treeRebuilt=False listRebuilt=True storeNodes=1 storeItems=9 listItems=9 entries=0 group=KeePassGate(store) storeSelected=True
+17:04:16.294 DRIVER block S3 Delete key
+17:04:17.514 UIStateUpdated#10 treeRebuilt=False listRebuilt=False storeNodes=1 storeItems=9 listItems=9 entries=1(store) group=KeePassGate(store) storeSelected=True
+17:04:22.503 DRIVER block S4 Shift+Delete
+17:04:29.966 DRIVER block S5 dragged onto Passwords
+17:04:42.803 DRIVER block S6 Alt+Down
+17:04:47.185 DRIVER block S7 Ctrl+D
+17:04:55.560 DRIVER block S7 Entry menu Duplicate Entry
+17:05:06.647 DRIVER block S8 quick edit: Expires Now
+17:05:16.077 DRIVER block S8 quick edit: color
+17:05:25.909 DRIVER block S12 copy, paste into KeePassGate
+17:05:34.067 DRIVER block S1 edited in its dialog
+17:05:43.464 DRIVER block S2 Move to Group Passwords
+17:05:54.229 DRIVER block Add Entry by Ctrl+I in KeePassGate
+17:06:01.563 DRIVER block Recycle Bin: Empty
+17:06:10.736 DRIVER block KeePassGate: Ctrl+A, Delete
+17:06:19.512 DRIVER block KeePassGate: Move Group One Down (Alt+Down on the tree), then Delete on it
+17:06:21.961 DRIVER block group Delete key
+17:06:27.043 DRIVER block root: Sort Direct Subgroups
+17:06:35.399 DRIVER block end
+17:06:38.753 DRIVER save at the end

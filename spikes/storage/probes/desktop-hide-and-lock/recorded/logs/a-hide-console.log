@@ -1,0 +1,280 @@
+17:21:31.447 case a-hide-ui run 1 place=top switches=hide=ui
+17:21:32.025 config: 
+17:21:43.153 started KeePass pid=13232 token: TokenIsElevated=1 ElevationType=2 Integrity=0x3000 AdministratorsEnabled=False
+17:21:43.390 main window: <<db.kdbx - KeePass>>
+17:21:43.581 group rows: Desk store, Passwords, Recycle Bin
+17:21:44.413 == ui open
+17:21:44.670 [ui-01-open] title <<db.kdbx - KeePass>>; tree [Desk store, Passwords, Recycle Bin]; list []; status <<Ready.>>
+17:21:45.110 shot ui-01-open.png (1086 x 713)
+17:21:45.205 == ui Passwords
+17:21:46.293 [ui-02-passwords] title <<db.kdbx - KeePass>>; tree [Desk store, Passwords, Recycle Bin]; list [Mail account, Bank, Linked]; status <<Ready.>>
+17:21:46.457 == ui quick search zqxstore
+17:21:48.739 [ui-03-quick-zqxstore] title <<db.kdbx - KeePass>>; tree [Desk store, Passwords, Recycle Bin]; list []; status <<0 entries found, 2 groups skipped ('Recycle Bin', 'KeePassGate').>>
+17:21:49.139 shot ui-03-quick-zqxstore.png (1086 x 713)
+17:21:49.219 == ui quick search KPG
+17:21:51.437 [ui-04-quick-KPG] title <<db.kdbx - KeePass>>; tree [Desk store, Passwords, Recycle Bin]; list [Mail account]; status <<1 entry found, 2 groups skipped ('Recycle Bin', 'KeePassGate').>>
+17:21:51.519 == ui Find All
+17:21:52.698 menu: <<All>>
+17:21:54.608 [ui-05-find-all] title <<db.kdbx - KeePass>>; tree [Desk store, Passwords, Recycle Bin]; list [Mail account, Bank, Linked]; status <<3 entries found.>>
+17:21:55.012 shot ui-05-find-all.png (1086 x 713)
+17:21:55.142 == ui Find Expired
+17:21:56.272 menu: <<Expired>>
+17:21:58.175 [ui-06-expired] title <<db.kdbx - KeePass>>; tree [Desk store, Passwords, Recycle Bin]; list []; status <<0 entries found, 2 groups skipped ('Recycle Bin', 'KeePassGate').>>
+17:21:58.260 == ui Find Tag kpgtag
+17:21:59.427 menu: <<Tag>>
+17:22:00.578 menu: <<kpgtag>>
+17:22:02.510 [ui-07-tag] title <<db.kdbx - KeePass>>; tree [Desk store, Passwords, Recycle Bin]; list [Mail account]; status <<1 entry found.>>
+17:22:02.919 shot ui-07-tag.png (1086 x 713)
+17:22:03.011 == ui Last Modified Entries
+17:22:04.208 menu: <<Last Modified Entries...>>
+17:22:06.685 [ui-08-lastmod] WINDOW title=<<Last Modified>> class=WindowsForms10.Window.8.app.0.2bf8098_r6_ad1
+17:22:06.739 [ui-08-lastmod]   Thumb name=<<Grip>>
+17:22:06.749 [ui-08-lastmod]   Button name=<<Print...>>
+17:22:06.754 [ui-08-lastmod]   Button name=<<Export...>>
+17:22:06.766 [ui-08-lastmod]   Text name=<<Filter:>>
+17:22:07.193 shot ui-08-lastmod.png (696 x 561)
+17:22:07.254 [ui-08-lastmod] rows: Linked, Bank, KPG profile 12, KPG grant 11, KPG admission 10, KPG grant 9, KPG retirement 1, KPG authority 1, KPG profile 1, KPG revocation 1, KPG admission 2, KPG admission 1, KPG grant 2, KPG grant 1, Mail account
+17:22:08.086 == ui Find dialog, ignore group settings
+17:22:10.305 [ui-09-find] check <<XPath expression>> checked=0
+17:22:10.309 [ui-09-find] check <<Regular expression>> checked=0
+17:22:10.311 [ui-09-find] check <<Simple expression>> checked=1
+17:22:10.313 [ui-09-find] check <<Match diacritics>> checked=0
+17:22:10.315 [ui-09-find] check <<Ignore search settings of groups>> checked=0
+17:22:10.317 [ui-09-find] check <<Resolve field references in data (slow)>> checked=0
+17:22:10.319 [ui-09-find] check <<Exclude expired entries>> checked=0
+17:22:10.321 [ui-09-find] check <<Match case>> checked=0
+17:22:10.321 [ui-09-find] check <<History>> checked=0
+17:22:10.325 [ui-09-find] check <<Group path>> checked=0
+17:22:10.327 [ui-09-find] check <<String name>> checked=0
+17:22:10.329 [ui-09-find] check <<Tags>> checked=1
+17:22:10.331 [ui-09-find] check <<Group name>> checked=0
+17:22:10.333 [ui-09-find] check <<UUID>> checked=0
+17:22:10.335 [ui-09-find] check <<Other strings>> checked=1
+17:22:10.337 [ui-09-find] check <<Notes>> checked=1
+17:22:10.339 [ui-09-find] check <<URL>> checked=1
+17:22:10.341 [ui-09-find] check <<Password>> checked=0
+17:22:10.342 [ui-09-find] check <<User name>> checked=1
+17:22:10.344 [ui-09-find] check <<Title>> checked=1
+17:22:11.104 [ui-09-find] after: Simple expression, Ignore search settings of groups, Tags, Other strings, Notes, URL, User name, Title
+17:22:11.493 shot ui-09-find-dialog.png (376 x 553)
+17:22:13.708 [ui-09-find-ignore] title <<db.kdbx - KeePass>>; tree [Desk store, Passwords, Recycle Bin]; list []; status <<Ready.>>
+17:22:14.113 shot ui-09-find-ignore.png (1086 x 713)
+17:22:14.206 == ui Show Entries of Subgroups, root
+17:22:15.307 menu: <<Show Entries of Subgroups>>
+17:22:17.188 [ui-10-root-subgroups] title <<db.kdbx - KeePass>>; tree [Desk store, Passwords, Recycle Bin]; list [Mail account, Bank, Linked]; status <<Ready.>>
+17:22:17.584 shot ui-10-root-subgroups.png (1086 x 713)
+17:22:18.775 menu: <<Show Entries of Subgroups>>
+17:22:19.599 == ui field references in Linked
+17:22:21.176 [ui-11-ref] entry view <<Group: Passwords. Title: Linked. User Name: zqxstore-user1 - {REF:U@I:4B504753310000000000000000000000}. Password: ********. URL: https://example.invalid/zqxstore-user1 - https://example.invalid/{REF:U@I:4B504753310000000000000000000000}. URL Override: https://override.example.invalid/******** - https://override.example.invalid/{REF:P@I:4B504753310000000000000000000000}. Creation Time: 01.11.2026 11:31:00. Last Modification Time: 01.11.2026 11:31:00. /  / {REF:N@I:4B504753310000000000000000000000}>>
+17:22:22.866 [ui-11-ref-c-1] WINDOW title=<<KeePass>> class=#32770
+17:22:22.935 [ui-11-ref-c-1]   Image name=<<MainInstructionIcon>>
+17:22:22.941 [ui-11-ref-c-1]   Text name=<<{REF:P@I:4B504753310000000000000000000000}
+
+Are you sure you want to evaluate/replace the placeholder?>>
+17:22:22.945 [ui-11-ref-c-1]   CheckBox name=<<Do not show this dialog again.>>
+17:22:22.949 [ui-11-ref-c-1]   Pane name=<<Yes>>
+17:22:22.953 [ui-11-ref-c-1]   Pane name=<<No>>
+17:22:22.957 [ui-11-ref-c-1]   Image name=<<FooterIcon>>
+17:22:22.961 [ui-11-ref-c-1]   Pane name=<<More information: Placeholders, Security.>>
+17:22:22.975 [ui-11-ref-c-1]   win32 Button <<Yes>>
+17:22:22.977 [ui-11-ref-c-1]   win32 Button <<No>>
+17:22:22.979 [ui-11-ref-c-1]   win32 SysLink <<More information: <A HREF="p">Placeholders</A>, <A HREF="s">Security</A>.>>
+17:22:23.357 shot ui-11-ref-c-1.png (375 x 194)
+17:22:23.499 [ui-11-ref-c-1] pressed <<Yes (clicked)>>
+17:22:28.594 [ui-11-ref-c] windows: KeePass
+17:22:39.276 [ui-11-ref] Ctrl+C on Linked copied <<>>
+17:22:43.453 [ui-11-ref-b] windows: 
+17:22:43.589 [ui-11-ref] Ctrl+B on Linked copied <<zqxstore-user1>>
+17:22:44.790 shot ui-11-ref.png (1086 x 713)
+17:22:46.999 == ui select root
+17:22:48.268 [ui-21-root] title <<db.kdbx - KeePass>>; tree [Desk store, Passwords, Recycle Bin]; list []; status <<Ready.>>
+17:22:48.384 == ui select Passwords
+17:22:49.692 [ui-22-passwords] title <<db.kdbx - KeePass>>; tree [Desk store, Passwords, Recycle Bin]; list [Mail account, Bank, Linked]; status <<Ready.>>
+17:22:49.853 == ui sort by title
+17:22:51.367 [ui-23-sorted] title <<db.kdbx - KeePass>>; tree [Desk store, Passwords, Recycle Bin]; list [Bank, Linked, Mail account]; status <<Ready.>>
+17:22:51.480 == ui tree keyboard Home then Down x8
+17:22:52.774 == ui tree Down 1
+17:22:53.217 == ui tree Down 2
+17:22:54.662 == ui tree Down 3
+17:22:55.106 == ui tree Down 4
+17:22:55.553 == ui tree Down 5
+17:22:55.999 == ui tree Down 6
+17:22:56.445 == ui tree Down 7
+17:22:56.890 == ui tree Down 8
+17:22:57.313 [ui-24-keyboard] title <<db.kdbx - KeePass>>; tree [Desk store, Passwords, Recycle Bin]; list []; status <<Ready.>>
+17:22:58.541 shot ui-24-keyboard.png (1086 x 713)
+17:22:58.677 == ui drag Bank onto root
+17:23:02.056 dragged Bank from 355,135.5 onto Desk store at 112,111
+17:23:03.316 [ui-25-drag] title <<db.kdbx* - KeePass>>; tree []; list [Linked, Mail account]; status <<Ready.>>
+17:23:03.423 == ui save
+17:23:05.773 [ui-26-saved] title <<db.kdbx - KeePass>>; tree []; list [Linked, Mail account]; status <<Ready.>>
+17:23:06.561 == ui lock and unlock
+17:23:09.328 [ui-27-unlock-prompt] WINDOW title=<<Open Database - db.kdbx>> class=WindowsForms10.Window.8.app.0.2bf8098_r6_ad1
+17:23:09.422 [ui-27-unlock-prompt]   Pane name=<<Exit>>
+17:23:09.430 [ui-27-unlock-prompt]   ComboBox name=<<(None)>>
+17:23:09.438 [ui-27-unlock-prompt]   Button name=<<Open>>
+17:23:09.448 [ui-27-unlock-prompt]   Pane name=<<Help>>
+17:23:09.454 [ui-27-unlock-prompt]   Pane name=<<Cancel>>
+17:23:09.457 [ui-27-unlock-prompt]   Pane name=<<OK>>
+17:23:09.461 [ui-27-unlock-prompt]   Pane name=<<Windows user account>>
+17:23:09.468 [ui-27-unlock-prompt]   Pane name=<<Key file/provider:>>
+17:23:09.474 [ui-27-unlock-prompt]   Pane name=<<Master password:>>
+17:23:09.486 [ui-27-unlock-prompt]   win32 BUTTON <<E&xit>>
+17:23:09.493 [ui-27-unlock-prompt]   win32 COMBOBOX <<(None)>>
+17:23:09.496 [ui-27-unlock-prompt]   win32 BUTTON <<&Help>>
+17:23:09.499 [ui-27-unlock-prompt]   win32 BUTTON <<Cancel>>
+17:23:09.501 [ui-27-unlock-prompt]   win32 BUTTON <<OK>>
+17:23:09.501 [ui-27-unlock-prompt]   win32 BUTTON <<&Windows user account>>
+17:23:09.503 [ui-27-unlock-prompt]   win32 BUTTON <<&Key file/provider:>>
+17:23:09.505 [ui-27-unlock-prompt]   win32 BUTTON <<&Master password:>>
+17:23:13.314 [ui-27-unlocked] title <<db.kdbx - KeePass>>; tree []; list [Linked, Mail account]; status <<Ready.>>
+17:23:13.723 shot ui-27-unlocked.png (1086 x 713)
+17:23:13.826 == ui synchronize with other.kdbx
+17:23:15.138 menu: <<Synchronize>>
+17:23:16.221 menu: <<Synchronize with File...>>
+17:23:17.371 [ui-28-sync] file dialog <<Synchronize>>
+17:23:38.029 [ui-28-sync-dialogs] windows: 
+17:23:38.352 [ui-28-synced] title <<db.kdbx - KeePass>>; tree []; list [Linked, Mail account]; status <<Synchronization completed successfully.>>
+17:23:39.206 shot ui-28-synced.png (1086 x 713)
+17:23:39.324 FLOW DONE
+17:23:45.429 case a-hide-ui done in 134 s
+17:23:45.435 case a-hide-idle run 1 place=top switches=hide=idle
+17:23:45.938 config: 
+17:23:59.336 started KeePass pid=8864 token: TokenIsElevated=1 ElevationType=2 Integrity=0x3000 AdministratorsEnabled=False
+17:23:59.437 main window: <<db.kdbx - KeePass>>
+17:23:59.604 group rows: Desk store, Passwords, Recycle Bin
+17:24:00.423 == idle open
+17:24:00.689 [idle-01-open] title <<db.kdbx - KeePass>>; tree [Desk store, Passwords, Recycle Bin]; list []; status <<Ready.>>
+17:24:01.120 shot idle-01-open.png (1086 x 713)
+17:24:01.322 == idle Passwords
+17:24:03.301 [idle-02-passwords] title <<db.kdbx - KeePass>>; tree [Desk store, Passwords, Recycle Bin]; list [Mail account, Bank, Linked]; status <<Ready.>>
+17:24:03.561 == idle quick search zqxstore
+17:24:05.925 [idle-03-quick-zqxstore] title <<db.kdbx - KeePass>>; tree [Desk store, Passwords, Recycle Bin]; list []; status <<0 entries found, 2 groups skipped ('Recycle Bin', 'KeePassGate').>>
+17:24:06.343 shot idle-03-quick-zqxstore.png (1086 x 713)
+17:24:06.509 == idle quick search KPG
+17:24:08.939 [idle-04-quick-KPG] title <<db.kdbx - KeePass>>; tree [Desk store, Passwords, Recycle Bin]; list [Mail account]; status <<1 entry found, 2 groups skipped ('Recycle Bin', 'KeePassGate').>>
+17:24:09.081 == idle Find All
+17:24:10.382 menu: <<All>>
+17:24:14.176 [idle-05-find-all] title <<db.kdbx - KeePass>>; tree [Desk store, Passwords, Recycle Bin]; list [Mail account, Bank, Linked]; status <<15 entries found.>>
+17:24:14.579 shot idle-05-find-all.png (1086 x 713)
+17:24:14.774 == idle Find Expired
+17:24:20.320 menu: <<Expired>>
+17:24:22.380 [idle-06-expired] title <<db.kdbx - KeePass>>; tree [Desk store, Passwords, Recycle Bin]; list []; status <<0 entries found, 2 groups skipped ('Recycle Bin', 'KeePassGate').>>
+17:24:22.487 == idle Find Tag kpgtag
+17:24:23.776 menu: <<Tag>>
+17:24:24.960 menu: <<kpgtag>>
+17:24:26.912 [idle-07-tag] title <<db.kdbx - KeePass>>; tree [Desk store, Passwords, Recycle Bin]; list [Mail account]; status <<2 entries found.>>
+17:24:27.317 shot idle-07-tag.png (1086 x 713)
+17:24:27.435 == idle Last Modified Entries
+17:24:28.766 menu: <<Last Modified Entries...>>
+17:24:31.261 [idle-08-lastmod] WINDOW title=<<Last Modified>> class=WindowsForms10.Window.8.app.0.2bf8098_r6_ad1
+17:24:31.307 [idle-08-lastmod]   Thumb name=<<Grip>>
+17:24:31.314 [idle-08-lastmod]   Button name=<<Print...>>
+17:24:31.325 [idle-08-lastmod]   Button name=<<Export...>>
+17:24:31.334 [idle-08-lastmod]   Text name=<<Filter:>>
+17:24:31.762 shot idle-08-lastmod.png (696 x 561)
+17:24:31.830 [idle-08-lastmod] rows: Linked, Bank, KPG profile 12, KPG grant 11, KPG admission 10, KPG grant 9, KPG retirement 1, KPG authority 1, KPG profile 1, KPG revocation 1, KPG admission 2, KPG admission 1, KPG grant 2, KPG grant 1, Mail account
+17:24:32.686 == idle Find dialog, ignore group settings
+17:24:35.092 [idle-09-find] check <<XPath expression>> checked=0
+17:24:35.179 [idle-09-find] check <<Regular expression>> checked=0
+17:24:35.188 [idle-09-find] check <<Simple expression>> checked=1
+17:24:35.221 [idle-09-find] check <<Match diacritics>> checked=0
+17:24:35.236 [idle-09-find] check <<Ignore search settings of groups>> checked=0
+17:24:35.247 [idle-09-find] check <<Resolve field references in data (slow)>> checked=0
+17:24:35.251 [idle-09-find] check <<Exclude expired entries>> checked=0
+17:24:35.257 [idle-09-find] check <<Match case>> checked=0
+17:24:35.280 [idle-09-find] check <<History>> checked=0
+17:24:35.294 [idle-09-find] check <<Group path>> checked=0
+17:24:35.298 [idle-09-find] check <<String name>> checked=0
+17:24:35.306 [idle-09-find] check <<Tags>> checked=1
+17:24:35.314 [idle-09-find] check <<Group name>> checked=0
+17:24:35.328 [idle-09-find] check <<UUID>> checked=0
+17:24:35.344 [idle-09-find] check <<Other strings>> checked=1
+17:24:35.355 [idle-09-find] check <<Notes>> checked=1
+17:24:35.362 [idle-09-find] check <<URL>> checked=1
+17:24:35.372 [idle-09-find] check <<Password>> checked=0
+17:24:35.382 [idle-09-find] check <<User name>> checked=1
+17:24:35.396 [idle-09-find] check <<Title>> checked=1
+17:24:36.293 [idle-09-find] after: Simple expression, Ignore search settings of groups, Tags, Other strings, Notes, URL, User name, Title
+17:24:36.698 shot idle-09-find-dialog.png (376 x 553)
+17:24:39.507 [idle-09-find-ignore] title <<db.kdbx - KeePass>>; tree [Desk store, Passwords, Recycle Bin]; list []; status <<Ready.>>
+17:24:39.912 shot idle-09-find-ignore.png (1086 x 713)
+17:24:40.076 == idle Show Entries of Subgroups, root
+17:24:41.413 menu: <<Show Entries of Subgroups>>
+17:24:44.030 [idle-10-root-subgroups] title <<db.kdbx - KeePass>>; tree [Desk store, Passwords, Recycle Bin]; list [Mail account, Bank, Linked]; status <<Ready.>>
+17:24:44.445 shot idle-10-root-subgroups.png (1086 x 713)
+17:24:46.070 menu: <<Show Entries of Subgroups>>
+17:24:46.893 == idle field references in Linked
+17:24:48.895 [idle-11-ref] entry view <<Group: Passwords. Title: Linked. User Name: zqxstore-user1 - {REF:U@I:4B504753310000000000000000000000}. Password: ********. URL: https://example.invalid/zqxstore-user1 - https://example.invalid/{REF:U@I:4B504753310000000000000000000000}. URL Override: https://override.example.invalid/******** - https://override.example.invalid/{REF:P@I:4B504753310000000000000000000000}. Creation Time: 01.11.2026 11:31:00. Last Modification Time: 01.11.2026 11:31:00. /  / {REF:N@I:4B504753310000000000000000000000}>>
+17:24:50.794 [idle-11-ref-c-1] WINDOW title=<<KeePass>> class=#32770
+17:24:50.943 [idle-11-ref-c-1]   Image name=<<MainInstructionIcon>>
+17:24:50.950 [idle-11-ref-c-1]   Text name=<<{REF:P@I:4B504753310000000000000000000000}
+
+Are you sure you want to evaluate/replace the placeholder?>>
+17:24:50.960 [idle-11-ref-c-1]   CheckBox name=<<Do not show this dialog again.>>
+17:24:50.967 [idle-11-ref-c-1]   Pane name=<<Yes>>
+17:24:50.974 [idle-11-ref-c-1]   Pane name=<<No>>
+17:24:50.980 [idle-11-ref-c-1]   Image name=<<FooterIcon>>
+17:24:50.984 [idle-11-ref-c-1]   Pane name=<<More information: Placeholders, Security.>>
+17:24:50.995 [idle-11-ref-c-1]   win32 Button <<Yes>>
+17:24:50.996 [idle-11-ref-c-1]   win32 Button <<No>>
+17:24:50.999 [idle-11-ref-c-1]   win32 SysLink <<More information: <A HREF="p">Placeholders</A>, <A HREF="s">Security</A>.>>
+17:24:51.381 shot idle-11-ref-c-1.png (375 x 194)
+17:24:51.507 [idle-11-ref-c-1] pressed <<Yes (clicked)>>
+17:24:56.973 [idle-11-ref-c] windows: KeePass
+17:24:56.977 [idle-11-ref] Ctrl+C on Linked copied <<zqxstore-pw1>>
+17:25:01.229 [idle-11-ref-b] windows: 
+17:25:03.619 [idle-11-ref] Ctrl+B on Linked copied <<zqxstore-user1>>
+17:25:04.004 shot idle-11-ref.png (1086 x 713)
+17:25:04.017 == idle select root
+17:25:05.554 [idle-21-root] title <<db.kdbx - KeePass>>; tree [Desk store, Passwords, Recycle Bin]; list []; status <<Ready.>>
+17:25:05.716 == idle select Passwords
+17:25:07.172 [idle-22-passwords] title <<db.kdbx - KeePass>>; tree [Desk store, Passwords, Recycle Bin]; list [Mail account, Bank, Linked]; status <<Ready.>>
+17:25:07.352 == idle sort by title
+17:25:08.876 [idle-23-sorted] title <<db.kdbx - KeePass>>; tree [Desk store, Passwords, Recycle Bin]; list [Bank, Linked, Mail account]; status <<Ready.>>
+17:25:09.007 == idle tree keyboard Home then Down x8
+17:25:10.356 == idle tree Down 1
+17:25:10.800 == idle tree Down 2
+17:25:11.242 == idle tree Down 3
+17:25:11.685 == idle tree Down 4
+17:25:12.131 == idle tree Down 5
+17:25:12.577 == idle tree Down 6
+17:25:13.022 == idle tree Down 7
+17:25:13.466 == idle tree Down 8
+17:25:13.868 [idle-24-keyboard] title <<db.kdbx - KeePass>>; tree [Desk store, Passwords, Recycle Bin]; list []; status <<Ready.>>
+17:25:14.276 shot idle-24-keyboard.png (1086 x 713)
+17:25:14.380 == idle drag Bank onto root
+17:25:17.690 dragged Bank from 355,135.5 onto Desk store at 112,111
+17:25:18.831 [idle-25-drag] title <<db.kdbx* - KeePass>>; tree []; list [Linked, Mail account]; status <<Ready.>>
+17:25:18.959 == idle save
+17:25:21.351 [idle-26-saved] title <<db.kdbx - KeePass>>; tree []; list [Linked, Mail account]; status <<Ready.>>
+17:25:21.461 == idle lock and unlock
+17:25:23.911 [idle-27-unlock-prompt] WINDOW title=<<Open Database - db.kdbx>> class=WindowsForms10.Window.8.app.0.2bf8098_r6_ad1
+17:25:23.977 [idle-27-unlock-prompt]   Pane name=<<Exit>>
+17:25:23.983 [idle-27-unlock-prompt]   ComboBox name=<<(None)>>
+17:25:23.989 [idle-27-unlock-prompt]   Button name=<<Open>>
+17:25:23.993 [idle-27-unlock-prompt]   Pane name=<<Help>>
+17:25:23.997 [idle-27-unlock-prompt]   Pane name=<<Cancel>>
+17:25:24.001 [idle-27-unlock-prompt]   Pane name=<<OK>>
+17:25:24.004 [idle-27-unlock-prompt]   Pane name=<<Windows user account>>
+17:25:24.006 [idle-27-unlock-prompt]   Pane name=<<Key file/provider:>>
+17:25:24.012 [idle-27-unlock-prompt]   Pane name=<<Master password:>>
+17:25:24.020 [idle-27-unlock-prompt]   win32 BUTTON <<E&xit>>
+17:25:24.022 [idle-27-unlock-prompt]   win32 COMBOBOX <<(None)>>
+17:25:24.026 [idle-27-unlock-prompt]   win32 BUTTON <<&Help>>
+17:25:24.028 [idle-27-unlock-prompt]   win32 BUTTON <<Cancel>>
+17:25:24.028 [idle-27-unlock-prompt]   win32 BUTTON <<OK>>
+17:25:24.032 [idle-27-unlock-prompt]   win32 BUTTON <<&Windows user account>>
+17:25:24.034 [idle-27-unlock-prompt]   win32 BUTTON <<&Key file/provider:>>
+17:25:24.038 [idle-27-unlock-prompt]   win32 BUTTON <<&Master password:>>
+17:25:27.926 [idle-27-unlocked] title <<db.kdbx - KeePass>>; tree []; list [Linked, Mail account]; status <<Ready.>>
+17:25:28.340 shot idle-27-unlocked.png (1086 x 713)
+17:25:28.461 == idle synchronize with other.kdbx
+17:25:29.730 menu: <<Synchronize>>
+17:25:30.889 menu: <<Synchronize with File...>>
+17:25:32.092 [idle-28-sync] file dialog <<Synchronize>>
+17:25:42.720 [idle-28-sync-dialogs] windows: 
+17:25:43.109 [idle-28-synced] title <<db.kdbx - KeePass>>; tree []; list [Linked, Mail account]; status <<Synchronization completed successfully.>>
+17:25:43.527 shot idle-28-synced.png (1086 x 713)
+17:25:43.627 FLOW DONE
+17:25:50.085 case a-hide-idle done in 125 s

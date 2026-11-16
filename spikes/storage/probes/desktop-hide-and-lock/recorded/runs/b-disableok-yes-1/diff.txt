@@ -1,0 +1,42 @@
+=> # file db.kdbx size=3413 sha256=a0ecb224c226fc6fb0813cf1082ff1ab4672001a65860f33e02ae809b53b954f
+=> E S1 H2026-11-01T10:10:00Z S KPG.Body p=0 "{\"kind\":\"grant 1\",\"n\":\"S1\",\"zqx\":\"zqxstore-s1\"}"
+=> E S1 H2026-11-01T10:10:00Z S KPG.Kind p=0 "grant 1"
+=> E S1 H2026-11-01T10:10:00Z S KPG.Secret p=1 "zqxsecret-s1"
+=> E S1 H2026-11-01T10:10:00Z S Notes p=0 "zqxstore-notes1"
+=> E S1 H2026-11-01T10:10:00Z S Password p=1 "zqxstore-pw1"
+=> E S1 H2026-11-01T10:10:00Z S Title p=0 "KPG grant 1"
+=> E S1 H2026-11-01T10:10:00Z S URL p=0 ""
+=> E S1 H2026-11-01T10:10:00Z S UserName p=0 "zqxstore-user1"
+=> E S1 H2026-11-01T10:10:00Z autotype enabled=1 obfuscation=0 seq="" assoc=0
+=> E S1 H2026-11-01T10:10:00Z misc icon=0 customIcon=- fg=00000000 bg=00000000 overrideUrl="" quality=1
+=> E S1 H2026-11-01T10:10:00Z prev -
+=> E S1 H2026-11-01T10:10:00Z t.accessed 2026-11-01T10:10:00Z
+=> E S1 H2026-11-01T10:10:00Z t.created 2026-11-01T10:10:00Z
+=> E S1 H2026-11-01T10:10:00Z t.expires 0 2026-11-01T10:00:00Z
+=> E S1 H2026-11-01T10:10:00Z t.location 2026-11-01T10:10:00Z
+=> E S1 H2026-11-01T10:10:00Z t.modified 2026-11-01T10:10:00Z
+=> E S1 H2026-11-01T10:10:00Z tags []
+=> E S1 H2026-11-01T10:10:00Z usage 0
+=> E S1 S Password p=1 "zqxstore-pw1-edited-by-hand"
+=> E S1 S Title p=0 "KPG grant 1 edited by hand"
+=> E S1 history.count 1
+=> E S1 t.accessed 2026-11-16T16:58:55Z
+=> E S1 t.modified 2026-11-16T16:58:55Z
+=> E S1 usage 1
+=> G KG flags icon=48 customIcon=- search=0 autotype=0 expanded=1 seq="" lastTop=S1
+=> G KG t.accessed 2026-11-16T16:58:39Z
+=> G KG usage 1
+=> G Root t.accessed 2026-11-16T16:58:39Z
+=> G Root usage 1
+<= # file db.kdbx size=3205 sha256=de7b19e90cc6208ebaa57190ba927f93cfdc8d86af2c369c9cb396c1333f6f9e
+<= E S1 S Password p=1 "zqxstore-pw1"
+<= E S1 S Title p=0 "KPG grant 1"
+<= E S1 history.count 0
+<= E S1 t.accessed 2026-11-01T10:10:00Z
+<= E S1 t.modified 2026-11-01T10:10:00Z
+<= E S1 usage 0
+<= G KG flags icon=48 customIcon=- search=0 autotype=0 expanded=1 seq="" lastTop=-
+<= G KG t.accessed 2026-11-01T10:05:00Z
+<= G KG usage 0
+<= G Root t.accessed 2026-11-01T10:00:00Z
+<= G Root usage 0

@@ -1,0 +1,32 @@
+=> # file db.kdbx size=3269 sha256=5ae18e48a8cfa41d0183019fd15980bb86e97b1358a12af3875273c9539c8a92
+=> E S1 t.accessed 2026-11-16T16:40:36Z
+=> E S1 usage 1
+=> E S3 t.accessed 2026-11-16T16:40:49Z
+=> E S3 usage 1
+=> E U2 t.accessed 2026-11-16T16:42:06Z
+=> E U2 usage 1
+=> G KG t.accessed 2026-11-16T16:41:46Z
+=> G KG usage 7
+=> G KGA t.accessed 2026-11-16T16:41:46Z
+=> G KGA usage 1
+=> G PW flags icon=48 customIcon=- search=inherit autotype=inherit expanded=1 seq="" lastTop=U1
+=> G PW t.accessed 2026-11-16T16:41:57Z
+=> G PW usage 1
+=> G Root t.accessed 2026-11-16T16:41:57Z
+=> G Root usage 8
+<= # file db.kdbx size=3221 sha256=2cd797554aa891be5c230eb4ed988435a647c8fa56e833e557c17162648a8898
+<= E S1 t.accessed 2026-11-01T10:10:00Z
+<= E S1 usage 0
+<= E S3 t.accessed 2026-11-01T10:12:00Z
+<= E S3 usage 0
+<= E U2 t.accessed 2026-11-01T10:30:00Z
+<= E U2 usage 0
+<= G KG t.accessed 2026-11-01T10:05:00Z
+<= G KG usage 0
+<= G KGA t.accessed 2026-11-01T10:06:00Z
+<= G KGA usage 0
+<= G PW flags icon=48 customIcon=- search=inherit autotype=inherit expanded=1 seq="" lastTop=-
+<= G PW t.accessed 2026-11-01T10:05:00Z
+<= G PW usage 0
+<= G Root t.accessed 2026-11-01T10:00:00Z
+<= G Root usage 0

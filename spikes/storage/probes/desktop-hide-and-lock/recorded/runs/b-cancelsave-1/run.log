@@ -1,0 +1,335 @@
+17:40:04.841 case b-cancelsave run 1 place=top switches=dialogs=cancelsave
+17:40:05.517 config: 
+17:40:18.070 started KeePass pid=15960 token: TokenIsElevated=1 ElevationType=2 Integrity=0x3000 AdministratorsEnabled=False
+17:40:18.260 main window: <<db.kdbx - KeePass>>
+17:40:20.590 group rows: Archive, Desk store, Empty group, KeePassGate, Passwords, Recycle Bin
+17:40:21.416 == cancel entry dialog by double click
+17:40:25.402 [cancel-01-dblclick-1] WINDOW title=<<Edit Entry>> class=WindowsForms10.Window.8.app.0.2bf8098_r6_ad1
+17:40:25.546 [cancel-01-dblclick-1]   Text name=<<Probe: this is a KeePassGate store entry and is read-only.>>
+17:40:25.615 [cancel-01-dblclick-1]   Pane name=<<General>>
+17:40:25.621 [cancel-01-dblclick-1]   Text name=<<Title:>>
+17:40:25.690 [cancel-01-dblclick-1]   Document name=<<Title:>> text=<<zqxstore-notes1>>
+17:40:25.694 [cancel-01-dblclick-1]   Pane name=<<Expires:>>
+17:40:25.699 [cancel-01-dblclick-1]   Text name=<<12 ch.>>
+17:40:25.704 [cancel-01-dblclick-1]   Text name=<<Icon:>>
+17:40:25.707 [cancel-01-dblclick-1]   Pane name=<<●●●●●●●●●●●●>>
+17:40:25.710 [cancel-01-dblclick-1]   Pane name=<<●●●●●●●●●●●●>>
+17:40:25.716 [cancel-01-dblclick-1]   Text name=<<Notes:>>
+17:40:25.718 [cancel-01-dblclick-1]   Pane name=<<16.11.2026 00:00:00>>
+17:40:25.720 [cancel-01-dblclick-1]   Pane name=<<KPG grant 1>>
+17:40:25.726 [cancel-01-dblclick-1]   Text name=<<URL:>>
+17:40:25.730 [cancel-01-dblclick-1]   Text name=<<Quality:>>
+17:40:25.734 [cancel-01-dblclick-1]   Text name=<<Password:>>
+17:40:25.736 [cancel-01-dblclick-1]   Text name=<<Repeat:>>
+17:40:25.742 [cancel-01-dblclick-1]   Text name=<<User name:>>
+17:40:25.745 [cancel-01-dblclick-1]   Pane name=<<zqxstore-user1>>
+17:40:25.748 [cancel-01-dblclick-1]   Text name=<<UUID:>>
+17:40:25.752 [cancel-01-dblclick-1]   Pane name=<<Tools>>
+17:40:25.754 [cancel-01-dblclick-1]   Pane name=<<Cancel>>
+17:40:25.757 [cancel-01-dblclick-1]   Pane name=<<OK>>
+17:40:25.785 [cancel-01-dblclick-1]   win32 STATIC <<Probe: this is a KeePassGate store entry and is read-only.>>
+17:40:25.787 [cancel-01-dblclick-1]   win32 Window.8 <<General>>
+17:40:25.789 [cancel-01-dblclick-1]   win32 STATIC <<&Title:>>
+17:40:25.791 [cancel-01-dblclick-1]   win32 RICHEDIT50W <<zqxstore-notes1>>
+17:40:25.793 [cancel-01-dblclick-1]   win32 BUTTON <<&Expires:>>
+17:40:25.797 [cancel-01-dblclick-1]   win32 STATIC <<12 ch.>>
+17:40:25.797 [cancel-01-dblclick-1]   win32 STATIC <<&Icon:>>
+17:40:25.799 [cancel-01-dblclick-1]   win32 EDIT <<●●●●●●●●●●●●>>
+17:40:25.802 [cancel-01-dblclick-1]   win32 EDIT <<●●●●●●●●●●●●>>
+17:40:25.804 [cancel-01-dblclick-1]   win32 STATIC <<&Notes:>>
+17:40:25.807 [cancel-01-dblclick-1]   win32 SysDateTimePick32 <<16.11.2026 00:00:00>>
+17:40:25.809 [cancel-01-dblclick-1]   win32 EDIT <<KPG grant 1>>
+17:40:25.812 [cancel-01-dblclick-1]   win32 STATIC <<UR&L:>>
+17:40:25.814 [cancel-01-dblclick-1]   win32 STATIC <<Quality:>>
+17:40:25.817 [cancel-01-dblclick-1]   win32 STATIC <<&Password:>>
+17:40:25.819 [cancel-01-dblclick-1]   win32 STATIC <<&Repeat:>>
+17:40:25.823 [cancel-01-dblclick-1]   win32 STATIC <<&User name:>>
+17:40:25.827 [cancel-01-dblclick-1]   win32 EDIT <<zqxstore-user1>>
+17:40:25.833 [cancel-01-dblclick-1]   win32 BUTTON <<T&ools>>
+17:40:25.835 [cancel-01-dblclick-1]   win32 BUTTON <<Cancel>>
+17:40:25.837 [cancel-01-dblclick-1]   win32 BUTTON <<OK>>
+17:40:26.274 shot cancel-01-dblclick-1.png (491 x 513)
+17:40:30.628 [cancel-01-dblclick] windows: Edit Entry
+17:40:30.876 [cancel-01] dialog visible=True OK enabled=True
+17:40:30.880 == cancel type into the title, then Enter
+17:40:32.499 [cancel-02] title box before <<KPG grant 1>> after typing <<KPG grant 1 edited by hand>>
+17:40:32.511 [cancel-02-typed] dialog visible=True OK enabled=True
+17:40:33.765 [cancel-02-after-enter] dialog visible=True OK enabled=True
+17:40:34.141 shot cancel-02-after-enter.png (491 x 513)
+17:40:36.257 [close-question-1] WINDOW title=<<KeePass>> class=#32770
+17:40:36.317 [close-question-1]   Image name=<<MainInstructionIcon>>
+17:40:36.321 [close-question-1]   Text name=<<Entry 'KPG grant 1 edited by hand'>>
+17:40:36.325 [close-question-1]   Text name=<<Do you want to save the changes you have made to this entry?>>
+17:40:36.330 [close-question-1]   Pane name=<<Yes>>
+17:40:36.334 [close-question-1]   Pane name=<<No>>
+17:40:36.338 [close-question-1]   Pane name=<<Cancel>>
+17:40:36.348 [close-question-1]   win32 Button <<&Yes>>
+17:40:36.350 [close-question-1]   win32 Button <<&No>>
+17:40:36.352 [close-question-1]   win32 Button <<Cancel>>
+17:40:36.787 shot close-question-1.png (362 x 159)
+17:40:36.923 [close-question-1] pressed <<&No (clicked)>>
+17:40:40.875 [cancel-02-main] title <<db.kdbx - KeePass>>; tree [Desk store, Passwords, Recycle Bin, KeePassGate, Archive, Empty group]; list [KPG grant 1, KPG grant 2, KPG admission 1, KPG admission 2, KPG revocation 1, KPG profile 1, KPG authority 1, KPG retirement 1, KPG profile 12]; status <<Ready.>>
+17:40:40.985 == cancel entry dialog by Enter
+17:40:44.772 [cancel-03-enter-1] WINDOW title=<<Edit Entry>> class=WindowsForms10.Window.8.app.0.2bf8098_r6_ad1
+17:40:44.876 [cancel-03-enter-1]   Text name=<<Probe: this is a KeePassGate store entry and is read-only.>>
+17:40:44.881 [cancel-03-enter-1]   Pane name=<<General>>
+17:40:44.885 [cancel-03-enter-1]   Text name=<<Title:>>
+17:40:44.887 [cancel-03-enter-1]   Document name=<<Title:>> text=<<>>
+17:40:44.891 [cancel-03-enter-1]   Pane name=<<Expires:>>
+17:40:44.893 [cancel-03-enter-1]   Text name=<<0 ch.>>
+17:40:44.899 [cancel-03-enter-1]   Text name=<<Icon:>>
+17:40:44.903 [cancel-03-enter-1]   Text name=<<Notes:>>
+17:40:44.905 [cancel-03-enter-1]   Pane name=<<16.11.2026 00:00:00>>
+17:40:44.907 [cancel-03-enter-1]   Pane name=<<KPG admission 1>>
+17:40:44.911 [cancel-03-enter-1]   Text name=<<URL:>>
+17:40:44.915 [cancel-03-enter-1]   Text name=<<Quality:>>
+17:40:44.919 [cancel-03-enter-1]   Text name=<<Password:>>
+17:40:44.921 [cancel-03-enter-1]   Text name=<<Repeat:>>
+17:40:44.925 [cancel-03-enter-1]   Text name=<<User name:>>
+17:40:44.929 [cancel-03-enter-1]   Text name=<<UUID:>>
+17:40:44.931 [cancel-03-enter-1]   Pane name=<<Tools>>
+17:40:44.934 [cancel-03-enter-1]   Pane name=<<Cancel>>
+17:40:44.936 [cancel-03-enter-1]   Pane name=<<OK>>
+17:40:44.946 [cancel-03-enter-1]   win32 STATIC <<Probe: this is a KeePassGate store entry and is read-only.>>
+17:40:44.949 [cancel-03-enter-1]   win32 Window.8 <<General>>
+17:40:44.951 [cancel-03-enter-1]   win32 STATIC <<&Title:>>
+17:40:44.953 [cancel-03-enter-1]   win32 BUTTON <<&Expires:>>
+17:40:44.955 [cancel-03-enter-1]   win32 STATIC <<0 ch.>>
+17:40:44.957 [cancel-03-enter-1]   win32 STATIC <<&Icon:>>
+17:40:44.957 [cancel-03-enter-1]   win32 STATIC <<&Notes:>>
+17:40:44.959 [cancel-03-enter-1]   win32 SysDateTimePick32 <<16.11.2026 00:00:00>>
+17:40:44.961 [cancel-03-enter-1]   win32 EDIT <<KPG admission 1>>
+17:40:44.962 [cancel-03-enter-1]   win32 STATIC <<UR&L:>>
+17:40:44.964 [cancel-03-enter-1]   win32 STATIC <<Quality:>>
+17:40:44.966 [cancel-03-enter-1]   win32 STATIC <<&Password:>>
+17:40:44.968 [cancel-03-enter-1]   win32 STATIC <<&Repeat:>>
+17:40:44.974 [cancel-03-enter-1]   win32 STATIC <<&User name:>>
+17:40:44.980 [cancel-03-enter-1]   win32 BUTTON <<T&ools>>
+17:40:44.982 [cancel-03-enter-1]   win32 BUTTON <<Cancel>>
+17:40:44.984 [cancel-03-enter-1]   win32 BUTTON <<OK>>
+17:40:45.348 shot cancel-03-enter-1.png (491 x 513)
+17:40:49.463 [cancel-03-enter] windows: Edit Entry
+17:40:49.683 [cancel-03] dialog visible=True OK enabled=True
+17:40:52.881 == cancel several entries, Enter
+17:41:02.517 [cancel-04-multi-1] WINDOW title=<<Edit Entries (9)>> class=WindowsForms10.Window.8.app.0.2bf8098_r6_ad1
+17:41:02.634 [cancel-04-multi-1]   Text name=<<Probe: this is a KeePassGate store entry and is read-only.>>
+17:41:02.641 [cancel-04-multi-1]   Pane name=<<General>>
+17:41:02.646 [cancel-04-multi-1]   Text name=<<Title:>>
+17:41:02.648 [cancel-04-multi-1]   Document name=<<Title:>> text=<<(Multiple values)>>
+17:41:02.652 [cancel-04-multi-1]   Pane name=<<Expires:>>
+17:41:02.654 [cancel-04-multi-1]   Text name=<<? ch.>> disabled
+17:41:02.660 [cancel-04-multi-1]   Text name=<<Icon:>>
+17:41:02.664 [cancel-04-multi-1]   Pane name=<<●●●●●●●●●●●●●●●●●>>
+17:41:02.666 [cancel-04-multi-1]   Pane name=<<●●●●●●●●●●●●●●●●●>>
+17:41:02.668 [cancel-04-multi-1]   Text name=<<Notes:>>
+17:41:02.670 [cancel-04-multi-1]   Pane name=<<16.11.2026 00:00:00>>
+17:41:02.672 [cancel-04-multi-1]   Pane name=<<(Multiple values)>>
+17:41:02.677 [cancel-04-multi-1]   Text name=<<URL:>>
+17:41:02.681 [cancel-04-multi-1]   Text name=<<Quality:>> disabled
+17:41:02.687 [cancel-04-multi-1]   Text name=<<Password:>>
+17:41:02.691 [cancel-04-multi-1]   Text name=<<Repeat:>>
+17:41:02.695 [cancel-04-multi-1]   Text name=<<User name:>>
+17:41:02.697 [cancel-04-multi-1]   Pane name=<<(Multiple values)>>
+17:41:02.701 [cancel-04-multi-1]   Text name=<<UUID:>>
+17:41:02.703 [cancel-04-multi-1]   Pane name=<<Tools>>
+17:41:02.705 [cancel-04-multi-1]   Pane name=<<Cancel>>
+17:41:02.708 [cancel-04-multi-1]   Pane name=<<OK>>
+17:41:02.716 [cancel-04-multi-1]   win32 STATIC <<Probe: this is a KeePassGate store entry and is read-only.>>
+17:41:02.718 [cancel-04-multi-1]   win32 Window.8 <<General>>
+17:41:02.720 [cancel-04-multi-1]   win32 STATIC <<&Title:>>
+17:41:02.722 [cancel-04-multi-1]   win32 RICHEDIT50W <<(Multiple values)>>
+17:41:02.724 [cancel-04-multi-1]   win32 BUTTON <<&Expires:>>
+17:41:02.724 [cancel-04-multi-1]   win32 STATIC <<? ch.>> disabled
+17:41:02.726 [cancel-04-multi-1]   win32 STATIC <<&Icon:>>
+17:41:02.728 [cancel-04-multi-1]   win32 EDIT <<●●●●●●●●●●●●●●●●●>>
+17:41:02.730 [cancel-04-multi-1]   win32 EDIT <<●●●●●●●●●●●●●●●●●>>
+17:41:02.732 [cancel-04-multi-1]   win32 STATIC <<&Notes:>>
+17:41:02.734 [cancel-04-multi-1]   win32 SysDateTimePick32 <<16.11.2026 00:00:00>>
+17:41:02.736 [cancel-04-multi-1]   win32 EDIT <<(Multiple values)>>
+17:41:02.738 [cancel-04-multi-1]   win32 STATIC <<UR&L:>>
+17:41:02.740 [cancel-04-multi-1]   win32 STATIC <<Quality:>> disabled
+17:41:02.747 [cancel-04-multi-1]   win32 STATIC <<&Password:>>
+17:41:02.749 [cancel-04-multi-1]   win32 STATIC <<&Repeat:>>
+17:41:02.751 [cancel-04-multi-1]   win32 STATIC <<&User name:>>
+17:41:02.753 [cancel-04-multi-1]   win32 EDIT <<(Multiple values)>>
+17:41:02.754 [cancel-04-multi-1]   win32 BUTTON <<T&ools>>
+17:41:02.756 [cancel-04-multi-1]   win32 BUTTON <<Cancel>>
+17:41:02.758 [cancel-04-multi-1]   win32 BUTTON <<OK>>
+17:41:03.148 shot cancel-04-multi-1.png (491 x 513)
+17:41:07.306 [cancel-04-multi] windows: Edit Entries (9)
+17:41:07.512 [cancel-04] dialog visible=True OK enabled=True
+17:41:09.542 [close-question-1] WINDOW title=<<KeePass>> class=#32770
+17:41:09.608 [close-question-1]   Image name=<<MainInstructionIcon>>
+17:41:09.610 [close-question-1]   Text name=<<Do you want to save the changes before closing?>>
+17:41:09.614 [close-question-1]   Pane name=<<Yes>>
+17:41:09.618 [close-question-1]   Pane name=<<No>>
+17:41:09.622 [close-question-1]   Pane name=<<Cancel>>
+17:41:09.630 [close-question-1]   win32 Button <<&Yes>>
+17:41:09.632 [close-question-1]   win32 Button <<&No>>
+17:41:09.634 [close-question-1]   win32 Button <<Cancel>>
+17:41:10.007 shot close-question-1.png (362 x 120)
+17:41:10.118 [close-question-1] pressed <<&No (clicked)>>
+17:41:13.741 == cancel Add Entry in KeePassGate (Ctrl+I)
+17:41:16.814 [cancel-05-add-1] WINDOW title=<<Add Entry>> class=WindowsForms10.Window.8.app.0.2bf8098_r6_ad1
+17:41:16.952 [cancel-05-add-1]   Text name=<<Probe: this is a KeePassGate store entry and is read-only.>>
+17:41:16.958 [cancel-05-add-1]   Pane name=<<General>>
+17:41:16.964 [cancel-05-add-1]   Text name=<<Title:>>
+17:41:16.969 [cancel-05-add-1]   Document name=<<Title:>> text=<<>>
+17:41:16.974 [cancel-05-add-1]   Pane name=<<Expires:>>
+17:41:16.978 [cancel-05-add-1]   Text name=<<20 ch.>>
+17:41:16.986 [cancel-05-add-1]   Text name=<<Icon:>>
+17:41:16.994 [cancel-05-add-1]   Pane name=<<●●●●●●●●●●●●●●●●●●●●>>
+17:41:16.998 [cancel-05-add-1]   Pane name=<<●●●●●●●●●●●●●●●●●●●●>>
+17:41:17.006 [cancel-05-add-1]   Text name=<<Notes:>>
+17:41:17.010 [cancel-05-add-1]   Pane name=<<16.11.2026 00:00:00>>
+17:41:17.014 [cancel-05-add-1]   Text name=<<URL:>>
+17:41:17.020 [cancel-05-add-1]   Text name=<<Quality:>>
+17:41:17.024 [cancel-05-add-1]   Text name=<<Password:>>
+17:41:17.028 [cancel-05-add-1]   Text name=<<Repeat:>>
+17:41:17.032 [cancel-05-add-1]   Text name=<<User name:>>
+17:41:17.037 [cancel-05-add-1]   Text name=<<UUID:>>
+17:41:17.042 [cancel-05-add-1]   Pane name=<<Tools>>
+17:41:17.045 [cancel-05-add-1]   Pane name=<<Cancel>>
+17:41:17.047 [cancel-05-add-1]   Pane name=<<OK>>
+17:41:17.058 [cancel-05-add-1]   win32 STATIC <<Probe: this is a KeePassGate store entry and is read-only.>>
+17:41:17.060 [cancel-05-add-1]   win32 Window.8 <<General>>
+17:41:17.062 [cancel-05-add-1]   win32 STATIC <<&Title:>>
+17:41:17.064 [cancel-05-add-1]   win32 BUTTON <<&Expires:>>
+17:41:17.066 [cancel-05-add-1]   win32 STATIC <<20 ch.>>
+17:41:17.067 [cancel-05-add-1]   win32 STATIC <<&Icon:>>
+17:41:17.069 [cancel-05-add-1]   win32 EDIT <<●●●●●●●●●●●●●●●●●●●●>>
+17:41:17.071 [cancel-05-add-1]   win32 EDIT <<●●●●●●●●●●●●●●●●●●●●>>
+17:41:17.073 [cancel-05-add-1]   win32 STATIC <<&Notes:>>
+17:41:17.075 [cancel-05-add-1]   win32 SysDateTimePick32 <<16.11.2026 00:00:00>>
+17:41:17.082 [cancel-05-add-1]   win32 STATIC <<UR&L:>>
+17:41:17.084 [cancel-05-add-1]   win32 STATIC <<Quality:>>
+17:41:17.089 [cancel-05-add-1]   win32 STATIC <<&Password:>>
+17:41:17.091 [cancel-05-add-1]   win32 STATIC <<&Repeat:>>
+17:41:17.093 [cancel-05-add-1]   win32 STATIC <<&User name:>>
+17:41:17.095 [cancel-05-add-1]   win32 BUTTON <<T&ools>>
+17:41:17.097 [cancel-05-add-1]   win32 BUTTON <<Cancel>>
+17:41:17.098 [cancel-05-add-1]   win32 BUTTON <<OK>>
+17:41:17.489 shot cancel-05-add-1.png (491 x 513)
+17:41:21.592 [cancel-05-add] windows: Add Entry
+17:41:21.813 [cancel-05] dialog visible=True OK enabled=True
+17:41:24.992 == cancel Duplicate Entry (Ctrl+D)
+17:41:28.660 [cancel-06-dup-1] WINDOW title=<<Duplication Options>> class=WindowsForms10.Window.8.app.0.2bf8098_r6_ad1
+17:41:28.698 [cancel-06-dup-1]   Text name=<<Probe: this is a KeePassGate store entry and is read-only.>>
+17:41:28.702 [cancel-06-dup-1]   Pane name=<<Copy history>>
+17:41:28.704 [cancel-06-dup-1]   Pane name=<<Help: Field References>>
+17:41:28.709 [cancel-06-dup-1]   Text name=<<If this option is enabled, the copies will reference the user names and passwords of the original entries. When a user name or password is changed in an original entry, the copy will automatically use the new data, too.>>
+17:41:28.713 [cancel-06-dup-1]   Pane name=<<Replace user names and passwords by references>>
+17:41:28.718 [cancel-06-dup-1]   Pane name=<<Append "- Copy" to entry titles>>
+17:41:28.720 [cancel-06-dup-1]   Pane name=<<Cancel>>
+17:41:28.722 [cancel-06-dup-1]   Pane name=<<OK>>
+17:41:28.725 [cancel-06-dup-1]   win32 STATIC <<Probe: this is a KeePassGate store entry and is read-only.>>
+17:41:28.727 [cancel-06-dup-1]   win32 BUTTON <<Copy &history>>
+17:41:28.729 [cancel-06-dup-1]   win32 STATIC <<Help: Field References>>
+17:41:28.731 [cancel-06-dup-1]   win32 STATIC <<If this option is enabled, the copies will reference the user names and passwords of the original entries. When a user name or password is changed in an original entry, the copy will automatically use the new data, too.>>
+17:41:28.733 [cancel-06-dup-1]   win32 BUTTON <<&Replace user names and passwords by references>>
+17:41:28.735 [cancel-06-dup-1]   win32 BUTTON <<&Append "- Copy" to entry titles>>
+17:41:28.737 [cancel-06-dup-1]   win32 BUTTON <<Cancel>>
+17:41:28.739 [cancel-06-dup-1]   win32 BUTTON <<OK>>
+17:41:29.139 shot cancel-06-dup-1.png (375 x 236)
+17:41:32.598 [cancel-06-dup] windows: Duplication Options
+17:41:32.730 [cancel-06] dialog visible=True OK enabled=True
+17:41:35.873 == cancel group dialog (F2 on the tree)
+17:41:38.911 [cancel-07-group-1] WINDOW title=<<Edit Group>> class=WindowsForms10.Window.8.app.0.2bf8098_r6_ad1
+17:41:38.969 [cancel-07-group-1]   Text name=<<Probe: this is a KeePassGate store entry and is read-only.>>
+17:41:38.973 [cancel-07-group-1]   Pane name=<<General>>
+17:41:38.976 [cancel-07-group-1]   Text name=<<Notes:>>
+17:41:38.978 [cancel-07-group-1]   Pane name=<<16.11.2026 00:00:00>>
+17:41:38.980 [cancel-07-group-1]   Pane name=<<Expires:>>
+17:41:38.984 [cancel-07-group-1]   Text name=<<Name:>>
+17:41:38.986 [cancel-07-group-1]   Pane name=<<KeePassGate>>
+17:41:38.990 [cancel-07-group-1]   Text name=<<Icon:>>
+17:41:38.992 [cancel-07-group-1]   Pane name=<<Cancel>>
+17:41:38.994 [cancel-07-group-1]   Pane name=<<OK>>
+17:41:39.006 [cancel-07-group-1]   win32 STATIC <<Probe: this is a KeePassGate store entry and is read-only.>>
+17:41:39.010 [cancel-07-group-1]   win32 Window.8 <<General>>
+17:41:39.012 [cancel-07-group-1]   win32 STATIC <<N&otes:>>
+17:41:39.014 [cancel-07-group-1]   win32 SysDateTimePick32 <<16.11.2026 00:00:00>>
+17:41:39.017 [cancel-07-group-1]   win32 BUTTON <<&Expires:>>
+17:41:39.019 [cancel-07-group-1]   win32 STATIC <<&Name:>>
+17:41:39.021 [cancel-07-group-1]   win32 EDIT <<KeePassGate>>
+17:41:39.022 [cancel-07-group-1]   win32 STATIC <<&Icon:>>
+17:41:39.024 [cancel-07-group-1]   win32 BUTTON <<Cancel>>
+17:41:39.030 [cancel-07-group-1]   win32 BUTTON <<OK>>
+17:41:39.407 shot cancel-07-group-1.png (390 x 333)
+17:41:43.215 [cancel-07-group] windows: Edit Group
+17:41:43.364 [cancel-07] dialog visible=True OK enabled=True
+17:41:46.548 == cancel group dialog of Archive
+17:41:49.714 [cancel-08-subgroup-1] WINDOW title=<<Edit Group>> class=WindowsForms10.Window.8.app.0.2bf8098_r6_ad1
+17:41:49.785 [cancel-08-subgroup-1]   Text name=<<Probe: this is a KeePassGate store entry and is read-only.>>
+17:41:49.790 [cancel-08-subgroup-1]   Pane name=<<General>>
+17:41:49.793 [cancel-08-subgroup-1]   Text name=<<Notes:>>
+17:41:49.795 [cancel-08-subgroup-1]   Pane name=<<16.11.2026 00:00:00>>
+17:41:49.797 [cancel-08-subgroup-1]   Pane name=<<Expires:>>
+17:41:49.801 [cancel-08-subgroup-1]   Text name=<<Name:>>
+17:41:49.803 [cancel-08-subgroup-1]   Pane name=<<Archive>>
+17:41:49.809 [cancel-08-subgroup-1]   Text name=<<Icon:>>
+17:41:49.811 [cancel-08-subgroup-1]   Pane name=<<Cancel>>
+17:41:49.815 [cancel-08-subgroup-1]   Pane name=<<OK>>
+17:41:49.819 [cancel-08-subgroup-1]   win32 STATIC <<Probe: this is a KeePassGate store entry and is read-only.>>
+17:41:49.821 [cancel-08-subgroup-1]   win32 Window.8 <<General>>
+17:41:49.823 [cancel-08-subgroup-1]   win32 STATIC <<N&otes:>>
+17:41:49.826 [cancel-08-subgroup-1]   win32 SysDateTimePick32 <<16.11.2026 00:00:00>>
+17:41:49.828 [cancel-08-subgroup-1]   win32 BUTTON <<&Expires:>>
+17:41:49.830 [cancel-08-subgroup-1]   win32 STATIC <<&Name:>>
+17:41:49.832 [cancel-08-subgroup-1]   win32 EDIT <<Archive>>
+17:41:49.834 [cancel-08-subgroup-1]   win32 STATIC <<&Icon:>>
+17:41:49.834 [cancel-08-subgroup-1]   win32 BUTTON <<Cancel>>
+17:41:49.836 [cancel-08-subgroup-1]   win32 BUTTON <<OK>>
+17:41:50.229 shot cancel-08-subgroup-1.png (390 x 333)
+17:41:53.537 [cancel-08-subgroup] windows: Edit Group
+17:41:53.862 [cancel-08] dialog visible=True OK enabled=True
+17:41:57.070 == cancel a user's entry
+17:42:01.092 [cancel-09-user-1] WINDOW title=<<Edit Entry>> class=WindowsForms10.Window.8.app.0.2bf8098_r6_ad1
+17:42:01.206 [cancel-09-user-1]   Pane name=<<General>>
+17:42:01.212 [cancel-09-user-1]   Text name=<<Title:>>
+17:42:01.214 [cancel-09-user-1]   Document name=<<Title:>> text=<<>>
+17:42:01.218 [cancel-09-user-1]   Pane name=<<Expires:>>
+17:42:01.223 [cancel-09-user-1]   Text name=<<5 ch.>>
+17:42:01.226 [cancel-09-user-1]   Text name=<<Icon:>>
+17:42:01.228 [cancel-09-user-1]   Pane name=<<●●●●●>>
+17:42:01.230 [cancel-09-user-1]   Pane name=<<●●●●●>>
+17:42:01.235 [cancel-09-user-1]   Text name=<<Notes:>>
+17:42:01.237 [cancel-09-user-1]   Pane name=<<16.11.2026 00:00:00>>
+17:42:01.242 [cancel-09-user-1]   Pane name=<<Bank>>
+17:42:01.247 [cancel-09-user-1]   Text name=<<URL:>>
+17:42:01.251 [cancel-09-user-1]   Text name=<<Quality:>>
+17:42:01.255 [cancel-09-user-1]   Text name=<<Password:>>
+17:42:01.259 [cancel-09-user-1]   Text name=<<Repeat:>>
+17:42:01.265 [cancel-09-user-1]   Text name=<<User name:>>
+17:42:01.267 [cancel-09-user-1]   Pane name=<<bob-invented>>
+17:42:01.273 [cancel-09-user-1]   Text name=<<UUID:>>
+17:42:01.275 [cancel-09-user-1]   Pane name=<<Tools>>
+17:42:01.283 [cancel-09-user-1]   Pane name=<<Cancel>>
+17:42:01.285 [cancel-09-user-1]   Pane name=<<OK>>
+17:42:01.293 [cancel-09-user-1]   win32 Window.8 <<General>>
+17:42:01.295 [cancel-09-user-1]   win32 STATIC <<&Title:>>
+17:42:01.299 [cancel-09-user-1]   win32 BUTTON <<&Expires:>>
+17:42:01.301 [cancel-09-user-1]   win32 STATIC <<5 ch.>>
+17:42:01.301 [cancel-09-user-1]   win32 STATIC <<&Icon:>>
+17:42:01.305 [cancel-09-user-1]   win32 EDIT <<●●●●●>>
+17:42:01.306 [cancel-09-user-1]   win32 EDIT <<●●●●●>>
+17:42:01.308 [cancel-09-user-1]   win32 STATIC <<&Notes:>>
+17:42:01.310 [cancel-09-user-1]   win32 SysDateTimePick32 <<16.11.2026 00:00:00>>
+17:42:01.312 [cancel-09-user-1]   win32 EDIT <<Bank>>
+17:42:01.314 [cancel-09-user-1]   win32 STATIC <<UR&L:>>
+17:42:01.316 [cancel-09-user-1]   win32 STATIC <<Quality:>>
+17:42:01.318 [cancel-09-user-1]   win32 STATIC <<&Password:>>
+17:42:01.320 [cancel-09-user-1]   win32 STATIC <<&Repeat:>>
+17:42:01.322 [cancel-09-user-1]   win32 STATIC <<&User name:>>
+17:42:01.324 [cancel-09-user-1]   win32 EDIT <<bob-invented>>
+17:42:01.325 [cancel-09-user-1]   win32 BUTTON <<T&ools>>
+17:42:01.327 [cancel-09-user-1]   win32 BUTTON <<Cancel>>
+17:42:01.329 [cancel-09-user-1]   win32 BUTTON <<OK>>
+17:42:01.702 shot cancel-09-user-1.png (491 x 513)
+17:42:05.925 [cancel-09-user] windows: Edit Entry
+17:42:06.123 [cancel-09] dialog visible=True OK enabled=True
+17:42:09.298 == cancel end
+17:42:09.598 [cancel-10-end] title <<db.kdbx - KeePass>>; tree [Desk store, Passwords, Recycle Bin, KeePassGate, Archive, Empty group]; list [Mail account, Bank, Linked]; status <<Ready.>>
+17:42:09.683 FLOW DONE
+17:42:09.687 == save at the end
+17:42:17.370 case b-cancelsave done in 133 s

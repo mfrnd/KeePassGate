@@ -1,0 +1,14 @@
+16:28:32.782 Initialize options=hide=ui tree=True list=True
+16:28:32.948 UIStateUpdated#1 treeRebuilt=True listRebuilt=True storeNodes=1 storeItems=11 listItems=11 entries=0 group=KeePassGate(store) storeSelected=True
+16:28:32.964 UIStateUpdated#2 treeRebuilt=False listRebuilt=False storeNodes=0 storeItems=0 listItems=0 entries=0 group=Empty group storeSelected=False
+16:28:32.966 Store at=UIStateUpdated store=12 groups=2 records=0 modified=0 [KPG grant 1@KeePassGate t=20261101101000 h=0 icon=0; KPG admission 10@Archive t=20261101101900 h=0 icon=0; KPG grant 11@Recycle Bin t=20261101102000 h=0 icon=0; KPG profile 12@KeePassGate t=20261101102100 h=0 icon=0; KPG grant 2@KeePassGate t=20261101101100 h=0 icon=0 exp; KPG admission 1@KeePassGate t=20261101101200 h=0 icon=0; KPG admission 2@KeePassGate t=20261101101300 h=0 icon=0; KPG revocation 1@KeePassGate t=20261101101400 h=0 icon=0; KPG profile 1@KeePassGate t=20261101101500 h=0 icon=0; KPG authority 1@KeePassGate t=20261101101600 h=0 icon=0; KPG retirement 1@KeePassGate t=20261101101700 h=0 icon=0; KPG grant 9@Archive t=20261101101800 h=0 icon=0; ]
+16:28:33.239 HideNode at=UIStateUpdated node=KeePassGate wasSelected=True nowSelected=Empty group
+16:28:43.848 DRIVER grouped open
+16:28:44.874 DRIVER grouped root
+16:28:45.482 UIStateUpdated#3 treeRebuilt=False listRebuilt=True storeNodes=0 storeItems=12 listItems=15 entries=0 group=Desk store storeSelected=False
+16:28:45.497 HideItems at=UIStateUpdated removed=12 left=3
+16:28:47.830 DRIVER grouped Find All
+16:28:50.139 UIStateUpdated#4 treeRebuilt=False listRebuilt=True storeNodes=0 storeItems=12 listItems=15 entries=1 group=Passwords storeSelected=False
+16:28:50.158 HideItems at=UIStateUpdated removed=12 left=3
+16:28:50.176 UIStateUpdated#5 treeRebuilt=False listRebuilt=False storeNodes=0 storeItems=0 listItems=3 entries=1 group=Passwords storeSelected=False
+16:28:53.061 Terminate uiStateUpdated=5 firstChance=0

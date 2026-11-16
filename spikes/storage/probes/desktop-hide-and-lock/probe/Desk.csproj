@@ -1,0 +1,23 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- The console probe of the desktop-windows family, against KeePass 2.62's KeePassLib read out
+       of the KeePass.exe the branch provides. It makes the throwaway databases the KeePass and
+       KeePassXC windows are given and reads every file they leave back into a line-per-item dump.
+       No window: only KeePassLib types are used. Invented content only. -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net48</TargetFramework>
+    <LangVersion>7.3</LangVersion>
+    <PlatformTarget>x64</PlatformTarget>
+    <AssemblyName>Desk</AssemblyName>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Reference Include="KeePass">
+      <HintPath>$(KeePassExe)</HintPath>
+    </Reference>
+    <Reference Include="System.Drawing" />
+    <PackageReference Include="Microsoft.NETFramework.ReferenceAssemblies" Version="1.0.3" PrivateAssets="all" />
+  </ItemGroup>
+
+</Project>

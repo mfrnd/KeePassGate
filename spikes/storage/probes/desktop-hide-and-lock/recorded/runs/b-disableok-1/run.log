@@ -1,0 +1,335 @@
+17:42:17.374 case b-disableok run 1 place=top switches=dialogs=disableok
+17:42:18.042 config: 
+17:42:29.616 started KeePass pid=12132 token: TokenIsElevated=1 ElevationType=2 Integrity=0x3000 AdministratorsEnabled=False
+17:42:29.698 main window: <<db.kdbx - KeePass>>
+17:42:29.844 group rows: Archive, Desk store, Empty group, KeePassGate, Passwords, Recycle Bin
+17:42:30.682 == disok entry dialog by double click
+17:42:34.582 [disok-01-dblclick-1] WINDOW title=<<Edit Entry>> class=WindowsForms10.Window.8.app.0.2bf8098_r6_ad1
+17:42:34.712 [disok-01-dblclick-1]   Text name=<<Probe: this is a KeePassGate store entry and is read-only.>>
+17:42:34.716 [disok-01-dblclick-1]   Pane name=<<General>>
+17:42:34.720 [disok-01-dblclick-1]   Text name=<<Title:>>
+17:42:34.780 [disok-01-dblclick-1]   Document name=<<Title:>> text=<<zqxstore-notes1>>
+17:42:34.784 [disok-01-dblclick-1]   Pane name=<<Expires:>>
+17:42:34.786 [disok-01-dblclick-1]   Text name=<<12 ch.>>
+17:42:34.792 [disok-01-dblclick-1]   Text name=<<Icon:>>
+17:42:34.796 [disok-01-dblclick-1]   Pane name=<<●●●●●●●●●●●●>>
+17:42:34.798 [disok-01-dblclick-1]   Pane name=<<●●●●●●●●●●●●>>
+17:42:34.802 [disok-01-dblclick-1]   Text name=<<Notes:>>
+17:42:34.804 [disok-01-dblclick-1]   Pane name=<<16.11.2026 00:00:00>>
+17:42:34.808 [disok-01-dblclick-1]   Pane name=<<KPG grant 1>>
+17:42:34.812 [disok-01-dblclick-1]   Text name=<<URL:>>
+17:42:34.814 [disok-01-dblclick-1]   Text name=<<Quality:>>
+17:42:34.818 [disok-01-dblclick-1]   Text name=<<Password:>>
+17:42:34.824 [disok-01-dblclick-1]   Text name=<<Repeat:>>
+17:42:34.838 [disok-01-dblclick-1]   Text name=<<User name:>>
+17:42:34.840 [disok-01-dblclick-1]   Pane name=<<zqxstore-user1>>
+17:42:34.844 [disok-01-dblclick-1]   Text name=<<UUID:>>
+17:42:34.848 [disok-01-dblclick-1]   Pane name=<<Tools>>
+17:42:34.850 [disok-01-dblclick-1]   Pane name=<<Cancel>>
+17:42:34.854 [disok-01-dblclick-1]   Pane name=<<OK>> disabled
+17:42:34.862 [disok-01-dblclick-1]   win32 STATIC <<Probe: this is a KeePassGate store entry and is read-only.>>
+17:42:34.878 [disok-01-dblclick-1]   win32 Window.8 <<General>>
+17:42:34.881 [disok-01-dblclick-1]   win32 STATIC <<&Title:>>
+17:42:34.883 [disok-01-dblclick-1]   win32 RICHEDIT50W <<zqxstore-notes1>>
+17:42:34.885 [disok-01-dblclick-1]   win32 BUTTON <<&Expires:>>
+17:42:34.887 [disok-01-dblclick-1]   win32 STATIC <<12 ch.>>
+17:42:34.889 [disok-01-dblclick-1]   win32 STATIC <<&Icon:>>
+17:42:34.891 [disok-01-dblclick-1]   win32 EDIT <<●●●●●●●●●●●●>>
+17:42:34.893 [disok-01-dblclick-1]   win32 EDIT <<●●●●●●●●●●●●>>
+17:42:34.895 [disok-01-dblclick-1]   win32 STATIC <<&Notes:>>
+17:42:34.897 [disok-01-dblclick-1]   win32 SysDateTimePick32 <<16.11.2026 00:00:00>>
+17:42:34.899 [disok-01-dblclick-1]   win32 EDIT <<KPG grant 1>>
+17:42:34.901 [disok-01-dblclick-1]   win32 STATIC <<UR&L:>>
+17:42:34.903 [disok-01-dblclick-1]   win32 STATIC <<Quality:>>
+17:42:34.903 [disok-01-dblclick-1]   win32 STATIC <<&Password:>>
+17:42:34.911 [disok-01-dblclick-1]   win32 STATIC <<&Repeat:>>
+17:42:34.913 [disok-01-dblclick-1]   win32 STATIC <<&User name:>>
+17:42:34.915 [disok-01-dblclick-1]   win32 EDIT <<zqxstore-user1>>
+17:42:34.917 [disok-01-dblclick-1]   win32 BUTTON <<T&ools>>
+17:42:34.919 [disok-01-dblclick-1]   win32 BUTTON <<Cancel>>
+17:42:34.921 [disok-01-dblclick-1]   win32 BUTTON <<OK>> disabled
+17:42:35.304 shot disok-01-dblclick-1.png (491 x 513)
+17:42:39.397 [disok-01-dblclick] windows: Edit Entry
+17:42:39.611 [disok-01] dialog visible=True OK enabled=False
+17:42:39.615 == disok type into the title, then Enter
+17:42:41.212 [disok-02] title box before <<KPG grant 1>> after typing <<KPG grant 1 edited by hand>>
+17:42:41.220 [disok-02-typed] dialog visible=True OK enabled=False
+17:42:42.461 [disok-02-after-enter] dialog visible=True OK enabled=False
+17:42:42.840 shot disok-02-after-enter.png (491 x 513)
+17:42:44.905 [close-question-1] WINDOW title=<<KeePass>> class=#32770
+17:42:44.967 [close-question-1]   Image name=<<MainInstructionIcon>>
+17:42:44.972 [close-question-1]   Text name=<<Entry 'KPG grant 1 edited by hand'>>
+17:42:44.974 [close-question-1]   Text name=<<Do you want to save the changes you have made to this entry?>>
+17:42:44.979 [close-question-1]   Pane name=<<Yes>>
+17:42:44.984 [close-question-1]   Pane name=<<No>>
+17:42:44.988 [close-question-1]   Pane name=<<Cancel>>
+17:42:44.998 [close-question-1]   win32 Button <<&Yes>>
+17:42:45.000 [close-question-1]   win32 Button <<&No>>
+17:42:45.002 [close-question-1]   win32 Button <<Cancel>>
+17:42:45.386 shot close-question-1.png (362 x 159)
+17:42:45.512 [close-question-1] pressed <<&No (clicked)>>
+17:42:49.842 [disok-02-main] title <<db.kdbx - KeePass>>; tree [Desk store, Passwords, Recycle Bin, KeePassGate, Archive, Empty group]; list [KPG grant 1, KPG grant 2, KPG admission 1, KPG admission 2, KPG revocation 1, KPG profile 1, KPG authority 1, KPG retirement 1, KPG profile 12]; status <<Ready.>>
+17:42:50.044 == disok entry dialog by Enter
+17:42:54.413 [disok-03-enter-1] WINDOW title=<<Edit Entry>> class=WindowsForms10.Window.8.app.0.2bf8098_r6_ad1
+17:42:54.527 [disok-03-enter-1]   Text name=<<Probe: this is a KeePassGate store entry and is read-only.>>
+17:42:54.531 [disok-03-enter-1]   Pane name=<<General>>
+17:42:54.535 [disok-03-enter-1]   Text name=<<Title:>>
+17:42:54.539 [disok-03-enter-1]   Document name=<<Title:>> text=<<>>
+17:42:54.541 [disok-03-enter-1]   Pane name=<<Expires:>>
+17:42:54.545 [disok-03-enter-1]   Text name=<<0 ch.>>
+17:42:54.549 [disok-03-enter-1]   Text name=<<Icon:>>
+17:42:54.553 [disok-03-enter-1]   Text name=<<Notes:>>
+17:42:54.555 [disok-03-enter-1]   Pane name=<<16.11.2026 00:00:00>>
+17:42:54.559 [disok-03-enter-1]   Pane name=<<KPG admission 1>>
+17:42:54.565 [disok-03-enter-1]   Text name=<<URL:>>
+17:42:54.569 [disok-03-enter-1]   Text name=<<Quality:>>
+17:42:54.573 [disok-03-enter-1]   Text name=<<Password:>>
+17:42:54.579 [disok-03-enter-1]   Text name=<<Repeat:>>
+17:42:54.585 [disok-03-enter-1]   Text name=<<User name:>>
+17:42:54.588 [disok-03-enter-1]   Text name=<<UUID:>>
+17:42:54.592 [disok-03-enter-1]   Pane name=<<Tools>>
+17:42:54.599 [disok-03-enter-1]   Pane name=<<Cancel>>
+17:42:54.601 [disok-03-enter-1]   Pane name=<<OK>> disabled
+17:42:54.613 [disok-03-enter-1]   win32 STATIC <<Probe: this is a KeePassGate store entry and is read-only.>>
+17:42:54.615 [disok-03-enter-1]   win32 Window.8 <<General>>
+17:42:54.617 [disok-03-enter-1]   win32 STATIC <<&Title:>>
+17:42:54.619 [disok-03-enter-1]   win32 BUTTON <<&Expires:>>
+17:42:54.621 [disok-03-enter-1]   win32 STATIC <<0 ch.>>
+17:42:54.623 [disok-03-enter-1]   win32 STATIC <<&Icon:>>
+17:42:54.625 [disok-03-enter-1]   win32 STATIC <<&Notes:>>
+17:42:54.627 [disok-03-enter-1]   win32 SysDateTimePick32 <<16.11.2026 00:00:00>>
+17:42:54.627 [disok-03-enter-1]   win32 EDIT <<KPG admission 1>>
+17:42:54.629 [disok-03-enter-1]   win32 STATIC <<UR&L:>>
+17:42:54.631 [disok-03-enter-1]   win32 STATIC <<Quality:>>
+17:42:54.633 [disok-03-enter-1]   win32 STATIC <<&Password:>>
+17:42:54.635 [disok-03-enter-1]   win32 STATIC <<&Repeat:>>
+17:42:54.636 [disok-03-enter-1]   win32 STATIC <<&User name:>>
+17:42:54.638 [disok-03-enter-1]   win32 BUTTON <<T&ools>>
+17:42:54.641 [disok-03-enter-1]   win32 BUTTON <<Cancel>>
+17:42:54.643 [disok-03-enter-1]   win32 BUTTON <<OK>> disabled
+17:42:55.056 shot disok-03-enter-1.png (491 x 513)
+17:42:59.282 [disok-03-enter] windows: Edit Entry
+17:42:59.507 [disok-03] dialog visible=True OK enabled=False
+17:43:02.673 == disok several entries, Enter
+17:43:06.884 [disok-04-multi-1] WINDOW title=<<Edit Entries (9)>> class=WindowsForms10.Window.8.app.0.2bf8098_r6_ad1
+17:43:06.992 [disok-04-multi-1]   Text name=<<Probe: this is a KeePassGate store entry and is read-only.>>
+17:43:06.996 [disok-04-multi-1]   Pane name=<<General>>
+17:43:07.004 [disok-04-multi-1]   Text name=<<Title:>>
+17:43:07.008 [disok-04-multi-1]   Document name=<<Title:>> text=<<(Multiple values)>>
+17:43:07.010 [disok-04-multi-1]   Pane name=<<Expires:>>
+17:43:07.014 [disok-04-multi-1]   Text name=<<? ch.>> disabled
+17:43:07.020 [disok-04-multi-1]   Text name=<<Icon:>>
+17:43:07.022 [disok-04-multi-1]   Pane name=<<●●●●●●●●●●●●●●●●●>>
+17:43:07.024 [disok-04-multi-1]   Pane name=<<●●●●●●●●●●●●●●●●●>>
+17:43:07.030 [disok-04-multi-1]   Text name=<<Notes:>>
+17:43:07.032 [disok-04-multi-1]   Pane name=<<16.11.2026 00:00:00>>
+17:43:07.040 [disok-04-multi-1]   Pane name=<<(Multiple values)>>
+17:43:07.048 [disok-04-multi-1]   Text name=<<URL:>>
+17:43:07.052 [disok-04-multi-1]   Text name=<<Quality:>> disabled
+17:43:07.056 [disok-04-multi-1]   Text name=<<Password:>>
+17:43:07.059 [disok-04-multi-1]   Text name=<<Repeat:>>
+17:43:07.063 [disok-04-multi-1]   Text name=<<User name:>>
+17:43:07.069 [disok-04-multi-1]   Pane name=<<(Multiple values)>>
+17:43:07.073 [disok-04-multi-1]   Text name=<<UUID:>>
+17:43:07.075 [disok-04-multi-1]   Pane name=<<Tools>>
+17:43:07.077 [disok-04-multi-1]   Pane name=<<Cancel>>
+17:43:07.079 [disok-04-multi-1]   Pane name=<<OK>> disabled
+17:43:07.087 [disok-04-multi-1]   win32 STATIC <<Probe: this is a KeePassGate store entry and is read-only.>>
+17:43:07.089 [disok-04-multi-1]   win32 Window.8 <<General>>
+17:43:07.091 [disok-04-multi-1]   win32 STATIC <<&Title:>>
+17:43:07.093 [disok-04-multi-1]   win32 RICHEDIT50W <<(Multiple values)>>
+17:43:07.095 [disok-04-multi-1]   win32 BUTTON <<&Expires:>>
+17:43:07.097 [disok-04-multi-1]   win32 STATIC <<? ch.>> disabled
+17:43:07.099 [disok-04-multi-1]   win32 STATIC <<&Icon:>>
+17:43:07.101 [disok-04-multi-1]   win32 EDIT <<●●●●●●●●●●●●●●●●●>>
+17:43:07.103 [disok-04-multi-1]   win32 EDIT <<●●●●●●●●●●●●●●●●●>>
+17:43:07.105 [disok-04-multi-1]   win32 STATIC <<&Notes:>>
+17:43:07.107 [disok-04-multi-1]   win32 SysDateTimePick32 <<16.11.2026 00:00:00>>
+17:43:07.111 [disok-04-multi-1]   win32 EDIT <<(Multiple values)>>
+17:43:07.115 [disok-04-multi-1]   win32 STATIC <<UR&L:>>
+17:43:07.119 [disok-04-multi-1]   win32 STATIC <<Quality:>> disabled
+17:43:07.123 [disok-04-multi-1]   win32 STATIC <<&Password:>>
+17:43:07.127 [disok-04-multi-1]   win32 STATIC <<&Repeat:>>
+17:43:07.129 [disok-04-multi-1]   win32 STATIC <<&User name:>>
+17:43:07.133 [disok-04-multi-1]   win32 EDIT <<(Multiple values)>>
+17:43:07.139 [disok-04-multi-1]   win32 BUTTON <<T&ools>>
+17:43:07.141 [disok-04-multi-1]   win32 BUTTON <<Cancel>>
+17:43:07.143 [disok-04-multi-1]   win32 BUTTON <<OK>> disabled
+17:43:07.526 shot disok-04-multi-1.png (491 x 513)
+17:43:11.673 [disok-04-multi] windows: Edit Entries (9)
+17:43:11.878 [disok-04] dialog visible=True OK enabled=False
+17:43:13.977 [close-question-1] WINDOW title=<<KeePass>> class=#32770
+17:43:14.034 [close-question-1]   Image name=<<MainInstructionIcon>>
+17:43:14.038 [close-question-1]   Text name=<<Do you want to save the changes before closing?>>
+17:43:14.042 [close-question-1]   Pane name=<<Yes>>
+17:43:14.046 [close-question-1]   Pane name=<<No>>
+17:43:14.050 [close-question-1]   Pane name=<<Cancel>>
+17:43:14.058 [close-question-1]   win32 Button <<&Yes>>
+17:43:14.060 [close-question-1]   win32 Button <<&No>>
+17:43:14.062 [close-question-1]   win32 Button <<Cancel>>
+17:43:14.441 shot close-question-1.png (362 x 120)
+17:43:14.568 [close-question-1] pressed <<&No (clicked)>>
+17:43:18.196 == disok Add Entry in KeePassGate (Ctrl+I)
+17:43:21.312 [disok-05-add-1] WINDOW title=<<Add Entry>> class=WindowsForms10.Window.8.app.0.2bf8098_r6_ad1
+17:43:21.421 [disok-05-add-1]   Text name=<<Probe: this is a KeePassGate store entry and is read-only.>>
+17:43:21.423 [disok-05-add-1]   Pane name=<<General>>
+17:43:21.427 [disok-05-add-1]   Text name=<<Title:>>
+17:43:21.431 [disok-05-add-1]   Document name=<<Title:>> text=<<>>
+17:43:21.433 [disok-05-add-1]   Pane name=<<Expires:>>
+17:43:21.437 [disok-05-add-1]   Text name=<<20 ch.>>
+17:43:21.443 [disok-05-add-1]   Text name=<<Icon:>>
+17:43:21.449 [disok-05-add-1]   Pane name=<<●●●●●●●●●●●●●●●●●●●●>>
+17:43:21.452 [disok-05-add-1]   Pane name=<<●●●●●●●●●●●●●●●●●●●●>>
+17:43:21.455 [disok-05-add-1]   Text name=<<Notes:>>
+17:43:21.459 [disok-05-add-1]   Pane name=<<16.11.2026 00:00:00>>
+17:43:21.462 [disok-05-add-1]   Text name=<<URL:>>
+17:43:21.464 [disok-05-add-1]   Text name=<<Quality:>>
+17:43:21.468 [disok-05-add-1]   Text name=<<Password:>>
+17:43:21.470 [disok-05-add-1]   Text name=<<Repeat:>>
+17:43:21.474 [disok-05-add-1]   Text name=<<User name:>>
+17:43:21.478 [disok-05-add-1]   Text name=<<UUID:>>
+17:43:21.480 [disok-05-add-1]   Pane name=<<Tools>>
+17:43:21.482 [disok-05-add-1]   Pane name=<<Cancel>>
+17:43:21.486 [disok-05-add-1]   Pane name=<<OK>> disabled
+17:43:21.500 [disok-05-add-1]   win32 STATIC <<Probe: this is a KeePassGate store entry and is read-only.>>
+17:43:21.502 [disok-05-add-1]   win32 Window.8 <<General>>
+17:43:21.504 [disok-05-add-1]   win32 STATIC <<&Title:>>
+17:43:21.506 [disok-05-add-1]   win32 BUTTON <<&Expires:>>
+17:43:21.514 [disok-05-add-1]   win32 STATIC <<20 ch.>>
+17:43:21.516 [disok-05-add-1]   win32 STATIC <<&Icon:>>
+17:43:21.518 [disok-05-add-1]   win32 EDIT <<●●●●●●●●●●●●●●●●●●●●>>
+17:43:21.520 [disok-05-add-1]   win32 EDIT <<●●●●●●●●●●●●●●●●●●●●>>
+17:43:21.522 [disok-05-add-1]   win32 STATIC <<&Notes:>>
+17:43:21.524 [disok-05-add-1]   win32 SysDateTimePick32 <<16.11.2026 00:00:00>>
+17:43:21.524 [disok-05-add-1]   win32 STATIC <<UR&L:>>
+17:43:21.526 [disok-05-add-1]   win32 STATIC <<Quality:>>
+17:43:21.528 [disok-05-add-1]   win32 STATIC <<&Password:>>
+17:43:21.530 [disok-05-add-1]   win32 STATIC <<&Repeat:>>
+17:43:21.532 [disok-05-add-1]   win32 STATIC <<&User name:>>
+17:43:21.535 [disok-05-add-1]   win32 BUTTON <<T&ools>>
+17:43:21.537 [disok-05-add-1]   win32 BUTTON <<Cancel>>
+17:43:21.544 [disok-05-add-1]   win32 BUTTON <<OK>> disabled
+17:43:21.937 shot disok-05-add-1.png (491 x 513)
+17:43:26.118 [disok-05-add] windows: Add Entry
+17:43:26.379 [disok-05] dialog visible=True OK enabled=False
+17:43:30.139 == disok Duplicate Entry (Ctrl+D)
+17:43:36.142 [disok-06-dup-1] WINDOW title=<<Duplication Options>> class=WindowsForms10.Window.8.app.0.2bf8098_r6_ad1
+17:43:36.179 [disok-06-dup-1]   Text name=<<Probe: this is a KeePassGate store entry and is read-only.>>
+17:43:36.181 [disok-06-dup-1]   Pane name=<<Copy history>>
+17:43:36.183 [disok-06-dup-1]   Pane name=<<Help: Field References>>
+17:43:36.189 [disok-06-dup-1]   Text name=<<If this option is enabled, the copies will reference the user names and passwords of the original entries. When a user name or password is changed in an original entry, the copy will automatically use the new data, too.>>
+17:43:36.191 [disok-06-dup-1]   Pane name=<<Replace user names and passwords by references>>
+17:43:36.193 [disok-06-dup-1]   Pane name=<<Append "- Copy" to entry titles>>
+17:43:36.195 [disok-06-dup-1]   Pane name=<<Cancel>>
+17:43:36.197 [disok-06-dup-1]   Pane name=<<OK>> disabled
+17:43:36.203 [disok-06-dup-1]   win32 STATIC <<Probe: this is a KeePassGate store entry and is read-only.>>
+17:43:36.205 [disok-06-dup-1]   win32 BUTTON <<Copy &history>>
+17:43:36.207 [disok-06-dup-1]   win32 STATIC <<Help: Field References>>
+17:43:36.209 [disok-06-dup-1]   win32 STATIC <<If this option is enabled, the copies will reference the user names and passwords of the original entries. When a user name or password is changed in an original entry, the copy will automatically use the new data, too.>>
+17:43:36.213 [disok-06-dup-1]   win32 BUTTON <<&Replace user names and passwords by references>>
+17:43:36.213 [disok-06-dup-1]   win32 BUTTON <<&Append "- Copy" to entry titles>>
+17:43:36.215 [disok-06-dup-1]   win32 BUTTON <<Cancel>>
+17:43:36.217 [disok-06-dup-1]   win32 BUTTON <<OK>> disabled
+17:43:36.592 shot disok-06-dup-1.png (375 x 236)
+17:43:40.357 [disok-06-dup] windows: Duplication Options
+17:43:40.556 [disok-06] dialog visible=True OK enabled=False
+17:43:44.085 == disok group dialog (F2 on the tree)
+17:43:48.393 [disok-07-group-1] WINDOW title=<<Edit Group>> class=WindowsForms10.Window.8.app.0.2bf8098_r6_ad1
+17:43:48.465 [disok-07-group-1]   Text name=<<Probe: this is a KeePassGate store entry and is read-only.>>
+17:43:48.469 [disok-07-group-1]   Pane name=<<General>>
+17:43:48.473 [disok-07-group-1]   Text name=<<Notes:>>
+17:43:48.477 [disok-07-group-1]   Pane name=<<16.11.2026 00:00:00>>
+17:43:48.479 [disok-07-group-1]   Pane name=<<Expires:>>
+17:43:48.483 [disok-07-group-1]   Text name=<<Name:>>
+17:43:48.485 [disok-07-group-1]   Pane name=<<KeePassGate>>
+17:43:48.489 [disok-07-group-1]   Text name=<<Icon:>>
+17:43:48.491 [disok-07-group-1]   Pane name=<<Cancel>>
+17:43:48.498 [disok-07-group-1]   Pane name=<<OK>> disabled
+17:43:48.505 [disok-07-group-1]   win32 STATIC <<Probe: this is a KeePassGate store entry and is read-only.>>
+17:43:48.507 [disok-07-group-1]   win32 Window.8 <<General>>
+17:43:48.509 [disok-07-group-1]   win32 STATIC <<N&otes:>>
+17:43:48.511 [disok-07-group-1]   win32 SysDateTimePick32 <<16.11.2026 00:00:00>>
+17:43:48.513 [disok-07-group-1]   win32 BUTTON <<&Expires:>>
+17:43:48.515 [disok-07-group-1]   win32 STATIC <<&Name:>>
+17:43:48.517 [disok-07-group-1]   win32 EDIT <<KeePassGate>>
+17:43:48.519 [disok-07-group-1]   win32 STATIC <<&Icon:>>
+17:43:48.521 [disok-07-group-1]   win32 BUTTON <<Cancel>>
+17:43:48.523 [disok-07-group-1]   win32 BUTTON <<OK>> disabled
+17:43:48.909 shot disok-07-group-1.png (390 x 333)
+17:43:52.749 [disok-07-group] windows: Edit Group
+17:43:52.928 [disok-07] dialog visible=True OK enabled=False
+17:43:56.577 == disok group dialog of Archive
+17:44:06.696 [disok-08-subgroup-1] WINDOW title=<<Edit Group>> class=WindowsForms10.Window.8.app.0.2bf8098_r6_ad1
+17:44:06.760 [disok-08-subgroup-1]   Text name=<<Probe: this is a KeePassGate store entry and is read-only.>>
+17:44:06.764 [disok-08-subgroup-1]   Pane name=<<General>>
+17:44:06.768 [disok-08-subgroup-1]   Text name=<<Notes:>>
+17:44:06.770 [disok-08-subgroup-1]   Pane name=<<16.11.2026 00:00:00>>
+17:44:06.772 [disok-08-subgroup-1]   Pane name=<<Expires:>>
+17:44:06.780 [disok-08-subgroup-1]   Text name=<<Name:>>
+17:44:06.786 [disok-08-subgroup-1]   Pane name=<<Archive>>
+17:44:06.793 [disok-08-subgroup-1]   Text name=<<Icon:>>
+17:44:06.795 [disok-08-subgroup-1]   Pane name=<<Cancel>>
+17:44:06.797 [disok-08-subgroup-1]   Pane name=<<OK>> disabled
+17:44:06.801 [disok-08-subgroup-1]   win32 STATIC <<Probe: this is a KeePassGate store entry and is read-only.>>
+17:44:06.803 [disok-08-subgroup-1]   win32 Window.8 <<General>>
+17:44:06.805 [disok-08-subgroup-1]   win32 STATIC <<N&otes:>>
+17:44:06.807 [disok-08-subgroup-1]   win32 SysDateTimePick32 <<16.11.2026 00:00:00>>
+17:44:06.811 [disok-08-subgroup-1]   win32 BUTTON <<&Expires:>>
+17:44:06.813 [disok-08-subgroup-1]   win32 STATIC <<&Name:>>
+17:44:06.813 [disok-08-subgroup-1]   win32 EDIT <<Archive>>
+17:44:06.817 [disok-08-subgroup-1]   win32 STATIC <<&Icon:>>
+17:44:06.819 [disok-08-subgroup-1]   win32 BUTTON <<Cancel>>
+17:44:06.825 [disok-08-subgroup-1]   win32 BUTTON <<OK>> disabled
+17:44:19.464 shot disok-08-subgroup-1.png (390 x 333)
+17:44:23.398 [disok-08-subgroup] windows: Edit Group
+17:44:23.540 [disok-08] dialog visible=True OK enabled=False
+17:44:27.127 == disok a user's entry
+17:44:31.229 [disok-09-user-1] WINDOW title=<<Edit Entry>> class=WindowsForms10.Window.8.app.0.2bf8098_r6_ad1
+17:44:31.421 [disok-09-user-1]   Pane name=<<General>>
+17:44:31.456 [disok-09-user-1]   Text name=<<Title:>>
+17:44:31.462 [disok-09-user-1]   Document name=<<Title:>> text=<<>>
+17:44:31.464 [disok-09-user-1]   Pane name=<<Expires:>>
+17:44:31.471 [disok-09-user-1]   Text name=<<5 ch.>>
+17:44:31.475 [disok-09-user-1]   Text name=<<Icon:>>
+17:44:31.477 [disok-09-user-1]   Pane name=<<●●●●●>>
+17:44:31.479 [disok-09-user-1]   Pane name=<<●●●●●>>
+17:44:31.483 [disok-09-user-1]   Text name=<<Notes:>>
+17:44:31.489 [disok-09-user-1]   Pane name=<<16.11.2026 00:00:00>>
+17:44:31.493 [disok-09-user-1]   Pane name=<<Bank>>
+17:44:31.499 [disok-09-user-1]   Text name=<<URL:>>
+17:44:31.505 [disok-09-user-1]   Text name=<<Quality:>>
+17:44:31.511 [disok-09-user-1]   Text name=<<Password:>>
+17:44:31.517 [disok-09-user-1]   Text name=<<Repeat:>>
+17:44:31.523 [disok-09-user-1]   Text name=<<User name:>>
+17:44:31.525 [disok-09-user-1]   Pane name=<<bob-invented>>
+17:44:31.529 [disok-09-user-1]   Text name=<<UUID:>>
+17:44:31.533 [disok-09-user-1]   Pane name=<<Tools>>
+17:44:31.537 [disok-09-user-1]   Pane name=<<Cancel>>
+17:44:31.542 [disok-09-user-1]   Pane name=<<OK>>
+17:44:31.555 [disok-09-user-1]   win32 Window.8 <<General>>
+17:44:31.557 [disok-09-user-1]   win32 STATIC <<&Title:>>
+17:44:31.559 [disok-09-user-1]   win32 BUTTON <<&Expires:>>
+17:44:31.563 [disok-09-user-1]   win32 STATIC <<5 ch.>>
+17:44:31.565 [disok-09-user-1]   win32 STATIC <<&Icon:>>
+17:44:31.567 [disok-09-user-1]   win32 EDIT <<●●●●●>>
+17:44:31.569 [disok-09-user-1]   win32 EDIT <<●●●●●>>
+17:44:31.569 [disok-09-user-1]   win32 STATIC <<&Notes:>>
+17:44:31.571 [disok-09-user-1]   win32 SysDateTimePick32 <<16.11.2026 00:00:00>>
+17:44:31.573 [disok-09-user-1]   win32 EDIT <<Bank>>
+17:44:31.575 [disok-09-user-1]   win32 STATIC <<UR&L:>>
+17:44:31.577 [disok-09-user-1]   win32 STATIC <<Quality:>>
+17:44:31.578 [disok-09-user-1]   win32 STATIC <<&Password:>>
+17:44:31.580 [disok-09-user-1]   win32 STATIC <<&Repeat:>>
+17:44:31.582 [disok-09-user-1]   win32 STATIC <<&User name:>>
+17:44:31.590 [disok-09-user-1]   win32 EDIT <<bob-invented>>
+17:44:31.594 [disok-09-user-1]   win32 BUTTON <<T&ools>>
+17:44:31.598 [disok-09-user-1]   win32 BUTTON <<Cancel>>
+17:44:31.600 [disok-09-user-1]   win32 BUTTON <<OK>>
+17:44:31.980 shot disok-09-user-1.png (491 x 513)
+17:44:35.880 [disok-09-user] windows: Edit Entry
+17:44:36.317 [disok-09] dialog visible=True OK enabled=True
+17:44:40.141 == disok end
+17:44:40.532 [disok-10-end] title <<db.kdbx - KeePass>>; tree [Desk store, Passwords, Recycle Bin, KeePassGate, Archive, Empty group]; list [Mail account, Bank, Linked]; status <<Ready.>>
+17:44:40.693 FLOW DONE
+17:44:40.702 == save at the end
+17:44:48.686 case b-disableok done in 151 s

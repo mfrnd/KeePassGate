@@ -1,0 +1,16 @@
+=> # file db.kdbx size=3253 sha256=6221b0780c029f9b6e07411266dbfb0933a80d4ee2ee73239a9458b653f06214
+=> E S1 t.accessed 2026-11-16T16:59:50Z
+=> E S1 usage 1
+=> G KG flags icon=48 customIcon=- search=0 autotype=0 expanded=1 seq="" lastTop=S1
+=> G KG t.accessed 2026-11-16T16:59:24Z
+=> G KG usage 1
+=> G Root t.accessed 2026-11-16T16:59:24Z
+=> G Root usage 1
+<= # file db.kdbx size=3221 sha256=474f4dfabc98674b0293521ed23eef25252c1dd140c677a2313f4dd3d1781099
+<= E S1 t.accessed 2026-11-01T10:10:00Z
+<= E S1 usage 0
+<= G KG flags icon=48 customIcon=- search=0 autotype=0 expanded=1 seq="" lastTop=-
+<= G KG t.accessed 2026-11-01T10:05:00Z
+<= G KG usage 0
+<= G Root t.accessed 2026-11-01T10:00:00Z
+<= G Root usage 0

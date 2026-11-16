@@ -1,0 +1,53 @@
+16:16:37.727 Initialize options=watch=on tree=True list=True
+16:16:37.894 UIStateUpdated#1 treeRebuilt=True listRebuilt=True storeNodes=1 storeItems=9 listItems=9 entries=0 group=KeePassGate(store) storeSelected=True
+16:16:37.898 Store at=UIStateUpdated store=12 groups=2 records=0 modified=0 [KPG grant 1@KeePassGate t=20261101101000 h=0 icon=0; KPG admission 10@Archive t=20261101101900 h=0 icon=0; KPG grant 11@Recycle Bin t=20261101102000 h=0 icon=0; KPG profile 12@KeePassGate t=20261101102100 h=0 icon=0; KPG grant 2@KeePassGate t=20261101101100 h=0 icon=0 exp; KPG admission 1@KeePassGate t=20261101101200 h=0 icon=0; KPG admission 2@KeePassGate t=20261101101300 h=0 icon=0; KPG revocation 1@KeePassGate t=20261101101400 h=0 icon=0; KPG profile 1@KeePassGate t=20261101101500 h=0 icon=0; KPG authority 1@KeePassGate t=20261101101600 h=0 icon=0; KPG retirement 1@KeePassGate t=20261101101700 h=0 icon=0; KPG grant 9@Archive t=20261101101800 h=0 icon=0; ]
+16:16:40.021 DRIVER base open
+16:16:41.693 DRIVER base Passwords
+16:16:42.064 UIStateUpdated#2 treeRebuilt=False listRebuilt=True storeNodes=1 storeItems=0 listItems=3 entries=0 group=Passwords storeSelected=False
+16:16:43.278 DRIVER base quick search zqxstore
+16:16:44.260 UIStateUpdated#3 treeRebuilt=False listRebuilt=False storeNodes=1 storeItems=0 listItems=0 entries=0 group=Passwords storeSelected=False
+16:16:46.877 DRIVER base quick search KPG
+16:16:47.848 UIStateUpdated#4 treeRebuilt=False listRebuilt=True storeNodes=1 storeItems=0 listItems=1 entries=1 group=Passwords storeSelected=False
+16:16:47.860 UIStateUpdated#5 treeRebuilt=False listRebuilt=False storeNodes=1 storeItems=0 listItems=1 entries=1 group=Passwords storeSelected=False
+16:16:49.500 DRIVER base Find All
+16:16:51.187 UIStateUpdated#6 treeRebuilt=False listRebuilt=True storeNodes=1 storeItems=12 listItems=15 entries=1 group=Passwords storeSelected=False
+16:16:54.094 DRIVER base Find Expired
+16:16:55.904 UIStateUpdated#7 treeRebuilt=False listRebuilt=False storeNodes=1 storeItems=0 listItems=0 entries=0 group=Passwords storeSelected=False
+16:16:58.213 DRIVER base Find Tag kpgtag
+16:17:00.682 UIStateUpdated#8 treeRebuilt=False listRebuilt=True storeNodes=1 storeItems=1 listItems=2 entries=1 group=Passwords storeSelected=False
+16:17:00.691 UIStateUpdated#9 treeRebuilt=False listRebuilt=False storeNodes=1 storeItems=1 listItems=2 entries=1 group=Passwords storeSelected=False
+16:17:03.400 DRIVER base Last Modified Entries
+16:17:05.450 WindowAdded StatusProgressForm <<<>>> entries=1 group=Passwords storeSelected=False store=False action=none
+16:17:05.558 WindowRemoved StatusProgressForm <<KeePass>> result=None
+16:17:05.645 WindowAdded ListViewForm <<<>>> entries=1 group=Passwords storeSelected=False store=False action=none
+16:17:08.341 WindowRemoved ListViewForm <<Last Modified>> result=Cancel
+16:17:09.174 DRIVER base Find dialog, ignore group settings
+16:17:09.412 WindowAdded SearchForm <<<>>> entries=1 group=Passwords storeSelected=False store=False action=none
+16:17:13.490 WindowAdded StatusProgressForm <<<>>> entries=1 group=Passwords storeSelected=False store=False action=none
+16:17:13.992 WindowRemoved StatusProgressForm <<KeePass>> result=None
+16:17:14.041 WindowRemoved SearchForm <<Find>> result=OK
+16:17:14.316 UIStateUpdated#10 treeRebuilt=False listRebuilt=True storeNodes=1 storeItems=12 listItems=12 entries=1(store) group=Recycle Bin storeSelected=True
+16:17:14.326 UIStateUpdated#11 treeRebuilt=False listRebuilt=False storeNodes=1 storeItems=12 listItems=12 entries=1(store) group=Recycle Bin storeSelected=True
+16:17:16.618 DRIVER base Show Entries of Subgroups, root
+16:17:18.396 UIStateUpdated#12 treeRebuilt=False listRebuilt=True storeNodes=1 storeItems=1 listItems=1 entries=1(store) group=Recycle Bin storeSelected=True
+16:17:19.460 UIStateUpdated#13 treeRebuilt=False listRebuilt=True storeNodes=1 storeItems=12 listItems=15 entries=0 group=Desk store storeSelected=False
+16:17:26.371 UIStateUpdated#14 treeRebuilt=False listRebuilt=False storeNodes=1 storeItems=0 listItems=0 entries=0 group=Desk store storeSelected=False
+16:17:27.060 DRIVER base field references in Linked
+16:17:27.861 UIStateUpdated#15 treeRebuilt=False listRebuilt=True storeNodes=1 storeItems=0 listItems=3 entries=0 group=Passwords storeSelected=False
+16:17:29.059 UIStateUpdated#16 treeRebuilt=False listRebuilt=False storeNodes=1 storeItems=0 listItems=3 entries=1 group=Passwords storeSelected=False
+16:17:31.977 DRIVER base select root
+16:17:34.347 DRIVER base select Passwords
+16:17:37.518 DRIVER base sort by title
+16:17:40.737 DRIVER base tree keyboard Home then Down x8
+16:17:42.983 DRIVER base tree Down 1
+16:17:43.430 DRIVER base tree Down 2
+16:17:43.873 DRIVER base tree Down 3
+16:17:44.320 DRIVER base tree Down 4
+16:17:44.775 DRIVER base tree Down 5
+16:17:45.254 DRIVER base tree Down 6
+16:17:45.720 DRIVER base tree Down 7
+16:17:46.159 DRIVER base tree Down 8
+16:17:48.576 DRIVER base drag Bank onto root
+16:17:55.334 DRIVER base save
+16:18:00.038 DRIVER base lock and unlock
+16:18:23.998 DRIVER base synchronize with other.kdbx

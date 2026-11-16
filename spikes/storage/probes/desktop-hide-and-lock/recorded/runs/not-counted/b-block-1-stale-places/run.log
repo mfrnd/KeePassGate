@@ -1,0 +1,338 @@
+17:53:46.282 case b-block run 1 place=top switches=filter=
+17:53:52.994 config: 
+17:54:14.523 started KeePass pid=19244 token: TokenIsElevated=1 ElevationType=2 Integrity=0x3000 AdministratorsEnabled=False
+17:54:14.672 main window: <<db.kdbx - KeePass>>
+17:54:14.969 group rows: Archive, Desk store, Empty group, KeePassGate, Passwords, Recycle Bin
+17:54:15.787 == block menus with S1 selected
+17:54:19.733 [block-00-entry-menu] item <<Copy User Name>> enabled=True
+17:54:19.737 [block-00-entry-menu] item <<Copy Password>> enabled=True
+17:54:19.741 [block-00-entry-menu] item <<URL(s)>> enabled=False
+17:54:19.763 [block-00-entry-menu] item <<Other Data>> enabled=True
+17:54:19.771 [block-00-entry-menu] item <<Attachments>> enabled=False
+17:54:19.827 [block-00-entry-menu] item <<Perform Auto-Type>> enabled=False
+17:54:19.833 [block-00-entry-menu] item <<Edit Entry...>> enabled=True
+17:54:19.840 [block-00-entry-menu] item <<Edit Entry (Quick)>> enabled=True
+17:54:19.853 [block-00-entry-menu] item <<Duplicate Entry...>> enabled=True
+17:54:19.857 [block-00-entry-menu] item <<Delete Entry>> enabled=True
+17:54:19.859 [block-00-entry-menu] item <<Compare>> enabled=True
+17:54:19.863 [block-00-entry-menu] item <<Data Exchange>> enabled=True
+17:54:19.869 [block-00-entry-menu] item <<File>> enabled=True
+17:54:19.871 [block-00-entry-menu] item <<Group>> enabled=True
+17:54:19.875 [block-00-entry-menu] item <<Entry>> enabled=True
+17:54:19.889 [block-00-entry-menu] item <<Find>> enabled=True
+17:54:19.891 [block-00-entry-menu] item <<View>> enabled=True
+17:54:19.895 [block-00-entry-menu] item <<Tools>> enabled=True
+17:54:19.899 [block-00-entry-menu] item <<Help>> enabled=True
+17:54:21.972 menu: <<Edit Entry (Quick)>>
+17:54:23.711 [block-00-quick-menu] item <<Icon...>> enabled=True
+17:54:23.713 [block-00-quick-menu] item <<Color>> enabled=True
+17:54:23.718 [block-00-quick-menu] item <<Add Tag>> enabled=True
+17:54:23.723 [block-00-quick-menu] item <<Remove Tag>> enabled=True
+17:54:23.725 [block-00-quick-menu] item <<Expires: Now>> enabled=True
+17:54:23.728 [block-00-quick-menu] item <<Expires: Never>> enabled=True
+17:54:23.730 [block-00-quick-menu] item <<OTP Generator Settings...>> enabled=True
+17:54:23.734 [block-00-quick-menu] item <<Copy User Name>> enabled=True
+17:54:23.737 [block-00-quick-menu] item <<Copy Password>> enabled=True
+17:54:23.741 [block-00-quick-menu] item <<URL(s)>> enabled=False
+17:54:23.744 [block-00-quick-menu] item <<Other Data>> enabled=True
+17:54:23.749 [block-00-quick-menu] item <<Attachments>> enabled=False
+17:54:23.751 [block-00-quick-menu] item <<Perform Auto-Type>> enabled=False
+17:54:23.757 [block-00-quick-menu] item <<Edit Entry...>> enabled=True
+17:54:23.760 [block-00-quick-menu] item <<Edit Entry (Quick)>> enabled=True
+17:54:23.770 [block-00-quick-menu] item <<Duplicate Entry...>> enabled=True
+17:54:23.774 [block-00-quick-menu] item <<Delete Entry>> enabled=True
+17:54:23.777 [block-00-quick-menu] item <<Compare>> enabled=True
+17:54:23.781 [block-00-quick-menu] item <<Data Exchange>> enabled=True
+17:54:23.786 [block-00-quick-menu] item <<File>> enabled=True
+17:54:23.789 [block-00-quick-menu] item <<Group>> enabled=True
+17:54:23.793 [block-00-quick-menu] item <<Entry>> enabled=True
+17:54:23.827 [block-00-quick-menu] item <<Find>> enabled=True
+17:54:23.831 [block-00-quick-menu] item <<View>> enabled=True
+17:54:23.834 [block-00-quick-menu] item <<Tools>> enabled=True
+17:54:23.838 [block-00-quick-menu] item <<Help>> enabled=True
+17:54:27.518 [block-00-ctx] item <<Copy User Name>> enabled=True
+17:54:27.521 [block-00-ctx] item <<Copy Password>> enabled=True
+17:54:27.526 [block-00-ctx] item <<URL(s)>> enabled=False
+17:54:27.529 [block-00-ctx] item <<Other Data>> enabled=True
+17:54:27.533 [block-00-ctx] item <<Attachments>> enabled=False
+17:54:27.536 [block-00-ctx] item <<Perform Auto-Type>> enabled=False
+17:54:27.539 [block-00-ctx] item <<Perform Auto-Type>> enabled=False
+17:54:27.547 [block-00-ctx] item <<Add Entry...>> enabled=True
+17:54:27.551 [block-00-ctx] item <<Edit Entry...>> enabled=True
+17:54:27.553 [block-00-ctx] item <<Edit Entry (Quick)>> enabled=True
+17:54:27.555 [block-00-ctx] item <<Delete Entry>> enabled=True
+17:54:27.559 [block-00-ctx] item <<Select All>> enabled=True
+17:54:27.560 [block-00-ctx] item <<Rearrange>> enabled=True
+17:54:27.564 [block-00-ctx] item <<More Commands>> enabled=True
+17:54:27.566 [block-00-ctx] item <<File>> enabled=True
+17:54:27.568 [block-00-ctx] item <<Group>> enabled=True
+17:54:27.573 [block-00-ctx] item <<Entry>> enabled=True
+17:54:27.574 [block-00-ctx] item <<Find>> enabled=True
+17:54:27.578 [block-00-ctx] item <<View>> enabled=True
+17:54:27.580 [block-00-ctx] item <<Tools>> enabled=True
+17:54:27.584 [block-00-ctx] item <<Help>> enabled=True
+17:54:30.861 [block-00-group-menu] item <<Add Group...>> enabled=True
+17:54:30.867 [block-00-group-menu] item <<Edit Group...>> enabled=True
+17:54:30.883 [block-00-group-menu] item <<Duplicate Group...>> enabled=True
+17:54:30.895 [block-00-group-menu] item <<Delete Group>> enabled=True
+17:54:30.901 [block-00-group-menu] item <<Empty Recycle Bin>> enabled=True
+17:54:30.913 [block-00-group-menu] item <<Rearrange>> enabled=True
+17:54:30.919 [block-00-group-menu] item <<Data Exchange>> enabled=True
+17:54:30.922 [block-00-group-menu] item <<File>> enabled=True
+17:54:30.934 [block-00-group-menu] item <<Group>> enabled=True
+17:54:30.947 [block-00-group-menu] item <<Entry>> enabled=True
+17:54:31.016 [block-00-group-menu] item <<Find>> enabled=True
+17:54:31.022 [block-00-group-menu] item <<View>> enabled=True
+17:54:31.068 [block-00-group-menu] item <<Tools>> enabled=True
+17:54:31.075 [block-00-group-menu] item <<Help>> enabled=True
+17:54:31.834 == block S3 Delete key
+17:54:36.417 [block-01-del-1] WINDOW title=<<KeePass>> class=#32770
+17:54:43.016 [block-01-del-1]   Image name=<<MainInstructionIcon>>
+17:54:43.021 [block-01-del-1]   Text name=<<Are you sure you want to move the selected entry to the recycle bin?>>
+17:54:43.024 [block-01-del-1]   Text name=<<- KPG admission 1>>
+17:54:43.030 [block-01-del-1]   CheckBox name=<<Do not show this dialog again; always 'Yes'.>>
+17:54:43.040 [block-01-del-1]   Pane name=<<Yes>>
+17:54:43.043 [block-01-del-1]   Pane name=<<No>>
+17:54:43.052 [block-01-del-1]   win32 Button <<&Yes>>
+17:54:43.052 [block-01-del-1]   win32 Button <<&No>>
+17:54:43.453 shot block-01-del-1.png (442 x 165)
+17:54:43.580 [block-01-del-1] pressed <<&Yes (clicked)>>
+17:54:50.284 [block-01-del] windows: KeePass
+17:54:50.286 == block S4 Shift+Delete
+17:54:52.944 [block-02-shiftdel-1] WINDOW title=<<KeePass>> class=#32770
+17:54:53.051 [block-02-shiftdel-1]   Image name=<<MainInstructionIcon>>
+17:54:53.055 [block-02-shiftdel-1]   Text name=<<Are you sure you want to permanently delete the selected entry?>>
+17:54:53.067 [block-02-shiftdel-1]   Text name=<<- KPG admission 2>>
+17:54:53.072 [block-02-shiftdel-1]   Pane name=<<Delete>>
+17:54:53.078 [block-02-shiftdel-1]   Pane name=<<Cancel>>
+17:54:53.085 [block-02-shiftdel-1]   win32 Button <<&Delete>>
+17:54:53.087 [block-02-shiftdel-1]   win32 Button <<Cancel>>
+17:54:53.482 shot block-02-shiftdel-1.png (362 x 165)
+17:54:53.623 [block-02-shiftdel-1] pressed <<&Delete (clicked)>>
+17:54:59.850 [block-02-shiftdel] windows: KeePass
+17:54:59.855 == block S5 dragged onto Passwords
+17:55:04.206 dragged KPG revocation 1 from 355,173.5 onto Passwords at 131,129
+17:55:07.412 [block-03-drag] windows: 
+17:55:07.414 == block S6 Alt+Down
+17:55:07.637 group KeePassGate from the places kept
+17:55:09.863 == block S7 Ctrl+D
+17:55:10.207 group KeePassGate from the places kept
+17:55:12.842 [block-05-dup-1] WINDOW title=<<Duplication Options>> class=WindowsForms10.Window.8.app.0.2bf8098_r6_ad1
+17:55:12.887 [block-05-dup-1]   Pane name=<<Copy history>>
+17:55:12.889 [block-05-dup-1]   Pane name=<<Help: Field References>>
+17:55:12.892 [block-05-dup-1]   Text name=<<If this option is enabled, the copies will reference the user names and passwords of the original entries. When a user name or password is changed in an original entry, the copy will automatically use the new data, too.>>
+17:55:12.896 [block-05-dup-1]   Pane name=<<Replace user names and passwords by references>>
+17:55:12.900 [block-05-dup-1]   Pane name=<<Append "- Copy" to entry titles>>
+17:55:12.909 [block-05-dup-1]   Pane name=<<Cancel>>
+17:55:12.914 [block-05-dup-1]   Pane name=<<OK>>
+17:55:12.918 [block-05-dup-1]   win32 BUTTON <<Copy &history>>
+17:55:12.925 [block-05-dup-1]   win32 STATIC <<Help: Field References>>
+17:55:12.927 [block-05-dup-1]   win32 STATIC <<If this option is enabled, the copies will reference the user names and passwords of the original entries. When a user name or password is changed in an original entry, the copy will automatically use the new data, too.>>
+17:55:12.929 [block-05-dup-1]   win32 BUTTON <<&Replace user names and passwords by references>>
+17:55:12.932 [block-05-dup-1]   win32 BUTTON <<&Append "- Copy" to entry titles>>
+17:55:12.932 [block-05-dup-1]   win32 BUTTON <<Cancel>>
+17:55:12.934 [block-05-dup-1]   win32 BUTTON <<OK>>
+17:55:13.372 shot block-05-dup-1.png (375 x 236)
+17:55:13.496 [block-05-dup-1] pressed <<OK (clicked)>>
+17:55:19.700 [block-05-dup] windows: Duplication Options
+17:55:19.702 == block S7 Entry menu Duplicate Entry
+17:55:20.130 group KeePassGate from the places kept
+17:55:22.973 menu: <<Duplicate Entry...>>
+17:55:24.728 [block-05m-dup-1] WINDOW title=<<Duplication Options>> class=WindowsForms10.Window.8.app.0.2bf8098_r6_ad1
+17:55:24.772 [block-05m-dup-1]   Pane name=<<Copy history>>
+17:55:24.774 [block-05m-dup-1]   Pane name=<<Help: Field References>>
+17:55:24.778 [block-05m-dup-1]   Text name=<<If this option is enabled, the copies will reference the user names and passwords of the original entries. When a user name or password is changed in an original entry, the copy will automatically use the new data, too.>>
+17:55:24.789 [block-05m-dup-1]   Pane name=<<Replace user names and passwords by references>>
+17:55:24.792 [block-05m-dup-1]   Pane name=<<Append "- Copy" to entry titles>>
+17:55:24.794 [block-05m-dup-1]   Pane name=<<Cancel>>
+17:55:24.796 [block-05m-dup-1]   Pane name=<<OK>>
+17:55:24.800 [block-05m-dup-1]   win32 BUTTON <<Copy &history>>
+17:55:24.802 [block-05m-dup-1]   win32 STATIC <<Help: Field References>>
+17:55:24.804 [block-05m-dup-1]   win32 STATIC <<If this option is enabled, the copies will reference the user names and passwords of the original entries. When a user name or password is changed in an original entry, the copy will automatically use the new data, too.>>
+17:55:24.806 [block-05m-dup-1]   win32 BUTTON <<&Replace user names and passwords by references>>
+17:55:24.808 [block-05m-dup-1]   win32 BUTTON <<&Append "- Copy" to entry titles>>
+17:55:24.810 [block-05m-dup-1]   win32 BUTTON <<Cancel>>
+17:55:24.812 [block-05m-dup-1]   win32 BUTTON <<OK>>
+17:55:25.194 shot block-05m-dup-1.png (375 x 236)
+17:55:25.303 [block-05m-dup-1] pressed <<OK (clicked)>>
+17:55:30.936 [block-05m-dup] windows: Duplication Options
+17:55:30.941 == block S8 quick edit: Expires Now
+17:55:31.307 group KeePassGate from the places kept
+17:55:33.946 menu: <<Edit Entry (Quick)>>
+17:55:35.043 menu: <<Expires: Now>>
+17:55:36.686 == block S8 quick edit: color
+17:55:36.962 group KeePassGate from the places kept
+17:55:39.465 menu: <<Edit Entry (Quick)>>
+17:55:45.324 STEP FAILED [block S8 quick edit: color]: no menu item Background Color at 318
+17:55:45.329 == block S12 copy, paste into KeePassGate
+17:55:45.580 group KeePassGate from the places kept
+17:55:47.850 group KeePassGate from the places kept
+17:55:49.703 [block-07-paste-1] WINDOW title=<<db.kdbx* - KeePass>> class=WindowsForms10.Window.8.app.0.2bf8098_r6_ad1
+17:55:49.972 [block-07-paste-1]   Document name=<<RichEdit Control>> text=<<Group: KeePassGate. Title: KPG profile 12. Creation Time: 16.11.2026 17:55:48. Last Modification Time: 01.11.2026 11:21:00. KPG.Body: {"kind":"profile 12","n":"S12","zqx":"zqxstore-s12"}. KPG.Kind: profile 12. KPG.Secret: ********.>>
+17:55:49.980 [block-07-paste-1]   Hyperlink name=<<KeePassGate>>
+17:55:49.988 [block-07-paste-1]   Thumb name=<<Grip>>
+17:55:49.995 [block-07-paste-1]   Text name=<<Ready.>>
+17:55:50.001 [block-07-paste-1]   ProgressBar name=<<>> text=<<83%>>
+17:55:50.017 [block-07-paste-1]   Thumb name=<<Grip>>
+17:55:50.067 [block-07-paste-1]   Button name=<<New Database>>
+17:55:50.079 [block-07-paste-1]   Button name=<<Open Database>>
+17:55:50.094 [block-07-paste-1]   Button name=<<Save Database>>
+17:55:50.109 [block-07-paste-1]   Button name=<<Add Entry>>
+17:55:50.118 [block-07-paste-1]   Button name=<<Copy User Name>> disabled
+17:55:50.130 [block-07-paste-1]   Button name=<<Copy Password>> disabled
+17:55:50.137 [block-07-paste-1]   Button name=<<Open URL(s)>> disabled
+17:55:50.142 [block-07-paste-1]   Button name=<<Copy URL(s)>> disabled
+17:55:50.146 [block-07-paste-1]   Button name=<<Perform Auto-Type>> disabled
+17:55:50.159 [block-07-paste-1]   Button name=<<Find>>
+17:55:50.168 [block-07-paste-1]   Button name=<<Find Entries>>
+17:55:50.178 [block-07-paste-1]   Button name=<<Lock Workspace>>
+17:55:50.206 [block-07-paste-1]   Button name=<<Open>> help=<<Search...>>
+17:55:50.216 [block-07-paste-1]   MenuItem name=<<File>>
+17:55:50.228 [block-07-paste-1]   MenuItem name=<<Group>>
+17:55:50.246 [block-07-paste-1]   MenuItem name=<<Entry>>
+17:55:50.254 [block-07-paste-1]   MenuItem name=<<Find>>
+17:55:50.262 [block-07-paste-1]   MenuItem name=<<View>>
+17:55:50.275 [block-07-paste-1]   MenuItem name=<<Tools>>
+17:55:50.287 [block-07-paste-1]   MenuItem name=<<Help>>
+17:55:50.310 [block-07-paste-1]   win32 RICHEDIT50W <<Group: KeePassGate. Title: KPG profile 12. Creation Time: 16.11.2026 17:55:48. Last Modification Time: 01.11.2026 11:21:00. KPG.Body: {"kind":"profile 12","n":"S12","zqx":"zqxstore-s12"}. KPG.Kind: profile 12. KPG.Secret: ********.>>
+17:55:50.751 shot block-07-paste-1.png (1086 x 713)
+17:55:53.075 [block-07-paste] windows: db.kdbx* - KeePass
+17:55:53.080 == block S1 edited in its dialog
+17:55:53.474 group KeePassGate from the places kept
+17:55:58.130 [block-08-edit-1] WINDOW title=<<Edit Entry>> class=WindowsForms10.Window.8.app.0.2bf8098_r6_ad1
+17:55:58.311 [block-08-edit-1]   Pane name=<<General>>
+17:55:58.317 [block-08-edit-1]   Text name=<<Title:>>
+17:55:58.327 [block-08-edit-1]   Document name=<<Title:>> text=<<zqxstore-notes1>>
+17:55:58.331 [block-08-edit-1]   Pane name=<<Expires:>>
+17:55:58.337 [block-08-edit-1]   Text name=<<12 ch.>>
+17:55:58.343 [block-08-edit-1]   Text name=<<Icon:>>
+17:55:58.347 [block-08-edit-1]   Pane name=<<●●●●●●●●●●●●>>
+17:55:58.353 [block-08-edit-1]   Pane name=<<●●●●●●●●●●●●>>
+17:55:58.359 [block-08-edit-1]   Text name=<<Notes:>>
+17:55:58.364 [block-08-edit-1]   Pane name=<<16.11.2026 00:00:00>>
+17:55:58.366 [block-08-edit-1]   Pane name=<<KPG grant 1>>
+17:55:58.371 [block-08-edit-1]   Text name=<<URL:>>
+17:55:58.375 [block-08-edit-1]   Text name=<<Quality:>>
+17:55:58.377 [block-08-edit-1]   Text name=<<Password:>>
+17:55:58.382 [block-08-edit-1]   Text name=<<Repeat:>>
+17:55:58.389 [block-08-edit-1]   Text name=<<User name:>>
+17:55:58.395 [block-08-edit-1]   Pane name=<<zqxstore-user1>>
+17:55:58.400 [block-08-edit-1]   Text name=<<UUID:>>
+17:55:58.403 [block-08-edit-1]   Pane name=<<Tools>>
+17:55:58.408 [block-08-edit-1]   Pane name=<<Cancel>>
+17:55:58.410 [block-08-edit-1]   Pane name=<<OK>>
+17:55:58.425 [block-08-edit-1]   win32 Window.8 <<General>>
+17:55:58.429 [block-08-edit-1]   win32 STATIC <<&Title:>>
+17:55:58.433 [block-08-edit-1]   win32 RICHEDIT50W <<zqxstore-notes1>>
+17:55:58.439 [block-08-edit-1]   win32 BUTTON <<&Expires:>>
+17:55:58.441 [block-08-edit-1]   win32 STATIC <<12 ch.>>
+17:55:58.447 [block-08-edit-1]   win32 STATIC <<&Icon:>>
+17:55:58.449 [block-08-edit-1]   win32 EDIT <<●●●●●●●●●●●●>>
+17:55:58.452 [block-08-edit-1]   win32 EDIT <<●●●●●●●●●●●●>>
+17:55:58.455 [block-08-edit-1]   win32 STATIC <<&Notes:>>
+17:55:58.457 [block-08-edit-1]   win32 SysDateTimePick32 <<16.11.2026 00:00:00>>
+17:55:58.461 [block-08-edit-1]   win32 EDIT <<KPG grant 1>>
+17:55:58.461 [block-08-edit-1]   win32 STATIC <<UR&L:>>
+17:55:58.463 [block-08-edit-1]   win32 STATIC <<Quality:>>
+17:55:58.468 [block-08-edit-1]   win32 STATIC <<&Password:>>
+17:55:58.473 [block-08-edit-1]   win32 STATIC <<&Repeat:>>
+17:55:58.473 [block-08-edit-1]   win32 STATIC <<&User name:>>
+17:55:58.477 [block-08-edit-1]   win32 EDIT <<zqxstore-user1>>
+17:55:58.485 [block-08-edit-1]   win32 BUTTON <<T&ools>>
+17:55:58.488 [block-08-edit-1]   win32 BUTTON <<Cancel>>
+17:55:58.489 [block-08-edit-1]   win32 BUTTON <<OK>>
+17:55:58.877 shot block-08-edit-1.png (491 x 513)
+17:56:02.439 [block-08-edit] windows: Edit Entry
+17:56:08.045 [block-08-after-ok] dialog visible=False OK enabled=no OK
+17:56:08.047 == block root: Sort Direct Subgroups
+17:56:08.235 group Desk store from the places kept
+17:56:09.962 menu: <<Rearrange>>
+17:56:11.875 menu: <<Sort Direct Subgroups>>
+17:56:13.502 == block KeePassGate: Move Group One Down (Alt+Down on the tree)
+17:56:13.684 group KeePassGate from the places kept
+17:56:15.170 == block S2 Move to Group Passwords
+17:56:15.349 group KeePassGate from the places kept
+17:56:21.161 STEP FAILED [block S2 Move to Group Passwords]: no entry KPG grant 2 in the list: KPG grant 9, KPG admission 10 at 108
+17:56:21.190 == block Add Entry by Ctrl+I in KeePassGate
+17:56:21.403 group KeePassGate from the places kept
+17:56:24.427 [block-12-add-1] WINDOW title=<<Add Entry>> class=WindowsForms10.Window.8.app.0.2bf8098_r6_ad1
+17:56:24.541 [block-12-add-1]   Pane name=<<General>>
+17:56:24.545 [block-12-add-1]   Text name=<<Title:>>
+17:56:24.549 [block-12-add-1]   Document name=<<Title:>> text=<<>>
+17:56:24.551 [block-12-add-1]   Pane name=<<Expires:>>
+17:56:24.555 [block-12-add-1]   Text name=<<20 ch.>>
+17:56:24.559 [block-12-add-1]   Text name=<<Icon:>>
+17:56:24.561 [block-12-add-1]   Pane name=<<●●●●●●●●●●●●●●●●●●●●>>
+17:56:24.563 [block-12-add-1]   Pane name=<<●●●●●●●●●●●●●●●●●●●●>>
+17:56:24.567 [block-12-add-1]   Text name=<<Notes:>>
+17:56:24.567 [block-12-add-1]   Pane name=<<16.11.2026 00:00:00>>
+17:56:24.571 [block-12-add-1]   Text name=<<URL:>>
+17:56:24.575 [block-12-add-1]   Text name=<<Quality:>>
+17:56:24.577 [block-12-add-1]   Text name=<<Password:>>
+17:56:24.587 [block-12-add-1]   Text name=<<Repeat:>>
+17:56:24.591 [block-12-add-1]   Text name=<<User name:>>
+17:56:24.593 [block-12-add-1]   Text name=<<UUID:>>
+17:56:24.597 [block-12-add-1]   Pane name=<<Tools>>
+17:56:24.599 [block-12-add-1]   Pane name=<<Cancel>>
+17:56:24.603 [block-12-add-1]   Pane name=<<OK>>
+17:56:24.613 [block-12-add-1]   win32 Window.8 <<General>>
+17:56:24.615 [block-12-add-1]   win32 STATIC <<&Title:>>
+17:56:24.617 [block-12-add-1]   win32 BUTTON <<&Expires:>>
+17:56:24.617 [block-12-add-1]   win32 STATIC <<20 ch.>>
+17:56:24.619 [block-12-add-1]   win32 STATIC <<&Icon:>>
+17:56:24.621 [block-12-add-1]   win32 EDIT <<●●●●●●●●●●●●●●●●●●●●>>
+17:56:24.623 [block-12-add-1]   win32 EDIT <<●●●●●●●●●●●●●●●●●●●●>>
+17:56:24.623 [block-12-add-1]   win32 STATIC <<&Notes:>>
+17:56:24.625 [block-12-add-1]   win32 SysDateTimePick32 <<16.11.2026 00:00:00>>
+17:56:24.627 [block-12-add-1]   win32 STATIC <<UR&L:>>
+17:56:24.627 [block-12-add-1]   win32 STATIC <<Quality:>>
+17:56:24.629 [block-12-add-1]   win32 STATIC <<&Password:>>
+17:56:24.631 [block-12-add-1]   win32 STATIC <<&Repeat:>>
+17:56:24.631 [block-12-add-1]   win32 STATIC <<&User name:>>
+17:56:24.633 [block-12-add-1]   win32 BUTTON <<T&ools>>
+17:56:24.635 [block-12-add-1]   win32 BUTTON <<Cancel>>
+17:56:24.637 [block-12-add-1]   win32 BUTTON <<OK>>
+17:56:25.028 shot block-12-add-1.png (491 x 513)
+17:56:29.507 [block-12-add] windows: Add Entry
+17:56:29.972 [block-12] dialog visible=True OK enabled=True
+17:56:33.835 == block Recycle Bin: Empty
+17:56:34.208 group Recycle Bin from the places kept
+17:56:36.537 menu: <<Empty Recycle Bin>>
+17:56:38.320 [block-13-empty-1] WINDOW title=<<KeePass>> class=#32770
+17:56:38.380 [block-13-empty-1]   Image name=<<MainInstructionIcon>>
+17:56:38.384 [block-13-empty-1]   Text name=<<Are you sure you want to permanently delete the items?>>
+17:56:38.388 [block-13-empty-1]   Text name=<<- KPG grant 11
+- KPG admission 1>>
+17:56:38.398 [block-13-empty-1]   Pane name=<<Delete>>
+17:56:38.404 [block-13-empty-1]   Pane name=<<Cancel>>
+17:56:38.411 [block-13-empty-1]   win32 Button <<&Delete>>
+17:56:38.413 [block-13-empty-1]   win32 Button <<Cancel>>
+17:56:38.800 shot block-13-empty-1.png (362 x 180)
+17:56:38.941 [block-13-empty-1] pressed <<&Delete (clicked)>>
+17:56:45.324 [block-13-empty] windows: KeePass
+17:56:45.328 == block KeePassGate: Ctrl+A, Delete
+17:56:45.861 group KeePassGate from the places kept
+17:56:52.270 STEP FAILED [block KeePassGate: Ctrl+A, Delete]: no entry KPG grant 1 in the list: KPG grant 9, KPG admission 10 at 108
+17:56:52.272 == block KeePassGate group: Delete key on the tree
+17:56:52.554 group KeePassGate from the places kept
+17:56:54.402 [block-15-group-del-1] WINDOW title=<<KeePass>> class=#32770
+17:56:54.457 [block-15-group-del-1]   Image name=<<MainInstructionIcon>>
+17:56:54.461 [block-15-group-del-1]   Text name=<<Are you sure you want to move the selected group to the recycle bin?>>
+17:56:54.465 [block-15-group-del-1]   Text name=<<Deleting a group will also delete all entries and subgroups in that group.
+
+- KPG grant 9
+- KPG admission 10>>
+17:56:54.469 [block-15-group-del-1]   CheckBox name=<<Do not show this dialog again; always 'Yes'.>>
+17:56:54.473 [block-15-group-del-1]   Pane name=<<Yes>>
+17:56:54.477 [block-15-group-del-1]   Pane name=<<No>>
+17:56:54.485 [block-15-group-del-1]   win32 Button <<&Yes>>
+17:56:54.491 [block-15-group-del-1]   win32 Button <<&No>>
+17:56:54.914 shot block-15-group-del-1.png (442 x 210)
+17:56:55.025 [block-15-group-del-1] pressed <<&Yes (clicked)>>
+17:57:01.517 [block-15-group-del] windows: KeePass
+17:57:01.519 == block end
+17:57:01.935 [block-16-end] title <<db.kdbx* - KeePass>>; tree []; list [KPG grant 1, KPG grant 2, KPG authority 1, KPG profile 1, KPG retirement 1, KPG profile 12, KPG authority 1 - Copy, KPG authority 1 - Copy, KPG profile 12]; status <<Ready.>>
+17:57:02.343 shot block-16-end.png (1086 x 713)
+17:57:02.472 FLOW DONE
+17:57:02.476 == save at the end
+17:57:11.503 case b-block done in 205 s

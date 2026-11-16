@@ -1,0 +1,253 @@
+17:26:28.334 case a-hide-ui run 1 place=top switches=hide=ui
+17:26:28.994 config: 
+17:26:40.159 started KeePass pid=19260 token: TokenIsElevated=1 ElevationType=2 Integrity=0x3000 AdministratorsEnabled=False
+17:26:40.457 main window: <<db.kdbx - KeePass>>
+17:26:40.700 group rows: Desk store, Passwords, Recycle Bin
+17:26:41.514 == ui open
+17:26:41.790 [ui-01-open] title <<db.kdbx - KeePass>>; tree [Desk store, Passwords, Recycle Bin]; list []; status <<Ready.>>
+17:26:42.247 shot ui-01-open.png (1086 x 713)
+17:26:42.367 == ui Passwords
+17:26:43.596 [ui-02-passwords] title <<db.kdbx - KeePass>>; tree [Desk store, Passwords, Recycle Bin]; list [Mail account, Bank, Linked]; status <<Ready.>>
+17:26:43.706 == ui quick search zqxstore
+17:26:47.126 [ui-03-quick-zqxstore] title <<db.kdbx - KeePass>>; tree [Desk store, Passwords, Recycle Bin]; list []; status <<0 entries found, 2 groups skipped ('Recycle Bin', 'KeePassGate').>>
+17:26:47.517 shot ui-03-quick-zqxstore.png (1086 x 713)
+17:26:47.643 == ui quick search KPG
+17:26:49.961 [ui-04-quick-KPG] title <<db.kdbx - KeePass>>; tree [Desk store, Passwords, Recycle Bin]; list [Mail account]; status <<1 entry found, 2 groups skipped ('Recycle Bin', 'KeePassGate').>>
+17:26:50.086 == ui Find All
+17:26:51.399 menu: <<All>>
+17:26:53.582 [ui-05-find-all] title <<db.kdbx - KeePass>>; tree [Desk store, Passwords, Recycle Bin]; list [Mail account, Bank, Linked]; status <<3 entries found.>>
+17:26:53.981 shot ui-05-find-all.png (1086 x 713)
+17:26:54.242 == ui Find Expired
+17:26:55.585 menu: <<Expired>>
+17:26:57.546 [ui-06-expired] title <<db.kdbx - KeePass>>; tree [Desk store, Passwords, Recycle Bin]; list []; status <<0 entries found, 2 groups skipped ('Recycle Bin', 'KeePassGate').>>
+17:26:57.658 == ui Find Tag kpgtag
+17:26:58.963 menu: <<Tag>>
+17:27:00.086 menu: <<kpgtag>>
+17:27:03.841 [ui-07-tag] title <<db.kdbx - KeePass>>; tree [Desk store, Passwords, Recycle Bin]; list [Mail account]; status <<1 entry found.>>
+17:27:04.252 shot ui-07-tag.png (1086 x 713)
+17:27:04.423 == ui Last Modified Entries
+17:27:05.944 menu: <<Last Modified Entries...>>
+17:27:08.511 [ui-08-lastmod] WINDOW title=<<Last Modified>> class=WindowsForms10.Window.8.app.0.2bf8098_r6_ad1
+17:27:08.580 [ui-08-lastmod]   Thumb name=<<Grip>>
+17:27:08.599 [ui-08-lastmod]   Button name=<<Print...>>
+17:27:08.606 [ui-08-lastmod]   Button name=<<Export...>>
+17:27:08.612 [ui-08-lastmod]   Text name=<<Filter:>>
+17:27:09.043 shot ui-08-lastmod.png (696 x 561)
+17:27:09.123 [ui-08-lastmod] rows: Linked, Bank, KPG profile 12, KPG grant 11, KPG admission 10, KPG grant 9, KPG retirement 1, KPG authority 1, KPG profile 1, KPG revocation 1, KPG admission 2, KPG admission 1, KPG grant 2, KPG grant 1, Mail account
+17:27:09.966 == ui Find dialog, ignore group settings
+17:27:12.537 [ui-09-find] check <<XPath expression>> checked=0
+17:27:12.556 [ui-09-find] check <<Regular expression>> checked=0
+17:27:12.559 [ui-09-find] check <<Simple expression>> checked=1
+17:27:12.562 [ui-09-find] check <<Match diacritics>> checked=0
+17:27:12.566 [ui-09-find] check <<Ignore search settings of groups>> checked=0
+17:27:12.570 [ui-09-find] check <<Resolve field references in data (slow)>> checked=0
+17:27:12.572 [ui-09-find] check <<Exclude expired entries>> checked=0
+17:27:12.575 [ui-09-find] check <<Match case>> checked=0
+17:27:12.585 [ui-09-find] check <<History>> checked=0
+17:27:12.586 [ui-09-find] check <<Group path>> checked=0
+17:27:12.588 [ui-09-find] check <<String name>> checked=0
+17:27:12.600 [ui-09-find] check <<Tags>> checked=1
+17:27:12.605 [ui-09-find] check <<Group name>> checked=0
+17:27:12.608 [ui-09-find] check <<UUID>> checked=0
+17:27:12.614 [ui-09-find] check <<Other strings>> checked=1
+17:27:12.627 [ui-09-find] check <<Notes>> checked=1
+17:27:12.629 [ui-09-find] check <<URL>> checked=1
+17:27:12.635 [ui-09-find] check <<Password>> checked=0
+17:27:12.637 [ui-09-find] check <<User name>> checked=1
+17:27:12.639 [ui-09-find] check <<Title>> checked=1
+17:27:13.485 [ui-09-find] after: Simple expression, Ignore search settings of groups, Tags, Other strings, Notes, URL, User name, Title
+17:27:13.887 shot ui-09-find-dialog.png (376 x 553)
+17:27:16.381 [ui-09-find-after-1] WINDOW title=<<db.kdbx - KeePass>> class=WindowsForms10.Window.8.app.0.2bf8098_r6_ad1
+17:27:16.566 [ui-09-find-after-1]   Window name=<<db.kdbx - KeePass>>
+17:27:16.574 [ui-09-find-after-1]   Text name=<<Unhandled exception has occurred in your application. If you click Continue, the application will ignore this error and attempt to continue. If you click Quit, the application will close immediately.
+
+Object reference not set to an instance of an object.>>
+17:27:16.578 [ui-09-find-after-1]   Pane name=<<Details>>
+17:27:16.587 [ui-09-find-after-1]   Pane name=<<Continue>>
+17:27:16.592 [ui-09-find-after-1]   Pane name=<<Quit>>
+17:27:16.600 [ui-09-find-after-1]   Document name=<<RichEdit Control>> text=<<Group: (Search Results).
+
+'zqxstore' in Desk store.
+>>
+17:27:16.616 [ui-09-find-after-1]   Thumb name=<<Grip>>
+17:27:16.624 [ui-09-find-after-1]   Text name=<<Ready.>>
+17:27:16.633 [ui-09-find-after-1]   Thumb name=<<Grip>>
+17:27:16.645 [ui-09-find-after-1]   Button name=<<New Database>>
+17:27:16.653 [ui-09-find-after-1]   Button name=<<Open Database>>
+17:27:16.663 [ui-09-find-after-1]   Button name=<<Save Database>>
+17:27:16.672 [ui-09-find-after-1]   Button name=<<Add Entry>>
+17:27:16.684 [ui-09-find-after-1]   Button name=<<Copy User Name>> disabled
+17:27:16.690 [ui-09-find-after-1]   Button name=<<Copy Password>> disabled
+17:27:16.696 [ui-09-find-after-1]   Button name=<<Open URL(s)>> disabled
+17:27:16.700 [ui-09-find-after-1]   Button name=<<Copy URL(s)>> disabled
+17:27:16.706 [ui-09-find-after-1]   Button name=<<Perform Auto-Type>> disabled
+17:27:16.716 [ui-09-find-after-1]   Button name=<<Find>>
+17:27:16.726 [ui-09-find-after-1]   Button name=<<Find Entries>>
+17:27:16.734 [ui-09-find-after-1]   Button name=<<Lock Workspace>>
+17:27:16.746 [ui-09-find-after-1]   ComboBox name=<<KPG>> disabled
+17:27:16.750 [ui-09-find-after-1]   Pane name=<<KPG>> disabled
+17:27:16.768 [ui-09-find-after-1]   Button name=<<Open>> help=<<Search...>>
+17:27:16.782 [ui-09-find-after-1]   MenuItem name=<<File>>
+17:27:16.790 [ui-09-find-after-1]   MenuItem name=<<Group>>
+17:27:16.798 [ui-09-find-after-1]   MenuItem name=<<Entry>>
+17:27:16.804 [ui-09-find-after-1]   MenuItem name=<<Find>>
+17:27:16.810 [ui-09-find-after-1]   MenuItem name=<<View>>
+17:27:16.830 [ui-09-find-after-1]   MenuItem name=<<Tools>>
+17:27:16.836 [ui-09-find-after-1]   MenuItem name=<<Help>>
+17:27:16.850 [ui-09-find-after-1]   win32 RICHEDIT50W <<Group: (Search Results).\r\n\r\n'zqxstore' in Desk store.>>
+17:27:16.852 [ui-09-find-after-1]   win32 COMBOBOX <<KPG>>
+17:27:16.854 [ui-09-find-after-1]   win32 Edit <<KPG>>
+17:27:17.718 shot ui-09-find-after-1.png (1086 x 713)
+17:27:18.712 [ui-09-find-after-1] pressed <<Continue (clicked at bounds)>>
+17:27:23.864 [ui-09-find-after] windows: db.kdbx - KeePass
+17:27:25.777 [ui-09-find-ignore] title <<db.kdbx - KeePass>>; tree [Desk store, Passwords, Recycle Bin]; list []; status <<Ready.>>
+17:27:26.184 shot ui-09-find-ignore.png (1086 x 713)
+17:27:26.335 == ui Show Entries of Subgroups, root
+17:27:27.513 menu: <<Show Entries of Subgroups>>
+17:27:29.530 [ui-10-root-subgroups] title <<db.kdbx - KeePass>>; tree [Desk store, Passwords, Recycle Bin]; list [Mail account, Bank, Linked]; status <<Ready.>>
+17:27:29.933 shot ui-10-root-subgroups.png (1086 x 713)
+17:27:31.370 menu: <<Show Entries of Subgroups>>
+17:27:32.194 == ui field references in Linked
+17:27:33.779 [ui-11-ref] entry view <<Group: Passwords. Title: Linked. User Name: zqxstore-user1 - {REF:U@I:4B504753310000000000000000000000}. Password: ********. URL: https://example.invalid/zqxstore-user1 - https://example.invalid/{REF:U@I:4B504753310000000000000000000000}. URL Override: https://override.example.invalid/******** - https://override.example.invalid/{REF:P@I:4B504753310000000000000000000000}. Creation Time: 01.11.2026 11:31:00. Last Modification Time: 01.11.2026 11:31:00. /  / {REF:N@I:4B504753310000000000000000000000}>>
+17:27:35.502 [ui-11-ref-c-1] WINDOW title=<<KeePass>> class=#32770
+17:27:35.570 [ui-11-ref-c-1]   Image name=<<MainInstructionIcon>>
+17:27:35.574 [ui-11-ref-c-1]   Text name=<<{REF:P@I:4B504753310000000000000000000000}
+
+Are you sure you want to evaluate/replace the placeholder?>>
+17:27:35.578 [ui-11-ref-c-1]   CheckBox name=<<Do not show this dialog again.>>
+17:27:35.583 [ui-11-ref-c-1]   Pane name=<<Yes>>
+17:27:35.588 [ui-11-ref-c-1]   Pane name=<<No>>
+17:27:35.592 [ui-11-ref-c-1]   Image name=<<FooterIcon>>
+17:27:35.596 [ui-11-ref-c-1]   Pane name=<<More information: Placeholders, Security.>>
+17:27:35.603 [ui-11-ref-c-1]   win32 Button <<Yes>>
+17:27:35.606 [ui-11-ref-c-1]   win32 Button <<No>>
+17:27:35.608 [ui-11-ref-c-1]   win32 SysLink <<More information: <A HREF="p">Placeholders</A>, <A HREF="s">Security</A>.>>
+17:27:35.985 shot ui-11-ref-c-1.png (375 x 194)
+17:27:36.109 [ui-11-ref-c-1] pressed <<Yes (clicked)>>
+17:27:41.163 [ui-11-ref-c] windows: KeePass
+17:27:41.174 [ui-11-ref] Ctrl+C on Linked copied <<zqxstore-pw1>>
+17:27:45.560 [ui-11-ref-b] windows: 
+17:27:45.564 [ui-11-ref] Ctrl+B on Linked copied <<zqxstore-user1>>
+17:27:45.974 shot ui-11-ref.png (1086 x 713)
+17:27:45.983 == ui select root
+17:27:47.202 [ui-21-root] title <<db.kdbx - KeePass>>; tree [Desk store, Passwords, Recycle Bin]; list []; status <<Ready.>>
+17:27:47.321 == ui select Passwords
+17:27:48.646 [ui-22-passwords] title <<db.kdbx - KeePass>>; tree [Desk store, Passwords, Recycle Bin]; list [Mail account, Bank, Linked]; status <<Ready.>>
+17:27:48.774 == ui sort by title
+17:27:50.262 [ui-23-sorted] title <<db.kdbx - KeePass>>; tree [Desk store, Passwords, Recycle Bin]; list [Bank, Linked, Mail account]; status <<Ready.>>
+17:27:50.402 == ui tree keyboard Home then Down x8
+17:27:51.698 == ui tree Down 1
+17:27:52.143 == ui tree Down 2
+17:27:52.588 == ui tree Down 3
+17:27:53.034 == ui tree Down 4
+17:27:53.481 == ui tree Down 5
+17:27:53.925 == ui tree Down 6
+17:27:54.372 == ui tree Down 7
+17:27:54.815 == ui tree Down 8
+17:27:55.198 [ui-24-keyboard] title <<db.kdbx - KeePass>>; tree [Desk store, Passwords, Recycle Bin]; list []; status <<Ready.>>
+17:27:55.607 shot ui-24-keyboard.png (1086 x 713)
+17:27:55.731 == ui drag Bank onto root
+17:27:59.046 dragged Bank from 355,135.5 onto Desk store at 112,111
+17:28:00.187 [ui-25-drag] title <<db.kdbx* - KeePass>>; tree []; list [Linked, Mail account]; status <<Ready.>>
+17:28:00.288 == ui save
+17:28:02.703 [ui-26-saved] title <<db.kdbx - KeePass>>; tree []; list [Linked, Mail account]; status <<Ready.>>
+17:28:02.819 == ui lock and unlock
+17:28:05.285 [ui-27-unlock-prompt] WINDOW title=<<Open Database - db.kdbx>> class=WindowsForms10.Window.8.app.0.2bf8098_r6_ad1
+17:28:05.337 [ui-27-unlock-prompt]   Pane name=<<Exit>>
+17:28:05.343 [ui-27-unlock-prompt]   ComboBox name=<<(None)>>
+17:28:05.351 [ui-27-unlock-prompt]   Button name=<<Open>>
+17:28:05.359 [ui-27-unlock-prompt]   Pane name=<<Help>>
+17:28:05.363 [ui-27-unlock-prompt]   Pane name=<<Cancel>>
+17:28:05.369 [ui-27-unlock-prompt]   Pane name=<<OK>>
+17:28:05.374 [ui-27-unlock-prompt]   Pane name=<<Windows user account>>
+17:28:05.379 [ui-27-unlock-prompt]   Pane name=<<Key file/provider:>>
+17:28:05.381 [ui-27-unlock-prompt]   Pane name=<<Master password:>>
+17:28:05.387 [ui-27-unlock-prompt]   win32 BUTTON <<E&xit>>
+17:28:05.389 [ui-27-unlock-prompt]   win32 COMBOBOX <<(None)>>
+17:28:05.393 [ui-27-unlock-prompt]   win32 BUTTON <<&Help>>
+17:28:05.395 [ui-27-unlock-prompt]   win32 BUTTON <<Cancel>>
+17:28:05.397 [ui-27-unlock-prompt]   win32 BUTTON <<OK>>
+17:28:05.399 [ui-27-unlock-prompt]   win32 BUTTON <<&Windows user account>>
+17:28:05.401 [ui-27-unlock-prompt]   win32 BUTTON <<&Key file/provider:>>
+17:28:05.403 [ui-27-unlock-prompt]   win32 BUTTON <<&Master password:>>
+17:28:08.469 [ui-27-unlocked] title <<db.kdbx - KeePass>>; tree []; list [Linked, Mail account]; status <<Ready.>>
+17:28:09.308 shot ui-27-unlocked.png (1086 x 713)
+17:28:09.424 == ui synchronize with other.kdbx
+17:28:10.884 menu: <<Synchronize>>
+17:28:11.978 menu: <<Synchronize with File...>>
+17:28:13.147 [ui-28-sync] file dialog <<Synchronize>>
+17:28:23.123 [ui-28-sync-dialogs] windows: 
+17:28:23.538 [ui-28-synced] title <<db.kdbx - KeePass>>; tree []; list [Linked, Mail account]; status <<Synchronization completed successfully.>>
+17:28:23.977 shot ui-28-synced.png (1086 x 713)
+17:28:24.084 FLOW DONE
+17:28:30.195 case a-hide-ui done in 122 s
+17:28:30.199 case a-hide-grouped run 1 place=top switches=hide=ui
+17:28:31.068 config: MainWindow/ListGrouping=1, MainWindow/ShowEntriesOfSubGroups=true
+17:28:42.631 started KeePass pid=2056 token: TokenIsElevated=1 ElevationType=2 Integrity=0x3000 AdministratorsEnabled=False
+17:28:42.771 main window: <<db.kdbx - KeePass>>
+17:28:43.027 group rows: Desk store, Passwords, Recycle Bin
+17:28:43.846 == grouped open
+17:28:44.228 [grouped-01-open] title <<db.kdbx - KeePass>>; tree [Desk store, Passwords, Recycle Bin]; list []; status <<Ready.>>
+17:28:44.646 shot grouped-01-open.png (1086 x 713)
+17:28:44.870 == grouped root
+17:28:46.326 [grouped-02-root] title <<db.kdbx - KeePass>>; tree [Desk store, Passwords, Recycle Bin]; list [Mail account, Bank, Linked]; status <<Ready.>>
+17:28:47.545 shot grouped-02-root.png (1086 x 713)
+17:28:47.826 == grouped Find All
+17:28:49.849 menu: <<All>>
+17:28:52.344 [grouped-03-all] title <<db.kdbx - KeePass>>; tree [Desk store, Passwords, Recycle Bin]; list [Mail account, Bank, Linked]; status <<3 entries found.>>
+17:28:52.736 shot grouped-03-all.png (1086 x 713)
+17:28:52.858 FLOW DONE
+17:29:02.772 case a-hide-grouped done in 33 s
+17:29:02.780 case a-bin run 1 place=bin switches=watch=on
+17:29:03.485 config: 
+17:29:15.439 started KeePass pid=8416 token: TokenIsElevated=1 ElevationType=2 Integrity=0x3000 AdministratorsEnabled=False
+17:29:15.819 main window: <<db.kdbx - KeePass>>
+17:29:16.397 group rows: Archive, Desk store, Empty group, KeePassGate, Passwords, Recycle Bin
+17:29:17.241 == bin open
+17:29:18.161 [bin-01-open] title <<db.kdbx - KeePass>>; tree [Desk store, Passwords, Recycle Bin, KeePassGate, Archive, Empty group]; list [KPG grant 1, KPG grant 2, KPG admission 1, KPG admission 2, KPG revocation 1, KPG profile 1, KPG authority 1, KPG retirement 1, KPG profile 12]; status <<Ready.>>
+17:29:18.571 shot bin-01-open.png (1086 x 713)
+17:29:19.070 == bin quick search
+17:29:22.238 [bin-02-quick] title <<db.kdbx - KeePass>>; tree [Desk store, Passwords, Recycle Bin, KeePassGate, Archive, Empty group]; list []; status <<0 entries found, 1 group skipped ('Recycle Bin').>>
+17:29:22.748 == bin Find All
+17:29:24.823 menu: <<All>>
+17:29:27.483 [bin-03-all] title <<db.kdbx - KeePass>>; tree [Desk store, Passwords, Recycle Bin, KeePassGate, Archive, Empty group]; list [Mail account, Bank, Linked, KPG grant 11, KPG grant 1, KPG grant 2, KPG admission 1, KPG admission 2, KPG revocation 1, KPG profile 1, KPG authority 1, KPG retirement 1, KPG profile 12, KPG grant 9, KPG admission 10]; status <<15 entries found.>>
+17:29:27.818 == bin Empty Recycle Bin
+17:29:30.885 menu: <<Empty Recycle Bin>>
+17:29:32.713 [bin-04-empty-1] WINDOW title=<<KeePass>> class=#32770
+17:29:32.795 [bin-04-empty-1]   Image name=<<MainInstructionIcon>>
+17:29:32.803 [bin-04-empty-1]   Text name=<<Are you sure you want to permanently delete the items?>>
+17:29:32.809 [bin-04-empty-1]   Text name=<<- KeePassGate, Archive
+- KPG grant 11
+- KPG grant 1
+- KPG grant 2
+- KPG admission 1
+- KPG admission 2
+- KPG revocation 1
+- KPG profile 1
+- KPG authority 1
+- 4 more entries>>
+17:29:32.817 [bin-04-empty-1]   Pane name=<<Delete>>
+17:29:32.826 [bin-04-empty-1]   Pane name=<<Cancel>>
+17:29:32.840 [bin-04-empty-1]   win32 Button <<&Delete>>
+17:29:32.842 [bin-04-empty-1]   win32 Button <<Cancel>>
+17:29:33.228 shot bin-04-empty-1.png (390 x 300)
+17:29:33.367 [bin-04-empty-1] pressed <<&Delete (clicked)>>
+17:29:39.745 [bin-04-empty] windows: KeePass
+17:29:40.241 [bin-05-emptied] title <<db.kdbx* - KeePass>>; tree []; list []; status <<Ready.>>
+17:29:40.636 shot bin-05-emptied.png (1086 x 713)
+17:29:40.787 FLOW DONE
+17:29:40.815 == save at the end
+17:29:50.601 case a-bin done in 48 s
+17:29:50.605 case a-deep run 1 place=deep switches=watch=on
+17:29:51.646 config: 
+17:30:02.723 started KeePass pid=19308 token: TokenIsElevated=1 ElevationType=2 Integrity=0x3000 AdministratorsEnabled=False
+17:30:02.908 main window: <<db.kdbx - KeePass>>
+17:30:03.229 group rows: 2019, Archive, Desk store, Empty group, KeePassGate, Misc, Old, Passwords, Recycle Bin
+17:30:04.058 == deep open
+17:30:04.528 [deep-01-open] title <<db.kdbx - KeePass>>; tree [Desk store, Passwords, Old, 2019, Misc, KeePassGate, Archive, Recycle Bin, Empty group]; list [KPG grant 1, KPG grant 2, KPG admission 1, KPG admission 2, KPG revocation 1, KPG profile 1, KPG authority 1, KPG retirement 1, KPG profile 12]; status <<Ready.>>
+17:30:04.954 shot deep-01-open.png (1086 x 713)
+17:30:05.189 == deep Passwords
+17:30:06.576 [deep-02-passwords] title <<db.kdbx - KeePass>>; tree [Desk store, Passwords, Old, 2019, Misc, KeePassGate, Archive, Recycle Bin, Empty group]; list [Mail account, Bank, Linked]; status <<Ready.>>
+17:30:06.986 shot deep-02-passwords.png (1086 x 713)
+17:30:07.230 FLOW DONE
+17:30:13.750 case a-deep done in 23 s

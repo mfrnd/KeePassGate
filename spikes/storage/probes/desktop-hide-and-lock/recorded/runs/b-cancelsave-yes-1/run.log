@@ -1,0 +1,85 @@
+17:59:09.094 case b-cancelsave-yes run 1 place=top switches=dialogs=cancelsave
+17:59:09.884 config: 
+17:59:23.158 started KeePass pid=6936 token: TokenIsElevated=1 ElevationType=2 Integrity=0x3000 AdministratorsEnabled=False
+17:59:23.309 main window: <<db.kdbx - KeePass>>
+17:59:23.498 group rows: Archive, Desk store, Empty group, KeePassGate, Passwords, Recycle Bin
+17:59:24.317 == canyes edit S1, Escape, answer Yes
+17:59:28.745 [canyes-01-open-1] WINDOW title=<<Edit Entry>> class=WindowsForms10.Window.8.app.0.2bf8098_r6_ad1
+17:59:28.975 [canyes-01-open-1]   Text name=<<Probe: this is a KeePassGate store entry and is read-only.>>
+17:59:28.979 [canyes-01-open-1]   Pane name=<<General>>
+17:59:28.985 [canyes-01-open-1]   Text name=<<Title:>>
+17:59:29.009 [canyes-01-open-1]   Document name=<<Title:>> text=<<zqxstore-notes1>>
+17:59:29.011 [canyes-01-open-1]   Pane name=<<Expires:>>
+17:59:29.013 [canyes-01-open-1]   Text name=<<12 ch.>>
+17:59:29.019 [canyes-01-open-1]   Text name=<<Icon:>>
+17:59:29.021 [canyes-01-open-1]   Pane name=<<●●●●●●●●●●●●>>
+17:59:29.023 [canyes-01-open-1]   Pane name=<<●●●●●●●●●●●●>>
+17:59:29.027 [canyes-01-open-1]   Text name=<<Notes:>>
+17:59:29.029 [canyes-01-open-1]   Pane name=<<16.11.2026 00:00:00>>
+17:59:29.031 [canyes-01-open-1]   Pane name=<<KPG grant 1>>
+17:59:29.036 [canyes-01-open-1]   Text name=<<URL:>>
+17:59:29.040 [canyes-01-open-1]   Text name=<<Quality:>>
+17:59:29.046 [canyes-01-open-1]   Text name=<<Password:>>
+17:59:29.048 [canyes-01-open-1]   Text name=<<Repeat:>>
+17:59:29.052 [canyes-01-open-1]   Text name=<<User name:>>
+17:59:29.054 [canyes-01-open-1]   Pane name=<<zqxstore-user1>>
+17:59:29.058 [canyes-01-open-1]   Text name=<<UUID:>>
+17:59:29.060 [canyes-01-open-1]   Pane name=<<Tools>>
+17:59:29.060 [canyes-01-open-1]   Pane name=<<Cancel>>
+17:59:29.062 [canyes-01-open-1]   Pane name=<<OK>>
+17:59:29.080 [canyes-01-open-1]   win32 STATIC <<Probe: this is a KeePassGate store entry and is read-only.>>
+17:59:29.082 [canyes-01-open-1]   win32 Window.8 <<General>>
+17:59:29.084 [canyes-01-open-1]   win32 STATIC <<&Title:>>
+17:59:29.085 [canyes-01-open-1]   win32 RICHEDIT50W <<zqxstore-notes1>>
+17:59:29.085 [canyes-01-open-1]   win32 BUTTON <<&Expires:>>
+17:59:29.087 [canyes-01-open-1]   win32 STATIC <<12 ch.>>
+17:59:29.089 [canyes-01-open-1]   win32 STATIC <<&Icon:>>
+17:59:29.091 [canyes-01-open-1]   win32 EDIT <<●●●●●●●●●●●●>>
+17:59:29.093 [canyes-01-open-1]   win32 EDIT <<●●●●●●●●●●●●>>
+17:59:29.095 [canyes-01-open-1]   win32 STATIC <<&Notes:>>
+17:59:29.095 [canyes-01-open-1]   win32 SysDateTimePick32 <<16.11.2026 00:00:00>>
+17:59:29.097 [canyes-01-open-1]   win32 EDIT <<KPG grant 1>>
+17:59:29.099 [canyes-01-open-1]   win32 STATIC <<UR&L:>>
+17:59:29.101 [canyes-01-open-1]   win32 STATIC <<Quality:>>
+17:59:29.103 [canyes-01-open-1]   win32 STATIC <<&Password:>>
+17:59:29.103 [canyes-01-open-1]   win32 STATIC <<&Repeat:>>
+17:59:29.105 [canyes-01-open-1]   win32 STATIC <<&User name:>>
+17:59:29.107 [canyes-01-open-1]   win32 EDIT <<zqxstore-user1>>
+17:59:29.109 [canyes-01-open-1]   win32 BUTTON <<T&ools>>
+17:59:29.111 [canyes-01-open-1]   win32 BUTTON <<Cancel>>
+17:59:29.113 [canyes-01-open-1]   win32 BUTTON <<OK>>
+17:59:29.509 shot canyes-01-open-1.png (491 x 513)
+17:59:33.158 [canyes-01-open] windows: Edit Entry
+17:59:33.517 [canyes-01] dialog visible=True OK enabled=True
+17:59:35.137 [canyes-02] title box before <<KPG grant 1>> after typing <<KPG grant 1 edited by hand>>
+17:59:38.204 [canyes-02-typed] dialog visible=True OK enabled=True
+17:59:40.921 [canyes-03-question-1] WINDOW title=<<KeePass>> class=#32770
+17:59:41.114 [canyes-03-question-1]   Image name=<<MainInstructionIcon>>
+17:59:41.121 [canyes-03-question-1]   Text name=<<Entry 'KPG grant 1 edited by hand'>>
+17:59:41.128 [canyes-03-question-1]   Text name=<<Do you want to save the changes you have made to this entry?>>
+17:59:41.132 [canyes-03-question-1]   Pane name=<<Yes>>
+17:59:41.140 [canyes-03-question-1]   Pane name=<<No>>
+17:59:41.150 [canyes-03-question-1]   Pane name=<<Cancel>>
+17:59:41.165 [canyes-03-question-1]   win32 Button <<&Yes>>
+17:59:41.168 [canyes-03-question-1]   win32 Button <<&No>>
+17:59:41.169 [canyes-03-question-1]   win32 Button <<Cancel>>
+17:59:41.570 shot canyes-03-question-1.png (362 x 159)
+17:59:41.696 [canyes-03-question-1] pressed <<&Yes (clicked)>>
+17:59:46.487 [canyes-03-after-yes] dialog visible=True OK enabled=True
+17:59:49.264 [close-question-1] WINDOW title=<<KeePass>> class=#32770
+17:59:49.413 [close-question-1]   Image name=<<MainInstructionIcon>>
+17:59:49.421 [close-question-1]   Text name=<<Entry 'KPG grant 1 edited by hand'>>
+17:59:49.428 [close-question-1]   Text name=<<Do you want to save the changes you have made to this entry?>>
+17:59:49.435 [close-question-1]   Pane name=<<Yes>>
+17:59:49.444 [close-question-1]   Pane name=<<No>>
+17:59:49.453 [close-question-1]   Pane name=<<Cancel>>
+17:59:49.473 [close-question-1]   win32 Button <<&Yes>>
+17:59:49.475 [close-question-1]   win32 Button <<&No>>
+17:59:49.477 [close-question-1]   win32 Button <<Cancel>>
+17:59:49.885 shot close-question-1.png (362 x 159)
+17:59:50.011 [close-question-1] pressed <<&No (clicked)>>
+17:59:54.940 [canyes-04-main] title <<db.kdbx - KeePass>>; tree [Desk store, Passwords, Recycle Bin, KeePassGate, Archive, Empty group]; list [KPG grant 1, KPG grant 2, KPG admission 1, KPG admission 2, KPG revocation 1, KPG profile 1, KPG authority 1, KPG retirement 1, KPG profile 12]; status <<Ready.>>
+17:59:55.339 shot canyes-04-main.png (1086 x 713)
+17:59:55.633 FLOW DONE
+17:59:55.638 == save at the end
+18:00:03.434 case b-cancelsave-yes done in 54 s

@@ -1,0 +1,17 @@
+16:29:05.909 Initialize options=watch=on tree=True list=True
+16:29:06.107 UIStateUpdated#1 treeRebuilt=True listRebuilt=True storeNodes=1 storeItems=9 listItems=9 entries=0 group=KeePassGate(store) storeSelected=True
+16:29:06.111 Store at=UIStateUpdated store=12 groups=2 records=0 modified=0 [KPG grant 1@KeePassGate t=20261101101000 h=0 icon=0; KPG admission 10@Archive t=20261101101900 h=0 icon=0; KPG grant 11@Recycle Bin t=20261101102000 h=0 icon=0; KPG profile 12@KeePassGate t=20261101102100 h=0 icon=0; KPG grant 2@KeePassGate t=20261101101100 h=0 icon=0 exp; KPG admission 1@KeePassGate t=20261101101200 h=0 icon=0; KPG admission 2@KeePassGate t=20261101101300 h=0 icon=0; KPG revocation 1@KeePassGate t=20261101101400 h=0 icon=0; KPG profile 1@KeePassGate t=20261101101500 h=0 icon=0; KPG authority 1@KeePassGate t=20261101101600 h=0 icon=0; KPG retirement 1@KeePassGate t=20261101101700 h=0 icon=0; KPG grant 9@Archive t=20261101101800 h=0 icon=0; ]
+16:29:17.246 DRIVER bin open
+16:29:19.078 DRIVER bin quick search
+16:29:20.164 UIStateUpdated#2 treeRebuilt=False listRebuilt=False storeNodes=1 storeItems=0 listItems=0 entries=0 group=KeePassGate(store) storeSelected=True
+16:29:22.752 DRIVER bin Find All
+16:29:25.325 UIStateUpdated#3 treeRebuilt=False listRebuilt=True storeNodes=1 storeItems=12 listItems=15 entries=1 group=Passwords storeSelected=False
+16:29:25.373 UIStateUpdated#4 treeRebuilt=False listRebuilt=False storeNodes=1 storeItems=12 listItems=15 entries=1 group=Passwords storeSelected=False
+16:29:27.820 DRIVER bin Empty Recycle Bin
+16:29:28.466 UIStateUpdated#5 treeRebuilt=False listRebuilt=True storeNodes=1 storeItems=1 listItems=1 entries=0 group=Recycle Bin storeSelected=False
+16:29:33.405 UIStateUpdated#6 treeRebuilt=True listRebuilt=False storeNodes=0 storeItems=0 listItems=0 entries=0 group=Recycle Bin storeSelected=False
+16:29:33.405 Store at=UIStateUpdated store=0 groups=0 records=14 modified=1 []
+16:29:40.817 DRIVER save at the end
+16:29:40.972 UIStateUpdated#7 treeRebuilt=False listRebuilt=False storeNodes=0 storeItems=0 listItems=0 entries=0 group=Recycle Bin storeSelected=False
+16:29:40.972 Store at=UIStateUpdated store=0 groups=0 records=14 modified=0 []
+16:29:42.586 Terminate uiStateUpdated=7 firstChance=0

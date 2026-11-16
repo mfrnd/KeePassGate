@@ -1,0 +1,29 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- The hiding and locking probe plugin: a plain DLL for the throwaway KeePass copy, never part
+       of the product. KeePass loads a plugin only when the file's ProductName is exactly
+       "KeePass Plugin" and the entry class is named for the file, HideLock.HideLockExt in
+       HideLock.dll. -->
+  <PropertyGroup>
+    <OutputType>Library</OutputType>
+    <TargetFramework>net48</TargetFramework>
+    <LangVersion>7.3</LangVersion>
+    <AssemblyName>HideLock</AssemblyName>
+    <RootNamespace>HideLock</RootNamespace>
+    <Product>KeePass Plugin</Product>
+    <AssemblyTitle>HideLock</AssemblyTitle>
+    <Company>invented</Company>
+    <Version>1.0.0</Version>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Reference Include="KeePass">
+      <HintPath>$(KeePassExe)</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="System.Windows.Forms" />
+    <Reference Include="System.Drawing" />
+    <PackageReference Include="Microsoft.NETFramework.ReferenceAssemblies" Version="1.0.3" PrivateAssets="all" />
+  </ItemGroup>
+
+</Project>

@@ -1,0 +1,111 @@
+17:08:25.741 case explore run 1 place=top switches=watch=on
+17:08:29.927 config: 
+17:08:47.852 started KeePass pid=13820 token: TokenIsElevated=1 ElevationType=2 Integrity=0x3000 AdministratorsEnabled=False
+17:09:10.426 main window: <<db.kdbx - KeePass>>
+17:09:11.165 group rows: Archive, Desk store, Empty group, KeePassGate, Passwords, Recycle Bin
+17:09:13.666 [open] title <<db.kdbx - KeePass>>; tree [Desk store, Passwords, Recycle Bin, KeePassGate, Archive, Empty group]; list [KPG grant 1, KPG grant 2, KPG admission 1, KPG admission 2, KPG revocation 1, KPG profile 1, KPG authority 1, KPG retirement 1, KPG profile 12]; status <<Ready.>>
+17:09:17.667 shot open.png (1086 x 713)
+17:09:21.001 [menu-Group] item <<Add Group...>> enabled=True
+17:09:21.134 [menu-Group] item <<Edit Group...>> enabled=True
+17:09:21.138 [menu-Group] item <<Duplicate Group...>> enabled=True
+17:09:21.142 [menu-Group] item <<Delete Group>> enabled=True
+17:09:21.148 [menu-Group] item <<Empty Recycle Bin>> enabled=True
+17:09:21.152 [menu-Group] item <<Rearrange>> enabled=True
+17:09:21.156 [menu-Group] item <<Data Exchange>> enabled=True
+17:09:21.162 [menu-Group] item <<File>> enabled=True
+17:09:21.173 [menu-Group] item <<Group>> enabled=True
+17:09:21.187 [menu-Group] item <<Entry>> enabled=True
+17:09:21.198 [menu-Group] item <<Find>> enabled=True
+17:09:21.204 [menu-Group] item <<View>> enabled=True
+17:09:21.219 [menu-Group] item <<Tools>> enabled=True
+17:09:21.228 [menu-Group] item <<Help>> enabled=True
+17:09:24.440 [menu-Entry] item <<Copy User Name>> enabled=False
+17:09:24.448 [menu-Entry] item <<Copy Password>> enabled=False
+17:09:24.452 [menu-Entry] item <<URL(s)>> enabled=False
+17:09:24.457 [menu-Entry] item <<Other Data>> enabled=False
+17:09:24.460 [menu-Entry] item <<Attachments>> enabled=False
+17:09:24.466 [menu-Entry] item <<Perform Auto-Type>> enabled=False
+17:09:24.470 [menu-Entry] item <<Edit Entry...>> enabled=False
+17:09:24.474 [menu-Entry] item <<Edit Entry (Quick)>> enabled=False
+17:09:24.478 [menu-Entry] item <<Duplicate Entry...>> enabled=False
+17:09:24.480 [menu-Entry] item <<Delete Entry>> enabled=False
+17:09:24.485 [menu-Entry] item <<Compare>> enabled=False
+17:09:24.490 [menu-Entry] item <<Data Exchange>> enabled=True
+17:09:24.493 [menu-Entry] item <<File>> enabled=True
+17:09:24.506 [menu-Entry] item <<Group>> enabled=True
+17:09:24.514 [menu-Entry] item <<Entry>> enabled=True
+17:09:24.537 [menu-Entry] item <<Find>> enabled=True
+17:09:24.544 [menu-Entry] item <<View>> enabled=True
+17:09:24.555 [menu-Entry] item <<Tools>> enabled=True
+17:09:24.561 [menu-Entry] item <<Help>> enabled=True
+17:09:27.270 [menu-Find] item <<Find...>> enabled=True
+17:09:27.277 [menu-Find] item <<Find in Selected Group...>> enabled=True
+17:09:27.281 [menu-Find] item <<Search Profiles>> enabled=True
+17:09:27.288 [menu-Find] item <<Tag>> enabled=True
+17:09:27.294 [menu-Find] item <<All>> enabled=True
+17:09:27.304 [menu-Find] item <<Selected Entry's Group>> enabled=False
+17:09:27.313 [menu-Find] item <<Expired>> enabled=True
+17:09:27.317 [menu-Find] item <<Expiring In>> enabled=True
+17:09:27.329 [menu-Find] item <<Last Modified Entries...>> enabled=True
+17:09:27.339 [menu-Find] item <<History...>> enabled=True
+17:09:27.344 [menu-Find] item <<Large Entries...>> enabled=True
+17:09:27.349 [menu-Find] item <<Duplicate Passwords...>> enabled=True
+17:09:27.355 [menu-Find] item <<Similar Passwords (Pairs)...>> enabled=True
+17:09:27.363 [menu-Find] item <<Similar Passwords (Clusters)...>> enabled=True
+17:09:27.368 [menu-Find] item <<Password Quality...>> enabled=True
+17:09:27.378 [menu-Find] item <<File>> enabled=True
+17:09:27.385 [menu-Find] item <<Group>> enabled=True
+17:09:27.395 [menu-Find] item <<Entry>> enabled=True
+17:09:27.401 [menu-Find] item <<Find>> enabled=True
+17:09:27.423 [menu-Find] item <<View>> enabled=True
+17:09:27.436 [menu-Find] item <<Tools>> enabled=True
+17:09:27.445 [menu-Find] item <<Help>> enabled=True
+17:09:30.075 [menu-View] item <<Change Language...>> enabled=True
+17:09:30.097 [menu-View] item <<Show Toolbar>> enabled=True
+17:09:30.108 [menu-View] item <<Show Details View>> enabled=True
+17:09:30.113 [menu-View] item <<Window Layout>> enabled=True
+17:09:30.117 [menu-View] item <<Always on Top>> enabled=True
+17:09:30.119 [menu-View] item <<Configure Columns...>> enabled=True
+17:09:30.123 [menu-View] item <<Sort By>> enabled=True
+17:09:30.127 [menu-View] item <<TAN View Options>> enabled=True
+17:09:30.131 [menu-View] item <<Grouping in Entry List>> enabled=True
+17:09:30.133 [menu-View] item <<Show Entries of Subgroups>> enabled=True
+17:09:30.137 [menu-View] item <<File>> enabled=True
+17:09:30.141 [menu-View] item <<Group>> enabled=True
+17:09:30.143 [menu-View] item <<Entry>> enabled=True
+17:09:30.147 [menu-View] item <<Find>> enabled=True
+17:09:30.161 [menu-View] item <<View>> enabled=True
+17:09:30.173 [menu-View] item <<Tools>> enabled=True
+17:09:30.177 [menu-View] item <<Help>> enabled=True
+17:09:32.282 menu: <<Expired>>
+17:09:33.947 [menu-Find-Expired] item <<File>> enabled=True
+17:09:34.009 [menu-Find-Expired] item <<Group>> enabled=True
+17:09:34.033 [menu-Find-Expired] item <<Entry>> enabled=True
+17:09:34.042 [menu-Find-Expired] item <<Find>> enabled=True
+17:09:34.046 [menu-Find-Expired] item <<View>> enabled=True
+17:09:34.048 [menu-Find-Expired] item <<Tools>> enabled=True
+17:09:34.050 [menu-Find-Expired] item <<Help>> enabled=True
+17:09:42.291 [menu-Find-Tag] menu failed: no menu item Show Entries by Tag
+17:09:44.384 menu: <<Grouping in Entry List>>
+17:09:46.100 [menu-View-Grouping] item <<On>> enabled=True
+17:09:46.105 [menu-View-Grouping] item <<Automatic (Recommended)>> enabled=True
+17:09:46.119 [menu-View-Grouping] item <<Off>> enabled=True
+17:09:46.126 [menu-View-Grouping] item <<Change Language...>> enabled=True
+17:09:46.133 [menu-View-Grouping] item <<Show Toolbar>> enabled=True
+17:09:46.139 [menu-View-Grouping] item <<Show Details View>> enabled=True
+17:09:46.146 [menu-View-Grouping] item <<Window Layout>> enabled=True
+17:09:46.152 [menu-View-Grouping] item <<Always on Top>> enabled=True
+17:09:46.156 [menu-View-Grouping] item <<Configure Columns...>> enabled=True
+17:09:46.163 [menu-View-Grouping] item <<Sort By>> enabled=True
+17:09:46.173 [menu-View-Grouping] item <<TAN View Options>> enabled=True
+17:09:46.179 [menu-View-Grouping] item <<Grouping in Entry List>> enabled=True
+17:09:46.194 [menu-View-Grouping] item <<Show Entries of Subgroups>> enabled=True
+17:09:46.200 [menu-View-Grouping] item <<File>> enabled=True
+17:09:46.209 [menu-View-Grouping] item <<Group>> enabled=True
+17:09:46.216 [menu-View-Grouping] item <<Entry>> enabled=True
+17:09:46.222 [menu-View-Grouping] item <<Find>> enabled=True
+17:09:46.229 [menu-View-Grouping] item <<View>> enabled=True
+17:09:46.259 [menu-View-Grouping] item <<Tools>> enabled=True
+17:09:46.263 [menu-View-Grouping] item <<Help>> enabled=True
+17:09:52.835 FLOW FAILED: no entry KPG grant 1 in the list:  at 108
+17:10:01.112 case explore done in 96 s

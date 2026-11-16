@@ -1,0 +1,150 @@
+18:08:17.963 case b-block run 1 place=top switches=defaultaction=cancel,drag=block,keyfilter=on,menus=disable
+18:08:19.001 config: 
+18:08:32.605 started KeePass pid=12904 token: TokenIsElevated=1 ElevationType=2 Integrity=0x3000 AdministratorsEnabled=False
+18:08:33.946 main window: <<db.kdbx - KeePass>>
+18:08:34.239 group rows: Archive, Desk store, Empty group, KeePassGate, Passwords, Recycle Bin
+18:08:35.078 == block menus with S1 selected
+18:08:38.651 [block-00-entry-menu] item <<Copy User Name>> enabled=True
+18:08:38.809 [block-00-entry-menu] item <<Copy Password>> enabled=True
+18:08:38.814 [block-00-entry-menu] item <<URL(s)>> enabled=False
+18:08:38.820 [block-00-entry-menu] item <<Other Data>> enabled=True
+18:08:38.826 [block-00-entry-menu] item <<Attachments>> enabled=False
+18:08:39.013 [block-00-entry-menu] item <<Perform Auto-Type>> enabled=False
+18:08:39.020 [block-00-entry-menu] item <<Edit Entry...>> enabled=False
+18:08:39.024 [block-00-entry-menu] item <<Edit Entry (Quick)>> enabled=False
+18:08:39.030 [block-00-entry-menu] item <<Duplicate Entry...>> enabled=False
+18:08:39.033 [block-00-entry-menu] item <<Delete Entry>> enabled=False
+18:08:39.045 [block-00-entry-menu] item <<Compare>> enabled=True
+18:08:39.050 [block-00-entry-menu] item <<Data Exchange>> enabled=True
+18:08:39.054 [block-00-entry-menu] item <<File>> enabled=True
+18:08:39.072 [block-00-entry-menu] item <<Group>> enabled=True
+18:08:39.081 [block-00-entry-menu] item <<Entry>> enabled=True
+18:08:39.107 [block-00-entry-menu] item <<Find>> enabled=True
+18:08:39.113 [block-00-entry-menu] item <<View>> enabled=True
+18:08:39.120 [block-00-entry-menu] item <<Tools>> enabled=True
+18:08:39.123 [block-00-entry-menu] item <<Help>> enabled=True
+18:08:41.153 menu: <<Edit Entry (Quick)>>
+18:08:42.762 [block-00-quick-menu] item <<Copy User Name>> enabled=True
+18:08:45.653 [block-00-quick-menu] item <<Copy Password>> enabled=True
+18:08:45.655 [block-00-quick-menu] item <<URL(s)>> enabled=False
+18:08:45.661 [block-00-quick-menu] item <<Other Data>> enabled=True
+18:08:45.665 [block-00-quick-menu] item <<Attachments>> enabled=False
+18:08:45.669 [block-00-quick-menu] item <<Perform Auto-Type>> enabled=False
+18:08:45.683 [block-00-quick-menu] item <<Edit Entry...>> enabled=False
+18:08:45.687 [block-00-quick-menu] item <<Edit Entry (Quick)>> enabled=False
+18:08:45.691 [block-00-quick-menu] item <<Duplicate Entry...>> enabled=False
+18:08:45.695 [block-00-quick-menu] item <<Delete Entry>> enabled=False
+18:08:45.698 [block-00-quick-menu] item <<Compare>> enabled=True
+18:08:45.700 [block-00-quick-menu] item <<Data Exchange>> enabled=True
+18:08:45.704 [block-00-quick-menu] item <<File>> enabled=True
+18:08:45.709 [block-00-quick-menu] item <<Group>> enabled=True
+18:08:45.711 [block-00-quick-menu] item <<Entry>> enabled=True
+18:08:45.725 [block-00-quick-menu] item <<Find>> enabled=True
+18:08:45.729 [block-00-quick-menu] item <<View>> enabled=True
+18:08:45.731 [block-00-quick-menu] item <<Tools>> enabled=True
+18:08:45.735 [block-00-quick-menu] item <<Help>> enabled=True
+18:08:49.395 [block-00-ctx] item <<Copy User Name>> enabled=True
+18:08:49.399 [block-00-ctx] item <<Copy Password>> enabled=True
+18:08:49.404 [block-00-ctx] item <<URL(s)>> enabled=False
+18:08:49.408 [block-00-ctx] item <<Other Data>> enabled=True
+18:08:49.410 [block-00-ctx] item <<Attachments>> enabled=False
+18:08:49.412 [block-00-ctx] item <<Perform Auto-Type>> enabled=False
+18:08:49.416 [block-00-ctx] item <<Perform Auto-Type>> enabled=False
+18:08:49.419 [block-00-ctx] item <<Add Entry...>> enabled=False
+18:08:49.426 [block-00-ctx] item <<Edit Entry...>> enabled=False
+18:08:49.430 [block-00-ctx] item <<Edit Entry (Quick)>> enabled=False
+18:08:49.437 [block-00-ctx] item <<Delete Entry>> enabled=False
+18:08:49.442 [block-00-ctx] item <<Select All>> enabled=True
+18:08:49.446 [block-00-ctx] item <<Rearrange>> enabled=False
+18:08:49.449 [block-00-ctx] item <<More Commands>> enabled=True
+18:08:49.452 [block-00-ctx] item <<File>> enabled=True
+18:08:49.455 [block-00-ctx] item <<Group>> enabled=True
+18:08:49.460 [block-00-ctx] item <<Entry>> enabled=True
+18:08:49.469 [block-00-ctx] item <<Find>> enabled=True
+18:08:49.477 [block-00-ctx] item <<View>> enabled=True
+18:08:49.481 [block-00-ctx] item <<Tools>> enabled=True
+18:08:49.486 [block-00-ctx] item <<Help>> enabled=True
+18:08:52.399 [block-00-group-menu] item <<Add Group...>> enabled=False
+18:08:52.402 [block-00-group-menu] item <<Edit Group...>> enabled=False
+18:08:52.403 [block-00-group-menu] item <<Duplicate Group...>> enabled=False
+18:08:52.408 [block-00-group-menu] item <<Delete Group>> enabled=False
+18:08:52.410 [block-00-group-menu] item <<Empty Recycle Bin>> enabled=True
+18:08:52.414 [block-00-group-menu] item <<Rearrange>> enabled=False
+18:08:52.418 [block-00-group-menu] item <<Data Exchange>> enabled=True
+18:08:52.420 [block-00-group-menu] item <<File>> enabled=True
+18:08:52.424 [block-00-group-menu] item <<Group>> enabled=True
+18:08:52.432 [block-00-group-menu] item <<Entry>> enabled=True
+18:08:52.435 [block-00-group-menu] item <<Find>> enabled=True
+18:08:52.437 [block-00-group-menu] item <<View>> enabled=True
+18:08:52.439 [block-00-group-menu] item <<Tools>> enabled=True
+18:08:52.441 [block-00-group-menu] item <<Help>> enabled=True
+18:08:53.201 == block S3 Delete key
+18:09:00.361 [block-01-del] windows: 
+18:09:00.363 == block S4 Shift+Delete
+18:09:07.271 [block-02-shiftdel] windows: 
+18:09:07.833 == block S5 dragged onto Passwords
+18:09:14.800 dragged KPG revocation 1 from 355,211.5 onto Passwords at 131,129
+18:09:17.920 [block-03-drag] windows: 
+18:09:17.924 == block S6 Alt+Down
+18:09:18.224 group KeePassGate from the places kept
+18:09:20.634 == block S7 Ctrl+D
+18:09:20.950 group KeePassGate from the places kept
+18:09:26.936 [block-05-dup] windows: 
+18:09:26.938 == block S7 Entry menu Duplicate Entry
+18:09:27.219 group KeePassGate from the places kept
+18:09:30.189 menu: <<Duplicate Entry...>>
+18:09:36.191 [block-05m-dup] windows: 
+18:09:36.194 == block S8 quick edit: Expires Now
+18:09:36.451 group KeePassGate from the places kept
+18:09:39.257 menu: <<Edit Entry (Quick)>>
+18:09:45.097 STEP FAILED [block S8 quick edit: Expires Now]: no menu item Expires: Now at 318
+18:09:45.099 == block S8 quick edit: color
+18:09:45.360 group KeePassGate from the places kept
+18:09:48.086 menu: <<Edit Entry (Quick)>>
+18:09:54.157 STEP FAILED [block S8 quick edit: color]: no menu item Color at 318
+18:09:54.159 == block S12 copy, paste into KeePassGate
+18:09:54.455 group KeePassGate from the places kept
+18:09:56.871 group KeePassGate from the places kept
+18:10:00.061 [block-07-paste] windows: 
+18:10:00.065 == block S1 edited in its dialog
+18:10:00.385 group KeePassGate from the places kept
+18:10:07.388 [block-08-edit] windows: 
+18:10:07.533 [block-08-edit] no dialog stands
+18:10:07.535 == block S2 Move to Group Passwords
+18:10:07.758 group KeePassGate from the places kept
+18:10:15.289 STEP FAILED [block S2 Move to Group Passwords]: no menu item Move to Group at 318
+18:10:15.291 == block Add Entry by Ctrl+I in KeePassGate
+18:10:15.508 group KeePassGate from the places kept
+18:10:20.779 [block-12-add] windows: 
+18:10:20.879 [block-12-add] no dialog stands
+18:10:20.886 == block Recycle Bin: Empty
+18:10:21.080 group Recycle Bin from the places kept
+18:10:22.950 menu: <<Empty Recycle Bin>>
+18:10:24.708 [block-13-empty-1] WINDOW title=<<KeePass>> class=#32770
+18:10:24.780 [block-13-empty-1]   Image name=<<MainInstructionIcon>>
+18:10:24.788 [block-13-empty-1]   Text name=<<Are you sure you want to permanently delete the items?>>
+18:10:24.790 [block-13-empty-1]   Text name=<<- KPG grant 11>>
+18:10:24.794 [block-13-empty-1]   Pane name=<<Delete>>
+18:10:24.798 [block-13-empty-1]   Pane name=<<Cancel>>
+18:10:24.827 [block-13-empty-1]   win32 Button <<&Delete>>
+18:10:24.829 [block-13-empty-1]   win32 Button <<Cancel>>
+18:10:25.544 shot block-13-empty-1.png (362 x 165)
+18:10:25.690 [block-13-empty-1] pressed <<&Delete (clicked)>>
+18:10:31.654 [block-13-empty] windows: KeePass
+18:10:31.657 == block KeePassGate: Ctrl+A, Delete
+18:10:31.894 group KeePassGate from the places kept
+18:10:38.364 [block-14-all-del] windows: 
+18:10:38.367 == block KeePassGate: Move Group One Down (Alt+Down on the tree), then Delete on it
+18:10:38.555 group KeePassGate from the places kept
+18:10:40.044 == block group Delete key
+18:10:44.600 [block-15-group-del] windows: 
+18:10:44.602 == block root: Sort Direct Subgroups
+18:10:44.785 group Desk store from the places kept
+18:10:46.529 menu: <<Rearrange>>
+18:10:47.589 menu: <<Sort Direct Subgroups>>
+18:10:49.228 == block end
+18:10:49.521 [block-16-end] title <<db.kdbx* - KeePass>>; tree []; list []; status <<Ready.>>
+18:10:49.938 shot block-16-end.png (1086 x 713)
+18:10:50.037 FLOW DONE
+18:10:50.041 == save at the end
+18:10:57.817 case b-block done in 160 s

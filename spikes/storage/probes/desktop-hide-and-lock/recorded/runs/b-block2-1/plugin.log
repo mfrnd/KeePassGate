@@ -1,0 +1,81 @@
+17:12:24.253 Initialize options=guardbin=on,drag=block,menus=disable,dragsel=on tree=True list=True
+17:12:33.728 UIStateUpdated#1 treeRebuilt=True listRebuilt=True storeNodes=1 storeItems=9 listItems=9 entries=0 group=KeePassGate(store) storeSelected=True
+17:12:33.734 Menus at=UIStateUpdated entries=0 group=KeePassGate(store) foundEnabled=12 changed=12
+17:12:33.736 Store at=UIStateUpdated store=12 groups=2 records=0 modified=0 [KPG grant 1@KeePassGate t=20261101101000 h=0 icon=0; KPG admission 10@Archive t=20261101101900 h=0 icon=0; KPG grant 11@Recycle Bin t=20261101102000 h=0 icon=0; KPG profile 12@KeePassGate t=20261101102100 h=0 icon=0; KPG grant 2@KeePassGate t=20261101101100 h=0 icon=0 exp; KPG admission 1@KeePassGate t=20261101101200 h=0 icon=0; KPG admission 2@KeePassGate t=20261101101300 h=0 icon=0; KPG revocation 1@KeePassGate t=20261101101400 h=0 icon=0; KPG profile 1@KeePassGate t=20261101101500 h=0 icon=0; KPG authority 1@KeePassGate t=20261101101600 h=0 icon=0; KPG retirement 1@KeePassGate t=20261101101700 h=0 icon=0; KPG grant 9@Archive t=20261101101800 h=0 icon=0; ]
+17:12:35.394 DRIVER block2 S5 dragged onto Passwords
+17:12:36.029 UIStateUpdated#2 treeRebuilt=False listRebuilt=True storeNodes=1 storeItems=9 listItems=9 entries=0 group=KeePassGate(store) storeSelected=True
+17:12:36.029 Menus at=UIStateUpdated entries=0 group=KeePassGate(store) foundEnabled=11 changed=11
+17:12:37.068 UIStateUpdated#3 treeRebuilt=False listRebuilt=False storeNodes=1 storeItems=9 listItems=9 entries=1(store) group=KeePassGate(store) storeSelected=True
+17:12:37.070 Menus at=UIStateUpdated entries=1(store) group=KeePassGate(store) foundEnabled=30 changed=30
+17:12:37.091 Menus at=UIStateUpdated entries=1(store) group=KeePassGate(store) foundEnabled=29 changed=29
+17:12:38.275 DragBlocked tree effect was Move; store entries selected while dragging formats=System.String,UnicodeText,Text
+17:12:38.303 DragBlocked tree effect was Move; store entries selected while dragging formats=System.String,UnicodeText,Text
+17:12:38.320 DragBlocked tree effect was Move; store entries selected while dragging formats=System.String,UnicodeText,Text
+17:12:38.335 DragBlocked tree effect was Move; store entries selected while dragging formats=System.String,UnicodeText,Text
+17:12:38.355 DragBlocked tree effect was Move; onto the store group formats=System.String,UnicodeText,Text
+17:12:38.369 DragBlocked tree effect was Move; onto the store group formats=System.String,UnicodeText,Text
+17:12:38.385 DragBlocked tree effect was Move; onto the store group formats=System.String,UnicodeText,Text
+17:12:38.399 DragBlocked tree effect was Move; onto the store group formats=System.String,UnicodeText,Text
+17:12:38.415 DragBlocked tree effect was Move; onto the store group formats=System.String,UnicodeText,Text
+17:12:38.448 DragBlocked tree effect was Move; onto the store group formats=System.String,UnicodeText,Text
+17:12:38.462 DragBlocked tree effect was Move; onto the store group formats=System.String,UnicodeText,Text
+17:12:38.480 DragBlocked tree effect was Move; onto the store group formats=System.String,UnicodeText,Text
+17:12:38.494 DragBlocked tree effect was Move; onto the store group formats=System.String,UnicodeText,Text
+17:12:38.510 DragBlocked tree effect was Move; onto the store group formats=System.String,UnicodeText,Text
+17:12:38.542 DragBlocked tree effect was Move; onto the store group formats=System.String,UnicodeText,Text
+17:12:38.572 DragBlocked tree effect was Move; onto the store group formats=System.String,UnicodeText,Text
+17:12:38.636 DragBlocked tree effect was Move; onto the store group formats=System.String,UnicodeText,Text
+17:12:38.640 DragBlocked tree effect was Move; onto the store group formats=System.String,UnicodeText,Text
+17:12:38.653 DragBlocked tree effect was Move; onto the store group formats=System.String,UnicodeText,Text
+17:12:38.670 DragBlocked tree effect was Move; onto the store group formats=System.String,UnicodeText,Text
+17:12:38.684 DragBlocked tree effect was Move; onto the store group formats=System.String,UnicodeText,Text
+17:12:38.699 DragBlocked tree effect was Move; onto the store group formats=System.String,UnicodeText,Text
+17:12:38.717 DragBlocked tree effect was Move; onto the store group formats=System.String,UnicodeText,Text
+17:12:38.749 DragBlocked tree effect was Move; onto the store group formats=System.String,UnicodeText,Text
+17:12:38.763 DragBlocked tree effect was Move; onto the store group formats=System.String,UnicodeText,Text
+17:12:38.781 DragBlocked tree effect was Move; onto the store group formats=System.String,UnicodeText,Text
+17:12:38.795 DragBlocked tree effect was Move; onto the store group formats=System.String,UnicodeText,Text
+17:12:38.811 DragBlocked tree effect was Move; onto the store group formats=System.String,UnicodeText,Text
+17:12:38.845 DragBlocked tree effect was Move; onto the store group formats=System.String,UnicodeText,Text
+17:12:38.861 DragBlocked tree effect was Move; onto the store group formats=System.String,UnicodeText,Text
+17:12:38.875 DragBlocked tree effect was Move; onto the store group formats=System.String,UnicodeText,Text
+17:12:38.891 DragBlocked tree effect was Move; onto the store group formats=System.String,UnicodeText,Text
+17:12:38.907 DragBlocked tree effect was Move; onto the store group formats=System.String,UnicodeText,Text
+17:12:38.970 DragBlocked tree effect was Move; onto the store group formats=System.String,UnicodeText,Text
+17:12:38.972 DragBlocked tree effect was Move; onto the store group formats=System.String,UnicodeText,Text
+17:12:38.988 DragBlocked tree effect was Move; onto the store group formats=System.String,UnicodeText,Text
+17:12:39.006 DragBlocked tree effect was Move; store entries selected while dragging formats=System.String,UnicodeText,Text
+17:12:39.020 DragBlocked tree effect was Move; store entries selected while dragging formats=System.String,UnicodeText,Text
+17:12:39.050 DragBlocked tree effect was Move; store entries selected while dragging formats=System.String,UnicodeText,Text
+17:12:39.097 DragBlocked tree effect was Move; store entries selected while dragging formats=System.String,UnicodeText,Text
+17:12:39.113 DragBlocked tree effect was Move; store entries selected while dragging formats=System.String,UnicodeText,Text
+17:12:39.146 DragBlocked tree effect was Move; store entries selected while dragging formats=System.String,UnicodeText,Text
+17:12:39.193 DragBlocked tree effect was Move; store entries selected while dragging formats=System.String,UnicodeText,Text
+17:12:39.209 DragBlocked tree effect was Move; store entries selected while dragging formats=System.String,UnicodeText,Text
+17:12:39.225 DragBlocked tree effect was Move; store entries selected while dragging formats=System.String,UnicodeText,Text
+17:12:39.241 DragBlocked tree effect was Move; store entries selected while dragging formats=System.String,UnicodeText,Text
+17:12:39.257 DragBlocked tree effect was Move; store entries selected while dragging formats=System.String,UnicodeText,Text
+17:12:39.275 DragBlocked tree effect was Move; store entries selected while dragging formats=System.String,UnicodeText,Text
+17:12:39.289 DragBlocked tree effect was Move; store entries selected while dragging formats=System.String,UnicodeText,Text
+17:12:39.337 DragBlocked tree effect was Move; store entries selected while dragging formats=System.String,UnicodeText,Text
+17:12:39.386 DragBlocked tree effect was Move; store entries selected while dragging formats=System.String,UnicodeText,Text
+17:12:39.448 DragBlocked tree effect was Move; store entries selected while dragging formats=System.String,UnicodeText,Text
+17:12:39.450 DragBlocked tree effect was Move; store entries selected while dragging formats=System.String,UnicodeText,Text
+17:12:39.512 DragBlocked tree effect was Move; store entries selected while dragging formats=System.String,UnicodeText,Text
+17:12:39.575 DragBlocked tree effect was Move; store entries selected while dragging formats=System.String,UnicodeText,Text
+17:12:39.639 DragBlocked tree effect was Move; store entries selected while dragging formats=System.String,UnicodeText,Text
+17:12:39.703 DragBlocked tree effect was Move; store entries selected while dragging formats=System.String,UnicodeText,Text
+17:12:39.767 DragBlocked tree effect was Move; store entries selected while dragging formats=System.String,UnicodeText,Text
+17:12:39.830 DragBlocked tree effect was Move; store entries selected while dragging formats=System.String,UnicodeText,Text
+17:12:39.893 DragBlocked tree effect was Move; store entries selected while dragging formats=System.String,UnicodeText,Text
+17:12:39.956 DragBlocked tree effect was Move; store entries selected while dragging formats=System.String,UnicodeText,Text
+17:12:40.019 DragBlocked tree effect was Move; store entries selected while dragging formats=System.String,UnicodeText,Text
+17:12:40.081 Menus at=UIStateUpdated entries=1(store) group=KeePassGate(store) foundEnabled=29 changed=29
+17:12:42.230 DRIVER block2 Recycle Bin: Group menu
+17:12:42.613 UIStateUpdated#6 treeRebuilt=False listRebuilt=True storeNodes=1 storeItems=1 listItems=1 entries=0 group=Recycle Bin storeSelected=False
+17:12:43.344 Menus at=DropDownOpening m_menuGroup entries=0 group=Recycle Bin foundEnabled=1 changed=1
+17:12:45.899 DRIVER block2 Recycle Bin: Empty
+17:12:47.255 Menus at=DropDownOpening m_menuGroup entries=0 group=Recycle Bin foundEnabled=1 changed=1
+17:12:54.448 DRIVER block2 end
+17:12:55.494 DRIVER save at the end
+17:12:57.309 Terminate uiStateUpdated=7 firstChance=0

@@ -1,0 +1,55 @@
+16:44:51.600 Initialize options=dialogs=readonly tree=True list=True
+16:44:51.833 UIStateUpdated#1 treeRebuilt=True listRebuilt=True storeNodes=1 storeItems=9 listItems=9 entries=0 group=KeePassGate(store) storeSelected=True
+16:44:51.837 Store at=UIStateUpdated store=12 groups=2 records=0 modified=0 [KPG grant 1@KeePassGate t=20261101101000 h=0 icon=0; KPG admission 10@Archive t=20261101101900 h=0 icon=0; KPG grant 11@Recycle Bin t=20261101102000 h=0 icon=0; KPG profile 12@KeePassGate t=20261101102100 h=0 icon=0; KPG grant 2@KeePassGate t=20261101101100 h=0 icon=0 exp; KPG admission 1@KeePassGate t=20261101101200 h=0 icon=0; KPG admission 2@KeePassGate t=20261101101300 h=0 icon=0; KPG revocation 1@KeePassGate t=20261101101400 h=0 icon=0; KPG profile 1@KeePassGate t=20261101101500 h=0 icon=0; KPG authority 1@KeePassGate t=20261101101600 h=0 icon=0; KPG retirement 1@KeePassGate t=20261101101700 h=0 icon=0; KPG grant 9@Archive t=20261101101800 h=0 icon=0; ]
+16:45:02.057 DRIVER ro entry dialog by double click
+16:45:02.318 UIStateUpdated#2 treeRebuilt=False listRebuilt=True storeNodes=1 storeItems=9 listItems=9 entries=0 group=KeePassGate(store) storeSelected=True
+16:45:03.087 UIStateUpdated#3 treeRebuilt=False listRebuilt=False storeNodes=1 storeItems=9 listItems=9 entries=1(store) group=KeePassGate(store) storeSelected=True
+16:45:03.989 WindowAdded PwEntryForm <<<DYN>>> mode=EditExistingEntry entries=1 first=KPG grant 1 multi=False parent=KeePassGate selectedGroup=KeePassGate store=True action=readonly
+16:45:03.989 ReadOnly m_pwEditMode set from EditExistingEntry
+16:45:29.813 DRIVER ro type into the title, then Enter
+16:45:33.490 WindowRemoved PwEntryForm <<View Entry (Read-Only)>> result=Cancel
+16:45:37.280 DRIVER ro entry dialog by Enter
+16:45:37.670 UIStateUpdated#7 treeRebuilt=False listRebuilt=True storeNodes=1 storeItems=9 listItems=9 entries=0 group=KeePassGate(store) storeSelected=True
+16:45:38.705 UIStateUpdated#8 treeRebuilt=False listRebuilt=False storeNodes=1 storeItems=9 listItems=9 entries=1(store) group=KeePassGate(store) storeSelected=True
+16:45:39.440 WindowAdded PwEntryForm <<<DYN>>> mode=EditExistingEntry entries=1 first=KPG admission 1 multi=False parent=KeePassGate selectedGroup=KeePassGate store=True action=readonly
+16:45:39.440 ReadOnly m_pwEditMode set from EditExistingEntry
+16:45:46.072 WindowRemoved PwEntryForm <<View Entry (Read-Only)>> result=Cancel
+16:45:49.388 DRIVER ro several entries, Enter
+16:45:49.750 UIStateUpdated#11 treeRebuilt=False listRebuilt=True storeNodes=1 storeItems=9 listItems=9 entries=0 group=KeePassGate(store) storeSelected=True
+16:45:50.635 UIStateUpdated#12 treeRebuilt=False listRebuilt=False storeNodes=1 storeItems=9 listItems=9 entries=1(store) group=KeePassGate(store) storeSelected=True
+16:45:51.071 UIStateUpdated#14 treeRebuilt=False listRebuilt=False storeNodes=1 storeItems=9 listItems=9 entries=9(store) group=KeePassGate(store) storeSelected=True
+16:45:51.691 WindowAdded PwEntryForm <<<DYN>>> mode=EditExistingEntry entries=9 first=KPG grant 1 multi=True parent=Desk store selectedGroup=KeePassGate store=True action=readonly
+16:45:51.691 ReadOnly m_pwEditMode set from EditExistingEntry
+16:45:58.242 WindowRemoved PwEntryForm <<View Entry (Read-Only)>> result=Cancel
+16:46:01.261 DRIVER ro Add Entry in KeePassGate (Ctrl+I)
+16:46:01.689 UIStateUpdated#16 treeRebuilt=False listRebuilt=True storeNodes=1 storeItems=9 listItems=9 entries=0 group=KeePassGate(store) storeSelected=True
+16:46:02.307 WindowAdded PwEntryForm <<<DYN>>> mode=AddNewEntry entries=1 first= multi=False parent=KeePassGate selectedGroup=KeePassGate store=True action=readonly
+16:46:02.307 ReadOnly m_pwEditMode set from AddNewEntry
+16:46:09.161 WindowRemoved PwEntryForm <<View Entry (Read-Only)>> result=Cancel
+16:46:09.193 UIStateUpdated#17 treeRebuilt=False listRebuilt=False storeNodes=1 storeItems=9 listItems=9 entries=0 group=KeePassGate(store) storeSelected=True
+16:46:12.139 DRIVER ro Duplicate Entry (Ctrl+D)
+16:46:12.484 UIStateUpdated#18 treeRebuilt=False listRebuilt=True storeNodes=1 storeItems=9 listItems=9 entries=0 group=KeePassGate(store) storeSelected=True
+16:46:13.343 UIStateUpdated#19 treeRebuilt=False listRebuilt=False storeNodes=1 storeItems=9 listItems=9 entries=1(store) group=KeePassGate(store) storeSelected=True
+16:46:13.865 WindowAdded DuplicationForm <<Duplication Options>> entries=1(store) group=KeePassGate(store) store=True action=readonly
+16:46:13.869 LockAll DuplicationForm controls=4
+16:46:20.263 WindowRemoved DuplicationForm <<Duplication Options>> result=Cancel
+16:46:23.303 DRIVER ro group dialog (F2 on the tree)
+16:46:23.617 UIStateUpdated#21 treeRebuilt=False listRebuilt=True storeNodes=1 storeItems=9 listItems=9 entries=0 group=KeePassGate(store) storeSelected=True
+16:46:24.212 WindowAdded GroupForm <<<DYN>>> m_pwGroup=KeePassGate selectedGroup=KeePassGate store=True action=readonly
+16:46:24.221 LockAll GroupForm controls=17
+16:46:30.761 WindowRemoved GroupForm <<Edit Group>> result=Cancel
+16:46:30.781 UIStateUpdated#22 treeRebuilt=False listRebuilt=False storeNodes=1 storeItems=9 listItems=9 entries=0 group=KeePassGate(store) storeSelected=True
+16:46:33.760 DRIVER ro group dialog of Archive
+16:46:34.173 UIStateUpdated#23 treeRebuilt=False listRebuilt=True storeNodes=1 storeItems=2 listItems=2 entries=0 group=Archive(store) storeSelected=True
+16:46:34.827 WindowAdded GroupForm <<<DYN>>> m_pwGroup=Archive selectedGroup=Archive store=True action=readonly
+16:46:34.829 LockAll GroupForm controls=17
+16:46:42.078 WindowRemoved GroupForm <<Edit Group>> result=Cancel
+16:46:42.103 UIStateUpdated#24 treeRebuilt=False listRebuilt=False storeNodes=1 storeItems=2 listItems=2 entries=0 group=Archive(store) storeSelected=True
+16:46:45.426 DRIVER ro a user's entry
+16:46:45.818 UIStateUpdated#25 treeRebuilt=False listRebuilt=True storeNodes=1 storeItems=0 listItems=3 entries=0 group=Passwords storeSelected=False
+16:46:46.733 UIStateUpdated#26 treeRebuilt=False listRebuilt=False storeNodes=1 storeItems=0 listItems=3 entries=1 group=Passwords storeSelected=False
+16:46:47.630 WindowAdded PwEntryForm <<<DYN>>> mode=EditExistingEntry entries=1 first=Bank multi=False parent=Passwords selectedGroup=Passwords store=False action=none
+16:46:54.476 WindowRemoved PwEntryForm <<Edit Entry>> result=Cancel
+16:46:57.712 DRIVER ro end
+16:46:58.216 DRIVER save at the end
+16:46:59.925 Terminate uiStateUpdated=30 firstChance=0

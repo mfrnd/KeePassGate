@@ -1,0 +1,89 @@
+17:32:23.555 case b-close run 1 place=top switches=dialogs=close
+17:32:25.979 config: 
+17:32:39.657 started KeePass pid=14840 token: TokenIsElevated=1 ElevationType=2 Integrity=0x3000 AdministratorsEnabled=False
+17:32:45.766 main window: <<db.kdbx - KeePass>>
+17:32:46.048 group rows: Archive, Desk store, Empty group, KeePassGate, Passwords, Recycle Bin
+17:32:46.873 == close entry dialog by double click
+17:32:53.537 [close-01-dblclick] no dialog stands
+17:32:53.542 == close type into the title, then Enter
+17:32:53.865 [close-02-main] title <<db.kdbx - KeePass>>; tree [Desk store, Passwords, Recycle Bin, KeePassGate, Archive, Empty group]; list [KPG grant 1, KPG grant 2, KPG admission 1, KPG admission 2, KPG revocation 1, KPG profile 1, KPG authority 1, KPG retirement 1, KPG profile 12]; status <<Ready.>>
+17:32:54.978 == close entry dialog by Enter
+17:33:01.771 [close-03-enter] no dialog stands
+17:33:01.777 == close several entries, Enter
+17:33:26.755 [close-04-multi] no dialog stands
+17:33:26.760 == close Add Entry in KeePassGate (Ctrl+I)
+17:33:34.811 [close-05-add] no dialog stands
+17:33:41.321 == close Duplicate Entry (Ctrl+D)
+17:33:52.506 [close-06-dup] no dialog stands
+17:33:52.508 == close group dialog (F2 on the tree)
+17:34:00.952 [close-07-group] no dialog stands
+17:34:00.956 == close group dialog of Archive
+17:34:09.379 [close-08-subgroup] no dialog stands
+17:34:09.383 == close a user's entry
+17:34:20.936 STEP FAILED [close a user's entry]: no entry Bank in the list: KPG grant 1, KPG grant 2, KPG admission 1, KPG admission 2, KPG revocation 1, KPG profile 1, KPG authority 1, KPG retirement 1, KPG profile 12 at 108
+17:34:20.940 == close end
+17:34:23.310 [close-10-end] title <<db.kdbx - KeePass>>; tree [Desk store, Passwords, Recycle Bin, KeePassGate, Archive, Empty group]; list [KPG grant 1, KPG grant 2, KPG admission 1, KPG admission 2, KPG revocation 1, KPG profile 1, KPG authority 1, KPG retirement 1, KPG profile 12]; status <<Ready.>>
+17:34:23.708 [close-10-end-other1] WINDOW title=<<Edit Entries (9)>> class=WindowsForms10.Window.8.app.0.2bf8098_r6_ad1
+17:34:23.952 [close-10-end-other1]   Window name=<<KeePass>>
+17:34:23.958 [close-10-end-other1]   Image name=<<MainInstructionIcon>>
+17:34:23.962 [close-10-end-other1]   Text name=<<Do you want to save the changes before closing?>>
+17:34:23.966 [close-10-end-other1]   Pane name=<<Yes>>
+17:34:23.974 [close-10-end-other1]   Pane name=<<No>>
+17:34:23.978 [close-10-end-other1]   Pane name=<<Cancel>>
+17:34:23.984 [close-10-end-other1]   Pane name=<<General>> disabled
+17:34:23.990 [close-10-end-other1]   Text name=<<Title:>> disabled
+17:34:23.996 [close-10-end-other1]   Document name=<<Title:>> text=<<(Multiple values)>>
+17:34:23.998 [close-10-end-other1]   Pane name=<<Expires:>> disabled
+17:34:24.002 [close-10-end-other1]   Text name=<<? ch.>> disabled
+17:34:24.011 [close-10-end-other1]   Text name=<<Icon:>> disabled
+17:34:24.015 [close-10-end-other1]   Pane name=<<●●●●●●●●●●●●●●●●●>> disabled
+17:34:24.019 [close-10-end-other1]   Pane name=<<●●●●●●●●●●●●●●●●●>> disabled
+17:34:24.027 [close-10-end-other1]   Text name=<<Notes:>> disabled
+17:34:24.031 [close-10-end-other1]   Pane name=<<16.11.2026 00:00:00>> disabled
+17:34:24.035 [close-10-end-other1]   Pane name=<<(Multiple values)>> disabled
+17:34:24.041 [close-10-end-other1]   Text name=<<URL:>> disabled
+17:34:24.047 [close-10-end-other1]   Text name=<<Quality:>> disabled
+17:34:24.053 [close-10-end-other1]   Text name=<<Password:>> disabled
+17:34:24.057 [close-10-end-other1]   Text name=<<Repeat:>> disabled
+17:34:24.063 [close-10-end-other1]   Text name=<<User name:>> disabled
+17:34:24.065 [close-10-end-other1]   Pane name=<<(Multiple values)>> disabled
+17:34:24.071 [close-10-end-other1]   Text name=<<UUID:>> disabled
+17:34:24.075 [close-10-end-other1]   Pane name=<<Tools>> disabled
+17:34:24.079 [close-10-end-other1]   Pane name=<<Cancel>> disabled
+17:34:24.082 [close-10-end-other1]   Pane name=<<OK>> disabled
+17:34:24.105 [close-10-end-other1]   win32 Window.8 <<General>>
+17:34:24.107 [close-10-end-other1]   win32 STATIC <<&Title:>>
+17:34:24.108 [close-10-end-other1]   win32 RICHEDIT50W <<(Multiple values)>>
+17:34:24.113 [close-10-end-other1]   win32 BUTTON <<&Expires:>>
+17:34:24.113 [close-10-end-other1]   win32 STATIC <<? ch.>> disabled
+17:34:24.115 [close-10-end-other1]   win32 STATIC <<&Icon:>>
+17:34:24.116 [close-10-end-other1]   win32 EDIT <<●●●●●●●●●●●●●●●●●>>
+17:34:24.118 [close-10-end-other1]   win32 EDIT <<●●●●●●●●●●●●●●●●●>>
+17:34:24.120 [close-10-end-other1]   win32 STATIC <<&Notes:>>
+17:34:24.123 [close-10-end-other1]   win32 SysDateTimePick32 <<16.11.2026 00:00:00>>
+17:34:24.124 [close-10-end-other1]   win32 EDIT <<(Multiple values)>>
+17:34:24.126 [close-10-end-other1]   win32 STATIC <<UR&L:>>
+17:34:24.128 [close-10-end-other1]   win32 STATIC <<Quality:>> disabled
+17:34:24.130 [close-10-end-other1]   win32 STATIC <<&Password:>>
+17:34:24.132 [close-10-end-other1]   win32 STATIC <<&Repeat:>>
+17:34:24.134 [close-10-end-other1]   win32 STATIC <<&User name:>>
+17:34:24.134 [close-10-end-other1]   win32 EDIT <<(Multiple values)>>
+17:34:24.136 [close-10-end-other1]   win32 BUTTON <<T&ools>>
+17:34:24.138 [close-10-end-other1]   win32 BUTTON <<Cancel>>
+17:34:24.140 [close-10-end-other1]   win32 BUTTON <<OK>>
+17:34:24.707 shot close-10-end-other1.png (491 x 513)
+17:34:24.710 [close-10-end-other2] WINDOW title=<<KeePass>> class=#32770
+17:34:24.782 [close-10-end-other2]   Image name=<<MainInstructionIcon>>
+17:34:24.788 [close-10-end-other2]   Text name=<<Do you want to save the changes before closing?>>
+17:34:24.794 [close-10-end-other2]   Pane name=<<Yes>>
+17:34:24.798 [close-10-end-other2]   Pane name=<<No>>
+17:34:24.804 [close-10-end-other2]   Pane name=<<Cancel>>
+17:34:24.815 [close-10-end-other2]   win32 Button <<&Yes>>
+17:34:24.817 [close-10-end-other2]   win32 Button <<&No>>
+17:34:24.819 [close-10-end-other2]   win32 Button <<Cancel>>
+17:34:25.382 shot close-10-end-other2.png (362 x 120)
+17:34:25.386 FLOW DONE
+17:34:25.388 == save at the end
+17:34:50.952 KeePass did not exit; stopped
+17:34:50.960 stopping KeePass pid=14840
+17:34:51.151 case b-close done in 148 s

@@ -1,0 +1,418 @@
+17:12:00.840 case a-base run 1 place=top switches=watch=on
+17:12:01.930 config: 
+17:12:13.080 started KeePass pid=2764 token: TokenIsElevated=1 ElevationType=2 Integrity=0x3000 AdministratorsEnabled=False
+17:12:13.385 main window: <<db.kdbx - KeePass>>
+17:12:13.779 group rows: Archive, Desk store, Empty group, KeePassGate, Passwords, Recycle Bin
+17:12:14.616 == base open
+17:12:15.033 [base-01-open] title <<db.kdbx - KeePass>>; tree [Desk store, Passwords, Recycle Bin, KeePassGate, Archive, Empty group]; list [KPG grant 1, KPG grant 2, KPG admission 1, KPG admission 2, KPG revocation 1, KPG profile 1, KPG authority 1, KPG retirement 1, KPG profile 12]; status <<Ready.>>
+17:12:15.650 shot base-01-open.png (1086 x 713)
+17:12:16.155 == base Passwords
+17:12:17.910 [base-02-passwords] title <<db.kdbx - KeePass>>; tree [Desk store, Passwords, Recycle Bin, KeePassGate, Archive, Empty group]; list [Mail account, Bank, Linked]; status <<Ready.>>
+17:12:18.108 == base quick search zqxstore
+17:12:24.060 [base-03-quick-zqxstore] title <<db.kdbx - KeePass>>; tree []; list [Mail account, Bank, Linked]; status <<Ready.>>
+17:12:24.636 shot base-03-quick-zqxstore.png (1086 x 713)
+17:12:24.837 == base quick search KPG
+17:12:27.481 [base-04-quick-KPG] title <<db.kdbx - KeePass>>; tree []; list [Mail account]; status <<1 entry found, 2 groups skipped ('Recycle Bin', 'KeePassGate').>>
+17:12:27.630 == base Find All
+17:12:29.533 menu: <<All>>
+17:12:31.523 [base-05-find-all] title <<db.kdbx - KeePass>>; tree []; list [Mail account, Bank, Linked, KPG grant 11, KPG grant 1, KPG grant 2, KPG admission 1, KPG admission 2, KPG revocation 1, KPG profile 1, KPG authority 1, KPG retirement 1, KPG profile 12, KPG grant 9, KPG admission 10]; status <<15 entries found.>>
+17:12:32.100 shot base-05-find-all.png (1086 x 713)
+17:12:32.268 == base Find Expired
+17:12:33.879 menu: <<Expired>>
+17:12:35.852 [base-06-expired] title <<db.kdbx - KeePass>>; tree []; list []; status <<0 entries found, 2 groups skipped ('Recycle Bin', 'KeePassGate').>>
+17:12:35.965 == base Find Tag kpgtag
+17:12:37.378 menu: <<Tag>>
+17:12:38.516 menu: <<kpgtag>>
+17:12:40.624 [base-07-tag] title <<db.kdbx - KeePass>>; tree []; list [Mail account, KPG profile 1]; status <<2 entries found.>>
+17:12:41.206 shot base-07-tag.png (1086 x 713)
+17:12:41.389 == base Last Modified Entries
+17:12:43.044 menu: <<Last Modified Entries...>>
+17:12:47.427 [base-08-lastmod] WINDOW title=<<Last Modified>> class=WindowsForms10.Window.8.app.0.2bf8098_r6_ad1
+17:12:47.710 [base-08-lastmod]   Thumb name=<<Grip>>
+17:12:47.720 [base-08-lastmod]   Button name=<<Print...>>
+17:12:47.724 [base-08-lastmod]   Button name=<<Export...>>
+17:12:47.730 [base-08-lastmod]   Text name=<<Filter:>>
+17:12:48.469 shot base-08-lastmod.png (696 x 561)
+17:12:50.432 [base-08-lastmod] rows: Linked, Bank, KPG profile 12, KPG grant 11, KPG admission 10, KPG grant 9, KPG retirement 1, KPG authority 1, KPG profile 1, KPG revocation 1, KPG admission 2, KPG admission 1, KPG grant 2, KPG grant 1, Mail account
+17:12:51.469 == base Find dialog, ignore group settings
+17:12:54.158 [base-09-find] check <<XPath expression>> checked=0
+17:12:54.160 [base-09-find] check <<Regular expression>> checked=0
+17:12:54.161 [base-09-find] check <<Simple expression>> checked=1
+17:12:54.166 [base-09-find] check <<Match diacritics>> checked=0
+17:12:54.170 [base-09-find] check <<Ignore search settings of groups>> checked=0
+17:12:54.171 [base-09-find] check <<Resolve field references in data (slow)>> checked=0
+17:12:54.175 [base-09-find] check <<Exclude expired entries>> checked=0
+17:12:54.178 [base-09-find] check <<Match case>> checked=0
+17:12:54.188 [base-09-find] check <<History>> checked=0
+17:12:54.193 [base-09-find] check <<Group path>> checked=0
+17:12:54.197 [base-09-find] check <<String name>> checked=0
+17:12:54.199 [base-09-find] check <<Tags>> checked=1
+17:12:54.201 [base-09-find] check <<Group name>> checked=0
+17:12:54.205 [base-09-find] check <<UUID>> checked=0
+17:12:54.207 [base-09-find] check <<Other strings>> checked=1
+17:12:54.209 [base-09-find] check <<Notes>> checked=1
+17:12:54.209 [base-09-find] check <<URL>> checked=1
+17:12:54.211 [base-09-find] check <<Password>> checked=0
+17:12:54.215 [base-09-find] check <<User name>> checked=1
+17:12:54.215 [base-09-find] check <<Title>> checked=1
+17:12:55.023 [base-09-find] after: Simple expression, Ignore search settings of groups, Tags, Other strings, Notes, URL, User name, Title
+17:12:58.612 shot base-09-find-dialog.png (376 x 553)
+17:13:03.911 STEP FAILED [base Find dialog, ignore group settings]: no button 'OK' in window 43648394 at 343
+17:13:03.915 == base Show Entries of Subgroups, root
+17:13:11.079 STEP FAILED [base Show Entries of Subgroups, root]: no menu item Show Entries of Subgroups at 318
+17:13:11.089 == base field references in Linked
+17:13:21.742 group Passwords from the places kept
+17:13:28.975 STEP FAILED [base field references in Linked]: no entry Linked in the list: Mail account, KPG profile 1 at 108
+17:13:28.985 == base select root
+17:13:29.639 group Desk store from the places kept
+17:13:32.069 [base-21-root] title <<db.kdbx - KeePass>>; tree []; list [Mail account, KPG profile 1]; status <<2 entries found.>>
+17:13:32.408 [base-21-root-other1] WINDOW title=<<Find>> class=WindowsForms10.Window.8.app.0.2bf8098_r6_ad1
+17:13:32.591 [base-21-root-other1]   Pane name=<<Help>>
+17:13:32.601 [base-21-root-other1]   Text name=<<Mode:>>
+17:13:32.605 [base-21-root-other1]   Pane name=<<XPath expression>>
+17:13:32.610 [base-21-root-other1]   Pane name=<<Regular expression>>
+17:13:32.612 [base-21-root-other1]   Pane name=<<Simple expression>>
+17:13:32.621 [base-21-root-other1]   ComboBox name=<<Profile:>> text=<<(Custom)>>
+17:13:32.625 [base-21-root-other1]   Text name=<<Profile:>>
+17:13:32.629 [base-21-root-other1]   Button name=<<Open>>
+17:13:32.633 [base-21-root-other1]   Text name=<<Profile:>>
+17:13:32.636 [base-21-root-other1]   Group name=<<Options>>
+17:13:32.641 [base-21-root-other1]   Pane name=<<Match diacritics>>
+17:13:32.643 [base-21-root-other1]   Pane name=<<Ignore search settings of groups>>
+17:13:32.645 [base-21-root-other1]   Pane name=<<Resolve field references in data (slow)>>
+17:13:32.647 [base-21-root-other1]   Pane name=<<Exclude expired entries>>
+17:13:32.651 [base-21-root-other1]   Pane name=<<Match case>>
+17:13:32.658 [base-21-root-other1]   Group name=<<Search in>>
+17:13:32.662 [base-21-root-other1]   Pane name=<<History>>
+17:13:32.666 [base-21-root-other1]   Pane name=<<Group path>>
+17:13:32.670 [base-21-root-other1]   Pane name=<<String name>>
+17:13:32.672 [base-21-root-other1]   Pane name=<<Tags>>
+17:13:32.674 [base-21-root-other1]   Pane name=<<Group name>>
+17:13:32.678 [base-21-root-other1]   Pane name=<<UUID>>
+17:13:32.680 [base-21-root-other1]   Pane name=<<Other strings>>
+17:13:32.682 [base-21-root-other1]   Pane name=<<Notes>>
+17:13:32.686 [base-21-root-other1]   Pane name=<<URL>>
+17:13:32.688 [base-21-root-other1]   Pane name=<<Password>>
+17:13:32.690 [base-21-root-other1]   Pane name=<<User name>>
+17:13:32.694 [base-21-root-other1]   Pane name=<<Title>>
+17:13:32.698 [base-21-root-other1]   Text name=<<Find what:>>
+17:13:32.700 [base-21-root-other1]   Pane name=<<zqxstore>>
+17:13:32.704 [base-21-root-other1]   Pane name=<<Cancel>>
+17:13:32.706 [base-21-root-other1]   Pane name=<<Find>>
+17:13:32.718 [base-21-root-other1]   win32 BUTTON <<Help>>
+17:13:32.720 [base-21-root-other1]   win32 STATIC <<Mode:>>
+17:13:32.722 [base-21-root-other1]   win32 BUTTON <<XPath expression>>
+17:13:32.724 [base-21-root-other1]   win32 BUTTON <<Regular expression>>
+17:13:32.724 [base-21-root-other1]   win32 BUTTON <<Simple e&xpression>>
+17:13:32.726 [base-21-root-other1]   win32 COMBOBOX <<(Custom)>>
+17:13:32.728 [base-21-root-other1]   win32 STATIC <<P&rofile:>>
+17:13:32.730 [base-21-root-other1]   win32 Window.8 <<Options>>
+17:13:32.734 [base-21-root-other1]   win32 BUTTON <<Match diacritics>>
+17:13:32.736 [base-21-root-other1]   win32 BUTTON <<&Ignore search settings of groups>>
+17:13:32.738 [base-21-root-other1]   win32 BUTTON <<Resol&ve field references in data (slow)>>
+17:13:32.740 [base-21-root-other1]   win32 BUTTON <<&Exclude expired entries>>
+17:13:32.742 [base-21-root-other1]   win32 BUTTON <<Match &case>>
+17:13:32.744 [base-21-root-other1]   win32 Window.8 <<Search in>>
+17:13:32.746 [base-21-root-other1]   win32 BUTTON <<&History>>
+17:13:32.748 [base-21-root-other1]   win32 BUTTON <<&Group path>>
+17:13:32.750 [base-21-root-other1]   win32 BUTTON <<&String name>>
+17:13:32.752 [base-21-root-other1]   win32 BUTTON <<T&ags>>
+17:13:32.754 [base-21-root-other1]   win32 BUTTON <<Group na&me>>
+17:13:32.756 [base-21-root-other1]   win32 BUTTON <<UUI&D>>
+17:13:32.756 [base-21-root-other1]   win32 BUTTON <<&Other strings>>
+17:13:32.758 [base-21-root-other1]   win32 BUTTON <<&Notes>>
+17:13:32.760 [base-21-root-other1]   win32 BUTTON <<UR&L>>
+17:13:32.764 [base-21-root-other1]   win32 BUTTON <<&Password>>
+17:13:32.764 [base-21-root-other1]   win32 BUTTON <<&User name>>
+17:13:32.766 [base-21-root-other1]   win32 BUTTON <<&Title>>
+17:13:32.768 [base-21-root-other1]   win32 STATIC <<Find &what:>>
+17:13:32.770 [base-21-root-other1]   win32 EDIT <<zqxstore>>
+17:13:32.772 [base-21-root-other1]   win32 BUTTON <<Cancel>>
+17:13:32.774 [base-21-root-other1]   win32 BUTTON <<&Find>>
+17:13:33.336 shot base-21-root-other1.png (376 x 553)
+17:13:33.343 == base select Passwords
+17:13:34.095 group Passwords from the places kept
+17:13:36.239 [base-22-passwords] title <<db.kdbx - KeePass>>; tree []; list [Mail account, KPG profile 1]; status <<2 entries found.>>
+17:13:36.554 [base-22-passwords-other1] WINDOW title=<<Find>> class=WindowsForms10.Window.8.app.0.2bf8098_r6_ad1
+17:13:36.782 [base-22-passwords-other1]   Pane name=<<Help>>
+17:13:36.787 [base-22-passwords-other1]   Text name=<<Mode:>>
+17:13:36.793 [base-22-passwords-other1]   Pane name=<<XPath expression>>
+17:13:36.799 [base-22-passwords-other1]   Pane name=<<Regular expression>>
+17:13:36.802 [base-22-passwords-other1]   Pane name=<<Simple expression>>
+17:13:36.813 [base-22-passwords-other1]   ComboBox name=<<Profile:>> text=<<(Custom)>>
+17:13:36.819 [base-22-passwords-other1]   Text name=<<Profile:>>
+17:13:36.825 [base-22-passwords-other1]   Button name=<<Open>>
+17:13:36.836 [base-22-passwords-other1]   Text name=<<Profile:>>
+17:13:36.841 [base-22-passwords-other1]   Group name=<<Options>>
+17:13:36.846 [base-22-passwords-other1]   Pane name=<<Match diacritics>>
+17:13:36.854 [base-22-passwords-other1]   Pane name=<<Ignore search settings of groups>>
+17:13:36.866 [base-22-passwords-other1]   Pane name=<<Resolve field references in data (slow)>>
+17:13:36.872 [base-22-passwords-other1]   Pane name=<<Exclude expired entries>>
+17:13:36.880 [base-22-passwords-other1]   Pane name=<<Match case>>
+17:13:36.887 [base-22-passwords-other1]   Group name=<<Search in>>
+17:13:36.893 [base-22-passwords-other1]   Pane name=<<History>>
+17:13:36.895 [base-22-passwords-other1]   Pane name=<<Group path>>
+17:13:36.899 [base-22-passwords-other1]   Pane name=<<String name>>
+17:13:36.901 [base-22-passwords-other1]   Pane name=<<Tags>>
+17:13:36.905 [base-22-passwords-other1]   Pane name=<<Group name>>
+17:13:36.908 [base-22-passwords-other1]   Pane name=<<UUID>>
+17:13:36.910 [base-22-passwords-other1]   Pane name=<<Other strings>>
+17:13:36.912 [base-22-passwords-other1]   Pane name=<<Notes>>
+17:13:36.919 [base-22-passwords-other1]   Pane name=<<URL>>
+17:13:36.923 [base-22-passwords-other1]   Pane name=<<Password>>
+17:13:36.925 [base-22-passwords-other1]   Pane name=<<User name>>
+17:13:36.927 [base-22-passwords-other1]   Pane name=<<Title>>
+17:13:36.931 [base-22-passwords-other1]   Text name=<<Find what:>>
+17:13:36.935 [base-22-passwords-other1]   Pane name=<<zqxstore>>
+17:13:36.937 [base-22-passwords-other1]   Pane name=<<Cancel>>
+17:13:36.939 [base-22-passwords-other1]   Pane name=<<Find>>
+17:13:36.953 [base-22-passwords-other1]   win32 BUTTON <<Help>>
+17:13:36.955 [base-22-passwords-other1]   win32 STATIC <<Mode:>>
+17:13:36.959 [base-22-passwords-other1]   win32 BUTTON <<XPath expression>>
+17:13:36.961 [base-22-passwords-other1]   win32 BUTTON <<Regular expression>>
+17:13:36.965 [base-22-passwords-other1]   win32 BUTTON <<Simple e&xpression>>
+17:13:36.965 [base-22-passwords-other1]   win32 COMBOBOX <<(Custom)>>
+17:13:36.969 [base-22-passwords-other1]   win32 STATIC <<P&rofile:>>
+17:13:36.971 [base-22-passwords-other1]   win32 Window.8 <<Options>>
+17:13:36.973 [base-22-passwords-other1]   win32 BUTTON <<Match diacritics>>
+17:13:36.975 [base-22-passwords-other1]   win32 BUTTON <<&Ignore search settings of groups>>
+17:13:36.977 [base-22-passwords-other1]   win32 BUTTON <<Resol&ve field references in data (slow)>>
+17:13:36.980 [base-22-passwords-other1]   win32 BUTTON <<&Exclude expired entries>>
+17:13:36.981 [base-22-passwords-other1]   win32 BUTTON <<Match &case>>
+17:13:36.983 [base-22-passwords-other1]   win32 Window.8 <<Search in>>
+17:13:36.987 [base-22-passwords-other1]   win32 BUTTON <<&History>>
+17:13:36.989 [base-22-passwords-other1]   win32 BUTTON <<&Group path>>
+17:13:36.991 [base-22-passwords-other1]   win32 BUTTON <<&String name>>
+17:13:37.001 [base-22-passwords-other1]   win32 BUTTON <<T&ags>>
+17:13:37.003 [base-22-passwords-other1]   win32 BUTTON <<Group na&me>>
+17:13:37.005 [base-22-passwords-other1]   win32 BUTTON <<UUI&D>>
+17:13:37.007 [base-22-passwords-other1]   win32 BUTTON <<&Other strings>>
+17:13:37.011 [base-22-passwords-other1]   win32 BUTTON <<&Notes>>
+17:13:37.012 [base-22-passwords-other1]   win32 BUTTON <<UR&L>>
+17:13:37.015 [base-22-passwords-other1]   win32 BUTTON <<&Password>>
+17:13:37.017 [base-22-passwords-other1]   win32 BUTTON <<&User name>>
+17:13:37.022 [base-22-passwords-other1]   win32 BUTTON <<&Title>>
+17:13:37.024 [base-22-passwords-other1]   win32 STATIC <<Find &what:>>
+17:13:37.026 [base-22-passwords-other1]   win32 EDIT <<zqxstore>>
+17:13:37.030 [base-22-passwords-other1]   win32 BUTTON <<Cancel>>
+17:13:37.031 [base-22-passwords-other1]   win32 BUTTON <<&Find>>
+17:13:37.576 shot base-22-passwords-other1.png (376 x 553)
+17:13:37.579 == base sort by title
+17:13:39.525 [base-23-sorted] title <<db.kdbx - KeePass>>; tree []; list [Mail account, KPG profile 1]; status <<2 entries found.>>
+17:13:39.791 [base-23-sorted-other1] WINDOW title=<<Find>> class=WindowsForms10.Window.8.app.0.2bf8098_r6_ad1
+17:13:39.913 [base-23-sorted-other1]   Pane name=<<Help>>
+17:13:39.917 [base-23-sorted-other1]   Text name=<<Mode:>>
+17:13:39.924 [base-23-sorted-other1]   Pane name=<<XPath expression>>
+17:13:39.927 [base-23-sorted-other1]   Pane name=<<Regular expression>>
+17:13:39.931 [base-23-sorted-other1]   Pane name=<<Simple expression>>
+17:13:39.938 [base-23-sorted-other1]   ComboBox name=<<Profile:>> text=<<(Custom)>>
+17:13:39.943 [base-23-sorted-other1]   Text name=<<Profile:>>
+17:13:39.949 [base-23-sorted-other1]   Button name=<<Open>>
+17:13:39.956 [base-23-sorted-other1]   Text name=<<Profile:>>
+17:13:39.963 [base-23-sorted-other1]   Group name=<<Options>>
+17:13:39.966 [base-23-sorted-other1]   Pane name=<<Match diacritics>>
+17:13:39.970 [base-23-sorted-other1]   Pane name=<<Ignore search settings of groups>>
+17:13:39.972 [base-23-sorted-other1]   Pane name=<<Resolve field references in data (slow)>>
+17:13:39.975 [base-23-sorted-other1]   Pane name=<<Exclude expired entries>>
+17:13:39.979 [base-23-sorted-other1]   Pane name=<<Match case>>
+17:13:39.984 [base-23-sorted-other1]   Group name=<<Search in>>
+17:13:39.988 [base-23-sorted-other1]   Pane name=<<History>>
+17:13:39.992 [base-23-sorted-other1]   Pane name=<<Group path>>
+17:13:39.995 [base-23-sorted-other1]   Pane name=<<String name>>
+17:13:39.997 [base-23-sorted-other1]   Pane name=<<Tags>>
+17:13:39.999 [base-23-sorted-other1]   Pane name=<<Group name>>
+17:13:40.001 [base-23-sorted-other1]   Pane name=<<UUID>>
+17:13:40.005 [base-23-sorted-other1]   Pane name=<<Other strings>>
+17:13:40.007 [base-23-sorted-other1]   Pane name=<<Notes>>
+17:13:40.009 [base-23-sorted-other1]   Pane name=<<URL>>
+17:13:40.012 [base-23-sorted-other1]   Pane name=<<Password>>
+17:13:40.014 [base-23-sorted-other1]   Pane name=<<User name>>
+17:13:40.017 [base-23-sorted-other1]   Pane name=<<Title>>
+17:13:40.032 [base-23-sorted-other1]   Text name=<<Find what:>>
+17:13:40.034 [base-23-sorted-other1]   Pane name=<<zqxstore>>
+17:13:40.319 [base-23-sorted-other1]   Pane name=<<Cancel>>
+17:13:40.321 [base-23-sorted-other1]   Pane name=<<Find>>
+17:13:40.333 [base-23-sorted-other1]   win32 BUTTON <<Help>>
+17:13:40.335 [base-23-sorted-other1]   win32 STATIC <<Mode:>>
+17:13:40.335 [base-23-sorted-other1]   win32 BUTTON <<XPath expression>>
+17:13:40.337 [base-23-sorted-other1]   win32 BUTTON <<Regular expression>>
+17:13:40.341 [base-23-sorted-other1]   win32 BUTTON <<Simple e&xpression>>
+17:13:40.343 [base-23-sorted-other1]   win32 COMBOBOX <<(Custom)>>
+17:13:40.345 [base-23-sorted-other1]   win32 STATIC <<P&rofile:>>
+17:13:40.347 [base-23-sorted-other1]   win32 Window.8 <<Options>>
+17:13:40.349 [base-23-sorted-other1]   win32 BUTTON <<Match diacritics>>
+17:13:40.351 [base-23-sorted-other1]   win32 BUTTON <<&Ignore search settings of groups>>
+17:13:40.355 [base-23-sorted-other1]   win32 BUTTON <<Resol&ve field references in data (slow)>>
+17:13:40.356 [base-23-sorted-other1]   win32 BUTTON <<&Exclude expired entries>>
+17:13:40.359 [base-23-sorted-other1]   win32 BUTTON <<Match &case>>
+17:13:40.363 [base-23-sorted-other1]   win32 Window.8 <<Search in>>
+17:13:40.365 [base-23-sorted-other1]   win32 BUTTON <<&History>>
+17:13:40.373 [base-23-sorted-other1]   win32 BUTTON <<&Group path>>
+17:13:40.377 [base-23-sorted-other1]   win32 BUTTON <<&String name>>
+17:13:40.383 [base-23-sorted-other1]   win32 BUTTON <<T&ags>>
+17:13:40.385 [base-23-sorted-other1]   win32 BUTTON <<Group na&me>>
+17:13:40.389 [base-23-sorted-other1]   win32 BUTTON <<UUI&D>>
+17:13:40.395 [base-23-sorted-other1]   win32 BUTTON <<&Other strings>>
+17:13:40.397 [base-23-sorted-other1]   win32 BUTTON <<&Notes>>
+17:13:40.401 [base-23-sorted-other1]   win32 BUTTON <<UR&L>>
+17:13:40.411 [base-23-sorted-other1]   win32 BUTTON <<&Password>>
+17:13:40.414 [base-23-sorted-other1]   win32 BUTTON <<&User name>>
+17:13:40.430 [base-23-sorted-other1]   win32 BUTTON <<&Title>>
+17:13:40.434 [base-23-sorted-other1]   win32 STATIC <<Find &what:>>
+17:13:40.438 [base-23-sorted-other1]   win32 EDIT <<zqxstore>>
+17:13:40.442 [base-23-sorted-other1]   win32 BUTTON <<Cancel>>
+17:13:40.446 [base-23-sorted-other1]   win32 BUTTON <<&Find>>
+17:13:40.993 shot base-23-sorted-other1.png (376 x 553)
+17:13:40.995 == base tree keyboard Home then Down x8
+17:13:41.424 group Desk store from the places kept
+17:13:43.311 == base tree Down 1
+17:13:43.757 == base tree Down 2
+17:13:44.202 == base tree Down 3
+17:13:44.646 == base tree Down 4
+17:13:45.088 == base tree Down 5
+17:13:45.532 == base tree Down 6
+17:13:45.979 == base tree Down 7
+17:13:46.424 == base tree Down 8
+17:13:47.295 [base-24-keyboard] title <<db.kdbx - KeePass>>; tree []; list [Mail account, KPG profile 1]; status <<2 entries found.>>
+17:13:48.548 shot base-24-keyboard.png (1086 x 713)
+17:13:48.945 [base-24-keyboard-other1] WINDOW title=<<Find>> class=WindowsForms10.Window.8.app.0.2bf8098_r6_ad1
+17:13:49.081 [base-24-keyboard-other1]   Pane name=<<Help>>
+17:13:49.085 [base-24-keyboard-other1]   Text name=<<Mode:>>
+17:13:49.087 [base-24-keyboard-other1]   Pane name=<<XPath expression>>
+17:13:49.089 [base-24-keyboard-other1]   Pane name=<<Regular expression>>
+17:13:49.093 [base-24-keyboard-other1]   Pane name=<<Simple expression>>
+17:13:49.099 [base-24-keyboard-other1]   ComboBox name=<<Profile:>> text=<<(Custom)>>
+17:13:49.103 [base-24-keyboard-other1]   Text name=<<Profile:>>
+17:13:49.107 [base-24-keyboard-other1]   Button name=<<Open>>
+17:13:49.109 [base-24-keyboard-other1]   Text name=<<Profile:>>
+17:13:49.113 [base-24-keyboard-other1]   Group name=<<Options>>
+17:13:49.115 [base-24-keyboard-other1]   Pane name=<<Match diacritics>>
+17:13:49.117 [base-24-keyboard-other1]   Pane name=<<Ignore search settings of groups>>
+17:13:49.119 [base-24-keyboard-other1]   Pane name=<<Resolve field references in data (slow)>>
+17:13:49.125 [base-24-keyboard-other1]   Pane name=<<Exclude expired entries>>
+17:13:49.127 [base-24-keyboard-other1]   Pane name=<<Match case>>
+17:13:49.132 [base-24-keyboard-other1]   Group name=<<Search in>>
+17:13:49.136 [base-24-keyboard-other1]   Pane name=<<History>>
+17:13:49.140 [base-24-keyboard-other1]   Pane name=<<Group path>>
+17:13:49.143 [base-24-keyboard-other1]   Pane name=<<String name>>
+17:13:49.149 [base-24-keyboard-other1]   Pane name=<<Tags>>
+17:13:49.153 [base-24-keyboard-other1]   Pane name=<<Group name>>
+17:13:49.155 [base-24-keyboard-other1]   Pane name=<<UUID>>
+17:13:49.158 [base-24-keyboard-other1]   Pane name=<<Other strings>>
+17:13:49.161 [base-24-keyboard-other1]   Pane name=<<Notes>>
+17:13:49.164 [base-24-keyboard-other1]   Pane name=<<URL>>
+17:13:49.166 [base-24-keyboard-other1]   Pane name=<<Password>>
+17:13:49.169 [base-24-keyboard-other1]   Pane name=<<User name>>
+17:13:49.171 [base-24-keyboard-other1]   Pane name=<<Title>>
+17:13:49.175 [base-24-keyboard-other1]   Text name=<<Find what:>>
+17:13:49.179 [base-24-keyboard-other1]   Pane name=<<zqxstore>>
+17:13:49.181 [base-24-keyboard-other1]   Pane name=<<Cancel>>
+17:13:49.185 [base-24-keyboard-other1]   Pane name=<<Find>>
+17:13:49.199 [base-24-keyboard-other1]   win32 BUTTON <<Help>>
+17:13:49.203 [base-24-keyboard-other1]   win32 STATIC <<Mode:>>
+17:13:49.213 [base-24-keyboard-other1]   win32 BUTTON <<XPath expression>>
+17:13:49.215 [base-24-keyboard-other1]   win32 BUTTON <<Regular expression>>
+17:13:49.218 [base-24-keyboard-other1]   win32 BUTTON <<Simple e&xpression>>
+17:13:49.218 [base-24-keyboard-other1]   win32 COMBOBOX <<(Custom)>>
+17:13:49.228 [base-24-keyboard-other1]   win32 STATIC <<P&rofile:>>
+17:13:49.233 [base-24-keyboard-other1]   win32 Window.8 <<Options>>
+17:13:49.238 [base-24-keyboard-other1]   win32 BUTTON <<Match diacritics>>
+17:13:49.244 [base-24-keyboard-other1]   win32 BUTTON <<&Ignore search settings of groups>>
+17:13:49.246 [base-24-keyboard-other1]   win32 BUTTON <<Resol&ve field references in data (slow)>>
+17:13:49.249 [base-24-keyboard-other1]   win32 BUTTON <<&Exclude expired entries>>
+17:13:49.256 [base-24-keyboard-other1]   win32 BUTTON <<Match &case>>
+17:13:49.258 [base-24-keyboard-other1]   win32 Window.8 <<Search in>>
+17:13:49.263 [base-24-keyboard-other1]   win32 BUTTON <<&History>>
+17:13:49.265 [base-24-keyboard-other1]   win32 BUTTON <<&Group path>>
+17:13:49.267 [base-24-keyboard-other1]   win32 BUTTON <<&String name>>
+17:13:49.270 [base-24-keyboard-other1]   win32 BUTTON <<T&ags>>
+17:13:49.272 [base-24-keyboard-other1]   win32 BUTTON <<Group na&me>>
+17:13:49.276 [base-24-keyboard-other1]   win32 BUTTON <<UUI&D>>
+17:13:49.278 [base-24-keyboard-other1]   win32 BUTTON <<&Other strings>>
+17:13:49.280 [base-24-keyboard-other1]   win32 BUTTON <<&Notes>>
+17:13:49.282 [base-24-keyboard-other1]   win32 BUTTON <<UR&L>>
+17:13:49.284 [base-24-keyboard-other1]   win32 BUTTON <<&Password>>
+17:13:49.286 [base-24-keyboard-other1]   win32 BUTTON <<&User name>>
+17:13:49.288 [base-24-keyboard-other1]   win32 BUTTON <<&Title>>
+17:13:49.290 [base-24-keyboard-other1]   win32 STATIC <<Find &what:>>
+17:13:49.292 [base-24-keyboard-other1]   win32 EDIT <<zqxstore>>
+17:13:49.294 [base-24-keyboard-other1]   win32 BUTTON <<Cancel>>
+17:13:49.296 [base-24-keyboard-other1]   win32 BUTTON <<&Find>>
+17:13:49.864 shot base-24-keyboard-other1.png (376 x 553)
+17:13:49.871 == base drag Bank onto root
+17:13:50.365 group Passwords from the places kept
+17:13:54.327 STEP FAILED [base drag Bank onto root]: The property 'Id' cannot be found on this object. Verify that the property exists. at 403
+17:13:54.329 == base save
+17:13:58.478 [base-26-saved] title <<db.kdbx - KeePass>>; tree []; list [Mail account, KPG profile 1]; status <<2 entries found.>>
+17:13:58.867 [base-26-saved-other1] WINDOW title=<<Find>> class=WindowsForms10.Window.8.app.0.2bf8098_r6_ad1
+17:13:59.047 [base-26-saved-other1]   Pane name=<<Help>>
+17:13:59.058 [base-26-saved-other1]   Text name=<<Mode:>>
+17:13:59.061 [base-26-saved-other1]   Pane name=<<XPath expression>>
+17:13:59.065 [base-26-saved-other1]   Pane name=<<Regular expression>>
+17:13:59.069 [base-26-saved-other1]   Pane name=<<Simple expression>>
+17:13:59.079 [base-26-saved-other1]   ComboBox name=<<Profile:>> text=<<(Custom)>>
+17:13:59.091 [base-26-saved-other1]   Text name=<<Profile:>>
+17:13:59.096 [base-26-saved-other1]   Button name=<<Open>>
+17:13:59.100 [base-26-saved-other1]   Text name=<<Profile:>>
+17:13:59.103 [base-26-saved-other1]   Group name=<<Options>>
+17:13:59.107 [base-26-saved-other1]   Pane name=<<Match diacritics>>
+17:13:59.111 [base-26-saved-other1]   Pane name=<<Ignore search settings of groups>>
+17:13:59.115 [base-26-saved-other1]   Pane name=<<Resolve field references in data (slow)>>
+17:13:59.118 [base-26-saved-other1]   Pane name=<<Exclude expired entries>>
+17:13:59.120 [base-26-saved-other1]   Pane name=<<Match case>>
+17:13:59.125 [base-26-saved-other1]   Group name=<<Search in>>
+17:13:59.129 [base-26-saved-other1]   Pane name=<<History>>
+17:13:59.132 [base-26-saved-other1]   Pane name=<<Group path>>
+17:13:59.135 [base-26-saved-other1]   Pane name=<<String name>>
+17:13:59.141 [base-26-saved-other1]   Pane name=<<Tags>>
+17:13:59.144 [base-26-saved-other1]   Pane name=<<Group name>>
+17:13:59.146 [base-26-saved-other1]   Pane name=<<UUID>>
+17:13:59.151 [base-26-saved-other1]   Pane name=<<Other strings>>
+17:13:59.153 [base-26-saved-other1]   Pane name=<<Notes>>
+17:13:59.155 [base-26-saved-other1]   Pane name=<<URL>>
+17:13:59.158 [base-26-saved-other1]   Pane name=<<Password>>
+17:13:59.159 [base-26-saved-other1]   Pane name=<<User name>>
+17:13:59.162 [base-26-saved-other1]   Pane name=<<Title>>
+17:13:59.168 [base-26-saved-other1]   Text name=<<Find what:>>
+17:13:59.170 [base-26-saved-other1]   Pane name=<<zqxstore>>
+17:13:59.173 [base-26-saved-other1]   Pane name=<<Cancel>>
+17:13:59.178 [base-26-saved-other1]   Pane name=<<Find>>
+17:13:59.192 [base-26-saved-other1]   win32 BUTTON <<Help>>
+17:13:59.196 [base-26-saved-other1]   win32 STATIC <<Mode:>>
+17:13:59.199 [base-26-saved-other1]   win32 BUTTON <<XPath expression>>
+17:13:59.202 [base-26-saved-other1]   win32 BUTTON <<Regular expression>>
+17:13:59.206 [base-26-saved-other1]   win32 BUTTON <<Simple e&xpression>>
+17:13:59.210 [base-26-saved-other1]   win32 COMBOBOX <<(Custom)>>
+17:13:59.216 [base-26-saved-other1]   win32 STATIC <<P&rofile:>>
+17:13:59.219 [base-26-saved-other1]   win32 Window.8 <<Options>>
+17:13:59.222 [base-26-saved-other1]   win32 BUTTON <<Match diacritics>>
+17:13:59.224 [base-26-saved-other1]   win32 BUTTON <<&Ignore search settings of groups>>
+17:13:59.226 [base-26-saved-other1]   win32 BUTTON <<Resol&ve field references in data (slow)>>
+17:13:59.227 [base-26-saved-other1]   win32 BUTTON <<&Exclude expired entries>>
+17:13:59.230 [base-26-saved-other1]   win32 BUTTON <<Match &case>>
+17:13:59.233 [base-26-saved-other1]   win32 Window.8 <<Search in>>
+17:13:59.234 [base-26-saved-other1]   win32 BUTTON <<&History>>
+17:13:59.236 [base-26-saved-other1]   win32 BUTTON <<&Group path>>
+17:13:59.238 [base-26-saved-other1]   win32 BUTTON <<&String name>>
+17:13:59.240 [base-26-saved-other1]   win32 BUTTON <<T&ags>>
+17:13:59.242 [base-26-saved-other1]   win32 BUTTON <<Group na&me>>
+17:13:59.244 [base-26-saved-other1]   win32 BUTTON <<UUI&D>>
+17:13:59.249 [base-26-saved-other1]   win32 BUTTON <<&Other strings>>
+17:13:59.251 [base-26-saved-other1]   win32 BUTTON <<&Notes>>
+17:13:59.254 [base-26-saved-other1]   win32 BUTTON <<UR&L>>
+17:13:59.256 [base-26-saved-other1]   win32 BUTTON <<&Password>>
+17:13:59.258 [base-26-saved-other1]   win32 BUTTON <<&User name>>
+17:13:59.261 [base-26-saved-other1]   win32 BUTTON <<&Title>>
+17:13:59.262 [base-26-saved-other1]   win32 STATIC <<Find &what:>>
+17:13:59.265 [base-26-saved-other1]   win32 EDIT <<zqxstore>>
+17:13:59.267 [base-26-saved-other1]   win32 BUTTON <<Cancel>>
+17:13:59.268 [base-26-saved-other1]   win32 BUTTON <<&Find>>
+17:13:59.825 shot base-26-saved-other1.png (376 x 553)
+17:13:59.835 == base lock and unlock
+17:14:13.900 STEP FAILED [base lock and unlock]: no key prompt at unlock at 272
+17:14:13.904 == base synchronize with other.kdbx
+17:14:21.668 STEP FAILED [base synchronize with other.kdbx]: no menu item Synchronize at 318
+17:14:21.670 FLOW DONE
+17:14:43.760 KeePass did not exit; stopped
+17:14:44.090 stopping KeePass pid=2764
+17:14:44.304 case a-base done in 163 s

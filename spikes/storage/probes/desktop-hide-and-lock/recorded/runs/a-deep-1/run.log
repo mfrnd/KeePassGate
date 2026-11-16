@@ -1,0 +1,13 @@
+17:29:50.605 case a-deep run 1 place=deep switches=watch=on
+17:29:51.646 config: 
+17:30:02.723 started KeePass pid=19308 token: TokenIsElevated=1 ElevationType=2 Integrity=0x3000 AdministratorsEnabled=False
+17:30:02.908 main window: <<db.kdbx - KeePass>>
+17:30:03.229 group rows: 2019, Archive, Desk store, Empty group, KeePassGate, Misc, Old, Passwords, Recycle Bin
+17:30:04.058 == deep open
+17:30:04.528 [deep-01-open] title <<db.kdbx - KeePass>>; tree [Desk store, Passwords, Old, 2019, Misc, KeePassGate, Archive, Recycle Bin, Empty group]; list [KPG grant 1, KPG grant 2, KPG admission 1, KPG admission 2, KPG revocation 1, KPG profile 1, KPG authority 1, KPG retirement 1, KPG profile 12]; status <<Ready.>>
+17:30:04.954 shot deep-01-open.png (1086 x 713)
+17:30:05.189 == deep Passwords
+17:30:06.576 [deep-02-passwords] title <<db.kdbx - KeePass>>; tree [Desk store, Passwords, Old, 2019, Misc, KeePassGate, Archive, Recycle Bin, Empty group]; list [Mail account, Bank, Linked]; status <<Ready.>>
+17:30:06.986 shot deep-02-passwords.png (1086 x 713)
+17:30:07.230 FLOW DONE
+17:30:13.750 case a-deep done in 23 s

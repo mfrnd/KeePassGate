@@ -1,0 +1,215 @@
+17:30:33.689 case b-base-dialogs run 1 place=top switches=watch=on
+17:30:34.441 config: 
+17:30:45.945 started KeePass pid=15372 token: TokenIsElevated=1 ElevationType=2 Integrity=0x3000 AdministratorsEnabled=False
+17:30:46.139 main window: <<db.kdbx - KeePass>>
+17:30:46.380 group rows: Archive, Desk store, Empty group, KeePassGate, Passwords, Recycle Bin
+17:30:47.207 == dbase entry dialog by double click
+17:30:50.989 [dbase-01-dblclick] WINDOW title=<<Edit Entry>> class=WindowsForms10.Window.8.app.0.2bf8098_r6_ad1
+17:30:51.140 [dbase-01-dblclick]   Pane name=<<General>>
+17:30:51.150 [dbase-01-dblclick]   Text name=<<Title:>>
+17:30:51.160 [dbase-01-dblclick]   Document name=<<Title:>> text=<<zqxstore-notes1>>
+17:30:51.164 [dbase-01-dblclick]   Pane name=<<Expires:>>
+17:30:51.230 [dbase-01-dblclick]   Text name=<<12 ch.>>
+17:30:51.240 [dbase-01-dblclick]   Text name=<<Icon:>>
+17:30:51.244 [dbase-01-dblclick]   Pane name=<<●●●●●●●●●●●●>>
+17:30:51.246 [dbase-01-dblclick]   Pane name=<<●●●●●●●●●●●●>>
+17:30:51.250 [dbase-01-dblclick]   Text name=<<Notes:>>
+17:30:51.252 [dbase-01-dblclick]   Pane name=<<16.11.2026 00:00:00>>
+17:30:51.256 [dbase-01-dblclick]   Pane name=<<KPG grant 1>>
+17:30:51.260 [dbase-01-dblclick]   Text name=<<URL:>>
+17:30:51.264 [dbase-01-dblclick]   Text name=<<Quality:>>
+17:30:51.268 [dbase-01-dblclick]   Text name=<<Password:>>
+17:30:51.270 [dbase-01-dblclick]   Text name=<<Repeat:>>
+17:30:51.276 [dbase-01-dblclick]   Text name=<<User name:>>
+17:30:51.278 [dbase-01-dblclick]   Pane name=<<zqxstore-user1>>
+17:30:51.288 [dbase-01-dblclick]   Text name=<<UUID:>>
+17:30:51.292 [dbase-01-dblclick]   Pane name=<<Tools>>
+17:30:51.294 [dbase-01-dblclick]   Pane name=<<Cancel>>
+17:30:51.296 [dbase-01-dblclick]   Pane name=<<OK>>
+17:30:51.330 [dbase-01-dblclick]   win32 Window.8 <<General>>
+17:30:51.334 [dbase-01-dblclick]   win32 STATIC <<&Title:>>
+17:30:51.338 [dbase-01-dblclick]   win32 RICHEDIT50W <<zqxstore-notes1>>
+17:30:51.350 [dbase-01-dblclick]   win32 BUTTON <<&Expires:>>
+17:30:51.354 [dbase-01-dblclick]   win32 STATIC <<12 ch.>>
+17:30:51.358 [dbase-01-dblclick]   win32 STATIC <<&Icon:>>
+17:30:51.360 [dbase-01-dblclick]   win32 EDIT <<●●●●●●●●●●●●>>
+17:30:51.361 [dbase-01-dblclick]   win32 EDIT <<●●●●●●●●●●●●>>
+17:30:51.364 [dbase-01-dblclick]   win32 STATIC <<&Notes:>>
+17:30:51.367 [dbase-01-dblclick]   win32 SysDateTimePick32 <<16.11.2026 00:00:00>>
+17:30:51.369 [dbase-01-dblclick]   win32 EDIT <<KPG grant 1>>
+17:30:51.371 [dbase-01-dblclick]   win32 STATIC <<UR&L:>>
+17:30:51.373 [dbase-01-dblclick]   win32 STATIC <<Quality:>>
+17:30:51.375 [dbase-01-dblclick]   win32 STATIC <<&Password:>>
+17:30:51.377 [dbase-01-dblclick]   win32 STATIC <<&Repeat:>>
+17:30:51.380 [dbase-01-dblclick]   win32 STATIC <<&User name:>>
+17:30:51.382 [dbase-01-dblclick]   win32 EDIT <<zqxstore-user1>>
+17:30:51.385 [dbase-01-dblclick]   win32 BUTTON <<T&ools>>
+17:30:51.391 [dbase-01-dblclick]   win32 BUTTON <<Cancel>>
+17:30:51.402 [dbase-01-dblclick]   win32 BUTTON <<OK>>
+17:30:51.826 shot dbase-01-dblclick.png (491 x 513)
+17:30:51.850 [dbase-01] dialog visible=True OK enabled=True
+17:30:51.852 == dbase type into the title, then Enter
+17:30:53.497 [dbase-02] title box before <<KPG grant 1>> after typing <<KPG grant 1 edited by hand>>
+17:30:53.505 [dbase-02-typed] dialog visible=True OK enabled=True
+17:30:55.360 [dbase-02-after-enter] dialog visible=False OK enabled=no OK
+17:30:56.641 shot dbase-02-after-enter failed: The property 'X' cannot be found on this object. Verify that the property exists.
+17:30:57.001 [dbase-02-main] title <<db.kdbx* - KeePass>>; tree [Desk store, Passwords, Recycle Bin, KeePassGate, Archive, Empty group]; list [KPG grant 1 edited by hand, KPG grant 2, KPG admission 1, KPG admission 2, KPG revocation 1, KPG profile 1, KPG authority 1, KPG retirement 1, KPG profile 12]; status <<Ready.>>
+17:30:57.129 == dbase entry dialog by Enter
+17:31:00.687 [dbase-03-enter] WINDOW title=<<Edit Entry>> class=WindowsForms10.Window.8.app.0.2bf8098_r6_ad1
+17:31:01.600 [dbase-03-enter]   Pane name=<<General>>
+17:31:01.607 [dbase-03-enter]   Text name=<<Title:>>
+17:31:01.611 [dbase-03-enter]   Document name=<<Title:>> text=<<>>
+17:31:01.617 [dbase-03-enter]   Pane name=<<Expires:>>
+17:31:01.621 [dbase-03-enter]   Text name=<<0 ch.>>
+17:31:01.627 [dbase-03-enter]   Text name=<<Icon:>>
+17:31:01.634 [dbase-03-enter]   Text name=<<Notes:>>
+17:31:01.638 [dbase-03-enter]   Pane name=<<16.11.2026 00:00:00>>
+17:31:01.640 [dbase-03-enter]   Pane name=<<KPG admission 1>>
+17:31:01.645 [dbase-03-enter]   Text name=<<URL:>>
+17:31:01.649 [dbase-03-enter]   Text name=<<Quality:>>
+17:31:01.653 [dbase-03-enter]   Text name=<<Password:>>
+17:31:01.656 [dbase-03-enter]   Text name=<<Repeat:>>
+17:31:01.660 [dbase-03-enter]   Text name=<<User name:>>
+17:31:01.667 [dbase-03-enter]   Text name=<<UUID:>>
+17:31:01.671 [dbase-03-enter]   Pane name=<<Tools>>
+17:31:01.679 [dbase-03-enter]   Pane name=<<Cancel>>
+17:31:01.681 [dbase-03-enter]   Pane name=<<OK>>
+17:31:01.693 [dbase-03-enter]   win32 Window.8 <<General>>
+17:31:01.697 [dbase-03-enter]   win32 STATIC <<&Title:>>
+17:31:01.706 [dbase-03-enter]   win32 BUTTON <<&Expires:>>
+17:31:01.710 [dbase-03-enter]   win32 STATIC <<0 ch.>>
+17:31:01.712 [dbase-03-enter]   win32 STATIC <<&Icon:>>
+17:31:01.714 [dbase-03-enter]   win32 STATIC <<&Notes:>>
+17:31:01.716 [dbase-03-enter]   win32 SysDateTimePick32 <<16.11.2026 00:00:00>>
+17:31:01.718 [dbase-03-enter]   win32 EDIT <<KPG admission 1>>
+17:31:01.720 [dbase-03-enter]   win32 STATIC <<UR&L:>>
+17:31:01.728 [dbase-03-enter]   win32 STATIC <<Quality:>>
+17:31:01.732 [dbase-03-enter]   win32 STATIC <<&Password:>>
+17:31:01.734 [dbase-03-enter]   win32 STATIC <<&Repeat:>>
+17:31:01.736 [dbase-03-enter]   win32 STATIC <<&User name:>>
+17:31:01.738 [dbase-03-enter]   win32 BUTTON <<T&ools>>
+17:31:01.740 [dbase-03-enter]   win32 BUTTON <<Cancel>>
+17:31:01.742 [dbase-03-enter]   win32 BUTTON <<OK>>
+17:31:02.124 shot dbase-03-enter.png (491 x 513)
+17:31:02.139 [dbase-03] dialog visible=True OK enabled=True
+17:31:02.976 == dbase several entries, Enter
+17:31:07.002 [dbase-04-multi] WINDOW title=<<Edit Entries (9)>> class=WindowsForms10.Window.8.app.0.2bf8098_r6_ad1
+17:31:07.150 [dbase-04-multi]   Pane name=<<General>>
+17:31:07.154 [dbase-04-multi]   Text name=<<Title:>>
+17:31:07.164 [dbase-04-multi]   Document name=<<Title:>> text=<<(Multiple values)>>
+17:31:07.168 [dbase-04-multi]   Pane name=<<Expires:>>
+17:31:07.172 [dbase-04-multi]   Text name=<<? ch.>> disabled
+17:31:07.178 [dbase-04-multi]   Text name=<<Icon:>>
+17:31:07.182 [dbase-04-multi]   Pane name=<<●●●●●●●●●●●●●●●●●>>
+17:31:07.184 [dbase-04-multi]   Pane name=<<●●●●●●●●●●●●●●●●●>>
+17:31:07.190 [dbase-04-multi]   Text name=<<Notes:>>
+17:31:07.192 [dbase-04-multi]   Pane name=<<16.11.2026 00:00:00>>
+17:31:07.196 [dbase-04-multi]   Pane name=<<(Multiple values)>>
+17:31:07.205 [dbase-04-multi]   Text name=<<URL:>>
+17:31:07.208 [dbase-04-multi]   Text name=<<Quality:>> disabled
+17:31:07.212 [dbase-04-multi]   Text name=<<Password:>>
+17:31:07.218 [dbase-04-multi]   Text name=<<Repeat:>>
+17:31:07.225 [dbase-04-multi]   Text name=<<User name:>>
+17:31:07.229 [dbase-04-multi]   Pane name=<<(Multiple values)>>
+17:31:07.233 [dbase-04-multi]   Text name=<<UUID:>>
+17:31:07.235 [dbase-04-multi]   Pane name=<<Tools>>
+17:31:07.239 [dbase-04-multi]   Pane name=<<Cancel>>
+17:31:07.240 [dbase-04-multi]   Pane name=<<OK>>
+17:31:07.250 [dbase-04-multi]   win32 Window.8 <<General>>
+17:31:07.252 [dbase-04-multi]   win32 STATIC <<&Title:>>
+17:31:07.254 [dbase-04-multi]   win32 RICHEDIT50W <<(Multiple values)>>
+17:31:07.262 [dbase-04-multi]   win32 BUTTON <<&Expires:>>
+17:31:07.266 [dbase-04-multi]   win32 STATIC <<? ch.>> disabled
+17:31:07.268 [dbase-04-multi]   win32 STATIC <<&Icon:>>
+17:31:07.270 [dbase-04-multi]   win32 EDIT <<●●●●●●●●●●●●●●●●●>>
+17:31:07.270 [dbase-04-multi]   win32 EDIT <<●●●●●●●●●●●●●●●●●>>
+17:31:07.272 [dbase-04-multi]   win32 STATIC <<&Notes:>>
+17:31:07.275 [dbase-04-multi]   win32 SysDateTimePick32 <<16.11.2026 00:00:00>>
+17:31:07.277 [dbase-04-multi]   win32 EDIT <<(Multiple values)>>
+17:31:07.279 [dbase-04-multi]   win32 STATIC <<UR&L:>>
+17:31:07.281 [dbase-04-multi]   win32 STATIC <<Quality:>> disabled
+17:31:07.283 [dbase-04-multi]   win32 STATIC <<&Password:>>
+17:31:07.284 [dbase-04-multi]   win32 STATIC <<&Repeat:>>
+17:31:07.286 [dbase-04-multi]   win32 STATIC <<&User name:>>
+17:31:07.286 [dbase-04-multi]   win32 EDIT <<(Multiple values)>>
+17:31:07.288 [dbase-04-multi]   win32 BUTTON <<T&ools>>
+17:31:07.290 [dbase-04-multi]   win32 BUTTON <<Cancel>>
+17:31:07.293 [dbase-04-multi]   win32 BUTTON <<OK>>
+17:31:07.673 shot dbase-04-multi.png (491 x 513)
+17:31:07.687 [dbase-04] dialog visible=True OK enabled=True
+17:31:09.795 == dbase Add Entry in KeePassGate (Ctrl+I)
+17:31:17.825 [dbase-05-add] no dialog stands
+17:31:17.827 == dbase Duplicate Entry (Ctrl+D)
+17:31:30.536 [dbase-06-dup] no dialog stands
+17:31:30.538 == dbase group dialog (F2 on the tree)
+17:31:38.282 [dbase-07-group] no dialog stands
+17:31:38.287 == dbase group dialog of Archive
+17:31:46.121 [dbase-08-subgroup] no dialog stands
+17:31:46.123 == dbase a user's entry
+17:31:54.484 STEP FAILED [dbase a user's entry]: no entry Bank in the list: KPG grant 1 edited by hand, KPG grant 2, KPG admission 1, KPG admission 2, KPG revocation 1, KPG profile 1, KPG authority 1, KPG retirement 1, KPG profile 12 at 108
+17:31:54.488 == dbase end
+17:31:55.581 [dbase-10-end] title <<db.kdbx* - KeePass>>; tree [Desk store, Passwords, Recycle Bin, KeePassGate, Archive, Empty group]; list [KPG grant 1 edited by hand, KPG grant 2, KPG admission 1, KPG admission 2, KPG revocation 1, KPG profile 1, KPG authority 1, KPG retirement 1, KPG profile 12]; status <<Ready.>>
+17:31:55.942 [dbase-10-end-other1] WINDOW title=<<Edit Entries (9)>> class=WindowsForms10.Window.8.app.0.2bf8098_r6_ad1
+17:31:56.188 [dbase-10-end-other1]   Window name=<<KeePass>>
+17:31:56.194 [dbase-10-end-other1]   Image name=<<MainInstructionIcon>>
+17:31:56.198 [dbase-10-end-other1]   Text name=<<Do you want to save the changes before closing?>>
+17:31:56.204 [dbase-10-end-other1]   Pane name=<<Yes>>
+17:31:56.210 [dbase-10-end-other1]   Pane name=<<No>>
+17:31:56.214 [dbase-10-end-other1]   Pane name=<<Cancel>>
+17:31:56.218 [dbase-10-end-other1]   Pane name=<<General>> disabled
+17:31:56.224 [dbase-10-end-other1]   Text name=<<Title:>> disabled
+17:31:56.238 [dbase-10-end-other1]   Document name=<<Title:>> text=<<(Multiple values)>>
+17:31:56.242 [dbase-10-end-other1]   Pane name=<<Expires:>> disabled
+17:31:56.248 [dbase-10-end-other1]   Text name=<<? ch.>> disabled
+17:31:56.252 [dbase-10-end-other1]   Text name=<<Icon:>> disabled
+17:31:56.256 [dbase-10-end-other1]   Pane name=<<●●●●●●●●●●●●●●●●●>> disabled
+17:31:56.258 [dbase-10-end-other1]   Pane name=<<●●●●●●●●●●●●●●●●●>> disabled
+17:31:56.262 [dbase-10-end-other1]   Text name=<<Notes:>> disabled
+17:31:56.278 [dbase-10-end-other1]   Pane name=<<16.11.2026 00:00:00>> disabled
+17:31:56.280 [dbase-10-end-other1]   Pane name=<<(Multiple values)>> disabled
+17:31:56.284 [dbase-10-end-other1]   Text name=<<URL:>> disabled
+17:31:56.288 [dbase-10-end-other1]   Text name=<<Quality:>> disabled
+17:31:56.290 [dbase-10-end-other1]   Text name=<<Password:>> disabled
+17:31:56.294 [dbase-10-end-other1]   Text name=<<Repeat:>> disabled
+17:31:56.298 [dbase-10-end-other1]   Text name=<<User name:>> disabled
+17:31:56.300 [dbase-10-end-other1]   Pane name=<<(Multiple values)>> disabled
+17:31:56.304 [dbase-10-end-other1]   Text name=<<UUID:>> disabled
+17:31:56.306 [dbase-10-end-other1]   Pane name=<<Tools>> disabled
+17:31:56.308 [dbase-10-end-other1]   Pane name=<<Cancel>> disabled
+17:31:56.310 [dbase-10-end-other1]   Pane name=<<OK>> disabled
+17:31:56.322 [dbase-10-end-other1]   win32 Window.8 <<General>>
+17:31:56.324 [dbase-10-end-other1]   win32 STATIC <<&Title:>>
+17:31:56.326 [dbase-10-end-other1]   win32 RICHEDIT50W <<(Multiple values)>>
+17:31:56.328 [dbase-10-end-other1]   win32 BUTTON <<&Expires:>>
+17:31:56.330 [dbase-10-end-other1]   win32 STATIC <<? ch.>> disabled
+17:31:56.334 [dbase-10-end-other1]   win32 STATIC <<&Icon:>>
+17:31:56.334 [dbase-10-end-other1]   win32 EDIT <<●●●●●●●●●●●●●●●●●>>
+17:31:56.338 [dbase-10-end-other1]   win32 EDIT <<●●●●●●●●●●●●●●●●●>>
+17:31:56.340 [dbase-10-end-other1]   win32 STATIC <<&Notes:>>
+17:31:56.342 [dbase-10-end-other1]   win32 SysDateTimePick32 <<16.11.2026 00:00:00>>
+17:31:56.344 [dbase-10-end-other1]   win32 EDIT <<(Multiple values)>>
+17:31:56.346 [dbase-10-end-other1]   win32 STATIC <<UR&L:>>
+17:31:56.348 [dbase-10-end-other1]   win32 STATIC <<Quality:>> disabled
+17:31:56.350 [dbase-10-end-other1]   win32 STATIC <<&Password:>>
+17:31:56.352 [dbase-10-end-other1]   win32 STATIC <<&Repeat:>>
+17:31:56.354 [dbase-10-end-other1]   win32 STATIC <<&User name:>>
+17:31:56.354 [dbase-10-end-other1]   win32 EDIT <<(Multiple values)>>
+17:31:56.356 [dbase-10-end-other1]   win32 BUTTON <<T&ools>>
+17:31:56.358 [dbase-10-end-other1]   win32 BUTTON <<Cancel>>
+17:31:56.360 [dbase-10-end-other1]   win32 BUTTON <<OK>>
+17:31:56.911 shot dbase-10-end-other1.png (491 x 513)
+17:31:56.913 [dbase-10-end-other2] WINDOW title=<<KeePass>> class=#32770
+17:31:56.981 [dbase-10-end-other2]   Image name=<<MainInstructionIcon>>
+17:31:56.984 [dbase-10-end-other2]   Text name=<<Do you want to save the changes before closing?>>
+17:31:56.991 [dbase-10-end-other2]   Pane name=<<Yes>>
+17:31:56.995 [dbase-10-end-other2]   Pane name=<<No>>
+17:31:57.002 [dbase-10-end-other2]   Pane name=<<Cancel>>
+17:31:57.011 [dbase-10-end-other2]   win32 Button <<&Yes>>
+17:31:57.014 [dbase-10-end-other2]   win32 Button <<&No>>
+17:31:57.016 [dbase-10-end-other2]   win32 Button <<Cancel>>
+17:31:57.561 shot dbase-10-end-other2.png (362 x 120)
+17:31:57.566 FLOW DONE
+17:31:57.570 == save at the end
+17:32:23.339 KeePass did not exit; stopped
+17:32:23.360 stopping KeePass pid=15372
+17:32:23.550 case b-base-dialogs done in 110 s

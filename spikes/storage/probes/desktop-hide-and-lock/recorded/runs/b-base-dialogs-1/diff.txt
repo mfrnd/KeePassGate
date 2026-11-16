@@ -1,0 +1,56 @@
+=> # file db.kdbx size=3413 sha256=4149970b912a9a3cacd5375eef2f7ffcbdcbf0b23ec53b2e2e4d43224bc88ef2
+=> E S1 H2026-11-01T10:10:00Z S KPG.Body p=0 "{\"kind\":\"grant 1\",\"n\":\"S1\",\"zqx\":\"zqxstore-s1\"}"
+=> E S1 H2026-11-01T10:10:00Z S KPG.Kind p=0 "grant 1"
+=> E S1 H2026-11-01T10:10:00Z S KPG.Secret p=1 "zqxsecret-s1"
+=> E S1 H2026-11-01T10:10:00Z S Notes p=0 "zqxstore-notes1"
+=> E S1 H2026-11-01T10:10:00Z S Password p=1 "zqxstore-pw1"
+=> E S1 H2026-11-01T10:10:00Z S Title p=0 "KPG grant 1"
+=> E S1 H2026-11-01T10:10:00Z S URL p=0 ""
+=> E S1 H2026-11-01T10:10:00Z S UserName p=0 "zqxstore-user1"
+=> E S1 H2026-11-01T10:10:00Z autotype enabled=1 obfuscation=0 seq="" assoc=0
+=> E S1 H2026-11-01T10:10:00Z misc icon=0 customIcon=- fg=00000000 bg=00000000 overrideUrl="" quality=1
+=> E S1 H2026-11-01T10:10:00Z prev -
+=> E S1 H2026-11-01T10:10:00Z t.accessed 2026-11-01T10:10:00Z
+=> E S1 H2026-11-01T10:10:00Z t.created 2026-11-01T10:10:00Z
+=> E S1 H2026-11-01T10:10:00Z t.expires 0 2026-11-01T10:00:00Z
+=> E S1 H2026-11-01T10:10:00Z t.location 2026-11-01T10:10:00Z
+=> E S1 H2026-11-01T10:10:00Z t.modified 2026-11-01T10:10:00Z
+=> E S1 H2026-11-01T10:10:00Z tags []
+=> E S1 H2026-11-01T10:10:00Z usage 0
+=> E S1 S Title p=0 "KPG grant 1 edited by hand"
+=> E S1 history.count 1
+=> E S1 t.accessed 2026-11-16T16:36:48Z
+=> E S1 t.modified 2026-11-16T16:36:48Z
+=> E S1 usage 1
+=> E S3 t.accessed 2026-11-16T16:37:01Z
+=> E S3 usage 1
+=> E U2 t.accessed 2026-11-16T16:38:15Z
+=> E U2 usage 1
+=> G KG t.accessed 2026-11-16T16:37:55Z
+=> G KG usage 7
+=> G KGA t.accessed 2026-11-16T16:37:55Z
+=> G KGA usage 1
+=> G PW flags icon=48 customIcon=- search=inherit autotype=inherit expanded=1 seq="" lastTop=U1
+=> G PW t.accessed 2026-11-16T16:38:06Z
+=> G PW usage 1
+=> G Root t.accessed 2026-11-16T16:38:06Z
+=> G Root usage 8
+<= # file db.kdbx size=3205 sha256=b8a428d122e430b006946d77f9c95932a82e1eac847c9864a16332fca6e34417
+<= E S1 S Title p=0 "KPG grant 1"
+<= E S1 history.count 0
+<= E S1 t.accessed 2026-11-01T10:10:00Z
+<= E S1 t.modified 2026-11-01T10:10:00Z
+<= E S1 usage 0
+<= E S3 t.accessed 2026-11-01T10:12:00Z
+<= E S3 usage 0
+<= E U2 t.accessed 2026-11-01T10:30:00Z
+<= E U2 usage 0
+<= G KG t.accessed 2026-11-01T10:05:00Z
+<= G KG usage 0
+<= G KGA t.accessed 2026-11-01T10:06:00Z
+<= G KGA usage 0
+<= G PW flags icon=48 customIcon=- search=inherit autotype=inherit expanded=1 seq="" lastTop=-
+<= G PW t.accessed 2026-11-01T10:05:00Z
+<= G PW usage 0
+<= G Root t.accessed 2026-11-01T10:00:00Z
+<= G Root usage 0

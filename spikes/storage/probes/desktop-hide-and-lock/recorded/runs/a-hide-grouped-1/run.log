@@ -1,0 +1,17 @@
+17:28:30.199 case a-hide-grouped run 1 place=top switches=hide=ui
+17:28:31.068 config: MainWindow/ListGrouping=1, MainWindow/ShowEntriesOfSubGroups=true
+17:28:42.631 started KeePass pid=2056 token: TokenIsElevated=1 ElevationType=2 Integrity=0x3000 AdministratorsEnabled=False
+17:28:42.771 main window: <<db.kdbx - KeePass>>
+17:28:43.027 group rows: Desk store, Passwords, Recycle Bin
+17:28:43.846 == grouped open
+17:28:44.228 [grouped-01-open] title <<db.kdbx - KeePass>>; tree [Desk store, Passwords, Recycle Bin]; list []; status <<Ready.>>
+17:28:44.646 shot grouped-01-open.png (1086 x 713)
+17:28:44.870 == grouped root
+17:28:46.326 [grouped-02-root] title <<db.kdbx - KeePass>>; tree [Desk store, Passwords, Recycle Bin]; list [Mail account, Bank, Linked]; status <<Ready.>>
+17:28:47.545 shot grouped-02-root.png (1086 x 713)
+17:28:47.826 == grouped Find All
+17:28:49.849 menu: <<All>>
+17:28:52.344 [grouped-03-all] title <<db.kdbx - KeePass>>; tree [Desk store, Passwords, Recycle Bin]; list [Mail account, Bank, Linked]; status <<3 entries found.>>
+17:28:52.736 shot grouped-03-all.png (1086 x 713)
+17:28:52.858 FLOW DONE
+17:29:02.772 case a-hide-grouped done in 33 s

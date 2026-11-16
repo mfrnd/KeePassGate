@@ -1,0 +1,33 @@
+18:12:02.295 case b-block2 run 1 place=top switches=drag=block,dragsel=on,guardbin=on,menus=disable
+18:12:03.743 config: 
+18:12:16.645 started KeePass pid=16900 token: TokenIsElevated=1 ElevationType=2 Integrity=0x3000 
+AdministratorsEnabled=False
+18:12:34.200 main window: <<db.kdbx - KeePass>>
+18:12:34.548 group rows: Archive, Desk store, Empty group, KeePassGate, Passwords, Recycle Bin
+18:12:35.392 == block2 S5 dragged onto Passwords
+18:12:40.069 dragged KPG revocation 1 from 355,211.5 onto Passwords at 131,129
+18:12:42.222 [block2-01-drag] windows: 
+18:12:42.227 == block2 Recycle Bin: Group menu
+18:12:44.981 [block2-02-group-menu] item <<Add Group...>> enabled=True
+18:12:44.985 [block2-02-group-menu] item <<Edit Group...>> enabled=True
+18:12:45.027 [block2-02-group-menu] item <<Duplicate Group...>> enabled=True
+18:12:45.038 [block2-02-group-menu] item <<Delete Group>> enabled=True
+18:12:45.044 [block2-02-group-menu] item <<Empty Recycle Bin>> enabled=False
+18:12:45.047 [block2-02-group-menu] item <<Rearrange>> enabled=True
+18:12:45.053 [block2-02-group-menu] item <<Data Exchange>> enabled=True
+18:12:45.058 [block2-02-group-menu] item <<File>> enabled=True
+18:12:45.064 [block2-02-group-menu] item <<Group>> enabled=True
+18:12:45.081 [block2-02-group-menu] item <<Entry>> enabled=True
+18:12:45.087 [block2-02-group-menu] item <<Find>> enabled=True
+18:12:45.094 [block2-02-group-menu] item <<View>> enabled=True
+18:12:45.100 [block2-02-group-menu] item <<Tools>> enabled=True
+18:12:45.105 [block2-02-group-menu] item <<Help>> enabled=True
+18:12:45.895 == block2 Recycle Bin: Empty
+18:12:48.224 menu: <<Empty Recycle Bin>>
+18:12:54.440 [block2-03-empty] windows: 
+18:12:54.446 == block2 end
+18:12:55.205 [block2-04-end] title <<db.kdbx - KeePass>>; tree [Desk store, Passwords, Recycle Bin, KeePassGate, 
+Archive, Empty group]; list [KPG grant 11]; status <<Ready.>>
+18:12:55.482 FLOW DONE
+18:12:55.486 == save at the end
+18:13:03.390 case b-block2 done in 61 s

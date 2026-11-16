@@ -1,0 +1,49 @@
+16:40:08.406 Initialize options=dialogs=cancelsave tree=True list=True
+16:40:08.575 UIStateUpdated#1 treeRebuilt=True listRebuilt=True storeNodes=1 storeItems=9 listItems=9 entries=0 group=KeePassGate(store) storeSelected=True
+16:40:08.577 Store at=UIStateUpdated store=12 groups=2 records=0 modified=0 [KPG grant 1@KeePassGate t=20261101101000 h=0 icon=0; KPG admission 10@Archive t=20261101101900 h=0 icon=0; KPG grant 11@Recycle Bin t=20261101102000 h=0 icon=0; KPG profile 12@KeePassGate t=20261101102100 h=0 icon=0; KPG grant 2@KeePassGate t=20261101101100 h=0 icon=0 exp; KPG admission 1@KeePassGate t=20261101101200 h=0 icon=0; KPG admission 2@KeePassGate t=20261101101300 h=0 icon=0; KPG revocation 1@KeePassGate t=20261101101400 h=0 icon=0; KPG profile 1@KeePassGate t=20261101101500 h=0 icon=0; KPG authority 1@KeePassGate t=20261101101600 h=0 icon=0; KPG retirement 1@KeePassGate t=20261101101700 h=0 icon=0; KPG grant 9@Archive t=20261101101800 h=0 icon=0; ]
+16:40:21.418 DRIVER cancel entry dialog by double click
+16:40:21.726 UIStateUpdated#2 treeRebuilt=False listRebuilt=True storeNodes=1 storeItems=9 listItems=9 entries=0 group=KeePassGate(store) storeSelected=True
+16:40:22.542 UIStateUpdated#3 treeRebuilt=False listRebuilt=False storeNodes=1 storeItems=9 listItems=9 entries=1(store) group=KeePassGate(store) storeSelected=True
+16:40:23.365 WindowAdded PwEntryForm <<<DYN>>> mode=EditExistingEntry entries=1 first=KPG grant 1 multi=False parent=KeePassGate selectedGroup=KeePassGate store=True action=cancelsave
+16:40:30.882 DRIVER cancel type into the title, then Enter
+16:40:32.517 EntrySaving cancelled
+16:40:36.975 WindowRemoved PwEntryForm <<Edit Entry>> result=Cancel
+16:40:40.987 DRIVER cancel entry dialog by Enter
+16:40:41.316 UIStateUpdated#7 treeRebuilt=False listRebuilt=True storeNodes=1 storeItems=9 listItems=9 entries=0 group=KeePassGate(store) storeSelected=True
+16:40:42.126 UIStateUpdated#8 treeRebuilt=False listRebuilt=False storeNodes=1 storeItems=9 listItems=9 entries=1(store) group=KeePassGate(store) storeSelected=True
+16:40:42.677 WindowAdded PwEntryForm <<<DYN>>> mode=EditExistingEntry entries=1 first=KPG admission 1 multi=False parent=KeePassGate selectedGroup=KeePassGate store=True action=cancelsave
+16:40:49.897 WindowRemoved PwEntryForm <<Edit Entry>> result=Cancel
+16:40:58.237 DRIVER cancel several entries, Enter
+16:40:58.598 UIStateUpdated#11 treeRebuilt=False listRebuilt=True storeNodes=1 storeItems=9 listItems=9 entries=0 group=KeePassGate(store) storeSelected=True
+16:40:59.411 UIStateUpdated#12 treeRebuilt=False listRebuilt=False storeNodes=1 storeItems=9 listItems=9 entries=1(store) group=KeePassGate(store) storeSelected=True
+16:40:59.845 UIStateUpdated#14 treeRebuilt=False listRebuilt=False storeNodes=1 storeItems=9 listItems=9 entries=9(store) group=KeePassGate(store) storeSelected=True
+16:41:00.436 WindowAdded PwEntryForm <<<DYN>>> mode=EditExistingEntry entries=9 first=KPG grant 1 multi=True parent=Desk store selectedGroup=KeePassGate store=True action=cancelsave
+16:41:10.141 WindowRemoved PwEntryForm <<Edit Entries (9)>> result=Cancel
+16:41:13.745 DRIVER cancel Add Entry in KeePassGate (Ctrl+I)
+16:41:14.070 UIStateUpdated#16 treeRebuilt=False listRebuilt=True storeNodes=1 storeItems=9 listItems=9 entries=0 group=KeePassGate(store) storeSelected=True
+16:41:14.692 WindowAdded PwEntryForm <<<DYN>>> mode=AddNewEntry entries=1 first= multi=False parent=KeePassGate selectedGroup=KeePassGate store=True action=cancelsave
+16:41:22.023 WindowRemoved PwEntryForm <<Add Entry>> result=Cancel
+16:41:22.058 UIStateUpdated#17 treeRebuilt=False listRebuilt=False storeNodes=1 storeItems=9 listItems=9 entries=0 group=KeePassGate(store) storeSelected=True
+16:41:24.994 DRIVER cancel Duplicate Entry (Ctrl+D)
+16:41:25.286 UIStateUpdated#18 treeRebuilt=False listRebuilt=True storeNodes=1 storeItems=9 listItems=9 entries=0 group=KeePassGate(store) storeSelected=True
+16:41:26.098 UIStateUpdated#19 treeRebuilt=False listRebuilt=False storeNodes=1 storeItems=9 listItems=9 entries=1(store) group=KeePassGate(store) storeSelected=True
+16:41:26.604 WindowAdded DuplicationForm <<Duplication Options>> entries=1(store) group=KeePassGate(store) store=True action=cancelsave
+16:41:32.887 WindowRemoved DuplicationForm <<Duplication Options>> result=Cancel
+16:41:35.875 DRIVER cancel group dialog (F2 on the tree)
+16:41:36.203 UIStateUpdated#21 treeRebuilt=False listRebuilt=True storeNodes=1 storeItems=9 listItems=9 entries=0 group=KeePassGate(store) storeSelected=True
+16:41:36.796 WindowAdded GroupForm <<<DYN>>> m_pwGroup=KeePassGate selectedGroup=KeePassGate store=True action=cancelsave
+16:41:43.519 WindowRemoved GroupForm <<Edit Group>> result=Cancel
+16:41:43.539 UIStateUpdated#22 treeRebuilt=False listRebuilt=False storeNodes=1 storeItems=9 listItems=9 entries=0 group=KeePassGate(store) storeSelected=True
+16:41:46.552 DRIVER cancel group dialog of Archive
+16:41:46.937 UIStateUpdated#23 treeRebuilt=False listRebuilt=True storeNodes=1 storeItems=2 listItems=2 entries=0 group=Archive(store) storeSelected=True
+16:41:47.614 WindowAdded GroupForm <<<DYN>>> m_pwGroup=Archive selectedGroup=Archive store=True action=cancelsave
+16:41:54.095 WindowRemoved GroupForm <<Edit Group>> result=Cancel
+16:41:54.147 UIStateUpdated#24 treeRebuilt=False listRebuilt=False storeNodes=1 storeItems=2 listItems=2 entries=0 group=Archive(store) storeSelected=True
+16:41:57.074 DRIVER cancel a user's entry
+16:41:57.385 UIStateUpdated#25 treeRebuilt=False listRebuilt=True storeNodes=1 storeItems=0 listItems=3 entries=0 group=Passwords storeSelected=False
+16:41:58.200 UIStateUpdated#26 treeRebuilt=False listRebuilt=False storeNodes=1 storeItems=0 listItems=3 entries=1 group=Passwords storeSelected=False
+16:41:59.021 WindowAdded PwEntryForm <<<DYN>>> mode=EditExistingEntry entries=1 first=Bank multi=False parent=Passwords selectedGroup=Passwords store=False action=none
+16:42:06.333 WindowRemoved PwEntryForm <<Edit Entry>> result=Cancel
+16:42:09.300 DRIVER cancel end
+16:42:09.689 DRIVER save at the end
+16:42:11.441 Terminate uiStateUpdated=30 firstChance=0

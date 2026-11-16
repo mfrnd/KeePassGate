@@ -537,4 +537,27 @@ words:
   - keepasslib
   - Keepassdroid
   - SYSLIB
+  # Identifiers in the desktop-hide-and-lock probes, which are kept as they were recorded: the
+  # switches of the `HideLock` plugin, `hideonly`, `keyfilter`, `dragsel`, `guardbin`,
+  # `defaultaction`, `cancelsave`, `disableok` and `lockall`, its local `mvec`; the probe's command
+  # `hlbase`, its tag `kpgtag` and the invented value `zqxsecret`; and the step names of `Cases.ps1`,
+  # `dblclick`, `dbase`, `disok`, `disyes`, `canyes` and `shiftdel`.
+  - hideonly
+  - keyfilter
+  - dragsel
+  - guardbin
+  - defaultaction
+  - cancelsave
+  - disableok
+  - lockall
+  - mvec
+  - hlbase
+  - kpgtag
+  - zqxsecret
+  - dblclick
+  - dbase
+  - disok
+  - disyes
+  - canyes
+  - shiftdel
 
