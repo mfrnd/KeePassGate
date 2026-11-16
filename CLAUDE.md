@@ -848,7 +848,15 @@ KeePass through UI automation cannot unload. Run them from **Windows PowerShell*
   with `BeginInvoke`, and `GrantPickerTests` reproduces the dispose's crash on a real shown form:
   revert that deferral and the test host dies rather than the assertion failing. The other two have
   no reproduction: moved back into the handler, neither fails a test, a picker closed by a posted
-  press elsewhere or a posted Enter included.
+  press elsewhere or a posted Enter included. **And a dropdown can outlive the window it is about.**
+  A dialog closed in code under an open picker, by a close another program posts it, goes first,
+  and WinForms closes the picker at the next change of activation, after the panel and its window
+  have gone. The work, with no window to post to, ran at once then and disposed the dropdown inside
+  `Closed`, and KeePass showed its fatal error and ended. The dropdown still has a window of its
+  own there, so `Finish` posts to that. Disposing it as the panel goes is no alternative: a
+  dropdown disposed while open stays on `ModalMenuFilter`'s list, which closes it at that change
+  of activation all the same and throws in the same place. `GrantPickerTests` closes a window
+  under each picker and then shows the next.
 
 - **A menu holding nothing but its items owns Enter and Escape while it is open**, which a dropdown
   hosting a list does not. Enter clicks the highlighted item, or does nothing when none is, Escape

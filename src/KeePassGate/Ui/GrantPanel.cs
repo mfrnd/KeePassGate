@@ -1151,7 +1151,10 @@ namespace KeePassGate.Ui
             }
         }
 
-        /// <summary>Lets go of a picker that never opened, saying so rather than throwing.</summary>
+        /// <summary>
+        /// Lets go of a picker that never opened, or of a picker whose window went while it was
+        /// open, writing a failure to the log rather than throwing it.
+        /// </summary>
         private void Abandon(Picker drop, IDisposable keys)
         {
             _open = null;
@@ -1183,7 +1186,7 @@ namespace KeePassGate.Ui
         ///
         /// So the handler records what was chosen and nothing else, and this runs afterwards.
         /// </remarks>
-        private void Finish(ToolStripDropDown drop, IDisposable keys, Action work)
+        private void Finish(Picker drop, IDisposable keys, Action work)
         {
             WindowHandlers.Run("a grant picker's close could not be handled", () =>
             {
@@ -1194,11 +1197,24 @@ namespace KeePassGate.Ui
                 // when the last of the two is let go, whichever that is.
                 _open = null;
 
+                // **A picker can outlive its window.** Every way an operator has of leaving the
+                // dialog closes the picker first. A dialog closed in code, by a close another
+                // program posts to it, goes with the picker still open, and WinForms closes the
+                // picker at the next change of activation, after the dialog and this panel have
+                // gone. The choice is dropped then: there is no table to show it on, and what it
+                // would be written into is the dialog's own copy of the node's custom data, which
+                // nothing reads once the dialog has closed.
+                if (!IsHandleCreated)
+                {
+                    AbandonLater(drop, keys);
+                    return;
+                }
+
                 // A post refused here leaves the dialog's keys taken and the dropdown undisposed,
                 // and nothing is done about either from here, because this runs inside the
                 // dropdown's own `Closed` and both are what that handler must not do: the reason
-                // this is posted at all. A post is refused only by a window that is going, whose
-                // dialog goes with it.
+                // this is posted at all. With the panel's window there, nothing has been seen to
+                // refuse a post.
                 Later("closed", () =>
                 {
                     using (drop)
@@ -1236,6 +1252,37 @@ namespace KeePassGate.Ui
                     }
                 });
             });
+        }
+
+        /// <summary>
+        /// Lets go of a picker whose panel has no window, in a message posted to the dropdown's own
+        /// window.
+        /// </summary>
+        /// <remarks>
+        /// **Still not from inside its `Closed`**, which is where this is asked from:
+        /// `SetVisibleCore` asks the dropdown for its handle once that handler returns, and a
+        /// dropdown disposed by then throws from `ToolStripManager.ModalMenuFilter`'s message hook,
+        /// past every handler, which KeePass answers with its fatal error and an exit. The
+        /// dropdown still has its window when it is closed after its dialog has gone, measured on
+        /// a shown form closed under an open picker, and keeps it until it is disposed. A dropdown
+        /// with no window either is left undisposed and written to the log, at the cost of a hidden
+        /// window.
+        ///
+        /// **Not disposed as the panel goes instead**, which was measured too: a dropdown disposed
+        /// while open stays on `ModalMenuFilter`'s list, is closed at the next change of activation
+        /// all the same, and throws there for the same reason.
+        /// </remarks>
+        private void AbandonLater(Picker drop, IDisposable keys)
+        {
+            try
+            {
+                drop.BeginInvoke(new Action(() =>
+                    WindowHandlers.Run("a grant picker could not be let go of", () => Abandon(drop, keys))));
+            }
+            catch (Exception error) when (Expected.OfUserInterface(error))
+            {
+                _log.Warn("a grant picker whose dialog went could not be let go of: " + error.Message);
+            }
         }
 
         /// <summary>
@@ -1294,8 +1341,13 @@ namespace KeePassGate.Ui
         /// </summary>
         /// <remarks>
         /// One dropdown opens the next, and opening it from inside the first one's closing handler
-        /// would be showing a window while another is being torn down. Straight through when there
-        /// is no window at all, which is how a test reaches the same path.
+        /// would be showing a window while another is being torn down.
+        ///
+        /// **Never at once, not even with no window to post to.** It ran straight through then, on
+        /// the belief that only a test came that way. What came that way was a picker closed after
+        /// its dialog had gone, whose work then disposed it inside its own `Closed`. A post refused
+        /// for want of a window is now written to the log, and `Finish` lets go of such a picker
+        /// itself.
         ///
         /// **Guarded where it runs, and not only where it is posted.** Posted work runs later on
         /// KeePass's message loop, after the try around the post has long returned, and a failure
@@ -1325,12 +1377,6 @@ namespace KeePassGate.Ui
 
             try
             {
-                if (!IsHandleCreated)
-                {
-                    guarded();
-                    return;
-                }
-
                 BeginInvoke(guarded);
             }
             catch (Exception error) when (Expected.OfUserInterface(error))

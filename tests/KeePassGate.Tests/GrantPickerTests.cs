@@ -310,6 +310,64 @@ namespace KeePassGate.Tests
                 });
         }
 
+        [TestCase(ProfileColumn)]
+        [TestCase(MaskColumn)]
+        public void A_picker_open_when_its_window_goes_is_let_go_of_and_the_next_picker_stays_open(int column)
+        {
+            // Closed as a program closes a dialog, by a close sent to the window, which leaves the
+            // picker open: a press outside it, or Alt and F4, closes the picker first. WinForms
+            // closed it at the next change of activation, after the window and the panel had gone,
+            // and the picker was disposed inside its own `Closed`. What WinForms asked of it next
+            // threw from a message hook, past every handler, and ended the process: KeePass with
+            // its fatal error, and this test host rather than this assertion.
+            var store = new FakeGrantStore(Rules.Granting(("reader", "R")));
+            ToolStripDropDown open;
+
+            using (var form = OffScreenForm.New())
+            using (var panel = new GrantPanel(
+                new GrantSheet(store.Read(), null, new[] { "reader", "ops" }, null), store, GrantTab.GroupScope, null))
+            {
+                var accept = new Button();
+                var cancel = new Button();
+                form.Controls.Add(accept);
+                form.Controls.Add(cancel);
+                form.AcceptButton = accept;
+                form.CancelButton = cancel;
+
+                panel.Dock = DockStyle.Fill;
+                form.Controls.Add(panel);
+                form.Show();
+                OffScreenForm.Pump();
+
+                var grid = ControlTree.FindByName<DataGridView>(panel, GrantTab.GridControlName);
+                panel.Press(column == ProfileColumn ? grid.NewRowIndex : 0, column);
+                OffScreenForm.Pump();
+                Assert.That(panel.Picking, Is.True, "nothing opened, so nothing below is measured");
+
+                open = (ToolStripDropDown)typeof(GrantPanel)
+                    .GetField("_open", BindingFlags.Instance | BindingFlags.NonPublic).GetValue(panel);
+
+                form.Close();
+            }
+
+            // The next window to take the activation is what had WinForms close a picker left open.
+            Using((form, panel, grid) =>
+            {
+                Assert.That(PumpUntil(() => open.IsDisposed, TimeSpan.FromSeconds(2)), Is.True,
+                    "the picker left open was never let go of");
+                Assert.That(_loop, Is.Empty);
+
+                // And the next picker is not closed the moment it opens, which is what a dropdown
+                // closed by code before its window goes leaves behind.
+                panel.Press(grid.NewRowIndex, ProfileColumn);
+                OffScreenForm.Pump();
+                PumpUntil(() => !panel.Picking, TimeSpan.FromMilliseconds(500));
+
+                Assert.That(panel.Picking, Is.True, "the next picker closed by itself");
+                Assert.That(_loop, Is.Empty);
+            });
+        }
+
         [Test]
         public void A_verb_can_be_typed_the_moment_the_picker_opens()
         {
@@ -970,6 +1028,26 @@ namespace KeePassGate.Tests
         private void OnThreadException(object sender, ThreadExceptionEventArgs e)
         {
             _loop.Add(e.Exception);
+        }
+
+        /// <summary>
+        /// Runs the message loop until it has happened, or long enough to tell it did not.
+        /// </summary>
+        private static bool PumpUntil(Func<bool> happened, TimeSpan patience)
+        {
+            var until = DateTime.UtcNow + patience;
+            while (DateTime.UtcNow < until)
+            {
+                if (happened())
+                {
+                    return true;
+                }
+
+                Application.DoEvents();
+                Thread.Sleep(10);
+            }
+
+            return happened();
         }
 
         /// <summary>Puts a key on the queue for a control, and lets the loop deliver it.</summary>
