@@ -293,17 +293,17 @@ namespace KeePassGate.Tests
         private static void Click(Control control, Point at)
         {
             var where = (IntPtr)((at.Y << 16) | (at.X & 0xFFFF));
-            User32.PostMessage(control.Handle, ButtonDown, (IntPtr)1, where);
+            TestNativeMethods.PostMessage(control.Handle, ButtonDown, (IntPtr)1, where);
             Pump();
-            User32.PostMessage(control.Handle, ButtonUp, IntPtr.Zero, where);
+            TestNativeMethods.PostMessage(control.Handle, ButtonUp, IntPtr.Zero, where);
             Pump();
         }
 
         /// <summary>A key down and up on the control, through the loop.</summary>
         private static void Key(Control control, Keys key)
         {
-            User32.PostMessage(control.Handle, KeyDown, (IntPtr)(int)key, IntPtr.Zero);
-            User32.PostMessage(control.Handle, KeyUp, (IntPtr)(int)key, IntPtr.Zero);
+            TestNativeMethods.PostMessage(control.Handle, KeyDown, (IntPtr)(int)key, IntPtr.Zero);
+            TestNativeMethods.PostMessage(control.Handle, KeyUp, (IntPtr)(int)key, IntPtr.Zero);
             Pump();
         }
 

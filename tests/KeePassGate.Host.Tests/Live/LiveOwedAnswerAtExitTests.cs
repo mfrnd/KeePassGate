@@ -183,7 +183,7 @@ namespace KeePassGate.Host.Tests.Live
                     _boxSeen = true;
                     var box = AutomationElement.FromHandle(window.Handle);
                     _boxText = Uia.Describe(box, ControlType.Text);
-                    _mainWindowVisibleWithTheBox = User32.IsWindowVisible(main);
+                    _mainWindowVisibleWithTheBox = TestNativeMethods.IsWindowVisible(main);
                     Assert.That(driver.PressButton(box, "OK"), Is.True, driver.Diagnostics);
                 }
                 else

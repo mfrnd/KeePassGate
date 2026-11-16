@@ -1,179 +1,202 @@
 using System;
 using System.Runtime.InteropServices;
 using System.Text;
+using Microsoft.Win32.SafeHandles;
 
 namespace KeePassGate.Testing
 {
     /// <summary>
-    /// Every call the tests make into Windows' window manager and its shell, each through the
-    /// method here of the same name.
+    /// Every call the tests make into Windows itself, each through the method here of the same
+    /// name.
     /// </summary>
     /// <remarks>
-    /// What the tests ask Windows directly is what WinForms and UI automation either do not offer
-    /// or offer only as their own account of it: a key posted to a window's queue, the focus and
-    /// the activation as Windows holds them, the windows of another process, a real pointer,
-    /// and where the shell drew a window's icon in the notification area.
+    /// What the tests ask Windows directly is what WinForms, UI automation and .NET Framework either
+    /// do not offer or offer only as their own account of it: a key posted to a window's queue, the
+    /// focus and the activation as Windows holds them, the windows of another process, a real
+    /// pointer, where the shell drew a window's icon in the notification area, and the backup and
+    /// restore privileges enabled on a copy of the process's token.
     ///
     /// **Each declaration is called once, by the method of its name in this class**, which is what
-    /// every test calls. CodeQL reports every declaration of unmanaged code and every call to one,
-    /// and both are answered here and nowhere else: the declaration with why nothing managed does
-    /// its job, and its one call as the one there is. Not `NativeMethods`, which is the plugin's
-    /// own class of the kind, and a test that imports the plugin's `KeePassGate.Ui` would find
-    /// two of them. The tests' other calls into Windows enable the backup and restore privileges,
-    /// and `BackupPrivileges` makes them, for the unit tier alone.
+    /// every test calls, and is declared in the private class of the DLL it comes from. CodeQL
+    /// reports every declaration of unmanaged code and every call to one, and both are answered
+    /// here and nowhere else: the declaration with why nothing managed does its job, and its one
+    /// call as the one there is. Not `NativeMethods`, which is the plugin's own class of the kind,
+    /// and a test that imports the plugin's `KeePassGate.Ui` would find two of them.
     /// </remarks>
-    internal static class User32
+    internal static class TestNativeMethods
     {
         internal delegate bool EnumWindowsProc(IntPtr window, IntPtr parameter);
+
+        internal static bool AdjustTokenPrivileges(
+            SafeAccessTokenHandle token, bool disableAll, ref TokenPrivilege state, int length,
+            IntPtr previous, IntPtr returned)
+        {
+            // codeql[cs/call-to-unmanaged-code] the one call to it, for every caller in the tests
+            return Advapi32.AdjustTokenPrivileges(token, disableAll, ref state, length, previous, returned);
+        }
 
         internal static bool AttachThreadInput(uint attachTo, uint attachFrom, bool attach)
         {
             // codeql[cs/call-to-unmanaged-code] the one call to it, for every caller in the tests
-            return Imported.AttachThreadInput(attachTo, attachFrom, attach);
+            return User32.AttachThreadInput(attachTo, attachFrom, attach);
         }
 
         internal static bool BringWindowToTop(IntPtr window)
         {
             // codeql[cs/call-to-unmanaged-code] the one call to it, for every caller in the tests
-            return Imported.BringWindowToTop(window);
+            return User32.BringWindowToTop(window);
+        }
+
+        internal static bool DuplicateTokenEx(
+            SafeAccessTokenHandle existing, uint access, IntPtr attributes, int level, int type,
+            out SafeAccessTokenHandle copy)
+        {
+            // codeql[cs/call-to-unmanaged-code] the one call to it, for every caller in the tests
+            return Advapi32.DuplicateTokenEx(existing, access, attributes, level, type, out copy);
         }
 
         internal static bool EnumWindows(EnumWindowsProc callback, IntPtr parameter)
         {
             // codeql[cs/call-to-unmanaged-code] the one call to it, for every caller in the tests
-            return Imported.EnumWindows(callback, parameter);
+            return User32.EnumWindows(callback, parameter);
         }
 
         internal static IntPtr GetActiveWindow()
         {
             // codeql[cs/call-to-unmanaged-code] the one call to it, for every caller in the tests
-            return Imported.GetActiveWindow();
+            return User32.GetActiveWindow();
         }
 
         internal static IntPtr GetFocus()
         {
             // codeql[cs/call-to-unmanaged-code] the one call to it, for every caller in the tests
-            return Imported.GetFocus();
+            return User32.GetFocus();
         }
 
         internal static IntPtr GetForegroundWindow()
         {
             // codeql[cs/call-to-unmanaged-code] the one call to it, for every caller in the tests
-            return Imported.GetForegroundWindow();
+            return User32.GetForegroundWindow();
         }
 
         internal static bool GetKeyboardState(byte[] keys)
         {
             // codeql[cs/call-to-unmanaged-code] the one call to it, for every caller in the tests
-            return Imported.GetKeyboardState(keys);
+            return User32.GetKeyboardState(keys);
         }
 
         internal static bool GetWindowDisplayAffinity(IntPtr window, out uint affinity)
         {
             // codeql[cs/call-to-unmanaged-code] the one call to it, for every caller in the tests
-            return Imported.GetWindowDisplayAffinity(window, out affinity);
+            return User32.GetWindowDisplayAffinity(window, out affinity);
         }
 
         internal static int GetWindowLong(IntPtr window, int index)
         {
             // codeql[cs/call-to-unmanaged-code] the one call to it, for every caller in the tests
-            return Imported.GetWindowLong(window, index);
+            return User32.GetWindowLong(window, index);
         }
 
         internal static int GetWindowText(IntPtr window, StringBuilder text, int count)
         {
             // codeql[cs/call-to-unmanaged-code] the one call to it, for every caller in the tests
-            return Imported.GetWindowText(window, text, count);
+            return User32.GetWindowText(window, text, count);
         }
 
         internal static uint GetWindowThreadProcessId(IntPtr window, out uint processId)
         {
             // codeql[cs/call-to-unmanaged-code] the one call to it, for every caller in the tests
-            return Imported.GetWindowThreadProcessId(window, out processId);
+            return User32.GetWindowThreadProcessId(window, out processId);
         }
 
         internal static bool IsWindowEnabled(IntPtr window)
         {
             // codeql[cs/call-to-unmanaged-code] the one call to it, for every caller in the tests
-            return Imported.IsWindowEnabled(window);
+            return User32.IsWindowEnabled(window);
         }
 
         internal static bool IsWindowVisible(IntPtr window)
         {
             // codeql[cs/call-to-unmanaged-code] the one call to it, for every caller in the tests
-            return Imported.IsWindowVisible(window);
+            return User32.IsWindowVisible(window);
         }
 
         internal static void keybd_event(byte key, byte scanCode, uint flags, UIntPtr extraInfo)
         {
             // codeql[cs/call-to-unmanaged-code] the one call to it, for every caller in the tests
-            Imported.keybd_event(key, scanCode, flags, extraInfo);
+            User32.keybd_event(key, scanCode, flags, extraInfo);
+        }
+
+        internal static bool LookupPrivilegeValue(string system, string name, out long identifier)
+        {
+            // codeql[cs/call-to-unmanaged-code] the one call to it, for every caller in the tests
+            return Advapi32.LookupPrivilegeValue(system, name, out identifier);
         }
 
         internal static void mouse_event(uint flags, int x, int y, uint data, UIntPtr extraInfo)
         {
             // codeql[cs/call-to-unmanaged-code] the one call to it, for every caller in the tests
-            Imported.mouse_event(flags, x, y, data, extraInfo);
+            User32.mouse_event(flags, x, y, data, extraInfo);
         }
 
         internal static bool PostMessage(IntPtr window, int message, IntPtr wide, IntPtr low)
         {
             // codeql[cs/call-to-unmanaged-code] the one call to it, for every caller in the tests
-            return Imported.PostMessage(window, message, wide, low);
+            return User32.PostMessage(window, message, wide, low);
         }
 
         internal static bool PrintWindow(IntPtr window, IntPtr canvas, uint flags)
         {
             // codeql[cs/call-to-unmanaged-code] the one call to it, for every caller in the tests
-            return Imported.PrintWindow(window, canvas, flags);
+            return User32.PrintWindow(window, canvas, flags);
         }
 
         internal static IntPtr SendMessage(IntPtr window, int message, IntPtr wide, IntPtr low)
         {
             // codeql[cs/call-to-unmanaged-code] the one call to it, for every caller in the tests
-            return Imported.SendMessage(window, message, wide, low);
+            return User32.SendMessage(window, message, wide, low);
         }
 
         internal static IntPtr SendMessage(IntPtr window, int message, IntPtr wide, string text)
         {
             // codeql[cs/call-to-unmanaged-code] the one call to it, for every caller in the tests
-            return Imported.SendMessage(window, message, wide, text);
+            return User32.SendMessage(window, message, wide, text);
         }
 
         internal static IntPtr SendMessage(IntPtr window, int message, IntPtr wide, StringBuilder text)
         {
             // codeql[cs/call-to-unmanaged-code] the one call to it, for every caller in the tests
-            return Imported.SendMessage(window, message, wide, text);
+            return User32.SendMessage(window, message, wide, text);
         }
 
         internal static IntPtr SendMessage(IntPtr window, int message, IntPtr wide, ref Rect rect)
         {
             // codeql[cs/call-to-unmanaged-code] the one call to it, for every caller in the tests
-            return Imported.SendMessage(window, message, wide, ref rect);
+            return User32.SendMessage(window, message, wide, ref rect);
         }
 
         internal static IntPtr SendMessage(IntPtr window, int message, IntPtr wide, ref ToolInfo tool)
         {
             // codeql[cs/call-to-unmanaged-code] the one call to it, for every caller in the tests
-            return Imported.SendMessage(window, message, wide, ref tool);
+            return User32.SendMessage(window, message, wide, ref tool);
         }
 
         internal static IntPtr SetActiveWindow(IntPtr window)
         {
             // codeql[cs/call-to-unmanaged-code] the one call to it, for every caller in the tests
-            return Imported.SetActiveWindow(window);
+            return User32.SetActiveWindow(window);
         }
 
         internal static bool SetForegroundWindow(IntPtr window)
         {
             // codeql[cs/call-to-unmanaged-code] the one call to it, for every caller in the tests
-            return Imported.SetForegroundWindow(window);
+            return User32.SetForegroundWindow(window);
         }
 
         internal static bool SetKeyboardState(byte[] keys)
         {
             // codeql[cs/call-to-unmanaged-code] the one call to it, for every caller in the tests
-            return Imported.SetKeyboardState(keys);
+            return User32.SetKeyboardState(keys);
         }
 
         /// <summary>
@@ -188,27 +211,27 @@ namespace KeePassGate.Testing
         internal static bool SetPhysicalCursorPos(int x, int y)
         {
             // codeql[cs/call-to-unmanaged-code] the one call to it, for every caller in the tests
-            return Imported.SetPhysicalCursorPos(x, y);
+            return User32.SetPhysicalCursorPos(x, y);
         }
 
         internal static bool SetWindowPos(
             IntPtr window, IntPtr after, int x, int y, int width, int height, uint flags)
         {
             // codeql[cs/call-to-unmanaged-code] the one call to it, for every caller in the tests
-            return Imported.SetWindowPos(window, after, x, y, width, height, flags);
+            return User32.SetWindowPos(window, after, x, y, width, height, flags);
         }
 
         internal static int Shell_NotifyIconGetRect(
             ref NotifyIconIdentifier identifier, out Rect where)
         {
             // codeql[cs/call-to-unmanaged-code] the one call to it, for every caller in the tests
-            return Imported.Shell_NotifyIconGetRect(ref identifier, out where);
+            return Shell32.Shell_NotifyIconGetRect(ref identifier, out where);
         }
 
         internal static bool ShowWindow(IntPtr window, int command)
         {
             // codeql[cs/call-to-unmanaged-code] the one call to it, for every caller in the tests
-            return Imported.ShowWindow(window, command);
+            return User32.ShowWindow(window, command);
         }
 
         /// <summary>
@@ -234,6 +257,15 @@ namespace KeePassGate.Testing
             public int Bottom;
         }
 
+        /// <summary>A `TOKEN_PRIVILEGES` holding one privilege, its identifier and what to do with it.</summary>
+        [StructLayout(LayoutKind.Sequential, Pack = 4)]
+        internal struct TokenPrivilege
+        {
+            public uint Count;
+            public long Identifier;
+            public uint Attributes;
+        }
+
         /// <summary>One tool of a tooltip control, as the control describes it.</summary>
         [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
         internal struct ToolInfo
@@ -251,7 +283,7 @@ namespace KeePassGate.Testing
             public IntPtr Parameter;
         }
 
-        private static class Imported
+        private static class User32
         {
             [DllImport("user32.dll")]
             [return: MarshalAs(UnmanagedType.Bool)]
@@ -375,16 +407,42 @@ namespace KeePassGate.Testing
             internal static extern bool SetWindowPos(
                 IntPtr window, IntPtr after, int x, int y, int width, int height, uint flags);
 
+            [DllImport("user32.dll")]
+            [return: MarshalAs(UnmanagedType.Bool)]
+            // codeql[cs/unmanaged-code] nothing managed restores another process's window
+            internal static extern bool ShowWindow(IntPtr window, int command);
+        }
+
+        private static class Shell32
+        {
             [DllImport("shell32.dll")]
             [DefaultDllImportSearchPaths(DllImportSearchPath.System32)]
             // codeql[cs/unmanaged-code] nothing managed asks the shell where a tray icon is
             internal static extern int Shell_NotifyIconGetRect(
                 ref NotifyIconIdentifier identifier, out Rect where);
+        }
 
-            [DllImport("user32.dll")]
+        // cspell:ignore advapi
+        private static class Advapi32
+        {
+            [DllImport("advapi32.dll", SetLastError = true)]
             [return: MarshalAs(UnmanagedType.Bool)]
-            // codeql[cs/unmanaged-code] nothing managed restores another process's window
-            internal static extern bool ShowWindow(IntPtr window, int command);
+            // codeql[cs/unmanaged-code] nothing managed copies a token rather than its handle
+            internal static extern bool DuplicateTokenEx(
+                SafeAccessTokenHandle existing, uint access, IntPtr attributes, int level, int type,
+                out SafeAccessTokenHandle copy);
+
+            [DllImport("advapi32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
+            [return: MarshalAs(UnmanagedType.Bool)]
+            // codeql[cs/unmanaged-code] nothing managed names a privilege's identifier
+            internal static extern bool LookupPrivilegeValue(string system, string name, out long identifier);
+
+            [DllImport("advapi32.dll", SetLastError = true)]
+            [return: MarshalAs(UnmanagedType.Bool)]
+            // codeql[cs/unmanaged-code] nothing managed enables a privilege
+            internal static extern bool AdjustTokenPrivileges(
+                SafeAccessTokenHandle token, [MarshalAs(UnmanagedType.Bool)] bool disableAll,
+                ref TokenPrivilege state, int length, IntPtr previous, IntPtr returned);
         }
     }
 }

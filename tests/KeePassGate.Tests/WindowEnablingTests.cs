@@ -38,7 +38,7 @@ namespace KeePassGate.Tests
                 (main, dialog) =>
                 {
                     WindowEnabling.Preserve(main, () => KeePassBlocksAndUnblocks(main));
-                    enabledAfterTheSave = User32.IsWindowEnabled(main.Handle);
+                    enabledAfterTheSave = TestNativeMethods.IsWindowEnabled(main.Handle);
                 });
 
             Assert.That(enabledAfterTheSave, Is.False,
@@ -56,11 +56,11 @@ namespace KeePassGate.Tests
             InsideAModalDialogOver(
                 (main, dialog) =>
                 {
-                    Assert.That(User32.IsWindowEnabled(main.Handle), Is.False, "the modal loop disabled it");
+                    Assert.That(TestNativeMethods.IsWindowEnabled(main.Handle), Is.False, "the modal loop disabled it");
                     Assert.That(main.Enabled, Is.True, "and did it without touching the property");
 
                     KeePassBlocksAndUnblocks(main);
-                    enabledAfterTheSave = User32.IsWindowEnabled(main.Handle);
+                    enabledAfterTheSave = TestNativeMethods.IsWindowEnabled(main.Handle);
                 });
 
             Assert.That(enabledAfterTheSave, Is.True);
@@ -76,7 +76,7 @@ namespace KeePassGate.Tests
 
                 WindowEnabling.Preserve(main, () => KeePassBlocksAndUnblocks(main));
 
-                Assert.That(User32.IsWindowEnabled(main.Handle), Is.True,
+                Assert.That(TestNativeMethods.IsWindowEnabled(main.Handle), Is.True,
                     "nothing disabled it, so nothing here may");
                 Assert.That(main.Enabled, Is.True);
             }
@@ -116,7 +116,7 @@ namespace KeePassGate.Tests
                 Assert.That(under.DisabledBefore, Is.True, "the modal loop disabled it");
                 Assert.That(under.EnabledAfter, Is.False,
                     "otherwise the operator can use the main window behind a dialog that is still open");
-                Assert.That(User32.IsWindowEnabled(main.Handle), Is.True, "and it is back once the dialog closes");
+                Assert.That(TestNativeMethods.IsWindowEnabled(main.Handle), Is.True, "and it is back once the dialog closes");
                 Assert.That(main.Enabled, Is.True);
             }
         }
@@ -135,7 +135,7 @@ namespace KeePassGate.Tests
 
                 Assert.That(under.DisabledBefore, Is.True, "the modal loop disabled it");
                 Assert.That(under.EnabledAfter, Is.False);
-                Assert.That(User32.IsWindowEnabled(main.Handle), Is.True, "and it is back once the dialog closes");
+                Assert.That(TestNativeMethods.IsWindowEnabled(main.Handle), Is.True, "and it is back once the dialog closes");
             }
         }
 
@@ -153,7 +153,7 @@ namespace KeePassGate.Tests
 
                 Assert.That(under.DisabledBefore, Is.False, "the modal loop left it alone");
                 Assert.That(under.EnabledAfter, Is.True);
-                Assert.That(User32.IsWindowEnabled(main.Handle), Is.True, "and nothing disabled it afterwards");
+                Assert.That(TestNativeMethods.IsWindowEnabled(main.Handle), Is.True, "and nothing disabled it afterwards");
             }
         }
 
@@ -178,9 +178,9 @@ namespace KeePassGate.Tests
                 timer.Tick += delegate
                 {
                     timer.Stop();
-                    under.DisabledBefore = !User32.IsWindowEnabled(main.Handle);
+                    under.DisabledBefore = !TestNativeMethods.IsWindowEnabled(main.Handle);
                     KeePassBlocksAndUnblocks(main);
-                    under.EnabledAfter = User32.IsWindowEnabled(main.Handle);
+                    under.EnabledAfter = TestNativeMethods.IsWindowEnabled(main.Handle);
                     dialog.Close();
                 };
 

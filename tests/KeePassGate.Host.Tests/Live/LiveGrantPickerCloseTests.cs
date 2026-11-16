@@ -66,11 +66,11 @@ namespace KeePassGate.Host.Tests.Live
             Mouse.Click(cell);
             _picker = driver.WaitForWindowById(GrantTab.PickerName, TimeSpan.FromSeconds(10)) != null;
 
-            User32.PostMessage(window, CloseMessage, IntPtr.Zero, IntPtr.Zero);
+            TestNativeMethods.PostMessage(window, CloseMessage, IntPtr.Zero, IntPtr.Zero);
 
             var process = _session.KeePass.Process;
             var until = DateTime.UtcNow + TimeSpan.FromSeconds(8);
-            while (DateTime.UtcNow < until && !process.HasExited && User32.IsWindowVisible(window))
+            while (DateTime.UtcNow < until && !process.HasExited && TestNativeMethods.IsWindowVisible(window))
             {
                 Thread.Sleep(150);
             }
@@ -79,7 +79,7 @@ namespace KeePassGate.Host.Tests.Live
             // which follows the dialog's going by a message or two.
             Thread.Sleep(3000);
 
-            _dialogWent = !User32.IsWindowVisible(window);
+            _dialogWent = !TestNativeMethods.IsWindowVisible(window);
             process.Refresh();
             _running = !process.HasExited;
 

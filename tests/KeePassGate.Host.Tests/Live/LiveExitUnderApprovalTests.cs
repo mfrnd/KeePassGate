@@ -368,10 +368,10 @@ namespace KeePassGate.Host.Tests.Live
             }
 
             var screen = System.Windows.Forms.Screen.PrimaryScreen.Bounds;
-            User32.SetPhysicalCursorPos(screen.Right - 160, screen.Bottom - 60);
+            TestNativeMethods.SetPhysicalCursorPos(screen.Right - 160, screen.Bottom - 60);
             Thread.Sleep(200);
-            User32.PostMessage(icon, TrayCallback, new IntPtr(id), new IntPtr(RightButtonDown));
-            User32.PostMessage(icon, TrayCallback, new IntPtr(id), new IntPtr(RightButtonUp));
+            TestNativeMethods.PostMessage(icon, TrayCallback, new IntPtr(id), new IntPtr(RightButtonDown));
+            TestNativeMethods.PostMessage(icon, TrayCallback, new IntPtr(id), new IntPtr(RightButtonUp));
             return Uia.WaitForOrNull(() => ExitItem(process, before), MenuTimeout);
         }
 
@@ -383,10 +383,10 @@ namespace KeePassGate.Host.Tests.Live
         {
             var wanted = (uint)process.Id;
             var candidates = new List<IntPtr>();
-            User32.EnumWindows((window, parameter) =>
+            TestNativeMethods.EnumWindows((window, parameter) =>
             {
                 uint owner;
-                if (User32.GetWindowThreadProcessId(window, out owner) != 0 && owner == wanted)
+                if (TestNativeMethods.GetWindowThreadProcessId(window, out owner) != 0 && owner == wanted)
                 {
                     candidates.Add(window);
                 }
@@ -398,15 +398,15 @@ namespace KeePassGate.Host.Tests.Live
             {
                 for (uint candidate = 0; candidate < 8; candidate++)
                 {
-                    var identifier = new User32.NotifyIconIdentifier
+                    var identifier = new TestNativeMethods.NotifyIconIdentifier
                     {
-                        Size = (uint)Marshal.SizeOf<User32.NotifyIconIdentifier>(),
+                        Size = (uint)Marshal.SizeOf<TestNativeMethods.NotifyIconIdentifier>(),
                         Window = window,
                         Id = candidate
                     };
 
-                    User32.Rect where;
-                    if (User32.Shell_NotifyIconGetRect(ref identifier, out where) == 0)
+                    TestNativeMethods.Rect where;
+                    if (TestNativeMethods.Shell_NotifyIconGetRect(ref identifier, out where) == 0)
                     {
                         icon = window;
                         id = candidate;

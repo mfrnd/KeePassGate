@@ -889,8 +889,8 @@ namespace KeePassGate.Host.Tests
             box.Select(0, 0);
             box.ScrollToCaret();
 
-            var room = new User32.Rect();
-            User32.SendMessage(box.Handle, GetRect, IntPtr.Zero, ref room);
+            var room = new TestNativeMethods.Rect();
+            TestNativeMethods.SendMessage(box.Handle, GetRect, IntPtr.Zero, ref room);
 
             var first = PositionOf(box, 0);
             var last = PositionOf(box, box.TextLength - 1) + (PositionOf(box, 1) - first);
@@ -929,7 +929,7 @@ namespace KeePassGate.Host.Tests
         /// <summary>Where an edit control draws one of its characters, from its left edge.</summary>
         private static int PositionOf(TextBox box, int index)
         {
-            return (short)(User32.SendMessage(box.Handle, PositionFromCharacter, new IntPtr(index), IntPtr.Zero).ToInt64() & 0xFFFF);
+            return (short)(TestNativeMethods.SendMessage(box.Handle, PositionFromCharacter, new IntPtr(index), IntPtr.Zero).ToInt64() & 0xFFFF);
         }
 
         /// <summary>The message asking an edit control for the rectangle it draws its text in.</summary>

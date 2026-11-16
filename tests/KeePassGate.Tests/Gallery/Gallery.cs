@@ -216,7 +216,7 @@ namespace KeePassGate.Tests.Gallery
 
                 try
                 {
-                    printed = User32.PrintWindow(window.Handle, hdc, PrintWholeWindow);
+                    printed = TestNativeMethods.PrintWindow(window.Handle, hdc, PrintWholeWindow);
                 }
                 finally
                 {

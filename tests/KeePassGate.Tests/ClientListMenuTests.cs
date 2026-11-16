@@ -311,7 +311,7 @@ namespace KeePassGate.Tests
         /// <summary>What Shift and F10 and the menu key send: a request with no position.</summary>
         private static void AskFromTheKeyboard(DataGridView grid)
         {
-            User32.SendMessage(grid.Handle, ContextMenu, grid.Handle, (IntPtr)(-1));
+            TestNativeMethods.SendMessage(grid.Handle, ContextMenu, grid.Handle, (IntPtr)(-1));
             Pump();
         }
 
@@ -319,16 +319,16 @@ namespace KeePassGate.Tests
         private static void RightClick(DataGridView grid, Point at)
         {
             var where = (IntPtr)((at.Y << 16) | (at.X & 0xFFFF));
-            User32.PostMessage(grid.Handle, RightDown, (IntPtr)2, where);
+            TestNativeMethods.PostMessage(grid.Handle, RightDown, (IntPtr)2, where);
             Pump();
-            User32.PostMessage(grid.Handle, RightUp, IntPtr.Zero, where);
+            TestNativeMethods.PostMessage(grid.Handle, RightUp, IntPtr.Zero, where);
             Pump();
         }
 
         private static void Key(Control control, Keys key)
         {
-            User32.PostMessage(control.Handle, KeyDown, (IntPtr)(int)key, IntPtr.Zero);
-            User32.PostMessage(control.Handle, KeyUp, (IntPtr)(int)key, IntPtr.Zero);
+            TestNativeMethods.PostMessage(control.Handle, KeyDown, (IntPtr)(int)key, IntPtr.Zero);
+            TestNativeMethods.PostMessage(control.Handle, KeyUp, (IntPtr)(int)key, IntPtr.Zero);
             Pump();
         }
 

@@ -1327,11 +1327,13 @@ the tools this branch carries.
   configurations it builds. A file holding a marker that does not parse cleanly is refused, so a
   grammar older than the code fails loudly rather than being read with a guess.
 - **A call into Windows goes through one class on each side**: `Ui/NativeMethods` in the plugin and
-  `Shared/User32` in the tests, where each declaration is private and called once, by the method of
-  its name beside it. CodeQL reports every declaration of unmanaged code and every call to one, and
+  `Shared/TestNativeMethods` in the tests, built alike. The methods every caller uses come first,
+  and below them a private class for each DLL holds its declarations, each called once, by the
+  method of its name. CodeQL reports every declaration of unmanaged code and every call to one, and
   nothing managed does what these do, so both are suppressed there with the reason, and nowhere
-  else. A new call into Windows is a new pair of them in that file. The tests' class is not
-  `NativeMethods` too, because a test importing the plugin's `KeePassGate.Ui` would see both.
+  else. A new call into Windows is a new pair of them in that file. The tests' class has a name of
+  its own because the plugin's is visible to the tests, and a test importing the plugin's
+  `KeePassGate.Ui` would find two classes of one name.
 - **A path is joined with `Paths.Join`, never `Path.Combine`**, which starts again at any rooted
   part after the first and drops what came before it, silently. The helper refuses that part, and
   one climbing out with `..`, and is the plugin's and the tests' alike; CodeQL reports every call

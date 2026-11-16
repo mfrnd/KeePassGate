@@ -135,7 +135,7 @@ namespace KeePassGate.Host.Tests.Live
                 {
                     posted = DateTime.UtcNow;
                     _posted = broadcast != IntPtr.Zero &&
-                              User32.PostMessage(broadcast, SessionChange, new IntPtr(SessionLocked), IntPtr.Zero);
+                              TestNativeMethods.PostMessage(broadcast, SessionChange, new IntPtr(SessionLocked), IntPtr.Zero);
                     over = SaveOver(keePass);
                 }
 

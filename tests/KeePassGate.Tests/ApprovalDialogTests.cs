@@ -55,14 +55,14 @@ namespace KeePassGate.Tests
                 owner.Controls.Add(box);
                 owner.Show();
                 OffScreenForm.Pump();
-                User32.SetActiveWindow(owner.Handle);
+                TestNativeMethods.SetActiveWindow(owner.Handle);
                 box.Focus();
                 OffScreenForm.Pump();
 
                 // An assertion rather than an assumption, as `RenewalApprovalTests` gives the
                 // reason for: this is the one test of a dialog never taking the focus, and an
                 // assumption that never holds leaves it measuring nothing without a word.
-                Assert.That(User32.GetActiveWindow(), Is.EqualTo(owner.Handle),
+                Assert.That(TestNativeMethods.GetActiveWindow(), Is.EqualTo(owner.Handle),
                     "the owner did not become active, so nothing below is measured");
 
                 Place(dialog);
@@ -76,10 +76,10 @@ namespace KeePassGate.Tests
                     timer.Tick += delegate
                     {
                         timer.Stop();
-                        active = User32.GetActiveWindow();
+                        active = TestNativeMethods.GetActiveWindow();
                         dialogHasFocus = dialog.ContainsFocus;
-                        boxHasFocus = User32.GetFocus() == box.Handle;
-                        style = User32.GetWindowLong(dialog.Handle, ExStyle);
+                        boxHasFocus = TestNativeMethods.GetFocus() == box.Handle;
+                        style = TestNativeMethods.GetWindowLong(dialog.Handle, ExStyle);
                         dialog.Close();
                     };
 
@@ -160,7 +160,7 @@ namespace KeePassGate.Tests
                 {
                     var button = Focus(ControlTree.FindByName<Button>(dialog, name));
 
-                    User32.PostMessage(button.Handle, message, (IntPtr)'a', IntPtr.Zero);
+                    TestNativeMethods.PostMessage(button.Handle, message, (IntPtr)'a', IntPtr.Zero);
                     OffScreenForm.Pump();
 
                     Assert.That(Decision(dialog), Is.Not.EqualTo(PairingDecision.Approved),
@@ -238,7 +238,7 @@ namespace KeePassGate.Tests
                 var lifetime = Focus(ControlTree.FindByName<ComboBox>(dialog, GateTab.ApprovalLifetimeName));
                 var before = lifetime.SelectedIndex;
 
-                User32.PostMessage(lifetime.Handle, WmChar, (IntPtr)typed, IntPtr.Zero);
+                TestNativeMethods.PostMessage(lifetime.Handle, WmChar, (IntPtr)typed, IntPtr.Zero);
                 OffScreenForm.Pump();
 
                 Assert.That(lifetime.SelectedIndex, Is.EqualTo(before));
@@ -257,12 +257,12 @@ namespace KeePassGate.Tests
                 OffScreenForm.Pump();
                 Assert.That(list.GetItemChecked(0), Is.True, "the profile was not checked, so nothing below is measured");
 
-                User32.PostMessage(list.Handle, WmChar, (IntPtr)'o', IntPtr.Zero);
+                TestNativeMethods.PostMessage(list.Handle, WmChar, (IntPtr)'o', IntPtr.Zero);
                 OffScreenForm.Pump();
                 Assert.That(list.GetItemChecked(0), Is.True, "a letter unchecked a profile");
 
                 Press(list, Keys.Space);
-                User32.PostMessage(list.Handle, WmChar, (IntPtr)' ', IntPtr.Zero);
+                TestNativeMethods.PostMessage(list.Handle, WmChar, (IntPtr)' ', IntPtr.Zero);
                 OffScreenForm.Pump();
                 Assert.That(list.GetItemChecked(0), Is.False, "Space still toggles");
             }
@@ -412,8 +412,8 @@ namespace KeePassGate.Tests
 
         private static void Press(Control control, Keys key)
         {
-            User32.PostMessage(control.Handle, WmKeyDown, (IntPtr)(int)key, IntPtr.Zero);
-            User32.PostMessage(control.Handle, WmKeyUp, (IntPtr)(int)key, IntPtr.Zero);
+            TestNativeMethods.PostMessage(control.Handle, WmKeyDown, (IntPtr)(int)key, IntPtr.Zero);
+            TestNativeMethods.PostMessage(control.Handle, WmKeyUp, (IntPtr)(int)key, IntPtr.Zero);
             OffScreenForm.Pump();
         }
     }

@@ -103,7 +103,7 @@ namespace KeePassGate.Host.Tests.Live
                 }
 
                 replaced.Add(new Replaced(handle, was));
-                User32.SendMessage(handle, SetText, IntPtr.Zero, wanted.Value);
+                TestNativeMethods.SendMessage(handle, SetText, IntPtr.Zero, wanted.Value);
             }
 
             return replaced;
@@ -119,21 +119,21 @@ namespace KeePassGate.Host.Tests.Live
 
             foreach (var one in replaced)
             {
-                User32.SendMessage(one.Handle, SetText, IntPtr.Zero, one.Was ?? string.Empty);
+                TestNativeMethods.SendMessage(one.Handle, SetText, IntPtr.Zero, one.Was ?? string.Empty);
             }
         }
 
         /// <summary>What a control says now.</summary>
         private static string TextOf(IntPtr handle)
         {
-            var length = User32.SendMessage(handle, GetTextLength, IntPtr.Zero, IntPtr.Zero).ToInt32();
+            var length = TestNativeMethods.SendMessage(handle, GetTextLength, IntPtr.Zero, IntPtr.Zero).ToInt32();
             if (length <= 0)
             {
                 return string.Empty;
             }
 
             var built = new System.Text.StringBuilder(length + 1);
-            User32.SendMessage(handle, GetText, new IntPtr(built.Capacity), built);
+            TestNativeMethods.SendMessage(handle, GetText, new IntPtr(built.Capacity), built);
             return built.ToString();
         }
 
