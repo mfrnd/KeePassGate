@@ -397,7 +397,10 @@ class Prepared:
         for name in FILES:
             _write(self.directory / name, self._handles[name], contents[name])
 
+        # Written before the directory is flushed, so that a refusal to flush leaves the files
+        # where they are rather than taking away an identity the gate has already admitted.
         self._written = True
+        _flush(self.directory)
 
     def __enter__(self) -> Prepared:
         """Hand back the same handles, which `prepare` has already opened."""
@@ -882,12 +885,40 @@ def _make(directory: Path) -> None:
     raise. `prepare` is the only caller and runs this once, before the exchange, so a refusal
     then costs nothing; what is written afterwards goes through the handles `prepare` opened, and
     `save` on its own prepares for itself.
+
+    **Each directory this made is flushed into the directory above it**, for the reason `_flush`
+    gives.
     """
     # Collected before the call, because afterwards there is no way to tell what it made.
     fresh = [path for path in (directory, *directory.parents) if not path.exists()]
     directory.mkdir(parents=True, exist_ok=True, mode=stat.S_IRWXU)
     for path in fresh:
         _own(path, stat.S_IRWXU)
+        _flush(path.parent)
+
+
+def _flush(directory: Path) -> None:
+    """Put a directory's own entries on the disk, which flushing the files inside it does not.
+
+    On POSIX a file's name is the directory's data rather than the file's, and `fsync(2)` on the
+    file leaves the name in the system's cache: a power loss could then take away a new file, or a
+    new directory, whose contents were flushed. That would undo a first pairing's identity, and
+    the copies a renewal keeps beside the identity's own while the four files are written over.
+    **Nothing on Windows**, which cannot open a directory to flush it, and whose file system
+    journals a file's name with the rest of the file's metadata.
+    """
+    if os.name == "nt":
+        return
+
+    # cspell:ignore RDONLY
+    try:
+        descriptor = os.open(directory, os.O_RDONLY | getattr(os, "O_DIRECTORY", 0))
+        try:
+            os.fsync(descriptor)
+        finally:
+            os.close(descriptor)
+    except OSError as error:
+        raise StorageError(f"{directory} could not be flushed to the disk: {error}") from error
 
 
 def _write(path: Path, descriptor: int, content: bytes) -> None:
@@ -907,7 +938,8 @@ def _write(path: Path, descriptor: int, content: bytes) -> None:
     cache, because a renewal takes the other copies of an identity away once it has written this
     copy, and gives the old certificate up on the gate: written and not flushed, a power loss
     straight after a renewal that reported success could leave the identity's files empty with
-    neither copy left and the old certificate revoked.
+    neither copy left and the old certificate revoked. That is the file's data: its name is the
+    directory's, which `Prepared.write` flushes once all four are written.
     """
     _own(path, _OWNER_ONLY, descriptor)
 
