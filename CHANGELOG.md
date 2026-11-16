@@ -11,6 +11,12 @@ none, since it releases both.
 
 ## 0.2.0, unreleased
 
+- **A group or entry dialog closed by another program while a grant picker is open no longer ends
+  KeePass.** WinForms closed the picker after the dialog had gone, and the plugin disposed it
+  inside its own close, which KeePass answered with its fatal error box before ending, without
+  unloading the plugin. The picker is now let go of a message later, and what it held is dropped,
+  since the dialog it was for has closed. An operator's own ways of leaving the dialog, a press
+  outside the picker or Alt and F4, close the picker first and never reached this.
 - **The plugin is built against KeePass 2.62 and needs that release or a later release.** It
   was built against 2.61.1. A plugin loads in the KeePass it was built against and in every
   later release, since a KeePass redirects every earlier version to itself, and in no earlier
