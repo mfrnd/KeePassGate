@@ -1,0 +1,56 @@
+A-resaved.kdbx: cannot be read by KeePassLib: FormatException: The input is not a valid Base-64 string as it contains a non-base 64 character, more than two padding characters, or an illegal character among the padding characters. 
+   at System.Convert.FromBase64_Decode(Char* startInputPtr, Int32 inputLength, Byte* startDestPtr, Int32 destLength)
+   at System.Convert.FromBase64CharPtr(Char* inputPtr, Int32 inputLength)
+   at System.Convert.FromBase64String(String s)
+   at KeePassLib.Serialization.KdbxFile.ReadTime(XmlReader xr)
+   at KeePassLib.Serialization.KdbxFile.ReadXmlElement(KdbContext ctx, XmlReader xr)
+   at KeePassLib.Serialization.KdbxFile.ReadDocumentStreamed(XmlReader xr, Stream sParentStream)
+
+A+B.kdbx: cannot be read by KeePassLib: FormatException: The input is not a valid Base-64 string as it contains a non-base 64 character, more than two padding characters, or an illegal character among the padding characters. 
+   at System.Convert.FromBase64_Decode(Char* startInputPtr, Int32 inputLength, Byte* startDestPtr, Int32 destLength)
+   at System.Convert.FromBase64CharPtr(Char* inputPtr, Int32 inputLength)
+   at System.Convert.FromBase64String(String s)
+   at KeePassLib.Serialization.KdbxFile.ReadTime(XmlReader xr)
+   at KeePassLib.Serialization.KdbxFile.ReadXmlElement(KdbContext ctx, XmlReader xr)
+   at KeePassLib.Serialization.KdbxFile.ReadDocumentStreamed(XmlReader xr, Stream sParentStream)
+
+B+A.kdbx: cannot be read by KeePassLib: FormatException: The input is not a valid Base-64 string as it contains a non-base 64 character, more than two padding characters, or an illegal character among the padding characters. 
+   at System.Convert.FromBase64_Decode(Char* startInputPtr, Int32 inputLength, Byte* startDestPtr, Int32 destLength)
+   at System.Convert.FromBase64CharPtr(Char* inputPtr, Int32 inputLength)
+   at System.Convert.FromBase64String(String s)
+   at KeePassLib.Serialization.KdbxFile.ReadTime(XmlReader xr)
+   at KeePassLib.Serialization.KdbxFile.ReadXmlElement(KdbContext ctx, XmlReader xr)
+   at KeePassLib.Serialization.KdbxFile.ReadDocumentStreamed(XmlReader xr, Stream sParentStream)
+
+A+Btie.kdbx: cannot be read by KeePassLib: FormatException: The input is not a valid Base-64 string as it contains a non-base 64 character, more than two padding characters, or an illegal character among the padding characters. 
+   at System.Convert.FromBase64_Decode(Char* startInputPtr, Int32 inputLength, Byte* startDestPtr, Int32 destLength)
+   at System.Convert.FromBase64CharPtr(Char* inputPtr, Int32 inputLength)
+   at System.Convert.FromBase64String(String s)
+   at KeePassLib.Serialization.KdbxFile.ReadTime(XmlReader xr)
+   at KeePassLib.Serialization.KdbxFile.ReadXmlElement(KdbContext ctx, XmlReader xr)
+   at KeePassLib.Serialization.KdbxFile.ReadDocumentStreamed(XmlReader xr, Stream sParentStream)
+
+Btie+A.kdbx: cannot be read by KeePassLib: FormatException: The input is not a valid Base-64 string as it contains a non-base 64 character, more than two padding characters, or an illegal character among the padding characters. 
+   at System.Convert.FromBase64_Decode(Char* startInputPtr, Int32 inputLength, Byte* startDestPtr, Int32 destLength)
+   at System.Convert.FromBase64CharPtr(Char* inputPtr, Int32 inputLength)
+   at System.Convert.FromBase64String(String s)
+   at KeePassLib.Serialization.KdbxFile.ReadTime(XmlReader xr)
+   at KeePassLib.Serialization.KdbxFile.ReadXmlElement(KdbContext ctx, XmlReader xr)
+   at KeePassLib.Serialization.KdbxFile.ReadDocumentStreamed(XmlReader xr, Stream sParentStream)
+
+A+Bcd.kdbx: cannot be read by KeePassLib: FormatException: The input is not a valid Base-64 string as it contains a non-base 64 character, more than two padding characters, or an illegal character among the padding characters. 
+   at System.Convert.FromBase64_Decode(Char* startInputPtr, Int32 inputLength, Byte* startDestPtr, Int32 destLength)
+   at System.Convert.FromBase64CharPtr(Char* inputPtr, Int32 inputLength)
+   at System.Convert.FromBase64String(String s)
+   at KeePassLib.Serialization.KdbxFile.ReadTime(XmlReader xr)
+   at KeePassLib.Serialization.KdbxFile.ReadXmlElement(KdbContext ctx, XmlReader xr)
+   at KeePassLib.Serialization.KdbxFile.ReadDocumentStreamed(XmlReader xr, Stream sParentStream)
+
+Bcd+A.kdbx: cannot be read by KeePassLib: FormatException: The input is not a valid Base-64 string as it contains a non-base 64 character, more than two padding characters, or an illegal character among the padding characters. 
+   at System.Convert.FromBase64_Decode(Char* startInputPtr, Int32 inputLength, Byte* startDestPtr, Int32 destLength)
+   at System.Convert.FromBase64CharPtr(Char* inputPtr, Int32 inputLength)
+   at System.Convert.FromBase64String(String s)
+   at KeePassLib.Serialization.KdbxFile.ReadTime(XmlReader xr)
+   at KeePassLib.Serialization.KdbxFile.ReadXmlElement(KdbContext ctx, XmlReader xr)
+   at KeePassLib.Serialization.KdbxFile.ReadDocumentStreamed(XmlReader xr, Stream sParentStream)
+

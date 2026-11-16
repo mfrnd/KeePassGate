@@ -1,0 +1,18 @@
+Installed 12 packages in 312ms
+pykeepass 4.2.0 resaved version (4, 1)
+injected 3 unknown elements
+A-unknown.kdbx unknown elements: 3 | E custom_properties: ['Base', 'Note-A', 'Secret'] | history: 2 | kdbx (4, 1)
+A-unknown-keepass.kdbx unknown elements: 0 | E custom_properties: ['Base', 'Note-A', 'Secret'] | history: 2 | kdbx (4, 1)
+A-resaved.kdbx: kdbx 4.1, db customdata KPG.Empty=@2026-01-01T10:00:00Z; KPG.Key=v-base@2026-01-01T10:00:00Z;  deleted objects 0
+  G @2026-01-01T10:00:00Z customdata KPG=grule-base@none;  entries E,EA
+  E @2026-01-01T10:00:10Z strings Base=b,Note-A=from A,Password[p]=p,Secret[p]=s customdata KPG=rule-base@none;  tags t1 binaries 1
+    history @2026-01-01T09:00:00Z strings Base=b,Password[p]=p,Secret[p]=s customdata KPG=rule-base@none; 
+    history @2026-01-01T10:00:00Z strings Base=b,Password[p]=p,Secret[p]=s customdata KPG=rule-base@none; 
+A-unknown.kdbx: kdbx 4.1, db customdata KPG.Empty=@2026-01-01T10:00:00Z; KPG.Key=v-base@2026-01-01T10:00:00Z;  deleted objects 0
+  G @2026-01-01T10:00:00Z customdata KPG=grule-base@none;  entries E,EA
+  E @2026-01-01T10:00:10Z strings Base=b,Note-A=from A,Password[p]=p,Secret[p]=s customdata KPG=rule-base@none;  tags t1 binaries 1
+    history @2026-01-01T09:00:00Z strings Base=b,Password[p]=p,Secret[p]=s customdata KPG=rule-base@none; 
+    history @2026-01-01T10:00:00Z strings Base=b,Password[p]=p,Secret[p]=s customdata KPG=rule-base@none;
+injected 3 unknown elements
+A40-unknown-kdbxweb.kdbx unknown elements: 0 | E custom_properties: ['Base', 'Note-A', 'Secret'] | history: 2 | kdbx (4, 0)
+A-resaved.kdbx unknown elements: 0 | E custom_properties: ['Base', 'Note-A', 'Secret'] | history: 2 | kdbx (4, 1)

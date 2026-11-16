@@ -1,0 +1,8 @@
+base.kdbx: kdbx 4.0, db customdata KPG.Empty=@none; KPG.Key=v-base@none;  deleted objects 0
+  G @2026-01-01T10:00:00Z customdata KPG=grule-base@none;  entries E
+  E @2026-01-01T10:00:00Z strings Base=b,Password[p]=p,Secret[p]=s customdata KPG=rule-base@none;  tags t1 binaries 1
+    history @2026-01-01T09:00:00Z strings Base=b,Password[p]=p,Secret[p]=s customdata KPG=rule-base@none; 
+base.kdbx: kdbx 4.1, db customdata KPG.Empty=@2026-01-01T10:00:00Z; KPG.Key=v-base@2026-01-01T10:00:00Z;  deleted objects 0
+  G @2026-01-01T10:00:00Z customdata KPG=grule-base@none;  entries E
+  E @2026-01-01T10:00:00Z strings Base=b,Password[p]=p,Secret[p]=s customdata KPG=rule-base@none;  tags t1 binaries 1
+    history @2026-01-01T09:00:00Z strings Base=b,Password[p]=p,Secret[p]=s customdata KPG=rule-base@none;

@@ -113,3 +113,11 @@ words:
   - kpsync
   - histmax
   - fileversion
+  # Identifiers in the ground-others probes, which are carried unchanged: the copy `Btie`, the
+  # group rule `grule-base` and the label `customdata` of `Kp.cs`. And two programs, spelled as
+  # their projects spell them.
+  - Btie
+  - grule
+  - customdata
+  - KeePassium
+  - gokeepasslib

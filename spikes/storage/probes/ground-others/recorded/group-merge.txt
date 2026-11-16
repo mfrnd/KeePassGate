@@ -1,0 +1,12 @@
+
+Bg.kdbx: kdbx 4.0, db customdata KPG.Empty=@none; KPG.Key=v-base@none;  deleted objects 0
+  G @2026-01-01T10:00:20Z customdata KPG=grule-B@none;  entries E
+kdbxweb-A+Bg.kdbx: kdbx 4.0, db customdata KPG.Key=v-base@none;  deleted objects 0
+  G @2026-01-01T10:00:20Z customdata KPG=grule-base@none;  entries E,EA
+kdbxweb-Bg+A.kdbx: kdbx 4.0, db customdata KPG.Key=v-base@none;  deleted objects 0
+  G @2026-01-01T10:00:20Z customdata KPG=grule-B@none;  entries E,EA
+keepass-A+Bg.kdbx: kdbx 4.0, db customdata KPG.Empty=@none; KPG.Key=v-base@none;  deleted objects 0
+  G @2026-01-01T10:00:20Z customdata KPG=grule-B@none;  entries E,EA
+keepass-Bg+A.kdbx: kdbx 4.0, db customdata KPG.Empty=@none; KPG.Key=v-base@none;  deleted objects 0
+  G @2026-01-01T10:00:20Z customdata KPG=grule-B@none;  entries E,EA
+
