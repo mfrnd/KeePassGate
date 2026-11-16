@@ -1063,6 +1063,12 @@ none, since it releases both.
   database's answer changed while the renewal dialog stood**, Allow renewal accepted or a
   synchronize among the changes. It was compared with what the database held when the dialog
   came up, so that save took the change for a later answer and let the operator's go unwritten.
+- **A new field or attachment name holding any default ignorable code point is `400 malformed`**,
+  as a name holding a format character already was. The Hangul fillers are letters rather than
+  format characters, Unicode marks them to be drawn as nothing, and KeePass weighs them when it
+  compares names, so `Pass` and `word` around one were made with `201` as a second name beside
+  `Password`. The variation selectors, the combining grapheme joiner and the Khmer inherent vowels
+  are refused with them.
 
 ## 0.1.0, 2026-10-25
 

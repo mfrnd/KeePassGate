@@ -1110,7 +1110,8 @@ namespace KeePassGate.Pipeline
         }
 
         /// <summary>
-        /// Whether a name holds a Unicode format character, a character of general category Cf.
+        /// Whether a name holds a Unicode format character, a character of general category Cf, or
+        /// a default ignorable code point.
         /// </summary>
         /// <remarks>
         /// **Refused in a name, because KeePass acts on what a name says.** It lists an attachment
@@ -1132,6 +1133,14 @@ namespace KeePassGate.Pipeline
         /// which weighs some of these and not others, so `Pass` and `word` around a zero-width
         /// space were a second name to KeePass and the same name to the eye.
         ///
+        /// **And so is every default ignorable code point**, which Unicode asks a program with no
+        /// use for it to draw as nothing, and not every one of which is a format character. The
+        /// Hangul fillers are letters, so a category test let them through, and the collation
+        /// weighs them, so `Pass` and `word` around one were made with `201` as a second name
+        /// beside `Password`. The combining grapheme joiner, the variation selectors and the Khmer
+        /// inherent vowels are marks. <see cref="Ignorable"/> holds the property's code points,
+        /// written out rather than asked of the framework, whose tables have no such property.
+        ///
         /// Asked of each character as Unicode classes it, a pair of surrogates as the character it
         /// encodes, so that a format character beyond the first plane is refused as well. A value
         /// is not a name and keeps them, because right to left text is ordinary in a note. A name
@@ -1142,14 +1151,59 @@ namespace KeePassGate.Pipeline
         {
             for (var at = 0; at < name.Length; at++)
             {
-                if (CharUnicodeInfo.GetUnicodeCategory(name, at) == UnicodeCategory.Format)
+                var paired = char.IsSurrogatePair(name, at);
+                var code = paired ? char.ConvertToUtf32(name, at) : name[at];
+
+                if (CharUnicodeInfo.GetUnicodeCategory(name, at) == UnicodeCategory.Format || Ignored(code))
                 {
                     return true;
                 }
 
-                if (char.IsHighSurrogate(name[at]) && at + 1 < name.Length && char.IsLowSurrogate(name[at + 1]))
+                if (paired)
                 {
                     at++;
+                }
+            }
+
+            return false;
+        }
+
+        /// <summary>
+        /// The default ignorable code points of Unicode 16.0, `DerivedCoreProperties.txt`, as
+        /// pairs of the first and the last code point of each range.
+        /// </summary>
+        /// <remarks>
+        /// Unassigned code points inside the property are kept in it, as Unicode reserves them to
+        /// be drawn as nothing once assigned.
+        /// </remarks>
+        private static readonly int[] Ignorable =
+        {
+            0x00AD, 0x00AD,
+            0x034F, 0x034F,
+            0x061C, 0x061C,
+            0x115F, 0x1160,
+            0x17B4, 0x17B5,
+            0x180B, 0x180F,
+            0x200B, 0x200F,
+            0x202A, 0x202E,
+            0x2060, 0x206F,
+            0x3164, 0x3164,
+            0xFE00, 0xFE0F,
+            0xFEFF, 0xFEFF,
+            0xFFA0, 0xFFA0,
+            0xFFF0, 0xFFF8,
+            0x1BCA0, 0x1BCA3,
+            0x1D173, 0x1D17A,
+            0xE0000, 0xE0FFF,
+        };
+
+        private static bool Ignored(int code)
+        {
+            for (var at = 0; at < Ignorable.Length; at += 2)
+            {
+                if (code >= Ignorable[at] && code <= Ignorable[at + 1])
+                {
+                    return true;
                 }
             }
 
