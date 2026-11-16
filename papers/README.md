@@ -54,6 +54,7 @@ evidence to its place here.
 | `ground/measured-hide-and-lock.md` | `spikes\storage\probes\desktop-hide-and-lock\` | `recorded\` there, the report's `desktop-evidence\hide-and-lock\` |
 | `ground/measured-k2a-background.md` | `spikes\storage\android\`, `RUN.md` section 16 | `recorded\k2a-background\` there |
 | `ground/measured-decided-store.md` | `spikes\storage\probes\store-as-a-whole\`, run with `-Decided` | `recorded-decided\` there |
+| `ground/measured-two-readings.md` | `spikes\storage\probes\store-as-a-whole\`, run with `-Rewrite` and with `-Copies` | `recorded-rewrite\` and `recorded-copies\` there |
 
 The two desktop families show windows and the Android records come from an emulator, so neither
 runs again from the branch without those; each `RUN.md` states what did.
