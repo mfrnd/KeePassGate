@@ -113,15 +113,19 @@ namespace KeePassGate.Pairing
         }
 
         /// <summary>
-        /// Takes back this session's answer about renewing this certificate, and the owed answer a
-        /// clients page held back with <see cref="Withhold"/>, so that its next renewal raises the
-        /// dialog again, and answers whether there was either.
+        /// Takes back the answers a clients page lifted about renewing this certificate: this
+        /// session's answer when it stood at the press, and the owed answer the page held back with
+        /// <see cref="Withhold"/>, so that its next renewal raises the dialog again, and answers
+        /// whether there was either.
         /// </summary>
         /// <remarks>
-        /// **The owed answer that was held back and no other**: an answer given on a renewal dialog
-        /// since the press is newer than the lift, and stands.
+        /// **The answers that stood at the press and no others**: an answer given on a renewal
+        /// dialog since the press is newer than the lift, and stands. An owed answer until a date
+        /// stops refusing once its day begins, the dialog is raised again, and a refusal for this
+        /// session given there was taken back by an OK that had never seen it.
         /// </remarks>
-        public bool Lift(string admissionKey, OwedAnswer withheld)
+        /// <param name="session">Whether this session's answer stood at the press.</param>
+        public bool Lift(string admissionKey, OwedAnswer withheld, bool session)
         {
             if (string.IsNullOrEmpty(admissionKey))
             {
@@ -130,7 +134,7 @@ namespace KeePassGate.Pairing
 
             lock (_lock)
             {
-                var session = _refused.Remove(admissionKey);
+                session = session && _refused.Remove(admissionKey);
                 var owed = false;
 
                 OwedAnswer held;
@@ -223,6 +227,17 @@ namespace KeePassGate.Pairing
         /// </remarks>
         public RenewalRefusal Answer(string admissionKey, DateTimeOffset now)
         {
+            return Answer(admissionKey, now, null, false);
+        }
+
+        /// <summary>
+        /// The answer <see cref="Answer(string, DateTimeOffset)"/> gives once a lift of these
+        /// answers lands: what a clients page shows while its lift waits for the dialog's OK.
+        /// </summary>
+        /// <param name="withheld">The owed answer the lift held back, or null for none.</param>
+        /// <param name="session">Whether the lift takes this session's answer back.</param>
+        public RenewalRefusal Answer(string admissionKey, DateTimeOffset now, OwedAnswer withheld, bool session)
+        {
             if (string.IsNullOrEmpty(admissionKey))
             {
                 return null;
@@ -230,13 +245,13 @@ namespace KeePassGate.Pairing
 
             lock (_lock)
             {
-                OwedAnswer owed;
-                if (_owed.TryGetValue(admissionKey, out owed) && owed.Refusal.Refuses(now))
+                var owed = Remaining(admissionKey, withheld);
+                if (owed != null && owed.Refusal.Refuses(now))
                 {
                     return owed.Refusal;
                 }
 
-                return _refused.Contains(admissionKey) ? RenewalRefusal.ThisSession() : null;
+                return !session && _refused.Contains(admissionKey) ? RenewalRefusal.ThisSession() : null;
             }
         }
 
@@ -246,6 +261,16 @@ namespace KeePassGate.Pairing
         /// </summary>
         public bool Holds(string admissionKey)
         {
+            return Holds(admissionKey, null, false);
+        }
+
+        /// <summary>
+        /// Whether this holds any answer about renewing this certificate once a lift of these
+        /// answers lands, as <see cref="Answer(string, DateTimeOffset, OwedAnswer, bool)"/> reads
+        /// it.
+        /// </summary>
+        public bool Holds(string admissionKey, OwedAnswer withheld, bool session)
+        {
             if (string.IsNullOrEmpty(admissionKey))
             {
                 return false;
@@ -253,8 +278,23 @@ namespace KeePassGate.Pairing
 
             lock (_lock)
             {
-                return _refused.Contains(admissionKey) || _owed.ContainsKey(admissionKey);
+                return (!session && _refused.Contains(admissionKey)) || Remaining(admissionKey, withheld) != null;
             }
+        }
+
+        /// <summary>
+        /// The answer owed about this certificate other than the one a lift held back, under the
+        /// lock, or null.
+        /// </summary>
+        private OwedAnswer Remaining(string admissionKey, OwedAnswer withheld)
+        {
+            OwedAnswer owed;
+            if (!_owed.TryGetValue(admissionKey, out owed) || ReferenceEquals(owed, withheld))
+            {
+                return null;
+            }
+
+            return owed;
         }
 
         /// <summary>

@@ -885,9 +885,9 @@ namespace KeePassGate.Ui
         private readonly SessionRefusals _session;
 
         /// <summary>
-        /// Every certificate lifted on the page, with the owed answer the lift held back.
+        /// Every certificate lifted on the page, with what the lift takes back at OK.
         /// </summary>
-        private readonly Dictionary<string, OwedAnswer> _lifted = new Dictionary<string, OwedAnswer>(StringComparer.Ordinal);
+        private readonly Dictionary<string, Lifted> _lifted = new Dictionary<string, Lifted>(StringComparer.Ordinal);
 
         public PendingSessionRefusals(SessionRefusals session)
         {
@@ -905,7 +905,8 @@ namespace KeePassGate.Ui
         /// </summary>
         public bool Holds(string admissionKey)
         {
-            return !_lifted.ContainsKey(admissionKey ?? string.Empty) && _session.Holds(admissionKey);
+            var lifted = Find(admissionKey);
+            return _session.Holds(admissionKey, lifted.Owed, lifted.Session);
         }
 
         /// <summary>
@@ -913,9 +914,15 @@ namespace KeePassGate.Ui
         /// moment, as OK would leave it: this session's answer, or an answer for longer still owed
         /// to the database, or null.
         /// </summary>
+        /// <remarks>
+        /// **An answer given since the press shows**, because OK leaves it standing: once the day
+        /// of an owed answer the press lifted begins, the renewal dialog is raised again while the
+        /// lift waits, and what the operator answers there is newer than the press.
+        /// </remarks>
         public RenewalRefusal Answer(string admissionKey, DateTimeOffset now)
         {
-            return _lifted.ContainsKey(admissionKey ?? string.Empty) ? null : _session.Answer(admissionKey, now);
+            var lifted = Find(admissionKey);
+            return _session.Answer(admissionKey, now, lifted.Owed, lifted.Session);
         }
 
         /// <summary>
@@ -923,9 +930,11 @@ namespace KeePassGate.Ui
         /// accepted, answering with whether there was an answer.
         /// </summary>
         /// <remarks>
-        /// An owed answer is held back from every write at once, through
-        /// <see cref="SessionRefusals.Withhold"/>, because nothing in the database's buffer stands
-        /// for it, and given back by <see cref="Discard"/>.
+        /// **What stands at the press, and nothing given after it.** An owed answer is held back
+        /// from every write at once, through <see cref="SessionRefusals.Withhold"/>, because
+        /// nothing in the database's buffer stands for it, and given back by
+        /// <see cref="Discard"/>. A second press on the same certificate adds what was given since
+        /// the first.
         /// </remarks>
         public bool Lift(string admissionKey)
         {
@@ -934,7 +943,14 @@ namespace KeePassGate.Ui
                 return false;
             }
 
-            _lifted[admissionKey] = _session.Withhold(admissionKey);
+            var before = Find(admissionKey);
+            var owed = _session.Withhold(admissionKey);
+            if (before.Owed != null && !ReferenceEquals(before.Owed, owed))
+            {
+                _session.Release(before.Owed);
+            }
+
+            _lifted[admissionKey] = new Lifted(owed, before.Session || _session.Refuses(admissionKey));
             return true;
         }
 
@@ -947,7 +963,7 @@ namespace KeePassGate.Ui
             var lifted = new List<string>(_lifted.Keys);
             foreach (var pair in _lifted)
             {
-                _session.Lift(pair.Key, pair.Value);
+                _session.Lift(pair.Key, pair.Value.Owed, pair.Value.Session);
             }
 
             _lifted.Clear();
@@ -960,12 +976,37 @@ namespace KeePassGate.Ui
         /// </summary>
         public void Discard()
         {
-            foreach (var withheld in _lifted.Values)
+            foreach (var lifted in _lifted.Values)
             {
-                _session.Release(withheld);
+                _session.Release(lifted.Owed);
             }
 
             _lifted.Clear();
+        }
+
+        /// <summary>What was lifted on the page about this certificate, or nothing.</summary>
+        private Lifted Find(string admissionKey)
+        {
+            Lifted lifted;
+            return _lifted.TryGetValue(admissionKey ?? string.Empty, out lifted) ? lifted : Lifted.Nothing;
+        }
+
+        /// <summary>What one lift takes back at OK.</summary>
+        private sealed class Lifted
+        {
+            public static readonly Lifted Nothing = new Lifted(null, false);
+
+            public Lifted(OwedAnswer owed, bool session)
+            {
+                Owed = owed;
+                Session = session;
+            }
+
+            /// <summary>The owed answer held back from every write, or null for none.</summary>
+            public OwedAnswer Owed { get; private set; }
+
+            /// <summary>Whether this session's answer stood at the press.</summary>
+            public bool Session { get; private set; }
         }
     }
 }
