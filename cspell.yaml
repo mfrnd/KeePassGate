@@ -207,6 +207,26 @@ words:
   - resaved
   - delnewest
   - tobin
+  # Identifiers in the grant-only probes, which are carried unchanged: the mask's letters
+  # `CRUSDLAP`, the entries `Aonly` and `Bonly`, the local `helds` and the word `narrowings` of the
+  # design's `Go.exe`; the files `Asrc`, `Bsrc` and `Bdirect` and the word `ungranted` of the
+  # survival probe's `Gos.exe`; the grants `readded` and `unhabit` of the security probe's
+  # `Probe.exe`. And the client's directory `pykeepassgate` its search names, and the compiler
+  # options `-langversion` and `-nologo` the projects and commands give.
+  - CRUSDLAP
+  - Aonly
+  - Bonly
+  - helds
+  - narrowings
+  - Asrc
+  - Bsrc
+  - Bdirect
+  - ungranted
+  - readded
+  - unhabit
+  - pykeepassgate
+  - langversion
+  - nologo
   # Identifiers in the ground-keepass probe, which is carried unchanged: the variant `nobackup`
   # its X2 prints, which the family's `x2.py` and `RUN.md` match, and the local `scen` of X3.
   - nobackup

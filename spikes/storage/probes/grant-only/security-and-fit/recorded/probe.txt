@@ -1,0 +1,163 @@
+probe run 2026-11-15T19:29:40.0301616Z, KeePassLib 2.62
+== store: concurrent edits of one row, KeePassLib 2.62 MergeIn and keepassxc-cli merge -s ==
+   each cell: agent's row on G under the design's fold and under the cap fold
+
+N1: A narrows agent's row on G from CRU.DL.. to .R...L.. (withdraws C, U, D); B, not knowing, adds S to that row
+    base row CRU.DL..; what both copies' rows allow (their meet): .R...L..
+    A alone: design .R...L..  cap .R...L..
+    B alone: design CRUSDL..  cap CRUSDL..
+    Synchronize       into A: design .R.S.L..  cap .R...L..
+    Synchronize       into B: design .R.S.L..  cap .R...L..
+    OverwriteIfNewer  into A: design .R.S.L..  cap .R...L..
+    OverwriteIfNewer  into B: design .R.S.L..  cap .R...L..
+    OverwriteExisting into A: design .R.S.L..  cap .R...L..
+    OverwriteExisting into B: design .R.S.L..  cap .R...L..
+    KeepExisting      into A: design .R.S.L..  cap .R...L..
+    KeepExisting      into B: design .R.S.L..  cap .R...L..
+    CreateNewUuids    into A: design .R.S.L..  cap .R...L..
+    CreateNewUuids    into B: design .R.S.L..  cap .R...L..
+    keepassxc-cli     into A (exit 0): design .R.S.L..  cap .R...L..
+    keepassxc-cli     into B (exit 0): design .R.S.L..  cap .R...L..
+    then S granted again on the Synchronize result, after the merge: design .R.S.L..  cap .R.S.L..
+
+N2: as N1, but B's addition is the later act in time
+    base row CRU.DL..; what both copies' rows allow (their meet): .R...L..
+    A alone: design .R...L..  cap .R...L..
+    B alone: design CRUSDL..  cap CRUSDL..
+    Synchronize       into A: design .R.S.L..  cap .R...L..
+    Synchronize       into B: design .R.S.L..  cap .R...L..
+    OverwriteIfNewer  into A: design .R.S.L..  cap .R...L..
+    OverwriteIfNewer  into B: design .R.S.L..  cap .R...L..
+    OverwriteExisting into A: design .R.S.L..  cap .R...L..
+    OverwriteExisting into B: design .R.S.L..  cap .R...L..
+    KeepExisting      into A: design .R.S.L..  cap .R...L..
+    KeepExisting      into B: design .R.S.L..  cap .R...L..
+    CreateNewUuids    into A: design .R.S.L..  cap .R...L..
+    CreateNewUuids    into B: design .R.S.L..  cap .R...L..
+    keepassxc-cli     into A (exit 0): design .R.S.L..  cap .R...L..
+    keepassxc-cli     into B (exit 0): design .R.S.L..  cap .R...L..
+
+N3: A takes protected values away from agent on G (withdraws P); B, not knowing, adds U with P (..U....P)
+    base row CR...L.P; what both copies' rows allow (their meet): CR...L..
+    A alone: design CR...L..  cap CR...L..
+    B alone: design CRU..L.P  cap CRU..L.P
+    Synchronize       into A: design CRU..L..  cap CR...L..
+    Synchronize       into B: design CRU..L..  cap CR...L..
+    OverwriteIfNewer  into A: design CRU..L..  cap CR...L..
+    OverwriteIfNewer  into B: design CRU..L..  cap CR...L..
+    OverwriteExisting into A: design CRU..L..  cap CR...L..
+    OverwriteExisting into B: design CRU..L..  cap CR...L..
+    KeepExisting      into A: design CRU..L..  cap CR...L..
+    KeepExisting      into B: design CRU..L..  cap CR...L..
+    CreateNewUuids    into A: design CRU..L..  cap CR...L..
+    CreateNewUuids    into B: design CRU..L..  cap CR...L..
+    keepassxc-cli     into A (exit 0): design CRU..L..  cap CR...L..
+    keepassxc-cli     into B (exit 0): design CRU..L..  cap CR...L..
+
+D03: the design's 03: A withdraws L, B withdraws R
+    base row .R...L..; what both copies' rows allow (their meet): ........
+    A alone: design .R......  cap .R......
+    B alone: design .....L..  cap .....L..
+    Synchronize       into A: design ........  cap ........
+    Synchronize       into B: design ........  cap ........
+    OverwriteIfNewer  into A: design ........  cap ........
+    OverwriteIfNewer  into B: design ........  cap ........
+    OverwriteExisting into A: design ........  cap ........
+    OverwriteExisting into B: design ........  cap ........
+    KeepExisting      into A: design ........  cap ........
+    KeepExisting      into B: design ........  cap ........
+    CreateNewUuids    into A: design ........  cap ........
+    CreateNewUuids    into B: design ........  cap ........
+    keepassxc-cli     into A (exit 0): design ........  cap ........
+    keepassxc-cli     into B (exit 0): design ........  cap ........
+
+D04: the design's 04: A takes the whole row away, B adds U
+    base row .R...L..; what both copies' rows allow (their meet): ........
+    A alone: design ........  cap ........
+    B alone: design .RU..L..  cap .RU..L..
+    Synchronize       into A: design ........  cap ........
+    Synchronize       into B: design ........  cap ........
+    OverwriteIfNewer  into A: design ........  cap ........
+    OverwriteIfNewer  into B: design ........  cap ........
+    OverwriteExisting into A: design ........  cap ........
+    OverwriteExisting into B: design ........  cap ........
+    KeepExisting      into A: design ........  cap ........
+    KeepExisting      into B: design ........  cap ........
+    CreateNewUuids    into A: design ........  cap ........
+    CreateNewUuids    into B: design ........  cap ........
+    keepassxc-cli     into A (exit 0): design ........  cap ........
+    keepassxc-cli     into B (exit 0): design ........  cap ........
+
+ADD: two additions to one row: A adds C, B adds S
+    base row .R...L..; what both copies' rows allow (their meet): (union expected)
+    A alone: design CR...L..  cap CR...L..
+    B alone: design .R.S.L..  cap .R.S.L..
+    Synchronize       into A: design CR.S.L..  cap CR.S.L..
+    Synchronize       into B: design CR.S.L..  cap CR.S.L..
+    OverwriteIfNewer  into A: design CR.S.L..  cap CR.S.L..
+    OverwriteIfNewer  into B: design CR.S.L..  cap CR.S.L..
+    OverwriteExisting into A: design CR.S.L..  cap CR.S.L..
+    OverwriteExisting into B: design CR.S.L..  cap CR.S.L..
+    KeepExisting      into A: design CR.S.L..  cap CR.S.L..
+    KeepExisting      into B: design CR.S.L..  cap CR.S.L..
+    CreateNewUuids    into A: design CR.S.L..  cap CR.S.L..
+    CreateNewUuids    into B: design CR.S.L..  cap CR.S.L..
+    keepassxc-cli     into A (exit 0): design CR.S.L..  cap CR.S.L..
+    keepassxc-cli     into B (exit 0): design CR.S.L..  cap CR.S.L..
+
+== the strip guard over the grant-only resolver ==
+    grants: agent C....... on the root, ...S.... on G; X in G holds a protected Password
+    before: agent may strip at X: True; guard fires: True; so stripping X's protected Password is refused
+    the root's grant record deleted by hand, no deletion record
+    after:  agent may strip at X: True; guard fires: False; so stripping X's protected Password is PERMITTED
+
+== a database holding 0.1.0 rules, the README's shape: reader .R...L.P on the root, the folder Personal sealed ==
+    stored: root {"default":"inherit","reader":["read","list","protected"]}, Personal {"default":"deny"}
+  0.2.0 grant-only reading it, nothing converted:
+    X: today reads, grant-only refused
+    Q: today refused, grant-only refused
+    Z: today reads, grant-only refused
+    list at the root (the flat sweeps' anchor): today yes, grant-only no
+  the operator grants reader .R...L.P on the root again, as before:
+    X: today reads, grant-only READS
+    Q: today refused, grant-only READS
+    Z: today reads, grant-only READS
+    list at the root (the flat sweeps' anchor): today yes, grant-only yes
+  instead the section 8 conversion, the root's grant pushed down to Work and to the entry Z at the root:
+    X: today reads, grant-only READS
+    Q: today refused, grant-only refused
+    Z: today reads, grant-only READS
+    list at the root (the flat sweeps' anchor): today yes, grant-only no
+
+== a worked example: an invented tree organized by subject, one policy, four arrangements ==
+   ci reads, with protected values: the deploy tokens of ProjA and ProjB, not AWS root, DB prod admin, GCP owner
+   home reads, with protected values: Home Assistant token and Wi-Fi, not Router admin, NAS admin
+   assistant reads, without protected values: everything but Personal/Health and Family
+
+  today: 11 records (rule documents in node custom data), 0 moves, 0 new groups; answers differing from the policy on the 26 entries: 0
+    E1 a new sensitive entry AWS billing admin made in Work/ProjA, on the phone: read by ci, assistant
+    E2 a new top-level group Crypto with Exchange login, made on the phone: read by assistant
+    E3 Personal/Health dragged into Personal/Shopping: Clinic portal read by nobody
+    E4 AWS root moved into Work/ProjB: read by assistant
+    E5 may list at the root, which the flat sweeps and the client's defaults need: assistant
+
+  grant-only, a grant per entry: 13 records (grants, nothing on any user node), 0 moves, 0 new groups; answers differing from the policy on the 26 entries: 0
+    E1 a new sensitive entry AWS billing admin made in Work/ProjA, on the phone: read by assistant
+    E2 a new top-level group Crypto with Exchange login, made on the phone: read by nobody
+    E3 Personal/Health dragged into Personal/Shopping: Clinic portal read by assistant
+    E4 AWS root moved into Work/ProjB: read by assistant
+    E5 may list at the root, which the flat sweeps and the client's defaults need: nobody
+
+  grant-only, the tree split: 9 records (grants, nothing on any user node), 5 moves, 3 new groups; answers differing from the policy on the 26 entries: 0
+    E1 a new sensitive entry AWS billing admin made in Work/ProjA, on the phone: read by ci, assistant
+    E2 a new top-level group Crypto with Exchange login, made on the phone: read by nobody
+    E3 Personal/Health dragged into Personal/Shopping: Clinic portal read by assistant
+    E4 AWS root moved into Work/ProjB: read by ci, assistant
+    E5 may list at the root, which the flat sweeps and the client's defaults need: nobody
+
+  middle form, today's grants and marks: 11 records (4 grants, 7 marks, each mark with a reference on its node), 0 moves, 0 new groups; answers differing from the policy on the 26 entries: 0
+    E1 a new sensitive entry AWS billing admin made in Work/ProjA, on the phone: read by ci, assistant
+    E2 a new top-level group Crypto with Exchange login, made on the phone: read by assistant
+    E3 Personal/Health dragged into Personal/Shopping: Clinic portal read by nobody
+    E4 AWS root moved into Work/ProjB: read by assistant
+    E5 may list at the root, which the flat sweeps and the client's defaults need: assistant

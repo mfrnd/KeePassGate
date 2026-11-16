@@ -1,0 +1,22 @@
+== KeePassXC 2.4.2, scenario 16, B saved once by keepassxc-cli before the merge
+2.4.2-16/B.kdbx (KDBX 4.0): G/S/S1=.R...L..  G/X=.R...L..  G/Y=.RU..L.P  H/Bonly=........  H/Q=........  H/xc-touch*=........  [grants live 2, cut 0; withdrawals 0 entries, 0 keys]
+2.4.2-16/intoA.kdbx (KDBX 4.0): G/S/S1=.R...L..  G/X=.R...L..  G/Y=.R...L..  H/Bonly=........  H/Q=........  H/xc-touch*=........  [grants live 1, cut 1; withdrawals 0 entries, 1 keys]
+        ENTRIES ALONE (keys not read): G/S/S1=.R...L..  G/X=.R...L..  G/Y=.RU..L.P  H/Bonly=........  H/Q=........  H/xc-touch*=........  [grants live 2, cut 0; withdrawals 0 entries, 1 keys]
+2.4.2-16/intoB.kdbx (KDBX 4.0): G/S/S1=.R...L..  G/X=.R...L..  G/Y=.R...L..  H/Bonly=........  H/Q=........  H/xc-touch*=........  [grants live 1, cut 1; withdrawals 0 entries, 1 keys]
+        ENTRIES ALONE (keys not read): G/S/S1=.R...L..  G/X=.R...L..  G/Y=.RU..L.P  H/Bonly=........  H/Q=........  H/xc-touch*=........  [grants live 2, cut 0; withdrawals 0 entries, 1 keys]
+== KeePassXC 2.4.2, scenario 06, B saved once by keepassxc-cli before the merge
+2.4.2-06/B.kdbx (KDBX 4.0): G/S/S1=.R...L..  G/X=.R...L..  G/Y=.RU..L.P  H/Bonly=........  H/Q=........  H/xc-touch*=........  [grants live 2, cut 0; withdrawals 0 entries, 0 keys]
+2.4.2-06/intoA.kdbx (KDBX 4.0): G/S/S1=.R...L..  G/X=.R...L..  G/Y=.R...L..  H/Bonly=........  H/Q=........  H/xc-touch*=........  [grants live 1, cut 1; withdrawals 0 entries, 1 keys]
+        ENTRIES ALONE (keys not read): G/S/S1=.R...L..  G/X=.R...L..  G/Y=.RU..L.P  H/Bonly=........  H/Q=........  H/xc-touch*=........  [grants live 2, cut 0; withdrawals 0 entries, 1 keys]
+2.4.2-06/intoB.kdbx (KDBX 4.0): G/S/S1=.R...L..  G/X=.R...L..  G/Y=.R...L..  H/Bonly=........  H/Q=........  H/xc-touch*=........  [grants live 1, cut 1; withdrawals 0 entries, 1 keys]
+        ENTRIES ALONE (keys not read): G/S/S1=.R...L..  G/X=.R...L..  G/Y=.RU..L.P  H/Bonly=........  H/Q=........  H/xc-touch*=........  [grants live 2, cut 0; withdrawals 0 entries, 1 keys]
+== KeePassXC 2.8.0, scenario 16, B saved once by keepassxc-cli before the merge
+2.8.0-16/B.kdbx (KDBX 4.0): G/S/S1=.R...L..  G/X=.R...L..  G/Y=.RU..L.P  H/Bonly=........  H/Q=........  H/xc-touch*=........  [grants live 2, cut 0; withdrawals 0 entries, 0 keys]
+2.8.0-16/intoA.kdbx (KDBX 4.0): G/S/S1=.R...L..  G/X=.R...L..  G/Y=.RU..L.P  H/Bonly=........  H/Q=........  H/xc-touch*=........  [grants live 2, cut 0; withdrawals 0 entries, 0 keys]
+2.8.0-16/intoB.kdbx (KDBX 4.0): G/S/S1=.R...L..  G/X=.R...L..  G/Y=.R...L..  H/Bonly=........  H/Q=........  H/xc-touch*=........  [grants live 1, cut 1; withdrawals 0 entries, 1 keys]
+        ENTRIES ALONE (keys not read): G/S/S1=.R...L..  G/X=.R...L..  G/Y=.RU..L.P  H/Bonly=........  H/Q=........  H/xc-touch*=........  [grants live 2, cut 0; withdrawals 0 entries, 1 keys]
+== KeePassXC 2.8.0, scenario 06, B saved once by keepassxc-cli before the merge
+2.8.0-06/B.kdbx (KDBX 4.0): G/S/S1=.R...L..  G/X=.R...L..  G/Y=.RU..L.P  H/Bonly=........  H/Q=........  H/xc-touch*=........  [grants live 2, cut 0; withdrawals 0 entries, 0 keys]
+2.8.0-06/intoA.kdbx (KDBX 4.0): G/S/S1=.R...L..  G/X=.R...L..  G/Y=.R...L..  H/Bonly=........  H/Q=........  H/xc-touch*=........  [grants live 1, cut 1; withdrawals 0 entries, 1 keys]
+        ENTRIES ALONE (keys not read): G/S/S1=.R...L..  G/X=.R...L..  G/Y=.RU..L.P  H/Bonly=........  H/Q=........  H/xc-touch*=........  [grants live 2, cut 0; withdrawals 0 entries, 1 keys]
+2.8.0-06/intoB.kdbx (KDBX 4.0): G/S/S1=.R...L..  G/X=.R...L..  G/Y=.RU..L.P  H/Bonly=........  H/Q=........  H/xc-touch*=........  [grants live 2, cut 0; withdrawals 0 entries, 0 keys]

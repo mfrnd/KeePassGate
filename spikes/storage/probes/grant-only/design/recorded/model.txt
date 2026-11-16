@@ -1,0 +1,36 @@
+probe run 2026-11-15T18:51:45.9766003Z, KeePassLib 2.62, model
+== the model: 400 generated trees of 30 nodes, three profiles, seed 20261115 ==
+   today's answers: KeePassGate.Acl.AclResolver.Permits, compiled from the worktree at a42e38aa
+   an answer is one (node, profile, verb, reach): 6 verbs, 3 reaches
+
+1. rule sets in which no nearer rule holds less than the rule above it, and no seal (3131 rules):
+   answers alike under both models: 648000, different: 0
+
+2. one rule lost (the node's whole document; under grant-only, the node's rows):
+   today's model, rules as it allows them:        3175 trials, wider in  1025 (12142 answers), narrower in  2834
+   today's model, rule sets with no narrowing:    3136 trials, wider in     0 (0 answers), narrower in  3019
+   grant-only, the same documents as grants:      3175 trials, wider in     0 (0 answers), narrower in  2809
+
+3. a copy of a node, beside its original, that carries no rule (the node and everything under it):
+   today's model:    4428 trials, wider in  1552 (22313 answers), narrower in  4063
+   grant-only:       4428 trials, wider in     0 (0 answers), narrower in  4039
+
+4. one rule rolled back to another version of itself (a random other document):
+   today's model:    2802 trials, wider in  2428 (52209 answers), narrower in  2440
+   grant-only:       2802 trials, wider in  2280 (55483 answers), narrower in  2287; wider without the older row holding a letter the newer lacks: 0
+
+5. today's documents read as grants (a seal and an empty array ignored), 400 trees, 387 of them holding a narrowing:
+   answers: 648000; refused today and permitted as grants: 13442 (in 291 trees); permitted today and refused as grants: 0
+
+6. a node displaced to the root with its own rules (what a merge does with an entry whose group is missing):
+   today's model:    8576 trials, wider in   494 (4403 answers), narrower in  2908
+   grant-only:       8576 trials, wider in     0 (0 answers), narrower in  3305
+
+7. the middle form: grants, and marks that withhold (1723 marks):
+   one node's grants lost:                                            3158 trials, wider in     0 (0 answers), narrower in  2683
+   a mark's record lost, the node still referring to it (refuses):    1723 trials, wider in     0 (0 answers), narrower in   762
+   a mark's record and the node's reference both lost:                1723 trials, wider in   847 (16626 answers), narrower in     0
+   a copy beside the original, the reference carried, no grant:       1723 trials, wider in     0 (0 answers), narrower in   420
+   a copy beside the original that carries neither:                   1723 trials, wider in   541 (9746 answers), narrower in   420
+   a marked node displaced to the root, mark and grants with it:       975 trials, wider in     0 (0 answers), narrower in   224
+   the same where a group above it carried a mark too:                 300 trials, wider in    91 (949 answers), narrower in    55

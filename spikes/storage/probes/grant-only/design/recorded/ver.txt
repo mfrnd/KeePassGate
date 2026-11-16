@@ -1,0 +1,8 @@
+probe run 2026-11-15T19:05:38.8470329Z, KeePassLib 2.62, state
+kp01/A.kdbx (KDBX 4.0): G/S/S1=CR...L..  G/X=CR...L..  G/Y=CRU..L.P  H/Q=........  [grants live 3, cut 0; withdrawals 0 entries, 0 keys]
+kp01/Synchronize-intoA.kdbx (KDBX 4.0): G/S/S1=CR...LA.  G/X=CR...L..  G/Y=CRU..L.P  H/Q=........  [grants live 4, cut 0; withdrawals 0 entries, 0 keys]
+kp02/A.kdbx (KDBX 4.1): G/S/S1=.R...L..  G/X=.R...L..  G/Y=.R...L..  H/Q=........  [grants live 1, cut 0; withdrawals 1 entries, 1 keys]
+kp02/Synchronize-intoB.kdbx (KDBX 4.1): G/S/S1=.R...L..  G/X=.R...L..  G/Y=.R...L..  H/Q=........  [grants live 1, cut 0; withdrawals 1 entries, 1 keys]
+kp09/A.kdbx (KDBX 4.0): G/S/S1=.R...L..  G/Y=.RU..L.P  H/Q=........  H/X=........  [grants live 2, cut 0; withdrawals 0 entries, 0 keys]
+kp09/Synchronize-intoB.kdbx (KDBX 4.0): G/S/S1=.R...L..  G/Y=.RU..L.P  H/Bonly=........  H/Q=........  H/X=........  [grants live 2, cut 0; withdrawals 0 entries, 0 keys]
+kp07/Synchronize-intoA.kdbx (KDBX 4.0): G/S/S1=.R...L..  G/X=.R...L..  G/Y=.RU..L.P  H/Aonly=........  H/Q=........  [grants live 2, cut 0, other store 1; withdrawals 0 entries, 0 keys]

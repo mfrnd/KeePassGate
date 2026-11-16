@@ -1,0 +1,27 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- Added to run the probe from the branch. Its agent compiled `Program.cs` with the .NET
+       Framework's own `csc` (`/target:exe`, nothing else), with nothing in a project file, into an
+       AnyCPU `Gos.exe` without a `DebuggableAttribute`, against a copy of the pinned KeePass.exe.
+       This builds the same source at C# 5, which that `csc` compiles, as an AnyCPU executable
+       under the same name that runs as a 64-bit process, as the agent's did, against the KeePass
+       `spikes\storage\Directory.Build.props` provides. No window: only KeePassLib types are used,
+       and `keepassxc-cli` is started as a console child. -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net48</TargetFramework>
+    <LangVersion>5</LangVersion>
+    <PlatformTarget>AnyCPU</PlatformTarget>
+    <Prefer32Bit>false</Prefer32Bit>
+    <AssemblyName>Gos</AssemblyName>
+    <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Reference Include="KeePass">
+      <HintPath>$(KeePassExe)</HintPath>
+    </Reference>
+    <PackageReference Include="Microsoft.NETFramework.ReferenceAssemblies" Version="1.0.3" PrivateAssets="all" />
+  </ItemGroup>
+
+</Project>

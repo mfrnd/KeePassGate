@@ -1,0 +1,248 @@
+probe run 2026-11-15T18:52:04.9061837Z, KeePassLib 2.62, keepass
+== KeePass 2.62 (KeePassLib), PwDatabase.MergeIn, each result saved and read back ==
+   each line: every user entry by path with what agent may do there; * marks an entry under an identifier the base did not hold
+
+01: grants added in both copies: A grants agent C on G, B grants agent .R...LA. on S
+    expected: the union
+    A alone: G/S/S1=CR...L..  G/X=CR...L..  G/Y=CRU..L.P  H/Q=........  [grants live 3, cut 0; withdrawals 0 entries, 0 keys]
+    B alone: G/S/S1=.R...LA.  G/X=.R...L..  G/Y=.RU..L.P  H/Q=........  [grants live 3, cut 0; withdrawals 0 entries, 0 keys]
+    Synchronize       into A: G/S/S1=CR...LA.  G/X=CR...L..  G/Y=CRU..L.P  H/Q=........  [grants live 4, cut 0; withdrawals 0 entries, 0 keys]
+    Synchronize       into B: G/S/S1=CR...LA.  G/X=CR...L..  G/Y=CRU..L.P  H/Q=........  [grants live 4, cut 0; withdrawals 0 entries, 0 keys]
+    OverwriteIfNewer  into A: G/S/S1=CR...LA.  G/X=CR...L..  G/Y=CRU..L.P  H/Q=........  [grants live 4, cut 0; withdrawals 0 entries, 0 keys]
+    OverwriteIfNewer  into B: G/S/S1=CR...LA.  G/X=CR...L..  G/Y=CRU..L.P  H/Q=........  [grants live 4, cut 0; withdrawals 0 entries, 0 keys]
+    OverwriteExisting into A: G/S/S1=CR...LA.  G/X=CR...L..  G/Y=CRU..L.P  H/Q=........  [grants live 4, cut 0; withdrawals 0 entries, 0 keys]
+    OverwriteExisting into B: G/S/S1=CR...LA.  G/X=CR...L..  G/Y=CRU..L.P  H/Q=........  [grants live 4, cut 0; withdrawals 0 entries, 0 keys]
+    KeepExisting      into A: G/S/S1=CR...LA.  G/X=CR...L..  G/Y=CRU..L.P  H/Q=........  [grants live 4, cut 0; withdrawals 0 entries, 0 keys]
+    KeepExisting      into B: G/S/S1=CR...LA.  G/X=CR...L..  G/Y=CRU..L.P  H/Q=........  [grants live 4, cut 0; withdrawals 0 entries, 0 keys]
+    CreateNewUuids    into A: G/S/S1*=........  G/S/S1=CR...LA.  G/X*=........  G/X=CR...L..  G/Y*=........  G/Y=CRU..L.P  H/Q*=........  H/Q=........  [grants live 6, cut 0, outside the store group 3; withdrawals 0 entries, 0 keys]
+    CreateNewUuids    into B: G/S/S1*=........  G/S/S1=CR...LA.  G/X*=........  G/X=CR...L..  G/Y*=........  G/Y=CRU..L.P  H/Q*=........  H/Q=........  [grants live 6, cut 0, outside the store group 3; withdrawals 0 entries, 0 keys]
+
+02: A takes Y's grant away; B, not knowing, changes Y's password later
+    expected: Y left with what G gives
+    A alone: G/S/S1=.R...L..  G/X=.R...L..  G/Y=.R...L..  H/Q=........  [grants live 1, cut 0; withdrawals 1 entries, 1 keys]
+    B alone: G/S/S1=.R...L..  G/X=.R...L..  G/Y=.RU..L.P  H/Q=........  [grants live 2, cut 0; withdrawals 0 entries, 0 keys]
+    Synchronize       into A: G/S/S1=.R...L..  G/X=.R...L..  G/Y=.R...L..  H/Q=........  [grants live 1, cut 0; withdrawals 1 entries, 1 keys]
+    Synchronize       into B: G/S/S1=.R...L..  G/X=.R...L..  G/Y=.R...L..  H/Q=........  [grants live 1, cut 0; withdrawals 1 entries, 1 keys]
+    OverwriteIfNewer  into A: G/S/S1=.R...L..  G/X=.R...L..  G/Y=.R...L..  H/Q=........  [grants live 1, cut 0; withdrawals 1 entries, 1 keys]
+    OverwriteIfNewer  into B: G/S/S1=.R...L..  G/X=.R...L..  G/Y=.R...L..  H/Q=........  [grants live 1, cut 1; withdrawals 1 entries, 1 keys]
+    OverwriteExisting into A: G/S/S1=.R...L..  G/X=.R...L..  G/Y=.R...L..  H/Q=........  [grants live 1, cut 0; withdrawals 1 entries, 1 keys]
+    OverwriteExisting into B: G/S/S1=.R...L..  G/X=.R...L..  G/Y=.R...L..  H/Q=........  [grants live 1, cut 1; withdrawals 1 entries, 1 keys]
+    KeepExisting      into A: G/S/S1=.R...L..  G/X=.R...L..  G/Y=.R...L..  H/Q=........  [grants live 1, cut 0; withdrawals 1 entries, 1 keys]
+    KeepExisting      into B: G/S/S1=.R...L..  G/X=.R...L..  G/Y=.R...L..  H/Q=........  [grants live 1, cut 1; withdrawals 1 entries, 0 keys]
+    CreateNewUuids    into A: G/S/S1*=........  G/S/S1=.R...L..  G/X*=........  G/X=.R...L..  G/Y*=........  G/Y=.R...L..  H/Q*=........  H/Q=........  [grants live 2, cut 1, outside the store group 2; withdrawals 1 entries, 1 keys]
+    CreateNewUuids    into B: G/S/S1*=........  G/S/S1=.R...L..  G/X*=........  G/X=.R...L..  G/Y*=........  G/Y=.R...L..  H/Q*=........  H/Q=........  [grants live 2, cut 1, outside the store group 1; withdrawals 1 entries, 1 keys]
+
+03: both copies narrow G's row: A takes L away, B takes R away
+    expected: neither letter
+    A alone: G/S/S1=.R......  G/X=.R......  G/Y=.RU....P  H/Q=........  [grants live 2, cut 0; withdrawals 1 entries, 1 keys]
+    B alone: G/S/S1=.....L..  G/X=.....L..  G/Y=..U..L.P  H/Q=........  [grants live 2, cut 0; withdrawals 1 entries, 1 keys]
+    Synchronize       into A: G/S/S1=........  G/X=........  G/Y=..U....P  H/Q=........  [grants live 1, cut 1; withdrawals 2 entries, 2 keys]
+    Synchronize       into B: G/S/S1=........  G/X=........  G/Y=..U....P  H/Q=........  [grants live 1, cut 1; withdrawals 2 entries, 2 keys]
+    OverwriteIfNewer  into A: G/S/S1=........  G/X=........  G/Y=..U....P  H/Q=........  [grants live 1, cut 1; withdrawals 2 entries, 2 keys]
+    OverwriteIfNewer  into B: G/S/S1=........  G/X=........  G/Y=..U....P  H/Q=........  [grants live 1, cut 1; withdrawals 2 entries, 2 keys]
+    OverwriteExisting into A: G/S/S1=........  G/X=........  G/Y=..U....P  H/Q=........  [grants live 1, cut 1; withdrawals 2 entries, 2 keys]
+    OverwriteExisting into B: G/S/S1=........  G/X=........  G/Y=..U....P  H/Q=........  [grants live 1, cut 1; withdrawals 2 entries, 2 keys]
+    KeepExisting      into A: G/S/S1=........  G/X=........  G/Y=..U....P  H/Q=........  [grants live 1, cut 1; withdrawals 2 entries, 1 keys]
+    KeepExisting      into B: G/S/S1=........  G/X=........  G/Y=..U....P  H/Q=........  [grants live 1, cut 1; withdrawals 2 entries, 1 keys]
+    CreateNewUuids    into A: G/S/S1*=........  G/S/S1=........  G/X*=........  G/X=........  G/Y*=........  G/Y=..U....P  H/Q*=........  H/Q=........  [grants live 2, cut 2, outside the store group 2; withdrawals 2 entries, 2 keys]
+    CreateNewUuids    into B: G/S/S1*=........  G/S/S1=........  G/X*=........  G/X=........  G/Y*=........  G/Y=..U....P  H/Q*=........  H/Q=........  [grants live 2, cut 2, outside the store group 2; withdrawals 2 entries, 2 keys]
+
+04: A takes G's whole row away; B, not knowing, adds U to it
+    expected: nothing from G
+    A alone: G/S/S1=........  G/X=........  G/Y=..U....P  H/Q=........  [grants live 1, cut 0; withdrawals 1 entries, 1 keys]
+    B alone: G/S/S1=.RU..L..  G/X=.RU..L..  G/Y=.RU..L.P  H/Q=........  [grants live 3, cut 0; withdrawals 0 entries, 0 keys]
+    Synchronize       into A: G/S/S1=........  G/X=........  G/Y=..U....P  H/Q=........  [grants live 1, cut 1; withdrawals 1 entries, 1 keys]
+    Synchronize       into B: G/S/S1=........  G/X=........  G/Y=..U....P  H/Q=........  [grants live 1, cut 1; withdrawals 1 entries, 1 keys]
+    OverwriteIfNewer  into A: G/S/S1=........  G/X=........  G/Y=..U....P  H/Q=........  [grants live 1, cut 1; withdrawals 1 entries, 1 keys]
+    OverwriteIfNewer  into B: G/S/S1=........  G/X=........  G/Y=..U....P  H/Q=........  [grants live 1, cut 2; withdrawals 1 entries, 1 keys]
+    OverwriteExisting into A: G/S/S1=........  G/X=........  G/Y=..U....P  H/Q=........  [grants live 1, cut 1; withdrawals 1 entries, 1 keys]
+    OverwriteExisting into B: G/S/S1=........  G/X=........  G/Y=..U....P  H/Q=........  [grants live 1, cut 2; withdrawals 1 entries, 1 keys]
+    KeepExisting      into A: G/S/S1=........  G/X=........  G/Y=..U....P  H/Q=........  [grants live 1, cut 1; withdrawals 1 entries, 1 keys]
+    KeepExisting      into B: G/S/S1=........  G/X=........  G/Y=..U....P  H/Q=........  [grants live 1, cut 2; withdrawals 1 entries, 0 keys]
+    CreateNewUuids    into A: G/S/S1*=........  G/S/S1=........  G/X*=........  G/X=........  G/Y*=........  G/Y=..U....P  H/Q*=........  H/Q=........  [grants live 2, cut 2, outside the store group 3; withdrawals 1 entries, 1 keys]
+    CreateNewUuids    into B: G/S/S1*=........  G/S/S1=........  G/X*=........  G/X=........  G/Y*=........  G/Y=..U....P  H/Q*=........  H/Q=........  [grants live 2, cut 2, outside the store group 1; withdrawals 1 entries, 1 keys]
+
+05: A takes Y's grant away and then grants .R.....P there; B is a copy from before, saved later
+    expected: Y with the new grant only
+    A alone: G/S/S1=.R...L..  G/X=.R...L..  G/Y=.R...L.P  H/Q=........  [grants live 2, cut 0; withdrawals 1 entries, 1 keys]
+    B alone: G/S/S1=.R...L..  G/X=.R...L..  G/Y=.RU..L.P  H/Bonly=........  H/Q=........  [grants live 2, cut 0; withdrawals 0 entries, 0 keys]
+    Synchronize       into A: G/S/S1=.R...L..  G/X=.R...L..  G/Y=.R...L.P  H/Bonly=........  H/Q=........  [grants live 2, cut 0; withdrawals 1 entries, 1 keys]
+    Synchronize       into B: G/S/S1=.R...L..  G/X=.R...L..  G/Y=.R...L.P  H/Bonly=........  H/Q=........  [grants live 2, cut 0; withdrawals 1 entries, 1 keys]
+    OverwriteIfNewer  into A: G/S/S1=.R...L..  G/X=.R...L..  G/Y=.R...L.P  H/Bonly=........  H/Q=........  [grants live 2, cut 0; withdrawals 1 entries, 1 keys]
+    OverwriteIfNewer  into B: G/S/S1=.R...L..  G/X=.R...L..  G/Y=.R...L.P  H/Bonly=........  H/Q=........  [grants live 2, cut 1; withdrawals 1 entries, 1 keys]
+    OverwriteExisting into A: G/S/S1=.R...L..  G/X=.R...L..  G/Y=.R...L.P  H/Bonly=........  H/Q=........  [grants live 2, cut 0; withdrawals 1 entries, 1 keys]
+    OverwriteExisting into B: G/S/S1=.R...L..  G/X=.R...L..  G/Y=.R...L.P  H/Bonly=........  H/Q=........  [grants live 2, cut 1; withdrawals 1 entries, 1 keys]
+    KeepExisting      into A: G/S/S1=.R...L..  G/X=.R...L..  G/Y=.R...L.P  H/Bonly=........  H/Q=........  [grants live 2, cut 0; withdrawals 1 entries, 1 keys]
+    KeepExisting      into B: G/S/S1=.R...L..  G/X=.R...L..  G/Y=.R...L.P  H/Bonly=........  H/Q=........  [grants live 2, cut 1; withdrawals 1 entries, 0 keys]
+    CreateNewUuids    into A: G/S/S1*=........  G/S/S1=.R...L..  G/X*=........  G/X=.R...L..  G/Y*=........  G/Y=.R...L.P  H/Bonly*=........  H/Q*=........  H/Q=........  [grants live 3, cut 1, outside the store group 2; withdrawals 1 entries, 1 keys]
+    CreateNewUuids    into B: G/S/S1*=........  G/S/S1=.R...L..  G/X*=........  G/X=.R...L..  G/Y*=........  G/Y=.R...L.P  H/Bonly=........  H/Q*=........  H/Q=........  [grants live 3, cut 1, outside the store group 2; withdrawals 1 entries, 1 keys]
+
+06: A takes Y's grant away; the withdrawal's entry is then deleted with no deletion record; B is a copy from before
+    expected: Y left with what G gives while a key is found
+    A alone: G/S/S1=.R...L..  G/X=.R...L..  G/Y=.R...L..  H/Q=........  [grants live 1, cut 0; withdrawals 0 entries, 1 keys]
+    B alone: G/S/S1=.R...L..  G/X=.R...L..  G/Y=.RU..L.P  H/Bonly=........  H/Q=........  [grants live 2, cut 0; withdrawals 0 entries, 0 keys]
+    Synchronize       into A: G/S/S1=.R...L..  G/X=.R...L..  G/Y=.R...L..  H/Bonly=........  H/Q=........  [grants live 1, cut 0; withdrawals 0 entries, 1 keys]
+    Synchronize       into B: G/S/S1=.R...L..  G/X=.R...L..  G/Y=.R...L..  H/Bonly=........  H/Q=........  [grants live 1, cut 0; withdrawals 0 entries, 1 keys]
+    OverwriteIfNewer  into A: G/S/S1=.R...L..  G/X=.R...L..  G/Y=.R...L..  H/Bonly=........  H/Q=........  [grants live 1, cut 0; withdrawals 0 entries, 1 keys]
+    OverwriteIfNewer  into B: G/S/S1=.R...L..  G/X=.R...L..  G/Y=.R...L..  H/Bonly=........  H/Q=........  [grants live 1, cut 1; withdrawals 0 entries, 1 keys]
+        ENTRIES ALONE (keys not read): G/S/S1=.R...L..  G/X=.R...L..  G/Y=.RU..L.P  H/Bonly=........  H/Q=........  [grants live 2, cut 0; withdrawals 0 entries, 1 keys]
+    OverwriteExisting into A: G/S/S1=.R...L..  G/X=.R...L..  G/Y=.R...L..  H/Bonly=........  H/Q=........  [grants live 1, cut 0; withdrawals 0 entries, 1 keys]
+    OverwriteExisting into B: G/S/S1=.R...L..  G/X=.R...L..  G/Y=.R...L..  H/Bonly=........  H/Q=........  [grants live 1, cut 1; withdrawals 0 entries, 1 keys]
+        ENTRIES ALONE (keys not read): G/S/S1=.R...L..  G/X=.R...L..  G/Y=.RU..L.P  H/Bonly=........  H/Q=........  [grants live 2, cut 0; withdrawals 0 entries, 1 keys]
+    KeepExisting      into A: G/S/S1=.R...L..  G/X=.R...L..  G/Y=.R...L..  H/Bonly=........  H/Q=........  [grants live 1, cut 0; withdrawals 0 entries, 1 keys]
+    KeepExisting      into B: G/S/S1=.R...L..  G/X=.R...L..  G/Y=.RU..L.P  H/Bonly=........  H/Q=........  [grants live 2, cut 0; withdrawals 0 entries, 0 keys]
+    CreateNewUuids    into A: G/S/S1*=........  G/S/S1=.R...L..  G/X*=........  G/X=.R...L..  G/Y*=........  G/Y=.R...L..  H/Bonly*=........  H/Q*=........  H/Q=........  [grants live 2, cut 1, outside the store group 2; withdrawals 0 entries, 1 keys]
+        ENTRIES ALONE (keys not read): G/S/S1*=........  G/S/S1=.R...L..  G/X*=........  G/X=.R...L..  G/Y*=........  G/Y=.RU..L.P  H/Bonly*=........  H/Q*=........  H/Q=........  [grants live 3, cut 0, outside the store group 2; withdrawals 0 entries, 1 keys]
+    CreateNewUuids    into B: G/S/S1*=........  G/S/S1=.R...L..  G/X*=........  G/X=.R...L..  G/Y*=........  G/Y=.R...L..  H/Bonly=........  H/Q*=........  H/Q=........  [grants live 2, cut 1, outside the store group 1; withdrawals 0 entries, 1 keys]
+        ENTRIES ALONE (keys not read): G/S/S1*=........  G/S/S1=.R...L..  G/X*=........  G/X=.R...L..  G/Y*=........  G/Y=.RU..L.P  H/Bonly=........  H/Q*=........  H/Q=........  [grants live 3, cut 0, outside the store group 1; withdrawals 0 entries, 1 keys]
+
+07: a file made elsewhere (B) plants a grant for agent on H in a group carrying the store group's identifier, under another store id
+    expected: Q closed
+    A alone: G/S/S1=.R...L..  G/X=.R...L..  G/Y=.RU..L.P  H/Aonly=........  H/Q=........  [grants live 2, cut 0; withdrawals 0 entries, 0 keys]
+    B alone:   [grants live 0, cut 0, other store 1; withdrawals 0 entries, 0 keys]
+    Synchronize       into A: G/S/S1=.R...L..  G/X=.R...L..  G/Y=.RU..L.P  H/Aonly=........  H/Q=........  [grants live 2, cut 0, other store 1; withdrawals 0 entries, 0 keys]
+    Synchronize       into B: G/S/S1=.R...L..  G/X=.R...L..  G/Y=.RU..L.P  H/Aonly=........  H/Q=........  [grants live 2, cut 0, other store 1; withdrawals 0 entries, 0 keys]
+    OverwriteIfNewer  into A: G/S/S1=.R...L..  G/X=.R...L..  G/Y=.RU..L.P  H/Aonly=........  H/Q=........  [grants live 2, cut 0, other store 1; withdrawals 0 entries, 0 keys]
+    OverwriteIfNewer  into B: G/S/S1=.R...L..  G/X=.R...L..  G/Y=.RU..L.P  H/Aonly=........  H/Q=........  [grants live 2, cut 0, other store 1; withdrawals 0 entries, 0 keys]
+    OverwriteExisting into A: G/S/S1=.R...L..  G/X=.R...L..  G/Y=.RU..L.P  H/Aonly=........  H/Q=........  [grants live 2, cut 0, other store 1; withdrawals 0 entries, 0 keys]
+    OverwriteExisting into B: G/S/S1=.R...L..  G/X=.R...L..  G/Y=.RU..L.P  H/Aonly=........  H/Q=........  [grants live 2, cut 0, other store 1; withdrawals 0 entries, 0 keys]
+    KeepExisting      into A: G/S/S1=.R...L..  G/X=.R...L..  G/Y=.RU..L.P  H/Aonly=........  H/Q=........  [grants live 2, cut 0, other store 1; withdrawals 0 entries, 0 keys]
+    KeepExisting      into B: G/S/S1=.R...L..  G/X=.R...L..  G/Y=.RU..L.P  H/Aonly=........  H/Q=........  [grants live 2, cut 0, other store 1; withdrawals 0 entries, 0 keys]
+    CreateNewUuids    into A: G/S/S1=.R...L..  G/X=.R...L..  G/Y=.RU..L.P  H/Aonly=........  H/Q=........  [grants live 2, cut 0, other store 1; withdrawals 0 entries, 0 keys]
+    CreateNewUuids    into B: G/S/S1*=........  G/X*=........  G/Y*=........  H/Aonly*=........  H/Q*=........  [grants live 2, cut 0, other store 1, outside the store group 2; withdrawals 0 entries, 0 keys]
+
+08: a file made elsewhere (B) plants a withdrawal of agent's row on G
+    expected: G closed to agent (a planted withdrawal takes away)
+    A alone: G/S/S1=.R...L..  G/X=.R...L..  G/Y=.RU..L.P  H/Aonly=........  H/Q=........  [grants live 2, cut 0; withdrawals 0 entries, 0 keys]
+    B alone:   [grants live 0, cut 0; withdrawals 1 entries, 0 keys]
+    Synchronize       into A: G/S/S1=........  G/X=........  G/Y=..U....P  H/Aonly=........  H/Q=........  [grants live 1, cut 1; withdrawals 1 entries, 0 keys]
+    Synchronize       into B: G/S/S1=........  G/X=........  G/Y=..U....P  H/Aonly=........  H/Q=........  [grants live 1, cut 1; withdrawals 1 entries, 0 keys]
+    OverwriteIfNewer  into A: G/S/S1=........  G/X=........  G/Y=..U....P  H/Aonly=........  H/Q=........  [grants live 1, cut 1; withdrawals 1 entries, 0 keys]
+    OverwriteIfNewer  into B: G/S/S1=........  G/X=........  G/Y=..U....P  H/Aonly=........  H/Q=........  [grants live 1, cut 1; withdrawals 1 entries, 0 keys]
+    OverwriteExisting into A: G/S/S1=........  G/X=........  G/Y=..U....P  H/Aonly=........  H/Q=........  [grants live 1, cut 1; withdrawals 1 entries, 0 keys]
+    OverwriteExisting into B: G/S/S1=........  G/X=........  G/Y=..U....P  H/Aonly=........  H/Q=........  [grants live 1, cut 1; withdrawals 1 entries, 0 keys]
+    KeepExisting      into A: G/S/S1=........  G/X=........  G/Y=..U....P  H/Aonly=........  H/Q=........  [grants live 1, cut 1; withdrawals 1 entries, 0 keys]
+    KeepExisting      into B: G/S/S1=........  G/X=........  G/Y=..U....P  H/Aonly=........  H/Q=........  [grants live 1, cut 1; withdrawals 1 entries, 0 keys]
+    CreateNewUuids    into A: G/S/S1=........  G/X=........  G/Y=..U....P  H/Aonly=........  H/Q=........  [grants live 1, cut 1; withdrawals 1 entries, 0 keys]
+    CreateNewUuids    into B: G/S/S1*=........  G/X*=........  G/Y*=........  H/Aonly*=........  H/Q*=........  [grants live 1, cut 1, outside the store group 2; withdrawals 1 entries, 0 keys]
+
+09: the tree as the policy: A moves X out of G into H; B is a copy from before, saved later
+    expected: X closed where the move is carried
+    A alone: G/S/S1=.R...L..  G/Y=.RU..L.P  H/Q=........  H/X=........  [grants live 2, cut 0; withdrawals 0 entries, 0 keys]
+    B alone: G/S/S1=.R...L..  G/X=.R...L..  G/Y=.RU..L.P  H/Bonly=........  H/Q=........  [grants live 2, cut 0; withdrawals 0 entries, 0 keys]
+    Synchronize       into A: G/S/S1=.R...L..  G/Y=.RU..L.P  H/Bonly=........  H/Q=........  H/X=........  [grants live 2, cut 0; withdrawals 0 entries, 0 keys]
+    Synchronize       into B: G/S/S1=.R...L..  G/Y=.RU..L.P  H/Bonly=........  H/Q=........  H/X=........  [grants live 2, cut 0; withdrawals 0 entries, 0 keys]
+    OverwriteIfNewer  into A: G/S/S1=.R...L..  G/Y=.RU..L.P  H/Bonly=........  H/Q=........  H/X=........  [grants live 2, cut 0; withdrawals 0 entries, 0 keys]
+    OverwriteIfNewer  into B: G/S/S1=.R...L..  G/X=.R...L..  G/Y=.RU..L.P  H/Bonly=........  H/Q=........  [grants live 2, cut 0; withdrawals 0 entries, 0 keys]
+    OverwriteExisting into A: G/S/S1=.R...L..  G/Y=.RU..L.P  H/Bonly=........  H/Q=........  H/X=........  [grants live 2, cut 0; withdrawals 0 entries, 0 keys]
+    OverwriteExisting into B: G/S/S1=.R...L..  G/X=.R...L..  G/Y=.RU..L.P  H/Bonly=........  H/Q=........  [grants live 2, cut 0; withdrawals 0 entries, 0 keys]
+    KeepExisting      into A: G/S/S1=.R...L..  G/Y=.RU..L.P  H/Bonly=........  H/Q=........  H/X=........  [grants live 2, cut 0; withdrawals 0 entries, 0 keys]
+    KeepExisting      into B: G/S/S1=.R...L..  G/X=.R...L..  G/Y=.RU..L.P  H/Bonly=........  H/Q=........  [grants live 2, cut 0; withdrawals 0 entries, 0 keys]
+    CreateNewUuids    into A: G/S/S1*=........  G/S/S1=.R...L..  G/X*=........  G/Y*=........  G/Y=.RU..L.P  H/Bonly*=........  H/Q*=........  H/Q=........  H/X=........  [grants live 4, cut 0, outside the store group 2; withdrawals 0 entries, 0 keys]
+    CreateNewUuids    into B: G/S/S1*=........  G/S/S1=.R...L..  G/X=.R...L..  G/Y*=........  G/Y=.RU..L.P  H/Bonly=........  H/Q*=........  H/Q=........  H/X*=........  [grants live 4, cut 0, outside the store group 2; withdrawals 0 entries, 0 keys]
+
+10: A moves X out of G into H; B changes X's password later, X still in G
+    expected: X closed where the move is carried
+    A alone: G/S/S1=.R...L..  G/Y=.RU..L.P  H/Q=........  H/X=........  [grants live 2, cut 0; withdrawals 0 entries, 0 keys]
+    B alone: G/S/S1=.R...L..  G/X=.R...L..  G/Y=.RU..L.P  H/Q=........  [grants live 2, cut 0; withdrawals 0 entries, 0 keys]
+    Synchronize       into A: G/S/S1=.R...L..  G/Y=.RU..L.P  H/Q=........  H/X=........  [grants live 2, cut 0; withdrawals 0 entries, 0 keys]
+    Synchronize       into B: G/S/S1=.R...L..  G/Y=.RU..L.P  H/Q=........  H/X=........  [grants live 2, cut 0; withdrawals 0 entries, 0 keys]
+    OverwriteIfNewer  into A: G/S/S1=.R...L..  G/Y=.RU..L.P  H/Q=........  H/X=........  [grants live 2, cut 0; withdrawals 0 entries, 0 keys]
+    OverwriteIfNewer  into B: G/S/S1=.R...L..  G/X=.R...L..  G/Y=.RU..L.P  H/Q=........  [grants live 2, cut 0; withdrawals 0 entries, 0 keys]
+    OverwriteExisting into A: G/S/S1=.R...L..  G/Y=.RU..L.P  H/Q=........  H/X=........  [grants live 2, cut 0; withdrawals 0 entries, 0 keys]
+    OverwriteExisting into B: G/S/S1=.R...L..  G/X=.R...L..  G/Y=.RU..L.P  H/Q=........  [grants live 2, cut 0; withdrawals 0 entries, 0 keys]
+    KeepExisting      into A: G/S/S1=.R...L..  G/Y=.RU..L.P  H/Q=........  H/X=........  [grants live 2, cut 0; withdrawals 0 entries, 0 keys]
+    KeepExisting      into B: G/S/S1=.R...L..  G/X=.R...L..  G/Y=.RU..L.P  H/Q=........  [grants live 2, cut 0; withdrawals 0 entries, 0 keys]
+    CreateNewUuids    into A: G/S/S1*=........  G/S/S1=.R...L..  G/X*=........  G/Y*=........  G/Y=.RU..L.P  H/Q*=........  H/Q=........  H/X=........  [grants live 4, cut 0, outside the store group 2; withdrawals 0 entries, 0 keys]
+    CreateNewUuids    into B: G/S/S1*=........  G/S/S1=.R...L..  G/X=.R...L..  G/Y*=........  G/Y=.RU..L.P  H/Q*=........  H/Q=........  H/X*=........  [grants live 4, cut 0, outside the store group 2; withdrawals 0 entries, 0 keys]
+
+11: A moves X out of G into H; B, not knowing, moves X into G/S later
+    expected: the later move wins: X open
+    A alone: G/S/S1=.R...L..  G/Y=.RU..L.P  H/Q=........  H/X=........  [grants live 2, cut 0; withdrawals 0 entries, 0 keys]
+    B alone: G/S/S1=.R...L..  G/S/X=.R...L..  G/Y=.RU..L.P  H/Q=........  [grants live 2, cut 0; withdrawals 0 entries, 0 keys]
+    Synchronize       into A: G/S/S1=.R...L..  G/S/X=.R...L..  G/Y=.RU..L.P  H/Q=........  [grants live 2, cut 0; withdrawals 0 entries, 0 keys]
+    Synchronize       into B: G/S/S1=.R...L..  G/S/X=.R...L..  G/Y=.RU..L.P  H/Q=........  [grants live 2, cut 0; withdrawals 0 entries, 0 keys]
+    OverwriteIfNewer  into A: G/S/S1=.R...L..  G/Y=.RU..L.P  H/Q=........  H/X=........  [grants live 2, cut 0; withdrawals 0 entries, 0 keys]
+    OverwriteIfNewer  into B: G/S/S1=.R...L..  G/S/X=.R...L..  G/Y=.RU..L.P  H/Q=........  [grants live 2, cut 0; withdrawals 0 entries, 0 keys]
+    OverwriteExisting into A: G/S/S1=.R...L..  G/Y=.RU..L.P  H/Q=........  H/X=........  [grants live 2, cut 0; withdrawals 0 entries, 0 keys]
+    OverwriteExisting into B: G/S/S1=.R...L..  G/S/X=.R...L..  G/Y=.RU..L.P  H/Q=........  [grants live 2, cut 0; withdrawals 0 entries, 0 keys]
+    KeepExisting      into A: G/S/S1=.R...L..  G/Y=.RU..L.P  H/Q=........  H/X=........  [grants live 2, cut 0; withdrawals 0 entries, 0 keys]
+    KeepExisting      into B: G/S/S1=.R...L..  G/S/X=.R...L..  G/Y=.RU..L.P  H/Q=........  [grants live 2, cut 0; withdrawals 0 entries, 0 keys]
+    CreateNewUuids    into A: G/S/S1*=........  G/S/S1=.R...L..  G/S/X*=........  G/Y*=........  G/Y=.RU..L.P  H/Q*=........  H/Q=........  H/X=........  [grants live 4, cut 0, outside the store group 2; withdrawals 0 entries, 0 keys]
+    CreateNewUuids    into B: G/S/S1*=........  G/S/S1=.R...L..  G/S/X=.R...L..  G/Y*=........  G/Y=.RU..L.P  H/Q*=........  H/Q=........  H/X*=........  [grants live 4, cut 0, outside the store group 2; withdrawals 0 entries, 0 keys]
+
+12: A moves X out of G into H; B had moved X into G/S earlier
+    expected: X closed where the move is carried
+    A alone: G/S/S1=.R...L..  G/Y=.RU..L.P  H/Q=........  H/X=........  [grants live 2, cut 0; withdrawals 0 entries, 0 keys]
+    B alone: G/S/S1=.R...L..  G/S/X=.R...L..  G/Y=.RU..L.P  H/Q=........  [grants live 2, cut 0; withdrawals 0 entries, 0 keys]
+    Synchronize       into A: G/S/S1=.R...L..  G/Y=.RU..L.P  H/Q=........  H/X=........  [grants live 2, cut 0; withdrawals 0 entries, 0 keys]
+    Synchronize       into B: G/S/S1=.R...L..  G/Y=.RU..L.P  H/Q=........  H/X=........  [grants live 2, cut 0; withdrawals 0 entries, 0 keys]
+    OverwriteIfNewer  into A: G/S/S1=.R...L..  G/Y=.RU..L.P  H/Q=........  H/X=........  [grants live 2, cut 0; withdrawals 0 entries, 0 keys]
+    OverwriteIfNewer  into B: G/S/S1=.R...L..  G/S/X=.R...L..  G/Y=.RU..L.P  H/Q=........  [grants live 2, cut 0; withdrawals 0 entries, 0 keys]
+    OverwriteExisting into A: G/S/S1=.R...L..  G/Y=.RU..L.P  H/Q=........  H/X=........  [grants live 2, cut 0; withdrawals 0 entries, 0 keys]
+    OverwriteExisting into B: G/S/S1=.R...L..  G/S/X=.R...L..  G/Y=.RU..L.P  H/Q=........  [grants live 2, cut 0; withdrawals 0 entries, 0 keys]
+    KeepExisting      into A: G/S/S1=.R...L..  G/Y=.RU..L.P  H/Q=........  H/X=........  [grants live 2, cut 0; withdrawals 0 entries, 0 keys]
+    KeepExisting      into B: G/S/S1=.R...L..  G/S/X=.R...L..  G/Y=.RU..L.P  H/Q=........  [grants live 2, cut 0; withdrawals 0 entries, 0 keys]
+    CreateNewUuids    into A: G/S/S1*=........  G/S/S1=.R...L..  G/S/X*=........  G/Y*=........  G/Y=.RU..L.P  H/Q*=........  H/Q=........  H/X=........  [grants live 4, cut 0, outside the store group 2; withdrawals 0 entries, 0 keys]
+    CreateNewUuids    into B: G/S/S1*=........  G/S/S1=.R...L..  G/S/X=.R...L..  G/Y*=........  G/Y=.RU..L.P  H/Q*=........  H/Q=........  H/X*=........  [grants live 4, cut 0, outside the store group 2; withdrawals 0 entries, 0 keys]
+
+13: A moves the group S out of G to the root; B adds an entry S2 in S later
+    expected: S1 and S2 closed where the move is carried
+    A alone: G/X=.R...L..  G/Y=.RU..L.P  H/Q=........  S/S1=........  [grants live 2, cut 0; withdrawals 0 entries, 0 keys]
+    B alone: G/S/S1=.R...L..  G/S/S2=.R...L..  G/X=.R...L..  G/Y=.RU..L.P  H/Q=........  [grants live 2, cut 0; withdrawals 0 entries, 0 keys]
+    Synchronize       into A: G/X=.R...L..  G/Y=.RU..L.P  H/Q=........  S/S1=........  S/S2=........  [grants live 2, cut 0; withdrawals 0 entries, 0 keys]
+    Synchronize       into B: G/X=.R...L..  G/Y=.RU..L.P  H/Q=........  S/S1=........  S/S2=........  [grants live 2, cut 0; withdrawals 0 entries, 0 keys]
+    OverwriteIfNewer  into A: G/X=.R...L..  G/Y=.RU..L.P  H/Q=........  S/S1=........  S/S2=........  [grants live 2, cut 0; withdrawals 0 entries, 0 keys]
+    OverwriteIfNewer  into B: G/S/S1=.R...L..  G/S/S2=.R...L..  G/X=.R...L..  G/Y=.RU..L.P  H/Q=........  [grants live 2, cut 0; withdrawals 0 entries, 0 keys]
+    OverwriteExisting into A: G/X=.R...L..  G/Y=.RU..L.P  H/Q=........  S/S1=........  S/S2=........  [grants live 2, cut 0; withdrawals 0 entries, 0 keys]
+    OverwriteExisting into B: G/S/S1=.R...L..  G/S/S2=.R...L..  G/X=.R...L..  G/Y=.RU..L.P  H/Q=........  [grants live 2, cut 0; withdrawals 0 entries, 0 keys]
+    KeepExisting      into A: G/X=.R...L..  G/Y=.RU..L.P  H/Q=........  S/S1=........  S/S2=........  [grants live 2, cut 0; withdrawals 0 entries, 0 keys]
+    KeepExisting      into B: G/S/S1=.R...L..  G/S/S2=.R...L..  G/X=.R...L..  G/Y=.RU..L.P  H/Q=........  [grants live 2, cut 0; withdrawals 0 entries, 0 keys]
+    CreateNewUuids    into A: G/S/S1*=........  G/S/S2*=........  G/X*=........  G/X=.R...L..  G/Y*=........  G/Y=.RU..L.P  H/Q*=........  H/Q=........  S/S1=........  [grants live 4, cut 0, outside the store group 2; withdrawals 0 entries, 0 keys]
+    CreateNewUuids    into B: G/S/S1=.R...L..  G/S/S2=.R...L..  G/X*=........  G/X=.R...L..  G/Y*=........  G/Y=.RU..L.P  H/Q*=........  H/Q=........  S/S1*=........  [grants live 4, cut 0, outside the store group 2; withdrawals 0 entries, 0 keys]
+
+14: A deletes X for good, to take it away; B is a copy from before, saved later
+    expected: X gone where the deletion is carried
+    A alone: G/S/S1=.R...L..  G/Y=.RU..L.P  H/Q=........  [grants live 2, cut 0; withdrawals 0 entries, 0 keys]
+    B alone: G/S/S1=.R...L..  G/X=.R...L..  G/Y=.RU..L.P  H/Bonly=........  H/Q=........  [grants live 2, cut 0; withdrawals 0 entries, 0 keys]
+    Synchronize       into A: G/S/S1=.R...L..  G/Y=.RU..L.P  H/Bonly=........  H/Q=........  [grants live 2, cut 0; withdrawals 0 entries, 0 keys]
+    Synchronize       into B: G/S/S1=.R...L..  G/Y=.RU..L.P  H/Bonly=........  H/Q=........  [grants live 2, cut 0; withdrawals 0 entries, 0 keys]
+    OverwriteIfNewer  into A: G/S/S1=.R...L..  G/Y=.RU..L.P  H/Bonly=........  H/Q=........  [grants live 2, cut 0; withdrawals 0 entries, 0 keys]
+    OverwriteIfNewer  into B: G/S/S1=.R...L..  G/X=.R...L..  G/Y=.RU..L.P  H/Bonly=........  H/Q=........  [grants live 2, cut 0; withdrawals 0 entries, 0 keys]
+    OverwriteExisting into A: G/S/S1=.R...L..  G/Y=.RU..L.P  H/Bonly=........  H/Q=........  [grants live 2, cut 0; withdrawals 0 entries, 0 keys]
+    OverwriteExisting into B: G/S/S1=.R...L..  G/X=.R...L..  G/Y=.RU..L.P  H/Bonly=........  H/Q=........  [grants live 2, cut 0; withdrawals 0 entries, 0 keys]
+    KeepExisting      into A: G/S/S1=.R...L..  G/Y=.RU..L.P  H/Bonly=........  H/Q=........  [grants live 2, cut 0; withdrawals 0 entries, 0 keys]
+    KeepExisting      into B: G/S/S1=.R...L..  G/X=.R...L..  G/Y=.RU..L.P  H/Bonly=........  H/Q=........  [grants live 2, cut 0; withdrawals 0 entries, 0 keys]
+    CreateNewUuids    into A: G/S/S1*=........  G/S/S1=.R...L..  G/X*=........  G/Y*=........  G/Y=.RU..L.P  H/Bonly*=........  H/Q*=........  H/Q=........  [grants live 4, cut 0, outside the store group 2; withdrawals 0 entries, 0 keys]
+    CreateNewUuids    into B: G/S/S1*=........  G/S/S1=.R...L..  G/X=.R...L..  G/Y*=........  G/Y=.RU..L.P  H/Bonly=........  H/Q*=........  H/Q=........  [grants live 4, cut 0, outside the store group 2; withdrawals 0 entries, 0 keys]
+
+15: A takes G's grant away (the robust way to close G); B is a copy from before in which X's password changed later
+    expected: everything under G closed but Y's own grant
+    A alone: G/S/S1=........  G/X=........  G/Y=..U....P  H/Q=........  [grants live 1, cut 0; withdrawals 1 entries, 1 keys]
+    B alone: G/S/S1=.R...L..  G/X=.R...L..  G/Y=.RU..L.P  H/Q=........  [grants live 2, cut 0; withdrawals 0 entries, 0 keys]
+    Synchronize       into A: G/S/S1=........  G/X=........  G/Y=..U....P  H/Q=........  [grants live 1, cut 0; withdrawals 1 entries, 1 keys]
+    Synchronize       into B: G/S/S1=........  G/X=........  G/Y=..U....P  H/Q=........  [grants live 1, cut 0; withdrawals 1 entries, 1 keys]
+    OverwriteIfNewer  into A: G/S/S1=........  G/X=........  G/Y=..U....P  H/Q=........  [grants live 1, cut 0; withdrawals 1 entries, 1 keys]
+    OverwriteIfNewer  into B: G/S/S1=........  G/X=........  G/Y=..U....P  H/Q=........  [grants live 1, cut 1; withdrawals 1 entries, 1 keys]
+    OverwriteExisting into A: G/S/S1=........  G/X=........  G/Y=..U....P  H/Q=........  [grants live 1, cut 0; withdrawals 1 entries, 1 keys]
+    OverwriteExisting into B: G/S/S1=........  G/X=........  G/Y=..U....P  H/Q=........  [grants live 1, cut 1; withdrawals 1 entries, 1 keys]
+    KeepExisting      into A: G/S/S1=........  G/X=........  G/Y=..U....P  H/Q=........  [grants live 1, cut 0; withdrawals 1 entries, 1 keys]
+    KeepExisting      into B: G/S/S1=........  G/X=........  G/Y=..U....P  H/Q=........  [grants live 1, cut 1; withdrawals 1 entries, 0 keys]
+    CreateNewUuids    into A: G/S/S1*=........  G/S/S1=........  G/X*=........  G/X=........  G/Y*=........  G/Y=..U....P  H/Q*=........  H/Q=........  [grants live 2, cut 1, outside the store group 2; withdrawals 1 entries, 1 keys]
+    CreateNewUuids    into B: G/S/S1*=........  G/S/S1=........  G/X*=........  G/X=........  G/Y*=........  G/Y=..U....P  H/Q*=........  H/Q=........  [grants live 2, cut 1, outside the store group 1; withdrawals 1 entries, 1 keys]
+
+KDBX versions of the results: 4.0, 4.1
+
+== copies, in memory, KeePassLib 2.62 ==
+  base:                                              G/S/S1=.R...L..  G/X=.R...L..  G/Y=.RU..L.P  H/Q=........  [grants live 2, cut 0; withdrawals 0 entries, 0 keys]
+  PwEntry.Duplicate of X and of Y, beside them:      G/S/S1=.R...L..  G/X*=.R...L..  G/X=.R...L..  G/Y*=.R...L..  G/Y=.RU..L.P  H/Q=........  [grants live 2, cut 0; withdrawals 0 entries, 0 keys]
+  PwGroup.Duplicate of G, under the root:            G copy/S/S1*=........  G copy/X*=........  G copy/X*=........  G copy/Y*=........  G copy/Y*=........  G/S/S1=.R...L..  G/X*=.R...L..  G/X=.R...L..  G/Y*=.R...L..  G/Y=.RU..L.P  H/Q=........  [grants live 2, cut 0; withdrawals 0 entries, 0 keys]
+  PwEntry.Duplicate of Q (the secret) put into G:    G copy/S/S1*=........  G copy/X*=........  G copy/X*=........  G copy/Y*=........  G copy/Y*=........  G/Q*=.R...L..  G/S/S1=.R...L..  G/X*=.R...L..  G/X=.R...L..  G/Y*=.R...L..  G/Y=.RU..L.P  H/Q=........  [grants live 2, cut 0; withdrawals 0 entries, 0 keys]
+  a duplicate of grant g1 in the store group and of g2 in H: G/S/S1=.R...L..  G/X=.R...L..  G/Y=.RU..L.P  H/Q=........  [grants live 4, cut 0, outside the store group 1; withdrawals 0 entries, 0 keys]
+  Y's grant withdrawn, then a copy of that grant under a new identifier put into H: G/S/S1=.R...L..  G/X=.R...L..  G/Y=.R...L..  H/Q=........  [grants live 1, cut 1, outside the store group 1; withdrawals 1 entries, 1 keys]
+  grant g1 moved to the recycle bin by hand:         G/S/S1=........  G/X=........  G/Y=..U....P  H/Q=........  [grants live 1, cut 0, in bin 1; withdrawals 0 entries, 0 keys]
+  the base imported into itself with Create new IDs: G/S/S1*=........  G/S/S1=.R...L..  G/X*=........  G/X=.R...L..  G/Y*=........  G/Y=.RU..L.P  H/Q*=........  H/Q=........  [grants live 4, cut 0, outside the store group 2; withdrawals 0 entries, 0 keys]
+  then DeleteDuplicateEntries:                       G/S/S1*=........  G/X*=........  G/Y*=........  H/Q*=........  [grants live 2, cut 0, outside the store group 2; withdrawals 0 entries, 0 keys]
+
+== cost, in memory, a console process ==
+  10070 entries, 500 groups, 60 grants, 10 withdrawals: the whole fold 4.84 ms (live 60)

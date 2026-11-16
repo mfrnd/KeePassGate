@@ -1,0 +1,132 @@
+probe run 2026-11-15T18:55:18.8237169Z, KeePassLib 2.62, xc
+== KeePassXC 2.7.12, keepassxc-cli merge -s <target> <source>, the target read back with KeePassLib 2.62 ==
+  a plain save (add, exit 0), file then KDBX 4.0: every record's identifier, strings, flags and times unchanged: yes
+
+01: grants added in both copies: A grants agent C on G, B grants agent .R...LA. on S
+    expected: the union
+    A alone: G/S/S1=CR...L..  G/X=CR...L..  G/Y=CRU..L.P  H/Q=........  [grants live 3, cut 0; withdrawals 0 entries, 0 keys]
+    B alone: G/S/S1=.R...LA.  G/X=.R...L..  G/Y=.RU..L.P  H/Q=........  [grants live 3, cut 0; withdrawals 0 entries, 0 keys]
+    into A (exit 0): G/S/S1=CR...LA.  G/X=CR...L..  G/Y=CRU..L.P  H/Q=........  [grants live 4, cut 0; withdrawals 0 entries, 0 keys]
+    into B (exit 0): G/S/S1=CR...LA.  G/X=CR...L..  G/Y=CRU..L.P  H/Q=........  [grants live 4, cut 0; withdrawals 0 entries, 0 keys]
+
+02: A takes Y's grant away; B, not knowing, changes Y's password later
+    expected: Y left with what G gives
+    A alone: G/S/S1=.R...L..  G/X=.R...L..  G/Y=.R...L..  H/Q=........  [grants live 1, cut 0; withdrawals 1 entries, 1 keys]
+    B alone: G/S/S1=.R...L..  G/X=.R...L..  G/Y=.RU..L.P  H/Q=........  [grants live 2, cut 0; withdrawals 0 entries, 0 keys]
+    into A (exit 0): G/S/S1=.R...L..  G/X=.R...L..  G/Y=.R...L..  H/Q=........  [grants live 1, cut 1; withdrawals 1 entries, 1 keys]
+    into B (exit 0): G/S/S1=.R...L..  G/X=.R...L..  G/Y=.R...L..  H/Q=........  [grants live 1, cut 1; withdrawals 1 entries, 1 keys]
+
+03: both copies narrow G's row: A takes L away, B takes R away
+    expected: neither letter
+    A alone: G/S/S1=.R......  G/X=.R......  G/Y=.RU....P  H/Q=........  [grants live 2, cut 0; withdrawals 1 entries, 1 keys]
+    B alone: G/S/S1=.....L..  G/X=.....L..  G/Y=..U..L.P  H/Q=........  [grants live 2, cut 0; withdrawals 1 entries, 1 keys]
+    into A (exit 0): G/S/S1=........  G/X=........  G/Y=..U....P  H/Q=........  [grants live 1, cut 1; withdrawals 2 entries, 1 keys]
+    into B (exit 0): G/S/S1=........  G/X=........  G/Y=..U....P  H/Q=........  [grants live 1, cut 1; withdrawals 2 entries, 1 keys]
+
+04: A takes G's whole row away; B, not knowing, adds U to it
+    expected: nothing from G
+    A alone: G/S/S1=........  G/X=........  G/Y=..U....P  H/Q=........  [grants live 1, cut 0; withdrawals 1 entries, 1 keys]
+    B alone: G/S/S1=.RU..L..  G/X=.RU..L..  G/Y=.RU..L.P  H/Q=........  [grants live 3, cut 0; withdrawals 0 entries, 0 keys]
+    into A (exit 0): G/S/S1=........  G/X=........  G/Y=..U....P  H/Q=........  [grants live 1, cut 2; withdrawals 1 entries, 1 keys]
+    into B (exit 0): G/S/S1=........  G/X=........  G/Y=..U....P  H/Q=........  [grants live 1, cut 2; withdrawals 1 entries, 1 keys]
+
+05: A takes Y's grant away and then grants .R.....P there; B is a copy from before, saved later
+    expected: Y with the new grant only
+    A alone: G/S/S1=.R...L..  G/X=.R...L..  G/Y=.R...L.P  H/Q=........  [grants live 2, cut 0; withdrawals 1 entries, 1 keys]
+    B alone: G/S/S1=.R...L..  G/X=.R...L..  G/Y=.RU..L.P  H/Bonly=........  H/Q=........  [grants live 2, cut 0; withdrawals 0 entries, 0 keys]
+    into A (exit 0): G/S/S1=.R...L..  G/X=.R...L..  G/Y=.R...L.P  H/Bonly=........  H/Q=........  [grants live 2, cut 1; withdrawals 1 entries, 1 keys]
+    into B (exit 0): G/S/S1=.R...L..  G/X=.R...L..  G/Y=.R...L.P  H/Bonly=........  H/Q=........  [grants live 2, cut 1; withdrawals 1 entries, 1 keys]
+
+06: A takes Y's grant away; the withdrawal's entry is then deleted with no deletion record; B is a copy from before
+    expected: Y left with what G gives while a key is found
+    A alone: G/S/S1=.R...L..  G/X=.R...L..  G/Y=.R...L..  H/Q=........  [grants live 1, cut 0; withdrawals 0 entries, 1 keys]
+    B alone: G/S/S1=.R...L..  G/X=.R...L..  G/Y=.RU..L.P  H/Bonly=........  H/Q=........  [grants live 2, cut 0; withdrawals 0 entries, 0 keys]
+    into A (exit 0): G/S/S1=.R...L..  G/X=.R...L..  G/Y=.R...L..  H/Bonly=........  H/Q=........  [grants live 1, cut 1; withdrawals 0 entries, 1 keys]
+        ENTRIES ALONE (keys not read): G/S/S1=.R...L..  G/X=.R...L..  G/Y=.RU..L.P  H/Bonly=........  H/Q=........  [grants live 2, cut 0; withdrawals 0 entries, 1 keys]
+    into B (exit 0): G/S/S1=.R...L..  G/X=.R...L..  G/Y=.R...L..  H/Bonly=........  H/Q=........  [grants live 1, cut 1; withdrawals 0 entries, 1 keys]
+        ENTRIES ALONE (keys not read): G/S/S1=.R...L..  G/X=.R...L..  G/Y=.RU..L.P  H/Bonly=........  H/Q=........  [grants live 2, cut 0; withdrawals 0 entries, 1 keys]
+
+07: a file made elsewhere (B) plants a grant for agent on H in a group carrying the store group's identifier, under another store id
+    expected: Q closed
+    A alone: G/S/S1=.R...L..  G/X=.R...L..  G/Y=.RU..L.P  H/Aonly=........  H/Q=........  [grants live 2, cut 0; withdrawals 0 entries, 0 keys]
+    B alone:   [grants live 0, cut 0, other store 1; withdrawals 0 entries, 0 keys]
+    into A (exit 0): G/S/S1=.R...L..  G/X=.R...L..  G/Y=.RU..L.P  H/Aonly=........  H/Q=........  [grants live 2, cut 0, other store 1; withdrawals 0 entries, 0 keys]
+    into B (exit 0): G/S/S1=.R...L..  G/X=.R...L..  G/Y=.RU..L.P  H/Aonly=........  H/Q=........  [grants live 2, cut 0, other store 1; withdrawals 0 entries, 0 keys]
+
+08: a file made elsewhere (B) plants a withdrawal of agent's row on G
+    expected: G closed to agent (a planted withdrawal takes away)
+    A alone: G/S/S1=.R...L..  G/X=.R...L..  G/Y=.RU..L.P  H/Aonly=........  H/Q=........  [grants live 2, cut 0; withdrawals 0 entries, 0 keys]
+    B alone:   [grants live 0, cut 0; withdrawals 1 entries, 0 keys]
+    into A (exit 0): G/S/S1=........  G/X=........  G/Y=..U....P  H/Aonly=........  H/Q=........  [grants live 1, cut 1; withdrawals 1 entries, 0 keys]
+    into B (exit 0): G/S/S1=........  G/X=........  G/Y=..U....P  H/Aonly=........  H/Q=........  [grants live 1, cut 1; withdrawals 1 entries, 0 keys]
+
+09: the tree as the policy: A moves X out of G into H; B is a copy from before, saved later
+    expected: X closed where the move is carried
+    A alone: G/S/S1=.R...L..  G/Y=.RU..L.P  H/Q=........  H/X=........  [grants live 2, cut 0; withdrawals 0 entries, 0 keys]
+    B alone: G/S/S1=.R...L..  G/X=.R...L..  G/Y=.RU..L.P  H/Bonly=........  H/Q=........  [grants live 2, cut 0; withdrawals 0 entries, 0 keys]
+    into A (exit 0): G/S/S1=.R...L..  G/Y=.RU..L.P  H/Bonly=........  H/Q=........  H/X=........  [grants live 2, cut 0; withdrawals 0 entries, 0 keys]
+    into B (exit 0): G/S/S1=.R...L..  G/Y=.RU..L.P  H/Bonly=........  H/Q=........  H/X=........  [grants live 2, cut 0; withdrawals 0 entries, 0 keys]
+
+10: A moves X out of G into H; B changes X's password later, X still in G
+    expected: X closed where the move is carried
+    A alone: G/S/S1=.R...L..  G/Y=.RU..L.P  H/Q=........  H/X=........  [grants live 2, cut 0; withdrawals 0 entries, 0 keys]
+    B alone: G/S/S1=.R...L..  G/X=.R...L..  G/Y=.RU..L.P  H/Q=........  [grants live 2, cut 0; withdrawals 0 entries, 0 keys]
+    into A (exit 0): G/S/S1=.R...L..  G/Y=.RU..L.P  H/Q=........  H/X=........  [grants live 2, cut 0; withdrawals 0 entries, 0 keys]
+    into B (exit 0): G/S/S1=.R...L..  G/Y=.RU..L.P  H/Q=........  H/X=........  [grants live 2, cut 0; withdrawals 0 entries, 0 keys]
+
+11: A moves X out of G into H; B, not knowing, moves X into G/S later
+    expected: the later move wins: X open
+    A alone: G/S/S1=.R...L..  G/Y=.RU..L.P  H/Q=........  H/X=........  [grants live 2, cut 0; withdrawals 0 entries, 0 keys]
+    B alone: G/S/S1=.R...L..  G/S/X=.R...L..  G/Y=.RU..L.P  H/Q=........  [grants live 2, cut 0; withdrawals 0 entries, 0 keys]
+    into A (exit 0): G/S/S1=.R...L..  G/S/X=.R...L..  G/Y=.RU..L.P  H/Q=........  [grants live 2, cut 0; withdrawals 0 entries, 0 keys]
+    into B (exit 0): G/S/S1=.R...L..  G/S/X=.R...L..  G/Y=.RU..L.P  H/Q=........  [grants live 2, cut 0; withdrawals 0 entries, 0 keys]
+
+12: A moves X out of G into H; B had moved X into G/S earlier
+    expected: X closed where the move is carried
+    A alone: G/S/S1=.R...L..  G/Y=.RU..L.P  H/Q=........  H/X=........  [grants live 2, cut 0; withdrawals 0 entries, 0 keys]
+    B alone: G/S/S1=.R...L..  G/S/X=.R...L..  G/Y=.RU..L.P  H/Q=........  [grants live 2, cut 0; withdrawals 0 entries, 0 keys]
+    into A (exit 0): G/S/S1=.R...L..  G/Y=.RU..L.P  H/Q=........  H/X=........  [grants live 2, cut 0; withdrawals 0 entries, 0 keys]
+    into B (exit 0): G/S/S1=.R...L..  G/Y=.RU..L.P  H/Q=........  H/X=........  [grants live 2, cut 0; withdrawals 0 entries, 0 keys]
+
+13: A moves the group S out of G to the root; B adds an entry S2 in S later
+    expected: S1 and S2 closed where the move is carried
+    A alone: G/X=.R...L..  G/Y=.RU..L.P  H/Q=........  S/S1=........  [grants live 2, cut 0; withdrawals 0 entries, 0 keys]
+    B alone: G/S/S1=.R...L..  G/S/S2=.R...L..  G/X=.R...L..  G/Y=.RU..L.P  H/Q=........  [grants live 2, cut 0; withdrawals 0 entries, 0 keys]
+    into A (exit 0): G/X=.R...L..  G/Y=.RU..L.P  H/Q=........  S/S1=........  S/S2=........  [grants live 2, cut 0; withdrawals 0 entries, 0 keys]
+    into B (exit 0): G/X=.R...L..  G/Y=.RU..L.P  H/Q=........  S/S1=........  S/S2=........  [grants live 2, cut 0; withdrawals 0 entries, 0 keys]
+
+14: A deletes X for good, to take it away; B is a copy from before, saved later
+    expected: X gone where the deletion is carried
+    A alone: G/S/S1=.R...L..  G/Y=.RU..L.P  H/Q=........  [grants live 2, cut 0; withdrawals 0 entries, 0 keys]
+    B alone: G/S/S1=.R...L..  G/X=.R...L..  G/Y=.RU..L.P  H/Bonly=........  H/Q=........  [grants live 2, cut 0; withdrawals 0 entries, 0 keys]
+    into A (exit 0): G/S/S1=.R...L..  G/X=.R...L..  G/Y=.RU..L.P  H/Bonly=........  H/Q=........  [grants live 2, cut 0; withdrawals 0 entries, 0 keys]
+    into B (exit 0): G/S/S1=.R...L..  G/X=.R...L..  G/Y=.RU..L.P  H/Bonly=........  H/Q=........  [grants live 2, cut 0; withdrawals 0 entries, 0 keys]
+
+15: A takes G's grant away (the robust way to close G); B is a copy from before in which X's password changed later
+    expected: everything under G closed but Y's own grant
+    A alone: G/S/S1=........  G/X=........  G/Y=..U....P  H/Q=........  [grants live 1, cut 0; withdrawals 1 entries, 1 keys]
+    B alone: G/S/S1=.R...L..  G/X=.R...L..  G/Y=.RU..L.P  H/Q=........  [grants live 2, cut 0; withdrawals 0 entries, 0 keys]
+    into A (exit 0): G/S/S1=........  G/X=........  G/Y=..U....P  H/Q=........  [grants live 1, cut 1; withdrawals 1 entries, 1 keys]
+    into B (exit 0): G/S/S1=........  G/X=........  G/Y=..U....P  H/Q=........  [grants live 1, cut 1; withdrawals 1 entries, 1 keys]
+
+16: as 06, with a key derivation that takes more than a second (the case in which KeePassXC replaces the database's custom data)
+    expected: Y left with what G gives while a key is found
+    A alone: G/S/S1=.R...L..  G/X=.R...L..  G/Y=.R...L..  H/Q=........  [grants live 1, cut 0; withdrawals 0 entries, 1 keys]
+    B alone: G/S/S1=.R...L..  G/X=.R...L..  G/Y=.RU..L.P  H/Bonly=........  H/Q=........  [grants live 2, cut 0; withdrawals 0 entries, 0 keys]
+    (the merge took 3.0 s)
+    into A (exit 0): G/S/S1=.R...L..  G/X=.R...L..  G/Y=.R...L..  H/Bonly=........  H/Q=........  [grants live 1, cut 1; withdrawals 0 entries, 1 keys]
+        ENTRIES ALONE (keys not read): G/S/S1=.R...L..  G/X=.R...L..  G/Y=.RU..L.P  H/Bonly=........  H/Q=........  [grants live 2, cut 0; withdrawals 0 entries, 1 keys]
+    (the merge took 3.0 s)
+    into B (exit 0): G/S/S1=.R...L..  G/X=.R...L..  G/Y=.R...L..  H/Bonly=........  H/Q=........  [grants live 1, cut 1; withdrawals 0 entries, 1 keys]
+        ENTRIES ALONE (keys not read): G/S/S1=.R...L..  G/X=.R...L..  G/Y=.RU..L.P  H/Bonly=........  H/Q=........  [grants live 2, cut 0; withdrawals 0 entries, 1 keys]
+
+17: as 02, with a key derivation that takes more than a second
+    expected: Y left with what G gives
+    A alone: G/S/S1=.R...L..  G/X=.R...L..  G/Y=.R...L..  H/Q=........  [grants live 1, cut 0; withdrawals 1 entries, 1 keys]
+    B alone: G/S/S1=.R...L..  G/X=.R...L..  G/Y=.RU..L.P  H/Q=........  [grants live 2, cut 0; withdrawals 0 entries, 0 keys]
+    (the merge took 3.2 s)
+    into A (exit 0): G/S/S1=.R...L..  G/X=.R...L..  G/Y=.R...L..  H/Q=........  [grants live 1, cut 1; withdrawals 1 entries, 1 keys]
+    (the merge took 3.0 s)
+    into B (exit 0): G/S/S1=.R...L..  G/X=.R...L..  G/Y=.R...L..  H/Q=........  [grants live 1, cut 1; withdrawals 1 entries, 1 keys]
+
+KDBX versions of the targets after the merges: 4.0, 4.1

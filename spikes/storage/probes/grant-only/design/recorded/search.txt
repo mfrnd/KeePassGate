@@ -1,0 +1,79 @@
+$ (Bash) echo "Sealing uses:"; grep -rn 'Rules\.Sealing(' tests --include=*.cs | wc -l; grep -rl 'Rules\.Sealing(' tests --include=*.cs | wc -l; echo "Granting uses:"; grep -rn 'Rules\.Granting(' tests --include=*.cs | wc -l; grep -rl 'Rules\.Granting(' tests --include=*.cs | wc -l; echo "empty masks:"; grep -rn -E '\("[a-z0-9_-]+", ?("" *|"\.{8}")\)' tests --include=*.cs | wc -l;  grep -rl -E '\("[a-z0-9_-]+", ?("" *|"\.{8}")\)' tests --include=*.cs | wc -l; echo; grep -rln 'Rules\.Sealing(' tests --include=*.cs; echo; grep -rn 'Rules\.Sealing(' tests --include=*.cs | sed 's/:.*//' | sort | uniq -c | sort -rn | head -30
+Sealing uses:
+18
+8
+Granting uses:
+274
+32
+empty masks:
+22
+8
+
+tests/KeePassGate.Host.Tests/DecidedAtTheReadTests.cs
+tests/KeePassGate.Host.Tests/DecidedAtTheWriteTests.cs
+tests/KeePassGate.Host.Tests/GrantEditorInRealDialogsTests.cs
+tests/KeePassGate.Tests/Gallery/GrantPanelGallery.cs
+tests/KeePassGate.Tests/GrantPanelTests.cs
+tests/KeePassGate.Tests/GrantPickerTests.cs
+tests/KeePassGate.Tests/GrantSheetTests.cs
+tests/KeePassGate.Tests/RulesTests.cs
+
+      4 tests/KeePassGate.Tests/GrantPanelTests.cs
+      3 tests/KeePassGate.Tests/RulesTests.cs
+      3 tests/KeePassGate.Host.Tests/GrantEditorInRealDialogsTests.cs
+      2 tests/KeePassGate.Tests/GrantPickerTests.cs
+      2 tests/KeePassGate.Tests/Gallery/GrantPanelGallery.cs
+      2 tests/KeePassGate.Host.Tests/DecidedAtTheReadTests.cs
+      1 tests/KeePassGate.Tests/GrantSheetTests.cs
+      1 tests/KeePassGate.Host.Tests/DecidedAtTheWriteTests.cs
+
+$ (Bash) grep -rn -i '\.gif\|lifecycle' README.md docs/README.md docs/getting-started.md | head -8; grep -n -i 'seal\|refuse any\|top group\|private' README.md | head -10; grep -rn -c 'Sealing\|AclDefault.Deny\|"deny"' tests --include=*.cs | grep -v ':0' | wc -l; echo; echo "test methods naming a narrowing:"; grep -rn -E 'public (async Task|void) [A-Za-z_]*(seal|Seal|nearest|Nearest|takes_everything_away|grants_less|narrow|Narrow|empty_rule|Empty_rule|refuses_rather|struck|Struck|closes|stops_the_walk)[A-Za-z_]*\(' tests --include=*.cs | wc -l; grep -rln -E 'public (async Task|void) [A-Za-z_]*(seal|Seal|nearest|Nearest|takes_everything_away|grants_less|narrow|Narrow|empty_rule|Empty_rule|refuses_rather|struck|Struck|closes|stops_the_walk)[A-Za-z_]*\(' tests --include=*.cs | wc -l; grep -rn -E '\[(Test|TestCase)' tests --include=*.cs | wc -l
+README.md:10:![From a database with entries to a program that reads one folder, is refused the other, and is shut out once revoked](docs/images/lifecycle.gif)
+36:  encrypted file itself, and the plugin never writes a private key to the Windows user profile.
+117:does not name, which keeps it private from the rules above it.
+16
+
+test methods naming a narrowing:
+66
+28
+4210
+
+$ (Bash) ls tests/KeePassGate.Tests | grep -i -E 'acl|resolv|access' ; grep -n 'public void ' tests/KeePassGate.Tests/AclResolverTests.cs | sed 's/public void //' | head -120
+AccessCheckTests.cs
+AccessOperationTests.cs
+AclDecideAnyTests.cs
+AclDocumentTests.cs
+AclInheritanceTests.cs
+AclResolverTests.cs
+FileAcls.cs
+GateResolverTests.cs
+23:        A_rule_further_up_reaches_down()
+32:        A_rule_grants_only_the_verbs_it_names()
+43:        The_nearest_rule_wins_even_when_it_grants_less()
+56:        An_empty_rule_takes_everything_away_from_there_down()
+66:        A_rule_about_another_profile_is_not_a_rule_about_this_one()
+77:        A_default_of_deny_stops_the_walk_for_a_profile_it_does_not_name()
+89:        Holding_either_of_two_profiles_is_enough()
+100:        One_profile_being_stopped_does_not_stop_another()
+114:        Reading_into_a_node_counts_a_switch_only_in_a_rule_holding_read()
+149:        Reaching_a_protected_value_needs_the_verb_and_the_switch_together()
+163:        The_secrets_switch_covers_whichever_verbs_the_rule_holds()
+180:        A_rule_that_reaches_protected_values_and_grants_nothing_grants_nothing()
+190:        Reaching_an_attachment_needs_the_verb_and_the_switch_together()
+204:        Removing_needs_no_switch_because_removing_shows_nobody_anything()
+221:        Stripping_needs_no_switch_either_and_needs_no_delete_beside_it()
+244:        The_switch_reaches_every_verb_the_same_rule_grants()
+261:        A_nearer_rule_without_the_switch_refuses_rather_than_deferring_upwards()
+278:        The_switch_is_not_something_to_ask_about()
+290:        A_tree_with_no_rules_on_it_grants_nothing()
+299:        A_document_that_will_not_read_refuses_rather_than_being_skipped()
+314:        A_nearer_rule_is_answered_before_a_document_above_that_will_not_read()
+330:        An_empty_document_is_not_a_document()
+342:        There_is_nothing_to_decide_about_nothing()
+348:        A_client_holding_no_profiles_is_permitted_nothing()
+358:        The_verb_that_is_not_grantable_is_refused_rather_than_answered()
+369:        A_parent_chain_that_loops_ends_rather_than_running()
+382:        A_decision_says_what_answered_it()
+401:        A_refusal_reports_the_first_profile_it_tried()
+415:        Documents_a_listing_has_already_read_answer_as_they_would_have_and_are_read_once()
+437:        A_document_changed_since_it_was_read_is_read_again()

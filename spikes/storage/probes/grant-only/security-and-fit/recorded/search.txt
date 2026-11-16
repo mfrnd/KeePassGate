@@ -1,0 +1,131 @@
+$ (PowerShell) $t='<product>\tests'; $f = Get-ChildItem -Recurse $t -Include *.cs,*.py; 
+'Sealing( uses: ' + ($f | Select-String -Pattern 'Rules\.Sealing\(' -AllMatches | Measure-Object).Count + ' in files ' + (($f | Select-String -Pattern 'Rules\.Sealing\(' | Select-Object -Unique Path) | Measure-Object).Count
+'Granting( uses: ' + ($f | Select-String -Pattern 'Rules\.Granting\(' | Measure-Object).Count + ' in files ' + (($f | Select-String -Pattern 'Rules\.Granting\(' | Select-Object -Unique Path) | Measure-Object).Count
+'"........" occurrences: ' + ($f | Select-String -SimpleMatch '"........"' | Measure-Object).Count + ' in files ' + (($f | Select-String -SimpleMatch '"........"' | Select-Object -Unique Path) | Measure-Object).Count
+'AclDefault.Deny: ' + ($f | Select-String -SimpleMatch 'AclDefault.Deny' | Measure-Object).Count + ' in files ' + (($f | Select-String -SimpleMatch 'AclDefault.Deny' | Select-Object -Unique Path) | Measure-Object).Count
+'"deny" json: ' + ($f | Select-String -Pattern '\\"default\\":\s*\\"deny\\"|"default": *"deny"' | Measure-Object).Count
+'Refuse any profile: ' + ($f | Select-String -SimpleMatch 'Refuse any profile' | Measure-Object).Count
+Sealing( uses: 18 in files 8
+Granting( uses: 274 in files 32
+"........" occurrences: 8 in files 6
+AclDefault.Deny: 17 in files 9
+"deny" json: 3
+Refuse any profile: 0
+
+$ (PowerShell) $t='<product>\tests'; $f = Get-ChildItem -Recurse $t -Include *.cs; 
+$f | Select-String -SimpleMatch 'AclDefault.Deny' | ForEach-Object { $_.Path.Replace('<product>\tests\','') + ':' + $_.LineNumber } 
+'---'
+$f | Select-String -Pattern 'Granting\("[^"]+"\)' | Measure-Object | % Count
+$f | Select-String -Pattern 'Granting\([^,)]+\)' | Select-Object -First 5 | % { $_.Line.Trim() }
+'--- Rules class'
+Get-ChildItem -Recurse $t -Filter Rules.cs | % FullName
+KeePassGate.Host.Tests\Live\LiveGrantEditorTests.cs:90
+KeePassGate.Host.Tests\AclInRealDatabaseTests.cs:95
+KeePassGate.Host.Tests\AclInRealDatabaseTests.cs:109
+KeePassGate.Host.Tests\AclInRealDatabaseTests.cs:135
+KeePassGate.Host.Tests\AclInRealDatabaseTests.cs:206
+KeePassGate.Host.Tests\GrantEditorInRealDialogsTests.cs:160
+KeePassGate.Tests\Fakes\TestNode.cs:68
+KeePassGate.Tests\AclDocumentTests.cs:49
+KeePassGate.Tests\AclDocumentTests.cs:86
+KeePassGate.Tests\AclDocumentTests.cs:95
+KeePassGate.Tests\GrantPickerTests.cs:722
+KeePassGate.Tests\GrantSheetTests.cs:83
+KeePassGate.Tests\GrantSheetTests.cs:141
+KeePassGate.Tests\GrantSheetTests.cs:354
+KeePassGate.Tests\GrantSheetTests.cs:366
+KeePassGate.Tests\RulesTests.cs:39
+Shared\Rules.cs:58
+---
+2
+_group.CustomData.Set(AclDocument.CustomDataKey, Rules.Granting(rules));
+_group.CustomData.Set(AclDocument.CustomDataKey, Rules.Granting(rules));
+_database.RootGroup.CustomData.Set(AclDocument.CustomDataKey, Rules.Granting(rules));
+Granting(rules);
+Granting(mine);
+--- Rules class
+<product>\tests\Shared\Rules.cs
+
+$ (PowerShell) $t='<product>\tests\pykeepassgate'; (Get-ChildItem -Recurse $t -Filter *.py | Select-String -Pattern '\.allows\(|Access\.of|"grants"' | Measure-Object).Count; (Get-ChildItem -Recurse $t -Filter *.py | Select-String -Pattern '\.allows\(|Access\.of|"grants"' | Select-Object -Unique Path | Measure-Object).Count; (Get-ChildItem -Recurse '<product>\tests' -Include *.cs | Select-String -Pattern 'InheritedMask|Reaches\b' | Select-Object -Unique Path | % { $_.Path.Replace('<product>\tests\','') })
+16
+4
+KeePassGate.Host.Tests\Live\DocumentationLifecycle.cs
+KeePassGate.Host.Tests\Live\LiveApiTests.cs
+KeePassGate.Host.Tests\Live\LiveAuthorityChooserTests.cs
+KeePassGate.Host.Tests\Live\LiveCertificateTests.cs
+KeePassGate.Host.Tests\Live\LiveKeePassTests.cs
+KeePassGate.Host.Tests\Live\LiveLockTimerTests.cs
+KeePassGate.Host.Tests\Live\LivePairingTests.cs
+KeePassGate.Host.Tests\Live\LiveReferenceClientTests.cs
+KeePassGate.Host.Tests\Live\LiveRenewalTests.cs
+KeePassGate.Host.Tests\Live\LiveTanWizardTests.cs
+KeePassGate.Host.Tests\Live\Mouse.cs
+KeePassGate.Host.Tests\Live\Steadied.cs
+KeePassGate.Host.Tests\Live\ThrowawayKeePass.cs
+KeePassGate.Host.Tests\Live\Uia.cs
+KeePassGate.Host.Tests\AclInRealDatabaseTests.cs
+KeePassGate.Host.Tests\AuthorityChooserInRealDatabaseTests.cs
+KeePassGate.Host.Tests\AuthorityInRealDatabaseTests.cs
+KeePassGate.Host.Tests\ClientSideProviderQueueTests.cs
+KeePassGate.Host.Tests\DatabaseNodesTests.cs
+KeePassGate.Host.Tests\DecidedAtTheReadTests.cs
+KeePassGate.Host.Tests\GateTabFitsTests.cs
+KeePassGate.Host.Tests\KdbxVaultTests.cs
+KeePassGate.Host.Tests\KeePassContractTests.cs
+KeePassGate.Host.Tests\NodeTagsTests.cs
+KeePassGate.Host.Tests\NoSizeToldToAWriterTests.cs
+KeePassGate.Host.Tests\OpenDatabaseTests.cs
+KeePassGate.Host.Tests\PairingInRealDatabaseTests.cs
+KeePassGate.Host.Tests\SelfRevocationInRealDatabaseTests.cs
+KeePassGate.Host.Tests\SnapshotHazardTests.cs
+KeePassGate.Host.Tests\TagOfTheCallersViewTests.cs
+KeePassGate.Tests\Fakes\FakeVault.cs
+KeePassGate.Tests\Fakes\RecordingGateLog.cs
+KeePassGate.Tests\Gallery\RenewalDialogGallery.cs
+KeePassGate.Tests\AccessCheckTests.cs
+KeePassGate.Tests\AccessOperationTests.cs
+KeePassGate.Tests\AclDecideAnyTests.cs
+KeePassGate.Tests\AclDocumentTests.cs
+KeePassGate.Tests\AclInheritanceTests.cs
+KeePassGate.Tests\AclResolverTests.cs
+KeePassGate.Tests\AnchorPinTests.cs
+KeePassGate.Tests\ApiTests.cs
+KeePassGate.Tests\AuditTests.cs
+KeePassGate.Tests\AuthorityChooserKeysTests.cs
+KeePassGate.Tests\AuthorityDescriptionTests.cs
+KeePassGate.Tests\AuthorityPanelTests.cs
+KeePassGate.Tests\CertifiedKeyTests.cs
+KeePassGate.Tests\ClientListMenuTests.cs
+KeePassGate.Tests\ClientListTests.cs
+KeePassGate.Tests\DecidedContextTests.cs
+KeePassGate.Tests\DesktopAttribute.cs
+KeePassGate.Tests\GateConversationTests.cs
+KeePassGate.Tests\GateIncidentsTests.cs
+KeePassGate.Tests\GateListenerTests.cs
+KeePassGate.Tests\GateStatusFormTests.cs
+KeePassGate.Tests\GrantPanelTests.cs
+KeePassGate.Tests\GrantPickerTests.cs
+KeePassGate.Tests\GrantSheetTests.cs
+KeePassGate.Tests\IdentityOperationTests.cs
+KeePassGate.Tests\InvitationBookTests.cs
+KeePassGate.Tests\JsonBodyTests.cs
+KeePassGate.Tests\MomentsTests.cs
+KeePassGate.Tests\PairingApprovalTests.cs
+KeePassGate.Tests\PairingGateTests.cs
+KeePassGate.Tests\PairingHandlerTests.cs
+KeePassGate.Tests\PendingInvitationsTests.cs
+KeePassGate.Tests\ProfileListTests.cs
+KeePassGate.Tests\ProfileNamesTests.cs
+KeePassGate.Tests\RouterAuthorizationTests.cs
+KeePassGate.Tests\SpecDocumentTests.cs
+KeePassGate.Tests\SpecRouterTests.cs
+KeePassGate.Tests\SplitButtonTests.cs
+KeePassGate.Tests\TabPageInjectorTests.cs
+KeePassGate.Tests\VaultAskingTests.cs
+Shared\PairingClient.cs
+Shared\PrivateKeyFiles.cs
+
+$ (PowerShell) Get-ChildItem -Recurse '<product>\tests','<product>\src\KeePassGate' -Include *.cs | Select-String -Pattern 'InheritedMask' | Group-Object Path | % { $_.Name.Replace('<product>\','') + ' ' + $_.Count }
+src\KeePassGate\Ui\GrantPanel.cs 2
+src\KeePassGate\Ui\GrantSheet.cs 6
+tests\KeePassGate.Tests\GrantSheetTests.cs 1

@@ -1,0 +1,144 @@
+probe run 2026-11-15T19:21:16.8488421Z, KeePassLib 2.62
+each line: user entries by path, with what agent may do there as one mask (switch shown where some verb reaches it)
+  and the question the scenario asks, answered yes or no
+
+S1: one entry's row changed apart. Base: Y granted ..U.....; A adds .R...... (A shows .RU.....); B adds .......P (B shows ..U....P)
+    expected by the operator: neither copy lets agent read Y's password
+    A alone: G/Y=.RU.....  H/X=........  [live 2, cut 0, in bin 0]  agent reads Y's protected values: no
+    B alone: G/Y=..U....P  H/X=........  [live 2, cut 0, in bin 0]  agent reads Y's protected values: no
+    Synchronize       into A: G/Y=.RU....P  H/X=........  [live 3, cut 0, in bin 0]  agent reads Y's protected values: YES
+    Synchronize       into B: G/Y=.RU....P  H/X=........  [live 3, cut 0, in bin 0]  agent reads Y's protected values: YES
+    OverwriteIfNewer  into A: G/Y=.RU....P  H/X=........  [live 3, cut 0, in bin 0]  agent reads Y's protected values: YES
+    OverwriteIfNewer  into B: G/Y=.RU....P  H/X=........  [live 3, cut 0, in bin 0]  agent reads Y's protected values: YES
+    OverwriteExisting into A: G/Y=.RU....P  H/X=........  [live 3, cut 0, in bin 0]  agent reads Y's protected values: YES
+    OverwriteExisting into B: G/Y=.RU....P  H/X=........  [live 3, cut 0, in bin 0]  agent reads Y's protected values: YES
+    KeepExisting      into A: G/Y=.RU....P  H/X=........  [live 3, cut 0, in bin 0]  agent reads Y's protected values: YES
+    KeepExisting      into B: G/Y=.RU....P  H/X=........  [live 3, cut 0, in bin 0]  agent reads Y's protected values: YES
+    CreateNewUuids    into A: G/Y=.RU....P  G/Y*=........  H/X=........  H/X*=........  [live 4, cut 0, in bin 0]  agent reads Y's protected values: YES
+    CreateNewUuids    into B: G/Y=.RU....P  G/Y*=........  H/X=........  H/X*=........  [live 4, cut 0, in bin 0]  agent reads Y's protected values: YES
+    KeePassXC 2.4.2     into A: G/Y=.RU....P  H/X=........  [live 3, cut 0, in bin 0]  agent reads Y's protected values: YES
+    KeePassXC 2.4.2     into B: G/Y=.RU....P  H/X=........  [live 3, cut 0, in bin 0]  agent reads Y's protected values: YES
+    KeePassXC 2.6.6     into A: G/Y=.RU....P  H/X=........  [live 3, cut 0, in bin 0]  agent reads Y's protected values: YES
+    KeePassXC 2.6.6     into B: G/Y=.RU....P  H/X=........  [live 3, cut 0, in bin 0]  agent reads Y's protected values: YES
+    KeePassXC 2.7.12    into A: G/Y=.RU....P  H/X=........  [live 3, cut 0, in bin 0]  agent reads Y's protected values: YES
+    KeePassXC 2.7.12    into B: G/Y=.RU....P  H/X=........  [live 3, cut 0, in bin 0]  agent reads Y's protected values: YES
+    KeePassXC 2.8.0     into A: G/Y=.RU....P  H/X=........  [live 3, cut 0, in bin 0]  agent reads Y's protected values: YES
+    KeePassXC 2.8.0     into B: G/Y=.RU....P  H/X=........  [live 3, cut 0, in bin 0]  agent reads Y's protected values: YES
+
+S1b: one group's row changed apart. Base: G granted .R...L..; A adds C....... on G (A shows CR...L..); B adds .......P on G (B shows .R...L.P)
+    expected by the operator: neither copy lets agent create a protected value
+    A alone: G/Y=CR...L..  H/X=........  [live 2, cut 0, in bin 0]  agent creates a protected value in Y: no
+    B alone: G/Y=.R...L.P  H/X=........  [live 2, cut 0, in bin 0]  agent creates a protected value in Y: no
+    Synchronize       into A: G/Y=CR...L.P  H/X=........  [live 3, cut 0, in bin 0]  agent creates a protected value in Y: YES
+    Synchronize       into B: G/Y=CR...L.P  H/X=........  [live 3, cut 0, in bin 0]  agent creates a protected value in Y: YES
+    OverwriteIfNewer  into A: G/Y=CR...L.P  H/X=........  [live 3, cut 0, in bin 0]  agent creates a protected value in Y: YES
+    OverwriteIfNewer  into B: G/Y=CR...L.P  H/X=........  [live 3, cut 0, in bin 0]  agent creates a protected value in Y: YES
+    OverwriteExisting into A: G/Y=CR...L.P  H/X=........  [live 3, cut 0, in bin 0]  agent creates a protected value in Y: YES
+    OverwriteExisting into B: G/Y=CR...L.P  H/X=........  [live 3, cut 0, in bin 0]  agent creates a protected value in Y: YES
+    KeepExisting      into A: G/Y=CR...L.P  H/X=........  [live 3, cut 0, in bin 0]  agent creates a protected value in Y: YES
+    KeepExisting      into B: G/Y=CR...L.P  H/X=........  [live 3, cut 0, in bin 0]  agent creates a protected value in Y: YES
+    CreateNewUuids    into A: G/Y=CR...L.P  G/Y*=........  H/X=........  H/X*=........  [live 4, cut 0, in bin 0]  agent creates a protected value in Y: YES
+    CreateNewUuids    into B: G/Y=CR...L.P  G/Y*=........  H/X=........  H/X*=........  [live 4, cut 0, in bin 0]  agent creates a protected value in Y: YES
+    KeePassXC 2.4.2     into A: G/Y=CR...L.P  H/X=........  [live 3, cut 0, in bin 0]  agent creates a protected value in Y: YES
+    KeePassXC 2.4.2     into B: G/Y=CR...L.P  H/X=........  [live 3, cut 0, in bin 0]  agent creates a protected value in Y: YES
+    KeePassXC 2.6.6     into A: G/Y=CR...L.P  H/X=........  [live 3, cut 0, in bin 0]  agent creates a protected value in Y: YES
+    KeePassXC 2.6.6     into B: G/Y=CR...L.P  H/X=........  [live 3, cut 0, in bin 0]  agent creates a protected value in Y: YES
+    KeePassXC 2.7.12    into A: G/Y=CR...L.P  H/X=........  [live 3, cut 0, in bin 0]  agent creates a protected value in Y: YES
+    KeePassXC 2.7.12    into B: G/Y=CR...L.P  H/X=........  [live 3, cut 0, in bin 0]  agent creates a protected value in Y: YES
+    KeePassXC 2.8.0     into A: G/Y=CR...L.P  H/X=........  [live 3, cut 0, in bin 0]  agent creates a protected value in Y: YES
+    KeePassXC 2.8.0     into B: G/Y=CR...L.P  H/X=........  [live 3, cut 0, in bin 0]  agent creates a protected value in Y: YES
+
+S2: A moves X from H into P (P ungranted in A); B grants .R...L.. on P (X not in P in B)
+    expected by the operator: in neither copy is X under a grant
+    A alone: G/Y=........  P/X=........  [live 0, cut 0, in bin 0]  agent reads X: no
+    B alone: G/Y=........  H/X=........  [live 1, cut 0, in bin 0]  agent reads X: no
+    Synchronize       into A: G/Y=........  P/X=.R...L..  [live 1, cut 0, in bin 0]  agent reads X: YES
+    Synchronize       into B: G/Y=........  P/X=.R...L..  [live 1, cut 0, in bin 0]  agent reads X: YES
+    OverwriteIfNewer  into A: G/Y=........  P/X=.R...L..  [live 1, cut 0, in bin 0]  agent reads X: YES
+    OverwriteIfNewer  into B: G/Y=........  H/X=........  [live 1, cut 0, in bin 0]  agent reads X: no
+    OverwriteExisting into A: G/Y=........  P/X=.R...L..  [live 1, cut 0, in bin 0]  agent reads X: YES
+    OverwriteExisting into B: G/Y=........  H/X=........  [live 1, cut 0, in bin 0]  agent reads X: no
+    KeepExisting      into A: G/Y=........  P/X=.R...L..  [live 1, cut 0, in bin 0]  agent reads X: YES
+    KeepExisting      into B: G/Y=........  H/X=........  [live 1, cut 0, in bin 0]  agent reads X: no
+    CreateNewUuids    into A: G/Y=........  G/Y*=........  H/X*=........  P/X=.R...L..  [live 1, cut 0, in bin 0]  agent reads X: YES
+    CreateNewUuids    into B: G/Y=........  G/Y*=........  H/X=........  P/X*=........  [live 1, cut 0, in bin 0]  agent reads X: no
+    KeePassXC 2.4.2     into A: G/Y=........  P/X=.R...L..  [live 1, cut 0, in bin 0]  agent reads X: YES
+    KeePassXC 2.4.2     into B: G/Y=........  P/X=.R...L..  [live 1, cut 0, in bin 0]  agent reads X: YES
+    KeePassXC 2.6.6     into A: G/Y=........  P/X=.R...L..  [live 1, cut 0, in bin 0]  agent reads X: YES
+    KeePassXC 2.6.6     into B: G/Y=........  P/X=.R...L..  [live 1, cut 0, in bin 0]  agent reads X: YES
+    KeePassXC 2.7.12    into A: G/Y=........  P/X=.R...L..  [live 1, cut 0, in bin 0]  agent reads X: YES
+    KeePassXC 2.7.12    into B: G/Y=........  P/X=.R...L..  [live 1, cut 0, in bin 0]  agent reads X: YES
+    KeePassXC 2.8.0     into A: G/Y=........  P/X=.R...L..  [live 1, cut 0, in bin 0]  agent reads X: YES
+    KeePassXC 2.8.0     into B: G/Y=........  P/X=.R...L..  [live 1, cut 0, in bin 0]  agent reads X: YES
+
+S3: G granted, X in G. A moves X out of G into H at +1h; B changes X's password at +2h
+    expected by the operator: X closed (it was moved out from under the grant)
+    A alone: G/Y=.R...L..  H/X=........  [live 1, cut 0, in bin 0]  agent reads X: no
+    B alone: G/X=.R...L..  G/Y=.R...L..  [live 1, cut 0, in bin 0]  agent reads X: YES
+    KeePassXC 2.4.2, A <- B:              G/Y=.R...L..  H/X=........  [live 1, cut 0, in bin 0]  agent reads X: no  X location H @ +0h
+    KeePassXC 2.4.2, then B <- that:      G/X=.R...L..  G/Y=.R...L..  [live 1, cut 0, in bin 0]  agent reads X: YES  X location G @ +0h
+    KeePassXC 2.4.2, B <- A directly:     G/Y=.R...L..  H/X=........  [live 1, cut 0, in bin 0]  agent reads X: no
+    then KeePass Synchronize, into A1:     G/Y=.R...L..  H/X=........  [live 1, cut 0, in bin 0]  agent reads X: no
+    then KeePass Synchronize, into B2:     G/X=.R...L..  G/Y=.R...L..  [live 1, cut 0, in bin 0]  agent reads X: YES
+    KeePassXC 2.6.6, A <- B:              G/Y=.R...L..  H/X=........  [live 1, cut 0, in bin 0]  agent reads X: no  X location H @ +0h
+    KeePassXC 2.6.6, then B <- that:      G/X=.R...L..  G/Y=.R...L..  [live 1, cut 0, in bin 0]  agent reads X: YES  X location G @ +0h
+    KeePassXC 2.6.6, B <- A directly:     G/Y=.R...L..  H/X=........  [live 1, cut 0, in bin 0]  agent reads X: no
+    then KeePass Synchronize, into A1:     G/Y=.R...L..  H/X=........  [live 1, cut 0, in bin 0]  agent reads X: no
+    then KeePass Synchronize, into B2:     G/X=.R...L..  G/Y=.R...L..  [live 1, cut 0, in bin 0]  agent reads X: YES
+    KeePassXC 2.7.12, A <- B:              G/Y=.R...L..  H/X=........  [live 1, cut 0, in bin 0]  agent reads X: no  X location H @ +0h
+    KeePassXC 2.7.12, then B <- that:      G/X=.R...L..  G/Y=.R...L..  [live 1, cut 0, in bin 0]  agent reads X: YES  X location G @ +0h
+    KeePassXC 2.7.12, B <- A directly:     G/Y=.R...L..  H/X=........  [live 1, cut 0, in bin 0]  agent reads X: no
+    then KeePass Synchronize, into A1:     G/Y=.R...L..  H/X=........  [live 1, cut 0, in bin 0]  agent reads X: no
+    then KeePass Synchronize, into B2:     G/X=.R...L..  G/Y=.R...L..  [live 1, cut 0, in bin 0]  agent reads X: YES
+    KeePassXC 2.8.0, A <- B:              G/Y=.R...L..  H/X=........  [live 1, cut 0, in bin 0]  agent reads X: no  X location H @ +0h
+    KeePassXC 2.8.0, then B <- that:      G/X=.R...L..  G/Y=.R...L..  [live 1, cut 0, in bin 0]  agent reads X: YES  X location G @ +0h
+    KeePassXC 2.8.0, B <- A directly:     G/Y=.R...L..  H/X=........  [live 1, cut 0, in bin 0]  agent reads X: no
+    then KeePass Synchronize, into A1:     G/Y=.R...L..  H/X=........  [live 1, cut 0, in bin 0]  agent reads X: no
+    then KeePass Synchronize, into B2:     G/X=.R...L..  G/Y=.R...L..  [live 1, cut 0, in bin 0]  agent reads X: YES
+
+S4: G granted, X in G. A deletes the grant entry for good, with a deletion record (a hand take-away, not the tab); B, older, adds an entry in H at +2h
+    expected by the operator: X closed, as A decided
+    A alone: G/X=........  G/Y=........  [live 0, cut 0, in bin 0]  agent reads X: no
+    B alone: G/X=.R...L..  G/Y=.R...L..  H/Bonly=........  [live 1, cut 0, in bin 0]  agent reads X: YES
+    Synchronize       into A: G/X=........  G/Y=........  H/Bonly=........  [live 0, cut 0, in bin 0]  agent reads X: no
+    Synchronize       into B: G/X=........  G/Y=........  H/Bonly=........  [live 0, cut 0, in bin 0]  agent reads X: no
+    OverwriteIfNewer  into A: G/X=........  G/Y=........  H/Bonly=........  [live 0, cut 0, in bin 0]  agent reads X: no
+    OverwriteIfNewer  into B: G/X=.R...L..  G/Y=.R...L..  H/Bonly=........  [live 1, cut 0, in bin 0]  agent reads X: YES
+    OverwriteExisting into A: G/X=........  G/Y=........  H/Bonly=........  [live 0, cut 0, in bin 0]  agent reads X: no
+    OverwriteExisting into B: G/X=.R...L..  G/Y=.R...L..  H/Bonly=........  [live 1, cut 0, in bin 0]  agent reads X: YES
+    KeepExisting      into A: G/X=........  G/Y=........  H/Bonly=........  [live 0, cut 0, in bin 0]  agent reads X: no
+    KeepExisting      into B: G/X=.R...L..  G/Y=.R...L..  H/Bonly=........  [live 1, cut 0, in bin 0]  agent reads X: YES
+    CreateNewUuids    into A: G/X=.R...L..  G/X*=........  G/Y=.R...L..  G/Y*=........  H/Bonly*=........  [live 1, cut 0, in bin 0]  agent reads X: YES
+    CreateNewUuids    into B: G/X=.R...L..  G/X*=........  G/Y=.R...L..  G/Y*=........  H/Bonly=........  [live 1, cut 0, in bin 0]  agent reads X: YES
+    KeePassXC 2.4.2     into A: G/X=.R...L..  G/Y=.R...L..  H/Bonly=........  [live 1, cut 0, in bin 0]  agent reads X: YES
+    KeePassXC 2.4.2     into B: G/X=.R...L..  G/Y=.R...L..  H/Bonly=........  [live 1, cut 0, in bin 0]  agent reads X: YES
+    KeePassXC 2.6.6     into A: G/X=.R...L..  G/Y=.R...L..  H/Bonly=........  [live 1, cut 0, in bin 0]  agent reads X: YES
+    KeePassXC 2.6.6     into B: G/X=.R...L..  G/Y=.R...L..  H/Bonly=........  [live 1, cut 0, in bin 0]  agent reads X: YES
+    KeePassXC 2.7.12    into A: G/X=.R...L..  G/Y=.R...L..  H/Bonly=........  [live 1, cut 0, in bin 0]  agent reads X: YES
+    KeePassXC 2.7.12    into B: G/X=.R...L..  G/Y=.R...L..  H/Bonly=........  [live 1, cut 0, in bin 0]  agent reads X: YES
+    KeePassXC 2.8.0     into A: G/X=.R...L..  G/Y=.R...L..  H/Bonly=........  [live 1, cut 0, in bin 0]  agent reads X: YES
+    KeePassXC 2.8.0     into B: G/X=.R...L..  G/Y=.R...L..  H/Bonly=........  [live 1, cut 0, in bin 0]  agent reads X: YES
+
+S4b: G granted, X in G, no recycle bin yet. A recycles the grant entry (the bin is made by that delete); B, older, adds an entry in H at +2h
+    expected by the operator: X closed, as A decided
+    A alone: G/X=........  G/Y=........  [live 0, cut 0, in bin 1]  agent reads X: no
+    B alone: G/X=.R...L..  G/Y=.R...L..  H/Bonly=........  [live 1, cut 0, in bin 0]  agent reads X: YES
+    Synchronize       into A: G/X=........  G/Y=........  H/Bonly=........  [live 0, cut 0, in bin 1]  agent reads X: no
+    Synchronize       into B: G/X=........  G/Y=........  H/Bonly=........  [live 0, cut 0, in bin 1]  agent reads X: no
+    OverwriteIfNewer  into A: G/X=........  G/Y=........  H/Bonly=........  [live 0, cut 0, in bin 1]  agent reads X: no
+    OverwriteIfNewer  into B: G/X=.R...L..  G/Y=.R...L..  H/Bonly=........  [live 1, cut 0, in bin 0]  agent reads X: YES
+    OverwriteExisting into A: G/X=........  G/Y=........  H/Bonly=........  [live 0, cut 0, in bin 1]  agent reads X: no
+    OverwriteExisting into B: G/X=.R...L..  G/Y=.R...L..  H/Bonly=........  [live 1, cut 0, in bin 0]  agent reads X: YES
+    KeepExisting      into A: G/X=........  G/Y=........  H/Bonly=........  [live 0, cut 0, in bin 1]  agent reads X: no
+    KeepExisting      into B: G/X=.R...L..  G/Y=.R...L..  H/Bonly=........  [live 1, cut 0, in bin 0]  agent reads X: YES
+    CreateNewUuids    into A: G/X=.R...L..  G/X*=........  G/Y=.R...L..  G/Y*=........  H/Bonly*=........  [live 1, cut 0, in bin 1]  agent reads X: YES
+    CreateNewUuids    into B: G/X=.R...L..  G/X*=........  G/Y=.R...L..  G/Y*=........  H/Bonly=........  [live 2, cut 0, in bin 0]  agent reads X: YES
+    KeePassXC 2.4.2     into A: G/X=........  G/Y=........  H/Bonly=........  [live 0, cut 0, in bin 1]  agent reads X: no
+    KeePassXC 2.4.2     into B: G/X=.R...L..  G/Y=.R...L..  H/Bonly=........  [live 1, cut 0, in bin 0]  agent reads X: YES
+    KeePassXC 2.6.6     into A: G/X=........  G/Y=........  H/Bonly=........  [live 0, cut 0, in bin 1]  agent reads X: no
+    KeePassXC 2.6.6     into B: G/X=.R...L..  G/Y=.R...L..  H/Bonly=........  [live 1, cut 0, in bin 0]  agent reads X: YES
+    KeePassXC 2.7.12    into A: G/X=........  G/Y=........  H/Bonly=........  [live 0, cut 0, in bin 1]  agent reads X: no
+    KeePassXC 2.7.12    into B: G/X=.R...L..  G/Y=.R...L..  H/Bonly=........  [live 1, cut 0, in bin 0]  agent reads X: YES
+    KeePassXC 2.8.0     into A: G/X=........  G/Y=........  H/Bonly=........  [live 0, cut 0, in bin 1]  agent reads X: no
+    KeePassXC 2.8.0     into B: G/X=.R...L..  G/Y=.R...L..  H/Bonly=........  [live 1, cut 0, in bin 0]  agent reads X: YES
+
