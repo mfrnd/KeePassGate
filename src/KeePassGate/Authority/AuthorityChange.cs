@@ -18,12 +18,14 @@ namespace KeePassGate.Authority
         private readonly bool _succeeded;
         private readonly string _message;
         private readonly bool _behindAnotherWrite;
+        private readonly bool _overtaken;
 
-        private AuthorityChange(bool succeeded, string message, bool behindAnotherWrite)
+        private AuthorityChange(bool succeeded, string message, bool behindAnotherWrite, bool overtaken)
         {
             _succeeded = succeeded;
             _message = message ?? string.Empty;
             _behindAnotherWrite = behindAnotherWrite;
+            _overtaken = overtaken;
         }
 
         public bool Succeeded
@@ -46,20 +48,36 @@ namespace KeePassGate.Authority
             get { return _behindAnotherWrite; }
         }
 
+        /// <summary>
+        /// Whether an answer to which authority to keep was refused because the database no longer
+        /// holds the authorities the answer was given about, so that trying the same answer again
+        /// is no use and the question has to be put again.
+        /// </summary>
+        public bool IsOvertaken
+        {
+            get { return _overtaken; }
+        }
+
         public static AuthorityChange Done()
         {
-            return new AuthorityChange(true, null, false);
+            return new AuthorityChange(true, null, false, false);
         }
 
         public static AuthorityChange Refused(string reason)
         {
-            return new AuthorityChange(false, Reason(reason), false);
+            return new AuthorityChange(false, Reason(reason), false, false);
         }
 
         /// <summary>Refused because another write held the writer, <see cref="IsBehindAnotherWrite"/>.</summary>
         public static AuthorityChange BehindAnotherWrite(string reason)
         {
-            return new AuthorityChange(false, Reason(reason), true);
+            return new AuthorityChange(false, Reason(reason), true, false);
+        }
+
+        /// <summary>Refused because the authorities changed under the question, <see cref="IsOvertaken"/>.</summary>
+        public static AuthorityChange Overtaken(string reason)
+        {
+            return new AuthorityChange(false, Reason(reason), false, true);
         }
 
         private static string Reason(string reason)

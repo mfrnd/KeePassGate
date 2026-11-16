@@ -1344,7 +1344,7 @@ So the rules here:
   which a form never is, and any thread can see one there in about twenty microseconds without
   asking the thread anything. `spikes/keepass-thread` holds the probes.
 
-  **Nothing starts inside a merge, and that reverses the reason the timer was given.** A read
+  **No turn starts inside a merge, and that reverses the reason the timer was given.** A read
   inside a pump was held to be harmless, and inside a save it is, because the tree stands still.
   A merge is the other case: `PwDatabase.MergeIn` adds and overwrites groups and entries first,
   then moves, reorders and deletes them in passes of their own, and the status logger it is
@@ -1353,7 +1353,8 @@ So the rules here:
   forty entries, a read asked for at the merge's first step was answered inside it, with none
   of the forty. Nothing KeePass announces is that question. `MainForm.UIIsInteractionBlocked`
   is raised around a synchronize and an import and around every save as well, where a read is
-  welcome; the progress window is XML Replace's alone; a merge another plugin runs raises
+  welcome; the progress window is XML Replace's, and a synchronize's or an import's only where
+  KeePass shows them in its status dialog; a merge another plugin runs raises
   neither. **So the queue looks for the merge where it cannot be missed, on the stack of
   KeePass's own thread**: every merge KeePass runs ends in the one method, whose body is far too
   long to be compiled into its caller, so a thread inside it has its frame, and `MergeWatch`
@@ -1484,9 +1485,9 @@ So the rules here:
   no asterisk in the title and no question on lock, close or exit. Inside an export, the list being
   enumerated moves and KeePass shows the operator a failed export over a truncated file.
 
-  **A turn that starts only on Idle keeps a write out of all of them.** Every one of these pumps
-  through `Application.DoEvents`, read off the IL of KeePass 2.61.1: the save through its status
-  bar logger and `UIBlockInteraction`, the merges through their status loggers, XML Replace
+  **A turn that starts only on Idle keeps a queued write out of all of them.** Each of these
+  pumps through `Application.DoEvents`, read off the IL of KeePass 2.61.1: the save through its
+  status bar logger and `UIBlockInteraction`, the merges through their status loggers, XML Replace
   through its progress window, and the export through `ExportUtil` itself. WinForms never raises
   Idle inside `DoEvents`, measured, so a queued write waits for the operation to end where a
   posted one was delivered inside it.
@@ -1502,11 +1503,28 @@ So the rules here:
   progress window as its status logger, and that window pumps on every step of the merge. A group
   created under the root there makes the merge throw out of `ApplyDeletions`, with the write's own
   save already on the disk. So the dialog watch also answers whether that window is open, and the
-  writer asks it after KeePass's two signals. **Reads are not refused by it**, since
+  writer asks it after KeePass's two signals. **And a merge shown in KeePass's status dialog
+  raises its block late**: a synchronize or an import with `ShowImportStatusDialog` set, and any
+  that runs before KeePass's main window has loaded, opens that same progress window first, which
+  pumps as it starts logging, and blocks interaction only after, so for those pumps the window is
+  the only sign of them as well. The question of which authority to keep, which is posted rather
+  than queued, was delivered there, and waits on the writer's whole answer for that reason,
+  `CA.md` §204. **Reads are not refused by it**, since
   every one of these hazards is a write: what keeps a read out of a merge is the queue's own
   look at the thread, above. **And a database with unsaved changes is not refused
   either**: an API write still saves what is in memory, the operator's own edits included, which is
   a documented consequence rather than something to guard against.
+
+  **One write takes no turn, and that question is all that keeps it out.** The operator's answer
+  to which authority to keep is written on KeePass's own thread already, from a post or a timer's
+  tick, so the queue runs it where it stands: neither the start on Idle nor the queue's look for a
+  merge applies to it, and a post and a tick are delivered inside whatever KeePass is pumping in.
+  The paragraphs above read as covering every write and covered every write but this. KeePass's
+  own operations refused it through those answers, and a merge another plugin runs, which
+  raises none of them, did not: driven against KeePass's own merge under a logger that pumps, the
+  question was put and the retirements written inside `MergeIn`. So the writer's question takes
+  the queue's look at the stack as well, before its other answers, and the question of which
+  authority to keep waits on the same answer, `CA.md` §204.
 
   **A dialog of KeePass's own is answered inside this plugin's save too.** The save pumps
   KeePass's messages as it blocks interaction, again once the key is derived, and then after

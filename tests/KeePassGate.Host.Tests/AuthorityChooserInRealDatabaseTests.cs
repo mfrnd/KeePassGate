@@ -60,7 +60,7 @@ namespace KeePassGate.Host.Tests
             _owner = new Form();
             _prompt = new TellingPrompt();
             _chooser = new AuthorityChooser(
-                new NoEvents(), _targets, _writer, _owner, null, null, _prompt, null, NullGateLog.Instance);
+                new NoEvents(), _targets, _writer, _owner, null, _prompt, null, NullGateLog.Instance);
 
             _asked = 0;
             _answer = null;
@@ -112,7 +112,7 @@ namespace KeePassGate.Host.Tests
             // The tab, or another save, can decide it between the notice and the question.
             var log = new LinesLog();
             var chooser = new AuthorityChooser(
-                new NoEvents(), _targets, _writer, _owner, null, null, _prompt, null, log);
+                new NoEvents(), _targets, _writer, _owner, null, _prompt, null, log);
             chooser.AskWhichToKeep = (choice, name) =>
             {
                 _asked++;
@@ -123,7 +123,7 @@ namespace KeePassGate.Host.Tests
             {
                 Assume.That(
                     new AuthorityService(new CustomDataStore(_database.Database), NullGateLog.Instance)
-                        .Keep(_candidates[0]).Succeeded,
+                        .Keep(_candidates[0], _candidates).Succeeded,
                     Is.True);
 
                 Assert.That(chooser.Ask(_database.Database), Is.Null);
@@ -189,29 +189,243 @@ namespace KeePassGate.Host.Tests
         {
             _chooser.AskAll();
 
-            // A third arrives, as another merge would bring it.
-            var service = new AuthorityService(new CustomDataStore(_database.Database), NullGateLog.Instance);
-            var store = new CustomDataStore(_database.Database);
-            var held = store.Keys.Where(k => AuthorityKeys.FingerprintInAuthority(k) != null)
-                            .ToDictionary(k => k, k => store.Get(k));
-            foreach (var key in held.Keys)
-            {
-                store.Remove(key);
-            }
-
-            Assume.That(service.Create().Succeeded, Is.True);
-            var third = AuthorityKeys.FingerprintInAuthority(
-                store.Keys.Single(k => AuthorityKeys.FingerprintInAuthority(k) != null));
-            foreach (var pair in held)
-            {
-                store.Set(pair.Key, pair.Value);
-            }
-
-            _candidates = _candidates.Concat(new[] { third }).ToArray();
+            Third();
 
             _chooser.AskAll();
 
             Assert.That(_asked, Is.EqualTo(2));
+        }
+
+        [Test]
+        public void An_answer_retires_no_authority_that_arrived_while_the_question_stood()
+        {
+            // The chooser is not registered with KeePass's window manager, so a periodic trigger
+            // synchronizes under it. The answer was written to whatever the database held by
+            // then, and retired an authority, with every client it admitted, that the question
+            // never listed.
+            var first = _candidates[0];
+            var second = _candidates[1];
+            string third = null;
+            var listed = new List<string[]>();
+            _chooser.AskWhichToKeep = (choice, name) =>
+            {
+                listed.Add(choice.Options.Select(o => o.Fingerprint).ToArray());
+                if (listed.Count == 1)
+                {
+                    // The synchronize, and the round its save posts, which the dialog's own loop
+                    // delivers.
+                    third = Third();
+                    _chooser.AskAll();
+                }
+
+                return first;
+            };
+
+            _chooser.AskAll();
+
+            Assert.That(listed.Count, Is.EqualTo(1), "nothing is asked on top of the question standing");
+            Assert.That(_database.Database.CustomData.Exists(AuthorityKeys.RetirementKey(third)), Is.False,
+                "the authority nobody was shown is not retired");
+            Assert.That(_database.Database.CustomData.Exists(AuthorityKeys.RetirementKey(second)), Is.False,
+                "and nothing else is, since the answer was about a database that is no longer there");
+            Assert.That(_prompt.Told, Is.Null, "the operator is asked again rather than sent to the tab");
+
+            // The round a moment later.
+            _chooser.AskAll();
+
+            Assert.That(listed.Count, Is.EqualTo(2), "the authorities the database holds now are asked about");
+            Assert.That(listed[1], Is.EquivalentTo(new[] { first, second, third }));
+            Assert.That(_database.Database.CustomData.Exists(AuthorityKeys.RetirementKey(second)), Is.True);
+            Assert.That(_database.Database.CustomData.Exists(AuthorityKeys.RetirementKey(third)), Is.True,
+                "and an answer about all of them retires the rest");
+
+            using (var served = _targets.Current().Single())
+            {
+                Assert.That(served.DatabaseId, Is.EqualTo(first));
+            }
+        }
+
+        [Test]
+        public void An_authority_that_arrived_under_a_question_canceled_is_asked_about()
+        {
+            // The round for the new set came while the question about the old set stood, asked
+            // nobody, and left the new set marked as asked about.
+            var listed = new List<int>();
+            _chooser.AskWhichToKeep = (choice, name) =>
+            {
+                listed.Add(choice.Options.Count);
+                if (listed.Count == 1)
+                {
+                    Third();
+                    _chooser.AskAll();
+                }
+
+                return null;
+            };
+
+            _chooser.AskAll();
+            _chooser.AskAll();
+            _chooser.AskAll();
+
+            Assert.That(listed, Is.EqualTo(new[] { 2, 3 }), "each set once, the set that arrived among them");
+        }
+
+        [Test]
+        public void An_answer_is_not_written_once_an_authority_listed_has_been_retired_under_it()
+        {
+            // A retirement that arrives is another copy's answer, so the answer here was given
+            // about a choice that has changed, and is asked for again.
+            var third = Third();
+            var first = _candidates[0];
+            var second = _candidates[1];
+            var listed = new List<string[]>();
+            _chooser.AskWhichToKeep = (choice, name) =>
+            {
+                listed.Add(choice.Options.Select(o => o.Fingerprint).ToArray());
+                if (listed.Count == 1)
+                {
+                    new CustomDataStore(_database.Database).Set(
+                        AuthorityKeys.RetirementKey(third), AuthorityKeys.RetiredValue);
+                    _chooser.AskAll();
+                }
+
+                return listed.Count == 1 ? first : null;
+            };
+
+            _chooser.AskAll();
+
+            Assert.That(_database.Database.CustomData.Exists(AuthorityKeys.RetirementKey(second)), Is.False);
+            Assert.That(_prompt.Told, Is.Null);
+
+            _chooser.AskAll();
+
+            Assert.That(listed.Count, Is.EqualTo(2));
+            Assert.That(listed[1], Is.EquivalentTo(new[] { first, second }));
+        }
+
+        [Test]
+        public void A_choice_being_tried_again_is_not_written_once_another_authority_has_arrived()
+        {
+            // The same answer, refused for a moment and tried again: the synchronize that brings
+            // the third authority can end between the two tries.
+            var first = _candidates[0];
+            var second = _candidates[1];
+            string third = null;
+            var questions = 0;
+            var writer = new DatabaseWriter(
+                CurrentThread.Instance,
+                database => { },
+                () =>
+                {
+                    // The round's own question, then the first try, refused, then the second.
+                    if (++questions != 2)
+                    {
+                        return null;
+                    }
+
+                    third = Third();
+                    return "KeePass is synchronizing";
+                },
+                null,
+                null,
+                _dialogs,
+                NullGateLog.Instance);
+            var listed = new List<int>();
+            var chooser = new AuthorityChooser(
+                new NoEvents(), _targets, writer, _owner, null, _prompt, null, NullGateLog.Instance)
+            {
+                After = Waited,
+                AskWhichToKeep = (choice, name) =>
+                {
+                    listed.Add(choice.Options.Count);
+                    return listed.Count == 1 ? first : null;
+                }
+            };
+
+            using (chooser)
+            {
+                chooser.AskAll();
+
+                Assert.That(third, Is.Not.Null, "the first try was refused");
+                Assert.That(_database.Database.CustomData.Exists(AuthorityKeys.RetirementKey(third)), Is.False);
+                Assert.That(_database.Database.CustomData.Exists(AuthorityKeys.RetirementKey(second)), Is.False);
+                Assert.That(_prompt.Told, Is.Null);
+
+                chooser.AskAll();
+
+                Assert.That(listed, Is.EqualTo(new[] { 2, 3 }));
+            }
+        }
+
+        [Test]
+        public void A_choice_another_copy_s_answer_made_moot_is_not_tried_again_and_names_what_is_served()
+        {
+            // While the question stood, a synchronize brought the retirement another copy wrote,
+            // so the database serves what that copy kept. Tried again like any refusal, the
+            // answer here was refused every quarter of a second, each try logged as an error,
+            // and then reported as nothing being served, over a database being served.
+            var log = new LinesLog();
+            var tries = 0;
+            var chooser = new AuthorityChooser(
+                new NoEvents(), _targets, _writer, _owner, null, _prompt, null, log)
+            {
+                After = (delay, work) =>
+                {
+                    tries++;
+                    Waited(delay, work);
+                },
+                AskWhichToKeep = (choice, name) =>
+                {
+                    new CustomDataStore(_database.Database).Set(
+                        AuthorityKeys.RetirementKey(_candidates[0]), AuthorityKeys.RetiredValue);
+                    return _candidates[0];
+                }
+            };
+
+            using (chooser)
+            {
+                chooser.AskAll();
+            }
+
+            Assert.That(tries, Is.Zero, "an answer no later try can make right is not tried again");
+            Assert.That(log.Lines, Has.None.Contains("could not be kept"), "nor logged as an error");
+            Assert.That(_prompt.Told, Does.Contain(AuthorityKeys.Shown(_candidates[1])),
+                "the operator is told which authority is served");
+            Assert.That(_prompt.Told, Does.Not.Contain("Nothing is served"));
+
+            using (var served = _targets.Current().Single())
+            {
+                Assert.That(served.DatabaseId, Is.EqualTo(_candidates[1]), "the other copy's answer stands");
+            }
+        }
+
+        [Test]
+        public void A_choice_the_database_came_to_serve_alone_tells_nothing()
+        {
+            // The other copy kept the same authority, so the database is as the operator asked.
+            var tries = 0;
+            _chooser.After = (delay, work) =>
+            {
+                tries++;
+                Waited(delay, work);
+            };
+            _chooser.AskWhichToKeep = (choice, name) =>
+            {
+                new CustomDataStore(_database.Database).Set(
+                    AuthorityKeys.RetirementKey(_candidates[1]), AuthorityKeys.RetiredValue);
+                return _candidates[0];
+            };
+
+            _chooser.AskAll();
+            _chooser.AskAll();
+
+            Assert.That(tries, Is.Zero);
+            Assert.That(_prompt.Told, Is.Null);
+
+            using (var served = _targets.Current().Single())
+            {
+                Assert.That(served.DatabaseId, Is.EqualTo(_candidates[0]));
+            }
         }
 
         [Test]
@@ -231,7 +445,7 @@ namespace KeePassGate.Host.Tests
                     NullGateLog.Instance);
                 var asked = 0;
                 var chooser = new AuthorityChooser(
-                    new NoEvents(), targets, _writer, _owner, null, null, _prompt, null, NullGateLog.Instance)
+                    new NoEvents(), targets, _writer, _owner, null, _prompt, null, NullGateLog.Instance)
                 {
                     After = Waited,
                     AskWhichToKeep = (choice, name) =>
@@ -291,13 +505,20 @@ namespace KeePassGate.Host.Tests
         public void A_choice_the_writer_refuses_for_a_moment_is_kept_without_asking_again()
         {
             // Another client's write, or KeePass saving: over in a moment, and not something the
-            // operator should have to choose again for. Tried again for a few seconds first.
+            // operator should have to choose again for. Tried again for a few seconds first. It
+            // begins once the question is answered, since the question waits for a KeePass that
+            // is already busy.
             var refusals = 2;
             var writer = new DatabaseWriter(
-                CurrentThread.Instance, database => { }, () => refusals-- > 0 ? "KeePass is saving" : null, null, null,
-                _dialogs, NullGateLog.Instance);
+                CurrentThread.Instance,
+                database => { },
+                () => _asked > 0 && refusals-- > 0 ? "KeePass is saving" : null,
+                null,
+                null,
+                _dialogs,
+                NullGateLog.Instance);
             var chooser = new AuthorityChooser(
-                new NoEvents(), _targets, writer, _owner, null, null, _prompt, null, NullGateLog.Instance)
+                new NoEvents(), _targets, writer, _owner, null, _prompt, null, NullGateLog.Instance)
             {
                 After = Waited,
                 AskWhichToKeep = (choice, name) =>
@@ -318,15 +539,71 @@ namespace KeePassGate.Host.Tests
         }
 
         [Test]
+        public void A_choice_given_up_is_told_once_KeePass_is_no_longer_part_way_through_something()
+        {
+            // The message came from the tick on which the bound passed, which KeePass's own
+            // pump delivers inside a save or a synchronize: the box stood inside that operation,
+            // and a save waited under it for as long as it was left.
+            var busy = false;
+            var writer = new DatabaseWriter(
+                CurrentThread.Instance, database => { }, () => busy ? "KeePass is saving" : null, null, null,
+                _dialogs, NullGateLog.Instance);
+
+            bool? toldWhileBusy = null;
+            _prompt.Telling = () => toldWhileBusy = busy;
+
+            var waited = TimeSpan.Zero;
+            var chooser = new AuthorityChooser(
+                new NoEvents(), _targets, writer, _owner, null, _prompt, null, NullGateLog.Instance)
+            {
+                AskWhichToKeep = (choice, name) =>
+                {
+                    // KeePass starts a save as the question is answered.
+                    busy = true;
+                    return _candidates[0];
+                },
+                After = (delay, work) =>
+                {
+                    Thread.Sleep(delay);
+                    waited += delay;
+
+                    // And is done with it a second after the bound has passed.
+                    if (waited > AuthorityChooser.KeepTrying + TimeSpan.FromSeconds(1))
+                    {
+                        busy = false;
+                    }
+
+                    work();
+                }
+            };
+
+            using (chooser)
+            {
+                chooser.AskAll();
+            }
+
+            Assert.That(_prompt.Told, Is.Not.Null.And.Contains("was not kept"));
+            Assert.That(toldWhileBusy, Is.False, "the message stood inside an operation of KeePass's own");
+            Assert.That(_database.Database.CustomData.Exists(AuthorityKeys.RetirementKey(_candidates[1])), Is.False,
+                "and the answer given up when the bound passed is not written afterwards");
+        }
+
+        [Test]
         public void A_retry_still_waiting_when_the_plugin_is_let_go_never_runs()
         {
             // The retries above wait on timers of KeePass's thread. One still waiting when KeePass
             // let the plugin go ticked at the next pump, tried to keep the authority for a plugin
-            // that had gone and told the operator it was not kept.
+            // that had gone and told the operator it was not kept. KeePass is busy from the moment
+            // the question is answered, since the question waits for a KeePass already busy.
             var tries = 0;
             var writer = new DatabaseWriter(
                 CurrentThread.Instance, database => { }, () =>
                 {
+                    if (_asked == 0)
+                    {
+                        return null;
+                    }
+
                     tries++;
                     return "KeePass is saving";
                 }, null, null, _dialogs, NullGateLog.Instance);
@@ -337,9 +614,13 @@ namespace KeePassGate.Host.Tests
 
                 // Disposed twice, by the test and by the `using`, which a dispose has to take.
                 using (var chooser = new AuthorityChooser(
-                           new NoEvents(), _targets, writer, owner, null, null, _prompt, null, NullGateLog.Instance)
+                           new NoEvents(), _targets, writer, owner, null, _prompt, null, NullGateLog.Instance)
                        {
-                           AskWhichToKeep = (choice, name) => _candidates[0]
+                           AskWhichToKeep = (choice, name) =>
+                           {
+                               _asked++;
+                               return _candidates[0];
+                           }
                        })
                 {
                     chooser.AskAll();
@@ -363,9 +644,12 @@ namespace KeePassGate.Host.Tests
         [Test]
         public void KeePass_busy_with_something_of_its_own_is_waited_for_rather_than_asked_through()
         {
-            var chooser = new AuthorityChooser(
-                new NoEvents(), _targets, _writer, _owner, () => "KeePass is synchronizing", null, _prompt, null,
+            // The writer's own question, which is what the answer would be refused on.
+            var writer = new DatabaseWriter(
+                CurrentThread.Instance, database => { }, () => "KeePass is synchronizing", null, null, _dialogs,
                 NullGateLog.Instance);
+            var chooser = new AuthorityChooser(
+                new NoEvents(), _targets, writer, _owner, null, _prompt, null, NullGateLog.Instance);
             chooser.AskWhichToKeep = (choice, name) =>
             {
                 _asked++;
@@ -381,13 +665,91 @@ namespace KeePassGate.Host.Tests
         }
 
         [Test]
+        public void KeePass_s_progress_window_is_waited_for_rather_than_asked_under()
+        {
+            // A synchronize shown in KeePass's status dialog pumps with that window open before
+            // it blocks interaction, and the writer refuses every choice while the window stands:
+            // the question was put over a synchronize that had not merged, for an answer that
+            // could not be written.
+            _answer = _candidates[0];
+
+            using (var window = new StatusProgressForm())
+            {
+                window.InitEx("Synchronizing", true, false, null);
+                GlobalWindowManager.AddWindow(window);
+
+                try
+                {
+                    _chooser.AskAll();
+
+                    Assert.That(_asked, Is.Zero, "nobody is asked while the answer would be refused");
+                }
+                finally
+                {
+                    GlobalWindowManager.RemoveWindow(window);
+                }
+            }
+
+            // The round a moment later, with the synchronize over.
+            _chooser.AskAll();
+
+            Assert.That(_asked, Is.EqualTo(1));
+            Assert.That(_prompt.Told, Is.Null);
+            Assert.That(_database.Database.CustomData.Exists(AuthorityKeys.RetirementKey(_candidates[1])), Is.True);
+        }
+
+        [Test]
+        public void A_merge_is_waited_for_rather_than_asked_inside()
+        {
+            // A merge another plugin runs pumps from its status logger and raises neither of
+            // KeePass's signals nor its progress window. The round waiting was delivered there,
+            // the question was put over a tree half merged, and the answer was written inside
+            // the merge that could have been bringing another copy's.
+            _writer.Merging = KeePassMerges.Watch();
+            Assume.That((object)_writer.Merging, Is.Not.Null, "this KeePass has no merge to look for");
+            _answer = _candidates[0];
+
+            var rounds = Merged(() => _chooser.AskAll());
+
+            Assert.That(rounds, Is.GreaterThan(0), "the merge came back to its logger, where it pumps");
+            Assert.That(_asked, Is.Zero, "nobody is asked inside a merge");
+            Assert.That(_database.Database.CustomData.Exists(AuthorityKeys.RetirementKey(_candidates[1])), Is.False);
+
+            // The round a moment later, with the merge over.
+            _chooser.AskAll();
+
+            Assert.That(_asked, Is.EqualTo(1));
+            Assert.That(_database.Database.CustomData.Exists(AuthorityKeys.RetirementKey(_candidates[1])), Is.True);
+        }
+
+        [Test]
+        public void The_writer_refuses_to_keep_inside_a_merge()
+        {
+            // The chooser's retries are timer ticks, which a merge's pump delivers as it does a
+            // round, and this write takes no turn that would keep it out.
+            _writer.Merging = KeePassMerges.Watch();
+            Assume.That((object)_writer.Merging, Is.Not.Null, "this KeePass has no merge to look for");
+
+            var answers = new List<AuthorityChange>();
+            Merged(() => answers.Add(_writer.Keep(_database.Database, _candidates[0], _candidates)));
+
+            Assert.That(answers, Is.Not.Empty);
+            Assert.That(answers.Select(kept => kept.Succeeded), Has.All.False);
+            Assert.That(answers.Select(kept => kept.Message), Has.All.Contains("merging"));
+            Assert.That(_database.Database.CustomData.Exists(AuthorityKeys.RetirementKey(_candidates[1])), Is.False);
+
+            Assert.That(_writer.Keep(_database.Database, _candidates[0], _candidates).Succeeded, Is.True,
+                "and takes the same answer once the merge is over");
+        }
+
+        [Test]
         public void The_writer_refuses_to_keep_while_KeePass_is_part_way_through_something()
         {
             var writer = new DatabaseWriter(
                 CurrentThread.Instance, database => { }, () => "KeePass is importing", null, null, _dialogs,
                 NullGateLog.Instance);
 
-            var kept = writer.Keep(_database.Database, _candidates[0]);
+            var kept = writer.Keep(_database.Database, _candidates[0], _candidates);
 
             Assert.That(kept.Succeeded, Is.False);
             Assert.That(kept.Message, Does.Contain("importing"));
@@ -419,7 +781,7 @@ namespace KeePassGate.Host.Tests
                 Assume.That(held.Wait(TimeSpan.FromSeconds(10)), Is.True, "the other write has the lock");
 
                 var spent = System.Diagnostics.Stopwatch.StartNew();
-                var kept = writer.Keep(_database.Database, _candidates[0]);
+                var kept = writer.Keep(_database.Database, _candidates[0], _candidates);
                 spent.Stop();
 
                 Assert.That(kept.Succeeded, Is.False);
@@ -455,7 +817,7 @@ namespace KeePassGate.Host.Tests
 
             var tries = 0;
             var chooser = new AuthorityChooser(
-                new NoEvents(), _targets, writer, _owner, null, null, _prompt, null, NullGateLog.Instance)
+                new NoEvents(), _targets, writer, _owner, null, _prompt, null, NullGateLog.Instance)
             {
                 AskWhichToKeep = (choice, name) => _candidates[0],
                 After = (delay, work) =>
@@ -558,6 +920,103 @@ namespace KeePassGate.Host.Tests
             return new[] { AuthorityKeys.FingerprintInAuthority(first), AuthorityKeys.FingerprintInAuthority(second) };
         }
 
+        /// <summary>
+        /// Adds one more authority beside those the database holds, as another synchronize would
+        /// bring it, and answers with its digest.
+        /// </summary>
+        private string Third()
+        {
+            var store = new CustomDataStore(_database.Database);
+            var service = new AuthorityService(store, NullGateLog.Instance);
+            var held = store.Keys.Where(k => AuthorityKeys.FingerprintInAuthority(k) != null)
+                            .ToDictionary(k => k, k => store.Get(k));
+            foreach (var key in held.Keys)
+            {
+                store.Remove(key);
+            }
+
+            Assume.That(service.Create().Succeeded, Is.True);
+            var third = AuthorityKeys.FingerprintInAuthority(
+                store.Keys.Single(k => AuthorityKeys.FingerprintInAuthority(k) != null));
+            foreach (var pair in held)
+            {
+                store.Set(pair.Key, pair.Value);
+            }
+
+            _candidates = _candidates.Concat(new[] { third }).ToArray();
+            return third;
+        }
+
+        /// <summary>
+        /// Merges another copy into the database with KeePass's own merge, doing something
+        /// wherever the merge comes back to its status logger, which is where a merge pumps.
+        /// Answers with how often it came back.
+        /// </summary>
+        private int Merged(Action inside)
+        {
+            using (var elsewhere = TemporaryDatabase.New())
+            {
+                // A copy of the same database, as KeePass matches them, with entries of its own
+                // for the merge to bring.
+                elsewhere.Database.RootGroup.Uuid = _database.Database.RootGroup.Uuid;
+                for (var i = 0; i < 20; i++)
+                {
+                    var entry = new PwEntry(true, true);
+                    entry.Strings.Set(
+                        PwDefs.TitleField, new KeePassLib.Security.ProtectedString(false, "an invented service " + i));
+                    elsewhere.Database.RootGroup.AddEntry(entry, true);
+                }
+
+                var calls = 0;
+                _database.Database.MergeIn(
+                    elsewhere.Database,
+                    PwMergeMethod.Synchronize,
+                    new Calling(() =>
+                    {
+                        calls++;
+                        inside();
+                    }));
+                return calls;
+            }
+        }
+
+        /// <summary>A status logger that does one thing wherever the merge comes back to it.</summary>
+        private sealed class Calling : KeePassLib.Interfaces.IStatusLogger
+        {
+            private readonly Action _called;
+
+            public Calling(Action called)
+            {
+                _called = called;
+            }
+
+            public void StartLogging(string strOperation, bool bWriteOperationToLog)
+            {
+            }
+
+            public void EndLogging()
+            {
+            }
+
+            public bool SetProgress(uint uPercent)
+            {
+                _called();
+                return true;
+            }
+
+            public bool SetText(string strNewText, KeePassLib.Interfaces.LogStatusType lsType)
+            {
+                _called();
+                return true;
+            }
+
+            public bool ContinueWork()
+            {
+                _called();
+                return true;
+            }
+        }
+
         private sealed class NoEvents : IDatabaseEvents
         {
             public event EventHandler<GateDatabaseEventArgs> Opened
@@ -615,6 +1074,9 @@ namespace KeePassGate.Host.Tests
         {
             public string Told { get; private set; }
 
+            /// <summary>Called as the operator is told, for a test that asks what was going on then.</summary>
+            public Action Telling { get; set; }
+
             public bool Confirm(string title, string question)
             {
                 return false;
@@ -622,6 +1084,11 @@ namespace KeePassGate.Host.Tests
 
             public void Tell(string title, string news)
             {
+                if (Telling != null)
+                {
+                    Telling();
+                }
+
                 Told = news;
             }
         }

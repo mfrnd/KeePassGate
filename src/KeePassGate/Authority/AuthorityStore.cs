@@ -232,10 +232,20 @@ namespace KeePassGate.Authority
         /// document is taken away.
         /// </summary>
         /// <remarks>
-        /// **Refused for a digest that is not one of the choices**, whether it was never there,
-        /// has been retired since the question was put, or will not read. Keeping it would retire
-        /// every authority this database can serve and leave it serving none, under a message
-        /// saying one had been kept.
+        /// **Refused, as <see cref="ChoiceOvertaken"/>, once the database holds any other
+        /// authorities than the question listed.** The question lists the authorities once and
+        /// stands for as long as the operator leaves it, and a synchronize can run meanwhile,
+        /// since KeePass raises a periodic trigger under a dialog it does not know about. Written
+        /// to whatever the database held by then, an answer about the authorities listed retired
+        /// an authority that arrived later, with every client it admitted, for good and with
+        /// nobody having been shown either. An authority retired meanwhile refuses the answer as
+        /// well, the authority chosen among them: a retirement that arrives is another copy's
+        /// answer, and what is left to choose from is not what the operator chose among. Asked of
+        /// the same listing the retiring below goes by, so nothing arrives between the two.
+        ///
+        /// **Refused for a digest that is not one of the choices**, whether it was never there or
+        /// will not read. Keeping it would retire every authority this database can serve and
+        /// leave it serving none, under a message that an authority had been kept.
         ///
         /// The records issued by the authorities retired here stay. They chain to nothing that is
         /// served, so they admit nobody, and the clients page says so on each row; the operator can
@@ -243,10 +253,23 @@ namespace KeePassGate.Authority
         /// records of expired certificates go, and so does a record that came back beside its
         /// revocation, whichever authority issued it.
         /// </remarks>
+        /// <param name="fingerprint">The digest of the authority to keep.</param>
+        /// <param name="offered">The digest of every authority the question listed.</param>
         /// <returns>How many authorities were retired.</returns>
-        public int Keep(string fingerprint)
+        public int Keep(string fingerprint, IEnumerable<string> offered)
         {
+            if (offered == null)
+            {
+                throw new ArgumentNullException(nameof(offered));
+            }
+
             var live = Listed("kept");
+            if (!new HashSet<string>(live.Select(pair => pair.Key), StringComparer.Ordinal).SetEquals(offered))
+            {
+                throw new ChoiceOvertaken(
+                    "This database no longer holds the authorities that were listed, so none of them was kept.");
+            }
+
             if (string.IsNullOrEmpty(fingerprint) || !live.Any(pair => pair.Key == fingerprint))
             {
                 throw new AuthorityFailure("That authority is not one of the ones this database can keep.");

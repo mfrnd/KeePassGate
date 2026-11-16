@@ -116,7 +116,7 @@ namespace KeePassGate.Host.Tests
                             chooser.Database.MergeIn(second.Database, PwMergeMethod.Synchronize, null);
                             chooser.Database.MergeIn(third.Database, PwMergeMethod.Synchronize, null);
 
-                            var choice = Authority(chooser).Keep(kept);
+                            var choice = Keep(chooser, kept);
                             Assume.That(choice.Succeeded, Is.True, choice.Message);
 
                             // Each loser as it was before it heard of the choice, which is exactly
@@ -174,9 +174,9 @@ namespace KeePassGate.Host.Tests
 
                         var choices = new[]
                         {
-                            Authority(first).Keep(agreed),
-                            Authority(second).Keep(own),
-                            Authority(third).Keep(agreed)
+                            Keep(first, agreed),
+                            Keep(second, own),
+                            Keep(third, agreed)
                         };
 
                         foreach (var choice in choices)
@@ -280,6 +280,22 @@ namespace KeePassGate.Host.Tests
         private static AuthorityService Authority(TemporaryDatabase database)
         {
             return new AuthorityService(new CustomDataStore(database.Database), NullGateLog.Instance);
+        }
+
+        /// <summary>
+        /// Keeps an authority as an operator shown every authority the copy holds would.
+        /// </summary>
+        private static AuthorityChange Keep(TemporaryDatabase database, string fingerprint)
+        {
+            var authority = Authority(database);
+
+            string[] offered;
+            using (var reading = authority.Read())
+            {
+                offered = reading.Candidates.Select(candidate => candidate.Fingerprint).ToArray();
+            }
+
+            return authority.Keep(fingerprint, offered);
         }
 
         /// <summary>The one authority a copy serves, which the caller expects there to be.</summary>

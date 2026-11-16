@@ -483,12 +483,25 @@ namespace KeePassGate.Bridge
         /// and the dialog watch is what sees windows, so `GroupDialogs.Working` is asked after the
         /// seam.
         ///
+        /// **And a merge another plugin runs announces itself in none of them**, so the thread's
+        /// own stack is asked first, <see cref="Merging"/>. A queued write never meets a merge,
+        /// since a turn starts outside it. The write that takes no turn does: the operator's
+        /// answer to which authority to keep, <see cref="Keep"/>, written from a post or a
+        /// timer's tick on KeePass's own thread, which the pump of a merge's status logger
+        /// delivers inside the merge, and the chooser's question, which waits on this answer.
+        ///
         /// **A question that cannot be answered refuses**, like every other guard in this class.
         /// A write is worth losing; a client told its write landed when the operator's import
         /// took it back is not.
         /// </remarks>
         private string Interrupting()
         {
+            var merging = Merging;
+            if (merging != null && merging())
+            {
+                return "KeePass is merging another database into this database";
+            }
+
             if (_busy != null)
             {
                 try
@@ -1116,8 +1129,13 @@ namespace KeePassGate.Bridge
         /// **Not saved, which is operator answer 5**: the database is marked, the window says so,
         /// and the operator saves as they would any other change. Serving starts at once all the
         /// same, because the gate reads the database in memory.
+        ///
+        /// **About the authorities the question listed, and no others**, which the answer carries
+        /// to `AuthorityStore.Keep`: asked there, inside the turn that writes, so a synchronize
+        /// that ended while the question stood or between two tries refuses the answer rather than
+        /// having it retire an authority nobody was shown.
         /// </remarks>
-        public AuthorityChange Keep(PwDatabase database, string fingerprint)
+        public AuthorityChange Keep(PwDatabase database, string fingerprint, IReadOnlyCollection<string> offered)
         {
             if (database == null || !database.IsOpen)
             {
@@ -1139,7 +1157,7 @@ namespace KeePassGate.Bridge
                 bool ran;
                 try
                 {
-                    ran = _ui.Run(() => outcome = KeepOnTheUiThread(database, fingerprint), WriteTimeout);
+                    ran = _ui.Run(() => outcome = KeepOnTheUiThread(database, fingerprint, offered), WriteTimeout);
                 }
                 catch (Exception error) when (Expected.OfUserInterface(error) || Expected.OfCustomData(error))
                 {
@@ -1160,7 +1178,8 @@ namespace KeePassGate.Bridge
             }
         }
 
-        private AuthorityChange KeepOnTheUiThread(PwDatabase database, string fingerprint)
+        private AuthorityChange KeepOnTheUiThread(
+            PwDatabase database, string fingerprint, IReadOnlyCollection<string> offered)
         {
             var interrupting = Interrupting();
             if (interrupting != null)
@@ -1177,7 +1196,7 @@ namespace KeePassGate.Bridge
                 }
             }
 
-            var kept = new AuthorityService(new CustomDataStore(database), _log).Keep(fingerprint);
+            var kept = new AuthorityService(new CustomDataStore(database), _log).Keep(fingerprint, offered);
             if (kept.Succeeded)
             {
                 // The title bar and the menus only: a choice changes the database's own custom
@@ -1646,6 +1665,16 @@ namespace KeePassGate.Bridge
         /// tests build writers with nothing owed. `SessionRefusals` is the one there is.
         /// </remarks>
         public IOwedAnswers Owed { get; set; }
+
+        /// <summary>
+        /// Whether the calling thread is inside a merge KeePass is running, which is
+        /// `MergeWatch.Over` for KeePass's own merge method, or null where there is nothing to ask.
+        /// </summary>
+        /// <remarks>
+        /// Settable for the reason <see cref="Owed"/> is. It is the question `ControlUiThread`
+        /// asks before it serves a turn, asked here for the write that takes none.
+        /// </remarks>
+        public Func<bool> Merging { get; set; }
 
         /// <summary>
         /// Writes every standing answer owed to this database into it, and says what it wrote and

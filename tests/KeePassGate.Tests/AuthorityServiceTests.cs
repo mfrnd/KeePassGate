@@ -223,7 +223,7 @@ namespace KeePassGate.Tests
         {
             var digests = Undecided();
 
-            var result = _service.Keep(digests[0]);
+            var result = _service.Keep(digests[0], digests);
 
             Assert.That(result.Succeeded, Is.True, result.Message);
             Assert.That(_log.Entries.Any(e => e.Message.Contains("others retired: 1")), Is.True);
@@ -233,13 +233,13 @@ namespace KeePassGate.Tests
         [Test]
         public void Keeping_the_one_authority_served_alone_retires_nothing_and_changes_nothing()
         {
-            // Reached from the tab only by a race, since the chooser asks only of a database
-            // serving several, and directly through the service at once, which keeps the database
-            // as it was and has nothing to put in words.
+            // Reached through the service alone, since a chooser asks only of a database serving
+            // several and an answer about several is refused once the database serves one of them
+            // alone. It keeps the database as it was and has nothing to put in words.
             _service.Create();
             var only = Digest();
 
-            var result = _service.Keep(only);
+            var result = _service.Keep(only, new[] { only });
 
             Assert.That(result.Succeeded, Is.True, result.Message);
             Assert.That(result.Message, Is.Empty);
@@ -250,13 +250,42 @@ namespace KeePassGate.Tests
         [Test]
         public void Keeping_something_that_is_not_a_choice_is_refused_rather_than_thrown()
         {
-            Undecided();
+            var digests = Undecided();
 
-            var result = _service.Keep(new string('d', 64));
+            var result = _service.Keep(new string('d', 64), digests);
 
             Assert.That(result.Succeeded, Is.False);
+            Assert.That(result.IsOvertaken, Is.False, "the database holds what the question listed");
             Assert.That(result.Message, Does.Contain("could not be kept"));
             Assert.That(_log.Errors, Is.Not.Empty);
+        }
+
+        [Test]
+        public void An_answer_is_refused_once_the_database_holds_an_authority_the_question_did_not_list()
+        {
+            // A synchronize under the question brought it. Kept all the same, the answer retired
+            // it, and every client it admitted, with nobody having been shown either.
+            var digests = Undecided();
+
+            var result = _service.Keep(digests[0], new[] { digests[0] });
+
+            Assert.That(result.Succeeded, Is.False);
+            Assert.That(result.IsOvertaken, Is.True, "a question to put again, rather than an answer to try again");
+            Assert.That(_values.Get(AuthorityKeys.RetirementKey(digests[1])), Is.Null, "nothing is retired");
+        }
+
+        [Test]
+        public void An_answer_is_refused_once_an_authority_the_question_listed_is_no_longer_held()
+        {
+            // Retired by another copy's answer, which a synchronize under the question brought:
+            // what is left to choose from is not what the operator chose among.
+            var digests = Undecided();
+
+            var result = _service.Keep(digests[0], digests.Concat(new[] { new string('d', 64) }));
+
+            Assert.That(result.Succeeded, Is.False);
+            Assert.That(result.IsOvertaken, Is.True);
+            Assert.That(_values.Get(AuthorityKeys.RetirementKey(digests[1])), Is.Null, "nothing is retired");
         }
 
         [Test]
@@ -265,7 +294,7 @@ namespace KeePassGate.Tests
             var digests = Undecided();
             _values.SwallowWrites = true;
 
-            var result = _service.Keep(digests[1]);
+            var result = _service.Keep(digests[1], digests);
 
             Assert.That(result.Succeeded, Is.False, result.Message);
             Assert.That(result.Message, Does.Contain("Read the page again"));

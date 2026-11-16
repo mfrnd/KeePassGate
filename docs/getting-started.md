@@ -272,7 +272,9 @@ when it was created and how many clients it admitted, and for the authority sele
 fingerprint and every client it admitted, with the client's profiles, when it was admitted and when
 it last made a request, if the audit file remembers one. A client is counted and listed only while
 that authority would let it in: one whose certificate has expired, has not begun or is not for a
-client to present is left out, as the clients page marks it.
+client to present is left out, as the clients page marks it. While KeePass is part way through a
+synchronize, an import or a save, or shows its progress window, the window waits and opens once
+that is over, since an answer given before then could not be written.
 
 ![The window asking which authority to keep](images/authority-chooser.png)
 
@@ -281,6 +283,14 @@ programs those admitted stop working and have to pair again, and their rows stay
 as **not this authority** until they are removed. The database is marked changed and not saved, so
 save it to keep the choice. It takes a click, or Space on the button: no letter presses it and
 Enter does nothing on this window, wherever the focus is.
+
+**The answer is about the authorities the window lists, and no others.** A synchronize can run
+while the window is open, started by a trigger on a timer for instance, and change which
+authorities the database holds. **Keep this authority** then retires nothing, and the window opens
+again listing the authorities the database holds now; it opens again in the same way after
+**Cancel**. If the synchronize brought an answer given on another copy, the database is served as
+that answer left it, and the window does not open again: a message names the authority the
+database serves, unless that is the authority chosen.
 
 **Cancel** serves nothing. The Certificate Authority page then states the database holds more than
 one authority, and **Choose authority** there asks again; a choice made from there waits for OK

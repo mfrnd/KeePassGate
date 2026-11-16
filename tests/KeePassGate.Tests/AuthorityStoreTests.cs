@@ -454,7 +454,9 @@ namespace KeePassGate.Tests
             var lost = Write();
             var alsoLost = Write();
 
-            Assert.That(_store.Keep(kept.Fingerprint), Is.EqualTo(2));
+            Assert.That(
+                _store.Keep(kept.Fingerprint, new[] { kept.Fingerprint, lost.Fingerprint, alsoLost.Fingerprint }),
+                Is.EqualTo(2));
 
             using (var reading = _store.Read())
             {
@@ -477,10 +479,10 @@ namespace KeePassGate.Tests
             // The records a lost authority issued chain to nothing that is served, which is what
             // makes them inert; the clients page says so, and taking them away is the operator's.
             var kept = Write();
-            Write();
+            var lost = Write();
             _values.Plant(AuthorityKeys.ClientPrefix + "aaa", "record");
 
-            _store.Keep(kept.Fingerprint);
+            _store.Keep(kept.Fingerprint, new[] { kept.Fingerprint, lost.Fingerprint });
 
             Assert.That(_values.Get(AuthorityKeys.ClientPrefix + "aaa"), Is.EqualTo("record"));
         }
@@ -494,9 +496,10 @@ namespace KeePassGate.Tests
             _values.Plant(AuthorityKeys.RetirementKey(retired.Fingerprint), AuthorityKeys.RetiredValue);
             var before = _values.Keys.OrderBy(k => k, StringComparer.Ordinal).ToList();
 
-            Assert.Throws<AuthorityFailure>(() => _store.Keep(retired.Fingerprint), "one already retired");
-            Assert.Throws<AuthorityFailure>(() => _store.Keep(Unreadable), "one that is not there");
-            Assert.Throws<AuthorityFailure>(() => _store.Keep(null));
+            var listed = new[] { first.Fingerprint, second.Fingerprint };
+            Assert.Throws<AuthorityFailure>(() => _store.Keep(retired.Fingerprint, listed), "one already retired");
+            Assert.Throws<AuthorityFailure>(() => _store.Keep(Unreadable, listed), "one that is not there");
+            Assert.Throws<AuthorityFailure>(() => _store.Keep(null, listed));
 
             Assert.That(_values.Keys.OrderBy(k => k, StringComparer.Ordinal), Is.EqualTo(before));
 
@@ -505,6 +508,33 @@ namespace KeePassGate.Tests
                 Assert.That(reading.Candidates.Select(c => c.Fingerprint),
                     Is.EquivalentTo(new[] { first.Fingerprint, second.Fingerprint }));
             }
+        }
+
+        [Test]
+        public void Keeping_is_refused_once_the_database_holds_other_authorities_than_were_listed()
+        {
+            // A synchronize while the question stood. An authority that arrived was retired with
+            // nobody having been shown it, and an authority retired meanwhile is another copy's
+            // answer, which leaves another choice than the choice that was answered.
+            var first = Write();
+            var second = Write();
+            var arrived = Write();
+            var before = _values.Keys.OrderBy(k => k, StringComparer.Ordinal).ToList();
+
+            Assert.Throws<ChoiceOvertaken>(
+                () => _store.Keep(first.Fingerprint, new[] { first.Fingerprint, second.Fingerprint }),
+                "an authority more than were listed");
+            Assert.Throws<ChoiceOvertaken>(
+                () => _store.Keep(
+                    first.Fingerprint,
+                    new[] { first.Fingerprint, second.Fingerprint, arrived.Fingerprint, Unreadable }),
+                "an authority fewer");
+            Assert.Throws<ChoiceOvertaken>(
+                () => _store.Keep(Unreadable, new[] { first.Fingerprint, second.Fingerprint, Unreadable }),
+                "and the authority chosen, retired meanwhile, among them");
+            Assert.Throws<ArgumentNullException>(() => _store.Keep(first.Fingerprint, null));
+
+            Assert.That(_values.Keys.OrderBy(k => k, StringComparer.Ordinal), Is.EqualTo(before), "nothing is retired");
         }
 
         [Test]
@@ -521,9 +551,10 @@ namespace KeePassGate.Tests
                 Assert.That(damaged.Problems, Is.Not.Empty);
             }
 
-            Assert.Throws<AuthorityFailure>(() => _store.Keep(Unreadable));
+            var listed = new[] { whole.Fingerprint, Unreadable };
+            Assert.Throws<AuthorityFailure>(() => _store.Keep(Unreadable, listed));
 
-            _store.Keep(whole.Fingerprint);
+            _store.Keep(whole.Fingerprint, listed);
             Assert.That(_values.Get(AuthorityKeys.RetirementKey(Unreadable)), Is.EqualTo(AuthorityKeys.RetiredValue));
             Assert.That(_values.Get(AuthorityKeys.AuthorityKey(Unreadable)), Is.Null);
         }
@@ -546,7 +577,7 @@ namespace KeePassGate.Tests
                 Assert.That(nameless.Problems, Does.Contain("The authority is filed under a digest that is not its own."));
             }
 
-            _store.Keep(whole.Fingerprint);
+            _store.Keep(whole.Fingerprint, new[] { whole.Fingerprint, string.Empty });
             Assert.That(_values.Get(AuthorityKeys.RetiredPrefix), Is.EqualTo(AuthorityKeys.RetiredValue));
             Assert.That(_values.Get(AuthorityKeys.AuthorityPrefix), Is.Null);
 

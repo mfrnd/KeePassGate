@@ -17,6 +17,33 @@ none, since it releases both.
   unloading the plugin. The picker is now let go of a message later, and what it held is dropped,
   since the dialog it was for has closed. An operator's own ways of leaving the dialog, a press
   outside the picker or Alt and F4, close the picker first and never reached this.
+- **An answer to which authority to keep retires nothing its window did not list.** KeePass runs
+  a periodic trigger under that window, so a synchronize could bring a third authority while the
+  window listed two, and **Keep this authority** then retired the third as well, with every
+  client it admitted, for good and with nobody having been shown either. An answer now carries
+  the authorities its window listed and is not written to a database holding any other set, an
+  authority more or an authority fewer: the window opens again, listing the authorities the
+  database holds, and does so after **Cancel** as well. A database that an answer given on
+  another copy decided meanwhile is served as that answer left it, and a message names the
+  authority it serves, where it used to state that nothing is served. The question on the KPG
+  tab is held to the same rule. `CA.md` §204.
+- **The message that an authority was not kept waits for KeePass to finish what it is doing.**
+  An answer the plugin cannot write is tried again for a few seconds and then given up, with a
+  message sending the operator back to the KPG tab. That message was raised the moment the
+  seconds had passed, which could be in the middle of a save or a synchronize of KeePass's own,
+  and KeePass then waited for it: a save was measured standing still until the message was
+  closed. The answer is still given up after the same few seconds, and the message is shown once
+  KeePass is no longer part way through an operation. `CA.md` §204.
+- **The window asking which authority to keep waits for a synchronize to end.** A synchronize
+  that a trigger starts as KeePass opens its first database is shown in KeePass's progress
+  window, which pumps before KeePass blocks its own interaction, and the window was put up
+  there: over a synchronize that had not merged, with no main window on the screen, for an
+  answer the plugin then refused because of the progress window, and gave up on with a message
+  when the synchronize went on for a few seconds more. The window now waits on the same answer
+  about KeePass that the write of its answer is refused on, so it opens once the synchronize is
+  over. That answer now covers a merge another KeePass plugin runs as well, which nothing of
+  KeePass's announces: the window does not open inside such a merge, and no answer is written
+  inside it. `CA.md` §204.
 - **The plugin is built against KeePass 2.62 and needs that release or a later release.** It
   was built against 2.61.1. A plugin loads in the KeePass it was built against and in every
   later release, since a KeePass redirects every earlier version to itself, and in no earlier

@@ -37,6 +37,15 @@ namespace KeePassGate.Ui
         }
 
         /// <summary>
+        /// The digest of every authority listed, which is what an answer to this choice is about
+        /// and what the write of that answer is held to.
+        /// </summary>
+        public IReadOnlyList<string> Offered
+        {
+            get { return _options.Select(option => option.Fingerprint).ToList(); }
+        }
+
+        /// <summary>
         /// Whether the audit could be read at all. False makes every "last request" unknown, which
         /// is said as that rather than as "never".
         /// </summary>

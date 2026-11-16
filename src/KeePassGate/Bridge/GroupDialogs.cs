@@ -480,12 +480,16 @@ namespace KeePassGate.Bridge
         /// neither blocks its own interaction for it nor raises the message count, so this window
         /// is the only thing that says it is running.
         ///
-        /// **Any progress window, not only that one's**, because the window does not say what it
-        /// is reporting on and every other KeePass operation that opens it already blocks
-        /// interaction as well. So the only cost of asking it wholesale is a write refused during a
-        /// manual update check, which is a retry, and a progress window KeePass adds to another
-        /// operation later is refused on the day it arrives rather than on the day somebody
-        /// notices.
+        /// **Any progress window, not only that one's**, because the window does not name what it
+        /// is reporting on. An import or a synchronize shown in KeePass's status dialog blocks
+        /// interaction as well, but only once the window has opened and pumped: read off the IL,
+        /// `OnDemandStatusDialog` constructs the window, which registers itself and pumps as it
+        /// starts logging, before it raises the block, so for those first pumps the window is the
+        /// only sign of that operation too. That is where the authority chooser's question met a
+        /// synchronize started as a database opened, and why the chooser waits on this answer.
+        /// So the only cost of asking it wholesale is a write refused during a manual update
+        /// check, which is a retry, and a progress window KeePass adds to another operation
+        /// later is refused on the day it arrives rather than on the day somebody notices.
         ///
         /// **Not per database**, since the window holds none. And a watch that is not running
         /// refuses, like every question here.

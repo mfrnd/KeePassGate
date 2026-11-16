@@ -838,6 +838,22 @@ KeePass through UI automation cannot unload. Run them from **Windows PowerShell*
   `VaultWritesUnderDialogsTests` drives the real window and the real merge, registering the window
   by hand since it is never shown, and `KeePassContractTests` reads off the IL that the window
   registers itself as it loads and that XML Replace merges under it.
+- **A synchronize shown in KeePass's status dialog pumps before it blocks interaction.**
+  `OnDemandStatusDialog` constructs the progress window, which registers itself and pumps as it
+  starts logging, and raises `UIBlockInteraction` only after; KeePass uses it with
+  `ShowImportStatusDialog` set and for anything that runs before its main window has loaded, such
+  as a synchronize a trigger starts as the first database opens. A call posted at `FileOpened` is
+  delivered there, with the window up and no block, so the authority chooser's question waits on
+  the writer's whole answer about KeePass, `GroupDialogs.Working` included.
+  `AuthorityChooserInRealDatabaseTests` pins the waiting, and `FINDINGS.md` section 21 holds the
+  measurement.
+- **KeePass runs a periodic trigger under a dialog it does not know about.**
+  `MainForm.OnTimerMainTick` raises `TimePeriodic` whenever `GlobalWindowManager.WindowCount` is
+  zero, where a dialog the plugin does not register leaves it: a synchronize ran under the
+  standing authority chooser and brought a third authority, which is why an answer carries the
+  authorities its dialog listed and is refused for any other set.
+  `AuthorityChooserInRealDatabaseTests` drives an authority arriving under the question, and
+  `FINDINGS.md` section 21 holds the measurement.
 - **A `ToolStripDropDown` must not be disposed inside its own `Closed` handler.** That event is
   raised while WinForms is still delivering the click or keystroke that closed it, and disposing
   there disposes the control whose event is running: the next message reaches

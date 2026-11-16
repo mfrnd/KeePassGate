@@ -922,6 +922,10 @@ namespace KeePassGate
             // The standing answers the operator gave while a database could not take them, which
             // every save of that database writes as well, whoever asks for it.
             writer.Owed = _sessionRefusals;
+
+            // The look for a merge that the queue takes before a turn, for the write that takes
+            // no turn: the answer to which authority to keep, and the question that waits on it.
+            writer.Merging = merging;
             _owedAnswerSaves = new OwedAnswerSaves(mainWindow, writer, _incidents);
             _owedAnswerSaves.Start();
 
@@ -991,16 +995,17 @@ namespace KeePassGate
             // database, as `LockWatch` sets out.
             _databases = new MainWindowDatabases(mainWindow);
 
-            // Through the one writer, whose guard is what a choice has to pass. The audit is asked
-            // for where it is writing each time, for the last request of each client the dialog
-            // lists. Made before the lock watch, which closes its question at a lock, and started
-            // after it, so that an unlock has been read by the time the question is posted.
+            // Through the one writer, whose guard is what a choice has to pass, and whose answer
+            // about KeePass being part way through something is what the question waits on. The
+            // audit is asked for where it is writing each time, for the last request of each
+            // client the dialog lists. Made before the lock watch, which closes its question at a
+            // lock, and started after it, so that an unlock has been read by the time the question
+            // is posted.
             _chooser = new AuthorityChooser(
                 _databases,
                 _targets,
                 writer,
                 mainWindow,
-                () => Interrupting(mainWindow),
                 () => _audit == null ? null : _audit.Path,
                 new MessageBoxPrompt(),
                 _incidents,

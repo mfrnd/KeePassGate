@@ -272,10 +272,42 @@ operator is told to choose again, which is the operator's rulings of 2026-10-14 
 another client's write holding the writer is waited out however long its save takes, which can be
 a minute and more for a large database, and a refusal that does not end by itself, Database
 Maintenance left open or KeePass busy with an operation of its own, is tried again for a few
-seconds and then put back in front of the operator. **A lock closes the dialog unanswered**, as it
+seconds and then put back in front of the operator. The answer is given up when those seconds
+have passed, and the operator is told once KeePass is no longer part way through an operation of
+its own: told from the retry's own tick, the message stood inside that operation, and a save was
+measured waiting under it until it was closed. **A lock closes the dialog unanswered**, as it
 closes a pairing or a renewal dialog and for their reason: KeePass locks under a dialog the plugin
 does not register, and this dialog lists every authority's clients. An answer given as the lock
 lands is not written, and the unlock asks again.
+
+**The dialog waits for whatever would refuse its answer.** The question is posted at the open and
+at the save, and it used to be held back by KeePass's two signals alone, `DESIGN.md` §119, on the
+reading that a synchronize blocks interaction from its start. A synchronize shown in KeePass's
+status dialog does not: that dialog opens the progress window, which pumps, before it raises the
+block, and KeePass uses it for a synchronize a trigger starts while the first database opens. The
+question was delivered there, over a synchronize that had not merged and with no main window on
+the screen, and its answer was refused for the progress window. So the question waits on the
+writer's own answer about KeePass, the progress window included, which is the answer the write is
+refused on, and the two cannot differ. **That answer looks for a merge as well**, on the stack of
+KeePass's own thread, as the queue of turns does, `DESIGN.md` §119. A merge another plugin runs
+raises none of KeePass's signals and pumps as any merge does, and the answer to this question is
+the one write that takes no turn, so nothing else kept it, or the question, out of such a merge.
+
+**An answer retires nothing the dialog did not list.** KeePass raises a periodic trigger under a
+dialog the plugin does not register, so a synchronize can run while the dialog stands and bring an
+authority it does not list, or a retirement, which is another copy's answer. Keeping wrote to
+whatever the database held by then, so an answer about two authorities retired a third, with every
+client it admitted, that the operator was never shown, and a retirement is never removed. The
+answer now carries the digests the dialog listed to the write, which is refused, inside the
+writer's own turn, for a database whose authorities are any other set, an authority more or an
+authority fewer. The operator is then asked again about the authorities the database holds, as a
+state the plugin has not asked about always is: the round that noticed the new state at the
+synchronize's save can ask nothing on top of the dialog standing, so it comes round again until
+that dialog has closed, whichever way it closed. A database another copy's answer decided
+meanwhile is served as that answer left it, and nobody is asked: the operator is told which
+authority it serves, unless that is the authority chosen. The answer used to be tried again there
+like a refusal that might clear, each try logged as an error, and then reported with the sentence
+that nothing is served. The KPG tab's own question is held to the same rule.
 
 **Copies that keep different authorities retire every authority.** Each copy asks on its own, and
 the last requests it shows come from that machine's own audit, so copies asked before any answer is

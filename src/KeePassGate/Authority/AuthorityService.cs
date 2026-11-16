@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Security.Cryptography;
 using KeePassGate.Diagnostics;
 
@@ -194,13 +195,26 @@ namespace KeePassGate.Authority
         /// the one that was kept: a store that swallowed the retirements reads back as the same
         /// several authorities, and telling the operator their choice was made would leave them
         /// waiting for a gate that goes on answering nobody.
+        ///
+        /// **An answer is about the authorities it was given among**, and the store refuses it
+        /// once the database holds any other set, `AuthorityStore.Keep`. That refusal is
+        /// <see cref="AuthorityChange.IsOvertaken"/> here, for a caller that puts the question
+        /// again, and is no error: the database is as a synchronize left it.
         /// </remarks>
-        public AuthorityChange Keep(string fingerprint)
+        /// <param name="fingerprint">The digest of the authority to keep.</param>
+        /// <param name="offered">The digest of every authority the question listed.</param>
+        public AuthorityChange Keep(string fingerprint, IEnumerable<string> offered)
         {
             int retired;
             try
             {
-                retired = _store.Keep(fingerprint);
+                retired = _store.Keep(fingerprint, offered);
+            }
+            catch (ChoiceOvertaken overtaken)
+            {
+                _log.Info("an authority was not kept, because the database no longer holds the " +
+                          "authorities the question listed");
+                return AuthorityChange.Overtaken(overtaken.Message);
             }
             catch (Exception error) when (Expected.OfCryptography(error) || Expected.OfCustomData(error))
             {
