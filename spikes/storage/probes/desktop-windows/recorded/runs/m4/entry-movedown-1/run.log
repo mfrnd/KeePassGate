@@ -1,0 +1,9 @@
+11:41:12.812 ==== entry-movedown-1 : KPG grant 1 selected, Entry, Rearrange, Move Entry One Down by its access keys (Alt+E, R, D)
+11:41:12.853 config: 
+11:41:25.315 started KeePass pid=8552 token: TokenIsElevated=1 ElevationType=2 Integrity=0x3000 AdministratorsEnabled=False
+11:41:25.420 main window: <<db.kdbx - KeePass>>
+11:41:25.621 group rows: Archive, Desk store, Empty group, KeePassGate, Passwords, Recycle Bin
+11:41:34.571 dialogs: 0
+11:41:37.464 [after] window title <<db.kdbx* - KeePass>>; groups [Desk store, KeePassGate, Archive, Passwords, Empty group, Recycle Bin]; KeePassGate [KPG admission 1, KPG grant 1, KPG revocation 1, KPG profile 1, KPG grant 1, KPG grant 6, KPG grant 7]; Passwords [Mail account, Bank]; status <<Ready.>>
+11:41:42.839 file: size=2949 mtime=2026-11-16T10:41:38.0308631Z sha=d3b660e0228e
+11:41:49.266 diff against the base: 8 lines

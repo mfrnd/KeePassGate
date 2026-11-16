@@ -1,0 +1,59 @@
+12:34:59.457 keepassxc config: General/GlobalAutoTypeKey=65, General/AutoSaveAfterEveryChange=false, General/GlobalAutoTypeModifiers=201326592
+12:35:11.151 started KeePassXC pid=18072 token: TokenIsElevated=1 ElevationType=2 Integrity=0x3000 AdministratorsEnabled=False
+12:35:11.957 answered the update question No
+12:35:17.547 KeePassXC window: <<Desk entries (invented) - KeePassXC>>
+12:35:21.079 search <<zqxref-u1>>: []
+12:35:21.765 shot search-zqxref-u1.png (1280 x 752)
+12:35:25.556 search <<zqxref-u2-protected>>: []
+12:35:29.036 search <<zqxstore-grant>>: []
+12:35:29.612 shot search-zqxstore-grant.png (1280 x 752)
+12:35:33.168 search <<zqxstore-secret>>: []
+12:35:36.628 search <<KPG grant>>: []
+12:35:40.178 search <<Mail account>>: [Passwords, Mail account, alice-invented, https://mail.example.invalid/, user notes of U1]
+12:35:43.249 row Mail account in Passwords: True
+12:35:47.093 shot preview-Mailaccount.png (1280 x 752)
+12:35:49.019 row Bank in Passwords: True
+12:35:52.846 shot preview-Bank.png (1280 x 752)
+12:35:54.537 row KPG grant 1 in KeePassGate: True
+12:35:58.373 shot preview-KPGgrant1.png (1280 x 752)
+12:36:13.537 started DeskTarget pid=8052 token: TokenIsElevated=1 ElevationType=2 Integrity=0x3000 AdministratorsEnabled=False
+12:36:18.849 [global-KPGgrant1] WINDOW title=<<Auto-Type - KeePassXC>> class=AutoTypeSelectDialog
+12:36:18.927 [global-KPGgrant1]   Text name=<<Double click a row to perform Auto-Type or find an entry using the search:>>
+12:36:18.954 [global-KPGgrant1]   Button name=<<?>>
+12:36:18.978 [global-KPGgrant1]   Header name=<<Group>>
+12:36:18.998 [global-KPGgrant1]   Header name=<<Title>>
+12:36:19.016 [global-KPGgrant1]   Header name=<<Username>>
+12:36:19.037 [global-KPGgrant1]   Header name=<<Sequence>>
+12:36:19.055 [global-KPGgrant1]   DataItem name=<<Passwords>>
+12:36:19.076 [global-KPGgrant1]   DataItem name=<<Mail account>>
+12:36:19.095 [global-KPGgrant1]   DataItem name=<<alice-invented>>
+12:36:19.111 [global-KPGgrant1]   DataItem name=<<{USERNAME}{TAB}{PASSWORD}{ENTER}>>
+12:36:19.132 [global-KPGgrant1]   DataItem name=<<Passwords>>
+12:36:19.141 [global-KPGgrant1]   DataItem name=<<Bank>>
+12:36:19.151 [global-KPGgrant1]   DataItem name=<<bob-invented>>
+12:36:19.169 [global-KPGgrant1]   DataItem name=<<{USERNAME}{TAB}{PASSWORD}{ENTER}>>
+12:36:19.224 [global-KPGgrant1]   DataItem name=<<Passwords>>
+12:36:19.234 [global-KPGgrant1]   DataItem name=<<Shop>>
+12:36:19.246 [global-KPGgrant1]   DataItem name=<<carol-invented>>
+12:36:19.257 [global-KPGgrant1]   DataItem name=<<{USERNAME}{TAB}{PASSWORD}{ENTER}>>
+12:36:19.279 [global-KPGgrant1]   CheckBox name=<<Search all open databases>> disabled
+12:36:19.317 [global-KPGgrant1]   Button name=<<Type Sequence>> disabled
+12:36:19.337 [global-KPGgrant1]   Button name=<<Cancel>>
+12:36:19.945 shot global-KPGgrant1.png (602 x 344)
+12:36:32.807 started DeskTarget pid=6624 token: TokenIsElevated=1 ElevationType=2 Integrity=0x3000 AdministratorsEnabled=False
+12:36:38.170 [global-Mailaccount] WINDOW title=<<Auto-Type - KeePassXC>> class=AutoTypeSelectDialog
+12:36:38.199 [global-Mailaccount]   Text name=<<Double click a row to perform Auto-Type or find an entry using the search:>>
+12:36:38.217 [global-Mailaccount]   Button name=<<?>>
+12:36:38.261 [global-Mailaccount]   Header name=<<Group>>
+12:36:38.283 [global-Mailaccount]   Header name=<<Title>>
+12:36:38.314 [global-Mailaccount]   Header name=<<Username>>
+12:36:38.337 [global-Mailaccount]   Header name=<<Sequence>>
+12:36:38.364 [global-Mailaccount]   DataItem name=<<Passwords>>
+12:36:38.372 [global-Mailaccount]   DataItem name=<<Mail account>>
+12:36:38.380 [global-Mailaccount]   DataItem name=<<alice-invented>>
+12:36:38.396 [global-Mailaccount]   DataItem name=<<{USERNAME}{TAB}{PASSWORD}{ENTER}>>
+12:36:38.412 [global-Mailaccount]   CheckBox name=<<Search all open databases>>
+12:36:38.430 [global-Mailaccount]   Button name=<<Type Sequence>>
+12:36:38.442 [global-Mailaccount]   Button name=<<Cancel>>
+12:36:38.986 shot global-Mailaccount.png (602 x 344)
+12:36:40.237 stopping KeePassXC pid=18072

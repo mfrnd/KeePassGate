@@ -1,0 +1,2 @@
+elevated: False
+command: Start-Process -FilePath '<work>\kp-write\KeePass.exe' -WorkingDirectory '<work>\kp-write' -ArgumentList '<work>\runs\m3\c-edit-1\db.kdbx','-pw:desk-probe-invented-password'

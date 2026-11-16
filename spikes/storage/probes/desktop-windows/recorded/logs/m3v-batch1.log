@@ -1,0 +1,343 @@
+10:44:59.207 ==== view
+10:44:59.254 config: 
+10:45:11.133 started KeePass pid=20568 token: TokenIsElevated=1 ElevationType=2 Integrity=0x3000 AdministratorsEnabled=False
+10:45:11.574 main window: <<db.kdbx - KeePass>>
+10:45:11.980 group rows: Desk entries, KeePassGate, Passwords, Recycle Bin
+10:45:14.917 entry view of Mail account: <<>>
+10:45:15.540 shot view-Mailaccount.png (1086 x 713)
+10:45:18.207 entry view of Bank: <<>>
+10:45:18.810 shot view-Bank.png (1086 x 713)
+10:45:21.424 entry view of Shop: <<>>
+10:45:22.020 shot view-Shop.png (1086 x 713)
+10:45:24.565 entry view of KPG grant 1: <<>>
+10:45:25.150 shot view-KPGgrant1.png (1086 x 713)
+10:45:27.741 entry view of KPG admission 1: <<>>
+10:45:28.320 shot view-KPGadmission1.png (1086 x 713)
+10:45:34.884 ==== search
+10:45:34.896 config: 
+10:45:50.081 started KeePass pid=19624 token: TokenIsElevated=1 ElevationType=2 Integrity=0x3000 AdministratorsEnabled=False
+10:45:50.191 main window: <<db.kdbx - KeePass>>
+10:45:50.370 group rows: Desk entries, KeePassGate, Passwords, Recycle Bin
+10:45:52.749 quick search <<zqxref-u1>>: [Mail account]
+10:45:53.320 shot search-zqxref-u1.png (1086 x 713)
+10:45:55.958 quick search <<zqxref-u2-protected>>: [Bank]
+10:45:58.343 quick search <<zqxextra-u1>>: [Mail account]
+10:46:00.847 quick search <<zqxstore-grant>>: []
+10:46:01.463 shot search-zqxstore-grant.png (1086 x 713)
+10:46:03.943 quick search <<zqxstore-secret>>: []
+10:46:06.320 quick search <<zqxstore-adm>>: []
+10:46:08.619 quick search <<zqxcd-u1>>: []
+10:46:11.070 quick search <<zqxattach-u1>>: []
+10:46:13.557 quick search <<KPG grant>>: []
+10:46:16.040 quick search <<Mail account>>: [Mail account]
+10:46:18.493 quick search <<KPG.Ref>>: []
+10:46:24.839 ==== advanced
+10:46:24.845 config: 
+10:46:36.430 started KeePass pid=13412 token: TokenIsElevated=1 ElevationType=2 Integrity=0x3000 AdministratorsEnabled=False
+10:46:36.589 main window: <<db.kdbx - KeePass>>
+10:46:36.840 group rows: Desk entries, KeePassGate, Passwords, Recycle Bin
+10:46:41.345 Advanced, Mail account, string <<Extra>> <<Value: zqxextra-u1>>
+10:46:41.351 Advanced, Mail account, string <<KPG.Ref>> <<Value: zqxref-u1 {"rule":"KG1"}>>
+10:46:42.540 shot advanced-Mailaccount.png (491 x 513)
+10:46:57.195 Advanced, Bank, string <<KPG.Ref>> <<Value: ********>>
+10:46:58.320 shot advanced-Bank.png (491 x 513)
+10:47:15.127 ==== advanced-edit
+10:47:15.137 config: 
+10:47:27.578 started KeePass pid=15368 token: TokenIsElevated=1 ElevationType=2 Integrity=0x3000 AdministratorsEnabled=False
+10:47:27.724 main window: <<db.kdbx - KeePass>>
+10:47:27.919 group rows: Desk entries, KeePassGate, Passwords, Recycle Bin
+10:47:33.828 [edit-string] WINDOW title=<<Edit Entry String>> class=WindowsForms10.Window.8.app.0.2bf8098_r6_ad1
+10:47:33.933 [edit-string]   ComboBox name=<<Name:>> text=<<KPG.Ref>>
+10:47:33.946 [edit-string]   Pane name=<<KPG.Ref>>
+10:47:33.956 [edit-string]   Button name=<<Open>>
+10:47:33.967 [edit-string]   Pane name=<<Protect value in process memory>>
+10:47:33.974 [edit-string]   Pane name=<<Help>>
+10:47:33.981 [edit-string]   Pane name=<<Cancel>>
+10:47:34.001 [edit-string]   Pane name=<<OK>>
+10:47:34.011 [edit-string]   Document name=<<RichEdit Control>> text=<<zqxref-u1 {"rule":"KG1"}
+>>
+10:47:34.018 [edit-string]   Text name=<<A string field consists of a name and a value. The name should describe the field (e.g. "BIC", "Postal Address", ...) and must be unique (within the entry). For example, an entry cannot have two fields named "URL".>>
+10:47:34.025 [edit-string]   Text name=<<Name:>>
+10:47:34.036 [edit-string]   Text name=<<Value:>>
+10:47:34.052 [edit-string]   win32 COMBOBOX <<KPG.Ref>>
+10:47:34.059 [edit-string]   win32 Edit <<KPG.Ref>>
+10:47:34.066 [edit-string]   win32 BUTTON <<&Protect value in process memory>>
+10:47:34.075 [edit-string]   win32 BUTTON <<&Help>>
+10:47:34.077 [edit-string]   win32 BUTTON <<Cancel>>
+10:47:34.083 [edit-string]   win32 BUTTON <<OK>>
+10:47:34.090 [edit-string]   win32 RICHEDIT50W <<zqxref-u1 {"rule":"KG1"}>>
+10:47:34.094 [edit-string]   win32 STATIC <<A string field consists of a name and a value. The name should describe the field (e.g. "BIC", "Postal Address", ...) and must be unique (within the entry). For example, an entry cannot have two fields named "URL".>>
+10:47:34.099 [edit-string]   win32 STATIC <<&Name:>>
+10:47:34.105 [edit-string]   win32 STATIC <<&Value:>>
+10:47:34.697 shot edit-string.png (411 x 344)
+10:47:47.525 ==== advanced-delete
+10:47:47.536 config: 
+10:47:59.648 started KeePass pid=8172 token: TokenIsElevated=1 ElevationType=2 Integrity=0x3000 AdministratorsEnabled=False
+10:47:59.846 main window: <<db.kdbx - KeePass>>
+10:48:00.219 group rows: Desk entries, KeePassGate, Passwords, Recycle Bin
+10:48:09.358 strings left: Extra
+10:48:19.814 ==== duplicate-default
+10:48:19.842 config: 
+10:48:30.963 started KeePass pid=13736 token: TokenIsElevated=1 ElevationType=2 Integrity=0x3000 AdministratorsEnabled=False
+10:48:31.081 main window: <<db.kdbx - KeePass>>
+10:48:31.296 group rows: Desk entries, KeePassGate, Passwords, Recycle Bin
+10:48:42.455 RUN FAILED duplicate-default: not found: Duplication Options at Need, <branch>\spikes\storage\probes\desktop-windows\scripts\Ui.ps1: line 312
+at <ScriptBlock>, <branch>\spikes\storage\probes\desktop-windows\scripts\M3v.ps1: line 226
+at Run-Case, <branch>\spikes\storage\probes\desktop-windows\scripts\M3v.ps1: line 116
+at <ScriptBlock>, <branch>\spikes\storage\probes\desktop-windows\scripts\M3v.ps1: line 221
+10:48:42.502 stopping KeePass pid=13736
+10:48:42.559 ==== duplicate-all
+10:48:42.568 config: 
+10:48:53.662 started KeePass pid=14512 token: TokenIsElevated=1 ElevationType=2 Integrity=0x3000 AdministratorsEnabled=False
+10:48:53.786 main window: <<db.kdbx - KeePass>>
+10:48:54.023 group rows: Desk entries, KeePassGate, Passwords, Recycle Bin
+10:49:05.046 RUN FAILED duplicate-all: not found: Duplication Options at Need, <branch>\spikes\storage\probes\desktop-windows\scripts\Ui.ps1: line 312
+at <ScriptBlock>, <branch>\spikes\storage\probes\desktop-windows\scripts\M3v.ps1: line 226
+at Run-Case, <branch>\spikes\storage\probes\desktop-windows\scripts\M3v.ps1: line 116
+at <ScriptBlock>, <branch>\spikes\storage\probes\desktop-windows\scripts\M3v.ps1: line 221
+10:49:05.072 stopping KeePass pid=14512
+10:49:05.125 ==== move-to-group
+10:49:05.134 config: 
+10:49:17.645 started KeePass pid=17012 token: TokenIsElevated=1 ElevationType=2 Integrity=0x3000 AdministratorsEnabled=False
+10:49:17.796 main window: <<db.kdbx - KeePass>>
+10:49:18.132 group rows: Desk entries, KeePassGate, Passwords, Recycle Bin
+10:49:26.569 RUN FAILED move-to-group: no menu item Rearrange at Kp-Menu, <branch>\spikes\storage\probes\desktop-windows\scripts\Kp.ps1: line 317
+at <ScriptBlock>, <branch>\spikes\storage\probes\desktop-windows\scripts\M3v.ps1: line 248
+at Run-Case, <branch>\spikes\storage\probes\desktop-windows\scripts\M3v.ps1: line 116
+at <ScriptBlock>, <branch>\spikes\storage\probes\desktop-windows\scripts\M3v.ps1: line 245
+10:49:26.589 stopping KeePass pid=17012
+10:49:26.650 ==== other-window-clipboard
+10:49:26.665 config: 
+10:49:38.606 started KeePass pid=17904 token: TokenIsElevated=1 ElevationType=2 Integrity=0x3000 AdministratorsEnabled=False
+10:49:38.713 main window: <<db.kdbx - KeePass>>
+10:49:38.912 group rows: Desk entries, KeePassGate, Passwords, Recycle Bin
+10:49:50.009 started KeePass pid=9196 token: TokenIsElevated=1 ElevationType=2 Integrity=0x3000 AdministratorsEnabled=False
+10:49:50.217 main window: <<other.kdbx - KeePass>>
+10:49:50.560 group rows: Desk other, Imported
+10:49:55.833 menu: <<Data Exchange>>
+10:49:57.148 menu: <<Copy Entry (Encrypted)>>
+10:50:02.099 menu: <<Data Exchange>>
+10:50:03.413 menu: <<Paste Entry>>
+10:50:07.856 shot clipboard-other.png (626 x 753)
+10:50:08.004 second window title: <<other.kdbx* - KeePass>>; entries shown: Mail account
+10:50:22.133 ==== other-window-drag
+10:50:22.141 config: 
+10:50:35.709 started KeePass pid=17016 token: TokenIsElevated=1 ElevationType=2 Integrity=0x3000 AdministratorsEnabled=False
+10:50:35.825 main window: <<db.kdbx - KeePass>>
+10:50:36.063 group rows: Desk entries, KeePassGate, Passwords, Recycle Bin
+10:50:48.606 started KeePass pid=13148 token: TokenIsElevated=1 ElevationType=2 Integrity=0x3000 AdministratorsEnabled=False
+10:50:48.790 main window: <<other.kdbx - KeePass>>
+10:50:49.075 group rows: Desk other, Imported
+10:50:55.019 dragged from 200,115.5 to 721,109
+10:50:58.865 shot drag-other.png (626 x 753)
+10:50:58.987 second window title: <<other.kdbx - KeePass>>; entries shown: 
+10:51:12.877 ==== print
+10:51:12.893 config: 
+10:51:24.982 started KeePass pid=22092 token: TokenIsElevated=1 ElevationType=2 Integrity=0x3000 AdministratorsEnabled=False
+10:51:25.243 main window: <<db.kdbx - KeePass>>
+10:51:25.634 group rows: Desk entries, KeePassGate, Passwords, Recycle Bin
+10:51:28.673 menu: <<Print>>
+10:51:39.671 RUN FAILED print: not found: print dialog at Need, <branch>\spikes\storage\probes\desktop-windows\scripts\Ui.ps1: line 312
+at <ScriptBlock>, <branch>\spikes\storage\probes\desktop-windows\scripts\M3v.ps1: line 314
+at Run-Case, <branch>\spikes\storage\probes\desktop-windows\scripts\M3v.ps1: line 116
+at <ScriptBlock>, <branch>\spikes\storage\probes\desktop-windows\scripts\M3v.ps1: line 309
+10:51:39.695 stopping KeePass pid=22092
+10:51:39.750 ==== export
+10:51:39.758 config: 
+10:51:51.720 started KeePass pid=20892 token: TokenIsElevated=1 ElevationType=2 Integrity=0x3000 AdministratorsEnabled=False
+10:51:51.934 main window: <<db.kdbx - KeePass>>
+10:51:52.296 group rows: Desk entries, KeePassGate, Passwords, Recycle Bin
+10:51:54.137 menu: <<Export...>>
+10:51:56.900 shot export-dialog.png (406 x 556)
+10:52:09.328 menu: <<Export...>>
+10:52:15.522 [export-1-0] WINDOW title=<<Enter Current Master Key (Export) - db.kdbx>> class=WindowsForms10.Window.8.app.0.2bf8098_r6_ad1
+10:52:15.592 [export-1-0]   ComboBox name=<<(None)>>
+10:52:15.602 [export-1-0]   Button name=<<Open>>
+10:52:15.632 [export-1-0]   Pane name=<<Help>>
+10:52:15.642 [export-1-0]   Pane name=<<Cancel>>
+10:52:15.662 [export-1-0]   Pane name=<<Confirm Export>>
+10:52:15.678 [export-1-0]   Pane name=<<Windows user account>>
+10:52:15.694 [export-1-0]   Pane name=<<Key file/provider:>>
+10:52:15.706 [export-1-0]   Pane name=<<Master password:>>
+10:52:15.716 [export-1-0]   win32 COMBOBOX <<(None)>>
+10:52:15.720 [export-1-0]   win32 BUTTON <<&Help>>
+10:52:15.722 [export-1-0]   win32 BUTTON <<Cancel>>
+10:52:15.740 [export-1-0]   win32 BUTTON <<Confirm Export>>
+10:52:15.754 [export-1-0]   win32 BUTTON <<&Windows user account>>
+10:52:15.768 [export-1-0]   win32 BUTTON <<&Key file/provider:>>
+10:52:15.785 [export-1-0]   win32 BUTTON <<&Master password:>>
+10:52:16.353 shot export-1-0.png (419 x 233)
+10:52:25.960 menu: <<Export...>>
+10:52:31.824 [export-2-0] WINDOW title=<<Enter Current Master Key (Export) - db.kdbx>> class=WindowsForms10.Window.8.app.0.2bf8098_r6_ad1
+10:52:31.896 [export-2-0]   ComboBox name=<<(None)>>
+10:52:31.910 [export-2-0]   Button name=<<Open>>
+10:52:31.921 [export-2-0]   Pane name=<<Help>>
+10:52:31.927 [export-2-0]   Pane name=<<Cancel>>
+10:52:31.937 [export-2-0]   Pane name=<<Confirm Export>>
+10:52:31.943 [export-2-0]   Pane name=<<Windows user account>>
+10:52:31.953 [export-2-0]   Pane name=<<Key file/provider:>>
+10:52:31.960 [export-2-0]   Pane name=<<Master password:>>
+10:52:31.970 [export-2-0]   win32 COMBOBOX <<(None)>>
+10:52:31.972 [export-2-0]   win32 BUTTON <<&Help>>
+10:52:31.976 [export-2-0]   win32 BUTTON <<Cancel>>
+10:52:31.985 [export-2-0]   win32 BUTTON <<Confirm Export>>
+10:52:31.989 [export-2-0]   win32 BUTTON <<&Windows user account>>
+10:52:31.999 [export-2-0]   win32 BUTTON <<&Key file/provider:>>
+10:52:32.009 [export-2-0]   win32 BUTTON <<&Master password:>>
+10:52:32.586 shot export-2-0.png (419 x 233)
+10:52:42.172 menu: <<Export...>>
+10:52:48.237 [export-3-0] WINDOW title=<<Enter Current Master Key (Export) - db.kdbx>> class=WindowsForms10.Window.8.app.0.2bf8098_r6_ad1
+10:52:48.339 [export-3-0]   ComboBox name=<<(None)>>
+10:52:48.356 [export-3-0]   Button name=<<Open>>
+10:52:48.371 [export-3-0]   Pane name=<<Help>>
+10:52:48.384 [export-3-0]   Pane name=<<Cancel>>
+10:52:48.397 [export-3-0]   Pane name=<<Confirm Export>>
+10:52:48.408 [export-3-0]   Pane name=<<Windows user account>>
+10:52:48.422 [export-3-0]   Pane name=<<Key file/provider:>>
+10:52:48.436 [export-3-0]   Pane name=<<Master password:>>
+10:52:48.452 [export-3-0]   win32 COMBOBOX <<(None)>>
+10:52:48.458 [export-3-0]   win32 BUTTON <<&Help>>
+10:52:48.491 [export-3-0]   win32 BUTTON <<Cancel>>
+10:52:48.506 [export-3-0]   win32 BUTTON <<Confirm Export>>
+10:52:48.511 [export-3-0]   win32 BUTTON <<&Windows user account>>
+10:52:48.520 [export-3-0]   win32 BUTTON <<&Key file/provider:>>
+10:52:48.524 [export-3-0]   win32 BUTTON <<&Master password:>>
+10:52:49.128 shot export-3-0.png (419 x 233)
+10:52:58.482 menu: <<Export...>>
+10:53:04.407 [export-4-0] WINDOW title=<<Enter Current Master Key (Export) - db.kdbx>> class=WindowsForms10.Window.8.app.0.2bf8098_r6_ad1
+10:53:04.542 [export-4-0]   ComboBox name=<<(None)>>
+10:53:04.576 [export-4-0]   Button name=<<Open>>
+10:53:04.601 [export-4-0]   Pane name=<<Help>>
+10:53:04.614 [export-4-0]   Pane name=<<Cancel>>
+10:53:04.629 [export-4-0]   Pane name=<<Confirm Export>>
+10:53:04.638 [export-4-0]   Pane name=<<Windows user account>>
+10:53:04.669 [export-4-0]   Pane name=<<Key file/provider:>>
+10:53:04.683 [export-4-0]   Pane name=<<Master password:>>
+10:53:04.699 [export-4-0]   win32 COMBOBOX <<(None)>>
+10:53:04.709 [export-4-0]   win32 BUTTON <<&Help>>
+10:53:04.722 [export-4-0]   win32 BUTTON <<Cancel>>
+10:53:04.731 [export-4-0]   win32 BUTTON <<Confirm Export>>
+10:53:04.741 [export-4-0]   win32 BUTTON <<&Windows user account>>
+10:53:04.749 [export-4-0]   win32 BUTTON <<&Key file/provider:>>
+10:53:04.767 [export-4-0]   win32 BUTTON <<&Master password:>>
+10:53:05.375 shot export-4-0.png (419 x 233)
+10:53:14.692 menu: <<Export...>>
+10:53:20.402 [export-5-0] WINDOW title=<<Enter Current Master Key (Export) - db.kdbx>> class=WindowsForms10.Window.8.app.0.2bf8098_r6_ad1
+10:53:20.470 [export-5-0]   ComboBox name=<<(None)>>
+10:53:20.481 [export-5-0]   Button name=<<Open>>
+10:53:20.492 [export-5-0]   Pane name=<<Help>>
+10:53:20.499 [export-5-0]   Pane name=<<Cancel>>
+10:53:20.506 [export-5-0]   Pane name=<<Confirm Export>>
+10:53:20.513 [export-5-0]   Pane name=<<Windows user account>>
+10:53:20.522 [export-5-0]   Pane name=<<Key file/provider:>>
+10:53:20.526 [export-5-0]   Pane name=<<Master password:>>
+10:53:20.540 [export-5-0]   win32 COMBOBOX <<(None)>>
+10:53:20.544 [export-5-0]   win32 BUTTON <<&Help>>
+10:53:20.552 [export-5-0]   win32 BUTTON <<Cancel>>
+10:53:20.557 [export-5-0]   win32 BUTTON <<Confirm Export>>
+10:53:20.565 [export-5-0]   win32 BUTTON <<&Windows user account>>
+10:53:20.570 [export-5-0]   win32 BUTTON <<&Key file/provider:>>
+10:53:20.576 [export-5-0]   win32 BUTTON <<&Master password:>>
+10:53:21.153 shot export-5-0.png (419 x 233)
+10:53:30.539 menu: <<Export...>>
+10:53:36.190 [export-6-0] WINDOW title=<<Enter Current Master Key (Export) - db.kdbx>> class=WindowsForms10.Window.8.app.0.2bf8098_r6_ad1
+10:53:36.256 [export-6-0]   ComboBox name=<<(None)>>
+10:53:36.267 [export-6-0]   Button name=<<Open>>
+10:53:36.274 [export-6-0]   Pane name=<<Help>>
+10:53:36.282 [export-6-0]   Pane name=<<Cancel>>
+10:53:36.286 [export-6-0]   Pane name=<<Confirm Export>>
+10:53:36.290 [export-6-0]   Pane name=<<Windows user account>>
+10:53:36.298 [export-6-0]   Pane name=<<Key file/provider:>>
+10:53:36.304 [export-6-0]   Pane name=<<Master password:>>
+10:53:36.316 [export-6-0]   win32 COMBOBOX <<(None)>>
+10:53:36.320 [export-6-0]   win32 BUTTON <<&Help>>
+10:53:36.327 [export-6-0]   win32 BUTTON <<Cancel>>
+10:53:36.334 [export-6-0]   win32 BUTTON <<Confirm Export>>
+10:53:36.338 [export-6-0]   win32 BUTTON <<&Windows user account>>
+10:53:36.342 [export-6-0]   win32 BUTTON <<&Key file/provider:>>
+10:53:36.346 [export-6-0]   win32 BUTTON <<&Master password:>>
+10:53:36.951 shot export-6-0.png (419 x 233)
+10:53:46.624 menu: <<Export...>>
+10:53:52.971 [export-7-0] WINDOW title=<<Enter Current Master Key (Export) - db.kdbx>> class=WindowsForms10.Window.8.app.0.2bf8098_r6_ad1
+10:53:53.094 [export-7-0]   ComboBox name=<<(None)>>
+10:53:53.106 [export-7-0]   Button name=<<Open>>
+10:53:53.122 [export-7-0]   Pane name=<<Help>>
+10:53:53.130 [export-7-0]   Pane name=<<Cancel>>
+10:53:53.139 [export-7-0]   Pane name=<<Confirm Export>>
+10:53:53.146 [export-7-0]   Pane name=<<Windows user account>>
+10:53:53.156 [export-7-0]   Pane name=<<Key file/provider:>>
+10:53:53.163 [export-7-0]   Pane name=<<Master password:>>
+10:53:53.177 [export-7-0]   win32 COMBOBOX <<(None)>>
+10:53:53.184 [export-7-0]   win32 BUTTON <<&Help>>
+10:53:53.193 [export-7-0]   win32 BUTTON <<Cancel>>
+10:53:53.199 [export-7-0]   win32 BUTTON <<Confirm Export>>
+10:53:53.203 [export-7-0]   win32 BUTTON <<&Windows user account>>
+10:53:53.212 [export-7-0]   win32 BUTTON <<&Key file/provider:>>
+10:53:53.218 [export-7-0]   win32 BUTTON <<&Master password:>>
+10:53:53.810 shot export-7-0.png (419 x 233)
+10:54:03.344 menu: <<Export...>>
+10:54:07.253 [export-8-0] WINDOW title=<<Enter Current Master Key (Export) - db.kdbx>> class=WindowsForms10.Window.8.app.0.2bf8098_r6_ad1
+10:54:07.342 [export-8-0]   ComboBox name=<<(None)>>
+10:54:07.354 [export-8-0]   Button name=<<Open>>
+10:54:07.364 [export-8-0]   Pane name=<<Help>>
+10:54:07.371 [export-8-0]   Pane name=<<Cancel>>
+10:54:07.385 [export-8-0]   Pane name=<<Confirm Export>>
+10:54:07.393 [export-8-0]   Pane name=<<Windows user account>>
+10:54:07.399 [export-8-0]   Pane name=<<Key file/provider:>>
+10:54:07.405 [export-8-0]   Pane name=<<Master password:>>
+10:54:07.424 [export-8-0]   win32 COMBOBOX <<(None)>>
+10:54:07.427 [export-8-0]   win32 BUTTON <<&Help>>
+10:54:07.435 [export-8-0]   win32 BUTTON <<Cancel>>
+10:54:07.439 [export-8-0]   win32 BUTTON <<Confirm Export>>
+10:54:07.450 [export-8-0]   win32 BUTTON <<&Windows user account>>
+10:54:07.458 [export-8-0]   win32 BUTTON <<&Key file/provider:>>
+10:54:07.462 [export-8-0]   win32 BUTTON <<&Master password:>>
+10:54:08.051 shot export-8-0.png (419 x 233)
+10:54:18.181 menu: <<Export...>>
+10:54:22.499 [export-9-0] WINDOW title=<<Enter Current Master Key (Export) - db.kdbx>> class=WindowsForms10.Window.8.app.0.2bf8098_r6_ad1
+10:54:22.619 [export-9-0]   ComboBox name=<<(None)>>
+10:54:22.636 [export-9-0]   Button name=<<Open>>
+10:54:22.647 [export-9-0]   Pane name=<<Help>>
+10:54:22.663 [export-9-0]   Pane name=<<Cancel>>
+10:54:22.680 [export-9-0]   Pane name=<<Confirm Export>>
+10:54:22.687 [export-9-0]   Pane name=<<Windows user account>>
+10:54:22.706 [export-9-0]   Pane name=<<Key file/provider:>>
+10:54:22.713 [export-9-0]   Pane name=<<Master password:>>
+10:54:22.732 [export-9-0]   win32 COMBOBOX <<(None)>>
+10:54:22.744 [export-9-0]   win32 BUTTON <<&Help>>
+10:54:22.753 [export-9-0]   win32 BUTTON <<Cancel>>
+10:54:22.759 [export-9-0]   win32 BUTTON <<Confirm Export>>
+10:54:22.785 [export-9-0]   win32 BUTTON <<&Windows user account>>
+10:54:22.812 [export-9-0]   win32 BUTTON <<&Key file/provider:>>
+10:54:22.829 [export-9-0]   win32 BUTTON <<&Master password:>>
+10:54:23.432 shot export-9-0.png (419 x 233)
+10:54:33.390 menu: <<Export...>>
+10:54:39.228 [export-10-0] WINDOW title=<<Enter Current Master Key (Export) - db.kdbx>> class=WindowsForms10.Window.8.app.0.2bf8098_r6_ad1
+10:54:39.301 [export-10-0]   ComboBox name=<<(None)>>
+10:54:39.311 [export-10-0]   Button name=<<Open>>
+10:54:39.321 [export-10-0]   Pane name=<<Help>>
+10:54:39.327 [export-10-0]   Pane name=<<Cancel>>
+10:54:39.332 [export-10-0]   Pane name=<<Confirm Export>>
+10:54:39.336 [export-10-0]   Pane name=<<Windows user account>>
+10:54:39.340 [export-10-0]   Pane name=<<Key file/provider:>>
+10:54:39.344 [export-10-0]   Pane name=<<Master password:>>
+10:54:39.358 [export-10-0]   win32 COMBOBOX <<(None)>>
+10:54:39.366 [export-10-0]   win32 BUTTON <<&Help>>
+10:54:39.372 [export-10-0]   win32 BUTTON <<Cancel>>
+10:54:39.376 [export-10-0]   win32 BUTTON <<Confirm Export>>
+10:54:39.380 [export-10-0]   win32 BUTTON <<&Windows user account>>
+10:54:39.386 [export-10-0]   win32 BUTTON <<&Key file/provider:>>
+10:54:39.388 [export-10-0]   win32 BUTTON <<&Master password:>>
+10:54:39.978 shot export-10-0.png (419 x 233)
+10:54:54.177 ==== autotype
+10:54:54.192 config: 
+10:55:07.098 started KeePass pid=3688 token: TokenIsElevated=1 ElevationType=2 Integrity=0x3000 AdministratorsEnabled=False
+10:55:07.261 main window: <<db.kdbx - KeePass>>
+10:55:07.479 group rows: Desk entries, KeePassGate, Passwords, Recycle Bin
+10:55:19.776 started DeskTarget pid=21400 token: TokenIsElevated=1 ElevationType=2 Integrity=0x3000 AdministratorsEnabled=False
+10:55:35.022 RUN FAILED autotype: no target window Desk target at Start-Target, <branch>\spikes\storage\probes\desktop-windows\scripts\M3v.ps1: line 93
+at <ScriptBlock>, <branch>\spikes\storage\probes\desktop-windows\scripts\M3v.ps1: line 398
+at Run-Case, <branch>\spikes\storage\probes\desktop-windows\scripts\M3v.ps1: line 116
+at <ScriptBlock>, <branch>\spikes\storage\probes\desktop-windows\scripts\M3v.ps1: line 395
+10:55:35.037 stopping KeePass pid=3688
+10:55:35.071 stopping DeskTarget pid=21400

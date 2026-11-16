@@ -1,0 +1,23 @@
++ E U1 H2026-11-16T09:43:59Z A u1.txt p=0 len=34 sha=bc1ff5edff47b8bb
++ E U1 H2026-11-16T09:43:59Z autotype enabled=1 obfuscation=0 seq="" assoc=0
++ E U1 H2026-11-16T09:43:59Z CD Other.Plugin = "zqxcd-u1"
++ E U1 H2026-11-16T09:43:59Z misc icon=0 customIcon=- fg=00000000 bg=00000000 overrideUrl="" quality=1
++ E U1 H2026-11-16T09:43:59Z prev -
++ E U1 H2026-11-16T09:43:59Z S Extra p=0 "zqxextra-u1"
++ E U1 H2026-11-16T09:43:59Z S KPG.Ref p=0 "zqxref-u1-changed"
++ E U1 H2026-11-16T09:43:59Z S Notes p=0 "user notes of U1"
++ E U1 H2026-11-16T09:43:59Z S Password p=1 "u1-pw-invented"
++ E U1 H2026-11-16T09:43:59Z S Title p=0 "Mail account"
++ E U1 H2026-11-16T09:43:59Z S URL p=0 "https://mail.example.invalid/"
++ E U1 H2026-11-16T09:43:59Z S UserName p=0 "alice-invented"
++ E U1 H2026-11-16T09:43:59Z t.created 2026-11-01T10:20:00Z
++ E U1 H2026-11-16T09:43:59Z t.expires 0 2026-11-01T10:00:00Z
++ E U1 H2026-11-16T09:43:59Z t.location 2026-11-01T10:20:00Z
++ E U1 H2026-11-16T09:43:59Z t.modified 2026-11-16T09:43:59Z
++ E U1 H2026-11-16T09:43:59Z tags [work]
+- E U1 history.count 2
++ E U1 history.count 3
+- E U1 S UserName p=0 "alice-invented"
++ E U1 S UserName p=0 "edited-in-dialog"
+- E U1 t.modified 2026-11-01T13:20:00Z
++ E U1 t.modified 2026-11-16T09:44:01Z

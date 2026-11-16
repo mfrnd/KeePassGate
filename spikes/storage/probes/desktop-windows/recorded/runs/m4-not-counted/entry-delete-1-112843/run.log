@@ -1,0 +1,23 @@
+11:28:11.524 ==== entry-delete-1 : the store entry KPG grant 1 selected, Delete key
+11:28:11.531 config: 
+11:28:24.024 started KeePass pid=19880 token: TokenIsElevated=1 ElevationType=2 Integrity=0x3000 AdministratorsEnabled=False
+11:28:24.141 main window: <<db.kdbx - KeePass>>
+11:28:24.377 group rows: Archive, Desk store, Empty group, KeePassGate, Passwords, Recycle Bin
+11:28:27.867 [entry-delete-1-1] WINDOW title=<<KeePass>> class=#32770
+11:28:27.960 [entry-delete-1-1]   Image name=<<MainInstructionIcon>>
+11:28:27.967 [entry-delete-1-1]   Text name=<<Are you sure you want to move the selected entry to the recycle bin?>>
+11:28:27.973 [entry-delete-1-1]   Text name=<<- KPG grant 1>>
+11:28:27.987 [entry-delete-1-1]   CheckBox name=<<Do not show this dialog again; always 'Yes'.>>
+11:28:28.011 [entry-delete-1-1]   Pane name=<<Yes>>
+11:28:28.016 [entry-delete-1-1]   Pane name=<<No>>
+11:28:28.031 [entry-delete-1-1]   win32 Button <<&Yes>>
+11:28:28.035 [entry-delete-1-1]   win32 Button <<&No>>
+11:28:28.597 shot entry-delete-1-1.png (442 x 165)
+11:28:28.910 [entry-delete-1-1] pressed <<&Yes (clicked)>>
+11:28:35.589 dialogs: 1
+11:28:38.932 [after] window title <<db.kdbx* - KeePass>>; groups [Desk store, KeePassGate, Archive, Passwords, Empty group, Recycle Bin]; KeePassGate [KPG admission 1, KPG revocation 1, KPG profile 1, KPG grant 1, KPG grant 6, KPG grant 7]; Passwords [Mail account, Bank]; status <<Ready.>>
+11:28:43.501 stopping KeePass pid=19880
+11:28:43.586 RUN FAILED entry-delete-1: The term 'Get-FileHash' is not recognized as the name of a cmdlet, function, script file, or operable program. Check the spelling of the name, or if a path was included, verify that the path is correct and try again. at Get-FileState, <branch>\spikes\storage\probes\desktop-windows\scripts\Ui.ps1: line 536
+at Run-M4, <branch>\spikes\storage\probes\desktop-windows\scripts\M4.ps1: line 74
+at <ScriptBlock>, <branch>\spikes\storage\probes\desktop-windows\scripts\M4.ps1: line 165
+at <ScriptBlock>, <No file>: line 1

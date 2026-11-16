@@ -1,0 +1,7 @@
+11:17:22.941 ==== duplicate-default
+11:17:22.985 config: 
+11:17:34.208 started KeePass pid=16760 token: TokenIsElevated=1 ElevationType=2 Integrity=0x3000 AdministratorsEnabled=False
+11:17:34.604 main window: <<db.kdbx - KeePass>>
+11:17:35.005 group rows: Desk entries, KeePassGate, Passwords, Recycle Bin
+11:17:38.874 menu: <<Duplicate Entry...>>
+11:17:41.046 shot duplicate-default.png (375 x 236)

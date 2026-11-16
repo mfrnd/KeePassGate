@@ -1,0 +1,31 @@
+11:35:11.238 ==== group-shiftdelete-1 : the group KeePassGate selected, Shift+Delete
+11:35:11.256 config: 
+11:35:23.207 started KeePass pid=7344 token: TokenIsElevated=1 ElevationType=2 Integrity=0x3000 AdministratorsEnabled=False
+11:35:23.326 main window: <<db.kdbx - KeePass>>
+11:35:23.515 group rows: Archive, Desk store, Empty group, KeePassGate, Passwords, Recycle Bin
+11:35:26.414 [group-shiftdelete-1-1] WINDOW title=<<KeePass>> class=#32770
+11:35:26.531 [group-shiftdelete-1-1]   Image name=<<MainInstructionIcon>>
+11:35:26.543 [group-shiftdelete-1-1]   Text name=<<Are you sure you want to permanently delete the selected group?>>
+11:35:26.558 [group-shiftdelete-1-1]   Text name=<<Deleting a group will also delete all entries and subgroups in that group.
+
+- Archive
+- KPG grant 1
+- KPG admission 1
+- KPG revocation 1
+- KPG profile 1
+- KPG grant 1
+- KPG grant 6
+- KPG grant 7>>
+11:35:26.586 [group-shiftdelete-1-1]   Pane name=<<Delete>>
+11:35:26.611 [group-shiftdelete-1-1]   Pane name=<<Cancel>>
+11:35:26.633 [group-shiftdelete-1-1]   win32 Button <<&Delete>>
+11:35:26.650 [group-shiftdelete-1-1]   win32 Button <<Cancel>>
+11:35:27.238 shot group-shiftdelete-1-1.png (390 x 315)
+11:35:33.551 dialogs: 1
+11:35:37.386 [after] window title <<db.kdbx - KeePass>>; groups [Desk store, KeePassGate, Archive, Passwords, Empty group, Recycle Bin]; KeePassGate [KPG grant 1, KPG admission 1, KPG revocation 1, KPG profile 1, KPG grant 1, KPG grant 6, KPG grant 7]; Passwords [KPG grant 1, KPG admission 1, KPG revocation 1, KPG profile 1, KPG grant 1, KPG grant 6, KPG grant 7]; status <<Ready.>>
+11:35:43.218 file: size=2885 mtime=2026-11-16T08:32:09.3001212Z sha=8b289ea027b9
+11:36:04.041 KeePass did not exit; stopped
+11:36:04.882 RUN FAILED group-shiftdelete-1: You cannot call a method on a null-valued expression. at <ScriptBlock>, <branch>\spikes\storage\probes\desktop-windows\scripts\Ui.ps1: line 275
+at Stop-Started, <branch>\spikes\storage\probes\desktop-windows\scripts\Ui.ps1: line 274
+at Run-M4, <branch>\spikes\storage\probes\desktop-windows\scripts\M4.ps1: line 77
+at <ScriptBlock>, <branch>\spikes\storage\probes\desktop-windows\scripts\M4.ps1: line 165

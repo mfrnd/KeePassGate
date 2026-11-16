@@ -1,0 +1,201 @@
+10:19:53.320 config: 
+10:20:06.945 started KeePass pid=11580 token: TokenIsElevated=1 ElevationType=2 Integrity=0x3000 AdministratorsEnabled=False
+10:20:07.351 main window: <<db.kdbx - KeePass>>
+10:20:07.526 menuitem <<File>> 54,53,37,20
+10:20:07.530 menuitem <<Group>> 91,53,52,20
+10:20:07.538 menuitem <<Entry>> 143,53,46,20
+10:20:07.546 menuitem <<Find>> 189,53,42,20
+10:20:07.552 menuitem <<View>> 231,53,44,20
+10:20:07.556 menuitem <<Tools>> 275,53,47,20
+10:20:07.561 menuitem <<Help>> 322,53,44,20
+10:20:07.578 took 0.1989048
+10:20:07.763 find File: True took 0.1817074
+10:20:09.084 after group: find File: True took 0.1756667
+10:20:10.425 window <<>> cls=SysShadow h=149095388
+10:20:10.445 window <<db.kdbx - KeePass>> cls=WindowsForms10.Window.8.app.0.2bf8098_r6_ad1 h=439157594
+10:20:10.656    item <<New...>>
+10:20:10.669    item <<Open>>
+10:20:10.676    item <<Open Recent>>
+10:20:10.683    item <<Close>>
+10:20:10.690    item <<Save>>
+10:20:10.700    item <<Save As>>
+10:20:10.709    item <<Database Settings...>>
+10:20:10.716    item <<Change Master Key...>>
+10:20:10.728    item <<Print>>
+10:20:10.737    item <<Import...>>
+10:20:10.751    item <<Export...>>
+10:20:10.772    item <<Synchronize>>
+10:20:10.779    item <<Lock Workspace>>
+10:20:10.792    item <<Exit>>
+10:20:10.810    item <<File>>
+10:20:10.830    item <<New...>>
+10:20:10.836    item <<Open>>
+10:20:10.852    item <<Open Recent>>
+10:20:10.862    item <<Close>>
+10:20:10.873    item <<Save>>
+10:20:10.883    item <<Save As>>
+10:20:10.895    item <<Database Settings...>>
+10:20:10.911    item <<Change Master Key...>>
+10:20:10.916    item <<Print>>
+10:20:10.925    item <<Import...>>
+10:20:10.929    item <<Export...>>
+10:20:10.937    item <<Synchronize>>
+10:20:10.945    item <<Lock Workspace>>
+10:20:10.951    item <<Exit>>
+10:20:10.958    item <<Group>>
+10:20:10.965    item <<Entry>>
+10:20:10.976    item <<Find>>
+10:20:10.981    item <<View>>
+10:20:10.988    item <<Tools>>
+10:20:10.994    item <<Help>>
+10:20:12.054 stopping KeePass pid=11580
+10:24:02.951 config: 
+10:24:15.419 started KeePass pid=22084 token: TokenIsElevated=1 ElevationType=2 Integrity=0x3000 AdministratorsEnabled=False
+10:24:15.794 main window: <<db.kdbx - KeePass>>
+10:24:16.002 [open] tree h=800260960 vis=True rect=48,100,271,508 items=Desk probe,KeePassGate,Passwords,Recycle Bin
+10:24:16.093 [open] win32 tree h=800260960 vis=True 48,100
+10:24:18.070 [locked] tree h=800260960 vis=True rect=48,100,271,508 items=
+10:24:18.088 [locked] win32 tree h=800260960 vis=True 48,100
+10:24:18.754 shot locked.png (1100 x 720)
+10:24:19.895 [x-prompt] WINDOW title=<<Open Database - db.kdbx>> class=WindowsForms10.Window.8.app.0.2bf8098_r6_ad1
+10:24:20.038 [x-prompt]   Pane name=<<Exit>>
+10:24:20.072 [x-prompt]   ComboBox name=<<(None)>>
+10:24:20.090 [x-prompt]   Button name=<<Open>>
+10:24:20.100 [x-prompt]   Pane name=<<Help>>
+10:24:20.105 [x-prompt]   Pane name=<<Cancel>>
+10:24:20.109 [x-prompt]   Pane name=<<OK>>
+10:24:20.113 [x-prompt]   Pane name=<<Windows user account>>
+10:24:20.119 [x-prompt]   Pane name=<<Key file/provider:>>
+10:24:20.127 [x-prompt]   Pane name=<<Master password:>>
+10:24:20.153 [x-prompt]   win32 BUTTON <<E&xit>>
+10:24:20.160 [x-prompt]   win32 COMBOBOX <<(None)>>
+10:24:20.163 [x-prompt]   win32 BUTTON <<&Help>>
+10:24:20.167 [x-prompt]   win32 BUTTON <<Cancel>>
+10:24:20.175 [x-prompt]   win32 BUTTON <<OK>>
+10:24:20.185 [x-prompt]   win32 BUTTON <<&Windows user account>>
+10:24:20.190 [x-prompt]   win32 BUTTON <<&Key file/provider:>>
+10:24:20.194 [x-prompt]   win32 BUTTON <<&Master password:>>
+10:24:25.602 shot unlocked.png (1100 x 720)
+10:24:25.608 title <<db.kdbx - KeePass>>
+10:24:25.817 [unlocked] tree h=800260960 vis=True rect=48,100,271,508 items=
+10:24:25.855 [unlocked] win32 tree h=800260960 vis=True 48,100
+10:24:26.894 stopping KeePass pid=22084
+11:14:13.322 config: 
+11:14:25.275 started KeePass pid=14116 token: TokenIsElevated=1 ElevationType=2 Integrity=0x3000 AdministratorsEnabled=False
+11:14:25.676 main window: <<db.kdbx - KeePass>>
+11:14:26.035 group rows: Archive, Desk store, Empty group, KeePassGate, Passwords, Recycle Bin
+11:14:30.106 shot entry-menu.png (1086 x 713)
+11:14:30.263 window <<db.kdbx - KeePass>> cls=WindowsForms10.Window.8.app.0.2bf8098_r6_ad1 rect=40,20,1100,720
+11:14:30.380    item <<File>> off=False rect=54,53,37,20
+11:14:30.387    item <<Group>> off=False rect=91,53,52,20
+11:14:30.393    item <<Entry>> off=False rect=143,53,46,20
+11:14:30.398    item <<Find>> off=False rect=189,53,42,20
+11:14:30.404    item <<View>> off=False rect=231,53,44,20
+11:14:30.410    item <<Tools>> off=False rect=275,53,47,20
+11:14:30.418    item <<Help>> off=False rect=322,53,44,20
+11:14:34.557 shot entry-ctx.png (1086 x 713)
+11:14:34.841    ctx item <<File>> rect=54,53,37,20
+11:14:34.853    ctx item <<Group>> rect=91,53,52,20
+11:14:34.859    ctx item <<Entry>> rect=143,53,46,20
+11:14:34.865    ctx item <<Find>> rect=189,53,42,20
+11:14:34.873    ctx item <<View>> rect=231,53,44,20
+11:14:34.883    ctx item <<Tools>> rect=275,53,47,20
+11:14:34.890    ctx item <<Help>> rect=322,53,44,20
+11:14:35.991 stopping KeePass pid=14116
+11:15:53.331 config: 
+11:16:05.363 started KeePass pid=5700 token: TokenIsElevated=1 ElevationType=2 Integrity=0x3000 AdministratorsEnabled=False
+11:16:05.726 main window: <<db.kdbx - KeePass>>
+11:16:06.138 group rows: Desk entries, KeePassGate, Passwords, Recycle Bin
+11:16:08.036 menu: <<Export...>>
+11:16:11.208 window <<db.kdbx - KeePass>> h=1206452826 cls=WindowsForms10.Window.8.app.0.2bf8098_r6_ad1 known=True
+11:16:11.212 window <<Export File/Data>> h=265551936 cls=WindowsForms10.Window.8.app.0.2bf8098_r6_ad1 known=False
+11:16:11.473 chosen h=265551936 <<Export File/Data>>
+11:16:11.532 kid 25625672 WindowsForms10.SysTabControl32 vis=True en=True <<>>
+11:16:11.536 kid 454099654 WindowsForms10.Window.8 vis=True en=True <<General>>
+11:16:11.540 kid 772145802 WindowsForms10.Window.8 vis=True en=True <<Format>>
+11:16:11.544 kid 729285520 WindowsForms10.SysListView32 vis=True en=True <<>>
+11:16:11.549 kid 231146386 SysHeader32 vis=True en=True <<>>
+11:16:11.555 kid 1086783618 WindowsForms10.Window.8 vis=True en=True <<Destination>>
+11:16:11.563 kid 179831732 WindowsForms10.BUTTON vis=True en=False <<>>
+11:16:11.567 kid 142345144 WindowsForms10.EDIT vis=True en=False <<>>
+11:16:11.572 kid 112591844 WindowsForms10.STATIC vis=True en=False <<File:>>
+11:16:11.576 kid 56755180 WindowsForms10.BUTTON vis=True en=True <<Cancel>>
+11:16:11.583 kid 50332670 WindowsForms10.BUTTON vis=True en=False <<OK>>
+11:16:11.589 kid 69796868 WindowsForms10.Window.8 vis=True en=True <<>>
+11:16:12.834 after kid 25625672 WindowsForms10.SysTabControl32 vis=True en=True <<>>
+11:16:12.838 after kid 454099654 WindowsForms10.Window.8 vis=True en=True <<General>>
+11:16:12.842 after kid 772145802 WindowsForms10.Window.8 vis=True en=True <<Format>>
+11:16:12.848 after kid 729285520 WindowsForms10.SysListView32 vis=True en=True <<>>
+11:16:12.851 after kid 231146386 SysHeader32 vis=True en=True <<>>
+11:16:12.858 after kid 1086783618 WindowsForms10.Window.8 vis=True en=True <<Destination>>
+11:16:12.867 after kid 179831732 WindowsForms10.BUTTON vis=True en=True <<>>
+11:16:12.880 after kid 142345144 WindowsForms10.EDIT vis=True en=True <<>>
+11:16:12.886 after kid 112591844 WindowsForms10.STATIC vis=True en=True <<File:>>
+11:16:12.892 after kid 56755180 WindowsForms10.BUTTON vis=True en=True <<Cancel>>
+11:16:12.898 after kid 50332670 WindowsForms10.BUTTON vis=True en=False <<OK>>
+11:16:12.903 after kid 69796868 WindowsForms10.Window.8 vis=True en=True <<>>
+11:16:13.531 shot export-after-row.png (406 x 556)
+11:16:14.591 stopping KeePass pid=5700
+11:16:32.513 config: 
+11:16:46.291 started KeePass pid=16712 token: TokenIsElevated=1 ElevationType=2 Integrity=0x3000 AdministratorsEnabled=False
+11:16:46.693 main window: <<db.kdbx - KeePass>>
+11:16:47.065 group rows: Desk entries, KeePassGate, Passwords, Recycle Bin
+11:16:49.054 menu: <<Export...>>
+11:16:52.132 window <<db.kdbx - KeePass>> h=438698622 cls=WindowsForms10.Window.8.app.0.2bf8098_r6_ad1 known=True
+11:16:52.137 window <<Export File/Data>> h=84935662 cls=WindowsForms10.Window.8.app.0.2bf8098_r6_ad1 known=False
+11:16:52.421 chosen h=84935662 <<Export File/Data>>
+11:16:52.481 kid 189137948 WindowsForms10.SysTabControl32 vis=True en=True <<>>
+11:16:52.485 kid 69862404 WindowsForms10.Window.8 vis=True en=True <<General>>
+11:16:52.491 kid 74318880 WindowsForms10.Window.8 vis=True en=True <<Format>>
+11:16:52.495 kid 194380850 WindowsForms10.SysListView32 vis=True en=True <<>>
+11:16:52.499 kid 25691208 SysHeader32 vis=True en=True <<>>
+11:16:52.503 kid 1086914690 WindowsForms10.Window.8 vis=True en=True <<Destination>>
+11:16:52.507 kid 142410680 WindowsForms10.BUTTON vis=True en=False <<>>
+11:16:52.515 kid 179897268 WindowsForms10.EDIT vis=True en=False <<>>
+11:16:52.521 kid 299631536 WindowsForms10.STATIC vis=True en=False <<File:>>
+11:16:52.525 kid 772211338 WindowsForms10.BUTTON vis=True en=True <<Cancel>>
+11:16:52.527 kid 729351056 WindowsForms10.BUTTON vis=True en=False <<OK>>
+11:16:52.531 kid 231211922 WindowsForms10.Window.8 vis=True en=True <<>>
+11:16:53.781 after kid 189137948 WindowsForms10.SysTabControl32 vis=True en=True <<>>
+11:16:53.791 after kid 69862404 WindowsForms10.Window.8 vis=True en=True <<General>>
+11:16:53.830 after kid 74318880 WindowsForms10.Window.8 vis=True en=True <<Format>>
+11:16:53.843 after kid 194380850 WindowsForms10.SysListView32 vis=True en=True <<>>
+11:16:53.851 after kid 25691208 SysHeader32 vis=True en=True <<>>
+11:16:53.859 after kid 1086914690 WindowsForms10.Window.8 vis=True en=True <<Destination>>
+11:16:53.871 after kid 142410680 WindowsForms10.BUTTON vis=True en=True <<>>
+11:16:53.875 after kid 179897268 WindowsForms10.EDIT vis=True en=True <<>>
+11:16:53.882 after kid 299631536 WindowsForms10.STATIC vis=True en=True <<File:>>
+11:16:53.889 after kid 772211338 WindowsForms10.BUTTON vis=True en=True <<Cancel>>
+11:16:53.900 after kid 729351056 WindowsForms10.BUTTON vis=True en=False <<OK>>
+11:16:53.910 after kid 231211922 WindowsForms10.Window.8 vis=True en=True <<>>
+11:16:54.547 shot export-after-row.png (406 x 556)
+11:16:54.561 box 179897268
+11:16:56.218 typed kid 189137948 WindowsForms10.SysTabControl32 vis=True en=True <<>>
+11:16:56.222 typed kid 69862404 WindowsForms10.Window.8 vis=True en=True <<General>>
+11:16:56.230 typed kid 74318880 WindowsForms10.Window.8 vis=True en=True <<Format>>
+11:16:56.238 typed kid 194380850 WindowsForms10.SysListView32 vis=True en=True <<>>
+11:16:56.244 typed kid 25691208 SysHeader32 vis=True en=True <<>>
+11:16:56.249 typed kid 1086914690 WindowsForms10.Window.8 vis=True en=True <<Destination>>
+11:16:56.254 typed kid 142410680 WindowsForms10.BUTTON vis=True en=True <<>>
+11:16:56.268 typed kid 179897268 WindowsForms10.EDIT vis=True en=True <<<work>\runs\explore2\x.xml>>
+11:16:56.274 typed kid 299631536 WindowsForms10.STATIC vis=True en=True <<File:>>
+11:16:56.279 typed kid 772211338 WindowsForms10.BUTTON vis=True en=True <<Cancel>>
+11:16:56.282 typed kid 729351056 WindowsForms10.BUTTON vis=True en=True <<OK>>
+11:16:56.287 typed kid 231211922 WindowsForms10.Window.8 vis=True en=True <<>>
+11:16:56.313 find OK: 729351056
+11:16:56.888 shot export-typed.png (406 x 556)
+11:16:57.926 stopping KeePass pid=16712
+12:51:54.575 config: 
+12:52:06.743 started KeePass pid=7096 token: TokenIsElevated=1 ElevationType=2 Integrity=0x3000 AdministratorsEnabled=False
+12:52:07.150 main window: <<db.kdbx - KeePass>>
+12:52:07.752 group rows: Desk probe, KeePassGate, Passwords, Recycle Bin
+12:52:09.561 menu: <<Import...>>
+12:52:12.290 item 2 KeePass KDBX (2.x)
+12:52:13.446 box 1299514190 459,556
+12:52:16.337 btn <<>> en=True 729,554,761,577
+12:52:16.349 btn <<Cancel>> en=True 705,621,780,644
+12:52:16.354 btn <<OK>> en=True 624,621,699,644
+12:52:16.976 shot import-before-ok.png (406 x 556)
+12:52:20.556 window <<db.kdbx - KeePass>> known=True
+12:52:20.566 window <<Open Database - other.kdbx>> known=False
+12:52:21.675 stopping KeePass pid=7096

@@ -1,0 +1,9 @@
+11:07:27.994 ==== group-shiftdelete-1 : the group KeePassGate selected, Shift+Delete
+11:07:28.013 config: 
+11:07:40.537 started KeePass pid=17148 token: TokenIsElevated=1 ElevationType=2 Integrity=0x3000 AdministratorsEnabled=False
+11:07:40.714 main window: <<db.kdbx - KeePass>>
+11:07:41.027 group rows: Archive, Desk store, Empty group, KeePassGate, Passwords, Recycle Bin
+11:07:48.280 dialogs: 0
+11:07:51.194 [after] window title <<db.kdbx - KeePass>>; groups [Desk store, KeePassGate, Archive, Passwords, Empty group, Recycle Bin]; KeePassGate [KPG grant 1, KPG admission 1, KPG revocation 1, KPG profile 1, KPG grant 1, KPG grant 6, KPG grant 7]; Passwords [Mail account, Bank]; status <<Ready.>>
+11:07:56.486 file: size=2933 mtime=2026-11-16T10:07:51.7138283Z sha=57cc237e6e3b
+11:08:02.879 diff against the base: 2 lines

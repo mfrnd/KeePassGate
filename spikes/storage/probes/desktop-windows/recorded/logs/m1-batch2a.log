@@ -1,0 +1,181 @@
+10:27:43.550 ==== s-toolbar-1 : P2, toolbar Save, Synchronize
+10:27:43.595 config: 
+10:27:57.232 started KeePass pid=18696 token: TokenIsElevated=1 ElevationType=2 Integrity=0x3000 AdministratorsEnabled=False
+10:27:57.669 main window: <<db.kdbx - KeePass>>
+10:27:57.961 group rows: Desk probe, KeePassGate, Passwords, Recycle Bin
+10:28:03.320 edited P2 password=p2-window; OK posted 2026-11-16T09:28:03.1984902Z, dialog gone 2026-11-16T09:28:03.3177640Z
+10:28:03.460 replace: before size=3413 mtime=2026-11-16T08:31:56.2778845Z sha=2ff7a751a869
+10:28:03.523 replace (later) with NEW-fixed.kdbx: after size=5013 mtime=2026-11-16T09:28:03.4935382Z sha=74dd75d7243e
+10:28:06.743 [s-toolbar-1-1] WINDOW title=<<KeePass>> class=#32770
+10:28:06.962 [s-toolbar-1-1]   Image name=<<MainInstructionIcon>>
+10:28:06.985 [s-toolbar-1-1]   Text name=<<Overwrite the existing file?>>
+10:28:06.996 [s-toolbar-1-1]   Text name=<<<work>\runs\m1\s-toolbar-1\db.kdbx
+
+The file on disk/server has changed since it was loaded. Probably someone else has edited and saved the database.>>
+10:28:07.018 [s-toolbar-1-1]   Pane name=<<Synchronize>> help=<<Load the file on disk/server and merge it with the current database in memory.>>
+10:28:07.028 [s-toolbar-1-1]   Pane name=<<Overwrite>> help=<<Save the current database to the file. Changes made by the other user will be lost.>>
+10:28:07.038 [s-toolbar-1-1]   Pane name=<<Cancel>> help=<<Abort the current operation.>>
+10:28:07.056 [s-toolbar-1-1]   win32 Button <<Synchronize>>
+10:28:07.060 [s-toolbar-1-1]   win32 Button <<Overwrite>>
+10:28:07.067 [s-toolbar-1-1]   win32 Button <<Cancel>>
+10:28:07.669 shot s-toolbar-1-1.png (485 x 359)
+10:28:07.986 [s-toolbar-1-1] pressed <<Synchronize (clicked)>>
+10:28:15.556 dialogs after the flow: 1
+10:28:17.116 group KeePassGate from the places kept
+10:28:18.418 group Passwords from the places kept
+10:28:19.594 [after] window title <<db.kdbx - KeePass>>; groups []; KeePassGate [KPG grant 1, KPG admission 1, KPG revocation]; Passwords [P1, P2, Q1, Q2, Q3, K, other-new]; status <<Ready.>>
+10:28:19.599 file after the flow: size=5061 mtime=2026-11-16T09:28:08.1231253Z sha=61c9cee3294a
+10:28:25.697 dialogs at the exit (answered Discard): 0
+10:28:25.715 file after the exit: size=5061 mtime=2026-11-16T09:28:08.1231253Z sha=61c9cee3294a
+10:28:26.368 verdict: db.kdbx sha=61c9cee3294a v4.1 KG1=kept KG2=kept KG3=kept NewKey=kept DZ=rec D1=rec X1=gone+rec P1=p1-other[p1-old] P2=p2-window[p2-old] Q1=q1-other[q1-old] Q2=q2-other[q2-old] Q3=q3-other[q3-old] K=k-old[] NO=no-other@Passwords NW=absent entries=10 records=3
+10:28:26.375 verdict: NEW-fixed.kdbx sha=74dd75d7243e v4.1 KG1=kept KG2=kept KG3=kept NewKey=kept DZ=rec D1=rec X1=gone+rec P1=p1-other[p1-old] P2=p2-old[] Q1=q1-other[q1-old] Q2=q2-other[q2-old] Q3=q3-other[q3-old] K=k-old[] NO=no-other@Passwords NW=absent entries=10 records=3
+10:28:26.395 ==== s-saveas-1 : P2, Save As over the same path
+10:28:26.409 config: 
+10:28:38.909 started KeePass pid=20084 token: TokenIsElevated=1 ElevationType=2 Integrity=0x3000 AdministratorsEnabled=False
+10:28:39.095 main window: <<db.kdbx - KeePass>>
+10:28:39.402 group rows: Desk probe, KeePassGate, Passwords, Recycle Bin
+10:28:44.802 edited P2 password=p2-window; OK posted 2026-11-16T09:28:44.6852259Z, dialog gone 2026-11-16T09:28:44.8022225Z
+10:28:44.816 replace: before size=3413 mtime=2026-11-16T08:31:56.2778845Z sha=2ff7a751a869
+10:28:44.852 replace (later) with NEW-fixed.kdbx: after size=5013 mtime=2026-11-16T09:28:44.8287257Z sha=74dd75d7243e
+10:28:47.578 menu: <<Save As>>
+10:28:49.054 menu: <<Save to File...>>
+10:28:50.609 [s-saveas-1] file dialog <<Save Database>>
+10:28:55.664 [s-saveas-1-1] WINDOW title=<<Save Database>> class=#32770
+10:28:56.255 [s-saveas-1-1]   Window name=<<Confirm Save As>>
+10:28:56.265 [s-saveas-1-1]   Image name=<<MainInstructionIcon>>
+10:28:56.277 [s-saveas-1-1]   Text name=<<db.kdbx already exists.
+Do you want to replace it?>>
+10:28:56.289 [s-saveas-1-1]   Pane name=<<Yes>>
+10:28:56.303 [s-saveas-1-1]   Pane name=<<No>>
+10:28:56.316 [s-saveas-1-1]   ToolBar name=<<Command Module>>
+10:28:56.327 [s-saveas-1-1]   Button name=<<&Help>> help=<<Get help.>>
+10:28:56.335 [s-saveas-1-1]   SplitButton name=<<Details>> help=<<Change your view.>>
+10:28:56.348 [s-saveas-1-1]   Button name=<<View Slider>> help=<<More options>>
+10:28:56.360 [s-saveas-1-1]   Button name=<<Organize>> help=<<Organize this folder's contents.>>
+10:28:56.374 [s-saveas-1-1]   Button name=<<New folder>> help=<<Create a new folder.>>
+10:28:56.382 [s-saveas-1-1]   Pane name=<<Control Host>>
+10:28:56.391 [s-saveas-1-1]   Pane name=<<Navigation Pane>> disabled
+10:28:56.403 [s-saveas-1-1]   Pane name=<<Shell Folder View>>
+10:28:56.421 [s-saveas-1-1]   List name=<<Items View>>
+10:28:56.430 [s-saveas-1-1]   Pane name=<<Horizontal>>
+10:28:56.448 [s-saveas-1-1]   Header name=<<Header>>
+10:28:56.459 [s-saveas-1-1]   SplitButton name=<<Name>>
+10:28:56.477 [s-saveas-1-1]   Button name=<<Filter dropdown>>
+10:28:56.489 [s-saveas-1-1]   SplitButton name=<<Date modified>>
+10:28:56.501 [s-saveas-1-1]   Button name=<<Filter dropdown>>
+10:28:56.512 [s-saveas-1-1]   SplitButton name=<<Type>>
+10:28:56.524 [s-saveas-1-1]   Button name=<<Filter dropdown>>
+10:28:56.536 [s-saveas-1-1]   SplitButton name=<<Size>>
+10:28:56.550 [s-saveas-1-1]   Button name=<<Filter dropdown>>
+10:28:56.570 [s-saveas-1-1]   Text name=<<No items match your search.>>
+10:28:56.589 [s-saveas-1-1]   Text name=<<File name:>> help=<<File name:>>
+10:28:56.605 [s-saveas-1-1]   Pane name=<<File name:>>
+10:28:56.619 [s-saveas-1-1]   Pane name=<<<work>\runs\m1\s-saveas-1\db.kdbx>> disabled
+10:28:56.627 [s-saveas-1-1]   Text name=<<Save as type:>> help=<<Save as type:>>
+10:28:56.638 [s-saveas-1-1]   Pane name=<<Save as type:>>
+10:28:56.646 [s-saveas-1-1]   Tree name=<<Save Fields>>
+10:28:56.654 [s-saveas-1-1]   Tree name=<<Application Controls>>
+10:28:56.658 [s-saveas-1-1]   Pane name=<<Save>> disabled
+10:28:56.664 [s-saveas-1-1]   Pane name=<<Cancel>> disabled
+10:28:56.672 [s-saveas-1-1]   Pane name=<<Navigation buttons>> disabled
+10:28:56.680 [s-saveas-1-1]   Pane name=<<Up band>> disabled
+10:28:56.689 [s-saveas-1-1]   Pane name=<<Address: Documents>> disabled
+10:28:56.709 [s-saveas-1-1]   Pane name=<<Address band>> disabled
+10:28:56.719 [s-saveas-1-1]   Edit name=<<Search Box>> help=<< Search Documents>>
+10:28:56.727 [s-saveas-1-1]   Button name=<<Search>>
+10:28:56.752 [s-saveas-1-1]   win32 ComboBox <<<work>\runs\m1\s-saveas-1\db.kdbx>>
+10:28:56.763 [s-saveas-1-1]   win32 Edit <<<work>\runs\m1\s-saveas-1\db.kdbx>>
+10:28:56.767 [s-saveas-1-1]   win32 NamespaceTreeControl <<Namespace Tree Control>>
+10:28:56.772 [s-saveas-1-1]   win32 SysTreeView32 <<Navigation Pane>>
+10:28:56.780 [s-saveas-1-1]   win32 SHELLDLL_DefView <<ShellView>>
+10:28:56.784 [s-saveas-1-1]   win32 ComboBox <<KeePass KDBX Files (*.kdbx)>>
+10:28:56.786 [s-saveas-1-1]   win32 Button <<&Save>>
+10:28:56.790 [s-saveas-1-1]   win32 Button <<Cancel>>
+10:28:56.796 [s-saveas-1-1]   win32 ToolbarWindow32 <<Navigation buttons>>
+10:28:56.805 [s-saveas-1-1]   win32 ToolbarWindow32 <<Up band>>
+10:28:56.817 [s-saveas-1-1]   win32 ToolbarWindow32 <<Address: Documents>>
+10:28:56.823 [s-saveas-1-1]   win32 ToolbarWindow32 <<Address band>>
+10:28:57.442 shot s-saveas-1-1.png (626 x 473)
+10:28:59.167 [s-saveas-1-1] pressed <<Yes (clicked at bounds)>>
+10:29:06.847 dialogs after the flow: 1
+10:29:10.889 [after] window title <<db.kdbx - KeePass>>; groups [Desk probe, KeePassGate, Passwords, Recycle Bin]; KeePassGate [KPG grant 1, KPG admission 1]; Passwords [P1, P2, Q1, Q2, Q3, X1, K]; status <<Ready.>>
+10:29:10.899 file after the flow: size=3589 mtime=2026-11-16T09:28:59.6967015Z sha=c506cdcd265d
+10:29:17.034 dialogs at the exit (answered Discard): 0
+10:29:17.046 file after the exit: size=3589 mtime=2026-11-16T09:28:59.6967015Z sha=c506cdcd265d
+10:29:17.700 verdict: db.kdbx sha=c506cdcd265d v4.1 KG1=kept KG2=kept KG3=gone NewKey=gone DZ=none D1=rec X1=x1-old[] P1=p1-old[] P2=p2-window[p2-old] Q1=q1-old[] Q2=q2-old[] Q3=q3-old[] K=k-old[] NO=absent NW=absent entries=9 records=1
+10:29:17.704 verdict: NEW-fixed.kdbx sha=74dd75d7243e v4.1 KG1=kept KG2=kept KG3=kept NewKey=kept DZ=rec D1=rec X1=gone+rec P1=p1-other[p1-old] P2=p2-old[] Q1=q1-other[q1-old] Q2=q2-other[q2-old] Q3=q3-other[q3-old] K=k-old[] NO=no-other@Passwords NW=absent entries=10 records=3
+10:29:17.713 ==== n-syncmenu-1 : nothing changed, File Synchronize with the same file
+10:29:17.722 config: 
+10:29:28.808 started KeePass pid=5416 token: TokenIsElevated=1 ElevationType=2 Integrity=0x3000 AdministratorsEnabled=False
+10:29:28.933 main window: <<db.kdbx - KeePass>>
+10:29:29.194 group rows: Desk probe, KeePassGate, Passwords, Recycle Bin
+10:29:29.205 replace: before size=3413 mtime=2026-11-16T08:31:56.2778845Z sha=2ff7a751a869
+10:29:29.246 replace (later) with NEW-fixed.kdbx: after size=5013 mtime=2026-11-16T09:29:29.2232065Z sha=74dd75d7243e
+10:29:31.756 menu: <<Synchronize>>
+10:29:33.000 menu: <<Synchronize with File...>>
+10:29:34.319 [n-syncmenu-1] file dialog <<Synchronize>>
+10:29:39.139 [n-syncmenu-1-1] WINDOW title=<<KeePass>> class=#32770
+10:29:39.311 [n-syncmenu-1-1]   Image name=<<MainInstructionIcon>>
+10:29:39.319 [n-syncmenu-1-1]   Text name=<<Overwrite the existing file?>>
+10:29:39.330 [n-syncmenu-1-1]   Text name=<<<work>\runs\m1\n-syncmenu-1\db.kdbx
+
+The file on disk/server has changed since it was loaded. Probably someone else has edited and saved the database.>>
+10:29:39.339 [n-syncmenu-1-1]   Pane name=<<Synchronize>> help=<<Load the file on disk/server and merge it with the current database in memory.>>
+10:29:39.350 [n-syncmenu-1-1]   Pane name=<<Overwrite>> help=<<Save the current database to the file. Changes made by the other user will be lost.>>
+10:29:39.357 [n-syncmenu-1-1]   Pane name=<<Cancel>> help=<<Abort the current operation.>>
+10:29:39.378 [n-syncmenu-1-1]   win32 Button <<Synchronize>>
+10:29:39.384 [n-syncmenu-1-1]   win32 Button <<Overwrite>>
+10:29:39.390 [n-syncmenu-1-1]   win32 Button <<Cancel>>
+10:29:39.971 shot n-syncmenu-1-1.png (485 x 359)
+10:29:40.269 [n-syncmenu-1-1] pressed <<Synchronize (clicked)>>
+10:29:48.237 dialogs after the flow: 1
+10:29:49.773 group KeePassGate from the places kept
+10:29:51.008 group Passwords from the places kept
+10:29:52.253 [after] window title <<db.kdbx - KeePass>>; groups []; KeePassGate [KPG grant 1, KPG admission 1, KPG revocation]; Passwords [P1, P2, Q1, Q2, Q3, K, other-new]; status <<Ready.>>
+10:29:52.262 file after the flow: size=5013 mtime=2026-11-16T09:29:40.3663061Z sha=a7abf19c03e3
+10:29:58.415 dialogs at the exit (answered Discard): 0
+10:29:58.426 file after the exit: size=5013 mtime=2026-11-16T09:29:40.3663061Z sha=a7abf19c03e3
+10:29:58.998 verdict: db.kdbx sha=a7abf19c03e3 v4.1 KG1=kept KG2=kept KG3=kept NewKey=kept DZ=rec D1=rec X1=gone+rec P1=p1-other[p1-old] P2=p2-old[] Q1=q1-other[q1-old] Q2=q2-other[q2-old] Q3=q3-other[q3-old] K=k-old[] NO=no-other@Passwords NW=absent entries=10 records=3
+10:29:59.004 verdict: NEW-fixed.kdbx sha=74dd75d7243e v4.1 KG1=kept KG2=kept KG3=kept NewKey=kept DZ=rec D1=rec X1=gone+rec P1=p1-other[p1-old] P2=p2-old[] Q1=q1-other[q1-old] Q2=q2-other[q2-old] Q3=q3-other[q3-old] K=k-old[] NO=no-other@Passwords NW=absent entries=10 records=3
+10:29:59.018 ==== n-lockedarrival-1 : locked before the replacement, unlocked after, then P2 and Ctrl+S
+10:29:59.033 config: 
+10:30:13.205 started KeePass pid=9096 token: TokenIsElevated=1 ElevationType=2 Integrity=0x3000 AdministratorsEnabled=False
+10:30:13.310 main window: <<db.kdbx - KeePass>>
+10:30:13.561 group rows: Desk probe, KeePassGate, Passwords, Recycle Bin
+10:30:15.716 group KeePassGate from the places kept
+10:30:16.895 group Passwords from the places kept
+10:30:18.049 [locked] window title <<db.kdbx [Locked] - KeePass>>; groups []; KeePassGate []; Passwords []; status <<Ready.>>
+10:30:18.059 replace: before size=3413 mtime=2026-11-16T08:31:56.2778845Z sha=2ff7a751a869
+10:30:18.083 replace (later) with NEW-fixed.kdbx: after size=5013 mtime=2026-11-16T09:30:18.0684405Z sha=74dd75d7243e
+10:30:20.302 [n-lockedarrival-1-prompt] WINDOW title=<<Open Database - db.kdbx>> class=WindowsForms10.Window.8.app.0.2bf8098_r6_ad1
+10:30:20.401 [n-lockedarrival-1-prompt]   Pane name=<<Exit>>
+10:30:20.423 [n-lockedarrival-1-prompt]   ComboBox name=<<(None)>>
+10:30:20.437 [n-lockedarrival-1-prompt]   Button name=<<Open>>
+10:30:20.449 [n-lockedarrival-1-prompt]   Pane name=<<Help>>
+10:30:20.460 [n-lockedarrival-1-prompt]   Pane name=<<Cancel>>
+10:30:20.478 [n-lockedarrival-1-prompt]   Pane name=<<OK>>
+10:30:20.493 [n-lockedarrival-1-prompt]   Pane name=<<Windows user account>>
+10:30:20.504 [n-lockedarrival-1-prompt]   Pane name=<<Key file/provider:>>
+10:30:20.517 [n-lockedarrival-1-prompt]   Pane name=<<Master password:>>
+10:30:20.542 [n-lockedarrival-1-prompt]   win32 BUTTON <<E&xit>>
+10:30:20.547 [n-lockedarrival-1-prompt]   win32 COMBOBOX <<(None)>>
+10:30:20.552 [n-lockedarrival-1-prompt]   win32 BUTTON <<&Help>>
+10:30:20.566 [n-lockedarrival-1-prompt]   win32 BUTTON <<Cancel>>
+10:30:20.573 [n-lockedarrival-1-prompt]   win32 BUTTON <<OK>>
+10:30:20.579 [n-lockedarrival-1-prompt]   win32 BUTTON <<&Windows user account>>
+10:30:20.586 [n-lockedarrival-1-prompt]   win32 BUTTON <<&Key file/provider:>>
+10:30:20.592 [n-lockedarrival-1-prompt]   win32 BUTTON <<&Master password:>>
+10:30:23.906 group KeePassGate from the places kept
+10:30:25.294 group Passwords from the places kept
+10:30:26.475 [unlocked] window title <<db.kdbx - KeePass>>; groups []; KeePassGate [KPG grant 1, KPG admission 1, KPG revocation]; Passwords [P1, P2, Q1, Q2, Q3, K, other-new]; status <<Ready.>>
+10:30:27.211 group Passwords from the places kept
+10:30:32.327 edited P2 password=p2-window; OK posted 2026-11-16T09:30:32.2075903Z, dialog gone 2026-11-16T09:30:32.3276295Z
+10:30:39.424 dialogs after the flow: 0
+10:30:40.986 group KeePassGate from the places kept
+10:30:42.323 group Passwords from the places kept
+10:30:43.662 [after] window title <<db.kdbx - KeePass>>; groups []; KeePassGate [KPG grant 1, KPG admission 1, KPG revocation]; Passwords [P1, P2, Q1, Q2, Q3, K, other-new]; status <<Ready.>>
+10:30:43.670 file after the flow: size=5109 mtime=2026-11-16T09:30:32.6061476Z sha=8971ae8a1178
+10:30:49.793 dialogs at the exit (answered Discard): 0
+10:30:49.803 file after the exit: size=5109 mtime=2026-11-16T09:30:32.6061476Z sha=8971ae8a1178
+10:30:50.435 verdict: db.kdbx sha=8971ae8a1178 v4.1 KG1=kept KG2=kept KG3=kept NewKey=kept DZ=rec D1=rec X1=gone+rec P1=p1-other[p1-old] P2=p2-window[p2-old] Q1=q1-other[q1-old] Q2=q2-other[q2-old] Q3=q3-other[q3-old] K=k-old[] NO=no-other@Passwords NW=absent entries=10 records=3
+10:30:50.443 verdict: NEW-fixed.kdbx sha=74dd75d7243e v4.1 KG1=kept KG2=kept KG3=kept NewKey=kept DZ=rec D1=rec X1=gone+rec P1=p1-other[p1-old] P2=p2-old[] Q1=q1-other[q1-old] Q2=q2-other[q2-old] Q3=q3-other[q3-old] K=k-old[] NO=no-other@Passwords NW=absent entries=10 records=3

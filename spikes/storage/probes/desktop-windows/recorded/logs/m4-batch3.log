@@ -1,0 +1,549 @@
+11:30:19.821 ==== maint-history-1 : Database Maintenance: delete history entries older than the days shown
+11:30:19.872 config: 
+11:30:31.164 started KeePass pid=11632 token: TokenIsElevated=1 ElevationType=2 Integrity=0x3000 AdministratorsEnabled=False
+11:30:31.694 main window: <<db.kdbx - KeePass>>
+11:30:32.231 group rows: Archive, Desk store, Empty group, KeePassGate, Passwords, Recycle Bin
+11:30:34.533 menu: <<Database Tools>>
+11:30:36.095 menu: <<Database Maintenance...>>
+11:30:37.896 [maint-history-1-maint] WINDOW title=<<Database Maintenance>> class=WindowsForms10.Window.8.app.0.2bf8098_r6_ad1
+11:30:38.106 [maint-history-1-maint]   Pane name=<<Clean Up>>
+11:30:38.128 [maint-history-1-maint]   Group name=<<Deleted objects information>>
+11:30:38.140 [maint-history-1-maint]   Text name=<<Warning! After removing this information, deleted objects (groups, entries, ...) may reappear when synchronizing the current database with another one (which still contains the objects).>>
+11:30:38.155 [maint-history-1-maint]   Pane name=<<Delete>>
+11:30:38.164 [maint-history-1-maint]   Text name=<<Clicking the 'Delete' button will remove all history entries older than the specified number of days. There is no way to get them back.>>
+11:30:38.184 [maint-history-1-maint]   Text name=<<KeePass keeps some information about deleted objects. This information can be removed in order to reduce the size of the database.>>
+11:30:38.194 [maint-history-1-maint]   Group name=<<Entry history>>
+11:30:38.220 [maint-history-1-maint]   Text name=<<Clicking the 'Delete' button will remove all history entries older than the specified number of days. There is no way to get them back.>>
+11:30:38.232 [maint-history-1-maint]   Pane name=<<Delete>>
+11:30:38.242 [maint-history-1-maint]   Pane name=<<365>>
+11:30:38.257 [maint-history-1-maint]   Text name=<<Delete history entries older than (days):>>
+11:30:38.276 [maint-history-1-maint]   Text name=<<History entries (shown on the 'History' tab page of the entry dialog) can be deleted. This will decrease the database size a bit.>>
+11:30:38.286 [maint-history-1-maint]   Pane name=<<Close>>
+11:30:38.381 [maint-history-1-maint]   win32 Window.8 <<Clean Up>>
+11:30:38.407 [maint-history-1-maint]   win32 Window.8 <<Deleted objects information>>
+11:30:38.426 [maint-history-1-maint]   win32 STATIC <<Warning! After removing this information, deleted objects (groups, entries, ...) may reappear when synchronizing the current database with another one (which still contains the objects).>>
+11:30:38.452 [maint-history-1-maint]   win32 BUTTON <<D&elete>>
+11:30:38.492 [maint-history-1-maint]   win32 STATIC <<KeePass keeps some information about deleted objects. This information can be removed in order to reduce the size of the database.>>
+11:30:38.518 [maint-history-1-maint]   win32 Window.8 <<Entry history>>
+11:30:38.530 [maint-history-1-maint]   win32 STATIC <<Clicking the 'Delete' button will remove all history entries older than the specified number of days. There is no way to get them back.>>
+11:30:38.541 [maint-history-1-maint]   win32 BUTTON <<&Delete>>
+11:30:38.549 [maint-history-1-maint]   win32 EDIT <<365>>
+11:30:38.561 [maint-history-1-maint]   win32 STATIC <<Delete &history entries older than (days):>>
+11:30:38.572 [maint-history-1-maint]   win32 STATIC <<History entries (shown on the 'History' tab page of the entry dialog) can be deleted. This will decrease the database size a bit.>>
+11:30:38.581 [maint-history-1-maint]   win32 BUTTON <<Close>>
+11:30:39.249 shot maint-history-1-maint.png (465 x 416)
+11:30:39.423 pressed Delete under Entry history
+11:30:41.443 [maint-history-1-maint-after] WINDOW title=<<Database Maintenance>> class=WindowsForms10.Window.8.app.0.2bf8098_r6_ad1
+11:30:41.663 [maint-history-1-maint-after]   ProgressBar name=<<Warning! After removing this information, deleted objects (groups, entries, ...) may reappear when synchronizing the current database with another one (which still contains the objects).>> text=<<100%>>
+11:30:41.676 [maint-history-1-maint-after]   Pane name=<<Clean Up>>
+11:30:41.684 [maint-history-1-maint-after]   Group name=<<Deleted objects information>>
+11:30:41.690 [maint-history-1-maint-after]   Text name=<<Warning! After removing this information, deleted objects (groups, entries, ...) may reappear when synchronizing the current database with another one (which still contains the objects).>>
+11:30:41.698 [maint-history-1-maint-after]   Pane name=<<Delete>>
+11:30:41.707 [maint-history-1-maint-after]   Text name=<<Clicking the 'Delete' button will remove all history entries older than the specified number of days. There is no way to get them back.>>
+11:30:41.713 [maint-history-1-maint-after]   Text name=<<KeePass keeps some information about deleted objects. This information can be removed in order to reduce the size of the database.>>
+11:30:41.727 [maint-history-1-maint-after]   Group name=<<Entry history>>
+11:30:41.740 [maint-history-1-maint-after]   Text name=<<Clicking the 'Delete' button will remove all history entries older than the specified number of days. There is no way to get them back.>>
+11:30:41.749 [maint-history-1-maint-after]   Pane name=<<Delete>>
+11:30:41.767 [maint-history-1-maint-after]   Pane name=<<365>>
+11:30:41.775 [maint-history-1-maint-after]   Text name=<<Delete history entries older than (days):>>
+11:30:41.791 [maint-history-1-maint-after]   Text name=<<History entries (shown on the 'History' tab page of the entry dialog) can be deleted. This will decrease the database size a bit.>>
+11:30:41.822 [maint-history-1-maint-after]   Pane name=<<Close>>
+11:30:41.843 [maint-history-1-maint-after]   win32 Window.8 <<Clean Up>>
+11:30:41.849 [maint-history-1-maint-after]   win32 Window.8 <<Deleted objects information>>
+11:30:41.855 [maint-history-1-maint-after]   win32 STATIC <<Warning! After removing this information, deleted objects (groups, entries, ...) may reappear when synchronizing the current database with another one (which still contains the objects).>>
+11:30:41.861 [maint-history-1-maint-after]   win32 BUTTON <<D&elete>>
+11:30:41.874 [maint-history-1-maint-after]   win32 STATIC <<KeePass keeps some information about deleted objects. This information can be removed in order to reduce the size of the database.>>
+11:30:41.890 [maint-history-1-maint-after]   win32 Window.8 <<Entry history>>
+11:30:41.894 [maint-history-1-maint-after]   win32 STATIC <<Clicking the 'Delete' button will remove all history entries older than the specified number of days. There is no way to get them back.>>
+11:30:41.900 [maint-history-1-maint-after]   win32 BUTTON <<&Delete>>
+11:30:41.904 [maint-history-1-maint-after]   win32 EDIT <<365>>
+11:30:41.915 [maint-history-1-maint-after]   win32 STATIC <<Delete &history entries older than (days):>>
+11:30:41.922 [maint-history-1-maint-after]   win32 STATIC <<History entries (shown on the 'History' tab page of the entry dialog) can be deleted. This will decrease the database size a bit.>>
+11:30:41.930 [maint-history-1-maint-after]   win32 BUTTON <<Close>>
+11:30:48.553 dialogs: 0
+11:30:48.969 group KeePassGate from the places kept
+11:30:50.220 group Passwords from the places kept
+11:30:51.342 [after] window title <<db.kdbx* - KeePass>>; groups []; KeePassGate [KPG grant 1, KPG admission 1, KPG revocation 1, KPG profile 1, KPG grant 1, KPG grant 6, KPG grant 7]; Passwords [Mail account, Bank]; status <<Ready.>>
+11:30:56.350 file: size=2901 mtime=2026-11-16T10:30:51.7799106Z sha=fb361e25f006
+11:31:02.697 diff against the base: 17 lines
+11:31:02.711   + E U1 history.count 2
+11:31:02.717   - E U1 history.count 3
+11:31:02.740 ==== maint-records-1 : Database Maintenance: remove deletion records
+11:31:02.745 config: 
+11:31:13.850 started KeePass pid=19076 token: TokenIsElevated=1 ElevationType=2 Integrity=0x3000 AdministratorsEnabled=False
+11:31:14.024 main window: <<db.kdbx - KeePass>>
+11:31:14.372 group rows: Archive, Desk store, Empty group, KeePassGate, Passwords, Recycle Bin
+11:31:16.212 menu: <<Database Tools>>
+11:31:17.395 menu: <<Database Maintenance...>>
+11:31:19.137 [maint-records-1-maint] WINDOW title=<<Database Maintenance>> class=WindowsForms10.Window.8.app.0.2bf8098_r6_ad1
+11:31:19.284 [maint-records-1-maint]   Pane name=<<Clean Up>>
+11:31:19.289 [maint-records-1-maint]   Group name=<<Deleted objects information>>
+11:31:19.305 [maint-records-1-maint]   Text name=<<Warning! After removing this information, deleted objects (groups, entries, ...) may reappear when synchronizing the current database with another one (which still contains the objects).>>
+11:31:19.314 [maint-records-1-maint]   Pane name=<<Delete>>
+11:31:19.322 [maint-records-1-maint]   Text name=<<Clicking the 'Delete' button will remove all history entries older than the specified number of days. There is no way to get them back.>>
+11:31:19.328 [maint-records-1-maint]   Text name=<<KeePass keeps some information about deleted objects. This information can be removed in order to reduce the size of the database.>>
+11:31:19.338 [maint-records-1-maint]   Group name=<<Entry history>>
+11:31:19.349 [maint-records-1-maint]   Text name=<<Clicking the 'Delete' button will remove all history entries older than the specified number of days. There is no way to get them back.>>
+11:31:19.355 [maint-records-1-maint]   Pane name=<<Delete>>
+11:31:19.368 [maint-records-1-maint]   Pane name=<<365>>
+11:31:19.383 [maint-records-1-maint]   Text name=<<Delete history entries older than (days):>>
+11:31:19.395 [maint-records-1-maint]   Text name=<<History entries (shown on the 'History' tab page of the entry dialog) can be deleted. This will decrease the database size a bit.>>
+11:31:19.408 [maint-records-1-maint]   Pane name=<<Close>>
+11:31:19.421 [maint-records-1-maint]   win32 Window.8 <<Clean Up>>
+11:31:19.432 [maint-records-1-maint]   win32 Window.8 <<Deleted objects information>>
+11:31:19.453 [maint-records-1-maint]   win32 STATIC <<Warning! After removing this information, deleted objects (groups, entries, ...) may reappear when synchronizing the current database with another one (which still contains the objects).>>
+11:31:19.459 [maint-records-1-maint]   win32 BUTTON <<D&elete>>
+11:31:19.468 [maint-records-1-maint]   win32 STATIC <<KeePass keeps some information about deleted objects. This information can be removed in order to reduce the size of the database.>>
+11:31:19.473 [maint-records-1-maint]   win32 Window.8 <<Entry history>>
+11:31:19.487 [maint-records-1-maint]   win32 STATIC <<Clicking the 'Delete' button will remove all history entries older than the specified number of days. There is no way to get them back.>>
+11:31:19.494 [maint-records-1-maint]   win32 BUTTON <<&Delete>>
+11:31:19.498 [maint-records-1-maint]   win32 EDIT <<365>>
+11:31:19.505 [maint-records-1-maint]   win32 STATIC <<Delete &history entries older than (days):>>
+11:31:19.513 [maint-records-1-maint]   win32 STATIC <<History entries (shown on the 'History' tab page of the entry dialog) can be deleted. This will decrease the database size a bit.>>
+11:31:19.524 [maint-records-1-maint]   win32 BUTTON <<Close>>
+11:31:20.099 shot maint-records-1-maint.png (465 x 416)
+11:31:20.231 pressed Delete under Deleted objects information
+11:31:22.244 [maint-records-1-maint-after] WINDOW title=<<Database Maintenance>> class=WindowsForms10.Window.8.app.0.2bf8098_r6_ad1
+11:31:22.476 [maint-records-1-maint-after]   ProgressBar name=<<Warning! After removing this information, deleted objects (groups, entries, ...) may reappear when synchronizing the current database with another one (which still contains the objects).>> text=<<100%>>
+11:31:22.487 [maint-records-1-maint-after]   Pane name=<<Clean Up>>
+11:31:22.497 [maint-records-1-maint-after]   Group name=<<Deleted objects information>>
+11:31:22.515 [maint-records-1-maint-after]   Text name=<<Warning! After removing this information, deleted objects (groups, entries, ...) may reappear when synchronizing the current database with another one (which still contains the objects).>>
+11:31:22.530 [maint-records-1-maint-after]   Pane name=<<Delete>>
+11:31:22.552 [maint-records-1-maint-after]   Text name=<<Clicking the 'Delete' button will remove all history entries older than the specified number of days. There is no way to get them back.>>
+11:31:22.564 [maint-records-1-maint-after]   Text name=<<KeePass keeps some information about deleted objects. This information can be removed in order to reduce the size of the database.>>
+11:31:22.573 [maint-records-1-maint-after]   Group name=<<Entry history>>
+11:31:22.582 [maint-records-1-maint-after]   Text name=<<Clicking the 'Delete' button will remove all history entries older than the specified number of days. There is no way to get them back.>>
+11:31:22.588 [maint-records-1-maint-after]   Pane name=<<Delete>>
+11:31:22.602 [maint-records-1-maint-after]   Pane name=<<365>>
+11:31:22.614 [maint-records-1-maint-after]   Text name=<<Delete history entries older than (days):>>
+11:31:22.626 [maint-records-1-maint-after]   Text name=<<History entries (shown on the 'History' tab page of the entry dialog) can be deleted. This will decrease the database size a bit.>>
+11:31:22.636 [maint-records-1-maint-after]   Pane name=<<Close>>
+11:31:22.646 [maint-records-1-maint-after]   win32 Window.8 <<Clean Up>>
+11:31:22.654 [maint-records-1-maint-after]   win32 Window.8 <<Deleted objects information>>
+11:31:22.663 [maint-records-1-maint-after]   win32 STATIC <<Warning! After removing this information, deleted objects (groups, entries, ...) may reappear when synchronizing the current database with another one (which still contains the objects).>>
+11:31:22.668 [maint-records-1-maint-after]   win32 BUTTON <<D&elete>>
+11:31:22.673 [maint-records-1-maint-after]   win32 STATIC <<KeePass keeps some information about deleted objects. This information can be removed in order to reduce the size of the database.>>
+11:31:22.675 [maint-records-1-maint-after]   win32 Window.8 <<Entry history>>
+11:31:22.681 [maint-records-1-maint-after]   win32 STATIC <<Clicking the 'Delete' button will remove all history entries older than the specified number of days. There is no way to get them back.>>
+11:31:22.689 [maint-records-1-maint-after]   win32 BUTTON <<&Delete>>
+11:31:22.697 [maint-records-1-maint-after]   win32 EDIT <<365>>
+11:31:22.702 [maint-records-1-maint-after]   win32 STATIC <<Delete &history entries older than (days):>>
+11:31:22.706 [maint-records-1-maint-after]   win32 STATIC <<History entries (shown on the 'History' tab page of the entry dialog) can be deleted. This will decrease the database size a bit.>>
+11:31:22.710 [maint-records-1-maint-after]   win32 BUTTON <<Close>>
+11:31:28.282 dialogs: 0
+11:31:28.784 group KeePassGate from the places kept
+11:31:30.129 group Passwords from the places kept
+11:31:31.283 [after] window title <<db.kdbx* - KeePass>>; groups []; KeePassGate [KPG grant 1, KPG admission 1, KPG revocation 1, KPG profile 1, KPG grant 1, KPG grant 6, KPG grant 7]; Passwords [Mail account, Bank]; status <<Ready.>>
+11:31:36.308 file: size=2853 mtime=2026-11-16T10:31:31.7310390Z sha=217ad5a6aa8b
+11:31:42.614 diff against the base: 10 lines
+11:31:42.623   + D count 0
+11:31:42.634   - D count 6
+11:31:42.642   - D R-new 2026-11-15T12:00:00Z
+11:31:42.646   - D R-old 2025-01-01T12:00:00Z
+11:31:42.652   - D S3 2025-01-01T12:00:00Z
+11:31:42.658   - D S4 2026-11-15T12:00:00Z
+11:31:42.666   - D W-new 2026-11-15T12:00:00Z
+11:31:42.670   - D W-old 2025-01-01T12:00:00Z
+11:31:42.680 ==== maint-plugindata-1 : Database Maintenance: Plugin data, delete KPG.Profiles
+11:31:42.687 config: 
+11:31:53.826 started KeePass pid=17800 token: TokenIsElevated=1 ElevationType=2 Integrity=0x3000 AdministratorsEnabled=False
+11:31:53.998 main window: <<db.kdbx - KeePass>>
+11:31:54.292 group rows: Archive, Desk store, Empty group, KeePassGate, Passwords, Recycle Bin
+11:31:56.061 menu: <<Database Tools>>
+11:31:57.302 menu: <<Database Maintenance...>>
+11:31:59.081 [maint-plugindata-1-maint] WINDOW title=<<Database Maintenance>> class=WindowsForms10.Window.8.app.0.2bf8098_r6_ad1
+11:31:59.191 [maint-plugindata-1-maint]   Pane name=<<Clean Up>>
+11:31:59.206 [maint-plugindata-1-maint]   Group name=<<Deleted objects information>>
+11:31:59.225 [maint-plugindata-1-maint]   Text name=<<Warning! After removing this information, deleted objects (groups, entries, ...) may reappear when synchronizing the current database with another one (which still contains the objects).>>
+11:31:59.235 [maint-plugindata-1-maint]   Pane name=<<Delete>>
+11:31:59.245 [maint-plugindata-1-maint]   Text name=<<Clicking the 'Delete' button will remove all history entries older than the specified number of days. There is no way to get them back.>>
+11:31:59.255 [maint-plugindata-1-maint]   Text name=<<KeePass keeps some information about deleted objects. This information can be removed in order to reduce the size of the database.>>
+11:31:59.260 [maint-plugindata-1-maint]   Group name=<<Entry history>>
+11:31:59.277 [maint-plugindata-1-maint]   Text name=<<Clicking the 'Delete' button will remove all history entries older than the specified number of days. There is no way to get them back.>>
+11:31:59.284 [maint-plugindata-1-maint]   Pane name=<<Delete>>
+11:31:59.307 [maint-plugindata-1-maint]   Pane name=<<365>>
+11:31:59.317 [maint-plugindata-1-maint]   Text name=<<Delete history entries older than (days):>>
+11:31:59.324 [maint-plugindata-1-maint]   Text name=<<History entries (shown on the 'History' tab page of the entry dialog) can be deleted. This will decrease the database size a bit.>>
+11:31:59.335 [maint-plugindata-1-maint]   Pane name=<<Close>>
+11:31:59.344 [maint-plugindata-1-maint]   win32 Window.8 <<Clean Up>>
+11:31:59.350 [maint-plugindata-1-maint]   win32 Window.8 <<Deleted objects information>>
+11:31:59.357 [maint-plugindata-1-maint]   win32 STATIC <<Warning! After removing this information, deleted objects (groups, entries, ...) may reappear when synchronizing the current database with another one (which still contains the objects).>>
+11:31:59.369 [maint-plugindata-1-maint]   win32 BUTTON <<D&elete>>
+11:31:59.373 [maint-plugindata-1-maint]   win32 STATIC <<KeePass keeps some information about deleted objects. This information can be removed in order to reduce the size of the database.>>
+11:31:59.380 [maint-plugindata-1-maint]   win32 Window.8 <<Entry history>>
+11:31:59.384 [maint-plugindata-1-maint]   win32 STATIC <<Clicking the 'Delete' button will remove all history entries older than the specified number of days. There is no way to get them back.>>
+11:31:59.392 [maint-plugindata-1-maint]   win32 BUTTON <<&Delete>>
+11:31:59.403 [maint-plugindata-1-maint]   win32 EDIT <<365>>
+11:31:59.407 [maint-plugindata-1-maint]   win32 STATIC <<Delete &history entries older than (days):>>
+11:31:59.411 [maint-plugindata-1-maint]   win32 STATIC <<History entries (shown on the 'History' tab page of the entry dialog) can be deleted. This will decrease the database size a bit.>>
+11:31:59.415 [maint-plugindata-1-maint]   win32 BUTTON <<Close>>
+11:32:00.003 shot maint-plugindata-1-maint.png (465 x 416)
+11:32:00.868 [maint-plugindata-1-plugindata] WINDOW title=<<Database Maintenance>> class=WindowsForms10.Window.8.app.0.2bf8098_r6_ad1
+11:32:00.939 [maint-plugindata-1-plugindata]   Pane name=<<Plugin Data>>
+11:32:00.947 [maint-plugindata-1-plugindata]   Pane name=<<Delete>> disabled
+11:32:00.956 [maint-plugindata-1-plugindata]   Pane name=<<Close>>
+11:32:00.974 [maint-plugindata-1-plugindata]   win32 Window.8 <<Plugin Data>>
+11:32:00.982 [maint-plugindata-1-plugindata]   win32 BUTTON <<&Delete>> disabled
+11:32:00.988 [maint-plugindata-1-plugindata]   win32 BUTTON <<Close>>
+11:32:01.580 shot maint-plugindata-1-plugindata.png (465 x 416)
+11:32:01.621 plugin data row <<KPG.Profiles>>
+11:32:02.284 pressed Delete on the Plugin Data tab
+11:32:03.299 [maint-plugindata-1-maint-after] WINDOW title=<<Database Maintenance>> class=WindowsForms10.Window.8.app.0.2bf8098_r6_ad1
+11:32:03.378 [maint-plugindata-1-maint-after]   Pane name=<<Plugin Data>>
+11:32:03.391 [maint-plugindata-1-maint-after]   Pane name=<<Delete>> disabled
+11:32:03.414 [maint-plugindata-1-maint-after]   Pane name=<<Close>>
+11:32:03.444 [maint-plugindata-1-maint-after]   win32 Window.8 <<Plugin Data>>
+11:32:03.452 [maint-plugindata-1-maint-after]   win32 BUTTON <<&Delete>> disabled
+11:32:03.467 [maint-plugindata-1-maint-after]   win32 BUTTON <<Close>>
+11:32:09.205 dialogs: 0
+11:32:09.863 group KeePassGate from the places kept
+11:32:11.129 group Passwords from the places kept
+11:32:12.318 [after] window title <<db.kdbx* - KeePass>>; groups []; KeePassGate [KPG grant 1, KPG admission 1, KPG revocation 1, KPG profile 1, KPG grant 1, KPG grant 6, KPG grant 7]; Passwords [Mail account, Bank]; status <<Ready.>>
+11:32:17.758 file: size=2853 mtime=2026-11-16T10:32:12.8020496Z sha=ea07efefc0ed
+11:32:24.261 diff against the base: 11 lines
+11:32:24.275   - M CD KPG.Profiles = "[\"reader\",\"writer\"]" @2026-11-01T10:15:00Z
+11:32:24.293 ==== dde-1 : Tools, Database Tools, Delete Duplicate Entries
+11:32:24.303 config: 
+11:32:38.196 started KeePass pid=12712 token: TokenIsElevated=1 ElevationType=2 Integrity=0x3000 AdministratorsEnabled=False
+11:32:38.394 main window: <<db.kdbx - KeePass>>
+11:32:38.804 group rows: Archive, Desk store, Empty group, KeePassGate, Passwords, Recycle Bin
+11:32:40.559 menu: <<Database Tools>>
+11:32:41.809 menu: <<Delete Duplicate Entries>>
+11:32:43.622 [dde-1-1] WINDOW title=<<KeePass>> class=#32770
+11:32:43.671 [dde-1-1]   Image name=<<MainInstructionIcon>>
+11:32:43.682 [dde-1-1]   Text name=<<3 object(s) deleted.>>
+11:32:43.688 [dde-1-1]   CheckBox name=<<Do not show this dialog again.>>
+11:32:43.707 [dde-1-1]   Pane name=<<OK>>
+11:32:43.724 [dde-1-1]   win32 Button <<OK>>
+11:32:44.278 shot dde-1-1.png (362 x 120)
+11:32:45.461 [dde-1-1] pressed <<OK (clicked)>>
+11:32:53.115 dialogs: 1
+11:32:56.049 [after] window title <<db.kdbx* - KeePass>>; groups [Desk store, KeePassGate, Archive, Passwords, Empty group, Recycle Bin]; KeePassGate [KPG admission 1, KPG revocation 1, KPG profile 1, KPG grant 1, KPG grant 6, KPG grant 7]; Passwords [Mail account, Bank]; status <<Ready.>>
+11:33:01.001 file: size=2853 mtime=2026-11-16T10:32:56.4730970Z sha=dfc986ba960c
+11:33:07.354 diff against the base: 79 lines
+11:33:07.358   - D count 6
+11:33:07.372   + D count 9
+11:33:07.381   + D S1 2026-11-16T10:32:42Z
+11:33:07.391   + D S6 2026-11-16T10:32:42Z
+11:33:07.395   + D S7c 2026-11-16T10:32:42Z
+11:33:07.401   - E S1 history.count 0
+11:33:07.407   - E S1 parent KG (KeePassGate)
+11:33:07.417   - E S6 history.count 0
+11:33:07.423   - E S6 parent Bin (Recycle Bin)
+11:33:07.427   - E S7c history.count 0
+11:33:07.433   - E S7c parent Bin (Recycle Bin)
+11:33:07.441   - F groups 6 entries 12
+11:33:07.447   + F groups 6 entries 9
+11:33:07.457 ==== deg-1 : Tools, Database Tools, Delete Empty Groups
+11:33:07.481 config: 
+11:33:21.046 started KeePass pid=22136 token: TokenIsElevated=1 ElevationType=2 Integrity=0x3000 AdministratorsEnabled=False
+11:33:21.164 main window: <<db.kdbx - KeePass>>
+11:33:21.432 group rows: Archive, Desk store, Empty group, KeePassGate, Passwords, Recycle Bin
+11:33:23.242 menu: <<Database Tools>>
+11:33:24.715 menu: <<Delete Empty Groups>>
+11:33:26.590 [deg-1-1] WINDOW title=<<KeePass>> class=#32770
+11:33:26.665 [deg-1-1]   Image name=<<MainInstructionIcon>>
+11:33:26.675 [deg-1-1]   Text name=<<2 object(s) deleted.>>
+11:33:26.683 [deg-1-1]   CheckBox name=<<Do not show this dialog again.>>
+11:33:26.693 [deg-1-1]   Pane name=<<OK>>
+11:33:26.708 [deg-1-1]   win32 Button <<OK>>
+11:33:27.279 shot deg-1-1.png (362 x 120)
+11:33:28.441 [deg-1-1] pressed <<OK (clicked)>>
+11:33:36.011 dialogs: 1
+11:33:36.506 group KeePassGate from the places kept
+11:33:37.884 group Passwords from the places kept
+11:33:39.109 [after] window title <<db.kdbx* - KeePass>>; groups []; KeePassGate [KPG grant 1, KPG admission 1, KPG revocation 1, KPG profile 1, KPG grant 1, KPG grant 6, KPG grant 7]; Passwords [KPG grant 5, KPG grant 6, KPG grant 7]; status <<Ready.>>
+11:33:44.485 file: size=2853 mtime=2026-11-16T10:33:39.5858330Z sha=39530a0fb732
+11:33:50.930 diff against the base: 38 lines
+11:33:50.947   - D count 6
+11:33:50.959   + D count 8
+11:33:50.967   + D EG 2026-11-16T10:33:24Z
+11:33:50.974   + D KGA 2026-11-16T10:33:24Z
+11:33:50.981   + F groups 4 entries 12
+11:33:50.987   - F groups 6 entries 12
+11:33:50.995   - G EG name "Empty group"
+11:33:50.999   - G EG parent Root (Desk store)
+11:33:51.006   - G KGA name "Archive"
+11:33:51.010   - G KGA parent KG (KeePassGate)
+11:33:51.026 ==== ducis-1 : Tools, Database Tools, Delete Unused Custom Icons
+11:33:51.037 config: 
+11:34:02.953 started KeePass pid=5092 token: TokenIsElevated=1 ElevationType=2 Integrity=0x3000 AdministratorsEnabled=False
+11:34:03.098 main window: <<db.kdbx - KeePass>>
+11:34:03.468 group rows: Archive, Desk store, Empty group, KeePassGate, Passwords, Recycle Bin
+11:34:05.300 menu: <<Database Tools>>
+11:34:06.720 menu: <<Delete Unused Custom Icons>>
+11:34:08.518 [ducis-1-1] WINDOW title=<<KeePass>> class=#32770
+11:34:08.557 [ducis-1-1]   Image name=<<MainInstructionIcon>>
+11:34:08.580 [ducis-1-1]   Text name=<<1 object(s) deleted.>>
+11:34:08.598 [ducis-1-1]   CheckBox name=<<Do not show this dialog again.>>
+11:34:08.608 [ducis-1-1]   Pane name=<<OK>>
+11:34:08.619 [ducis-1-1]   win32 Button <<OK>>
+11:34:09.192 shot ducis-1-1.png (362 x 120)
+11:34:10.362 [ducis-1-1] pressed <<OK (clicked)>>
+11:34:16.936 dialogs: 1
+11:34:17.500 group KeePassGate from the places kept
+11:34:18.802 group Passwords from the places kept
+11:34:19.866 [after] window title <<db.kdbx* - KeePass>>; groups []; KeePassGate [KPG grant 1, KPG admission 1, KPG revocation 1, KPG profile 1, KPG grant 1, KPG grant 6, KPG grant 7]; Passwords [Mail account, Bank]; status <<Ready.>>
+11:34:24.988 file: size=2933 mtime=2026-11-16T10:34:20.2492391Z sha=812022c5c8f4
+11:34:31.363 diff against the base: 7 lines
+11:34:31.369   - D count 6
+11:34:31.376   + D count 7
+11:34:31.385   + D IconUnused 2026-11-16T10:34:06Z
+11:34:31.392   + M customIcons 1 [IconUsed]
+11:34:31.400   - M customIcons 2 [IconUsed;IconUnused]
+11:34:31.409 ==== group-delete-1 : the group KeePassGate selected, Delete key
+11:34:31.414 config: 
+11:34:44.200 started KeePass pid=10816 token: TokenIsElevated=1 ElevationType=2 Integrity=0x3000 AdministratorsEnabled=False
+11:34:44.394 main window: <<db.kdbx - KeePass>>
+11:34:44.882 group rows: Archive, Desk store, Empty group, KeePassGate, Passwords, Recycle Bin
+11:34:48.044 [group-delete-1-1] WINDOW title=<<KeePass>> class=#32770
+11:34:48.141 [group-delete-1-1]   Image name=<<MainInstructionIcon>>
+11:34:48.173 [group-delete-1-1]   Text name=<<Are you sure you want to move the selected group to the recycle bin?>>
+11:34:48.193 [group-delete-1-1]   Text name=<<Deleting a group will also delete all entries and subgroups in that group.
+
+- Archive
+- KPG grant 1
+- KPG admission 1
+- KPG revocation 1
+- KPG profile 1
+- KPG grant 1
+- KPG grant 6
+- KPG grant 7>>
+11:34:48.210 [group-delete-1-1]   CheckBox name=<<Do not show this dialog again; always 'Yes'.>>
+11:34:48.227 [group-delete-1-1]   Pane name=<<Yes>>
+11:34:48.254 [group-delete-1-1]   Pane name=<<No>>
+11:34:48.272 [group-delete-1-1]   win32 Button <<&Yes>>
+11:34:48.277 [group-delete-1-1]   win32 Button <<&No>>
+11:34:48.831 shot group-delete-1-1.png (442 x 300)
+11:34:49.141 [group-delete-1-1] pressed <<&Yes (clicked)>>
+11:34:56.873 dialogs: 1
+11:34:57.409 group KeePassGate from the places kept
+11:34:58.772 group Passwords from the places kept
+11:34:59.962 [after] window title <<db.kdbx* - KeePass>>; groups []; KeePassGate [Mail account, Bank]; Passwords [KPG grant 5, KPG grant 6, KPG grant 7]; status <<Ready.>>
+11:35:04.879 file: size=3141 mtime=2026-11-16T10:35:00.4162627Z sha=a177af31a31f
+11:35:11.194 diff against the base: 18 lines
+11:35:11.210   + G KG parent Bin (Recycle Bin)
+11:35:11.220   - G KG parent Root (Desk store)
+11:35:11.238 ==== group-shiftdelete-1 : the group KeePassGate selected, Shift+Delete
+11:35:11.256 config: 
+11:35:23.207 started KeePass pid=7344 token: TokenIsElevated=1 ElevationType=2 Integrity=0x3000 AdministratorsEnabled=False
+11:35:23.326 main window: <<db.kdbx - KeePass>>
+11:35:23.515 group rows: Archive, Desk store, Empty group, KeePassGate, Passwords, Recycle Bin
+11:35:26.414 [group-shiftdelete-1-1] WINDOW title=<<KeePass>> class=#32770
+11:35:26.531 [group-shiftdelete-1-1]   Image name=<<MainInstructionIcon>>
+11:35:26.543 [group-shiftdelete-1-1]   Text name=<<Are you sure you want to permanently delete the selected group?>>
+11:35:26.558 [group-shiftdelete-1-1]   Text name=<<Deleting a group will also delete all entries and subgroups in that group.
+
+- Archive
+- KPG grant 1
+- KPG admission 1
+- KPG revocation 1
+- KPG profile 1
+- KPG grant 1
+- KPG grant 6
+- KPG grant 7>>
+11:35:26.586 [group-shiftdelete-1-1]   Pane name=<<Delete>>
+11:35:26.611 [group-shiftdelete-1-1]   Pane name=<<Cancel>>
+11:35:26.633 [group-shiftdelete-1-1]   win32 Button <<&Delete>>
+11:35:26.650 [group-shiftdelete-1-1]   win32 Button <<Cancel>>
+11:35:27.238 shot group-shiftdelete-1-1.png (390 x 315)
+11:35:33.551 dialogs: 1
+11:35:37.386 [after] window title <<db.kdbx - KeePass>>; groups [Desk store, KeePassGate, Archive, Passwords, Empty group, Recycle Bin]; KeePassGate [KPG grant 1, KPG admission 1, KPG revocation 1, KPG profile 1, KPG grant 1, KPG grant 6, KPG grant 7]; Passwords [KPG grant 1, KPG admission 1, KPG revocation 1, KPG profile 1, KPG grant 1, KPG grant 6, KPG grant 7]; status <<Ready.>>
+11:35:43.218 file: size=2885 mtime=2026-11-16T08:32:09.3001212Z sha=8b289ea027b9
+11:36:04.041 KeePass did not exit; stopped
+11:36:04.882 RUN FAILED group-shiftdelete-1: You cannot call a method on a null-valued expression. at <ScriptBlock>, <branch>\spikes\storage\probes\desktop-windows\scripts\Ui.ps1: line 275
+at Stop-Started, <branch>\spikes\storage\probes\desktop-windows\scripts\Ui.ps1: line 274
+at Run-M4, <branch>\spikes\storage\probes\desktop-windows\scripts\M4.ps1: line 77
+at <ScriptBlock>, <branch>\spikes\storage\probes\desktop-windows\scripts\M4.ps1: line 165
+11:36:04.917 ==== entry-delete-1 : the store entry KPG grant 1 selected, Delete key
+11:36:04.925 config: 
+11:36:17.373 started KeePass pid=6912 token: TokenIsElevated=1 ElevationType=2 Integrity=0x3000 AdministratorsEnabled=False
+11:36:17.530 main window: <<db.kdbx - KeePass>>
+11:36:17.847 group rows: Archive, Desk store, Empty group, KeePassGate, Passwords, Recycle Bin
+11:36:21.558 [entry-delete-1-1] WINDOW title=<<KeePass>> class=#32770
+11:36:21.687 [entry-delete-1-1]   Image name=<<MainInstructionIcon>>
+11:36:21.703 [entry-delete-1-1]   Text name=<<Are you sure you want to move the selected entry to the recycle bin?>>
+11:36:21.721 [entry-delete-1-1]   Text name=<<- KPG grant 1>>
+11:36:21.751 [entry-delete-1-1]   CheckBox name=<<Do not show this dialog again; always 'Yes'.>>
+11:36:21.775 [entry-delete-1-1]   Pane name=<<Yes>>
+11:36:21.800 [entry-delete-1-1]   Pane name=<<No>>
+11:36:21.831 [entry-delete-1-1]   win32 Button <<&Yes>>
+11:36:21.845 [entry-delete-1-1]   win32 Button <<&No>>
+11:36:22.441 shot entry-delete-1-1.png (442 x 165)
+11:36:22.734 [entry-delete-1-1] pressed <<&Yes (clicked)>>
+11:36:29.558 dialogs: 1
+11:36:32.161 [after] window title <<db.kdbx* - KeePass>>; groups [Desk store, KeePassGate, Archive, Passwords, Empty group, Recycle Bin]; KeePassGate [KPG admission 1, KPG revocation 1, KPG profile 1, KPG grant 1, KPG grant 6, KPG grant 7]; Passwords [Mail account, Bank]; status <<Ready.>>
+11:36:37.416 file: size=2949 mtime=2026-11-16T10:36:32.6035665Z sha=84369b255e91
+11:36:43.728 diff against the base: 26 lines
+11:36:43.740   + E S1 parent Bin (Recycle Bin)
+11:36:43.765   - E S1 parent KG (KeePassGate)
+11:36:43.787 ==== entry-shiftdelete-1 : the store entry KPG grant 1 selected, Shift+Delete
+11:36:43.801 config: 
+11:36:55.822 started KeePass pid=21768 token: TokenIsElevated=1 ElevationType=2 Integrity=0x3000 AdministratorsEnabled=False
+11:36:55.965 main window: <<db.kdbx - KeePass>>
+11:36:56.217 group rows: Archive, Desk store, Empty group, KeePassGate, Passwords, Recycle Bin
+11:36:59.756 [entry-shiftdelete-1-1] WINDOW title=<<KeePass>> class=#32770
+11:36:59.820 [entry-shiftdelete-1-1]   Image name=<<MainInstructionIcon>>
+11:36:59.828 [entry-shiftdelete-1-1]   Text name=<<Are you sure you want to permanently delete the selected entry?>>
+11:36:59.836 [entry-shiftdelete-1-1]   Text name=<<- KPG grant 1>>
+11:36:59.842 [entry-shiftdelete-1-1]   Pane name=<<Delete>>
+11:36:59.863 [entry-shiftdelete-1-1]   Pane name=<<Cancel>>
+11:36:59.873 [entry-shiftdelete-1-1]   win32 Button <<&Delete>>
+11:36:59.877 [entry-shiftdelete-1-1]   win32 Button <<Cancel>>
+11:37:00.444 shot entry-shiftdelete-1-1.png (362 x 165)
+11:37:06.761 dialogs: 1
+11:37:10.967 [after] window title <<db.kdbx - KeePass>>; groups [Desk store, KeePassGate, Archive, Passwords, Empty group, Recycle Bin]; KeePassGate [KPG grant 1, KPG admission 1, KPG revocation 1, KPG profile 1, KPG grant 1, KPG grant 6, KPG grant 7]; Passwords [KPG grant 1, KPG admission 1, KPG revocation 1, KPG profile 1, KPG grant 1, KPG grant 6, KPG grant 7]; status <<Ready.>>
+11:37:16.318 file: size=2885 mtime=2026-11-16T08:32:09.3001212Z sha=8b289ea027b9
+11:37:37.871 KeePass did not exit; stopped
+11:37:37.895 stopping KeePass pid=21768
+11:37:38.151 diff against the base: 0 lines
+11:37:38.181 ==== empty-bin-1 : the recycle bin selected, Group menu, Empty Recycle Bin
+11:37:38.206 config: 
+11:37:50.392 started KeePass pid=18192 token: TokenIsElevated=1 ElevationType=2 Integrity=0x3000 AdministratorsEnabled=False
+11:37:50.577 main window: <<db.kdbx - KeePass>>
+11:37:50.888 group rows: Archive, Desk store, Empty group, KeePassGate, Passwords, Recycle Bin
+11:37:53.897 menu: <<Empty Recycle Bin>>
+11:37:55.815 [empty-bin-1-1] WINDOW title=<<KeePass>> class=#32770
+11:37:55.916 [empty-bin-1-1]   Image name=<<MainInstructionIcon>>
+11:37:55.934 [empty-bin-1-1]   Text name=<<Are you sure you want to permanently delete the items?>>
+11:37:55.954 [empty-bin-1-1]   Text name=<<- KPG grant 5
+- KPG grant 6
+- KPG grant 7>>
+11:37:55.978 [empty-bin-1-1]   Pane name=<<Delete>>
+11:37:55.990 [empty-bin-1-1]   Pane name=<<Cancel>>
+11:37:56.010 [empty-bin-1-1]   win32 Button <<&Delete>>
+11:37:56.023 [empty-bin-1-1]   win32 Button <<Cancel>>
+11:37:56.621 shot empty-bin-1-1.png (362 x 195)
+11:38:03.444 dialogs: 1
+11:38:07.348 [after] window title <<db.kdbx - KeePass>>; groups [Desk store, KeePassGate, Archive, Passwords, Empty group, Recycle Bin]; KeePassGate [KPG grant 5, KPG grant 6, KPG grant 7]; Passwords [KPG grant 5, KPG grant 6, KPG grant 7]; status <<Ready.>>
+11:38:12.360 file: size=2885 mtime=2026-11-16T08:32:09.3001212Z sha=8b289ea027b9
+11:38:34.535 KeePass did not exit; stopped
+11:38:34.557 stopping KeePass pid=18192
+11:38:34.912 diff against the base: 0 lines
+11:38:34.930 ==== group-duplicate-1 : the group KeePassGate selected, Group, Duplicate Group
+11:38:34.948 config: 
+11:38:46.055 started KeePass pid=20440 token: TokenIsElevated=1 ElevationType=2 Integrity=0x3000 AdministratorsEnabled=False
+11:38:46.214 main window: <<db.kdbx - KeePass>>
+11:38:46.492 group rows: Archive, Desk store, Empty group, KeePassGate, Passwords, Recycle Bin
+11:38:49.051 menu: <<Duplicate Group...>>
+11:38:50.823 [group-duplicate-1-1] WINDOW title=<<Duplication Options>> class=WindowsForms10.Window.8.app.0.2bf8098_r6_ad1
+11:38:50.869 [group-duplicate-1-1]   Pane name=<<Copy history>>
+11:38:50.874 [group-duplicate-1-1]   Pane name=<<Help: Field References>>
+11:38:50.883 [group-duplicate-1-1]   Text name=<<If this option is enabled, the copies will reference the user names and passwords of the original entries. When a user name or password is changed in an original entry, the copy will automatically use the new data, too.>>
+11:38:50.902 [group-duplicate-1-1]   Pane name=<<Replace user names and passwords by references>>
+11:38:50.908 [group-duplicate-1-1]   Pane name=<<Append "- Copy" to entry titles>>
+11:38:50.913 [group-duplicate-1-1]   Pane name=<<Cancel>>
+11:38:50.917 [group-duplicate-1-1]   Pane name=<<OK>>
+11:38:50.924 [group-duplicate-1-1]   win32 BUTTON <<Copy &history>>
+11:38:50.928 [group-duplicate-1-1]   win32 STATIC <<Help: Field References>>
+11:38:50.934 [group-duplicate-1-1]   win32 STATIC <<If this option is enabled, the copies will reference the user names and passwords of the original entries. When a user name or password is changed in an original entry, the copy will automatically use the new data, too.>>
+11:38:50.942 [group-duplicate-1-1]   win32 BUTTON <<&Replace user names and passwords by references>>
+11:38:50.950 [group-duplicate-1-1]   win32 BUTTON <<&Append "- Copy" to entry titles>>
+11:38:50.954 [group-duplicate-1-1]   win32 BUTTON <<Cancel>>
+11:38:50.962 [group-duplicate-1-1]   win32 BUTTON <<OK>>
+11:38:51.528 shot group-duplicate-1-1.png (375 x 236)
+11:38:51.810 [group-duplicate-1-1] pressed <<OK (clicked)>>
+11:38:59.455 dialogs: 1
+11:39:05.760 [after] look failed: no group Passwords in the tree: Desk store, KeePassGate
+11:39:11.026 file: size=3317 mtime=2026-11-16T10:39:06.3411538Z sha=166cc266b937
+11:39:17.443 diff against the base: 162 lines
+11:39:17.456   + E ~0a9c4f52 history.count 0
+11:39:17.473   + E ~0a9c4f52 parent ~7328a903 (KeePassGate)
+11:39:17.496   + E ~1a57eb10 history.count 0
+11:39:17.509   + E ~1a57eb10 parent ~7328a903 (KeePassGate)
+11:39:17.518   + E ~3360c6fd history.count 0
+11:39:17.536   + E ~3360c6fd parent ~7328a903 (KeePassGate)
+11:39:17.560   + E ~3f6b7556 history.count 0
+11:39:17.580   + E ~3f6b7556 parent ~7328a903 (KeePassGate)
+11:39:17.591   + E ~5d163740 history.count 0
+11:39:17.598   + E ~5d163740 parent ~7328a903 (KeePassGate)
+11:39:17.604   + E ~67010047 history.count 0
+11:39:17.612   + E ~67010047 parent ~7328a903 (KeePassGate)
+11:39:17.620   + E ~8e6815a7 history.count 0
+11:39:17.626   + E ~8e6815a7 parent ~7328a903 (KeePassGate)
+11:39:17.634   - F groups 6 entries 12
+11:39:17.645   + F groups 8 entries 19
+11:39:17.649   + G ~5e3b01ea name "Archive"
+11:39:17.663   + G ~5e3b01ea parent ~7328a903 (KeePassGate)
+11:39:17.679   + G ~7328a903 name "KeePassGate"
+11:39:17.686   + G ~7328a903 parent Root (Desk store)
+11:39:17.713 ==== entry-duplicate-1 : KPG grant 1 selected, Entry, Duplicate Entry, the options as offered
+11:39:17.721 config: 
+11:39:28.818 started KeePass pid=5480 token: TokenIsElevated=1 ElevationType=2 Integrity=0x3000 AdministratorsEnabled=False
+11:39:28.954 main window: <<db.kdbx - KeePass>>
+11:39:29.221 group rows: Archive, Desk store, Empty group, KeePassGate, Passwords, Recycle Bin
+11:39:32.868 menu: <<Duplicate Entry...>>
+11:39:34.593 [entry-duplicate-1-1] WINDOW title=<<Duplication Options>> class=WindowsForms10.Window.8.app.0.2bf8098_r6_ad1
+11:39:34.661 [entry-duplicate-1-1]   Pane name=<<Copy history>>
+11:39:34.673 [entry-duplicate-1-1]   Pane name=<<Help: Field References>>
+11:39:34.688 [entry-duplicate-1-1]   Text name=<<If this option is enabled, the copies will reference the user names and passwords of the original entries. When a user name or password is changed in an original entry, the copy will automatically use the new data, too.>>
+11:39:34.710 [entry-duplicate-1-1]   Pane name=<<Replace user names and passwords by references>>
+11:39:34.722 [entry-duplicate-1-1]   Pane name=<<Append "- Copy" to entry titles>>
+11:39:34.733 [entry-duplicate-1-1]   Pane name=<<Cancel>>
+11:39:34.746 [entry-duplicate-1-1]   Pane name=<<OK>>
+11:39:34.756 [entry-duplicate-1-1]   win32 BUTTON <<Copy &history>>
+11:39:34.768 [entry-duplicate-1-1]   win32 STATIC <<Help: Field References>>
+11:39:34.772 [entry-duplicate-1-1]   win32 STATIC <<If this option is enabled, the copies will reference the user names and passwords of the original entries. When a user name or password is changed in an original entry, the copy will automatically use the new data, too.>>
+11:39:34.781 [entry-duplicate-1-1]   win32 BUTTON <<&Replace user names and passwords by references>>
+11:39:34.790 [entry-duplicate-1-1]   win32 BUTTON <<&Append "- Copy" to entry titles>>
+11:39:34.794 [entry-duplicate-1-1]   win32 BUTTON <<Cancel>>
+11:39:34.800 [entry-duplicate-1-1]   win32 BUTTON <<OK>>
+11:39:35.378 shot entry-duplicate-1-1.png (375 x 236)
+11:39:35.689 [entry-duplicate-1-1] pressed <<OK (clicked)>>
+11:39:42.676 dialogs: 1
+11:39:46.062 [after] window title <<db.kdbx* - KeePass>>; groups [Desk store, KeePassGate, Archive, Passwords, Empty group, Recycle Bin]; KeePassGate [KPG grant 1, KPG admission 1, KPG revocation 1, KPG profile 1, KPG grant 1, KPG grant 6, KPG grant 7, KPG grant 1 - Copy]; Passwords [Mail account, Bank]; status <<Ready.>>
+11:39:51.383 file: size=2997 mtime=2026-11-16T10:39:46.4830592Z sha=ff82d82bc6bd
+11:39:57.723 diff against the base: 24 lines
+11:39:57.731   + E ~c30f3abb history.count 0
+11:39:57.735   + E ~c30f3abb parent KG (KeePassGate)
+11:39:57.739   - F groups 6 entries 12
+11:39:57.742   + F groups 6 entries 13
+11:39:57.751 ==== group-sort-1 : the root selected, Group, Rearrange, Sort Direct Subgroups
+11:39:57.758 config: 
+11:40:08.833 started KeePass pid=16164 token: TokenIsElevated=1 ElevationType=2 Integrity=0x3000 AdministratorsEnabled=False
+11:40:08.941 main window: <<db.kdbx - KeePass>>
+11:40:09.195 group rows: Archive, Desk store, Empty group, KeePassGate, Passwords, Recycle Bin
+11:40:11.731 menu: <<Rearrange>>
+11:40:12.952 menu: <<Sort Direct Subgroups>>
+11:40:18.965 dialogs: 0
+11:40:19.314 group KeePassGate from the places kept
+11:40:20.608 group Passwords from the places kept
+11:40:21.763 [after] window title <<db.kdbx* - KeePass>>; groups []; KeePassGate []; Passwords []; status <<Ready.>>
+11:40:27.072 file: size=2917 mtime=2026-11-16T10:40:22.2520239Z sha=20b0ee455561
+11:40:33.432 diff against the base: 6 lines
+11:40:33.445 ==== group-moveup-1 : the group Passwords selected, Group, Rearrange, Move Group Up
+11:40:33.458 config: 
+11:40:46.847 started KeePass pid=7060 token: TokenIsElevated=1 ElevationType=2 Integrity=0x3000 AdministratorsEnabled=False
+11:40:46.970 main window: <<db.kdbx - KeePass>>
+11:40:47.184 group rows: Archive, Desk store, Empty group, KeePassGate, Passwords, Recycle Bin
+11:40:50.009 menu: <<Rearrange>>
+11:40:51.391 menu: <<Move Group One Up>>
+11:40:58.348 dialogs: 0
+11:40:58.800 group KeePassGate from the places kept
+11:40:59.984 group Passwords from the places kept
+11:41:01.054 [after] window title <<db.kdbx* - KeePass>>; groups []; KeePassGate [Mail account, Bank]; Passwords []; status <<Ready.>>
+11:41:06.383 file: size=2933 mtime=2026-11-16T10:41:01.4403825Z sha=1222c5be6553
+11:41:12.791 diff against the base: 6 lines
+11:41:12.812 ==== entry-movedown-1 : KPG grant 1 selected, Entry, Rearrange, Move Entry One Down by its access keys (Alt+E, R, D)
+11:41:12.853 config: 
+11:41:25.315 started KeePass pid=8552 token: TokenIsElevated=1 ElevationType=2 Integrity=0x3000 AdministratorsEnabled=False
+11:41:25.420 main window: <<db.kdbx - KeePass>>
+11:41:25.621 group rows: Archive, Desk store, Empty group, KeePassGate, Passwords, Recycle Bin
+11:41:34.571 dialogs: 0
+11:41:37.464 [after] window title <<db.kdbx* - KeePass>>; groups [Desk store, KeePassGate, Archive, Passwords, Empty group, Recycle Bin]; KeePassGate [KPG admission 1, KPG grant 1, KPG revocation 1, KPG profile 1, KPG grant 1, KPG grant 6, KPG grant 7]; Passwords [Mail account, Bank]; status <<Ready.>>
+11:41:42.839 file: size=2949 mtime=2026-11-16T10:41:38.0308631Z sha=d3b660e0228e
+11:41:49.266 diff against the base: 8 lines
+11:41:49.306 ==== entry-move-1 : KPG grant 1 dragged onto the group Passwords
+11:41:49.332 config: 
+11:42:00.453 started KeePass pid=5032 token: TokenIsElevated=1 ElevationType=2 Integrity=0x3000 AdministratorsEnabled=False
+11:42:00.694 main window: <<db.kdbx - KeePass>>
+11:42:01.086 group rows: Archive, Desk store, Empty group, KeePassGate, Passwords, Recycle Bin
+11:42:06.029 dragged KPG grant 1 from 355,135.5 onto Passwords at 131,165
+11:42:12.850 dialogs: 0
+11:42:13.377 group KeePassGate from the places kept
+11:42:14.662 group Passwords from the places kept
+11:42:15.832 [after] window title <<db.kdbx* - KeePass>>; groups []; KeePassGate [KPG admission 1, KPG revocation 1, KPG profile 1, KPG grant 1, KPG grant 6, KPG grant 7]; Passwords [Mail account, Bank, KPG grant 1]; status <<Ready.>>
+11:42:21.292 file: size=2949 mtime=2026-11-16T10:42:16.3598663Z sha=7e26e6333a9d
+11:42:27.674 diff against the base: 26 lines
+11:42:27.682   - E S1 parent KG (KeePassGate)
+11:42:27.686   + E S1 parent PW (Passwords)

@@ -1,0 +1,12 @@
+10:07:31.902 ==== n-syncmenu-1 : nothing changed, File Synchronize with the same file
+10:07:31.909 config: 
+10:07:43.026 started KeePass pid=15240 token: TokenIsElevated=1 ElevationType=2 Integrity=0x3000 AdministratorsEnabled=False
+10:07:43.170 main window: <<db.kdbx - KeePass>>
+10:07:43.182 replace: before size=3413 mtime=2026-11-16T08:31:56.2778845Z sha=2ff7a751a869
+10:07:43.203 replace (later) with NEW-fixed.kdbx: after size=5013 mtime=2026-11-16T09:07:43.1921364Z sha=74dd75d7243e
+10:07:45.911 menu: <<Synchronize>>
+10:07:47.539 menu: <<Synchronize with File...>>
+10:08:55.126 stopping KeePass pid=15240
+10:08:55.184 RUN FAILED n-syncmenu-1: no file dialog 'Synchronize*' at Kp-FileDialog, <branch>\spikes\storage\probes\desktop-windows\scripts\M1.ps1: line 80
+at Run-M1, <branch>\spikes\storage\probes\desktop-windows\scripts\M1.ps1: line 169
+at <ScriptBlock>, <branch>\spikes\storage\probes\desktop-windows\scripts\M1.ps1: line 253

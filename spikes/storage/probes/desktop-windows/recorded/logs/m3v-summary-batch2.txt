@@ -1,0 +1,25 @@
+view | Mail account | Group: Passwords. Title: Mail account. User Name: alice-invented. Password: ********. URL: https://mail.example.invalid/. Attachments: u1.txt. Tags: work. Creation Time: 01.11.2026 11:20:00. Last Modification Time: 01.11.2026 14:20:00. Extra: zqxextra-u1. KPG.Ref: zqxref-u1 {"rule":"KG1"}.  /   / user notes of U1
+view | Bank | Group: Passwords. Title: Bank. User Name: bob-invented. Password: ********. URL: https://bank.example.invalid/. Creation Time: 01.11.2026 11:21:00. Last Modification Time: 01.11.2026 11:21:00. KPG.Ref: ********.
+view | Shop | Group: Passwords. Title: Shop. User Name: carol-invented. Password: ********. URL: https://shop.example.invalid/. Creation Time: 01.11.2026 11:22:00. Last Modification Time: 01.11.2026 11:22:00.
+view | KPG grant 1 | Group: KeePassGate. Title: KPG grant 1. Creation Time: 01.11.2026 11:10:00. Last Modification Time: 01.11.2026 11:10:00. KPG.Grant: zqxstore-grant {"profile":"reader","mask":".R...L.."}. KPG.Secret: ********.
+view | KPG admission 1 | Group: KeePassGate. Title: KPG admission 1. Creation Time: 01.11.2026 11:11:00. Last Modification Time: 01.11.2026 11:11:00. KPG.Admission: zqxstore-adm {"client":"client-two"}.
+view | entry list columns | Title, User Name, Password, URL, Notes
+duplicate-default | offered: Copy history=0, Replace user names and passwords by references=0, Append "- Copy" to entry titles=0, Cancel=0, OK=0
+duplicate-default | U1 title="Mail account" KPG.Ref=p=0 "zqxref-u1 {\"rule\":\"KG1\"}" user="alice-invented" history=2 parent=PW (Passwords) ; ~9607e6a1 title="Mail account - Copy" KPG.Ref=p=0 "zqxref-u1 {\"rule\":\"KG1\"}" user="alice-invented" history=2 parent=PW (Passwords)
+duplicate-all | offered: Copy history=0, Replace user names and passwords by references=0, Append "- Copy" to entry titles=0, Cancel=0, OK=0
+duplicate-all | pressed: 
+duplicate-all | FAILED: no button 'OK' in window 168494004
+move-to-group | U1 title="Mail account" KPG.Ref=p=0 "zqxref-u1 {\"rule\":\"KG1\"}" user="alice-invented" history=2 parent=KG (KeePassGate)
+print | layout: Cancel=0, Colorize password characters:=0, (Default)=0(disabled), (Default)=0(disabled), Custom password font:=0, Custom main font:=0, Icon=0, UUID=0, Tags=0, Custom string fields=0(disabled), Group name=0, Auto-Type=0(disabled), Last modification time=0, Creation time=0, Expiry time=0, Notes=0, Password=0, URL=0, User name=0, Title=0, Blocks=0, Tables=0, Print...=0, Print Preview=0, Page Setup=0
+export | formats offered: KeePass CSV (1.x), KeePass KDB (1.x), KeePass KDBX (2.x), KeePass KDBX (2.34, Old Format), KeePass XML (2.x), Customizable HTML File, Transform using XSL Stylesheet, Windows Favorites (Folder 'KeePass'), Windows Favorites (Root Directory), Mozilla Bookmarks HTML
+export | KeePass CSV (1.x) | FAILED: no button 'OK' in window 77202466
+export | KeePass KDB (1.x) | FAILED: no button 'OK' in window 769524088
+export | KeePass KDBX (2.x) | FAILED: no button 'OK' in window 582943490
+export | KeePass KDBX (2.34, Old Format) | FAILED: no button 'OK' in window 77792290
+export | KeePass XML (2.x) | FAILED: no button 'OK' in window 551354392
+export | Customizable HTML File | FAILED: no button 'OK' in window 709165610
+export | Transform using XSL Stylesheet | FAILED: no button 'OK' in window 78316578
+export | Windows Favorites (Folder 'KeePass') | FAILED: no button 'OK' in window 536412320
+export | Windows Favorites (Root Directory) | FAILED: no button 'OK' in window 15467616
+export | Mozilla Bookmarks HTML | FAILED: no button 'OK' in window 510591788
+autotype | FAILED: no target window Desk target

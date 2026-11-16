@@ -1,0 +1,11 @@
++ E S5 prev -
+- E S5 prev KG
++ E S6 prev -
+- E S6 prev KG
++ E S7c prev -
+- E S7c prev KG
++ F version 4.0
+- F version 4.1
+- G PW flags icon=48 customIcon=- search=inherit autotype=inherit expanded=1 seq="" lastTop=-
++ G PW flags icon=48 customIcon=- search=inherit autotype=inherit expanded=1 seq="" lastTop=U1
+- M CD KPG.Profiles = "[\"reader\",\"writer\"]" @2026-11-01T10:15:00Z

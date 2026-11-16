@@ -1,0 +1,17 @@
+- E U1 H2025-06-01T12:00:00Z autotype enabled=1 obfuscation=0 seq="" assoc=0
+- E U1 H2025-06-01T12:00:00Z misc icon=0 customIcon=- fg=00000000 bg=00000000 overrideUrl="" quality=1
+- E U1 H2025-06-01T12:00:00Z prev -
+- E U1 H2025-06-01T12:00:00Z S Notes p=0 ""
+- E U1 H2025-06-01T12:00:00Z S Password p=1 "u1-v1"
+- E U1 H2025-06-01T12:00:00Z S Title p=0 "Mail account"
+- E U1 H2025-06-01T12:00:00Z S URL p=0 ""
+- E U1 H2025-06-01T12:00:00Z S UserName p=0 "alice-invented"
+- E U1 H2025-06-01T12:00:00Z t.created 2025-06-01T12:00:00Z
+- E U1 H2025-06-01T12:00:00Z t.expires 0 2026-11-01T10:00:00Z
+- E U1 H2025-06-01T12:00:00Z t.location 2025-06-01T12:00:00Z
+- E U1 H2025-06-01T12:00:00Z t.modified 2025-06-01T12:00:00Z
+- E U1 H2025-06-01T12:00:00Z tags []
++ E U1 history.count 2
+- E U1 history.count 3
+- G PW flags icon=48 customIcon=- search=inherit autotype=inherit expanded=1 seq="" lastTop=-
++ G PW flags icon=48 customIcon=- search=inherit autotype=inherit expanded=1 seq="" lastTop=U1

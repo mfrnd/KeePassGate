@@ -1,0 +1,55 @@
+11:04:05.681 ==== maint-plugindata-1 : Database Maintenance: Plugin data, delete KPG.Profiles
+11:04:05.689 config: 
+11:04:16.779 started KeePass pid=13564 token: TokenIsElevated=1 ElevationType=2 Integrity=0x3000 AdministratorsEnabled=False
+11:04:16.973 main window: <<db.kdbx - KeePass>>
+11:04:17.312 group rows: Archive, Desk store, Empty group, KeePassGate, Passwords, Recycle Bin
+11:04:19.173 menu: <<Database Tools>>
+11:04:20.438 menu: <<Database Maintenance...>>
+11:04:22.247 [maint-plugindata-1-maint] WINDOW title=<<Database Maintenance>> class=WindowsForms10.Window.8.app.0.2bf8098_r6_ad1
+11:04:22.413 [maint-plugindata-1-maint]   Pane name=<<Clean Up>>
+11:04:22.420 [maint-plugindata-1-maint]   Group name=<<Deleted objects information>>
+11:04:22.431 [maint-plugindata-1-maint]   Text name=<<Warning! After removing this information, deleted objects (groups, entries, ...) may reappear when synchronizing the current database with another one (which still contains the objects).>>
+11:04:22.441 [maint-plugindata-1-maint]   Pane name=<<Delete>>
+11:04:22.453 [maint-plugindata-1-maint]   Text name=<<Clicking the 'Delete' button will remove all history entries older than the specified number of days. There is no way to get them back.>>
+11:04:22.475 [maint-plugindata-1-maint]   Text name=<<KeePass keeps some information about deleted objects. This information can be removed in order to reduce the size of the database.>>
+11:04:22.487 [maint-plugindata-1-maint]   Group name=<<Entry history>>
+11:04:22.506 [maint-plugindata-1-maint]   Text name=<<Clicking the 'Delete' button will remove all history entries older than the specified number of days. There is no way to get them back.>>
+11:04:22.524 [maint-plugindata-1-maint]   Pane name=<<Delete>>
+11:04:22.545 [maint-plugindata-1-maint]   Pane name=<<365>>
+11:04:22.558 [maint-plugindata-1-maint]   Text name=<<Delete history entries older than (days):>>
+11:04:22.572 [maint-plugindata-1-maint]   Text name=<<History entries (shown on the 'History' tab page of the entry dialog) can be deleted. This will decrease the database size a bit.>>
+11:04:22.584 [maint-plugindata-1-maint]   Pane name=<<Close>>
+11:04:22.595 [maint-plugindata-1-maint]   win32 Window.8 <<Clean Up>>
+11:04:22.602 [maint-plugindata-1-maint]   win32 Window.8 <<Deleted objects information>>
+11:04:22.617 [maint-plugindata-1-maint]   win32 STATIC <<Warning! After removing this information, deleted objects (groups, entries, ...) may reappear when synchronizing the current database with another one (which still contains the objects).>>
+11:04:22.621 [maint-plugindata-1-maint]   win32 BUTTON <<D&elete>>
+11:04:22.624 [maint-plugindata-1-maint]   win32 STATIC <<KeePass keeps some information about deleted objects. This information can be removed in order to reduce the size of the database.>>
+11:04:22.653 [maint-plugindata-1-maint]   win32 Window.8 <<Entry history>>
+11:04:22.663 [maint-plugindata-1-maint]   win32 STATIC <<Clicking the 'Delete' button will remove all history entries older than the specified number of days. There is no way to get them back.>>
+11:04:22.669 [maint-plugindata-1-maint]   win32 BUTTON <<&Delete>>
+11:04:22.673 [maint-plugindata-1-maint]   win32 EDIT <<365>>
+11:04:22.681 [maint-plugindata-1-maint]   win32 STATIC <<Delete &history entries older than (days):>>
+11:04:22.687 [maint-plugindata-1-maint]   win32 STATIC <<History entries (shown on the 'History' tab page of the entry dialog) can be deleted. This will decrease the database size a bit.>>
+11:04:22.701 [maint-plugindata-1-maint]   win32 BUTTON <<Close>>
+11:04:23.318 shot maint-plugindata-1-maint.png (465 x 416)
+11:04:24.210 [maint-plugindata-1-plugindata] WINDOW title=<<Database Maintenance>> class=WindowsForms10.Window.8.app.0.2bf8098_r6_ad1
+11:04:24.282 [maint-plugindata-1-plugindata]   Pane name=<<Plugin Data>>
+11:04:24.301 [maint-plugindata-1-plugindata]   Pane name=<<Delete>> disabled
+11:04:24.309 [maint-plugindata-1-plugindata]   Pane name=<<Close>>
+11:04:24.335 [maint-plugindata-1-plugindata]   win32 Window.8 <<Plugin Data>>
+11:04:24.344 [maint-plugindata-1-plugindata]   win32 BUTTON <<&Delete>> disabled
+11:04:24.352 [maint-plugindata-1-plugindata]   win32 BUTTON <<Close>>
+11:04:24.931 shot maint-plugindata-1-plugindata.png (465 x 416)
+11:04:24.986 plugin data row <<KPG.Profiles>>
+11:04:25.546 pressed Delete on the Plugin Data tab
+11:04:26.564 [maint-plugindata-1-maint-after] WINDOW title=<<Database Maintenance>> class=WindowsForms10.Window.8.app.0.2bf8098_r6_ad1
+11:04:26.650 [maint-plugindata-1-maint-after]   Pane name=<<Plugin Data>>
+11:04:26.664 [maint-plugindata-1-maint-after]   Pane name=<<Delete>> disabled
+11:04:26.679 [maint-plugindata-1-maint-after]   Pane name=<<Close>>
+11:04:26.703 [maint-plugindata-1-maint-after]   win32 Window.8 <<Plugin Data>>
+11:04:26.712 [maint-plugindata-1-maint-after]   win32 BUTTON <<&Delete>> disabled
+11:04:26.726 [maint-plugindata-1-maint-after]   win32 BUTTON <<Close>>
+11:04:32.389 dialogs: 0
+11:04:35.610 [after] window title <<db.kdbx - KeePass>>; groups [Desk store, KeePassGate, Archive, Passwords, Empty group, Recycle Bin]; KeePassGate [KPG grant 1, KPG admission 1, KPG revocation 1, KPG profile 1, KPG grant 1, KPG grant 6, KPG grant 7]; Passwords [Mail account, Bank]; status <<Ready.>>
+11:04:41.343 file: size=2933 mtime=2026-11-16T10:04:36.0658735Z sha=8b812d602ab4
+11:04:47.777 diff against the base: 2 lines

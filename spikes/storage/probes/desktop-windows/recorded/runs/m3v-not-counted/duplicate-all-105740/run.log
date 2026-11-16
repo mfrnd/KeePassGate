@@ -1,0 +1,12 @@
+10:57:15.802 ==== duplicate-all
+10:57:15.812 config: 
+10:57:26.926 started KeePass pid=7272 token: TokenIsElevated=1 ElevationType=2 Integrity=0x3000 AdministratorsEnabled=False
+10:57:27.040 main window: <<db.kdbx - KeePass>>
+10:57:27.335 group rows: Desk entries, KeePassGate, Passwords, Recycle Bin
+10:57:31.701 menu: <<Duplicate Entry...>>
+10:57:33.894 shot duplicate-all.png (375 x 236)
+10:57:40.531 RUN FAILED duplicate-all: no button 'OK' in window 168494004 at Click-Kid, <branch>\spikes\storage\probes\desktop-windows\scripts\Ui.ps1: line 190
+at <ScriptBlock>, <branch>\spikes\storage\probes\desktop-windows\scripts\M3v.ps1: line 236
+at Run-Case, <branch>\spikes\storage\probes\desktop-windows\scripts\M3v.ps1: line 117
+at <ScriptBlock>, <branch>\spikes\storage\probes\desktop-windows\scripts\M3v.ps1: line 222
+10:57:40.561 stopping KeePass pid=7272

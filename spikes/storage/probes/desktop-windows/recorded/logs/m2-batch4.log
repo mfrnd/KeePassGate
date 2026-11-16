@@ -1,0 +1,140 @@
+12:29:55.409 ==== d-edit-open-merge-1 : KeePassXC 2.8.0, defaults; P2's editor open, NEW arrives, OK (saved by itself); Merge
+12:29:55.482 keepassxc config: 
+12:30:06.706 started KeePassXC pid=6096 token: TokenIsElevated=1 ElevationType=2 Integrity=0x3000 AdministratorsEnabled=False
+12:30:07.738 answered the update question No
+12:30:13.242 KeePassXC window: <<Desk probe (invented) - KeePassXC>>
+12:30:13.384 file before the replacement: size=3413 mtime=2026-11-16T08:31:56.2778845Z sha=2ff7a751a869
+12:30:18.311 replace: before size=3413 mtime=2026-11-16T08:31:56.2778845Z sha=2ff7a751a869
+12:30:18.392 replace (later) with NEW-fixed.kdbx: after size=5013 mtime=2026-11-16T11:30:18.3457777Z sha=74dd75d7243e
+12:30:21.896 clicked OK in the entry editor, three seconds after the replacement
+12:30:23.567 [d-edit-open-merge-1-1] WINDOW title=<<Reload database>> class=QMessageBox
+12:30:23.620 [d-edit-open-merge-1-1]   Text name=<<The database file "db.kdbx" was modified externally.
+How would you like to proceed?
+
+Merge all changes then save
+Overwrite the changes on disk
+Discard unsaved changes>>
+12:30:23.643 [d-edit-open-merge-1-1]   Button name=<<Cancel>>
+12:30:23.650 [d-edit-open-merge-1-1]   Button name=<<Discard>>
+12:30:23.661 [d-edit-open-merge-1-1]   Button name=<<Overwrite>>
+12:30:23.673 [d-edit-open-merge-1-1]   Button name=<<Merge>>
+12:30:24.310 shot d-edit-open-merge-1-1.png (386 x 192)
+12:30:24.635 [d-edit-open-merge-1-1] pressed <<Merge>>
+12:30:46.242 dialogs after the replacement: 1
+12:30:46.855 [after] window title <<Desk probe (invented) - KeePassXC>>; items shown: Clear Search, All Entries, Expired, Weak Passwords, TOTP Entries, Desk probe, KeePassGate, Passwords, Recycle Bin, K, user-k, , 01.11.2026 11:20, other-new, user-no, 01.11.2026 19:00, P1, user-p1, P2, user-p2, 16.11.2026 12:30, Q1, user-q1, Q2, user-q2, 01.01.2027 01:00, Q3, user-q3, X1, user-x1, dCc4KKz7UUYDMLq3ey8jRh02wlYfk6PVsQdOI2OM6vZgrdEnNpqpmtY5MkHjwUXYFCU5rbulkvmfIUKSgvR4Pjt91iCiuoamYAbpJJ5w4EF0G3x1ZzDBDcJfTVDJYM15VAGH3fJX0f9Kd328vLJ4lZj515VxFvXsNJeGwp74qpKhd8BZcFXND6U6bLP8JVREHQ7UYwMFNPO5OBc336V9XKpRzipla9uUYGaMBrAp3S9yrYsZsWEN9Rq6lpe0HkpNe3hHkP2M5qGFL1jazP2D5hVGZdlVMKhSmvTy1kyce1STLkvtGEB2slS7ibrHogAvIxdZivjOaZjDPB5zr1PIIpkAcWPa3rx71gLXHWLVewbSCPshg2ZxR1mcNc6LfJVslmLszhrVp3nWNS8Nos4ASAp94sJoZ9zUbsqZD9r8KDHXOPP5eshwPUal6LxHXC5pES5eliKoB5zO3RvodOKrcCFGSEc2LjkIIbT5UuT5i2vTeMspZIoJ2ONBNyMgGRcbVrGb70Us5OIjRvmGWxcD5bP3OSrfiwzQZT8wFQrjy6OoGntcLGKTzZg3cNNpJyKIY1J7w0AGF3O9MkwkiPUbmgbAxET2CCa9wFPPdwpVFEN6Lhq1anG3esg2aJKrgHDDdPNHUhGwk8ViTeyPXccZ6geDjXyTl7z8AKd5Ujg2gTTgW8j5U4TEpnG6uJi7twLmIXhIB35y5j3mN8rky28qnvSXDgLKBjJtIqX8ba4b8fIGudtvb7J0ye9XFJFeruwVaJehktJX8grHmMmjxZtEaT5nqA3RVZuOsxpl9LLsxv1Rw1u2hfqSBs5GO00k02CiwdZzgBklOAQobn1zPAuztbMA1jWIVl25sTeSc5Wf5FEBcRpk9AUzINzVRY77ocPmIV5IJiXUoO3nXLik3wIVQCwfdJBD7Y0dzb3GVgaanAL3TL7G0XD1T4WFiaoAhUWPXay6SbPWVrrQ13MSL5MkU9J4Exi52a3To6g2WBxZIqglNGNpNVymHv4YR41e2Te5yYl5WT5JHwcnchr8k3rglQL3BIlcKTgyMkwyeSS3apfVSR5tN249m7TiNs4Osd8xPob2u2eRkxG6v0kuM1PSZgMPROkvYEL6qrFozD8UXmZy0WxXIJC0NqYtcLkgSs2gmKPDu64J254wHXY4bNnOCUsATWLoccBpu3LqHumLP27SwllExpFEFoeRbPtYuQqa3PCOMrxqkb9JXaNsuH0wX6jGY4P1AOa9MhZgjX2F2YenpV4ABBnnZ3C6p6zRc6qWB96zBqJXPv49c6bD9Oz9kxkTec1mhkm6rHmpYE9V1QXn8DesfvSNGqwNZnVizgzpI8RUUvp4OeITa6Ub8IHwSYzBVYPvtbfVbsfAvJYtFX9midwdS4jqZCWtIP95f4Lw8w2sbUpzuXq5ZMd1mwcz1z6YVv1gJcOLLMovkEB8Pu5BWbU6wHTsbW5I0eWqcJpRJetMisRhuekH35B3a5tBJfuzRf5G
+12:30:47.059 file after the flow: size=6757 mtime=2026-11-16T11:30:24.7274548Z sha=69ae7e809ffb
+12:30:52.261 file after the exit: size=6757 mtime=2026-11-16T11:30:24.7274548Z sha=69ae7e809ffb
+12:30:53.464 verdict: after-flow.kdbx sha=69ae7e809ffb v4.0 KG1=kept KG2=kept KG3=kept NewKey=kept DZ=rec D1=rec X1=x1-old[]+rec P1=p1-other[p1-old] P2=p2-window[p2-old] Q1=q1-other[q1-old] Q2=q2-other[q2-old] Q3=q3-other[q3-old] K=k-old[] NO=no-other@Passwords NW=absent entries=11 records=3
+12:30:53.472 verdict: db.kdbx sha=69ae7e809ffb v4.0 KG1=kept KG2=kept KG3=kept NewKey=kept DZ=rec D1=rec X1=x1-old[]+rec P1=p1-other[p1-old] P2=p2-window[p2-old] Q1=q1-other[q1-old] Q2=q2-other[q2-old] Q3=q3-other[q3-old] K=k-old[] NO=no-other@Passwords NW=absent entries=11 records=3
+12:30:53.480 verdict: window-before.kdbx sha=2ff7a751a869 v4.1 KG1=kept KG2=kept KG3=gone NewKey=gone DZ=none D1=rec X1=x1-old[] P1=p1-old[] P2=p2-old[] Q1=q1-old[] Q2=q2-old[] Q3=q3-old[] K=k-old[] NO=absent NW=absent entries=9 records=1
+12:30:53.482 verdict: NEW-fixed.kdbx sha=74dd75d7243e v4.1 KG1=kept KG2=kept KG3=kept NewKey=kept DZ=rec D1=rec X1=gone+rec P1=p1-other[p1-old] P2=p2-old[] Q1=q1-other[q1-old] Q2=q2-other[q2-old] Q3=q3-other[q3-old] K=k-old[] NO=no-other@Passwords NW=absent entries=10 records=3
+12:30:53.508 ==== d-edit-open-overwrite-1 : KeePassXC 2.8.0, the same; Overwrite
+12:30:53.521 keepassxc config: 
+12:31:05.620 started KeePassXC pid=13204 token: TokenIsElevated=1 ElevationType=2 Integrity=0x3000 AdministratorsEnabled=False
+12:31:06.126 answered the update question No
+12:31:11.548 KeePassXC window: <<Desk probe (invented) - KeePassXC>>
+12:31:11.562 file before the replacement: size=3413 mtime=2026-11-16T08:31:56.2778845Z sha=2ff7a751a869
+12:31:16.351 replace: before size=3413 mtime=2026-11-16T08:31:56.2778845Z sha=2ff7a751a869
+12:31:16.364 replace: MoveFileEx failed 5, try 1
+12:31:16.652 replace (later) with NEW-fixed.kdbx: after size=5013 mtime=2026-11-16T11:31:16.3595844Z sha=74dd75d7243e
+12:31:20.082 clicked OK in the entry editor, three seconds after the replacement
+12:31:21.626 [d-edit-open-overwrite-1-1] WINDOW title=<<Reload database>> class=QMessageBox
+12:31:21.651 [d-edit-open-overwrite-1-1]   Text name=<<The database file "db.kdbx" was modified externally.
+How would you like to proceed?
+
+Merge all changes then save
+Overwrite the changes on disk
+Discard unsaved changes>>
+12:31:21.661 [d-edit-open-overwrite-1-1]   Button name=<<Cancel>>
+12:31:21.672 [d-edit-open-overwrite-1-1]   Button name=<<Discard>>
+12:31:21.683 [d-edit-open-overwrite-1-1]   Button name=<<Overwrite>>
+12:31:21.694 [d-edit-open-overwrite-1-1]   Button name=<<Merge>>
+12:31:22.262 shot d-edit-open-overwrite-1-1.png (386 x 192)
+12:31:22.561 [d-edit-open-overwrite-1-1] pressed <<Overwrite>>
+12:31:44.327 dialogs after the replacement: 1
+12:31:44.826 [after] window title <<Desk probe (invented) - KeePassXC>>; items shown: Clear Search, All Entries, Expired, Weak Passwords, TOTP Entries, Desk probe, KeePassGate, Passwords, Recycle Bin, K, user-k, , 01.11.2026 11:20, P1, user-p1, P2, user-p2, 16.11.2026 12:31, Q1, user-q1, Q2, user-q2, Q3, user-q3, X1, user-x1, dCc4KKz7UUYDMLq3ey8jRh02wlYfk6PVsQdOI2OM6vZgrdEnNpqpmtY5MkHjwUXYFCU5rbulkvmfIUKSgvR4Pjt91iCiuoamYAbpJJ5w4EF0G3x1ZzDBDcJfTVDJYM15VAGH3fJX0f9Kd328vLJ4lZj515VxFvXsNJeGwp74qpKhd8BZcFXND6U6bLP8JVREHQ7UYwMFNPO5OBc336V9XKpRzipla9uUYGaMBrAp3S9yrYsZsWEN9Rq6lpe0HkpNe3hHkP2M5qGFL1jazP2D5hVGZdlVMKhSmvTy1kyce1STLkvtGEB2slS7ibrHogAvIxdZivjOaZjDPB5zr1PIIpkAcWPa3rx71gLXHWLVewbSCPshg2ZxR1mcNc6LfJVslmLszhrVp3nWNS8Nos4ASAp94sJoZ9zUbsqZD9r8KDHXOPP5eshwPUal6LxHXC5pES5eliKoB5zO3RvodOKrcCFGSEc2LjkIIbT5UuT5i2vTeMspZIoJ2ONBNyMgGRcbVrGb70Us5OIjRvmGWxcD5bP3OSrfiwzQZT8wFQrjy6OoGntcLGKTzZg3cNNpJyKIY1J7w0AGF3O9MkwkiPUbmgbAxET2CCa9wFPPdwpVFEN6Lhq1anG3esg2aJKrgHDDdPNHUhGwk8ViTeyPXccZ6geDjXyTl7z8AKd5Ujg2gTTgW8j5U4TEpnG6uJi7twLmIXhIB35y5j3mN8rky28qnvSXDgLKBjJtIqX8ba4b8fIGudtvb7J0ye9XFJFeruwVaJehktJX8grHmMmjxZtEaT5nqA3RVZuOsxpl9LLsxv1Rw1u2hfqSBs5GO00k02CiwdZzgBklOAQobn1zPAuztbMA1jWIVl25sTeSc5Wf5FEBcRpk9AUzINzVRY77ocPmIV5IJiXUoO3nXLik3wIVQCwfdJBD7Y0dzb3GVgaanAL3TL7G0XD1T4WFiaoAhUWPXay6SbPWVrrQ13MSL5MkU9J4Exi52a3To6g2WBxZIqglNGNpNVymHv4YR41e2Te5yYl5WT5JHwcnchr8k3rglQL3BIlcKTgyMkwyeSS3apfVSR5tN249m7TiNs4Osd8xPob2u2eRkxG6v0kuM1PSZgMPROkvYEL6qrFozD8UXmZy0WxXIJC0NqYtcLkgSs2gmKPDu64J254wHXY4bNnOCUsATWLoccBpu3LqHumLP27SwllExpFEFoeRbPtYuQqa3PCOMrxqkb9JXaNsuH0wX6jGY4P1AOa9MhZgjX2F2YenpV4ABBnnZ3C6p6zRc6qWB96zBqJXPv49c6bD9Oz9kxkTec1mhkm6rHmpYE9V1QXn8DesfvSNGqwNZnVizgzpI8RUUvp4OeITa6Ub8IHwSYzBVYPvtbfVbsfAvJYtFX9midwdS4jqZCWtIP95f4Lw8w2sbUpzuXq5ZMd1mwcz1z6YVv1gJcOLLMovkEB8Pu5BWbU6wHTsbW5I0eWqcJpRJetMisRhuekH35B3a5tBJfuzRf5G
+12:31:45.017 file after the flow: size=3973 mtime=2026-11-16T11:31:22.6033364Z sha=6b95042f0d9a
+12:31:50.233 file after the exit: size=3973 mtime=2026-11-16T11:31:22.6033364Z sha=6b95042f0d9a
+12:31:51.269 verdict: after-flow.kdbx sha=6b95042f0d9a v4.0 KG1=kept KG2=kept KG3=gone NewKey=gone DZ=none D1=rec X1=x1-old[] P1=p1-old[] P2=p2-window[p2-old] Q1=q1-old[] Q2=q2-old[] Q3=q3-old[] K=k-old[] NO=absent NW=absent entries=9 records=1
+12:31:51.276 verdict: db.kdbx sha=6b95042f0d9a v4.0 KG1=kept KG2=kept KG3=gone NewKey=gone DZ=none D1=rec X1=x1-old[] P1=p1-old[] P2=p2-window[p2-old] Q1=q1-old[] Q2=q2-old[] Q3=q3-old[] K=k-old[] NO=absent NW=absent entries=9 records=1
+12:31:51.287 verdict: window-before.kdbx sha=2ff7a751a869 v4.1 KG1=kept KG2=kept KG3=gone NewKey=gone DZ=none D1=rec X1=x1-old[] P1=p1-old[] P2=p2-old[] Q1=q1-old[] Q2=q2-old[] Q3=q3-old[] K=k-old[] NO=absent NW=absent entries=9 records=1
+12:31:51.302 verdict: NEW-fixed.kdbx sha=74dd75d7243e v4.1 KG1=kept KG2=kept KG3=kept NewKey=kept DZ=rec D1=rec X1=gone+rec P1=p1-other[p1-old] P2=p2-old[] Q1=q1-other[q1-old] Q2=q2-other[q2-old] Q3=q3-other[q3-old] K=k-old[] NO=no-other@Passwords NW=absent entries=10 records=3
+12:31:51.324 ==== n-ignore-1 : KeePassXC 2.8.0, the same; Ignore; Ctrl+S
+12:31:51.376 keepassxc config: General/AutoSaveAfterEveryChange=false
+12:32:02.466 started KeePassXC pid=7124 token: TokenIsElevated=1 ElevationType=2 Integrity=0x3000 AdministratorsEnabled=False
+12:32:02.955 answered the update question No
+12:32:08.408 KeePassXC window: <<Desk probe (invented) - KeePassXC>>
+12:32:14.370 edited P2 password=p2-window; OK clicked 2026-11-16T11:32:13.4034350Z .. 2026-11-16T11:32:13.8614872Z
+12:32:14.376 file before the replacement: size=3413 mtime=2026-11-16T08:31:56.2778845Z sha=2ff7a751a869
+12:32:14.562 replace: before size=3413 mtime=2026-11-16T08:31:56.2778845Z sha=2ff7a751a869
+12:32:14.579 replace (later) with NEW-fixed.kdbx: after size=5013 mtime=2026-11-16T11:32:14.5677769Z sha=74dd75d7243e
+12:32:15.618 [n-ignore-1-1] WINDOW title=<<Reload database>> class=QMessageBox
+12:32:15.642 [n-ignore-1-1]   Text name=<<The database file "db.kdbx" was modified externally.
+How would you like to proceed?
+
+Merge all changes
+Ignore the changes on disk until save
+Discard unsaved changes>>
+12:32:15.659 [n-ignore-1-1]   Button name=<<Cancel>>
+12:32:15.669 [n-ignore-1-1]   Button name=<<Discard>>
+12:32:15.684 [n-ignore-1-1]   Button name=<<Ignore>>
+12:32:15.693 [n-ignore-1-1]   Button name=<<Merge>>
+12:32:16.268 shot n-ignore-1-1.png (369 x 192)
+12:32:16.584 [n-ignore-1-1] pressed <<Ignore>>
+12:33:03.184 dialogs after the replacement: 1
+12:33:03.658 [after] window title <<Desk probe (invented)* - KeePassXC>>; items shown: Clear Search, All Entries, Expired, Weak Passwords, TOTP Entries, Desk probe, KeePassGate, Passwords, Recycle Bin, K, user-k, , 01.11.2026 11:20, P1, user-p1, P2, user-p2, 16.11.2026 12:32, Q1, user-q1, Q2, user-q2, Q3, user-q3, X1, user-x1, dCc4KKz7UUYDMLq3ey8jRh02wlYfk6PVsQdOI2OM6vZgrdEnNpqpmtY5MkHjwUXYFCU5rbulkvmfIUKSgvR4Pjt91iCiuoamYAbpJJ5w4EF0G3x1ZzDBDcJfTVDJYM15VAGH3fJX0f9Kd328vLJ4lZj515VxFvXsNJeGwp74qpKhd8BZcFXND6U6bLP8JVREHQ7UYwMFNPO5OBc336V9XKpRzipla9uUYGaMBrAp3S9yrYsZsWEN9Rq6lpe0HkpNe3hHkP2M5qGFL1jazP2D5hVGZdlVMKhSmvTy1kyce1STLkvtGEB2slS7ibrHogAvIxdZivjOaZjDPB5zr1PIIpkAcWPa3rx71gLXHWLVewbSCPshg2ZxR1mcNc6LfJVslmLszhrVp3nWNS8Nos4ASAp94sJoZ9zUbsqZD9r8KDHXOPP5eshwPUal6LxHXC5pES5eliKoB5zO3RvodOKrcCFGSEc2LjkIIbT5UuT5i2vTeMspZIoJ2ONBNyMgGRcbVrGb70Us5OIjRvmGWxcD5bP3OSrfiwzQZT8wFQrjy6OoGntcLGKTzZg3cNNpJyKIY1J7w0AGF3O9MkwkiPUbmgbAxET2CCa9wFPPdwpVFEN6Lhq1anG3esg2aJKrgHDDdPNHUhGwk8ViTeyPXccZ6geDjXyTl7z8AKd5Ujg2gTTgW8j5U4TEpnG6uJi7twLmIXhIB35y5j3mN8rky28qnvSXDgLKBjJtIqX8ba4b8fIGudtvb7J0ye9XFJFeruwVaJehktJX8grHmMmjxZtEaT5nqA3RVZuOsxpl9LLsxv1Rw1u2hfqSBs5GO00k02CiwdZzgBklOAQobn1zPAuztbMA1jWIVl25sTeSc5Wf5FEBcRpk9AUzINzVRY77ocPmIV5IJiXUoO3nXLik3wIVQCwfdJBD7Y0dzb3GVgaanAL3TL7G0XD1T4WFiaoAhUWPXay6SbPWVrrQ13MSL5MkU9J4Exi52a3To6g2WBxZIqglNGNpNVymHv4YR41e2Te5yYl5WT5JHwcnchr8k3rglQL3BIlcKTgyMkwyeSS3apfVSR5tN249m7TiNs4Osd8xPob2u2eRkxG6v0kuM1PSZgMPROkvYEL6qrFozD8UXmZy0WxXIJC0NqYtcLkgSs2gmKPDu64J254wHXY4bNnOCUsATWLoccBpu3LqHumLP27SwllExpFEFoeRbPtYuQqa3PCOMrxqkb9JXaNsuH0wX6jGY4P1AOa9MhZgjX2F2YenpV4ABBnnZ3C6p6zRc6qWB96zBqJXPv49c6bD9Oz9kxkTec1mhkm6rHmpYE9V1QXn8DesfvSNGqwNZnVizgzpI8RUUvp4OeITa6Ub8IHwSYzBVYPvtbfVbsfAvJYtFX9midwdS4jqZCWtIP95f4Lw8w2sbUpzuXq5ZMd1mwcz1z6YVv1gJcOLLMovkEB8Pu5BWbU6wHTsbW5I0eWqcJpRJetMisRhuekH35B3a5tBJfuzRf5G
+12:33:14.607 dialogs at Ctrl+S: 0
+12:33:15.369 [after-save] window title <<Desk probe (invented) - KeePassXC>>; items shown: Clear Search, All Entries, Expired, Weak Passwords, TOTP Entries, Desk probe, KeePassGate, Passwords, Recycle Bin, K, user-k, , 01.11.2026 11:20, P1, user-p1, P2, user-p2, 16.11.2026 12:32, Q1, user-q1, Q2, user-q2, Q3, user-q3, X1, user-x1, dCc4KKz7UUYDMLq3ey8jRh02wlYfk6PVsQdOI2OM6vZgrdEnNpqpmtY5MkHjwUXYFCU5rbulkvmfIUKSgvR4Pjt91iCiuoamYAbpJJ5w4EF0G3x1ZzDBDcJfTVDJYM15VAGH3fJX0f9Kd328vLJ4lZj515VxFvXsNJeGwp74qpKhd8BZcFXND6U6bLP8JVREHQ7UYwMFNPO5OBc336V9XKpRzipla9uUYGaMBrAp3S9yrYsZsWEN9Rq6lpe0HkpNe3hHkP2M5qGFL1jazP2D5hVGZdlVMKhSmvTy1kyce1STLkvtGEB2slS7ibrHogAvIxdZivjOaZjDPB5zr1PIIpkAcWPa3rx71gLXHWLVewbSCPshg2ZxR1mcNc6LfJVslmLszhrVp3nWNS8Nos4ASAp94sJoZ9zUbsqZD9r8KDHXOPP5eshwPUal6LxHXC5pES5eliKoB5zO3RvodOKrcCFGSEc2LjkIIbT5UuT5i2vTeMspZIoJ2ONBNyMgGRcbVrGb70Us5OIjRvmGWxcD5bP3OSrfiwzQZT8wFQrjy6OoGntcLGKTzZg3cNNpJyKIY1J7w0AGF3O9MkwkiPUbmgbAxET2CCa9wFPPdwpVFEN6Lhq1anG3esg2aJKrgHDDdPNHUhGwk8ViTeyPXccZ6geDjXyTl7z8AKd5Ujg2gTTgW8j5U4TEpnG6uJi7twLmIXhIB35y5j3mN8rky28qnvSXDgLKBjJtIqX8ba4b8fIGudtvb7J0ye9XFJFeruwVaJehktJX8grHmMmjxZtEaT5nqA3RVZuOsxpl9LLsxv1Rw1u2hfqSBs5GO00k02CiwdZzgBklOAQobn1zPAuztbMA1jWIVl25sTeSc5Wf5FEBcRpk9AUzINzVRY77ocPmIV5IJiXUoO3nXLik3wIVQCwfdJBD7Y0dzb3GVgaanAL3TL7G0XD1T4WFiaoAhUWPXay6SbPWVrrQ13MSL5MkU9J4Exi52a3To6g2WBxZIqglNGNpNVymHv4YR41e2Te5yYl5WT5JHwcnchr8k3rglQL3BIlcKTgyMkwyeSS3apfVSR5tN249m7TiNs4Osd8xPob2u2eRkxG6v0kuM1PSZgMPROkvYEL6qrFozD8UXmZy0WxXIJC0NqYtcLkgSs2gmKPDu64J254wHXY4bNnOCUsATWLoccBpu3LqHumLP27SwllExpFEFoeRbPtYuQqa3PCOMrxqkb9JXaNsuH0wX6jGY4P1AOa9MhZgjX2F2YenpV4ABBnnZ3C6p6zRc6qWB96zBqJXPv49c6bD9Oz9kxkTec1mhkm6rHmpYE9V1QXn8DesfvSNGqwNZnVizgzpI8RUUvp4OeITa6Ub8IHwSYzBVYPvtbfVbsfAvJYtFX9midwdS4jqZCWtIP95f4Lw8w2sbUpzuXq5ZMd1mwcz1z6YVv1gJcOLLMovkEB8Pu5BWbU6wHTsbW5I0eWqcJpRJetMisRhuekH35B3a5tBJfuzRf5G
+12:33:15.564 file after the flow: size=4181 mtime=2026-11-16T11:33:04.1553618Z sha=88812dba73ed
+12:33:20.770 file after the exit: size=4181 mtime=2026-11-16T11:33:04.1553618Z sha=88812dba73ed
+12:33:21.858 verdict: after-flow.kdbx sha=88812dba73ed v4.0 KG1=kept KG2=kept KG3=gone NewKey=gone DZ=none D1=rec X1=x1-old[] P1=p1-old[] P2=p2-window[p2-old] Q1=q1-old[] Q2=q2-old[] Q3=q3-old[] K=k-old[] NO=absent NW=absent entries=9 records=1
+12:33:21.867 verdict: db.kdbx sha=88812dba73ed v4.0 KG1=kept KG2=kept KG3=gone NewKey=gone DZ=none D1=rec X1=x1-old[] P1=p1-old[] P2=p2-window[p2-old] Q1=q1-old[] Q2=q2-old[] Q3=q3-old[] K=k-old[] NO=absent NW=absent entries=9 records=1
+12:33:21.872 verdict: window-before.kdbx sha=2ff7a751a869 v4.1 KG1=kept KG2=kept KG3=gone NewKey=gone DZ=none D1=rec X1=x1-old[] P1=p1-old[] P2=p2-old[] Q1=q1-old[] Q2=q2-old[] Q3=q3-old[] K=k-old[] NO=absent NW=absent entries=9 records=1
+12:33:21.876 verdict: NEW-fixed.kdbx sha=74dd75d7243e v4.1 KG1=kept KG2=kept KG3=kept NewKey=kept DZ=rec D1=rec X1=gone+rec P1=p1-other[p1-old] P2=p2-old[] Q1=q1-other[q1-old] Q2=q2-other[q2-old] Q3=q3-other[q3-old] K=k-old[] NO=no-other@Passwords NW=absent entries=10 records=3
+12:33:21.902 ==== o-backup-1 : KeePassXC 2.8.0, backup before save on, save after every change off; P2; NEW arrives; Cancel; Ctrl+S; Overwrite
+12:33:21.913 keepassxc config: General/BackupBeforeSave=true, General/AutoSaveAfterEveryChange=false
+12:33:33.035 started KeePassXC pid=7244 token: TokenIsElevated=1 ElevationType=2 Integrity=0x3000 AdministratorsEnabled=False
+12:33:33.641 answered the update question No
+12:33:39.344 KeePassXC window: <<Desk probe (invented) - KeePassXC>>
+12:33:45.867 edited P2 password=p2-window; OK clicked 2026-11-16T11:33:44.9535414Z .. 2026-11-16T11:33:45.3588265Z
+12:33:45.882 file before the replacement: size=3413 mtime=2026-11-16T08:31:56.2778845Z sha=2ff7a751a869
+12:33:46.196 replace: before size=3413 mtime=2026-11-16T08:31:56.2778845Z sha=2ff7a751a869
+12:33:46.261 replace (later) with NEW-fixed.kdbx: after size=5013 mtime=2026-11-16T11:33:46.2331510Z sha=74dd75d7243e
+12:33:47.402 [o-backup-1-1] WINDOW title=<<Reload database>> class=QMessageBox
+12:33:47.441 [o-backup-1-1]   Text name=<<The database file "db.kdbx" was modified externally.
+How would you like to proceed?
+
+Merge all changes
+Ignore the changes on disk until save
+Discard unsaved changes>>
+12:33:47.454 [o-backup-1-1]   Button name=<<Cancel>>
+12:33:47.477 [o-backup-1-1]   Button name=<<Discard>>
+12:33:47.494 [o-backup-1-1]   Button name=<<Ignore>>
+12:33:47.530 [o-backup-1-1]   Button name=<<Merge>>
+12:33:48.092 shot o-backup-1-1.png (369 x 192)
+12:33:48.440 [o-backup-1-1] pressed <<>>
+12:34:36.091 dialogs after the replacement: 1
+12:34:36.721 [after] window title <<Desk probe (invented)* - KeePassXC>>; items shown: Clear Search, All Entries, Expired, Weak Passwords, TOTP Entries, Desk probe, KeePassGate, Passwords, Recycle Bin, K, user-k, , 01.11.2026 11:20, P1, user-p1, P2, user-p2, 16.11.2026 12:33, Q1, user-q1, Q2, user-q2, Q3, user-q3, X1, user-x1, dCc4KKz7UUYDMLq3ey8jRh02wlYfk6PVsQdOI2OM6vZgrdEnNpqpmtY5MkHjwUXYFCU5rbulkvmfIUKSgvR4Pjt91iCiuoamYAbpJJ5w4EF0G3x1ZzDBDcJfTVDJYM15VAGH3fJX0f9Kd328vLJ4lZj515VxFvXsNJeGwp74qpKhd8BZcFXND6U6bLP8JVREHQ7UYwMFNPO5OBc336V9XKpRzipla9uUYGaMBrAp3S9yrYsZsWEN9Rq6lpe0HkpNe3hHkP2M5qGFL1jazP2D5hVGZdlVMKhSmvTy1kyce1STLkvtGEB2slS7ibrHogAvIxdZivjOaZjDPB5zr1PIIpkAcWPa3rx71gLXHWLVewbSCPshg2ZxR1mcNc6LfJVslmLszhrVp3nWNS8Nos4ASAp94sJoZ9zUbsqZD9r8KDHXOPP5eshwPUal6LxHXC5pES5eliKoB5zO3RvodOKrcCFGSEc2LjkIIbT5UuT5i2vTeMspZIoJ2ONBNyMgGRcbVrGb70Us5OIjRvmGWxcD5bP3OSrfiwzQZT8wFQrjy6OoGntcLGKTzZg3cNNpJyKIY1J7w0AGF3O9MkwkiPUbmgbAxET2CCa9wFPPdwpVFEN6Lhq1anG3esg2aJKrgHDDdPNHUhGwk8ViTeyPXccZ6geDjXyTl7z8AKd5Ujg2gTTgW8j5U4TEpnG6uJi7twLmIXhIB35y5j3mN8rky28qnvSXDgLKBjJtIqX8ba4b8fIGudtvb7J0ye9XFJFeruwVaJehktJX8grHmMmjxZtEaT5nqA3RVZuOsxpl9LLsxv1Rw1u2hfqSBs5GO00k02CiwdZzgBklOAQobn1zPAuztbMA1jWIVl25sTeSc5Wf5FEBcRpk9AUzINzVRY77ocPmIV5IJiXUoO3nXLik3wIVQCwfdJBD7Y0dzb3GVgaanAL3TL7G0XD1T4WFiaoAhUWPXay6SbPWVrrQ13MSL5MkU9J4Exi52a3To6g2WBxZIqglNGNpNVymHv4YR41e2Te5yYl5WT5JHwcnchr8k3rglQL3BIlcKTgyMkwyeSS3apfVSR5tN249m7TiNs4Osd8xPob2u2eRkxG6v0kuM1PSZgMPROkvYEL6qrFozD8UXmZy0WxXIJC0NqYtcLkgSs2gmKPDu64J254wHXY4bNnOCUsATWLoccBpu3LqHumLP27SwllExpFEFoeRbPtYuQqa3PCOMrxqkb9JXaNsuH0wX6jGY4P1AOa9MhZgjX2F2YenpV4ABBnnZ3C6p6zRc6qWB96zBqJXPv49c6bD9Oz9kxkTec1mhkm6rHmpYE9V1QXn8DesfvSNGqwNZnVizgzpI8RUUvp4OeITa6Ub8IHwSYzBVYPvtbfVbsfAvJYtFX9midwdS4jqZCWtIP95f4Lw8w2sbUpzuXq5ZMd1mwcz1z6YVv1gJcOLLMovkEB8Pu5BWbU6wHTsbW5I0eWqcJpRJetMisRhuekH35B3a5tBJfuzRf5G
+12:34:39.766 [o-backup-1-save-1] WINDOW title=<<Reload database>> class=QMessageBox
+12:34:39.821 [o-backup-1-save-1]   Text name=<<The database file "db.kdbx" was modified externally.
+How would you like to proceed?
+
+Merge all changes then save
+Overwrite the changes on disk
+Discard unsaved changes>>
+12:34:39.834 [o-backup-1-save-1]   Button name=<<Cancel>>
+12:34:39.858 [o-backup-1-save-1]   Button name=<<Discard>>
+12:34:39.887 [o-backup-1-save-1]   Button name=<<Overwrite>>
+12:34:39.900 [o-backup-1-save-1]   Button name=<<Merge>>
+12:34:40.484 shot o-backup-1-save-1.png (386 x 192)
+12:34:40.831 [o-backup-1-save-1] pressed <<>>
+12:34:51.172 dialogs at Ctrl+S: 1
+12:34:51.657 [after-save] window title <<Desk probe (invented) - KeePassXC>>; items shown: Clear Search, All Entries, Expired, Weak Passwords, TOTP Entries, Desk probe, KeePassGate, Passwords, Recycle Bin, K, user-k, , 01.11.2026 11:20, P1, user-p1, P2, user-p2, 16.11.2026 12:33, Q1, user-q1, Q2, user-q2, Q3, user-q3, X1, user-x1, dCc4KKz7UUYDMLq3ey8jRh02wlYfk6PVsQdOI2OM6vZgrdEnNpqpmtY5MkHjwUXYFCU5rbulkvmfIUKSgvR4Pjt91iCiuoamYAbpJJ5w4EF0G3x1ZzDBDcJfTVDJYM15VAGH3fJX0f9Kd328vLJ4lZj515VxFvXsNJeGwp74qpKhd8BZcFXND6U6bLP8JVREHQ7UYwMFNPO5OBc336V9XKpRzipla9uUYGaMBrAp3S9yrYsZsWEN9Rq6lpe0HkpNe3hHkP2M5qGFL1jazP2D5hVGZdlVMKhSmvTy1kyce1STLkvtGEB2slS7ibrHogAvIxdZivjOaZjDPB5zr1PIIpkAcWPa3rx71gLXHWLVewbSCPshg2ZxR1mcNc6LfJVslmLszhrVp3nWNS8Nos4ASAp94sJoZ9zUbsqZD9r8KDHXOPP5eshwPUal6LxHXC5pES5eliKoB5zO3RvodOKrcCFGSEc2LjkIIbT5UuT5i2vTeMspZIoJ2ONBNyMgGRcbVrGb70Us5OIjRvmGWxcD5bP3OSrfiwzQZT8wFQrjy6OoGntcLGKTzZg3cNNpJyKIY1J7w0AGF3O9MkwkiPUbmgbAxET2CCa9wFPPdwpVFEN6Lhq1anG3esg2aJKrgHDDdPNHUhGwk8ViTeyPXccZ6geDjXyTl7z8AKd5Ujg2gTTgW8j5U4TEpnG6uJi7twLmIXhIB35y5j3mN8rky28qnvSXDgLKBjJtIqX8ba4b8fIGudtvb7J0ye9XFJFeruwVaJehktJX8grHmMmjxZtEaT5nqA3RVZuOsxpl9LLsxv1Rw1u2hfqSBs5GO00k02CiwdZzgBklOAQobn1zPAuztbMA1jWIVl25sTeSc5Wf5FEBcRpk9AUzINzVRY77ocPmIV5IJiXUoO3nXLik3wIVQCwfdJBD7Y0dzb3GVgaanAL3TL7G0XD1T4WFiaoAhUWPXay6SbPWVrrQ13MSL5MkU9J4Exi52a3To6g2WBxZIqglNGNpNVymHv4YR41e2Te5yYl5WT5JHwcnchr8k3rglQL3BIlcKTgyMkwyeSS3apfVSR5tN249m7TiNs4Osd8xPob2u2eRkxG6v0kuM1PSZgMPROkvYEL6qrFozD8UXmZy0WxXIJC0NqYtcLkgSs2gmKPDu64J254wHXY4bNnOCUsATWLoccBpu3LqHumLP27SwllExpFEFoeRbPtYuQqa3PCOMrxqkb9JXaNsuH0wX6jGY4P1AOa9MhZgjX2F2YenpV4ABBnnZ3C6p6zRc6qWB96zBqJXPv49c6bD9Oz9kxkTec1mhkm6rHmpYE9V1QXn8DesfvSNGqwNZnVizgzpI8RUUvp4OeITa6Ub8IHwSYzBVYPvtbfVbsfAvJYtFX9midwdS4jqZCWtIP95f4Lw8w2sbUpzuXq5ZMd1mwcz1z6YVv1gJcOLLMovkEB8Pu5BWbU6wHTsbW5I0eWqcJpRJetMisRhuekH35B3a5tBJfuzRf5G
+12:34:51.847 file after the flow: size=3797 mtime=2026-11-16T11:34:40.8374097Z sha=6b1f19ee489b
+12:34:57.071 file after the exit: size=3797 mtime=2026-11-16T11:34:40.8374097Z sha=6b1f19ee489b
+12:34:58.143 verdict: after-flow.kdbx sha=6b1f19ee489b v4.0 KG1=kept KG2=kept KG3=gone NewKey=gone DZ=none D1=rec X1=x1-old[] P1=p1-old[] P2=p2-window[p2-old] Q1=q1-old[] Q2=q2-old[] Q3=q3-old[] K=k-old[] NO=absent NW=absent entries=9 records=1
+12:34:58.169 verdict: db.kdbx sha=6b1f19ee489b v4.0 KG1=kept KG2=kept KG3=gone NewKey=gone DZ=none D1=rec X1=x1-old[] P1=p1-old[] P2=p2-window[p2-old] Q1=q1-old[] Q2=q2-old[] Q3=q3-old[] K=k-old[] NO=absent NW=absent entries=9 records=1
+12:34:58.184 verdict: window-before.kdbx sha=2ff7a751a869 v4.1 KG1=kept KG2=kept KG3=gone NewKey=gone DZ=none D1=rec X1=x1-old[] P1=p1-old[] P2=p2-old[] Q1=q1-old[] Q2=q2-old[] Q3=q3-old[] K=k-old[] NO=absent NW=absent entries=9 records=1
+12:34:58.193 verdict: NEW-fixed.kdbx sha=74dd75d7243e v4.1 KG1=kept KG2=kept KG3=kept NewKey=kept DZ=rec D1=rec X1=gone+rec P1=p1-other[p1-old] P2=p2-old[] Q1=q1-other[q1-old] Q2=q2-other[q2-old] Q3=q3-other[q3-old] K=k-old[] NO=no-other@Passwords NW=absent entries=10 records=3
+12:34:58.225 backup file: db.old.kdbx size=5013 mtime=2026-11-16T11:33:46.2331510Z sha=74dd75d7243e
+12:34:58.430 backup verdict: db.old.kdbx sha=74dd75d7243e v4.1 KG1=kept KG2=kept KG3=kept NewKey=kept DZ=rec D1=rec X1=gone+rec P1=p1-other[p1-old] P2=p2-old[] Q1=q1-other[q1-old] Q2=q2-other[q2-old] Q3=q3-other[q3-old] K=k-old[] NO=no-other@Passwords NW=absent entries=10 records=3

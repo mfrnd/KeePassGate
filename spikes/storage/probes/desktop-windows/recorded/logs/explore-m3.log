@@ -1,0 +1,48 @@
+10:21:39.766 config: 
+10:21:53.845 started KeePass pid=10960 token: TokenIsElevated=1 ElevationType=2 Integrity=0x3000 AdministratorsEnabled=False
+10:21:54.213 main window: <<db.kdbx - KeePass>>
+10:21:56.211 entry view: <<>>
+10:21:56.400 column <<Title>>
+10:21:56.410 column <<User Name>>
+10:21:56.417 column <<Password>>
+10:21:56.429 column <<URL>>
+10:21:56.435 column <<Notes>>
+10:21:57.120 shot m3-main.png (1100 x 720)
+10:21:57.242 combo <<>> h=717161314 388,76,121,23
+10:21:57.315 kid WindowsForms10.RICHEDIT50W.app.0.2bf8098_r6_ad1 48,612,1132,710 <<Group: Passwords.>>
+10:21:57.328 kid WindowsForms10.COMBOBOX.app.0.2bf8098_r6_ad1 388,76,509,99 <<>>
+10:21:57.338 kid Edit 391,79,489,96 <<>>
+10:22:01.049 tab 1 <<General>>
+10:22:01.065 tab 2 <<Advanced>>
+10:22:01.072 tab 3 <<Properties>>
+10:22:01.077 tab 4 <<Auto-Type>>
+10:22:01.081 tab 5 <<History>>
+10:22:02.846 shot m3-advanced.png (495 x 515)
+10:22:02.907 adv kid WindowsForms10.SysTabControl32 353,214,828,582 en=True <<>>
+10:22:02.913 adv kid WindowsForms10.Window.8 357,236,824,578 en=True <<Advanced>>
+10:22:02.917 adv kid WindowsForms10.Window.8 363,410,818,572 en=True <<File attachments>>
+10:22:02.925 adv kid WindowsForms10.BUTTON 737,514,812,537 en=False <<Ope&n>>
+10:22:02.933 adv kid WindowsForms10.BUTTON 737,543,812,566 en=False <<&Save>>
+10:22:02.940 adv kid WindowsForms10.BUTTON 737,458,812,481 en=False <<De&lete>>
+10:22:02.951 adv kid WindowsForms10.BUTTON 737,429,812,452 en=True <<A&ttach>>
+10:22:02.959 adv kid WindowsForms10.SysListView32 369,430,731,565 en=True <<>>
+10:22:02.964 adv kid SysHeader32 371,432,729,456 en=True <<>>
+10:22:02.968 adv kid WindowsForms10.Window.8 363,242,818,404 en=True <<String fields>>
+10:22:02.976 adv kid WindowsForms10.BUTTON 737,375,812,398 en=True <<&More>>
+10:22:02.980 adv kid WindowsForms10.BUTTON 737,261,812,284 en=True <<&Add>>
+10:22:02.986 adv kid WindowsForms10.BUTTON 737,290,812,313 en=False <<&Edit>>
+10:22:02.992 adv kid WindowsForms10.BUTTON 737,319,812,342 en=False <<&Delete>>
+10:22:03.007 adv kid WindowsForms10.SysListView32 369,262,731,397 en=True <<>>
+10:22:03.014 adv kid SysHeader32 371,264,729,288 en=True <<>>
+10:22:03.019 adv kid WindowsForms10.STATIC 345,593,834,595 en=True <<>>
+10:22:03.028 adv kid WindowsForms10.Window.8 345,148,834,208 en=True <<>>
+10:22:03.034 adv kid WindowsForms10.BUTTON 355,601,435,624 en=True <<T&ools>>
+10:22:03.042 adv kid WindowsForms10.BUTTON 744,601,824,624 en=True <<Cancel>>
+10:22:03.050 adv kid WindowsForms10.BUTTON 658,601,738,624 en=True <<OK>>
+10:22:03.137 list 119931944 item 1 role=34 <<u1.txt>> value=<<>> desc=<<Size: 1 KB>>
+10:22:03.168 list 45417496 item 1 role=34 <<Extra>> value=<<>> desc=<<Value: zqxextra-u1>>
+10:22:03.177 list 45417496 item 2 role=34 <<KPG.Ref>> value=<<>> desc=<<Value: zqxref-u1 {"rule":"KG1"}>>
+10:22:06.500 menu: <<Print>>
+10:22:09.585 [print] WINDOW title=<<>> class=SysShadow
+10:22:10.781 shot print failed: The property 'X' cannot be found on this object. Verify that the property exists.
+10:22:16.956 stopping KeePass pid=10960

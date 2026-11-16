@@ -1,0 +1,217 @@
+11:48:29.383 keepassxc config: General/AutoSaveAfterEveryChange=false
+11:52:54.859 keepassxc config: General/AutoSaveAfterEveryChange=false
+11:53:06.113 started KeePassXC pid=4440 token: TokenIsElevated=1 ElevationType=2 Integrity=0x3000 AdministratorsEnabled=False
+11:53:06.877 answered the update question No
+11:53:25.178 stopping KeePassXC pid=4440
+11:54:22.760 keepassxc config: General/AutoSaveAfterEveryChange=false
+11:54:33.986 started KeePassXC pid=18560 token: TokenIsElevated=1 ElevationType=2 Integrity=0x3000 AdministratorsEnabled=False
+11:54:34.792 answered the update question No
+11:54:40.271 KeePassXC window: <<Desk probe (invented) - KeePassXC>>
+11:54:42.942 shot xc-main.png (802 x 632)
+11:54:43.059 [main] Group id=Application.MainWindow.centralwidget name=<<>> val=<<>> en=True rect=240;158;800;494 [Invoke+Value]
+11:54:43.104 [main]   Custom id=Application.MainWindow.centralwidget.toolbarSeparator name=<<>> val=<<>> en=True rect=240;158;800;3 [Invoke+Value]
+11:54:43.140 [main]   Pane id=Application.MainWindow.centralwidget.stackedWidget name=<<>> val=<<>> en=True rect=240;161;800;491 [Invoke+Value]
+11:54:43.181 [main]     Group id=Application.MainWindow.centralwidget.stackedWidget.pageDatabase name=<<>> val=<<>> en=True rect=240;161;800;491 [Invoke+Value]
+11:54:43.208 [main]       Group id=Application.MainWindow.centralwidget.stackedWidget.pageDatabase.tabWidget name=<<>> val=<<>> en=True rect=240;161;800;491 [Invoke+Value]
+11:54:43.244 [main]         Pane id=Application.MainWindow.centralwidget.stackedWidget.pageDatabase.tabWidget.qt_tabwidget_stackedwidget name=<<>> val=<<>> en=True rect=240;161;800;491 [Invoke+Value]
+11:54:43.295 [main]           Pane id=Application.MainWindow.centralwidget.stackedWidget.pageDatabase.tabWidget.qt_tabwidget_stackedwidget.DatabaseWidget name=<<>> val=<<>> en=True rect=240;161;800;491 [Invoke+Value]
+11:54:43.330 [main]             Group id=Application.MainWindow.centralwidget.stackedWidget.pageDatabase.tabWidget.qt_tabwidget_stackedwidget.DatabaseWidget.QWidget name=<<>> val=<<>> en=True rect=240;161;800;491 [Invoke+Value]
+11:54:43.363 [main]               Custom id=Application.MainWindow.centralwidget.stackedWidget.pageDatabase.tabWidget.qt_tabwidget_stackedwidget.DatabaseWidget.QWidget.QSplitter name=<<>> val=<<>> en=True rect=249;170;782;473 [Invoke+Value]
+11:54:43.385 [main]                 Custom id=Application.MainWindow.centralwidget.stackedWidget.pageDatabase.tabWidget.qt_tabwidget_stackedwidget.DatabaseWidget.QWidget.QSplitter.QSplitter name=<<>> val=<<>> en=True rect=249;170;200;473 [Invoke+Value]
+11:54:43.406 [main]                   Group id=Application.MainWindow.centralwidget.stackedWidget.pageDatabase.tabWidget.qt_tabwidget_stackedwidget.DatabaseWidget.QWidget.QSplitter.QSplitter.tagWidget name=<<>> val=<<>> en=True rect=249;447;200;196 [Invoke+Value]
+11:54:43.432 [main]                     Text id=Application.MainWindow.centralwidget.stackedWidget.pageDatabase.tabWidget.qt_tabwidget_stackedwidget.DatabaseWidget.QWidget.QSplitter.QSplitter.tagWidget.QLabel name=<<Searches and Tags>> val=<<>> en=True rect=249;447;200;16 [Invoke]
+11:54:43.466 [main]                     List id=Application.MainWindow.centralwidget.stackedWidget.pageDatabase.tabWidget.qt_tabwidget_stackedwidget.DatabaseWidget.QWidget.QSplitter.QSplitter.tagWidget.tagView name=<<>> val=<<>> en=True rect=249;469;200;174 [Invoke+Selection+Value]
+11:54:43.490 [main]                       ListItem id=Application.MainWindow.centralwidget.stackedWidget.pageDatabase.tabWidget.qt_tabwidget_stackedwidget.DatabaseWidget.QWidget.QSplitter.QSplitter.tagWidget.tagView name=<<Clear Search>> val=<<>> en=True rect=249;469;200;24 [Invoke+Value+SelectionItem]
+11:54:43.518 [main]                       ListItem id=Application.MainWindow.centralwidget.stackedWidget.pageDatabase.tabWidget.qt_tabwidget_stackedwidget.DatabaseWidget.QWidget.QSplitter.QSplitter.tagWidget.tagView name=<<All Entries>> val=<<>> en=True rect=249;493;200;24 [Invoke+Value+SelectionItem]
+11:54:43.547 [main]                       ListItem id=Application.MainWindow.centralwidget.stackedWidget.pageDatabase.tabWidget.qt_tabwidget_stackedwidget.DatabaseWidget.QWidget.QSplitter.QSplitter.tagWidget.tagView name=<<Expired>> val=<<>> en=True rect=249;517;200;24 [Invoke+Value+SelectionItem]
+11:54:43.579 [main]                       ListItem id=Application.MainWindow.centralwidget.stackedWidget.pageDatabase.tabWidget.qt_tabwidget_stackedwidget.DatabaseWidget.QWidget.QSplitter.QSplitter.tagWidget.tagView name=<<Weak Passwords>> val=<<>> en=True rect=249;541;200;24 [Invoke+Value+SelectionItem]
+11:54:43.607 [main]                       ListItem id=Application.MainWindow.centralwidget.stackedWidget.pageDatabase.tabWidget.qt_tabwidget_stackedwidget.DatabaseWidget.QWidget.QSplitter.QSplitter.tagWidget.tagView name=<<TOTP Entries>> val=<<>> en=True rect=249;565;200;24 [Invoke+Value+SelectionItem]
+11:54:43.635 [main]                   Tree id=Application.MainWindow.centralwidget.stackedWidget.pageDatabase.tabWidget.qt_tabwidget_stackedwidget.DatabaseWidget.QWidget.QSplitter.QSplitter.groupView name=<<>> val=<<>> en=True rect=249;170;200;272 [Invoke+Selection+Value+Grid+Table]
+11:54:43.661 [main]                     TreeItem id=Application.MainWindow.centralwidget.stackedWidget.pageDatabase.tabWidget.qt_tabwidget_stackedwidget.DatabaseWidget.QWidget.QSplitter.QSplitter.groupView name=<<Desk probe>> val=<<>> en=True rect=265;170;184;30 [Invoke+Value+ExpandCollapse+GridItem+SelectionItem+TableItem]
+11:54:43.686 [main]                     TreeItem id=Application.MainWindow.centralwidget.stackedWidget.pageDatabase.tabWidget.qt_tabwidget_stackedwidget.DatabaseWidget.QWidget.QSplitter.QSplitter.groupView name=<<KeePassGate>> val=<<>> en=True rect=281;200;168;30 [Invoke+Value+GridItem+SelectionItem+TableItem]
+11:54:43.709 [main]                     TreeItem id=Application.MainWindow.centralwidget.stackedWidget.pageDatabase.tabWidget.qt_tabwidget_stackedwidget.DatabaseWidget.QWidget.QSplitter.QSplitter.groupView name=<<Passwords>> val=<<>> en=True rect=281;230;168;30 [Invoke+Value+GridItem+SelectionItem+TableItem]
+11:54:43.731 [main]                     TreeItem id=Application.MainWindow.centralwidget.stackedWidget.pageDatabase.tabWidget.qt_tabwidget_stackedwidget.DatabaseWidget.QWidget.QSplitter.QSplitter.groupView name=<<Recycle Bin>> val=<<>> en=True rect=281;260;168;30 [Invoke+Value+GridItem+SelectionItem+TableItem]
+11:54:43.760 [main]                   Thumb id=Application.MainWindow.centralwidget.stackedWidget.pageDatabase.tabWidget.qt_tabwidget_stackedwidget.DatabaseWidget.QWidget.QSplitter.QSplitter.qt_splithandle_tagWidget name=<<>> val=<<>> en=True rect=249;442;200;5 [Invoke+Value]
+11:54:43.787 [main]                 Group id=Application.MainWindow.centralwidget.stackedWidget.pageDatabase.tabWidget.qt_tabwidget_stackedwidget.DatabaseWidget.QWidget.QSplitter.QWidget name=<<>> val=<<>> en=True rect=454;170;577;473 [Invoke+Value]
+11:54:43.808 [main]                   Custom id=Application.MainWindow.centralwidget.stackedWidget.pageDatabase.tabWidget.qt_tabwidget_stackedwidget.DatabaseWidget.QWidget.QSplitter.QWidget.QSplitter name=<<>> val=<<>> en=True rect=454;170;577;473 [Invoke+Value]
+11:54:43.845 [main]                     Group id=Application.MainWindow.centralwidget.stackedWidget.pageDatabase.tabWidget.qt_tabwidget_stackedwidget.DatabaseWidget.QWidget.QSplitter.QWidget.QSplitter.previewWidget name=<<>> val=<<>> en=True rect=454;353;577;290 [Invoke+Value]
+11:54:43.876 [main]                       Pane id=Application.MainWindow.centralwidget.stackedWidget.pageDatabase.tabWidget.qt_tabwidget_stackedwidget.DatabaseWidget.QWidget.QSplitter.QWidget.QSplitter.previewWidget.stackedWidget name=<<>> val=<<>> en=True rect=454;353;577;290 [Invoke+Value]
+11:54:43.899 [main]                         Group id=Application.MainWindow.centralwidget.stackedWidget.pageDatabase.tabWidget.qt_tabwidget_stackedwidget.DatabaseWidget.QWidget.QSplitter.QWidget.QSplitter.previewWidget.stackedWidget.pageGroup name=<<>> val=<<>> en=True rect=454;353;577;290 [Invoke+Value]
+11:54:43.917 [main]                           Image id=Application.MainWindow.centralwidget.stackedWidget.pageDatabase.tabWidget.qt_tabwidget_stackedwidget.DatabaseWidget.QWidget.QSplitter.QWidget.QSplitter.previewWidget.stackedWidget.pageGroup.groupIcon name=<<>> val=<<>> en=True rect=459;356;36;36 [Invoke+Value]
+11:54:43.937 [main]                           Text id=Application.MainWindow.centralwidget.stackedWidget.pageDatabase.tabWidget.qt_tabwidget_stackedwidget.DatabaseWidget.QWidget.QSplitter.QWidget.QSplitter.previewWidget.stackedWidget.pageGroup.groupTitleLabel name=<<Desk probe>> val=<<>> en=True rect=507;356;486;36 [Invoke]
+11:54:43.955 [main]                           Button id=Application.MainWindow.centralwidget.stackedWidget.pageDatabase.tabWidget.qt_tabwidget_stackedwidget.DatabaseWidget.QWidget.QSplitter.QWidget.QSplitter.previewWidget.stackedWidget.pageGroup.groupCloseButton name=<<>> val=<<>> en=True rect=999;358;32;31 [Invoke+Value]
+11:54:43.972 [main]                           Group id=Application.MainWindow.centralwidget.stackedWidget.pageDatabase.tabWidget.qt_tabwidget_stackedwidget.DatabaseWidget.QWidget.QSplitter.QWidget.QSplitter.previewWidget.stackedWidget.pageGroup.groupTabWidget name=<<>> val=<<>> en=True rect=454;401;577;242 [Invoke+Value]
+11:54:43.988 [main]                             Pane id=Application.MainWindow.centralwidget.stackedWidget.pageDatabase.tabWidget.qt_tabwidget_stackedwidget.DatabaseWidget.QWidget.QSplitter.QWidget.QSplitter.previewWidget.stackedWidget.pageGroup.groupTabWidget.qt_tabwidget_stackedwidget name=<<>> val=<<>> en=True rect=456;431;573;210 [Invoke+Value]
+11:54:44.008 [main]                               Group id=Application.MainWindow.centralwidget.stackedWidget.pageDatabase.tabWidget.qt_tabwidget_stackedwidget.DatabaseWidget.QWidget.QSplitter.QWidget.QSplitter.previewWidget.stackedWidget.pageGroup.groupTabWidget.qt_tabwidget_stackedwidget.groupGeneralTab name=<<>> val=<<>> en=True rect=456;431;573;210 [Invoke+Value]
+11:54:44.023 [main]                                 Group id=Application.MainWindow.centralwidget.stackedWidget.pageDatabase.tabWidget.qt_tabwidget_stackedwidget.DatabaseWidget.QWidget.QSplitter.QWidget.QSplitter.previewWidget.stackedWidget.pageGroup.groupTabWidget.qt_tabwidget_stackedwidget.groupGeneralTab.groupGeneralWidget name=<<>> val=<<>> en=True rect=465;440;555;192 [Invoke+Value]
+11:54:44.039 [main]                             Tab id=Application.MainWindow.centralwidget.stackedWidget.pageDatabase.tabWidget.qt_tabwidget_stackedwidget.DatabaseWidget.QWidget.QSplitter.QWidget.QSplitter.previewWidget.stackedWidget.pageGroup.groupTabWidget.qt_tabwidget_tabbar name=<<General>> val=<<>> en=True rect=454;401;117;30 [Invoke+Selection+Value]
+11:54:44.056 [main]                               TabItem id=Application.MainWindow.centralwidget.stackedWidget.pageDatabase.tabWidget.qt_tabwidget_stackedwidget.DatabaseWidget.QWidget.QSplitter.QWidget.QSplitter.previewWidget.stackedWidget.pageGroup.groupTabWidget.qt_tabwidget_tabbar name=<<General>> val=<<>> en=True rect=454;401;64;30 [Invoke+Value+SelectionItem]
+11:54:44.075 [main]                               TabItem id=Application.MainWindow.centralwidget.stackedWidget.pageDatabase.tabWidget.qt_tabwidget_stackedwidget.DatabaseWidget.QWidget.QSplitter.QWidget.QSplitter.previewWidget.stackedWidget.pageGroup.groupTabWidget.qt_tabwidget_tabbar name=<<Share>> val=<<>> en=True rect=518;401;53;30 [Invoke+Value+SelectionItem]
+11:54:44.100 [main]                     Tree id=Application.MainWindow.centralwidget.stackedWidget.pageDatabase.tabWidget.qt_tabwidget_stackedwidget.DatabaseWidget.QWidget.QSplitter.QWidget.QSplitter.entryView name=<<>> val=<<>> en=True rect=454;170;577;178 [Invoke+Selection+Value+Grid+Table]
+11:54:44.125 [main]                       Header id=Application.MainWindow.centralwidget.stackedWidget.pageDatabase.tabWidget.qt_tabwidget_stackedwidget.DatabaseWidget.QWidget.QSplitter.QWidget.QSplitter.entryView name=<<Group>> val=<<>> en=True rect=Empty [Value+SelectionItem]
+11:54:44.141 [main]                       Header id=Application.MainWindow.centralwidget.stackedWidget.pageDatabase.tabWidget.qt_tabwidget_stackedwidget.DatabaseWidget.QWidget.QSplitter.QWidget.QSplitter.entryView name=<<Title>> val=<<>> en=True rect=507;171;121;28 [Value+SelectionItem]
+11:54:44.160 [main]                       Header id=Application.MainWindow.centralwidget.stackedWidget.pageDatabase.tabWidget.qt_tabwidget_stackedwidget.DatabaseWidget.QWidget.QSplitter.QWidget.QSplitter.entryView name=<<Username>> val=<<>> en=True rect=628;171;121;28 [Value+SelectionItem]
+11:54:44.180 [main]                       Header id=Application.MainWindow.centralwidget.stackedWidget.pageDatabase.tabWidget.qt_tabwidget_stackedwidget.DatabaseWidget.QWidget.QSplitter.QWidget.QSplitter.entryView name=<<Password>> val=<<>> en=True rect=Empty [Value+SelectionItem]
+11:54:44.198 [main]                       Header id=Application.MainWindow.centralwidget.stackedWidget.pageDatabase.tabWidget.qt_tabwidget_stackedwidget.DatabaseWidget.QWidget.QSplitter.QWidget.QSplitter.entryView name=<<URL>> val=<<>> en=True rect=749;171;121;28 [Value+SelectionItem]
+11:54:44.234 [main]                       Header id=Application.MainWindow.centralwidget.stackedWidget.pageDatabase.tabWidget.qt_tabwidget_stackedwidget.DatabaseWidget.QWidget.QSplitter.QWidget.QSplitter.entryView name=<<Notes>> val=<<>> en=True rect=870;171;120;28 [Value+SelectionItem]
+11:54:44.254 [main]                       Header id=Application.MainWindow.centralwidget.stackedWidget.pageDatabase.tabWidget.qt_tabwidget_stackedwidget.DatabaseWidget.QWidget.QSplitter.QWidget.QSplitter.entryView name=<<Expires>> val=<<>> en=True rect=Empty [Value+SelectionItem]
+11:54:44.271 [main]                       Header id=Application.MainWindow.centralwidget.stackedWidget.pageDatabase.tabWidget.qt_tabwidget_stackedwidget.DatabaseWidget.QWidget.QSplitter.QWidget.QSplitter.entryView name=<<Created>> val=<<>> en=True rect=Empty [Value+SelectionItem]
+11:54:44.291 [main]                       Header id=Application.MainWindow.centralwidget.stackedWidget.pageDatabase.tabWidget.qt_tabwidget_stackedwidget.DatabaseWidget.QWidget.QSplitter.QWidget.QSplitter.entryView name=<<Modified>> val=<<>> en=True rect=990;171;120;28 [Value+SelectionItem]
+11:54:44.311 [main]                       Header id=Application.MainWindow.centralwidget.stackedWidget.pageDatabase.tabWidget.qt_tabwidget_stackedwidget.DatabaseWidget.QWidget.QSplitter.QWidget.QSplitter.entryView name=<<>> val=<<>> en=True rect=Empty [Value+SelectionItem]
+11:54:44.331 [main]                       Header id=Application.MainWindow.centralwidget.stackedWidget.pageDatabase.tabWidget.qt_tabwidget_stackedwidget.DatabaseWidget.QWidget.QSplitter.QWidget.QSplitter.entryView name=<<>> val=<<>> en=True rect=455;171;26;28 [Value+SelectionItem]
+11:54:44.350 [main]                       Header id=Application.MainWindow.centralwidget.stackedWidget.pageDatabase.tabWidget.qt_tabwidget_stackedwidget.DatabaseWidget.QWidget.QSplitter.QWidget.QSplitter.entryView name=<<Attachments>> val=<<>> en=True rect=Empty [Value+SelectionItem]
+11:54:44.374 [main]                       Header id=Application.MainWindow.centralwidget.stackedWidget.pageDatabase.tabWidget.qt_tabwidget_stackedwidget.DatabaseWidget.QWidget.QSplitter.QWidget.QSplitter.entryView name=<<>> val=<<>> en=True rect=481;171;26;28 [Value+SelectionItem]
+11:54:44.391 [main]                       Header id=Application.MainWindow.centralwidget.stackedWidget.pageDatabase.tabWidget.qt_tabwidget_stackedwidget.DatabaseWidget.QWidget.QSplitter.QWidget.QSplitter.entryView name=<<Size>> val=<<>> en=True rect=Empty [Value+SelectionItem]
+11:54:44.411 [main]                       Header id=Application.MainWindow.centralwidget.stackedWidget.pageDatabase.tabWidget.qt_tabwidget_stackedwidget.DatabaseWidget.QWidget.QSplitter.QWidget.QSplitter.entryView name=<<>> val=<<>> en=True rect=Empty [Value+SelectionItem]
+11:54:44.430 [main]                       Header id=Application.MainWindow.centralwidget.stackedWidget.pageDatabase.tabWidget.qt_tabwidget_stackedwidget.DatabaseWidget.QWidget.QSplitter.QWidget.QSplitter.entryView name=<<>> val=<<>> en=True rect=Empty [Value+SelectionItem]
+11:54:44.445 [main]                       Header id=Application.MainWindow.centralwidget.stackedWidget.pageDatabase.tabWidget.qt_tabwidget_stackedwidget.DatabaseWidget.QWidget.QSplitter.QWidget.QSplitter.entryView name=<<Group Path>> val=<<>> en=True rect=Empty [Value+SelectionItem]
+11:54:44.471 [main]                     Thumb id=Application.MainWindow.centralwidget.stackedWidget.pageDatabase.tabWidget.qt_tabwidget_stackedwidget.DatabaseWidget.QWidget.QSplitter.QWidget.QSplitter.qt_splithandle_previewWidget name=<<>> val=<<>> en=True rect=454;348;577;5 [Invoke+Value]
+11:54:44.489 [main]                 Thumb id=Application.MainWindow.centralwidget.stackedWidget.pageDatabase.tabWidget.qt_tabwidget_stackedwidget.DatabaseWidget.QWidget.QSplitter.qt_splithandle_ name=<<>> val=<<>> en=True rect=449;170;5;473 [Invoke+Value]
+11:54:44.544 [main] MenuBar id=Application.MainWindow.menubar name=<<>> val=<<>> en=True rect=240;76;800;27 [Invoke+Value]
+11:54:44.566 [main]   MenuItem id=Application.MainWindow.menubar.QAction name=<<Database>> val=<<>> en=True rect=240;76;64;27 [Invoke+Value+ExpandCollapse]
+11:54:44.586 [main]   MenuItem id=Application.MainWindow.menubar.QAction name=<<Entries>> val=<<>> en=True rect=304;76;51;27 [Invoke+Value+ExpandCollapse]
+11:54:44.604 [main]   MenuItem id=Application.MainWindow.menubar.QAction name=<<Groups>> val=<<>> en=True rect=355;76;54;27 [Invoke+Value+ExpandCollapse]
+11:54:44.627 [main]   MenuItem id=Application.MainWindow.menubar.QAction name=<<Tools>> val=<<>> en=True rect=409;76;44;27 [Invoke+Value+ExpandCollapse]
+11:54:44.646 [main]   MenuItem id=Application.MainWindow.menubar.QAction name=<<View>> val=<<>> en=True rect=453;76;41;27 [Invoke+Value+ExpandCollapse]
+11:54:44.674 [main]   MenuItem id=Application.MainWindow.menubar.QAction name=<<Help>> val=<<>> en=True rect=494;76;41;27 [Invoke+Value+ExpandCollapse]
+11:54:44.700 [main] ToolBar id=Application.MainWindow.toolBar name=<<>> val=<<>> en=True rect=240;103;800;55 [Invoke+Value]
+11:54:44.733 [main]   CheckBox id=Application.MainWindow.toolBar.qt_toolbar_ext_button name=<<>> val=<<>> en=True rect=1002;110;32;41 [Invoke+Value+Toggle]
+11:54:44.763 [main]   Button id=Application.MainWindow.toolBar.QToolButton name=<<Open Database>> val=<<>> en=True rect=247;110;42;41 [Invoke+Value]
+11:54:44.785 [main]   Button id=Application.MainWindow.toolBar.QToolButton name=<<Save Database>> val=<<>> en=False rect=290;110;42;41 [Invoke+Value]
+11:54:44.805 [main]   Button id=Application.MainWindow.toolBar.QToolButton name=<<Lock Database>> val=<<>> en=True rect=333;110;54;41 [Invoke+Value]
+11:54:44.826 [main]   Group id=Application.MainWindow.toolBar.QToolBarSeparator name=<<>> val=<<>> en=True rect=388;110;9;41 [Invoke+Value]
+11:54:44.857 [main]   Button id=Application.MainWindow.toolBar.QToolButton name=<<New Entry>> val=<<>> en=True rect=398;110;42;41 [Invoke+Value]
+11:54:44.880 [main]   Button id=Application.MainWindow.toolBar.QToolButton name=<<Edit Entry…>> val=<<>> en=False rect=441;110;42;41 [Invoke+Value]
+11:54:44.906 [main]   Button id=Application.MainWindow.toolBar.QToolButton name=<<Delete Entry>> val=<<>> en=False rect=484;110;42;41 [Invoke+Value]
+11:54:44.933 [main]   Group id=Application.MainWindow.toolBar.QToolBarSeparator name=<<>> val=<<>> en=True rect=527;110;9;41 [Invoke+Value]
+11:54:44.953 [main]   Button id=Application.MainWindow.toolBar.QToolButton name=<<Copy Username>> val=<<>> en=False rect=537;110;42;41 [Invoke+Value]
+11:54:44.972 [main]   Button id=Application.MainWindow.toolBar.QToolButton name=<<Copy Password>> val=<<>> en=False rect=580;110;42;41 [Invoke+Value]
+11:54:44.994 [main]   Button id=Application.MainWindow.toolBar.QToolButton name=<<Copy URL>> val=<<>> en=False rect=623;110;42;41 [Invoke+Value]
+11:54:45.014 [main]   Button id=Application.MainWindow.toolBar.QToolButton name=<<Perform Auto-Type>> val=<<>> en=False rect=666;110;54;41 [Invoke+Value]
+11:54:45.039 [main]   Group id=Application.MainWindow.toolBar.QToolBarSeparator name=<<>> val=<<>> en=True rect=721;110;9;41 [Invoke+Value]
+11:54:45.061 [main]   CheckBox id=Application.MainWindow.toolBar.QToolButton name=<<Database Settings>> val=<<>> en=True rect=731;110;42;41 [Invoke+Value+Toggle]
+11:54:45.085 [main]   CheckBox id=Application.MainWindow.toolBar.QToolButton name=<<Database Reports>> val=<<>> en=True rect=774;110;42;41 [Invoke+Value+Toggle]
+11:54:45.108 [main]   Group id=Application.MainWindow.toolBar.QToolBarSeparator name=<<>> val=<<>> en=True rect=817;110;9;41 [Invoke+Value]
+11:54:45.127 [main]   CheckBox id=Application.MainWindow.toolBar.QToolButton name=<<Password Generator>> val=<<>> en=True rect=827;110;42;41 [Invoke+Value+Toggle]
+11:54:45.149 [main]   CheckBox id=Application.MainWindow.toolBar.QToolButton name=<<Settings>> val=<<>> en=True rect=870;110;42;41 [Invoke+Value+Toggle]
+11:54:45.169 [main]   Group id=Application.MainWindow.toolBar.QToolBarSeparator name=<<>> val=<<>> en=True rect=913;110;9;41 [Invoke+Value]
+11:54:45.201 [main] StatusBar id=Application.MainWindow.QStatusBar name=<<>> val=<<>> en=True rect=240;652;800;24 [Invoke+Value]
+11:54:45.221 [main]   Thumb id=Application.MainWindow.QStatusBar.QSizeGrip name=<<>> val=<<>> en=True rect=1023;659;17;17 [Invoke+Value]
+11:54:45.244 [main]   Text id=Application.MainWindow.QStatusBar.statusBarLabel name=<<0 Entries>> val=<<>> en=True rect=972;655;44;19 [Invoke]
+11:54:47.432 row P2: True
+11:54:50.185 shot xc-edit.png (802 x 632)
+11:54:50.218 [edit] Group id=Application.MainWindow.centralwidget name=<<>> val=<<>> en=True rect=240;158;800;494 [Invoke+Value]
+11:54:50.238 [edit]   Custom id=Application.MainWindow.centralwidget.toolbarSeparator name=<<>> val=<<>> en=True rect=240;158;800;3 [Invoke+Value]
+11:54:50.258 [edit]   Pane id=Application.MainWindow.centralwidget.stackedWidget name=<<>> val=<<>> en=True rect=240;161;800;491 [Invoke+Value]
+11:54:50.280 [edit]     Group id=Application.MainWindow.centralwidget.stackedWidget.pageDatabase name=<<>> val=<<>> en=True rect=240;161;800;491 [Invoke+Value]
+11:54:50.307 [edit]       Group id=Application.MainWindow.centralwidget.stackedWidget.pageDatabase.tabWidget name=<<>> val=<<>> en=True rect=240;161;800;491 [Invoke+Value]
+11:54:50.335 [edit]         Pane id=Application.MainWindow.centralwidget.stackedWidget.pageDatabase.tabWidget.qt_tabwidget_stackedwidget name=<<>> val=<<>> en=True rect=240;161;800;491 [Invoke+Value]
+11:54:50.365 [edit]           Pane id=Application.MainWindow.centralwidget.stackedWidget.pageDatabase.tabWidget.qt_tabwidget_stackedwidget.DatabaseWidget name=<<>> val=<<>> en=True rect=240;161;800;491 [Invoke+Value]
+11:54:50.393 [edit]             Group id=Application.MainWindow.centralwidget.stackedWidget.pageDatabase.tabWidget.qt_tabwidget_stackedwidget.DatabaseWidget.editEntryWidget name=<<>> val=<<>> en=True rect=240;161;800;491 [Invoke+Value]
+11:54:50.413 [edit]               Text id=Application.MainWindow.centralwidget.stackedWidget.pageDatabase.tabWidget.qt_tabwidget_stackedwidget.DatabaseWidget.editEntryWidget.headerLabel name=<<Passwords • P2 • Edit entry>> val=<<>> en=True rect=251;172;778;20 [Invoke]
+11:54:50.428 [edit]               Group id=Application.MainWindow.centralwidget.stackedWidget.pageDatabase.tabWidget.qt_tabwidget_stackedwidget.DatabaseWidget.editEntryWidget.categoryList name=<<>> val=<<>> en=True rect=249;203;100;399 [Invoke+Value]
+11:54:50.447 [edit]                 Button id=Application.MainWindow.centralwidget.stackedWidget.pageDatabase.tabWidget.qt_tabwidget_stackedwidget.DatabaseWidget.editEntryWidget.categoryList.scrollUp name=<<>> val=<<>> en=False rect=249;203;100;15 [Invoke+Value]
+11:54:50.467 [edit]                 List id=Application.MainWindow.centralwidget.stackedWidget.pageDatabase.tabWidget.qt_tabwidget_stackedwidget.DatabaseWidget.editEntryWidget.categoryList.categoryList name=<<>> val=<<>> en=True rect=249;218;100;369 [Invoke+Selection+Value]
+11:54:50.489 [edit]                   ListItem id=Application.MainWindow.centralwidget.stackedWidget.pageDatabase.tabWidget.qt_tabwidget_stackedwidget.DatabaseWidget.editEntryWidget.categoryList.categoryList name=<<Entry>> val=<<>> en=True rect=250;219;100;96 [Invoke+Value+SelectionItem]
+11:54:50.507 [edit]                   ListItem id=Application.MainWindow.centralwidget.stackedWidget.pageDatabase.tabWidget.qt_tabwidget_stackedwidget.DatabaseWidget.editEntryWidget.categoryList.categoryList name=<<Advanced>> val=<<>> en=True rect=250;315;100;96 [Invoke+Value+SelectionItem]
+11:54:50.535 [edit]                   ListItem id=Application.MainWindow.centralwidget.stackedWidget.pageDatabase.tabWidget.qt_tabwidget_stackedwidget.DatabaseWidget.editEntryWidget.categoryList.categoryList name=<<Icon>> val=<<>> en=True rect=250;411;100;96 [Invoke+Value+SelectionItem]
+11:54:50.580 [edit]                   ListItem id=Application.MainWindow.centralwidget.stackedWidget.pageDatabase.tabWidget.qt_tabwidget_stackedwidget.DatabaseWidget.editEntryWidget.categoryList.categoryList name=<<Auto-Type>> val=<<>> en=True rect=250;507;100;96 [Invoke+Value+SelectionItem]
+11:54:50.610 [edit]                 Button id=Application.MainWindow.centralwidget.stackedWidget.pageDatabase.tabWidget.qt_tabwidget_stackedwidget.DatabaseWidget.editEntryWidget.categoryList.scrollDown name=<<>> val=<<>> en=True rect=249;587;100;15 [Invoke+Value]
+11:54:50.637 [edit]               Pane id=Application.MainWindow.centralwidget.stackedWidget.pageDatabase.tabWidget.qt_tabwidget_stackedwidget.DatabaseWidget.editEntryWidget.stackedWidget name=<<>> val=<<>> en=True rect=367;203;664;399 [Invoke+Value]
+11:54:50.656 [edit]                 Group id=Application.MainWindow.centralwidget.stackedWidget.pageDatabase.tabWidget.qt_tabwidget_stackedwidget.DatabaseWidget.editEntryWidget.stackedWidget.EditEntryWidgetMain name=<<>> val=<<>> en=True rect=367;203;664;399 [Invoke+Value]
+11:54:50.680 [edit]                   Group id=Application.MainWindow.centralwidget.stackedWidget.pageDatabase.tabWidget.qt_tabwidget_stackedwidget.DatabaseWidget.editEntryWidget.stackedWidget.EditEntryWidgetMain.qt_scrollarea_viewport name=<<>> val=<<>> en=True rect=367;203;652;399 [Invoke+Value]
+11:54:50.702 [edit]                     Group id=Application.MainWindow.centralwidget.stackedWidget.pageDatabase.tabWidget.qt_tabwidget_stackedwidget.DatabaseWidget.editEntryWidget.stackedWidget.EditEntryWidgetMain.qt_scrollarea_viewport.container name=<<>> val=<<>> en=True rect=367;203;652;426 [Invoke+Value]
+11:54:50.726 [edit]                       Edit id=Application.MainWindow.centralwidget.stackedWidget.pageDatabase.tabWidget.qt_tabwidget_stackedwidget.DatabaseWidget.editEntryWidget.stackedWidget.EditEntryWidgetMain.qt_scrollarea_viewport.container.titleEdit name=<<Title field>> val=<<P2>> en=True rect=433;203;586;30 [Invoke+Value+Text]
+11:54:50.748 [edit]                       Text id=Application.MainWindow.centralwidget.stackedWidget.pageDatabase.tabWidget.qt_tabwidget_stackedwidget.DatabaseWidget.editEntryWidget.stackedWidget.EditEntryWidgetMain.qt_scrollarea_viewport.container.usernameLabel name=<<Username:>> val=<<>> en=True rect=367;241;56;30 [Invoke]
+11:54:50.766 [edit]                       Group id=Application.MainWindow.centralwidget.stackedWidget.pageDatabase.tabWidget.qt_tabwidget_stackedwidget.DatabaseWidget.editEntryWidget.stackedWidget.EditEntryWidgetMain.qt_scrollarea_viewport.container.passwordEdit name=<<Password field>> val=<<>> en=True rect=433;279;586;33 [Invoke+Value]
+11:54:50.789 [edit]                         Edit id=Application.MainWindow.centralwidget.stackedWidget.pageDatabase.tabWidget.qt_tabwidget_stackedwidget.DatabaseWidget.editEntryWidget.stackedWidget.EditEntryWidgetMain.qt_scrollarea_viewport.container.passwordEdit.passwordEdit name=<<>> val=<<●●●●●●>> en=True rect=433;279;586;29 [Invoke+Value+Text]
+11:54:50.815 [edit]                           CheckBox id=Application.MainWindow.centralwidget.stackedWidget.pageDatabase.tabWidget.qt_tabwidget_stackedwidget.DatabaseWidget.editEntryWidget.stackedWidget.EditEntryWidgetMain.qt_scrollarea_viewport.container.passwordEdit.passwordEdit.QLineEditIconButton name=<<Toggle Password (Ctrl+H)>> val=<<>> en=True rect=993;284;22;18 [Invoke+Value+Toggle]
+11:54:50.841 [edit]                           Button id=Application.MainWindow.centralwidget.stackedWidget.pageDatabase.tabWidget.qt_tabwidget_stackedwidget.DatabaseWidget.editEntryWidget.stackedWidget.EditEntryWidgetMain.qt_scrollarea_viewport.container.passwordEdit.passwordEdit.QLineEditIconButton name=<<Generate Password (Ctrl+G)>> val=<<>> en=True rect=967;284;22;18 [Invoke+Value]
+11:54:50.866 [edit]                         ProgressBar id=Application.MainWindow.centralwidget.stackedWidget.pageDatabase.tabWidget.qt_tabwidget_stackedwidget.DatabaseWidget.editEntryWidget.stackedWidget.EditEntryWidgetMain.qt_scrollarea_viewport.container.passwordEdit.qualityProgressBar name=<<>> val=<<26>> en=True rect=433;308;586;4 [Invoke+Value+RangeValue]
+11:54:50.888 [edit]                       Edit id=Application.MainWindow.centralwidget.stackedWidget.pageDatabase.tabWidget.qt_tabwidget_stackedwidget.DatabaseWidget.editEntryWidget.stackedWidget.EditEntryWidgetMain.qt_scrollarea_viewport.container.notesEdit name=<<Notes field>> val=<<>> en=True rect=433;437;586;192 [Invoke+Value+Text]
+11:54:50.908 [edit]                         Group id=Application.MainWindow.centralwidget.stackedWidget.pageDatabase.tabWidget.qt_tabwidget_stackedwidget.DatabaseWidget.editEntryWidget.stackedWidget.EditEntryWidgetMain.qt_scrollarea_viewport.container.notesEdit.qt_scrollarea_viewport name=<<>> val=<<>> en=True rect=441;441;574;184 [Invoke+Value]
+11:54:50.935 [edit]                       Text id=Application.MainWindow.centralwidget.stackedWidget.pageDatabase.tabWidget.qt_tabwidget_stackedwidget.DatabaseWidget.editEntryWidget.stackedWidget.EditEntryWidgetMain.qt_scrollarea_viewport.container.titleLabel name=<<Title:>> val=<<>> en=True rect=367;203;56;30 [Invoke]
+11:54:50.956 [edit]                       Text id=Application.MainWindow.centralwidget.stackedWidget.pageDatabase.tabWidget.qt_tabwidget_stackedwidget.DatabaseWidget.editEntryWidget.stackedWidget.EditEntryWidgetMain.qt_scrollarea_viewport.container.passwordLabel name=<<Password:>> val=<<>> en=True rect=367;279;56;33 [Invoke]
+11:54:50.977 [edit]                       ComboBox id=Application.MainWindow.centralwidget.stackedWidget.pageDatabase.tabWidget.qt_tabwidget_stackedwidget.DatabaseWidget.editEntryWidget.stackedWidget.EditEntryWidgetMain.qt_scrollarea_viewport.container.usernameComboBox name=<<Username field>> val=<<user-p2>> en=True rect=433;241;586;30 [Invoke+Value+ExpandCollapse]
+11:54:51.003 [edit]                         Edit id=Application.MainWindow.centralwidget.stackedWidget.pageDatabase.tabWidget.qt_tabwidget_stackedwidget.DatabaseWidget.editEntryWidget.stackedWidget.EditEntryWidgetMain.qt_scrollarea_viewport.container.usernameComboBox.QLineEdit name=<<>> val=<<user-p2>> en=True rect=434;242;556;28 [Invoke+Value+Text]
+11:54:51.027 [edit]                       Group id=Application.MainWindow.centralwidget.stackedWidget.pageDatabase.tabWidget.qt_tabwidget_stackedwidget.DatabaseWidget.editEntryWidget.stackedWidget.EditEntryWidgetMain.qt_scrollarea_viewport.container.tagsList name=<<Tags list>> val=<<>> en=True rect=433;359;586;32 [Invoke+Value]
+11:54:51.053 [edit]                         Group id=Application.MainWindow.centralwidget.stackedWidget.pageDatabase.tabWidget.qt_tabwidget_stackedwidget.DatabaseWidget.editEntryWidget.stackedWidget.EditEntryWidgetMain.qt_scrollarea_viewport.container.tagsList.qt_scrollarea_viewport name=<<>> val=<<>> en=True rect=437;363;578;24 [Invoke+Value]
+11:54:51.076 [edit]                       CheckBox id=Application.MainWindow.centralwidget.stackedWidget.pageDatabase.tabWidget.qt_tabwidget_stackedwidget.DatabaseWidget.editEntryWidget.stackedWidget.EditEntryWidgetMain.qt_scrollarea_viewport.container.expireCheck name=<<Toggle expiration>> val=<<>> en=True rect=433;406;16;16 [Invoke+Value+Toggle]
+11:54:51.100 [edit]                       Spinner id=Application.MainWindow.centralwidget.stackedWidget.pageDatabase.tabWidget.qt_tabwidget_stackedwidget.DatabaseWidget.editEntryWidget.stackedWidget.EditEntryWidgetMain.qt_scrollarea_viewport.container.expireDatePicker name=<<Expiration field>> val=<<01.11.2026 11:00>> en=False rect=467;399;449;30 [Invoke+Value+RangeValue+Text]
+11:54:51.133 [edit]                       Button id=Application.MainWindow.centralwidget.stackedWidget.pageDatabase.tabWidget.qt_tabwidget_stackedwidget.DatabaseWidget.editEntryWidget.stackedWidget.EditEntryWidgetMain.qt_scrollarea_viewport.container.expirePresets name=<<Expiration presets>> val=<<>> en=True rect=924;399;95;30 [Invoke+Value]
+11:54:51.153 [edit]                       Text id=Application.MainWindow.centralwidget.stackedWidget.pageDatabase.tabWidget.qt_tabwidget_stackedwidget.DatabaseWidget.editEntryWidget.stackedWidget.EditEntryWidgetMain.qt_scrollarea_viewport.container.urlLabel name=<<URL:>> val=<<>> en=True rect=367;320;56;31 [Invoke]
+11:54:51.181 [edit]                       Edit id=Application.MainWindow.centralwidget.stackedWidget.pageDatabase.tabWidget.qt_tabwidget_stackedwidget.DatabaseWidget.editEntryWidget.stackedWidget.EditEntryWidgetMain.qt_scrollarea_viewport.container.urlEdit name=<<Url field>> val=<<>> en=True rect=433;320;546;30 [Invoke+Value+Text]
+11:54:51.214 [edit]                       Button id=Application.MainWindow.centralwidget.stackedWidget.pageDatabase.tabWidget.qt_tabwidget_stackedwidget.DatabaseWidget.editEntryWidget.stackedWidget.EditEntryWidgetMain.qt_scrollarea_viewport.container.fetchFaviconButton name=<<Download favicon for URL>> val=<<>> en=False rect=987;320;32;31 [Invoke+Value]
+11:54:51.236 [edit]                       Text id=Application.MainWindow.centralwidget.stackedWidget.pageDatabase.tabWidget.qt_tabwidget_stackedwidget.DatabaseWidget.editEntryWidget.stackedWidget.EditEntryWidgetMain.qt_scrollarea_viewport.container.notesLabel name=<<Notes:>> val=<<>> en=True rect=367;437;56;16 [Invoke]
+11:54:51.264 [edit]                       Text id=Application.MainWindow.centralwidget.stackedWidget.pageDatabase.tabWidget.qt_tabwidget_stackedwidget.DatabaseWidget.editEntryWidget.stackedWidget.EditEntryWidgetMain.qt_scrollarea_viewport.container.tagsLabel name=<<Tags:>> val=<<>> en=True rect=367;359;56;32 [Invoke]
+11:54:51.304 [edit]                       Text id=Application.MainWindow.centralwidget.stackedWidget.pageDatabase.tabWidget.qt_tabwidget_stackedwidget.DatabaseWidget.editEntryWidget.stackedWidget.EditEntryWidgetMain.qt_scrollarea_viewport.container.expireLabel name=<<Expires:>> val=<<>> en=True rect=367;399;56;30 [Invoke]
+11:54:51.341 [edit]                   Group id=Application.MainWindow.centralwidget.stackedWidget.pageDatabase.tabWidget.qt_tabwidget_stackedwidget.DatabaseWidget.editEntryWidget.stackedWidget.EditEntryWidgetMain.qt_scrollarea_vcontainer name=<<>> val=<<>> en=True rect=1019;203;12;399 [Invoke+Value]
+11:54:51.384 [edit]                     ScrollBar id=Application.MainWindow.centralwidget.stackedWidget.pageDatabase.tabWidget.qt_tabwidget_stackedwidget.DatabaseWidget.editEntryWidget.stackedWidget.EditEntryWidgetMain.qt_scrollarea_vcontainer.QScrollBar name=<<>> val=<<0>> en=True rect=1019;203;12;399 [Invoke+Value+RangeValue]
+11:54:51.411 [edit]               Group id=Application.MainWindow.centralwidget.stackedWidget.pageDatabase.tabWidget.qt_tabwidget_stackedwidget.DatabaseWidget.editEntryWidget.buttonBox name=<<>> val=<<>> en=True rect=249;613;782;30 [Invoke+Value]
+11:54:51.434 [edit]                 Button id=Application.MainWindow.centralwidget.stackedWidget.pageDatabase.tabWidget.qt_tabwidget_stackedwidget.DatabaseWidget.editEntryWidget.buttonBox.QPushButton name=<<OK>> val=<<>> en=True rect=777;613;80;30 [Invoke+Value]
+11:54:51.468 [edit]                 Button id=Application.MainWindow.centralwidget.stackedWidget.pageDatabase.tabWidget.qt_tabwidget_stackedwidget.DatabaseWidget.editEntryWidget.buttonBox.QPushButton name=<<Cancel>> val=<<>> en=True rect=863;613;82;30 [Invoke+Value]
+11:54:51.495 [edit]                 Button id=Application.MainWindow.centralwidget.stackedWidget.pageDatabase.tabWidget.qt_tabwidget_stackedwidget.DatabaseWidget.editEntryWidget.buttonBox.QPushButton name=<<Apply>> val=<<>> en=False rect=951;613;80;30 [Invoke+Value]
+11:54:51.521 [edit]               Group id=Application.MainWindow.centralwidget.stackedWidget.pageDatabase.tabWidget.qt_tabwidget_stackedwidget.DatabaseWidget.editEntryWidget.QWidget name=<<>> val=<<>> en=True rect=240;161;100;30 [Invoke+Value]
+11:54:51.588 [edit] MenuBar id=Application.MainWindow.menubar name=<<>> val=<<>> en=True rect=240;76;800;27 [Invoke+Value]
+11:54:51.607 [edit]   MenuItem id=Application.MainWindow.menubar.QAction name=<<Database>> val=<<>> en=True rect=240;76;64;27 [Invoke+Value+ExpandCollapse]
+11:54:51.628 [edit]   MenuItem id=Application.MainWindow.menubar.QAction name=<<Entries>> val=<<>> en=True rect=304;76;51;27 [Invoke+Value+ExpandCollapse]
+11:54:51.645 [edit]   MenuItem id=Application.MainWindow.menubar.QAction name=<<Groups>> val=<<>> en=True rect=355;76;54;27 [Invoke+Value+ExpandCollapse]
+11:54:51.659 [edit]   MenuItem id=Application.MainWindow.menubar.QAction name=<<Tools>> val=<<>> en=True rect=409;76;44;27 [Invoke+Value+ExpandCollapse]
+11:54:51.685 [edit]   MenuItem id=Application.MainWindow.menubar.QAction name=<<View>> val=<<>> en=True rect=453;76;41;27 [Invoke+Value+ExpandCollapse]
+11:54:51.706 [edit]   MenuItem id=Application.MainWindow.menubar.QAction name=<<Help>> val=<<>> en=True rect=494;76;41;27 [Invoke+Value+ExpandCollapse]
+11:54:51.738 [edit] ToolBar id=Application.MainWindow.toolBar name=<<>> val=<<>> en=True rect=240;103;800;55 [Invoke+Value]
+11:54:51.757 [edit]   CheckBox id=Application.MainWindow.toolBar.qt_toolbar_ext_button name=<<>> val=<<>> en=True rect=1002;110;32;41 [Invoke+Value+Toggle]
+11:54:51.784 [edit]   Button id=Application.MainWindow.toolBar.QToolButton name=<<Open Database>> val=<<>> en=True rect=247;110;42;41 [Invoke+Value]
+11:54:51.799 [edit]   Button id=Application.MainWindow.toolBar.QToolButton name=<<Save Database>> val=<<>> en=False rect=290;110;42;41 [Invoke+Value]
+11:54:51.816 [edit]   Button id=Application.MainWindow.toolBar.QToolButton name=<<Lock Database>> val=<<>> en=True rect=333;110;54;41 [Invoke+Value]
+11:54:51.831 [edit]   Group id=Application.MainWindow.toolBar.QToolBarSeparator name=<<>> val=<<>> en=True rect=388;110;9;41 [Invoke+Value]
+11:54:51.851 [edit]   Button id=Application.MainWindow.toolBar.QToolButton name=<<New Entry>> val=<<>> en=False rect=398;110;42;41 [Invoke+Value]
+11:54:51.869 [edit]   Button id=Application.MainWindow.toolBar.QToolButton name=<<Edit Entry…>> val=<<>> en=False rect=441;110;42;41 [Invoke+Value]
+11:54:51.887 [edit]   Button id=Application.MainWindow.toolBar.QToolButton name=<<Delete Entry>> val=<<>> en=False rect=484;110;42;41 [Invoke+Value]
+11:54:51.911 [edit]   Group id=Application.MainWindow.toolBar.QToolBarSeparator name=<<>> val=<<>> en=True rect=527;110;9;41 [Invoke+Value]
+11:54:51.934 [edit]   Button id=Application.MainWindow.toolBar.QToolButton name=<<Copy Username>> val=<<>> en=True rect=537;110;42;41 [Invoke+Value]
+11:54:51.952 [edit]   Button id=Application.MainWindow.toolBar.QToolButton name=<<Copy Password>> val=<<>> en=True rect=580;110;42;41 [Invoke+Value]
+11:54:51.971 [edit]   Button id=Application.MainWindow.toolBar.QToolButton name=<<Copy URL>> val=<<>> en=False rect=623;110;42;41 [Invoke+Value]
+11:54:51.990 [edit]   Button id=Application.MainWindow.toolBar.QToolButton name=<<Perform Auto-Type>> val=<<>> en=False rect=666;110;54;41 [Invoke+Value]
+11:54:52.015 [edit]   Group id=Application.MainWindow.toolBar.QToolBarSeparator name=<<>> val=<<>> en=True rect=721;110;9;41 [Invoke+Value]
+11:54:52.037 [edit]   CheckBox id=Application.MainWindow.toolBar.QToolButton name=<<Database Settings>> val=<<>> en=False rect=731;110;42;41 [Invoke+Value+Toggle]
+11:54:52.058 [edit]   CheckBox id=Application.MainWindow.toolBar.QToolButton name=<<Database Reports>> val=<<>> en=False rect=774;110;42;41 [Invoke+Value+Toggle]
+11:54:52.085 [edit]   Group id=Application.MainWindow.toolBar.QToolBarSeparator name=<<>> val=<<>> en=True rect=817;110;9;41 [Invoke+Value]
+11:54:52.106 [edit]   CheckBox id=Application.MainWindow.toolBar.QToolButton name=<<Password Generator>> val=<<>> en=True rect=827;110;42;41 [Invoke+Value+Toggle]
+11:54:52.121 [edit]   CheckBox id=Application.MainWindow.toolBar.QToolButton name=<<Settings>> val=<<>> en=True rect=870;110;42;41 [Invoke+Value+Toggle]
+11:54:52.141 [edit]   Group id=Application.MainWindow.toolBar.QToolBarSeparator name=<<>> val=<<>> en=True rect=913;110;9;41 [Invoke+Value]
+11:54:52.164 [edit] StatusBar id=Application.MainWindow.QStatusBar name=<<>> val=<<>> en=True rect=240;652;800;24 [Invoke+Value]
+11:54:52.181 [edit]   Thumb id=Application.MainWindow.QStatusBar.QSizeGrip name=<<>> val=<<>> en=True rect=1023;659;17;17 [Invoke+Value]
+11:54:52.205 [edit]   Text id=Application.MainWindow.QStatusBar.statusBarLabel name=<<7 Entries>> val=<<>> en=True rect=972;655;44;19 [Invoke]
+11:54:53.394 menu <<Database>>
+11:54:53.402 menu <<Entries>>
+11:54:53.406 menu <<Groups>>
+11:54:53.412 menu <<Tools>>
+11:54:53.417 menu <<View>>
+11:54:53.422 menu <<Help>>
+11:54:55.094 db menu <<Database>> off=False
+11:54:55.100 db menu <<New Database…>> off=False
+11:54:55.112 db menu <<Open Database…>> off=False
+11:54:55.119 db menu <<Recent Databases>> off=False
+11:54:55.132 db menu <<Save Database>> off=False
+11:54:55.140 db menu <<Save Database As…>> off=False
+11:54:55.150 db menu <<Save Database Backup…>> off=False
+11:54:55.158 db menu <<Close Database>> off=False
+11:54:55.173 db menu <<Lock Database>> off=False
+11:54:55.179 db menu <<Lock All Databases>> off=False
+11:54:55.188 db menu <<Database Settings…>> off=False
+11:54:55.198 db menu <<Database Security…>> off=False
+11:54:55.206 db menu <<Database Reports…>> off=False
+11:54:55.214 db menu <<Passkeys…>> off=False
+11:54:55.219 db menu <<Import Passkey>> off=False
+11:54:55.230 db menu <<Merge From Database…>> off=False
+11:54:55.235 db menu <<Remote Sync…>> off=False
+11:54:55.243 db menu <<Import…>> off=False
+11:54:55.253 db menu <<Export>> off=False
+11:54:55.263 db menu <<Quit>> off=False
+11:54:55.275 db menu <<Entries>> off=False
+11:54:55.282 db menu <<Groups>> off=False
+11:54:55.287 db menu <<Tools>> off=False
+11:54:55.293 db menu <<View>> off=False
+11:54:55.300 db menu <<Help>> off=False
+11:54:56.388 stopping KeePassXC pid=18560

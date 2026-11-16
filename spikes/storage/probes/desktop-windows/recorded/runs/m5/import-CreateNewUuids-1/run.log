@@ -1,0 +1,129 @@
+12:52:39.803 ==== import-CreateNewUuids-1 : File, Import, KDBX, Create new IDs
+12:52:39.913 db: size=3413 mtime=2026-11-16T08:31:56.2778845Z sha=2ff7a751a869; other: size=5013 mtime=2026-11-16T08:32:08.8042697Z sha=74dd75d7243e
+12:52:39.944 config: 
+12:52:52.507 started KeePass pid=13548 token: TokenIsElevated=1 ElevationType=2 Integrity=0x3000 AdministratorsEnabled=False
+12:52:52.836 main window: <<db.kdbx - KeePass>>
+12:52:53.223 group rows: Desk probe, KeePassGate, Passwords, Recycle Bin
+12:52:55.141 menu: <<Import...>>
+12:52:56.959 [import-CreateNewUuids-1-import] WINDOW title=<<Import File/Data>> class=WindowsForms10.Window.8.app.0.2bf8098_r6_ad1
+12:52:57.155 [import-CreateNewUuids-1-import]   Pane name=<<General>>
+12:52:57.185 [import-CreateNewUuids-1-import]   Group name=<<Format>>
+12:52:57.193 [import-CreateNewUuids-1-import]   Group name=<<Source>>
+12:52:57.196 [import-CreateNewUuids-1-import]   Pane name=<<Help: Configuring source applications>>
+12:52:57.207 [import-CreateNewUuids-1-import]   Text name=<<File(s):>> disabled
+12:52:57.213 [import-CreateNewUuids-1-import]   Pane name=<<Cancel>>
+12:52:57.219 [import-CreateNewUuids-1-import]   Pane name=<<OK>> disabled
+12:52:57.276 [import-CreateNewUuids-1-import]   win32 Window.8 <<General>>
+12:52:57.280 [import-CreateNewUuids-1-import]   win32 Window.8 <<Format>>
+12:52:57.287 [import-CreateNewUuids-1-import]   win32 Window.8 <<Source>>
+12:52:57.289 [import-CreateNewUuids-1-import]   win32 STATIC <<Help: Configuring source applications>>
+12:52:57.320 [import-CreateNewUuids-1-import]   win32 STATIC <<File(s):>> disabled
+12:52:57.328 [import-CreateNewUuids-1-import]   win32 BUTTON <<Cancel>>
+12:52:57.332 [import-CreateNewUuids-1-import]   win32 BUTTON <<OK>> disabled
+12:53:01.422 shot import-CreateNewUuids-1-import.png (406 x 556)
+12:53:03.710 shot import-CreateNewUuids-1-key.png (419 x 233)
+12:53:03.715 [import-CreateNewUuids-1-key] WINDOW title=<<Open Database - other.kdbx>> class=WindowsForms10.Window.8.app.0.2bf8098_r6_ad1
+12:53:03.790 [import-CreateNewUuids-1-key]   ComboBox name=<<(None)>>
+12:53:03.799 [import-CreateNewUuids-1-key]   Button name=<<Open>>
+12:53:03.811 [import-CreateNewUuids-1-key]   Pane name=<<Help>>
+12:53:03.815 [import-CreateNewUuids-1-key]   Pane name=<<Cancel>>
+12:53:03.819 [import-CreateNewUuids-1-key]   Pane name=<<OK>> disabled
+12:53:03.823 [import-CreateNewUuids-1-key]   Pane name=<<Windows user account>>
+12:53:03.827 [import-CreateNewUuids-1-key]   Pane name=<<Key file/provider:>>
+12:53:03.833 [import-CreateNewUuids-1-key]   Pane name=<<Master password:>>
+12:53:03.841 [import-CreateNewUuids-1-key]   win32 COMBOBOX <<(None)>>
+12:53:03.844 [import-CreateNewUuids-1-key]   win32 BUTTON <<&Help>>
+12:53:03.849 [import-CreateNewUuids-1-key]   win32 BUTTON <<Cancel>>
+12:53:03.852 [import-CreateNewUuids-1-key]   win32 BUTTON <<OK>> disabled
+12:53:03.860 [import-CreateNewUuids-1-key]   win32 BUTTON <<&Windows user account>>
+12:53:03.864 [import-CreateNewUuids-1-key]   win32 BUTTON <<&Key file/provider:>>
+12:53:03.866 [import-CreateNewUuids-1-key]   win32 BUTTON <<&Master password:>>
+12:53:06.958 [import-CreateNewUuids-1] Import Behavior preselected: Create new IDs
+12:53:06.963 [import-CreateNewUuids-1-method] WINDOW title=<<Import Behavior>> class=WindowsForms10.Window.8.app.0.2bf8098_r6_ad1
+12:53:07.108 [import-CreateNewUuids-1-method]   Text name=<<Behaves like 'Overwrite if newer', but also applies deletions of the database to be imported. When an entry has been deleted in the database to be imported, it will also be deleted in the currently open database.>>
+12:53:07.116 [import-CreateNewUuids-1-method]   Text name=<<Behaves like 'Overwrite if newer', but also applies deletions of the database to be imported. When an entry has been deleted in the database to be imported, it will also be deleted in the currently open database.>>
+12:53:07.126 [import-CreateNewUuids-1-method]   Pane name=<<Overwrite if newer and apply deletions>>
+12:53:07.132 [import-CreateNewUuids-1-method]   Text name=<<KeePass will compare the last-modified times of the groups/entries and replace the existing ones only if the ones to import are newer.>>
+12:53:07.140 [import-CreateNewUuids-1-method]   Pane name=<<Overwrite if newer>>
+12:53:07.147 [import-CreateNewUuids-1-method]   Text name=<<KeePass will replace all existing groups and entries by the ones in the file to import, if they have the same ID.>>
+12:53:07.156 [import-CreateNewUuids-1-method]   Pane name=<<Overwrite existing>>
+12:53:07.171 [import-CreateNewUuids-1-method]   Text name=<<Existing entries of the currently open database will not be modified. Only new entries will be added.>>
+12:53:07.175 [import-CreateNewUuids-1-method]   Pane name=<<Keep existing>>
+12:53:07.183 [import-CreateNewUuids-1-method]   Text name=<<If you select this option, KeePass will create new IDs for all groups and entries. Consequently, no existing groups and entries of the currently open database will be modified or overwritten.>>
+12:53:07.190 [import-CreateNewUuids-1-method]   Pane name=<<Create new IDs>>
+12:53:07.199 [import-CreateNewUuids-1-method]   Text name=<<The file format that you have selected to import supports group and/or entry IDs. Please choose an import behavior.>>
+12:53:07.204 [import-CreateNewUuids-1-method]   Pane name=<<Cancel>>
+12:53:07.208 [import-CreateNewUuids-1-method]   Pane name=<<OK>>
+12:53:07.230 [import-CreateNewUuids-1-method]   win32 STATIC <<Behaves like 'Overwrite if newer', but also applies deletions of the database to be imported. When an entry has been deleted in the database to be imported, it will also be deleted in the currently open database.>>
+12:53:07.233 [import-CreateNewUuids-1-method]   win32 BUTTON <<Overwrite if newer and apply &deletions>>
+12:53:07.237 [import-CreateNewUuids-1-method]   win32 STATIC <<KeePass will compare the last-modified times of the groups/entries and replace the existing ones only if the ones to import are newer.>>
+12:53:07.239 [import-CreateNewUuids-1-method]   win32 BUTTON <<Overwrite if &newer>>
+12:53:07.244 [import-CreateNewUuids-1-method]   win32 STATIC <<KeePass will replace all existing groups and entries by the ones in the file to import, if they have the same ID.>>
+12:53:07.249 [import-CreateNewUuids-1-method]   win32 BUTTON <<Overwrite &existing>>
+12:53:07.253 [import-CreateNewUuids-1-method]   win32 STATIC <<Existing entries of the currently open database will not be modified. Only new entries will be added.>>
+12:53:07.256 [import-CreateNewUuids-1-method]   win32 BUTTON <<&Keep existing>>
+12:53:07.266 [import-CreateNewUuids-1-method]   win32 STATIC <<If you select this option, KeePass will create new IDs for all groups and entries. Consequently, no existing groups and entries of the currently open database will be modified or overwritten.>>
+12:53:07.273 [import-CreateNewUuids-1-method]   win32 BUTTON <<Create new &IDs>>
+12:53:07.278 [import-CreateNewUuids-1-method]   win32 STATIC <<The file format that you have selected to import supports group and/or entry IDs. Please choose an import behavior.>>
+12:53:07.286 [import-CreateNewUuids-1-method]   win32 BUTTON <<Cancel>>
+12:53:07.290 [import-CreateNewUuids-1-method]   win32 BUTTON <<OK>>
+12:53:07.871 shot import-CreateNewUuids-1-method.png (515 x 493)
+12:53:08.610 [import-CreateNewUuids-1] chose <<Create new IDs>>, now checked: Create new IDs
+12:53:17.761 dialogs after the flow: 0
+12:53:21.970 [after] window title <<db.kdbx* - KeePass>>; groups [Desk probe, KeePassGate, Passwords, Recycle Bin]; KeePassGate [KPG grant 1, KPG admission 1]; Passwords [P1, P2, Q1, Q2, Q3, X1, K]; status <<Ready.>>
+12:53:21.988 db after the flow: size=3413 mtime=2026-11-16T08:31:56.2778845Z sha=2ff7a751a869; other: size=5013 mtime=2026-11-16T08:32:08.8042697Z sha=74dd75d7243e
+12:53:23.903 [import-CreateNewUuids-1-exit-1] WINDOW title=<<KeePass>> class=#32770
+12:53:24.066 [import-CreateNewUuids-1-exit-1]   Image name=<<MainInstructionIcon>>
+12:53:24.074 [import-CreateNewUuids-1-exit-1]   Text name=<<Save database changes before exiting KeePass?>>
+12:53:24.082 [import-CreateNewUuids-1-exit-1]   Text name=<<Database file:
+<work>\runs\m5\import-CreateNewUuids-1\db.kdbx>>
+12:53:24.090 [import-CreateNewUuids-1-exit-1]   Pane name=<<Save>> help=<<Save all changes made to the database and exit KeePass.>>
+12:53:24.111 [import-CreateNewUuids-1-exit-1]   Pane name=<<Discard changes>> help=<<Discard all changes made to the database and exit KeePass.>>
+12:53:24.122 [import-CreateNewUuids-1-exit-1]   Pane name=<<Cancel>> help=<<Abort the current operation. KeePass will not be closed.>>
+12:53:24.129 [import-CreateNewUuids-1-exit-1]   CheckBox name=<<Automatically save when closing/locking the database>>
+12:53:24.146 [import-CreateNewUuids-1-exit-1]   win32 Button <<&Save>>
+12:53:24.154 [import-CreateNewUuids-1-exit-1]   win32 Button <<&Discard changes>>
+12:53:24.159 [import-CreateNewUuids-1-exit-1]   win32 Button <<Cancel>>
+12:53:24.739 shot import-CreateNewUuids-1-exit-1.png (442 x 352)
+12:53:25.050 [import-CreateNewUuids-1-exit-1] pressed <<&Discard changes (clicked)>>
+12:53:31.946 dialogs at the exit (answered Discard): 1
+12:53:32.005 db after the exit: size=3413 mtime=2026-11-16T08:31:56.2778845Z sha=2ff7a751a869; other: size=5013 mtime=2026-11-16T08:32:08.8042697Z sha=74dd75d7243e
+12:53:32.579 marker entry in: neither file
+12:53:32.623 event: 11:52:43.259 Initialize db= open=0 disk=absent marker=True triggers.enabled=True
+12:53:32.649 event: 11:52:43.282 Trigger.AppInitPost db= open=0 disk=absent
+12:53:32.655 event: 11:52:43.556 FileOpened db=db.kdbx open=1 modified=0 entries=9 records=1 kpg=2 disk=3413:2ff7a751a8
+12:53:32.672 event: 11:52:43.558 Trigger.OpenedDatabaseFile db=db.kdbx open=1 modified=0 entries=9 records=1 kpg=2 disk=3413:2ff7a751a8
+12:53:32.683 event: 11:52:43.560 Trigger.AppLoadPost db=db.kdbx open=1 modified=0 entries=9 records=1 kpg=2 disk=3413:2ff7a751a8
+12:53:32.696 event: 11:52:43.863 Trigger.TimePeriodic db=db.kdbx open=1 modified=0 entries=9 records=1 kpg=2 disk=3413:2ff7a751a8
+12:53:32.713 event: 11:52:44.864 Trigger.TimePeriodic db=db.kdbx open=1 modified=0 entries=9 records=1 kpg=2 disk=3413:2ff7a751a8
+12:53:32.724 event: 11:52:45.871 Trigger.TimePeriodic db=db.kdbx open=1 modified=0 entries=9 records=1 kpg=2 disk=3413:2ff7a751a8
+12:53:32.737 event: 11:52:46.875 Trigger.TimePeriodic db=db.kdbx open=1 modified=0 entries=9 records=1 kpg=2 disk=3413:2ff7a751a8
+12:53:32.754 event: 11:52:47.878 Trigger.TimePeriodic db=db.kdbx open=1 modified=0 entries=9 records=1 kpg=2 disk=3413:2ff7a751a8
+12:53:32.770 event: 11:52:48.880 Trigger.TimePeriodic db=db.kdbx open=1 modified=0 entries=9 records=1 kpg=2 disk=3413:2ff7a751a8
+12:53:32.779 event: 11:52:49.891 Trigger.TimePeriodic db=db.kdbx open=1 modified=0 entries=9 records=1 kpg=2 disk=3413:2ff7a751a8
+12:53:32.813 event: 11:52:50.886 Trigger.TimePeriodic db=db.kdbx open=1 modified=0 entries=9 records=1 kpg=2 disk=3413:2ff7a751a8
+12:53:32.825 event: 11:52:51.882 Trigger.TimePeriodic db=db.kdbx open=1 modified=0 entries=9 records=1 kpg=2 disk=3413:2ff7a751a8
+12:53:32.830 event: 11:52:52.893 Trigger.TimePeriodic db=db.kdbx open=1 modified=0 entries=9 records=1 kpg=2 disk=3413:2ff7a751a8
+12:53:32.840 event: 11:52:53.891 Trigger.TimePeriodic db=db.kdbx open=1 modified=0 entries=9 records=1 kpg=2 disk=3413:2ff7a751a8
+12:53:32.851 event: 11:52:54.888 Trigger.TimePeriodic db=db.kdbx open=1 modified=0 entries=9 records=1 kpg=2 disk=3413:2ff7a751a8
+12:53:32.869 event: 11:53:08.902 Trigger.TimePeriodic db=db.kdbx open=1 modified=1 entries=19 records=1 kpg=2 disk=3413:2ff7a751a8
+12:53:32.890 event: 11:53:09.918 Trigger.TimePeriodic db=db.kdbx open=1 modified=1 entries=19 records=1 kpg=2 disk=3413:2ff7a751a8
+12:53:32.901 event: 11:53:10.930 Trigger.TimePeriodic db=db.kdbx open=1 modified=1 entries=19 records=1 kpg=2 disk=3413:2ff7a751a8
+12:53:32.909 event: 11:53:11.942 Trigger.TimePeriodic db=db.kdbx open=1 modified=1 entries=19 records=1 kpg=2 disk=3413:2ff7a751a8
+12:53:32.921 event: 11:53:12.938 Trigger.TimePeriodic db=db.kdbx open=1 modified=1 entries=19 records=1 kpg=2 disk=3413:2ff7a751a8
+12:53:32.944 event: 11:53:13.928 Trigger.TimePeriodic db=db.kdbx open=1 modified=1 entries=19 records=1 kpg=2 disk=3413:2ff7a751a8
+12:53:32.957 event: 11:53:14.940 Trigger.TimePeriodic db=db.kdbx open=1 modified=1 entries=19 records=1 kpg=2 disk=3413:2ff7a751a8
+12:53:32.973 event: 11:53:15.936 Trigger.TimePeriodic db=db.kdbx open=1 modified=1 entries=19 records=1 kpg=2 disk=3413:2ff7a751a8
+12:53:32.981 event: 11:53:16.935 Trigger.TimePeriodic db=db.kdbx open=1 modified=1 entries=19 records=1 kpg=2 disk=3413:2ff7a751a8
+12:53:32.992 event: 11:53:17.934 Trigger.TimePeriodic db=db.kdbx open=1 modified=1 entries=19 records=1 kpg=2 disk=3413:2ff7a751a8
+12:53:32.996 event: 11:53:18.947 Trigger.TimePeriodic db=db.kdbx open=1 modified=1 entries=19 records=1 kpg=2 disk=3413:2ff7a751a8
+12:53:33.014 event: 11:53:19.942 Trigger.TimePeriodic db=db.kdbx open=1 modified=1 entries=19 records=1 kpg=2 disk=3413:2ff7a751a8
+12:53:33.029 event: 11:53:20.956 Trigger.TimePeriodic db=db.kdbx open=1 modified=1 entries=19 records=1 kpg=2 disk=3413:2ff7a751a8
+12:53:33.036 event: 11:53:21.947 Trigger.TimePeriodic db=db.kdbx open=1 modified=1 entries=19 records=1 kpg=2 disk=3413:2ff7a751a8
+12:53:33.051 event: 11:53:22.375 Trigger.ClosingDatabaseFilePre db=db.kdbx open=1 modified=1 entries=19 records=1 kpg=2 disk=3413:2ff7a751a8
+12:53:33.085 event: 11:53:22.375 FileClosingPre db=db.kdbx open=1 modified=1 entries=19 records=1 kpg=2 disk=3413:2ff7a751a8 flags=Exiting
+12:53:33.099 event: 11:53:25.099 Trigger.ClosingDatabaseFilePost db=db.kdbx open=1 modified=1 entries=19 records=1 kpg=2 disk=3413:2ff7a751a8
+12:53:33.113 event: 11:53:25.099 FileClosingPost db=db.kdbx open=1 modified=1 entries=19 records=1 kpg=2 disk=3413:2ff7a751a8 flags=Exiting
+12:53:33.129 event: 11:53:25.117 FileClosed db= open=0 disk=absent path=<work>\runs\m5\import-CreateNewUuids-1\db.kdbx flags=Exiting
+12:53:33.142 event: 11:53:25.122 Trigger.AppExit db= open=0 disk=absent
+12:53:33.148 event: 11:53:25.123 Terminate db= open=0 disk=absent

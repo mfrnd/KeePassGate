@@ -1,0 +1,230 @@
+# file db.kdbx size=2597 sha256=28706b9058d5fb9ce11311114ff83d81a8f1140738fc0fbd3174da045a49c72b
+D KG 2026-11-16T10:44:49Z
+D KGA 2026-11-16T10:44:49Z
+D R-new 2026-11-15T12:00:00Z
+D R-old 2025-01-01T12:00:00Z
+D S1 2026-11-16T10:44:49Z
+D S1c 2026-11-16T10:44:49Z
+D S2 2026-11-16T10:44:49Z
+D S3 2025-01-01T12:00:00Z
+D S3 2026-11-16T10:44:49Z
+D S4 2026-11-15T12:00:00Z
+D S4 2026-11-16T10:44:49Z
+D S6c 2026-11-16T10:44:49Z
+D S7 2026-11-16T10:44:49Z
+D W-new 2026-11-15T12:00:00Z
+D W-old 2025-01-01T12:00:00Z
+D count 15
+E S5 S KPG.Body p=0 "{\"kind\":\"grant 5\",\"n\":\"S5\"}"
+E S5 S KPG.Kind p=0 "grant 5"
+E S5 S Notes p=0 ""
+E S5 S Password p=1 ""
+E S5 S Title p=0 "KPG grant 5"
+E S5 S URL p=0 ""
+E S5 S UserName p=0 ""
+E S5 autotype enabled=1 obfuscation=0 seq="" assoc=0
+E S5 history.count 0
+E S5 index 0
+E S5 misc icon=0 customIcon=- fg=00000000 bg=00000000 overrideUrl="" quality=1
+E S5 parent Bin (Recycle Bin)
+E S5 prev KG
+E S5 t.accessed 2026-11-01T10:14:00Z
+E S5 t.created 2026-11-01T10:14:00Z
+E S5 t.expires 0 2026-11-01T10:00:00Z
+E S5 t.location 2026-11-01T10:14:00Z
+E S5 t.modified 2026-11-01T10:14:00Z
+E S5 tags []
+E S5 usage 0
+E S6 S KPG.Body p=0 "{\"kind\":\"grant 6\",\"n\":\"S6\"}"
+E S6 S KPG.Kind p=0 "grant 6"
+E S6 S Notes p=0 ""
+E S6 S Password p=1 ""
+E S6 S Title p=0 "KPG grant 6"
+E S6 S URL p=0 ""
+E S6 S UserName p=0 ""
+E S6 autotype enabled=1 obfuscation=0 seq="" assoc=0
+E S6 history.count 0
+E S6 index 1
+E S6 misc icon=0 customIcon=- fg=00000000 bg=00000000 overrideUrl="" quality=1
+E S6 parent Bin (Recycle Bin)
+E S6 prev KG
+E S6 t.accessed 2026-11-01T10:15:00Z
+E S6 t.created 2026-11-01T10:15:00Z
+E S6 t.expires 0 2026-11-01T10:00:00Z
+E S6 t.location 2026-11-01T10:15:00Z
+E S6 t.modified 2026-11-01T10:15:00Z
+E S6 tags []
+E S6 usage 0
+E S7c S KPG.Body p=0 "{\"kind\":\"grant 7\",\"n\":\"S7\"}"
+E S7c S KPG.Kind p=0 "grant 7"
+E S7c S Notes p=0 ""
+E S7c S Password p=1 ""
+E S7c S Title p=0 "KPG grant 7"
+E S7c S URL p=0 ""
+E S7c S UserName p=0 ""
+E S7c autotype enabled=1 obfuscation=0 seq="" assoc=0
+E S7c history.count 0
+E S7c index 2
+E S7c misc icon=0 customIcon=- fg=00000000 bg=00000000 overrideUrl="" quality=1
+E S7c parent Bin (Recycle Bin)
+E S7c prev KG
+E S7c t.accessed 2026-11-01T11:02:00Z
+E S7c t.created 2026-11-01T11:02:00Z
+E S7c t.expires 0 2026-11-01T10:00:00Z
+E S7c t.location 2026-11-01T11:02:00Z
+E S7c t.modified 2026-11-01T11:02:00Z
+E S7c tags []
+E S7c usage 0
+E U1 H2025-06-01T12:00:00Z S Notes p=0 ""
+E U1 H2025-06-01T12:00:00Z S Password p=1 "u1-v1"
+E U1 H2025-06-01T12:00:00Z S Title p=0 "Mail account"
+E U1 H2025-06-01T12:00:00Z S URL p=0 ""
+E U1 H2025-06-01T12:00:00Z S UserName p=0 "alice-invented"
+E U1 H2025-06-01T12:00:00Z autotype enabled=1 obfuscation=0 seq="" assoc=0
+E U1 H2025-06-01T12:00:00Z misc icon=0 customIcon=- fg=00000000 bg=00000000 overrideUrl="" quality=1
+E U1 H2025-06-01T12:00:00Z prev -
+E U1 H2025-06-01T12:00:00Z t.accessed 2025-06-01T12:00:00Z
+E U1 H2025-06-01T12:00:00Z t.created 2025-06-01T12:00:00Z
+E U1 H2025-06-01T12:00:00Z t.expires 0 2026-11-01T10:00:00Z
+E U1 H2025-06-01T12:00:00Z t.location 2025-06-01T12:00:00Z
+E U1 H2025-06-01T12:00:00Z t.modified 2025-06-01T12:00:00Z
+E U1 H2025-06-01T12:00:00Z tags []
+E U1 H2025-06-01T12:00:00Z usage 0
+E U1 H2026-08-01T12:00:00Z S Notes p=0 ""
+E U1 H2026-08-01T12:00:00Z S Password p=1 "u1-v2"
+E U1 H2026-08-01T12:00:00Z S Title p=0 "Mail account"
+E U1 H2026-08-01T12:00:00Z S URL p=0 ""
+E U1 H2026-08-01T12:00:00Z S UserName p=0 "alice-invented"
+E U1 H2026-08-01T12:00:00Z autotype enabled=1 obfuscation=0 seq="" assoc=0
+E U1 H2026-08-01T12:00:00Z misc icon=0 customIcon=- fg=00000000 bg=00000000 overrideUrl="" quality=1
+E U1 H2026-08-01T12:00:00Z prev -
+E U1 H2026-08-01T12:00:00Z t.accessed 2026-08-01T12:00:00Z
+E U1 H2026-08-01T12:00:00Z t.created 2025-06-01T12:00:00Z
+E U1 H2026-08-01T12:00:00Z t.expires 0 2026-11-01T10:00:00Z
+E U1 H2026-08-01T12:00:00Z t.location 2025-06-01T12:00:00Z
+E U1 H2026-08-01T12:00:00Z t.modified 2026-08-01T12:00:00Z
+E U1 H2026-08-01T12:00:00Z tags []
+E U1 H2026-08-01T12:00:00Z usage 0
+E U1 H2026-11-10T12:00:00Z S Notes p=0 ""
+E U1 H2026-11-10T12:00:00Z S Password p=1 "u1-v3"
+E U1 H2026-11-10T12:00:00Z S Title p=0 "Mail account"
+E U1 H2026-11-10T12:00:00Z S URL p=0 ""
+E U1 H2026-11-10T12:00:00Z S UserName p=0 "alice-invented"
+E U1 H2026-11-10T12:00:00Z autotype enabled=1 obfuscation=0 seq="" assoc=0
+E U1 H2026-11-10T12:00:00Z misc icon=0 customIcon=- fg=00000000 bg=00000000 overrideUrl="" quality=1
+E U1 H2026-11-10T12:00:00Z prev -
+E U1 H2026-11-10T12:00:00Z t.accessed 2026-11-10T12:00:00Z
+E U1 H2026-11-10T12:00:00Z t.created 2025-06-01T12:00:00Z
+E U1 H2026-11-10T12:00:00Z t.expires 0 2026-11-01T10:00:00Z
+E U1 H2026-11-10T12:00:00Z t.location 2025-06-01T12:00:00Z
+E U1 H2026-11-10T12:00:00Z t.modified 2026-11-10T12:00:00Z
+E U1 H2026-11-10T12:00:00Z tags []
+E U1 H2026-11-10T12:00:00Z usage 0
+E U1 S Notes p=0 ""
+E U1 S Password p=1 "u1-v4"
+E U1 S Title p=0 "Mail account"
+E U1 S URL p=0 ""
+E U1 S UserName p=0 "alice-invented"
+E U1 autotype enabled=1 obfuscation=0 seq="" assoc=0
+E U1 history.count 3
+E U1 index 0
+E U1 misc icon=0 customIcon=- fg=00000000 bg=00000000 overrideUrl="" quality=1
+E U1 parent PW (Passwords)
+E U1 prev -
+E U1 t.accessed 2026-11-12T12:00:00Z
+E U1 t.created 2025-06-01T12:00:00Z
+E U1 t.expires 0 2026-11-01T10:00:00Z
+E U1 t.location 2025-06-01T12:00:00Z
+E U1 t.modified 2026-11-12T12:00:00Z
+E U1 tags []
+E U1 usage 0
+E U2 S Notes p=0 ""
+E U2 S Password p=1 "u2-pw"
+E U2 S Title p=0 "Bank"
+E U2 S URL p=0 ""
+E U2 S UserName p=0 "bob-invented"
+E U2 autotype enabled=1 obfuscation=0 seq="" assoc=0
+E U2 history.count 0
+E U2 index 1
+E U2 misc icon=0 customIcon=- fg=00000000 bg=00000000 overrideUrl="" quality=1
+E U2 parent PW (Passwords)
+E U2 prev -
+E U2 t.accessed 2026-11-01T10:30:00Z
+E U2 t.created 2026-11-01T10:30:00Z
+E U2 t.expires 0 2026-11-01T10:00:00Z
+E U2 t.location 2026-11-01T10:30:00Z
+E U2 t.modified 2026-11-01T10:30:00Z
+E U2 tags []
+E U2 usage 0
+F cipher AES/Rijndael (256-bit key, FIPS 197)
+F compression GZip
+F groups 4 entries 5
+F kdf Argon2d it=2 mem=1024KiB par=1
+F version 4.1
+G Bin children groups=0 entries=3
+G Bin flags icon=43 customIcon=- search=0 autotype=0 expanded=1 seq="" lastTop=S5
+G Bin index 2
+G Bin name "Recycle Bin"
+G Bin notes ""
+G Bin parent Root (Desk store)
+G Bin prev -
+G Bin t.accessed 2026-11-16T10:44:58Z
+G Bin t.created 2026-11-01T10:05:00Z
+G Bin t.expires 0 2026-11-01T10:00:00Z
+G Bin t.location 2026-11-01T10:05:00Z
+G Bin t.modified 2026-11-01T10:05:00Z
+G Bin tags []
+G Bin usage 1
+G EG children groups=0 entries=0
+G EG flags icon=48 customIcon=- search=inherit autotype=inherit expanded=1 seq="" lastTop=-
+G EG index 1
+G EG name "Empty group"
+G EG notes ""
+G EG parent Root (Desk store)
+G EG prev -
+G EG t.accessed 2026-11-01T10:05:00Z
+G EG t.created 2026-11-01T10:05:00Z
+G EG t.expires 0 2026-11-01T10:00:00Z
+G EG t.location 2026-11-01T10:05:00Z
+G EG t.modified 2026-11-01T10:05:00Z
+G EG tags []
+G EG usage 0
+G PW children groups=0 entries=2
+G PW flags icon=48 customIcon=- search=inherit autotype=inherit expanded=1 seq="" lastTop=-
+G PW index 0
+G PW name "Passwords"
+G PW notes ""
+G PW parent Root (Desk store)
+G PW prev -
+G PW t.accessed 2026-11-16T10:44:57Z
+G PW t.created 2026-11-01T10:05:00Z
+G PW t.expires 0 2026-11-01T10:00:00Z
+G PW t.location 2026-11-01T10:05:00Z
+G PW t.modified 2026-11-01T10:05:00Z
+G PW tags []
+G PW usage 1
+G Root children groups=3 entries=0
+G Root flags icon=49 customIcon=- search=inherit autotype=inherit expanded=1 seq="" lastTop=-
+G Root index -
+G Root name "Desk store"
+G Root notes ""
+G Root parent -
+G Root prev -
+G Root t.accessed 2026-11-16T10:44:58Z
+G Root t.created 2026-11-01T10:00:00Z
+G Root t.expires 0 2026-11-01T10:00:00Z
+G Root t.location 2026-11-01T10:00:00Z
+G Root t.modified 2026-11-01T10:00:00Z
+G Root tags []
+G Root usage 3
+M CD KPG.Profiles = "[\"reader\",\"writer\"]" @2026-11-01T10:15:00Z
+M customIcons 2 [IconUsed;IconUnused]
+M defaultUserName "" changed 2026-11-01T10:00:00Z
+M description "" changed 2026-11-01T10:00:00Z
+M historyMaxItems 10 historyMaxSize 6291456 maintenanceHistoryDays 365
+M masterKeyChanged 2026-11-01T10:00:00Z
+M name "Desk store (invented)" changed 2026-11-01T10:00:00Z
+M publicCustomData 0
+M recycleBin enabled=1 group=Bin changed 2026-11-01T10:05:00Z
+M settingsChanged 2026-11-01T10:00:00Z
+M templatesGroup - changed 2026-11-01T10:00:00Z

@@ -1,0 +1,14 @@
+10:49:26.650 ==== other-window-clipboard
+10:49:26.665 config: 
+10:49:38.606 started KeePass pid=17904 token: TokenIsElevated=1 ElevationType=2 Integrity=0x3000 AdministratorsEnabled=False
+10:49:38.713 main window: <<db.kdbx - KeePass>>
+10:49:38.912 group rows: Desk entries, KeePassGate, Passwords, Recycle Bin
+10:49:50.009 started KeePass pid=9196 token: TokenIsElevated=1 ElevationType=2 Integrity=0x3000 AdministratorsEnabled=False
+10:49:50.217 main window: <<other.kdbx - KeePass>>
+10:49:50.560 group rows: Desk other, Imported
+10:49:55.833 menu: <<Data Exchange>>
+10:49:57.148 menu: <<Copy Entry (Encrypted)>>
+10:50:02.099 menu: <<Data Exchange>>
+10:50:03.413 menu: <<Paste Entry>>
+10:50:07.856 shot clipboard-other.png (626 x 753)
+10:50:08.004 second window title: <<other.kdbx* - KeePass>>; entries shown: Mail account

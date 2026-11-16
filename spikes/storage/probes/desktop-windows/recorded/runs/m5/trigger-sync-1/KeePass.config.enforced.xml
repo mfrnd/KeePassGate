@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Configuration xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+	<Application>
+		<TriggerSystem>
+			<Triggers>
+				<Trigger>
+					<Guid>c+bjqPQmEU2+e+l/KLNcTg==</Guid>
+					<Name>Desk probe synchronize</Name>
+					<Events>
+						<Event>
+							<TypeGuid>2PMe6cxpSBuJxfzi6ktqlw==</TypeGuid>
+							<Parameters />
+						</Event>
+					</Events>
+					<Conditions />
+					<Actions>
+						<Action>
+							<TypeGuid>Iq135Bd4Tu2ZtFcdArOtTQ==</TypeGuid>
+							<Parameters>
+								<Parameter><work>\runs\m5\trigger-sync-1\other.kdbx</Parameter>
+								<Parameter />
+								<Parameter />
+								<Parameter>false</Parameter>
+								<Parameter>false</Parameter>
+							</Parameters>
+						</Action>
+					</Actions>
+				</Trigger>
+			</Triggers>
+		</TriggerSystem>
+	</Application>
+</Configuration>

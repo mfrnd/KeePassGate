@@ -1,0 +1,43 @@
+# file other.kdbx size=1349 sha256=9990516c89ffdf030ffe96b80292ac30e4d291de013550041cfa5bc557a1cdc2
+D count 0
+F cipher AES/Rijndael (256-bit key, FIPS 197)
+F compression GZip
+F groups 2 entries 0
+F kdf Argon2d it=2 mem=1024KiB par=1
+F version 4.0
+G IM children groups=0 entries=0
+G IM flags icon=48 customIcon=- search=inherit autotype=inherit expanded=1 seq="" lastTop=-
+G IM name "Imported"
+G IM notes ""
+G IM parent Root (Desk other)
+G IM prev -
+G IM t.accessed 2026-11-01T10:05:00Z
+G IM t.created 2026-11-01T10:05:00Z
+G IM t.expires 0 2026-11-01T10:00:00Z
+G IM t.location 2026-11-01T10:05:00Z
+G IM t.modified 2026-11-01T10:05:00Z
+G IM tags []
+G IM usage 0
+G Root children groups=1 entries=0
+G Root flags icon=49 customIcon=- search=inherit autotype=inherit expanded=1 seq="" lastTop=-
+G Root name "Desk other"
+G Root notes ""
+G Root parent -
+G Root prev -
+G Root t.accessed 2026-11-01T10:00:00Z
+G Root t.created 2026-11-01T10:00:00Z
+G Root t.expires 0 2026-11-01T10:00:00Z
+G Root t.location 2026-11-01T10:00:00Z
+G Root t.modified 2026-11-01T10:00:00Z
+G Root tags []
+G Root usage 0
+M customIcons 0 []
+M defaultUserName "" changed 2026-11-01T10:00:00Z
+M description "" changed 2026-11-01T10:00:00Z
+M historyMaxItems 10 historyMaxSize 6291456 maintenanceHistoryDays 365
+M masterKeyChanged 2026-11-01T10:00:00Z
+M name "Desk other (invented)" changed 2026-11-01T10:00:00Z
+M publicCustomData 0
+M recycleBin enabled=1 group=- changed 2026-11-16T08:32:08Z
+M settingsChanged 2026-11-01T10:00:00Z
+M templatesGroup - changed 2026-11-01T10:00:00Z

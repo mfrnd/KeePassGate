@@ -1,0 +1,19 @@
+12:23:14.979 ==== w-merge-2 : KeePassXC 2.8.0, defaults; full changes (saved by themselves); Database, Merge From Database with NEW
+12:23:15.014 keepassxc config: 
+12:23:30.139 started KeePassXC pid=22040 token: TokenIsElevated=1 ElevationType=2 Integrity=0x3000 AdministratorsEnabled=False
+12:23:30.622 answered the update question No
+12:23:36.094 KeePassXC window: <<Desk probe (invented) - KeePassXC>>
+12:23:41.924 edited P2 password=p2-window; OK clicked 2026-11-16T11:23:41.0003250Z .. 2026-11-16T11:23:41.4131800Z
+12:23:46.498 edited Q1 password=q1-window; OK clicked 2026-11-16T11:23:45.5622809Z .. 2026-11-16T11:23:45.9897059Z
+12:23:50.900 edited Q2 password=q2-window; OK clicked 2026-11-16T11:23:49.9733185Z .. 2026-11-16T11:23:50.3956578Z
+12:23:55.942 edited Q3 password=q3-window; OK clicked 2026-11-16T11:23:55.0214565Z .. 2026-11-16T11:23:55.4341846Z
+12:24:00.705 added entry window-new in Passwords
+12:24:00.732 Q3's edit second: 2026-11-16T11:23:55Z (click and settle in the same second: True)
+12:24:01.041 probe: wrote <work>\runs\m2\w-merge-2\NEW-run.kdbx (Q3 at 2026-11-16T11:23:55Z)
+12:24:01.061 file before the replacement: size=4501 mtime=2026-11-16T11:24:00.0810337Z sha=a7b2904b8887
+12:24:02.823 menu: <<Merge From Database…>>
+12:24:05.108 file dialog <<Merge database>>
+12:24:19.652 stopping KeePassXC pid=22040
+12:24:19.750 RUN FAILED w-merge-2: no password field for the file to merge at Xc-MergeFrom, <branch>\spikes\storage\probes\desktop-windows\scripts\M2.ps1: line 323
+at Run-M2, <branch>\spikes\storage\probes\desktop-windows\scripts\M2.ps1: line 228
+at <ScriptBlock>, <branch>\spikes\storage\probes\desktop-windows\scripts\M2.ps1: line 351

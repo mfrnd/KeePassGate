@@ -1,0 +1,33 @@
+11:34:31.409 ==== group-delete-1 : the group KeePassGate selected, Delete key
+11:34:31.414 config: 
+11:34:44.200 started KeePass pid=10816 token: TokenIsElevated=1 ElevationType=2 Integrity=0x3000 AdministratorsEnabled=False
+11:34:44.394 main window: <<db.kdbx - KeePass>>
+11:34:44.882 group rows: Archive, Desk store, Empty group, KeePassGate, Passwords, Recycle Bin
+11:34:48.044 [group-delete-1-1] WINDOW title=<<KeePass>> class=#32770
+11:34:48.141 [group-delete-1-1]   Image name=<<MainInstructionIcon>>
+11:34:48.173 [group-delete-1-1]   Text name=<<Are you sure you want to move the selected group to the recycle bin?>>
+11:34:48.193 [group-delete-1-1]   Text name=<<Deleting a group will also delete all entries and subgroups in that group.
+
+- Archive
+- KPG grant 1
+- KPG admission 1
+- KPG revocation 1
+- KPG profile 1
+- KPG grant 1
+- KPG grant 6
+- KPG grant 7>>
+11:34:48.210 [group-delete-1-1]   CheckBox name=<<Do not show this dialog again; always 'Yes'.>>
+11:34:48.227 [group-delete-1-1]   Pane name=<<Yes>>
+11:34:48.254 [group-delete-1-1]   Pane name=<<No>>
+11:34:48.272 [group-delete-1-1]   win32 Button <<&Yes>>
+11:34:48.277 [group-delete-1-1]   win32 Button <<&No>>
+11:34:48.831 shot group-delete-1-1.png (442 x 300)
+11:34:49.141 [group-delete-1-1] pressed <<&Yes (clicked)>>
+11:34:56.873 dialogs: 1
+11:34:57.409 group KeePassGate from the places kept
+11:34:58.772 group Passwords from the places kept
+11:34:59.962 [after] window title <<db.kdbx* - KeePass>>; groups []; KeePassGate [Mail account, Bank]; Passwords [KPG grant 5, KPG grant 6, KPG grant 7]; status <<Ready.>>
+11:35:04.879 file: size=3141 mtime=2026-11-16T10:35:00.4162627Z sha=a177af31a31f
+11:35:11.194 diff against the base: 18 lines
+11:35:11.210   + G KG parent Bin (Recycle Bin)
+11:35:11.220   - G KG parent Root (Desk store)

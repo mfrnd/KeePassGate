@@ -1,0 +1,689 @@
+09:54:47.309 ==== a-sync-1 : full edits, NEW later, Ctrl+S, Synchronize
+09:54:47.342 config: 
+09:55:00.852 started KeePass pid=1512 token: TokenIsElevated=1 ElevationType=2 Integrity=0x3000 AdministratorsEnabled=False
+09:55:01.256 main window: <<db.kdbx - KeePass>>
+09:55:07.198 edited P2 password=p2-window; OK posted 2026-11-16T08:55:07.0525569Z, dialog gone 2026-11-16T08:55:07.1939343Z
+09:55:11.429 edited Q1 password=q1-window; OK posted 2026-11-16T08:55:11.3175507Z, dialog gone 2026-11-16T08:55:11.4291106Z
+09:55:15.641 edited Q2 password=q2-window; OK posted 2026-11-16T08:55:15.5199768Z, dialog gone 2026-11-16T08:55:15.6418208Z
+09:55:20.136 edited Q3 password=q3-window; OK posted 2026-11-16T08:55:20.0234260Z, dialog gone 2026-11-16T08:55:20.1362982Z
+09:55:23.671 added entry window-new in Passwords
+09:55:23.677 Q3's edit second: 2026-11-16T08:55:20Z (the press and the dialog's closing in the same second: True)
+09:55:23.932 probe: wrote <work>\runs\m1\a-sync-1\NEW-run.kdbx (Q3 at 2026-11-16T08:55:20Z)
+09:55:24.046 replace: before size=3413 mtime=2026-11-16T08:31:56.2778845Z sha=2ff7a751a869
+09:55:24.095 replace (later) with NEW-run.kdbx: after size=5013 mtime=2026-11-16T08:55:24.0635944Z sha=771a40678ce1
+09:55:26.711 [a-sync-1-1] WINDOW title=<<KeePass>> class=#32770
+09:55:26.945 [a-sync-1-1]   Image name=<<MainInstructionIcon>>
+09:55:26.979 [a-sync-1-1]   Text name=<<Overwrite the existing file?>>
+09:55:27.003 [a-sync-1-1]   Text name=<<<work>\runs\m1\a-sync-1\db.kdbx
+
+The file on disk/server has changed since it was loaded. Probably someone else has edited and saved the database.>>
+09:55:27.028 [a-sync-1-1]   Pane name=<<Synchronize>> help=<<Load the file on disk/server and merge it with the current database in memory.>>
+09:55:27.038 [a-sync-1-1]   Pane name=<<Overwrite>> help=<<Save the current database to the file. Changes made by the other user will be lost.>>
+09:55:27.052 [a-sync-1-1]   Pane name=<<Cancel>> help=<<Abort the current operation.>>
+09:55:27.073 [a-sync-1-1]   win32 Button <<Synchronize>>
+09:55:27.099 [a-sync-1-1]   win32 Button <<Overwrite>>
+09:55:27.112 [a-sync-1-1]   win32 Button <<Cancel>>
+09:55:27.778 shot a-sync-1-1.png (489 x 361)
+09:55:28.261 [a-sync-1-1] pressed <<Synchronize (clicked)>>
+09:55:35.963 dialogs after the flow: 1
+09:55:49.467 [after] look failed: no group KeePassGate in the tree: 
+09:55:49.475 file after the flow: size=5301 mtime=2026-11-16T08:55:28.4231515Z sha=9605b424d4f7
+09:55:55.544 dialogs at the exit (answered Discard): 0
+09:55:55.550 file after the exit: size=5301 mtime=2026-11-16T08:55:28.4231515Z sha=9605b424d4f7
+09:55:56.077 verdict: db.kdbx sha=9605b424d4f7 v4.1 KG1=kept KG2=kept KG3=kept NewKey=kept DZ=rec D1=rec X1=gone+rec P1=p1-other[p1-old] P2=p2-window[p2-old] Q1=q1-window[q1-old,q1-other] Q2=q2-other[q2-old,q2-window] Q3=q3-window[q3-old,q3-other] K=k-old[] NO=no-other@Passwords NW=K0nQ0zVLKutxRyANLHVh@Passwords entries=11 records=3
+09:55:56.083 verdict: NEW-run.kdbx sha=771a40678ce1 v4.1 KG1=kept KG2=kept KG3=kept NewKey=kept DZ=rec D1=rec X1=gone+rec P1=p1-other[p1-old] P2=p2-old[] Q1=q1-other[q1-old] Q2=q2-other[q2-old] Q3=q3-other[q3-old] K=k-old[] NO=no-other@Passwords NW=absent entries=10 records=3
+09:55:56.095 ==== a-over-1 : full edits, NEW later, Ctrl+S, Overwrite
+09:55:56.102 config: 
+09:56:08.361 started KeePass pid=19424 token: TokenIsElevated=1 ElevationType=2 Integrity=0x3000 AdministratorsEnabled=False
+09:56:08.502 main window: <<db.kdbx - KeePass>>
+09:56:13.356 edited P2 password=p2-window; OK posted 2026-11-16T08:56:13.2497217Z, dialog gone 2026-11-16T08:56:13.3566123Z
+09:56:17.091 edited Q1 password=q1-window; OK posted 2026-11-16T08:56:16.9762493Z, dialog gone 2026-11-16T08:56:17.0916867Z
+09:56:21.247 edited Q2 password=q2-window; OK posted 2026-11-16T08:56:21.1423538Z, dialog gone 2026-11-16T08:56:21.2479928Z
+09:56:26.140 edited Q3 password=q3-window; OK posted 2026-11-16T08:56:26.0284527Z, dialog gone 2026-11-16T08:56:26.1400575Z
+09:56:29.432 added entry window-new in Passwords
+09:56:29.441 Q3's edit second: 2026-11-16T08:56:26Z (the press and the dialog's closing in the same second: True)
+09:56:29.645 probe: wrote <work>\runs\m1\a-over-1\NEW-run.kdbx (Q3 at 2026-11-16T08:56:26Z)
+09:56:29.653 replace: before size=3413 mtime=2026-11-16T08:31:56.2778845Z sha=2ff7a751a869
+09:56:29.675 replace (later) with NEW-run.kdbx: after size=5013 mtime=2026-11-16T08:56:29.6580962Z sha=3f60c714ee4e
+09:56:32.084 [a-over-1-1] WINDOW title=<<KeePass>> class=#32770
+09:56:32.157 [a-over-1-1]   Image name=<<MainInstructionIcon>>
+09:56:32.173 [a-over-1-1]   Text name=<<Overwrite the existing file?>>
+09:56:32.192 [a-over-1-1]   Text name=<<<work>\runs\m1\a-over-1\db.kdbx
+
+The file on disk/server has changed since it was loaded. Probably someone else has edited and saved the database.>>
+09:56:32.202 [a-over-1-1]   Pane name=<<Synchronize>> help=<<Load the file on disk/server and merge it with the current database in memory.>>
+09:56:32.206 [a-over-1-1]   Pane name=<<Overwrite>> help=<<Save the current database to the file. Changes made by the other user will be lost.>>
+09:56:32.225 [a-over-1-1]   Pane name=<<Cancel>> help=<<Abort the current operation.>>
+09:56:32.250 [a-over-1-1]   win32 Button <<Synchronize>>
+09:56:32.252 [a-over-1-1]   win32 Button <<Overwrite>>
+09:56:32.260 [a-over-1-1]   win32 Button <<Cancel>>
+09:56:32.831 shot a-over-1-1.png (489 x 361)
+09:56:33.256 [a-over-1-1] pressed <<Overwrite (clicked)>>
+09:56:41.236 dialogs after the flow: 1
+09:56:45.035 [after] window title <<db.kdbx - KeePass>>; groups [Desk probe, KeePassGate, Passwords, Recycle Bin]; KeePassGate [KPG grant 1, KPG admission 1]; Passwords [P1, P2, Q1, Q2, Q3, X1, K, window-new]; status <<Ready.>>
+09:56:45.040 file after the flow: size=3829 mtime=2026-11-16T08:56:33.3859991Z sha=e7a8ea496725
+09:56:51.149 dialogs at the exit (answered Discard): 0
+09:56:51.154 file after the exit: size=3829 mtime=2026-11-16T08:56:33.3859991Z sha=e7a8ea496725
+09:56:51.812 verdict: db.kdbx sha=e7a8ea496725 v4.1 KG1=kept KG2=kept KG3=gone NewKey=gone DZ=none D1=rec X1=x1-old[] P1=p1-old[] P2=p2-window[p2-old] Q1=q1-window[q1-old] Q2=q2-window[q2-old] Q3=q3-window[q3-old] K=k-old[] NO=absent NW=a0jdjNymXjE7TctOQH3y@Passwords entries=10 records=1
+09:56:51.814 verdict: NEW-run.kdbx sha=3f60c714ee4e v4.1 KG1=kept KG2=kept KG3=kept NewKey=kept DZ=rec D1=rec X1=gone+rec P1=p1-other[p1-old] P2=p2-old[] Q1=q1-other[q1-old] Q2=q2-other[q2-old] Q3=q3-other[q3-old] K=k-old[] NO=no-other@Passwords NW=absent entries=10 records=3
+09:56:51.832 ==== a-cancel-1 : full edits, NEW later, Ctrl+S, Cancel
+09:56:51.848 config: 
+09:57:05.656 started KeePass pid=21572 token: TokenIsElevated=1 ElevationType=2 Integrity=0x3000 AdministratorsEnabled=False
+09:57:05.836 main window: <<db.kdbx - KeePass>>
+09:57:10.872 edited P2 password=p2-window; OK posted 2026-11-16T08:57:10.7637648Z, dialog gone 2026-11-16T08:57:10.8728608Z
+09:57:15.358 edited Q1 password=q1-window; OK posted 2026-11-16T08:57:15.2387404Z, dialog gone 2026-11-16T08:57:15.3586520Z
+09:57:19.795 edited Q2 password=q2-window; OK posted 2026-11-16T08:57:19.6869875Z, dialog gone 2026-11-16T08:57:19.7953869Z
+09:57:25.137 edited Q3 password=q3-window; OK posted 2026-11-16T08:57:25.0208837Z, dialog gone 2026-11-16T08:57:25.1371795Z
+09:57:28.668 added entry window-new in Passwords
+09:57:28.679 Q3's edit second: 2026-11-16T08:57:25Z (the press and the dialog's closing in the same second: True)
+09:57:28.930 probe: wrote <work>\runs\m1\a-cancel-1\NEW-run.kdbx (Q3 at 2026-11-16T08:57:25Z)
+09:57:28.965 replace: before size=3413 mtime=2026-11-16T08:31:56.2778845Z sha=2ff7a751a869
+09:57:29.004 replace (later) with NEW-run.kdbx: after size=5029 mtime=2026-11-16T08:57:28.9778444Z sha=7efc84ee0800
+09:57:31.547 [a-cancel-1-1] WINDOW title=<<KeePass>> class=#32770
+09:57:31.719 [a-cancel-1-1]   Image name=<<MainInstructionIcon>>
+09:57:31.732 [a-cancel-1-1]   Text name=<<Overwrite the existing file?>>
+09:57:31.745 [a-cancel-1-1]   Text name=<<<work>\runs\m1\a-cancel-1\db.kdbx
+
+The file on disk/server has changed since it was loaded. Probably someone else has edited and saved the database.>>
+09:57:31.757 [a-cancel-1-1]   Pane name=<<Synchronize>> help=<<Load the file on disk/server and merge it with the current database in memory.>>
+09:57:31.770 [a-cancel-1-1]   Pane name=<<Overwrite>> help=<<Save the current database to the file. Changes made by the other user will be lost.>>
+09:57:31.786 [a-cancel-1-1]   Pane name=<<Cancel>> help=<<Abort the current operation.>>
+09:57:31.812 [a-cancel-1-1]   win32 Button <<Synchronize>>
+09:57:31.826 [a-cancel-1-1]   win32 Button <<Overwrite>>
+09:57:31.842 [a-cancel-1-1]   win32 Button <<Cancel>>
+09:57:32.424 shot a-cancel-1-1.png (489 x 361)
+09:57:32.896 [a-cancel-1-1] pressed <<Cancel (clicked)>>
+09:57:40.636 dialogs after the flow: 1
+09:57:44.321 [after] window title <<db.kdbx* - KeePass>>; groups [Desk probe, KeePassGate, Passwords, Recycle Bin]; KeePassGate [KPG grant 1, KPG admission 1]; Passwords [P1, P2, Q1, Q2, Q3, X1, K, window-new]; status <<Ready.>>
+09:57:44.330 file after the flow: size=5029 mtime=2026-11-16T08:57:28.9778444Z sha=7efc84ee0800
+09:57:46.064 [a-cancel-1-exit-1] WINDOW title=<<KeePass>> class=#32770
+09:57:46.219 [a-cancel-1-exit-1]   Image name=<<MainInstructionIcon>>
+09:57:46.229 [a-cancel-1-exit-1]   Text name=<<Save database changes before exiting KeePass?>>
+09:57:46.243 [a-cancel-1-exit-1]   Text name=<<Database file:
+<work>\runs\m1\a-cancel-1\db.kdbx>>
+09:57:46.252 [a-cancel-1-exit-1]   Pane name=<<Save>> help=<<Save all changes made to the database and exit KeePass.>>
+09:57:46.272 [a-cancel-1-exit-1]   Pane name=<<Discard changes>> help=<<Discard all changes made to the database and exit KeePass.>>
+09:57:46.283 [a-cancel-1-exit-1]   Pane name=<<Cancel>> help=<<Abort the current operation. KeePass will not be closed.>>
+09:57:46.294 [a-cancel-1-exit-1]   CheckBox name=<<Automatically save when closing/locking the database>>
+09:57:46.318 [a-cancel-1-exit-1]   win32 Button <<&Save>>
+09:57:46.320 [a-cancel-1-exit-1]   win32 Button <<&Discard changes>>
+09:57:46.327 [a-cancel-1-exit-1]   win32 Button <<Cancel>>
+09:57:46.907 shot a-cancel-1-exit-1.png (446 x 354)
+09:58:08.177 KeePass did not exit; stopped
+09:58:08.191 dialogs at the exit (answered Discard): 1
+09:58:08.213 file after the exit: size=5029 mtime=2026-11-16T08:57:28.9778444Z sha=7efc84ee0800
+09:58:08.808 verdict: db.kdbx sha=7efc84ee0800 v4.1 KG1=kept KG2=kept KG3=kept NewKey=kept DZ=rec D1=rec X1=gone+rec P1=p1-other[p1-old] P2=p2-old[] Q1=q1-other[q1-old] Q2=q2-other[q2-old] Q3=q3-other[q3-old] K=k-old[] NO=no-other@Passwords NW=absent entries=10 records=3
+09:58:08.819 verdict: NEW-run.kdbx sha=7efc84ee0800 v4.1 KG1=kept KG2=kept KG3=kept NewKey=kept DZ=rec D1=rec X1=gone+rec P1=p1-other[p1-old] P2=p2-old[] Q1=q1-other[q1-old] Q2=q2-other[q2-old] Q3=q3-other[q3-old] K=k-old[] NO=no-other@Passwords NW=absent entries=10 records=3
+09:58:08.831 ==== t-equal-1 : P2, NEW-fixed at the old time, Ctrl+S, Overwrite
+09:58:08.844 config: 
+09:58:19.973 started KeePass pid=3204 token: TokenIsElevated=1 ElevationType=2 Integrity=0x3000 AdministratorsEnabled=False
+09:58:20.131 main window: <<db.kdbx - KeePass>>
+09:58:25.136 edited P2 password=p2-window; OK posted 2026-11-16T08:58:25.0212893Z, dialog gone 2026-11-16T08:58:25.1364656Z
+09:58:25.161 replace: before size=3413 mtime=2026-11-16T08:31:56.2778845Z sha=2ff7a751a869
+09:58:25.221 replace (equal) with NEW-fixed.kdbx: after size=5013 mtime=2026-11-16T08:31:56.2778845Z sha=74dd75d7243e
+09:58:27.719 [t-equal-1-1] WINDOW title=<<KeePass>> class=#32770
+09:58:27.861 [t-equal-1-1]   Image name=<<MainInstructionIcon>>
+09:58:27.883 [t-equal-1-1]   Text name=<<Overwrite the existing file?>>
+09:58:27.892 [t-equal-1-1]   Text name=<<<work>\runs\m1\t-equal-1\db.kdbx
+
+The file on disk/server has changed since it was loaded. Probably someone else has edited and saved the database.>>
+09:58:27.901 [t-equal-1-1]   Pane name=<<Synchronize>> help=<<Load the file on disk/server and merge it with the current database in memory.>>
+09:58:27.910 [t-equal-1-1]   Pane name=<<Overwrite>> help=<<Save the current database to the file. Changes made by the other user will be lost.>>
+09:58:27.918 [t-equal-1-1]   Pane name=<<Cancel>> help=<<Abort the current operation.>>
+09:58:27.933 [t-equal-1-1]   win32 Button <<Synchronize>>
+09:58:27.937 [t-equal-1-1]   win32 Button <<Overwrite>>
+09:58:27.939 [t-equal-1-1]   win32 Button <<Cancel>>
+09:58:28.518 shot t-equal-1-1.png (489 x 361)
+09:58:28.954 [t-equal-1-1] pressed <<Overwrite (clicked)>>
+09:58:36.660 dialogs after the flow: 1
+09:58:40.168 [after] window title <<db.kdbx - KeePass>>; groups [Desk probe, KeePassGate, Passwords, Recycle Bin]; KeePassGate [KPG grant 1, KPG admission 1]; Passwords [P1, P2, Q1, Q2, Q3, X1, K]; status <<Ready.>>
+09:58:40.181 file after the flow: size=3589 mtime=2026-11-16T08:58:29.0227517Z sha=961a95930c06
+09:58:46.225 dialogs at the exit (answered Discard): 0
+09:58:46.235 file after the exit: size=3589 mtime=2026-11-16T08:58:29.0227517Z sha=961a95930c06
+09:58:46.870 verdict: db.kdbx sha=961a95930c06 v4.1 KG1=kept KG2=kept KG3=gone NewKey=gone DZ=none D1=rec X1=x1-old[] P1=p1-old[] P2=p2-window[p2-old] Q1=q1-old[] Q2=q2-old[] Q3=q3-old[] K=k-old[] NO=absent NW=absent entries=9 records=1
+09:58:46.880 verdict: NEW-fixed.kdbx sha=74dd75d7243e v4.1 KG1=kept KG2=kept KG3=kept NewKey=kept DZ=rec D1=rec X1=gone+rec P1=p1-other[p1-old] P2=p2-old[] Q1=q1-other[q1-old] Q2=q2-other[q2-old] Q3=q3-other[q3-old] K=k-old[] NO=no-other@Passwords NW=absent entries=10 records=3
+09:58:46.900 ==== t-earlier-1 : P2, NEW-fixed an hour earlier, Ctrl+S, Overwrite
+09:58:46.917 config: 
+09:59:00.613 started KeePass pid=17316 token: TokenIsElevated=1 ElevationType=2 Integrity=0x3000 AdministratorsEnabled=False
+09:59:00.726 main window: <<db.kdbx - KeePass>>
+09:59:05.511 edited P2 password=p2-window; OK posted 2026-11-16T08:59:05.4087204Z, dialog gone 2026-11-16T08:59:05.5114133Z
+09:59:05.533 replace: before size=3413 mtime=2026-11-16T08:31:56.2778845Z sha=2ff7a751a869
+09:59:05.579 replace (earlier) with NEW-fixed.kdbx: after size=5013 mtime=2026-11-16T07:31:56.2778845Z sha=74dd75d7243e
+09:59:08.119 [t-earlier-1-1] WINDOW title=<<KeePass>> class=#32770
+09:59:08.265 [t-earlier-1-1]   Image name=<<MainInstructionIcon>>
+09:59:08.287 [t-earlier-1-1]   Text name=<<Overwrite the existing file?>>
+09:59:08.317 [t-earlier-1-1]   Text name=<<<work>\runs\m1\t-earlier-1\db.kdbx
+
+The file on disk/server has changed since it was loaded. Probably someone else has edited and saved the database.>>
+09:59:08.340 [t-earlier-1-1]   Pane name=<<Synchronize>> help=<<Load the file on disk/server and merge it with the current database in memory.>>
+09:59:08.359 [t-earlier-1-1]   Pane name=<<Overwrite>> help=<<Save the current database to the file. Changes made by the other user will be lost.>>
+09:59:08.373 [t-earlier-1-1]   Pane name=<<Cancel>> help=<<Abort the current operation.>>
+09:59:08.395 [t-earlier-1-1]   win32 Button <<Synchronize>>
+09:59:08.406 [t-earlier-1-1]   win32 Button <<Overwrite>>
+09:59:08.418 [t-earlier-1-1]   win32 Button <<Cancel>>
+09:59:08.988 shot t-earlier-1-1.png (489 x 361)
+09:59:09.429 [t-earlier-1-1] pressed <<Overwrite (clicked)>>
+09:59:17.505 dialogs after the flow: 1
+09:59:21.291 [after] window title <<db.kdbx - KeePass>>; groups [Desk probe, KeePassGate, Passwords, Recycle Bin]; KeePassGate [KPG grant 1, KPG admission 1]; Passwords [P1, P2, Q1, Q2, Q3, X1, K]; status <<Ready.>>
+09:59:21.302 file after the flow: size=3589 mtime=2026-11-16T08:59:09.5588504Z sha=6555cf68e8cc
+09:59:27.383 dialogs at the exit (answered Discard): 0
+09:59:27.393 file after the exit: size=3589 mtime=2026-11-16T08:59:09.5588504Z sha=6555cf68e8cc
+09:59:28.024 verdict: db.kdbx sha=6555cf68e8cc v4.1 KG1=kept KG2=kept KG3=gone NewKey=gone DZ=none D1=rec X1=x1-old[] P1=p1-old[] P2=p2-window[p2-old] Q1=q1-old[] Q2=q2-old[] Q3=q3-old[] K=k-old[] NO=absent NW=absent entries=9 records=1
+09:59:28.029 verdict: NEW-fixed.kdbx sha=74dd75d7243e v4.1 KG1=kept KG2=kept KG3=kept NewKey=kept DZ=rec D1=rec X1=gone+rec P1=p1-other[p1-old] P2=p2-old[] Q1=q1-other[q1-old] Q2=q2-other[q2-old] Q3=q3-other[q3-old] K=k-old[] NO=no-other@Passwords NW=absent entries=10 records=3
+09:59:28.039 ==== t-samelen-equal-1 : P2, NEW-same (OLD length), equal time, Ctrl+S, Overwrite
+09:59:28.051 config: 
+09:59:41.646 started KeePass pid=18884 token: TokenIsElevated=1 ElevationType=2 Integrity=0x3000 AdministratorsEnabled=False
+09:59:41.821 main window: <<db.kdbx - KeePass>>
+09:59:46.799 edited P2 password=p2-window; OK posted 2026-11-16T08:59:46.6888567Z, dialog gone 2026-11-16T08:59:46.7982958Z
+09:59:46.809 replace: before size=3413 mtime=2026-11-16T08:31:56.2778845Z sha=2ff7a751a869
+09:59:46.869 replace (equal) with NEW-same.kdbx: after size=3413 mtime=2026-11-16T08:31:56.2778845Z sha=11219df73b73
+09:59:49.294 [t-samelen-equal-1-1] WINDOW title=<<KeePass>> class=#32770
+09:59:49.375 [t-samelen-equal-1-1]   Image name=<<MainInstructionIcon>>
+09:59:49.401 [t-samelen-equal-1-1]   Text name=<<Overwrite the existing file?>>
+09:59:49.417 [t-samelen-equal-1-1]   Text name=<<<work>\runs\m1\t-samelen-equal-1\db.kdbx
+
+The file on disk/server has changed since it was loaded. Probably someone else has edited and saved the database.>>
+09:59:49.426 [t-samelen-equal-1-1]   Pane name=<<Synchronize>> help=<<Load the file on disk/server and merge it with the current database in memory.>>
+09:59:49.445 [t-samelen-equal-1-1]   Pane name=<<Overwrite>> help=<<Save the current database to the file. Changes made by the other user will be lost.>>
+09:59:49.460 [t-samelen-equal-1-1]   Pane name=<<Cancel>> help=<<Abort the current operation.>>
+09:59:49.487 [t-samelen-equal-1-1]   win32 Button <<Synchronize>>
+09:59:49.496 [t-samelen-equal-1-1]   win32 Button <<Overwrite>>
+09:59:49.505 [t-samelen-equal-1-1]   win32 Button <<Cancel>>
+09:59:50.095 shot t-samelen-equal-1-1.png (489 x 361)
+09:59:50.553 [t-samelen-equal-1-1] pressed <<Overwrite (clicked)>>
+09:59:58.448 dialogs after the flow: 1
+10:00:02.107 [after] window title <<db.kdbx - KeePass>>; groups [Desk probe, KeePassGate, Passwords, Recycle Bin]; KeePassGate [KPG grant 1, KPG admission 1]; Passwords [P1, P2, Q1, Q2, Q3, X1, K]; status <<Ready.>>
+10:00:02.117 file after the flow: size=3589 mtime=2026-11-16T08:59:50.6624349Z sha=a33a46ae103f
+10:00:08.113 dialogs at the exit (answered Discard): 0
+10:00:08.124 file after the exit: size=3589 mtime=2026-11-16T08:59:50.6624349Z sha=a33a46ae103f
+10:00:08.799 verdict: db.kdbx sha=a33a46ae103f v4.1 KG1=kept KG2=kept KG3=gone NewKey=gone DZ=none D1=rec X1=x1-old[] P1=p1-old[] P2=p2-window[p2-old] Q1=q1-old[] Q2=q2-old[] Q3=q3-old[] K=k-old[] NO=absent NW=absent entries=9 records=1
+10:00:08.815 verdict: NEW-same.kdbx sha=11219df73b73 v4.1 KG1=kept KG2=kept KG3=kept NewKey=kept DZ=rec D1=rec X1=gone+rec P1=p1-other[p1-old] P2=p2-old[] Q1=q1-other[q1-old] Q2=q2-other[q2-old] Q3=q3-other[q3-old] K=k-old[] NO=no-other@Passwords NW=absent entries=10 records=3
+10:00:08.830 ==== t-samelen-later-1 : P2, NEW-same, later, Ctrl+S, Synchronize
+10:00:08.859 config: 
+10:00:23.133 started KeePass pid=9968 token: TokenIsElevated=1 ElevationType=2 Integrity=0x3000 AdministratorsEnabled=False
+10:00:23.278 main window: <<db.kdbx - KeePass>>
+10:00:28.164 edited P2 password=p2-window; OK posted 2026-11-16T09:00:28.0473182Z, dialog gone 2026-11-16T09:00:28.1640935Z
+10:00:28.176 replace: before size=3413 mtime=2026-11-16T08:31:56.2778845Z sha=2ff7a751a869
+10:00:28.195 replace (later) with NEW-same.kdbx: after size=3413 mtime=2026-11-16T09:00:28.1818113Z sha=11219df73b73
+10:00:30.680 [t-samelen-later-1-1] WINDOW title=<<KeePass>> class=#32770
+10:00:30.815 [t-samelen-later-1-1]   Image name=<<MainInstructionIcon>>
+10:00:30.838 [t-samelen-later-1-1]   Text name=<<Overwrite the existing file?>>
+10:00:30.848 [t-samelen-later-1-1]   Text name=<<<work>\runs\m1\t-samelen-later-1\db.kdbx
+
+The file on disk/server has changed since it was loaded. Probably someone else has edited and saved the database.>>
+10:00:30.860 [t-samelen-later-1-1]   Pane name=<<Synchronize>> help=<<Load the file on disk/server and merge it with the current database in memory.>>
+10:00:30.877 [t-samelen-later-1-1]   Pane name=<<Overwrite>> help=<<Save the current database to the file. Changes made by the other user will be lost.>>
+10:00:30.899 [t-samelen-later-1-1]   Pane name=<<Cancel>> help=<<Abort the current operation.>>
+10:00:30.925 [t-samelen-later-1-1]   win32 Button <<Synchronize>>
+10:00:30.937 [t-samelen-later-1-1]   win32 Button <<Overwrite>>
+10:00:30.949 [t-samelen-later-1-1]   win32 Button <<Cancel>>
+10:00:31.524 shot t-samelen-later-1-1.png (489 x 361)
+10:00:31.958 [t-samelen-later-1-1] pressed <<Synchronize (clicked)>>
+10:00:40.010 dialogs after the flow: 1
+10:00:53.698 [after] look failed: no group KeePassGate in the tree: 
+10:00:53.729 file after the flow: size=3461 mtime=2026-11-16T09:00:32.0985030Z sha=dfa89ed2c23b
+10:00:59.801 dialogs at the exit (answered Discard): 0
+10:00:59.809 file after the exit: size=3461 mtime=2026-11-16T09:00:32.0985030Z sha=dfa89ed2c23b
+10:01:00.344 verdict: db.kdbx sha=dfa89ed2c23b v4.1 KG1=kept KG2=kept KG3=kept NewKey=kept DZ=rec D1=rec X1=gone+rec P1=p1-other[p1-old] P2=p2-window[p2-old] Q1=q1-other[q1-old] Q2=q2-other[q2-old] Q3=q3-other[q3-old] K=k-old[] NO=no-other@Passwords NW=absent entries=10 records=3
+10:01:00.348 verdict: NEW-same.kdbx sha=11219df73b73 v4.1 KG1=kept KG2=kept KG3=kept NewKey=kept DZ=rec D1=rec X1=gone+rec P1=p1-other[p1-old] P2=p2-old[] Q1=q1-other[q1-old] Q2=q2-other[q2-old] Q3=q3-other[q3-old] K=k-old[] NO=no-other@Passwords NW=absent entries=10 records=3
+10:01:00.356 ==== t-ident-1 : P2, OLD own bytes later (control), Ctrl+S
+10:01:00.366 config: 
+10:01:11.441 started KeePass pid=9176 token: TokenIsElevated=1 ElevationType=2 Integrity=0x3000 AdministratorsEnabled=False
+10:01:11.545 main window: <<db.kdbx - KeePass>>
+10:01:16.065 edited P2 password=p2-window; OK posted 2026-11-16T09:01:15.9535500Z, dialog gone 2026-11-16T09:01:16.0659551Z
+10:01:16.076 replace: before size=3413 mtime=2026-11-16T08:31:56.2778845Z sha=2ff7a751a869
+10:01:16.110 replace (later) with NEW-ident.kdbx: after size=3413 mtime=2026-11-16T09:01:16.0943434Z sha=2ff7a751a869
+10:01:23.666 dialogs after the flow: 0
+10:01:26.995 [after] window title <<db.kdbx - KeePass>>; groups [Desk probe, KeePassGate, Passwords, Recycle Bin]; KeePassGate [KPG grant 1, KPG admission 1]; Passwords [P1, P2, Q1, Q2, Q3, X1, K]; status <<Ready.>>
+10:01:27.015 file after the flow: size=3589 mtime=2026-11-16T09:01:17.3882840Z sha=5ce5f1cb0b91
+10:01:33.073 dialogs at the exit (answered Discard): 0
+10:01:33.085 file after the exit: size=3589 mtime=2026-11-16T09:01:17.3882840Z sha=5ce5f1cb0b91
+10:01:33.756 verdict: db.kdbx sha=5ce5f1cb0b91 v4.1 KG1=kept KG2=kept KG3=gone NewKey=gone DZ=none D1=rec X1=x1-old[] P1=p1-old[] P2=p2-window[p2-old] Q1=q1-old[] Q2=q2-old[] Q3=q3-old[] K=k-old[] NO=absent NW=absent entries=9 records=1
+10:01:33.760 verdict: NEW-ident.kdbx sha=2ff7a751a869 v4.1 KG1=kept KG2=kept KG3=gone NewKey=gone DZ=none D1=rec X1=x1-old[] P1=p1-old[] P2=p2-old[] Q1=q1-old[] Q2=q2-old[] Q3=q3-old[] K=k-old[] NO=absent NW=absent entries=9 records=1
+10:01:33.774 ==== s-toolbar-1 : P2, toolbar Save, Synchronize
+10:01:33.786 config: 
+10:01:46.440 started KeePass pid=10660 token: TokenIsElevated=1 ElevationType=2 Integrity=0x3000 AdministratorsEnabled=False
+10:01:46.614 main window: <<db.kdbx - KeePass>>
+10:01:51.800 edited P2 password=p2-window; OK posted 2026-11-16T09:01:51.6825893Z, dialog gone 2026-11-16T09:01:51.8002387Z
+10:01:51.810 replace: before size=3413 mtime=2026-11-16T08:31:56.2778845Z sha=2ff7a751a869
+10:01:51.865 replace (later) with NEW-fixed.kdbx: after size=5013 mtime=2026-11-16T09:01:51.8451713Z sha=74dd75d7243e
+10:03:00.152 dialogs after the flow: 0
+10:03:08.374 [after] look failed: not found: group tree
+10:03:08.386 file after the flow: size=5013 mtime=2026-11-16T09:01:51.8451713Z sha=74dd75d7243e
+10:03:08.408 file after the exit: size=5013 mtime=2026-11-16T09:01:51.8451713Z sha=74dd75d7243e
+10:03:08.996 verdict: db.kdbx sha=74dd75d7243e v4.1 KG1=kept KG2=kept KG3=kept NewKey=kept DZ=rec D1=rec X1=gone+rec P1=p1-other[p1-old] P2=p2-old[] Q1=q1-other[q1-old] Q2=q2-other[q2-old] Q3=q3-other[q3-old] K=k-old[] NO=no-other@Passwords NW=absent entries=10 records=3
+10:03:09.000 verdict: NEW-fixed.kdbx sha=74dd75d7243e v4.1 KG1=kept KG2=kept KG3=kept NewKey=kept DZ=rec D1=rec X1=gone+rec P1=p1-other[p1-old] P2=p2-old[] Q1=q1-other[q1-old] Q2=q2-other[q2-old] Q3=q3-other[q3-old] K=k-old[] NO=no-other@Passwords NW=absent entries=10 records=3
+10:03:09.010 ==== s-close-1 : P2, Ctrl+W, Save, Synchronize
+10:03:09.013 config: 
+10:03:20.101 started KeePass pid=14660 token: TokenIsElevated=1 ElevationType=2 Integrity=0x3000 AdministratorsEnabled=False
+10:03:20.265 main window: <<db.kdbx - KeePass>>
+10:03:25.221 edited P2 password=p2-window; OK posted 2026-11-16T09:03:25.1110985Z, dialog gone 2026-11-16T09:03:25.2217134Z
+10:03:25.237 replace: before size=3413 mtime=2026-11-16T08:31:56.2778845Z sha=2ff7a751a869
+10:03:25.271 replace (later) with NEW-fixed.kdbx: after size=5013 mtime=2026-11-16T09:03:25.2555849Z sha=74dd75d7243e
+10:03:27.707 [s-close-1-1] WINDOW title=<<KeePass>> class=#32770
+10:03:27.807 [s-close-1-1]   Image name=<<MainInstructionIcon>>
+10:03:27.812 [s-close-1-1]   Text name=<<Save database changes before closing the file?>>
+10:03:27.833 [s-close-1-1]   Text name=<<Database file:
+<work>\runs\m1\s-close-1\db.kdbx>>
+10:03:27.843 [s-close-1-1]   Pane name=<<Save>> help=<<Save all changes made to the database and close the file.>>
+10:03:27.852 [s-close-1-1]   Pane name=<<Discard changes>> help=<<Discard all changes made to the database and close the file.>>
+10:03:27.865 [s-close-1-1]   Pane name=<<Cancel>> help=<<Abort the current operation. The file will not be closed.>>
+10:03:27.901 [s-close-1-1]   win32 Button <<&Save>>
+10:03:27.908 [s-close-1-1]   win32 Button <<&Discard changes>>
+10:03:27.917 [s-close-1-1]   win32 Button <<Cancel>>
+10:03:28.505 shot s-close-1-1.png (409 x 316)
+10:03:28.958 [s-close-1-1] pressed <<&Save (clicked)>>
+10:03:31.459 [s-close-1-2] WINDOW title=<<KeePass>> class=#32770
+10:03:31.596 [s-close-1-2]   Image name=<<MainInstructionIcon>>
+10:03:31.605 [s-close-1-2]   Text name=<<Overwrite the existing file?>>
+10:03:31.621 [s-close-1-2]   Text name=<<<work>\runs\m1\s-close-1\db.kdbx
+
+The file on disk/server has changed since it was loaded. Probably someone else has edited and saved the database.>>
+10:03:31.640 [s-close-1-2]   Pane name=<<Synchronize>> help=<<Load the file on disk/server and merge it with the current database in memory.>>
+10:03:31.655 [s-close-1-2]   Pane name=<<Overwrite>> help=<<Save the current database to the file. Changes made by the other user will be lost.>>
+10:03:31.664 [s-close-1-2]   Pane name=<<Cancel>> help=<<Abort the current operation.>>
+10:03:31.684 [s-close-1-2]   win32 Button <<Synchronize>>
+10:03:31.688 [s-close-1-2]   win32 Button <<Overwrite>>
+10:03:31.692 [s-close-1-2]   win32 Button <<Cancel>>
+10:03:32.253 shot s-close-1-2.png (489 x 361)
+10:03:32.673 [s-close-1-2] pressed <<Synchronize (clicked)>>
+10:03:40.753 dialogs after the flow: 2
+10:03:54.388 [after] look failed: no group KeePassGate in the tree: 
+10:03:54.392 file after the flow: size=5061 mtime=2026-11-16T09:03:32.8322316Z sha=d7fd698d8dbc
+10:04:00.445 dialogs at the exit (answered Discard): 0
+10:04:00.465 file after the exit: size=5061 mtime=2026-11-16T09:03:32.8322316Z sha=d7fd698d8dbc
+10:04:01.196 verdict: db.kdbx sha=d7fd698d8dbc v4.1 KG1=kept KG2=kept KG3=kept NewKey=kept DZ=rec D1=rec X1=gone+rec P1=p1-other[p1-old] P2=p2-window[p2-old] Q1=q1-other[q1-old] Q2=q2-other[q2-old] Q3=q3-other[q3-old] K=k-old[] NO=no-other@Passwords NW=absent entries=10 records=3
+10:04:01.201 verdict: NEW-fixed.kdbx sha=74dd75d7243e v4.1 KG1=kept KG2=kept KG3=kept NewKey=kept DZ=rec D1=rec X1=gone+rec P1=p1-other[p1-old] P2=p2-old[] Q1=q1-other[q1-old] Q2=q2-other[q2-old] Q3=q3-other[q3-old] K=k-old[] NO=no-other@Passwords NW=absent entries=10 records=3
+10:04:01.206 ==== s-lock-1 : P2, Ctrl+L, Save, Overwrite
+10:04:01.214 config: 
+10:04:14.026 started KeePass pid=1664 token: TokenIsElevated=1 ElevationType=2 Integrity=0x3000 AdministratorsEnabled=False
+10:04:14.202 main window: <<db.kdbx - KeePass>>
+10:04:19.302 edited P2 password=p2-window; OK posted 2026-11-16T09:04:19.1870152Z, dialog gone 2026-11-16T09:04:19.3020733Z
+10:04:19.311 replace: before size=3413 mtime=2026-11-16T08:31:56.2778845Z sha=2ff7a751a869
+10:04:19.357 replace (later) with NEW-fixed.kdbx: after size=5013 mtime=2026-11-16T09:04:19.3364422Z sha=74dd75d7243e
+10:04:21.848 [s-lock-1-1] WINDOW title=<<KeePass>> class=#32770
+10:04:22.010 [s-lock-1-1]   Image name=<<MainInstructionIcon>>
+10:04:22.016 [s-lock-1-1]   Text name=<<Save database changes before locking the workspace?>>
+10:04:22.038 [s-lock-1-1]   Text name=<<Database file:
+<work>\runs\m1\s-lock-1\db.kdbx>>
+10:04:22.050 [s-lock-1-1]   Pane name=<<Save>> help=<<Save all changes made to the database and lock the KeePass workspace.>>
+10:04:22.061 [s-lock-1-1]   Pane name=<<Discard changes>> help=<<Discard all changes made to the database and lock the KeePass workspace.>>
+10:04:22.081 [s-lock-1-1]   Pane name=<<Cancel>> help=<<Abort the current operation. The KeePass workspace will not be locked.>>
+10:04:22.092 [s-lock-1-1]   CheckBox name=<<Automatically save when closing/locking the database>>
+10:04:22.116 [s-lock-1-1]   win32 Button <<&Save>>
+10:04:22.122 [s-lock-1-1]   win32 Button <<&Discard changes>>
+10:04:22.135 [s-lock-1-1]   win32 Button <<Cancel>>
+10:04:22.739 shot s-lock-1-1.png (489 x 369)
+10:04:23.243 [s-lock-1-1] pressed <<&Save (clicked)>>
+10:04:25.857 [s-lock-1-2] WINDOW title=<<KeePass>> class=#32770
+10:04:26.048 [s-lock-1-2]   Image name=<<MainInstructionIcon>>
+10:04:26.066 [s-lock-1-2]   Text name=<<Overwrite the existing file?>>
+10:04:26.076 [s-lock-1-2]   Text name=<<<work>\runs\m1\s-lock-1\db.kdbx
+
+The file on disk/server has changed since it was loaded. Probably someone else has edited and saved the database.>>
+10:04:26.090 [s-lock-1-2]   Pane name=<<Synchronize>> help=<<Load the file on disk/server and merge it with the current database in memory.>>
+10:04:26.106 [s-lock-1-2]   Pane name=<<Overwrite>> help=<<Save the current database to the file. Changes made by the other user will be lost.>>
+10:04:26.123 [s-lock-1-2]   Pane name=<<Cancel>> help=<<Abort the current operation.>>
+10:04:26.171 [s-lock-1-2]   win32 Button <<Synchronize>>
+10:04:26.182 [s-lock-1-2]   win32 Button <<Overwrite>>
+10:04:26.199 [s-lock-1-2]   win32 Button <<Cancel>>
+10:04:26.765 shot s-lock-1-2.png (489 x 361)
+10:04:27.287 [s-lock-1-2] pressed <<Overwrite (clicked)>>
+10:04:35.597 dialogs after the flow: 2
+10:04:49.382 [after] look failed: no group KeePassGate in the tree: 
+10:04:49.392 file after the flow: size=3589 mtime=2026-11-16T09:04:27.3900899Z sha=292508961201
+10:04:55.503 dialogs at the exit (answered Discard): 0
+10:04:55.523 file after the exit: size=3589 mtime=2026-11-16T09:04:27.3900899Z sha=292508961201
+10:04:56.205 verdict: db.kdbx sha=292508961201 v4.1 KG1=kept KG2=kept KG3=gone NewKey=gone DZ=none D1=rec X1=x1-old[] P1=p1-old[] P2=p2-window[p2-old] Q1=q1-old[] Q2=q2-old[] Q3=q3-old[] K=k-old[] NO=absent NW=absent entries=9 records=1
+10:04:56.209 verdict: NEW-fixed.kdbx sha=74dd75d7243e v4.1 KG1=kept KG2=kept KG3=kept NewKey=kept DZ=rec D1=rec X1=gone+rec P1=p1-other[p1-old] P2=p2-old[] Q1=q1-other[q1-old] Q2=q2-other[q2-old] Q3=q3-other[q3-old] K=k-old[] NO=no-other@Passwords NW=absent entries=10 records=3
+10:04:56.218 ==== s-exit-1 : P2, Alt+F4, Save, Synchronize
+10:04:56.225 config: 
+10:05:08.381 started KeePass pid=10540 token: TokenIsElevated=1 ElevationType=2 Integrity=0x3000 AdministratorsEnabled=False
+10:05:08.515 main window: <<db.kdbx - KeePass>>
+10:05:13.065 edited P2 password=p2-window; OK posted 2026-11-16T09:05:12.9534290Z, dialog gone 2026-11-16T09:05:13.0658470Z
+10:05:13.074 replace: before size=3413 mtime=2026-11-16T08:31:56.2778845Z sha=2ff7a751a869
+10:05:13.095 replace (later) with NEW-fixed.kdbx: after size=5013 mtime=2026-11-16T09:05:13.0843978Z sha=74dd75d7243e
+10:05:15.463 [s-exit-1-1] WINDOW title=<<KeePass>> class=#32770
+10:05:15.561 [s-exit-1-1]   Image name=<<MainInstructionIcon>>
+10:05:15.566 [s-exit-1-1]   Text name=<<Save database changes before exiting KeePass?>>
+10:05:15.578 [s-exit-1-1]   Text name=<<Database file:
+<work>\runs\m1\s-exit-1\db.kdbx>>
+10:05:15.588 [s-exit-1-1]   Pane name=<<Save>> help=<<Save all changes made to the database and exit KeePass.>>
+10:05:15.594 [s-exit-1-1]   Pane name=<<Discard changes>> help=<<Discard all changes made to the database and exit KeePass.>>
+10:05:15.601 [s-exit-1-1]   Pane name=<<Cancel>> help=<<Abort the current operation. KeePass will not be closed.>>
+10:05:15.606 [s-exit-1-1]   CheckBox name=<<Automatically save when closing/locking the database>>
+10:05:15.615 [s-exit-1-1]   win32 Button <<&Save>>
+10:05:15.619 [s-exit-1-1]   win32 Button <<&Discard changes>>
+10:05:15.622 [s-exit-1-1]   win32 Button <<Cancel>>
+10:05:16.193 shot s-exit-1-1.png (446 x 354)
+10:05:16.556 [s-exit-1-1] pressed <<&Save (clicked)>>
+10:05:18.967 [s-exit-1-2] WINDOW title=<<KeePass>> class=#32770
+10:05:19.048 [s-exit-1-2]   Image name=<<MainInstructionIcon>>
+10:05:19.054 [s-exit-1-2]   Text name=<<Overwrite the existing file?>>
+10:05:19.057 [s-exit-1-2]   Text name=<<<work>\runs\m1\s-exit-1\db.kdbx
+
+The file on disk/server has changed since it was loaded. Probably someone else has edited and saved the database.>>
+10:05:19.062 [s-exit-1-2]   Pane name=<<Synchronize>> help=<<Load the file on disk/server and merge it with the current database in memory.>>
+10:05:19.066 [s-exit-1-2]   Pane name=<<Overwrite>> help=<<Save the current database to the file. Changes made by the other user will be lost.>>
+10:05:19.070 [s-exit-1-2]   Pane name=<<Cancel>> help=<<Abort the current operation.>>
+10:05:19.080 [s-exit-1-2]   win32 Button <<Synchronize>>
+10:05:19.082 [s-exit-1-2]   win32 Button <<Overwrite>>
+10:05:19.084 [s-exit-1-2]   win32 Button <<Cancel>>
+10:05:19.635 shot s-exit-1-2.png (489 x 361)
+10:05:19.980 [s-exit-1-2] pressed <<Synchronize (clicked)>>
+10:05:27.779 dialogs after the flow: 2
+10:05:28.797 file after the flow: size=5077 mtime=2026-11-16T09:05:20.0881603Z sha=4877359cf12b
+10:05:28.802 file after the exit: size=5077 mtime=2026-11-16T09:05:20.0881603Z sha=4877359cf12b
+10:05:29.247 verdict: db.kdbx sha=4877359cf12b v4.1 KG1=kept KG2=kept KG3=kept NewKey=kept DZ=rec D1=rec X1=gone+rec P1=p1-other[p1-old] P2=p2-window[p2-old] Q1=q1-other[q1-old] Q2=q2-other[q2-old] Q3=q3-other[q3-old] K=k-old[] NO=no-other@Passwords NW=absent entries=10 records=3
+10:05:29.249 verdict: NEW-fixed.kdbx sha=74dd75d7243e v4.1 KG1=kept KG2=kept KG3=kept NewKey=kept DZ=rec D1=rec X1=gone+rec P1=p1-other[p1-old] P2=p2-old[] Q1=q1-other[q1-old] Q2=q2-other[q2-old] Q3=q3-other[q3-old] K=k-old[] NO=no-other@Passwords NW=absent entries=10 records=3
+10:05:29.265 ==== s-saveas-1 : P2, Save As over the same path
+10:05:29.269 config: 
+10:05:41.026 started KeePass pid=2360 token: TokenIsElevated=1 ElevationType=2 Integrity=0x3000 AdministratorsEnabled=False
+10:05:41.230 main window: <<db.kdbx - KeePass>>
+10:05:45.903 edited P2 password=p2-window; OK posted 2026-11-16T09:05:45.7906525Z, dialog gone 2026-11-16T09:05:45.9037552Z
+10:05:45.912 replace: before size=3413 mtime=2026-11-16T08:31:56.2778845Z sha=2ff7a751a869
+10:05:45.946 replace (later) with NEW-fixed.kdbx: after size=5013 mtime=2026-11-16T09:05:45.9325436Z sha=74dd75d7243e
+10:05:57.532 stopping KeePass pid=2360
+10:05:57.579 RUN FAILED s-saveas-1: no file dialog 'Save Database*' at Kp-FileDialog, <branch>\spikes\storage\probes\desktop-windows\scripts\M1.ps1: line 80
+at Run-M1, <branch>\spikes\storage\probes\desktop-windows\scripts\M1.ps1: line 165
+at <ScriptBlock>, <branch>\spikes\storage\probes\desktop-windows\scripts\M1.ps1: line 253
+10:05:57.593 ==== n-focus-1 : nothing changed, focus away and back
+10:05:57.597 config: 
+10:06:08.674 started KeePass pid=2416 token: TokenIsElevated=1 ElevationType=2 Integrity=0x3000 AdministratorsEnabled=False
+10:06:08.831 main window: <<db.kdbx - KeePass>>
+10:06:08.852 replace: before size=3413 mtime=2026-11-16T08:31:56.2778845Z sha=2ff7a751a869
+10:06:08.908 replace (later) with NEW-fixed.kdbx: after size=5013 mtime=2026-11-16T09:06:08.8829013Z sha=74dd75d7243e
+10:06:24.909 dialogs after the flow: 0
+10:06:28.239 [after] window title <<db.kdbx - KeePass>>; groups [Desk probe, KeePassGate, Passwords, Recycle Bin]; KeePassGate [KPG grant 1, KPG admission 1]; Passwords [P1, P2, Q1, Q2, Q3, X1, K]; status <<Ready.>>
+10:06:28.247 file after the flow: size=5013 mtime=2026-11-16T09:06:08.8829013Z sha=74dd75d7243e
+10:06:34.320 dialogs at the exit (answered Discard): 0
+10:06:34.330 file after the exit: size=5013 mtime=2026-11-16T09:06:08.8829013Z sha=74dd75d7243e
+10:06:35.142 verdict: db.kdbx sha=74dd75d7243e v4.1 KG1=kept KG2=kept KG3=kept NewKey=kept DZ=rec D1=rec X1=gone+rec P1=p1-other[p1-old] P2=p2-old[] Q1=q1-other[q1-old] Q2=q2-other[q2-old] Q3=q3-other[q3-old] K=k-old[] NO=no-other@Passwords NW=absent entries=10 records=3
+10:06:35.156 verdict: NEW-fixed.kdbx sha=74dd75d7243e v4.1 KG1=kept KG2=kept KG3=kept NewKey=kept DZ=rec D1=rec X1=gone+rec P1=p1-other[p1-old] P2=p2-old[] Q1=q1-other[q1-old] Q2=q2-other[q2-old] Q3=q3-other[q3-old] K=k-old[] NO=no-other@Passwords NW=absent entries=10 records=3
+10:06:35.186 ==== n-lockunlock-1 : nothing changed, lock and unlock, then P2 and Ctrl+S
+10:06:35.203 config: 
+10:06:47.109 started KeePass pid=19952 token: TokenIsElevated=1 ElevationType=2 Integrity=0x3000 AdministratorsEnabled=False
+10:06:47.212 main window: <<db.kdbx - KeePass>>
+10:06:47.223 replace: before size=3413 mtime=2026-11-16T08:31:56.2778845Z sha=2ff7a751a869
+10:06:47.250 replace (later) with NEW-fixed.kdbx: after size=5013 mtime=2026-11-16T09:06:47.2322858Z sha=74dd75d7243e
+10:07:02.453 [locked] look failed: no group KeePassGate in the tree: 
+10:07:03.524 [n-lockunlock-1-prompt] WINDOW title=<<Open Database - db.kdbx>> class=WindowsForms10.Window.8.app.0.2bf8098_r6_ad1
+10:07:03.640 [n-lockunlock-1-prompt]   Pane name=<<Exit>>
+10:07:03.668 [n-lockunlock-1-prompt]   ComboBox name=<<(None)>>
+10:07:03.683 [n-lockunlock-1-prompt]   Button name=<<Open>>
+10:07:03.695 [n-lockunlock-1-prompt]   Pane name=<<Help>>
+10:07:03.708 [n-lockunlock-1-prompt]   Pane name=<<Cancel>>
+10:07:03.713 [n-lockunlock-1-prompt]   Pane name=<<OK>>
+10:07:03.723 [n-lockunlock-1-prompt]   Pane name=<<Windows user account>>
+10:07:03.736 [n-lockunlock-1-prompt]   Pane name=<<Key file/provider:>>
+10:07:03.752 [n-lockunlock-1-prompt]   Pane name=<<Master password:>>
+10:07:03.768 [n-lockunlock-1-prompt]   win32 BUTTON <<E&xit>>
+10:07:03.779 [n-lockunlock-1-prompt]   win32 COMBOBOX <<(None)>>
+10:07:03.785 [n-lockunlock-1-prompt]   win32 BUTTON <<&Help>>
+10:07:03.797 [n-lockunlock-1-prompt]   win32 BUTTON <<Cancel>>
+10:07:03.806 [n-lockunlock-1-prompt]   win32 BUTTON <<OK>>
+10:07:03.820 [n-lockunlock-1-prompt]   win32 BUTTON <<&Windows user account>>
+10:07:03.829 [n-lockunlock-1-prompt]   win32 BUTTON <<&Key file/provider:>>
+10:07:03.839 [n-lockunlock-1-prompt]   win32 BUTTON <<&Master password:>>
+10:07:18.981 [unlocked] look failed: no group KeePassGate in the tree: 
+10:07:31.832 stopping KeePass pid=19952
+10:07:31.877 RUN FAILED n-lockunlock-1: no group Passwords in the tree:  at Kp-Group, <branch>\spikes\storage\probes\desktop-windows\scripts\Kp.ps1: line 71
+at Kp-SelectEntry, <branch>\spikes\storage\probes\desktop-windows\scripts\Kp.ps1: line 80
+at Kp-OpenEntry, <branch>\spikes\storage\probes\desktop-windows\scripts\Kp.ps1: line 99
+at Kp-EditPassword, <branch>\spikes\storage\probes\desktop-windows\scripts\Kp.ps1: line 136
+at Run-M1, <branch>\spikes\storage\probes\desktop-windows\scripts\M1.ps1: line 184
+at <ScriptBlock>, <branch>\spikes\storage\probes\desktop-windows\scripts\M1.ps1: line 253
+10:07:31.902 ==== n-syncmenu-1 : nothing changed, File Synchronize with the same file
+10:07:31.909 config: 
+10:07:43.026 started KeePass pid=15240 token: TokenIsElevated=1 ElevationType=2 Integrity=0x3000 AdministratorsEnabled=False
+10:07:43.170 main window: <<db.kdbx - KeePass>>
+10:07:43.182 replace: before size=3413 mtime=2026-11-16T08:31:56.2778845Z sha=2ff7a751a869
+10:07:43.203 replace (later) with NEW-fixed.kdbx: after size=5013 mtime=2026-11-16T09:07:43.1921364Z sha=74dd75d7243e
+10:07:45.911 menu: <<Synchronize>>
+10:07:47.539 menu: <<Synchronize with File...>>
+10:08:55.126 stopping KeePass pid=15240
+10:08:55.184 RUN FAILED n-syncmenu-1: no file dialog 'Synchronize*' at Kp-FileDialog, <branch>\spikes\storage\probes\desktop-windows\scripts\M1.ps1: line 80
+at Run-M1, <branch>\spikes\storage\probes\desktop-windows\scripts\M1.ps1: line 169
+at <ScriptBlock>, <branch>\spikes\storage\probes\desktop-windows\scripts\M1.ps1: line 253
+10:08:55.221 ==== n-ctrls-1 : nothing changed, Ctrl+S, Overwrite
+10:08:55.229 config: 
+10:09:06.333 started KeePass pid=5616 token: TokenIsElevated=1 ElevationType=2 Integrity=0x3000 AdministratorsEnabled=False
+10:09:06.510 main window: <<db.kdbx - KeePass>>
+10:09:06.528 replace: before size=3413 mtime=2026-11-16T08:31:56.2778845Z sha=2ff7a751a869
+10:09:06.571 replace (later) with NEW-fixed.kdbx: after size=5013 mtime=2026-11-16T09:09:06.5523157Z sha=74dd75d7243e
+10:09:09.095 [n-ctrls-1-1] WINDOW title=<<KeePass>> class=#32770
+10:09:09.201 [n-ctrls-1-1]   Image name=<<MainInstructionIcon>>
+10:09:09.208 [n-ctrls-1-1]   Text name=<<Overwrite the existing file?>>
+10:09:09.215 [n-ctrls-1-1]   Text name=<<<work>\runs\m1\n-ctrls-1\db.kdbx
+
+The file on disk/server has changed since it was loaded. Probably someone else has edited and saved the database.>>
+10:09:09.232 [n-ctrls-1-1]   Pane name=<<Synchronize>> help=<<Load the file on disk/server and merge it with the current database in memory.>>
+10:09:09.240 [n-ctrls-1-1]   Pane name=<<Overwrite>> help=<<Save the current database to the file. Changes made by the other user will be lost.>>
+10:09:09.248 [n-ctrls-1-1]   Pane name=<<Cancel>> help=<<Abort the current operation.>>
+10:09:09.262 [n-ctrls-1-1]   win32 Button <<Synchronize>>
+10:09:09.267 [n-ctrls-1-1]   win32 Button <<Overwrite>>
+10:09:09.276 [n-ctrls-1-1]   win32 Button <<Cancel>>
+10:09:09.861 shot n-ctrls-1-1.png (489 x 361)
+10:09:10.269 [n-ctrls-1-1] pressed <<Overwrite (clicked)>>
+10:09:18.427 dialogs after the flow: 1
+10:09:22.270 [after] window title <<db.kdbx - KeePass>>; groups [Desk probe, KeePassGate, Passwords, Recycle Bin]; KeePassGate [KPG grant 1, KPG admission 1]; Passwords [P1, P2, Q1, Q2, Q3, X1, K]; status <<Ready.>>
+10:09:22.277 file after the flow: size=3413 mtime=2026-11-16T09:09:10.3691110Z sha=971b2356d001
+10:09:28.391 dialogs at the exit (answered Discard): 0
+10:09:28.401 file after the exit: size=3413 mtime=2026-11-16T09:09:10.3691110Z sha=971b2356d001
+10:09:29.027 verdict: db.kdbx sha=971b2356d001 v4.1 KG1=kept KG2=kept KG3=gone NewKey=gone DZ=none D1=rec X1=x1-old[] P1=p1-old[] P2=p2-old[] Q1=q1-old[] Q2=q2-old[] Q3=q3-old[] K=k-old[] NO=absent NW=absent entries=9 records=1
+10:09:29.033 verdict: NEW-fixed.kdbx sha=74dd75d7243e v4.1 KG1=kept KG2=kept KG3=kept NewKey=kept DZ=rec D1=rec X1=gone+rec P1=p1-other[p1-old] P2=p2-old[] Q1=q1-other[q1-old] Q2=q2-other[q2-old] Q3=q3-other[q3-old] K=k-old[] NO=no-other@Passwords NW=absent entries=10 records=3
+10:09:29.040 ==== n-lockedarrival-1 : locked before the replacement, unlocked after, then P2 and Ctrl+S
+10:09:29.046 config: 
+10:09:42.602 started KeePass pid=6196 token: TokenIsElevated=1 ElevationType=2 Integrity=0x3000 AdministratorsEnabled=False
+10:09:42.745 main window: <<db.kdbx - KeePass>>
+10:09:57.232 [locked] look failed: no group KeePassGate in the tree: 
+10:09:57.246 replace: before size=3413 mtime=2026-11-16T08:31:56.2778845Z sha=2ff7a751a869
+10:09:57.282 replace (later) with NEW-fixed.kdbx: after size=5013 mtime=2026-11-16T09:09:57.2638865Z sha=74dd75d7243e
+10:09:59.318 [n-lockedarrival-1-prompt] WINDOW title=<<Open Database - db.kdbx>> class=WindowsForms10.Window.8.app.0.2bf8098_r6_ad1
+10:09:59.435 [n-lockedarrival-1-prompt]   Pane name=<<Exit>>
+10:09:59.456 [n-lockedarrival-1-prompt]   ComboBox name=<<(None)>>
+10:09:59.472 [n-lockedarrival-1-prompt]   Button name=<<Open>>
+10:09:59.483 [n-lockedarrival-1-prompt]   Pane name=<<Help>>
+10:09:59.489 [n-lockedarrival-1-prompt]   Pane name=<<Cancel>>
+10:09:59.491 [n-lockedarrival-1-prompt]   Pane name=<<OK>>
+10:09:59.498 [n-lockedarrival-1-prompt]   Pane name=<<Windows user account>>
+10:09:59.501 [n-lockedarrival-1-prompt]   Pane name=<<Key file/provider:>>
+10:09:59.509 [n-lockedarrival-1-prompt]   Pane name=<<Master password:>>
+10:09:59.519 [n-lockedarrival-1-prompt]   win32 BUTTON <<E&xit>>
+10:09:59.523 [n-lockedarrival-1-prompt]   win32 COMBOBOX <<(None)>>
+10:09:59.530 [n-lockedarrival-1-prompt]   win32 BUTTON <<&Help>>
+10:09:59.533 [n-lockedarrival-1-prompt]   win32 BUTTON <<Cancel>>
+10:09:59.537 [n-lockedarrival-1-prompt]   win32 BUTTON <<OK>>
+10:09:59.539 [n-lockedarrival-1-prompt]   win32 BUTTON <<&Windows user account>>
+10:09:59.547 [n-lockedarrival-1-prompt]   win32 BUTTON <<&Key file/provider:>>
+10:09:59.549 [n-lockedarrival-1-prompt]   win32 BUTTON <<&Master password:>>
+10:10:14.879 [unlocked] look failed: no group KeePassGate in the tree: 
+10:10:28.020 stopping KeePass pid=6196
+10:10:28.060 RUN FAILED n-lockedarrival-1: no group Passwords in the tree:  at Kp-Group, <branch>\spikes\storage\probes\desktop-windows\scripts\Kp.ps1: line 71
+at Kp-SelectEntry, <branch>\spikes\storage\probes\desktop-windows\scripts\Kp.ps1: line 80
+at Kp-OpenEntry, <branch>\spikes\storage\probes\desktop-windows\scripts\Kp.ps1: line 99
+at Kp-EditPassword, <branch>\spikes\storage\probes\desktop-windows\scripts\Kp.ps1: line 136
+at Run-M1, <branch>\spikes\storage\probes\desktop-windows\scripts\M1.ps1: line 191
+at <ScriptBlock>, <branch>\spikes\storage\probes\desktop-windows\scripts\M1.ps1: line 253
+10:10:28.098 ==== o-forcesync-1 : SaveForceSync on, P2, Ctrl+S
+10:10:28.185 config: Application/SaveForceSync=true
+10:10:41.502 started KeePass pid=5768 token: TokenIsElevated=1 ElevationType=2 Integrity=0x3000 AdministratorsEnabled=False
+10:10:41.629 main window: <<db.kdbx - KeePass>>
+10:10:46.170 edited P2 password=p2-window; OK posted 2026-11-16T09:10:46.0508298Z, dialog gone 2026-11-16T09:10:46.1681085Z
+10:10:46.179 replace: before size=3413 mtime=2026-11-16T08:31:56.2778845Z sha=2ff7a751a869
+10:10:46.225 replace (later) with NEW-fixed.kdbx: after size=5013 mtime=2026-11-16T09:10:46.2022647Z sha=74dd75d7243e
+10:10:54.739 dialogs after the flow: 0
+10:11:08.170 [after] look failed: no group KeePassGate in the tree: 
+10:11:08.190 file after the flow: size=5077 mtime=2026-11-16T09:10:47.5172214Z sha=34b77315df07
+10:11:14.248 dialogs at the exit (answered Discard): 0
+10:11:14.256 file after the exit: size=5077 mtime=2026-11-16T09:10:47.5172214Z sha=34b77315df07
+10:11:14.949 verdict: db.kdbx sha=34b77315df07 v4.1 KG1=kept KG2=kept KG3=kept NewKey=kept DZ=rec D1=rec X1=gone+rec P1=p1-other[p1-old] P2=p2-window[p2-old] Q1=q1-other[q1-old] Q2=q2-other[q2-old] Q3=q3-other[q3-old] K=k-old[] NO=no-other@Passwords NW=absent entries=10 records=3
+10:11:14.964 verdict: NEW-fixed.kdbx sha=74dd75d7243e v4.1 KG1=kept KG2=kept KG3=kept NewKey=kept DZ=rec D1=rec X1=gone+rec P1=p1-other[p1-old] P2=p2-old[] Q1=q1-other[q1-old] Q2=q2-other[q2-old] Q3=q3-other[q3-old] K=k-old[] NO=no-other@Passwords NW=absent entries=10 records=3
+10:11:14.974 ==== o-autosave-lock-1 : FileClosing AutoSave on, P2, Ctrl+L
+10:11:14.984 config: Application/FileClosing/AutoSave=true
+10:11:28.183 started KeePass pid=17288 token: TokenIsElevated=1 ElevationType=2 Integrity=0x3000 AdministratorsEnabled=False
+10:11:28.302 main window: <<db.kdbx - KeePass>>
+10:11:32.970 edited P2 password=p2-window; OK posted 2026-11-16T09:11:32.8533346Z, dialog gone 2026-11-16T09:11:32.9709827Z
+10:11:32.983 replace: before size=3413 mtime=2026-11-16T08:31:56.2778845Z sha=2ff7a751a869
+10:11:33.008 replace (later) with NEW-fixed.kdbx: after size=5013 mtime=2026-11-16T09:11:32.9957597Z sha=74dd75d7243e
+10:11:35.409 [o-autosave-lock-1-1] WINDOW title=<<KeePass>> class=#32770
+10:11:35.541 [o-autosave-lock-1-1]   Image name=<<MainInstructionIcon>>
+10:11:35.563 [o-autosave-lock-1-1]   Text name=<<Overwrite the existing file?>>
+10:11:35.581 [o-autosave-lock-1-1]   Text name=<<<work>\runs\m1\o-autosave-lock-1\db.kdbx
+
+The file on disk/server has changed since it was loaded. Probably someone else has edited and saved the database.>>
+10:11:35.590 [o-autosave-lock-1-1]   Pane name=<<Synchronize>> help=<<Load the file on disk/server and merge it with the current database in memory.>>
+10:11:35.618 [o-autosave-lock-1-1]   Pane name=<<Overwrite>> help=<<Save the current database to the file. Changes made by the other user will be lost.>>
+10:11:35.627 [o-autosave-lock-1-1]   Pane name=<<Cancel>> help=<<Abort the current operation.>>
+10:11:35.653 [o-autosave-lock-1-1]   win32 Button <<Synchronize>>
+10:11:35.674 [o-autosave-lock-1-1]   win32 Button <<Overwrite>>
+10:11:35.680 [o-autosave-lock-1-1]   win32 Button <<Cancel>>
+10:11:36.238 shot o-autosave-lock-1-1.png (489 x 361)
+10:11:36.611 [o-autosave-lock-1-1] pressed <<Synchronize (clicked)>>
+10:11:44.346 dialogs after the flow: 1
+10:11:58.230 [after] look failed: no group KeePassGate in the tree: 
+10:11:58.241 file after the flow: size=5061 mtime=2026-11-16T09:11:36.7330116Z sha=bb32d25ef0fc
+10:12:04.338 dialogs at the exit (answered Discard): 0
+10:12:04.350 file after the exit: size=5061 mtime=2026-11-16T09:11:36.7330116Z sha=bb32d25ef0fc
+10:12:05.117 verdict: db.kdbx sha=bb32d25ef0fc v4.1 KG1=kept KG2=kept KG3=kept NewKey=kept DZ=rec D1=rec X1=gone+rec P1=p1-other[p1-old] P2=p2-window[p2-old] Q1=q1-other[q1-old] Q2=q2-other[q2-old] Q3=q3-other[q3-old] K=k-old[] NO=no-other@Passwords NW=absent entries=10 records=3
+10:12:05.125 verdict: NEW-fixed.kdbx sha=74dd75d7243e v4.1 KG1=kept KG2=kept KG3=kept NewKey=kept DZ=rec D1=rec X1=gone+rec P1=p1-other[p1-old] P2=p2-old[] Q1=q1-other[q1-old] Q2=q2-other[q2-old] Q3=q3-other[q3-old] K=k-old[] NO=no-other@Passwords NW=absent entries=10 records=3
+10:12:05.145 ==== o-autosave-edit-1 : AutoSaveAfterEntryEdit on, replacement first, then P2
+10:12:05.158 config: Application/AutoSaveAfterEntryEdit=true
+10:12:19.413 started KeePass pid=12660 token: TokenIsElevated=1 ElevationType=2 Integrity=0x3000 AdministratorsEnabled=False
+10:12:19.581 main window: <<db.kdbx - KeePass>>
+10:12:19.591 replace: before size=3413 mtime=2026-11-16T08:31:56.2778845Z sha=2ff7a751a869
+10:12:19.617 replace (later) with NEW-fixed.kdbx: after size=5013 mtime=2026-11-16T09:12:19.6058642Z sha=74dd75d7243e
+10:12:25.873 edited P2 password=p2-window; OK posted 2026-11-16T09:12:25.7650752Z, dialog gone 2026-11-16T09:12:25.8737498Z
+10:12:27.606 [o-autosave-edit-1-1] WINDOW title=<<KeePass>> class=#32770
+10:12:27.759 [o-autosave-edit-1-1]   Image name=<<MainInstructionIcon>>
+10:12:27.771 [o-autosave-edit-1-1]   Text name=<<Overwrite the existing file?>>
+10:12:27.782 [o-autosave-edit-1-1]   Text name=<<<work>\runs\m1\o-autosave-edit-1\db.kdbx
+
+The file on disk/server has changed since it was loaded. Probably someone else has edited and saved the database.>>
+10:12:27.793 [o-autosave-edit-1-1]   Pane name=<<Synchronize>> help=<<Load the file on disk/server and merge it with the current database in memory.>>
+10:12:27.802 [o-autosave-edit-1-1]   Pane name=<<Overwrite>> help=<<Save the current database to the file. Changes made by the other user will be lost.>>
+10:12:27.812 [o-autosave-edit-1-1]   Pane name=<<Cancel>> help=<<Abort the current operation.>>
+10:12:27.827 [o-autosave-edit-1-1]   win32 Button <<Synchronize>>
+10:12:27.831 [o-autosave-edit-1-1]   win32 Button <<Overwrite>>
+10:12:27.836 [o-autosave-edit-1-1]   win32 Button <<Cancel>>
+10:12:28.405 shot o-autosave-edit-1-1.png (489 x 361)
+10:12:28.891 [o-autosave-edit-1-1] pressed <<Synchronize (clicked)>>
+10:12:37.135 dialogs after the flow: 1
+10:12:51.117 [after] look failed: no group KeePassGate in the tree: 
+10:12:51.127 file after the flow: size=5077 mtime=2026-11-16T09:12:29.0347501Z sha=cc933b0b0a17
+10:12:57.185 dialogs at the exit (answered Discard): 0
+10:12:57.193 file after the exit: size=5077 mtime=2026-11-16T09:12:29.0347501Z sha=cc933b0b0a17
+10:12:57.855 verdict: db.kdbx sha=cc933b0b0a17 v4.1 KG1=kept KG2=kept KG3=kept NewKey=kept DZ=rec D1=rec X1=gone+rec P1=p1-other[p1-old] P2=p2-window[p2-old] Q1=q1-other[q1-old] Q2=q2-other[q2-old] Q3=q3-other[q3-old] K=k-old[] NO=no-other@Passwords NW=absent entries=10 records=3
+10:12:57.859 verdict: NEW-fixed.kdbx sha=74dd75d7243e v4.1 KG1=kept KG2=kept KG3=kept NewKey=kept DZ=rec D1=rec X1=gone+rec P1=p1-other[p1-old] P2=p2-old[] Q1=q1-other[q1-old] Q2=q2-other[q2-old] Q3=q3-other[q3-old] K=k-old[] NO=no-other@Passwords NW=absent entries=10 records=3
+10:12:57.875 ==== o-notx-1 : UseTransactedFileWrites off, P2, Ctrl+S, Overwrite
+10:12:57.881 config: Application/UseTransactedFileWrites=false
+10:13:09.674 started KeePass pid=18028 token: TokenIsElevated=1 ElevationType=2 Integrity=0x3000 AdministratorsEnabled=False
+10:13:09.802 main window: <<db.kdbx - KeePass>>
+10:13:14.456 edited P2 password=p2-window; OK posted 2026-11-16T09:13:14.3391828Z, dialog gone 2026-11-16T09:13:14.4565070Z
+10:13:14.484 replace: before size=3413 mtime=2026-11-16T08:31:56.2778845Z sha=2ff7a751a869
+10:13:14.545 replace (later) with NEW-fixed.kdbx: after size=5013 mtime=2026-11-16T09:13:14.5294615Z sha=74dd75d7243e
+10:13:16.929 [o-notx-1-1] WINDOW title=<<KeePass>> class=#32770
+10:13:17.069 [o-notx-1-1]   Image name=<<MainInstructionIcon>>
+10:13:17.088 [o-notx-1-1]   Text name=<<Overwrite the existing file?>>
+10:13:17.110 [o-notx-1-1]   Text name=<<<work>\runs\m1\o-notx-1\db.kdbx
+
+The file on disk/server has changed since it was loaded. Probably someone else has edited and saved the database.>>
+10:13:17.124 [o-notx-1-1]   Pane name=<<Synchronize>> help=<<Load the file on disk/server and merge it with the current database in memory.>>
+10:13:17.136 [o-notx-1-1]   Pane name=<<Overwrite>> help=<<Save the current database to the file. Changes made by the other user will be lost.>>
+10:13:17.150 [o-notx-1-1]   Pane name=<<Cancel>> help=<<Abort the current operation.>>
+10:13:17.168 [o-notx-1-1]   win32 Button <<Synchronize>>
+10:13:17.174 [o-notx-1-1]   win32 Button <<Overwrite>>
+10:13:17.178 [o-notx-1-1]   win32 Button <<Cancel>>
+10:13:17.743 shot o-notx-1-1.png (489 x 361)
+10:13:18.166 [o-notx-1-1] pressed <<Overwrite (clicked)>>
+10:13:26.000 dialogs after the flow: 1
+10:13:29.730 [after] window title <<db.kdbx - KeePass>>; groups [Desk probe, KeePassGate, Passwords, Recycle Bin]; KeePassGate [KPG grant 1, KPG admission 1]; Passwords [P1, P2, Q1, Q2, Q3, X1, K]; status <<Ready.>>
+10:13:29.737 file after the flow: size=3589 mtime=2026-11-16T09:13:18.2530804Z sha=55954546b03e
+10:13:35.801 dialogs at the exit (answered Discard): 0
+10:13:35.812 file after the exit: size=3589 mtime=2026-11-16T09:13:18.2530804Z sha=55954546b03e
+10:13:36.557 verdict: db.kdbx sha=55954546b03e v4.1 KG1=kept KG2=kept KG3=gone NewKey=gone DZ=none D1=rec X1=x1-old[] P1=p1-old[] P2=p2-window[p2-old] Q1=q1-old[] Q2=q2-old[] Q3=q3-old[] K=k-old[] NO=absent NW=absent entries=9 records=1
+10:13:36.566 verdict: NEW-fixed.kdbx sha=74dd75d7243e v4.1 KG1=kept KG2=kept KG3=kept NewKey=kept DZ=rec D1=rec X1=gone+rec P1=p1-other[p1-old] P2=p2-old[] Q1=q1-other[q1-old] Q2=q2-other[q2-old] Q3=q3-other[q3-old] K=k-old[] NO=no-other@Passwords NW=absent entries=10 records=3
+10:13:36.581 ==== o-txextra-1 : FileTxExtra on, P2, Ctrl+S, Synchronize
+10:13:36.587 config: Application/FileTxExtra=true
+10:13:50.817 started KeePass pid=9888 token: TokenIsElevated=1 ElevationType=2 Integrity=0x3000 AdministratorsEnabled=False
+10:13:50.997 main window: <<db.kdbx - KeePass>>
+10:13:56.242 edited P2 password=p2-window; OK posted 2026-11-16T09:13:56.1409689Z, dialog gone 2026-11-16T09:13:56.2427380Z
+10:13:56.251 replace: before size=3413 mtime=2026-11-16T08:31:56.2778845Z sha=2ff7a751a869
+10:13:56.271 replace (later) with NEW-fixed.kdbx: after size=5013 mtime=2026-11-16T09:13:56.2589240Z sha=74dd75d7243e
+10:13:58.783 [o-txextra-1-1] WINDOW title=<<KeePass>> class=#32770
+10:13:58.895 [o-txextra-1-1]   Image name=<<MainInstructionIcon>>
+10:13:58.907 [o-txextra-1-1]   Text name=<<Overwrite the existing file?>>
+10:13:58.915 [o-txextra-1-1]   Text name=<<<work>\runs\m1\o-txextra-1\db.kdbx
+
+The file on disk/server has changed since it was loaded. Probably someone else has edited and saved the database.>>
+10:13:58.921 [o-txextra-1-1]   Pane name=<<Synchronize>> help=<<Load the file on disk/server and merge it with the current database in memory.>>
+10:13:58.928 [o-txextra-1-1]   Pane name=<<Overwrite>> help=<<Save the current database to the file. Changes made by the other user will be lost.>>
+10:13:58.935 [o-txextra-1-1]   Pane name=<<Cancel>> help=<<Abort the current operation.>>
+10:13:58.952 [o-txextra-1-1]   win32 Button <<Synchronize>>
+10:13:58.956 [o-txextra-1-1]   win32 Button <<Overwrite>>
+10:13:58.972 [o-txextra-1-1]   win32 Button <<Cancel>>
+10:13:59.549 shot o-txextra-1-1.png (489 x 361)
+10:13:59.920 [o-txextra-1-1] pressed <<Synchronize (clicked)>>
+10:14:08.111 dialogs after the flow: 1
+10:14:21.895 [after] look failed: no group KeePassGate in the tree: 
+10:14:21.908 file after the flow: size=5061 mtime=2026-11-16T09:14:00.0924966Z sha=2a912b34985b
+10:14:28.074 dialogs at the exit (answered Discard): 0
+10:14:28.085 file after the exit: size=5061 mtime=2026-11-16T09:14:00.0924966Z sha=2a912b34985b
+10:14:28.868 verdict: db.kdbx sha=2a912b34985b v4.1 KG1=kept KG2=kept KG3=kept NewKey=kept DZ=rec D1=rec X1=gone+rec P1=p1-other[p1-old] P2=p2-window[p2-old] Q1=q1-other[q1-old] Q2=q2-other[q2-old] Q3=q3-other[q3-old] K=k-old[] NO=no-other@Passwords NW=absent entries=10 records=3
+10:14:28.875 verdict: NEW-fixed.kdbx sha=74dd75d7243e v4.1 KG1=kept KG2=kept KG3=kept NewKey=kept DZ=rec D1=rec X1=gone+rec P1=p1-other[p1-old] P2=p2-old[] Q1=q1-other[q1-old] Q2=q2-other[q2-old] Q3=q3-other[q3-old] K=k-old[] NO=no-other@Passwords NW=absent entries=10 records=3
+10:14:28.889 ==== o-locks-1 : UseFileLocks on, P2, Ctrl+S, Synchronize
+10:14:28.911 config: Application/UseFileLocks=true
+10:14:40.004 started KeePass pid=4452 token: TokenIsElevated=1 ElevationType=2 Integrity=0x3000 AdministratorsEnabled=False
+10:14:40.177 main window: <<db.kdbx - KeePass>>
+10:14:45.114 edited P2 password=p2-window; OK posted 2026-11-16T09:14:45.0070315Z, dialog gone 2026-11-16T09:14:45.1146786Z
+10:14:45.131 replace: before size=3413 mtime=2026-11-16T08:31:56.2778845Z sha=2ff7a751a869
+10:14:45.184 replace (later) with NEW-fixed.kdbx: after size=5013 mtime=2026-11-16T09:14:45.1599452Z sha=74dd75d7243e
+10:14:47.732 [o-locks-1-1] WINDOW title=<<KeePass>> class=#32770
+10:14:47.878 [o-locks-1-1]   Image name=<<MainInstructionIcon>>
+10:14:47.898 [o-locks-1-1]   Text name=<<Overwrite the existing file?>>
+10:14:47.908 [o-locks-1-1]   Text name=<<<work>\runs\m1\o-locks-1\db.kdbx
+
+The file on disk/server has changed since it was loaded. Probably someone else has edited and saved the database.>>
+10:14:47.920 [o-locks-1-1]   Pane name=<<Synchronize>> help=<<Load the file on disk/server and merge it with the current database in memory.>>
+10:14:47.935 [o-locks-1-1]   Pane name=<<Overwrite>> help=<<Save the current database to the file. Changes made by the other user will be lost.>>
+10:14:47.947 [o-locks-1-1]   Pane name=<<Cancel>> help=<<Abort the current operation.>>
+10:14:47.965 [o-locks-1-1]   win32 Button <<Synchronize>>
+10:14:47.977 [o-locks-1-1]   win32 Button <<Overwrite>>
+10:14:47.985 [o-locks-1-1]   win32 Button <<Cancel>>
+10:14:48.574 shot o-locks-1-1.png (489 x 361)
+10:14:49.024 [o-locks-1-1] pressed <<Synchronize (clicked)>>
+10:14:56.678 dialogs after the flow: 1
+10:15:10.357 [after] look failed: no group KeePassGate in the tree: 
+10:15:10.371 file after the flow: size=5061 mtime=2026-11-16T09:14:49.1841969Z sha=6b87780c8031
+10:15:16.489 dialogs at the exit (answered Discard): 0
+10:15:16.500 file after the exit: size=5061 mtime=2026-11-16T09:14:49.1841969Z sha=6b87780c8031
+10:15:17.226 verdict: db.kdbx sha=6b87780c8031 v4.1 KG1=kept KG2=kept KG3=kept NewKey=kept DZ=rec D1=rec X1=gone+rec P1=p1-other[p1-old] P2=p2-window[p2-old] Q1=q1-other[q1-old] Q2=q2-other[q2-old] Q3=q3-other[q3-old] K=k-old[] NO=no-other@Passwords NW=absent entries=10 records=3
+10:15:17.239 verdict: NEW-fixed.kdbx sha=74dd75d7243e v4.1 KG1=kept KG2=kept KG3=kept NewKey=kept DZ=rec D1=rec X1=gone+rec P1=p1-other[p1-old] P2=p2-old[] Q1=q1-other[q1-old] Q2=q2-other[q2-old] Q3=q3-other[q3-old] K=k-old[] NO=no-other@Passwords NW=absent entries=10 records=3
+10:15:17.257 ==== o-noverify-1 : VerifyWrittenFileAfterSaving off, P2, Ctrl+S, Overwrite
+10:15:17.269 config: Application/VerifyWrittenFileAfterSaving=false
+10:15:28.371 started KeePass pid=20136 token: TokenIsElevated=1 ElevationType=2 Integrity=0x3000 AdministratorsEnabled=False
+10:15:28.571 main window: <<db.kdbx - KeePass>>
+10:15:33.339 edited P2 password=p2-window; OK posted 2026-11-16T09:15:33.2224369Z, dialog gone 2026-11-16T09:15:33.3398590Z
+10:15:33.355 replace: before size=3413 mtime=2026-11-16T08:31:56.2778845Z sha=2ff7a751a869
+10:15:33.387 replace (later) with NEW-fixed.kdbx: after size=5013 mtime=2026-11-16T09:15:33.3764233Z sha=74dd75d7243e
+10:15:35.870 [o-noverify-1-1] WINDOW title=<<KeePass>> class=#32770
+10:15:36.009 [o-noverify-1-1]   Image name=<<MainInstructionIcon>>
+10:15:36.018 [o-noverify-1-1]   Text name=<<Overwrite the existing file?>>
+10:15:36.032 [o-noverify-1-1]   Text name=<<<work>\runs\m1\o-noverify-1\db.kdbx
+
+The file on disk/server has changed since it was loaded. Probably someone else has edited and saved the database.>>
+10:15:36.040 [o-noverify-1-1]   Pane name=<<Synchronize>> help=<<Load the file on disk/server and merge it with the current database in memory.>>
+10:15:36.048 [o-noverify-1-1]   Pane name=<<Overwrite>> help=<<Save the current database to the file. Changes made by the other user will be lost.>>
+10:15:36.059 [o-noverify-1-1]   Pane name=<<Cancel>> help=<<Abort the current operation.>>
+10:15:36.074 [o-noverify-1-1]   win32 Button <<Synchronize>>
+10:15:36.076 [o-noverify-1-1]   win32 Button <<Overwrite>>
+10:15:36.082 [o-noverify-1-1]   win32 Button <<Cancel>>
+10:15:36.669 shot o-noverify-1-1.png (489 x 361)
+10:15:37.073 [o-noverify-1-1] pressed <<Overwrite (clicked)>>
+10:15:44.670 dialogs after the flow: 1
+10:15:48.360 [after] window title <<db.kdbx - KeePass>>; groups [Desk probe, KeePassGate, Passwords, Recycle Bin]; KeePassGate [KPG grant 1, KPG admission 1]; Passwords [P1, P2, Q1, Q2, Q3, X1, K]; status <<Ready.>>
+10:15:48.377 file after the flow: size=3589 mtime=2026-11-16T09:15:37.1755217Z sha=a29dc21590db
+10:15:54.438 dialogs at the exit (answered Discard): 0
+10:15:54.452 file after the exit: size=3589 mtime=2026-11-16T09:15:37.1755217Z sha=a29dc21590db
+10:15:55.114 verdict: db.kdbx sha=a29dc21590db v4.1 KG1=kept KG2=kept KG3=gone NewKey=gone DZ=none D1=rec X1=x1-old[] P1=p1-old[] P2=p2-window[p2-old] Q1=q1-old[] Q2=q2-old[] Q3=q3-old[] K=k-old[] NO=absent NW=absent entries=9 records=1
+10:15:55.119 verdict: NEW-fixed.kdbx sha=74dd75d7243e v4.1 KG1=kept KG2=kept KG3=kept NewKey=kept DZ=rec D1=rec X1=gone+rec P1=p1-other[p1-old] P2=p2-old[] Q1=q1-other[q1-old] Q2=q2-other[q2-old] Q3=q3-other[q3-old] K=k-old[] NO=no-other@Passwords NW=absent entries=10 records=3

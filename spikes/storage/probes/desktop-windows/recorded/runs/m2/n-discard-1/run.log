@@ -1,0 +1,32 @@
+12:01:49.719 ==== n-discard-1 : KeePassXC 2.8.0, the same; Discard; Ctrl+S
+12:01:49.739 keepassxc config: General/AutoSaveAfterEveryChange=false
+12:02:02.412 started KeePassXC pid=20524 token: TokenIsElevated=1 ElevationType=2 Integrity=0x3000 AdministratorsEnabled=False
+12:02:03.043 answered the update question No
+12:02:08.463 KeePassXC window: <<Desk probe (invented) - KeePassXC>>
+12:02:14.520 edited P2 password=p2-window; OK clicked 2026-11-16T11:02:13.5904393Z .. 2026-11-16T11:02:14.0113838Z
+12:02:14.531 file before the replacement: size=3413 mtime=2026-11-16T08:31:56.2778845Z sha=2ff7a751a869
+12:02:14.701 replace: before size=3413 mtime=2026-11-16T08:31:56.2778845Z sha=2ff7a751a869
+12:02:14.744 replace (later) with NEW-fixed.kdbx: after size=5013 mtime=2026-11-16T11:02:14.7125064Z sha=74dd75d7243e
+12:02:15.839 [n-discard-1-1] WINDOW title=<<Reload database>> class=QMessageBox
+12:02:15.917 [n-discard-1-1]   Text name=<<The database file "db.kdbx" was modified externally.
+How would you like to proceed?
+
+Merge all changes
+Ignore the changes on disk until save
+Discard unsaved changes>>
+12:02:15.937 [n-discard-1-1]   Button name=<<Cancel>>
+12:02:15.942 [n-discard-1-1]   Button name=<<Discard>>
+12:02:15.953 [n-discard-1-1]   Button name=<<Ignore>>
+12:02:15.961 [n-discard-1-1]   Button name=<<Merge>>
+12:02:16.556 shot n-discard-1-1.png (369 x 192)
+12:02:16.987 [n-discard-1-1] pressed <<>>
+12:03:03.532 dialogs after the replacement: 1
+12:03:03.880 [after] window title <<Desk probe (invented) - KeePassXC>>; items shown: Clear Search, All Entries, Expired, Weak Passwords, TOTP Entries, Desk probe, KeePassGate, Passwords, Recycle Bin, K, user-k, , 01.11.2026 11:20, other-new, user-no, 01.11.2026 19:00, P1, user-p1, P2, user-p2, Q1, user-q1, Q2, user-q2, 01.01.2027 01:00, Q3, user-q3
+12:03:13.881 dialogs at Ctrl+S: 0
+12:03:14.298 [after-save] window title <<Desk probe (invented) - KeePassXC>>; items shown: Clear Search, All Entries, Expired, Weak Passwords, TOTP Entries, Desk probe, KeePassGate, Passwords, Recycle Bin, K, user-k, , 01.11.2026 11:20, other-new, user-no, 01.11.2026 19:00, P1, user-p1, P2, user-p2, Q1, user-q1, Q2, user-q2, 01.01.2027 01:00, Q3, user-q3
+12:03:14.445 file after the flow: size=5013 mtime=2026-11-16T11:02:14.7125064Z sha=74dd75d7243e
+12:03:19.509 file after the exit: size=5013 mtime=2026-11-16T11:02:14.7125064Z sha=74dd75d7243e
+12:03:20.194 verdict: after-flow.kdbx sha=74dd75d7243e v4.1 KG1=kept KG2=kept KG3=kept NewKey=kept DZ=rec D1=rec X1=gone+rec P1=p1-other[p1-old] P2=p2-old[] Q1=q1-other[q1-old] Q2=q2-other[q2-old] Q3=q3-other[q3-old] K=k-old[] NO=no-other@Passwords NW=absent entries=10 records=3
+12:03:20.196 verdict: db.kdbx sha=74dd75d7243e v4.1 KG1=kept KG2=kept KG3=kept NewKey=kept DZ=rec D1=rec X1=gone+rec P1=p1-other[p1-old] P2=p2-old[] Q1=q1-other[q1-old] Q2=q2-other[q2-old] Q3=q3-other[q3-old] K=k-old[] NO=no-other@Passwords NW=absent entries=10 records=3
+12:03:20.198 verdict: window-before.kdbx sha=2ff7a751a869 v4.1 KG1=kept KG2=kept KG3=gone NewKey=gone DZ=none D1=rec X1=x1-old[] P1=p1-old[] P2=p2-old[] Q1=q1-old[] Q2=q2-old[] Q3=q3-old[] K=k-old[] NO=absent NW=absent entries=9 records=1
+12:03:20.202 verdict: NEW-fixed.kdbx sha=74dd75d7243e v4.1 KG1=kept KG2=kept KG3=kept NewKey=kept DZ=rec D1=rec X1=gone+rec P1=p1-other[p1-old] P2=p2-old[] Q1=q1-other[q1-old] Q2=q2-other[q2-old] Q3=q3-other[q3-old] K=k-old[] NO=no-other@Passwords NW=absent entries=10 records=3

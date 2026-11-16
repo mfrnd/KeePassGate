@@ -1,0 +1,28 @@
+10:15:17.257 ==== o-noverify-1 : VerifyWrittenFileAfterSaving off, P2, Ctrl+S, Overwrite
+10:15:17.269 config: Application/VerifyWrittenFileAfterSaving=false
+10:15:28.371 started KeePass pid=20136 token: TokenIsElevated=1 ElevationType=2 Integrity=0x3000 AdministratorsEnabled=False
+10:15:28.571 main window: <<db.kdbx - KeePass>>
+10:15:33.339 edited P2 password=p2-window; OK posted 2026-11-16T09:15:33.2224369Z, dialog gone 2026-11-16T09:15:33.3398590Z
+10:15:33.355 replace: before size=3413 mtime=2026-11-16T08:31:56.2778845Z sha=2ff7a751a869
+10:15:33.387 replace (later) with NEW-fixed.kdbx: after size=5013 mtime=2026-11-16T09:15:33.3764233Z sha=74dd75d7243e
+10:15:35.870 [o-noverify-1-1] WINDOW title=<<KeePass>> class=#32770
+10:15:36.009 [o-noverify-1-1]   Image name=<<MainInstructionIcon>>
+10:15:36.018 [o-noverify-1-1]   Text name=<<Overwrite the existing file?>>
+10:15:36.032 [o-noverify-1-1]   Text name=<<<work>\runs\m1\o-noverify-1\db.kdbx
+
+The file on disk/server has changed since it was loaded. Probably someone else has edited and saved the database.>>
+10:15:36.040 [o-noverify-1-1]   Pane name=<<Synchronize>> help=<<Load the file on disk/server and merge it with the current database in memory.>>
+10:15:36.048 [o-noverify-1-1]   Pane name=<<Overwrite>> help=<<Save the current database to the file. Changes made by the other user will be lost.>>
+10:15:36.059 [o-noverify-1-1]   Pane name=<<Cancel>> help=<<Abort the current operation.>>
+10:15:36.074 [o-noverify-1-1]   win32 Button <<Synchronize>>
+10:15:36.076 [o-noverify-1-1]   win32 Button <<Overwrite>>
+10:15:36.082 [o-noverify-1-1]   win32 Button <<Cancel>>
+10:15:36.669 shot o-noverify-1-1.png (489 x 361)
+10:15:37.073 [o-noverify-1-1] pressed <<Overwrite (clicked)>>
+10:15:44.670 dialogs after the flow: 1
+10:15:48.360 [after] window title <<db.kdbx - KeePass>>; groups [Desk probe, KeePassGate, Passwords, Recycle Bin]; KeePassGate [KPG grant 1, KPG admission 1]; Passwords [P1, P2, Q1, Q2, Q3, X1, K]; status <<Ready.>>
+10:15:48.377 file after the flow: size=3589 mtime=2026-11-16T09:15:37.1755217Z sha=a29dc21590db
+10:15:54.438 dialogs at the exit (answered Discard): 0
+10:15:54.452 file after the exit: size=3589 mtime=2026-11-16T09:15:37.1755217Z sha=a29dc21590db
+10:15:55.114 verdict: db.kdbx sha=a29dc21590db v4.1 KG1=kept KG2=kept KG3=gone NewKey=gone DZ=none D1=rec X1=x1-old[] P1=p1-old[] P2=p2-window[p2-old] Q1=q1-old[] Q2=q2-old[] Q3=q3-old[] K=k-old[] NO=absent NW=absent entries=9 records=1
+10:15:55.119 verdict: NEW-fixed.kdbx sha=74dd75d7243e v4.1 KG1=kept KG2=kept KG3=kept NewKey=kept DZ=rec D1=rec X1=gone+rec P1=p1-other[p1-old] P2=p2-old[] Q1=q1-other[q1-old] Q2=q2-other[q2-old] Q3=q3-other[q3-old] K=k-old[] NO=no-other@Passwords NW=absent entries=10 records=3

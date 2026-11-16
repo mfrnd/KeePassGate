@@ -1,0 +1,2 @@
+elevated: False
+command: Start-Process -FilePath '<work>\kp-log\KeePass.exe' -WorkingDirectory '<work>\kp-log' -ArgumentList '<work>\runs\m5\sync-file-1\db.kdbx','-pw:desk-probe-invented-password'

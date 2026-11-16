@@ -1,0 +1,33 @@
+13:18:31.243 ==== export
+13:18:31.282 config: 
+13:18:46.712 started KeePass pid=8292 token: TokenIsElevated=1 ElevationType=2 Integrity=0x3000 AdministratorsEnabled=False
+13:18:47.269 main window: <<db.kdbx - KeePass>>
+13:18:47.811 group rows: Desk entries, KeePassGate, Passwords, Recycle Bin
+13:18:49.755 menu: <<Export...>>
+13:18:52.576 shot export-dialog.png (406 x 556)
+13:19:05.142 menu: <<Export...>>
+13:19:11.229 [export-6-0] WINDOW title=<<Enter Current Master Key (Export) - db.kdbx>> class=WindowsForms10.Window.8.app.0.2bf8098_r6_ad1
+13:19:11.344 [export-6-0]   ComboBox name=<<(None)>>
+13:19:11.377 [export-6-0]   Button name=<<Open>>
+13:19:11.390 [export-6-0]   Pane name=<<Help>>
+13:19:11.397 [export-6-0]   Pane name=<<Cancel>>
+13:19:11.403 [export-6-0]   Pane name=<<Confirm Export>>
+13:19:11.409 [export-6-0]   Pane name=<<Windows user account>>
+13:19:11.417 [export-6-0]   Pane name=<<Key file/provider:>>
+13:19:11.430 [export-6-0]   Pane name=<<Master password:>>
+13:19:11.455 [export-6-0]   win32 COMBOBOX <<(None)>>
+13:19:11.471 [export-6-0]   win32 BUTTON <<&Help>>
+13:19:11.477 [export-6-0]   win32 BUTTON <<Cancel>>
+13:19:11.484 [export-6-0]   win32 BUTTON <<Confirm Export>>
+13:19:11.492 [export-6-0]   win32 BUTTON <<&Windows user account>>
+13:19:11.494 [export-6-0]   win32 BUTTON <<&Key file/provider:>>
+13:19:11.498 [export-6-0]   win32 BUTTON <<&Master password:>>
+13:19:12.079 shot export-6-0.png (419 x 233)
+13:19:17.009 [export-6-1] WINDOW title=<<Export To HTML>> class=WindowsForms10.Window.8.app.0.2bf8098_r6_ad1
+13:19:17.075 [export-6-1]   Pane name=<<Cancel>>
+13:19:17.080 [export-6-1]   Pane name=<<Preview>>
+13:19:17.085 [export-6-1]   Pane name=<<Export>>
+13:19:17.103 [export-6-1]   win32 BUTTON <<Cancel>>
+13:19:17.105 [export-6-1]   win32 Window.8 <<Preview>>
+13:19:17.113 [export-6-1]   win32 BUTTON <<Export>>
+13:19:17.701 shot export-6-1.png (627 x 599)

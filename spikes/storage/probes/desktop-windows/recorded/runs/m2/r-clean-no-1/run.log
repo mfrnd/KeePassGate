@@ -1,0 +1,38 @@
+12:08:57.147 ==== r-clean-no-1 : KeePassXC 2.8.0, reload on change off; nothing changed; NEW arrives; No; Ctrl+S
+12:08:57.170 keepassxc config: General/AutoReloadOnChange=false
+12:09:10.837 started KeePassXC pid=9544 token: TokenIsElevated=1 ElevationType=2 Integrity=0x3000 AdministratorsEnabled=False
+12:09:11.465 answered the update question No
+12:09:16.944 KeePassXC window: <<Desk probe (invented) - KeePassXC>>
+12:09:16.958 file before the replacement: size=3413 mtime=2026-11-16T08:31:56.2778845Z sha=2ff7a751a869
+12:09:17.268 replace: before size=3413 mtime=2026-11-16T08:31:56.2778845Z sha=2ff7a751a869
+12:09:17.311 replace (later) with NEW-fixed.kdbx: after size=5013 mtime=2026-11-16T11:09:17.2949522Z sha=74dd75d7243e
+12:09:18.482 [r-clean-no-1-1] WINDOW title=<<File has changed>> class=QMessageBox
+12:09:18.507 [r-clean-no-1-1]   Text name=<<The database file "db.kdbx" was modified externally.
+Do you want to load the changes?>>
+12:09:18.518 [r-clean-no-1-1]   Button name=<<Yes>>
+12:09:18.526 [r-clean-no-1-1]   Button name=<<No>>
+12:09:19.102 shot r-clean-no-1-1.png (365 x 138)
+12:09:19.429 [r-clean-no-1-1] pressed <<>>
+12:10:06.447 dialogs after the replacement: 1
+12:10:06.945 [after] window title <<Desk probe (invented)* - KeePassXC>>; items shown: Clear Search, All Entries, Expired, Weak Passwords, TOTP Entries, Desk probe, KeePassGate, Passwords, Recycle Bin
+12:10:09.927 [r-clean-no-1-save-1] WINDOW title=<<Reload database>> class=QMessageBox
+12:10:09.955 [r-clean-no-1-save-1]   Text name=<<The database file "db.kdbx" was modified externally.
+How would you like to proceed?
+
+Merge all changes then save
+Overwrite the changes on disk
+Discard unsaved changes>>
+12:10:09.976 [r-clean-no-1-save-1]   Button name=<<Cancel>>
+12:10:09.988 [r-clean-no-1-save-1]   Button name=<<Discard>>
+12:10:09.999 [r-clean-no-1-save-1]   Button name=<<Overwrite>>
+12:10:10.008 [r-clean-no-1-save-1]   Button name=<<Merge>>
+12:10:10.586 shot r-clean-no-1-save-1.png (386 x 192)
+12:10:10.878 [r-clean-no-1-save-1] pressed <<Merge>>
+12:10:21.600 dialogs at Ctrl+S: 1
+12:10:22.366 [after-save] window title <<Desk probe (invented) - KeePassXC>>; items shown: Clear Search, All Entries, Expired, Weak Passwords, TOTP Entries, Desk probe, KeePassGate, Passwords, Recycle Bin
+12:10:22.626 file after the flow: size=6757 mtime=2026-11-16T11:10:10.9279607Z sha=85de6c200ad8
+12:10:27.916 file after the exit: size=6757 mtime=2026-11-16T11:10:10.9279607Z sha=85de6c200ad8
+12:10:29.025 verdict: after-flow.kdbx sha=85de6c200ad8 v4.0 KG1=kept KG2=kept KG3=kept NewKey=kept DZ=rec D1=rec X1=x1-old[]+rec P1=p1-other[p1-old] P2=p2-old[] Q1=q1-other[q1-old] Q2=q2-other[q2-old] Q3=q3-other[q3-old] K=k-old[] NO=no-other@Passwords NW=absent entries=11 records=3
+12:10:29.032 verdict: db.kdbx sha=85de6c200ad8 v4.0 KG1=kept KG2=kept KG3=kept NewKey=kept DZ=rec D1=rec X1=x1-old[]+rec P1=p1-other[p1-old] P2=p2-old[] Q1=q1-other[q1-old] Q2=q2-other[q2-old] Q3=q3-other[q3-old] K=k-old[] NO=no-other@Passwords NW=absent entries=11 records=3
+12:10:29.042 verdict: window-before.kdbx sha=2ff7a751a869 v4.1 KG1=kept KG2=kept KG3=gone NewKey=gone DZ=none D1=rec X1=x1-old[] P1=p1-old[] P2=p2-old[] Q1=q1-old[] Q2=q2-old[] Q3=q3-old[] K=k-old[] NO=absent NW=absent entries=9 records=1
+12:10:29.055 verdict: NEW-fixed.kdbx sha=74dd75d7243e v4.1 KG1=kept KG2=kept KG3=kept NewKey=kept DZ=rec D1=rec X1=gone+rec P1=p1-other[p1-old] P2=p2-old[] Q1=q1-other[q1-old] Q2=q2-other[q2-old] Q3=q3-other[q3-old] K=k-old[] NO=no-other@Passwords NW=absent entries=10 records=3

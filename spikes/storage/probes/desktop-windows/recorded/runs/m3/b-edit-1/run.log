@@ -1,0 +1,41 @@
+10:40:56.589 ==== b-edit-1 : KPG.Ref added to U3 while open, saved; user name edited, OK
+10:40:56.597 config: 
+10:41:08.442 started KeePass pid=19968 token: TokenIsElevated=1 ElevationType=2 Integrity=0x3000 AdministratorsEnabled=False
+10:41:08.608 main window: <<db.kdbx - KeePass>>
+10:41:08.890 group rows: Desk entries, KeePassGate, Passwords, Recycle Bin
+10:41:12.931 shot b-edit-1-dialog.png (491 x 513)
+10:41:13.362 plugin: 2026-11-16T09:41:13.3205072Z setsave|Shop|KPG.Ref|zqxref-u3-live => added KPG.Ref on Shop; modified=False
+10:41:13.597 the file after the plugin's write, KPG.Ref: E U3 S KPG.Ref p=0 "zqxref-u3-live"
+10:41:13.602 window title while the dialog is open: <<db.kdbx - KeePass>>
+10:41:18.565 plugin: 2026-11-16T09:41:18.5106679Z dump|Shop|<work>\runs\m3\b-edit-1\memory.txt => dumped
+10:41:18.594 memory: S Notes p=0 
+10:41:18.601 memory: S Password p=1 u3-pw-invented
+10:41:18.606 memory: S Title p=0 Shop
+10:41:18.612 memory: S URL p=0 https://shop.example.invalid/
+10:41:18.625 memory: S UserName p=0 edited-in-dialog
+10:41:18.632 memory: tags []
+10:41:18.643 memory: history 1
+10:41:18.649 memory: modified 2026-11-16T09:41:14.8013386Z
+10:41:18.657 memory: database modified=True
+10:41:18.676 window title after the dialog closed: <<db.kdbx* - KeePass>>
+10:41:22.482 window title after Ctrl+S: <<db.kdbx - KeePass>>
+10:41:28.793   + E U3 H2026-11-16T09:41:13Z autotype enabled=1 obfuscation=0 seq="" assoc=0
+10:41:28.833   + E U3 H2026-11-16T09:41:13Z misc icon=0 customIcon=- fg=00000000 bg=00000000 overrideUrl="" quality=1
+10:41:28.843   + E U3 H2026-11-16T09:41:13Z prev -
+10:41:28.865   + E U3 H2026-11-16T09:41:13Z S KPG.Ref p=0 "zqxref-u3-live"
+10:41:28.895   + E U3 H2026-11-16T09:41:13Z S Notes p=0 ""
+10:41:28.897   + E U3 H2026-11-16T09:41:13Z S Password p=1 "u3-pw-invented"
+10:41:28.929   + E U3 H2026-11-16T09:41:13Z S Title p=0 "Shop"
+10:41:28.943   + E U3 H2026-11-16T09:41:13Z S URL p=0 "https://shop.example.invalid/"
+10:41:28.959   + E U3 H2026-11-16T09:41:13Z S UserName p=0 "carol-invented"
+10:41:28.982   + E U3 H2026-11-16T09:41:13Z t.created 2026-11-01T10:22:00Z
+10:41:29.007   + E U3 H2026-11-16T09:41:13Z t.expires 0 2026-11-01T10:00:00Z
+10:41:29.025   + E U3 H2026-11-16T09:41:13Z t.location 2026-11-01T10:22:00Z
+10:41:29.045   + E U3 H2026-11-16T09:41:13Z t.modified 2026-11-16T09:41:13Z
+10:41:29.056   + E U3 H2026-11-16T09:41:13Z tags []
+10:41:29.078   - E U3 history.count 0
+10:41:29.085   + E U3 history.count 1
+10:41:29.102   - E U3 S UserName p=0 "carol-invented"
+10:41:29.109   + E U3 S UserName p=0 "edited-in-dialog"
+10:41:29.112   - E U3 t.modified 2026-11-01T10:22:00Z
+10:41:29.128   + E U3 t.modified 2026-11-16T09:41:14Z

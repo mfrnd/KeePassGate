@@ -1,0 +1,2 @@
+elevated: False
+command: Start-Process -FilePath '<work>\target\DeskTarget.exe' -WorkingDirectory '<work>\target' -ArgumentList '@<work>\runs\m3v\autotype\typed-global-KPGgrant1.txt.title','<work>\runs\m3v\autotype\typed-global-KPGgrant1.txt'

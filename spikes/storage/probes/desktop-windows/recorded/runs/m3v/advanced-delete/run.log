@@ -1,0 +1,6 @@
+10:47:47.525 ==== advanced-delete
+10:47:47.536 config: 
+10:47:59.648 started KeePass pid=8172 token: TokenIsElevated=1 ElevationType=2 Integrity=0x3000 AdministratorsEnabled=False
+10:47:59.846 main window: <<db.kdbx - KeePass>>
+10:48:00.219 group rows: Desk entries, KeePassGate, Passwords, Recycle Bin
+10:48:09.358 strings left: Extra

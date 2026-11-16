@@ -1,0 +1,37 @@
+11:55:32.824 Initialize db= open=0 disk=absent marker=True triggers.enabled=True
+11:55:32.842 Trigger.AppInitPost db= open=0 disk=absent
+11:55:33.065 FileOpened db=db.kdbx open=1 modified=0 entries=9 records=1 kpg=2 disk=3413:2ff7a751a8
+11:55:33.067 Trigger.OpenedDatabaseFile db=db.kdbx open=1 modified=0 entries=9 records=1 kpg=2 disk=3413:2ff7a751a8
+11:55:33.069 Trigger.AppLoadPost db=db.kdbx open=1 modified=0 entries=9 records=1 kpg=2 disk=3413:2ff7a751a8
+11:55:33.413 Trigger.TimePeriodic db=db.kdbx open=1 modified=0 entries=9 records=1 kpg=2 disk=3413:2ff7a751a8
+11:55:34.423 Trigger.TimePeriodic db=db.kdbx open=1 modified=0 entries=9 records=1 kpg=2 disk=3413:2ff7a751a8
+11:55:35.418 Trigger.TimePeriodic db=db.kdbx open=1 modified=0 entries=9 records=1 kpg=2 disk=3413:2ff7a751a8
+11:55:36.429 Trigger.TimePeriodic db=db.kdbx open=1 modified=0 entries=9 records=1 kpg=2 disk=3413:2ff7a751a8
+11:55:37.427 Trigger.TimePeriodic db=db.kdbx open=1 modified=0 entries=9 records=1 kpg=2 disk=3413:2ff7a751a8
+11:55:38.427 Trigger.TimePeriodic db=db.kdbx open=1 modified=0 entries=9 records=1 kpg=2 disk=3413:2ff7a751a8
+11:55:39.439 Trigger.TimePeriodic db=db.kdbx open=1 modified=0 entries=9 records=1 kpg=2 disk=3413:2ff7a751a8
+11:55:40.436 Trigger.TimePeriodic db=db.kdbx open=1 modified=0 entries=9 records=1 kpg=2 disk=3413:2ff7a751a8
+11:55:41.431 Trigger.TimePeriodic db=db.kdbx open=1 modified=0 entries=9 records=1 kpg=2 disk=3413:2ff7a751a8
+11:55:42.439 Trigger.TimePeriodic db=db.kdbx open=1 modified=0 entries=9 records=1 kpg=2 disk=3413:2ff7a751a8
+11:55:43.435 Trigger.TimePeriodic db=db.kdbx open=1 modified=0 entries=9 records=1 kpg=2 disk=3413:2ff7a751a8
+11:55:57.449 Trigger.TimePeriodic db=db.kdbx open=1 modified=1 entries=11 records=1 kpg=3 disk=3413:2ff7a751a8
+11:55:58.446 Trigger.TimePeriodic db=db.kdbx open=1 modified=1 entries=11 records=1 kpg=3 disk=3413:2ff7a751a8
+11:55:59.455 Trigger.TimePeriodic db=db.kdbx open=1 modified=1 entries=11 records=1 kpg=3 disk=3413:2ff7a751a8
+11:56:00.447 Trigger.TimePeriodic db=db.kdbx open=1 modified=1 entries=11 records=1 kpg=3 disk=3413:2ff7a751a8
+11:56:01.472 Trigger.TimePeriodic db=db.kdbx open=1 modified=1 entries=11 records=1 kpg=3 disk=3413:2ff7a751a8
+11:56:02.468 Trigger.TimePeriodic db=db.kdbx open=1 modified=1 entries=11 records=1 kpg=3 disk=3413:2ff7a751a8
+11:56:03.477 Trigger.TimePeriodic db=db.kdbx open=1 modified=1 entries=11 records=1 kpg=3 disk=3413:2ff7a751a8
+11:56:04.480 Trigger.TimePeriodic db=db.kdbx open=1 modified=1 entries=11 records=1 kpg=3 disk=3413:2ff7a751a8
+11:56:05.474 Trigger.TimePeriodic db=db.kdbx open=1 modified=1 entries=11 records=1 kpg=3 disk=3413:2ff7a751a8
+11:56:06.486 Trigger.TimePeriodic db=db.kdbx open=1 modified=1 entries=11 records=1 kpg=3 disk=3413:2ff7a751a8
+11:56:07.483 Trigger.TimePeriodic db=db.kdbx open=1 modified=1 entries=11 records=1 kpg=3 disk=3413:2ff7a751a8
+11:56:08.477 Trigger.TimePeriodic db=db.kdbx open=1 modified=1 entries=11 records=1 kpg=3 disk=3413:2ff7a751a8
+11:56:09.473 Trigger.TimePeriodic db=db.kdbx open=1 modified=1 entries=11 records=1 kpg=3 disk=3413:2ff7a751a8
+11:56:10.483 Trigger.TimePeriodic db=db.kdbx open=1 modified=1 entries=11 records=1 kpg=3 disk=3413:2ff7a751a8
+11:56:10.596 Trigger.ClosingDatabaseFilePre db=db.kdbx open=1 modified=1 entries=11 records=1 kpg=3 disk=3413:2ff7a751a8
+11:56:10.596 FileClosingPre db=db.kdbx open=1 modified=1 entries=11 records=1 kpg=3 disk=3413:2ff7a751a8 flags=Exiting
+11:56:13.077 Trigger.ClosingDatabaseFilePost db=db.kdbx open=1 modified=1 entries=11 records=1 kpg=3 disk=3413:2ff7a751a8
+11:56:13.077 FileClosingPost db=db.kdbx open=1 modified=1 entries=11 records=1 kpg=3 disk=3413:2ff7a751a8 flags=Exiting
+11:56:13.086 FileClosed db= open=0 disk=absent path=<work>\runs\m5\import-OverwriteIfNewer-1\db.kdbx flags=Exiting
+11:56:13.088 Trigger.AppExit db= open=0 disk=absent
+11:56:13.088 Terminate db= open=0 disk=absent

@@ -1,0 +1,2 @@
+elevated: False
+command: Start-Process -FilePath '<work>\kpxc-2.8.0\KeePassXC.exe' -WorkingDirectory '<work>\kpxc-2.8.0' -ArgumentList '--config','<work>\runs\m2v\look-1\keepassxc.ini','--localconfig','<work>\runs\m2v\look-1\keepassxc-local.ini','--allow-screencapture','<work>\runs\m2v\look-1\db.kdbx'

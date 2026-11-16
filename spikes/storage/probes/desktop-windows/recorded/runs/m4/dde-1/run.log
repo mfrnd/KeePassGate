@@ -1,0 +1,32 @@
+11:32:24.293 ==== dde-1 : Tools, Database Tools, Delete Duplicate Entries
+11:32:24.303 config: 
+11:32:38.196 started KeePass pid=12712 token: TokenIsElevated=1 ElevationType=2 Integrity=0x3000 AdministratorsEnabled=False
+11:32:38.394 main window: <<db.kdbx - KeePass>>
+11:32:38.804 group rows: Archive, Desk store, Empty group, KeePassGate, Passwords, Recycle Bin
+11:32:40.559 menu: <<Database Tools>>
+11:32:41.809 menu: <<Delete Duplicate Entries>>
+11:32:43.622 [dde-1-1] WINDOW title=<<KeePass>> class=#32770
+11:32:43.671 [dde-1-1]   Image name=<<MainInstructionIcon>>
+11:32:43.682 [dde-1-1]   Text name=<<3 object(s) deleted.>>
+11:32:43.688 [dde-1-1]   CheckBox name=<<Do not show this dialog again.>>
+11:32:43.707 [dde-1-1]   Pane name=<<OK>>
+11:32:43.724 [dde-1-1]   win32 Button <<OK>>
+11:32:44.278 shot dde-1-1.png (362 x 120)
+11:32:45.461 [dde-1-1] pressed <<OK (clicked)>>
+11:32:53.115 dialogs: 1
+11:32:56.049 [after] window title <<db.kdbx* - KeePass>>; groups [Desk store, KeePassGate, Archive, Passwords, Empty group, Recycle Bin]; KeePassGate [KPG admission 1, KPG revocation 1, KPG profile 1, KPG grant 1, KPG grant 6, KPG grant 7]; Passwords [Mail account, Bank]; status <<Ready.>>
+11:33:01.001 file: size=2853 mtime=2026-11-16T10:32:56.4730970Z sha=dfc986ba960c
+11:33:07.354 diff against the base: 79 lines
+11:33:07.358   - D count 6
+11:33:07.372   + D count 9
+11:33:07.381   + D S1 2026-11-16T10:32:42Z
+11:33:07.391   + D S6 2026-11-16T10:32:42Z
+11:33:07.395   + D S7c 2026-11-16T10:32:42Z
+11:33:07.401   - E S1 history.count 0
+11:33:07.407   - E S1 parent KG (KeePassGate)
+11:33:07.417   - E S6 history.count 0
+11:33:07.423   - E S6 parent Bin (Recycle Bin)
+11:33:07.427   - E S7c history.count 0
+11:33:07.433   - E S7c parent Bin (Recycle Bin)
+11:33:07.441   - F groups 6 entries 12
+11:33:07.447   + F groups 6 entries 9

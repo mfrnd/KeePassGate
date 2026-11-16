@@ -1,0 +1,4 @@
+- E U1 S KPG.Ref p=0 "zqxref-u1 {\"rule\":\"KG1\"}"
++ E U1 S KPG.Ref p=0 "zqxref-u1-changed"
+- E U1 t.modified 2026-11-01T13:20:00Z
++ E U1 t.modified 2026-11-16T09:44:33Z

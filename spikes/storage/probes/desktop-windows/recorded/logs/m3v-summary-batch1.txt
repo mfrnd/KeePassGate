@@ -1,0 +1,42 @@
+view | Mail account | 
+view | Bank | 
+view | Shop | 
+view | KPG grant 1 | 
+view | KPG admission 1 | 
+view | entry list columns | Title, User Name, Password, URL, Notes
+search | zqxref-u1 | [Mail account]
+search | zqxref-u2-protected | [Bank]
+search | zqxextra-u1 | [Mail account]
+search | zqxstore-grant | []
+search | zqxstore-secret | []
+search | zqxstore-adm | []
+search | zqxcd-u1 | []
+search | zqxattach-u1 | []
+search | KPG grant | []
+search | Mail account | [Mail account]
+search | KPG.Ref | []
+advanced | Mail account | Extra | Value: zqxextra-u1
+advanced | Mail account | KPG.Ref | Value: zqxref-u1 {"rule":"KG1"}
+advanced | Mail account | KPG.Ref selected, buttons: More=enabled, Add=enabled, Edit=enabled, Delete=enabled
+advanced | Bank | KPG.Ref | Value: ********
+advanced | Bank | KPG.Ref selected, buttons: More=enabled, Add=enabled, Edit=enabled, Delete=enabled
+advanced-edit | U1 title="Mail account" KPG.Ref=p=0 "zqxref-u1-edited-by-hand" user="alice-invented" history=3 parent=PW (Passwords)
+advanced-delete | U1 title="Mail account" KPG.Ref=none user="alice-invented" history=3 parent=PW (Passwords)
+duplicate-default | FAILED: not found: Duplication Options
+duplicate-all | FAILED: not found: Duplication Options
+move-to-group | FAILED: no menu item Rearrange
+other-window-clipboard | ~b669b82d title="Mail account" KPG.Ref=p=0 "zqxref-u1 {\"rule\":\"KG1\"}" user="alice-invented" history=2 parent=IM (Imported)
+other-window-drag | 
+print | FAILED: not found: print dialog
+export | formats offered: KeePass CSV (1.x), KeePass KDB (1.x), KeePass KDBX (2.x), KeePass KDBX (2.34, Old Format), KeePass XML (2.x), Customizable HTML File, Transform using XSL Stylesheet, Windows Favorites (Folder 'KeePass'), Windows Favorites (Root Directory), Mozilla Bookmarks HTML
+export | KeePass CSV (1.x) | FAILED: no button 'OK' in window 671679042
+export | KeePass KDB (1.x) | FAILED: no button 'OK' in window 47252502
+export | KeePass KDBX (2.x) | FAILED: no button 'OK' in window 185533490
+export | KeePass KDBX (2.34, Old Format) | FAILED: no button 'OK' in window 59180034
+export | KeePass XML (2.x) | FAILED: no button 'OK' in window 11338800
+export | Customizable HTML File | FAILED: no button 'OK' in window 446366406
+export | Transform using XSL Stylesheet | FAILED: no button 'OK' in window 426901732
+export | Windows Favorites (Folder 'KeePass') | FAILED: no button 'OK' in window 295961520
+export | Windows Favorites (Root Directory) | FAILED: no button 'OK' in window 19268698
+export | Mozilla Bookmarks HTML | FAILED: no button 'OK' in window 296420272
+autotype | FAILED: no target window Desk target

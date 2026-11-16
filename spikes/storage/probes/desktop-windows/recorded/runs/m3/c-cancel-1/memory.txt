@@ -1,0 +1,13 @@
+S Extra p=0 zqxextra-u1
+S KPG.Ref p=0 zqxref-u1-changed
+S Notes p=0 user notes of U1
+S Password p=1 u1-pw-invented
+S Title p=0 Mail account
+S URL p=0 https://mail.example.invalid/
+S UserName p=0 alice-invented
+A u1.txt len=34
+tags [work]
+CD Other.Plugin = zqxcd-u1
+history 2
+modified 2026-11-16T09:44:33.5508504Z
+database modified=False

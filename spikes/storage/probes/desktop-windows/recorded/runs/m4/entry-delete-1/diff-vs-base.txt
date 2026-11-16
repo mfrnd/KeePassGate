@@ -1,0 +1,26 @@
+- E S1 index 0
++ E S1 index 3
++ E S1 parent Bin (Recycle Bin)
+- E S1 parent KG (KeePassGate)
+- E S1 prev -
++ E S1 prev KG
+- E S1 t.location 2026-11-01T10:10:00Z
++ E S1 t.location 2026-11-16T10:36:22Z
++ E S1c index 3
+- E S1c index 4
++ E S2 index 0
+- E S2 index 1
++ E S3 index 1
+- E S3 index 2
++ E S4 index 2
+- E S4 index 3
++ E S6c index 4
+- E S6c index 5
++ E S7 index 5
+- E S7 index 6
+- G Bin children groups=0 entries=3
++ G Bin children groups=0 entries=4
++ G KG children groups=1 entries=6
+- G KG children groups=1 entries=7
+- G PW flags icon=48 customIcon=- search=inherit autotype=inherit expanded=1 seq="" lastTop=-
++ G PW flags icon=48 customIcon=- search=inherit autotype=inherit expanded=1 seq="" lastTop=U1

@@ -1,0 +1,28 @@
+10:00:08.830 ==== t-samelen-later-1 : P2, NEW-same, later, Ctrl+S, Synchronize
+10:00:08.859 config: 
+10:00:23.133 started KeePass pid=9968 token: TokenIsElevated=1 ElevationType=2 Integrity=0x3000 AdministratorsEnabled=False
+10:00:23.278 main window: <<db.kdbx - KeePass>>
+10:00:28.164 edited P2 password=p2-window; OK posted 2026-11-16T09:00:28.0473182Z, dialog gone 2026-11-16T09:00:28.1640935Z
+10:00:28.176 replace: before size=3413 mtime=2026-11-16T08:31:56.2778845Z sha=2ff7a751a869
+10:00:28.195 replace (later) with NEW-same.kdbx: after size=3413 mtime=2026-11-16T09:00:28.1818113Z sha=11219df73b73
+10:00:30.680 [t-samelen-later-1-1] WINDOW title=<<KeePass>> class=#32770
+10:00:30.815 [t-samelen-later-1-1]   Image name=<<MainInstructionIcon>>
+10:00:30.838 [t-samelen-later-1-1]   Text name=<<Overwrite the existing file?>>
+10:00:30.848 [t-samelen-later-1-1]   Text name=<<<work>\runs\m1\t-samelen-later-1\db.kdbx
+
+The file on disk/server has changed since it was loaded. Probably someone else has edited and saved the database.>>
+10:00:30.860 [t-samelen-later-1-1]   Pane name=<<Synchronize>> help=<<Load the file on disk/server and merge it with the current database in memory.>>
+10:00:30.877 [t-samelen-later-1-1]   Pane name=<<Overwrite>> help=<<Save the current database to the file. Changes made by the other user will be lost.>>
+10:00:30.899 [t-samelen-later-1-1]   Pane name=<<Cancel>> help=<<Abort the current operation.>>
+10:00:30.925 [t-samelen-later-1-1]   win32 Button <<Synchronize>>
+10:00:30.937 [t-samelen-later-1-1]   win32 Button <<Overwrite>>
+10:00:30.949 [t-samelen-later-1-1]   win32 Button <<Cancel>>
+10:00:31.524 shot t-samelen-later-1-1.png (489 x 361)
+10:00:31.958 [t-samelen-later-1-1] pressed <<Synchronize (clicked)>>
+10:00:40.010 dialogs after the flow: 1
+10:00:53.698 [after] look failed: no group KeePassGate in the tree: 
+10:00:53.729 file after the flow: size=3461 mtime=2026-11-16T09:00:32.0985030Z sha=dfa89ed2c23b
+10:00:59.801 dialogs at the exit (answered Discard): 0
+10:00:59.809 file after the exit: size=3461 mtime=2026-11-16T09:00:32.0985030Z sha=dfa89ed2c23b
+10:01:00.344 verdict: db.kdbx sha=dfa89ed2c23b v4.1 KG1=kept KG2=kept KG3=kept NewKey=kept DZ=rec D1=rec X1=gone+rec P1=p1-other[p1-old] P2=p2-window[p2-old] Q1=q1-other[q1-old] Q2=q2-other[q2-old] Q3=q3-other[q3-old] K=k-old[] NO=no-other@Passwords NW=absent entries=10 records=3
+10:01:00.348 verdict: NEW-same.kdbx sha=11219df73b73 v4.1 KG1=kept KG2=kept KG3=kept NewKey=kept DZ=rec D1=rec X1=gone+rec P1=p1-other[p1-old] P2=p2-old[] Q1=q1-other[q1-old] Q2=q2-other[q2-old] Q3=q3-other[q3-old] K=k-old[] NO=no-other@Passwords NW=absent entries=10 records=3

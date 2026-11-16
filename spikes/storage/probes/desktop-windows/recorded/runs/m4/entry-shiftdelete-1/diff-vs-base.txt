@@ -1,0 +1,39 @@
+- D count 6
++ D count 7
++ D S1 2026-11-16T10:45:29Z
+- E S1 autotype enabled=1 obfuscation=0 seq="" assoc=0
+- E S1 history.count 0
+- E S1 index 0
+- E S1 misc icon=0 customIcon=- fg=00000000 bg=00000000 overrideUrl="" quality=1
+- E S1 parent KG (KeePassGate)
+- E S1 prev -
+- E S1 S KPG.Body p=0 "{\"kind\":\"grant 1\",\"n\":\"S1\"}"
+- E S1 S KPG.Kind p=0 "grant 1"
+- E S1 S Notes p=0 ""
+- E S1 S Password p=1 ""
+- E S1 S Title p=0 "KPG grant 1"
+- E S1 S URL p=0 ""
+- E S1 S UserName p=0 ""
+- E S1 t.created 2026-11-01T10:10:00Z
+- E S1 t.expires 0 2026-11-01T10:00:00Z
+- E S1 t.location 2026-11-01T10:10:00Z
+- E S1 t.modified 2026-11-01T10:10:00Z
+- E S1 tags []
++ E S1c index 3
+- E S1c index 4
++ E S2 index 0
+- E S2 index 1
++ E S3 index 1
+- E S3 index 2
++ E S4 index 2
+- E S4 index 3
++ E S6c index 4
+- E S6c index 5
++ E S7 index 5
+- E S7 index 6
++ F groups 6 entries 11
+- F groups 6 entries 12
++ G KG children groups=1 entries=6
+- G KG children groups=1 entries=7
+- G PW flags icon=48 customIcon=- search=inherit autotype=inherit expanded=1 seq="" lastTop=-
++ G PW flags icon=48 customIcon=- search=inherit autotype=inherit expanded=1 seq="" lastTop=U1

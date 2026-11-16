@@ -1,0 +1,28 @@
+10:14:28.889 ==== o-locks-1 : UseFileLocks on, P2, Ctrl+S, Synchronize
+10:14:28.911 config: Application/UseFileLocks=true
+10:14:40.004 started KeePass pid=4452 token: TokenIsElevated=1 ElevationType=2 Integrity=0x3000 AdministratorsEnabled=False
+10:14:40.177 main window: <<db.kdbx - KeePass>>
+10:14:45.114 edited P2 password=p2-window; OK posted 2026-11-16T09:14:45.0070315Z, dialog gone 2026-11-16T09:14:45.1146786Z
+10:14:45.131 replace: before size=3413 mtime=2026-11-16T08:31:56.2778845Z sha=2ff7a751a869
+10:14:45.184 replace (later) with NEW-fixed.kdbx: after size=5013 mtime=2026-11-16T09:14:45.1599452Z sha=74dd75d7243e
+10:14:47.732 [o-locks-1-1] WINDOW title=<<KeePass>> class=#32770
+10:14:47.878 [o-locks-1-1]   Image name=<<MainInstructionIcon>>
+10:14:47.898 [o-locks-1-1]   Text name=<<Overwrite the existing file?>>
+10:14:47.908 [o-locks-1-1]   Text name=<<<work>\runs\m1\o-locks-1\db.kdbx
+
+The file on disk/server has changed since it was loaded. Probably someone else has edited and saved the database.>>
+10:14:47.920 [o-locks-1-1]   Pane name=<<Synchronize>> help=<<Load the file on disk/server and merge it with the current database in memory.>>
+10:14:47.935 [o-locks-1-1]   Pane name=<<Overwrite>> help=<<Save the current database to the file. Changes made by the other user will be lost.>>
+10:14:47.947 [o-locks-1-1]   Pane name=<<Cancel>> help=<<Abort the current operation.>>
+10:14:47.965 [o-locks-1-1]   win32 Button <<Synchronize>>
+10:14:47.977 [o-locks-1-1]   win32 Button <<Overwrite>>
+10:14:47.985 [o-locks-1-1]   win32 Button <<Cancel>>
+10:14:48.574 shot o-locks-1-1.png (489 x 361)
+10:14:49.024 [o-locks-1-1] pressed <<Synchronize (clicked)>>
+10:14:56.678 dialogs after the flow: 1
+10:15:10.357 [after] look failed: no group KeePassGate in the tree: 
+10:15:10.371 file after the flow: size=5061 mtime=2026-11-16T09:14:49.1841969Z sha=6b87780c8031
+10:15:16.489 dialogs at the exit (answered Discard): 0
+10:15:16.500 file after the exit: size=5061 mtime=2026-11-16T09:14:49.1841969Z sha=6b87780c8031
+10:15:17.226 verdict: db.kdbx sha=6b87780c8031 v4.1 KG1=kept KG2=kept KG3=kept NewKey=kept DZ=rec D1=rec X1=gone+rec P1=p1-other[p1-old] P2=p2-window[p2-old] Q1=q1-other[q1-old] Q2=q2-other[q2-old] Q3=q3-other[q3-old] K=k-old[] NO=no-other@Passwords NW=absent entries=10 records=3
+10:15:17.239 verdict: NEW-fixed.kdbx sha=74dd75d7243e v4.1 KG1=kept KG2=kept KG3=kept NewKey=kept DZ=rec D1=rec X1=gone+rec P1=p1-other[p1-old] P2=p2-old[] Q1=q1-other[q1-old] Q2=q2-other[q2-old] Q3=q3-other[q3-old] K=k-old[] NO=no-other@Passwords NW=absent entries=10 records=3

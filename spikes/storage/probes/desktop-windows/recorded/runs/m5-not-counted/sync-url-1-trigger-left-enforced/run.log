@@ -1,0 +1,95 @@
+12:43:44.728 ==== sync-url-1 : File, Synchronize, Synchronize with URL, a file:// URL, the marker switch on
+12:43:44.760 db: size=3413 mtime=2026-11-16T08:31:56.2778845Z sha=2ff7a751a869; other: size=5013 mtime=2026-11-16T08:32:08.8042697Z sha=74dd75d7243e
+12:43:44.790 config: 
+12:43:56.364 started KeePass pid=1280 token: TokenIsElevated=1 ElevationType=2 Integrity=0x3000 AdministratorsEnabled=False
+12:43:56.483 main window: <<db.kdbx - KeePass>>
+12:43:56.705 group rows: 
+12:43:58.316 menu: <<Synchronize>>
+12:43:59.533 menu: <<Synchronize with URL...>>
+12:44:00.648 [sync-url-1-url] WINDOW title=<<Open From URL>> class=WindowsForms10.Window.8.app.0.2bf8098_r6_ad1
+12:44:00.781 [sync-url-1-url]   Pane name=<<Connection>>
+12:44:00.792 [sync-url-1-url]   Text name=<<The complete URL must be specified, including protocol, server and full path to the file.>>
+12:44:00.804 [sync-url-1-url]   Text name=<<URL:>>
+12:44:00.814 [sync-url-1-url]   Text name=<<Example: ftp://ftp.example.com/pub/Database.kdbx>>
+12:44:00.820 [sync-url-1-url]   Text name=<<User name:>>
+12:44:00.828 [sync-url-1-url]   Text name=<<Remember:>>
+12:44:00.845 [sync-url-1-url]   ComboBox name=<<Remember:>> text=<<Do not remember user name and password>>
+12:44:00.856 [sync-url-1-url]   Text name=<<Remember:>>
+12:44:00.869 [sync-url-1-url]   Button name=<<Open>>
+12:44:00.881 [sync-url-1-url]   Text name=<<Password:>>
+12:44:00.895 [sync-url-1-url]   Text name=<<The credentials you enter here are used to authenticate you against the server. Do not enter your KeePass database master password.>>
+12:44:00.915 [sync-url-1-url]   Pane name=<<Help>>
+12:44:00.922 [sync-url-1-url]   Pane name=<<Cancel>>
+12:44:00.933 [sync-url-1-url]   Pane name=<<OK>>
+12:44:00.943 [sync-url-1-url]   win32 Window.8 <<Connection>>
+12:44:00.948 [sync-url-1-url]   win32 STATIC <<The complete URL must be specified, including protocol, server and full path to the file.>>
+12:44:00.957 [sync-url-1-url]   win32 STATIC <<UR&L:>>
+12:44:00.963 [sync-url-1-url]   win32 STATIC <<Example: ftp://ftp.example.com/pub/Database.kdbx>>
+12:44:00.976 [sync-url-1-url]   win32 STATIC <<&User name:>>
+12:44:00.996 [sync-url-1-url]   win32 STATIC <<&Remember:>>
+12:44:01.015 [sync-url-1-url]   win32 COMBOBOX <<Do not remember user name and password>>
+12:44:01.027 [sync-url-1-url]   win32 STATIC <<&Password:>>
+12:44:01.037 [sync-url-1-url]   win32 STATIC <<The credentials you enter here are used to authenticate you against the server. Do not enter your KeePass database master password.>>
+12:44:01.055 [sync-url-1-url]   win32 BUTTON <<&Help>>
+12:44:01.070 [sync-url-1-url]   win32 BUTTON <<Cancel>>
+12:44:01.080 [sync-url-1-url]   win32 BUTTON <<OK>>
+12:44:01.684 shot sync-url-1-url.png (449 x 377)
+12:44:03.934 typed URL file:///<work>/runs/m5/sync-url-1/other.kdbx
+12:44:10.430 dialogs after the flow: 0
+12:44:16.148 [after] look failed: no group KeePassGate in the tree: 
+12:44:16.167 db after the flow: size=5253 mtime=2026-11-16T11:44:04.1209786Z sha=51060c0eccf6; other: size=5253 mtime=2026-11-16T11:44:04.1544039Z sha=51060c0eccf6
+12:44:22.272 dialogs at the exit (answered Discard): 0
+12:44:22.301 db after the exit: size=5253 mtime=2026-11-16T11:44:04.1209786Z sha=51060c0eccf6; other: size=5253 mtime=2026-11-16T11:44:04.1544039Z sha=51060c0eccf6
+12:44:22.775 marker entry in: db.dump.txt, db.dump.txt, db.dump.txt, other.dump.txt, other.dump.txt, other.dump.txt
+12:44:22.787 event: 11:43:47.205 Initialize db= open=0 disk=absent marker=True triggers.enabled=True
+12:44:22.795 event: 11:43:47.235 Trigger.AppInitPost db= open=0 disk=absent
+12:44:22.804 event: 11:43:47.472 FileOpened db=db.kdbx open=1 modified=0 entries=9 records=1 kpg=2 disk=3413:2ff7a751a8
+12:44:22.831 event: 11:43:47.472 Trigger.OpenedDatabaseFile db=db.kdbx open=1 modified=0 entries=9 records=1 kpg=2 disk=3413:2ff7a751a8
+12:44:22.840 event: 11:43:47.475 Trigger.AppLoadPost db=db.kdbx open=1 modified=0 entries=9 records=1 kpg=2 disk=3413:2ff7a751a8
+12:44:22.860 event: 11:43:47.482 Trigger.SynchronizingDatabaseFile db=db.kdbx open=1 modified=0 entries=9 records=1 kpg=2 disk=3413:2ff7a751a8
+12:44:22.901 event: 11:43:47.581 FileSavingPre db=db.kdbx open=1 modified=1 entries=11 records=3 kpg=4 disk=3413:2ff7a751a8 saveAs=False copy=False guid=e83b1e41 depth=1 inSync=True
+12:44:22.923 event: 11:43:47.592 MarkerAdded db=db.kdbx open=1 modified=1 entries=12 records=3 kpg=5 disk=3413:2ff7a751a8 group=KeePassGate
+12:44:22.957 event: 11:43:47.594 FileSaving db=db.kdbx open=1 modified=1 entries=12 records=3 kpg=5 disk=3413:2ff7a751a8 saveAs=False copy=False guid=e83b1e41
+12:44:22.973 event: 11:43:47.594 Trigger.SavingDatabaseFile db=db.kdbx open=1 modified=1 entries=12 records=3 kpg=5 disk=3413:2ff7a751a8
+12:44:22.982 event: 11:43:47.682 FileSaved db=db.kdbx open=1 modified=0 entries=12 records=3 kpg=5 disk=5205:11e62c934f success=True guid=e83b1e41
+12:44:22.994 event: 11:43:47.684 Trigger.SavedDatabaseFile db=db.kdbx open=1 modified=0 entries=12 records=3 kpg=5 disk=5205:11e62c934f
+12:44:23.019 event: 11:43:47.692 Trigger.SynchronizedDatabaseFile db=db.kdbx open=1 modified=0 entries=12 records=3 kpg=5 disk=5205:11e62c934f
+12:44:23.034 event: 11:43:47.839 Trigger.TimePeriodic db=db.kdbx open=1 modified=0 entries=12 records=3 kpg=5 disk=5205:11e62c934f
+12:44:23.046 event: 11:43:48.848 Trigger.TimePeriodic db=db.kdbx open=1 modified=0 entries=12 records=3 kpg=5 disk=5205:11e62c934f
+12:44:23.055 event: 11:43:49.858 Trigger.TimePeriodic db=db.kdbx open=1 modified=0 entries=12 records=3 kpg=5 disk=5205:11e62c934f
+12:44:23.068 event: 11:43:50.854 Trigger.TimePeriodic db=db.kdbx open=1 modified=0 entries=12 records=3 kpg=5 disk=5205:11e62c934f
+12:44:23.076 event: 11:43:51.851 Trigger.TimePeriodic db=db.kdbx open=1 modified=0 entries=12 records=3 kpg=5 disk=5205:11e62c934f
+12:44:23.087 event: 11:43:52.855 Trigger.TimePeriodic db=db.kdbx open=1 modified=0 entries=12 records=3 kpg=5 disk=5205:11e62c934f
+12:44:23.090 event: 11:43:53.850 Trigger.TimePeriodic db=db.kdbx open=1 modified=0 entries=12 records=3 kpg=5 disk=5205:11e62c934f
+12:44:23.094 event: 11:43:54.852 Trigger.TimePeriodic db=db.kdbx open=1 modified=0 entries=12 records=3 kpg=5 disk=5205:11e62c934f
+12:44:23.104 event: 11:43:55.863 Trigger.TimePeriodic db=db.kdbx open=1 modified=0 entries=12 records=3 kpg=5 disk=5205:11e62c934f
+12:44:23.108 event: 11:43:56.877 Trigger.TimePeriodic db=db.kdbx open=1 modified=0 entries=12 records=3 kpg=5 disk=5205:11e62c934f
+12:44:23.114 event: 11:43:57.867 Trigger.TimePeriodic db=db.kdbx open=1 modified=0 entries=12 records=3 kpg=5 disk=5205:11e62c934f
+12:44:23.118 event: 11:43:58.877 Trigger.TimePeriodic db=db.kdbx open=1 modified=0 entries=12 records=3 kpg=5 disk=5205:11e62c934f
+12:44:23.122 event: 11:44:04.059 Trigger.SynchronizingDatabaseFile db=db.kdbx open=1 modified=0 entries=12 records=3 kpg=5 disk=5205:11e62c934f
+12:44:23.130 event: 11:44:04.105 FileSavingPre db=db.kdbx open=1 modified=1 entries=12 records=3 kpg=5 disk=5205:11e62c934f saveAs=False copy=False guid=8560ac91 depth=1 inSync=True
+12:44:23.138 event: 11:44:04.105 MarkerAdded db=db.kdbx open=1 modified=1 entries=13 records=3 kpg=6 disk=5205:11e62c934f group=KeePassGate
+12:44:23.145 event: 11:44:04.105 FileSaving db=db.kdbx open=1 modified=1 entries=13 records=3 kpg=6 disk=5205:11e62c934f saveAs=False copy=False guid=8560ac91
+12:44:23.150 event: 11:44:04.105 Trigger.SavingDatabaseFile db=db.kdbx open=1 modified=1 entries=13 records=3 kpg=6 disk=5205:11e62c934f
+12:44:23.158 event: 11:44:04.149 FileSaved db=db.kdbx open=1 modified=0 entries=13 records=3 kpg=6 disk=5253:51060c0ecc success=True guid=8560ac91
+12:44:23.166 event: 11:44:04.149 Trigger.SavedDatabaseFile db=db.kdbx open=1 modified=0 entries=13 records=3 kpg=6 disk=5253:51060c0ecc
+12:44:23.169 event: 11:44:04.165 Trigger.SynchronizedDatabaseFile db=db.kdbx open=1 modified=0 entries=13 records=3 kpg=6 disk=5253:51060c0ecc
+12:44:23.178 event: 11:44:04.894 Trigger.TimePeriodic db=db.kdbx open=1 modified=0 entries=13 records=3 kpg=6 disk=5253:51060c0ecc
+12:44:23.188 event: 11:44:05.885 Trigger.TimePeriodic db=db.kdbx open=1 modified=0 entries=13 records=3 kpg=6 disk=5253:51060c0ecc
+12:44:23.197 event: 11:44:06.882 Trigger.TimePeriodic db=db.kdbx open=1 modified=0 entries=13 records=3 kpg=6 disk=5253:51060c0ecc
+12:44:23.203 event: 11:44:07.890 Trigger.TimePeriodic db=db.kdbx open=1 modified=0 entries=13 records=3 kpg=6 disk=5253:51060c0ecc
+12:44:23.208 event: 11:44:08.883 Trigger.TimePeriodic db=db.kdbx open=1 modified=0 entries=13 records=3 kpg=6 disk=5253:51060c0ecc
+12:44:23.216 event: 11:44:09.891 Trigger.TimePeriodic db=db.kdbx open=1 modified=0 entries=13 records=3 kpg=6 disk=5253:51060c0ecc
+12:44:23.224 event: 11:44:10.889 Trigger.TimePeriodic db=db.kdbx open=1 modified=0 entries=13 records=3 kpg=6 disk=5253:51060c0ecc
+12:44:23.231 event: 11:44:11.887 Trigger.TimePeriodic db=db.kdbx open=1 modified=0 entries=13 records=3 kpg=6 disk=5253:51060c0ecc
+12:44:23.247 event: 11:44:12.883 Trigger.TimePeriodic db=db.kdbx open=1 modified=0 entries=13 records=3 kpg=6 disk=5253:51060c0ecc
+12:44:23.253 event: 11:44:13.895 Trigger.TimePeriodic db=db.kdbx open=1 modified=0 entries=13 records=3 kpg=6 disk=5253:51060c0ecc
+12:44:23.260 event: 11:44:14.920 Trigger.TimePeriodic db=db.kdbx open=1 modified=0 entries=13 records=3 kpg=6 disk=5253:51060c0ecc
+12:44:23.271 event: 11:44:15.915 Trigger.TimePeriodic db=db.kdbx open=1 modified=0 entries=13 records=3 kpg=6 disk=5253:51060c0ecc
+12:44:23.286 event: 11:44:16.518 Trigger.ClosingDatabaseFilePre db=db.kdbx open=1 modified=0 entries=13 records=3 kpg=6 disk=5253:51060c0ecc
+12:44:23.288 event: 11:44:16.518 FileClosingPre db=db.kdbx open=1 modified=0 entries=13 records=3 kpg=6 disk=5253:51060c0ecc flags=Exiting
+12:44:23.304 event: 11:44:16.518 Trigger.ClosingDatabaseFilePost db=db.kdbx open=1 modified=0 entries=13 records=3 kpg=6 disk=5253:51060c0ecc
+12:44:23.310 event: 11:44:16.518 FileClosingPost db=db.kdbx open=1 modified=0 entries=13 records=3 kpg=6 disk=5253:51060c0ecc flags=Exiting
+12:44:23.323 event: 11:44:16.522 FileClosed db= open=0 disk=absent path=<work>\runs\m5\sync-url-1\db.kdbx flags=Exiting
+12:44:23.329 event: 11:44:16.523 Trigger.AppExit db= open=0 disk=absent
+12:44:23.340 event: 11:44:16.524 Terminate db= open=0 disk=absent

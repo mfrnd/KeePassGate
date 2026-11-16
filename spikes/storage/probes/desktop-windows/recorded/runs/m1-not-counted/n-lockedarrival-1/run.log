@@ -1,0 +1,33 @@
+10:09:29.040 ==== n-lockedarrival-1 : locked before the replacement, unlocked after, then P2 and Ctrl+S
+10:09:29.046 config: 
+10:09:42.602 started KeePass pid=6196 token: TokenIsElevated=1 ElevationType=2 Integrity=0x3000 AdministratorsEnabled=False
+10:09:42.745 main window: <<db.kdbx - KeePass>>
+10:09:57.232 [locked] look failed: no group KeePassGate in the tree: 
+10:09:57.246 replace: before size=3413 mtime=2026-11-16T08:31:56.2778845Z sha=2ff7a751a869
+10:09:57.282 replace (later) with NEW-fixed.kdbx: after size=5013 mtime=2026-11-16T09:09:57.2638865Z sha=74dd75d7243e
+10:09:59.318 [n-lockedarrival-1-prompt] WINDOW title=<<Open Database - db.kdbx>> class=WindowsForms10.Window.8.app.0.2bf8098_r6_ad1
+10:09:59.435 [n-lockedarrival-1-prompt]   Pane name=<<Exit>>
+10:09:59.456 [n-lockedarrival-1-prompt]   ComboBox name=<<(None)>>
+10:09:59.472 [n-lockedarrival-1-prompt]   Button name=<<Open>>
+10:09:59.483 [n-lockedarrival-1-prompt]   Pane name=<<Help>>
+10:09:59.489 [n-lockedarrival-1-prompt]   Pane name=<<Cancel>>
+10:09:59.491 [n-lockedarrival-1-prompt]   Pane name=<<OK>>
+10:09:59.498 [n-lockedarrival-1-prompt]   Pane name=<<Windows user account>>
+10:09:59.501 [n-lockedarrival-1-prompt]   Pane name=<<Key file/provider:>>
+10:09:59.509 [n-lockedarrival-1-prompt]   Pane name=<<Master password:>>
+10:09:59.519 [n-lockedarrival-1-prompt]   win32 BUTTON <<E&xit>>
+10:09:59.523 [n-lockedarrival-1-prompt]   win32 COMBOBOX <<(None)>>
+10:09:59.530 [n-lockedarrival-1-prompt]   win32 BUTTON <<&Help>>
+10:09:59.533 [n-lockedarrival-1-prompt]   win32 BUTTON <<Cancel>>
+10:09:59.537 [n-lockedarrival-1-prompt]   win32 BUTTON <<OK>>
+10:09:59.539 [n-lockedarrival-1-prompt]   win32 BUTTON <<&Windows user account>>
+10:09:59.547 [n-lockedarrival-1-prompt]   win32 BUTTON <<&Key file/provider:>>
+10:09:59.549 [n-lockedarrival-1-prompt]   win32 BUTTON <<&Master password:>>
+10:10:14.879 [unlocked] look failed: no group KeePassGate in the tree: 
+10:10:28.020 stopping KeePass pid=6196
+10:10:28.060 RUN FAILED n-lockedarrival-1: no group Passwords in the tree:  at Kp-Group, <branch>\spikes\storage\probes\desktop-windows\scripts\Kp.ps1: line 71
+at Kp-SelectEntry, <branch>\spikes\storage\probes\desktop-windows\scripts\Kp.ps1: line 80
+at Kp-OpenEntry, <branch>\spikes\storage\probes\desktop-windows\scripts\Kp.ps1: line 99
+at Kp-EditPassword, <branch>\spikes\storage\probes\desktop-windows\scripts\Kp.ps1: line 136
+at Run-M1, <branch>\spikes\storage\probes\desktop-windows\scripts\M1.ps1: line 191
+at <ScriptBlock>, <branch>\spikes\storage\probes\desktop-windows\scripts\M1.ps1: line 253

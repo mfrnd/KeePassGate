@@ -1,0 +1,193 @@
+# file after-plugin.kdbx size=2469 sha256=3bafbbe6c30e50c64343fe63ccc8d32af3ea72c27334401e85a28bd83a19addf
+D count 0
+E S1 S KPG.Grant p=0 "zqxstore-grant {\"profile\":\"reader\",\"mask\":\".R...L..\"}"
+E S1 S KPG.Secret p=1 "zqxstore-secret"
+E S1 S Notes p=0 ""
+E S1 S Password p=1 ""
+E S1 S Title p=0 "KPG grant 1"
+E S1 S URL p=0 ""
+E S1 S UserName p=0 ""
+E S1 autotype enabled=1 obfuscation=0 seq="" assoc=0
+E S1 history.count 0
+E S1 misc icon=0 customIcon=- fg=00000000 bg=00000000 overrideUrl="" quality=1
+E S1 parent KG (KeePassGate)
+E S1 prev -
+E S1 t.accessed 2026-11-01T10:10:00Z
+E S1 t.created 2026-11-01T10:10:00Z
+E S1 t.expires 0 2026-11-01T10:00:00Z
+E S1 t.location 2026-11-01T10:10:00Z
+E S1 t.modified 2026-11-01T10:10:00Z
+E S1 tags []
+E S1 usage 0
+E S2 S KPG.Admission p=0 "zqxstore-adm {\"client\":\"client-two\"}"
+E S2 S Notes p=0 ""
+E S2 S Password p=1 ""
+E S2 S Title p=0 "KPG admission 1"
+E S2 S URL p=0 ""
+E S2 S UserName p=0 ""
+E S2 autotype enabled=1 obfuscation=0 seq="" assoc=0
+E S2 history.count 0
+E S2 misc icon=0 customIcon=- fg=00000000 bg=00000000 overrideUrl="" quality=1
+E S2 parent KG (KeePassGate)
+E S2 prev -
+E S2 t.accessed 2026-11-01T10:11:00Z
+E S2 t.created 2026-11-01T10:11:00Z
+E S2 t.expires 0 2026-11-01T10:00:00Z
+E S2 t.location 2026-11-01T10:11:00Z
+E S2 t.modified 2026-11-01T10:11:00Z
+E S2 tags []
+E S2 usage 0
+E U1 A u1.txt p=0 len=34 sha=bc1ff5edff47b8bb
+E U1 CD Other.Plugin = "zqxcd-u1"
+E U1 H2026-11-01T10:20:00Z S Notes p=0 "user notes of U1"
+E U1 H2026-11-01T10:20:00Z S Password p=1 "u1-pw-invented"
+E U1 H2026-11-01T10:20:00Z S Title p=0 "Mail account"
+E U1 H2026-11-01T10:20:00Z S URL p=0 "https://mail.example.invalid/"
+E U1 H2026-11-01T10:20:00Z S UserName p=0 "alice-invented"
+E U1 H2026-11-01T10:20:00Z autotype enabled=1 obfuscation=0 seq="" assoc=0
+E U1 H2026-11-01T10:20:00Z misc icon=0 customIcon=- fg=00000000 bg=00000000 overrideUrl="" quality=1
+E U1 H2026-11-01T10:20:00Z prev -
+E U1 H2026-11-01T10:20:00Z t.accessed 2026-11-01T10:20:00Z
+E U1 H2026-11-01T10:20:00Z t.created 2026-11-01T10:20:00Z
+E U1 H2026-11-01T10:20:00Z t.expires 0 2026-11-01T10:00:00Z
+E U1 H2026-11-01T10:20:00Z t.location 2026-11-01T10:20:00Z
+E U1 H2026-11-01T10:20:00Z t.modified 2026-11-01T10:20:00Z
+E U1 H2026-11-01T10:20:00Z tags []
+E U1 H2026-11-01T10:20:00Z usage 0
+E U1 H2026-11-01T11:40:00Z S Extra p=0 "extra-u1-v1"
+E U1 H2026-11-01T11:40:00Z S Notes p=0 "user notes of U1"
+E U1 H2026-11-01T11:40:00Z S Password p=1 "u1-pw-invented"
+E U1 H2026-11-01T11:40:00Z S Title p=0 "Mail account"
+E U1 H2026-11-01T11:40:00Z S URL p=0 "https://mail.example.invalid/"
+E U1 H2026-11-01T11:40:00Z S UserName p=0 "alice-invented"
+E U1 H2026-11-01T11:40:00Z autotype enabled=1 obfuscation=0 seq="" assoc=0
+E U1 H2026-11-01T11:40:00Z misc icon=0 customIcon=- fg=00000000 bg=00000000 overrideUrl="" quality=1
+E U1 H2026-11-01T11:40:00Z prev -
+E U1 H2026-11-01T11:40:00Z t.accessed 2026-11-01T11:40:00Z
+E U1 H2026-11-01T11:40:00Z t.created 2026-11-01T10:20:00Z
+E U1 H2026-11-01T11:40:00Z t.expires 0 2026-11-01T10:00:00Z
+E U1 H2026-11-01T11:40:00Z t.location 2026-11-01T10:20:00Z
+E U1 H2026-11-01T11:40:00Z t.modified 2026-11-01T11:40:00Z
+E U1 H2026-11-01T11:40:00Z tags []
+E U1 H2026-11-01T11:40:00Z usage 0
+E U1 S Extra p=0 "zqxextra-u1"
+E U1 S KPG.Ref p=0 "zqxref-u1-changed"
+E U1 S Notes p=0 "user notes of U1"
+E U1 S Password p=1 "u1-pw-invented"
+E U1 S Title p=0 "Mail account"
+E U1 S URL p=0 "https://mail.example.invalid/"
+E U1 S UserName p=0 "alice-invented"
+E U1 autotype enabled=1 obfuscation=0 seq="" assoc=0
+E U1 history.count 2
+E U1 misc icon=0 customIcon=- fg=00000000 bg=00000000 overrideUrl="" quality=1
+E U1 parent PW (Passwords)
+E U1 prev -
+E U1 t.accessed 2026-11-16T09:43:59Z
+E U1 t.created 2026-11-01T10:20:00Z
+E U1 t.expires 0 2026-11-01T10:00:00Z
+E U1 t.location 2026-11-01T10:20:00Z
+E U1 t.modified 2026-11-16T09:43:59Z
+E U1 tags [work]
+E U1 usage 1
+E U2 S KPG.Ref p=1 "zqxref-u2-protected"
+E U2 S Notes p=0 ""
+E U2 S Password p=1 "u2-pw-invented"
+E U2 S Title p=0 "Bank"
+E U2 S URL p=0 "https://bank.example.invalid/"
+E U2 S UserName p=0 "bob-invented"
+E U2 autotype enabled=1 obfuscation=0 seq="" assoc=0
+E U2 history.count 0
+E U2 misc icon=0 customIcon=- fg=00000000 bg=00000000 overrideUrl="" quality=1
+E U2 parent PW (Passwords)
+E U2 prev -
+E U2 t.accessed 2026-11-01T10:21:00Z
+E U2 t.created 2026-11-01T10:21:00Z
+E U2 t.expires 0 2026-11-01T10:00:00Z
+E U2 t.location 2026-11-01T10:21:00Z
+E U2 t.modified 2026-11-01T10:21:00Z
+E U2 tags []
+E U2 usage 0
+E U3 S Notes p=0 ""
+E U3 S Password p=1 "u3-pw-invented"
+E U3 S Title p=0 "Shop"
+E U3 S URL p=0 "https://shop.example.invalid/"
+E U3 S UserName p=0 "carol-invented"
+E U3 autotype enabled=1 obfuscation=0 seq="" assoc=0
+E U3 history.count 0
+E U3 misc icon=0 customIcon=- fg=00000000 bg=00000000 overrideUrl="" quality=1
+E U3 parent PW (Passwords)
+E U3 prev -
+E U3 t.accessed 2026-11-01T10:22:00Z
+E U3 t.created 2026-11-01T10:22:00Z
+E U3 t.expires 0 2026-11-01T10:00:00Z
+E U3 t.location 2026-11-01T10:22:00Z
+E U3 t.modified 2026-11-01T10:22:00Z
+E U3 tags []
+E U3 usage 0
+F cipher AES/Rijndael (256-bit key, FIPS 197)
+F compression GZip
+F groups 4 entries 5
+F kdf Argon2d it=2 mem=1024KiB par=1
+F version 4.0
+G Bin children groups=0 entries=0
+G Bin flags icon=43 customIcon=- search=0 autotype=0 expanded=1 seq="" lastTop=-
+G Bin name "Recycle Bin"
+G Bin notes ""
+G Bin parent Root (Desk entries)
+G Bin prev -
+G Bin t.accessed 2026-11-01T10:05:00Z
+G Bin t.created 2026-11-01T10:05:00Z
+G Bin t.expires 0 2026-11-01T10:00:00Z
+G Bin t.location 2026-11-01T10:05:00Z
+G Bin t.modified 2026-11-01T10:05:00Z
+G Bin tags []
+G Bin usage 0
+G KG children groups=0 entries=2
+G KG flags icon=48 customIcon=- search=0 autotype=0 expanded=1 seq="" lastTop=-
+G KG name "KeePassGate"
+G KG notes ""
+G KG parent Root (Desk entries)
+G KG prev -
+G KG t.accessed 2026-11-01T10:05:00Z
+G KG t.created 2026-11-01T10:05:00Z
+G KG t.expires 0 2026-11-01T10:00:00Z
+G KG t.location 2026-11-01T10:05:00Z
+G KG t.modified 2026-11-01T10:05:00Z
+G KG tags []
+G KG usage 0
+G PW children groups=0 entries=3
+G PW flags icon=48 customIcon=- search=inherit autotype=inherit expanded=1 seq="" lastTop=U1
+G PW name "Passwords"
+G PW notes ""
+G PW parent Root (Desk entries)
+G PW prev -
+G PW t.accessed 2026-11-16T09:43:55Z
+G PW t.created 2026-11-01T10:05:00Z
+G PW t.expires 0 2026-11-01T10:00:00Z
+G PW t.location 2026-11-01T10:05:00Z
+G PW t.modified 2026-11-01T10:05:00Z
+G PW tags []
+G PW usage 1
+G Root children groups=3 entries=0
+G Root flags icon=49 customIcon=- search=inherit autotype=inherit expanded=1 seq="" lastTop=-
+G Root name "Desk entries"
+G Root notes ""
+G Root parent -
+G Root prev -
+G Root t.accessed 2026-11-16T09:43:55Z
+G Root t.created 2026-11-01T10:00:00Z
+G Root t.expires 0 2026-11-01T10:00:00Z
+G Root t.location 2026-11-01T10:00:00Z
+G Root t.modified 2026-11-01T10:00:00Z
+G Root tags []
+G Root usage 1
+M customIcons 0 []
+M defaultUserName "" changed 2026-11-01T10:00:00Z
+M description "" changed 2026-11-01T10:00:00Z
+M historyMaxItems 10 historyMaxSize 6291456 maintenanceHistoryDays 365
+M masterKeyChanged 2026-11-01T10:00:00Z
+M name "Desk entries (invented)" changed 2026-11-01T10:00:00Z
+M publicCustomData 0
+M recycleBin enabled=1 group=Bin changed 2026-11-01T10:05:00Z
+M settingsChanged 2026-11-01T10:00:00Z
+M templatesGroup - changed 2026-11-01T10:00:00Z

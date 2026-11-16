@@ -1,0 +1,14 @@
+10:10:28.098 ==== o-forcesync-1 : SaveForceSync on, P2, Ctrl+S
+10:10:28.185 config: Application/SaveForceSync=true
+10:10:41.502 started KeePass pid=5768 token: TokenIsElevated=1 ElevationType=2 Integrity=0x3000 AdministratorsEnabled=False
+10:10:41.629 main window: <<db.kdbx - KeePass>>
+10:10:46.170 edited P2 password=p2-window; OK posted 2026-11-16T09:10:46.0508298Z, dialog gone 2026-11-16T09:10:46.1681085Z
+10:10:46.179 replace: before size=3413 mtime=2026-11-16T08:31:56.2778845Z sha=2ff7a751a869
+10:10:46.225 replace (later) with NEW-fixed.kdbx: after size=5013 mtime=2026-11-16T09:10:46.2022647Z sha=74dd75d7243e
+10:10:54.739 dialogs after the flow: 0
+10:11:08.170 [after] look failed: no group KeePassGate in the tree: 
+10:11:08.190 file after the flow: size=5077 mtime=2026-11-16T09:10:47.5172214Z sha=34b77315df07
+10:11:14.248 dialogs at the exit (answered Discard): 0
+10:11:14.256 file after the exit: size=5077 mtime=2026-11-16T09:10:47.5172214Z sha=34b77315df07
+10:11:14.949 verdict: db.kdbx sha=34b77315df07 v4.1 KG1=kept KG2=kept KG3=kept NewKey=kept DZ=rec D1=rec X1=gone+rec P1=p1-other[p1-old] P2=p2-window[p2-old] Q1=q1-other[q1-old] Q2=q2-other[q2-old] Q3=q3-other[q3-old] K=k-old[] NO=no-other@Passwords NW=absent entries=10 records=3
+10:11:14.964 verdict: NEW-fixed.kdbx sha=74dd75d7243e v4.1 KG1=kept KG2=kept KG3=kept NewKey=kept DZ=rec D1=rec X1=gone+rec P1=p1-other[p1-old] P2=p2-old[] Q1=q1-other[q1-old] Q2=q2-other[q2-old] Q3=q3-other[q3-old] K=k-old[] NO=no-other@Passwords NW=absent entries=10 records=3

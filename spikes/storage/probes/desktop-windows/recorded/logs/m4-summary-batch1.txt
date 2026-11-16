@@ -1,0 +1,17 @@
+maint-history-1 | 17 diff lines
+maint-records-1 | 10 diff lines
+maint-plugindata-1 | 2 diff lines
+dde-1 | 64 diff lines
+deg-1 | 34 diff lines
+ducis-1 | 7 diff lines
+group-delete-1 | 2 diff lines
+group-shiftdelete-1 | 2 diff lines
+entry-delete-1 | 12 diff lines
+entry-shiftdelete-1 | FAILED: The property 'Count' cannot be found on this object. Verify that the property exists.
+empty-bin-1 | FAILED: The property 'Count' cannot be found on this object. Verify that the property exists.
+group-duplicate-1 | 147 diff lines
+entry-duplicate-1 | 23 diff lines
+group-sort-1 | FAILED: The property 'Count' cannot be found on this object. Verify that the property exists.
+group-moveup-1 | 2 diff lines
+entry-movedown-1 | FAILED: no menu item Rearrange
+entry-move-1 | FAILED: no menu item Rearrange

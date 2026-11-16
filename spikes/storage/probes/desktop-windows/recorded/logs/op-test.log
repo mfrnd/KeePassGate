@@ -1,0 +1,2 @@
+elevated: False
+command: Start-Process <work>\kp\KeePass.exe -ArgumentList '<work>\runs\explore1\db.kdbx','-pw:desk-probe-invented-password'

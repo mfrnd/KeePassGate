@@ -1,0 +1,12 @@
+11:01:59.271 ==== autotype
+11:01:59.280 config: 
+11:02:12.880 started KeePass pid=17216 token: TokenIsElevated=1 ElevationType=2 Integrity=0x3000 AdministratorsEnabled=False
+11:02:13.068 main window: <<db.kdbx - KeePass>>
+11:02:13.388 group rows: Desk entries, KeePassGate, Passwords, Recycle Bin
+11:02:26.000 started DeskTarget pid=6104 token: TokenIsElevated=1 ElevationType=2 Integrity=0x3000 AdministratorsEnabled=False
+11:02:41.141 RUN FAILED autotype: no target window Desk target at Start-Target, <branch>\spikes\storage\probes\desktop-windows\scripts\M3v.ps1: line 94
+at <ScriptBlock>, <branch>\spikes\storage\probes\desktop-windows\scripts\M3v.ps1: line 412
+at Run-Case, <branch>\spikes\storage\probes\desktop-windows\scripts\M3v.ps1: line 117
+at <ScriptBlock>, <branch>\spikes\storage\probes\desktop-windows\scripts\M3v.ps1: line 409
+11:02:41.157 stopping KeePass pid=17216
+11:02:41.205 stopping DeskTarget pid=6104

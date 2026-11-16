@@ -1,0 +1,26 @@
+12:37:59.474 ==== sync-file-notrig-1 : the same with the trigger system off, the marker switch on
+12:37:59.486 db: size=3413 mtime=2026-11-16T08:31:56.2778845Z sha=2ff7a751a869; other: size=5013 mtime=2026-11-16T08:32:08.8042697Z sha=74dd75d7243e
+12:37:59.527 config: Application/TriggerSystem/Enabled=false
+12:38:10.622 started KeePass pid=4740 token: TokenIsElevated=1 ElevationType=2 Integrity=0x3000 AdministratorsEnabled=False
+12:38:10.767 main window: <<db.kdbx - KeePass>>
+12:38:11.095 group rows: Desk probe, KeePassGate, Passwords, Recycle Bin
+12:38:12.844 menu: <<Synchronize>>
+12:38:13.979 menu: <<Synchronize with File...>>
+12:38:15.181 [sync-file-notrig-1] file dialog <<Synchronize>>
+12:38:25.564 dialogs after the flow: 0
+12:38:27.207 group KeePassGate from the places kept
+12:38:28.627 group Passwords from the places kept
+12:38:29.702 [after] window title <<db.kdbx - KeePass>>; groups []; KeePassGate [KPG grant 1, KPG admission 1, KPG revocation]; Passwords [P1, P2, Q1, Q2, Q3, K, other-new]; status <<Ready.>>
+12:38:29.712 db after the flow: size=5013 mtime=2026-11-16T11:38:18.6912426Z sha=bcf4ff737c4a; other: size=5013 mtime=2026-11-16T11:38:18.7216673Z sha=bcf4ff737c4a
+12:38:35.726 dialogs at the exit (answered Discard): 0
+12:38:35.756 db after the exit: size=5013 mtime=2026-11-16T11:38:18.6912426Z sha=bcf4ff737c4a; other: size=5013 mtime=2026-11-16T11:38:18.7216673Z sha=bcf4ff737c4a
+12:38:36.166 marker entry in: neither file
+12:38:36.177 event: 11:38:01.366 Initialize db= open=0 disk=absent marker=True triggers.enabled=False
+12:38:36.181 event: 11:38:01.661 FileOpened db=db.kdbx open=1 modified=0 entries=9 records=1 kpg=2 disk=3413:2ff7a751a8
+12:38:36.185 event: 11:38:18.636 FileSavingPre db=db.kdbx open=1 modified=1 entries=10 records=3 kpg=3 disk=3413:2ff7a751a8 saveAs=False copy=False guid=5e6279ee depth=1 inSync=False
+12:38:36.190 event: 11:38:18.638 FileSaving db=db.kdbx open=1 modified=1 entries=10 records=3 kpg=3 disk=3413:2ff7a751a8 saveAs=False copy=False guid=5e6279ee
+12:38:36.194 event: 11:38:18.720 FileSaved db=db.kdbx open=1 modified=0 entries=10 records=3 kpg=3 disk=5013:bcf4ff737c success=True guid=5e6279ee
+12:38:36.202 event: 11:38:30.006 FileClosingPre db=db.kdbx open=1 modified=0 entries=10 records=3 kpg=3 disk=5013:bcf4ff737c flags=Exiting
+12:38:36.209 event: 11:38:30.018 FileClosingPost db=db.kdbx open=1 modified=0 entries=10 records=3 kpg=3 disk=5013:bcf4ff737c flags=Exiting
+12:38:36.215 event: 11:38:30.026 FileClosed db= open=0 disk=absent path=<work>\runs\m5\sync-file-notrig-1\db.kdbx flags=Exiting
+12:38:36.221 event: 11:38:30.028 Terminate db= open=0 disk=absent

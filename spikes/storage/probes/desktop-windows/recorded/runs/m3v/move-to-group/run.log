@@ -1,0 +1,8 @@
+10:57:40.614 ==== move-to-group
+10:57:40.627 config: 
+10:57:52.453 started KeePass pid=22132 token: TokenIsElevated=1 ElevationType=2 Integrity=0x3000 AdministratorsEnabled=False
+10:57:52.573 main window: <<db.kdbx - KeePass>>
+10:57:52.816 group rows: Desk entries, KeePassGate, Passwords, Recycle Bin
+10:57:57.608 dragged Mail account from 355,135.5 onto KeePassGate at 131,147
+10:57:58.737 group KeePassGate from the places kept
+10:57:59.716 KeePassGate now lists: KPG grant 1, KPG admission 1, Mail account

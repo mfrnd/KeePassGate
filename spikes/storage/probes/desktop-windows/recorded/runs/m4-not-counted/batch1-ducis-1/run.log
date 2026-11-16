@@ -1,0 +1,26 @@
+11:06:08.498 ==== ducis-1 : Tools, Database Tools, Delete Unused Custom Icons
+11:06:08.511 config: 
+11:06:20.803 started KeePass pid=16688 token: TokenIsElevated=1 ElevationType=2 Integrity=0x3000 AdministratorsEnabled=False
+11:06:21.034 main window: <<db.kdbx - KeePass>>
+11:06:21.495 group rows: Archive, Desk store, Empty group, KeePassGate, Passwords, Recycle Bin
+11:06:23.690 menu: <<Database Tools>>
+11:06:25.222 menu: <<Delete Unused Custom Icons>>
+11:06:27.255 [ducis-1-1] WINDOW title=<<KeePass>> class=#32770
+11:06:27.371 [ducis-1-1]   Image name=<<MainInstructionIcon>>
+11:06:27.384 [ducis-1-1]   Text name=<<1 object(s) deleted.>>
+11:06:27.394 [ducis-1-1]   CheckBox name=<<Do not show this dialog again.>>
+11:06:27.403 [ducis-1-1]   Pane name=<<OK>>
+11:06:27.425 [ducis-1-1]   win32 Button <<OK>>
+11:06:28.003 shot ducis-1-1.png (362 x 120)
+11:06:29.230 [ducis-1-1] pressed <<OK (clicked)>>
+11:06:36.895 dialogs: 1
+11:06:37.522 group KeePassGate from the places kept
+11:06:39.073 group Passwords from the places kept
+11:06:40.271 [after] window title <<db.kdbx* - KeePass>>; groups []; KeePassGate [KPG grant 1, KPG admission 1, KPG revocation 1, KPG profile 1, KPG grant 1, KPG grant 6, KPG grant 7]; Passwords [Mail account, Bank]; status <<Ready.>>
+11:06:45.231 file: size=2917 mtime=2026-11-16T10:06:40.7359141Z sha=576bb5f286c4
+11:06:51.611 diff against the base: 7 lines
+11:06:51.623   - D count 6
+11:06:51.640   + D count 7
+11:06:51.654   + D IconUnused 2026-11-16T10:06:25Z
+11:06:51.665   + M customIcons 1 [IconUsed]
+11:06:51.683   - M customIcons 2 [IconUsed;IconUnused]

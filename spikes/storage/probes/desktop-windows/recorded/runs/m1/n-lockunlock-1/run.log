@@ -1,0 +1,42 @@
+10:25:52.476 ==== n-lockunlock-1 : nothing changed, lock and unlock, then P2 and Ctrl+S
+10:25:52.528 config: 
+10:26:04.472 started KeePass pid=17024 token: TokenIsElevated=1 ElevationType=2 Integrity=0x3000 AdministratorsEnabled=False
+10:26:04.891 main window: <<db.kdbx - KeePass>>
+10:26:05.334 group rows: Desk probe, KeePassGate, Passwords, Recycle Bin
+10:26:05.453 replace: before size=3413 mtime=2026-11-16T08:31:56.2778845Z sha=2ff7a751a869
+10:26:05.514 replace (later) with NEW-fixed.kdbx: after size=5013 mtime=2026-11-16T09:26:05.4790219Z sha=74dd75d7243e
+10:26:08.666 group KeePassGate from the places kept
+10:26:09.901 group Passwords from the places kept
+10:26:10.983 [locked] window title <<db.kdbx [Locked] - KeePass>>; groups []; KeePassGate []; Passwords []; status <<Ready.>>
+10:26:12.211 [n-lockunlock-1-prompt] WINDOW title=<<Open Database - db.kdbx>> class=WindowsForms10.Window.8.app.0.2bf8098_r6_ad1
+10:26:12.379 [n-lockunlock-1-prompt]   Pane name=<<Exit>>
+10:26:12.411 [n-lockunlock-1-prompt]   ComboBox name=<<(None)>>
+10:26:12.431 [n-lockunlock-1-prompt]   Button name=<<Open>>
+10:26:12.439 [n-lockunlock-1-prompt]   Pane name=<<Help>>
+10:26:12.447 [n-lockunlock-1-prompt]   Pane name=<<Cancel>>
+10:26:12.455 [n-lockunlock-1-prompt]   Pane name=<<OK>>
+10:26:12.464 [n-lockunlock-1-prompt]   Pane name=<<Windows user account>>
+10:26:12.474 [n-lockunlock-1-prompt]   Pane name=<<Key file/provider:>>
+10:26:12.480 [n-lockunlock-1-prompt]   Pane name=<<Master password:>>
+10:26:12.526 [n-lockunlock-1-prompt]   win32 BUTTON <<E&xit>>
+10:26:12.535 [n-lockunlock-1-prompt]   win32 COMBOBOX <<(None)>>
+10:26:12.540 [n-lockunlock-1-prompt]   win32 BUTTON <<&Help>>
+10:26:12.550 [n-lockunlock-1-prompt]   win32 BUTTON <<Cancel>>
+10:26:12.561 [n-lockunlock-1-prompt]   win32 BUTTON <<OK>>
+10:26:12.569 [n-lockunlock-1-prompt]   win32 BUTTON <<&Windows user account>>
+10:26:12.574 [n-lockunlock-1-prompt]   win32 BUTTON <<&Key file/provider:>>
+10:26:12.585 [n-lockunlock-1-prompt]   win32 BUTTON <<&Master password:>>
+10:26:16.014 group KeePassGate from the places kept
+10:26:17.366 group Passwords from the places kept
+10:26:18.609 [unlocked] window title <<db.kdbx - KeePass>>; groups []; KeePassGate [KPG grant 1, KPG admission 1, KPG revocation]; Passwords [P1, P2, Q1, Q2, Q3, K, other-new]; status <<Ready.>>
+10:26:19.466 group Passwords from the places kept
+10:26:24.725 edited P2 password=p2-window; OK posted 2026-11-16T09:26:24.6138377Z, dialog gone 2026-11-16T09:26:24.7257248Z
+10:26:31.986 dialogs after the flow: 0
+10:26:33.503 group KeePassGate from the places kept
+10:26:34.773 group Passwords from the places kept
+10:26:35.928 [after] window title <<db.kdbx - KeePass>>; groups []; KeePassGate [KPG grant 1, KPG admission 1, KPG revocation]; Passwords [P1, P2, Q1, Q2, Q3, K, other-new]; status <<Ready.>>
+10:26:35.938 file after the flow: size=5093 mtime=2026-11-16T09:26:25.0117664Z sha=cd78a6a06526
+10:26:42.040 dialogs at the exit (answered Discard): 0
+10:26:42.051 file after the exit: size=5093 mtime=2026-11-16T09:26:25.0117664Z sha=cd78a6a06526
+10:26:42.687 verdict: db.kdbx sha=cd78a6a06526 v4.1 KG1=kept KG2=kept KG3=kept NewKey=kept DZ=rec D1=rec X1=gone+rec P1=p1-other[p1-old] P2=p2-window[p2-old] Q1=q1-other[q1-old] Q2=q2-other[q2-old] Q3=q3-other[q3-old] K=k-old[] NO=no-other@Passwords NW=absent entries=10 records=3
+10:26:42.696 verdict: NEW-fixed.kdbx sha=74dd75d7243e v4.1 KG1=kept KG2=kept KG3=kept NewKey=kept DZ=rec D1=rec X1=gone+rec P1=p1-other[p1-old] P2=p2-old[] Q1=q1-other[q1-old] Q2=q2-other[q2-old] Q3=q3-other[q3-old] K=k-old[] NO=no-other@Passwords NW=absent entries=10 records=3

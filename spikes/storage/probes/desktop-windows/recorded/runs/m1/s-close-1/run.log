@@ -1,0 +1,41 @@
+10:03:09.010 ==== s-close-1 : P2, Ctrl+W, Save, Synchronize
+10:03:09.013 config: 
+10:03:20.101 started KeePass pid=14660 token: TokenIsElevated=1 ElevationType=2 Integrity=0x3000 AdministratorsEnabled=False
+10:03:20.265 main window: <<db.kdbx - KeePass>>
+10:03:25.221 edited P2 password=p2-window; OK posted 2026-11-16T09:03:25.1110985Z, dialog gone 2026-11-16T09:03:25.2217134Z
+10:03:25.237 replace: before size=3413 mtime=2026-11-16T08:31:56.2778845Z sha=2ff7a751a869
+10:03:25.271 replace (later) with NEW-fixed.kdbx: after size=5013 mtime=2026-11-16T09:03:25.2555849Z sha=74dd75d7243e
+10:03:27.707 [s-close-1-1] WINDOW title=<<KeePass>> class=#32770
+10:03:27.807 [s-close-1-1]   Image name=<<MainInstructionIcon>>
+10:03:27.812 [s-close-1-1]   Text name=<<Save database changes before closing the file?>>
+10:03:27.833 [s-close-1-1]   Text name=<<Database file:
+<work>\runs\m1\s-close-1\db.kdbx>>
+10:03:27.843 [s-close-1-1]   Pane name=<<Save>> help=<<Save all changes made to the database and close the file.>>
+10:03:27.852 [s-close-1-1]   Pane name=<<Discard changes>> help=<<Discard all changes made to the database and close the file.>>
+10:03:27.865 [s-close-1-1]   Pane name=<<Cancel>> help=<<Abort the current operation. The file will not be closed.>>
+10:03:27.901 [s-close-1-1]   win32 Button <<&Save>>
+10:03:27.908 [s-close-1-1]   win32 Button <<&Discard changes>>
+10:03:27.917 [s-close-1-1]   win32 Button <<Cancel>>
+10:03:28.505 shot s-close-1-1.png (409 x 316)
+10:03:28.958 [s-close-1-1] pressed <<&Save (clicked)>>
+10:03:31.459 [s-close-1-2] WINDOW title=<<KeePass>> class=#32770
+10:03:31.596 [s-close-1-2]   Image name=<<MainInstructionIcon>>
+10:03:31.605 [s-close-1-2]   Text name=<<Overwrite the existing file?>>
+10:03:31.621 [s-close-1-2]   Text name=<<<work>\runs\m1\s-close-1\db.kdbx
+
+The file on disk/server has changed since it was loaded. Probably someone else has edited and saved the database.>>
+10:03:31.640 [s-close-1-2]   Pane name=<<Synchronize>> help=<<Load the file on disk/server and merge it with the current database in memory.>>
+10:03:31.655 [s-close-1-2]   Pane name=<<Overwrite>> help=<<Save the current database to the file. Changes made by the other user will be lost.>>
+10:03:31.664 [s-close-1-2]   Pane name=<<Cancel>> help=<<Abort the current operation.>>
+10:03:31.684 [s-close-1-2]   win32 Button <<Synchronize>>
+10:03:31.688 [s-close-1-2]   win32 Button <<Overwrite>>
+10:03:31.692 [s-close-1-2]   win32 Button <<Cancel>>
+10:03:32.253 shot s-close-1-2.png (489 x 361)
+10:03:32.673 [s-close-1-2] pressed <<Synchronize (clicked)>>
+10:03:40.753 dialogs after the flow: 2
+10:03:54.388 [after] look failed: no group KeePassGate in the tree: 
+10:03:54.392 file after the flow: size=5061 mtime=2026-11-16T09:03:32.8322316Z sha=d7fd698d8dbc
+10:04:00.445 dialogs at the exit (answered Discard): 0
+10:04:00.465 file after the exit: size=5061 mtime=2026-11-16T09:03:32.8322316Z sha=d7fd698d8dbc
+10:04:01.196 verdict: db.kdbx sha=d7fd698d8dbc v4.1 KG1=kept KG2=kept KG3=kept NewKey=kept DZ=rec D1=rec X1=gone+rec P1=p1-other[p1-old] P2=p2-window[p2-old] Q1=q1-other[q1-old] Q2=q2-other[q2-old] Q3=q3-other[q3-old] K=k-old[] NO=no-other@Passwords NW=absent entries=10 records=3
+10:04:01.201 verdict: NEW-fixed.kdbx sha=74dd75d7243e v4.1 KG1=kept KG2=kept KG3=kept NewKey=kept DZ=rec D1=rec X1=gone+rec P1=p1-other[p1-old] P2=p2-old[] Q1=q1-other[q1-old] Q2=q2-other[q2-old] Q3=q3-other[q3-old] K=k-old[] NO=no-other@Passwords NW=absent entries=10 records=3

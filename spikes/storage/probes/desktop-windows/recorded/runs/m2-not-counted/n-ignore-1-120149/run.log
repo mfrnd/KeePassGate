@@ -1,0 +1,12 @@
+12:01:26.559 ==== n-ignore-1 : KeePassXC 2.8.0, the same; Ignore; Ctrl+S
+12:01:26.615 keepassxc config: General/AutoSaveAfterEveryChange=false
+12:01:37.733 started KeePassXC pid=14172 token: TokenIsElevated=1 ElevationType=2 Integrity=0x3000 AdministratorsEnabled=False
+12:01:38.335 answered the update question No
+12:01:43.769 KeePassXC window: <<Desk probe (invented) - KeePassXC>>
+12:01:49.385 edited P2 password=p2-window; OK clicked 2026-11-16T11:01:48.4347639Z .. 2026-11-16T11:01:48.8692571Z
+12:01:49.402 file before the replacement: size=3413 mtime=2026-11-16T08:31:56.2778845Z sha=2ff7a751a869
+12:01:49.584 replace: before size=3413 mtime=2026-11-16T08:31:56.2778845Z sha=2ff7a751a869
+12:01:49.614 stopping KeePassXC pid=14172
+12:01:49.676 RUN FAILED n-ignore-1: MoveFileEx failed 5 at Replace-File, <branch>\spikes\storage\probes\desktop-windows\scripts\Ui.ps1: line 553
+at Run-M2, <branch>\spikes\storage\probes\desktop-windows\scripts\M2.ps1: line 230
+at <ScriptBlock>, <branch>\spikes\storage\probes\desktop-windows\scripts\M2.ps1: line 335

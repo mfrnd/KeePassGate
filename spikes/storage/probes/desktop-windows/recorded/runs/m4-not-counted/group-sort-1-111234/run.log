@@ -1,0 +1,14 @@
+11:11:56.426 ==== group-sort-1 : the root selected, Group, Rearrange, Sort Direct Subgroups
+11:11:56.455 config: 
+11:12:07.558 started KeePass pid=19176 token: TokenIsElevated=1 ElevationType=2 Integrity=0x3000 AdministratorsEnabled=False
+11:12:07.711 main window: <<db.kdbx - KeePass>>
+11:12:07.995 group rows: Archive, Desk store, Empty group, KeePassGate, Passwords, Recycle Bin
+11:12:10.732 menu: <<Rearrange>>
+11:12:12.010 menu: <<Sort Direct Subgroups>>
+11:12:19.098 dialogs: 0
+11:12:19.659 group KeePassGate from the places kept
+11:12:20.941 group Passwords from the places kept
+11:12:22.093 [after] window title <<db.kdbx* - KeePass>>; groups []; KeePassGate []; Passwords []; status <<Ready.>>
+11:12:27.756 file: size=2917 mtime=2026-11-16T10:12:22.5735458Z sha=f1cab40a6e88
+11:12:34.158 RUN FAILED group-sort-1: The property 'Count' cannot be found on this object. Verify that the property exists. at Run-M4, <branch>\spikes\storage\probes\desktop-windows\scripts\M4.ps1: line 80
+at <ScriptBlock>, <branch>\spikes\storage\probes\desktop-windows\scripts\M4.ps1: line 164

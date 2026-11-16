@@ -1,0 +1,47 @@
+11:10:33.739 ==== group-duplicate-1 : the group KeePassGate selected, Group, Duplicate Group
+11:10:33.744 config: 
+11:10:44.843 started KeePass pid=15468 token: TokenIsElevated=1 ElevationType=2 Integrity=0x3000 AdministratorsEnabled=False
+11:10:44.956 main window: <<db.kdbx - KeePass>>
+11:10:45.172 group rows: Archive, Desk store, Empty group, KeePassGate, Passwords, Recycle Bin
+11:10:47.664 menu: <<Duplicate Group...>>
+11:10:49.546 [group-duplicate-1-1] WINDOW title=<<Duplication Options>> class=WindowsForms10.Window.8.app.0.2bf8098_r6_ad1
+11:10:49.639 [group-duplicate-1-1]   Pane name=<<Copy history>>
+11:10:49.652 [group-duplicate-1-1]   Pane name=<<Help: Field References>>
+11:10:49.677 [group-duplicate-1-1]   Text name=<<If this option is enabled, the copies will reference the user names and passwords of the original entries. When a user name or password is changed in an original entry, the copy will automatically use the new data, too.>>
+11:10:49.698 [group-duplicate-1-1]   Pane name=<<Replace user names and passwords by references>>
+11:10:49.727 [group-duplicate-1-1]   Pane name=<<Append "- Copy" to entry titles>>
+11:10:49.746 [group-duplicate-1-1]   Pane name=<<Cancel>>
+11:10:49.760 [group-duplicate-1-1]   Pane name=<<OK>>
+11:10:49.780 [group-duplicate-1-1]   win32 BUTTON <<Copy &history>>
+11:10:49.789 [group-duplicate-1-1]   win32 STATIC <<Help: Field References>>
+11:10:49.806 [group-duplicate-1-1]   win32 STATIC <<If this option is enabled, the copies will reference the user names and passwords of the original entries. When a user name or password is changed in an original entry, the copy will automatically use the new data, too.>>
+11:10:49.812 [group-duplicate-1-1]   win32 BUTTON <<&Replace user names and passwords by references>>
+11:10:49.822 [group-duplicate-1-1]   win32 BUTTON <<&Append "- Copy" to entry titles>>
+11:10:49.838 [group-duplicate-1-1]   win32 BUTTON <<Cancel>>
+11:10:49.866 [group-duplicate-1-1]   win32 BUTTON <<OK>>
+11:10:50.463 shot group-duplicate-1-1.png (375 x 236)
+11:10:50.767 [group-duplicate-1-1] pressed <<OK (clicked)>>
+11:10:57.654 dialogs: 1
+11:11:03.876 [after] look failed: no group Passwords in the tree: Desk store, KeePassGate
+11:11:09.222 file: size=3301 mtime=2026-11-16T10:11:04.3568368Z sha=912dfa68fe32
+11:11:15.562 diff against the base: 147 lines
+11:11:15.576   + E ~00863e98 history.count 0
+11:11:15.588   + E ~00863e98 parent ~d806e495 (KeePassGate)
+11:11:15.596   + E ~020a0dfc history.count 0
+11:11:15.609   + E ~020a0dfc parent ~d806e495 (KeePassGate)
+11:11:15.615   + E ~50394182 history.count 0
+11:11:15.620   + E ~50394182 parent ~d806e495 (KeePassGate)
+11:11:15.624   + E ~7dc8e8db history.count 0
+11:11:15.629   + E ~7dc8e8db parent ~d806e495 (KeePassGate)
+11:11:15.635   + E ~81511ecc history.count 0
+11:11:15.641   + E ~81511ecc parent ~d806e495 (KeePassGate)
+11:11:15.653   + E ~82977946 history.count 0
+11:11:15.663   + E ~82977946 parent ~d806e495 (KeePassGate)
+11:11:15.673   + E ~ffb475d0 history.count 0
+11:11:15.688   + E ~ffb475d0 parent ~d806e495 (KeePassGate)
+11:11:15.697   - F groups 6 entries 12
+11:11:15.706   + F groups 8 entries 19
+11:11:15.713   + G ~6f6cc255 name "Archive"
+11:11:15.719   + G ~6f6cc255 parent ~d806e495 (KeePassGate)
+11:11:15.723   + G ~d806e495 name "KeePassGate"
+11:11:15.728   + G ~d806e495 parent Root (Desk store)

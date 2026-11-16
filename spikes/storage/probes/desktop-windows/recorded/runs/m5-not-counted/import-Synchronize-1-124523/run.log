@@ -1,0 +1,4 @@
+12:45:23.665 ==== import-Synchronize-1 : File, Import, KDBX, Overwrite if newer and apply deletions
+12:45:23.699 RUN FAILED import-Synchronize-1: The term 'Get-FileHash' is not recognized as the name of a cmdlet, function, script file, or operable program. Check the spelling of the name, or if a path was included, verify that the path is correct and try again. at Get-FileState, <branch>\spikes\storage\probes\desktop-windows\scripts\Ui.ps1: line 536
+at Run-M5, <branch>\spikes\storage\probes\desktop-windows\scripts\M5.ps1: line 67
+at <ScriptBlock>, <branch>\spikes\storage\probes\desktop-windows\scripts\M5.ps1: line 151

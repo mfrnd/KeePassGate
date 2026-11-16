@@ -1,0 +1,95 @@
+# file other.kdbx size=2021 sha256=e5217d4ca97779a2a94e684ca2376527a88de998fc4100643c580df0cbe9cf88
+D count 0
+E ~b669b82d A u1.txt p=0 len=34 sha=bc1ff5edff47b8bb
+E ~b669b82d CD Other.Plugin = "zqxcd-u1"
+E ~b669b82d H2026-11-01T10:20:00Z S Notes p=0 "user notes of U1"
+E ~b669b82d H2026-11-01T10:20:00Z S Password p=1 "u1-pw-invented"
+E ~b669b82d H2026-11-01T10:20:00Z S Title p=0 "Mail account"
+E ~b669b82d H2026-11-01T10:20:00Z S URL p=0 "https://mail.example.invalid/"
+E ~b669b82d H2026-11-01T10:20:00Z S UserName p=0 "alice-invented"
+E ~b669b82d H2026-11-01T10:20:00Z autotype enabled=1 obfuscation=0 seq="" assoc=0
+E ~b669b82d H2026-11-01T10:20:00Z misc icon=0 customIcon=- fg=00000000 bg=00000000 overrideUrl="" quality=1
+E ~b669b82d H2026-11-01T10:20:00Z prev -
+E ~b669b82d H2026-11-01T10:20:00Z t.accessed 2026-11-01T10:20:00Z
+E ~b669b82d H2026-11-01T10:20:00Z t.created 2026-11-01T10:20:00Z
+E ~b669b82d H2026-11-01T10:20:00Z t.expires 0 2026-11-01T10:00:00Z
+E ~b669b82d H2026-11-01T10:20:00Z t.location 2026-11-01T10:20:00Z
+E ~b669b82d H2026-11-01T10:20:00Z t.modified 2026-11-01T10:20:00Z
+E ~b669b82d H2026-11-01T10:20:00Z tags []
+E ~b669b82d H2026-11-01T10:20:00Z usage 0
+E ~b669b82d H2026-11-01T11:40:00Z S Extra p=0 "extra-u1-v1"
+E ~b669b82d H2026-11-01T11:40:00Z S Notes p=0 "user notes of U1"
+E ~b669b82d H2026-11-01T11:40:00Z S Password p=1 "u1-pw-invented"
+E ~b669b82d H2026-11-01T11:40:00Z S Title p=0 "Mail account"
+E ~b669b82d H2026-11-01T11:40:00Z S URL p=0 "https://mail.example.invalid/"
+E ~b669b82d H2026-11-01T11:40:00Z S UserName p=0 "alice-invented"
+E ~b669b82d H2026-11-01T11:40:00Z autotype enabled=1 obfuscation=0 seq="" assoc=0
+E ~b669b82d H2026-11-01T11:40:00Z misc icon=0 customIcon=- fg=00000000 bg=00000000 overrideUrl="" quality=1
+E ~b669b82d H2026-11-01T11:40:00Z prev -
+E ~b669b82d H2026-11-01T11:40:00Z t.accessed 2026-11-01T11:40:00Z
+E ~b669b82d H2026-11-01T11:40:00Z t.created 2026-11-01T10:20:00Z
+E ~b669b82d H2026-11-01T11:40:00Z t.expires 0 2026-11-01T10:00:00Z
+E ~b669b82d H2026-11-01T11:40:00Z t.location 2026-11-01T10:20:00Z
+E ~b669b82d H2026-11-01T11:40:00Z t.modified 2026-11-01T11:40:00Z
+E ~b669b82d H2026-11-01T11:40:00Z tags []
+E ~b669b82d H2026-11-01T11:40:00Z usage 0
+E ~b669b82d S Extra p=0 "zqxextra-u1"
+E ~b669b82d S KPG.Ref p=0 "zqxref-u1 {\"rule\":\"KG1\"}"
+E ~b669b82d S Notes p=0 "user notes of U1"
+E ~b669b82d S Password p=1 "u1-pw-invented"
+E ~b669b82d S Title p=0 "Mail account"
+E ~b669b82d S URL p=0 "https://mail.example.invalid/"
+E ~b669b82d S UserName p=0 "alice-invented"
+E ~b669b82d autotype enabled=1 obfuscation=0 seq="" assoc=0
+E ~b669b82d history.count 2
+E ~b669b82d misc icon=0 customIcon=- fg=00000000 bg=00000000 overrideUrl="" quality=1
+E ~b669b82d parent IM (Imported)
+E ~b669b82d prev -
+E ~b669b82d t.accessed 2026-11-16T09:50:03Z
+E ~b669b82d t.created 2026-11-16T09:50:03Z
+E ~b669b82d t.expires 0 2026-11-01T10:00:00Z
+E ~b669b82d t.location 2026-11-16T09:50:03Z
+E ~b669b82d t.modified 2026-11-01T13:20:00Z
+E ~b669b82d tags [work]
+E ~b669b82d usage 0
+F cipher AES/Rijndael (256-bit key, FIPS 197)
+F compression GZip
+F groups 2 entries 1
+F kdf Argon2d it=2 mem=1024KiB par=1
+F version 4.0
+G IM children groups=0 entries=1
+G IM flags icon=48 customIcon=- search=inherit autotype=inherit expanded=1 seq="" lastTop=~b669b82d
+G IM name "Imported"
+G IM notes ""
+G IM parent Root (Desk other)
+G IM prev -
+G IM t.accessed 2026-11-16T09:49:59Z
+G IM t.created 2026-11-01T10:05:00Z
+G IM t.expires 0 2026-11-01T10:00:00Z
+G IM t.location 2026-11-01T10:05:00Z
+G IM t.modified 2026-11-01T10:05:00Z
+G IM tags []
+G IM usage 1
+G Root children groups=1 entries=0
+G Root flags icon=49 customIcon=- search=inherit autotype=inherit expanded=1 seq="" lastTop=-
+G Root name "Desk other"
+G Root notes ""
+G Root parent -
+G Root prev -
+G Root t.accessed 2026-11-16T09:49:59Z
+G Root t.created 2026-11-01T10:00:00Z
+G Root t.expires 0 2026-11-01T10:00:00Z
+G Root t.location 2026-11-01T10:00:00Z
+G Root t.modified 2026-11-01T10:00:00Z
+G Root tags []
+G Root usage 1
+M customIcons 0 []
+M defaultUserName "" changed 2026-11-01T10:00:00Z
+M description "" changed 2026-11-01T10:00:00Z
+M historyMaxItems 10 historyMaxSize 6291456 maintenanceHistoryDays 365
+M masterKeyChanged 2026-11-01T10:00:00Z
+M name "Desk other (invented)" changed 2026-11-01T10:00:00Z
+M publicCustomData 0
+M recycleBin enabled=1 group=- changed 2026-11-16T08:32:08Z
+M settingsChanged 2026-11-01T10:00:00Z
+M templatesGroup - changed 2026-11-01T10:00:00Z

@@ -1,0 +1,9 @@
+S Notes p=0 
+S Password p=1 u3-pw-invented
+S Title p=0 Shop
+S URL p=0 https://shop.example.invalid/
+S UserName p=0 carol-invented
+tags []
+history 0
+modified 2026-11-01T10:22:00.0000000Z
+database modified=False

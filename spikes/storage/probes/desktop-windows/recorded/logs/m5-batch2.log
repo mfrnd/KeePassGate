@@ -1,0 +1,31 @@
+12:45:39.161 ==== import-CreateNewUuids-1 : File, Import, KDBX, Create new IDs
+12:45:39.324 db: size=3413 mtime=2026-11-16T08:31:56.2778845Z sha=2ff7a751a869; other: size=5013 mtime=2026-11-16T08:32:08.8042697Z sha=74dd75d7243e
+12:45:39.355 config: 
+12:45:51.040 started KeePass pid=15760 token: TokenIsElevated=1 ElevationType=2 Integrity=0x3000 AdministratorsEnabled=False
+12:45:51.475 main window: <<db.kdbx - KeePass>>
+12:45:51.856 group rows: 
+12:45:53.711 menu: <<Import...>>
+12:45:55.571 [import-CreateNewUuids-1-import] WINDOW title=<<Import File/Data>> class=WindowsForms10.Window.8.app.0.2bf8098_r6_ad1
+12:45:55.726 [import-CreateNewUuids-1-import]   Pane name=<<General>>
+12:45:55.743 [import-CreateNewUuids-1-import]   Group name=<<Format>>
+12:45:55.762 [import-CreateNewUuids-1-import]   Group name=<<Source>>
+12:45:55.772 [import-CreateNewUuids-1-import]   Pane name=<<Help: Configuring source applications>>
+12:45:55.784 [import-CreateNewUuids-1-import]   Text name=<<File(s):>> disabled
+12:45:55.795 [import-CreateNewUuids-1-import]   Pane name=<<Cancel>>
+12:45:55.800 [import-CreateNewUuids-1-import]   Pane name=<<OK>> disabled
+12:45:55.881 [import-CreateNewUuids-1-import]   win32 Window.8 <<General>>
+12:45:55.885 [import-CreateNewUuids-1-import]   win32 Window.8 <<Format>>
+12:45:55.893 [import-CreateNewUuids-1-import]   win32 Window.8 <<Source>>
+12:45:55.900 [import-CreateNewUuids-1-import]   win32 STATIC <<Help: Configuring source applications>>
+12:45:55.905 [import-CreateNewUuids-1-import]   win32 STATIC <<File(s):>> disabled
+12:45:55.912 [import-CreateNewUuids-1-import]   win32 BUTTON <<Cancel>>
+12:45:55.919 [import-CreateNewUuids-1-import]   win32 BUTTON <<OK>> disabled
+12:46:00.118 shot import-CreateNewUuids-1-import.png (406 x 556)
+12:46:11.038 stopping KeePass pid=15760
+12:46:11.116 RUN FAILED import-CreateNewUuids-1: no key prompt at Kp-KeyPrompt, <branch>\spikes\storage\probes\desktop-windows\scripts\Kp.ps1: line 341
+at Kp-ImportKdbx, <branch>\spikes\storage\probes\desktop-windows\scripts\Kp.ps1: line 367
+at Run-M5, <branch>\spikes\storage\probes\desktop-windows\scripts\M5.ps1: line 102
+at <ScriptBlock>, <branch>\spikes\storage\probes\desktop-windows\scripts\M5.ps1: line 151
+12:46:11.164 ==== import-KeepExisting-1 : File, Import, KDBX, Keep existing
+12:46:11.176 db: size=3413 mtime=2026-11-16T08:31:56.2778845Z sha=2ff7a751a869; other: size=5013 mtime=2026-11-16T08:32:08.8042697Z sha=74dd75d7243e
+12:46:11.189 config: 

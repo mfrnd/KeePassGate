@@ -1,0 +1,45 @@
+10:39:00.568 ==== a-edit-1 : KPG.Ref on U1 before; the user name edited, OK
+10:39:00.579 config: 
+10:39:13.535 started KeePass pid=9672 token: TokenIsElevated=1 ElevationType=2 Integrity=0x3000 AdministratorsEnabled=False
+10:39:13.717 main window: <<db.kdbx - KeePass>>
+10:39:14.152 group rows: Desk entries, KeePassGate, Passwords, Recycle Bin
+10:39:18.807 shot a-edit-1-dialog.png (491 x 513)
+10:39:23.808 plugin: 2026-11-16T09:39:23.6531590Z dump|Mail account|<work>\runs\m3\a-edit-1\memory.txt => dumped
+10:39:23.836 memory: S Extra p=0 zqxextra-u1
+10:39:23.860 memory: S KPG.Ref p=0 zqxref-u1 {"rule":"KG1"}
+10:39:23.878 memory: S Notes p=0 user notes of U1
+10:39:23.890 memory: S Password p=1 u1-pw-invented
+10:39:23.905 memory: S Title p=0 Mail account
+10:39:23.925 memory: S URL p=0 https://mail.example.invalid/
+10:39:23.931 memory: S UserName p=0 edited-in-dialog
+10:39:23.936 memory: A u1.txt len=34
+10:39:23.950 memory: tags [work]
+10:39:23.961 memory: CD Other.Plugin = zqxcd-u1
+10:39:23.967 memory: history 3
+10:39:23.974 memory: modified 2026-11-16T09:39:20.1344746Z
+10:39:23.986 memory: database modified=True
+10:39:23.992 window title after the dialog closed: <<db.kdbx* - KeePass>>
+10:39:27.595 window title after Ctrl+S: <<db.kdbx - KeePass>>
+10:39:33.894   + E U1 H2026-11-01T13:20:00Z A u1.txt p=0 len=34 sha=bc1ff5edff47b8bb
+10:39:33.906   + E U1 H2026-11-01T13:20:00Z autotype enabled=1 obfuscation=0 seq="" assoc=0
+10:39:33.916   + E U1 H2026-11-01T13:20:00Z CD Other.Plugin = "zqxcd-u1"
+10:39:33.920   + E U1 H2026-11-01T13:20:00Z misc icon=0 customIcon=- fg=00000000 bg=00000000 overrideUrl="" quality=1
+10:39:33.928   + E U1 H2026-11-01T13:20:00Z prev -
+10:39:33.935   + E U1 H2026-11-01T13:20:00Z S Extra p=0 "zqxextra-u1"
+10:39:33.942   + E U1 H2026-11-01T13:20:00Z S KPG.Ref p=0 "zqxref-u1 {\"rule\":\"KG1\"}"
+10:39:33.949   + E U1 H2026-11-01T13:20:00Z S Notes p=0 "user notes of U1"
+10:39:33.956   + E U1 H2026-11-01T13:20:00Z S Password p=1 "u1-pw-invented"
+10:39:33.967   + E U1 H2026-11-01T13:20:00Z S Title p=0 "Mail account"
+10:39:33.985   + E U1 H2026-11-01T13:20:00Z S URL p=0 "https://mail.example.invalid/"
+10:39:33.995   + E U1 H2026-11-01T13:20:00Z S UserName p=0 "alice-invented"
+10:39:34.005   + E U1 H2026-11-01T13:20:00Z t.created 2026-11-01T10:20:00Z
+10:39:34.015   + E U1 H2026-11-01T13:20:00Z t.expires 0 2026-11-01T10:00:00Z
+10:39:34.018   + E U1 H2026-11-01T13:20:00Z t.location 2026-11-01T10:20:00Z
+10:39:34.025   + E U1 H2026-11-01T13:20:00Z t.modified 2026-11-01T13:20:00Z
+10:39:34.035   + E U1 H2026-11-01T13:20:00Z tags [work]
+10:39:34.043   - E U1 history.count 2
+10:39:34.054   + E U1 history.count 3
+10:39:34.072   - E U1 S UserName p=0 "alice-invented"
+10:39:34.077   + E U1 S UserName p=0 "edited-in-dialog"
+10:39:34.087   - E U1 t.modified 2026-11-01T13:20:00Z
+10:39:34.097   + E U1 t.modified 2026-11-16T09:39:20Z

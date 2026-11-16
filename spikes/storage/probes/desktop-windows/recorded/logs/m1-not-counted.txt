@@ -1,0 +1,2 @@
+s-toolbar-1 not counted: the driver hung on the toolbar press through UI automation and KeePass was stopped by hand at 10:03:05
+n-lockunlock-1 (three attempts), n-lockedarrival-1, n-syncmenu-1, s-saveas-1 failed before their flow ended (key prompt box, menu search, Save As shortcut) and were repeated

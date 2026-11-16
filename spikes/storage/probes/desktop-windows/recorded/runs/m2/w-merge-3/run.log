@@ -1,0 +1,91 @@
+12:28:25.237 ==== w-merge-3 : KeePassXC 2.8.0, defaults; full changes (saved by themselves); Database, Merge From Database with NEW
+12:28:25.251 keepassxc config: 
+12:28:37.300 started KeePassXC pid=9268 token: TokenIsElevated=1 ElevationType=2 Integrity=0x3000 AdministratorsEnabled=False
+12:28:37.780 answered the update question No
+12:28:43.235 KeePassXC window: <<Desk probe (invented) - KeePassXC>>
+12:28:48.891 edited P2 password=p2-window; OK clicked 2026-11-16T11:28:47.9477293Z .. 2026-11-16T11:28:48.3726618Z
+12:28:53.133 edited Q1 password=q1-window; OK clicked 2026-11-16T11:28:52.1982767Z .. 2026-11-16T11:28:52.6233770Z
+12:28:57.486 edited Q2 password=q2-window; OK clicked 2026-11-16T11:28:56.5720233Z .. 2026-11-16T11:28:56.9796345Z
+12:29:01.956 edited Q3 password=q3-window; OK clicked 2026-11-16T11:29:01.0390714Z .. 2026-11-16T11:29:01.4524300Z
+12:29:06.889 added entry window-new in Passwords
+12:29:06.897 Q3's edit second: 2026-11-16T11:29:01Z (click and settle in the same second: True)
+12:29:07.143 probe: wrote <work>\runs\m2\w-merge-3\NEW-run.kdbx (Q3 at 2026-11-16T11:29:01Z)
+12:29:07.164 file before the replacement: size=3941 mtime=2026-11-16T11:29:06.2612284Z sha=9bda1af1ab5c
+12:29:08.977 menu: <<Merge From Database…>>
+12:29:11.420 file dialog <<Merge database>>
+12:29:16.658 shot w-merge-3-merge-unlock.png (702 x 450)
+12:29:22.165 [w-merge-3-1] WINDOW title=<<Database Merge Confirmation>> class=MergeDialog
+12:29:22.215 [w-merge-3-1]   Header name=<<Group>>
+12:29:22.225 [w-merge-3-1]   Header name=<<Title>>
+12:29:22.233 [w-merge-3-1]   Header name=<<UUID>>
+12:29:22.241 [w-merge-3-1]   Header name=<<Change>>
+12:29:22.249 [w-merge-3-1]   Header name=<<Details>>
+12:29:22.263 [w-merge-3-1]   DataItem name=<</Desk probe/KeePassGate>>
+12:29:22.271 [w-merge-3-1]   DataItem name=<<KPG revocation>>
+12:29:22.283 [w-merge-3-1]   DataItem name=<<Added>>
+12:29:22.290 [w-merge-3-1]   DataItem name=<</Desk probe/Passwords>>
+12:29:22.298 [w-merge-3-1]   DataItem name=<<P1>>
+12:29:22.304 [w-merge-3-1]   DataItem name=<<Modified>>
+12:29:22.310 [w-merge-3-1]   DataItem name=<<Password, History (Add local modifications to new entry)>>
+12:29:22.316 [w-merge-3-1]   DataItem name=<</Desk probe/Passwords>>
+12:29:22.327 [w-merge-3-1]   DataItem name=<<Q1>>
+12:29:22.336 [w-merge-3-1]   DataItem name=<<Modified>>
+12:29:22.343 [w-merge-3-1]   DataItem name=<<Password, History (Add new modifications to existing entry)>>
+12:29:22.352 [w-merge-3-1]   DataItem name=<</Desk probe/Passwords>>
+12:29:22.362 [w-merge-3-1]   DataItem name=<<Q2>>
+12:29:22.370 [w-merge-3-1]   DataItem name=<<Modified>>
+12:29:22.378 [w-merge-3-1]   DataItem name=<<Password, History (Add local modifications to new entry)>>
+12:29:22.388 [w-merge-3-1]   DataItem name=<</Desk probe/Passwords>>
+12:29:22.396 [w-merge-3-1]   DataItem name=<<other-new>>
+12:29:22.410 [w-merge-3-1]   DataItem name=<<Added>>
+12:29:22.422 [w-merge-3-1]   DataItem name=<<Metadata>>
+12:29:22.428 [w-merge-3-1]   DataItem name=<<Removed custom data KPXC_RANDOM_SLUG [25cee632975298fe2579971e7d9d9e806873542c928d410c1ccb8cf5d92fbe240efbfcf8f2bb561ca7c240794a986119e075fca37a9ced8c7dfd2477898d6504f04d6e18e88f43087a2cfc00e1711d4a9169]>>
+12:29:22.440 [w-merge-3-1]   DataItem name=<<Metadata>>
+12:29:22.447 [w-merge-3-1]   DataItem name=<<Adding custom data KPG.NewKey [{"added":"by the other writer"}]>>
+12:29:22.457 [w-merge-3-1]   Button name=<<Merge>>
+12:29:22.472 [w-merge-3-1]   Button name=<<Abort>>
+12:29:23.050 shot w-merge-3-1.png (802 x 482)
+12:29:23.384 [w-merge-3-1] pressed <<Merge>>
+12:29:35.112 dialogs after the replacement: 1
+12:29:35.971 [after] window title <<Desk probe (invented) - KeePassXC>>; items shown: Clear Search, All Entries, Expired, Weak Passwords, TOTP Entries, Desk probe, KeePassGate, Passwords, Recycle Bin, K, user-k, , 01.11.2026 11:20, other-new, user-no, 01.11.2026 19:00, P1, user-p1, P2, user-p2, 16.11.2026 12:28, Q1, user-q1, Q2, user-q2, 01.01.2027 01:00, Q3, user-q3, 16.11.2026 12:29, window-new, X1, user-x1, dCc4KKz7UUYDMLq3ey8jRh02wlYfk6PVsQdOI2OM6vZgrdEnNpqpmtY5MkHjwUXYFCU5rbulkvmfIUKSgvR4Pjt91iCiuoamYAbpJJ5w4EF0G3x1ZzDBDcJfTVDJYM15VAGH3fJX0f9Kd328vLJ4lZj515VxFvXsNJeGwp74qpKhd8BZcFXND6U6bLP8JVREHQ7UYwMFNPO5OBc336V9XKpRzipla9uUYGaMBrAp3S9yrYsZsWEN9Rq6lpe0HkpNe3hHkP2M5qGFL1jazP2D5hVGZdlVMKhSmvTy1kyce1STLkvtGEB2slS7ibrHogAvIxdZivjOaZjDPB5zr1PIIpkAcWPa3rx71gLXHWLVewbSCPshg2ZxR1mcNc6LfJVslmLszhrVp3nWNS8Nos4ASAp94sJoZ9zUbsqZD9r8KDHXOPP5eshwPUal6LxHXC5pES5eliKoB5zO3RvodOKrcCFGSEc2LjkIIbT5UuT5i2vTeMspZIoJ2ONBNyMgGRcbVrGb70Us5OIjRvmGWxcD5bP3OSrfiwzQZT8wFQrjy6OoGntcLGKTzZg3cNNpJyKIY1J7w0AGF3O9MkwkiPUbmgbAxET2CCa9wFPPdwpVFEN6Lhq1anG3esg2aJKrgHDDdPNHUhGwk8ViTeyPXccZ6geDjXyTl7z8AKd5Ujg2gTTgW8j5U4TEpnG6uJi7twLmIXhIB35y5j3mN8rky28qnvSXDgLKBjJtIqX8ba4b8fIGudtvb7J0ye9XFJFeruwVaJehktJX8grHmMmjxZtEaT5nqA3RVZuOsxpl9LLsxv1Rw1u2hfqSBs5GO00k02CiwdZzgBklOAQobn1zPAuztbMA1jWIVl25sTeSc5Wf5FEBcRpk9AUzINzVRY77ocPmIV5IJiXUoO3nXLik3wIVQCwfdJBD7Y0dzb3GVgaanAL3TL7G0XD1T4WFiaoAhUWPXay6SbPWVrrQ13MSL5MkU9J4Exi52a3To6g2WBxZIqglNGNpNVymHv4YR41e2Te5yYl5WT5JHwcnchr8k3rglQL3BIlcKTgyMkwyeSS3apfVSR5tN249m7TiNs4Osd8xPob2u2eRkxG6v0kuM1PSZgMPROkvYEL6qrFozD8UXmZy0WxXIJC0NqYtcLkgSs2gmKPDu64J254wHXY4bNnOCUsATWLoccBpu3LqHumLP27SwllExpFEFoeRbPtYuQqa3PCOMrxqkb9JXaNsuH0wX6jGY4P1AOa9MhZgjX2F2YenpV4ABBnnZ3C6p6zRc6qWB96zBqJXPv49c6bD9Oz9kxkTec1mhkm6rHmpYE9V1QXn8DesfvSNGqwNZnVizgzpI8RUUvp4OeITa6Ub8IHwSYzBVYPvtbfVbsfAvJYtFX9midwdS4jqZCWtIP95f4Lw8w2sbUpzuXq5ZMd1mwcz1z6YVv1gJcOLLMovkEB8Pu5BWbU6wHTsbW5I0eWqcJpRJetMisRhuekH35B3a5tBJfuzRf5G
+12:29:36.223 file after the flow: size=6725 mtime=2026-11-16T11:29:23.5454588Z sha=b63a75e0eb69
+12:29:41.537 file after the exit: size=6725 mtime=2026-11-16T11:29:23.5454588Z sha=b63a75e0eb69
+12:29:42.715 verdict: after-flow.kdbx sha=b63a75e0eb69 v4.0 KG1=kept KG2=kept KG3=kept NewKey=kept DZ=none D1=rec X1=x1-old[] P1=p1-other[p1-old] P2=p2-window[p2-old] Q1=q1-window[q1-old,q1-other] Q2=q2-other[q2-old,q2-window] Q3=q3-window[q3-old] K=k-old[] NO=no-other@Passwords NW=@Passwords entries=12 records=1
+12:29:42.720 verdict: db.kdbx sha=b63a75e0eb69 v4.0 KG1=kept KG2=kept KG3=kept NewKey=kept DZ=none D1=rec X1=x1-old[] P1=p1-other[p1-old] P2=p2-window[p2-old] Q1=q1-window[q1-old,q1-other] Q2=q2-other[q2-old,q2-window] Q3=q3-window[q3-old] K=k-old[] NO=no-other@Passwords NW=@Passwords entries=12 records=1
+12:29:42.728 verdict: window-before.kdbx sha=9bda1af1ab5c v4.0 KG1=kept KG2=kept KG3=gone NewKey=gone DZ=none D1=rec X1=x1-old[] P1=p1-old[] P2=p2-window[p2-old] Q1=q1-window[q1-old] Q2=q2-window[q2-old] Q3=q3-window[q3-old] K=k-old[] NO=absent NW=@Passwords entries=10 records=1
+12:29:42.733 verdict: NEW-run.kdbx sha=cc1394e50a32 v4.1 KG1=kept KG2=kept KG3=kept NewKey=kept DZ=rec D1=rec X1=gone+rec P1=p1-other[p1-old] P2=p2-old[] Q1=q1-other[q1-old] Q2=q2-other[q2-old] Q3=q3-other[q3-old] K=k-old[] NO=no-other@Passwords NW=absent entries=10 records=3
+12:29:53.830 cli: elevated: False
+12:29:53.836 cli: command: Get-Content '<work>\runs\m2\w-merge-3\pw.txt' | & '<work>\kpxc-2.8.0\keepassxc-cli.exe' merge -s '<work>\runs\m2\w-merge-3\cli-merge.kdbx' '<work>\runs\m2\w-merge-3\other.kdbx'
+12:29:53.840 cli: powershell.exe : Passwort zum Entsperren von <work>\runs\m2\w-merge-3\cli-merge.kdbx eingeben:
+12:29:53.842 cli: 
+12:29:53.850 cli: At <session>\unelevated.p
+12:29:53.854 cli: 
+12:29:53.862 cli: s1:15 char:5
+12:29:53.868 cli: 
+12:29:53.870 cli: +     & powershell.exe -NoProfile -ExecutionPolicy Bypass -Command ($Co ...
+12:29:53.878 cli: 
+12:29:53.884 cli: +     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+12:29:53.894 cli: 
+12:29:53.898 cli:     + CategoryInfo          : NotSpecified: (Passwort zum En....kdbx eingeben::String) [], RemoteException
+12:29:53.902 cli: 
+12:29:53.904 cli:     + FullyQualifiedErrorId : NativeCommandError
+12:29:53.908 cli: 
+12:29:53.910 cli:  
+12:29:53.914 cli: 
+12:29:53.918 cli: Entry of Q3[4b504751330000000000000000000000] contains conflicting changes - conflict resolution may lose data!
+12:29:53.922 cli: 
+12:29:53.924 cli: 	Hinzugef%]%gt: '/Desk probe/KeePassGate'/'KPG revocation' [{4b50474b-4733-0000-0000-000000000000}]
+12:29:53.928 cli: 
+12:29:53.930 cli: 	Ge%�ndert: '/Desk probe/Passwords'/'P1' [{4b504750-3100-0000-0000-000000000000}] (Passwort, History (lokale %�nderungen zum neuen Eintrag hinzuf%]%gen))
+12:29:53.936 cli: 
+12:29:53.944 cli: 	Ge%�ndert: '/Desk probe/Passwords'/'Q1' [{4b504751-3100-0000-0000-000000000000}] (Passwort, History (neue %�nderungen zum bestehenden Eintrag hinzuf%]%gen))
+12:29:53.948 cli: 
+12:29:53.950 cli: 	Ge%�ndert: '/Desk probe/Passwords'/'Q2' [{4b504751-3200-0000-0000-000000000000}] (Passwort, History (lokale %�nderungen zum neuen Eintrag hinzuf%]%gen))
+12:29:53.954 cli: 
+12:29:53.958 cli: 	Hinzugef%]%gt: '/Desk probe/Passwords'/'other-new' [{4b50474e-4f00-0000-0000-000000000000}]
+12:29:53.960 cli: 
+12:29:53.966 cli: <work>\runs\m2\w-merge-3\other.kdbx erfolgreich nach <work>\runs\m2\w-merge-3\cli-merge.kdbx zusammengef%]%hrt.
+12:29:53.970 cli: 
+12:29:53.976 cli: 
+12:29:54.349 cli verdict: cli-merge.kdbx sha=f88a0865de53 v4.0 KG1=kept KG2=kept KG3=kept NewKey=gone DZ=none D1=rec X1=x1-old[] P1=p1-other[p1-old] P2=p2-window[p2-old] Q1=q1-window[q1-old,q1-other] Q2=q2-other[q2-old,q2-window] Q3=q3-window[q3-old] K=k-old[] NO=no-other@Passwords NW=@Passwords entries=12 records=1
+12:29:54.382 window merge against cli merge: 5 lines differ

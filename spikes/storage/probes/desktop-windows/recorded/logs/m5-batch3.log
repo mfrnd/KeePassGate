@@ -1,0 +1,276 @@
+12:47:07.879 ==== import-CreateNewUuids-1 : File, Import, KDBX, Create new IDs
+12:47:08.036 db: size=3413 mtime=2026-11-16T08:31:56.2778845Z sha=2ff7a751a869; other: size=5013 mtime=2026-11-16T08:32:08.8042697Z sha=74dd75d7243e
+12:47:08.069 config: 
+12:47:20.145 started KeePass pid=17892 token: TokenIsElevated=1 ElevationType=2 Integrity=0x3000 AdministratorsEnabled=False
+12:47:20.461 main window: <<db.kdbx - KeePass>>
+12:47:20.706 group rows: Desk probe, KeePassGate, Passwords, Recycle Bin
+12:47:22.457 menu: <<Import...>>
+12:47:24.278 [import-CreateNewUuids-1-import] WINDOW title=<<Import File/Data>> class=WindowsForms10.Window.8.app.0.2bf8098_r6_ad1
+12:47:24.404 [import-CreateNewUuids-1-import]   Pane name=<<General>>
+12:47:24.427 [import-CreateNewUuids-1-import]   Group name=<<Format>>
+12:47:24.433 [import-CreateNewUuids-1-import]   Group name=<<Source>>
+12:47:24.439 [import-CreateNewUuids-1-import]   Pane name=<<Help: Configuring source applications>>
+12:47:24.447 [import-CreateNewUuids-1-import]   Text name=<<File(s):>> disabled
+12:47:24.451 [import-CreateNewUuids-1-import]   Pane name=<<Cancel>>
+12:47:24.457 [import-CreateNewUuids-1-import]   Pane name=<<OK>> disabled
+12:47:24.515 [import-CreateNewUuids-1-import]   win32 Window.8 <<General>>
+12:47:24.522 [import-CreateNewUuids-1-import]   win32 Window.8 <<Format>>
+12:47:24.551 [import-CreateNewUuids-1-import]   win32 Window.8 <<Source>>
+12:47:24.560 [import-CreateNewUuids-1-import]   win32 STATIC <<Help: Configuring source applications>>
+12:47:24.564 [import-CreateNewUuids-1-import]   win32 STATIC <<File(s):>> disabled
+12:47:24.568 [import-CreateNewUuids-1-import]   win32 BUTTON <<Cancel>>
+12:47:24.573 [import-CreateNewUuids-1-import]   win32 BUTTON <<OK>> disabled
+12:47:28.517 shot import-CreateNewUuids-1-import.png (406 x 556)
+12:47:39.482 stopping KeePass pid=17892
+12:47:39.541 RUN FAILED import-CreateNewUuids-1: no key prompt at Kp-KeyPrompt, <branch>\spikes\storage\probes\desktop-windows\scripts\Kp.ps1: line 341
+at Kp-ImportKdbx, <branch>\spikes\storage\probes\desktop-windows\scripts\Kp.ps1: line 367
+at Run-M5, <branch>\spikes\storage\probes\desktop-windows\scripts\M5.ps1: line 107
+at <ScriptBlock>, <branch>\spikes\storage\probes\desktop-windows\scripts\M5.ps1: line 159
+12:47:39.593 ==== import-KeepExisting-1 : File, Import, KDBX, Keep existing
+12:47:39.609 db: size=3413 mtime=2026-11-16T08:31:56.2778845Z sha=2ff7a751a869; other: size=5013 mtime=2026-11-16T08:32:08.8042697Z sha=74dd75d7243e
+12:47:39.625 config: 
+12:47:50.716 started KeePass pid=19968 token: TokenIsElevated=1 ElevationType=2 Integrity=0x3000 AdministratorsEnabled=False
+12:47:50.872 main window: <<db.kdbx - KeePass>>
+12:47:51.138 group rows: Desk probe, KeePassGate, Passwords, Recycle Bin
+12:47:52.731 menu: <<Import...>>
+12:47:54.420 [import-KeepExisting-1-import] WINDOW title=<<Import File/Data>> class=WindowsForms10.Window.8.app.0.2bf8098_r6_ad1
+12:47:54.563 [import-KeepExisting-1-import]   Pane name=<<General>>
+12:47:54.571 [import-KeepExisting-1-import]   Group name=<<Format>>
+12:47:54.591 [import-KeepExisting-1-import]   Group name=<<Source>>
+12:47:54.599 [import-KeepExisting-1-import]   Pane name=<<Help: Configuring source applications>>
+12:47:54.615 [import-KeepExisting-1-import]   Text name=<<File(s):>> disabled
+12:47:54.624 [import-KeepExisting-1-import]   Pane name=<<Cancel>>
+12:47:54.641 [import-KeepExisting-1-import]   Pane name=<<OK>> disabled
+12:47:54.668 [import-KeepExisting-1-import]   win32 Window.8 <<General>>
+12:47:54.677 [import-KeepExisting-1-import]   win32 Window.8 <<Format>>
+12:47:54.692 [import-KeepExisting-1-import]   win32 Window.8 <<Source>>
+12:47:54.699 [import-KeepExisting-1-import]   win32 STATIC <<Help: Configuring source applications>>
+12:47:54.717 [import-KeepExisting-1-import]   win32 STATIC <<File(s):>> disabled
+12:47:54.734 [import-KeepExisting-1-import]   win32 BUTTON <<Cancel>>
+12:47:54.742 [import-KeepExisting-1-import]   win32 BUTTON <<OK>> disabled
+12:47:58.625 shot import-KeepExisting-1-import.png (406 x 556)
+12:48:09.785 stopping KeePass pid=19968
+12:48:09.851 RUN FAILED import-KeepExisting-1: no key prompt at Kp-KeyPrompt, <branch>\spikes\storage\probes\desktop-windows\scripts\Kp.ps1: line 341
+at Kp-ImportKdbx, <branch>\spikes\storage\probes\desktop-windows\scripts\Kp.ps1: line 367
+at Run-M5, <branch>\spikes\storage\probes\desktop-windows\scripts\M5.ps1: line 107
+at <ScriptBlock>, <branch>\spikes\storage\probes\desktop-windows\scripts\M5.ps1: line 159
+12:48:09.894 ==== import-OverwriteExisting-1 : File, Import, KDBX, Overwrite existing
+12:48:09.918 db: size=3413 mtime=2026-11-16T08:31:56.2778845Z sha=2ff7a751a869; other: size=5013 mtime=2026-11-16T08:32:08.8042697Z sha=74dd75d7243e
+12:48:09.938 config: 
+12:48:21.676 started KeePass pid=15640 token: TokenIsElevated=1 ElevationType=2 Integrity=0x3000 AdministratorsEnabled=False
+12:48:21.871 main window: <<db.kdbx - KeePass>>
+12:48:22.259 group rows: Desk probe, KeePassGate, Passwords, Recycle Bin
+12:48:24.149 menu: <<Import...>>
+12:48:26.027 [import-OverwriteExisting-1-import] WINDOW title=<<Import File/Data>> class=WindowsForms10.Window.8.app.0.2bf8098_r6_ad1
+12:48:26.122 [import-OverwriteExisting-1-import]   Pane name=<<General>>
+12:48:26.144 [import-OverwriteExisting-1-import]   Group name=<<Format>>
+12:48:26.156 [import-OverwriteExisting-1-import]   Group name=<<Source>>
+12:48:26.163 [import-OverwriteExisting-1-import]   Pane name=<<Help: Configuring source applications>>
+12:48:26.172 [import-OverwriteExisting-1-import]   Text name=<<File(s):>> disabled
+12:48:26.184 [import-OverwriteExisting-1-import]   Pane name=<<Cancel>>
+12:48:26.188 [import-OverwriteExisting-1-import]   Pane name=<<OK>> disabled
+12:48:26.199 [import-OverwriteExisting-1-import]   win32 Window.8 <<General>>
+12:48:26.202 [import-OverwriteExisting-1-import]   win32 Window.8 <<Format>>
+12:48:26.204 [import-OverwriteExisting-1-import]   win32 Window.8 <<Source>>
+12:48:26.210 [import-OverwriteExisting-1-import]   win32 STATIC <<Help: Configuring source applications>>
+12:48:26.216 [import-OverwriteExisting-1-import]   win32 STATIC <<File(s):>> disabled
+12:48:26.220 [import-OverwriteExisting-1-import]   win32 BUTTON <<Cancel>>
+12:48:26.228 [import-OverwriteExisting-1-import]   win32 BUTTON <<OK>> disabled
+12:48:30.245 shot import-OverwriteExisting-1-import.png (406 x 556)
+12:48:41.369 stopping KeePass pid=15640
+12:48:41.414 RUN FAILED import-OverwriteExisting-1: no key prompt at Kp-KeyPrompt, <branch>\spikes\storage\probes\desktop-windows\scripts\Kp.ps1: line 341
+at Kp-ImportKdbx, <branch>\spikes\storage\probes\desktop-windows\scripts\Kp.ps1: line 367
+at Run-M5, <branch>\spikes\storage\probes\desktop-windows\scripts\M5.ps1: line 107
+at <ScriptBlock>, <branch>\spikes\storage\probes\desktop-windows\scripts\M5.ps1: line 159
+12:48:41.448 ==== import-OverwriteIfNewer-1 : File, Import, KDBX, Overwrite if newer
+12:48:41.472 db: size=3413 mtime=2026-11-16T08:31:56.2778845Z sha=2ff7a751a869; other: size=5013 mtime=2026-11-16T08:32:08.8042697Z sha=74dd75d7243e
+12:48:41.487 config: 
+12:48:53.283 started KeePass pid=4088 token: TokenIsElevated=1 ElevationType=2 Integrity=0x3000 AdministratorsEnabled=False
+12:48:53.454 main window: <<db.kdbx - KeePass>>
+12:48:53.776 group rows: Desk probe, KeePassGate, Passwords, Recycle Bin
+12:48:55.630 menu: <<Import...>>
+12:48:57.366 [import-OverwriteIfNewer-1-import] WINDOW title=<<Import File/Data>> class=WindowsForms10.Window.8.app.0.2bf8098_r6_ad1
+12:48:57.477 [import-OverwriteIfNewer-1-import]   Pane name=<<General>>
+12:48:57.491 [import-OverwriteIfNewer-1-import]   Group name=<<Format>>
+12:48:57.504 [import-OverwriteIfNewer-1-import]   Group name=<<Source>>
+12:48:57.513 [import-OverwriteIfNewer-1-import]   Pane name=<<Help: Configuring source applications>>
+12:48:57.523 [import-OverwriteIfNewer-1-import]   Text name=<<File(s):>> disabled
+12:48:57.538 [import-OverwriteIfNewer-1-import]   Pane name=<<Cancel>>
+12:48:57.541 [import-OverwriteIfNewer-1-import]   Pane name=<<OK>> disabled
+12:48:57.556 [import-OverwriteIfNewer-1-import]   win32 Window.8 <<General>>
+12:48:57.562 [import-OverwriteIfNewer-1-import]   win32 Window.8 <<Format>>
+12:48:57.570 [import-OverwriteIfNewer-1-import]   win32 Window.8 <<Source>>
+12:48:57.575 [import-OverwriteIfNewer-1-import]   win32 STATIC <<Help: Configuring source applications>>
+12:48:57.582 [import-OverwriteIfNewer-1-import]   win32 STATIC <<File(s):>> disabled
+12:48:57.588 [import-OverwriteIfNewer-1-import]   win32 BUTTON <<Cancel>>
+12:48:57.596 [import-OverwriteIfNewer-1-import]   win32 BUTTON <<OK>> disabled
+12:49:01.482 shot import-OverwriteIfNewer-1-import.png (406 x 556)
+12:49:12.297 stopping KeePass pid=4088
+12:49:12.374 RUN FAILED import-OverwriteIfNewer-1: no key prompt at Kp-KeyPrompt, <branch>\spikes\storage\probes\desktop-windows\scripts\Kp.ps1: line 341
+at Kp-ImportKdbx, <branch>\spikes\storage\probes\desktop-windows\scripts\Kp.ps1: line 367
+at Run-M5, <branch>\spikes\storage\probes\desktop-windows\scripts\M5.ps1: line 107
+at <ScriptBlock>, <branch>\spikes\storage\probes\desktop-windows\scripts\M5.ps1: line 159
+12:49:12.425 ==== import-Synchronize-1 : File, Import, KDBX, Overwrite if newer and apply deletions
+12:49:12.458 db: size=3413 mtime=2026-11-16T08:31:56.2778845Z sha=2ff7a751a869; other: size=5013 mtime=2026-11-16T08:32:08.8042697Z sha=74dd75d7243e
+12:49:12.480 config: 
+12:49:24.875 started KeePass pid=10076 token: TokenIsElevated=1 ElevationType=2 Integrity=0x3000 AdministratorsEnabled=False
+12:49:24.974 main window: <<db.kdbx - KeePass>>
+12:49:25.174 group rows: Desk probe, KeePassGate, Passwords, Recycle Bin
+12:49:26.737 menu: <<Import...>>
+12:49:28.454 [import-Synchronize-1-import] WINDOW title=<<Import File/Data>> class=WindowsForms10.Window.8.app.0.2bf8098_r6_ad1
+12:49:28.608 [import-Synchronize-1-import]   Pane name=<<General>>
+12:49:28.639 [import-Synchronize-1-import]   Group name=<<Format>>
+12:49:28.649 [import-Synchronize-1-import]   Group name=<<Source>>
+12:49:28.657 [import-Synchronize-1-import]   Pane name=<<Help: Configuring source applications>>
+12:49:28.674 [import-Synchronize-1-import]   Text name=<<File(s):>> disabled
+12:49:28.693 [import-Synchronize-1-import]   Pane name=<<Cancel>>
+12:49:28.704 [import-Synchronize-1-import]   Pane name=<<OK>> disabled
+12:49:28.718 [import-Synchronize-1-import]   win32 Window.8 <<General>>
+12:49:28.729 [import-Synchronize-1-import]   win32 Window.8 <<Format>>
+12:49:28.757 [import-Synchronize-1-import]   win32 Window.8 <<Source>>
+12:49:28.762 [import-Synchronize-1-import]   win32 STATIC <<Help: Configuring source applications>>
+12:49:28.773 [import-Synchronize-1-import]   win32 STATIC <<File(s):>> disabled
+12:49:28.782 [import-Synchronize-1-import]   win32 BUTTON <<Cancel>>
+12:49:28.792 [import-Synchronize-1-import]   win32 BUTTON <<OK>> disabled
+12:49:32.568 shot import-Synchronize-1-import.png (406 x 556)
+12:49:43.540 stopping KeePass pid=10076
+12:49:43.628 RUN FAILED import-Synchronize-1: no key prompt at Kp-KeyPrompt, <branch>\spikes\storage\probes\desktop-windows\scripts\Kp.ps1: line 341
+at Kp-ImportKdbx, <branch>\spikes\storage\probes\desktop-windows\scripts\Kp.ps1: line 367
+at Run-M5, <branch>\spikes\storage\probes\desktop-windows\scripts\M5.ps1: line 107
+at <ScriptBlock>, <branch>\spikes\storage\probes\desktop-windows\scripts\M5.ps1: line 159
+12:49:43.682 ==== sync-url-1 : File, Synchronize, Synchronize with URL, a file:// URL, the marker switch on
+12:49:43.704 db: size=3413 mtime=2026-11-16T08:31:56.2778845Z sha=2ff7a751a869; other: size=5013 mtime=2026-11-16T08:32:08.8042697Z sha=74dd75d7243e
+12:49:43.718 config: 
+12:49:55.140 started KeePass pid=19816 token: TokenIsElevated=1 ElevationType=2 Integrity=0x3000 AdministratorsEnabled=False
+12:49:55.266 main window: <<db.kdbx - KeePass>>
+12:49:55.512 group rows: Desk probe, KeePassGate, Passwords, Recycle Bin
+12:49:57.204 menu: <<Synchronize>>
+12:49:58.429 menu: <<Synchronize with URL...>>
+12:49:59.658 [sync-url-1-url] WINDOW title=<<Open From URL>> class=WindowsForms10.Window.8.app.0.2bf8098_r6_ad1
+12:49:59.832 [sync-url-1-url]   Pane name=<<Connection>>
+12:49:59.846 [sync-url-1-url]   Text name=<<The complete URL must be specified, including protocol, server and full path to the file.>>
+12:49:59.863 [sync-url-1-url]   Text name=<<URL:>>
+12:49:59.874 [sync-url-1-url]   Text name=<<Example: ftp://ftp.example.com/pub/Database.kdbx>>
+12:49:59.888 [sync-url-1-url]   Text name=<<User name:>>
+12:49:59.901 [sync-url-1-url]   Text name=<<Remember:>>
+12:49:59.919 [sync-url-1-url]   ComboBox name=<<Remember:>> text=<<Do not remember user name and password>>
+12:49:59.934 [sync-url-1-url]   Text name=<<Remember:>>
+12:49:59.947 [sync-url-1-url]   Button name=<<Open>>
+12:49:59.960 [sync-url-1-url]   Text name=<<Password:>>
+12:49:59.990 [sync-url-1-url]   Text name=<<The credentials you enter here are used to authenticate you against the server. Do not enter your KeePass database master password.>>
+12:50:00.009 [sync-url-1-url]   Pane name=<<Help>>
+12:50:00.022 [sync-url-1-url]   Pane name=<<Cancel>>
+12:50:00.035 [sync-url-1-url]   Pane name=<<OK>>
+12:50:00.055 [sync-url-1-url]   win32 Window.8 <<Connection>>
+12:50:00.072 [sync-url-1-url]   win32 STATIC <<The complete URL must be specified, including protocol, server and full path to the file.>>
+12:50:00.080 [sync-url-1-url]   win32 STATIC <<UR&L:>>
+12:50:00.094 [sync-url-1-url]   win32 STATIC <<Example: ftp://ftp.example.com/pub/Database.kdbx>>
+12:50:00.100 [sync-url-1-url]   win32 STATIC <<&User name:>>
+12:50:00.128 [sync-url-1-url]   win32 STATIC <<&Remember:>>
+12:50:00.136 [sync-url-1-url]   win32 COMBOBOX <<Do not remember user name and password>>
+12:50:00.147 [sync-url-1-url]   win32 STATIC <<&Password:>>
+12:50:00.157 [sync-url-1-url]   win32 STATIC <<The credentials you enter here are used to authenticate you against the server. Do not enter your KeePass database master password.>>
+12:50:00.166 [sync-url-1-url]   win32 BUTTON <<&Help>>
+12:50:00.175 [sync-url-1-url]   win32 BUTTON <<Cancel>>
+12:50:00.188 [sync-url-1-url]   win32 BUTTON <<OK>>
+12:50:00.780 shot sync-url-1-url.png (449 x 377)
+12:50:03.033 typed URL file:///<work>/runs/m5/sync-url-1/other.kdbx
+12:50:09.789 dialogs after the flow: 0
+12:50:11.209 group KeePassGate from the places kept
+12:50:12.522 group Passwords from the places kept
+12:50:13.698 [after] window title <<db.kdbx - KeePass>>; groups []; KeePassGate [KPG grant 1, KPG admission 1, KPG revocation, KPG marker]; Passwords [P1, P2, Q1, Q2, Q3, K, other-new]; status <<Ready.>>
+12:50:13.710 db after the flow: size=5125 mtime=2026-11-16T11:50:03.3439110Z sha=8c1953e602ff; other: size=5125 mtime=2026-11-16T11:50:03.3848032Z sha=8c1953e602ff
+12:50:19.785 dialogs at the exit (answered Discard): 0
+12:50:19.810 db after the exit: size=5125 mtime=2026-11-16T11:50:03.3439110Z sha=8c1953e602ff; other: size=5125 mtime=2026-11-16T11:50:03.3848032Z sha=8c1953e602ff
+12:50:20.278 marker entry in: db.dump.txt, other.dump.txt
+12:50:20.325 event: 11:49:45.755 Initialize db= open=0 disk=absent marker=True triggers.enabled=True
+12:50:20.353 event: 11:49:45.775 Trigger.AppInitPost db= open=0 disk=absent
+12:50:20.368 event: 11:49:45.978 FileOpened db=db.kdbx open=1 modified=0 entries=9 records=1 kpg=2 disk=3413:2ff7a751a8
+12:50:20.391 event: 11:49:45.978 Trigger.OpenedDatabaseFile db=db.kdbx open=1 modified=0 entries=9 records=1 kpg=2 disk=3413:2ff7a751a8
+12:50:20.407 event: 11:49:45.979 Trigger.AppLoadPost db=db.kdbx open=1 modified=0 entries=9 records=1 kpg=2 disk=3413:2ff7a751a8
+12:50:20.428 event: 11:49:46.446 Trigger.TimePeriodic db=db.kdbx open=1 modified=0 entries=9 records=1 kpg=2 disk=3413:2ff7a751a8
+12:50:20.439 event: 11:49:47.454 Trigger.TimePeriodic db=db.kdbx open=1 modified=0 entries=9 records=1 kpg=2 disk=3413:2ff7a751a8
+12:50:20.450 event: 11:49:48.449 Trigger.TimePeriodic db=db.kdbx open=1 modified=0 entries=9 records=1 kpg=2 disk=3413:2ff7a751a8
+12:50:20.457 event: 11:49:49.465 Trigger.TimePeriodic db=db.kdbx open=1 modified=0 entries=9 records=1 kpg=2 disk=3413:2ff7a751a8
+12:50:20.466 event: 11:49:50.478 Trigger.TimePeriodic db=db.kdbx open=1 modified=0 entries=9 records=1 kpg=2 disk=3413:2ff7a751a8
+12:50:20.473 event: 11:49:51.478 Trigger.TimePeriodic db=db.kdbx open=1 modified=0 entries=9 records=1 kpg=2 disk=3413:2ff7a751a8
+12:50:20.483 event: 11:49:52.477 Trigger.TimePeriodic db=db.kdbx open=1 modified=0 entries=9 records=1 kpg=2 disk=3413:2ff7a751a8
+12:50:20.488 event: 11:49:53.479 Trigger.TimePeriodic db=db.kdbx open=1 modified=0 entries=9 records=1 kpg=2 disk=3413:2ff7a751a8
+12:50:20.497 event: 11:49:54.475 Trigger.TimePeriodic db=db.kdbx open=1 modified=0 entries=9 records=1 kpg=2 disk=3413:2ff7a751a8
+12:50:20.500 event: 11:49:55.481 Trigger.TimePeriodic db=db.kdbx open=1 modified=0 entries=9 records=1 kpg=2 disk=3413:2ff7a751a8
+12:50:20.505 event: 11:49:56.474 Trigger.TimePeriodic db=db.kdbx open=1 modified=0 entries=9 records=1 kpg=2 disk=3413:2ff7a751a8
+12:50:20.509 event: 11:49:57.484 Trigger.TimePeriodic db=db.kdbx open=1 modified=0 entries=9 records=1 kpg=2 disk=3413:2ff7a751a8
+12:50:20.515 event: 11:49:58.481 Trigger.TimePeriodic db=db.kdbx open=1 modified=0 entries=9 records=1 kpg=2 disk=3413:2ff7a751a8
+12:50:20.523 event: 11:50:03.167 Trigger.SynchronizingDatabaseFile db=db.kdbx open=1 modified=0 entries=9 records=1 kpg=2 disk=3413:2ff7a751a8
+12:50:20.525 event: 11:50:03.286 FileSavingPre db=db.kdbx open=1 modified=1 entries=10 records=3 kpg=3 disk=3413:2ff7a751a8 saveAs=False copy=False guid=a03c563a depth=1 inSync=True
+12:50:20.529 event: 11:50:03.286 MarkerAdded db=db.kdbx open=1 modified=1 entries=11 records=3 kpg=4 disk=3413:2ff7a751a8 group=KeePassGate
+12:50:20.532 event: 11:50:03.288 FileSaving db=db.kdbx open=1 modified=1 entries=11 records=3 kpg=4 disk=3413:2ff7a751a8 saveAs=False copy=False guid=a03c563a
+12:50:20.536 event: 11:50:03.288 Trigger.SavingDatabaseFile db=db.kdbx open=1 modified=1 entries=11 records=3 kpg=4 disk=3413:2ff7a751a8
+12:50:20.545 event: 11:50:03.378 FileSaved db=db.kdbx open=1 modified=0 entries=11 records=3 kpg=4 disk=5125:8c1953e602 success=True guid=a03c563a
+12:50:20.548 event: 11:50:03.378 Trigger.SavedDatabaseFile db=db.kdbx open=1 modified=0 entries=11 records=3 kpg=4 disk=5125:8c1953e602
+12:50:20.554 event: 11:50:03.398 Trigger.SynchronizedDatabaseFile db=db.kdbx open=1 modified=0 entries=11 records=3 kpg=4 disk=5125:8c1953e602
+12:50:20.566 event: 11:50:03.478 Trigger.TimePeriodic db=db.kdbx open=1 modified=0 entries=11 records=3 kpg=4 disk=5125:8c1953e602
+12:50:20.575 event: 11:50:04.501 Trigger.TimePeriodic db=db.kdbx open=1 modified=0 entries=11 records=3 kpg=4 disk=5125:8c1953e602
+12:50:20.584 event: 11:50:05.509 Trigger.TimePeriodic db=db.kdbx open=1 modified=0 entries=11 records=3 kpg=4 disk=5125:8c1953e602
+12:50:20.588 event: 11:50:06.507 Trigger.TimePeriodic db=db.kdbx open=1 modified=0 entries=11 records=3 kpg=4 disk=5125:8c1953e602
+12:50:20.598 event: 11:50:07.509 Trigger.TimePeriodic db=db.kdbx open=1 modified=0 entries=11 records=3 kpg=4 disk=5125:8c1953e602
+12:50:20.606 event: 11:50:08.507 Trigger.TimePeriodic db=db.kdbx open=1 modified=0 entries=11 records=3 kpg=4 disk=5125:8c1953e602
+12:50:20.614 event: 11:50:09.519 Trigger.TimePeriodic db=db.kdbx open=1 modified=0 entries=11 records=3 kpg=4 disk=5125:8c1953e602
+12:50:20.628 event: 11:50:10.516 Trigger.TimePeriodic db=db.kdbx open=1 modified=0 entries=11 records=3 kpg=4 disk=5125:8c1953e602
+12:50:20.634 event: 11:50:11.561 Trigger.TimePeriodic db=db.kdbx open=1 modified=0 entries=11 records=3 kpg=4 disk=5125:8c1953e602
+12:50:20.644 event: 11:50:12.508 Trigger.TimePeriodic db=db.kdbx open=1 modified=0 entries=11 records=3 kpg=4 disk=5125:8c1953e602
+12:50:20.646 event: 11:50:13.517 Trigger.TimePeriodic db=db.kdbx open=1 modified=0 entries=11 records=3 kpg=4 disk=5125:8c1953e602
+12:50:20.652 event: 11:50:14.065 Trigger.ClosingDatabaseFilePre db=db.kdbx open=1 modified=0 entries=11 records=3 kpg=4 disk=5125:8c1953e602
+12:50:20.658 event: 11:50:14.065 FileClosingPre db=db.kdbx open=1 modified=0 entries=11 records=3 kpg=4 disk=5125:8c1953e602 flags=Exiting
+12:50:20.666 event: 11:50:14.065 Trigger.ClosingDatabaseFilePost db=db.kdbx open=1 modified=0 entries=11 records=3 kpg=4 disk=5125:8c1953e602
+12:50:20.672 event: 11:50:14.067 FileClosingPost db=db.kdbx open=1 modified=0 entries=11 records=3 kpg=4 disk=5125:8c1953e602 flags=Exiting
+12:50:20.678 event: 11:50:14.078 FileClosed db= open=0 disk=absent path=<work>\runs\m5\sync-url-1\db.kdbx flags=Exiting
+12:50:20.684 event: 11:50:14.080 Trigger.AppExit db= open=0 disk=absent
+12:50:20.690 event: 11:50:14.080 Terminate db= open=0 disk=absent
+12:50:21.267 probe: merged (Synchronize) NEW-fixed.kdbx into OLD.kdbx -> <work>\runs\m5\open-merged-1\db.kdbx
+12:50:21.282 ==== open-merged-1 : opening a file another program merged
+12:50:21.307 db: size=5013 mtime=2026-11-16T11:50:21.2447300Z sha=030566f0caa7; other: size=5013 mtime=2026-11-16T08:32:08.8042697Z sha=74dd75d7243e
+12:50:21.316 config: 
+12:50:32.937 started KeePass pid=20048 token: TokenIsElevated=1 ElevationType=2 Integrity=0x3000 AdministratorsEnabled=False
+12:50:33.049 main window: <<db.kdbx - KeePass>>
+12:50:33.256 group rows: Desk probe, KeePassGate, Passwords, Recycle Bin
+12:50:42.175 dialogs after the flow: 0
+12:50:45.727 [after] window title <<db.kdbx - KeePass>>; groups [Desk probe, KeePassGate, Passwords, Recycle Bin]; KeePassGate [KPG grant 1, KPG admission 1, KPG revocation]; Passwords [P1, P2, Q1, Q2, Q3, K, other-new]; status <<Ready.>>
+12:50:45.756 db after the flow: size=5013 mtime=2026-11-16T11:50:21.2447300Z sha=030566f0caa7; other: size=5013 mtime=2026-11-16T08:32:08.8042697Z sha=74dd75d7243e
+12:50:51.914 dialogs at the exit (answered Discard): 0
+12:50:51.944 db after the exit: size=5013 mtime=2026-11-16T11:50:21.2447300Z sha=030566f0caa7; other: size=5013 mtime=2026-11-16T08:32:08.8042697Z sha=74dd75d7243e
+12:50:52.407 marker entry in: neither file
+12:50:52.421 event: 11:50:23.895 Initialize db= open=0 disk=absent marker=False triggers.enabled=True
+12:50:52.430 event: 11:50:23.921 Trigger.AppInitPost db= open=0 disk=absent
+12:50:52.436 event: 11:50:24.155 FileOpened db=db.kdbx open=1 modified=0 entries=10 records=3 kpg=3 disk=5013:030566f0ca
+12:50:52.442 event: 11:50:24.156 Trigger.OpenedDatabaseFile db=db.kdbx open=1 modified=0 entries=10 records=3 kpg=3 disk=5013:030566f0ca
+12:50:52.450 event: 11:50:24.161 Trigger.AppLoadPost db=db.kdbx open=1 modified=0 entries=10 records=3 kpg=3 disk=5013:030566f0ca
+12:50:52.462 event: 11:50:24.475 Trigger.TimePeriodic db=db.kdbx open=1 modified=0 entries=10 records=3 kpg=3 disk=5013:030566f0ca
+12:50:52.486 event: 11:50:25.471 Trigger.TimePeriodic db=db.kdbx open=1 modified=0 entries=10 records=3 kpg=3 disk=5013:030566f0ca
+12:50:52.494 event: 11:50:26.468 Trigger.TimePeriodic db=db.kdbx open=1 modified=0 entries=10 records=3 kpg=3 disk=5013:030566f0ca
+12:50:52.502 event: 11:50:27.463 Trigger.TimePeriodic db=db.kdbx open=1 modified=0 entries=10 records=3 kpg=3 disk=5013:030566f0ca
+12:50:52.510 event: 11:50:28.482 Trigger.TimePeriodic db=db.kdbx open=1 modified=0 entries=10 records=3 kpg=3 disk=5013:030566f0ca
+12:50:52.520 event: 11:50:29.482 Trigger.TimePeriodic db=db.kdbx open=1 modified=0 entries=10 records=3 kpg=3 disk=5013:030566f0ca
+12:50:52.528 event: 11:50:30.479 Trigger.TimePeriodic db=db.kdbx open=1 modified=0 entries=10 records=3 kpg=3 disk=5013:030566f0ca
+12:50:52.532 event: 11:50:31.495 Trigger.TimePeriodic db=db.kdbx open=1 modified=0 entries=10 records=3 kpg=3 disk=5013:030566f0ca
+12:50:52.540 event: 11:50:32.503 Trigger.TimePeriodic db=db.kdbx open=1 modified=0 entries=10 records=3 kpg=3 disk=5013:030566f0ca
+12:50:52.550 event: 11:50:33.501 Trigger.TimePeriodic db=db.kdbx open=1 modified=0 entries=10 records=3 kpg=3 disk=5013:030566f0ca
+12:50:52.567 event: 11:50:34.518 Trigger.TimePeriodic db=db.kdbx open=1 modified=0 entries=10 records=3 kpg=3 disk=5013:030566f0ca
+12:50:52.577 event: 11:50:35.517 Trigger.TimePeriodic db=db.kdbx open=1 modified=0 entries=10 records=3 kpg=3 disk=5013:030566f0ca
+12:50:52.587 event: 11:50:36.516 Trigger.TimePeriodic db=db.kdbx open=1 modified=0 entries=10 records=3 kpg=3 disk=5013:030566f0ca
+12:50:52.599 event: 11:50:37.505 Trigger.TimePeriodic db=db.kdbx open=1 modified=0 entries=10 records=3 kpg=3 disk=5013:030566f0ca
+12:50:52.607 event: 11:50:38.505 Trigger.TimePeriodic db=db.kdbx open=1 modified=0 entries=10 records=3 kpg=3 disk=5013:030566f0ca
+12:50:52.623 event: 11:50:39.519 Trigger.TimePeriodic db=db.kdbx open=1 modified=0 entries=10 records=3 kpg=3 disk=5013:030566f0ca
+12:50:52.635 event: 11:50:40.511 Trigger.TimePeriodic db=db.kdbx open=1 modified=0 entries=10 records=3 kpg=3 disk=5013:030566f0ca
+12:50:52.646 event: 11:50:41.508 Trigger.TimePeriodic db=db.kdbx open=1 modified=0 entries=10 records=3 kpg=3 disk=5013:030566f0ca
+12:50:52.652 event: 11:50:42.507 Trigger.TimePeriodic db=db.kdbx open=1 modified=0 entries=10 records=3 kpg=3 disk=5013:030566f0ca
+12:50:52.658 event: 11:50:43.518 Trigger.TimePeriodic db=db.kdbx open=1 modified=0 entries=10 records=3 kpg=3 disk=5013:030566f0ca
+12:50:52.668 event: 11:50:44.513 Trigger.TimePeriodic db=db.kdbx open=1 modified=0 entries=10 records=3 kpg=3 disk=5013:030566f0ca
+12:50:52.671 event: 11:50:45.506 Trigger.TimePeriodic db=db.kdbx open=1 modified=0 entries=10 records=3 kpg=3 disk=5013:030566f0ca
+12:50:52.684 event: 11:50:46.161 Trigger.ClosingDatabaseFilePre db=db.kdbx open=1 modified=0 entries=10 records=3 kpg=3 disk=5013:030566f0ca
+12:50:52.688 event: 11:50:46.161 FileClosingPre db=db.kdbx open=1 modified=0 entries=10 records=3 kpg=3 disk=5013:030566f0ca flags=Exiting
+12:50:52.698 event: 11:50:46.163 Trigger.ClosingDatabaseFilePost db=db.kdbx open=1 modified=0 entries=10 records=3 kpg=3 disk=5013:030566f0ca
+12:50:52.706 event: 11:50:46.163 FileClosingPost db=db.kdbx open=1 modified=0 entries=10 records=3 kpg=3 disk=5013:030566f0ca flags=Exiting
+12:50:52.712 event: 11:50:46.179 FileClosed db= open=0 disk=absent path=<work>\runs\m5\open-merged-1\db.kdbx flags=Exiting
+12:50:52.716 event: 11:50:46.181 Trigger.AppExit db= open=0 disk=absent
+12:50:52.722 event: 11:50:46.181 Terminate db= open=0 disk=absent

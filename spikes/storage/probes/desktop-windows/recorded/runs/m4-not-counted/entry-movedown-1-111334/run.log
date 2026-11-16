@@ -1,0 +1,10 @@
+11:13:11.824 ==== entry-movedown-1 : KPG grant 1 selected, Entry, Rearrange, Move Entry One Down
+11:13:11.830 config: 
+11:13:25.667 started KeePass pid=13996 token: TokenIsElevated=1 ElevationType=2 Integrity=0x3000 AdministratorsEnabled=False
+11:13:25.825 main window: <<db.kdbx - KeePass>>
+11:13:26.137 group rows: Archive, Desk store, Empty group, KeePassGate, Passwords, Recycle Bin
+11:13:34.399 stopping KeePass pid=13996
+11:13:34.441 RUN FAILED entry-movedown-1: no menu item Rearrange at Kp-Menu, <branch>\spikes\storage\probes\desktop-windows\scripts\Kp.ps1: line 317
+at <ScriptBlock>, <branch>\spikes\storage\probes\desktop-windows\scripts\M4.ps1: line 118
+at Run-M4, <branch>\spikes\storage\probes\desktop-windows\scripts\M4.ps1: line 65
+at <ScriptBlock>, <branch>\spikes\storage\probes\desktop-windows\scripts\M4.ps1: line 164

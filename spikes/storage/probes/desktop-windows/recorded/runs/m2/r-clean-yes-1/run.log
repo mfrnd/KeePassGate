@@ -1,0 +1,23 @@
+12:07:43.757 ==== r-clean-yes-1 : KeePassXC 2.8.0, reload on change off; nothing changed; NEW arrives; Yes
+12:07:43.801 keepassxc config: General/AutoReloadOnChange=false
+12:07:54.921 started KeePassXC pid=12264 token: TokenIsElevated=1 ElevationType=2 Integrity=0x3000 AdministratorsEnabled=False
+12:07:55.507 answered the update question No
+12:08:01.145 KeePassXC window: <<Desk probe (invented) - KeePassXC>>
+12:08:01.179 file before the replacement: size=3413 mtime=2026-11-16T08:31:56.2778845Z sha=2ff7a751a869
+12:08:01.474 replace: before size=3413 mtime=2026-11-16T08:31:56.2778845Z sha=2ff7a751a869
+12:08:01.496 replace (later) with NEW-fixed.kdbx: after size=5013 mtime=2026-11-16T11:08:01.4816871Z sha=74dd75d7243e
+12:08:02.524 [r-clean-yes-1-1] WINDOW title=<<File has changed>> class=QMessageBox
+12:08:02.557 [r-clean-yes-1-1]   Text name=<<The database file "db.kdbx" was modified externally.
+Do you want to load the changes?>>
+12:08:02.576 [r-clean-yes-1-1]   Button name=<<Yes>>
+12:08:02.585 [r-clean-yes-1-1]   Button name=<<No>>
+12:08:03.162 shot r-clean-yes-1-1.png (365 x 138)
+12:08:03.478 [r-clean-yes-1-1] pressed <<Yes>>
+12:08:50.384 dialogs after the replacement: 1
+12:08:50.789 [after] window title <<Desk probe (invented) - KeePassXC>>; items shown: Clear Search, All Entries, Expired, Weak Passwords, TOTP Entries, Desk probe, KeePassGate, Passwords, Recycle Bin
+12:08:50.928 file after the flow: size=5013 mtime=2026-11-16T11:08:01.4816871Z sha=74dd75d7243e
+12:08:56.128 file after the exit: size=5013 mtime=2026-11-16T11:08:01.4816871Z sha=74dd75d7243e
+12:08:57.108 verdict: after-flow.kdbx sha=74dd75d7243e v4.1 KG1=kept KG2=kept KG3=kept NewKey=kept DZ=rec D1=rec X1=gone+rec P1=p1-other[p1-old] P2=p2-old[] Q1=q1-other[q1-old] Q2=q2-other[q2-old] Q3=q3-other[q3-old] K=k-old[] NO=no-other@Passwords NW=absent entries=10 records=3
+12:08:57.119 verdict: db.kdbx sha=74dd75d7243e v4.1 KG1=kept KG2=kept KG3=kept NewKey=kept DZ=rec D1=rec X1=gone+rec P1=p1-other[p1-old] P2=p2-old[] Q1=q1-other[q1-old] Q2=q2-other[q2-old] Q3=q3-other[q3-old] K=k-old[] NO=no-other@Passwords NW=absent entries=10 records=3
+12:08:57.128 verdict: window-before.kdbx sha=2ff7a751a869 v4.1 KG1=kept KG2=kept KG3=gone NewKey=gone DZ=none D1=rec X1=x1-old[] P1=p1-old[] P2=p2-old[] Q1=q1-old[] Q2=q2-old[] Q3=q3-old[] K=k-old[] NO=absent NW=absent entries=9 records=1
+12:08:57.132 verdict: NEW-fixed.kdbx sha=74dd75d7243e v4.1 KG1=kept KG2=kept KG3=kept NewKey=kept DZ=rec D1=rec X1=gone+rec P1=p1-other[p1-old] P2=p2-old[] Q1=q1-other[q1-old] Q2=q2-other[q2-old] Q3=q3-other[q3-old] K=k-old[] NO=no-other@Passwords NW=absent entries=10 records=3

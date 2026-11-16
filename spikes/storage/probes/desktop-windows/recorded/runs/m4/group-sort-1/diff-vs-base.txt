@@ -1,0 +1,6 @@
++ G EG index 0
+- G EG index 2
+- G KG index 0
++ G KG index 1
+- G PW index 1
++ G PW index 2

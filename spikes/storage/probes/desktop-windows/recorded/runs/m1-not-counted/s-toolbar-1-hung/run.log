@@ -1,0 +1,13 @@
+10:01:33.774 ==== s-toolbar-1 : P2, toolbar Save, Synchronize
+10:01:33.786 config: 
+10:01:46.440 started KeePass pid=10660 token: TokenIsElevated=1 ElevationType=2 Integrity=0x3000 AdministratorsEnabled=False
+10:01:46.614 main window: <<db.kdbx - KeePass>>
+10:01:51.800 edited P2 password=p2-window; OK posted 2026-11-16T09:01:51.6825893Z, dialog gone 2026-11-16T09:01:51.8002387Z
+10:01:51.810 replace: before size=3413 mtime=2026-11-16T08:31:56.2778845Z sha=2ff7a751a869
+10:01:51.865 replace (later) with NEW-fixed.kdbx: after size=5013 mtime=2026-11-16T09:01:51.8451713Z sha=74dd75d7243e
+10:03:00.152 dialogs after the flow: 0
+10:03:08.374 [after] look failed: not found: group tree
+10:03:08.386 file after the flow: size=5013 mtime=2026-11-16T09:01:51.8451713Z sha=74dd75d7243e
+10:03:08.408 file after the exit: size=5013 mtime=2026-11-16T09:01:51.8451713Z sha=74dd75d7243e
+10:03:08.996 verdict: db.kdbx sha=74dd75d7243e v4.1 KG1=kept KG2=kept KG3=kept NewKey=kept DZ=rec D1=rec X1=gone+rec P1=p1-other[p1-old] P2=p2-old[] Q1=q1-other[q1-old] Q2=q2-other[q2-old] Q3=q3-other[q3-old] K=k-old[] NO=no-other@Passwords NW=absent entries=10 records=3
+10:03:09.000 verdict: NEW-fixed.kdbx sha=74dd75d7243e v4.1 KG1=kept KG2=kept KG3=kept NewKey=kept DZ=rec D1=rec X1=gone+rec P1=p1-other[p1-old] P2=p2-old[] Q1=q1-other[q1-old] Q2=q2-other[q2-old] Q3=q3-other[q3-old] K=k-old[] NO=no-other@Passwords NW=absent entries=10 records=3

@@ -1,0 +1,5 @@
+11:29:51.476 ==== group-duplicate-1 : the group KeePassGate selected, Group, Duplicate Group
+11:29:51.505 config: 
+11:30:02.601 started KeePass pid=7352 token: TokenIsElevated=1 ElevationType=2 Integrity=0x3000 AdministratorsEnabled=False
+11:30:02.754 main window: <<db.kdbx - KeePass>>
+11:30:02.963 group rows: Archive, Desk store, Empty group, KeePassGate, Passwords, Recycle Bin

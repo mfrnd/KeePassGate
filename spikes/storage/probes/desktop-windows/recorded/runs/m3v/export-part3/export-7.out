@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+<title>Desk entries (invented)</title>
+<style type="text/css">
+/* <![CDATA[ */
+body, kbd kbd {
+	font-family: Verdana, Arial, sans-serif;
+	font-size: 13px;
+}
+
+body {
+	color: #000000;
+	background-color: #FFFFFF;
+}
+
+p {
+	margin-left: 0px;
+}
+
+h2 {
+	font-size: 18px;
+	font-weight: bold;
+}
+
+th, td {
+	text-align: left;
+	vertical-align: top;
+}
+
+a {
+	color: #0000DD;
+	text-decoration: none;
+}
+
+a:hover, a:active {
+	color: #6699FF;
+	text-decoration: underline;
+}
+
+table.tablebox {
+	background-color: #EEEEEE;
+	padding: 0px 0px 0px 0px;
+	empty-cells: show;
+	width: 100%;
+	margin: 0px 0px 0px 0px;
+
+	table-layout: fixed;
+}
+
+table.tablebox, table.tablebox tr th, table.tablebox tr td {
+	border: 1px solid #AFB5CF;
+	border-collapse: collapse;
+}
+
+table.tablebox tr th {
+	padding: 2px 5px 2px 5px;
+	background-color: #EEEEEE;
+	background-image: -webkit-linear-gradient(top, #C1C1C1, #EEEEEE);
+	background-image: -moz-linear-gradient(top, #C1C1C1, #EEEEEE);
+	background-image: -ms-linear-gradient(top, #C1C1C1, #EEEEEE);
+	background-image: linear-gradient(to bottom, #C1C1C1, #EEEEEE);
+	font-weight: bold;
+}
+
+table.tablebox tr td {
+	padding: 5px 5px 5px 5px;
+	background-color: #F0F0F0;
+
+	overflow-wrap: break-word;
+	word-wrap: break-word;
+}
+/* ]]> */
+</style>
+</head>
+<body>
+<table class="tablebox">
+<tr><th>Mail account</th></tr>
+<tr><td>
+<i>User Name: </i>alice-invented<br />
+<i>Password: </i><code>u1-pw-invented</code><br />
+<i>URL: </i><a href="https://mail.example.invalid/">https://mail.example.invalid/</a><br />
+<i>Notes: </i>user notes of U1<br />
+<i>Extra: </i>zqxextra-u1<br />
+<i>KPG.Ref: </i>zqxref-u1 {"rule":"KG1"}<br />
+<i>Creation Time: </i>2026-11-01T10:20:00Z<br />
+<i>Last Modification Time: </i>2026-11-01T13:20:00Z<br />
+<i>Expires: </i>Never expires
+</td></tr></table><br />
+<table class="tablebox">
+<tr><th>Bank</th></tr>
+<tr><td>
+<i>User Name: </i>bob-invented<br />
+<i>Password: </i><code>u2-pw-invented</code><br />
+<i>URL: </i><a href="https://bank.example.invalid/">https://bank.example.invalid/</a><br />
+<i>KPG.Ref: </i>zqxref-u2-protected<br />
+<i>Creation Time: </i>2026-11-01T10:21:00Z<br />
+<i>Last Modification Time: </i>2026-11-01T10:21:00Z<br />
+<i>Expires: </i>Never expires
+</td></tr></table><br />
+<table class="tablebox">
+<tr><th>Shop</th></tr>
+<tr><td>
+<i>User Name: </i>carol-invented<br />
+<i>Password: </i><code>u3-pw-invented</code><br />
+<i>URL: </i><a href="https://shop.example.invalid/">https://shop.example.invalid/</a><br />
+<i>Creation Time: </i>2026-11-01T10:22:00Z<br />
+<i>Last Modification Time: </i>2026-11-01T10:22:00Z<br />
+<i>Expires: </i>Never expires
+</td></tr></table><br />
+<table class="tablebox">
+<tr><th>KPG grant 1</th></tr>
+<tr><td>
+<i>KPG.Grant: </i>zqxstore-grant {"profile":"reader","mask":".R...L.."}<br />
+<i>KPG.Secret: </i>zqxstore-secret<br />
+<i>Creation Time: </i>2026-11-01T10:10:00Z<br />
+<i>Last Modification Time: </i>2026-11-01T10:10:00Z<br />
+<i>Expires: </i>Never expires
+</td></tr></table><br />
+<table class="tablebox">
+<tr><th>KPG admission 1</th></tr>
+<tr><td>
+<i>KPG.Admission: </i>zqxstore-adm {"client":"client-two"}<br />
+<i>Creation Time: </i>2026-11-01T10:11:00Z<br />
+<i>Last Modification Time: </i>2026-11-01T10:11:00Z<br />
+<i>Expires: </i>Never expires
+</td></tr></table><br />
+</body>
+</html>

@@ -1,0 +1,299 @@
+10:38:18.708 ==== a-ok-1 : KPG.Ref on U1 before; OK, nothing touched
+10:38:18.750 config: 
+10:38:29.995 started KeePass pid=14924 token: TokenIsElevated=1 ElevationType=2 Integrity=0x3000 AdministratorsEnabled=False
+10:38:30.331 main window: <<db.kdbx - KeePass>>
+10:38:30.731 group rows: Desk entries, KeePassGate, Passwords, Recycle Bin
+10:38:35.486 shot a-ok-1-dialog.png (491 x 513)
+10:38:50.101 plugin: 2026-11-16T09:38:49.9651119Z dump|Mail account|<work>\runs\m3\a-ok-1\memory.txt => dumped
+10:38:50.127 memory: S Extra p=0 zqxextra-u1
+10:38:50.131 memory: S KPG.Ref p=0 zqxref-u1 {"rule":"KG1"}
+10:38:50.138 memory: S Notes p=0 user notes of U1
+10:38:50.148 memory: S Password p=1 u1-pw-invented
+10:38:50.156 memory: S Title p=0 Mail account
+10:38:50.172 memory: S URL p=0 https://mail.example.invalid/
+10:38:50.180 memory: S UserName p=0 alice-invented
+10:38:50.184 memory: A u1.txt len=34
+10:38:50.186 memory: tags [work]
+10:38:50.190 memory: CD Other.Plugin = zqxcd-u1
+10:38:50.198 memory: history 2
+10:38:50.204 memory: modified 2026-11-01T13:20:00.0000000Z
+10:38:50.206 memory: database modified=False
+10:38:50.214 window title after the dialog closed: <<db.kdbx - KeePass>>
+10:38:54.037 window title after Ctrl+S: <<db.kdbx - KeePass>>
+10:39:00.568 ==== a-edit-1 : KPG.Ref on U1 before; the user name edited, OK
+10:39:00.579 config: 
+10:39:13.535 started KeePass pid=9672 token: TokenIsElevated=1 ElevationType=2 Integrity=0x3000 AdministratorsEnabled=False
+10:39:13.717 main window: <<db.kdbx - KeePass>>
+10:39:14.152 group rows: Desk entries, KeePassGate, Passwords, Recycle Bin
+10:39:18.807 shot a-edit-1-dialog.png (491 x 513)
+10:39:23.808 plugin: 2026-11-16T09:39:23.6531590Z dump|Mail account|<work>\runs\m3\a-edit-1\memory.txt => dumped
+10:39:23.836 memory: S Extra p=0 zqxextra-u1
+10:39:23.860 memory: S KPG.Ref p=0 zqxref-u1 {"rule":"KG1"}
+10:39:23.878 memory: S Notes p=0 user notes of U1
+10:39:23.890 memory: S Password p=1 u1-pw-invented
+10:39:23.905 memory: S Title p=0 Mail account
+10:39:23.925 memory: S URL p=0 https://mail.example.invalid/
+10:39:23.931 memory: S UserName p=0 edited-in-dialog
+10:39:23.936 memory: A u1.txt len=34
+10:39:23.950 memory: tags [work]
+10:39:23.961 memory: CD Other.Plugin = zqxcd-u1
+10:39:23.967 memory: history 3
+10:39:23.974 memory: modified 2026-11-16T09:39:20.1344746Z
+10:39:23.986 memory: database modified=True
+10:39:23.992 window title after the dialog closed: <<db.kdbx* - KeePass>>
+10:39:27.595 window title after Ctrl+S: <<db.kdbx - KeePass>>
+10:39:33.894   + E U1 H2026-11-01T13:20:00Z A u1.txt p=0 len=34 sha=bc1ff5edff47b8bb
+10:39:33.906   + E U1 H2026-11-01T13:20:00Z autotype enabled=1 obfuscation=0 seq="" assoc=0
+10:39:33.916   + E U1 H2026-11-01T13:20:00Z CD Other.Plugin = "zqxcd-u1"
+10:39:33.920   + E U1 H2026-11-01T13:20:00Z misc icon=0 customIcon=- fg=00000000 bg=00000000 overrideUrl="" quality=1
+10:39:33.928   + E U1 H2026-11-01T13:20:00Z prev -
+10:39:33.935   + E U1 H2026-11-01T13:20:00Z S Extra p=0 "zqxextra-u1"
+10:39:33.942   + E U1 H2026-11-01T13:20:00Z S KPG.Ref p=0 "zqxref-u1 {\"rule\":\"KG1\"}"
+10:39:33.949   + E U1 H2026-11-01T13:20:00Z S Notes p=0 "user notes of U1"
+10:39:33.956   + E U1 H2026-11-01T13:20:00Z S Password p=1 "u1-pw-invented"
+10:39:33.967   + E U1 H2026-11-01T13:20:00Z S Title p=0 "Mail account"
+10:39:33.985   + E U1 H2026-11-01T13:20:00Z S URL p=0 "https://mail.example.invalid/"
+10:39:33.995   + E U1 H2026-11-01T13:20:00Z S UserName p=0 "alice-invented"
+10:39:34.005   + E U1 H2026-11-01T13:20:00Z t.created 2026-11-01T10:20:00Z
+10:39:34.015   + E U1 H2026-11-01T13:20:00Z t.expires 0 2026-11-01T10:00:00Z
+10:39:34.018   + E U1 H2026-11-01T13:20:00Z t.location 2026-11-01T10:20:00Z
+10:39:34.025   + E U1 H2026-11-01T13:20:00Z t.modified 2026-11-01T13:20:00Z
+10:39:34.035   + E U1 H2026-11-01T13:20:00Z tags [work]
+10:39:34.043   - E U1 history.count 2
+10:39:34.054   + E U1 history.count 3
+10:39:34.072   - E U1 S UserName p=0 "alice-invented"
+10:39:34.077   + E U1 S UserName p=0 "edited-in-dialog"
+10:39:34.087   - E U1 t.modified 2026-11-01T13:20:00Z
+10:39:34.097   + E U1 t.modified 2026-11-16T09:39:20Z
+10:39:34.329 ==== a-cancel-1 : KPG.Ref on U1 before; Cancel
+10:39:34.337 config: 
+10:39:46.536 started KeePass pid=12412 token: TokenIsElevated=1 ElevationType=2 Integrity=0x3000 AdministratorsEnabled=False
+10:39:46.714 main window: <<db.kdbx - KeePass>>
+10:39:47.075 group rows: Desk entries, KeePassGate, Passwords, Recycle Bin
+10:39:51.447 shot a-cancel-1-dialog.png (491 x 513)
+10:40:05.377 plugin: 2026-11-16T09:40:05.2010583Z dump|Mail account|<work>\runs\m3\a-cancel-1\memory.txt => dumped
+10:40:05.390 memory: S Extra p=0 zqxextra-u1
+10:40:05.396 memory: S KPG.Ref p=0 zqxref-u1 {"rule":"KG1"}
+10:40:05.397 memory: S Notes p=0 user notes of U1
+10:40:05.411 memory: S Password p=1 u1-pw-invented
+10:40:05.421 memory: S Title p=0 Mail account
+10:40:05.437 memory: S URL p=0 https://mail.example.invalid/
+10:40:05.447 memory: S UserName p=0 alice-invented
+10:40:05.455 memory: A u1.txt len=34
+10:40:05.469 memory: tags [work]
+10:40:05.482 memory: CD Other.Plugin = zqxcd-u1
+10:40:05.494 memory: history 2
+10:40:05.504 memory: modified 2026-11-01T13:20:00.0000000Z
+10:40:05.508 memory: database modified=False
+10:40:05.511 window title after the dialog closed: <<db.kdbx - KeePass>>
+10:40:09.374 window title after Ctrl+S: <<db.kdbx - KeePass>>
+10:40:15.948 ==== b-ok-1 : KPG.Ref added to U3 while open, saved; OK, nothing touched
+10:40:15.953 config: 
+10:40:27.041 started KeePass pid=17936 token: TokenIsElevated=1 ElevationType=2 Integrity=0x3000 AdministratorsEnabled=False
+10:40:27.204 main window: <<db.kdbx - KeePass>>
+10:40:27.504 group rows: Desk entries, KeePassGate, Passwords, Recycle Bin
+10:40:31.705 shot b-ok-1-dialog.png (491 x 513)
+10:40:32.144 plugin: 2026-11-16T09:40:32.0408409Z setsave|Shop|KPG.Ref|zqxref-u3-live => added KPG.Ref on Shop; modified=False
+10:40:32.373 the file after the plugin's write, KPG.Ref: E U3 S KPG.Ref p=0 "zqxref-u3-live"
+10:40:32.387 window title while the dialog is open: <<db.kdbx - KeePass>>
+10:40:46.116 plugin: 2026-11-16T09:40:46.0001454Z dump|Shop|<work>\runs\m3\b-ok-1\memory.txt => dumped
+10:40:46.132 memory: S Notes p=0 
+10:40:46.136 memory: S Password p=1 u3-pw-invented
+10:40:46.144 memory: S Title p=0 Shop
+10:40:46.147 memory: S URL p=0 https://shop.example.invalid/
+10:40:46.151 memory: S UserName p=0 carol-invented
+10:40:46.156 memory: tags []
+10:40:46.162 memory: history 0
+10:40:46.168 memory: modified 2026-11-01T10:22:00.0000000Z
+10:40:46.171 memory: database modified=False
+10:40:46.175 window title after the dialog closed: <<db.kdbx - KeePass>>
+10:40:50.008 window title after Ctrl+S: <<db.kdbx - KeePass>>
+10:40:56.589 ==== b-edit-1 : KPG.Ref added to U3 while open, saved; user name edited, OK
+10:40:56.597 config: 
+10:41:08.442 started KeePass pid=19968 token: TokenIsElevated=1 ElevationType=2 Integrity=0x3000 AdministratorsEnabled=False
+10:41:08.608 main window: <<db.kdbx - KeePass>>
+10:41:08.890 group rows: Desk entries, KeePassGate, Passwords, Recycle Bin
+10:41:12.931 shot b-edit-1-dialog.png (491 x 513)
+10:41:13.362 plugin: 2026-11-16T09:41:13.3205072Z setsave|Shop|KPG.Ref|zqxref-u3-live => added KPG.Ref on Shop; modified=False
+10:41:13.597 the file after the plugin's write, KPG.Ref: E U3 S KPG.Ref p=0 "zqxref-u3-live"
+10:41:13.602 window title while the dialog is open: <<db.kdbx - KeePass>>
+10:41:18.565 plugin: 2026-11-16T09:41:18.5106679Z dump|Shop|<work>\runs\m3\b-edit-1\memory.txt => dumped
+10:41:18.594 memory: S Notes p=0 
+10:41:18.601 memory: S Password p=1 u3-pw-invented
+10:41:18.606 memory: S Title p=0 Shop
+10:41:18.612 memory: S URL p=0 https://shop.example.invalid/
+10:41:18.625 memory: S UserName p=0 edited-in-dialog
+10:41:18.632 memory: tags []
+10:41:18.643 memory: history 1
+10:41:18.649 memory: modified 2026-11-16T09:41:14.8013386Z
+10:41:18.657 memory: database modified=True
+10:41:18.676 window title after the dialog closed: <<db.kdbx* - KeePass>>
+10:41:22.482 window title after Ctrl+S: <<db.kdbx - KeePass>>
+10:41:28.793   + E U3 H2026-11-16T09:41:13Z autotype enabled=1 obfuscation=0 seq="" assoc=0
+10:41:28.833   + E U3 H2026-11-16T09:41:13Z misc icon=0 customIcon=- fg=00000000 bg=00000000 overrideUrl="" quality=1
+10:41:28.843   + E U3 H2026-11-16T09:41:13Z prev -
+10:41:28.865   + E U3 H2026-11-16T09:41:13Z S KPG.Ref p=0 "zqxref-u3-live"
+10:41:28.895   + E U3 H2026-11-16T09:41:13Z S Notes p=0 ""
+10:41:28.897   + E U3 H2026-11-16T09:41:13Z S Password p=1 "u3-pw-invented"
+10:41:28.929   + E U3 H2026-11-16T09:41:13Z S Title p=0 "Shop"
+10:41:28.943   + E U3 H2026-11-16T09:41:13Z S URL p=0 "https://shop.example.invalid/"
+10:41:28.959   + E U3 H2026-11-16T09:41:13Z S UserName p=0 "carol-invented"
+10:41:28.982   + E U3 H2026-11-16T09:41:13Z t.created 2026-11-01T10:22:00Z
+10:41:29.007   + E U3 H2026-11-16T09:41:13Z t.expires 0 2026-11-01T10:00:00Z
+10:41:29.025   + E U3 H2026-11-16T09:41:13Z t.location 2026-11-01T10:22:00Z
+10:41:29.045   + E U3 H2026-11-16T09:41:13Z t.modified 2026-11-16T09:41:13Z
+10:41:29.056   + E U3 H2026-11-16T09:41:13Z tags []
+10:41:29.078   - E U3 history.count 0
+10:41:29.085   + E U3 history.count 1
+10:41:29.102   - E U3 S UserName p=0 "carol-invented"
+10:41:29.109   + E U3 S UserName p=0 "edited-in-dialog"
+10:41:29.112   - E U3 t.modified 2026-11-01T10:22:00Z
+10:41:29.128   + E U3 t.modified 2026-11-16T09:41:14Z
+10:41:29.383 ==== b-cancel-1 : KPG.Ref added to U3 while open, saved; Cancel
+10:41:29.390 config: 
+10:41:43.101 started KeePass pid=3756 token: TokenIsElevated=1 ElevationType=2 Integrity=0x3000 AdministratorsEnabled=False
+10:41:43.324 main window: <<db.kdbx - KeePass>>
+10:41:43.737 group rows: Desk entries, KeePassGate, Passwords, Recycle Bin
+10:41:48.732 shot b-cancel-1-dialog.png (491 x 513)
+10:41:49.392 plugin: 2026-11-16T09:41:49.1782041Z setsave|Shop|KPG.Ref|zqxref-u3-live => added KPG.Ref on Shop; modified=False
+10:41:49.711 the file after the plugin's write, KPG.Ref: E U3 S KPG.Ref p=0 "zqxref-u3-live"
+10:41:49.721 window title while the dialog is open: <<db.kdbx - KeePass>>
+10:42:04.528 plugin: 2026-11-16T09:42:04.3473916Z dump|Shop|<work>\runs\m3\b-cancel-1\memory.txt => dumped
+10:42:04.551 memory: S KPG.Ref p=0 zqxref-u3-live
+10:42:04.557 memory: S Notes p=0 
+10:42:04.570 memory: S Password p=1 u3-pw-invented
+10:42:04.588 memory: S Title p=0 Shop
+10:42:04.597 memory: S URL p=0 https://shop.example.invalid/
+10:42:04.603 memory: S UserName p=0 carol-invented
+10:42:04.607 memory: tags []
+10:42:04.613 memory: history 0
+10:42:04.617 memory: modified 2026-11-16T09:41:49.0044811Z
+10:42:04.619 memory: database modified=False
+10:42:04.625 window title after the dialog closed: <<db.kdbx - KeePass>>
+10:42:08.311 window title after Ctrl+S: <<db.kdbx - KeePass>>
+10:42:14.575   + E U3 S KPG.Ref p=0 "zqxref-u3-live"
+10:42:14.589   - E U3 t.modified 2026-11-01T10:22:00Z
+10:42:14.616   + E U3 t.modified 2026-11-16T09:41:49Z
+10:42:14.911 ==== b-ok-unsaved-1 : KPG.Ref added to U3 while open, not saved; OK, nothing touched
+10:42:14.919 config: 
+10:42:29.195 started KeePass pid=21800 token: TokenIsElevated=1 ElevationType=2 Integrity=0x3000 AdministratorsEnabled=False
+10:42:29.376 main window: <<db.kdbx - KeePass>>
+10:42:29.742 group rows: Desk entries, KeePassGate, Passwords, Recycle Bin
+10:42:34.202 shot b-ok-unsaved-1-dialog.png (491 x 513)
+10:42:34.644 plugin: 2026-11-16T09:42:34.4337059Z set|Shop|KPG.Ref|zqxref-u3-live => added KPG.Ref on Shop; modified=True
+10:42:34.913 the file after the plugin's write, KPG.Ref: 
+10:42:34.917 window title while the dialog is open: <<db.kdbx* - KeePass>>
+10:42:49.040 plugin: 2026-11-16T09:42:48.8511144Z dump|Shop|<work>\runs\m3\b-ok-unsaved-1\memory.txt => dumped
+10:42:49.080 memory: S Notes p=0 
+10:42:49.124 memory: S Password p=1 u3-pw-invented
+10:42:49.140 memory: S Title p=0 Shop
+10:42:49.160 memory: S URL p=0 https://shop.example.invalid/
+10:42:49.176 memory: S UserName p=0 carol-invented
+10:42:49.181 memory: tags []
+10:42:49.189 memory: history 0
+10:42:49.196 memory: modified 2026-11-01T10:22:00.0000000Z
+10:42:49.207 memory: database modified=True
+10:42:49.214 window title after the dialog closed: <<db.kdbx* - KeePass>>
+10:42:53.168 window title after Ctrl+S: <<db.kdbx - KeePass>>
+10:42:59.890 ==== c-ok-1 : KPG.Ref on U1 changed while open, saved; OK, nothing touched
+10:42:59.926 config: 
+10:43:11.071 started KeePass pid=14820 token: TokenIsElevated=1 ElevationType=2 Integrity=0x3000 AdministratorsEnabled=False
+10:43:11.205 main window: <<db.kdbx - KeePass>>
+10:43:11.460 group rows: Desk entries, KeePassGate, Passwords, Recycle Bin
+10:43:16.204 shot c-ok-1-dialog.png (491 x 513)
+10:43:16.655 plugin: 2026-11-16T09:43:16.5651629Z setsave|Mail account|KPG.Ref|zqxref-u1-changed => changed KPG.Ref on Mail account; modified=False
+10:43:16.889 the file after the plugin's write, KPG.Ref: E U1 S KPG.Ref p=0 "zqxref-u1-changed"
+10:43:16.893 window title while the dialog is open: <<db.kdbx - KeePass>>
+10:43:30.587 plugin: 2026-11-16T09:43:30.5336145Z dump|Mail account|<work>\runs\m3\c-ok-1\memory.txt => dumped
+10:43:30.623 memory: S Extra p=0 zqxextra-u1
+10:43:30.633 memory: S KPG.Ref p=0 zqxref-u1 {"rule":"KG1"}
+10:43:30.649 memory: S Notes p=0 user notes of U1
+10:43:30.655 memory: S Password p=1 u1-pw-invented
+10:43:30.666 memory: S Title p=0 Mail account
+10:43:30.676 memory: S URL p=0 https://mail.example.invalid/
+10:43:30.684 memory: S UserName p=0 alice-invented
+10:43:30.706 memory: A u1.txt len=34
+10:43:30.716 memory: tags [work]
+10:43:30.727 memory: CD Other.Plugin = zqxcd-u1
+10:43:30.737 memory: history 2
+10:43:30.750 memory: modified 2026-11-01T13:20:00.0000000Z
+10:43:30.761 memory: database modified=False
+10:43:30.774 window title after the dialog closed: <<db.kdbx - KeePass>>
+10:43:34.492 window title after Ctrl+S: <<db.kdbx - KeePass>>
+10:43:41.076 ==== c-edit-1 : KPG.Ref on U1 changed while open, saved; user name edited, OK
+10:43:41.084 config: 
+10:43:54.776 started KeePass pid=18828 token: TokenIsElevated=1 ElevationType=2 Integrity=0x3000 AdministratorsEnabled=False
+10:43:54.907 main window: <<db.kdbx - KeePass>>
+10:43:55.183 group rows: Desk entries, KeePassGate, Passwords, Recycle Bin
+10:43:59.284 shot c-edit-1-dialog.png (491 x 513)
+10:43:59.728 plugin: 2026-11-16T09:43:59.7073105Z setsave|Mail account|KPG.Ref|zqxref-u1-changed => changed KPG.Ref on Mail account; modified=False
+10:44:00.001 the file after the plugin's write, KPG.Ref: E U1 S KPG.Ref p=0 "zqxref-u1-changed"
+10:44:00.005 window title while the dialog is open: <<db.kdbx - KeePass>>
+10:44:05.100 plugin: 2026-11-16T09:44:04.8833136Z dump|Mail account|<work>\runs\m3\c-edit-1\memory.txt => dumped
+10:44:05.135 memory: S Extra p=0 zqxextra-u1
+10:44:05.144 memory: S KPG.Ref p=0 zqxref-u1 {"rule":"KG1"}
+10:44:05.156 memory: S Notes p=0 user notes of U1
+10:44:05.166 memory: S Password p=1 u1-pw-invented
+10:44:05.183 memory: S Title p=0 Mail account
+10:44:05.197 memory: S URL p=0 https://mail.example.invalid/
+10:44:05.202 memory: S UserName p=0 edited-in-dialog
+10:44:05.208 memory: A u1.txt len=34
+10:44:05.221 memory: tags [work]
+10:44:05.242 memory: CD Other.Plugin = zqxcd-u1
+10:44:05.258 memory: history 3
+10:44:05.265 memory: modified 2026-11-16T09:44:01.2410341Z
+10:44:05.278 memory: database modified=True
+10:44:05.292 window title after the dialog closed: <<db.kdbx* - KeePass>>
+10:44:08.962 window title after Ctrl+S: <<db.kdbx - KeePass>>
+10:44:15.231   + E U1 H2026-11-16T09:43:59Z A u1.txt p=0 len=34 sha=bc1ff5edff47b8bb
+10:44:15.245   + E U1 H2026-11-16T09:43:59Z autotype enabled=1 obfuscation=0 seq="" assoc=0
+10:44:15.260   + E U1 H2026-11-16T09:43:59Z CD Other.Plugin = "zqxcd-u1"
+10:44:15.278   + E U1 H2026-11-16T09:43:59Z misc icon=0 customIcon=- fg=00000000 bg=00000000 overrideUrl="" quality=1
+10:44:15.298   + E U1 H2026-11-16T09:43:59Z prev -
+10:44:15.326   + E U1 H2026-11-16T09:43:59Z S Extra p=0 "zqxextra-u1"
+10:44:15.339   + E U1 H2026-11-16T09:43:59Z S KPG.Ref p=0 "zqxref-u1-changed"
+10:44:15.356   + E U1 H2026-11-16T09:43:59Z S Notes p=0 "user notes of U1"
+10:44:15.376   + E U1 H2026-11-16T09:43:59Z S Password p=1 "u1-pw-invented"
+10:44:15.396   + E U1 H2026-11-16T09:43:59Z S Title p=0 "Mail account"
+10:44:15.413   + E U1 H2026-11-16T09:43:59Z S URL p=0 "https://mail.example.invalid/"
+10:44:15.426   + E U1 H2026-11-16T09:43:59Z S UserName p=0 "alice-invented"
+10:44:15.447   + E U1 H2026-11-16T09:43:59Z t.created 2026-11-01T10:20:00Z
+10:44:15.452   + E U1 H2026-11-16T09:43:59Z t.expires 0 2026-11-01T10:00:00Z
+10:44:15.455   + E U1 H2026-11-16T09:43:59Z t.location 2026-11-01T10:20:00Z
+10:44:15.459   + E U1 H2026-11-16T09:43:59Z t.modified 2026-11-16T09:43:59Z
+10:44:15.467   + E U1 H2026-11-16T09:43:59Z tags [work]
+10:44:15.482   - E U1 history.count 2
+10:44:15.495   + E U1 history.count 3
+10:44:15.499   - E U1 S UserName p=0 "alice-invented"
+10:44:15.508   + E U1 S UserName p=0 "edited-in-dialog"
+10:44:15.530   - E U1 t.modified 2026-11-01T13:20:00Z
+10:44:15.538   + E U1 t.modified 2026-11-16T09:44:01Z
+10:44:15.809 ==== c-cancel-1 : KPG.Ref on U1 changed while open, saved; Cancel
+10:44:15.814 config: 
+10:44:29.117 started KeePass pid=7156 token: TokenIsElevated=1 ElevationType=2 Integrity=0x3000 AdministratorsEnabled=False
+10:44:29.238 main window: <<db.kdbx - KeePass>>
+10:44:29.465 group rows: Desk entries, KeePassGate, Passwords, Recycle Bin
+10:44:33.522 shot c-cancel-1-dialog.png (491 x 513)
+10:44:33.750 plugin: 2026-11-16T09:44:33.6901294Z setsave|Mail account|KPG.Ref|zqxref-u1-changed => changed KPG.Ref on Mail account; modified=False
+10:44:33.993 the file after the plugin's write, KPG.Ref: E U1 S KPG.Ref p=0 "zqxref-u1-changed"
+10:44:33.999 window title while the dialog is open: <<db.kdbx - KeePass>>
+10:44:47.785 plugin: 2026-11-16T09:44:47.6195296Z dump|Mail account|<work>\runs\m3\c-cancel-1\memory.txt => dumped
+10:44:47.827 memory: S Extra p=0 zqxextra-u1
+10:44:47.829 memory: S KPG.Ref p=0 zqxref-u1-changed
+10:44:47.835 memory: S Notes p=0 user notes of U1
+10:44:47.837 memory: S Password p=1 u1-pw-invented
+10:44:47.842 memory: S Title p=0 Mail account
+10:44:47.846 memory: S URL p=0 https://mail.example.invalid/
+10:44:47.859 memory: S UserName p=0 alice-invented
+10:44:47.869 memory: A u1.txt len=34
+10:44:47.881 memory: tags [work]
+10:44:47.885 memory: CD Other.Plugin = zqxcd-u1
+10:44:47.889 memory: history 2
+10:44:47.910 memory: modified 2026-11-16T09:44:33.5508504Z
+10:44:47.915 memory: database modified=False
+10:44:47.923 window title after the dialog closed: <<db.kdbx - KeePass>>
+10:44:51.861 window title after Ctrl+S: <<db.kdbx - KeePass>>
+10:44:58.176   - E U1 S KPG.Ref p=0 "zqxref-u1 {\"rule\":\"KG1\"}"
+10:44:58.186   + E U1 S KPG.Ref p=0 "zqxref-u1-changed"
+10:44:58.202   - E U1 t.modified 2026-11-01T13:20:00Z
+10:44:58.216   + E U1 t.modified 2026-11-16T09:44:33Z

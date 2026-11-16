@@ -1,0 +1,28 @@
+10:47:15.127 ==== advanced-edit
+10:47:15.137 config: 
+10:47:27.578 started KeePass pid=15368 token: TokenIsElevated=1 ElevationType=2 Integrity=0x3000 AdministratorsEnabled=False
+10:47:27.724 main window: <<db.kdbx - KeePass>>
+10:47:27.919 group rows: Desk entries, KeePassGate, Passwords, Recycle Bin
+10:47:33.828 [edit-string] WINDOW title=<<Edit Entry String>> class=WindowsForms10.Window.8.app.0.2bf8098_r6_ad1
+10:47:33.933 [edit-string]   ComboBox name=<<Name:>> text=<<KPG.Ref>>
+10:47:33.946 [edit-string]   Pane name=<<KPG.Ref>>
+10:47:33.956 [edit-string]   Button name=<<Open>>
+10:47:33.967 [edit-string]   Pane name=<<Protect value in process memory>>
+10:47:33.974 [edit-string]   Pane name=<<Help>>
+10:47:33.981 [edit-string]   Pane name=<<Cancel>>
+10:47:34.001 [edit-string]   Pane name=<<OK>>
+10:47:34.011 [edit-string]   Document name=<<RichEdit Control>> text=<<zqxref-u1 {"rule":"KG1"}>>
+10:47:34.018 [edit-string]   Text name=<<A string field consists of a name and a value. The name should describe the field (e.g. "BIC", "Postal Address", ...) and must be unique (within the entry). For example, an entry cannot have two fields named "URL".>>
+10:47:34.025 [edit-string]   Text name=<<Name:>>
+10:47:34.036 [edit-string]   Text name=<<Value:>>
+10:47:34.052 [edit-string]   win32 COMBOBOX <<KPG.Ref>>
+10:47:34.059 [edit-string]   win32 Edit <<KPG.Ref>>
+10:47:34.066 [edit-string]   win32 BUTTON <<&Protect value in process memory>>
+10:47:34.075 [edit-string]   win32 BUTTON <<&Help>>
+10:47:34.077 [edit-string]   win32 BUTTON <<Cancel>>
+10:47:34.083 [edit-string]   win32 BUTTON <<OK>>
+10:47:34.090 [edit-string]   win32 RICHEDIT50W <<zqxref-u1 {"rule":"KG1"}>>
+10:47:34.094 [edit-string]   win32 STATIC <<A string field consists of a name and a value. The name should describe the field (e.g. "BIC", "Postal Address", ...) and must be unique (within the entry). For example, an entry cannot have two fields named "URL".>>
+10:47:34.099 [edit-string]   win32 STATIC <<&Name:>>
+10:47:34.105 [edit-string]   win32 STATIC <<&Value:>>
+10:47:34.697 shot edit-string.png (411 x 344)

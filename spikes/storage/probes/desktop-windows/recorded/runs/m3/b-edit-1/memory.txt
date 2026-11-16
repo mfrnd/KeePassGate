@@ -1,0 +1,9 @@
+S Notes p=0 
+S Password p=1 u3-pw-invented
+S Title p=0 Shop
+S URL p=0 https://shop.example.invalid/
+S UserName p=0 edited-in-dialog
+tags []
+history 1
+modified 2026-11-16T09:41:14.8013386Z
+database modified=True

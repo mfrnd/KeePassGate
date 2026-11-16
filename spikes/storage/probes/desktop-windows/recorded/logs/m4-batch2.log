@@ -1,0 +1,541 @@
+11:23:42.403 ==== maint-history-1 : Database Maintenance: delete history entries older than the days shown
+11:23:42.424 config: 
+11:23:53.521 started KeePass pid=16576 token: TokenIsElevated=1 ElevationType=2 Integrity=0x3000 
+AdministratorsEnabled=False
+11:23:53.707 main window: <<db.kdbx - KeePass>>
+11:23:54.036 group rows: Archive, Desk store, Empty group, KeePassGate, Passwords, Recycle Bin
+11:23:55.936 menu: <<Database Tools>>
+11:23:57.125 menu: <<Database Maintenance...>>
+11:23:58.839 [maint-history-1-maint] WINDOW title=<<Database Maintenance>> 
+class=WindowsForms10.Window.8.app.0.2bf8098_r6_ad1
+11:23:58.984 [maint-history-1-maint]   Pane name=<<Clean Up>>
+11:23:58.993 [maint-history-1-maint]   Group name=<<Deleted objects information>>
+11:23:59.014 [maint-history-1-maint]   Text name=<<Warning! After removing this information, deleted objects (groups, 
+entries, ...) may reappear when synchronizing the current database with another one (which still contains the 
+objects).>>
+11:23:59.016 [maint-history-1-maint]   Pane name=<<Delete>>
+11:23:59.023 [maint-history-1-maint]   Text name=<<Clicking the 'Delete' button will remove all history entries older 
+than the specified number of days. There is no way to get them back.>>
+11:23:59.032 [maint-history-1-maint]   Text name=<<KeePass keeps some information about deleted objects. This 
+information can be removed in order to reduce the size of the database.>>
+11:23:59.039 [maint-history-1-maint]   Group name=<<Entry history>>
+11:23:59.050 [maint-history-1-maint]   Text name=<<Clicking the 'Delete' button will remove all history entries older 
+than the specified number of days. There is no way to get them back.>>
+11:23:59.056 [maint-history-1-maint]   Pane name=<<Delete>>
+11:23:59.064 [maint-history-1-maint]   Pane name=<<365>>
+11:23:59.071 [maint-history-1-maint]   Text name=<<Delete history entries older than (days):>>
+11:23:59.085 [maint-history-1-maint]   Text name=<<History entries (shown on the 'History' tab page of the entry 
+dialog) can be deleted. This will decrease the database size a bit.>>
+11:23:59.094 [maint-history-1-maint]   Pane name=<<Close>>
+11:23:59.113 [maint-history-1-maint]   win32 Window.8 <<Clean Up>>
+11:23:59.121 [maint-history-1-maint]   win32 Window.8 <<Deleted objects information>>
+11:23:59.125 [maint-history-1-maint]   win32 STATIC <<Warning! After removing this information, deleted objects 
+(groups, entries, ...) may reappear when synchronizing the current database with another one (which still contains the 
+objects).>>
+11:23:59.132 [maint-history-1-maint]   win32 BUTTON <<D&elete>>
+11:23:59.136 [maint-history-1-maint]   win32 STATIC <<KeePass keeps some information about deleted objects. This 
+information can be removed in order to reduce the size of the database.>>
+11:23:59.145 [maint-history-1-maint]   win32 Window.8 <<Entry history>>
+11:23:59.150 [maint-history-1-maint]   win32 STATIC <<Clicking the 'Delete' button will remove all history entries 
+older than the specified number of days. There is no way to get them back.>>
+11:23:59.155 [maint-history-1-maint]   win32 BUTTON <<&Delete>>
+11:23:59.158 [maint-history-1-maint]   win32 EDIT <<365>>
+11:23:59.168 [maint-history-1-maint]   win32 STATIC <<Delete &history entries older than (days):>>
+11:23:59.172 [maint-history-1-maint]   win32 STATIC <<History entries (shown on the 'History' tab page of the entry 
+dialog) can be deleted. This will decrease the database size a bit.>>
+11:23:59.177 [maint-history-1-maint]   win32 BUTTON <<Close>>
+11:23:59.770 shot maint-history-1-maint.png (465 x 416)
+11:23:59.899 pressed Delete under Entry history
+11:24:01.916 [maint-history-1-maint-after] WINDOW title=<<Database Maintenance>> 
+class=WindowsForms10.Window.8.app.0.2bf8098_r6_ad1
+11:24:02.091 [maint-history-1-maint-after]   ProgressBar name=<<Warning! After removing this information, deleted 
+objects (groups, entries, ...) may reappear when synchronizing the current database with another one (which still 
+contains the objects).>> text=<<100%>>
+11:24:02.095 [maint-history-1-maint-after]   Pane name=<<Clean Up>>
+11:24:02.105 [maint-history-1-maint-after]   Group name=<<Deleted objects information>>
+11:24:02.116 [maint-history-1-maint-after]   Text name=<<Warning! After removing this information, deleted objects 
+(groups, entries, ...) may reappear when synchronizing the current database with another one (which still contains the 
+objects).>>
+11:24:02.122 [maint-history-1-maint-after]   Pane name=<<Delete>>
+11:24:02.131 [maint-history-1-maint-after]   Text name=<<Clicking the 'Delete' button will remove all history entries 
+older than the specified number of days. There is no way to get them back.>>
+11:24:02.136 [maint-history-1-maint-after]   Text name=<<KeePass keeps some information about deleted objects. This 
+information can be removed in order to reduce the size of the database.>>
+11:24:02.141 [maint-history-1-maint-after]   Group name=<<Entry history>>
+11:24:02.149 [maint-history-1-maint-after]   Text name=<<Clicking the 'Delete' button will remove all history entries 
+older than the specified number of days. There is no way to get them back.>>
+11:24:02.153 [maint-history-1-maint-after]   Pane name=<<Delete>>
+11:24:02.158 [maint-history-1-maint-after]   Pane name=<<365>>
+11:24:02.168 [maint-history-1-maint-after]   Text name=<<Delete history entries older than (days):>>
+11:24:02.175 [maint-history-1-maint-after]   Text name=<<History entries (shown on the 'History' tab page of the entry 
+dialog) can be deleted. This will decrease the database size a bit.>>
+11:24:02.182 [maint-history-1-maint-after]   Pane name=<<Close>>
+11:24:02.196 [maint-history-1-maint-after]   win32 Window.8 <<Clean Up>>
+11:24:02.199 [maint-history-1-maint-after]   win32 Window.8 <<Deleted objects information>>
+11:24:02.203 [maint-history-1-maint-after]   win32 STATIC <<Warning! After removing this information, deleted objects 
+(groups, entries, ...) may reappear when synchronizing the current database with another one (which still contains the 
+objects).>>
+11:24:02.205 [maint-history-1-maint-after]   win32 BUTTON <<D&elete>>
+11:24:02.208 [maint-history-1-maint-after]   win32 STATIC <<KeePass keeps some information about deleted objects. This 
+information can be removed in order to reduce the size of the database.>>
+11:24:02.213 [maint-history-1-maint-after]   win32 Window.8 <<Entry history>>
+11:24:02.217 [maint-history-1-maint-after]   win32 STATIC <<Clicking the 'Delete' button will remove all history 
+entries older than the specified number of days. There is no way to get them back.>>
+11:24:02.227 [maint-history-1-maint-after]   win32 BUTTON <<&Delete>>
+11:24:02.230 [maint-history-1-maint-after]   win32 EDIT <<365>>
+11:24:02.233 [maint-history-1-maint-after]   win32 STATIC <<Delete &history entries older than (days):>>
+11:24:02.243 [maint-history-1-maint-after]   win32 STATIC <<History entries (shown on the 'History' tab page of the 
+entry dialog) can be deleted. This will decrease the database size a bit.>>
+11:24:02.244 [maint-history-1-maint-after]   win32 BUTTON <<Close>>
+11:24:07.646 dialogs: 0
+11:24:08.261 group KeePassGate from the places kept
+11:24:09.892 group Passwords from the places kept
+11:24:11.255 [after] window title <<db.kdbx* - KeePass>>; groups []; KeePassGate [KPG grant 1, KPG admission 1, KPG 
+revocation 1, KPG profile 1, KPG grant 1, KPG grant 6, KPG grant 7]; Passwords [Mail account, Bank]; status <<Ready.>>
+11:24:17.092 stopping KeePass pid=16576
+11:24:17.139 RUN FAILED maint-history-1: The term 'Get-FileHash' is not recognized as the name of a cmdlet, function, 
+script file, or operable program. Check the spelling of the name, or if a path was included, verify that the path is 
+correct and try again. at Get-FileState, 
+<branch>\spikes\storage\probes\desktop-windows\scripts\Ui.ps1: line 536
+at Run-M4, <branch>\spikes\storage\probes\desktop-windows\scripts\M4.ps1: line 74
+at <ScriptBlock>, <branch>\spikes\storage\probes\desktop-windows\scripts\M4.ps1: line 165
+at <ScriptBlock>, <No file>: line 1
+11:24:17.219 ==== maint-records-1 : Database Maintenance: remove deletion records
+11:24:17.232 config: 
+11:24:28.372 started KeePass pid=13276 token: TokenIsElevated=1 ElevationType=2 Integrity=0x3000 
+AdministratorsEnabled=False
+11:24:28.568 main window: <<db.kdbx - KeePass>>
+11:24:28.956 group rows: Archive, Desk store, Empty group, KeePassGate, Passwords, Recycle Bin
+11:24:30.978 menu: <<Database Tools>>
+11:24:32.187 menu: <<Database Maintenance...>>
+11:24:34.038 [maint-records-1-maint] WINDOW title=<<Database Maintenance>> 
+class=WindowsForms10.Window.8.app.0.2bf8098_r6_ad1
+11:24:34.172 [maint-records-1-maint]   Pane name=<<Clean Up>>
+11:24:34.179 [maint-records-1-maint]   Group name=<<Deleted objects information>>
+11:24:34.190 [maint-records-1-maint]   Text name=<<Warning! After removing this information, deleted objects (groups, 
+entries, ...) may reappear when synchronizing the current database with another one (which still contains the 
+objects).>>
+11:24:34.195 [maint-records-1-maint]   Pane name=<<Delete>>
+11:24:34.202 [maint-records-1-maint]   Text name=<<Clicking the 'Delete' button will remove all history entries older 
+than the specified number of days. There is no way to get them back.>>
+11:24:34.210 [maint-records-1-maint]   Text name=<<KeePass keeps some information about deleted objects. This 
+information can be removed in order to reduce the size of the database.>>
+11:24:34.220 [maint-records-1-maint]   Group name=<<Entry history>>
+11:24:34.226 [maint-records-1-maint]   Text name=<<Clicking the 'Delete' button will remove all history entries older 
+than the specified number of days. There is no way to get them back.>>
+11:24:34.234 [maint-records-1-maint]   Pane name=<<Delete>>
+11:24:34.239 [maint-records-1-maint]   Pane name=<<365>>
+11:24:34.244 [maint-records-1-maint]   Text name=<<Delete history entries older than (days):>>
+11:24:34.264 [maint-records-1-maint]   Text name=<<History entries (shown on the 'History' tab page of the entry 
+dialog) can be deleted. This will decrease the database size a bit.>>
+11:24:34.278 [maint-records-1-maint]   Pane name=<<Close>>
+11:24:34.287 [maint-records-1-maint]   win32 Window.8 <<Clean Up>>
+11:24:34.293 [maint-records-1-maint]   win32 Window.8 <<Deleted objects information>>
+11:24:34.295 [maint-records-1-maint]   win32 STATIC <<Warning! After removing this information, deleted objects 
+(groups, entries, ...) may reappear when synchronizing the current database with another one (which still contains the 
+objects).>>
+11:24:34.298 [maint-records-1-maint]   win32 BUTTON <<D&elete>>
+11:24:34.300 [maint-records-1-maint]   win32 STATIC <<KeePass keeps some information about deleted objects. This 
+information can be removed in order to reduce the size of the database.>>
+11:24:34.306 [maint-records-1-maint]   win32 Window.8 <<Entry history>>
+11:24:34.312 [maint-records-1-maint]   win32 STATIC <<Clicking the 'Delete' button will remove all history entries 
+older than the specified number of days. There is no way to get them back.>>
+11:24:34.317 [maint-records-1-maint]   win32 BUTTON <<&Delete>>
+11:24:34.326 [maint-records-1-maint]   win32 EDIT <<365>>
+11:24:34.338 [maint-records-1-maint]   win32 STATIC <<Delete &history entries older than (days):>>
+11:24:34.345 [maint-records-1-maint]   win32 STATIC <<History entries (shown on the 'History' tab page of the entry 
+dialog) can be deleted. This will decrease the database size a bit.>>
+11:24:34.349 [maint-records-1-maint]   win32 BUTTON <<Close>>
+11:24:34.929 shot maint-records-1-maint.png (465 x 416)
+11:24:35.048 pressed Delete under Deleted objects information
+11:24:37.060 [maint-records-1-maint-after] WINDOW title=<<Database Maintenance>> 
+class=WindowsForms10.Window.8.app.0.2bf8098_r6_ad1
+11:24:37.298 [maint-records-1-maint-after]   ProgressBar name=<<Warning! After removing this information, deleted 
+objects (groups, entries, ...) may reappear when synchronizing the current database with another one (which still 
+contains the objects).>> text=<<100%>>
+11:24:37.310 [maint-records-1-maint-after]   Pane name=<<Clean Up>>
+11:24:37.318 [maint-records-1-maint-after]   Group name=<<Deleted objects information>>
+11:24:37.329 [maint-records-1-maint-after]   Text name=<<Warning! After removing this information, deleted objects 
+(groups, entries, ...) may reappear when synchronizing the current database with another one (which still contains the 
+objects).>>
+11:24:37.339 [maint-records-1-maint-after]   Pane name=<<Delete>>
+11:24:37.350 [maint-records-1-maint-after]   Text name=<<Clicking the 'Delete' button will remove all history entries 
+older than the specified number of days. There is no way to get them back.>>
+11:24:37.361 [maint-records-1-maint-after]   Text name=<<KeePass keeps some information about deleted objects. This 
+information can be removed in order to reduce the size of the database.>>
+11:24:37.373 [maint-records-1-maint-after]   Group name=<<Entry history>>
+11:24:37.384 [maint-records-1-maint-after]   Text name=<<Clicking the 'Delete' button will remove all history entries 
+older than the specified number of days. There is no way to get them back.>>
+11:24:37.393 [maint-records-1-maint-after]   Pane name=<<Delete>>
+11:24:37.401 [maint-records-1-maint-after]   Pane name=<<365>>
+11:24:37.409 [maint-records-1-maint-after]   Text name=<<Delete history entries older than (days):>>
+11:24:37.419 [maint-records-1-maint-after]   Text name=<<History entries (shown on the 'History' tab page of the entry 
+dialog) can be deleted. This will decrease the database size a bit.>>
+11:24:37.430 [maint-records-1-maint-after]   Pane name=<<Close>>
+11:24:37.451 [maint-records-1-maint-after]   win32 Window.8 <<Clean Up>>
+11:24:37.457 [maint-records-1-maint-after]   win32 Window.8 <<Deleted objects information>>
+11:24:37.467 [maint-records-1-maint-after]   win32 STATIC <<Warning! After removing this information, deleted objects 
+(groups, entries, ...) may reappear when synchronizing the current database with another one (which still contains the 
+objects).>>
+11:24:37.471 [maint-records-1-maint-after]   win32 BUTTON <<D&elete>>
+11:24:37.479 [maint-records-1-maint-after]   win32 STATIC <<KeePass keeps some information about deleted objects. This 
+information can be removed in order to reduce the size of the database.>>
+11:24:37.483 [maint-records-1-maint-after]   win32 Window.8 <<Entry history>>
+11:24:37.491 [maint-records-1-maint-after]   win32 STATIC <<Clicking the 'Delete' button will remove all history 
+entries older than the specified number of days. There is no way to get them back.>>
+11:24:37.495 [maint-records-1-maint-after]   win32 BUTTON <<&Delete>>
+11:24:37.504 [maint-records-1-maint-after]   win32 EDIT <<365>>
+11:24:37.510 [maint-records-1-maint-after]   win32 STATIC <<Delete &history entries older than (days):>>
+11:24:37.519 [maint-records-1-maint-after]   win32 STATIC <<History entries (shown on the 'History' tab page of the 
+entry dialog) can be deleted. This will decrease the database size a bit.>>
+11:24:37.527 [maint-records-1-maint-after]   win32 BUTTON <<Close>>
+11:24:43.084 dialogs: 0
+11:24:43.616 group KeePassGate from the places kept
+11:24:44.805 group Passwords from the places kept
+11:24:45.844 [after] window title <<db.kdbx* - KeePass>>; groups []; KeePassGate [KPG grant 1, KPG admission 1, KPG 
+revocation 1, KPG profile 1, KPG grant 1, KPG grant 6, KPG grant 7]; Passwords [Mail account, Bank]; status <<Ready.>>
+11:24:50.790 stopping KeePass pid=13276
+11:24:50.842 RUN FAILED maint-records-1: The term 'Get-FileHash' is not recognized as the name of a cmdlet, function, 
+script file, or operable program. Check the spelling of the name, or if a path was included, verify that the path is 
+correct and try again. at Get-FileState, 
+<branch>\spikes\storage\probes\desktop-windows\scripts\Ui.ps1: line 536
+at Run-M4, <branch>\spikes\storage\probes\desktop-windows\scripts\M4.ps1: line 74
+at <ScriptBlock>, <branch>\spikes\storage\probes\desktop-windows\scripts\M4.ps1: line 165
+at <ScriptBlock>, <No file>: line 1
+11:24:50.868 ==== maint-plugindata-1 : Database Maintenance: Plugin data, delete KPG.Profiles
+11:24:50.873 config: 
+11:25:01.980 started KeePass pid=20996 token: TokenIsElevated=1 ElevationType=2 Integrity=0x3000 
+AdministratorsEnabled=False
+11:25:02.154 main window: <<db.kdbx - KeePass>>
+11:25:02.569 group rows: Archive, Desk store, Empty group, KeePassGate, Passwords, Recycle Bin
+11:25:04.569 menu: <<Database Tools>>
+11:25:05.746 menu: <<Database Maintenance...>>
+11:25:07.452 [maint-plugindata-1-maint] WINDOW title=<<Database Maintenance>> 
+class=WindowsForms10.Window.8.app.0.2bf8098_r6_ad1
+11:25:07.616 [maint-plugindata-1-maint]   Pane name=<<Clean Up>>
+11:25:07.630 [maint-plugindata-1-maint]   Group name=<<Deleted objects information>>
+11:25:07.642 [maint-plugindata-1-maint]   Text name=<<Warning! After removing this information, deleted objects 
+(groups, entries, ...) may reappear when synchronizing the current database with another one (which still contains the 
+objects).>>
+11:25:07.647 [maint-plugindata-1-maint]   Pane name=<<Delete>>
+11:25:07.653 [maint-plugindata-1-maint]   Text name=<<Clicking the 'Delete' button will remove all history entries 
+older than the specified number of days. There is no way to get them back.>>
+11:25:07.662 [maint-plugindata-1-maint]   Text name=<<KeePass keeps some information about deleted objects. This 
+information can be removed in order to reduce the size of the database.>>
+11:25:07.669 [maint-plugindata-1-maint]   Group name=<<Entry history>>
+11:25:07.676 [maint-plugindata-1-maint]   Text name=<<Clicking the 'Delete' button will remove all history entries 
+older than the specified number of days. There is no way to get them back.>>
+11:25:07.684 [maint-plugindata-1-maint]   Pane name=<<Delete>>
+11:25:07.693 [maint-plugindata-1-maint]   Pane name=<<365>>
+11:25:07.704 [maint-plugindata-1-maint]   Text name=<<Delete history entries older than (days):>>
+11:25:07.716 [maint-plugindata-1-maint]   Text name=<<History entries (shown on the 'History' tab page of the entry 
+dialog) can be deleted. This will decrease the database size a bit.>>
+11:25:07.727 [maint-plugindata-1-maint]   Pane name=<<Close>>
+11:25:07.742 [maint-plugindata-1-maint]   win32 Window.8 <<Clean Up>>
+11:25:07.751 [maint-plugindata-1-maint]   win32 Window.8 <<Deleted objects information>>
+11:25:07.755 [maint-plugindata-1-maint]   win32 STATIC <<Warning! After removing this information, deleted objects 
+(groups, entries, ...) may reappear when synchronizing the current database with another one (which still contains the 
+objects).>>
+11:25:07.766 [maint-plugindata-1-maint]   win32 BUTTON <<D&elete>>
+11:25:07.770 [maint-plugindata-1-maint]   win32 STATIC <<KeePass keeps some information about deleted objects. This 
+information can be removed in order to reduce the size of the database.>>
+11:25:07.783 [maint-plugindata-1-maint]   win32 Window.8 <<Entry history>>
+11:25:07.794 [maint-plugindata-1-maint]   win32 STATIC <<Clicking the 'Delete' button will remove all history entries 
+older than the specified number of days. There is no way to get them back.>>
+11:25:07.801 [maint-plugindata-1-maint]   win32 BUTTON <<&Delete>>
+11:25:07.805 [maint-plugindata-1-maint]   win32 EDIT <<365>>
+11:25:07.812 [maint-plugindata-1-maint]   win32 STATIC <<Delete &history entries older than (days):>>
+11:25:07.822 [maint-plugindata-1-maint]   win32 STATIC <<History entries (shown on the 'History' tab page of the entry 
+dialog) can be deleted. This will decrease the database size a bit.>>
+11:25:07.828 [maint-plugindata-1-maint]   win32 BUTTON <<Close>>
+11:25:08.407 shot maint-plugindata-1-maint.png (465 x 416)
+11:25:09.295 [maint-plugindata-1-plugindata] WINDOW title=<<Database Maintenance>> 
+class=WindowsForms10.Window.8.app.0.2bf8098_r6_ad1
+11:25:09.350 [maint-plugindata-1-plugindata]   Pane name=<<Plugin Data>>
+11:25:09.354 [maint-plugindata-1-plugindata]   Pane name=<<Delete>> disabled
+11:25:09.366 [maint-plugindata-1-plugindata]   Pane name=<<Close>>
+11:25:09.394 [maint-plugindata-1-plugindata]   win32 Window.8 <<Plugin Data>>
+11:25:09.401 [maint-plugindata-1-plugindata]   win32 BUTTON <<&Delete>> disabled
+11:25:09.406 [maint-plugindata-1-plugindata]   win32 BUTTON <<Close>>
+11:25:09.971 shot maint-plugindata-1-plugindata.png (465 x 416)
+11:25:10.023 plugin data row <<KPG.Profiles>>
+11:25:10.677 pressed Delete on the Plugin Data tab
+11:25:11.690 [maint-plugindata-1-maint-after] WINDOW title=<<Database Maintenance>> 
+class=WindowsForms10.Window.8.app.0.2bf8098_r6_ad1
+11:25:11.746 [maint-plugindata-1-maint-after]   Pane name=<<Plugin Data>>
+11:25:11.757 [maint-plugindata-1-maint-after]   Pane name=<<Delete>> disabled
+11:25:11.763 [maint-plugindata-1-maint-after]   Pane name=<<Close>>
+11:25:11.787 [maint-plugindata-1-maint-after]   win32 Window.8 <<Plugin Data>>
+11:25:11.793 [maint-plugindata-1-maint-after]   win32 BUTTON <<&Delete>> disabled
+11:25:11.798 [maint-plugindata-1-maint-after]   win32 BUTTON <<Close>>
+11:25:18.215 dialogs: 0
+11:25:18.539 group KeePassGate from the places kept
+11:25:19.788 group Passwords from the places kept
+11:25:20.815 [after] window title <<db.kdbx* - KeePass>>; groups []; KeePassGate [KPG grant 1, KPG admission 1, KPG 
+revocation 1, KPG profile 1, KPG grant 1, KPG grant 6, KPG grant 7]; Passwords [Mail account, Bank]; status <<Ready.>>
+11:25:25.861 stopping KeePass pid=20996
+11:25:25.898 RUN FAILED maint-plugindata-1: The term 'Get-FileHash' is not recognized as the name of a cmdlet, 
+function, script file, or operable program. Check the spelling of the name, or if a path was included, verify that the 
+path is correct and try again. at Get-FileState, 
+<branch>\spikes\storage\probes\desktop-windows\scripts\Ui.ps1: line 536
+at Run-M4, <branch>\spikes\storage\probes\desktop-windows\scripts\M4.ps1: line 74
+at <ScriptBlock>, <branch>\spikes\storage\probes\desktop-windows\scripts\M4.ps1: line 165
+at <ScriptBlock>, <No file>: line 1
+11:25:25.936 ==== dde-1 : Tools, Database Tools, Delete Duplicate Entries
+11:25:25.942 config: 
+11:25:37.978 started KeePass pid=10844 token: TokenIsElevated=1 ElevationType=2 Integrity=0x3000 
+AdministratorsEnabled=False
+11:25:38.136 main window: <<db.kdbx - KeePass>>
+11:25:38.401 group rows: Archive, Desk store, Empty group, KeePassGate, Passwords, Recycle Bin
+11:25:40.074 menu: <<Database Tools>>
+11:25:41.362 menu: <<Delete Duplicate Entries>>
+11:25:43.149 [dde-1-1] WINDOW title=<<KeePass>> class=#32770
+11:25:43.209 [dde-1-1]   Image name=<<MainInstructionIcon>>
+11:25:43.219 [dde-1-1]   Text name=<<3 object(s) deleted.>>
+11:25:43.235 [dde-1-1]   CheckBox name=<<Do not show this dialog again.>>
+11:25:43.244 [dde-1-1]   Pane name=<<OK>>
+11:25:43.267 [dde-1-1]   win32 Button <<OK>>
+11:25:43.827 shot dde-1-1.png (362 x 120)
+11:25:45.022 [dde-1-1] pressed <<OK (clicked)>>
+11:25:51.558 dialogs: 1
+11:25:54.305 [after] window title <<db.kdbx* - KeePass>>; groups [Desk store, KeePassGate, Archive, Passwords, Empty 
+group, Recycle Bin]; KeePassGate [KPG admission 1, KPG revocation 1, KPG profile 1, KPG grant 1, KPG grant 6, KPG 
+grant 7]; Passwords [Mail account, Bank]; status <<Ready.>>
+11:25:59.512 stopping KeePass pid=10844
+11:25:59.560 RUN FAILED dde-1: The term 'Get-FileHash' is not recognized as the name of a cmdlet, function, script 
+file, or operable program. Check the spelling of the name, or if a path was included, verify that the path is correct 
+and try again. at Get-FileState, 
+<branch>\spikes\storage\probes\desktop-windows\scripts\Ui.ps1: line 536
+at Run-M4, <branch>\spikes\storage\probes\desktop-windows\scripts\M4.ps1: line 74
+at <ScriptBlock>, <branch>\spikes\storage\probes\desktop-windows\scripts\M4.ps1: line 165
+at <ScriptBlock>, <No file>: line 1
+11:25:59.590 ==== deg-1 : Tools, Database Tools, Delete Empty Groups
+11:25:59.598 config: 
+11:26:11.172 started KeePass pid=17032 token: TokenIsElevated=1 ElevationType=2 Integrity=0x3000 
+AdministratorsEnabled=False
+11:26:11.298 main window: <<db.kdbx - KeePass>>
+11:26:11.538 group rows: Archive, Desk store, Empty group, KeePassGate, Passwords, Recycle Bin
+11:26:13.340 menu: <<Database Tools>>
+11:26:14.814 menu: <<Delete Empty Groups>>
+11:26:16.644 [deg-1-1] WINDOW title=<<KeePass>> class=#32770
+11:26:16.703 [deg-1-1]   Image name=<<MainInstructionIcon>>
+11:26:16.712 [deg-1-1]   Text name=<<2 object(s) deleted.>>
+11:26:16.718 [deg-1-1]   CheckBox name=<<Do not show this dialog again.>>
+11:26:16.723 [deg-1-1]   Pane name=<<OK>>
+11:26:16.742 [deg-1-1]   win32 Button <<OK>>
+11:26:17.315 shot deg-1-1.png (362 x 120)
+11:26:18.520 [deg-1-1] pressed <<OK (clicked)>>
+11:26:25.470 dialogs: 1
+11:26:26.056 group KeePassGate from the places kept
+11:26:27.333 group Passwords from the places kept
+11:26:28.431 [after] window title <<db.kdbx* - KeePass>>; groups []; KeePassGate [KPG grant 1, KPG admission 1, KPG 
+revocation 1, KPG profile 1, KPG grant 1, KPG grant 6, KPG grant 7]; Passwords [KPG grant 5, KPG grant 6, KPG grant 
+7]; status <<Ready.>>
+11:26:33.728 stopping KeePass pid=17032
+11:26:33.799 RUN FAILED deg-1: The term 'Get-FileHash' is not recognized as the name of a cmdlet, function, script 
+file, or operable program. Check the spelling of the name, or if a path was included, verify that the path is correct 
+and try again. at Get-FileState, 
+<branch>\spikes\storage\probes\desktop-windows\scripts\Ui.ps1: line 536
+at Run-M4, <branch>\spikes\storage\probes\desktop-windows\scripts\M4.ps1: line 74
+at <ScriptBlock>, <branch>\spikes\storage\probes\desktop-windows\scripts\M4.ps1: line 165
+at <ScriptBlock>, <No file>: line 1
+11:26:33.846 ==== ducis-1 : Tools, Database Tools, Delete Unused Custom Icons
+11:26:33.855 config: 
+11:26:47.161 started KeePass pid=18012 token: TokenIsElevated=1 ElevationType=2 Integrity=0x3000 
+AdministratorsEnabled=False
+11:26:47.283 main window: <<db.kdbx - KeePass>>
+11:26:47.510 group rows: Archive, Desk store, Empty group, KeePassGate, Passwords, Recycle Bin
+11:26:49.016 menu: <<Database Tools>>
+11:26:50.325 menu: <<Delete Unused Custom Icons>>
+11:26:52.132 [ducis-1-1] WINDOW title=<<KeePass>> class=#32770
+11:26:52.188 [ducis-1-1]   Image name=<<MainInstructionIcon>>
+11:26:52.197 [ducis-1-1]   Text name=<<1 object(s) deleted.>>
+11:26:52.204 [ducis-1-1]   CheckBox name=<<Do not show this dialog again.>>
+11:26:52.211 [ducis-1-1]   Pane name=<<OK>>
+11:26:52.235 [ducis-1-1]   win32 Button <<OK>>
+11:26:52.803 shot ducis-1-1.png (362 x 120)
+11:26:53.919 [ducis-1-1] pressed <<OK (clicked)>>
+11:27:00.822 dialogs: 1
+11:27:01.668 group KeePassGate from the places kept
+11:27:03.229 group Passwords from the places kept
+11:27:04.649 [after] window title <<db.kdbx* - KeePass>>; groups []; KeePassGate [KPG grant 1, KPG admission 1, KPG 
+revocation 1, KPG profile 1, KPG grant 1, KPG grant 6, KPG grant 7]; Passwords [Mail account, Bank]; status <<Ready.>>
+11:27:09.729 stopping KeePass pid=18012
+11:27:09.780 RUN FAILED ducis-1: The term 'Get-FileHash' is not recognized as the name of a cmdlet, function, script 
+file, or operable program. Check the spelling of the name, or if a path was included, verify that the path is correct 
+and try again. at Get-FileState, 
+<branch>\spikes\storage\probes\desktop-windows\scripts\Ui.ps1: line 536
+at Run-M4, <branch>\spikes\storage\probes\desktop-windows\scripts\M4.ps1: line 74
+at <ScriptBlock>, <branch>\spikes\storage\probes\desktop-windows\scripts\M4.ps1: line 165
+at <ScriptBlock>, <No file>: line 1
+11:27:09.810 ==== group-delete-1 : the group KeePassGate selected, Delete key
+11:27:09.829 config: 
+11:27:21.836 started KeePass pid=9664 token: TokenIsElevated=1 ElevationType=2 Integrity=0x3000 
+AdministratorsEnabled=False
+11:27:21.988 main window: <<db.kdbx - KeePass>>
+11:27:22.316 group rows: Archive, Desk store, Empty group, KeePassGate, Passwords, Recycle Bin
+11:27:25.075 [group-delete-1-1] WINDOW title=<<KeePass>> class=#32770
+11:27:25.165 [group-delete-1-1]   Image name=<<MainInstructionIcon>>
+11:27:25.171 [group-delete-1-1]   Text name=<<Are you sure you want to move the selected group to the recycle bin?>>
+11:27:25.178 [group-delete-1-1]   Text name=<<Deleting a group will also delete all entries and subgroups in that 
+group.
+
+- Archive
+- KPG grant 1
+- KPG admission 1
+- KPG revocation 1
+- KPG profile 1
+- KPG grant 1
+- KPG grant 6
+- KPG grant 7>>
+11:27:25.188 [group-delete-1-1]   CheckBox name=<<Do not show this dialog again; always 'Yes'.>>
+11:27:25.194 [group-delete-1-1]   Pane name=<<Yes>>
+11:27:25.201 [group-delete-1-1]   Pane name=<<No>>
+11:27:25.213 [group-delete-1-1]   win32 Button <<&Yes>>
+11:27:25.217 [group-delete-1-1]   win32 Button <<&No>>
+11:27:25.793 shot group-delete-1-1.png (442 x 300)
+11:27:26.082 [group-delete-1-1] pressed <<&Yes (clicked)>>
+11:27:32.971 dialogs: 1
+11:27:33.548 group KeePassGate from the places kept
+11:27:34.909 group Passwords from the places kept
+11:27:36.033 [after] window title <<db.kdbx* - KeePass>>; groups []; KeePassGate [Mail account, Bank]; Passwords [KPG 
+grant 5, KPG grant 6, KPG grant 7]; status <<Ready.>>
+11:27:41.237 stopping KeePass pid=9664
+11:27:41.294 RUN FAILED group-delete-1: The term 'Get-FileHash' is not recognized as the name of a cmdlet, function, 
+script file, or operable program. Check the spelling of the name, or if a path was included, verify that the path is 
+correct and try again. at Get-FileState, 
+<branch>\spikes\storage\probes\desktop-windows\scripts\Ui.ps1: line 536
+at Run-M4, <branch>\spikes\storage\probes\desktop-windows\scripts\M4.ps1: line 74
+at <ScriptBlock>, <branch>\spikes\storage\probes\desktop-windows\scripts\M4.ps1: line 165
+at <ScriptBlock>, <No file>: line 1
+11:27:41.324 ==== group-shiftdelete-1 : the group KeePassGate selected, Shift+Delete
+11:27:41.329 config: 
+11:27:53.105 started KeePass pid=2416 token: TokenIsElevated=1 ElevationType=2 Integrity=0x3000 
+AdministratorsEnabled=False
+11:27:53.218 main window: <<db.kdbx - KeePass>>
+11:27:53.425 group rows: Archive, Desk store, Empty group, KeePassGate, Passwords, Recycle Bin
+11:27:55.969 [group-shiftdelete-1-1] WINDOW title=<<KeePass>> class=#32770
+11:27:56.046 [group-shiftdelete-1-1]   Image name=<<MainInstructionIcon>>
+11:27:56.054 [group-shiftdelete-1-1]   Text name=<<Are you sure you want to permanently delete the selected group?>>
+11:27:56.060 [group-shiftdelete-1-1]   Text name=<<Deleting a group will also delete all entries and subgroups in that 
+group.
+
+- Archive
+- KPG grant 1
+- KPG admission 1
+- KPG revocation 1
+- KPG profile 1
+- KPG grant 1
+- KPG grant 6
+- KPG grant 7>>
+11:27:56.073 [group-shiftdelete-1-1]   Pane name=<<Delete>>
+11:27:56.079 [group-shiftdelete-1-1]   Pane name=<<Cancel>>
+11:27:56.094 [group-shiftdelete-1-1]   win32 Button <<&Delete>>
+11:27:56.102 [group-shiftdelete-1-1]   win32 Button <<Cancel>>
+11:27:56.672 shot group-shiftdelete-1-1.png (390 x 315)
+11:28:03.093 dialogs: 1
+11:28:06.821 [after] window title <<db.kdbx - KeePass>>; groups [Desk store, KeePassGate, Archive, Passwords, Empty 
+group, Recycle Bin]; KeePassGate [KPG grant 1, KPG admission 1, KPG revocation 1, KPG profile 1, KPG grant 1, KPG 
+grant 6, KPG grant 7]; Passwords [KPG grant 1, KPG admission 1, KPG revocation 1, KPG profile 1, KPG grant 1, KPG 
+grant 6, KPG grant 7]; status <<Ready.>>
+11:28:11.432 stopping KeePass pid=2416
+11:28:11.477 RUN FAILED group-shiftdelete-1: The term 'Get-FileHash' is not recognized as the name of a cmdlet, 
+function, script file, or operable program. Check the spelling of the name, or if a path was included, verify that the 
+path is correct and try again. at Get-FileState, 
+<branch>\spikes\storage\probes\desktop-windows\scripts\Ui.ps1: line 536
+at Run-M4, <branch>\spikes\storage\probes\desktop-windows\scripts\M4.ps1: line 74
+at <ScriptBlock>, <branch>\spikes\storage\probes\desktop-windows\scripts\M4.ps1: line 165
+at <ScriptBlock>, <No file>: line 1
+11:28:11.524 ==== entry-delete-1 : the store entry KPG grant 1 selected, Delete key
+11:28:11.531 config: 
+11:28:24.024 started KeePass pid=19880 token: TokenIsElevated=1 ElevationType=2 Integrity=0x3000 
+AdministratorsEnabled=False
+11:28:24.141 main window: <<db.kdbx - KeePass>>
+11:28:24.377 group rows: Archive, Desk store, Empty group, KeePassGate, Passwords, Recycle Bin
+11:28:27.867 [entry-delete-1-1] WINDOW title=<<KeePass>> class=#32770
+11:28:27.960 [entry-delete-1-1]   Image name=<<MainInstructionIcon>>
+11:28:27.967 [entry-delete-1-1]   Text name=<<Are you sure you want to move the selected entry to the recycle bin?>>
+11:28:27.973 [entry-delete-1-1]   Text name=<<- KPG grant 1>>
+11:28:27.987 [entry-delete-1-1]   CheckBox name=<<Do not show this dialog again; always 'Yes'.>>
+11:28:28.011 [entry-delete-1-1]   Pane name=<<Yes>>
+11:28:28.016 [entry-delete-1-1]   Pane name=<<No>>
+11:28:28.031 [entry-delete-1-1]   win32 Button <<&Yes>>
+11:28:28.035 [entry-delete-1-1]   win32 Button <<&No>>
+11:28:28.597 shot entry-delete-1-1.png (442 x 165)
+11:28:28.910 [entry-delete-1-1] pressed <<&Yes (clicked)>>
+11:28:35.589 dialogs: 1
+11:28:38.932 [after] window title <<db.kdbx* - KeePass>>; groups [Desk store, KeePassGate, Archive, Passwords, Empty 
+group, Recycle Bin]; KeePassGate [KPG admission 1, KPG revocation 1, KPG profile 1, KPG grant 1, KPG grant 6, KPG 
+grant 7]; Passwords [Mail account, Bank]; status <<Ready.>>
+11:28:43.501 stopping KeePass pid=19880
+11:28:43.586 RUN FAILED entry-delete-1: The term 'Get-FileHash' is not recognized as the name of a cmdlet, function, 
+script file, or operable program. Check the spelling of the name, or if a path was included, verify that the path is 
+correct and try again. at Get-FileState, 
+<branch>\spikes\storage\probes\desktop-windows\scripts\Ui.ps1: line 536
+at Run-M4, <branch>\spikes\storage\probes\desktop-windows\scripts\M4.ps1: line 74
+at <ScriptBlock>, <branch>\spikes\storage\probes\desktop-windows\scripts\M4.ps1: line 165
+at <ScriptBlock>, <No file>: line 1
+11:28:43.635 ==== entry-shiftdelete-1 : the store entry KPG grant 1 selected, Shift+Delete
+11:28:43.650 config: 
+11:28:55.426 started KeePass pid=22424 token: TokenIsElevated=1 ElevationType=2 Integrity=0x3000 
+AdministratorsEnabled=False
+11:28:55.557 main window: <<db.kdbx - KeePass>>
+11:28:55.802 group rows: Archive, Desk store, Empty group, KeePassGate, Passwords, Recycle Bin
+11:28:59.511 [entry-shiftdelete-1-1] WINDOW title=<<KeePass>> class=#32770
+11:28:59.608 [entry-shiftdelete-1-1]   Image name=<<MainInstructionIcon>>
+11:28:59.618 [entry-shiftdelete-1-1]   Text name=<<Are you sure you want to permanently delete the selected entry?>>
+11:28:59.630 [entry-shiftdelete-1-1]   Text name=<<- KPG grant 1>>
+11:28:59.643 [entry-shiftdelete-1-1]   Pane name=<<Delete>>
+11:28:59.665 [entry-shiftdelete-1-1]   Pane name=<<Cancel>>
+11:28:59.683 [entry-shiftdelete-1-1]   win32 Button <<&Delete>>
+11:28:59.689 [entry-shiftdelete-1-1]   win32 Button <<Cancel>>
+11:29:00.260 shot entry-shiftdelete-1-1.png (362 x 165)
+11:29:06.940 dialogs: 1
+11:29:10.953 [after] window title <<db.kdbx - KeePass>>; groups [Desk store, KeePassGate, Archive, Passwords, Empty 
+group, Recycle Bin]; KeePassGate [KPG grant 1, KPG admission 1, KPG revocation 1, KPG profile 1, KPG grant 1, KPG 
+grant 6, KPG grant 7]; Passwords [KPG grant 1, KPG admission 1, KPG revocation 1, KPG profile 1, KPG grant 1, KPG 
+grant 6, KPG grant 7]; status <<Ready.>>
+11:29:15.794 stopping KeePass pid=22424
+11:29:15.836 RUN FAILED entry-shiftdelete-1: The term 'Get-FileHash' is not recognized as the name of a cmdlet, 
+function, script file, or operable program. Check the spelling of the name, or if a path was included, verify that the 
+path is correct and try again. at Get-FileState, 
+<branch>\spikes\storage\probes\desktop-windows\scripts\Ui.ps1: line 536
+at Run-M4, <branch>\spikes\storage\probes\desktop-windows\scripts\M4.ps1: line 74
+at <ScriptBlock>, <branch>\spikes\storage\probes\desktop-windows\scripts\M4.ps1: line 165
+at <ScriptBlock>, <No file>: line 1
+11:29:15.869 ==== empty-bin-1 : the recycle bin selected, Group menu, Empty Recycle Bin
+11:29:15.875 config: 
+11:29:29.627 started KeePass pid=4716 token: TokenIsElevated=1 ElevationType=2 Integrity=0x3000 
+AdministratorsEnabled=False
+11:29:29.715 main window: <<db.kdbx - KeePass>>
+11:29:29.946 group rows: Archive, Desk store, Empty group, KeePassGate, Passwords, Recycle Bin
+11:29:32.600 menu: <<Empty Recycle Bin>>
+11:29:34.321 [empty-bin-1-1] WINDOW title=<<KeePass>> class=#32770
+11:29:34.382 [empty-bin-1-1]   Image name=<<MainInstructionIcon>>
+11:29:34.394 [empty-bin-1-1]   Text name=<<Are you sure you want to permanently delete the items?>>
+11:29:34.405 [empty-bin-1-1]   Text name=<<- KPG grant 5
+- KPG grant 6
+- KPG grant 7>>
+11:29:34.413 [empty-bin-1-1]   Pane name=<<Delete>>
+11:29:34.420 [empty-bin-1-1]   Pane name=<<Cancel>>
+11:29:34.433 [empty-bin-1-1]   win32 Button <<&Delete>>
+11:29:34.437 [empty-bin-1-1]   win32 Button <<Cancel>>
+11:29:35.010 shot empty-bin-1-1.png (362 x 195)
+11:29:41.383 dialogs: 1
+11:29:46.046 [after] window title <<db.kdbx - KeePass>>; groups [Desk store, KeePassGate, Archive, Passwords, Empty 
+group, Recycle Bin]; KeePassGate [KPG grant 5, KPG grant 6, KPG grant 7]; Passwords [KPG grant 5, KPG grant 6, KPG 
+grant 7]; status <<Ready.>>
+11:29:51.405 stopping KeePass pid=4716
+11:29:51.443 RUN FAILED empty-bin-1: The term 'Get-FileHash' is not recognized as the name of a cmdlet, function, 
+script file, or operable program. Check the spelling of the name, or if a path was included, verify that the path is 
+correct and try again. at Get-FileState, 
+<branch>\spikes\storage\probes\desktop-windows\scripts\Ui.ps1: line 536
+at Run-M4, <branch>\spikes\storage\probes\desktop-windows\scripts\M4.ps1: line 74
+at <ScriptBlock>, <branch>\spikes\storage\probes\desktop-windows\scripts\M4.ps1: line 165
+at <ScriptBlock>, <No file>: line 1
+11:29:51.476 ==== group-duplicate-1 : the group KeePassGate selected, Group, Duplicate Group
+11:29:51.505 config: 
+11:30:02.601 started KeePass pid=7352 token: TokenIsElevated=1 ElevationType=2 Integrity=0x3000 
+AdministratorsEnabled=False
+11:30:02.754 main window: <<db.kdbx - KeePass>>
+11:30:02.963 group rows: Archive, Desk store, Empty group, KeePassGate, Passwords, Recycle Bin

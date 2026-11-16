@@ -1,0 +1,20 @@
++ E U3 H2026-11-16T09:41:13Z autotype enabled=1 obfuscation=0 seq="" assoc=0
++ E U3 H2026-11-16T09:41:13Z misc icon=0 customIcon=- fg=00000000 bg=00000000 overrideUrl="" quality=1
++ E U3 H2026-11-16T09:41:13Z prev -
++ E U3 H2026-11-16T09:41:13Z S KPG.Ref p=0 "zqxref-u3-live"
++ E U3 H2026-11-16T09:41:13Z S Notes p=0 ""
++ E U3 H2026-11-16T09:41:13Z S Password p=1 "u3-pw-invented"
++ E U3 H2026-11-16T09:41:13Z S Title p=0 "Shop"
++ E U3 H2026-11-16T09:41:13Z S URL p=0 "https://shop.example.invalid/"
++ E U3 H2026-11-16T09:41:13Z S UserName p=0 "carol-invented"
++ E U3 H2026-11-16T09:41:13Z t.created 2026-11-01T10:22:00Z
++ E U3 H2026-11-16T09:41:13Z t.expires 0 2026-11-01T10:00:00Z
++ E U3 H2026-11-16T09:41:13Z t.location 2026-11-01T10:22:00Z
++ E U3 H2026-11-16T09:41:13Z t.modified 2026-11-16T09:41:13Z
++ E U3 H2026-11-16T09:41:13Z tags []
+- E U3 history.count 0
++ E U3 history.count 1
+- E U3 S UserName p=0 "carol-invented"
++ E U3 S UserName p=0 "edited-in-dialog"
+- E U3 t.modified 2026-11-01T10:22:00Z
++ E U3 t.modified 2026-11-16T09:41:14Z

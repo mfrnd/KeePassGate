@@ -1,0 +1,11 @@
+10:05:29.265 ==== s-saveas-1 : P2, Save As over the same path
+10:05:29.269 config: 
+10:05:41.026 started KeePass pid=2360 token: TokenIsElevated=1 ElevationType=2 Integrity=0x3000 AdministratorsEnabled=False
+10:05:41.230 main window: <<db.kdbx - KeePass>>
+10:05:45.903 edited P2 password=p2-window; OK posted 2026-11-16T09:05:45.7906525Z, dialog gone 2026-11-16T09:05:45.9037552Z
+10:05:45.912 replace: before size=3413 mtime=2026-11-16T08:31:56.2778845Z sha=2ff7a751a869
+10:05:45.946 replace (later) with NEW-fixed.kdbx: after size=5013 mtime=2026-11-16T09:05:45.9325436Z sha=74dd75d7243e
+10:05:57.532 stopping KeePass pid=2360
+10:05:57.579 RUN FAILED s-saveas-1: no file dialog 'Save Database*' at Kp-FileDialog, <branch>\spikes\storage\probes\desktop-windows\scripts\M1.ps1: line 80
+at Run-M1, <branch>\spikes\storage\probes\desktop-windows\scripts\M1.ps1: line 165
+at <ScriptBlock>, <branch>\spikes\storage\probes\desktop-windows\scripts\M1.ps1: line 253

@@ -1,0 +1,22 @@
+11:18:32.240 ==== print
+11:18:32.248 config: 
+11:18:44.572 started KeePass pid=19520 token: TokenIsElevated=1 ElevationType=2 Integrity=0x3000 AdministratorsEnabled=False
+11:18:44.711 main window: <<db.kdbx - KeePass>>
+11:18:44.994 group rows: Desk entries, KeePassGate, Passwords, Recycle Bin
+11:18:48.014 menu: <<Print>>
+11:18:49.434 menu: <<Print...>>
+11:18:52.631 [print] WINDOW title=<<Print>> class=WindowsForms10.Window.8.app.0.2bf8098_r6_ad1
+11:18:52.752 [print]   Pane name=<<Cancel>>
+11:18:52.766 [print]   Pane name=<<Preview>>
+11:18:52.777 [print]   Text name=<<Note that this preview is a layout preview only. To see a preview of the printed document, click the 'Print Preview' button.>>
+11:18:52.786 [print]   Pane name=<<Print...>>
+11:18:52.805 [print]   Pane name=<<Print Preview>>
+11:18:52.812 [print]   Pane name=<<Page Setup>>
+11:18:52.838 [print]   win32 BUTTON <<Cancel>>
+11:18:52.842 [print]   win32 Window.8 <<Preview>>
+11:18:52.847 [print]   win32 STATIC <<Note that this preview is a layout preview only. To see a preview of the printed document, click the 'Print Preview' button.>>
+11:18:52.851 [print]   win32 BUTTON <<&Print...>>
+11:18:52.866 [print]   win32 BUTTON <<Print Pre&view>>
+11:18:52.875 [print]   win32 BUTTON <<Page &Setup>>
+11:18:53.478 shot print-preview.png (627 x 599)
+11:18:55.428 shot print-layout.png (627 x 599)

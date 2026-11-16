@@ -1,0 +1,13 @@
+11:39:57.751 ==== group-sort-1 : the root selected, Group, Rearrange, Sort Direct Subgroups
+11:39:57.758 config: 
+11:40:08.833 started KeePass pid=16164 token: TokenIsElevated=1 ElevationType=2 Integrity=0x3000 AdministratorsEnabled=False
+11:40:08.941 main window: <<db.kdbx - KeePass>>
+11:40:09.195 group rows: Archive, Desk store, Empty group, KeePassGate, Passwords, Recycle Bin
+11:40:11.731 menu: <<Rearrange>>
+11:40:12.952 menu: <<Sort Direct Subgroups>>
+11:40:18.965 dialogs: 0
+11:40:19.314 group KeePassGate from the places kept
+11:40:20.608 group Passwords from the places kept
+11:40:21.763 [after] window title <<db.kdbx* - KeePass>>; groups []; KeePassGate []; Passwords []; status <<Ready.>>
+11:40:27.072 file: size=2917 mtime=2026-11-16T10:40:22.2520239Z sha=20b0ee455561
+11:40:33.432 diff against the base: 6 lines

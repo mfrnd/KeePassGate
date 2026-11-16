@@ -1,0 +1,31 @@
+11:05:28.056 ==== deg-1 : Tools, Database Tools, Delete Empty Groups
+11:05:28.070 config: 
+11:05:39.809 started KeePass pid=1088 token: TokenIsElevated=1 ElevationType=2 Integrity=0x3000 AdministratorsEnabled=False
+11:05:39.986 main window: <<db.kdbx - KeePass>>
+11:05:40.306 group rows: Archive, Desk store, Empty group, KeePassGate, Passwords, Recycle Bin
+11:05:42.027 menu: <<Database Tools>>
+11:05:43.347 menu: <<Delete Empty Groups>>
+11:05:45.093 [deg-1-1] WINDOW title=<<KeePass>> class=#32770
+11:05:45.179 [deg-1-1]   Image name=<<MainInstructionIcon>>
+11:05:45.203 [deg-1-1]   Text name=<<2 object(s) deleted.>>
+11:05:45.237 [deg-1-1]   CheckBox name=<<Do not show this dialog again.>>
+11:05:45.252 [deg-1-1]   Pane name=<<OK>>
+11:05:45.295 [deg-1-1]   win32 Button <<OK>>
+11:05:45.888 shot deg-1-1.png (362 x 120)
+11:05:47.065 [deg-1-1] pressed <<OK (clicked)>>
+11:05:53.822 dialogs: 1
+11:05:54.329 group KeePassGate from the places kept
+11:05:55.661 group Passwords from the places kept
+11:05:56.808 [after] window title <<db.kdbx* - KeePass>>; groups []; KeePassGate [KPG grant 1, KPG admission 1, KPG revocation 1, KPG profile 1, KPG grant 1, KPG grant 6, KPG grant 7]; Passwords [KPG grant 5, KPG grant 6, KPG grant 7]; status <<Ready.>>
+11:06:02.036 file: size=2869 mtime=2026-11-16T10:05:57.3267101Z sha=d7556012e922
+11:06:08.348 diff against the base: 34 lines
+11:06:08.373   - D count 6
+11:06:08.388   + D count 8
+11:06:08.395   + D EG 2026-11-16T10:05:43Z
+11:06:08.409   + D KGA 2026-11-16T10:05:43Z
+11:06:08.422   + F groups 4 entries 12
+11:06:08.432   - F groups 6 entries 12
+11:06:08.440   - G EG name "Empty group"
+11:06:08.449   - G EG parent Root (Desk store)
+11:06:08.469   - G KGA name "Archive"
+11:06:08.476   - G KGA parent KG (KeePassGate)

@@ -1,0 +1,263 @@
+09:34:35.914 config: 
+09:34:49.724 stopping KeePass pid=21208
+09:34:58.256 config: 
+09:35:10.759 started KeePass pid=18540 token:  ElevationType=2 Integrity=0x3000 AdministratorsEnabled=False
+09:35:41.230 main window: <<KeePass>>
+09:35:41.899 shot main.png (445 x 211)
+09:35:41.984   ControlType.Image id=MainIcon name=<<MainInstructionIcon>>
+09:35:41.988   ControlType.Text id=ContentText name=<<<work>\runs\explore1\db.kdbx
+
+The key transformation settings of the database are weak.
+
+Do you want to set them to the current default values (recommended)?>>
+09:35:41.993   ControlType.CheckBox id=VerificationCheckBox name=<<Do not show this dialog again; always 'No'.>>
+09:35:41.997   ControlType.Pane id=CommandButton_1 name=<<Yes>>
+09:35:42.011   ControlType.Pane id=CommandButton_2 name=<<No>>
+09:35:42.016   ControlType.Image id=FootnoteIcon name=<<FooterIcon>>
+09:35:42.021   ControlType.Pane id=FootnoteTextLink name=<<More information>>
+09:35:49.421 stopping KeePass pid=18540
+09:36:08.283 config: 
+09:36:22.204 started KeePass pid=20776 token: TokenIsElevated=error24 ElevationType=2 Integrity=0x3000 AdministratorsEnabled=False
+09:36:22.437 main window: <<db.kdbx - KeePass>>
+09:36:23.089 shot main.png (1100 x 720)
+09:36:23.199   ControlType.Pane id=1061749464 name=<<>>
+09:36:23.201   ControlType.Pane id=226164800 name=<<>>
+09:36:23.203   ControlType.Pane id=722928152 name=<<>>
+09:36:23.205   ControlType.Pane id=884081370 name=<<>>
+09:36:23.206   ControlType.Pane id=492372702 name=<<>>
+09:36:23.208   ControlType.Pane id=656147174 name=<<>>
+09:36:23.210   ControlType.Pane id=268829424 name=<<>>
+09:36:23.213   ControlType.Pane id= name=<<>>
+09:36:23.215   ControlType.Pane id=567411458 name=<<>>
+09:36:23.217   ControlType.Document id=620495634 name=<<RichEdit Control>>
+09:36:23.221   ControlType.StatusBar id=735511332 name=<<>>
+09:36:23.223   ControlType.Thumb id= name=<<Grip>>
+09:36:23.229   ControlType.Text id= name=<<Ready.>>
+09:36:23.235   ControlType.ToolBar id=423428918 name=<<>>
+09:36:23.239   ControlType.Thumb id= name=<<Grip>>
+09:36:23.241   ControlType.Button id= name=<<New Database>>
+09:36:23.244   ControlType.Button id= name=<<Open Database>>
+09:36:23.246   ControlType.Button id= name=<<Save Database>>
+09:36:23.252   ControlType.Separator id= name=<<>>
+09:36:23.255   ControlType.Button id= name=<<Add Entry>>
+09:36:23.257   ControlType.Separator id= name=<<>>
+09:36:23.260   ControlType.Button id= name=<<Copy User Name>>
+09:36:23.262   ControlType.Button id= name=<<Copy Password>>
+09:36:23.266   ControlType.Button id= name=<<Open URL(s)>>
+09:36:23.269   ControlType.Button id= name=<<Copy URL(s)>>
+09:36:23.271   ControlType.Button id= name=<<Perform Auto-Type>>
+09:36:23.275   ControlType.Separator id= name=<<>>
+09:36:23.278   ControlType.Button id= name=<<Find>>
+09:36:23.280   ControlType.Button id= name=<<Find Entries>>
+09:36:23.283   ControlType.Separator id= name=<<>>
+09:36:23.285   ControlType.Button id= name=<<Lock Workspace>>
+09:36:23.289   ControlType.Separator id= name=<<>>
+09:36:23.291   ControlType.ComboBox id=727384908 name=<<>>
+09:36:23.292   ControlType.Pane id=1001 name=<<>>
+09:36:23.294   ControlType.Button id= name=<<Open>>
+09:36:23.298   ControlType.MenuBar id=406520518 name=<<>>
+09:36:23.301   ControlType.MenuItem id= name=<<File>>
+09:36:23.303   ControlType.MenuItem id= name=<<Group>>
+09:36:23.305   ControlType.MenuItem id= name=<<Entry>>
+09:36:23.308   ControlType.MenuItem id= name=<<Find>>
+09:36:23.312   ControlType.MenuItem id= name=<<View>>
+09:36:23.314   ControlType.MenuItem id= name=<<Tools>>
+09:36:23.318   ControlType.MenuItem id= name=<<Help>>
+09:36:30.506 stopping KeePass pid=20776
+09:36:48.712 config: 
+09:37:01.386 started KeePass pid=9808 token: TokenIsElevated=error24 ElevationType=2 Integrity=0x3000 AdministratorsEnabled=False
+09:37:01.646 main window: <<db.kdbx - KeePass>>
+09:37:01.678 ControlType.Pane cls=WindowsForms10.Window.8.app.0.2bf8098_r6_ad1 id=925827768 name=<<>> rect=48;100;1084;610
+09:37:01.682   ControlType.Pane cls=WindowsForms10.Window.8.app.0.2bf8098_r6_ad1 id=406586054 name=<<>> rect=48;100;1084;508
+09:37:01.688     ControlType.Pane cls=WindowsForms10.Window.8.app.0.2bf8098_r6_ad1 id=1061815000 name=<<>> rect=48;100;1084;508
+09:37:01.690       ControlType.Pane cls=WindowsForms10.Window.8.app.0.2bf8098_r6_ad1 id=226230336 name=<<>> rect=48;100;271;508
+09:37:01.694         ControlType.Pane cls=WindowsForms10.SysTreeView32.app.0.2bf8098_r6_ad1 id=722993688 name=<<>> rect=48;100;271;508
+09:37:01.700       ControlType.Pane cls=WindowsForms10.Window.8.app.0.2bf8098_r6_ad1 id=492438238 name=<<>> rect=323;100;809;508
+09:37:01.704         ControlType.Pane cls=WindowsForms10.SysListView32.app.0.2bf8098_r6_ad1 id=656212710 name=<<>> rect=323;100;809;508
+09:37:01.708           ControlType.Pane cls=SysHeader32 id= name=<<>> rect=325;102;805;24
+09:37:01.718   ControlType.Pane cls=WindowsForms10.Window.8.app.0.2bf8098_r6_ad1 id=812450550 name=<<>> rect=48;612;1084;98
+09:37:01.726     ControlType.Document cls=WindowsForms10.RICHEDIT50W.app.0.2bf8098_r6_ad1 id=567476994 name=<<RichEdit Control>> rect=48;612;1084;98
+09:37:01.751 ControlType.StatusBar cls=WindowsForms10.Window.8.app.0.2bf8098_r6_ad1 id=620561170 name=<<>> rect=48;710;1084;22
+09:37:01.761   ControlType.Thumb cls= id= name=<<Grip>> rect=51;710;5;22
+09:37:01.767   ControlType.Text cls= id= name=<<Ready.>> rect=189;713;929;17
+09:37:01.785 ControlType.ToolBar cls=WindowsForms10.Window.8.app.0.2bf8098_r6_ad1 id=423494454 name=<<>> rect=48;75;1084;25
+09:37:01.795 ControlType.MenuBar cls=WindowsForms10.Window.8.app.0.2bf8098_r6_ad1 id=743113354 name=<<>> rect=48;51;1084;24
+09:37:02.825 stopping KeePass pid=9808
+09:37:42.916 config: 
+09:37:56.269 started KeePass pid=21408 token: TokenIsElevated=error24 ElevationType=2 Integrity=0x3000 AdministratorsEnabled=False
+09:37:56.502 main window: <<db.kdbx - KeePass>>
+09:37:56.534 assemblies: UIAutomationClient,UIAutomationTypes,UIAutomationProvider
+09:37:56.552 list: ControlType.Pane handle=735773476
+09:37:56.565 by handle: ControlType.Pane patterns=
+09:37:56.572   child ControlType.Pane <<>>
+09:37:56.646 DataItem count=0
+09:37:56.717 ListItem count=0
+09:37:56.778 TreeItem count=0
+09:37:56.842 List count=0
+09:37:56.903 Tree count=0
+09:37:56.962 DataGrid count=0
+09:37:57.985 stopping KeePass pid=21408
+09:38:06.500 config: 
+09:38:18.280 started KeePass pid=8240 token: TokenIsElevated=error24 ElevationType=2 Integrity=0x3000 AdministratorsEnabled=False
+09:38:18.500 main window: <<db.kdbx - KeePass>>
+09:38:18.516 assemblies: UIAutomationClient,UIAutomationTypes,UIAutomationProvider
+09:38:18.536 list: ControlType.Pane handle=423691062
+09:38:18.550 by handle: ControlType.Pane patterns=
+09:38:18.559   child ControlType.Pane <<>>
+09:38:18.656 DataItem count=0
+09:38:18.737 ListItem count=0
+09:38:18.801 TreeItem count=0
+09:38:18.866 List count=0
+09:38:18.925 Tree count=0
+09:38:18.987 DataGrid count=0
+09:38:20.009 stopping KeePass pid=8240
+09:39:35.623 config: 
+09:39:47.516 started KeePass pid=21704 token: TokenIsElevated=error24 ElevationType=2 Integrity=0x3000 AdministratorsEnabled=False
+09:39:47.964 main window: <<db.kdbx - KeePass>>
+09:39:47.996 assemblies: UIAutomationClientSideProviders,UIAutomationClient,UIAutomationTypes,UIAutomationProvider
+09:39:48.025 list: ControlType.Pane handle=620757778
+09:39:48.046 by handle: ControlType.Pane patterns=
+09:39:48.062   child ControlType.Pane <<>>
+09:39:48.141 DataItem count=0
+09:39:48.466 ListItem count=0
+09:39:48.549 TreeItem count=0
+09:39:48.735 List count=0
+09:39:48.855 Tree count=0
+09:39:48.982 DataGrid count=0
+09:39:50.042 stopping KeePass pid=21704
+09:41:41.591 config: 
+09:41:56.811 started KeePass pid=2424 token: TokenIsElevated=error24 ElevationType=2 Integrity=0x3000 AdministratorsEnabled=False
+09:41:57.004 main window: <<db.kdbx - KeePass>>
+09:41:57.020 assemblies: UIAutomationClient,UIAutomationTypes,UIAutomationProvider
+09:41:57.036 list: ControlType.Pane handle=567804674
+09:41:57.050 by handle: ControlType.Pane patterns=
+09:41:57.066   child ControlType.Pane <<>>
+09:41:57.132 DataItem count=0
+09:41:57.214 ListItem count=0
+09:41:57.278 TreeItem count=0
+09:41:57.354 List count=0
+09:41:57.421 Tree count=0
+09:41:57.496 DataGrid count=0
+09:41:58.516 stopping KeePass pid=2424
+09:43:00.182 config: 
+09:43:00.338 started KeePass pid=13536 token: TokenIsElevated=error24 ElevationType=2 Integrity=0x3000 AdministratorsEnabled=False
+09:43:01.210 main window: <<db.kdbx - KeePass>>
+09:43:01.230 assemblies: UIAutomationClient,UIAutomationTypes,UIAutomationProvider
+09:43:01.259 list: ControlType.Pane handle=123470686
+09:43:01.271 by handle: ControlType.Pane patterns=
+09:43:01.281   child ControlType.Pane <<>>
+09:43:01.366 DataItem count=0
+09:43:01.450 ListItem count=0
+09:43:01.538 TreeItem count=0
+09:43:01.640 List count=0
+09:43:01.736 Tree count=0
+09:43:01.841 DataGrid count=0
+09:43:02.860 stopping KeePass pid=13536
+09:44:45.879 config: 
+09:45:01.088 started KeePass pid=18072 token: TokenIsElevated=1 ElevationType=2 Integrity=0x3000 AdministratorsEnabled=False
+09:45:01.328 main window: <<db.kdbx - KeePass>>
+09:45:01.471 group 1 Desk probe lvl=0
+09:45:01.473 group 2 KeePassGate lvl=1
+09:45:01.477 group 3 Passwords lvl=1
+09:45:01.479 group 4 Recycle Bin lvl=1
+09:45:02.453 entry 1 P1 role=34 state=19922944
+09:45:02.457 entry 2 P2 role=34 state=19922944
+09:45:02.459 entry 3 Q1 role=34 state=19922944
+09:45:02.461 entry 4 Q2 role=34 state=19922944
+09:45:02.463 entry 5 Q3 role=34 state=19922944
+09:45:02.465 entry 6 X1 role=34 state=19922944
+09:45:02.467 entry 7 K role=34 state=19922944
+09:45:14.516 stopping KeePass pid=18072
+09:45:38.460 config: 
+09:45:53.087 started KeePass pid=8116 token: TokenIsElevated=1 ElevationType=2 Integrity=0x3000 AdministratorsEnabled=False
+09:45:53.430 main window: <<db.kdbx - KeePass>>
+09:45:53.666 group 1 Desk probe lvl=0
+09:45:53.668 group 2 KeePassGate lvl=1
+09:45:53.673 group 3 Passwords lvl=1
+09:45:53.675 group 4 Recycle Bin lvl=1
+09:45:54.736 entry 1 P1 role=34 state=19922944
+09:45:54.740 entry 2 P2 role=34 state=19922944
+09:45:54.742 entry 3 Q1 role=34 state=19922944
+09:45:54.745 entry 4 Q2 role=34 state=19922944
+09:45:54.747 entry 5 Q3 role=34 state=19922944
+09:45:54.749 entry 6 X1 role=34 state=19922944
+09:45:54.751 entry 7 K role=34 state=19922944
+09:45:55.500 fg=488047310 main=488047310
+09:46:00.057 shot edit-entry.png (495 x 515)
+09:46:00.170   ControlType.Pane id=2 cls=WindowsForms10.SysTabControl32.app.0.2bf8098_r6_ad1 name=<<>> en=True
+09:46:00.172   ControlType.Pane id=55444506 cls=WindowsForms10.Window.8.app.0.2bf8098_r6_ad1 name=<<General>> en=True
+09:46:00.177   ControlType.Pane id=157615098 cls=WindowsForms10.BUTTON.app.0.2bf8098_r6_ad1 name=<<>> en=True
+09:46:00.179   ControlType.Text id=316736080 cls=WindowsForms10.STATIC.app.0.2bf8098_r6_ad1 name=<<Title:>> en=True
+09:46:00.183   ControlType.Document id=54461518 cls=WindowsForms10.RICHEDIT50W.app.0.2bf8098_r6_ad1 name=<<Title:>> en=True
+09:46:00.185   ControlType.Pane id=27395078 cls=WindowsForms10.BUTTON.app.0.2bf8098_r6_ad1 name=<<Expires:>> en=True
+09:46:00.188   ControlType.Text id=101778444 cls=WindowsForms10.STATIC.app.0.2bf8098_r6_ad1 name=<<6 ch.>> en=True
+09:46:00.190   ControlType.Pane id=112526336 cls=WindowsForms10.EDIT.app.0.2bf8098_r6_ad1 name=<<>> en=True
+09:46:00.192   ControlType.Pane id=77530128 cls=WindowsForms10.BUTTON.app.0.2bf8098_r6_ad1 name=<<>> en=True
+09:46:00.195   ControlType.Pane id=67240978 cls=WindowsForms10.BUTTON.app.0.2bf8098_r6_ad1 name=<<>> en=True
+09:46:00.199   ControlType.Pane id=5702676 cls=WindowsForms10.Window.8.app.0.2bf8098_r6_ad1 name=<<>> en=True
+09:46:00.204   ControlType.Text id=142935068 cls=WindowsForms10.STATIC.app.0.2bf8098_r6_ad1 name=<<Icon:>> en=True
+09:46:00.206   ControlType.Pane id=73991204 cls=WindowsForms10.BUTTON.app.0.2bf8098_r6_ad1 name=<<>> en=True
+09:46:00.208   ControlType.Pane id=113640488 cls=WindowsForms10.EDIT.app.0.2bf8098_r6_ad1 name=<<●●●●●●>> en=True
+09:46:00.210   ControlType.Pane id=157221938 cls=WindowsForms10.EDIT.app.0.2bf8098_r6_ad1 name=<<●●●●●●>> en=True
+09:46:00.213   ControlType.Text id=75826228 cls=WindowsForms10.STATIC.app.0.2bf8098_r6_ad1 name=<<Notes:>> en=True
+09:46:00.217   ControlType.Pane id=90506298 cls=WindowsForms10.SysDateTimePick32.app.0.2bf8098_r6_ad1 name=<<16.11.2026 00:00:00>> en=True
+09:46:00.218   ControlType.Pane id=130155580 cls=WindowsForms10.BUTTON.app.0.2bf8098_r6_ad1 name=<<>> en=True
+09:46:00.220   ControlType.Pane id=471860108 cls=WindowsForms10.EDIT.app.0.2bf8098_r6_ad1 name=<<P2>> en=True
+09:46:00.222   ControlType.Text id=336331746 cls=WindowsForms10.STATIC.app.0.2bf8098_r6_ad1 name=<<URL:>> en=True
+09:46:00.226   ControlType.Text id=30737430 cls=WindowsForms10.STATIC.app.0.2bf8098_r6_ad1 name=<<Quality:>> en=True
+09:46:00.228   ControlType.Text id=38142974 cls=WindowsForms10.STATIC.app.0.2bf8098_r6_ad1 name=<<Password:>> en=True
+09:46:00.233   ControlType.Text id=452067916 cls=WindowsForms10.STATIC.app.0.2bf8098_r6_ad1 name=<<Repeat:>> en=True
+09:46:00.234   ControlType.Text id=36766762 cls=WindowsForms10.STATIC.app.0.2bf8098_r6_ad1 name=<<User name:>> en=True
+09:46:00.236   ControlType.Pane id=1155793394 cls=WindowsForms10.EDIT.app.0.2bf8098_r6_ad1 name=<<user-p2>> en=True
+09:46:00.240   ControlType.Text id=620823264 cls=WindowsForms10.STATIC.app.0.2bf8098_r6_ad1 name=<<UUID:>> en=True
+09:46:00.242   ControlType.Pane id=19072054 cls=WindowsForms10.Window.8.app.0.2bf8098_r6_ad1 name=<<>> en=True
+09:46:00.244   ControlType.Pane id=1071579266 cls=WindowsForms10.BUTTON.app.0.2bf8098_r6_ad1 name=<<Tools>> en=True
+09:46:00.246   ControlType.Pane id=1186923098 cls=WindowsForms10.BUTTON.app.0.2bf8098_r6_ad1 name=<<Cancel>> en=True
+09:46:00.250   ControlType.Pane id=69731384 cls=WindowsForms10.BUTTON.app.0.2bf8098_r6_ad1 name=<<OK>> en=True
+09:46:01.877 stopping KeePass pid=8116
+09:49:50.638 config: 
+09:50:05.883 started KeePass pid=5604 token: TokenIsElevated=1 ElevationType=2 Integrity=0x3000 AdministratorsEnabled=False
+09:50:06.195 main window: <<db.kdbx - KeePass>>
+09:50:06.421 group 1 Desk probe lvl=0
+09:50:06.442 group 2 KeePassGate lvl=1
+09:50:06.473 group 3 Passwords lvl=1
+09:50:06.492 group 4 Recycle Bin lvl=1
+09:50:07.543 entry 1 P1 role=34 state=19922944
+09:50:07.545 entry 2 P2 role=34 state=19922944
+09:50:07.547 entry 3 Q1 role=34 state=19922944
+09:50:07.549 entry 4 Q2 role=34 state=19922944
+09:50:07.551 entry 5 Q3 role=34 state=19922944
+09:50:07.553 entry 6 X1 role=34 state=19922944
+09:50:07.555 entry 7 K role=34 state=19922944
+09:50:08.289 fg=427753560 main=427753560
+09:50:13.708 471991180 WindowsForms10.SysTabControl32 vis=True 353,214,828,582 <<>>
+09:50:13.719 271188892 WindowsForms10.Window.8 vis=True 357,236,824,578 <<General>>
+09:50:13.720 260113318 WindowsForms10.BUTTON vis=True 781,352,813,372 <<>>
+09:50:13.725 328991660 WindowsForms10.STATIC vis=True 363,249,393,262 <<&Title:>>
+09:50:13.729 1155924466 WindowsForms10.RICHEDIT50W vis=True 438,404,813,543 <<>>
+09:50:13.732 620954336 WindowsForms10.BUTTON vis=True 366,551,429,568 <<&Expires:>>
+09:50:13.735 1071710338 WindowsForms10.STATIC vis=True 728,355,778,368 <<6 ch.>>
+09:50:13.737 1187054170 WindowsForms10.EDIT vis=True 438,377,812,397 <<>>
+09:50:13.739 434438280 WindowsForms10.BUTTON vis=True 781,325,813,348 <<>>
+09:50:13.741 675873618 WindowsForms10.BUTTON vis=True 781,298,813,321 <<>>
+09:50:13.748 496173594 WindowsForms10.Window.8 vis=True 438,354,725,370 <<>>
+09:50:13.754 433259412 WindowsForms10.STATIC vis=True 744,249,775,262 <<&Icon:>>
+09:50:13.883 868679784 WindowsForms10.BUTTON vis=True 781,244,813,267 <<>>
+09:50:13.890 981926668 WindowsForms10.EDIT vis=True 438,327,775,347 <<●●●●●●>>
+09:50:13.895 854197056 WindowsForms10.EDIT vis=True 438,300,775,320 <<●●●●●●>>
+09:50:13.898 629080564 WindowsForms10.STATIC vis=True 363,407,401,420 <<&Notes:>>
+09:50:13.902 152568756 WindowsForms10.SysDateTimePick32 vis=True 438,549,774,569 <<16.11.2026 00:00:00>>
+09:50:13.904 106365880 WindowsForms10.BUTTON vis=True 781,547,813,570 <<>>
+09:50:13.907 362677194 WindowsForms10.EDIT vis=True 438,246,732,266 <<P2>>
+09:50:13.911 346751948 WindowsForms10.STATIC vis=True 363,380,395,393 <<UR&L:>>
+09:50:13.915 134153170 WindowsForms10.STATIC vis=True 363,355,405,368 <<Quality:>>
+09:50:13.919 146539484 WindowsForms10.STATIC vis=True 363,303,419,316 <<&Password:>>
+09:50:13.921 336462818 WindowsForms10.STATIC vis=True 363,330,408,343 <<&Repeat:>>
+09:50:13.923 416285674 WindowsForms10.STATIC vis=True 363,276,424,289 <<&User name:>>
+09:50:13.925 71435246 WindowsForms10.EDIT vis=True 438,273,812,293 <<user-p2>>
+09:50:13.934 157746170 WindowsForms10.STATIC vis=True 345,593,834,595 <<>>
+09:50:13.942 752419564 WindowsForms10.Window.8 vis=True 345,148,834,208 <<>>
+09:50:13.950 38274046 WindowsForms10.BUTTON vis=True 355,601,435,624 <<T&ools>>
+09:50:13.956 112788480 WindowsForms10.BUTTON vis=True 744,601,824,624 <<Cancel>>
+09:50:13.960 27591686 WindowsForms10.BUTTON vis=True 658,601,738,624 <<OK>>
+09:50:15.620 stopping KeePass pid=5604

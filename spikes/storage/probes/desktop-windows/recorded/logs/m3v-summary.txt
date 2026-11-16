@@ -1,0 +1,65 @@
+duplicate-default | offered: Copy history=1, Replace user names and passwords by references=0, Append "- Copy" to entry titles=1
+duplicate-default | U1 title="Mail account" KPG.Ref=p=0 "zqxref-u1 {\"rule\":\"KG1\"}" user="alice-invented" history=2 parent=PW (Passwords) ; ~b41cdffb title="Mail account - Copy" KPG.Ref=p=0 "zqxref-u1 {\"rule\":\"KG1\"}" user="alice-invented" history=2 parent=PW (Passwords)
+duplicate-all | offered: Copy history=1, Replace user names and passwords by references=0, Append "- Copy" to entry titles=1
+duplicate-all | pressed: Copy history=1, Replace user names and passwords by references=1, Append "- Copy" to entry titles=1
+duplicate-all | U1 title="Mail account" KPG.Ref=p=0 "zqxref-u1 {\"rule\":\"KG1\"}" user="alice-invented" history=2 parent=PW (Passwords) ; ~24ba926c title="Mail account - Copy" KPG.Ref=p=0 "zqxref-u1 {\"rule\":\"KG1\"}" user="{REF:U@I:4B504755310000000000000000000000}" history=2 parent=PW (Passwords)
+print | layout: Colorize password characters:=1, Custom password font:=0, Custom main font:=0, Icon=0, UUID=0, Tags=0, Custom string fields=0(disabled), Group name=0, Auto-Type=0(disabled), Last modification time=0, Creation time=0, Expiry time=0, Notes=1, Password=1, URL=0, User name=1, Title=1, Blocks=0, Tables=1
+export | formats offered: KeePass CSV (1.x), KeePass KDB (1.x), KeePass KDBX (2.x), KeePass KDBX (2.34, Old Format), KeePass XML (2.x), Customizable HTML File, Transform using XSL Stylesheet, Windows Favorites (Folder 'KeePass'), Windows Favorites (Root Directory), Mozilla Bookmarks HTML
+export | KeePass CSV (1.x) | export-1.csv 368 bytes | contains: 
+export | KeePass KDB (1.x) | export-2.kdb 1804 bytes | contains: 
+export | KeePass KDBX (2.x) | FAILED: no menu item Export
+export | KeePass KDBX (2.34, Old Format) | export-4.kdbx 2302 bytes | contains: zqxref-u1, zqxref-u2-protected, zqxextra-u1, zqxstore-grant, zqxstore-secret, zqxstore-adm, KPG.Ref
+export | KeePass XML (2.x) | export-5.xml 14860 bytes | contains: zqxref-u1, zqxref-u2-protected, zqxextra-u1, zqxstore-grant, zqxstore-secret, zqxstore-adm, zqxcd-u1, KPG.Ref
+export | Customizable HTML File | FAILED: Exception calling "ReadAllText" with "1" argument(s): "The process cannot access the file '<work>\runs\m3v\export\export-6.html' because it is being used by another process."
+export | Transform using XSL Stylesheet | FAILED: no menu item Export
+export | Windows Favorites (Folder 'KeePass') | no file written
+export | Windows Favorites (Root Directory) | no file written
+export | Mozilla Bookmarks HTML | export-10.html 1111 bytes | contains: 
+autotype | selected Mail account into Desk target | typed: <<alice-invented\tu1-pw-invented\r\n>>
+autotype | global, target <<KPG grant 1>> | typed: <<>>
+autotype | global, target <<Mail account>> | typed: <<lice-invented\tu1-pw-invented\r\n>>
+export | formats offered: KeePass CSV (1.x), KeePass KDB (1.x), KeePass KDBX (2.x), KeePass KDBX (2.34, Old Format), KeePass XML (2.x), Customizable HTML File, Transform using XSL Stylesheet, Windows Favorites (Folder 'KeePass'), Windows Favorites (Root Directory), Mozilla Bookmarks HTML
+export | KeePass CSV (1.x) | not run here
+export | KeePass KDB (1.x) | not run here
+export | KeePass KDBX (2.x) | export-3.kdbx 2453 bytes | contains: zqxref-u1, zqxref-u2-protected, zqxextra-u1, zqxstore-grant, zqxstore-secret, zqxstore-adm, zqxcd-u1, KPG.Ref
+export | KeePass KDBX (2.34, Old Format) | not run here
+export | KeePass XML (2.x) | not run here
+export | Customizable HTML File | FAILED: Exception calling "ReadAllText" with "1" argument(s): "The process cannot access the file '<work>\runs\m3v\export\export-6.html' because it is being used by another process."
+export | Transform using XSL Stylesheet | FAILED: no menu item Export
+export | Windows Favorites (Folder 'KeePass') | not run here
+export | Windows Favorites (Root Directory) | not run here
+export | Mozilla Bookmarks HTML | not run here
+export | formats offered: KeePass CSV (1.x), KeePass KDB (1.x), KeePass KDBX (2.x), KeePass KDBX (2.34, Old Format), KeePass XML (2.x), Customizable HTML File, Transform using XSL Stylesheet, Windows Favorites (Folder 'KeePass'), Windows Favorites (Root Directory), Mozilla Bookmarks HTML
+export | KeePass CSV (1.x) | not run here
+export | KeePass KDB (1.x) | not run here
+export | KeePass KDBX (2.x) | not run here
+export | KeePass KDBX (2.34, Old Format) | not run here
+export | KeePass XML (2.x) | not run here
+export | Customizable HTML File | FAILED: Exception calling "ReadAllText" with "1" argument(s): "The process cannot access the file '<work>\runs\m3v\export\export-6.html' because it is being used by another process."
+export | Transform using XSL Stylesheet | export-7.out 3553 bytes | contains: zqxref-u1, zqxref-u2-protected, zqxextra-u1, zqxstore-grant, zqxstore-secret, zqxstore-adm, KPG.Ref
+export | Windows Favorites (Folder 'KeePass') | not run here
+export | Windows Favorites (Root Directory) | not run here
+export | Mozilla Bookmarks HTML | not run here
+export | formats offered: KeePass CSV (1.x), KeePass KDB (1.x), KeePass KDBX (2.x), KeePass KDBX (2.34, Old Format), KeePass XML (2.x), Customizable HTML File, Transform using XSL Stylesheet, Windows Favorites (Folder 'KeePass'), Windows Favorites (Root Directory), Mozilla Bookmarks HTML
+export | KeePass CSV (1.x) | not run here
+export | KeePass KDB (1.x) | not run here
+export | KeePass KDBX (2.x) | not run here
+export | KeePass KDBX (2.34, Old Format) | not run here
+export | KeePass XML (2.x) | not run here
+export | Customizable HTML File | FAILED: Exception calling "Open" with "4" argument(s): "The process cannot access the file '<work>\runs\m3v\export\export-6.html' because it is being used by another process."
+export | Transform using XSL Stylesheet | not run here
+export | Windows Favorites (Folder 'KeePass') | not run here
+export | Windows Favorites (Root Directory) | not run here
+export | Mozilla Bookmarks HTML | not run here
+export | formats offered: KeePass CSV (1.x), KeePass KDB (1.x), KeePass KDBX (2.x), KeePass KDBX (2.34, Old Format), KeePass XML (2.x), Customizable HTML File, Transform using XSL Stylesheet, Windows Favorites (Folder 'KeePass'), Windows Favorites (Root Directory), Mozilla Bookmarks HTML
+export | KeePass CSV (1.x) | not run here
+export | KeePass KDB (1.x) | not run here
+export | KeePass KDBX (2.x) | not run here
+export | KeePass KDBX (2.34, Old Format) | not run here
+export | KeePass XML (2.x) | not run here
+export | Customizable HTML File | export-6.html held open by KeePass, read after it stops
+export | Transform using XSL Stylesheet | not run here
+export | Windows Favorites (Folder 'KeePass') | not run here
+export | Windows Favorites (Root Directory) | not run here
+export | Mozilla Bookmarks HTML | not run here
+export | Customizable HTML File | export-6.html 4248 bytes, read after KeePass stopped | contains: 

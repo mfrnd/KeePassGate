@@ -1,0 +1,13 @@
+11:12:34.202 ==== group-moveup-1 : the group Passwords selected, Group, Rearrange, Move Group Up
+11:12:34.208 config: 
+11:12:46.810 started KeePass pid=15724 token: TokenIsElevated=1 ElevationType=2 Integrity=0x3000 AdministratorsEnabled=False
+11:12:46.942 main window: <<db.kdbx - KeePass>>
+11:12:47.183 group rows: Archive, Desk store, Empty group, KeePassGate, Passwords, Recycle Bin
+11:12:49.792 menu: <<Rearrange>>
+11:12:51.141 menu: <<Move Group One Up>>
+11:12:57.208 dialogs: 0
+11:12:57.649 group KeePassGate from the places kept
+11:12:59.099 group Passwords from the places kept
+11:13:00.269 [after] window title <<db.kdbx* - KeePass>>; groups []; KeePassGate [Mail account, Bank]; Passwords []; status <<Ready.>>
+11:13:05.487 file: size=2949 mtime=2026-11-16T10:13:00.7233322Z sha=9b489a953e93
+11:13:11.812 diff against the base: 2 lines

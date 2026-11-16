@@ -1,0 +1,63 @@
+11:53:41.527 keepassxc config: General/AutoSaveAfterEveryChange=false
+11:53:54.034 started KeePassXC pid=2776 token: TokenIsElevated=1 ElevationType=2 Integrity=0x3000 AdministratorsEnabled=False
+11:53:58.561 window <<db.kdbx [Locked] - KeePassXC>>
+11:53:58.574 window <<Check for updates on startup?>>
+11:54:01.242 window <<db.kdbx [Locked] - KeePassXC>>
+11:54:01.902 shot xc-unlock.png (802 x 632)
+11:54:02.028 [unlock] Group id=Application.MainWindow.centralwidget name=<<>> val=<<>> off=False rect=240;158;800;494
+11:54:02.067 [unlock]   Custom id=Application.MainWindow.centralwidget.toolbarSeparator name=<<>> val=<<>> off=False rect=240;158;800;3
+11:54:02.105 [unlock]   Pane id=Application.MainWindow.centralwidget.stackedWidget name=<<>> val=<<>> off=False rect=240;161;800;491
+11:54:02.141 [unlock]     Group id=Application.MainWindow.centralwidget.stackedWidget.pageDatabase name=<<>> val=<<>> off=False rect=240;161;800;491
+11:54:02.162 [unlock]       Group id=Application.MainWindow.centralwidget.stackedWidget.pageDatabase.tabWidget name=<<>> val=<<>> off=False rect=240;161;800;491
+11:54:02.249 [unlock]         Pane id=Application.MainWindow.centralwidget.stackedWidget.pageDatabase.tabWidget.qt_tabwidget_stackedwidget name=<<>> val=<<>> off=False rect=240;161;800;491
+11:54:02.266 [unlock]           Pane id=Application.MainWindow.centralwidget.stackedWidget.pageDatabase.tabWidget.qt_tabwidget_stackedwidget.DatabaseWidget name=<<>> val=<<>> off=False rect=240;161;800;491
+11:54:02.286 [unlock]             Group id=Application.MainWindow.centralwidget.stackedWidget.pageDatabase.tabWidget.qt_tabwidget_stackedwidget.DatabaseWidget.databaseOpenWidget name=<<Unlock KeePassXC Database>> val=<<>> off=False rect=240;161;800;491
+11:54:02.307 [unlock]               Group id=Application.MainWindow.centralwidget.stackedWidget.pageDatabase.tabWidget.qt_tabwidget_stackedwidget.DatabaseWidget.databaseOpenWidget.DeviceListener name=<<>> val=<<>> off=False rect=240;161;100;30
+11:54:02.327 [unlock]               Group id=Application.MainWindow.centralwidget.stackedWidget.pageDatabase.tabWidget.qt_tabwidget_stackedwidget.DatabaseWidget.databaseOpenWidget.formContainer name=<<>> val=<<>> off=False rect=306;170;668;473
+11:54:02.335 [unlock]                 Text id=Application.MainWindow.centralwidget.stackedWidget.pageDatabase.tabWidget.qt_tabwidget_stackedwidget.DatabaseWidget.databaseOpenWidget.formContainer.labelHeadline name=<<Unlock KeePassXC Database>> val=<<>> off=False rect=315;239;226;22
+11:54:02.343 [unlock]                 Text id=Application.MainWindow.centralwidget.stackedWidget.pageDatabase.tabWidget.qt_tabwidget_stackedwidget.DatabaseWidget.databaseOpenWidget.formContainer.fileNameLabel name=<<<work>\runs\explore-xc\db.kdbx>> val=<<>> off=False rect=315;267;650;16
+11:54:02.354 [unlock]                 Pane id=Application.MainWindow.centralwidget.stackedWidget.pageDatabase.tabWidget.qt_tabwidget_stackedwidget.DatabaseWidget.databaseOpenWidget.formContainer.centralStack name=<<>> val=<<>> off=False rect=315;302;650;213
+11:54:02.377 [unlock]                   Group id=Application.MainWindow.centralwidget.stackedWidget.pageDatabase.tabWidget.qt_tabwidget_stackedwidget.DatabaseWidget.databaseOpenWidget.formContainer.centralStack.mainPage name=<<>> val=<<>> off=False rect=316;303;648;211
+11:54:02.384 [unlock]                     Custom id=Application.MainWindow.centralwidget.stackedWidget.pageDatabase.tabWidget.qt_tabwidget_stackedwidget.DatabaseWidget.databaseOpenWidget.formContainer.centralStack.mainPage.enterPasswordComponent name=<<>> val=<<>> off=False rect=346;328;588;71
+11:54:02.412 [unlock]                       Text id=Application.MainWindow.centralwidget.stackedWidget.pageDatabase.tabWidget.qt_tabwidget_stackedwidget.DatabaseWidget.databaseOpenWidget.formContainer.centralStack.mainPage.enterPasswordComponent.passwordLabel name=<<Enter Password:>> val=<<>> off=False rect=346;328;588;16
+11:54:02.428 [unlock]                       Group id=Application.MainWindow.centralwidget.stackedWidget.pageDatabase.tabWidget.qt_tabwidget_stackedwidget.DatabaseWidget.databaseOpenWidget.formContainer.centralStack.mainPage.enterPasswordComponent.editPassword name=<<Password field>> val=<<>> off=False rect=346;354;588;29
+11:54:02.442 [unlock]                         Edit id=Application.MainWindow.centralwidget.stackedWidget.pageDatabase.tabWidget.qt_tabwidget_stackedwidget.DatabaseWidget.databaseOpenWidget.formContainer.centralStack.mainPage.enterPasswordComponent.editPassword.passwordEdit name=<<>> val=<<>> off=False rect=346;354;588;29
+11:54:02.458 [unlock]                           CheckBox id=Application.MainWindow.centralwidget.stackedWidget.pageDatabase.tabWidget.qt_tabwidget_stackedwidget.DatabaseWidget.databaseOpenWidget.formContainer.centralStack.mainPage.enterPasswordComponent.editPassword.passwordEdit.QLineEditIconButton name=<<Toggle Password (Ctrl+H)>> val=<<>> off=False rect=908;359;22;18
+11:54:02.471 [unlock]                     Custom id=Application.MainWindow.centralwidget.stackedWidget.pageDatabase.tabWidget.qt_tabwidget_stackedwidget.DatabaseWidget.databaseOpenWidget.formContainer.centralStack.mainPage.addAdditionalKeysComponent name=<<>> val=<<>> off=False rect=346;404;588;20
+11:54:02.482 [unlock]                       Button id=Application.MainWindow.centralwidget.stackedWidget.pageDatabase.tabWidget.qt_tabwidget_stackedwidget.DatabaseWidget.databaseOpenWidget.formContainer.centralStack.mainPage.addAdditionalKeysComponent.refreshHardwareKeys name=<<Refresh Hardware Keys>> val=<<>> off=False rect=826;406;20;16
+11:54:02.496 [unlock]                       Text id=Application.MainWindow.centralwidget.stackedWidget.pageDatabase.tabWidget.qt_tabwidget_stackedwidget.DatabaseWidget.databaseOpenWidget.formContainer.centralStack.mainPage.addAdditionalKeysComponent.addKeyFileLinkLabel name=<<I have a key file>> val=<<>> off=False rect=852;404;82;20
+11:54:02.509 [unlock]                     Group id=Application.MainWindow.centralwidget.stackedWidget.pageDatabase.tabWidget.qt_tabwidget_stackedwidget.DatabaseWidget.databaseOpenWidget.formContainer.centralStack.mainPage.buttonBox name=<<>> val=<<>> off=False rect=765;454;169;30
+11:54:02.519 [unlock]                       Button id=Application.MainWindow.centralwidget.stackedWidget.pageDatabase.tabWidget.qt_tabwidget_stackedwidget.DatabaseWidget.databaseOpenWidget.formContainer.centralStack.mainPage.buttonBox.QPushButton name=<<Unlock>> val=<<>> off=False rect=765;454;83;30
+11:54:02.530 [unlock]                       Button id=Application.MainWindow.centralwidget.stackedWidget.pageDatabase.tabWidget.qt_tabwidget_stackedwidget.DatabaseWidget.databaseOpenWidget.formContainer.centralStack.mainPage.buttonBox.QPushButton name=<<Close>> val=<<>> off=False rect=854;454;80;30
+11:54:02.593 [unlock] MenuBar id=Application.MainWindow.menubar name=<<>> val=<<>> off=False rect=240;76;800;27
+11:54:02.604 [unlock]   MenuItem id=Application.MainWindow.menubar.QAction name=<<Database>> val=<<>> off=False rect=240;76;64;27
+11:54:02.622 [unlock]   MenuItem id=Application.MainWindow.menubar.QAction name=<<Entries>> val=<<>> off=False rect=304;76;51;27
+11:54:02.631 [unlock]   MenuItem id=Application.MainWindow.menubar.QAction name=<<Groups>> val=<<>> off=False rect=355;76;54;27
+11:54:02.643 [unlock]   MenuItem id=Application.MainWindow.menubar.QAction name=<<Tools>> val=<<>> off=False rect=409;76;44;27
+11:54:02.655 [unlock]   MenuItem id=Application.MainWindow.menubar.QAction name=<<View>> val=<<>> off=False rect=453;76;41;27
+11:54:02.665 [unlock]   MenuItem id=Application.MainWindow.menubar.QAction name=<<Help>> val=<<>> off=False rect=494;76;41;27
+11:54:02.682 [unlock] ToolBar id=Application.MainWindow.toolBar name=<<>> val=<<>> off=False rect=240;103;800;55
+11:54:02.696 [unlock]   CheckBox id=Application.MainWindow.toolBar.qt_toolbar_ext_button name=<<>> val=<<>> off=False rect=1002;110;32;41
+11:54:02.708 [unlock]   Button id=Application.MainWindow.toolBar.QToolButton name=<<Open Database>> val=<<>> off=False rect=247;110;42;41
+11:54:02.724 [unlock]   Button id=Application.MainWindow.toolBar.QToolButton name=<<Save Database>> val=<<>> off=False rect=290;110;42;41
+11:54:02.737 [unlock]   Button id=Application.MainWindow.toolBar.QToolButton name=<<Lock Database>> val=<<>> off=False rect=333;110;54;41
+11:54:02.748 [unlock]   Group id=Application.MainWindow.toolBar.QToolBarSeparator name=<<>> val=<<>> off=False rect=388;110;9;41
+11:54:02.760 [unlock]   Button id=Application.MainWindow.toolBar.QToolButton name=<<New Entry>> val=<<>> off=False rect=398;110;42;41
+11:54:02.772 [unlock]   Button id=Application.MainWindow.toolBar.QToolButton name=<<Edit Entry…>> val=<<>> off=False rect=441;110;42;41
+11:54:02.795 [unlock]   Button id=Application.MainWindow.toolBar.QToolButton name=<<Delete Entry>> val=<<>> off=False rect=484;110;42;41
+11:54:02.805 [unlock]   Group id=Application.MainWindow.toolBar.QToolBarSeparator name=<<>> val=<<>> off=False rect=527;110;9;41
+11:54:02.816 [unlock]   Button id=Application.MainWindow.toolBar.QToolButton name=<<Copy Username>> val=<<>> off=False rect=537;110;42;41
+11:54:02.827 [unlock]   Button id=Application.MainWindow.toolBar.QToolButton name=<<Copy Password>> val=<<>> off=False rect=580;110;42;41
+11:54:02.839 [unlock]   Button id=Application.MainWindow.toolBar.QToolButton name=<<Copy URL>> val=<<>> off=False rect=623;110;42;41
+11:54:02.852 [unlock]   Button id=Application.MainWindow.toolBar.QToolButton name=<<Perform Auto-Type>> val=<<>> off=False rect=666;110;54;41
+11:54:02.864 [unlock]   Group id=Application.MainWindow.toolBar.QToolBarSeparator name=<<>> val=<<>> off=False rect=721;110;9;41
+11:54:02.875 [unlock]   CheckBox id=Application.MainWindow.toolBar.QToolButton name=<<Database Settings>> val=<<>> off=False rect=731;110;42;41
+11:54:02.889 [unlock]   CheckBox id=Application.MainWindow.toolBar.QToolButton name=<<Database Reports>> val=<<>> off=False rect=774;110;42;41
+11:54:02.897 [unlock]   Group id=Application.MainWindow.toolBar.QToolBarSeparator name=<<>> val=<<>> off=False rect=817;110;9;41
+11:54:02.911 [unlock]   CheckBox id=Application.MainWindow.toolBar.QToolButton name=<<Password Generator>> val=<<>> off=False rect=827;110;42;41
+11:54:02.919 [unlock]   CheckBox id=Application.MainWindow.toolBar.QToolButton name=<<Settings>> val=<<>> off=False rect=870;110;42;41
+11:54:02.933 [unlock]   Group id=Application.MainWindow.toolBar.QToolBarSeparator name=<<>> val=<<>> off=False rect=913;110;9;41
+11:54:02.951 [unlock] StatusBar id=Application.MainWindow.QStatusBar name=<<>> val=<<>> off=False rect=240;652;800;24
+11:54:02.963 [unlock]   Thumb id=Application.MainWindow.QStatusBar.QSizeGrip name=<<>> val=<<>> off=False rect=1023;659;17;17
+11:54:02.975 [unlock]   Text id=Application.MainWindow.QStatusBar.statusBarLabel name=<<>> val=<<>> off=False rect=1010;655;6;19
+11:54:04.034 stopping KeePassXC pid=2776

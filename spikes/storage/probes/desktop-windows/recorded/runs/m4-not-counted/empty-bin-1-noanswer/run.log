@@ -1,0 +1,23 @@
+11:37:38.181 ==== empty-bin-1 : the recycle bin selected, Group menu, Empty Recycle Bin
+11:37:38.206 config: 
+11:37:50.392 started KeePass pid=18192 token: TokenIsElevated=1 ElevationType=2 Integrity=0x3000 AdministratorsEnabled=False
+11:37:50.577 main window: <<db.kdbx - KeePass>>
+11:37:50.888 group rows: Archive, Desk store, Empty group, KeePassGate, Passwords, Recycle Bin
+11:37:53.897 menu: <<Empty Recycle Bin>>
+11:37:55.815 [empty-bin-1-1] WINDOW title=<<KeePass>> class=#32770
+11:37:55.916 [empty-bin-1-1]   Image name=<<MainInstructionIcon>>
+11:37:55.934 [empty-bin-1-1]   Text name=<<Are you sure you want to permanently delete the items?>>
+11:37:55.954 [empty-bin-1-1]   Text name=<<- KPG grant 5
+- KPG grant 6
+- KPG grant 7>>
+11:37:55.978 [empty-bin-1-1]   Pane name=<<Delete>>
+11:37:55.990 [empty-bin-1-1]   Pane name=<<Cancel>>
+11:37:56.010 [empty-bin-1-1]   win32 Button <<&Delete>>
+11:37:56.023 [empty-bin-1-1]   win32 Button <<Cancel>>
+11:37:56.621 shot empty-bin-1-1.png (362 x 195)
+11:38:03.444 dialogs: 1
+11:38:07.348 [after] window title <<db.kdbx - KeePass>>; groups [Desk store, KeePassGate, Archive, Passwords, Empty group, Recycle Bin]; KeePassGate [KPG grant 5, KPG grant 6, KPG grant 7]; Passwords [KPG grant 5, KPG grant 6, KPG grant 7]; status <<Ready.>>
+11:38:12.360 file: size=2885 mtime=2026-11-16T08:32:09.3001212Z sha=8b289ea027b9
+11:38:34.535 KeePass did not exit; stopped
+11:38:34.557 stopping KeePass pid=18192
+11:38:34.912 diff against the base: 0 lines

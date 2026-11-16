@@ -1,0 +1,21 @@
+10:42:14.911 ==== b-ok-unsaved-1 : KPG.Ref added to U3 while open, not saved; OK, nothing touched
+10:42:14.919 config: 
+10:42:29.195 started KeePass pid=21800 token: TokenIsElevated=1 ElevationType=2 Integrity=0x3000 AdministratorsEnabled=False
+10:42:29.376 main window: <<db.kdbx - KeePass>>
+10:42:29.742 group rows: Desk entries, KeePassGate, Passwords, Recycle Bin
+10:42:34.202 shot b-ok-unsaved-1-dialog.png (491 x 513)
+10:42:34.644 plugin: 2026-11-16T09:42:34.4337059Z set|Shop|KPG.Ref|zqxref-u3-live => added KPG.Ref on Shop; modified=True
+10:42:34.913 the file after the plugin's write, KPG.Ref: 
+10:42:34.917 window title while the dialog is open: <<db.kdbx* - KeePass>>
+10:42:49.040 plugin: 2026-11-16T09:42:48.8511144Z dump|Shop|<work>\runs\m3\b-ok-unsaved-1\memory.txt => dumped
+10:42:49.080 memory: S Notes p=0 
+10:42:49.124 memory: S Password p=1 u3-pw-invented
+10:42:49.140 memory: S Title p=0 Shop
+10:42:49.160 memory: S URL p=0 https://shop.example.invalid/
+10:42:49.176 memory: S UserName p=0 carol-invented
+10:42:49.181 memory: tags []
+10:42:49.189 memory: history 0
+10:42:49.196 memory: modified 2026-11-01T10:22:00.0000000Z
+10:42:49.207 memory: database modified=True
+10:42:49.214 window title after the dialog closed: <<db.kdbx* - KeePass>>
+10:42:53.168 window title after Ctrl+S: <<db.kdbx - KeePass>>

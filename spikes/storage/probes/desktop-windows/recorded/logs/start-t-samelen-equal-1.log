@@ -1,0 +1,2 @@
+elevated: False
+command: Start-Process -FilePath '<work>\kp\KeePass.exe' -WorkingDirectory '<work>\kp' -ArgumentList '<work>\runs\m1\t-samelen-equal-1\db.kdbx','-pw:desk-probe-invented-password'

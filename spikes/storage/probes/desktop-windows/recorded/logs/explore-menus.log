@@ -1,0 +1,123 @@
+10:16:02.047 config: 
+10:16:14.056 started KeePass pid=12480 token: TokenIsElevated=1 ElevationType=2 Integrity=0x3000 AdministratorsEnabled=False
+10:16:14.487 main window: <<db.kdbx - KeePass>>
+10:17:43.519 stopping KeePass pid=12480
+10:17:54.040 config: 
+10:18:07.928 started KeePass pid=16992 token: TokenIsElevated=1 ElevationType=2 Integrity=0x3000 AdministratorsEnabled=False
+10:18:08.367 main window: <<db.kdbx - KeePass>>
+10:19:37.252 stopping KeePass pid=16992
+10:20:36.162 config: 
+10:20:47.874 started KeePass pid=13788 token: TokenIsElevated=1 ElevationType=2 Integrity=0x3000 AdministratorsEnabled=False
+10:20:48.303 main window: <<db.kdbx - KeePass>>
+10:20:52.308 [File/] item <<New...>> enabled=True
+10:20:52.316 [File/] item <<Open>> enabled=True
+10:20:52.324 [File/] item <<Open Recent>> enabled=True
+10:20:52.328 [File/] item <<Close>> enabled=True
+10:20:52.335 [File/] item <<Save>> enabled=True
+10:20:52.344 [File/] item <<Save As>> enabled=True
+10:20:52.350 [File/] item <<Database Settings...>> enabled=True
+10:20:52.355 [File/] item <<Change Master Key...>> enabled=True
+10:20:52.364 [File/] item <<Print>> enabled=True
+10:20:52.372 [File/] item <<Import...>> enabled=True
+10:20:52.381 [File/] item <<Export...>> enabled=True
+10:20:52.389 [File/] item <<Synchronize>> enabled=True
+10:20:52.395 [File/] item <<Lock Workspace>> enabled=True
+10:20:52.402 [File/] item <<Exit>> enabled=True
+10:20:52.412 [File/] item <<File>> enabled=True
+10:20:52.433 [File/] item <<Group>> enabled=True
+10:20:52.443 [File/] item <<Entry>> enabled=True
+10:20:52.452 [File/] item <<Find>> enabled=True
+10:20:52.466 [File/] item <<View>> enabled=True
+10:20:52.474 [File/] item <<Tools>> enabled=True
+10:20:52.482 [File/] item <<Help>> enabled=True
+10:20:54.538 menu: <<Synchronize>>
+10:20:56.248 [File/Synchronize] item <<Synchronize with File...>> enabled=True
+10:20:56.254 [File/Synchronize] item <<Synchronize with URL...>> enabled=True
+10:20:56.261 [File/Synchronize] item <<Recent Files>> enabled=True
+10:20:56.269 [File/Synchronize] item <<New...>> enabled=True
+10:20:56.281 [File/Synchronize] item <<Open>> enabled=True
+10:20:56.289 [File/Synchronize] item <<Open Recent>> enabled=True
+10:20:56.295 [File/Synchronize] item <<Close>> enabled=True
+10:20:56.303 [File/Synchronize] item <<Save>> enabled=True
+10:20:56.309 [File/Synchronize] item <<Save As>> enabled=True
+10:20:56.317 [File/Synchronize] item <<Database Settings...>> enabled=True
+10:20:56.326 [File/Synchronize] item <<Change Master Key...>> enabled=True
+10:20:56.332 [File/Synchronize] item <<Print>> enabled=True
+10:20:56.339 [File/Synchronize] item <<Import...>> enabled=True
+10:20:56.349 [File/Synchronize] item <<Export...>> enabled=True
+10:20:56.355 [File/Synchronize] item <<Synchronize>> enabled=True
+10:20:56.363 [File/Synchronize] item <<Lock Workspace>> enabled=True
+10:20:56.372 [File/Synchronize] item <<Exit>> enabled=True
+10:20:56.380 [File/Synchronize] item <<File>> enabled=True
+10:20:56.397 [File/Synchronize] item <<Group>> enabled=True
+10:20:56.408 [File/Synchronize] item <<Entry>> enabled=True
+10:20:56.426 [File/Synchronize] item <<Find>> enabled=True
+10:20:56.445 [File/Synchronize] item <<View>> enabled=True
+10:20:56.450 [File/Synchronize] item <<Tools>> enabled=True
+10:20:56.457 [File/Synchronize] item <<Help>> enabled=True
+10:20:58.582 menu: <<Import...>>
+10:21:00.439 [File/Import] item <<File>> enabled=True
+10:21:00.443 [File/Import] item <<Group>> enabled=True
+10:21:00.456 [File/Import] item <<Entry>> enabled=True
+10:21:00.465 [File/Import] item <<Find>> enabled=True
+10:21:00.472 [File/Import] item <<View>> enabled=True
+10:21:00.479 [File/Import] item <<Tools>> enabled=True
+10:21:00.488 [File/Import] item <<Help>> enabled=True
+10:21:03.419 [Group/] item <<Add Group...>> enabled=True
+10:21:03.428 [Group/] item <<Edit Group...>> enabled=True
+10:21:03.438 [Group/] item <<Duplicate Group...>> enabled=True
+10:21:03.448 [Group/] item <<Delete Group>> enabled=True
+10:21:03.460 [Group/] item <<Empty Recycle Bin>> enabled=True
+10:21:03.474 [Group/] item <<Rearrange>> enabled=True
+10:21:03.483 [Group/] item <<Data Exchange>> enabled=True
+10:21:03.495 [Group/] item <<File>> enabled=True
+10:21:03.505 [Group/] item <<Group>> enabled=True
+10:21:03.524 [Group/] item <<Entry>> enabled=True
+10:21:03.530 [Group/] item <<Find>> enabled=True
+10:21:03.541 [Group/] item <<View>> enabled=True
+10:21:03.549 [Group/] item <<Tools>> enabled=True
+10:21:03.562 [Group/] item <<Help>> enabled=True
+10:21:05.955 menu: <<Rearrange>>
+10:21:07.936 [Group/Rearrange] item <<Move Group to Top>> enabled=False
+10:21:07.945 [Group/Rearrange] item <<Move Group One Up>> enabled=False
+10:21:07.958 [Group/Rearrange] item <<Move Group One Down>> enabled=True
+10:21:07.970 [Group/Rearrange] item <<Move Group to Bottom>> enabled=True
+10:21:07.978 [Group/Rearrange] item <<Move to Previous Parent Group>> enabled=False
+10:21:07.986 [Group/Rearrange] item <<Sort Direct Subgroups>> enabled=False
+10:21:07.994 [Group/Rearrange] item <<Sort Recursively>> enabled=False
+10:21:08.012 [Group/Rearrange] item <<Expand Recursively>> enabled=True
+10:21:08.029 [Group/Rearrange] item <<Collapse Recursively>> enabled=True
+10:21:08.044 [Group/Rearrange] item <<Add Group...>> enabled=True
+10:21:08.055 [Group/Rearrange] item <<Edit Group...>> enabled=True
+10:21:08.068 [Group/Rearrange] item <<Duplicate Group...>> enabled=True
+10:21:08.080 [Group/Rearrange] item <<Delete Group>> enabled=True
+10:21:08.091 [Group/Rearrange] item <<Empty Recycle Bin>> enabled=True
+10:21:08.098 [Group/Rearrange] item <<Rearrange>> enabled=True
+10:21:08.125 [Group/Rearrange] item <<Data Exchange>> enabled=True
+10:21:08.135 [Group/Rearrange] item <<File>> enabled=True
+10:21:08.147 [Group/Rearrange] item <<Group>> enabled=True
+10:21:08.179 [Group/Rearrange] item <<Entry>> enabled=True
+10:21:08.188 [Group/Rearrange] item <<Find>> enabled=True
+10:21:08.197 [Group/Rearrange] item <<View>> enabled=True
+10:21:08.208 [Group/Rearrange] item <<Tools>> enabled=True
+10:21:08.218 [Group/Rearrange] item <<Help>> enabled=True
+10:21:11.096 [Entry/] item <<Copy User Name>> enabled=False
+10:21:11.112 [Entry/] item <<Copy Password>> enabled=False
+10:21:11.125 [Entry/] item <<URL(s)>> enabled=False
+10:21:11.138 [Entry/] item <<Other Data>> enabled=False
+10:21:11.153 [Entry/] item <<Attachments>> enabled=False
+10:21:11.169 [Entry/] item <<Perform Auto-Type>> enabled=False
+10:21:11.187 [Entry/] item <<Edit Entry...>> enabled=False
+10:21:11.195 [Entry/] item <<Edit Entry (Quick)>> enabled=False
+10:21:11.206 [Entry/] item <<Duplicate Entry...>> enabled=False
+10:21:11.222 [Entry/] item <<Delete Entry>> enabled=False
+10:21:11.233 [Entry/] item <<Compare>> enabled=False
+10:21:11.261 [Entry/] item <<Data Exchange>> enabled=True
+10:21:11.290 [Entry/] item <<File>> enabled=True
+10:21:11.311 [Entry/] item <<Group>> enabled=True
+10:21:11.321 [Entry/] item <<Entry>> enabled=True
+10:21:11.356 [Entry/] item <<Find>> enabled=True
+10:21:11.410 [Entry/] item <<View>> enabled=True
+10:21:11.426 [Entry/] item <<Tools>> enabled=True
+10:21:11.441 [Entry/] item <<Help>> enabled=True
+10:21:19.533 stopping KeePass pid=13788

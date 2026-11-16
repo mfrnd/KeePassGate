@@ -1,0 +1,16 @@
+search | zqxref-u1 | []
+search | zqxref-u2-protected | []
+search | zqxstore-grant | []
+search | zqxstore-secret | []
+search | KPG grant | []
+search | Mail account | [Passwords, Mail account, alice-invented, https://mail.example.invalid/, user notes of U1]
+list | Passwords | Mail account, alice-invented, https://mail.example.invalid/, user notes of U1, 01.11.2026 14:20, Bank, bob-invented, https://bank.example.invalid/, 01.11.2026 11:21, Shop, carol-invented, https://shop.example.invalid/, 01.11.2026 11:22
+preview | Mail account | 
+list | Passwords | Mail account, alice-invented, https://mail.example.invalid/, user notes of U1, 01.11.2026 14:20, Bank, bob-invented, https://bank.example.invalid/, 01.11.2026 11:21, Shop, carol-invented, https://shop.example.invalid/, 01.11.2026 11:22
+preview | Bank | 
+list | KeePassGate | KPG grant 1, 01.11.2026 11:10, KPG admission 1, 01.11.2026 11:11
+preview | KPG grant 1 | 
+autotype | global, target <<KPG grant 1>> | KeePassXC showed <<Auto-Type - KeePassXC>> Double click a row to perform Auto-Type or find an entry using the search: / Group / Title / Username
+autotype | global, target <<KPG grant 1>> | typed: <<>>
+autotype | global, target <<Mail account>> | KeePassXC showed <<Auto-Type - KeePassXC>> Double click a row to perform Auto-Type or find an entry using the search: / Group / Title / Username
+autotype | global, target <<Mail account>> | typed: <<>>

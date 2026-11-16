@@ -1,0 +1,64 @@
+- D count 6
++ D count 9
++ D S1 2026-11-16T10:05:03Z
++ D S6 2026-11-16T10:05:03Z
++ D S7c 2026-11-16T10:05:03Z
+- E S1 autotype enabled=1 obfuscation=0 seq="" assoc=0
+- E S1 history.count 0
+- E S1 misc icon=0 customIcon=- fg=00000000 bg=00000000 overrideUrl="" quality=1
+- E S1 parent KG (KeePassGate)
+- E S1 prev -
+- E S1 S KPG.Body p=0 "{\"kind\":\"grant 1\",\"n\":\"S1\"}"
+- E S1 S KPG.Kind p=0 "grant 1"
+- E S1 S Notes p=0 ""
+- E S1 S Password p=1 ""
+- E S1 S Title p=0 "KPG grant 1"
+- E S1 S URL p=0 ""
+- E S1 S UserName p=0 ""
+- E S1 t.created 2026-11-01T10:10:00Z
+- E S1 t.expires 0 2026-11-01T10:00:00Z
+- E S1 t.location 2026-11-01T10:10:00Z
+- E S1 t.modified 2026-11-01T10:10:00Z
+- E S1 tags []
+- E S6 autotype enabled=1 obfuscation=0 seq="" assoc=0
+- E S6 history.count 0
+- E S6 misc icon=0 customIcon=- fg=00000000 bg=00000000 overrideUrl="" quality=1
+- E S6 parent Bin (Recycle Bin)
+- E S6 prev KG
+- E S6 S KPG.Body p=0 "{\"kind\":\"grant 6\",\"n\":\"S6\"}"
+- E S6 S KPG.Kind p=0 "grant 6"
+- E S6 S Notes p=0 ""
+- E S6 S Password p=1 ""
+- E S6 S Title p=0 "KPG grant 6"
+- E S6 S URL p=0 ""
+- E S6 S UserName p=0 ""
+- E S6 t.created 2026-11-01T10:15:00Z
+- E S6 t.expires 0 2026-11-01T10:00:00Z
+- E S6 t.location 2026-11-01T10:15:00Z
+- E S6 t.modified 2026-11-01T10:15:00Z
+- E S6 tags []
+- E S7c autotype enabled=1 obfuscation=0 seq="" assoc=0
+- E S7c history.count 0
+- E S7c misc icon=0 customIcon=- fg=00000000 bg=00000000 overrideUrl="" quality=1
+- E S7c parent Bin (Recycle Bin)
+- E S7c prev KG
+- E S7c S KPG.Body p=0 "{\"kind\":\"grant 7\",\"n\":\"S7\"}"
+- E S7c S KPG.Kind p=0 "grant 7"
+- E S7c S Notes p=0 ""
+- E S7c S Password p=1 ""
+- E S7c S Title p=0 "KPG grant 7"
+- E S7c S URL p=0 ""
+- E S7c S UserName p=0 ""
+- E S7c t.created 2026-11-01T11:02:00Z
+- E S7c t.expires 0 2026-11-01T10:00:00Z
+- E S7c t.location 2026-11-01T11:02:00Z
+- E S7c t.modified 2026-11-01T11:02:00Z
+- E S7c tags []
+- F groups 6 entries 12
++ F groups 6 entries 9
++ G Bin children groups=0 entries=1
+- G Bin children groups=0 entries=3
++ G KG children groups=1 entries=6
+- G KG children groups=1 entries=7
+- G PW flags icon=48 customIcon=- search=inherit autotype=inherit expanded=1 seq="" lastTop=-
++ G PW flags icon=48 customIcon=- search=inherit autotype=inherit expanded=1 seq="" lastTop=U1

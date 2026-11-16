@@ -1,0 +1,17 @@
+elevated: False
+command: Get-Content '<work>\runs\m2\w-merge-2\pw.txt' | & '<work>\kpxc-2.8.0\keepassxc-cli.exe' merge -s '<work>\runs\m2\w-merge-2\cli-merge.kdbx' '<work>\runs\m2\w-merge-2\other.kdbx'
+powershell.exe : Passwort zum Entsperren von <work>\runs\m2\w-merge-2\cli-merge.kdbx eingeben:
+At <session>\unelevated.p
+s1:15 char:5
++     & powershell.exe -NoProfile -ExecutionPolicy Bypass -Command ($Co ...
++     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (Passwort zum En....kdbx eingeben::String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+Entry of Q3[4b504751330000000000000000000000] contains conflicting changes - conflict resolution may lose data!
+	Hinzugef%]%gt: '/Desk probe/KeePassGate'/'KPG revocation' [{4b50474b-4733-0000-0000-000000000000}]
+	Ge%�ndert: '/Desk probe/Passwords'/'P1' [{4b504750-3100-0000-0000-000000000000}] (Passwort, History (lokale %�nderungen zum neuen Eintrag hinzuf%]%gen))
+	Ge%�ndert: '/Desk probe/Passwords'/'Q1' [{4b504751-3100-0000-0000-000000000000}] (Passwort, History (neue %�nderungen zum bestehenden Eintrag hinzuf%]%gen))
+	Ge%�ndert: '/Desk probe/Passwords'/'Q2' [{4b504751-3200-0000-0000-000000000000}] (Passwort, History (lokale %�nderungen zum neuen Eintrag hinzuf%]%gen))
+	Hinzugef%]%gt: '/Desk probe/Passwords'/'other-new' [{4b50474e-4f00-0000-0000-000000000000}]
+<work>\runs\m2\w-merge-2\other.kdbx erfolgreich nach <work>\runs\m2\w-merge-2\cli-merge.kdbx zusammengef%]%hrt.

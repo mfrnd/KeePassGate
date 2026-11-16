@@ -1,0 +1,22 @@
+11:25:25.936 ==== dde-1 : Tools, Database Tools, Delete Duplicate Entries
+11:25:25.942 config: 
+11:25:37.978 started KeePass pid=10844 token: TokenIsElevated=1 ElevationType=2 Integrity=0x3000 AdministratorsEnabled=False
+11:25:38.136 main window: <<db.kdbx - KeePass>>
+11:25:38.401 group rows: Archive, Desk store, Empty group, KeePassGate, Passwords, Recycle Bin
+11:25:40.074 menu: <<Database Tools>>
+11:25:41.362 menu: <<Delete Duplicate Entries>>
+11:25:43.149 [dde-1-1] WINDOW title=<<KeePass>> class=#32770
+11:25:43.209 [dde-1-1]   Image name=<<MainInstructionIcon>>
+11:25:43.219 [dde-1-1]   Text name=<<3 object(s) deleted.>>
+11:25:43.235 [dde-1-1]   CheckBox name=<<Do not show this dialog again.>>
+11:25:43.244 [dde-1-1]   Pane name=<<OK>>
+11:25:43.267 [dde-1-1]   win32 Button <<OK>>
+11:25:43.827 shot dde-1-1.png (362 x 120)
+11:25:45.022 [dde-1-1] pressed <<OK (clicked)>>
+11:25:51.558 dialogs: 1
+11:25:54.305 [after] window title <<db.kdbx* - KeePass>>; groups [Desk store, KeePassGate, Archive, Passwords, Empty group, Recycle Bin]; KeePassGate [KPG admission 1, KPG revocation 1, KPG profile 1, KPG grant 1, KPG grant 6, KPG grant 7]; Passwords [Mail account, Bank]; status <<Ready.>>
+11:25:59.512 stopping KeePass pid=10844
+11:25:59.560 RUN FAILED dde-1: The term 'Get-FileHash' is not recognized as the name of a cmdlet, function, script file, or operable program. Check the spelling of the name, or if a path was included, verify that the path is correct and try again. at Get-FileState, <branch>\spikes\storage\probes\desktop-windows\scripts\Ui.ps1: line 536
+at Run-M4, <branch>\spikes\storage\probes\desktop-windows\scripts\M4.ps1: line 74
+at <ScriptBlock>, <branch>\spikes\storage\probes\desktop-windows\scripts\M4.ps1: line 165
+at <ScriptBlock>, <No file>: line 1

@@ -1,0 +1,10 @@
+10:49:05.125 ==== move-to-group
+10:49:05.134 config: 
+10:49:17.645 started KeePass pid=17012 token: TokenIsElevated=1 ElevationType=2 Integrity=0x3000 AdministratorsEnabled=False
+10:49:17.796 main window: <<db.kdbx - KeePass>>
+10:49:18.132 group rows: Desk entries, KeePassGate, Passwords, Recycle Bin
+10:49:26.569 RUN FAILED move-to-group: no menu item Rearrange at Kp-Menu, <branch>\spikes\storage\probes\desktop-windows\scripts\Kp.ps1: line 317
+at <ScriptBlock>, <branch>\spikes\storage\probes\desktop-windows\scripts\M3v.ps1: line 248
+at Run-Case, <branch>\spikes\storage\probes\desktop-windows\scripts\M3v.ps1: line 116
+at <ScriptBlock>, <branch>\spikes\storage\probes\desktop-windows\scripts\M3v.ps1: line 245
+10:49:26.589 stopping KeePass pid=17012

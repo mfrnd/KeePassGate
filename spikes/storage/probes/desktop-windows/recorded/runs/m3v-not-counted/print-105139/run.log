@@ -1,0 +1,11 @@
+10:51:12.877 ==== print
+10:51:12.893 config: 
+10:51:24.982 started KeePass pid=22092 token: TokenIsElevated=1 ElevationType=2 Integrity=0x3000 AdministratorsEnabled=False
+10:51:25.243 main window: <<db.kdbx - KeePass>>
+10:51:25.634 group rows: Desk entries, KeePassGate, Passwords, Recycle Bin
+10:51:28.673 menu: <<Print>>
+10:51:39.671 RUN FAILED print: not found: print dialog at Need, <branch>\spikes\storage\probes\desktop-windows\scripts\Ui.ps1: line 312
+at <ScriptBlock>, <branch>\spikes\storage\probes\desktop-windows\scripts\M3v.ps1: line 314
+at Run-Case, <branch>\spikes\storage\probes\desktop-windows\scripts\M3v.ps1: line 116
+at <ScriptBlock>, <branch>\spikes\storage\probes\desktop-windows\scripts\M3v.ps1: line 309
+10:51:39.695 stopping KeePass pid=22092

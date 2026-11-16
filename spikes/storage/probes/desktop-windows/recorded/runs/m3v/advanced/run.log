@@ -1,0 +1,10 @@
+10:46:24.839 ==== advanced
+10:46:24.845 config: 
+10:46:36.430 started KeePass pid=13412 token: TokenIsElevated=1 ElevationType=2 Integrity=0x3000 AdministratorsEnabled=False
+10:46:36.589 main window: <<db.kdbx - KeePass>>
+10:46:36.840 group rows: Desk entries, KeePassGate, Passwords, Recycle Bin
+10:46:41.345 Advanced, Mail account, string <<Extra>> <<Value: zqxextra-u1>>
+10:46:41.351 Advanced, Mail account, string <<KPG.Ref>> <<Value: zqxref-u1 {"rule":"KG1"}>>
+10:46:42.540 shot advanced-Mailaccount.png (491 x 513)
+10:46:57.195 Advanced, Bank, string <<KPG.Ref>> <<Value: ********>>
+10:46:58.320 shot advanced-Bank.png (491 x 513)

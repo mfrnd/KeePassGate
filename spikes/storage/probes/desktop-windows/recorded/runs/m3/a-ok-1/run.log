@@ -1,0 +1,22 @@
+10:38:18.708 ==== a-ok-1 : KPG.Ref on U1 before; OK, nothing touched
+10:38:18.750 config: 
+10:38:29.995 started KeePass pid=14924 token: TokenIsElevated=1 ElevationType=2 Integrity=0x3000 AdministratorsEnabled=False
+10:38:30.331 main window: <<db.kdbx - KeePass>>
+10:38:30.731 group rows: Desk entries, KeePassGate, Passwords, Recycle Bin
+10:38:35.486 shot a-ok-1-dialog.png (491 x 513)
+10:38:50.101 plugin: 2026-11-16T09:38:49.9651119Z dump|Mail account|<work>\runs\m3\a-ok-1\memory.txt => dumped
+10:38:50.127 memory: S Extra p=0 zqxextra-u1
+10:38:50.131 memory: S KPG.Ref p=0 zqxref-u1 {"rule":"KG1"}
+10:38:50.138 memory: S Notes p=0 user notes of U1
+10:38:50.148 memory: S Password p=1 u1-pw-invented
+10:38:50.156 memory: S Title p=0 Mail account
+10:38:50.172 memory: S URL p=0 https://mail.example.invalid/
+10:38:50.180 memory: S UserName p=0 alice-invented
+10:38:50.184 memory: A u1.txt len=34
+10:38:50.186 memory: tags [work]
+10:38:50.190 memory: CD Other.Plugin = zqxcd-u1
+10:38:50.198 memory: history 2
+10:38:50.204 memory: modified 2026-11-01T13:20:00.0000000Z
+10:38:50.206 memory: database modified=False
+10:38:50.214 window title after the dialog closed: <<db.kdbx - KeePass>>
+10:38:54.037 window title after Ctrl+S: <<db.kdbx - KeePass>>

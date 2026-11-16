@@ -1,0 +1,8 @@
+- E S1 index 0
++ E S1 index 1
+- E S1 t.location 2026-11-01T10:10:00Z
++ E S1 t.location 2026-11-16T10:41:28Z
++ E S2 index 0
+- E S2 index 1
+- G PW flags icon=48 customIcon=- search=inherit autotype=inherit expanded=1 seq="" lastTop=-
++ G PW flags icon=48 customIcon=- search=inherit autotype=inherit expanded=1 seq="" lastTop=U1

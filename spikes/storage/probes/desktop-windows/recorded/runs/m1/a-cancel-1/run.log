@@ -1,0 +1,48 @@
+09:56:51.832 ==== a-cancel-1 : full edits, NEW later, Ctrl+S, Cancel
+09:56:51.848 config: 
+09:57:05.656 started KeePass pid=21572 token: TokenIsElevated=1 ElevationType=2 Integrity=0x3000 AdministratorsEnabled=False
+09:57:05.836 main window: <<db.kdbx - KeePass>>
+09:57:10.872 edited P2 password=p2-window; OK posted 2026-11-16T08:57:10.7637648Z, dialog gone 2026-11-16T08:57:10.8728608Z
+09:57:15.358 edited Q1 password=q1-window; OK posted 2026-11-16T08:57:15.2387404Z, dialog gone 2026-11-16T08:57:15.3586520Z
+09:57:19.795 edited Q2 password=q2-window; OK posted 2026-11-16T08:57:19.6869875Z, dialog gone 2026-11-16T08:57:19.7953869Z
+09:57:25.137 edited Q3 password=q3-window; OK posted 2026-11-16T08:57:25.0208837Z, dialog gone 2026-11-16T08:57:25.1371795Z
+09:57:28.668 added entry window-new in Passwords
+09:57:28.679 Q3's edit second: 2026-11-16T08:57:25Z (the press and the dialog's closing in the same second: True)
+09:57:28.930 probe: wrote <work>\runs\m1\a-cancel-1\NEW-run.kdbx (Q3 at 2026-11-16T08:57:25Z)
+09:57:28.965 replace: before size=3413 mtime=2026-11-16T08:31:56.2778845Z sha=2ff7a751a869
+09:57:29.004 replace (later) with NEW-run.kdbx: after size=5029 mtime=2026-11-16T08:57:28.9778444Z sha=7efc84ee0800
+09:57:31.547 [a-cancel-1-1] WINDOW title=<<KeePass>> class=#32770
+09:57:31.719 [a-cancel-1-1]   Image name=<<MainInstructionIcon>>
+09:57:31.732 [a-cancel-1-1]   Text name=<<Overwrite the existing file?>>
+09:57:31.745 [a-cancel-1-1]   Text name=<<<work>\runs\m1\a-cancel-1\db.kdbx
+
+The file on disk/server has changed since it was loaded. Probably someone else has edited and saved the database.>>
+09:57:31.757 [a-cancel-1-1]   Pane name=<<Synchronize>> help=<<Load the file on disk/server and merge it with the current database in memory.>>
+09:57:31.770 [a-cancel-1-1]   Pane name=<<Overwrite>> help=<<Save the current database to the file. Changes made by the other user will be lost.>>
+09:57:31.786 [a-cancel-1-1]   Pane name=<<Cancel>> help=<<Abort the current operation.>>
+09:57:31.812 [a-cancel-1-1]   win32 Button <<Synchronize>>
+09:57:31.826 [a-cancel-1-1]   win32 Button <<Overwrite>>
+09:57:31.842 [a-cancel-1-1]   win32 Button <<Cancel>>
+09:57:32.424 shot a-cancel-1-1.png (489 x 361)
+09:57:32.896 [a-cancel-1-1] pressed <<Cancel (clicked)>>
+09:57:40.636 dialogs after the flow: 1
+09:57:44.321 [after] window title <<db.kdbx* - KeePass>>; groups [Desk probe, KeePassGate, Passwords, Recycle Bin]; KeePassGate [KPG grant 1, KPG admission 1]; Passwords [P1, P2, Q1, Q2, Q3, X1, K, window-new]; status <<Ready.>>
+09:57:44.330 file after the flow: size=5029 mtime=2026-11-16T08:57:28.9778444Z sha=7efc84ee0800
+09:57:46.064 [a-cancel-1-exit-1] WINDOW title=<<KeePass>> class=#32770
+09:57:46.219 [a-cancel-1-exit-1]   Image name=<<MainInstructionIcon>>
+09:57:46.229 [a-cancel-1-exit-1]   Text name=<<Save database changes before exiting KeePass?>>
+09:57:46.243 [a-cancel-1-exit-1]   Text name=<<Database file:
+<work>\runs\m1\a-cancel-1\db.kdbx>>
+09:57:46.252 [a-cancel-1-exit-1]   Pane name=<<Save>> help=<<Save all changes made to the database and exit KeePass.>>
+09:57:46.272 [a-cancel-1-exit-1]   Pane name=<<Discard changes>> help=<<Discard all changes made to the database and exit KeePass.>>
+09:57:46.283 [a-cancel-1-exit-1]   Pane name=<<Cancel>> help=<<Abort the current operation. KeePass will not be closed.>>
+09:57:46.294 [a-cancel-1-exit-1]   CheckBox name=<<Automatically save when closing/locking the database>>
+09:57:46.318 [a-cancel-1-exit-1]   win32 Button <<&Save>>
+09:57:46.320 [a-cancel-1-exit-1]   win32 Button <<&Discard changes>>
+09:57:46.327 [a-cancel-1-exit-1]   win32 Button <<Cancel>>
+09:57:46.907 shot a-cancel-1-exit-1.png (446 x 354)
+09:58:08.177 KeePass did not exit; stopped
+09:58:08.191 dialogs at the exit (answered Discard): 1
+09:58:08.213 file after the exit: size=5029 mtime=2026-11-16T08:57:28.9778444Z sha=7efc84ee0800
+09:58:08.808 verdict: db.kdbx sha=7efc84ee0800 v4.1 KG1=kept KG2=kept KG3=kept NewKey=kept DZ=rec D1=rec X1=gone+rec P1=p1-other[p1-old] P2=p2-old[] Q1=q1-other[q1-old] Q2=q2-other[q2-old] Q3=q3-other[q3-old] K=k-old[] NO=no-other@Passwords NW=absent entries=10 records=3
+09:58:08.819 verdict: NEW-run.kdbx sha=7efc84ee0800 v4.1 KG1=kept KG2=kept KG3=kept NewKey=kept DZ=rec D1=rec X1=gone+rec P1=p1-other[p1-old] P2=p2-old[] Q1=q1-other[q1-old] Q2=q2-other[q2-old] Q3=q3-other[q3-old] K=k-old[] NO=no-other@Passwords NW=absent entries=10 records=3

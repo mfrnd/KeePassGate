@@ -1,0 +1,76 @@
+11:31:02.740 ==== maint-records-1 : Database Maintenance: remove deletion records
+11:31:02.745 config: 
+11:31:13.850 started KeePass pid=19076 token: TokenIsElevated=1 ElevationType=2 Integrity=0x3000 AdministratorsEnabled=False
+11:31:14.024 main window: <<db.kdbx - KeePass>>
+11:31:14.372 group rows: Archive, Desk store, Empty group, KeePassGate, Passwords, Recycle Bin
+11:31:16.212 menu: <<Database Tools>>
+11:31:17.395 menu: <<Database Maintenance...>>
+11:31:19.137 [maint-records-1-maint] WINDOW title=<<Database Maintenance>> class=WindowsForms10.Window.8.app.0.2bf8098_r6_ad1
+11:31:19.284 [maint-records-1-maint]   Pane name=<<Clean Up>>
+11:31:19.289 [maint-records-1-maint]   Group name=<<Deleted objects information>>
+11:31:19.305 [maint-records-1-maint]   Text name=<<Warning! After removing this information, deleted objects (groups, entries, ...) may reappear when synchronizing the current database with another one (which still contains the objects).>>
+11:31:19.314 [maint-records-1-maint]   Pane name=<<Delete>>
+11:31:19.322 [maint-records-1-maint]   Text name=<<Clicking the 'Delete' button will remove all history entries older than the specified number of days. There is no way to get them back.>>
+11:31:19.328 [maint-records-1-maint]   Text name=<<KeePass keeps some information about deleted objects. This information can be removed in order to reduce the size of the database.>>
+11:31:19.338 [maint-records-1-maint]   Group name=<<Entry history>>
+11:31:19.349 [maint-records-1-maint]   Text name=<<Clicking the 'Delete' button will remove all history entries older than the specified number of days. There is no way to get them back.>>
+11:31:19.355 [maint-records-1-maint]   Pane name=<<Delete>>
+11:31:19.368 [maint-records-1-maint]   Pane name=<<365>>
+11:31:19.383 [maint-records-1-maint]   Text name=<<Delete history entries older than (days):>>
+11:31:19.395 [maint-records-1-maint]   Text name=<<History entries (shown on the 'History' tab page of the entry dialog) can be deleted. This will decrease the database size a bit.>>
+11:31:19.408 [maint-records-1-maint]   Pane name=<<Close>>
+11:31:19.421 [maint-records-1-maint]   win32 Window.8 <<Clean Up>>
+11:31:19.432 [maint-records-1-maint]   win32 Window.8 <<Deleted objects information>>
+11:31:19.453 [maint-records-1-maint]   win32 STATIC <<Warning! After removing this information, deleted objects (groups, entries, ...) may reappear when synchronizing the current database with another one (which still contains the objects).>>
+11:31:19.459 [maint-records-1-maint]   win32 BUTTON <<D&elete>>
+11:31:19.468 [maint-records-1-maint]   win32 STATIC <<KeePass keeps some information about deleted objects. This information can be removed in order to reduce the size of the database.>>
+11:31:19.473 [maint-records-1-maint]   win32 Window.8 <<Entry history>>
+11:31:19.487 [maint-records-1-maint]   win32 STATIC <<Clicking the 'Delete' button will remove all history entries older than the specified number of days. There is no way to get them back.>>
+11:31:19.494 [maint-records-1-maint]   win32 BUTTON <<&Delete>>
+11:31:19.498 [maint-records-1-maint]   win32 EDIT <<365>>
+11:31:19.505 [maint-records-1-maint]   win32 STATIC <<Delete &history entries older than (days):>>
+11:31:19.513 [maint-records-1-maint]   win32 STATIC <<History entries (shown on the 'History' tab page of the entry dialog) can be deleted. This will decrease the database size a bit.>>
+11:31:19.524 [maint-records-1-maint]   win32 BUTTON <<Close>>
+11:31:20.099 shot maint-records-1-maint.png (465 x 416)
+11:31:20.231 pressed Delete under Deleted objects information
+11:31:22.244 [maint-records-1-maint-after] WINDOW title=<<Database Maintenance>> class=WindowsForms10.Window.8.app.0.2bf8098_r6_ad1
+11:31:22.476 [maint-records-1-maint-after]   ProgressBar name=<<Warning! After removing this information, deleted objects (groups, entries, ...) may reappear when synchronizing the current database with another one (which still contains the objects).>> text=<<100%>>
+11:31:22.487 [maint-records-1-maint-after]   Pane name=<<Clean Up>>
+11:31:22.497 [maint-records-1-maint-after]   Group name=<<Deleted objects information>>
+11:31:22.515 [maint-records-1-maint-after]   Text name=<<Warning! After removing this information, deleted objects (groups, entries, ...) may reappear when synchronizing the current database with another one (which still contains the objects).>>
+11:31:22.530 [maint-records-1-maint-after]   Pane name=<<Delete>>
+11:31:22.552 [maint-records-1-maint-after]   Text name=<<Clicking the 'Delete' button will remove all history entries older than the specified number of days. There is no way to get them back.>>
+11:31:22.564 [maint-records-1-maint-after]   Text name=<<KeePass keeps some information about deleted objects. This information can be removed in order to reduce the size of the database.>>
+11:31:22.573 [maint-records-1-maint-after]   Group name=<<Entry history>>
+11:31:22.582 [maint-records-1-maint-after]   Text name=<<Clicking the 'Delete' button will remove all history entries older than the specified number of days. There is no way to get them back.>>
+11:31:22.588 [maint-records-1-maint-after]   Pane name=<<Delete>>
+11:31:22.602 [maint-records-1-maint-after]   Pane name=<<365>>
+11:31:22.614 [maint-records-1-maint-after]   Text name=<<Delete history entries older than (days):>>
+11:31:22.626 [maint-records-1-maint-after]   Text name=<<History entries (shown on the 'History' tab page of the entry dialog) can be deleted. This will decrease the database size a bit.>>
+11:31:22.636 [maint-records-1-maint-after]   Pane name=<<Close>>
+11:31:22.646 [maint-records-1-maint-after]   win32 Window.8 <<Clean Up>>
+11:31:22.654 [maint-records-1-maint-after]   win32 Window.8 <<Deleted objects information>>
+11:31:22.663 [maint-records-1-maint-after]   win32 STATIC <<Warning! After removing this information, deleted objects (groups, entries, ...) may reappear when synchronizing the current database with another one (which still contains the objects).>>
+11:31:22.668 [maint-records-1-maint-after]   win32 BUTTON <<D&elete>>
+11:31:22.673 [maint-records-1-maint-after]   win32 STATIC <<KeePass keeps some information about deleted objects. This information can be removed in order to reduce the size of the database.>>
+11:31:22.675 [maint-records-1-maint-after]   win32 Window.8 <<Entry history>>
+11:31:22.681 [maint-records-1-maint-after]   win32 STATIC <<Clicking the 'Delete' button will remove all history entries older than the specified number of days. There is no way to get them back.>>
+11:31:22.689 [maint-records-1-maint-after]   win32 BUTTON <<&Delete>>
+11:31:22.697 [maint-records-1-maint-after]   win32 EDIT <<365>>
+11:31:22.702 [maint-records-1-maint-after]   win32 STATIC <<Delete &history entries older than (days):>>
+11:31:22.706 [maint-records-1-maint-after]   win32 STATIC <<History entries (shown on the 'History' tab page of the entry dialog) can be deleted. This will decrease the database size a bit.>>
+11:31:22.710 [maint-records-1-maint-after]   win32 BUTTON <<Close>>
+11:31:28.282 dialogs: 0
+11:31:28.784 group KeePassGate from the places kept
+11:31:30.129 group Passwords from the places kept
+11:31:31.283 [after] window title <<db.kdbx* - KeePass>>; groups []; KeePassGate [KPG grant 1, KPG admission 1, KPG revocation 1, KPG profile 1, KPG grant 1, KPG grant 6, KPG grant 7]; Passwords [Mail account, Bank]; status <<Ready.>>
+11:31:36.308 file: size=2853 mtime=2026-11-16T10:31:31.7310390Z sha=217ad5a6aa8b
+11:31:42.614 diff against the base: 10 lines
+11:31:42.623   + D count 0
+11:31:42.634   - D count 6
+11:31:42.642   - D R-new 2026-11-15T12:00:00Z
+11:31:42.646   - D R-old 2025-01-01T12:00:00Z
+11:31:42.652   - D S3 2025-01-01T12:00:00Z
+11:31:42.658   - D S4 2026-11-15T12:00:00Z
+11:31:42.666   - D W-new 2026-11-15T12:00:00Z
+11:31:42.670   - D W-old 2025-01-01T12:00:00Z

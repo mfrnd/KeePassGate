@@ -1,0 +1,519 @@
+12:53:43.536 ==== import-KeepExisting-1 : File, Import, KDBX, Keep existing
+12:53:43.680 db: size=3413 mtime=2026-11-16T08:31:56.2778845Z sha=2ff7a751a869; other: size=5013 mtime=2026-11-16T08:32:08.8042697Z sha=74dd75d7243e
+12:53:43.710 config: 
+12:53:54.990 started KeePass pid=9664 token: TokenIsElevated=1 ElevationType=2 Integrity=0x3000 AdministratorsEnabled=False
+12:53:55.368 main window: <<db.kdbx - KeePass>>
+12:53:55.772 group rows: Desk probe, KeePassGate, Passwords, Recycle Bin
+12:53:57.591 menu: <<Import...>>
+12:53:59.347 [import-KeepExisting-1-import] WINDOW title=<<Import File/Data>> class=WindowsForms10.Window.8.app.0.2bf8098_r6_ad1
+12:53:59.497 [import-KeepExisting-1-import]   Pane name=<<General>>
+12:53:59.514 [import-KeepExisting-1-import]   Group name=<<Format>>
+12:53:59.531 [import-KeepExisting-1-import]   Group name=<<Source>>
+12:53:59.541 [import-KeepExisting-1-import]   Pane name=<<Help: Configuring source applications>>
+12:53:59.549 [import-KeepExisting-1-import]   Text name=<<File(s):>> disabled
+12:53:59.556 [import-KeepExisting-1-import]   Pane name=<<Cancel>>
+12:53:59.563 [import-KeepExisting-1-import]   Pane name=<<OK>> disabled
+12:53:59.609 [import-KeepExisting-1-import]   win32 Window.8 <<General>>
+12:53:59.613 [import-KeepExisting-1-import]   win32 Window.8 <<Format>>
+12:53:59.621 [import-KeepExisting-1-import]   win32 Window.8 <<Source>>
+12:53:59.645 [import-KeepExisting-1-import]   win32 STATIC <<Help: Configuring source applications>>
+12:53:59.652 [import-KeepExisting-1-import]   win32 STATIC <<File(s):>> disabled
+12:53:59.656 [import-KeepExisting-1-import]   win32 BUTTON <<Cancel>>
+12:53:59.660 [import-KeepExisting-1-import]   win32 BUTTON <<OK>> disabled
+12:54:03.624 shot import-KeepExisting-1-import.png (406 x 556)
+12:54:05.926 shot import-KeepExisting-1-key.png (419 x 233)
+12:54:05.937 [import-KeepExisting-1-key] WINDOW title=<<Open Database - other.kdbx>> class=WindowsForms10.Window.8.app.0.2bf8098_r6_ad1
+12:54:06.037 [import-KeepExisting-1-key]   ComboBox name=<<(None)>>
+12:54:06.057 [import-KeepExisting-1-key]   Button name=<<Open>>
+12:54:06.075 [import-KeepExisting-1-key]   Pane name=<<Help>>
+12:54:06.087 [import-KeepExisting-1-key]   Pane name=<<Cancel>>
+12:54:06.091 [import-KeepExisting-1-key]   Pane name=<<OK>> disabled
+12:54:06.101 [import-KeepExisting-1-key]   Pane name=<<Windows user account>>
+12:54:06.111 [import-KeepExisting-1-key]   Pane name=<<Key file/provider:>>
+12:54:06.120 [import-KeepExisting-1-key]   Pane name=<<Master password:>>
+12:54:06.140 [import-KeepExisting-1-key]   win32 COMBOBOX <<(None)>>
+12:54:06.147 [import-KeepExisting-1-key]   win32 BUTTON <<&Help>>
+12:54:06.165 [import-KeepExisting-1-key]   win32 BUTTON <<Cancel>>
+12:54:06.190 [import-KeepExisting-1-key]   win32 BUTTON <<OK>> disabled
+12:54:06.212 [import-KeepExisting-1-key]   win32 BUTTON <<&Windows user account>>
+12:54:06.229 [import-KeepExisting-1-key]   win32 BUTTON <<&Key file/provider:>>
+12:54:06.241 [import-KeepExisting-1-key]   win32 BUTTON <<&Master password:>>
+12:54:09.190 [import-KeepExisting-1] Import Behavior preselected: Create new IDs
+12:54:09.202 [import-KeepExisting-1-method] WINDOW title=<<Import Behavior>> class=WindowsForms10.Window.8.app.0.2bf8098_r6_ad1
+12:54:09.346 [import-KeepExisting-1-method]   Text name=<<Behaves like 'Overwrite if newer', but also applies deletions of the database to be imported. When an entry has been deleted in the database to be imported, it will also be deleted in the currently open database.>>
+12:54:09.360 [import-KeepExisting-1-method]   Text name=<<Behaves like 'Overwrite if newer', but also applies deletions of the database to be imported. When an entry has been deleted in the database to be imported, it will also be deleted in the currently open database.>>
+12:54:09.367 [import-KeepExisting-1-method]   Pane name=<<Overwrite if newer and apply deletions>>
+12:54:09.381 [import-KeepExisting-1-method]   Text name=<<KeePass will compare the last-modified times of the groups/entries and replace the existing ones only if the ones to import are newer.>>
+12:54:09.398 [import-KeepExisting-1-method]   Pane name=<<Overwrite if newer>>
+12:54:09.422 [import-KeepExisting-1-method]   Text name=<<KeePass will replace all existing groups and entries by the ones in the file to import, if they have the same ID.>>
+12:54:09.456 [import-KeepExisting-1-method]   Pane name=<<Overwrite existing>>
+12:54:09.486 [import-KeepExisting-1-method]   Text name=<<Existing entries of the currently open database will not be modified. Only new entries will be added.>>
+12:54:09.502 [import-KeepExisting-1-method]   Pane name=<<Keep existing>>
+12:54:09.517 [import-KeepExisting-1-method]   Text name=<<If you select this option, KeePass will create new IDs for all groups and entries. Consequently, no existing groups and entries of the currently open database will be modified or overwritten.>>
+12:54:09.533 [import-KeepExisting-1-method]   Pane name=<<Create new IDs>>
+12:54:09.554 [import-KeepExisting-1-method]   Text name=<<The file format that you have selected to import supports group and/or entry IDs. Please choose an import behavior.>>
+12:54:09.569 [import-KeepExisting-1-method]   Pane name=<<Cancel>>
+12:54:09.597 [import-KeepExisting-1-method]   Pane name=<<OK>>
+12:54:09.626 [import-KeepExisting-1-method]   win32 STATIC <<Behaves like 'Overwrite if newer', but also applies deletions of the database to be imported. When an entry has been deleted in the database to be imported, it will also be deleted in the currently open database.>>
+12:54:09.637 [import-KeepExisting-1-method]   win32 BUTTON <<Overwrite if newer and apply &deletions>>
+12:54:09.659 [import-KeepExisting-1-method]   win32 STATIC <<KeePass will compare the last-modified times of the groups/entries and replace the existing ones only if the ones to import are newer.>>
+12:54:09.669 [import-KeepExisting-1-method]   win32 BUTTON <<Overwrite if &newer>>
+12:54:09.675 [import-KeepExisting-1-method]   win32 STATIC <<KeePass will replace all existing groups and entries by the ones in the file to import, if they have the same ID.>>
+12:54:09.688 [import-KeepExisting-1-method]   win32 BUTTON <<Overwrite &existing>>
+12:54:09.713 [import-KeepExisting-1-method]   win32 STATIC <<Existing entries of the currently open database will not be modified. Only new entries will be added.>>
+12:54:09.730 [import-KeepExisting-1-method]   win32 BUTTON <<&Keep existing>>
+12:54:09.747 [import-KeepExisting-1-method]   win32 STATIC <<If you select this option, KeePass will create new IDs for all groups and entries. Consequently, no existing groups and entries of the currently open database will be modified or overwritten.>>
+12:54:09.767 [import-KeepExisting-1-method]   win32 BUTTON <<Create new &IDs>>
+12:54:09.785 [import-KeepExisting-1-method]   win32 STATIC <<The file format that you have selected to import supports group and/or entry IDs. Please choose an import behavior.>>
+12:54:09.811 [import-KeepExisting-1-method]   win32 BUTTON <<Cancel>>
+12:54:09.821 [import-KeepExisting-1-method]   win32 BUTTON <<OK>>
+12:54:10.425 shot import-KeepExisting-1-method.png (515 x 493)
+12:54:11.166 [import-KeepExisting-1] chose <<Keep existing>>, now checked: Keep existing
+12:54:20.981 dialogs after the flow: 0
+12:54:22.645 group KeePassGate from the places kept
+12:54:23.826 group Passwords from the places kept
+12:54:24.907 [after] window title <<db.kdbx* - KeePass>>; groups []; KeePassGate [KPG grant 1, KPG admission 1, KPG revocation]; Passwords [P1, P2, Q1, Q2, Q3, X1, K, other-new]; status <<Ready.>>
+12:54:24.917 db after the flow: size=3413 mtime=2026-11-16T08:31:56.2778845Z sha=2ff7a751a869; other: size=5013 mtime=2026-11-16T08:32:08.8042697Z sha=74dd75d7243e
+12:54:26.566 [import-KeepExisting-1-exit-1] WINDOW title=<<KeePass>> class=#32770
+12:54:26.671 [import-KeepExisting-1-exit-1]   Image name=<<MainInstructionIcon>>
+12:54:26.680 [import-KeepExisting-1-exit-1]   Text name=<<Save database changes before exiting KeePass?>>
+12:54:26.688 [import-KeepExisting-1-exit-1]   Text name=<<Database file:
+<work>\runs\m5\import-KeepExisting-1\db.kdbx>>
+12:54:26.698 [import-KeepExisting-1-exit-1]   Pane name=<<Save>> help=<<Save all changes made to the database and exit KeePass.>>
+12:54:26.707 [import-KeepExisting-1-exit-1]   Pane name=<<Discard changes>> help=<<Discard all changes made to the database and exit KeePass.>>
+12:54:26.713 [import-KeepExisting-1-exit-1]   Pane name=<<Cancel>> help=<<Abort the current operation. KeePass will not be closed.>>
+12:54:26.721 [import-KeepExisting-1-exit-1]   CheckBox name=<<Automatically save when closing/locking the database>>
+12:54:26.734 [import-KeepExisting-1-exit-1]   win32 Button <<&Save>>
+12:54:26.741 [import-KeepExisting-1-exit-1]   win32 Button <<&Discard changes>>
+12:54:26.745 [import-KeepExisting-1-exit-1]   win32 Button <<Cancel>>
+12:54:27.312 shot import-KeepExisting-1-exit-1.png (442 x 352)
+12:54:27.604 [import-KeepExisting-1-exit-1] pressed <<&Discard changes (clicked)>>
+12:54:34.500 dialogs at the exit (answered Discard): 1
+12:54:34.562 db after the exit: size=3413 mtime=2026-11-16T08:31:56.2778845Z sha=2ff7a751a869; other: size=5013 mtime=2026-11-16T08:32:08.8042697Z sha=74dd75d7243e
+12:54:34.975 marker entry in: neither file
+12:54:35.006 event: 11:53:45.548 Initialize db= open=0 disk=absent marker=True triggers.enabled=True
+12:54:35.016 event: 11:53:45.574 Trigger.AppInitPost db= open=0 disk=absent
+12:54:35.027 event: 11:53:45.781 FileOpened db=db.kdbx open=1 modified=0 entries=9 records=1 kpg=2 disk=3413:2ff7a751a8
+12:54:35.037 event: 11:53:45.783 Trigger.OpenedDatabaseFile db=db.kdbx open=1 modified=0 entries=9 records=1 kpg=2 disk=3413:2ff7a751a8
+12:54:35.044 event: 11:53:45.783 Trigger.AppLoadPost db=db.kdbx open=1 modified=0 entries=9 records=1 kpg=2 disk=3413:2ff7a751a8
+12:54:35.057 event: 11:53:46.194 Trigger.TimePeriodic db=db.kdbx open=1 modified=0 entries=9 records=1 kpg=2 disk=3413:2ff7a751a8
+12:54:35.084 event: 11:53:47.206 Trigger.TimePeriodic db=db.kdbx open=1 modified=0 entries=9 records=1 kpg=2 disk=3413:2ff7a751a8
+12:54:35.103 event: 11:53:48.201 Trigger.TimePeriodic db=db.kdbx open=1 modified=0 entries=9 records=1 kpg=2 disk=3413:2ff7a751a8
+12:54:35.116 event: 11:53:49.196 Trigger.TimePeriodic db=db.kdbx open=1 modified=0 entries=9 records=1 kpg=2 disk=3413:2ff7a751a8
+12:54:35.129 event: 11:53:50.197 Trigger.TimePeriodic db=db.kdbx open=1 modified=0 entries=9 records=1 kpg=2 disk=3413:2ff7a751a8
+12:54:35.134 event: 11:53:51.212 Trigger.TimePeriodic db=db.kdbx open=1 modified=0 entries=9 records=1 kpg=2 disk=3413:2ff7a751a8
+12:54:35.167 event: 11:53:52.238 Trigger.TimePeriodic db=db.kdbx open=1 modified=0 entries=9 records=1 kpg=2 disk=3413:2ff7a751a8
+12:54:35.192 event: 11:53:53.234 Trigger.TimePeriodic db=db.kdbx open=1 modified=0 entries=9 records=1 kpg=2 disk=3413:2ff7a751a8
+12:54:35.229 event: 11:53:54.235 Trigger.TimePeriodic db=db.kdbx open=1 modified=0 entries=9 records=1 kpg=2 disk=3413:2ff7a751a8
+12:54:35.243 event: 11:53:55.238 Trigger.TimePeriodic db=db.kdbx open=1 modified=0 entries=9 records=1 kpg=2 disk=3413:2ff7a751a8
+12:54:35.277 event: 11:53:56.242 Trigger.TimePeriodic db=db.kdbx open=1 modified=0 entries=9 records=1 kpg=2 disk=3413:2ff7a751a8
+12:54:35.318 event: 11:53:57.230 Trigger.TimePeriodic db=db.kdbx open=1 modified=0 entries=9 records=1 kpg=2 disk=3413:2ff7a751a8
+12:54:35.350 event: 11:54:12.255 Trigger.TimePeriodic db=db.kdbx open=1 modified=1 entries=11 records=1 kpg=3 disk=3413:2ff7a751a8
+12:54:35.383 event: 11:54:13.255 Trigger.TimePeriodic db=db.kdbx open=1 modified=1 entries=11 records=1 kpg=3 disk=3413:2ff7a751a8
+12:54:35.395 event: 11:54:14.270 Trigger.TimePeriodic db=db.kdbx open=1 modified=1 entries=11 records=1 kpg=3 disk=3413:2ff7a751a8
+12:54:35.415 event: 11:54:15.299 Trigger.TimePeriodic db=db.kdbx open=1 modified=1 entries=11 records=1 kpg=3 disk=3413:2ff7a751a8
+12:54:35.430 event: 11:54:16.296 Trigger.TimePeriodic db=db.kdbx open=1 modified=1 entries=11 records=1 kpg=3 disk=3413:2ff7a751a8
+12:54:35.455 event: 11:54:17.310 Trigger.TimePeriodic db=db.kdbx open=1 modified=1 entries=11 records=1 kpg=3 disk=3413:2ff7a751a8
+12:54:35.477 event: 11:54:18.307 Trigger.TimePeriodic db=db.kdbx open=1 modified=1 entries=11 records=1 kpg=3 disk=3413:2ff7a751a8
+12:54:35.490 event: 11:54:19.303 Trigger.TimePeriodic db=db.kdbx open=1 modified=1 entries=11 records=1 kpg=3 disk=3413:2ff7a751a8
+12:54:35.502 event: 11:54:20.302 Trigger.TimePeriodic db=db.kdbx open=1 modified=1 entries=11 records=1 kpg=3 disk=3413:2ff7a751a8
+12:54:35.511 event: 11:54:21.315 Trigger.TimePeriodic db=db.kdbx open=1 modified=1 entries=11 records=1 kpg=3 disk=3413:2ff7a751a8
+12:54:35.517 event: 11:54:22.303 Trigger.TimePeriodic db=db.kdbx open=1 modified=1 entries=11 records=1 kpg=3 disk=3413:2ff7a751a8
+12:54:35.531 event: 11:54:23.310 Trigger.TimePeriodic db=db.kdbx open=1 modified=1 entries=11 records=1 kpg=3 disk=3413:2ff7a751a8
+12:54:35.558 event: 11:54:24.309 Trigger.TimePeriodic db=db.kdbx open=1 modified=1 entries=11 records=1 kpg=3 disk=3413:2ff7a751a8
+12:54:35.568 event: 11:54:25.263 Trigger.ClosingDatabaseFilePre db=db.kdbx open=1 modified=1 entries=11 records=1 kpg=3 disk=3413:2ff7a751a8
+12:54:35.587 event: 11:54:25.265 FileClosingPre db=db.kdbx open=1 modified=1 entries=11 records=1 kpg=3 disk=3413:2ff7a751a8 flags=Exiting
+12:54:35.605 event: 11:54:27.636 Trigger.ClosingDatabaseFilePost db=db.kdbx open=1 modified=1 entries=11 records=1 kpg=3 disk=3413:2ff7a751a8
+12:54:35.638 event: 11:54:27.636 FileClosingPost db=db.kdbx open=1 modified=1 entries=11 records=1 kpg=3 disk=3413:2ff7a751a8 flags=Exiting
+12:54:35.648 event: 11:54:27.643 FileClosed db= open=0 disk=absent path=<work>\runs\m5\import-KeepExisting-1\db.kdbx flags=Exiting
+12:54:35.658 event: 11:54:27.645 Trigger.AppExit db= open=0 disk=absent
+12:54:35.677 event: 11:54:27.647 Terminate db= open=0 disk=absent
+12:54:35.891 ==== import-OverwriteExisting-1 : File, Import, KDBX, Overwrite existing
+12:54:35.914 db: size=3413 mtime=2026-11-16T08:31:56.2778845Z sha=2ff7a751a869; other: size=5013 mtime=2026-11-16T08:32:08.8042697Z sha=74dd75d7243e
+12:54:35.938 config: 
+12:54:49.876 started KeePass pid=20860 token: TokenIsElevated=1 ElevationType=2 Integrity=0x3000 AdministratorsEnabled=False
+12:54:50.139 main window: <<db.kdbx - KeePass>>
+12:54:50.620 group rows: Desk probe, KeePassGate, Passwords, Recycle Bin
+12:54:52.578 menu: <<Import...>>
+12:54:54.394 [import-OverwriteExisting-1-import] WINDOW title=<<Import File/Data>> class=WindowsForms10.Window.8.app.0.2bf8098_r6_ad1
+12:54:54.519 [import-OverwriteExisting-1-import]   Pane name=<<General>>
+12:54:54.537 [import-OverwriteExisting-1-import]   Group name=<<Format>>
+12:54:54.546 [import-OverwriteExisting-1-import]   Group name=<<Source>>
+12:54:54.554 [import-OverwriteExisting-1-import]   Pane name=<<Help: Configuring source applications>>
+12:54:54.564 [import-OverwriteExisting-1-import]   Text name=<<File(s):>> disabled
+12:54:54.572 [import-OverwriteExisting-1-import]   Pane name=<<Cancel>>
+12:54:54.580 [import-OverwriteExisting-1-import]   Pane name=<<OK>> disabled
+12:54:54.592 [import-OverwriteExisting-1-import]   win32 Window.8 <<General>>
+12:54:54.598 [import-OverwriteExisting-1-import]   win32 Window.8 <<Format>>
+12:54:54.604 [import-OverwriteExisting-1-import]   win32 Window.8 <<Source>>
+12:54:54.611 [import-OverwriteExisting-1-import]   win32 STATIC <<Help: Configuring source applications>>
+12:54:54.616 [import-OverwriteExisting-1-import]   win32 STATIC <<File(s):>> disabled
+12:54:54.622 [import-OverwriteExisting-1-import]   win32 BUTTON <<Cancel>>
+12:54:54.631 [import-OverwriteExisting-1-import]   win32 BUTTON <<OK>> disabled
+12:54:58.687 shot import-OverwriteExisting-1-import.png (406 x 556)
+12:55:00.856 shot import-OverwriteExisting-1-key.png (419 x 233)
+12:55:00.860 [import-OverwriteExisting-1-key] WINDOW title=<<Open Database - other.kdbx>> class=WindowsForms10.Window.8.app.0.2bf8098_r6_ad1
+12:55:00.939 [import-OverwriteExisting-1-key]   ComboBox name=<<(None)>>
+12:55:00.951 [import-OverwriteExisting-1-key]   Button name=<<Open>>
+12:55:00.958 [import-OverwriteExisting-1-key]   Pane name=<<Help>>
+12:55:00.969 [import-OverwriteExisting-1-key]   Pane name=<<Cancel>>
+12:55:00.973 [import-OverwriteExisting-1-key]   Pane name=<<OK>> disabled
+12:55:00.977 [import-OverwriteExisting-1-key]   Pane name=<<Windows user account>>
+12:55:00.983 [import-OverwriteExisting-1-key]   Pane name=<<Key file/provider:>>
+12:55:00.989 [import-OverwriteExisting-1-key]   Pane name=<<Master password:>>
+12:55:00.999 [import-OverwriteExisting-1-key]   win32 COMBOBOX <<(None)>>
+12:55:01.003 [import-OverwriteExisting-1-key]   win32 BUTTON <<&Help>>
+12:55:01.008 [import-OverwriteExisting-1-key]   win32 BUTTON <<Cancel>>
+12:55:01.014 [import-OverwriteExisting-1-key]   win32 BUTTON <<OK>> disabled
+12:55:01.018 [import-OverwriteExisting-1-key]   win32 BUTTON <<&Windows user account>>
+12:55:01.023 [import-OverwriteExisting-1-key]   win32 BUTTON <<&Key file/provider:>>
+12:55:01.027 [import-OverwriteExisting-1-key]   win32 BUTTON <<&Master password:>>
+12:55:03.932 [import-OverwriteExisting-1] Import Behavior preselected: Create new IDs
+12:55:03.938 [import-OverwriteExisting-1-method] WINDOW title=<<Import Behavior>> class=WindowsForms10.Window.8.app.0.2bf8098_r6_ad1
+12:55:04.050 [import-OverwriteExisting-1-method]   Text name=<<Behaves like 'Overwrite if newer', but also applies deletions of the database to be imported. When an entry has been deleted in the database to be imported, it will also be deleted in the currently open database.>>
+12:55:04.058 [import-OverwriteExisting-1-method]   Text name=<<Behaves like 'Overwrite if newer', but also applies deletions of the database to be imported. When an entry has been deleted in the database to be imported, it will also be deleted in the currently open database.>>
+12:55:04.062 [import-OverwriteExisting-1-method]   Pane name=<<Overwrite if newer and apply deletions>>
+12:55:04.067 [import-OverwriteExisting-1-method]   Text name=<<KeePass will compare the last-modified times of the groups/entries and replace the existing ones only if the ones to import are newer.>>
+12:55:04.071 [import-OverwriteExisting-1-method]   Pane name=<<Overwrite if newer>>
+12:55:04.081 [import-OverwriteExisting-1-method]   Text name=<<KeePass will replace all existing groups and entries by the ones in the file to import, if they have the same ID.>>
+12:55:04.085 [import-OverwriteExisting-1-method]   Pane name=<<Overwrite existing>>
+12:55:04.093 [import-OverwriteExisting-1-method]   Text name=<<Existing entries of the currently open database will not be modified. Only new entries will be added.>>
+12:55:04.100 [import-OverwriteExisting-1-method]   Pane name=<<Keep existing>>
+12:55:04.107 [import-OverwriteExisting-1-method]   Text name=<<If you select this option, KeePass will create new IDs for all groups and entries. Consequently, no existing groups and entries of the currently open database will be modified or overwritten.>>
+12:55:04.111 [import-OverwriteExisting-1-method]   Pane name=<<Create new IDs>>
+12:55:04.117 [import-OverwriteExisting-1-method]   Text name=<<The file format that you have selected to import supports group and/or entry IDs. Please choose an import behavior.>>
+12:55:04.121 [import-OverwriteExisting-1-method]   Pane name=<<Cancel>>
+12:55:04.125 [import-OverwriteExisting-1-method]   Pane name=<<OK>>
+12:55:04.135 [import-OverwriteExisting-1-method]   win32 STATIC <<Behaves like 'Overwrite if newer', but also applies deletions of the database to be imported. When an entry has been deleted in the database to be imported, it will also be deleted in the currently open database.>>
+12:55:04.137 [import-OverwriteExisting-1-method]   win32 BUTTON <<Overwrite if newer and apply &deletions>>
+12:55:04.139 [import-OverwriteExisting-1-method]   win32 STATIC <<KeePass will compare the last-modified times of the groups/entries and replace the existing ones only if the ones to import are newer.>>
+12:55:04.145 [import-OverwriteExisting-1-method]   win32 BUTTON <<Overwrite if &newer>>
+12:55:04.148 [import-OverwriteExisting-1-method]   win32 STATIC <<KeePass will replace all existing groups and entries by the ones in the file to import, if they have the same ID.>>
+12:55:04.150 [import-OverwriteExisting-1-method]   win32 BUTTON <<Overwrite &existing>>
+12:55:04.155 [import-OverwriteExisting-1-method]   win32 STATIC <<Existing entries of the currently open database will not be modified. Only new entries will be added.>>
+12:55:04.159 [import-OverwriteExisting-1-method]   win32 BUTTON <<&Keep existing>>
+12:55:04.165 [import-OverwriteExisting-1-method]   win32 STATIC <<If you select this option, KeePass will create new IDs for all groups and entries. Consequently, no existing groups and entries of the currently open database will be modified or overwritten.>>
+12:55:04.167 [import-OverwriteExisting-1-method]   win32 BUTTON <<Create new &IDs>>
+12:55:04.171 [import-OverwriteExisting-1-method]   win32 STATIC <<The file format that you have selected to import supports group and/or entry IDs. Please choose an import behavior.>>
+12:55:04.173 [import-OverwriteExisting-1-method]   win32 BUTTON <<Cancel>>
+12:55:04.175 [import-OverwriteExisting-1-method]   win32 BUTTON <<OK>>
+12:55:04.749 shot import-OverwriteExisting-1-method.png (515 x 493)
+12:55:05.449 [import-OverwriteExisting-1] chose <<Overwrite existing>>, now checked: Overwrite existing
+12:55:14.723 dialogs after the flow: 0
+12:55:16.204 group KeePassGate from the places kept
+12:55:17.488 group Passwords from the places kept
+12:55:18.686 [after] window title <<db.kdbx* - KeePass>>; groups []; KeePassGate [KPG grant 1, KPG admission 1, KPG revocation]; Passwords [P1, P2, Q1, Q2, Q3, X1, K, other-new]; status <<Ready.>>
+12:55:18.694 db after the flow: size=3413 mtime=2026-11-16T08:31:56.2778845Z sha=2ff7a751a869; other: size=5013 mtime=2026-11-16T08:32:08.8042697Z sha=74dd75d7243e
+12:55:20.434 [import-OverwriteExisting-1-exit-1] WINDOW title=<<KeePass>> class=#32770
+12:55:20.570 [import-OverwriteExisting-1-exit-1]   Image name=<<MainInstructionIcon>>
+12:55:20.580 [import-OverwriteExisting-1-exit-1]   Text name=<<Save database changes before exiting KeePass?>>
+12:55:20.597 [import-OverwriteExisting-1-exit-1]   Text name=<<Database file:
+<work>\runs\m5\import-OverwriteExisting-1\db.kdbx>>
+12:55:20.607 [import-OverwriteExisting-1-exit-1]   Pane name=<<Save>> help=<<Save all changes made to the database and exit KeePass.>>
+12:55:20.618 [import-OverwriteExisting-1-exit-1]   Pane name=<<Discard changes>> help=<<Discard all changes made to the database and exit KeePass.>>
+12:55:20.629 [import-OverwriteExisting-1-exit-1]   Pane name=<<Cancel>> help=<<Abort the current operation. KeePass will not be closed.>>
+12:55:20.640 [import-OverwriteExisting-1-exit-1]   CheckBox name=<<Automatically save when closing/locking the database>>
+12:55:20.650 [import-OverwriteExisting-1-exit-1]   win32 Button <<&Save>>
+12:55:20.654 [import-OverwriteExisting-1-exit-1]   win32 Button <<&Discard changes>>
+12:55:20.661 [import-OverwriteExisting-1-exit-1]   win32 Button <<Cancel>>
+12:55:21.232 shot import-OverwriteExisting-1-exit-1.png (442 x 352)
+12:55:21.507 [import-OverwriteExisting-1-exit-1] pressed <<&Discard changes (clicked)>>
+12:55:28.390 dialogs at the exit (answered Discard): 1
+12:55:28.420 db after the exit: size=3413 mtime=2026-11-16T08:31:56.2778845Z sha=2ff7a751a869; other: size=5013 mtime=2026-11-16T08:32:08.8042697Z sha=74dd75d7243e
+12:55:28.836 marker entry in: neither file
+12:55:28.847 event: 11:54:40.424 Initialize db= open=0 disk=absent marker=True triggers.enabled=True
+12:55:28.856 event: 11:54:40.443 Trigger.AppInitPost db= open=0 disk=absent
+12:55:28.864 event: 11:54:40.653 FileOpened db=db.kdbx open=1 modified=0 entries=9 records=1 kpg=2 disk=3413:2ff7a751a8
+12:55:28.870 event: 11:54:40.653 Trigger.OpenedDatabaseFile db=db.kdbx open=1 modified=0 entries=9 records=1 kpg=2 disk=3413:2ff7a751a8
+12:55:28.881 event: 11:54:40.656 Trigger.AppLoadPost db=db.kdbx open=1 modified=0 entries=9 records=1 kpg=2 disk=3413:2ff7a751a8
+12:55:28.893 event: 11:54:41.112 Trigger.TimePeriodic db=db.kdbx open=1 modified=0 entries=9 records=1 kpg=2 disk=3413:2ff7a751a8
+12:55:28.901 event: 11:54:42.102 Trigger.TimePeriodic db=db.kdbx open=1 modified=0 entries=9 records=1 kpg=2 disk=3413:2ff7a751a8
+12:55:28.912 event: 11:54:43.111 Trigger.TimePeriodic db=db.kdbx open=1 modified=0 entries=9 records=1 kpg=2 disk=3413:2ff7a751a8
+12:55:28.923 event: 11:54:44.118 Trigger.TimePeriodic db=db.kdbx open=1 modified=0 entries=9 records=1 kpg=2 disk=3413:2ff7a751a8
+12:55:28.931 event: 11:54:45.129 Trigger.TimePeriodic db=db.kdbx open=1 modified=0 entries=9 records=1 kpg=2 disk=3413:2ff7a751a8
+12:55:28.943 event: 11:54:46.138 Trigger.TimePeriodic db=db.kdbx open=1 modified=0 entries=9 records=1 kpg=2 disk=3413:2ff7a751a8
+12:55:28.948 event: 11:54:47.132 Trigger.TimePeriodic db=db.kdbx open=1 modified=0 entries=9 records=1 kpg=2 disk=3413:2ff7a751a8
+12:55:28.955 event: 11:54:48.144 Trigger.TimePeriodic db=db.kdbx open=1 modified=0 entries=9 records=1 kpg=2 disk=3413:2ff7a751a8
+12:55:28.957 event: 11:54:49.143 Trigger.TimePeriodic db=db.kdbx open=1 modified=0 entries=9 records=1 kpg=2 disk=3413:2ff7a751a8
+12:55:28.965 event: 11:54:50.142 Trigger.TimePeriodic db=db.kdbx open=1 modified=0 entries=9 records=1 kpg=2 disk=3413:2ff7a751a8
+12:55:28.975 event: 11:54:51.138 Trigger.TimePeriodic db=db.kdbx open=1 modified=0 entries=9 records=1 kpg=2 disk=3413:2ff7a751a8
+12:55:28.982 event: 11:54:52.133 Trigger.TimePeriodic db=db.kdbx open=1 modified=0 entries=9 records=1 kpg=2 disk=3413:2ff7a751a8
+12:55:28.986 event: 11:55:06.133 Trigger.TimePeriodic db=db.kdbx open=1 modified=1 entries=11 records=1 kpg=3 disk=3413:2ff7a751a8
+12:55:28.995 event: 11:55:07.133 Trigger.TimePeriodic db=db.kdbx open=1 modified=1 entries=11 records=1 kpg=3 disk=3413:2ff7a751a8
+12:55:29.002 event: 11:55:08.141 Trigger.TimePeriodic db=db.kdbx open=1 modified=1 entries=11 records=1 kpg=3 disk=3413:2ff7a751a8
+12:55:29.013 event: 11:55:09.132 Trigger.TimePeriodic db=db.kdbx open=1 modified=1 entries=11 records=1 kpg=3 disk=3413:2ff7a751a8
+12:55:29.022 event: 11:55:10.140 Trigger.TimePeriodic db=db.kdbx open=1 modified=1 entries=11 records=1 kpg=3 disk=3413:2ff7a751a8
+12:55:29.030 event: 11:55:11.140 Trigger.TimePeriodic db=db.kdbx open=1 modified=1 entries=11 records=1 kpg=3 disk=3413:2ff7a751a8
+12:55:29.039 event: 11:55:12.135 Trigger.TimePeriodic db=db.kdbx open=1 modified=1 entries=11 records=1 kpg=3 disk=3413:2ff7a751a8
+12:55:29.053 event: 11:55:13.129 Trigger.TimePeriodic db=db.kdbx open=1 modified=1 entries=11 records=1 kpg=3 disk=3413:2ff7a751a8
+12:55:29.072 event: 11:55:14.140 Trigger.TimePeriodic db=db.kdbx open=1 modified=1 entries=11 records=1 kpg=3 disk=3413:2ff7a751a8
+12:55:29.081 event: 11:55:15.147 Trigger.TimePeriodic db=db.kdbx open=1 modified=1 entries=11 records=1 kpg=3 disk=3413:2ff7a751a8
+12:55:29.091 event: 11:55:16.158 Trigger.TimePeriodic db=db.kdbx open=1 modified=1 entries=11 records=1 kpg=3 disk=3413:2ff7a751a8
+12:55:29.100 event: 11:55:17.152 Trigger.TimePeriodic db=db.kdbx open=1 modified=1 entries=11 records=1 kpg=3 disk=3413:2ff7a751a8
+12:55:29.110 event: 11:55:18.150 Trigger.TimePeriodic db=db.kdbx open=1 modified=1 entries=11 records=1 kpg=3 disk=3413:2ff7a751a8
+12:55:29.117 event: 11:55:19.066 Trigger.ClosingDatabaseFilePre db=db.kdbx open=1 modified=1 entries=11 records=1 kpg=3 disk=3413:2ff7a751a8
+12:55:29.133 event: 11:55:19.066 FileClosingPre db=db.kdbx open=1 modified=1 entries=11 records=1 kpg=3 disk=3413:2ff7a751a8 flags=Exiting
+12:55:29.146 event: 11:55:21.544 Trigger.ClosingDatabaseFilePost db=db.kdbx open=1 modified=1 entries=11 records=1 kpg=3 disk=3413:2ff7a751a8
+12:55:29.167 event: 11:55:21.544 FileClosingPost db=db.kdbx open=1 modified=1 entries=11 records=1 kpg=3 disk=3413:2ff7a751a8 flags=Exiting
+12:55:29.190 event: 11:55:21.552 FileClosed db= open=0 disk=absent path=<work>\runs\m5\import-OverwriteExisting-1\db.kdbx flags=Exiting
+12:55:29.204 event: 11:55:21.554 Trigger.AppExit db= open=0 disk=absent
+12:55:29.215 event: 11:55:21.554 Terminate db= open=0 disk=absent
+12:55:29.435 ==== import-OverwriteIfNewer-1 : File, Import, KDBX, Overwrite if newer
+12:55:29.455 db: size=3413 mtime=2026-11-16T08:31:56.2778845Z sha=2ff7a751a869; other: size=5013 mtime=2026-11-16T08:32:08.8042697Z sha=74dd75d7243e
+12:55:29.467 config: 
+12:55:42.019 started KeePass pid=14496 token: TokenIsElevated=1 ElevationType=2 Integrity=0x3000 AdministratorsEnabled=False
+12:55:42.117 main window: <<db.kdbx - KeePass>>
+12:55:42.289 group rows: Desk probe, KeePassGate, Passwords, Recycle Bin
+12:55:43.756 menu: <<Import...>>
+12:55:45.379 [import-OverwriteIfNewer-1-import] WINDOW title=<<Import File/Data>> class=WindowsForms10.Window.8.app.0.2bf8098_r6_ad1
+12:55:45.458 [import-OverwriteIfNewer-1-import]   Pane name=<<General>>
+12:55:45.467 [import-OverwriteIfNewer-1-import]   Group name=<<Format>>
+12:55:45.482 [import-OverwriteIfNewer-1-import]   Group name=<<Source>>
+12:55:45.492 [import-OverwriteIfNewer-1-import]   Pane name=<<Help: Configuring source applications>>
+12:55:45.499 [import-OverwriteIfNewer-1-import]   Text name=<<File(s):>> disabled
+12:55:45.505 [import-OverwriteIfNewer-1-import]   Pane name=<<Cancel>>
+12:55:45.511 [import-OverwriteIfNewer-1-import]   Pane name=<<OK>> disabled
+12:55:45.524 [import-OverwriteIfNewer-1-import]   win32 Window.8 <<General>>
+12:55:45.532 [import-OverwriteIfNewer-1-import]   win32 Window.8 <<Format>>
+12:55:45.540 [import-OverwriteIfNewer-1-import]   win32 Window.8 <<Source>>
+12:55:45.546 [import-OverwriteIfNewer-1-import]   win32 STATIC <<Help: Configuring source applications>>
+12:55:45.550 [import-OverwriteIfNewer-1-import]   win32 STATIC <<File(s):>> disabled
+12:55:45.560 [import-OverwriteIfNewer-1-import]   win32 BUTTON <<Cancel>>
+12:55:45.571 [import-OverwriteIfNewer-1-import]   win32 BUTTON <<OK>> disabled
+12:55:49.584 shot import-OverwriteIfNewer-1-import.png (406 x 556)
+12:55:51.563 shot import-OverwriteIfNewer-1-key.png (419 x 233)
+12:55:51.567 [import-OverwriteIfNewer-1-key] WINDOW title=<<Open Database - other.kdbx>> class=WindowsForms10.Window.8.app.0.2bf8098_r6_ad1
+12:55:51.621 [import-OverwriteIfNewer-1-key]   ComboBox name=<<(None)>>
+12:55:51.629 [import-OverwriteIfNewer-1-key]   Button name=<<Open>>
+12:55:51.633 [import-OverwriteIfNewer-1-key]   Pane name=<<Help>>
+12:55:51.652 [import-OverwriteIfNewer-1-key]   Pane name=<<Cancel>>
+12:55:51.658 [import-OverwriteIfNewer-1-key]   Pane name=<<OK>> disabled
+12:55:51.664 [import-OverwriteIfNewer-1-key]   Pane name=<<Windows user account>>
+12:55:51.674 [import-OverwriteIfNewer-1-key]   Pane name=<<Key file/provider:>>
+12:55:51.684 [import-OverwriteIfNewer-1-key]   Pane name=<<Master password:>>
+12:55:51.691 [import-OverwriteIfNewer-1-key]   win32 COMBOBOX <<(None)>>
+12:55:51.698 [import-OverwriteIfNewer-1-key]   win32 BUTTON <<&Help>>
+12:55:51.702 [import-OverwriteIfNewer-1-key]   win32 BUTTON <<Cancel>>
+12:55:51.714 [import-OverwriteIfNewer-1-key]   win32 BUTTON <<OK>> disabled
+12:55:51.719 [import-OverwriteIfNewer-1-key]   win32 BUTTON <<&Windows user account>>
+12:55:51.723 [import-OverwriteIfNewer-1-key]   win32 BUTTON <<&Key file/provider:>>
+12:55:51.729 [import-OverwriteIfNewer-1-key]   win32 BUTTON <<&Master password:>>
+12:55:54.539 [import-OverwriteIfNewer-1] Import Behavior preselected: Create new IDs
+12:55:54.555 [import-OverwriteIfNewer-1-method] WINDOW title=<<Import Behavior>> class=WindowsForms10.Window.8.app.0.2bf8098_r6_ad1
+12:55:54.688 [import-OverwriteIfNewer-1-method]   Text name=<<Behaves like 'Overwrite if newer', but also applies deletions of the database to be imported. When an entry has been deleted in the database to be imported, it will also be deleted in the currently open database.>>
+12:55:54.709 [import-OverwriteIfNewer-1-method]   Text name=<<Behaves like 'Overwrite if newer', but also applies deletions of the database to be imported. When an entry has been deleted in the database to be imported, it will also be deleted in the currently open database.>>
+12:55:54.719 [import-OverwriteIfNewer-1-method]   Pane name=<<Overwrite if newer and apply deletions>>
+12:55:54.731 [import-OverwriteIfNewer-1-method]   Text name=<<KeePass will compare the last-modified times of the groups/entries and replace the existing ones only if the ones to import are newer.>>
+12:55:54.749 [import-OverwriteIfNewer-1-method]   Pane name=<<Overwrite if newer>>
+12:55:54.762 [import-OverwriteIfNewer-1-method]   Text name=<<KeePass will replace all existing groups and entries by the ones in the file to import, if they have the same ID.>>
+12:55:54.776 [import-OverwriteIfNewer-1-method]   Pane name=<<Overwrite existing>>
+12:55:54.794 [import-OverwriteIfNewer-1-method]   Text name=<<Existing entries of the currently open database will not be modified. Only new entries will be added.>>
+12:55:54.802 [import-OverwriteIfNewer-1-method]   Pane name=<<Keep existing>>
+12:55:54.811 [import-OverwriteIfNewer-1-method]   Text name=<<If you select this option, KeePass will create new IDs for all groups and entries. Consequently, no existing groups and entries of the currently open database will be modified or overwritten.>>
+12:55:54.823 [import-OverwriteIfNewer-1-method]   Pane name=<<Create new IDs>>
+12:55:54.833 [import-OverwriteIfNewer-1-method]   Text name=<<The file format that you have selected to import supports group and/or entry IDs. Please choose an import behavior.>>
+12:55:54.850 [import-OverwriteIfNewer-1-method]   Pane name=<<Cancel>>
+12:55:54.858 [import-OverwriteIfNewer-1-method]   Pane name=<<OK>>
+12:55:54.876 [import-OverwriteIfNewer-1-method]   win32 STATIC <<Behaves like 'Overwrite if newer', but also applies deletions of the database to be imported. When an entry has been deleted in the database to be imported, it will also be deleted in the currently open database.>>
+12:55:54.882 [import-OverwriteIfNewer-1-method]   win32 BUTTON <<Overwrite if newer and apply &deletions>>
+12:55:54.890 [import-OverwriteIfNewer-1-method]   win32 STATIC <<KeePass will compare the last-modified times of the groups/entries and replace the existing ones only if the ones to import are newer.>>
+12:55:54.898 [import-OverwriteIfNewer-1-method]   win32 BUTTON <<Overwrite if &newer>>
+12:55:54.905 [import-OverwriteIfNewer-1-method]   win32 STATIC <<KeePass will replace all existing groups and entries by the ones in the file to import, if they have the same ID.>>
+12:55:54.912 [import-OverwriteIfNewer-1-method]   win32 BUTTON <<Overwrite &existing>>
+12:55:54.920 [import-OverwriteIfNewer-1-method]   win32 STATIC <<Existing entries of the currently open database will not be modified. Only new entries will be added.>>
+12:55:54.930 [import-OverwriteIfNewer-1-method]   win32 BUTTON <<&Keep existing>>
+12:55:54.936 [import-OverwriteIfNewer-1-method]   win32 STATIC <<If you select this option, KeePass will create new IDs for all groups and entries. Consequently, no existing groups and entries of the currently open database will be modified or overwritten.>>
+12:55:54.946 [import-OverwriteIfNewer-1-method]   win32 BUTTON <<Create new &IDs>>
+12:55:54.959 [import-OverwriteIfNewer-1-method]   win32 STATIC <<The file format that you have selected to import supports group and/or entry IDs. Please choose an import behavior.>>
+12:55:54.971 [import-OverwriteIfNewer-1-method]   win32 BUTTON <<Cancel>>
+12:55:54.981 [import-OverwriteIfNewer-1-method]   win32 BUTTON <<OK>>
+12:55:55.578 shot import-OverwriteIfNewer-1-method.png (515 x 493)
+12:55:56.283 [import-OverwriteIfNewer-1] chose <<Overwrite if newer>>, now checked: Overwrite if newer
+12:56:05.410 dialogs after the flow: 0
+12:56:07.218 group KeePassGate from the places kept
+12:56:08.992 group Passwords from the places kept
+12:56:10.227 [after] window title <<db.kdbx* - KeePass>>; groups []; KeePassGate [KPG grant 1, KPG admission 1, KPG revocation]; Passwords [P1, P2, Q1, Q2, Q3, X1, K, other-new]; status <<Ready.>>
+12:56:10.240 db after the flow: size=3413 mtime=2026-11-16T08:31:56.2778845Z sha=2ff7a751a869; other: size=5013 mtime=2026-11-16T08:32:08.8042697Z sha=74dd75d7243e
+12:56:11.995 [import-OverwriteIfNewer-1-exit-1] WINDOW title=<<KeePass>> class=#32770
+12:56:12.073 [import-OverwriteIfNewer-1-exit-1]   Image name=<<MainInstructionIcon>>
+12:56:12.082 [import-OverwriteIfNewer-1-exit-1]   Text name=<<Save database changes before exiting KeePass?>>
+12:56:12.095 [import-OverwriteIfNewer-1-exit-1]   Text name=<<Database file:
+<work>\runs\m5\import-OverwriteIfNewer-1\db.kdbx>>
+12:56:12.113 [import-OverwriteIfNewer-1-exit-1]   Pane name=<<Save>> help=<<Save all changes made to the database and exit KeePass.>>
+12:56:12.131 [import-OverwriteIfNewer-1-exit-1]   Pane name=<<Discard changes>> help=<<Discard all changes made to the database and exit KeePass.>>
+12:56:12.147 [import-OverwriteIfNewer-1-exit-1]   Pane name=<<Cancel>> help=<<Abort the current operation. KeePass will not be closed.>>
+12:56:12.156 [import-OverwriteIfNewer-1-exit-1]   CheckBox name=<<Automatically save when closing/locking the database>>
+12:56:12.171 [import-OverwriteIfNewer-1-exit-1]   win32 Button <<&Save>>
+12:56:12.182 [import-OverwriteIfNewer-1-exit-1]   win32 Button <<&Discard changes>>
+12:56:12.197 [import-OverwriteIfNewer-1-exit-1]   win32 Button <<Cancel>>
+12:56:12.755 shot import-OverwriteIfNewer-1-exit-1.png (442 x 352)
+12:56:13.051 [import-OverwriteIfNewer-1-exit-1] pressed <<&Discard changes (clicked)>>
+12:56:19.938 dialogs at the exit (answered Discard): 1
+12:56:19.970 db after the exit: size=3413 mtime=2026-11-16T08:31:56.2778845Z sha=2ff7a751a869; other: size=5013 mtime=2026-11-16T08:32:08.8042697Z sha=74dd75d7243e
+12:56:20.429 marker entry in: neither file
+12:56:20.436 event: 11:55:32.824 Initialize db= open=0 disk=absent marker=True triggers.enabled=True
+12:56:20.441 event: 11:55:32.842 Trigger.AppInitPost db= open=0 disk=absent
+12:56:20.461 event: 11:55:33.065 FileOpened db=db.kdbx open=1 modified=0 entries=9 records=1 kpg=2 disk=3413:2ff7a751a8
+12:56:20.479 event: 11:55:33.067 Trigger.OpenedDatabaseFile db=db.kdbx open=1 modified=0 entries=9 records=1 kpg=2 disk=3413:2ff7a751a8
+12:56:20.503 event: 11:55:33.069 Trigger.AppLoadPost db=db.kdbx open=1 modified=0 entries=9 records=1 kpg=2 disk=3413:2ff7a751a8
+12:56:20.517 event: 11:55:33.413 Trigger.TimePeriodic db=db.kdbx open=1 modified=0 entries=9 records=1 kpg=2 disk=3413:2ff7a751a8
+12:56:20.529 event: 11:55:34.423 Trigger.TimePeriodic db=db.kdbx open=1 modified=0 entries=9 records=1 kpg=2 disk=3413:2ff7a751a8
+12:56:20.539 event: 11:55:35.418 Trigger.TimePeriodic db=db.kdbx open=1 modified=0 entries=9 records=1 kpg=2 disk=3413:2ff7a751a8
+12:56:20.562 event: 11:55:36.429 Trigger.TimePeriodic db=db.kdbx open=1 modified=0 entries=9 records=1 kpg=2 disk=3413:2ff7a751a8
+12:56:20.582 event: 11:55:37.427 Trigger.TimePeriodic db=db.kdbx open=1 modified=0 entries=9 records=1 kpg=2 disk=3413:2ff7a751a8
+12:56:20.599 event: 11:55:38.427 Trigger.TimePeriodic db=db.kdbx open=1 modified=0 entries=9 records=1 kpg=2 disk=3413:2ff7a751a8
+12:56:20.615 event: 11:55:39.439 Trigger.TimePeriodic db=db.kdbx open=1 modified=0 entries=9 records=1 kpg=2 disk=3413:2ff7a751a8
+12:56:20.621 event: 11:55:40.436 Trigger.TimePeriodic db=db.kdbx open=1 modified=0 entries=9 records=1 kpg=2 disk=3413:2ff7a751a8
+12:56:20.632 event: 11:55:41.431 Trigger.TimePeriodic db=db.kdbx open=1 modified=0 entries=9 records=1 kpg=2 disk=3413:2ff7a751a8
+12:56:20.642 event: 11:55:42.439 Trigger.TimePeriodic db=db.kdbx open=1 modified=0 entries=9 records=1 kpg=2 disk=3413:2ff7a751a8
+12:56:20.652 event: 11:55:43.435 Trigger.TimePeriodic db=db.kdbx open=1 modified=0 entries=9 records=1 kpg=2 disk=3413:2ff7a751a8
+12:56:20.668 event: 11:55:57.449 Trigger.TimePeriodic db=db.kdbx open=1 modified=1 entries=11 records=1 kpg=3 disk=3413:2ff7a751a8
+12:56:20.681 event: 11:55:58.446 Trigger.TimePeriodic db=db.kdbx open=1 modified=1 entries=11 records=1 kpg=3 disk=3413:2ff7a751a8
+12:56:20.691 event: 11:55:59.455 Trigger.TimePeriodic db=db.kdbx open=1 modified=1 entries=11 records=1 kpg=3 disk=3413:2ff7a751a8
+12:56:20.700 event: 11:56:00.447 Trigger.TimePeriodic db=db.kdbx open=1 modified=1 entries=11 records=1 kpg=3 disk=3413:2ff7a751a8
+12:56:20.711 event: 11:56:01.472 Trigger.TimePeriodic db=db.kdbx open=1 modified=1 entries=11 records=1 kpg=3 disk=3413:2ff7a751a8
+12:56:20.724 event: 11:56:02.468 Trigger.TimePeriodic db=db.kdbx open=1 modified=1 entries=11 records=1 kpg=3 disk=3413:2ff7a751a8
+12:56:20.731 event: 11:56:03.477 Trigger.TimePeriodic db=db.kdbx open=1 modified=1 entries=11 records=1 kpg=3 disk=3413:2ff7a751a8
+12:56:20.745 event: 11:56:04.480 Trigger.TimePeriodic db=db.kdbx open=1 modified=1 entries=11 records=1 kpg=3 disk=3413:2ff7a751a8
+12:56:20.753 event: 11:56:05.474 Trigger.TimePeriodic db=db.kdbx open=1 modified=1 entries=11 records=1 kpg=3 disk=3413:2ff7a751a8
+12:56:20.762 event: 11:56:06.486 Trigger.TimePeriodic db=db.kdbx open=1 modified=1 entries=11 records=1 kpg=3 disk=3413:2ff7a751a8
+12:56:20.775 event: 11:56:07.483 Trigger.TimePeriodic db=db.kdbx open=1 modified=1 entries=11 records=1 kpg=3 disk=3413:2ff7a751a8
+12:56:20.782 event: 11:56:08.477 Trigger.TimePeriodic db=db.kdbx open=1 modified=1 entries=11 records=1 kpg=3 disk=3413:2ff7a751a8
+12:56:20.788 event: 11:56:09.473 Trigger.TimePeriodic db=db.kdbx open=1 modified=1 entries=11 records=1 kpg=3 disk=3413:2ff7a751a8
+12:56:20.802 event: 11:56:10.483 Trigger.TimePeriodic db=db.kdbx open=1 modified=1 entries=11 records=1 kpg=3 disk=3413:2ff7a751a8
+12:56:20.824 event: 11:56:10.596 Trigger.ClosingDatabaseFilePre db=db.kdbx open=1 modified=1 entries=11 records=1 kpg=3 disk=3413:2ff7a751a8
+12:56:20.838 event: 11:56:10.596 FileClosingPre db=db.kdbx open=1 modified=1 entries=11 records=1 kpg=3 disk=3413:2ff7a751a8 flags=Exiting
+12:56:20.850 event: 11:56:13.077 Trigger.ClosingDatabaseFilePost db=db.kdbx open=1 modified=1 entries=11 records=1 kpg=3 disk=3413:2ff7a751a8
+12:56:20.857 event: 11:56:13.077 FileClosingPost db=db.kdbx open=1 modified=1 entries=11 records=1 kpg=3 disk=3413:2ff7a751a8 flags=Exiting
+12:56:20.867 event: 11:56:13.086 FileClosed db= open=0 disk=absent path=<work>\runs\m5\import-OverwriteIfNewer-1\db.kdbx flags=Exiting
+12:56:20.871 event: 11:56:13.088 Trigger.AppExit db= open=0 disk=absent
+12:56:20.879 event: 11:56:13.088 Terminate db= open=0 disk=absent
+12:56:21.087 ==== import-Synchronize-1 : File, Import, KDBX, Overwrite if newer and apply deletions
+12:56:21.107 db: size=3413 mtime=2026-11-16T08:31:56.2778845Z sha=2ff7a751a869; other: size=5013 mtime=2026-11-16T08:32:08.8042697Z sha=74dd75d7243e
+12:56:21.116 config: 
+12:56:34.914 started KeePass pid=21120 token: TokenIsElevated=1 ElevationType=2 Integrity=0x3000 AdministratorsEnabled=False
+12:56:35.044 main window: <<db.kdbx - KeePass>>
+12:56:35.283 group rows: Desk probe, KeePassGate, Passwords, Recycle Bin
+12:56:36.926 menu: <<Import...>>
+12:56:38.680 [import-Synchronize-1-import] WINDOW title=<<Import File/Data>> class=WindowsForms10.Window.8.app.0.2bf8098_r6_ad1
+12:56:38.771 [import-Synchronize-1-import]   Pane name=<<General>>
+12:56:38.802 [import-Synchronize-1-import]   Group name=<<Format>>
+12:56:38.815 [import-Synchronize-1-import]   Group name=<<Source>>
+12:56:38.826 [import-Synchronize-1-import]   Pane name=<<Help: Configuring source applications>>
+12:56:38.845 [import-Synchronize-1-import]   Text name=<<File(s):>> disabled
+12:56:38.855 [import-Synchronize-1-import]   Pane name=<<Cancel>>
+12:56:38.865 [import-Synchronize-1-import]   Pane name=<<OK>> disabled
+12:56:38.874 [import-Synchronize-1-import]   win32 Window.8 <<General>>
+12:56:38.886 [import-Synchronize-1-import]   win32 Window.8 <<Format>>
+12:56:38.891 [import-Synchronize-1-import]   win32 Window.8 <<Source>>
+12:56:38.902 [import-Synchronize-1-import]   win32 STATIC <<Help: Configuring source applications>>
+12:56:38.913 [import-Synchronize-1-import]   win32 STATIC <<File(s):>> disabled
+12:56:38.923 [import-Synchronize-1-import]   win32 BUTTON <<Cancel>>
+12:56:38.930 [import-Synchronize-1-import]   win32 BUTTON <<OK>> disabled
+12:56:42.613 shot import-Synchronize-1-import.png (406 x 556)
+12:56:44.587 shot import-Synchronize-1-key.png (419 x 233)
+12:56:44.593 [import-Synchronize-1-key] WINDOW title=<<Open Database - other.kdbx>> class=WindowsForms10.Window.8.app.0.2bf8098_r6_ad1
+12:56:44.657 [import-Synchronize-1-key]   ComboBox name=<<(None)>>
+12:56:44.670 [import-Synchronize-1-key]   Button name=<<Open>>
+12:56:44.685 [import-Synchronize-1-key]   Pane name=<<Help>>
+12:56:44.690 [import-Synchronize-1-key]   Pane name=<<Cancel>>
+12:56:44.696 [import-Synchronize-1-key]   Pane name=<<OK>> disabled
+12:56:44.702 [import-Synchronize-1-key]   Pane name=<<Windows user account>>
+12:56:44.708 [import-Synchronize-1-key]   Pane name=<<Key file/provider:>>
+12:56:44.713 [import-Synchronize-1-key]   Pane name=<<Master password:>>
+12:56:44.722 [import-Synchronize-1-key]   win32 COMBOBOX <<(None)>>
+12:56:44.730 [import-Synchronize-1-key]   win32 BUTTON <<&Help>>
+12:56:44.732 [import-Synchronize-1-key]   win32 BUTTON <<Cancel>>
+12:56:44.737 [import-Synchronize-1-key]   win32 BUTTON <<OK>> disabled
+12:56:44.744 [import-Synchronize-1-key]   win32 BUTTON <<&Windows user account>>
+12:56:44.747 [import-Synchronize-1-key]   win32 BUTTON <<&Key file/provider:>>
+12:56:44.759 [import-Synchronize-1-key]   win32 BUTTON <<&Master password:>>
+12:56:47.498 [import-Synchronize-1] Import Behavior preselected: Create new IDs
+12:56:47.505 [import-Synchronize-1-method] WINDOW title=<<Import Behavior>> class=WindowsForms10.Window.8.app.0.2bf8098_r6_ad1
+12:56:47.612 [import-Synchronize-1-method]   Text name=<<Behaves like 'Overwrite if newer', but also applies deletions of the database to be imported. When an entry has been deleted in the database to be imported, it will also be deleted in the currently open database.>>
+12:56:47.624 [import-Synchronize-1-method]   Text name=<<Behaves like 'Overwrite if newer', but also applies deletions of the database to be imported. When an entry has been deleted in the database to be imported, it will also be deleted in the currently open database.>>
+12:56:47.632 [import-Synchronize-1-method]   Pane name=<<Overwrite if newer and apply deletions>>
+12:56:47.640 [import-Synchronize-1-method]   Text name=<<KeePass will compare the last-modified times of the groups/entries and replace the existing ones only if the ones to import are newer.>>
+12:56:47.656 [import-Synchronize-1-method]   Pane name=<<Overwrite if newer>>
+12:56:47.665 [import-Synchronize-1-method]   Text name=<<KeePass will replace all existing groups and entries by the ones in the file to import, if they have the same ID.>>
+12:56:47.681 [import-Synchronize-1-method]   Pane name=<<Overwrite existing>>
+12:56:47.689 [import-Synchronize-1-method]   Text name=<<Existing entries of the currently open database will not be modified. Only new entries will be added.>>
+12:56:47.699 [import-Synchronize-1-method]   Pane name=<<Keep existing>>
+12:56:47.707 [import-Synchronize-1-method]   Text name=<<If you select this option, KeePass will create new IDs for all groups and entries. Consequently, no existing groups and entries of the currently open database will be modified or overwritten.>>
+12:56:47.725 [import-Synchronize-1-method]   Pane name=<<Create new IDs>>
+12:56:47.736 [import-Synchronize-1-method]   Text name=<<The file format that you have selected to import supports group and/or entry IDs. Please choose an import behavior.>>
+12:56:47.740 [import-Synchronize-1-method]   Pane name=<<Cancel>>
+12:56:47.753 [import-Synchronize-1-method]   Pane name=<<OK>>
+12:56:47.768 [import-Synchronize-1-method]   win32 STATIC <<Behaves like 'Overwrite if newer', but also applies deletions of the database to be imported. When an entry has been deleted in the database to be imported, it will also be deleted in the currently open database.>>
+12:56:47.770 [import-Synchronize-1-method]   win32 BUTTON <<Overwrite if newer and apply &deletions>>
+12:56:47.781 [import-Synchronize-1-method]   win32 STATIC <<KeePass will compare the last-modified times of the groups/entries and replace the existing ones only if the ones to import are newer.>>
+12:56:47.788 [import-Synchronize-1-method]   win32 BUTTON <<Overwrite if &newer>>
+12:56:47.798 [import-Synchronize-1-method]   win32 STATIC <<KeePass will replace all existing groups and entries by the ones in the file to import, if they have the same ID.>>
+12:56:47.807 [import-Synchronize-1-method]   win32 BUTTON <<Overwrite &existing>>
+12:56:47.822 [import-Synchronize-1-method]   win32 STATIC <<Existing entries of the currently open database will not be modified. Only new entries will be added.>>
+12:56:47.826 [import-Synchronize-1-method]   win32 BUTTON <<&Keep existing>>
+12:56:47.841 [import-Synchronize-1-method]   win32 STATIC <<If you select this option, KeePass will create new IDs for all groups and entries. Consequently, no existing groups and entries of the currently open database will be modified or overwritten.>>
+12:56:47.849 [import-Synchronize-1-method]   win32 BUTTON <<Create new &IDs>>
+12:56:47.855 [import-Synchronize-1-method]   win32 STATIC <<The file format that you have selected to import supports group and/or entry IDs. Please choose an import behavior.>>
+12:56:47.858 [import-Synchronize-1-method]   win32 BUTTON <<Cancel>>
+12:56:47.866 [import-Synchronize-1-method]   win32 BUTTON <<OK>>
+12:56:48.448 shot import-Synchronize-1-method.png (515 x 493)
+12:56:49.170 [import-Synchronize-1] chose <<Overwrite if newer and apply deletions>>, now checked: Overwrite if newer and apply deletions
+12:56:58.376 dialogs after the flow: 0
+12:56:59.699 group KeePassGate from the places kept
+12:57:00.942 group Passwords from the places kept
+12:57:02.052 [after] window title <<db.kdbx* - KeePass>>; groups []; KeePassGate [KPG grant 1, KPG admission 1, KPG revocation]; Passwords [P1, P2, Q1, Q2, Q3, K, other-new]; status <<Ready.>>
+12:57:02.064 db after the flow: size=3413 mtime=2026-11-16T08:31:56.2778845Z sha=2ff7a751a869; other: size=5013 mtime=2026-11-16T08:32:08.8042697Z sha=74dd75d7243e
+12:57:03.632 [import-Synchronize-1-exit-1] WINDOW title=<<KeePass>> class=#32770
+12:57:03.734 [import-Synchronize-1-exit-1]   Image name=<<MainInstructionIcon>>
+12:57:03.746 [import-Synchronize-1-exit-1]   Text name=<<Save database changes before exiting KeePass?>>
+12:57:03.757 [import-Synchronize-1-exit-1]   Text name=<<Database file:
+<work>\runs\m5\import-Synchronize-1\db.kdbx>>
+12:57:03.768 [import-Synchronize-1-exit-1]   Pane name=<<Save>> help=<<Save all changes made to the database and exit KeePass.>>
+12:57:03.778 [import-Synchronize-1-exit-1]   Pane name=<<Discard changes>> help=<<Discard all changes made to the database and exit KeePass.>>
+12:57:03.784 [import-Synchronize-1-exit-1]   Pane name=<<Cancel>> help=<<Abort the current operation. KeePass will not be closed.>>
+12:57:03.791 [import-Synchronize-1-exit-1]   CheckBox name=<<Automatically save when closing/locking the database>>
+12:57:03.806 [import-Synchronize-1-exit-1]   win32 Button <<&Save>>
+12:57:03.810 [import-Synchronize-1-exit-1]   win32 Button <<&Discard changes>>
+12:57:03.814 [import-Synchronize-1-exit-1]   win32 Button <<Cancel>>
+12:57:04.380 shot import-Synchronize-1-exit-1.png (442 x 352)
+12:57:04.671 [import-Synchronize-1-exit-1] pressed <<&Discard changes (clicked)>>
+12:57:11.576 dialogs at the exit (answered Discard): 1
+12:57:11.614 db after the exit: size=3413 mtime=2026-11-16T08:31:56.2778845Z sha=2ff7a751a869; other: size=5013 mtime=2026-11-16T08:32:08.8042697Z sha=74dd75d7243e
+12:57:12.035 marker entry in: neither file
+12:57:12.044 event: 11:56:25.479 Initialize db= open=0 disk=absent marker=True triggers.enabled=True
+12:57:12.047 event: 11:56:25.499 Trigger.AppInitPost db= open=0 disk=absent
+12:57:12.056 event: 11:56:25.743 FileOpened db=db.kdbx open=1 modified=0 entries=9 records=1 kpg=2 disk=3413:2ff7a751a8
+12:57:12.070 event: 11:56:25.745 Trigger.OpenedDatabaseFile db=db.kdbx open=1 modified=0 entries=9 records=1 kpg=2 disk=3413:2ff7a751a8
+12:57:12.090 event: 11:56:25.747 Trigger.AppLoadPost db=db.kdbx open=1 modified=0 entries=9 records=1 kpg=2 disk=3413:2ff7a751a8
+12:57:12.107 event: 11:56:26.162 Trigger.TimePeriodic db=db.kdbx open=1 modified=0 entries=9 records=1 kpg=2 disk=3413:2ff7a751a8
+12:57:12.118 event: 11:56:27.188 Trigger.TimePeriodic db=db.kdbx open=1 modified=0 entries=9 records=1 kpg=2 disk=3413:2ff7a751a8
+12:57:12.135 event: 11:56:28.184 Trigger.TimePeriodic db=db.kdbx open=1 modified=0 entries=9 records=1 kpg=2 disk=3413:2ff7a751a8
+12:57:12.150 event: 11:56:29.180 Trigger.TimePeriodic db=db.kdbx open=1 modified=0 entries=9 records=1 kpg=2 disk=3413:2ff7a751a8
+12:57:12.181 event: 11:56:30.190 Trigger.TimePeriodic db=db.kdbx open=1 modified=0 entries=9 records=1 kpg=2 disk=3413:2ff7a751a8
+12:57:12.191 event: 11:56:31.186 Trigger.TimePeriodic db=db.kdbx open=1 modified=0 entries=9 records=1 kpg=2 disk=3413:2ff7a751a8
+12:57:12.220 event: 11:56:32.179 Trigger.TimePeriodic db=db.kdbx open=1 modified=0 entries=9 records=1 kpg=2 disk=3413:2ff7a751a8
+12:57:12.231 event: 11:56:33.189 Trigger.TimePeriodic db=db.kdbx open=1 modified=0 entries=9 records=1 kpg=2 disk=3413:2ff7a751a8
+12:57:12.244 event: 11:56:34.180 Trigger.TimePeriodic db=db.kdbx open=1 modified=0 entries=9 records=1 kpg=2 disk=3413:2ff7a751a8
+12:57:12.268 event: 11:56:35.178 Trigger.TimePeriodic db=db.kdbx open=1 modified=0 entries=9 records=1 kpg=2 disk=3413:2ff7a751a8
+12:57:12.284 event: 11:56:36.191 Trigger.TimePeriodic db=db.kdbx open=1 modified=0 entries=9 records=1 kpg=2 disk=3413:2ff7a751a8
+12:57:12.297 event: 11:56:50.226 Trigger.TimePeriodic db=db.kdbx open=1 modified=1 entries=10 records=3 kpg=3 disk=3413:2ff7a751a8
+12:57:12.312 event: 11:56:51.237 Trigger.TimePeriodic db=db.kdbx open=1 modified=1 entries=10 records=3 kpg=3 disk=3413:2ff7a751a8
+12:57:12.322 event: 11:56:52.236 Trigger.TimePeriodic db=db.kdbx open=1 modified=1 entries=10 records=3 kpg=3 disk=3413:2ff7a751a8
+12:57:12.329 event: 11:56:53.232 Trigger.TimePeriodic db=db.kdbx open=1 modified=1 entries=10 records=3 kpg=3 disk=3413:2ff7a751a8
+12:57:12.338 event: 11:56:54.231 Trigger.TimePeriodic db=db.kdbx open=1 modified=1 entries=10 records=3 kpg=3 disk=3413:2ff7a751a8
+12:57:12.354 event: 11:56:55.228 Trigger.TimePeriodic db=db.kdbx open=1 modified=1 entries=10 records=3 kpg=3 disk=3413:2ff7a751a8
+12:57:12.363 event: 11:56:56.227 Trigger.TimePeriodic db=db.kdbx open=1 modified=1 entries=10 records=3 kpg=3 disk=3413:2ff7a751a8
+12:57:12.369 event: 11:56:57.226 Trigger.TimePeriodic db=db.kdbx open=1 modified=1 entries=10 records=3 kpg=3 disk=3413:2ff7a751a8
+12:57:12.373 event: 11:56:58.234 Trigger.TimePeriodic db=db.kdbx open=1 modified=1 entries=10 records=3 kpg=3 disk=3413:2ff7a751a8
+12:57:12.380 event: 11:56:59.231 Trigger.TimePeriodic db=db.kdbx open=1 modified=1 entries=10 records=3 kpg=3 disk=3413:2ff7a751a8
+12:57:12.383 event: 11:57:00.228 Trigger.TimePeriodic db=db.kdbx open=1 modified=1 entries=10 records=3 kpg=3 disk=3413:2ff7a751a8
+12:57:12.387 event: 11:57:01.228 Trigger.TimePeriodic db=db.kdbx open=1 modified=1 entries=10 records=3 kpg=3 disk=3413:2ff7a751a8
+12:57:12.393 event: 11:57:02.226 Trigger.TimePeriodic db=db.kdbx open=1 modified=1 entries=10 records=3 kpg=3 disk=3413:2ff7a751a8
+12:57:12.396 event: 11:57:02.370 Trigger.ClosingDatabaseFilePre db=db.kdbx open=1 modified=1 entries=10 records=3 kpg=3 disk=3413:2ff7a751a8
+12:57:12.398 event: 11:57:02.372 FileClosingPre db=db.kdbx open=1 modified=1 entries=10 records=3 kpg=3 disk=3413:2ff7a751a8 flags=Exiting
+12:57:12.403 event: 11:57:04.723 Trigger.ClosingDatabaseFilePost db=db.kdbx open=1 modified=1 entries=10 records=3 kpg=3 disk=3413:2ff7a751a8
+12:57:12.411 event: 11:57:04.725 FileClosingPost db=db.kdbx open=1 modified=1 entries=10 records=3 kpg=3 disk=3413:2ff7a751a8 flags=Exiting
+12:57:12.418 event: 11:57:04.732 FileClosed db= open=0 disk=absent path=<work>\runs\m5\import-Synchronize-1\db.kdbx flags=Exiting
+12:57:12.424 event: 11:57:04.734 Trigger.AppExit db= open=0 disk=absent
+12:57:12.430 event: 11:57:04.734 Terminate db= open=0 disk=absent

@@ -1,0 +1,5 @@
+cli    M CD KPXC_RANDOM_SLUG = len=308 sha=415711390a3f37fa "3d3932fae28e58e6f20206ad2bcd68870926d1b1741e549b63827824efc8..." @none
+cli    M CD _LAST_MODIFIED = "Mon Nov 16 11:26:45 2026 GMT" @none
+window M CD KPG.NewKey = "{\"added\":\"by the other writer\"}" @none
+window M CD KPXC_RANDOM_SLUG = len=1014 sha=80fc826b7574afcc "93dbceac79917f6bc0c60f06c1b9ad4805e3f6a534505dd110ea20f879c5..." @none
+window M CD _LAST_MODIFIED = "Mon Nov 16 11:26:24 2026 GMT" @none

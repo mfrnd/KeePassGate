@@ -1,0 +1,28 @@
+12:49:12.425 ==== import-Synchronize-1 : File, Import, KDBX, Overwrite if newer and apply deletions
+12:49:12.458 db: size=3413 mtime=2026-11-16T08:31:56.2778845Z sha=2ff7a751a869; other: size=5013 mtime=2026-11-16T08:32:08.8042697Z sha=74dd75d7243e
+12:49:12.480 config: 
+12:49:24.875 started KeePass pid=10076 token: TokenIsElevated=1 ElevationType=2 Integrity=0x3000 AdministratorsEnabled=False
+12:49:24.974 main window: <<db.kdbx - KeePass>>
+12:49:25.174 group rows: Desk probe, KeePassGate, Passwords, Recycle Bin
+12:49:26.737 menu: <<Import...>>
+12:49:28.454 [import-Synchronize-1-import] WINDOW title=<<Import File/Data>> class=WindowsForms10.Window.8.app.0.2bf8098_r6_ad1
+12:49:28.608 [import-Synchronize-1-import]   Pane name=<<General>>
+12:49:28.639 [import-Synchronize-1-import]   Group name=<<Format>>
+12:49:28.649 [import-Synchronize-1-import]   Group name=<<Source>>
+12:49:28.657 [import-Synchronize-1-import]   Pane name=<<Help: Configuring source applications>>
+12:49:28.674 [import-Synchronize-1-import]   Text name=<<File(s):>> disabled
+12:49:28.693 [import-Synchronize-1-import]   Pane name=<<Cancel>>
+12:49:28.704 [import-Synchronize-1-import]   Pane name=<<OK>> disabled
+12:49:28.718 [import-Synchronize-1-import]   win32 Window.8 <<General>>
+12:49:28.729 [import-Synchronize-1-import]   win32 Window.8 <<Format>>
+12:49:28.757 [import-Synchronize-1-import]   win32 Window.8 <<Source>>
+12:49:28.762 [import-Synchronize-1-import]   win32 STATIC <<Help: Configuring source applications>>
+12:49:28.773 [import-Synchronize-1-import]   win32 STATIC <<File(s):>> disabled
+12:49:28.782 [import-Synchronize-1-import]   win32 BUTTON <<Cancel>>
+12:49:28.792 [import-Synchronize-1-import]   win32 BUTTON <<OK>> disabled
+12:49:32.568 shot import-Synchronize-1-import.png (406 x 556)
+12:49:43.540 stopping KeePass pid=10076
+12:49:43.628 RUN FAILED import-Synchronize-1: no key prompt at Kp-KeyPrompt, <branch>\spikes\storage\probes\desktop-windows\scripts\Kp.ps1: line 341
+at Kp-ImportKdbx, <branch>\spikes\storage\probes\desktop-windows\scripts\Kp.ps1: line 367
+at Run-M5, <branch>\spikes\storage\probes\desktop-windows\scripts\M5.ps1: line 107
+at <ScriptBlock>, <branch>\spikes\storage\probes\desktop-windows\scripts\M5.ps1: line 159

@@ -1,0 +1,98 @@
+11:46:31.583 ==== export
+11:46:31.631 config: 
+11:46:43.244 started KeePass pid=21472 token: TokenIsElevated=1 ElevationType=2 Integrity=0x3000 AdministratorsEnabled=False
+11:46:43.652 main window: <<db.kdbx - KeePass>>
+11:46:44.041 group rows: Desk entries, KeePassGate, Passwords, Recycle Bin
+11:46:45.937 menu: <<Export...>>
+11:46:48.626 shot export-dialog.png (406 x 556)
+11:47:00.984 menu: <<Export...>>
+11:47:06.979 [export-6-0] WINDOW title=<<Enter Current Master Key (Export) - db.kdbx>> class=WindowsForms10.Window.8.app.0.2bf8098_r6_ad1
+11:47:07.084 [export-6-0]   ComboBox name=<<(None)>>
+11:47:07.110 [export-6-0]   Button name=<<Open>>
+11:47:07.118 [export-6-0]   Pane name=<<Help>>
+11:47:07.128 [export-6-0]   Pane name=<<Cancel>>
+11:47:07.144 [export-6-0]   Pane name=<<Confirm Export>>
+11:47:07.152 [export-6-0]   Pane name=<<Windows user account>>
+11:47:07.161 [export-6-0]   Pane name=<<Key file/provider:>>
+11:47:07.171 [export-6-0]   Pane name=<<Master password:>>
+11:47:07.186 [export-6-0]   win32 COMBOBOX <<(None)>>
+11:47:07.193 [export-6-0]   win32 BUTTON <<&Help>>
+11:47:07.198 [export-6-0]   win32 BUTTON <<Cancel>>
+11:47:07.203 [export-6-0]   win32 BUTTON <<Confirm Export>>
+11:47:07.214 [export-6-0]   win32 BUTTON <<&Windows user account>>
+11:47:07.217 [export-6-0]   win32 BUTTON <<&Key file/provider:>>
+11:47:07.223 [export-6-0]   win32 BUTTON <<&Master password:>>
+11:47:07.799 shot export-6-0.png (419 x 233)
+11:47:12.806 [export-6-1] WINDOW title=<<Export To HTML>> class=WindowsForms10.Window.8.app.0.2bf8098_r6_ad1
+11:47:12.870 [export-6-1]   Pane name=<<Cancel>>
+11:47:12.878 [export-6-1]   Pane name=<<Preview>>
+11:47:12.893 [export-6-1]   Pane name=<<Export>>
+11:47:12.911 [export-6-1]   win32 BUTTON <<Cancel>>
+11:47:12.922 [export-6-1]   win32 Window.8 <<Preview>>
+11:47:12.937 [export-6-1]   win32 BUTTON <<Export>>
+11:47:13.511 shot export-6-1.png (627 x 599)
+11:47:27.322 menu: <<Export...>>
+11:47:33.226 [export-7-0] WINDOW title=<<Enter Current Master Key (Export) - db.kdbx>> class=WindowsForms10.Window.8.app.0.2bf8098_r6_ad1
+11:47:33.301 [export-7-0]   ComboBox name=<<(None)>>
+11:47:33.315 [export-7-0]   Button name=<<Open>>
+11:47:33.327 [export-7-0]   Pane name=<<Help>>
+11:47:33.338 [export-7-0]   Pane name=<<Cancel>>
+11:47:33.344 [export-7-0]   Pane name=<<Confirm Export>>
+11:47:33.352 [export-7-0]   Pane name=<<Windows user account>>
+11:47:33.364 [export-7-0]   Pane name=<<Key file/provider:>>
+11:47:33.377 [export-7-0]   Pane name=<<Master password:>>
+11:47:33.397 [export-7-0]   win32 COMBOBOX <<(None)>>
+11:47:33.410 [export-7-0]   win32 BUTTON <<&Help>>
+11:47:33.421 [export-7-0]   win32 BUTTON <<Cancel>>
+11:47:33.442 [export-7-0]   win32 BUTTON <<Confirm Export>>
+11:47:33.455 [export-7-0]   win32 BUTTON <<&Windows user account>>
+11:47:33.462 [export-7-0]   win32 BUTTON <<&Key file/provider:>>
+11:47:33.469 [export-7-0]   win32 BUTTON <<&Master password:>>
+11:47:34.047 shot export-7-0.png (419 x 233)
+11:47:39.435 [export-7-1] WINDOW title=<<Select XSL Transformation File>> class=#32770
+11:47:39.965 [export-7-1]   ToolBar name=<<Command Module>>
+11:47:39.976 [export-7-1]   Button name=<<&Help>> help=<<Get help.>>
+11:47:39.986 [export-7-1]   CheckBox name=<<Preview pane>> help=<<Show the preview pane.>>
+11:47:39.996 [export-7-1]   SplitButton name=<<Details>> help=<<Change your view.>>
+11:47:40.006 [export-7-1]   Button name=<<View Slider>> help=<<More options>>
+11:47:40.017 [export-7-1]   Button name=<<Organize>> help=<<Organize this folder's contents.>>
+11:47:40.027 [export-7-1]   Button name=<<New folder>> help=<<Create a new folder.>>
+11:47:40.037 [export-7-1]   Pane name=<<Control Host>>
+11:47:40.043 [export-7-1]   Pane name=<<Navigation Pane>>
+11:47:40.056 [export-7-1]   Pane name=<<Shell Folder View>>
+11:47:40.069 [export-7-1]   List name=<<Items View>>
+11:47:40.079 [export-7-1]   Pane name=<<Horizontal>>
+11:47:40.089 [export-7-1]   Header name=<<Header>>
+11:47:40.105 [export-7-1]   SplitButton name=<<Name>>
+11:47:40.115 [export-7-1]   Button name=<<Filter dropdown>>
+11:47:40.125 [export-7-1]   SplitButton name=<<Date modified>>
+11:47:40.138 [export-7-1]   Button name=<<Filter dropdown>>
+11:47:40.149 [export-7-1]   SplitButton name=<<Type>>
+11:47:40.160 [export-7-1]   Button name=<<Filter dropdown>>
+11:47:40.172 [export-7-1]   SplitButton name=<<Size>>
+11:47:40.182 [export-7-1]   Button name=<<Filter dropdown>>
+11:47:40.193 [export-7-1]   Text name=<<No items match your search.>>
+11:47:40.204 [export-7-1]   Tree name=<<Application Controls>>
+11:47:40.210 [export-7-1]   Pane name=<<File name:>>
+11:47:40.218 [export-7-1]   Pane name=<<XSL Stylesheets (*.xsl)>>
+11:47:40.225 [export-7-1]   Pane name=<<Open>>
+11:47:40.231 [export-7-1]   Pane name=<<Cancel>>
+11:47:40.241 [export-7-1]   Pane name=<<Navigation buttons>>
+11:47:40.245 [export-7-1]   Pane name=<<Up band>>
+11:47:40.255 [export-7-1]   Pane name=<<Address: Documents>>
+11:47:40.265 [export-7-1]   Pane name=<<Address band>>
+11:47:40.282 [export-7-1]   Edit name=<<Search Box>> help=<< Search Documents>>
+11:47:40.299 [export-7-1]   Button name=<<Search>>
+11:47:40.352 [export-7-1]   win32 NamespaceTreeControl <<Namespace Tree Control>>
+11:47:40.358 [export-7-1]   win32 SysTreeView32 <<Navigation Pane>>
+11:47:40.370 [export-7-1]   win32 SHELLDLL_DefView <<ShellView>>
+11:47:40.376 [export-7-1]   win32 Static <<File &name:>>
+11:47:40.388 [export-7-1]   win32 Static <<Files of &type:>>
+11:47:40.392 [export-7-1]   win32 ComboBox <<XSL Stylesheets (*.xsl)>>
+11:47:40.400 [export-7-1]   win32 Button <<&Open>>
+11:47:40.408 [export-7-1]   win32 Button <<Cancel>>
+11:47:40.416 [export-7-1]   win32 ToolbarWindow32 <<Navigation buttons>>
+11:47:40.423 [export-7-1]   win32 ToolbarWindow32 <<Up band>>
+11:47:40.433 [export-7-1]   win32 ToolbarWindow32 <<Address: Documents>>
+11:47:40.443 [export-7-1]   win32 ToolbarWindow32 <<Address band>>
+11:47:41.016 shot export-7-1.png (626 x 473)

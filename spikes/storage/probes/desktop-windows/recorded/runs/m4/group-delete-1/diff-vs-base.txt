@@ -1,0 +1,18 @@
+- G Bin children groups=0 entries=3
++ G Bin children groups=1 entries=3
+- G Bin flags icon=43 customIcon=- search=0 autotype=0 expanded=1 seq="" lastTop=-
++ G Bin flags icon=43 customIcon=- search=0 autotype=0 expanded=1 seq="" lastTop=S5
++ G Bin index 2
+- G Bin index 3
++ G EG index 1
+- G EG index 2
++ G KG parent Bin (Recycle Bin)
+- G KG parent Root (Desk store)
+- G KG prev -
++ G KG prev Root
+- G KG t.location 2026-11-01T10:05:00Z
++ G KG t.location 2026-11-16T10:34:49Z
++ G PW index 0
+- G PW index 1
++ G Root children groups=3 entries=0
+- G Root children groups=4 entries=0

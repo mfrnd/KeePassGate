@@ -1,0 +1,7 @@
+11:18:03.699 ==== duplicate-all
+11:18:03.708 config: 
+11:18:14.812 started KeePass pid=21232 token: TokenIsElevated=1 ElevationType=2 Integrity=0x3000 AdministratorsEnabled=False
+11:18:14.926 main window: <<db.kdbx - KeePass>>
+11:18:15.131 group rows: Desk entries, KeePassGate, Passwords, Recycle Bin
+11:18:18.603 menu: <<Duplicate Entry...>>
+11:18:20.672 shot duplicate-all.png (375 x 236)

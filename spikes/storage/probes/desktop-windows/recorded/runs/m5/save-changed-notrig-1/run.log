@@ -1,0 +1,42 @@
+12:42:30.300 ==== save-changed-notrig-1 : the same with the trigger system off, the marker switch on
+12:42:30.320 db: size=3413 mtime=2026-11-16T08:31:56.2778845Z sha=2ff7a751a869; other: size=5013 mtime=2026-11-16T08:32:08.8042697Z sha=74dd75d7243e
+12:42:30.330 config: Application/TriggerSystem/Enabled=false
+12:42:41.413 started KeePass pid=14508 token: TokenIsElevated=1 ElevationType=2 Integrity=0x3000 AdministratorsEnabled=False
+12:42:41.552 main window: <<db.kdbx - KeePass>>
+12:42:41.764 group rows: Desk probe, KeePassGate, Passwords, Recycle Bin
+12:42:46.938 edited P2 password=p2-window; OK posted 2026-11-16T11:42:46.8255975Z, dialog gone 2026-11-16T11:42:46.9372421Z
+12:42:46.956 replace: before size=3413 mtime=2026-11-16T08:31:56.2778845Z sha=2ff7a751a869
+12:42:47.004 replace (later) with other.kdbx: after size=5013 mtime=2026-11-16T11:42:46.9811129Z sha=74dd75d7243e
+12:42:48.651 [save-changed-notrig-1-1] WINDOW title=<<KeePass>> class=#32770
+12:42:48.826 [save-changed-notrig-1-1]   Image name=<<MainInstructionIcon>>
+12:42:48.846 [save-changed-notrig-1-1]   Text name=<<Overwrite the existing file?>>
+12:42:48.861 [save-changed-notrig-1-1]   Text name=<<<work>\runs\m5\save-changed-notrig-1\db.kdbx
+
+The file on disk/server has changed since it was loaded. Probably someone else has edited and saved the database.>>
+12:42:48.880 [save-changed-notrig-1-1]   Pane name=<<Synchronize>> help=<<Load the file on disk/server and merge it with the current database in memory.>>
+12:42:48.900 [save-changed-notrig-1-1]   Pane name=<<Overwrite>> help=<<Save the current database to the file. Changes made by the other user will be lost.>>
+12:42:48.920 [save-changed-notrig-1-1]   Pane name=<<Cancel>> help=<<Abort the current operation.>>
+12:42:48.936 [save-changed-notrig-1-1]   win32 Button <<Synchronize>>
+12:42:48.946 [save-changed-notrig-1-1]   win32 Button <<Overwrite>>
+12:42:48.952 [save-changed-notrig-1-1]   win32 Button <<Cancel>>
+12:42:49.512 shot save-changed-notrig-1-1.png (485 x 359)
+12:42:49.807 [save-changed-notrig-1-1] pressed <<Synchronize (clicked)>>
+12:42:57.766 dialogs after the flow: 1
+12:42:59.301 group KeePassGate from the places kept
+12:43:00.649 group Passwords from the places kept
+12:43:01.830 [after] window title <<db.kdbx - KeePass>>; groups []; KeePassGate [KPG grant 1, KPG admission 1, KPG revocation, KPG marker]; Passwords [P1, P2, Q1, Q2, Q3, K, other-new]; status <<Ready.>>
+12:43:01.841 db after the flow: size=5189 mtime=2026-11-16T11:42:49.9537329Z sha=4bd61c1c97c6; other: size=5013 mtime=2026-11-16T08:32:08.8042697Z sha=74dd75d7243e
+12:43:07.919 dialogs at the exit (answered Discard): 0
+12:43:07.937 db after the exit: size=5189 mtime=2026-11-16T11:42:49.9537329Z sha=4bd61c1c97c6; other: size=5013 mtime=2026-11-16T08:32:08.8042697Z sha=74dd75d7243e
+12:43:08.360 marker entry in: db.dump.txt
+12:43:08.375 event: 11:42:32.059 Initialize db= open=0 disk=absent marker=True triggers.enabled=False
+12:43:08.379 event: 11:42:32.292 FileOpened db=db.kdbx open=1 modified=0 entries=9 records=1 kpg=2 disk=3413:2ff7a751a8
+12:43:08.384 event: 11:42:47.350 FileSavingPre db=db.kdbx open=1 modified=1 entries=9 records=1 kpg=2 disk=5013:74dd75d724 saveAs=False copy=False guid=332b7f9e depth=1 inSync=False
+12:43:08.390 event: 11:42:49.897 FileSavingPre db=db.kdbx open=1 modified=1 entries=10 records=3 kpg=3 disk=5013:74dd75d724 saveAs=False copy=False guid=a273bb9d depth=2 inSync=False
+12:43:08.395 event: 11:42:49.897 MarkerAdded db=db.kdbx open=1 modified=1 entries=11 records=3 kpg=4 disk=5013:74dd75d724 group=KeePassGate
+12:43:08.402 event: 11:42:49.899 FileSaving db=db.kdbx open=1 modified=1 entries=11 records=3 kpg=4 disk=5013:74dd75d724 saveAs=False copy=False guid=a273bb9d
+12:43:08.413 event: 11:42:49.999 FileSaved db=db.kdbx open=1 modified=0 entries=11 records=3 kpg=4 disk=5189:4bd61c1c97 success=True guid=a273bb9d
+12:43:08.420 event: 11:43:02.209 FileClosingPre db=db.kdbx open=1 modified=0 entries=11 records=3 kpg=4 disk=5189:4bd61c1c97 flags=Exiting
+12:43:08.424 event: 11:43:02.209 FileClosingPost db=db.kdbx open=1 modified=0 entries=11 records=3 kpg=4 disk=5189:4bd61c1c97 flags=Exiting
+12:43:08.429 event: 11:43:02.222 FileClosed db= open=0 disk=absent path=<work>\runs\m5\save-changed-notrig-1\db.kdbx flags=Exiting
+12:43:08.431 event: 11:43:02.228 Terminate db= open=0 disk=absent

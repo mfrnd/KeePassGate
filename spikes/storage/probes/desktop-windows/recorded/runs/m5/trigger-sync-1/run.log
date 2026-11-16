@@ -1,0 +1,58 @@
+12:43:08.645 ==== trigger-sync-1 : a trigger action synchronizing at start, the marker switch on
+12:43:08.673 db: size=3413 mtime=2026-11-16T08:31:56.2778845Z sha=2ff7a751a869; other: size=5013 mtime=2026-11-16T08:32:08.8042697Z sha=74dd75d7243e
+12:43:08.686 config: 
+12:43:08.731 config: a trigger at "Application started and ready" synchronizing with other.kdbx
+12:43:21.275 started KeePass pid=5700 token: TokenIsElevated=1 ElevationType=2 Integrity=0x3000 AdministratorsEnabled=False
+12:43:21.426 main window: <<db.kdbx - KeePass>>
+12:43:21.758 group rows: 
+12:43:31.419 dialogs after the flow: 0
+12:43:37.291 [after] look failed: no group KeePassGate in the tree: 
+12:43:37.304 db after the flow: size=5141 mtime=2026-11-16T11:43:12.3694660Z sha=fce7211fc1da; other: size=5141 mtime=2026-11-16T11:43:12.4026311Z sha=fce7211fc1da
+12:43:43.446 dialogs at the exit (answered Discard): 0
+12:43:43.484 db after the exit: size=5141 mtime=2026-11-16T11:43:12.3694660Z sha=fce7211fc1da; other: size=5141 mtime=2026-11-16T11:43:12.4026311Z sha=fce7211fc1da
+12:43:43.905 marker entry in: db.dump.txt, other.dump.txt
+12:43:43.922 event: 11:43:12.032 Initialize db= open=0 disk=absent marker=True triggers.enabled=True
+12:43:43.933 event: 11:43:12.051 Trigger.AppInitPost db= open=0 disk=absent
+12:43:43.943 event: 11:43:12.243 FileOpened db=db.kdbx open=1 modified=0 entries=9 records=1 kpg=2 disk=3413:2ff7a751a8
+12:43:43.957 event: 11:43:12.243 Trigger.OpenedDatabaseFile db=db.kdbx open=1 modified=0 entries=9 records=1 kpg=2 disk=3413:2ff7a751a8
+12:43:43.981 event: 11:43:12.247 Trigger.AppLoadPost db=db.kdbx open=1 modified=0 entries=9 records=1 kpg=2 disk=3413:2ff7a751a8
+12:43:43.993 event: 11:43:12.259 Trigger.SynchronizingDatabaseFile db=db.kdbx open=1 modified=0 entries=9 records=1 kpg=2 disk=3413:2ff7a751a8
+12:43:44.001 event: 11:43:12.314 FileSavingPre db=db.kdbx open=1 modified=1 entries=10 records=3 kpg=3 disk=3413:2ff7a751a8 saveAs=False copy=False guid=ccdeff33 depth=1 inSync=True
+12:43:44.009 event: 11:43:12.326 MarkerAdded db=db.kdbx open=1 modified=1 entries=11 records=3 kpg=4 disk=3413:2ff7a751a8 group=KeePassGate
+12:43:44.037 event: 11:43:12.328 FileSaving db=db.kdbx open=1 modified=1 entries=11 records=3 kpg=4 disk=3413:2ff7a751a8 saveAs=False copy=False guid=ccdeff33
+12:43:44.052 event: 11:43:12.328 Trigger.SavingDatabaseFile db=db.kdbx open=1 modified=1 entries=11 records=3 kpg=4 disk=3413:2ff7a751a8
+12:43:44.058 event: 11:43:12.400 FileSaved db=db.kdbx open=1 modified=0 entries=11 records=3 kpg=4 disk=5141:fce7211fc1 success=True guid=ccdeff33
+12:43:44.095 event: 11:43:12.401 Trigger.SavedDatabaseFile db=db.kdbx open=1 modified=0 entries=11 records=3 kpg=4 disk=5141:fce7211fc1
+12:43:44.105 event: 11:43:12.403 Trigger.SynchronizedDatabaseFile db=db.kdbx open=1 modified=0 entries=11 records=3 kpg=4 disk=5141:fce7211fc1
+12:43:44.111 event: 11:43:12.721 Trigger.TimePeriodic db=db.kdbx open=1 modified=0 entries=11 records=3 kpg=4 disk=5141:fce7211fc1
+12:43:44.116 event: 11:43:13.737 Trigger.TimePeriodic db=db.kdbx open=1 modified=0 entries=11 records=3 kpg=4 disk=5141:fce7211fc1
+12:43:44.131 event: 11:43:14.730 Trigger.TimePeriodic db=db.kdbx open=1 modified=0 entries=11 records=3 kpg=4 disk=5141:fce7211fc1
+12:43:44.149 event: 11:43:15.726 Trigger.TimePeriodic db=db.kdbx open=1 modified=0 entries=11 records=3 kpg=4 disk=5141:fce7211fc1
+12:43:44.155 event: 11:43:16.739 Trigger.TimePeriodic db=db.kdbx open=1 modified=0 entries=11 records=3 kpg=4 disk=5141:fce7211fc1
+12:43:44.161 event: 11:43:17.749 Trigger.TimePeriodic db=db.kdbx open=1 modified=0 entries=11 records=3 kpg=4 disk=5141:fce7211fc1
+12:43:44.181 event: 11:43:18.745 Trigger.TimePeriodic db=db.kdbx open=1 modified=0 entries=11 records=3 kpg=4 disk=5141:fce7211fc1
+12:43:44.197 event: 11:43:19.754 Trigger.TimePeriodic db=db.kdbx open=1 modified=0 entries=11 records=3 kpg=4 disk=5141:fce7211fc1
+12:43:44.206 event: 11:43:20.763 Trigger.TimePeriodic db=db.kdbx open=1 modified=0 entries=11 records=3 kpg=4 disk=5141:fce7211fc1
+12:43:44.214 event: 11:43:21.758 Trigger.TimePeriodic db=db.kdbx open=1 modified=0 entries=11 records=3 kpg=4 disk=5141:fce7211fc1
+12:43:44.220 event: 11:43:22.760 Trigger.TimePeriodic db=db.kdbx open=1 modified=0 entries=11 records=3 kpg=4 disk=5141:fce7211fc1
+12:43:44.244 event: 11:43:23.756 Trigger.TimePeriodic db=db.kdbx open=1 modified=0 entries=11 records=3 kpg=4 disk=5141:fce7211fc1
+12:43:44.269 event: 11:43:24.758 Trigger.TimePeriodic db=db.kdbx open=1 modified=0 entries=11 records=3 kpg=4 disk=5141:fce7211fc1
+12:43:44.283 event: 11:43:25.758 Trigger.TimePeriodic db=db.kdbx open=1 modified=0 entries=11 records=3 kpg=4 disk=5141:fce7211fc1
+12:43:44.293 event: 11:43:26.757 Trigger.TimePeriodic db=db.kdbx open=1 modified=0 entries=11 records=3 kpg=4 disk=5141:fce7211fc1
+12:43:44.303 event: 11:43:27.764 Trigger.TimePeriodic db=db.kdbx open=1 modified=0 entries=11 records=3 kpg=4 disk=5141:fce7211fc1
+12:43:44.315 event: 11:43:28.763 Trigger.TimePeriodic db=db.kdbx open=1 modified=0 entries=11 records=3 kpg=4 disk=5141:fce7211fc1
+12:43:44.323 event: 11:43:29.759 Trigger.TimePeriodic db=db.kdbx open=1 modified=0 entries=11 records=3 kpg=4 disk=5141:fce7211fc1
+12:43:44.331 event: 11:43:30.755 Trigger.TimePeriodic db=db.kdbx open=1 modified=0 entries=11 records=3 kpg=4 disk=5141:fce7211fc1
+12:43:44.343 event: 11:43:31.769 Trigger.TimePeriodic db=db.kdbx open=1 modified=0 entries=11 records=3 kpg=4 disk=5141:fce7211fc1
+12:43:44.351 event: 11:43:32.757 Trigger.TimePeriodic db=db.kdbx open=1 modified=0 entries=11 records=3 kpg=4 disk=5141:fce7211fc1
+12:43:44.359 event: 11:43:33.756 Trigger.TimePeriodic db=db.kdbx open=1 modified=0 entries=11 records=3 kpg=4 disk=5141:fce7211fc1
+12:43:44.377 event: 11:43:34.772 Trigger.TimePeriodic db=db.kdbx open=1 modified=0 entries=11 records=3 kpg=4 disk=5141:fce7211fc1
+12:43:44.394 event: 11:43:35.800 Trigger.TimePeriodic db=db.kdbx open=1 modified=0 entries=11 records=3 kpg=4 disk=5141:fce7211fc1
+12:43:44.400 event: 11:43:36.816 Trigger.TimePeriodic db=db.kdbx open=1 modified=0 entries=11 records=3 kpg=4 disk=5141:fce7211fc1
+12:43:44.408 event: 11:43:37.690 Trigger.ClosingDatabaseFilePre db=db.kdbx open=1 modified=0 entries=11 records=3 kpg=4 disk=5141:fce7211fc1
+12:43:44.422 event: 11:43:37.692 FileClosingPre db=db.kdbx open=1 modified=0 entries=11 records=3 kpg=4 disk=5141:fce7211fc1 flags=Exiting
+12:43:44.438 event: 11:43:37.692 Trigger.ClosingDatabaseFilePost db=db.kdbx open=1 modified=0 entries=11 records=3 kpg=4 disk=5141:fce7211fc1
+12:43:44.444 event: 11:43:37.695 FileClosingPost db=db.kdbx open=1 modified=0 entries=11 records=3 kpg=4 disk=5141:fce7211fc1 flags=Exiting
+12:43:44.459 event: 11:43:37.698 FileClosed db= open=0 disk=absent path=<work>\runs\m5\trigger-sync-1\db.kdbx flags=Exiting
+12:43:44.467 event: 11:43:37.700 Trigger.AppExit db= open=0 disk=absent
+12:43:44.471 event: 11:43:37.702 Terminate db= open=0 disk=absent

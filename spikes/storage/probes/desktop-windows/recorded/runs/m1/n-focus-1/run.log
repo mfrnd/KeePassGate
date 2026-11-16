@@ -1,0 +1,13 @@
+10:05:57.593 ==== n-focus-1 : nothing changed, focus away and back
+10:05:57.597 config: 
+10:06:08.674 started KeePass pid=2416 token: TokenIsElevated=1 ElevationType=2 Integrity=0x3000 AdministratorsEnabled=False
+10:06:08.831 main window: <<db.kdbx - KeePass>>
+10:06:08.852 replace: before size=3413 mtime=2026-11-16T08:31:56.2778845Z sha=2ff7a751a869
+10:06:08.908 replace (later) with NEW-fixed.kdbx: after size=5013 mtime=2026-11-16T09:06:08.8829013Z sha=74dd75d7243e
+10:06:24.909 dialogs after the flow: 0
+10:06:28.239 [after] window title <<db.kdbx - KeePass>>; groups [Desk probe, KeePassGate, Passwords, Recycle Bin]; KeePassGate [KPG grant 1, KPG admission 1]; Passwords [P1, P2, Q1, Q2, Q3, X1, K]; status <<Ready.>>
+10:06:28.247 file after the flow: size=5013 mtime=2026-11-16T09:06:08.8829013Z sha=74dd75d7243e
+10:06:34.320 dialogs at the exit (answered Discard): 0
+10:06:34.330 file after the exit: size=5013 mtime=2026-11-16T09:06:08.8829013Z sha=74dd75d7243e
+10:06:35.142 verdict: db.kdbx sha=74dd75d7243e v4.1 KG1=kept KG2=kept KG3=kept NewKey=kept DZ=rec D1=rec X1=gone+rec P1=p1-other[p1-old] P2=p2-old[] Q1=q1-other[q1-old] Q2=q2-other[q2-old] Q3=q3-other[q3-old] K=k-old[] NO=no-other@Passwords NW=absent entries=10 records=3
+10:06:35.156 verdict: NEW-fixed.kdbx sha=74dd75d7243e v4.1 KG1=kept KG2=kept KG3=kept NewKey=kept DZ=rec D1=rec X1=gone+rec P1=p1-other[p1-old] P2=p2-old[] Q1=q1-other[q1-old] Q2=q2-other[q2-old] Q3=q3-other[q3-old] K=k-old[] NO=no-other@Passwords NW=absent entries=10 records=3

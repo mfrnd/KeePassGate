@@ -1,0 +1,61 @@
+11:44:32.978 ==== group-shiftdelete-1 : the group KeePassGate selected, Shift+Delete
+11:44:33.015 config: 
+11:44:45.025 started KeePass pid=11368 token: TokenIsElevated=1 ElevationType=2 Integrity=0x3000 AdministratorsEnabled=False
+11:44:45.318 main window: <<db.kdbx - KeePass>>
+11:44:45.563 group rows: Archive, Desk store, Empty group, KeePassGate, Passwords, Recycle Bin
+11:44:48.222 [group-shiftdelete-1-1] WINDOW title=<<KeePass>> class=#32770
+11:44:48.346 [group-shiftdelete-1-1]   Image name=<<MainInstructionIcon>>
+11:44:48.376 [group-shiftdelete-1-1]   Text name=<<Are you sure you want to permanently delete the selected group?>>
+11:44:48.388 [group-shiftdelete-1-1]   Text name=<<Deleting a group will also delete all entries and subgroups in that group.
+
+- Archive
+- KPG grant 1
+- KPG admission 1
+- KPG revocation 1
+- KPG profile 1
+- KPG grant 1
+- KPG grant 6
+- KPG grant 7>>
+11:44:48.412 [group-shiftdelete-1-1]   Pane name=<<Delete>>
+11:44:48.432 [group-shiftdelete-1-1]   Pane name=<<Cancel>>
+11:44:48.505 [group-shiftdelete-1-1]   win32 Button <<&Delete>>
+11:44:48.517 [group-shiftdelete-1-1]   win32 Button <<Cancel>>
+11:44:49.149 shot group-shiftdelete-1-1.png (390 x 315)
+11:44:49.507 [group-shiftdelete-1-1] pressed <<&Delete (clicked)>>
+11:44:56.268 dialogs: 1
+11:44:56.792 group KeePassGate from the places kept
+11:44:58.105 group Passwords from the places kept
+11:44:59.308 [after] window title <<db.kdbx* - KeePass>>; groups []; KeePassGate [Mail account, Bank]; Passwords [KPG grant 5, KPG grant 6, KPG grant 7]; status <<Ready.>>
+11:45:04.747 file: size=2597 mtime=2026-11-16T10:44:59.7118022Z sha=28706b9058d5
+11:45:11.188 diff against the base: 173 lines
+11:45:11.222   + D count 15
+11:45:11.228   - D count 6
+11:45:11.238   + D KG 2026-11-16T10:44:49Z
+11:45:11.244   + D KGA 2026-11-16T10:44:49Z
+11:45:11.254   + D S1 2026-11-16T10:44:49Z
+11:45:11.260   + D S1c 2026-11-16T10:44:49Z
+11:45:11.272   + D S2 2026-11-16T10:44:49Z
+11:45:11.284   + D S3 2026-11-16T10:44:49Z
+11:45:11.290   + D S4 2026-11-16T10:44:49Z
+11:45:11.305   + D S6c 2026-11-16T10:44:49Z
+11:45:11.310   + D S7 2026-11-16T10:44:49Z
+11:45:11.316   - E S1 history.count 0
+11:45:11.332   - E S1 parent KG (KeePassGate)
+11:45:11.339   - E S1c history.count 0
+11:45:11.344   - E S1c parent KG (KeePassGate)
+11:45:11.352   - E S2 history.count 0
+11:45:11.360   - E S2 parent KG (KeePassGate)
+11:45:11.364   - E S3 history.count 0
+11:45:11.371   - E S3 parent KG (KeePassGate)
+11:45:11.377   - E S4 history.count 0
+11:45:11.384   - E S4 parent KG (KeePassGate)
+11:45:11.389   - E S6c history.count 0
+11:45:11.396   - E S6c parent KG (KeePassGate)
+11:45:11.406   - E S7 history.count 0
+11:45:11.411   - E S7 parent KG (KeePassGate)
+11:45:11.421   + F groups 4 entries 5
+11:45:11.425   - F groups 6 entries 12
+11:45:11.430   - G KG name "KeePassGate"
+11:45:11.447   - G KG parent Root (Desk store)
+11:45:11.459   - G KGA name "Archive"
+11:45:11.463   - G KGA parent KG (KeePassGate)

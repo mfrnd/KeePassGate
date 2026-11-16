@@ -1,0 +1,10 @@
+a-ok-1 | file: E U1 S KPG.Ref p=0 "zqxref-u1 {\"rule\":\"KG1\"}" | E U1 history.count 2 | E U1 t.modified 2026-11-01T13:20:00Z
+a-edit-1 | file: E U1 S KPG.Ref p=0 "zqxref-u1 {\"rule\":\"KG1\"}" | E U1 history.count 3 | E U1 t.modified 2026-11-16T09:39:20Z
+a-cancel-1 | file: E U1 S KPG.Ref p=0 "zqxref-u1 {\"rule\":\"KG1\"}" | E U1 history.count 2 | E U1 t.modified 2026-11-01T13:20:00Z
+b-ok-1 | file: no KPG.Ref | E U3 history.count 0 | E U3 t.modified 2026-11-01T10:22:00Z
+b-edit-1 | file: no KPG.Ref | E U3 history.count 1 | E U3 t.modified 2026-11-16T09:41:14Z
+b-cancel-1 | file: E U3 S KPG.Ref p=0 "zqxref-u3-live" | E U3 history.count 0 | E U3 t.modified 2026-11-16T09:41:49Z
+b-ok-unsaved-1 | file: no KPG.Ref | E U3 history.count 0 | E U3 t.modified 2026-11-01T10:22:00Z
+c-ok-1 | file: E U1 S KPG.Ref p=0 "zqxref-u1 {\"rule\":\"KG1\"}" | E U1 history.count 2 | E U1 t.modified 2026-11-01T13:20:00Z
+c-edit-1 | file: E U1 S KPG.Ref p=0 "zqxref-u1 {\"rule\":\"KG1\"}" | E U1 history.count 3 | E U1 t.modified 2026-11-16T09:44:01Z
+c-cancel-1 | file: E U1 S KPG.Ref p=0 "zqxref-u1-changed" | E U1 history.count 2 | E U1 t.modified 2026-11-16T09:44:33Z

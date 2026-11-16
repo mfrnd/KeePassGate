@@ -384,4 +384,66 @@ words:
   - sdkmanager
   - keepassdx
   - Nextcloud
+  # Identifiers in the desktop-windows probes, which are kept as they were recorded: the case
+  # names of `M1.ps1` to `M5.ps1` (`saveq`, `ctrls`, `samelen`, `lockunlock`, `lockedarrival`,
+  # `syncmenu`, `forcesync`, `notx`, `txextra`, `noverify`, `noatomic`, `savenow`, `notrig`,
+  # `savechanged`, `syncfile`, `syncurl`, `saveas`, `maint`, `plugindata`, `ducis`, `moveup`,
+  # `movedown` and `shiftdelete`), the fragments `earch`, `elete` and `overwrit` the scripts match a
+  # caption by, the tag `xctarget`, the verb `setsave` of the `DeskWrite` plugin, KeePassXC's options
+  # `localconfig` and `screencapture`, and the invented values `zqxstore`, `zqxref`, `zqxextra`,
+  # `zqxattach` and `zqxcd` of `Desk.cs`. And the platform's own names, as Windows and .NET spell
+  # them: the libraries `advapi`, `dwmapi` and `oleacc`, `keybd_event`, the constants `CHILDID`,
+  # `OBJID`, `GETCHECK` and `RICHEDIT`, Microsoft Active Accessibility as `Msaa`, `Runspace`,
+  # `MSIL`, `WINDIR`, the font Consolas, and `runas /trustlevel`, which `Run.ps1` names.
+  - saveq
+  - ctrls
+  - samelen
+  - lockunlock
+  - lockedarrival
+  - syncmenu
+  - forcesync
+  - notx
+  - txextra
+  - noverify
+  - noatomic
+  - savenow
+  - notrig
+  - savechanged
+  - syncfile
+  - syncurl
+  - saveas
+  - maint
+  - plugindata
+  - ducis
+  - moveup
+  - movedown
+  - shiftdelete
+  - earch
+  - elete
+  - overwrit
+  - xctarget
+  - setsave
+  - localconfig
+  - screencapture
+  - zqxstore
+  - zqxref
+  - zqxextra
+  - zqxattach
+  - zqxcd
+  - advapi
+  - dwmapi
+  - oleacc
+  - keybd
+  - CHILDID
+  - OBJID
+  - GETCHECK
+  - RICHEDIT
+  - Msaa
+  - Runspace
+  - Runspaces
+  - MSIL
+  - WINDIR
+  - Consolas
+  - runas
+  - trustlevel
 

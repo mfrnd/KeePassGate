@@ -1,0 +1,14 @@
+11:41:49.306 ==== entry-move-1 : KPG grant 1 dragged onto the group Passwords
+11:41:49.332 config: 
+11:42:00.453 started KeePass pid=5032 token: TokenIsElevated=1 ElevationType=2 Integrity=0x3000 AdministratorsEnabled=False
+11:42:00.694 main window: <<db.kdbx - KeePass>>
+11:42:01.086 group rows: Archive, Desk store, Empty group, KeePassGate, Passwords, Recycle Bin
+11:42:06.029 dragged KPG grant 1 from 355,135.5 onto Passwords at 131,165
+11:42:12.850 dialogs: 0
+11:42:13.377 group KeePassGate from the places kept
+11:42:14.662 group Passwords from the places kept
+11:42:15.832 [after] window title <<db.kdbx* - KeePass>>; groups []; KeePassGate [KPG admission 1, KPG revocation 1, KPG profile 1, KPG grant 1, KPG grant 6, KPG grant 7]; Passwords [Mail account, Bank, KPG grant 1]; status <<Ready.>>
+11:42:21.292 file: size=2949 mtime=2026-11-16T10:42:16.3598663Z sha=7e26e6333a9d
+11:42:27.674 diff against the base: 26 lines
+11:42:27.682   - E S1 parent KG (KeePassGate)
+11:42:27.686   + E S1 parent PW (Passwords)

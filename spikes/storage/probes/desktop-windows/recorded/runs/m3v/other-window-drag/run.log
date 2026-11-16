@@ -1,0 +1,11 @@
+10:50:22.133 ==== other-window-drag
+10:50:22.141 config: 
+10:50:35.709 started KeePass pid=17016 token: TokenIsElevated=1 ElevationType=2 Integrity=0x3000 AdministratorsEnabled=False
+10:50:35.825 main window: <<db.kdbx - KeePass>>
+10:50:36.063 group rows: Desk entries, KeePassGate, Passwords, Recycle Bin
+10:50:48.606 started KeePass pid=13148 token: TokenIsElevated=1 ElevationType=2 Integrity=0x3000 AdministratorsEnabled=False
+10:50:48.790 main window: <<other.kdbx - KeePass>>
+10:50:49.075 group rows: Desk other, Imported
+10:50:55.019 dragged from 200,115.5 to 721,109
+10:50:58.865 shot drag-other.png (626 x 753)
+10:50:58.987 second window title: <<other.kdbx - KeePass>>; entries shown: 

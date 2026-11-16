@@ -1,0 +1,6 @@
+- G KG index 0
++ G KG index 1
++ G PW index 0
+- G PW index 1
+- G PW t.location 2026-11-01T10:05:00Z
++ G PW t.location 2026-11-16T10:40:51Z

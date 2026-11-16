@@ -1,0 +1,14 @@
+10:01:00.356 ==== t-ident-1 : P2, OLD own bytes later (control), Ctrl+S
+10:01:00.366 config: 
+10:01:11.441 started KeePass pid=9176 token: TokenIsElevated=1 ElevationType=2 Integrity=0x3000 AdministratorsEnabled=False
+10:01:11.545 main window: <<db.kdbx - KeePass>>
+10:01:16.065 edited P2 password=p2-window; OK posted 2026-11-16T09:01:15.9535500Z, dialog gone 2026-11-16T09:01:16.0659551Z
+10:01:16.076 replace: before size=3413 mtime=2026-11-16T08:31:56.2778845Z sha=2ff7a751a869
+10:01:16.110 replace (later) with NEW-ident.kdbx: after size=3413 mtime=2026-11-16T09:01:16.0943434Z sha=2ff7a751a869
+10:01:23.666 dialogs after the flow: 0
+10:01:26.995 [after] window title <<db.kdbx - KeePass>>; groups [Desk probe, KeePassGate, Passwords, Recycle Bin]; KeePassGate [KPG grant 1, KPG admission 1]; Passwords [P1, P2, Q1, Q2, Q3, X1, K]; status <<Ready.>>
+10:01:27.015 file after the flow: size=3589 mtime=2026-11-16T09:01:17.3882840Z sha=5ce5f1cb0b91
+10:01:33.073 dialogs at the exit (answered Discard): 0
+10:01:33.085 file after the exit: size=3589 mtime=2026-11-16T09:01:17.3882840Z sha=5ce5f1cb0b91
+10:01:33.756 verdict: db.kdbx sha=5ce5f1cb0b91 v4.1 KG1=kept KG2=kept KG3=gone NewKey=gone DZ=none D1=rec X1=x1-old[] P1=p1-old[] P2=p2-window[p2-old] Q1=q1-old[] Q2=q2-old[] Q3=q3-old[] K=k-old[] NO=absent NW=absent entries=9 records=1
+10:01:33.760 verdict: NEW-ident.kdbx sha=2ff7a751a869 v4.1 KG1=kept KG2=kept KG3=gone NewKey=gone DZ=none D1=rec X1=x1-old[] P1=p1-old[] P2=p2-old[] Q1=q1-old[] Q2=q2-old[] Q3=q3-old[] K=k-old[] NO=absent NW=absent entries=9 records=1

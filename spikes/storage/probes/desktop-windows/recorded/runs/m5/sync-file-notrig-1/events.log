@@ -1,0 +1,9 @@
+11:38:01.366 Initialize db= open=0 disk=absent marker=True triggers.enabled=False
+11:38:01.661 FileOpened db=db.kdbx open=1 modified=0 entries=9 records=1 kpg=2 disk=3413:2ff7a751a8
+11:38:18.636 FileSavingPre db=db.kdbx open=1 modified=1 entries=10 records=3 kpg=3 disk=3413:2ff7a751a8 saveAs=False copy=False guid=5e6279ee depth=1 inSync=False
+11:38:18.638 FileSaving db=db.kdbx open=1 modified=1 entries=10 records=3 kpg=3 disk=3413:2ff7a751a8 saveAs=False copy=False guid=5e6279ee
+11:38:18.720 FileSaved db=db.kdbx open=1 modified=0 entries=10 records=3 kpg=3 disk=5013:bcf4ff737c success=True guid=5e6279ee
+11:38:30.006 FileClosingPre db=db.kdbx open=1 modified=0 entries=10 records=3 kpg=3 disk=5013:bcf4ff737c flags=Exiting
+11:38:30.018 FileClosingPost db=db.kdbx open=1 modified=0 entries=10 records=3 kpg=3 disk=5013:bcf4ff737c flags=Exiting
+11:38:30.026 FileClosed db= open=0 disk=absent path=<work>\runs\m5\sync-file-notrig-1\db.kdbx flags=Exiting
+11:38:30.028 Terminate db= open=0 disk=absent

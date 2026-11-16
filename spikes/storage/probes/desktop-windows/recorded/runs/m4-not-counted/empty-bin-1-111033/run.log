@@ -1,0 +1,24 @@
+11:09:37.296 ==== empty-bin-1 : the recycle bin selected, Group menu, Empty Recycle Bin
+11:09:37.315 config: 
+11:09:49.622 started KeePass pid=15452 token: TokenIsElevated=1 ElevationType=2 Integrity=0x3000 AdministratorsEnabled=False
+11:09:49.790 main window: <<db.kdbx - KeePass>>
+11:09:50.094 group rows: Archive, Desk store, Empty group, KeePassGate, Passwords, Recycle Bin
+11:09:52.863 menu: <<Empty Recycle Bin>>
+11:09:54.711 [empty-bin-1-1] WINDOW title=<<KeePass>> class=#32770
+11:09:54.815 [empty-bin-1-1]   Image name=<<MainInstructionIcon>>
+11:09:54.826 [empty-bin-1-1]   Text name=<<Are you sure you want to permanently delete the items?>>
+11:09:54.837 [empty-bin-1-1]   Text name=<<- KPG grant 5
+- KPG grant 6
+- KPG grant 7>>
+11:09:54.868 [empty-bin-1-1]   Pane name=<<Delete>>
+11:09:54.879 [empty-bin-1-1]   Pane name=<<Cancel>>
+11:09:54.902 [empty-bin-1-1]   win32 Button <<&Delete>>
+11:09:54.909 [empty-bin-1-1]   win32 Button <<Cancel>>
+11:09:55.492 shot empty-bin-1-1.png (362 x 195)
+11:10:02.523 dialogs: 1
+11:10:06.632 [after] window title <<db.kdbx - KeePass>>; groups [Desk store, KeePassGate, Archive, Passwords, Empty group, Recycle Bin]; KeePassGate [KPG grant 5, KPG grant 6, KPG grant 7]; Passwords [KPG grant 5, KPG grant 6, KPG grant 7]; status <<Ready.>>
+11:10:11.805 file: size=2885 mtime=2026-11-16T08:32:09.3001212Z sha=8b289ea027b9
+11:10:33.404 KeePass did not exit; stopped
+11:10:33.432 stopping KeePass pid=15452
+11:10:33.712 RUN FAILED empty-bin-1: The property 'Count' cannot be found on this object. Verify that the property exists. at Run-M4, <branch>\spikes\storage\probes\desktop-windows\scripts\M4.ps1: line 80
+at <ScriptBlock>, <branch>\spikes\storage\probes\desktop-windows\scripts\M4.ps1: line 164

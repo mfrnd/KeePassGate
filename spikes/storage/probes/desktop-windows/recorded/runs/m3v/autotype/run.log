@@ -1,0 +1,8 @@
+11:22:24.691 ==== autotype
+11:22:24.705 config: 
+11:22:38.140 started KeePass pid=15532 token: TokenIsElevated=1 ElevationType=2 Integrity=0x3000 AdministratorsEnabled=False
+11:22:38.292 main window: <<db.kdbx - KeePass>>
+11:22:38.603 group rows: Desk entries, KeePassGate, Passwords, Recycle Bin
+11:22:51.176 started DeskTarget pid=21008 token: TokenIsElevated=1 ElevationType=2 Integrity=0x3000 AdministratorsEnabled=False
+11:23:09.717 started DeskTarget pid=9268 token: TokenIsElevated=1 ElevationType=2 Integrity=0x3000 AdministratorsEnabled=False
+11:23:28.263 started DeskTarget pid=21024 token: TokenIsElevated=1 ElevationType=2 Integrity=0x3000 AdministratorsEnabled=False

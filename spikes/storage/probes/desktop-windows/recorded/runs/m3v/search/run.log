@@ -1,0 +1,18 @@
+10:45:34.884 ==== search
+10:45:34.896 config: 
+10:45:50.081 started KeePass pid=19624 token: TokenIsElevated=1 ElevationType=2 Integrity=0x3000 AdministratorsEnabled=False
+10:45:50.191 main window: <<db.kdbx - KeePass>>
+10:45:50.370 group rows: Desk entries, KeePassGate, Passwords, Recycle Bin
+10:45:52.749 quick search <<zqxref-u1>>: [Mail account]
+10:45:53.320 shot search-zqxref-u1.png (1086 x 713)
+10:45:55.958 quick search <<zqxref-u2-protected>>: [Bank]
+10:45:58.343 quick search <<zqxextra-u1>>: [Mail account]
+10:46:00.847 quick search <<zqxstore-grant>>: []
+10:46:01.463 shot search-zqxstore-grant.png (1086 x 713)
+10:46:03.943 quick search <<zqxstore-secret>>: []
+10:46:06.320 quick search <<zqxstore-adm>>: []
+10:46:08.619 quick search <<zqxcd-u1>>: []
+10:46:11.070 quick search <<zqxattach-u1>>: []
+10:46:13.557 quick search <<KPG grant>>: []
+10:46:16.040 quick search <<Mail account>>: [Mail account]
+10:46:18.493 quick search <<KPG.Ref>>: []

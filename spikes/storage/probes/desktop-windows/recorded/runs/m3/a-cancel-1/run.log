@@ -1,0 +1,22 @@
+10:39:34.329 ==== a-cancel-1 : KPG.Ref on U1 before; Cancel
+10:39:34.337 config: 
+10:39:46.536 started KeePass pid=12412 token: TokenIsElevated=1 ElevationType=2 Integrity=0x3000 AdministratorsEnabled=False
+10:39:46.714 main window: <<db.kdbx - KeePass>>
+10:39:47.075 group rows: Desk entries, KeePassGate, Passwords, Recycle Bin
+10:39:51.447 shot a-cancel-1-dialog.png (491 x 513)
+10:40:05.377 plugin: 2026-11-16T09:40:05.2010583Z dump|Mail account|<work>\runs\m3\a-cancel-1\memory.txt => dumped
+10:40:05.390 memory: S Extra p=0 zqxextra-u1
+10:40:05.396 memory: S KPG.Ref p=0 zqxref-u1 {"rule":"KG1"}
+10:40:05.397 memory: S Notes p=0 user notes of U1
+10:40:05.411 memory: S Password p=1 u1-pw-invented
+10:40:05.421 memory: S Title p=0 Mail account
+10:40:05.437 memory: S URL p=0 https://mail.example.invalid/
+10:40:05.447 memory: S UserName p=0 alice-invented
+10:40:05.455 memory: A u1.txt len=34
+10:40:05.469 memory: tags [work]
+10:40:05.482 memory: CD Other.Plugin = zqxcd-u1
+10:40:05.494 memory: history 2
+10:40:05.504 memory: modified 2026-11-01T13:20:00.0000000Z
+10:40:05.508 memory: database modified=False
+10:40:05.511 window title after the dialog closed: <<db.kdbx - KeePass>>
+10:40:09.374 window title after Ctrl+S: <<db.kdbx - KeePass>>

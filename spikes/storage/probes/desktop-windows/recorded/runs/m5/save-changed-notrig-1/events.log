@@ -1,0 +1,11 @@
+11:42:32.059 Initialize db= open=0 disk=absent marker=True triggers.enabled=False
+11:42:32.292 FileOpened db=db.kdbx open=1 modified=0 entries=9 records=1 kpg=2 disk=3413:2ff7a751a8
+11:42:47.350 FileSavingPre db=db.kdbx open=1 modified=1 entries=9 records=1 kpg=2 disk=5013:74dd75d724 saveAs=False copy=False guid=332b7f9e depth=1 inSync=False
+11:42:49.897 FileSavingPre db=db.kdbx open=1 modified=1 entries=10 records=3 kpg=3 disk=5013:74dd75d724 saveAs=False copy=False guid=a273bb9d depth=2 inSync=False
+11:42:49.897 MarkerAdded db=db.kdbx open=1 modified=1 entries=11 records=3 kpg=4 disk=5013:74dd75d724 group=KeePassGate
+11:42:49.899 FileSaving db=db.kdbx open=1 modified=1 entries=11 records=3 kpg=4 disk=5013:74dd75d724 saveAs=False copy=False guid=a273bb9d
+11:42:49.999 FileSaved db=db.kdbx open=1 modified=0 entries=11 records=3 kpg=4 disk=5189:4bd61c1c97 success=True guid=a273bb9d
+11:43:02.209 FileClosingPre db=db.kdbx open=1 modified=0 entries=11 records=3 kpg=4 disk=5189:4bd61c1c97 flags=Exiting
+11:43:02.209 FileClosingPost db=db.kdbx open=1 modified=0 entries=11 records=3 kpg=4 disk=5189:4bd61c1c97 flags=Exiting
+11:43:02.222 FileClosed db= open=0 disk=absent path=<work>\runs\m5\save-changed-notrig-1\db.kdbx flags=Exiting
+11:43:02.228 Terminate db= open=0 disk=absent

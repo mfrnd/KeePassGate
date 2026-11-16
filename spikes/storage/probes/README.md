@@ -70,4 +70,6 @@ project file. A defect that changes a result is reported in `RUN.md` and left in
   through `uv run --no-project --with <packages> python -I -X utf8`. A probe that names a package
   without a version was measured with what `uv` resolved on 2026-11-15, `pykeepass` 4.2.0 among
   them, and setting `UV_EXCLUDE_NEWER` to `2026-11-16T00:00:00Z` before a run resolves the same
-  again. Nothing a probe runs shows a window.
+  again. Nothing a probe runs shows a window, but in a family whose `RUN.md` states at its top
+  that it shows windows: such a family drives KeePass's or KeePassXC's own windows on the desktop,
+  needs the desktop to itself while it runs, and is not run again without one.

@@ -1,0 +1,10 @@
+S KPG.Ref p=0 zqxref-u3-live
+S Notes p=0 
+S Password p=1 u3-pw-invented
+S Title p=0 Shop
+S URL p=0 https://shop.example.invalid/
+S UserName p=0 carol-invented
+tags []
+history 0
+modified 2026-11-16T09:41:49.0044811Z
+database modified=False

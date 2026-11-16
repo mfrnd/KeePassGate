@@ -1,0 +1,25 @@
+10:41:29.383 ==== b-cancel-1 : KPG.Ref added to U3 while open, saved; Cancel
+10:41:29.390 config: 
+10:41:43.101 started KeePass pid=3756 token: TokenIsElevated=1 ElevationType=2 Integrity=0x3000 AdministratorsEnabled=False
+10:41:43.324 main window: <<db.kdbx - KeePass>>
+10:41:43.737 group rows: Desk entries, KeePassGate, Passwords, Recycle Bin
+10:41:48.732 shot b-cancel-1-dialog.png (491 x 513)
+10:41:49.392 plugin: 2026-11-16T09:41:49.1782041Z setsave|Shop|KPG.Ref|zqxref-u3-live => added KPG.Ref on Shop; modified=False
+10:41:49.711 the file after the plugin's write, KPG.Ref: E U3 S KPG.Ref p=0 "zqxref-u3-live"
+10:41:49.721 window title while the dialog is open: <<db.kdbx - KeePass>>
+10:42:04.528 plugin: 2026-11-16T09:42:04.3473916Z dump|Shop|<work>\runs\m3\b-cancel-1\memory.txt => dumped
+10:42:04.551 memory: S KPG.Ref p=0 zqxref-u3-live
+10:42:04.557 memory: S Notes p=0 
+10:42:04.570 memory: S Password p=1 u3-pw-invented
+10:42:04.588 memory: S Title p=0 Shop
+10:42:04.597 memory: S URL p=0 https://shop.example.invalid/
+10:42:04.603 memory: S UserName p=0 carol-invented
+10:42:04.607 memory: tags []
+10:42:04.613 memory: history 0
+10:42:04.617 memory: modified 2026-11-16T09:41:49.0044811Z
+10:42:04.619 memory: database modified=False
+10:42:04.625 window title after the dialog closed: <<db.kdbx - KeePass>>
+10:42:08.311 window title after Ctrl+S: <<db.kdbx - KeePass>>
+10:42:14.575   + E U3 S KPG.Ref p=0 "zqxref-u3-live"
+10:42:14.589   - E U3 t.modified 2026-11-01T10:22:00Z
+10:42:14.616   + E U3 t.modified 2026-11-16T09:41:49Z

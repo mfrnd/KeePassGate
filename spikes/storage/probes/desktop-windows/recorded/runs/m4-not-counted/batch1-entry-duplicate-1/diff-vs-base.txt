@@ -1,0 +1,23 @@
++ E ~09da9aee autotype enabled=1 obfuscation=0 seq="" assoc=0
++ E ~09da9aee history.count 0
++ E ~09da9aee misc icon=0 customIcon=- fg=00000000 bg=00000000 overrideUrl="" quality=1
++ E ~09da9aee parent KG (KeePassGate)
++ E ~09da9aee prev -
++ E ~09da9aee S KPG.Body p=0 "{\"kind\":\"grant 1\",\"n\":\"S1\"}"
++ E ~09da9aee S KPG.Kind p=0 "grant 1"
++ E ~09da9aee S Notes p=0 ""
++ E ~09da9aee S Password p=1 ""
++ E ~09da9aee S Title p=0 "KPG grant 1 - Copy"
++ E ~09da9aee S URL p=0 ""
++ E ~09da9aee S UserName p=0 ""
++ E ~09da9aee t.created 2026-11-16T10:11:34Z
++ E ~09da9aee t.expires 0 2026-11-01T10:00:00Z
++ E ~09da9aee t.location 2026-11-16T10:11:34Z
++ E ~09da9aee t.modified 2026-11-01T10:10:00Z
++ E ~09da9aee tags []
+- F groups 6 entries 12
++ F groups 6 entries 13
+- G KG children groups=1 entries=7
++ G KG children groups=1 entries=8
+- G PW flags icon=48 customIcon=- search=inherit autotype=inherit expanded=1 seq="" lastTop=-
++ G PW flags icon=48 customIcon=- search=inherit autotype=inherit expanded=1 seq="" lastTop=U1

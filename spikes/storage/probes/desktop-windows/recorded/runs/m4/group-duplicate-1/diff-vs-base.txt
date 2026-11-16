@@ -1,0 +1,162 @@
++ E ~0a9c4f52 autotype enabled=1 obfuscation=0 seq="" assoc=0
++ E ~0a9c4f52 history.count 0
++ E ~0a9c4f52 index 3
++ E ~0a9c4f52 misc icon=0 customIcon=- fg=00000000 bg=00000000 overrideUrl="" quality=1
++ E ~0a9c4f52 parent ~7328a903 (KeePassGate)
++ E ~0a9c4f52 prev -
++ E ~0a9c4f52 S KPG.Body p=0 "{\"kind\":\"profile 1\",\"n\":\"S4\"}"
++ E ~0a9c4f52 S KPG.Kind p=0 "profile 1"
++ E ~0a9c4f52 S Notes p=0 ""
++ E ~0a9c4f52 S Password p=1 ""
++ E ~0a9c4f52 S Title p=0 "KPG profile 1 - Copy"
++ E ~0a9c4f52 S URL p=0 ""
++ E ~0a9c4f52 S UserName p=0 ""
++ E ~0a9c4f52 t.created 2026-11-16T10:38:51Z
++ E ~0a9c4f52 t.expires 0 2026-11-01T10:00:00Z
++ E ~0a9c4f52 t.location 2026-11-01T10:13:00Z
++ E ~0a9c4f52 t.modified 2026-11-01T10:13:00Z
++ E ~0a9c4f52 tags []
++ E ~1a57eb10 autotype enabled=1 obfuscation=0 seq="" assoc=0
++ E ~1a57eb10 history.count 0
++ E ~1a57eb10 index 5
++ E ~1a57eb10 misc icon=0 customIcon=- fg=00000000 bg=00000000 overrideUrl="" quality=1
++ E ~1a57eb10 parent ~7328a903 (KeePassGate)
++ E ~1a57eb10 prev -
++ E ~1a57eb10 S KPG.Body p=0 "{\"kind\":\"grant 6\",\"n\":\"S6\"}"
++ E ~1a57eb10 S KPG.Kind p=0 "grant 6"
++ E ~1a57eb10 S Notes p=0 ""
++ E ~1a57eb10 S Password p=1 ""
++ E ~1a57eb10 S Title p=0 "KPG grant 6 - Copy"
++ E ~1a57eb10 S URL p=0 ""
++ E ~1a57eb10 S UserName p=0 ""
++ E ~1a57eb10 t.created 2026-11-16T10:38:51Z
++ E ~1a57eb10 t.expires 0 2026-11-01T10:00:00Z
++ E ~1a57eb10 t.location 2026-11-01T11:01:00Z
++ E ~1a57eb10 t.modified 2026-11-01T11:01:00Z
++ E ~1a57eb10 tags []
++ E ~3360c6fd autotype enabled=1 obfuscation=0 seq="" assoc=0
++ E ~3360c6fd history.count 0
++ E ~3360c6fd index 6
++ E ~3360c6fd misc icon=0 customIcon=- fg=00000000 bg=00000000 overrideUrl="" quality=1
++ E ~3360c6fd parent ~7328a903 (KeePassGate)
++ E ~3360c6fd prev -
++ E ~3360c6fd S KPG.Body p=0 "{\"kind\":\"grant 7\",\"n\":\"S7\"}"
++ E ~3360c6fd S KPG.Kind p=0 "grant 7"
++ E ~3360c6fd S Notes p=0 ""
++ E ~3360c6fd S Password p=1 ""
++ E ~3360c6fd S Title p=0 "KPG grant 7 - Copy"
++ E ~3360c6fd S URL p=0 ""
++ E ~3360c6fd S UserName p=0 ""
++ E ~3360c6fd t.created 2026-11-16T10:38:51Z
++ E ~3360c6fd t.expires 0 2026-11-01T10:00:00Z
++ E ~3360c6fd t.location 2026-11-01T10:16:00Z
++ E ~3360c6fd t.modified 2026-11-01T10:16:00Z
++ E ~3360c6fd tags []
++ E ~3f6b7556 autotype enabled=1 obfuscation=0 seq="" assoc=0
++ E ~3f6b7556 history.count 0
++ E ~3f6b7556 index 4
++ E ~3f6b7556 misc icon=0 customIcon=- fg=00000000 bg=00000000 overrideUrl="" quality=1
++ E ~3f6b7556 parent ~7328a903 (KeePassGate)
++ E ~3f6b7556 prev -
++ E ~3f6b7556 S KPG.Body p=0 "{\"kind\":\"grant 1\",\"n\":\"S1\"}"
++ E ~3f6b7556 S KPG.Kind p=0 "grant 1"
++ E ~3f6b7556 S Notes p=0 ""
++ E ~3f6b7556 S Password p=1 ""
++ E ~3f6b7556 S Title p=0 "KPG grant 1 - Copy"
++ E ~3f6b7556 S URL p=0 ""
++ E ~3f6b7556 S UserName p=0 ""
++ E ~3f6b7556 t.created 2026-11-16T10:38:51Z
++ E ~3f6b7556 t.expires 0 2026-11-01T10:00:00Z
++ E ~3f6b7556 t.location 2026-11-01T11:00:00Z
++ E ~3f6b7556 t.modified 2026-11-01T11:00:00Z
++ E ~3f6b7556 tags []
++ E ~5d163740 autotype enabled=1 obfuscation=0 seq="" assoc=0
++ E ~5d163740 history.count 0
++ E ~5d163740 index 2
++ E ~5d163740 misc icon=0 customIcon=- fg=00000000 bg=00000000 overrideUrl="" quality=1
++ E ~5d163740 parent ~7328a903 (KeePassGate)
++ E ~5d163740 prev -
++ E ~5d163740 S KPG.Body p=0 "{\"kind\":\"revocation 1\",\"n\":\"S3\"}"
++ E ~5d163740 S KPG.Kind p=0 "revocation 1"
++ E ~5d163740 S Notes p=0 ""
++ E ~5d163740 S Password p=1 ""
++ E ~5d163740 S Title p=0 "KPG revocation 1 - Copy"
++ E ~5d163740 S URL p=0 ""
++ E ~5d163740 S UserName p=0 ""
++ E ~5d163740 t.created 2026-11-16T10:38:51Z
++ E ~5d163740 t.expires 0 2026-11-01T10:00:00Z
++ E ~5d163740 t.location 2026-11-01T10:12:00Z
++ E ~5d163740 t.modified 2026-11-01T10:12:00Z
++ E ~5d163740 tags []
++ E ~67010047 autotype enabled=1 obfuscation=0 seq="" assoc=0
++ E ~67010047 history.count 0
++ E ~67010047 index 1
++ E ~67010047 misc icon=0 customIcon=IconUsed fg=00000000 bg=00000000 overrideUrl="" quality=1
++ E ~67010047 parent ~7328a903 (KeePassGate)
++ E ~67010047 prev -
++ E ~67010047 S KPG.Body p=0 "{\"kind\":\"admission 1\",\"n\":\"S2\"}"
++ E ~67010047 S KPG.Kind p=0 "admission 1"
++ E ~67010047 S Notes p=0 ""
++ E ~67010047 S Password p=1 ""
++ E ~67010047 S Title p=0 "KPG admission 1 - Copy"
++ E ~67010047 S URL p=0 ""
++ E ~67010047 S UserName p=0 ""
++ E ~67010047 t.created 2026-11-16T10:38:51Z
++ E ~67010047 t.expires 0 2026-11-01T10:00:00Z
++ E ~67010047 t.location 2026-11-01T10:11:00Z
++ E ~67010047 t.modified 2026-11-01T10:11:00Z
++ E ~67010047 tags []
++ E ~8e6815a7 autotype enabled=1 obfuscation=0 seq="" assoc=0
++ E ~8e6815a7 history.count 0
++ E ~8e6815a7 index 0
++ E ~8e6815a7 misc icon=0 customIcon=- fg=00000000 bg=00000000 overrideUrl="" quality=1
++ E ~8e6815a7 parent ~7328a903 (KeePassGate)
++ E ~8e6815a7 prev -
++ E ~8e6815a7 S KPG.Body p=0 "{\"kind\":\"grant 1\",\"n\":\"S1\"}"
++ E ~8e6815a7 S KPG.Kind p=0 "grant 1"
++ E ~8e6815a7 S Notes p=0 ""
++ E ~8e6815a7 S Password p=1 ""
++ E ~8e6815a7 S Title p=0 "KPG grant 1 - Copy"
++ E ~8e6815a7 S URL p=0 ""
++ E ~8e6815a7 S UserName p=0 ""
++ E ~8e6815a7 t.created 2026-11-16T10:38:51Z
++ E ~8e6815a7 t.expires 0 2026-11-01T10:00:00Z
++ E ~8e6815a7 t.location 2026-11-01T10:10:00Z
++ E ~8e6815a7 t.modified 2026-11-01T10:10:00Z
++ E ~8e6815a7 tags []
+- F groups 6 entries 12
++ F groups 8 entries 19
++ G ~5e3b01ea children groups=0 entries=0
++ G ~5e3b01ea flags icon=48 customIcon=- search=inherit autotype=inherit expanded=1 seq="" lastTop=-
++ G ~5e3b01ea index 0
++ G ~5e3b01ea name "Archive"
++ G ~5e3b01ea notes ""
++ G ~5e3b01ea parent ~7328a903 (KeePassGate)
++ G ~5e3b01ea prev -
++ G ~5e3b01ea t.created 2026-11-16T10:38:51Z
++ G ~5e3b01ea t.expires 0 2026-11-01T10:00:00Z
++ G ~5e3b01ea t.location 2026-11-01T10:06:00Z
++ G ~5e3b01ea t.modified 2026-11-01T10:06:00Z
++ G ~5e3b01ea tags []
++ G ~7328a903 children groups=1 entries=7
++ G ~7328a903 flags icon=48 customIcon=- search=0 autotype=0 expanded=1 seq="" lastTop=-
++ G ~7328a903 index 1
++ G ~7328a903 name "KeePassGate"
++ G ~7328a903 notes ""
++ G ~7328a903 parent Root (Desk store)
++ G ~7328a903 prev -
++ G ~7328a903 t.created 2026-11-16T10:38:51Z
++ G ~7328a903 t.expires 0 2026-11-01T10:00:00Z
++ G ~7328a903 t.location 2026-11-01T10:05:00Z
++ G ~7328a903 t.modified 2026-11-01T10:05:00Z
++ G ~7328a903 tags []
+- G Bin index 3
++ G Bin index 4
+- G EG index 2
++ G EG index 3
+- G KG flags icon=48 customIcon=- search=0 autotype=0 expanded=1 seq="" lastTop=-
++ G KG flags icon=48 customIcon=- search=0 autotype=0 expanded=1 seq="" lastTop=S1
+- G PW index 1
++ G PW index 2
+- G Root children groups=4 entries=0
++ G Root children groups=5 entries=0

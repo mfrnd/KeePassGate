@@ -1,0 +1,28 @@
+12:48:41.448 ==== import-OverwriteIfNewer-1 : File, Import, KDBX, Overwrite if newer
+12:48:41.472 db: size=3413 mtime=2026-11-16T08:31:56.2778845Z sha=2ff7a751a869; other: size=5013 mtime=2026-11-16T08:32:08.8042697Z sha=74dd75d7243e
+12:48:41.487 config: 
+12:48:53.283 started KeePass pid=4088 token: TokenIsElevated=1 ElevationType=2 Integrity=0x3000 AdministratorsEnabled=False
+12:48:53.454 main window: <<db.kdbx - KeePass>>
+12:48:53.776 group rows: Desk probe, KeePassGate, Passwords, Recycle Bin
+12:48:55.630 menu: <<Import...>>
+12:48:57.366 [import-OverwriteIfNewer-1-import] WINDOW title=<<Import File/Data>> class=WindowsForms10.Window.8.app.0.2bf8098_r6_ad1
+12:48:57.477 [import-OverwriteIfNewer-1-import]   Pane name=<<General>>
+12:48:57.491 [import-OverwriteIfNewer-1-import]   Group name=<<Format>>
+12:48:57.504 [import-OverwriteIfNewer-1-import]   Group name=<<Source>>
+12:48:57.513 [import-OverwriteIfNewer-1-import]   Pane name=<<Help: Configuring source applications>>
+12:48:57.523 [import-OverwriteIfNewer-1-import]   Text name=<<File(s):>> disabled
+12:48:57.538 [import-OverwriteIfNewer-1-import]   Pane name=<<Cancel>>
+12:48:57.541 [import-OverwriteIfNewer-1-import]   Pane name=<<OK>> disabled
+12:48:57.556 [import-OverwriteIfNewer-1-import]   win32 Window.8 <<General>>
+12:48:57.562 [import-OverwriteIfNewer-1-import]   win32 Window.8 <<Format>>
+12:48:57.570 [import-OverwriteIfNewer-1-import]   win32 Window.8 <<Source>>
+12:48:57.575 [import-OverwriteIfNewer-1-import]   win32 STATIC <<Help: Configuring source applications>>
+12:48:57.582 [import-OverwriteIfNewer-1-import]   win32 STATIC <<File(s):>> disabled
+12:48:57.588 [import-OverwriteIfNewer-1-import]   win32 BUTTON <<Cancel>>
+12:48:57.596 [import-OverwriteIfNewer-1-import]   win32 BUTTON <<OK>> disabled
+12:49:01.482 shot import-OverwriteIfNewer-1-import.png (406 x 556)
+12:49:12.297 stopping KeePass pid=4088
+12:49:12.374 RUN FAILED import-OverwriteIfNewer-1: no key prompt at Kp-KeyPrompt, <branch>\spikes\storage\probes\desktop-windows\scripts\Kp.ps1: line 341
+at Kp-ImportKdbx, <branch>\spikes\storage\probes\desktop-windows\scripts\Kp.ps1: line 367
+at Run-M5, <branch>\spikes\storage\probes\desktop-windows\scripts\M5.ps1: line 107
+at <ScriptBlock>, <branch>\spikes\storage\probes\desktop-windows\scripts\M5.ps1: line 159

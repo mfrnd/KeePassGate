@@ -1,0 +1,15 @@
+10:44:59.207 ==== view
+10:44:59.254 config: 
+10:45:11.133 started KeePass pid=20568 token: TokenIsElevated=1 ElevationType=2 Integrity=0x3000 AdministratorsEnabled=False
+10:45:11.574 main window: <<db.kdbx - KeePass>>
+10:45:11.980 group rows: Desk entries, KeePassGate, Passwords, Recycle Bin
+10:45:14.917 entry view of Mail account: <<>>
+10:45:15.540 shot view-Mailaccount.png (1086 x 713)
+10:45:18.207 entry view of Bank: <<>>
+10:45:18.810 shot view-Bank.png (1086 x 713)
+10:45:21.424 entry view of Shop: <<>>
+10:45:22.020 shot view-Shop.png (1086 x 713)
+10:45:24.565 entry view of KPG grant 1: <<>>
+10:45:25.150 shot view-KPGgrant1.png (1086 x 713)
+10:45:27.741 entry view of KPG admission 1: <<>>
+10:45:28.320 shot view-KPGadmission1.png (1086 x 713)

@@ -1,0 +1,12 @@
+12:12:01.478 ==== o-backup-1 : KeePassXC 2.8.0, backup before save on, save after every change off; P2; NEW arrives; Ctrl+S at once; Overwrite
+12:12:01.506 keepassxc config: General/BackupBeforeSave=true, General/AutoSaveAfterEveryChange=false
+12:12:12.621 started KeePassXC pid=2928 token: TokenIsElevated=1 ElevationType=2 Integrity=0x3000 AdministratorsEnabled=False
+12:12:13.187 answered the update question No
+12:12:18.614 KeePassXC window: <<Desk probe (invented) - KeePassXC>>
+12:12:24.613 edited P2 password=p2-window; OK clicked 2026-11-16T11:12:23.6896816Z .. 2026-11-16T11:12:24.1059455Z
+12:12:24.635 file before the replacement: size=3413 mtime=2026-11-16T08:31:56.2778845Z sha=2ff7a751a869
+12:12:24.824 replace: before size=3413 mtime=2026-11-16T08:31:56.2778845Z sha=2ff7a751a869
+12:12:24.846 stopping KeePassXC pid=2928
+12:12:24.921 RUN FAILED o-backup-1: MoveFileEx failed 5 at Replace-File, <branch>\spikes\storage\probes\desktop-windows\scripts\Ui.ps1: line 553
+at Run-M2, <branch>\spikes\storage\probes\desktop-windows\scripts\M2.ps1: line 230
+at <ScriptBlock>, <branch>\spikes\storage\probes\desktop-windows\scripts\M2.ps1: line 335

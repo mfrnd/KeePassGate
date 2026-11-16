@@ -1,0 +1,2 @@
+elevated: False
+command: Start-Process -FilePath '<work>\kp\KeePass.exe' -WorkingDirectory '<work>\kp' -ArgumentList '<work>\runs\m4\entry-delete-1\db.kdbx','-pw:desk-probe-invented-password'

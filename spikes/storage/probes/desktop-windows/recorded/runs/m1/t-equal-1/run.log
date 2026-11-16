@@ -1,0 +1,28 @@
+09:58:08.831 ==== t-equal-1 : P2, NEW-fixed at the old time, Ctrl+S, Overwrite
+09:58:08.844 config: 
+09:58:19.973 started KeePass pid=3204 token: TokenIsElevated=1 ElevationType=2 Integrity=0x3000 AdministratorsEnabled=False
+09:58:20.131 main window: <<db.kdbx - KeePass>>
+09:58:25.136 edited P2 password=p2-window; OK posted 2026-11-16T08:58:25.0212893Z, dialog gone 2026-11-16T08:58:25.1364656Z
+09:58:25.161 replace: before size=3413 mtime=2026-11-16T08:31:56.2778845Z sha=2ff7a751a869
+09:58:25.221 replace (equal) with NEW-fixed.kdbx: after size=5013 mtime=2026-11-16T08:31:56.2778845Z sha=74dd75d7243e
+09:58:27.719 [t-equal-1-1] WINDOW title=<<KeePass>> class=#32770
+09:58:27.861 [t-equal-1-1]   Image name=<<MainInstructionIcon>>
+09:58:27.883 [t-equal-1-1]   Text name=<<Overwrite the existing file?>>
+09:58:27.892 [t-equal-1-1]   Text name=<<<work>\runs\m1\t-equal-1\db.kdbx
+
+The file on disk/server has changed since it was loaded. Probably someone else has edited and saved the database.>>
+09:58:27.901 [t-equal-1-1]   Pane name=<<Synchronize>> help=<<Load the file on disk/server and merge it with the current database in memory.>>
+09:58:27.910 [t-equal-1-1]   Pane name=<<Overwrite>> help=<<Save the current database to the file. Changes made by the other user will be lost.>>
+09:58:27.918 [t-equal-1-1]   Pane name=<<Cancel>> help=<<Abort the current operation.>>
+09:58:27.933 [t-equal-1-1]   win32 Button <<Synchronize>>
+09:58:27.937 [t-equal-1-1]   win32 Button <<Overwrite>>
+09:58:27.939 [t-equal-1-1]   win32 Button <<Cancel>>
+09:58:28.518 shot t-equal-1-1.png (489 x 361)
+09:58:28.954 [t-equal-1-1] pressed <<Overwrite (clicked)>>
+09:58:36.660 dialogs after the flow: 1
+09:58:40.168 [after] window title <<db.kdbx - KeePass>>; groups [Desk probe, KeePassGate, Passwords, Recycle Bin]; KeePassGate [KPG grant 1, KPG admission 1]; Passwords [P1, P2, Q1, Q2, Q3, X1, K]; status <<Ready.>>
+09:58:40.181 file after the flow: size=3589 mtime=2026-11-16T08:58:29.0227517Z sha=961a95930c06
+09:58:46.225 dialogs at the exit (answered Discard): 0
+09:58:46.235 file after the exit: size=3589 mtime=2026-11-16T08:58:29.0227517Z sha=961a95930c06
+09:58:46.870 verdict: db.kdbx sha=961a95930c06 v4.1 KG1=kept KG2=kept KG3=gone NewKey=gone DZ=none D1=rec X1=x1-old[] P1=p1-old[] P2=p2-window[p2-old] Q1=q1-old[] Q2=q2-old[] Q3=q3-old[] K=k-old[] NO=absent NW=absent entries=9 records=1
+09:58:46.880 verdict: NEW-fixed.kdbx sha=74dd75d7243e v4.1 KG1=kept KG2=kept KG3=kept NewKey=kept DZ=rec D1=rec X1=gone+rec P1=p1-other[p1-old] P2=p2-old[] Q1=q1-other[q1-old] Q2=q2-other[q2-old] Q3=q3-other[q3-old] K=k-old[] NO=no-other@Passwords NW=absent entries=10 records=3

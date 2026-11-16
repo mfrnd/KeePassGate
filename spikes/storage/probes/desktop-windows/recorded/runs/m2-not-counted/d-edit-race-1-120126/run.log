@@ -1,0 +1,14 @@
+12:01:00.003 ==== d-edit-race-1 : KeePassXC 2.8.0, defaults; NEW arrives, P2 edited at once (saved by itself)
+12:01:00.026 keepassxc config: 
+12:01:11.172 started KeePassXC pid=15664 token: TokenIsElevated=1 ElevationType=2 Integrity=0x3000 AdministratorsEnabled=False
+12:01:11.785 answered the update question No
+12:01:17.273 KeePassXC window: <<Desk probe (invented) - KeePassXC>>
+12:01:17.283 file before the replacement: size=3413 mtime=2026-11-16T08:31:56.2778845Z sha=2ff7a751a869
+12:01:17.493 replace: before size=3413 mtime=2026-11-16T08:31:56.2778845Z sha=2ff7a751a869
+12:01:17.527 replace (later) with NEW-fixed.kdbx: after size=5013 mtime=2026-11-16T11:01:17.5101105Z sha=74dd75d7243e
+12:01:26.388 shot fail-K.png (1280 x 752)
+12:01:26.432 stopping KeePassXC pid=15664
+12:01:26.506 RUN FAILED d-edit-race-1: no item K in KeePassXC's window at Xc-ClickItem, <branch>\spikes\storage\probes\desktop-windows\scripts\M2.ps1: line 58
+at Xc-EditPassword, <branch>\spikes\storage\probes\desktop-windows\scripts\M2.ps1: line 101
+at Run-M2, <branch>\spikes\storage\probes\desktop-windows\scripts\M2.ps1: line 233
+at <ScriptBlock>, <branch>\spikes\storage\probes\desktop-windows\scripts\M2.ps1: line 335

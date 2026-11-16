@@ -1,0 +1,13 @@
+11:55:30.155 ==== n-merge-1 : KeePassXC 2.8.0, save after every change off; full changes unsaved; NEW arrives; Merge; Ctrl+S
+11:55:30.240 keepassxc config: General/AutoSaveAfterEveryChange=false
+11:55:42.972 started KeePassXC pid=16032 token: TokenIsElevated=1 ElevationType=2 Integrity=0x3000 AdministratorsEnabled=False
+11:55:43.801 answered the update question No
+11:55:49.338 KeePassXC window: <<Desk probe (invented) - KeePassXC>>
+11:55:55.303 edited P2 password=p2-window; OK clicked 2026-11-16T10:55:54.3600206Z .. 2026-11-16T10:55:54.7904313Z
+11:55:59.654 edited Q1 password=q1-window; OK clicked 2026-11-16T10:55:58.7397718Z .. 2026-11-16T10:55:59.1501656Z
+11:56:04.164 edited Q2 password=q2-window; OK clicked 2026-11-16T10:56:03.2444270Z .. 2026-11-16T10:56:03.6592859Z
+11:56:12.998 stopping KeePassXC pid=16032
+11:56:13.077 RUN FAILED n-merge-1: no item Q3 in KeePassXC's window at Xc-ClickItem, <branch>\spikes\storage\probes\desktop-windows\scripts\M2.ps1: line 58
+at Xc-EditPassword, <branch>\spikes\storage\probes\desktop-windows\scripts\M2.ps1: line 101
+at Run-M2, <branch>\spikes\storage\probes\desktop-windows\scripts\M2.ps1: line 209
+at <ScriptBlock>, <branch>\spikes\storage\probes\desktop-windows\scripts\M2.ps1: line 335

@@ -1,0 +1,20 @@
+maint-history-1 | 17 diff lines
+maint-records-1 | 10 diff lines
+maint-plugindata-1 | 11 diff lines
+dde-1 | 79 diff lines
+deg-1 | 38 diff lines
+ducis-1 | 7 diff lines
+group-delete-1 | 18 diff lines
+group-shiftdelete-1 | FAILED: You cannot call a method on a null-valued expression.
+entry-delete-1 | 26 diff lines
+entry-shiftdelete-1 | 0 diff lines
+empty-bin-1 | 0 diff lines
+group-duplicate-1 | 162 diff lines
+entry-duplicate-1 | 24 diff lines
+group-sort-1 | 6 diff lines
+group-moveup-1 | 6 diff lines
+entry-movedown-1 | 8 diff lines
+entry-move-1 | 26 diff lines
+group-shiftdelete-1 | 173 diff lines
+entry-shiftdelete-1 | 39 diff lines
+empty-bin-1 | 65 diff lines

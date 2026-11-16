@@ -1,0 +1,38 @@
+- D count 6
++ D count 8
++ D EG 2026-11-16T10:33:24Z
++ D KGA 2026-11-16T10:33:24Z
++ F groups 4 entries 12
+- F groups 6 entries 12
+- G Bin flags icon=43 customIcon=- search=0 autotype=0 expanded=1 seq="" lastTop=-
++ G Bin flags icon=43 customIcon=- search=0 autotype=0 expanded=1 seq="" lastTop=S5
++ G Bin index 2
+- G Bin index 3
+- G EG children groups=0 entries=0
+- G EG flags icon=48 customIcon=- search=inherit autotype=inherit expanded=1 seq="" lastTop=-
+- G EG index 2
+- G EG name "Empty group"
+- G EG notes ""
+- G EG parent Root (Desk store)
+- G EG prev -
+- G EG t.created 2026-11-01T10:05:00Z
+- G EG t.expires 0 2026-11-01T10:00:00Z
+- G EG t.location 2026-11-01T10:05:00Z
+- G EG t.modified 2026-11-01T10:05:00Z
+- G EG tags []
++ G KG children groups=0 entries=7
+- G KG children groups=1 entries=7
+- G KGA children groups=0 entries=0
+- G KGA flags icon=48 customIcon=- search=inherit autotype=inherit expanded=1 seq="" lastTop=-
+- G KGA index 0
+- G KGA name "Archive"
+- G KGA notes ""
+- G KGA parent KG (KeePassGate)
+- G KGA prev -
+- G KGA t.created 2026-11-01T10:06:00Z
+- G KGA t.expires 0 2026-11-01T10:00:00Z
+- G KGA t.location 2026-11-01T10:06:00Z
+- G KGA t.modified 2026-11-01T10:06:00Z
+- G KGA tags []
++ G Root children groups=3 entries=0
+- G Root children groups=4 entries=0
