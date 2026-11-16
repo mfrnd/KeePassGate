@@ -1069,6 +1069,12 @@ none, since it releases both.
   compares names, so `Pass` and `word` around one were made with `201` as a second name beside
   `Password`. The variation selectors, the combining grapheme joiner and the Khmer inherent vowels
   are refused with them.
+- **A Dependabot update is left to a person when the release workflow cannot be read.** Which
+  actions only the release's publishing jobs run, and which paths its check watches, are read
+  out of `release.yml` with yq and given to jq, and a yq that failed handed jq no input, which jq
+  answers with nothing and success. So an update to a publishing action was not held and a change
+  to what a release is built from did not wait for the release check: auto-merge went on. A yq
+  that fails now stops the judgment, and the pull request waits for a person.
 
 ## 0.1.0, 2026-10-25
 

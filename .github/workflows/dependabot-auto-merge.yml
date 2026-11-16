@@ -117,13 +117,20 @@ jobs:
           # The actions only a job holding a write permission runs, by the repository each is
           # in, which is how fetch-metadata names an action. Refused when either kind of job is
           # missing, since a workflow without both is not the workflow this reads.
+          #
+          # What yq reads is taken on its own before jq is given it, here and for the paths
+          # below. A pipe in this step answers with its last command's status alone, so a yq
+          # failing inside one would hand jq no input, which jq answers with nothing and success,
+          # and that reads as nothing to hold and nothing to wait for. Taken on its own, a yq
+          # that fails stops the step.
           if [ "$GROUP" = actions ]; then
             names=$(printf '%s\n' "$NAMES" | tr ',' '\n' | sed 's/^ *//; s/ *$//' | grep -v '^$' || true)
             if [ -z "$names" ]; then
               leave "fetch-metadata names no action this moves, so whether only the release's publishing jobs run it is not known."
             fi
 
-            publishing=$(yq -o=json '.jobs' .github/workflows/release.yml | jq -r '
+            jobs=$(yq -o=json '.jobs' .github/workflows/release.yml)
+            publishing=$(printf '%s\n' "$jobs" | jq -r '
               def writes: (.permissions // {}) | if type == "object" then any(.[]; . == "write") else . != "read-all" end;
               def actions: [.steps[]? | .uses // empty | sub("@.*"; "") | split("/") | .[0:2] | join("/")];
               [.[] | select(writes) | actions[]] as $publishing
@@ -144,7 +151,8 @@ jobs:
           # would match nothing at all: both are refused rather than read as touching nothing.
           # The keyword is jq's: cspell:ignore elif
           changed=$(gh pr diff "$NUMBER" --name-only)
-          watched=$(yq -o=json '.on.pull_request.paths' .github/workflows/release.yml | jq -r '
+          paths=$(yq -o=json '.on.pull_request.paths' .github/workflows/release.yml)
+          watched=$(printf '%s\n' "$paths" | jq -r '
             if type != "array" or length == 0
             then error("release.yml checks no paths on a pull request, so what touches a release cannot be told")
             elif any(.[]; type != "string" or test("[\\[\\]*?+!]"))
