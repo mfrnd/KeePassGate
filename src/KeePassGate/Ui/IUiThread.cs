@@ -91,7 +91,7 @@ namespace KeePassGate.Ui
     /// the same load left input waiting at most for the turn it arrived during, and every timer on
     /// time. `UiPriority.cs` on `spikes/keepass-thread` measured all four.
     ///
-    /// **Work starts on Idle and nowhere else, and that keeps it out of KeePass's own
+    /// **Queued work starts on Idle and nowhere else, and that keeps it out of KeePass's own
     /// operations.** A save, an import, a synchronize, an export and XML Replace all pump through
     /// `Application.DoEvents`, read off the IL of KeePass 2.61.1, and WinForms never raises Idle
     /// inside it. Posted work was delivered inside each of them and had to be refused there by the
@@ -103,7 +103,7 @@ namespace KeePassGate.Ui
     /// the first read waiting may go ahead of work that cannot start yet. Otherwise the queue is
     /// served in the order it was joined.
     ///
-    /// **Nothing starts inside a merge**, which reverses the reason that timer was given: a read
+    /// **No turn starts inside a merge**, which reverses the reason that timer was given: a read
     /// inside a pump was taken to be harmless, and inside a save it is, because the tree stands
     /// still. A merge pumps from its status logger between one group or entry and the next, and
     /// the timer's tick served a read there from a tree part way between two databases: entries
@@ -274,6 +274,12 @@ namespace KeePassGate.Ui
                 // thread, from a post or a timer's tick, and `DatabaseWriter.Keep` runs through
                 // here. Inline is safe for it because Keep takes the writer's lock without
                 // waiting, so the work never waits on the thread it is running on.
+                //
+                // It takes no turn, so neither the start on Idle nor the look for a merge
+                // applies to it: a post and a tick are delivered inside whatever KeePass is
+                // pumping in. What keeps that write out of an operation of KeePass's own, a
+                // merge included, is the writer's own question about KeePass, which takes
+                // the same look at the stack, `DatabaseWriter.Merging`.
                 work();
                 return true;
             }
