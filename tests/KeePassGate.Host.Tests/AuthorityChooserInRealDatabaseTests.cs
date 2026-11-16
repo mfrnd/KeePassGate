@@ -123,7 +123,7 @@ namespace KeePassGate.Host.Tests
             {
                 Assume.That(
                     new AuthorityService(new CustomDataStore(_database.Database), NullGateLog.Instance)
-                        .Keep(_candidates[0]).Succeeded,
+                        .Keep(_candidates[0], _candidates).Succeeded,
                     Is.True);
 
                 Assert.That(chooser.Ask(_database.Database), Is.Null);
@@ -189,29 +189,172 @@ namespace KeePassGate.Host.Tests
         {
             _chooser.AskAll();
 
-            // A third arrives, as another merge would bring it.
-            var service = new AuthorityService(new CustomDataStore(_database.Database), NullGateLog.Instance);
-            var store = new CustomDataStore(_database.Database);
-            var held = store.Keys.Where(k => AuthorityKeys.FingerprintInAuthority(k) != null)
-                            .ToDictionary(k => k, k => store.Get(k));
-            foreach (var key in held.Keys)
-            {
-                store.Remove(key);
-            }
-
-            Assume.That(service.Create().Succeeded, Is.True);
-            var third = AuthorityKeys.FingerprintInAuthority(
-                store.Keys.Single(k => AuthorityKeys.FingerprintInAuthority(k) != null));
-            foreach (var pair in held)
-            {
-                store.Set(pair.Key, pair.Value);
-            }
-
-            _candidates = _candidates.Concat(new[] { third }).ToArray();
+            Third();
 
             _chooser.AskAll();
 
             Assert.That(_asked, Is.EqualTo(2));
+        }
+
+        [Test]
+        public void An_answer_retires_no_authority_that_arrived_while_the_question_stood()
+        {
+            // The chooser is not registered with KeePass's window manager, so a periodic trigger
+            // synchronizes under it. The answer was written to whatever the database held by
+            // then, and retired an authority, with every client it admitted, that the question
+            // never listed.
+            var first = _candidates[0];
+            var second = _candidates[1];
+            string third = null;
+            var listed = new List<string[]>();
+            _chooser.AskWhichToKeep = (choice, name) =>
+            {
+                listed.Add(choice.Options.Select(o => o.Fingerprint).ToArray());
+                if (listed.Count == 1)
+                {
+                    // The synchronize, and the round its save posts, which the dialog's own loop
+                    // delivers.
+                    third = Third();
+                    _chooser.AskAll();
+                }
+
+                return first;
+            };
+
+            _chooser.AskAll();
+
+            Assert.That(listed.Count, Is.EqualTo(1), "nothing is asked on top of the question standing");
+            Assert.That(_database.Database.CustomData.Exists(AuthorityKeys.RetirementKey(third)), Is.False,
+                "the authority nobody was shown is not retired");
+            Assert.That(_database.Database.CustomData.Exists(AuthorityKeys.RetirementKey(second)), Is.False,
+                "and nothing else is, since the answer was about a database that is no longer there");
+            Assert.That(_prompt.Told, Is.Null, "the operator is asked again rather than sent to the tab");
+
+            // The round a moment later.
+            _chooser.AskAll();
+
+            Assert.That(listed.Count, Is.EqualTo(2), "the authorities the database holds now are asked about");
+            Assert.That(listed[1], Is.EquivalentTo(new[] { first, second, third }));
+            Assert.That(_database.Database.CustomData.Exists(AuthorityKeys.RetirementKey(second)), Is.True);
+            Assert.That(_database.Database.CustomData.Exists(AuthorityKeys.RetirementKey(third)), Is.True,
+                "and an answer about all of them retires the rest");
+
+            using (var served = _targets.Current().Single())
+            {
+                Assert.That(served.DatabaseId, Is.EqualTo(first));
+            }
+        }
+
+        [Test]
+        public void An_authority_that_arrived_under_a_question_canceled_is_asked_about()
+        {
+            // The round for the new set came while the question about the old set stood, asked
+            // nobody, and left the new set marked as asked about.
+            var listed = new List<int>();
+            _chooser.AskWhichToKeep = (choice, name) =>
+            {
+                listed.Add(choice.Options.Count);
+                if (listed.Count == 1)
+                {
+                    Third();
+                    _chooser.AskAll();
+                }
+
+                return null;
+            };
+
+            _chooser.AskAll();
+            _chooser.AskAll();
+            _chooser.AskAll();
+
+            Assert.That(listed, Is.EqualTo(new[] { 2, 3 }), "each set once, the set that arrived among them");
+        }
+
+        [Test]
+        public void An_answer_is_not_written_once_an_authority_listed_has_been_retired_under_it()
+        {
+            // A retirement that arrives is another copy's answer, so the answer here was given
+            // about a choice that has changed, and is asked for again.
+            var third = Third();
+            var first = _candidates[0];
+            var second = _candidates[1];
+            var listed = new List<string[]>();
+            _chooser.AskWhichToKeep = (choice, name) =>
+            {
+                listed.Add(choice.Options.Select(o => o.Fingerprint).ToArray());
+                if (listed.Count == 1)
+                {
+                    new CustomDataStore(_database.Database).Set(
+                        AuthorityKeys.RetirementKey(third), AuthorityKeys.RetiredValue);
+                    _chooser.AskAll();
+                }
+
+                return listed.Count == 1 ? first : null;
+            };
+
+            _chooser.AskAll();
+
+            Assert.That(_database.Database.CustomData.Exists(AuthorityKeys.RetirementKey(second)), Is.False);
+            Assert.That(_prompt.Told, Is.Null);
+
+            _chooser.AskAll();
+
+            Assert.That(listed.Count, Is.EqualTo(2));
+            Assert.That(listed[1], Is.EquivalentTo(new[] { first, second }));
+        }
+
+        [Test]
+        public void A_choice_being_tried_again_is_not_written_once_another_authority_has_arrived()
+        {
+            // The same answer, refused for a moment and tried again: the synchronize that brings
+            // the third authority can end between the two tries.
+            var first = _candidates[0];
+            var second = _candidates[1];
+            string third = null;
+            var questions = 0;
+            var writer = new DatabaseWriter(
+                CurrentThread.Instance,
+                database => { },
+                () =>
+                {
+                    // The round's own question, then the first try, refused, then the second.
+                    if (++questions != 2)
+                    {
+                        return null;
+                    }
+
+                    third = Third();
+                    return "KeePass is synchronizing";
+                },
+                null,
+                null,
+                _dialogs,
+                NullGateLog.Instance);
+            var listed = new List<int>();
+            var chooser = new AuthorityChooser(
+                new NoEvents(), _targets, writer, _owner, null, _prompt, null, NullGateLog.Instance)
+            {
+                After = Waited,
+                AskWhichToKeep = (choice, name) =>
+                {
+                    listed.Add(choice.Options.Count);
+                    return listed.Count == 1 ? first : null;
+                }
+            };
+
+            using (chooser)
+            {
+                chooser.AskAll();
+
+                Assert.That(third, Is.Not.Null, "the first try was refused");
+                Assert.That(_database.Database.CustomData.Exists(AuthorityKeys.RetirementKey(third)), Is.False);
+                Assert.That(_database.Database.CustomData.Exists(AuthorityKeys.RetirementKey(second)), Is.False);
+                Assert.That(_prompt.Told, Is.Null);
+
+                chooser.AskAll();
+
+                Assert.That(listed, Is.EqualTo(new[] { 2, 3 }));
+            }
         }
 
         [Test]
@@ -441,7 +584,7 @@ namespace KeePassGate.Host.Tests
                 CurrentThread.Instance, database => { }, () => "KeePass is importing", null, null, _dialogs,
                 NullGateLog.Instance);
 
-            var kept = writer.Keep(_database.Database, _candidates[0]);
+            var kept = writer.Keep(_database.Database, _candidates[0], _candidates);
 
             Assert.That(kept.Succeeded, Is.False);
             Assert.That(kept.Message, Does.Contain("importing"));
@@ -473,7 +616,7 @@ namespace KeePassGate.Host.Tests
                 Assume.That(held.Wait(TimeSpan.FromSeconds(10)), Is.True, "the other write has the lock");
 
                 var spent = System.Diagnostics.Stopwatch.StartNew();
-                var kept = writer.Keep(_database.Database, _candidates[0]);
+                var kept = writer.Keep(_database.Database, _candidates[0], _candidates);
                 spent.Stop();
 
                 Assert.That(kept.Succeeded, Is.False);
@@ -610,6 +753,33 @@ namespace KeePassGate.Host.Tests
             store.Set(first, document);
 
             return new[] { AuthorityKeys.FingerprintInAuthority(first), AuthorityKeys.FingerprintInAuthority(second) };
+        }
+
+        /// <summary>
+        /// Adds one more authority beside those the database holds, as another synchronize would
+        /// bring it, and answers with its digest.
+        /// </summary>
+        private string Third()
+        {
+            var store = new CustomDataStore(_database.Database);
+            var service = new AuthorityService(store, NullGateLog.Instance);
+            var held = store.Keys.Where(k => AuthorityKeys.FingerprintInAuthority(k) != null)
+                            .ToDictionary(k => k, k => store.Get(k));
+            foreach (var key in held.Keys)
+            {
+                store.Remove(key);
+            }
+
+            Assume.That(service.Create().Succeeded, Is.True);
+            var third = AuthorityKeys.FingerprintInAuthority(
+                store.Keys.Single(k => AuthorityKeys.FingerprintInAuthority(k) != null));
+            foreach (var pair in held)
+            {
+                store.Set(pair.Key, pair.Value);
+            }
+
+            _candidates = _candidates.Concat(new[] { third }).ToArray();
+            return third;
         }
 
         private sealed class NoEvents : IDatabaseEvents

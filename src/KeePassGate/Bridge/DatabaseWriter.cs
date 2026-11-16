@@ -1116,8 +1116,13 @@ namespace KeePassGate.Bridge
         /// **Not saved, which is operator answer 5**: the database is marked, the window says so,
         /// and the operator saves as they would any other change. Serving starts at once all the
         /// same, because the gate reads the database in memory.
+        ///
+        /// **About the authorities the question listed, and no others**, which the answer carries
+        /// to `AuthorityStore.Keep`: asked there, inside the turn that writes, so a synchronize
+        /// that ended while the question stood or between two tries refuses the answer rather than
+        /// having it retire an authority nobody was shown.
         /// </remarks>
-        public AuthorityChange Keep(PwDatabase database, string fingerprint)
+        public AuthorityChange Keep(PwDatabase database, string fingerprint, IReadOnlyCollection<string> offered)
         {
             if (database == null || !database.IsOpen)
             {
@@ -1139,7 +1144,7 @@ namespace KeePassGate.Bridge
                 bool ran;
                 try
                 {
-                    ran = _ui.Run(() => outcome = KeepOnTheUiThread(database, fingerprint), WriteTimeout);
+                    ran = _ui.Run(() => outcome = KeepOnTheUiThread(database, fingerprint, offered), WriteTimeout);
                 }
                 catch (Exception error) when (Expected.OfUserInterface(error) || Expected.OfCustomData(error))
                 {
@@ -1160,7 +1165,8 @@ namespace KeePassGate.Bridge
             }
         }
 
-        private AuthorityChange KeepOnTheUiThread(PwDatabase database, string fingerprint)
+        private AuthorityChange KeepOnTheUiThread(
+            PwDatabase database, string fingerprint, IReadOnlyCollection<string> offered)
         {
             var interrupting = Interrupting();
             if (interrupting != null)
@@ -1177,7 +1183,7 @@ namespace KeePassGate.Bridge
                 }
             }
 
-            var kept = new AuthorityService(new CustomDataStore(database), _log).Keep(fingerprint);
+            var kept = new AuthorityService(new CustomDataStore(database), _log).Keep(fingerprint, offered);
             if (kept.Succeeded)
             {
                 // The title bar and the menus only: a choice changes the database's own custom

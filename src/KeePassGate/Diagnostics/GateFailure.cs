@@ -66,6 +66,30 @@ namespace KeePassGate.Diagnostics
     }
 
     /// <summary>
+    /// An answer to which authority to keep was given about authorities the database no longer
+    /// holds.
+    /// </summary>
+    /// <remarks>
+    /// Its own type so that whoever asked puts the question again. As an
+    /// <see cref="AuthorityFailure"/> it read as an answer that could not be written yet, and was
+    /// tried again for as long as any refusal is, each try logged as an error, for an answer no
+    /// later try could make right.
+    /// </remarks>
+    [Serializable]
+    public sealed class ChoiceOvertaken : GateFailure
+    {
+        public ChoiceOvertaken(string message)
+            : base(message)
+        {
+        }
+
+        private ChoiceOvertaken(SerializationInfo info, StreamingContext context)
+            : base(info, context)
+        {
+        }
+    }
+
+    /// <summary>
     /// A read gave up because the database could not be held still for it.
     /// </summary>
     /// <remarks>

@@ -43,6 +43,14 @@ namespace KeePassGate.Bridge
     /// **A choice goes through `DatabaseWriter`**, whose guard refuses it while Database
     /// Maintenance is open, and marks the database modified without saving it.
     ///
+    /// **An answer is about the authorities the question listed.** The chooser is not registered
+    /// with `GlobalWindowManager`, so KeePass runs a periodic trigger under it, and a synchronize
+    /// there can bring an authority or a retirement while the question stands. The answer
+    /// carries what was listed to the writer, which refuses it for a database holding any other
+    /// set, and the question is put again about the authorities the database holds by then. The
+    /// round that noticed them could ask nothing on top of the question standing, so it gives
+    /// the mark back and comes round again until that question is over.
+    ///
     /// **A lock closes the question unanswered**, as it closes a pairing or a renewal dialog,
     /// and for their reasons: the chooser is not registered with `GlobalWindowManager`, so
     /// KeePass's own lock goes through under it, and left standing it went on listing every
@@ -207,6 +215,17 @@ namespace KeePassGate.Bridge
             var unasked = _targets.Unasked();
             for (var next = 0; next < unasked.Count; next++)
             {
+                if (_asking.Contains(unasked[next]))
+                {
+                    // The authorities changed under a question that is standing, or under an
+                    // answer still being tried. Nothing is asked on top of either, so the new
+                    // state gets its mark back and is asked about a moment from now, and a
+                    // moment after that for as long as the earlier question lasts.
+                    _targets.AskAgain(new[] { unasked[next] });
+                    Later();
+                    continue;
+                }
+
                 var asked = false;
                 try
                 {
@@ -243,14 +262,19 @@ namespace KeePassGate.Bridge
             var trying = false;
             try
             {
-                var chosen = Choose(database);
+                IReadOnlyList<string> offered;
+                var chosen = Choose(database, out offered);
                 if (chosen == null)
                 {
                     return null;
                 }
 
-                var kept = _writer.Keep(database, chosen);
-                if (!kept.Succeeded)
+                var kept = _writer.Keep(database, chosen, offered);
+                if (kept.IsOvertaken)
+                {
+                    PutAgain(database);
+                }
+                else if (!kept.Succeeded)
                 {
                     // Tried again rather than told at once: the writer refuses while another write
                     // holds it or KeePass is busy, and neither is something the operator should
@@ -259,7 +283,7 @@ namespace KeePassGate.Bridge
                     _log.Info("the authority the operator chose could not be kept yet, so it is tried again: " +
                               kept.Message);
                     trying = true;
-                    TryAgain(database, chosen, kept, System.Diagnostics.Stopwatch.StartNew());
+                    TryAgain(database, chosen, offered, kept, System.Diagnostics.Stopwatch.StartNew());
                 }
 
                 return kept;
@@ -282,10 +306,15 @@ namespace KeePassGate.Bridge
         /// <summary>
         /// Tries once more to keep the authority the operator chose, until it is kept, its
         /// database closes, or a refusal that does not end by itself has outlasted
-        /// <see cref="KeepTrying"/>, and then tells the operator.
+        /// <see cref="KeepTrying"/>, and then tells the operator. A try refused because the
+        /// authorities changed meanwhile ends the trying as well, and has the question put again.
         /// </summary>
         private void TryAgain(
-            PwDatabase database, string chosen, AuthorityChange last, System.Diagnostics.Stopwatch trying)
+            PwDatabase database,
+            string chosen,
+            IReadOnlyList<string> offered,
+            AuthorityChange last,
+            System.Diagnostics.Stopwatch trying)
         {
             if (last.IsBehindAnotherWrite)
             {
@@ -301,7 +330,7 @@ namespace KeePassGate.Bridge
 
             After(KeepEvery, () =>
             {
-                var kept = database.IsOpen ? _writer.Keep(database, chosen) : last;
+                var kept = database.IsOpen ? _writer.Keep(database, chosen, offered) : last;
                 if (kept.Succeeded)
                 {
                     _log.Info("the authority the operator chose was kept once the writer was free");
@@ -309,8 +338,33 @@ namespace KeePassGate.Bridge
                     return;
                 }
 
-                TryAgain(database, chosen, kept, trying);
+                if (kept.IsOvertaken)
+                {
+                    PutAgain(database);
+                    return;
+                }
+
+                TryAgain(database, chosen, offered, kept, trying);
             });
+        }
+
+        /// <summary>
+        /// Lets go of an answer the writer refused because the database no longer holds the
+        /// authorities the question listed, and has the database asked about again.
+        /// </summary>
+        /// <remarks>
+        /// Not tried again, since the same answer is refused for as long as the database holds
+        /// what it holds now, and nothing is told: the question that follows lists what changed.
+        /// A database decided meanwhile, by another copy's answer arriving in a synchronize, is
+        /// left as that answer made it, and nobody is asked.
+        /// </remarks>
+        private void PutAgain(PwDatabase database)
+        {
+            _log.Info("the authorities changed under the question of which to keep, so the answer was " +
+                      "not written, and the database is asked about again if it still holds several");
+            _asking.Remove(database);
+            _targets.AskAgain(new[] { database });
+            Later();
         }
 
         /// <summary>
@@ -384,8 +438,13 @@ namespace KeePassGate.Bridge
         /// are told apart: written for both, it reported a database being served as one still
         /// not served, by an operator who had never been asked.
         /// </remarks>
-        private string Choose(PwDatabase database)
+        /// <param name="offered">
+        /// The digest of every authority the question listed, which the answer is about, or null
+        /// when nobody was asked.
+        /// </param>
+        private string Choose(PwDatabase database, out IReadOnlyList<string> offered)
         {
+            offered = null;
             var store = new CustomDataStore(database);
 
             AuthorityChoice choice;
@@ -400,6 +459,8 @@ namespace KeePassGate.Bridge
                 choice = AuthorityChoice.From(
                     reading, new AdmissionStore(store, _log).All(), LastSeen, _log);
             }
+
+            offered = choice.Offered;
 
             string chosen;
             _standing = database;

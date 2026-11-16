@@ -580,7 +580,7 @@ namespace KeePassGate.Ui
                 }
 
                 var chosen = AskWhichToKeep(choice, _database.Name);
-                return chosen == null ? null : _service.Keep(chosen);
+                return chosen == null ? null : _service.Keep(chosen, choice.Offered);
             });
         }
 

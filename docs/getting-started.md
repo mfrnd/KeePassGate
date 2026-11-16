@@ -284,6 +284,13 @@ as **not this authority** until they are removed. The database is marked changed
 save it to keep the choice. It takes a click, or Space on the button: no letter presses it and
 Enter does nothing on this window, wherever the focus is.
 
+**The answer is about the authorities the window lists, and no others.** A synchronize can run
+while the window is open, started by a trigger on a timer for instance, and change which
+authorities the database holds. **Keep this authority** then retires nothing, and the window opens
+again listing the authorities the database holds now; it opens again in the same way after
+**Cancel**. If the synchronize brought an answer given on another copy, the database is served as
+that answer left it, and the window does not open again.
+
 **Cancel** serves nothing. The Certificate Authority page then states the database holds more than
 one authority, and **Choose authority** there asks again; a choice made from there waits for OK
 like everything else on that tab. KeePass locking closes the window as **Cancel** does, and

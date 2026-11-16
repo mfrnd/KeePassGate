@@ -287,6 +287,20 @@ the screen, and its answer was refused for the progress window. So the question 
 writer's own answer about KeePass, the progress window included, which is the answer the write is
 refused on, and the two cannot differ.
 
+**An answer retires nothing the dialog did not list.** KeePass raises a periodic trigger under a
+dialog the plugin does not register, so a synchronize can run while the dialog stands and bring an
+authority it does not list, or a retirement, which is another copy's answer. Keeping wrote to
+whatever the database held by then, so an answer about two authorities retired a third, with every
+client it admitted, that the operator was never shown, and a retirement is never removed. The
+answer now carries the digests the dialog listed to the write, which is refused, inside the
+writer's own turn, for a database whose authorities are any other set, an authority more or an
+authority fewer. The operator is then asked again about the authorities the database holds, as a
+state the plugin has not asked about always is: the round that noticed the new state at the
+synchronize's save can ask nothing on top of the dialog standing, so it comes round again until
+that dialog has closed, whichever way it closed. A database another copy's answer decided
+meanwhile is served as that answer left it, and nobody is asked. The KPG tab's own question is
+held to the same rule.
+
 **Copies that keep different authorities retire every authority.** Each copy asks on its own, and
 the last requests it shows come from that machine's own audit, so copies asked before any answer is
 synchronized can each keep a different authority. Each answer retires every authority it did not

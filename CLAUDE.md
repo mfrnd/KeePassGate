@@ -847,6 +847,13 @@ KeePass through UI automation cannot unload. Run them from **Windows PowerShell*
   the writer's whole answer about KeePass, `GroupDialogs.Working` included.
   `AuthorityChooserInRealDatabaseTests` pins the waiting, and `FINDINGS.md` section 21 holds the
   measurement.
+- **KeePass runs a periodic trigger under a dialog it does not know about.**
+  `MainForm.OnTimerMainTick` raises `TimePeriodic` whenever `GlobalWindowManager.WindowCount` is
+  zero, where a dialog the plugin does not register leaves it: a synchronize ran under the
+  standing authority chooser and brought a third authority, which is why an answer carries the
+  authorities its dialog listed and is refused for any other set.
+  `AuthorityChooserInRealDatabaseTests` drives an authority arriving under the question, and
+  `FINDINGS.md` section 21 holds the measurement.
 - **A `ToolStripDropDown` must not be disposed inside its own `Closed` handler.** That event is
   raised while WinForms is still delivering the click or keystroke that closed it, and disposing
   there disposes the control whose event is running: the next message reaches

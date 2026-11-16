@@ -550,7 +550,9 @@ namespace KeePassGate.Bridge
         ///
         /// **Every database is marked before any is asked about**, so that a round started while
         /// a chooser is open, which its modal loop allows, finds nothing to ask on top of it. A
-        /// round that ends part way through gives the mark back with <see cref="AskAgain"/>.
+        /// round that ends part way through gives the mark back with <see cref="AskAgain"/>, and
+        /// so does a round that finds a new state under a question still standing about the
+        /// state before it.
         /// </remarks>
         public IReadOnlyList<PwDatabase> Unasked()
         {
@@ -581,8 +583,11 @@ namespace KeePassGate.Bridge
         /// <remarks>
         /// For a round that ended part way through, on a defect asking about one database: every
         /// database after it was marked with it and never asked, and stayed so until a lock and an
-        /// unlock rebuilt its entry. A database no longer undecided keeps its entry as it is, since
-        /// there is nothing left to ask about it.
+        /// unlock rebuilt its entry. And for a state that arrived while a question stood about
+        /// the state before it, in a synchronize KeePass ran under the chooser: the round that
+        /// found it marked it and could ask nobody, so the authorities it brought were never put
+        /// to the operator, whose answer about the earlier state then retired them. A database no
+        /// longer undecided keeps its entry as it is, since there is nothing left to ask about it.
         /// </remarks>
         public void AskAgain(IEnumerable<PwDatabase> databases)
         {

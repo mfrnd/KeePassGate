@@ -91,7 +91,7 @@ namespace KeePassGate.Host.Tests
         public void Keeping_one_serves_it_on_the_next_connection()
         {
             var kept = new AuthorityService(new CustomDataStore(_database.Database), NullGateLog.Instance)
-                .Keep(_candidates[1]);
+                .Keep(_candidates[1], _candidates);
             Assume.That(kept.Succeeded, Is.True, kept.Message);
 
             using (var target = _targets.Current().Single())

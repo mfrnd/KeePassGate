@@ -17,6 +17,15 @@ none, since it releases both.
   unloading the plugin. The picker is now let go of a message later, and what it held is dropped,
   since the dialog it was for has closed. An operator's own ways of leaving the dialog, a press
   outside the picker or Alt and F4, close the picker first and never reached this.
+- **An answer to which authority to keep retires nothing its window did not list.** KeePass runs
+  a periodic trigger under that window, so a synchronize could bring a third authority while the
+  window listed two, and **Keep this authority** then retired the third as well, with every
+  client it admitted, for good and with nobody having been shown either. An answer now carries
+  the authorities its window listed and is not written to a database holding any other set, an
+  authority more or an authority fewer: the window opens again, listing the authorities the
+  database holds, and does so after **Cancel** as well. A database that an answer given on
+  another copy decided meanwhile is served as that answer left it. The question on the KPG tab
+  is held to the same rule. `CA.md` §204.
 - **The window asking which authority to keep waits for a synchronize to end.** A synchronize
   that a trigger starts as KeePass opens its first database is shown in KeePass's progress
   window, which pumps before KeePass blocks its own interaction, and the window was put up
