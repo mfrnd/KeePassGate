@@ -25,11 +25,14 @@ namespace KeePassGate.Pipeline
     ///
     /// **Written to the audit once the revocation is in the database**: answered `200`, or
     /// `500 not verified`, which keeps it in the database KeePass holds, so the certificate is
-    /// refused from then on whatever the file says. A revocation taken back out, or never made,
-    /// revoked nothing and is not written down. **The writer writes the line**, on its own path
-    /// for a revocation left in force and before anything drawn from the records is told, so a
-    /// defect there cannot lose it; this hands it the line and takes the client's turn for it once
-    /// the write returns.
+    /// refused from then on whatever the file holds. A revocation taken back out, or never made,
+    /// revoked nothing and is not written down, and nor is a revocation whose database closed
+    /// inside its save before KeePass reported a save of it that landed, which no database holds
+    /// any more and the file may not. A database that closes takes this connection with it, so
+    /// the client is answered nothing then, whatever the write decided. **The writer writes the
+    /// line**, on its own path for a revocation left in force and before anything drawn from the
+    /// records is told, so a defect there cannot lose it; this hands it the line and takes the
+    /// client's turn for it once the write returns.
     /// </remarks>
     public sealed class RevocationOperation
     {

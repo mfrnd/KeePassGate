@@ -668,6 +668,69 @@ namespace KeePassGate.Host.Tests.Live
         }
 
         /// <summary>
+        /// Gives KeePass an operator's trigger that closes the active database on Saved database
+        /// file, or on Saving database file, before KeePass is started.
+        /// </summary>
+        /// <remarks>
+        /// For the fixture about a database closed inside a save of the plugin's, which nothing
+        /// in KeePass refuses. Only over <see cref="Configuration"/>, which has no triggers of its
+        /// own.
+        /// </remarks>
+        public void CloseTheDatabaseOnSave(bool afterTheFile)
+        {
+            var path = Paths.Join(_root, "KeePass.config.xml");
+            if (!string.Equals(File.ReadAllText(path), Configuration, StringComparison.Ordinal))
+            {
+                throw new InvalidOperationException("only the configuration Configuration holds can be added to");
+            }
+
+            File.WriteAllText(path, ConfigurationClosingOnSave(afterTheFile), new UTF8Encoding(false));
+        }
+
+        /// <summary>
+        /// <see cref="Configuration"/>, with the trigger <see cref="CloseTheDatabaseOnSave"/>
+        /// gives KeePass.
+        /// </summary>
+        /// <remarks>
+        /// The identifiers are KeePass's own, kept in classes no plugin can reach: the two events
+        /// from `EcasEventIDs`, and Close active database from `EcasDefaultActionProvider`, which
+        /// `ThrowawayConfigurationTests` holds these to. The event's two parameters are the
+        /// comparison and the file name it compares with, and an empty name matches every database.
+        /// </remarks>
+        internal static string ConfigurationClosingOnSave(bool afterTheFile)
+        {
+            const string Saved = "s6j9/ngTSmqcXdW6hDqbjg==";
+            const string Saving = "lcGm/XJ8QMei+VsPoJljHA==";
+            const string Close = "W79FnVS/Sb2X+yzuX5kKZw==";
+            const string Before = "  </Application>\r\n";
+
+            return Configuration.Replace(
+                Before,
+                "    <TriggerSystem>\r\n" +
+                "      <Triggers>\r\n" +
+                "        <Trigger>\r\n" +
+                "          <Guid>8XJtbs3OK0iy10qHjPTWGw==</Guid>\r\n" +
+                "          <Name>Close the database as it is saved</Name>\r\n" +
+                "          <Events>\r\n" +
+                "            <Event>\r\n" +
+                "              <TypeGuid>" + (afterTheFile ? Saved : Saving) + "</TypeGuid>\r\n" +
+                "              <Parameters><Parameter>0</Parameter><Parameter /></Parameters>\r\n" +
+                "            </Event>\r\n" +
+                "          </Events>\r\n" +
+                "          <Conditions />\r\n" +
+                "          <Actions>\r\n" +
+                "            <Action>\r\n" +
+                "              <TypeGuid>" + Close + "</TypeGuid>\r\n" +
+                "              <Parameters />\r\n" +
+                "            </Action>\r\n" +
+                "          </Actions>\r\n" +
+                "        </Trigger>\r\n" +
+                "      </Triggers>\r\n" +
+                "    </TriggerSystem>\r\n" +
+                Before);
+        }
+
+        /// <summary>
         /// <see cref="Configuration"/>, with KeePass's own inactivity lock set to fire after this
         /// many seconds, or exactly it for zero.
         /// </summary>

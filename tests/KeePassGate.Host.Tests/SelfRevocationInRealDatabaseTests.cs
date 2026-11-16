@@ -292,6 +292,104 @@ namespace KeePassGate.Host.Tests
         }
 
         [Test]
+        public void A_revocation_whose_database_closed_before_its_save_wrote_the_file_is_not_written_down()
+        {
+            // An operator's trigger on Saving database file that closes the database, answered by
+            // discarding the changes, or another plugin's handler closing it there: the database
+            // closes holding the revocation, KeePass's save then fails on the closed database and
+            // raises `FileSaved` as a failure, and the file still holds the record. A line stating
+            // the client was revoked would stand over a certificate the next open admits again.
+            var key = Admitted();
+            var lines = 0;
+            DatabaseWriter writer = null;
+            writer = new DatabaseWriter(
+                CurrentThread.Instance,
+                database =>
+                {
+                    database.Close();
+                    writer.AfterSave(database, false);
+                },
+                null,
+                _dialogs,
+                null);
+
+            var result = writer.Revoke(_database.Database, key, () => lines++);
+
+            Assert.That(result.IsUnverified, Is.True, result.Reason);
+            Assert.That(lines, Is.Zero, "nothing holds the revocation the line would be about");
+
+            _database.Reopen();
+
+            Assert.That(new AdmissionStore(new CustomDataStore(_database.Database), null).Find(key), Is.Not.Null,
+                "the file still admits the client");
+        }
+
+        [Test]
+        public void A_revocation_whose_database_closed_after_its_save_wrote_the_file_is_written_down()
+        {
+            // A trigger on Saved database file, which KeePass runs once it has raised `FileSaved`
+            // for a save that landed.
+            var key = Admitted();
+            var lines = 0;
+            DatabaseWriter writer = null;
+            writer = new DatabaseWriter(
+                CurrentThread.Instance,
+                database =>
+                {
+                    Save(database);
+                    writer.AfterSave(database, true);
+                    database.Close();
+                },
+                null,
+                _dialogs,
+                null);
+
+            var result = writer.Revoke(_database.Database, key, () => lines++);
+
+            Assert.That(result.IsUnverified, Is.True, result.Reason);
+            Assert.That(lines, Is.EqualTo(1));
+
+            _database.Reopen();
+
+            Assert.That(new CustomDataStore(_database.Database).Get(AuthorityKeys.RevocationKey(key)),
+                Is.Not.Null.And.Not.Empty, "and the revocation the line is about is in the file");
+        }
+
+        [Test]
+        public void A_revocation_saved_by_the_close_that_ended_its_save_is_written_down()
+        {
+            // The trigger on Saving database file again, answered by saving the changes: KeePass's
+            // close saves the database itself, which raises `FileSaved` for a save that landed,
+            // and the save the writer began then fails on the closed database and raises it as a
+            // failure. The first is the save that wrote the revocation.
+            var key = Admitted();
+            var lines = 0;
+            DatabaseWriter writer = null;
+            writer = new DatabaseWriter(
+                CurrentThread.Instance,
+                database =>
+                {
+                    Save(database);
+                    writer.AfterSave(database, true);
+                    database.Close();
+                    writer.AfterSave(database, false);
+                },
+                null,
+                _dialogs,
+                null);
+
+            var result = writer.Revoke(_database.Database, key, () => lines++);
+
+            Assert.That(result.IsUnverified, Is.True, result.Reason);
+            Assert.That(lines, Is.EqualTo(1));
+
+            _database.Reopen();
+
+            Assert.That(new CustomDataStore(_database.Database).Get(AuthorityKeys.RevocationKey(key)),
+                Is.Not.Null.And.Not.Empty, "and the revocation the line is about is in the file");
+        }
+
+        [Test]
         public void The_maintenance_dialog_open_on_the_database_refuses_the_revocation()
         {
             // That dialog writes its copy of the database's custom data back whenever the number

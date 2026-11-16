@@ -2511,11 +2511,17 @@ components:
         `not verified` is the third and the one that does leave something
         behind: the change was made and saved, and the file KeePass hashed back afterwards is not
         the one it wrote, so nothing knows whether the file holds the change and it is not taken
-        back out. So is a change whose database KeePass closed as its save ended, which a lock can
-        do, leaving nothing to hash the file against. A retry may make a second copy, and what to do
-        about it is the operator's, whom KeePass has warned when writing failed. A pairing in the
-        same situation is refused instead, because a record that may not be on the disk is a
-        certificate nobody can see and nobody can revoke.
+        back out. A retry may make a second copy, and what to do about it is the operator's, whom
+        KeePass has warned when writing failed. A pairing in the same situation is refused instead,
+        because a record that may not be on the disk is a certificate nobody can see and nobody can
+        revoke.
+
+        A change whose database KeePass closed inside its save, which an operator's trigger on
+        saving or another plugin's handler can do, gets no answer at all: the gate closes the
+        connection with its database, as it closes every request to a database that closes, and
+        the client reads a connection that ended. The change may be in the file and is not taken
+        back out, so a retry may make a second copy here too. The plugin's log records that the
+        database closed as its save ended, and the file is where the outcome is read.
 
         Every operation whose verb changes the database declares this, and one that does not stops
         the plugin loading.
