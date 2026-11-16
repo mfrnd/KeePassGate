@@ -1,0 +1,1 @@
+random histories: 40, steps done: 177, steps where a file disagreed with the model: 0, failures of the design's checks: 0, 6 s

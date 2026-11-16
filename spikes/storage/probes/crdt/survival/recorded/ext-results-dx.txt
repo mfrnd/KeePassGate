@@ -1,0 +1,4 @@
+D  KeePassDX merges with Synchronize and K2A; bin, delete with a record, Seal again 2 files   8000 histories  no failure
+D  the same, three files                                               3 files   8000 histories  no failure
+DF the same with the bin read for every kind                           2 files   8000 histories  no failure
+DF the same, three files                                               3 files   8000 histories  no failure

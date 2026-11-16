@@ -1,0 +1,75 @@
+## F1. A record dated the same second as its entry (entry E at 100, record at 100)
+  f1keep: entries: E[mt=100 loc=100 S] | records: none
+  f1del:  entries: none | records: E@100
+  Synchronize       into the copy holding E: entries: E[mt=100 loc=100 S] | records: none
+  Synchronize       into the copy holding the record: entries: E[mt=100 loc=100 S] | records: none
+  OverwriteIfNewer  into the copy holding E: entries: E[mt=100 loc=100 S] | records: none
+  OverwriteIfNewer  into the copy holding the record: entries: E[mt=100 loc=100 S] | records: none
+  OverwriteExisting into the copy holding E: entries: E[mt=100 loc=100 S] | records: none
+  OverwriteExisting into the copy holding the record: entries: E[mt=100 loc=100 S] | records: none
+  KeepExisting      into the copy holding E: entries: E[mt=100 loc=100 S] | records: none
+  KeepExisting      into the copy holding the record: entries: E[mt=100 loc=100 S] | records: none
+  the same with the record one second later (101), Synchronize into the copy holding E:
+    entries: none | records: E@101
+
+## F2. An element the gate pruned (record at 200), saved unchanged on the phone at 300 (T3)
+  gate:  entries: H2[mt=200 loc=200 S], V2[mt=200 loc=200 S] | records: H1@200, V1@200
+  phone: entries: H1[mt=300 loc=100 S], V1[mt=300 loc=100 S] | records: none
+  Synchronize       into gate:  entries: H1[mt=300 loc=100 S], H2[mt=200 loc=200 S], V1[mt=300 loc=100 S], V2[mt=200 loc=200 S] | records: none
+  Synchronize       into phone: entries: H1[mt=300 loc=100 S], H2[mt=200 loc=200 S], V1[mt=300 loc=100 S], V2[mt=200 loc=200 S] | records: none
+  OverwriteIfNewer  into gate:  entries: H1[mt=300 loc=100 S], H2[mt=200 loc=200 S], V1[mt=300 loc=100 S], V2[mt=200 loc=200 S] | records: none
+  OverwriteIfNewer  into phone: entries: H1[mt=300 loc=100 S], H2[mt=200 loc=200 S], V1[mt=300 loc=100 S], V2[mt=200 loc=200 S] | records: none
+  OverwriteExisting into gate:  entries: H1[mt=300 loc=100 S], H2[mt=200 loc=200 S], V1[mt=300 loc=100 S], V2[mt=200 loc=200 S] | records: none
+  OverwriteExisting into phone: entries: H1[mt=300 loc=100 S], H2[mt=200 loc=200 S], V1[mt=300 loc=100 S], V2[mt=200 loc=200 S] | records: none
+  KeepExisting      into gate:  entries: H1[mt=300 loc=100 S], H2[mt=200 loc=200 S], V1[mt=300 loc=100 S], V2[mt=200 loc=200 S] | records: none
+  KeepExisting      into phone: entries: H1[mt=300 loc=100 S], H2[mt=200 loc=200 S], V1[mt=300 loc=100 S], V2[mt=200 loc=200 S] | records: none
+  keepassxc-cli 2.4.2  into gate (exit 0): entries: H1[mt=300 loc=100 S], H2[mt=200 loc=200 S], V1[mt=300 loc=100 S], V2[mt=200 loc=200 S] | records: H1@200, V1@200
+  keepassxc-cli 2.6.6  into gate (exit 0): entries: H1[mt=300 loc=100 S], H2[mt=200 loc=200 S], V1[mt=300 loc=100 S], V2[mt=200 loc=200 S] | records: H1@200, V1@200
+  keepassxc-cli 2.7.12 into gate (exit 0): entries: H1[mt=300 loc=100 S], H2[mt=200 loc=200 S], V1[mt=300 loc=100 S], V2[mt=200 loc=200 S] | records: H1@200, V1@200
+  keepassxc-cli 2.8.0  into gate (exit 0): entries: H1[mt=300 loc=100 S], H2[mt=200 loc=200 S], V1[mt=300 loc=100 S], V2[mt=200 loc=200 S] | records: H1@200, V1@200
+
+## F3. The head binned in one copy (location time 400, modification time unchanged), each merge
+  binned: entries: H2[mt=200 loc=400 B], V2[mt=200 loc=200 S] | records: none
+  Synchronize       into the other copy:  entries: H2[mt=200 loc=400 B], V2[mt=200 loc=200 S] | records: none
+  Synchronize       into the binned copy: entries: H2[mt=200 loc=400 B], V2[mt=200 loc=200 S] | records: none
+  OverwriteIfNewer  into the other copy:  entries: H2[mt=200 loc=200 S], V2[mt=200 loc=200 S] | records: none
+  OverwriteIfNewer  into the binned copy: entries: H2[mt=200 loc=400 B], V2[mt=200 loc=200 S] | records: none
+  OverwriteExisting into the other copy:  entries: H2[mt=200 loc=200 S], V2[mt=200 loc=200 S] | records: none
+  OverwriteExisting into the binned copy: entries: H2[mt=200 loc=400 B], V2[mt=200 loc=200 S] | records: none
+  KeepExisting      into the other copy:  entries: H2[mt=200 loc=200 S], V2[mt=200 loc=200 S] | records: none
+  KeepExisting      into the binned copy: entries: H2[mt=200 loc=400 B], V2[mt=200 loc=200 S] | records: none
+  keepassxc-cli 2.4.2  into the other copy (exit 0):  entries: H2[mt=200 loc=200 B], V2[mt=200 loc=200 S] | records: none
+  keepassxc-cli 2.4.2  into the binned copy (exit 0): entries: H2[mt=200 loc=400 B], V2[mt=200 loc=200 S] | records: none
+  keepassxc-cli 2.6.6  into the other copy (exit 0):  entries: H2[mt=200 loc=200 B], V2[mt=200 loc=200 S] | records: none
+  keepassxc-cli 2.6.6  into the binned copy (exit 0): entries: H2[mt=200 loc=400 B], V2[mt=200 loc=200 S] | records: none
+  keepassxc-cli 2.7.12 into the other copy (exit 0):  entries: H2[mt=200 loc=200 B], V2[mt=200 loc=200 S] | records: none
+  keepassxc-cli 2.7.12 into the binned copy (exit 0): entries: H2[mt=200 loc=400 B], V2[mt=200 loc=200 S] | records: none
+  keepassxc-cli 2.8.0  into the other copy (exit 0):  entries: H2[mt=200 loc=200 B], V2[mt=200 loc=200 S] | records: none
+  keepassxc-cli 2.8.0  into the binned copy (exit 0): entries: H2[mt=200 loc=400 B], V2[mt=200 loc=200 S] | records: none
+
+## F4. A witness record naming no object, held by one copy only, through every merge
+  Synchronize       into the copy without: entries: H1[mt=100 loc=100 S] | records: T|revoked|c0@150
+  Synchronize       into the witness copy: entries: H1[mt=100 loc=100 S] | records: T|revoked|c0@150
+  OverwriteIfNewer  into the copy without: entries: H1[mt=100 loc=100 S] | records: none
+  OverwriteIfNewer  into the witness copy: entries: H1[mt=100 loc=100 S] | records: T|revoked|c0@150
+  OverwriteExisting into the copy without: entries: H1[mt=100 loc=100 S] | records: none
+  OverwriteExisting into the witness copy: entries: H1[mt=100 loc=100 S] | records: T|revoked|c0@150
+  KeepExisting      into the copy without: entries: H1[mt=100 loc=100 S] | records: none
+  KeepExisting      into the witness copy: entries: H1[mt=100 loc=100 S] | records: T|revoked|c0@150
+  CreateNewUuids    into the copy without: entries: H1[mt=100 loc=100 S], NEWUUID(H1)[mt=100 loc=100 O:KeePassGate] | records: none
+  CreateNewUuids    into the witness copy: entries: H1[mt=100 loc=100 S], NEWUUID(H1)[mt=100 loc=100 O:KeePassGate] | records: T|revoked|c0@150
+  keepassxc-cli 2.4.2  into the copy without (exit 0): entries: H1[mt=100 loc=100 S] | records: none
+  keepassxc-cli 2.4.2  into the witness copy (exit 0): entries: H1[mt=100 loc=100 S] | records: T|revoked|c0@150
+  keepassxc-cli 2.6.6  into the copy without (exit 0): entries: H1[mt=100 loc=100 S] | records: none
+  keepassxc-cli 2.6.6  into the witness copy (exit 0): entries: H1[mt=100 loc=100 S] | records: T|revoked|c0@150
+  keepassxc-cli 2.7.12 into the copy without (exit 0): entries: H1[mt=100 loc=100 S] | records: none
+  keepassxc-cli 2.7.12 into the witness copy (exit 0): entries: H1[mt=100 loc=100 S] | records: T|revoked|c0@150
+  keepassxc-cli 2.8.0  into the copy without (exit 0): entries: H1[mt=100 loc=100 S] | records: none
+  keepassxc-cli 2.8.0  into the witness copy (exit 0): entries: H1[mt=100 loc=100 S] | records: T|revoked|c0@150
+
+## F5. Import with new identifiers of a stale copy, Delete Duplicate Entries, Synchronize to a third copy
+  gate before:   entries: H002.5[mt=20 loc=20 S], auth:a0[mt=1 loc=1 S], padd:pf#1[mt=1 loc=1 S], ref:c0#4[mt=20 loc=20 S], ver:rule:root#2[mt=1 loc=1 S] | records: H001.3@20, T|revoked|c0@20, rec:c0@20
+  after import:  entries: NEWUUID(H001.3)[mt=10 loc=10 O:KeePassGate], H002.5[mt=20 loc=20 S], auth:a0[mt=1 loc=1 S], NEWUUID(auth:a0)[mt=1 loc=1 O:KeePassGate], padd:pf#1[mt=1 loc=1 S], NEWUUID(padd:pf#1)[mt=1 loc=1 O:KeePassGate], NEWUUID(rec:c0)[mt=1 loc=1 O:KeePassGate], ref:c0#4[mt=20 loc=20 S], ver:rule:root#2[mt=1 loc=1 S], NEWUUID(ver:rule:root#2)[mt=1 loc=1 O:KeePassGate] | records: H001.3@20, T|revoked|c0@20, rec:c0@20
+  Delete Duplicate Entries: ok 4
+  after dedupe:  entries: NEWUUID(H001.3)[mt=10 loc=10 O:KeePassGate], H002.5[mt=20 loc=20 S], NEWUUID(auth:a0)[mt=1 loc=1 O:KeePassGate], NEWUUID(padd:pf#1)[mt=1 loc=1 O:KeePassGate], NEWUUID(rec:c0)[mt=1 loc=1 O:KeePassGate], ref:c0#4[mt=20 loc=20 S], NEWUUID(ver:rule:root#2)[mt=1 loc=1 O:KeePassGate] | records: H001.3@20, T|revoked|c0@20, aaa85ae6@27544930, auth:a0@27544930, padd:pf#1@27544930, rec:c0@20, ver:rule:root#2@27544930
+  third copy, Synchronize with it: entries: NEWUUID(H001.3)[mt=10 loc=10 O:KeePassGate], H002.5[mt=20 loc=20 S], NEWUUID(auth:a0)[mt=1 loc=1 O:KeePassGate], NEWUUID(padd:pf#1)[mt=1 loc=1 O:KeePassGate], NEWUUID(rec:c0)[mt=1 loc=1 O:KeePassGate], ref:c0#4[mt=20 loc=20 S], NEWUUID(ver:rule:root#2)[mt=1 loc=1 O:KeePassGate] | records: H001.3@20, T|revoked|c0@20, aaa85ae6@27544930, auth:a0@27544930, padd:pf#1@27544930, rec:c0@20, ver:rule:root#2@27544930

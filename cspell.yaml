@@ -211,6 +211,76 @@ words:
   # its X2 prints, which the family's `x2.py` and `RUN.md` match, and the local `scen` of X3.
   - nobackup
   - scen
+  # Identifiers in the crdt probes and models, which are carried unchanged: in the design's
+  # `crdt_model.py`, which the survival critic copied, the locals `dels`, `ents`, `cand`, `regs`,
+  # `funcs`, `fnode`, `freg`, `deadall`, `keyknown`, `nostore`, `pinref`, `Kever`, `ncopy`, `nrep`
+  # and `sels`, the switches `recrule`, `headtag` and `synconly` and the act `padd`; in the survival
+  # critic's `model_ext.py`, `binall`, `bindx`, `binheads`, `getloc` and `inbin`; in the formal
+  # critic's `crdt_formal.py`, `applyf`, `meetf`, `docf`, `DOCNAMES`, `fams`, `hids`, `skey`,
+  # `nfiles`, `tafter`, `htafter`, `loct`, `rroot`, the steps `delr` and `dxbin` and the case
+  # `CE1-otherreading`; in the survival probe, `Unhex` and the verb `delrec` of `Crdt.cs`,
+  # `addline`, `delline`, `nsteps`, `nfail` and `ndis` of `bridge.py`, `NOWIN` and Python's
+  # `creationflags` in `kp.py`, and the label `NEWUUID` of `facts.py`. Three words of those sources'
+  # comments, `pointwise`, `replayable` and `expressibility`, since the sources are not changed. And
+  # what the family's `RUN.md` files name: `PYTHONHASHSEED`, `__pycache__`, and the design agent's
+  # scripts `fixdoc`, `fixrefs` and `fixsay`.
+  - dels
+  - ents
+  - cand
+  - regs
+  - funcs
+  - fnode
+  - freg
+  - deadall
+  - keyknown
+  - nostore
+  - pinref
+  - Kever
+  - ncopy
+  - nrep
+  - sels
+  - recrule
+  - headtag
+  - synconly
+  - padd
+  - binall
+  - bindx
+  - binheads
+  - getloc
+  - inbin
+  - applyf
+  - meetf
+  - docf
+  - DOCNAMES
+  - fams
+  - hids
+  - skey
+  - nfiles
+  - tafter
+  - htafter
+  - loct
+  - rroot
+  - delr
+  - dxbin
+  - otherreading
+  - Unhex
+  - delrec
+  - addline
+  - delline
+  - nsteps
+  - nfail
+  - ndis
+  - NOWIN
+  - creationflags
+  - NEWUUID
+  - pointwise
+  - replayable
+  - expressibility
+  - PYTHONHASHSEED
+  - pycache
+  - fixdoc
+  - fixrefs
+  - fixsay
   # Identifiers in the ground-keepassxc probe, which is carried unchanged: the entries
   # `both-samefield` and `del-A-unch`, the local `gdel` and the verb `kpsync` of `Xcp.exe`, and the
   # directory `histmax` its steps write; and `fileversion`, the label `logs\download.log` gives the

@@ -1,0 +1,188 @@
+## R1 revocation: its entry deleted for good where it was made, a KeePassXC merge into a stale copy, the head binned there
+    0 revoke 0 c0
+    1 bin 0 ('ref', 'revoked')
+    2 empty 0
+    3 merge xc 1 0 [keepassxc-cli 2.6.6]
+    4 bin 1 ('head', 'new')
+   FAIL safety at step 4: file 1: client c0 admitted
+   FAIL one-loss at step 4: file 1: client c0 admitted
+   file 0: ok, admitted [], words {'N': 'r', 'root': 'r'}, renewals {'c0': 'ask'}, names ['pf']
+   file 1: ok, admitted ['c0'], words {'N': 'r', 'root': 'r'}, renewals {'c0': 'ask'}, names ['pf']
+
+## R1 revocation: its entry deleted for good where it was made, a KeePassXC merge into a stale copy, the head binned there   [with the bin read for every kind]
+    0 revoke 0 c0
+    1 bin 0 ('ref', 'revoked')
+    2 empty 0
+    3 merge xc 1 0 [keepassxc-cli 2.6.6]
+    4 bin 1 ('head', 'new')
+   no failure of the checks
+   file 0: ok, admitted [], words {'N': 'r', 'root': 'r'}, renewals {'c0': 'ask'}, names ['pf']
+   file 1: ok, admitted [], words {'N': 'r', 'root': 'r'}, renewals {'c0': 'ask'}, names ['pf']
+
+## R2 rule narrowed at the root, the new head binned, a KeePassXC merge into a stale copy, the new version binned there
+    0 rule 0 root inherit
+    1 bin 0 ('head', 'new')
+    2 merge xc 1 0 [keepassxc-cli 2.6.6]
+    3 bin 1 ('ver', 'rule:root', 'new')
+   FAIL safety at step 3: file 1: node root grants r
+   FAIL one-loss at step 3: file 1: node root grants r
+   file 0: incomplete, admitted [], words {'N': '', 'root': ''}, renewals {'c0': 'ask'}, names ['pf']
+   file 1: ok, admitted ['c0'], words {'N': 'r', 'root': 'r'}, renewals {'c0': 'ask'}, names ['pf']
+
+## R2 rule narrowed at the root, the new head binned, a KeePassXC merge into a stale copy, the new version binned there   [with the bin read for every kind]
+    0 rule 0 root inherit
+    1 bin 0 ('head', 'new')
+    2 merge xc 1 0 [keepassxc-cli 2.6.6]
+    3 bin 1 ('ver', 'rule:root', 'new')
+   no failure of the checks
+   file 0: ok, admitted ['c0'], words {'N': '', 'root': ''}, renewals {'c0': 'ask'}, names ['pf']
+   file 1: ok, admitted ['c0'], words {'N': '', 'root': ''}, renewals {'c0': 'ask'}, names ['pf']
+
+## R3 a rule narrowed; KeePassDroid saves the old head and the old version unchanged on a stale phone copy; Synchronize; both new entries binned
+    0 rule 0 root none
+    1 touch 1 ('head', 'old')
+    2 touch 1 ('ver', 'rule:root', 'new')
+    3 merge kp_sync 0 1
+    4 bin 0 ('head', 'new')
+    5 bin 0 ('ver', 'rule:root', 'new')
+   FAIL safety at step 5: file 0: node root grants r
+   FAIL one-loss at step 5: file 0: node root grants r
+   file 0: ok, admitted ['c0'], words {'N': 'r', 'root': 'r'}, renewals {'c0': 'ask'}, names ['pf']
+   file 1: ok, admitted ['c0'], words {'N': 'r', 'root': 'r'}, renewals {'c0': 'ask'}, names ['pf']
+
+## R3 a rule narrowed; KeePassDroid saves the old head and the old version unchanged on a stale phone copy; Synchronize; both new entries binned   [with the bin read for every kind]
+    0 rule 0 root none
+    1 touch 1 ('head', 'old')
+    2 touch 1 ('ver', 'rule:root', 'new')
+    3 merge kp_sync 0 1
+    4 bin 0 ('head', 'new')
+    5 bin 0 ('ver', 'rule:root', 'new')
+   no failure of the checks
+   file 0: ok, admitted ['c0'], words {'N': '', 'root': ''}, renewals {'c0': 'ask'}, names ['pf']
+   file 1: ok, admitted ['c0'], words {'N': 'r', 'root': 'r'}, renewals {'c0': 'ask'}, names ['pf']
+
+## R4 a renewal refused forever in one gate copy, its head and answer binned, a concurrent write in another gate copy, Synchronize
+    0 renew 1 c0 forever
+    1 bin 1 ('head', 'old')
+    2 rule 0 root r
+    3 bin 1 ('ver', 'renew:c0', 'new')
+    4 merge kp_sync 1 0
+   FAIL safety at step 4: file 1: renewal of c0 asked
+   file 0: ok, admitted ['c0'], words {'N': 'r', 'root': 'r'}, renewals {'c0': 'ask'}, names ['pf']
+   file 1: ok, admitted ['c0'], words {'N': 'r', 'root': 'r'}, renewals {'c0': 'ask'}, names ['pf']
+
+## R4 a renewal refused forever in one gate copy, its head and answer binned, a concurrent write in another gate copy, Synchronize   [with the bin read for every kind]
+    0 renew 1 c0 forever
+    1 bin 1 ('head', 'old')
+    2 rule 0 root r
+    3 bin 1 ('ver', 'renew:c0', 'new')
+    4 merge kp_sync 1 0
+   no failure of the checks
+   file 0: ok, admitted ['c0'], words {'N': 'r', 'root': 'r'}, renewals {'c0': 'ask'}, names ['pf']
+   file 1: ok, admitted ['c0'], words {'N': 'r', 'root': 'r'}, renewals {'c0': 'forever'}, names ['pf']
+
+## R5 the design's own scenario 7: newest version and head deleted with records, then a stale copy by KeePassXC
+    0 rule 0 N rw
+    1 merge kp_sync 1 0
+    2 rule 0 N none
+    3 del 0 ('ver', 'rule:N', 'new') 1
+    4 del 0 ('head', 'new') 1
+    5 merge xc 0 1 [keepassxc-cli 2.6.6]
+   no failure of the checks
+   file 0: incomplete, admitted [], words {'N': '', 'root': ''}, renewals {'c0': 'ask'}, names ['pf']
+   file 1: ok, admitted ['c0'], words {'N': 'rw', 'root': 'r'}, renewals {'c0': 'ask'}, names ['pf']
+
+## R5 the design's own scenario 7: newest version and head deleted with records, then a stale copy by KeePassXC   [with the bin read for every kind]
+    0 rule 0 N rw
+    1 merge kp_sync 1 0
+    2 rule 0 N none
+    3 del 0 ('ver', 'rule:N', 'new') 1
+    4 del 0 ('head', 'new') 1
+    5 merge xc 0 1 [keepassxc-cli 2.6.6]
+   no failure of the checks
+   file 0: incomplete, admitted [], words {'N': '', 'root': ''}, renewals {'c0': 'ask'}, names ['pf']
+   file 1: ok, admitted ['c0'], words {'N': 'rw', 'root': 'r'}, renewals {'c0': 'ask'}, names ['pf']
+
+## R6 the design's scenario 9: the same, deletion records cleared, Synchronize with the stale copy
+    0 rule 0 N rw
+    1 merge kp_sync 1 0
+    2 rule 0 N none
+    3 del 0 ('ver', 'rule:N', 'new') 1
+    4 del 0 ('head', 'new') 1
+    5 clear 0
+    6 merge kp_sync 0 1
+   FAIL safety at step 6: file 0: node N grants rw
+   file 0: ok, admitted ['c0'], words {'N': 'rw', 'root': 'r'}, renewals {'c0': 'ask'}, names ['pf']
+   file 1: ok, admitted ['c0'], words {'N': 'rw', 'root': 'r'}, renewals {'c0': 'ask'}, names ['pf']
+
+## R6 the design's scenario 9: the same, deletion records cleared, Synchronize with the stale copy   [with the bin read for every kind]
+    0 rule 0 N rw
+    1 merge kp_sync 1 0
+    2 rule 0 N none
+    3 del 0 ('ver', 'rule:N', 'new') 1
+    4 del 0 ('head', 'new') 1
+    5 clear 0
+    6 merge kp_sync 0 1
+   FAIL safety at step 6: file 0: node N grants rw
+   file 0: ok, admitted ['c0'], words {'N': 'rw', 'root': 'r'}, renewals {'c0': 'ask'}, names ['pf']
+   file 1: ok, admitted ['c0'], words {'N': 'rw', 'root': 'r'}, renewals {'c0': 'ask'}, names ['pf']
+
+## R7 the design's scenario 18: both carriers of a revocation deleted, Seal again, KeePassXC into a stale copy
+    0 revoke 0 c0
+    1 del 0 ('ref', 'revoked') 0
+    2 del 0 ('head', 'new') 0
+    3 reseal 0
+    4 merge xc 1 0 [keepassxc-cli 2.6.6]
+   no failure of the checks
+   file 0: ok, admitted [], words {'N': 'r', 'root': 'r'}, renewals {'c0': 'ask'}, names ['pf']
+   file 1: ok, admitted [], words {'N': 'r', 'root': 'r'}, renewals {'c0': 'ask'}, names ['pf']
+
+## R7 the design's scenario 18: both carriers of a revocation deleted, Seal again, KeePassXC into a stale copy   [with the bin read for every kind]
+    0 revoke 0 c0
+    1 del 0 ('ref', 'revoked') 0
+    2 del 0 ('head', 'new') 0
+    3 reseal 0
+    4 merge xc 1 0 [keepassxc-cli 2.6.6]
+   no failure of the checks
+   file 0: ok, admitted [], words {'N': 'r', 'root': 'r'}, renewals {'c0': 'ask'}, names ['pf']
+   file 1: ok, admitted [], words {'N': 'r', 'root': 'r'}, renewals {'c0': 'ask'}, names ['pf']
+
+## R8 the design's scenario 20: an import with new identifiers of a stale copy
+    0 rule 0 N none
+    1 revoke 0 c0
+    2 import 0 1
+   no failure of the checks
+   file 0: ok, admitted [], words {'N': '', 'root': 'r'}, renewals {'c0': 'ask'}, names ['pf']
+   file 1: ok, admitted ['c0'], words {'N': 'r', 'root': 'r'}, renewals {'c0': 'ask'}, names ['pf']
+
+## R8 the design's scenario 20: an import with new identifiers of a stale copy   [with the bin read for every kind]
+    0 rule 0 N none
+    1 revoke 0 c0
+    2 import 0 1
+   no failure of the checks
+   file 0: ok, admitted [], words {'N': '', 'root': 'r'}, renewals {'c0': 'ask'}, names ['pf']
+   file 1: ok, admitted ['c0'], words {'N': 'r', 'root': 'r'}, renewals {'c0': 'ask'}, names ['pf']
+
+## R9 three copies: a narrowing reaches a third copy through a KeePassXC copy, and two bins there
+    0 rule 0 root none
+    1 merge xc 1 0 [keepassxc-cli 2.6.6]
+    2 merge kp_sync 2 1
+    3 bin 2 ('head', 'new')
+    4 bin 2 ('ver', 'rule:root', 'new')
+   FAIL safety at step 4: file 2: node root grants r
+   FAIL one-loss at step 4: file 2: node root grants r
+   file 0: ok, admitted ['c0'], words {'N': '', 'root': ''}, renewals {'c0': 'ask'}, names ['pf']
+   file 1: ok, admitted ['c0'], words {'N': '', 'root': ''}, renewals {'c0': 'ask'}, names ['pf']
+   file 2: ok, admitted ['c0'], words {'N': 'r', 'root': 'r'}, renewals {'c0': 'ask'}, names ['pf']
+
+## R9 three copies: a narrowing reaches a third copy through a KeePassXC copy, and two bins there   [with the bin read for every kind]
+    0 rule 0 root none
+    1 merge xc 1 0 [keepassxc-cli 2.6.6]
+    2 merge kp_sync 2 1
+    3 bin 2 ('head', 'new')
+    4 bin 2 ('ver', 'rule:root', 'new')
+   no failure of the checks
+   file 0: ok, admitted ['c0'], words {'N': '', 'root': ''}, renewals {'c0': 'ask'}, names ['pf']
+   file 1: ok, admitted ['c0'], words {'N': '', 'root': ''}, renewals {'c0': 'ask'}, names ['pf']
+   file 2: ok, admitted ['c0'], words {'N': '', 'root': ''}, renewals {'c0': 'ask'}, names ['pf']
+

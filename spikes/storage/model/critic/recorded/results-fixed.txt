@@ -1,0 +1,48 @@
+CE1                P1 change          no failure
+CE1                P1 and P2 changes  no failure
+CE1-fixed          P1 change          no failure
+CE1-fixed          P1 and P2 changes  no failure
+CE1-binheads       P1 change          no failure
+CE1-binheads       P1 and P2 changes  no failure
+CE1-otherreading   P1 change          no failure
+CE1-otherreading   P1 and P2 changes  no failure
+CE1-move           P1 change          no failure
+CE1-move           P1 and P2 changes  no failure
+CE2                P1 change          no failure
+CE2                P1 and P2 changes  no failure
+CE3                P1 change          no failure
+CE3                P1 and P2 changes  no failure
+CE3-bin            P1 change          no failure
+CE3-bin            P1 and P2 changes  no failure
+CE3-fixed          P1 change          no failure
+CE3-fixed          P1 and P2 changes  no failure
+CE3-binheads       P1 change          no failure
+CE3-binheads       P1 and P2 changes  no failure
+CE4                P1 change          no failure
+CE4                P1 and P2 changes  no failure
+CE5                P1 change          ['detected-loss-healed-wider', 'wider-than-knowledge']
+CE5                P1 and P2 changes  no failure
+CE5-unbounded      P1 change          no failure
+CE5-unbounded      P1 and P2 changes  no failure
+CE6                P1 change          ['detected-loss-healed-wider', 'wider-than-knowledge']
+CE6                P1 and P2 changes  ['detected-loss-healed-wider', 'wider-than-knowledge']
+CE6-no-touch       P1 change          no failure
+CE6-no-touch       P1 and P2 changes  no failure
+CE7                P1 change          no failure
+CE7                P1 and P2 changes  no failure
+CE8                P1 change          no failure
+CE8                P1 and P2 changes  no failure
+CE10               P1 change          no failure
+CE10               P1 and P2 changes  no failure
+CE11               P1 change          ['wider-than-evidence', 'wider-than-knowledge']
+CE11               P1 and P2 changes  ['wider-than-evidence', 'wider-than-knowledge']
+CE11-design        P1 change          no failure
+CE11-design        P1 and P2 changes  no failure
+CE12               P1 change          ['wider-than-evidence', 'wider-than-knowledge']
+CE12               P1 and P2 changes  ['wider-than-evidence', 'wider-than-knowledge']
+CE12-design        P1 change          no failure
+CE12-design        P1 and P2 changes  no failure
+CE13               P1 change          no failure
+CE13               P1 and P2 changes  no failure
+CE9                P1 change          no failure
+CE9                P1 and P2 changes  no failure

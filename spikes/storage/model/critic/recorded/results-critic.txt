@@ -1,0 +1,657 @@
+== CE1: two Deletes to the recycle bin, a gate write in a stale copy, KeePass Synchronize: a narrowing silently undone in both files
+   options: K=None anywhere=False bin_heads=False xc_bin_shared=True rotate=False named_by_present=False; files=2; steps=5
+    1. gate 0 rule N r                        
+        file 0: auth=A0 list=pq admitted[c0:pq,c1:p] root/p=lr root/q=- N/p=lr N/q=- renew[]
+        file 1: auth=A0 list=pq admitted[c0:pq,c1:p] root/p=lr root/q=- N/p=lru N/q=- renew[]
+    2. gate 1 pair new p                      
+        file 0: auth=A0 list=pq admitted[c0:pq,c1:p] root/p=lr root/q=- N/p=lr N/q=- renew[]
+        file 1: auth=A0 list=pq admitted[c0:pq,c1:p,n11:p] root/p=lr root/q=- N/p=lru N/q=- renew[]
+    3. bin 0 rule(new)                        
+        file 0: auth=A0 list=pq admitted[c0:pq,c1:p] root/p=lr root/q=- N/p=lr N/q=- renew[]
+        file 1: auth=A0 list=pq admitted[c0:pq,c1:p,n11:p] root/p=lr root/q=- N/p=lru N/q=- renew[]
+    4. bin 0 head(new)                        
+        file 0: INCOMPLETE
+        file 1: auth=A0 list=pq admitted[c0:pq,c1:p,n11:p] root/p=lr root/q=- N/p=lru N/q=- renew[]
+    5. sync 0 1                               
+        file 0: auth=A0 list=pq admitted[c0:pq,c1:p,n11:p] root/p=lr root/q=- N/p=lru N/q=- renew[]
+        file 1: auth=A0 list=pq admitted[c0:pq,c1:p,n11:p] root/p=lr root/q=- N/p=lru N/q=- renew[]
+        -> ['detected-loss-healed-wider', 'wider-than-evidence', 'wider-than-knowledge']
+        file 0 IK: auth=A0 list=pq admitted[c0:pq,c1:p,n11:p] root/p=lr root/q=- N/p=lr N/q=- renew[]
+        file 0 IE: auth=A0 list=pq admitted[c0:pq,c1:p,n11:p] root/p=lr root/q=- N/p=lr N/q=- renew[]
+        file 1 IK: auth=A0 list=pq admitted[c0:pq,c1:p,n11:p] root/p=lr root/q=- N/p=lr N/q=- renew[]
+        file 1 IE: auth=A0 list=pq admitted[c0:pq,c1:p,n11:p] root/p=lr root/q=- N/p=lr N/q=- renew[]
+   RESULT: ['detected-loss-healed-wider', 'wider-than-evidence', 'wider-than-knowledge']
+
+== CE1-fixed: CE1 with every verifying element counted wherever it sits
+   options: K=None anywhere=True bin_heads=False xc_bin_shared=True rotate=False named_by_present=False; files=2; steps=5
+    1. gate 0 rule N r                        
+        file 0: auth=A0 list=pq admitted[c0:pq,c1:p] root/p=lr root/q=- N/p=lr N/q=- renew[]
+        file 1: auth=A0 list=pq admitted[c0:pq,c1:p] root/p=lr root/q=- N/p=lru N/q=- renew[]
+    2. gate 1 pair new p                      
+        file 0: auth=A0 list=pq admitted[c0:pq,c1:p] root/p=lr root/q=- N/p=lr N/q=- renew[]
+        file 1: auth=A0 list=pq admitted[c0:pq,c1:p,n11:p] root/p=lr root/q=- N/p=lru N/q=- renew[]
+    3. bin 0 rule(new)                        
+        file 0: auth=A0 list=pq admitted[c0:pq,c1:p] root/p=lr root/q=- N/p=lr N/q=- renew[]
+        file 1: auth=A0 list=pq admitted[c0:pq,c1:p,n11:p] root/p=lr root/q=- N/p=lru N/q=- renew[]
+    4. bin 0 head(new)                        
+        file 0: auth=A0 list=pq admitted[c0:pq,c1:p] root/p=lr root/q=- N/p=lr N/q=- renew[]
+        file 1: auth=A0 list=pq admitted[c0:pq,c1:p,n11:p] root/p=lr root/q=- N/p=lru N/q=- renew[]
+    5. sync 0 1                               
+        file 0: auth=A0 list=pq admitted[c0:pq,c1:p,n11:p] root/p=lr root/q=- N/p=lr N/q=- renew[]
+        file 1: auth=A0 list=pq admitted[c0:pq,c1:p,n11:p] root/p=lr root/q=- N/p=lr N/q=- renew[]
+        file 0 IK: auth=A0 list=pq admitted[c0:pq,c1:p,n11:p] root/p=lr root/q=- N/p=lr N/q=- renew[]
+        file 0 IE: auth=A0 list=pq admitted[c0:pq,c1:p,n11:p] root/p=lr root/q=- N/p=lr N/q=- renew[]
+        file 1 IK: auth=A0 list=pq admitted[c0:pq,c1:p,n11:p] root/p=lr root/q=- N/p=lr N/q=- renew[]
+        file 1 IE: auth=A0 list=pq admitted[c0:pq,c1:p,n11:p] root/p=lr root/q=- N/p=lr N/q=- renew[]
+   RESULT: no failure
+
+== CE1-binheads: CE1 with the security critic's change: a binned head counts as in force
+   options: K=None anywhere=False bin_heads=True xc_bin_shared=True rotate=False named_by_present=False; files=2; steps=5
+    1. gate 0 rule N r                        
+        file 0: auth=A0 list=pq admitted[c0:pq,c1:p] root/p=lr root/q=- N/p=lr N/q=- renew[]
+        file 1: auth=A0 list=pq admitted[c0:pq,c1:p] root/p=lr root/q=- N/p=lru N/q=- renew[]
+    2. gate 1 pair new p                      
+        file 0: auth=A0 list=pq admitted[c0:pq,c1:p] root/p=lr root/q=- N/p=lr N/q=- renew[]
+        file 1: auth=A0 list=pq admitted[c0:pq,c1:p,n11:p] root/p=lr root/q=- N/p=lru N/q=- renew[]
+    3. bin 0 rule(new)                        
+        file 0: auth=A0 list=pq admitted[c0:pq,c1:p] root/p=lr root/q=- N/p=lr N/q=- renew[]
+        file 1: auth=A0 list=pq admitted[c0:pq,c1:p,n11:p] root/p=lr root/q=- N/p=lru N/q=- renew[]
+    4. bin 0 head(new)                        
+        file 0: auth=A0 list=pq admitted[c0:pq,c1:p] root/p=lr root/q=- N/p=lr N/q=- renew[]
+        file 1: auth=A0 list=pq admitted[c0:pq,c1:p,n11:p] root/p=lr root/q=- N/p=lru N/q=- renew[]
+    5. sync 0 1                               
+        file 0: auth=A0 list=pq admitted[c0:pq,c1:p,n11:p] root/p=lr root/q=- N/p=lr N/q=- renew[]
+        file 1: auth=A0 list=pq admitted[c0:pq,c1:p,n11:p] root/p=lr root/q=- N/p=lr N/q=- renew[]
+        file 0 IK: auth=A0 list=pq admitted[c0:pq,c1:p,n11:p] root/p=lr root/q=- N/p=lr N/q=- renew[]
+        file 0 IE: auth=A0 list=pq admitted[c0:pq,c1:p,n11:p] root/p=lr root/q=- N/p=lr N/q=- renew[]
+        file 1 IK: auth=A0 list=pq admitted[c0:pq,c1:p,n11:p] root/p=lr root/q=- N/p=lr N/q=- renew[]
+        file 1 IE: auth=A0 list=pq admitted[c0:pq,c1:p,n11:p] root/p=lr root/q=- N/p=lr N/q=- renew[]
+   RESULT: no failure
+
+== CE1-otherreading: CE1 under the other reading of 5.2 point 4 (a binned head's versions still name what they replace)
+   options: K=None anywhere=False bin_heads=False xc_bin_shared=True rotate=False named_by_present=True; files=2; steps=5
+    1. gate 0 rule N r                        
+        file 0: auth=A0 list=pq admitted[c0:pq,c1:p] root/p=lr root/q=- N/p=lr N/q=- renew[]
+        file 1: auth=A0 list=pq admitted[c0:pq,c1:p] root/p=lr root/q=- N/p=lru N/q=- renew[]
+    2. gate 1 pair new p                      
+        file 0: auth=A0 list=pq admitted[c0:pq,c1:p] root/p=lr root/q=- N/p=lr N/q=- renew[]
+        file 1: auth=A0 list=pq admitted[c0:pq,c1:p,n11:p] root/p=lr root/q=- N/p=lru N/q=- renew[]
+    3. bin 0 rule(new)                        
+        file 0: auth=A0 list=pq admitted[c0:pq,c1:p] root/p=lr root/q=- N/p=lr N/q=- renew[]
+        file 1: auth=A0 list=pq admitted[c0:pq,c1:p,n11:p] root/p=lr root/q=- N/p=lru N/q=- renew[]
+    4. bin 0 head(new)                        
+        file 0: INCOMPLETE
+        file 1: auth=A0 list=pq admitted[c0:pq,c1:p,n11:p] root/p=lr root/q=- N/p=lru N/q=- renew[]
+    5. sync 0 1                               
+        file 0: auth=A0 list=pq admitted[c0:pq,c1:p,n11:p] root/p=lr root/q=- N/p=- N/q=- renew[]
+        file 1: auth=A0 list=pq admitted[c0:pq,c1:p,n11:p] root/p=lr root/q=- N/p=- N/q=- renew[]
+        file 0 IK: auth=A0 list=pq admitted[c0:pq,c1:p,n11:p] root/p=lr root/q=- N/p=lr N/q=- renew[]
+        file 0 IE: auth=A0 list=pq admitted[c0:pq,c1:p,n11:p] root/p=lr root/q=- N/p=lr N/q=- renew[]
+        file 1 IK: auth=A0 list=pq admitted[c0:pq,c1:p,n11:p] root/p=lr root/q=- N/p=lr N/q=- renew[]
+        file 1 IE: auth=A0 list=pq admitted[c0:pq,c1:p,n11:p] root/p=lr root/q=- N/p=lr N/q=- renew[]
+   RESULT: no failure
+
+== CE1-move: CE1 with Move to another group in place of Delete, under the other reading
+   options: K=None anywhere=False bin_heads=False xc_bin_shared=True rotate=False named_by_present=True; files=2; steps=5
+    1. gate 0 rule N r                        
+        file 0: auth=A0 list=pq admitted[c0:pq,c1:p] root/p=lr root/q=- N/p=lr N/q=- renew[]
+        file 1: auth=A0 list=pq admitted[c0:pq,c1:p] root/p=lr root/q=- N/p=lru N/q=- renew[]
+    2. gate 1 pair new p                      
+        file 0: auth=A0 list=pq admitted[c0:pq,c1:p] root/p=lr root/q=- N/p=lr N/q=- renew[]
+        file 1: auth=A0 list=pq admitted[c0:pq,c1:p,n11:p] root/p=lr root/q=- N/p=lru N/q=- renew[]
+    3. move 0 rule(new)                       
+        file 0: auth=A0 list=pq admitted[c0:pq,c1:p] root/p=lr root/q=- N/p=lr N/q=- renew[]
+        file 1: auth=A0 list=pq admitted[c0:pq,c1:p,n11:p] root/p=lr root/q=- N/p=lru N/q=- renew[]
+    4. move 0 head(new)                       
+        file 0: INCOMPLETE
+        file 1: auth=A0 list=pq admitted[c0:pq,c1:p,n11:p] root/p=lr root/q=- N/p=lru N/q=- renew[]
+    5. sync 0 1                               
+        file 0: auth=A0 list=pq admitted[c0:pq,c1:p,n11:p] root/p=lr root/q=- N/p=lru N/q=- renew[]
+        file 1: auth=A0 list=pq admitted[c0:pq,c1:p,n11:p] root/p=lr root/q=- N/p=lru N/q=- renew[]
+        -> ['detected-loss-healed-wider', 'wider-than-evidence', 'wider-than-knowledge']
+        file 0 IK: auth=A0 list=pq admitted[c0:pq,c1:p,n11:p] root/p=lr root/q=- N/p=lr N/q=- renew[]
+        file 0 IE: auth=A0 list=pq admitted[c0:pq,c1:p,n11:p] root/p=lr root/q=- N/p=lr N/q=- renew[]
+        file 1 IK: auth=A0 list=pq admitted[c0:pq,c1:p,n11:p] root/p=lr root/q=- N/p=lr N/q=- renew[]
+        file 1 IE: auth=A0 list=pq admitted[c0:pq,c1:p,n11:p] root/p=lr root/q=- N/p=lr N/q=- renew[]
+   RESULT: ['detected-loss-healed-wider', 'wider-than-evidence', 'wider-than-knowledge']
+
+== CE2: the same two Deletes, then a KeePassXC merge into the stale copy
+   options: K=None anywhere=False bin_heads=False xc_bin_shared=True rotate=False named_by_present=False; files=2; steps=4
+    1. gate 0 rule N r                        
+        file 0: auth=A0 list=pq admitted[c0:pq,c1:p] root/p=lr root/q=- N/p=lr N/q=- renew[]
+        file 1: auth=A0 list=pq admitted[c0:pq,c1:p] root/p=lr root/q=- N/p=lru N/q=- renew[]
+    2. bin 0 rule(new)                        
+        file 0: auth=A0 list=pq admitted[c0:pq,c1:p] root/p=lr root/q=- N/p=lr N/q=- renew[]
+        file 1: auth=A0 list=pq admitted[c0:pq,c1:p] root/p=lr root/q=- N/p=lru N/q=- renew[]
+    3. bin 0 head(new)                        
+        file 0: INCOMPLETE
+        file 1: auth=A0 list=pq admitted[c0:pq,c1:p] root/p=lr root/q=- N/p=lru N/q=- renew[]
+    4. xc 1 0                                 
+        file 0: INCOMPLETE
+        file 1: auth=A0 list=pq admitted[c0:pq,c1:p] root/p=lr root/q=- N/p=lru N/q=- renew[]
+        -> ['wider-than-evidence', 'wider-than-knowledge']
+        file 0 IK: auth=A0 list=pq admitted[c0:pq,c1:p] root/p=lr root/q=- N/p=lr N/q=- renew[]
+        file 0 IE: auth=A0 list=pq admitted[c0:pq,c1:p] root/p=lr root/q=- N/p=lr N/q=- renew[]
+        file 1 IK: auth=A0 list=pq admitted[c0:pq,c1:p] root/p=lr root/q=- N/p=lr N/q=- renew[]
+        file 1 IE: auth=A0 list=pq admitted[c0:pq,c1:p] root/p=lr root/q=- N/p=lr N/q=- renew[]
+   RESULT: ['wider-than-evidence', 'wider-than-knowledge']
+
+== CE3: a revocation, its entry and the head moved to another group, a KeePassXC merge into the stale copy: the revoked client admitted
+   options: K=None anywhere=False bin_heads=False xc_bin_shared=True rotate=False named_by_present=False; files=2; steps=4
+    1. gate 0 revoke c0                       
+        file 0: auth=A0 list=pq admitted[c1:p] root/p=lr root/q=- N/p=lru N/q=- renew[]
+        file 1: auth=A0 list=pq admitted[c0:pq,c1:p] root/p=lr root/q=- N/p=lru N/q=- renew[]
+    2. move 0 revoked(new)                    
+        file 0: auth=A0 list=pq admitted[c1:p] root/p=lr root/q=- N/p=lru N/q=- renew[]
+        file 1: auth=A0 list=pq admitted[c0:pq,c1:p] root/p=lr root/q=- N/p=lru N/q=- renew[]
+    3. move 0 head(new)                       
+        file 0: INCOMPLETE
+        file 1: auth=A0 list=pq admitted[c0:pq,c1:p] root/p=lr root/q=- N/p=lru N/q=- renew[]
+    4. xc 1 0                                 
+        file 0: INCOMPLETE
+        file 1: auth=A0 list=pq admitted[c0:pq,c1:p] root/p=lr root/q=- N/p=lru N/q=- renew[]
+        -> ['revocation-undone', 'wider-than-evidence', 'wider-than-knowledge']
+        file 0 IK: auth=A0 list=pq admitted[c1:p] root/p=lr root/q=- N/p=lru N/q=- renew[]
+        file 0 IE: auth=A0 list=pq admitted[c1:p] root/p=lr root/q=- N/p=lru N/q=- renew[]
+        file 1 IK: auth=A0 list=pq admitted[c1:p] root/p=lr root/q=- N/p=lru N/q=- renew[]
+        file 1 IE: auth=A0 list=pq admitted[c1:p] root/p=lr root/q=- N/p=lru N/q=- renew[]
+   RESULT: ['revocation-undone', 'wider-than-evidence', 'wider-than-knowledge']
+
+== CE3-bin: CE3 with the recycle bin in place of the move, where KeePassXC does not merge the bin (ground-keepassxc 10)
+   options: K=None anywhere=False bin_heads=False xc_bin_shared=False rotate=False named_by_present=False; files=2; steps=4
+    1. gate 0 revoke c0                       
+        file 0: auth=A0 list=pq admitted[c1:p] root/p=lr root/q=- N/p=lru N/q=- renew[]
+        file 1: auth=A0 list=pq admitted[c0:pq,c1:p] root/p=lr root/q=- N/p=lru N/q=- renew[]
+    2. bin 0 revoked(new)                     
+        file 0: auth=A0 list=pq admitted[c1:p] root/p=lr root/q=- N/p=lru N/q=- renew[]
+        file 1: auth=A0 list=pq admitted[c0:pq,c1:p] root/p=lr root/q=- N/p=lru N/q=- renew[]
+    3. bin 0 head(new)                        
+        file 0: INCOMPLETE
+        file 1: auth=A0 list=pq admitted[c0:pq,c1:p] root/p=lr root/q=- N/p=lru N/q=- renew[]
+    4. xc 1 0                                 
+        file 0: INCOMPLETE
+        file 1: auth=A0 list=pq admitted[c0:pq,c1:p] root/p=lr root/q=- N/p=lru N/q=- renew[]
+        -> ['revocation-undone', 'wider-than-evidence', 'wider-than-knowledge']
+        file 0 IK: auth=A0 list=pq admitted[c1:p] root/p=lr root/q=- N/p=lru N/q=- renew[]
+        file 0 IE: auth=A0 list=pq admitted[c1:p] root/p=lr root/q=- N/p=lru N/q=- renew[]
+        file 1 IK: auth=A0 list=pq admitted[c1:p] root/p=lr root/q=- N/p=lru N/q=- renew[]
+        file 1 IE: auth=A0 list=pq admitted[c1:p] root/p=lr root/q=- N/p=lru N/q=- renew[]
+   RESULT: ['revocation-undone', 'wider-than-evidence', 'wider-than-knowledge']
+
+== CE3-fixed: CE3 with every verifying element counted wherever it sits
+   options: K=None anywhere=True bin_heads=False xc_bin_shared=True rotate=False named_by_present=False; files=2; steps=4
+    1. gate 0 revoke c0                       
+        file 0: auth=A0 list=pq admitted[c1:p] root/p=lr root/q=- N/p=lru N/q=- renew[]
+        file 1: auth=A0 list=pq admitted[c0:pq,c1:p] root/p=lr root/q=- N/p=lru N/q=- renew[]
+    2. move 0 revoked(new)                    
+        file 0: auth=A0 list=pq admitted[c1:p] root/p=lr root/q=- N/p=lru N/q=- renew[]
+        file 1: auth=A0 list=pq admitted[c0:pq,c1:p] root/p=lr root/q=- N/p=lru N/q=- renew[]
+    3. move 0 head(new)                       
+        file 0: auth=A0 list=pq admitted[c1:p] root/p=lr root/q=- N/p=lru N/q=- renew[]
+        file 1: auth=A0 list=pq admitted[c0:pq,c1:p] root/p=lr root/q=- N/p=lru N/q=- renew[]
+    4. xc 1 0                                 
+        file 0: auth=A0 list=pq admitted[c1:p] root/p=lr root/q=- N/p=lru N/q=- renew[]
+        file 1: auth=A0 list=pq admitted[c1:p] root/p=lr root/q=- N/p=lru N/q=- renew[]
+        file 0 IK: auth=A0 list=pq admitted[c1:p] root/p=lr root/q=- N/p=lru N/q=- renew[]
+        file 0 IE: auth=A0 list=pq admitted[c1:p] root/p=lr root/q=- N/p=lru N/q=- renew[]
+        file 1 IK: auth=A0 list=pq admitted[c1:p] root/p=lr root/q=- N/p=lru N/q=- renew[]
+        file 1 IE: auth=A0 list=pq admitted[c1:p] root/p=lr root/q=- N/p=lru N/q=- renew[]
+   RESULT: no failure
+
+== CE3-binheads: CE3 with the security critic's change alone (a binned head in force)
+   options: K=None anywhere=False bin_heads=True xc_bin_shared=True rotate=False named_by_present=False; files=2; steps=4
+    1. gate 0 revoke c0                       
+        file 0: auth=A0 list=pq admitted[c1:p] root/p=lr root/q=- N/p=lru N/q=- renew[]
+        file 1: auth=A0 list=pq admitted[c0:pq,c1:p] root/p=lr root/q=- N/p=lru N/q=- renew[]
+    2. move 0 revoked(new)                    
+        file 0: auth=A0 list=pq admitted[c1:p] root/p=lr root/q=- N/p=lru N/q=- renew[]
+        file 1: auth=A0 list=pq admitted[c0:pq,c1:p] root/p=lr root/q=- N/p=lru N/q=- renew[]
+    3. move 0 head(new)                       
+        file 0: INCOMPLETE
+        file 1: auth=A0 list=pq admitted[c0:pq,c1:p] root/p=lr root/q=- N/p=lru N/q=- renew[]
+    4. xc 1 0                                 
+        file 0: INCOMPLETE
+        file 1: auth=A0 list=pq admitted[c0:pq,c1:p] root/p=lr root/q=- N/p=lru N/q=- renew[]
+        -> ['revocation-undone', 'wider-than-evidence', 'wider-than-knowledge']
+        file 0 IK: auth=A0 list=pq admitted[c1:p] root/p=lr root/q=- N/p=lru N/q=- renew[]
+        file 0 IE: auth=A0 list=pq admitted[c1:p] root/p=lr root/q=- N/p=lru N/q=- renew[]
+        file 1 IK: auth=A0 list=pq admitted[c1:p] root/p=lr root/q=- N/p=lru N/q=- renew[]
+        file 1 IE: auth=A0 list=pq admitted[c1:p] root/p=lr root/q=- N/p=lru N/q=- renew[]
+   RESULT: ['revocation-undone', 'wider-than-evidence', 'wider-than-knowledge']
+
+== CE4: a retirement (Delete authority) moved out with the head, a KeePassXC merge: the retired authority served with its clients
+   options: K=None anywhere=False bin_heads=False xc_bin_shared=True rotate=False named_by_present=False; files=2; steps=4
+    1. gate 0 retire                          
+        file 0: auth=None list=pq admitted[] root/p=lr root/q=- N/p=lru N/q=- renew[]
+        file 1: auth=A0 list=pq admitted[c0:pq,c1:p] root/p=lr root/q=- N/p=lru N/q=- renew[]
+    2. move 0 retired(new)                    
+        file 0: auth=None list=pq admitted[] root/p=lr root/q=- N/p=lru N/q=- renew[]
+        file 1: auth=A0 list=pq admitted[c0:pq,c1:p] root/p=lr root/q=- N/p=lru N/q=- renew[]
+    3. move 0 head(new)                       
+        file 0: INCOMPLETE
+        file 1: auth=A0 list=pq admitted[c0:pq,c1:p] root/p=lr root/q=- N/p=lru N/q=- renew[]
+    4. xc 1 0                                 
+        file 0: INCOMPLETE
+        file 1: auth=A0 list=pq admitted[c0:pq,c1:p] root/p=lr root/q=- N/p=lru N/q=- renew[]
+        -> ['revocation-undone', 'wider-than-evidence', 'wider-than-knowledge']
+        file 0 IK: auth=None list=pq admitted[] root/p=lr root/q=- N/p=lru N/q=- renew[]
+        file 0 IE: auth=None list=pq admitted[] root/p=lr root/q=- N/p=lru N/q=- renew[]
+        file 1 IK: auth=None list=pq admitted[] root/p=lr root/q=- N/p=lru N/q=- renew[]
+        file 1 IE: auth=None list=pq admitted[] root/p=lr root/q=- N/p=lru N/q=- renew[]
+   RESULT: ['revocation-undone', 'wider-than-evidence', 'wider-than-knowledge']
+
+== CE5: the 64-height cut: a narrowing deleted for good with both records in a copy 64 writes behind, KeePass Synchronize: the records are taken for ancestors
+   options: K=64 anywhere=False bin_heads=False xc_bin_shared=True rotate=False named_by_present=False; files=2; steps=70
+    1. gate 0 rule N r
+    2. gate 1 renew c1 until
+       ... 64 more of the same ...
+   67. gate 1 rule N rw
+   68. delr 0 rule(new)
+   69. delr 0 head(new)
+   70. sync 0 1
+        file 0: auth=A0 list=pq admitted[c0:pq,c1:p] root/p=lr root/q=- N/p=lru N/q=- renew[c1:1]
+        file 1: auth=A0 list=pq admitted[c0:pq,c1:p] root/p=lr root/q=- N/p=lru N/q=- renew[c1:1]
+        file 0 IK: auth=A0 list=pq admitted[c0:pq,c1:p] root/p=lr root/q=- N/p=lr N/q=- renew[c1:1]
+        file 0 IE: auth=A0 list=pq admitted[c0:pq,c1:p] root/p=lr root/q=- N/p=lru N/q=- renew[c1:1]
+        file 1 IK: auth=A0 list=pq admitted[c0:pq,c1:p] root/p=lr root/q=- N/p=lr N/q=- renew[c1:1]
+        file 1 IE: auth=A0 list=pq admitted[c0:pq,c1:p] root/p=lr root/q=- N/p=lru N/q=- renew[c1:1]
+   RESULT: ['detected-loss-healed-wider', 'wider-than-knowledge']
+
+== CE5-unbounded: CE5 with the cut removed (every ancestor named)
+   options: K=None anywhere=False bin_heads=False xc_bin_shared=True rotate=False named_by_present=False; files=2; steps=70
+    1. gate 0 rule N r
+    2. gate 1 renew c1 until
+       ... 64 more of the same ...
+   67. gate 1 rule N rw
+   68. delr 0 rule(new)
+   69. delr 0 head(new)
+   70. sync 0 1
+        file 0: INCOMPLETE
+        file 1: INCOMPLETE
+        file 0 IK: auth=A0 list=pq admitted[c0:pq,c1:p] root/p=lr root/q=- N/p=lr N/q=- renew[c1:1]
+        file 0 IE: auth=A0 list=pq admitted[c0:pq,c1:p] root/p=lr root/q=- N/p=lru N/q=- renew[c1:1]
+        file 1 IK: auth=A0 list=pq admitted[c0:pq,c1:p] root/p=lr root/q=- N/p=lr N/q=- renew[c1:1]
+        file 1 IE: auth=A0 list=pq admitted[c0:pq,c1:p] root/p=lr root/q=- N/p=lru N/q=- renew[c1:1]
+   RESULT: no failure
+
+== CE6: T3: unchanged saves on the phone of two pruned elements defeat the records under Synchronize (design 6.2 row 5 and scenario 8)
+   options: K=None anywhere=False bin_heads=False xc_bin_shared=True rotate=False named_by_present=False; files=2; steps=6
+    1. gate 0 rule N r                        
+        file 0: auth=A0 list=pq admitted[c0:pq,c1:p] root/p=lr root/q=- N/p=lr N/q=- renew[]
+        file 1: auth=A0 list=pq admitted[c0:pq,c1:p] root/p=lr root/q=- N/p=lru N/q=- renew[]
+    2. touch 1 rule(old)                      
+        file 0: auth=A0 list=pq admitted[c0:pq,c1:p] root/p=lr root/q=- N/p=lr N/q=- renew[]
+        file 1: auth=A0 list=pq admitted[c0:pq,c1:p] root/p=lr root/q=- N/p=lru N/q=- renew[]
+    3. touch 1 head(old)                      
+        file 0: auth=A0 list=pq admitted[c0:pq,c1:p] root/p=lr root/q=- N/p=lr N/q=- renew[]
+        file 1: auth=A0 list=pq admitted[c0:pq,c1:p] root/p=lr root/q=- N/p=lru N/q=- renew[]
+    4. del0 0 rule(new)                       
+        file 0: auth=A0 list=pq admitted[c0:pq,c1:p] root/p=lr root/q=- N/p=lr N/q=- renew[]
+        file 1: auth=A0 list=pq admitted[c0:pq,c1:p] root/p=lr root/q=- N/p=lru N/q=- renew[]
+    5. del0 0 head(new)                       
+        file 0: INCOMPLETE
+        file 1: auth=A0 list=pq admitted[c0:pq,c1:p] root/p=lr root/q=- N/p=lru N/q=- renew[]
+    6. sync 0 1                               
+        file 0: auth=A0 list=pq admitted[c0:pq,c1:p] root/p=lr root/q=- N/p=lru N/q=- renew[]
+        file 1: auth=A0 list=pq admitted[c0:pq,c1:p] root/p=lr root/q=- N/p=lru N/q=- renew[]
+        -> ['detected-loss-healed-wider', 'wider-than-knowledge']
+        file 0 IK: auth=A0 list=pq admitted[c0:pq,c1:p] root/p=lr root/q=- N/p=lr N/q=- renew[]
+        file 0 IE: auth=A0 list=pq admitted[c0:pq,c1:p] root/p=lr root/q=- N/p=lru N/q=- renew[]
+        file 1 IK: auth=A0 list=pq admitted[c0:pq,c1:p] root/p=lr root/q=- N/p=lr N/q=- renew[]
+        file 1 IE: auth=A0 list=pq admitted[c0:pq,c1:p] root/p=lr root/q=- N/p=lru N/q=- renew[]
+   RESULT: ['detected-loss-healed-wider', 'wider-than-knowledge']
+
+== CE6-no-touch: CE6 without the two unchanged saves
+   options: K=None anywhere=False bin_heads=False xc_bin_shared=True rotate=False named_by_present=False; files=2; steps=4
+    1. gate 0 rule N r                        
+        file 0: auth=A0 list=pq admitted[c0:pq,c1:p] root/p=lr root/q=- N/p=lr N/q=- renew[]
+        file 1: auth=A0 list=pq admitted[c0:pq,c1:p] root/p=lr root/q=- N/p=lru N/q=- renew[]
+    2. del0 0 rule(new)                       
+        file 0: auth=A0 list=pq admitted[c0:pq,c1:p] root/p=lr root/q=- N/p=lr N/q=- renew[]
+        file 1: auth=A0 list=pq admitted[c0:pq,c1:p] root/p=lr root/q=- N/p=lru N/q=- renew[]
+    3. del0 0 head(new)                       
+        file 0: INCOMPLETE
+        file 1: auth=A0 list=pq admitted[c0:pq,c1:p] root/p=lr root/q=- N/p=lru N/q=- renew[]
+    4. sync 0 1                               
+        file 0: INCOMPLETE
+        file 1: INCOMPLETE
+        file 0 IK: auth=A0 list=pq admitted[c0:pq,c1:p] root/p=lr root/q=- N/p=lr N/q=- renew[]
+        file 0 IE: auth=A0 list=pq admitted[c0:pq,c1:p] root/p=lr root/q=- N/p=- N/q=- renew[]
+        file 1 IK: auth=A0 list=pq admitted[c0:pq,c1:p] root/p=lr root/q=- N/p=lr N/q=- renew[]
+        file 1 IE: auth=A0 list=pq admitted[c0:pq,c1:p] root/p=lr root/q=- N/p=- N/q=- renew[]
+   RESULT: no failure
+
+== CE7: a backup restored over the file, the gate writes, the phone (newer) bins two entries, Synchronize
+   options: K=None anywhere=False bin_heads=False xc_bin_shared=True rotate=False named_by_present=False; files=3; steps=8
+    1. over 2 0                               
+        file 0: auth=A0 list=pq admitted[c0:pq,c1:p] root/p=lr root/q=- N/p=lru N/q=- renew[]
+        file 1: auth=A0 list=pq admitted[c0:pq,c1:p] root/p=lr root/q=- N/p=lru N/q=- renew[]
+        file 2: auth=A0 list=pq admitted[c0:pq,c1:p] root/p=lr root/q=- N/p=lru N/q=- renew[]
+    2. gate 0 rule N r                        
+        file 0: auth=A0 list=pq admitted[c0:pq,c1:p] root/p=lr root/q=- N/p=lr N/q=- renew[]
+        file 1: auth=A0 list=pq admitted[c0:pq,c1:p] root/p=lr root/q=- N/p=lru N/q=- renew[]
+        file 2: auth=A0 list=pq admitted[c0:pq,c1:p] root/p=lr root/q=- N/p=lru N/q=- renew[]
+    3. sync 0 1                               
+        file 0: auth=A0 list=pq admitted[c0:pq,c1:p] root/p=lr root/q=- N/p=lr N/q=- renew[]
+        file 1: auth=A0 list=pq admitted[c0:pq,c1:p] root/p=lr root/q=- N/p=lr N/q=- renew[]
+        file 2: auth=A0 list=pq admitted[c0:pq,c1:p] root/p=lr root/q=- N/p=lru N/q=- renew[]
+    4. over 0 2                               
+        file 0: auth=A0 list=pq admitted[c0:pq,c1:p] root/p=lr root/q=- N/p=lru N/q=- renew[]
+        file 1: auth=A0 list=pq admitted[c0:pq,c1:p] root/p=lr root/q=- N/p=lr N/q=- renew[]
+        file 2: auth=A0 list=pq admitted[c0:pq,c1:p] root/p=lr root/q=- N/p=lru N/q=- renew[]
+    5. gate 0 pair new p                      
+        file 0: auth=A0 list=pq admitted[c0:pq,c1:p,n11:p] root/p=lr root/q=- N/p=lru N/q=- renew[]
+        file 1: auth=A0 list=pq admitted[c0:pq,c1:p] root/p=lr root/q=- N/p=lr N/q=- renew[]
+        file 2: auth=A0 list=pq admitted[c0:pq,c1:p] root/p=lr root/q=- N/p=lru N/q=- renew[]
+    6. bin 1 rule(new)                        
+        file 0: auth=A0 list=pq admitted[c0:pq,c1:p,n11:p] root/p=lr root/q=- N/p=lru N/q=- renew[]
+        file 1: auth=A0 list=pq admitted[c0:pq,c1:p] root/p=lr root/q=- N/p=lr N/q=- renew[]
+        file 2: auth=A0 list=pq admitted[c0:pq,c1:p] root/p=lr root/q=- N/p=lru N/q=- renew[]
+    7. bin 1 head(new)                        
+        file 0: auth=A0 list=pq admitted[c0:pq,c1:p,n11:p] root/p=lr root/q=- N/p=lru N/q=- renew[]
+        file 1: INCOMPLETE
+        file 2: auth=A0 list=pq admitted[c0:pq,c1:p] root/p=lr root/q=- N/p=lru N/q=- renew[]
+    8. sync 0 1                               
+        file 0: auth=A0 list=pq admitted[c0:pq,c1:p,n11:p] root/p=lr root/q=- N/p=lru N/q=- renew[]
+        file 1: auth=A0 list=pq admitted[c0:pq,c1:p,n11:p] root/p=lr root/q=- N/p=lru N/q=- renew[]
+        file 2: auth=A0 list=pq admitted[c0:pq,c1:p] root/p=lr root/q=- N/p=lru N/q=- renew[]
+        -> ['wider-than-evidence']
+        file 0 IK: auth=A0 list=pq admitted[c0:pq,c1:p,n11:p] root/p=lr root/q=- N/p=lr N/q=- renew[]
+        file 0 IE: auth=A0 list=pq admitted[c0:pq,c1:p,n11:p] root/p=lr root/q=- N/p=lr N/q=- renew[]
+        file 1 IK: auth=A0 list=pq admitted[c0:pq,c1:p,n11:p] root/p=lr root/q=- N/p=lr N/q=- renew[]
+        file 1 IE: auth=A0 list=pq admitted[c0:pq,c1:p,n11:p] root/p=lr root/q=- N/p=lr N/q=- renew[]
+        file 2 IK: auth=A0 list=pq admitted[c0:pq,c1:p] root/p=lr root/q=- N/p=lru N/q=- renew[]
+        file 2 IE: auth=A0 list=pq admitted[c0:pq,c1:p] root/p=lr root/q=- N/p=lru N/q=- renew[]
+   RESULT: ['wider-than-evidence']
+
+== CE8: same elements, different verdicts: a record deleted by hand, KeePassXC both ways
+   options: K=None anywhere=False bin_heads=False xc_bin_shared=True rotate=False named_by_present=False; files=2; steps=3
+    1. delr 0 client(old)                     
+        file 0: auth=A0 list=pq admitted[c1:p] root/p=lr root/q=- N/p=lru N/q=- renew[]
+        file 1: auth=A0 list=pq admitted[c0:pq,c1:p] root/p=lr root/q=- N/p=lru N/q=- renew[]
+    2. xc 0 1                                 
+        file 0: auth=A0 list=pq admitted[c1:p] root/p=lr root/q=- N/p=lru N/q=- renew[]
+        file 1: auth=A0 list=pq admitted[c0:pq,c1:p] root/p=lr root/q=- N/p=lru N/q=- renew[]
+    3. xc 1 0                                 
+        file 0: auth=A0 list=pq admitted[c1:p] root/p=lr root/q=- N/p=lru N/q=- renew[]
+        file 1: auth=A0 list=pq admitted[c0:pq,c1:p] root/p=lr root/q=- N/p=lru N/q=- renew[]
+        file 0 IK: auth=A0 list=pq admitted[c0:pq,c1:p] root/p=lr root/q=- N/p=lru N/q=- renew[]
+        file 0 IE: auth=A0 list=pq admitted[c0:pq,c1:p] root/p=lr root/q=- N/p=lru N/q=- renew[]
+        file 1 IK: auth=A0 list=pq admitted[c0:pq,c1:p] root/p=lr root/q=- N/p=lru N/q=- renew[]
+        file 1 IE: auth=A0 list=pq admitted[c0:pq,c1:p] root/p=lr root/q=- N/p=lru N/q=- renew[]
+   RESULT: no failure
+
+== CE10: one loss widens: a copy that took the newest version in the bin through a merge without records; one Delete of the head there
+   options: K=None anywhere=False bin_heads=False xc_bin_shared=True rotate=False named_by_present=False; files=2; steps=4
+    1. gate 1 rule N none                     
+        file 0: auth=A0 list=pq admitted[c0:pq,c1:p] root/p=lr root/q=- N/p=lru N/q=- renew[]
+        file 1: auth=A0 list=pq admitted[c0:pq,c1:p] root/p=lr root/q=- N/p=- N/q=- renew[]
+    2. bin 1 rule(new)                        
+        file 0: auth=A0 list=pq admitted[c0:pq,c1:p] root/p=lr root/q=- N/p=lru N/q=- renew[]
+        file 1: auth=A0 list=pq admitted[c0:pq,c1:p] root/p=lr root/q=- N/p=- N/q=- renew[]
+    3. xc 0 1                                 
+        file 0: auth=A0 list=pq admitted[c0:pq,c1:p] root/p=lr root/q=- N/p=- N/q=- renew[]
+        file 1: auth=A0 list=pq admitted[c0:pq,c1:p] root/p=lr root/q=- N/p=- N/q=- renew[]
+    4. bin 0 head(new)                        
+        file 0: auth=A0 list=pq admitted[c0:pq,c1:p] root/p=lr root/q=- N/p=lru N/q=- renew[]
+        file 1: auth=A0 list=pq admitted[c0:pq,c1:p] root/p=lr root/q=- N/p=- N/q=- renew[]
+        -> ['one-loss', 'wider-than-evidence', 'wider-than-knowledge']
+        file 0 IK: auth=A0 list=pq admitted[c0:pq,c1:p] root/p=lr root/q=- N/p=- N/q=- renew[]
+        file 0 IE: auth=A0 list=pq admitted[c0:pq,c1:p] root/p=lr root/q=- N/p=- N/q=- renew[]
+        file 1 IK: auth=A0 list=pq admitted[c0:pq,c1:p] root/p=lr root/q=- N/p=- N/q=- renew[]
+        file 1 IE: auth=A0 list=pq admitted[c0:pq,c1:p] root/p=lr root/q=- N/p=- N/q=- renew[]
+   RESULT: ['one-loss', 'wider-than-evidence', 'wider-than-knowledge']
+
+== CE11: the security critic's S1 change (a new store key at Recreate) against a concurrent narrowing: the narrowing under the old key is dropped, not met
+   options: K=None anywhere=False bin_heads=False xc_bin_shared=True rotate=True named_by_present=False; files=2; steps=4
+    1. gate 0 rule N r                        
+        file 0: auth=A0 list=pq admitted[c0:pq,c1:p] root/p=lr root/q=- N/p=lr N/q=- renew[]
+        file 1: auth=A0 list=pq admitted[c0:pq,c1:p] root/p=lr root/q=- N/p=lru N/q=- renew[]
+    2. gate 1 recreate                        
+        file 0: auth=A0 list=pq admitted[c0:pq,c1:p] root/p=lr root/q=- N/p=lr N/q=- renew[]
+        file 1: auth=A13 list=pq admitted[] root/p=lr root/q=- N/p=lru N/q=- renew[]
+    3. gate 1 pair new pq                     
+        file 0: auth=A0 list=pq admitted[c0:pq,c1:p] root/p=lr root/q=- N/p=lr N/q=- renew[]
+        file 1: auth=A13 list=pq admitted[n20:pq] root/p=lr root/q=- N/p=lru N/q=- renew[]
+    4. sync 0 1                               
+        file 0: auth=A13 list=pq admitted[n20:pq] root/p=lr root/q=- N/p=lru N/q=- renew[]
+        file 1: auth=A13 list=pq admitted[n20:pq] root/p=lr root/q=- N/p=lru N/q=- renew[]
+        -> ['wider-than-evidence', 'wider-than-knowledge']
+        file 0 IK: auth=A13 list=pq admitted[n20:pq] root/p=lr root/q=- N/p=lr N/q=- renew[]
+        file 0 IE: auth=A13 list=pq admitted[n20:pq] root/p=lr root/q=- N/p=lr N/q=- renew[]
+        file 1 IK: auth=A13 list=pq admitted[n20:pq] root/p=lr root/q=- N/p=lr N/q=- renew[]
+        file 1 IE: auth=A13 list=pq admitted[n20:pq] root/p=lr root/q=- N/p=lr N/q=- renew[]
+   RESULT: ['wider-than-evidence', 'wider-than-knowledge']
+
+== CE11-design: CE11 with the key carried forward, as the design has it
+   options: K=None anywhere=False bin_heads=False xc_bin_shared=True rotate=False named_by_present=False; files=2; steps=4
+    1. gate 0 rule N r                        
+        file 0: auth=A0 list=pq admitted[c0:pq,c1:p] root/p=lr root/q=- N/p=lr N/q=- renew[]
+        file 1: auth=A0 list=pq admitted[c0:pq,c1:p] root/p=lr root/q=- N/p=lru N/q=- renew[]
+    2. gate 1 recreate                        
+        file 0: auth=A0 list=pq admitted[c0:pq,c1:p] root/p=lr root/q=- N/p=lr N/q=- renew[]
+        file 1: auth=A12 list=pq admitted[] root/p=lr root/q=- N/p=lru N/q=- renew[]
+    3. gate 1 pair new pq                     
+        file 0: auth=A0 list=pq admitted[c0:pq,c1:p] root/p=lr root/q=- N/p=lr N/q=- renew[]
+        file 1: auth=A12 list=pq admitted[n15:pq] root/p=lr root/q=- N/p=lru N/q=- renew[]
+    4. sync 0 1                               
+        file 0: auth=A12 list=pq admitted[n15:pq] root/p=lr root/q=- N/p=lr N/q=- renew[]
+        file 1: auth=A12 list=pq admitted[n15:pq] root/p=lr root/q=- N/p=lr N/q=- renew[]
+        file 0 IK: auth=A12 list=pq admitted[n15:pq] root/p=lr root/q=- N/p=lr N/q=- renew[]
+        file 0 IE: auth=A12 list=pq admitted[n15:pq] root/p=lr root/q=- N/p=lr N/q=- renew[]
+        file 1 IK: auth=A12 list=pq admitted[n15:pq] root/p=lr root/q=- N/p=lr N/q=- renew[]
+        file 1 IE: auth=A12 list=pq admitted[n15:pq] root/p=lr root/q=- N/p=lr N/q=- renew[]
+   RESULT: no failure
+
+== CE12: S1's change against a concurrent profile removal: the name comes back
+   options: K=None anywhere=False bin_heads=False xc_bin_shared=True rotate=True named_by_present=False; files=2; steps=5
+    1. gate 0 prem q                          
+        file 0: auth=A0 list=p admitted[c0:p,c1:p] root/p=lr root/q=- N/p=lru N/q=- renew[]
+        file 1: auth=A0 list=pq admitted[c0:pq,c1:p] root/p=lr root/q=- N/p=lru N/q=- renew[]
+    2. gate 1 rule root pq                    
+        file 0: auth=A0 list=p admitted[c0:p,c1:p] root/p=lr root/q=- N/p=lru N/q=- renew[]
+        file 1: auth=A0 list=pq admitted[c0:pq,c1:p] root/p=lr root/q=r N/p=lru N/q=r renew[]
+    3. gate 1 recreate                        
+        file 0: auth=A0 list=p admitted[c0:p,c1:p] root/p=lr root/q=- N/p=lru N/q=- renew[]
+        file 1: auth=A15 list=pq admitted[] root/p=lr root/q=r N/p=lru N/q=r renew[]
+    4. gate 1 pair new pq                     
+        file 0: auth=A0 list=p admitted[c0:p,c1:p] root/p=lr root/q=- N/p=lru N/q=- renew[]
+        file 1: auth=A15 list=pq admitted[n22:pq] root/p=lr root/q=r N/p=lru N/q=r renew[]
+    5. sync 0 1                               
+        file 0: auth=A15 list=pq admitted[n22:pq] root/p=lr root/q=r N/p=lru N/q=r renew[]
+        file 1: auth=A15 list=pq admitted[n22:pq] root/p=lr root/q=r N/p=lru N/q=r renew[]
+        -> ['wider-than-evidence', 'wider-than-knowledge']
+        file 0 IK: auth=A15 list=p admitted[n22:p] root/p=lr root/q=r N/p=lru N/q=r renew[]
+        file 0 IE: auth=A15 list=p admitted[n22:p] root/p=lr root/q=r N/p=lru N/q=r renew[]
+        file 1 IK: auth=A15 list=p admitted[n22:p] root/p=lr root/q=r N/p=lru N/q=r renew[]
+        file 1 IE: auth=A15 list=p admitted[n22:p] root/p=lr root/q=r N/p=lru N/q=r renew[]
+   RESULT: ['wider-than-evidence', 'wider-than-knowledge']
+
+== CE12-design: CE12 with the key carried forward, as the design has it
+   options: K=None anywhere=False bin_heads=False xc_bin_shared=True rotate=False named_by_present=False; files=2; steps=5
+    1. gate 0 prem q                          
+        file 0: auth=A0 list=p admitted[c0:p,c1:p] root/p=lr root/q=- N/p=lru N/q=- renew[]
+        file 1: auth=A0 list=pq admitted[c0:pq,c1:p] root/p=lr root/q=- N/p=lru N/q=- renew[]
+    2. gate 1 rule root pq                    
+        file 0: auth=A0 list=p admitted[c0:p,c1:p] root/p=lr root/q=- N/p=lru N/q=- renew[]
+        file 1: auth=A0 list=pq admitted[c0:pq,c1:p] root/p=lr root/q=r N/p=lru N/q=r renew[]
+    3. gate 1 recreate                        
+        file 0: auth=A0 list=p admitted[c0:p,c1:p] root/p=lr root/q=- N/p=lru N/q=- renew[]
+        file 1: auth=A14 list=pq admitted[] root/p=lr root/q=r N/p=lru N/q=r renew[]
+    4. gate 1 pair new pq                     
+        file 0: auth=A0 list=p admitted[c0:p,c1:p] root/p=lr root/q=- N/p=lru N/q=- renew[]
+        file 1: auth=A14 list=pq admitted[n17:pq] root/p=lr root/q=r N/p=lru N/q=r renew[]
+    5. sync 0 1                               
+        file 0: auth=A14 list=p admitted[n17:p] root/p=lr root/q=r N/p=lru N/q=r renew[]
+        file 1: auth=A14 list=p admitted[n17:p] root/p=lr root/q=r N/p=lru N/q=r renew[]
+        file 0 IK: auth=A14 list=p admitted[n17:p] root/p=lr root/q=r N/p=lru N/q=r renew[]
+        file 0 IE: auth=A14 list=p admitted[n17:p] root/p=lr root/q=r N/p=lru N/q=r renew[]
+        file 1 IK: auth=A14 list=p admitted[n17:p] root/p=lr root/q=r N/p=lru N/q=r renew[]
+        file 1 IE: auth=A14 list=p admitted[n17:p] root/p=lr root/q=r N/p=lru N/q=r renew[]
+   RESULT: no failure
+
+== CE13: one Move in each of two copies, joined by a Keepass2Android merge: the revocation, spread by an import and a KeePassXC merge, undone
+   options: K=None anywhere=False bin_heads=False xc_bin_shared=True rotate=False named_by_present=False; files=3; steps=6
+    1. gate 1 revoke c1                       
+        file 0: auth=A0 list=pq admitted[c0:pq,c1:p] root/p=lr root/q=- N/p=lru N/q=- renew[]
+        file 1: auth=A0 list=pq admitted[c0:pq] root/p=lr root/q=- N/p=lru N/q=- renew[]
+        file 2: auth=A0 list=pq admitted[c0:pq,c1:p] root/p=lr root/q=- N/p=lru N/q=- renew[]
+    2. kpo 2 1                                
+        file 0: auth=A0 list=pq admitted[c0:pq,c1:p] root/p=lr root/q=- N/p=lru N/q=- renew[]
+        file 1: auth=A0 list=pq admitted[c0:pq] root/p=lr root/q=- N/p=lru N/q=- renew[]
+        file 2: auth=A0 list=pq admitted[c0:pq] root/p=lr root/q=- N/p=lru N/q=- renew[]
+    3. xc 0 2                                 
+        file 0: auth=A0 list=pq admitted[c0:pq] root/p=lr root/q=- N/p=lru N/q=- renew[]
+        file 1: auth=A0 list=pq admitted[c0:pq] root/p=lr root/q=- N/p=lru N/q=- renew[]
+        file 2: auth=A0 list=pq admitted[c0:pq] root/p=lr root/q=- N/p=lru N/q=- renew[]
+    4. move 2 revoked(old)                    
+        file 0: auth=A0 list=pq admitted[c0:pq] root/p=lr root/q=- N/p=lru N/q=- renew[]
+        file 1: auth=A0 list=pq admitted[c0:pq] root/p=lr root/q=- N/p=lru N/q=- renew[]
+        file 2: auth=A0 list=pq admitted[c0:pq] root/p=lr root/q=- N/p=lru N/q=- renew[]
+    5. move 0 head(new)                       
+        file 0: INCOMPLETE
+        file 1: auth=A0 list=pq admitted[c0:pq] root/p=lr root/q=- N/p=lru N/q=- renew[]
+        file 2: auth=A0 list=pq admitted[c0:pq] root/p=lr root/q=- N/p=lru N/q=- renew[]
+    6. k2a 2 0                                
+        file 0: INCOMPLETE
+        file 1: auth=A0 list=pq admitted[c0:pq] root/p=lr root/q=- N/p=lru N/q=- renew[]
+        file 2: auth=A0 list=pq admitted[c0:pq,c1:p] root/p=lr root/q=- N/p=lru N/q=- renew[]
+        -> ['revocation-undone', 'wider-than-evidence', 'wider-than-knowledge']
+        file 0 IK: auth=A0 list=pq admitted[c0:pq] root/p=lr root/q=- N/p=lru N/q=- renew[]
+        file 0 IE: auth=A0 list=pq admitted[c0:pq] root/p=lr root/q=- N/p=lru N/q=- renew[]
+        file 1 IK: auth=A0 list=pq admitted[c0:pq] root/p=lr root/q=- N/p=lru N/q=- renew[]
+        file 1 IE: auth=A0 list=pq admitted[c0:pq] root/p=lr root/q=- N/p=lru N/q=- renew[]
+        file 2 IK: auth=A0 list=pq admitted[c0:pq] root/p=lr root/q=- N/p=lru N/q=- renew[]
+        file 2 IE: auth=A0 list=pq admitted[c0:pq] root/p=lr root/q=- N/p=lru N/q=- renew[]
+   RESULT: ['revocation-undone', 'wider-than-evidence', 'wider-than-knowledge']
+
+== CE9: KeePassDX: Delete moves an element to the bin and touches its time; a KeePassDX merge from a copy where it is unmoved follows the newer time (design 2: "not relied on")
+   options: K=None anywhere=False bin_heads=False xc_bin_shared=True rotate=False named_by_present=False; files=2; steps=4
+    1. gate 0 rule N r                        
+        file 0: auth=A0 list=pq admitted[c0:pq,c1:p] root/p=lr root/q=- N/p=lr N/q=- renew[]
+        file 1: auth=A0 list=pq admitted[c0:pq,c1:p] root/p=lr root/q=- N/p=lru N/q=- renew[]
+    2. dxbin 0 rule(new)                      
+        file 0: auth=A0 list=pq admitted[c0:pq,c1:p] root/p=lr root/q=- N/p=lr N/q=- renew[]
+        file 1: auth=A0 list=pq admitted[c0:pq,c1:p] root/p=lr root/q=- N/p=lru N/q=- renew[]
+    3. dxbin 0 head(new)                      
+        file 0: INCOMPLETE
+        file 1: auth=A0 list=pq admitted[c0:pq,c1:p] root/p=lr root/q=- N/p=lru N/q=- renew[]
+    4. dx 1 0                                 
+        file 0: INCOMPLETE
+        file 1: INCOMPLETE
+        file 0 IK: auth=A0 list=pq admitted[c0:pq,c1:p] root/p=lr root/q=- N/p=lr N/q=- renew[]
+        file 0 IE: auth=A0 list=pq admitted[c0:pq,c1:p] root/p=lr root/q=- N/p=lr N/q=- renew[]
+        file 1 IK: auth=A0 list=pq admitted[c0:pq,c1:p] root/p=lr root/q=- N/p=lr N/q=- renew[]
+        file 1 IE: auth=A0 list=pq admitted[c0:pq,c1:p] root/p=lr root/q=- N/p=lr N/q=- renew[]
+   RESULT: no failure
+
+== the document lattice: 512 functions per profile
+   200000 random triples and inputs: closed 0, comm 0, assoc 0, idem 0, below 0, mono 0, compose 0
+   meets of two of the model's documents, per profile, that are a limit L(S) with S not all: 56 of 128 (no AclDocument writes these; the resolver must carry them)
+== the remove-wins set and the register: functions of the union, checked over random states
+   20000 random triples: 0 violations (expected 0: the value is a function of the union)
+
+== random histories, as written, K unbounded
+   A merges only                                    3 files   1500 histories: no failure
+   A merges only                                    4 files   1500 histories: no failure
+   B + bins and moves                               3 files   1500 histories: one-loss x1, wider-than-evidence x1, wider-than-knowledge x1
+      shortest wider-than-evidence: move 1 rule(old); gate 1 rule N r; bin 1 head(old); bin 1 rule(old); xc 0 1
+      shortest one-loss: gate 2 renew c0 allowed; move 2 head(new); kpo 0 2; dxbin 0 renewal(new)
+      shortest wider-than-knowledge: move 1 rule(old); gate 1 rule N r; bin 1 head(old); bin 1 rule(old); xc 0 1
+   B + bins and moves                               4 files   1500 histories: one-loss x1, wider-than-evidence x1, wider-than-knowledge x1
+      shortest wider-than-evidence: gate 0 rule root q; gate 1 rule N rA; dxbin 1 rule(new); xc 0 1; dxbin 0 head(old); dxbin 0 rule(new)
+      shortest one-loss: gate 0 rule root q; gate 1 rule N rA; dxbin 1 rule(new); xc 0 1; dxbin 0 head(old); dxbin 0 rule(new)
+      shortest wider-than-knowledge: gate 0 rule root q; gate 1 rule N rA; dxbin 1 rule(new); xc 0 1; dxbin 0 head(old); dxbin 0 rule(new)
+   C + deletions with a record                      3 files   1500 histories: detected-loss-healed-wider x1, one-loss x1, revocation-undone x1, wider-than-evidence x4, wider-than-knowledge x4
+      shortest revocation-undone: gate 1 revoke c1; kpo 2 1; xc 0 2; move 2 revoked(old); move 0 head(new); k2a 2 0
+      shortest detected-loss-healed-wider: gate 2 rule N deny; bin 2 head(old); move 2 rule(new); gate 1 prem q; sync 2 1
+      shortest wider-than-evidence: gate 2 rule N deny; bin 2 head(old); move 2 rule(new); gate 1 prem q; sync 2 1
+      shortest one-loss: gate 1 renew c1 until; sync 0 1; bin 0 renewal(old); gate 2 revoke c0; sync 0 2; xc 1 2; move 1 head(old)
+      shortest wider-than-knowledge: gate 2 rule N deny; bin 2 head(old); move 2 rule(new); gate 1 prem q; sync 2 1
+   C + deletions with a record                      4 files   1500 histories: no failure
+   D + unchanged saves (T3)                         3 files   1500 histories: no failure
+   D + unchanged saves (T3)                         4 files   1500 histories: one-loss x1, wider-than-evidence x1, wider-than-knowledge x1
+      shortest wider-than-evidence: gate 0 rule root none; sync 1 0; bin 1 head(old); xc 2 1; bin 2 rule(new)
+      shortest one-loss: gate 0 rule root none; sync 1 0; bin 1 head(old); xc 2 1; bin 2 rule(new)
+      shortest wider-than-knowledge: gate 0 rule root none; sync 1 0; bin 1 head(old); xc 2 1; bin 2 rule(new)
+   E operator set: Sync and K2A, bins, records, T3  3 files   1500 histories: no failure
+   E operator set: Sync and K2A, bins, records, T3  4 files   1500 histories: no failure
+   F everything but overwrite                       3 files   1500 histories: one-loss x1
+      shortest one-loss: gate 0 rule N inherit; gate 1 rule root q; move 1 head(old); sync 2 0; sync 1 2; delr 1 rule(new)
+   F everything but overwrite                       4 files   1500 histories: no failure
+   G + overwrite and restore                        3 files   1500 histories: wider-than-evidence x1, wider-than-knowledge x1
+      shortest wider-than-evidence: gate 1 renew c1 until; bin 1 head(old); delr 1 renewal(old); kpo 0 1
+      shortest wider-than-knowledge: gate 1 renew c1 until; bin 1 head(old); delr 1 renewal(old); kpo 0 1
+   G + overwrite and restore                        4 files   1500 histories: no failure
+
+== random histories, as written, K=3 (stands for 64)
+   A merges only                                    3 files   1500 histories: no failure
+   A merges only                                    4 files   1500 histories: no failure
+   B + bins and moves                               3 files   1500 histories: one-loss x1, wider-than-evidence x1, wider-than-knowledge x1
+      shortest wider-than-evidence: gate 0 rule root inherit; move 0 head(old); kpo 1 0; move 1 rule(new)
+      shortest one-loss: gate 0 rule root inherit; move 0 head(old); kpo 1 0; move 1 rule(new)
+      shortest wider-than-knowledge: gate 0 rule root inherit; move 0 head(old); kpo 1 0; move 1 rule(new)
+   B + bins and moves                               4 files   1500 histories: one-loss x1, wider-than-evidence x1, wider-than-knowledge x1
+      shortest wider-than-evidence: gate 1 rule N q; gate 3 renew c0 forever; bin 3 head(new); sync 3 1; dxbin 3 renewal(new)
+      shortest one-loss: gate 1 revoke c0; gate 0 prem q; move 0 head(old); sync 0 1; dxbin 1 removed(old)
+      shortest wider-than-knowledge: gate 1 rule N q; gate 3 renew c0 forever; bin 3 head(new); sync 3 1; dxbin 3 renewal(new)
+   C + deletions with a record                      3 files   1500 histories: one-loss x1
+      shortest one-loss: gate 1 renew c1 until; move 1 head(new); kpo 2 1; delr 2 renewal(old)
+   C + deletions with a record                      4 files   1500 histories: detected-loss-healed-wider x1, one-loss x1, wider-than-evidence x2, wider-than-knowledge x2
+      shortest detected-loss-healed-wider: gate 2 rule root deny; bin 2 head(new); dx 1 2; bin 1 rule(new); sync 3 1
+      shortest wider-than-evidence: gate 0 prem p; move 0 head(old); delr 0 removed(old); kpo 1 0
+      shortest one-loss: gate 0 renew c1 forever; move 0 head(new); xc 3 0; delr 3 renewal(new)
+      shortest wider-than-knowledge: gate 0 prem p; move 0 head(old); delr 0 removed(old); kpo 1 0
+   D + unchanged saves (T3)                         3 files   1500 histories: no failure
+   D + unchanged saves (T3)                         4 files   1500 histories: one-loss x1, wider-than-knowledge x1
+      shortest one-loss: gate 0 rule N q; gate 2 revoke c0; delr 2 head(new); dx 0 2; bin 0 revoked(old)
+      shortest wider-than-knowledge: gate 2 renew c0 forever; delr 2 head(old); delr 2 renewal(new); xc 1 2
+   E operator set: Sync and K2A, bins, records, T3  3 files   1500 histories: no failure
+   E operator set: Sync and K2A, bins, records, T3  4 files   1500 histories: no failure
+   F everything but overwrite                       3 files   1500 histories: wider-than-evidence x1, wider-than-knowledge x1
+      shortest wider-than-evidence: gate 2 rule root pq; delr 2 rule(new); move 2 head(old); kpo 0 2; gate 0 rule root q
+      shortest wider-than-knowledge: gate 2 rule root pq; delr 2 rule(new); move 2 head(old); kpo 0 2; gate 0 rule root q
+   F everything but overwrite                       4 files   1500 histories: wider-than-evidence x1
+      shortest wider-than-evidence: gate 0 renew c1 forever; del0 0 renewal(new); move 0 head(new); gate 0 seal 
+   G + overwrite and restore                        3 files   1500 histories: no failure
+   G + overwrite and restore                        4 files   1500 histories: no failure
+
+== random histories, fix: count elements anywhere
+   A merges only                                    3 files   1500 histories: no failure
+   A merges only                                    4 files   1500 histories: no failure
+   B + bins and moves                               3 files   1500 histories: no failure
+   B + bins and moves                               4 files   1500 histories: no failure
+   C + deletions with a record                      3 files   1500 histories: no failure
+   C + deletions with a record                      4 files   1500 histories: no failure
+   D + unchanged saves (T3)                         3 files   1500 histories: no failure
+   D + unchanged saves (T3)                         4 files   1500 histories: no failure
+   E operator set: Sync and K2A, bins, records, T3  3 files   1500 histories: no failure
+   E operator set: Sync and K2A, bins, records, T3  4 files   1500 histories: no failure
+   F everything but overwrite                       3 files   1500 histories: one-loss x1, wider-than-knowledge x1
+      shortest one-loss: gate 0 revoke c0; gate 2 rule N deny; dx 1 0; del0 2 head(new); dx 2 1; del0 2 rule(new)
+      shortest wider-than-knowledge: gate 0 revoke c0; gate 2 rule N deny; dx 1 0; del0 2 head(new); dx 2 1; del0 2 rule(new)
+   F everything but overwrite                       4 files   1500 histories: no failure
+   G + overwrite and restore                        3 files   1500 histories: no failure
+   G + overwrite and restore                        4 files   1500 histories: no failure
+
+== random histories, fix: binned heads in force (critic S3)
+   A merges only                                    3 files   1500 histories: no failure
+   A merges only                                    4 files   1500 histories: no failure
+   B + bins and moves                               3 files   1500 histories: one-loss x1
+      shortest one-loss: gate 2 prem q; gate 0 revoke c1; k2a 0 2; move 0 head(old); move 0 removed(old)
+   B + bins and moves                               4 files   1500 histories: no failure
+   C + deletions with a record                      3 files   1500 histories: no failure
+   C + deletions with a record                      4 files   1500 histories: detected-loss-healed-wider x1, wider-than-evidence x1, wider-than-knowledge x1
+      shortest detected-loss-healed-wider: gate 3 rule N rA; move 3 rule(new); move 3 head(new); gate 2 revoke c1; kpo 3 2
+      shortest wider-than-evidence: gate 3 rule N rA; move 3 rule(new); move 3 head(new); gate 2 revoke c1; kpo 3 2
+      shortest wider-than-knowledge: gate 3 rule N rA; move 3 rule(new); move 3 head(new); gate 2 revoke c1; kpo 3 2
+   D + unchanged saves (T3)                         3 files   1500 histories: no failure
+   D + unchanged saves (T3)                         4 files   1500 histories: no failure
+   E operator set: Sync and K2A, bins, records, T3  3 files   1500 histories: no failure
+   E operator set: Sync and K2A, bins, records, T3  4 files   1500 histories: no failure
+   F everything but overwrite                       3 files   1500 histories: one-loss x1
+      shortest one-loss: dxbin 2 head(old); gate 2 revoke c1; move 2 head(old); move 2 revoked(old)
+   F everything but overwrite                       4 files   1500 histories: no failure
+   G + overwrite and restore                        3 files   1500 histories: no failure
+   G + overwrite and restore                        4 files   1500 histories: no failure
+

@@ -1,0 +1,15 @@
+as written: merges only, 1500 histories: 0 left a file incomplete
+as written: 1500 histories with every fault but overwrite: 101 pairs of files holding the same elements answered differently; 34 of them both serving and differing
+   e.g. gate 0 padd p; kpo 0 2; gate 0 padd q; move 2 client(old)
+   file 1: auth=A0 list=pq admitted[c0:pq,c1:p] root/p=lr root/q=- N/p=lru N/q=- renew[]
+   file 2: auth=A0 list=pq admitted[c1:p] root/p=lr root/q=- N/p=lru N/q=- renew[]
+as written, K=3: merges only, 1500 histories: 0 left a file incomplete
+as written, K=3: 1500 histories with every fault but overwrite: 90 pairs of files holding the same elements answered differently; 20 of them both serving and differing
+   e.g. gate 1 seal ; clear 0; gate 1 padd q; bin 0 client(old); dxbin 1 head(old)
+   file 0: auth=A0 list=pq admitted[c1:p] root/p=lr root/q=- N/p=lru N/q=- renew[]
+   file 2: auth=A0 list=pq admitted[c0:pq,c1:p] root/p=lr root/q=- N/p=lru N/q=- renew[]
+anywhere: merges only, 1500 histories: 0 left a file incomplete
+anywhere: 1500 histories with every fault but overwrite: 3 pairs of files holding the same elements answered differently; 1 of them both serving and differing
+   e.g. kpo 0 1; gate 1 seal ; gate 1 prem q; dx 2 1; del0 0 renewal(old); delr 2 client(new); xc 2 1
+   file 1: auth=A0 list=p admitted[c0:p,c1:p] root/p=lr root/q=- N/p=lru N/q=- renew[]
+   file 2: auth=A0 list=p admitted[c0:p] root/p=lr root/q=- N/p=lru N/q=- renew[]

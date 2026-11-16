@@ -1,0 +1,33 @@
+P  phone set: Synchronize, K2A; bin, delete with a record (also from the bin), Seal again 2 files   8000 histories  no failure
+P  phone set: Synchronize, K2A; bin, delete with a record (also from the bin), Seal again 3 files   8000 histories  no failure
+P1 the same and KeePassDroid editor Save (touch)                       2 files   8000 histories  safety x1
+    shortest safety (file 1: renewal of c0 asked):
+        renew 1 c0 forever
+        bin 1 ('head', 'old')
+        rule 0 root r
+        bin 1 ('ver', 'renew:c0', 'new')
+        merge kp_sync 1 0
+P1 the same and KeePassDroid editor Save (touch)                       3 files   8000 histories  no failure
+P2 the same and Empty Recycle Bin, restore from the bin                2 files   8000 histories  no failure
+P2 the same and Empty Recycle Bin, restore from the bin                3 files   8000 histories  no failure
+P3 = P2, with KeePassLib's strict record rule turned back to the model's 2 files   8000 histories  no failure
+P3 = P2, with KeePassLib's strict record rule turned back to the model's 3 files   8000 histories  no failure
+X  KeePassXC merges added to P; bin and delete with a record           2 files   8000 histories  one-loss x1, safety x1
+    shortest one-loss (file 1: node root grants r):
+        rule 0 root inherit
+        bin 0 ('head', 'new')
+        merge xc 1 0
+        bin 1 ('ver', 'rule:root', 'new')
+    shortest safety (file 1: node root grants r):
+        rule 0 root inherit
+        bin 0 ('head', 'new')
+        merge xc 1 0
+        bin 1 ('ver', 'rule:root', 'new')
+X  KeePassXC merges added to P; bin and delete with a record           3 files   8000 histories  no failure
+X1 KeePassXC and the import methods added to P2                        2 files   8000 histories  no failure
+X1 KeePassXC and the import methods added to P2                        3 files   8000 histories  no failure
+F  fix: the bin read for every kind; config X1                         2 files   8000 histories  no failure
+F  fix: the bin read for every kind; config X1                         3 files   8000 histories  no failure
+F2 fix: the bin read for every kind; config P2                         2 files   8000 histories  no failure
+F2 fix: the bin read for every kind; config P2                         3 files   8000 histories  no failure
+== 123 s

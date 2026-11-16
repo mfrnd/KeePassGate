@@ -1,0 +1,207 @@
+random histories: 2000, steps done: 9602, steps where a file disagreed with the model: 19, failures of the design's checks: 0, 354 s
+## history 24 (3 files)
+    1 del 2 ('padd',) 0
+    2 rule 2 root inherit
+    3 touch 0 ('auth',)
+    4 merge kp_other 0 1 [OverwriteExisting]
+    5 merge xc 0 1 [keepassxc-cli 2.4.2]
+   DISAGREE at step 4, file 0:
+      entry auth:a0: model ('auth:a0', 30, True), file ('auth:a0', 1, True)
+   file 0: ok, admitted ['c0'], words {'N': 'r', 'root': 'r'}, renewals {'c0': 'ask'}, names ['pf']
+   file 1: ok, admitted ['c0'], words {'N': 'r', 'root': 'r'}, renewals {'c0': 'ask'}, names ['pf']
+   file 2: ok, admitted ['c0'], words {'N': '', 'root': ''}, renewals {'c0': 'ask'}, names []
+## history 119 (3 files)
+    0 renew 1 c0 allowed
+    2 merge xc 1 0 [keepassxc-cli 2.8.0]
+    3 merge kp_other 1 0 [KeepExisting]
+    4 touch 0 ('auth',)
+    5 merge kp_other 0 2 [OverwriteExisting]
+   DISAGREE at step 5, file 0:
+      entry auth:a0: model ('auth:a0', 50, True), file ('auth:a0', 1, True)
+   file 0: ok, admitted ['c0'], words {'N': 'r', 'root': 'r'}, renewals {'c0': 'ask'}, names ['pf']
+   file 1: ok, admitted ['c0'], words {'N': 'r', 'root': 'r'}, renewals {'c0': 'ask'}, names ['pf']
+   file 2: ok, admitted ['c0'], words {'N': 'r', 'root': 'r'}, renewals {'c0': 'ask'}, names ['pf']
+## history 369 (3 files)
+    0 touch 2 ('auth',)
+    1 merge xc 1 2 [keepassxc-cli 2.4.2]
+    3 rule 0 root rw
+    4 merge kp_other 0 2 [KeepExisting]
+    6 merge kp_sync 2 0
+   DISAGREE at step 4, file 0:
+      entry auth:a0: model ('auth:a0', 20, True), file ('auth:a0', 1, True)
+   file 0: ok, admitted ['c0'], words {'N': 'rw', 'root': 'rw'}, renewals {'c0': 'ask'}, names ['pf']
+   file 1: ok, admitted ['c0'], words {'N': 'r', 'root': 'r'}, renewals {'c0': 'ask'}, names ['pf']
+   file 2: ok, admitted ['c0'], words {'N': 'rw', 'root': 'rw'}, renewals {'c0': 'ask'}, names ['pf']
+## history 546 (2 files)
+    0 merge kp_other 1 0 [OverwriteIfNewer]
+    1 merge kp_other 0 1 [OverwriteIfNewer]
+    2 touch 0 ('auth',)
+    3 prem 1 pf
+    4 merge kp_sync 0 1
+    7 merge kp_other 0 1 [OverwriteExisting]
+   DISAGREE at step 7, file 0:
+      entry auth:a0: model ('auth:a0', 40, True), file ('auth:a0', 1, True)
+   file 0: ok, admitted ['c0'], words {'N': 'r', 'root': 'r'}, renewals {'c0': 'ask'}, names []
+   file 1: ok, admitted ['c0'], words {'N': 'r', 'root': 'r'}, renewals {'c0': 'ask'}, names []
+## history 561 (2 files)
+    0 rule 0 root rw
+    1 merge xc 0 1 [keepassxc-cli 2.4.2]
+    2 rule 1 root rw
+    3 merge kp_sync 1 0
+    4 bin 0 ('padd',)
+    5 merge xc 1 0 [keepassxc-cli 2.4.2]
+    6 merge kp_other 0 1 [KeepExisting]
+    7 touch 1 ('padd',)
+    8 merge kp_other 0 1 [KeepExisting]
+   DISAGREE at step 8, file 0:
+      entry padd:pf#1: model ('padd:pf#1', 90, True), file ('padd:pf#1', 1, True)
+   file 0: ok, admitted ['c0'], words {'N': 'rw', 'root': 'rw'}, renewals {'c0': 'ask'}, names []
+   file 1: ok, admitted ['c0'], words {'N': 'rw', 'root': 'rw'}, renewals {'c0': 'ask'}, names []
+## history 626 (2 files)
+    1 renew 1 c0 allowed
+    2 rule 1 root rw
+    3 merge xc 1 0 [keepassxc-cli 2.6.6]
+    4 touch 1 ('auth',)
+    5 rule 0 root inherit
+    6 merge kp_other 1 0 [OverwriteExisting]
+    7 rule 1 N none
+    8 pair 0
+   DISAGREE at step 6, file 1:
+      entry auth:a0: model ('auth:a0', 50, True), file ('auth:a0', 1, True)
+   file 0: ok, admitted ['c0', 'c1'], words {'N': '', 'root': ''}, renewals {'c0': 'ask', 'c1': 'ask'}, names ['pf']
+   file 1: ok, admitted ['c0'], words {'N': '', 'root': ''}, renewals {'c0': 'ask', 'c1': 'ask'}, names ['pf']
+## history 631 (2 files)
+    0 rule 1 N rw
+    1 touch 1 ('padd',)
+    2 del 0 ('head', 'new') 1
+    4 merge kp_other 0 1 [KeepExisting]
+    5 touch 1 ('padd',)
+    6 rule 1 root r
+   DISAGREE at step 4, file 0:
+      entry padd:pf#1: model ('padd:pf#1', 40, True), file ('padd:pf#1', 1, True)
+   file 0: ok, admitted ['c0'], words {'N': 'rw', 'root': 'r'}, renewals {'c0': 'ask'}, names ['pf']
+   file 1: ok, admitted ['c0'], words {'N': 'rw', 'root': 'r'}, renewals {'c0': 'ask'}, names ['pf']
+## history 647 (3 files)
+    0 touch 2 ('auth',)
+    1 rule 0 N r
+    2 merge xc 1 0 [keepassxc-cli 2.7.12]
+    3 merge kp_other 1 2 [KeepExisting]
+    4 del 1 ('ver', 'rule:N', 'new') 1
+    6 merge kp_sync 1 0
+   DISAGREE at step 3, file 1:
+      entry auth:a0: model ('auth:a0', 20, True), file ('auth:a0', 1, True)
+   file 0: ok, admitted ['c0'], words {'N': 'r', 'root': 'r'}, renewals {'c0': 'ask'}, names ['pf']
+   file 1: ok, admitted ['c0'], words {'N': 'r', 'root': 'r'}, renewals {'c0': 'ask'}, names ['pf']
+   file 2: ok, admitted ['c0'], words {'N': 'r', 'root': 'r'}, renewals {'c0': 'ask'}, names ['pf']
+## history 822 (2 files)
+    0 edit 1 ('head', 'old')
+    1 merge kp_other 0 1 [KeepExisting]
+    2 merge kp_other 0 1 [OverwriteExisting]
+    3 del 1 ('padd',) 2
+    5 merge kp_other 0 1 [KeepExisting]
+   DISAGREE at step 1, file 0:
+      entry H001.3: model ('H001.3', 20, False), file ('H001.3', 10, True)
+   file 0: incomplete, admitted [], words {'N': '', 'root': ''}, renewals {'c0': 'ask'}, names ['pf']
+   file 1: incomplete, admitted [], words {'N': '', 'root': ''}, renewals {'c0': 'ask'}, names []
+## history 846 (3 files)
+    0 del 0 ('rec',) 1
+    2 merge kp_sync 2 1
+    3 touch 0 ('padd',)
+    4 merge kp_other 1 0 [KeepExisting]
+    5 merge kp_other 0 2 [OverwriteExisting]
+    6 renew 2 c0 allowed
+   DISAGREE at step 4, file 1:
+      entry padd:pf#1: model ('padd:pf#1', 40, True), file ('padd:pf#1', 1, True)
+   DISAGREE at step 5, file 0:
+      entry padd:pf#1: model ('padd:pf#1', 40, True), file ('padd:pf#1', 1, True)
+   file 0: ok, admitted [], words {'N': 'r', 'root': 'r'}, renewals {'c0': 'ask'}, names ['pf']
+   file 1: ok, admitted ['c0'], words {'N': 'r', 'root': 'r'}, renewals {'c0': 'ask'}, names ['pf']
+   file 2: ok, admitted ['c0'], words {'N': 'r', 'root': 'r'}, renewals {'c0': 'ask'}, names ['pf']
+## history 901 (3 files)
+    0 merge xc 2 0 [keepassxc-cli 2.7.12]
+    1 touch 1 ('auth',)
+    3 rule 2 N r
+    4 merge kp_other 1 0 [OverwriteExisting]
+    5 rule 1 root r
+    6 rule 1 N none
+    7 merge kp_other 2 0 [KeepExisting]
+   DISAGREE at step 4, file 1:
+      entry auth:a0: model ('auth:a0', 30, True), file ('auth:a0', 1, True)
+   file 0: ok, admitted ['c0'], words {'N': 'r', 'root': 'r'}, renewals {'c0': 'ask'}, names ['pf']
+   file 1: ok, admitted ['c0'], words {'N': '', 'root': 'r'}, renewals {'c0': 'ask'}, names ['pf']
+   file 2: ok, admitted ['c0'], words {'N': 'r', 'root': 'r'}, renewals {'c0': 'ask'}, names ['pf']
+## history 1147 (3 files)
+    0 touch 1 ('rec',)
+    2 merge xc 2 1 [keepassxc-cli 2.7.12]
+    3 merge kp_other 1 0 [OverwriteExisting]
+   DISAGREE at step 3, file 1:
+      entry rec:c0: model ('rec:c0', 20, True), file ('rec:c0', 1, True)
+   file 0: ok, admitted ['c0'], words {'N': 'r', 'root': 'r'}, renewals {'c0': 'ask'}, names ['pf']
+   file 1: ok, admitted ['c0'], words {'N': 'r', 'root': 'r'}, renewals {'c0': 'ask'}, names ['pf']
+   file 2: ok, admitted ['c0'], words {'N': 'r', 'root': 'r'}, renewals {'c0': 'ask'}, names ['pf']
+## history 1289 (2 files)
+    0 merge xc 0 1 [keepassxc-cli 2.7.12]
+    2 revoke 1 c0
+    3 rule 1 root rw
+    4 merge xc 0 1 [keepassxc-cli 2.4.2]
+    5 merge xc 1 0 [keepassxc-cli 2.8.0]
+    6 merge xc 0 1 [keepassxc-cli 2.8.0]
+    7 import 1 0
+    8 merge kp_sync 1 0
+   DISAGREE at step 7, file 1:
+      entry H001.3: model ('H001.3', 10, True), file None
+      entry rec:c0: model ('rec:c0', 1, True), file None
+      entry ver:rule:root#2: model ('ver:rule:root#2', 1, True), file None
+   file 0: ok, admitted [], words {'N': 'rw', 'root': 'rw'}, renewals {'c0': 'ask'}, names ['pf']
+   file 1: ok, admitted [], words {'N': 'rw', 'root': 'rw'}, renewals {'c0': 'ask'}, names ['pf']
+## history 1432 (3 files)
+    0 merge xc 1 0 [keepassxc-cli 2.8.0]
+    1 merge xc 0 1 [keepassxc-cli 2.4.2]
+    2 edit 0 ('head', 'old')
+    3 merge xc 2 1 [keepassxc-cli 2.4.2]
+    4 merge kp_sync 0 2
+    7 merge kp_other 0 1 [OverwriteExisting]
+   DISAGREE at step 7, file 0:
+      entry H001.3: model ('H001.3', 40, False), file ('H001.3', 10, True)
+   file 0: ok, admitted ['c0'], words {'N': 'r', 'root': 'r'}, renewals {'c0': 'ask'}, names ['pf']
+   file 1: ok, admitted ['c0'], words {'N': 'r', 'root': 'r'}, renewals {'c0': 'ask'}, names ['pf']
+   file 2: ok, admitted ['c0'], words {'N': 'r', 'root': 'r'}, renewals {'c0': 'ask'}, names ['pf']
+## history 1448 (3 files)
+    0 edit 2 ('head', 'old')
+    1 bin 1 ('head', 'new')
+    3 del 1 ('head', 'old') 2
+    6 merge kp_other 0 2 [KeepExisting]
+   DISAGREE at step 6, file 0:
+      entry H001.3: model ('H001.3', 20, False), file ('H001.3', 10, True)
+   file 0: ok, admitted ['c0'], words {'N': 'r', 'root': 'r'}, renewals {'c0': 'ask'}, names ['pf']
+   file 1: incomplete, admitted [], words {'N': '', 'root': ''}, renewals {'c0': 'ask'}, names ['pf']
+   file 2: incomplete, admitted [], words {'N': '', 'root': ''}, renewals {'c0': 'ask'}, names ['pf']
+## history 1671 (3 files)
+    1 edit 0 ('head', 'new')
+    2 merge kp_other 2 0 [KeepExisting]
+    3 merge kp_other 1 0 [OverwriteIfNewer]
+   DISAGREE at step 2, file 2:
+      entry H001.3: model ('H001.3', 20, False), file ('H001.3', 10, True)
+   file 0: incomplete, admitted [], words {'N': '', 'root': ''}, renewals {'c0': 'ask'}, names ['pf']
+   file 1: incomplete, admitted [], words {'N': '', 'root': ''}, renewals {'c0': 'ask'}, names ['pf']
+   file 2: ok, admitted ['c0'], words {'N': 'r', 'root': 'r'}, renewals {'c0': 'ask'}, names ['pf']
+## history 1806 (2 files)
+    0 edit 0 ('head', 'new')
+    1 touch 1 ('auth',)
+    2 merge xc 0 1 [keepassxc-cli 2.8.0]
+    3 merge kp_other 1 0 [KeepExisting]
+    4 merge xc 1 0 [keepassxc-cli 2.4.2]
+    5 del 0 ('padd',) 2
+   DISAGREE at step 3, file 1:
+      entry H001.3: model ('H001.3', 20, False), file ('H001.3', 10, True)
+   file 0: incomplete, admitted [], words {'N': '', 'root': ''}, renewals {'c0': 'ask'}, names []
+   file 1: incomplete, admitted [], words {'N': '', 'root': ''}, renewals {'c0': 'ask'}, names ['pf']
+## history 1851 (2 files)
+    0 merge xc 1 0 [keepassxc-cli 2.7.12]
+    1 touch 1 ('auth',)
+    2 merge kp_sync 1 0
+    3 merge kp_other 0 1 [KeepExisting]
+   DISAGREE at step 3, file 0:
+      entry auth:a0: model ('auth:a0', 30, True), file ('auth:a0', 1, True)
+   file 0: ok, admitted ['c0'], words {'N': 'r', 'root': 'r'}, renewals {'c0': 'ask'}, names ['pf']
+   file 1: ok, admitted ['c0'], words {'N': 'r', 'root': 'r'}, renewals {'c0': 'ask'}, names ['pf']

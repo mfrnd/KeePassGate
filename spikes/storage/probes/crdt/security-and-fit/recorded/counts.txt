@@ -1,0 +1,24 @@
+Measured 2026-11-15 in the product at a42e38aa, by PowerShell, [System.IO.File]::ReadAllLines(...).Count
+
+lines  file (under src\KeePassGate)
+   110  Bridge\CustomDataStore.cs
+   267  Authority\AuthorityKeys.cs
+   643  Authority\AuthorityStore.cs
+   854  Authority\AdmissionStore.cs
+   150  Authority\RenewalRefusal.cs
+   277  Acl\ProfileNames.cs
+   971  Ui\PendingChanges.cs
+   457  Bridge\NodeDialog.cs
+   537  Acl\AclResolver.cs
+  2179  Bridge\DatabaseWriter.cs
+  1642  Bridge\OpenDatabaseTargets.cs
+  1228  Bridge\GroupDialogs.cs
+  2349  Bridge\KdbxVault.cs
+
+Source files under src\KeePassGate mentioning "CustomData": 32
+
+Occurrences of RecycleBin|InRecycleBin|IsInBin (ripgrep count):
+  Bridge\KdbxVault.cs 20, Bridge\GroupDialogs.cs 4, Bridge\DatabaseWriter.cs 3, KeePassContract.cs 5 (32 total)
+
+Model: crdt_model.py:206-209 counts as damage only an entry whose UUID equals its element id
+("if any(not ok for u, (eid, mt, ok) in rep.entries.items() if u == eid)").
