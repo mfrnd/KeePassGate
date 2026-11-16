@@ -11,10 +11,11 @@ namespace KeePassGate.Ui
     /// </summary>
     /// <remarks>
     /// Two properties matter more than the mechanics. It is idempotent, because a dialog can be
-    /// announced more than once and a second KPG tab would be a defect a user sees. And it is
-    /// total: every failure is logged and reported, never thrown, because this runs on the UI
-    /// thread while a KeePass dialog is being constructed, and an exception there would stop that
-    /// dialog part way and put WinForms' own error dialog over KeePass.
+    /// announced more than once and a second KPG tab would be a defect a user sees. And every
+    /// failure it names is logged rather than thrown, because this runs on the UI thread while a
+    /// KeePass dialog is being constructed. What it does not name is a defect and goes on, having
+    /// left nothing it made behind, to the host's handler of the window event, which catches
+    /// everything and counts it as an incident.
     /// </remarks>
     public sealed class TabPageInjector : IFormDecorator
     {
@@ -177,7 +178,12 @@ namespace KeePassGate.Ui
                 _log.Info("attached the " + _pageText + " tab to " + Describe(form));
                 return true;
             }
-            catch (Exception error) when (Expected.OfUserInterface(error) || Expected.OfReflection(error))
+            // The user interface's failures alone. Nothing this method calls reaches into KeePass by
+            // reflection without catching its own failures, so a failure of reflection arriving
+            // here came out of a panel being built, which is a defect: let through to the host's
+            // handler of the window event, it is counted there as an incident rather than logged
+            // as one more dialog the tab could not be put on.
+            catch (Exception error) when (Expected.OfUserInterface(error))
             {
                 _log.Error("attach failed on " + Describe(form), error);
                 return false;
@@ -298,9 +304,9 @@ namespace KeePassGate.Ui
             };
 
             // Handed back only once it holds the panel, and disposed on every other way out: in a
-            // `finally` rather than under a filter, because `Attach` takes a failure of reflection
-            // for an attach that failed too, and a page made for one of those was left to the
-            // garbage collector every time the dialog opened.
+            // `finally` rather than under a filter, because a failure no filter here names goes on
+            // to the host's handler of the window event, and a page made for one of those was left
+            // to the garbage collector every time the dialog opened.
             var built = false;
             try
             {

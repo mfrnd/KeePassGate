@@ -466,7 +466,23 @@ namespace KeePassGate.Ui
             Controls.Add(_tabs);
             Controls.Add(footer);
 
-            Describe();
+            // The first read of the database, and so the one step here a record can make throw.
+            // A failure it does not name leaves the constructor with the fonts, the tooltip, the
+            // timer and every control already made, and nothing that holds them: disposed here,
+            // since nobody else will ever have the panel to dispose.
+            var described = false;
+            try
+            {
+                Describe();
+                described = true;
+            }
+            finally
+            {
+                if (!described)
+                {
+                    Dispose();
+                }
+            }
 
             // **Last, once there is a whole panel to tell.** The notice lives as long as the
             // plugin, and a constructor that failed after subscribing left a panel nobody would

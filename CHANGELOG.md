@@ -1188,6 +1188,10 @@ none, since it releases both.
   took 0.4 seconds a compilation and minutes inside the limit on compilations; the folded string
   is now kept beside the string and changed where the string changes. What resolves to what is as
   before.
+- **A KPG tab that fails to build in a way the plugin does not expect is counted as an incident**
+  on the plugin's window under Tools, and what the tab had made by then is let go of. It was logged
+  as one more dialog the tab could not be put on and never counted, and the controls, fonts and
+  timer of the half-built tab were left to the garbage collector each time the dialog opened.
 
 ## 0.1.0, 2026-10-25
 

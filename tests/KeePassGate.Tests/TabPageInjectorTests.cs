@@ -520,22 +520,54 @@ namespace KeePassGate.Tests
         {
             // The settings tab's panel threw `InvalidCastException` as it was built, for a record
             // whose certificate named Ed25519, and the page made for it was disposed only for a
-            // failure of the user interface: `Attach` took the reflection failure for an attach that
-            // failed, and the page and everything on it were left to the garbage collector every
-            // time the dialog opened. This panel throws the same as the page takes it, which is the one
-            // moment the page can be seen from outside.
+            // failure of the user interface, and the page and everything on it were left to the
+            // garbage collector every time the dialog opened. This panel throws the same as the
+            // page takes it, which is the one moment the page can be seen from outside.
             var panels = new HeldPanelFactory();
             var injector = new TabPageInjector(panels, _log);
 
             using (var form = Dialogs.WithNestedTabControl("General"))
             {
-                Assert.That(injector.Attach(form), Is.False);
+                Assert.That(() => injector.Attach(form), Throws.InstanceOf<System.InvalidCastException>());
                 Assert.That(Dialogs.TabsOf(form).TabPages.Count, Is.EqualTo(1));
+                Assert.That(injector.AttachedCount, Is.Zero);
 
                 var panel = panels.Last;
                 Assert.That(panel.HeldBy, Is.Not.Null, "the panel never reached a page, so nothing was measured");
                 Assert.That(panel.HeldBy.IsDisposed, Is.True, "the page was left to live on");
                 Assert.That(panel.IsDisposed, Is.True, "and the panel on it");
+            }
+        }
+
+        [Test]
+        public void A_panel_that_fails_in_a_way_no_page_expects_is_counted_as_an_incident()
+        {
+            // A failure of reflection out of a panel being built is a defect, since nothing the
+            // attach calls reaches into KeePass by reflection without catching its own. Taken for
+            // an attach that failed, it was logged as one more dialog the tab could not go on and
+            // never counted, so the plugin's window showed nothing wrong.
+            var incidents = new GateIncidents(_log);
+            var windows = new FakeWindowEventSource();
+            var injector = new TabPageInjector(
+                new HeldPanelFactory(),
+                _log,
+                KeePassContract.DatabaseSettingsTabControlName,
+                GateTab.Text,
+                GateTab.PageControlName,
+                null,
+                incidents);
+
+            using (var form = Dialogs.WithNestedTabControl("General"))
+            using (var host = new GateHost(
+                windows, new TypeNameFormMatcher(form.GetType().FullName), injector, incidents, _log))
+            {
+                host.Start();
+
+                Assert.DoesNotThrow(() => windows.RaiseWindowAdded(form));
+
+                Assert.That(incidents.Count, Is.EqualTo(1));
+                Assert.That(incidents.Recent.Single(), Does.Contain(nameof(System.InvalidCastException)));
+                Assert.That(Dialogs.TabsOf(form).TabPages.Count, Is.EqualTo(1));
             }
         }
 
