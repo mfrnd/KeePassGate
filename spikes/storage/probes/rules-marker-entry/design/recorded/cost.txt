@@ -1,0 +1,6 @@
+entries 10402, groups 501, deletion records 5000, ruled groups 101, ruled entries 100
+building the view (one pass over every entry, every rule entry checked against its identifier, the deletion records into a set): 3,066 ms; entries seen 10402, KPG entries 402, ruled nodes 201
+the pass alone, testing each entry for the KPG.Kind string: 1,798 ms, found 402
+a listing of every entry, each asking for its own document and for every group's above it (56288 lookups, nothing remembered between them): 118,296 ms, refused 0
+the same listing with each group's document remembered for the request: 24,300 ms
+checking one rule entry against its identifier (SHA-256 over 123 bytes): 1,63 microseconds, True

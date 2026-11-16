@@ -1,0 +1,333 @@
+# spikes\storage\probes\rules-marker-entry\design\work\base\A.kdbx
+  838EC716D580FC7AD18FBA5818E7AE49 in '' mod=2026-01-01T01:00:00 autotype=False icon=TerminalEncrypted
+      KPG.After = DC5035A19CA229064B256AE144097FEA,06769489286A07116E49DB3FA8351841
+      KPG.Kind = rule
+      KPG.Node = group/D8156DA91E2B3546AC680D25B9071798
+      KPG.Rule = {"default":"deny","reader":["list"]}
+      Notes = Access rule for KeePassGate. Change it in KeePass, on the KPG tab of this group. Deleting or editing this entry closes the group to KeePassGate clients.
+      Password [protected] = 
+      Title = KeePassGate rule (this group)
+      URL = 
+      UserName = 
+  093BA236682C88E76648471CA8AFB01F in 'KeePassGate' mod=2026-01-01T00:00:00 autotype=False icon=TerminalEncrypted
+      KPG.Data = {"v":"1","node":"group/D8156DA91E2B3546AC680D25B9071798"}
+      KPG.Kind = ruled
+      Notes = KeePassGate data. Managed on the KPG tab in KeePass.
+      Password [protected] = 
+      Title = KPG ruled group D8156DA9
+      URL = 
+      UserName = 
+  32239B9B5ACE59D6DC79B3DCCF2EC11B in 'KeePassGate' mod=2026-01-01T00:00:00 autotype=False icon=TerminalEncrypted
+      KPG.Data = {"v":"1","node":"group/287DC07AF1696B489FE9DA35E2283AFC"}
+      KPG.Kind = ruled
+      Notes = KeePassGate data. Managed on the KPG tab in KeePass.
+      Password [protected] = 
+      Title = KPG ruled group 287DC07A
+      URL = 
+      UserName = 
+  685CE58A2C67DD4C9DC8863481ACD251 in 'KeePassGate' mod=2026-01-01T00:00:00 autotype=False icon=TerminalEncrypted
+      KPG.Data = {"v":"1","node":"group/98F25B9EA36E0140BFE5140792111B86"}
+      KPG.Kind = ruled
+      Notes = KeePassGate data. Managed on the KPG tab in KeePass.
+      Password [protected] = 
+      Title = KPG ruled group 98F25B9E
+      URL = 
+      UserName = 
+  EB54A72D55200A4AFA5CF94F09157051 in 'KeePassGate' mod=2026-01-01T00:00:00 autotype=False icon=TerminalEncrypted
+      KPG.Data = {"v":"1","node":"group/9646CDDEF18E2C4F8EE7F8122854C414"}
+      KPG.Kind = ruled
+      Notes = KeePassGate data. Managed on the KPG tab in KeePass.
+      Password [protected] = 
+      Title = KPG ruled group 9646CDDE
+      URL = 
+      UserName = 
+  AFE9A67A6EE7FE11901EEC970C1A72D9 in 'KeePassGate' mod=2026-01-01T00:00:00 autotype=False icon=TerminalEncrypted
+      KPG.Data = {"v":"1","node":"group/14B64C772E4F904C889F22559FE3C35D"}
+      KPG.Kind = ruled
+      Notes = KeePassGate data. Managed on the KPG tab in KeePass.
+      Password [protected] = 
+      Title = KPG ruled group 14B64C77
+      URL = 
+      UserName = 
+  7455DFFD63D48A89E71886F991243D7D in 'KeePassGate' mod=2026-01-01T00:00:00 autotype=False icon=TerminalEncrypted
+      KPG.Data = {"v":"1","node":"group/37245C1658237443BCD9FF3119433E7D"}
+      KPG.Kind = ruled
+      Notes = KeePassGate data. Managed on the KPG tab in KeePass.
+      Password [protected] = 
+      Title = KPG ruled group 37245C16
+      URL = 
+      UserName = 
+  2F427FA5C80093B110C6000E580D6AF4 in 'KeePassGate' mod=2026-01-01T00:00:00 autotype=False icon=TerminalEncrypted
+      KPG.Data = {"v":"1","node":"group/93158D8DD88E09438D8485DDB5691BE3"}
+      KPG.Kind = ruled
+      Notes = KeePassGate data. Managed on the KPG tab in KeePass.
+      Password [protected] = 
+      Title = KPG ruled group 93158D8D
+      URL = 
+      UserName = 
+  5A7079FE73DA147F2F9CD4C4B711D4FD in 'KeePassGate' mod=2026-01-01T00:00:00 autotype=False icon=TerminalEncrypted
+      KPG.Data = {"v":"1","node":"group/FFD4ED0039C6B643983467504C7A04A4"}
+      KPG.Kind = ruled
+      Notes = KeePassGate data. Managed on the KPG tab in KeePass.
+      Password [protected] = 
+      Title = KPG ruled group FFD4ED00
+      URL = 
+      UserName = 
+  518D7058873C37DA41152AA3E7530F83 in 'KeePassGate' mod=2026-01-01T00:00:00 autotype=False icon=TerminalEncrypted
+      KPG.Data = {"v":"1","node":"group/4BA7058CEAF2D14FB9079D92A1B8313C"}
+      KPG.Kind = ruled
+      Notes = KeePassGate data. Managed on the KPG tab in KeePass.
+      Password [protected] = 
+      Title = KPG ruled group 4BA7058C
+      URL = 
+      UserName = 
+  EDA4F4154E383EFCC7FD39E57F645008 in 'KeePassGate' mod=2026-01-01T00:00:00 autotype=False icon=TerminalEncrypted
+      KPG.Data = {"v":"1","node":"entry/6FECC1A3BCBEB24A8A562CA4D0D4A2A8"}
+      KPG.Kind = ruled
+      Notes = KeePassGate data. Managed on the KPG tab in KeePass.
+      Password [protected] = 
+      Title = KPG ruled entry 6FECC1A3
+      URL = 
+      UserName = 
+  B535E69455DAAFECF73B70EA086B6874 in 'KeePassGate' mod=2026-01-01T00:00:00 autotype=False icon=TerminalEncrypted
+      KPG.Data = {"v":"1","node":"entry/6572367FBB56BB439D8B4E4CAC20DF8D"}
+      KPG.Kind = ruled
+      Notes = KeePassGate data. Managed on the KPG tab in KeePass.
+      Password [protected] = 
+      Title = KPG ruled entry 6572367F
+      URL = 
+      UserName = 
+  9B11626EE14949710955950D4331F648 in 'KeePassGate' mod=2026-01-01T00:00:00 autotype=False icon=TerminalEncrypted
+      KPG.Data = {"v":"1","node":"entry/CE4A6BBE8FE98F4A95204058EA4E486C"}
+      KPG.Kind = ruled
+      Notes = KeePassGate data. Managed on the KPG tab in KeePass.
+      Password [protected] = 
+      Title = KPG ruled entry CE4A6BBE
+      URL = 
+      UserName = 
+  03AFEA29130EB7384F44E473E300376B in 'KeePassGate' mod=2026-01-01T00:00:00 autotype=False icon=TerminalEncrypted
+      KPG.Data = {"v":"1","node":"group/8C58718A8DDA29478A00140532B81B60"}
+      KPG.Kind = ruled
+      Notes = KeePassGate data. Managed on the KPG tab in KeePass.
+      Password [protected] = 
+      Title = KPG ruled group 8C58718A
+      URL = 
+      UserName = 
+  A498A2F2CDBB773A92882F0189B25811 in 'KeePassGate' mod=2026-01-01T00:00:00 autotype=False icon=TerminalEncrypted
+      KPG.Data = {"v":"1","entry":"06769489286A07116E49DB3FA8351841"}
+      KPG.Kind = replaced
+      Notes = KeePassGate data. Managed on the KPG tab in KeePass.
+      Password [protected] = 
+      Title = KPG replaced rule 06769489
+      URL = 
+      UserName = 
+  ECDBDF1BA48529BDD9DF2501F316A81C in 'KeePassGate' mod=2026-01-01T01:00:00 autotype=False icon=TerminalEncrypted
+      KPG.Data = {"v":"1","entry":"DC5035A19CA229064B256AE144097FEA"}
+      KPG.Kind = replaced
+      Notes = KeePassGate data. Managed on the KPG tab in KeePass.
+      Password [protected] = 
+      Title = KPG replaced rule DC5035A1
+      URL = 
+      UserName = 
+  0FC892ACDAED4E3B009A40549B483390 in 'KeePassGate' mod=2026-01-01T01:00:00 autotype=False icon=TerminalEncrypted
+      KPG.Data = {"v":"1","entry":"2B4C70724435E0BC187A225B0656972A"}
+      KPG.Kind = replaced
+      Notes = KeePassGate data. Managed on the KPG tab in KeePass.
+      Password [protected] = 
+      Title = KPG replaced rule 2B4C7072
+      URL = 
+      UserName = 
+  21881126A968195889EB225E1895AE28 in 'KeePassGate' mod=2026-01-01T01:00:00 autotype=False icon=TerminalEncrypted
+      KPG.Data = {"v":"1","entry":"704E16419A9109D5848003378D1E72A4"}
+      KPG.Kind = replaced
+      Notes = KeePassGate data. Managed on the KPG tab in KeePass.
+      Password [protected] = 
+      Title = KPG replaced rule 704E1641
+      URL = 
+      UserName = 
+  FC813366D165D5E4BEE792B3D35599C5 in 'KeePassGate' mod=2026-01-01T01:00:00 autotype=False icon=TerminalEncrypted
+      KPG.Data = {"v":"1","node":"group/A95BA1661A308448AEE69619E481EFA1"}
+      KPG.Kind = ruled
+      Notes = KeePassGate data. Managed on the KPG tab in KeePass.
+      Password [protected] = 
+      Title = KPG ruled group A95BA166
+      URL = 
+      UserName = 
+  861210540B630E0F9D70CD862DB45F09 in 'KeePassGate' mod=2026-01-01T01:00:00 autotype=False icon=TerminalEncrypted
+      KPG.Data = {"v":"1","node":"group/23B5C7A21EB92942AA0D0C11B7F49900"}
+      KPG.Kind = ruled
+      Notes = KeePassGate data. Managed on the KPG tab in KeePass.
+      Password [protected] = 
+      Title = KPG ruled group 23B5C7A2
+      URL = 
+      UserName = 
+  922DA75395593C209B925B9AFEED3D5B in 'KeePassGate' mod=2026-01-01T01:00:00 autotype=False icon=TerminalEncrypted
+      KPG.Data = {"v":"1","node":"group/DDF3659FDE070F449F5D3856F55D7E6D"}
+      KPG.Kind = ruled
+      Notes = KeePassGate data. Managed on the KPG tab in KeePass.
+      Password [protected] = 
+      Title = KPG ruled group DDF3659F
+      URL = 
+      UserName = 
+  73BB31E2784DBA7396B94A799F5600A9 in 'KeePassGate' mod=2026-01-01T01:00:00 autotype=False icon=TerminalEncrypted
+      KPG.Data = {"v":"1","entry":"5BE77BC05F76BEFC86324A03017DF517"}
+      KPG.Kind = replaced
+      Notes = KeePassGate data. Managed on the KPG tab in KeePass.
+      Password [protected] = 
+      Title = KPG replaced rule 5BE77BC0
+      URL = 
+      UserName = 
+  87F55405BC0285E2F3CF313CAECA9791 in 'KeePassGate' mod=2026-01-01T01:00:00 autotype=False icon=TerminalEncrypted
+      KPG.Data = {"v":"1","entry":"48BE0AAFC2BD7129B853C3DE2EF6E44F"}
+      KPG.Kind = replaced
+      Notes = KeePassGate data. Managed on the KPG tab in KeePass.
+      Password [protected] = 
+      Title = KPG replaced rule 48BE0AAF
+      URL = 
+      UserName = 
+  85FB998261C5F3CDAB4035ACB99DFDD4 in 'KeePassGate' mod=2026-01-01T01:00:00 autotype=False icon=TerminalEncrypted
+      KPG.Data = {"v":"1","entry":"7BFEB96474183BCD584F6E18347780C5"}
+      KPG.Kind = replaced
+      Notes = KeePassGate data. Managed on the KPG tab in KeePass.
+      Password [protected] = 
+      Title = KPG replaced rule 7BFEB964
+      URL = 
+      UserName = 
+  608CADEB6149FABF94AEF9AC9E6A616E in 'KeePassGate' mod=2026-01-01T01:00:00 autotype=False icon=TerminalEncrypted
+      KPG.Data = {"v":"1","node":"group/349379DAA8BAB64C96CA479C2C20E193"}
+      KPG.Kind = ruled
+      Notes = KeePassGate data. Managed on the KPG tab in KeePass.
+      Password [protected] = 
+      Title = KPG ruled group 349379DA
+      URL = 
+      UserName = 
+  3197655F3BECD4794A6782B0BB8F817D in 'H-elsewhere/G08-moved-A-rule-B' mod=2026-01-01T00:00:00 autotype=False icon=TerminalEncrypted
+      KPG.After = none
+      KPG.Kind = rule
+      KPG.Node = group/37245C1658237443BCD9FF3119433E7D
+      KPG.Rule = {"default":"inherit","ops":["read","list"],"reader":["read","list"]}
+      Notes = Access rule for KeePassGate. Change it in KeePass, on the KPG tab of this group. Deleting or editing this entry closes the group to KeePassGate clients.
+      Password [protected] = 
+      Title = KeePassGate rule (this group)
+      URL = 
+      UserName = 
+  7E6332AB4B8109CE823F9AAE72339E56 in 'G01-supersede-A' mod=2026-01-01T01:00:00 autotype=False icon=TerminalEncrypted
+      KPG.After = 2B4C70724435E0BC187A225B0656972A
+      KPG.Kind = rule
+      KPG.Node = group/287DC07AF1696B489FE9DA35E2283AFC
+      KPG.Rule = {"default":"deny","reader":["list"]}
+      Notes = Access rule for KeePassGate. Change it in KeePass, on the KPG tab of this group. Deleting or editing this entry closes the group to KeePassGate clients.
+      Password [protected] = 
+      Title = KeePassGate rule (this group)
+      URL = 
+      UserName = 
+  599F33791F4DB5384DA58D56F923F0A7 in 'G02-concurrent' mod=2026-01-01T01:00:00 autotype=False icon=TerminalEncrypted
+      KPG.After = 704E16419A9109D5848003378D1E72A4
+      KPG.Kind = rule
+      KPG.Node = group/98F25B9EA36E0140BFE5140792111B86
+      KPG.Rule = {"default":"inherit","reader":["read"]}
+      Notes = Access rule for KeePassGate. Change it in KeePass, on the KPG tab of this group. Deleting or editing this entry closes the group to KeePassGate clients.
+      Password [protected] = 
+      Title = KeePassGate rule (this group)
+      URL = 
+      UserName = 
+  793B2FE67B9DABBF947154345F39A255 in 'G03-first-both-differ' mod=2026-01-01T01:00:00 autotype=False icon=TerminalEncrypted
+      KPG.After = none
+      KPG.Kind = rule
+      KPG.Node = group/A95BA1661A308448AEE69619E481EFA1
+      KPG.Rule = {"default":"inherit","reader":["read"]}
+      Notes = Access rule for KeePassGate. Change it in KeePass, on the KPG tab of this group. Deleting or editing this entry closes the group to KeePassGate clients.
+      Password [protected] = 
+      Title = KeePassGate rule (this group)
+      URL = 
+      UserName = 
+  4F1A6CBE3A4AA8C3D3716DD4463BB668 in 'G04-first-both-same' mod=2026-01-01T01:00:00 autotype=False icon=TerminalEncrypted
+      KPG.After = none
+      KPG.Kind = rule
+      KPG.Node = group/23B5C7A21EB92942AA0D0C11B7F49900
+      KPG.Rule = {"default":"inherit","reader":["read"]}
+      Notes = Access rule for KeePassGate. Change it in KeePass, on the KPG tab of this group. Deleting or editing this entry closes the group to KeePassGate clients.
+      Password [protected] = 
+      Title = KeePassGate rule (this group)
+      URL = 
+      UserName = 
+  723FFA91719909A61C574349B314BFB8 in 'G05-first-both-same-tie' mod=2026-01-01T01:00:00 autotype=False icon=TerminalEncrypted
+      KPG.After = none
+      KPG.Kind = rule
+      KPG.Node = group/DDF3659FDE070F449F5D3856F55D7E6D
+      KPG.Rule = {"default":"inherit","reader":["read"]}
+      Notes = Access rule for KeePassGate. Change it in KeePass, on the KPG tab of this group. Deleting or editing this entry closes the group to KeePassGate clients.
+      Password [protected] = 
+      Title = KeePassGate rule (this group)
+      URL = 
+      UserName = 
+  42D5DD345B22733634FAA21446C5BB10 in 'G11-group-touched-B' mod=2026-01-01T01:00:00 autotype=False icon=TerminalEncrypted
+      KPG.After = 5BE77BC05F76BEFC86324A03017DF517
+      KPG.Kind = rule
+      KPG.Node = group/4BA7058CEAF2D14FB9079D92A1B8313C
+      KPG.Rule = {"default":"inherit","reader":["read"]}
+      Notes = Access rule for KeePassGate. Change it in KeePass, on the KPG tab of this group. Deleting or editing this entry closes the group to KeePassGate clients.
+      Password [protected] = 
+      Title = KeePassGate rule (this group)
+      URL = 
+      UserName = 
+  0F8F077A488C48E457215D47D7996259 in 'G12-entry-rule-decoupled' mod=2026-01-01T01:00:00 autotype=False icon=TerminalEncrypted
+      KPG.After = 48BE0AAFC2BD7129B853C3DE2EF6E44F
+      KPG.Kind = rule
+      KPG.Node = entry/6FECC1A3BCBEB24A8A562CA4D0D4A2A8
+      KPG.Rule = {"default":"inherit","reader":["read"]}
+      Notes = Access rule for KeePassGate. Change it in KeePass, on the KPG tab of the entry it names. Deleting or editing this entry closes that entry to KeePassGate clients.
+      Password [protected] = 
+      Title = KeePassGate rule (entry 6FECC1A3)
+      URL = 
+      UserName = 
+  C00F7658BA6223AB0712B8124DF01E86 in 'G13-entry-moved-A-rule-B' mod=2026-01-01T00:00:00 autotype=False icon=TerminalEncrypted
+      KPG.After = none
+      KPG.Kind = rule
+      KPG.Node = entry/6572367FBB56BB439D8B4E4CAC20DF8D
+      KPG.Rule = {"default":"inherit","ops":["read","list"],"reader":["read","list"]}
+      Notes = Access rule for KeePassGate. Change it in KeePass, on the KPG tab of the entry it names. Deleting or editing this entry closes that entry to KeePassGate clients.
+      Password [protected] = 
+      Title = KeePassGate rule (entry 6572367F)
+      URL = 
+      UserName = 
+  B16ABB85D447992A32C7B34E0C5EBE1C in 'G14-entry-moved-rule-both' mod=2026-01-01T01:00:00 autotype=False icon=TerminalEncrypted
+      KPG.After = 7BFEB96474183BCD584F6E18347780C5
+      KPG.Kind = rule
+      KPG.Node = entry/CE4A6BBE8FE98F4A95204058EA4E486C
+      KPG.Rule = {"default":"inherit","reader":["read"]}
+      Notes = Access rule for KeePassGate. Change it in KeePass, on the KPG tab of the entry it names. Deleting or editing this entry closes that entry to KeePassGate clients.
+      Password [protected] = 
+      Title = KeePassGate rule (entry CE4A6BBE)
+      URL = 
+      UserName = 
+  2DA41D6D791B7C90627BB0DBDEDE9775 in 'G15-tie-differ' mod=2026-01-01T01:00:00 autotype=False icon=TerminalEncrypted
+      KPG.After = none
+      KPG.Kind = rule
+      KPG.Node = group/349379DAA8BAB64C96CA479C2C20E193
+      KPG.Rule = {"default":"inherit","reader":["read"]}
+      Notes = Access rule for KeePassGate. Change it in KeePass, on the KPG tab of this group. Deleting or editing this entry closes the group to KeePassGate clients.
+      Password [protected] = 
+      Title = KeePassGate rule (this group)
+      URL = 
+      UserName = 
+  00832D6531A3E3F18E0A518C9DBB6568 in 'Recycle Bin' mod=2026-01-01T00:00:00 autotype=False icon=TerminalEncrypted
+      KPG.After = none
+      KPG.Kind = rule
+      KPG.Node = group/9646CDDEF18E2C4F8EE7F8122854C414
+      KPG.Rule = {"default":"inherit","ops":["read","list"],"reader":["read","list"]}
+      Notes = Access rule for KeePassGate. Change it in KeePass, on the KPG tab of this group. Deleting or editing this entry closes the group to KeePassGate clients.
+      Password [protected] = 
+      Title = KeePassGate rule (this group)
+      URL = 
+      UserName = 
+  2443D2ADA25643173A7240F32170C448 in 'Recycle Bin/G09-group-binned-A-rule-B' mod=2026-01-01T00:00:00 autotype=False icon=TerminalEncrypted
+      KPG.After = none
+      KPG.Kind = rule
+      KPG.Node = group/93158D8DD88E09438D8485DDB5691BE3
+      KPG.Rule = {"default":"inherit","ops":["read","list"],"reader":["read","list"]}
+      Notes = Access rule for KeePassGate. Change it in KeePass, on the KPG tab of this group. Deleting or editing this entry closes the group to KeePassGate clients.
+      Password [protected] = 
+      Title = KeePassGate rule (this group)
+      URL = 
+      UserName = 

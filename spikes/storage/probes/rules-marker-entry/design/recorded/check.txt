@@ -1,0 +1,29 @@
+results of merges read: 28 cells, 636 verdicts
+  of which imports with new identifiers: 2 cells, 76 verdicts
+  merges that match identifiers: 26 cells, 560 verdicts, wider there: 0
+  by kind: {'KeePassLib': [10, 236], 'keepassxc-cli merge': [8, 160], 'chain': [4, 80], 'back and forth': [2, 80], 'then hand deletion': [4, 80]}
+  G00   at most list       got {'list': 28, 'REFUSED': 2}
+  G01   at most list       got {'list': 25, 'REFUSED': 7}
+  G02   at most read       got {'read': 29, 'REFUSED': 2, 'read+list': 1}
+  G03   at most read       got {'read': 29, 'REFUSED': 2, 'read+list': 1}
+  G04   at most read       got {'read': 30, 'REFUSED': 2}
+  G05   at most read       got {'read': 30, 'REFUSED': 2}
+  G06   at most list+read  got {'REFUSED': 20, 'read+list': 12}
+  G07   at most list+read  got {'REFUSED': 20, 'read+list': 12}
+  G08   at most read       got {'read': 29, 'REFUSED': 3}
+  G09   at most read       got {'out-of-reach': 18, 'REFUSED': 2, 'read': 12}
+  G10   at most read       got {'read': 29, 'REFUSED': 1}
+  G11   at most read       got {'read': 29, 'REFUSED': 3}
+  G12   at most list       got {'list': 28, 'REFUSED': 4}
+  G12x  at most read       got {'read': 29, 'REFUSED': 3}
+  G13   at most list       got {'list': 28, 'REFUSED': 4}
+  G13x  at most read       got {'read': 29, 'REFUSED': 3}
+  G14   at most list       got {'list': 28, 'REFUSED': 4}
+  G14x  at most read       got {'read': 29, 'REFUSED': 2, 'read+list': 1}
+  G15   at most read       got {'read': 29, 'REFUSED': 2, 'read+list': 1}
+  G16   at most list+read  got {'read+list': 29, 'REFUSED': 3}
+wider than the last decision: 4
+    ('KeePassLib 2.62, A merged into B, CreateNewUuids', 'G02', 'read+list')
+    ('KeePassLib 2.62, A merged into B, CreateNewUuids', 'G03', 'read+list')
+    ('KeePassLib 2.62, A merged into B, CreateNewUuids', 'G14x', 'read+list')
+    ('KeePassLib 2.62, A merged into B, CreateNewUuids', 'G15', 'read+list')

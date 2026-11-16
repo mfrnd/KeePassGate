@@ -1,0 +1,1165 @@
+## signatures
+keepassxc-cli 2.4.2 : Valid CN="DroidMonkey Apps, LLC", O="DroidMonkey Apps, LLC", STREET=3474 Raintree Circle, L=Suffolk, S=VA, PostalCode=23435, C=US
+keepassxc-cli 2.6.6 : Valid CN="DroidMonkey Apps, LLC", O="DroidMonkey Apps, LLC", STREET=6653 Audrey Kay Ct, L=Franconia, S=Virginia, PostalCode=22315, C=US
+keepassxc-cli 2.7.12 : Valid CN="DroidMonkey Apps, LLC", O="DroidMonkey Apps, LLC", S=Virginia, C=US
+keepassxc-cli 2.8.0 : Valid CN="DroidMonkey Apps, LLC", O="DroidMonkey Apps, LLC", S=Virginia, C=US
+
+## inputs
+# base/base.kdbx kdbx 4.0 entries=46 kpg=27 deletionRecords=1 bin=none
+  G00-root @'' : wide (one rule) reader=read+list entries=[rule:wide; user at the root]
+  G01-supersede-A @'' : wide (one rule) reader=read+list entries=[X-G01; rule:wide]
+  G02-concurrent @'' : wide (one rule) reader=read+list entries=[X-G02; rule:wide]
+  G03-first-both-differ @'' : SILENCE (never ruled) reader=read+list entries=[X-G03]
+  G04-first-both-same @'' : SILENCE (never ruled) reader=read+list entries=[X-G04]
+  G05-first-both-same-tie @'' : SILENCE (never ruled) reader=read+list entries=[X-G05]
+  G06-marker-binned-A @'' : wide (one rule) reader=read+list entries=[X-G06; rule:wide]
+  G07-marker-deleted-A @'' : wide (one rule) reader=read+list entries=[X-G07; rule:wide]
+  G08-moved-A-rule-B @'' : wide (one rule) reader=read+list entries=[X-G08; rule:wide]
+  G09-group-binned-A-rule-B @'' : wide (one rule) reader=read+list entries=[X-G09; rule:wide]
+  G10-group-deleted-A-rule-B @'' : wide (one rule) reader=read+list entries=[X-G10; rule:wide]
+  G11-group-touched-B @'' : wide (one rule) reader=read+list entries=[X-G11; rule:wide]
+  G12-entry-rule-decoupled @'' : SILENCE (never ruled) reader=read+list entries=[X-G12; rule:wide:for-entry]
+    entry X-G12 in 'G12-entry-rule-decoupled' : own wide (one rule); its group SILENCE; password invented-X-G12 hist=0 reader=read+list
+  G13-entry-moved-A-rule-B @'' : SILENCE (never ruled) reader=read+list entries=[X-G13; rule:wide:for-entry]
+    entry X-G13 in 'G13-entry-moved-A-rule-B' : own wide (one rule); its group SILENCE; password invented-X-G13 hist=0 reader=read+list
+  G14-entry-moved-rule-both @'' : SILENCE (never ruled) reader=read+list entries=[X-G14; rule:wide:for-entry]
+    entry X-G14 in 'G14-entry-moved-rule-both' : own wide (one rule); its group SILENCE; password invented-X-G14 hist=0 reader=read+list
+  G15-tie-differ @'' : SILENCE (never ruled) reader=read+list entries=[X-G15]
+  G16-marker-lost-no-record-A @'' : wide (one rule) reader=read+list entries=[X-G16; rule:wide]
+# base/A.kdbx kdbx 4.0 entries=56 kpg=38 deletionRecords=11 bin='Recycle Bin'
+  G00-root @'' : sealed (one rule) reader=list entries=[user at the root; rule:sealed]
+  G01-supersede-A @'' : sealed (one rule) reader=list entries=[X-G01; rule:sealed]
+  G02-concurrent @'' : narrow (one rule) reader=read entries=[X-G02; rule:narrow]
+  G03-first-both-differ @'' : narrow (one rule) reader=read entries=[X-G03; rule:narrow]
+  G04-first-both-same @'' : narrow (one rule) reader=read entries=[X-G04; rule:narrow]
+  G05-first-both-same-tie @'' : narrow (one rule) reader=read entries=[X-G05; rule:narrow]
+  G06-marker-binned-A @'' : REFUSE (ruled, and no rule entry is left) reader=REFUSED entries=[X-G06]
+  G07-marker-deleted-A @'' : REFUSE (ruled, and no rule entry is left) reader=REFUSED entries=[X-G07]
+  G08-moved-A-rule-B @'H-elsewhere' : wide (one rule) reader=read+list entries=[X-G08; rule:wide]
+  G09-group-binned-A-rule-B @'Recycle Bin' : [in the bin, out of reach] REFUSE (ruled, and no rule entry is left) reader=out-of-reach entries=[X-G09; rule:wide]
+  G10-group-deleted-A-rule-B : GROUP ABSENT
+  G11-group-touched-B @'' : narrow (one rule) reader=read entries=[X-G11; rule:narrow]
+  G12-entry-rule-decoupled @'' : SILENCE (never ruled) reader=list entries=[X-G12; rule:narrow:for-entry]
+    entry X-G12 in 'G12-entry-rule-decoupled' : own narrow (one rule); its group SILENCE; password invented-X-G12 hist=0 reader=read
+  G13-entry-moved-A-rule-B @'' : SILENCE (never ruled) reader=list entries=[rule:wide:for-entry]
+    entry X-G13 in 'H-elsewhere' : own wide (one rule); its group SILENCE; password invented-X-G13 hist=0 reader=read+list
+  G14-entry-moved-rule-both @'' : SILENCE (never ruled) reader=list entries=[X-G14; rule:narrow:for-entry]
+    entry X-G14 in 'G14-entry-moved-rule-both' : own narrow (one rule); its group SILENCE; password invented-X-G14 hist=0 reader=read
+  G15-tie-differ @'' : narrow (one rule) reader=read entries=[X-G15; rule:narrow]
+  G16-marker-lost-no-record-A @'' : REFUSE (ruled, and no rule entry is left) reader=REFUSED entries=[X-G16]
+  (in 'Recycle Bin', the bin: rule:wide)
+# base/B.kdbx kdbx 4.0 entries=60 kpg=41 deletionRecords=7 bin=none
+  G00-root @'' : wide (one rule) reader=read+list entries=[rule:wide; user at the root]
+  G01-supersede-A @'' : wide (one rule) reader=read+list entries=[X-G01; rule:wide]
+  G02-concurrent @'' : other (one rule) reader=read+list entries=[X-G02; rule:other]
+  G03-first-both-differ @'' : other (one rule) reader=read+list entries=[X-G03; rule:other]
+  G04-first-both-same @'' : narrow (one rule) reader=read entries=[X-G04; rule:narrow]
+  G05-first-both-same-tie @'' : narrow (one rule) reader=read entries=[X-G05; rule:narrow]
+  G06-marker-binned-A @'' : wide (one rule) reader=read+list entries=[X-G06; rule:wide]
+  G07-marker-deleted-A @'' : wide (one rule) reader=read+list entries=[X-G07; rule:wide]
+  G08-moved-A-rule-B @'' : narrow (one rule) reader=read entries=[X-G08; rule:narrow]
+  G09-group-binned-A-rule-B @'' : narrow (one rule) reader=read entries=[X-G09; rule:narrow]
+  G10-group-deleted-A-rule-B @'' : narrow (one rule) reader=read entries=[X-G10; rule:narrow]
+  G11-group-touched-B @'' : wide (one rule) reader=read+list entries=[X-G11; rule:wide]
+  G12-entry-rule-decoupled @'' : SILENCE (never ruled) reader=read+list entries=[X-G12; rule:wide:for-entry]
+    entry X-G12 in 'G12-entry-rule-decoupled' : own wide (one rule); its group SILENCE; password changed-in-B hist=1 reader=read+list
+  G13-entry-moved-A-rule-B @'' : SILENCE (never ruled) reader=read+list entries=[X-G13; rule:narrow:for-entry]
+    entry X-G13 in 'G13-entry-moved-A-rule-B' : own narrow (one rule); its group SILENCE; password invented-X-G13 hist=0 reader=read
+  G14-entry-moved-rule-both @'' : SILENCE (never ruled) reader=read+list entries=[]
+    entry X-G14 in 'H-elsewhere' : own other (one rule); its group SILENCE; password invented-X-G14 hist=0 reader=read+list
+  G15-tie-differ @'' : other (one rule) reader=read+list entries=[X-G15; rule:other]
+  G16-marker-lost-no-record-A @'' : wide (one rule) reader=read+list entries=[X-G16; rule:wide]
+  (in 'H-elsewhere': rule:other:for-entry)
+
+## KeePassLib 2.62, B merged into A, Synchronize
+# kp-intoA-Synchronize/result.kdbx kdbx 4.0 entries=66 kpg=48 deletionRecords=13 bin='Recycle Bin'
+  G00-root @'' : sealed (one rule) reader=list entries=[user at the root; rule:sealed]
+  G01-supersede-A @'' : sealed (one rule) reader=list entries=[X-G01; rule:sealed]
+  G02-concurrent @'' : {"default":"inherit","ops":[],"reader":["read"]} (2 rules that never saw each other: the narrower of them) reader=read entries=[X-G02; rule:other; rule:narrow]
+  G03-first-both-differ @'' : {"default":"inherit","ops":[],"reader":["read"]} (2 rules that never saw each other: the narrower of them) reader=read entries=[X-G03; rule:other; rule:narrow]
+  G04-first-both-same @'' : narrow (one rule) reader=read entries=[X-G04; rule:narrow:hist1]
+  G05-first-both-same-tie @'' : narrow (one rule) reader=read entries=[X-G05; rule:narrow]
+  G06-marker-binned-A @'' : REFUSE (ruled, and no rule entry is left) reader=REFUSED entries=[X-G06]
+  G07-marker-deleted-A @'' : REFUSE (ruled, and no rule entry is left) reader=REFUSED entries=[X-G07]
+  G08-moved-A-rule-B @'H-elsewhere' : narrow (one rule) reader=read entries=[X-G08; rule:narrow]
+  G09-group-binned-A-rule-B @'Recycle Bin' : [in the bin, out of reach] REFUSE (ruled, and no rule entry is left) reader=out-of-reach entries=[X-G09; rule:narrow]
+  G10-group-deleted-A-rule-B @'' : narrow (one rule) reader=read entries=[rule:narrow]
+  G11-group-touched-B @'' : narrow (one rule) reader=read entries=[X-G11; rule:narrow]
+  G12-entry-rule-decoupled @'' : SILENCE (never ruled) reader=list entries=[X-G12; rule:narrow:for-entry]
+    entry X-G12 in 'G12-entry-rule-decoupled' : own narrow (one rule); its group SILENCE; password changed-in-B hist=1 reader=read
+  G13-entry-moved-A-rule-B @'' : SILENCE (never ruled) reader=list entries=[rule:narrow:for-entry]
+    entry X-G13 in 'H-elsewhere' : own narrow (one rule); its group SILENCE; password invented-X-G13 hist=0 reader=read
+  G14-entry-moved-rule-both @'' : SILENCE (never ruled) reader=list entries=[rule:narrow:for-entry]
+    entry X-G14 in 'H-elsewhere' : own {"default":"inherit","ops":[],"reader":["read"]} (2 rules that never saw each other: the narrower of them); its group SILENCE; password invented-X-G14 hist=0 reader=read
+  G15-tie-differ @'' : {"default":"inherit","ops":[],"reader":["read"]} (2 rules that never saw each other: the narrower of them) reader=read entries=[X-G15; rule:other; rule:narrow]
+  G16-marker-lost-no-record-A @'' : wide (one rule) reader=read+list entries=[X-G16; rule:wide]
+  (in 'H-elsewhere': rule:other:for-entry)
+  (in 'Recycle Bin', the bin: rule:wide)
+
+## KeePassLib 2.62, B merged into A, OverwriteIfNewer
+# kp-intoA-OverwriteIfNewer/result.kdbx kdbx 4.0 entries=69 kpg=51 deletionRecords=10 bin='Recycle Bin'
+  G00-root @'' : sealed (one rule) reader=list entries=[user at the root; rule:sealed]
+  G01-supersede-A @'' : sealed (one rule) reader=list entries=[X-G01; rule:sealed]
+  G02-concurrent @'' : {"default":"inherit","ops":[],"reader":["read"]} (2 rules that never saw each other: the narrower of them) reader=read entries=[X-G02; rule:other; rule:narrow]
+  G03-first-both-differ @'' : {"default":"inherit","ops":[],"reader":["read"]} (2 rules that never saw each other: the narrower of them) reader=read entries=[X-G03; rule:other; rule:narrow]
+  G04-first-both-same @'' : narrow (one rule) reader=read entries=[X-G04; rule:narrow:hist1]
+  G05-first-both-same-tie @'' : narrow (one rule) reader=read entries=[X-G05; rule:narrow]
+  G06-marker-binned-A @'' : REFUSE (ruled, and no rule entry is left) reader=REFUSED entries=[X-G06]
+  G07-marker-deleted-A @'' : REFUSE (ruled, and no rule entry is left) reader=REFUSED entries=[X-G07]
+  G08-moved-A-rule-B @'H-elsewhere' : narrow (one rule, 1 replaced one(s) still here) reader=read entries=[X-G08; rule:narrow; rule:wide]
+  G09-group-binned-A-rule-B @'Recycle Bin' : [in the bin, out of reach] REFUSE (ruled, and no rule entry is left) reader=out-of-reach entries=[X-G09; rule:narrow; rule:wide]
+  G10-group-deleted-A-rule-B @'' : narrow (one rule) reader=read entries=[rule:narrow]
+  G11-group-touched-B @'' : narrow (one rule) reader=read entries=[X-G11; rule:narrow]
+  G12-entry-rule-decoupled @'' : SILENCE (never ruled) reader=list entries=[X-G12; rule:narrow:for-entry]
+    entry X-G12 in 'G12-entry-rule-decoupled' : own narrow (one rule); its group SILENCE; password changed-in-B hist=1 reader=read
+  G13-entry-moved-A-rule-B @'' : SILENCE (never ruled) reader=list entries=[rule:wide:for-entry; rule:narrow:for-entry]
+    entry X-G13 in 'H-elsewhere' : own narrow (one rule, 1 replaced one(s) still here); its group SILENCE; password invented-X-G13 hist=0 reader=read
+  G14-entry-moved-rule-both @'' : SILENCE (never ruled) reader=list entries=[X-G14; rule:narrow:for-entry]
+    entry X-G14 in 'G14-entry-moved-rule-both' : own {"default":"inherit","ops":[],"reader":["read"]} (2 rules that never saw each other: the narrower of them); its group SILENCE; password invented-X-G14 hist=0 reader=read
+  G15-tie-differ @'' : {"default":"inherit","ops":[],"reader":["read"]} (2 rules that never saw each other: the narrower of them) reader=read entries=[X-G15; rule:other; rule:narrow]
+  G16-marker-lost-no-record-A @'' : wide (one rule) reader=read+list entries=[X-G16; rule:wide]
+  (in 'H-elsewhere': rule:other:for-entry)
+  (in 'Recycle Bin', the bin: rule:wide)
+
+## KeePassLib 2.62, B merged into A, OverwriteExisting
+# kp-intoA-OverwriteExisting/result.kdbx kdbx 4.0 entries=69 kpg=51 deletionRecords=10 bin='Recycle Bin'
+  G00-root @'' : sealed (one rule) reader=list entries=[user at the root; rule:sealed]
+  G01-supersede-A @'' : sealed (one rule) reader=list entries=[X-G01; rule:sealed]
+  G02-concurrent @'' : {"default":"inherit","ops":[],"reader":["read"]} (2 rules that never saw each other: the narrower of them) reader=read entries=[X-G02; rule:other; rule:narrow]
+  G03-first-both-differ @'' : {"default":"inherit","ops":[],"reader":["read"]} (2 rules that never saw each other: the narrower of them) reader=read entries=[X-G03; rule:other; rule:narrow]
+  G04-first-both-same @'' : narrow (one rule) reader=read entries=[X-G04; rule:narrow:hist1]
+  G05-first-both-same-tie @'' : narrow (one rule) reader=read entries=[X-G05; rule:narrow]
+  G06-marker-binned-A @'' : REFUSE (ruled, and no rule entry is left) reader=REFUSED entries=[X-G06]
+  G07-marker-deleted-A @'' : REFUSE (ruled, and no rule entry is left) reader=REFUSED entries=[X-G07]
+  G08-moved-A-rule-B @'H-elsewhere' : narrow (one rule, 1 replaced one(s) still here) reader=read entries=[X-G08; rule:narrow; rule:wide]
+  G09-group-binned-A-rule-B @'Recycle Bin' : [in the bin, out of reach] REFUSE (ruled, and no rule entry is left) reader=out-of-reach entries=[X-G09; rule:narrow; rule:wide]
+  G10-group-deleted-A-rule-B @'' : narrow (one rule) reader=read entries=[rule:narrow]
+  G11-group-touched-B @'' : narrow (one rule) reader=read entries=[X-G11; rule:narrow]
+  G12-entry-rule-decoupled @'' : SILENCE (never ruled) reader=list entries=[X-G12; rule:narrow:for-entry]
+    entry X-G12 in 'G12-entry-rule-decoupled' : own narrow (one rule); its group SILENCE; password changed-in-B hist=1 reader=read
+  G13-entry-moved-A-rule-B @'' : SILENCE (never ruled) reader=list entries=[rule:wide:for-entry; rule:narrow:for-entry]
+    entry X-G13 in 'H-elsewhere' : own narrow (one rule, 1 replaced one(s) still here); its group SILENCE; password invented-X-G13 hist=0 reader=read
+  G14-entry-moved-rule-both @'' : SILENCE (never ruled) reader=list entries=[X-G14; rule:narrow:for-entry]
+    entry X-G14 in 'G14-entry-moved-rule-both' : own {"default":"inherit","ops":[],"reader":["read"]} (2 rules that never saw each other: the narrower of them); its group SILENCE; password invented-X-G14 hist=0 reader=read
+  G15-tie-differ @'' : {"default":"inherit","ops":[],"reader":["read"]} (2 rules that never saw each other: the narrower of them) reader=read entries=[X-G15; rule:other; rule:narrow]
+  G16-marker-lost-no-record-A @'' : wide (one rule) reader=read+list entries=[X-G16; rule:wide]
+  (in 'H-elsewhere': rule:other:for-entry)
+  (in 'Recycle Bin', the bin: rule:wide)
+
+## KeePassLib 2.62, B merged into A, KeepExisting
+# kp-intoA-KeepExisting/result.kdbx kdbx 4.0 entries=69 kpg=51 deletionRecords=10 bin='Recycle Bin'
+  G00-root @'' : sealed (one rule) reader=list entries=[user at the root; rule:sealed]
+  G01-supersede-A @'' : sealed (one rule) reader=list entries=[X-G01; rule:sealed]
+  G02-concurrent @'' : {"default":"inherit","ops":[],"reader":["read"]} (2 rules that never saw each other: the narrower of them) reader=read entries=[X-G02; rule:other; rule:narrow]
+  G03-first-both-differ @'' : {"default":"inherit","ops":[],"reader":["read"]} (2 rules that never saw each other: the narrower of them) reader=read entries=[X-G03; rule:other; rule:narrow]
+  G04-first-both-same @'' : narrow (one rule) reader=read entries=[X-G04; rule:narrow:hist1]
+  G05-first-both-same-tie @'' : narrow (one rule) reader=read entries=[X-G05; rule:narrow]
+  G06-marker-binned-A @'' : REFUSE (ruled, and no rule entry is left) reader=REFUSED entries=[X-G06]
+  G07-marker-deleted-A @'' : REFUSE (ruled, and no rule entry is left) reader=REFUSED entries=[X-G07]
+  G08-moved-A-rule-B @'H-elsewhere' : narrow (one rule, 1 replaced one(s) still here) reader=read entries=[X-G08; rule:narrow; rule:wide]
+  G09-group-binned-A-rule-B @'Recycle Bin' : [in the bin, out of reach] REFUSE (ruled, and no rule entry is left) reader=out-of-reach entries=[X-G09; rule:narrow; rule:wide]
+  G10-group-deleted-A-rule-B @'' : narrow (one rule) reader=read entries=[rule:narrow]
+  G11-group-touched-B @'' : narrow (one rule) reader=read entries=[X-G11; rule:narrow]
+  G12-entry-rule-decoupled @'' : SILENCE (never ruled) reader=list entries=[X-G12; rule:narrow:for-entry]
+    entry X-G12 in 'G12-entry-rule-decoupled' : own narrow (one rule); its group SILENCE; password invented-X-G12 hist=1 reader=read
+  G13-entry-moved-A-rule-B @'' : SILENCE (never ruled) reader=list entries=[rule:wide:for-entry; rule:narrow:for-entry]
+    entry X-G13 in 'H-elsewhere' : own narrow (one rule, 1 replaced one(s) still here); its group SILENCE; password invented-X-G13 hist=0 reader=read
+  G14-entry-moved-rule-both @'' : SILENCE (never ruled) reader=list entries=[X-G14; rule:narrow:for-entry]
+    entry X-G14 in 'G14-entry-moved-rule-both' : own {"default":"inherit","ops":[],"reader":["read"]} (2 rules that never saw each other: the narrower of them); its group SILENCE; password invented-X-G14 hist=0 reader=read
+  G15-tie-differ @'' : {"default":"inherit","ops":[],"reader":["read"]} (2 rules that never saw each other: the narrower of them) reader=read entries=[X-G15; rule:other; rule:narrow]
+  G16-marker-lost-no-record-A @'' : wide (one rule) reader=read+list entries=[X-G16; rule:wide]
+  (in 'H-elsewhere': rule:other:for-entry)
+  (in 'Recycle Bin', the bin: rule:wide)
+
+## KeePassLib 2.62, B merged into A, CreateNewUuids
+# kp-intoA-CreateNewUuids/result.kdbx kdbx 4.0 entries=116 kpg=79 deletionRecords=11 bin='Recycle Bin'
+  G00-root @'' : REFUSE (an entry here claims to be a rule and is not one) reader=REFUSED entries=[user at the root; rule:sealed; rule:wide:UNBOUND; user at the root]
+  G01-supersede-A @'' : sealed (one rule) reader=list entries=[X-G01; rule:sealed]
+  G01-supersede-A @'' : REFUSE (an entry here claims to be a rule and is not one) reader=REFUSED entries=[X-G01; rule:wide:UNBOUND]
+  G02-concurrent @'' : narrow (one rule) reader=read entries=[X-G02; rule:narrow]
+  G02-concurrent @'' : REFUSE (an entry here claims to be a rule and is not one) reader=REFUSED entries=[X-G02; rule:other:UNBOUND]
+  G03-first-both-differ @'' : narrow (one rule) reader=read entries=[X-G03; rule:narrow]
+  G03-first-both-differ @'' : REFUSE (an entry here claims to be a rule and is not one) reader=REFUSED entries=[X-G03; rule:other:UNBOUND]
+  G04-first-both-same @'' : narrow (one rule) reader=read entries=[X-G04; rule:narrow]
+  G04-first-both-same @'' : REFUSE (an entry here claims to be a rule and is not one) reader=REFUSED entries=[X-G04; rule:narrow:UNBOUND]
+  G05-first-both-same-tie @'' : narrow (one rule) reader=read entries=[X-G05; rule:narrow]
+  G05-first-both-same-tie @'' : REFUSE (an entry here claims to be a rule and is not one) reader=REFUSED entries=[X-G05; rule:narrow:UNBOUND]
+  G06-marker-binned-A @'' : REFUSE (ruled, and no rule entry is left) reader=REFUSED entries=[X-G06]
+  G06-marker-binned-A @'' : REFUSE (an entry here claims to be a rule and is not one) reader=REFUSED entries=[X-G06; rule:wide:UNBOUND]
+  G07-marker-deleted-A @'' : REFUSE (ruled, and no rule entry is left) reader=REFUSED entries=[X-G07]
+  G07-marker-deleted-A @'' : REFUSE (an entry here claims to be a rule and is not one) reader=REFUSED entries=[X-G07; rule:wide:UNBOUND]
+  G08-moved-A-rule-B @'' : REFUSE (an entry here claims to be a rule and is not one) reader=REFUSED entries=[X-G08; rule:narrow:UNBOUND]
+  G08-moved-A-rule-B @'H-elsewhere' : REFUSE (every rule entry left is a replaced or deleted one) reader=REFUSED entries=[X-G08; rule:wide]
+  G09-group-binned-A-rule-B @'' : REFUSE (an entry here claims to be a rule and is not one) reader=REFUSED entries=[X-G09; rule:narrow:UNBOUND]
+  G09-group-binned-A-rule-B @'Recycle Bin' : [in the bin, out of reach] REFUSE (ruled, and no rule entry is left) reader=out-of-reach entries=[X-G09; rule:wide]
+  G10-group-deleted-A-rule-B @'' : REFUSE (an entry here claims to be a rule and is not one) reader=REFUSED entries=[X-G10; rule:narrow:UNBOUND]
+  G11-group-touched-B @'' : narrow (one rule) reader=read entries=[X-G11; rule:narrow]
+  G11-group-touched-B @'' : REFUSE (an entry here claims to be a rule and is not one) reader=REFUSED entries=[X-G11; rule:wide:UNBOUND]
+  G12-entry-rule-decoupled @'' : SILENCE (never ruled) reader=REFUSED entries=[X-G12; rule:narrow:for-entry]
+  G12-entry-rule-decoupled @'' : REFUSE (an entry here claims to be a rule and is not one) reader=REFUSED entries=[X-G12; rule:wide:for-entry:UNBOUND]
+    entry X-G12 in 'G12-entry-rule-decoupled' : own narrow (one rule); its group SILENCE; password invented-X-G12 hist=0 reader=read
+    entry X-G12 in 'G12-entry-rule-decoupled' : own SILENCE (never ruled); its group REFUSE; password changed-in-B hist=1 reader=REFUSED
+  G13-entry-moved-A-rule-B @'' : SILENCE (never ruled) reader=REFUSED entries=[rule:wide:for-entry]
+  G13-entry-moved-A-rule-B @'' : REFUSE (an entry here claims to be a rule and is not one) reader=REFUSED entries=[X-G13; rule:narrow:for-entry:UNBOUND]
+    entry X-G13 in 'H-elsewhere' : own REFUSE (every rule entry left is a replaced or deleted one); its group SILENCE; password invented-X-G13 hist=0 reader=REFUSED
+    entry X-G13 in 'G13-entry-moved-A-rule-B' : own SILENCE (never ruled); its group REFUSE; password invented-X-G13 hist=0 reader=REFUSED
+  G14-entry-moved-rule-both @'' : SILENCE (never ruled) reader=REFUSED entries=[X-G14; rule:narrow:for-entry]
+  G14-entry-moved-rule-both @'' : SILENCE (never ruled) reader=REFUSED entries=[]
+    entry X-G14 in 'G14-entry-moved-rule-both' : own narrow (one rule); its group SILENCE; password invented-X-G14 hist=0 reader=read
+    entry X-G14 in 'H-elsewhere' : own SILENCE (never ruled); its group REFUSE; password invented-X-G14 hist=0 reader=REFUSED
+  G15-tie-differ @'' : narrow (one rule) reader=read entries=[X-G15; rule:narrow]
+  G15-tie-differ @'' : REFUSE (an entry here claims to be a rule and is not one) reader=REFUSED entries=[X-G15; rule:other:UNBOUND]
+  G16-marker-lost-no-record-A @'' : REFUSE (ruled, and no rule entry is left) reader=REFUSED entries=[X-G16]
+  G16-marker-lost-no-record-A @'' : REFUSE (an entry here claims to be a rule and is not one) reader=REFUSED entries=[X-G16; rule:wide:UNBOUND]
+  (in 'Recycle Bin', the bin: rule:wide)
+  (in 'H-elsewhere', CLOSED: rule:other:for-entry:UNBOUND)
+
+## keepassxc-cli 2.4.2 merge, B merged into A, exit 0
+# xc-intoA-2.4.2/target.kdbx kdbx 4.0 entries=75 kpg=56 deletionRecords=11 bin='Recycle Bin'
+  G00-root @'' : sealed (one rule, 1 replaced one(s) still here) reader=list entries=[user at the root; rule:sealed; rule:wide]
+  G01-supersede-A @'' : sealed (one rule, 1 replaced one(s) still here) reader=list entries=[X-G01; rule:sealed; rule:wide]
+  G02-concurrent @'' : {"default":"inherit","ops":[],"reader":["read"]} (2 rules that never saw each other: the narrower of them) reader=read entries=[X-G02; rule:narrow; rule:other]
+  G03-first-both-differ @'' : {"default":"inherit","ops":[],"reader":["read"]} (2 rules that never saw each other: the narrower of them) reader=read entries=[X-G03; rule:narrow; rule:other]
+  G04-first-both-same @'' : narrow (one rule) reader=read entries=[X-G04; rule:narrow:hist1]
+  G05-first-both-same-tie @'' : narrow (one rule) reader=read entries=[X-G05; rule:narrow]
+  G06-marker-binned-A @'' : REFUSE (ruled, and no rule entry is left) reader=REFUSED entries=[X-G06]
+  G07-marker-deleted-A @'' : REFUSE (every rule entry left is a replaced or deleted one) reader=REFUSED entries=[X-G07; rule:wide]
+  G08-moved-A-rule-B @'H-elsewhere' : narrow (one rule, 1 replaced one(s) still here) reader=read entries=[X-G08; rule:wide; rule:narrow]
+  G09-group-binned-A-rule-B @'Recycle Bin' : [in the bin, out of reach] REFUSE (ruled, and no rule entry is left) reader=out-of-reach entries=[X-G09; rule:wide; rule:narrow]
+  G10-group-deleted-A-rule-B @'' : narrow (one rule) reader=read entries=[X-G10; rule:narrow]
+  G11-group-touched-B @'' : narrow (one rule, 1 replaced one(s) still here) reader=read entries=[rule:narrow; X-G11; rule:wide]
+  G12-entry-rule-decoupled @'' : SILENCE (never ruled) reader=list entries=[rule:narrow:for-entry; X-G12; rule:wide:for-entry]
+    entry X-G12 in 'G12-entry-rule-decoupled' : own narrow (one rule, 1 replaced one(s) still here); its group SILENCE; password changed-in-B hist=1 reader=read
+  G13-entry-moved-A-rule-B @'' : SILENCE (never ruled) reader=list entries=[rule:wide:for-entry; rule:narrow:for-entry]
+    entry X-G13 in 'H-elsewhere' : own narrow (one rule, 1 replaced one(s) still here); its group SILENCE; password invented-X-G13 hist=0 reader=read
+  G14-entry-moved-rule-both @'' : SILENCE (never ruled) reader=list entries=[rule:narrow:for-entry]
+    entry X-G14 in 'H-elsewhere' : own {"default":"inherit","ops":[],"reader":["read"]} (2 rules that never saw each other: the narrower of them); its group SILENCE; password invented-X-G14 hist=0 reader=read
+  G15-tie-differ @'' : {"default":"inherit","ops":[],"reader":["read"]} (2 rules that never saw each other: the narrower of them) reader=read entries=[X-G15; rule:narrow; rule:other]
+  G16-marker-lost-no-record-A @'' : wide (one rule) reader=read+list entries=[X-G16; rule:wide]
+  (in 'H-elsewhere': rule:other:for-entry)
+  (in 'Recycle Bin', the bin: rule:wide)
+
+## keepassxc-cli 2.6.6 merge, B merged into A, exit 0
+# xc-intoA-2.6.6/target.kdbx kdbx 4.0 entries=75 kpg=56 deletionRecords=11 bin='Recycle Bin'
+  G00-root @'' : sealed (one rule, 1 replaced one(s) still here) reader=list entries=[user at the root; rule:sealed; rule:wide]
+  G01-supersede-A @'' : sealed (one rule, 1 replaced one(s) still here) reader=list entries=[X-G01; rule:sealed; rule:wide]
+  G02-concurrent @'' : {"default":"inherit","ops":[],"reader":["read"]} (2 rules that never saw each other: the narrower of them) reader=read entries=[X-G02; rule:narrow; rule:other]
+  G03-first-both-differ @'' : {"default":"inherit","ops":[],"reader":["read"]} (2 rules that never saw each other: the narrower of them) reader=read entries=[X-G03; rule:narrow; rule:other]
+  G04-first-both-same @'' : narrow (one rule) reader=read entries=[X-G04; rule:narrow:hist1]
+  G05-first-both-same-tie @'' : narrow (one rule) reader=read entries=[X-G05; rule:narrow]
+  G06-marker-binned-A @'' : REFUSE (ruled, and no rule entry is left) reader=REFUSED entries=[X-G06]
+  G07-marker-deleted-A @'' : REFUSE (every rule entry left is a replaced or deleted one) reader=REFUSED entries=[X-G07; rule:wide]
+  G08-moved-A-rule-B @'H-elsewhere' : narrow (one rule, 1 replaced one(s) still here) reader=read entries=[X-G08; rule:wide; rule:narrow]
+  G09-group-binned-A-rule-B @'Recycle Bin' : [in the bin, out of reach] REFUSE (ruled, and no rule entry is left) reader=out-of-reach entries=[X-G09; rule:wide; rule:narrow]
+  G10-group-deleted-A-rule-B @'' : narrow (one rule) reader=read entries=[X-G10; rule:narrow]
+  G11-group-touched-B @'' : narrow (one rule, 1 replaced one(s) still here) reader=read entries=[rule:narrow; X-G11; rule:wide]
+  G12-entry-rule-decoupled @'' : SILENCE (never ruled) reader=list entries=[rule:narrow:for-entry; X-G12; rule:wide:for-entry]
+    entry X-G12 in 'G12-entry-rule-decoupled' : own narrow (one rule, 1 replaced one(s) still here); its group SILENCE; password changed-in-B hist=1 reader=read
+  G13-entry-moved-A-rule-B @'' : SILENCE (never ruled) reader=list entries=[rule:wide:for-entry; rule:narrow:for-entry]
+    entry X-G13 in 'H-elsewhere' : own narrow (one rule, 1 replaced one(s) still here); its group SILENCE; password invented-X-G13 hist=0 reader=read
+  G14-entry-moved-rule-both @'' : SILENCE (never ruled) reader=list entries=[rule:narrow:for-entry]
+    entry X-G14 in 'H-elsewhere' : own {"default":"inherit","ops":[],"reader":["read"]} (2 rules that never saw each other: the narrower of them); its group SILENCE; password invented-X-G14 hist=0 reader=read
+  G15-tie-differ @'' : {"default":"inherit","ops":[],"reader":["read"]} (2 rules that never saw each other: the narrower of them) reader=read entries=[X-G15; rule:narrow; rule:other]
+  G16-marker-lost-no-record-A @'' : wide (one rule) reader=read+list entries=[X-G16; rule:wide]
+  (in 'H-elsewhere': rule:other:for-entry)
+  (in 'Recycle Bin', the bin: rule:wide)
+
+## keepassxc-cli 2.7.12 merge, B merged into A, exit 0
+# xc-intoA-2.7.12/target.kdbx kdbx 4.1 entries=75 kpg=56 deletionRecords=11 bin='Recycle Bin'
+  G00-root @'' : sealed (one rule, 1 replaced one(s) still here) reader=list entries=[user at the root; rule:sealed; rule:wide]
+  G01-supersede-A @'' : sealed (one rule, 1 replaced one(s) still here) reader=list entries=[X-G01; rule:sealed; rule:wide]
+  G02-concurrent @'' : {"default":"inherit","ops":[],"reader":["read"]} (2 rules that never saw each other: the narrower of them) reader=read entries=[X-G02; rule:narrow; rule:other]
+  G03-first-both-differ @'' : {"default":"inherit","ops":[],"reader":["read"]} (2 rules that never saw each other: the narrower of them) reader=read entries=[X-G03; rule:narrow; rule:other]
+  G04-first-both-same @'' : narrow (one rule) reader=read entries=[X-G04; rule:narrow:hist1]
+  G05-first-both-same-tie @'' : narrow (one rule) reader=read entries=[X-G05; rule:narrow]
+  G06-marker-binned-A @'' : REFUSE (ruled, and no rule entry is left) reader=REFUSED entries=[X-G06]
+  G07-marker-deleted-A @'' : REFUSE (every rule entry left is a replaced or deleted one) reader=REFUSED entries=[X-G07; rule:wide]
+  G08-moved-A-rule-B @'H-elsewhere' : narrow (one rule, 1 replaced one(s) still here) reader=read entries=[X-G08; rule:wide; rule:narrow]
+  G09-group-binned-A-rule-B @'Recycle Bin' : [in the bin, out of reach] REFUSE (ruled, and no rule entry is left) reader=out-of-reach entries=[X-G09; rule:wide; rule:narrow]
+  G10-group-deleted-A-rule-B @'' : narrow (one rule) reader=read entries=[X-G10; rule:narrow]
+  G11-group-touched-B @'' : narrow (one rule, 1 replaced one(s) still here) reader=read entries=[rule:narrow; X-G11; rule:wide]
+  G12-entry-rule-decoupled @'' : SILENCE (never ruled) reader=list entries=[rule:narrow:for-entry; X-G12; rule:wide:for-entry]
+    entry X-G12 in 'G12-entry-rule-decoupled' : own narrow (one rule, 1 replaced one(s) still here); its group SILENCE; password changed-in-B hist=1 reader=read
+  G13-entry-moved-A-rule-B @'' : SILENCE (never ruled) reader=list entries=[rule:wide:for-entry; rule:narrow:for-entry]
+    entry X-G13 in 'H-elsewhere' : own narrow (one rule, 1 replaced one(s) still here); its group SILENCE; password invented-X-G13 hist=0 reader=read
+  G14-entry-moved-rule-both @'' : SILENCE (never ruled) reader=list entries=[rule:narrow:for-entry]
+    entry X-G14 in 'H-elsewhere' : own {"default":"inherit","ops":[],"reader":["read"]} (2 rules that never saw each other: the narrower of them); its group SILENCE; password invented-X-G14 hist=0 reader=read
+  G15-tie-differ @'' : {"default":"inherit","ops":[],"reader":["read"]} (2 rules that never saw each other: the narrower of them) reader=read entries=[X-G15; rule:narrow; rule:other]
+  G16-marker-lost-no-record-A @'' : wide (one rule) reader=read+list entries=[X-G16; rule:wide]
+  (in 'H-elsewhere': rule:other:for-entry)
+  (in 'Recycle Bin', the bin: rule:wide)
+
+## keepassxc-cli 2.8.0 merge, B merged into A, exit 0
+# xc-intoA-2.8.0/target.kdbx kdbx 4.1 entries=75 kpg=56 deletionRecords=11 bin='Recycle Bin'
+  G00-root @'' : sealed (one rule, 1 replaced one(s) still here) reader=list entries=[user at the root; rule:sealed; rule:wide]
+  G01-supersede-A @'' : sealed (one rule, 1 replaced one(s) still here) reader=list entries=[X-G01; rule:sealed; rule:wide]
+  G02-concurrent @'' : {"default":"inherit","ops":[],"reader":["read"]} (2 rules that never saw each other: the narrower of them) reader=read entries=[X-G02; rule:narrow; rule:other]
+  G03-first-both-differ @'' : {"default":"inherit","ops":[],"reader":["read"]} (2 rules that never saw each other: the narrower of them) reader=read entries=[X-G03; rule:narrow; rule:other]
+  G04-first-both-same @'' : narrow (one rule) reader=read entries=[X-G04; rule:narrow:hist1]
+  G05-first-both-same-tie @'' : narrow (one rule) reader=read entries=[X-G05; rule:narrow]
+  G06-marker-binned-A @'' : REFUSE (ruled, and no rule entry is left) reader=REFUSED entries=[X-G06]
+  G07-marker-deleted-A @'' : REFUSE (every rule entry left is a replaced or deleted one) reader=REFUSED entries=[X-G07; rule:wide]
+  G08-moved-A-rule-B @'H-elsewhere' : narrow (one rule, 1 replaced one(s) still here) reader=read entries=[X-G08; rule:wide; rule:narrow]
+  G09-group-binned-A-rule-B @'Recycle Bin' : [in the bin, out of reach] REFUSE (ruled, and no rule entry is left) reader=out-of-reach entries=[X-G09; rule:wide; rule:narrow]
+  G10-group-deleted-A-rule-B @'' : narrow (one rule) reader=read entries=[X-G10; rule:narrow]
+  G11-group-touched-B @'' : narrow (one rule, 1 replaced one(s) still here) reader=read entries=[rule:narrow; X-G11; rule:wide]
+  G12-entry-rule-decoupled @'' : SILENCE (never ruled) reader=list entries=[rule:narrow:for-entry; X-G12; rule:wide:for-entry]
+    entry X-G12 in 'G12-entry-rule-decoupled' : own narrow (one rule, 1 replaced one(s) still here); its group SILENCE; password changed-in-B hist=1 reader=read
+  G13-entry-moved-A-rule-B @'' : SILENCE (never ruled) reader=list entries=[rule:wide:for-entry; rule:narrow:for-entry]
+    entry X-G13 in 'H-elsewhere' : own narrow (one rule, 1 replaced one(s) still here); its group SILENCE; password invented-X-G13 hist=0 reader=read
+  G14-entry-moved-rule-both @'' : SILENCE (never ruled) reader=list entries=[rule:narrow:for-entry]
+    entry X-G14 in 'H-elsewhere' : own {"default":"inherit","ops":[],"reader":["read"]} (2 rules that never saw each other: the narrower of them); its group SILENCE; password invented-X-G14 hist=0 reader=read
+  G15-tie-differ @'' : {"default":"inherit","ops":[],"reader":["read"]} (2 rules that never saw each other: the narrower of them) reader=read entries=[X-G15; rule:narrow; rule:other]
+  G16-marker-lost-no-record-A @'' : wide (one rule) reader=read+list entries=[X-G16; rule:wide]
+  (in 'H-elsewhere': rule:other:for-entry)
+  (in 'Recycle Bin', the bin: rule:wide)
+
+## KeePassLib 2.62, A merged into B, Synchronize
+# kp-intoB-Synchronize/result.kdbx kdbx 4.0 entries=66 kpg=48 deletionRecords=13 bin='Recycle Bin'
+  G00-root @'' : sealed (one rule) reader=list entries=[user at the root; rule:sealed]
+  G01-supersede-A @'' : sealed (one rule) reader=list entries=[X-G01; rule:sealed]
+  G02-concurrent @'' : {"default":"inherit","ops":[],"reader":["read"]} (2 rules that never saw each other: the narrower of them) reader=read entries=[X-G02; rule:narrow; rule:other]
+  G03-first-both-differ @'' : {"default":"inherit","ops":[],"reader":["read"]} (2 rules that never saw each other: the narrower of them) reader=read entries=[X-G03; rule:narrow; rule:other]
+  G04-first-both-same @'' : narrow (one rule) reader=read entries=[X-G04; rule:narrow:hist1]
+  G05-first-both-same-tie @'' : narrow (one rule) reader=read entries=[X-G05; rule:narrow]
+  G06-marker-binned-A @'' : REFUSE (ruled, and no rule entry is left) reader=REFUSED entries=[X-G06]
+  G07-marker-deleted-A @'' : REFUSE (ruled, and no rule entry is left) reader=REFUSED entries=[X-G07]
+  G08-moved-A-rule-B @'H-elsewhere' : narrow (one rule) reader=read entries=[X-G08; rule:narrow]
+  G09-group-binned-A-rule-B @'Recycle Bin' : [in the bin, out of reach] REFUSE (ruled, and no rule entry is left) reader=out-of-reach entries=[X-G09; rule:narrow]
+  G10-group-deleted-A-rule-B @'' : narrow (one rule) reader=read entries=[rule:narrow]
+  G11-group-touched-B @'' : narrow (one rule) reader=read entries=[X-G11; rule:narrow]
+  G12-entry-rule-decoupled @'' : SILENCE (never ruled) reader=list entries=[X-G12; rule:narrow:for-entry]
+    entry X-G12 in 'G12-entry-rule-decoupled' : own narrow (one rule); its group SILENCE; password changed-in-B hist=1 reader=read
+  G13-entry-moved-A-rule-B @'' : SILENCE (never ruled) reader=list entries=[rule:narrow:for-entry]
+    entry X-G13 in 'H-elsewhere' : own narrow (one rule); its group SILENCE; password invented-X-G13 hist=0 reader=read
+  G14-entry-moved-rule-both @'' : SILENCE (never ruled) reader=list entries=[rule:narrow:for-entry]
+    entry X-G14 in 'H-elsewhere' : own {"default":"inherit","ops":[],"reader":["read"]} (2 rules that never saw each other: the narrower of them); its group SILENCE; password invented-X-G14 hist=0 reader=read
+  G15-tie-differ @'' : {"default":"inherit","ops":[],"reader":["read"]} (2 rules that never saw each other: the narrower of them) reader=read entries=[X-G15; rule:narrow; rule:other]
+  G16-marker-lost-no-record-A @'' : wide (one rule) reader=read+list entries=[X-G16; rule:wide]
+  (in 'H-elsewhere': rule:other:for-entry)
+  (in 'Recycle Bin', the bin: rule:wide)
+
+## KeePassLib 2.62, A merged into B, OverwriteIfNewer
+# kp-intoB-OverwriteIfNewer/result.kdbx kdbx 4.0 entries=72 kpg=53 deletionRecords=7 bin='Recycle Bin'
+  G00-root @'' : sealed (one rule, 1 replaced one(s) still here) reader=list entries=[rule:wide; user at the root; rule:sealed]
+  G01-supersede-A @'' : sealed (one rule, 1 replaced one(s) still here) reader=list entries=[X-G01; rule:sealed; rule:wide]
+  G02-concurrent @'' : {"default":"inherit","ops":[],"reader":["read"]} (2 rules that never saw each other: the narrower of them) reader=read entries=[X-G02; rule:narrow; rule:other]
+  G03-first-both-differ @'' : {"default":"inherit","ops":[],"reader":["read"]} (2 rules that never saw each other: the narrower of them) reader=read entries=[X-G03; rule:narrow; rule:other]
+  G04-first-both-same @'' : narrow (one rule) reader=read entries=[X-G04; rule:narrow:hist1]
+  G05-first-both-same-tie @'' : narrow (one rule) reader=read entries=[X-G05; rule:narrow]
+  G06-marker-binned-A @'' : wide (one rule) reader=read+list entries=[X-G06; rule:wide]
+  G07-marker-deleted-A @'' : wide (one rule) reader=read+list entries=[X-G07; rule:wide]
+  G08-moved-A-rule-B @'' : narrow (one rule) reader=read entries=[X-G08; rule:narrow]
+  G09-group-binned-A-rule-B @'' : narrow (one rule) reader=read entries=[X-G09; rule:narrow]
+  G10-group-deleted-A-rule-B @'' : narrow (one rule) reader=read entries=[X-G10; rule:narrow]
+  G11-group-touched-B @'' : narrow (one rule, 1 replaced one(s) still here) reader=read entries=[X-G11; rule:narrow; rule:wide]
+  G12-entry-rule-decoupled @'' : SILENCE (never ruled) reader=list entries=[X-G12; rule:narrow:for-entry; rule:wide:for-entry]
+    entry X-G12 in 'G12-entry-rule-decoupled' : own narrow (one rule, 1 replaced one(s) still here); its group SILENCE; password changed-in-B hist=1 reader=read
+  G13-entry-moved-A-rule-B @'' : SILENCE (never ruled) reader=list entries=[X-G13; rule:narrow:for-entry]
+    entry X-G13 in 'G13-entry-moved-A-rule-B' : own narrow (one rule); its group SILENCE; password invented-X-G13 hist=0 reader=read
+  G14-entry-moved-rule-both @'' : SILENCE (never ruled) reader=list entries=[rule:narrow:for-entry]
+    entry X-G14 in 'H-elsewhere' : own {"default":"inherit","ops":[],"reader":["read"]} (2 rules that never saw each other: the narrower of them); its group SILENCE; password invented-X-G14 hist=0 reader=read
+  G15-tie-differ @'' : {"default":"inherit","ops":[],"reader":["read"]} (2 rules that never saw each other: the narrower of them) reader=read entries=[X-G15; rule:narrow; rule:other]
+  G16-marker-lost-no-record-A @'' : wide (one rule) reader=read+list entries=[X-G16; rule:wide]
+  (in 'H-elsewhere': rule:other:for-entry)
+
+## KeePassLib 2.62, A merged into B, OverwriteExisting
+# kp-intoB-OverwriteExisting/result.kdbx kdbx 4.0 entries=72 kpg=53 deletionRecords=7 bin='Recycle Bin'
+  G00-root @'' : sealed (one rule, 1 replaced one(s) still here) reader=list entries=[rule:wide; user at the root; rule:sealed]
+  G01-supersede-A @'' : sealed (one rule, 1 replaced one(s) still here) reader=list entries=[X-G01; rule:sealed; rule:wide]
+  G02-concurrent @'' : {"default":"inherit","ops":[],"reader":["read"]} (2 rules that never saw each other: the narrower of them) reader=read entries=[X-G02; rule:narrow; rule:other]
+  G03-first-both-differ @'' : {"default":"inherit","ops":[],"reader":["read"]} (2 rules that never saw each other: the narrower of them) reader=read entries=[X-G03; rule:narrow; rule:other]
+  G04-first-both-same @'' : narrow (one rule) reader=read entries=[X-G04; rule:narrow:hist1]
+  G05-first-both-same-tie @'' : narrow (one rule) reader=read entries=[X-G05; rule:narrow]
+  G06-marker-binned-A @'' : wide (one rule) reader=read+list entries=[X-G06; rule:wide]
+  G07-marker-deleted-A @'' : wide (one rule) reader=read+list entries=[X-G07; rule:wide]
+  G08-moved-A-rule-B @'' : narrow (one rule) reader=read entries=[X-G08; rule:narrow]
+  G09-group-binned-A-rule-B @'' : narrow (one rule) reader=read entries=[X-G09; rule:narrow]
+  G10-group-deleted-A-rule-B @'' : narrow (one rule) reader=read entries=[X-G10; rule:narrow]
+  G11-group-touched-B @'' : narrow (one rule, 1 replaced one(s) still here) reader=read entries=[X-G11; rule:narrow; rule:wide]
+  G12-entry-rule-decoupled @'' : SILENCE (never ruled) reader=list entries=[X-G12; rule:narrow:for-entry; rule:wide:for-entry]
+    entry X-G12 in 'G12-entry-rule-decoupled' : own narrow (one rule, 1 replaced one(s) still here); its group SILENCE; password invented-X-G12 hist=2 reader=read
+  G13-entry-moved-A-rule-B @'' : SILENCE (never ruled) reader=list entries=[X-G13; rule:narrow:for-entry]
+    entry X-G13 in 'G13-entry-moved-A-rule-B' : own narrow (one rule); its group SILENCE; password invented-X-G13 hist=0 reader=read
+  G14-entry-moved-rule-both @'' : SILENCE (never ruled) reader=list entries=[rule:narrow:for-entry]
+    entry X-G14 in 'H-elsewhere' : own {"default":"inherit","ops":[],"reader":["read"]} (2 rules that never saw each other: the narrower of them); its group SILENCE; password invented-X-G14 hist=0 reader=read
+  G15-tie-differ @'' : {"default":"inherit","ops":[],"reader":["read"]} (2 rules that never saw each other: the narrower of them) reader=read entries=[X-G15; rule:narrow; rule:other]
+  G16-marker-lost-no-record-A @'' : wide (one rule) reader=read+list entries=[X-G16; rule:wide]
+  (in 'H-elsewhere': rule:other:for-entry)
+
+## KeePassLib 2.62, A merged into B, KeepExisting
+# kp-intoB-KeepExisting/result.kdbx kdbx 4.0 entries=72 kpg=53 deletionRecords=7 bin=none
+  G00-root @'' : sealed (one rule, 1 replaced one(s) still here) reader=list entries=[rule:wide; user at the root; rule:sealed]
+  G01-supersede-A @'' : sealed (one rule, 1 replaced one(s) still here) reader=list entries=[X-G01; rule:sealed; rule:wide]
+  G02-concurrent @'' : {"default":"inherit","ops":[],"reader":["read"]} (2 rules that never saw each other: the narrower of them) reader=read entries=[X-G02; rule:narrow; rule:other]
+  G03-first-both-differ @'' : {"default":"inherit","ops":[],"reader":["read"]} (2 rules that never saw each other: the narrower of them) reader=read entries=[X-G03; rule:narrow; rule:other]
+  G04-first-both-same @'' : narrow (one rule) reader=read entries=[X-G04; rule:narrow:hist1]
+  G05-first-both-same-tie @'' : narrow (one rule) reader=read entries=[X-G05; rule:narrow]
+  G06-marker-binned-A @'' : wide (one rule) reader=read+list entries=[X-G06; rule:wide]
+  G07-marker-deleted-A @'' : wide (one rule) reader=read+list entries=[X-G07; rule:wide]
+  G08-moved-A-rule-B @'' : narrow (one rule) reader=read entries=[X-G08; rule:narrow]
+  G09-group-binned-A-rule-B @'' : narrow (one rule) reader=read entries=[X-G09; rule:narrow]
+  G10-group-deleted-A-rule-B @'' : narrow (one rule) reader=read entries=[X-G10; rule:narrow]
+  G11-group-touched-B @'' : narrow (one rule, 1 replaced one(s) still here) reader=read entries=[X-G11; rule:narrow; rule:wide]
+  G12-entry-rule-decoupled @'' : SILENCE (never ruled) reader=list entries=[X-G12; rule:narrow:for-entry; rule:wide:for-entry]
+    entry X-G12 in 'G12-entry-rule-decoupled' : own narrow (one rule, 1 replaced one(s) still here); its group SILENCE; password changed-in-B hist=1 reader=read
+  G13-entry-moved-A-rule-B @'' : SILENCE (never ruled) reader=list entries=[X-G13; rule:narrow:for-entry]
+    entry X-G13 in 'G13-entry-moved-A-rule-B' : own narrow (one rule); its group SILENCE; password invented-X-G13 hist=0 reader=read
+  G14-entry-moved-rule-both @'' : SILENCE (never ruled) reader=list entries=[rule:narrow:for-entry]
+    entry X-G14 in 'H-elsewhere' : own {"default":"inherit","ops":[],"reader":["read"]} (2 rules that never saw each other: the narrower of them); its group SILENCE; password invented-X-G14 hist=0 reader=read
+  G15-tie-differ @'' : {"default":"inherit","ops":[],"reader":["read"]} (2 rules that never saw each other: the narrower of them) reader=read entries=[X-G15; rule:narrow; rule:other]
+  G16-marker-lost-no-record-A @'' : wide (one rule) reader=read+list entries=[X-G16; rule:wide]
+  (in 'H-elsewhere': rule:other:for-entry)
+
+## KeePassLib 2.62, A merged into B, CreateNewUuids
+# kp-intoB-CreateNewUuids/result.kdbx kdbx 4.0 entries=116 kpg=79 deletionRecords=7 bin=none
+  G00-root @'' : REFUSE (an entry here claims to be a rule and is not one) reader=REFUSED entries=[rule:wide; user at the root; user at the root; rule:sealed:UNBOUND]
+  G01-supersede-A @'' : REFUSE (every rule entry left is a replaced or deleted one) reader=REFUSED entries=[X-G01; rule:wide]
+  G01-supersede-A @'' : REFUSE (an entry here claims to be a rule and is not one) reader=REFUSED entries=[X-G01; rule:sealed:UNBOUND]
+  G02-concurrent @'' : other (one rule) reader=read+list entries=[X-G02; rule:other]
+  G02-concurrent @'' : REFUSE (an entry here claims to be a rule and is not one) reader=REFUSED entries=[X-G02; rule:narrow:UNBOUND]
+  G03-first-both-differ @'' : other (one rule) reader=read+list entries=[X-G03; rule:other]
+  G03-first-both-differ @'' : REFUSE (an entry here claims to be a rule and is not one) reader=REFUSED entries=[X-G03; rule:narrow:UNBOUND]
+  G04-first-both-same @'' : narrow (one rule) reader=read entries=[X-G04; rule:narrow]
+  G04-first-both-same @'' : REFUSE (an entry here claims to be a rule and is not one) reader=REFUSED entries=[X-G04; rule:narrow:UNBOUND]
+  G05-first-both-same-tie @'' : narrow (one rule) reader=read entries=[X-G05; rule:narrow]
+  G05-first-both-same-tie @'' : REFUSE (an entry here claims to be a rule and is not one) reader=REFUSED entries=[X-G05; rule:narrow:UNBOUND]
+  G06-marker-binned-A @'' : wide (one rule) reader=read+list entries=[X-G06; rule:wide]
+  G06-marker-binned-A @'' : SILENCE (never ruled) reader=REFUSED entries=[X-G06]
+  G07-marker-deleted-A @'' : wide (one rule) reader=read+list entries=[X-G07; rule:wide]
+  G07-marker-deleted-A @'' : SILENCE (never ruled) reader=REFUSED entries=[X-G07]
+  G08-moved-A-rule-B @'' : narrow (one rule) reader=read entries=[X-G08; rule:narrow]
+  G08-moved-A-rule-B @'H-elsewhere' : REFUSE (an entry here claims to be a rule and is not one) reader=REFUSED entries=[X-G08; rule:wide:UNBOUND]
+  G09-group-binned-A-rule-B @'' : narrow (one rule) reader=read entries=[X-G09; rule:narrow]
+  G09-group-binned-A-rule-B @'Recycle Bin' : REFUSE (an entry here claims to be a rule and is not one) reader=REFUSED entries=[X-G09; rule:wide:UNBOUND]
+  G10-group-deleted-A-rule-B @'' : narrow (one rule) reader=read entries=[X-G10; rule:narrow]
+  G11-group-touched-B @'' : REFUSE (every rule entry left is a replaced or deleted one) reader=REFUSED entries=[X-G11; rule:wide]
+  G11-group-touched-B @'' : REFUSE (an entry here claims to be a rule and is not one) reader=REFUSED entries=[X-G11; rule:narrow:UNBOUND]
+  G12-entry-rule-decoupled @'' : SILENCE (never ruled) reader=REFUSED entries=[X-G12; rule:wide:for-entry]
+  G12-entry-rule-decoupled @'' : REFUSE (an entry here claims to be a rule and is not one) reader=REFUSED entries=[X-G12; rule:narrow:for-entry:UNBOUND]
+    entry X-G12 in 'G12-entry-rule-decoupled' : own REFUSE (every rule entry left is a replaced or deleted one); its group SILENCE; password changed-in-B hist=1 reader=REFUSED
+    entry X-G12 in 'G12-entry-rule-decoupled' : own SILENCE (never ruled); its group REFUSE; password invented-X-G12 hist=0 reader=REFUSED
+  G13-entry-moved-A-rule-B @'' : SILENCE (never ruled) reader=REFUSED entries=[X-G13; rule:narrow:for-entry]
+  G13-entry-moved-A-rule-B @'' : REFUSE (an entry here claims to be a rule and is not one) reader=REFUSED entries=[rule:wide:for-entry:UNBOUND]
+    entry X-G13 in 'G13-entry-moved-A-rule-B' : own narrow (one rule); its group SILENCE; password invented-X-G13 hist=0 reader=read
+    entry X-G13 in 'H-elsewhere' : own SILENCE (never ruled); its group SILENCE; password invented-X-G13 hist=0 reader=REFUSED
+  G14-entry-moved-rule-both @'' : SILENCE (never ruled) reader=REFUSED entries=[]
+  G14-entry-moved-rule-both @'' : REFUSE (an entry here claims to be a rule and is not one) reader=REFUSED entries=[X-G14; rule:narrow:for-entry:UNBOUND]
+    entry X-G14 in 'H-elsewhere' : own other (one rule); its group SILENCE; password invented-X-G14 hist=0 reader=read+list
+    entry X-G14 in 'G14-entry-moved-rule-both' : own SILENCE (never ruled); its group REFUSE; password invented-X-G14 hist=0 reader=REFUSED
+  G15-tie-differ @'' : other (one rule) reader=read+list entries=[X-G15; rule:other]
+  G15-tie-differ @'' : REFUSE (an entry here claims to be a rule and is not one) reader=REFUSED entries=[X-G15; rule:narrow:UNBOUND]
+  G16-marker-lost-no-record-A @'' : wide (one rule) reader=read+list entries=[X-G16; rule:wide]
+  G16-marker-lost-no-record-A @'' : SILENCE (never ruled) reader=REFUSED entries=[X-G16]
+  (in 'H-elsewhere': rule:other:for-entry)
+  (in 'Recycle Bin', CLOSED: rule:wide:UNBOUND)
+
+## keepassxc-cli 2.4.2 merge, A merged into B, exit 0
+# xc-intoB-2.4.2/target.kdbx kdbx 4.0 entries=75 kpg=56 deletionRecords=7 bin=none
+  G00-root @'' : sealed (one rule, 1 replaced one(s) still here) reader=list entries=[rule:wide; user at the root; rule:sealed]
+  G01-supersede-A @'' : sealed (one rule, 1 replaced one(s) still here) reader=list entries=[X-G01; rule:wide; rule:sealed]
+  G02-concurrent @'' : {"default":"inherit","ops":[],"reader":["read"]} (2 rules that never saw each other: the narrower of them) reader=read entries=[X-G02; rule:other; rule:narrow]
+  G03-first-both-differ @'' : {"default":"inherit","ops":[],"reader":["read"]} (2 rules that never saw each other: the narrower of them) reader=read entries=[X-G03; rule:other; rule:narrow]
+  G04-first-both-same @'' : narrow (one rule) reader=read entries=[X-G04; rule:narrow:hist1]
+  G05-first-both-same-tie @'' : narrow (one rule) reader=read entries=[X-G05; rule:narrow]
+  G06-marker-binned-A @'' : wide (one rule) reader=read+list entries=[X-G06]
+  G07-marker-deleted-A @'' : wide (one rule) reader=read+list entries=[X-G07; rule:wide]
+  G08-moved-A-rule-B @'H-elsewhere' : narrow (one rule, 1 replaced one(s) still here) reader=read entries=[X-G08; rule:narrow; rule:wide]
+  G09-group-binned-A-rule-B @'Recycle Bin' : narrow (one rule, 1 replaced one(s) still here) reader=read entries=[X-G09; rule:narrow; rule:wide]
+  G10-group-deleted-A-rule-B @'' : narrow (one rule) reader=read entries=[X-G10; rule:narrow]
+  G11-group-touched-B @'' : narrow (one rule, 1 replaced one(s) still here) reader=read entries=[X-G11; rule:wide; rule:narrow]
+  G12-entry-rule-decoupled @'' : SILENCE (never ruled) reader=list entries=[X-G12; rule:wide:for-entry; rule:narrow:for-entry]
+    entry X-G12 in 'G12-entry-rule-decoupled' : own narrow (one rule, 1 replaced one(s) still here); its group SILENCE; password changed-in-B hist=1 reader=read
+  G13-entry-moved-A-rule-B @'' : SILENCE (never ruled) reader=list entries=[rule:narrow:for-entry; rule:wide:for-entry]
+    entry X-G13 in 'H-elsewhere' : own narrow (one rule, 1 replaced one(s) still here); its group SILENCE; password invented-X-G13 hist=0 reader=read
+  G14-entry-moved-rule-both @'' : SILENCE (never ruled) reader=list entries=[rule:narrow:for-entry]
+    entry X-G14 in 'H-elsewhere' : own {"default":"inherit","ops":[],"reader":["read"]} (2 rules that never saw each other: the narrower of them); its group SILENCE; password invented-X-G14 hist=0 reader=read
+  G15-tie-differ @'' : {"default":"inherit","ops":[],"reader":["read"]} (2 rules that never saw each other: the narrower of them) reader=read entries=[X-G15; rule:other; rule:narrow]
+  G16-marker-lost-no-record-A @'' : wide (one rule) reader=read+list entries=[X-G16; rule:wide]
+  (in 'H-elsewhere': rule:other:for-entry)
+  (in 'Recycle Bin': rule:wide)
+
+## keepassxc-cli 2.6.6 merge, A merged into B, exit 0
+# xc-intoB-2.6.6/target.kdbx kdbx 4.0 entries=75 kpg=56 deletionRecords=7 bin=none
+  G00-root @'' : sealed (one rule, 1 replaced one(s) still here) reader=list entries=[rule:wide; user at the root; rule:sealed]
+  G01-supersede-A @'' : sealed (one rule, 1 replaced one(s) still here) reader=list entries=[X-G01; rule:wide; rule:sealed]
+  G02-concurrent @'' : {"default":"inherit","ops":[],"reader":["read"]} (2 rules that never saw each other: the narrower of them) reader=read entries=[X-G02; rule:other; rule:narrow]
+  G03-first-both-differ @'' : {"default":"inherit","ops":[],"reader":["read"]} (2 rules that never saw each other: the narrower of them) reader=read entries=[X-G03; rule:other; rule:narrow]
+  G04-first-both-same @'' : narrow (one rule) reader=read entries=[X-G04; rule:narrow:hist1]
+  G05-first-both-same-tie @'' : narrow (one rule) reader=read entries=[X-G05; rule:narrow]
+  G06-marker-binned-A @'' : wide (one rule) reader=read+list entries=[X-G06]
+  G07-marker-deleted-A @'' : wide (one rule) reader=read+list entries=[X-G07; rule:wide]
+  G08-moved-A-rule-B @'H-elsewhere' : narrow (one rule, 1 replaced one(s) still here) reader=read entries=[X-G08; rule:narrow; rule:wide]
+  G09-group-binned-A-rule-B @'Recycle Bin' : narrow (one rule, 1 replaced one(s) still here) reader=read entries=[X-G09; rule:narrow; rule:wide]
+  G10-group-deleted-A-rule-B @'' : narrow (one rule) reader=read entries=[X-G10; rule:narrow]
+  G11-group-touched-B @'' : narrow (one rule, 1 replaced one(s) still here) reader=read entries=[X-G11; rule:wide; rule:narrow]
+  G12-entry-rule-decoupled @'' : SILENCE (never ruled) reader=list entries=[X-G12; rule:wide:for-entry; rule:narrow:for-entry]
+    entry X-G12 in 'G12-entry-rule-decoupled' : own narrow (one rule, 1 replaced one(s) still here); its group SILENCE; password changed-in-B hist=1 reader=read
+  G13-entry-moved-A-rule-B @'' : SILENCE (never ruled) reader=list entries=[rule:narrow:for-entry; rule:wide:for-entry]
+    entry X-G13 in 'H-elsewhere' : own narrow (one rule, 1 replaced one(s) still here); its group SILENCE; password invented-X-G13 hist=0 reader=read
+  G14-entry-moved-rule-both @'' : SILENCE (never ruled) reader=list entries=[rule:narrow:for-entry]
+    entry X-G14 in 'H-elsewhere' : own {"default":"inherit","ops":[],"reader":["read"]} (2 rules that never saw each other: the narrower of them); its group SILENCE; password invented-X-G14 hist=0 reader=read
+  G15-tie-differ @'' : {"default":"inherit","ops":[],"reader":["read"]} (2 rules that never saw each other: the narrower of them) reader=read entries=[X-G15; rule:other; rule:narrow]
+  G16-marker-lost-no-record-A @'' : wide (one rule) reader=read+list entries=[X-G16; rule:wide]
+  (in 'H-elsewhere': rule:other:for-entry)
+  (in 'Recycle Bin': rule:wide)
+
+## keepassxc-cli 2.7.12 merge, A merged into B, exit 0
+# xc-intoB-2.7.12/target.kdbx kdbx 4.1 entries=75 kpg=56 deletionRecords=7 bin=none
+  G00-root @'' : sealed (one rule, 1 replaced one(s) still here) reader=list entries=[rule:wide; user at the root; rule:sealed]
+  G01-supersede-A @'' : sealed (one rule, 1 replaced one(s) still here) reader=list entries=[X-G01; rule:wide; rule:sealed]
+  G02-concurrent @'' : {"default":"inherit","ops":[],"reader":["read"]} (2 rules that never saw each other: the narrower of them) reader=read entries=[X-G02; rule:other; rule:narrow]
+  G03-first-both-differ @'' : {"default":"inherit","ops":[],"reader":["read"]} (2 rules that never saw each other: the narrower of them) reader=read entries=[X-G03; rule:other; rule:narrow]
+  G04-first-both-same @'' : narrow (one rule) reader=read entries=[X-G04; rule:narrow:hist1]
+  G05-first-both-same-tie @'' : narrow (one rule) reader=read entries=[X-G05; rule:narrow]
+  G06-marker-binned-A @'' : wide (one rule) reader=read+list entries=[X-G06]
+  G07-marker-deleted-A @'' : wide (one rule) reader=read+list entries=[X-G07; rule:wide]
+  G08-moved-A-rule-B @'H-elsewhere' : narrow (one rule, 1 replaced one(s) still here) reader=read entries=[X-G08; rule:narrow; rule:wide]
+  G09-group-binned-A-rule-B @'Recycle Bin' : narrow (one rule, 1 replaced one(s) still here) reader=read entries=[X-G09; rule:narrow; rule:wide]
+  G10-group-deleted-A-rule-B @'' : narrow (one rule) reader=read entries=[X-G10; rule:narrow]
+  G11-group-touched-B @'' : narrow (one rule, 1 replaced one(s) still here) reader=read entries=[X-G11; rule:wide; rule:narrow]
+  G12-entry-rule-decoupled @'' : SILENCE (never ruled) reader=list entries=[X-G12; rule:wide:for-entry; rule:narrow:for-entry]
+    entry X-G12 in 'G12-entry-rule-decoupled' : own narrow (one rule, 1 replaced one(s) still here); its group SILENCE; password changed-in-B hist=1 reader=read
+  G13-entry-moved-A-rule-B @'' : SILENCE (never ruled) reader=list entries=[rule:narrow:for-entry; rule:wide:for-entry]
+    entry X-G13 in 'H-elsewhere' : own narrow (one rule, 1 replaced one(s) still here); its group SILENCE; password invented-X-G13 hist=0 reader=read
+  G14-entry-moved-rule-both @'' : SILENCE (never ruled) reader=list entries=[rule:narrow:for-entry]
+    entry X-G14 in 'H-elsewhere' : own {"default":"inherit","ops":[],"reader":["read"]} (2 rules that never saw each other: the narrower of them); its group SILENCE; password invented-X-G14 hist=0 reader=read
+  G15-tie-differ @'' : {"default":"inherit","ops":[],"reader":["read"]} (2 rules that never saw each other: the narrower of them) reader=read entries=[X-G15; rule:other; rule:narrow]
+  G16-marker-lost-no-record-A @'' : wide (one rule) reader=read+list entries=[X-G16; rule:wide]
+  (in 'H-elsewhere': rule:other:for-entry)
+  (in 'Recycle Bin': rule:wide)
+
+## keepassxc-cli 2.8.0 merge, A merged into B, exit 0
+# xc-intoB-2.8.0/target.kdbx kdbx 4.1 entries=75 kpg=56 deletionRecords=7 bin=none
+  G00-root @'' : sealed (one rule, 1 replaced one(s) still here) reader=list entries=[rule:wide; user at the root; rule:sealed]
+  G01-supersede-A @'' : sealed (one rule, 1 replaced one(s) still here) reader=list entries=[X-G01; rule:wide; rule:sealed]
+  G02-concurrent @'' : {"default":"inherit","ops":[],"reader":["read"]} (2 rules that never saw each other: the narrower of them) reader=read entries=[X-G02; rule:other; rule:narrow]
+  G03-first-both-differ @'' : {"default":"inherit","ops":[],"reader":["read"]} (2 rules that never saw each other: the narrower of them) reader=read entries=[X-G03; rule:other; rule:narrow]
+  G04-first-both-same @'' : narrow (one rule) reader=read entries=[X-G04; rule:narrow:hist1]
+  G05-first-both-same-tie @'' : narrow (one rule) reader=read entries=[X-G05; rule:narrow]
+  G06-marker-binned-A @'' : wide (one rule) reader=read+list entries=[X-G06]
+  G07-marker-deleted-A @'' : wide (one rule) reader=read+list entries=[X-G07; rule:wide]
+  G08-moved-A-rule-B @'H-elsewhere' : narrow (one rule, 1 replaced one(s) still here) reader=read entries=[X-G08; rule:narrow; rule:wide]
+  G09-group-binned-A-rule-B @'Recycle Bin' : narrow (one rule, 1 replaced one(s) still here) reader=read entries=[X-G09; rule:narrow; rule:wide]
+  G10-group-deleted-A-rule-B @'' : narrow (one rule) reader=read entries=[X-G10; rule:narrow]
+  G11-group-touched-B @'' : narrow (one rule, 1 replaced one(s) still here) reader=read entries=[X-G11; rule:wide; rule:narrow]
+  G12-entry-rule-decoupled @'' : SILENCE (never ruled) reader=list entries=[X-G12; rule:wide:for-entry; rule:narrow:for-entry]
+    entry X-G12 in 'G12-entry-rule-decoupled' : own narrow (one rule, 1 replaced one(s) still here); its group SILENCE; password changed-in-B hist=1 reader=read
+  G13-entry-moved-A-rule-B @'' : SILENCE (never ruled) reader=list entries=[rule:narrow:for-entry; rule:wide:for-entry]
+    entry X-G13 in 'H-elsewhere' : own narrow (one rule, 1 replaced one(s) still here); its group SILENCE; password invented-X-G13 hist=0 reader=read
+  G14-entry-moved-rule-both @'' : SILENCE (never ruled) reader=list entries=[rule:narrow:for-entry]
+    entry X-G14 in 'H-elsewhere' : own {"default":"inherit","ops":[],"reader":["read"]} (2 rules that never saw each other: the narrower of them); its group SILENCE; password invented-X-G14 hist=0 reader=read
+  G15-tie-differ @'' : {"default":"inherit","ops":[],"reader":["read"]} (2 rules that never saw each other: the narrower of them) reader=read entries=[X-G15; rule:other; rule:narrow]
+  G16-marker-lost-no-record-A @'' : wide (one rule) reader=read+list entries=[X-G16; rule:wide]
+  (in 'H-elsewhere': rule:other:for-entry)
+  (in 'Recycle Bin': rule:wide)
+
+## keepassxc-cli 2.4.2 add (a plain save), on A, exit 0
+# xc-save-2.4.2/saved.kdbx kdbx 4.0 entries=57 kpg=38 deletionRecords=11 bin='Recycle Bin'
+  G00-root @'' : sealed (one rule) reader=list entries=[user at the root; rule:sealed]
+  G01-supersede-A @'' : sealed (one rule) reader=list entries=[X-G01; rule:sealed]
+  G02-concurrent @'' : narrow (one rule) reader=read entries=[X-G02; rule:narrow]
+  G03-first-both-differ @'' : narrow (one rule) reader=read entries=[X-G03; rule:narrow]
+  G04-first-both-same @'' : narrow (one rule) reader=read entries=[X-G04; rule:narrow]
+  G05-first-both-same-tie @'' : narrow (one rule) reader=read entries=[X-G05; rule:narrow]
+  G06-marker-binned-A @'' : REFUSE (ruled, and no rule entry is left) reader=REFUSED entries=[X-G06]
+  G07-marker-deleted-A @'' : REFUSE (ruled, and no rule entry is left) reader=REFUSED entries=[X-G07]
+  G08-moved-A-rule-B @'H-elsewhere' : wide (one rule) reader=read+list entries=[X-G08; rule:wide]
+  G09-group-binned-A-rule-B @'Recycle Bin' : [in the bin, out of reach] REFUSE (ruled, and no rule entry is left) reader=out-of-reach entries=[X-G09; rule:wide]
+  G10-group-deleted-A-rule-B : GROUP ABSENT
+  G11-group-touched-B @'' : narrow (one rule) reader=read entries=[X-G11; rule:narrow]
+  G12-entry-rule-decoupled @'' : SILENCE (never ruled) reader=list entries=[X-G12; rule:narrow:for-entry]
+    entry X-G12 in 'G12-entry-rule-decoupled' : own narrow (one rule); its group SILENCE; password invented-X-G12 hist=0 reader=read
+  G13-entry-moved-A-rule-B @'' : SILENCE (never ruled) reader=list entries=[rule:wide:for-entry]
+    entry X-G13 in 'H-elsewhere' : own wide (one rule); its group SILENCE; password invented-X-G13 hist=0 reader=read+list
+  G14-entry-moved-rule-both @'' : SILENCE (never ruled) reader=list entries=[X-G14; rule:narrow:for-entry]
+    entry X-G14 in 'G14-entry-moved-rule-both' : own narrow (one rule); its group SILENCE; password invented-X-G14 hist=0 reader=read
+  G15-tie-differ @'' : narrow (one rule) reader=read entries=[X-G15; rule:narrow]
+  G16-marker-lost-no-record-A @'' : REFUSE (ruled, and no rule entry is left) reader=REFUSED entries=[X-G16]
+  (in 'Recycle Bin', the bin: rule:wide)
+
+## keepassxc-cli 2.6.6 add (a plain save), on A, exit 0
+# xc-save-2.6.6/saved.kdbx kdbx 4.0 entries=57 kpg=38 deletionRecords=11 bin='Recycle Bin'
+  G00-root @'' : sealed (one rule) reader=list entries=[user at the root; rule:sealed]
+  G01-supersede-A @'' : sealed (one rule) reader=list entries=[X-G01; rule:sealed]
+  G02-concurrent @'' : narrow (one rule) reader=read entries=[X-G02; rule:narrow]
+  G03-first-both-differ @'' : narrow (one rule) reader=read entries=[X-G03; rule:narrow]
+  G04-first-both-same @'' : narrow (one rule) reader=read entries=[X-G04; rule:narrow]
+  G05-first-both-same-tie @'' : narrow (one rule) reader=read entries=[X-G05; rule:narrow]
+  G06-marker-binned-A @'' : REFUSE (ruled, and no rule entry is left) reader=REFUSED entries=[X-G06]
+  G07-marker-deleted-A @'' : REFUSE (ruled, and no rule entry is left) reader=REFUSED entries=[X-G07]
+  G08-moved-A-rule-B @'H-elsewhere' : wide (one rule) reader=read+list entries=[X-G08; rule:wide]
+  G09-group-binned-A-rule-B @'Recycle Bin' : [in the bin, out of reach] REFUSE (ruled, and no rule entry is left) reader=out-of-reach entries=[X-G09; rule:wide]
+  G10-group-deleted-A-rule-B : GROUP ABSENT
+  G11-group-touched-B @'' : narrow (one rule) reader=read entries=[X-G11; rule:narrow]
+  G12-entry-rule-decoupled @'' : SILENCE (never ruled) reader=list entries=[X-G12; rule:narrow:for-entry]
+    entry X-G12 in 'G12-entry-rule-decoupled' : own narrow (one rule); its group SILENCE; password invented-X-G12 hist=0 reader=read
+  G13-entry-moved-A-rule-B @'' : SILENCE (never ruled) reader=list entries=[rule:wide:for-entry]
+    entry X-G13 in 'H-elsewhere' : own wide (one rule); its group SILENCE; password invented-X-G13 hist=0 reader=read+list
+  G14-entry-moved-rule-both @'' : SILENCE (never ruled) reader=list entries=[X-G14; rule:narrow:for-entry]
+    entry X-G14 in 'G14-entry-moved-rule-both' : own narrow (one rule); its group SILENCE; password invented-X-G14 hist=0 reader=read
+  G15-tie-differ @'' : narrow (one rule) reader=read entries=[X-G15; rule:narrow]
+  G16-marker-lost-no-record-A @'' : REFUSE (ruled, and no rule entry is left) reader=REFUSED entries=[X-G16]
+  (in 'Recycle Bin', the bin: rule:wide)
+
+## keepassxc-cli 2.7.12 add (a plain save), on A, exit 0
+# xc-save-2.7.12/saved.kdbx kdbx 4.0 entries=57 kpg=38 deletionRecords=11 bin='Recycle Bin'
+  G00-root @'' : sealed (one rule) reader=list entries=[user at the root; rule:sealed]
+  G01-supersede-A @'' : sealed (one rule) reader=list entries=[X-G01; rule:sealed]
+  G02-concurrent @'' : narrow (one rule) reader=read entries=[X-G02; rule:narrow]
+  G03-first-both-differ @'' : narrow (one rule) reader=read entries=[X-G03; rule:narrow]
+  G04-first-both-same @'' : narrow (one rule) reader=read entries=[X-G04; rule:narrow]
+  G05-first-both-same-tie @'' : narrow (one rule) reader=read entries=[X-G05; rule:narrow]
+  G06-marker-binned-A @'' : REFUSE (ruled, and no rule entry is left) reader=REFUSED entries=[X-G06]
+  G07-marker-deleted-A @'' : REFUSE (ruled, and no rule entry is left) reader=REFUSED entries=[X-G07]
+  G08-moved-A-rule-B @'H-elsewhere' : wide (one rule) reader=read+list entries=[X-G08; rule:wide]
+  G09-group-binned-A-rule-B @'Recycle Bin' : [in the bin, out of reach] REFUSE (ruled, and no rule entry is left) reader=out-of-reach entries=[X-G09; rule:wide]
+  G10-group-deleted-A-rule-B : GROUP ABSENT
+  G11-group-touched-B @'' : narrow (one rule) reader=read entries=[X-G11; rule:narrow]
+  G12-entry-rule-decoupled @'' : SILENCE (never ruled) reader=list entries=[X-G12; rule:narrow:for-entry]
+    entry X-G12 in 'G12-entry-rule-decoupled' : own narrow (one rule); its group SILENCE; password invented-X-G12 hist=0 reader=read
+  G13-entry-moved-A-rule-B @'' : SILENCE (never ruled) reader=list entries=[rule:wide:for-entry]
+    entry X-G13 in 'H-elsewhere' : own wide (one rule); its group SILENCE; password invented-X-G13 hist=0 reader=read+list
+  G14-entry-moved-rule-both @'' : SILENCE (never ruled) reader=list entries=[X-G14; rule:narrow:for-entry]
+    entry X-G14 in 'G14-entry-moved-rule-both' : own narrow (one rule); its group SILENCE; password invented-X-G14 hist=0 reader=read
+  G15-tie-differ @'' : narrow (one rule) reader=read entries=[X-G15; rule:narrow]
+  G16-marker-lost-no-record-A @'' : REFUSE (ruled, and no rule entry is left) reader=REFUSED entries=[X-G16]
+  (in 'Recycle Bin', the bin: rule:wide)
+
+## keepassxc-cli 2.8.0 add (a plain save), on A, exit 0
+# xc-save-2.8.0/saved.kdbx kdbx 4.0 entries=57 kpg=38 deletionRecords=11 bin='Recycle Bin'
+  G00-root @'' : sealed (one rule) reader=list entries=[user at the root; rule:sealed]
+  G01-supersede-A @'' : sealed (one rule) reader=list entries=[X-G01; rule:sealed]
+  G02-concurrent @'' : narrow (one rule) reader=read entries=[X-G02; rule:narrow]
+  G03-first-both-differ @'' : narrow (one rule) reader=read entries=[X-G03; rule:narrow]
+  G04-first-both-same @'' : narrow (one rule) reader=read entries=[X-G04; rule:narrow]
+  G05-first-both-same-tie @'' : narrow (one rule) reader=read entries=[X-G05; rule:narrow]
+  G06-marker-binned-A @'' : REFUSE (ruled, and no rule entry is left) reader=REFUSED entries=[X-G06]
+  G07-marker-deleted-A @'' : REFUSE (ruled, and no rule entry is left) reader=REFUSED entries=[X-G07]
+  G08-moved-A-rule-B @'H-elsewhere' : wide (one rule) reader=read+list entries=[X-G08; rule:wide]
+  G09-group-binned-A-rule-B @'Recycle Bin' : [in the bin, out of reach] REFUSE (ruled, and no rule entry is left) reader=out-of-reach entries=[X-G09; rule:wide]
+  G10-group-deleted-A-rule-B : GROUP ABSENT
+  G11-group-touched-B @'' : narrow (one rule) reader=read entries=[X-G11; rule:narrow]
+  G12-entry-rule-decoupled @'' : SILENCE (never ruled) reader=list entries=[X-G12; rule:narrow:for-entry]
+    entry X-G12 in 'G12-entry-rule-decoupled' : own narrow (one rule); its group SILENCE; password invented-X-G12 hist=0 reader=read
+  G13-entry-moved-A-rule-B @'' : SILENCE (never ruled) reader=list entries=[rule:wide:for-entry]
+    entry X-G13 in 'H-elsewhere' : own wide (one rule); its group SILENCE; password invented-X-G13 hist=0 reader=read+list
+  G14-entry-moved-rule-both @'' : SILENCE (never ruled) reader=list entries=[X-G14; rule:narrow:for-entry]
+    entry X-G14 in 'G14-entry-moved-rule-both' : own narrow (one rule); its group SILENCE; password invented-X-G14 hist=0 reader=read
+  G15-tie-differ @'' : narrow (one rule) reader=read entries=[X-G15; rule:narrow]
+  G16-marker-lost-no-record-A @'' : REFUSE (ruled, and no rule entry is left) reader=REFUSED entries=[X-G16]
+  (in 'Recycle Bin', the bin: rule:wide)
+
+## chain: keepassxc-cli 2.4.2 merged B into A, then KeePassLib 2.62 Synchronize of that result with B
+# chain/xcA-2.4.2-then-kp-sync-B.kdbx kdbx 4.0 entries=66 kpg=48 deletionRecords=13 bin='Recycle Bin'
+  G00-root @'' : sealed (one rule) reader=list entries=[user at the root; rule:sealed]
+  G01-supersede-A @'' : sealed (one rule) reader=list entries=[X-G01; rule:sealed]
+  G02-concurrent @'' : {"default":"inherit","ops":[],"reader":["read"]} (2 rules that never saw each other: the narrower of them) reader=read entries=[X-G02; rule:narrow; rule:other]
+  G03-first-both-differ @'' : {"default":"inherit","ops":[],"reader":["read"]} (2 rules that never saw each other: the narrower of them) reader=read entries=[X-G03; rule:narrow; rule:other]
+  G04-first-both-same @'' : narrow (one rule) reader=read entries=[X-G04; rule:narrow:hist1]
+  G05-first-both-same-tie @'' : narrow (one rule) reader=read entries=[X-G05; rule:narrow]
+  G06-marker-binned-A @'' : REFUSE (ruled, and no rule entry is left) reader=REFUSED entries=[X-G06]
+  G07-marker-deleted-A @'' : REFUSE (ruled, and no rule entry is left) reader=REFUSED entries=[X-G07]
+  G08-moved-A-rule-B @'H-elsewhere' : narrow (one rule) reader=read entries=[X-G08; rule:narrow]
+  G09-group-binned-A-rule-B @'Recycle Bin' : [in the bin, out of reach] REFUSE (ruled, and no rule entry is left) reader=out-of-reach entries=[X-G09; rule:narrow]
+  G10-group-deleted-A-rule-B @'' : narrow (one rule) reader=read entries=[rule:narrow]
+  G11-group-touched-B @'' : narrow (one rule) reader=read entries=[rule:narrow; X-G11]
+  G12-entry-rule-decoupled @'' : SILENCE (never ruled) reader=list entries=[rule:narrow:for-entry; X-G12]
+    entry X-G12 in 'G12-entry-rule-decoupled' : own narrow (one rule); its group SILENCE; password changed-in-B hist=1 reader=read
+  G13-entry-moved-A-rule-B @'' : SILENCE (never ruled) reader=list entries=[rule:narrow:for-entry]
+    entry X-G13 in 'H-elsewhere' : own narrow (one rule); its group SILENCE; password invented-X-G13 hist=0 reader=read
+  G14-entry-moved-rule-both @'' : SILENCE (never ruled) reader=list entries=[rule:narrow:for-entry]
+    entry X-G14 in 'H-elsewhere' : own {"default":"inherit","ops":[],"reader":["read"]} (2 rules that never saw each other: the narrower of them); its group SILENCE; password invented-X-G14 hist=0 reader=read
+  G15-tie-differ @'' : {"default":"inherit","ops":[],"reader":["read"]} (2 rules that never saw each other: the narrower of them) reader=read entries=[X-G15; rule:narrow; rule:other]
+  G16-marker-lost-no-record-A @'' : wide (one rule) reader=read+list entries=[X-G16; rule:wide]
+  (in 'H-elsewhere': rule:other:for-entry)
+  (in 'Recycle Bin', the bin: rule:wide)
+
+## chain: keepassxc-cli 2.4.2 merged A into B, then KeePassLib 2.62 Synchronize of that result with A
+# chain/xcB-2.4.2-then-kp-sync-A.kdbx kdbx 4.0 entries=66 kpg=48 deletionRecords=13 bin='Recycle Bin'
+  G00-root @'' : sealed (one rule) reader=list entries=[user at the root; rule:sealed]
+  G01-supersede-A @'' : sealed (one rule) reader=list entries=[X-G01; rule:sealed]
+  G02-concurrent @'' : {"default":"inherit","ops":[],"reader":["read"]} (2 rules that never saw each other: the narrower of them) reader=read entries=[X-G02; rule:other; rule:narrow]
+  G03-first-both-differ @'' : {"default":"inherit","ops":[],"reader":["read"]} (2 rules that never saw each other: the narrower of them) reader=read entries=[X-G03; rule:other; rule:narrow]
+  G04-first-both-same @'' : narrow (one rule) reader=read entries=[X-G04; rule:narrow:hist1]
+  G05-first-both-same-tie @'' : narrow (one rule) reader=read entries=[X-G05; rule:narrow]
+  G06-marker-binned-A @'' : REFUSE (ruled, and no rule entry is left) reader=REFUSED entries=[X-G06]
+  G07-marker-deleted-A @'' : REFUSE (ruled, and no rule entry is left) reader=REFUSED entries=[X-G07]
+  G08-moved-A-rule-B @'H-elsewhere' : narrow (one rule) reader=read entries=[X-G08; rule:narrow]
+  G09-group-binned-A-rule-B @'Recycle Bin' : [in the bin, out of reach] REFUSE (ruled, and no rule entry is left) reader=out-of-reach entries=[X-G09; rule:narrow]
+  G10-group-deleted-A-rule-B @'' : narrow (one rule) reader=read entries=[rule:narrow]
+  G11-group-touched-B @'' : narrow (one rule) reader=read entries=[X-G11; rule:narrow]
+  G12-entry-rule-decoupled @'' : SILENCE (never ruled) reader=list entries=[X-G12; rule:narrow:for-entry]
+    entry X-G12 in 'G12-entry-rule-decoupled' : own narrow (one rule); its group SILENCE; password changed-in-B hist=1 reader=read
+  G13-entry-moved-A-rule-B @'' : SILENCE (never ruled) reader=list entries=[rule:narrow:for-entry]
+    entry X-G13 in 'H-elsewhere' : own narrow (one rule); its group SILENCE; password invented-X-G13 hist=0 reader=read
+  G14-entry-moved-rule-both @'' : SILENCE (never ruled) reader=list entries=[rule:narrow:for-entry]
+    entry X-G14 in 'H-elsewhere' : own {"default":"inherit","ops":[],"reader":["read"]} (2 rules that never saw each other: the narrower of them); its group SILENCE; password invented-X-G14 hist=0 reader=read
+  G15-tie-differ @'' : {"default":"inherit","ops":[],"reader":["read"]} (2 rules that never saw each other: the narrower of them) reader=read entries=[X-G15; rule:other; rule:narrow]
+  G16-marker-lost-no-record-A @'' : wide (one rule) reader=read+list entries=[X-G16; rule:wide]
+  (in 'H-elsewhere': rule:other:for-entry)
+  (in 'Recycle Bin', the bin: rule:wide)
+
+## chain: keepassxc-cli 2.8.0 merged B into A, then KeePassLib 2.62 Synchronize of that result with B
+# chain/xcA-2.8.0-then-kp-sync-B.kdbx kdbx 4.1 entries=66 kpg=48 deletionRecords=13 bin='Recycle Bin'
+  G00-root @'' : sealed (one rule) reader=list entries=[user at the root; rule:sealed]
+  G01-supersede-A @'' : sealed (one rule) reader=list entries=[X-G01; rule:sealed]
+  G02-concurrent @'' : {"default":"inherit","ops":[],"reader":["read"]} (2 rules that never saw each other: the narrower of them) reader=read entries=[X-G02; rule:narrow; rule:other]
+  G03-first-both-differ @'' : {"default":"inherit","ops":[],"reader":["read"]} (2 rules that never saw each other: the narrower of them) reader=read entries=[X-G03; rule:narrow; rule:other]
+  G04-first-both-same @'' : narrow (one rule) reader=read entries=[X-G04; rule:narrow:hist1]
+  G05-first-both-same-tie @'' : narrow (one rule) reader=read entries=[X-G05; rule:narrow]
+  G06-marker-binned-A @'' : REFUSE (ruled, and no rule entry is left) reader=REFUSED entries=[X-G06]
+  G07-marker-deleted-A @'' : REFUSE (ruled, and no rule entry is left) reader=REFUSED entries=[X-G07]
+  G08-moved-A-rule-B @'H-elsewhere' : narrow (one rule) reader=read entries=[X-G08; rule:narrow]
+  G09-group-binned-A-rule-B @'Recycle Bin' : [in the bin, out of reach] REFUSE (ruled, and no rule entry is left) reader=out-of-reach entries=[X-G09; rule:narrow]
+  G10-group-deleted-A-rule-B @'' : narrow (one rule) reader=read entries=[rule:narrow]
+  G11-group-touched-B @'' : narrow (one rule) reader=read entries=[rule:narrow; X-G11]
+  G12-entry-rule-decoupled @'' : SILENCE (never ruled) reader=list entries=[rule:narrow:for-entry; X-G12]
+    entry X-G12 in 'G12-entry-rule-decoupled' : own narrow (one rule); its group SILENCE; password changed-in-B hist=1 reader=read
+  G13-entry-moved-A-rule-B @'' : SILENCE (never ruled) reader=list entries=[rule:narrow:for-entry]
+    entry X-G13 in 'H-elsewhere' : own narrow (one rule); its group SILENCE; password invented-X-G13 hist=0 reader=read
+  G14-entry-moved-rule-both @'' : SILENCE (never ruled) reader=list entries=[rule:narrow:for-entry]
+    entry X-G14 in 'H-elsewhere' : own {"default":"inherit","ops":[],"reader":["read"]} (2 rules that never saw each other: the narrower of them); its group SILENCE; password invented-X-G14 hist=0 reader=read
+  G15-tie-differ @'' : {"default":"inherit","ops":[],"reader":["read"]} (2 rules that never saw each other: the narrower of them) reader=read entries=[X-G15; rule:narrow; rule:other]
+  G16-marker-lost-no-record-A @'' : wide (one rule) reader=read+list entries=[X-G16; rule:wide]
+  (in 'H-elsewhere': rule:other:for-entry)
+  (in 'Recycle Bin', the bin: rule:wide)
+
+## chain: keepassxc-cli 2.8.0 merged A into B, then KeePassLib 2.62 Synchronize of that result with A
+# chain/xcB-2.8.0-then-kp-sync-A.kdbx kdbx 4.1 entries=66 kpg=48 deletionRecords=13 bin='Recycle Bin'
+  G00-root @'' : sealed (one rule) reader=list entries=[user at the root; rule:sealed]
+  G01-supersede-A @'' : sealed (one rule) reader=list entries=[X-G01; rule:sealed]
+  G02-concurrent @'' : {"default":"inherit","ops":[],"reader":["read"]} (2 rules that never saw each other: the narrower of them) reader=read entries=[X-G02; rule:other; rule:narrow]
+  G03-first-both-differ @'' : {"default":"inherit","ops":[],"reader":["read"]} (2 rules that never saw each other: the narrower of them) reader=read entries=[X-G03; rule:other; rule:narrow]
+  G04-first-both-same @'' : narrow (one rule) reader=read entries=[X-G04; rule:narrow:hist1]
+  G05-first-both-same-tie @'' : narrow (one rule) reader=read entries=[X-G05; rule:narrow]
+  G06-marker-binned-A @'' : REFUSE (ruled, and no rule entry is left) reader=REFUSED entries=[X-G06]
+  G07-marker-deleted-A @'' : REFUSE (ruled, and no rule entry is left) reader=REFUSED entries=[X-G07]
+  G08-moved-A-rule-B @'H-elsewhere' : narrow (one rule) reader=read entries=[X-G08; rule:narrow]
+  G09-group-binned-A-rule-B @'Recycle Bin' : [in the bin, out of reach] REFUSE (ruled, and no rule entry is left) reader=out-of-reach entries=[X-G09; rule:narrow]
+  G10-group-deleted-A-rule-B @'' : narrow (one rule) reader=read entries=[rule:narrow]
+  G11-group-touched-B @'' : narrow (one rule) reader=read entries=[X-G11; rule:narrow]
+  G12-entry-rule-decoupled @'' : SILENCE (never ruled) reader=list entries=[X-G12; rule:narrow:for-entry]
+    entry X-G12 in 'G12-entry-rule-decoupled' : own narrow (one rule); its group SILENCE; password changed-in-B hist=1 reader=read
+  G13-entry-moved-A-rule-B @'' : SILENCE (never ruled) reader=list entries=[rule:narrow:for-entry]
+    entry X-G13 in 'H-elsewhere' : own narrow (one rule); its group SILENCE; password invented-X-G13 hist=0 reader=read
+  G14-entry-moved-rule-both @'' : SILENCE (never ruled) reader=list entries=[rule:narrow:for-entry]
+    entry X-G14 in 'H-elsewhere' : own {"default":"inherit","ops":[],"reader":["read"]} (2 rules that never saw each other: the narrower of them); its group SILENCE; password invented-X-G14 hist=0 reader=read
+  G15-tie-differ @'' : {"default":"inherit","ops":[],"reader":["read"]} (2 rules that never saw each other: the narrower of them) reader=read entries=[X-G15; rule:other; rule:narrow]
+  G16-marker-lost-no-record-A @'' : wide (one rule) reader=read+list entries=[X-G16; rule:wide]
+  (in 'H-elsewhere': rule:other:for-entry)
+  (in 'Recycle Bin', the bin: rule:wide)
+
+## keepassxc-cli 2.4.2, back and forth three times: A then B after it
+# xc-roundtrip-2.4.2/A.kdbx kdbx 4.0 entries=75 kpg=56 deletionRecords=11 bin='Recycle Bin'
+  G00-root @'' : sealed (one rule, 1 replaced one(s) still here) reader=list entries=[user at the root; rule:sealed; rule:wide]
+  G01-supersede-A @'' : sealed (one rule, 1 replaced one(s) still here) reader=list entries=[X-G01; rule:sealed; rule:wide]
+  G02-concurrent @'' : {"default":"inherit","ops":[],"reader":["read"]} (2 rules that never saw each other: the narrower of them) reader=read entries=[X-G02; rule:narrow; rule:other]
+  G03-first-both-differ @'' : {"default":"inherit","ops":[],"reader":["read"]} (2 rules that never saw each other: the narrower of them) reader=read entries=[X-G03; rule:narrow; rule:other]
+  G04-first-both-same @'' : narrow (one rule) reader=read entries=[X-G04; rule:narrow:hist1]
+  G05-first-both-same-tie @'' : narrow (one rule) reader=read entries=[X-G05; rule:narrow]
+  G06-marker-binned-A @'' : REFUSE (ruled, and no rule entry is left) reader=REFUSED entries=[X-G06]
+  G07-marker-deleted-A @'' : REFUSE (every rule entry left is a replaced or deleted one) reader=REFUSED entries=[X-G07; rule:wide]
+  G08-moved-A-rule-B @'H-elsewhere' : narrow (one rule, 1 replaced one(s) still here) reader=read entries=[X-G08; rule:wide; rule:narrow]
+  G09-group-binned-A-rule-B @'Recycle Bin' : [in the bin, out of reach] REFUSE (ruled, and no rule entry is left) reader=out-of-reach entries=[X-G09; rule:wide; rule:narrow]
+  G10-group-deleted-A-rule-B @'' : narrow (one rule) reader=read entries=[X-G10; rule:narrow]
+  G11-group-touched-B @'' : narrow (one rule, 1 replaced one(s) still here) reader=read entries=[rule:narrow; X-G11; rule:wide]
+  G12-entry-rule-decoupled @'' : SILENCE (never ruled) reader=list entries=[rule:narrow:for-entry; X-G12; rule:wide:for-entry]
+    entry X-G12 in 'G12-entry-rule-decoupled' : own narrow (one rule, 1 replaced one(s) still here); its group SILENCE; password changed-in-B hist=1 reader=read
+  G13-entry-moved-A-rule-B @'' : SILENCE (never ruled) reader=list entries=[rule:wide:for-entry; rule:narrow:for-entry]
+    entry X-G13 in 'H-elsewhere' : own narrow (one rule, 1 replaced one(s) still here); its group SILENCE; password invented-X-G13 hist=0 reader=read
+  G14-entry-moved-rule-both @'' : SILENCE (never ruled) reader=list entries=[rule:narrow:for-entry]
+    entry X-G14 in 'H-elsewhere' : own {"default":"inherit","ops":[],"reader":["read"]} (2 rules that never saw each other: the narrower of them); its group SILENCE; password invented-X-G14 hist=0 reader=read
+  G15-tie-differ @'' : {"default":"inherit","ops":[],"reader":["read"]} (2 rules that never saw each other: the narrower of them) reader=read entries=[X-G15; rule:narrow; rule:other]
+  G16-marker-lost-no-record-A @'' : wide (one rule) reader=read+list entries=[X-G16; rule:wide]
+  (in 'H-elsewhere': rule:other:for-entry)
+  (in 'Recycle Bin', the bin: rule:wide)
+# xc-roundtrip-2.4.2/B.kdbx kdbx 4.0 entries=75 kpg=56 deletionRecords=7 bin=none
+  G00-root @'' : sealed (one rule, 1 replaced one(s) still here) reader=list entries=[rule:wide; user at the root; rule:sealed]
+  G01-supersede-A @'' : sealed (one rule, 1 replaced one(s) still here) reader=list entries=[X-G01; rule:wide; rule:sealed]
+  G02-concurrent @'' : {"default":"inherit","ops":[],"reader":["read"]} (2 rules that never saw each other: the narrower of them) reader=read entries=[X-G02; rule:other; rule:narrow]
+  G03-first-both-differ @'' : {"default":"inherit","ops":[],"reader":["read"]} (2 rules that never saw each other: the narrower of them) reader=read entries=[X-G03; rule:other; rule:narrow]
+  G04-first-both-same @'' : narrow (one rule) reader=read entries=[X-G04; rule:narrow:hist1]
+  G05-first-both-same-tie @'' : narrow (one rule) reader=read entries=[X-G05; rule:narrow]
+  G06-marker-binned-A @'' : wide (one rule) reader=read+list entries=[X-G06]
+  G07-marker-deleted-A @'' : wide (one rule) reader=read+list entries=[X-G07; rule:wide]
+  G08-moved-A-rule-B @'H-elsewhere' : narrow (one rule, 1 replaced one(s) still here) reader=read entries=[X-G08; rule:narrow; rule:wide]
+  G09-group-binned-A-rule-B @'Recycle Bin' : narrow (one rule, 1 replaced one(s) still here) reader=read entries=[X-G09; rule:narrow; rule:wide]
+  G10-group-deleted-A-rule-B @'' : narrow (one rule) reader=read entries=[X-G10; rule:narrow]
+  G11-group-touched-B @'' : narrow (one rule, 1 replaced one(s) still here) reader=read entries=[X-G11; rule:wide; rule:narrow]
+  G12-entry-rule-decoupled @'' : SILENCE (never ruled) reader=list entries=[X-G12; rule:wide:for-entry; rule:narrow:for-entry]
+    entry X-G12 in 'G12-entry-rule-decoupled' : own narrow (one rule, 1 replaced one(s) still here); its group SILENCE; password changed-in-B hist=1 reader=read
+  G13-entry-moved-A-rule-B @'' : SILENCE (never ruled) reader=list entries=[rule:narrow:for-entry; rule:wide:for-entry]
+    entry X-G13 in 'H-elsewhere' : own narrow (one rule, 1 replaced one(s) still here); its group SILENCE; password invented-X-G13 hist=0 reader=read
+  G14-entry-moved-rule-both @'' : SILENCE (never ruled) reader=list entries=[rule:narrow:for-entry]
+    entry X-G14 in 'H-elsewhere' : own {"default":"inherit","ops":[],"reader":["read"]} (2 rules that never saw each other: the narrower of them); its group SILENCE; password invented-X-G14 hist=0 reader=read
+  G15-tie-differ @'' : {"default":"inherit","ops":[],"reader":["read"]} (2 rules that never saw each other: the narrower of them) reader=read entries=[X-G15; rule:other; rule:narrow]
+  G16-marker-lost-no-record-A @'' : wide (one rule) reader=read+list entries=[X-G16; rule:wide]
+  (in 'H-elsewhere': rule:other:for-entry)
+  (in 'Recycle Bin': rule:wide)
+
+## keepassxc-cli 2.8.0, back and forth three times: A then B after it
+# xc-roundtrip-2.8.0/A.kdbx kdbx 4.1 entries=75 kpg=56 deletionRecords=11 bin='Recycle Bin'
+  G00-root @'' : sealed (one rule, 1 replaced one(s) still here) reader=list entries=[user at the root; rule:sealed; rule:wide]
+  G01-supersede-A @'' : sealed (one rule, 1 replaced one(s) still here) reader=list entries=[X-G01; rule:sealed; rule:wide]
+  G02-concurrent @'' : {"default":"inherit","ops":[],"reader":["read"]} (2 rules that never saw each other: the narrower of them) reader=read entries=[X-G02; rule:narrow; rule:other]
+  G03-first-both-differ @'' : {"default":"inherit","ops":[],"reader":["read"]} (2 rules that never saw each other: the narrower of them) reader=read entries=[X-G03; rule:narrow; rule:other]
+  G04-first-both-same @'' : narrow (one rule) reader=read entries=[X-G04; rule:narrow:hist1]
+  G05-first-both-same-tie @'' : narrow (one rule) reader=read entries=[X-G05; rule:narrow]
+  G06-marker-binned-A @'' : REFUSE (ruled, and no rule entry is left) reader=REFUSED entries=[X-G06]
+  G07-marker-deleted-A @'' : REFUSE (every rule entry left is a replaced or deleted one) reader=REFUSED entries=[X-G07; rule:wide]
+  G08-moved-A-rule-B @'H-elsewhere' : narrow (one rule, 1 replaced one(s) still here) reader=read entries=[X-G08; rule:wide; rule:narrow]
+  G09-group-binned-A-rule-B @'Recycle Bin' : [in the bin, out of reach] REFUSE (ruled, and no rule entry is left) reader=out-of-reach entries=[X-G09; rule:wide; rule:narrow]
+  G10-group-deleted-A-rule-B @'' : narrow (one rule) reader=read entries=[X-G10; rule:narrow]
+  G11-group-touched-B @'' : narrow (one rule, 1 replaced one(s) still here) reader=read entries=[rule:narrow; X-G11; rule:wide]
+  G12-entry-rule-decoupled @'' : SILENCE (never ruled) reader=list entries=[rule:narrow:for-entry; X-G12; rule:wide:for-entry]
+    entry X-G12 in 'G12-entry-rule-decoupled' : own narrow (one rule, 1 replaced one(s) still here); its group SILENCE; password changed-in-B hist=1 reader=read
+  G13-entry-moved-A-rule-B @'' : SILENCE (never ruled) reader=list entries=[rule:wide:for-entry; rule:narrow:for-entry]
+    entry X-G13 in 'H-elsewhere' : own narrow (one rule, 1 replaced one(s) still here); its group SILENCE; password invented-X-G13 hist=0 reader=read
+  G14-entry-moved-rule-both @'' : SILENCE (never ruled) reader=list entries=[rule:narrow:for-entry]
+    entry X-G14 in 'H-elsewhere' : own {"default":"inherit","ops":[],"reader":["read"]} (2 rules that never saw each other: the narrower of them); its group SILENCE; password invented-X-G14 hist=0 reader=read
+  G15-tie-differ @'' : {"default":"inherit","ops":[],"reader":["read"]} (2 rules that never saw each other: the narrower of them) reader=read entries=[X-G15; rule:narrow; rule:other]
+  G16-marker-lost-no-record-A @'' : wide (one rule) reader=read+list entries=[X-G16; rule:wide]
+  (in 'H-elsewhere': rule:other:for-entry)
+  (in 'Recycle Bin', the bin: rule:wide)
+# xc-roundtrip-2.8.0/B.kdbx kdbx 4.1 entries=75 kpg=56 deletionRecords=7 bin=none
+  G00-root @'' : sealed (one rule, 1 replaced one(s) still here) reader=list entries=[rule:wide; user at the root; rule:sealed]
+  G01-supersede-A @'' : sealed (one rule, 1 replaced one(s) still here) reader=list entries=[X-G01; rule:wide; rule:sealed]
+  G02-concurrent @'' : {"default":"inherit","ops":[],"reader":["read"]} (2 rules that never saw each other: the narrower of them) reader=read entries=[X-G02; rule:other; rule:narrow]
+  G03-first-both-differ @'' : {"default":"inherit","ops":[],"reader":["read"]} (2 rules that never saw each other: the narrower of them) reader=read entries=[X-G03; rule:other; rule:narrow]
+  G04-first-both-same @'' : narrow (one rule) reader=read entries=[X-G04; rule:narrow:hist1]
+  G05-first-both-same-tie @'' : narrow (one rule) reader=read entries=[X-G05; rule:narrow]
+  G06-marker-binned-A @'' : wide (one rule) reader=read+list entries=[X-G06]
+  G07-marker-deleted-A @'' : wide (one rule) reader=read+list entries=[X-G07; rule:wide]
+  G08-moved-A-rule-B @'H-elsewhere' : narrow (one rule, 1 replaced one(s) still here) reader=read entries=[X-G08; rule:narrow; rule:wide]
+  G09-group-binned-A-rule-B @'Recycle Bin' : narrow (one rule, 1 replaced one(s) still here) reader=read entries=[X-G09; rule:narrow; rule:wide]
+  G10-group-deleted-A-rule-B @'' : narrow (one rule) reader=read entries=[X-G10; rule:narrow]
+  G11-group-touched-B @'' : narrow (one rule, 1 replaced one(s) still here) reader=read entries=[X-G11; rule:wide; rule:narrow]
+  G12-entry-rule-decoupled @'' : SILENCE (never ruled) reader=list entries=[X-G12; rule:wide:for-entry; rule:narrow:for-entry]
+    entry X-G12 in 'G12-entry-rule-decoupled' : own narrow (one rule, 1 replaced one(s) still here); its group SILENCE; password changed-in-B hist=1 reader=read
+  G13-entry-moved-A-rule-B @'' : SILENCE (never ruled) reader=list entries=[rule:narrow:for-entry; rule:wide:for-entry]
+    entry X-G13 in 'H-elsewhere' : own narrow (one rule, 1 replaced one(s) still here); its group SILENCE; password invented-X-G13 hist=0 reader=read
+  G14-entry-moved-rule-both @'' : SILENCE (never ruled) reader=list entries=[rule:narrow:for-entry]
+    entry X-G14 in 'H-elsewhere' : own {"default":"inherit","ops":[],"reader":["read"]} (2 rules that never saw each other: the narrower of them); its group SILENCE; password invented-X-G14 hist=0 reader=read
+  G15-tie-differ @'' : {"default":"inherit","ops":[],"reader":["read"]} (2 rules that never saw each other: the narrower of them) reader=read entries=[X-G15; rule:other; rule:narrow]
+  G16-marker-lost-no-record-A @'' : wide (one rule) reader=read+list entries=[X-G16; rule:wide]
+  (in 'H-elsewhere': rule:other:for-entry)
+  (in 'Recycle Bin': rule:wide)
+
+## KeePassLib 2.62 DeleteDuplicateEntries
+DeleteDuplicateEntries on B.kdbx: 60 entries, 0 deleted
+# dedupe/B-deduped.kdbx kdbx 4.0 entries=60 kpg=41 deletionRecords=7 bin=none
+  G00-root @'' : wide (one rule) reader=read+list entries=[rule:wide; user at the root]
+  G01-supersede-A @'' : wide (one rule) reader=read+list entries=[X-G01; rule:wide]
+  G02-concurrent @'' : other (one rule) reader=read+list entries=[X-G02; rule:other]
+  G03-first-both-differ @'' : other (one rule) reader=read+list entries=[X-G03; rule:other]
+  G04-first-both-same @'' : narrow (one rule) reader=read entries=[X-G04; rule:narrow]
+  G05-first-both-same-tie @'' : narrow (one rule) reader=read entries=[X-G05; rule:narrow]
+  G06-marker-binned-A @'' : wide (one rule) reader=read+list entries=[X-G06; rule:wide]
+  G07-marker-deleted-A @'' : wide (one rule) reader=read+list entries=[X-G07; rule:wide]
+  G08-moved-A-rule-B @'' : narrow (one rule) reader=read entries=[X-G08; rule:narrow]
+  G09-group-binned-A-rule-B @'' : narrow (one rule) reader=read entries=[X-G09; rule:narrow]
+  G10-group-deleted-A-rule-B @'' : narrow (one rule) reader=read entries=[X-G10; rule:narrow]
+  G11-group-touched-B @'' : wide (one rule) reader=read+list entries=[X-G11; rule:wide]
+  G12-entry-rule-decoupled @'' : SILENCE (never ruled) reader=read+list entries=[X-G12; rule:wide:for-entry]
+    entry X-G12 in 'G12-entry-rule-decoupled' : own wide (one rule); its group SILENCE; password changed-in-B hist=1 reader=read+list
+  G13-entry-moved-A-rule-B @'' : SILENCE (never ruled) reader=read+list entries=[X-G13; rule:narrow:for-entry]
+    entry X-G13 in 'G13-entry-moved-A-rule-B' : own narrow (one rule); its group SILENCE; password invented-X-G13 hist=0 reader=read
+  G14-entry-moved-rule-both @'' : SILENCE (never ruled) reader=read+list entries=[]
+    entry X-G14 in 'H-elsewhere' : own other (one rule); its group SILENCE; password invented-X-G14 hist=0 reader=read+list
+  G15-tie-differ @'' : other (one rule) reader=read+list entries=[X-G15; rule:other]
+  G16-marker-lost-no-record-A @'' : wide (one rule) reader=read+list entries=[X-G16; rule:wide]
+  (in 'H-elsewhere': rule:other:for-entry)
+-- a rule entry of G01 duplicated by hand, before the tool runs
+# dedupe/A-handcopy.kdbx kdbx 4.0 entries=57 kpg=39 deletionRecords=11 bin='Recycle Bin'
+  G00-root @'' : sealed (one rule) reader=list entries=[user at the root; rule:sealed]
+  G01-supersede-A @'' : REFUSE (an entry here claims to be a rule and is not one) reader=REFUSED entries=[X-G01; rule:sealed; rule:sealed:UNBOUND]
+  G02-concurrent @'' : narrow (one rule) reader=read entries=[X-G02; rule:narrow]
+  G03-first-both-differ @'' : narrow (one rule) reader=read entries=[X-G03; rule:narrow]
+  G04-first-both-same @'' : narrow (one rule) reader=read entries=[X-G04; rule:narrow]
+  G05-first-both-same-tie @'' : narrow (one rule) reader=read entries=[X-G05; rule:narrow]
+  G06-marker-binned-A @'' : REFUSE (ruled, and no rule entry is left) reader=REFUSED entries=[X-G06]
+  G07-marker-deleted-A @'' : REFUSE (ruled, and no rule entry is left) reader=REFUSED entries=[X-G07]
+  G08-moved-A-rule-B @'H-elsewhere' : wide (one rule) reader=read+list entries=[X-G08; rule:wide]
+  G09-group-binned-A-rule-B @'Recycle Bin' : [in the bin, out of reach] REFUSE (ruled, and no rule entry is left) reader=out-of-reach entries=[X-G09; rule:wide]
+  G10-group-deleted-A-rule-B : GROUP ABSENT
+  G11-group-touched-B @'' : narrow (one rule) reader=read entries=[X-G11; rule:narrow]
+  G12-entry-rule-decoupled @'' : SILENCE (never ruled) reader=list entries=[X-G12; rule:narrow:for-entry]
+    entry X-G12 in 'G12-entry-rule-decoupled' : own narrow (one rule); its group SILENCE; password invented-X-G12 hist=0 reader=read
+  G13-entry-moved-A-rule-B @'' : SILENCE (never ruled) reader=list entries=[rule:wide:for-entry]
+    entry X-G13 in 'H-elsewhere' : own wide (one rule); its group SILENCE; password invented-X-G13 hist=0 reader=read+list
+  G14-entry-moved-rule-both @'' : SILENCE (never ruled) reader=list entries=[X-G14; rule:narrow:for-entry]
+    entry X-G14 in 'G14-entry-moved-rule-both' : own narrow (one rule); its group SILENCE; password invented-X-G14 hist=0 reader=read
+  G15-tie-differ @'' : narrow (one rule) reader=read entries=[X-G15; rule:narrow]
+  G16-marker-lost-no-record-A @'' : REFUSE (ruled, and no rule entry is left) reader=REFUSED entries=[X-G16]
+  (in 'Recycle Bin', the bin: rule:wide)
+DeleteDuplicateEntries on A-handcopy.kdbx: 57 entries, 1 deleted
+# dedupe/A-handcopy-deduped.kdbx kdbx 4.0 entries=56 kpg=38 deletionRecords=12 bin='Recycle Bin'
+  G00-root @'' : sealed (one rule) reader=list entries=[user at the root; rule:sealed]
+  G01-supersede-A @'' : REFUSE (an entry here claims to be a rule and is not one) reader=REFUSED entries=[X-G01; rule:sealed:UNBOUND]
+  G02-concurrent @'' : narrow (one rule) reader=read entries=[X-G02; rule:narrow]
+  G03-first-both-differ @'' : narrow (one rule) reader=read entries=[X-G03; rule:narrow]
+  G04-first-both-same @'' : narrow (one rule) reader=read entries=[X-G04; rule:narrow]
+  G05-first-both-same-tie @'' : narrow (one rule) reader=read entries=[X-G05; rule:narrow]
+  G06-marker-binned-A @'' : REFUSE (ruled, and no rule entry is left) reader=REFUSED entries=[X-G06]
+  G07-marker-deleted-A @'' : REFUSE (ruled, and no rule entry is left) reader=REFUSED entries=[X-G07]
+  G08-moved-A-rule-B @'H-elsewhere' : wide (one rule) reader=read+list entries=[X-G08; rule:wide]
+  G09-group-binned-A-rule-B @'Recycle Bin' : [in the bin, out of reach] REFUSE (ruled, and no rule entry is left) reader=out-of-reach entries=[X-G09; rule:wide]
+  G10-group-deleted-A-rule-B : GROUP ABSENT
+  G11-group-touched-B @'' : narrow (one rule) reader=read entries=[X-G11; rule:narrow]
+  G12-entry-rule-decoupled @'' : SILENCE (never ruled) reader=list entries=[X-G12; rule:narrow:for-entry]
+    entry X-G12 in 'G12-entry-rule-decoupled' : own narrow (one rule); its group SILENCE; password invented-X-G12 hist=0 reader=read
+  G13-entry-moved-A-rule-B @'' : SILENCE (never ruled) reader=list entries=[rule:wide:for-entry]
+    entry X-G13 in 'H-elsewhere' : own wide (one rule); its group SILENCE; password invented-X-G13 hist=0 reader=read+list
+  G14-entry-moved-rule-both @'' : SILENCE (never ruled) reader=list entries=[X-G14; rule:narrow:for-entry]
+    entry X-G14 in 'G14-entry-moved-rule-both' : own narrow (one rule); its group SILENCE; password invented-X-G14 hist=0 reader=read
+  G15-tie-differ @'' : narrow (one rule) reader=read entries=[X-G15; rule:narrow]
+  G16-marker-lost-no-record-A @'' : REFUSE (ruled, and no rule entry is left) reader=REFUSED entries=[X-G16]
+  (in 'Recycle Bin', the bin: rule:wide)
+
+## keepassxc-cli 2.4.2 merge into A, then the rule entry in force in G01 deleted for good by hand
+# dedupe/xcA-2.4.2-head-deleted.kdbx kdbx 4.0 entries=74 kpg=55 deletionRecords=12 bin='Recycle Bin'
+  G00-root @'' : sealed (one rule, 1 replaced one(s) still here) reader=list entries=[user at the root; rule:sealed; rule:wide]
+  G01-supersede-A @'' : REFUSE (every rule entry left is a replaced or deleted one) reader=REFUSED entries=[X-G01; rule:wide]
+  G02-concurrent @'' : {"default":"inherit","ops":[],"reader":["read"]} (2 rules that never saw each other: the narrower of them) reader=read entries=[X-G02; rule:narrow; rule:other]
+  G03-first-both-differ @'' : {"default":"inherit","ops":[],"reader":["read"]} (2 rules that never saw each other: the narrower of them) reader=read entries=[X-G03; rule:narrow; rule:other]
+  G04-first-both-same @'' : narrow (one rule) reader=read entries=[X-G04; rule:narrow:hist1]
+  G05-first-both-same-tie @'' : narrow (one rule) reader=read entries=[X-G05; rule:narrow]
+  G06-marker-binned-A @'' : REFUSE (ruled, and no rule entry is left) reader=REFUSED entries=[X-G06]
+  G07-marker-deleted-A @'' : REFUSE (every rule entry left is a replaced or deleted one) reader=REFUSED entries=[X-G07; rule:wide]
+  G08-moved-A-rule-B @'H-elsewhere' : narrow (one rule, 1 replaced one(s) still here) reader=read entries=[X-G08; rule:wide; rule:narrow]
+  G09-group-binned-A-rule-B @'Recycle Bin' : [in the bin, out of reach] REFUSE (ruled, and no rule entry is left) reader=out-of-reach entries=[X-G09; rule:wide; rule:narrow]
+  G10-group-deleted-A-rule-B @'' : narrow (one rule) reader=read entries=[X-G10; rule:narrow]
+  G11-group-touched-B @'' : narrow (one rule, 1 replaced one(s) still here) reader=read entries=[rule:narrow; X-G11; rule:wide]
+  G12-entry-rule-decoupled @'' : SILENCE (never ruled) reader=list entries=[rule:narrow:for-entry; X-G12; rule:wide:for-entry]
+    entry X-G12 in 'G12-entry-rule-decoupled' : own narrow (one rule, 1 replaced one(s) still here); its group SILENCE; password changed-in-B hist=1 reader=read
+  G13-entry-moved-A-rule-B @'' : SILENCE (never ruled) reader=list entries=[rule:wide:for-entry; rule:narrow:for-entry]
+    entry X-G13 in 'H-elsewhere' : own narrow (one rule, 1 replaced one(s) still here); its group SILENCE; password invented-X-G13 hist=0 reader=read
+  G14-entry-moved-rule-both @'' : SILENCE (never ruled) reader=list entries=[rule:narrow:for-entry]
+    entry X-G14 in 'H-elsewhere' : own {"default":"inherit","ops":[],"reader":["read"]} (2 rules that never saw each other: the narrower of them); its group SILENCE; password invented-X-G14 hist=0 reader=read
+  G15-tie-differ @'' : {"default":"inherit","ops":[],"reader":["read"]} (2 rules that never saw each other: the narrower of them) reader=read entries=[X-G15; rule:narrow; rule:other]
+  G16-marker-lost-no-record-A @'' : wide (one rule) reader=read+list entries=[X-G16; rule:wide]
+  (in 'H-elsewhere': rule:other:for-entry)
+  (in 'Recycle Bin', the bin: rule:wide)
+
+## keepassxc-cli 2.4.2 merge into B, then the rule entry in force in G01 deleted for good by hand
+# dedupe/xcB-2.4.2-head-deleted.kdbx kdbx 4.0 entries=74 kpg=55 deletionRecords=8 bin=none
+  G00-root @'' : sealed (one rule, 1 replaced one(s) still here) reader=list entries=[rule:wide; user at the root; rule:sealed]
+  G01-supersede-A @'' : REFUSE (every rule entry left is a replaced or deleted one) reader=REFUSED entries=[X-G01; rule:wide]
+  G02-concurrent @'' : {"default":"inherit","ops":[],"reader":["read"]} (2 rules that never saw each other: the narrower of them) reader=read entries=[X-G02; rule:other; rule:narrow]
+  G03-first-both-differ @'' : {"default":"inherit","ops":[],"reader":["read"]} (2 rules that never saw each other: the narrower of them) reader=read entries=[X-G03; rule:other; rule:narrow]
+  G04-first-both-same @'' : narrow (one rule) reader=read entries=[X-G04; rule:narrow:hist1]
+  G05-first-both-same-tie @'' : narrow (one rule) reader=read entries=[X-G05; rule:narrow]
+  G06-marker-binned-A @'' : wide (one rule) reader=read+list entries=[X-G06]
+  G07-marker-deleted-A @'' : wide (one rule) reader=read+list entries=[X-G07; rule:wide]
+  G08-moved-A-rule-B @'H-elsewhere' : narrow (one rule, 1 replaced one(s) still here) reader=read entries=[X-G08; rule:narrow; rule:wide]
+  G09-group-binned-A-rule-B @'Recycle Bin' : narrow (one rule, 1 replaced one(s) still here) reader=read entries=[X-G09; rule:narrow; rule:wide]
+  G10-group-deleted-A-rule-B @'' : narrow (one rule) reader=read entries=[X-G10; rule:narrow]
+  G11-group-touched-B @'' : narrow (one rule, 1 replaced one(s) still here) reader=read entries=[X-G11; rule:wide; rule:narrow]
+  G12-entry-rule-decoupled @'' : SILENCE (never ruled) reader=list entries=[X-G12; rule:wide:for-entry; rule:narrow:for-entry]
+    entry X-G12 in 'G12-entry-rule-decoupled' : own narrow (one rule, 1 replaced one(s) still here); its group SILENCE; password changed-in-B hist=1 reader=read
+  G13-entry-moved-A-rule-B @'' : SILENCE (never ruled) reader=list entries=[rule:narrow:for-entry; rule:wide:for-entry]
+    entry X-G13 in 'H-elsewhere' : own narrow (one rule, 1 replaced one(s) still here); its group SILENCE; password invented-X-G13 hist=0 reader=read
+  G14-entry-moved-rule-both @'' : SILENCE (never ruled) reader=list entries=[rule:narrow:for-entry]
+    entry X-G14 in 'H-elsewhere' : own {"default":"inherit","ops":[],"reader":["read"]} (2 rules that never saw each other: the narrower of them); its group SILENCE; password invented-X-G14 hist=0 reader=read
+  G15-tie-differ @'' : {"default":"inherit","ops":[],"reader":["read"]} (2 rules that never saw each other: the narrower of them) reader=read entries=[X-G15; rule:other; rule:narrow]
+  G16-marker-lost-no-record-A @'' : wide (one rule) reader=read+list entries=[X-G16; rule:wide]
+  (in 'H-elsewhere': rule:other:for-entry)
+  (in 'Recycle Bin': rule:wide)
+
+## keepassxc-cli 2.8.0 merge into A, then the rule entry in force in G01 deleted for good by hand
+# dedupe/xcA-2.8.0-head-deleted.kdbx kdbx 4.1 entries=74 kpg=55 deletionRecords=12 bin='Recycle Bin'
+  G00-root @'' : sealed (one rule, 1 replaced one(s) still here) reader=list entries=[user at the root; rule:sealed; rule:wide]
+  G01-supersede-A @'' : REFUSE (every rule entry left is a replaced or deleted one) reader=REFUSED entries=[X-G01; rule:wide]
+  G02-concurrent @'' : {"default":"inherit","ops":[],"reader":["read"]} (2 rules that never saw each other: the narrower of them) reader=read entries=[X-G02; rule:narrow; rule:other]
+  G03-first-both-differ @'' : {"default":"inherit","ops":[],"reader":["read"]} (2 rules that never saw each other: the narrower of them) reader=read entries=[X-G03; rule:narrow; rule:other]
+  G04-first-both-same @'' : narrow (one rule) reader=read entries=[X-G04; rule:narrow:hist1]
+  G05-first-both-same-tie @'' : narrow (one rule) reader=read entries=[X-G05; rule:narrow]
+  G06-marker-binned-A @'' : REFUSE (ruled, and no rule entry is left) reader=REFUSED entries=[X-G06]
+  G07-marker-deleted-A @'' : REFUSE (every rule entry left is a replaced or deleted one) reader=REFUSED entries=[X-G07; rule:wide]
+  G08-moved-A-rule-B @'H-elsewhere' : narrow (one rule, 1 replaced one(s) still here) reader=read entries=[X-G08; rule:wide; rule:narrow]
+  G09-group-binned-A-rule-B @'Recycle Bin' : [in the bin, out of reach] REFUSE (ruled, and no rule entry is left) reader=out-of-reach entries=[X-G09; rule:wide; rule:narrow]
+  G10-group-deleted-A-rule-B @'' : narrow (one rule) reader=read entries=[X-G10; rule:narrow]
+  G11-group-touched-B @'' : narrow (one rule, 1 replaced one(s) still here) reader=read entries=[rule:narrow; X-G11; rule:wide]
+  G12-entry-rule-decoupled @'' : SILENCE (never ruled) reader=list entries=[rule:narrow:for-entry; X-G12; rule:wide:for-entry]
+    entry X-G12 in 'G12-entry-rule-decoupled' : own narrow (one rule, 1 replaced one(s) still here); its group SILENCE; password changed-in-B hist=1 reader=read
+  G13-entry-moved-A-rule-B @'' : SILENCE (never ruled) reader=list entries=[rule:wide:for-entry; rule:narrow:for-entry]
+    entry X-G13 in 'H-elsewhere' : own narrow (one rule, 1 replaced one(s) still here); its group SILENCE; password invented-X-G13 hist=0 reader=read
+  G14-entry-moved-rule-both @'' : SILENCE (never ruled) reader=list entries=[rule:narrow:for-entry]
+    entry X-G14 in 'H-elsewhere' : own {"default":"inherit","ops":[],"reader":["read"]} (2 rules that never saw each other: the narrower of them); its group SILENCE; password invented-X-G14 hist=0 reader=read
+  G15-tie-differ @'' : {"default":"inherit","ops":[],"reader":["read"]} (2 rules that never saw each other: the narrower of them) reader=read entries=[X-G15; rule:narrow; rule:other]
+  G16-marker-lost-no-record-A @'' : wide (one rule) reader=read+list entries=[X-G16; rule:wide]
+  (in 'H-elsewhere': rule:other:for-entry)
+  (in 'Recycle Bin', the bin: rule:wide)
+
+## keepassxc-cli 2.8.0 merge into B, then the rule entry in force in G01 deleted for good by hand
+# dedupe/xcB-2.8.0-head-deleted.kdbx kdbx 4.1 entries=74 kpg=55 deletionRecords=8 bin=none
+  G00-root @'' : sealed (one rule, 1 replaced one(s) still here) reader=list entries=[rule:wide; user at the root; rule:sealed]
+  G01-supersede-A @'' : REFUSE (every rule entry left is a replaced or deleted one) reader=REFUSED entries=[X-G01; rule:wide]
+  G02-concurrent @'' : {"default":"inherit","ops":[],"reader":["read"]} (2 rules that never saw each other: the narrower of them) reader=read entries=[X-G02; rule:other; rule:narrow]
+  G03-first-both-differ @'' : {"default":"inherit","ops":[],"reader":["read"]} (2 rules that never saw each other: the narrower of them) reader=read entries=[X-G03; rule:other; rule:narrow]
+  G04-first-both-same @'' : narrow (one rule) reader=read entries=[X-G04; rule:narrow:hist1]
+  G05-first-both-same-tie @'' : narrow (one rule) reader=read entries=[X-G05; rule:narrow]
+  G06-marker-binned-A @'' : wide (one rule) reader=read+list entries=[X-G06]
+  G07-marker-deleted-A @'' : wide (one rule) reader=read+list entries=[X-G07; rule:wide]
+  G08-moved-A-rule-B @'H-elsewhere' : narrow (one rule, 1 replaced one(s) still here) reader=read entries=[X-G08; rule:narrow; rule:wide]
+  G09-group-binned-A-rule-B @'Recycle Bin' : narrow (one rule, 1 replaced one(s) still here) reader=read entries=[X-G09; rule:narrow; rule:wide]
+  G10-group-deleted-A-rule-B @'' : narrow (one rule) reader=read entries=[X-G10; rule:narrow]
+  G11-group-touched-B @'' : narrow (one rule, 1 replaced one(s) still here) reader=read entries=[X-G11; rule:wide; rule:narrow]
+  G12-entry-rule-decoupled @'' : SILENCE (never ruled) reader=list entries=[X-G12; rule:wide:for-entry; rule:narrow:for-entry]
+    entry X-G12 in 'G12-entry-rule-decoupled' : own narrow (one rule, 1 replaced one(s) still here); its group SILENCE; password changed-in-B hist=1 reader=read
+  G13-entry-moved-A-rule-B @'' : SILENCE (never ruled) reader=list entries=[rule:narrow:for-entry; rule:wide:for-entry]
+    entry X-G13 in 'H-elsewhere' : own narrow (one rule, 1 replaced one(s) still here); its group SILENCE; password invented-X-G13 hist=0 reader=read
+  G14-entry-moved-rule-both @'' : SILENCE (never ruled) reader=list entries=[rule:narrow:for-entry]
+    entry X-G14 in 'H-elsewhere' : own {"default":"inherit","ops":[],"reader":["read"]} (2 rules that never saw each other: the narrower of them); its group SILENCE; password invented-X-G14 hist=0 reader=read
+  G15-tie-differ @'' : {"default":"inherit","ops":[],"reader":["read"]} (2 rules that never saw each other: the narrower of them) reader=read entries=[X-G15; rule:other; rule:narrow]
+  G16-marker-lost-no-record-A @'' : wide (one rule) reader=read+list entries=[X-G16; rule:wide]
+  (in 'H-elsewhere': rule:other:for-entry)
+  (in 'Recycle Bin': rule:wide)
+
+## hand edit: the rule text of G02, the title and notes of G11, on A
+# dedupe/A-tampered.kdbx kdbx 4.0 entries=56 kpg=38 deletionRecords=11 bin='Recycle Bin'
+  G00-root @'' : sealed (one rule) reader=list entries=[user at the root; rule:sealed]
+  G01-supersede-A @'' : sealed (one rule) reader=list entries=[X-G01; rule:sealed]
+  G02-concurrent @'' : REFUSE (an entry here claims to be a rule and is not one) reader=REFUSED entries=[X-G02; rule:wide:UNBOUND:hist1]
+  G03-first-both-differ @'' : narrow (one rule) reader=read entries=[X-G03; rule:narrow]
+  G04-first-both-same @'' : narrow (one rule) reader=read entries=[X-G04; rule:narrow]
+  G05-first-both-same-tie @'' : narrow (one rule) reader=read entries=[X-G05; rule:narrow]
+  G06-marker-binned-A @'' : REFUSE (ruled, and no rule entry is left) reader=REFUSED entries=[X-G06]
+  G07-marker-deleted-A @'' : REFUSE (ruled, and no rule entry is left) reader=REFUSED entries=[X-G07]
+  G08-moved-A-rule-B @'H-elsewhere' : wide (one rule) reader=read+list entries=[X-G08; rule:wide]
+  G09-group-binned-A-rule-B @'Recycle Bin' : [in the bin, out of reach] REFUSE (ruled, and no rule entry is left) reader=out-of-reach entries=[X-G09; rule:wide]
+  G10-group-deleted-A-rule-B : GROUP ABSENT
+  G11-group-touched-B @'' : narrow (one rule) reader=read entries=[X-G11; rule:narrow]
+  G12-entry-rule-decoupled @'' : SILENCE (never ruled) reader=list entries=[X-G12; rule:narrow:for-entry]
+    entry X-G12 in 'G12-entry-rule-decoupled' : own narrow (one rule); its group SILENCE; password invented-X-G12 hist=0 reader=read
+  G13-entry-moved-A-rule-B @'' : SILENCE (never ruled) reader=list entries=[rule:wide:for-entry]
+    entry X-G13 in 'H-elsewhere' : own wide (one rule); its group SILENCE; password invented-X-G13 hist=0 reader=read+list
+  G14-entry-moved-rule-both @'' : SILENCE (never ruled) reader=list entries=[X-G14; rule:narrow:for-entry]
+    entry X-G14 in 'G14-entry-moved-rule-both' : own narrow (one rule); its group SILENCE; password invented-X-G14 hist=0 reader=read
+  G15-tie-differ @'' : narrow (one rule) reader=read entries=[X-G15; rule:narrow]
+  G16-marker-lost-no-record-A @'' : REFUSE (ruled, and no rule entry is left) reader=REFUSED entries=[X-G16]
+  (in 'Recycle Bin', the bin: rule:wide)
+
+## keepassxc-cli 2.4.2 rm of the rule entry of G11 on B (to the recycle bin), exit 0
+# xc-hand-2.4.2/B.kdbx kdbx 4.0 entries=60 kpg=41 deletionRecords=7 bin='Recycle Bin'
+  G00-root @'' : wide (one rule) reader=read+list entries=[rule:wide; user at the root]
+  G01-supersede-A @'' : wide (one rule) reader=read+list entries=[X-G01; rule:wide]
+  G02-concurrent @'' : other (one rule) reader=read+list entries=[X-G02; rule:other]
+  G03-first-both-differ @'' : other (one rule) reader=read+list entries=[X-G03; rule:other]
+  G04-first-both-same @'' : narrow (one rule) reader=read entries=[X-G04; rule:narrow]
+  G05-first-both-same-tie @'' : narrow (one rule) reader=read entries=[X-G05; rule:narrow]
+  G06-marker-binned-A @'' : wide (one rule) reader=read+list entries=[X-G06; rule:wide]
+  G07-marker-deleted-A @'' : wide (one rule) reader=read+list entries=[X-G07; rule:wide]
+  G08-moved-A-rule-B @'' : narrow (one rule) reader=read entries=[X-G08; rule:narrow]
+  G09-group-binned-A-rule-B @'' : narrow (one rule) reader=read entries=[X-G09; rule:narrow]
+  G10-group-deleted-A-rule-B @'' : narrow (one rule) reader=read entries=[X-G10; rule:narrow]
+  G11-group-touched-B @'' : REFUSE (ruled, and no rule entry is left) reader=REFUSED entries=[X-G11]
+  G12-entry-rule-decoupled @'' : SILENCE (never ruled) reader=read+list entries=[X-G12; rule:wide:for-entry]
+    entry X-G12 in 'G12-entry-rule-decoupled' : own wide (one rule); its group SILENCE; password changed-in-B hist=1 reader=read+list
+  G13-entry-moved-A-rule-B @'' : SILENCE (never ruled) reader=read+list entries=[X-G13; rule:narrow:for-entry]
+    entry X-G13 in 'G13-entry-moved-A-rule-B' : own narrow (one rule); its group SILENCE; password invented-X-G13 hist=0 reader=read
+  G14-entry-moved-rule-both @'' : SILENCE (never ruled) reader=read+list entries=[]
+    entry X-G14 in 'H-elsewhere' : own other (one rule); its group SILENCE; password invented-X-G14 hist=0 reader=read+list
+  G15-tie-differ @'' : other (one rule) reader=read+list entries=[X-G15; rule:other]
+  G16-marker-lost-no-record-A @'' : wide (one rule) reader=read+list entries=[X-G16; rule:wide]
+  (in 'H-elsewhere': rule:other:for-entry)
+  (in 'Recycle Bin', the bin: rule:wide)
+
+## keepassxc-cli 2.4.2 rm of the same entry again, now in the recycle bin (for good), exit 0
+# xc-hand-2.4.2/B.kdbx kdbx 4.0 entries=59 kpg=40 deletionRecords=8 bin='Recycle Bin'
+  G00-root @'' : wide (one rule) reader=read+list entries=[rule:wide; user at the root]
+  G01-supersede-A @'' : wide (one rule) reader=read+list entries=[X-G01; rule:wide]
+  G02-concurrent @'' : other (one rule) reader=read+list entries=[X-G02; rule:other]
+  G03-first-both-differ @'' : other (one rule) reader=read+list entries=[X-G03; rule:other]
+  G04-first-both-same @'' : narrow (one rule) reader=read entries=[X-G04; rule:narrow]
+  G05-first-both-same-tie @'' : narrow (one rule) reader=read entries=[X-G05; rule:narrow]
+  G06-marker-binned-A @'' : wide (one rule) reader=read+list entries=[X-G06; rule:wide]
+  G07-marker-deleted-A @'' : wide (one rule) reader=read+list entries=[X-G07; rule:wide]
+  G08-moved-A-rule-B @'' : narrow (one rule) reader=read entries=[X-G08; rule:narrow]
+  G09-group-binned-A-rule-B @'' : narrow (one rule) reader=read entries=[X-G09; rule:narrow]
+  G10-group-deleted-A-rule-B @'' : narrow (one rule) reader=read entries=[X-G10; rule:narrow]
+  G11-group-touched-B @'' : REFUSE (ruled, and no rule entry is left) reader=REFUSED entries=[X-G11]
+  G12-entry-rule-decoupled @'' : SILENCE (never ruled) reader=read+list entries=[X-G12; rule:wide:for-entry]
+    entry X-G12 in 'G12-entry-rule-decoupled' : own wide (one rule); its group SILENCE; password changed-in-B hist=1 reader=read+list
+  G13-entry-moved-A-rule-B @'' : SILENCE (never ruled) reader=read+list entries=[X-G13; rule:narrow:for-entry]
+    entry X-G13 in 'G13-entry-moved-A-rule-B' : own narrow (one rule); its group SILENCE; password invented-X-G13 hist=0 reader=read
+  G14-entry-moved-rule-both @'' : SILENCE (never ruled) reader=read+list entries=[]
+    entry X-G14 in 'H-elsewhere' : own other (one rule); its group SILENCE; password invented-X-G14 hist=0 reader=read+list
+  G15-tie-differ @'' : other (one rule) reader=read+list entries=[X-G15; rule:other]
+  G16-marker-lost-no-record-A @'' : wide (one rule) reader=read+list entries=[X-G16; rule:wide]
+  (in 'H-elsewhere': rule:other:for-entry)
+
+## keepassxc-cli 2.8.0 rm of the rule entry of G11 on B (to the recycle bin), exit 0
+# xc-hand-2.8.0/B.kdbx kdbx 4.1 entries=60 kpg=41 deletionRecords=7 bin='Papierkorb'
+  G00-root @'' : wide (one rule) reader=read+list entries=[rule:wide; user at the root]
+  G01-supersede-A @'' : wide (one rule) reader=read+list entries=[X-G01; rule:wide]
+  G02-concurrent @'' : other (one rule) reader=read+list entries=[X-G02; rule:other]
+  G03-first-both-differ @'' : other (one rule) reader=read+list entries=[X-G03; rule:other]
+  G04-first-both-same @'' : narrow (one rule) reader=read entries=[X-G04; rule:narrow]
+  G05-first-both-same-tie @'' : narrow (one rule) reader=read entries=[X-G05; rule:narrow]
+  G06-marker-binned-A @'' : wide (one rule) reader=read+list entries=[X-G06; rule:wide]
+  G07-marker-deleted-A @'' : wide (one rule) reader=read+list entries=[X-G07; rule:wide]
+  G08-moved-A-rule-B @'' : narrow (one rule) reader=read entries=[X-G08; rule:narrow]
+  G09-group-binned-A-rule-B @'' : narrow (one rule) reader=read entries=[X-G09; rule:narrow]
+  G10-group-deleted-A-rule-B @'' : narrow (one rule) reader=read entries=[X-G10; rule:narrow]
+  G11-group-touched-B @'' : REFUSE (ruled, and no rule entry is left) reader=REFUSED entries=[X-G11]
+  G12-entry-rule-decoupled @'' : SILENCE (never ruled) reader=read+list entries=[X-G12; rule:wide:for-entry]
+    entry X-G12 in 'G12-entry-rule-decoupled' : own wide (one rule); its group SILENCE; password changed-in-B hist=1 reader=read+list
+  G13-entry-moved-A-rule-B @'' : SILENCE (never ruled) reader=read+list entries=[X-G13; rule:narrow:for-entry]
+    entry X-G13 in 'G13-entry-moved-A-rule-B' : own narrow (one rule); its group SILENCE; password invented-X-G13 hist=0 reader=read
+  G14-entry-moved-rule-both @'' : SILENCE (never ruled) reader=read+list entries=[]
+    entry X-G14 in 'H-elsewhere' : own other (one rule); its group SILENCE; password invented-X-G14 hist=0 reader=read+list
+  G15-tie-differ @'' : other (one rule) reader=read+list entries=[X-G15; rule:other]
+  G16-marker-lost-no-record-A @'' : wide (one rule) reader=read+list entries=[X-G16; rule:wide]
+  (in 'H-elsewhere': rule:other:for-entry)
+  (in 'Papierkorb', the bin: rule:wide)
+
+## keepassxc-cli 2.8.0 rm of the same entry again, now in the recycle bin (for good), exit 0
+# xc-hand-2.8.0/B.kdbx kdbx 4.0 entries=59 kpg=40 deletionRecords=8 bin='Papierkorb'
+  G00-root @'' : wide (one rule) reader=read+list entries=[rule:wide; user at the root]
+  G01-supersede-A @'' : wide (one rule) reader=read+list entries=[X-G01; rule:wide]
+  G02-concurrent @'' : other (one rule) reader=read+list entries=[X-G02; rule:other]
+  G03-first-both-differ @'' : other (one rule) reader=read+list entries=[X-G03; rule:other]
+  G04-first-both-same @'' : narrow (one rule) reader=read entries=[X-G04; rule:narrow]
+  G05-first-both-same-tie @'' : narrow (one rule) reader=read entries=[X-G05; rule:narrow]
+  G06-marker-binned-A @'' : wide (one rule) reader=read+list entries=[X-G06; rule:wide]
+  G07-marker-deleted-A @'' : wide (one rule) reader=read+list entries=[X-G07; rule:wide]
+  G08-moved-A-rule-B @'' : narrow (one rule) reader=read entries=[X-G08; rule:narrow]
+  G09-group-binned-A-rule-B @'' : narrow (one rule) reader=read entries=[X-G09; rule:narrow]
+  G10-group-deleted-A-rule-B @'' : narrow (one rule) reader=read entries=[X-G10; rule:narrow]
+  G11-group-touched-B @'' : REFUSE (ruled, and no rule entry is left) reader=REFUSED entries=[X-G11]
+  G12-entry-rule-decoupled @'' : SILENCE (never ruled) reader=read+list entries=[X-G12; rule:wide:for-entry]
+    entry X-G12 in 'G12-entry-rule-decoupled' : own wide (one rule); its group SILENCE; password changed-in-B hist=1 reader=read+list
+  G13-entry-moved-A-rule-B @'' : SILENCE (never ruled) reader=read+list entries=[X-G13; rule:narrow:for-entry]
+    entry X-G13 in 'G13-entry-moved-A-rule-B' : own narrow (one rule); its group SILENCE; password invented-X-G13 hist=0 reader=read
+  G14-entry-moved-rule-both @'' : SILENCE (never ruled) reader=read+list entries=[]
+    entry X-G14 in 'H-elsewhere' : own other (one rule); its group SILENCE; password invented-X-G14 hist=0 reader=read+list
+  G15-tie-differ @'' : other (one rule) reader=read+list entries=[X-G15; rule:other]
+  G16-marker-lost-no-record-A @'' : wide (one rule) reader=read+list entries=[X-G16; rule:wide]
+  (in 'H-elsewhere': rule:other:for-entry)
+
+## keepassxc-cli 2.8.0 mv of the rule entry of G01 into General on B, exit 0
+# xc-hand-2.8.0/B.kdbx kdbx 4.1 entries=59 kpg=40 deletionRecords=8 bin='Papierkorb'
+  G00-root @'' : wide (one rule) reader=read+list entries=[rule:wide; user at the root]
+  G01-supersede-A @'' : wide (one rule) reader=read+list entries=[X-G01]
+  G02-concurrent @'' : other (one rule) reader=read+list entries=[X-G02; rule:other]
+  G03-first-both-differ @'' : other (one rule) reader=read+list entries=[X-G03; rule:other]
+  G04-first-both-same @'' : narrow (one rule) reader=read entries=[X-G04; rule:narrow]
+  G05-first-both-same-tie @'' : narrow (one rule) reader=read entries=[X-G05; rule:narrow]
+  G06-marker-binned-A @'' : wide (one rule) reader=read+list entries=[X-G06; rule:wide]
+  G07-marker-deleted-A @'' : wide (one rule) reader=read+list entries=[X-G07; rule:wide]
+  G08-moved-A-rule-B @'' : narrow (one rule) reader=read entries=[X-G08; rule:narrow]
+  G09-group-binned-A-rule-B @'' : narrow (one rule) reader=read entries=[X-G09; rule:narrow]
+  G10-group-deleted-A-rule-B @'' : narrow (one rule) reader=read entries=[X-G10; rule:narrow]
+  G11-group-touched-B @'' : REFUSE (ruled, and no rule entry is left) reader=REFUSED entries=[X-G11]
+  G12-entry-rule-decoupled @'' : SILENCE (never ruled) reader=read+list entries=[X-G12; rule:wide:for-entry]
+    entry X-G12 in 'G12-entry-rule-decoupled' : own wide (one rule); its group SILENCE; password changed-in-B hist=1 reader=read+list
+  G13-entry-moved-A-rule-B @'' : SILENCE (never ruled) reader=read+list entries=[X-G13; rule:narrow:for-entry]
+    entry X-G13 in 'G13-entry-moved-A-rule-B' : own narrow (one rule); its group SILENCE; password invented-X-G13 hist=0 reader=read
+  G14-entry-moved-rule-both @'' : SILENCE (never ruled) reader=read+list entries=[]
+    entry X-G14 in 'H-elsewhere' : own other (one rule); its group SILENCE; password invented-X-G14 hist=0 reader=read+list
+  G15-tie-differ @'' : other (one rule) reader=read+list entries=[X-G15; rule:other]
+  G16-marker-lost-no-record-A @'' : wide (one rule) reader=read+list entries=[X-G16; rule:wide]
+  (in 'H-elsewhere': rule:other:for-entry)
+  (in 'General': rule:wide:hist1)

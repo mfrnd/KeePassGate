@@ -1,0 +1,97 @@
+
+== s1-N-before-bin: first rule narrow on N; a person moves the rule entry to the bin; the operator saves narrow again
+  [after the person binned the rule entry] duplicates=False deletionRecords=0 bin='Root/Recycle Bin' ruleEntries=2
+      rule E3660B37 in 'Root' wide after=none
+      rule B95B63FE in 'Root/Recycle Bin' (bin) narrow after=none
+    group Root : reader=read+list decided at 'Root' (one rule)
+    group Root/N : reader=REFUSED decided at 'N' (ruled, and no rule entry counts)
+      entry n1 : reader=REFUSED decided at 'N' (ruled, and no rule entry counts)
+  R1 B95B63FEB293081D945AE6B188A0B41F  R2 B95B63FEB293081D945AE6B188A0B41F  same identifier: True
+  [after the operator saved narrow again, in memory] duplicates=True deletionRecords=0 bin='Root/Recycle Bin' ruleEntries=3
+      rule E3660B37 in 'Root' wide after=none
+      rule B95B63FE in 'Root/N' narrow after=none
+      rule B95B63FE in 'Root/Recycle Bin' (bin) narrow after=none
+    group Root : reader=read+list decided at 'Root' (one rule)
+    group Root/N : reader=read decided at 'N' (one rule)
+      entry n1 : reader=read decided at 'N' (one rule)
+  [saved and reopened by KeePassLib] duplicates=True deletionRecords=0 bin='Root/Recycle Bin' ruleEntries=3
+      rule E3660B37 in 'Root' wide after=none
+      rule B95B63FE in 'Root/N' narrow after=none
+      rule B95B63FE in 'Root/Recycle Bin' (bin) narrow after=none
+    group Root : reader=read+list decided at 'Root' (one rule)
+    group Root/N : reader=read decided at 'N' (one rule)
+      entry n1 : reader=read decided at 'N' (one rule)
+  [after KeePass's own repair (FixDuplicateUuids, as PreSavingEx runs it before every save)] duplicates=False deletionRecords=0 bin='Root/Recycle Bin' ruleEntries=3
+      rule E3660B37 in 'Root' wide after=none
+      rule B95B63FE in 'Root/N' narrow after=none
+      rule F4D44045 in 'Root/Recycle Bin' (bin) narrow after=none UNBOUND
+    group Root : reader=read+list decided at 'Root' (one rule)
+    group Root/N : reader=read decided at 'N' (one rule)
+      entry n1 : reader=read decided at 'N' (one rule)
+  [unrepaired, then Empty Recycle Bin] duplicates=False deletionRecords=1 bin='Root/Recycle Bin' ruleEntries=2
+      rule E3660B37 in 'Root' wide after=none
+      rule B95B63FE in 'Root/N' narrow after=none
+    group Root : reader=read+list decided at 'Root' (one rule)
+    group Root/N : reader=REFUSED decided at 'N' (every rule entry left is replaced or deleted)
+      entry n1 : reader=REFUSED decided at 'N' (every rule entry left is replaced or deleted)
+
+== s1-bin-before-N: first rule narrow on N; a person moves the rule entry to the bin; the operator saves narrow again
+  [after the person binned the rule entry] duplicates=False deletionRecords=0 bin='Root/Recycle Bin' ruleEntries=2
+      rule 86EEFCFB in 'Root' wide after=none
+      rule 5387E2F2 in 'Root/Recycle Bin' (bin) narrow after=none
+    group Root : reader=read+list decided at 'Root' (one rule)
+    group Root/N : reader=REFUSED decided at 'N' (ruled, and no rule entry counts)
+      entry n1 : reader=REFUSED decided at 'N' (ruled, and no rule entry counts)
+  R1 5387E2F29B6E8FDCA99277B6C21F7C60  R2 5387E2F29B6E8FDCA99277B6C21F7C60  same identifier: True
+  [after the operator saved narrow again, in memory] duplicates=True deletionRecords=0 bin='Root/Recycle Bin' ruleEntries=3
+      rule 86EEFCFB in 'Root' wide after=none
+      rule 5387E2F2 in 'Root/Recycle Bin' (bin) narrow after=none
+      rule 5387E2F2 in 'Root/N' narrow after=none
+    group Root : reader=read+list decided at 'Root' (one rule)
+    group Root/N : reader=read decided at 'N' (one rule)
+      entry n1 : reader=read decided at 'N' (one rule)
+  [saved and reopened by KeePassLib] duplicates=True deletionRecords=0 bin='Root/Recycle Bin' ruleEntries=3
+      rule 86EEFCFB in 'Root' wide after=none
+      rule 5387E2F2 in 'Root/Recycle Bin' (bin) narrow after=none
+      rule 5387E2F2 in 'Root/N' narrow after=none
+    group Root : reader=read+list decided at 'Root' (one rule)
+    group Root/N : reader=read decided at 'N' (one rule)
+      entry n1 : reader=read decided at 'N' (one rule)
+  [after KeePass's own repair (FixDuplicateUuids, as PreSavingEx runs it before every save)] duplicates=False deletionRecords=0 bin='Root/Recycle Bin' ruleEntries=3
+      rule 86EEFCFB in 'Root' wide after=none
+      rule 5387E2F2 in 'Root/Recycle Bin' (bin) narrow after=none
+      rule 7772D8A4 in 'Root/N' narrow after=none UNBOUND
+    group Root : reader=read+list decided at 'Root' (one rule)
+    group Root/N : reader=REFUSED decided at 'N' (closed: an entry here claims to be a rule and is not one)
+      entry n1 : reader=REFUSED decided at 'N' (closed: an entry here claims to be a rule and is not one)
+  [unrepaired, then Empty Recycle Bin] duplicates=False deletionRecords=2 bin='Root/Recycle Bin' ruleEntries=2
+      rule 86EEFCFB in 'Root' wide after=none
+      rule 5387E2F2 in 'Root/N' narrow after=none
+    group Root : reader=read+list decided at 'Root' (one rule)
+    group Root/N : reader=REFUSED decided at 'N' (every rule entry left is replaced or deleted)
+      entry n1 : reader=REFUSED decided at 'N' (every rule entry left is replaced or deleted)
+
+== s2: first rule narrow on N; a person deletes the rule entry for good; the operator saves narrow again
+  same identifier: True
+  [after the operator saved narrow again] duplicates=False deletionRecords=1 bin=none ruleEntries=2
+      rule C03DB1B9 in 'Root' wide after=none
+      rule 3ACC0D41 in 'Root/N' narrow after=none
+    group Root : reader=read+list decided at 'Root' (one rule)
+    group Root/N : reader=REFUSED decided at 'N' (every rule entry left is replaced or deleted)
+      entry n1 : reader=REFUSED decided at 'N' (every rule entry left is replaced or deleted)
+  [the operator then tries another rule, other] duplicates=False deletionRecords=2 bin=none ruleEntries=2
+      rule C03DB1B9 in 'Root' wide after=none
+      rule D088FC01 in 'Root/N' other after=none
+    group Root : reader=read+list decided at 'Root' (one rule)
+    group Root/N : reader=read+list decided at 'N' (one rule)
+      entry n1 : reader=read+list decided at 'N' (one rule)
+
+== s3: narrow, then other (replaces narrow); a person bins the head; the operator saves narrow again
+  new identifier equals the replaced first one: True
+  [after the operator saved narrow again] duplicates=False deletionRecords=1 bin='Root/Recycle Bin' ruleEntries=3
+      rule 94A38580 in 'Root' wide after=none
+      rule 7571BA14 in 'Root/N' narrow after=none
+      rule A9F505F9 in 'Root/Recycle Bin' (bin) other after=7571BA14
+    group Root : reader=read+list decided at 'Root' (one rule)
+    group Root/N : reader=REFUSED decided at 'N' (every rule entry left is replaced or deleted)
+      entry n1 : reader=REFUSED decided at 'N' (every rule entry left is replaced or deleted)

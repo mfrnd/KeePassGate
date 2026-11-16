@@ -1,0 +1,139 @@
+
+== s5a: N wide; A narrows (+1h), B sets other (+2h); KeePassLib Synchronize B into A; a person then deletes one of the two same-titled entries
+  [merged] duplicates=False deletionRecords=1 bin=none ruleEntries=3
+      rule 17281F39 in 'Root' wide after=none
+      rule 25783C75 in 'Root/N' other after=0C0B044C
+      rule D988C5D6 in 'Root/N' narrow after=0C0B044C
+    group Root : reader=read+list decided at 'Root' (one rule)
+    group Root/N : reader=read decided at 'N' (2 rules: the narrower)
+      entry n1 : reader=read decided at 'N' (2 rules: the narrower)
+  [merged, then the narrow one of the two moved to the bin by hand] duplicates=False deletionRecords=1 bin='Root/Recycle Bin' ruleEntries=3
+      rule 17281F39 in 'Root' wide after=none
+      rule 25783C75 in 'Root/N' other after=0C0B044C
+      rule D988C5D6 in 'Root/Recycle Bin' (bin) narrow after=0C0B044C
+    group Root : reader=read+list decided at 'Root' (one rule)
+    group Root/N : reader=read+list decided at 'N' (one rule)
+      entry n1 : reader=read+list decided at 'N' (one rule)
+  [merged, then the narrow one deleted for good by hand] duplicates=False deletionRecords=2 bin=none ruleEntries=2
+      rule 17281F39 in 'Root' wide after=none
+      rule 25783C75 in 'Root/N' other after=0C0B044C
+    group Root : reader=read+list decided at 'Root' (one rule)
+    group Root/N : reader=read+list decided at 'N' (one rule)
+      entry n1 : reader=read+list decided at 'N' (one rule)
+
+== s5b: entry E in G with its own rule wide; A narrows E's rule (+1h, rule entry in G); B moves E to H and sets other there (+2h); Synchronize; a person deletes the rule entry left in G
+  [Synchronize into A] duplicates=False deletionRecords=1 bin=none ruleEntries=3
+      rule C9373C17 in 'Root' wide after=none
+      rule 82733766 in 'Root/G' narrow after=3649BEEA
+      rule D919CE8C in 'Root/H' other after=3649BEEA
+    group Root : reader=read+list decided at 'Root' (one rule)
+    group Root/G : reader=read+list decided at 'Root' (one rule)
+    group Root/H : reader=read+list decided at 'Root' (one rule)
+      entry E : reader=read decided at entry's own rule (2 rules: the narrower)
+  [into A, then the rule entry left behind in G moved to the bin by hand] duplicates=False deletionRecords=1 bin='Root/Recycle Bin' ruleEntries=3
+      rule C9373C17 in 'Root' wide after=none
+      rule D919CE8C in 'Root/H' other after=3649BEEA
+      rule 82733766 in 'Root/Recycle Bin' (bin) narrow after=3649BEEA
+    group Root : reader=read+list decided at 'Root' (one rule)
+    group Root/G : reader=read+list decided at 'Root' (one rule)
+    group Root/H : reader=read+list decided at 'Root' (one rule)
+      entry E : reader=read+list decided at entry's own rule (one rule)
+  [Synchronize into B] duplicates=False deletionRecords=1 bin=none ruleEntries=3
+      rule C9373C17 in 'Root' wide after=none
+      rule 82733766 in 'Root/G' narrow after=3649BEEA
+      rule D919CE8C in 'Root/H' other after=3649BEEA
+    group Root : reader=read+list decided at 'Root' (one rule)
+    group Root/G : reader=read+list decided at 'Root' (one rule)
+    group Root/H : reader=read+list decided at 'Root' (one rule)
+      entry E : reader=read decided at entry's own rule (2 rules: the narrower)
+  [into B, then the rule entry left behind in G moved to the bin by hand] duplicates=False deletionRecords=1 bin='Root/Recycle Bin' ruleEntries=3
+      rule C9373C17 in 'Root' wide after=none
+      rule D919CE8C in 'Root/H' other after=3649BEEA
+      rule 82733766 in 'Root/Recycle Bin' (bin) narrow after=3649BEEA
+    group Root : reader=read+list decided at 'Root' (one rule)
+    group Root/G : reader=read+list decided at 'Root' (one rule)
+    group Root/H : reader=read+list decided at 'Root' (one rule)
+      entry E : reader=read+list decided at entry's own rule (one rule)
+
+== s7: root wide; O unruled holds E sealed by its own rule and F; S sealed holds s1. The operator imports an older backup with Create new IDs, then presses Remove on each entry that claims to be a rule and is not one
+  [after the import] duplicates=False deletionRecords=0 bin=none ruleEntries=6
+      rule 2861E4FF in 'Root' wide after=none
+      rule 9F05CFBF in 'Root' wide after=none UNBOUND
+      rule C329C5E8 in 'Root/O' seal after=none
+      rule CD96DB7D in 'Root/S' seal after=none
+      rule 69ED9CA6 in 'Root/O' seal after=none UNBOUND
+      rule EB1AA091 in 'Root/S' seal after=none UNBOUND
+    group Root : reader=REFUSED decided at 'Root' (closed: an entry here claims to be a rule and is not one)
+    group Root/O : reader=REFUSED decided at 'Root' (closed: an entry here claims to be a rule and is not one)
+      entry E : reader=nothing decided at entry's own rule (one rule)
+      entry F : reader=REFUSED decided at 'Root' (closed: an entry here claims to be a rule and is not one)
+    group Root/S : reader=nothing decided at 'S' (one rule)
+      entry s1 : reader=nothing decided at 'S' (one rule)
+    group Root/Root : reader=REFUSED decided at 'Root' (closed: an entry here claims to be a rule and is not one)
+    group Root/KeePassGate : reader=REFUSED decided at 'Root' (closed: an entry here claims to be a rule and is not one)
+    group Root/O : reader=REFUSED decided at 'O' (closed: an entry here claims to be a rule and is not one)
+      entry E : reader=REFUSED decided at 'O' (closed: an entry here claims to be a rule and is not one)
+      entry F : reader=REFUSED decided at 'O' (closed: an entry here claims to be a rule and is not one)
+    group Root/S : reader=REFUSED decided at 'S' (closed: an entry here claims to be a rule and is not one)
+      entry s1 : reader=REFUSED decided at 'S' (closed: an entry here claims to be a rule and is not one)
+  [after Remove on every copy] duplicates=False deletionRecords=3 bin=none ruleEntries=3
+      rule 2861E4FF in 'Root' wide after=none
+      rule C329C5E8 in 'Root/O' seal after=none
+      rule CD96DB7D in 'Root/S' seal after=none
+    group Root : reader=read+list decided at 'Root' (one rule)
+    group Root/O : reader=read+list decided at 'Root' (one rule)
+      entry E : reader=nothing decided at entry's own rule (one rule)
+      entry F : reader=read+list decided at 'Root' (one rule)
+    group Root/S : reader=nothing decided at 'S' (one rule)
+      entry s1 : reader=nothing decided at 'S' (one rule)
+    group Root/Root : reader=read+list decided at 'Root' (one rule)
+    group Root/KeePassGate : reader=read+list decided at 'Root' (one rule)
+    group Root/O : reader=read+list decided at 'Root' (one rule)
+      entry E : reader=read+list decided at 'Root' (one rule)
+      entry F : reader=read+list decided at 'Root' (one rule)
+    group Root/S : reader=read+list decided at 'Root' (one rule)
+      entry s1 : reader=read+list decided at 'Root' (one rule)
+
+== s8: the root carries the design's says-nothing entry; groups P (narrow) and Q (unruled) under it; a person bins the entry at the root
+  [as written] duplicates=False deletionRecords=0 bin=none ruleEntries=2
+      rule BEEF9CD0 in 'Root' says-nothing after=none
+      rule 9F09AEF8 in 'Root/P' narrow after=none
+    group Root : reader=nothing decided at nowhere
+    group Root/P : reader=read decided at 'P' (one rule)
+      entry p1 : reader=read decided at 'P' (one rule)
+    group Root/Q : reader=nothing decided at nowhere
+      entry q1 : reader=nothing decided at nowhere
+  [the root's entry moved to the bin] duplicates=False deletionRecords=0 bin='Root/Recycle Bin' ruleEntries=2
+      rule 9F09AEF8 in 'Root/P' narrow after=none
+      rule BEEF9CD0 in 'Root/Recycle Bin' (bin) says-nothing after=none
+    group Root : reader=REFUSED decided at 'Root' (ruled, and no rule entry counts)
+    group Root/P : reader=read decided at 'P' (one rule)
+      entry p1 : reader=read decided at 'P' (one rule)
+    group Root/Q : reader=REFUSED decided at 'Root' (ruled, and no rule entry counts)
+      entry q1 : reader=REFUSED decided at 'Root' (ruled, and no rule entry counts)
+
+== s9: N narrow; A bins N's rule entry by hand at +1h, making bin X; B bins a user entry at +2h, making bin Y; KeePassLib Synchronize both ways
+  [A] duplicates=False deletionRecords=0 bin='Root/Recycle Bin' ruleEntries=2
+      rule 172141DB in 'Root' wide after=none
+      rule 3022D93B in 'Root/Recycle Bin' (bin) narrow after=none
+    group Root : reader=read+list decided at 'Root' (one rule)
+    group Root/N : reader=REFUSED decided at 'N' (ruled, and no rule entry counts)
+      entry n1 : reader=REFUSED decided at 'N' (ruled, and no rule entry counts)
+    group Root/General : reader=read+list decided at 'Root' (one rule)
+      entry x : reader=read+list decided at 'Root' (one rule)
+  [Synchronize into A] duplicates=False deletionRecords=0 bin='Root/Recycle Bin' ruleEntries=2
+      rule 172141DB in 'Root' wide after=none
+      rule 3022D93B in 'Root/Recycle Bin' narrow after=none
+    group Root : reader=read+list decided at 'Root' (one rule)
+    group Root/N : reader=read decided at 'N' (one rule)
+      entry n1 : reader=read decided at 'N' (one rule)
+    group Root/General : reader=read+list decided at 'Root' (one rule)
+    group Root/Recycle Bin : reader=read+list decided at 'Root' (one rule)
+  [Synchronize into B] duplicates=False deletionRecords=0 bin='Root/Recycle Bin' ruleEntries=2
+      rule 172141DB in 'Root' wide after=none
+      rule 3022D93B in 'Root/Recycle Bin' narrow after=none
+    group Root : reader=read+list decided at 'Root' (one rule)
+    group Root/N : reader=read decided at 'N' (one rule)
+      entry n1 : reader=read decided at 'N' (one rule)
+    group Root/General : reader=read+list decided at 'Root' (one rule)
+    group Root/Recycle Bin : reader=read+list decided at 'Root' (one rule)

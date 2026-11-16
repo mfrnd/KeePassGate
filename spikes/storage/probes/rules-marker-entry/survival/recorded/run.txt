@@ -1,0 +1,176 @@
+keepassxc-cli 2.4.2 : Valid CN="DroidMonkey Apps, LLC", O="DroidMonkey Apps, LLC", STREET=3474 Raintree Circle, L=Suffolk, S=VA, PostalCode=23435, C=US
+keepassxc-cli 2.8.0 : Valid CN="DroidMonkey Apps, LLC", O="DroidMonkey Apps, LLC", S=Virginia, C=US
+
+== s4: base N unruled under a wide root; A rules N narrow at +1h and widens it to other at +2h; B, from the base, rules N narrow at +3h
+  [A] duplicates=False deletionRecords=1 bin=none ruleEntries=2
+      rule 63459CE9 in 'Root' wide after=none
+      rule B0D38130 in 'Root/N' other after=667B0E12
+    group Root : reader=read+list decided at 'Root' (one rule)
+    group Root/N : reader=read+list decided at 'N' (one rule)
+      entry n1 : reader=read+list decided at 'N' (one rule)
+  [B] duplicates=False deletionRecords=0 bin=none ruleEntries=2
+      rule 63459CE9 in 'Root' wide after=none
+      rule 667B0E12 in 'Root/N' narrow after=none
+    group Root : reader=read+list decided at 'Root' (one rule)
+    group Root/N : reader=read decided at 'N' (one rule)
+      entry n1 : reader=read decided at 'N' (one rule)
+  A's first rule entry and B's are one identifier: True
+  [s4/kp-intoA-Synchronize.kdbx] duplicates=False deletionRecords=0 bin=none ruleEntries=3
+      rule 63459CE9 in 'Root' wide after=none
+      rule 667B0E12 in 'Root/N' narrow after=none
+      rule B0D38130 in 'Root/N' other after=667B0E12
+    group Root : reader=read+list decided at 'Root' (one rule)
+    group Root/N : reader=read+list decided at 'N' (one rule)
+      entry n1 : reader=read+list decided at 'N' (one rule)
+  [s4/kp-intoA-OverwriteIfNewer.kdbx] duplicates=False deletionRecords=0 bin=none ruleEntries=3
+      rule 63459CE9 in 'Root' wide after=none
+      rule 667B0E12 in 'Root/N' narrow after=none
+      rule B0D38130 in 'Root/N' other after=667B0E12
+    group Root : reader=read+list decided at 'Root' (one rule)
+    group Root/N : reader=read+list decided at 'N' (one rule)
+      entry n1 : reader=read+list decided at 'N' (one rule)
+  [s4/kp-intoA-KeepExisting.kdbx] duplicates=False deletionRecords=0 bin=none ruleEntries=3
+      rule 63459CE9 in 'Root' wide after=none
+      rule 667B0E12 in 'Root/N' narrow after=none
+      rule B0D38130 in 'Root/N' other after=667B0E12
+    group Root : reader=read+list decided at 'Root' (one rule)
+    group Root/N : reader=read+list decided at 'N' (one rule)
+      entry n1 : reader=read+list decided at 'N' (one rule)
+keepassxc-cli 2.4.2 merge into A exit 0
+  [xc-2.4.2-intoA/target.kdbx] duplicates=False deletionRecords=1 bin=none ruleEntries=3
+      rule 63459CE9 in 'Root' wide after=none
+      rule B0D38130 in 'Root/N' other after=667B0E12
+      rule 667B0E12 in 'Root/N' narrow after=none
+    group Root : reader=read+list decided at 'Root' (one rule)
+    group Root/N : reader=read+list decided at 'N' (one rule)
+      entry n1 : reader=read+list decided at 'N' (one rule)
+keepassxc-cli 2.8.0 merge into A exit 0
+  [xc-2.8.0-intoA/target.kdbx] duplicates=False deletionRecords=1 bin=none ruleEntries=3
+      rule 63459CE9 in 'Root' wide after=none
+      rule B0D38130 in 'Root/N' other after=667B0E12
+      rule 667B0E12 in 'Root/N' narrow after=none
+    group Root : reader=read+list decided at 'Root' (one rule)
+    group Root/N : reader=read+list decided at 'N' (one rule)
+      entry n1 : reader=read+list decided at 'N' (one rule)
+  [s4/kp-intoB-Synchronize.kdbx] duplicates=False deletionRecords=0 bin=none ruleEntries=3
+      rule 63459CE9 in 'Root' wide after=none
+      rule B0D38130 in 'Root/N' other after=667B0E12
+      rule 667B0E12 in 'Root/N' narrow after=none
+    group Root : reader=read+list decided at 'Root' (one rule)
+    group Root/N : reader=read+list decided at 'N' (one rule)
+      entry n1 : reader=read+list decided at 'N' (one rule)
+  [s4/kp-intoB-OverwriteIfNewer.kdbx] duplicates=False deletionRecords=0 bin=none ruleEntries=3
+      rule 63459CE9 in 'Root' wide after=none
+      rule B0D38130 in 'Root/N' other after=667B0E12
+      rule 667B0E12 in 'Root/N' narrow after=none
+    group Root : reader=read+list decided at 'Root' (one rule)
+    group Root/N : reader=read+list decided at 'N' (one rule)
+      entry n1 : reader=read+list decided at 'N' (one rule)
+  [s4/kp-intoB-KeepExisting.kdbx] duplicates=False deletionRecords=0 bin=none ruleEntries=3
+      rule 63459CE9 in 'Root' wide after=none
+      rule B0D38130 in 'Root/N' other after=667B0E12
+      rule 667B0E12 in 'Root/N' narrow after=none
+    group Root : reader=read+list decided at 'Root' (one rule)
+    group Root/N : reader=read+list decided at 'N' (one rule)
+      entry n1 : reader=read+list decided at 'N' (one rule)
+keepassxc-cli 2.4.2 merge into B exit 0
+  [xc-2.4.2-intoB/target.kdbx] duplicates=False deletionRecords=0 bin=none ruleEntries=3
+      rule 63459CE9 in 'Root' wide after=none
+      rule 667B0E12 in 'Root/N' narrow after=none
+      rule B0D38130 in 'Root/N' other after=667B0E12
+    group Root : reader=read+list decided at 'Root' (one rule)
+    group Root/N : reader=read+list decided at 'N' (one rule)
+      entry n1 : reader=read+list decided at 'N' (one rule)
+keepassxc-cli 2.8.0 merge into B exit 0
+  [xc-2.8.0-intoB/target.kdbx] duplicates=False deletionRecords=0 bin=none ruleEntries=3
+      rule 63459CE9 in 'Root' wide after=none
+      rule 667B0E12 in 'Root/N' narrow after=none
+      rule B0D38130 in 'Root/N' other after=667B0E12
+    group Root : reader=read+list decided at 'Root' (one rule)
+    group Root/N : reader=read+list decided at 'N' (one rule)
+      entry n1 : reader=read+list decided at 'N' (one rule)
+
+== s6: N narrow under a wide root; the rule entry and the ruled record of N deleted by hand
+  [as written] duplicates=False deletionRecords=0 bin=none ruleEntries=2
+      rule 8391F5B2 in 'Root' wide after=none
+      rule BAB84B0C in 'Root/N' narrow after=none
+    group Root : reader=read+list decided at 'Root' (one rule)
+    group Root/N : reader=read decided at 'N' (one rule)
+      entry n1 : reader=read decided at 'N' (one rule)
+  [both deleted for good the way KeePass records it] duplicates=False deletionRecords=2 bin=none ruleEntries=1
+      rule 8391F5B2 in 'Root' wide after=none
+    group Root : reader=read+list decided at 'Root' (one rule)
+    group Root/N : reader=REFUSED decided at 'N' (ruled, and no rule entry counts)
+      entry n1 : reader=REFUSED decided at 'N' (ruled, and no rule entry counts)
+pykeepass deleted: ruled 6f02d8ae, rule bab84b0c
+  [s6/s6-pk-deleted.kdbx] duplicates=False deletionRecords=0 bin=none ruleEntries=1
+      rule 8391F5B2 in 'Root' wide after=none
+    group Root : reader=read+list decided at 'Root' (one rule)
+    group Root/N : reader=read+list decided at 'Root' (one rule)
+      entry n1 : reader=read+list decided at 'Root' (one rule)
+  [open copy after a KeePassDX-style merge of the copy that deleted them] duplicates=False deletionRecords=0 bin=none ruleEntries=1
+      rule 8391F5B2 in 'Root' wide after=none
+    group Root : reader=read+list decided at 'Root' (one rule)
+    group Root/N : reader=read+list decided at 'Root' (one rule)
+      entry n1 : reader=read+list decided at 'Root' (one rule)
+keepassxc-cli 2.4.2 merge of the deleting copy into the intact one, exit 0
+  [xc-2.4.2/target.kdbx] duplicates=False deletionRecords=0 bin=none ruleEntries=2
+      rule 8391F5B2 in 'Root' wide after=none
+      rule BAB84B0C in 'Root/N' narrow after=none
+    group Root : reader=read+list decided at 'Root' (one rule)
+    group Root/N : reader=read decided at 'N' (one rule)
+      entry n1 : reader=read decided at 'N' (one rule)
+keepassxc-cli 2.8.0 merge of the deleting copy into the intact one, exit 0
+  [xc-2.8.0/target.kdbx] duplicates=False deletionRecords=0 bin=none ruleEntries=2
+      rule 8391F5B2 in 'Root' wide after=none
+      rule BAB84B0C in 'Root/N' narrow after=none
+    group Root : reader=read+list decided at 'Root' (one rule)
+    group Root/N : reader=read decided at 'N' (one rule)
+      entry n1 : reader=read decided at 'N' (one rule)
+keepassxc-cli 2.4.2 ls of s1-bin-before-N exit 1
+keepassxc-cli 2.4.2 add (a plain save) of s1-bin-before-N exit 0
+  [xc-2.4.2-s1-bin-before-N/db.kdbx] duplicates=False deletionRecords=0 bin='Root/Recycle Bin' ruleEntries=2
+      rule 86EEFCFB in 'Root' wide after=none
+      rule 5387E2F2 in 'Root/N' narrow after=none
+    group Root : reader=read+list decided at 'Root' (one rule)
+      entry xc-added : reader=read+list decided at 'Root' (one rule)
+    group Root/N : reader=read decided at 'N' (one rule)
+      entry n1 : reader=read decided at 'N' (one rule)
+keepassxc-cli 2.8.0 ls of s1-bin-before-N exit 0
+    KeePassGate rule (this group)
+    Recycle Bin/
+    Recycle Bin/old entry
+    N/
+    N/n1
+    N/KeePassGate rule (this group)
+keepassxc-cli 2.8.0 add (a plain save) of s1-bin-before-N exit 0
+  [xc-2.8.0-s1-bin-before-N/db.kdbx] duplicates=False deletionRecords=0 bin='Root/Recycle Bin' ruleEntries=2
+      rule 86EEFCFB in 'Root' wide after=none
+      rule 5387E2F2 in 'Root/N' narrow after=none
+    group Root : reader=read+list decided at 'Root' (one rule)
+      entry xc-added : reader=read+list decided at 'Root' (one rule)
+    group Root/N : reader=read decided at 'N' (one rule)
+      entry n1 : reader=read decided at 'N' (one rule)
+keepassxc-cli 2.4.2 ls of s1-N-before-bin exit 1
+keepassxc-cli 2.4.2 add (a plain save) of s1-N-before-bin exit 0
+  [xc-2.4.2-s1-N-before-bin/db.kdbx] duplicates=False deletionRecords=0 bin='Root/Recycle Bin' ruleEntries=2
+      rule E3660B37 in 'Root' wide after=none
+      rule B95B63FE in 'Root/Recycle Bin' (bin) narrow after=none
+    group Root : reader=read+list decided at 'Root' (one rule)
+      entry xc-added : reader=read+list decided at 'Root' (one rule)
+    group Root/N : reader=REFUSED decided at 'N' (ruled, and no rule entry counts)
+      entry n1 : reader=REFUSED decided at 'N' (ruled, and no rule entry counts)
+keepassxc-cli 2.8.0 ls of s1-N-before-bin exit 0
+    KeePassGate rule (this group)
+    N/
+    N/n1
+    Recycle Bin/
+    Recycle Bin/KeePassGate rule (this group)
+keepassxc-cli 2.8.0 add (a plain save) of s1-N-before-bin exit 0
+  [xc-2.8.0-s1-N-before-bin/db.kdbx] duplicates=False deletionRecords=0 bin='Root/Recycle Bin' ruleEntries=2
+      rule E3660B37 in 'Root' wide after=none
+      rule B95B63FE in 'Root/Recycle Bin' (bin) narrow after=none
+    group Root : reader=read+list decided at 'Root' (one rule)
+      entry xc-added : reader=read+list decided at 'Root' (one rule)
+    group Root/N : reader=REFUSED decided at 'N' (ruled, and no rule entry counts)
+      entry n1 : reader=REFUSED decided at 'N' (ruled, and no rule entry counts)

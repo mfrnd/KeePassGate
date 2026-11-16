@@ -1,0 +1,47 @@
+KeePassLib 2.62.0.0
+
+== S1 rule entry to the bin, then the tab's Save, bin made BEFORE the group
+  base: Servers narrow rule in force (one rule), rule entry 4A81108BA382A992DAFC5E7C0A5F5427
+  after the move to the bin: Servers REFUSES (ruled, and no rule entry is left)
+  Save writes rule entry 4A81108BA382A992DAFC5E7C0A5F5427  == the binned one's identifier
+  duplicate identifiers in the database: True; Servers narrow rule in force (one rule)
+  after KeePass's repair before the save: the entry in Servers is 0FBDFE58C4EC3F48B806379CC1A08D7D, the one in the bin is 4A81108BA382A992DAFC5E7C0A5F5427
+  Servers REFUSES (an entry here claims to be a rule and is not one)
+
+== S1 rule entry to the bin, then the tab's Save, bin made AFTER the group
+  base: Servers narrow rule in force (one rule), rule entry C6C6102AC7E215959695D0FA9B0086EC
+  after the move to the bin: Servers REFUSES (ruled, and no rule entry is left)
+  Save writes rule entry C6C6102AC7E215959695D0FA9B0086EC  == the binned one's identifier
+  duplicate identifiers in the database: True; Servers narrow rule in force (one rule)
+  after KeePass's repair before the save: the entry in Servers is C6C6102AC7E215959695D0FA9B0086EC, the one in the bin is 445324EE7A82784194663FCB1842255E
+  Servers narrow rule in force (one rule)
+
+== S2 rule entry deleted for good, then the tab's Save
+  after the deletion: Servers REFUSES (ruled, and no rule entry is left)
+  Save writes rule entry FC7A0CE2ED1C89C439F1DFA43F56563B  == the deleted one's identifier, which a deletion record names
+  Servers REFUSES (every rule entry left is a replaced or deleted one)
+  Synchronize, base merged into A: Servers narrow rule in force (one rule), deletion records naming the rule entry: 0
+  Synchronize, A merged into base: Servers narrow rule in force (one rule), deletion records naming the rule entry: 0
+  OverwriteIfNewer, base merged into A: Servers narrow rule in force (one rule), deletion records naming the rule entry: 0
+  OverwriteIfNewer, A merged into base: Servers narrow rule in force (one rule), deletion records naming the rule entry: 0
+  KeepExisting, base merged into A: Servers narrow rule in force (one rule), deletion records naming the rule entry: 0
+  KeepExisting, A merged into base: Servers narrow rule in force (one rule), deletion records naming the rule entry: 0
+
+== S3 rule entry duplicated by hand, then Delete Duplicate Entries, then Remove and Save on the tab
+  with the copy beside it: Servers REFUSES (an entry here claims to be a rule and is not one)
+  DeleteDuplicateEntries deleted 1; left in Servers: the copy; deletion record for the original: True
+  Servers REFUSES (an entry here claims to be a rule and is not one)
+  after the tab's Remove of what does not read: Servers REFUSES (ruled, and no rule entry is left)
+  Save writes EBEEBB281BC04251E5BB1AE5ECC11FF0  == the original's identifier
+  Servers REFUSES (every rule entry left is a replaced or deleted one)
+
+== S4 rule text edited by hand, then Remove and Save on the tab
+  after the hand edit: Servers REFUSES (an entry here claims to be a rule and is not one)
+  after Remove: Servers REFUSES (ruled, and no rule entry is left)
+  Save writes A4CDBDA5C5FD2A04FC8267D3F3194FE1  == the removed one's identifier
+  Servers REFUSES (every rule entry left is a replaced or deleted one)
+
+== S5 the root's rule entry deleted for good, then the operator saves the root's rule on its tab
+  the root REFUSES (ruled, and no rule entry is left); Servers narrow rule in force (one rule)
+  Save of the root's (empty) rule writes FE463ED24D4576E6EEA9D913264F0BF5  == the deleted one's identifier
+  the root REFUSES (every rule entry left is a replaced or deleted one)

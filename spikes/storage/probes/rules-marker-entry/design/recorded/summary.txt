@@ -1,0 +1,1039 @@
+== G00
+   wide
+        inputs [base/base.kdbx]
+        inputs [base/B.kdbx]
+        KeePassLib 2.62 DeleteDuplicateEntries [dedupe/B-deduped.kdbx]
+        keepassxc-cli 2.4.2 rm of the rule entry of G11 on B (to the recycle bin), exit 0
+        keepassxc-cli 2.4.2 rm of the same entry again, now in the recycle bin (for good), exit 0
+        keepassxc-cli 2.8.0 rm of the rule entry of G11 on B (to the recycle bin), exit 0
+        keepassxc-cli 2.8.0 rm of the same entry again, now in the recycle bin (for good), exit 0
+        keepassxc-cli 2.8.0 mv of the rule entry of G01 into General on B, exit 0
+   sealed
+        inputs [base/A.kdbx]
+        KeePassLib 2.62, B merged into A, Synchronize
+        KeePassLib 2.62, B merged into A, OverwriteIfNewer
+        KeePassLib 2.62, B merged into A, OverwriteExisting
+        KeePassLib 2.62, B merged into A, KeepExisting
+        KeePassLib 2.62, A merged into B, Synchronize
+        keepassxc-cli 2.4.2 add (a plain save), on A, exit 0
+        keepassxc-cli 2.6.6 add (a plain save), on A, exit 0
+        keepassxc-cli 2.7.12 add (a plain save), on A, exit 0
+        keepassxc-cli 2.8.0 add (a plain save), on A, exit 0
+        chain: keepassxc-cli 2.4.2 merged B into A, then KeePassLib 2.62 Synchronize of that result with B
+        chain: keepassxc-cli 2.4.2 merged A into B, then KeePassLib 2.62 Synchronize of that result with A
+        chain: keepassxc-cli 2.8.0 merged B into A, then KeePassLib 2.62 Synchronize of that result with B
+        chain: keepassxc-cli 2.8.0 merged A into B, then KeePassLib 2.62 Synchronize of that result with A
+        KeePassLib 2.62 DeleteDuplicateEntries [dedupe/A-handcopy.kdbx]
+        KeePassLib 2.62 DeleteDuplicateEntries [dedupe/A-handcopy-deduped.kdbx]
+        hand edit: the rule text of G02, the title and notes of G11, on A
+   REFUSE
+        KeePassLib 2.62, B merged into A, CreateNewUuids
+        KeePassLib 2.62, A merged into B, CreateNewUuids
+   sealed +old
+        keepassxc-cli 2.4.2 merge, B merged into A, exit 0
+        keepassxc-cli 2.6.6 merge, B merged into A, exit 0
+        keepassxc-cli 2.7.12 merge, B merged into A, exit 0
+        keepassxc-cli 2.8.0 merge, B merged into A, exit 0
+        KeePassLib 2.62, A merged into B, OverwriteIfNewer
+        KeePassLib 2.62, A merged into B, OverwriteExisting
+        KeePassLib 2.62, A merged into B, KeepExisting
+        keepassxc-cli 2.4.2 merge, A merged into B, exit 0
+        keepassxc-cli 2.6.6 merge, A merged into B, exit 0
+        keepassxc-cli 2.7.12 merge, A merged into B, exit 0
+        keepassxc-cli 2.8.0 merge, A merged into B, exit 0
+        keepassxc-cli 2.4.2, back and forth three times: A then B after it [xc-roundtrip-2.4.2/A.kdbx]
+        keepassxc-cli 2.4.2, back and forth three times: A then B after it [xc-roundtrip-2.4.2/B.kdbx]
+        keepassxc-cli 2.8.0, back and forth three times: A then B after it [xc-roundtrip-2.8.0/A.kdbx]
+        keepassxc-cli 2.8.0, back and forth three times: A then B after it [xc-roundtrip-2.8.0/B.kdbx]
+        keepassxc-cli 2.4.2 merge into A, then the rule entry in force in G01 deleted for good by hand
+        keepassxc-cli 2.4.2 merge into B, then the rule entry in force in G01 deleted for good by hand
+        keepassxc-cli 2.8.0 merge into A, then the rule entry in force in G01 deleted for good by hand
+        keepassxc-cli 2.8.0 merge into B, then the rule entry in force in G01 deleted for good by hand
+== G01
+   wide
+        inputs [base/base.kdbx]
+        inputs [base/B.kdbx]
+        KeePassLib 2.62 DeleteDuplicateEntries [dedupe/B-deduped.kdbx]
+        keepassxc-cli 2.4.2 rm of the rule entry of G11 on B (to the recycle bin), exit 0
+        keepassxc-cli 2.4.2 rm of the same entry again, now in the recycle bin (for good), exit 0
+        keepassxc-cli 2.8.0 rm of the rule entry of G11 on B (to the recycle bin), exit 0
+        keepassxc-cli 2.8.0 rm of the same entry again, now in the recycle bin (for good), exit 0
+        keepassxc-cli 2.8.0 mv of the rule entry of G01 into General on B, exit 0
+   sealed
+        inputs [base/A.kdbx]
+        KeePassLib 2.62, B merged into A, Synchronize
+        KeePassLib 2.62, B merged into A, OverwriteIfNewer
+        KeePassLib 2.62, B merged into A, OverwriteExisting
+        KeePassLib 2.62, B merged into A, KeepExisting
+        KeePassLib 2.62, A merged into B, Synchronize
+        keepassxc-cli 2.4.2 add (a plain save), on A, exit 0
+        keepassxc-cli 2.6.6 add (a plain save), on A, exit 0
+        keepassxc-cli 2.7.12 add (a plain save), on A, exit 0
+        keepassxc-cli 2.8.0 add (a plain save), on A, exit 0
+        chain: keepassxc-cli 2.4.2 merged B into A, then KeePassLib 2.62 Synchronize of that result with B
+        chain: keepassxc-cli 2.4.2 merged A into B, then KeePassLib 2.62 Synchronize of that result with A
+        chain: keepassxc-cli 2.8.0 merged B into A, then KeePassLib 2.62 Synchronize of that result with B
+        chain: keepassxc-cli 2.8.0 merged A into B, then KeePassLib 2.62 Synchronize of that result with A
+        hand edit: the rule text of G02, the title and notes of G11, on A
+   sealed | REFUSE
+        KeePassLib 2.62, B merged into A, CreateNewUuids
+   sealed +old
+        keepassxc-cli 2.4.2 merge, B merged into A, exit 0
+        keepassxc-cli 2.6.6 merge, B merged into A, exit 0
+        keepassxc-cli 2.7.12 merge, B merged into A, exit 0
+        keepassxc-cli 2.8.0 merge, B merged into A, exit 0
+        KeePassLib 2.62, A merged into B, OverwriteIfNewer
+        KeePassLib 2.62, A merged into B, OverwriteExisting
+        KeePassLib 2.62, A merged into B, KeepExisting
+        keepassxc-cli 2.4.2 merge, A merged into B, exit 0
+        keepassxc-cli 2.6.6 merge, A merged into B, exit 0
+        keepassxc-cli 2.7.12 merge, A merged into B, exit 0
+        keepassxc-cli 2.8.0 merge, A merged into B, exit 0
+        keepassxc-cli 2.4.2, back and forth three times: A then B after it [xc-roundtrip-2.4.2/A.kdbx]
+        keepassxc-cli 2.4.2, back and forth three times: A then B after it [xc-roundtrip-2.4.2/B.kdbx]
+        keepassxc-cli 2.8.0, back and forth three times: A then B after it [xc-roundtrip-2.8.0/A.kdbx]
+        keepassxc-cli 2.8.0, back and forth three times: A then B after it [xc-roundtrip-2.8.0/B.kdbx]
+   REFUSE | REFUSE
+        KeePassLib 2.62, A merged into B, CreateNewUuids
+   REFUSE
+        KeePassLib 2.62 DeleteDuplicateEntries [dedupe/A-handcopy.kdbx]
+        KeePassLib 2.62 DeleteDuplicateEntries [dedupe/A-handcopy-deduped.kdbx]
+        keepassxc-cli 2.4.2 merge into A, then the rule entry in force in G01 deleted for good by hand
+        keepassxc-cli 2.4.2 merge into B, then the rule entry in force in G01 deleted for good by hand
+        keepassxc-cli 2.8.0 merge into A, then the rule entry in force in G01 deleted for good by hand
+        keepassxc-cli 2.8.0 merge into B, then the rule entry in force in G01 deleted for good by hand
+== G02
+   wide
+        inputs [base/base.kdbx]
+   narrow
+        inputs [base/A.kdbx]
+        keepassxc-cli 2.4.2 add (a plain save), on A, exit 0
+        keepassxc-cli 2.6.6 add (a plain save), on A, exit 0
+        keepassxc-cli 2.7.12 add (a plain save), on A, exit 0
+        keepassxc-cli 2.8.0 add (a plain save), on A, exit 0
+        KeePassLib 2.62 DeleteDuplicateEntries [dedupe/A-handcopy.kdbx]
+        KeePassLib 2.62 DeleteDuplicateEntries [dedupe/A-handcopy-deduped.kdbx]
+   other
+        inputs [base/B.kdbx]
+        KeePassLib 2.62 DeleteDuplicateEntries [dedupe/B-deduped.kdbx]
+        keepassxc-cli 2.4.2 rm of the rule entry of G11 on B (to the recycle bin), exit 0
+        keepassxc-cli 2.4.2 rm of the same entry again, now in the recycle bin (for good), exit 0
+        keepassxc-cli 2.8.0 rm of the rule entry of G11 on B (to the recycle bin), exit 0
+        keepassxc-cli 2.8.0 rm of the same entry again, now in the recycle bin (for good), exit 0
+        keepassxc-cli 2.8.0 mv of the rule entry of G01 into General on B, exit 0
+   {"default":"inherit","ops":[],"reader":["read"]}
+        KeePassLib 2.62, B merged into A, Synchronize
+        KeePassLib 2.62, B merged into A, OverwriteIfNewer
+        KeePassLib 2.62, B merged into A, OverwriteExisting
+        KeePassLib 2.62, B merged into A, KeepExisting
+        keepassxc-cli 2.4.2 merge, B merged into A, exit 0
+        keepassxc-cli 2.6.6 merge, B merged into A, exit 0
+        keepassxc-cli 2.7.12 merge, B merged into A, exit 0
+        keepassxc-cli 2.8.0 merge, B merged into A, exit 0
+        KeePassLib 2.62, A merged into B, Synchronize
+        KeePassLib 2.62, A merged into B, OverwriteIfNewer
+        KeePassLib 2.62, A merged into B, OverwriteExisting
+        KeePassLib 2.62, A merged into B, KeepExisting
+        keepassxc-cli 2.4.2 merge, A merged into B, exit 0
+        keepassxc-cli 2.6.6 merge, A merged into B, exit 0
+        keepassxc-cli 2.7.12 merge, A merged into B, exit 0
+        keepassxc-cli 2.8.0 merge, A merged into B, exit 0
+        chain: keepassxc-cli 2.4.2 merged B into A, then KeePassLib 2.62 Synchronize of that result with B
+        chain: keepassxc-cli 2.4.2 merged A into B, then KeePassLib 2.62 Synchronize of that result with A
+        chain: keepassxc-cli 2.8.0 merged B into A, then KeePassLib 2.62 Synchronize of that result with B
+        chain: keepassxc-cli 2.8.0 merged A into B, then KeePassLib 2.62 Synchronize of that result with A
+        keepassxc-cli 2.4.2, back and forth three times: A then B after it [xc-roundtrip-2.4.2/A.kdbx]
+        keepassxc-cli 2.4.2, back and forth three times: A then B after it [xc-roundtrip-2.4.2/B.kdbx]
+        keepassxc-cli 2.8.0, back and forth three times: A then B after it [xc-roundtrip-2.8.0/A.kdbx]
+        keepassxc-cli 2.8.0, back and forth three times: A then B after it [xc-roundtrip-2.8.0/B.kdbx]
+        keepassxc-cli 2.4.2 merge into A, then the rule entry in force in G01 deleted for good by hand
+        keepassxc-cli 2.4.2 merge into B, then the rule entry in force in G01 deleted for good by hand
+        keepassxc-cli 2.8.0 merge into A, then the rule entry in force in G01 deleted for good by hand
+        keepassxc-cli 2.8.0 merge into B, then the rule entry in force in G01 deleted for good by hand
+   narrow | REFUSE
+        KeePassLib 2.62, B merged into A, CreateNewUuids
+   other | REFUSE
+        KeePassLib 2.62, A merged into B, CreateNewUuids
+   REFUSE
+        hand edit: the rule text of G02, the title and notes of G11, on A
+== G03
+   SILENCE
+        inputs [base/base.kdbx]
+   narrow
+        inputs [base/A.kdbx]
+        keepassxc-cli 2.4.2 add (a plain save), on A, exit 0
+        keepassxc-cli 2.6.6 add (a plain save), on A, exit 0
+        keepassxc-cli 2.7.12 add (a plain save), on A, exit 0
+        keepassxc-cli 2.8.0 add (a plain save), on A, exit 0
+        KeePassLib 2.62 DeleteDuplicateEntries [dedupe/A-handcopy.kdbx]
+        KeePassLib 2.62 DeleteDuplicateEntries [dedupe/A-handcopy-deduped.kdbx]
+        hand edit: the rule text of G02, the title and notes of G11, on A
+   other
+        inputs [base/B.kdbx]
+        KeePassLib 2.62 DeleteDuplicateEntries [dedupe/B-deduped.kdbx]
+        keepassxc-cli 2.4.2 rm of the rule entry of G11 on B (to the recycle bin), exit 0
+        keepassxc-cli 2.4.2 rm of the same entry again, now in the recycle bin (for good), exit 0
+        keepassxc-cli 2.8.0 rm of the rule entry of G11 on B (to the recycle bin), exit 0
+        keepassxc-cli 2.8.0 rm of the same entry again, now in the recycle bin (for good), exit 0
+        keepassxc-cli 2.8.0 mv of the rule entry of G01 into General on B, exit 0
+   {"default":"inherit","ops":[],"reader":["read"]}
+        KeePassLib 2.62, B merged into A, Synchronize
+        KeePassLib 2.62, B merged into A, OverwriteIfNewer
+        KeePassLib 2.62, B merged into A, OverwriteExisting
+        KeePassLib 2.62, B merged into A, KeepExisting
+        keepassxc-cli 2.4.2 merge, B merged into A, exit 0
+        keepassxc-cli 2.6.6 merge, B merged into A, exit 0
+        keepassxc-cli 2.7.12 merge, B merged into A, exit 0
+        keepassxc-cli 2.8.0 merge, B merged into A, exit 0
+        KeePassLib 2.62, A merged into B, Synchronize
+        KeePassLib 2.62, A merged into B, OverwriteIfNewer
+        KeePassLib 2.62, A merged into B, OverwriteExisting
+        KeePassLib 2.62, A merged into B, KeepExisting
+        keepassxc-cli 2.4.2 merge, A merged into B, exit 0
+        keepassxc-cli 2.6.6 merge, A merged into B, exit 0
+        keepassxc-cli 2.7.12 merge, A merged into B, exit 0
+        keepassxc-cli 2.8.0 merge, A merged into B, exit 0
+        chain: keepassxc-cli 2.4.2 merged B into A, then KeePassLib 2.62 Synchronize of that result with B
+        chain: keepassxc-cli 2.4.2 merged A into B, then KeePassLib 2.62 Synchronize of that result with A
+        chain: keepassxc-cli 2.8.0 merged B into A, then KeePassLib 2.62 Synchronize of that result with B
+        chain: keepassxc-cli 2.8.0 merged A into B, then KeePassLib 2.62 Synchronize of that result with A
+        keepassxc-cli 2.4.2, back and forth three times: A then B after it [xc-roundtrip-2.4.2/A.kdbx]
+        keepassxc-cli 2.4.2, back and forth three times: A then B after it [xc-roundtrip-2.4.2/B.kdbx]
+        keepassxc-cli 2.8.0, back and forth three times: A then B after it [xc-roundtrip-2.8.0/A.kdbx]
+        keepassxc-cli 2.8.0, back and forth three times: A then B after it [xc-roundtrip-2.8.0/B.kdbx]
+        keepassxc-cli 2.4.2 merge into A, then the rule entry in force in G01 deleted for good by hand
+        keepassxc-cli 2.4.2 merge into B, then the rule entry in force in G01 deleted for good by hand
+        keepassxc-cli 2.8.0 merge into A, then the rule entry in force in G01 deleted for good by hand
+        keepassxc-cli 2.8.0 merge into B, then the rule entry in force in G01 deleted for good by hand
+   narrow | REFUSE
+        KeePassLib 2.62, B merged into A, CreateNewUuids
+   other | REFUSE
+        KeePassLib 2.62, A merged into B, CreateNewUuids
+== G04
+   SILENCE
+        inputs [base/base.kdbx]
+   narrow
+        inputs [base/A.kdbx]
+        inputs [base/B.kdbx]
+        KeePassLib 2.62, B merged into A, Synchronize
+        KeePassLib 2.62, B merged into A, OverwriteIfNewer
+        KeePassLib 2.62, B merged into A, OverwriteExisting
+        KeePassLib 2.62, B merged into A, KeepExisting
+        keepassxc-cli 2.4.2 merge, B merged into A, exit 0
+        keepassxc-cli 2.6.6 merge, B merged into A, exit 0
+        keepassxc-cli 2.7.12 merge, B merged into A, exit 0
+        keepassxc-cli 2.8.0 merge, B merged into A, exit 0
+        KeePassLib 2.62, A merged into B, Synchronize
+        KeePassLib 2.62, A merged into B, OverwriteIfNewer
+        KeePassLib 2.62, A merged into B, OverwriteExisting
+        KeePassLib 2.62, A merged into B, KeepExisting
+        keepassxc-cli 2.4.2 merge, A merged into B, exit 0
+        keepassxc-cli 2.6.6 merge, A merged into B, exit 0
+        keepassxc-cli 2.7.12 merge, A merged into B, exit 0
+        keepassxc-cli 2.8.0 merge, A merged into B, exit 0
+        keepassxc-cli 2.4.2 add (a plain save), on A, exit 0
+        keepassxc-cli 2.6.6 add (a plain save), on A, exit 0
+        keepassxc-cli 2.7.12 add (a plain save), on A, exit 0
+        keepassxc-cli 2.8.0 add (a plain save), on A, exit 0
+        chain: keepassxc-cli 2.4.2 merged B into A, then KeePassLib 2.62 Synchronize of that result with B
+        chain: keepassxc-cli 2.4.2 merged A into B, then KeePassLib 2.62 Synchronize of that result with A
+        chain: keepassxc-cli 2.8.0 merged B into A, then KeePassLib 2.62 Synchronize of that result with B
+        chain: keepassxc-cli 2.8.0 merged A into B, then KeePassLib 2.62 Synchronize of that result with A
+        keepassxc-cli 2.4.2, back and forth three times: A then B after it [xc-roundtrip-2.4.2/A.kdbx]
+        keepassxc-cli 2.4.2, back and forth three times: A then B after it [xc-roundtrip-2.4.2/B.kdbx]
+        keepassxc-cli 2.8.0, back and forth three times: A then B after it [xc-roundtrip-2.8.0/A.kdbx]
+        keepassxc-cli 2.8.0, back and forth three times: A then B after it [xc-roundtrip-2.8.0/B.kdbx]
+        KeePassLib 2.62 DeleteDuplicateEntries [dedupe/B-deduped.kdbx]
+        KeePassLib 2.62 DeleteDuplicateEntries [dedupe/A-handcopy.kdbx]
+        KeePassLib 2.62 DeleteDuplicateEntries [dedupe/A-handcopy-deduped.kdbx]
+        keepassxc-cli 2.4.2 merge into A, then the rule entry in force in G01 deleted for good by hand
+        keepassxc-cli 2.4.2 merge into B, then the rule entry in force in G01 deleted for good by hand
+        keepassxc-cli 2.8.0 merge into A, then the rule entry in force in G01 deleted for good by hand
+        keepassxc-cli 2.8.0 merge into B, then the rule entry in force in G01 deleted for good by hand
+        hand edit: the rule text of G02, the title and notes of G11, on A
+        keepassxc-cli 2.4.2 rm of the rule entry of G11 on B (to the recycle bin), exit 0
+        keepassxc-cli 2.4.2 rm of the same entry again, now in the recycle bin (for good), exit 0
+        keepassxc-cli 2.8.0 rm of the rule entry of G11 on B (to the recycle bin), exit 0
+        keepassxc-cli 2.8.0 rm of the same entry again, now in the recycle bin (for good), exit 0
+        keepassxc-cli 2.8.0 mv of the rule entry of G01 into General on B, exit 0
+   narrow | REFUSE
+        KeePassLib 2.62, B merged into A, CreateNewUuids
+        KeePassLib 2.62, A merged into B, CreateNewUuids
+== G05
+   SILENCE
+        inputs [base/base.kdbx]
+   narrow
+        inputs [base/A.kdbx]
+        inputs [base/B.kdbx]
+        KeePassLib 2.62, B merged into A, Synchronize
+        KeePassLib 2.62, B merged into A, OverwriteIfNewer
+        KeePassLib 2.62, B merged into A, OverwriteExisting
+        KeePassLib 2.62, B merged into A, KeepExisting
+        keepassxc-cli 2.4.2 merge, B merged into A, exit 0
+        keepassxc-cli 2.6.6 merge, B merged into A, exit 0
+        keepassxc-cli 2.7.12 merge, B merged into A, exit 0
+        keepassxc-cli 2.8.0 merge, B merged into A, exit 0
+        KeePassLib 2.62, A merged into B, Synchronize
+        KeePassLib 2.62, A merged into B, OverwriteIfNewer
+        KeePassLib 2.62, A merged into B, OverwriteExisting
+        KeePassLib 2.62, A merged into B, KeepExisting
+        keepassxc-cli 2.4.2 merge, A merged into B, exit 0
+        keepassxc-cli 2.6.6 merge, A merged into B, exit 0
+        keepassxc-cli 2.7.12 merge, A merged into B, exit 0
+        keepassxc-cli 2.8.0 merge, A merged into B, exit 0
+        keepassxc-cli 2.4.2 add (a plain save), on A, exit 0
+        keepassxc-cli 2.6.6 add (a plain save), on A, exit 0
+        keepassxc-cli 2.7.12 add (a plain save), on A, exit 0
+        keepassxc-cli 2.8.0 add (a plain save), on A, exit 0
+        chain: keepassxc-cli 2.4.2 merged B into A, then KeePassLib 2.62 Synchronize of that result with B
+        chain: keepassxc-cli 2.4.2 merged A into B, then KeePassLib 2.62 Synchronize of that result with A
+        chain: keepassxc-cli 2.8.0 merged B into A, then KeePassLib 2.62 Synchronize of that result with B
+        chain: keepassxc-cli 2.8.0 merged A into B, then KeePassLib 2.62 Synchronize of that result with A
+        keepassxc-cli 2.4.2, back and forth three times: A then B after it [xc-roundtrip-2.4.2/A.kdbx]
+        keepassxc-cli 2.4.2, back and forth three times: A then B after it [xc-roundtrip-2.4.2/B.kdbx]
+        keepassxc-cli 2.8.0, back and forth three times: A then B after it [xc-roundtrip-2.8.0/A.kdbx]
+        keepassxc-cli 2.8.0, back and forth three times: A then B after it [xc-roundtrip-2.8.0/B.kdbx]
+        KeePassLib 2.62 DeleteDuplicateEntries [dedupe/B-deduped.kdbx]
+        KeePassLib 2.62 DeleteDuplicateEntries [dedupe/A-handcopy.kdbx]
+        KeePassLib 2.62 DeleteDuplicateEntries [dedupe/A-handcopy-deduped.kdbx]
+        keepassxc-cli 2.4.2 merge into A, then the rule entry in force in G01 deleted for good by hand
+        keepassxc-cli 2.4.2 merge into B, then the rule entry in force in G01 deleted for good by hand
+        keepassxc-cli 2.8.0 merge into A, then the rule entry in force in G01 deleted for good by hand
+        keepassxc-cli 2.8.0 merge into B, then the rule entry in force in G01 deleted for good by hand
+        hand edit: the rule text of G02, the title and notes of G11, on A
+        keepassxc-cli 2.4.2 rm of the rule entry of G11 on B (to the recycle bin), exit 0
+        keepassxc-cli 2.4.2 rm of the same entry again, now in the recycle bin (for good), exit 0
+        keepassxc-cli 2.8.0 rm of the rule entry of G11 on B (to the recycle bin), exit 0
+        keepassxc-cli 2.8.0 rm of the same entry again, now in the recycle bin (for good), exit 0
+        keepassxc-cli 2.8.0 mv of the rule entry of G01 into General on B, exit 0
+   narrow | REFUSE
+        KeePassLib 2.62, B merged into A, CreateNewUuids
+        KeePassLib 2.62, A merged into B, CreateNewUuids
+== G06
+   wide
+        inputs [base/base.kdbx]
+        inputs [base/B.kdbx]
+        KeePassLib 2.62, A merged into B, OverwriteIfNewer
+        KeePassLib 2.62, A merged into B, OverwriteExisting
+        KeePassLib 2.62, A merged into B, KeepExisting
+        keepassxc-cli 2.4.2 merge, A merged into B, exit 0
+        keepassxc-cli 2.6.6 merge, A merged into B, exit 0
+        keepassxc-cli 2.7.12 merge, A merged into B, exit 0
+        keepassxc-cli 2.8.0 merge, A merged into B, exit 0
+        keepassxc-cli 2.4.2, back and forth three times: A then B after it [xc-roundtrip-2.4.2/B.kdbx]
+        keepassxc-cli 2.8.0, back and forth three times: A then B after it [xc-roundtrip-2.8.0/B.kdbx]
+        KeePassLib 2.62 DeleteDuplicateEntries [dedupe/B-deduped.kdbx]
+        keepassxc-cli 2.4.2 merge into B, then the rule entry in force in G01 deleted for good by hand
+        keepassxc-cli 2.8.0 merge into B, then the rule entry in force in G01 deleted for good by hand
+        keepassxc-cli 2.4.2 rm of the rule entry of G11 on B (to the recycle bin), exit 0
+        keepassxc-cli 2.4.2 rm of the same entry again, now in the recycle bin (for good), exit 0
+        keepassxc-cli 2.8.0 rm of the rule entry of G11 on B (to the recycle bin), exit 0
+        keepassxc-cli 2.8.0 rm of the same entry again, now in the recycle bin (for good), exit 0
+        keepassxc-cli 2.8.0 mv of the rule entry of G01 into General on B, exit 0
+   REFUSE
+        inputs [base/A.kdbx]
+        KeePassLib 2.62, B merged into A, Synchronize
+        KeePassLib 2.62, B merged into A, OverwriteIfNewer
+        KeePassLib 2.62, B merged into A, OverwriteExisting
+        KeePassLib 2.62, B merged into A, KeepExisting
+        keepassxc-cli 2.4.2 merge, B merged into A, exit 0
+        keepassxc-cli 2.6.6 merge, B merged into A, exit 0
+        keepassxc-cli 2.7.12 merge, B merged into A, exit 0
+        keepassxc-cli 2.8.0 merge, B merged into A, exit 0
+        KeePassLib 2.62, A merged into B, Synchronize
+        keepassxc-cli 2.4.2 add (a plain save), on A, exit 0
+        keepassxc-cli 2.6.6 add (a plain save), on A, exit 0
+        keepassxc-cli 2.7.12 add (a plain save), on A, exit 0
+        keepassxc-cli 2.8.0 add (a plain save), on A, exit 0
+        chain: keepassxc-cli 2.4.2 merged B into A, then KeePassLib 2.62 Synchronize of that result with B
+        chain: keepassxc-cli 2.4.2 merged A into B, then KeePassLib 2.62 Synchronize of that result with A
+        chain: keepassxc-cli 2.8.0 merged B into A, then KeePassLib 2.62 Synchronize of that result with B
+        chain: keepassxc-cli 2.8.0 merged A into B, then KeePassLib 2.62 Synchronize of that result with A
+        keepassxc-cli 2.4.2, back and forth three times: A then B after it [xc-roundtrip-2.4.2/A.kdbx]
+        keepassxc-cli 2.8.0, back and forth three times: A then B after it [xc-roundtrip-2.8.0/A.kdbx]
+        KeePassLib 2.62 DeleteDuplicateEntries [dedupe/A-handcopy.kdbx]
+        KeePassLib 2.62 DeleteDuplicateEntries [dedupe/A-handcopy-deduped.kdbx]
+        keepassxc-cli 2.4.2 merge into A, then the rule entry in force in G01 deleted for good by hand
+        keepassxc-cli 2.8.0 merge into A, then the rule entry in force in G01 deleted for good by hand
+        hand edit: the rule text of G02, the title and notes of G11, on A
+   REFUSE | REFUSE
+        KeePassLib 2.62, B merged into A, CreateNewUuids
+   wide | SILENCE
+        KeePassLib 2.62, A merged into B, CreateNewUuids
+== G07
+   wide
+        inputs [base/base.kdbx]
+        inputs [base/B.kdbx]
+        KeePassLib 2.62, A merged into B, OverwriteIfNewer
+        KeePassLib 2.62, A merged into B, OverwriteExisting
+        KeePassLib 2.62, A merged into B, KeepExisting
+        keepassxc-cli 2.4.2 merge, A merged into B, exit 0
+        keepassxc-cli 2.6.6 merge, A merged into B, exit 0
+        keepassxc-cli 2.7.12 merge, A merged into B, exit 0
+        keepassxc-cli 2.8.0 merge, A merged into B, exit 0
+        keepassxc-cli 2.4.2, back and forth three times: A then B after it [xc-roundtrip-2.4.2/B.kdbx]
+        keepassxc-cli 2.8.0, back and forth three times: A then B after it [xc-roundtrip-2.8.0/B.kdbx]
+        KeePassLib 2.62 DeleteDuplicateEntries [dedupe/B-deduped.kdbx]
+        keepassxc-cli 2.4.2 merge into B, then the rule entry in force in G01 deleted for good by hand
+        keepassxc-cli 2.8.0 merge into B, then the rule entry in force in G01 deleted for good by hand
+        keepassxc-cli 2.4.2 rm of the rule entry of G11 on B (to the recycle bin), exit 0
+        keepassxc-cli 2.4.2 rm of the same entry again, now in the recycle bin (for good), exit 0
+        keepassxc-cli 2.8.0 rm of the rule entry of G11 on B (to the recycle bin), exit 0
+        keepassxc-cli 2.8.0 rm of the same entry again, now in the recycle bin (for good), exit 0
+        keepassxc-cli 2.8.0 mv of the rule entry of G01 into General on B, exit 0
+   REFUSE
+        inputs [base/A.kdbx]
+        KeePassLib 2.62, B merged into A, Synchronize
+        KeePassLib 2.62, B merged into A, OverwriteIfNewer
+        KeePassLib 2.62, B merged into A, OverwriteExisting
+        KeePassLib 2.62, B merged into A, KeepExisting
+        keepassxc-cli 2.4.2 merge, B merged into A, exit 0
+        keepassxc-cli 2.6.6 merge, B merged into A, exit 0
+        keepassxc-cli 2.7.12 merge, B merged into A, exit 0
+        keepassxc-cli 2.8.0 merge, B merged into A, exit 0
+        KeePassLib 2.62, A merged into B, Synchronize
+        keepassxc-cli 2.4.2 add (a plain save), on A, exit 0
+        keepassxc-cli 2.6.6 add (a plain save), on A, exit 0
+        keepassxc-cli 2.7.12 add (a plain save), on A, exit 0
+        keepassxc-cli 2.8.0 add (a plain save), on A, exit 0
+        chain: keepassxc-cli 2.4.2 merged B into A, then KeePassLib 2.62 Synchronize of that result with B
+        chain: keepassxc-cli 2.4.2 merged A into B, then KeePassLib 2.62 Synchronize of that result with A
+        chain: keepassxc-cli 2.8.0 merged B into A, then KeePassLib 2.62 Synchronize of that result with B
+        chain: keepassxc-cli 2.8.0 merged A into B, then KeePassLib 2.62 Synchronize of that result with A
+        keepassxc-cli 2.4.2, back and forth three times: A then B after it [xc-roundtrip-2.4.2/A.kdbx]
+        keepassxc-cli 2.8.0, back and forth three times: A then B after it [xc-roundtrip-2.8.0/A.kdbx]
+        KeePassLib 2.62 DeleteDuplicateEntries [dedupe/A-handcopy.kdbx]
+        KeePassLib 2.62 DeleteDuplicateEntries [dedupe/A-handcopy-deduped.kdbx]
+        keepassxc-cli 2.4.2 merge into A, then the rule entry in force in G01 deleted for good by hand
+        keepassxc-cli 2.8.0 merge into A, then the rule entry in force in G01 deleted for good by hand
+        hand edit: the rule text of G02, the title and notes of G11, on A
+   REFUSE | REFUSE
+        KeePassLib 2.62, B merged into A, CreateNewUuids
+   wide | SILENCE
+        KeePassLib 2.62, A merged into B, CreateNewUuids
+== G08
+   wide
+        inputs [base/base.kdbx]
+   wide @H-elsewhere
+        inputs [base/A.kdbx]
+        keepassxc-cli 2.4.2 add (a plain save), on A, exit 0
+        keepassxc-cli 2.6.6 add (a plain save), on A, exit 0
+        keepassxc-cli 2.7.12 add (a plain save), on A, exit 0
+        keepassxc-cli 2.8.0 add (a plain save), on A, exit 0
+        KeePassLib 2.62 DeleteDuplicateEntries [dedupe/A-handcopy.kdbx]
+        KeePassLib 2.62 DeleteDuplicateEntries [dedupe/A-handcopy-deduped.kdbx]
+        hand edit: the rule text of G02, the title and notes of G11, on A
+   narrow
+        inputs [base/B.kdbx]
+        KeePassLib 2.62, A merged into B, OverwriteIfNewer
+        KeePassLib 2.62, A merged into B, OverwriteExisting
+        KeePassLib 2.62, A merged into B, KeepExisting
+        KeePassLib 2.62 DeleteDuplicateEntries [dedupe/B-deduped.kdbx]
+        keepassxc-cli 2.4.2 rm of the rule entry of G11 on B (to the recycle bin), exit 0
+        keepassxc-cli 2.4.2 rm of the same entry again, now in the recycle bin (for good), exit 0
+        keepassxc-cli 2.8.0 rm of the rule entry of G11 on B (to the recycle bin), exit 0
+        keepassxc-cli 2.8.0 rm of the same entry again, now in the recycle bin (for good), exit 0
+        keepassxc-cli 2.8.0 mv of the rule entry of G01 into General on B, exit 0
+   narrow @H-elsewhere
+        KeePassLib 2.62, B merged into A, Synchronize
+        KeePassLib 2.62, A merged into B, Synchronize
+        chain: keepassxc-cli 2.4.2 merged B into A, then KeePassLib 2.62 Synchronize of that result with B
+        chain: keepassxc-cli 2.4.2 merged A into B, then KeePassLib 2.62 Synchronize of that result with A
+        chain: keepassxc-cli 2.8.0 merged B into A, then KeePassLib 2.62 Synchronize of that result with B
+        chain: keepassxc-cli 2.8.0 merged A into B, then KeePassLib 2.62 Synchronize of that result with A
+   narrow +old @H-elsewhere
+        KeePassLib 2.62, B merged into A, OverwriteIfNewer
+        KeePassLib 2.62, B merged into A, OverwriteExisting
+        KeePassLib 2.62, B merged into A, KeepExisting
+        keepassxc-cli 2.4.2 merge, B merged into A, exit 0
+        keepassxc-cli 2.6.6 merge, B merged into A, exit 0
+        keepassxc-cli 2.7.12 merge, B merged into A, exit 0
+        keepassxc-cli 2.8.0 merge, B merged into A, exit 0
+        keepassxc-cli 2.4.2 merge, A merged into B, exit 0
+        keepassxc-cli 2.6.6 merge, A merged into B, exit 0
+        keepassxc-cli 2.7.12 merge, A merged into B, exit 0
+        keepassxc-cli 2.8.0 merge, A merged into B, exit 0
+        keepassxc-cli 2.4.2, back and forth three times: A then B after it [xc-roundtrip-2.4.2/A.kdbx]
+        keepassxc-cli 2.4.2, back and forth three times: A then B after it [xc-roundtrip-2.4.2/B.kdbx]
+        keepassxc-cli 2.8.0, back and forth three times: A then B after it [xc-roundtrip-2.8.0/A.kdbx]
+        keepassxc-cli 2.8.0, back and forth three times: A then B after it [xc-roundtrip-2.8.0/B.kdbx]
+        keepassxc-cli 2.4.2 merge into A, then the rule entry in force in G01 deleted for good by hand
+        keepassxc-cli 2.4.2 merge into B, then the rule entry in force in G01 deleted for good by hand
+        keepassxc-cli 2.8.0 merge into A, then the rule entry in force in G01 deleted for good by hand
+        keepassxc-cli 2.8.0 merge into B, then the rule entry in force in G01 deleted for good by hand
+   REFUSE | REFUSE @H-elsewhere
+        KeePassLib 2.62, B merged into A, CreateNewUuids
+   narrow | REFUSE @H-elsewhere
+        KeePassLib 2.62, A merged into B, CreateNewUuids
+== G09
+   wide
+        inputs [base/base.kdbx]
+   REFUSE [group in the bin] @Recycle Bin
+        inputs [base/A.kdbx]
+        KeePassLib 2.62, B merged into A, Synchronize
+        KeePassLib 2.62, B merged into A, OverwriteIfNewer
+        KeePassLib 2.62, B merged into A, OverwriteExisting
+        KeePassLib 2.62, B merged into A, KeepExisting
+        keepassxc-cli 2.4.2 merge, B merged into A, exit 0
+        keepassxc-cli 2.6.6 merge, B merged into A, exit 0
+        keepassxc-cli 2.7.12 merge, B merged into A, exit 0
+        keepassxc-cli 2.8.0 merge, B merged into A, exit 0
+        KeePassLib 2.62, A merged into B, Synchronize
+        keepassxc-cli 2.4.2 add (a plain save), on A, exit 0
+        keepassxc-cli 2.6.6 add (a plain save), on A, exit 0
+        keepassxc-cli 2.7.12 add (a plain save), on A, exit 0
+        keepassxc-cli 2.8.0 add (a plain save), on A, exit 0
+        chain: keepassxc-cli 2.4.2 merged B into A, then KeePassLib 2.62 Synchronize of that result with B
+        chain: keepassxc-cli 2.4.2 merged A into B, then KeePassLib 2.62 Synchronize of that result with A
+        chain: keepassxc-cli 2.8.0 merged B into A, then KeePassLib 2.62 Synchronize of that result with B
+        chain: keepassxc-cli 2.8.0 merged A into B, then KeePassLib 2.62 Synchronize of that result with A
+        keepassxc-cli 2.4.2, back and forth three times: A then B after it [xc-roundtrip-2.4.2/A.kdbx]
+        keepassxc-cli 2.8.0, back and forth three times: A then B after it [xc-roundtrip-2.8.0/A.kdbx]
+        KeePassLib 2.62 DeleteDuplicateEntries [dedupe/A-handcopy.kdbx]
+        KeePassLib 2.62 DeleteDuplicateEntries [dedupe/A-handcopy-deduped.kdbx]
+        keepassxc-cli 2.4.2 merge into A, then the rule entry in force in G01 deleted for good by hand
+        keepassxc-cli 2.8.0 merge into A, then the rule entry in force in G01 deleted for good by hand
+        hand edit: the rule text of G02, the title and notes of G11, on A
+   narrow
+        inputs [base/B.kdbx]
+        KeePassLib 2.62, A merged into B, OverwriteIfNewer
+        KeePassLib 2.62, A merged into B, OverwriteExisting
+        KeePassLib 2.62, A merged into B, KeepExisting
+        KeePassLib 2.62 DeleteDuplicateEntries [dedupe/B-deduped.kdbx]
+        keepassxc-cli 2.4.2 rm of the rule entry of G11 on B (to the recycle bin), exit 0
+        keepassxc-cli 2.4.2 rm of the same entry again, now in the recycle bin (for good), exit 0
+        keepassxc-cli 2.8.0 rm of the rule entry of G11 on B (to the recycle bin), exit 0
+        keepassxc-cli 2.8.0 rm of the same entry again, now in the recycle bin (for good), exit 0
+        keepassxc-cli 2.8.0 mv of the rule entry of G01 into General on B, exit 0
+   REFUSE | REFUSE [group in the bin] @Recycle Bin
+        KeePassLib 2.62, B merged into A, CreateNewUuids
+   narrow | REFUSE @Recycle Bin
+        KeePassLib 2.62, A merged into B, CreateNewUuids
+   narrow +old @Recycle Bin
+        keepassxc-cli 2.4.2 merge, A merged into B, exit 0
+        keepassxc-cli 2.6.6 merge, A merged into B, exit 0
+        keepassxc-cli 2.7.12 merge, A merged into B, exit 0
+        keepassxc-cli 2.8.0 merge, A merged into B, exit 0
+        keepassxc-cli 2.4.2, back and forth three times: A then B after it [xc-roundtrip-2.4.2/B.kdbx]
+        keepassxc-cli 2.8.0, back and forth three times: A then B after it [xc-roundtrip-2.8.0/B.kdbx]
+        keepassxc-cli 2.4.2 merge into B, then the rule entry in force in G01 deleted for good by hand
+        keepassxc-cli 2.8.0 merge into B, then the rule entry in force in G01 deleted for good by hand
+== G10
+   wide
+        inputs [base/base.kdbx]
+   group absent
+        inputs [base/A.kdbx]
+        keepassxc-cli 2.4.2 add (a plain save), on A, exit 0
+        keepassxc-cli 2.6.6 add (a plain save), on A, exit 0
+        keepassxc-cli 2.7.12 add (a plain save), on A, exit 0
+        keepassxc-cli 2.8.0 add (a plain save), on A, exit 0
+        KeePassLib 2.62 DeleteDuplicateEntries [dedupe/A-handcopy.kdbx]
+        KeePassLib 2.62 DeleteDuplicateEntries [dedupe/A-handcopy-deduped.kdbx]
+        hand edit: the rule text of G02, the title and notes of G11, on A
+   narrow
+        inputs [base/B.kdbx]
+        KeePassLib 2.62, B merged into A, Synchronize
+        KeePassLib 2.62, B merged into A, OverwriteIfNewer
+        KeePassLib 2.62, B merged into A, OverwriteExisting
+        KeePassLib 2.62, B merged into A, KeepExisting
+        keepassxc-cli 2.4.2 merge, B merged into A, exit 0
+        keepassxc-cli 2.6.6 merge, B merged into A, exit 0
+        keepassxc-cli 2.7.12 merge, B merged into A, exit 0
+        keepassxc-cli 2.8.0 merge, B merged into A, exit 0
+        KeePassLib 2.62, A merged into B, Synchronize
+        KeePassLib 2.62, A merged into B, OverwriteIfNewer
+        KeePassLib 2.62, A merged into B, OverwriteExisting
+        KeePassLib 2.62, A merged into B, KeepExisting
+        KeePassLib 2.62, A merged into B, CreateNewUuids
+        keepassxc-cli 2.4.2 merge, A merged into B, exit 0
+        keepassxc-cli 2.6.6 merge, A merged into B, exit 0
+        keepassxc-cli 2.7.12 merge, A merged into B, exit 0
+        keepassxc-cli 2.8.0 merge, A merged into B, exit 0
+        chain: keepassxc-cli 2.4.2 merged B into A, then KeePassLib 2.62 Synchronize of that result with B
+        chain: keepassxc-cli 2.4.2 merged A into B, then KeePassLib 2.62 Synchronize of that result with A
+        chain: keepassxc-cli 2.8.0 merged B into A, then KeePassLib 2.62 Synchronize of that result with B
+        chain: keepassxc-cli 2.8.0 merged A into B, then KeePassLib 2.62 Synchronize of that result with A
+        keepassxc-cli 2.4.2, back and forth three times: A then B after it [xc-roundtrip-2.4.2/A.kdbx]
+        keepassxc-cli 2.4.2, back and forth three times: A then B after it [xc-roundtrip-2.4.2/B.kdbx]
+        keepassxc-cli 2.8.0, back and forth three times: A then B after it [xc-roundtrip-2.8.0/A.kdbx]
+        keepassxc-cli 2.8.0, back and forth three times: A then B after it [xc-roundtrip-2.8.0/B.kdbx]
+        KeePassLib 2.62 DeleteDuplicateEntries [dedupe/B-deduped.kdbx]
+        keepassxc-cli 2.4.2 merge into A, then the rule entry in force in G01 deleted for good by hand
+        keepassxc-cli 2.4.2 merge into B, then the rule entry in force in G01 deleted for good by hand
+        keepassxc-cli 2.8.0 merge into A, then the rule entry in force in G01 deleted for good by hand
+        keepassxc-cli 2.8.0 merge into B, then the rule entry in force in G01 deleted for good by hand
+        keepassxc-cli 2.4.2 rm of the rule entry of G11 on B (to the recycle bin), exit 0
+        keepassxc-cli 2.4.2 rm of the same entry again, now in the recycle bin (for good), exit 0
+        keepassxc-cli 2.8.0 rm of the rule entry of G11 on B (to the recycle bin), exit 0
+        keepassxc-cli 2.8.0 rm of the same entry again, now in the recycle bin (for good), exit 0
+        keepassxc-cli 2.8.0 mv of the rule entry of G01 into General on B, exit 0
+   REFUSE
+        KeePassLib 2.62, B merged into A, CreateNewUuids
+== G11
+   wide
+        inputs [base/base.kdbx]
+        inputs [base/B.kdbx]
+        KeePassLib 2.62 DeleteDuplicateEntries [dedupe/B-deduped.kdbx]
+   narrow
+        inputs [base/A.kdbx]
+        KeePassLib 2.62, B merged into A, Synchronize
+        KeePassLib 2.62, B merged into A, OverwriteIfNewer
+        KeePassLib 2.62, B merged into A, OverwriteExisting
+        KeePassLib 2.62, B merged into A, KeepExisting
+        KeePassLib 2.62, A merged into B, Synchronize
+        keepassxc-cli 2.4.2 add (a plain save), on A, exit 0
+        keepassxc-cli 2.6.6 add (a plain save), on A, exit 0
+        keepassxc-cli 2.7.12 add (a plain save), on A, exit 0
+        keepassxc-cli 2.8.0 add (a plain save), on A, exit 0
+        chain: keepassxc-cli 2.4.2 merged B into A, then KeePassLib 2.62 Synchronize of that result with B
+        chain: keepassxc-cli 2.4.2 merged A into B, then KeePassLib 2.62 Synchronize of that result with A
+        chain: keepassxc-cli 2.8.0 merged B into A, then KeePassLib 2.62 Synchronize of that result with B
+        chain: keepassxc-cli 2.8.0 merged A into B, then KeePassLib 2.62 Synchronize of that result with A
+        KeePassLib 2.62 DeleteDuplicateEntries [dedupe/A-handcopy.kdbx]
+        KeePassLib 2.62 DeleteDuplicateEntries [dedupe/A-handcopy-deduped.kdbx]
+        hand edit: the rule text of G02, the title and notes of G11, on A
+   narrow | REFUSE
+        KeePassLib 2.62, B merged into A, CreateNewUuids
+   narrow +old
+        keepassxc-cli 2.4.2 merge, B merged into A, exit 0
+        keepassxc-cli 2.6.6 merge, B merged into A, exit 0
+        keepassxc-cli 2.7.12 merge, B merged into A, exit 0
+        keepassxc-cli 2.8.0 merge, B merged into A, exit 0
+        KeePassLib 2.62, A merged into B, OverwriteIfNewer
+        KeePassLib 2.62, A merged into B, OverwriteExisting
+        KeePassLib 2.62, A merged into B, KeepExisting
+        keepassxc-cli 2.4.2 merge, A merged into B, exit 0
+        keepassxc-cli 2.6.6 merge, A merged into B, exit 0
+        keepassxc-cli 2.7.12 merge, A merged into B, exit 0
+        keepassxc-cli 2.8.0 merge, A merged into B, exit 0
+        keepassxc-cli 2.4.2, back and forth three times: A then B after it [xc-roundtrip-2.4.2/A.kdbx]
+        keepassxc-cli 2.4.2, back and forth three times: A then B after it [xc-roundtrip-2.4.2/B.kdbx]
+        keepassxc-cli 2.8.0, back and forth three times: A then B after it [xc-roundtrip-2.8.0/A.kdbx]
+        keepassxc-cli 2.8.0, back and forth three times: A then B after it [xc-roundtrip-2.8.0/B.kdbx]
+        keepassxc-cli 2.4.2 merge into A, then the rule entry in force in G01 deleted for good by hand
+        keepassxc-cli 2.4.2 merge into B, then the rule entry in force in G01 deleted for good by hand
+        keepassxc-cli 2.8.0 merge into A, then the rule entry in force in G01 deleted for good by hand
+        keepassxc-cli 2.8.0 merge into B, then the rule entry in force in G01 deleted for good by hand
+   REFUSE | REFUSE
+        KeePassLib 2.62, A merged into B, CreateNewUuids
+   REFUSE
+        keepassxc-cli 2.4.2 rm of the rule entry of G11 on B (to the recycle bin), exit 0
+        keepassxc-cli 2.4.2 rm of the same entry again, now in the recycle bin (for good), exit 0
+        keepassxc-cli 2.8.0 rm of the rule entry of G11 on B (to the recycle bin), exit 0
+        keepassxc-cli 2.8.0 rm of the same entry again, now in the recycle bin (for good), exit 0
+        keepassxc-cli 2.8.0 mv of the rule entry of G01 into General on B, exit 0
+== G12
+   SILENCE
+        inputs [base/base.kdbx]
+        inputs [base/A.kdbx]
+        inputs [base/B.kdbx]
+        KeePassLib 2.62, B merged into A, Synchronize
+        KeePassLib 2.62, B merged into A, OverwriteIfNewer
+        KeePassLib 2.62, B merged into A, OverwriteExisting
+        KeePassLib 2.62, B merged into A, KeepExisting
+        keepassxc-cli 2.4.2 merge, B merged into A, exit 0
+        keepassxc-cli 2.6.6 merge, B merged into A, exit 0
+        keepassxc-cli 2.7.12 merge, B merged into A, exit 0
+        keepassxc-cli 2.8.0 merge, B merged into A, exit 0
+        KeePassLib 2.62, A merged into B, Synchronize
+        KeePassLib 2.62, A merged into B, OverwriteIfNewer
+        KeePassLib 2.62, A merged into B, OverwriteExisting
+        KeePassLib 2.62, A merged into B, KeepExisting
+        keepassxc-cli 2.4.2 merge, A merged into B, exit 0
+        keepassxc-cli 2.6.6 merge, A merged into B, exit 0
+        keepassxc-cli 2.7.12 merge, A merged into B, exit 0
+        keepassxc-cli 2.8.0 merge, A merged into B, exit 0
+        keepassxc-cli 2.4.2 add (a plain save), on A, exit 0
+        keepassxc-cli 2.6.6 add (a plain save), on A, exit 0
+        keepassxc-cli 2.7.12 add (a plain save), on A, exit 0
+        keepassxc-cli 2.8.0 add (a plain save), on A, exit 0
+        chain: keepassxc-cli 2.4.2 merged B into A, then KeePassLib 2.62 Synchronize of that result with B
+        chain: keepassxc-cli 2.4.2 merged A into B, then KeePassLib 2.62 Synchronize of that result with A
+        chain: keepassxc-cli 2.8.0 merged B into A, then KeePassLib 2.62 Synchronize of that result with B
+        chain: keepassxc-cli 2.8.0 merged A into B, then KeePassLib 2.62 Synchronize of that result with A
+        keepassxc-cli 2.4.2, back and forth three times: A then B after it [xc-roundtrip-2.4.2/A.kdbx]
+        keepassxc-cli 2.4.2, back and forth three times: A then B after it [xc-roundtrip-2.4.2/B.kdbx]
+        keepassxc-cli 2.8.0, back and forth three times: A then B after it [xc-roundtrip-2.8.0/A.kdbx]
+        keepassxc-cli 2.8.0, back and forth three times: A then B after it [xc-roundtrip-2.8.0/B.kdbx]
+        KeePassLib 2.62 DeleteDuplicateEntries [dedupe/B-deduped.kdbx]
+        KeePassLib 2.62 DeleteDuplicateEntries [dedupe/A-handcopy.kdbx]
+        KeePassLib 2.62 DeleteDuplicateEntries [dedupe/A-handcopy-deduped.kdbx]
+        keepassxc-cli 2.4.2 merge into A, then the rule entry in force in G01 deleted for good by hand
+        keepassxc-cli 2.4.2 merge into B, then the rule entry in force in G01 deleted for good by hand
+        keepassxc-cli 2.8.0 merge into A, then the rule entry in force in G01 deleted for good by hand
+        keepassxc-cli 2.8.0 merge into B, then the rule entry in force in G01 deleted for good by hand
+        hand edit: the rule text of G02, the title and notes of G11, on A
+        keepassxc-cli 2.4.2 rm of the rule entry of G11 on B (to the recycle bin), exit 0
+        keepassxc-cli 2.4.2 rm of the same entry again, now in the recycle bin (for good), exit 0
+        keepassxc-cli 2.8.0 rm of the rule entry of G11 on B (to the recycle bin), exit 0
+        keepassxc-cli 2.8.0 rm of the same entry again, now in the recycle bin (for good), exit 0
+        keepassxc-cli 2.8.0 mv of the rule entry of G01 into General on B, exit 0
+   SILENCE | REFUSE
+        KeePassLib 2.62, B merged into A, CreateNewUuids
+        KeePassLib 2.62, A merged into B, CreateNewUuids
+== G12x
+   wide in G12 pw:invented
+        inputs [base/base.kdbx]
+   narrow in G12 pw:invented
+        inputs [base/A.kdbx]
+        KeePassLib 2.62, B merged into A, KeepExisting
+        keepassxc-cli 2.4.2 add (a plain save), on A, exit 0
+        keepassxc-cli 2.6.6 add (a plain save), on A, exit 0
+        keepassxc-cli 2.7.12 add (a plain save), on A, exit 0
+        keepassxc-cli 2.8.0 add (a plain save), on A, exit 0
+        KeePassLib 2.62 DeleteDuplicateEntries [dedupe/A-handcopy.kdbx]
+        KeePassLib 2.62 DeleteDuplicateEntries [dedupe/A-handcopy-deduped.kdbx]
+        hand edit: the rule text of G02, the title and notes of G11, on A
+   wide in G12 pw:changed
+        inputs [base/B.kdbx]
+        KeePassLib 2.62 DeleteDuplicateEntries [dedupe/B-deduped.kdbx]
+        keepassxc-cli 2.4.2 rm of the rule entry of G11 on B (to the recycle bin), exit 0
+        keepassxc-cli 2.4.2 rm of the same entry again, now in the recycle bin (for good), exit 0
+        keepassxc-cli 2.8.0 rm of the rule entry of G11 on B (to the recycle bin), exit 0
+        keepassxc-cli 2.8.0 rm of the same entry again, now in the recycle bin (for good), exit 0
+        keepassxc-cli 2.8.0 mv of the rule entry of G01 into General on B, exit 0
+   narrow in G12 pw:changed
+        KeePassLib 2.62, B merged into A, Synchronize
+        KeePassLib 2.62, B merged into A, OverwriteIfNewer
+        KeePassLib 2.62, B merged into A, OverwriteExisting
+        KeePassLib 2.62, A merged into B, Synchronize
+        chain: keepassxc-cli 2.4.2 merged B into A, then KeePassLib 2.62 Synchronize of that result with B
+        chain: keepassxc-cli 2.4.2 merged A into B, then KeePassLib 2.62 Synchronize of that result with A
+        chain: keepassxc-cli 2.8.0 merged B into A, then KeePassLib 2.62 Synchronize of that result with B
+        chain: keepassxc-cli 2.8.0 merged A into B, then KeePassLib 2.62 Synchronize of that result with A
+   narrow in G12 pw:invented | SILENCE in G12 group:REFUSE pw:changed
+        KeePassLib 2.62, B merged into A, CreateNewUuids
+   narrow +old in G12 pw:changed
+        keepassxc-cli 2.4.2 merge, B merged into A, exit 0
+        keepassxc-cli 2.6.6 merge, B merged into A, exit 0
+        keepassxc-cli 2.7.12 merge, B merged into A, exit 0
+        keepassxc-cli 2.8.0 merge, B merged into A, exit 0
+        KeePassLib 2.62, A merged into B, OverwriteIfNewer
+        KeePassLib 2.62, A merged into B, KeepExisting
+        keepassxc-cli 2.4.2 merge, A merged into B, exit 0
+        keepassxc-cli 2.6.6 merge, A merged into B, exit 0
+        keepassxc-cli 2.7.12 merge, A merged into B, exit 0
+        keepassxc-cli 2.8.0 merge, A merged into B, exit 0
+        keepassxc-cli 2.4.2, back and forth three times: A then B after it [xc-roundtrip-2.4.2/A.kdbx]
+        keepassxc-cli 2.4.2, back and forth three times: A then B after it [xc-roundtrip-2.4.2/B.kdbx]
+        keepassxc-cli 2.8.0, back and forth three times: A then B after it [xc-roundtrip-2.8.0/A.kdbx]
+        keepassxc-cli 2.8.0, back and forth three times: A then B after it [xc-roundtrip-2.8.0/B.kdbx]
+        keepassxc-cli 2.4.2 merge into A, then the rule entry in force in G01 deleted for good by hand
+        keepassxc-cli 2.4.2 merge into B, then the rule entry in force in G01 deleted for good by hand
+        keepassxc-cli 2.8.0 merge into A, then the rule entry in force in G01 deleted for good by hand
+        keepassxc-cli 2.8.0 merge into B, then the rule entry in force in G01 deleted for good by hand
+   narrow +old in G12 pw:invented
+        KeePassLib 2.62, A merged into B, OverwriteExisting
+   REFUSE in G12 pw:changed | SILENCE in G12 group:REFUSE pw:invented
+        KeePassLib 2.62, A merged into B, CreateNewUuids
+== G13
+   SILENCE
+        inputs [base/base.kdbx]
+        inputs [base/A.kdbx]
+        inputs [base/B.kdbx]
+        KeePassLib 2.62, B merged into A, Synchronize
+        KeePassLib 2.62, B merged into A, OverwriteIfNewer
+        KeePassLib 2.62, B merged into A, OverwriteExisting
+        KeePassLib 2.62, B merged into A, KeepExisting
+        keepassxc-cli 2.4.2 merge, B merged into A, exit 0
+        keepassxc-cli 2.6.6 merge, B merged into A, exit 0
+        keepassxc-cli 2.7.12 merge, B merged into A, exit 0
+        keepassxc-cli 2.8.0 merge, B merged into A, exit 0
+        KeePassLib 2.62, A merged into B, Synchronize
+        KeePassLib 2.62, A merged into B, OverwriteIfNewer
+        KeePassLib 2.62, A merged into B, OverwriteExisting
+        KeePassLib 2.62, A merged into B, KeepExisting
+        keepassxc-cli 2.4.2 merge, A merged into B, exit 0
+        keepassxc-cli 2.6.6 merge, A merged into B, exit 0
+        keepassxc-cli 2.7.12 merge, A merged into B, exit 0
+        keepassxc-cli 2.8.0 merge, A merged into B, exit 0
+        keepassxc-cli 2.4.2 add (a plain save), on A, exit 0
+        keepassxc-cli 2.6.6 add (a plain save), on A, exit 0
+        keepassxc-cli 2.7.12 add (a plain save), on A, exit 0
+        keepassxc-cli 2.8.0 add (a plain save), on A, exit 0
+        chain: keepassxc-cli 2.4.2 merged B into A, then KeePassLib 2.62 Synchronize of that result with B
+        chain: keepassxc-cli 2.4.2 merged A into B, then KeePassLib 2.62 Synchronize of that result with A
+        chain: keepassxc-cli 2.8.0 merged B into A, then KeePassLib 2.62 Synchronize of that result with B
+        chain: keepassxc-cli 2.8.0 merged A into B, then KeePassLib 2.62 Synchronize of that result with A
+        keepassxc-cli 2.4.2, back and forth three times: A then B after it [xc-roundtrip-2.4.2/A.kdbx]
+        keepassxc-cli 2.4.2, back and forth three times: A then B after it [xc-roundtrip-2.4.2/B.kdbx]
+        keepassxc-cli 2.8.0, back and forth three times: A then B after it [xc-roundtrip-2.8.0/A.kdbx]
+        keepassxc-cli 2.8.0, back and forth three times: A then B after it [xc-roundtrip-2.8.0/B.kdbx]
+        KeePassLib 2.62 DeleteDuplicateEntries [dedupe/B-deduped.kdbx]
+        KeePassLib 2.62 DeleteDuplicateEntries [dedupe/A-handcopy.kdbx]
+        KeePassLib 2.62 DeleteDuplicateEntries [dedupe/A-handcopy-deduped.kdbx]
+        keepassxc-cli 2.4.2 merge into A, then the rule entry in force in G01 deleted for good by hand
+        keepassxc-cli 2.4.2 merge into B, then the rule entry in force in G01 deleted for good by hand
+        keepassxc-cli 2.8.0 merge into A, then the rule entry in force in G01 deleted for good by hand
+        keepassxc-cli 2.8.0 merge into B, then the rule entry in force in G01 deleted for good by hand
+        hand edit: the rule text of G02, the title and notes of G11, on A
+        keepassxc-cli 2.4.2 rm of the rule entry of G11 on B (to the recycle bin), exit 0
+        keepassxc-cli 2.4.2 rm of the same entry again, now in the recycle bin (for good), exit 0
+        keepassxc-cli 2.8.0 rm of the rule entry of G11 on B (to the recycle bin), exit 0
+        keepassxc-cli 2.8.0 rm of the same entry again, now in the recycle bin (for good), exit 0
+        keepassxc-cli 2.8.0 mv of the rule entry of G01 into General on B, exit 0
+   SILENCE | REFUSE
+        KeePassLib 2.62, B merged into A, CreateNewUuids
+        KeePassLib 2.62, A merged into B, CreateNewUuids
+== G13x
+   wide in G13 pw:invented
+        inputs [base/base.kdbx]
+   wide in H pw:invented
+        inputs [base/A.kdbx]
+        keepassxc-cli 2.4.2 add (a plain save), on A, exit 0
+        keepassxc-cli 2.6.6 add (a plain save), on A, exit 0
+        keepassxc-cli 2.7.12 add (a plain save), on A, exit 0
+        keepassxc-cli 2.8.0 add (a plain save), on A, exit 0
+        KeePassLib 2.62 DeleteDuplicateEntries [dedupe/A-handcopy.kdbx]
+        KeePassLib 2.62 DeleteDuplicateEntries [dedupe/A-handcopy-deduped.kdbx]
+        hand edit: the rule text of G02, the title and notes of G11, on A
+   narrow in G13 pw:invented
+        inputs [base/B.kdbx]
+        KeePassLib 2.62, A merged into B, OverwriteIfNewer
+        KeePassLib 2.62, A merged into B, OverwriteExisting
+        KeePassLib 2.62, A merged into B, KeepExisting
+        KeePassLib 2.62 DeleteDuplicateEntries [dedupe/B-deduped.kdbx]
+        keepassxc-cli 2.4.2 rm of the rule entry of G11 on B (to the recycle bin), exit 0
+        keepassxc-cli 2.4.2 rm of the same entry again, now in the recycle bin (for good), exit 0
+        keepassxc-cli 2.8.0 rm of the rule entry of G11 on B (to the recycle bin), exit 0
+        keepassxc-cli 2.8.0 rm of the same entry again, now in the recycle bin (for good), exit 0
+        keepassxc-cli 2.8.0 mv of the rule entry of G01 into General on B, exit 0
+   narrow in H pw:invented
+        KeePassLib 2.62, B merged into A, Synchronize
+        KeePassLib 2.62, A merged into B, Synchronize
+        chain: keepassxc-cli 2.4.2 merged B into A, then KeePassLib 2.62 Synchronize of that result with B
+        chain: keepassxc-cli 2.4.2 merged A into B, then KeePassLib 2.62 Synchronize of that result with A
+        chain: keepassxc-cli 2.8.0 merged B into A, then KeePassLib 2.62 Synchronize of that result with B
+        chain: keepassxc-cli 2.8.0 merged A into B, then KeePassLib 2.62 Synchronize of that result with A
+   narrow +old in H pw:invented
+        KeePassLib 2.62, B merged into A, OverwriteIfNewer
+        KeePassLib 2.62, B merged into A, OverwriteExisting
+        KeePassLib 2.62, B merged into A, KeepExisting
+        keepassxc-cli 2.4.2 merge, B merged into A, exit 0
+        keepassxc-cli 2.6.6 merge, B merged into A, exit 0
+        keepassxc-cli 2.7.12 merge, B merged into A, exit 0
+        keepassxc-cli 2.8.0 merge, B merged into A, exit 0
+        keepassxc-cli 2.4.2 merge, A merged into B, exit 0
+        keepassxc-cli 2.6.6 merge, A merged into B, exit 0
+        keepassxc-cli 2.7.12 merge, A merged into B, exit 0
+        keepassxc-cli 2.8.0 merge, A merged into B, exit 0
+        keepassxc-cli 2.4.2, back and forth three times: A then B after it [xc-roundtrip-2.4.2/A.kdbx]
+        keepassxc-cli 2.4.2, back and forth three times: A then B after it [xc-roundtrip-2.4.2/B.kdbx]
+        keepassxc-cli 2.8.0, back and forth three times: A then B after it [xc-roundtrip-2.8.0/A.kdbx]
+        keepassxc-cli 2.8.0, back and forth three times: A then B after it [xc-roundtrip-2.8.0/B.kdbx]
+        keepassxc-cli 2.4.2 merge into A, then the rule entry in force in G01 deleted for good by hand
+        keepassxc-cli 2.4.2 merge into B, then the rule entry in force in G01 deleted for good by hand
+        keepassxc-cli 2.8.0 merge into A, then the rule entry in force in G01 deleted for good by hand
+        keepassxc-cli 2.8.0 merge into B, then the rule entry in force in G01 deleted for good by hand
+   REFUSE in H pw:invented | SILENCE in G13 group:REFUSE pw:invented
+        KeePassLib 2.62, B merged into A, CreateNewUuids
+   narrow in G13 pw:invented | SILENCE in H pw:invented
+        KeePassLib 2.62, A merged into B, CreateNewUuids
+== G14
+   SILENCE
+        inputs [base/base.kdbx]
+        inputs [base/A.kdbx]
+        inputs [base/B.kdbx]
+        KeePassLib 2.62, B merged into A, Synchronize
+        KeePassLib 2.62, B merged into A, OverwriteIfNewer
+        KeePassLib 2.62, B merged into A, OverwriteExisting
+        KeePassLib 2.62, B merged into A, KeepExisting
+        keepassxc-cli 2.4.2 merge, B merged into A, exit 0
+        keepassxc-cli 2.6.6 merge, B merged into A, exit 0
+        keepassxc-cli 2.7.12 merge, B merged into A, exit 0
+        keepassxc-cli 2.8.0 merge, B merged into A, exit 0
+        KeePassLib 2.62, A merged into B, Synchronize
+        KeePassLib 2.62, A merged into B, OverwriteIfNewer
+        KeePassLib 2.62, A merged into B, OverwriteExisting
+        KeePassLib 2.62, A merged into B, KeepExisting
+        keepassxc-cli 2.4.2 merge, A merged into B, exit 0
+        keepassxc-cli 2.6.6 merge, A merged into B, exit 0
+        keepassxc-cli 2.7.12 merge, A merged into B, exit 0
+        keepassxc-cli 2.8.0 merge, A merged into B, exit 0
+        keepassxc-cli 2.4.2 add (a plain save), on A, exit 0
+        keepassxc-cli 2.6.6 add (a plain save), on A, exit 0
+        keepassxc-cli 2.7.12 add (a plain save), on A, exit 0
+        keepassxc-cli 2.8.0 add (a plain save), on A, exit 0
+        chain: keepassxc-cli 2.4.2 merged B into A, then KeePassLib 2.62 Synchronize of that result with B
+        chain: keepassxc-cli 2.4.2 merged A into B, then KeePassLib 2.62 Synchronize of that result with A
+        chain: keepassxc-cli 2.8.0 merged B into A, then KeePassLib 2.62 Synchronize of that result with B
+        chain: keepassxc-cli 2.8.0 merged A into B, then KeePassLib 2.62 Synchronize of that result with A
+        keepassxc-cli 2.4.2, back and forth three times: A then B after it [xc-roundtrip-2.4.2/A.kdbx]
+        keepassxc-cli 2.4.2, back and forth three times: A then B after it [xc-roundtrip-2.4.2/B.kdbx]
+        keepassxc-cli 2.8.0, back and forth three times: A then B after it [xc-roundtrip-2.8.0/A.kdbx]
+        keepassxc-cli 2.8.0, back and forth three times: A then B after it [xc-roundtrip-2.8.0/B.kdbx]
+        KeePassLib 2.62 DeleteDuplicateEntries [dedupe/B-deduped.kdbx]
+        KeePassLib 2.62 DeleteDuplicateEntries [dedupe/A-handcopy.kdbx]
+        KeePassLib 2.62 DeleteDuplicateEntries [dedupe/A-handcopy-deduped.kdbx]
+        keepassxc-cli 2.4.2 merge into A, then the rule entry in force in G01 deleted for good by hand
+        keepassxc-cli 2.4.2 merge into B, then the rule entry in force in G01 deleted for good by hand
+        keepassxc-cli 2.8.0 merge into A, then the rule entry in force in G01 deleted for good by hand
+        keepassxc-cli 2.8.0 merge into B, then the rule entry in force in G01 deleted for good by hand
+        hand edit: the rule text of G02, the title and notes of G11, on A
+        keepassxc-cli 2.4.2 rm of the rule entry of G11 on B (to the recycle bin), exit 0
+        keepassxc-cli 2.4.2 rm of the same entry again, now in the recycle bin (for good), exit 0
+        keepassxc-cli 2.8.0 rm of the rule entry of G11 on B (to the recycle bin), exit 0
+        keepassxc-cli 2.8.0 rm of the same entry again, now in the recycle bin (for good), exit 0
+        keepassxc-cli 2.8.0 mv of the rule entry of G01 into General on B, exit 0
+   SILENCE | SILENCE
+        KeePassLib 2.62, B merged into A, CreateNewUuids
+   SILENCE | REFUSE
+        KeePassLib 2.62, A merged into B, CreateNewUuids
+== G14x
+   wide in G14 pw:invented
+        inputs [base/base.kdbx]
+   narrow in G14 pw:invented
+        inputs [base/A.kdbx]
+        keepassxc-cli 2.4.2 add (a plain save), on A, exit 0
+        keepassxc-cli 2.6.6 add (a plain save), on A, exit 0
+        keepassxc-cli 2.7.12 add (a plain save), on A, exit 0
+        keepassxc-cli 2.8.0 add (a plain save), on A, exit 0
+        KeePassLib 2.62 DeleteDuplicateEntries [dedupe/A-handcopy.kdbx]
+        KeePassLib 2.62 DeleteDuplicateEntries [dedupe/A-handcopy-deduped.kdbx]
+        hand edit: the rule text of G02, the title and notes of G11, on A
+   other in H pw:invented
+        inputs [base/B.kdbx]
+        KeePassLib 2.62 DeleteDuplicateEntries [dedupe/B-deduped.kdbx]
+        keepassxc-cli 2.4.2 rm of the rule entry of G11 on B (to the recycle bin), exit 0
+        keepassxc-cli 2.4.2 rm of the same entry again, now in the recycle bin (for good), exit 0
+        keepassxc-cli 2.8.0 rm of the rule entry of G11 on B (to the recycle bin), exit 0
+        keepassxc-cli 2.8.0 rm of the same entry again, now in the recycle bin (for good), exit 0
+        keepassxc-cli 2.8.0 mv of the rule entry of G01 into General on B, exit 0
+   {"default":"inherit","ops":[],"reader":["read"]} in H pw:invented
+        KeePassLib 2.62, B merged into A, Synchronize
+        keepassxc-cli 2.4.2 merge, B merged into A, exit 0
+        keepassxc-cli 2.6.6 merge, B merged into A, exit 0
+        keepassxc-cli 2.7.12 merge, B merged into A, exit 0
+        keepassxc-cli 2.8.0 merge, B merged into A, exit 0
+        KeePassLib 2.62, A merged into B, Synchronize
+        KeePassLib 2.62, A merged into B, OverwriteIfNewer
+        KeePassLib 2.62, A merged into B, OverwriteExisting
+        KeePassLib 2.62, A merged into B, KeepExisting
+        keepassxc-cli 2.4.2 merge, A merged into B, exit 0
+        keepassxc-cli 2.6.6 merge, A merged into B, exit 0
+        keepassxc-cli 2.7.12 merge, A merged into B, exit 0
+        keepassxc-cli 2.8.0 merge, A merged into B, exit 0
+        chain: keepassxc-cli 2.4.2 merged B into A, then KeePassLib 2.62 Synchronize of that result with B
+        chain: keepassxc-cli 2.4.2 merged A into B, then KeePassLib 2.62 Synchronize of that result with A
+        chain: keepassxc-cli 2.8.0 merged B into A, then KeePassLib 2.62 Synchronize of that result with B
+        chain: keepassxc-cli 2.8.0 merged A into B, then KeePassLib 2.62 Synchronize of that result with A
+        keepassxc-cli 2.4.2, back and forth three times: A then B after it [xc-roundtrip-2.4.2/A.kdbx]
+        keepassxc-cli 2.4.2, back and forth three times: A then B after it [xc-roundtrip-2.4.2/B.kdbx]
+        keepassxc-cli 2.8.0, back and forth three times: A then B after it [xc-roundtrip-2.8.0/A.kdbx]
+        keepassxc-cli 2.8.0, back and forth three times: A then B after it [xc-roundtrip-2.8.0/B.kdbx]
+        keepassxc-cli 2.4.2 merge into A, then the rule entry in force in G01 deleted for good by hand
+        keepassxc-cli 2.4.2 merge into B, then the rule entry in force in G01 deleted for good by hand
+        keepassxc-cli 2.8.0 merge into A, then the rule entry in force in G01 deleted for good by hand
+        keepassxc-cli 2.8.0 merge into B, then the rule entry in force in G01 deleted for good by hand
+   {"default":"inherit","ops":[],"reader":["read"]} in G14 pw:invented
+        KeePassLib 2.62, B merged into A, OverwriteIfNewer
+        KeePassLib 2.62, B merged into A, OverwriteExisting
+        KeePassLib 2.62, B merged into A, KeepExisting
+   narrow in G14 pw:invented | SILENCE in H group:REFUSE pw:invented
+        KeePassLib 2.62, B merged into A, CreateNewUuids
+   other in H pw:invented | SILENCE in G14 group:REFUSE pw:invented
+        KeePassLib 2.62, A merged into B, CreateNewUuids
+== G15
+   SILENCE
+        inputs [base/base.kdbx]
+   narrow
+        inputs [base/A.kdbx]
+        keepassxc-cli 2.4.2 add (a plain save), on A, exit 0
+        keepassxc-cli 2.6.6 add (a plain save), on A, exit 0
+        keepassxc-cli 2.7.12 add (a plain save), on A, exit 0
+        keepassxc-cli 2.8.0 add (a plain save), on A, exit 0
+        KeePassLib 2.62 DeleteDuplicateEntries [dedupe/A-handcopy.kdbx]
+        KeePassLib 2.62 DeleteDuplicateEntries [dedupe/A-handcopy-deduped.kdbx]
+        hand edit: the rule text of G02, the title and notes of G11, on A
+   other
+        inputs [base/B.kdbx]
+        KeePassLib 2.62 DeleteDuplicateEntries [dedupe/B-deduped.kdbx]
+        keepassxc-cli 2.4.2 rm of the rule entry of G11 on B (to the recycle bin), exit 0
+        keepassxc-cli 2.4.2 rm of the same entry again, now in the recycle bin (for good), exit 0
+        keepassxc-cli 2.8.0 rm of the rule entry of G11 on B (to the recycle bin), exit 0
+        keepassxc-cli 2.8.0 rm of the same entry again, now in the recycle bin (for good), exit 0
+        keepassxc-cli 2.8.0 mv of the rule entry of G01 into General on B, exit 0
+   {"default":"inherit","ops":[],"reader":["read"]}
+        KeePassLib 2.62, B merged into A, Synchronize
+        KeePassLib 2.62, B merged into A, OverwriteIfNewer
+        KeePassLib 2.62, B merged into A, OverwriteExisting
+        KeePassLib 2.62, B merged into A, KeepExisting
+        keepassxc-cli 2.4.2 merge, B merged into A, exit 0
+        keepassxc-cli 2.6.6 merge, B merged into A, exit 0
+        keepassxc-cli 2.7.12 merge, B merged into A, exit 0
+        keepassxc-cli 2.8.0 merge, B merged into A, exit 0
+        KeePassLib 2.62, A merged into B, Synchronize
+        KeePassLib 2.62, A merged into B, OverwriteIfNewer
+        KeePassLib 2.62, A merged into B, OverwriteExisting
+        KeePassLib 2.62, A merged into B, KeepExisting
+        keepassxc-cli 2.4.2 merge, A merged into B, exit 0
+        keepassxc-cli 2.6.6 merge, A merged into B, exit 0
+        keepassxc-cli 2.7.12 merge, A merged into B, exit 0
+        keepassxc-cli 2.8.0 merge, A merged into B, exit 0
+        chain: keepassxc-cli 2.4.2 merged B into A, then KeePassLib 2.62 Synchronize of that result with B
+        chain: keepassxc-cli 2.4.2 merged A into B, then KeePassLib 2.62 Synchronize of that result with A
+        chain: keepassxc-cli 2.8.0 merged B into A, then KeePassLib 2.62 Synchronize of that result with B
+        chain: keepassxc-cli 2.8.0 merged A into B, then KeePassLib 2.62 Synchronize of that result with A
+        keepassxc-cli 2.4.2, back and forth three times: A then B after it [xc-roundtrip-2.4.2/A.kdbx]
+        keepassxc-cli 2.4.2, back and forth three times: A then B after it [xc-roundtrip-2.4.2/B.kdbx]
+        keepassxc-cli 2.8.0, back and forth three times: A then B after it [xc-roundtrip-2.8.0/A.kdbx]
+        keepassxc-cli 2.8.0, back and forth three times: A then B after it [xc-roundtrip-2.8.0/B.kdbx]
+        keepassxc-cli 2.4.2 merge into A, then the rule entry in force in G01 deleted for good by hand
+        keepassxc-cli 2.4.2 merge into B, then the rule entry in force in G01 deleted for good by hand
+        keepassxc-cli 2.8.0 merge into A, then the rule entry in force in G01 deleted for good by hand
+        keepassxc-cli 2.8.0 merge into B, then the rule entry in force in G01 deleted for good by hand
+   narrow | REFUSE
+        KeePassLib 2.62, B merged into A, CreateNewUuids
+   other | REFUSE
+        KeePassLib 2.62, A merged into B, CreateNewUuids
+== G16
+   wide
+        inputs [base/base.kdbx]
+        inputs [base/B.kdbx]
+        KeePassLib 2.62, B merged into A, Synchronize
+        KeePassLib 2.62, B merged into A, OverwriteIfNewer
+        KeePassLib 2.62, B merged into A, OverwriteExisting
+        KeePassLib 2.62, B merged into A, KeepExisting
+        keepassxc-cli 2.4.2 merge, B merged into A, exit 0
+        keepassxc-cli 2.6.6 merge, B merged into A, exit 0
+        keepassxc-cli 2.7.12 merge, B merged into A, exit 0
+        keepassxc-cli 2.8.0 merge, B merged into A, exit 0
+        KeePassLib 2.62, A merged into B, Synchronize
+        KeePassLib 2.62, A merged into B, OverwriteIfNewer
+        KeePassLib 2.62, A merged into B, OverwriteExisting
+        KeePassLib 2.62, A merged into B, KeepExisting
+        keepassxc-cli 2.4.2 merge, A merged into B, exit 0
+        keepassxc-cli 2.6.6 merge, A merged into B, exit 0
+        keepassxc-cli 2.7.12 merge, A merged into B, exit 0
+        keepassxc-cli 2.8.0 merge, A merged into B, exit 0
+        chain: keepassxc-cli 2.4.2 merged B into A, then KeePassLib 2.62 Synchronize of that result with B
+        chain: keepassxc-cli 2.4.2 merged A into B, then KeePassLib 2.62 Synchronize of that result with A
+        chain: keepassxc-cli 2.8.0 merged B into A, then KeePassLib 2.62 Synchronize of that result with B
+        chain: keepassxc-cli 2.8.0 merged A into B, then KeePassLib 2.62 Synchronize of that result with A
+        keepassxc-cli 2.4.2, back and forth three times: A then B after it [xc-roundtrip-2.4.2/A.kdbx]
+        keepassxc-cli 2.4.2, back and forth three times: A then B after it [xc-roundtrip-2.4.2/B.kdbx]
+        keepassxc-cli 2.8.0, back and forth three times: A then B after it [xc-roundtrip-2.8.0/A.kdbx]
+        keepassxc-cli 2.8.0, back and forth three times: A then B after it [xc-roundtrip-2.8.0/B.kdbx]
+        KeePassLib 2.62 DeleteDuplicateEntries [dedupe/B-deduped.kdbx]
+        keepassxc-cli 2.4.2 merge into A, then the rule entry in force in G01 deleted for good by hand
+        keepassxc-cli 2.4.2 merge into B, then the rule entry in force in G01 deleted for good by hand
+        keepassxc-cli 2.8.0 merge into A, then the rule entry in force in G01 deleted for good by hand
+        keepassxc-cli 2.8.0 merge into B, then the rule entry in force in G01 deleted for good by hand
+        keepassxc-cli 2.4.2 rm of the rule entry of G11 on B (to the recycle bin), exit 0
+        keepassxc-cli 2.4.2 rm of the same entry again, now in the recycle bin (for good), exit 0
+        keepassxc-cli 2.8.0 rm of the rule entry of G11 on B (to the recycle bin), exit 0
+        keepassxc-cli 2.8.0 rm of the same entry again, now in the recycle bin (for good), exit 0
+        keepassxc-cli 2.8.0 mv of the rule entry of G01 into General on B, exit 0
+   REFUSE
+        inputs [base/A.kdbx]
+        keepassxc-cli 2.4.2 add (a plain save), on A, exit 0
+        keepassxc-cli 2.6.6 add (a plain save), on A, exit 0
+        keepassxc-cli 2.7.12 add (a plain save), on A, exit 0
+        keepassxc-cli 2.8.0 add (a plain save), on A, exit 0
+        KeePassLib 2.62 DeleteDuplicateEntries [dedupe/A-handcopy.kdbx]
+        KeePassLib 2.62 DeleteDuplicateEntries [dedupe/A-handcopy-deduped.kdbx]
+        hand edit: the rule text of G02, the title and notes of G11, on A
+   REFUSE | REFUSE
+        KeePassLib 2.62, B merged into A, CreateNewUuids
+   wide | SILENCE
+        KeePassLib 2.62, A merged into B, CreateNewUuids

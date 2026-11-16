@@ -1,0 +1,18 @@
+
+== s8: the root grants wide; groups P (narrow) and Q (unruled) under it; a person bins the rule entry at the root
+  [as written] duplicates=False deletionRecords=0 bin=none ruleEntries=2
+      rule 08CB8917 in 'Root' wide after=none
+      rule 645E585F in 'Root/P' narrow after=none
+    group Root : reader=read+list decided at 'Root' (one rule)
+    group Root/P : reader=read decided at 'P' (one rule)
+      entry p1 : reader=read decided at 'P' (one rule)
+    group Root/Q : reader=read+list decided at 'Root' (one rule)
+      entry q1 : reader=read+list decided at 'Root' (one rule)
+  [the root's entry moved to the bin] duplicates=False deletionRecords=0 bin='Root/Recycle Bin' ruleEntries=2
+      rule 645E585F in 'Root/P' narrow after=none
+      rule 08CB8917 in 'Root/Recycle Bin' (bin) wide after=none
+    group Root : reader=REFUSED decided at 'Root' (ruled, and no rule entry counts)
+    group Root/P : reader=read decided at 'P' (one rule)
+      entry p1 : reader=read decided at 'P' (one rule)
+    group Root/Q : reader=REFUSED decided at 'Root' (ruled, and no rule entry counts)
+      entry q1 : reader=REFUSED decided at 'Root' (ruled, and no rule entry counts)

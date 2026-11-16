@@ -116,6 +116,24 @@ words:
   # the design's `Sep.exe`, and `unretired` in the survival critique's `Surv.cs`.
   - kpmerge
   - unretired
+  # Identifiers in the rules-marker-entry probes, which are carried unchanged: the verbs `handcopy`,
+  # `killhead` and `dedupe` and the locals `rdoc`, `rwhy` and `gwhy` of the design's `Rme.exe`, the
+  # name `newids` and the label `XCsave` of its summary scripts, the bin `Papierkorb` its `Run.ps1`
+  # names as KeePassXC 2.8.0 names it in German, and `look-alikes` in a comment of the survival
+  # probe. `xcsave` is in the names of the dump files, and `lineterm` is the argument of Python's
+  # unified diff that the family's `compare.py` passes.
+  - handcopy
+  - killhead
+  - dedupe
+  - rdoc
+  - rwhy
+  - gwhy
+  - newids
+  - Csave
+  - Papierkorb
+  - alikes
+  - xcsave
+  - lineterm
   # Identifiers in the ground-keepass probe, which is carried unchanged: the variant `nobackup`
   # its X2 prints, which the family's `x2.py` and `RUN.md` match, and the local `scen` of X3.
   - nobackup
