@@ -1274,6 +1274,13 @@ namespace KeePassGate.Transport
         /// or the budget a name earned for a connection whose request was never read. The cap is
         /// for a peer that keeps sending fast, which it can do only up to the size of one more
         /// request.
+        ///
+        /// The quiet is counted from here, after the gate's last write, and that write returns
+        /// once the answer is in the send buffer rather than once the peer has read it. A peer
+        /// still behind on a large answer when the quiet ends reads the rest if it stays silent;
+        /// anything it sends after the close meets the reset, which takes what it had not read.
+        /// Draining until the peer closes would cover that and hold every peer that never closes
+        /// until the deadline, which is the trade `GateOptions.Linger` is set against.
         /// https://www.rfc-editor.org/rfc/rfc9112#section-9.6
         /// </remarks>
         private void Linger(Socket socket)

@@ -590,13 +590,22 @@ closes, and a head over 8 KB is read on to its end first. What the head announce
 the whole of it, whatever the refusal was decided on, because the request line comes before the
 length and so may a header that is refused.
 
-**And so can every answer, whatever the client sent after its request.** A second request
-pipelined behind the first, a line break written as a record of its own, or the `close_notify` of
-a client that shut its sending half was left unread, and the close was the same reset. So an
-answered connection is closed as RFC 9112 section 9.6 describes: the gate's sending half first,
-then what still arrives is read and dropped until the client closes, stays quiet for
-`GateOptions.Linger`, or has sent as much as one more request could hold, under the deadline the
-connection already has.
+**And so can every answer, whatever the client sent after its request, so long as it sent it
+before the gate stopped listening for it.** A second request pipelined behind the first, a line
+break written as a record of its own, or the `close_notify` of a client that shut its sending half
+was left unread, and the close was the same reset. So an answered connection is closed as RFC 9112
+section 9.6 describes: the gate's sending half first, then what still arrives is read and dropped
+until the client closes, stays quiet for `GateOptions.Linger`, or has sent as much as one more
+request could hold, under the deadline the connection already has.
+
+**The quiet is counted from the gate's last write, not from the client having read the answer.**
+That write returns once the answer is in the gate's own send buffer, so a client reading a large
+answer slowly can still be behind when the two seconds end and the socket closes. Silent, it still
+reads the rest, since the stack delivers what was sent before the close. Anything it sends after
+the close, a late `close_notify` or a pipelined request, is answered with a reset that discards
+whatever it had not read yet. Waiting for the client's own close instead, under the deadline,
+would cover that case and keep every client that never closes in its slot until the deadline
+rather than for two seconds, and no shipped client sends anything after its request.
 
 The listener binds `https://127.0.0.1:<port>/` only. Nothing binds off loopback, by construction;
 reaching it from elsewhere is a tunnel's job. Binding off loopback would put a password

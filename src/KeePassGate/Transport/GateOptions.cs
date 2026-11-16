@@ -62,12 +62,17 @@ namespace KeePassGate.Transport
         public int MaxConnections { get; set; }
 
         /// <summary>
-        /// How long a single read or a single send may block before the socket is given up on.
+        /// How long a single read or a single send may block before it fails.
         /// </summary>
         /// <remarks>
         /// A send is one TLS record, so this bounds neither a request nor an answer: a peer that
         /// moves a record inside it every time is never cut off by it. <see cref="Budget"/> is what
         /// bounds both.
+        ///
+        /// A send that fails does not end the connection there: Bouncy Castle then sends its fatal
+        /// alert on the same socket, which waits as long again on a peer that reads nothing, and
+        /// <see cref="Linger"/> runs after that. Such a peer keeps its slot for about twice this
+        /// plus the linger, inside <see cref="Budget"/>.
         /// </remarks>
         public TimeSpan Timeout { get; set; }
 
@@ -79,9 +84,14 @@ namespace KeePassGate.Transport
         /// What the peer sent after its request is read and dropped first, because a socket
         /// closed over unread bytes is answered by the stack with a reset, and the reset discards
         /// the answer the peer has not read yet: `GateListener.Linger` has the reasons. A client
-        /// that has its answer closes at once, which ends the wait at once, so this is the time
-        /// a peer that neither sends nor closes keeps its slot. Two seconds is the pause Apache's
-        /// lingering close allows between reads, and the connection's deadline bounds the whole.
+        /// that closes ends the wait at once, so this is the time a peer that neither sends nor
+        /// closes keeps its slot. Two seconds is the pause Apache's lingering close allows between
+        /// reads, and the connection's deadline bounds the whole.
+        ///
+        /// The quiet is counted from the gate's last write, which returns once the answer is in
+        /// the gate's send buffer and not once the peer has read it. A peer still reading a large
+        /// answer when the quiet ends reads the rest if it stays silent, and loses whatever it has
+        /// not read if it sends anything after the close, since that is answered with a reset.
         /// </remarks>
         public TimeSpan Linger { get; set; }
 
