@@ -1,0 +1,46 @@
+KeePassLib 2.62, T0 2026-11-15T12:46:02.0000000Z, process x64, 4.0.30319.42000
+# X5 history growth and limits
+X5 | cycles, editor backup=True | round 1 | n=1 revs=0 cur=1
+X5 | cycles, editor backup=True | round 2 | n=2 revs=0,1 cur=2
+X5 | cycles, editor backup=True | round 3 | n=3 revs=0,1,2 cur=3
+X5 | cycles, editor backup=True | round 4 | n=4 revs=0,1,2,3 cur=4
+X5 | cycles, editor backup=True | round 5 | n=5 revs=0,1,2,3,4 cur=5
+X5 | cycles, editor backup=True | round 6 | n=6 revs=0,1,2,3,4,5 cur=6
+X5 | cycles, editor backup=True | round 7 | n=7 revs=0,1,2,3,4,5,6 cur=7
+X5 | cycles, editor backup=True | round 8 | n=8 revs=0,1,2,3,4,5,6,7 cur=8
+X5 | cycles, editor backup=True | round 9 | n=9 revs=0,1,2,3,4,5,6,7,8 cur=9
+X5 | cycles, editor backup=True | round 10 | n=10 revs=0,1,2,3,4,5,6,7,8,9 cur=10
+X5 | cycles, editor backup=True | round 11 | n=10 revs=1,2,3,4,5,6,7,8,9,10 cur=11
+X5 | cycles, editor backup=True | round 12 | n=10 revs=2,3,4,5,6,7,8,9,10,11 cur=12
+X5 | cycles, editor backup=True | round 13 | n=10 revs=3,4,5,6,7,8,9,10,11,12 cur=13
+X5 | cycles, editor backup=True | round 14 | n=10 revs=4,5,6,7,8,9,10,11,12,13 cur=14
+X5 | cycles, editor backup=False | round 1 | n=1 revs=0 cur=1
+X5 | cycles, editor backup=False | round 2 | n=2 revs=0,1 cur=2
+X5 | cycles, editor backup=False | round 3 | n=3 revs=0,1,2 cur=3
+X5 | cycles, editor backup=False | round 4 | n=4 revs=0,1,2,3 cur=4
+X5 | cycles, editor backup=False | round 5 | n=5 revs=0,1,2,3,4 cur=5
+X5 | cycles, editor backup=False | round 6 | n=6 revs=0,1,2,3,4,5 cur=6
+X5 | cycles, editor backup=False | round 7 | n=7 revs=0,1,2,3,4,5,6 cur=7
+X5 | cycles, editor backup=False | round 8 | n=8 revs=0,1,2,3,4,5,6,7 cur=8
+X5 | cycles, editor backup=False | round 9 | n=9 revs=0,1,2,3,4,5,6,7,8 cur=9
+X5 | cycles, editor backup=False | round 10 | n=10 revs=0,1,2,3,4,5,6,7,8,9 cur=10
+X5 | cycles, editor backup=False | round 11 | n=10 revs=1,2,3,4,5,6,7,8,9,10 cur=11
+X5 | cycles, editor backup=False | round 12 | n=10 revs=2,3,4,5,6,7,8,9,10,11 cur=12
+X5 | cycles, editor backup=False | round 13 | n=10 revs=3,4,5,6,7,8,9,10,11,12 cur=13
+X5 | cycles, editor backup=False | round 14 | n=10 revs=4,5,6,7,8,9,10,11,12,13 cur=14
+X5 | limits A=3 B=10, A edited | into A | n=3 limitAfter=3
+X5 | limits A=3 B=10, A edited | into B | n=9 limitAfter=10
+X5 | A as saved with limit 3, its own entry | n=3 (the limit is applied by whoever calls MaintainBackups; the probe did not)
+X5 | 1 MiB attachment, 10 synchronized edits without editor backup, size limit 6291456 | n=5 revs=5,6,7,8,9
+X5 | colliding history times | into A | Sync | {Rev=b2}@+30 hist[{Rev=0}@+0 {Rev=a1}@+10 {Rev=a2}@+20]
+X5 | colliding history times | into B | Sync | {Rev=b2}@+30 hist[{Rev=0}@+0 {Rev=b1}@+10 {Rev=a2}@+20]
+X5 | colliding history times | into A | IfNewer | {Rev=b2}@+30 hist[{Rev=0}@+0 {Rev=a1}@+10 {Rev=a2}@+20]
+X5 | colliding history times | into B | IfNewer | {Rev=b2}@+30 hist[{Rev=0}@+0 {Rev=b1}@+10 {Rev=a2}@+20]
+X5 | colliding history times | into A | Overwrite | {Rev=b2}@+30 hist[{Rev=0}@+0 {Rev=b1}@+10 {Rev=a2}@+20]
+X5 | colliding history times | into B | Overwrite | {Rev=a2}@+20 hist[{Rev=0}@+0 {Rev=a1}@+10 {Rev=b2}@+30]
+X5 | colliding history times | into A | Keep | {Rev=a2}@+20 hist[{Rev=0}@+0 {Rev=a1}@+10 {Rev=a2}@+20]
+X5 | colliding history times | into B | Keep | {Rev=b2}@+30 hist[{Rev=0}@+0 {Rev=b1}@+10 {Rev=a2}@+20]
+X5 | colliding history times | into A | NewUuids | {Rev=a2}@+20 hist[{Rev=0}@+0 {Rev=a1}@+10]
+X5 | colliding history times | into A | NewUuids | {Rev=b2}@+30 hist[{Rev=0}@+0 {Rev=b1}@+10]
+X5 | colliding history times | into B | NewUuids | {Rev=b2}@+30 hist[{Rev=0}@+0 {Rev=b1}@+10]
+X5 | colliding history times | into B | NewUuids | {Rev=a2}@+20 hist[{Rev=0}@+0 {Rev=a1}@+10]

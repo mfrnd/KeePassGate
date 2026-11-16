@@ -1,0 +1,22 @@
+KeePassLib 2.62, T0 2026-11-15T12:45:09.0000000Z, process x64, 4.0.30319.42000
+# X1 two different entries added to one group, one in each copy
+X1 | into A | Sync | KPG[E0{Rec=0}@+0h0 XB{Rec=b}@+20h0 XA{Rec=a}@+10h0] groups=KPG tomb=0
+X1 | into B | Sync | KPG[E0{Rec=0}@+0h0 XA{Rec=a}@+10h0 XB{Rec=b}@+20h0] groups=KPG tomb=0
+X1 | into A | IfNewer | KPG[E0{Rec=0}@+0h0 XB{Rec=b}@+20h0 XA{Rec=a}@+10h0] groups=KPG tomb=0
+X1 | into B | IfNewer | KPG[E0{Rec=0}@+0h0 XA{Rec=a}@+10h0 XB{Rec=b}@+20h0] groups=KPG tomb=0
+X1 | into A | Overwrite | KPG[E0{Rec=0}@+0h0 XB{Rec=b}@+20h0 XA{Rec=a}@+10h0] groups=KPG tomb=0
+X1 | into B | Overwrite | KPG[E0{Rec=0}@+0h0 XA{Rec=a}@+10h0 XB{Rec=b}@+20h0] groups=KPG tomb=0
+X1 | into A | Keep | KPG[E0{Rec=0}@+0h0 XB{Rec=b}@+20h0 XA{Rec=a}@+10h0] groups=KPG tomb=0
+X1 | into B | Keep | KPG[E0{Rec=0}@+0h0 XA{Rec=a}@+10h0 XB{Rec=b}@+20h0] groups=KPG tomb=0
+X1 | into A | NewUuids | KPG[E0{Rec=0}@+0h0 XA{Rec=a}@+10h0] new[] KPG[E0{Rec=0}@+0h0 XB{Rec=b}@+20h0] groups=KPG/new/KPG tomb=0
+X1 | into B | NewUuids | KPG[E0{Rec=0}@+0h0 XB{Rec=b}@+20h0] new[] KPG[E0{Rec=0}@+0h0 XA{Rec=a}@+10h0] groups=KPG/new/KPG tomb=0
+X1-same-content | into A | Sync | KPG[E0{Rec=0}@+0h0 Same{Rec=s}@+20h0 Same{Rec=s}@+10h0] groups=KPG tomb=0
+X1-same-content | into B | Sync | KPG[E0{Rec=0}@+0h0 Same{Rec=s}@+10h0 Same{Rec=s}@+20h0] groups=KPG tomb=0
+X1-same-content | into A | IfNewer | KPG[E0{Rec=0}@+0h0 Same{Rec=s}@+20h0 Same{Rec=s}@+10h0] groups=KPG tomb=0
+X1-same-content | into B | IfNewer | KPG[E0{Rec=0}@+0h0 Same{Rec=s}@+10h0 Same{Rec=s}@+20h0] groups=KPG tomb=0
+X1-same-content | into A | Overwrite | KPG[E0{Rec=0}@+0h0 Same{Rec=s}@+20h0 Same{Rec=s}@+10h0] groups=KPG tomb=0
+X1-same-content | into B | Overwrite | KPG[E0{Rec=0}@+0h0 Same{Rec=s}@+10h0 Same{Rec=s}@+20h0] groups=KPG tomb=0
+X1-same-content | into A | Keep | KPG[E0{Rec=0}@+0h0 Same{Rec=s}@+20h0 Same{Rec=s}@+10h0] groups=KPG tomb=0
+X1-same-content | into B | Keep | KPG[E0{Rec=0}@+0h0 Same{Rec=s}@+10h0 Same{Rec=s}@+20h0] groups=KPG tomb=0
+X1-same-content | into A | NewUuids | KPG[E0{Rec=0}@+0h0 Same{Rec=s}@+10h0] new[] KPG[E0{Rec=0}@+0h0 Same{Rec=s}@+20h0] groups=KPG/new/KPG tomb=0
+X1-same-content | into B | NewUuids | KPG[E0{Rec=0}@+0h0 Same{Rec=s}@+20h0] new[] KPG[E0{Rec=0}@+0h0 Same{Rec=s}@+10h0] groups=KPG/new/KPG tomb=0

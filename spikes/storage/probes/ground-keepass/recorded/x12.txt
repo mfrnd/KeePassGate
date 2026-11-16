@@ -1,0 +1,3 @@
+KeePassLib 2.62, T0 2026-11-15T12:45:09.0000000Z, process x64, 4.0.30319.42000
+# X12 an entry read from XML with no LastModificationTime element
+X12 | entry with no LastModificationTime | lm=+7201 PwDefs.DtDefaultNow=+7201 now=+7201

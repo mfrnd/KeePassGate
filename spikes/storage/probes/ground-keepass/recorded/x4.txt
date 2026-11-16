@@ -1,0 +1,33 @@
+KeePassLib 2.62, T0 2026-11-15T12:45:26.0000000Z, process x64, 4.0.30319.42000
+# X4 tombstones
+X4 | orphan tombstone after save and reopen | tomb=1
+X4 | orphan tombstone only in A | into A | Sync | tomb=1
+X4 | orphan tombstone only in A | into B | Sync | tomb=1
+X4 | orphan tombstone only in A | into A | IfNewer | tomb=1
+X4 | orphan tombstone only in A | into B | IfNewer | tomb=0
+X4 | orphan tombstone only in A | into A | Overwrite | tomb=1
+X4 | orphan tombstone only in A | into B | Overwrite | tomb=0
+X4 | orphan tombstone only in A | into A | Keep | tomb=1
+X4 | orphan tombstone only in A | into B | Keep | tomb=0
+X4 | orphan tombstone only in A | into A | NewUuids | tomb=1
+X4 | orphan tombstone only in A | into B | NewUuids | tomb=0
+X4 | E deleted on B (+20), A unchanged (lm +0) | into A | Sync | KPG[] groups=KPG tomb=1
+X4 | E deleted on B (+20), A unchanged (lm +0) | into B | Sync | KPG[] groups=KPG tomb=1
+X4 | E deleted on B (+20), A unchanged (lm +0) | into A | IfNewer | KPG[E{Rec=0}@+0h0] groups=KPG tomb=0
+X4 | E deleted on B (+20), A unchanged (lm +0) | into B | IfNewer | KPG[] groups=KPG tomb=1
+X4 | E deleted on B (+20), A unchanged (lm +0) | into A | Overwrite | KPG[E{Rec=0}@+0h0] groups=KPG tomb=0
+X4 | E deleted on B (+20), A unchanged (lm +0) | into B | Overwrite | KPG[] groups=KPG tomb=1
+X4 | E deleted on B (+20), A unchanged (lm +0) | into A | Keep | KPG[E{Rec=0}@+0h0] groups=KPG tomb=0
+X4 | E deleted on B (+20), A unchanged (lm +0) | into B | Keep | KPG[] groups=KPG tomb=1
+X4 | E deleted on B (+20), A unchanged (lm +0) | into A | NewUuids | KPG[E{Rec=0}@+0h0] new[] KPG[] groups=KPG/new/KPG tomb=0
+X4 | E deleted on B (+20), A unchanged (lm +0) | into B | NewUuids | KPG[] new[] KPG[E{Rec=0}@+0h0] groups=KPG/new/KPG tomb=1
+X4 | E deleted on B (+20), A changed E (+30) | into A | Sync | KPG[E{Rec=a}@+30h1] groups=KPG tomb=0
+X4 | E deleted on B (+20), A changed E (+30) | into B | Sync | KPG[E{Rec=a}@+30h1] groups=KPG tomb=0
+X4 | E deleted on B (+20), A changed E (+30) | into A | IfNewer | KPG[E{Rec=a}@+30h1] groups=KPG tomb=0
+X4 | E deleted on B (+20), A changed E (+30) | into B | IfNewer | KPG[E{Rec=a}@+30h1] groups=KPG tomb=0
+X4 | E deleted on B (+20), A changed E (+30) | into A | Overwrite | KPG[E{Rec=a}@+30h1] groups=KPG tomb=0
+X4 | E deleted on B (+20), A changed E (+30) | into B | Overwrite | KPG[E{Rec=a}@+30h1] groups=KPG tomb=0
+X4 | E deleted on B (+20), A changed E (+30) | into A | Keep | KPG[E{Rec=a}@+30h1] groups=KPG tomb=0
+X4 | E deleted on B (+20), A changed E (+30) | into B | Keep | KPG[E{Rec=a}@+30h1] groups=KPG tomb=0
+X4 | E deleted on B (+20), A changed E (+30) | into A | NewUuids | KPG[E{Rec=a}@+30h1] new[] KPG[] groups=KPG/new/KPG tomb=0
+X4 | E deleted on B (+20), A changed E (+30) | into B | NewUuids | KPG[] new[] KPG[E{Rec=a}@+30h1] groups=KPG/new/KPG tomb=1

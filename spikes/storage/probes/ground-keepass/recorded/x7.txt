@@ -1,0 +1,18 @@
+KeePassLib 2.62, T0 2026-11-15T12:45:00.0000000Z, process x64, 4.0.30319.42000
+# X7 file version KeePass 2.62 writes for each feature (AES-KDF, one round)
+X7 | empty database | 4.0
+X7 | entry: standard, custom, protected strings, attachment, entry tag, notes, standard icon, expiry, history, colors, override URL, auto-type off | 4.0 reopened={Custom=c2,Notes={"json":1},Password=pw,Secret=s,att:x.bin,tag:kpg}@+0 hist[{Custom=c,Notes={"json":1},Password=pw,Secret=s,att:x.bin,tag:kpg}@+0] expires=True qc=True
+X7 | entry excluded from reports (QualityCheck false) | 4.1
+X7 | group tag | 4.1
+X7 | group notes, searching off, auto-type off, collapsed | 4.0
+X7 | entry custom data | 4.0
+X7 | group custom data | 4.0
+X7 | database custom data, public Set (stamped) | 4.1
+X7 | header public custom data | 4.0 pcd=1
+X7 | custom icon, no name, no time | 4.0
+X7 | custom icon with a name | 4.1
+X7 | custom icon with a time | 4.1
+X7 | deleted object | 4.0
+X7 | entry previous parent only | 4.0 previousParentAfterReopen=False
+X7 | entry previous parent and a group tag | 4.1 previousParentAfterReopen=True
+X7 | public custom data read with LoadHeader and no key | visible

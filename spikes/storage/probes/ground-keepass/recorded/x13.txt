@@ -1,0 +1,60 @@
+KeePassLib 2.62, T0 2026-11-15T12:52:53.0000000Z, process x64, 4.0.30319.42000
+# X13 each copy adds a field named by its own timestamp every round, then a Synchronize writes the result to both
+X13 | preprocess=False | B writes 5 s after A | round 1 | written=2 inEntry=1 inEntryOrHistory=2 hist=1 lost=
+X13 | preprocess=False | B writes 5 s after A | round 2 | written=4 inEntry=2 inEntryOrHistory=4 hist=2 lost=
+X13 | preprocess=False | B writes 5 s after A | round 3 | written=6 inEntry=3 inEntryOrHistory=6 hist=3 lost=
+X13 | preprocess=False | B writes 5 s after A | round 4 | written=8 inEntry=4 inEntryOrHistory=8 hist=4 lost=
+X13 | preprocess=False | B writes 5 s after A | round 5 | written=10 inEntry=5 inEntryOrHistory=10 hist=5 lost=
+X13 | preprocess=False | B writes 5 s after A | round 6 | written=12 inEntry=6 inEntryOrHistory=12 hist=6 lost=
+X13 | preprocess=False | B writes 5 s after A | round 7 | written=14 inEntry=7 inEntryOrHistory=14 hist=7 lost=
+X13 | preprocess=False | B writes 5 s after A | round 8 | written=16 inEntry=8 inEntryOrHistory=16 hist=8 lost=
+X13 | preprocess=False | B writes 5 s after A | round 9 | written=18 inEntry=9 inEntryOrHistory=18 hist=9 lost=
+X13 | preprocess=False | B writes 5 s after A | round 10 | written=20 inEntry=10 inEntryOrHistory=20 hist=10 lost=
+X13 | preprocess=False | B writes 5 s after A | round 11 | written=22 inEntry=11 inEntryOrHistory=21 hist=10 lost=KPG.A01
+X13 | preprocess=False | B writes 5 s after A | round 12 | written=24 inEntry=12 inEntryOrHistory=22 hist=10 lost=KPG.A01,KPG.A02
+X13 | preprocess=False | B writes 0 s after A | round 1 | written=2 inEntry=1 inEntryOrHistory=1 hist=0 lost=KPG.B01
+X13 | preprocess=False | B writes 0 s after A | round 2 | written=4 inEntry=2 inEntryOrHistory=2 hist=0 lost=KPG.A02,KPG.B01
+X13 | preprocess=False | B writes 0 s after A | round 3 | written=6 inEntry=3 inEntryOrHistory=3 hist=0 lost=KPG.A02,KPG.B01,KPG.B03
+X13 | preprocess=False | B writes 0 s after A | round 4 | written=8 inEntry=4 inEntryOrHistory=4 hist=0 lost=KPG.A02,KPG.A04,KPG.B01,KPG.B03
+X13 | preprocess=False | B writes 0 s after A | round 5 | written=10 inEntry=5 inEntryOrHistory=5 hist=0 lost=KPG.A02,KPG.A04,KPG.B01,KPG.B03,KPG.B05
+X13 | preprocess=False | B writes 0 s after A | round 6 | written=12 inEntry=6 inEntryOrHistory=6 hist=0 lost=KPG.A02,KPG.A04,KPG.A06,KPG.B01,KPG.B03,KPG.B05
+X13 | preprocess=False | B writes 0 s after A | round 7 | written=14 inEntry=7 inEntryOrHistory=7 hist=0 lost=KPG.A02,KPG.A04,KPG.A06,KPG.B01,KPG.B03,KPG.B05,KPG.B07
+X13 | preprocess=False | B writes 0 s after A | round 8 | written=16 inEntry=8 inEntryOrHistory=8 hist=0 lost=KPG.A02,KPG.A04,KPG.A06,KPG.A08,KPG.B01,KPG.B03,KPG.B05,KPG.B07
+X13 | preprocess=False | B writes 0 s after A | round 9 | written=18 inEntry=9 inEntryOrHistory=9 hist=0 lost=KPG.A02,KPG.A04,KPG.A06,KPG.A08,KPG.B01,KPG.B03,KPG.B05,KPG.B07,KPG.B09
+X13 | preprocess=False | B writes 0 s after A | round 10 | written=20 inEntry=10 inEntryOrHistory=10 hist=0 lost=KPG.A02,KPG.A04,KPG.A06,KPG.A08,KPG.A10,KPG.B01,KPG.B03,KPG.B05,KPG.B07,KPG.B09
+X13 | preprocess=False | B writes 0 s after A | round 11 | written=22 inEntry=11 inEntryOrHistory=11 hist=0 lost=KPG.A02,KPG.A04,KPG.A06,KPG.A08,KPG.A10,KPG.B01,KPG.B03,KPG.B05,KPG.B07,KPG.B09,KPG.B11
+X13 | preprocess=False | B writes 0 s after A | round 12 | written=24 inEntry=12 inEntryOrHistory=12 hist=0 lost=KPG.A02,KPG.A04,KPG.A06,KPG.A08,KPG.A10,KPG.A12,KPG.B01,KPG.B03,KPG.B05,KPG.B07,KPG.B09,KPG.B11
+X13 | preprocess=True | B writes 5 s after A | round 1 | written=2 inEntry=2 inEntryOrHistory=2 hist=1 lost=
+X13 | preprocess=True | B writes 5 s after A | round 2 | written=4 inEntry=4 inEntryOrHistory=4 hist=2 lost=
+X13 | preprocess=True | B writes 5 s after A | round 3 | written=6 inEntry=6 inEntryOrHistory=6 hist=3 lost=
+X13 | preprocess=True | B writes 5 s after A | round 4 | written=8 inEntry=8 inEntryOrHistory=8 hist=4 lost=
+X13 | preprocess=True | B writes 5 s after A | round 5 | written=10 inEntry=10 inEntryOrHistory=10 hist=5 lost=
+X13 | preprocess=True | B writes 5 s after A | round 6 | written=12 inEntry=12 inEntryOrHistory=12 hist=6 lost=
+X13 | preprocess=True | B writes 5 s after A | round 7 | written=14 inEntry=14 inEntryOrHistory=14 hist=7 lost=
+X13 | preprocess=True | B writes 5 s after A | round 8 | written=16 inEntry=16 inEntryOrHistory=16 hist=8 lost=
+X13 | preprocess=True | B writes 5 s after A | round 9 | written=18 inEntry=18 inEntryOrHistory=18 hist=9 lost=
+X13 | preprocess=True | B writes 5 s after A | round 10 | written=20 inEntry=20 inEntryOrHistory=20 hist=10 lost=
+X13 | preprocess=True | B writes 5 s after A | round 11 | written=22 inEntry=22 inEntryOrHistory=22 hist=10 lost=
+X13 | preprocess=True | B writes 5 s after A | round 12 | written=24 inEntry=24 inEntryOrHistory=24 hist=10 lost=
+X13 | preprocess=True | B writes 0 s after A | round 1 | written=2 inEntry=1 inEntryOrHistory=1 hist=0 lost=KPG.B01
+X13 | preprocess=True | B writes 0 s after A | round 2 | written=4 inEntry=2 inEntryOrHistory=2 hist=0 lost=KPG.A02,KPG.B01
+X13 | preprocess=True | B writes 0 s after A | round 3 | written=6 inEntry=3 inEntryOrHistory=3 hist=0 lost=KPG.A02,KPG.B01,KPG.B03
+X13 | preprocess=True | B writes 0 s after A | round 4 | written=8 inEntry=4 inEntryOrHistory=4 hist=0 lost=KPG.A02,KPG.A04,KPG.B01,KPG.B03
+X13 | preprocess=True | B writes 0 s after A | round 5 | written=10 inEntry=5 inEntryOrHistory=5 hist=0 lost=KPG.A02,KPG.A04,KPG.B01,KPG.B03,KPG.B05
+X13 | preprocess=True | B writes 0 s after A | round 6 | written=12 inEntry=6 inEntryOrHistory=6 hist=0 lost=KPG.A02,KPG.A04,KPG.A06,KPG.B01,KPG.B03,KPG.B05
+X13 | preprocess=True | B writes 0 s after A | round 7 | written=14 inEntry=7 inEntryOrHistory=7 hist=0 lost=KPG.A02,KPG.A04,KPG.A06,KPG.B01,KPG.B03,KPG.B05,KPG.B07
+X13 | preprocess=True | B writes 0 s after A | round 8 | written=16 inEntry=8 inEntryOrHistory=8 hist=0 lost=KPG.A02,KPG.A04,KPG.A06,KPG.A08,KPG.B01,KPG.B03,KPG.B05,KPG.B07
+X13 | preprocess=True | B writes 0 s after A | round 9 | written=18 inEntry=9 inEntryOrHistory=9 hist=0 lost=KPG.A02,KPG.A04,KPG.A06,KPG.A08,KPG.B01,KPG.B03,KPG.B05,KPG.B07,KPG.B09
+X13 | preprocess=True | B writes 0 s after A | round 10 | written=20 inEntry=10 inEntryOrHistory=10 hist=0 lost=KPG.A02,KPG.A04,KPG.A06,KPG.A08,KPG.A10,KPG.B01,KPG.B03,KPG.B05,KPG.B07,KPG.B09
+X13 | preprocess=True | B writes 0 s after A | round 11 | written=22 inEntry=11 inEntryOrHistory=11 hist=0 lost=KPG.A02,KPG.A04,KPG.A06,KPG.A08,KPG.A10,KPG.B01,KPG.B03,KPG.B05,KPG.B07,KPG.B09,KPG.B11
+X13 | preprocess=True | B writes 0 s after A | round 12 | written=24 inEntry=12 inEntryOrHistory=12 hist=0 lost=KPG.A02,KPG.A04,KPG.A06,KPG.A08,KPG.A10,KPG.A12,KPG.B01,KPG.B03,KPG.B05,KPG.B07,KPG.B09,KPG.B11
+X13 | preprocess=True, HistoryMaxItems=0 | round 1 | written=2 inEntryOrHistory=1 lost=KPG.A01
+X13 | preprocess=True, HistoryMaxItems=0 | round 2 | written=4 inEntryOrHistory=2 lost=KPG.A01,KPG.A02
+X13 | preprocess=True, HistoryMaxItems=0 | round 3 | written=6 inEntryOrHistory=3 lost=KPG.A01,KPG.A02,KPG.A03
+X13 | preprocess=True, HistoryMaxItems=0 | round 4 | written=8 inEntryOrHistory=4 lost=KPG.A01,KPG.A02,KPG.A03,KPG.A04
+X13 | preprocess=True, HistoryMaxItems=1 | round 1 | written=2 inEntryOrHistory=2 lost=
+X13 | preprocess=True, HistoryMaxItems=1 | round 2 | written=4 inEntryOrHistory=4 lost=
+X13 | preprocess=True, HistoryMaxItems=1 | round 3 | written=6 inEntryOrHistory=6 lost=
+X13 | preprocess=True, HistoryMaxItems=1 | round 4 | written=8 inEntryOrHistory=8 lost=
+X13 | three copies each adding one field, merged into the first | inEntry=KPG.C2 inEntryOrHistory=KPG.C0,KPG.C1,KPG.C2 | {KPG.C2=x}@+30 hist[{KPG.C0=x}@+10 {KPG.C1=x}@+20]
+X13 | identical value rewritten with a new time, 12 synchronized rounds | hist=10 distinctValuesInHistory=1

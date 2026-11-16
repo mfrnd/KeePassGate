@@ -1,0 +1,22 @@
+KeePassLib 2.62, T0 2026-11-15T12:45:48.0000000Z, process x64, 4.0.30319.42000
+# X9 custom icons: base I0; A adds I1 and deletes I0; B adds I2
+X9 | icon times absent | version A 4.0 | into A | Sync | I1,I2 tomb=1
+X9 | icon times absent | version A 4.0 | into B | Sync | I2,I1 tomb=1
+X9 | icon times absent | version A 4.0 | into A | IfNewer | I1,I2 tomb=1
+X9 | icon times absent | version A 4.0 | into B | IfNewer | I0,I2,I1 tomb=0
+X9 | icon times absent | version A 4.0 | into A | Overwrite | I1,I2 tomb=1
+X9 | icon times absent | version A 4.0 | into B | Overwrite | I0,I2,I1 tomb=0
+X9 | icon times absent | version A 4.0 | into A | Keep | I1,I2 tomb=1
+X9 | icon times absent | version A 4.0 | into B | Keep | I0,I2,I1 tomb=0
+X9 | icon times absent | version A 4.0 | into A | NewUuids | I1,I2 tomb=1
+X9 | icon times absent | version A 4.0 | into B | NewUuids | I0,I2,I1 tomb=0
+X9 | icon times kept | version A 4.1 | into A | Sync | I1,I2 tomb=1
+X9 | icon times kept | version A 4.1 | into B | Sync | I2,I1 tomb=1
+X9 | icon times kept | version A 4.1 | into A | IfNewer | I1,I2 tomb=1
+X9 | icon times kept | version A 4.1 | into B | IfNewer | I0,I2,I1 tomb=0
+X9 | icon times kept | version A 4.1 | into A | Overwrite | I1,I2 tomb=1
+X9 | icon times kept | version A 4.1 | into B | Overwrite | I0,I2,I1 tomb=0
+X9 | icon times kept | version A 4.1 | into A | Keep | I1,I2 tomb=1
+X9 | icon times kept | version A 4.1 | into B | Keep | I0,I2,I1 tomb=0
+X9 | icon times kept | version A 4.1 | into A | NewUuids | I1,I2 tomb=1
+X9 | icon times kept | version A 4.1 | into B | NewUuids | I0,I2,I1 tomb=0

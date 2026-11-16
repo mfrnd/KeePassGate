@@ -1,0 +1,122 @@
+KeePassLib 2.62, T0 2026-11-15T12:45:23.0000000Z, process x64, 4.0.30319.42000
+# X3 deletion, recycling, moving, a deleted group (A acts at +20 unless noted)
+X3 | deleted-on-A, B-unchanged | into A | Sync | KPG[] G2[E2{Rec=0}@+0h0] G3[] Bin[] groups=KPG/G2/G3/Bin tomb=1
+X3 | deleted-on-A, B-unchanged | into B | Sync | KPG[] G2[E2{Rec=0}@+0h0] G3[] Bin[] groups=KPG/G2/G3/Bin tomb=1
+X3 | deleted-on-A, B-unchanged | into A | IfNewer | KPG[] G2[E2{Rec=0}@+0h0] G3[] Bin[] groups=KPG/G2/G3/Bin tomb=1
+X3 | deleted-on-A, B-unchanged | into B | IfNewer | KPG[E{Rec=0}@+0h0] G2[E2{Rec=0}@+0h0] G3[] Bin[] groups=KPG/G2/G3/Bin tomb=0
+X3 | deleted-on-A, B-unchanged | into A | Overwrite | KPG[] G2[E2{Rec=0}@+0h0] G3[] Bin[] groups=KPG/G2/G3/Bin tomb=1
+X3 | deleted-on-A, B-unchanged | into B | Overwrite | KPG[E{Rec=0}@+0h0] G2[E2{Rec=0}@+0h0] G3[] Bin[] groups=KPG/G2/G3/Bin tomb=0
+X3 | deleted-on-A, B-unchanged | into A | Keep | KPG[] G2[E2{Rec=0}@+0h0] G3[] Bin[] groups=KPG/G2/G3/Bin tomb=1
+X3 | deleted-on-A, B-unchanged | into B | Keep | KPG[E{Rec=0}@+0h0] G2[E2{Rec=0}@+0h0] G3[] Bin[] groups=KPG/G2/G3/Bin tomb=0
+X3 | deleted-on-A, B-unchanged | into A | NewUuids | KPG[] G2[E2{Rec=0}@+0h0] G3[] Bin[] new[] KPG[E{Rec=0}@+0h0] G2[E2{Rec=0}@+0h0] G3[] Bin[] groups=KPG/G2/G3/Bin/new/KPG/G2/G3/Bin tomb=1
+X3 | deleted-on-A, B-unchanged | into B | NewUuids | KPG[E{Rec=0}@+0h0] G2[E2{Rec=0}@+0h0] G3[] Bin[] new[] KPG[] G2[E2{Rec=0}@+0h0] G3[] Bin[] groups=KPG/G2/G3/Bin/new/KPG/G2/G3/Bin tomb=0
+X3 | deleted-on-A, B-changed-later(+30) | into A | Sync | KPG[E{Rec=b}@+30h1] G2[E2{Rec=0}@+0h0] G3[] Bin[] groups=KPG/G2/G3/Bin tomb=0
+X3 | deleted-on-A, B-changed-later(+30) | into B | Sync | KPG[E{Rec=b}@+30h1] G2[E2{Rec=0}@+0h0] G3[] Bin[] groups=KPG/G2/G3/Bin tomb=0
+X3 | deleted-on-A, B-changed-later(+30) | into A | IfNewer | KPG[E{Rec=b}@+30h1] G2[E2{Rec=0}@+0h0] G3[] Bin[] groups=KPG/G2/G3/Bin tomb=0
+X3 | deleted-on-A, B-changed-later(+30) | into B | IfNewer | KPG[E{Rec=b}@+30h1] G2[E2{Rec=0}@+0h0] G3[] Bin[] groups=KPG/G2/G3/Bin tomb=0
+X3 | deleted-on-A, B-changed-later(+30) | into A | Overwrite | KPG[E{Rec=b}@+30h1] G2[E2{Rec=0}@+0h0] G3[] Bin[] groups=KPG/G2/G3/Bin tomb=0
+X3 | deleted-on-A, B-changed-later(+30) | into B | Overwrite | KPG[E{Rec=b}@+30h1] G2[E2{Rec=0}@+0h0] G3[] Bin[] groups=KPG/G2/G3/Bin tomb=0
+X3 | deleted-on-A, B-changed-later(+30) | into A | Keep | KPG[E{Rec=b}@+30h1] G2[E2{Rec=0}@+0h0] G3[] Bin[] groups=KPG/G2/G3/Bin tomb=0
+X3 | deleted-on-A, B-changed-later(+30) | into B | Keep | KPG[E{Rec=b}@+30h1] G2[E2{Rec=0}@+0h0] G3[] Bin[] groups=KPG/G2/G3/Bin tomb=0
+X3 | deleted-on-A, B-changed-later(+30) | into A | NewUuids | KPG[] G2[E2{Rec=0}@+0h0] G3[] Bin[] new[] KPG[E{Rec=b}@+30h1] G2[E2{Rec=0}@+0h0] G3[] Bin[] groups=KPG/G2/G3/Bin/new/KPG/G2/G3/Bin tomb=1
+X3 | deleted-on-A, B-changed-later(+30) | into B | NewUuids | KPG[E{Rec=b}@+30h1] G2[E2{Rec=0}@+0h0] G3[] Bin[] new[] KPG[] G2[E2{Rec=0}@+0h0] G3[] Bin[] groups=KPG/G2/G3/Bin/new/KPG/G2/G3/Bin tomb=0
+X3 | deleted-on-A, B-changed-earlier(+10) | into A | Sync | KPG[] G2[E2{Rec=0}@+0h0] G3[] Bin[] groups=KPG/G2/G3/Bin tomb=1
+X3 | deleted-on-A, B-changed-earlier(+10) | into B | Sync | KPG[] G2[E2{Rec=0}@+0h0] G3[] Bin[] groups=KPG/G2/G3/Bin tomb=1
+X3 | deleted-on-A, B-changed-earlier(+10) | into A | IfNewer | KPG[] G2[E2{Rec=0}@+0h0] G3[] Bin[] groups=KPG/G2/G3/Bin tomb=1
+X3 | deleted-on-A, B-changed-earlier(+10) | into B | IfNewer | KPG[E{Rec=b}@+10h1] G2[E2{Rec=0}@+0h0] G3[] Bin[] groups=KPG/G2/G3/Bin tomb=0
+X3 | deleted-on-A, B-changed-earlier(+10) | into A | Overwrite | KPG[] G2[E2{Rec=0}@+0h0] G3[] Bin[] groups=KPG/G2/G3/Bin tomb=1
+X3 | deleted-on-A, B-changed-earlier(+10) | into B | Overwrite | KPG[E{Rec=b}@+10h1] G2[E2{Rec=0}@+0h0] G3[] Bin[] groups=KPG/G2/G3/Bin tomb=0
+X3 | deleted-on-A, B-changed-earlier(+10) | into A | Keep | KPG[] G2[E2{Rec=0}@+0h0] G3[] Bin[] groups=KPG/G2/G3/Bin tomb=1
+X3 | deleted-on-A, B-changed-earlier(+10) | into B | Keep | KPG[E{Rec=b}@+10h1] G2[E2{Rec=0}@+0h0] G3[] Bin[] groups=KPG/G2/G3/Bin tomb=0
+X3 | deleted-on-A, B-changed-earlier(+10) | into A | NewUuids | KPG[] G2[E2{Rec=0}@+0h0] G3[] Bin[] new[] KPG[E{Rec=b}@+10h1] G2[E2{Rec=0}@+0h0] G3[] Bin[] groups=KPG/G2/G3/Bin/new/KPG/G2/G3/Bin tomb=1
+X3 | deleted-on-A, B-changed-earlier(+10) | into B | NewUuids | KPG[E{Rec=b}@+10h1] G2[E2{Rec=0}@+0h0] G3[] Bin[] new[] KPG[] G2[E2{Rec=0}@+0h0] G3[] Bin[] groups=KPG/G2/G3/Bin/new/KPG/G2/G3/Bin tomb=0
+X3 | recycled-on-A, B-unchanged | into A | Sync | KPG[] G2[E2{Rec=0}@+0h0] G3[] Bin[E{Rec=0}@+0h0] groups=KPG/G2/G3/Bin tomb=0
+X3 | recycled-on-A, B-unchanged | into B | Sync | KPG[] G2[E2{Rec=0}@+0h0] G3[] Bin[E{Rec=0}@+0h0] groups=KPG/G2/G3/Bin tomb=0
+X3 | recycled-on-A, B-unchanged | into A | IfNewer | KPG[] G2[E2{Rec=0}@+0h0] G3[] Bin[E{Rec=0}@+0h0] groups=KPG/G2/G3/Bin tomb=0
+X3 | recycled-on-A, B-unchanged | into B | IfNewer | KPG[E{Rec=0}@+0h0] G2[E2{Rec=0}@+0h0] G3[] Bin[] groups=KPG/G2/G3/Bin tomb=0
+X3 | recycled-on-A, B-unchanged | into A | Overwrite | KPG[] G2[E2{Rec=0}@+0h0] G3[] Bin[E{Rec=0}@+0h0] groups=KPG/G2/G3/Bin tomb=0
+X3 | recycled-on-A, B-unchanged | into B | Overwrite | KPG[E{Rec=0}@+0h0] G2[E2{Rec=0}@+0h0] G3[] Bin[] groups=KPG/G2/G3/Bin tomb=0
+X3 | recycled-on-A, B-unchanged | into A | Keep | KPG[] G2[E2{Rec=0}@+0h0] G3[] Bin[E{Rec=0}@+0h0] groups=KPG/G2/G3/Bin tomb=0
+X3 | recycled-on-A, B-unchanged | into B | Keep | KPG[E{Rec=0}@+0h0] G2[E2{Rec=0}@+0h0] G3[] Bin[] groups=KPG/G2/G3/Bin tomb=0
+X3 | recycled-on-A, B-unchanged | into A | NewUuids | KPG[] G2[E2{Rec=0}@+0h0] G3[] Bin[E{Rec=0}@+0h0] new[] KPG[E{Rec=0}@+0h0] G2[E2{Rec=0}@+0h0] G3[] Bin[] groups=KPG/G2/G3/Bin/new/KPG/G2/G3/Bin tomb=0
+X3 | recycled-on-A, B-unchanged | into B | NewUuids | KPG[E{Rec=0}@+0h0] G2[E2{Rec=0}@+0h0] G3[] Bin[] new[] KPG[] G2[E2{Rec=0}@+0h0] G3[] Bin[E{Rec=0}@+0h0] groups=KPG/G2/G3/Bin/new/KPG/G2/G3/Bin tomb=0
+X3 | recycled-on-A, B-changed-later(+30) | into A | Sync | KPG[] G2[E2{Rec=0}@+0h0] G3[] Bin[E{Rec=b}@+30h1] groups=KPG/G2/G3/Bin tomb=0
+X3 | recycled-on-A, B-changed-later(+30) | into B | Sync | KPG[] G2[E2{Rec=0}@+0h0] G3[] Bin[E{Rec=b}@+30h1] groups=KPG/G2/G3/Bin tomb=0
+X3 | recycled-on-A, B-changed-later(+30) | into A | IfNewer | KPG[] G2[E2{Rec=0}@+0h0] G3[] Bin[E{Rec=b}@+30h1] groups=KPG/G2/G3/Bin tomb=0
+X3 | recycled-on-A, B-changed-later(+30) | into B | IfNewer | KPG[E{Rec=b}@+30h1] G2[E2{Rec=0}@+0h0] G3[] Bin[] groups=KPG/G2/G3/Bin tomb=0
+X3 | recycled-on-A, B-changed-later(+30) | into A | Overwrite | KPG[] G2[E2{Rec=0}@+0h0] G3[] Bin[E{Rec=b}@+30h1] groups=KPG/G2/G3/Bin tomb=0
+X3 | recycled-on-A, B-changed-later(+30) | into B | Overwrite | KPG[E{Rec=0}@+0h2] G2[E2{Rec=0}@+0h0] G3[] Bin[] groups=KPG/G2/G3/Bin tomb=0
+X3 | recycled-on-A, B-changed-later(+30) | into A | Keep | KPG[] G2[E2{Rec=0}@+0h0] G3[] Bin[E{Rec=0}@+0h1] groups=KPG/G2/G3/Bin tomb=0
+X3 | recycled-on-A, B-changed-later(+30) | into B | Keep | KPG[E{Rec=b}@+30h1] G2[E2{Rec=0}@+0h0] G3[] Bin[] groups=KPG/G2/G3/Bin tomb=0
+X3 | recycled-on-A, B-changed-later(+30) | into A | NewUuids | KPG[] G2[E2{Rec=0}@+0h0] G3[] Bin[E{Rec=0}@+0h0] new[] KPG[E{Rec=b}@+30h1] G2[E2{Rec=0}@+0h0] G3[] Bin[] groups=KPG/G2/G3/Bin/new/KPG/G2/G3/Bin tomb=0
+X3 | recycled-on-A, B-changed-later(+30) | into B | NewUuids | KPG[E{Rec=b}@+30h1] G2[E2{Rec=0}@+0h0] G3[] Bin[] new[] KPG[] G2[E2{Rec=0}@+0h0] G3[] Bin[E{Rec=0}@+0h0] groups=KPG/G2/G3/Bin/new/KPG/G2/G3/Bin tomb=0
+X3 | moved-on-A-to-G2, B-unchanged | into A | Sync | KPG[] G2[E2{Rec=0}@+0h0 E{Rec=0}@+0h0] G3[] Bin[] groups=KPG/G2/G3/Bin tomb=0
+X3 | moved-on-A-to-G2, B-unchanged | into B | Sync | KPG[] G2[E2{Rec=0}@+0h0 E{Rec=0}@+0h0] G3[] Bin[] groups=KPG/G2/G3/Bin tomb=0
+X3 | moved-on-A-to-G2, B-unchanged | into A | IfNewer | KPG[] G2[E2{Rec=0}@+0h0 E{Rec=0}@+0h0] G3[] Bin[] groups=KPG/G2/G3/Bin tomb=0
+X3 | moved-on-A-to-G2, B-unchanged | into B | IfNewer | KPG[E{Rec=0}@+0h0] G2[E2{Rec=0}@+0h0] G3[] Bin[] groups=KPG/G2/G3/Bin tomb=0
+X3 | moved-on-A-to-G2, B-unchanged | into A | Overwrite | KPG[] G2[E2{Rec=0}@+0h0 E{Rec=0}@+0h0] G3[] Bin[] groups=KPG/G2/G3/Bin tomb=0
+X3 | moved-on-A-to-G2, B-unchanged | into B | Overwrite | KPG[E{Rec=0}@+0h0] G2[E2{Rec=0}@+0h0] G3[] Bin[] groups=KPG/G2/G3/Bin tomb=0
+X3 | moved-on-A-to-G2, B-unchanged | into A | Keep | KPG[] G2[E2{Rec=0}@+0h0 E{Rec=0}@+0h0] G3[] Bin[] groups=KPG/G2/G3/Bin tomb=0
+X3 | moved-on-A-to-G2, B-unchanged | into B | Keep | KPG[E{Rec=0}@+0h0] G2[E2{Rec=0}@+0h0] G3[] Bin[] groups=KPG/G2/G3/Bin tomb=0
+X3 | moved-on-A-to-G2, B-unchanged | into A | NewUuids | KPG[] G2[E2{Rec=0}@+0h0 E{Rec=0}@+0h0] G3[] Bin[] new[] KPG[E{Rec=0}@+0h0] G2[E2{Rec=0}@+0h0] G3[] Bin[] groups=KPG/G2/G3/Bin/new/KPG/G2/G3/Bin tomb=0
+X3 | moved-on-A-to-G2, B-unchanged | into B | NewUuids | KPG[E{Rec=0}@+0h0] G2[E2{Rec=0}@+0h0] G3[] Bin[] new[] KPG[] G2[E2{Rec=0}@+0h0 E{Rec=0}@+0h0] G3[] Bin[] groups=KPG/G2/G3/Bin/new/KPG/G2/G3/Bin tomb=0
+X3 | moved-on-A-to-G2, B-changed-later(+30) | into A | Sync | KPG[] G2[E2{Rec=0}@+0h0 E{Rec=b}@+30h1] G3[] Bin[] groups=KPG/G2/G3/Bin tomb=0
+X3 | moved-on-A-to-G2, B-changed-later(+30) | into B | Sync | KPG[] G2[E2{Rec=0}@+0h0 E{Rec=b}@+30h1] G3[] Bin[] groups=KPG/G2/G3/Bin tomb=0
+X3 | moved-on-A-to-G2, B-changed-later(+30) | into A | IfNewer | KPG[] G2[E2{Rec=0}@+0h0 E{Rec=b}@+30h1] G3[] Bin[] groups=KPG/G2/G3/Bin tomb=0
+X3 | moved-on-A-to-G2, B-changed-later(+30) | into B | IfNewer | KPG[E{Rec=b}@+30h1] G2[E2{Rec=0}@+0h0] G3[] Bin[] groups=KPG/G2/G3/Bin tomb=0
+X3 | moved-on-A-to-G2, B-changed-later(+30) | into A | Overwrite | KPG[] G2[E2{Rec=0}@+0h0 E{Rec=b}@+30h1] G3[] Bin[] groups=KPG/G2/G3/Bin tomb=0
+X3 | moved-on-A-to-G2, B-changed-later(+30) | into B | Overwrite | KPG[E{Rec=0}@+0h2] G2[E2{Rec=0}@+0h0] G3[] Bin[] groups=KPG/G2/G3/Bin tomb=0
+X3 | moved-on-A-to-G2, B-changed-later(+30) | into A | Keep | KPG[] G2[E2{Rec=0}@+0h0 E{Rec=0}@+0h1] G3[] Bin[] groups=KPG/G2/G3/Bin tomb=0
+X3 | moved-on-A-to-G2, B-changed-later(+30) | into B | Keep | KPG[E{Rec=b}@+30h1] G2[E2{Rec=0}@+0h0] G3[] Bin[] groups=KPG/G2/G3/Bin tomb=0
+X3 | moved-on-A-to-G2, B-changed-later(+30) | into A | NewUuids | KPG[] G2[E2{Rec=0}@+0h0 E{Rec=0}@+0h0] G3[] Bin[] new[] KPG[E{Rec=b}@+30h1] G2[E2{Rec=0}@+0h0] G3[] Bin[] groups=KPG/G2/G3/Bin/new/KPG/G2/G3/Bin tomb=0
+X3 | moved-on-A-to-G2, B-changed-later(+30) | into B | NewUuids | KPG[E{Rec=b}@+30h1] G2[E2{Rec=0}@+0h0] G3[] Bin[] new[] KPG[] G2[E2{Rec=0}@+0h0 E{Rec=0}@+0h0] G3[] Bin[] groups=KPG/G2/G3/Bin/new/KPG/G2/G3/Bin tomb=0
+X3 | moved-on-A-to-G2(+20), moved-on-B-to-G3(+30) | into A | Sync | KPG[] G2[E2{Rec=0}@+0h0] G3[E{Rec=0}@+0h0] Bin[] groups=KPG/G2/G3/Bin tomb=0
+X3 | moved-on-A-to-G2(+20), moved-on-B-to-G3(+30) | into B | Sync | KPG[] G2[E2{Rec=0}@+0h0] G3[E{Rec=0}@+0h0] Bin[] groups=KPG/G2/G3/Bin tomb=0
+X3 | moved-on-A-to-G2(+20), moved-on-B-to-G3(+30) | into A | IfNewer | KPG[] G2[E2{Rec=0}@+0h0 E{Rec=0}@+0h0] G3[] Bin[] groups=KPG/G2/G3/Bin tomb=0
+X3 | moved-on-A-to-G2(+20), moved-on-B-to-G3(+30) | into B | IfNewer | KPG[] G2[E2{Rec=0}@+0h0] G3[E{Rec=0}@+0h0] Bin[] groups=KPG/G2/G3/Bin tomb=0
+X3 | moved-on-A-to-G2(+20), moved-on-B-to-G3(+30) | into A | Overwrite | KPG[] G2[E2{Rec=0}@+0h0 E{Rec=0}@+0h0] G3[] Bin[] groups=KPG/G2/G3/Bin tomb=0
+X3 | moved-on-A-to-G2(+20), moved-on-B-to-G3(+30) | into B | Overwrite | KPG[] G2[E2{Rec=0}@+0h0] G3[E{Rec=0}@+0h0] Bin[] groups=KPG/G2/G3/Bin tomb=0
+X3 | moved-on-A-to-G2(+20), moved-on-B-to-G3(+30) | into A | Keep | KPG[] G2[E2{Rec=0}@+0h0 E{Rec=0}@+0h0] G3[] Bin[] groups=KPG/G2/G3/Bin tomb=0
+X3 | moved-on-A-to-G2(+20), moved-on-B-to-G3(+30) | into B | Keep | KPG[] G2[E2{Rec=0}@+0h0] G3[E{Rec=0}@+0h0] Bin[] groups=KPG/G2/G3/Bin tomb=0
+X3 | moved-on-A-to-G2(+20), moved-on-B-to-G3(+30) | into A | NewUuids | KPG[] G2[E2{Rec=0}@+0h0 E{Rec=0}@+0h0] G3[] Bin[] new[] KPG[] G2[E2{Rec=0}@+0h0] G3[E{Rec=0}@+0h0] Bin[] groups=KPG/G2/G3/Bin/new/KPG/G2/G3/Bin tomb=0
+X3 | moved-on-A-to-G2(+20), moved-on-B-to-G3(+30) | into B | NewUuids | KPG[] G2[E2{Rec=0}@+0h0] G3[E{Rec=0}@+0h0] Bin[] new[] KPG[] G2[E2{Rec=0}@+0h0 E{Rec=0}@+0h0] G3[] Bin[] groups=KPG/G2/G3/Bin/new/KPG/G2/G3/Bin tomb=0
+X3 | group-G2-deleted-on-A, B-unchanged | into A | Sync | KPG[E{Rec=0}@+0h0] G3[] Bin[] groups=KPG/G3/Bin tomb=2
+X3 | group-G2-deleted-on-A, B-unchanged | into B | Sync | KPG[E{Rec=0}@+0h0] G3[] Bin[] groups=KPG/G3/Bin tomb=2
+X3 | group-G2-deleted-on-A, B-unchanged | into A | IfNewer | KPG[E{Rec=0}@+0h0] G3[] Bin[] groups=KPG/G3/Bin tomb=2
+X3 | group-G2-deleted-on-A, B-unchanged | into B | IfNewer | KPG[E{Rec=0}@+0h0] G2[E2{Rec=0}@+0h0] G3[] Bin[] groups=KPG/G2/G3/Bin tomb=0
+X3 | group-G2-deleted-on-A, B-unchanged | into A | Overwrite | KPG[E{Rec=0}@+0h0] G3[] Bin[] groups=KPG/G3/Bin tomb=2
+X3 | group-G2-deleted-on-A, B-unchanged | into B | Overwrite | KPG[E{Rec=0}@+0h0] G2[E2{Rec=0}@+0h0] G3[] Bin[] groups=KPG/G2/G3/Bin tomb=0
+X3 | group-G2-deleted-on-A, B-unchanged | into A | Keep | KPG[E{Rec=0}@+0h0] G3[] Bin[] groups=KPG/G3/Bin tomb=2
+X3 | group-G2-deleted-on-A, B-unchanged | into B | Keep | KPG[E{Rec=0}@+0h0] G2[E2{Rec=0}@+0h0] G3[] Bin[] groups=KPG/G2/G3/Bin tomb=0
+X3 | group-G2-deleted-on-A, B-unchanged | into A | NewUuids | KPG[E{Rec=0}@+0h0] G3[] Bin[] new[] KPG[E{Rec=0}@+0h0] G2[E2{Rec=0}@+0h0] G3[] Bin[] groups=KPG/G3/Bin/new/KPG/G2/G3/Bin tomb=2
+X3 | group-G2-deleted-on-A, B-unchanged | into B | NewUuids | KPG[E{Rec=0}@+0h0] G2[E2{Rec=0}@+0h0] G3[] Bin[] new[] KPG[E{Rec=0}@+0h0] G3[] Bin[] groups=KPG/G2/G3/Bin/new/KPG/G3/Bin tomb=0
+X3 | group-G2-deleted-on-A, B-added-N-to-G2(+30) | into A | Sync | KPG[E{Rec=0}@+0h0] G2[N{Rec=n}@+30h0] G3[] Bin[] groups=KPG/G2/G3/Bin tomb=1
+X3 | group-G2-deleted-on-A, B-added-N-to-G2(+30) | into B | Sync | KPG[E{Rec=0}@+0h0] G2[N{Rec=n}@+30h0] G3[] Bin[] groups=KPG/G2/G3/Bin tomb=1
+X3 | group-G2-deleted-on-A, B-added-N-to-G2(+30) | into A | IfNewer | KPG[E{Rec=0}@+0h0] G2[N{Rec=n}@+30h0] G3[] Bin[] groups=KPG/G2/G3/Bin tomb=1
+X3 | group-G2-deleted-on-A, B-added-N-to-G2(+30) | into B | IfNewer | KPG[E{Rec=0}@+0h0] G2[E2{Rec=0}@+0h0 N{Rec=n}@+30h0] G3[] Bin[] groups=KPG/G2/G3/Bin tomb=0
+X3 | group-G2-deleted-on-A, B-added-N-to-G2(+30) | into A | Overwrite | KPG[E{Rec=0}@+0h0] G2[N{Rec=n}@+30h0] G3[] Bin[] groups=KPG/G2/G3/Bin tomb=1
+X3 | group-G2-deleted-on-A, B-added-N-to-G2(+30) | into B | Overwrite | KPG[E{Rec=0}@+0h0] G2[E2{Rec=0}@+0h0 N{Rec=n}@+30h0] G3[] Bin[] groups=KPG/G2/G3/Bin tomb=0
+X3 | group-G2-deleted-on-A, B-added-N-to-G2(+30) | into A | Keep | KPG[E{Rec=0}@+0h0] G2[N{Rec=n}@+30h0] G3[] Bin[] groups=KPG/G2/G3/Bin tomb=1
+X3 | group-G2-deleted-on-A, B-added-N-to-G2(+30) | into B | Keep | KPG[E{Rec=0}@+0h0] G2[E2{Rec=0}@+0h0 N{Rec=n}@+30h0] G3[] Bin[] groups=KPG/G2/G3/Bin tomb=0
+X3 | group-G2-deleted-on-A, B-added-N-to-G2(+30) | into A | NewUuids | KPG[E{Rec=0}@+0h0] G3[] Bin[] new[] KPG[E{Rec=0}@+0h0] G2[E2{Rec=0}@+0h0 N{Rec=n}@+30h0] G3[] Bin[] groups=KPG/G3/Bin/new/KPG/G2/G3/Bin tomb=2
+X3 | group-G2-deleted-on-A, B-added-N-to-G2(+30) | into B | NewUuids | KPG[E{Rec=0}@+0h0] G2[E2{Rec=0}@+0h0 N{Rec=n}@+30h0] G3[] Bin[] new[] KPG[E{Rec=0}@+0h0] G3[] Bin[] groups=KPG/G2/G3/Bin/new/KPG/G3/Bin tomb=0
+X3 | group-G2-deleted-on-A, B-added-N-to-G2(+10) | into A | Sync | KPG[E{Rec=0}@+0h0] G2[N{Rec=n}@+10h0] G3[] Bin[] groups=KPG/G2/G3/Bin tomb=1
+X3 | group-G2-deleted-on-A, B-added-N-to-G2(+10) | into B | Sync | KPG[E{Rec=0}@+0h0] G2[N{Rec=n}@+10h0] G3[] Bin[] groups=KPG/G2/G3/Bin tomb=1
+X3 | group-G2-deleted-on-A, B-added-N-to-G2(+10) | into A | IfNewer | KPG[E{Rec=0}@+0h0] G2[N{Rec=n}@+10h0] G3[] Bin[] groups=KPG/G2/G3/Bin tomb=1
+X3 | group-G2-deleted-on-A, B-added-N-to-G2(+10) | into B | IfNewer | KPG[E{Rec=0}@+0h0] G2[E2{Rec=0}@+0h0 N{Rec=n}@+10h0] G3[] Bin[] groups=KPG/G2/G3/Bin tomb=0
+X3 | group-G2-deleted-on-A, B-added-N-to-G2(+10) | into A | Overwrite | KPG[E{Rec=0}@+0h0] G2[N{Rec=n}@+10h0] G3[] Bin[] groups=KPG/G2/G3/Bin tomb=1
+X3 | group-G2-deleted-on-A, B-added-N-to-G2(+10) | into B | Overwrite | KPG[E{Rec=0}@+0h0] G2[E2{Rec=0}@+0h0 N{Rec=n}@+10h0] G3[] Bin[] groups=KPG/G2/G3/Bin tomb=0
+X3 | group-G2-deleted-on-A, B-added-N-to-G2(+10) | into A | Keep | KPG[E{Rec=0}@+0h0] G2[N{Rec=n}@+10h0] G3[] Bin[] groups=KPG/G2/G3/Bin tomb=1
+X3 | group-G2-deleted-on-A, B-added-N-to-G2(+10) | into B | Keep | KPG[E{Rec=0}@+0h0] G2[E2{Rec=0}@+0h0 N{Rec=n}@+10h0] G3[] Bin[] groups=KPG/G2/G3/Bin tomb=0
+X3 | group-G2-deleted-on-A, B-added-N-to-G2(+10) | into A | NewUuids | KPG[E{Rec=0}@+0h0] G3[] Bin[] new[] KPG[E{Rec=0}@+0h0] G2[E2{Rec=0}@+0h0 N{Rec=n}@+10h0] G3[] Bin[] groups=KPG/G3/Bin/new/KPG/G2/G3/Bin tomb=2
+X3 | group-G2-deleted-on-A, B-added-N-to-G2(+10) | into B | NewUuids | KPG[E{Rec=0}@+0h0] G2[E2{Rec=0}@+0h0 N{Rec=n}@+10h0] G3[] Bin[] new[] KPG[E{Rec=0}@+0h0] G3[] Bin[] groups=KPG/G2/G3/Bin/new/KPG/G3/Bin tomb=0
+X3 | group-G2-deleted-on-A, B-changed-E2(+30) | into A | Sync | KPG[E{Rec=0}@+0h0] G2[E2{Rec=b}@+30h1] G3[] Bin[] groups=KPG/G2/G3/Bin tomb=0
+X3 | group-G2-deleted-on-A, B-changed-E2(+30) | into B | Sync | KPG[E{Rec=0}@+0h0] G2[E2{Rec=b}@+30h1] G3[] Bin[] groups=KPG/G2/G3/Bin tomb=0
+X3 | group-G2-deleted-on-A, B-changed-E2(+30) | into A | IfNewer | KPG[E{Rec=0}@+0h0] G2[E2{Rec=b}@+30h1] G3[] Bin[] groups=KPG/G2/G3/Bin tomb=0
+X3 | group-G2-deleted-on-A, B-changed-E2(+30) | into B | IfNewer | KPG[E{Rec=0}@+0h0] G2[E2{Rec=b}@+30h1] G3[] Bin[] groups=KPG/G2/G3/Bin tomb=0
+X3 | group-G2-deleted-on-A, B-changed-E2(+30) | into A | Overwrite | KPG[E{Rec=0}@+0h0] G2[E2{Rec=b}@+30h1] G3[] Bin[] groups=KPG/G2/G3/Bin tomb=0
+X3 | group-G2-deleted-on-A, B-changed-E2(+30) | into B | Overwrite | KPG[E{Rec=0}@+0h0] G2[E2{Rec=b}@+30h1] G3[] Bin[] groups=KPG/G2/G3/Bin tomb=0
+X3 | group-G2-deleted-on-A, B-changed-E2(+30) | into A | Keep | KPG[E{Rec=0}@+0h0] G2[E2{Rec=b}@+30h1] G3[] Bin[] groups=KPG/G2/G3/Bin tomb=0
+X3 | group-G2-deleted-on-A, B-changed-E2(+30) | into B | Keep | KPG[E{Rec=0}@+0h0] G2[E2{Rec=b}@+30h1] G3[] Bin[] groups=KPG/G2/G3/Bin tomb=0
+X3 | group-G2-deleted-on-A, B-changed-E2(+30) | into A | NewUuids | KPG[E{Rec=0}@+0h0] G3[] Bin[] new[] KPG[E{Rec=0}@+0h0] G2[E2{Rec=b}@+30h1] G3[] Bin[] groups=KPG/G3/Bin/new/KPG/G2/G3/Bin tomb=2
+X3 | group-G2-deleted-on-A, B-changed-E2(+30) | into B | NewUuids | KPG[E{Rec=0}@+0h0] G2[E2{Rec=b}@+30h1] G3[] Bin[] new[] KPG[E{Rec=0}@+0h0] G3[] Bin[] groups=KPG/G2/G3/Bin/new/KPG/G3/Bin tomb=0

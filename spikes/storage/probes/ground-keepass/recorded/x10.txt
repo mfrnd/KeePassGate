@@ -1,0 +1,9 @@
+KeePassLib 2.62, T0 2026-11-15T12:45:09.0000000Z, process x64, 4.0.30319.42000
+# X10 Delete Duplicate Entries and Delete Empty Groups (the KeePassLib calls behind the Tools menu)
+X10 | DeleteDuplicateEntries | two entries in one group, same strings, different entry custom data | deleted=1 | KPG[R{Rule=r,cd:k=2}@+5h0] groups=KPG tomb=1
+X10 | DeleteDuplicateEntries | two entries, same strings, different tags | deleted=1 | KPG[R{Rule=r,tag:b}@+5h0] groups=KPG tomb=1
+X10 | DeleteDuplicateEntries | two meta entries in two different user groups, same strings | deleted=1 | Mail[] Bank[KPG{Rule={"agent":"R.L....."}}@+5h0] groups=Mail/Bank tomb=1
+X10 | DeleteDuplicateEntries | two meta entries in two groups, same strings but the group's uuid in a field | deleted=0 | Mail[KPG{Group=294F355131D2E448A99723121023304E,Rule={}}@+0h0] Bank[KPG{Group=F75D063D04A2CD499EE17BAA305F1FAA,Rule={}}@+5h0] groups=Mail/Bank tomb=0
+X10 | DeleteDuplicateEntries | two entries, same strings, different attachment names with the same bytes | deleted=0 | KPG[R{att:a}@+0h0 R{att:b}@+5h0] groups=KPG tomb=0
+X10 | DeleteDuplicateEntries | two entries, same strings, one in the recycle bin and newer | deleted=1 | KPG[R{Rule=r}@+0h0] Bin[] groups=KPG/Bin tomb=1
+X10 | DeleteEmptyGroups | a notes-only group, a group with an entry, an empty recycle bin, a parent of an empty child | deleted=4 | KPG-with-entry[E{}@+0h0] groups=KPG-with-entry tomb=4 | recycleBinUuidStill=True

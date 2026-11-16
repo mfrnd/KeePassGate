@@ -1,0 +1,6 @@
+KeePassLib 2.62, T0 2026-11-15T12:45:09.0000000Z, process x64, 4.0.30319.42000
+# X11 search: what KeePass's searches find in a group with searching off
+X11 | 'needle' in other fields and notes, RespectEntrySearchingDisabled=True | found=
+X11 | 'needle' in other fields and notes, RespectEntrySearchingDisabled=False | found=kpg-store
+X11 | SearchParameters defaults | RespectEntrySearchingDisabled=True SearchInOther=True SearchInNotes=True
+X11 | what {REF:x@O:needle} would search, parameters as SprEngine.FindRefTarget sets them | first=kpg-store
