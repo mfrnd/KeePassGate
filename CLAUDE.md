@@ -147,7 +147,11 @@ designing around them.
   close of the database a dialog is about closes it the same way**, the operator's ruling of
   2026-11-08, which replaced leaving it standing over a database that was gone, and spares its
   connection as a lock does, by a second ruling that day, so its client is told `503 locked`
-  where it used to see the connection end with the database's others.
+  where it used to see the connection end with the database's others. **Nor do they hold KeePass's
+  periodic trigger off**, so a synchronize or a save it runs happens inside their modal loop and
+  ends by enabling KeePass's main window behind them. `WindowEnabling.ShowDialog` disables it again
+  for as long as any dialog of the plugin's stands, the authority chooser and the window under
+  Tools among them, and that, not registering a dialog, is the answer to it.
 - **The proofs need nothing from the transport.** `tls-server-end-point` is a hash of the
   certificate in use, so each side computes it from bytes it already holds. Do not re-propose
   `TransportContext.GetChannelBinding`: it was necessary while `SslStream` terminated the TLS and

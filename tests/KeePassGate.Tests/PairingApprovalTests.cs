@@ -1597,6 +1597,43 @@ namespace KeePassGate.Tests
             Assert.That(audit.Entries, Is.Empty);
         }
 
+        [Test]
+        [Apartment(ApartmentState.STA)]
+        [NonParallelizable]
+        [Desktop]
+        public void The_main_window_stays_disabled_under_the_dialog_when_KeePass_unblocks_it()
+        {
+            // The dialog is not registered with `GlobalWindowManager`, so KeePass's periodic
+            // trigger runs inside its modal loop, and a synchronize or a save it runs ends by
+            // assigning `Enabled = true` to the main window: that enabled the window the loop had
+            // disabled, and the operator could work in KeePass behind a request still standing.
+            using (var main = OffScreenForm.New())
+            {
+                main.Show();
+                OffScreenForm.Pump();
+
+                var prompt = new PairingApprovalPrompt(CurrentThread.Instance, null, null, null, main, _log);
+                var disabledUnderIt = false;
+                var enabledAfterKeePass = true;
+                OffScreenRenewal(prompt, () =>
+                {
+                    disabledUnderIt = !User32.IsWindowEnabled(main.Handle);
+
+                    // `UIBlockInteraction(true)` and then `UIBlockInteraction(false)`.
+                    main.Enabled = false;
+                    main.Enabled = true;
+                    enabledAfterKeePass = User32.IsWindowEnabled(main.Handle);
+                });
+
+                prompt.Ask(Renewal(), Timeout, Ample);
+
+                Assert.That(disabledUnderIt, Is.True, "the dialog's modal loop disabled the main window");
+                Assert.That(enabledAfterKeePass, Is.False,
+                    "KeePass's unblock enabled the main window behind a request still standing");
+                Assert.That(User32.IsWindowEnabled(main.Handle), Is.True, "and the window is back once it closes");
+            }
+        }
+
         /// <summary>
         /// A renewal dialog shown where nobody sees it, through the prompt's own show: what is given
         /// runs once it stands, and a lock comes after that to end it, should nothing else have.

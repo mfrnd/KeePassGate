@@ -1231,6 +1231,11 @@ none, since it releases both.
   the program, under an audit line recording that it had revoked itself; the next open admitted
   it again. The line is now written for such a database only when KeePass reported a save of it
   that landed.
+- **KeePass's main window stays disabled under the plugin's dialogs**, the authority chooser, the
+  pairing and renewal dialogs and the window under Tools. None of them holds KeePass's periodic
+  triggers off, so a trigger that synchronizes or saves ran inside such a dialog and ended by
+  enabling the main window behind it, where the operator could open the database settings, edit
+  entries or close the database while the plugin's question still stood.
 
 ## 0.1.0, 2026-10-25
 

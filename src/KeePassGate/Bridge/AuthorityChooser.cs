@@ -601,7 +601,9 @@ namespace KeePassGate.Bridge
                 _showing = form;
                 try
                 {
-                    form.ShowDialog(_owner);
+                    // Held disabled under the question, since a synchronize KeePass's periodic
+                    // trigger runs inside it ends by enabling the window: `WindowEnabling`.
+                    WindowEnabling.ShowDialog(form, _owner, _owner);
                 }
                 finally
                 {

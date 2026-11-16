@@ -731,6 +731,68 @@ namespace KeePassGate.Host.Tests.Live
         }
 
         /// <summary>
+        /// Adds a trigger to KeePass's configuration that synchronizes the open database with
+        /// <paramref name="replica"/> every <paramref name="seconds"/> seconds, before KeePass is
+        /// started.
+        /// </summary>
+        /// <remarks>
+        /// KeePass's own "Time - Periodic" event and "Synchronize active database with a file/URL"
+        /// action, which is how an operator keeps a database in step with a copy elsewhere, and the
+        /// way KeePass runs a synchronize and a save inside a dialog it does not count. Only over
+        /// <see cref="Configuration"/>, which has no trigger section of its own. The event's
+        /// identifier is KeePass's `EcasEventIDs.TimePeriodic`, and the action's is the identifier
+        /// KeePass writes into its configuration for that action.
+        /// </remarks>
+        public void SynchronizeEvery(int seconds, string replica)
+        {
+            const string PeriodicEvent = "bES7XfGLTA2IzmXm6a0pig==";
+            const string SynchronizeAction = "Iq135Bd4Tu2ZtFcdArOtTQ==";
+            const string After = "    </Start>\r\n";
+
+            var path = Paths.Join(_root, "KeePass.config.xml");
+            var configuration = File.ReadAllText(path);
+            if (configuration.Contains("<TriggerSystem>") || !configuration.Contains(After))
+            {
+                throw new InvalidOperationException("only the configuration Configuration holds can be added to");
+            }
+
+            var trigger =
+                "    <TriggerSystem>\r\n" +
+                "      <Triggers>\r\n" +
+                "        <Trigger>\r\n" +
+                "          <Guid>" + Convert.ToBase64String(Guid.NewGuid().ToByteArray()) + "</Guid>\r\n" +
+                "          <Name>Synchronize with the replica</Name>\r\n" +
+                "          <Events>\r\n" +
+                "            <Event>\r\n" +
+                "              <TypeGuid>" + PeriodicEvent + "</TypeGuid>\r\n" +
+                "              <Parameters>\r\n" +
+                "                <Parameter>" + seconds.ToString(System.Globalization.CultureInfo.InvariantCulture) +
+                "</Parameter>\r\n" +
+                "                <Parameter>false</Parameter>\r\n" +
+                "              </Parameters>\r\n" +
+                "            </Event>\r\n" +
+                "          </Events>\r\n" +
+                "          <Conditions />\r\n" +
+                "          <Actions>\r\n" +
+                "            <Action>\r\n" +
+                "              <TypeGuid>" + SynchronizeAction + "</TypeGuid>\r\n" +
+                "              <Parameters>\r\n" +
+                "                <Parameter>" + System.Security.SecurityElement.Escape(replica) + "</Parameter>\r\n" +
+                "                <Parameter />\r\n" +
+                "                <Parameter />\r\n" +
+                "                <Parameter>false</Parameter>\r\n" +
+                "                <Parameter>false</Parameter>\r\n" +
+                "              </Parameters>\r\n" +
+                "            </Action>\r\n" +
+                "          </Actions>\r\n" +
+                "        </Trigger>\r\n" +
+                "      </Triggers>\r\n" +
+                "    </TriggerSystem>\r\n";
+
+            File.WriteAllText(path, configuration.Replace(After, After + trigger), new UTF8Encoding(false));
+        }
+
+        /// <summary>
         /// <see cref="Configuration"/>, with KeePass's own inactivity lock set to fire after this
         /// many seconds, or exactly it for zero.
         /// </summary>
@@ -971,6 +1033,35 @@ namespace KeePassGate.Host.Tests.Live
             {
                 database.Close();
             }
+        }
+
+        /// <summary>
+        /// Merges one copy of the database into the database, as a synchronize does, and removes
+        /// the copy.
+        /// </summary>
+        /// <remarks>
+        /// For a database KeePass is to open holding what a merge leaves: copies that each
+        /// recreated their authority leave it holding both, and KeePass then puts the question of
+        /// which to keep as it opens the file. **Only before KeePass starts.**
+        /// </remarks>
+        public void MergeIntoDatabase(string copy)
+        {
+            var into = new PwDatabase();
+            var from = new PwDatabase();
+            try
+            {
+                into.Open(IOConnectionInfo.FromPath(DatabasePath), NewKey(), null);
+                from.Open(IOConnectionInfo.FromPath(copy), NewKey(), null);
+                into.MergeIn(from, PwMergeMethod.Synchronize, null);
+                into.Save(null);
+            }
+            finally
+            {
+                from.Close();
+                into.Close();
+            }
+
+            File.Delete(copy);
         }
 
         /// <summary>

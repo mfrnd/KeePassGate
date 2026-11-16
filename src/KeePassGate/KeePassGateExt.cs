@@ -293,7 +293,10 @@ namespace KeePassGate
 
                 using (var window = new GateStatusForm(_listener, _incidents, ChangePort, Wanted()))
                 {
-                    window.ShowDialog();
+                    // KeePass's main window held disabled under it, as under every dialog of the
+                    // plugin's: `WindowEnabling` gives the reason.
+                    var main = _pluginHost == null ? null : _pluginHost.MainWindow;
+                    WindowEnabling.ShowDialog(window, null, main);
 
                     // What OK answered, taken before the window goes. A button carrying
                     // `DialogResult.OK` has already set it by the time its `Click` runs, so the
@@ -907,8 +910,9 @@ namespace KeePassGate
             //
             // `WindowEnabling` is around the save rather than inside it because the save is
             // KeePass's: `SaveDatabase` ends by assigning `Enabled = true` to the main window,
-            // which is harmless for KeePass, whose own callers never save inside a modal loop,
-            // and is this plugin re-enabling the window behind an operator's open dialog.
+            // which is harmless for KeePass, whose own saves never run inside a dialog it has
+            // registered, and is this plugin re-enabling the window behind an operator's open
+            // dialog.
             var writer = new DatabaseWriter(
                 ui,
                 database => WindowEnabling.Preserve(
@@ -963,7 +967,8 @@ namespace KeePassGate
             // and meets what a write meets there: the prompt waits out the writer's own save and
             // refuses inside KeePass's, as the writer does. The admissions' audit as well, since a
             // dialog a lock or a close takes away is written down by the prompt as it goes.
-            var prompt = new PairingApprovalPrompt(ui, _targets.Serving, writer, access.Admissions, _log);
+            var prompt = new PairingApprovalPrompt(
+                ui, _targets.Serving, writer, access.Admissions, mainWindow, _log);
             var router = GateOperations.Router(
                 GateVersion.Current,
                 GateVersion.Revision,

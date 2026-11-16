@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Threading;
+using System.Windows.Forms;
 using KeePassGate.Diagnostics;
 using KeePassGate.Gate;
 using KeePassGate.Pairing;
@@ -86,6 +87,9 @@ namespace KeePassGate.Ui
         /// <summary>Where a dialog taken away is written down, or null where nothing is.</summary>
         private readonly AdmissionAudit _audit;
 
+        /// <summary>KeePass's main window, held disabled under the dialog, or null.</summary>
+        private readonly Control _mainWindow;
+
         /// <summary>
         /// The dialog on the screen until it closes, or a lock or a close of its database withdraws
         /// it, touched only on KeePass's thread.
@@ -139,6 +143,23 @@ namespace KeePassGate.Ui
         /// </param>
         public PairingApprovalPrompt(
             IUiThread ui, Func<string, bool> serving, IWriterState writes, AdmissionAudit audit, IGateLog log)
+            : this(ui, serving, writes, audit, null, log)
+        {
+        }
+
+        /// <summary>
+        /// The same, and keeping KeePass's main window disabled under the dialog while it stands.
+        /// </summary>
+        /// <param name="mainWindow">
+        /// KeePass's main window, or null where there is none: `WindowEnabling` gives the reason.
+        /// </param>
+        public PairingApprovalPrompt(
+            IUiThread ui,
+            Func<string, bool> serving,
+            IWriterState writes,
+            AdmissionAudit audit,
+            Control mainWindow,
+            IGateLog log)
         {
             if (ui == null)
             {
@@ -149,6 +170,7 @@ namespace KeePassGate.Ui
             _serving = serving ?? (databaseId => true);
             _writes = writes;
             _audit = audit;
+            _mainWindow = mainWindow;
             _log = log ?? NullGateLog.Instance;
             Dialog = ShowDialog;
             RenewalDialog = ShowRenewalDialog;
@@ -510,7 +532,9 @@ namespace KeePassGate.Ui
             _showingFor = databaseId;
             try
             {
-                dialog.ShowDialog();
+                // Held disabled under the dialog, since a synchronize or a save KeePass's periodic
+                // trigger runs inside it ends by enabling the window: `WindowEnabling`.
+                WindowEnabling.ShowDialog(dialog, null, _mainWindow);
             }
             finally
             {
