@@ -1,4 +1,5 @@
 using System;
+using System.Threading;
 using KeePassGate.Audit;
 using KeePassGate.Authority;
 using KeePassGate.Gate;
@@ -116,6 +117,32 @@ namespace KeePassGate.Tests
 
                 Assert.That(deliberate.Asked, Is.EqualTo(1), "the request reached the operator");
                 Assert.That(reply.Answered, Is.False, reply.ToString());
+            }
+        }
+
+        [Test]
+        public void A_record_whose_save_outlasts_the_pairing_budget_is_still_handed_over()
+        {
+            // The budget covers the waits ahead of the write and ends where the new record is
+            // handed to the writer, as a pairing's does: a save no number bounds follows, and a
+            // deadline still running there would orphan a record that lands anyway and ask the
+            // operator a second time. The save stands here after the record has landed, and
+            // outlasts the pairing budget by two seconds while still answering well inside the
+            // ten the client waits for a read.
+            _authority.WhenLanded = () => Thread.Sleep(TimeSpan.FromSeconds(6));
+            var options = new GateOptions
+            {
+                Port = 0,
+                Budget = TimeSpan.FromSeconds(5),
+                PairingBudget = TimeSpan.FromSeconds(4)
+            };
+
+            using (var listener = Listening(FakeRenewalApproval.Approving(), options))
+            using (var old = _authority.IssueAdmittedClient("reader"))
+            {
+                var reply = Renew(listener, old);
+
+                Assert.That(reply.Status, Is.EqualTo(200), reply.ToString());
             }
         }
 

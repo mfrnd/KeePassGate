@@ -101,15 +101,16 @@ DEFAULT_CONNECTION_TIMEOUT = 120.0
 
 #: What the socket gets instead for the two exchanges that wait on a person, a pairing and a
 #: renewal, and the least a renewal waits whatever the client was given. It has to outlast the
-#: plugin's own budget, `GateOptions.PairingBudget`, six minutes for both: the gate gives a dialog
-#: that comes up late, behind another pairing or renewal or a busy KeePass, only what is left of
-#: those six minutes once `PairingApprovalPrompt.Grace` fifteen seconds,
-#: `PairingOptions.ApprovalSettle` two for a busy KeePass to settle once the operator has approved,
-#: and `DatabaseWriter.LockTimeout` twenty and `WriteTimeout` thirty are set aside, so its answer
-#: comes inside them. This is the same six, since the gate closes the connection then and waiting
-#: past it buys nothing. Hanging up early cancels nothing: the record is written and saved
-#: regardless, an invitation spent with it, and only the answer is lost, leaving a record for a
-#: certificate nobody holds.
+#: plugin's own budget, `GateOptions.PairingBudget`, six minutes for both, which runs until the
+#: record is handed to the gate's writer: the gate gives a dialog that comes up late, behind another
+#: pairing or renewal or a busy KeePass, only what is left of those six minutes once
+#: `PairingOptions.AfterTheDialog` is set aside, the writer's lock and turn among it, so everything
+#: ahead of the save ends inside them. This is the same six. The gate drops its deadline where the
+#: record is handed to its writer and holds the connection through a save that no number bounds, so
+#: a client that expects a slow save, of a large database or a database on slow storage, is given a
+#: longer `connection_timeout`, which is kept. Hanging up early cancels nothing: the record is
+#: written and saved regardless, an invitation spent with it, and only the answer is lost, leaving a
+#: record for a certificate nobody holds.
 PAIRING_CONNECTION_TIMEOUT = 360.0
 
 #: The longest a read waits on the socket at a stretch, in seconds, so that a Ctrl+C is acted on

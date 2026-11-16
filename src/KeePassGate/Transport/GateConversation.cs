@@ -146,6 +146,11 @@ namespace KeePassGate.Transport
         /// the plugin's reading of the values as well, `DESIGN.md` §143. Null where nothing is
         /// counting.
         /// </param>
+        /// <param name="writing">
+        /// Told by a pairing or a renewal that its waits are over and its record is about to be
+        /// written, which is where the listener drops the deadline it kept for them: see
+        /// <see cref="ConnectionDeadline"/>. Null where nothing is counting.
+        /// </param>
         public static void Serve(
             Stream stream,
             ClientIdentity client,
@@ -157,7 +162,8 @@ namespace KeePassGate.Transport
             Gate.IGateTarget target,
             string peer = null,
             Action<HttpRequestHead> arrived = null,
-            Action answering = null)
+            Action answering = null,
+            Action writing = null)
         {
             if (stream == null)
             {
@@ -240,6 +246,7 @@ namespace KeePassGate.Transport
             }
 
             ConnectionPeer.PutOn(context, peer);
+            ConnectionDeadline.PutOn(context, writing);
 
             try
             {

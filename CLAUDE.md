@@ -1597,18 +1597,26 @@ invitation is still spent and the record still saved, and only the answer is los
 **The ordinary budget ends with the request, and only pairing's and renewal's are a sum.** A
 connection's deadline is dropped once the whole request is off the wire, because that is where the
 peer stops being able to make the connection take longer: what is left is this plugin's own write
-and save. Pairing keeps its deadline, and that asymmetry is the argument rather than an exception to
-it, since a pairing's remaining work is a list of waits somebody wrote down: the screen, because one
-pairing at a time is put to the operator and a second waits as long again just to get in front of
-them, then the dialog and the grace on it, then the turn at the writer. `PairingBudget` is what
-those are added up against. **A dialog that comes up late is given only what is left of it**, once
-the grace and the write after it are set aside, and is not shown at all with under thirty seconds
-left: that reverses giving every dialog its whole two minutes, which took the worst case past the
-budget, `DESIGN.md` §119. `GateOptionsTests` pins the floor against the waits. A renewal waits
-for the same things on the same screen, so the listener gives it the same deadline once it has
-read which request arrived, and its dialog is shortened the same way.
+and save. Pairing keeps its deadline until its write, and that asymmetry is the argument rather
+than an exception to it, since what a pairing waits for ahead of its write is a list of waits
+somebody wrote down: the screen, because one pairing at a time is put to the operator and a second
+waits as long again just to get in front of them, then the dialog and the grace on it, then the
+settling of a busy KeePass. `PairingBudget` is what those are added up against. **A dialog that
+comes up late is given only what is left of it**, once what follows the dialog up to the save is
+set aside, the writer's lock and turn included so that a client waiting the same six minutes is
+still waiting when the save begins, and is not shown at all with under thirty seconds left: that
+reverses giving every dialog its whole two minutes, which took the worst case past the budget,
+`DESIGN.md` §119. `GateOptionsTests` pins the floor against the waits. A renewal waits for the
+same things on the same screen, so the listener gives it the same deadline once it has read which
+request arrived, and its dialog is shortened the same way.
 
-**And it starts again for the answer.** Once the handler has decided, an ordinary connection's
+**And both drop it at their write**, through `ConnectionDeadline`, which the handler calls just
+before handing the record to the writer. The write is a save like any other, and the invitation is
+spent inside it, so a deadline kept through it closed the socket over a record that landed. It was
+kept through it until that was found, on the ground that the write's timeouts made it part of the
+sum, which they do not, for the reason below.
+
+**And it starts again for the answer.** Once the handler has decided, a disarmed connection's
 answer is written under the ordinary budget counted afresh, `GateListener.Deadline.Writing`,
 because how fast it is read is the peer's doing again, and the socket's send timeout bounds one
 TLS record rather than an answer. For an answer written as it is sent that span holds the

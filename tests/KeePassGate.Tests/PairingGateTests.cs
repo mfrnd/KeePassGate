@@ -292,6 +292,39 @@ namespace KeePassGate.Tests
         }
 
         [Test]
+        public void A_record_whose_save_outlasts_the_pairing_budget_is_still_handed_over()
+        {
+            // The pairing budget is a sum of waits on a person and on a busy KeePass, and it ends
+            // where the record is handed to the writer. What follows is a whole-database save that
+            // no number bounds, with the invitation already spent inside it, so a deadline still
+            // running there can only throw away the certificate of a record that lands anyway.
+            //
+            // The save stands here after the record has landed, which is where the invitation is
+            // spent, and outlasts the pairing budget by two seconds while still answering well
+            // inside the thirty the client waits for a read. The ordinary budget is the generous
+            // five seconds the test above gives the handshake.
+            _target.WhenLanded = () => Thread.Sleep(TimeSpan.FromSeconds(6));
+            var options = new GateOptions
+            {
+                Port = 0,
+                Budget = TimeSpan.FromSeconds(5),
+                PairingBudget = TimeSpan.FromSeconds(4),
+            };
+
+            using (var listener = Listening(FakePairingApproval.Approving("ops"), options))
+            {
+                var client = new PairingClient(listener.Port, _invitation.Text);
+                Assume.That(client.Hello().ServerProved, Is.True);
+
+                var reply = client.Request("agent-fictitious", "ops");
+
+                Assert.That(reply.Status, Is.EqualTo(200), reply.Failure ?? reply.Body);
+                Assert.That(client.Identity, Is.Not.Null,
+                    "the record landed and the invitation is spent, so this was the only copy");
+            }
+        }
+
+        [Test]
         public void An_invitation_named_and_no_request_made_is_worth_the_ordinary_budget_and_no_more()
         {
             // The longer budget is for a connection that is about to wait on a person, and a

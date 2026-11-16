@@ -18,7 +18,9 @@ namespace KeePassGate.Tests
     /// relation that replaced it is not between two constants at all: the deadline is dropped once
     /// the request is read, and
     /// `GateListenerTests.A_write_that_outlasts_the_budget_is_still_answered` is where that is
-    /// measured over a real socket.
+    /// measured over a real socket. A pairing's and a renewal's deadline is dropped at their write
+    /// for the same reason, measured by the tests of each named
+    /// `A_record_whose_save_outlasts_the_pairing_budget_is_still_handed_over`.
     /// </remarks>
     [TestFixture]
     public sealed class GateOptionsTests
@@ -34,9 +36,10 @@ namespace KeePassGate.Tests
             Assert.That(pairing.ApprovalHeld, Is.EqualTo(options.PairingBudget));
 
             // What follows the dialog, as the budget adds it up: the grace the prompt keeps beyond
-            // the dialog, a busy KeePass settling once the operator has approved, and the turn at
-            // the writer and the write. The dialog is given no more than the budget less these, so
-            // the whole of a pairing is inside the budget by construction.
+            // the dialog, a busy KeePass settling once the operator has approved, and the writer's
+            // lock and turn. The deadline is dropped before the writer's two waits, and they are
+            // set aside all the same, so that everything ahead of the save is inside the budget by
+            // construction, which is as long as the reference client waits.
             var afterTheDialog = PairingApprovalPrompt.Grace + pairing.ApprovalSettle
                 + DatabaseWriter.LockTimeout + DatabaseWriter.WriteTimeout;
             Assert.That(pairing.AfterTheDialog, Is.EqualTo(afterTheDialog));
