@@ -828,11 +828,13 @@ none, since it releases both.
   tree nor the entry list**, which show neither, and the rebuild replaced any search results the
   operator had on screen. A standing answer that lands tells the Clients page, which draws the
   client's name red from it and went on showing it black until something else redrew the page.
-- **A write whose database KeePass closed as the save ended is answered `500 not verified`.** A
-  lock handled among the messages KeePass's save pumps once it has lifted its own block closes the
-  database before the save returns, and the close cleared what the plugin reads to know that the
-  file holds the change, so the write was answered as saved and verified whatever the save had
-  done.
+- **A write whose database KeePass closed inside its save is no longer taken for saved and
+  verified.** An operator's trigger on saving that closes the active database, or another plugin's
+  save handler closing it, closes the database before the save returns, and the close cleared what
+  the plugin reads to know that the file holds the change. The plugin now logs that whether the
+  file holds the change is not known, leaves the change in place and keeps the standing answers
+  owed. The write's connection is closed with its database, so the client is answered nothing and
+  reads a connection that ended.
 - **A pairing or a renewal whose record the file did not keep leaves the database marked unsaved**
   whatever the file reads as afterwards. Taking the record back out read the file a second time,
   and a file part way through a copy at the first read and whole at the second cleared the mark,

@@ -54,9 +54,9 @@ namespace KeePassGate.Bridge
     ///   so what "it worked" is made of is `PwDatabase.Modified` having gone false. **That is the
     ///   answer after an exception as well as after a return**, because `MainForm.SaveDatabase`
     ///   catches everything the save itself throws and runs the rest outside that try: its window
-    ///   redrawn, which raises `UIStateUpdated` to every other plugin, the messages it pumps, its
-    ///   `FileSaved` event and the triggers. An exception arriving from there is something failing
-    ///   over a file this change is already in. **And the flag is not the whole of it
+    ///   redrawn, which raises `UIStateUpdated` to every other plugin, its `FileSaved` event and
+    ///   the triggers. An exception arriving from there is something failing over a file this
+    ///   change is already in. **And the flag is not the whole of it
     ///   either**, because KeePass clears it as soon as it has committed the bytes and only then
     ///   hashes the file back: when that disagrees it warns the operator and changes nothing, so
     ///   the file is asked about as well. Pairing asks for more again, and reads its record back,
@@ -1382,14 +1382,17 @@ namespace KeePassGate.Bridge
 
             if (!database.IsOpen)
             {
-                // **Closed as its save ended**, which a lock or a close does when KeePass handles
-                // one among the messages `MainForm.SaveDatabase` pumps once it has lifted its own
-                // block. `PwDatabase.Close` clears the flag, the file's hashes and the connection,
-                // so the flag above read as a save that worked, whether it had or not, and the hash
-                // below would read as verified on its null. Nothing knows whether the file holds
-                // the change, which is what this answer is: not taken back out, there being no
-                // database left in memory to take it out of, written down as a change left in place
-                // is, and the standing answers the save carried kept owed.
+                // **Closed inside its save**, which an operator's trigger on Saving database file
+                // or Saved database file does with Close active database, and another plugin's
+                // `FileSavingPre`, `FileSaving` or `FileSaved` handler can do. Never a lock KeePass
+                // handles of its own accord: `MainForm.SaveDatabase` pumps only while its block is
+                // up, and refuses a lock arriving then. `PwDatabase.Close` clears the flag, the
+                // file's hashes and the connection, so the flag above read as a save that worked,
+                // whether it had or not, and the hash below would read as verified on its null.
+                // Nothing knows whether the file holds the change, which is what this answer is:
+                // not taken back out, there being no database left in memory to take it out of,
+                // written down as a change left in place is, and the standing answers the save
+                // carried kept owed.
                 _log.Error("the database closed as its save ended, so whether the file holds the " +
                            "change is not known", failed);
 
@@ -1408,9 +1411,9 @@ namespace KeePassGate.Bridge
                 // `MainForm.SaveDatabase` catches everything the save itself throws; what is left
                 // to throw is what runs after it, outside that try, with the file already written:
                 // its window redrawn, which raises `UIStateUpdated` to every other plugin loaded,
-                // the messages it pumps, its `FileSaved` event and the triggers. So an exception
-                // here means one of those failed after this change reached the disk, and taking
-                // the change back out over it would leave the database in
+                // its `FileSaved` event and the triggers. So an exception here means one of those
+                // failed after this change reached the disk, and taking the change back out over
+                // it would leave the database in
                 // memory disagreeing with the file KeePass just wrote: the client is told `500 not
                 // saved` and retries, the next unlock reads the file and brings the first copy
                 // back beside the second, and the operator's next save writes the undone state

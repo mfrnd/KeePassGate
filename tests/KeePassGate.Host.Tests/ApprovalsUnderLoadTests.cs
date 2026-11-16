@@ -37,10 +37,11 @@ namespace KeePassGate.Host.Tests
     ///
     /// **The save is KeePass's save as far as the message queue is concerned**: it raises the
     /// interaction block the writer asks about, pumps on the way in, pumps again while it
-    /// serializes, and pumps on the way out, which is what `MainForm.SaveDatabase` does through
-    /// `UIBlockInteraction` and its status bar logger. The operator is a dialog that shows nowhere
-    /// and answers after a moment's thought, through the prompt's own <c>Show</c>, so a lock
-    /// closes it as it closes the real one.
+    /// serializes, and pumps once more before it lifts the block, which is what
+    /// `MainForm.SaveDatabase` does through `UIBlockInteraction` and its status bar logger: KeePass
+    /// pumps only while the block is up. The operator is a dialog that shows nowhere and answers
+    /// after a moment's thought, through the prompt's own <c>Show</c>, so a lock closes it as it
+    /// closes the real one.
     /// </remarks>
     [TestFixture]
     [NonParallelizable]

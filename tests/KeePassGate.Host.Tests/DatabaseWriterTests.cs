@@ -175,9 +175,10 @@ namespace KeePassGate.Host.Tests
         [Test]
         public void A_database_closed_as_its_save_ended_is_not_reported_as_verified()
         {
-            // `MainForm.SaveDatabase` lifts its block and then pumps, and a lock handled there
-            // closes the database before the save returns. The close clears the flag and the hash
-            // the verification compares against, and the change read as saved and verified.
+            // An operator's trigger on Saved database file that closes the database, or another
+            // plugin's `FileSaved` handler doing the same, closes it before the save returns. The
+            // close clears the flag and the hash the verification compares against, and the change
+            // read as saved and verified.
             _database.Save();
 
             var undone = 0;
