@@ -18,6 +18,14 @@ namespace KeePassGate.Pairing
     {
         private static readonly string[] Nothing = Array.Empty<string>();
 
+        /// <summary>What the operator is asked, and who asked it.</summary>
+        /// <param name="client">
+        /// The certificate that asked, by admission key, which the audit names a line about this
+        /// request by, or null where nothing writes a line down.
+        /// </param>
+        /// <param name="clientKey">
+        /// The client key on that certificate's record, or null as well.
+        /// </param>
         public RenewalRequest(
             string databaseId,
             string databaseName,
@@ -27,7 +35,9 @@ namespace KeePassGate.Pairing
             IReadOnlyList<string> profiles,
             IReadOnlyList<string> dropped,
             string peer,
-            TimeSpan? lifetime)
+            TimeSpan? lifetime,
+            string client = null,
+            string clientKey = null)
         {
             DatabaseId = databaseId ?? string.Empty;
             DatabaseName = databaseName ?? string.Empty;
@@ -38,6 +48,8 @@ namespace KeePassGate.Pairing
             Dropped = dropped ?? Nothing;
             Peer = peer ?? string.Empty;
             Lifetime = lifetime;
+            Client = client;
+            ClientKey = clientKey;
         }
 
         /// <summary>Which database, by its authority's digest.</summary>
@@ -71,6 +83,12 @@ namespace KeePassGate.Pairing
 
         /// <summary>How long the client asked the new certificate to last, or null for nothing.</summary>
         public TimeSpan? Lifetime { get; private set; }
+
+        /// <summary>The certificate that asked, by admission key, or null.</summary>
+        public string Client { get; private set; }
+
+        /// <summary>The client key on the record of the certificate that asked, or null.</summary>
+        public string ClientKey { get; private set; }
     }
 
     /// <summary>What the operator decided about a renewal.</summary>

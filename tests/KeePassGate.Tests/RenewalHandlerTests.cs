@@ -1226,7 +1226,96 @@ namespace KeePassGate.Tests
                 Assert.That(context.Json, Is.EqualTo(HttpResponse.ErrorBody(LockedTarget.Error)));
                 Assert.That(_authority.Admitted, Is.SameAs(before), "nothing was written");
                 Assert.That(_authority.StandingRefusal(CertificateDigest.Of(old)), Is.Null);
-                Assert.That(_audit.Entries.Single().Decision, Is.EqualTo(AuditEntry.Unanswered));
+                Assert.That(_audit.Entries, Is.Empty,
+                    "the screen that took the question away wrote it down as it did, so the handler writes nothing");
+            }
+        }
+
+        [Test]
+        [Apartment(System.Threading.ApartmentState.STA)]
+        public void A_renewal_whose_dialog_a_lock_took_away_is_written_down_as_the_lock_takes_it()
+        {
+            // At KeePass's exit the close of every database takes the dialog away inside the press
+            // that unloads the plugin, and the unload waits for the lines queued by then and
+            // nothing after. The answer reaches this connection only once that press is over, so a
+            // line written here was usually lost.
+            var admissions = new AdmissionAudit(_audit);
+            var prompt = new KeePassGate.Ui.PairingApprovalPrompt(
+                KeePassGate.Ui.CurrentThread.Instance, null, null, admissions, _log);
+            var writtenAsItClosed = -1;
+            prompt.RenewalDialog = (request, timeout) =>
+            {
+                using (var dialog = new KeePassGate.Ui.RenewalApprovalForm(request, timeout, null))
+                {
+                    dialog.StartPosition = System.Windows.Forms.FormStartPosition.Manual;
+                    dialog.Location = new System.Drawing.Point(-4000, -4000);
+                    dialog.ShowInTaskbar = false;
+
+                    using (var timer = new System.Windows.Forms.Timer { Interval = 100 })
+                    {
+                        timer.Tick += delegate
+                        {
+                            timer.Stop();
+                            prompt.Locked();
+                            writtenAsItClosed = _audit.Entries.Count;
+                        };
+
+                        timer.Start();
+                        prompt.Show(dialog, request.DatabaseId);
+                    }
+
+                    return dialog.Answer();
+                }
+            };
+
+            var handler = new RenewalHandler(
+                prompt, _options, new AuthorityIssuer(), () => _now, _session, admissions, _log, _held);
+
+            using (var old = _authority.IssueAdmittedClient("reader"))
+            {
+                var client = Paired(old);
+                var context = Context(client, "{}");
+                Router(handler).Handle(context);
+
+                Assert.That(context.Status, Is.EqualTo(503), context.Json);
+                Assert.That(context.Json, Is.EqualTo(HttpResponse.ErrorBody(LockedTarget.Error)));
+                Assert.That(writtenAsItClosed, Is.EqualTo(1), "written as the lock took the dialog away");
+
+                var line = _audit.Entries.Single();
+                Assert.That(line.Decision, Is.EqualTo(AuditEntry.Unanswered));
+                Assert.That(line.OperationId, Is.EqualTo("renewCertificate"));
+                Assert.That(line.AdmissionKey, Is.EqualTo(client.AdmissionKey), "naming the certificate that asked");
+                Assert.That(line.ClientKey, Is.EqualTo(client.ClientKey), "and its client");
+            }
+        }
+
+        [Test]
+        public void A_renewal_whose_dialog_a_lock_took_away_takes_the_client_s_turn_for_its_line()
+        {
+            // The screen records that line from KeePass's own thread, which must not wait, so the
+            // handler takes the client's turn for it on the client's own connection, as it does for
+            // an approved renewal's.
+            var waits = new List<TimeSpan>();
+            var admissions = new AdmissionAudit(_audit, null, new DecisionPace(() => TimeSpan.Zero, waits.Add));
+            var handler = new RenewalHandler(
+                new FakeRenewalApproval(RenewalApproval.Locked()), _options, new AuthorityIssuer(), () => _now,
+                _session, admissions, _log, _held);
+
+            using (var old = _authority.IssueAdmittedClient("reader"))
+            {
+                var client = Paired(old);
+                for (var i = 0; i < DecisionPace.Burst; i++)
+                {
+                    admissions.TakeTurn(client.ClientKey);
+                }
+
+                Assume.That(waits, Is.Empty, "the burst itself is never held back");
+
+                var context = Context(client, "{}");
+                Router(handler).Handle(context);
+
+                Assert.That(context.Status, Is.EqualTo(503), context.Json);
+                Assert.That(waits, Has.Count.EqualTo(1));
             }
         }
 

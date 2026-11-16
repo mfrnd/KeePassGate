@@ -353,10 +353,12 @@ namespace KeePassGate.Host.Tests
 
             public bool Answered { get; private set; }
 
-            internal override void Withdraw(bool databaseClosed)
+            internal override bool Withdraw(bool databaseClosed)
             {
+                var unanswered = !Answered;
                 _timer.Stop();
                 Close();
+                return unanswered;
             }
 
             protected override void RefuseByKey()

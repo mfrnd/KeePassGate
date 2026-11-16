@@ -357,7 +357,7 @@ namespace KeePassGate.Pairing
                 return null;
             }
 
-            var request = Request(context, target, record, lifetime);
+            var request = Request(context, target, key, record, lifetime);
             if (request == null)
             {
                 context.Respond(500, HttpResponse.ErrorBody("internal error"));
@@ -400,11 +400,13 @@ namespace KeePassGate.Pairing
                     // Unanswered, as a timeout is, so nothing changes; told as every connection to
                     // a locked database is told, since that is what this connection now is, and the
                     // same for a dialog its database's close took away. Written down only when it
-                    // was shown, as pairing's is.
+                    // was shown, as pairing's is, and by the screen as it took the dialog away, on
+                    // KeePass's thread, which does not wait: the client's turn for that line is
+                    // taken here, as an approved renewal's is.
                     _log.Warn("a renewal by " + CertificateDigest.Shorten(key) + " was " + decision.Reason);
                     if (decision.Shown)
                     {
-                        _audit.RenewalUnanswered(target.DatabaseId, key, record.ClientKey);
+                        _audit.TakeTurn(record.ClientKey);
                     }
 
                     context.Respond(503, HttpResponse.ErrorBody(LockedTarget.Error));
@@ -623,10 +625,11 @@ namespace KeePassGate.Pairing
 
         /// <summary>
         /// What the operator is shown, read from the record and the database rather than from the
-        /// request, or null when the record will not say.
+        /// request, or null when the record cannot tell. With the certificate that asked and its
+        /// client, which the screen names when a lock or a close takes the dialog away.
         /// </summary>
         private RenewalRequest Request(
-            IGateContext context, IGateTarget target, AdmissionRecord record, TimeSpan? lifetime)
+            IGateContext context, IGateTarget target, string key, AdmissionRecord record, TimeSpan? lifetime)
         {
             var name = NameIn(record.Subject);
             if (name == null)
@@ -662,7 +665,9 @@ namespace KeePassGate.Pairing
                 held.Where(known.Contains).Distinct(StringComparer.Ordinal).ToList(),
                 held.Where(profile => !known.Contains(profile)).Distinct(StringComparer.Ordinal).ToList(),
                 ConnectionPeer.Of(context),
-                lifetime);
+                lifetime,
+                key,
+                record.ClientKey);
         }
 
         /// <summary>Issue, write, save, and only then hand anything over, as pairing does.</summary>

@@ -47,6 +47,13 @@ namespace KeePassGate.Pipeline
     /// taken by <see cref="TakeTurn"/> once the write returns, on its own connection. A
     /// pairing's line is not counted, approved or not, because it waits on a person, who is its
     /// pace. The operator's revocation is recorded from KeePass's own thread too.
+    ///
+    /// **So is the line of a dialog a lock or a close takes away**, by the screen as it takes the
+    /// dialog away, and not by the handler once the answer reaches its connection. KeePass's exit
+    /// closes every database inside the same press that unloads the plugin, and unloading waits
+    /// for the lines queued by then and for nothing after, while the dialog's answer reaches its
+    /// connection only once that press is over. A renewal's line is then recorded without
+    /// waiting, as an approved renewal's is, and its turn taken on its connection.
     /// </remarks>
     public sealed class AdmissionAudit
     {
@@ -189,6 +196,27 @@ namespace KeePassGate.Pipeline
         }
 
         /// <summary>
+        /// A renewal whose dialog a lock or a close of its database took away unanswered, as it is
+        /// taken away.
+        /// </summary>
+        /// <remarks>
+        /// The same line as <see cref="RenewalUnanswered"/>, recorded by the screen from KeePass's
+        /// own thread, so it does not wait: the renewal takes the client's turn for it with
+        /// <see cref="TakeTurn"/> once the answer reaches its connection.
+        /// </remarks>
+        public void RenewalWithdrawn(string databaseId, string client, string clientKey)
+        {
+            Write(
+                databaseId,
+                client,
+                clientKey,
+                GateOperations.RenewCertificate,
+                AuditEntry.Unanswered,
+                UnansweredReason,
+                null);
+        }
+
+        /// <summary>
         /// A client's revocation of its own certificate, once the revocation is in the database.
         /// </summary>
         /// <remarks>
@@ -208,13 +236,15 @@ namespace KeePassGate.Pipeline
         }
 
         /// <summary>
-        /// Returns when a client's turn has come for a line the writer wrote about it without
-        /// waiting, which is <see cref="Renewed"/> and <see cref="RevokedItself"/>.
+        /// Returns when a client's turn has come for a line written about it without waiting,
+        /// which is <see cref="Renewed"/>, <see cref="RevokedItself"/> and
+        /// <see cref="RenewalWithdrawn"/>.
         /// </summary>
         /// <remarks>
-        /// Called on the client's own connection once the write has returned, where a wait holds
-        /// nobody else up. It is the turn those lines took when the operation wrote them itself,
-        /// taken at the same point, before the answer, and counted against the same allowance.
+        /// Called on the client's own connection once the write or the dialog has returned, where
+        /// a wait holds nobody else up. It is the turn those lines took when the operation wrote
+        /// them itself, taken at the same point, before the answer, and counted against the same
+        /// allowance.
         /// </remarks>
         /// <param name="clientKey">The client the line was about, by its client key.</param>
         public void TakeTurn(string clientKey)
