@@ -1,0 +1,8 @@
+# 234 paths, 227 kept
+H.EncryptionIV	rewritten (fresh random)
+H.MasterSeed	rewritten (fresh random)
+H.field13	gone (was kpg:H.field13:base)
+H.kdf[S]	rewritten (fresh random)
+H.order	changed (2,3,4,11,7,12,13,0 -> 2,3,4,11,7,12,0)
+I.InnerRandomStreamKey	rewritten (fresh random)
+X/Meta/MemoryProtection/ProtectNotes	changed (True -> False)

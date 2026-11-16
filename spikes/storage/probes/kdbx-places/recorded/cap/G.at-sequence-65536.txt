@@ -1,0 +1,9 @@
+# G.at-sequence 65536 chars, file 52446 bytes
+keepass-2.62-resave	kept	3.9 s
+keepass-2.47-resave	kept	1.7 s
+kdbxweb-resave	kept	0.4 s
+pykeepass-resave	kept	6.2 s
+keepassxc-2.4.2-add	kept	0.9 s
+keepassxc-2.6.6-add	kept	2.0 s
+keepassxc-2.7.12-add	kept	1.2 s
+keepassxc-2.8.0-add	kept	1.0 s

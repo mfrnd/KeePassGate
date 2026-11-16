@@ -1,0 +1,304 @@
+# 445 paths, 142 the same in both and kept
+H.Comment	dropped
+H.kdf[KPG_kdf]	open
+H.kdf[KPG_kdf_onlyA]	only-open kept
+H.kdf[KPG_kdf_onlyB]	only-arriving not taken
+H.order	rewritten (2,3,4,11,7,12,0)
+H.pcd[KPG_bytes]	arriving
+H.pcd[KPG_counter]	arriving
+H.pcd[KPG_onlyA]	only-open kept
+H.pcd[KPG_onlyB]	only-arriving taken
+H.pcd[KPG_shared]	arriving
+I.Binary[E.binary]	open
+I.Binary[E.binary]#2	new (kpg:E.binary:B flags=0 refs=1)
+I.Binary[I.unreferenced]	dropped
+T.trailing	dropped
+X/KpgX	dropped
+X/Meta/Color	arriving
+X/Meta/CustomData/Item[kpg-onlyA]/Key	only-open kept
+X/Meta/CustomData/Item[kpg-onlyA]/KpgX	only-open dropped
+X/Meta/CustomData/Item[kpg-onlyA]/Value	only-open kept
+X/Meta/CustomData/Item[kpg-onlyB]/Key	only-arriving taken
+X/Meta/CustomData/Item[kpg-onlyB]/KpgX	only-arriving not taken
+X/Meta/CustomData/Item[kpg-onlyB]/Value	only-arriving taken
+X/Meta/CustomData/Item[kpg-shared]/Value	arriving
+X/Meta/CustomIcons/Icon[icon-onlyA]/Data	only-open kept
+X/Meta/CustomIcons/Icon[icon-onlyA]/UUID	only-open kept
+X/Meta/CustomIcons/Icon[icon-onlyB]/Data	only-arriving taken
+X/Meta/CustomIcons/Icon[icon-onlyB]/UUID	only-arriving taken
+X/Meta/CustomIcons/Icon[icon-unused]/Data	open
+X/Meta/CustomIcons/Icon[icon-used]/Data	open
+X/Meta/CustomIcons/Icon[icon-used]/KpgX	dropped
+X/Meta/DatabaseDescription	arriving
+X/Meta/DatabaseDescriptionChanged	arriving
+X/Meta/DatabaseName	arriving
+X/Meta/DatabaseNameChanged	arriving
+X/Meta/DefaultUserName	arriving
+X/Meta/DefaultUserNameChanged	arriving
+X/Meta/EntryTemplatesGroup	arriving
+X/Meta/EntryTemplatesGroupChanged	arriving
+X/Meta/Generator	other ()
+X/Meta/HistoryMaxItems	open
+X/Meta/HistoryMaxSize	open
+X/Meta/KpgX	dropped
+X/Meta/LastSelectedGroup	open
+X/Meta/LastTopVisibleGroup	open
+X/Meta/MaintenanceHistoryDays	open
+X/Meta/MasterKeyChangeForce	open
+X/Meta/MasterKeyChangeForceOnce	only-open kept
+X/Meta/MasterKeyChangeRec	open
+X/Meta/MasterKeyChanged	open
+X/Meta/MemoryProtection/KpgX	dropped
+X/Meta/MemoryProtection/ProtectTitle	open
+X/Meta/MemoryProtection/ProtectURL	arriving
+X/Meta/RecycleBinChanged	arriving
+X/Meta/RecycleBinEnabled	arriving
+X/Meta/RecycleBinUUID	arriving
+X/Meta/SettingsChanged	arriving
+X/Meta/comment()	dropped
+X/Meta@kpgAttribute	dropped
+X/Root/DeletedObjects/DeletedObject[del-onlyA]/DeletionTime	only-open kept
+X/Root/DeletedObjects/DeletedObject[del-onlyA]/UUID	only-open kept
+X/Root/DeletedObjects/DeletedObject[del-onlyB]/DeletionTime	only-arriving not taken
+X/Root/DeletedObjects/DeletedObject[del-onlyB]/UUID	only-arriving not taken
+X/Root/DeletedObjects/DeletedObject[del-shared]/DeletionTime	open
+X/Root/DeletedObjects/DeletedObject[del-shared]/KpgX	dropped
+X/Root/Group[root]/Group[name=kpg-bin2]/DefaultAutoTypeSequence	new ()
+X/Root/Group[root]/Group[name=kpg-bin2]/EnableAutoType	new (Null)
+X/Root/Group[root]/Group[name=kpg-bin2]/EnableSearching	new (Null)
+X/Root/Group[root]/Group[name=kpg-bin2]/IconID	new (48)
+X/Root/Group[root]/Group[name=kpg-bin2]/IsExpanded	new (True)
+X/Root/Group[root]/Group[name=kpg-bin2]/LastTopVisibleEntry	new (00000000-0000-0000-0000-000000000000)
+X/Root/Group[root]/Group[name=kpg-bin2]/Name	new (kpg-bin2)
+X/Root/Group[root]/Group[name=kpg-bin2]/Notes	new ()
+X/Root/Group[root]/Group[name=kpg-bin2]/Times/CreationTime	new (2026-01-01T00:00:00Z)
+X/Root/Group[root]/Group[name=kpg-bin2]/Times/Expires	new (False)
+X/Root/Group[root]/Group[name=kpg-bin2]/Times/ExpiryTime	new (2035-01-01T00:00:00Z)
+X/Root/Group[root]/Group[name=kpg-bin2]/Times/LastAccessTime	new (2026-01-01T00:00:00Z)
+X/Root/Group[root]/Group[name=kpg-bin2]/Times/LastModificationTime	new (2026-01-01T00:00:00Z)
+X/Root/Group[root]/Group[name=kpg-bin2]/Times/LocationChanged	new (2026-01-01T00:00:00Z)
+X/Root/Group[root]/Group[name=kpg-bin2]/Times/UsageCount	new (0)
+X/Root/Group[root]/Group[name=kpg-bin2]/UUID	new (fe1e0ef9-a810-40b4-9a68-f1a09a1d808a)
+X/Root/Group[root]/Group[name=kpg-bin]/DefaultAutoTypeSequence	new ()
+X/Root/Group[root]/Group[name=kpg-bin]/EnableAutoType	new (Null)
+X/Root/Group[root]/Group[name=kpg-bin]/EnableSearching	new (Null)
+X/Root/Group[root]/Group[name=kpg-bin]/IconID	new (48)
+X/Root/Group[root]/Group[name=kpg-bin]/IsExpanded	new (True)
+X/Root/Group[root]/Group[name=kpg-bin]/LastTopVisibleEntry	new (00000000-0000-0000-0000-000000000000)
+X/Root/Group[root]/Group[name=kpg-bin]/Name	new (kpg-bin)
+X/Root/Group[root]/Group[name=kpg-bin]/Notes	new ()
+X/Root/Group[root]/Group[name=kpg-bin]/Times/CreationTime	new (2026-01-01T00:00:00Z)
+X/Root/Group[root]/Group[name=kpg-bin]/Times/Expires	new (False)
+X/Root/Group[root]/Group[name=kpg-bin]/Times/ExpiryTime	new (2035-01-01T00:00:00Z)
+X/Root/Group[root]/Group[name=kpg-bin]/Times/LastAccessTime	new (2026-01-01T00:00:00Z)
+X/Root/Group[root]/Group[name=kpg-bin]/Times/LastModificationTime	new (2026-01-01T00:00:00Z)
+X/Root/Group[root]/Group[name=kpg-bin]/Times/LocationChanged	new (2026-01-01T00:00:00Z)
+X/Root/Group[root]/Group[name=kpg-bin]/Times/UsageCount	new (0)
+X/Root/Group[root]/Group[name=kpg-bin]/UUID	new (2e80d598-d2b1-4401-ad0e-d19782e74b5f)
+X/Root/Group[root]/Group[name=kpg-prev]/DefaultAutoTypeSequence	new ()
+X/Root/Group[root]/Group[name=kpg-prev]/EnableAutoType	new (Null)
+X/Root/Group[root]/Group[name=kpg-prev]/EnableSearching	new (Null)
+X/Root/Group[root]/Group[name=kpg-prev]/IconID	new (48)
+X/Root/Group[root]/Group[name=kpg-prev]/IsExpanded	new (True)
+X/Root/Group[root]/Group[name=kpg-prev]/LastTopVisibleEntry	new (00000000-0000-0000-0000-000000000000)
+X/Root/Group[root]/Group[name=kpg-prev]/Name	new (kpg-prev)
+X/Root/Group[root]/Group[name=kpg-prev]/Notes	new ()
+X/Root/Group[root]/Group[name=kpg-prev]/Times/CreationTime	new (2026-01-01T00:00:00Z)
+X/Root/Group[root]/Group[name=kpg-prev]/Times/Expires	new (False)
+X/Root/Group[root]/Group[name=kpg-prev]/Times/ExpiryTime	new (2035-01-01T00:00:00Z)
+X/Root/Group[root]/Group[name=kpg-prev]/Times/LastAccessTime	new (2026-01-01T00:00:00Z)
+X/Root/Group[root]/Group[name=kpg-prev]/Times/LastModificationTime	new (2026-01-01T00:00:00Z)
+X/Root/Group[root]/Group[name=kpg-prev]/Times/LocationChanged	new (2026-01-01T00:00:00Z)
+X/Root/Group[root]/Group[name=kpg-prev]/Times/UsageCount	new (0)
+X/Root/Group[root]/Group[name=kpg-prev]/UUID	new (3ecee2ed-d477-4e40-83db-0c1a7b24ef60)
+X/Root/Group[root]/Group[name=kpg-root]/DefaultAutoTypeSequence	new ()
+X/Root/Group[root]/Group[name=kpg-root]/EnableAutoType	new (Null)
+X/Root/Group[root]/Group[name=kpg-root]/EnableSearching	new (Null)
+X/Root/Group[root]/Group[name=kpg-root]/IconID	new (49)
+X/Root/Group[root]/Group[name=kpg-root]/IsExpanded	new (True)
+X/Root/Group[root]/Group[name=kpg-root]/LastTopVisibleEntry	new (00000000-0000-0000-0000-000000000000)
+X/Root/Group[root]/Group[name=kpg-root]/Name	new (kpg-root)
+X/Root/Group[root]/Group[name=kpg-root]/Notes	new ()
+X/Root/Group[root]/Group[name=kpg-root]/Times/CreationTime	new (2026-01-01T00:00:00Z)
+X/Root/Group[root]/Group[name=kpg-root]/Times/Expires	new (False)
+X/Root/Group[root]/Group[name=kpg-root]/Times/ExpiryTime	new (2035-01-01T00:00:00Z)
+X/Root/Group[root]/Group[name=kpg-root]/Times/LastAccessTime	new (2026-01-01T00:00:00Z)
+X/Root/Group[root]/Group[name=kpg-root]/Times/LastModificationTime	new (2026-01-01T00:00:00Z)
+X/Root/Group[root]/Group[name=kpg-root]/Times/LocationChanged	new (2026-01-01T00:00:00Z)
+X/Root/Group[root]/Group[name=kpg-root]/Times/UsageCount	new (0)
+X/Root/Group[root]/Group[name=kpg-root]/UUID	new (6c07f8d6-3517-48a0-85c7-cb77af777251)
+X/Root/Group[root]/Group[name=kpg-tpl2]/DefaultAutoTypeSequence	new ()
+X/Root/Group[root]/Group[name=kpg-tpl2]/EnableAutoType	new (Null)
+X/Root/Group[root]/Group[name=kpg-tpl2]/EnableSearching	new (Null)
+X/Root/Group[root]/Group[name=kpg-tpl2]/IconID	new (48)
+X/Root/Group[root]/Group[name=kpg-tpl2]/IsExpanded	new (True)
+X/Root/Group[root]/Group[name=kpg-tpl2]/LastTopVisibleEntry	new (00000000-0000-0000-0000-000000000000)
+X/Root/Group[root]/Group[name=kpg-tpl2]/Name	new (kpg-tpl2)
+X/Root/Group[root]/Group[name=kpg-tpl2]/Notes	new ()
+X/Root/Group[root]/Group[name=kpg-tpl2]/Times/CreationTime	new (2026-01-01T00:00:00Z)
+X/Root/Group[root]/Group[name=kpg-tpl2]/Times/Expires	new (False)
+X/Root/Group[root]/Group[name=kpg-tpl2]/Times/ExpiryTime	new (2035-01-01T00:00:00Z)
+X/Root/Group[root]/Group[name=kpg-tpl2]/Times/LastAccessTime	new (2026-01-01T00:00:00Z)
+X/Root/Group[root]/Group[name=kpg-tpl2]/Times/LastModificationTime	new (2026-01-01T00:00:00Z)
+X/Root/Group[root]/Group[name=kpg-tpl2]/Times/LocationChanged	new (2026-01-01T00:00:00Z)
+X/Root/Group[root]/Group[name=kpg-tpl2]/Times/UsageCount	new (0)
+X/Root/Group[root]/Group[name=kpg-tpl2]/UUID	new (141dc12f-a690-4aec-8131-a4d481126eb9)
+X/Root/Group[root]/Group[name=kpg-tpl]/DefaultAutoTypeSequence	new ()
+X/Root/Group[root]/Group[name=kpg-tpl]/EnableAutoType	new (Null)
+X/Root/Group[root]/Group[name=kpg-tpl]/EnableSearching	new (Null)
+X/Root/Group[root]/Group[name=kpg-tpl]/IconID	new (48)
+X/Root/Group[root]/Group[name=kpg-tpl]/IsExpanded	new (True)
+X/Root/Group[root]/Group[name=kpg-tpl]/LastTopVisibleEntry	new (00000000-0000-0000-0000-000000000000)
+X/Root/Group[root]/Group[name=kpg-tpl]/Name	new (kpg-tpl)
+X/Root/Group[root]/Group[name=kpg-tpl]/Notes	new ()
+X/Root/Group[root]/Group[name=kpg-tpl]/Times/CreationTime	new (2026-01-01T00:00:00Z)
+X/Root/Group[root]/Group[name=kpg-tpl]/Times/Expires	new (False)
+X/Root/Group[root]/Group[name=kpg-tpl]/Times/ExpiryTime	new (2035-01-01T00:00:00Z)
+X/Root/Group[root]/Group[name=kpg-tpl]/Times/LastAccessTime	new (2026-01-01T00:00:00Z)
+X/Root/Group[root]/Group[name=kpg-tpl]/Times/LastModificationTime	new (2026-01-01T00:00:00Z)
+X/Root/Group[root]/Group[name=kpg-tpl]/Times/LocationChanged	new (2026-01-01T00:00:00Z)
+X/Root/Group[root]/Group[name=kpg-tpl]/Times/UsageCount	new (0)
+X/Root/Group[root]/Group[name=kpg-tpl]/UUID	new (9c445e75-bd7c-4efe-859b-818f1e590669)
+X/Root/Group[root]/Group[name=kpg:G.name:B]/CustomData/Item[kpg-onlyB]/Key	new (kpg-onlyB)
+X/Root/Group[root]/Group[name=kpg:G.name:B]/CustomData/Item[kpg-onlyB]/Value	new (kpg:G.cd.onlyB:B)
+X/Root/Group[root]/Group[name=kpg:G.name:B]/CustomData/Item[kpg-shared]/Key	new (kpg-shared)
+X/Root/Group[root]/Group[name=kpg:G.name:B]/CustomData/Item[kpg-shared]/Value	new (kpg:G.cd:B)
+X/Root/Group[root]/Group[name=kpg:G.name:B]/CustomIconUUID	new (icon-used)
+X/Root/Group[root]/Group[name=kpg:G.name:B]/DefaultAutoTypeSequence	new (kpg:G.at-sequence:B)
+X/Root/Group[root]/Group[name=kpg:G.name:B]/EnableAutoType	new (Null)
+X/Root/Group[root]/Group[name=kpg:G.name:B]/EnableSearching	new (Null)
+X/Root/Group[root]/Group[name=kpg:G.name:B]/Entry[title=kpg:E.title:B]/AutoType/Association[0]/KeystrokeSequence	new (kpg:E.at-keys:B)
+X/Root/Group[root]/Group[name=kpg:G.name:B]/Entry[title=kpg:E.title:B]/AutoType/Association[0]/Window	new (kpg:E.at-window:B)
+X/Root/Group[root]/Group[name=kpg:G.name:B]/Entry[title=kpg:E.title:B]/AutoType/DataTransferObfuscation	new (0)
+X/Root/Group[root]/Group[name=kpg:G.name:B]/Entry[title=kpg:E.title:B]/AutoType/DefaultSequence	new (kpg:E.at-sequence:B)
+X/Root/Group[root]/Group[name=kpg:G.name:B]/Entry[title=kpg:E.title:B]/AutoType/Enabled	new (True)
+X/Root/Group[root]/Group[name=kpg:G.name:B]/Entry[title=kpg:E.title:B]/BackgroundColor	new (#0E0F10)
+X/Root/Group[root]/Group[name=kpg:G.name:B]/Entry[title=kpg:E.title:B]/Binary[kpg-att.txt]/Key	new (kpg-att.txt)
+X/Root/Group[root]/Group[name=kpg:G.name:B]/Entry[title=kpg:E.title:B]/Binary[kpg-att.txt]/Value	new (ref 1 = kpg:E.binary:B)
+X/Root/Group[root]/Group[name=kpg:G.name:B]/Entry[title=kpg:E.title:B]/CustomData/Item[kpg-onlyB]/Key	new (kpg-onlyB)
+X/Root/Group[root]/Group[name=kpg:G.name:B]/Entry[title=kpg:E.title:B]/CustomData/Item[kpg-onlyB]/Value	new (kpg:E.cd.onlyB:B)
+X/Root/Group[root]/Group[name=kpg:G.name:B]/Entry[title=kpg:E.title:B]/CustomData/Item[kpg-shared]/Key	new (kpg-shared)
+X/Root/Group[root]/Group[name=kpg:G.name:B]/Entry[title=kpg:E.title:B]/CustomData/Item[kpg-shared]/Value	new (kpg:E.cd:B)
+X/Root/Group[root]/Group[name=kpg:G.name:B]/Entry[title=kpg:E.title:B]/CustomIconUUID	new (icon-used)
+X/Root/Group[root]/Group[name=kpg:G.name:B]/Entry[title=kpg:E.title:B]/ForegroundColor	new (#040506)
+X/Root/Group[root]/Group[name=kpg:G.name:B]/Entry[title=kpg:E.title:B]/History/Entry[0]/AutoType/DataTransferObfuscation	new (0)
+X/Root/Group[root]/Group[name=kpg:G.name:B]/Entry[title=kpg:E.title:B]/History/Entry[0]/AutoType/Enabled	new (True)
+X/Root/Group[root]/Group[name=kpg:G.name:B]/Entry[title=kpg:E.title:B]/History/Entry[0]/BackgroundColor	new (#0E0F10)
+X/Root/Group[root]/Group[name=kpg:G.name:B]/Entry[title=kpg:E.title:B]/History/Entry[0]/CustomIconUUID	new (icon-used)
+X/Root/Group[root]/Group[name=kpg:G.name:B]/Entry[title=kpg:E.title:B]/History/Entry[0]/ForegroundColor	new (#040506)
+X/Root/Group[root]/Group[name=kpg:G.name:B]/Entry[title=kpg:E.title:B]/History/Entry[0]/IconID	new (53)
+X/Root/Group[root]/Group[name=kpg:G.name:B]/Entry[title=kpg:E.title:B]/History/Entry[0]/OverrideURL	new (kpg:E.override-url:B)
+X/Root/Group[root]/Group[name=kpg:G.name:B]/Entry[title=kpg:E.title:B]/History/Entry[0]/String[Title]/Key	new (Title)
+X/Root/Group[root]/Group[name=kpg:G.name:B]/Entry[title=kpg:E.title:B]/History/Entry[0]/String[Title]/Value	new (kpg-entry-before)
+X/Root/Group[root]/Group[name=kpg:G.name:B]/Entry[title=kpg:E.title:B]/History/Entry[0]/Tags	new (kpg:E.tags:B)
+X/Root/Group[root]/Group[name=kpg:G.name:B]/Entry[title=kpg:E.title:B]/History/Entry[0]/Times/CreationTime	new (2026-01-01T00:00:00Z)
+X/Root/Group[root]/Group[name=kpg:G.name:B]/Entry[title=kpg:E.title:B]/History/Entry[0]/Times/Expires	new (True)
+X/Root/Group[root]/Group[name=kpg:G.name:B]/Entry[title=kpg:E.title:B]/History/Entry[0]/Times/ExpiryTime	new (2033-01-01T00:00:00Z)
+X/Root/Group[root]/Group[name=kpg:G.name:B]/Entry[title=kpg:E.title:B]/History/Entry[0]/Times/LastAccessTime	new (2025-12-31T00:00:00Z)
+X/Root/Group[root]/Group[name=kpg:G.name:B]/Entry[title=kpg:E.title:B]/History/Entry[0]/Times/LastModificationTime	new (2025-12-31T00:00:00Z)
+X/Root/Group[root]/Group[name=kpg:G.name:B]/Entry[title=kpg:E.title:B]/History/Entry[0]/Times/LocationChanged	new (2025-12-31T00:00:00Z)
+X/Root/Group[root]/Group[name=kpg:G.name:B]/Entry[title=kpg:E.title:B]/History/Entry[0]/Times/UsageCount	new (73)
+X/Root/Group[root]/Group[name=kpg:G.name:B]/Entry[title=kpg:E.title:B]/History/Entry[0]/UUID	new (a360377d-179e-4726-9aa7-e1fb5406f62e)
+X/Root/Group[root]/Group[name=kpg:G.name:B]/Entry[title=kpg:E.title:B]/IconID	new (53)
+X/Root/Group[root]/Group[name=kpg:G.name:B]/Entry[title=kpg:E.title:B]/OverrideURL	new (kpg:E.override-url:B)
+X/Root/Group[root]/Group[name=kpg:G.name:B]/Entry[title=kpg:E.title:B]/String[Title]/Key	new (Title)
+X/Root/Group[root]/Group[name=kpg:G.name:B]/Entry[title=kpg:E.title:B]/String[Title]/Value	new (kpg:E.title:B)
+X/Root/Group[root]/Group[name=kpg:G.name:B]/Entry[title=kpg:E.title:B]/String[kpg-plain]/Key	new (kpg-plain)
+X/Root/Group[root]/Group[name=kpg:G.name:B]/Entry[title=kpg:E.title:B]/String[kpg-plain]/Value	new (kpg:E.string:B)
+X/Root/Group[root]/Group[name=kpg:G.name:B]/Entry[title=kpg:E.title:B]/String[kpg-protected]/Key	new (kpg-protected)
+X/Root/Group[root]/Group[name=kpg:G.name:B]/Entry[title=kpg:E.title:B]/String[kpg-protected]/Value	new (kpg:E.protected:B)
+X/Root/Group[root]/Group[name=kpg:G.name:B]/Entry[title=kpg:E.title:B]/String[kpg-protected]/Value@Protected	new (True)
+X/Root/Group[root]/Group[name=kpg:G.name:B]/Entry[title=kpg:E.title:B]/Tags	new (kpg:E.tags:B)
+X/Root/Group[root]/Group[name=kpg:G.name:B]/Entry[title=kpg:E.title:B]/Times/CreationTime	new (2026-01-01T00:00:00Z)
+X/Root/Group[root]/Group[name=kpg:G.name:B]/Entry[title=kpg:E.title:B]/Times/Expires	new (True)
+X/Root/Group[root]/Group[name=kpg:G.name:B]/Entry[title=kpg:E.title:B]/Times/ExpiryTime	new (2033-01-01T00:00:00Z)
+X/Root/Group[root]/Group[name=kpg:G.name:B]/Entry[title=kpg:E.title:B]/Times/LastAccessTime	new (2026-03-01T00:00:00Z)
+X/Root/Group[root]/Group[name=kpg:G.name:B]/Entry[title=kpg:E.title:B]/Times/LastModificationTime	new (2026-03-01T00:00:00Z)
+X/Root/Group[root]/Group[name=kpg:G.name:B]/Entry[title=kpg:E.title:B]/Times/LocationChanged	new (2026-03-01T00:00:00Z)
+X/Root/Group[root]/Group[name=kpg:G.name:B]/Entry[title=kpg:E.title:B]/Times/UsageCount	new (73)
+X/Root/Group[root]/Group[name=kpg:G.name:B]/Entry[title=kpg:E.title:B]/UUID	new (a360377d-179e-4726-9aa7-e1fb5406f62e)
+X/Root/Group[root]/Group[name=kpg:G.name:B]/IconID	new (43)
+X/Root/Group[root]/Group[name=kpg:G.name:B]/IsExpanded	new (True)
+X/Root/Group[root]/Group[name=kpg:G.name:B]/LastTopVisibleEntry	new (other)
+X/Root/Group[root]/Group[name=kpg:G.name:B]/Name	new (kpg:G.name:B)
+X/Root/Group[root]/Group[name=kpg:G.name:B]/Notes	new (kpg:G.notes:B)
+X/Root/Group[root]/Group[name=kpg:G.name:B]/Times/CreationTime	new (2026-01-01T00:00:00Z)
+X/Root/Group[root]/Group[name=kpg:G.name:B]/Times/Expires	new (True)
+X/Root/Group[root]/Group[name=kpg:G.name:B]/Times/ExpiryTime	new (2033-06-01T00:00:00Z)
+X/Root/Group[root]/Group[name=kpg:G.name:B]/Times/LastAccessTime	new (2026-03-01T00:00:00Z)
+X/Root/Group[root]/Group[name=kpg:G.name:B]/Times/LastModificationTime	new (2026-03-01T00:00:00Z)
+X/Root/Group[root]/Group[name=kpg:G.name:B]/Times/LocationChanged	new (2026-03-01T00:00:00Z)
+X/Root/Group[root]/Group[name=kpg:G.name:B]/Times/UsageCount	new (63)
+X/Root/Group[root]/Group[name=kpg:G.name:B]/UUID	new (2aad730e-633e-4bc1-9f2b-0ac3e3280e51)
+X/Root/Group[root]/Group[places]/CustomData/Item[kpg-onlyA]/Key	only-open kept
+X/Root/Group[root]/Group[places]/CustomData/Item[kpg-onlyA]/KpgX	only-open dropped
+X/Root/Group[root]/Group[places]/CustomData/Item[kpg-onlyA]/LastModificationTime	only-open dropped
+X/Root/Group[root]/Group[places]/CustomData/Item[kpg-onlyA]/Value	only-open kept
+X/Root/Group[root]/Group[places]/CustomData/Item[kpg-onlyB]/Key	only-arriving not taken
+X/Root/Group[root]/Group[places]/CustomData/Item[kpg-onlyB]/KpgX	only-arriving not taken
+X/Root/Group[root]/Group[places]/CustomData/Item[kpg-onlyB]/LastModificationTime	only-arriving not taken
+X/Root/Group[root]/Group[places]/CustomData/Item[kpg-onlyB]/Value	only-arriving not taken
+X/Root/Group[root]/Group[places]/CustomData/Item[kpg-shared]/Value	open
+X/Root/Group[root]/Group[places]/DefaultAutoTypeSequence	open
+X/Root/Group[root]/Group[places]/EnableAutoType	open
+X/Root/Group[root]/Group[places]/EnableSearching	open
+X/Root/Group[root]/Group[places]/Entry[entry]/AutoType/Association[0]/KeystrokeSequence	open
+X/Root/Group[root]/Group[places]/Entry[entry]/AutoType/Association[0]/KpgX	dropped
+X/Root/Group[root]/Group[places]/Entry[entry]/AutoType/Association[0]/Window	open
+X/Root/Group[root]/Group[places]/Entry[entry]/AutoType/DataTransferObfuscation	open
+X/Root/Group[root]/Group[places]/Entry[entry]/AutoType/DefaultSequence	open
+X/Root/Group[root]/Group[places]/Entry[entry]/AutoType/Enabled	open
+X/Root/Group[root]/Group[places]/Entry[entry]/AutoType/KpgX	dropped
+X/Root/Group[root]/Group[places]/Entry[entry]/BackgroundColor	open
+X/Root/Group[root]/Group[places]/Entry[entry]/Binary[kpg-att.txt]/KpgX	dropped
+X/Root/Group[root]/Group[places]/Entry[entry]/Binary[kpg-att.txt]/Value	open
+X/Root/Group[root]/Group[places]/Entry[entry]/CustomData/Item[kpg-onlyA]/Key	only-open kept
+X/Root/Group[root]/Group[places]/Entry[entry]/CustomData/Item[kpg-onlyA]/KpgX	only-open dropped
+X/Root/Group[root]/Group[places]/Entry[entry]/CustomData/Item[kpg-onlyA]/LastModificationTime	only-open dropped
+X/Root/Group[root]/Group[places]/Entry[entry]/CustomData/Item[kpg-onlyA]/Value	only-open kept
+X/Root/Group[root]/Group[places]/Entry[entry]/CustomData/Item[kpg-onlyB]/Key	only-arriving not taken
+X/Root/Group[root]/Group[places]/Entry[entry]/CustomData/Item[kpg-onlyB]/KpgX	only-arriving not taken
+X/Root/Group[root]/Group[places]/Entry[entry]/CustomData/Item[kpg-onlyB]/LastModificationTime	only-arriving not taken
+X/Root/Group[root]/Group[places]/Entry[entry]/CustomData/Item[kpg-onlyB]/Value	only-arriving not taken
+X/Root/Group[root]/Group[places]/Entry[entry]/CustomData/Item[kpg-shared]/Value	open
+X/Root/Group[root]/Group[places]/Entry[entry]/ForegroundColor	open
+X/Root/Group[root]/Group[places]/Entry[entry]/History/Entry[0]/BackgroundColor	open
+X/Root/Group[root]/Group[places]/Entry[entry]/History/Entry[0]/ForegroundColor	open
+X/Root/Group[root]/Group[places]/Entry[entry]/History/Entry[0]/IconID	open
+X/Root/Group[root]/Group[places]/Entry[entry]/History/Entry[0]/KpgX	dropped
+X/Root/Group[root]/Group[places]/Entry[entry]/History/Entry[0]/OverrideURL	open
+X/Root/Group[root]/Group[places]/Entry[entry]/History/Entry[0]/String[Title]/Value@Protected	only-arriving not taken
+X/Root/Group[root]/Group[places]/Entry[entry]/History/Entry[0]/Tags	open
+X/Root/Group[root]/Group[places]/Entry[entry]/History/Entry[0]/Times/ExpiryTime	open
+X/Root/Group[root]/Group[places]/Entry[entry]/History/Entry[0]/Times/UsageCount	open
+X/Root/Group[root]/Group[places]/Entry[entry]/IconID	open
+X/Root/Group[root]/Group[places]/Entry[entry]/KpgX	dropped
+X/Root/Group[root]/Group[places]/Entry[entry]/OverrideURL	open
+X/Root/Group[root]/Group[places]/Entry[entry]/String[Title]/Value	open
+X/Root/Group[root]/Group[places]/Entry[entry]/String[Title]/Value@Protected	only-arriving not taken
+X/Root/Group[root]/Group[places]/Entry[entry]/String[kpg-plain]/KpgX	dropped
+X/Root/Group[root]/Group[places]/Entry[entry]/String[kpg-plain]/Value	open
+X/Root/Group[root]/Group[places]/Entry[entry]/String[kpg-plain]/Value@kpgAttribute	dropped
+X/Root/Group[root]/Group[places]/Entry[entry]/String[kpg-protected]/Value	open
+X/Root/Group[root]/Group[places]/Entry[entry]/Tags	open
+X/Root/Group[root]/Group[places]/Entry[entry]/Times/ExpiryTime	open
+X/Root/Group[root]/Group[places]/Entry[entry]/Times/KpgX	dropped
+X/Root/Group[root]/Group[places]/Entry[entry]/Times/LastAccessTime	open
+X/Root/Group[root]/Group[places]/Entry[entry]/Times/LastModificationTime	open
+X/Root/Group[root]/Group[places]/Entry[entry]/Times/LocationChanged	open
+X/Root/Group[root]/Group[places]/Entry[entry]/Times/UsageCount	open
+X/Root/Group[root]/Group[places]/Entry[entry]@kpgAttribute	dropped
+X/Root/Group[root]/Group[places]/IconID	open
+X/Root/Group[root]/Group[places]/IsExpanded	open
+X/Root/Group[root]/Group[places]/KpgX	dropped
+X/Root/Group[root]/Group[places]/LastTopVisibleEntry	open
+X/Root/Group[root]/Group[places]/Name	open
+X/Root/Group[root]/Group[places]/Notes	open
+X/Root/Group[root]/Group[places]/Times/ExpiryTime	open
+X/Root/Group[root]/Group[places]/Times/KpgX	dropped
+X/Root/Group[root]/Group[places]/Times/LastAccessTime	open
+X/Root/Group[root]/Group[places]/Times/LastModificationTime	open
+X/Root/Group[root]/Group[places]/Times/LocationChanged	open
+X/Root/Group[root]/Group[places]/Times/UsageCount	open
+X/Root/Group[root]/Group[places]@kpgAttribute	dropped
+X/Root/KpgX	dropped

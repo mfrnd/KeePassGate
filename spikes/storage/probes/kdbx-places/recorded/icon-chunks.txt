@@ -1,0 +1,12 @@
+base 1202 ['IHDR', 'tEXt', 'sRGB', 'gAMA', 'pHYs', 'IDAT', 'IEND'] 1024
+keepassxc-2.4.2-add\1024.kdbx 924 ['IHDR', 'pHYs', 'zTXt', 'IDAT', 'IEND'] value kept
+keepassxc-2.6.6-add\1024.kdbx 1161 ['IHDR', 'iCCP', 'pHYs', 'zTXt', 'IDAT', 'IEND'] value kept
+keepassxc-2.8.0-add\1024.kdbx 1202 ['IHDR', 'tEXt', 'sRGB', 'gAMA', 'pHYs', 'IDAT', 'IEND'] value kept
+base 65714 ['IHDR', 'tEXt', 'sRGB', 'gAMA', 'pHYs', 'IDAT', 'IEND'] 65536
+keepassxc-2.4.2-add\65536.kdbx 49411 ['IHDR', 'pHYs', 'zTXt', 'IDAT', 'IEND'] value kept
+keepassxc-2.6.6-add\65536.kdbx 49648 ['IHDR', 'iCCP', 'pHYs', 'zTXt', 'IDAT', 'IEND'] value kept
+keepassxc-2.8.0-add\65536.kdbx 65714 ['IHDR', 'tEXt', 'sRGB', 'gAMA', 'pHYs', 'IDAT', 'IEND'] value kept
+base 1048754 ['IHDR', 'tEXt', 'sRGB', 'gAMA', 'pHYs', 'IDAT', 'IEND'] 1048576
+keepassxc-2.4.2-add\1048576.kdbx 788702 ['IHDR', 'pHYs', 'zTXt', 'IDAT', 'IEND'] value kept
+keepassxc-2.6.6-add\1048576.kdbx 788939 ['IHDR', 'iCCP', 'pHYs', 'zTXt', 'IDAT', 'IEND'] value kept
+keepassxc-2.8.0-add\1048576.kdbx 1048754 ['IHDR', 'tEXt', 'sRGB', 'gAMA', 'pHYs', 'IDAT', 'IEND'] value kept

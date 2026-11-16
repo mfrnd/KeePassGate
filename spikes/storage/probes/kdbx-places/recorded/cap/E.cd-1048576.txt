@@ -1,0 +1,9 @@
+# E.cd 1048576 chars, file 791870 bytes
+keepass-2.62-resave	kept	0.5 s
+keepass-2.47-resave	kept	1.2 s
+kdbxweb-resave	kept	0.3 s
+pykeepass-resave	kept	3.3 s
+keepassxc-2.4.2-add	kept	1.6 s
+keepassxc-2.6.6-add	kept	0.9 s
+keepassxc-2.7.12-add	kept	0.9 s
+keepassxc-2.8.0-add	kept	1.2 s

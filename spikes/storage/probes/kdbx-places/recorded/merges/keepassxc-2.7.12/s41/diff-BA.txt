@@ -1,0 +1,240 @@
+# 369 paths, 130 the same in both and kept
+H.Comment	dropped
+H.kdf[KPG_kdf]	dropped
+H.kdf[KPG_kdf_onlyA]	only-arriving not taken
+H.kdf[KPG_kdf_onlyB]	only-open dropped
+H.order	rewritten (2,3,4,7,11,12,0)
+H.pcd[KPG_bytes]	open
+H.pcd[KPG_counter]	open
+H.pcd[KPG_onlyA]	only-arriving not taken
+H.pcd[KPG_onlyB]	only-open kept
+H.pcd[KPG_shared]	open
+I.Binary[E.binary]	other (kpg:E.binary:B flags=1 refs=1)
+I.Binary[E.binary]#2	new (kpg:E.binary:A flags=1 refs=1)
+I.Binary[I.unreferenced]	dropped
+T.trailing	dropped
+X/KpgX	dropped
+X/Meta/Color	open
+X/Meta/CustomData/Item[KPXC_RANDOM_SLUG]/Key	new (KPXC_RANDOM_SLUG)
+X/Meta/CustomData/Item[KPXC_RANDOM_SLUG]/LastModificationTime	new (2026-11-16T13:03:14Z)
+X/Meta/CustomData/Item[KPXC_RANDOM_SLUG]/Value	new (<1006 chars sha256:76d1a3b2d60d9a54 starts fa5aead1fb6dc656c4bbac1b>)
+X/Meta/CustomData/Item[_LAST_MODIFIED]/Key	new (_LAST_MODIFIED)
+X/Meta/CustomData/Item[_LAST_MODIFIED]/Value	new (Mo Nov 16 13:03:14 2026 GMT)
+X/Meta/CustomData/Item[kpg-onlyA]/Key	only-arriving taken
+X/Meta/CustomData/Item[kpg-onlyA]/KpgX	only-arriving not taken
+X/Meta/CustomData/Item[kpg-onlyA]/LastModificationTime	only-arriving rewritten (2026-11-16T13:03:14Z)
+X/Meta/CustomData/Item[kpg-onlyA]/Value	only-arriving taken
+X/Meta/CustomData/Item[kpg-onlyB]/Key	only-open dropped
+X/Meta/CustomData/Item[kpg-onlyB]/KpgX	only-open dropped
+X/Meta/CustomData/Item[kpg-onlyB]/LastModificationTime	only-open dropped
+X/Meta/CustomData/Item[kpg-onlyB]/Value	only-open dropped
+X/Meta/CustomData/Item[kpg-shared]/LastModificationTime	other (2026-11-16T13:03:14Z)
+X/Meta/CustomData/Item[kpg-shared]/Value	arriving
+X/Meta/CustomIcons/Icon[icon-onlyA]/Data	only-arriving taken
+X/Meta/CustomIcons/Icon[icon-onlyA]/LastModificationTime	only-arriving taken
+X/Meta/CustomIcons/Icon[icon-onlyA]/Name	only-arriving taken
+X/Meta/CustomIcons/Icon[icon-onlyA]/UUID	only-arriving taken
+X/Meta/CustomIcons/Icon[icon-onlyB]/Data	only-open kept
+X/Meta/CustomIcons/Icon[icon-onlyB]/LastModificationTime	only-open kept
+X/Meta/CustomIcons/Icon[icon-onlyB]/Name	only-open kept
+X/Meta/CustomIcons/Icon[icon-onlyB]/UUID	only-open kept
+X/Meta/CustomIcons/Icon[icon-unused]/Data	open
+X/Meta/CustomIcons/Icon[icon-unused]/LastModificationTime	open
+X/Meta/CustomIcons/Icon[icon-unused]/Name	open
+X/Meta/CustomIcons/Icon[icon-used]/Data	open
+X/Meta/CustomIcons/Icon[icon-used]/KpgX	dropped
+X/Meta/CustomIcons/Icon[icon-used]/LastModificationTime	open
+X/Meta/CustomIcons/Icon[icon-used]/Name	open
+X/Meta/DatabaseDescription	open
+X/Meta/DatabaseDescriptionChanged	open
+X/Meta/DatabaseName	open
+X/Meta/DatabaseNameChanged	open
+X/Meta/DefaultUserName	open
+X/Meta/DefaultUserNameChanged	open
+X/Meta/EntryTemplatesGroup	open
+X/Meta/EntryTemplatesGroupChanged	open
+X/Meta/Generator	open
+X/Meta/HistoryMaxItems	open
+X/Meta/HistoryMaxSize	open
+X/Meta/KpgX	dropped
+X/Meta/LastSelectedGroup	open
+X/Meta/LastTopVisibleGroup	open
+X/Meta/MaintenanceHistoryDays	open
+X/Meta/MasterKeyChangeForce	open
+X/Meta/MasterKeyChangeForceOnce	only-arriving not taken
+X/Meta/MasterKeyChangeRec	open
+X/Meta/MasterKeyChanged	open
+X/Meta/MemoryProtection/KpgX	dropped
+X/Meta/MemoryProtection/ProtectTitle	open
+X/Meta/MemoryProtection/ProtectURL	open
+X/Meta/RecycleBinChanged	open
+X/Meta/RecycleBinEnabled	open
+X/Meta/RecycleBinUUID	open
+X/Meta/SettingsChanged	open
+X/Meta/comment()	dropped
+X/Meta@kpgAttribute	dropped
+X/Root/DeletedObjects/DeletedObject[del-onlyA]/DeletionTime	only-arriving not taken
+X/Root/DeletedObjects/DeletedObject[del-onlyA]/UUID	only-arriving not taken
+X/Root/DeletedObjects/DeletedObject[del-onlyB]/DeletionTime	only-open kept
+X/Root/DeletedObjects/DeletedObject[del-onlyB]/UUID	only-open kept
+X/Root/DeletedObjects/DeletedObject[del-shared]/DeletionTime	open
+X/Root/DeletedObjects/DeletedObject[del-shared]/KpgX	dropped
+X/Root/Group[root]/EnableAutoType	rewritten (null)
+X/Root/Group[root]/EnableSearching	rewritten (null)
+X/Root/Group[root]/Group[bin2]/EnableAutoType	rewritten (null)
+X/Root/Group[root]/Group[bin2]/EnableSearching	rewritten (null)
+X/Root/Group[root]/Group[bin]/EnableAutoType	rewritten (null)
+X/Root/Group[root]/Group[bin]/EnableSearching	rewritten (null)
+X/Root/Group[root]/Group[places]/CustomData/Item[_LAST_MODIFIED]/Key	new (_LAST_MODIFIED)
+X/Root/Group[root]/Group[places]/CustomData/Item[_LAST_MODIFIED]/Value	new (Mo Nov 16 13:02:58 2026 GMT)
+X/Root/Group[root]/Group[places]/CustomData/Item[kpg-onlyA]/Key	only-arriving not taken
+X/Root/Group[root]/Group[places]/CustomData/Item[kpg-onlyA]/KpgX	only-arriving not taken
+X/Root/Group[root]/Group[places]/CustomData/Item[kpg-onlyA]/LastModificationTime	only-arriving not taken
+X/Root/Group[root]/Group[places]/CustomData/Item[kpg-onlyA]/Value	only-arriving not taken
+X/Root/Group[root]/Group[places]/CustomData/Item[kpg-onlyB]/Key	only-open kept
+X/Root/Group[root]/Group[places]/CustomData/Item[kpg-onlyB]/KpgX	only-open dropped
+X/Root/Group[root]/Group[places]/CustomData/Item[kpg-onlyB]/LastModificationTime	only-open dropped
+X/Root/Group[root]/Group[places]/CustomData/Item[kpg-onlyB]/Value	only-open kept
+X/Root/Group[root]/Group[places]/CustomData/Item[kpg-shared]/Value	open
+X/Root/Group[root]/Group[places]/DefaultAutoTypeSequence	open
+X/Root/Group[root]/Group[places]/EnableAutoType	other (null)
+X/Root/Group[root]/Group[places]/EnableSearching	other (null)
+X/Root/Group[root]/Group[places]/Entry[entry]/AutoType/Association[0]/KeystrokeSequence	open
+X/Root/Group[root]/Group[places]/Entry[entry]/AutoType/Association[0]/KpgX	dropped
+X/Root/Group[root]/Group[places]/Entry[entry]/AutoType/Association[0]/Window	open
+X/Root/Group[root]/Group[places]/Entry[entry]/AutoType/DataTransferObfuscation	open
+X/Root/Group[root]/Group[places]/Entry[entry]/AutoType/DefaultSequence	open
+X/Root/Group[root]/Group[places]/Entry[entry]/AutoType/Enabled	open
+X/Root/Group[root]/Group[places]/Entry[entry]/AutoType/KpgX	dropped
+X/Root/Group[root]/Group[places]/Entry[entry]/BackgroundColor	open
+X/Root/Group[root]/Group[places]/Entry[entry]/Binary[kpg-att.txt]/KpgX	dropped
+X/Root/Group[root]/Group[places]/Entry[entry]/Binary[kpg-att.txt]/Value	open
+X/Root/Group[root]/Group[places]/Entry[entry]/CustomData/Item[_LAST_MODIFIED]/Key	new (_LAST_MODIFIED)
+X/Root/Group[root]/Group[places]/Entry[entry]/CustomData/Item[_LAST_MODIFIED]/Value	new (Mo Nov 16 13:02:58 2026 GMT)
+X/Root/Group[root]/Group[places]/Entry[entry]/CustomData/Item[kpg-onlyA]/Key	only-arriving not taken
+X/Root/Group[root]/Group[places]/Entry[entry]/CustomData/Item[kpg-onlyA]/KpgX	only-arriving not taken
+X/Root/Group[root]/Group[places]/Entry[entry]/CustomData/Item[kpg-onlyA]/LastModificationTime	only-arriving not taken
+X/Root/Group[root]/Group[places]/Entry[entry]/CustomData/Item[kpg-onlyA]/Value	only-arriving not taken
+X/Root/Group[root]/Group[places]/Entry[entry]/CustomData/Item[kpg-onlyB]/Key	only-open kept
+X/Root/Group[root]/Group[places]/Entry[entry]/CustomData/Item[kpg-onlyB]/KpgX	only-open dropped
+X/Root/Group[root]/Group[places]/Entry[entry]/CustomData/Item[kpg-onlyB]/LastModificationTime	only-open dropped
+X/Root/Group[root]/Group[places]/Entry[entry]/CustomData/Item[kpg-onlyB]/Value	only-open kept
+X/Root/Group[root]/Group[places]/Entry[entry]/CustomData/Item[kpg-shared]/Value	open
+X/Root/Group[root]/Group[places]/Entry[entry]/ForegroundColor	open
+X/Root/Group[root]/Group[places]/Entry[entry]/History/Entry[0]/AutoType/DefaultSequence	new ()
+X/Root/Group[root]/Group[places]/Entry[entry]/History/Entry[0]/BackgroundColor	open
+X/Root/Group[root]/Group[places]/Entry[entry]/History/Entry[0]/ForegroundColor	open
+X/Root/Group[root]/Group[places]/Entry[entry]/History/Entry[0]/IconID	other (0)
+X/Root/Group[root]/Group[places]/Entry[entry]/History/Entry[0]/KpgX	dropped
+X/Root/Group[root]/Group[places]/Entry[entry]/History/Entry[0]/OverrideURL	open
+X/Root/Group[root]/Group[places]/Entry[entry]/History/Entry[0]/PreviousParentGroup	open
+X/Root/Group[root]/Group[places]/Entry[entry]/History/Entry[0]/QualityCheck	only-arriving not taken
+X/Root/Group[root]/Group[places]/Entry[entry]/History/Entry[0]/String[Notes]/Key	new (Notes)
+X/Root/Group[root]/Group[places]/Entry[entry]/History/Entry[0]/String[Notes]/Value	new ()
+X/Root/Group[root]/Group[places]/Entry[entry]/History/Entry[0]/String[Password]/Key	new (Password)
+X/Root/Group[root]/Group[places]/Entry[entry]/History/Entry[0]/String[Password]/Value	new ()
+X/Root/Group[root]/Group[places]/Entry[entry]/History/Entry[0]/String[Password]/Value@Protected	new (True)
+X/Root/Group[root]/Group[places]/Entry[entry]/History/Entry[0]/String[Title]/Value@Protected	only-open kept
+X/Root/Group[root]/Group[places]/Entry[entry]/History/Entry[0]/String[URL]/Key	new (URL)
+X/Root/Group[root]/Group[places]/Entry[entry]/History/Entry[0]/String[URL]/Value	new ()
+X/Root/Group[root]/Group[places]/Entry[entry]/History/Entry[0]/String[UserName]/Key	new (UserName)
+X/Root/Group[root]/Group[places]/Entry[entry]/History/Entry[0]/String[UserName]/Value	new ()
+X/Root/Group[root]/Group[places]/Entry[entry]/History/Entry[0]/Tags	open
+X/Root/Group[root]/Group[places]/Entry[entry]/History/Entry[0]/Times/ExpiryTime	open
+X/Root/Group[root]/Group[places]/Entry[entry]/History/Entry[0]/Times/UsageCount	open
+X/Root/Group[root]/Group[places]/Entry[entry]/History/Entry[1]/AutoType/Association[0]/KeystrokeSequence	new (kpg:E.at-keys:A)
+X/Root/Group[root]/Group[places]/Entry[entry]/History/Entry[1]/AutoType/Association[0]/Window	new (kpg:E.at-window:A)
+X/Root/Group[root]/Group[places]/Entry[entry]/History/Entry[1]/AutoType/DataTransferObfuscation	new (1)
+X/Root/Group[root]/Group[places]/Entry[entry]/History/Entry[1]/AutoType/DefaultSequence	new (kpg:E.at-sequence:A)
+X/Root/Group[root]/Group[places]/Entry[entry]/History/Entry[1]/AutoType/Enabled	new (False)
+X/Root/Group[root]/Group[places]/Entry[entry]/History/Entry[1]/BackgroundColor	new (#0B0C0D)
+X/Root/Group[root]/Group[places]/Entry[entry]/History/Entry[1]/Binary[kpg-att.txt]/Key	new (kpg-att.txt)
+X/Root/Group[root]/Group[places]/Entry[entry]/History/Entry[1]/Binary[kpg-att.txt]/Value	new (ref 1 = kpg:E.binary:A)
+X/Root/Group[root]/Group[places]/Entry[entry]/History/Entry[1]/CustomData/Item[_LAST_MODIFIED]/Key	new (_LAST_MODIFIED)
+X/Root/Group[root]/Group[places]/Entry[entry]/History/Entry[1]/CustomData/Item[_LAST_MODIFIED]/Value	new (Mo Nov 16 13:03:14 2026 GMT)
+X/Root/Group[root]/Group[places]/Entry[entry]/History/Entry[1]/CustomData/Item[kpg-onlyA]/Key	new (kpg-onlyA)
+X/Root/Group[root]/Group[places]/Entry[entry]/History/Entry[1]/CustomData/Item[kpg-onlyA]/Value	new (kpg:E.cd.onlyA:A)
+X/Root/Group[root]/Group[places]/Entry[entry]/History/Entry[1]/CustomData/Item[kpg-shared]/Key	new (kpg-shared)
+X/Root/Group[root]/Group[places]/Entry[entry]/History/Entry[1]/CustomData/Item[kpg-shared]/Value	new (kpg:E.cd:A)
+X/Root/Group[root]/Group[places]/Entry[entry]/History/Entry[1]/CustomIconUUID	new (icon-used)
+X/Root/Group[root]/Group[places]/Entry[entry]/History/Entry[1]/ForegroundColor	new (#010203)
+X/Root/Group[root]/Group[places]/Entry[entry]/History/Entry[1]/IconID	new (0)
+X/Root/Group[root]/Group[places]/Entry[entry]/History/Entry[1]/OverrideURL	new (kpg:E.override-url:A)
+X/Root/Group[root]/Group[places]/Entry[entry]/History/Entry[1]/PreviousParentGroup	new (bin)
+X/Root/Group[root]/Group[places]/Entry[entry]/History/Entry[1]/QualityCheck	new (False)
+X/Root/Group[root]/Group[places]/Entry[entry]/History/Entry[1]/String[Notes]/Key	new (Notes)
+X/Root/Group[root]/Group[places]/Entry[entry]/History/Entry[1]/String[Notes]/Value	new ()
+X/Root/Group[root]/Group[places]/Entry[entry]/History/Entry[1]/String[Password]/Key	new (Password)
+X/Root/Group[root]/Group[places]/Entry[entry]/History/Entry[1]/String[Password]/Value	new ()
+X/Root/Group[root]/Group[places]/Entry[entry]/History/Entry[1]/String[Password]/Value@Protected	new (True)
+X/Root/Group[root]/Group[places]/Entry[entry]/History/Entry[1]/String[Title]/Key	new (Title)
+X/Root/Group[root]/Group[places]/Entry[entry]/History/Entry[1]/String[Title]/Value	new (kpg:E.title:A)
+X/Root/Group[root]/Group[places]/Entry[entry]/History/Entry[1]/String[Title]/Value@Protected	new (True)
+X/Root/Group[root]/Group[places]/Entry[entry]/History/Entry[1]/String[URL]/Key	new (URL)
+X/Root/Group[root]/Group[places]/Entry[entry]/History/Entry[1]/String[URL]/Value	new ()
+X/Root/Group[root]/Group[places]/Entry[entry]/History/Entry[1]/String[UserName]/Key	new (UserName)
+X/Root/Group[root]/Group[places]/Entry[entry]/History/Entry[1]/String[UserName]/Value	new ()
+X/Root/Group[root]/Group[places]/Entry[entry]/History/Entry[1]/String[kpg-plain]/Key	new (kpg-plain)
+X/Root/Group[root]/Group[places]/Entry[entry]/History/Entry[1]/String[kpg-plain]/Value	new (kpg:E.string:A)
+X/Root/Group[root]/Group[places]/Entry[entry]/History/Entry[1]/String[kpg-protected]/Key	new (kpg-protected)
+X/Root/Group[root]/Group[places]/Entry[entry]/History/Entry[1]/String[kpg-protected]/Value	new (kpg:E.protected:A)
+X/Root/Group[root]/Group[places]/Entry[entry]/History/Entry[1]/String[kpg-protected]/Value@Protected	new (True)
+X/Root/Group[root]/Group[places]/Entry[entry]/History/Entry[1]/Tags	new (kpg:E.tags:A)
+X/Root/Group[root]/Group[places]/Entry[entry]/History/Entry[1]/Times/CreationTime	new (2026-01-01T00:00:00Z)
+X/Root/Group[root]/Group[places]/Entry[entry]/History/Entry[1]/Times/Expires	new (True)
+X/Root/Group[root]/Group[places]/Entry[entry]/History/Entry[1]/Times/ExpiryTime	new (2032-01-01T00:00:00Z)
+X/Root/Group[root]/Group[places]/Entry[entry]/History/Entry[1]/Times/LastAccessTime	new (2026-02-01T00:00:00Z)
+X/Root/Group[root]/Group[places]/Entry[entry]/History/Entry[1]/Times/LastModificationTime	new (2026-02-01T00:00:00Z)
+X/Root/Group[root]/Group[places]/Entry[entry]/History/Entry[1]/Times/LocationChanged	new (2026-02-01T00:00:00Z)
+X/Root/Group[root]/Group[places]/Entry[entry]/History/Entry[1]/Times/UsageCount	new (72)
+X/Root/Group[root]/Group[places]/Entry[entry]/History/Entry[1]/UUID	new (entry)
+X/Root/Group[root]/Group[places]/Entry[entry]/IconID	other (0)
+X/Root/Group[root]/Group[places]/Entry[entry]/KpgX	dropped
+X/Root/Group[root]/Group[places]/Entry[entry]/OverrideURL	open
+X/Root/Group[root]/Group[places]/Entry[entry]/PreviousParentGroup	open
+X/Root/Group[root]/Group[places]/Entry[entry]/QualityCheck	only-arriving not taken
+X/Root/Group[root]/Group[places]/Entry[entry]/String[Notes]/Key	new (Notes)
+X/Root/Group[root]/Group[places]/Entry[entry]/String[Notes]/Value	new ()
+X/Root/Group[root]/Group[places]/Entry[entry]/String[Password]/Key	new (Password)
+X/Root/Group[root]/Group[places]/Entry[entry]/String[Password]/Value	new ()
+X/Root/Group[root]/Group[places]/Entry[entry]/String[Password]/Value@Protected	new (True)
+X/Root/Group[root]/Group[places]/Entry[entry]/String[Title]/Value	open
+X/Root/Group[root]/Group[places]/Entry[entry]/String[Title]/Value@Protected	only-open kept
+X/Root/Group[root]/Group[places]/Entry[entry]/String[URL]/Key	new (URL)
+X/Root/Group[root]/Group[places]/Entry[entry]/String[URL]/Value	new ()
+X/Root/Group[root]/Group[places]/Entry[entry]/String[UserName]/Key	new (UserName)
+X/Root/Group[root]/Group[places]/Entry[entry]/String[UserName]/Value	new ()
+X/Root/Group[root]/Group[places]/Entry[entry]/String[kpg-plain]/KpgX	dropped
+X/Root/Group[root]/Group[places]/Entry[entry]/String[kpg-plain]/Value	open
+X/Root/Group[root]/Group[places]/Entry[entry]/String[kpg-plain]/Value@kpgAttribute	dropped
+X/Root/Group[root]/Group[places]/Entry[entry]/String[kpg-protected]/Value	open
+X/Root/Group[root]/Group[places]/Entry[entry]/Tags	open
+X/Root/Group[root]/Group[places]/Entry[entry]/Times/ExpiryTime	open
+X/Root/Group[root]/Group[places]/Entry[entry]/Times/KpgX	dropped
+X/Root/Group[root]/Group[places]/Entry[entry]/Times/LastAccessTime	open
+X/Root/Group[root]/Group[places]/Entry[entry]/Times/LastModificationTime	open
+X/Root/Group[root]/Group[places]/Entry[entry]/Times/LocationChanged	open
+X/Root/Group[root]/Group[places]/Entry[entry]/Times/UsageCount	open
+X/Root/Group[root]/Group[places]/Entry[entry]@kpgAttribute	dropped
+X/Root/Group[root]/Group[places]/IconID	other (0)
+X/Root/Group[root]/Group[places]/IsExpanded	open
+X/Root/Group[root]/Group[places]/KpgX	dropped
+X/Root/Group[root]/Group[places]/LastTopVisibleEntry	other (00000000-0000-0000-0000-000000000000)
+X/Root/Group[root]/Group[places]/Name	open
+X/Root/Group[root]/Group[places]/Notes	open
+X/Root/Group[root]/Group[places]/PreviousParentGroup	open
+X/Root/Group[root]/Group[places]/Tags	open
+X/Root/Group[root]/Group[places]/Times/ExpiryTime	open
+X/Root/Group[root]/Group[places]/Times/KpgX	dropped
+X/Root/Group[root]/Group[places]/Times/LastAccessTime	open
+X/Root/Group[root]/Group[places]/Times/LastModificationTime	open
+X/Root/Group[root]/Group[places]/Times/LocationChanged	open
+X/Root/Group[root]/Group[places]/Times/UsageCount	open
+X/Root/Group[root]/Group[places]@kpgAttribute	dropped
+X/Root/Group[root]/Group[prev]/EnableAutoType	rewritten (null)
+X/Root/Group[root]/Group[prev]/EnableSearching	rewritten (null)
+X/Root/Group[root]/Group[tpl2]/EnableAutoType	rewritten (null)
+X/Root/Group[root]/Group[tpl2]/EnableSearching	rewritten (null)
+X/Root/Group[root]/Group[tpl]/EnableAutoType	rewritten (null)
+X/Root/Group[root]/Group[tpl]/EnableSearching	rewritten (null)
+X/Root/KpgX	dropped

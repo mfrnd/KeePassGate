@@ -1,0 +1,9 @@
+# E.at-window 65536 chars, file 52622 bytes
+keepass-2.62-resave	kept	0.4 s
+keepass-2.47-resave	kept	0.9 s
+kdbxweb-resave	kept	0.2 s
+pykeepass-resave	kept	2.1 s
+keepassxc-2.4.2-add	kept	1.1 s
+keepassxc-2.6.6-add	kept	0.7 s
+keepassxc-2.7.12-add	kept	4.1 s
+keepassxc-2.8.0-add	kept	0.4 s

@@ -1,0 +1,6 @@
+# 247 paths, 242 kept
+H.EncryptionIV	rewritten (fresh random)
+H.MasterSeed	rewritten (fresh random)
+H.kdf[S]	rewritten (fresh random)
+I.InnerRandomStreamKey	rewritten (fresh random)
+T.trailing	gone (was kpg:T.trailing:base)

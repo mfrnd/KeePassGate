@@ -1,0 +1,7 @@
+# 233 paths, 227 kept
+H.EncryptionIV	rewritten (fresh random)
+H.EndOfHeader	changed (0d0a0d0a6b70673a482e656f683a62617365 -> 0d0a0d0a)
+H.MasterSeed	rewritten (fresh random)
+H.kdf[S]	rewritten (fresh random)
+I.InnerRandomStreamKey	rewritten (fresh random)
+X/Meta/MemoryProtection/ProtectNotes	changed (True -> False)

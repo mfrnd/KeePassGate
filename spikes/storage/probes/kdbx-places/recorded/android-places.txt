@@ -1,0 +1,126 @@
+# place	what it is	file	dump line that shows it
+H.version	format version	clean-base	H.version	4.1
+H.comment	outer header field 1, comment	place-comment	H.Comment	kpg:H.comment:base
+H.kdf	a key of the plugin's own in the KDF parameters	clean-base	H.kdf[KPG_kdf]	String:kpg:H.kdf:base
+H.kdf.only	a KDF key only one copy holds	clean-A-diff / clean-B-diff	H.kdf[KPG_kdf_onlyA]	String:kpg:H.kdf.onlyA:A
+H.pcd	public custom data, a string key both copies hold	clean-base	H.pcd[KPG_shared]	String:kpg:H.pcd:base
+H.pcd.uint64	public custom data, a UInt64 key	clean-base	H.pcd[KPG_counter]	UInt64:100
+H.pcd.bytes	public custom data, a byte array key	clean-base	H.pcd[KPG_bytes]	Bytes:<20 bytes sha256:b40dcd573abddde3> text=kpg:H.pcd.bytes:base
+H.pcd.only	public custom data, a key only one copy holds	clean-A-diff / clean-B-diff	H.pcd[KPG_onlyA]	String:kpg:H.pcd.onlyA:A
+H.eoh	end of header field's content	place-eoh	H.EndOfHeader	0d0a0d0a6b70673a482e656f683a62617365
+H.field13	an outer header field of an undefined identifier	place-hfield	H.field13	kpg:H.field13:base
+I.unreferenced	an inner header binary no entry refers to	place-unreferenced	I.Binary[I.unreferenced]	kpg:I.unreferenced:base flags=0 refs=0
+I.binary	an attachment's binary and its flags	clean-base	I.Binary[E.binary]	kpg:E.binary:base flags=0 refs=1
+I.field4	an inner header field of an undefined identifier	place-ifield	I.field4	kpg:I.field4:base
+T.trailing	bytes after the last block	place-trailing	T.trailing	kpg:T.trailing:base
+M.generator	Generator	place-generator	X/Meta/Generator	kpg:M.generator:base
+M.settings-changed	SettingsChanged	clean-base	X/Meta/SettingsChanged	2026-01-01T00:00:00Z
+M.name	DatabaseName	clean-base	X/Meta/DatabaseName	kpg:M.name:base
+M.name-changed	DatabaseNameChanged	clean-base	X/Meta/DatabaseNameChanged	2026-01-01T00:00:00Z
+M.desc	DatabaseDescription	clean-base	X/Meta/DatabaseDescription	kpg:M.desc:base
+M.desc-changed	DatabaseDescriptionChanged	clean-base	X/Meta/DatabaseDescriptionChanged	2026-01-01T00:00:00Z
+M.user	DefaultUserName	clean-base	X/Meta/DefaultUserName	kpg:M.user:base
+M.user-changed	DefaultUserNameChanged	clean-base	X/Meta/DefaultUserNameChanged	2026-01-01T00:00:00Z
+M.history-days	MaintenanceHistoryDays	clean-base	X/Meta/MaintenanceHistoryDays	301
+M.color	Color	clean-base	X/Meta/Color	#102030
+M.key-changed	MasterKeyChanged	clean-base	X/Meta/MasterKeyChanged	2026-01-01T00:00:00Z
+M.key-rec	MasterKeyChangeRec	clean-base	X/Meta/MasterKeyChangeRec	11
+M.key-force	MasterKeyChangeForce	clean-base	X/Meta/MasterKeyChangeForce	21
+M.key-force-once	MasterKeyChangeForceOnce	clean-base	X/Meta/MasterKeyChangeForceOnce	True
+M.memprot	MemoryProtection, the five flags	clean-base	X/Meta/MemoryProtection/ProtectTitle	False
+			X/Meta/MemoryProtection/ProtectUserName	False
+			X/Meta/MemoryProtection/ProtectPassword	True
+			X/Meta/MemoryProtection/ProtectURL	False
+			X/Meta/MemoryProtection/ProtectNotes	True
+M.icon.data	a custom icon's data	clean-base	X/Meta/CustomIcons/Icon[icon-used]/Data	<158 bytes sha256:6f3d918e3be4da7f>
+M.icon.name	a custom icon's name (4.1)	clean-base	X/Meta/CustomIcons/Icon[icon-used]/Name	kpg:M.icon.used.name:base
+M.icon.time	a custom icon's time (4.1)	clean-base	X/Meta/CustomIcons/Icon[icon-used]/LastModificationTime	2026-01-01T00:00:00Z
+M.icon.unused	a custom icon no node uses	clean-base	X/Meta/CustomIcons/Icon[icon-unused]/UUID	icon-unused
+M.icon.only	a custom icon only one copy holds	clean-A-diff / clean-B-diff	X/Meta/CustomIcons/Icon[icon-onlyA]/UUID	icon-onlyA
+M.bin-enabled	RecycleBinEnabled	clean-base	X/Meta/RecycleBinEnabled	True
+M.bin-uuid	RecycleBinUUID	clean-base	X/Meta/RecycleBinUUID	bin
+M.bin-changed	RecycleBinChanged	clean-base	X/Meta/RecycleBinChanged	2026-01-01T00:00:00Z
+M.template	EntryTemplatesGroup	clean-base	X/Meta/EntryTemplatesGroup	tpl
+M.template-changed	EntryTemplatesGroupChanged	clean-base	X/Meta/EntryTemplatesGroupChanged	2026-01-01T00:00:00Z
+M.history-max-items	HistoryMaxItems	clean-base	X/Meta/HistoryMaxItems	31
+M.history-max-size	HistoryMaxSize	clean-base	X/Meta/HistoryMaxSize	4000001
+M.last-selected	LastSelectedGroup	clean-base	X/Meta/LastSelectedGroup	places
+M.last-top-visible	LastTopVisibleGroup	clean-base	X/Meta/LastTopVisibleGroup	prev
+M.cd	the database's custom data, a key both copies hold	clean-base	X/Meta/CustomData/Item[kpg-shared]/Value	kpg:M.cd:base
+M.cd.time	its per-key time (4.1)	clean-base	X/Meta/CustomData/Item[kpg-shared]/LastModificationTime	2026-01-01T00:00:00Z
+M.cd.only	a key only one copy holds	clean-A-diff / clean-B-diff	X/Meta/CustomData/Item[kpg-onlyA]/Value	kpg:M.cd.onlyA:A
+G.name	group Name	clean-base	X/Root/Group[root]/Group[places]/Name	kpg:G.name:base
+G.notes	group Notes	clean-base	X/Root/Group[root]/Group[places]/Notes	kpg:G.notes:base
+G.icon	group IconID	clean-base	X/Root/Group[root]/Group[places]/IconID	41
+G.custom-icon	group CustomIconUUID	clean-base	X/Root/Group[root]/Group[places]/CustomIconUUID	icon-used
+G.times.creation	group CreationTime	clean-base	X/Root/Group[root]/Group[places]/Times/CreationTime	2026-01-01T00:00:00Z
+G.times.lastmod	group LastModificationTime	clean-base	X/Root/Group[root]/Group[places]/Times/LastModificationTime	2026-01-01T00:00:00Z
+G.times.last-access	group LastAccessTime	clean-base	X/Root/Group[root]/Group[places]/Times/LastAccessTime	2026-01-01T00:00:00Z
+G.times.expiry	group ExpiryTime	clean-base	X/Root/Group[root]/Group[places]/Times/ExpiryTime	2031-06-01T00:00:00Z
+G.times.expires	group Expires	clean-base	X/Root/Group[root]/Group[places]/Times/Expires	True
+G.times.usage	group UsageCount	clean-base	X/Root/Group[root]/Group[places]/Times/UsageCount	61
+G.times.location	group LocationChanged	clean-base	X/Root/Group[root]/Group[places]/Times/LocationChanged	2026-01-01T00:00:00Z
+G.expanded	group IsExpanded	clean-base	X/Root/Group[root]/Group[places]/IsExpanded	True
+G.at-sequence	group DefaultAutoTypeSequence	clean-base	X/Root/Group[root]/Group[places]/DefaultAutoTypeSequence	kpg:G.at-sequence:base
+G.enable-auto-type	group EnableAutoType	clean-base	X/Root/Group[root]/Group[places]/EnableAutoType	True
+G.enable-searching	group EnableSearching	clean-base	X/Root/Group[root]/Group[places]/EnableSearching	False
+G.last-top-entry	group LastTopVisibleEntry	clean-base	X/Root/Group[root]/Group[places]/LastTopVisibleEntry	entry
+G.previous-parent	group PreviousParentGroup (4.1)	clean-base	X/Root/Group[root]/Group[places]/PreviousParentGroup	prev
+G.tags	group Tags (4.1)	clean-base	X/Root/Group[root]/Group[places]/Tags	kpg:G.tags:base
+G.cd	group custom data, a key both copies hold	clean-base	X/Root/Group[root]/Group[places]/CustomData/Item[kpg-shared]/Value	kpg:G.cd:base
+G.cd.time	a time on a group custom data item	place-node-cd-time	X/Root/Group[root]/Group[places]/CustomData/Item[kpg-shared]/LastModificationTime	2026-01-01T00:00:00Z
+G.cd.only	group custom data, a key only one copy holds	clean-A-diff / clean-B-diff	X/Root/Group[root]/Group[places]/CustomData/Item[kpg-onlyA]/Value	kpg:G.cd.onlyA:A
+E.icon	entry IconID	clean-base	X/Root/Group[root]/Group[places]/Entry[entry]/IconID	51
+E.custom-icon	entry CustomIconUUID	clean-base	X/Root/Group[root]/Group[places]/Entry[entry]/CustomIconUUID	icon-used
+E.fg	entry ForegroundColor	clean-base	X/Root/Group[root]/Group[places]/Entry[entry]/ForegroundColor	#070809
+E.bg	entry BackgroundColor	clean-base	X/Root/Group[root]/Group[places]/Entry[entry]/BackgroundColor	#111213
+E.override-url	entry OverrideURL	clean-base	X/Root/Group[root]/Group[places]/Entry[entry]/OverrideURL	kpg:E.override-url:base
+E.quality-check	entry QualityCheck (4.1)	clean-base	X/Root/Group[root]/Group[places]/Entry[entry]/QualityCheck	False
+E.tags	entry Tags	clean-base	X/Root/Group[root]/Group[places]/Entry[entry]/Tags	kpg:E.tags:base
+E.previous-parent	entry PreviousParentGroup (4.1)	clean-base	X/Root/Group[root]/Group[places]/Entry[entry]/PreviousParentGroup	prev
+E.times.creation	entry CreationTime	clean-base	X/Root/Group[root]/Group[places]/Entry[entry]/Times/CreationTime	2026-01-01T00:00:00Z
+E.times.lastmod	entry LastModificationTime	clean-base	X/Root/Group[root]/Group[places]/Entry[entry]/Times/LastModificationTime	2026-01-01T00:00:00Z
+E.times.last-access	entry LastAccessTime	clean-base	X/Root/Group[root]/Group[places]/Entry[entry]/Times/LastAccessTime	2026-01-01T00:00:00Z
+E.times.expiry	entry ExpiryTime	clean-base	X/Root/Group[root]/Group[places]/Entry[entry]/Times/ExpiryTime	2031-01-01T00:00:00Z
+E.times.expires	entry Expires	clean-base	X/Root/Group[root]/Group[places]/Entry[entry]/Times/Expires	True
+E.times.usage	entry UsageCount	clean-base	X/Root/Group[root]/Group[places]/Entry[entry]/Times/UsageCount	71
+E.times.location	entry LocationChanged	clean-base	X/Root/Group[root]/Group[places]/Entry[entry]/Times/LocationChanged	2026-01-01T00:00:00Z
+E.title	entry Title	clean-base	X/Root/Group[root]/Group[places]/Entry[entry]/String[Title]/Value	kpg:E.title:base
+E.string	entry custom string	clean-base	X/Root/Group[root]/Group[places]/Entry[entry]/String[kpg-plain]/Value	kpg:E.string:base
+E.protected	entry protected custom string	clean-base	X/Root/Group[root]/Group[places]/Entry[entry]/String[kpg-protected]/Value	kpg:E.protected:base
+E.protected.flag	its Protected attribute	clean-base	X/Root/Group[root]/Group[places]/Entry[entry]/String[kpg-protected]/Value@Protected	True
+E.binary	entry attachment reference	clean-base	X/Root/Group[root]/Group[places]/Entry[entry]/Binary[kpg-att.txt]/Value	ref 0 = kpg:E.binary:base
+E.at.enabled	entry AutoType Enabled	clean-base	X/Root/Group[root]/Group[places]/Entry[entry]/AutoType/Enabled	True
+E.at.obfuscation	entry AutoType DataTransferObfuscation	clean-base	X/Root/Group[root]/Group[places]/Entry[entry]/AutoType/DataTransferObfuscation	0
+E.at.sequence	entry AutoType DefaultSequence	clean-base	X/Root/Group[root]/Group[places]/Entry[entry]/AutoType/DefaultSequence	kpg:E.at-sequence:base
+E.at.association	entry AutoType Association	clean-base	X/Root/Group[root]/Group[places]/Entry[entry]/AutoType/Association[0]/Window	kpg:E.at-window:base
+			X/Root/Group[root]/Group[places]/Entry[entry]/AutoType/Association[0]/KeystrokeSequence	kpg:E.at-keys:base
+E.history	entry History item	clean-base	X/Root/Group[root]/Group[places]/Entry[entry]/History/Entry[0]/String[Title]/Value	kpg-entry-before
+E.cd	entry custom data, a key both copies hold	clean-base	X/Root/Group[root]/Group[places]/Entry[entry]/CustomData/Item[kpg-shared]/Value	kpg:E.cd:base
+E.cd.time	a time on an entry custom data item	place-node-cd-time	X/Root/Group[root]/Group[places]/Entry[entry]/CustomData/Item[kpg-shared]/LastModificationTime	2026-01-01T00:00:00Z
+E.cd.only	entry custom data, a key only one copy holds	clean-A-diff / clean-B-diff	X/Root/Group[root]/Group[places]/Entry[entry]/CustomData/Item[kpg-onlyA]/Value	kpg:E.cd.onlyA:A
+D.shared	a deletion record both copies hold, its time	clean-base	X/Root/DeletedObjects/DeletedObject[del-shared]/DeletionTime	2026-01-01T00:00:00Z
+D.only	a deletion record only one copy holds	clean-A-diff / clean-B-diff	X/Root/DeletedObjects/DeletedObject[del-onlyA]/UUID	del-onlyA
+X.file	an unknown element in KeePassFile	place-xml-other	X/KpgX	kpg:X.file:base
+X.meta	an unknown element in Meta	place-xml-meta	X/Meta/KpgX	kpg:X.meta:base
+X.memprot	in MemoryProtection	place-xml-meta	X/Meta/MemoryProtection/KpgX	kpg:X.memprot:base
+X.icon	in a custom icon	place-xml-meta	X/Meta/CustomIcons/Icon[icon-used]/KpgX	kpg:X.icon:base
+X.meta.cd-item	in a Meta custom data item	place-xml-meta	X/Meta/CustomData/Item[kpg-shared]/KpgX	kpg:X.meta.cd-item:base
+X.root	in Root	place-xml-other	X/Root/KpgX	kpg:X.root:base
+X.group	in a group	place-xml-other	X/Root/Group[root]/Group[places]/KpgX	kpg:X.group:base
+X.group.times	in a group's Times	place-xml-other	X/Root/Group[root]/Group[places]/Times/KpgX	kpg:X.group.times:base
+X.group.cd-item	in a group custom data item	place-xml-other	X/Root/Group[root]/Group[places]/CustomData/Item[kpg-shared]/KpgX	kpg:X.group.cd-item:base
+X.entry	in an entry	place-xml-other	X/Root/Group[root]/Group[places]/Entry[entry]/KpgX	kpg:X.entry:base
+X.entry.times	in an entry's Times	place-xml-other	X/Root/Group[root]/Group[places]/Entry[entry]/Times/KpgX	kpg:X.entry.times:base
+X.entry.string	in an entry String	place-xml-other	X/Root/Group[root]/Group[places]/Entry[entry]/String[kpg-plain]/KpgX	kpg:X.entry.string:base
+X.entry.binary	in an entry Binary	place-xml-other	X/Root/Group[root]/Group[places]/Entry[entry]/Binary[kpg-att.txt]/KpgX	kpg:X.entry.binary:base
+X.entry.autotype	in AutoType	place-xml-other	X/Root/Group[root]/Group[places]/Entry[entry]/AutoType/KpgX	kpg:X.entry.autotype:base
+X.entry.association	in an Association	place-xml-other	X/Root/Group[root]/Group[places]/Entry[entry]/AutoType/Association[0]/KpgX	kpg:X.entry.association:base
+X.entry.cd-item	in an entry custom data item	place-xml-other	X/Root/Group[root]/Group[places]/Entry[entry]/CustomData/Item[kpg-shared]/KpgX	kpg:X.entry.cd-item:base
+X.entry.history	in a history item	place-xml-other	X/Root/Group[root]/Group[places]/Entry[entry]/History/Entry[0]/KpgX	kpg:X.entry.history:base
+X.deleted	in a DeletedObject	place-xml-other	X/Root/DeletedObjects/DeletedObject[del-shared]/KpgX	kpg:X.deleted:base
+XA.meta	an unknown attribute on Meta	place-attrs	X/Meta@kpgAttribute	kpg:XA.meta:base
+XA.group	on a Group	place-attrs	X/Root/Group[root]/Group[places]@kpgAttribute	kpg:XA.group:base
+XA.entry	on an Entry	place-attrs	X/Root/Group[root]/Group[places]/Entry[entry]@kpgAttribute	kpg:XA.entry:base
+XA.value	on a String's Value	place-attrs	X/Root/Group[root]/Group[places]/Entry[entry]/String[kpg-plain]/Value@kpgAttribute	kpg:XA.value:base
+XC.meta	an XML comment in Meta	place-xml-comment	X/Meta/comment()	kpg:XC.meta:base

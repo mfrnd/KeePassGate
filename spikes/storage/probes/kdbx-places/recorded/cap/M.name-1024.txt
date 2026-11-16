@@ -1,0 +1,9 @@
+# M.name 1024 chars, file 3358 bytes
+keepass-2.62-resave	kept	0.4 s
+keepass-2.47-resave	kept	1.4 s
+kdbxweb-resave	kept	0.3 s
+pykeepass-resave	kept	3.7 s
+keepassxc-2.4.2-add	kept	3.4 s
+keepassxc-2.6.6-add	kept	0.5 s
+keepassxc-2.7.12-add	kept	0.3 s
+keepassxc-2.8.0-add	kept	0.4 s

@@ -1,0 +1,9 @@
+# M.icon.data 65536 chars, file 65198 bytes
+keepass-2.62-resave	kept	0.6 s
+keepass-2.47-resave	kept	1.1 s
+kdbxweb-resave	kept	0.3 s
+pykeepass-resave	kept	2.6 s
+keepassxc-2.4.2-add	rewritten (to <49411 bytes sha256:e5b8ede70d39f780>)	1.0 s
+keepassxc-2.6.6-add	rewritten (to <49648 bytes sha256:18deada282750f7e>)	0.7 s
+keepassxc-2.7.12-add	kept	5.8 s
+keepassxc-2.8.0-add	kept	1.0 s

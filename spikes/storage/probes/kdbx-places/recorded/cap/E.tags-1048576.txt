@@ -1,0 +1,9 @@
+# E.tags 1048576 chars, file 791838 bytes
+keepass-2.62-resave	kept	0.7 s
+keepass-2.47-resave	kept	1.7 s
+kdbxweb-resave	kept	0.5 s
+pykeepass-resave	kept	7.4 s
+keepassxc-2.4.2-add	kept	0.8 s
+keepassxc-2.6.6-add	kept	2.3 s
+keepassxc-2.7.12-add	kept	1.9 s
+keepassxc-2.8.0-add	kept	0.6 s

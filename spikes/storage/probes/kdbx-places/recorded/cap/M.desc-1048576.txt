@@ -1,0 +1,9 @@
+# M.desc 1048576 chars, file 791390 bytes
+keepass-2.62-resave	kept	0.8 s
+keepass-2.47-resave	kept	1.3 s
+kdbxweb-resave	kept	0.5 s
+pykeepass-resave	kept	2.2 s
+keepassxc-2.4.2-add	kept	1.2 s
+keepassxc-2.6.6-add	kept	0.9 s
+keepassxc-2.7.12-add	kept	0.7 s
+keepassxc-2.8.0-add	kept	0.8 s

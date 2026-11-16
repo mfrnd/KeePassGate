@@ -1,0 +1,9 @@
+# M.icon.name 65536 chars, file 52366 bytes
+keepass-2.62-resave	kept	0.8 s
+keepass-2.47-resave	dropped	1.1 s
+kdbxweb-resave	kept	0.4 s
+pykeepass-resave	kept	7.5 s
+keepassxc-2.4.2-add	dropped	0.8 s
+keepassxc-2.6.6-add	dropped	0.8 s
+keepassxc-2.7.12-add	kept	0.7 s
+keepassxc-2.8.0-add	kept	0.9 s
