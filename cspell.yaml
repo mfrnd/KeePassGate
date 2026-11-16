@@ -454,7 +454,9 @@ words:
   # and the field `keybytes` of `bridge.py` and `store.py`, `hbytes`, `sbytes` and `maxafter` of
   # `growth.py`, `tbin`, `tdel` and `nread` of `cases.py`, `undoc` of `read.py`; and the
   # environment variable `PSMODULEPATH` that `kp.py` clears. For the store as decided, the count
-  # `byhistory` that `read.py` adds to its answer, which `recorded-decided\` holds.
+  # `byhistory` that `read.py` adds to its answer, which `recorded-decided\` holds. For the two
+  # readings, the command `recanon` of `Store.cs`, the fields `byhist`, `hidx` and `fromcopy` of
+  # `read.py`, whose count `recorded-copies\` holds, and `nrewrites` and `nstops` of `cases.py`.
   - ckey
   - revkey
   - rtuple
@@ -487,6 +489,12 @@ words:
   - undoc
   - PSMODULEPATH
   - byhistory
+  - recanon
+  - byhist
+  - hidx
+  - fromcopy
+  - nrewrites
+  - nstops
   # What the kdbx-places probes name, kept as they were recorded: the cipher ChaCha20 as
   # `kdbx_raw.py` spells its constant, and the `encryptor` and `decryptor` objects of Python's
   # `cryptography`; and the package `argon2-cffi` the family's commands install.

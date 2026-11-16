@@ -1,0 +1,181 @@
+== Reading 1 (cleared), two gates: copy 0 edits R (a dialog edit of the payload); gate 1, which
+   holds R unedited, makes a decision that takes R out of its copy (with a deletion record);
+   gate 0 writes (a profile name added), writing R again. Both orders: gate 0's write after
+   gate 1's decision, and before it. Then each merge both ways, and the gate at the target
+   writing once more. Before the merges each copy is read against every decision any gate
+   made, so copy 0, which has not received gate 1's decision, can read WIDER there; the
+   merges are the cells the tally counts.
+   base: revoke 0 c0 ; recreate 0 ; pair 0 ; padd 0 pg ; prem 0 pf ; rule 0 N none ; renew 0 c1 forever ; merge kp_sync 1 0
+## an admission record (c1); gate 1 revokes c1
+   the rewrite after gate 1's decision: gate 1 decided; gate 0 wrote again 1; copy 0 WIDER: client c1 admitted [history 0, versions P]; copy 1 as decided [entry gone]
+      Synchronize into 0                   as decided [history 0, versions P] | the gate at 0 writes: as decided, written again 0 [entry gone]
+      Synchronize into 1                   as decided [history 0, versions P] | the gate at 1 writes: as decided, written again 0 [entry gone]
+      Import OverwriteIfNewer into 0       as decided [history 0, versions P] | the gate at 0 writes: as decided, written again 0 [entry gone]
+      Import OverwriteIfNewer into 1       as decided [history 0, versions P] | the gate at 1 writes: as decided, written again 0 [entry gone]
+      Import OverwriteExisting into 0      as decided [history 0, versions P] | the gate at 0 writes: as decided, written again 0 [entry gone]
+      Import OverwriteExisting into 1      as decided [history 0, versions P] | the gate at 1 writes: as decided, written again 0 [entry gone]
+      Import KeepExisting into 0           as decided [history 0, versions P] | the gate at 0 writes: as decided, written again 0 [entry gone]
+      Import KeepExisting into 1           as decided [history 0, versions P] | the gate at 1 writes: as decided, written again 0 [entry gone]
+      Import CreateNewUuids into 0         WIDER: client c1 admitted [history 0, versions P] | the gate at 0 writes: WIDER: client c1 admitted, written again 0 [history 0, versions P]
+      Import CreateNewUuids into 1         as decided [entry gone] | the gate at 1 writes: as decided, written again 0 [entry gone]
+      KeePassXC 2.8.0 into 0               as decided [history 0, versions P] | the gate at 0 writes: as decided, written again 0 [entry gone]
+      KeePassXC 2.8.0 into 1               as decided [history 0, versions P] | the gate at 1 writes: as decided, written again 0 [entry gone]
+   the rewrite before gate 1's decision: gate 1 decided; gate 0 wrote again 1; copy 0 WIDER: client c1 admitted [history 0, versions P]; copy 1 as decided [entry gone]
+      Synchronize into 0                   as decided [entry gone] | the gate at 0 writes: as decided, written again 0 [entry gone]
+      Synchronize into 1                   as decided [entry gone] | the gate at 1 writes: as decided, written again 0 [entry gone]
+      Import OverwriteIfNewer into 0       as decided [history 0, versions P] | the gate at 0 writes: as decided, written again 0 [entry gone]
+      Import OverwriteIfNewer into 1       as decided [entry gone] | the gate at 1 writes: as decided, written again 0 [entry gone]
+      Import OverwriteExisting into 0      as decided [history 0, versions P] | the gate at 0 writes: as decided, written again 0 [entry gone]
+      Import OverwriteExisting into 1      as decided [entry gone] | the gate at 1 writes: as decided, written again 0 [entry gone]
+      Import KeepExisting into 0           as decided [history 0, versions P] | the gate at 0 writes: as decided, written again 0 [entry gone]
+      Import KeepExisting into 1           as decided [entry gone] | the gate at 1 writes: as decided, written again 0 [entry gone]
+      Import CreateNewUuids into 0         WIDER: client c1 admitted [history 0, versions P] | the gate at 0 writes: WIDER: client c1 admitted, written again 0 [history 0, versions P]
+      Import CreateNewUuids into 1         as decided [entry gone] | the gate at 1 writes: as decided, written again 0 [entry gone]
+      KeePassXC 2.8.0 into 0               as decided [history 0, versions P] | the gate at 0 writes: as decided, written again 0 [entry gone]
+      KeePassXC 2.8.0 into 1               as decided [history 0, versions P] | the gate at 1 writes: as decided, written again 0 [entry gone]
+## the authority; gate 1 recreates it
+   the rewrite after gate 1's decision: gate 1 decided; gate 0 wrote again 1; copy 0 WIDER: client c1 admitted [history 0, versions P]; copy 1 as decided [entry gone]
+      Synchronize into 0                   as decided [history 0, versions P] | the gate at 0 writes: as decided, written again 0 [entry gone]
+      Synchronize into 1                   as decided [history 0, versions P] | the gate at 1 writes: as decided, written again 0 [entry gone]
+      Import OverwriteIfNewer into 0       as decided [history 0, versions P] | the gate at 0 writes: as decided, written again 0 [entry gone]
+      Import OverwriteIfNewer into 1       as decided [history 0, versions P] | the gate at 1 writes: as decided, written again 0 [entry gone]
+      Import OverwriteExisting into 0      as decided [history 0, versions P] | the gate at 0 writes: as decided, written again 0 [entry gone]
+      Import OverwriteExisting into 1      as decided [history 0, versions P] | the gate at 1 writes: as decided, written again 0 [entry gone]
+      Import KeepExisting into 0           as decided [history 0, versions P] | the gate at 0 writes: as decided, written again 0 [entry gone]
+      Import KeepExisting into 1           as decided [history 0, versions P] | the gate at 1 writes: as decided, written again 0 [entry gone]
+      Import CreateNewUuids into 0         WIDER: client c1 admitted [history 0, versions P] | the gate at 0 writes: WIDER: client c1 admitted, written again 0 [history 0, versions P]
+      Import CreateNewUuids into 1         as decided [entry gone] | the gate at 1 writes: as decided, written again 0 [entry gone]
+      KeePassXC 2.8.0 into 0               as decided [history 0, versions P] | the gate at 0 writes: as decided, written again 0 [entry gone]
+      KeePassXC 2.8.0 into 1               as decided [history 0, versions P] | the gate at 1 writes: as decided, written again 0 [entry gone]
+      C read, step 21, file 1: model ('ok', 'a19', [], [('N', ''), ('root', 'r')], ['c1'], ['pg']); read.py ('ok', 'a19', [], [('N', ''), ('root', 'r')], [], ['pg'])
+      C read, step 50, file 0: model ('ok', 'a19', [], [('N', ''), ('root', 'r')], ['c1'], ['pg', 'ph']); read.py ('ok', 'a19', [], [('N', ''), ('root', 'r')], [], ['pg', 'ph'])
+      C read, step 51, file 0: model ('ok', 'a19', [], [('N', ''), ('root', 'r')], ['c1'], ['pg', 'ph', 'pj']); read.py ('ok', 'a19', [], [('N', ''), ('root', 'r')], [], ['pg', 'ph', 'pj'])
+      C read, step 50, file 1: model ('ok', 'a19', [], [('N', ''), ('root', 'r')], ['c1'], ['pg', 'ph']); read.py ('ok', 'a19', [], [('N', ''), ('root', 'r')], [], ['pg', 'ph'])
+      C read, step 51, file 1: model ('ok', 'a19', [], [('N', ''), ('root', 'r')], ['c1'], ['pg', 'ph', 'pj']); read.py ('ok', 'a19', [], [('N', ''), ('root', 'r')], [], ['pg', 'ph', 'pj'])
+      C read, step 51, file 0: model ('ok', 'a19', [], [('N', ''), ('root', 'r')], ['c1'], ['pg', 'ph', 'pj']); read.py ('ok', 'a19', [], [('N', ''), ('root', 'r')], [], ['pg', 'ph', 'pj'])
+      C read, step 50, file 1: model ('ok', 'a19', [], [('N', ''), ('root', 'r')], ['c1'], ['pg', 'ph']); read.py ('ok', 'a19', [], [('N', ''), ('root', 'r')], [], ['pg', 'ph'])
+      C read, step 51, file 1: model ('ok', 'a19', [], [('N', ''), ('root', 'r')], ['c1'], ['pg', 'ph', 'pj']); read.py ('ok', 'a19', [], [('N', ''), ('root', 'r')], [], ['pg', 'ph', 'pj'])
+      C read, step 51, file 0: model ('ok', 'a19', [], [('N', ''), ('root', 'r')], ['c1'], ['pg', 'ph', 'pj']); read.py ('ok', 'a19', [], [('N', ''), ('root', 'r')], [], ['pg', 'ph', 'pj'])
+      C read, step 50, file 1: model ('ok', 'a19', [], [('N', ''), ('root', 'r')], ['c1'], ['pg', 'ph']); read.py ('ok', 'a19', [], [('N', ''), ('root', 'r')], [], ['pg', 'ph'])
+      C read, step 51, file 1: model ('ok', 'a19', [], [('N', ''), ('root', 'r')], ['c1'], ['pg', 'ph', 'pj']); read.py ('ok', 'a19', [], [('N', ''), ('root', 'r')], [], ['pg', 'ph', 'pj'])
+      C read, step 51, file 0: model ('ok', 'a19', [], [('N', ''), ('root', 'r')], ['c1'], ['pg', 'ph', 'pj']); read.py ('ok', 'a19', [], [('N', ''), ('root', 'r')], [], ['pg', 'ph', 'pj'])
+      C read, step 50, file 1: model ('ok', 'a19', [], [('N', ''), ('root', 'r')], ['c1'], ['pg', 'ph']); read.py ('ok', 'a19', [], [('N', ''), ('root', 'r')], [], ['pg', 'ph'])
+      C read, step 51, file 1: model ('ok', 'a19', [], [('N', ''), ('root', 'r')], ['c1'], ['pg', 'ph', 'pj']); read.py ('ok', 'a19', [], [('N', ''), ('root', 'r')], [], ['pg', 'ph', 'pj'])
+      C read, step 50, file 1: model ('ok', 'a19', [], [('N', ''), ('root', 'r')], ['c1'], ['pg']); read.py ('ok', 'a19', [], [('N', ''), ('root', 'r')], [], ['pg'])
+      C read, step 51, file 1: model ('ok', 'a19', [], [('N', ''), ('root', 'r')], ['c1'], ['pg', 'pj']); read.py ('ok', 'a19', [], [('N', ''), ('root', 'r')], [], ['pg', 'pj'])
+      C read, step 51, file 0: model ('ok', 'a19', [], [('N', ''), ('root', 'r')], ['c1'], ['pg', 'ph', 'pj']); read.py ('ok', 'a19', [], [('N', ''), ('root', 'r')], [], ['pg', 'ph', 'pj'])
+      C read, step 51, file 1: model ('ok', 'a19', [], [('N', ''), ('root', 'r')], ['c1'], ['pg', 'ph', 'pj']); read.py ('ok', 'a19', [], [('N', ''), ('root', 'r')], [], ['pg', 'ph', 'pj'])
+   the rewrite before gate 1's decision: gate 1 decided; gate 0 wrote again 1; copy 0 WIDER: client c1 admitted [history 0, versions P]; copy 1 as decided [entry gone]
+      Synchronize into 0                   as decided [entry gone] | the gate at 0 writes: as decided, written again 0 [entry gone]
+      Synchronize into 1                   as decided [entry gone] | the gate at 1 writes: as decided, written again 0 [entry gone]
+      Import OverwriteIfNewer into 0       as decided [history 0, versions P] | the gate at 0 writes: as decided, written again 0 [entry gone]
+      Import OverwriteIfNewer into 1       as decided [entry gone] | the gate at 1 writes: as decided, written again 0 [entry gone]
+      Import OverwriteExisting into 0      as decided [history 0, versions P] | the gate at 0 writes: as decided, written again 0 [entry gone]
+      Import OverwriteExisting into 1      as decided [entry gone] | the gate at 1 writes: as decided, written again 0 [entry gone]
+      Import KeepExisting into 0           as decided [history 0, versions P] | the gate at 0 writes: as decided, written again 0 [entry gone]
+      Import KeepExisting into 1           as decided [entry gone] | the gate at 1 writes: as decided, written again 0 [entry gone]
+      Import CreateNewUuids into 0         WIDER: client c1 admitted [history 0, versions P] | the gate at 0 writes: WIDER: client c1 admitted, written again 0 [history 0, versions P]
+      Import CreateNewUuids into 1         as decided [entry gone] | the gate at 1 writes: as decided, written again 0 [entry gone]
+      KeePassXC 2.8.0 into 0               as decided [history 0, versions P] | the gate at 0 writes: as decided, written again 0 [entry gone]
+      KeePassXC 2.8.0 into 1               as decided [history 0, versions P] | the gate at 1 writes: as decided, written again 0 [entry gone]
+      C read, step 22, file 1: model ('ok', 'a21', [], [('N', ''), ('root', 'r')], ['c1'], ['pg']); read.py ('ok', 'a21', [], [('N', ''), ('root', 'r')], [], ['pg'])
+      C read, step 50, file 0: model ('ok', 'a21', [], [('N', ''), ('root', 'r')], ['c1'], ['pg', 'ph']); read.py ('ok', 'a21', [], [('N', ''), ('root', 'r')], [], ['pg', 'ph'])
+      C read, step 51, file 0: model ('ok', 'a21', [], [('N', ''), ('root', 'r')], ['c1'], ['pg', 'ph', 'pj']); read.py ('ok', 'a21', [], [('N', ''), ('root', 'r')], [], ['pg', 'ph', 'pj'])
+      C read, step 50, file 1: model ('ok', 'a21', [], [('N', ''), ('root', 'r')], ['c1'], ['pg', 'ph']); read.py ('ok', 'a21', [], [('N', ''), ('root', 'r')], [], ['pg', 'ph'])
+      C read, step 51, file 1: model ('ok', 'a21', [], [('N', ''), ('root', 'r')], ['c1'], ['pg', 'ph', 'pj']); read.py ('ok', 'a21', [], [('N', ''), ('root', 'r')], [], ['pg', 'ph', 'pj'])
+      C read, step 51, file 0: model ('ok', 'a21', [], [('N', ''), ('root', 'r')], ['c1'], ['pg', 'ph', 'pj']); read.py ('ok', 'a21', [], [('N', ''), ('root', 'r')], [], ['pg', 'ph', 'pj'])
+      C read, step 50, file 1: model ('ok', 'a21', [], [('N', ''), ('root', 'r')], ['c1'], ['pg', 'ph']); read.py ('ok', 'a21', [], [('N', ''), ('root', 'r')], [], ['pg', 'ph'])
+      C read, step 51, file 1: model ('ok', 'a21', [], [('N', ''), ('root', 'r')], ['c1'], ['pg', 'ph', 'pj']); read.py ('ok', 'a21', [], [('N', ''), ('root', 'r')], [], ['pg', 'ph', 'pj'])
+      C read, step 51, file 0: model ('ok', 'a21', [], [('N', ''), ('root', 'r')], ['c1'], ['pg', 'ph', 'pj']); read.py ('ok', 'a21', [], [('N', ''), ('root', 'r')], [], ['pg', 'ph', 'pj'])
+      C read, step 50, file 1: model ('ok', 'a21', [], [('N', ''), ('root', 'r')], ['c1'], ['pg', 'ph']); read.py ('ok', 'a21', [], [('N', ''), ('root', 'r')], [], ['pg', 'ph'])
+      C read, step 51, file 1: model ('ok', 'a21', [], [('N', ''), ('root', 'r')], ['c1'], ['pg', 'ph', 'pj']); read.py ('ok', 'a21', [], [('N', ''), ('root', 'r')], [], ['pg', 'ph', 'pj'])
+      C read, step 51, file 0: model ('ok', 'a21', [], [('N', ''), ('root', 'r')], ['c1'], ['pg', 'ph', 'pj']); read.py ('ok', 'a21', [], [('N', ''), ('root', 'r')], [], ['pg', 'ph', 'pj'])
+      C read, step 50, file 1: model ('ok', 'a21', [], [('N', ''), ('root', 'r')], ['c1'], ['pg', 'ph']); read.py ('ok', 'a21', [], [('N', ''), ('root', 'r')], [], ['pg', 'ph'])
+      C read, step 51, file 1: model ('ok', 'a21', [], [('N', ''), ('root', 'r')], ['c1'], ['pg', 'ph', 'pj']); read.py ('ok', 'a21', [], [('N', ''), ('root', 'r')], [], ['pg', 'ph', 'pj'])
+      C read, step 50, file 1: model ('ok', 'a21', [], [('N', ''), ('root', 'r')], ['c1'], ['pg']); read.py ('ok', 'a21', [], [('N', ''), ('root', 'r')], [], ['pg'])
+      C read, step 51, file 1: model ('ok', 'a21', [], [('N', ''), ('root', 'r')], ['c1'], ['pg', 'pj']); read.py ('ok', 'a21', [], [('N', ''), ('root', 'r')], [], ['pg', 'pj'])
+      C read, step 51, file 0: model ('ok', 'a21', [], [('N', ''), ('root', 'r')], ['c1'], ['pg', 'ph', 'pj']); read.py ('ok', 'a21', [], [('N', ''), ('root', 'r')], [], ['pg', 'ph', 'pj'])
+      C read, step 51, file 1: model ('ok', 'a21', [], [('N', ''), ('root', 'r')], ['c1'], ['pg', 'ph', 'pj']); read.py ('ok', 'a21', [], [('N', ''), ('root', 'r')], [], ['pg', 'ph', 'pj'])
+## a profile addition (pg); gate 1 removes pg
+   the rewrite after gate 1's decision: gate 1 decided; gate 0 wrote again 1; copy 0 WIDER: client c1 holds ['pg'] [history 0, versions P]; copy 1 as decided [entry gone]
+      Synchronize into 0                   as decided [history 0, versions P] | the gate at 0 writes: as decided, written again 0 [entry gone]
+      Synchronize into 1                   as decided [history 0, versions P] | the gate at 1 writes: as decided, written again 0 [entry gone]
+      Import OverwriteIfNewer into 0       as decided [history 0, versions P] | the gate at 0 writes: as decided, written again 0 [entry gone]
+      Import OverwriteIfNewer into 1       as decided [history 0, versions P] | the gate at 1 writes: as decided, written again 0 [entry gone]
+      Import OverwriteExisting into 0      as decided [history 0, versions P] | the gate at 0 writes: as decided, written again 0 [entry gone]
+      Import OverwriteExisting into 1      as decided [history 0, versions P] | the gate at 1 writes: as decided, written again 0 [entry gone]
+      Import KeepExisting into 0           as decided [history 0, versions P] | the gate at 0 writes: as decided, written again 0 [entry gone]
+      Import KeepExisting into 1           as decided [history 0, versions P] | the gate at 1 writes: as decided, written again 0 [entry gone]
+      Import CreateNewUuids into 0         WIDER: client c1 holds ['pg'] [history 0, versions P] | the gate at 0 writes: WIDER: client c1 holds ['pg'], written again 0 [history 0, versions P]
+      Import CreateNewUuids into 1         as decided [entry gone] | the gate at 1 writes: as decided, written again 0 [entry gone]
+      KeePassXC 2.8.0 into 0               as decided [history 0, versions P] | the gate at 0 writes: as decided, written again 0 [entry gone]
+      KeePassXC 2.8.0 into 1               as decided [history 0, versions P] | the gate at 1 writes: as decided, written again 0 [entry gone]
+   the rewrite before gate 1's decision: gate 1 decided; gate 0 wrote again 1; copy 0 WIDER: client c1 holds ['pg'] [history 0, versions P]; copy 1 as decided [entry gone]
+      Synchronize into 0                   as decided [entry gone] | the gate at 0 writes: as decided, written again 0 [entry gone]
+      Synchronize into 1                   as decided [entry gone] | the gate at 1 writes: as decided, written again 0 [entry gone]
+      Import OverwriteIfNewer into 0       as decided [history 0, versions P] | the gate at 0 writes: as decided, written again 0 [entry gone]
+      Import OverwriteIfNewer into 1       as decided [entry gone] | the gate at 1 writes: as decided, written again 0 [entry gone]
+      Import OverwriteExisting into 0      as decided [history 0, versions P] | the gate at 0 writes: as decided, written again 0 [entry gone]
+      Import OverwriteExisting into 1      as decided [entry gone] | the gate at 1 writes: as decided, written again 0 [entry gone]
+      Import KeepExisting into 0           as decided [history 0, versions P] | the gate at 0 writes: as decided, written again 0 [entry gone]
+      Import KeepExisting into 1           as decided [entry gone] | the gate at 1 writes: as decided, written again 0 [entry gone]
+      Import CreateNewUuids into 0         WIDER: client c1 holds ['pg'] [history 0, versions P] | the gate at 0 writes: WIDER: client c1 holds ['pg'], written again 0 [history 0, versions P]
+      Import CreateNewUuids into 1         as decided [entry gone] | the gate at 1 writes: as decided, written again 0 [entry gone]
+      KeePassXC 2.8.0 into 0               as decided [history 0, versions P] | the gate at 0 writes: as decided, written again 0 [entry gone]
+      KeePassXC 2.8.0 into 1               as decided [history 0, versions P] | the gate at 1 writes: as decided, written again 0 [entry gone]
+## a rule version (N, nothing); gate 1 sets N to read and write
+   the rewrite after gate 1's decision: gate 1 decided; gate 0 wrote again 1; copy 0 narrower: node N lacks rw [history 0, versions P]; copy 1 as decided [entry gone]
+      Synchronize into 0                   as decided [history 0, versions P] | the gate at 0 writes: as decided, written again 0 [entry gone]
+      Synchronize into 1                   as decided [history 0, versions P] | the gate at 1 writes: as decided, written again 0 [entry gone]
+      Import OverwriteIfNewer into 0       as decided [history 0, versions P] | the gate at 0 writes: as decided, written again 0 [entry gone]
+      Import OverwriteIfNewer into 1       as decided [history 0, versions P] | the gate at 1 writes: as decided, written again 0 [entry gone]
+      Import OverwriteExisting into 0      as decided [history 0, versions P] | the gate at 0 writes: as decided, written again 0 [entry gone]
+      Import OverwriteExisting into 1      as decided [history 0, versions P] | the gate at 1 writes: as decided, written again 0 [entry gone]
+      Import KeepExisting into 0           as decided [history 0, versions P] | the gate at 0 writes: as decided, written again 0 [entry gone]
+      Import KeepExisting into 1           as decided [history 0, versions P] | the gate at 1 writes: as decided, written again 0 [entry gone]
+      Import CreateNewUuids into 0         narrower: node N lacks rw [history 0, versions P] | the gate at 0 writes: narrower: node N lacks rw, written again 0 [history 0, versions P]
+      Import CreateNewUuids into 1         as decided [entry gone] | the gate at 1 writes: as decided, written again 0 [entry gone]
+      KeePassXC 2.8.0 into 0               as decided [history 0, versions P] | the gate at 0 writes: as decided, written again 0 [entry gone]
+      KeePassXC 2.8.0 into 1               as decided [history 0, versions P] | the gate at 1 writes: as decided, written again 0 [entry gone]
+   the rewrite before gate 1's decision: gate 1 decided; gate 0 wrote again 1; copy 0 narrower: node N lacks rw [history 0, versions P]; copy 1 as decided [entry gone]
+      Synchronize into 0                   as decided [entry gone] | the gate at 0 writes: as decided, written again 0 [entry gone]
+      Synchronize into 1                   as decided [entry gone] | the gate at 1 writes: as decided, written again 0 [entry gone]
+      Import OverwriteIfNewer into 0       as decided [history 0, versions P] | the gate at 0 writes: as decided, written again 0 [entry gone]
+      Import OverwriteIfNewer into 1       as decided [entry gone] | the gate at 1 writes: as decided, written again 0 [entry gone]
+      Import OverwriteExisting into 0      as decided [history 0, versions P] | the gate at 0 writes: as decided, written again 0 [entry gone]
+      Import OverwriteExisting into 1      as decided [entry gone] | the gate at 1 writes: as decided, written again 0 [entry gone]
+      Import KeepExisting into 0           as decided [history 0, versions P] | the gate at 0 writes: as decided, written again 0 [entry gone]
+      Import KeepExisting into 1           as decided [entry gone] | the gate at 1 writes: as decided, written again 0 [entry gone]
+      Import CreateNewUuids into 0         narrower: node N lacks rw [history 0, versions P] | the gate at 0 writes: narrower: node N lacks rw, written again 0 [history 0, versions P]
+      Import CreateNewUuids into 1         as decided [entry gone] | the gate at 1 writes: as decided, written again 0 [entry gone]
+      KeePassXC 2.8.0 into 0               as decided [history 0, versions P] | the gate at 0 writes: as decided, written again 0 [entry gone]
+      KeePassXC 2.8.0 into 1               as decided [history 0, versions P] | the gate at 1 writes: as decided, written again 0 [entry gone]
+## a renewal answer (c1, forever); gate 1 allows renewals of c1 again
+   the rewrite after gate 1's decision: gate 1 decided; gate 0 wrote again 1; copy 0 narrower: renewal of c1 refused [history 0, versions P]; copy 1 as decided [entry gone]
+      Synchronize into 0                   as decided [history 0, versions P] | the gate at 0 writes: as decided, written again 0 [entry gone]
+      Synchronize into 1                   as decided [history 0, versions P] | the gate at 1 writes: as decided, written again 0 [entry gone]
+      Import OverwriteIfNewer into 0       as decided [history 0, versions P] | the gate at 0 writes: as decided, written again 0 [entry gone]
+      Import OverwriteIfNewer into 1       as decided [history 0, versions P] | the gate at 1 writes: as decided, written again 0 [entry gone]
+      Import OverwriteExisting into 0      as decided [history 0, versions P] | the gate at 0 writes: as decided, written again 0 [entry gone]
+      Import OverwriteExisting into 1      as decided [history 0, versions P] | the gate at 1 writes: as decided, written again 0 [entry gone]
+      Import KeepExisting into 0           as decided [history 0, versions P] | the gate at 0 writes: as decided, written again 0 [entry gone]
+      Import KeepExisting into 1           as decided [history 0, versions P] | the gate at 1 writes: as decided, written again 0 [entry gone]
+      Import CreateNewUuids into 0         narrower: renewal of c1 refused [history 0, versions P] | the gate at 0 writes: narrower: renewal of c1 refused, written again 0 [history 0, versions P]
+      Import CreateNewUuids into 1         as decided [entry gone] | the gate at 1 writes: as decided, written again 0 [entry gone]
+      KeePassXC 2.8.0 into 0               as decided [history 0, versions P] | the gate at 0 writes: as decided, written again 0 [entry gone]
+      KeePassXC 2.8.0 into 1               as decided [history 0, versions P] | the gate at 1 writes: as decided, written again 0 [entry gone]
+   the rewrite before gate 1's decision: gate 1 decided; gate 0 wrote again 1; copy 0 narrower: renewal of c1 refused [history 0, versions P]; copy 1 as decided [entry gone]
+      Synchronize into 0                   as decided [entry gone] | the gate at 0 writes: as decided, written again 0 [entry gone]
+      Synchronize into 1                   as decided [entry gone] | the gate at 1 writes: as decided, written again 0 [entry gone]
+      Import OverwriteIfNewer into 0       as decided [history 0, versions P] | the gate at 0 writes: as decided, written again 0 [entry gone]
+      Import OverwriteIfNewer into 1       as decided [entry gone] | the gate at 1 writes: as decided, written again 0 [entry gone]
+      Import OverwriteExisting into 0      as decided [history 0, versions P] | the gate at 0 writes: as decided, written again 0 [entry gone]
+      Import OverwriteExisting into 1      as decided [entry gone] | the gate at 1 writes: as decided, written again 0 [entry gone]
+      Import KeepExisting into 0           as decided [history 0, versions P] | the gate at 0 writes: as decided, written again 0 [entry gone]
+      Import KeepExisting into 1           as decided [entry gone] | the gate at 1 writes: as decided, written again 0 [entry gone]
+      Import CreateNewUuids into 0         narrower: renewal of c1 refused [history 0, versions P] | the gate at 0 writes: narrower: renewal of c1 refused, written again 0 [history 0, versions P]
+      Import CreateNewUuids into 1         as decided [entry gone] | the gate at 1 writes: as decided, written again 0 [entry gone]
+      KeePassXC 2.8.0 into 0               as decided [history 0, versions P] | the gate at 0 writes: as decided, written again 0 [entry gone]
+      KeePassXC 2.8.0 into 1               as decided [history 0, versions P] | the gate at 1 writes: as decided, written again 0 [entry gone]
+== tally of the merge cells before the gate's next write: A 110, W 6, n 4
+== 22 s

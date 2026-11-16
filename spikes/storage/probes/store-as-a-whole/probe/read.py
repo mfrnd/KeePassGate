@@ -16,6 +16,19 @@ record counts in its current version when that version passes the check, or else
 history item that passes, and only an entry with no passing version is damage. A store key is
 found in any version of an authority or a retirement. Without it, the reading is that of the run
 with the repair had, and its answers are unchanged.
+
+ADDED (two readings): the answer also names, under `byhist`, each entry that counts by a history
+item and that item's index, oldest first, as the dump numbers it, and under `held` the store keys
+the file holds; neither is printed by a part that existed before. read(dump, history, copies) with
+`copies` set is the reading of a copy under another identifier: a record that can only take access
+away counts from any entry whose content passes the check under a key held, whatever the entry's
+identifier, as the record under the identifier its content gives. Such a record is a revocation, a
+retirement (its refusal; a store key is never taken from a copy), a profile removal, and a version
+whose value refuses everything (a rule of nothing, renewals refused forever). An admission, a
+profile addition, an authority, a version of any other value and a summary entry never count from
+a copy. With `copies` 'held' a record counted so is held to the completeness check like any other
+(a summary entry has to restate it); with 'exempt' it is not. `fromcopy` names each, under the
+identifier its content gives, with the copy it was read from.
 """
 import json
 
@@ -45,7 +58,8 @@ def strict(text):
 class Cand:
     # ADDED (decided store): `versions`, every version of the entry the reading may count, the
     # current first and then the history items newest first; `by_history`, counted by a history item
-    __slots__ = ('u', 'kind', 'data', 'd', 'mac', 'extra', 'key', 'place', 'versions', 'by_history')
+    __slots__ = ('u', 'kind', 'data', 'd', 'mac', 'extra', 'key', 'place', 'versions', 'by_history',
+                 'hidx', 'copy')     # ADDED (two readings): the history item counted; the copy read
 
 
 def version(s):
@@ -74,6 +88,7 @@ def candidates(dump, history=False):
             continue
         c = version(s)
         c.u, c.place, c.key, c.by_history = u, e['place'], None, False
+        c.hidx, c.copy = None, None     # ADDED (two readings)
         c.versions = [version(x) for x in [s] + hist]
         out.append(c)
     return out
@@ -99,7 +114,7 @@ def heads_items(h):
     return [json.loads(v) for k, v in sorted(h.extra.items())]
 
 
-def read(dump, history=False):
+def read(dump, history=False, copies=None):     # ADDED (two readings): `copies`
     """ADDED (decided store): `history` is the history rule of EVALUATION.md 4.3 (decision 7): a
     record counts in its current version when that version passes the check, or else in the
     newest history item that passes; a store entry with no passing version anywhere is damage and
@@ -134,6 +149,7 @@ def read(dump, history=False):
                     take(c, v)
                     c.by_history = True
                     by_history += 1
+                    c.hidx = len(c.versions) - 1 - n     # ADDED (two readings)
                 break
         if c.key is not None:
             els.append(c)
@@ -141,6 +157,38 @@ def read(dump, history=False):
             damage += 1             # under a plugin identifier and failing: damage
         else:
             passed += 1             # passed over and shown (change 3)
+    # ADDED (two readings): a record that can only take access away, counted from a copy under
+    # another identifier, as the record under the identifier its content gives
+    fromcopy = {}
+    if copies:
+        have = set(c.u for c in els)
+        for c in cands:
+            if c.key is not None:
+                continue
+            for v in (c.versions if history else [c]):
+                if v.kind not in ('revoked', 'retired', 'removed', 'version') or v.d is None or v.mac is None:
+                    continue
+                if v.kind == 'version' and v.d.get('doc') != 'const:':
+                    continue
+                canon = None
+                for k in held:
+                    try:
+                        if S.mac(k, v.kind, v.data, v.extra) == v.mac:
+                            canon = (S.ident(k, v.kind, S.subject_of(v.kind, v.d), 0, v.mac), k)
+                            break
+                    except (KeyError, ValueError):
+                        continue
+                if canon is None:
+                    continue
+                if canon[0] not in have:
+                    a = Cand()
+                    a.u, a.place, a.key, a.by_history, a.hidx, a.copy = canon[0], c.place, canon[1], False, None, c.u
+                    a.versions = [v]
+                    take(a, v)
+                    els.append(a)
+                    have.add(canon[0])
+                    fromcopy[canon[0]] = c.u
+                break
     by = {}
     for c in els:
         by.setdefault(c.kind, []).append(c)
@@ -249,17 +297,20 @@ def read(dump, history=False):
                     c_prem.add((it['name'], it['id']))
                 elif it['kind'] == 'version':
                     c_regs.add(it['id'])
+        def held_to(c):     # ADDED (two readings): with 'exempt', a record from a copy is not
+            return c.copy is None or copies != 'exempt'
+
         for c in by.get('revoked', []):
-            if ('revoked', c.d['client']) not in c_ref:
+            if ('revoked', c.d['client']) not in c_ref and held_to(c):
                 status = 'incomplete'
         for c in by.get('retired', []):
-            if ('retired', c.d['authority']) not in c_ref:
+            if ('retired', c.d['authority']) not in c_ref and held_to(c):
                 status = 'incomplete'
         for c in by.get('removed', []):
-            if (c.d['name'], c.u) not in c_prem:
+            if (c.d['name'], c.u) not in c_prem and held_to(c):
                 status = 'incomplete'
         for c in by.get('version', []):
-            if c.u not in named and c.u not in deadall and c.u not in c_regs:
+            if c.u not in named and c.u not in deadall and c.u not in c_regs and held_to(c):
                 status = 'incomplete'
     # the authority served (two standing: 503 undecided)
     auths = sorted(c.d['id'] for c in by.get('authority', []) if c.u not in named and ('retired', c.d['id']) not in refusals)
@@ -324,6 +375,11 @@ def read(dump, history=False):
                   heads_live=len(heads_live), records=len(dels), keys=len(held))
     if history:     # ADDED (decided store): records that count by a history item
         counts['byhistory'] = by_history
+    if copies:      # ADDED (two readings): records that count from a copy
+        counts['fromcopy'] = len(fromcopy)
     return dict(status=status, served=served, auths=auths, adm=adm if serve else {}, valid=valid,
                 names=sorted(on), words={n: (w if serve else frozenset()) for n, w in raw.items()},
-                words_raw=raw, renew=renew, refusals=refusals, counts=counts)
+                words_raw=raw, renew=renew, refusals=refusals, counts=counts,
+                # ADDED (two readings)
+                byhist={c.u: c.hidx for c in els if c.by_history and c.copy is None},
+                held=list(held), fromcopy=fromcopy)

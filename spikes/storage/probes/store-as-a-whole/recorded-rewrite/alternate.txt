@@ -1,0 +1,69 @@
+== Reading 1 (backup): at copy 0, edits of one entry and writes of the gate's own alternating.
+   "k edits then a write": a dialog edit of the payload and k-1 dialog edits of the title,
+   then a profile name added (Create first for the retirement that holds the store key).
+   "0": one dialog edit, then the gate's writes alone. Each cycle: the letter after the
+   edits, the letter after the write, the records written again, and the entry's history
+   items and the place of the newest passing version (0 the current, 1 the newest history
+   item; - none). A cycle after which the store refuses ends the sequence. KeePass's default
+   history limits. C: the steps where the model and the file disagreed, counted.
+## the authority
+    1 edits then a write, 22 cycles: AA+1 h2@0 | AA+1 h4@0 | AA+1 h6@0 | AA+1 h8@0 | AA+1 h10@0 | AA+1 h10@0 | AA+1 h10@0 | AA+1 h10@0 | AA+1 h10@0 | AA+1 h10@0 | AA+1 h10@0 | AA+1 h10@0 | AA+1 h10@0 | AA+1 h10@0 | AA+1 h10@0 | AA+1 h10@0 | AA+1 h10@0 | AA+1 h10@0 | AA+1 h10@0 | AA+1 h10@0 | AA+1 h10@0 | AA+1 h10@0 [C entries 0, read 0]
+    3 edits then a write,  8 cycles: AA+1 h4@0 | AA+1 h8@0 | AA+1 h10@0 | AA+1 h10@0 | AA+1 h10@0 | AA+1 h10@0 | AA+1 h10@0 | AA+1 h10@0 [C entries 0, read 0]
+   10 edits then a write,  3 cycles: AA+1 h10@0 | AA+1 h10@0 | AA+1 h10@0 [C entries 0, read 0]
+   11 edits then a write,  2 cycles: KX+0 h10@- [C entries 0, read 0]
+    0 edits then a write, 12 cycles: -A+1 h2@0 | -A+0 h2@0 | -A+0 h2@0 | -A+0 h2@0 | -A+0 h2@0 | -A+0 h2@0 | -A+0 h2@0 | -A+0 h2@0 | -A+0 h2@0 | -A+0 h2@0 | -A+0 h2@0 | -A+0 h2@0 [C entries 0, read 0]
+## a retirement (from Recreate)
+    1 edits then a write, 22 cycles: AA+1 h2@0 | AA+1 h4@0 | AA+1 h6@0 | AA+1 h8@0 | AA+1 h10@0 | AA+1 h10@0 | AA+1 h10@0 | AA+1 h10@0 | AA+1 h10@0 | AA+1 h10@0 | AA+1 h10@0 | AA+1 h10@0 | AA+1 h10@0 | AA+1 h10@0 | AA+1 h10@0 | AA+1 h10@0 | AA+1 h10@0 | AA+1 h10@0 | AA+1 h10@0 | AA+1 h10@0 | AA+1 h10@0 | AA+1 h10@0 [C entries 0, read 0]
+    3 edits then a write,  8 cycles: AA+1 h4@0 | AA+1 h8@0 | AA+1 h10@0 | AA+1 h10@0 | AA+1 h10@0 | AA+1 h10@0 | AA+1 h10@0 | AA+1 h10@0 [C entries 0, read 0]
+   10 edits then a write,  3 cycles: AA+1 h10@0 | AA+1 h10@0 | AA+1 h10@0 [C entries 0, read 0]
+   11 edits then a write,  2 cycles: RX+0 h10@- [C entries 0, read 0]
+    0 edits then a write, 12 cycles: -A+1 h2@0 | -A+0 h2@0 | -A+0 h2@0 | -A+0 h2@0 | -A+0 h2@0 | -A+0 h2@0 | -A+0 h2@0 | -A+0 h2@0 | -A+0 h2@0 | -A+0 h2@0 | -A+0 h2@0 | -A+0 h2@0 [C entries 0, read 0]
+## an admission record (c1)
+    1 edits then a write, 22 cycles: AA+1 h2@0 | AA+1 h4@0 | AA+1 h6@0 | AA+1 h8@0 | AA+1 h10@0 | AA+1 h10@0 | AA+1 h10@0 | AA+1 h10@0 | AA+1 h10@0 | AA+1 h10@0 | AA+1 h10@0 | AA+1 h10@0 | AA+1 h10@0 | AA+1 h10@0 | AA+1 h10@0 | AA+1 h10@0 | AA+1 h10@0 | AA+1 h10@0 | AA+1 h10@0 | AA+1 h10@0 | AA+1 h10@0 | AA+1 h10@0 [C entries 0, read 0]
+    3 edits then a write,  8 cycles: AA+1 h4@0 | AA+1 h8@0 | AA+1 h10@0 | AA+1 h10@0 | AA+1 h10@0 | AA+1 h10@0 | AA+1 h10@0 | AA+1 h10@0 [C entries 0, read 0]
+   10 edits then a write,  3 cycles: AA+1 h10@0 | AA+1 h10@0 | AA+1 h10@0 [C entries 0, read 0]
+   11 edits then a write,  2 cycles: RX+0 h10@- [C entries 0, read 0]
+    0 edits then a write, 12 cycles: -A+1 h2@0 | -A+0 h2@0 | -A+0 h2@0 | -A+0 h2@0 | -A+0 h2@0 | -A+0 h2@0 | -A+0 h2@0 | -A+0 h2@0 | -A+0 h2@0 | -A+0 h2@0 | -A+0 h2@0 | -A+0 h2@0 [C entries 0, read 0]
+## a revocation (c0)
+    1 edits then a write, 22 cycles: AA+1 h2@0 | AA+1 h4@0 | AA+1 h6@0 | AA+1 h8@0 | AA+1 h10@0 | AA+1 h10@0 | AA+1 h10@0 | AA+1 h10@0 | AA+1 h10@0 | AA+1 h10@0 | AA+1 h10@0 | AA+1 h10@0 | AA+1 h10@0 | AA+1 h10@0 | AA+1 h10@0 | AA+1 h10@0 | AA+1 h10@0 | AA+1 h10@0 | AA+1 h10@0 | AA+1 h10@0 | AA+1 h10@0 | AA+1 h10@0 [C entries 0, read 0]
+    3 edits then a write,  8 cycles: AA+1 h4@0 | AA+1 h8@0 | AA+1 h10@0 | AA+1 h10@0 | AA+1 h10@0 | AA+1 h10@0 | AA+1 h10@0 | AA+1 h10@0 [C entries 0, read 0]
+   10 edits then a write,  3 cycles: AA+1 h10@0 | AA+1 h10@0 | AA+1 h10@0 [C entries 0, read 0]
+   11 edits then a write,  2 cycles: RX+0 h10@- [C entries 0, read 0]
+    0 edits then a write, 12 cycles: -A+1 h2@0 | -A+0 h2@0 | -A+0 h2@0 | -A+0 h2@0 | -A+0 h2@0 | -A+0 h2@0 | -A+0 h2@0 | -A+0 h2@0 | -A+0 h2@0 | -A+0 h2@0 | -A+0 h2@0 | -A+0 h2@0 [C entries 0, read 0]
+## a profile addition (pg)
+    1 edits then a write, 22 cycles: AA+1 h2@0 | AA+1 h4@0 | AA+1 h6@0 | AA+1 h8@0 | AA+1 h10@0 | AA+1 h10@0 | AA+1 h10@0 | AA+1 h10@0 | AA+1 h10@0 | AA+1 h10@0 | AA+1 h10@0 | AA+1 h10@0 | AA+1 h10@0 | AA+1 h10@0 | AA+1 h10@0 | AA+1 h10@0 | AA+1 h10@0 | AA+1 h10@0 | AA+1 h10@0 | AA+1 h10@0 | AA+1 h10@0 | AA+1 h10@0 [C entries 0, read 0]
+    3 edits then a write,  8 cycles: AA+1 h4@0 | AA+1 h8@0 | AA+1 h10@0 | AA+1 h10@0 | AA+1 h10@0 | AA+1 h10@0 | AA+1 h10@0 | AA+1 h10@0 [C entries 0, read 0]
+   10 edits then a write,  3 cycles: AA+1 h10@0 | AA+1 h10@0 | AA+1 h10@0 [C entries 0, read 0]
+   11 edits then a write,  2 cycles: RX+0 h10@- [C entries 0, read 0]
+    0 edits then a write, 12 cycles: -A+1 h2@0 | -A+0 h2@0 | -A+0 h2@0 | -A+0 h2@0 | -A+0 h2@0 | -A+0 h2@0 | -A+0 h2@0 | -A+0 h2@0 | -A+0 h2@0 | -A+0 h2@0 | -A+0 h2@0 | -A+0 h2@0 [C entries 0, read 0]
+## a profile removal (pf)
+    1 edits then a write, 22 cycles: AA+1 h2@0 | AA+1 h4@0 | AA+1 h6@0 | AA+1 h8@0 | AA+1 h10@0 | AA+1 h10@0 | AA+1 h10@0 | AA+1 h10@0 | AA+1 h10@0 | AA+1 h10@0 | AA+1 h10@0 | AA+1 h10@0 | AA+1 h10@0 | AA+1 h10@0 | AA+1 h10@0 | AA+1 h10@0 | AA+1 h10@0 | AA+1 h10@0 | AA+1 h10@0 | AA+1 h10@0 | AA+1 h10@0 | AA+1 h10@0 [C entries 0, read 0]
+    3 edits then a write,  8 cycles: AA+1 h4@0 | AA+1 h8@0 | AA+1 h10@0 | AA+1 h10@0 | AA+1 h10@0 | AA+1 h10@0 | AA+1 h10@0 | AA+1 h10@0 [C entries 0, read 0]
+   10 edits then a write,  3 cycles: AA+1 h10@0 | AA+1 h10@0 | AA+1 h10@0 [C entries 0, read 0]
+   11 edits then a write,  2 cycles: RX+0 h10@- [C entries 0, read 0]
+    0 edits then a write, 12 cycles: -A+1 h2@0 | -A+0 h2@0 | -A+0 h2@0 | -A+0 h2@0 | -A+0 h2@0 | -A+0 h2@0 | -A+0 h2@0 | -A+0 h2@0 | -A+0 h2@0 | -A+0 h2@0 | -A+0 h2@0 | -A+0 h2@0 [C entries 0, read 0]
+## a rule version (N, nothing)
+    1 edits then a write, 22 cycles: AA+1 h2@0 | AA+1 h4@0 | AA+1 h6@0 | AA+1 h8@0 | AA+1 h10@0 | AA+1 h10@0 | AA+1 h10@0 | AA+1 h10@0 | AA+1 h10@0 | AA+1 h10@0 | AA+1 h10@0 | AA+1 h10@0 | AA+1 h10@0 | AA+1 h10@0 | AA+1 h10@0 | AA+1 h10@0 | AA+1 h10@0 | AA+1 h10@0 | AA+1 h10@0 | AA+1 h10@0 | AA+1 h10@0 | AA+1 h10@0 [C entries 0, read 0]
+    3 edits then a write,  8 cycles: AA+1 h4@0 | AA+1 h8@0 | AA+1 h10@0 | AA+1 h10@0 | AA+1 h10@0 | AA+1 h10@0 | AA+1 h10@0 | AA+1 h10@0 [C entries 0, read 0]
+   10 edits then a write,  3 cycles: AA+1 h10@0 | AA+1 h10@0 | AA+1 h10@0 [C entries 0, read 0]
+   11 edits then a write,  2 cycles: RX+0 h10@- [C entries 0, read 0]
+    0 edits then a write, 12 cycles: -A+1 h2@0 | -A+0 h2@0 | -A+0 h2@0 | -A+0 h2@0 | -A+0 h2@0 | -A+0 h2@0 | -A+0 h2@0 | -A+0 h2@0 | -A+0 h2@0 | -A+0 h2@0 | -A+0 h2@0 | -A+0 h2@0 [C entries 0, read 0]
+## a renewal answer (c1, forever)
+    1 edits then a write, 22 cycles: AA+1 h2@0 | AA+1 h4@0 | AA+1 h6@0 | AA+1 h8@0 | AA+1 h10@0 | AA+1 h10@0 | AA+1 h10@0 | AA+1 h10@0 | AA+1 h10@0 | AA+1 h10@0 | AA+1 h10@0 | AA+1 h10@0 | AA+1 h10@0 | AA+1 h10@0 | AA+1 h10@0 | AA+1 h10@0 | AA+1 h10@0 | AA+1 h10@0 | AA+1 h10@0 | AA+1 h10@0 | AA+1 h10@0 | AA+1 h10@0 [C entries 0, read 0]
+    3 edits then a write,  8 cycles: AA+1 h4@0 | AA+1 h8@0 | AA+1 h10@0 | AA+1 h10@0 | AA+1 h10@0 | AA+1 h10@0 | AA+1 h10@0 | AA+1 h10@0 [C entries 0, read 0]
+   10 edits then a write,  3 cycles: AA+1 h10@0 | AA+1 h10@0 | AA+1 h10@0 [C entries 0, read 0]
+   11 edits then a write,  2 cycles: RX+0 h10@- [C entries 0, read 0]
+    0 edits then a write, 12 cycles: -A+1 h2@0 | -A+0 h2@0 | -A+0 h2@0 | -A+0 h2@0 | -A+0 h2@0 | -A+0 h2@0 | -A+0 h2@0 | -A+0 h2@0 | -A+0 h2@0 | -A+0 h2@0 | -A+0 h2@0 | -A+0 h2@0 [C entries 0, read 0]
+## the summary entry
+    1 edits then a write, 22 cycles: AA+0 gone | AA+0 gone | AA+0 gone | AA+0 gone | AA+0 gone | AA+0 gone | AA+0 gone | AA+0 gone | AA+0 gone | AA+0 gone | AA+0 gone | AA+0 gone | AA+0 gone | AA+0 gone | AA+0 gone | AA+0 gone | AA+0 gone | AA+0 gone | AA+0 gone | AA+0 gone | AA+0 gone | AA+0 gone [C entries 0, read 0]
+    3 edits then a write,  8 cycles: AA+0 gone | AA+0 gone | AA+0 gone | AA+0 gone | AA+0 gone | AA+0 gone | AA+0 gone | AA+0 gone [C entries 0, read 0]
+   10 edits then a write,  3 cycles: AA+0 gone | AA+0 gone | AA+0 gone [C entries 0, read 0]
+   11 edits then a write,  2 cycles: RX+0 h10@- [C entries 0, read 0]
+    0 edits then a write, 12 cycles: -A+0 gone | -A+0 gone | -A+0 gone | -A+0 gone | -A+0 gone | -A+0 gone | -A+0 gone | -A+0 gone | -A+0 gone | -A+0 gone | -A+0 gone | -A+0 gone [C entries 0, read 0]
+## the retirement that holds the store key
+    1 edits then a write, 22 cycles: AA+1 h2@0 | AA+1 h4@0 | AA+1 h6@0 | AA+1 h8@0 | AA+1 h10@0 | AA+1 h10@0 | AA+1 h10@0 | AA+1 h10@0 | AA+1 h10@0 | AA+1 h10@0 | AA+1 h10@0 | AA+1 h10@0 | AA+1 h10@0 | AA+1 h10@0 | AA+1 h10@0 | AA+1 h10@0 | AA+1 h10@0 | AA+1 h10@0 | AA+1 h10@0 | AA+1 h10@0 | AA+1 h10@0 | AA+1 h10@0 [C entries 0, read 24]
+    3 edits then a write,  8 cycles: AA+1 h4@0 | AA+1 h8@0 | AA+1 h10@0 | AA+1 h10@0 | AA+1 h10@0 | AA+1 h10@0 | AA+1 h10@0 | AA+1 h10@0 [C entries 0, read 10]
+   10 edits then a write,  3 cycles: AA+1 h10@0 | AA+1 h10@0 | AA+1 h10@0 [C entries 0, read 5]
+   11 edits then a write,  2 cycles: An+0 gone | the entry is gone [C entries 0, read 2]
+    0 edits then a write, 12 cycles: -A+1 h2@0 | -A+0 h2@0 | -A+0 h2@0 | -A+0 h2@0 | -A+0 h2@0 | -A+0 h2@0 | -A+0 h2@0 | -A+0 h2@0 | -A+0 h2@0 | -A+0 h2@0 | -A+0 h2@0 | -A+0 h2@0 [C entries 0, read 14]
+== 53 s

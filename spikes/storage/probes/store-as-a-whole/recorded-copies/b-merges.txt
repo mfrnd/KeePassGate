@@ -1,0 +1,330 @@
+== B.1, B.3, B.4: every history, every merge, both directions; the file the merge wrote,
+   read by read.py and held to every decision any gate made. C: steps where the file and the
+   model disagreed, entry by entry and in the read. Key derivation: fast
+## H1: an admission at copy 0
+   history: pair 0
+   KeePass Synchronize    into 1: as decided [entries 0, read 0]
+                          into 0: as decided [entries 0, read 0]
+   KeePass OverwriteIfNewer into 1: as decided [entries 0, read 0]
+                          into 0: as decided [entries 0, read 0]
+   KeePass OverwriteExisting into 1: as decided [entries 0, read 0]
+                          into 0: as decided [entries 0, read 0]
+   KeePass KeepExisting   into 1: as decided [entries 0, read 0]
+                          into 0: as decided [entries 0, read 0]
+   KeePass CreateNewUuids into 1: narrower: client c1 refused [entries 0, read 0]
+                          into 0: as decided [entries 0, read 0]
+   KeePassXC 2.4.2        into 1: as decided [entries 0, read 0]
+                          into 0: as decided [entries 0, read 0]
+   KeePassXC 2.6.6        into 1: as decided [entries 0, read 0]
+                          into 0: as decided [entries 0, read 0]
+   KeePassXC 2.7.12       into 1: as decided [entries 0, read 0]
+                          into 0: as decided [entries 0, read 0]
+   KeePassXC 2.8.0        into 1: as decided [entries 0, read 0]
+                          into 0: as decided [entries 0, read 0]
+## H2: a revocation by key at copy 0
+   history: revoke 0 c0
+   KeePass Synchronize    into 1: as decided [entries 0, read 0]
+                          into 0: as decided [entries 0, read 0]
+   KeePass OverwriteIfNewer into 1: as decided [entries 0, read 0]
+                          into 0: as decided [entries 0, read 0]
+   KeePass OverwriteExisting into 1: as decided [entries 0, read 0]
+                          into 0: as decided [entries 0, read 0]
+   KeePass KeepExisting   into 1: as decided [entries 0, read 0]
+                          into 0: as decided [entries 0, read 0]
+   KeePass CreateNewUuids into 1: refuses: the whole database (store incomplete) [entries 0, read 1]
+                             C read, step 1, file 1: model ('ok', 'a0', [('c0', ['pf'])], [('N', 'r'), ('root', 'r')], [], ['pf']); read.py ('incomplete', None, [], [('N', ''), ('root', '')], [], ['pf'])
+                          into 0: as decided [entries 0, read 0]
+   KeePassXC 2.4.2        into 1: as decided [entries 0, read 0]
+                          into 0: as decided [entries 0, read 0]
+   KeePassXC 2.6.6        into 1: as decided [entries 0, read 0]
+                          into 0: as decided [entries 0, read 0]
+   KeePassXC 2.7.12       into 1: as decided [entries 0, read 0]
+                          into 0: as decided [entries 0, read 0]
+   KeePassXC 2.8.0        into 1: as decided [entries 0, read 0]
+                          into 0: as decided [entries 0, read 0]
+## H3: a revocation at gate 0; at gate 1, which has not seen it, the revoked key renewed
+   history: revoke 0 c0 ; renewcert 1 c0
+   KeePass Synchronize    into 1: as decided [entries 0, read 0]
+                          into 0: as decided [entries 0, read 0]
+   KeePass OverwriteIfNewer into 1: as decided [entries 0, read 0]
+                          into 0: as decided [entries 0, read 0]
+   KeePass OverwriteExisting into 1: as decided [entries 0, read 0]
+                          into 0: as decided [entries 0, read 0]
+   KeePass KeepExisting   into 1: as decided [entries 0, read 0]
+                          into 0: as decided [entries 0, read 0]
+   KeePass CreateNewUuids into 1: refuses: the whole database (store incomplete) [entries 0, read 1]
+                             C read, step 2, file 1: model ('ok', 'a0', [('c0', ['pf']), ('c0.1', ['pf'])], [('N', 'r'), ('root', 'r')], [], ['pf']); read.py ('incomplete', None, [], [('N', ''), ('root', '')], [], ['pf'])
+                          into 0: as decided [entries 0, read 0]
+   KeePassXC 2.4.2        into 1: as decided [entries 0, read 0]
+                          into 0: as decided [entries 0, read 0]
+   KeePassXC 2.6.6        into 1: as decided [entries 0, read 0]
+                          into 0: as decided [entries 0, read 0]
+   KeePassXC 2.7.12       into 1: as decided [entries 0, read 0]
+                          into 0: as decided [entries 0, read 0]
+   KeePassXC 2.8.0        into 1: as decided [entries 0, read 0]
+                          into 0: as decided [entries 0, read 0]
+## H4: a name added, removed and added again at copy 0; copy 1 holds the first addition
+   history: padd 0 pg ; merge kp_sync 1 0 ; prem 0 pg ; padd 0 pg
+   KeePass Synchronize    into 1: as decided [entries 0, read 0]
+                          into 0: as decided [entries 0, read 0]
+   KeePass OverwriteIfNewer into 1: as decided [entries 0, read 0]
+                          into 0: as decided [entries 0, read 0]
+   KeePass OverwriteExisting into 1: as decided [entries 0, read 0]
+                          into 0: as decided [entries 0, read 0]
+   KeePass KeepExisting   into 1: as decided [entries 0, read 0]
+                          into 0: as decided [entries 0, read 0]
+   KeePass CreateNewUuids into 1: refuses: the whole database (store incomplete) [entries 0, read 1]
+                             C read, step 4, file 1: model ('ok', 'a0', [('c0', ['pf'])], [('N', 'r'), ('root', 'r')], [], ['pf', 'pg']); read.py ('incomplete', None, [], [('N', ''), ('root', '')], [], ['pf'])
+                          into 0: as decided [entries 0, read 0]
+   KeePassXC 2.4.2        into 1: as decided [entries 0, read 0]
+                          into 0: as decided [entries 0, read 0]
+   KeePassXC 2.6.6        into 1: as decided [entries 0, read 0]
+                          into 0: as decided [entries 0, read 0]
+   KeePassXC 2.7.12       into 1: as decided [entries 0, read 0]
+                          into 0: as decided [entries 0, read 0]
+   KeePassXC 2.8.0        into 1: as decided [entries 0, read 0]
+                          into 0: as decided [entries 0, read 0]
+## H5: a name removed at copy 0; copy 1 holds it
+   history: prem 0 pf
+   KeePass Synchronize    into 1: as decided [entries 0, read 0]
+                          into 0: as decided [entries 0, read 0]
+   KeePass OverwriteIfNewer into 1: as decided [entries 0, read 0]
+                          into 0: as decided [entries 0, read 0]
+   KeePass OverwriteExisting into 1: as decided [entries 0, read 0]
+                          into 0: as decided [entries 0, read 0]
+   KeePass KeepExisting   into 1: as decided [entries 0, read 0]
+                          into 0: as decided [entries 0, read 0]
+   KeePass CreateNewUuids into 1: refuses: the whole database (store incomplete) [entries 0, read 1]
+                             C read, step 1, file 1: model ('ok', 'a0', [('c0', ['pf'])], [('N', 'r'), ('root', 'r')], [], ['pf']); read.py ('incomplete', None, [], [('N', ''), ('root', '')], [], [])
+                          into 0: as decided [entries 0, read 0]
+   KeePassXC 2.4.2        into 1: as decided [entries 0, read 0]
+                          into 0: as decided [entries 0, read 0]
+   KeePassXC 2.6.6        into 1: as decided [entries 0, read 0]
+                          into 0: as decided [entries 0, read 0]
+   KeePassXC 2.7.12       into 1: as decided [entries 0, read 0]
+                          into 0: as decided [entries 0, read 0]
+   KeePassXC 2.8.0        into 1: as decided [entries 0, read 0]
+                          into 0: as decided [entries 0, read 0]
+## H6: at copy 0 the authority recreated (key carried), deleted with none after, created again, a client paired
+   history: rule 0 N none ; merge kp_sync 1 0 ; recreate 0 ; delauth 0 ; create 0 ; padd 0 pf ; pair 0
+   KeePass Synchronize    into 1: as decided [entries 0, read 0]
+                          into 0: as decided [entries 0, read 0]
+   KeePass OverwriteIfNewer into 1: as decided [entries 0, read 0]
+                          into 0: as decided [entries 0, read 0]
+   KeePass OverwriteExisting into 1: as decided [entries 0, read 0]
+                          into 0: as decided [entries 0, read 0]
+   KeePass KeepExisting   into 1: as decided [entries 0, read 0]
+                          into 0: as decided [entries 0, read 0]
+   KeePass CreateNewUuids into 1: refuses: the whole database (store incomplete) [entries 0, read 1]
+                             C read, step 7, file 1: model ('ok', 'a0', [('c0', ['pf'])], [('N', ''), ('root', 'r')], [], ['pf']); read.py ('incomplete', None, [], [('N', ''), ('root', '')], [], ['pf'])
+                          into 0: as decided [entries 0, read 0]
+   KeePassXC 2.4.2        into 1: as decided [entries 0, read 0]
+                          into 0: as decided [entries 0, read 0]
+   KeePassXC 2.6.6        into 1: as decided [entries 0, read 0]
+                          into 0: as decided [entries 0, read 0]
+   KeePassXC 2.7.12       into 1: as decided [entries 0, read 0]
+                          into 0: as decided [entries 0, read 0]
+   KeePassXC 2.8.0        into 1: as decided [entries 0, read 0]
+                          into 0: as decided [entries 0, read 0]
+## H7: at copy 0 a rule set, widened, narrowed and emptied at N, and set, narrowed at the root; copy 1 holds the first
+   history: rule 0 N r ; rule 0 root rw ; merge kp_sync 1 0 ; rule 0 N rw ; rule 0 N r ; rule 0 N none ; rule 0 root r
+   KeePass Synchronize    into 1: as decided [entries 0, read 0]
+                          into 0: as decided [entries 0, read 0]
+   KeePass OverwriteIfNewer into 1: as decided [entries 0, read 0]
+                          into 0: as decided [entries 0, read 0]
+   KeePass OverwriteExisting into 1: as decided [entries 0, read 0]
+                          into 0: as decided [entries 0, read 0]
+   KeePass KeepExisting   into 1: as decided [entries 0, read 0]
+                          into 0: as decided [entries 0, read 0]
+   KeePass CreateNewUuids into 1: refuses: the whole database (store incomplete) [entries 0, read 1]
+                             C read, step 7, file 1: model ('ok', 'a0', [('c0', ['pf'])], [('N', 'r'), ('root', 'rw')], [], ['pf']); read.py ('incomplete', None, [], [('N', ''), ('root', '')], [], ['pf'])
+                          into 0: as decided [entries 0, read 0]
+   KeePassXC 2.4.2        into 1: as decided [entries 0, read 0]
+                          into 0: as decided [entries 0, read 0]
+   KeePassXC 2.6.6        into 1: as decided [entries 0, read 0]
+                          into 0: as decided [entries 0, read 0]
+   KeePassXC 2.7.12       into 1: as decided [entries 0, read 0]
+                          into 0: as decided [entries 0, read 0]
+   KeePassXC 2.8.0        into 1: as decided [entries 0, read 0]
+                          into 0: as decided [entries 0, read 0]
+## H8: at copy 0 a rule at N set and then removed, the root emptied; copy 1 holds the rule at N
+   history: rule 0 N r ; merge kp_sync 1 0 ; rule 0 N inherit ; rule 0 root none
+   KeePass Synchronize    into 1: as decided [entries 0, read 0]
+                          into 0: as decided [entries 0, read 0]
+   KeePass OverwriteIfNewer into 1: as decided [entries 0, read 0]
+                          into 0: as decided [entries 0, read 0]
+   KeePass OverwriteExisting into 1: as decided [entries 0, read 0]
+                          into 0: as decided [entries 0, read 0]
+   KeePass KeepExisting   into 1: as decided [entries 0, read 0]
+                          into 0: as decided [entries 0, read 0]
+   KeePass CreateNewUuids into 1: refuses: the whole database (store incomplete) [entries 0, read 1]
+                             C read, step 4, file 1: model ('ok', 'a0', [('c0', ['pf'])], [('N', 'r'), ('root', 'r')], [], ['pf']); read.py ('incomplete', None, [], [('N', ''), ('root', '')], [], ['pf'])
+                          into 0: as decided [entries 0, read 0]
+   KeePassXC 2.4.2        into 1: as decided [entries 0, read 0]
+                          into 0: as decided [entries 0, read 0]
+   KeePassXC 2.6.6        into 1: as decided [entries 0, read 0]
+                          into 0: as decided [entries 0, read 0]
+   KeePassXC 2.7.12       into 1: as decided [entries 0, read 0]
+                          into 0: as decided [entries 0, read 0]
+   KeePassXC 2.8.0        into 1: as decided [entries 0, read 0]
+                          into 0: as decided [entries 0, read 0]
+## H9: the same rule changed apart: read at copy 0, read and write at copy 1
+   history: rule 0 N r ; rule 1 N rw
+   KeePass Synchronize    into 1: as decided [entries 0, read 0]
+                          into 0: as decided [entries 0, read 0]
+   KeePass OverwriteIfNewer into 1: as decided [entries 0, read 0]
+                          into 0: as decided [entries 0, read 0]
+   KeePass OverwriteExisting into 1: as decided [entries 0, read 0]
+                          into 0: as decided [entries 0, read 0]
+   KeePass KeepExisting   into 1: as decided [entries 0, read 0]
+                          into 0: as decided [entries 0, read 0]
+   KeePass CreateNewUuids into 1: WIDER: node N grants rw [entries 0, read 0]
+                             ok, served a0, admitted {'c0': 'pf'}, words {'N': 'rw', 'root': 'r'}, refused renewals [], names ['pf']
+                              0 rule 0 N r
+                              1 rule 1 N rw
+                              2 merge cni 1 0 [CreateNewUuids]
+                          into 0: as decided [entries 0, read 0]
+   KeePassXC 2.4.2        into 1: as decided [entries 0, read 0]
+                          into 0: as decided [entries 0, read 0]
+   KeePassXC 2.6.6        into 1: as decided [entries 0, read 0]
+                          into 0: as decided [entries 0, read 0]
+   KeePassXC 2.7.12       into 1: as decided [entries 0, read 0]
+                          into 0: as decided [entries 0, read 0]
+   KeePassXC 2.8.0        into 1: as decided [entries 0, read 0]
+                          into 0: as decided [entries 0, read 0]
+## H10: a rule narrowed at gate 0 and widened at gate 1, apart
+   history: rule 0 N none ; rule 1 N rw
+   KeePass Synchronize    into 1: as decided [entries 0, read 0]
+                          into 0: as decided [entries 0, read 0]
+   KeePass OverwriteIfNewer into 1: as decided [entries 0, read 0]
+                          into 0: as decided [entries 0, read 0]
+   KeePass OverwriteExisting into 1: as decided [entries 0, read 0]
+                          into 0: as decided [entries 0, read 0]
+   KeePass KeepExisting   into 1: as decided [entries 0, read 0]
+                          into 0: as decided [entries 0, read 0]
+   KeePass CreateNewUuids into 1: refuses: the whole database (store incomplete) [entries 0, read 1]
+                             C read, step 2, file 1: model ('ok', 'a0', [('c0', ['pf'])], [('N', 'rw'), ('root', 'r')], [], ['pf']); read.py ('incomplete', None, [], [('N', ''), ('root', '')], [], ['pf'])
+                          into 0: as decided [entries 0, read 0]
+   KeePassXC 2.4.2        into 1: as decided [entries 0, read 0]
+                          into 0: as decided [entries 0, read 0]
+   KeePassXC 2.6.6        into 1: as decided [entries 0, read 0]
+                          into 0: as decided [entries 0, read 0]
+   KeePassXC 2.7.12       into 1: as decided [entries 0, read 0]
+                          into 0: as decided [entries 0, read 0]
+   KeePassXC 2.8.0        into 1: as decided [entries 0, read 0]
+                          into 0: as decided [entries 0, read 0]
+## H11: an admission at each gate, apart
+   history: pair 0 ; pair 1
+   KeePass Synchronize    into 1: as decided [entries 0, read 0]
+                          into 0: as decided [entries 0, read 0]
+   KeePass OverwriteIfNewer into 1: as decided [entries 0, read 0]
+                          into 0: as decided [entries 0, read 0]
+   KeePass OverwriteExisting into 1: as decided [entries 0, read 0]
+                          into 0: as decided [entries 0, read 0]
+   KeePass KeepExisting   into 1: as decided [entries 0, read 0]
+                          into 0: as decided [entries 0, read 0]
+   KeePass CreateNewUuids into 1: narrower: client c1 refused [entries 0, read 0]
+                          into 0: narrower: client c2 refused [entries 0, read 0]
+   KeePassXC 2.4.2        into 1: as decided [entries 0, read 0]
+                          into 0: as decided [entries 0, read 0]
+   KeePassXC 2.6.6        into 1: as decided [entries 0, read 0]
+                          into 0: as decided [entries 0, read 0]
+   KeePassXC 2.7.12       into 1: as decided [entries 0, read 0]
+                          into 0: as decided [entries 0, read 0]
+   KeePassXC 2.8.0        into 1: as decided [entries 0, read 0]
+                          into 0: as decided [entries 0, read 0]
+## H12: a renewal refused forever at copy 0
+   history: renew 0 c0 forever
+   KeePass Synchronize    into 1: as decided [entries 0, read 0]
+                          into 0: as decided [entries 0, read 0]
+   KeePass OverwriteIfNewer into 1: as decided [entries 0, read 0]
+                          into 0: as decided [entries 0, read 0]
+   KeePass OverwriteExisting into 1: as decided [entries 0, read 0]
+                          into 0: as decided [entries 0, read 0]
+   KeePass KeepExisting   into 1: as decided [entries 0, read 0]
+                          into 0: as decided [entries 0, read 0]
+   KeePass CreateNewUuids into 1: refuses: the whole database (store incomplete) [entries 0, read 1]
+                             C read, step 1, file 1: model ('ok', 'a0', [('c0', ['pf'])], [('N', 'r'), ('root', 'r')], [], ['pf']); read.py ('incomplete', None, [], [('N', ''), ('root', '')], ['c0'], ['pf'])
+                          into 0: as decided [entries 0, read 0]
+   KeePassXC 2.4.2        into 1: as decided [entries 0, read 0]
+                          into 0: as decided [entries 0, read 0]
+   KeePassXC 2.6.6        into 1: as decided [entries 0, read 0]
+                          into 0: as decided [entries 0, read 0]
+   KeePassXC 2.7.12       into 1: as decided [entries 0, read 0]
+                          into 0: as decided [entries 0, read 0]
+   KeePassXC 2.8.0        into 1: as decided [entries 0, read 0]
+                          into 0: as decided [entries 0, read 0]
+## H13: B.3: a copy from before a Recreate (copy 1) and a copy after it (copy 0)
+   history: rule 0 N none ; pair 0 ; merge kp_sync 1 0 ; recreate 0 ; pair 0 ; rule 0 N r
+   KeePass Synchronize    into 1: as decided [entries 0, read 0]
+                          into 0: as decided [entries 0, read 0]
+   KeePass OverwriteIfNewer into 1: as decided [entries 0, read 0]
+                          into 0: as decided [entries 0, read 0]
+   KeePass OverwriteExisting into 1: as decided [entries 0, read 0]
+                          into 0: as decided [entries 0, read 0]
+   KeePass KeepExisting   into 1: as decided [entries 0, read 0]
+                          into 0: as decided [entries 0, read 0]
+   KeePass CreateNewUuids into 1: refuses: the whole database (store incomplete) [entries 0, read 1]
+                             C read, step 6, file 1: model ('ok', 'a0', [('c0', ['pf']), ('c1', ['pf'])], [('N', ''), ('root', 'r')], [], ['pf']); read.py ('incomplete', None, [], [('N', ''), ('root', '')], [], ['pf'])
+                          into 0: as decided [entries 0, read 0]
+   KeePassXC 2.4.2        into 1: as decided [entries 0, read 0]
+                          into 0: as decided [entries 0, read 0]
+   KeePassXC 2.6.6        into 1: as decided [entries 0, read 0]
+                          into 0: as decided [entries 0, read 0]
+   KeePassXC 2.7.12       into 1: as decided [entries 0, read 0]
+                          into 0: as decided [entries 0, read 0]
+   KeePassXC 2.8.0        into 1: as decided [entries 0, read 0]
+                          into 0: as decided [entries 0, read 0]
+== tally: WIDER 1, as decided 220, narrower 3, refuses 10
+== B.1 for a user node under a rule (real files only; the model has no tree)
+## T1: N moved to the group Other in copy 1
+   KeePass Synchronize    into 0: ok; N in Other gives nothing | into 1: ok; N in Other gives nothing
+   KeePass OverwriteIfNewer into 0: ok; N in General gives nothing | into 1: ok; N in Other gives nothing
+   KeePass OverwriteExisting into 0: ok; N in General gives nothing | into 1: ok; N in Other gives nothing
+   KeePass KeepExisting   into 0: ok; N in General gives nothing | into 1: ok; N in Other gives nothing
+   KeePass CreateNewUuids into 0: ok; N in General gives nothing, a copy of N in Other gives rw | into 1: ok; N in Other gives nothing, a copy of N in General gives rw
+   KeePassXC 2.4.2        into 0: ok; N in Other gives nothing | into 1: ok; N in Other gives nothing
+   KeePassXC 2.6.6        into 0: ok; N in Other gives nothing | into 1: ok; N in Other gives nothing
+   KeePassXC 2.7.12       into 0: ok; N in Other gives nothing | into 1: ok; N in Other gives nothing
+   KeePassXC 2.8.0        into 0: ok; N in Other gives nothing | into 1: ok; N in Other gives nothing
+## T2: N duplicated in copy 1 (a copy beside it)
+   KeePass Synchronize    into 0: ok; N in General gives nothing, a copy of N in General gives rw | into 1: ok; N in General gives nothing, a copy of N in General gives rw
+   KeePass OverwriteIfNewer into 0: ok; N in General gives nothing, a copy of N in General gives rw | into 1: ok; N in General gives nothing, a copy of N in General gives rw
+   KeePass OverwriteExisting into 0: ok; N in General gives nothing, a copy of N in General gives rw | into 1: ok; N in General gives nothing, a copy of N in General gives rw
+   KeePass KeepExisting   into 0: ok; N in General gives nothing, a copy of N in General gives rw | into 1: ok; N in General gives nothing, a copy of N in General gives rw
+   KeePass CreateNewUuids into 0: ok; N in General gives nothing, a copy of N in General gives rw, a copy of N in General gives rw | into 1: ok; N in General gives nothing, a copy of N in General gives rw, a copy of N in General gives rw
+   KeePassXC 2.4.2        into 0: ok; N in General gives nothing, a copy of N in General gives rw | into 1: ok; N in General gives nothing, a copy of N in General gives rw
+   KeePassXC 2.6.6        into 0: ok; N in General gives nothing, a copy of N in General gives rw | into 1: ok; N in General gives nothing, a copy of N in General gives rw
+   KeePassXC 2.7.12       into 0: ok; N in General gives nothing, a copy of N in General gives rw | into 1: ok; N in General gives nothing, a copy of N in General gives rw
+   KeePassXC 2.8.0        into 0: ok; N in General gives nothing, a copy of N in General gives rw | into 1: ok; N in General gives nothing, a copy of N in General gives rw
+## T3: N deleted to the bin in copy 1
+   KeePass Synchronize    into 0: ok; N in the bin gives nothing | into 1: ok; N in the bin gives nothing
+   KeePass OverwriteIfNewer into 0: ok; N in General gives nothing | into 1: ok; N in the bin gives nothing
+   KeePass OverwriteExisting into 0: ok; N in General gives nothing | into 1: ok; N in the bin gives nothing
+   KeePass KeepExisting   into 0: ok; N in General gives nothing | into 1: ok; N in the bin gives nothing
+   KeePass CreateNewUuids into 0: ok; N in General gives nothing, a copy of N in Recycle Bin gives rw | into 1: ok; N in the bin gives nothing, a copy of N in General gives rw
+   KeePassXC 2.4.2        into 0: ok; N in the bin gives nothing | into 1: ok; N in the bin gives nothing
+   KeePassXC 2.6.6        into 0: ok; N in the bin gives nothing | into 1: ok; N in the bin gives nothing
+   KeePassXC 2.7.12       into 0: ok; N in the bin gives nothing | into 1: ok; N in the bin gives nothing
+   KeePassXC 2.8.0        into 0: ok; N in the bin gives nothing | into 1: ok; N in the bin gives nothing
+## T4: N deleted to the bin and restored in copy 1
+   KeePass Synchronize    into 0: ok; N in Root gives nothing | into 1: ok; N in Root gives nothing
+   KeePass OverwriteIfNewer into 0: ok; N in General gives nothing | into 1: ok; N in Root gives nothing
+   KeePass OverwriteExisting into 0: ok; N in General gives nothing | into 1: ok; N in Root gives nothing
+   KeePass KeepExisting   into 0: ok; N in General gives nothing | into 1: ok; N in Root gives nothing
+   KeePass CreateNewUuids into 0: ok; N in General gives nothing, a copy of N in Root gives rw | into 1: ok; N in Root gives nothing, a copy of N in General gives rw
+   KeePassXC 2.4.2        into 0: ok; N in Root gives nothing | into 1: ok; N in Root gives nothing
+   KeePassXC 2.6.6        into 0: ok; N in Root gives nothing | into 1: ok; N in Root gives nothing
+   KeePassXC 2.7.12       into 0: ok; N in Root gives nothing | into 1: ok; N in Root gives nothing
+   KeePassXC 2.8.0        into 0: ok; N in Root gives nothing | into 1: ok; N in Root gives nothing
+## T5: N deleted for good in copy 1
+   KeePass Synchronize    into 0: ok; N gone | into 1: ok; N gone
+   KeePass OverwriteIfNewer into 0: ok; N in General gives nothing | into 1: ok; N gone
+   KeePass OverwriteExisting into 0: ok; N in General gives nothing | into 1: ok; N gone
+   KeePass KeepExisting   into 0: ok; N in General gives nothing | into 1: ok; N gone
+   KeePass CreateNewUuids into 0: ok; N in General gives nothing | into 1: ok; a copy of N in General gives rw
+   KeePassXC 2.4.2        into 0: ok; N in General gives nothing | into 1: ok; N in General gives nothing
+   KeePassXC 2.6.6        into 0: ok; N in General gives nothing | into 1: ok; N in General gives nothing
+   KeePassXC 2.7.12       into 0: ok; N in General gives nothing | into 1: ok; N in General gives nothing
+   KeePassXC 2.8.0        into 0: ok; N in General gives nothing | into 1: ok; N in General gives nothing
+== 151 s

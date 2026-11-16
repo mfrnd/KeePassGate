@@ -1,0 +1,115 @@
+random histories: 300, steps done: 1419, steps where a file disagreed with the model: 3, steps where the read differed: 16, failures of the model's safety check: 0, 107 s
+outcomes of every file at the end, against every decision: WIDER 171, as decided 406, narrower 93, refuses 54
+records written again at the gate's own writes: 0
+## history 23 (2 files)
+    2 del 1 ('rec',) 1
+    3 renew 0 c0 forever
+    4 touch 0 ('rec',)
+    5 del 0 ('rec',) 0
+    6 renew 1 c0 forever
+   READ DIFFERS at step 5, file 0: model ('ok', 'a0', [], [('N', 'r'), ('root', 'r')], ['c0'], ['pf']); read.py ('ok', 'a0', [], [('N', 'r'), ('root', 'r')], [], ['pf'])
+   READ DIFFERS at step 6, file 1: model ('ok', 'a0', [], [('N', 'r'), ('root', 'r')], ['c0'], ['pf']); read.py ('ok', 'a0', [], [('N', 'r'), ('root', 'r')], [], ['pf'])
+## history 35 (2 files)
+    0 touch 0 ('padd',)
+    2 pair 1
+    3 del 1 ('auth',) 1
+   READ DIFFERS at step 3, file 1: model ('incomplete', None, [], [('N', ''), ('root', '')], [], []); read.py ('nostore', None, [], [('N', ''), ('root', '')], [], [])
+## history 53 (3 files)
+    1 merge xc 0 2 [keepassxc-cli 2.8.0]
+    2 merge kp_other 0 1 [OverwriteIfNewer]
+    3 bin 2 ('ver', 'rule:root', 'new')
+    4 merge kp_other 0 1 [KeepExisting]
+    5 rule 2 N none
+    6 del 2 ('auth',) 0
+    7 merge kp_sync 1 0
+   READ DIFFERS at step 6, file 2: model ('incomplete', None, [], [('N', ''), ('root', '')], [], []); read.py ('nostore', None, [], [('N', ''), ('root', '')], [], [])
+## history 57 (2 files)
+    1 renewcert 1 c0
+    2 del 1 ('auth',) 0
+    4 pair 0
+    5 padd 0 pg
+    6 prem 0 pg
+    7 merge xc 0 1 [keepassxc-cli 2.7.12]
+    8 renewcert 0 c0
+   READ DIFFERS at step 2, file 1: model ('incomplete', None, [], [('N', ''), ('root', '')], [], []); read.py ('nostore', None, [], [('N', ''), ('root', '')], [], [])
+## history 59 (2 files)
+    1 del 1 ('ver', 'rule:root', 'new') 0
+    2 delauth 0
+    3 del 0 ('ref', 'retired') 2
+   READ DIFFERS at step 3, file 0: model ('incomplete', None, [], [('N', ''), ('root', '')], [], []); read.py ('nostore', None, [], [('N', ''), ('root', '')], [], [])
+## history 80 (2 files)
+    0 pair 1
+    2 merge kp_other 0 1 [KeepExisting]
+    3 rule 1 root rw
+    4 merge xc 1 0 [keepassxc-cli 2.4.2]
+    5 del 1 ('auth',) 0
+    7 merge kp_other 1 0 [KeepExisting]
+   READ DIFFERS at step 5, file 1: model ('incomplete', None, [], [('N', ''), ('root', '')], [], []); read.py ('nostore', None, [], [('N', ''), ('root', '')], [], [])
+## history 95 (2 files)
+    0 pair 0
+    1 merge kp_other 1 0 [OverwriteIfNewer]
+    3 renew 1 c0 forever
+    4 delauth 1
+   READ DIFFERS at step 4, file 1: model ('ok', None, [], [('N', ''), ('root', '')], ['c0'], ['pf']); read.py ('ok', None, [], [('N', ''), ('root', '')], [], ['pf'])
+## history 107 (3 files)
+    0 prem 2 pf
+    1 merge kp_other 1 0 [OverwriteExisting]
+    2 del 2 ('auth',) 1
+    4 prem 1 pf
+   READ DIFFERS at step 2, file 2: model ('incomplete', None, [], [('N', ''), ('root', '')], [], []); read.py ('nostore', None, [], [('N', ''), ('root', '')], [], [])
+## history 114 (2 files)
+    2 delauth 0
+    3 merge kp_other 0 1 [OverwriteIfNewer]
+    5 renew 1 c0 forever
+    6 merge kp_sync 1 0
+    7 del 1 ('ver', 'rule:root', 'new') 2
+    8 touch 1 ('padd',)
+   READ DIFFERS at step 6, file 1: model ('ok', None, [], [('N', ''), ('root', '')], ['c0'], ['pf']); read.py ('ok', None, [], [('N', ''), ('root', '')], [], ['pf'])
+   READ DIFFERS at step 7, file 1: model ('ok', None, [], [('N', ''), ('root', '')], ['c0'], ['pf']); read.py ('ok', None, [], [('N', ''), ('root', '')], [], ['pf'])
+   READ DIFFERS at step 8, file 1: model ('ok', None, [], [('N', ''), ('root', '')], ['c0'], ['pf']); read.py ('ok', None, [], [('N', ''), ('root', '')], [], ['pf'])
+## history 117 (3 files)
+    0 del 0 ('rec',) 1
+    1 merge kp_other 0 1 [OverwriteExisting]
+    2 merge xc 0 1 [keepassxc-cli 2.7.12]
+    3 del 2 ('auth',) 2
+    4 rule 0 N none
+    5 del 2 ('head', 'old') 2
+   READ DIFFERS at step 5, file 2: model ('incomplete', None, [], [('N', ''), ('root', '')], [], []); read.py ('nostore', None, [], [('N', ''), ('root', '')], [], [])
+## history 122 (2 files)
+    0 merge kp_other 0 1 [OverwriteExisting]
+    1 renewcert 0 c0
+    2 bin 0 ('ver', 'rule:root', 'new')
+    3 touch 1 ('rec',)
+    4 merge kp_other 1 0 [OverwriteExisting]
+    5 rule 1 root none
+    7 merge xc 0 1 [keepassxc-cli 2.4.2]
+    8 del 0 ('auth',) 2
+   DISAGREE at step 4, file 1: entry rec:c0: model ('rec:c0', 50, True), file ('rec:c0', 1, True)
+   READ DIFFERS at step 8, file 0: model ('incomplete', None, [], [('N', ''), ('root', '')], [], []); read.py ('nostore', None, [], [('N', ''), ('root', '')], [], [])
+## history 152 (2 files)
+    0 padd 0 pg
+    1 del 1 ('head', 'old') 2
+    2 touch 0 ('rec',)
+    3 merge xc 0 1 [keepassxc-cli 2.7.12]
+    4 merge kp_other 1 0 [KeepExisting]
+    5 merge kp_other 1 0 [OverwriteIfNewer]
+   DISAGREE at step 4, file 1: entry rec:c0: model ('rec:c0', 30, True), file ('rec:c0', 1, True)
+## history 202 (3 files)
+    0 renew 0 c0 forever
+    1 merge kp_sync 1 0
+    2 delauth 2
+    3 merge kp_sync 0 2
+   READ DIFFERS at step 3, file 0: model ('ok', None, [], [('N', ''), ('root', '')], ['c0'], ['pf']); read.py ('ok', None, [], [('N', ''), ('root', '')], [], ['pf'])
+## history 225 (2 files)
+    0 merge kp_sync 0 1
+    1 merge xc 1 0 [keepassxc-cli 2.8.0]
+    2 merge xc 1 0 [keepassxc-cli 2.4.2]
+    3 rule 1 N none
+    4 del 1 ('auth',) 1
+   READ DIFFERS at step 4, file 1: model ('incomplete', None, [], [('N', ''), ('root', '')], [], []); read.py ('nostore', None, [], [('N', ''), ('root', '')], [], [])
+## history 236 (3 files)
+    0 touch 1 ('ver', 'rule:root', 'new')
+    1 del 2 ('head', 'new') 2
+    2 merge kp_other 1 2 [OverwriteExisting]
+   DISAGREE at step 2, file 1: entry ver:rule:root#2: model ('ver:rule:root#2', 20, True), file ('ver:rule:root#2', 1, True)
+== 112 s

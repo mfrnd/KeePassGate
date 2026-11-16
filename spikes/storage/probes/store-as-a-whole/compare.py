@@ -11,6 +11,8 @@ Duplicate Entries gives the records it writes, which is the moment it runs. `des
 spikes/storage/model/recorded/results-full.txt, but for its last line. Exits 0 when nothing differs.
 
 ADDED (decided store): with --decided, `out/decided` is held to `recorded-decided` the same way.
+ADDED (two readings): with --rewrite or --copies, `out/rewrite` or `out/copies` to `recorded-rewrite`
+or `recorded-copies`.
 """
 import os
 import re
@@ -38,8 +40,9 @@ def lines(path):
 
 def main():
     global OUT, REC
-    if sys.argv[1:] == ['--decided']:
-        OUT, REC = os.path.join(OUT, 'decided'), os.path.join(FAMILY, 'recorded-decided')
+    if sys.argv[1:] in (['--decided'], ['--rewrite'], ['--copies']):     # ADDED (two readings): the last two
+        name = sys.argv[1][2:]
+        OUT, REC = os.path.join(OUT, name), os.path.join(FAMILY, 'recorded-' + name)
     bad = 0
     for name in sorted(os.listdir(REC)):
         if not name.endswith('.txt') or name == 'times.txt':

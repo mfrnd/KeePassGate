@@ -1,0 +1,909 @@
+== Reading 1 (backup): each kind of store entry edited at copy 0 by each operation of
+   b-history, then one write of the gate's own at copy 0 (a profile name added; Create for
+   the retirement that holds the store key, where no authority stands), which writes again
+   every record that counts only by its history. Rows: after the edit; after the write;
+   further edits after the write (a dialog edit of the payload, then dialog edits of the
+   title) until the store refuses, at most 12; and the write's file merged with the unedited
+   copy 1 both ways. "versions" lists the current version and then the history newest first,
+   P where a version passes the check under a key the file holds.
+   base: revoke 0 c0 ; recreate 0 ; pair 0 ; padd 0 pg ; prem 0 pf ; rule 0 N none ; renew 0 c1 forever ; merge kp_sync 1 0
+   base of the last kind: revoke 0 c0 ; recreate 0 ; pair 0 ; padd 0 pg ; prem 0 pf ; rule 0 N none ; renew 0 c1 forever ; delauth 0 ; merge kp_sync 1 0
+## the authority
+   dialog: a character of the payload changed in the entry dialog (ok 1)
+      after the edit               as decided [store ok, by history 1] history 1, versions -P
+      the gate writes (padd 0 ph)  as decided [store ok, by history 0, written again 1] history 2, versions P-P
+      further edits                AAAAAAAAAAK (refuses at edit 11) history 10, versions -----------
+      Synchronize into 1           as decided [store ok, by history 0] history 2, versions P-P
+      Synchronize into 0           as decided [store ok, by history 0] history 2, versions P-P
+      KeePassXC 2.8.0 into 1       as decided [store ok, by history 0] history 2, versions P-P
+      KeePassXC 2.8.0 into 0       as decided [store ok, by history 0] history 2, versions P-P
+   field: the payload string deleted in the entry dialog (ok 1)
+      after the edit               as decided [store ok, by history 1] history 1, versions -P
+      the gate writes (padd 0 ph)  as decided [store ok, by history 0, written again 1] history 2, versions P-P
+      further edits                AAAAAAAAAAK (refuses at edit 11) history 10, versions -----------
+      Synchronize into 1           as decided [store ok, by history 0] history 2, versions P-P
+      Synchronize into 0           as decided [store ok, by history 0] history 2, versions P-P
+      KeePassXC 2.8.0 into 1       as decided [store ok, by history 0] history 2, versions P-P
+      KeePassXC 2.8.0 into 0       as decided [store ok, by history 0] history 2, versions P-P
+   quick: a quick edit, Expires: Now (nothing the check covers) (ok 1)
+      after the edit               as decided [store ok, by history 0] history 1, versions PP
+      the gate writes (padd 0 ph)  as decided [store ok, by history 0, written again 0] history 1, versions PP
+      further edits                AAAAAAAAAAK (refuses at edit 11) history 10, versions -----------
+      Synchronize into 1           as decided [store ok, by history 0] history 1, versions PP
+      Synchronize into 0           as decided [store ok, by history 0] history 1, versions PP
+      KeePassXC 2.8.0 into 1       as decided [store ok, by history 0] history 1, versions PP
+      KeePassXC 2.8.0 into 0       as decided [store ok, by history 0] history 1, versions PP
+   move: moved to the group General (ok)
+      after the edit               as decided [store ok, by history 0] history 0, versions P
+      the gate writes (padd 0 ph)  as decided [store ok, by history 0, written again 0] history 0, versions P
+      further edits                AAAAAAAAAAK (refuses at edit 11) history 10, versions -----------
+      Synchronize into 1           as decided [store ok, by history 0] history 0, versions P
+      Synchronize into 0           as decided [store ok, by history 0] history 0, versions P
+      KeePassXC 2.8.0 into 1       as decided [store ok, by history 0] history 0, versions P
+      KeePassXC 2.8.0 into 0       as decided [store ok, by history 0] history 0, versions P
+   bin: deleted to the recycle bin (ok)
+      after the edit               as decided [store ok, by history 0] history 0, versions P
+      the gate writes (padd 0 ph)  as decided [store ok, by history 0, written again 0] history 0, versions P
+      further edits                AAAAAAAAAAK (refuses at edit 11) history 10, versions -----------
+      Synchronize into 1           as decided [store ok, by history 0] history 0, versions P
+      Synchronize into 0           as decided [store ok, by history 0] history 0, versions P
+      KeePassXC 2.8.0 into 1       as decided [store ok, by history 0] history 0, versions P
+      KeePassXC 2.8.0 into 0       as decided [store ok, by history 0] history 0, versions P
+   delete: deleted for good, with a deletion record (ok)
+      after the edit               refuses: the whole database (store nostore) [store nostore, by history 0] entry gone
+      the gate writes (padd 0 ph)  cannot write; refuses: the whole database (store nostore) [store nostore, by history 0, written again 0] entry gone
+      further edits                not run: the gate could not write
+      Synchronize into 1           refuses: the whole database (store nostore) [store nostore, by history 0] entry gone
+      Synchronize into 0           refuses: the whole database (store nostore) [store nostore, by history 0] entry gone
+      KeePassXC 2.8.0 into 1       as decided [store ok, by history 0] history 0, versions P
+      KeePassXC 2.8.0 into 0       refuses: nothing served (0 authorities stand) [store ok, by history 0] history 0, versions P
+      C read, step 40, file 1: model ('incomplete', None, [], [('N', ''), ('root', '')], [], []); read.py ('nostore', None, [], [('N', ''), ('root', '')], [], [])
+      C read, step 40, file 0: model ('incomplete', None, [], [('N', ''), ('root', '')], [], []); read.py ('nostore', None, [], [('N', ''), ('root', '')], [], [])
+   edits10: the dialog edit and 9 more dialog edits (of the title): 10 edits (ok 10)
+      after the edit               as decided [store ok, by history 1] history 10, versions ----------P
+      the gate writes (padd 0 ph)  as decided [store ok, by history 0, written again 1] history 10, versions P----------
+      further edits                AAAAAAAAAAK (refuses at edit 11) history 10, versions -----------
+      Synchronize into 1           as decided [store ok, by history 0] history 10, versions P----------
+      Synchronize into 0           as decided [store ok, by history 0] history 10, versions P----------
+      KeePassXC 2.8.0 into 1       as decided [store ok, by history 0] history 10, versions P----------
+      KeePassXC 2.8.0 into 0       as decided [store ok, by history 0] history 10, versions P----------
+   edits11: the dialog edit and 10 more dialog edits (of the title): 11 edits (ok 10)
+      after the edit               refuses: the whole database (store nostore) [store nostore, by history 0] history 10, versions -----------
+      the gate writes (padd 0 ph)  cannot write; refuses: the whole database (store nostore) [store nostore, by history 0, written again 0] history 10, versions -----------
+      further edits                not run: the gate could not write
+      Synchronize into 1           refuses: the whole database (store nostore) [store nostore, by history 0] history 10, versions -----------
+      Synchronize into 0           refuses: the whole database (store nostore) [store nostore, by history 0] history 10, versions -----------
+      KeePassXC 2.8.0 into 1       refuses: the whole database (store nostore) [store nostore, by history 0] history 10, versions -----------
+      KeePassXC 2.8.0 into 0       refuses: the whole database (store nostore) [store nostore, by history 0] history 10, versions -----------
+      C read, step 40, file 1: model ('incomplete', None, [], [('N', ''), ('root', '')], [], []); read.py ('nostore', None, [], [('N', ''), ('root', '')], [], [])
+      C read, step 40, file 0: model ('incomplete', None, [], [('N', ''), ('root', '')], [], []); read.py ('nostore', None, [], [('N', ''), ('root', '')], [], [])
+      C read, step 40, file 1: model ('incomplete', None, [], [('N', ''), ('root', '')], [], []); read.py ('nostore', None, [], [('N', ''), ('root', '')], [], [])
+      C read, step 40, file 0: model ('incomplete', None, [], [('N', ''), ('root', '')], [], []); read.py ('nostore', None, [], [('N', ''), ('root', '')], [], [])
+   quick10: the dialog edit and 10 quick edits: 11 edits (ok 10)
+      after the edit               refuses: the whole database (store nostore) [store nostore, by history 0] history 10, versions -----------
+      the gate writes (padd 0 ph)  cannot write; refuses: the whole database (store nostore) [store nostore, by history 0, written again 0] history 10, versions -----------
+      further edits                not run: the gate could not write
+      Synchronize into 1           refuses: the whole database (store nostore) [store nostore, by history 0] history 10, versions -----------
+      Synchronize into 0           refuses: the whole database (store nostore) [store nostore, by history 0] history 10, versions -----------
+      KeePassXC 2.8.0 into 1       refuses: the whole database (store nostore) [store nostore, by history 0] history 10, versions -----------
+      KeePassXC 2.8.0 into 0       refuses: the whole database (store nostore) [store nostore, by history 0] history 10, versions -----------
+      C read, step 40, file 1: model ('incomplete', None, [], [('N', ''), ('root', '')], [], []); read.py ('nostore', None, [], [('N', ''), ('root', '')], [], [])
+      C read, step 40, file 0: model ('incomplete', None, [], [('N', ''), ('root', '')], [], []); read.py ('nostore', None, [], [('N', ''), ('root', '')], [], [])
+      C read, step 40, file 1: model ('incomplete', None, [], [('N', ''), ('root', '')], [], []); read.py ('nostore', None, [], [('N', ''), ('root', '')], [], [])
+      C read, step 40, file 0: model ('incomplete', None, [], [('N', ''), ('root', '')], [], []); read.py ('nostore', None, [], [('N', ''), ('root', '')], [], [])
+   off: history kept by neither copy (0 items), then the dialog edit (ok 0)
+      after the edit               refuses: the whole database (store nostore) [store nostore, by history 0] history 0, versions -
+      the gate writes (padd 0 ph)  cannot write; refuses: the whole database (store nostore) [store nostore, by history 0, written again 0] history 0, versions -
+      further edits                not run: the gate could not write
+      Synchronize into 1           refuses: the whole database (store nostore) [store nostore, by history 0] history 0, versions -
+      Synchronize into 0           refuses: the whole database (store nostore) [store nostore, by history 0] history 0, versions -
+      KeePassXC 2.8.0 into 1       refuses: the whole database (store nostore) [store nostore, by history 0] history 0, versions -
+      KeePassXC 2.8.0 into 0       refuses: the whole database (store nostore) [store nostore, by history 0] history 0, versions -
+      C read, step 40, file 1: model ('incomplete', None, [], [('N', ''), ('root', '')], [], []); read.py ('nostore', None, [], [('N', ''), ('root', '')], [], [])
+      C read, step 40, file 0: model ('incomplete', None, [], [('N', ''), ('root', '')], [], []); read.py ('nostore', None, [], [('N', ''), ('root', '')], [], [])
+      C read, step 40, file 1: model ('incomplete', None, [], [('N', ''), ('root', '')], [], []); read.py ('nostore', None, [], [('N', ''), ('root', '')], [], [])
+      C read, step 40, file 0: model ('incomplete', None, [], [('N', ''), ('root', '')], [], []); read.py ('nostore', None, [], [('N', ''), ('root', '')], [], [])
+## a retirement (from Recreate)
+   dialog: a character of the payload changed in the entry dialog (ok 1)
+      after the edit               as decided [store ok, by history 1] history 1, versions -P
+      the gate writes (padd 0 ph)  as decided [store ok, by history 0, written again 1] history 2, versions P-P
+      further edits                AAAAAAAAAAR (refuses at edit 11) history 10, versions -----------
+      Synchronize into 1           as decided [store ok, by history 0] history 2, versions P-P
+      Synchronize into 0           as decided [store ok, by history 0] history 2, versions P-P
+      KeePassXC 2.8.0 into 1       as decided [store ok, by history 0] history 2, versions P-P
+      KeePassXC 2.8.0 into 0       as decided [store ok, by history 0] history 2, versions P-P
+   field: the payload string deleted in the entry dialog (ok 1)
+      after the edit               as decided [store ok, by history 1] history 1, versions -P
+      the gate writes (padd 0 ph)  as decided [store ok, by history 0, written again 1] history 2, versions P-P
+      further edits                AAAAAAAAAAR (refuses at edit 11) history 10, versions -----------
+      Synchronize into 1           as decided [store ok, by history 0] history 2, versions P-P
+      Synchronize into 0           as decided [store ok, by history 0] history 2, versions P-P
+      KeePassXC 2.8.0 into 1       as decided [store ok, by history 0] history 2, versions P-P
+      KeePassXC 2.8.0 into 0       as decided [store ok, by history 0] history 2, versions P-P
+   quick: a quick edit, Expires: Now (nothing the check covers) (ok 1)
+      after the edit               as decided [store ok, by history 0] history 1, versions PP
+      the gate writes (padd 0 ph)  as decided [store ok, by history 0, written again 0] history 1, versions PP
+      further edits                AAAAAAAAAAR (refuses at edit 11) history 10, versions -----------
+      Synchronize into 1           as decided [store ok, by history 0] history 1, versions PP
+      Synchronize into 0           as decided [store ok, by history 0] history 1, versions PP
+      KeePassXC 2.8.0 into 1       as decided [store ok, by history 0] history 1, versions PP
+      KeePassXC 2.8.0 into 0       as decided [store ok, by history 0] history 1, versions PP
+   move: moved to the group General (ok)
+      after the edit               as decided [store ok, by history 0] history 0, versions P
+      the gate writes (padd 0 ph)  as decided [store ok, by history 0, written again 0] history 0, versions P
+      further edits                AAAAAAAAAAR (refuses at edit 11) history 10, versions -----------
+      Synchronize into 1           as decided [store ok, by history 0] history 0, versions P
+      Synchronize into 0           as decided [store ok, by history 0] history 0, versions P
+      KeePassXC 2.8.0 into 1       as decided [store ok, by history 0] history 0, versions P
+      KeePassXC 2.8.0 into 0       as decided [store ok, by history 0] history 0, versions P
+   bin: deleted to the recycle bin (ok)
+      after the edit               as decided [store ok, by history 0] history 0, versions P
+      the gate writes (padd 0 ph)  as decided [store ok, by history 0, written again 0] history 0, versions P
+      further edits                AAAAAAAAAAR (refuses at edit 11) history 10, versions -----------
+      Synchronize into 1           as decided [store ok, by history 0] history 0, versions P
+      Synchronize into 0           as decided [store ok, by history 0] history 0, versions P
+      KeePassXC 2.8.0 into 1       as decided [store ok, by history 0] history 0, versions P
+      KeePassXC 2.8.0 into 0       as decided [store ok, by history 0] history 0, versions P
+   delete: deleted for good, with a deletion record (ok)
+      after the edit               as decided [store ok, by history 0] entry gone
+      the gate writes (padd 0 ph)  as decided [store ok, by history 0, written again 0] entry gone
+      further edits                not run: the entry is gone
+      Synchronize into 1           as decided [store ok, by history 0] entry gone
+      Synchronize into 0           as decided [store ok, by history 0] entry gone
+      KeePassXC 2.8.0 into 1       as decided [store ok, by history 0] history 0, versions P
+      KeePassXC 2.8.0 into 0       as decided [store ok, by history 0] history 0, versions P
+   edits10: the dialog edit and 9 more dialog edits (of the title): 10 edits (ok 10)
+      after the edit               as decided [store ok, by history 1] history 10, versions ----------P
+      the gate writes (padd 0 ph)  as decided [store ok, by history 0, written again 1] history 10, versions P----------
+      further edits                AAAAAAAAAAR (refuses at edit 11) history 10, versions -----------
+      Synchronize into 1           as decided [store ok, by history 0] history 10, versions P----------
+      Synchronize into 0           as decided [store ok, by history 0] history 10, versions P----------
+      KeePassXC 2.8.0 into 1       as decided [store ok, by history 0] history 10, versions P----------
+      KeePassXC 2.8.0 into 0       as decided [store ok, by history 0] history 10, versions P----------
+   edits11: the dialog edit and 10 more dialog edits (of the title): 11 edits (ok 10)
+      after the edit               refuses: the whole database (store incomplete) [store incomplete, by history 0] history 10, versions -----------
+      the gate writes (padd 0 ph)  cannot write; refuses: the whole database (store incomplete) [store incomplete, by history 0, written again 0] history 10, versions -----------
+      further edits                not run: the gate could not write
+      Synchronize into 1           refuses: the whole database (store incomplete) [store incomplete, by history 0] history 10, versions -----------
+      Synchronize into 0           refuses: the whole database (store incomplete) [store incomplete, by history 0] history 10, versions -----------
+      KeePassXC 2.8.0 into 1       refuses: the whole database (store incomplete) [store incomplete, by history 0] history 10, versions -----------
+      KeePassXC 2.8.0 into 0       refuses: the whole database (store incomplete) [store incomplete, by history 0] history 10, versions -----------
+   quick10: the dialog edit and 10 quick edits: 11 edits (ok 10)
+      after the edit               refuses: the whole database (store incomplete) [store incomplete, by history 0] history 10, versions -----------
+      the gate writes (padd 0 ph)  cannot write; refuses: the whole database (store incomplete) [store incomplete, by history 0, written again 0] history 10, versions -----------
+      further edits                not run: the gate could not write
+      Synchronize into 1           refuses: the whole database (store incomplete) [store incomplete, by history 0] history 10, versions -----------
+      Synchronize into 0           refuses: the whole database (store incomplete) [store incomplete, by history 0] history 10, versions -----------
+      KeePassXC 2.8.0 into 1       refuses: the whole database (store incomplete) [store incomplete, by history 0] history 10, versions -----------
+      KeePassXC 2.8.0 into 0       refuses: the whole database (store incomplete) [store incomplete, by history 0] history 10, versions -----------
+   off: history kept by neither copy (0 items), then the dialog edit (ok 0)
+      after the edit               refuses: the whole database (store incomplete) [store incomplete, by history 0] history 0, versions -
+      the gate writes (padd 0 ph)  cannot write; refuses: the whole database (store incomplete) [store incomplete, by history 0, written again 0] history 0, versions -
+      further edits                not run: the gate could not write
+      Synchronize into 1           refuses: the whole database (store incomplete) [store incomplete, by history 0] history 0, versions -
+      Synchronize into 0           refuses: the whole database (store incomplete) [store incomplete, by history 0] history 0, versions -
+      KeePassXC 2.8.0 into 1       refuses: the whole database (store incomplete) [store incomplete, by history 0] history 0, versions -
+      KeePassXC 2.8.0 into 0       refuses: the whole database (store incomplete) [store incomplete, by history 0] history 0, versions -
+## an admission record (c1)
+   dialog: a character of the payload changed in the entry dialog (ok 1)
+      after the edit               as decided [store ok, by history 1] history 1, versions -P
+      the gate writes (padd 0 ph)  as decided [store ok, by history 0, written again 1] history 2, versions P-P
+      further edits                AAAAAAAAAAR (refuses at edit 11) history 10, versions -----------
+      Synchronize into 1           as decided [store ok, by history 0] history 2, versions P-P
+      Synchronize into 0           as decided [store ok, by history 0] history 2, versions P-P
+      KeePassXC 2.8.0 into 1       as decided [store ok, by history 0] history 2, versions P-P
+      KeePassXC 2.8.0 into 0       as decided [store ok, by history 0] history 2, versions P-P
+   field: the payload string deleted in the entry dialog (ok 1)
+      after the edit               as decided [store ok, by history 1] history 1, versions -P
+      the gate writes (padd 0 ph)  as decided [store ok, by history 0, written again 1] history 2, versions P-P
+      further edits                AAAAAAAAAAR (refuses at edit 11) history 10, versions -----------
+      Synchronize into 1           as decided [store ok, by history 0] history 2, versions P-P
+      Synchronize into 0           as decided [store ok, by history 0] history 2, versions P-P
+      KeePassXC 2.8.0 into 1       as decided [store ok, by history 0] history 2, versions P-P
+      KeePassXC 2.8.0 into 0       as decided [store ok, by history 0] history 2, versions P-P
+   quick: a quick edit, Expires: Now (nothing the check covers) (ok 1)
+      after the edit               as decided [store ok, by history 0] history 1, versions PP
+      the gate writes (padd 0 ph)  as decided [store ok, by history 0, written again 0] history 1, versions PP
+      further edits                AAAAAAAAAAR (refuses at edit 11) history 10, versions -----------
+      Synchronize into 1           as decided [store ok, by history 0] history 1, versions PP
+      Synchronize into 0           as decided [store ok, by history 0] history 1, versions PP
+      KeePassXC 2.8.0 into 1       as decided [store ok, by history 0] history 1, versions PP
+      KeePassXC 2.8.0 into 0       as decided [store ok, by history 0] history 1, versions PP
+   move: moved to the group General (ok)
+      after the edit               as decided [store ok, by history 0] history 0, versions P
+      the gate writes (padd 0 ph)  as decided [store ok, by history 0, written again 0] history 0, versions P
+      further edits                AAAAAAAAAAR (refuses at edit 11) history 10, versions -----------
+      Synchronize into 1           as decided [store ok, by history 0] history 0, versions P
+      Synchronize into 0           as decided [store ok, by history 0] history 0, versions P
+      KeePassXC 2.8.0 into 1       as decided [store ok, by history 0] history 0, versions P
+      KeePassXC 2.8.0 into 0       as decided [store ok, by history 0] history 0, versions P
+   bin: deleted to the recycle bin (ok)
+      after the edit               as decided [store ok, by history 0] history 0, versions P
+      the gate writes (padd 0 ph)  as decided [store ok, by history 0, written again 0] history 0, versions P
+      further edits                AAAAAAAAAAR (refuses at edit 11) history 10, versions -----------
+      Synchronize into 1           as decided [store ok, by history 0] history 0, versions P
+      Synchronize into 0           as decided [store ok, by history 0] history 0, versions P
+      KeePassXC 2.8.0 into 1       as decided [store ok, by history 0] history 0, versions P
+      KeePassXC 2.8.0 into 0       as decided [store ok, by history 0] history 0, versions P
+   delete: deleted for good, with a deletion record (ok)
+      after the edit               narrower: client c1 refused [store ok, by history 0] entry gone
+      the gate writes (padd 0 ph)  narrower: client c1 refused [store ok, by history 0, written again 0] entry gone
+      further edits                not run: the entry is gone
+      Synchronize into 1           narrower: client c1 refused [store ok, by history 0] entry gone
+      Synchronize into 0           narrower: client c1 refused [store ok, by history 0] entry gone
+      KeePassXC 2.8.0 into 1       as decided [store ok, by history 0] history 0, versions P
+      KeePassXC 2.8.0 into 0       narrower: client c1 refused [store ok, by history 0] history 0, versions P
+      C read, step 30, file 0: model ('ok', 'a7', [], [('N', ''), ('root', 'r')], ['c1'], ['pg', 'ph']); read.py ('ok', 'a7', [], [('N', ''), ('root', 'r')], [], ['pg', 'ph'])
+      C read, step 40, file 1: model ('ok', 'a7', [], [('N', ''), ('root', 'r')], ['c1'], ['pg', 'ph']); read.py ('ok', 'a7', [], [('N', ''), ('root', 'r')], [], ['pg', 'ph'])
+      C read, step 40, file 0: model ('ok', 'a7', [], [('N', ''), ('root', 'r')], ['c1'], ['pg', 'ph']); read.py ('ok', 'a7', [], [('N', ''), ('root', 'r')], [], ['pg', 'ph'])
+   edits10: the dialog edit and 9 more dialog edits (of the title): 10 edits (ok 10)
+      after the edit               as decided [store ok, by history 1] history 10, versions ----------P
+      the gate writes (padd 0 ph)  as decided [store ok, by history 0, written again 1] history 10, versions P----------
+      further edits                AAAAAAAAAAR (refuses at edit 11) history 10, versions -----------
+      Synchronize into 1           as decided [store ok, by history 0] history 10, versions P----------
+      Synchronize into 0           as decided [store ok, by history 0] history 10, versions P----------
+      KeePassXC 2.8.0 into 1       as decided [store ok, by history 0] history 10, versions P----------
+      KeePassXC 2.8.0 into 0       as decided [store ok, by history 0] history 10, versions P----------
+   edits11: the dialog edit and 10 more dialog edits (of the title): 11 edits (ok 10)
+      after the edit               refuses: the whole database (store incomplete) [store incomplete, by history 0] history 10, versions -----------
+      the gate writes (padd 0 ph)  cannot write; refuses: the whole database (store incomplete) [store incomplete, by history 0, written again 0] history 10, versions -----------
+      further edits                not run: the gate could not write
+      Synchronize into 1           refuses: the whole database (store incomplete) [store incomplete, by history 0] history 10, versions -----------
+      Synchronize into 0           refuses: the whole database (store incomplete) [store incomplete, by history 0] history 10, versions -----------
+      KeePassXC 2.8.0 into 1       refuses: the whole database (store incomplete) [store incomplete, by history 0] history 10, versions -----------
+      KeePassXC 2.8.0 into 0       refuses: the whole database (store incomplete) [store incomplete, by history 0] history 10, versions -----------
+      C read, step 40, file 1: model ('incomplete', None, [], [('N', ''), ('root', '')], ['c1'], ['pg']); read.py ('incomplete', None, [], [('N', ''), ('root', '')], [], ['pg'])
+      C read, step 40, file 0: model ('incomplete', None, [], [('N', ''), ('root', '')], ['c1'], ['pg']); read.py ('incomplete', None, [], [('N', ''), ('root', '')], [], ['pg'])
+      C read, step 40, file 1: model ('incomplete', None, [], [('N', ''), ('root', '')], ['c1'], ['pg']); read.py ('incomplete', None, [], [('N', ''), ('root', '')], [], ['pg'])
+      C read, step 40, file 0: model ('incomplete', None, [], [('N', ''), ('root', '')], ['c1'], ['pg']); read.py ('incomplete', None, [], [('N', ''), ('root', '')], [], ['pg'])
+   quick10: the dialog edit and 10 quick edits: 11 edits (ok 10)
+      after the edit               refuses: the whole database (store incomplete) [store incomplete, by history 0] history 10, versions -----------
+      the gate writes (padd 0 ph)  cannot write; refuses: the whole database (store incomplete) [store incomplete, by history 0, written again 0] history 10, versions -----------
+      further edits                not run: the gate could not write
+      Synchronize into 1           refuses: the whole database (store incomplete) [store incomplete, by history 0] history 10, versions -----------
+      Synchronize into 0           refuses: the whole database (store incomplete) [store incomplete, by history 0] history 10, versions -----------
+      KeePassXC 2.8.0 into 1       refuses: the whole database (store incomplete) [store incomplete, by history 0] history 10, versions -----------
+      KeePassXC 2.8.0 into 0       refuses: the whole database (store incomplete) [store incomplete, by history 0] history 10, versions -----------
+      C read, step 40, file 1: model ('incomplete', None, [], [('N', ''), ('root', '')], ['c1'], ['pg']); read.py ('incomplete', None, [], [('N', ''), ('root', '')], [], ['pg'])
+      C read, step 40, file 0: model ('incomplete', None, [], [('N', ''), ('root', '')], ['c1'], ['pg']); read.py ('incomplete', None, [], [('N', ''), ('root', '')], [], ['pg'])
+      C read, step 40, file 1: model ('incomplete', None, [], [('N', ''), ('root', '')], ['c1'], ['pg']); read.py ('incomplete', None, [], [('N', ''), ('root', '')], [], ['pg'])
+      C read, step 40, file 0: model ('incomplete', None, [], [('N', ''), ('root', '')], ['c1'], ['pg']); read.py ('incomplete', None, [], [('N', ''), ('root', '')], [], ['pg'])
+   off: history kept by neither copy (0 items), then the dialog edit (ok 0)
+      after the edit               refuses: the whole database (store incomplete) [store incomplete, by history 0] history 0, versions -
+      the gate writes (padd 0 ph)  cannot write; refuses: the whole database (store incomplete) [store incomplete, by history 0, written again 0] history 0, versions -
+      further edits                not run: the gate could not write
+      Synchronize into 1           refuses: the whole database (store incomplete) [store incomplete, by history 0] history 0, versions -
+      Synchronize into 0           refuses: the whole database (store incomplete) [store incomplete, by history 0] history 0, versions -
+      KeePassXC 2.8.0 into 1       refuses: the whole database (store incomplete) [store incomplete, by history 0] history 0, versions -
+      KeePassXC 2.8.0 into 0       refuses: the whole database (store incomplete) [store incomplete, by history 0] history 0, versions -
+      C read, step 40, file 1: model ('incomplete', None, [], [('N', ''), ('root', '')], ['c1'], ['pg']); read.py ('incomplete', None, [], [('N', ''), ('root', '')], [], ['pg'])
+      C read, step 40, file 0: model ('incomplete', None, [], [('N', ''), ('root', '')], ['c1'], ['pg']); read.py ('incomplete', None, [], [('N', ''), ('root', '')], [], ['pg'])
+      C read, step 40, file 1: model ('incomplete', None, [], [('N', ''), ('root', '')], ['c1'], ['pg']); read.py ('incomplete', None, [], [('N', ''), ('root', '')], [], ['pg'])
+      C read, step 40, file 0: model ('incomplete', None, [], [('N', ''), ('root', '')], ['c1'], ['pg']); read.py ('incomplete', None, [], [('N', ''), ('root', '')], [], ['pg'])
+## a revocation (c0)
+   dialog: a character of the payload changed in the entry dialog (ok 1)
+      after the edit               as decided [store ok, by history 1] history 1, versions -P
+      the gate writes (padd 0 ph)  as decided [store ok, by history 0, written again 1] history 2, versions P-P
+      further edits                AAAAAAAAAAR (refuses at edit 11) history 10, versions -----------
+      Synchronize into 1           as decided [store ok, by history 0] history 2, versions P-P
+      Synchronize into 0           as decided [store ok, by history 0] history 2, versions P-P
+      KeePassXC 2.8.0 into 1       as decided [store ok, by history 0] history 2, versions P-P
+      KeePassXC 2.8.0 into 0       as decided [store ok, by history 0] history 2, versions P-P
+   field: the payload string deleted in the entry dialog (ok 1)
+      after the edit               as decided [store ok, by history 1] history 1, versions -P
+      the gate writes (padd 0 ph)  as decided [store ok, by history 0, written again 1] history 2, versions P-P
+      further edits                AAAAAAAAAAR (refuses at edit 11) history 10, versions -----------
+      Synchronize into 1           as decided [store ok, by history 0] history 2, versions P-P
+      Synchronize into 0           as decided [store ok, by history 0] history 2, versions P-P
+      KeePassXC 2.8.0 into 1       as decided [store ok, by history 0] history 2, versions P-P
+      KeePassXC 2.8.0 into 0       as decided [store ok, by history 0] history 2, versions P-P
+   quick: a quick edit, Expires: Now (nothing the check covers) (ok 1)
+      after the edit               as decided [store ok, by history 0] history 1, versions PP
+      the gate writes (padd 0 ph)  as decided [store ok, by history 0, written again 0] history 1, versions PP
+      further edits                AAAAAAAAAAR (refuses at edit 11) history 10, versions -----------
+      Synchronize into 1           as decided [store ok, by history 0] history 1, versions PP
+      Synchronize into 0           as decided [store ok, by history 0] history 1, versions PP
+      KeePassXC 2.8.0 into 1       as decided [store ok, by history 0] history 1, versions PP
+      KeePassXC 2.8.0 into 0       as decided [store ok, by history 0] history 1, versions PP
+   move: moved to the group General (ok)
+      after the edit               as decided [store ok, by history 0] history 0, versions P
+      the gate writes (padd 0 ph)  as decided [store ok, by history 0, written again 0] history 0, versions P
+      further edits                AAAAAAAAAAR (refuses at edit 11) history 10, versions -----------
+      Synchronize into 1           as decided [store ok, by history 0] history 0, versions P
+      Synchronize into 0           as decided [store ok, by history 0] history 0, versions P
+      KeePassXC 2.8.0 into 1       as decided [store ok, by history 0] history 0, versions P
+      KeePassXC 2.8.0 into 0       as decided [store ok, by history 0] history 0, versions P
+   bin: deleted to the recycle bin (ok)
+      after the edit               as decided [store ok, by history 0] history 0, versions P
+      the gate writes (padd 0 ph)  as decided [store ok, by history 0, written again 0] history 0, versions P
+      further edits                AAAAAAAAAAR (refuses at edit 11) history 10, versions -----------
+      Synchronize into 1           as decided [store ok, by history 0] history 0, versions P
+      Synchronize into 0           as decided [store ok, by history 0] history 0, versions P
+      KeePassXC 2.8.0 into 1       as decided [store ok, by history 0] history 0, versions P
+      KeePassXC 2.8.0 into 0       as decided [store ok, by history 0] history 0, versions P
+   delete: deleted for good, with a deletion record (ok)
+      after the edit               as decided [store ok, by history 0] entry gone
+      the gate writes (padd 0 ph)  as decided [store ok, by history 0, written again 0] entry gone
+      further edits                not run: the entry is gone
+      Synchronize into 1           as decided [store ok, by history 0] entry gone
+      Synchronize into 0           as decided [store ok, by history 0] entry gone
+      KeePassXC 2.8.0 into 1       as decided [store ok, by history 0] history 0, versions P
+      KeePassXC 2.8.0 into 0       as decided [store ok, by history 0] history 0, versions P
+   edits10: the dialog edit and 9 more dialog edits (of the title): 10 edits (ok 10)
+      after the edit               as decided [store ok, by history 1] history 10, versions ----------P
+      the gate writes (padd 0 ph)  as decided [store ok, by history 0, written again 1] history 10, versions P----------
+      further edits                AAAAAAAAAAR (refuses at edit 11) history 10, versions -----------
+      Synchronize into 1           as decided [store ok, by history 0] history 10, versions P----------
+      Synchronize into 0           as decided [store ok, by history 0] history 10, versions P----------
+      KeePassXC 2.8.0 into 1       as decided [store ok, by history 0] history 10, versions P----------
+      KeePassXC 2.8.0 into 0       as decided [store ok, by history 0] history 10, versions P----------
+   edits11: the dialog edit and 10 more dialog edits (of the title): 11 edits (ok 10)
+      after the edit               refuses: the whole database (store incomplete) [store incomplete, by history 0] history 10, versions -----------
+      the gate writes (padd 0 ph)  cannot write; refuses: the whole database (store incomplete) [store incomplete, by history 0, written again 0] history 10, versions -----------
+      further edits                not run: the gate could not write
+      Synchronize into 1           refuses: the whole database (store incomplete) [store incomplete, by history 0] history 10, versions -----------
+      Synchronize into 0           refuses: the whole database (store incomplete) [store incomplete, by history 0] history 10, versions -----------
+      KeePassXC 2.8.0 into 1       refuses: the whole database (store incomplete) [store incomplete, by history 0] history 10, versions -----------
+      KeePassXC 2.8.0 into 0       refuses: the whole database (store incomplete) [store incomplete, by history 0] history 10, versions -----------
+   quick10: the dialog edit and 10 quick edits: 11 edits (ok 10)
+      after the edit               refuses: the whole database (store incomplete) [store incomplete, by history 0] history 10, versions -----------
+      the gate writes (padd 0 ph)  cannot write; refuses: the whole database (store incomplete) [store incomplete, by history 0, written again 0] history 10, versions -----------
+      further edits                not run: the gate could not write
+      Synchronize into 1           refuses: the whole database (store incomplete) [store incomplete, by history 0] history 10, versions -----------
+      Synchronize into 0           refuses: the whole database (store incomplete) [store incomplete, by history 0] history 10, versions -----------
+      KeePassXC 2.8.0 into 1       refuses: the whole database (store incomplete) [store incomplete, by history 0] history 10, versions -----------
+      KeePassXC 2.8.0 into 0       refuses: the whole database (store incomplete) [store incomplete, by history 0] history 10, versions -----------
+   off: history kept by neither copy (0 items), then the dialog edit (ok 0)
+      after the edit               refuses: the whole database (store incomplete) [store incomplete, by history 0] history 0, versions -
+      the gate writes (padd 0 ph)  cannot write; refuses: the whole database (store incomplete) [store incomplete, by history 0, written again 0] history 0, versions -
+      further edits                not run: the gate could not write
+      Synchronize into 1           refuses: the whole database (store incomplete) [store incomplete, by history 0] history 0, versions -
+      Synchronize into 0           refuses: the whole database (store incomplete) [store incomplete, by history 0] history 0, versions -
+      KeePassXC 2.8.0 into 1       refuses: the whole database (store incomplete) [store incomplete, by history 0] history 0, versions -
+      KeePassXC 2.8.0 into 0       refuses: the whole database (store incomplete) [store incomplete, by history 0] history 0, versions -
+## a profile addition (pg)
+   dialog: a character of the payload changed in the entry dialog (ok 1)
+      after the edit               as decided [store ok, by history 1] history 1, versions -P
+      the gate writes (padd 0 ph)  as decided [store ok, by history 0, written again 1] history 2, versions P-P
+      further edits                AAAAAAAAAAR (refuses at edit 11) history 10, versions -----------
+      Synchronize into 1           as decided [store ok, by history 0] history 2, versions P-P
+      Synchronize into 0           as decided [store ok, by history 0] history 2, versions P-P
+      KeePassXC 2.8.0 into 1       as decided [store ok, by history 0] history 2, versions P-P
+      KeePassXC 2.8.0 into 0       as decided [store ok, by history 0] history 2, versions P-P
+   field: the payload string deleted in the entry dialog (ok 1)
+      after the edit               as decided [store ok, by history 1] history 1, versions -P
+      the gate writes (padd 0 ph)  as decided [store ok, by history 0, written again 1] history 2, versions P-P
+      further edits                AAAAAAAAAAR (refuses at edit 11) history 10, versions -----------
+      Synchronize into 1           as decided [store ok, by history 0] history 2, versions P-P
+      Synchronize into 0           as decided [store ok, by history 0] history 2, versions P-P
+      KeePassXC 2.8.0 into 1       as decided [store ok, by history 0] history 2, versions P-P
+      KeePassXC 2.8.0 into 0       as decided [store ok, by history 0] history 2, versions P-P
+   quick: a quick edit, Expires: Now (nothing the check covers) (ok 1)
+      after the edit               as decided [store ok, by history 0] history 1, versions PP
+      the gate writes (padd 0 ph)  as decided [store ok, by history 0, written again 0] history 1, versions PP
+      further edits                AAAAAAAAAAR (refuses at edit 11) history 10, versions -----------
+      Synchronize into 1           as decided [store ok, by history 0] history 1, versions PP
+      Synchronize into 0           as decided [store ok, by history 0] history 1, versions PP
+      KeePassXC 2.8.0 into 1       as decided [store ok, by history 0] history 1, versions PP
+      KeePassXC 2.8.0 into 0       as decided [store ok, by history 0] history 1, versions PP
+   move: moved to the group General (ok)
+      after the edit               as decided [store ok, by history 0] history 0, versions P
+      the gate writes (padd 0 ph)  as decided [store ok, by history 0, written again 0] history 0, versions P
+      further edits                AAAAAAAAAAR (refuses at edit 11) history 10, versions -----------
+      Synchronize into 1           as decided [store ok, by history 0] history 0, versions P
+      Synchronize into 0           as decided [store ok, by history 0] history 0, versions P
+      KeePassXC 2.8.0 into 1       as decided [store ok, by history 0] history 0, versions P
+      KeePassXC 2.8.0 into 0       as decided [store ok, by history 0] history 0, versions P
+   bin: deleted to the recycle bin (ok)
+      after the edit               as decided [store ok, by history 0] history 0, versions P
+      the gate writes (padd 0 ph)  as decided [store ok, by history 0, written again 0] history 0, versions P
+      further edits                AAAAAAAAAAR (refuses at edit 11) history 10, versions -----------
+      Synchronize into 1           as decided [store ok, by history 0] history 0, versions P
+      Synchronize into 0           as decided [store ok, by history 0] history 0, versions P
+      KeePassXC 2.8.0 into 1       as decided [store ok, by history 0] history 0, versions P
+      KeePassXC 2.8.0 into 0       as decided [store ok, by history 0] history 0, versions P
+   delete: deleted for good, with a deletion record (ok)
+      after the edit               narrower: client c1 lacks ['pg'] [store ok, by history 0] entry gone
+      the gate writes (padd 0 ph)  narrower: client c1 lacks ['pg'] [store ok, by history 0, written again 0] entry gone
+      further edits                not run: the entry is gone
+      Synchronize into 1           narrower: client c1 lacks ['pg'] [store ok, by history 0] entry gone
+      Synchronize into 0           narrower: client c1 lacks ['pg'] [store ok, by history 0] entry gone
+      KeePassXC 2.8.0 into 1       as decided [store ok, by history 0] history 0, versions P
+      KeePassXC 2.8.0 into 0       narrower: client c1 lacks ['pg'] [store ok, by history 0] history 0, versions P
+   edits10: the dialog edit and 9 more dialog edits (of the title): 10 edits (ok 10)
+      after the edit               as decided [store ok, by history 1] history 10, versions ----------P
+      the gate writes (padd 0 ph)  as decided [store ok, by history 0, written again 1] history 10, versions P----------
+      further edits                AAAAAAAAAAR (refuses at edit 11) history 10, versions -----------
+      Synchronize into 1           as decided [store ok, by history 0] history 10, versions P----------
+      Synchronize into 0           as decided [store ok, by history 0] history 10, versions P----------
+      KeePassXC 2.8.0 into 1       as decided [store ok, by history 0] history 10, versions P----------
+      KeePassXC 2.8.0 into 0       as decided [store ok, by history 0] history 10, versions P----------
+   edits11: the dialog edit and 10 more dialog edits (of the title): 11 edits (ok 10)
+      after the edit               refuses: the whole database (store incomplete) [store incomplete, by history 0] history 10, versions -----------
+      the gate writes (padd 0 ph)  cannot write; refuses: the whole database (store incomplete) [store incomplete, by history 0, written again 0] history 10, versions -----------
+      further edits                not run: the gate could not write
+      Synchronize into 1           refuses: the whole database (store incomplete) [store incomplete, by history 0] history 10, versions -----------
+      Synchronize into 0           refuses: the whole database (store incomplete) [store incomplete, by history 0] history 10, versions -----------
+      KeePassXC 2.8.0 into 1       refuses: the whole database (store incomplete) [store incomplete, by history 0] history 10, versions -----------
+      KeePassXC 2.8.0 into 0       refuses: the whole database (store incomplete) [store incomplete, by history 0] history 10, versions -----------
+   quick10: the dialog edit and 10 quick edits: 11 edits (ok 10)
+      after the edit               refuses: the whole database (store incomplete) [store incomplete, by history 0] history 10, versions -----------
+      the gate writes (padd 0 ph)  cannot write; refuses: the whole database (store incomplete) [store incomplete, by history 0, written again 0] history 10, versions -----------
+      further edits                not run: the gate could not write
+      Synchronize into 1           refuses: the whole database (store incomplete) [store incomplete, by history 0] history 10, versions -----------
+      Synchronize into 0           refuses: the whole database (store incomplete) [store incomplete, by history 0] history 10, versions -----------
+      KeePassXC 2.8.0 into 1       refuses: the whole database (store incomplete) [store incomplete, by history 0] history 10, versions -----------
+      KeePassXC 2.8.0 into 0       refuses: the whole database (store incomplete) [store incomplete, by history 0] history 10, versions -----------
+   off: history kept by neither copy (0 items), then the dialog edit (ok 0)
+      after the edit               refuses: the whole database (store incomplete) [store incomplete, by history 0] history 0, versions -
+      the gate writes (padd 0 ph)  cannot write; refuses: the whole database (store incomplete) [store incomplete, by history 0, written again 0] history 0, versions -
+      further edits                not run: the gate could not write
+      Synchronize into 1           refuses: the whole database (store incomplete) [store incomplete, by history 0] history 0, versions -
+      Synchronize into 0           refuses: the whole database (store incomplete) [store incomplete, by history 0] history 0, versions -
+      KeePassXC 2.8.0 into 1       refuses: the whole database (store incomplete) [store incomplete, by history 0] history 0, versions -
+      KeePassXC 2.8.0 into 0       refuses: the whole database (store incomplete) [store incomplete, by history 0] history 0, versions -
+## a profile removal (pf)
+   dialog: a character of the payload changed in the entry dialog (ok 1)
+      after the edit               as decided [store ok, by history 1] history 1, versions -P
+      the gate writes (padd 0 ph)  as decided [store ok, by history 0, written again 1] history 2, versions P-P
+      further edits                AAAAAAAAAAR (refuses at edit 11) history 10, versions -----------
+      Synchronize into 1           as decided [store ok, by history 0] history 2, versions P-P
+      Synchronize into 0           as decided [store ok, by history 0] history 2, versions P-P
+      KeePassXC 2.8.0 into 1       as decided [store ok, by history 0] history 2, versions P-P
+      KeePassXC 2.8.0 into 0       as decided [store ok, by history 0] history 2, versions P-P
+   field: the payload string deleted in the entry dialog (ok 1)
+      after the edit               as decided [store ok, by history 1] history 1, versions -P
+      the gate writes (padd 0 ph)  as decided [store ok, by history 0, written again 1] history 2, versions P-P
+      further edits                AAAAAAAAAAR (refuses at edit 11) history 10, versions -----------
+      Synchronize into 1           as decided [store ok, by history 0] history 2, versions P-P
+      Synchronize into 0           as decided [store ok, by history 0] history 2, versions P-P
+      KeePassXC 2.8.0 into 1       as decided [store ok, by history 0] history 2, versions P-P
+      KeePassXC 2.8.0 into 0       as decided [store ok, by history 0] history 2, versions P-P
+   quick: a quick edit, Expires: Now (nothing the check covers) (ok 1)
+      after the edit               as decided [store ok, by history 0] history 1, versions PP
+      the gate writes (padd 0 ph)  as decided [store ok, by history 0, written again 0] history 1, versions PP
+      further edits                AAAAAAAAAAR (refuses at edit 11) history 10, versions -----------
+      Synchronize into 1           as decided [store ok, by history 0] history 1, versions PP
+      Synchronize into 0           as decided [store ok, by history 0] history 1, versions PP
+      KeePassXC 2.8.0 into 1       as decided [store ok, by history 0] history 1, versions PP
+      KeePassXC 2.8.0 into 0       as decided [store ok, by history 0] history 1, versions PP
+   move: moved to the group General (ok)
+      after the edit               as decided [store ok, by history 0] history 0, versions P
+      the gate writes (padd 0 ph)  as decided [store ok, by history 0, written again 0] history 0, versions P
+      further edits                AAAAAAAAAAR (refuses at edit 11) history 10, versions -----------
+      Synchronize into 1           as decided [store ok, by history 0] history 0, versions P
+      Synchronize into 0           as decided [store ok, by history 0] history 0, versions P
+      KeePassXC 2.8.0 into 1       as decided [store ok, by history 0] history 0, versions P
+      KeePassXC 2.8.0 into 0       as decided [store ok, by history 0] history 0, versions P
+   bin: deleted to the recycle bin (ok)
+      after the edit               as decided [store ok, by history 0] history 0, versions P
+      the gate writes (padd 0 ph)  as decided [store ok, by history 0, written again 0] history 0, versions P
+      further edits                AAAAAAAAAAR (refuses at edit 11) history 10, versions -----------
+      Synchronize into 1           as decided [store ok, by history 0] history 0, versions P
+      Synchronize into 0           as decided [store ok, by history 0] history 0, versions P
+      KeePassXC 2.8.0 into 1       as decided [store ok, by history 0] history 0, versions P
+      KeePassXC 2.8.0 into 0       as decided [store ok, by history 0] history 0, versions P
+   delete: deleted for good, with a deletion record (ok)
+      after the edit               as decided [store ok, by history 0] entry gone
+      the gate writes (padd 0 ph)  as decided [store ok, by history 0, written again 0] entry gone
+      further edits                not run: the entry is gone
+      Synchronize into 1           as decided [store ok, by history 0] entry gone
+      Synchronize into 0           as decided [store ok, by history 0] entry gone
+      KeePassXC 2.8.0 into 1       as decided [store ok, by history 0] history 0, versions P
+      KeePassXC 2.8.0 into 0       as decided [store ok, by history 0] history 0, versions P
+   edits10: the dialog edit and 9 more dialog edits (of the title): 10 edits (ok 10)
+      after the edit               as decided [store ok, by history 1] history 10, versions ----------P
+      the gate writes (padd 0 ph)  as decided [store ok, by history 0, written again 1] history 10, versions P----------
+      further edits                AAAAAAAAAAR (refuses at edit 11) history 10, versions -----------
+      Synchronize into 1           as decided [store ok, by history 0] history 10, versions P----------
+      Synchronize into 0           as decided [store ok, by history 0] history 10, versions P----------
+      KeePassXC 2.8.0 into 1       as decided [store ok, by history 0] history 10, versions P----------
+      KeePassXC 2.8.0 into 0       as decided [store ok, by history 0] history 10, versions P----------
+   edits11: the dialog edit and 10 more dialog edits (of the title): 11 edits (ok 10)
+      after the edit               refuses: the whole database (store incomplete) [store incomplete, by history 0] history 10, versions -----------
+      the gate writes (padd 0 ph)  cannot write; refuses: the whole database (store incomplete) [store incomplete, by history 0, written again 0] history 10, versions -----------
+      further edits                not run: the gate could not write
+      Synchronize into 1           refuses: the whole database (store incomplete) [store incomplete, by history 0] history 10, versions -----------
+      Synchronize into 0           refuses: the whole database (store incomplete) [store incomplete, by history 0] history 10, versions -----------
+      KeePassXC 2.8.0 into 1       refuses: the whole database (store incomplete) [store incomplete, by history 0] history 10, versions -----------
+      KeePassXC 2.8.0 into 0       refuses: the whole database (store incomplete) [store incomplete, by history 0] history 10, versions -----------
+   quick10: the dialog edit and 10 quick edits: 11 edits (ok 10)
+      after the edit               refuses: the whole database (store incomplete) [store incomplete, by history 0] history 10, versions -----------
+      the gate writes (padd 0 ph)  cannot write; refuses: the whole database (store incomplete) [store incomplete, by history 0, written again 0] history 10, versions -----------
+      further edits                not run: the gate could not write
+      Synchronize into 1           refuses: the whole database (store incomplete) [store incomplete, by history 0] history 10, versions -----------
+      Synchronize into 0           refuses: the whole database (store incomplete) [store incomplete, by history 0] history 10, versions -----------
+      KeePassXC 2.8.0 into 1       refuses: the whole database (store incomplete) [store incomplete, by history 0] history 10, versions -----------
+      KeePassXC 2.8.0 into 0       refuses: the whole database (store incomplete) [store incomplete, by history 0] history 10, versions -----------
+   off: history kept by neither copy (0 items), then the dialog edit (ok 0)
+      after the edit               refuses: the whole database (store incomplete) [store incomplete, by history 0] history 0, versions -
+      the gate writes (padd 0 ph)  cannot write; refuses: the whole database (store incomplete) [store incomplete, by history 0, written again 0] history 0, versions -
+      further edits                not run: the gate could not write
+      Synchronize into 1           refuses: the whole database (store incomplete) [store incomplete, by history 0] history 0, versions -
+      Synchronize into 0           refuses: the whole database (store incomplete) [store incomplete, by history 0] history 0, versions -
+      KeePassXC 2.8.0 into 1       refuses: the whole database (store incomplete) [store incomplete, by history 0] history 0, versions -
+      KeePassXC 2.8.0 into 0       refuses: the whole database (store incomplete) [store incomplete, by history 0] history 0, versions -
+## a rule version (N, nothing)
+   dialog: a character of the payload changed in the entry dialog (ok 1)
+      after the edit               as decided [store ok, by history 1] history 1, versions -P
+      the gate writes (padd 0 ph)  as decided [store ok, by history 0, written again 1] history 2, versions P-P
+      further edits                AAAAAAAAAAR (refuses at edit 11) history 10, versions -----------
+      Synchronize into 1           as decided [store ok, by history 0] history 2, versions P-P
+      Synchronize into 0           as decided [store ok, by history 0] history 2, versions P-P
+      KeePassXC 2.8.0 into 1       as decided [store ok, by history 0] history 2, versions P-P
+      KeePassXC 2.8.0 into 0       as decided [store ok, by history 0] history 2, versions P-P
+   field: the payload string deleted in the entry dialog (ok 1)
+      after the edit               as decided [store ok, by history 1] history 1, versions -P
+      the gate writes (padd 0 ph)  as decided [store ok, by history 0, written again 1] history 2, versions P-P
+      further edits                AAAAAAAAAAR (refuses at edit 11) history 10, versions -----------
+      Synchronize into 1           as decided [store ok, by history 0] history 2, versions P-P
+      Synchronize into 0           as decided [store ok, by history 0] history 2, versions P-P
+      KeePassXC 2.8.0 into 1       as decided [store ok, by history 0] history 2, versions P-P
+      KeePassXC 2.8.0 into 0       as decided [store ok, by history 0] history 2, versions P-P
+   quick: a quick edit, Expires: Now (nothing the check covers) (ok 1)
+      after the edit               as decided [store ok, by history 0] history 1, versions PP
+      the gate writes (padd 0 ph)  as decided [store ok, by history 0, written again 0] history 1, versions PP
+      further edits                AAAAAAAAAAR (refuses at edit 11) history 10, versions -----------
+      Synchronize into 1           as decided [store ok, by history 0] history 1, versions PP
+      Synchronize into 0           as decided [store ok, by history 0] history 1, versions PP
+      KeePassXC 2.8.0 into 1       as decided [store ok, by history 0] history 1, versions PP
+      KeePassXC 2.8.0 into 0       as decided [store ok, by history 0] history 1, versions PP
+   move: moved to the group General (ok)
+      after the edit               as decided [store ok, by history 0] history 0, versions P
+      the gate writes (padd 0 ph)  as decided [store ok, by history 0, written again 0] history 0, versions P
+      further edits                AAAAAAAAAAR (refuses at edit 11) history 10, versions -----------
+      Synchronize into 1           as decided [store ok, by history 0] history 0, versions P
+      Synchronize into 0           as decided [store ok, by history 0] history 0, versions P
+      KeePassXC 2.8.0 into 1       as decided [store ok, by history 0] history 0, versions P
+      KeePassXC 2.8.0 into 0       as decided [store ok, by history 0] history 0, versions P
+   bin: deleted to the recycle bin (ok)
+      after the edit               as decided [store ok, by history 0] history 0, versions P
+      the gate writes (padd 0 ph)  as decided [store ok, by history 0, written again 0] history 0, versions P
+      further edits                AAAAAAAAAAR (refuses at edit 11) history 10, versions -----------
+      Synchronize into 1           as decided [store ok, by history 0] history 0, versions P
+      Synchronize into 0           as decided [store ok, by history 0] history 0, versions P
+      KeePassXC 2.8.0 into 1       as decided [store ok, by history 0] history 0, versions P
+      KeePassXC 2.8.0 into 0       as decided [store ok, by history 0] history 0, versions P
+   delete: deleted for good, with a deletion record (ok)
+      after the edit               as decided [store ok, by history 0] entry gone
+      the gate writes (padd 0 ph)  as decided [store ok, by history 0, written again 0] entry gone
+      further edits                not run: the entry is gone
+      Synchronize into 1           as decided [store ok, by history 0] entry gone
+      Synchronize into 0           as decided [store ok, by history 0] entry gone
+      KeePassXC 2.8.0 into 1       as decided [store ok, by history 0] history 0, versions P
+      KeePassXC 2.8.0 into 0       as decided [store ok, by history 0] history 0, versions P
+   edits10: the dialog edit and 9 more dialog edits (of the title): 10 edits (ok 10)
+      after the edit               as decided [store ok, by history 1] history 10, versions ----------P
+      the gate writes (padd 0 ph)  as decided [store ok, by history 0, written again 1] history 10, versions P----------
+      further edits                AAAAAAAAAAR (refuses at edit 11) history 10, versions -----------
+      Synchronize into 1           as decided [store ok, by history 0] history 10, versions P----------
+      Synchronize into 0           as decided [store ok, by history 0] history 10, versions P----------
+      KeePassXC 2.8.0 into 1       as decided [store ok, by history 0] history 10, versions P----------
+      KeePassXC 2.8.0 into 0       as decided [store ok, by history 0] history 10, versions P----------
+   edits11: the dialog edit and 10 more dialog edits (of the title): 11 edits (ok 10)
+      after the edit               refuses: the whole database (store incomplete) [store incomplete, by history 0] history 10, versions -----------
+      the gate writes (padd 0 ph)  cannot write; refuses: the whole database (store incomplete) [store incomplete, by history 0, written again 0] history 10, versions -----------
+      further edits                not run: the gate could not write
+      Synchronize into 1           refuses: the whole database (store incomplete) [store incomplete, by history 0] history 10, versions -----------
+      Synchronize into 0           refuses: the whole database (store incomplete) [store incomplete, by history 0] history 10, versions -----------
+      KeePassXC 2.8.0 into 1       refuses: the whole database (store incomplete) [store incomplete, by history 0] history 10, versions -----------
+      KeePassXC 2.8.0 into 0       refuses: the whole database (store incomplete) [store incomplete, by history 0] history 10, versions -----------
+   quick10: the dialog edit and 10 quick edits: 11 edits (ok 10)
+      after the edit               refuses: the whole database (store incomplete) [store incomplete, by history 0] history 10, versions -----------
+      the gate writes (padd 0 ph)  cannot write; refuses: the whole database (store incomplete) [store incomplete, by history 0, written again 0] history 10, versions -----------
+      further edits                not run: the gate could not write
+      Synchronize into 1           refuses: the whole database (store incomplete) [store incomplete, by history 0] history 10, versions -----------
+      Synchronize into 0           refuses: the whole database (store incomplete) [store incomplete, by history 0] history 10, versions -----------
+      KeePassXC 2.8.0 into 1       refuses: the whole database (store incomplete) [store incomplete, by history 0] history 10, versions -----------
+      KeePassXC 2.8.0 into 0       refuses: the whole database (store incomplete) [store incomplete, by history 0] history 10, versions -----------
+   off: history kept by neither copy (0 items), then the dialog edit (ok 0)
+      after the edit               refuses: the whole database (store incomplete) [store incomplete, by history 0] history 0, versions -
+      the gate writes (padd 0 ph)  cannot write; refuses: the whole database (store incomplete) [store incomplete, by history 0, written again 0] history 0, versions -
+      further edits                not run: the gate could not write
+      Synchronize into 1           refuses: the whole database (store incomplete) [store incomplete, by history 0] history 0, versions -
+      Synchronize into 0           refuses: the whole database (store incomplete) [store incomplete, by history 0] history 0, versions -
+      KeePassXC 2.8.0 into 1       refuses: the whole database (store incomplete) [store incomplete, by history 0] history 0, versions -
+      KeePassXC 2.8.0 into 0       refuses: the whole database (store incomplete) [store incomplete, by history 0] history 0, versions -
+## a renewal answer (c1, forever)
+   dialog: a character of the payload changed in the entry dialog (ok 1)
+      after the edit               as decided [store ok, by history 1] history 1, versions -P
+      the gate writes (padd 0 ph)  as decided [store ok, by history 0, written again 1] history 2, versions P-P
+      further edits                AAAAAAAAAAR (refuses at edit 11) history 10, versions -----------
+      Synchronize into 1           as decided [store ok, by history 0] history 2, versions P-P
+      Synchronize into 0           as decided [store ok, by history 0] history 2, versions P-P
+      KeePassXC 2.8.0 into 1       as decided [store ok, by history 0] history 2, versions P-P
+      KeePassXC 2.8.0 into 0       as decided [store ok, by history 0] history 2, versions P-P
+   field: the payload string deleted in the entry dialog (ok 1)
+      after the edit               as decided [store ok, by history 1] history 1, versions -P
+      the gate writes (padd 0 ph)  as decided [store ok, by history 0, written again 1] history 2, versions P-P
+      further edits                AAAAAAAAAAR (refuses at edit 11) history 10, versions -----------
+      Synchronize into 1           as decided [store ok, by history 0] history 2, versions P-P
+      Synchronize into 0           as decided [store ok, by history 0] history 2, versions P-P
+      KeePassXC 2.8.0 into 1       as decided [store ok, by history 0] history 2, versions P-P
+      KeePassXC 2.8.0 into 0       as decided [store ok, by history 0] history 2, versions P-P
+   quick: a quick edit, Expires: Now (nothing the check covers) (ok 1)
+      after the edit               as decided [store ok, by history 0] history 1, versions PP
+      the gate writes (padd 0 ph)  as decided [store ok, by history 0, written again 0] history 1, versions PP
+      further edits                AAAAAAAAAAR (refuses at edit 11) history 10, versions -----------
+      Synchronize into 1           as decided [store ok, by history 0] history 1, versions PP
+      Synchronize into 0           as decided [store ok, by history 0] history 1, versions PP
+      KeePassXC 2.8.0 into 1       as decided [store ok, by history 0] history 1, versions PP
+      KeePassXC 2.8.0 into 0       as decided [store ok, by history 0] history 1, versions PP
+   move: moved to the group General (ok)
+      after the edit               as decided [store ok, by history 0] history 0, versions P
+      the gate writes (padd 0 ph)  as decided [store ok, by history 0, written again 0] history 0, versions P
+      further edits                AAAAAAAAAAR (refuses at edit 11) history 10, versions -----------
+      Synchronize into 1           as decided [store ok, by history 0] history 0, versions P
+      Synchronize into 0           as decided [store ok, by history 0] history 0, versions P
+      KeePassXC 2.8.0 into 1       as decided [store ok, by history 0] history 0, versions P
+      KeePassXC 2.8.0 into 0       as decided [store ok, by history 0] history 0, versions P
+   bin: deleted to the recycle bin (ok)
+      after the edit               as decided [store ok, by history 0] history 0, versions P
+      the gate writes (padd 0 ph)  as decided [store ok, by history 0, written again 0] history 0, versions P
+      further edits                AAAAAAAAAAR (refuses at edit 11) history 10, versions -----------
+      Synchronize into 1           as decided [store ok, by history 0] history 0, versions P
+      Synchronize into 0           as decided [store ok, by history 0] history 0, versions P
+      KeePassXC 2.8.0 into 1       as decided [store ok, by history 0] history 0, versions P
+      KeePassXC 2.8.0 into 0       as decided [store ok, by history 0] history 0, versions P
+   delete: deleted for good, with a deletion record (ok)
+      after the edit               as decided [store ok, by history 0] entry gone
+      the gate writes (padd 0 ph)  as decided [store ok, by history 0, written again 0] entry gone
+      further edits                not run: the entry is gone
+      Synchronize into 1           as decided [store ok, by history 0] entry gone
+      Synchronize into 0           as decided [store ok, by history 0] entry gone
+      KeePassXC 2.8.0 into 1       as decided [store ok, by history 0] history 0, versions P
+      KeePassXC 2.8.0 into 0       as decided [store ok, by history 0] history 0, versions P
+   edits10: the dialog edit and 9 more dialog edits (of the title): 10 edits (ok 10)
+      after the edit               as decided [store ok, by history 1] history 10, versions ----------P
+      the gate writes (padd 0 ph)  as decided [store ok, by history 0, written again 1] history 10, versions P----------
+      further edits                AAAAAAAAAAR (refuses at edit 11) history 10, versions -----------
+      Synchronize into 1           as decided [store ok, by history 0] history 10, versions P----------
+      Synchronize into 0           as decided [store ok, by history 0] history 10, versions P----------
+      KeePassXC 2.8.0 into 1       as decided [store ok, by history 0] history 10, versions P----------
+      KeePassXC 2.8.0 into 0       as decided [store ok, by history 0] history 10, versions P----------
+   edits11: the dialog edit and 10 more dialog edits (of the title): 11 edits (ok 10)
+      after the edit               refuses: the whole database (store incomplete) [store incomplete, by history 0] history 10, versions -----------
+      the gate writes (padd 0 ph)  cannot write; refuses: the whole database (store incomplete) [store incomplete, by history 0, written again 0] history 10, versions -----------
+      further edits                not run: the gate could not write
+      Synchronize into 1           refuses: the whole database (store incomplete) [store incomplete, by history 0] history 10, versions -----------
+      Synchronize into 0           refuses: the whole database (store incomplete) [store incomplete, by history 0] history 10, versions -----------
+      KeePassXC 2.8.0 into 1       refuses: the whole database (store incomplete) [store incomplete, by history 0] history 10, versions -----------
+      KeePassXC 2.8.0 into 0       refuses: the whole database (store incomplete) [store incomplete, by history 0] history 10, versions -----------
+   quick10: the dialog edit and 10 quick edits: 11 edits (ok 10)
+      after the edit               refuses: the whole database (store incomplete) [store incomplete, by history 0] history 10, versions -----------
+      the gate writes (padd 0 ph)  cannot write; refuses: the whole database (store incomplete) [store incomplete, by history 0, written again 0] history 10, versions -----------
+      further edits                not run: the gate could not write
+      Synchronize into 1           refuses: the whole database (store incomplete) [store incomplete, by history 0] history 10, versions -----------
+      Synchronize into 0           refuses: the whole database (store incomplete) [store incomplete, by history 0] history 10, versions -----------
+      KeePassXC 2.8.0 into 1       refuses: the whole database (store incomplete) [store incomplete, by history 0] history 10, versions -----------
+      KeePassXC 2.8.0 into 0       refuses: the whole database (store incomplete) [store incomplete, by history 0] history 10, versions -----------
+   off: history kept by neither copy (0 items), then the dialog edit (ok 0)
+      after the edit               refuses: the whole database (store incomplete) [store incomplete, by history 0] history 0, versions -
+      the gate writes (padd 0 ph)  cannot write; refuses: the whole database (store incomplete) [store incomplete, by history 0, written again 0] history 0, versions -
+      further edits                not run: the gate could not write
+      Synchronize into 1           refuses: the whole database (store incomplete) [store incomplete, by history 0] history 0, versions -
+      Synchronize into 0           refuses: the whole database (store incomplete) [store incomplete, by history 0] history 0, versions -
+      KeePassXC 2.8.0 into 1       refuses: the whole database (store incomplete) [store incomplete, by history 0] history 0, versions -
+      KeePassXC 2.8.0 into 0       refuses: the whole database (store incomplete) [store incomplete, by history 0] history 0, versions -
+## the summary entry
+   dialog: a character of the payload changed in the entry dialog (ok 1)
+      after the edit               as decided [store ok, by history 1] history 1, versions -P
+      the gate writes (padd 0 ph)  as decided [store ok, by history 0, written again 0] entry gone
+      further edits                not run: the entry is gone
+      Synchronize into 1           as decided [store ok, by history 0] entry gone
+      Synchronize into 0           as decided [store ok, by history 0] entry gone
+      KeePassXC 2.8.0 into 1       as decided [store ok, by history 0] history 0, versions P
+      KeePassXC 2.8.0 into 0       as decided [store ok, by history 0] history 0, versions P
+   field: the payload string deleted in the entry dialog (ok 1)
+      after the edit               as decided [store ok, by history 1] history 1, versions -P
+      the gate writes (padd 0 ph)  as decided [store ok, by history 0, written again 0] entry gone
+      further edits                not run: the entry is gone
+      Synchronize into 1           as decided [store ok, by history 0] entry gone
+      Synchronize into 0           as decided [store ok, by history 0] entry gone
+      KeePassXC 2.8.0 into 1       as decided [store ok, by history 0] history 0, versions P
+      KeePassXC 2.8.0 into 0       as decided [store ok, by history 0] history 0, versions P
+   quick: a quick edit, Expires: Now (nothing the check covers) (ok 1)
+      after the edit               as decided [store ok, by history 0] history 1, versions PP
+      the gate writes (padd 0 ph)  as decided [store ok, by history 0, written again 0] entry gone
+      further edits                not run: the entry is gone
+      Synchronize into 1           as decided [store ok, by history 0] entry gone
+      Synchronize into 0           as decided [store ok, by history 0] entry gone
+      KeePassXC 2.8.0 into 1       as decided [store ok, by history 0] history 0, versions P
+      KeePassXC 2.8.0 into 0       as decided [store ok, by history 0] history 0, versions P
+   move: moved to the group General (ok)
+      after the edit               as decided [store ok, by history 0] history 0, versions P
+      the gate writes (padd 0 ph)  as decided [store ok, by history 0, written again 0] entry gone
+      further edits                not run: the entry is gone
+      Synchronize into 1           as decided [store ok, by history 0] entry gone
+      Synchronize into 0           as decided [store ok, by history 0] entry gone
+      KeePassXC 2.8.0 into 1       as decided [store ok, by history 0] history 0, versions P
+      KeePassXC 2.8.0 into 0       as decided [store ok, by history 0] history 0, versions P
+   bin: deleted to the recycle bin (ok)
+      after the edit               as decided [store ok, by history 0] history 0, versions P
+      the gate writes (padd 0 ph)  as decided [store ok, by history 0, written again 0] entry gone
+      further edits                not run: the entry is gone
+      Synchronize into 1           as decided [store ok, by history 0] entry gone
+      Synchronize into 0           as decided [store ok, by history 0] entry gone
+      KeePassXC 2.8.0 into 1       as decided [store ok, by history 0] history 0, versions P
+      KeePassXC 2.8.0 into 0       as decided [store ok, by history 0] history 0, versions P
+   delete: deleted for good, with a deletion record (ok)
+      after the edit               refuses: the whole database (store incomplete) [store incomplete, by history 0] entry gone
+      the gate writes (padd 0 ph)  cannot write; refuses: the whole database (store incomplete) [store incomplete, by history 0, written again 0] entry gone
+      further edits                not run: the gate could not write
+      Synchronize into 1           refuses: the whole database (store incomplete) [store incomplete, by history 0] entry gone
+      Synchronize into 0           refuses: the whole database (store incomplete) [store incomplete, by history 0] entry gone
+      KeePassXC 2.8.0 into 1       as decided [store ok, by history 0] history 0, versions P
+      KeePassXC 2.8.0 into 0       refuses: the whole database (store incomplete) [store incomplete, by history 0] history 0, versions P
+   edits10: the dialog edit and 9 more dialog edits (of the title): 10 edits (ok 10)
+      after the edit               as decided [store ok, by history 1] history 10, versions ----------P
+      the gate writes (padd 0 ph)  as decided [store ok, by history 0, written again 0] entry gone
+      further edits                not run: the entry is gone
+      Synchronize into 1           as decided [store ok, by history 0] entry gone
+      Synchronize into 0           as decided [store ok, by history 0] entry gone
+      KeePassXC 2.8.0 into 1       as decided [store ok, by history 0] history 0, versions P
+      KeePassXC 2.8.0 into 0       as decided [store ok, by history 0] history 0, versions P
+   edits11: the dialog edit and 10 more dialog edits (of the title): 11 edits (ok 10)
+      after the edit               refuses: the whole database (store incomplete) [store incomplete, by history 0] history 10, versions -----------
+      the gate writes (padd 0 ph)  cannot write; refuses: the whole database (store incomplete) [store incomplete, by history 0, written again 0] history 10, versions -----------
+      further edits                not run: the gate could not write
+      Synchronize into 1           refuses: the whole database (store incomplete) [store incomplete, by history 0] history 10, versions -----------
+      Synchronize into 0           refuses: the whole database (store incomplete) [store incomplete, by history 0] history 10, versions -----------
+      KeePassXC 2.8.0 into 1       refuses: the whole database (store incomplete) [store incomplete, by history 0] history 10, versions -----------
+      KeePassXC 2.8.0 into 0       refuses: the whole database (store incomplete) [store incomplete, by history 0] history 10, versions -----------
+   quick10: the dialog edit and 10 quick edits: 11 edits (ok 10)
+      after the edit               refuses: the whole database (store incomplete) [store incomplete, by history 0] history 10, versions -----------
+      the gate writes (padd 0 ph)  cannot write; refuses: the whole database (store incomplete) [store incomplete, by history 0, written again 0] history 10, versions -----------
+      further edits                not run: the gate could not write
+      Synchronize into 1           refuses: the whole database (store incomplete) [store incomplete, by history 0] history 10, versions -----------
+      Synchronize into 0           refuses: the whole database (store incomplete) [store incomplete, by history 0] history 10, versions -----------
+      KeePassXC 2.8.0 into 1       refuses: the whole database (store incomplete) [store incomplete, by history 0] history 10, versions -----------
+      KeePassXC 2.8.0 into 0       refuses: the whole database (store incomplete) [store incomplete, by history 0] history 10, versions -----------
+   off: history kept by neither copy (0 items), then the dialog edit (ok 0)
+      after the edit               refuses: the whole database (store incomplete) [store incomplete, by history 0] history 0, versions -
+      the gate writes (padd 0 ph)  cannot write; refuses: the whole database (store incomplete) [store incomplete, by history 0, written again 0] history 0, versions -
+      further edits                not run: the gate could not write
+      Synchronize into 1           refuses: the whole database (store incomplete) [store incomplete, by history 0] history 0, versions -
+      Synchronize into 0           refuses: the whole database (store incomplete) [store incomplete, by history 0] history 0, versions -
+      KeePassXC 2.8.0 into 1       refuses: the whole database (store incomplete) [store incomplete, by history 0] history 0, versions -
+      KeePassXC 2.8.0 into 0       refuses: the whole database (store incomplete) [store incomplete, by history 0] history 0, versions -
+## the retirement that holds the store key
+   dialog: a character of the payload changed in the entry dialog (ok 1)
+      after the edit               as decided [store ok, by history 1] history 1, versions -P
+      the gate writes (create 0)   as decided [store ok, by history 0, written again 1] history 2, versions P-P
+      further edits                AAAAAAAAAAR (refuses at edit 11) history 10, versions -----------
+      Synchronize into 1           as decided [store ok, by history 0] history 2, versions P-P
+      Synchronize into 0           as decided [store ok, by history 0] history 2, versions P-P
+      KeePassXC 2.8.0 into 1       as decided [store ok, by history 0] history 2, versions P-P
+      KeePassXC 2.8.0 into 0       as decided [store ok, by history 0] history 2, versions P-P
+      C read, step 7, file 0: model ('ok', None, [], [('N', ''), ('root', '')], ['c1'], ['pg']); read.py ('ok', None, [], [('N', ''), ('root', '')], [], ['pg'])
+      C read, step 8, file 1: model ('ok', None, [], [('N', ''), ('root', '')], ['c1'], ['pg']); read.py ('ok', None, [], [('N', ''), ('root', '')], [], ['pg'])
+      C read, step 30, file 0: model ('ok', 'a20', [], [('N', ''), ('root', 'r')], ['c1'], ['pg']); read.py ('ok', 'a20', [], [('N', ''), ('root', 'r')], [], ['pg'])
+      C read, step 40, file 1: model ('ok', 'a20', [], [('N', ''), ('root', 'r')], ['c1'], ['pg']); read.py ('ok', 'a20', [], [('N', ''), ('root', 'r')], [], ['pg'])
+      C read, step 40, file 0: model ('ok', 'a20', [], [('N', ''), ('root', 'r')], ['c1'], ['pg']); read.py ('ok', 'a20', [], [('N', ''), ('root', 'r')], [], ['pg'])
+      C read, step 40, file 1: model ('ok', 'a20', [], [('N', ''), ('root', 'r')], ['c1'], ['pg']); read.py ('ok', 'a20', [], [('N', ''), ('root', 'r')], [], ['pg'])
+      C read, step 40, file 0: model ('ok', 'a20', [], [('N', ''), ('root', 'r')], ['c1'], ['pg']); read.py ('ok', 'a20', [], [('N', ''), ('root', 'r')], [], ['pg'])
+   field: the payload string deleted in the entry dialog (ok 1)
+      after the edit               as decided [store ok, by history 1] history 1, versions -P
+      the gate writes (create 0)   as decided [store ok, by history 0, written again 1] history 2, versions P-P
+      further edits                AAAAAAAAAAR (refuses at edit 11) history 10, versions -----------
+      Synchronize into 1           as decided [store ok, by history 0] history 2, versions P-P
+      Synchronize into 0           as decided [store ok, by history 0] history 2, versions P-P
+      KeePassXC 2.8.0 into 1       as decided [store ok, by history 0] history 2, versions P-P
+      KeePassXC 2.8.0 into 0       as decided [store ok, by history 0] history 2, versions P-P
+      C read, step 7, file 0: model ('ok', None, [], [('N', ''), ('root', '')], ['c1'], ['pg']); read.py ('ok', None, [], [('N', ''), ('root', '')], [], ['pg'])
+      C read, step 8, file 1: model ('ok', None, [], [('N', ''), ('root', '')], ['c1'], ['pg']); read.py ('ok', None, [], [('N', ''), ('root', '')], [], ['pg'])
+      C read, step 30, file 0: model ('ok', 'a20', [], [('N', ''), ('root', 'r')], ['c1'], ['pg']); read.py ('ok', 'a20', [], [('N', ''), ('root', 'r')], [], ['pg'])
+      C read, step 40, file 1: model ('ok', 'a20', [], [('N', ''), ('root', 'r')], ['c1'], ['pg']); read.py ('ok', 'a20', [], [('N', ''), ('root', 'r')], [], ['pg'])
+      C read, step 40, file 0: model ('ok', 'a20', [], [('N', ''), ('root', 'r')], ['c1'], ['pg']); read.py ('ok', 'a20', [], [('N', ''), ('root', 'r')], [], ['pg'])
+      C read, step 40, file 1: model ('ok', 'a20', [], [('N', ''), ('root', 'r')], ['c1'], ['pg']); read.py ('ok', 'a20', [], [('N', ''), ('root', 'r')], [], ['pg'])
+      C read, step 40, file 0: model ('ok', 'a20', [], [('N', ''), ('root', 'r')], ['c1'], ['pg']); read.py ('ok', 'a20', [], [('N', ''), ('root', 'r')], [], ['pg'])
+   quick: a quick edit, Expires: Now (nothing the check covers) (ok 1)
+      after the edit               as decided [store ok, by history 0] history 1, versions PP
+      the gate writes (create 0)   as decided [store ok, by history 0, written again 0] history 1, versions PP
+      further edits                AAAAAAAAAAR (refuses at edit 11) history 10, versions -----------
+      Synchronize into 1           as decided [store ok, by history 0] history 1, versions PP
+      Synchronize into 0           as decided [store ok, by history 0] history 1, versions PP
+      KeePassXC 2.8.0 into 1       as decided [store ok, by history 0] history 1, versions PP
+      KeePassXC 2.8.0 into 0       as decided [store ok, by history 0] history 1, versions PP
+      C read, step 7, file 0: model ('ok', None, [], [('N', ''), ('root', '')], ['c1'], ['pg']); read.py ('ok', None, [], [('N', ''), ('root', '')], [], ['pg'])
+      C read, step 8, file 1: model ('ok', None, [], [('N', ''), ('root', '')], ['c1'], ['pg']); read.py ('ok', None, [], [('N', ''), ('root', '')], [], ['pg'])
+      C read, step 30, file 0: model ('ok', 'a20', [], [('N', ''), ('root', 'r')], ['c1'], ['pg']); read.py ('ok', 'a20', [], [('N', ''), ('root', 'r')], [], ['pg'])
+      C read, step 40, file 1: model ('ok', 'a20', [], [('N', ''), ('root', 'r')], ['c1'], ['pg']); read.py ('ok', 'a20', [], [('N', ''), ('root', 'r')], [], ['pg'])
+      C read, step 40, file 0: model ('ok', 'a20', [], [('N', ''), ('root', 'r')], ['c1'], ['pg']); read.py ('ok', 'a20', [], [('N', ''), ('root', 'r')], [], ['pg'])
+      C read, step 40, file 1: model ('ok', 'a20', [], [('N', ''), ('root', 'r')], ['c1'], ['pg']); read.py ('ok', 'a20', [], [('N', ''), ('root', 'r')], [], ['pg'])
+      C read, step 40, file 0: model ('ok', 'a20', [], [('N', ''), ('root', 'r')], ['c1'], ['pg']); read.py ('ok', 'a20', [], [('N', ''), ('root', 'r')], [], ['pg'])
+   move: moved to the group General (ok)
+      after the edit               as decided [store ok, by history 0] history 0, versions P
+      the gate writes (create 0)   as decided [store ok, by history 0, written again 0] history 0, versions P
+      further edits                AAAAAAAAAAR (refuses at edit 11) history 10, versions -----------
+      Synchronize into 1           as decided [store ok, by history 0] history 0, versions P
+      Synchronize into 0           as decided [store ok, by history 0] history 0, versions P
+      KeePassXC 2.8.0 into 1       as decided [store ok, by history 0] history 0, versions P
+      KeePassXC 2.8.0 into 0       as decided [store ok, by history 0] history 0, versions P
+      C read, step 7, file 0: model ('ok', None, [], [('N', ''), ('root', '')], ['c1'], ['pg']); read.py ('ok', None, [], [('N', ''), ('root', '')], [], ['pg'])
+      C read, step 8, file 1: model ('ok', None, [], [('N', ''), ('root', '')], ['c1'], ['pg']); read.py ('ok', None, [], [('N', ''), ('root', '')], [], ['pg'])
+      C read, step 30, file 0: model ('ok', 'a20', [], [('N', ''), ('root', 'r')], ['c1'], ['pg']); read.py ('ok', 'a20', [], [('N', ''), ('root', 'r')], [], ['pg'])
+      C read, step 40, file 1: model ('ok', 'a20', [], [('N', ''), ('root', 'r')], ['c1'], ['pg']); read.py ('ok', 'a20', [], [('N', ''), ('root', 'r')], [], ['pg'])
+      C read, step 40, file 0: model ('ok', 'a20', [], [('N', ''), ('root', 'r')], ['c1'], ['pg']); read.py ('ok', 'a20', [], [('N', ''), ('root', 'r')], [], ['pg'])
+      C read, step 40, file 1: model ('ok', 'a20', [], [('N', ''), ('root', 'r')], ['c1'], ['pg']); read.py ('ok', 'a20', [], [('N', ''), ('root', 'r')], [], ['pg'])
+      C read, step 40, file 0: model ('ok', 'a20', [], [('N', ''), ('root', 'r')], ['c1'], ['pg']); read.py ('ok', 'a20', [], [('N', ''), ('root', 'r')], [], ['pg'])
+   bin: deleted to the recycle bin (ok)
+      after the edit               as decided [store ok, by history 0] history 0, versions P
+      the gate writes (create 0)   as decided [store ok, by history 0, written again 0] history 0, versions P
+      further edits                AAAAAAAAAAR (refuses at edit 11) history 10, versions -----------
+      Synchronize into 1           as decided [store ok, by history 0] history 0, versions P
+      Synchronize into 0           as decided [store ok, by history 0] history 0, versions P
+      KeePassXC 2.8.0 into 1       as decided [store ok, by history 0] history 0, versions P
+      KeePassXC 2.8.0 into 0       as decided [store ok, by history 0] history 0, versions P
+      C read, step 7, file 0: model ('ok', None, [], [('N', ''), ('root', '')], ['c1'], ['pg']); read.py ('ok', None, [], [('N', ''), ('root', '')], [], ['pg'])
+      C read, step 8, file 1: model ('ok', None, [], [('N', ''), ('root', '')], ['c1'], ['pg']); read.py ('ok', None, [], [('N', ''), ('root', '')], [], ['pg'])
+      C read, step 30, file 0: model ('ok', 'a20', [], [('N', ''), ('root', 'r')], ['c1'], ['pg']); read.py ('ok', 'a20', [], [('N', ''), ('root', 'r')], [], ['pg'])
+      C read, step 40, file 1: model ('ok', 'a20', [], [('N', ''), ('root', 'r')], ['c1'], ['pg']); read.py ('ok', 'a20', [], [('N', ''), ('root', 'r')], [], ['pg'])
+      C read, step 40, file 0: model ('ok', 'a20', [], [('N', ''), ('root', 'r')], ['c1'], ['pg']); read.py ('ok', 'a20', [], [('N', ''), ('root', 'r')], [], ['pg'])
+      C read, step 40, file 1: model ('ok', 'a20', [], [('N', ''), ('root', 'r')], ['c1'], ['pg']); read.py ('ok', 'a20', [], [('N', ''), ('root', 'r')], [], ['pg'])
+      C read, step 40, file 0: model ('ok', 'a20', [], [('N', ''), ('root', 'r')], ['c1'], ['pg']); read.py ('ok', 'a20', [], [('N', ''), ('root', 'r')], [], ['pg'])
+   delete: deleted for good, with a deletion record (ok)
+      after the edit               as decided [store nostore, by history 0] entry gone
+      the gate writes (create 0)   narrower: node root lacks r [store ok, by history 0, written again 0] entry gone
+      further edits                not run: the entry is gone
+      Synchronize into 1           narrower: node root lacks r [store ok, by history 0] entry gone
+      Synchronize into 0           narrower: node root lacks r [store ok, by history 0] entry gone
+      KeePassXC 2.8.0 into 1       as decided [store ok, by history 0] history 0, versions P
+      KeePassXC 2.8.0 into 0       as decided [store ok, by history 0] history 0, versions P
+      C read, step 7, file 0: model ('ok', None, [], [('N', ''), ('root', '')], ['c1'], ['pg']); read.py ('ok', None, [], [('N', ''), ('root', '')], [], ['pg'])
+      C read, step 8, file 1: model ('ok', None, [], [('N', ''), ('root', '')], ['c1'], ['pg']); read.py ('ok', None, [], [('N', ''), ('root', '')], [], ['pg'])
+      C read, step 40, file 1: model ('ok', 'a20', [], [('N', ''), ('root', 'r')], ['c1'], ['pg']); read.py ('ok', 'a20', [], [('N', ''), ('root', 'r')], [], ['pg'])
+      C read, step 40, file 0: model ('ok', 'a20', [], [('N', ''), ('root', 'r')], ['c1'], ['pg']); read.py ('ok', 'a20', [], [('N', ''), ('root', 'r')], [], ['pg'])
+   edits10: the dialog edit and 9 more dialog edits (of the title): 10 edits (ok 10)
+      after the edit               as decided [store ok, by history 1] history 10, versions ----------P
+      the gate writes (create 0)   as decided [store ok, by history 0, written again 1] history 10, versions P----------
+      further edits                AAAAAAAAAAR (refuses at edit 11) history 10, versions -----------
+      Synchronize into 1           as decided [store ok, by history 0] history 10, versions P----------
+      Synchronize into 0           as decided [store ok, by history 0] history 10, versions P----------
+      KeePassXC 2.8.0 into 1       as decided [store ok, by history 0] history 10, versions P----------
+      KeePassXC 2.8.0 into 0       as decided [store ok, by history 0] history 10, versions P----------
+      C read, step 7, file 0: model ('ok', None, [], [('N', ''), ('root', '')], ['c1'], ['pg']); read.py ('ok', None, [], [('N', ''), ('root', '')], [], ['pg'])
+      C read, step 8, file 1: model ('ok', None, [], [('N', ''), ('root', '')], ['c1'], ['pg']); read.py ('ok', None, [], [('N', ''), ('root', '')], [], ['pg'])
+      C read, step 30, file 0: model ('ok', 'a20', [], [('N', ''), ('root', 'r')], ['c1'], ['pg']); read.py ('ok', 'a20', [], [('N', ''), ('root', 'r')], [], ['pg'])
+      C read, step 40, file 1: model ('ok', 'a20', [], [('N', ''), ('root', 'r')], ['c1'], ['pg']); read.py ('ok', 'a20', [], [('N', ''), ('root', 'r')], [], ['pg'])
+      C read, step 40, file 0: model ('ok', 'a20', [], [('N', ''), ('root', 'r')], ['c1'], ['pg']); read.py ('ok', 'a20', [], [('N', ''), ('root', 'r')], [], ['pg'])
+      C read, step 40, file 1: model ('ok', 'a20', [], [('N', ''), ('root', 'r')], ['c1'], ['pg']); read.py ('ok', 'a20', [], [('N', ''), ('root', 'r')], [], ['pg'])
+      C read, step 40, file 0: model ('ok', 'a20', [], [('N', ''), ('root', 'r')], ['c1'], ['pg']); read.py ('ok', 'a20', [], [('N', ''), ('root', 'r')], [], ['pg'])
+   edits11: the dialog edit and 10 more dialog edits (of the title): 11 edits (ok 10)
+      after the edit               as decided [store nostore, by history 0] history 10, versions -----------
+      the gate writes (create 0)   narrower: node root lacks r [store ok, by history 0, written again 0] entry gone
+      further edits                not run: the entry is gone
+      Synchronize into 1           narrower: node root lacks r [store ok, by history 0] entry gone
+      Synchronize into 0           narrower: node root lacks r [store ok, by history 0] entry gone
+      KeePassXC 2.8.0 into 1       as decided [store ok, by history 0] history 0, versions P
+      KeePassXC 2.8.0 into 0       as decided [store ok, by history 0] history 0, versions P
+      C read, step 7, file 0: model ('ok', None, [], [('N', ''), ('root', '')], ['c1'], ['pg']); read.py ('ok', None, [], [('N', ''), ('root', '')], [], ['pg'])
+      C read, step 8, file 1: model ('ok', None, [], [('N', ''), ('root', '')], ['c1'], ['pg']); read.py ('ok', None, [], [('N', ''), ('root', '')], [], ['pg'])
+      C read, step 40, file 1: model ('ok', 'a20', [], [('N', ''), ('root', 'r')], ['c1'], ['pg']); read.py ('ok', 'a20', [], [('N', ''), ('root', 'r')], [], ['pg'])
+      C read, step 40, file 0: model ('ok', 'a20', [], [('N', ''), ('root', 'r')], ['c1'], ['pg']); read.py ('ok', 'a20', [], [('N', ''), ('root', 'r')], [], ['pg'])
+   quick10: the dialog edit and 10 quick edits: 11 edits (ok 10)
+      after the edit               as decided [store nostore, by history 0] history 10, versions -----------
+      the gate writes (create 0)   narrower: node root lacks r [store ok, by history 0, written again 0] entry gone
+      further edits                not run: the entry is gone
+      Synchronize into 1           narrower: node root lacks r [store ok, by history 0] entry gone
+      Synchronize into 0           narrower: node root lacks r [store ok, by history 0] entry gone
+      KeePassXC 2.8.0 into 1       as decided [store ok, by history 0] history 0, versions P
+      KeePassXC 2.8.0 into 0       as decided [store ok, by history 0] history 0, versions P
+      C read, step 7, file 0: model ('ok', None, [], [('N', ''), ('root', '')], ['c1'], ['pg']); read.py ('ok', None, [], [('N', ''), ('root', '')], [], ['pg'])
+      C read, step 8, file 1: model ('ok', None, [], [('N', ''), ('root', '')], ['c1'], ['pg']); read.py ('ok', None, [], [('N', ''), ('root', '')], [], ['pg'])
+      C read, step 40, file 1: model ('ok', 'a20', [], [('N', ''), ('root', 'r')], ['c1'], ['pg']); read.py ('ok', 'a20', [], [('N', ''), ('root', 'r')], [], ['pg'])
+      C read, step 40, file 0: model ('ok', 'a20', [], [('N', ''), ('root', 'r')], ['c1'], ['pg']); read.py ('ok', 'a20', [], [('N', ''), ('root', 'r')], [], ['pg'])
+   off: history kept by neither copy (0 items), then the dialog edit (ok 0)
+      after the edit               as decided [store nostore, by history 0] history 0, versions -
+      the gate writes (create 0)   narrower: node root lacks r [store ok, by history 0, written again 0] entry gone
+      further edits                not run: the entry is gone
+      Synchronize into 1           narrower: node root lacks r [store ok, by history 0] entry gone
+      Synchronize into 0           narrower: node root lacks r [store ok, by history 0] entry gone
+      KeePassXC 2.8.0 into 1       as decided [store ok, by history 0] history 0, versions P
+      KeePassXC 2.8.0 into 0       as decided [store ok, by history 0] history 0, versions P
+      C read, step 7, file 0: model ('ok', None, [], [('N', ''), ('root', '')], ['c1'], ['pg']); read.py ('ok', None, [], [('N', ''), ('root', '')], [], ['pg'])
+      C read, step 8, file 1: model ('ok', None, [], [('N', ''), ('root', '')], ['c1'], ['pg']); read.py ('ok', None, [], [('N', ''), ('root', '')], [], ['pg'])
+      C read, step 40, file 1: model ('ok', 'a20', [], [('N', ''), ('root', 'r')], ['c1'], ['pg']); read.py ('ok', 'a20', [], [('N', ''), ('root', 'r')], [], ['pg'])
+      C read, step 40, file 0: model ('ok', 'a20', [], [('N', ''), ('root', 'r')], ['c1'], ['pg']); read.py ('ok', 'a20', [], [('N', ''), ('root', 'r')], [], ['pg'])
+== tally of the reads after the write and after each merge: A 337, K 18, R 124, n 20, x 1
+== 127 s

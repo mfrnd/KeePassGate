@@ -1,0 +1,316 @@
+== Added from the desktop measurement: every deletion record removed at once (Database
+   Maintenance, Deleted objects information, Delete), then the read, then a merge with a stale
+   copy that still holds what was deleted: Synchronize both ways, Overwrite if newer into 0,
+   KeePassXC 2.8.0 both ways. No Seal again before the merge.
+## after each kind of deletion of B.5; history: revoke 0 c0 ; recreate 0 ; pair 0 ; padd 0 pg ; prem 0 pf ; rule 0 N none ; renew 0 c0 forever ; merge kp_sync 1 0
+## ref revoked, to the recycle bin, then every record removed
+   after the deletion and the clearing: as decided
+   Synchronize into 0: as decided [entries 0, read 0]
+   Synchronize into 1: as decided [entries 0, read 0]
+   OverwriteIfNewer into 0: as decided [entries 0, read 0]
+   KeePassXC 2.8.0 into 0: as decided [entries 0, read 0]
+   KeePassXC 2.8.0 into 1: as decided [entries 0, read 0]
+## ref revoked, for good, with a record, then every record removed
+   after the deletion and the clearing: as decided
+   Synchronize into 0: as decided [entries 0, read 0]
+   Synchronize into 1: as decided [entries 0, read 0]
+   OverwriteIfNewer into 0: as decided [entries 0, read 0]
+   KeePassXC 2.8.0 into 0: as decided [entries 0, read 0]
+   KeePassXC 2.8.0 into 1: as decided [entries 0, read 0]
+## ref revoked, for good, no record, then every record removed
+   after the deletion and the clearing: as decided
+   Synchronize into 0: as decided [entries 0, read 0]
+   Synchronize into 1: as decided [entries 0, read 0]
+   OverwriteIfNewer into 0: as decided [entries 0, read 0]
+   KeePassXC 2.8.0 into 0: as decided [entries 0, read 0]
+   KeePassXC 2.8.0 into 1: as decided [entries 0, read 0]
+## ref revoked, to the bin, the bin emptied, then every record removed
+   after the deletion and the clearing: as decided
+   Synchronize into 0: as decided [entries 0, read 0]
+   Synchronize into 1: as decided [entries 0, read 0]
+   OverwriteIfNewer into 0: as decided [entries 0, read 0]
+   KeePassXC 2.8.0 into 0: as decided [entries 0, read 0]
+   KeePassXC 2.8.0 into 1: as decided [entries 0, read 0]
+## ref retired, to the recycle bin, then every record removed
+   after the deletion and the clearing: as decided
+   Synchronize into 0: as decided [entries 0, read 0]
+   Synchronize into 1: as decided [entries 0, read 0]
+   OverwriteIfNewer into 0: as decided [entries 0, read 0]
+   KeePassXC 2.8.0 into 0: as decided [entries 0, read 0]
+   KeePassXC 2.8.0 into 1: as decided [entries 0, read 0]
+## ref retired, for good, with a record, then every record removed
+   after the deletion and the clearing: as decided
+   Synchronize into 0: as decided [entries 0, read 0]
+   Synchronize into 1: as decided [entries 0, read 0]
+   OverwriteIfNewer into 0: as decided [entries 0, read 0]
+   KeePassXC 2.8.0 into 0: as decided [entries 0, read 0]
+   KeePassXC 2.8.0 into 1: as decided [entries 0, read 0]
+## ref retired, for good, no record, then every record removed
+   after the deletion and the clearing: as decided
+   Synchronize into 0: as decided [entries 0, read 0]
+   Synchronize into 1: as decided [entries 0, read 0]
+   OverwriteIfNewer into 0: as decided [entries 0, read 0]
+   KeePassXC 2.8.0 into 0: as decided [entries 0, read 0]
+   KeePassXC 2.8.0 into 1: as decided [entries 0, read 0]
+## ref retired, to the bin, the bin emptied, then every record removed
+   after the deletion and the clearing: as decided
+   Synchronize into 0: as decided [entries 0, read 0]
+   Synchronize into 1: as decided [entries 0, read 0]
+   OverwriteIfNewer into 0: as decided [entries 0, read 0]
+   KeePassXC 2.8.0 into 0: as decided [entries 0, read 0]
+   KeePassXC 2.8.0 into 1: as decided [entries 0, read 0]
+## rec, to the recycle bin, then every record removed
+   after the deletion and the clearing: as decided
+   Synchronize into 0: as decided [entries 0, read 0]
+   Synchronize into 1: as decided [entries 0, read 0]
+   OverwriteIfNewer into 0: as decided [entries 0, read 0]
+   KeePassXC 2.8.0 into 0: as decided [entries 0, read 0]
+   KeePassXC 2.8.0 into 1: as decided [entries 0, read 0]
+## rec, for good, with a record, then every record removed
+   after the deletion and the clearing: narrower: client c1 refused
+   Synchronize into 0: as decided [entries 0, read 0]
+   Synchronize into 1: as decided [entries 0, read 0]
+   OverwriteIfNewer into 0: as decided [entries 0, read 0]
+   KeePassXC 2.8.0 into 0: as decided [entries 0, read 0]
+   KeePassXC 2.8.0 into 1: as decided [entries 0, read 0]
+## rec, for good, no record, then every record removed
+   after the deletion and the clearing: narrower: client c1 refused
+   Synchronize into 0: as decided [entries 0, read 0]
+   Synchronize into 1: as decided [entries 0, read 0]
+   OverwriteIfNewer into 0: as decided [entries 0, read 0]
+   KeePassXC 2.8.0 into 0: as decided [entries 0, read 0]
+   KeePassXC 2.8.0 into 1: as decided [entries 0, read 0]
+## rec, to the bin, the bin emptied, then every record removed
+   after the deletion and the clearing: narrower: client c1 refused
+   Synchronize into 0: as decided [entries 0, read 0]
+   Synchronize into 1: as decided [entries 0, read 0]
+   OverwriteIfNewer into 0: as decided [entries 0, read 0]
+   KeePassXC 2.8.0 into 0: as decided [entries 0, read 0]
+   KeePassXC 2.8.0 into 1: as decided [entries 0, read 0]
+## auth, to the recycle bin, then every record removed
+   after the deletion and the clearing: as decided
+   Synchronize into 0: as decided [entries 0, read 0]
+   Synchronize into 1: as decided [entries 0, read 0]
+   OverwriteIfNewer into 0: as decided [entries 0, read 0]
+   KeePassXC 2.8.0 into 0: as decided [entries 0, read 0]
+   KeePassXC 2.8.0 into 1: as decided [entries 0, read 0]
+## auth, for good, with a record, then every record removed
+   after the deletion and the clearing: refuses: the whole database (store nostore)
+   Synchronize into 0: as decided [entries 0, read 1]
+      C read, step 8, file 0: model ('incomplete', None, [], [('N', ''), ('root', '')], [], []); read.py ('nostore', None, [], [('N', ''), ('root', '')], [], [])
+   Synchronize into 1: as decided [entries 0, read 1]
+      C read, step 8, file 0: model ('incomplete', None, [], [('N', ''), ('root', '')], [], []); read.py ('nostore', None, [], [('N', ''), ('root', '')], [], [])
+   OverwriteIfNewer into 0: as decided [entries 0, read 1]
+      C read, step 8, file 0: model ('incomplete', None, [], [('N', ''), ('root', '')], [], []); read.py ('nostore', None, [], [('N', ''), ('root', '')], [], [])
+   KeePassXC 2.8.0 into 0: as decided [entries 0, read 1]
+      C read, step 8, file 0: model ('incomplete', None, [], [('N', ''), ('root', '')], [], []); read.py ('nostore', None, [], [('N', ''), ('root', '')], [], [])
+   KeePassXC 2.8.0 into 1: as decided [entries 0, read 1]
+      C read, step 8, file 0: model ('incomplete', None, [], [('N', ''), ('root', '')], [], []); read.py ('nostore', None, [], [('N', ''), ('root', '')], [], [])
+## auth, for good, no record, then every record removed
+   after the deletion and the clearing: refuses: the whole database (store nostore)
+   Synchronize into 0: as decided [entries 0, read 1]
+      C read, step 8, file 0: model ('incomplete', None, [], [('N', ''), ('root', '')], [], []); read.py ('nostore', None, [], [('N', ''), ('root', '')], [], [])
+   Synchronize into 1: as decided [entries 0, read 1]
+      C read, step 8, file 0: model ('incomplete', None, [], [('N', ''), ('root', '')], [], []); read.py ('nostore', None, [], [('N', ''), ('root', '')], [], [])
+   OverwriteIfNewer into 0: as decided [entries 0, read 1]
+      C read, step 8, file 0: model ('incomplete', None, [], [('N', ''), ('root', '')], [], []); read.py ('nostore', None, [], [('N', ''), ('root', '')], [], [])
+   KeePassXC 2.8.0 into 0: as decided [entries 0, read 1]
+      C read, step 8, file 0: model ('incomplete', None, [], [('N', ''), ('root', '')], [], []); read.py ('nostore', None, [], [('N', ''), ('root', '')], [], [])
+   KeePassXC 2.8.0 into 1: as decided [entries 0, read 1]
+      C read, step 8, file 0: model ('incomplete', None, [], [('N', ''), ('root', '')], [], []); read.py ('nostore', None, [], [('N', ''), ('root', '')], [], [])
+## auth, to the bin, the bin emptied, then every record removed
+   after the deletion and the clearing: refuses: the whole database (store nostore)
+   Synchronize into 0: as decided [entries 0, read 1]
+      C read, step 9, file 0: model ('incomplete', None, [], [('N', ''), ('root', '')], [], []); read.py ('nostore', None, [], [('N', ''), ('root', '')], [], [])
+   Synchronize into 1: as decided [entries 0, read 1]
+      C read, step 9, file 0: model ('incomplete', None, [], [('N', ''), ('root', '')], [], []); read.py ('nostore', None, [], [('N', ''), ('root', '')], [], [])
+   OverwriteIfNewer into 0: as decided [entries 0, read 1]
+      C read, step 9, file 0: model ('incomplete', None, [], [('N', ''), ('root', '')], [], []); read.py ('nostore', None, [], [('N', ''), ('root', '')], [], [])
+   KeePassXC 2.8.0 into 0: as decided [entries 0, read 1]
+      C read, step 9, file 0: model ('incomplete', None, [], [('N', ''), ('root', '')], [], []); read.py ('nostore', None, [], [('N', ''), ('root', '')], [], [])
+   KeePassXC 2.8.0 into 1: as decided [entries 0, read 1]
+      C read, step 9, file 0: model ('incomplete', None, [], [('N', ''), ('root', '')], [], []); read.py ('nostore', None, [], [('N', ''), ('root', '')], [], [])
+## padd, to the recycle bin, then every record removed
+   after the deletion and the clearing: as decided
+   Synchronize into 0: as decided [entries 0, read 0]
+   Synchronize into 1: as decided [entries 0, read 0]
+   OverwriteIfNewer into 0: as decided [entries 0, read 0]
+   KeePassXC 2.8.0 into 0: as decided [entries 0, read 0]
+   KeePassXC 2.8.0 into 1: as decided [entries 0, read 0]
+## padd, for good, with a record, then every record removed
+   after the deletion and the clearing: narrower: client c1 lacks ['pg']
+   Synchronize into 0: as decided [entries 0, read 0]
+   Synchronize into 1: as decided [entries 0, read 0]
+   OverwriteIfNewer into 0: as decided [entries 0, read 0]
+   KeePassXC 2.8.0 into 0: as decided [entries 0, read 0]
+   KeePassXC 2.8.0 into 1: as decided [entries 0, read 0]
+## padd, for good, no record, then every record removed
+   after the deletion and the clearing: narrower: client c1 lacks ['pg']
+   Synchronize into 0: as decided [entries 0, read 0]
+   Synchronize into 1: as decided [entries 0, read 0]
+   OverwriteIfNewer into 0: as decided [entries 0, read 0]
+   KeePassXC 2.8.0 into 0: as decided [entries 0, read 0]
+   KeePassXC 2.8.0 into 1: as decided [entries 0, read 0]
+## padd, to the bin, the bin emptied, then every record removed
+   after the deletion and the clearing: narrower: client c1 lacks ['pg']
+   Synchronize into 0: as decided [entries 0, read 0]
+   Synchronize into 1: as decided [entries 0, read 0]
+   OverwriteIfNewer into 0: as decided [entries 0, read 0]
+   KeePassXC 2.8.0 into 0: as decided [entries 0, read 0]
+   KeePassXC 2.8.0 into 1: as decided [entries 0, read 0]
+## prem, to the recycle bin, then every record removed
+   after the deletion and the clearing: as decided
+   Synchronize into 0: as decided [entries 0, read 0]
+   Synchronize into 1: as decided [entries 0, read 0]
+   OverwriteIfNewer into 0: as decided [entries 0, read 0]
+   KeePassXC 2.8.0 into 0: as decided [entries 0, read 0]
+   KeePassXC 2.8.0 into 1: as decided [entries 0, read 0]
+## prem, for good, with a record, then every record removed
+   after the deletion and the clearing: as decided
+   Synchronize into 0: as decided [entries 0, read 0]
+   Synchronize into 1: as decided [entries 0, read 0]
+   OverwriteIfNewer into 0: as decided [entries 0, read 0]
+   KeePassXC 2.8.0 into 0: as decided [entries 0, read 0]
+   KeePassXC 2.8.0 into 1: as decided [entries 0, read 0]
+## prem, for good, no record, then every record removed
+   after the deletion and the clearing: as decided
+   Synchronize into 0: as decided [entries 0, read 0]
+   Synchronize into 1: as decided [entries 0, read 0]
+   OverwriteIfNewer into 0: as decided [entries 0, read 0]
+   KeePassXC 2.8.0 into 0: as decided [entries 0, read 0]
+   KeePassXC 2.8.0 into 1: as decided [entries 0, read 0]
+## prem, to the bin, the bin emptied, then every record removed
+   after the deletion and the clearing: as decided
+   Synchronize into 0: as decided [entries 0, read 0]
+   Synchronize into 1: as decided [entries 0, read 0]
+   OverwriteIfNewer into 0: as decided [entries 0, read 0]
+   KeePassXC 2.8.0 into 0: as decided [entries 0, read 0]
+   KeePassXC 2.8.0 into 1: as decided [entries 0, read 0]
+## ver rule:N new, to the recycle bin, then every record removed
+   after the deletion and the clearing: as decided
+   Synchronize into 0: as decided [entries 0, read 0]
+   Synchronize into 1: as decided [entries 0, read 0]
+   OverwriteIfNewer into 0: as decided [entries 0, read 0]
+   KeePassXC 2.8.0 into 0: as decided [entries 0, read 0]
+   KeePassXC 2.8.0 into 1: as decided [entries 0, read 0]
+## ver rule:N new, for good, with a record, then every record removed
+   after the deletion and the clearing: as decided
+   Synchronize into 0: as decided [entries 0, read 0]
+   Synchronize into 1: as decided [entries 0, read 0]
+   OverwriteIfNewer into 0: as decided [entries 0, read 0]
+   KeePassXC 2.8.0 into 0: as decided [entries 0, read 0]
+   KeePassXC 2.8.0 into 1: as decided [entries 0, read 0]
+## ver rule:N new, for good, no record, then every record removed
+   after the deletion and the clearing: as decided
+   Synchronize into 0: as decided [entries 0, read 0]
+   Synchronize into 1: as decided [entries 0, read 0]
+   OverwriteIfNewer into 0: as decided [entries 0, read 0]
+   KeePassXC 2.8.0 into 0: as decided [entries 0, read 0]
+   KeePassXC 2.8.0 into 1: as decided [entries 0, read 0]
+## ver rule:N new, to the bin, the bin emptied, then every record removed
+   after the deletion and the clearing: as decided
+   Synchronize into 0: as decided [entries 0, read 0]
+   Synchronize into 1: as decided [entries 0, read 0]
+   OverwriteIfNewer into 0: as decided [entries 0, read 0]
+   KeePassXC 2.8.0 into 0: as decided [entries 0, read 0]
+   KeePassXC 2.8.0 into 1: as decided [entries 0, read 0]
+## ver renew:c0 new, to the recycle bin, then every record removed
+   after the deletion and the clearing: as decided
+   Synchronize into 0: as decided [entries 0, read 0]
+   Synchronize into 1: as decided [entries 0, read 0]
+   OverwriteIfNewer into 0: as decided [entries 0, read 0]
+   KeePassXC 2.8.0 into 0: as decided [entries 0, read 0]
+   KeePassXC 2.8.0 into 1: as decided [entries 0, read 0]
+## ver renew:c0 new, for good, with a record, then every record removed
+   after the deletion and the clearing: as decided
+   Synchronize into 0: as decided [entries 0, read 0]
+   Synchronize into 1: as decided [entries 0, read 0]
+   OverwriteIfNewer into 0: as decided [entries 0, read 0]
+   KeePassXC 2.8.0 into 0: as decided [entries 0, read 0]
+   KeePassXC 2.8.0 into 1: as decided [entries 0, read 0]
+## ver renew:c0 new, for good, no record, then every record removed
+   after the deletion and the clearing: as decided
+   Synchronize into 0: as decided [entries 0, read 0]
+   Synchronize into 1: as decided [entries 0, read 0]
+   OverwriteIfNewer into 0: as decided [entries 0, read 0]
+   KeePassXC 2.8.0 into 0: as decided [entries 0, read 0]
+   KeePassXC 2.8.0 into 1: as decided [entries 0, read 0]
+## ver renew:c0 new, to the bin, the bin emptied, then every record removed
+   after the deletion and the clearing: as decided
+   Synchronize into 0: as decided [entries 0, read 0]
+   Synchronize into 1: as decided [entries 0, read 0]
+   OverwriteIfNewer into 0: as decided [entries 0, read 0]
+   KeePassXC 2.8.0 into 0: as decided [entries 0, read 0]
+   KeePassXC 2.8.0 into 1: as decided [entries 0, read 0]
+## head new, to the recycle bin, then every record removed
+   after the deletion and the clearing: as decided
+   Synchronize into 0: as decided [entries 0, read 0]
+   Synchronize into 1: as decided [entries 0, read 0]
+   OverwriteIfNewer into 0: as decided [entries 0, read 0]
+   KeePassXC 2.8.0 into 0: as decided [entries 0, read 0]
+   KeePassXC 2.8.0 into 1: as decided [entries 0, read 0]
+## head new, for good, with a record, then every record removed
+   after the deletion and the clearing: refuses: the whole database (store incomplete)
+   Synchronize into 0: as decided [entries 0, read 0]
+   Synchronize into 1: as decided [entries 0, read 0]
+   OverwriteIfNewer into 0: as decided [entries 0, read 0]
+   KeePassXC 2.8.0 into 0: as decided [entries 0, read 0]
+   KeePassXC 2.8.0 into 1: as decided [entries 0, read 0]
+## head new, for good, no record, then every record removed
+   after the deletion and the clearing: refuses: the whole database (store incomplete)
+   Synchronize into 0: as decided [entries 0, read 0]
+   Synchronize into 1: as decided [entries 0, read 0]
+   OverwriteIfNewer into 0: as decided [entries 0, read 0]
+   KeePassXC 2.8.0 into 0: as decided [entries 0, read 0]
+   KeePassXC 2.8.0 into 1: as decided [entries 0, read 0]
+## head new, to the bin, the bin emptied, then every record removed
+   after the deletion and the clearing: refuses: the whole database (store incomplete)
+   Synchronize into 0: as decided [entries 0, read 0]
+   Synchronize into 1: as decided [entries 0, read 0]
+   OverwriteIfNewer into 0: as decided [entries 0, read 0]
+   KeePassXC 2.8.0 into 0: as decided [entries 0, read 0]
+   KeePassXC 2.8.0 into 1: as decided [entries 0, read 0]
+## after a prune: copy 1 taken before the act, the act at copy 0, every record removed there
+## P1: a rule narrowed (the older version and head pruned); history: rule 0 N rw ; merge kp_sync 1 0 ; rule 0 N none
+   after the clearing: as decided
+   Synchronize into 0: as decided [entries 0, read 0]
+   Synchronize into 1: as decided [entries 0, read 0]
+   OverwriteIfNewer into 0: as decided [entries 0, read 0]
+   KeePassXC 2.8.0 into 0: as decided [entries 0, read 0]
+   KeePassXC 2.8.0 into 1: as decided [entries 0, read 0]
+## P2: a client revoked (its record pruned beside the revocation); history: merge kp_sync 1 0 ; revoke 0 c0
+   after the clearing: as decided
+   Synchronize into 0: as decided [entries 0, read 0]
+   Synchronize into 1: as decided [entries 0, read 0]
+   OverwriteIfNewer into 0: as decided [entries 0, read 0]
+   KeePassXC 2.8.0 into 0: as decided [entries 0, read 0]
+   KeePassXC 2.8.0 into 1: as decided [entries 0, read 0]
+## P3: the authority recreated (the retired document pruned); history: merge kp_sync 1 0 ; recreate 0
+   after the clearing: as decided
+   Synchronize into 0: as decided [entries 0, read 0]
+   Synchronize into 1: as decided [entries 0, read 0]
+   OverwriteIfNewer into 0: as decided [entries 0, read 0]
+   KeePassXC 2.8.0 into 0: as decided [entries 0, read 0]
+   KeePassXC 2.8.0 into 1: as decided [entries 0, read 0]
+## P4: a name removed (its addition pruned); history: merge kp_sync 1 0 ; prem 0 pf
+   after the clearing: as decided
+   Synchronize into 0: as decided [entries 0, read 0]
+   Synchronize into 1: as decided [entries 0, read 0]
+   OverwriteIfNewer into 0: as decided [entries 0, read 0]
+   KeePassXC 2.8.0 into 0: as decided [entries 0, read 0]
+   KeePassXC 2.8.0 into 1: as decided [entries 0, read 0]
+## P5: renewals refused, then allowed again (the refusal pruned); history: renew 0 c0 forever ; merge kp_sync 1 0 ; renew 0 c0 allowed
+   after the clearing: as decided
+   Synchronize into 0: as decided [entries 0, read 0]
+   Synchronize into 1: as decided [entries 0, read 0]
+   OverwriteIfNewer into 0: as decided [entries 0, read 0]
+   KeePassXC 2.8.0 into 0: as decided [entries 0, read 0]
+   KeePassXC 2.8.0 into 1: as decided [entries 0, read 0]
+## P6: the authority deleted, none after (the document pruned, the key in the retirement); history: merge kp_sync 1 0 ; delauth 0
+   after the clearing: as decided
+   Synchronize into 0: as decided [entries 0, read 0]
+   Synchronize into 1: as decided [entries 0, read 0]
+   OverwriteIfNewer into 0: as decided [entries 0, read 0]
+   KeePassXC 2.8.0 into 0: as decided [entries 0, read 0]
+   KeePassXC 2.8.0 into 1: as decided [entries 0, read 0]
+== 138 s

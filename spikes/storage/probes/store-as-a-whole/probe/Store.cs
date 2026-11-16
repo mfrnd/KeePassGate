@@ -370,6 +370,52 @@ public static class Store
         return "ok " + e.History.UCount;
     }
 
+    // ADDED (two readings): rewrite <path> <uuid> <t> <form> <index>: the plugin writes a record
+    // again whose current version fails and whose history item <index> (oldest first, as the dump
+    // numbers them) passes. Every KPG. string of that item, with its protection, becomes the current
+    // version's again, and every other KPG. string of the current version goes; nothing else of the
+    // entry changes. form "backup": as an edit through KeePass's own path, the edited version put
+    // into the history first (CreateBackup with the database, which trims the history to the
+    // database's limits); form "cleared": the entry's history emptied instead. Then the
+    // modification time.
+    static string Rewrite(string path, string uuid, long t, string form, int index)
+    {
+        var db = Open(path);
+        var e = db.RootGroup.FindEntry(new PwUuid(Unhex(uuid)), true);
+        if (e == null || index < 0 || index >= (int)e.History.UCount) { db.Close(); return "absent"; }
+        var item = e.History.GetAt((uint)index);
+        var keep = new List<KeyValuePair<string, ProtectedString>>();
+        foreach (var k in item.Strings.GetKeys().Where(k => k.StartsWith("KPG.")).ToList())
+            keep.Add(new KeyValuePair<string, ProtectedString>(k, item.Strings.Get(k)));
+        if (form == "backup") e.CreateBackup(db);
+        else if (form == "cleared") e.History = new KeePassLib.Collections.PwObjectList<PwEntry>();
+        else throw new InvalidOperationException(form);
+        foreach (var k in e.Strings.GetKeys().Where(k => k.StartsWith("KPG.")).ToList()) e.Strings.Remove(k);
+        foreach (var kv in keep) e.Strings.Set(kv.Key, kv.Value);
+        e.LastModificationTime = At(t); e.LastAccessTime = At(t);
+        SaveClose(db);
+        return "ok " + e.History.UCount;
+    }
+
+    // ADDED (two readings): recanon <path> <copy uuid> <uuid> <t>: a record counted from a copy under
+    // another identifier written again under the identifier its content gives: a new entry in the
+    // store group with every string of the copy's current version, no history, at <t>. The copy
+    // stays where it is.
+    static string Recanon(string path, string copy, string uuid, long t)
+    {
+        var db = Open(path);
+        var c = db.RootGroup.FindEntry(new PwUuid(Unhex(copy)), true);
+        var u = new PwUuid(Unhex(uuid));
+        if (c == null || db.RootGroup.FindEntry(u, true) != null) { db.Close(); return "absent"; }
+        var e = c.CloneDeep();
+        e.SetUuid(u, true);
+        e.History = new KeePassLib.Collections.PwObjectList<PwEntry>();
+        Stamp(e, At(t));
+        StoreGroup(db).AddEntry(e, true);
+        SaveClose(db);
+        return "ok";
+    }
+
     // ADDED (decided store): limits <path> <items>: the database's limit of history items per entry
     // (KeePass's default is 10; 0 keeps no history).
     static string Limits(string path, int items)
@@ -438,6 +484,8 @@ public static class Store
             case "dump": return Dump(p[1], p.Length > 2 && p[2] == "h");
             case "history-edit": return HistoryEdit(p[1], p[2], long.Parse(p[3]), p[4], p.Length > 5 ? p[5] : "");
             case "limits": return Limits(p[1], int.Parse(p[2]));
+            case "rewrite": return Rewrite(p[1], p[2], long.Parse(p[3]), p[4], int.Parse(p[5]));   // ADDED (two readings)
+            case "recanon": return Recanon(p[1], p[2], p[3], long.Parse(p[4]));                     // ADDED (two readings)
             default: throw new InvalidOperationException(line);
         }
     }

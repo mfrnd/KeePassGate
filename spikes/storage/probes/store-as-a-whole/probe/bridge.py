@@ -21,6 +21,15 @@ repair after a Synchronize (decision 14), and every read through the history rul
 read.py with `history`, over dumps that carry each entry's history items; the model adopts an entry
 as intact when any of its versions passes the check, which is what the rule counts. Its databases go
 to `work\\d-<tag>`, so that both configurations can run at once.
+
+ADDED (two readings): two further configurations of the store as decided. `rewrite(form)`: at every
+write of the plugin's own (a gate act, never a merge and never a read), after the act, every record
+of that file that counts only by its history is written again so that its written version is
+current again (Store.cs `rewrite`, form 'backup' or 'cleared'). `copies(variant)`: every read by
+read.py's reading of a copy under another identifier ('held' or 'exempt'), and a gate act refused
+where that reading stops the store while the model, which holds no such reading, would write.
+`recanon(i)` writes a record counted from a copy under the identifier its content gives. Their
+databases go to `work\\w<form>-<tag>` and `work\\c<variant>-<tag>`.
 """
 import os
 import sys
@@ -42,12 +51,39 @@ FLAGS = M.STORE.but(pending=False, repair=False)
 METHODS = ('Synchronize', 'OverwriteIfNewer', 'OverwriteExisting', 'KeepExisting', 'CreateNewUuids')
 RELEASES = ('2.4.2', '2.6.6', '2.7.12', '2.8.0')
 DECIDED = False     # ADDED (decided store): set by decide()
+REWRITE = None      # ADDED (two readings): 'backup' or 'cleared', set by rewrite()
+COPIES = None       # ADDED (two readings): 'held' or 'exempt', set by copies()
+PREFIX = ''         # ADDED (two readings): the configuration's directories under work
 
 
 def decide():
     """ADDED (decided store): no repair, and the history rule in every read."""
-    global DECIDED
+    global DECIDED, PREFIX
     DECIDED = True
+    PREFIX = 'd-'   # ADDED (two readings): what was written inline before
+
+
+def rewrite(form):
+    """ADDED (two readings): the store as decided, and an edited record written again at the
+    plugin's next own write."""
+    global REWRITE, PREFIX
+    decide()
+    REWRITE, PREFIX = form, 'w%s-' % form[0]
+    if form == 'none':      # the control: the same parts with nothing written again
+        REWRITE = None
+
+
+def copies(variant):
+    """ADDED (two readings): the store as decided, read with a record that can only take access away
+    counted from a copy under another identifier."""
+    global COPIES, PREFIX
+    decide()
+    COPIES, PREFIX = variant, 'c%s-' % variant[0]
+
+
+def rd(dump, history):
+    """ADDED (two readings): read.py's read in the configuration."""
+    return RD.read(dump, history=history, copies=COPIES)
 
 
 def versions(e):
@@ -72,7 +108,8 @@ class Bridge:
         self.enc = S.Encoder(self.W, {'N': self.ids['N'], 'root': self.ids['root']})
         self.macs = {}
         self.by_history = 0     # ADDED (decided store): an edit the model reads as damage, the file by history
-        self.dir = os.path.join(WORK, ('d-' if DECIDED else '') + tag)
+        self.rewrites, self.copy_stops = [], 0     # ADDED (two readings)
+        self.dir = os.path.join(WORK, PREFIX + tag)     # ADDED (two readings): PREFIX
         os.makedirs(self.dir, exist_ok=True)
         for x in os.listdir(self.dir):
             os.remove(os.path.join(self.dir, x))
@@ -122,7 +159,7 @@ class Bridge:
         """ADDED (decided store): read.py's answer for file i, by the configuration's rule unless
         `history` names a rule."""
         h = DECIDED if history is None else history
-        return RD.read(self.h.dump(self.files[i], history=h), history=h)
+        return rd(self.h.dump(self.files[i], history=h), h)     # ADDED (two readings): rd
 
     def real(self, i):
         d = self.dump(i)
@@ -195,7 +232,7 @@ class Bridge:
     def readcheck(self, i, d, step):
         """C: the model's read of what the file holds against read.py's read of the file."""
         v = self.W.fold(self.W.reps[i])
-        r = self.as_model(RD.read(d, history=DECIDED))
+        r = self.as_model(rd(d, DECIDED))     # ADDED (two readings): rd
         mine = (v['status'], v['served'], sorted((c, sorted(p)) for c, p in v['adm'].items()),
                 sorted((n, ''.join(sorted(w))) for n, w in v['words'].items() if n in ('N', 'root')),
                 sorted(c for c, a in v['renew'].items() if a == 'forever'), sorted(v['names']))
@@ -211,6 +248,39 @@ class Bridge:
         self.adopt_real(i, ents, loc, dels)
         return d
 
+    # ADDED (two readings)
+    def rewrite_again(self, i):
+        """At a write of the plugin's own on file i, after the act: every record that counts only
+        by its history is written again from the history item it counts by. Answers the file's
+        dump after it, or None when nothing was written, and lines for the log."""
+        r = rd(self.dump(i), True)
+        if not r['byhist']:
+            return None, []
+        t = self.W.t
+        notes = []
+        for u, idx in sorted(r['byhist'].items()):
+            out = self.h.run('rewrite', self.files[i], u, t, REWRITE, idx)
+            self.rewrites.append((i, u))
+            notes.append('   the gate wrote again at %d: %s, from history item %d (%s)' % (i, u[:8], idx, out))
+        return self.sync_file(i), notes
+
+    def recanon(self, i):
+        """A record counted from a copy written again under the identifier its content gives, where
+        the file holds neither an entry nor a deletion record under it. Lines for the log."""
+        d = self.dump(i)
+        r = rd(d, True)
+        notes = []
+        for u, c in sorted(r['fromcopy'].items()):
+            if u in d['entries'] or u in d['dels']:
+                notes.append('   %s, counted from a copy: not written, the file holds %s' % (
+                    u[:8], 'its entry' if u in d['entries'] else 'its deletion record'))
+                continue
+            out = self.h.run('recanon', self.files[i], c, u, self.W.t)
+            # the copy's own identifier is drawn at random by the import, so it is not printed
+            notes.append('   %s, counted from a copy: written under its own identifier (%s)' % (u[:8], out))
+        self.sync_file(i)
+        return notes
+
     # ------------------------------------------------------------------ one step
     def gate_write(self, i, before):
         after = self.W.reps[i]
@@ -225,12 +295,22 @@ class Bridge:
         kind = op[0]
         if kind in M.GATE_ACTS:
             i = op[1]
+            # ADDED (two readings): the plugin is stopped where the reading of copies stops the store
+            if COPIES and kind != 'create' and op[1] < len(W.reps) and W.fold(W.reps[i])['status'] == 'ok':
+                if rd(self.dump(i), DECIDED)['status'] != 'ok':
+                    self.copy_stops += 1
+                    return False
             before = W.reps[i].clone()
             if not W.step(op):
                 return False
             d = self.gate_write(i, before)
+            notes = []
+            if REWRITE:     # ADDED (two readings): what counts only by its history, written again
+                d2, notes = self.rewrite_again(i)
+                d = d2 or d
             self.readcheck(i, d, k)
             self.log.append('%2d %s' % (k, ' '.join(map(str, op))))
+            self.log += notes
             return True
         if kind in ('dup', 'move', 'restore'):
             return self.tree_step(k, op)
@@ -469,10 +549,14 @@ def global_ideal(W, i):
     return W.fold(r, M.IDEAL)
 
 
-def outcome(b, i, history=None):
+def outcome(b, i, history=None, dump=None):
     """The file's answer by read.py, held to every decision any gate made (the oracle). ADDED
-    (decided store): read by the configuration's rule unless `history` names a rule."""
-    r = b.as_model(b.read(i, history))
+    (decided store): read by the configuration's rule unless `history` names a rule. ADDED (two
+    readings): `dump`, a dump of file i already made, read instead of a new one."""
+    if dump is None:
+        r = b.as_model(b.read(i, history))
+    else:
+        r = b.as_model(rd(dump, DECIDED if history is None else history))
     I = global_ideal(b.W, i)
     nodes = ('root', 'N')
     w = M.narrower(r, I, nodes)

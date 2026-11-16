@@ -14,6 +14,13 @@ the history rule. `run.ps1 -Decided` selects it, its output goes to `out\decided
 and what was added for it. With the switch off, every part prints what it printed before: six
 parts were run again after the addition and came out the same as `recorded\`.
 
+**Two further configurations, the two readings of the store as decided**, were added the same
+night for the report `papers\ground\measured-two-readings.md`: `run.ps1 -Rewrite`, an edited record
+written again at the plugin's next own write, with its record in `recorded-rewrite\`, and
+`run.ps1 -Copies`, a record that can only take access away read from a copy under another
+identifier, with its record in `recorded-copies\`. The section "The two readings" at the end holds
+both.
+
 | Path | What it is |
 | --- | --- |
 | `model\crdt_model.py` | a copy of `spikes\storage\model\crdt_model.py` with the switches of section "What was added" below; every new switch at its default is the design's model |
@@ -30,6 +37,8 @@ parts were run again after the addition and came out the same as `recorded\`.
 | `run.ps1`, `compare.py` | the command, and the comparison of a fresh `out\` with `recorded\` |
 | `recorded\` | the output of the run the report quotes |
 | `recorded-decided\` | the output of the run of the store as decided, which `measured-decided-store.md` quotes |
+| `probe\readings.py` | the parts of the two readings of the store as decided (section "The two readings") |
+| `recorded-rewrite\`, `recorded-copies\` | the output of the runs of the two readings, which `measured-two-readings.md` quotes |
 
 **Everything ran twice**, on 2026-11-16, on a machine other measurements were sharing. Every
 output of the second run is the same as the record line for line, apart from what `compare.py`
@@ -494,3 +503,174 @@ Reported, not fixed.
   program; Database Maintenance's history page; a history item edited by script. Each was run on a
   store without summary entries in `edited-refusals`.
 - Everything the first record does not run.
+
+## The two readings
+
+Added on 2026-11-16 for `papers\ground\measured-two-readings.md`. The run of the store as decided
+left two readings open. **Reading 1**, since decided: whenever the plugin writes to the store
+anyway, it also writes again every record that counts only by its history, so that the written
+version is current again; never after a merge and never on a read. **Reading 2**, to be decided from
+this run: a record that can only take access away counts from any entry whose content passes the
+check, whatever the entry's identifier; a record that gives access never counts from a copy. Each
+reading is a configuration of its own on top of the store as decided: `run.ps1 -Rewrite` and
+`run.ps1 -Copies`.
+
+### What they run
+
+**`-Rewrite`**, into `out\rewrite\`, held to `recorded-rewrite\` by `compare.py --rewrite`. After
+every gate act (never after a merge, an import or a read), `bridge.py` reads the file under the
+history rule and writes again every record that counts by a history item, from that item, through
+`Store.cs rewrite`. Two forms, each a set of parts; the parts ending in `-cleared` are the second:
+
+| Form | What `Store.cs rewrite` does to the entry |
+| --- | --- |
+| `backup` | the edited version put into the history first, as an edit through KeePass's own path does (`CreateBackup` with the database, which trims the history to the database's limits); then every `KPG.` string of the history item that passes, with its protection, becomes current, and every other `KPG.` string of the current version goes |
+| `cleared` | the same, with the entry's history emptied instead of the edited version put into it |
+
+Both keep the entry's identifier, place, title and every string the check does not cover, and set
+the modification time to the time of the gate's act.
+
+| Part | What it is |
+| --- | --- |
+| `one` | each kind of store entry of `b-history` and each of its ten operations at copy 0, then one write of the gate's own (a profile name added; Create for the retirement that holds the store key); the read, the entry's versions, further edits until the store refuses (a dialog edit of the payload, then of the title, at most 12), and the write's file merged with the unedited copy 1 by Synchronize and by KeePassXC 2.8.0 both ways. 100 cells, each with a write and four merges |
+| `alternate` | for each of the ten kinds, edits and the gate's writes alternating: 1 edit then a write for 22 cycles, 3 for 8, 10 for 3, 11 for 2; and 1 edit then 12 writes alone |
+| `two` | two gates, for the nine kinds with an authority: the record edited at copy 0 and synchronized into copy 1, then both gates writing (`same`), gate 0 writing and then copy 1 editing again (`later`), and the reverse (`earlier`); each followed by Synchronize, Import with Overwrite if newer, Overwrite existing, Keep existing and Create new IDs, and KeePassXC 2.8.0, each into 0 and into 1 (12 merges), and the gate at the target writing again; 324 merge cells. Then five rounds of: an edit at 0, Synchronize into 1, both gates write, Synchronize into 0 and into 1 |
+| `prune` | two gates: the record edited at copy 0; gate 1 makes a decision that takes the record out of its copy with a deletion record (revokes c1, recreates the authority, removes pg, sets N to read and write, allows renewals of c1); gate 0's write writes the record again, after gate 1's decision and before it; then the 12 merges; 120 merge cells |
+| `b-random` | `cases.py random 300 7`, which holds the model's edit among its faults, with the rewrite after every gate act |
+| `two-none`, `prune-none` | the control: `two` and `prune` with nothing written again (`--rewrite none`) |
+
+**`-Copies`**, into `out\copies\`, held to `recorded-copies\` by `compare.py --copies`. Every read
+by `read.py` with `copies`: an entry whose identifier fails but whose content passes the check under
+a store key the file holds is read as the record under the identifier its content gives, when the
+record is a revocation, a retirement (its refusal; a store key is never taken from a copy), a
+profile removal, or a version whose value refuses everything (a rule of nothing, renewals refused
+forever). An admission, a profile addition, an authority, a version of any other value and a summary
+entry never count from a copy. Two variants: `held`, where such a record is held to the completeness
+check like any record, so that a record no summary entry restates stops the store; and `exempt`, in
+the parts ending in `-exempt`, where it is not. A gate act is refused where the reading stops the
+store and the model, which holds no reading of copies, would write.
+
+| Part | What it is |
+| --- | --- |
+| `b-merges`, `b-dedupe`, `b-deletions`, `b-clear`, `b-dupes`, `b-repair`, `b-random` | the parts of the store as decided, the same cells, read with copies |
+| `copies` | copies that are not an import, for five kinds that count from a copy and four that never do: Duplicate Entry; the duplicate moved to another group (KeePass's copy and paste stood in for); in the recycle bin; then Delete Duplicate Entries; the original deleted for good with and with no record; the original deleted with a record, the copy carried into copy 1 and deleted at copy 0, then KeePassXC 2.8.0 and Synchronize into copy 0; for the rule and the renewal answer, the original replaced by a widening version and then every merge both ways. Then the combination with writing again: the ten histories whose Create new IDs cell into copy 1 is wider in the store as decided, each import followed by the gate's write, the records counted from copies written under the identifiers their content gives (`Store.cs recanon`), a summary entry restating them, and Synchronize both ways |
+
+### The command
+
+From the branch root, in Windows PowerShell 5.1:
+
+```powershell
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File spikes\storage\probes\store-as-a-whole\run.ps1 -Rewrite -Parallel 6
+uv run --no-project python -I -X utf8 spikes\storage\probes\store-as-a-whole\compare.py --rewrite
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File spikes\storage\probes\store-as-a-whole\run.ps1 -Copies -Parallel 6
+uv run --no-project python -I -X utf8 spikes\storage\probes\store-as-a-whole\compare.py --copies
+```
+
+A run of every part of a configuration empties its own output and databases (`work\wb-*`,
+`work\wc-*` and `work\wn-*`, or `work\ch-*` and `work\ce-*`) and nothing of the other
+configurations'. Both runs here were made under an ordinary user token, the two configurations at
+once, six parts each.
+
+**How long**, in seconds:
+
+| Part | Run 1 | Run 2 |
+| --- | --- | --- |
+| `one`, `one-cleared` | 131, 130 | 136, 136 |
+| `alternate`, `alternate-cleared` | 55, 55 | 70, 75 |
+| `two`, `two-cleared`, `two-none` | 90, 80, 50 | 95, 90, 55 |
+| `prune`, `prune-cleared`, `prune-none` | 25, 25, 20 | 30, 30, 25 |
+| `b-random`, `b-random-cleared` (rewrite) | 115, 85 | 131, 100 |
+| `b-merges`, `b-merges-exempt` | 156, 146 | 156, 141 |
+| `b-clear`, `b-clear-exempt` | 141, 110 | 136, 100 |
+| `b-random`, `b-random-exempt` (copies) | 141, 90 | 130, 80 |
+| `b-deletions`, `b-deletions-exempt` | 85, 85 | 85, 85 |
+| `copies`, `copies-exempt` | 55, 55 | 50, 30 |
+| `b-repair`, `b-dupes`, `b-dedupe`, each variant | 25 and 20, 10, 5 | 25 and 20, 10, 5 |
+
+**How the two runs were made.** Run 1 of `-Rewrite` was made twice: the first run picked the entry
+to edit afresh at each cycle of `alternate` and each round of `two`, which for a profile addition
+picked the newest addition, the addition the gate's own write had just made; the pick was fixed to
+the same entry (the newest summary entry for the summary entry, since every write replaces it), the
+control parts were added, and the whole configuration ran again as run 1. In run 1 of `-Copies`, the
+part `copies` printed the identifier an import drew for each copy and was run again on its own with
+the identifier left out. Run 2 was every part of both configurations.
+
+**Compared.** Every output of run 2 is the same as its record line for line, with the masks of
+"Running it": 12 files of `recorded-rewrite\` and 16 of `recorded-copies\`.
+
+| Figure | Recorded | Second run | Reproduced |
+| --- | --- | --- | --- |
+| `one`, both forms: the reads after the write and after each merge | A 337, K 18, R 124, n 20, x 1; none wider | the same | yes |
+| `one`: dialog, field, edits10, each kind with an authority and the key carrier | written again 1, as decided after the write and in all 4 merges; then 10 further edits as decided, the 11th refuses | the same | yes |
+| `alternate`, both forms: every kind, 1, 3 or 10 edits between writes | as decided through every cycle (22, 8, 3), never a stop | the same | yes |
+| `alternate`: 11 edits between writes | the store refuses at the 11th edit; nothing is written again | the same | yes |
+| `alternate`, `backup`: history after each write | grows by 2 a cycle to the limit of 10, the passing version current | the same | yes |
+| `alternate`, `cleared`: history after each write | 0 | the same | yes |
+| `two`, both forms and the control: 324 merge cells | as decided in all 324 | the same | yes |
+| `two`, five rounds: history of the record after each round, `backup`; `cleared`; the control | 3, 6, 9, 10, 10; 1 in every round; 1, 2, 3, 4, 5 with the current version failing | the same | yes |
+| `prune`, both forms and the control: 120 merge cells | as decided 110, narrower 4, wider 6, each the same cell in the control; every wider cell Create new IDs into copy 0 | the same | yes |
+| `b-random` (rewrite), both forms | as in `recorded-decided\`: 1,419 steps, 0 failures of `safety`, files 171 wider, 406, 93, 54; no record written again (the random edits fall on summary entries, revocations and retirements, and none was followed by a write at that file while it counted by its history) | the same | yes |
+| `b-merges` held; exempt | as decided 220, narrower 3, refuses 10, wider 1; as decided 226, narrower 3, refuses 2, wider 3 | the same | yes |
+| `b-deletions`, `b-clear`, `b-repair`, both variants | every cell as in `recorded-decided\` | the same | yes |
+| `b-dedupe`, `b-dupes`, both variants | every outcome as in `recorded-decided\` | the same | yes |
+| `b-random` (copies), held; exempt | 1,418 steps, files 169 wider, 406, 93, 56, 1 gate act refused; 1,419 steps, 169, 407, 93, 55, none refused | the same | yes |
+| `copies`: the combination, held; exempt | as in the report's section 3.5 | the same | yes |
+
+### What was added for them
+
+Each line added or changed carries "ADDED (two readings)". With the new switches off, every part
+prints what it printed before: `b-dedupe`, `b-dupes`, `b-repair`, `b-merges`, `b-growth` and
+`store-scenarios` of the first record and `b-history`, `b-merges`, `b-dedupe`, `b-dupes`,
+`b-repair`, `b-random` and `b-growth` of the store as decided were run again after the addition and
+came out the same as their records line for line, with the masks of "Running it".
+
+- `Store.cs`: `rewrite <path> <uuid> <t> <form> <index>`, the record written again from the history
+  item `index`, in the form `backup` or `cleared`; `recanon <path> <copy> <uuid> <t>`, a record
+  counted from a copy written as a new entry under the identifier its content gives.
+- `read.py`: `read(dump, history, copies)`; the answer also names each record that counts by a
+  history item (`byhist`), the store keys held (`held`) and each record counted from a copy
+  (`fromcopy`); with `copies`, the count `fromcopy`.
+- `bridge.py`: `rewrite(form)` and `copies(variant)`, each the store as decided as well; `rd`, the
+  read of the configuration; `rewrite_again`, run after every gate act under `rewrite`; `recanon`;
+  a gate act refused under `copies` where the reading stops the store; `outcome` reads a dump
+  already made when given a dump; the databases of a configuration under `work\<prefix><tag>`, the
+  prefix of the store as decided still `d-`.
+- `cases.py`: `--rewrite FORM` and `--copies VARIANT`; `random` counts the records written again
+  or the gate acts refused.
+- `readings.py`: new, the parts `one`, `alternate`, `two`, `prune` and `copies`.
+- `run.ps1`: `-Rewrite` and `-Copies`. `compare.py`: `--rewrite` and `--copies`.
+
+### Defects and limits of these configurations
+
+Reported, not fixed.
+
+- **The model holds neither reading.** Under `-Rewrite` it holds the written version and its time,
+  and KeePassLib keeps the target's time where both current versions are the written version, so
+  `two` lists entry disagreements of the modification time alone. Under `-Copies` its read differs
+  from `read.py`'s wherever a copy counts; those differences are listed in the parts of the store
+  as decided and not in `copies`.
+- **The model's write path does not prune by the reading of copies.** A plugin whose next write
+  takes out what its read finds retired or revoked would, after a retirement counted from a copy,
+  take out the authority that retirement names. The combination in `copies` shows it once the
+  record is written under its own identifier (H13 then holds no store key); without that, the probe
+  writes as the model does and does not show it.
+- **Seal again** stands for the summary entry a write would carry in the combination; the plugin's
+  own Seal again after a stop by a copy was not run.
+- **A retirement that settles which authority is served**, where two stand, gives access; the
+  reading counts it as a refusal. No cell here holds two standing authorities at the import.
+- **The rule model holds one value per node**, so a version that narrows for one profile and widens
+  for another cannot be written here.
+- **KeePass's copy and paste** is stood in for by Duplicate Entry and a move; the window's own paste
+  was not run.
+- **KeePassLib stands for KeePass's window** in every edit, as in the store as decided.
+
+### Not run in these configurations
+
+- Writing again as a new entry beside the edited entry, its old entry replaced through the summary
+  entry: the identifiers of this store are made from the content, so such a record is a new record
+  under a new identifier, and every later record that names the old record would have to name the
+  new record too.
+- KeePassXC releases other than 2.8.0, the slow derivation, and a history limit other than 10 and 0
+  under the rewrite; a merge of copies under KeePassDX's reading.
+- The reading of copies in the model's searches.
+- Everything the store as decided does not run.

@@ -15,6 +15,11 @@ ADDED (decided store): `cases.py --decided PART` runs a part under the store as 
 2026-11-16 (bridge.decide: no repair, the history rule in every read), and adds the part `history`:
 each kind of store entry edited by an operation of KeePass's own, read under the history rule and
 under the plain stop, then merged with an unedited copy both ways.
+
+ADDED (two readings): `cases.py --rewrite FORM PART` and `cases.py --copies VARIANT PART` run a part
+under the two further configurations of bridge.py (`rewrite`, `copies`); `random` then also counts
+the records written again, or the gate acts the reading of copies refused. Their own parts are in
+readings.py.
 """
 import os
 import random
@@ -159,7 +164,7 @@ def part_merges(host, speed='fast', only_xc=False):
 
 def tree_view(b, i):
     dump = b.dump(i)
-    r = RD.read(dump, history=B.DECIDED)
+    r = B.rd(dump, B.DECIDED)   # ADDED (two readings): rd
     out = []
     nid = b.ids['N']
     for u, e in sorted(dump['entries'].items()):
@@ -481,6 +486,7 @@ def part_random(host, count, seed):
     t0 = time.time()
     nsteps, ndis, nread, nfail = 0, 0, 0, 0
     lines, outs = [], {}
+    nrewrites, nstops = 0, 0    # ADDED (two readings)
     for h in range(count):
         nrep = 2 if rng.random() < 0.6 else 3
         acts, merges, faults = alphabet(nrep)
@@ -503,6 +509,7 @@ def part_random(host, count, seed):
         for i in range(nrep):
             o, r = B.outcome(b, i)
             outs[o.split(':')[0]] = outs.get(o.split(':')[0], 0) + 1
+        nrewrites, nstops = nrewrites + len(b.rewrites), nstops + b.copy_stops     # ADDED (two readings)
         if b.disagree or b.readdiff or fails:
             lines.append('## history %d (%d files)' % (h, nrep))
             lines += ['   ' + x for x in b.log]
@@ -519,6 +526,10 @@ def part_random(host, count, seed):
           'steps where the read differed: %d, failures of the model\'s safety check: %d, %.0f s'
           % (count, nsteps, ndis, nread, nfail, time.time() - t0))
     print('outcomes of every file at the end, against every decision: ' + ', '.join('%s %d' % kv for kv in sorted(outs.items())))
+    if B.REWRITE:   # ADDED (two readings)
+        print('records written again at the gate\'s own writes: %d' % nrewrites)
+    if B.COPIES:    # ADDED (two readings)
+        print('gate acts refused because the reading of copies stops the store: %d' % nstops)
     for x in lines:
         print(x)
 
@@ -682,6 +693,13 @@ def main():
     if sys.argv[1] == '--decided':
         B.decide()
         del sys.argv[1]
+    # ADDED (two readings): --rewrite FORM and --copies VARIANT, each the store as decided as well
+    elif sys.argv[1] == '--rewrite':
+        B.rewrite(sys.argv[2])
+        del sys.argv[1:3]
+    elif sys.argv[1] == '--copies':
+        B.copies(sys.argv[2])
+        del sys.argv[1:3]
     part = sys.argv[1]
     sys.stdout.reconfigure(line_buffering=True)
     host = kp.Host()

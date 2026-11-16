@@ -41,6 +41,30 @@
       b-history            cases.py --decided history: each kind of store entry edited, the history
                            rule beside the plain stop, then merged both ways
 
+    With -Rewrite (ADDED, two readings), the store as decided and an edited record written again at
+    the plugin's next own write, in two forms: `backup` (the edited version put into the history, as
+    an edit through KeePass's own path does) and `cleared` (the entry's history emptied). Output in
+    `out\rewrite\`, compared with `recorded-rewrite\`; databases in `work\wb-*`, `work\wc-*` and
+    `work\wn-*`:
+
+      one, alternate, two, prune
+                           readings.py --rewrite backup: the parts of reading 1
+      b-random             cases.py --rewrite backup random 300 7
+      one-cleared, alternate-cleared, two-cleared, prune-cleared, b-random-cleared
+                           the same in the form `cleared`
+      two-none, prune-none the control: the same two-gate sequences with nothing written again
+
+    With -Copies (ADDED, two readings), the store as decided read with a record that can only take
+    access away counted from a copy under another identifier, held to the completeness check like
+    any record (`held`) and, in the parts ending in `-exempt`, not (`exempt`). Output in
+    `out\copies\`, compared with `recorded-copies\`; databases in `work\ch-*` and `work\ce-*`:
+
+      b-merges, b-dedupe, b-deletions, b-clear, b-dupes, b-repair, b-random
+                           cases.py --copies held: the parts of the store as decided
+      copies               readings.py --copies held copies: copies that are not an import
+      the same names ending in -exempt
+                           the same with --copies exempt
+
 .PARAMETER Parts
     Which parts to run; every part by default.
 
@@ -50,13 +74,22 @@
 .PARAMETER Decided
     Runs the store as decided rather than the recorded configuration with the repair.
 
+.PARAMETER Rewrite
+    Runs reading 1 of the store as decided: an edited record written again at the next own write.
+
+.PARAMETER Copies
+    Runs reading 2 of the store as decided: a record that takes access away read from a copy.
+
 .EXAMPLE
     powershell.exe -NoProfile -ExecutionPolicy Bypass -File spikes\storage\probes\store-as-a-whole\run.ps1
 
 .EXAMPLE
     powershell.exe -NoProfile -ExecutionPolicy Bypass -File spikes\storage\probes\store-as-a-whole\run.ps1 -Decided
 #>
-param([string[]] $Parts = @(), [int] $Parallel = 6, [switch] $Decided)
+param([string[]] $Parts = @(), [int] $Parallel = 6, [switch] $Decided, [switch] $Rewrite, [switch] $Copies)
+if (@($Decided.IsPresent, $Rewrite.IsPresent, $Copies.IsPresent | Where-Object { $_ }).Count -gt 1) {
+    throw 'One of -Decided, -Rewrite, -Copies.'     # ADDED (two readings)
+}
 
 $ErrorActionPreference = 'Stop'
 $family = $PSScriptRoot
@@ -103,6 +136,32 @@ if ($Decided) {
         'b-history'           = @("$probe\cases.py", '--decided', 'history')
     }
 }
+# ADDED (two readings): the two readings, each a configuration of its own
+$config = $null
+if ($Rewrite) {
+    $config = 'rewrite'
+    $all = [ordered]@{}
+    foreach ($form in 'backup', 'cleared') {
+        $suffix = if ($form -eq 'backup') { '' } else { '-cleared' }
+        foreach ($p in 'one', 'alternate', 'two', 'prune') {
+            $all["$p$suffix"] = @("$probe\readings.py", '--rewrite', $form, $p)
+        }
+        $all["b-random$suffix"] = @("$probe\cases.py", '--rewrite', $form, 'random', '300', '7')
+    }
+    foreach ($p in 'two', 'prune') { $all["$p-none"] = @("$probe\readings.py", '--rewrite', 'none', $p) }
+}
+if ($Copies) {
+    $config = 'copies'
+    $all = [ordered]@{}
+    foreach ($variant in 'held', 'exempt') {
+        $suffix = if ($variant -eq 'held') { '' } else { '-exempt' }
+        foreach ($p in 'merges', 'dedupe', 'deletions', 'clear', 'dupes', 'repair') {
+            $all["b-$p$suffix"] = @("$probe\cases.py", '--copies', $variant, $p)
+        }
+        $all["b-random$suffix"] = @("$probe\cases.py", '--copies', $variant, 'random', '300', '7')
+        $all["copies$suffix"] = @("$probe\readings.py", '--copies', $variant, 'copies')
+    }
+}
 # Through -File a list arrives as one string, so commas are split here.
 $Parts = @($Parts | ForEach-Object { $_ -split ',' } | ForEach-Object { $_.Trim() } | Where-Object { $_ })
 if ($Parts.Count -eq 0) { $Parts = @($all.Keys) }
@@ -111,8 +170,16 @@ foreach ($p in $Parts) { if (-not $all.Contains($p)) { throw "No part named $p."
 $out = Join-Path $family 'out'
 $work = Join-Path $family 'work'
 if ($Decided) { $out = Join-Path $out 'decided' }
+if ($config) { $out = Join-Path $out $config }      # ADDED (two readings)
 if ($Parts.Count -eq $all.Count) {
-    if ($Decided) {
+    if ($config) {
+        # ADDED (two readings): the configuration's own output and databases only
+        if (Test-Path -LiteralPath $out) { Remove-Item -LiteralPath $out -Recurse -Force }
+        $prefixes = if ($Rewrite) { 'wb-*', 'wc-*', 'wn-*' } else { 'ch-*', 'ce-*' }
+        if (Test-Path -LiteralPath $work) {
+            foreach ($f in $prefixes) { Get-ChildItem -LiteralPath $work -Directory -Filter $f | Remove-Item -Recurse -Force }
+        }
+    } elseif ($Decided) {
         # the decided parts' own output and databases only
         if (Test-Path -LiteralPath $out) { Remove-Item -LiteralPath $out -Recurse -Force }
         if (Test-Path -LiteralPath $work) {
@@ -162,7 +229,9 @@ while ($queue.Count -gt 0 -or $running.Count -gt 0) {
     }
 }
 $times | Add-Content -Encoding UTF8 (Join-Path $out 'times.txt')
-if ($Decided) {
+if ($config) {     # ADDED (two readings)
+    & uv run --no-project python -I -X utf8 (Join-Path $family 'compare.py') "--$config"
+} elseif ($Decided) {
     & uv run --no-project python -I -X utf8 (Join-Path $family 'compare.py') --decided
 } else {
     & uv run --no-project python -I -X utf8 (Join-Path $family 'compare.py')
