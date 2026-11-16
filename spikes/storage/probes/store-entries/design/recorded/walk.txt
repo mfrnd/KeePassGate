@@ -1,0 +1,10 @@
+entries 10054, groups 501, deletion records 5000, wanted identifiers 53
+one pass over the tree and the deletion records: 1,871 ms, found 54
+  tree, by identifier only: 0,262 ms, found 1
+  tree, by the KPG.Kind string only: 1,600 ms, found 54
+  deletion records only: 0,075 ms, found 0
+  tree and deletion records by identifier, indexed access: 0,261 ms, found 1
+PwGroup.FindEntry for one identifier: 0,181 ms, found False
+reading the store group's 53 entries (kind, unprotected data): 0,020 ms, 15557 chars
+decoding the protected authority document (2883 chars): 0,000 ms
+the same ProtectedString object on a second Get: True

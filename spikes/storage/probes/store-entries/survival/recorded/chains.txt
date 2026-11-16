@@ -1,0 +1,592 @@
+keepassxc-cli 2.4.2 : Valid CN="DroidMonkey Apps, LLC", O="DroidMonkey Apps, LLC", STREET=3474 Raintree Circle, L=Suffolk, S=VA, PostalCode=23435, C=US
+keepassxc-cli 2.8.0 : Valid CN="DroidMonkey Apps, LLC", O="DroidMonkey Apps, LLC", S=Virginia, C=US
+
+## A 2.4.2 step 1: keepassxc-cli merge, the revoking copy P into the stale copy S, exit 0
+# S1.kdbx
+  deletion records: none
+  store groups: 1
+    KPG authority fpA [in store]
+    KPG client c1 [in store]
+    KPG client c2 [in store]
+    KPG revoked client c1 [in store]
+  served authority: fpA
+  c1: refused (revoked)
+  c2: ADMITTED
+  c5: no record
+
+## A 2.4.2 step 2a: pykeepass deletes 'KPG revoked client c1' in that result
+Downloading lxml (3.8MiB)  Downloaded lxml Installed 12 packages in 791ms pykeepass 4.2.0 entry 'KPG revoked client c1' deleted; deletion records 0 -> 0
+# S2-pk.kdbx
+  deletion records: none
+  store groups: 1
+    KPG authority fpA [in store]
+    KPG client c1 [in store]
+    KPG client c2 [in store]
+  served authority: fpA
+  c1: ADMITTED
+  c2: ADMITTED
+  c5: no record
+
+## A 2.4.2 step 2b: keepassxc-cli rm, then rm again from the bin, in the result of step 1, exits 0 0
+# S3-xc.kdbx
+  deletion records: revoked:c1
+  store groups: 1
+    KPG authority fpA [in store]
+    KPG client c1 [in store]
+    KPG client c2 [in store]
+  served authority: fpA
+  c1: refused (revoked, by deletion record)
+  c2: ADMITTED
+  c5: no record
+
+## A 2.4.2 step 3: KeePassLib merges of the step 2a result with P, each method, both directions
+# S2-pk+P-Synchronize.kdbx
+  deletion records: client:c1
+  store groups: 1
+    KPG authority fpA [in store]
+    KPG client c2 [in store]
+    KPG revoked client c1 [in store]
+  served authority: fpA
+  c1: no record
+  c2: ADMITTED
+  c5: no record
+# P+S2-pk-Synchronize.kdbx
+  deletion records: client:c1
+  store groups: 1
+    KPG authority fpA [in store]
+    KPG client c2 [in store]
+    KPG revoked client c1 [in store]
+  served authority: fpA
+  c1: no record
+  c2: ADMITTED
+  c5: no record
+# S2-pk+P-OverwriteIfNewer.kdbx
+  deletion records: none
+  store groups: 1
+    KPG authority fpA [in store]
+    KPG client c1 [in store]
+    KPG client c2 [in store]
+    KPG revoked client c1 [in store]
+  served authority: fpA
+  c1: refused (revoked)
+  c2: ADMITTED
+  c5: no record
+# P+S2-pk-OverwriteIfNewer.kdbx
+  deletion records: client:c1
+  store groups: 1
+    KPG authority fpA [in store]
+    KPG client c2 [in store]
+    KPG revoked client c1 [in store]
+  served authority: fpA
+  c1: no record
+  c2: ADMITTED
+  c5: no record
+# S2-pk+P-OverwriteExisting.kdbx
+  deletion records: none
+  store groups: 1
+    KPG authority fpA [in store]
+    KPG client c1 [in store]
+    KPG client c2 [in store]
+    KPG revoked client c1 [in store]
+  served authority: fpA
+  c1: refused (revoked)
+  c2: ADMITTED
+  c5: no record
+# P+S2-pk-OverwriteExisting.kdbx
+  deletion records: client:c1
+  store groups: 1
+    KPG authority fpA [in store]
+    KPG client c2 [in store]
+    KPG revoked client c1 [in store]
+  served authority: fpA
+  c1: no record
+  c2: ADMITTED
+  c5: no record
+# S2-pk+P-KeepExisting.kdbx
+  deletion records: none
+  store groups: 1
+    KPG authority fpA [in store]
+    KPG client c1 [in store]
+    KPG client c2 [in store]
+    KPG revoked client c1 [in store]
+  served authority: fpA
+  c1: refused (revoked)
+  c2: ADMITTED
+  c5: no record
+# P+S2-pk-KeepExisting.kdbx
+  deletion records: client:c1
+  store groups: 1
+    KPG authority fpA [in store]
+    KPG client c2 [in store]
+    KPG revoked client c1 [in store]
+  served authority: fpA
+  c1: no record
+  c2: ADMITTED
+  c5: no record
+# S2-pk+P-CreateNewUuids.kdbx
+  deletion records: none
+  store groups: 1
+    KPG authority fpA [in store]
+    KPG authority fpA [in 'KeePassGate'] (uuid not derived)
+    KPG client c1 [in store]
+    KPG client c2 [in store]
+    KPG client c2 [in 'KeePassGate'] (uuid not derived)
+    KPG revoked client c1 [in 'KeePassGate'] (uuid not derived)
+  served authority: fpA
+  c1: refused (revoked)
+  c2: ADMITTED
+  c5: no record
+# P+S2-pk-CreateNewUuids.kdbx
+  deletion records: client:c1
+  store groups: 1
+    KPG authority fpA [in store]
+    KPG authority fpA [in 'KeePassGate'] (uuid not derived)
+    KPG client c1 [in 'KeePassGate'] (uuid not derived)
+    KPG client c2 [in store]
+    KPG client c2 [in 'KeePassGate'] (uuid not derived)
+    KPG revoked client c1 [in store]
+  served authority: fpA
+  c1: no record
+  c2: ADMITTED
+  c5: no record
+
+## A 2.8.0 step 1: keepassxc-cli merge, the revoking copy P into the stale copy S, exit 0
+# S1.kdbx
+  deletion records: none
+  store groups: 1
+    KPG authority fpA [in store]
+    KPG client c1 [in store]
+    KPG client c2 [in store]
+    KPG revoked client c1 [in store]
+  served authority: fpA
+  c1: refused (revoked)
+  c2: ADMITTED
+  c5: no record
+
+## A 2.8.0 step 2a: pykeepass deletes 'KPG revoked client c1' in that result
+pykeepass 4.2.0 entry 'KPG revoked client c1' deleted; deletion records 0 -> 0
+# S2-pk.kdbx
+  deletion records: none
+  store groups: 1
+    KPG authority fpA [in store]
+    KPG client c1 [in store]
+    KPG client c2 [in store]
+  served authority: fpA
+  c1: ADMITTED
+  c2: ADMITTED
+  c5: no record
+
+## A 2.8.0 step 2b: keepassxc-cli rm, then rm again from the bin, in the result of step 1, exits 0 1
+# S3-xc.kdbx
+  deletion records: none
+  store groups: 1
+    KPG authority fpA [in store]
+    KPG client c1 [in store]
+    KPG client c2 [in store]
+    KPG revoked client c1 [in 'Papierkorb']
+  served authority: fpA
+  c1: refused (revoked)
+  c2: ADMITTED
+  c5: no record
+
+## A 2.8.0 step 3: KeePassLib merges of the step 2a result with P, each method, both directions
+# S2-pk+P-Synchronize.kdbx
+  deletion records: client:c1
+  store groups: 1
+    KPG authority fpA [in store]
+    KPG client c2 [in store]
+    KPG revoked client c1 [in store]
+  served authority: fpA
+  c1: no record
+  c2: ADMITTED
+  c5: no record
+# P+S2-pk-Synchronize.kdbx
+  deletion records: client:c1
+  store groups: 1
+    KPG authority fpA [in store]
+    KPG client c2 [in store]
+    KPG revoked client c1 [in store]
+  served authority: fpA
+  c1: no record
+  c2: ADMITTED
+  c5: no record
+# S2-pk+P-OverwriteIfNewer.kdbx
+  deletion records: none
+  store groups: 1
+    KPG authority fpA [in store]
+    KPG client c1 [in store]
+    KPG client c2 [in store]
+    KPG revoked client c1 [in store]
+  served authority: fpA
+  c1: refused (revoked)
+  c2: ADMITTED
+  c5: no record
+# P+S2-pk-OverwriteIfNewer.kdbx
+  deletion records: client:c1
+  store groups: 1
+    KPG authority fpA [in store]
+    KPG client c2 [in store]
+    KPG revoked client c1 [in store]
+  served authority: fpA
+  c1: no record
+  c2: ADMITTED
+  c5: no record
+# S2-pk+P-OverwriteExisting.kdbx
+  deletion records: none
+  store groups: 1
+    KPG authority fpA [in store]
+    KPG client c1 [in store]
+    KPG client c2 [in store]
+    KPG revoked client c1 [in store]
+  served authority: fpA
+  c1: refused (revoked)
+  c2: ADMITTED
+  c5: no record
+# P+S2-pk-OverwriteExisting.kdbx
+  deletion records: client:c1
+  store groups: 1
+    KPG authority fpA [in store]
+    KPG client c2 [in store]
+    KPG revoked client c1 [in store]
+  served authority: fpA
+  c1: no record
+  c2: ADMITTED
+  c5: no record
+# S2-pk+P-KeepExisting.kdbx
+  deletion records: none
+  store groups: 1
+    KPG authority fpA [in store]
+    KPG client c1 [in store]
+    KPG client c2 [in store]
+    KPG revoked client c1 [in store]
+  served authority: fpA
+  c1: refused (revoked)
+  c2: ADMITTED
+  c5: no record
+# P+S2-pk-KeepExisting.kdbx
+  deletion records: client:c1
+  store groups: 1
+    KPG authority fpA [in store]
+    KPG client c2 [in store]
+    KPG revoked client c1 [in store]
+  served authority: fpA
+  c1: no record
+  c2: ADMITTED
+  c5: no record
+# S2-pk+P-CreateNewUuids.kdbx
+  deletion records: none
+  store groups: 1
+    KPG authority fpA [in store]
+    KPG authority fpA [in 'KeePassGate'] (uuid not derived)
+    KPG client c1 [in store]
+    KPG client c2 [in store]
+    KPG client c2 [in 'KeePassGate'] (uuid not derived)
+    KPG revoked client c1 [in 'KeePassGate'] (uuid not derived)
+  served authority: fpA
+  c1: refused (revoked)
+  c2: ADMITTED
+  c5: no record
+# P+S2-pk-CreateNewUuids.kdbx
+  deletion records: client:c1
+  store groups: 1
+    KPG authority fpA [in store]
+    KPG authority fpA [in 'KeePassGate'] (uuid not derived)
+    KPG client c1 [in 'KeePassGate'] (uuid not derived)
+    KPG client c2 [in store]
+    KPG client c2 [in 'KeePassGate'] (uuid not derived)
+    KPG revoked client c1 [in store]
+  served authority: fpA
+  c1: no record
+  c2: ADMITTED
+  c5: no record
+
+## B step 1: pykeepass deletes the group KeePassGate in the revoking copy P
+pykeepass 4.2.0 group 'KeePassGate' deleted; deletion records 1 -> 1
+# P3.kdbx
+  deletion records: client:c1
+  store groups: 0
+  served authority: none
+  c1: no record
+  c2: no record
+  c5: no record
+
+## B step 2: KeePassLib merges of that copy with the stale copy S, each method, both directions
+# P3+S-Synchronize.kdbx
+  deletion records: client:c1
+  store groups: 1
+    KPG authority fpA [in store]
+    KPG client c2 [in store]
+  served authority: fpA
+  c1: no record
+  c2: ADMITTED
+  c5: no record
+# S+P3-Synchronize.kdbx
+  deletion records: client:c1
+  store groups: 1
+    KPG authority fpA [in store]
+    KPG client c2 [in store]
+  served authority: fpA
+  c1: no record
+  c2: ADMITTED
+  c5: no record
+# P3+S-OverwriteIfNewer.kdbx
+  deletion records: client:c1
+  store groups: 1
+    KPG authority fpA [in store]
+    KPG client c2 [in store]
+  served authority: fpA
+  c1: no record
+  c2: ADMITTED
+  c5: no record
+# S+P3-OverwriteIfNewer.kdbx
+  deletion records: none
+  store groups: 1
+    KPG authority fpA [in store]
+    KPG client c1 [in store]
+    KPG client c2 [in store]
+  served authority: fpA
+  c1: ADMITTED
+  c2: ADMITTED
+  c5: no record
+# P3+S-OverwriteExisting.kdbx
+  deletion records: client:c1
+  store groups: 1
+    KPG authority fpA [in store]
+    KPG client c2 [in store]
+  served authority: fpA
+  c1: no record
+  c2: ADMITTED
+  c5: no record
+# S+P3-OverwriteExisting.kdbx
+  deletion records: none
+  store groups: 1
+    KPG authority fpA [in store]
+    KPG client c1 [in store]
+    KPG client c2 [in store]
+  served authority: fpA
+  c1: ADMITTED
+  c2: ADMITTED
+  c5: no record
+# P3+S-KeepExisting.kdbx
+  deletion records: client:c1
+  store groups: 1
+    KPG authority fpA [in store]
+    KPG client c2 [in store]
+  served authority: fpA
+  c1: no record
+  c2: ADMITTED
+  c5: no record
+# S+P3-KeepExisting.kdbx
+  deletion records: none
+  store groups: 1
+    KPG authority fpA [in store]
+    KPG client c1 [in store]
+    KPG client c2 [in store]
+  served authority: fpA
+  c1: ADMITTED
+  c2: ADMITTED
+  c5: no record
+# P3+S-CreateNewUuids.kdbx
+  deletion records: client:c1
+  store groups: 0
+    KPG authority fpA [in 'KeePassGate'] (uuid not derived)
+    KPG client c1 [in 'KeePassGate'] (uuid not derived)
+    KPG client c2 [in 'KeePassGate'] (uuid not derived)
+  served authority: none
+  c1: no record
+  c2: no record
+  c5: no record
+# S+P3-CreateNewUuids.kdbx
+  deletion records: none
+  store groups: 1
+    KPG authority fpA [in store]
+    KPG client c1 [in store]
+    KPG client c2 [in store]
+  served authority: fpA
+  c1: ADMITTED
+  c2: ADMITTED
+  c5: no record
+
+## C step 1: kdbxweb merges, P2 (store made again, c5 revoked) and X1 (the old deletion record of the group)
+kdbxweb 2.1.1 merged P2.kdbx <- X1.kdbx
+kdbxweb 2.1.1 merged X1.kdbx <- P2.kdbx
+kdbxweb 2.1.1 merged K1.kdbx <- P2.kdbx
+kdbxweb 2.1.1 merged Q.kdbx <- X1.kdbx
+# K1.kdbx
+  deletion records: authority:fpA, client:c1, client:c2, client:c5, group
+  store groups: 0
+  served authority: none
+  c1: no record
+  c2: no record
+  c5: no record
+# K2.kdbx
+  deletion records: authority:fpA, client:c1, client:c2, client:c5, group
+  store groups: 0
+  served authority: none
+  c1: no record
+  c2: no record
+  c5: no record
+# K3.kdbx
+  deletion records: authority:fpA, client:c1, client:c2, client:c5, group
+  store groups: 0
+  served authority: none
+  c1: no record
+  c2: no record
+  c5: no record
+# K4.kdbx
+  deletion records: authority:fpA, client:c1, client:c2, group
+  store groups: 0
+  served authority: none
+  c1: no record
+  c2: no record
+  c5: no record
+
+## C step 2: KeePassLib Synchronize of those results with the stale copy Q and with P2
+# K1+Q-Sync.kdbx
+  deletion records: authority:fpA, client:c1, client:c2, client:c5
+  store groups: 1
+    KPG authority fpB [in store]
+  served authority: fpB
+  c1: no record
+  c2: no record
+  c5: no record
+# Q+K1-Sync.kdbx
+  deletion records: authority:fpA, client:c1, client:c2, client:c5
+  store groups: 1
+    KPG authority fpB [in store]
+  served authority: fpB
+  c1: no record
+  c2: no record
+  c5: no record
+# P2+X1-Sync.kdbx
+  deletion records: authority:fpA, client:c1, client:c2, client:c5
+  store groups: 1
+    KPG authority fpB [in store]
+    KPG revoked client c5 [in store]
+  served authority: fpB
+  c1: no record
+  c2: no record
+  c5: no record
+# K4+P2-Sync.kdbx
+  deletion records: authority:fpA, client:c1, client:c2, client:c5
+  store groups: 1
+    KPG authority fpB [in store]
+    KPG revoked client c5 [in store]
+  served authority: fpB
+  c1: no record
+  c2: no record
+  c5: no record
+
+## C step 3a: keepassxc-cli 2.8.0 merge of P2 into the stale copy Q, exit 0
+# Q5.kdbx
+  deletion records: authority:fpA, client:c1, client:c2
+  store groups: 1
+    KPG authority fpB [in store]
+    KPG client c5 [in store]
+    KPG revoked client c5 [in store]
+  served authority: fpB
+  c1: no record
+  c2: no record
+  c5: refused (revoked)
+
+## C step 3b: kdbxweb merges that result with X1
+kdbxweb 2.1.1 merged Q5.kdbx <- X1.kdbx
+# K5.kdbx
+  deletion records: authority:fpA, client:c1, client:c2, group
+  store groups: 0
+  served authority: none
+  c1: no record
+  c2: no record
+  c5: no record
+
+## C step 3c: KeePassLib merges of the kdbxweb result with the stale copy Q, each method, both directions
+# K5+Q-Synchronize.kdbx
+  deletion records: authority:fpA, client:c1, client:c2
+  store groups: 1
+    KPG authority fpB [in store]
+    KPG client c5 [in store]
+  served authority: fpB
+  c1: no record
+  c2: no record
+  c5: ADMITTED
+# Q+K5-Synchronize.kdbx
+  deletion records: authority:fpA, client:c1, client:c2
+  store groups: 1
+    KPG authority fpB [in store]
+    KPG client c5 [in store]
+  served authority: fpB
+  c1: no record
+  c2: no record
+  c5: ADMITTED
+# K5+Q-OverwriteIfNewer.kdbx
+  deletion records: authority:fpA, client:c1, client:c2
+  store groups: 1
+    KPG authority fpB [in store]
+    KPG client c5 [in store]
+  served authority: fpB
+  c1: no record
+  c2: no record
+  c5: ADMITTED
+# Q+K5-OverwriteIfNewer.kdbx
+  deletion records: authority:fpA, client:c1, client:c2
+  store groups: 1
+    KPG authority fpB [in store]
+    KPG client c5 [in store]
+  served authority: fpB
+  c1: no record
+  c2: no record
+  c5: ADMITTED
+# K5+Q-OverwriteExisting.kdbx
+  deletion records: authority:fpA, client:c1, client:c2
+  store groups: 1
+    KPG authority fpB [in store]
+    KPG client c5 [in store]
+  served authority: fpB
+  c1: no record
+  c2: no record
+  c5: ADMITTED
+# Q+K5-OverwriteExisting.kdbx
+  deletion records: authority:fpA, client:c1, client:c2
+  store groups: 1
+    KPG authority fpB [in store]
+    KPG client c5 [in store]
+  served authority: fpB
+  c1: no record
+  c2: no record
+  c5: ADMITTED
+# K5+Q-KeepExisting.kdbx
+  deletion records: authority:fpA, client:c1, client:c2
+  store groups: 1
+    KPG authority fpB [in store]
+    KPG client c5 [in store]
+  served authority: fpB
+  c1: no record
+  c2: no record
+  c5: ADMITTED
+# Q+K5-KeepExisting.kdbx
+  deletion records: authority:fpA, client:c1, client:c2
+  store groups: 1
+    KPG authority fpB [in store]
+    KPG client c5 [in store]
+  served authority: fpB
+  c1: no record
+  c2: no record
+  c5: ADMITTED
+# K5+Q-CreateNewUuids.kdbx
+  deletion records: authority:fpA, client:c1, client:c2, group
+  store groups: 0
+    KPG authority fpB [in 'KeePassGate'] (uuid not derived)
+    KPG client c5 [in 'KeePassGate'] (uuid not derived)
+  served authority: none
+  c1: no record
+  c2: no record
+  c5: no record
+# Q+K5-CreateNewUuids.kdbx
+  deletion records: authority:fpA, client:c1, client:c2
+  store groups: 1
+    KPG authority fpB [in store]
+    KPG client c5 [in store]
+  served authority: fpB
+  c1: no record
+  c2: no record
+  c5: ADMITTED

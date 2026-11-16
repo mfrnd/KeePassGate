@@ -1,0 +1,4 @@
+before delete: entry 8F231152E10C11F1B2359E6559717A20 present=True
+after delete and save: entry present=False
+DeletedObject elements in the file: 0
+pykeepass version: 4.2.0

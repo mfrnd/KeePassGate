@@ -1,0 +1,867 @@
+## signatures
+keepassxc-cli 2.4.2 : Valid CN="DroidMonkey Apps, LLC", O="DroidMonkey Apps, LLC", STREET=3474 Raintree Circle, L=Suffolk, S=VA, PostalCode=23435, C=US
+keepassxc-cli 2.6.6 : Valid CN="DroidMonkey Apps, LLC", O="DroidMonkey Apps, LLC", STREET=6653 Audrey Kay Ct, L=Franconia, S=Virginia, PostalCode=22315, C=US
+keepassxc-cli 2.7.12 : Valid CN="DroidMonkey Apps, LLC", O="DroidMonkey Apps, LLC", S=Virginia, C=US
+keepassxc-cli 2.8.0 : Valid CN="DroidMonkey Apps, LLC", O="DroidMonkey Apps, LLC", S=Virginia, C=US
+
+## inputs
+# I-A.kdbx kdbx 4.0 dbCustomData=[]
+  G '' u=9a076c9b mod=01-01T00:00:00 icon=FolderOpen search=inherit autotype=inherit notes=0
+  G 'General' u=31146d4d mod=01-01T00:00:00 icon=Folder search=inherit autotype=inherit notes=0
+    E 'user entry' u=d5062e4d mod=01-01T00:00:00 hist=0 :: Password[P](17:33aad6)
+  G 'KeePassGate' u=fe4040a9 mod=01-01T01:00:00 icon=TerminalEncrypted search=False autotype=False notes=52
+    E 'KPG authority fpA' u=207404c0 mod=01-01T01:00:00 hist=0 :: KPG.Data[P](2883:1ce250) KPG.Kind(9:8f76fd) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+    E 'KPG client c1' u=d41d9c19 mod=01-01T01:00:00 hist=0 :: KPG.Data(693:22c487) KPG.Kind(6:948fe6) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+    E 'KPG profile reader 1' u=a5b699f5 mod=01-01T01:00:00 hist=0 :: KPG.Data(45:d32882) KPG.Kind(7:1900ea) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+    E 'KPG revoked c0' u=43725628 mod=01-01T01:00:00 hist=0 :: KPG.Data(80:eb144b) KPG.Kind(7:4bb47f) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+# I-B.kdbx kdbx 4.0 dbCustomData=[]
+  G '' u=9a076c9b mod=01-01T00:00:00 icon=FolderOpen search=inherit autotype=inherit notes=0
+  G 'General' u=31146d4d mod=01-01T00:00:00 icon=Folder search=inherit autotype=inherit notes=0
+    E 'user entry' u=d5062e4d mod=01-01T00:00:00 hist=0 :: Password[P](17:33aad6)
+  G 'KeePassGate' u=fe4040a9 mod=01-01T02:00:00 icon=TerminalEncrypted search=False autotype=False notes=52
+    E 'KPG authority fpB' u=4ff5ec1b mod=01-01T02:00:00 hist=0 :: KPG.Data[P](2883:bc36bd) KPG.Kind(9:8f76fd) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+    E 'KPG client c2' u=66e5751c mod=01-01T02:00:00 hist=0 :: KPG.Data(693:368872) KPG.Kind(6:948fe6) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+    E 'KPG profile reader 1' u=a5b699f5 mod=01-01T02:00:00 hist=0 :: KPG.Data(45:d32882) KPG.Kind(7:1900ea) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+    E 'KPG profile-removed reader 1' u=8f1e7f8e mod=01-01T02:00:00 hist=0 :: KPG.Data(45:d32882) KPG.Kind(15:fbdd6a) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+    E 'KPG revoked c0' u=43725628 mod=01-01T02:00:00 hist=0 :: KPG.Data(80:eb144b) KPG.Kind(7:4bb47f) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+# T-A.kdbx kdbx 4.0 dbCustomData=[]
+  G '' u=9a076c9b mod=01-01T00:00:00 icon=FolderOpen search=inherit autotype=inherit notes=0
+  G 'General' u=31146d4d mod=01-01T00:00:00 icon=Folder search=inherit autotype=inherit notes=0
+    E 'user entry' u=d5062e4d mod=01-01T00:00:00 hist=0 :: Password[P](17:33aad6)
+  G 'KeePassGate' u=fe4040a9 mod=01-01T01:00:00 icon=TerminalEncrypted search=False autotype=False notes=52
+    E 'KPG authority fpA' u=207404c0 mod=01-01T01:00:00 hist=0 :: KPG.Data[P](2883:1ce250) KPG.Kind(9:8f76fd) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+    E 'KPG revoked c0' u=43725628 mod=01-01T01:00:00 hist=0 :: KPG.Data(80:eb144b) KPG.Kind(7:4bb47f) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+# T-B.kdbx kdbx 4.0 dbCustomData=[]
+  G '' u=9a076c9b mod=01-01T00:00:00 icon=FolderOpen search=inherit autotype=inherit notes=0
+  G 'General' u=31146d4d mod=01-01T00:00:00 icon=Folder search=inherit autotype=inherit notes=0
+    E 'user entry' u=d5062e4d mod=01-01T00:00:00 hist=0 :: Password[P](17:33aad6)
+  G 'KeePassGate' u=fe4040a9 mod=01-01T01:00:00 icon=TerminalEncrypted search=False autotype=False notes=52
+    E 'KPG authority fpB' u=4ff5ec1b mod=01-01T01:00:00 hist=0 :: KPG.Data[P](2883:bc36bd) KPG.Kind(9:8f76fd) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+    E 'KPG revoked c0' u=43725628 mod=01-01T01:00:00 hist=0 :: KPG.Data(80:eb144b) KPG.Kind(7:4bb47f) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+# D-base.kdbx kdbx 4.0 dbCustomData=[]
+  G '' u=8ac8f402 mod=01-01T00:00:00 icon=FolderOpen search=inherit autotype=inherit notes=0
+  G 'General' u=a080e0a6 mod=01-01T00:00:00 icon=Folder search=inherit autotype=inherit notes=0
+    E 'user entry' u=7e5fafa0 mod=01-01T00:00:00 hist=0 :: Password[P](17:33aad6)
+  G 'KeePassGate' u=fe4040a9 mod=01-01T00:00:00 icon=TerminalEncrypted search=False autotype=False notes=52
+    E 'KPG authority fpA' u=207404c0 mod=01-01T00:00:00 hist=0 :: KPG.Data[P](2883:1ce250) KPG.Kind(9:8f76fd) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+    E 'KPG client c1' u=d41d9c19 mod=01-01T00:00:00 hist=0 :: KPG.Data(693:22c487) KPG.Kind(6:948fe6) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+    E 'KPG client c3' u=e7e5d1f9 mod=01-01T00:00:00 hist=0 :: KPG.Data(693:7978a6) KPG.Kind(6:948fe6) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+    E 'KPG client c9' u=bf654ed4 mod=01-01T00:00:00 hist=0 :: KPG.Data(693:7e3edc) KPG.Kind(6:948fe6) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+    E 'KPG revoked c0' u=43725628 mod=01-01T00:00:00 hist=0 :: KPG.Data(80:eb144b) KPG.Kind(7:4bb47f) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+# D-A.kdbx kdbx 4.0 dbCustomData=[]
+  deleted 43725628 @01-01T01:00:00
+  deleted bf654ed4 @01-01T01:00:00
+  deleted d41d9c19 @01-01T01:00:00
+  G '' u=8ac8f402 mod=01-01T00:00:00 icon=FolderOpen search=inherit autotype=inherit notes=0
+  G 'General' u=a080e0a6 mod=01-01T00:00:00 icon=Folder search=inherit autotype=inherit notes=0
+    E 'user entry' u=7e5fafa0 mod=01-01T00:00:00 hist=0 :: Password[P](17:33aad6)
+  G 'KeePassGate' u=fe4040a9 mod=01-01T00:00:00 icon=TerminalEncrypted search=False autotype=False notes=52
+    E 'KPG authority fpA' u=207404c0 mod=01-01T00:00:00 hist=0 :: KPG.Data[P](2883:1ce250) KPG.Kind(9:8f76fd) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+    E 'KPG client c3' u=e7e5d1f9 mod=01-01T00:00:00 hist=0 :: KPG.Data(693:7978a6) KPG.Kind(6:948fe6) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+    E 'KPG revoked c1' u=035b819f mod=01-01T01:00:00 hist=0 :: KPG.Data(80:5313bc) KPG.Kind(7:4bb47f) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+# D-B.kdbx kdbx 4.0 dbCustomData=[]
+  G '' u=8ac8f402 mod=01-01T00:00:00 icon=FolderOpen search=inherit autotype=inherit notes=0
+  G 'General' u=a080e0a6 mod=01-01T00:00:00 icon=Folder search=inherit autotype=inherit notes=0
+    E 'user entry' u=7e5fafa0 mod=01-01T00:00:00 hist=0 :: Password[P](17:33aad6)
+  G 'KeePassGate' u=fe4040a9 mod=01-01T00:00:00 icon=TerminalEncrypted search=False autotype=False notes=52
+    E 'KPG authority fpA' u=207404c0 mod=01-01T00:00:00 hist=0 :: KPG.Data[P](2883:1ce250) KPG.Kind(9:8f76fd) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+    E 'KPG client c1' u=d41d9c19 mod=01-01T00:00:00 hist=0 :: KPG.Data(693:22c487) KPG.Kind(6:948fe6) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+    E 'KPG client c3' u=e7e5d1f9 mod=01-01T00:00:00 hist=0 :: KPG.Data(693:7978a6) KPG.Kind(6:948fe6) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+    E 'KPG client c4' u=e3d040ad mod=01-01T02:00:00 hist=0 :: KPG.Data(693:8dba64) KPG.Kind(6:948fe6) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+    E 'KPG client c9' u=bf654ed4 mod=01-01T00:00:00 hist=0 :: KPG.Data(693:7e3edc) KPG.Kind(6:948fe6) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+    E 'KPG revoked c0' u=43725628 mod=01-01T00:00:00 hist=0 :: KPG.Data(80:eb144b) KPG.Kind(7:4bb47f) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+
+## KeePassLib 2.62, set I, B merged into A, Synchronize
+# result.kdbx kdbx 4.0 dbCustomData=[]
+  G '' u=9a076c9b mod=01-01T00:00:00 icon=FolderOpen search=inherit autotype=inherit notes=0
+  G 'General' u=31146d4d mod=01-01T00:00:00 icon=Folder search=inherit autotype=inherit notes=0
+    E 'user entry' u=d5062e4d mod=01-01T00:00:00 hist=0 :: Password[P](17:33aad6)
+  G 'KeePassGate' u=fe4040a9 mod=01-01T02:00:00 icon=TerminalEncrypted search=False autotype=False notes=52
+    E 'KPG authority fpA' u=207404c0 mod=01-01T01:00:00 hist=0 :: KPG.Data[P](2883:1ce250) KPG.Kind(9:8f76fd) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+    E 'KPG authority fpB' u=4ff5ec1b mod=01-01T02:00:00 hist=0 :: KPG.Data[P](2883:bc36bd) KPG.Kind(9:8f76fd) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+    E 'KPG client c1' u=d41d9c19 mod=01-01T01:00:00 hist=0 :: KPG.Data(693:22c487) KPG.Kind(6:948fe6) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+    E 'KPG client c2' u=66e5751c mod=01-01T02:00:00 hist=0 :: KPG.Data(693:368872) KPG.Kind(6:948fe6) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+    E 'KPG profile reader 1' u=a5b699f5 mod=01-01T02:00:00 hist=1[01-01T01:00:00] :: KPG.Data(45:d32882) KPG.Kind(7:1900ea) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+    E 'KPG profile-removed reader 1' u=8f1e7f8e mod=01-01T02:00:00 hist=0 :: KPG.Data(45:d32882) KPG.Kind(15:fbdd6a) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+    E 'KPG revoked c0' u=43725628 mod=01-01T02:00:00 hist=1[01-01T01:00:00] :: KPG.Data(80:eb144b) KPG.Kind(7:4bb47f) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+
+## KeePassLib 2.62, set I, B merged into A, OverwriteIfNewer
+# result.kdbx kdbx 4.0 dbCustomData=[]
+  G '' u=9a076c9b mod=01-01T00:00:00 icon=FolderOpen search=inherit autotype=inherit notes=0
+  G 'General' u=31146d4d mod=01-01T00:00:00 icon=Folder search=inherit autotype=inherit notes=0
+    E 'user entry' u=d5062e4d mod=01-01T00:00:00 hist=0 :: Password[P](17:33aad6)
+  G 'KeePassGate' u=fe4040a9 mod=01-01T02:00:00 icon=TerminalEncrypted search=False autotype=False notes=52
+    E 'KPG authority fpA' u=207404c0 mod=01-01T01:00:00 hist=0 :: KPG.Data[P](2883:1ce250) KPG.Kind(9:8f76fd) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+    E 'KPG authority fpB' u=4ff5ec1b mod=01-01T02:00:00 hist=0 :: KPG.Data[P](2883:bc36bd) KPG.Kind(9:8f76fd) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+    E 'KPG client c1' u=d41d9c19 mod=01-01T01:00:00 hist=0 :: KPG.Data(693:22c487) KPG.Kind(6:948fe6) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+    E 'KPG client c2' u=66e5751c mod=01-01T02:00:00 hist=0 :: KPG.Data(693:368872) KPG.Kind(6:948fe6) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+    E 'KPG profile reader 1' u=a5b699f5 mod=01-01T02:00:00 hist=1[01-01T01:00:00] :: KPG.Data(45:d32882) KPG.Kind(7:1900ea) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+    E 'KPG profile-removed reader 1' u=8f1e7f8e mod=01-01T02:00:00 hist=0 :: KPG.Data(45:d32882) KPG.Kind(15:fbdd6a) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+    E 'KPG revoked c0' u=43725628 mod=01-01T02:00:00 hist=1[01-01T01:00:00] :: KPG.Data(80:eb144b) KPG.Kind(7:4bb47f) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+
+## KeePassLib 2.62, set I, B merged into A, OverwriteExisting
+# result.kdbx kdbx 4.0 dbCustomData=[]
+  G '' u=9a076c9b mod=01-01T00:00:00 icon=FolderOpen search=inherit autotype=inherit notes=0
+  G 'General' u=31146d4d mod=01-01T00:00:00 icon=Folder search=inherit autotype=inherit notes=0
+    E 'user entry' u=d5062e4d mod=01-01T00:00:00 hist=0 :: Password[P](17:33aad6)
+  G 'KeePassGate' u=fe4040a9 mod=01-01T02:00:00 icon=TerminalEncrypted search=False autotype=False notes=52
+    E 'KPG authority fpA' u=207404c0 mod=01-01T01:00:00 hist=0 :: KPG.Data[P](2883:1ce250) KPG.Kind(9:8f76fd) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+    E 'KPG authority fpB' u=4ff5ec1b mod=01-01T02:00:00 hist=0 :: KPG.Data[P](2883:bc36bd) KPG.Kind(9:8f76fd) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+    E 'KPG client c1' u=d41d9c19 mod=01-01T01:00:00 hist=0 :: KPG.Data(693:22c487) KPG.Kind(6:948fe6) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+    E 'KPG client c2' u=66e5751c mod=01-01T02:00:00 hist=0 :: KPG.Data(693:368872) KPG.Kind(6:948fe6) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+    E 'KPG profile reader 1' u=a5b699f5 mod=01-01T02:00:00 hist=1[01-01T01:00:00] :: KPG.Data(45:d32882) KPG.Kind(7:1900ea) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+    E 'KPG profile-removed reader 1' u=8f1e7f8e mod=01-01T02:00:00 hist=0 :: KPG.Data(45:d32882) KPG.Kind(15:fbdd6a) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+    E 'KPG revoked c0' u=43725628 mod=01-01T02:00:00 hist=1[01-01T01:00:00] :: KPG.Data(80:eb144b) KPG.Kind(7:4bb47f) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+
+## KeePassLib 2.62, set I, B merged into A, KeepExisting
+# result.kdbx kdbx 4.0 dbCustomData=[]
+  G '' u=9a076c9b mod=01-01T00:00:00 icon=FolderOpen search=inherit autotype=inherit notes=0
+  G 'General' u=31146d4d mod=01-01T00:00:00 icon=Folder search=inherit autotype=inherit notes=0
+    E 'user entry' u=d5062e4d mod=01-01T00:00:00 hist=0 :: Password[P](17:33aad6)
+  G 'KeePassGate' u=fe4040a9 mod=01-01T01:00:00 icon=TerminalEncrypted search=False autotype=False notes=52
+    E 'KPG authority fpA' u=207404c0 mod=01-01T01:00:00 hist=0 :: KPG.Data[P](2883:1ce250) KPG.Kind(9:8f76fd) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+    E 'KPG authority fpB' u=4ff5ec1b mod=01-01T02:00:00 hist=0 :: KPG.Data[P](2883:bc36bd) KPG.Kind(9:8f76fd) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+    E 'KPG client c1' u=d41d9c19 mod=01-01T01:00:00 hist=0 :: KPG.Data(693:22c487) KPG.Kind(6:948fe6) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+    E 'KPG client c2' u=66e5751c mod=01-01T02:00:00 hist=0 :: KPG.Data(693:368872) KPG.Kind(6:948fe6) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+    E 'KPG profile reader 1' u=a5b699f5 mod=01-01T01:00:00 hist=1[01-01T01:00:00] :: KPG.Data(45:d32882) KPG.Kind(7:1900ea) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+    E 'KPG profile-removed reader 1' u=8f1e7f8e mod=01-01T02:00:00 hist=0 :: KPG.Data(45:d32882) KPG.Kind(15:fbdd6a) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+    E 'KPG revoked c0' u=43725628 mod=01-01T01:00:00 hist=1[01-01T01:00:00] :: KPG.Data(80:eb144b) KPG.Kind(7:4bb47f) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+
+## KeePassLib 2.62, set I, B merged into A, CreateNewUuids
+# result.kdbx kdbx 4.0 dbCustomData=[]
+  G '' u=9a076c9b mod=01-01T00:00:00 icon=FolderOpen search=inherit autotype=inherit notes=0
+  G 'General' u=31146d4d mod=01-01T00:00:00 icon=Folder search=inherit autotype=inherit notes=0
+    E 'user entry' u=d5062e4d mod=01-01T00:00:00 hist=0 :: Password[P](17:33aad6)
+  G 'General' u=7e14703e mod=01-01T00:00:00 icon=Folder search=inherit autotype=inherit notes=0
+    E 'user entry' u=c94376aa mod=01-01T00:00:00 hist=0 :: Password[P](17:33aad6)
+  G 'KeePassGate' u=fe4040a9 mod=01-01T01:00:00 icon=TerminalEncrypted search=False autotype=False notes=52
+    E 'KPG authority fpA' u=207404c0 mod=01-01T01:00:00 hist=0 :: KPG.Data[P](2883:1ce250) KPG.Kind(9:8f76fd) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+    E 'KPG client c1' u=d41d9c19 mod=01-01T01:00:00 hist=0 :: KPG.Data(693:22c487) KPG.Kind(6:948fe6) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+    E 'KPG profile reader 1' u=a5b699f5 mod=01-01T01:00:00 hist=0 :: KPG.Data(45:d32882) KPG.Kind(7:1900ea) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+    E 'KPG revoked c0' u=43725628 mod=01-01T01:00:00 hist=0 :: KPG.Data(80:eb144b) KPG.Kind(7:4bb47f) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+  G 'KeePassGate' u=1f5ff4ff mod=01-01T02:00:00 icon=TerminalEncrypted search=False autotype=False notes=52
+    E 'KPG authority fpB' u=c6c393ca mod=01-01T02:00:00 hist=0 :: KPG.Data[P](2883:bc36bd) KPG.Kind(9:8f76fd) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+    E 'KPG client c2' u=8e05267c mod=01-01T02:00:00 hist=0 :: KPG.Data(693:368872) KPG.Kind(6:948fe6) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+    E 'KPG profile reader 1' u=e1911203 mod=01-01T02:00:00 hist=0 :: KPG.Data(45:d32882) KPG.Kind(7:1900ea) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+    E 'KPG profile-removed reader 1' u=8c0d34f4 mod=01-01T02:00:00 hist=0 :: KPG.Data(45:d32882) KPG.Kind(15:fbdd6a) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+    E 'KPG revoked c0' u=965c6dbc mod=01-01T02:00:00 hist=0 :: KPG.Data(80:eb144b) KPG.Kind(7:4bb47f) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+  G 'Root' u=b94545be mod=01-01T00:00:00 icon=FolderOpen search=inherit autotype=inherit notes=0
+
+## keepassxc-cli 2.4.2 merge, set I, B merged into A, exit 0
+# target.kdbx kdbx 4.0 dbCustomData=[]
+  G '' u=9a076c9b mod=01-01T00:00:00 icon=FolderOpen search=inherit autotype=inherit notes=0
+  G 'General' u=31146d4d mod=01-01T00:00:00 icon=Folder search=inherit autotype=inherit notes=0
+    E 'user entry' u=d5062e4d mod=01-01T00:00:00 hist=0 :: Notes(0:e3b0c4) Password[P](17:33aad6) URL(0:e3b0c4) UserName(0:e3b0c4)
+  G 'KeePassGate' u=fe4040a9 mod=01-01T02:00:00 icon=TerminalEncrypted search=False autotype=False notes=52
+    E 'KPG authority fpA' u=207404c0 mod=01-01T01:00:00 hist=0 :: KPG.Data[P](2883:1ce250) KPG.Kind(9:8f76fd) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+    E 'KPG authority fpB' u=4ff5ec1b mod=01-01T02:00:00 hist=0 :: KPG.Data[P](2883:bc36bd) KPG.Kind(9:8f76fd) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+    E 'KPG client c1' u=d41d9c19 mod=01-01T01:00:00 hist=0 :: KPG.Data(693:22c487) KPG.Kind(6:948fe6) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+    E 'KPG client c2' u=66e5751c mod=01-01T02:00:00 hist=0 :: KPG.Data(693:368872) KPG.Kind(6:948fe6) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+    E 'KPG profile reader 1' u=a5b699f5 mod=01-01T02:00:00 hist=1[01-01T01:00:00] :: KPG.Data(45:d32882) KPG.Kind(7:1900ea) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+    E 'KPG profile-removed reader 1' u=8f1e7f8e mod=01-01T02:00:00 hist=0 :: KPG.Data(45:d32882) KPG.Kind(15:fbdd6a) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+    E 'KPG revoked c0' u=43725628 mod=01-01T02:00:00 hist=1[01-01T01:00:00] :: KPG.Data(80:eb144b) KPG.Kind(7:4bb47f) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+
+## keepassxc-cli 2.6.6 merge, set I, B merged into A, exit 0
+# target.kdbx kdbx 4.0 dbCustomData=[]
+  G '' u=9a076c9b mod=01-01T00:00:00 icon=FolderOpen search=inherit autotype=inherit notes=0
+  G 'General' u=31146d4d mod=01-01T00:00:00 icon=Folder search=inherit autotype=inherit notes=0
+    E 'user entry' u=d5062e4d mod=01-01T00:00:00 hist=0 :: Notes(0:e3b0c4) Password[P](17:33aad6) URL(0:e3b0c4) UserName(0:e3b0c4)
+  G 'KeePassGate' u=fe4040a9 mod=01-01T02:00:00 icon=TerminalEncrypted search=False autotype=False notes=52
+    E 'KPG authority fpA' u=207404c0 mod=01-01T01:00:00 hist=0 :: KPG.Data[P](2883:1ce250) KPG.Kind(9:8f76fd) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+    E 'KPG authority fpB' u=4ff5ec1b mod=01-01T02:00:00 hist=0 :: KPG.Data[P](2883:bc36bd) KPG.Kind(9:8f76fd) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+    E 'KPG client c1' u=d41d9c19 mod=01-01T01:00:00 hist=0 :: KPG.Data(693:22c487) KPG.Kind(6:948fe6) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+    E 'KPG client c2' u=66e5751c mod=01-01T02:00:00 hist=0 :: KPG.Data(693:368872) KPG.Kind(6:948fe6) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+    E 'KPG profile reader 1' u=a5b699f5 mod=01-01T02:00:00 hist=1[01-01T01:00:00] :: KPG.Data(45:d32882) KPG.Kind(7:1900ea) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+    E 'KPG profile-removed reader 1' u=8f1e7f8e mod=01-01T02:00:00 hist=0 :: KPG.Data(45:d32882) KPG.Kind(15:fbdd6a) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+    E 'KPG revoked c0' u=43725628 mod=01-01T02:00:00 hist=1[01-01T01:00:00] :: KPG.Data(80:eb144b) KPG.Kind(7:4bb47f) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+
+## keepassxc-cli 2.7.12 merge, set I, B merged into A, exit 0
+# target.kdbx kdbx 4.0 dbCustomData=[_LAST_MODIFIED,KPXC_RANDOM_SLUG]
+  G '' u=9a076c9b mod=01-01T00:00:00 icon=FolderOpen search=inherit autotype=inherit notes=0
+  G 'General' u=31146d4d mod=01-01T00:00:00 icon=Folder search=inherit autotype=inherit notes=0
+    E 'user entry' u=d5062e4d mod=01-01T00:00:00 hist=0 :: Notes(0:e3b0c4) Password[P](17:33aad6) URL(0:e3b0c4) UserName(0:e3b0c4)
+  G 'KeePassGate' u=fe4040a9 mod=01-01T02:00:00 icon=TerminalEncrypted search=False autotype=False notes=52
+    E 'KPG authority fpA' u=207404c0 mod=01-01T01:00:00 hist=0 :: KPG.Data[P](2883:1ce250) KPG.Kind(9:8f76fd) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+    E 'KPG authority fpB' u=4ff5ec1b mod=01-01T02:00:00 hist=0 :: KPG.Data[P](2883:bc36bd) KPG.Kind(9:8f76fd) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+    E 'KPG client c1' u=d41d9c19 mod=01-01T01:00:00 hist=0 :: KPG.Data(693:22c487) KPG.Kind(6:948fe6) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+    E 'KPG client c2' u=66e5751c mod=01-01T02:00:00 hist=0 :: KPG.Data(693:368872) KPG.Kind(6:948fe6) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+    E 'KPG profile reader 1' u=a5b699f5 mod=01-01T02:00:00 hist=1[01-01T01:00:00] :: KPG.Data(45:d32882) KPG.Kind(7:1900ea) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+    E 'KPG profile-removed reader 1' u=8f1e7f8e mod=01-01T02:00:00 hist=0 :: KPG.Data(45:d32882) KPG.Kind(15:fbdd6a) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+    E 'KPG revoked c0' u=43725628 mod=01-01T02:00:00 hist=1[01-01T01:00:00] :: KPG.Data(80:eb144b) KPG.Kind(7:4bb47f) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+
+## keepassxc-cli 2.8.0 merge, set I, B merged into A, exit 0
+# target.kdbx kdbx 4.0 dbCustomData=[_LAST_MODIFIED,KPXC_RANDOM_SLUG]
+  G '' u=9a076c9b mod=01-01T00:00:00 icon=FolderOpen search=inherit autotype=inherit notes=0
+  G 'General' u=31146d4d mod=01-01T00:00:00 icon=Folder search=inherit autotype=inherit notes=0
+    E 'user entry' u=d5062e4d mod=01-01T00:00:00 hist=0 :: Notes(0:e3b0c4) Password[P](17:33aad6) URL(0:e3b0c4) UserName(0:e3b0c4)
+  G 'KeePassGate' u=fe4040a9 mod=01-01T02:00:00 icon=TerminalEncrypted search=False autotype=False notes=52
+    E 'KPG authority fpA' u=207404c0 mod=01-01T01:00:00 hist=0 :: KPG.Data[P](2883:1ce250) KPG.Kind(9:8f76fd) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+    E 'KPG authority fpB' u=4ff5ec1b mod=01-01T02:00:00 hist=0 :: KPG.Data[P](2883:bc36bd) KPG.Kind(9:8f76fd) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+    E 'KPG client c1' u=d41d9c19 mod=01-01T01:00:00 hist=0 :: KPG.Data(693:22c487) KPG.Kind(6:948fe6) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+    E 'KPG client c2' u=66e5751c mod=01-01T02:00:00 hist=0 :: KPG.Data(693:368872) KPG.Kind(6:948fe6) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+    E 'KPG profile reader 1' u=a5b699f5 mod=01-01T02:00:00 hist=1[01-01T01:00:00] :: KPG.Data(45:d32882) KPG.Kind(7:1900ea) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+    E 'KPG profile-removed reader 1' u=8f1e7f8e mod=01-01T02:00:00 hist=0 :: KPG.Data(45:d32882) KPG.Kind(15:fbdd6a) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+    E 'KPG revoked c0' u=43725628 mod=01-01T02:00:00 hist=1[01-01T01:00:00] :: KPG.Data(80:eb144b) KPG.Kind(7:4bb47f) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+
+## KeePassLib 2.62, set I, A merged into B, Synchronize
+# result.kdbx kdbx 4.0 dbCustomData=[]
+  G '' u=9a076c9b mod=01-01T00:00:00 icon=FolderOpen search=inherit autotype=inherit notes=0
+  G 'General' u=31146d4d mod=01-01T00:00:00 icon=Folder search=inherit autotype=inherit notes=0
+    E 'user entry' u=d5062e4d mod=01-01T00:00:00 hist=0 :: Password[P](17:33aad6)
+  G 'KeePassGate' u=fe4040a9 mod=01-01T02:00:00 icon=TerminalEncrypted search=False autotype=False notes=52
+    E 'KPG authority fpA' u=207404c0 mod=01-01T01:00:00 hist=0 :: KPG.Data[P](2883:1ce250) KPG.Kind(9:8f76fd) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+    E 'KPG authority fpB' u=4ff5ec1b mod=01-01T02:00:00 hist=0 :: KPG.Data[P](2883:bc36bd) KPG.Kind(9:8f76fd) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+    E 'KPG client c1' u=d41d9c19 mod=01-01T01:00:00 hist=0 :: KPG.Data(693:22c487) KPG.Kind(6:948fe6) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+    E 'KPG client c2' u=66e5751c mod=01-01T02:00:00 hist=0 :: KPG.Data(693:368872) KPG.Kind(6:948fe6) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+    E 'KPG profile reader 1' u=a5b699f5 mod=01-01T02:00:00 hist=1[01-01T01:00:00] :: KPG.Data(45:d32882) KPG.Kind(7:1900ea) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+    E 'KPG profile-removed reader 1' u=8f1e7f8e mod=01-01T02:00:00 hist=0 :: KPG.Data(45:d32882) KPG.Kind(15:fbdd6a) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+    E 'KPG revoked c0' u=43725628 mod=01-01T02:00:00 hist=1[01-01T01:00:00] :: KPG.Data(80:eb144b) KPG.Kind(7:4bb47f) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+
+## KeePassLib 2.62, set I, A merged into B, OverwriteIfNewer
+# result.kdbx kdbx 4.0 dbCustomData=[]
+  G '' u=9a076c9b mod=01-01T00:00:00 icon=FolderOpen search=inherit autotype=inherit notes=0
+  G 'General' u=31146d4d mod=01-01T00:00:00 icon=Folder search=inherit autotype=inherit notes=0
+    E 'user entry' u=d5062e4d mod=01-01T00:00:00 hist=0 :: Password[P](17:33aad6)
+  G 'KeePassGate' u=fe4040a9 mod=01-01T02:00:00 icon=TerminalEncrypted search=False autotype=False notes=52
+    E 'KPG authority fpA' u=207404c0 mod=01-01T01:00:00 hist=0 :: KPG.Data[P](2883:1ce250) KPG.Kind(9:8f76fd) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+    E 'KPG authority fpB' u=4ff5ec1b mod=01-01T02:00:00 hist=0 :: KPG.Data[P](2883:bc36bd) KPG.Kind(9:8f76fd) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+    E 'KPG client c1' u=d41d9c19 mod=01-01T01:00:00 hist=0 :: KPG.Data(693:22c487) KPG.Kind(6:948fe6) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+    E 'KPG client c2' u=66e5751c mod=01-01T02:00:00 hist=0 :: KPG.Data(693:368872) KPG.Kind(6:948fe6) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+    E 'KPG profile reader 1' u=a5b699f5 mod=01-01T02:00:00 hist=1[01-01T01:00:00] :: KPG.Data(45:d32882) KPG.Kind(7:1900ea) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+    E 'KPG profile-removed reader 1' u=8f1e7f8e mod=01-01T02:00:00 hist=0 :: KPG.Data(45:d32882) KPG.Kind(15:fbdd6a) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+    E 'KPG revoked c0' u=43725628 mod=01-01T02:00:00 hist=1[01-01T01:00:00] :: KPG.Data(80:eb144b) KPG.Kind(7:4bb47f) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+
+## KeePassLib 2.62, set I, A merged into B, OverwriteExisting
+# result.kdbx kdbx 4.0 dbCustomData=[]
+  G '' u=9a076c9b mod=01-01T00:00:00 icon=FolderOpen search=inherit autotype=inherit notes=0
+  G 'General' u=31146d4d mod=01-01T00:00:00 icon=Folder search=inherit autotype=inherit notes=0
+    E 'user entry' u=d5062e4d mod=01-01T00:00:00 hist=0 :: Password[P](17:33aad6)
+  G 'KeePassGate' u=fe4040a9 mod=01-01T01:00:00 icon=TerminalEncrypted search=False autotype=False notes=52
+    E 'KPG authority fpA' u=207404c0 mod=01-01T01:00:00 hist=0 :: KPG.Data[P](2883:1ce250) KPG.Kind(9:8f76fd) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+    E 'KPG authority fpB' u=4ff5ec1b mod=01-01T02:00:00 hist=0 :: KPG.Data[P](2883:bc36bd) KPG.Kind(9:8f76fd) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+    E 'KPG client c1' u=d41d9c19 mod=01-01T01:00:00 hist=0 :: KPG.Data(693:22c487) KPG.Kind(6:948fe6) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+    E 'KPG client c2' u=66e5751c mod=01-01T02:00:00 hist=0 :: KPG.Data(693:368872) KPG.Kind(6:948fe6) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+    E 'KPG profile reader 1' u=a5b699f5 mod=01-01T01:00:00 hist=1[01-01T02:00:00] :: KPG.Data(45:d32882) KPG.Kind(7:1900ea) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+    E 'KPG profile-removed reader 1' u=8f1e7f8e mod=01-01T02:00:00 hist=0 :: KPG.Data(45:d32882) KPG.Kind(15:fbdd6a) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+    E 'KPG revoked c0' u=43725628 mod=01-01T01:00:00 hist=1[01-01T02:00:00] :: KPG.Data(80:eb144b) KPG.Kind(7:4bb47f) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+
+## KeePassLib 2.62, set I, A merged into B, KeepExisting
+# result.kdbx kdbx 4.0 dbCustomData=[]
+  G '' u=9a076c9b mod=01-01T00:00:00 icon=FolderOpen search=inherit autotype=inherit notes=0
+  G 'General' u=31146d4d mod=01-01T00:00:00 icon=Folder search=inherit autotype=inherit notes=0
+    E 'user entry' u=d5062e4d mod=01-01T00:00:00 hist=0 :: Password[P](17:33aad6)
+  G 'KeePassGate' u=fe4040a9 mod=01-01T02:00:00 icon=TerminalEncrypted search=False autotype=False notes=52
+    E 'KPG authority fpA' u=207404c0 mod=01-01T01:00:00 hist=0 :: KPG.Data[P](2883:1ce250) KPG.Kind(9:8f76fd) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+    E 'KPG authority fpB' u=4ff5ec1b mod=01-01T02:00:00 hist=0 :: KPG.Data[P](2883:bc36bd) KPG.Kind(9:8f76fd) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+    E 'KPG client c1' u=d41d9c19 mod=01-01T01:00:00 hist=0 :: KPG.Data(693:22c487) KPG.Kind(6:948fe6) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+    E 'KPG client c2' u=66e5751c mod=01-01T02:00:00 hist=0 :: KPG.Data(693:368872) KPG.Kind(6:948fe6) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+    E 'KPG profile reader 1' u=a5b699f5 mod=01-01T02:00:00 hist=1[01-01T01:00:00] :: KPG.Data(45:d32882) KPG.Kind(7:1900ea) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+    E 'KPG profile-removed reader 1' u=8f1e7f8e mod=01-01T02:00:00 hist=0 :: KPG.Data(45:d32882) KPG.Kind(15:fbdd6a) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+    E 'KPG revoked c0' u=43725628 mod=01-01T02:00:00 hist=1[01-01T01:00:00] :: KPG.Data(80:eb144b) KPG.Kind(7:4bb47f) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+
+## KeePassLib 2.62, set I, A merged into B, CreateNewUuids
+# result.kdbx kdbx 4.0 dbCustomData=[]
+  G '' u=9a076c9b mod=01-01T00:00:00 icon=FolderOpen search=inherit autotype=inherit notes=0
+  G 'General' u=31146d4d mod=01-01T00:00:00 icon=Folder search=inherit autotype=inherit notes=0
+    E 'user entry' u=d5062e4d mod=01-01T00:00:00 hist=0 :: Password[P](17:33aad6)
+  G 'General' u=f30fb9a5 mod=01-01T00:00:00 icon=Folder search=inherit autotype=inherit notes=0
+    E 'user entry' u=dea1c9d8 mod=01-01T00:00:00 hist=0 :: Password[P](17:33aad6)
+  G 'KeePassGate' u=fe4040a9 mod=01-01T02:00:00 icon=TerminalEncrypted search=False autotype=False notes=52
+    E 'KPG authority fpB' u=4ff5ec1b mod=01-01T02:00:00 hist=0 :: KPG.Data[P](2883:bc36bd) KPG.Kind(9:8f76fd) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+    E 'KPG client c2' u=66e5751c mod=01-01T02:00:00 hist=0 :: KPG.Data(693:368872) KPG.Kind(6:948fe6) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+    E 'KPG profile reader 1' u=a5b699f5 mod=01-01T02:00:00 hist=0 :: KPG.Data(45:d32882) KPG.Kind(7:1900ea) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+    E 'KPG profile-removed reader 1' u=8f1e7f8e mod=01-01T02:00:00 hist=0 :: KPG.Data(45:d32882) KPG.Kind(15:fbdd6a) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+    E 'KPG revoked c0' u=43725628 mod=01-01T02:00:00 hist=0 :: KPG.Data(80:eb144b) KPG.Kind(7:4bb47f) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+  G 'KeePassGate' u=61bcafbc mod=01-01T01:00:00 icon=TerminalEncrypted search=False autotype=False notes=52
+    E 'KPG authority fpA' u=f6a9e84c mod=01-01T01:00:00 hist=0 :: KPG.Data[P](2883:1ce250) KPG.Kind(9:8f76fd) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+    E 'KPG client c1' u=4e9bceb6 mod=01-01T01:00:00 hist=0 :: KPG.Data(693:22c487) KPG.Kind(6:948fe6) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+    E 'KPG profile reader 1' u=9a37269b mod=01-01T01:00:00 hist=0 :: KPG.Data(45:d32882) KPG.Kind(7:1900ea) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+    E 'KPG revoked c0' u=ea3bc975 mod=01-01T01:00:00 hist=0 :: KPG.Data(80:eb144b) KPG.Kind(7:4bb47f) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+  G 'Root' u=d131c7fc mod=01-01T00:00:00 icon=FolderOpen search=inherit autotype=inherit notes=0
+
+## keepassxc-cli 2.4.2 merge, set I, A merged into B, exit 0
+# target.kdbx kdbx 4.0 dbCustomData=[]
+  G '' u=9a076c9b mod=01-01T00:00:00 icon=FolderOpen search=inherit autotype=inherit notes=0
+  G 'General' u=31146d4d mod=01-01T00:00:00 icon=Folder search=inherit autotype=inherit notes=0
+    E 'user entry' u=d5062e4d mod=01-01T00:00:00 hist=0 :: Notes(0:e3b0c4) Password[P](17:33aad6) URL(0:e3b0c4) UserName(0:e3b0c4)
+  G 'KeePassGate' u=fe4040a9 mod=01-01T02:00:00 icon=TerminalEncrypted search=False autotype=False notes=52
+    E 'KPG authority fpA' u=207404c0 mod=01-01T01:00:00 hist=0 :: KPG.Data[P](2883:1ce250) KPG.Kind(9:8f76fd) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+    E 'KPG authority fpB' u=4ff5ec1b mod=01-01T02:00:00 hist=0 :: KPG.Data[P](2883:bc36bd) KPG.Kind(9:8f76fd) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+    E 'KPG client c1' u=d41d9c19 mod=01-01T01:00:00 hist=0 :: KPG.Data(693:22c487) KPG.Kind(6:948fe6) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+    E 'KPG client c2' u=66e5751c mod=01-01T02:00:00 hist=0 :: KPG.Data(693:368872) KPG.Kind(6:948fe6) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+    E 'KPG profile reader 1' u=a5b699f5 mod=01-01T02:00:00 hist=1[01-01T01:00:00] :: KPG.Data(45:d32882) KPG.Kind(7:1900ea) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+    E 'KPG profile-removed reader 1' u=8f1e7f8e mod=01-01T02:00:00 hist=0 :: KPG.Data(45:d32882) KPG.Kind(15:fbdd6a) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+    E 'KPG revoked c0' u=43725628 mod=01-01T02:00:00 hist=1[01-01T01:00:00] :: KPG.Data(80:eb144b) KPG.Kind(7:4bb47f) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+
+## keepassxc-cli 2.6.6 merge, set I, A merged into B, exit 0
+# target.kdbx kdbx 4.0 dbCustomData=[]
+  G '' u=9a076c9b mod=01-01T00:00:00 icon=FolderOpen search=inherit autotype=inherit notes=0
+  G 'General' u=31146d4d mod=01-01T00:00:00 icon=Folder search=inherit autotype=inherit notes=0
+    E 'user entry' u=d5062e4d mod=01-01T00:00:00 hist=0 :: Notes(0:e3b0c4) Password[P](17:33aad6) URL(0:e3b0c4) UserName(0:e3b0c4)
+  G 'KeePassGate' u=fe4040a9 mod=01-01T02:00:00 icon=TerminalEncrypted search=False autotype=False notes=52
+    E 'KPG authority fpA' u=207404c0 mod=01-01T01:00:00 hist=0 :: KPG.Data[P](2883:1ce250) KPG.Kind(9:8f76fd) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+    E 'KPG authority fpB' u=4ff5ec1b mod=01-01T02:00:00 hist=0 :: KPG.Data[P](2883:bc36bd) KPG.Kind(9:8f76fd) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+    E 'KPG client c1' u=d41d9c19 mod=01-01T01:00:00 hist=0 :: KPG.Data(693:22c487) KPG.Kind(6:948fe6) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+    E 'KPG client c2' u=66e5751c mod=01-01T02:00:00 hist=0 :: KPG.Data(693:368872) KPG.Kind(6:948fe6) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+    E 'KPG profile reader 1' u=a5b699f5 mod=01-01T02:00:00 hist=1[01-01T01:00:00] :: KPG.Data(45:d32882) KPG.Kind(7:1900ea) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+    E 'KPG profile-removed reader 1' u=8f1e7f8e mod=01-01T02:00:00 hist=0 :: KPG.Data(45:d32882) KPG.Kind(15:fbdd6a) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+    E 'KPG revoked c0' u=43725628 mod=01-01T02:00:00 hist=1[01-01T01:00:00] :: KPG.Data(80:eb144b) KPG.Kind(7:4bb47f) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+
+## keepassxc-cli 2.7.12 merge, set I, A merged into B, exit 0
+# target.kdbx kdbx 4.0 dbCustomData=[_LAST_MODIFIED,KPXC_RANDOM_SLUG]
+  G '' u=9a076c9b mod=01-01T00:00:00 icon=FolderOpen search=inherit autotype=inherit notes=0
+  G 'General' u=31146d4d mod=01-01T00:00:00 icon=Folder search=inherit autotype=inherit notes=0
+    E 'user entry' u=d5062e4d mod=01-01T00:00:00 hist=0 :: Notes(0:e3b0c4) Password[P](17:33aad6) URL(0:e3b0c4) UserName(0:e3b0c4)
+  G 'KeePassGate' u=fe4040a9 mod=01-01T02:00:00 icon=TerminalEncrypted search=False autotype=False notes=52
+    E 'KPG authority fpA' u=207404c0 mod=01-01T01:00:00 hist=0 :: KPG.Data[P](2883:1ce250) KPG.Kind(9:8f76fd) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+    E 'KPG authority fpB' u=4ff5ec1b mod=01-01T02:00:00 hist=0 :: KPG.Data[P](2883:bc36bd) KPG.Kind(9:8f76fd) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+    E 'KPG client c1' u=d41d9c19 mod=01-01T01:00:00 hist=0 :: KPG.Data(693:22c487) KPG.Kind(6:948fe6) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+    E 'KPG client c2' u=66e5751c mod=01-01T02:00:00 hist=0 :: KPG.Data(693:368872) KPG.Kind(6:948fe6) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+    E 'KPG profile reader 1' u=a5b699f5 mod=01-01T02:00:00 hist=1[01-01T01:00:00] :: KPG.Data(45:d32882) KPG.Kind(7:1900ea) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+    E 'KPG profile-removed reader 1' u=8f1e7f8e mod=01-01T02:00:00 hist=0 :: KPG.Data(45:d32882) KPG.Kind(15:fbdd6a) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+    E 'KPG revoked c0' u=43725628 mod=01-01T02:00:00 hist=1[01-01T01:00:00] :: KPG.Data(80:eb144b) KPG.Kind(7:4bb47f) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+
+## keepassxc-cli 2.8.0 merge, set I, A merged into B, exit 0
+# target.kdbx kdbx 4.0 dbCustomData=[_LAST_MODIFIED,KPXC_RANDOM_SLUG]
+  G '' u=9a076c9b mod=01-01T00:00:00 icon=FolderOpen search=inherit autotype=inherit notes=0
+  G 'General' u=31146d4d mod=01-01T00:00:00 icon=Folder search=inherit autotype=inherit notes=0
+    E 'user entry' u=d5062e4d mod=01-01T00:00:00 hist=0 :: Notes(0:e3b0c4) Password[P](17:33aad6) URL(0:e3b0c4) UserName(0:e3b0c4)
+  G 'KeePassGate' u=fe4040a9 mod=01-01T02:00:00 icon=TerminalEncrypted search=False autotype=False notes=52
+    E 'KPG authority fpA' u=207404c0 mod=01-01T01:00:00 hist=0 :: KPG.Data[P](2883:1ce250) KPG.Kind(9:8f76fd) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+    E 'KPG authority fpB' u=4ff5ec1b mod=01-01T02:00:00 hist=0 :: KPG.Data[P](2883:bc36bd) KPG.Kind(9:8f76fd) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+    E 'KPG client c1' u=d41d9c19 mod=01-01T01:00:00 hist=0 :: KPG.Data(693:22c487) KPG.Kind(6:948fe6) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+    E 'KPG client c2' u=66e5751c mod=01-01T02:00:00 hist=0 :: KPG.Data(693:368872) KPG.Kind(6:948fe6) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+    E 'KPG profile reader 1' u=a5b699f5 mod=01-01T02:00:00 hist=1[01-01T01:00:00] :: KPG.Data(45:d32882) KPG.Kind(7:1900ea) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+    E 'KPG profile-removed reader 1' u=8f1e7f8e mod=01-01T02:00:00 hist=0 :: KPG.Data(45:d32882) KPG.Kind(15:fbdd6a) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+    E 'KPG revoked c0' u=43725628 mod=01-01T02:00:00 hist=1[01-01T01:00:00] :: KPG.Data(80:eb144b) KPG.Kind(7:4bb47f) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+
+## KeePassLib 2.62, set T, B merged into A, Synchronize
+# result.kdbx kdbx 4.0 dbCustomData=[]
+  G '' u=9a076c9b mod=01-01T00:00:00 icon=FolderOpen search=inherit autotype=inherit notes=0
+  G 'General' u=31146d4d mod=01-01T00:00:00 icon=Folder search=inherit autotype=inherit notes=0
+    E 'user entry' u=d5062e4d mod=01-01T00:00:00 hist=0 :: Password[P](17:33aad6)
+  G 'KeePassGate' u=fe4040a9 mod=01-01T01:00:00 icon=TerminalEncrypted search=False autotype=False notes=52
+    E 'KPG authority fpA' u=207404c0 mod=01-01T01:00:00 hist=0 :: KPG.Data[P](2883:1ce250) KPG.Kind(9:8f76fd) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+    E 'KPG authority fpB' u=4ff5ec1b mod=01-01T01:00:00 hist=0 :: KPG.Data[P](2883:bc36bd) KPG.Kind(9:8f76fd) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+    E 'KPG revoked c0' u=43725628 mod=01-01T01:00:00 hist=0 :: KPG.Data(80:eb144b) KPG.Kind(7:4bb47f) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+
+## KeePassLib 2.62, set T, B merged into A, OverwriteIfNewer
+# result.kdbx kdbx 4.0 dbCustomData=[]
+  G '' u=9a076c9b mod=01-01T00:00:00 icon=FolderOpen search=inherit autotype=inherit notes=0
+  G 'General' u=31146d4d mod=01-01T00:00:00 icon=Folder search=inherit autotype=inherit notes=0
+    E 'user entry' u=d5062e4d mod=01-01T00:00:00 hist=0 :: Password[P](17:33aad6)
+  G 'KeePassGate' u=fe4040a9 mod=01-01T01:00:00 icon=TerminalEncrypted search=False autotype=False notes=52
+    E 'KPG authority fpA' u=207404c0 mod=01-01T01:00:00 hist=0 :: KPG.Data[P](2883:1ce250) KPG.Kind(9:8f76fd) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+    E 'KPG authority fpB' u=4ff5ec1b mod=01-01T01:00:00 hist=0 :: KPG.Data[P](2883:bc36bd) KPG.Kind(9:8f76fd) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+    E 'KPG revoked c0' u=43725628 mod=01-01T01:00:00 hist=0 :: KPG.Data(80:eb144b) KPG.Kind(7:4bb47f) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+
+## KeePassLib 2.62, set T, B merged into A, OverwriteExisting
+# result.kdbx kdbx 4.0 dbCustomData=[]
+  G '' u=9a076c9b mod=01-01T00:00:00 icon=FolderOpen search=inherit autotype=inherit notes=0
+  G 'General' u=31146d4d mod=01-01T00:00:00 icon=Folder search=inherit autotype=inherit notes=0
+    E 'user entry' u=d5062e4d mod=01-01T00:00:00 hist=0 :: Password[P](17:33aad6)
+  G 'KeePassGate' u=fe4040a9 mod=01-01T01:00:00 icon=TerminalEncrypted search=False autotype=False notes=52
+    E 'KPG authority fpA' u=207404c0 mod=01-01T01:00:00 hist=0 :: KPG.Data[P](2883:1ce250) KPG.Kind(9:8f76fd) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+    E 'KPG authority fpB' u=4ff5ec1b mod=01-01T01:00:00 hist=0 :: KPG.Data[P](2883:bc36bd) KPG.Kind(9:8f76fd) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+    E 'KPG revoked c0' u=43725628 mod=01-01T01:00:00 hist=0 :: KPG.Data(80:eb144b) KPG.Kind(7:4bb47f) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+
+## KeePassLib 2.62, set T, B merged into A, KeepExisting
+# result.kdbx kdbx 4.0 dbCustomData=[]
+  G '' u=9a076c9b mod=01-01T00:00:00 icon=FolderOpen search=inherit autotype=inherit notes=0
+  G 'General' u=31146d4d mod=01-01T00:00:00 icon=Folder search=inherit autotype=inherit notes=0
+    E 'user entry' u=d5062e4d mod=01-01T00:00:00 hist=0 :: Password[P](17:33aad6)
+  G 'KeePassGate' u=fe4040a9 mod=01-01T01:00:00 icon=TerminalEncrypted search=False autotype=False notes=52
+    E 'KPG authority fpA' u=207404c0 mod=01-01T01:00:00 hist=0 :: KPG.Data[P](2883:1ce250) KPG.Kind(9:8f76fd) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+    E 'KPG authority fpB' u=4ff5ec1b mod=01-01T01:00:00 hist=0 :: KPG.Data[P](2883:bc36bd) KPG.Kind(9:8f76fd) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+    E 'KPG revoked c0' u=43725628 mod=01-01T01:00:00 hist=0 :: KPG.Data(80:eb144b) KPG.Kind(7:4bb47f) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+
+## KeePassLib 2.62, set T, B merged into A, CreateNewUuids
+# result.kdbx kdbx 4.0 dbCustomData=[]
+  G '' u=9a076c9b mod=01-01T00:00:00 icon=FolderOpen search=inherit autotype=inherit notes=0
+  G 'General' u=31146d4d mod=01-01T00:00:00 icon=Folder search=inherit autotype=inherit notes=0
+    E 'user entry' u=d5062e4d mod=01-01T00:00:00 hist=0 :: Password[P](17:33aad6)
+  G 'General' u=ec3d5014 mod=01-01T00:00:00 icon=Folder search=inherit autotype=inherit notes=0
+    E 'user entry' u=f6266b51 mod=01-01T00:00:00 hist=0 :: Password[P](17:33aad6)
+  G 'KeePassGate' u=fe4040a9 mod=01-01T01:00:00 icon=TerminalEncrypted search=False autotype=False notes=52
+    E 'KPG authority fpA' u=207404c0 mod=01-01T01:00:00 hist=0 :: KPG.Data[P](2883:1ce250) KPG.Kind(9:8f76fd) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+    E 'KPG revoked c0' u=43725628 mod=01-01T01:00:00 hist=0 :: KPG.Data(80:eb144b) KPG.Kind(7:4bb47f) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+  G 'KeePassGate' u=513671b3 mod=01-01T01:00:00 icon=TerminalEncrypted search=False autotype=False notes=52
+    E 'KPG authority fpB' u=194eb412 mod=01-01T01:00:00 hist=0 :: KPG.Data[P](2883:bc36bd) KPG.Kind(9:8f76fd) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+    E 'KPG revoked c0' u=6d943ed7 mod=01-01T01:00:00 hist=0 :: KPG.Data(80:eb144b) KPG.Kind(7:4bb47f) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+  G 'Root' u=98766bf2 mod=01-01T00:00:00 icon=FolderOpen search=inherit autotype=inherit notes=0
+
+## keepassxc-cli 2.4.2 merge, set T, B merged into A, exit 0
+# target.kdbx kdbx 4.0 dbCustomData=[]
+  G '' u=9a076c9b mod=01-01T00:00:00 icon=FolderOpen search=inherit autotype=inherit notes=0
+  G 'General' u=31146d4d mod=01-01T00:00:00 icon=Folder search=inherit autotype=inherit notes=0
+    E 'user entry' u=d5062e4d mod=01-01T00:00:00 hist=0 :: Notes(0:e3b0c4) Password[P](17:33aad6) URL(0:e3b0c4) UserName(0:e3b0c4)
+  G 'KeePassGate' u=fe4040a9 mod=01-01T01:00:00 icon=TerminalEncrypted search=False autotype=False notes=52
+    E 'KPG authority fpA' u=207404c0 mod=01-01T01:00:00 hist=0 :: KPG.Data[P](2883:1ce250) KPG.Kind(9:8f76fd) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+    E 'KPG authority fpB' u=4ff5ec1b mod=01-01T01:00:00 hist=0 :: KPG.Data[P](2883:bc36bd) KPG.Kind(9:8f76fd) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+    E 'KPG revoked c0' u=43725628 mod=01-01T01:00:00 hist=0 :: KPG.Data(80:eb144b) KPG.Kind(7:4bb47f) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+
+## keepassxc-cli 2.6.6 merge, set T, B merged into A, exit 0
+# target.kdbx kdbx 4.0 dbCustomData=[]
+  G '' u=9a076c9b mod=01-01T00:00:00 icon=FolderOpen search=inherit autotype=inherit notes=0
+  G 'General' u=31146d4d mod=01-01T00:00:00 icon=Folder search=inherit autotype=inherit notes=0
+    E 'user entry' u=d5062e4d mod=01-01T00:00:00 hist=0 :: Notes(0:e3b0c4) Password[P](17:33aad6) URL(0:e3b0c4) UserName(0:e3b0c4)
+  G 'KeePassGate' u=fe4040a9 mod=01-01T01:00:00 icon=TerminalEncrypted search=False autotype=False notes=52
+    E 'KPG authority fpA' u=207404c0 mod=01-01T01:00:00 hist=0 :: KPG.Data[P](2883:1ce250) KPG.Kind(9:8f76fd) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+    E 'KPG authority fpB' u=4ff5ec1b mod=01-01T01:00:00 hist=0 :: KPG.Data[P](2883:bc36bd) KPG.Kind(9:8f76fd) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+    E 'KPG revoked c0' u=43725628 mod=01-01T01:00:00 hist=0 :: KPG.Data(80:eb144b) KPG.Kind(7:4bb47f) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+
+## keepassxc-cli 2.7.12 merge, set T, B merged into A, exit 0
+# target.kdbx kdbx 4.0 dbCustomData=[_LAST_MODIFIED,KPXC_RANDOM_SLUG]
+  G '' u=9a076c9b mod=01-01T00:00:00 icon=FolderOpen search=inherit autotype=inherit notes=0
+  G 'General' u=31146d4d mod=01-01T00:00:00 icon=Folder search=inherit autotype=inherit notes=0
+    E 'user entry' u=d5062e4d mod=01-01T00:00:00 hist=0 :: Notes(0:e3b0c4) Password[P](17:33aad6) URL(0:e3b0c4) UserName(0:e3b0c4)
+  G 'KeePassGate' u=fe4040a9 mod=01-01T01:00:00 icon=TerminalEncrypted search=False autotype=False notes=52
+    E 'KPG authority fpA' u=207404c0 mod=01-01T01:00:00 hist=0 :: KPG.Data[P](2883:1ce250) KPG.Kind(9:8f76fd) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+    E 'KPG authority fpB' u=4ff5ec1b mod=01-01T01:00:00 hist=0 :: KPG.Data[P](2883:bc36bd) KPG.Kind(9:8f76fd) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+    E 'KPG revoked c0' u=43725628 mod=01-01T01:00:00 hist=0 :: KPG.Data(80:eb144b) KPG.Kind(7:4bb47f) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+
+## keepassxc-cli 2.8.0 merge, set T, B merged into A, exit 0
+# target.kdbx kdbx 4.0 dbCustomData=[_LAST_MODIFIED,KPXC_RANDOM_SLUG]
+  G '' u=9a076c9b mod=01-01T00:00:00 icon=FolderOpen search=inherit autotype=inherit notes=0
+  G 'General' u=31146d4d mod=01-01T00:00:00 icon=Folder search=inherit autotype=inherit notes=0
+    E 'user entry' u=d5062e4d mod=01-01T00:00:00 hist=0 :: Notes(0:e3b0c4) Password[P](17:33aad6) URL(0:e3b0c4) UserName(0:e3b0c4)
+  G 'KeePassGate' u=fe4040a9 mod=01-01T01:00:00 icon=TerminalEncrypted search=False autotype=False notes=52
+    E 'KPG authority fpA' u=207404c0 mod=01-01T01:00:00 hist=0 :: KPG.Data[P](2883:1ce250) KPG.Kind(9:8f76fd) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+    E 'KPG authority fpB' u=4ff5ec1b mod=01-01T01:00:00 hist=0 :: KPG.Data[P](2883:bc36bd) KPG.Kind(9:8f76fd) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+    E 'KPG revoked c0' u=43725628 mod=01-01T01:00:00 hist=0 :: KPG.Data(80:eb144b) KPG.Kind(7:4bb47f) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+
+## KeePassLib 2.62, set T, A merged into B, Synchronize
+# result.kdbx kdbx 4.0 dbCustomData=[]
+  G '' u=9a076c9b mod=01-01T00:00:00 icon=FolderOpen search=inherit autotype=inherit notes=0
+  G 'General' u=31146d4d mod=01-01T00:00:00 icon=Folder search=inherit autotype=inherit notes=0
+    E 'user entry' u=d5062e4d mod=01-01T00:00:00 hist=0 :: Password[P](17:33aad6)
+  G 'KeePassGate' u=fe4040a9 mod=01-01T01:00:00 icon=TerminalEncrypted search=False autotype=False notes=52
+    E 'KPG authority fpA' u=207404c0 mod=01-01T01:00:00 hist=0 :: KPG.Data[P](2883:1ce250) KPG.Kind(9:8f76fd) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+    E 'KPG authority fpB' u=4ff5ec1b mod=01-01T01:00:00 hist=0 :: KPG.Data[P](2883:bc36bd) KPG.Kind(9:8f76fd) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+    E 'KPG revoked c0' u=43725628 mod=01-01T01:00:00 hist=0 :: KPG.Data(80:eb144b) KPG.Kind(7:4bb47f) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+
+## KeePassLib 2.62, set T, A merged into B, OverwriteIfNewer
+# result.kdbx kdbx 4.0 dbCustomData=[]
+  G '' u=9a076c9b mod=01-01T00:00:00 icon=FolderOpen search=inherit autotype=inherit notes=0
+  G 'General' u=31146d4d mod=01-01T00:00:00 icon=Folder search=inherit autotype=inherit notes=0
+    E 'user entry' u=d5062e4d mod=01-01T00:00:00 hist=0 :: Password[P](17:33aad6)
+  G 'KeePassGate' u=fe4040a9 mod=01-01T01:00:00 icon=TerminalEncrypted search=False autotype=False notes=52
+    E 'KPG authority fpA' u=207404c0 mod=01-01T01:00:00 hist=0 :: KPG.Data[P](2883:1ce250) KPG.Kind(9:8f76fd) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+    E 'KPG authority fpB' u=4ff5ec1b mod=01-01T01:00:00 hist=0 :: KPG.Data[P](2883:bc36bd) KPG.Kind(9:8f76fd) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+    E 'KPG revoked c0' u=43725628 mod=01-01T01:00:00 hist=0 :: KPG.Data(80:eb144b) KPG.Kind(7:4bb47f) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+
+## KeePassLib 2.62, set T, A merged into B, OverwriteExisting
+# result.kdbx kdbx 4.0 dbCustomData=[]
+  G '' u=9a076c9b mod=01-01T00:00:00 icon=FolderOpen search=inherit autotype=inherit notes=0
+  G 'General' u=31146d4d mod=01-01T00:00:00 icon=Folder search=inherit autotype=inherit notes=0
+    E 'user entry' u=d5062e4d mod=01-01T00:00:00 hist=0 :: Password[P](17:33aad6)
+  G 'KeePassGate' u=fe4040a9 mod=01-01T01:00:00 icon=TerminalEncrypted search=False autotype=False notes=52
+    E 'KPG authority fpA' u=207404c0 mod=01-01T01:00:00 hist=0 :: KPG.Data[P](2883:1ce250) KPG.Kind(9:8f76fd) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+    E 'KPG authority fpB' u=4ff5ec1b mod=01-01T01:00:00 hist=0 :: KPG.Data[P](2883:bc36bd) KPG.Kind(9:8f76fd) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+    E 'KPG revoked c0' u=43725628 mod=01-01T01:00:00 hist=0 :: KPG.Data(80:eb144b) KPG.Kind(7:4bb47f) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+
+## KeePassLib 2.62, set T, A merged into B, KeepExisting
+# result.kdbx kdbx 4.0 dbCustomData=[]
+  G '' u=9a076c9b mod=01-01T00:00:00 icon=FolderOpen search=inherit autotype=inherit notes=0
+  G 'General' u=31146d4d mod=01-01T00:00:00 icon=Folder search=inherit autotype=inherit notes=0
+    E 'user entry' u=d5062e4d mod=01-01T00:00:00 hist=0 :: Password[P](17:33aad6)
+  G 'KeePassGate' u=fe4040a9 mod=01-01T01:00:00 icon=TerminalEncrypted search=False autotype=False notes=52
+    E 'KPG authority fpA' u=207404c0 mod=01-01T01:00:00 hist=0 :: KPG.Data[P](2883:1ce250) KPG.Kind(9:8f76fd) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+    E 'KPG authority fpB' u=4ff5ec1b mod=01-01T01:00:00 hist=0 :: KPG.Data[P](2883:bc36bd) KPG.Kind(9:8f76fd) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+    E 'KPG revoked c0' u=43725628 mod=01-01T01:00:00 hist=0 :: KPG.Data(80:eb144b) KPG.Kind(7:4bb47f) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+
+## KeePassLib 2.62, set T, A merged into B, CreateNewUuids
+# result.kdbx kdbx 4.0 dbCustomData=[]
+  G '' u=9a076c9b mod=01-01T00:00:00 icon=FolderOpen search=inherit autotype=inherit notes=0
+  G 'General' u=31146d4d mod=01-01T00:00:00 icon=Folder search=inherit autotype=inherit notes=0
+    E 'user entry' u=d5062e4d mod=01-01T00:00:00 hist=0 :: Password[P](17:33aad6)
+  G 'General' u=02251b1a mod=01-01T00:00:00 icon=Folder search=inherit autotype=inherit notes=0
+    E 'user entry' u=94727b67 mod=01-01T00:00:00 hist=0 :: Password[P](17:33aad6)
+  G 'KeePassGate' u=fe4040a9 mod=01-01T01:00:00 icon=TerminalEncrypted search=False autotype=False notes=52
+    E 'KPG authority fpB' u=4ff5ec1b mod=01-01T01:00:00 hist=0 :: KPG.Data[P](2883:bc36bd) KPG.Kind(9:8f76fd) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+    E 'KPG revoked c0' u=43725628 mod=01-01T01:00:00 hist=0 :: KPG.Data(80:eb144b) KPG.Kind(7:4bb47f) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+  G 'KeePassGate' u=24ec00af mod=01-01T01:00:00 icon=TerminalEncrypted search=False autotype=False notes=52
+    E 'KPG authority fpA' u=7bd4edfe mod=01-01T01:00:00 hist=0 :: KPG.Data[P](2883:1ce250) KPG.Kind(9:8f76fd) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+    E 'KPG revoked c0' u=691178aa mod=01-01T01:00:00 hist=0 :: KPG.Data(80:eb144b) KPG.Kind(7:4bb47f) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+  G 'Root' u=55cb6b3e mod=01-01T00:00:00 icon=FolderOpen search=inherit autotype=inherit notes=0
+
+## keepassxc-cli 2.4.2 merge, set T, A merged into B, exit 0
+# target.kdbx kdbx 4.0 dbCustomData=[]
+  G '' u=9a076c9b mod=01-01T00:00:00 icon=FolderOpen search=inherit autotype=inherit notes=0
+  G 'General' u=31146d4d mod=01-01T00:00:00 icon=Folder search=inherit autotype=inherit notes=0
+    E 'user entry' u=d5062e4d mod=01-01T00:00:00 hist=0 :: Notes(0:e3b0c4) Password[P](17:33aad6) URL(0:e3b0c4) UserName(0:e3b0c4)
+  G 'KeePassGate' u=fe4040a9 mod=01-01T01:00:00 icon=TerminalEncrypted search=False autotype=False notes=52
+    E 'KPG authority fpA' u=207404c0 mod=01-01T01:00:00 hist=0 :: KPG.Data[P](2883:1ce250) KPG.Kind(9:8f76fd) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+    E 'KPG authority fpB' u=4ff5ec1b mod=01-01T01:00:00 hist=0 :: KPG.Data[P](2883:bc36bd) KPG.Kind(9:8f76fd) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+    E 'KPG revoked c0' u=43725628 mod=01-01T01:00:00 hist=0 :: KPG.Data(80:eb144b) KPG.Kind(7:4bb47f) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+
+## keepassxc-cli 2.6.6 merge, set T, A merged into B, exit 0
+# target.kdbx kdbx 4.0 dbCustomData=[]
+  G '' u=9a076c9b mod=01-01T00:00:00 icon=FolderOpen search=inherit autotype=inherit notes=0
+  G 'General' u=31146d4d mod=01-01T00:00:00 icon=Folder search=inherit autotype=inherit notes=0
+    E 'user entry' u=d5062e4d mod=01-01T00:00:00 hist=0 :: Notes(0:e3b0c4) Password[P](17:33aad6) URL(0:e3b0c4) UserName(0:e3b0c4)
+  G 'KeePassGate' u=fe4040a9 mod=01-01T01:00:00 icon=TerminalEncrypted search=False autotype=False notes=52
+    E 'KPG authority fpA' u=207404c0 mod=01-01T01:00:00 hist=0 :: KPG.Data[P](2883:1ce250) KPG.Kind(9:8f76fd) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+    E 'KPG authority fpB' u=4ff5ec1b mod=01-01T01:00:00 hist=0 :: KPG.Data[P](2883:bc36bd) KPG.Kind(9:8f76fd) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+    E 'KPG revoked c0' u=43725628 mod=01-01T01:00:00 hist=0 :: KPG.Data(80:eb144b) KPG.Kind(7:4bb47f) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+
+## keepassxc-cli 2.7.12 merge, set T, A merged into B, exit 0
+# target.kdbx kdbx 4.0 dbCustomData=[_LAST_MODIFIED,KPXC_RANDOM_SLUG]
+  G '' u=9a076c9b mod=01-01T00:00:00 icon=FolderOpen search=inherit autotype=inherit notes=0
+  G 'General' u=31146d4d mod=01-01T00:00:00 icon=Folder search=inherit autotype=inherit notes=0
+    E 'user entry' u=d5062e4d mod=01-01T00:00:00 hist=0 :: Notes(0:e3b0c4) Password[P](17:33aad6) URL(0:e3b0c4) UserName(0:e3b0c4)
+  G 'KeePassGate' u=fe4040a9 mod=01-01T01:00:00 icon=TerminalEncrypted search=False autotype=False notes=52
+    E 'KPG authority fpA' u=207404c0 mod=01-01T01:00:00 hist=0 :: KPG.Data[P](2883:1ce250) KPG.Kind(9:8f76fd) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+    E 'KPG authority fpB' u=4ff5ec1b mod=01-01T01:00:00 hist=0 :: KPG.Data[P](2883:bc36bd) KPG.Kind(9:8f76fd) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+    E 'KPG revoked c0' u=43725628 mod=01-01T01:00:00 hist=0 :: KPG.Data(80:eb144b) KPG.Kind(7:4bb47f) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+
+## keepassxc-cli 2.8.0 merge, set T, A merged into B, exit 0
+# target.kdbx kdbx 4.0 dbCustomData=[_LAST_MODIFIED,KPXC_RANDOM_SLUG]
+  G '' u=9a076c9b mod=01-01T00:00:00 icon=FolderOpen search=inherit autotype=inherit notes=0
+  G 'General' u=31146d4d mod=01-01T00:00:00 icon=Folder search=inherit autotype=inherit notes=0
+    E 'user entry' u=d5062e4d mod=01-01T00:00:00 hist=0 :: Notes(0:e3b0c4) Password[P](17:33aad6) URL(0:e3b0c4) UserName(0:e3b0c4)
+  G 'KeePassGate' u=fe4040a9 mod=01-01T01:00:00 icon=TerminalEncrypted search=False autotype=False notes=52
+    E 'KPG authority fpA' u=207404c0 mod=01-01T01:00:00 hist=0 :: KPG.Data[P](2883:1ce250) KPG.Kind(9:8f76fd) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+    E 'KPG authority fpB' u=4ff5ec1b mod=01-01T01:00:00 hist=0 :: KPG.Data[P](2883:bc36bd) KPG.Kind(9:8f76fd) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+    E 'KPG revoked c0' u=43725628 mod=01-01T01:00:00 hist=0 :: KPG.Data(80:eb144b) KPG.Kind(7:4bb47f) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+
+## KeePassLib 2.62, set D, B merged into A, Synchronize
+# result.kdbx kdbx 4.0 dbCustomData=[]
+  deleted 43725628 @01-01T01:00:00
+  deleted bf654ed4 @01-01T01:00:00
+  deleted d41d9c19 @01-01T01:00:00
+  G '' u=8ac8f402 mod=01-01T00:00:00 icon=FolderOpen search=inherit autotype=inherit notes=0
+  G 'General' u=a080e0a6 mod=01-01T00:00:00 icon=Folder search=inherit autotype=inherit notes=0
+    E 'user entry' u=7e5fafa0 mod=01-01T00:00:00 hist=0 :: Password[P](17:33aad6)
+  G 'KeePassGate' u=fe4040a9 mod=01-01T00:00:00 icon=TerminalEncrypted search=False autotype=False notes=52
+    E 'KPG authority fpA' u=207404c0 mod=01-01T00:00:00 hist=0 :: KPG.Data[P](2883:1ce250) KPG.Kind(9:8f76fd) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+    E 'KPG client c3' u=e7e5d1f9 mod=01-01T00:00:00 hist=0 :: KPG.Data(693:7978a6) KPG.Kind(6:948fe6) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+    E 'KPG client c4' u=e3d040ad mod=01-01T02:00:00 hist=0 :: KPG.Data(693:8dba64) KPG.Kind(6:948fe6) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+    E 'KPG revoked c1' u=035b819f mod=01-01T01:00:00 hist=0 :: KPG.Data(80:5313bc) KPG.Kind(7:4bb47f) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+
+## KeePassLib 2.62, set D, B merged into A, OverwriteIfNewer
+# result.kdbx kdbx 4.0 dbCustomData=[]
+  deleted 43725628 @01-01T01:00:00
+  deleted bf654ed4 @01-01T01:00:00
+  deleted d41d9c19 @01-01T01:00:00
+  G '' u=8ac8f402 mod=01-01T00:00:00 icon=FolderOpen search=inherit autotype=inherit notes=0
+  G 'General' u=a080e0a6 mod=01-01T00:00:00 icon=Folder search=inherit autotype=inherit notes=0
+    E 'user entry' u=7e5fafa0 mod=01-01T00:00:00 hist=0 :: Password[P](17:33aad6)
+  G 'KeePassGate' u=fe4040a9 mod=01-01T00:00:00 icon=TerminalEncrypted search=False autotype=False notes=52
+    E 'KPG authority fpA' u=207404c0 mod=01-01T00:00:00 hist=0 :: KPG.Data[P](2883:1ce250) KPG.Kind(9:8f76fd) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+    E 'KPG client c3' u=e7e5d1f9 mod=01-01T00:00:00 hist=0 :: KPG.Data(693:7978a6) KPG.Kind(6:948fe6) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+    E 'KPG client c4' u=e3d040ad mod=01-01T02:00:00 hist=0 :: KPG.Data(693:8dba64) KPG.Kind(6:948fe6) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+    E 'KPG revoked c1' u=035b819f mod=01-01T01:00:00 hist=0 :: KPG.Data(80:5313bc) KPG.Kind(7:4bb47f) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+
+## KeePassLib 2.62, set D, B merged into A, OverwriteExisting
+# result.kdbx kdbx 4.0 dbCustomData=[]
+  deleted 43725628 @01-01T01:00:00
+  deleted bf654ed4 @01-01T01:00:00
+  deleted d41d9c19 @01-01T01:00:00
+  G '' u=8ac8f402 mod=01-01T00:00:00 icon=FolderOpen search=inherit autotype=inherit notes=0
+  G 'General' u=a080e0a6 mod=01-01T00:00:00 icon=Folder search=inherit autotype=inherit notes=0
+    E 'user entry' u=7e5fafa0 mod=01-01T00:00:00 hist=0 :: Password[P](17:33aad6)
+  G 'KeePassGate' u=fe4040a9 mod=01-01T00:00:00 icon=TerminalEncrypted search=False autotype=False notes=52
+    E 'KPG authority fpA' u=207404c0 mod=01-01T00:00:00 hist=0 :: KPG.Data[P](2883:1ce250) KPG.Kind(9:8f76fd) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+    E 'KPG client c3' u=e7e5d1f9 mod=01-01T00:00:00 hist=0 :: KPG.Data(693:7978a6) KPG.Kind(6:948fe6) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+    E 'KPG client c4' u=e3d040ad mod=01-01T02:00:00 hist=0 :: KPG.Data(693:8dba64) KPG.Kind(6:948fe6) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+    E 'KPG revoked c1' u=035b819f mod=01-01T01:00:00 hist=0 :: KPG.Data(80:5313bc) KPG.Kind(7:4bb47f) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+
+## KeePassLib 2.62, set D, B merged into A, KeepExisting
+# result.kdbx kdbx 4.0 dbCustomData=[]
+  deleted 43725628 @01-01T01:00:00
+  deleted bf654ed4 @01-01T01:00:00
+  deleted d41d9c19 @01-01T01:00:00
+  G '' u=8ac8f402 mod=01-01T00:00:00 icon=FolderOpen search=inherit autotype=inherit notes=0
+  G 'General' u=a080e0a6 mod=01-01T00:00:00 icon=Folder search=inherit autotype=inherit notes=0
+    E 'user entry' u=7e5fafa0 mod=01-01T00:00:00 hist=0 :: Password[P](17:33aad6)
+  G 'KeePassGate' u=fe4040a9 mod=01-01T00:00:00 icon=TerminalEncrypted search=False autotype=False notes=52
+    E 'KPG authority fpA' u=207404c0 mod=01-01T00:00:00 hist=0 :: KPG.Data[P](2883:1ce250) KPG.Kind(9:8f76fd) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+    E 'KPG client c3' u=e7e5d1f9 mod=01-01T00:00:00 hist=0 :: KPG.Data(693:7978a6) KPG.Kind(6:948fe6) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+    E 'KPG client c4' u=e3d040ad mod=01-01T02:00:00 hist=0 :: KPG.Data(693:8dba64) KPG.Kind(6:948fe6) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+    E 'KPG revoked c1' u=035b819f mod=01-01T01:00:00 hist=0 :: KPG.Data(80:5313bc) KPG.Kind(7:4bb47f) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+
+## KeePassLib 2.62, set D, B merged into A, CreateNewUuids
+# result.kdbx kdbx 4.0 dbCustomData=[]
+  deleted 43725628 @01-01T01:00:00
+  deleted bf654ed4 @01-01T01:00:00
+  deleted d41d9c19 @01-01T01:00:00
+  G '' u=8ac8f402 mod=01-01T00:00:00 icon=FolderOpen search=inherit autotype=inherit notes=0
+  G 'General' u=a080e0a6 mod=01-01T00:00:00 icon=Folder search=inherit autotype=inherit notes=0
+    E 'user entry' u=7e5fafa0 mod=01-01T00:00:00 hist=0 :: Password[P](17:33aad6)
+  G 'General' u=5bc619dc mod=01-01T00:00:00 icon=Folder search=inherit autotype=inherit notes=0
+    E 'user entry' u=5e5b6451 mod=01-01T00:00:00 hist=0 :: Password[P](17:33aad6)
+  G 'KeePassGate' u=fe4040a9 mod=01-01T00:00:00 icon=TerminalEncrypted search=False autotype=False notes=52
+    E 'KPG authority fpA' u=207404c0 mod=01-01T00:00:00 hist=0 :: KPG.Data[P](2883:1ce250) KPG.Kind(9:8f76fd) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+    E 'KPG client c3' u=e7e5d1f9 mod=01-01T00:00:00 hist=0 :: KPG.Data(693:7978a6) KPG.Kind(6:948fe6) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+    E 'KPG revoked c1' u=035b819f mod=01-01T01:00:00 hist=0 :: KPG.Data(80:5313bc) KPG.Kind(7:4bb47f) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+  G 'KeePassGate' u=bd474bb5 mod=01-01T00:00:00 icon=TerminalEncrypted search=False autotype=False notes=52
+    E 'KPG authority fpA' u=81bcd17f mod=01-01T00:00:00 hist=0 :: KPG.Data[P](2883:1ce250) KPG.Kind(9:8f76fd) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+    E 'KPG client c1' u=7444a3f5 mod=01-01T00:00:00 hist=0 :: KPG.Data(693:22c487) KPG.Kind(6:948fe6) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+    E 'KPG client c3' u=8312504d mod=01-01T00:00:00 hist=0 :: KPG.Data(693:7978a6) KPG.Kind(6:948fe6) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+    E 'KPG client c4' u=662e088e mod=01-01T02:00:00 hist=0 :: KPG.Data(693:8dba64) KPG.Kind(6:948fe6) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+    E 'KPG client c9' u=0392278b mod=01-01T00:00:00 hist=0 :: KPG.Data(693:7e3edc) KPG.Kind(6:948fe6) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+    E 'KPG revoked c0' u=90c80b19 mod=01-01T00:00:00 hist=0 :: KPG.Data(80:eb144b) KPG.Kind(7:4bb47f) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+  G 'Root' u=dfecca0f mod=01-01T00:00:00 icon=FolderOpen search=inherit autotype=inherit notes=0
+
+## keepassxc-cli 2.4.2 merge, set D, B merged into A, exit 0
+# target.kdbx kdbx 4.0 dbCustomData=[]
+  deleted 43725628 @01-01T01:00:00
+  deleted bf654ed4 @01-01T01:00:00
+  deleted d41d9c19 @01-01T01:00:00
+  G '' u=8ac8f402 mod=01-01T00:00:00 icon=FolderOpen search=inherit autotype=inherit notes=0
+  G 'General' u=a080e0a6 mod=01-01T00:00:00 icon=Folder search=inherit autotype=inherit notes=0
+    E 'user entry' u=7e5fafa0 mod=01-01T00:00:00 hist=0 :: Notes(0:e3b0c4) Password[P](17:33aad6) URL(0:e3b0c4) UserName(0:e3b0c4)
+  G 'KeePassGate' u=fe4040a9 mod=01-01T00:00:00 icon=TerminalEncrypted search=False autotype=False notes=52
+    E 'KPG authority fpA' u=207404c0 mod=01-01T00:00:00 hist=0 :: KPG.Data[P](2883:1ce250) KPG.Kind(9:8f76fd) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+    E 'KPG client c1' u=d41d9c19 mod=01-01T00:00:00 hist=0 :: KPG.Data(693:22c487) KPG.Kind(6:948fe6) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+    E 'KPG client c3' u=e7e5d1f9 mod=01-01T00:00:00 hist=0 :: KPG.Data(693:7978a6) KPG.Kind(6:948fe6) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+    E 'KPG client c4' u=e3d040ad mod=01-01T02:00:00 hist=0 :: KPG.Data(693:8dba64) KPG.Kind(6:948fe6) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+    E 'KPG client c9' u=bf654ed4 mod=01-01T00:00:00 hist=0 :: KPG.Data(693:7e3edc) KPG.Kind(6:948fe6) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+    E 'KPG revoked c0' u=43725628 mod=01-01T00:00:00 hist=0 :: KPG.Data(80:eb144b) KPG.Kind(7:4bb47f) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+    E 'KPG revoked c1' u=035b819f mod=01-01T01:00:00 hist=0 :: KPG.Data(80:5313bc) KPG.Kind(7:4bb47f) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+
+## keepassxc-cli 2.6.6 merge, set D, B merged into A, exit 0
+# target.kdbx kdbx 4.0 dbCustomData=[]
+  deleted 43725628 @01-01T01:00:00
+  deleted bf654ed4 @01-01T01:00:00
+  deleted d41d9c19 @01-01T01:00:00
+  G '' u=8ac8f402 mod=01-01T00:00:00 icon=FolderOpen search=inherit autotype=inherit notes=0
+  G 'General' u=a080e0a6 mod=01-01T00:00:00 icon=Folder search=inherit autotype=inherit notes=0
+    E 'user entry' u=7e5fafa0 mod=01-01T00:00:00 hist=0 :: Notes(0:e3b0c4) Password[P](17:33aad6) URL(0:e3b0c4) UserName(0:e3b0c4)
+  G 'KeePassGate' u=fe4040a9 mod=01-01T00:00:00 icon=TerminalEncrypted search=False autotype=False notes=52
+    E 'KPG authority fpA' u=207404c0 mod=01-01T00:00:00 hist=0 :: KPG.Data[P](2883:1ce250) KPG.Kind(9:8f76fd) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+    E 'KPG client c1' u=d41d9c19 mod=01-01T00:00:00 hist=0 :: KPG.Data(693:22c487) KPG.Kind(6:948fe6) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+    E 'KPG client c3' u=e7e5d1f9 mod=01-01T00:00:00 hist=0 :: KPG.Data(693:7978a6) KPG.Kind(6:948fe6) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+    E 'KPG client c4' u=e3d040ad mod=01-01T02:00:00 hist=0 :: KPG.Data(693:8dba64) KPG.Kind(6:948fe6) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+    E 'KPG client c9' u=bf654ed4 mod=01-01T00:00:00 hist=0 :: KPG.Data(693:7e3edc) KPG.Kind(6:948fe6) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+    E 'KPG revoked c0' u=43725628 mod=01-01T00:00:00 hist=0 :: KPG.Data(80:eb144b) KPG.Kind(7:4bb47f) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+    E 'KPG revoked c1' u=035b819f mod=01-01T01:00:00 hist=0 :: KPG.Data(80:5313bc) KPG.Kind(7:4bb47f) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+
+## keepassxc-cli 2.7.12 merge, set D, B merged into A, exit 0
+# target.kdbx kdbx 4.0 dbCustomData=[_LAST_MODIFIED,KPXC_RANDOM_SLUG]
+  deleted 43725628 @01-01T01:00:00
+  deleted bf654ed4 @01-01T01:00:00
+  deleted d41d9c19 @01-01T01:00:00
+  G '' u=8ac8f402 mod=01-01T00:00:00 icon=FolderOpen search=inherit autotype=inherit notes=0
+  G 'General' u=a080e0a6 mod=01-01T00:00:00 icon=Folder search=inherit autotype=inherit notes=0
+    E 'user entry' u=7e5fafa0 mod=01-01T00:00:00 hist=0 :: Notes(0:e3b0c4) Password[P](17:33aad6) URL(0:e3b0c4) UserName(0:e3b0c4)
+  G 'KeePassGate' u=fe4040a9 mod=01-01T00:00:00 icon=TerminalEncrypted search=False autotype=False notes=52
+    E 'KPG authority fpA' u=207404c0 mod=01-01T00:00:00 hist=0 :: KPG.Data[P](2883:1ce250) KPG.Kind(9:8f76fd) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+    E 'KPG client c1' u=d41d9c19 mod=01-01T00:00:00 hist=0 :: KPG.Data(693:22c487) KPG.Kind(6:948fe6) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+    E 'KPG client c3' u=e7e5d1f9 mod=01-01T00:00:00 hist=0 :: KPG.Data(693:7978a6) KPG.Kind(6:948fe6) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+    E 'KPG client c4' u=e3d040ad mod=01-01T02:00:00 hist=0 :: KPG.Data(693:8dba64) KPG.Kind(6:948fe6) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+    E 'KPG client c9' u=bf654ed4 mod=01-01T00:00:00 hist=0 :: KPG.Data(693:7e3edc) KPG.Kind(6:948fe6) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+    E 'KPG revoked c0' u=43725628 mod=01-01T00:00:00 hist=0 :: KPG.Data(80:eb144b) KPG.Kind(7:4bb47f) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+    E 'KPG revoked c1' u=035b819f mod=01-01T01:00:00 hist=0 :: KPG.Data(80:5313bc) KPG.Kind(7:4bb47f) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+
+## keepassxc-cli 2.8.0 merge, set D, B merged into A, exit 0
+# target.kdbx kdbx 4.0 dbCustomData=[_LAST_MODIFIED,KPXC_RANDOM_SLUG]
+  deleted 43725628 @01-01T01:00:00
+  deleted bf654ed4 @01-01T01:00:00
+  deleted d41d9c19 @01-01T01:00:00
+  G '' u=8ac8f402 mod=01-01T00:00:00 icon=FolderOpen search=inherit autotype=inherit notes=0
+  G 'General' u=a080e0a6 mod=01-01T00:00:00 icon=Folder search=inherit autotype=inherit notes=0
+    E 'user entry' u=7e5fafa0 mod=01-01T00:00:00 hist=0 :: Notes(0:e3b0c4) Password[P](17:33aad6) URL(0:e3b0c4) UserName(0:e3b0c4)
+  G 'KeePassGate' u=fe4040a9 mod=01-01T00:00:00 icon=TerminalEncrypted search=False autotype=False notes=52
+    E 'KPG authority fpA' u=207404c0 mod=01-01T00:00:00 hist=0 :: KPG.Data[P](2883:1ce250) KPG.Kind(9:8f76fd) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+    E 'KPG client c1' u=d41d9c19 mod=01-01T00:00:00 hist=0 :: KPG.Data(693:22c487) KPG.Kind(6:948fe6) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+    E 'KPG client c3' u=e7e5d1f9 mod=01-01T00:00:00 hist=0 :: KPG.Data(693:7978a6) KPG.Kind(6:948fe6) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+    E 'KPG client c4' u=e3d040ad mod=01-01T02:00:00 hist=0 :: KPG.Data(693:8dba64) KPG.Kind(6:948fe6) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+    E 'KPG client c9' u=bf654ed4 mod=01-01T00:00:00 hist=0 :: KPG.Data(693:7e3edc) KPG.Kind(6:948fe6) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+    E 'KPG revoked c0' u=43725628 mod=01-01T00:00:00 hist=0 :: KPG.Data(80:eb144b) KPG.Kind(7:4bb47f) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+    E 'KPG revoked c1' u=035b819f mod=01-01T01:00:00 hist=0 :: KPG.Data(80:5313bc) KPG.Kind(7:4bb47f) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+
+## KeePassLib 2.62, set D, A merged into B, Synchronize
+# result.kdbx kdbx 4.0 dbCustomData=[]
+  deleted 43725628 @01-01T01:00:00
+  deleted bf654ed4 @01-01T01:00:00
+  deleted d41d9c19 @01-01T01:00:00
+  G '' u=8ac8f402 mod=01-01T00:00:00 icon=FolderOpen search=inherit autotype=inherit notes=0
+  G 'General' u=a080e0a6 mod=01-01T00:00:00 icon=Folder search=inherit autotype=inherit notes=0
+    E 'user entry' u=7e5fafa0 mod=01-01T00:00:00 hist=0 :: Password[P](17:33aad6)
+  G 'KeePassGate' u=fe4040a9 mod=01-01T00:00:00 icon=TerminalEncrypted search=False autotype=False notes=52
+    E 'KPG authority fpA' u=207404c0 mod=01-01T00:00:00 hist=0 :: KPG.Data[P](2883:1ce250) KPG.Kind(9:8f76fd) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+    E 'KPG client c3' u=e7e5d1f9 mod=01-01T00:00:00 hist=0 :: KPG.Data(693:7978a6) KPG.Kind(6:948fe6) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+    E 'KPG client c4' u=e3d040ad mod=01-01T02:00:00 hist=0 :: KPG.Data(693:8dba64) KPG.Kind(6:948fe6) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+    E 'KPG revoked c1' u=035b819f mod=01-01T01:00:00 hist=0 :: KPG.Data(80:5313bc) KPG.Kind(7:4bb47f) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+
+## KeePassLib 2.62, set D, A merged into B, OverwriteIfNewer
+# result.kdbx kdbx 4.0 dbCustomData=[]
+  G '' u=8ac8f402 mod=01-01T00:00:00 icon=FolderOpen search=inherit autotype=inherit notes=0
+  G 'General' u=a080e0a6 mod=01-01T00:00:00 icon=Folder search=inherit autotype=inherit notes=0
+    E 'user entry' u=7e5fafa0 mod=01-01T00:00:00 hist=0 :: Password[P](17:33aad6)
+  G 'KeePassGate' u=fe4040a9 mod=01-01T00:00:00 icon=TerminalEncrypted search=False autotype=False notes=52
+    E 'KPG authority fpA' u=207404c0 mod=01-01T00:00:00 hist=0 :: KPG.Data[P](2883:1ce250) KPG.Kind(9:8f76fd) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+    E 'KPG client c1' u=d41d9c19 mod=01-01T00:00:00 hist=0 :: KPG.Data(693:22c487) KPG.Kind(6:948fe6) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+    E 'KPG client c3' u=e7e5d1f9 mod=01-01T00:00:00 hist=0 :: KPG.Data(693:7978a6) KPG.Kind(6:948fe6) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+    E 'KPG client c4' u=e3d040ad mod=01-01T02:00:00 hist=0 :: KPG.Data(693:8dba64) KPG.Kind(6:948fe6) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+    E 'KPG client c9' u=bf654ed4 mod=01-01T00:00:00 hist=0 :: KPG.Data(693:7e3edc) KPG.Kind(6:948fe6) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+    E 'KPG revoked c0' u=43725628 mod=01-01T00:00:00 hist=0 :: KPG.Data(80:eb144b) KPG.Kind(7:4bb47f) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+    E 'KPG revoked c1' u=035b819f mod=01-01T01:00:00 hist=0 :: KPG.Data(80:5313bc) KPG.Kind(7:4bb47f) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+
+## KeePassLib 2.62, set D, A merged into B, OverwriteExisting
+# result.kdbx kdbx 4.0 dbCustomData=[]
+  G '' u=8ac8f402 mod=01-01T00:00:00 icon=FolderOpen search=inherit autotype=inherit notes=0
+  G 'General' u=a080e0a6 mod=01-01T00:00:00 icon=Folder search=inherit autotype=inherit notes=0
+    E 'user entry' u=7e5fafa0 mod=01-01T00:00:00 hist=0 :: Password[P](17:33aad6)
+  G 'KeePassGate' u=fe4040a9 mod=01-01T00:00:00 icon=TerminalEncrypted search=False autotype=False notes=52
+    E 'KPG authority fpA' u=207404c0 mod=01-01T00:00:00 hist=0 :: KPG.Data[P](2883:1ce250) KPG.Kind(9:8f76fd) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+    E 'KPG client c1' u=d41d9c19 mod=01-01T00:00:00 hist=0 :: KPG.Data(693:22c487) KPG.Kind(6:948fe6) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+    E 'KPG client c3' u=e7e5d1f9 mod=01-01T00:00:00 hist=0 :: KPG.Data(693:7978a6) KPG.Kind(6:948fe6) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+    E 'KPG client c4' u=e3d040ad mod=01-01T02:00:00 hist=0 :: KPG.Data(693:8dba64) KPG.Kind(6:948fe6) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+    E 'KPG client c9' u=bf654ed4 mod=01-01T00:00:00 hist=0 :: KPG.Data(693:7e3edc) KPG.Kind(6:948fe6) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+    E 'KPG revoked c0' u=43725628 mod=01-01T00:00:00 hist=0 :: KPG.Data(80:eb144b) KPG.Kind(7:4bb47f) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+    E 'KPG revoked c1' u=035b819f mod=01-01T01:00:00 hist=0 :: KPG.Data(80:5313bc) KPG.Kind(7:4bb47f) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+
+## KeePassLib 2.62, set D, A merged into B, KeepExisting
+# result.kdbx kdbx 4.0 dbCustomData=[]
+  G '' u=8ac8f402 mod=01-01T00:00:00 icon=FolderOpen search=inherit autotype=inherit notes=0
+  G 'General' u=a080e0a6 mod=01-01T00:00:00 icon=Folder search=inherit autotype=inherit notes=0
+    E 'user entry' u=7e5fafa0 mod=01-01T00:00:00 hist=0 :: Password[P](17:33aad6)
+  G 'KeePassGate' u=fe4040a9 mod=01-01T00:00:00 icon=TerminalEncrypted search=False autotype=False notes=52
+    E 'KPG authority fpA' u=207404c0 mod=01-01T00:00:00 hist=0 :: KPG.Data[P](2883:1ce250) KPG.Kind(9:8f76fd) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+    E 'KPG client c1' u=d41d9c19 mod=01-01T00:00:00 hist=0 :: KPG.Data(693:22c487) KPG.Kind(6:948fe6) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+    E 'KPG client c3' u=e7e5d1f9 mod=01-01T00:00:00 hist=0 :: KPG.Data(693:7978a6) KPG.Kind(6:948fe6) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+    E 'KPG client c4' u=e3d040ad mod=01-01T02:00:00 hist=0 :: KPG.Data(693:8dba64) KPG.Kind(6:948fe6) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+    E 'KPG client c9' u=bf654ed4 mod=01-01T00:00:00 hist=0 :: KPG.Data(693:7e3edc) KPG.Kind(6:948fe6) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+    E 'KPG revoked c0' u=43725628 mod=01-01T00:00:00 hist=0 :: KPG.Data(80:eb144b) KPG.Kind(7:4bb47f) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+    E 'KPG revoked c1' u=035b819f mod=01-01T01:00:00 hist=0 :: KPG.Data(80:5313bc) KPG.Kind(7:4bb47f) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+
+## KeePassLib 2.62, set D, A merged into B, CreateNewUuids
+# result.kdbx kdbx 4.0 dbCustomData=[]
+  G '' u=8ac8f402 mod=01-01T00:00:00 icon=FolderOpen search=inherit autotype=inherit notes=0
+  G 'General' u=a080e0a6 mod=01-01T00:00:00 icon=Folder search=inherit autotype=inherit notes=0
+    E 'user entry' u=7e5fafa0 mod=01-01T00:00:00 hist=0 :: Password[P](17:33aad6)
+  G 'General' u=249bab04 mod=01-01T00:00:00 icon=Folder search=inherit autotype=inherit notes=0
+    E 'user entry' u=27b90138 mod=01-01T00:00:00 hist=0 :: Password[P](17:33aad6)
+  G 'KeePassGate' u=fe4040a9 mod=01-01T00:00:00 icon=TerminalEncrypted search=False autotype=False notes=52
+    E 'KPG authority fpA' u=207404c0 mod=01-01T00:00:00 hist=0 :: KPG.Data[P](2883:1ce250) KPG.Kind(9:8f76fd) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+    E 'KPG client c1' u=d41d9c19 mod=01-01T00:00:00 hist=0 :: KPG.Data(693:22c487) KPG.Kind(6:948fe6) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+    E 'KPG client c3' u=e7e5d1f9 mod=01-01T00:00:00 hist=0 :: KPG.Data(693:7978a6) KPG.Kind(6:948fe6) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+    E 'KPG client c4' u=e3d040ad mod=01-01T02:00:00 hist=0 :: KPG.Data(693:8dba64) KPG.Kind(6:948fe6) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+    E 'KPG client c9' u=bf654ed4 mod=01-01T00:00:00 hist=0 :: KPG.Data(693:7e3edc) KPG.Kind(6:948fe6) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+    E 'KPG revoked c0' u=43725628 mod=01-01T00:00:00 hist=0 :: KPG.Data(80:eb144b) KPG.Kind(7:4bb47f) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+  G 'KeePassGate' u=831337b9 mod=01-01T00:00:00 icon=TerminalEncrypted search=False autotype=False notes=52
+    E 'KPG authority fpA' u=87f7d3d7 mod=01-01T00:00:00 hist=0 :: KPG.Data[P](2883:1ce250) KPG.Kind(9:8f76fd) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+    E 'KPG client c3' u=3ac19dfa mod=01-01T00:00:00 hist=0 :: KPG.Data(693:7978a6) KPG.Kind(6:948fe6) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+    E 'KPG revoked c1' u=e1ae0905 mod=01-01T01:00:00 hist=0 :: KPG.Data(80:5313bc) KPG.Kind(7:4bb47f) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+  G 'Root' u=dbeea328 mod=01-01T00:00:00 icon=FolderOpen search=inherit autotype=inherit notes=0
+
+## keepassxc-cli 2.4.2 merge, set D, A merged into B, exit 0
+# target.kdbx kdbx 4.0 dbCustomData=[]
+  G '' u=8ac8f402 mod=01-01T00:00:00 icon=FolderOpen search=inherit autotype=inherit notes=0
+  G 'General' u=a080e0a6 mod=01-01T00:00:00 icon=Folder search=inherit autotype=inherit notes=0
+    E 'user entry' u=7e5fafa0 mod=01-01T00:00:00 hist=0 :: Notes(0:e3b0c4) Password[P](17:33aad6) URL(0:e3b0c4) UserName(0:e3b0c4)
+  G 'KeePassGate' u=fe4040a9 mod=01-01T00:00:00 icon=TerminalEncrypted search=False autotype=False notes=52
+    E 'KPG authority fpA' u=207404c0 mod=01-01T00:00:00 hist=0 :: KPG.Data[P](2883:1ce250) KPG.Kind(9:8f76fd) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+    E 'KPG client c1' u=d41d9c19 mod=01-01T00:00:00 hist=0 :: KPG.Data(693:22c487) KPG.Kind(6:948fe6) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+    E 'KPG client c3' u=e7e5d1f9 mod=01-01T00:00:00 hist=0 :: KPG.Data(693:7978a6) KPG.Kind(6:948fe6) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+    E 'KPG client c4' u=e3d040ad mod=01-01T02:00:00 hist=0 :: KPG.Data(693:8dba64) KPG.Kind(6:948fe6) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+    E 'KPG client c9' u=bf654ed4 mod=01-01T00:00:00 hist=0 :: KPG.Data(693:7e3edc) KPG.Kind(6:948fe6) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+    E 'KPG revoked c0' u=43725628 mod=01-01T00:00:00 hist=0 :: KPG.Data(80:eb144b) KPG.Kind(7:4bb47f) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+    E 'KPG revoked c1' u=035b819f mod=01-01T01:00:00 hist=0 :: KPG.Data(80:5313bc) KPG.Kind(7:4bb47f) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+
+## keepassxc-cli 2.6.6 merge, set D, A merged into B, exit 0
+# target.kdbx kdbx 4.0 dbCustomData=[]
+  G '' u=8ac8f402 mod=01-01T00:00:00 icon=FolderOpen search=inherit autotype=inherit notes=0
+  G 'General' u=a080e0a6 mod=01-01T00:00:00 icon=Folder search=inherit autotype=inherit notes=0
+    E 'user entry' u=7e5fafa0 mod=01-01T00:00:00 hist=0 :: Notes(0:e3b0c4) Password[P](17:33aad6) URL(0:e3b0c4) UserName(0:e3b0c4)
+  G 'KeePassGate' u=fe4040a9 mod=01-01T00:00:00 icon=TerminalEncrypted search=False autotype=False notes=52
+    E 'KPG authority fpA' u=207404c0 mod=01-01T00:00:00 hist=0 :: KPG.Data[P](2883:1ce250) KPG.Kind(9:8f76fd) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+    E 'KPG client c1' u=d41d9c19 mod=01-01T00:00:00 hist=0 :: KPG.Data(693:22c487) KPG.Kind(6:948fe6) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+    E 'KPG client c3' u=e7e5d1f9 mod=01-01T00:00:00 hist=0 :: KPG.Data(693:7978a6) KPG.Kind(6:948fe6) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+    E 'KPG client c4' u=e3d040ad mod=01-01T02:00:00 hist=0 :: KPG.Data(693:8dba64) KPG.Kind(6:948fe6) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+    E 'KPG client c9' u=bf654ed4 mod=01-01T00:00:00 hist=0 :: KPG.Data(693:7e3edc) KPG.Kind(6:948fe6) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+    E 'KPG revoked c0' u=43725628 mod=01-01T00:00:00 hist=0 :: KPG.Data(80:eb144b) KPG.Kind(7:4bb47f) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+    E 'KPG revoked c1' u=035b819f mod=01-01T01:00:00 hist=0 :: KPG.Data(80:5313bc) KPG.Kind(7:4bb47f) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+
+## keepassxc-cli 2.7.12 merge, set D, A merged into B, exit 0
+# target.kdbx kdbx 4.0 dbCustomData=[_LAST_MODIFIED,KPXC_RANDOM_SLUG]
+  G '' u=8ac8f402 mod=01-01T00:00:00 icon=FolderOpen search=inherit autotype=inherit notes=0
+  G 'General' u=a080e0a6 mod=01-01T00:00:00 icon=Folder search=inherit autotype=inherit notes=0
+    E 'user entry' u=7e5fafa0 mod=01-01T00:00:00 hist=0 :: Notes(0:e3b0c4) Password[P](17:33aad6) URL(0:e3b0c4) UserName(0:e3b0c4)
+  G 'KeePassGate' u=fe4040a9 mod=01-01T00:00:00 icon=TerminalEncrypted search=False autotype=False notes=52
+    E 'KPG authority fpA' u=207404c0 mod=01-01T00:00:00 hist=0 :: KPG.Data[P](2883:1ce250) KPG.Kind(9:8f76fd) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+    E 'KPG client c1' u=d41d9c19 mod=01-01T00:00:00 hist=0 :: KPG.Data(693:22c487) KPG.Kind(6:948fe6) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+    E 'KPG client c3' u=e7e5d1f9 mod=01-01T00:00:00 hist=0 :: KPG.Data(693:7978a6) KPG.Kind(6:948fe6) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+    E 'KPG client c4' u=e3d040ad mod=01-01T02:00:00 hist=0 :: KPG.Data(693:8dba64) KPG.Kind(6:948fe6) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+    E 'KPG client c9' u=bf654ed4 mod=01-01T00:00:00 hist=0 :: KPG.Data(693:7e3edc) KPG.Kind(6:948fe6) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+    E 'KPG revoked c0' u=43725628 mod=01-01T00:00:00 hist=0 :: KPG.Data(80:eb144b) KPG.Kind(7:4bb47f) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+    E 'KPG revoked c1' u=035b819f mod=01-01T01:00:00 hist=0 :: KPG.Data(80:5313bc) KPG.Kind(7:4bb47f) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+
+## keepassxc-cli 2.8.0 merge, set D, A merged into B, exit 0
+# target.kdbx kdbx 4.0 dbCustomData=[_LAST_MODIFIED,KPXC_RANDOM_SLUG]
+  G '' u=8ac8f402 mod=01-01T00:00:00 icon=FolderOpen search=inherit autotype=inherit notes=0
+  G 'General' u=a080e0a6 mod=01-01T00:00:00 icon=Folder search=inherit autotype=inherit notes=0
+    E 'user entry' u=7e5fafa0 mod=01-01T00:00:00 hist=0 :: Notes(0:e3b0c4) Password[P](17:33aad6) URL(0:e3b0c4) UserName(0:e3b0c4)
+  G 'KeePassGate' u=fe4040a9 mod=01-01T00:00:00 icon=TerminalEncrypted search=False autotype=False notes=52
+    E 'KPG authority fpA' u=207404c0 mod=01-01T00:00:00 hist=0 :: KPG.Data[P](2883:1ce250) KPG.Kind(9:8f76fd) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+    E 'KPG client c1' u=d41d9c19 mod=01-01T00:00:00 hist=0 :: KPG.Data(693:22c487) KPG.Kind(6:948fe6) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+    E 'KPG client c3' u=e7e5d1f9 mod=01-01T00:00:00 hist=0 :: KPG.Data(693:7978a6) KPG.Kind(6:948fe6) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+    E 'KPG client c4' u=e3d040ad mod=01-01T02:00:00 hist=0 :: KPG.Data(693:8dba64) KPG.Kind(6:948fe6) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+    E 'KPG client c9' u=bf654ed4 mod=01-01T00:00:00 hist=0 :: KPG.Data(693:7e3edc) KPG.Kind(6:948fe6) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+    E 'KPG revoked c0' u=43725628 mod=01-01T00:00:00 hist=0 :: KPG.Data(80:eb144b) KPG.Kind(7:4bb47f) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+    E 'KPG revoked c1' u=035b819f mod=01-01T01:00:00 hist=0 :: KPG.Data(80:5313bc) KPG.Kind(7:4bb47f) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+
+## keepassxc-cli 2.4.2 add (a plain save), on I-A, exit 0
+# saved.kdbx kdbx 4.0 dbCustomData=[]
+  G '' u=9a076c9b mod=01-01T00:00:00 icon=FolderOpen search=inherit autotype=inherit notes=0
+  G 'General' u=31146d4d mod=11-15T15:20:02 icon=Folder search=inherit autotype=inherit notes=0
+    E 'user entry' u=d5062e4d mod=01-01T00:00:00 hist=0 :: Notes(0:e3b0c4) Password[P](17:33aad6) URL(0:e3b0c4) UserName(0:e3b0c4)
+    E 'xc-added' u=efb773de mod=11-15T15:20:02 hist=0 :: Notes(0:e3b0c4) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+  G 'KeePassGate' u=fe4040a9 mod=01-01T01:00:00 icon=TerminalEncrypted search=False autotype=False notes=52
+    E 'KPG authority fpA' u=207404c0 mod=01-01T01:00:00 hist=0 :: KPG.Data[P](2883:1ce250) KPG.Kind(9:8f76fd) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+    E 'KPG client c1' u=d41d9c19 mod=01-01T01:00:00 hist=0 :: KPG.Data(693:22c487) KPG.Kind(6:948fe6) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+    E 'KPG profile reader 1' u=a5b699f5 mod=01-01T01:00:00 hist=0 :: KPG.Data(45:d32882) KPG.Kind(7:1900ea) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+    E 'KPG revoked c0' u=43725628 mod=01-01T01:00:00 hist=0 :: KPG.Data(80:eb144b) KPG.Kind(7:4bb47f) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+
+## keepassxc-cli 2.6.6 add (a plain save), on I-A, exit 0
+# saved.kdbx kdbx 4.0 dbCustomData=[]
+  G '' u=9a076c9b mod=01-01T00:00:00 icon=FolderOpen search=inherit autotype=inherit notes=0
+  G 'General' u=31146d4d mod=11-15T15:20:02 icon=Folder search=inherit autotype=inherit notes=0
+    E 'user entry' u=d5062e4d mod=01-01T00:00:00 hist=0 :: Notes(0:e3b0c4) Password[P](17:33aad6) URL(0:e3b0c4) UserName(0:e3b0c4)
+    E 'xc-added' u=8a650746 mod=11-15T15:20:02 hist=0 :: Notes(0:e3b0c4) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+  G 'KeePassGate' u=fe4040a9 mod=01-01T01:00:00 icon=TerminalEncrypted search=False autotype=False notes=52
+    E 'KPG authority fpA' u=207404c0 mod=01-01T01:00:00 hist=0 :: KPG.Data[P](2883:1ce250) KPG.Kind(9:8f76fd) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+    E 'KPG client c1' u=d41d9c19 mod=01-01T01:00:00 hist=0 :: KPG.Data(693:22c487) KPG.Kind(6:948fe6) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+    E 'KPG profile reader 1' u=a5b699f5 mod=01-01T01:00:00 hist=0 :: KPG.Data(45:d32882) KPG.Kind(7:1900ea) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+    E 'KPG revoked c0' u=43725628 mod=01-01T01:00:00 hist=0 :: KPG.Data(80:eb144b) KPG.Kind(7:4bb47f) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+
+## keepassxc-cli 2.7.12 add (a plain save), on I-A, exit 0
+# saved.kdbx kdbx 4.0 dbCustomData=[_LAST_MODIFIED,KPXC_RANDOM_SLUG]
+  G '' u=9a076c9b mod=01-01T00:00:00 icon=FolderOpen search=inherit autotype=inherit notes=0
+  G 'General' u=31146d4d mod=11-15T15:20:02 icon=Folder search=inherit autotype=inherit notes=0
+    E 'user entry' u=d5062e4d mod=01-01T00:00:00 hist=0 :: Notes(0:e3b0c4) Password[P](17:33aad6) URL(0:e3b0c4) UserName(0:e3b0c4)
+    E 'xc-added' u=45f4c410 mod=11-15T15:20:02 hist=0 :: Notes(0:e3b0c4) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+  G 'KeePassGate' u=fe4040a9 mod=01-01T01:00:00 icon=TerminalEncrypted search=False autotype=False notes=52
+    E 'KPG authority fpA' u=207404c0 mod=01-01T01:00:00 hist=0 :: KPG.Data[P](2883:1ce250) KPG.Kind(9:8f76fd) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+    E 'KPG client c1' u=d41d9c19 mod=01-01T01:00:00 hist=0 :: KPG.Data(693:22c487) KPG.Kind(6:948fe6) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+    E 'KPG profile reader 1' u=a5b699f5 mod=01-01T01:00:00 hist=0 :: KPG.Data(45:d32882) KPG.Kind(7:1900ea) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+    E 'KPG revoked c0' u=43725628 mod=01-01T01:00:00 hist=0 :: KPG.Data(80:eb144b) KPG.Kind(7:4bb47f) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+
+## keepassxc-cli 2.8.0 add (a plain save), on I-A, exit 0
+# saved.kdbx kdbx 4.0 dbCustomData=[_LAST_MODIFIED,KPXC_RANDOM_SLUG]
+  G '' u=9a076c9b mod=01-01T00:00:00 icon=FolderOpen search=inherit autotype=inherit notes=0
+  G 'General' u=31146d4d mod=11-15T15:20:02 icon=Folder search=inherit autotype=inherit notes=0
+    E 'user entry' u=d5062e4d mod=01-01T00:00:00 hist=0 :: Notes(0:e3b0c4) Password[P](17:33aad6) URL(0:e3b0c4) UserName(0:e3b0c4)
+    E 'xc-added' u=fded295c mod=11-15T15:20:02 hist=0 :: Notes(0:e3b0c4) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+  G 'KeePassGate' u=fe4040a9 mod=01-01T01:00:00 icon=TerminalEncrypted search=False autotype=False notes=52
+    E 'KPG authority fpA' u=207404c0 mod=01-01T01:00:00 hist=0 :: KPG.Data[P](2883:1ce250) KPG.Kind(9:8f76fd) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+    E 'KPG client c1' u=d41d9c19 mod=01-01T01:00:00 hist=0 :: KPG.Data(693:22c487) KPG.Kind(6:948fe6) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+    E 'KPG profile reader 1' u=a5b699f5 mod=01-01T01:00:00 hist=0 :: KPG.Data(45:d32882) KPG.Kind(7:1900ea) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+    E 'KPG revoked c0' u=43725628 mod=01-01T01:00:00 hist=0 :: KPG.Data(80:eb144b) KPG.Kind(7:4bb47f) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+
+## chain: keepassxc-cli 2.8.0 merged stale D-B into D-A, then KeePassLib 2.62 Synchronize of that result with D-B
+# then-kp-sync.kdbx kdbx 4.0 dbCustomData=[_LAST_MODIFIED,KPXC_RANDOM_SLUG]
+  deleted 43725628 @01-01T01:00:00
+  deleted bf654ed4 @01-01T01:00:00
+  deleted d41d9c19 @01-01T01:00:00
+  G '' u=8ac8f402 mod=01-01T00:00:00 icon=FolderOpen search=inherit autotype=inherit notes=0
+  G 'General' u=a080e0a6 mod=01-01T00:00:00 icon=Folder search=inherit autotype=inherit notes=0
+    E 'user entry' u=7e5fafa0 mod=01-01T00:00:00 hist=0 :: Password[P](17:33aad6)
+  G 'KeePassGate' u=fe4040a9 mod=01-01T00:00:00 icon=TerminalEncrypted search=False autotype=False notes=52
+    E 'KPG authority fpA' u=207404c0 mod=01-01T00:00:00 hist=0 :: KPG.Data[P](2883:1ce250) KPG.Kind(9:8f76fd) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+    E 'KPG client c3' u=e7e5d1f9 mod=01-01T00:00:00 hist=0 :: KPG.Data(693:7978a6) KPG.Kind(6:948fe6) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+    E 'KPG client c4' u=e3d040ad mod=01-01T02:00:00 hist=0 :: KPG.Data(693:8dba64) KPG.Kind(6:948fe6) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)
+    E 'KPG revoked c1' u=035b819f mod=01-01T01:00:00 hist=0 :: KPG.Data(80:5313bc) KPG.Kind(7:4bb47f) Notes(52:e51b99) Password[P](0:e3b0c4) URL(0:e3b0c4) UserName(0:e3b0c4)

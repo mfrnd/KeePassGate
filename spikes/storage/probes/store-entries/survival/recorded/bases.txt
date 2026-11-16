@@ -1,0 +1,64 @@
+# D0.kdbx
+  deletion records: none
+  store groups: 1
+    KPG authority fpA [in store]
+    KPG client c1 [in store]
+    KPG client c2 [in store]
+  served authority: fpA
+  c1: ADMITTED
+  c2: ADMITTED
+  c5: no record
+# P.kdbx
+  deletion records: client:c1
+  store groups: 1
+    KPG authority fpA [in store]
+    KPG client c2 [in store]
+    KPG revoked client c1 [in store]
+  served authority: fpA
+  c1: no record
+  c2: ADMITTED
+  c5: no record
+# S.kdbx
+  deletion records: none
+  store groups: 1
+    KPG authority fpA [in store]
+    KPG client c1 [in store]
+    KPG client c2 [in store]
+  served authority: fpA
+  c1: ADMITTED
+  c2: ADMITTED
+  c5: no record
+# X1.kdbx
+  deletion records: authority:fpA, client:c1, client:c2, group
+  store groups: 0
+  served authority: none
+  c1: no record
+  c2: no record
+  c5: no record
+# P1.kdbx
+  deletion records: authority:fpA, client:c1, client:c2
+  store groups: 1
+    KPG authority fpB [in store]
+    KPG client c5 [in store]
+  served authority: fpB
+  c1: no record
+  c2: no record
+  c5: ADMITTED
+# Q.kdbx
+  deletion records: authority:fpA, client:c1, client:c2
+  store groups: 1
+    KPG authority fpB [in store]
+    KPG client c5 [in store]
+  served authority: fpB
+  c1: no record
+  c2: no record
+  c5: ADMITTED
+# P2.kdbx
+  deletion records: authority:fpA, client:c1, client:c2, client:c5
+  store groups: 1
+    KPG authority fpB [in store]
+    KPG revoked client c5 [in store]
+  served authority: fpB
+  c1: no record
+  c2: no record
+  c5: no record

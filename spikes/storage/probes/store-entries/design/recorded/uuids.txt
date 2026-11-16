@@ -1,0 +1,3 @@
+group                         FE4040A9E0FAE884FA8BECAEEE9FBB46
+authority fpA                 207404C05F1D7831D0C0396D4AED2102
+revoked c0                    4372562831A5CBE362C00B7C0D7FF22C

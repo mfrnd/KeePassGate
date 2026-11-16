@@ -1,0 +1,10 @@
+KeePass assembly: 2.62.0.0  runtime 4.0.30319.42000
+format: Bitwarden JSON  SupportsUuids=False
+entry 7D5C6EDBF4CD4A49A3041DF464273E75 in group 'Shopping'
+  string [KPG.Data] protected=False value={"v":"1","authority":"3f2a3f2a3f2a3f2a3f2a3f2a3f2a3f2a3f2a3f2a3f2a3f2a3f2a3f2a3f2a3f2a"}
+  string [KPG.Kind] protected=False value=retired
+  string [Password] protected=True value=invented-password
+  string [Title] protected=False value=Example shop
+  string [UserName] protected=False value=someone
+group '' searching= autotype=
+group 'Shopping' searching= autotype=

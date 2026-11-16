@@ -1,0 +1,295 @@
+## KeePassLib 2.62, set I, B merged into A, Synchronize | kdbx 4.0
+   groups: KeePassGate:fe4040a9:search=False:autotype=False
+   entries: authority fpA@fe40, authority fpB@fe40, client c1@fe40, client c2@fe40, profile reader 1@fe40/h1, profile-removed reader 1@fe40, revoked c0@fe40/h1
+   deletion records: none
+   string sets: KPG.Data KPG.Kind Notes Password[P] URL UserName || KPG.Data[P] KPG.Kind Notes Password[P] URL UserName
+## KeePassLib 2.62, set I, B merged into A, OverwriteIfNewer | kdbx 4.0
+   groups: KeePassGate:fe4040a9:search=False:autotype=False
+   entries: authority fpA@fe40, authority fpB@fe40, client c1@fe40, client c2@fe40, profile reader 1@fe40/h1, profile-removed reader 1@fe40, revoked c0@fe40/h1
+   deletion records: none
+   string sets: KPG.Data KPG.Kind Notes Password[P] URL UserName || KPG.Data[P] KPG.Kind Notes Password[P] URL UserName
+## KeePassLib 2.62, set I, B merged into A, OverwriteExisting | kdbx 4.0
+   groups: KeePassGate:fe4040a9:search=False:autotype=False
+   entries: authority fpA@fe40, authority fpB@fe40, client c1@fe40, client c2@fe40, profile reader 1@fe40/h1, profile-removed reader 1@fe40, revoked c0@fe40/h1
+   deletion records: none
+   string sets: KPG.Data KPG.Kind Notes Password[P] URL UserName || KPG.Data[P] KPG.Kind Notes Password[P] URL UserName
+## KeePassLib 2.62, set I, B merged into A, KeepExisting | kdbx 4.0
+   groups: KeePassGate:fe4040a9:search=False:autotype=False
+   entries: authority fpA@fe40, authority fpB@fe40, client c1@fe40, client c2@fe40, profile reader 1@fe40/h1, profile-removed reader 1@fe40, revoked c0@fe40/h1
+   deletion records: none
+   string sets: KPG.Data KPG.Kind Notes Password[P] URL UserName || KPG.Data[P] KPG.Kind Notes Password[P] URL UserName
+## KeePassLib 2.62, set I, B merged into A, CreateNewUuids | kdbx 4.0
+   groups: KeePassGate:fe4040a9:search=False:autotype=False; KeePassGate:1f5ff4ff:search=False:autotype=False
+   entries: authority fpA@fe40, authority fpB@1f5f, client c1@fe40, client c2@1f5f, profile reader 1@1f5f, profile reader 1@fe40, profile-removed reader 1@1f5f, revoked c0@1f5f, revoked c0@fe40
+   deletion records: none
+   string sets: KPG.Data KPG.Kind Notes Password[P] URL UserName || KPG.Data[P] KPG.Kind Notes Password[P] URL UserName
+## keepassxc-cli 2.4.2 merge, set I, B merged into A, exit 0 | kdbx 4.0
+   groups: KeePassGate:fe4040a9:search=False:autotype=False
+   entries: authority fpA@fe40, authority fpB@fe40, client c1@fe40, client c2@fe40, profile reader 1@fe40/h1, profile-removed reader 1@fe40, revoked c0@fe40/h1
+   deletion records: none
+   string sets: KPG.Data KPG.Kind Notes Password[P] URL UserName || KPG.Data[P] KPG.Kind Notes Password[P] URL UserName
+## keepassxc-cli 2.6.6 merge, set I, B merged into A, exit 0 | kdbx 4.0
+   groups: KeePassGate:fe4040a9:search=False:autotype=False
+   entries: authority fpA@fe40, authority fpB@fe40, client c1@fe40, client c2@fe40, profile reader 1@fe40/h1, profile-removed reader 1@fe40, revoked c0@fe40/h1
+   deletion records: none
+   string sets: KPG.Data KPG.Kind Notes Password[P] URL UserName || KPG.Data[P] KPG.Kind Notes Password[P] URL UserName
+## keepassxc-cli 2.7.12 merge, set I, B merged into A, exit 0 | kdbx 4.0
+   groups: KeePassGate:fe4040a9:search=False:autotype=False
+   entries: authority fpA@fe40, authority fpB@fe40, client c1@fe40, client c2@fe40, profile reader 1@fe40/h1, profile-removed reader 1@fe40, revoked c0@fe40/h1
+   deletion records: none
+   string sets: KPG.Data KPG.Kind Notes Password[P] URL UserName || KPG.Data[P] KPG.Kind Notes Password[P] URL UserName
+## keepassxc-cli 2.8.0 merge, set I, B merged into A, exit 0 | kdbx 4.0
+   groups: KeePassGate:fe4040a9:search=False:autotype=False
+   entries: authority fpA@fe40, authority fpB@fe40, client c1@fe40, client c2@fe40, profile reader 1@fe40/h1, profile-removed reader 1@fe40, revoked c0@fe40/h1
+   deletion records: none
+   string sets: KPG.Data KPG.Kind Notes Password[P] URL UserName || KPG.Data[P] KPG.Kind Notes Password[P] URL UserName
+## KeePassLib 2.62, set I, A merged into B, Synchronize | kdbx 4.0
+   groups: KeePassGate:fe4040a9:search=False:autotype=False
+   entries: authority fpA@fe40, authority fpB@fe40, client c1@fe40, client c2@fe40, profile reader 1@fe40/h1, profile-removed reader 1@fe40, revoked c0@fe40/h1
+   deletion records: none
+   string sets: KPG.Data KPG.Kind Notes Password[P] URL UserName || KPG.Data[P] KPG.Kind Notes Password[P] URL UserName
+## KeePassLib 2.62, set I, A merged into B, OverwriteIfNewer | kdbx 4.0
+   groups: KeePassGate:fe4040a9:search=False:autotype=False
+   entries: authority fpA@fe40, authority fpB@fe40, client c1@fe40, client c2@fe40, profile reader 1@fe40/h1, profile-removed reader 1@fe40, revoked c0@fe40/h1
+   deletion records: none
+   string sets: KPG.Data KPG.Kind Notes Password[P] URL UserName || KPG.Data[P] KPG.Kind Notes Password[P] URL UserName
+## KeePassLib 2.62, set I, A merged into B, OverwriteExisting | kdbx 4.0
+   groups: KeePassGate:fe4040a9:search=False:autotype=False
+   entries: authority fpA@fe40, authority fpB@fe40, client c1@fe40, client c2@fe40, profile reader 1@fe40/h1, profile-removed reader 1@fe40, revoked c0@fe40/h1
+   deletion records: none
+   string sets: KPG.Data KPG.Kind Notes Password[P] URL UserName || KPG.Data[P] KPG.Kind Notes Password[P] URL UserName
+## KeePassLib 2.62, set I, A merged into B, KeepExisting | kdbx 4.0
+   groups: KeePassGate:fe4040a9:search=False:autotype=False
+   entries: authority fpA@fe40, authority fpB@fe40, client c1@fe40, client c2@fe40, profile reader 1@fe40/h1, profile-removed reader 1@fe40, revoked c0@fe40/h1
+   deletion records: none
+   string sets: KPG.Data KPG.Kind Notes Password[P] URL UserName || KPG.Data[P] KPG.Kind Notes Password[P] URL UserName
+## KeePassLib 2.62, set I, A merged into B, CreateNewUuids | kdbx 4.0
+   groups: KeePassGate:fe4040a9:search=False:autotype=False; KeePassGate:61bcafbc:search=False:autotype=False
+   entries: authority fpA@61bc, authority fpB@fe40, client c1@61bc, client c2@fe40, profile reader 1@61bc, profile reader 1@fe40, profile-removed reader 1@fe40, revoked c0@61bc, revoked c0@fe40
+   deletion records: none
+   string sets: KPG.Data KPG.Kind Notes Password[P] URL UserName || KPG.Data[P] KPG.Kind Notes Password[P] URL UserName
+## keepassxc-cli 2.4.2 merge, set I, A merged into B, exit 0 | kdbx 4.0
+   groups: KeePassGate:fe4040a9:search=False:autotype=False
+   entries: authority fpA@fe40, authority fpB@fe40, client c1@fe40, client c2@fe40, profile reader 1@fe40/h1, profile-removed reader 1@fe40, revoked c0@fe40/h1
+   deletion records: none
+   string sets: KPG.Data KPG.Kind Notes Password[P] URL UserName || KPG.Data[P] KPG.Kind Notes Password[P] URL UserName
+## keepassxc-cli 2.6.6 merge, set I, A merged into B, exit 0 | kdbx 4.0
+   groups: KeePassGate:fe4040a9:search=False:autotype=False
+   entries: authority fpA@fe40, authority fpB@fe40, client c1@fe40, client c2@fe40, profile reader 1@fe40/h1, profile-removed reader 1@fe40, revoked c0@fe40/h1
+   deletion records: none
+   string sets: KPG.Data KPG.Kind Notes Password[P] URL UserName || KPG.Data[P] KPG.Kind Notes Password[P] URL UserName
+## keepassxc-cli 2.7.12 merge, set I, A merged into B, exit 0 | kdbx 4.0
+   groups: KeePassGate:fe4040a9:search=False:autotype=False
+   entries: authority fpA@fe40, authority fpB@fe40, client c1@fe40, client c2@fe40, profile reader 1@fe40/h1, profile-removed reader 1@fe40, revoked c0@fe40/h1
+   deletion records: none
+   string sets: KPG.Data KPG.Kind Notes Password[P] URL UserName || KPG.Data[P] KPG.Kind Notes Password[P] URL UserName
+## keepassxc-cli 2.8.0 merge, set I, A merged into B, exit 0 | kdbx 4.0
+   groups: KeePassGate:fe4040a9:search=False:autotype=False
+   entries: authority fpA@fe40, authority fpB@fe40, client c1@fe40, client c2@fe40, profile reader 1@fe40/h1, profile-removed reader 1@fe40, revoked c0@fe40/h1
+   deletion records: none
+   string sets: KPG.Data KPG.Kind Notes Password[P] URL UserName || KPG.Data[P] KPG.Kind Notes Password[P] URL UserName
+## KeePassLib 2.62, set T, B merged into A, Synchronize | kdbx 4.0
+   groups: KeePassGate:fe4040a9:search=False:autotype=False
+   entries: authority fpA@fe40, authority fpB@fe40, revoked c0@fe40
+   deletion records: none
+   string sets: KPG.Data KPG.Kind Notes Password[P] URL UserName || KPG.Data[P] KPG.Kind Notes Password[P] URL UserName
+## KeePassLib 2.62, set T, B merged into A, OverwriteIfNewer | kdbx 4.0
+   groups: KeePassGate:fe4040a9:search=False:autotype=False
+   entries: authority fpA@fe40, authority fpB@fe40, revoked c0@fe40
+   deletion records: none
+   string sets: KPG.Data KPG.Kind Notes Password[P] URL UserName || KPG.Data[P] KPG.Kind Notes Password[P] URL UserName
+## KeePassLib 2.62, set T, B merged into A, OverwriteExisting | kdbx 4.0
+   groups: KeePassGate:fe4040a9:search=False:autotype=False
+   entries: authority fpA@fe40, authority fpB@fe40, revoked c0@fe40
+   deletion records: none
+   string sets: KPG.Data KPG.Kind Notes Password[P] URL UserName || KPG.Data[P] KPG.Kind Notes Password[P] URL UserName
+## KeePassLib 2.62, set T, B merged into A, KeepExisting | kdbx 4.0
+   groups: KeePassGate:fe4040a9:search=False:autotype=False
+   entries: authority fpA@fe40, authority fpB@fe40, revoked c0@fe40
+   deletion records: none
+   string sets: KPG.Data KPG.Kind Notes Password[P] URL UserName || KPG.Data[P] KPG.Kind Notes Password[P] URL UserName
+## KeePassLib 2.62, set T, B merged into A, CreateNewUuids | kdbx 4.0
+   groups: KeePassGate:fe4040a9:search=False:autotype=False; KeePassGate:513671b3:search=False:autotype=False
+   entries: authority fpA@fe40, authority fpB@5136, revoked c0@5136, revoked c0@fe40
+   deletion records: none
+   string sets: KPG.Data KPG.Kind Notes Password[P] URL UserName || KPG.Data[P] KPG.Kind Notes Password[P] URL UserName
+## keepassxc-cli 2.4.2 merge, set T, B merged into A, exit 0 | kdbx 4.0
+   groups: KeePassGate:fe4040a9:search=False:autotype=False
+   entries: authority fpA@fe40, authority fpB@fe40, revoked c0@fe40
+   deletion records: none
+   string sets: KPG.Data KPG.Kind Notes Password[P] URL UserName || KPG.Data[P] KPG.Kind Notes Password[P] URL UserName
+## keepassxc-cli 2.6.6 merge, set T, B merged into A, exit 0 | kdbx 4.0
+   groups: KeePassGate:fe4040a9:search=False:autotype=False
+   entries: authority fpA@fe40, authority fpB@fe40, revoked c0@fe40
+   deletion records: none
+   string sets: KPG.Data KPG.Kind Notes Password[P] URL UserName || KPG.Data[P] KPG.Kind Notes Password[P] URL UserName
+## keepassxc-cli 2.7.12 merge, set T, B merged into A, exit 0 | kdbx 4.0
+   groups: KeePassGate:fe4040a9:search=False:autotype=False
+   entries: authority fpA@fe40, authority fpB@fe40, revoked c0@fe40
+   deletion records: none
+   string sets: KPG.Data KPG.Kind Notes Password[P] URL UserName || KPG.Data[P] KPG.Kind Notes Password[P] URL UserName
+## keepassxc-cli 2.8.0 merge, set T, B merged into A, exit 0 | kdbx 4.0
+   groups: KeePassGate:fe4040a9:search=False:autotype=False
+   entries: authority fpA@fe40, authority fpB@fe40, revoked c0@fe40
+   deletion records: none
+   string sets: KPG.Data KPG.Kind Notes Password[P] URL UserName || KPG.Data[P] KPG.Kind Notes Password[P] URL UserName
+## KeePassLib 2.62, set T, A merged into B, Synchronize | kdbx 4.0
+   groups: KeePassGate:fe4040a9:search=False:autotype=False
+   entries: authority fpA@fe40, authority fpB@fe40, revoked c0@fe40
+   deletion records: none
+   string sets: KPG.Data KPG.Kind Notes Password[P] URL UserName || KPG.Data[P] KPG.Kind Notes Password[P] URL UserName
+## KeePassLib 2.62, set T, A merged into B, OverwriteIfNewer | kdbx 4.0
+   groups: KeePassGate:fe4040a9:search=False:autotype=False
+   entries: authority fpA@fe40, authority fpB@fe40, revoked c0@fe40
+   deletion records: none
+   string sets: KPG.Data KPG.Kind Notes Password[P] URL UserName || KPG.Data[P] KPG.Kind Notes Password[P] URL UserName
+## KeePassLib 2.62, set T, A merged into B, OverwriteExisting | kdbx 4.0
+   groups: KeePassGate:fe4040a9:search=False:autotype=False
+   entries: authority fpA@fe40, authority fpB@fe40, revoked c0@fe40
+   deletion records: none
+   string sets: KPG.Data KPG.Kind Notes Password[P] URL UserName || KPG.Data[P] KPG.Kind Notes Password[P] URL UserName
+## KeePassLib 2.62, set T, A merged into B, KeepExisting | kdbx 4.0
+   groups: KeePassGate:fe4040a9:search=False:autotype=False
+   entries: authority fpA@fe40, authority fpB@fe40, revoked c0@fe40
+   deletion records: none
+   string sets: KPG.Data KPG.Kind Notes Password[P] URL UserName || KPG.Data[P] KPG.Kind Notes Password[P] URL UserName
+## KeePassLib 2.62, set T, A merged into B, CreateNewUuids | kdbx 4.0
+   groups: KeePassGate:fe4040a9:search=False:autotype=False; KeePassGate:24ec00af:search=False:autotype=False
+   entries: authority fpA@24ec, authority fpB@fe40, revoked c0@24ec, revoked c0@fe40
+   deletion records: none
+   string sets: KPG.Data KPG.Kind Notes Password[P] URL UserName || KPG.Data[P] KPG.Kind Notes Password[P] URL UserName
+## keepassxc-cli 2.4.2 merge, set T, A merged into B, exit 0 | kdbx 4.0
+   groups: KeePassGate:fe4040a9:search=False:autotype=False
+   entries: authority fpA@fe40, authority fpB@fe40, revoked c0@fe40
+   deletion records: none
+   string sets: KPG.Data KPG.Kind Notes Password[P] URL UserName || KPG.Data[P] KPG.Kind Notes Password[P] URL UserName
+## keepassxc-cli 2.6.6 merge, set T, A merged into B, exit 0 | kdbx 4.0
+   groups: KeePassGate:fe4040a9:search=False:autotype=False
+   entries: authority fpA@fe40, authority fpB@fe40, revoked c0@fe40
+   deletion records: none
+   string sets: KPG.Data KPG.Kind Notes Password[P] URL UserName || KPG.Data[P] KPG.Kind Notes Password[P] URL UserName
+## keepassxc-cli 2.7.12 merge, set T, A merged into B, exit 0 | kdbx 4.0
+   groups: KeePassGate:fe4040a9:search=False:autotype=False
+   entries: authority fpA@fe40, authority fpB@fe40, revoked c0@fe40
+   deletion records: none
+   string sets: KPG.Data KPG.Kind Notes Password[P] URL UserName || KPG.Data[P] KPG.Kind Notes Password[P] URL UserName
+## keepassxc-cli 2.8.0 merge, set T, A merged into B, exit 0 | kdbx 4.0
+   groups: KeePassGate:fe4040a9:search=False:autotype=False
+   entries: authority fpA@fe40, authority fpB@fe40, revoked c0@fe40
+   deletion records: none
+   string sets: KPG.Data KPG.Kind Notes Password[P] URL UserName || KPG.Data[P] KPG.Kind Notes Password[P] URL UserName
+## KeePassLib 2.62, set D, B merged into A, Synchronize | kdbx 4.0
+   groups: KeePassGate:fe4040a9:search=False:autotype=False
+   entries: authority fpA@fe40, client c3@fe40, client c4@fe40, revoked c1@fe40
+   deletion records: 43725628, bf654ed4, d41d9c19
+   string sets: KPG.Data KPG.Kind Notes Password[P] URL UserName || KPG.Data[P] KPG.Kind Notes Password[P] URL UserName
+## KeePassLib 2.62, set D, B merged into A, OverwriteIfNewer | kdbx 4.0
+   groups: KeePassGate:fe4040a9:search=False:autotype=False
+   entries: authority fpA@fe40, client c3@fe40, client c4@fe40, revoked c1@fe40
+   deletion records: 43725628, bf654ed4, d41d9c19
+   string sets: KPG.Data KPG.Kind Notes Password[P] URL UserName || KPG.Data[P] KPG.Kind Notes Password[P] URL UserName
+## KeePassLib 2.62, set D, B merged into A, OverwriteExisting | kdbx 4.0
+   groups: KeePassGate:fe4040a9:search=False:autotype=False
+   entries: authority fpA@fe40, client c3@fe40, client c4@fe40, revoked c1@fe40
+   deletion records: 43725628, bf654ed4, d41d9c19
+   string sets: KPG.Data KPG.Kind Notes Password[P] URL UserName || KPG.Data[P] KPG.Kind Notes Password[P] URL UserName
+## KeePassLib 2.62, set D, B merged into A, KeepExisting | kdbx 4.0
+   groups: KeePassGate:fe4040a9:search=False:autotype=False
+   entries: authority fpA@fe40, client c3@fe40, client c4@fe40, revoked c1@fe40
+   deletion records: 43725628, bf654ed4, d41d9c19
+   string sets: KPG.Data KPG.Kind Notes Password[P] URL UserName || KPG.Data[P] KPG.Kind Notes Password[P] URL UserName
+## KeePassLib 2.62, set D, B merged into A, CreateNewUuids | kdbx 4.0
+   groups: KeePassGate:fe4040a9:search=False:autotype=False; KeePassGate:bd474bb5:search=False:autotype=False
+   entries: authority fpA@bd47, authority fpA@fe40, client c1@bd47, client c3@bd47, client c3@fe40, client c4@bd47, client c9@bd47, revoked c0@bd47, revoked c1@fe40
+   deletion records: 43725628, bf654ed4, d41d9c19
+   string sets: KPG.Data KPG.Kind Notes Password[P] URL UserName || KPG.Data[P] KPG.Kind Notes Password[P] URL UserName
+## keepassxc-cli 2.4.2 merge, set D, B merged into A, exit 0 | kdbx 4.0
+   groups: KeePassGate:fe4040a9:search=False:autotype=False
+   entries: authority fpA@fe40, client c1@fe40, client c3@fe40, client c4@fe40, client c9@fe40, revoked c0@fe40, revoked c1@fe40
+   deletion records: 43725628, bf654ed4, d41d9c19
+   string sets: KPG.Data KPG.Kind Notes Password[P] URL UserName || KPG.Data[P] KPG.Kind Notes Password[P] URL UserName
+## keepassxc-cli 2.6.6 merge, set D, B merged into A, exit 0 | kdbx 4.0
+   groups: KeePassGate:fe4040a9:search=False:autotype=False
+   entries: authority fpA@fe40, client c1@fe40, client c3@fe40, client c4@fe40, client c9@fe40, revoked c0@fe40, revoked c1@fe40
+   deletion records: 43725628, bf654ed4, d41d9c19
+   string sets: KPG.Data KPG.Kind Notes Password[P] URL UserName || KPG.Data[P] KPG.Kind Notes Password[P] URL UserName
+## keepassxc-cli 2.7.12 merge, set D, B merged into A, exit 0 | kdbx 4.0
+   groups: KeePassGate:fe4040a9:search=False:autotype=False
+   entries: authority fpA@fe40, client c1@fe40, client c3@fe40, client c4@fe40, client c9@fe40, revoked c0@fe40, revoked c1@fe40
+   deletion records: 43725628, bf654ed4, d41d9c19
+   string sets: KPG.Data KPG.Kind Notes Password[P] URL UserName || KPG.Data[P] KPG.Kind Notes Password[P] URL UserName
+## keepassxc-cli 2.8.0 merge, set D, B merged into A, exit 0 | kdbx 4.0
+   groups: KeePassGate:fe4040a9:search=False:autotype=False
+   entries: authority fpA@fe40, client c1@fe40, client c3@fe40, client c4@fe40, client c9@fe40, revoked c0@fe40, revoked c1@fe40
+   deletion records: 43725628, bf654ed4, d41d9c19
+   string sets: KPG.Data KPG.Kind Notes Password[P] URL UserName || KPG.Data[P] KPG.Kind Notes Password[P] URL UserName
+## KeePassLib 2.62, set D, A merged into B, Synchronize | kdbx 4.0
+   groups: KeePassGate:fe4040a9:search=False:autotype=False
+   entries: authority fpA@fe40, client c3@fe40, client c4@fe40, revoked c1@fe40
+   deletion records: 43725628, bf654ed4, d41d9c19
+   string sets: KPG.Data KPG.Kind Notes Password[P] URL UserName || KPG.Data[P] KPG.Kind Notes Password[P] URL UserName
+## KeePassLib 2.62, set D, A merged into B, OverwriteIfNewer | kdbx 4.0
+   groups: KeePassGate:fe4040a9:search=False:autotype=False
+   entries: authority fpA@fe40, client c1@fe40, client c3@fe40, client c4@fe40, client c9@fe40, revoked c0@fe40, revoked c1@fe40
+   deletion records: none
+   string sets: KPG.Data KPG.Kind Notes Password[P] URL UserName || KPG.Data[P] KPG.Kind Notes Password[P] URL UserName
+## KeePassLib 2.62, set D, A merged into B, OverwriteExisting | kdbx 4.0
+   groups: KeePassGate:fe4040a9:search=False:autotype=False
+   entries: authority fpA@fe40, client c1@fe40, client c3@fe40, client c4@fe40, client c9@fe40, revoked c0@fe40, revoked c1@fe40
+   deletion records: none
+   string sets: KPG.Data KPG.Kind Notes Password[P] URL UserName || KPG.Data[P] KPG.Kind Notes Password[P] URL UserName
+## KeePassLib 2.62, set D, A merged into B, KeepExisting | kdbx 4.0
+   groups: KeePassGate:fe4040a9:search=False:autotype=False
+   entries: authority fpA@fe40, client c1@fe40, client c3@fe40, client c4@fe40, client c9@fe40, revoked c0@fe40, revoked c1@fe40
+   deletion records: none
+   string sets: KPG.Data KPG.Kind Notes Password[P] URL UserName || KPG.Data[P] KPG.Kind Notes Password[P] URL UserName
+## KeePassLib 2.62, set D, A merged into B, CreateNewUuids | kdbx 4.0
+   groups: KeePassGate:fe4040a9:search=False:autotype=False; KeePassGate:831337b9:search=False:autotype=False
+   entries: authority fpA@8313, authority fpA@fe40, client c1@fe40, client c3@8313, client c3@fe40, client c4@fe40, client c9@fe40, revoked c0@fe40, revoked c1@8313
+   deletion records: none
+   string sets: KPG.Data KPG.Kind Notes Password[P] URL UserName || KPG.Data[P] KPG.Kind Notes Password[P] URL UserName
+## keepassxc-cli 2.4.2 merge, set D, A merged into B, exit 0 | kdbx 4.0
+   groups: KeePassGate:fe4040a9:search=False:autotype=False
+   entries: authority fpA@fe40, client c1@fe40, client c3@fe40, client c4@fe40, client c9@fe40, revoked c0@fe40, revoked c1@fe40
+   deletion records: none
+   string sets: KPG.Data KPG.Kind Notes Password[P] URL UserName || KPG.Data[P] KPG.Kind Notes Password[P] URL UserName
+## keepassxc-cli 2.6.6 merge, set D, A merged into B, exit 0 | kdbx 4.0
+   groups: KeePassGate:fe4040a9:search=False:autotype=False
+   entries: authority fpA@fe40, client c1@fe40, client c3@fe40, client c4@fe40, client c9@fe40, revoked c0@fe40, revoked c1@fe40
+   deletion records: none
+   string sets: KPG.Data KPG.Kind Notes Password[P] URL UserName || KPG.Data[P] KPG.Kind Notes Password[P] URL UserName
+## keepassxc-cli 2.7.12 merge, set D, A merged into B, exit 0 | kdbx 4.0
+   groups: KeePassGate:fe4040a9:search=False:autotype=False
+   entries: authority fpA@fe40, client c1@fe40, client c3@fe40, client c4@fe40, client c9@fe40, revoked c0@fe40, revoked c1@fe40
+   deletion records: none
+   string sets: KPG.Data KPG.Kind Notes Password[P] URL UserName || KPG.Data[P] KPG.Kind Notes Password[P] URL UserName
+## keepassxc-cli 2.8.0 merge, set D, A merged into B, exit 0 | kdbx 4.0
+   groups: KeePassGate:fe4040a9:search=False:autotype=False
+   entries: authority fpA@fe40, client c1@fe40, client c3@fe40, client c4@fe40, client c9@fe40, revoked c0@fe40, revoked c1@fe40
+   deletion records: none
+   string sets: KPG.Data KPG.Kind Notes Password[P] URL UserName || KPG.Data[P] KPG.Kind Notes Password[P] URL UserName
+## keepassxc-cli 2.4.2 add (a plain save), on I-A, exit 0 | kdbx 4.0
+   groups: KeePassGate:fe4040a9:search=False:autotype=False
+   entries: authority fpA@fe40, client c1@fe40, profile reader 1@fe40, revoked c0@fe40
+   deletion records: none
+   string sets: KPG.Data KPG.Kind Notes Password[P] URL UserName || KPG.Data[P] KPG.Kind Notes Password[P] URL UserName
+## keepassxc-cli 2.6.6 add (a plain save), on I-A, exit 0 | kdbx 4.0
+   groups: KeePassGate:fe4040a9:search=False:autotype=False
+   entries: authority fpA@fe40, client c1@fe40, profile reader 1@fe40, revoked c0@fe40
+   deletion records: none
+   string sets: KPG.Data KPG.Kind Notes Password[P] URL UserName || KPG.Data[P] KPG.Kind Notes Password[P] URL UserName
+## keepassxc-cli 2.7.12 add (a plain save), on I-A, exit 0 | kdbx 4.0
+   groups: KeePassGate:fe4040a9:search=False:autotype=False
+   entries: authority fpA@fe40, client c1@fe40, profile reader 1@fe40, revoked c0@fe40
+   deletion records: none
+   string sets: KPG.Data KPG.Kind Notes Password[P] URL UserName || KPG.Data[P] KPG.Kind Notes Password[P] URL UserName
+## keepassxc-cli 2.8.0 add (a plain save), on I-A, exit 0 | kdbx 4.0
+   groups: KeePassGate:fe4040a9:search=False:autotype=False
+   entries: authority fpA@fe40, client c1@fe40, profile reader 1@fe40, revoked c0@fe40
+   deletion records: none
+   string sets: KPG.Data KPG.Kind Notes Password[P] URL UserName || KPG.Data[P] KPG.Kind Notes Password[P] URL UserName
+## chain: keepassxc-cli 2.8.0 merged stale D-B into D-A, then KeePassLib 2.62 Synchronize of that result with D-B | kdbx 4.0
+   groups: KeePassGate:fe4040a9:search=False:autotype=False
+   entries: authority fpA@fe40, client c3@fe40, client c4@fe40, revoked c1@fe40
+   deletion records: 43725628, bf654ed4, d41d9c19
+   string sets: KPG.Data KPG.Kind Notes Password[P] URL UserName || KPG.Data[P] KPG.Kind Notes Password[P] URL UserName

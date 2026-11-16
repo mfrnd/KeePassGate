@@ -99,6 +99,16 @@ words:
   - keepassxc
   - DroidMonkey
 
+  # Programs and libraries the store-entries probes run, spelled as their projects spell them.
+  - pykeepass
+  - kdbxweb
+  - lxml
+  - fflate
+  - Bitwarden
+  # Identifiers in the store-entries probes, which are carried unchanged: the `kpmerge` verb of
+  # the design's `Sep.exe`, and `unretired` in the survival critique's `Surv.cs`.
+  - kpmerge
+  - unretired
   # Identifiers in the ground-keepass probe, which is carried unchanged: the variant `nobackup`
   # its X2 prints, which the family's `x2.py` and `RUN.md` match, and the local `scen` of X3.
   - nobackup
