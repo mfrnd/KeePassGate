@@ -1,0 +1,14 @@
+program kpdx
+cases	edit	2
+cases	merge of two	2
+cases	save	2
+finding	edit: format version 4.0 -> 3.1	2
+  e.g.	h0001 edit-A 
+  e.g.	h0001 edit-B 
+finding	merge of two against KeePassLib: deletion record KeePassLib keeps is missing	1
+  e.g.	h0001 m-AB 4845413f
+finding	merge of two: deletion record not kept	1
+  e.g.	h0001 m-AB 4845413f
+finding	save: format version 4.0 -> 3.1	2
+  e.g.	h0001 save-A 
+  e.g.	h0001 save-B 

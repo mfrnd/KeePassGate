@@ -1,0 +1,25 @@
+FAILED save/all-raw: DatabaseInputException: 
+FAILED unrelated/all-raw: DatabaseInputException: 
+FAILED entry/all-raw: DatabaseInputException: 
+FAILED save/place-comment: DatabaseInputException: 
+FAILED unrelated/place-comment: DatabaseInputException: 
+FAILED entry/place-comment: DatabaseInputException: 
+FAILED save/place-hfield: DatabaseInputException: 
+FAILED unrelated/place-hfield: DatabaseInputException: 
+FAILED entry/place-hfield: DatabaseInputException: 
+FAILED save/place-xml-empty: XMLMalformedDatabaseException: Invalid end element: Context MemoryProtectionEnd element: KpgX
+FAILED unrelated/place-xml-empty: XMLMalformedDatabaseException: Invalid end element: Context MemoryProtectionEnd element: KpgX
+FAILED entry/place-xml-empty: XMLMalformedDatabaseException: Invalid end element: Context MemoryProtectionEnd element: KpgX
+FAILED save/place-xml-meta: DatabaseInputException: 
+FAILED unrelated/place-xml-meta: DatabaseInputException: 
+FAILED entry/place-xml-meta: DatabaseInputException: 
+FAILED save/place-xml-other: DatabaseInputException: 
+FAILED unrelated/place-xml-other: DatabaseInputException: 
+FAILED entry/place-xml-other: DatabaseInputException: 
+kpdx: 64 jobs, 18 failed, 52589 ms
+reason all-raw: java.io.IOException: Invalid header type: 1
+reason place-comment: java.io.IOException: Invalid header type: 1
+reason place-hfield: java.io.IOException: Invalid header type: 13
+reason place-xml-empty: com.kunzisoft.keepass.database.exception.XMLMalformedDatabaseException: Invalid end element: Context MemoryProtectionEnd element: KpgX
+reason place-xml-meta: org.xmlpull.v1.XmlPullParserException: Wrong event type (position:TEXT kpg:X.memprot:ba...@24:27 in java.io.InputStreamReader@49878468)
+reason place-xml-other: org.xmlpull.v1.XmlPullParserException: Wrong event type (position:TEXT kpg:X.group.time...@90:33 in java.io.InputStreamReader@7507d851)

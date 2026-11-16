@@ -1,0 +1,26 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- The store's histories, made and read with KeePass 2.62's KeePassLib as KeePass would make and
+       read them: `gen` writes the copies of every history and the jobs the two harnesses run over
+       them, `ref` runs KeePassLib's own Synchronize over the same copies in the same orders, and
+       `analyze` reads every file a program wrote and reports what happened to the store's entries.
+       Also `formats`, the inputs of the format and key derivation table. Invented content only, no
+       window. -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net48</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <PlatformTarget>x64</PlatformTarget>
+    <AssemblyName>StoreLab</AssemblyName>
+    <Nullable>disable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Reference Include="KeePass">
+      <HintPath>$(KeePassExe)</HintPath>
+    </Reference>
+    <Reference Include="System.Drawing" />
+    <PackageReference Include="Microsoft.NETFramework.ReferenceAssemblies" Version="1.0.3" PrivateAssets="all" />
+  </ItemGroup>
+
+</Project>

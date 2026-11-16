@@ -1,0 +1,36 @@
+mfPD: 30 runs, 0 ended and wrote a file, 0 of those the record's mfPD-r1 line for line, 30 did not end in 30 s
+  FAILED PD-01: TIMEOUT: did not end in 30 s of processor time, at DatabaseKDBXMerger.containsNode:598 < DatabaseKDBXMerger.firstNotDeletedParent:347 < DatabaseKDBXMerger.deleteGroup:389
+  FAILED PD-02: TIMEOUT: did not end in 30 s of processor time, at DatabaseKDBXMerger.containsNode:598 < DatabaseKDBXMerger.firstNotDeletedParent:347 < DatabaseKDBXMerger.deleteGroup:389
+  FAILED PD-03: TIMEOUT: did not end in 30 s of processor time, at DatabaseKDBXMerger.containsNode:598 < DatabaseKDBXMerger.firstNotDeletedParent:347 < DatabaseKDBXMerger.deleteGroup:389
+mfDP: 30 runs, 30 ended and wrote a file, 30 of those the record's mfDP-r1 line for line, 0 did not end in 30 s
+kpdx: stopped after job 1 of 60, 33526 ms
+kpdx: stopped after job 2 of 60, 34045 ms
+kpdx: stopped after job 3 of 60, 34533 ms
+kpdx: stopped after job 4 of 60, 33516 ms
+kpdx: stopped after job 5 of 60, 33110 ms
+kpdx: stopped after job 6 of 60, 37770 ms
+kpdx: stopped after job 7 of 60, 36811 ms
+kpdx: stopped after job 8 of 60, 32094 ms
+kpdx: stopped after job 9 of 60, 37059 ms
+kpdx: stopped after job 10 of 60, 33070 ms
+kpdx: stopped after job 11 of 60, 34004 ms
+kpdx: stopped after job 12 of 60, 36569 ms
+kpdx: stopped after job 13 of 60, 34576 ms
+kpdx: stopped after job 14 of 60, 35560 ms
+kpdx: stopped after job 15 of 60, 34622 ms
+kpdx: stopped after job 16 of 60, 34628 ms
+kpdx: stopped after job 17 of 60, 38113 ms
+kpdx: stopped after job 18 of 60, 34093 ms
+kpdx: stopped after job 19 of 60, 33075 ms
+kpdx: stopped after job 20 of 60, 33653 ms
+kpdx: stopped after job 21 of 60, 42178 ms
+kpdx: stopped after job 22 of 60, 35084 ms
+kpdx: stopped after job 23 of 60, 34069 ms
+kpdx: stopped after job 24 of 60, 33042 ms
+kpdx: stopped after job 25 of 60, 34020 ms
+kpdx: stopped after job 26 of 60, 32491 ms
+kpdx: stopped after job 27 of 60, 32558 ms
+kpdx: stopped after job 28 of 60, 32057 ms
+kpdx: stopped after job 29 of 60, 32534 ms
+kpdx: stopped after job 30 of 60, 32024 ms
+kpdx: 60 jobs, 0 failed, 12932 ms

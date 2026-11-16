@@ -1,0 +1,35 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- Keepass2Android 1.15-r6's own copy of KeePassLib, compiled for desktop .NET from the source
+       that `fetch.ps1` puts in `work\src\k2a\`, unchanged, beside the stand-ins in `StandIns.cs`
+       for the few Android and Java types it touches, and the app's `KdbxDatabaseFormat.cs`, the
+       format its loader and its save use. No file of Keepass2Android is carried here: the sources
+       are compiled from where the fetch left them. `Driver.cs` drives them as the app does. -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>disable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <AssemblyName>K2aHarness</AssemblyName>
+    <RootNamespace>SourceHarness.K2a</RootNamespace>
+    <PlatformTarget>x64</PlatformTarget>
+    <InvariantGlobalization>true</InvariantGlobalization>
+    <NoWarn>$(NoWarn);CS0618;CS0162;CS0168;CS0169;CS0219;CS0414;CS0649;CS1998;CS8632;SYSLIB0021;SYSLIB0022;SYSLIB0023;SYSLIB0041;SYSLIB0045;SYSLIB0014;SYSLIB0039;SYSLIB0057;SYSLIB0060;CA1416;CA2022</NoWarn>
+    <K2aSrc>$(MSBuildThisFileDirectory)..\work\src\k2a\src\</K2aSrc>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Include="$(K2aSrc)KeePassLib2Android\**\*.cs" Exclude="$(K2aSrc)KeePassLib2Android\Kp2aLog.cs;$(K2aSrc)KeePassLib2Android\Cryptography\SelfTest.cs" LinkBase="KeePassLib2Android" />
+    <Compile Include="$(K2aSrc)Kp2aBusinessLogic\database\KdbxDatabaseFormat.cs" Link="Kp2aBusinessLogic\KdbxDatabaseFormat.cs" />
+    <PackageReference Include="System.Security.Cryptography.ProtectedData" Version="8.0.0" />
+  </ItemGroup>
+
+  <!-- The stand-in for the app's native libargon2, which the KeePassLib copy calls through
+       LibraryImport("argon2"): a Windows build of the reference implementation, which `fetch.ps1`
+       provides and `Driver.cs` hands to the runtime through a DLL import resolver. -->
+  <ItemGroup>
+    <None Include="$(MSBuildThisFileDirectory)..\work\tools\libargon2\libargon2.dll" Link="libargon2.dll" CopyToOutputDirectory="PreserveNewest" Condition="Exists('$(MSBuildThisFileDirectory)..\work\tools\libargon2\libargon2.dll')" />
+  </ItemGroup>
+
+</Project>

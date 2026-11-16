@@ -1,0 +1,124 @@
+program kpdx
+cases	edit	7000
+cases	merge of three	6000
+cases	merge of two	10000
+cases	save	7000
+finding	edit: format version 4.0 -> 3.1	7000
+  e.g.	h0001 edit-A 
+  e.g.	h0001 edit-B 
+  e.g.	h0002 edit-A 
+  e.g.	h0002 edit-B 
+  e.g.	h0003 edit-A 
+  e.g.	h0003 edit-B 
+finding	merge of three against KeePassLib: deletion record KeePassLib does not keep is present	30
+  e.g.	h2048 m-CAB 484541e7
+  e.g.	h2048 m-CBA 484541e7
+  e.g.	h2060 m-CAB 48454163
+  e.g.	h2060 m-CBA 48454163
+  e.g.	h2138 m-CAB 48454107
+  e.g.	h2138 m-CBA 48454107
+finding	merge of three against KeePassLib: deletion record KeePassLib keeps is missing	10160
+  e.g.	h2001 m-ABC 41444ddb
+  e.g.	h2001 m-ACB 41444ddb
+  e.g.	h2001 m-BAC 52554c8f
+  e.g.	h2001 m-BAC 4845417b
+  e.g.	h2001 m-BCA 52554c8f
+  e.g.	h2001 m-BCA 4845417b
+finding	merge of three against KeePassLib: entry KeePassLib does not keep is present	1660
+  e.g.	h2001 m-ABC admission 41444ddb
+  e.g.	h2001 m-CBA admission 41444ddb
+  e.g.	h2002 m-ABC addition 41444432
+  e.g.	h2002 m-ABC rule 52554c18
+  e.g.	h2002 m-BCA head 4845410f
+  e.g.	h2002 m-CBA addition 41444432
+finding	merge of three against KeePassLib: entry KeePassLib keeps is missing	30
+  e.g.	h2048 m-CAB head 484541e7
+  e.g.	h2048 m-CBA head 484541e7
+  e.g.	h2060 m-CAB head 48454163
+  e.g.	h2060 m-CBA head 48454163
+  e.g.	h2138 m-CAB head 48454107
+  e.g.	h2138 m-CBA head 48454107
+finding	merge of three against KeePassLib: location time changed	1279
+  e.g.	h2005 m-ABC addition 41444455
+  e.g.	h2005 m-ACB addition 41444455
+  e.g.	h2005 m-CAB addition 41444455
+  e.g.	h2005 m-CBA addition 41444455
+  e.g.	h2006 m-ABC admission 41444dce
+  e.g.	h2006 m-ABC authority 415554d0
+finding	merge of three against KeePassLib: moved	1266
+  e.g.	h2005 m-ABC addition 41444455
+  e.g.	h2005 m-BAC addition 41444455
+  e.g.	h2005 m-BCA addition 41444455
+  e.g.	h2005 m-CBA addition 41444455
+  e.g.	h2006 m-ABC admission 41444dce
+  e.g.	h2006 m-ABC authority 415554d0
+finding	merge of three: deletion record not kept	10220
+  e.g.	h2001 m-ABC 41444ddb
+  e.g.	h2001 m-ACB 41444ddb
+  e.g.	h2001 m-BAC 52554c8f
+  e.g.	h2001 m-BAC 4845417b
+  e.g.	h2001 m-BCA 52554c8f
+  e.g.	h2001 m-BCA 4845417b
+finding	merge of three: entry kept beside a deletion record	1720
+  e.g.	h2001 m-ABC admission 41444ddb
+  e.g.	h2001 m-CBA admission 41444ddb
+  e.g.	h2002 m-ABC addition 41444432
+  e.g.	h2002 m-ABC rule 52554c18
+  e.g.	h2002 m-BCA head 4845410f
+  e.g.	h2002 m-CBA addition 41444432
+finding	merge of two against KeePassLib: deletion record KeePassLib does not keep is present	15
+  e.g.	h2048 m-CA 484541e7
+  e.g.	h2060 m-CA 48454163
+  e.g.	h2138 m-CA 48454107
+  e.g.	h2252 m-CA 48454134
+  e.g.	h2334 m-CA 484541c4
+  e.g.	h2383 m-CA 4845413f
+finding	merge of two against KeePassLib: deletion record KeePassLib keeps is missing	10140
+  e.g.	h0001 m-AB 4845414b
+  e.g.	h0001 m-AB 484541c3
+  e.g.	h0002 m-AB 52554ce9
+  e.g.	h0003 m-AB 52554c0e
+  e.g.	h0003 m-AB 484541d1
+  e.g.	h0005 m-AB 52554c08
+finding	merge of two against KeePassLib: entry KeePassLib keeps is missing	15
+  e.g.	h2048 m-CA head 484541e7
+  e.g.	h2060 m-CA head 48454163
+  e.g.	h2138 m-CA head 48454107
+  e.g.	h2252 m-CA head 48454134
+  e.g.	h2334 m-CA head 484541c4
+  e.g.	h2383 m-CA head 4845413f
+finding	merge of two against KeePassLib: location time changed	1221
+  e.g.	h0004 m-BA admission 41444db6
+  e.g.	h0008 m-AB admission 41444dab
+  e.g.	h0013 m-BA rule 52554c68
+  e.g.	h0014 m-BA rule 52554cd4
+  e.g.	h0015 m-AB addition 41444490
+  e.g.	h0021 m-BA addition 414444e9
+finding	merge of two against KeePassLib: moved	1208
+  e.g.	h0004 m-AB admission 41444db6
+  e.g.	h0008 m-BA admission 41444dab
+  e.g.	h0013 m-AB rule 52554c68
+  e.g.	h0014 m-AB rule 52554cd4
+  e.g.	h0015 m-BA addition 41444490
+  e.g.	h0021 m-AB addition 414444e9
+finding	merge of two: deletion record not kept	10155
+  e.g.	h0001 m-AB 4845414b
+  e.g.	h0001 m-AB 484541c3
+  e.g.	h0002 m-AB 52554ce9
+  e.g.	h0003 m-AB 52554c0e
+  e.g.	h0003 m-AB 484541d1
+  e.g.	h0005 m-AB 52554c08
+finding	merge of two: entry kept beside a deletion record	15
+  e.g.	h2048 m-AC head 484541e7
+  e.g.	h2060 m-AC head 48454163
+  e.g.	h2138 m-AC head 48454107
+  e.g.	h2252 m-AC head 48454134
+  e.g.	h2334 m-AC head 484541c4
+  e.g.	h2383 m-AC head 4845413f
+finding	save: format version 4.0 -> 3.1	7000
+  e.g.	h0001 save-A 
+  e.g.	h0001 save-B 
+  e.g.	h0002 save-A 
+  e.g.	h0002 save-B 
+  e.g.	h0003 save-A 
+  e.g.	h0003 save-B 

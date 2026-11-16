@@ -1,0 +1,6 @@
+kpdx	save: format version 4.0 -> 3.1	h0001	save-A	
+kpdx	edit: format version 4.0 -> 3.1	h0001	edit-A	
+kpdx	save: format version 4.0 -> 3.1	h0001	save-B	
+kpdx	edit: format version 4.0 -> 3.1	h0001	edit-B	
+kpdx	merge of two: deletion record not kept	h0001	m-AB	4845413f
+kpdx	merge of two against KeePassLib: deletion record KeePassLib keeps is missing	h0001	m-AB	4845413f

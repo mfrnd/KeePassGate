@@ -1,0 +1,240 @@
+kplib	merge of three: entry kept beside a deletion record	h2048	m-ABC	head 484541e7
+kplib	merge of three: deletion record not kept	h2048	m-ABC	484541e7
+kplib	merge of two: entry kept beside a deletion record	h2048	m-AC	head 484541e7
+kplib	merge of two: deletion record not kept	h2048	m-AC	484541e7
+kplib	merge of three: entry kept beside a deletion record	h2048	m-ACB	head 484541e7
+kplib	merge of three: deletion record not kept	h2048	m-ACB	484541e7
+kplib	merge of three: entry kept beside a deletion record	h2048	m-BAC	head 484541e7
+kplib	merge of three: deletion record not kept	h2048	m-BAC	484541e7
+kplib	merge of three: entry kept beside a deletion record	h2048	m-BCA	head 484541e7
+kplib	merge of three: deletion record not kept	h2048	m-BCA	484541e7
+kplib	merge of two: entry kept beside a deletion record	h2048	m-CA	head 484541e7
+kplib	merge of two: deletion record not kept	h2048	m-CA	484541e7
+kplib	merge of three: entry kept beside a deletion record	h2048	m-CAB	head 484541e7
+kplib	merge of three: deletion record not kept	h2048	m-CAB	484541e7
+kplib	merge of three: entry kept beside a deletion record	h2048	m-CBA	head 484541e7
+kplib	merge of three: deletion record not kept	h2048	m-CBA	484541e7
+kplib	merge of three: entry kept beside a deletion record	h2060	m-ABC	head 48454163
+kplib	merge of three: deletion record not kept	h2060	m-ABC	48454163
+kplib	merge of two: entry kept beside a deletion record	h2060	m-AC	head 48454163
+kplib	merge of two: deletion record not kept	h2060	m-AC	48454163
+kplib	merge of three: entry kept beside a deletion record	h2060	m-ACB	head 48454163
+kplib	merge of three: deletion record not kept	h2060	m-ACB	48454163
+kplib	merge of three: entry kept beside a deletion record	h2060	m-BAC	head 48454163
+kplib	merge of three: deletion record not kept	h2060	m-BAC	48454163
+kplib	merge of three: entry kept beside a deletion record	h2060	m-BCA	head 48454163
+kplib	merge of three: deletion record not kept	h2060	m-BCA	48454163
+kplib	merge of two: entry kept beside a deletion record	h2060	m-CA	head 48454163
+kplib	merge of two: deletion record not kept	h2060	m-CA	48454163
+kplib	merge of three: entry kept beside a deletion record	h2060	m-CAB	head 48454163
+kplib	merge of three: deletion record not kept	h2060	m-CAB	48454163
+kplib	merge of three: entry kept beside a deletion record	h2060	m-CBA	head 48454163
+kplib	merge of three: deletion record not kept	h2060	m-CBA	48454163
+kplib	merge of three: entry kept beside a deletion record	h2138	m-ABC	head 48454107
+kplib	merge of three: deletion record not kept	h2138	m-ABC	48454107
+kplib	merge of two: entry kept beside a deletion record	h2138	m-AC	head 48454107
+kplib	merge of two: deletion record not kept	h2138	m-AC	48454107
+kplib	merge of three: entry kept beside a deletion record	h2138	m-ACB	head 48454107
+kplib	merge of three: deletion record not kept	h2138	m-ACB	48454107
+kplib	merge of three: entry kept beside a deletion record	h2138	m-BAC	head 48454107
+kplib	merge of three: deletion record not kept	h2138	m-BAC	48454107
+kplib	merge of three: entry kept beside a deletion record	h2138	m-BCA	head 48454107
+kplib	merge of three: deletion record not kept	h2138	m-BCA	48454107
+kplib	merge of two: entry kept beside a deletion record	h2138	m-CA	head 48454107
+kplib	merge of two: deletion record not kept	h2138	m-CA	48454107
+kplib	merge of three: entry kept beside a deletion record	h2138	m-CAB	head 48454107
+kplib	merge of three: deletion record not kept	h2138	m-CAB	48454107
+kplib	merge of three: entry kept beside a deletion record	h2138	m-CBA	head 48454107
+kplib	merge of three: deletion record not kept	h2138	m-CBA	48454107
+kplib	merge of three: entry kept beside a deletion record	h2252	m-ABC	head 48454134
+kplib	merge of three: deletion record not kept	h2252	m-ABC	48454134
+kplib	merge of two: entry kept beside a deletion record	h2252	m-AC	head 48454134
+kplib	merge of two: deletion record not kept	h2252	m-AC	48454134
+kplib	merge of three: entry kept beside a deletion record	h2252	m-ACB	head 48454134
+kplib	merge of three: deletion record not kept	h2252	m-ACB	48454134
+kplib	merge of three: entry kept beside a deletion record	h2252	m-BAC	head 48454134
+kplib	merge of three: deletion record not kept	h2252	m-BAC	48454134
+kplib	merge of three: entry kept beside a deletion record	h2252	m-BCA	head 48454134
+kplib	merge of three: deletion record not kept	h2252	m-BCA	48454134
+kplib	merge of two: entry kept beside a deletion record	h2252	m-CA	head 48454134
+kplib	merge of two: deletion record not kept	h2252	m-CA	48454134
+kplib	merge of three: entry kept beside a deletion record	h2252	m-CAB	head 48454134
+kplib	merge of three: deletion record not kept	h2252	m-CAB	48454134
+kplib	merge of three: entry kept beside a deletion record	h2252	m-CBA	head 48454134
+kplib	merge of three: deletion record not kept	h2252	m-CBA	48454134
+kplib	merge of three: entry kept beside a deletion record	h2334	m-ABC	head 484541c4
+kplib	merge of three: deletion record not kept	h2334	m-ABC	484541c4
+kplib	merge of two: entry kept beside a deletion record	h2334	m-AC	head 484541c4
+kplib	merge of two: deletion record not kept	h2334	m-AC	484541c4
+kplib	merge of three: entry kept beside a deletion record	h2334	m-ACB	head 484541c4
+kplib	merge of three: deletion record not kept	h2334	m-ACB	484541c4
+kplib	merge of three: entry kept beside a deletion record	h2334	m-BAC	head 484541c4
+kplib	merge of three: deletion record not kept	h2334	m-BAC	484541c4
+kplib	merge of three: entry kept beside a deletion record	h2334	m-BCA	head 484541c4
+kplib	merge of three: deletion record not kept	h2334	m-BCA	484541c4
+kplib	merge of two: entry kept beside a deletion record	h2334	m-CA	head 484541c4
+kplib	merge of two: deletion record not kept	h2334	m-CA	484541c4
+kplib	merge of three: entry kept beside a deletion record	h2334	m-CAB	head 484541c4
+kplib	merge of three: deletion record not kept	h2334	m-CAB	484541c4
+kplib	merge of three: entry kept beside a deletion record	h2334	m-CBA	head 484541c4
+kplib	merge of three: deletion record not kept	h2334	m-CBA	484541c4
+kplib	merge of three: entry kept beside a deletion record	h2383	m-ABC	head 4845413f
+kplib	merge of three: deletion record not kept	h2383	m-ABC	4845413f
+kplib	merge of two: entry kept beside a deletion record	h2383	m-AC	head 4845413f
+kplib	merge of two: deletion record not kept	h2383	m-AC	4845413f
+kplib	merge of three: entry kept beside a deletion record	h2383	m-ACB	head 4845413f
+kplib	merge of three: deletion record not kept	h2383	m-ACB	4845413f
+kplib	merge of three: entry kept beside a deletion record	h2383	m-BAC	head 4845413f
+kplib	merge of three: deletion record not kept	h2383	m-BAC	4845413f
+kplib	merge of three: entry kept beside a deletion record	h2383	m-BCA	head 4845413f
+kplib	merge of three: deletion record not kept	h2383	m-BCA	4845413f
+kplib	merge of two: entry kept beside a deletion record	h2383	m-CA	head 4845413f
+kplib	merge of two: deletion record not kept	h2383	m-CA	4845413f
+kplib	merge of three: entry kept beside a deletion record	h2383	m-CAB	head 4845413f
+kplib	merge of three: deletion record not kept	h2383	m-CAB	4845413f
+kplib	merge of three: entry kept beside a deletion record	h2383	m-CBA	head 4845413f
+kplib	merge of three: deletion record not kept	h2383	m-CBA	4845413f
+kplib	merge of three: entry kept beside a deletion record	h2428	m-ABC	head 48454163
+kplib	merge of three: deletion record not kept	h2428	m-ABC	48454163
+kplib	merge of two: entry kept beside a deletion record	h2428	m-AC	head 48454163
+kplib	merge of two: deletion record not kept	h2428	m-AC	48454163
+kplib	merge of three: entry kept beside a deletion record	h2428	m-ACB	head 48454163
+kplib	merge of three: deletion record not kept	h2428	m-ACB	48454163
+kplib	merge of three: entry kept beside a deletion record	h2428	m-BAC	head 48454163
+kplib	merge of three: deletion record not kept	h2428	m-BAC	48454163
+kplib	merge of three: entry kept beside a deletion record	h2428	m-BCA	head 48454163
+kplib	merge of three: deletion record not kept	h2428	m-BCA	48454163
+kplib	merge of two: entry kept beside a deletion record	h2428	m-CA	head 48454163
+kplib	merge of two: deletion record not kept	h2428	m-CA	48454163
+kplib	merge of three: entry kept beside a deletion record	h2428	m-CAB	head 48454163
+kplib	merge of three: deletion record not kept	h2428	m-CAB	48454163
+kplib	merge of three: entry kept beside a deletion record	h2428	m-CBA	head 48454163
+kplib	merge of three: deletion record not kept	h2428	m-CBA	48454163
+kplib	merge of three: entry kept beside a deletion record	h2481	m-ABC	head 484541b0
+kplib	merge of three: deletion record not kept	h2481	m-ABC	484541b0
+kplib	merge of two: entry kept beside a deletion record	h2481	m-AC	head 484541b0
+kplib	merge of two: deletion record not kept	h2481	m-AC	484541b0
+kplib	merge of three: entry kept beside a deletion record	h2481	m-ACB	head 484541b0
+kplib	merge of three: deletion record not kept	h2481	m-ACB	484541b0
+kplib	merge of three: entry kept beside a deletion record	h2481	m-BAC	head 484541b0
+kplib	merge of three: deletion record not kept	h2481	m-BAC	484541b0
+kplib	merge of three: entry kept beside a deletion record	h2481	m-BCA	head 484541b0
+kplib	merge of three: deletion record not kept	h2481	m-BCA	484541b0
+kplib	merge of two: entry kept beside a deletion record	h2481	m-CA	head 484541b0
+kplib	merge of two: deletion record not kept	h2481	m-CA	484541b0
+kplib	merge of three: entry kept beside a deletion record	h2481	m-CAB	head 484541b0
+kplib	merge of three: deletion record not kept	h2481	m-CAB	484541b0
+kplib	merge of three: entry kept beside a deletion record	h2481	m-CBA	head 484541b0
+kplib	merge of three: deletion record not kept	h2481	m-CBA	484541b0
+kplib	merge of three: entry kept beside a deletion record	h2503	m-ABC	head 484541a3
+kplib	merge of three: deletion record not kept	h2503	m-ABC	484541a3
+kplib	merge of two: entry kept beside a deletion record	h2503	m-AC	head 484541a3
+kplib	merge of two: deletion record not kept	h2503	m-AC	484541a3
+kplib	merge of three: entry kept beside a deletion record	h2503	m-ACB	head 484541a3
+kplib	merge of three: deletion record not kept	h2503	m-ACB	484541a3
+kplib	merge of three: entry kept beside a deletion record	h2503	m-BAC	head 484541a3
+kplib	merge of three: deletion record not kept	h2503	m-BAC	484541a3
+kplib	merge of three: entry kept beside a deletion record	h2503	m-BCA	head 484541a3
+kplib	merge of three: deletion record not kept	h2503	m-BCA	484541a3
+kplib	merge of two: entry kept beside a deletion record	h2503	m-CA	head 484541a3
+kplib	merge of two: deletion record not kept	h2503	m-CA	484541a3
+kplib	merge of three: entry kept beside a deletion record	h2503	m-CAB	head 484541a3
+kplib	merge of three: deletion record not kept	h2503	m-CAB	484541a3
+kplib	merge of three: entry kept beside a deletion record	h2503	m-CBA	head 484541a3
+kplib	merge of three: deletion record not kept	h2503	m-CBA	484541a3
+kplib	merge of three: entry kept beside a deletion record	h2587	m-ABC	head 48454109
+kplib	merge of three: deletion record not kept	h2587	m-ABC	48454109
+kplib	merge of two: entry kept beside a deletion record	h2587	m-AC	head 48454109
+kplib	merge of two: deletion record not kept	h2587	m-AC	48454109
+kplib	merge of three: entry kept beside a deletion record	h2587	m-ACB	head 48454109
+kplib	merge of three: deletion record not kept	h2587	m-ACB	48454109
+kplib	merge of three: entry kept beside a deletion record	h2587	m-BAC	head 48454109
+kplib	merge of three: deletion record not kept	h2587	m-BAC	48454109
+kplib	merge of three: entry kept beside a deletion record	h2587	m-BCA	head 48454109
+kplib	merge of three: deletion record not kept	h2587	m-BCA	48454109
+kplib	merge of two: entry kept beside a deletion record	h2587	m-CA	head 48454109
+kplib	merge of two: deletion record not kept	h2587	m-CA	48454109
+kplib	merge of three: entry kept beside a deletion record	h2587	m-CAB	head 48454109
+kplib	merge of three: deletion record not kept	h2587	m-CAB	48454109
+kplib	merge of three: entry kept beside a deletion record	h2587	m-CBA	head 48454109
+kplib	merge of three: deletion record not kept	h2587	m-CBA	48454109
+kplib	merge of three: entry kept beside a deletion record	h2625	m-ABC	head 4845411c
+kplib	merge of three: deletion record not kept	h2625	m-ABC	4845411c
+kplib	merge of two: entry kept beside a deletion record	h2625	m-AC	head 4845411c
+kplib	merge of two: deletion record not kept	h2625	m-AC	4845411c
+kplib	merge of three: entry kept beside a deletion record	h2625	m-ACB	head 4845411c
+kplib	merge of three: deletion record not kept	h2625	m-ACB	4845411c
+kplib	merge of three: entry kept beside a deletion record	h2625	m-BAC	head 4845411c
+kplib	merge of three: deletion record not kept	h2625	m-BAC	4845411c
+kplib	merge of three: entry kept beside a deletion record	h2625	m-BCA	head 4845411c
+kplib	merge of three: deletion record not kept	h2625	m-BCA	4845411c
+kplib	merge of two: entry kept beside a deletion record	h2625	m-CA	head 4845411c
+kplib	merge of two: deletion record not kept	h2625	m-CA	4845411c
+kplib	merge of three: entry kept beside a deletion record	h2625	m-CAB	head 4845411c
+kplib	merge of three: deletion record not kept	h2625	m-CAB	4845411c
+kplib	merge of three: entry kept beside a deletion record	h2625	m-CBA	head 4845411c
+kplib	merge of three: deletion record not kept	h2625	m-CBA	4845411c
+kplib	merge of three: entry kept beside a deletion record	h2706	m-ABC	head 48454163
+kplib	merge of three: deletion record not kept	h2706	m-ABC	48454163
+kplib	merge of two: entry kept beside a deletion record	h2706	m-AC	head 48454163
+kplib	merge of two: deletion record not kept	h2706	m-AC	48454163
+kplib	merge of three: entry kept beside a deletion record	h2706	m-ACB	head 48454163
+kplib	merge of three: deletion record not kept	h2706	m-ACB	48454163
+kplib	merge of three: entry kept beside a deletion record	h2706	m-BAC	head 48454163
+kplib	merge of three: deletion record not kept	h2706	m-BAC	48454163
+kplib	merge of three: entry kept beside a deletion record	h2706	m-BCA	head 48454163
+kplib	merge of three: deletion record not kept	h2706	m-BCA	48454163
+kplib	merge of two: entry kept beside a deletion record	h2706	m-CA	head 48454163
+kplib	merge of two: deletion record not kept	h2706	m-CA	48454163
+kplib	merge of three: entry kept beside a deletion record	h2706	m-CAB	head 48454163
+kplib	merge of three: deletion record not kept	h2706	m-CAB	48454163
+kplib	merge of three: entry kept beside a deletion record	h2706	m-CBA	head 48454163
+kplib	merge of three: deletion record not kept	h2706	m-CBA	48454163
+kplib	merge of three: entry kept beside a deletion record	h2708	m-ABC	head 484541ac
+kplib	merge of three: deletion record not kept	h2708	m-ABC	484541ac
+kplib	merge of two: entry kept beside a deletion record	h2708	m-AC	head 484541ac
+kplib	merge of two: deletion record not kept	h2708	m-AC	484541ac
+kplib	merge of three: entry kept beside a deletion record	h2708	m-ACB	head 484541ac
+kplib	merge of three: deletion record not kept	h2708	m-ACB	484541ac
+kplib	merge of three: entry kept beside a deletion record	h2708	m-BAC	head 484541ac
+kplib	merge of three: deletion record not kept	h2708	m-BAC	484541ac
+kplib	merge of three: entry kept beside a deletion record	h2708	m-BCA	head 484541ac
+kplib	merge of three: deletion record not kept	h2708	m-BCA	484541ac
+kplib	merge of two: entry kept beside a deletion record	h2708	m-CA	head 484541ac
+kplib	merge of two: deletion record not kept	h2708	m-CA	484541ac
+kplib	merge of three: entry kept beside a deletion record	h2708	m-CAB	head 484541ac
+kplib	merge of three: deletion record not kept	h2708	m-CAB	484541ac
+kplib	merge of three: entry kept beside a deletion record	h2708	m-CBA	head 484541ac
+kplib	merge of three: deletion record not kept	h2708	m-CBA	484541ac
+kplib	merge of three: entry kept beside a deletion record	h2851	m-ABC	head 4845417b
+kplib	merge of three: deletion record not kept	h2851	m-ABC	4845417b
+kplib	merge of two: entry kept beside a deletion record	h2851	m-AC	head 4845417b
+kplib	merge of two: deletion record not kept	h2851	m-AC	4845417b
+kplib	merge of three: entry kept beside a deletion record	h2851	m-ACB	head 4845417b
+kplib	merge of three: deletion record not kept	h2851	m-ACB	4845417b
+kplib	merge of three: entry kept beside a deletion record	h2851	m-BAC	head 4845417b
+kplib	merge of three: deletion record not kept	h2851	m-BAC	4845417b
+kplib	merge of three: entry kept beside a deletion record	h2851	m-BCA	head 4845417b
+kplib	merge of three: deletion record not kept	h2851	m-BCA	4845417b
+kplib	merge of two: entry kept beside a deletion record	h2851	m-CA	head 4845417b
+kplib	merge of two: deletion record not kept	h2851	m-CA	4845417b
+kplib	merge of three: entry kept beside a deletion record	h2851	m-CAB	head 4845417b
+kplib	merge of three: deletion record not kept	h2851	m-CAB	4845417b
+kplib	merge of three: entry kept beside a deletion record	h2851	m-CBA	head 4845417b
+kplib	merge of three: deletion record not kept	h2851	m-CBA	4845417b
+kplib	merge of three: entry kept beside a deletion record	h2887	m-ABC	head 48454118
+kplib	merge of three: deletion record not kept	h2887	m-ABC	48454118
+kplib	merge of two: entry kept beside a deletion record	h2887	m-AC	head 48454118
+kplib	merge of two: deletion record not kept	h2887	m-AC	48454118
+kplib	merge of three: entry kept beside a deletion record	h2887	m-ACB	head 48454118
+kplib	merge of three: deletion record not kept	h2887	m-ACB	48454118
+kplib	merge of three: entry kept beside a deletion record	h2887	m-BAC	head 48454118
+kplib	merge of three: deletion record not kept	h2887	m-BAC	48454118
+kplib	merge of three: entry kept beside a deletion record	h2887	m-BCA	head 48454118
+kplib	merge of three: deletion record not kept	h2887	m-BCA	48454118
+kplib	merge of two: entry kept beside a deletion record	h2887	m-CA	head 48454118
+kplib	merge of two: deletion record not kept	h2887	m-CA	48454118
+kplib	merge of three: entry kept beside a deletion record	h2887	m-CAB	head 48454118
+kplib	merge of three: deletion record not kept	h2887	m-CAB	48454118
+kplib	merge of three: entry kept beside a deletion record	h2887	m-CBA	head 48454118
+kplib	merge of three: deletion record not kept	h2887	m-CBA	48454118

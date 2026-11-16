@@ -1,0 +1,103 @@
+k2a    first-save-argon                         save               agrees
+k2a    first-save-aes                           save               agrees
+k2a    first-save-aes-nocd                      save               agrees
+k2a    first-save-aes-plain                     save               agrees
+k2a    first-edit-e1                            edit               agrees
+k2a    first-edit-carriers                      edit               agrees
+k2a    first-rename-g                           edit               agrees
+k2a    first-delete                             delete             agrees
+k2a    first-move                               move               agrees
+k2a    first-merge-CP-r1                        merge              agrees
+k2a    first-merge-CP-r2                        merge              agrees
+k2a    first-merge-CP-r3                        merge              agrees
+k2a    first-merge-PC-r1                        merge              agrees
+k2a    first-merge-PC-r2                        merge              agrees
+k2a    first-merge-PC-r3                        merge              agrees
+k2a    ow-bg-equal-same-overwrite-r1            ow-overwrite       agrees
+k2a    ow-bg-later-diff-overwrite-r1            ow-overwrite       agrees
+k2a    ow-bg-later-diff-overwrite-r2            ow-overwrite       agrees
+k2a    ow-bg-later-diff-overwrite-r3            ow-overwrite       agrees
+k2a    ow-close-later-diff-r1                   ow-reopen          agrees
+k2a    ow-close-later-diff-r2                   ow-reopen          agrees
+k2a    ow-close-later-diff-r3                   ow-reopen          agrees
+k2a    ow-fg-earlier-diff-overwrite-r1          ow-overwrite       agrees
+k2a    ow-fg-earlier-same-overwrite-r1          ow-overwrite       agrees
+k2a    ow-fg-equal-diff-overwrite-r1            ow-overwrite       agrees
+k2a    ow-fg-equal-same-overwrite-r1            ow-overwrite       agrees
+k2a    ow-fg-equal-same-overwrite-r2            ow-overwrite       agrees
+k2a    ow-fg-equal-same-overwrite-r3            ow-overwrite       agrees
+k2a    ow-fg-later-diff-merge-r1                ow-merge           agrees
+k2a    ow-fg-later-diff-merge-r2                ow-merge           agrees
+k2a    ow-fg-later-diff-merge-r3                ow-merge           agrees
+k2a    ow-fg-later-diff-overwrite-r1            ow-overwrite       agrees
+k2a    ow-fg-later-diff-overwrite-r2            ow-overwrite       agrees
+k2a    ow-fg-later-diff-overwrite-r3            ow-overwrite       agrees
+k2a    ow-fg-later-ident-r1                     ow-overwrite       agrees
+k2a    ow-fg-later-ident-r2                     ow-overwrite       agrees
+k2a    ow-fg-later-ident-r3                     ow-overwrite       agrees
+k2a    ow-fg-later-same-overwrite-r1            ow-overwrite       agrees
+k2a    ow-nocheck-later-diff-overwrite-r1       ow-overwrite       agrees
+k2a    ow-nocheck-reopen-later-diff-r1          ow-overwrite       agrees
+k2a    ow-openclose-later-diff-r1               ow-reopen          agrees
+k2a    ow-qu-later-diff-overwrite-r1            ow-overwrite       agrees
+k2a    ow-qu-later-diff-overwrite-r2            ow-overwrite       agrees
+k2a    ow-sync-later-diff-r1                    ow-reopen          agrees
+k2a    sy-s3a-phone-reachable-r1                sy-phone-only      agrees
+k2a    sy-s3b-phone-serverstopped-r1            sy-phone-only      agrees
+k2a    sy-s3c-phone-cacheonly-r1                sy-phone-only      agrees
+k2a    sy-s3c-phone-cacheonly-r2                sy-phone-only      agrees
+k2a    sy-s4-both-cacheonly-merge-r1            sy-both-merge      agrees
+k2a    sy-s4-both-cacheonly-merge-r2            sy-both-merge      agrees
+k2a    sy-s4-both-cacheonly-overwrite-r1        sy-both-overwrite  agrees
+k2a    sy-s4B-both-cacheonly-bgsync-merge-r1    sy-both-merge      agrees
+k2a    sy-s4b-both-serverstopped-merge-r1       sy-both-merge      agrees
+k2a    sy-s5-save-merge-r1                      sy-save-merge      agrees
+k2a    sy-s5-save-merge-r2                      sy-save-merge      agrees
+k2a    sy-s5-save-overwrite-r1                  sy-save-overwrite  agrees
+k2a    sy-s5B-save-bgsync-merge-r1              sy-save-merge      agrees as variant: re-shown entry written
+    server.kdbx: differs, 1 lines only in the harness, 1 only in the record
+      harness  E P2 usage 2
+      record   E P2 usage 3
+    server.kdbx: differs, 1 lines only in the harness, 1 only in the record
+      harness  E P2 usage 2
+      record   E P2 usage 3
+k2a    sy-s6-alwaysmerge-r1                     sy-save-merge      agrees as variant: re-shown entry written
+    server.kdbx: differs, 1 lines only in the harness, 1 only in the record
+      harness  E P2 usage 2
+      record   E P2 usage 3
+    server.kdbx: differs, 1 lines only in the harness, 1 only in the record
+      harness  E P2 usage 2
+      record   E P2 usage 3
+k2a    sy-s7-nocheck-r1                         sy-save-overwrite  agrees as variant: re-shown entry written
+    server.kdbx: differs, 3 lines only in the harness, 3 only in the record
+      harness  E P2 usage 2
+      harness  G PW usage 1
+      harness  G Root usage 1
+      record   E P2 usage 3
+      record   G PW usage 2
+      record   G Root usage 2
+    server.kdbx: differs, 3 lines only in the harness, 3 only in the record
+      harness  E P2 usage 2
+      harness  G PW usage 1
+      harness  G Root usage 1
+      record   E P2 usage 3
+      record   G PW usage 2
+      record   G Root usage 2
+k2a    sy-s9-quickunlock-merge-r1               sy-save-merge      agrees
+
+harness: k2a: 67 jobs, 0 failed, 24178 ms
+
+k2a    delete               1 of   1 agree
+k2a    edit                 3 of   3 agree
+k2a    merge                6 of   6 agree
+k2a    move                 1 of   1 agree
+k2a    ow-merge             3 of   3 agree
+k2a    ow-overwrite        21 of  21 agree
+k2a    ow-reopen            5 of   5 agree
+k2a    save                 4 of   4 agree
+k2a    sy-both-merge        4 of   4 agree
+k2a    sy-both-overwrite    1 of   1 agree
+k2a    sy-phone-only        4 of   4 agree
+k2a    sy-save-merge        3 of   5 agree; 2 more as a variant
+k2a    sy-save-overwrite    1 of   2 agree; 1 more as a variant
+k2a    all                 57 of  60 agree; 3 more as a variant

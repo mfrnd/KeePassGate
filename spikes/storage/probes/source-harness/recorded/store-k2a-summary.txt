@@ -1,0 +1,47 @@
+program k2a
+cases	edit	7000
+cases	merge of three	6000
+cases	merge of two	10000
+cases	save	7000
+finding	edit: format version 4.0 -> 3.1	7000
+  e.g.	h0001 edit-A 
+  e.g.	h0001 edit-B 
+  e.g.	h0002 edit-A 
+  e.g.	h0002 edit-B 
+  e.g.	h0003 edit-A 
+  e.g.	h0003 edit-B 
+finding	merge of three: deletion record not kept	90
+  e.g.	h2048 m-ABC 484541e7
+  e.g.	h2048 m-ACB 484541e7
+  e.g.	h2048 m-BAC 484541e7
+  e.g.	h2048 m-BCA 484541e7
+  e.g.	h2048 m-CAB 484541e7
+  e.g.	h2048 m-CBA 484541e7
+finding	merge of three: entry kept beside a deletion record	90
+  e.g.	h2048 m-ABC head 484541e7
+  e.g.	h2048 m-ACB head 484541e7
+  e.g.	h2048 m-BAC head 484541e7
+  e.g.	h2048 m-BCA head 484541e7
+  e.g.	h2048 m-CAB head 484541e7
+  e.g.	h2048 m-CBA head 484541e7
+finding	merge of two: deletion record not kept	30
+  e.g.	h2048 m-AC 484541e7
+  e.g.	h2048 m-CA 484541e7
+  e.g.	h2060 m-AC 48454163
+  e.g.	h2060 m-CA 48454163
+  e.g.	h2138 m-AC 48454107
+  e.g.	h2138 m-CA 48454107
+finding	merge of two: entry kept beside a deletion record	30
+  e.g.	h2048 m-AC head 484541e7
+  e.g.	h2048 m-CA head 484541e7
+  e.g.	h2060 m-AC head 48454163
+  e.g.	h2060 m-CA head 48454163
+  e.g.	h2138 m-AC head 48454107
+  e.g.	h2138 m-CA head 48454107
+finding	save: format version 4.0 -> 3.1	7000
+  e.g.	h0001 save-A 
+  e.g.	h0001 save-B 
+  e.g.	h0002 save-A 
+  e.g.	h0002 save-B 
+  e.g.	h0003 save-A 
+  e.g.	h0003 save-B 

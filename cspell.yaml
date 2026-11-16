@@ -492,4 +492,49 @@ words:
   - encryptor
   - decryptor
   - cffi
+  # Identifiers in the source-harness probes, which are kept as they were recorded: the directories
+  # `kplib` and `standin`, the module name `sourceharness`, the commands `dumpver`, `delnorec` and
+  # `openclose`, the labels `cdtime`, `gtags`, `Ggroup`, `Gicon`, `extm`, `extr` and `SANSWER`, the
+  # local `jargs` and the name `Finalkey` in a comment of `StandIns.cs`; and what the harnesses are
+  # built from, as their projects spell it: Adoptium's Temurin JDK, `javac` and `kotlinc` with their
+  # options `argfile`, `nowarn` and `Xplugin`, Kotlin's `stdlib` and its `parcelize` plugin,
+  # Android's `Parcelable` and `libcore`, the libraries `joda`, `kxml`, `bcprov`, `bcpkix`, `bcutil`
+  # and `libargon2`, the package names `kunzisoft`, `keepasslib` and `Keepassdroid` as the programs
+  # write them, and .NET's warning prefix `SYSLIB`.
+  - kplib
+  - standin
+  - sourceharness
+  - dumpver
+  - delnorec
+  - openclose
+  - cdtime
+  - gtags
+  - Ggroup
+  - Gicon
+  - extm
+  - extr
+  - SANSWER
+  - jargs
+  - Finalkey
+  - Adoptium
+  - Temurin
+  - javac
+  - kotlinc
+  - argfile
+  - nowarn
+  - Xplugin
+  - stdlib
+  - parcelize
+  - Parcelable
+  - libcore
+  - joda
+  - kxml
+  - bcprov
+  - bcpkix
+  - bcutil
+  - libargon
+  - kunzisoft
+  - keepasslib
+  - Keepassdroid
+  - SYSLIB
 

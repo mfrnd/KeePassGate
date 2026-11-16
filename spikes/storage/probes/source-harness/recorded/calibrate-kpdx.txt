@@ -1,0 +1,54 @@
+kpdx   first-save-argon                         save               agrees
+kpdx   first-save-aes                           save               agrees
+kpdx   first-save-aes-nocd                      save               agrees
+kpdx   first-save-aes-plain                     save               agrees
+kpdx   first-edit-e1                            edit               agrees
+kpdx   first-edit-carriers                      edit               agrees
+kpdx   first-rename-g                           edit               agrees
+kpdx   first-delete                             delete             agrees
+kpdx   first-move                               move               agrees
+kpdx   first-merge-fromCP-r1                    merge              agrees
+kpdx   first-merge-fromCP-r2                    merge              agrees
+kpdx   first-merge-fromCP-r3                    merge              agrees
+kpdx   first-merge-fromPC-r1                    merge              agrees
+kpdx   first-merge-fromPC-r2                    merge              agrees
+kpdx   first-merge-fromPC-r3                    merge              agrees
+kpdx   r2-extmDP-r1                             r2-merge           agrees
+kpdx   r2-extmDP-r2                             r2-merge           agrees
+kpdx   r2-extmPD-r2                             r2-merge           agrees
+kpdx   r2-extmPD-r3                             r2-merge-did-not-end agrees
+kpdx   r2-extrDP-r1                             r2-reload-add      agrees
+kpdx   r2-extrPD-r3                             r2-reload-add      agrees
+kpdx   r2-extsPD-r1                             r2-save-data       agrees
+kpdx   r2-extsPD-r2                             r2-save-data       agrees
+kpdx   r2-mfDP-r1                               r2-merge           agrees
+kpdx   r2-mfDP-r2                               r2-merge           agrees
+kpdx   r2-mfDP-r3                               r2-merge           agrees
+kpdx   r2-mfHATT-r1                             r2-merge           agrees
+kpdx   r2-mfHATT-r2                             r2-merge           agrees
+kpdx   r2-mfHATTrev-r1                          r2-merge           agrees
+kpdx   r2-mfHHIST-r1                            r2-merge           agrees
+kpdx   r2-mfHHIST-r2                            r2-merge           agrees
+kpdx   r2-mfPD-r1                               r2-merge           agrees
+kpdx   r2-mfPD-r2                               r2-merge           DIFFERS
+    kpdx-mfPD.kdbx: missing, 0 lines only in the harness, 0 only in the record
+kpdx   r2-mfPD-r4                               r2-merge-did-not-end agrees
+
+harness: FAILED r2-extmPD-r3: TIMEOUT: did not end in 60 s of processor time, at DatabaseKDBXMerger.containsNode:598 < DatabaseKDBXMerger.firstNotDeletedParent:347 < DatabaseKDBXMerger.deleteGroup:389
+harness: FAILED r2-mfPD-r2: TIMEOUT: did not end in 60 s of processor time, at DatabaseKDBXMerger.containsNode:598 < DatabaseKDBXMerger.firstNotDeletedParent:347 < DatabaseKDBXMerger.deleteGroup:389
+harness: FAILED r2-mfPD-r4: TIMEOUT: did not end in 60 s of processor time, at DatabaseKDBXMerger.containsNode:598 < DatabaseKDBXMerger.firstNotDeletedParent:347 < DatabaseKDBXMerger.deleteGroup:389
+harness: kpdx: stopped after job 19 of 34, 208017 ms
+harness: kpdx: stopped after job 33 of 34, 263902 ms
+harness: kpdx: stopped after job 34 of 34, 155895 ms
+harness: kpdx: 34 jobs, 0 failed, 22 ms
+
+kpdx   delete               1 of   1 agree
+kpdx   edit                 3 of   3 agree
+kpdx   merge                6 of   6 agree
+kpdx   move                 1 of   1 agree
+kpdx   r2-merge            12 of  13 agree
+kpdx   r2-merge-did-not-end   2 of   2 agree
+kpdx   r2-reload-add        2 of   2 agree
+kpdx   r2-save-data         2 of   2 agree
+kpdx   save                 4 of   4 agree
+kpdx   all                 33 of  34 agree

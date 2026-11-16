@@ -1,0 +1,25 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- The KeePassDX emulator measurement's own probe (its Store.cs and DX.cs), compiled from the
+       frozen copy of that measurement's working directory in `work\kpdx-record2\probe\`: its dump
+       names the second record's nodes by the aliases its bases use, so the files the harness writes
+       for that record are dumped by it. Against KeePass 2.62's KeePassLib. -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net48</TargetFramework>
+    <LangVersion>7.3</LangVersion>
+    <PlatformTarget>x64</PlatformTarget>
+    <AssemblyName>StoreProbeDX</AssemblyName>
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Include="..\work\kpdx-record2\probe\*.cs" />
+    <Reference Include="KeePass">
+      <HintPath>$(KeePassExe)</HintPath>
+    </Reference>
+    <Reference Include="System.Drawing" />
+    <PackageReference Include="Microsoft.NETFramework.ReferenceAssemblies" Version="1.0.3" PrivateAssets="all" />
+  </ItemGroup>
+
+</Project>

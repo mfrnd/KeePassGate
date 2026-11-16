@@ -1,0 +1,25 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- The emulator measurement's own probe, compiled from its place in `spikes\storage\android\`
+       and not copied: its `make`, `makeow`, `makesync` and `newsync` make the bases, and its `dump`
+       writes the line-per-item dump every comparison here reads. Against KeePass 2.62's KeePassLib,
+       read out of the KeePass.exe the branch provides. -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net48</TargetFramework>
+    <LangVersion>7.3</LangVersion>
+    <PlatformTarget>x64</PlatformTarget>
+    <AssemblyName>StoreProbe</AssemblyName>
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Include="..\..\..\android\probe\overwrite\Store.cs" Link="Store.cs" />
+    <Reference Include="KeePass">
+      <HintPath>$(KeePassExe)</HintPath>
+    </Reference>
+    <Reference Include="System.Drawing" />
+    <PackageReference Include="Microsoft.NETFramework.ReferenceAssemblies" Version="1.0.3" PrivateAssets="all" />
+  </ItemGroup>
+
+</Project>
