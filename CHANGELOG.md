@@ -1172,6 +1172,12 @@ none, since it releases both.
   database's groups and entries, titles, user names and URLs among them, until somebody pressed
   OK. With no database open, no inactivity lock cleared it. KeePass hides the window itself right
   after its plugins unload, and the plugin now takes that step before the box goes up.
+- **On POSIX, PyKeePassGate flushes the directories that hold an identity as well as its files.**
+  A file's name is its directory's data there, and only the files were flushed, so a power loss
+  could take away the names a first pairing made, or the copies a renewal keeps beside the
+  identity while its files are written over. Each directory it makes is flushed into the
+  directory above, and each directory it writes an identity into once the files are in it; a
+  directory that cannot be flushed is a `StorageError`. Windows is unchanged.
 
 ## 0.1.0, 2026-10-25
 

@@ -272,6 +272,54 @@ def test_a_parent_that_was_already_there_keeps_the_mode_it_had(
     assert stat.S_IMODE(parent.stat().st_mode) == 0o755
 
 
+def test_the_names_a_save_creates_are_flushed_with_the_directories_holding_them(
+    tmp_path: Path, bundle: dict[str, Any], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    # On POSIX a name is its directory's data, and flushing only the files left every name a
+    # first pairing made to the system's cache, where a power loss could take the identity away.
+    # Windows opens no directory to flush, and nothing there is attempted.
+    # cspell:ignore fstat
+    flushed: list[Any] = []
+    fsync = os.fsync
+
+    def record(descriptor: int) -> None:
+        status = os.fstat(descriptor)
+        flushed.append(
+            (status.st_dev, status.st_ino) if stat.S_ISDIR(status.st_mode) else "file"
+        )
+        fsync(descriptor)
+
+    def node(path: Path) -> tuple[int, int]:
+        status = path.stat()
+        return status.st_dev, status.st_ino
+
+    monkeypatch.setattr(os, "fsync", record)
+    stored = credentials.save(tmp_path / "made" / "kept", 45678, bundle)
+
+    # Each directory made into the one above it while it is prepared, and the identity's own
+    # once its four files are in it.
+    made = [node(tmp_path / "made"), node(tmp_path)]
+    expected = ["file"] * 4 if os.name == "nt" else [*made, *["file"] * 4, node(stored.directory)]
+    assert flushed == expected
+
+
+@pytest.mark.skipif(sys.platform == "win32", reason="Windows flushes no directory")
+def test_a_directory_that_cannot_be_flushed_is_refused_in_this_librarys_terms(
+    tmp_path: Path, bundle: dict[str, Any], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    fsync = os.fsync
+
+    def refuse(descriptor: int) -> None:
+        if stat.S_ISDIR(os.fstat(descriptor).st_mode):
+            raise OSError("refused")
+        fsync(descriptor)
+
+    monkeypatch.setattr(os, "fsync", refuse)
+
+    with pytest.raises(StorageError, match="could not be flushed to the disk"):
+        credentials.save(tmp_path / "kept", 45678, bundle)
+
+
 @pytest.mark.parametrize("missing", ["identity", "authority", "gateKey"])
 def test_a_bundle_missing_a_secret_is_refused_rather_than_half_written(
     tmp_path: Path, bundle: dict[str, Any], missing: str

@@ -14,6 +14,7 @@ import json
 import os
 import re
 import socket
+import stat
 import threading
 import time
 from datetime import UTC, datetime, timedelta
@@ -169,24 +170,47 @@ def test_every_file_a_renewal_writes_is_on_the_disk_before_anything_is_taken_awa
     # Taken away are the staging copy and, once the gate took the old certificate back, the
     # retired copy: a file still only in the system's cache then, and a power loss, left the
     # identity's own files empty with neither copy left and the old certificate revoked.
+    # The directories as well, since the copies' names are their directories' data on POSIX.
+    # cspell:ignore fstat
     events: list[str] = []
-    fsync, forget = os.fsync, credentials_module.forget
+    fsync, flush, forget = os.fsync, credentials_module._flush, credentials_module.forget
 
     def flushed(descriptor: int) -> None:
-        events.append("flushed")
+        # A directory is counted by the name `_flush` was given, below, on every platform.
+        if not stat.S_ISDIR(os.fstat(descriptor).st_mode):
+            events.append("flushed")
         fsync(descriptor)
+
+    def listed(directory: Path) -> None:
+        events.append(f"flushed {directory.name}")
+        flush(directory)
 
     def forgotten(directory: Path) -> None:
         events.append(f"forgot {directory.name}")
         forget(directory)
 
     monkeypatch.setattr(os, "fsync", flushed)
+    monkeypatch.setattr(credentials_module, "_flush", listed)
     monkeypatch.setattr(credentials_module, "forget", forgotten)
+    parent = paired.credentials.directory.parent.name
 
     paired.renew()
 
-    # Four files each into the staging copy, the retired copy and the identity's own directory.
-    assert events == ["flushed"] * 12 + ["forgot default.renewing", "forgot default.retired"]
+    # The staging and retired copies made beside the identity, flushed into the directory above
+    # it, then four files into each copy and into the identity's own directory, each directory
+    # flushed once its files are.
+    assert events == [
+        f"flushed {parent}",
+        f"flushed {parent}",
+        *["flushed"] * 4,
+        "flushed default.renewing",
+        *["flushed"] * 4,
+        "flushed default.retired",
+        *["flushed"] * 4,
+        "flushed default",
+        "forgot default.renewing",
+        "forgot default.retired",
+    ]
 
 
 @pytest.mark.parametrize("opened", [".", ".."], ids=["the directory itself", "the directory above"])
