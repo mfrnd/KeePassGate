@@ -202,8 +202,9 @@ class GateClient:
         whatever `connection_timeout` says, because it waits on a person as a pairing does and the
         gate gives it the same six minutes: a client that hung up sooner would leave the operator's
         approval written and saved for a certificate nobody holds. A longer `connection_timeout`
-        is kept. Giving the old certificate up afterwards asks nobody, and waits
-        `connection_timeout`.
+        is kept, which is what a client gives when it expects a slow save, since the gate holds
+        the connection through a save however long it takes. Giving the old certificate up
+        afterwards asks nobody, and waits `connection_timeout`.
         """
         transport.port_number(credentials.port)
         self._credentials = credentials
@@ -416,9 +417,9 @@ class GateClient:
         **The request waits at least `transport.PAIRING_CONNECTION_TIMEOUT`** on the socket, six
         minutes, or this client's `connection_timeout` when that is longer: the gate answers only
         once the operator has, after waiting for the screen behind any other pairing or renewal,
-        and then writes and saves before it says so. Hanging up sooner would lose an approval
-        already saved, and a `RenewalUnanswered` the gate sends once its dialog's two minutes are
-        up.
+        and then writes and saves before it answers, holding the connection through a save
+        however long it takes. Hanging up sooner would lose an approval already saved, and a
+        `RenewalUnanswered` the gate sends once its dialog's two minutes are up.
 
         A refusal raises `RenewalRefused`, or `RenewalRefusedThisSession`, `RenewalTooEarly` or
         `RenewalRefusedForever` when the operator answered more than this once, and nobody

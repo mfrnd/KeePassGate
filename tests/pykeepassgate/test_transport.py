@@ -1110,11 +1110,11 @@ class TestTheAnswerIsFramedRatherThanEnded:
         assert gate.names == [], "nothing was dialed"
 
     def test_the_pairing_timeout_outlasts_what_the_plugin_may_take(self) -> None:
-        # `GateOptionsTests` sums the same six waits on the other side: the screen, the dialog
-        # and its grace, KeePass settling once the operator has approved, the turn at the writer
-        # and the write. 307 seconds, and the gate gives itself 360; a client that hangs up first
-        # loses the answer to a pairing the gate has already spent the invitation and written the
-        # record for.
+        # Every wait ahead of the answer that has a number: the screen, the dialog and its
+        # grace, KeePass settling once the operator has approved, which `GateOptionsTests` sums
+        # against the gate's own 360 seconds, and then the writer's lock and its turn, after which
+        # the gate holds the connection through the save. A client that hangs up first loses the
+        # answer to a pairing the gate has already spent the invitation and written the record for.
         assert transport.PAIRING_CONNECTION_TIMEOUT > 120.0 + 120.0 + 15.0 + 2.0 + 20.0 + 30.0
         assert transport.PAIRING_CONNECTION_TIMEOUT > transport.DEFAULT_CONNECTION_TIMEOUT
 
