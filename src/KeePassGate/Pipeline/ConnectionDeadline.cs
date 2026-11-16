@@ -32,7 +32,7 @@ namespace KeePassGate.Pipeline
             }
         }
 
-        /// <summary>Drops the connection's deadline, where a transport gave one to drop.</summary>
+        /// <summary>Drops the connection's deadline, where a transport gave a deadline to drop.</summary>
         public static void Drop(IGateContext context)
         {
             object found;
