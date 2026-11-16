@@ -1695,10 +1695,15 @@ So the rules here:
   never fails the request**: by then the change is on disk, and a client told its create failed
   creates a second one under an identifier it was never given.
 
-  **A change taken back out is told as well, and only as far as it needs to be.** The save that
-  failed ended in `UpdateUIState` while the change was still in, so the title bar and the save
-  button say there is something to save; taking the change out clears the flag, and the window is
-  given the call with both lists left alone, which is all that is wrong on it.
+  **A change taken back out is told as well, and only as far as it needs to be.** A save that got
+  as far as writing ended in `UpdateUIState` while the change was still in, so the title bar and the
+  save button show something to save, and taking the change out clears the flag over a file the
+  save left alone. A save KeePass abandoned before writing, at its own look at a file another
+  program rewrote or at a cancel from a `FileSavingPre` or `FileSaving` handler, returned without
+  drawing at all, and over a file that is not what KeePass read the flag stays up. Either way the
+  window is given the call with both lists left alone, drawn from the flag as the put back leaves
+  it, which is all that is wrong on it. It used to be given the call only when the flag was
+  cleared, which left a database marked unsaved showing nothing to save.
 
   **Not for an admission record.** A record is in the database's own custom data, which the main
   window has no view of, so a pairing that lands redraws nothing, and one taken back out redraws

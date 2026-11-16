@@ -432,6 +432,38 @@ namespace KeePassGate.Host.Tests
         }
 
         [Test]
+        public void A_change_taken_back_out_over_a_file_another_program_rewrote_redraws_the_mark_left_up()
+        {
+            // `MainForm.SaveDatabase` abandons a save before writing when its own look at the file
+            // finds that another program rewrote it and the operator cancels, and when a
+            // `FileSavingPre` or `FileSaving` handler cancels it: either way it returns without
+            // `UpdateUIState`. The change raised the flag without drawing it, the put back leaves
+            // it up over a file that is not what KeePass read, and a window left as it was shows
+            // nothing to save until something else redraws it.
+            _database.Save();
+            _database.Database.Modified = false;
+
+            var redraws = 0;
+            var rebuilt = true;
+            var writer = Writer(
+                new RunsUiThread(),
+                db => System.IO.File.AppendAllText(_database.Path, "rewritten by another program"),
+                (db, lists) =>
+                {
+                    redraws++;
+                    rebuilt = lists;
+                });
+
+            var outcome = writer.Change(
+                _database.Database, () => new VaultChange(VaultWrite.Created("abcd"), () => { }));
+
+            Assume.That(outcome.IsUnsaved, Is.True, outcome.Reason);
+            Assume.That(_database.Database.Modified, Is.True, "the file is not what KeePass read");
+            Assert.That(redraws, Is.EqualTo(1), "the flag stayed up, so the window is told");
+            Assert.That(rebuilt, Is.False, "and only that: the tree and the list never showed the change");
+        }
+
+        [Test]
         public void A_window_that_will_not_redraw_does_not_unsay_a_write_that_landed()
         {
             // The change is made and the file is written by the time the window is told, so a

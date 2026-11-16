@@ -66,8 +66,9 @@ namespace KeePassGate.Bridge
     ///   the group tree nor the entry list, so without this an operator watching the window sees
     ///   the database as it was before the request. `DESIGN.md` §119 has the argument and the
     ///   seven arguments the redraw is made with. **And so does a change taken back out**, whose
-    ///   failed save redrew the title bar while the change was still there: what it drew was a
-    ///   database with something to save.
+    ///   failed save either redrew the title bar while the change was still there or, abandoned
+    ///   before writing, drew nothing: either way the window does not show the flag the put back
+    ///   leaves, cleared or left up.
     /// </remarks>
     public sealed class DatabaseWriter : IWriterState
     {
@@ -1466,7 +1467,7 @@ namespace KeePassGate.Bridge
             // and in both cases they already show the database as it now is: neither is rebuilt
             // between the change and the undo, since nothing on this thread reads a `PwGroup` again
             // until something asks it to. What a put back does leave wrong is the mark that there
-            // is something to save, which `PutBack` redraws on its own.
+            // is something to save, which `PutBack` redraws on its own, from the flag it leaves.
             Redraw(database, lists);
 
             return decided.Outcome;
@@ -1551,17 +1552,21 @@ namespace KeePassGate.Bridge
                     if (TheFileIsAsKeePassLeftIt(database, out what))
                     {
                         database.Modified = false;
-
-                        // The save that failed ended in `UpdateUIState` while the change was still
-                        // in, so the title bar and the save button say there is something to save.
-                        // Nothing is, now, and a window left saying so sends the operator looking
-                        // for a change the client was told did not happen, or saving to keep it.
-                        Redraw(database, false);
                     }
                     else
                     {
                         LeftUnsaved(what, cause);
                     }
+
+                    // Drawn from the flag as it now stands, whichever branch set it. A save that
+                    // got as far as writing ended in `UpdateUIState` with the change still in,
+                    // and a window left showing that sends the operator looking for a change the
+                    // client was told did not happen, or saving to keep it. A save KeePass
+                    // abandoned before writing, at its own look at the file or at a cancel from a
+                    // `FileSavingPre` or `FileSaving` handler, returned without drawing at all,
+                    // and a flag left up then shows nothing to save over what may be the only
+                    // undamaged copy.
+                    Redraw(database, false);
                 }
             }
             catch (Exception error) when (Expected.OfCustomData(error))
@@ -2183,18 +2188,19 @@ namespace KeePassGate.Bridge
                     if (TheFileIsAsKeePassLeftIt(database, out what))
                     {
                         database.Modified = false;
-
-                        // The title bar and the save button only, for the reason `PutBack` gives:
-                        // a save that failed drew the database as having something to save.
-                        Redraw(database, false);
                     }
                     else
                     {
-                        // Said, as `PutBack` says it: the database is left marked unsaved with no
-                        // change in it, and the operator is otherwise told only that the write
+                        // Logged, as `PutBack` logs it: the database is left marked unsaved with
+                        // no change in it, and the operator is otherwise told only that the write
                         // failed.
                         LeftUnsaved(what, null);
                     }
+
+                    // The title bar and the save button only, from the flag as it now stands, for
+                    // the reason `PutBack` gives: a save that failed may have drawn the database
+                    // with the record still in, or not drawn it at all.
+                    Redraw(database, false);
                 }
             }
             catch (Exception error) when (Expected.OfCustomData(error))
