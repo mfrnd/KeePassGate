@@ -3,9 +3,10 @@ using System.Windows.Forms;
 namespace KeePassGate.Ui
 {
     /// <summary>
-    /// Adds the plugin's own controls to a host dialog and takes them away again. Total: an
-    /// implementation reports failure rather than throwing, because it runs on the UI thread of a
-    /// password manager while a dialog is opening.
+    /// Adds the plugin's own controls to a host dialog and takes them away again. An
+    /// implementation logs the failures it expects rather than throwing, because it runs on the UI
+    /// thread of a password manager while a dialog is opening; a defect goes on to the caller,
+    /// which catches everything and counts it as an incident.
     /// </summary>
     public interface IFormDecorator
     {
