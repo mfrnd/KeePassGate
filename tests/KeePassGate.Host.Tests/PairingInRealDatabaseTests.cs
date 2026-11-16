@@ -581,6 +581,39 @@ namespace KeePassGate.Host.Tests
         }
 
         [Test]
+        public void A_record_taken_back_out_over_a_file_another_program_rewrote_redraws_the_mark_left_up()
+        {
+            // A save KeePass abandoned before writing returns without `UpdateUIState`, so the
+            // flag the record raised was never drawn. Over a file that is not what KeePass read
+            // the flag stays up when the record goes back out, and the window has to be told.
+            _database.Save();
+            _database.Database.Modified = false;
+
+            var redraws = 0;
+            var rebuilt = true;
+            var writer = new DatabaseWriter(
+                CurrentThread.Instance,
+                database => System.IO.File.AppendAllText(_database.Path, "rewritten by another program"),
+                (database, lists) =>
+                {
+                    redraws++;
+                    rebuilt = lists;
+                },
+                _dialogs,
+                _log);
+
+            using (var certificate = IssueClient())
+            {
+                var result = writer.WriteAdmission(_database.Database, Record(certificate, "ops"));
+
+                Assume.That(result.Ok, Is.False);
+                Assume.That(_database.Database.Modified, Is.True);
+                Assert.That(redraws, Is.EqualTo(1));
+                Assert.That(rebuilt, Is.False);
+            }
+        }
+
+        [Test]
         public void A_record_the_file_did_not_keep_refuses_the_pairing()
         {
             // The read-back above this one is of the store, which is memory. KeePass clears

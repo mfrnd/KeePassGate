@@ -1212,6 +1212,10 @@ none, since it releases both.
   anything after them meets a reset and loses what it had not read. The design claimed every
   answer survived whatever the client sent after its request. A TLS and a TCP half close after
   the request, and a client that reads and stays open, are now tested against the gate.
+- **A database left marked unsaved after a failed write shows the unsaved mark**, in KeePass's
+  title bar and on its save button. A save KeePass abandoned before writing, over a file another
+  program rewrote, returned without redrawing the window, and the change taken back out left the
+  flag up with nothing on screen to show it.
 
 ## 0.1.0, 2026-10-25
 
