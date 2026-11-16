@@ -1,0 +1,8 @@
+probe run 2026-11-15T15:23:21.1386003Z, KeePassLib 2.62, cost
+
+== Cost of the read path, in memory (KeePass 2.62) ==
+  reading 2000 seals into an index by node (200 nodes): 1.38 ms
+  asking each of 20000 entries in 200 groups whether it carries KPG.Group: 2.59 ms
+  asking each of 20000 entries whether it carries KPG: 2.13 ms
+  1000 SHA-256 digests of a rule text of about 50 characters: 3.09 ms
+  one seal entry holds 144 characters of strings

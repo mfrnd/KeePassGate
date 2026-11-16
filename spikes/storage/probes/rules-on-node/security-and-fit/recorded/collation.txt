@@ -1,0 +1,26 @@
+en-US name=004B 0050 0047 cmpToKPG=0 prefixKPGdot=False
+en-US name=004B 0050 034F 0047 cmpToKPG=0 prefixKPGdot=False
+en-US name=004B 0050 0047 034F cmpToKPG=0 prefixKPGdot=False
+en-US name=004B 034F 0050 0047 002E 0047 0072 006F 0075 0070 cmpToKPG=-1 prefixKPGdot=True
+en-US name=004B 0050 0047 0020 cmpToKPG=-1 prefixKPGdot=False
+en-US name=004B 0050 0047 00AD cmpToKPG=0 prefixKPGdot=False
+de-DE name=004B 0050 0047 cmpToKPG=0 prefixKPGdot=False
+de-DE name=004B 0050 034F 0047 cmpToKPG=0 prefixKPGdot=False
+de-DE name=004B 0050 0047 034F cmpToKPG=0 prefixKPGdot=False
+de-DE name=004B 034F 0050 0047 002E 0047 0072 006F 0075 0070 cmpToKPG=-1 prefixKPGdot=True
+de-DE name=004B 0050 0047 0020 cmpToKPG=-1 prefixKPGdot=False
+de-DE name=004B 0050 0047 00AD cmpToKPG=0 prefixKPGdot=False
+tr-TR name=004B 0050 0047 cmpToKPG=0 prefixKPGdot=False
+tr-TR name=004B 0050 034F 0047 cmpToKPG=0 prefixKPGdot=False
+tr-TR name=004B 0050 0047 034F cmpToKPG=0 prefixKPGdot=False
+tr-TR name=004B 034F 0050 0047 002E 0047 0072 006F 0075 0070 cmpToKPG=-1 prefixKPGdot=True
+tr-TR name=004B 0050 0047 0020 cmpToKPG=-1 prefixKPGdot=False
+tr-TR name=004B 0050 0047 00AD cmpToKPG=0 prefixKPGdot=False
+lt-LT name=004B 0050 0047 cmpToKPG=0 prefixKPGdot=False
+lt-LT name=004B 0050 034F 0047 cmpToKPG=0 prefixKPGdot=False
+lt-LT name=004B 0050 0047 034F cmpToKPG=0 prefixKPGdot=False
+lt-LT name=004B 034F 0050 0047 002E 0047 0072 006F 0075 0070 cmpToKPG=-1 prefixKPGdot=True
+lt-LT name=004B 0050 0047 0020 cmpToKPG=-1 prefixKPGdot=False
+lt-LT name=004B 0050 0047 00AD cmpToKPG=0 prefixKPGdot=False
+category of U+034F: NonSpacingMark
+runtime: 4.0.30319.42000

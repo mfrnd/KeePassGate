@@ -1,0 +1,52 @@
+probe run 2026-11-15T15:23:34.9343620Z, KeePassLib 2.62, xc
+
+== KeePassXC 2.8.0, a plain save (keepassxc-cli add, exit 0) ==
+  before: X: RULE R0 (on the node) [pw pw-x-0, hist 0] | Y: silence (no seal, no text) [hist 0] | U: RULE RG0 (on the node)
+  after:  X: RULE R0 (on the node) [pw pw-x-0, hist 0] | Y: silence (no seal, no text) [hist 0] | U: RULE RG0 (on the node) | V: RULE RG0 (on the node)
+  rule entry of U: time 2026-01-01T00:00:00.0000000Z, strings KPG.Group,KPG.Node,Notes,Password,Title,URL,UserName
+
+== KeePassXC 2.8.0, keepassxc-cli merge -s <target> <source>, the target read back with KeePassLib 2.62 ==
+
+xc2.8.0-01-rollback: A narrows X's rule to R1 at +10 and seals it; B, not knowing, changes X's password at +20
+  into A (exit 0): X: RULE R1 (from history) [pw pw-x-B, hist 2] | Y: silence (no seal, no text) [hist 0] | U: RULE RG0 (on the node)
+  into B (exit 0): X: RULE R1 (from history) [pw pw-x-B, hist 2] | Y: silence (no seal, no text) [hist 0] | U: RULE RG0 (on the node)
+
+xc2.8.0-02-tie: as 01, both in the same second (+10)
+  into A (exit 0): X: RULE R1 (on the node) [pw pw-x-0, hist 1] | Y: silence (no seal, no text) [hist 0] | U: RULE RG0 (on the node)
+  into B (exit 0): X: REFUSE (the sealed text is nowhere) [pw pw-x-B, hist 1] | Y: silence (no seal, no text) [hist 0] | U: RULE RG0 (on the node)
+
+xc2.8.0-03-fork: A sets X's rule to R1 at +10, B sets it to R2 at +20, each sealing after the base seal
+  into A (exit 0): X: REFUSE (2 heads) [pw pw-x-0, hist 2] | Y: silence (no seal, no text) [hist 0] | U: RULE RG0 (on the node)
+  into B (exit 0): X: REFUSE (2 heads) [pw pw-x-0, hist 2] | Y: silence (no seal, no text) [hist 0] | U: RULE RG0 (on the node)
+
+xc2.8.0-04-removal: A removes X's rule at +10 and seals 'none'; B changes X's password at +20
+  into A (exit 0): X: silence (sealed as no rule) [pw pw-x-B, hist 2] | Y: silence (no seal, no text) [hist 0] | U: RULE RG0 (on the node)
+  into B (exit 0): X: silence (sealed as no rule) [pw pw-x-B, hist 2] | Y: silence (no seal, no text) [hist 0] | U: RULE RG0 (on the node)
+
+xc2.8.0-05-first-rule: A gives Y its first rule (R1) at +10 and seals it; B changes Y's password at +20
+  into A (exit 0): X: RULE R0 (on the node) [pw pw-x-0, hist 0] | Y: RULE R1 (from history) [hist 2] | U: RULE RG0 (on the node)
+  into B (exit 0): X: RULE R0 (on the node) [pw pw-x-0, hist 0] | Y: RULE R1 (from history) [hist 2] | U: RULE RG0 (on the node)
+
+xc2.8.0-06-hand-edit: B changes X's rule text by hand in another program at +20 (no seal); A does nothing
+  into A (exit 0): X: REFUSE (a text no seal names: '{"default":"inherit","reader":["read","list","update"]}') [pw pw-x-0, hist 1] | Y: silence (no seal, no text) [hist 0] | U: RULE RG0 (on the node)
+  into B (exit 0): X: REFUSE (a text no seal names: '{"default":"inherit","reader":["read","list","update"]}') [pw pw-x-0, hist 1] | Y: silence (no seal, no text) [hist 0] | U: RULE RG0 (on the node)
+
+xc2.8.0-07-hand-delete: B deletes the KPG field of X by hand at +20; A does nothing
+  into A (exit 0): X: RULE R0 (from history) [pw pw-x-0, hist 1] | Y: silence (no seal, no text) [hist 0] | U: RULE RG0 (on the node)
+  into B (exit 0): X: RULE R0 (from history) [pw pw-x-0, hist 1] | Y: silence (no seal, no text) [hist 0] | U: RULE RG0 (on the node)
+
+xc2.8.0-08-group-rule: A changes U's rule to RG1 at +10 (the rule entry edited, sealed); B edits Z at +20, adds an entry to U, and U's own time moves to +20
+  into A (exit 0): X: RULE R0 (on the node) [pw pw-x-0, hist 0] | Y: silence (no seal, no text) [hist 0] | U: RULE RG1 (on the node)
+  into B (exit 0): X: RULE R0 (on the node) [pw pw-x-0, hist 0] | Y: silence (no seal, no text) [hist 0] | U: RULE RG1 (on the node)
+
+xc2.8.0-09-rule-entry-deleted: B deletes U's rule entry for good at +20 (a deletion record); A does nothing
+  into A (exit 0): X: RULE R0 (on the node) [pw pw-x-0, hist 0] | Y: silence (no seal, no text) [hist 0] | U: RULE RG0 (on the node)
+  into B (exit 0): X: RULE R0 (on the node) [pw pw-x-0, hist 0] | Y: silence (no seal, no text) [hist 0] | U: RULE RG0 (on the node)
+
+xc2.8.0-10-seal-deleted: B deletes X's seal for good at +20 (a deletion record); A does nothing
+  into A (exit 0): X: RULE R0 (on the node) [pw pw-x-0, hist 0] | Y: silence (no seal, no text) [hist 0] | U: RULE RG0 (on the node)
+  into B (exit 0): X: RULE R0 (on the node) [pw pw-x-0, hist 0] | Y: silence (no seal, no text) [hist 0] | U: RULE RG0 (on the node)
+
+xc2.8.0-11-two-seals: A rules Y (R1) at +10, B rules Z (R2) at +20: a seal added in each copy
+  into A (exit 0): X: RULE R0 (on the node) [pw pw-x-0, hist 0] | Y: RULE R1 (on the node) [hist 1] | U: RULE RG0 (on the node) | Z: RULE R2 (on the node)
+  into B (exit 0): X: RULE R0 (on the node) [pw pw-x-0, hist 0] | Y: RULE R1 (on the node) [hist 1] | U: RULE RG0 (on the node) | Z: RULE R2 (on the node)

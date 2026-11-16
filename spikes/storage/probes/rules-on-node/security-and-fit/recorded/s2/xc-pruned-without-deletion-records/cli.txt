@@ -1,0 +1,6 @@
+	Hinzugefügt: '/attack/U'/'X' [{718664c4-bfe7-0b9e-bcd4-0d9a6c02f102}]
+	Hinzugefügt: '/attack/KeePassGate/Rule seals'/'Rule seal 718664C4' [{6dfa5f24-0dc8-160c-7ec1-6b746d6dde8e}]
+spikes\storage\probes\rules-on-node\security-and-fit\work2\s2\xc-pruned-without-deletion-records\source.kdbx erfolgreich nach spikes\storage\probes\rules-on-node\security-and-fit\work2\s2\xc-pruned-without-deletion-records\target.kdbx zusammengeführt.
+
+--- stderr
+Passwort zum Entsperren von spikes\storage\probes\rules-on-node\security-and-fit\work2\s2\xc-pruned-without-deletion-records\target.kdbx eingeben:

@@ -1,0 +1,74 @@
+probe run 2026-11-15T15:43:53.7911908Z, KeePassLib 2.62
+
+C1 newest-seal-lost: A narrows X R0 -> R1 at +10 and seals S1 (after S0); B changes X's password at +20;
+   merge; then S1 alone is lost: (a) removed for good, (b) moved into the recycle bin, (c) moved to the root
+  Synchronize       into A: merged D: RULE R1 (from history) / V: RULE R1 (from history) || (a) D: RULE R0 (on the node) / V: REFUSE (a past text no seal names) [current KPG R0] || (b) D: RULE R0 (on the node) / V: REFUSE (a past text no seal names) [current KPG R0] || (c) D: RULE R0 (on the node) / V: REFUSE (a past text no seal names) [current KPG R0]
+  Synchronize       into B: merged D: RULE R1 (from history) / V: RULE R1 (from history) || (a) D: RULE R0 (on the node) / V: REFUSE (a past text no seal names) [current KPG R0] || (b) D: RULE R0 (on the node) / V: REFUSE (a past text no seal names) [current KPG R0] || (c) D: RULE R0 (on the node) / V: REFUSE (a past text no seal names) [current KPG R0]
+  OverwriteIfNewer  into A: merged D: RULE R1 (from history) / V: RULE R1 (from history) || (a) D: RULE R0 (on the node) / V: REFUSE (a past text no seal names) [current KPG R0] || (b) D: RULE R0 (on the node) / V: REFUSE (a past text no seal names) [current KPG R0] || (c) D: RULE R0 (on the node) / V: REFUSE (a past text no seal names) [current KPG R0]
+  OverwriteIfNewer  into B: merged D: RULE R1 (from history) / V: RULE R1 (from history) || (a) D: RULE R0 (on the node) / V: REFUSE (a past text no seal names) [current KPG R0] || (b) D: RULE R0 (on the node) / V: REFUSE (a past text no seal names) [current KPG R0] || (c) D: RULE R0 (on the node) / V: REFUSE (a past text no seal names) [current KPG R0]
+  OverwriteExisting into A: merged D: RULE R1 (from history) / V: RULE R1 (from history) || (a) D: RULE R0 (on the node) / V: REFUSE (a past text no seal names) [current KPG R0] || (b) D: RULE R0 (on the node) / V: REFUSE (a past text no seal names) [current KPG R0] || (c) D: RULE R0 (on the node) / V: REFUSE (a past text no seal names) [current KPG R0]
+  OverwriteExisting into B: merged D: RULE R1 (on the node) / V: RULE R1 (on the node) || (a) D: REFUSE (a text no seal names) / V: REFUSE (a current text no seal names) [current KPG R1] || (b) D: REFUSE (a text no seal names) / V: REFUSE (a current text no seal names) [current KPG R1] || (c) D: REFUSE (a text no seal names) / V: REFUSE (a current text no seal names) [current KPG R1]
+  KeepExisting      into A: merged D: RULE R1 (on the node) / V: RULE R1 (on the node) || (a) D: REFUSE (a text no seal names) / V: REFUSE (a current text no seal names) [current KPG R1] || (b) D: REFUSE (a text no seal names) / V: REFUSE (a current text no seal names) [current KPG R1] || (c) D: REFUSE (a text no seal names) / V: REFUSE (a current text no seal names) [current KPG R1]
+  KeepExisting      into B: merged D: RULE R1 (from history) / V: RULE R1 (from history) || (a) D: RULE R0 (on the node) / V: REFUSE (a past text no seal names) [current KPG R0] || (b) D: RULE R0 (on the node) / V: REFUSE (a past text no seal names) [current KPG R0] || (c) D: RULE R0 (on the node) / V: REFUSE (a past text no seal names) [current KPG R0]
+
+C2 first-rule-seal-lost: A gives Y its first rule R1 at +10 and seals it; B changes Y's password at +20; merge;
+   then Y's one seal is removed for good
+  Synchronize       into A: merged D: RULE R1 (from history) / V: RULE R1 (from history) || seal lost: D: SILENCE (no seal, no text) / V: REFUSE (a text, current or past, and no seal) [Y has KPG now: False]
+  Synchronize       into B: merged D: RULE R1 (from history) / V: RULE R1 (from history) || seal lost: D: SILENCE (no seal, no text) / V: REFUSE (a text, current or past, and no seal) [Y has KPG now: False]
+  OverwriteIfNewer  into A: merged D: RULE R1 (from history) / V: RULE R1 (from history) || seal lost: D: SILENCE (no seal, no text) / V: REFUSE (a text, current or past, and no seal) [Y has KPG now: False]
+  OverwriteIfNewer  into B: merged D: RULE R1 (from history) / V: RULE R1 (from history) || seal lost: D: SILENCE (no seal, no text) / V: REFUSE (a text, current or past, and no seal) [Y has KPG now: False]
+  OverwriteExisting into A: merged D: RULE R1 (from history) / V: RULE R1 (from history) || seal lost: D: SILENCE (no seal, no text) / V: REFUSE (a text, current or past, and no seal) [Y has KPG now: False]
+  OverwriteExisting into B: merged D: RULE R1 (on the node) / V: RULE R1 (on the node) || seal lost: D: REFUSE (a text and no seal) / V: REFUSE (a text, current or past, and no seal) [Y has KPG now: True]
+  KeepExisting      into A: merged D: RULE R1 (on the node) / V: RULE R1 (on the node) || seal lost: D: REFUSE (a text and no seal) / V: REFUSE (a text, current or past, and no seal) [Y has KPG now: True]
+  KeepExisting      into B: merged D: RULE R1 (from history) / V: RULE R1 (from history) || seal lost: D: SILENCE (no seal, no text) / V: REFUSE (a text, current or past, and no seal) [Y has KPG now: False]
+
+C3 field-then-seals: B deletes X's KPG field by hand at +20; merge; then the KeePassGate group is deleted for good
+  Synchronize       into A: merged X D: RULE R0 (from history) / V: RULE R0 (from history) | U D: RULE RG0 (on the node) / V: RULE RG0 (on the node) || seals gone: X D: SILENCE (no seal, no text) / V: REFUSE (a text, current or past, and no seal) | U D: REFUSE (a text and no seal) / V: REFUSE (a text, current or past, and no seal)
+  Synchronize       into B: merged X D: RULE R0 (from history) / V: RULE R0 (from history) | U D: RULE RG0 (on the node) / V: RULE RG0 (on the node) || seals gone: X D: SILENCE (no seal, no text) / V: REFUSE (a text, current or past, and no seal) | U D: REFUSE (a text and no seal) / V: REFUSE (a text, current or past, and no seal)
+
+C4 group-deleted-pruned (prune leaves deletion records): A deletes U for good at +20, prunes at +21; B adds N to U at +30
+  seals pruned in A: 2
+  Synchronize       into A: U D: SILENCE (no seal, no text) / V: SILENCE (no seal, no text anywhere) holding [N] | seals of U: 0
+  Synchronize       into B: U D: SILENCE (no seal, no text) / V: SILENCE (no seal, no text anywhere) holding [N] | seals of U: 0
+  OverwriteIfNewer  into A: U D: SILENCE (no seal, no text) / V: SILENCE (no seal, no text anywhere) holding [N] | seals of U: 0
+  OverwriteIfNewer  into B: U D: RULE RG0 (on the node) / V: RULE RG0 (on the node) holding [X,Y,Z,KeePassGate rule,N] | seals of U: 1
+  OverwriteExisting into A: U D: SILENCE (no seal, no text) / V: SILENCE (no seal, no text anywhere) holding [N] | seals of U: 0
+  OverwriteExisting into B: U D: RULE RG0 (on the node) / V: RULE RG0 (on the node) holding [X,Y,Z,KeePassGate rule,N] | seals of U: 1
+  KeepExisting      into A: U D: SILENCE (no seal, no text) / V: SILENCE (no seal, no text anywhere) holding [N] | seals of U: 0
+  KeepExisting      into B: U D: RULE RG0 (on the node) / V: RULE RG0 (on the node) holding [X,Y,Z,KeePassGate rule,N] | seals of U: 1
+
+C4 group-deleted-pruned (prune leaves no deletion records): A deletes U for good at +20, prunes at +21; B adds N to U at +30
+  seals pruned in A: 2
+  Synchronize       into A: U D: REFUSE (the sealed text is nowhere) / V: REFUSE (the sealed text is nowhere) holding [N] | seals of U: 1
+  Synchronize       into B: U D: REFUSE (the sealed text is nowhere) / V: REFUSE (the sealed text is nowhere) holding [N] | seals of U: 1
+  OverwriteIfNewer  into A: U D: REFUSE (the sealed text is nowhere) / V: REFUSE (the sealed text is nowhere) holding [N] | seals of U: 1
+  OverwriteIfNewer  into B: U D: RULE RG0 (on the node) / V: RULE RG0 (on the node) holding [X,Y,Z,KeePassGate rule,N] | seals of U: 1
+  OverwriteExisting into A: U D: REFUSE (the sealed text is nowhere) / V: REFUSE (the sealed text is nowhere) holding [N] | seals of U: 1
+  OverwriteExisting into B: U D: RULE RG0 (on the node) / V: RULE RG0 (on the node) holding [X,Y,Z,KeePassGate rule,N] | seals of U: 1
+  KeepExisting      into A: U D: REFUSE (the sealed text is nowhere) / V: REFUSE (the sealed text is nowhere) holding [N] | seals of U: 1
+  KeepExisting      into B: U D: RULE RG0 (on the node) / V: RULE RG0 (on the node) holding [X,Y,Z,KeePassGate rule,N] | seals of U: 1
+
+C5 derived-identity: A rules W RG1 at +10, takes it away at +20 (rule entry deleted for good, seal none);
+   B rules W RG1 at +30 with a rule entry of its own
+  A's first seal and B's seal are one identifier: True
+  Synchronize       into A: W D: SILENCE (sealed as no rule) / V: SILENCE (sealed as no rule) | rule entries in W: 1
+  Synchronize       into B: W D: SILENCE (sealed as no rule) / V: SILENCE (sealed as no rule) | rule entries in W: 1
+  OverwriteIfNewer  into A: W D: SILENCE (sealed as no rule) / V: SILENCE (sealed as no rule) | rule entries in W: 1
+  OverwriteIfNewer  into B: W D: SILENCE (sealed as no rule) / V: SILENCE (sealed as no rule) | rule entries in W: 1
+  OverwriteExisting into A: W D: SILENCE (sealed as no rule) / V: SILENCE (sealed as no rule) | rule entries in W: 1
+  OverwriteExisting into B: W D: SILENCE (sealed as no rule) / V: SILENCE (sealed as no rule) | rule entries in W: 1
+  KeepExisting      into A: W D: SILENCE (sealed as no rule) / V: SILENCE (sealed as no rule) | rule entries in W: 1
+  KeepExisting      into B: W D: SILENCE (sealed as no rule) / V: SILENCE (sealed as no rule) | rule entries in W: 1
+
+C6 big-entry: X carries a 1.5 MiB attachment, HistoryMaxSize 1 MiB; A narrows X to R1 at +10 and seals it;
+   B changes X's password at +20
+  Synchronize       into A: X D: REFUSE (the sealed text is nowhere) / V: REFUSE (the sealed text is nowhere) [hist 0]
+  Synchronize       into B: X D: REFUSE (the sealed text is nowhere) / V: REFUSE (the sealed text is nowhere) [hist 0]
+
+C7 the design's recoveries under both rules (its scenarios 01, 05, 07), Synchronize
+  01 into A: D: RULE R1 (from history) / V: RULE R1 (from history)
+  01 into B: D: RULE R1 (from history) / V: RULE R1 (from history)
+  05 into A: D: RULE R1 (from history) / V: RULE R1 (from history)
+  05 into B: D: RULE R1 (from history) / V: RULE R1 (from history)
+  07 into A: D: RULE R0 (from history) / V: RULE R0 (from history)
+  07 into B: D: RULE R0 (from history) / V: RULE R0 (from history)

@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- Added on this branch. The probe was compiled with the .NET Framework's own compiler against
+       a copy of KeePass.exe and had no project of its own; this one builds the same single source,
+       `Attack.cs`, unchanged, as `Attack.exe`, the name it had. KeePass is the pinned one that
+       `spikes\storage\Directory.Build.props` names. -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net48</TargetFramework>
+    <AssemblyName>Attack</AssemblyName>
+    <RootNamespace>Attack</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Reference Include="KeePass">
+      <HintPath>$(KeePassExe)</HintPath>
+    </Reference>
+    <PackageReference Include="Microsoft.NETFramework.ReferenceAssemblies" Version="1.0.3" PrivateAssets="all" />
+  </ItemGroup>
+
+</Project>

@@ -99,6 +99,13 @@ words:
   - keepassxc
   - DroidMonkey
 
+  # Identifiers in the rules-on-node probes, which are carried unchanged: the label
+  # `prefixKPGdot` printed by the collation script, the case directory `C4-norecords`, and
+  # `ordinally` in a line the security critic's `Attack.cs` prints.
+  - Gdot
+  - norecords
+  - ordinally
+
   # Programs and libraries the store-entries probes run, spelled as their projects spell them.
   - pykeepass
   - kdbxweb

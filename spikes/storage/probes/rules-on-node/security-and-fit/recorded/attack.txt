@@ -1,0 +1,31 @@
+attack probe 2026-11-15T15:49:05.3248401Z, KeePassLib 2.62
+== S1: rollback, then the head seal recycled or deleted, KeePass 2.62 Synchronize ==
+  after A <- B (narrowing in A, later password change in B): X: RULE R1(narrow) from history [current text R0(wide), seals in group 3]
+  in the copy where the newest seal was recycled: X: RULE R0(wide) on the node [current text R0(wide), seals in group 2]
+  after M <- that copy (Synchronize): X: RULE R0(wide) on the node [current text R0(wide), seals in group 2]
+  in the copy where the newest seal was deleted with a deletion record: X: RULE R0(wide) on the node [current text R0(wide), seals in group 2]
+  after M <- that copy (Synchronize): X: RULE R0(wide) on the node [current text R0(wide), seals in group 2]
+  the same recycle after the repair: X: REFUSE (a text no seal names) [current text R1(narrow), seals in group 2]
+
+== S2: X narrowed, then deleted for good, its seals pruned; a stale copy merged in ==
+  pruned with deletion records; keepassxc-cli 2.8.0 merge -s A B-stale (exit 0): X: RULE R0(wide) on the node [current text R0(wide), seals in group 2]
+  pruned with deletion records; KeePass Synchronize A <- B-stale: X: absent [current text -, seals in group 1]
+  pruned without deletion records; keepassxc-cli 2.8.0 merge -s A B-stale (exit 0): X: RULE R0(wide) on the node [current text R0(wide), seals in group 2]
+  pruned without deletion records; KeePass Synchronize A <- B-stale: X: absent [current text -, seals in group 2]
+  not pruned; keepassxc-cli 2.8.0 merge -s A B-stale (exit 0): X: REFUSE (the sealed text is nowhere) [current text R0(wide), seals in group 3]
+  not pruned; KeePass Synchronize A <- B-stale: X: absent [current text -, seals in group 3]
+
+== S3: U's rule entry moved to the root (by hand, or placed there by a merge) ==
+  root: REFUSE (a text and no seal) | U: REFUSE (the sealed text is nowhere)
+
+== S4: look-alike names in an entry's string dictionary (culture de-DE) ==
+  U+034F category: NonSpacingMark
+  an entry given only 'KPG.Gr<U+034F>oup': Strings.Exists("KPG.Group") = True, ReadSafe("KPG.Group") is the planted text = True
+  the same entry, keys compared ordinally: carries 'KPG.Group' = False
+  an entry given only 'KP<U+034F>G': Strings.Exists("KPG") = True
+  an entry holding 'KPG', then Set('KPG<U+034F>'): keys [3 chars], ReadSafe("KPG") is now the second value = True
+  name K<U+034F>PG.Group: ordinal reserved test catches it = False, Strings.Exists("KPG.Group") = True, Strings.Exists("KPG") = False, culture IsPrefix("KPG.") = True
+  name KP<U+034F>G.Group: ordinal reserved test catches it = False, Strings.Exists("KPG.Group") = True, Strings.Exists("KPG") = False, culture IsPrefix("KPG.") = True
+  name <U+034F>KPG.Group: ordinal reserved test catches it = False, Strings.Exists("KPG.Group") = True, Strings.Exists("KPG") = False, culture IsPrefix("KPG.") = True
+  name K<U+034F>PG: ordinal reserved test catches it = False, Strings.Exists("KPG.Group") = False, Strings.Exists("KPG") = True, culture IsPrefix("KPG.") = False
+  an entry with 'K<U+034F>PG.Group' added at the root, read with the design's rule as its probe reads it: root REFUSE (a text and no seal) | U RULE RG on the node | X RULE R0(wide) on the node

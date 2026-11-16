@@ -1,0 +1,137 @@
+probe run 2026-11-15T15:23:00.4953458Z, KeePassLib 2.62, keepass
+== KeePass 2.62 (KeePassLib), PwDatabase.MergeIn, each result saved and reopened ==
+
+01-rollback: A narrows X's rule to R1 at +10 and seals it; B, not knowing, changes X's password at +20
+  Synchronize       into A: X: RULE R1 (from history) [pw pw-x-B, hist 2] | Y: silence (no seal, no text) [hist 0] | U: RULE RG0 (on the node)
+  Synchronize       into B: X: RULE R1 (from history) [pw pw-x-B, hist 2] | Y: silence (no seal, no text) [hist 0] | U: RULE RG0 (on the node)
+  OverwriteIfNewer  into A: X: RULE R1 (from history) [pw pw-x-B, hist 2] | Y: silence (no seal, no text) [hist 0] | U: RULE RG0 (on the node)
+  OverwriteIfNewer  into B: X: RULE R1 (from history) [pw pw-x-B, hist 2] | Y: silence (no seal, no text) [hist 0] | U: RULE RG0 (on the node)
+  OverwriteExisting into A: X: RULE R1 (from history) [pw pw-x-B, hist 2] | Y: silence (no seal, no text) [hist 0] | U: RULE RG0 (on the node)
+  OverwriteExisting into B: X: RULE R1 (on the node) [pw pw-x-0, hist 2] | Y: silence (no seal, no text) [hist 0] | U: RULE RG0 (on the node)
+  KeepExisting      into A: X: RULE R1 (on the node) [pw pw-x-0, hist 2] | Y: silence (no seal, no text) [hist 0] | U: RULE RG0 (on the node)
+  KeepExisting      into B: X: RULE R1 (from history) [pw pw-x-B, hist 2] | Y: silence (no seal, no text) [hist 0] | U: RULE RG0 (on the node)
+
+02-tie: as 01, both in the same second (+10)
+  Synchronize       into A: X: REFUSE (the sealed text is nowhere) [pw pw-x-B, hist 1] | Y: silence (no seal, no text) [hist 0] | U: RULE RG0 (on the node)
+  Synchronize       into B: X: RULE R1 (on the node) [pw pw-x-0, hist 1] | Y: silence (no seal, no text) [hist 0] | U: RULE RG0 (on the node)
+  OverwriteIfNewer  into A: X: REFUSE (the sealed text is nowhere) [pw pw-x-B, hist 1] | Y: silence (no seal, no text) [hist 0] | U: RULE RG0 (on the node)
+  OverwriteIfNewer  into B: X: RULE R1 (on the node) [pw pw-x-0, hist 1] | Y: silence (no seal, no text) [hist 0] | U: RULE RG0 (on the node)
+  OverwriteExisting into A: X: RULE R1 (from history) [pw pw-x-B, hist 2] | Y: silence (no seal, no text) [hist 0] | U: RULE RG0 (on the node)
+  OverwriteExisting into B: X: RULE R1 (on the node) [pw pw-x-0, hist 2] | Y: silence (no seal, no text) [hist 0] | U: RULE RG0 (on the node)
+  KeepExisting      into A: X: RULE R1 (on the node) [pw pw-x-0, hist 1] | Y: silence (no seal, no text) [hist 0] | U: RULE RG0 (on the node)
+  KeepExisting      into B: X: REFUSE (the sealed text is nowhere) [pw pw-x-B, hist 1] | Y: silence (no seal, no text) [hist 0] | U: RULE RG0 (on the node)
+
+03-fork: A sets X's rule to R1 at +10, B sets it to R2 at +20, each sealing after the base seal
+  Synchronize       into A: X: REFUSE (2 heads) [pw pw-x-0, hist 2] | Y: silence (no seal, no text) [hist 0] | U: RULE RG0 (on the node)
+  Synchronize       into B: X: REFUSE (2 heads) [pw pw-x-0, hist 2] | Y: silence (no seal, no text) [hist 0] | U: RULE RG0 (on the node)
+  OverwriteIfNewer  into A: X: REFUSE (2 heads) [pw pw-x-0, hist 2] | Y: silence (no seal, no text) [hist 0] | U: RULE RG0 (on the node)
+  OverwriteIfNewer  into B: X: REFUSE (2 heads) [pw pw-x-0, hist 2] | Y: silence (no seal, no text) [hist 0] | U: RULE RG0 (on the node)
+  OverwriteExisting into A: X: REFUSE (2 heads) [pw pw-x-0, hist 2] | Y: silence (no seal, no text) [hist 0] | U: RULE RG0 (on the node)
+  OverwriteExisting into B: X: REFUSE (2 heads) [pw pw-x-0, hist 2] | Y: silence (no seal, no text) [hist 0] | U: RULE RG0 (on the node)
+  KeepExisting      into A: X: REFUSE (2 heads) [pw pw-x-0, hist 2] | Y: silence (no seal, no text) [hist 0] | U: RULE RG0 (on the node)
+  KeepExisting      into B: X: REFUSE (2 heads) [pw pw-x-0, hist 2] | Y: silence (no seal, no text) [hist 0] | U: RULE RG0 (on the node)
+
+04-removal: A removes X's rule at +10 and seals 'none'; B changes X's password at +20
+  Synchronize       into A: X: silence (sealed as no rule) [pw pw-x-B, hist 2] | Y: silence (no seal, no text) [hist 0] | U: RULE RG0 (on the node)
+  Synchronize       into B: X: silence (sealed as no rule) [pw pw-x-B, hist 2] | Y: silence (no seal, no text) [hist 0] | U: RULE RG0 (on the node)
+  OverwriteIfNewer  into A: X: silence (sealed as no rule) [pw pw-x-B, hist 2] | Y: silence (no seal, no text) [hist 0] | U: RULE RG0 (on the node)
+  OverwriteIfNewer  into B: X: silence (sealed as no rule) [pw pw-x-B, hist 2] | Y: silence (no seal, no text) [hist 0] | U: RULE RG0 (on the node)
+  OverwriteExisting into A: X: silence (sealed as no rule) [pw pw-x-B, hist 2] | Y: silence (no seal, no text) [hist 0] | U: RULE RG0 (on the node)
+  OverwriteExisting into B: X: silence (sealed as no rule) [pw pw-x-0, hist 2] | Y: silence (no seal, no text) [hist 0] | U: RULE RG0 (on the node)
+  KeepExisting      into A: X: silence (sealed as no rule) [pw pw-x-0, hist 2] | Y: silence (no seal, no text) [hist 0] | U: RULE RG0 (on the node)
+  KeepExisting      into B: X: silence (sealed as no rule) [pw pw-x-B, hist 2] | Y: silence (no seal, no text) [hist 0] | U: RULE RG0 (on the node)
+
+05-first-rule: A gives Y its first rule (R1) at +10 and seals it; B changes Y's password at +20
+  Synchronize       into A: X: RULE R0 (on the node) [pw pw-x-0, hist 0] | Y: RULE R1 (from history) [hist 2] | U: RULE RG0 (on the node)
+  Synchronize       into B: X: RULE R0 (on the node) [pw pw-x-0, hist 0] | Y: RULE R1 (from history) [hist 2] | U: RULE RG0 (on the node)
+  OverwriteIfNewer  into A: X: RULE R0 (on the node) [pw pw-x-0, hist 0] | Y: RULE R1 (from history) [hist 2] | U: RULE RG0 (on the node)
+  OverwriteIfNewer  into B: X: RULE R0 (on the node) [pw pw-x-0, hist 0] | Y: RULE R1 (from history) [hist 2] | U: RULE RG0 (on the node)
+  OverwriteExisting into A: X: RULE R0 (on the node) [pw pw-x-0, hist 0] | Y: RULE R1 (from history) [hist 2] | U: RULE RG0 (on the node)
+  OverwriteExisting into B: X: RULE R0 (on the node) [pw pw-x-0, hist 0] | Y: RULE R1 (on the node) [hist 2] | U: RULE RG0 (on the node)
+  KeepExisting      into A: X: RULE R0 (on the node) [pw pw-x-0, hist 0] | Y: RULE R1 (on the node) [hist 2] | U: RULE RG0 (on the node)
+  KeepExisting      into B: X: RULE R0 (on the node) [pw pw-x-0, hist 0] | Y: RULE R1 (from history) [hist 2] | U: RULE RG0 (on the node)
+
+06-hand-edit: B changes X's rule text by hand in another program at +20 (no seal); A does nothing
+  Synchronize       into A: X: REFUSE (a text no seal names: '{"default":"inherit","reader":["read","list","update"]}') [pw pw-x-0, hist 1] | Y: silence (no seal, no text) [hist 0] | U: RULE RG0 (on the node)
+  Synchronize       into B: X: REFUSE (a text no seal names: '{"default":"inherit","reader":["read","list","update"]}') [pw pw-x-0, hist 1] | Y: silence (no seal, no text) [hist 0] | U: RULE RG0 (on the node)
+  OverwriteIfNewer  into A: X: REFUSE (a text no seal names: '{"default":"inherit","reader":["read","list","update"]}') [pw pw-x-0, hist 1] | Y: silence (no seal, no text) [hist 0] | U: RULE RG0 (on the node)
+  OverwriteIfNewer  into B: X: REFUSE (a text no seal names: '{"default":"inherit","reader":["read","list","update"]}') [pw pw-x-0, hist 1] | Y: silence (no seal, no text) [hist 0] | U: RULE RG0 (on the node)
+  OverwriteExisting into A: X: REFUSE (a text no seal names: '{"default":"inherit","reader":["read","list","update"]}') [pw pw-x-0, hist 1] | Y: silence (no seal, no text) [hist 0] | U: RULE RG0 (on the node)
+  OverwriteExisting into B: X: RULE R0 (on the node) [pw pw-x-0, hist 2] | Y: silence (no seal, no text) [hist 0] | U: RULE RG0 (on the node)
+  KeepExisting      into A: X: RULE R0 (on the node) [pw pw-x-0, hist 1] | Y: silence (no seal, no text) [hist 0] | U: RULE RG0 (on the node)
+  KeepExisting      into B: X: REFUSE (a text no seal names: '{"default":"inherit","reader":["read","list","update"]}') [pw pw-x-0, hist 1] | Y: silence (no seal, no text) [hist 0] | U: RULE RG0 (on the node)
+
+07-hand-delete: B deletes the KPG field of X by hand at +20; A does nothing
+  Synchronize       into A: X: RULE R0 (from history) [pw pw-x-0, hist 1] | Y: silence (no seal, no text) [hist 0] | U: RULE RG0 (on the node)
+  Synchronize       into B: X: RULE R0 (from history) [pw pw-x-0, hist 1] | Y: silence (no seal, no text) [hist 0] | U: RULE RG0 (on the node)
+  OverwriteIfNewer  into A: X: RULE R0 (from history) [pw pw-x-0, hist 1] | Y: silence (no seal, no text) [hist 0] | U: RULE RG0 (on the node)
+  OverwriteIfNewer  into B: X: RULE R0 (from history) [pw pw-x-0, hist 1] | Y: silence (no seal, no text) [hist 0] | U: RULE RG0 (on the node)
+  OverwriteExisting into A: X: RULE R0 (from history) [pw pw-x-0, hist 1] | Y: silence (no seal, no text) [hist 0] | U: RULE RG0 (on the node)
+  OverwriteExisting into B: X: RULE R0 (on the node) [pw pw-x-0, hist 2] | Y: silence (no seal, no text) [hist 0] | U: RULE RG0 (on the node)
+  KeepExisting      into A: X: RULE R0 (on the node) [pw pw-x-0, hist 1] | Y: silence (no seal, no text) [hist 0] | U: RULE RG0 (on the node)
+  KeepExisting      into B: X: RULE R0 (from history) [pw pw-x-0, hist 1] | Y: silence (no seal, no text) [hist 0] | U: RULE RG0 (on the node)
+
+08-group-rule: A changes U's rule to RG1 at +10 (the rule entry edited, sealed); B edits Z at +20, adds an entry to U, and U's own time moves to +20
+  Synchronize       into A: X: RULE R0 (on the node) [pw pw-x-0, hist 0] | Y: silence (no seal, no text) [hist 0] | U: RULE RG1 (on the node)
+  Synchronize       into B: X: RULE R0 (on the node) [pw pw-x-0, hist 0] | Y: silence (no seal, no text) [hist 0] | U: RULE RG1 (on the node)
+  OverwriteIfNewer  into A: X: RULE R0 (on the node) [pw pw-x-0, hist 0] | Y: silence (no seal, no text) [hist 0] | U: RULE RG1 (on the node)
+  OverwriteIfNewer  into B: X: RULE R0 (on the node) [pw pw-x-0, hist 0] | Y: silence (no seal, no text) [hist 0] | U: RULE RG1 (on the node)
+  OverwriteExisting into A: X: RULE R0 (on the node) [pw pw-x-0, hist 0] | Y: silence (no seal, no text) [hist 0] | U: RULE RG1 (from history)
+  OverwriteExisting into B: X: RULE R0 (on the node) [pw pw-x-0, hist 0] | Y: silence (no seal, no text) [hist 0] | U: RULE RG1 (on the node)
+  KeepExisting      into A: X: RULE R0 (on the node) [pw pw-x-0, hist 0] | Y: silence (no seal, no text) [hist 0] | U: RULE RG1 (on the node)
+  KeepExisting      into B: X: RULE R0 (on the node) [pw pw-x-0, hist 0] | Y: silence (no seal, no text) [hist 0] | U: REFUSE (the sealed text is nowhere)
+
+09-rule-entry-deleted: B deletes U's rule entry for good at +20 (a deletion record); A does nothing
+  Synchronize       into A: X: RULE R0 (on the node) [pw pw-x-0, hist 0] | Y: silence (no seal, no text) [hist 0] | U: REFUSE (the sealed text is nowhere)
+  Synchronize       into B: X: RULE R0 (on the node) [pw pw-x-0, hist 0] | Y: silence (no seal, no text) [hist 0] | U: REFUSE (the sealed text is nowhere)
+  OverwriteIfNewer  into A: X: RULE R0 (on the node) [pw pw-x-0, hist 0] | Y: silence (no seal, no text) [hist 0] | U: RULE RG0 (on the node)
+  OverwriteIfNewer  into B: X: RULE R0 (on the node) [pw pw-x-0, hist 0] | Y: silence (no seal, no text) [hist 0] | U: REFUSE (the sealed text is nowhere)
+  OverwriteExisting into A: X: RULE R0 (on the node) [pw pw-x-0, hist 0] | Y: silence (no seal, no text) [hist 0] | U: RULE RG0 (on the node)
+  OverwriteExisting into B: X: RULE R0 (on the node) [pw pw-x-0, hist 0] | Y: silence (no seal, no text) [hist 0] | U: REFUSE (the sealed text is nowhere)
+  KeepExisting      into A: X: RULE R0 (on the node) [pw pw-x-0, hist 0] | Y: silence (no seal, no text) [hist 0] | U: RULE RG0 (on the node)
+  KeepExisting      into B: X: RULE R0 (on the node) [pw pw-x-0, hist 0] | Y: silence (no seal, no text) [hist 0] | U: REFUSE (the sealed text is nowhere)
+
+10-seal-deleted: B deletes X's seal for good at +20 (a deletion record); A does nothing
+  Synchronize       into A: X: REFUSE (a text and no seal) [pw pw-x-0, hist 0] | Y: silence (no seal, no text) [hist 0] | U: RULE RG0 (on the node)
+  Synchronize       into B: X: REFUSE (a text and no seal) [pw pw-x-0, hist 0] | Y: silence (no seal, no text) [hist 0] | U: RULE RG0 (on the node)
+  OverwriteIfNewer  into A: X: RULE R0 (on the node) [pw pw-x-0, hist 0] | Y: silence (no seal, no text) [hist 0] | U: RULE RG0 (on the node)
+  OverwriteIfNewer  into B: X: REFUSE (a text and no seal) [pw pw-x-0, hist 0] | Y: silence (no seal, no text) [hist 0] | U: RULE RG0 (on the node)
+  OverwriteExisting into A: X: RULE R0 (on the node) [pw pw-x-0, hist 0] | Y: silence (no seal, no text) [hist 0] | U: RULE RG0 (on the node)
+  OverwriteExisting into B: X: REFUSE (a text and no seal) [pw pw-x-0, hist 0] | Y: silence (no seal, no text) [hist 0] | U: RULE RG0 (on the node)
+  KeepExisting      into A: X: RULE R0 (on the node) [pw pw-x-0, hist 0] | Y: silence (no seal, no text) [hist 0] | U: RULE RG0 (on the node)
+  KeepExisting      into B: X: REFUSE (a text and no seal) [pw pw-x-0, hist 0] | Y: silence (no seal, no text) [hist 0] | U: RULE RG0 (on the node)
+
+11-two-seals: A rules Y (R1) at +10, B rules Z (R2) at +20: a seal added in each copy
+  Synchronize       into A: X: RULE R0 (on the node) [pw pw-x-0, hist 0] | Y: RULE R1 (on the node) [hist 1] | U: RULE RG0 (on the node) | Z: RULE R2 (on the node)
+  Synchronize       into B: X: RULE R0 (on the node) [pw pw-x-0, hist 0] | Y: RULE R1 (on the node) [hist 1] | U: RULE RG0 (on the node) | Z: RULE R2 (on the node)
+  OverwriteIfNewer  into A: X: RULE R0 (on the node) [pw pw-x-0, hist 0] | Y: RULE R1 (on the node) [hist 1] | U: RULE RG0 (on the node) | Z: RULE R2 (on the node)
+  OverwriteIfNewer  into B: X: RULE R0 (on the node) [pw pw-x-0, hist 0] | Y: RULE R1 (on the node) [hist 1] | U: RULE RG0 (on the node) | Z: RULE R2 (on the node)
+  OverwriteExisting into A: X: RULE R0 (on the node) [pw pw-x-0, hist 0] | Y: RULE R1 (from history) [hist 2] | U: RULE RG0 (on the node) | Z: RULE R2 (on the node)
+  OverwriteExisting into B: X: RULE R0 (on the node) [pw pw-x-0, hist 0] | Y: RULE R1 (on the node) [hist 1] | U: RULE RG0 (on the node) | Z: RULE R2 (from history)
+  KeepExisting      into A: X: RULE R0 (on the node) [pw pw-x-0, hist 0] | Y: RULE R1 (on the node) [hist 1] | U: RULE RG0 (on the node) | Z: REFUSE (the sealed text is nowhere)
+  KeepExisting      into B: X: RULE R0 (on the node) [pw pw-x-0, hist 0] | Y: REFUSE (the sealed text is nowhere) [hist 1] | U: RULE RG0 (on the node) | Z: RULE R2 (on the node)
+
+== KeePass 2.62, CreateNewUuids (what File then Import preselects) ==
+  the originals: X: RULE R0 (on the node) [pw pw-x-0, hist 0] | Y: silence (no seal, no text) [hist 0] | U: RULE RG0 (on the node)
+  the copy of U (new identifier): REFUSE (a text and no seal)
+  the copy of X (new identifier): REFUSE (a text and no seal)
+
+== How long a rolled back rule can be found in history (KeePass 2.62, limit 10 items) ==
+  without repair, after  1 later edits of X: RULE R1 (from history) [hist 3]
+  without repair, after  2 later edits of X: RULE R1 (from history) [hist 4]
+  without repair, after  3 later edits of X: RULE R1 (from history) [hist 5]
+  without repair, after  4 later edits of X: RULE R1 (from history) [hist 6]
+  without repair, after  5 later edits of X: RULE R1 (from history) [hist 7]
+  without repair, after  6 later edits of X: RULE R1 (from history) [hist 8]
+  without repair, after  7 later edits of X: RULE R1 (from history) [hist 9]
+  without repair, after  8 later edits of X: RULE R1 (from history) [hist 10]
+  without repair, after  9 later edits of X: RULE R1 (from history) [hist 10]
+  without repair, after 10 later edits of X: REFUSE (the sealed text is nowhere) [hist 10]
+  without repair, after 11 later edits of X: REFUSE (the sealed text is nowhere) [hist 10]
+  without repair, after 12 later edits of X: REFUSE (the sealed text is nowhere) [hist 10]
+  with the repair in the first write, after  1 edits: RULE R1 (on the node)
+  with the repair in the first write, after 12 edits: RULE R1 (on the node)
+
+== Delete Duplicate Entries (PwDatabase.DeleteDuplicateEntries) ==
+  rule entries of U and V hold the same rule text and title, and differ in KPG.Node: 0 deleted of 8
+  the same two without KPG.Node: 1 deleted; U: REFUSE (the sealed text is nowhere) | V: RULE RG0 (on the node)
