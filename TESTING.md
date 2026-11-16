@@ -317,6 +317,15 @@ chooser the same way, when the pictures are retaken. While the dialog is open bo
 `503 undecided`; once one authority is kept it serves at once, the other copy's client reaches
 nothing, and the database is marked changed and left unsaved until the test saves it.
 
+**The main window under the chooser**, in `LiveChooserOverTheMainWindowTests`: a database holding
+two authorities raises the chooser as KeePass opens it, and a trigger of KeePass's own synchronizes
+it with a copy every ten seconds, which KeePass runs inside the chooser's modal loop because the
+chooser is not registered with its window manager. The synchronize ends by unblocking the main
+window, which enabled it behind the question; the main window is read from Windows until a while
+after that save and stays disabled, and is enabled again once the chooser is canceled. The host
+and unit tiers make KeePass's two assignments themselves, under the chooser and under the approval
+dialogs; this is what notices a KeePass whose trigger or unblock behaves differently.
+
 The client half of pairing lives in `tests/Shared/PairingClient.cs` and is compiled into **both**
 test assemblies. That is deliberate: if the loopback tests and the end to end test each had their
 own client, either could pass against a protocol only it knew.
