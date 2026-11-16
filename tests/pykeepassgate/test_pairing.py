@@ -11,6 +11,7 @@ against output the plugin produced.
 
 from __future__ import annotations
 
+import _thread
 import base64
 import datetime as dt
 import inspect
@@ -19,6 +20,8 @@ import math
 import os
 import secrets
 import socket
+import threading
+import time
 from datetime import timedelta
 from pathlib import Path
 from typing import Any, cast
@@ -886,6 +889,39 @@ def test_a_refused_pairing_leaves_no_empty_identity_behind(
         api.pair(port=gate.port, invitation=INVITATION, name="agent", directory=where)
 
     assert list(where.iterdir()) == [], "the files opening created are taken away again"
+
+
+def test_an_interrupt_while_the_operator_reads_ends_the_pairing_with_nothing_kept(
+    gate: FakeGate, host: Issued, tmp_path: Path, bundle: dict[str, Any]
+) -> None:
+    # Ctrl+C while the dialog stands, made the way Windows makes it: noted, with nothing woken.
+    # Taken only once the operator had answered, it threw the approval away with the identity
+    # the gate had just admitted, so the database held a record for a key nobody kept.
+    released = threading.Event()
+    approved = threading.Event()
+    approving = Gate(gate, host, bundle=bundle)
+
+    def reading(path: str, body: str, client: bytes | None) -> tuple[int, str]:
+        if path == pairing_module.REQUEST_PATH:
+            time.sleep(0.3)
+            _thread.interrupt_main()
+            released.wait(5.0)
+            approved.set()
+
+        return approving(path, body, client)
+
+    gate.handler = reading
+    where = tmp_path / "kept"
+
+    try:
+        with pytest.raises(KeyboardInterrupt):
+            api.pair(port=gate.port, invitation=INVITATION, name="agent", directory=where)
+        approved_first = approved.is_set()
+    finally:
+        released.set()
+
+    assert not approved_first, "the interrupt was taken only once the operator had answered"
+    assert list(where.iterdir()) == [], "nothing is kept that reads as an identity"
 
 
 class TestWhatPairingMayRepeat:

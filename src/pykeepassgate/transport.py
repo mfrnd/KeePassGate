@@ -112,6 +112,14 @@ DEFAULT_CONNECTION_TIMEOUT = 120.0
 #: certificate nobody holds.
 PAIRING_CONNECTION_TIMEOUT = 360.0
 
+#: The longest a read waits on the socket at a stretch, in seconds, so that a Ctrl+C is acted on
+#: within that long. Windows wakes no wait on a socket for a console's Ctrl+C: Python notes the
+#: interrupt and acts on it once the wait returns, and the wait `pair` and `renew` spend on the
+#: operator returned only with the operator's answer, which the interrupt then threw away along
+#: with the identity the gate had just admitted. So a read waits out its timeout in stretches of
+#: this length, and anything arriving ends the stretch it arrives in.
+_LONGEST_UNINTERRUPTED = 0.5
+
 #: How long to go on waiting out a `503 busy`, in seconds, and `None` for not waiting at all, which
 #: is what a client does unless it is told otherwise: the refusal is raised, and what to do about it
 #: is the caller's. There is one budget for each word a `503` is known to carry, because the three
@@ -802,7 +810,7 @@ class Connection:
         body_at = -1
 
         while True:
-            received = self._socket.recv(65536)
+            received = self._receive()
             if not received:
                 # Nothing framed the answer, or the peer stopped early. `_parse` tells which.
                 return bytes(buffer)
@@ -851,6 +859,29 @@ class Connection:
                     return bytes(buffer)
             elif declared is not None and len(buffer) - body_at >= declared:
                 return bytes(buffer)
+
+    def _receive(self) -> bytes:
+        """One read of the socket, waited for in stretches that a Ctrl+C can end between.
+
+        The timeout is still the read's own, the whole of what the socket was given, so a
+        stretch running out is not the read running out. A read of TLS that ran out of time is
+        taken up where it stopped: OpenSSL leaves it wanting more bytes, and a read wanting more
+        is repeated rather than abandoned. The socket is left with the timeout it was given.
+        """
+        whole = self._socket.gettimeout()
+        left = math.inf if whole is None else whole
+        deadline = time.monotonic() + left
+        try:
+            while True:
+                self._socket.settimeout(min(left, _LONGEST_UNINTERRUPTED))
+                try:
+                    return self._socket.recv(65536)
+                except TimeoutError:
+                    left = deadline - time.monotonic()
+                    if left <= 0:
+                        raise
+        finally:
+            self._socket.settimeout(whole)
 
 
 @contextmanager
