@@ -1523,12 +1523,12 @@ namespace KeePassGate.Tests.Fakes
             /// </summary>
             /// <remarks>
             /// **Not a choice about tidiness.** The default comparer compares by the current
-            /// culture, and that collation gives `U+00AD`, `U+200D`, `U+2060` and `U+FEFF` no
-            /// weight and reads a composed character and its decomposed spelling as one. Keyed
-            /// byte for byte, as these were, no case here could express a name the database
-            /// cannot tell from another, so the guard cases passed against a store the real one
-            /// does not resemble and a fix that only touched the handlers would have looked
-            /// finished.
+            /// culture, and that collation gives `U+00AD`, `U+200D`, `U+2060` and `U+FEFF` among
+            /// others no weight, reads a composed character and its decomposed spelling as one,
+            /// and joins other spellings besides, such as `ß` and `ss`. Keyed byte for byte, as
+            /// these were, no case here could express a name the database cannot tell from
+            /// another, so the guard cases passed against a store the real one does not resemble
+            /// and a fix that only touched the handlers would have looked finished.
             /// </remarks>
             public SortedDictionary<string, string> Fields { get; } =
                 new SortedDictionary<string, string>();

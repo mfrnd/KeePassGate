@@ -2824,7 +2824,10 @@ components:
 
     # KeePass keeps an entry's strings and its attachments in dictionaries that compare names the
     # way the current culture sorts them, and that collation gives `U+00AD`, `U+200D`, `U+2060` and
-    # `U+FEFF` no weight at all and reads a composed character and its decomposed spelling as one.
+    # `U+FEFF` among others no weight at all, reads a composed character and its decomposed
+    # spelling as one, and joins other spellings besides, such as `ß` and `ss`, a squared
+    # character and the letters it is made of, a mark repeating the letter before it and that
+    # letter written twice, and letters newer than Windows' sort table, which weigh nothing.
     # `Pass<U+00AD>word` therefore addressed the entry's `Password`, while the guards above the
     # store compared byte for byte and judged it a custom field, and it was applied to the
     # credential.

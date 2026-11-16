@@ -466,9 +466,10 @@ namespace KeePassGate.Host.Tests
         /// U+00AD, the soft hyphen. KeePass keeps an entry's strings in a `SortedDictionary` under
         /// the default comparer, which compares by the current culture, and the collation gives
         /// this character no weight: measured against the pinned KeePass, `Strings.Exists` answers
-        /// true for this on an entry that carries only `Password`. U+200D, U+2060 and U+FEFF
-        /// behave the same way, and so does a name written in the other normal form, which is
-        /// why the second alias below is a `Cafe` whose accent is a combining character.
+        /// true for this on an entry that carries only `Password`. U+200D, U+2060 and U+FEFF are
+        /// among the others that behave the same way, `ß` read as `ss` joins two spellings as
+        /// well, and so does a name written in the other normal form, which is why the second
+        /// alias below is a `Cafe` whose accent is a combining character.
         /// </remarks>
         private const string PasswordAlias = "Pass\u00ADword";
 
