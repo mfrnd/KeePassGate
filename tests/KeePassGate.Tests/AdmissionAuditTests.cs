@@ -247,6 +247,33 @@ namespace KeePassGate.Tests
         }
 
         [Test]
+        public void A_client_holding_refused_certificates_is_recorded_on_two_allowances_and_no_more()
+        {
+            // A revoked record is emptied and an expired one is taken away, so nothing names the
+            // client a refused certificate belonged to: its lines count against the database's
+            // refused allowance, beside the client's own, and a client presenting both is recorded
+            // at up to twice the pace. However many certificates it renewed out of, no more.
+            var entry = TestNode.Root("root").Granting("reader", AclVerb.Read).Child("an entry");
+            var client = Client("reader");
+            var first = Refused();
+            var second = Refused();
+
+            for (var i = 0; i < DecisionPace.Burst; i++)
+            {
+                _check.Decide(client, "readEntry", AclVerb.Read, AclReach.Fields, entry);
+                _check.Refuse(i % 2 == 0 ? first : second, "readEntry");
+            }
+
+            Assert.That(_waits, Is.Empty, "two bursts, the client's own and the refused certificates'");
+
+            _check.Refuse(first, "readEntry");
+            _check.Refuse(second, "readEntry");
+            _check.Decide(client, "readEntry", AclVerb.Read, AclReach.Fields, entry);
+
+            Assert.That(_waits, Has.Count.EqualTo(3), "and past them every line waits");
+        }
+
+        [Test]
         public void Another_client_keeps_an_allowance_of_its_own()
         {
             // The other side of counting by client key: a client that never renewed and holds a

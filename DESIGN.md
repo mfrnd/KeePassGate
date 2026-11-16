@@ -1952,6 +1952,17 @@ key, as it first was, each certificate a client renewed out of brought a whole b
 once it was revoked or had expired, so a client that kept them wrote as many times the pace as it
 had certificates.
 
+**That shared allowance is apart from every client's own, so a client keeping refused
+certificates is recorded at up to twice the pace, and that is conceded.** Counting a refused
+certificate against its client would need the client named, and nothing names it: a revoked
+record is emptied, an expired record is taken away by the plugin's next write, a certificate refused
+for its usage or its dates is refused before its record is read, and reading the database again
+there would cost a read per request for a certificate that reaches nothing. Twice is the whole of
+it, however many certificates a client kept or however many clients keep them, since every refused
+certificate of a database shares the one allowance; a client flooding on both pushes a decision out
+of both files in about a quarter of an hour rather than half an hour, and every line on the way
+still names the certificate that wrote it.
+
 **A client's lines about its own admission count against the same allowance.** A renewal an answer
 given before refuses is answered at once and as often as a client asks, so its lines, and the line
 for a client revoking itself, are paced with that client's decisions rather than on an allowance of

@@ -62,7 +62,10 @@ namespace KeePassGate.Pipeline
         /// <remarks>
         /// Made here rather than beside this, so that both write with one clock and count a client
         /// against one allowance: a client gets one budget for everything it can make the audit
-        /// write, and splitting it would double what one flooding client could push out of the file.
+        /// write with a certificate the database admits, and splitting it would double what one
+        /// flooding client could push out of the file. A certificate the gate refuses is counted
+        /// on the database's shared allowance instead, apart from the client's, for the reason
+        /// `DecisionPace` gives.
         /// </remarks>
         public AdmissionAudit Admissions { get; private set; }
 
