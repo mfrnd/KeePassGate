@@ -1,0 +1,354 @@
+KeePassLib 2.62, PowerShell 5.1.26100.9818, CLR 4.0.30319.42000
+group uuid FE4040A9E0FAE884FA8BECAEEE9FBB46, state entry uuid 8AB03BFAEDE536C6078045089CEB0601
+
+== S1 both wrote, A later (A +20, B +10)
+   A: current=A1 history=[] witnesses=[A1]
+   B: current=B1 history=[] witnesses=[B1]
+   KeePass Synchronize       into A: current=A1 history=[B1] witnesses=[A1,B1]
+        no memory: merged M(A1+B1) [meet at rule.Z] data complete
+        memory   : merged M(A1+B1) [meet at rule.Z] data complete; after save and reopen: current=M(A1+B1) history=[] witnesses=[M(A1+B1)], ok
+   KeePass Synchronize       into B: current=A1 history=[B1] witnesses=[A1,B1]
+        no memory: merged M(A1+B1) [meet at rule.Z] data complete
+        memory   : merged M(A1+B1) [meet at rule.Z] data complete; after save and reopen: current=M(A1+B1) history=[] witnesses=[M(A1+B1)], ok
+   KeePass OverwriteIfNewer  into A: current=A1 history=[B1] witnesses=[A1,B1]
+        no memory: merged M(A1+B1) [meet at rule.Z] data complete
+        memory   : merged M(A1+B1) [meet at rule.Z] data complete; after save and reopen: current=M(A1+B1) history=[] witnesses=[M(A1+B1)], ok
+   KeePass OverwriteIfNewer  into B: current=A1 history=[B1] witnesses=[A1,B1]
+        no memory: merged M(A1+B1) [meet at rule.Z] data complete
+        memory   : merged M(A1+B1) [meet at rule.Z] data complete; after save and reopen: current=M(A1+B1) history=[] witnesses=[M(A1+B1)], ok
+   KeePass OverwriteExisting into A: current=B1 history=[A1] witnesses=[A1,B1]
+        no memory: merged M(A1+B1) [meet at rule.Z] data complete
+        memory   : merged M(A1+B1) [meet at rule.Z] data complete; after save and reopen: current=M(A1+B1) history=[] witnesses=[M(A1+B1)], ok
+   KeePass OverwriteExisting into B: current=A1 history=[B1] witnesses=[A1,B1]
+        no memory: merged M(A1+B1) [meet at rule.Z] data complete
+        memory   : merged M(A1+B1) [meet at rule.Z] data complete; after save and reopen: current=M(A1+B1) history=[] witnesses=[M(A1+B1)], ok
+   KeePass KeepExisting      into A: current=A1 history=[B1] witnesses=[A1,B1]
+        no memory: merged M(A1+B1) [meet at rule.Z] data complete
+        memory   : merged M(A1+B1) [meet at rule.Z] data complete; after save and reopen: current=M(A1+B1) history=[] witnesses=[M(A1+B1)], ok
+   KeePass KeepExisting      into B: current=B1 history=[B1] witnesses=[A1,B1]
+        no memory: REFUSE version missing: A1
+        memory   : REFUSE version missing: A1; after save and reopen: current=B1 history=[B1] witnesses=[A1,B1], REFUSE version missing: A1
+   KeePassXC 2.4.2  into A (exit 0): current=A1 history=[B1] witnesses=[A1,B1]
+        at the next load in KeePass: merged M(A1+B1) [meet at rule.Z] data complete
+   KeePassXC 2.4.2  into B (exit 0): current=A1 history=[B1] witnesses=[A1,B1]
+        at the next load in KeePass: merged M(A1+B1) [meet at rule.Z] data complete
+   KeePassXC 2.6.6  into A (exit 0): current=A1 history=[B1] witnesses=[A1,B1]
+        at the next load in KeePass: merged M(A1+B1) [meet at rule.Z] data complete
+   KeePassXC 2.6.6  into B (exit 0): current=A1 history=[B1] witnesses=[A1,B1]
+        at the next load in KeePass: merged M(A1+B1) [meet at rule.Z] data complete
+   KeePassXC 2.7.12 into A (exit 0): current=A1 history=[B1] witnesses=[A1,B1]
+        at the next load in KeePass: merged M(A1+B1) [meet at rule.Z] data complete
+   KeePassXC 2.7.12 into B (exit 0): current=A1 history=[B1] witnesses=[A1,B1]
+        at the next load in KeePass: merged M(A1+B1) [meet at rule.Z] data complete
+   KeePassXC 2.8.0  into A (exit 0): current=A1 history=[B1] witnesses=[A1,B1]
+        at the next load in KeePass: merged M(A1+B1) [meet at rule.Z] data complete
+   KeePassXC 2.8.0  into B (exit 0): current=A1 history=[B1] witnesses=[A1,B1]
+        at the next load in KeePass: merged M(A1+B1) [meet at rule.Z] data complete
+
+== S2 both wrote, B later (A +10, B +20)
+   A: current=A1 history=[] witnesses=[A1]
+   B: current=B1 history=[] witnesses=[B1]
+   KeePass Synchronize       into A: current=B1 history=[A1] witnesses=[A1,B1]
+        no memory: merged M(B1+A1) [meet at rule.Z] data complete
+        memory   : merged M(B1+A1) [meet at rule.Z] data complete; after save and reopen: current=M(B1+A1) history=[] witnesses=[M(B1+A1)], ok
+   KeePass Synchronize       into B: current=B1 history=[A1] witnesses=[A1,B1]
+        no memory: merged M(B1+A1) [meet at rule.Z] data complete
+        memory   : merged M(B1+A1) [meet at rule.Z] data complete; after save and reopen: current=M(B1+A1) history=[] witnesses=[M(B1+A1)], ok
+   KeePass OverwriteIfNewer  into A: current=B1 history=[A1] witnesses=[A1,B1]
+        no memory: merged M(B1+A1) [meet at rule.Z] data complete
+        memory   : merged M(B1+A1) [meet at rule.Z] data complete; after save and reopen: current=M(B1+A1) history=[] witnesses=[M(B1+A1)], ok
+   KeePass OverwriteIfNewer  into B: current=B1 history=[A1] witnesses=[A1,B1]
+        no memory: merged M(B1+A1) [meet at rule.Z] data complete
+        memory   : merged M(B1+A1) [meet at rule.Z] data complete; after save and reopen: current=M(B1+A1) history=[] witnesses=[M(B1+A1)], ok
+   KeePass OverwriteExisting into A: current=B1 history=[A1] witnesses=[A1,B1]
+        no memory: merged M(B1+A1) [meet at rule.Z] data complete
+        memory   : merged M(B1+A1) [meet at rule.Z] data complete; after save and reopen: current=M(B1+A1) history=[] witnesses=[M(B1+A1)], ok
+   KeePass OverwriteExisting into B: current=A1 history=[B1] witnesses=[A1,B1]
+        no memory: merged M(B1+A1) [meet at rule.Z] data complete
+        memory   : merged M(B1+A1) [meet at rule.Z] data complete; after save and reopen: current=M(B1+A1) history=[] witnesses=[M(B1+A1)], ok
+   KeePass KeepExisting      into A: current=A1 history=[A1] witnesses=[A1,B1]
+        no memory: REFUSE version missing: B1
+        memory   : REFUSE version missing: B1; after save and reopen: current=A1 history=[A1] witnesses=[A1,B1], REFUSE version missing: B1
+   KeePass KeepExisting      into B: current=B1 history=[A1] witnesses=[A1,B1]
+        no memory: merged M(B1+A1) [meet at rule.Z] data complete
+        memory   : merged M(B1+A1) [meet at rule.Z] data complete; after save and reopen: current=M(B1+A1) history=[] witnesses=[M(B1+A1)], ok
+   KeePassXC 2.4.2  into A (exit 0): current=B1 history=[A1] witnesses=[A1,B1]
+        at the next load in KeePass: merged M(B1+A1) [meet at rule.Z] data complete
+   KeePassXC 2.4.2  into B (exit 0): current=B1 history=[A1] witnesses=[A1,B1]
+        at the next load in KeePass: merged M(B1+A1) [meet at rule.Z] data complete
+   KeePassXC 2.6.6  into A (exit 0): current=B1 history=[A1] witnesses=[A1,B1]
+        at the next load in KeePass: merged M(B1+A1) [meet at rule.Z] data complete
+   KeePassXC 2.6.6  into B (exit 0): current=B1 history=[A1] witnesses=[A1,B1]
+        at the next load in KeePass: merged M(B1+A1) [meet at rule.Z] data complete
+   KeePassXC 2.7.12 into A (exit 0): current=B1 history=[A1] witnesses=[A1,B1]
+        at the next load in KeePass: merged M(B1+A1) [meet at rule.Z] data complete
+   KeePassXC 2.7.12 into B (exit 0): current=B1 history=[A1] witnesses=[A1,B1]
+        at the next load in KeePass: merged M(B1+A1) [meet at rule.Z] data complete
+   KeePassXC 2.8.0  into A (exit 0): current=B1 history=[A1] witnesses=[A1,B1]
+        at the next load in KeePass: merged M(B1+A1) [meet at rule.Z] data complete
+   KeePassXC 2.8.0  into B (exit 0): current=B1 history=[A1] witnesses=[A1,B1]
+        at the next load in KeePass: merged M(B1+A1) [meet at rule.Z] data complete
+
+== S3 both wrote in the same second (+10, +10)
+   A: current=A1 history=[] witnesses=[A1]
+   B: current=B1 history=[] witnesses=[B1]
+   KeePass Synchronize       into A: current=B1 history=[] witnesses=[A1,B1]
+        no memory: REFUSE version missing: A1
+        memory   : merged M(A1+B1) [meet at rule.Z] data complete; after save and reopen: current=M(A1+B1) history=[] witnesses=[M(A1+B1)], ok
+   KeePass Synchronize       into B: current=A1 history=[] witnesses=[A1,B1]
+        no memory: REFUSE version missing: B1
+        memory   : merged M(A1+B1) [meet at rule.Z] data complete; after save and reopen: current=M(A1+B1) history=[] witnesses=[M(A1+B1)], ok
+   KeePass OverwriteIfNewer  into A: current=B1 history=[] witnesses=[A1,B1]
+        no memory: REFUSE version missing: A1
+        memory   : merged M(A1+B1) [meet at rule.Z] data complete; after save and reopen: current=M(A1+B1) history=[] witnesses=[M(A1+B1)], ok
+   KeePass OverwriteIfNewer  into B: current=A1 history=[] witnesses=[A1,B1]
+        no memory: REFUSE version missing: B1
+        memory   : merged M(A1+B1) [meet at rule.Z] data complete; after save and reopen: current=M(A1+B1) history=[] witnesses=[M(A1+B1)], ok
+   KeePass OverwriteExisting into A: current=B1 history=[A1] witnesses=[A1,B1]
+        no memory: merged M(A1+B1) [meet at rule.Z] data complete
+        memory   : merged M(A1+B1) [meet at rule.Z] data complete; after save and reopen: current=M(A1+B1) history=[] witnesses=[M(A1+B1)], ok
+   KeePass OverwriteExisting into B: current=A1 history=[B1] witnesses=[A1,B1]
+        no memory: merged M(A1+B1) [meet at rule.Z] data complete
+        memory   : merged M(A1+B1) [meet at rule.Z] data complete; after save and reopen: current=M(A1+B1) history=[] witnesses=[M(A1+B1)], ok
+   KeePass KeepExisting      into A: current=A1 history=[] witnesses=[A1,B1]
+        no memory: REFUSE version missing: B1
+        memory   : REFUSE version missing: B1; after save and reopen: current=A1 history=[] witnesses=[A1,B1], REFUSE version missing: B1
+   KeePass KeepExisting      into B: current=B1 history=[] witnesses=[A1,B1]
+        no memory: REFUSE version missing: A1
+        memory   : REFUSE version missing: A1; after save and reopen: current=B1 history=[] witnesses=[A1,B1], REFUSE version missing: A1
+   KeePassXC 2.4.2  into A (exit 0): current=A1 history=[] witnesses=[A1,B1]
+        at the next load in KeePass: REFUSE version missing: B1
+   KeePassXC 2.4.2  into B (exit 0): current=B1 history=[] witnesses=[A1,B1]
+        at the next load in KeePass: REFUSE version missing: A1
+   KeePassXC 2.6.6  into A (exit 0): current=A1 history=[] witnesses=[A1,B1]
+        at the next load in KeePass: REFUSE version missing: B1
+   KeePassXC 2.6.6  into B (exit 0): current=B1 history=[] witnesses=[A1,B1]
+        at the next load in KeePass: REFUSE version missing: A1
+   KeePassXC 2.7.12 into A (exit 0): current=A1 history=[] witnesses=[A1,B1]
+        at the next load in KeePass: REFUSE version missing: B1
+   KeePassXC 2.7.12 into B (exit 0): current=B1 history=[] witnesses=[A1,B1]
+        at the next load in KeePass: REFUSE version missing: A1
+   KeePassXC 2.8.0  into A (exit 0): current=A1 history=[] witnesses=[A1,B1]
+        at the next load in KeePass: REFUSE version missing: B1
+   KeePassXC 2.8.0  into B (exit 0): current=B1 history=[] witnesses=[A1,B1]
+        at the next load in KeePass: REFUSE version missing: A1
+
+== S4 A wrote (+10); B holds the old document but its entry was edited by hand later (+30, title, with a history item as programs make one)
+   A: current=A1 history=[] witnesses=[A1]
+   B: current=D0 history=[D0] witnesses=[D0]
+   KeePass Synchronize       into A: current=D0 history=[D0,A1] witnesses=[A1]
+        no memory: put back A1 data complete
+        memory   : put back A1 data complete; after save and reopen: current=A1 history=[] witnesses=[A1], ok
+   KeePass Synchronize       into B: current=D0 history=[D0,A1] witnesses=[A1]
+        no memory: put back A1 data complete
+        memory   : put back A1 data complete; after save and reopen: current=A1 history=[] witnesses=[A1], ok
+   KeePass OverwriteIfNewer  into A: current=D0 history=[D0,A1] witnesses=[A1]
+        no memory: put back A1 data complete
+        memory   : put back A1 data complete; after save and reopen: current=A1 history=[] witnesses=[A1], ok
+   KeePass OverwriteIfNewer  into B: current=D0 history=[D0,A1] witnesses=[A1,D0]
+        no memory: put back A1 data complete
+        memory   : put back A1 data complete; after save and reopen: current=A1 history=[] witnesses=[A1], ok
+   KeePass OverwriteExisting into A: current=D0 history=[D0,A1] witnesses=[A1]
+        no memory: put back A1 data complete
+        memory   : put back A1 data complete; after save and reopen: current=A1 history=[] witnesses=[A1], ok
+   KeePass OverwriteExisting into B: current=A1 history=[D0,D0] witnesses=[A1,D0]
+        no memory: ok data complete
+        memory   : ok data complete; after save and reopen: current=A1 history=[D0,D0] witnesses=[A1,D0], ok
+   KeePass KeepExisting      into A: current=A1 history=[D0,A1] witnesses=[A1]
+        no memory: ok data complete
+        memory   : ok data complete; after save and reopen: current=A1 history=[D0,A1] witnesses=[A1], ok
+   KeePass KeepExisting      into B: current=D0 history=[D0,A1] witnesses=[A1,D0]
+        no memory: put back A1 data complete
+        memory   : put back A1 data complete; after save and reopen: current=A1 history=[] witnesses=[A1], ok
+   KeePassXC 2.4.2  into A (exit 0): current=D0 history=[D0,A1] witnesses=[A1,D0]
+        at the next load in KeePass: put back A1 data complete
+   KeePassXC 2.4.2  into B (exit 0): current=D0 history=[D0,A1] witnesses=[A1,D0]
+        at the next load in KeePass: put back A1 data complete
+   KeePassXC 2.6.6  into A (exit 0): current=D0 history=[D0,A1] witnesses=[A1,D0]
+        at the next load in KeePass: put back A1 data complete
+   KeePassXC 2.6.6  into B (exit 0): current=D0 history=[D0,A1] witnesses=[A1,D0]
+        at the next load in KeePass: put back A1 data complete
+   KeePassXC 2.7.12 into A (exit 0): current=D0 history=[D0,A1] witnesses=[A1,D0]
+        at the next load in KeePass: put back A1 data complete
+   KeePassXC 2.7.12 into B (exit 0): current=D0 history=[D0,A1] witnesses=[A1,D0]
+        at the next load in KeePass: put back A1 data complete
+   KeePassXC 2.8.0  into A (exit 0): current=D0 history=[D0,A1] witnesses=[A1,D0]
+        at the next load in KeePass: put back A1 data complete
+   KeePassXC 2.8.0  into B (exit 0): current=D0 history=[D0,A1] witnesses=[A1,D0]
+        at the next load in KeePass: put back A1 data complete
+
+== S5 A wrote (+10); B unchanged
+   A: current=A1 history=[] witnesses=[A1]
+   B: current=D0 history=[] witnesses=[D0]
+   KeePass Synchronize       into A: current=A1 history=[D0] witnesses=[A1]
+        no memory: ok data complete
+        memory   : ok data complete; after save and reopen: current=A1 history=[D0] witnesses=[A1], ok
+   KeePass Synchronize       into B: current=A1 history=[D0] witnesses=[A1]
+        no memory: ok data complete
+        memory   : ok data complete; after save and reopen: current=A1 history=[D0] witnesses=[A1], ok
+   KeePass OverwriteIfNewer  into A: current=A1 history=[D0] witnesses=[A1]
+        no memory: ok data complete
+        memory   : ok data complete; after save and reopen: current=A1 history=[D0] witnesses=[A1], ok
+   KeePass OverwriteIfNewer  into B: current=A1 history=[D0] witnesses=[A1,D0]
+        no memory: ok data complete
+        memory   : ok data complete; after save and reopen: current=A1 history=[D0] witnesses=[A1,D0], ok
+   KeePass OverwriteExisting into A: current=D0 history=[A1] witnesses=[A1]
+        no memory: put back A1 data complete
+        memory   : put back A1 data complete; after save and reopen: current=A1 history=[] witnesses=[A1], ok
+   KeePass OverwriteExisting into B: current=A1 history=[D0] witnesses=[A1,D0]
+        no memory: ok data complete
+        memory   : ok data complete; after save and reopen: current=A1 history=[D0] witnesses=[A1,D0], ok
+   KeePass KeepExisting      into A: current=A1 history=[D0] witnesses=[A1]
+        no memory: ok data complete
+        memory   : ok data complete; after save and reopen: current=A1 history=[D0] witnesses=[A1], ok
+   KeePass KeepExisting      into B: current=D0 history=[D0] witnesses=[A1,D0]
+        no memory: REFUSE version missing: A1
+        memory   : REFUSE version missing: A1; after save and reopen: current=D0 history=[D0] witnesses=[A1,D0], REFUSE version missing: A1
+   KeePassXC 2.4.2  into A (exit 0): current=A1 history=[D0] witnesses=[A1,D0]
+        at the next load in KeePass: ok data complete
+   KeePassXC 2.4.2  into B (exit 0): current=A1 history=[D0] witnesses=[A1,D0]
+        at the next load in KeePass: ok data complete
+   KeePassXC 2.6.6  into A (exit 0): current=A1 history=[D0] witnesses=[A1,D0]
+        at the next load in KeePass: ok data complete
+   KeePassXC 2.6.6  into B (exit 0): current=A1 history=[D0] witnesses=[A1,D0]
+        at the next load in KeePass: ok data complete
+   KeePassXC 2.7.12 into A (exit 0): current=A1 history=[D0] witnesses=[A1,D0]
+        at the next load in KeePass: ok data complete
+   KeePassXC 2.7.12 into B (exit 0): current=A1 history=[D0] witnesses=[A1,D0]
+        at the next load in KeePass: ok data complete
+   KeePassXC 2.8.0  into A (exit 0): current=A1 history=[D0] witnesses=[A1,D0]
+        at the next load in KeePass: ok data complete
+   KeePassXC 2.8.0  into B (exit 0): current=A1 history=[D0] witnesses=[A1,D0]
+        at the next load in KeePass: ok data complete
+
+== S6 A wrote (+10); in B the document string was damaged by hand later (+30, with a history item)
+   A: current=A1 history=[] witnesses=[A1]
+   B: current=(unreadable) history=[D0] witnesses=[D0]
+   KeePass Synchronize       into A: current=(unreadable) history=[D0,A1] witnesses=[A1]
+        no memory: put back A1 data complete
+        memory   : put back A1 data complete; after save and reopen: current=A1 history=[] witnesses=[A1], ok
+   KeePass Synchronize       into B: current=(unreadable) history=[D0,A1] witnesses=[A1]
+        no memory: put back A1 data complete
+        memory   : put back A1 data complete; after save and reopen: current=A1 history=[] witnesses=[A1], ok
+   KeePass OverwriteIfNewer  into A: current=(unreadable) history=[D0,A1] witnesses=[A1]
+        no memory: put back A1 data complete
+        memory   : put back A1 data complete; after save and reopen: current=A1 history=[] witnesses=[A1], ok
+   KeePass OverwriteIfNewer  into B: current=(unreadable) history=[D0,A1] witnesses=[A1,D0]
+        no memory: put back A1 data complete
+        memory   : put back A1 data complete; after save and reopen: current=A1 history=[] witnesses=[A1], ok
+   KeePass OverwriteExisting into A: current=(unreadable) history=[D0,A1] witnesses=[A1]
+        no memory: put back A1 data complete
+        memory   : put back A1 data complete; after save and reopen: current=A1 history=[] witnesses=[A1], ok
+   KeePass OverwriteExisting into B: current=A1 history=[D0] witnesses=[A1,D0]
+        no memory: ok data complete
+        memory   : ok data complete; after save and reopen: current=A1 history=[D0] witnesses=[A1,D0], ok
+   KeePass KeepExisting      into A: current=A1 history=[D0,A1] witnesses=[A1]
+        no memory: ok data complete
+        memory   : ok data complete; after save and reopen: current=A1 history=[D0,A1] witnesses=[A1], ok
+   KeePass KeepExisting      into B: current=(unreadable) history=[D0,A1] witnesses=[A1,D0]
+        no memory: put back A1 data complete
+        memory   : put back A1 data complete; after save and reopen: current=A1 history=[] witnesses=[A1], ok
+   KeePassXC 2.4.2  into A (exit 0): current=(unreadable) history=[D0,A1] witnesses=[A1,D0]
+        at the next load in KeePass: put back A1 data complete
+   KeePassXC 2.4.2  into B (exit 0): current=(unreadable) history=[D0,A1] witnesses=[A1,D0]
+        at the next load in KeePass: put back A1 data complete
+   KeePassXC 2.6.6  into A (exit 0): current=(unreadable) history=[D0,A1] witnesses=[A1,D0]
+        at the next load in KeePass: put back A1 data complete
+   KeePassXC 2.6.6  into B (exit 0): current=(unreadable) history=[D0,A1] witnesses=[A1,D0]
+        at the next load in KeePass: put back A1 data complete
+   KeePassXC 2.7.12 into A (exit 0): current=(unreadable) history=[D0,A1] witnesses=[A1,D0]
+        at the next load in KeePass: put back A1 data complete
+   KeePassXC 2.7.12 into B (exit 0): current=(unreadable) history=[D0,A1] witnesses=[A1,D0]
+        at the next load in KeePass: put back A1 data complete
+   KeePassXC 2.8.0  into A (exit 0): current=(unreadable) history=[D0,A1] witnesses=[A1,D0]
+        at the next load in KeePass: put back A1 data complete
+   KeePassXC 2.8.0  into B (exit 0): current=(unreadable) history=[D0,A1] witnesses=[A1,D0]
+        at the next load in KeePass: put back A1 data complete
+
+== S7 A wrote 12 times without history items (+10..+120); B wrote once (+15)
+   A: current=A12 history=[] witnesses=[A12]
+   B: current=B1 history=[] witnesses=[B1]
+   KeePass Synchronize       into A: current=A12 history=[B1] witnesses=[A12,B1]
+        no memory: merged M(A12+B1) [meet at rule.Z] data complete
+        memory   : merged M(A12+B1) [meet at rule.Z] data complete; after save and reopen: current=M(A12+B1) history=[] witnesses=[M(A12+B1)], ok
+   KeePass Synchronize       into B: current=A12 history=[B1] witnesses=[A12,B1]
+        no memory: merged M(A12+B1) [meet at rule.Z] data complete
+        memory   : merged M(A12+B1) [meet at rule.Z] data complete; after save and reopen: current=M(A12+B1) history=[] witnesses=[M(A12+B1)], ok
+   KeePass OverwriteIfNewer  into A: current=A12 history=[B1] witnesses=[A12,B1]
+        no memory: merged M(A12+B1) [meet at rule.Z] data complete
+        memory   : merged M(A12+B1) [meet at rule.Z] data complete; after save and reopen: current=M(A12+B1) history=[] witnesses=[M(A12+B1)], ok
+   KeePass OverwriteIfNewer  into B: current=A12 history=[B1] witnesses=[A12,B1]
+        no memory: merged M(A12+B1) [meet at rule.Z] data complete
+        memory   : merged M(A12+B1) [meet at rule.Z] data complete; after save and reopen: current=M(A12+B1) history=[] witnesses=[M(A12+B1)], ok
+   KeePass OverwriteExisting into A: current=B1 history=[A12] witnesses=[A12,B1]
+        no memory: merged M(A12+B1) [meet at rule.Z] data complete
+        memory   : merged M(A12+B1) [meet at rule.Z] data complete; after save and reopen: current=M(A12+B1) history=[] witnesses=[M(A12+B1)], ok
+   KeePass OverwriteExisting into B: current=A12 history=[B1] witnesses=[A12,B1]
+        no memory: merged M(A12+B1) [meet at rule.Z] data complete
+        memory   : merged M(A12+B1) [meet at rule.Z] data complete; after save and reopen: current=M(A12+B1) history=[] witnesses=[M(A12+B1)], ok
+   KeePass KeepExisting      into A: current=A12 history=[B1] witnesses=[A12,B1]
+        no memory: merged M(A12+B1) [meet at rule.Z] data complete
+        memory   : merged M(A12+B1) [meet at rule.Z] data complete; after save and reopen: current=M(A12+B1) history=[] witnesses=[M(A12+B1)], ok
+   KeePass KeepExisting      into B: current=B1 history=[B1] witnesses=[A12,B1]
+        no memory: REFUSE version missing: A12
+        memory   : REFUSE version missing: A12; after save and reopen: current=B1 history=[B1] witnesses=[A12,B1], REFUSE version missing: A12
+   KeePassXC 2.4.2  into A (exit 0): current=A12 history=[B1] witnesses=[A12,B1]
+        at the next load in KeePass: merged M(A12+B1) [meet at rule.Z] data complete
+   KeePassXC 2.4.2  into B (exit 0): current=A12 history=[B1] witnesses=[A12,B1]
+        at the next load in KeePass: merged M(A12+B1) [meet at rule.Z] data complete
+   KeePassXC 2.6.6  into A (exit 0): current=A12 history=[B1] witnesses=[A12,B1]
+        at the next load in KeePass: merged M(A12+B1) [meet at rule.Z] data complete
+   KeePassXC 2.6.6  into B (exit 0): current=A12 history=[B1] witnesses=[A12,B1]
+        at the next load in KeePass: merged M(A12+B1) [meet at rule.Z] data complete
+   KeePassXC 2.7.12 into A (exit 0): current=A12 history=[B1] witnesses=[A12,B1]
+        at the next load in KeePass: merged M(A12+B1) [meet at rule.Z] data complete
+   KeePassXC 2.7.12 into B (exit 0): current=A12 history=[B1] witnesses=[A12,B1]
+        at the next load in KeePass: merged M(A12+B1) [meet at rule.Z] data complete
+   KeePassXC 2.8.0  into A (exit 0): current=A12 history=[B1] witnesses=[A12,B1]
+        at the next load in KeePass: merged M(A12+B1) [meet at rule.Z] data complete
+   KeePassXC 2.8.0  into B (exit 0): current=A12 history=[B1] witnesses=[A12,B1]
+        at the next load in KeePass: merged M(A12+B1) [meet at rule.Z] data complete
+
+== S8 as S7, but A wrote with a history item each time, as the entry dialog does
+   A: current=A12 history=[A2,A3,A4,A5,A6,A7,A8,A9,A10,A11] witnesses=[A12]
+   B: current=B1 history=[] witnesses=[B1]
+   KeePass Synchronize       into A: current=A12 history=[A2,A3,A4,A5,A6,A7,A8,A9,A10,A11] witnesses=[A12,B1]
+        no memory: REFUSE version missing: B1
+        memory   : REFUSE version missing: B1; after save and reopen: current=A12 history=[A2,A3,A4,A5,A6,A7,A8,A9,A10,A11] witnesses=[A12,B1], REFUSE version missing: B1
+   KeePass Synchronize       into B: current=A12 history=[A2,A3,A4,A5,A6,A7,A8,A9,A10,A11] witnesses=[A12,B1]
+        no memory: REFUSE version missing: B1
+        memory   : merged M(B1+A12) [meet at rule.Z] data complete; after save and reopen: current=M(B1+A12) history=[] witnesses=[M(B1+A12)], ok
+   KeePass OverwriteIfNewer  into A: current=A12 history=[A2,A3,A4,A5,A6,A7,A8,A9,A10,A11] witnesses=[A12,B1]
+        no memory: REFUSE version missing: B1
+        memory   : REFUSE version missing: B1; after save and reopen: current=A12 history=[A2,A3,A4,A5,A6,A7,A8,A9,A10,A11] witnesses=[A12,B1], REFUSE version missing: B1
+   KeePass OverwriteIfNewer  into B: current=A12 history=[A2,A3,A4,A5,A6,A7,A8,A9,A10,A11] witnesses=[A12,B1]
+        no memory: REFUSE version missing: B1
+        memory   : merged M(B1+A12) [meet at rule.Z] data complete; after save and reopen: current=M(B1+A12) history=[] witnesses=[M(B1+A12)], ok
+   KeePass OverwriteExisting into A: current=B1 history=[A3,A4,A5,A6,A7,A8,A9,A10,A11,A12] witnesses=[A12,B1]
+        no memory: merged M(B1+A12) [meet at rule.Z] data complete
+        memory   : merged M(B1+A12) [meet at rule.Z] data complete; after save and reopen: current=M(B1+A12) history=[] witnesses=[M(B1+A12)], ok
+   KeePass OverwriteExisting into B: current=A12 history=[A2,A3,A4,A5,A6,A7,A8,A9,A10,A11] witnesses=[A12,B1]
+        no memory: REFUSE version missing: B1
+        memory   : merged M(B1+A12) [meet at rule.Z] data complete; after save and reopen: current=M(B1+A12) history=[] witnesses=[M(B1+A12)], ok
+   KeePass KeepExisting      into A: current=A12 history=[A2,A3,A4,A5,A6,A7,A8,A9,A10,A11] witnesses=[A12,B1]
+        no memory: REFUSE version missing: B1
+        memory   : REFUSE version missing: B1; after save and reopen: current=A12 history=[A2,A3,A4,A5,A6,A7,A8,A9,A10,A11] witnesses=[A12,B1], REFUSE version missing: B1
+   KeePass KeepExisting      into B: current=B1 history=[A2,A3,A4,A5,A6,A7,A8,A9,A10,A11] witnesses=[A12,B1]
+        no memory: REFUSE version missing: A12
+        memory   : REFUSE version missing: A12; after save and reopen: current=B1 history=[A2,A3,A4,A5,A6,A7,A8,A9,A10,A11] witnesses=[A12,B1], REFUSE version missing: A12
+   KeePassXC 2.4.2  into A (exit 0): current=A12 history=[A2,A3,A4,A5,A6,A7,A8,A9,A10,A11] witnesses=[A12,B1]
+        at the next load in KeePass: REFUSE version missing: B1
+   KeePassXC 2.4.2  into B (exit 0): current=A12 history=[A2,A3,A4,A5,A6,A7,A8,A9,A10,A11] witnesses=[A12,B1]
+        at the next load in KeePass: REFUSE version missing: B1
+   KeePassXC 2.6.6  into A (exit 0): current=A12 history=[A2,A3,A4,A5,A6,A7,A8,A9,A10,A11] witnesses=[A12,B1]
+        at the next load in KeePass: REFUSE version missing: B1
+   KeePassXC 2.6.6  into B (exit 0): current=A12 history=[A2,A3,A4,A5,A6,A7,A8,A9,A10,A11] witnesses=[A12,B1]
+        at the next load in KeePass: REFUSE version missing: B1
+   KeePassXC 2.7.12 into A (exit 0): current=A12 history=[A2,A3,A4,A5,A6,A7,A8,A9,A10,A11] witnesses=[A12,B1]
+        at the next load in KeePass: REFUSE version missing: B1
+   KeePassXC 2.7.12 into B (exit 0): current=A12 history=[A2,A3,A4,A5,A6,A7,A8,A9,A10,A11] witnesses=[A12,B1]
+        at the next load in KeePass: REFUSE version missing: B1
+   KeePassXC 2.8.0  into A (exit 0): current=A12 history=[A2,A3,A4,A5,A6,A7,A8,A9,A10,A11] witnesses=[A12,B1]
+        at the next load in KeePass: REFUSE version missing: B1
+   KeePassXC 2.8.0  into B (exit 0): current=A12 history=[A2,A3,A4,A5,A6,A7,A8,A9,A10,A11] witnesses=[A12,B1]
+        at the next load in KeePass: REFUSE version missing: B1

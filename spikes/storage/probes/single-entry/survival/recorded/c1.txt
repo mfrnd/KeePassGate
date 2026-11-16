@@ -1,0 +1,15 @@
+KeePassLib 2.62, PowerShell 5.1.26100.9818, seen window 256
+
+== C1: A writes A1 (narrows N to "list", pairs cA) and B writes B1 (pairs cB) in the same second; B merged into A
+   by a KeePassLib Synchronize with no plugin at it; the plugin then refuses; the operator presses Continue; later
+   a copy of A taken before that merge (the laptop's own file, a backup) is synchronized in
+   Continue names the missing version as seen (as designed)
+     after the merge: current=B1 history=[] witnesses=[A1,B1] -> REFUSE version missing: A1
+     after Continue the gate serves: client.c0=rec; client.cB=rec; rule.N=read list
+     after A-before is synchronized in: current=accepted history=[A1] witnesses=[accepted] -> ok, serves accepted
+        the gate serves: client.c0=rec; client.cB=rec; rule.N=read list
+   Continue records the missing version as acknowledged (the change proposed here)
+     after the merge: current=B1 history=[] witnesses=[A1,B1] -> REFUSE version missing: A1
+     after Continue the gate serves: ack.2abed480833d0e1f=1; client.c0=rec; client.cB=rec; rule.N=read list
+     after A-before is synchronized in: current=accepted history=[A1] witnesses=[A1,accepted] -> merged M(A1+accepted)
+        the gate serves: ack.2abed480833d0e1f=1; client.c0=rec; client.cA=rec; client.cB=rec; rule.N=list

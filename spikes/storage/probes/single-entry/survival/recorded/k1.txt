@@ -1,0 +1,10 @@
+KeePassLib 2.62, PowerShell 5.1.26100.9818, seen window 256
+
+== K1: the state entry deleted for good in A (a deletion record); B takes that file; A then puts the entry back
+   under the fixed identifier with a later time (design 6.4 way 3) and drops the record; kdbxweb merges A and B
+   A after the restore: current=v1 history=[] witnesses=[v1], deletion records 1 -> ok, serves v1
+   B: state entry absent, deletion records 2
+   kdbxweb, B merged into A: state entry absent -> REFUSE no readable version
+   kdbxweb, A merged into B: state entry absent -> REFUSE no readable version
+   KeePass Synchronize, B into A: current=v1 history=[] witnesses=[v1] -> ok, serves v1
+   KeePass Synchronize, A into B: current=v1 history=[] witnesses=[v1] -> ok, serves v1

@@ -1,0 +1,35 @@
+KeePassLib 2.62
+
+== A foreign file carries only a crafted document that adds rule.C; it brings no authority.
+   victim doc holds: authority.fp1=ca-doc; client.cagent=agent; profile.agent=on; rule.G=DENY
+   foreign doc holds: rule.C=read protected list
+
+-- Synchronize, foreign later than victim
+   after merge: current=F0 history=[V0] witnesses=[F0,V0]
+   step: merged M(F0+V0)
+   outcome: PLANTED rule.C = read protected list ; rule.G=DENY
+
+-- Synchronize, foreign earlier than victim
+   after merge: current=V0 history=[F0] witnesses=[F0,V0]
+   step: merged M(F0+V0)
+   outcome: PLANTED rule.C = read protected list ; rule.G=DENY
+
+-- OverwriteIfNewer, foreign later than victim
+   after merge: current=F0 history=[V0] witnesses=[F0,V0]
+   step: merged M(F0+V0)
+   outcome: PLANTED rule.C = read protected list ; rule.G=DENY
+
+-- OverwriteIfNewer, foreign earlier than victim
+   after merge: current=V0 history=[F0] witnesses=[F0,V0]
+   step: merged M(F0+V0)
+   outcome: PLANTED rule.C = read protected list ; rule.G=DENY
+
+-- KeepExisting, foreign later than victim
+   after merge: current=V0 history=[V0] witnesses=[F0,V0]
+   step: REFUSE version missing: F0
+   outcome:  ; 
+
+-- KeepExisting, foreign earlier than victim
+   after merge: current=V0 history=[F0] witnesses=[F0,V0]
+   step: merged M(F0+V0)
+   outcome: PLANTED rule.C = read protected list ; rule.G=DENY

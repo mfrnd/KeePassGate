@@ -1,0 +1,48 @@
+KeePassLib 2.62, PowerShell 5.1.26100.9818, window 64
+
+== W n=10 versions in A after D0, Synchronize into A; D0 in A's seen: True
+   after merge: current=A10 history=[D0] witnesses=[A10]
+   no memory : ok; data as A wrote it
+   memory    : ok; data as A wrote it
+
+== W n=10 versions in A after D0, Synchronize into B; D0 in A's seen: True
+   after merge: current=A10 history=[D0] witnesses=[A10]
+   no memory : ok; data as A wrote it
+
+== W n=10 versions in A after D0, OverwriteIfNewer into A; D0 in A's seen: True
+   after merge: current=A10 history=[D0] witnesses=[A10]
+   no memory : ok; data as A wrote it
+   memory    : ok; data as A wrote it
+
+== W n=10 versions in A after D0, OverwriteIfNewer into B; D0 in A's seen: True
+   after merge: current=A10 history=[D0] witnesses=[A10,D0]
+   no memory : ok; data as A wrote it
+
+== W n=70 versions in A after D0, Synchronize into A; D0 in A's seen: False
+   after merge: current=A70 history=[D0] witnesses=[A70]
+   no memory : merged M(A70+D0) [meet at rule.X]; DATA: client.a10=dev; client.a11=dev; client.a12=dev; client.a13=dev; client.a14=dev; client.a15=dev; client.a16=dev; client.a17=dev; client.a18=dev; client.a19=dev; client.a2=dev; client.a20=dev; client.a21=dev; client.a22=dev; client.a23=dev; client.a24=dev; client.a25=dev; client.a26=dev; client.a27=dev; client.a28=dev; client.a29=dev; client.a3=dev; client.a30=dev; client.a31=dev; client.a32=dev; client.a33=dev; client.a34=dev; client.a35=dev; client.a36=dev; client.a37=dev; client.a38=dev; client.a39=dev; client.a4=dev; client.a40=dev; client.a41=dev; client.a42=dev; client.a43=dev; client.a44=dev; client.a45=dev; client.a46=dev; client.a47=dev; client.a48=dev; client.a49=dev; client.a5=dev; client.a50=dev; client.a51=dev; client.a52=dev; client.a53=dev; client.a54=dev; client.a55=dev; client.a56=dev; client.a57=dev; client.a58=dev; client.a59=dev; client.a6=dev; client.a60=dev; client.a61=dev; client.a62=dev; client.a63=dev; client.a64=dev; client.a65=dev; client.a66=dev; client.a67=dev; client.a68=dev; client.a69=dev; client.a7=dev; client.a70=dev; client.a8=dev; client.a9=dev; client.c0=dev; profile.dev=on; profile.old=on; rule.X=read; rule.Y=read
+   memory    : merged M(A70+D0) [meet at rule.X]; DATA: client.a10=dev; client.a11=dev; client.a12=dev; client.a13=dev; client.a14=dev; client.a15=dev; client.a16=dev; client.a17=dev; client.a18=dev; client.a19=dev; client.a2=dev; client.a20=dev; client.a21=dev; client.a22=dev; client.a23=dev; client.a24=dev; client.a25=dev; client.a26=dev; client.a27=dev; client.a28=dev; client.a29=dev; client.a3=dev; client.a30=dev; client.a31=dev; client.a32=dev; client.a33=dev; client.a34=dev; client.a35=dev; client.a36=dev; client.a37=dev; client.a38=dev; client.a39=dev; client.a4=dev; client.a40=dev; client.a41=dev; client.a42=dev; client.a43=dev; client.a44=dev; client.a45=dev; client.a46=dev; client.a47=dev; client.a48=dev; client.a49=dev; client.a5=dev; client.a50=dev; client.a51=dev; client.a52=dev; client.a53=dev; client.a54=dev; client.a55=dev; client.a56=dev; client.a57=dev; client.a58=dev; client.a59=dev; client.a6=dev; client.a60=dev; client.a61=dev; client.a62=dev; client.a63=dev; client.a64=dev; client.a65=dev; client.a66=dev; client.a67=dev; client.a68=dev; client.a69=dev; client.a7=dev; client.a70=dev; client.a8=dev; client.a9=dev; client.c0=dev; profile.dev=on; profile.old=on; rule.X=read; rule.Y=read
+
+== W n=70 versions in A after D0, Synchronize into B; D0 in A's seen: False
+   after merge: current=A70 history=[D0] witnesses=[A70]
+   no memory : merged M(D0+A70) [meet at rule.X]; DATA: client.a10=dev; client.a11=dev; client.a12=dev; client.a13=dev; client.a14=dev; client.a15=dev; client.a16=dev; client.a17=dev; client.a18=dev; client.a19=dev; client.a2=dev; client.a20=dev; client.a21=dev; client.a22=dev; client.a23=dev; client.a24=dev; client.a25=dev; client.a26=dev; client.a27=dev; client.a28=dev; client.a29=dev; client.a3=dev; client.a30=dev; client.a31=dev; client.a32=dev; client.a33=dev; client.a34=dev; client.a35=dev; client.a36=dev; client.a37=dev; client.a38=dev; client.a39=dev; client.a4=dev; client.a40=dev; client.a41=dev; client.a42=dev; client.a43=dev; client.a44=dev; client.a45=dev; client.a46=dev; client.a47=dev; client.a48=dev; client.a49=dev; client.a5=dev; client.a50=dev; client.a51=dev; client.a52=dev; client.a53=dev; client.a54=dev; client.a55=dev; client.a56=dev; client.a57=dev; client.a58=dev; client.a59=dev; client.a6=dev; client.a60=dev; client.a61=dev; client.a62=dev; client.a63=dev; client.a64=dev; client.a65=dev; client.a66=dev; client.a67=dev; client.a68=dev; client.a69=dev; client.a7=dev; client.a70=dev; client.a8=dev; client.a9=dev; client.c0=dev; profile.dev=on; profile.old=on; rule.X=read; rule.Y=read
+
+== W n=70 versions in A after D0, OverwriteIfNewer into A; D0 in A's seen: False
+   after merge: current=A70 history=[D0] witnesses=[A70]
+   no memory : merged M(D0+A70) [meet at rule.X]; DATA: client.a10=dev; client.a11=dev; client.a12=dev; client.a13=dev; client.a14=dev; client.a15=dev; client.a16=dev; client.a17=dev; client.a18=dev; client.a19=dev; client.a2=dev; client.a20=dev; client.a21=dev; client.a22=dev; client.a23=dev; client.a24=dev; client.a25=dev; client.a26=dev; client.a27=dev; client.a28=dev; client.a29=dev; client.a3=dev; client.a30=dev; client.a31=dev; client.a32=dev; client.a33=dev; client.a34=dev; client.a35=dev; client.a36=dev; client.a37=dev; client.a38=dev; client.a39=dev; client.a4=dev; client.a40=dev; client.a41=dev; client.a42=dev; client.a43=dev; client.a44=dev; client.a45=dev; client.a46=dev; client.a47=dev; client.a48=dev; client.a49=dev; client.a5=dev; client.a50=dev; client.a51=dev; client.a52=dev; client.a53=dev; client.a54=dev; client.a55=dev; client.a56=dev; client.a57=dev; client.a58=dev; client.a59=dev; client.a6=dev; client.a60=dev; client.a61=dev; client.a62=dev; client.a63=dev; client.a64=dev; client.a65=dev; client.a66=dev; client.a67=dev; client.a68=dev; client.a69=dev; client.a7=dev; client.a70=dev; client.a8=dev; client.a9=dev; client.c0=dev; profile.dev=on; profile.old=on; rule.X=read; rule.Y=read
+   memory    : merged M(D0+A70) [meet at rule.X]; DATA: client.a10=dev; client.a11=dev; client.a12=dev; client.a13=dev; client.a14=dev; client.a15=dev; client.a16=dev; client.a17=dev; client.a18=dev; client.a19=dev; client.a2=dev; client.a20=dev; client.a21=dev; client.a22=dev; client.a23=dev; client.a24=dev; client.a25=dev; client.a26=dev; client.a27=dev; client.a28=dev; client.a29=dev; client.a3=dev; client.a30=dev; client.a31=dev; client.a32=dev; client.a33=dev; client.a34=dev; client.a35=dev; client.a36=dev; client.a37=dev; client.a38=dev; client.a39=dev; client.a4=dev; client.a40=dev; client.a41=dev; client.a42=dev; client.a43=dev; client.a44=dev; client.a45=dev; client.a46=dev; client.a47=dev; client.a48=dev; client.a49=dev; client.a5=dev; client.a50=dev; client.a51=dev; client.a52=dev; client.a53=dev; client.a54=dev; client.a55=dev; client.a56=dev; client.a57=dev; client.a58=dev; client.a59=dev; client.a6=dev; client.a60=dev; client.a61=dev; client.a62=dev; client.a63=dev; client.a64=dev; client.a65=dev; client.a66=dev; client.a67=dev; client.a68=dev; client.a69=dev; client.a7=dev; client.a70=dev; client.a8=dev; client.a9=dev; client.c0=dev; profile.dev=on; profile.old=on; rule.X=read; rule.Y=read
+
+== W n=70 versions in A after D0, OverwriteIfNewer into B; D0 in A's seen: False
+   after merge: current=A70 history=[D0] witnesses=[A70,D0]
+   no memory : merged M(D0+A70) [meet at rule.X]; DATA: client.a10=dev; client.a11=dev; client.a12=dev; client.a13=dev; client.a14=dev; client.a15=dev; client.a16=dev; client.a17=dev; client.a18=dev; client.a19=dev; client.a2=dev; client.a20=dev; client.a21=dev; client.a22=dev; client.a23=dev; client.a24=dev; client.a25=dev; client.a26=dev; client.a27=dev; client.a28=dev; client.a29=dev; client.a3=dev; client.a30=dev; client.a31=dev; client.a32=dev; client.a33=dev; client.a34=dev; client.a35=dev; client.a36=dev; client.a37=dev; client.a38=dev; client.a39=dev; client.a4=dev; client.a40=dev; client.a41=dev; client.a42=dev; client.a43=dev; client.a44=dev; client.a45=dev; client.a46=dev; client.a47=dev; client.a48=dev; client.a49=dev; client.a5=dev; client.a50=dev; client.a51=dev; client.a52=dev; client.a53=dev; client.a54=dev; client.a55=dev; client.a56=dev; client.a57=dev; client.a58=dev; client.a59=dev; client.a6=dev; client.a60=dev; client.a61=dev; client.a62=dev; client.a63=dev; client.a64=dev; client.a65=dev; client.a66=dev; client.a67=dev; client.a68=dev; client.a69=dev; client.a7=dev; client.a70=dev; client.a8=dev; client.a9=dev; client.c0=dev; profile.dev=on; profile.old=on; rule.X=read; rule.Y=read
+
+== D before: X 721B68924A1D1847A13B082AF9DED864 in group Users 67117A9DE782D44D866A2642C47B80EC
+   after import (Create new IDs): state entries 2, one under the fixed identifier: True; tombstones 0
+     X copy 721B6892 original identifier: True; in the original group: True; group Users under base
+     X copy D361E20B original identifier: False; in the original group: False; group Users under base
+     step: ok
+   after Delete Duplicate Entries (3 deleted): state entries 1, one under the fixed identifier: False; tombstones 3
+     X copy D361E20B original identifier: False; in the original group: False; group Users under base
+     step: REFUSE no readable version
+   saved and reopened: state entries 1, one under the fixed identifier: False; tombstones 3
+     X copy D361E20B original identifier: False; in the original group: False; group Users under base

@@ -1,0 +1,8 @@
+KeePassLib 2.62, PowerShell 5.1.26100.9818, seen window 256
+
+== W2: the desktop (KeePassLib, the plugin's writes) writes 300 versions; every 25 the laptop merges the
+   desktop's file into its own with keepassxc-cli 2.8.0 merge -s; then KeePass with the plugin opens the laptop's file
+   keepassxc-cli merges that exited 0: 12
+   desktop.kdbx: current v300, history items after KeePassLib's load 0, witnesses 1, deletion records 300 -> ok, serves v300
+   laptop.kdbx: current v300, history items after KeePassLib's load 10, witnesses 13, deletion records 0 -> REFUSE version missing: v25,D0
+        after Continue: witnesses 1, the step then: ok, serves accepted

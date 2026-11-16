@@ -1,0 +1,7 @@
+KeePassLib 2.62, PowerShell 5.1.26100.9818, seen window 256
+
+== D1: B is a copy of A at the same version (the phone's copy); File, Import into A with Create new IDs; then
+   Tools, Database Tools, Delete Duplicate Entries (PwDatabase.DeleteDuplicateEntries)
+   after the import: KPG entries by kind [state,witness,state,witness]; current=v1 history=[] witnesses=[v1] -> ok, serves v1
+   Delete Duplicate Entries removed 3; KPG entries left by kind [state,witness]; state entry under the fixed identifier present: False
+   a deletion record names the fixed identifier: True -> REFUSE no readable version

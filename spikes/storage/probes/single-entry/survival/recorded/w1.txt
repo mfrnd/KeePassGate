@@ -1,0 +1,33 @@
+KeePassLib 2.62, PowerShell 5.1.26100.9818, seen window 256
+
+== W1: copy B stays at D0 while copy A writes N versions; then B is synchronized into A (KeePass, plugin loaded)
+   D0: profiles P, Q; rule N1 "list"; rule N2 "read list"; rule N3 "list"; client c0; c9 refused forever
+   A: v1 takes P off the list; v2 widens N1 to "read list"; v3 removes N3's rule; v4 lifts c9; v5..vN change a counter
+   N = 20; A serves: client.c0=rec; profile.Q=on; rule.N1=read list; rule.N2=read list; seen holds 20 versions, oldest generation -1
+     merge probe, heads anc: after the merge current=v20 history=[D0] witnesses=[v20] -> ok, serves v20
+        the gate serves: client.c0=rec; profile.Q=on; rule.N1=read list; rule.N2=read list
+     merge narrow, heads anc: after the merge current=v20 history=[D0] witnesses=[v20] -> ok, serves v20
+        the gate serves: client.c0=rec; profile.Q=on; rule.N1=read list; rule.N2=read list
+     merge probe, heads gen: after the merge current=v20 history=[D0] witnesses=[v20] -> ok, serves v20
+        the gate serves: client.c0=rec; profile.Q=on; rule.N1=read list; rule.N2=read list
+   N = 300; A serves: client.c0=rec; profile.Q=on; rule.N1=read list; rule.N2=read list; seen holds 256 versions, oldest generation 45
+     merge probe, heads anc: after the merge current=v300 history=[D0] witnesses=[v300] -> merged M(D0+v300) [meet at rule.N1]
+        the gate serves: client.c0=rec; profile.P=on; profile.Q=on; refused.c9=forever; rule.N1=list; rule.N2=read list; rule.N3=list
+     merge narrow, heads anc: after the merge current=v300 history=[D0] witnesses=[v300] -> merged M(D0+v300) [old stamp at profile.P, old stamp at refused.c9, old stamp at rule.N1, old stamp at rule.N3]
+        the gate serves: client.c0=rec; profile.Q=on; refused.c9=forever; rule.N1=REFUSED; rule.N2=read list; rule.N3=REFUSED
+     merge probe, heads gen: after the merge current=v300 history=[D0] witnesses=[v300] -> ok, serves v300
+        the gate serves: client.c0=rec; profile.Q=on; rule.N1=read list; rule.N2=read list
+
+== W1b: copy B forks at D0 and writes B1 (narrows N2 to "list", pairs cB); A writes N versions; B synchronized into A
+   N = 20, merge probe, heads anc: current=v20 history=[B1] witnesses=[B1,v20] -> merged M(B1+v20)
+        the gate serves: client.c0=rec; client.cB=rec; rule.N2=list
+   N = 20, merge narrow, heads anc: current=v20 history=[B1] witnesses=[B1,v20] -> merged M(B1+v20)
+        the gate serves: client.c0=rec; client.cB=rec; rule.N2=list
+   N = 20, merge probe, heads gen: current=v20 history=[B1] witnesses=[B1,v20] -> merged M(B1+v20)
+        the gate serves: client.c0=rec; client.cB=rec; rule.N2=list
+   N = 300, merge probe, heads anc: current=v300 history=[B1] witnesses=[B1,v300] -> merged M(B1+v300)
+        the gate serves: client.c0=rec; client.cB=rec; rule.N2=list
+   N = 300, merge narrow, heads anc: current=v300 history=[B1] witnesses=[B1,v300] -> merged M(B1+v300) [old stamp at client.cB]
+        the gate serves: client.c0=rec; rule.N2=list
+   N = 300, merge probe, heads gen: current=v300 history=[B1] witnesses=[B1,v300] -> ok, serves v300
+        the gate serves: client.c0=rec; rule.N2=read list

@@ -1,0 +1,84 @@
+KeePassLib 2.62, PowerShell 5.1.26100.9818
+
+== Twelve rounds: in each, copy A adds client.a<k>, copy B adds client.b<k>, then one merge whose result both copies take
+   KeePass Synchronize into A, plugin loaded (memory of the open copy), B 5 s after A
+        data present at the end: 24 of 24; refusals on the way: 0; lost: []; witnesses in the file: 1; most history items seen on the state entry: 0; generation 25
+   KeePass Synchronize into A, plugin loaded, B 5 s before A
+        data present at the end: 24 of 24; refusals on the way: 0; lost: []; witnesses in the file: 1; most history items seen on the state entry: 0; generation 25
+   KeePass Synchronize into A, plugin loaded, same second
+        data present at the end: 24 of 24; refusals on the way: 0; lost: []; witnesses in the file: 1; most history items seen on the state entry: 0; generation 25
+   KeePass Synchronize into A, plugin loaded, HistoryMaxItems=0, B 5 s after A
+        data present at the end: 24 of 24; refusals on the way: 0; lost: []; witnesses in the file: 1; most history items seen on the state entry: 0; generation 25
+   KeePass Synchronize into A, plugin loaded, HistoryMaxItems=0, B 5 s before A
+        data present at the end: 12 of 24; refusals on the way: 12; lost: [client.b1,client.b2,client.b3,client.b4,client.b5,client.b6,client.b7,client.b8,client.b9,client.b10,client.b11,client.b12]; witnesses in the file: 1; most history items seen on the state entry: 0; generation 25
+   KeePassLib Synchronize into B with no plugin at the merge (the shape of a merge on a phone), B 5 s after A
+        data present at the end: 24 of 24; refusals on the way: 0; lost: []; witnesses in the file: 1; most history items seen on the state entry: 1; generation 25
+   KeePassLib Synchronize into B with no plugin at the merge, same second
+        data present at the end: 12 of 24; refusals on the way: 23; lost: [client.b1,client.b2,client.b3,client.b4,client.b5,client.b6,client.b7,client.b8,client.b9,client.b10,client.b11,client.b12]; witnesses in the file: 1; most history items seen on the state entry: 0; generation 25
+   keepassxc-cli 2.8.0 merge into B, B 5 s after A
+        data present at the end: 24 of 24; refusals on the way: 0; lost: []; witnesses in the file: 1; most history items seen on the state entry: 1; generation 25
+   keepassxc-cli 2.8.0 merge into B, B 5 s before A
+        data present at the end: 24 of 24; refusals on the way: 0; lost: []; witnesses in the file: 1; most history items seen on the state entry: 1; generation 25
+   keepassxc-cli 2.8.0 merge into B, same second
+        data present at the end: 12 of 24; refusals on the way: 23; lost: [client.a1,client.a2,client.a3,client.a4,client.a5,client.a6,client.a7,client.a8,client.a9,client.a10,client.a11,client.a12]; witnesses in the file: 1; most history items seen on the state entry: 0; generation 25
+
+== Large documents: A writes (+10) and B writes (+20), each padding the document; then one merge
+   document of 100000 characters; file A 2661 bytes
+        KeePass Synchronize into A (1 ms), saved, reopened: current=B1 history=[A1] witnesses=[A1,B1]; merged M(B1+A1); file 3525 bytes
+        keepassxc-cli 2.4.2 into A (exit 0, 212 ms): current=B1 history=[A1] witnesses=[A1,B1]; merged M(B1+A1); file 3605 bytes
+        keepassxc-cli 2.4.2 into B (exit 0, 215 ms): current=B1 history=[A1] witnesses=[A1,B1]; merged M(B1+A1); file 3445 bytes
+        keepassxc-cli 2.8.0 into A (exit 0, 102 ms): current=B1 history=[A1] witnesses=[A1,B1]; merged M(B1+A1); file 4101 bytes
+        keepassxc-cli 2.8.0 into B (exit 0, 126 ms): current=B1 history=[A1] witnesses=[A1,B1]; merged M(B1+A1); file 3733 bytes
+   document of 1000000 characters; file A 3605 bytes
+        KeePass Synchronize into A (13 ms), saved, reopened: current=B1 history=[A1] witnesses=[A1,B1]; merged M(B1+A1); file 5317 bytes
+        keepassxc-cli 2.4.2 into A (exit 0, 273 ms): current=B1 history=[A1] witnesses=[A1,B1]; merged M(B1+A1); file 5413 bytes
+        keepassxc-cli 2.4.2 into B (exit 0, 229 ms): current=B1 history=[A1] witnesses=[A1,B1]; merged M(B1+A1); file 5253 bytes
+        keepassxc-cli 2.8.0 into A (exit 0, 151 ms): current=B1 history=[A1] witnesses=[A1,B1]; merged M(B1+A1); file 5925 bytes
+        keepassxc-cli 2.8.0 into B (exit 0, 140 ms): current=B1 history=[A1] witnesses=[A1,B1]; merged M(B1+A1); file 5525 bytes
+   document of 7000000 characters; file A 9461 bytes
+        KeePass Synchronize into A (9 ms), saved, reopened: current=B1 history=[] witnesses=[A1,B1]; REFUSE version missing: A1; file 9541 bytes
+
+== Create new IDs: copy B (B1, +20) imported into copy A (A1, +10) with CreateNewUuids
+   entries of kind state: 2 (one under the fixed identifier); groups named KeePassGate: 2; witness copies under other identifiers: 1
+   under the fixed identifiers: current=A1 history=[] witnesses=[A1]; ok
+
+== The state entry deleted
+   A deletes it for good at +20 (deletion record); B unchanged
+        KeePass Synchronize      into A: absent; state entry absent; deletion records 1
+        KeePass Synchronize      into B: absent; state entry absent; deletion records 1
+        KeePass OverwriteIfNewer into A: absent; state entry absent; deletion records 1
+        KeePass OverwriteIfNewer into B: in group KeePassGate; current=D0 history=[] witnesses=[D0]; deletion records 0
+        keepassxc-cli 2.8.0     into A: in group KeePassGate; current=D0 history=[] witnesses=[D0]; deletion records 1
+        keepassxc-cli 2.8.0     into B: in group KeePassGate; current=D0 history=[] witnesses=[D0]; deletion records 0
+   A deletes it for good at +20; B wrote at +10
+        KeePass Synchronize      into A: absent; state entry absent; deletion records 2
+        KeePass Synchronize      into B: absent; state entry absent; deletion records 2
+        KeePass OverwriteIfNewer into A: absent; state entry absent; deletion records 1
+        KeePass OverwriteIfNewer into B: in group KeePassGate; current=B1 history=[] witnesses=[B1]; deletion records 1
+        keepassxc-cli 2.8.0     into A: in group KeePassGate; current=B1 history=[] witnesses=[B1,D0]; deletion records 1
+        keepassxc-cli 2.8.0     into B: in group KeePassGate; current=B1 history=[] witnesses=[B1,D0]; deletion records 1
+   A deletes it for good at +20; B wrote at +30
+        KeePass Synchronize      into A: in group KeePassGate; current=B1 history=[] witnesses=[B1]; deletion records 1
+        KeePass Synchronize      into B: in group KeePassGate; current=B1 history=[] witnesses=[B1]; deletion records 1
+        KeePass OverwriteIfNewer into A: in group KeePassGate; current=B1 history=[] witnesses=[B1,D0]; deletion records 0
+        KeePass OverwriteIfNewer into B: in group KeePassGate; current=B1 history=[] witnesses=[B1]; deletion records 1
+        keepassxc-cli 2.8.0     into A: in group KeePassGate; current=B1 history=[] witnesses=[B1,D0]; deletion records 1
+        keepassxc-cli 2.8.0     into B: in group KeePassGate; current=B1 history=[] witnesses=[B1,D0]; deletion records 1
+   A moves it to the recycle bin at +20 (time unchanged); B wrote at +30
+        KeePass Synchronize      into A: in group Recycle Bin; current=B1 history=[D0] witnesses=[B1]; deletion records 1
+        KeePass Synchronize      into B: in group Recycle Bin; current=B1 history=[D0] witnesses=[B1]; deletion records 1
+        KeePass OverwriteIfNewer into A: in group Recycle Bin; current=B1 history=[D0] witnesses=[B1,D0]; deletion records 0
+        KeePass OverwriteIfNewer into B: in group KeePassGate; current=B1 history=[D0] witnesses=[B1]; deletion records 1
+        keepassxc-cli 2.8.0     into A: in group Recycle Bin; current=B1 history=[D0] witnesses=[B1,D0]; deletion records 0
+        keepassxc-cli 2.8.0     into B: in group Recycle Bin; current=B1 history=[D0] witnesses=[B1,D0]; deletion records 1
+   Recovery. Deleted for good at +20, then Synchronize with a backup that still holds it: state entry absent; deletion records 1
+   Put back by the plugin at +40 with the deletion record still in the file, saved, reopened, Synchronize with the backup again: current=D0 history=[D0] witnesses=[D0]; deletion records 0
+   The other direction (the backup open, the repaired file arriving): current=D0 history=[D0] witnesses=[D0]; deletion records 0
+
+== What a read costs (PowerShell around .NET calls, so upper bounds)
+   FindEntry by identifier, state entry in the first group, 10,001 other entries behind it: 0,025 ms a call
+   FindEntry by identifier, the last of 10,002 entries: 0,120 ms a call
+   the string object handed back twice is the same object: True
+   ReadString of an unprotected string of 50,000 characters: 0,007 ms a call
+   ReadString of a protected string of 3,000 characters: 0,005 ms a call
+   SHA-256 over 50,000 bytes: 0,030 ms a call

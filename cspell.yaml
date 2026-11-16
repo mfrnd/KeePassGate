@@ -186,6 +186,14 @@ words:
   - NTFS
   - Newtonsoft
   - Syncthing
+  # Identifiers in the single-entry probes, which are carried unchanged: the candidates `cands` of
+  # the reconciling step in `Lib.ps1`, which both critics' probes copy, the chain kind `kp-nomem`
+  # and the count `wcopies` of the design's `Rounds.ps1`, and the client `cagent` of the security
+  # probe's `Plant.ps1`.
+  - cands
+  - nomem
+  - wcopies
+  - cagent
   # Identifiers in the wildcard probes, which are carried unchanged: the identifier marks `KPGS`,
   # `KPGR` and `KPGA` of the design's `Wc.exe`, which its `pk.py` matches too, the .NET class
   # `HMACSHA256` it seals with, the locals `thenb` and `pkdir` and the file `resaved.kdbx` of its
