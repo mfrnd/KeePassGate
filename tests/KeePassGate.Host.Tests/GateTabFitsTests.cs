@@ -629,13 +629,27 @@ namespace KeePassGate.Host.Tests
             // with one of the answers and two of them the same, leave every column whole and the
             // list a list, in every state of the tab and at every scaling, with the two lines a
             // merge adds under the list and without them.
+            //
+            // **And a fifth whose name and first profile are as long as a name may be**, which no
+            // column on the page holds. What has to stay true of its row is that it has a line for
+            // every profile, the profile after the long name included, and that its tooltip holds
+            // whole whatever the columns cut: the profiles after such a name were drawn below the
+            // row, and the tooltip named neither the profiles nor, once, the client.
+            var longestClient = "a-client-named-at-the-greatest-length-" + new string('x', 26);
+            var longestProfile = "a-profile-named-at-the-greatest-length-" + new string('x', 25);
+            Assert.That(AuthorityIssuer.IsUsableSubjectName(longestClient), Is.True);
+            Assert.That(longestClient.Length, Is.EqualTo(AuthorityIssuer.MaxSubjectLength));
+            Assert.That(AuthorityIssuer.IsUsableProfileName(longestProfile), Is.True);
+            Assert.That(AuthorityIssuer.IsUsableProfileName(longestProfile + "x"), Is.False);
+
             var day = new DateTime(2026, 12, 28, 0, 0, 0, DateTimeKind.Local);
             var clients = new[]
             {
                 Tuple.Create("nightly-sync", new[] { "ops" }, RenewalRefusal.ThisSession()),
                 Tuple.Create("agent-fictitious", new[] { "reader" }, RenewalRefusal.Until(new DateTimeOffset(day))),
                 Tuple.Create("ci-runner", new[] { "reader", "ops" }, RenewalRefusal.Forever()),
-                Tuple.Create("backup-agent", new[] { "reader" }, RenewalRefusal.Forever())
+                Tuple.Create("backup-agent", new[] { "reader" }, RenewalRefusal.Forever()),
+                Tuple.Create(longestClient, new[] { longestProfile, "ops" }, RenewalRefusal.ThisSession())
             };
 
             var records = new List<AdmissionRecord>();
@@ -695,16 +709,31 @@ namespace KeePassGate.Host.Tests
                             }
 
                             var cut = new List<string>();
+                            var line = TextRenderer.MeasureText("ops", grid.DefaultCellStyle.Font ?? grid.Font).Height;
                             foreach (DataGridViewRow row in grid.Rows)
                             {
+                                var record = row.Index < list.Clients.Count ? list.Clients[row.Index] : null;
+                                var longest = record != null && ClientList.Describe(record) == longestClient;
+                                var tip = row.Cells[0].ToolTipText ?? string.Empty;
+
                                 foreach (DataGridViewCell cell in row.Cells)
                                 {
-                                    if (cell.PreferredSize.Width > grid.Columns[cell.ColumnIndex].Width)
+                                    var value = Convert.ToString(cell.FormattedValue, CultureInfo.InvariantCulture);
+                                    var whole = longest && value
+                                        .Split(new[] { Environment.NewLine }, StringSplitOptions.None)
+                                        .All(held => tip.Contains(held));
+
+                                    if (cell.PreferredSize.Width > grid.Columns[cell.ColumnIndex].Width && !whole)
                                     {
-                                        cut.Add(Convert.ToString(cell.FormattedValue, CultureInfo.InvariantCulture)
-                                                + " needs " + cell.PreferredSize.Width + " in "
+                                        cut.Add(value + " needs " + cell.PreferredSize.Width + " in "
                                                 + grid.Columns[cell.ColumnIndex].Width);
                                     }
+                                }
+
+                                if (record != null && row.Height < record.Profiles.Count * line)
+                                {
+                                    cut.Add(ClientList.Describe(record) + " holds " + record.Profiles.Count
+                                            + " profiles in a row " + row.Height + " tall");
                                 }
                             }
 

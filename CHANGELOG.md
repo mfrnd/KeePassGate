@@ -44,6 +44,13 @@ none, since it releases both.
   over. That answer now covers a merge another KeePass plugin runs as well, which nothing of
   KeePass's announces: the window does not open inside such a merge, and no answer is written
   inside it. `CA.md` §204.
+- **The clients page shows every profile a client holds, whatever the length of its name.** A
+  profile name may be sixty-four characters with no space in it, and on the clients page a name
+  wider than its column pushed every profile after it below the row, where nothing drew it: a
+  client holding `ops` after a long name showed no `ops` to the operator deciding whether to
+  revoke it. Each profile now keeps a line of its own, a name too long for the column ends in an
+  ellipsis, the mark "(removed)" is never the part that is cut, and the row's tooltip names every
+  profile whole, marked as the row marks it.
 - **The plugin is built against KeePass 2.62 and needs that release or a later release.** It
   was built against 2.61.1. A plugin loads in the KeePass it was built against and in every
   later release, since a KeePass redirects every earlier version to itself, and in no earlier
