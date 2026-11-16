@@ -1175,14 +1175,18 @@ namespace KeePassGate.Ui
         /// </summary>
         /// <remarks>
         /// **This is the whole reason a picker does not take the dialog down with it.** `Closed` is
-        /// raised from inside the hosted control's own event, while WinForms is still delivering the
-        /// click or the keystroke that closed the dropdown. Three of the things that have to happen
-        /// next are things it will not survive being told to do at that moment: disposing the
-        /// dropdown disposes the control whose event is running, rebuilding the grid replaces the
-        /// row the click arrived on, and giving the dialog its accept and cancel buttons back hands
-        /// the keystroke that is still in flight to a button. Any of them throws from inside the
-        /// message loop, and an exception there is not a message on the tab: it is KeePass closing
-        /// the dialog with the rule half made.
+        /// raised from inside the dropdown's own `SetVisibleCore`, while WinForms is still
+        /// delivering the click, the keystroke or the change of activation that closed it, and
+        /// `SetVisibleCore` asks the dropdown for its handle once the handler returns. Disposing
+        /// the dropdown there throws from inside the message loop, which `GrantPickerTests`
+        /// reproduces, and an exception there is not a message on the tab: it is KeePass closing
+        /// the dialog with the rule half made, or ending altogether.
+        ///
+        /// Two more things wait with it for the same reason, and neither has been made to fail:
+        /// rebuilding the grid would replace the row the click arrived on, and giving the dialog
+        /// its accept and cancel buttons back could hand the keystroke still in flight to a
+        /// button. Moved back into the handler, neither fails a test, a picker closed by a posted
+        /// press elsewhere or a posted Enter included.
         ///
         /// So the handler records what was chosen and nothing else, and this runs afterwards.
         /// </remarks>
