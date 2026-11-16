@@ -1,0 +1,13 @@
+# Step 2, Keepass2Android: open, go into G, open E1, edit it, append -phone to its password, save
+# (the editor's Save writes the file).
+include k2a-open.flow
+tap ^G$
+tap ^E1$
+waitfor entry_edit 20
+tap entry_edit
+waitfor entry_password 20
+appendpw entry_password -phone
+tap menu_save
+waitfor entry_edit 60
+sleep 5
+list

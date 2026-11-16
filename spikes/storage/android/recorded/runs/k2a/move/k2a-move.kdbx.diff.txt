@@ -1,0 +1,36 @@
+1c1
+< # file S-argon.kdbx size=7941 sha256=bd84dd4785579e8705bd12f3fe4d53a2e342be2e88c64875413ef8b336dc11ae
+---
+> # file k2a-move.kdbx size=7781 sha256=92d5e639c08ab4cf66d3a224e375b285d20a4366bbcf7a79e1916c062a5806a7
+64c64
+< E E1 parent G (G)
+---
+> E E1 parent N (N)
+69c69
+< E E1 t.location 2026-11-01T11:00:00Z
+---
+> E E1 t.location 2026-11-15T17:30:11Z
+360c360
+< G G children groups=1 entries=8
+---
+> G G children groups=0 entries=7
+386c386
+< G N children groups=0 entries=1
+---
+> G N children groups=0 entries=2
+390c390
+< G N parent G (G)
+---
+> G N parent Root (Storage probe)
+395c395
+< G N t.location 2026-11-01T10:20:00Z
+---
+> G N t.location 2026-11-15T17:31:00Z
+399c399
+< G Root children groups=3 entries=0
+---
+> G Root children groups=4 entries=0
+412c412
+< M CD KPG.Profiles = "[\"reader\",\"writer\"]" @2026-11-01T10:15:00Z
+---
+> M CD KPG.Profiles = "[\"reader\",\"writer\"]" @none

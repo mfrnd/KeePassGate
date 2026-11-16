@@ -1,0 +1,11 @@
+# Keepass2Android, an open database at its root group: add one entry titled ${ENTRY} at the root and
+# save.
+tap fabAddNew
+tap fabAddNewEntry
+maybe ^No$ 4                      # "Add templates?" on the first entry added
+waitfor entry_title 20
+tap entry_title
+text ${ENTRY}
+tap menu_save
+waitfor fabAddNew 60
+sleep 4

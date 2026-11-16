@@ -1,0 +1,138 @@
+### 2026-11-15T19:32:11.079Z op kpdx merge-fromCP-r3 flow=kpdx-B-from.flow base=C (versionName=4.5.8)
+Success
+<work>/work/base/C.kdbx: 1 file pushed, 0 skipped. 0.6 MB/s (9845 bytes in 0.014s)
+pushed sha256 7641ab1c30eb633b07889d6af116577e11b520a03a62d793cbb310c0b12fa5f0
+[2026-11-15T19:32:12.719Z] kpdx-B-from.flow:5 include kpdx-open.flow
+[2026-11-15T19:32:12.725Z] kpdx-open.flow:4 sh monkey -p com.kunzisoft.keepass.libre -c android.intent.category.LAUNCHER 1
+  bash arg: -p
+  bash arg: com.kunzisoft.keepass.libre
+  bash arg: -c
+  bash arg: android.intent.category.LAUNCHER
+  bash arg: 1
+Events injected: 1
+## Network stats: elapsed time=157ms (0ms mobile, 0ms wifi, 157ms not connected)
+args: [-p, com.kunzisoft.keepass.libre, -c, android.intent.category.LAUNCHER, 1]
+ arg: "-p"
+ arg: "com.kunzisoft.keepass.libre"
+ arg: "-c"
+ arg: "android.intent.category.LAUNCHER"
+ arg: "1"
+data="com.kunzisoft.keepass.libre"
+data="android.intent.category.LAUNCHER"
+[2026-11-15T19:32:13.663Z] kpdx-open.flow:5 waitfor open_database_button 30
+[2026-11-15T19:32:19.669Z] kpdx-open.flow:6 tapuntil open_database_button Show.roots 40
+[2026-11-15T19:32:22.878Z]   tapped (799, 2051) 'Open existing vault'
+[2026-11-15T19:32:33.684Z]   tapped (799, 2051) 'Open existing vault'
+[2026-11-15T19:32:36.816Z] kpdx-open.flow:7 include picker.flow
+[2026-11-15T19:32:36.822Z] picker.flow:4 pick kpdx-merge-fromCP-r3.kdbx
+[2026-11-15T19:32:45.174Z]   focused and entered '^kpdx\\-merge\\-fromCP\\-r3\\.kdbx$'
+[2026-11-15T19:32:45.176Z] kpdx-open.flow:8 waitfor password_text_view 40
+[2026-11-15T19:32:49.659Z] kpdx-open.flow:9 typepw password_text_view dummy-password-for-a-throwaway-file
+[2026-11-15T19:33:02.856Z]   type: field never took the focus (attempt 1)
+[2026-11-15T19:33:15.944Z]   type: field never took the focus (attempt 2)
+[2026-11-15T19:33:27.146Z]   typed into the focused field
+[2026-11-15T19:33:27.148Z] kpdx-open.flow:10 tapuntil activity_password_open_button add_button 60
+[2026-11-15T19:33:30.312Z]   tapped (895, 1435) 'Unlock'
+[2026-11-15T19:33:41.231Z]   tapped (895, 1435) 'Unlock'
+[2026-11-15T19:33:50.143Z]   tapped (895, 1435) 'Unlock'
+[2026-11-15T19:33:57.242Z] kpdx-B-from.flow:6 adb push <work>/work/base/P.kdbx /sdcard/Download/kpdx-merge-fromCP-r3-src.kdbx
+<work>/work/base/P.kdbx: 1 file pushed, 0 skipped. 0.9 MB/s (8309 bytes in 0.009s)
+[2026-11-15T19:33:57.308Z] kpdx-B-from.flow:7 sh sha256sum /sdcard/Download/kpdx-merge-fromCP-r3-src.kdbx
+cef28c42911774f3deeb4c884a85619dcfd7965b0907be06a1c10d843d45eae7  /sdcard/Download/kpdx-merge-fromCP-r3-src.kdbx
+[2026-11-15T19:33:57.360Z] kpdx-B-from.flow:8 sleep 4
+[2026-11-15T19:34:01.361Z] kpdx-B-from.flow:9 drawer menu_merge_from
+[2026-11-15T19:34:33.748Z]   drawer open after 5 attempt(s)
+[2026-11-15T19:34:33.749Z] kpdx-B-from.flow:10 tap menu_merge_from
+[2026-11-15T19:34:37.245Z]   tapped (452, 918) 'com.kunzisoft.keepass.libre:id/menu_merge_from'
+[2026-11-15T19:34:37.247Z] kpdx-B-from.flow:11 waitfor setup_check_password_edit_text 20
+[2026-11-15T19:34:39.493Z] kpdx-B-from.flow:12 type setup_check_password_edit_text dumm
+[2026-11-15T19:34:53.165Z]   type: field never took the focus (attempt 1)
+[2026-11-15T19:35:03.059Z]   typed 'dumm'
+[2026-11-15T19:35:03.061Z] kpdx-B-from.flow:13 tapuntil ^Check$ Show.roots 30
+[2026-11-15T19:35:06.576Z]   tapped (887, 1111) 'Check'
+[2026-11-15T19:35:09.386Z] kpdx-B-from.flow:14 include picker-src.flow
+[2026-11-15T19:35:09.396Z] picker-src.flow:2 pick kpdx-merge-fromCP-r3-src.kdbx
+[2026-11-15T19:35:17.935Z]   focused and entered '^kpdx\\-merge\\-fromCP\\-r3\\-src\\.kdbx$'
+[2026-11-15T19:35:17.937Z] kpdx-B-from.flow:15 waitfor title_database 30
+[2026-11-15T19:35:22.046Z] kpdx-B-from.flow:16 typepw password_text_view dummy-password-for-a-throwaway-file
+[2026-11-15T19:35:35.442Z]   type: field never took the focus (attempt 1)
+[2026-11-15T19:35:46.003Z]   typed into the focused field
+[2026-11-15T19:35:46.005Z] kpdx-B-from.flow:17 tap ^OK$
+[2026-11-15T19:35:49.564Z]   tapped (887, 1173) 'OK'
+[2026-11-15T19:35:49.567Z] kpdx-B-from.flow:18 sleep 10
+[2026-11-15T19:35:59.568Z] kpdx-B-from.flow:19 list
+  LinearLayout        (540, 1036)  id=action_bar_root              text='' desc=''
+  FrameLayout         (540, 1036)  id=content                      text='' desc=''
+  DrawerLayout        (540, 1036)  id=drawer_layout                text='' desc=''
+  FrameLayout         (452, 1036)  id=database_nav_view            text='' desc=''
+  RecyclerView        (452, 1108)  id=design_navigation_view       text='' desc=''
+  LinearLayout        (452, 409)   id=navigation_header_container  text='' desc=''
+  TextView       c    (747, 215)   id=nav_database_version         text='V2 - KDBX4.1' desc=''
+  ImageView      c    (149, 318)   id=nav_database_icon            text='' desc='Navigation header'
+  ImageView           (248, 318)   id=nav_database_modified        text='' desc='Save'
+  TextView       c    (452, 471)   id=nav_database_name            text='Storage probe (invented)' desc=''
+  TextView       c    (452, 563)   id=nav_database_path            text='content://com.android.externalstorage.documents/document/primary%3ADownload%2Fkpdx-merge-fromCP-r3.kdbx' desc=''
+  LinearLayoutCompat c    (452, 739)   id=menu_app_settings            text='' desc=''
+  CheckedTextView      (452, 739)   id=design_menu_item_text        text='Settings' desc=''
+  LinearLayoutCompat c    (452, 918)   id=menu_merge_from              text='' desc=''
+  CheckedTextView      (452, 918)   id=design_menu_item_text        text='Merge from …' desc=''
+  LinearLayoutCompat c    (452, 1050)  id=menu_save_copy_to            text='' desc=''
+  CheckedTextView      (452, 1050)  id=design_menu_item_text        text='Save a copy to …' desc=''
+  LinearLayoutCompat c    (452, 1182)  id=menu_lock_all                text='' desc=''
+  CheckedTextView      (452, 1182)  id=design_menu_item_text        text='Lock' desc=''
+  LinearLayoutCompat c    (452, 1361)  id=menu_about                   text='' desc=''
+  CheckedTextView      (452, 1361)  id=design_menu_item_text        text='About' desc=''
+  LinearLayoutCompat c    (452, 1493)  id=menu_contribute              text='' desc=''
+  CheckedTextView      (452, 1493)  id=design_menu_item_text        text='Contribute' desc=''
+  ViewGroup           (540, 1108)  id=activity_group_container_view text='' desc=''
+  FrameLayout         (540, 1108)  id=search_content_view          text='' desc=''
+  ViewGroup           (540, 1108)  id=error_coordinator            text='' desc=''
+  ViewGroup           (540, 233)   id=activity_group_header        text='' desc=''
+  ViewGroup           (540, 233)   id=toolbar                      text='' desc=''
+  ImageButton    c    (77, 233)    id=                             text='' desc='Navigation drawer open'
+  TextView            (446, 233)   id=database_name                text='Storage probe (invented)' desc=''
+  Button         c    (771, 233)   id=menu_search                  text='' desc='Search'
+  Button         c    (903, 233)   id=menu_sort                    text='' desc='Sort'
+  ImageView      c    (1024, 233)  id=                             text='' desc='More options'
+  ImageView           (148, 233)   id=database_modified            text='' desc='Save'
+  ScrollView          (540, 1196)  id=group_coordinator            text='' desc=''
+  RelativeLayout      (540, 1196)  id=add_node_button              text='' desc=''
+  ImageButton    c    (970, 2013)  id=add_button                   text='' desc='Add node'
+  LinearLayout        (540, 409)   id=app_bar                      text='' desc=''
+  RecyclerView        (540, 409)   id=breadcrumb_list              text='' desc=''
+  CardView       c    (267, 409)   id=breadcrumb_group             text='' desc=''
+  TextView            (77, 389)    id=group_numbers                text='14' desc=''
+  ImageView           (113, 409)   id=group_icon                   text='' desc=''
+  TextView            (333, 408)   id=group_name                   text='Storage probe' desc=''
+  FrameLayout         (540, 1284)  id=nodes_list_fragment_container text='' desc=''
+  RecyclerView        (540, 1284)  id=nodes_list                   text='' desc='Node children'
+  RelativeLayout c    (534, 585)   id=node_container               text='' desc=''
+  TextView            (64, 565)    id=node_child_numbers           text='8' desc=''
+  ImageView           (127, 585)   id=node_icon                    text='' desc=''
+  TextView            (247, 559)   id=node_text                    text='G' desc=''
+  RecyclerView        (389, 614)   id=node_tags_list_view          text='' desc=''
+  TextView       c    (328, 611)   id=tag_name                     text='kpg.reader' desc=''
+  TextView       c    (486, 611)   id=tag_name                     text='team' desc=''
+  ImageView           (981, 585)   id=node_image_identifier        text='' desc=''
+  RelativeLayout c    (534, 739)   id=node_container               text='' desc=''
+  TextView            (64, 719)    id=node_child_numbers           text='6' desc=''
+  ImageView           (127, 739)   id=node_icon                    text='' desc=''
+  TextView            (275, 738)   id=node_text                    text='KPG' desc=''
+  ImageView           (981, 739)   id=node_image_identifier        text='' desc=''
+  RelativeLayout c    (534, 893)   id=node_container               text='' desc=''
+  TextView            (64, 873)    id=node_child_numbers           text='0' desc=''
+  ImageView           (127, 893)   id=node_icon                    text='' desc=''
+  TextView            (344, 892)   id=node_text                    text='Recycle Bin' desc=''
+  ImageView           (981, 893)   id=node_image_identifier        text='' desc=''
+  ViewGroup           (540, 2033)  id=activity_group_footer        text='' desc=''
+  ImageButton    c    (90, 2033)   id=lock_button                  text='' desc='Lock'
+  View                (540, 72)    id=statusBarBackground          text='' desc=''
+  View                (0, 0)       id=navigationBarBackground      text='' desc=''
+total 32
+-rw------- 1 u0_a160 u0_a160 8309 2026-11-15 17:55:55.000000000 +0100 kpdx-merge-fromCP-r3-src.kdbx
+-rw------- 1 u0_a160 u0_a160 9321 2026-11-15 20:35:48.800000000 +0100 kpdx-merge-fromCP-r3.kdbx
+device kpdx-merge-fromCP-r3-src.kdbx sha256 cef28c42911774f3deeb4c884a85619dcfd7965b0907be06a1c10d843d45eae7
+/sdcard/Download/kpdx-merge-fromCP-r3-src.kdbx: 1 file pulled, 0 skipped. 0.2 MB/s (8309 bytes in 0.050s)
+device kpdx-merge-fromCP-r3.kdbx sha256 0ce43a0e79597d1809adcdcd452757e8e7c462e607d0c0f359f92100605a3d8e
+/sdcard/Download/kpdx-merge-fromCP-r3.kdbx: 1 file pulled, 0 skipped. 0.2 MB/s (9321 bytes in 0.058s)
+### flow rc=0 2026-11-15T19:36:04.793Z

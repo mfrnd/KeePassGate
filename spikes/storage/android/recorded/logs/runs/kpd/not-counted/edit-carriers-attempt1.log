@@ -1,0 +1,92 @@
+### 2026-11-15T17:55:52.407Z op kpd edit-carriers flow=kpd-edit-carriers.flow base=S-argon (versionName=2.7)
+Success
+<work>/work/base/S-argon.kdbx: 1 file pushed, 0 skipped. 0.8 MB/s (7941 bytes in 0.009s)
+pushed sha256 bd84dd4785579e8705bd12f3fe4d53a2e342be2e88c64875413ef8b336dc11ae
+[2026-11-15T17:55:53.700Z] kpd-edit-carriers.flow:3 include kpd-open.flow
+[2026-11-15T17:55:53.706Z] kpd-open.flow:4 sh monkey -p com.android.keepass -c android.intent.category.LAUNCHER 1
+  bash arg: -p
+  bash arg: com.android.keepass
+  bash arg: -c
+  bash arg: android.intent.category.LAUNCHER
+  bash arg: 1
+Events injected: 1
+## Network stats: elapsed time=95ms (0ms mobile, 0ms wifi, 95ms not connected)
+args: [-p, com.android.keepass, -c, android.intent.category.LAUNCHER, 1]
+ arg: "-p"
+ arg: "com.android.keepass"
+ arg: "-c"
+ arg: "android.intent.category.LAUNCHER"
+ arg: "1"
+data="com.android.keepass"
+data="android.intent.category.LAUNCHER"
+[2026-11-15T17:55:54.977Z] kpd-open.flow:5 clear ^(OK|Accept|Allow)$ open@^OPEN$ 40
+[2026-11-15T17:56:00.505Z] kpd-open.flow:6 tapuntil open@^OPEN$ Show.roots 40
+[2026-11-15T17:56:03.358Z]   tapped (137, 453) 'OPEN'
+[2026-11-15T17:56:06.592Z] kpd-open.flow:7 include picker.flow
+[2026-11-15T17:56:06.599Z] picker.flow:4 pick kpd-edit-carriers.kdbx
+[2026-11-15T17:56:14.503Z]   focused and entered '^kpd\\-edit\\-carriers\\.kdbx$'
+[2026-11-15T17:56:14.505Z] kpd-open.flow:8 waitfor pass_ok 40
+[2026-11-15T17:56:17.417Z] kpd-open.flow:9 typepwck password@.* dummy-password-for-a-throwaway-file
+[2026-11-15T17:56:31.215Z]   typed the password (35 characters)
+[2026-11-15T17:56:31.216Z] kpd-open.flow:10 tapuntil pass_ok add_entry 60
+[2026-11-15T17:56:34.392Z]   tapped (137, 1045) 'OK'
+[2026-11-15T17:56:37.901Z] kpd-edit-carriers.flow:4 tap ^KPG$
+[2026-11-15T17:56:40.922Z]   tapped (524, 575) 'KPG'
+[2026-11-15T17:56:40.927Z] kpd-edit-carriers.flow:5 tap ^KPG.record.1$
+[2026-11-15T17:56:44.333Z]   tapped (598, 694) 'KPG record 1'
+[2026-11-15T17:56:44.334Z] kpd-edit-carriers.flow:6 waitfor entry_edit 30
+[2026-11-15T17:56:47.070Z] kpd-edit-carriers.flow:7 tapxy 140 2141
+[2026-11-15T17:56:48.031Z] kpd-edit-carriers.flow:8 waitfor entry_confpassword 30
+[2026-11-15T17:56:50.481Z] kpd-edit-carriers.flow:9 list
+  LinearLayout        (540, 1108)  id=action_bar_root              text='' desc=''
+  FrameLayout         (540, 1108)  id=content                      text='' desc=''
+  ViewGroup           (540, 222)   id=toolbar                      text='' desc=''
+  TextView            (217, 222)   id=                             text='KeePassDroid' desc=''
+  Button         c    (753, 222)   id=menu_toggle_pass             text='SHOW PASS' desc=''
+  Button         c    (982, 222)   id=menu_donate                  text='DONATE' desc=''
+  ScrollView          (540, 1185)  id=entry_scroll                 text='' desc=''
+  TextView            (534, 325)   id=entry_title_label            text='Name:' desc=''
+  EditText       c    (534, 414)   id=entry_title                  text='KPG record 1' desc=''
+  View                (534, 494)   id=divider_title                text='' desc=''
+  TextView            (101, 522)   id=entry_user_name_label        text='User Name:' desc=''
+  EditText       c    (534, 611)   id=entry_user_name              text='kpg-r1' desc=''
+  View                (534, 691)   id=divider_username             text='' desc=''
+  TextView            (39, 719)    id=entry_url_label              text='URL:' desc=''
+  EditText       c    (534, 808)   id=entry_url                    text='kpg://record/1' desc=''
+  View                (534, 888)   id=divider_url                  text='' desc=''
+  TextView            (90, 916)    id=entry_password_label         text='Password:' desc=''
+  EditText       c    (413, 1007)  id=entry_password               text='••••••••••••••' desc=''
+  Button         c    (948, 1009)  id=generate_button              text='…' desc=''
+  View                (534, 1093)  id=divider_password             text='' desc=''
+  TextView            (163, 1121)  id=entry_confpassword_label     text='Confirm password:' desc=''
+  EditText       c    (534, 1212)  id=entry_confpassword           text='••••••••••••••' desc=''
+  View                (534, 1295)  id=divider_confpassword         text='' desc=''
+  TextView            (100, 1323)  id=entry_comment_label          text='Comments:' desc=''
+  EditText       c    (534, 1412)  id=entry_comment                text='{"kind":"record","n":1,"in":"notes"}' desc=''
+  View                (534, 1475)  id=divider_comment              text='' desc=''
+  LinearLayout        (534, 1774)  id=advanced_container           text='' desc=''
+  EditText       c    (242, 1527)  id=title                        text='KPG.20261115T101501Z.c3d4' desc=''
+  CheckBox       ckx  (134, 1622)  id=protection                   text='Protection' desc=''
+  ImageButton    c    (1027, 1619) id=delete                       text='' desc=''
+  EditText       c    (534, 1723)  id=value                        text='{"at":"2026-11-15T10:15:01Z","op":"revoke"}' desc=''
+  ImageView           (534, 1785)  id=divider_comment              text='' desc=''
+  EditText       c    (95, 1836)   id=title                        text='KPG.Secret' desc=''
+  CheckBox       ckx  (134, 1931)  id=protection                   text='Protection' desc=''
+  ImageButton    c    (1027, 1928) id=delete                       text='' desc=''
+  EditText       c    (534, 2021)  id=value                        text='{"key":"invented-secret-v1"}' desc=''
+  View                (0, 0)       id=entry_divider                text='' desc=''
+  Button         c    (0, 0)       id=entry_save                   text='SAVE' desc=''
+  Button         c    (0, 0)       id=entry_cancel                 text='CANCEL' desc=''
+  View                (540, 72)    id=statusBarBackground          text='' desc=''
+  View                (0, 0)       id=navigationBarBackground      text='' desc=''
+[2026-11-15T17:56:52.378Z] kpd-edit-carriers.flow:10 append entry_title -phone
+[2026-11-15T17:57:02.632Z]   append: text did not land (attempt 1)
+[2026-11-15T17:57:13.387Z]   append: text did not land (attempt 2)
+[2026-11-15T17:57:23.988Z]   append: text did not land (attempt 3)
+[2026-11-15T17:57:35.282Z]   append: text did not land (attempt 4)
+[2026-11-15T17:57:35.283Z] FAILED: append: gave up on entry_title
+total 12
+-rw------- 1 u0_a160 u0_a160 7941 2026-11-15 17:55:55.000000000 +0100 kpd-edit-carriers.kdbx
+device kpd-edit-carriers.kdbx sha256 bd84dd4785579e8705bd12f3fe4d53a2e342be2e88c64875413ef8b336dc11ae
+/sdcard/Download/kpd-edit-carriers.kdbx: 1 file pulled, 0 skipped. 0.2 MB/s (7941 bytes in 0.047s)
+### flow rc=1 2026-11-15T17:57:38.028Z

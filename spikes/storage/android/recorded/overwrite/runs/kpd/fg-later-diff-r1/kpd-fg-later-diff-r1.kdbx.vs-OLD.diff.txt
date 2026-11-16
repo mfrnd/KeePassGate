@@ -1,0 +1,50 @@
+1c1
+< # file OLD.kdbx size=9301 sha256=8ef6785ca25b07b7398a59fe828878e7e78975a77fb425ef61a2c00b06da2946
+---
+> # file kpd-fg-later-diff-r1.kdbx size=8757 sha256=fc3c2d3e20b3b23cde1e7ed841133b64a18b4801dfc7bede68dd47640098d41e
+6d5
+< E E1 CD KPG = "{\"reader\":[\"read\",\"list\"]}"
+162d160
+< E R1 CD KPG.cd = "{\"control\":\"entry custom data on R1\"}"
+340a339,365
+> E ~8648c81b H2026-11-15T21:55:48Z autotype enabled=1 obfuscation=0 seq="" assoc=0
+> E ~8648c81b H2026-11-15T21:55:48Z misc icon=1 customIcon=- fg=00000000 bg=00000000 overrideUrl="" quality=1
+> E ~8648c81b H2026-11-15T21:55:48Z prev -
+> E ~8648c81b H2026-11-15T21:55:48Z t.accessed 2026-11-15T21:55:48Z
+> E ~8648c81b H2026-11-15T21:55:48Z t.created 2026-11-15T21:55:48Z
+> E ~8648c81b H2026-11-15T21:55:48Z t.expires 0 2026-11-15T21:55:32Z
+> E ~8648c81b H2026-11-15T21:55:48Z t.location 2026-11-15T21:55:32Z
+> E ~8648c81b H2026-11-15T21:55:48Z t.modified 2026-11-15T21:55:48Z
+> E ~8648c81b H2026-11-15T21:55:48Z tags []
+> E ~8648c81b H2026-11-15T21:55:48Z usage 0
+> E ~8648c81b S Notes p=0 ""
+> E ~8648c81b S Password p=1 ""
+> E ~8648c81b S Title p=0 "phone-fg-later-diff-r1"
+> E ~8648c81b S URL p=0 ""
+> E ~8648c81b S UserName p=0 ""
+> E ~8648c81b autotype enabled=1 obfuscation=0 seq="" assoc=0
+> E ~8648c81b history.count 1
+> E ~8648c81b misc icon=1 customIcon=- fg=00000000 bg=00000000 overrideUrl="" quality=1
+> E ~8648c81b parent Root (Storage probe)
+> E ~8648c81b prev -
+> E ~8648c81b t.accessed 2026-11-15T21:56:06Z
+> E ~8648c81b t.created 2026-11-15T21:55:48Z
+> E ~8648c81b t.expires 0 2026-11-15T21:55:32Z
+> E ~8648c81b t.location 2026-11-15T21:55:32Z
+> E ~8648c81b t.modified 2026-11-15T21:56:06Z
+> E ~8648c81b tags []
+> E ~8648c81b usage 0
+343c368
+< F groups 5 entries 13
+---
+> F groups 5 entries 14
+359d383
+< G G CD KPG = "{\"reader\":[\"read\",\"list\"]}"
+399c423
+< G Root children groups=3 entries=0
+---
+> G Root children groups=3 entries=1
+422c446
+< M settingsChanged 2026-11-01T10:00:00Z
+---
+> M settingsChanged 2026-11-16T01:14:05Z

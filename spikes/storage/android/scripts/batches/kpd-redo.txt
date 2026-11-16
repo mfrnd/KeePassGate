@@ -1,0 +1,2 @@
+kpd kpd-edit-e1.flow com.android.keepass S-argon edit-e1
+kpd kpd-edit-carriers.flow com.android.keepass S-argon edit-carriers

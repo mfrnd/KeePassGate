@@ -1,0 +1,23 @@
+# Step 5, KeePassDroid: open, go into G, long-press E2, Delete (no question asked): E2 goes to the
+# recycle bin and the file is saved; a copy is pulled then. Back at the root, into the recycle bin,
+# long-press E2, Delete: from inside the bin it is deleted for good. KeePassDroid has no "empty
+# recycle bin".
+include kpd-open.flow
+tap ^G$
+longpress ^E2$
+waitfor ^Delete$ 10
+list
+tap ^Delete$
+gone ^E2$ 60
+sleep 6
+adb pull /sdcard/Download/${NAME}.kdbx ${OUT}/mid-recycled.kdbx
+key BACK
+waitfor ^Recycle.Bin$ 20
+tap ^Recycle.Bin$
+longpress ^E2$
+waitfor ^Delete$ 10
+list
+tap ^Delete$
+gone ^E2$ 60
+sleep 6
+list

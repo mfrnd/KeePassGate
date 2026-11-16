@@ -1,0 +1,10 @@
+# KeePassDroid, fresh app state: open /sdcard/Download/${NAME}.kdbx with its Open button (the system
+# file picker) and unlock it; the first part of the spike's kpd-A.flow, with the password typed by
+# typepwck, which checks the field's length.
+sh monkey -p ${PKG} -c android.intent.category.LAUNCHER 1
+clear ^(OK|Accept|Allow)$ open@^OPEN$ 40
+tapuntil open@^OPEN$ Show.roots 40
+include picker.flow
+waitfor pass_ok 40
+typepwck password@.* dummy-password-for-a-throwaway-file
+tapuntil pass_ok add_entry 60

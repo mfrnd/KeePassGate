@@ -1,0 +1,22 @@
+# Step 5, Keepass2Android, no change on the phone: open OLD and unlock; replace.sh puts ${ARRIVING}
+# over the file at time ${TMODE}; then only look: G, E1 opened and its fields shown, back, back,
+# KPG, back; lock with its own button and press "Close database". Nothing is saved by the flow.
+include k2a-open.flow
+sleep 2
+host sh ${P}/replace.sh /sdcard/Download/${NAME}.kdbx ${SRCDIR}/${ARRIVING}.kdbx ${TMODE}
+sleep 3
+tap ^G$
+sleep 2
+tap ^E1$
+sleep 3
+dialog
+key BACK
+sleep 2
+key BACK
+sleep 2
+include k2a-look-kpg.flow
+tap menu_lock
+waitfor QuickUnlock_buttonLock 20
+tap QuickUnlock_buttonLock
+sleep 3
+dialog

@@ -1,0 +1,126 @@
+### 2026-11-15T17:34:44.241Z op k2a merge-CP-r2 flow=k2a-merge.flow base=C (versionName=1.15-r6)
+Success
+<work>/work/base/C.kdbx: 1 file pushed, 0 skipped. 0.7 MB/s (9845 bytes in 0.014s)
+pushed sha256 7641ab1c30eb633b07889d6af116577e11b520a03a62d793cbb310c0b12fa5f0
+[2026-11-15T17:34:45.383Z] k2a-merge.flow:4 include k2a-open.flow
+[2026-11-15T17:34:45.388Z] k2a-open.flow:4 sh monkey -p keepass2android.keepass2android -c android.intent.category.LAUNCHER 1
+  bash arg: -p
+  bash arg: keepass2android.keepass2android
+  bash arg: -c
+  bash arg: android.intent.category.LAUNCHER
+  bash arg: 1
+Events injected: 1
+## Network stats: elapsed time=190ms (0ms mobile, 0ms wifi, 190ms not connected)
+args: [-p, keepass2android.keepass2android, -c, android.intent.category.LAUNCHER, 1]
+ arg: "-p"
+ arg: "keepass2android.keepass2android"
+ arg: "-c"
+ arg: "android.intent.category.LAUNCHER"
+ arg: "1"
+data="keepass2android.keepass2android"
+data="android.intent.category.LAUNCHER"
+[2026-11-15T17:34:46.246Z] k2a-open.flow:5 clear ^OK$ start_open_file 40
+[2026-11-15T17:34:53.177Z]   cleared 'Change log' with (859, 1883)
+[2026-11-15T17:34:56.648Z] k2a-open.flow:6 tap start_open_file
+[2026-11-15T17:34:59.947Z]   tapped (540, 1025) 'Open file...'
+[2026-11-15T17:34:59.950Z] k2a-open.flow:7 tap ^System.file.picker$
+[2026-11-15T17:35:04.454Z]   tapped (229, 516) 'System file picker'
+[2026-11-15T17:35:04.456Z] k2a-open.flow:8 waitfor Show.roots 20
+[2026-11-15T17:35:07.367Z] k2a-open.flow:9 include picker.flow
+[2026-11-15T17:35:07.373Z] picker.flow:4 pick k2a-merge-CP-r2.kdbx
+[2026-11-15T17:35:15.573Z]   focused and entered '^k2a\\-merge\\-CP\\-r2\\.kdbx$'
+[2026-11-15T17:35:15.574Z] k2a-open.flow:10 waitfor password_edit 30
+[2026-11-15T17:35:19.804Z] k2a-open.flow:11 typepwck password_edit dummy-password-for-a-throwaway-file
+[2026-11-15T17:35:32.956Z]   typed the password (35 characters)
+[2026-11-15T17:35:32.958Z] k2a-open.flow:12 tap pass_ok
+[2026-11-15T17:35:36.150Z]   tapped (942, 1437) 'Unlock'
+[2026-11-15T17:35:36.155Z] k2a-open.flow:13 waitfor fabAddNew 60
+[2026-11-15T17:35:42.913Z] k2a-merge.flow:5 adb push <work>/work/base/P.kdbx /sdcard/Download/k2a-merge-CP-r2.kdbx
+<work>/work/base/P.kdbx: 1 file pushed, 0 skipped. 1.0 MB/s (8309 bytes in 0.008s)
+[2026-11-15T17:35:42.966Z] k2a-merge.flow:6 sh sha256sum /sdcard/Download/k2a-merge-CP-r2.kdbx
+cef28c42911774f3deeb4c884a85619dcfd7965b0907be06a1c10d843d45eae7  /sdcard/Download/k2a-merge-CP-r2.kdbx
+[2026-11-15T17:35:43.002Z] k2a-merge.flow:7 sleep 3
+[2026-11-15T17:35:46.004Z] k2a-merge.flow:8 tap fabAddNew
+[2026-11-15T17:35:48.925Z]   tapped (959, 1607) 'keepass2android.keepass2android:id/fabAddNew'
+[2026-11-15T17:35:48.926Z] k2a-merge.flow:9 tap fabAddNewEntry
+[2026-11-15T17:35:51.904Z]   tapped (871, 1211) 'Add entry'
+[2026-11-15T17:35:51.905Z] k2a-merge.flow:10 maybe ^No$ 4
+[2026-11-15T17:35:54.850Z]   maybe tapped (634, 1431) 'No'
+[2026-11-15T17:35:54.852Z] k2a-merge.flow:11 waitfor entry_title 20
+[2026-11-15T17:35:57.752Z] k2a-merge.flow:12 tap entry_title
+[2026-11-15T17:36:00.831Z]   tapped (473, 445) 'name'
+[2026-11-15T17:36:00.834Z] k2a-merge.flow:13 text droid-merge
+[2026-11-15T17:36:04.285Z] k2a-merge.flow:14 tap menu_save
+[2026-11-15T17:36:07.504Z]   tapped (882, 233) 'Save'
+[2026-11-15T17:36:07.505Z] k2a-merge.flow:15 waitfor Merge.changes 60
+[2026-11-15T17:36:10.318Z] k2a-merge.flow:16 list
+  FrameLayout         (540, 1176)  id=action_bar_root              text='' desc=''
+  FrameLayout         (540, 1176)  id=content                      text='' desc=''
+  LinearLayoutCompat      (540, 1176)  id=parentPanel                  text='' desc=''
+  LinearLayout        (540, 830)   id=topPanel                     text='' desc=''
+  LinearLayout        (540, 808)   id=title_template               text='' desc=''
+  TextView            (401, 833)   id=alertTitle                   text='Merge changes?' desc=''
+  View                (540, 899)   id=titleDividerNoCustom         text='' desc=''
+  FrameLayout         (540, 1030)  id=contentPanel                 text='' desc=''
+  ScrollView          (540, 1030)  id=scrollView                   text='' desc=''
+  TextView            (540, 1030)  id=message                      text='The database file was modified externally. Do you want to load and merge the changes before saving? Select No if you want to overwrite the external changes.' desc=''
+  ScrollView          (540, 1376)  id=buttonPanel                  text='' desc=''
+  Button         c    (253, 1244)  id=button3                      text='Cancel' desc=''
+  Button         c    (333, 1376)  id=button2                      text='No, overwrite' desc=''
+  Button         c    (314, 1508)  id=button1                      text='Yes, merge' desc=''
+[2026-11-15T17:36:12.281Z] k2a-merge.flow:17 tap ^Yes,.merge$
+[2026-11-15T17:36:15.387Z]   tapped (314, 1508) 'Yes, merge'
+[2026-11-15T17:36:15.388Z] k2a-merge.flow:18 waitfor fabAddNew 60
+[2026-11-15T17:36:18.413Z] k2a-merge.flow:19 sleep 5
+[2026-11-15T17:36:23.415Z] k2a-merge.flow:20 list
+  ViewGroup           (540, 1036)  id=decor_content_parent         text='' desc=''
+  FrameLayout         (540, 1036)  id=content                      text='' desc=''
+  ViewGroup           (540, 1024)  id=main_content                 text='' desc=''
+  FrameLayout         (540, 1024)  id=list_fragment                text='' desc=''
+  FrameLayout         (540, 1024)  id=listContainer                text='' desc=''
+  ListView            (540, 1024)  id=list                         text='' desc=''
+  ImageView           (99, 408)    id=group_icon_bkg               text='' desc=''
+  ImageView           (99, 408)    id=icon                         text='' desc=''
+  TextView            (216, 386)   id=group_text                   text='G' desc=''
+  TextView            (319, 451)   id=group_label                  text='Group - 8 entries' desc=''
+  ImageView           (992, 408)   id=right_arrow                  text='' desc=''
+  ImageView           (99, 582)    id=group_icon_bkg               text='' desc=''
+  ImageView           (99, 582)    id=icon                         text='' desc=''
+  TextView            (251, 560)   id=group_text                   text='KPG' desc=''
+  TextView            (319, 625)   id=group_label                  text='Group - 6 entries' desc=''
+  ImageView           (992, 582)   id=right_arrow                  text='' desc=''
+  ImageView           (99, 756)    id=group_icon_bkg               text='' desc=''
+  ImageView           (99, 756)    id=icon                         text='' desc=''
+  TextView            (338, 734)   id=group_text                   text='Recycle Bin' desc=''
+  TextView            (319, 799)   id=group_label                  text='Group - 0 entries' desc=''
+  ImageView           (992, 756)   id=right_arrow                  text='' desc=''
+  ImageView           (99, 920)    id=entry_icon_bkg               text='' desc=''
+  ImageView           (99, 920)    id=icon                         text='' desc=''
+  TextView            (345, 920)   id=entry_text                   text='droid-merge' desc=''
+  ImageView           (992, 920)   id=right_arrow                  text='' desc=''
+  ImageButton    c    (959, 1211)  id=fabTotpOverview              text='' desc=''
+  ImageButton    c    (959, 1409)  id=fabSearch                    text='' desc=''
+  ImageButton    c    (959, 1607)  id=fabAddNew                    text='' desc=''
+  View                (540, 1729)  id=divider2                     text='' desc=''
+  RelativeLayout      (540, 1901)  id=bottom_bar                   text='' desc=''
+  LinearLayout        (540, 1901)  id=autofill_infotext            text='' desc=''
+  TextView            (540, 1803)  id=myinfotext                   text="Keepass2Android supports Android's Autofill feature but it looks like you haven't enabled it yet." desc=''
+  RelativeLayout      (540, 1959)  id=autofill_buttons             text='' desc=''
+  Button         c    (183, 1959)  id=enable_autofill              text='Enable Autofill' desc=''
+  Button         c    (860, 1959)  id=show_autofill_info           text='Show Autofill help' desc=''
+  Button         c    (540, 2065)  id=info_dont_show_autofill_again text='Do not show again' desc=''
+  FrameLayout         (540, 233)   id=action_bar_container         text='' desc=''
+  ViewGroup           (540, 233)   id=action_bar                   text='' desc=''
+  TextView            (234, 233)   id=                             text='Storage probe' desc=''
+  LinearLayoutCompat      (771, 233)   id=menu_search                  text='' desc=''
+  LinearLayout        (771, 233)   id=search_bar                   text='' desc=''
+  ImageView      c    (771, 233)   id=search_button                text='' desc='Search'
+  Button         c    (903, 233)   id=menu_lock                    text='' desc='Lock Database'
+  ImageView      c    (1024, 233)  id=                             text='' desc='More options'
+  View                (540, 72)    id=statusBarBackground          text='' desc=''
+  View                (0, 0)       id=navigationBarBackground      text='' desc=''
+total 16
+-rw------- 1 u0_a160 u0_a160 10165 2026-11-15 18:36:14.884000000 +0100 k2a-merge-CP-r2.kdbx
+device k2a-merge-CP-r2.kdbx sha256 715c350241f69ce586d0974ac79d9a6f1b68ef24769f9712a0ec7c685966b1c3
+/sdcard/Download/k2a-merge-CP-r2.kdbx: 1 file pulled, 0 skipped. 0.2 MB/s (10165 bytes in 0.054s)
+### flow rc=0 2026-11-15T17:36:28.176Z

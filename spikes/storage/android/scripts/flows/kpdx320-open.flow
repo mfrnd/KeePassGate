@@ -1,0 +1,12 @@
+# KeePassDX 3.2.0, fresh app state: open /sdcard/Download/${NAME}.kdbx through the system file
+# picker and unlock it. Same screens as 4.5.8 under older ids.
+sh monkey -p ${PKG} -c android.intent.category.LAUNCHER 1
+waitfor open_(keyfile|database)_button 30      # open_keyfile_button in 3.2.0, open_database_button in 3.3.0
+tapuntil open_(keyfile|database)_button Show.roots 40
+include picker.flow
+waitfor activity_password_open_button 40
+list
+typepw password@.* dummy-password-for-a-throwaway-file
+tapuntil activity_password_open_button add_node_button 60
+sleep 2
+list

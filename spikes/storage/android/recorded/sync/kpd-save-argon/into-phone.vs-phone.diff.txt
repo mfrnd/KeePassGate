@@ -1,0 +1,10 @@
+1c1
+< # file kpd-save-argon.kdbx size=7397 sha256=614982ec4f2a565a0db11322659bb710b131e84cb1826d17b607d6f5171a1052
+---
+> # file into-phone.kdbx size=8149 sha256=d7554161b0dcfac50aff8c37ba93af600bec165ec1e4f9e0499582530620eb11
+5a6
+> E E1 CD KPG = "{\"reader\":[\"read\",\"list\"]}"
+160a162
+> E R1 CD KPG.cd = "{\"control\":\"entry custom data on R1\"}"
+383a386
+> G G CD KPG = "{\"reader\":[\"read\",\"list\"]}"

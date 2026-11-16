@@ -1,0 +1,6 @@
+# Exploration: Keepass2Android's list of places to open a file from.
+sh monkey -p keepass2android.keepass2android -c android.intent.category.LAUNCHER 1
+clear ^OK$ start_open_file 40
+tap start_open_file
+sleep 2
+list

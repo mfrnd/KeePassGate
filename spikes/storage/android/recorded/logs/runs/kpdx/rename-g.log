@@ -1,0 +1,131 @@
+### 2026-11-15T19:36:06.859Z op kpdx rename-g flow=kpdx-rename-g.flow base=S-argon (versionName=4.5.8)
+Success
+<work>/work/base/S-argon.kdbx: 1 file pushed, 0 skipped. 0.7 MB/s (7941 bytes in 0.011s)
+pushed sha256 bd84dd4785579e8705bd12f3fe4d53a2e342be2e88c64875413ef8b336dc11ae
+[2026-11-15T19:36:07.943Z] kpdx-rename-g.flow:3 include kpdx-open.flow
+[2026-11-15T19:36:07.953Z] kpdx-open.flow:4 sh monkey -p com.kunzisoft.keepass.libre -c android.intent.category.LAUNCHER 1
+  bash arg: -p
+  bash arg: com.kunzisoft.keepass.libre
+  bash arg: -c
+  bash arg: android.intent.category.LAUNCHER
+  bash arg: 1
+Events injected: 1
+## Network stats: elapsed time=171ms (0ms mobile, 0ms wifi, 171ms not connected)
+args: [-p, com.kunzisoft.keepass.libre, -c, android.intent.category.LAUNCHER, 1]
+ arg: "-p"
+ arg: "com.kunzisoft.keepass.libre"
+ arg: "-c"
+ arg: "android.intent.category.LAUNCHER"
+ arg: "1"
+data="com.kunzisoft.keepass.libre"
+data="android.intent.category.LAUNCHER"
+[2026-11-15T19:36:08.842Z] kpdx-open.flow:5 waitfor open_database_button 30
+[2026-11-15T19:36:14.296Z] kpdx-open.flow:6 tapuntil open_database_button Show.roots 40
+[2026-11-15T19:36:17.107Z]   tapped (799, 2051) 'Open existing vault'
+[2026-11-15T19:36:28.420Z]   tapped (799, 2051) 'Open existing vault'
+[2026-11-15T19:36:31.058Z] kpdx-open.flow:7 include picker.flow
+[2026-11-15T19:36:31.065Z] picker.flow:4 pick kpdx-rename-g.kdbx
+[2026-11-15T19:36:39.256Z]   focused and entered '^kpdx\\-rename\\-g\\.kdbx$'
+[2026-11-15T19:36:39.259Z] kpdx-open.flow:8 waitfor password_text_view 40
+[2026-11-15T19:36:43.215Z] kpdx-open.flow:9 typepw password_text_view dummy-password-for-a-throwaway-file
+[2026-11-15T19:36:56.689Z]   type: field never took the focus (attempt 1)
+[2026-11-15T19:37:10.338Z]   type: field never took the focus (attempt 2)
+[2026-11-15T19:37:21.860Z]   typed into the focused field
+[2026-11-15T19:37:21.861Z] kpdx-open.flow:10 tapuntil activity_password_open_button add_button 60
+[2026-11-15T19:37:25.234Z]   tapped (895, 1435) 'Unlock'
+[2026-11-15T19:37:35.957Z]   tapped (895, 1435) 'Unlock'
+[2026-11-15T19:37:44.951Z]   tapped (895, 1435) 'Unlock'
+[2026-11-15T19:37:51.833Z] kpdx-rename-g.flow:4 waitfor node_text@^G$ 20
+[2026-11-15T19:37:53.663Z] kpdx-rename-g.flow:5 sleep 2
+[2026-11-15T19:37:55.667Z] kpdx-rename-g.flow:6 longpressuntil node_text@^G$ menu_move 60 2000 600
+[2026-11-15T19:38:00.696Z]   long-pressed (600, 559) for 2000 ms on the line of 'G'
+[2026-11-15T19:38:13.561Z]   long-pressed (600, 559) for 2000 ms on the line of 'G'
+[2026-11-15T19:38:15.545Z] kpdx-rename-g.flow:7 tapuntil More.options#2 ^Edit$ 30
+[2026-11-15T19:38:18.411Z]   tapped (1024, 2063) 'More options'
+[2026-11-15T19:38:28.394Z]   tapped (1024, 2063) 'More options'
+[2026-11-15T19:38:30.597Z] kpdx-rename-g.flow:8 tap ^Edit$
+[2026-11-15T19:38:33.266Z]   tapped (799, 1966) 'Edit'
+[2026-11-15T19:38:33.268Z] kpdx-rename-g.flow:9 waitfor group_edit_name 20
+[2026-11-15T19:38:36.332Z] kpdx-rename-g.flow:10 list
+  FrameLayout         (540, 1176)  id=action_bar_root              text='' desc=''
+  FrameLayout         (540, 1176)  id=content                      text='' desc=''
+  LinearLayoutCompat      (540, 1176)  id=parentPanel                  text='' desc=''
+  FrameLayout         (540, 1099)  id=customPanel                  text='' desc=''
+  FrameLayout         (540, 1099)  id=custom                       text='' desc=''
+  ImageButton    c    (540, 612)   id=group_edit_icon_button       text='' desc=''
+  LinearLayout        (540, 823)   id=group_edit_name_container    text='' desc=''
+  EditText       c    (540, 830)   id=group_edit_name              text='G' desc=''
+  LinearLayout        (540, 1043)  id=group_edit_note_container    text='' desc=''
+  EditText       c    (540, 1050)  id=group_edit_note              text='{"kpg.rules":{"reader":".R...L..","writer":"CRU..L.."}}' desc=''
+  FrameLayout         (540, 1268)  id=group_edit_expiration        text='' desc=''
+  LinearLayout        (457, 1268)  id=expiration_label             text='' desc=''
+  EditText       c    (457, 1270)  id=expiration_text              text='Never' desc=''
+  Switch         cx   (886, 1269)  id=expiration_checkbox          text='' desc=''
+  LinearLayout        (540, 1442)  id=group_edit_searchable_container text='' desc=''
+  Spinner        c    (540, 1449)  id=group_edit_searchable        text='Inherit' desc=''
+  ImageButton    cx   (892, 1449)  id=text_input_end_icon          text='' desc='Show dropdown menu'
+  LinearLayout        (540, 1619)  id=group_tags_label             text='' desc=''
+  EditText       c    (540, 1627)  id=group_tags_completion_view   text='kpg.reader, team, ' desc=''
+  ImageButton    cx   (892, 1627)  id=text_input_end_icon          text='' desc='Show dropdown menu'
+  ScrollView          (540, 1840)  id=buttonPanel                  text='' desc=''
+  Button         c    (683, 1840)  id=button2                      text='Cancel' desc=''
+  Button         c    (887, 1840)  id=button1                      text='OK' desc=''
+[2026-11-15T19:38:38.232Z] kpdx-rename-g.flow:11 append group_edit_name -phone
+[2026-11-15T19:38:50.564Z]   appended '-phone': 'G-phone'
+[2026-11-15T19:38:50.566Z] kpdx-rename-g.flow:12 tap ^OK$
+[2026-11-15T19:38:53.600Z]   tapped (887, 1402) 'OK'
+[2026-11-15T19:38:53.602Z] kpdx-rename-g.flow:13 waitfor node_text@^G-phone$ 30
+[2026-11-15T19:38:56.967Z] kpdx-rename-g.flow:14 sleep 6
+[2026-11-15T19:39:02.968Z] kpdx-rename-g.flow:15 list
+  LinearLayout        (540, 1036)  id=action_bar_root              text='' desc=''
+  FrameLayout         (540, 1036)  id=content                      text='' desc=''
+  DrawerLayout        (540, 1036)  id=drawer_layout                text='' desc=''
+  ViewGroup           (540, 1108)  id=activity_group_container_view text='' desc=''
+  FrameLayout         (540, 1108)  id=search_content_view          text='' desc=''
+  ViewGroup           (540, 1108)  id=error_coordinator            text='' desc=''
+  ViewGroup           (540, 233)   id=activity_group_header        text='' desc=''
+  ViewGroup           (540, 233)   id=toolbar                      text='' desc=''
+  ImageButton    c    (77, 233)    id=                             text='' desc='Navigation drawer open'
+  TextView            (446, 233)   id=database_name                text='Storage probe (invented)' desc=''
+  Button         c    (771, 233)   id=menu_search                  text='' desc='Search'
+  Button         c    (903, 233)   id=menu_sort                    text='' desc='Sort'
+  ImageView      c    (1024, 233)  id=                             text='' desc='More options'
+  ImageView           (148, 233)   id=database_modified            text='' desc='Save'
+  ScrollView          (540, 1196)  id=group_coordinator            text='' desc=''
+  RelativeLayout      (540, 1196)  id=add_node_button              text='' desc=''
+  ImageButton    c    (970, 2013)  id=add_button                   text='' desc='Add node'
+  LinearLayout        (540, 409)   id=app_bar                      text='' desc=''
+  RecyclerView        (540, 409)   id=breadcrumb_list              text='' desc=''
+  CardView       c    (267, 409)   id=breadcrumb_group             text='' desc=''
+  TextView            (77, 389)    id=group_numbers                text='13' desc=''
+  ImageView           (113, 409)   id=group_icon                   text='' desc=''
+  TextView            (333, 408)   id=group_name                   text='Storage probe' desc=''
+  FrameLayout         (540, 1284)  id=nodes_list_fragment_container text='' desc=''
+  RecyclerView        (540, 1284)  id=nodes_list                   text='' desc='Node children'
+  RelativeLayout c    (534, 585)   id=node_container               text='' desc=''
+  TextView            (64, 565)    id=node_child_numbers           text='9' desc=''
+  ImageView           (127, 585)   id=node_icon                    text='' desc=''
+  TextView            (313, 559)   id=node_text                    text='G-phone' desc=''
+  RecyclerView        (389, 614)   id=node_tags_list_view          text='' desc=''
+  TextView       c    (328, 611)   id=tag_name                     text='kpg.reader' desc=''
+  TextView       c    (486, 611)   id=tag_name                     text='team' desc=''
+  ImageView           (981, 585)   id=node_image_identifier        text='' desc=''
+  RelativeLayout c    (534, 739)   id=node_container               text='' desc=''
+  TextView            (64, 719)    id=node_child_numbers           text='4' desc=''
+  ImageView           (127, 739)   id=node_icon                    text='' desc=''
+  TextView            (275, 738)   id=node_text                    text='KPG' desc=''
+  ImageView           (981, 739)   id=node_image_identifier        text='' desc=''
+  RelativeLayout c    (534, 893)   id=node_container               text='' desc=''
+  TextView            (64, 873)    id=node_child_numbers           text='0' desc=''
+  ImageView           (127, 893)   id=node_icon                    text='' desc=''
+  TextView            (344, 892)   id=node_text                    text='Recycle Bin' desc=''
+  ImageView           (981, 893)   id=node_image_identifier        text='' desc=''
+  ViewGroup           (540, 2033)  id=activity_group_footer        text='' desc=''
+  ImageButton    c    (90, 2033)   id=lock_button                  text='' desc='Lock'
+  View                (540, 72)    id=statusBarBackground          text='' desc=''
+  View                (0, 0)       id=navigationBarBackground      text='' desc=''
+total 12
+-rw------- 1 u0_a160 u0_a160 7381 2026-11-15 20:38:52.360000000 +0100 kpdx-rename-g.kdbx
+device kpdx-rename-g.kdbx sha256 3e2f698470787f20d5d2fb158e7a772520d59b8b745ce9385003828338cbbb8c
+/sdcard/Download/kpdx-rename-g.kdbx: 1 file pulled, 0 skipped. 0.1 MB/s (7381 bytes in 0.050s)
+### flow rc=0 2026-11-15T19:39:07.969Z

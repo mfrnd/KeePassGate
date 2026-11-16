@@ -326,3 +326,62 @@ words:
   - slowm
   - kpdx
   - apksigner
+  # Identifiers in the Android measurement, which is carried unchanged: the verb `dumpdir`, the base
+  # `S-aes-nocd`, the group alias `GKPG`, the key `KPG.Untimed` and .NET's `ToArgb` in `Store.cs`,
+  # and the record `keepasslib-memprot-reset.txt`; the flow commands of `k.py`, `typepw`,
+  # `typepwck`, `appendpw`, `longpress`, `longpressuntil`, `focusto`, `tapuntil`, `tapor`, `tapxy`
+  # and `ifthen`; and Android's own tools and names, as Android spells them, with Python's
+  # `hashlib`, which the family's `RUN.md` names.
+  - dumpdir
+  - nocd
+  - GKPG
+  - Untimed
+  - Argb
+  - memprot
+  - typepw
+  - typepwck
+  - appendpw
+  - longpress
+  - longpressuntil
+  - focusto
+  - tapuntil
+  - tapor
+  - tapxy
+  - ifthen
+  - apks
+  - keyevent
+  - screencap
+  - sdcard
+  - uiautomator
+  - gphone
+  - hashlib
+  # Identifiers in the two later Android measurements, which are carried unchanged and which the
+  # family's checks match: the verbs `makeow`, `makesync` and `newsync` of the later `Store.cs` and
+  # the copy `SNEW` they make; the flow commands `scrollto`, `tapb` and `checkstate` of the later
+  # `k.py`; the scripts `devstat.sh`, `mksnew.sh`, `prefs.sh` and `sverdict.sh` and the labels their
+  # lines print, `norec`, `localbackup`, `baseversion`, `alwaysmerge`, `quickunlock` and `webdav`;
+  # the script `setprefs.sh`; Android's `sdkmanager`; the directory `keepassdx` of a measurement the
+  # family's `RUN.md` names as not carried; and Nextcloud, spelled as its project spells it.
+  - makeow
+  - makesync
+  - newsync
+  - SNEW
+  - scrollto
+  - tapb
+  - checkstate
+  - devstat
+  - mksnew
+  - prefs
+  - sverdict
+  - sverdicts
+  - norec
+  - localbackup
+  - baseversion
+  - alwaysmerge
+  - quickunlock
+  - webdav
+  - setprefs
+  - sdkmanager
+  - keepassdx
+  - Nextcloud
+

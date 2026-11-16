@@ -1,0 +1,42 @@
+=== dl/k2a-1.15-r6/keepass2android.keepass2android-Signed-x64.apk
+Verifies
+Verified using v1 scheme (JAR signing): true
+Verified using v2 scheme (APK Signature Scheme v2): true
+Verified using v3 scheme (APK Signature Scheme v3): true
+Verified using v3.1 scheme (APK Signature Scheme v3.1): false
+Verified using v3.2 scheme (APK Signature Scheme v3.2): false
+Verified using v4 scheme (APK Signature Scheme v4): false
+Verified for SourceStamp: false
+Number of signers: 1
+V3.0 Signer: certificate SHA-256 digest: 0bf8056d3a394ed7c77173c4b42c800565b4f0a42977569cf3472c271c562939
+package: name='keepass2android.keepass2android' versionCode='254' versionName='1.15-r6' platformBuildVersionName='16' platformBuildVersionCode='36' compileSdkVersion='36' compileSdkVersionCodename='16'
+native-code: 'x86_64'
+SIGNER MATCH
+=== dl/kpdx-4.5.8/KeePassDX-4.5.8-libre.apk
+Verifies
+Verified using v1 scheme (JAR signing): true
+Verified using v2 scheme (APK Signature Scheme v2): true
+Verified using v3 scheme (APK Signature Scheme v3): false
+Verified using v3.1 scheme (APK Signature Scheme v3.1): false
+Verified using v3.2 scheme (APK Signature Scheme v3.2): false
+Verified using v4 scheme (APK Signature Scheme v4): false
+Verified for SourceStamp: false
+Number of signers: 1
+V2 Signer: certificate SHA-256 digest: 7d55b8af210381aabf960f07e17cf7857b6d2a642ca2da6bf0bdf1b200362f04
+package: name='com.kunzisoft.keepass.libre' versionCode='45800' versionName='4.5.8' platformBuildVersionName='16' platformBuildVersionCode='36' compileSdkVersion='36' compileSdkVersionCodename='16'
+native-code: 'arm64-v8a' 'armeabi-v7a' 'x86' 'x86_64'
+SIGNER MATCH
+=== dl/kpd-2.7/app-general-release.apk
+Verifies
+Verified using v1 scheme (JAR signing): true
+Verified using v2 scheme (APK Signature Scheme v2): true
+Verified using v3 scheme (APK Signature Scheme v3): false
+Verified using v3.1 scheme (APK Signature Scheme v3.1): false
+Verified using v3.2 scheme (APK Signature Scheme v3.2): false
+Verified using v4 scheme (APK Signature Scheme v4): false
+Verified for SourceStamp: false
+Number of signers: 1
+V2 Signer: certificate SHA-256 digest: 692ed2f00824264edf569615b448a96f0220fd57137e03e146df3647ef6e4cf5
+package: name='com.android.keepass' versionCode='223' versionName='2.7' platformBuildVersionName='16' platformBuildVersionCode='36' compileSdkVersion='36' compileSdkVersionCodename='16'
+native-code: 'arm64-v8a' 'armeabi-v7a' 'x86' 'x86_64'
+SIGNER MATCH

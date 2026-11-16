@@ -1,0 +1,130 @@
+### 2026-11-15T19:26:57.892Z op kpdx move flow=kpdx-move.flow base=S-argon (versionName=4.5.8)
+Success
+<work>/work/base/S-argon.kdbx: 1 file pushed, 0 skipped. 0.8 MB/s (7941 bytes in 0.010s)
+pushed sha256 bd84dd4785579e8705bd12f3fe4d53a2e342be2e88c64875413ef8b336dc11ae
+[2026-11-15T19:26:59.403Z] kpdx-move.flow:3 include kpdx-open.flow
+[2026-11-15T19:26:59.409Z] kpdx-open.flow:4 sh monkey -p com.kunzisoft.keepass.libre -c android.intent.category.LAUNCHER 1
+  bash arg: -p
+  bash arg: com.kunzisoft.keepass.libre
+  bash arg: -c
+  bash arg: android.intent.category.LAUNCHER
+  bash arg: 1
+Events injected: 1
+## Network stats: elapsed time=35ms (0ms mobile, 0ms wifi, 35ms not connected)
+args: [-p, com.kunzisoft.keepass.libre, -c, android.intent.category.LAUNCHER, 1]
+ arg: "-p"
+ arg: "com.kunzisoft.keepass.libre"
+ arg: "-c"
+ arg: "android.intent.category.LAUNCHER"
+ arg: "1"
+data="com.kunzisoft.keepass.libre"
+data="android.intent.category.LAUNCHER"
+[2026-11-15T19:27:00.254Z] kpdx-open.flow:5 waitfor open_database_button 30
+[2026-11-15T19:27:06.144Z] kpdx-open.flow:6 tapuntil open_database_button Show.roots 40
+[2026-11-15T19:27:08.856Z]   tapped (799, 2051) 'Open existing vault'
+[2026-11-15T19:27:19.120Z]   tapped (799, 2051) 'Open existing vault'
+[2026-11-15T19:27:22.055Z] kpdx-open.flow:7 include picker.flow
+[2026-11-15T19:27:22.061Z] picker.flow:4 pick kpdx-move.kdbx
+[2026-11-15T19:27:30.816Z]   focused and entered '^kpdx\\-move\\.kdbx$'
+[2026-11-15T19:27:30.819Z] kpdx-open.flow:8 waitfor password_text_view 40
+[2026-11-15T19:27:35.245Z] kpdx-open.flow:9 typepw password_text_view dummy-password-for-a-throwaway-file
+[2026-11-15T19:29:07.738Z]   type: field never took the focus (attempt 1)
+[2026-11-15T19:29:19.656Z]   type: field never took the focus (attempt 2)
+[2026-11-15T19:29:29.757Z]   typed into the focused field
+[2026-11-15T19:29:29.761Z] kpdx-open.flow:10 tapuntil activity_password_open_button add_button 60
+[2026-11-15T19:29:32.961Z]   tapped (895, 1435) 'Unlock'
+[2026-11-15T19:29:43.688Z]   tapped (895, 1435) 'Unlock'
+[2026-11-15T19:29:54.416Z]   tapped (895, 1435) 'Unlock'
+[2026-11-15T19:30:01.307Z] kpdx-move.flow:4 tapuntil node_text@^G$ node_text@^Y3$ 40
+[2026-11-15T19:30:04.317Z]   tapped (247, 559) 'G'
+[2026-11-15T19:30:14.537Z]   tapped (247, 559) 'G'
+[2026-11-15T19:30:17.185Z] kpdx-move.flow:5 waitfor node_text@^E1$ 20
+[2026-11-15T19:30:19.092Z] kpdx-move.flow:6 sleep 2
+[2026-11-15T19:30:21.093Z] kpdx-move.flow:7 longpressuntil node_text@^E1$ menu_move 60 2000 600
+[2026-11-15T19:30:25.943Z]   long-pressed (600, 856) for 2000 ms on the line of 'E1'
+[2026-11-15T19:30:38.692Z]   long-pressed (600, 856) for 2000 ms on the line of 'E1'
+[2026-11-15T19:30:51.060Z]   long-pressed (600, 856) for 2000 ms on the line of 'E1'
+[2026-11-15T19:31:03.947Z]   long-pressed (600, 856) for 2000 ms on the line of 'E1'
+[2026-11-15T19:31:06.147Z] kpdx-move.flow:8 tap menu_move
+[2026-11-15T19:31:09.343Z]   tapped (771, 2063) 'Move'
+[2026-11-15T19:31:09.344Z] kpdx-move.flow:9 tapuntil node_text@^N$ node_text@^N1$ 40
+[2026-11-15T19:31:12.456Z]   tapped (247, 584) 'N'
+[2026-11-15T19:31:14.959Z] kpdx-move.flow:10 waitfor menu_paste 20
+[2026-11-15T19:31:17.125Z] kpdx-move.flow:11 tap menu_paste
+[2026-11-15T19:31:20.483Z]   tapped (1014, 2063) 'Paste'
+[2026-11-15T19:31:20.485Z] kpdx-move.flow:12 waitfor node_text@^E1$ 30
+[2026-11-15T19:31:23.887Z] kpdx-move.flow:13 sleep 6
+[2026-11-15T19:31:29.889Z] kpdx-move.flow:14 adb pull /sdcard/Download/kpdx-move.kdbx <work>/work/runs/kpdx/move/mid-moved-e1.kdbx
+/sdcard/Download/kpdx-move.kdbx: 1 file pulled, 0 skipped. 0.1 MB/s (7381 bytes in 0.049s)
+[2026-11-15T19:31:29.982Z] kpdx-move.flow:15 key BACK
+[2026-11-15T19:31:30.863Z] kpdx-move.flow:16 waitfor node_text@^N$ 20
+[2026-11-15T19:31:33.223Z] kpdx-move.flow:17 sleep 2
+[2026-11-15T19:31:35.225Z] kpdx-move.flow:18 longpressuntil node_text@^N$ menu_move 60 2000 600
+[2026-11-15T19:31:40.059Z]   long-pressed (600, 584) for 2000 ms on the line of 'N'
+[2026-11-15T19:31:42.280Z] kpdx-move.flow:19 tap menu_move
+[2026-11-15T19:31:45.247Z]   tapped (771, 2063) 'Move'
+[2026-11-15T19:31:45.249Z] kpdx-move.flow:20 tapuntil group_name@^Storage.probe$ node_text@^Recycle.Bin$ 40
+[2026-11-15T19:31:48.560Z]   tapped (298, 408) 'Storage probe'
+[2026-11-15T19:31:50.967Z] kpdx-move.flow:21 waitfor menu_paste 20
+[2026-11-15T19:31:53.096Z] kpdx-move.flow:22 tap menu_paste
+[2026-11-15T19:31:56.149Z]   tapped (1014, 2063) 'Paste'
+[2026-11-15T19:31:56.151Z] kpdx-move.flow:23 waitfor node_text@^N$ 30
+[2026-11-15T19:31:59.665Z] kpdx-move.flow:24 sleep 6
+[2026-11-15T19:32:05.667Z] kpdx-move.flow:25 list
+  LinearLayout        (540, 1036)  id=action_bar_root              text='' desc=''
+  FrameLayout         (540, 1036)  id=content                      text='' desc=''
+  DrawerLayout        (540, 1036)  id=drawer_layout                text='' desc=''
+  ViewGroup           (540, 1108)  id=activity_group_container_view text='' desc=''
+  FrameLayout         (540, 1108)  id=search_content_view          text='' desc=''
+  ViewGroup           (540, 1108)  id=error_coordinator            text='' desc=''
+  ViewGroup           (540, 233)   id=activity_group_header        text='' desc=''
+  ViewGroup           (540, 233)   id=toolbar                      text='' desc=''
+  ImageButton    c    (77, 233)    id=                             text='' desc='Navigation drawer open'
+  TextView            (446, 233)   id=database_name                text='Storage probe (invented)' desc=''
+  Button         c    (771, 233)   id=menu_search                  text='' desc='Search'
+  Button         c    (903, 233)   id=menu_sort                    text='' desc='Sort'
+  ImageView      c    (1024, 233)  id=                             text='' desc='More options'
+  ImageView           (148, 233)   id=database_modified            text='' desc='Save'
+  ScrollView          (540, 1196)  id=group_coordinator            text='' desc=''
+  RelativeLayout      (540, 1196)  id=add_node_button              text='' desc=''
+  ImageButton    c    (970, 2013)  id=add_button                   text='' desc='Add node'
+  LinearLayout        (540, 409)   id=app_bar                      text='' desc=''
+  RecyclerView   f    (540, 409)   id=breadcrumb_list              text='' desc=''
+  CardView       c    (267, 409)   id=breadcrumb_group             text='' desc=''
+  TextView            (77, 389)    id=group_numbers                text='13' desc=''
+  ImageView           (113, 409)   id=group_icon                   text='' desc=''
+  TextView            (333, 408)   id=group_name                   text='Storage probe' desc=''
+  FrameLayout         (540, 1284)  id=nodes_list_fragment_container text='' desc=''
+  RecyclerView        (540, 1284)  id=nodes_list                   text='' desc='Node children'
+  RelativeLayout c    (534, 585)   id=node_container               text='' desc=''
+  TextView            (64, 565)    id=node_child_numbers           text='7' desc=''
+  ImageView           (127, 585)   id=node_icon                    text='' desc=''
+  TextView            (247, 559)   id=node_text                    text='G' desc=''
+  RecyclerView        (389, 614)   id=node_tags_list_view          text='' desc=''
+  TextView       c    (328, 611)   id=tag_name                     text='kpg.reader' desc=''
+  TextView       c    (486, 611)   id=tag_name                     text='team' desc=''
+  ImageView           (981, 585)   id=node_image_identifier        text='' desc=''
+  RelativeLayout c    (534, 739)   id=node_container               text='' desc=''
+  TextView            (64, 719)    id=node_child_numbers           text='4' desc=''
+  ImageView           (127, 739)   id=node_icon                    text='' desc=''
+  TextView            (275, 738)   id=node_text                    text='KPG' desc=''
+  ImageView           (981, 739)   id=node_image_identifier        text='' desc=''
+  RelativeLayout c    (534, 893)   id=node_container               text='' desc=''
+  TextView            (64, 873)    id=node_child_numbers           text='2' desc=''
+  ImageView           (127, 893)   id=node_icon                    text='' desc=''
+  TextView            (247, 892)   id=node_text                    text='N' desc=''
+  ImageView           (981, 893)   id=node_image_identifier        text='' desc=''
+  RelativeLayout c    (534, 1047)  id=node_container               text='' desc=''
+  TextView            (64, 1027)   id=node_child_numbers           text='0' desc=''
+  ImageView           (127, 1047)  id=node_icon                    text='' desc=''
+  TextView            (344, 1046)  id=node_text                    text='Recycle Bin' desc=''
+  ImageView           (981, 1047)  id=node_image_identifier        text='' desc=''
+  ViewGroup           (540, 2033)  id=activity_group_footer        text='' desc=''
+  ImageButton    c    (90, 2033)   id=lock_button                  text='' desc='Lock'
+  View                (540, 72)    id=statusBarBackground          text='' desc=''
+  View                (0, 0)       id=navigationBarBackground      text='' desc=''
+total 12
+-rw------- 1 u0_a160 u0_a160 7397 2026-11-15 20:31:55.016000000 +0100 kpdx-move.kdbx
+device kpdx-move.kdbx sha256 8e9b6f0c277545bd34b5560e0dfdbaaed0a9702ad13449a1ec2b7500139d092f
+/sdcard/Download/kpdx-move.kdbx: 1 file pulled, 0 skipped. 0.1 MB/s (7397 bytes in 0.049s)
+### flow rc=0 2026-11-15T19:32:10.893Z

@@ -1,0 +1,88 @@
+### 2026-11-15T22:56:49.938Z sync s1-nothing-r1 flow=k2a-sy-s1.flow ANSWER=none PREFS=A (versionName=1.15-r6)
+Success
+server already running (7780)
+server kpg-s1-nothing-r1.kdbx after:  2165 bytes, mtime 2026-11-15 23:56:50.572553400 +0100 sha256 1019e391b75edfe8eb32c81be3e3cfb88a7b0efec39f10a7281da04f0d0469a3 (from SOLD.kdbx)
+SELinux: Loaded file_contexts
+prefs set A:  <boolean name="permit_cleartext_traffic" value="true" /> 
+[2026-11-15T22:56:50.930Z] k2a-sy-s1.flow:2 include k2a-sy-open.flow
+[2026-11-15T22:56:50.936Z] k2a-sy-open.flow:4 sh monkey -p keepass2android.keepass2android -c android.intent.category.LAUNCHER 1
+  bash arg: -p
+  bash arg: keepass2android.keepass2android
+  bash arg: -c
+  bash arg: android.intent.category.LAUNCHER
+  bash arg: 1
+Events injected: 1
+## Network stats: elapsed time=51ms (0ms mobile, 0ms wifi, 51ms not connected)
+args: [-p, keepass2android.keepass2android, -c, android.intent.category.LAUNCHER, 1]
+ arg: "-p"
+ arg: "keepass2android.keepass2android"
+ arg: "-c"
+ arg: "android.intent.category.LAUNCHER"
+ arg: "1"
+data="keepass2android.keepass2android"
+data="android.intent.category.LAUNCHER"
+[2026-11-15T22:56:51.610Z] k2a-sy-open.flow:5 clear ^OK$ start_open_file 40
+[2026-11-15T22:56:59.270Z]   cleared 'Change log' with (859, 1883)
+[2026-11-15T22:57:02.642Z] k2a-sy-open.flow:6 tap start_open_file
+[2026-11-15T22:57:05.349Z]   tapped (540, 1025) 'Open file...'
+[2026-11-15T22:57:05.351Z] k2a-sy-open.flow:7 tap ^HTTP..WebDav.$
+[2026-11-15T22:57:09.426Z]   tapped (849, 1174) 'HTTP (WebDav)'
+[2026-11-15T22:57:09.428Z] k2a-sy-open.flow:8 waitfor http_url 20
+[2026-11-15T22:57:12.133Z] k2a-sy-open.flow:9 type http_url 10.0.2.2:8080/
+[2026-11-15T22:57:29.868Z]   type: field never took the focus (attempt 1)
+[2026-11-15T22:57:41.136Z]   typed '10.0.2.2:8080/'
+[2026-11-15T22:57:41.138Z] k2a-sy-open.flow:10 type http_user kpg
+[2026-11-15T22:57:50.535Z]   typed 'kpg'
+[2026-11-15T22:57:50.536Z] k2a-sy-open.flow:11 typepw http_password <invented>
+[2026-11-15T22:57:59.044Z]   typed into the focused field
+[2026-11-15T22:57:59.046Z] k2a-sy-open.flow:12 dialog
+[2026-11-15T22:58:01.155Z]   dialog alertTitle: 'Enter WebDav login data:'
+[2026-11-15T22:58:01.156Z]   dialog button2: 'Cancel'
+[2026-11-15T22:58:01.158Z]   dialog button1: 'OK'
+[2026-11-15T22:58:01.159Z] k2a-sy-open.flow:13 tap ^OK$
+[2026-11-15T22:58:04.332Z]   tapped (832, 1111) 'OK'
+[2026-11-15T22:58:04.333Z] k2a-sy-open.flow:14 sleep 5
+[2026-11-15T22:58:09.334Z] k2a-sy-open.flow:15 dialog
+[2026-11-15T22:58:11.249Z] k2a-sy-open.flow:16 list
+  FrameLayout         (540, 1108)  id=content                      text='' desc=''
+  FrameLayout         (540, 1108)  id=afc_fragment_files           text='' desc=''
+  RelativeLayout      (540, 201)   id=afc_viewgroup_header         text='' desc=''
+  ImageView      cD   (63, 208)    id=afc_button_go_back           text='' desc=''
+  ImageView      cD   (176, 208)   id=afc_button_go_forward        text='' desc=''
+  RelativeLayout      (653, 206)   id=afc_viewgroup_button_locations text='' desc=''
+  HorizontalScrollView      (350, 206)   id=afc_view_locations_container text='' desc=''
+  LinearLayout        (350, 206)   id=afc_view_locations           text='' desc=''
+  TextView       c    (350, 206)   id=                             text='Root' desc=''
+  RelativeLayout      (540, 1179)  id=afc_viewgroup_files          text='' desc=''
+  LinearLayout        (540, 1179)  id=afc_view_files_container     text='' desc=''
+  ImageView      c    (66, 346)    id=afc_imageview_icon           text='' desc=''
+  TextView            (323, 329)   id=afc_textview_filename        text='kpg-x-webdav.kdbx' desc=''
+  TextView            (915, 381)   id=afc_textview_file_info       text='2.11 KiB, 11:53 PM' desc=''
+  View                (540, 72)    id=statusBarBackground          text='' desc=''
+  View                (0, 0)       id=navigationBarBackground      text='' desc=''
+[2026-11-15T22:58:13.074Z] k2a-sy-open.flow:17 tap ^kpg-s1-nothing-r1.kdbx$
+  FrameLayout         (540, 1108)  id=content                      text='' desc=''
+  FrameLayout         (540, 1108)  id=afc_fragment_files           text='' desc=''
+  RelativeLayout      (540, 201)   id=afc_viewgroup_header         text='' desc=''
+  ImageView      cD   (63, 208)    id=afc_button_go_back           text='' desc=''
+  ImageView      cD   (176, 208)   id=afc_button_go_forward        text='' desc=''
+  RelativeLayout      (653, 206)   id=afc_viewgroup_button_locations text='' desc=''
+  HorizontalScrollView      (350, 206)   id=afc_view_locations_container text='' desc=''
+  LinearLayout        (350, 206)   id=afc_view_locations           text='' desc=''
+  TextView       c    (350, 206)   id=                             text='Root' desc=''
+  RelativeLayout      (540, 1179)  id=afc_viewgroup_files          text='' desc=''
+  LinearLayout        (540, 1179)  id=afc_view_files_container     text='' desc=''
+  ImageView      c    (66, 346)    id=afc_imageview_icon           text='' desc=''
+  TextView            (323, 329)   id=afc_textview_filename        text='kpg-x-webdav.kdbx' desc=''
+  TextView            (915, 381)   id=afc_textview_file_info       text='2.11 KiB, 11:53 PM' desc=''
+  View                (540, 72)    id=statusBarBackground          text='' desc=''
+  View                (0, 0)       id=navigationBarBackground      text='' desc=''
+[2026-11-15T22:58:28.538Z] FAILED: tap: no node matches ^kpg-s1-nothing-r1.kdbx$
+server already running (7780)
+server kpg-s1-nothing-r1.kdbx at end: 2165 bytes, mtime 2026-11-15 23:56:50.572553400 +0100 sha256 1019e391b75edfe8eb32c81be3e3cfb88a7b0efec39f10a7281da04f0d0469a3
+no cache file
+total 4
+drwxrwxrwx 1 probe probe  512 Nov 15 23:56 .
+drwxrwxrwx 1 probe probe  512 Nov 15 22:39 ..
+-rwxrwxrwx 1 probe probe 2165 Nov 15 23:56 kpg-s1-nothing-r1.kdbx
+### flow rc=1 2026-11-15T22:58:31.129Z

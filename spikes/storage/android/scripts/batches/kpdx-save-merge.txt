@@ -1,0 +1,10 @@
+kpdx kpdx-A.flow com.kunzisoft.keepass.libre S-argon save-argon ENTRY=droid-added
+kpdx kpdx-A.flow com.kunzisoft.keepass.libre S-aes save-aes ENTRY=droid-added
+kpdx kpdx-A.flow com.kunzisoft.keepass.libre S-aes-nocd save-aes-nocd ENTRY=droid-added
+kpdx kpdx-A.flow com.kunzisoft.keepass.libre S-aes-plain save-aes-plain ENTRY=droid-added
+kpdx kpdx-B-from.flow com.kunzisoft.keepass.libre C merge-fromCP-r1 SRC=work/base/P.kdbx SRCNAME=kpdx-merge-fromCP-r1-src
+kpdx kpdx-B-from.flow com.kunzisoft.keepass.libre P merge-fromPC-r1 SRC=work/base/C.kdbx SRCNAME=kpdx-merge-fromPC-r1-src
+kpdx kpdx-B-from.flow com.kunzisoft.keepass.libre C merge-fromCP-r2 SRC=work/base/P.kdbx SRCNAME=kpdx-merge-fromCP-r2-src
+kpdx kpdx-B-from.flow com.kunzisoft.keepass.libre P merge-fromPC-r2 SRC=work/base/C.kdbx SRCNAME=kpdx-merge-fromPC-r2-src
+kpdx kpdx-B-from.flow com.kunzisoft.keepass.libre C merge-fromCP-r3 SRC=work/base/P.kdbx SRCNAME=kpdx-merge-fromCP-r3-src
+kpdx kpdx-B-from.flow com.kunzisoft.keepass.libre P merge-fromPC-r3 SRC=work/base/C.kdbx SRCNAME=kpdx-merge-fromPC-r3-src

@@ -1,0 +1,8 @@
+# KeePassDroid, at the root group: open KPG and log what it lists (KPG revocation is NEW's), back.
+tap ^KPG$
+sleep 3
+log entries listed in KPG follow
+list
+key BACK
+sleep 2
+waitfor add_entry 20

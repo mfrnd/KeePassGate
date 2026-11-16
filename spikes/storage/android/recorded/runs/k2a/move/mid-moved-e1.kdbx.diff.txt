@@ -1,0 +1,24 @@
+1c1
+< # file S-argon.kdbx size=7941 sha256=bd84dd4785579e8705bd12f3fe4d53a2e342be2e88c64875413ef8b336dc11ae
+---
+> # file mid-moved-e1.kdbx size=7989 sha256=4b90a4daa24da9a84447820f140c94c97c5e4cffc43ce842421eccfd06d503d8
+64c64
+< E E1 parent G (G)
+---
+> E E1 parent N (N)
+69c69
+< E E1 t.location 2026-11-01T11:00:00Z
+---
+> E E1 t.location 2026-11-15T17:30:11Z
+360c360
+< G G children groups=1 entries=8
+---
+> G G children groups=1 entries=7
+386c386
+< G N children groups=0 entries=1
+---
+> G N children groups=0 entries=2
+412c412
+< M CD KPG.Profiles = "[\"reader\",\"writer\"]" @2026-11-01T10:15:00Z
+---
+> M CD KPG.Profiles = "[\"reader\",\"writer\"]" @none

@@ -1,0 +1,8 @@
+1c1
+< # file kpd-delete.kdbx size=7237 sha256=c0671146cb46de41fef8f1d2a3a48eed650a2e9dfd87f0dfb0059e33748d03df
+---
+> # file into-kp.kdbx size=7781 sha256=1e0f6b92ff3aa8eb47af6c2f3a6173bf0e414bee4afaf7195f78e8c3d14d99dd
+403c403
+< M settingsChanged 2026-11-15T18:05:51Z
+---
+> M settingsChanged 2026-11-15T18:05:50Z

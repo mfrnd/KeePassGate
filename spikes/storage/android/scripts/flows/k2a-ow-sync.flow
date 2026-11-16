@@ -1,0 +1,19 @@
+# Step 4, Keepass2Android's "Synchronize database...": open OLD and unlock; replace.sh puts
+# ${ARRIVING} over the file at time ${TMODE}; then the menu's Synchronize database..., record what
+# it shows, look into KPG, then add an entry ${ENTRY} at the root and save, answering a "Merge
+# changes?" question with ${ANSWER}.
+include k2a-open.flow
+sleep 2
+host sh ${P}/replace.sh /sdcard/Download/${NAME}.kdbx ${SRCDIR}/${ARRIVING}.kdbx ${TMODE}
+sleep 3
+tap More.options
+tap ^Synchronize.database
+sleep 2
+dialog
+sleep 8
+dialog
+list
+waitfor fabAddNew 60
+host sh ${P}/devstat.sh /sdcard/Download/${NAME}.kdbx after-sync
+include k2a-look-kpg.flow
+include k2a-ow-edit.flow

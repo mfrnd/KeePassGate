@@ -1,0 +1,8 @@
+1c1
+< # file k2a-edit-carriers.kdbx size=8245 sha256=c34914f1d986da5686e83cbbf5673b4a75fe6cebf4b94b8ccd25b187e0157d08
+---
+> # file into-kp.kdbx size=8293 sha256=7d7e26797a44899f9ebc7578bbbea9996665a813367ec0d8760e4608c10e89bc
+449c449
+< M CD KPG.Profiles = "[\"reader\",\"writer\"]" @none
+---
+> M CD KPG.Profiles = "[\"reader\",\"writer\"]" @2026-11-01T10:15:00Z

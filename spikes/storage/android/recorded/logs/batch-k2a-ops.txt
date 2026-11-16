@@ -1,0 +1,10 @@
+k2a rename-g: ### flow rc=1 2026-11-15T17:20:31.469Z, 1 failures, k2a-rename-g.kdbx 
+k2a delete: ### flow rc=1 2026-11-15T17:24:40.956Z, 1 failures, k2a-delete.kdbx 
+k2a move: ### flow rc=0 2026-11-15T17:31:13.855Z, 0 failures, k2a-move.kdbx mid-moved-e1.kdbx 
+k2a merge-CP-r1: ### flow rc=0 2026-11-15T17:32:59.619Z, 0 failures, k2a-merge-CP-r1.kdbx 
+k2a merge-PC-r1: ### flow rc=0 2026-11-15T17:34:44.108Z, 0 failures, k2a-merge-PC-r1.kdbx 
+k2a merge-CP-r2: ### flow rc=0 2026-11-15T17:36:28.176Z, 0 failures, k2a-merge-CP-r2.kdbx 
+k2a merge-PC-r2: ### flow rc=0 2026-11-15T17:38:13.007Z, 0 failures, k2a-merge-PC-r2.kdbx 
+k2a merge-CP-r3: ### flow rc=0 2026-11-15T17:39:59.742Z, 0 failures, k2a-merge-CP-r3.kdbx 
+k2a merge-PC-r3: ### flow rc=0 2026-11-15T17:41:47.675Z, 0 failures, k2a-merge-PC-r3.kdbx 
+### batch k2a-ops.txt done 2026-11-15T17:41:47.767Z

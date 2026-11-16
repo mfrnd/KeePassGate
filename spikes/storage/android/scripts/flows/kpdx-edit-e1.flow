@@ -1,0 +1,17 @@
+# Step 2, KeePassDX: open, go into G, select E1 (a 2 s press on the middle of its row; a tap on an
+# entry was seen to open nothing), the selection's overflow, Edit, pass the user verification if
+# asked, append -phone to the password (the editor shows it in clear, so append checks it),
+# Validate (autosave writes the file).
+include kpdx-open.flow
+tapuntil node_text@^G$ node_text@^Y3$ 40
+sleep 3
+longpressuntil node_text@^E1$ menu_move 60 2000 600
+tapuntil More.options#2 ^Edit$ 30
+tap ^Edit$
+ifthen setup_check_password_edit_text 8 kpdx-verify.flow
+waitfor entry_edit_validate 20
+list
+append ^pw-e1-not-real$ -phone
+tapuntil entry_edit_validate add_button 30
+sleep 6
+list

@@ -1,0 +1,9 @@
+k2a k2a-rename-g.flow keepass2android.keepass2android S-argon rename-g
+k2a k2a-delete.flow keepass2android.keepass2android S-argon delete
+k2a k2a-move.flow keepass2android.keepass2android S-argon move
+k2a k2a-merge.flow keepass2android.keepass2android C merge-CP-r1 ARRIVING=P ENTRY=droid-merge
+k2a k2a-merge.flow keepass2android.keepass2android P merge-PC-r1 ARRIVING=C ENTRY=droid-merge
+k2a k2a-merge.flow keepass2android.keepass2android C merge-CP-r2 ARRIVING=P ENTRY=droid-merge
+k2a k2a-merge.flow keepass2android.keepass2android P merge-PC-r2 ARRIVING=C ENTRY=droid-merge
+k2a k2a-merge.flow keepass2android.keepass2android C merge-CP-r3 ARRIVING=P ENTRY=droid-merge
+k2a k2a-merge.flow keepass2android.keepass2android P merge-PC-r3 ARRIVING=C ENTRY=droid-merge

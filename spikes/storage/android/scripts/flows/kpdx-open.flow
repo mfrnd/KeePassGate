@@ -1,0 +1,10 @@
+# KeePassDX, fresh app state: open /sdcard/Download/${NAME}.kdbx through the system file picker and
+# unlock it. Its unlock screen is FLAG_SECURE (screenshots come back empty); the dumps still read
+# it.
+sh monkey -p ${PKG} -c android.intent.category.LAUNCHER 1
+waitfor open_database_button 30
+tapuntil open_database_button Show.roots 40
+include picker.flow
+waitfor password_text_view 40
+typepw password_text_view dummy-password-for-a-throwaway-file
+tapuntil activity_password_open_button add_button 60

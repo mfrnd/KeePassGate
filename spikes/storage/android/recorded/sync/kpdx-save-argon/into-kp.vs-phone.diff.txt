@@ -1,0 +1,4 @@
+1c1
+< # file kpdx-save-argon.kdbx size=7461 sha256=aa3043d8832d6091da289dbbe068028274f5ea9319b21779fb89bd7e4a3f2150
+---
+> # file into-kp.kdbx size=8117 sha256=b5c90d5de37974b6be60353d919ba76ee9a1b44ea0b458a077873a4d038ef23f

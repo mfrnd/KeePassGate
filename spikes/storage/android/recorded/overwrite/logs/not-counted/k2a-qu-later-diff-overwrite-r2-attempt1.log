@@ -1,0 +1,104 @@
+### 2026-11-15T22:48:17.383Z ow k2a qu-later-diff-overwrite-r2 flow=k2a-ow-qu.flow base=OLD ARRIVING=NEW-diff TMODE=later ANSWER=overwrite ENTRY=phone-qu-later-diff-overwrite-r2 (versionName=1.15-r6)
+Success
+<work>/work/base/OLD.kdbx: 1 file pushed, 0 skipped. 0.9 MB/s (9301 bytes in 0.009s)
+given 9301 bytes, mtime 2026-11-15 23:38:17.000000000 +0100 sha256 8ef6785ca25b07b7398a59fe828878e7e78975a77fb425ef61a2c00b06da2946
+[2026-11-15T22:48:18.478Z] k2a-ow-qu.flow:6 include k2a-open.flow
+[2026-11-15T22:48:18.495Z] k2a-open.flow:4 sh monkey -p keepass2android.keepass2android -c android.intent.category.LAUNCHER 1
+  bash arg: -p
+  bash arg: keepass2android.keepass2android
+  bash arg: -c
+  bash arg: android.intent.category.LAUNCHER
+  bash arg: 1
+Events injected: 1
+## Network stats: elapsed time=214ms (0ms mobile, 0ms wifi, 214ms not connected)
+args: [-p, keepass2android.keepass2android, -c, android.intent.category.LAUNCHER, 1]
+ arg: "-p"
+ arg: "keepass2android.keepass2android"
+ arg: "-c"
+ arg: "android.intent.category.LAUNCHER"
+ arg: "1"
+data="keepass2android.keepass2android"
+data="android.intent.category.LAUNCHER"
+[2026-11-15T22:48:19.342Z] k2a-open.flow:5 clear ^OK$ start_open_file 40
+[2026-11-15T22:48:26.414Z]   cleared 'Change log' with (859, 1883)
+[2026-11-15T22:48:29.820Z] k2a-open.flow:6 tap start_open_file
+[2026-11-15T22:48:32.602Z]   tapped (540, 1025) 'Open file...'
+[2026-11-15T22:48:32.604Z] k2a-open.flow:7 tap ^System.file.picker$
+[2026-11-15T22:48:36.536Z]   tapped (229, 516) 'System file picker'
+[2026-11-15T22:48:36.538Z] k2a-open.flow:8 waitfor Show.roots 20
+[2026-11-15T22:48:38.841Z] k2a-open.flow:9 include picker.flow
+[2026-11-15T22:48:38.848Z] picker.flow:4 pick k2a-qu-later-diff-overwrite-r2.kdbx
+[2026-11-15T22:48:46.835Z]   focused and entered '^k2a\\-qu\\-later\\-diff\\-overwrite\\-r2\\.kdbx$'
+[2026-11-15T22:48:46.838Z] k2a-open.flow:10 waitfor password_edit 30
+[2026-11-15T22:48:51.056Z] k2a-open.flow:11 typepwck password_edit dummy-password-for-a-throwaway-file
+[2026-11-15T22:49:04.771Z]   typed the password (35 characters)
+[2026-11-15T22:49:04.772Z] k2a-open.flow:12 tap pass_ok
+[2026-11-15T22:49:07.794Z]   tapped (942, 1437) 'Unlock'
+[2026-11-15T22:49:07.797Z] k2a-open.flow:13 waitfor fabAddNew 60
+[2026-11-15T22:49:14.362Z] k2a-ow-qu.flow:7 sleep 2
+[2026-11-15T22:49:16.365Z] k2a-ow-qu.flow:8 tap menu_lock
+[2026-11-15T22:49:18.980Z]   tapped (903, 233) 'Lock Database'
+[2026-11-15T22:49:18.982Z] k2a-ow-qu.flow:9 waitfor QuickUnlock_password 20
+[2026-11-15T22:49:22.756Z] k2a-ow-qu.flow:10 sleep 2
+[2026-11-15T22:49:24.757Z] k2a-ow-qu.flow:11 dialog
+[2026-11-15T22:49:26.662Z]   dialog QuickUnlock_buttonLock: 'Close database'
+[2026-11-15T22:49:26.663Z]   dialog QuickUnlock_button: 'QuickUnlock!'
+[2026-11-15T22:49:26.664Z] k2a-ow-qu.flow:12 list
+  LinearLayout        (540, 834)   id=action_bar_root              text='' desc=''
+  FrameLayout         (540, 834)   id=content                      text='' desc=''
+  LinearLayout        (540, 834)   id=relative_layout              text='' desc=''
+  ScrollView          (540, 747)   id=main_content                 text='' desc=''
+  LinearLayout        (540, 489)   id=appbar                       text='' desc=''
+  FrameLayout         (540, 489)   id=collapsing_toolbar           text='' desc='QuickUnlock'
+  ImageView           (540, 489)   id=backdrop                     text='' desc=''
+  TextView            (198, 814)   id=filename_label               text='Storage probe (invented)' desc=''
+  ViewGroup           (540, 233)   id=toolbar                      text='' desc=''
+  ScrollView          (540, 1091)  id=scrollview                   text='' desc=''
+  LinearLayout        (540, 969)   id=QuickUnlockForm              text='' desc=''
+  TextView            (540, 903)   id=QuickUnlock_label            text='Enter last 3 characters of your password:' desc=''
+  EditText       cf   (140, 995)   id=QuickUnlock_password         text='' desc=''
+  View                (540, 1205)  id=spacing                      text='' desc=''
+  View                (540, 1350)  id=divider2                     text='' desc=''
+  RelativeLayout      (540, 1437)  id=bottom_bar                   text='' desc=''
+  Button         c    (195, 1437)  id=QuickUnlock_buttonLock       text='Close database' desc=''
+  Button         c    (910, 1437)  id=QuickUnlock_button           text='QuickUnlock!' desc=''
+  View                (540, 72)    id=statusBarBackground          text='' desc=''
+  View                (0, 0)       id=navigationBarBackground      text='' desc=''
+[2026-11-15T22:49:29.181Z] k2a-ow-qu.flow:13 host sh <work>/scripts/replace.sh /sdcard/Download/k2a-qu-later-diff-overwrite-r2.kdbx <work>/work/base/NEW-diff.kdbx later
+[2026-11-15T22:49:29.760Z]   | replace: before 9301 bytes, mtime 2026-11-15 23:38:17.000000000 +0100 sha256 8ef6785ca25b07b7398a59fe828878e7e78975a77fb425ef61a2c00b06da2946
+[2026-11-15T22:49:29.761Z]   | <work>/work/base/NEW-diff.kdbx: 1 file pushed, 0 skipped. 0.6 MB/s (11621 bytes in 0.018s)
+[2026-11-15T22:49:29.763Z]   | replace: after  11621 bytes, mtime 2026-11-15 23:49:28.812000000 +0100 sha256 469981f9d9289f78fcf80d60f5a40b464d704959a83384e91cc1be9a2549bed6 (mode later, from NEW-diff.kdbx)
+[2026-11-15T22:49:29.764Z] k2a-ow-qu.flow:14 sleep 2
+[2026-11-15T22:49:31.766Z] k2a-ow-qu.flow:15 typepw QuickUnlock_password ile
+[2026-11-15T22:49:38.702Z]   typed into the focused field
+[2026-11-15T22:49:38.704Z] k2a-ow-qu.flow:16 tap QuickUnlock_button$
+[2026-11-15T22:49:41.971Z]   tapped (910, 1437) 'QuickUnlock!'
+[2026-11-15T22:49:41.973Z] k2a-ow-qu.flow:17 sleep 3
+[2026-11-15T22:49:44.975Z] k2a-ow-qu.flow:18 dialog
+[2026-11-15T22:49:47.213Z] k2a-ow-qu.flow:19 waitfor fabAddNew 60
+  FrameLayout         (540, 1036)  id=content                      text='' desc=''
+  FrameLayout         (540, 1036)  id=launcher                     text='' desc=''
+  FrameLayout         (540, 1036)  id=drag_layer                   text='' desc=''
+  View                (540, 1036)  id=scrim_view                   text='' desc=''
+  View           c    (540, 1748)  id=                             text='' desc='Apps list'
+  ScrollView          (540, 1036)  id=workspace                    text='' desc=''
+  FrameLayout         (540, 322)   id=search_container_workspace   text='' desc=''
+  FrameLayout    c    (540, 322)   id=universal_smartspace_container text='' desc=''
+  LinearLayout        (540, 322)   id=smartspace_content           text='' desc=''
+  TextView       c    (428, 322)   id=clock                        text='Sunday, Nov 15' desc='Sunday, Nov 15'
+  TextView       c    (798, 322)   id=title_weather_text           text='2°C' desc='Cloudy, 2°C'
+  View                (540, 1724)  id=page_indicator               text='' desc=''
+  ViewGroup           (540, 1914)  id=hotseat                      text='' desc=''
+  TextView       c    (339, 1864)  id=                             text='Messages' desc='Messages'
+  TextView       c    (741, 1864)  id=                             text='Chrome' desc='Chrome'
+  RelativeLayout      (540, 1952)  id=apps_view                    text='' desc=''
+  LinearLayout        (0, 0)       id=all_apps_header              text='' desc=''
+  FrameLayout    c    (540, 2039)  id=search_container_all_apps    text='' desc='Search'
+  ImageView           (137, 2061)  id=g_icon                       text='' desc=''
+  View           c    (942, 2039)  id=mic_icon                     text='' desc='Voice search'
+[2026-11-15T22:50:49.458Z] FAILED: waitfor: timed out on fabAddNew
+total 16
+-rw------- 1 u0_a160 u0_a160 11621 2026-11-15 23:49:28.812000000 +0100 k2a-qu-later-diff-overwrite-r2.kdbx
+device k2a-qu-later-diff-overwrite-r2.kdbx sha256 469981f9d9289f78fcf80d60f5a40b464d704959a83384e91cc1be9a2549bed6 11621 bytes, mtime 2026-11-15 23:49:28.812000000 +0100
+/sdcard/Download/k2a-qu-later-diff-overwrite-r2.kdbx: 1 file pulled, 0 skipped. 0.2 MB/s (11621 bytes in 0.063s)
+### flow rc=1 2026-11-15T22:50:51.873Z

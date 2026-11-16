@@ -1,0 +1,7 @@
+# Synchronize, case 3a, only the phone changed, with the server reachable: open; edit P2's password
+# and save; then Synchronize.
+include k2a-sy-open.flow
+include k2a-sy-pw-P2.flow
+host sh ${P}/srv-stat.sh ${SNAME} after-save
+include k2a-sy-sync.flow
+host sh ${P}/srv-stat.sh ${SNAME} after-sync

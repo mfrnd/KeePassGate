@@ -1,0 +1,73 @@
+### 2026-11-15T21:03:41.451Z apksigner 0.9 from build-tools 37.0.0
+=== dl/k2a-1.15-r6/keepass2android.keepass2android-Signed-x64.apk
+5c446a4fff3ac3fe29b07724dff59e756738eb1fd6611281cd594e421817891d
+Verifies
+Verified using v1 scheme (JAR signing): true
+Verified using v2 scheme (APK Signature Scheme v2): true
+Verified using v3 scheme (APK Signature Scheme v3): true
+Verified using v3.1 scheme (APK Signature Scheme v3.1): false
+Verified using v3.2 scheme (APK Signature Scheme v3.2): false
+Verified using v4 scheme (APK Signature Scheme v4): false
+Verified for SourceStamp: false
+Number of signers: 1
+V3.0 Signer: certificate DN: CN=Philipp Crocoll, L=Karlsruhe, C=DE
+V3.0 Signer: certificate SHA-256 digest: 0bf8056d3a394ed7c77173c4b42c800565b4f0a42977569cf3472c271c562939
+V3.0 Signer: certificate SHA-1 digest: 69925bf2ea7b0e5a935880f1f9df3e73dcb23060
+V3.0 Signer: certificate MD5 digest: 97304578f7940d866cfcc0361cc57b09
+V3.0 Signer: key algorithm: RSA
+V3.0 Signer: key size (bits): 2048
+V3.0 Signer: public key SHA-256 digest: ca3f32c524f38ec1c92df8bdaaf430ed503562678eeb3134e3718fa2c54beafe
+V3.0 Signer: public key SHA-1 digest: 1dc5e29eee9af8ba710e74800fc75f78df4082d4
+V3.0 Signer: public key MD5 digest: 468c0efc8b5e49a9cb2b7db950f317c7
+package: name='keepass2android.keepass2android' versionCode='254' versionName='1.15-r6' platformBuildVersionName='16' platformBuildVersionCode='36' compileSdkVersion='36' compileSdkVersionCodename='16'
+targetSdkVersion:'36'
+native-code: 'x86_64'
+SIGNER MATCH
+=== dl/kpdx-4.5.8/KeePassDX-4.5.8-libre.apk
+8aaac6a0c55a9de760147990856726e197efbbcdc5ce2f6bfb4d4ab2a3d65f74
+Verifies
+Verified using v1 scheme (JAR signing): true
+Verified using v2 scheme (APK Signature Scheme v2): true
+Verified using v3 scheme (APK Signature Scheme v3): false
+Verified using v3.1 scheme (APK Signature Scheme v3.1): false
+Verified using v3.2 scheme (APK Signature Scheme v3.2): false
+Verified using v4 scheme (APK Signature Scheme v4): false
+Verified for SourceStamp: false
+Number of signers: 1
+V2 Signer: certificate DN: CN=Jeremy JAMET, OU=Kunzisoft, O=Kunzisoft, L=Rennes, ST=FRANCE, C=FR
+V2 Signer: certificate SHA-256 digest: 7d55b8af210381aabf960f07e17cf7857b6d2a642ca2da6bf0bdf1b200362f04
+V2 Signer: certificate SHA-1 digest: d828ca050f62e28f608a9e54c8a15c98a1079659
+V2 Signer: certificate MD5 digest: 03a419a7f89a8502efbe93ee2299d455
+V2 Signer: key algorithm: RSA
+V2 Signer: key size (bits): 2048
+V2 Signer: public key SHA-256 digest: 5d261d3176db1e077b80112824d9390167f3be0561827e42112ed6b71192db81
+V2 Signer: public key SHA-1 digest: cf576fd7c5317f4535665462c682203b64e42e94
+V2 Signer: public key MD5 digest: f461dbf3d53488ee7a1df0af7113a4c4
+package: name='com.kunzisoft.keepass.libre' versionCode='45800' versionName='4.5.8' platformBuildVersionName='16' platformBuildVersionCode='36' compileSdkVersion='36' compileSdkVersionCodename='16'
+targetSdkVersion:'36'
+native-code: 'arm64-v8a' 'armeabi-v7a' 'x86' 'x86_64'
+SIGNER MATCH
+=== dl/kpd-2.7/app-general-release.apk
+513b2555dbebf8324d81455642f1b709c3692e7558110b576f90f715035ca762
+Verifies
+Verified using v1 scheme (JAR signing): true
+Verified using v2 scheme (APK Signature Scheme v2): true
+Verified using v3 scheme (APK Signature Scheme v3): false
+Verified using v3.1 scheme (APK Signature Scheme v3.1): false
+Verified using v3.2 scheme (APK Signature Scheme v3.2): false
+Verified using v4 scheme (APK Signature Scheme v4): false
+Verified for SourceStamp: false
+Number of signers: 1
+V2 Signer: certificate DN: CN=Brian Pellin, OU=Unknown, O=Unknown, L=Unknown, ST=Unknown, C=Unknown
+V2 Signer: certificate SHA-256 digest: 692ed2f00824264edf569615b448a96f0220fd57137e03e146df3647ef6e4cf5
+V2 Signer: certificate SHA-1 digest: fab356a70c6775283d04f2c441c5d73b5eba107d
+V2 Signer: certificate MD5 digest: 2a94471c9926b0cca8c19a078135a548
+V2 Signer: key algorithm: RSA
+V2 Signer: key size (bits): 1024
+V2 Signer: public key SHA-256 digest: d0db78c23ec0f3585225b737fff944b90459befb14462bfc422f87226dcc7d57
+V2 Signer: public key SHA-1 digest: f68d667f4172710dacd23783ef8931178f89d825
+V2 Signer: public key MD5 digest: 7cf75445fc267399449a04851abd9ae1
+package: name='com.android.keepass' versionCode='223' versionName='2.7' platformBuildVersionName='16' platformBuildVersionCode='36' compileSdkVersion='36' compileSdkVersionCodename='16'
+targetSdkVersion:'36'
+native-code: 'arm64-v8a' 'armeabi-v7a' 'x86' 'x86_64'
+SIGNER MATCH

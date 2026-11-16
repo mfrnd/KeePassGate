@@ -1,0 +1,21 @@
+# Step 5, KeePassDroid, no change on the phone: open OLD and unlock; replace.sh puts ${ARRIVING}
+# over the file at time ${TMODE}; then only look: G, E1 opened, back, back, KPG, back; lock with its
+# own Lock Database button. Nothing is saved by the flow.
+include kpd-open.flow
+sleep 2
+host sh ${P}/replace.sh /sdcard/Download/${NAME}.kdbx ${SRCDIR}/${ARRIVING}.kdbx ${TMODE}
+sleep 3
+tap ^G$
+sleep 2
+tap ^E1$
+sleep 3
+dialog
+key BACK
+sleep 2
+key BACK
+sleep 2
+include kpd-look-kpg.flow
+tap Lock.Database
+sleep 3
+dialog
+list

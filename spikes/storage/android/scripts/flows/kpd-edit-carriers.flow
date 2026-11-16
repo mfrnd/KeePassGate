@@ -1,0 +1,28 @@
+# Step 3, KeePassDroid: open, go into KPG, open KPG record 1, EDIT, append -phone to its name,
+# SAVE; back to the root, into G, the same for the marker entry.
+include kpd-open.flow
+tap ^KPG$
+tap ^KPG.record.1$
+waitfor entry_edit 30
+tapxy 140 2141
+waitfor entry_confpassword 30
+list
+append entry_title@.* -phone
+tapor entry_save 140 2141
+waitfor entry_edit 60
+sleep 5
+key BACK
+waitfor ^KPG.record.2$ 20
+key BACK
+waitfor ^Recycle.Bin$ 20
+tap ^G$
+tap ^KPG.marker$
+waitfor entry_edit 30
+tapxy 140 2141
+waitfor entry_confpassword 30
+list
+append entry_title@.* -phone
+tapor entry_save 140 2141
+waitfor entry_edit 60
+sleep 6
+list

@@ -1,0 +1,100 @@
+### 2026-11-15T17:53:08.565Z op kpd save-aes-plain flow=kpd-A.flow base=S-aes-plain (versionName=2.7)
+Success
+<work>/work/base/S-aes-plain.kdbx: 1 file pushed, 0 skipped. 0.9 MB/s (7719 bytes in 0.008s)
+pushed sha256 c344cc06c816d9cef38ebad8a5b0fd24bd9f5a94b7da586a8271ffdedfae61e0
+[2026-11-15T17:53:09.249Z] kpd-A.flow:4 include kpd-open.flow
+[2026-11-15T17:53:09.253Z] kpd-open.flow:4 sh monkey -p com.android.keepass -c android.intent.category.LAUNCHER 1
+  bash arg: -p
+  bash arg: com.android.keepass
+  bash arg: -c
+  bash arg: android.intent.category.LAUNCHER
+  bash arg: 1
+Events injected: 1
+## Network stats: elapsed time=100ms (0ms mobile, 0ms wifi, 100ms not connected)
+args: [-p, com.android.keepass, -c, android.intent.category.LAUNCHER, 1]
+ arg: "-p"
+ arg: "com.android.keepass"
+ arg: "-c"
+ arg: "android.intent.category.LAUNCHER"
+ arg: "1"
+data="com.android.keepass"
+data="android.intent.category.LAUNCHER"
+[2026-11-15T17:53:10.077Z] kpd-open.flow:5 clear ^(OK|Accept|Allow)$ open@^OPEN$ 40
+[2026-11-15T17:53:13.661Z] kpd-open.flow:6 tapuntil open@^OPEN$ Show.roots 40
+[2026-11-15T17:53:16.484Z]   tapped (137, 453) 'OPEN'
+[2026-11-15T17:53:19.023Z] kpd-open.flow:7 include picker.flow
+[2026-11-15T17:53:19.029Z] picker.flow:4 pick kpd-save-aes-plain.kdbx
+[2026-11-15T17:53:27.353Z]   focused and entered '^kpd\\-save\\-aes\\-plain\\.kdbx$'
+[2026-11-15T17:53:27.354Z] kpd-open.flow:8 waitfor pass_ok 40
+[2026-11-15T17:53:29.721Z] kpd-open.flow:9 typepwck password@.* dummy-password-for-a-throwaway-file
+[2026-11-15T17:53:43.251Z]   typed the password (35 characters)
+[2026-11-15T17:53:43.253Z] kpd-open.flow:10 tapuntil pass_ok add_entry 60
+[2026-11-15T17:53:45.945Z]   tapped (137, 1045) 'OK'
+[2026-11-15T17:53:48.759Z] kpd-A.flow:5 list
+  LinearLayout        (540, 1108)  id=action_bar_root              text='' desc=''
+  FrameLayout         (540, 1108)  id=content                      text='' desc=''
+  ViewGroup           (540, 222)   id=toolbar                      text='' desc=''
+  TextView            (217, 222)   id=                             text='KeePassDroid' desc=''
+  Button         c    (771, 222)   id=menu_search                  text='' desc='Search'
+  Button         c    (903, 222)   id=menu_lock                    text='' desc='Lock Database'
+  ImageView      c    (1024, 222)  id=                             text='' desc='More options'
+  RelativeLayout      (540, 349)   id=group_header                 text='' desc=''
+  TextView            (496, 349)   id=group_name                   text='Storage probe' desc=''
+  ImageView           (1030, 349)  id=icon                         text='' desc=''
+  ListView            (540, 1235)  id=group_list                   text='' desc=''
+  ImageView           (58, 457)    id=group_icon                   text='' desc=''
+  TextView            (524, 456)   id=group_text                   text='G' desc=''
+  TextView            (1006, 457)  id=group_label                  text='Group' desc=''
+  ImageView           (58, 576)    id=group_icon                   text='' desc=''
+  TextView            (524, 575)   id=group_text                   text='KPG' desc=''
+  TextView            (1006, 576)  id=group_label                  text='Group' desc=''
+  ImageView           (58, 695)    id=group_icon                   text='' desc=''
+  TextView            (524, 694)   id=group_text                   text='Recycle Bin' desc=''
+  TextView            (1006, 695)  id=group_label                  text='Group' desc=''
+  ImageView           (0, 0)       id=divider2                     text='' desc=''
+  Button         c    (0, 0)       id=add_group                    text='ADD GROUP' desc=''
+  Button         c    (0, 0)       id=add_entry                    text='ADD ENTRY' desc=''
+  View                (540, 72)    id=statusBarBackground          text='' desc=''
+  View                (0, 0)       id=navigationBarBackground      text='' desc=''
+[2026-11-15T17:53:50.781Z] kpd-A.flow:6 tapor add_entry 415 2141
+[2026-11-15T17:53:53.849Z]   tapped (415, 2141) for 'add_entry' (no bounds in the dump)
+[2026-11-15T17:53:53.855Z] kpd-A.flow:7 waitfor entry_save 30
+[2026-11-15T17:53:56.239Z] kpd-A.flow:8 type entry_title@.* droid-added
+[2026-11-15T17:54:06.244Z]   typed 'droid-added'
+[2026-11-15T17:54:06.245Z] kpd-A.flow:9 tapor entry_save 140 2141
+[2026-11-15T17:54:09.774Z]   tapped (121, 1457) 'entry_save'
+[2026-11-15T17:54:09.776Z] kpd-A.flow:10 waitfor entry_text@^droid-added$ 40
+[2026-11-15T17:54:12.718Z] kpd-A.flow:11 sleep 5
+[2026-11-15T17:54:17.720Z] kpd-A.flow:12 list
+  LinearLayout        (540, 1108)  id=action_bar_root              text='' desc=''
+  FrameLayout         (540, 1108)  id=content                      text='' desc=''
+  ViewGroup           (540, 222)   id=toolbar                      text='' desc=''
+  TextView            (217, 222)   id=                             text='KeePassDroid' desc=''
+  Button         c    (771, 222)   id=menu_search                  text='' desc='Search'
+  Button         c    (903, 222)   id=menu_lock                    text='' desc='Lock Database'
+  ImageView      c    (1024, 222)  id=                             text='' desc='More options'
+  RelativeLayout      (540, 349)   id=group_header                 text='' desc=''
+  TextView            (496, 349)   id=group_name                   text='Storage probe' desc=''
+  ImageView           (1030, 349)  id=icon                         text='' desc=''
+  ListView            (540, 1235)  id=group_list                   text='' desc=''
+  ImageView           (58, 457)    id=group_icon                   text='' desc=''
+  TextView            (524, 456)   id=group_text                   text='G' desc=''
+  TextView            (1006, 457)  id=group_label                  text='Group' desc=''
+  ImageView           (58, 576)    id=group_icon                   text='' desc=''
+  TextView            (524, 575)   id=group_text                   text='KPG' desc=''
+  TextView            (1006, 576)  id=group_label                  text='Group' desc=''
+  ImageView           (58, 695)    id=group_icon                   text='' desc=''
+  TextView            (524, 694)   id=group_text                   text='Recycle Bin' desc=''
+  TextView            (1006, 695)  id=group_label                  text='Group' desc=''
+  ImageView           (58, 814)    id=entry_icon                   text='' desc=''
+  TextView            (598, 813)   id=entry_text                   text='droid-added' desc=''
+  ImageView           (0, 0)       id=divider2                     text='' desc=''
+  Button         c    (0, 0)       id=add_group                    text='ADD GROUP' desc=''
+  Button         c    (0, 0)       id=add_entry                    text='ADD ENTRY' desc=''
+  View                (540, 72)    id=statusBarBackground          text='' desc=''
+  View                (0, 0)       id=navigationBarBackground      text='' desc=''
+total 12
+-rw------- 1 u0_a160 u0_a160 7287 2026-11-15 18:54:08.568000000 +0100 kpd-save-aes-plain.kdbx
+device kpd-save-aes-plain.kdbx sha256 f713e5da43baf5bf143dfa679c513e3f94cce78ada6e30d5a786f1718e4e6b9f
+/sdcard/Download/kpd-save-aes-plain.kdbx: 1 file pulled, 0 skipped. 0.1 MB/s (7287 bytes in 0.051s)
+### flow rc=0 2026-11-15T17:54:22.190Z

@@ -1,0 +1,22 @@
+1c1
+< # file kpd-delete.kdbx size=7237 sha256=c0671146cb46de41fef8f1d2a3a48eed650a2e9dfd87f0dfb0059e33748d03df
+---
+> # file into-phone.kdbx size=7893 sha256=82aae7a4b032a8cbab9ba9c2b92d1f0d14899519074a7c3b36fa0234b5ed8c95
+6a7
+> E E1 CD KPG = "{\"reader\":[\"read\",\"list\"]}"
+144a146
+> E R1 CD KPG.cd = "{\"control\":\"entry custom data on R1\"}"
+334c336
+< G Bin t.accessed 2026-11-15T17:59:02Z
+---
+> G Bin t.accessed 2026-11-01T10:05:00Z
+340a343
+> G G CD KPG = "{\"reader\":[\"read\",\"list\"]}"
+347c350
+< G G t.accessed 2026-11-15T17:58:34Z
+---
+> G G t.accessed 2026-11-01T10:00:00Z
+386c389
+< G Root t.accessed 2026-11-15T17:59:02Z
+---
+> G Root t.accessed 2026-11-01T10:00:00Z

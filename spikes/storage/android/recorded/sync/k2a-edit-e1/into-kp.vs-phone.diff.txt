@@ -1,0 +1,8 @@
+1c1
+< # file k2a-edit-e1.kdbx size=8037 sha256=6d387422c43fd97005a95dc08376b487290ae9e2d25a7ec32b86909193401291
+---
+> # file into-kp.kdbx size=8101 sha256=5a0e8cdff10bf42589ff1e157a1733de52be5db1ca900ce4e80f7dcdf9c58933
+430c430
+< M CD KPG.Profiles = "[\"reader\",\"writer\"]" @none
+---
+> M CD KPG.Profiles = "[\"reader\",\"writer\"]" @2026-11-01T10:15:00Z

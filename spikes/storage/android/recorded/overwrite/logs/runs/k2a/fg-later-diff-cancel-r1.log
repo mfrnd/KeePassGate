@@ -1,0 +1,191 @@
+### 2026-11-15T21:23:14.430Z ow k2a fg-later-diff-cancel-r1 flow=k2a-ow-fg.flow base=OLD ARRIVING=NEW-diff TMODE=later ANSWER=cancel ENTRY=phone-fg-later-diff-cancel-r1 (versionName=1.15-r6)
+Success
+<work>/work/base/OLD.kdbx: 1 file pushed, 0 skipped. 1.1 MB/s (9301 bytes in 0.008s)
+given 9301 bytes, mtime 2026-11-15 22:13:14.000000000 +0100 sha256 8ef6785ca25b07b7398a59fe828878e7e78975a77fb425ef61a2c00b06da2946
+[2026-11-15T21:23:15.609Z] k2a-ow-fg.flow:4 include k2a-open.flow
+[2026-11-15T21:23:15.625Z] k2a-open.flow:4 sh monkey -p keepass2android.keepass2android -c android.intent.category.LAUNCHER 1
+  bash arg: -p
+  bash arg: keepass2android.keepass2android
+  bash arg: -c
+  bash arg: android.intent.category.LAUNCHER
+  bash arg: 1
+Events injected: 1
+## Network stats: elapsed time=88ms (0ms mobile, 0ms wifi, 88ms not connected)
+args: [-p, keepass2android.keepass2android, -c, android.intent.category.LAUNCHER, 1]
+ arg: "-p"
+ arg: "keepass2android.keepass2android"
+ arg: "-c"
+ arg: "android.intent.category.LAUNCHER"
+ arg: "1"
+data="keepass2android.keepass2android"
+data="android.intent.category.LAUNCHER"
+[2026-11-15T21:23:16.306Z] k2a-open.flow:5 clear ^OK$ start_open_file 40
+[2026-11-15T21:23:21.068Z]   cleared 'Change log' with (832, 1311)
+[2026-11-15T21:23:25.341Z]   cleared 'Change log' with (859, 1883)
+[2026-11-15T21:23:28.245Z] k2a-open.flow:6 tap start_open_file
+[2026-11-15T21:23:30.857Z]   tapped (540, 1025) 'Open file...'
+[2026-11-15T21:23:30.859Z] k2a-open.flow:7 tap ^System.file.picker$
+[2026-11-15T21:23:34.613Z]   tapped (229, 516) 'System file picker'
+[2026-11-15T21:23:34.615Z] k2a-open.flow:8 waitfor Show.roots 20
+[2026-11-15T21:23:37.135Z] k2a-open.flow:9 include picker.flow
+[2026-11-15T21:23:37.141Z] picker.flow:4 pick k2a-fg-later-diff-cancel-r1.kdbx
+[2026-11-15T21:23:45.048Z]   focused and entered '^k2a\\-fg\\-later\\-diff\\-cancel\\-r1\\.kdbx$'
+[2026-11-15T21:23:45.049Z] k2a-open.flow:10 waitfor password_edit 30
+[2026-11-15T21:23:48.884Z] k2a-open.flow:11 typepwck password_edit dummy-password-for-a-throwaway-file
+[2026-11-15T21:24:02.098Z]   typed the password (35 characters)
+[2026-11-15T21:24:02.099Z] k2a-open.flow:12 tap pass_ok
+[2026-11-15T21:24:04.916Z]   tapped (942, 1437) 'Unlock'
+[2026-11-15T21:24:04.918Z] k2a-open.flow:13 waitfor fabAddNew 60
+[2026-11-15T21:24:11.345Z] k2a-ow-fg.flow:5 sleep 2
+[2026-11-15T21:24:13.346Z] k2a-ow-fg.flow:6 host sh <work>/scripts/replace.sh /sdcard/Download/k2a-fg-later-diff-cancel-r1.kdbx <work>/work/base/NEW-diff.kdbx later
+[2026-11-15T21:24:13.626Z]   | replace: before 9301 bytes, mtime 2026-11-15 22:13:14.000000000 +0100 sha256 8ef6785ca25b07b7398a59fe828878e7e78975a77fb425ef61a2c00b06da2946
+[2026-11-15T21:24:13.627Z]   | <work>/work/base/NEW-diff.kdbx: 1 file pushed, 0 skipped. 1.6 MB/s (11621 bytes in 0.007s)
+[2026-11-15T21:24:13.628Z]   | replace: after  11621 bytes, mtime 2026-11-15 22:24:12.728000000 +0100 sha256 469981f9d9289f78fcf80d60f5a40b464d704959a83384e91cc1be9a2549bed6 (mode later, from NEW-diff.kdbx)
+[2026-11-15T21:24:13.629Z] k2a-ow-fg.flow:7 sleep 3
+[2026-11-15T21:24:16.630Z] k2a-ow-fg.flow:8 dialog
+[2026-11-15T21:24:18.757Z]   dialog fabTotpOverview: ''
+[2026-11-15T21:24:18.758Z]   dialog fabSearch: ''
+[2026-11-15T21:24:18.759Z]   dialog fabAddNew: ''
+[2026-11-15T21:24:18.760Z]   dialog enable_autofill: 'Enable Autofill'
+[2026-11-15T21:24:18.761Z]   dialog show_autofill_info: 'Show Autofill help'
+[2026-11-15T21:24:18.762Z]   dialog info_dont_show_autofill_again: 'Do not show again'
+[2026-11-15T21:24:18.762Z]   dialog menu_lock: ''
+[2026-11-15T21:24:18.763Z] k2a-ow-fg.flow:9 include k2a-ow-edit.flow
+[2026-11-15T21:24:18.769Z] k2a-ow-edit.flow:3 tap fabAddNew
+[2026-11-15T21:24:21.305Z]   tapped (959, 1607) 'keepass2android.keepass2android:id/fabAddNew'
+[2026-11-15T21:24:21.306Z] k2a-ow-edit.flow:4 tap fabAddNewEntry
+[2026-11-15T21:24:24.213Z]   tapped (871, 1211) 'Add entry'
+[2026-11-15T21:24:24.215Z] k2a-ow-edit.flow:5 maybe ^No$ 4
+[2026-11-15T21:24:27.348Z]   maybe tapped (634, 1431) 'No'
+[2026-11-15T21:24:27.349Z] k2a-ow-edit.flow:6 waitfor entry_title 20
+[2026-11-15T21:24:30.209Z] k2a-ow-edit.flow:7 tap entry_title
+[2026-11-15T21:24:33.086Z]   tapped (473, 445) 'name'
+[2026-11-15T21:24:33.089Z] k2a-ow-edit.flow:8 text phone-fg-later-diff-cancel-r1
+[2026-11-15T21:24:39.185Z] k2a-ow-edit.flow:9 tap menu_save
+[2026-11-15T21:24:42.217Z]   tapped (882, 233) 'Save'
+[2026-11-15T21:24:42.219Z] k2a-ow-edit.flow:10 ifthen Merge.changes 25 k2a-ans-cancel.flow
+[2026-11-15T21:24:44.725Z]   'Merge.changes' is there: running k2a-ans-cancel.flow
+[2026-11-15T21:24:44.731Z] k2a-ans-cancel.flow:3 dialog
+[2026-11-15T21:24:46.717Z]   dialog alertTitle: 'Merge changes?'
+[2026-11-15T21:24:46.719Z]   dialog message: 'The database file was modified externally. Do you want to load and merge the changes before saving? Select No if you want to overwrite the external changes.'
+[2026-11-15T21:24:46.720Z]   dialog button3: 'Cancel'
+[2026-11-15T21:24:46.721Z]   dialog button2: 'No, overwrite'
+[2026-11-15T21:24:46.722Z]   dialog button1: 'Yes, merge'
+[2026-11-15T21:24:46.722Z] k2a-ans-cancel.flow:4 tap ^Cancel$
+[2026-11-15T21:24:49.571Z]   tapped (253, 1244) 'Cancel'
+[2026-11-15T21:24:49.573Z] k2a-ans-cancel.flow:5 sleep 4
+[2026-11-15T21:24:53.574Z] k2a-ans-cancel.flow:6 dialog
+[2026-11-15T21:24:55.596Z]   dialog icon_button: ''
+[2026-11-15T21:24:55.597Z]   dialog text_input_start_icon: ''
+[2026-11-15T21:24:55.598Z]   dialog text_input_start_icon: ''
+[2026-11-15T21:24:55.599Z]   dialog text_input_end_icon: ''
+[2026-11-15T21:24:55.600Z]   dialog generate_button: ''
+[2026-11-15T21:24:55.601Z]   dialog text_input_start_icon: ''
+[2026-11-15T21:24:55.601Z]   dialog text_input_start_icon: ''
+[2026-11-15T21:24:55.602Z]   dialog android.widget.ImageButton: ''
+[2026-11-15T21:24:55.603Z]   dialog menu_save: ''
+[2026-11-15T21:24:55.604Z]   dialog menu_cancel: ''
+[2026-11-15T21:24:55.604Z] k2a-ans-cancel.flow:7 list
+  ViewGroup           (540, 1036)  id=decor_content_parent         text='' desc=''
+  FrameLayout         (540, 1036)  id=content                      text='' desc=''
+  ViewGroup           (540, 1036)  id=main_content                 text='' desc=''
+  ScrollView          (540, 922)   id=entry_scroll                 text='' desc=''
+  RelativeLayout      (534, 438)   id=title_section                text='' desc=''
+  EditText       cf   (473, 445)   id=entry_title                  text='phone-fg-later-diff-cancel-r1' desc=''
+  ImageButton    c    (964, 426)   id=icon_button                  text='' desc=''
+  LinearLayout        (534, 617)   id=user_section                 text='' desc=''
+  EditText       c    (534, 624)   id=entry_user_name              text='username' desc=''
+  ImageButton    x    (110, 624)   id=text_input_start_icon        text='' desc=''
+  LinearLayout        (534, 891)   id=password_section             text='' desc=''
+  EditText       c    (534, 816)   id=entry_password               text='password' desc=''
+  ImageButton    x    (110, 816)   id=text_input_start_icon        text='' desc=''
+  ImageButton    cx   (959, 816)   id=text_input_end_icon          text='' desc='Show password'
+  Button         c    (110, 960)   id=generate_button              text='' desc=''
+  LinearLayout        (534, 1166)  id=url_section                  text='' desc=''
+  EditText       c    (534, 1173)  id=entry_url                    text='URL' desc=''
+  ImageButton    x    (110, 1173)  id=text_input_start_icon        text='' desc=''
+  LinearLayout        (534, 1356)  id=comments_section             text='' desc=''
+  EditText       c    (534, 1363)  id=entry_comment                text='notes' desc=''
+  ImageButton    x    (110, 1363)  id=text_input_start_icon        text='' desc=''
+  LinearLayout        (534, 1492)  id=entry_extras_container       text='' desc=''
+  FrameLayout         (540, 233)   id=action_bar_container         text='' desc=''
+  ViewGroup           (540, 233)   id=action_bar                   text='' desc=''
+  ImageButton    c    (77, 233)    id=                             text='' desc='Navigate up'
+  TextView            (295, 233)   id=                             text='Add entry' desc=''
+  Button         c    (882, 233)   id=menu_save                    text='' desc='Save'
+  Button         c    (1014, 233)  id=menu_cancel                  text='' desc='Cancel'
+  View                (540, 72)    id=statusBarBackground          text='' desc=''
+  View                (0, 0)       id=navigationBarBackground      text='' desc=''
+[2026-11-15T21:24:57.655Z] k2a-ans-cancel.flow:8 assert entry_title@^phone-fg-later-diff-cancel-r1$
+[2026-11-15T21:24:59.667Z] k2a-ans-cancel.flow:9 tap menu_cancel
+[2026-11-15T21:25:02.462Z]   tapped (1014, 233) 'Cancel'
+[2026-11-15T21:25:02.464Z] k2a-ans-cancel.flow:10 sleep 2
+[2026-11-15T21:25:04.465Z] k2a-ans-cancel.flow:11 dialog
+[2026-11-15T21:25:06.560Z]   dialog fabTotpOverview: ''
+[2026-11-15T21:25:06.561Z]   dialog fabSearch: ''
+[2026-11-15T21:25:06.562Z]   dialog fabAddNew: ''
+[2026-11-15T21:25:06.563Z]   dialog enable_autofill: 'Enable Autofill'
+[2026-11-15T21:25:06.564Z]   dialog show_autofill_info: 'Show Autofill help'
+[2026-11-15T21:25:06.564Z]   dialog info_dont_show_autofill_again: 'Do not show again'
+[2026-11-15T21:25:06.565Z]   dialog menu_lock: ''
+[2026-11-15T21:25:06.566Z] k2a-ans-cancel.flow:12 maybe ^(Yes|Discard|OK)$ 4
+[2026-11-15T21:25:11.091Z]   maybe: absent
+[2026-11-15T21:25:11.093Z] k2a-ow-edit.flow:11 sleep 3
+[2026-11-15T21:25:14.094Z] k2a-ow-edit.flow:12 dialog
+[2026-11-15T21:25:16.035Z]   dialog fabTotpOverview: ''
+[2026-11-15T21:25:16.036Z]   dialog fabSearch: ''
+[2026-11-15T21:25:16.037Z]   dialog fabAddNew: ''
+[2026-11-15T21:25:16.038Z]   dialog enable_autofill: 'Enable Autofill'
+[2026-11-15T21:25:16.039Z]   dialog show_autofill_info: 'Show Autofill help'
+[2026-11-15T21:25:16.040Z]   dialog info_dont_show_autofill_again: 'Do not show again'
+[2026-11-15T21:25:16.041Z]   dialog menu_lock: ''
+[2026-11-15T21:25:16.041Z] k2a-ow-edit.flow:13 waitfor fabAddNew 60
+[2026-11-15T21:25:18.174Z] k2a-ow-edit.flow:14 sleep 4
+[2026-11-15T21:25:22.177Z] k2a-ow-edit.flow:15 list
+  ViewGroup           (540, 1036)  id=decor_content_parent         text='' desc=''
+  FrameLayout         (540, 1036)  id=content                      text='' desc=''
+  ViewGroup           (540, 1024)  id=main_content                 text='' desc=''
+  FrameLayout         (540, 1024)  id=list_fragment                text='' desc=''
+  FrameLayout         (540, 1024)  id=listContainer                text='' desc=''
+  ListView            (540, 1024)  id=list                         text='' desc=''
+  ImageView           (99, 408)    id=group_icon_bkg               text='' desc=''
+  ImageView           (99, 408)    id=icon                         text='' desc=''
+  TextView            (216, 386)   id=group_text                   text='G' desc=''
+  TextView            (319, 451)   id=group_label                  text='Group - 9 entries' desc=''
+  ImageView           (992, 408)   id=right_arrow                  text='' desc=''
+  ImageView           (99, 582)    id=group_icon_bkg               text='' desc=''
+  ImageView           (99, 582)    id=icon                         text='' desc=''
+  TextView            (251, 560)   id=group_text                   text='KPG' desc=''
+  TextView            (319, 625)   id=group_label                  text='Group - 4 entries' desc=''
+  ImageView           (992, 582)   id=right_arrow                  text='' desc=''
+  ImageView           (99, 756)    id=group_icon_bkg               text='' desc=''
+  ImageView           (99, 756)    id=icon                         text='' desc=''
+  TextView            (338, 734)   id=group_text                   text='Recycle Bin' desc=''
+  TextView            (319, 799)   id=group_label                  text='Group - 0 entries' desc=''
+  ImageView           (992, 756)   id=right_arrow                  text='' desc=''
+  ImageButton    c    (959, 1211)  id=fabTotpOverview              text='' desc=''
+  ImageButton    c    (959, 1409)  id=fabSearch                    text='' desc=''
+  ImageButton    c    (959, 1607)  id=fabAddNew                    text='' desc=''
+  View                (540, 1729)  id=divider2                     text='' desc=''
+  RelativeLayout      (540, 1901)  id=bottom_bar                   text='' desc=''
+  LinearLayout        (540, 1901)  id=autofill_infotext            text='' desc=''
+  TextView            (540, 1803)  id=myinfotext                   text="Keepass2Android supports Android's Autofill feature but it looks like you haven't enabled it yet." desc=''
+  RelativeLayout      (540, 1959)  id=autofill_buttons             text='' desc=''
+  Button         c    (183, 1959)  id=enable_autofill              text='Enable Autofill' desc=''
+  Button         c    (860, 1959)  id=show_autofill_info           text='Show Autofill help' desc=''
+  Button         c    (540, 2065)  id=info_dont_show_autofill_again text='Do not show again' desc=''
+  FrameLayout         (540, 233)   id=action_bar_container         text='' desc=''
+  ViewGroup           (540, 233)   id=action_bar                   text='' desc=''
+  TextView            (234, 233)   id=                             text='Storage probe' desc=''
+  LinearLayoutCompat      (771, 233)   id=menu_search                  text='' desc=''
+  LinearLayout        (771, 233)   id=search_bar                   text='' desc=''
+  ImageView      c    (771, 233)   id=search_button                text='' desc='Search'
+  Button         c    (903, 233)   id=menu_lock                    text='' desc='Lock Database'
+  ImageView      c    (1024, 233)  id=                             text='' desc='More options'
+  View                (540, 72)    id=statusBarBackground          text='' desc=''
+  View                (0, 0)       id=navigationBarBackground      text='' desc=''
+total 16
+-rw------- 1 u0_a160 u0_a160 11621 2026-11-15 22:24:12.728000000 +0100 k2a-fg-later-diff-cancel-r1.kdbx
+device k2a-fg-later-diff-cancel-r1.kdbx sha256 469981f9d9289f78fcf80d60f5a40b464d704959a83384e91cc1be9a2549bed6 11621 bytes, mtime 2026-11-15 22:24:12.728000000 +0100
+/sdcard/Download/k2a-fg-later-diff-cancel-r1.kdbx: 1 file pulled, 0 skipped. 0.7 MB/s (11621 bytes in 0.016s)
+### flow rc=0 2026-11-15T21:25:28.025Z

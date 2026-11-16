@@ -1,0 +1,4 @@
+# Exploration: Keepass2Android's "Close database" on the QuickUnlock screen.
+tap QuickUnlock_buttonLock
+sleep 3
+list

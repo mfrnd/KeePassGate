@@ -1,0 +1,30 @@
+1c1
+< # file k2a-edit-carriers.kdbx size=8245 sha256=c34914f1d986da5686e83cbbf5673b4a75fe6cebf4b94b8ccd25b187e0157d08
+---
+> # file into-phone.kdbx size=8277 sha256=4311da7d7e26e2272a488edac7940fe2fddbc31db43a3afecf9e018cbbd2f66e
+403c403
+< G G t.accessed 2026-11-15T17:12:29Z
+---
+> G G t.accessed 2026-11-01T10:00:00Z
+409c409
+< G G usage 1
+---
+> G G usage 0
+416c416
+< G GKPG t.accessed 2026-11-15T17:12:07Z
+---
+> G GKPG t.accessed 2026-11-01T10:10:00Z
+422c422
+< G GKPG usage 2
+---
+> G GKPG usage 0
+442c442
+< G Root t.accessed 2026-11-15T17:12:29Z
+---
+> G Root t.accessed 2026-11-01T10:00:00Z
+448,449c448,449
+< G Root usage 3
+< M CD KPG.Profiles = "[\"reader\",\"writer\"]" @none
+---
+> G Root usage 0
+> M CD KPG.Profiles = "[\"reader\",\"writer\"]" @2026-11-01T10:15:00Z

@@ -1,0 +1,12 @@
+# The save asked: record the dialog, answer "Cancel", record what follows (the entry editor stays
+# open with the entry unsaved), then leave the editor by its own cancel, discarding the entry.
+dialog
+tap ^Cancel$
+sleep 4
+dialog
+list
+assert entry_title@^${ENTRY}$
+tap menu_cancel
+sleep 2
+dialog
+maybe ^(Yes|Discard|OK)$ 4

@@ -1,0 +1,25 @@
+# Keepass2Android, fresh app state: open ${SNAME} from the WebDAV server as a remote file (Open
+# file..., HTTP (WebDav), the server's address, user and password, then the file in its browser),
+# and unlock it with the password.
+sh monkey -p ${PKG} -c android.intent.category.LAUNCHER 1
+clear ^OK$ start_open_file 40
+tap start_open_file
+tap ^HTTP..WebDav.$
+waitfor http_url 20
+type http_url 10.0.2.2:8080/
+type http_user kpg
+typepw http_password <invented>
+dialog
+tap ^OK$
+sleep 5
+dialog
+list
+tap ^${SNAME}$
+sleep 3
+dialog
+waitfor password_edit 40
+list
+typepwck password_edit dummy-password-for-a-throwaway-file
+tap pass_ok
+waitfor fabAddNew 90
+dialog

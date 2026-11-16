@@ -1,0 +1,121 @@
+### 2026-11-15T17:24:41.219Z op k2a move flow=k2a-move.flow base=S-argon (versionName=1.15-r6)
+Success
+<work>/work/base/S-argon.kdbx: 1 file pushed, 0 skipped. 0.5 MB/s (7941 bytes in 0.015s)
+pushed sha256 bd84dd4785579e8705bd12f3fe4d53a2e342be2e88c64875413ef8b336dc11ae
+[2026-11-15T17:24:44.893Z] k2a-move.flow:4 include k2a-open.flow
+[2026-11-15T17:24:44.908Z] k2a-open.flow:4 sh monkey -p keepass2android.keepass2android -c android.intent.category.LAUNCHER 1
+  bash arg: -p
+  bash arg: keepass2android.keepass2android
+  bash arg: -c
+  bash arg: android.intent.category.LAUNCHER
+  bash arg: 1
+Events injected: 1
+## Network stats: elapsed time=220ms (0ms mobile, 0ms wifi, 220ms not connected)
+args: [-p, keepass2android.keepass2android, -c, android.intent.category.LAUNCHER, 1]
+ arg: "-p"
+ arg: "keepass2android.keepass2android"
+ arg: "-c"
+ arg: "android.intent.category.LAUNCHER"
+ arg: "1"
+data="keepass2android.keepass2android"
+data="android.intent.category.LAUNCHER"
+[2026-11-15T17:24:48.564Z] k2a-open.flow:5 clear ^OK$ start_open_file 40
+[2026-11-15T17:25:13.139Z]   cleared 'Change log' with (859, 1883)
+[2026-11-15T17:25:26.423Z] k2a-open.flow:6 tap start_open_file
+[2026-11-15T17:25:33.783Z]   tapped (540, 1025) 'Open file...'
+[2026-11-15T17:25:33.785Z] k2a-open.flow:7 tap ^System.file.picker$
+[2026-11-15T17:25:49.827Z]   tapped (229, 516) 'System file picker'
+[2026-11-15T17:25:49.828Z] k2a-open.flow:8 waitfor Show.roots 20
+[2026-11-15T17:26:02.182Z] k2a-open.flow:9 include picker.flow
+[2026-11-15T17:26:02.189Z] picker.flow:4 pick k2a-move.kdbx
+[2026-11-15T17:26:24.620Z]   focused and entered '^k2a\\-move\\.kdbx$'
+[2026-11-15T17:26:24.621Z] k2a-open.flow:10 waitfor password_edit 30
+[2026-11-15T17:26:36.157Z] k2a-open.flow:11 typepwck password_edit dummy-password-for-a-throwaway-file
+[2026-11-15T17:27:16.503Z]   typepwck: field holds 29 characters, not 35 (attempt 1)
+[2026-11-15T17:28:05.138Z]   typepwck: field holds 34 characters, not 35 (attempt 2)
+[2026-11-15T17:28:47.321Z]   typed the password (35 characters)
+[2026-11-15T17:28:47.323Z] k2a-open.flow:12 tap pass_ok
+[2026-11-15T17:28:55.496Z]   tapped (942, 1437) 'Unlock'
+[2026-11-15T17:28:55.499Z] k2a-open.flow:13 waitfor fabAddNew 60
+[2026-11-15T17:29:19.742Z] k2a-move.flow:5 tap ^G$
+[2026-11-15T17:29:26.203Z]   tapped (216, 386) 'G'
+[2026-11-15T17:29:26.205Z] k2a-move.flow:6 longpress ^E1$
+[2026-11-15T17:29:40.596Z]   long-pressed (229, 554) 'E1'
+[2026-11-15T17:29:40.598Z] k2a-move.flow:7 tap menu_move
+[2026-11-15T17:29:48.073Z]   tapped (1014, 233) 'Move to another group'
+[2026-11-15T17:29:48.075Z] k2a-move.flow:8 waitfor insert_element 20
+[2026-11-15T17:29:53.423Z] k2a-move.flow:9 tap ^N$
+[2026-11-15T17:30:00.945Z]   tapped (217, 386) 'N'
+[2026-11-15T17:30:00.946Z] k2a-move.flow:10 tap insert_element
+[2026-11-15T17:30:13.003Z]   tapped (147, 2063) 'Insert here'
+[2026-11-15T17:30:13.006Z] k2a-move.flow:11 waitfor ^N1$ 30
+[2026-11-15T17:30:15.580Z] k2a-move.flow:12 sleep 5
+[2026-11-15T17:30:20.582Z] k2a-move.flow:13 adb pull /sdcard/Download/k2a-move.kdbx <work>/work/runs/k2a/move/mid-moved-e1.kdbx
+/sdcard/Download/k2a-move.kdbx: 1 file pulled, 0 skipped. 0.1 MB/s (7989 bytes in 0.057s)
+[2026-11-15T17:30:39.978Z] k2a-move.flow:14 tap Navigate.up
+[2026-11-15T17:30:42.971Z]   tapped (77, 233) 'Navigate up'
+[2026-11-15T17:30:42.972Z] k2a-move.flow:15 longpress ^N$
+[2026-11-15T17:30:48.137Z]   long-pressed (217, 386) 'N'
+[2026-11-15T17:30:48.138Z] k2a-move.flow:16 tap menu_move
+[2026-11-15T17:30:50.930Z]   tapped (1014, 233) 'Move to another group'
+[2026-11-15T17:30:50.931Z] k2a-move.flow:17 waitfor insert_element 20
+[2026-11-15T17:30:53.162Z] k2a-move.flow:18 tap Navigate.up
+[2026-11-15T17:30:56.094Z]   tapped (77, 233) 'Navigate up'
+[2026-11-15T17:30:56.095Z] k2a-move.flow:19 waitfor ^Storage.probe$ 20
+[2026-11-15T17:30:58.777Z] k2a-move.flow:20 tap insert_element
+[2026-11-15T17:31:01.888Z]   tapped (147, 2063) 'Insert here'
+[2026-11-15T17:31:01.890Z] k2a-move.flow:21 waitfor ^N$ 30
+[2026-11-15T17:31:04.087Z] k2a-move.flow:22 sleep 5
+[2026-11-15T17:31:09.088Z] k2a-move.flow:23 list
+  ViewGroup           (540, 1036)  id=decor_content_parent         text='' desc=''
+  FrameLayout         (540, 1036)  id=content                      text='' desc=''
+  ViewGroup           (540, 1024)  id=main_content                 text='' desc=''
+  FrameLayout         (540, 1024)  id=list_fragment                text='' desc=''
+  FrameLayout         (540, 1024)  id=listContainer                text='' desc=''
+  ListView            (540, 1024)  id=list                         text='' desc=''
+  ImageView           (99, 408)    id=group_icon_bkg               text='' desc=''
+  ImageView           (99, 408)    id=icon                         text='' desc=''
+  TextView            (216, 386)   id=group_text                   text='G' desc=''
+  TextView            (319, 451)   id=group_label                  text='Group - 7 entries' desc=''
+  ImageView           (992, 408)   id=right_arrow                  text='' desc=''
+  ImageView           (99, 582)    id=group_icon_bkg               text='' desc=''
+  ImageView           (99, 582)    id=icon                         text='' desc=''
+  TextView            (251, 560)   id=group_text                   text='KPG' desc=''
+  TextView            (319, 625)   id=group_label                  text='Group - 4 entries' desc=''
+  ImageView           (992, 582)   id=right_arrow                  text='' desc=''
+  ImageView           (99, 756)    id=group_icon_bkg               text='' desc=''
+  ImageView           (99, 756)    id=icon                         text='' desc=''
+  TextView            (217, 734)   id=group_text                   text='N' desc=''
+  TextView            (319, 799)   id=group_label                  text='Group - 2 entries' desc=''
+  ImageView           (992, 756)   id=right_arrow                  text='' desc=''
+  ImageView           (99, 930)    id=group_icon_bkg               text='' desc=''
+  ImageView           (99, 930)    id=icon                         text='' desc=''
+  TextView            (338, 908)   id=group_text                   text='Recycle Bin' desc=''
+  TextView            (319, 973)   id=group_label                  text='Group - 0 entries' desc=''
+  ImageView           (992, 930)   id=right_arrow                  text='' desc=''
+  ImageButton    c    (959, 1211)  id=fabTotpOverview              text='' desc=''
+  ImageButton    c    (959, 1409)  id=fabSearch                    text='' desc=''
+  ImageButton    c    (959, 1607)  id=fabAddNew                    text='' desc=''
+  View                (540, 1729)  id=divider2                     text='' desc=''
+  RelativeLayout      (540, 1901)  id=bottom_bar                   text='' desc=''
+  LinearLayout        (540, 1901)  id=autofill_infotext            text='' desc=''
+  TextView            (540, 1803)  id=myinfotext                   text="Keepass2Android supports Android's Autofill feature but it looks like you haven't enabled it yet." desc=''
+  RelativeLayout      (540, 1959)  id=autofill_buttons             text='' desc=''
+  Button         c    (183, 1959)  id=enable_autofill              text='Enable Autofill' desc=''
+  Button         c    (860, 1959)  id=show_autofill_info           text='Show Autofill help' desc=''
+  Button         c    (540, 2065)  id=info_dont_show_autofill_again text='Do not show again' desc=''
+  FrameLayout         (540, 233)   id=action_bar_container         text='' desc=''
+  ViewGroup           (540, 233)   id=action_bar                   text='' desc=''
+  TextView            (234, 233)   id=                             text='Storage probe' desc=''
+  LinearLayoutCompat      (771, 233)   id=menu_search                  text='' desc=''
+  LinearLayout        (771, 233)   id=search_bar                   text='' desc=''
+  ImageView      c    (771, 233)   id=search_button                text='' desc='Search'
+  Button         c    (903, 233)   id=menu_lock                    text='' desc='Lock Database'
+  ImageView      c    (1024, 233)  id=                             text='' desc='More options'
+  View                (540, 72)    id=statusBarBackground          text='' desc=''
+  View                (0, 0)       id=navigationBarBackground      text='' desc=''
+total 12
+-rw------- 1 u0_a160 u0_a160 7781 2026-11-15 18:31:00.460000000 +0100 k2a-move.kdbx
+device k2a-move.kdbx sha256 92d5e639c08ab4cf66d3a224e375b285d20a4366bbcf7a79e1916c062a5806a7
+/sdcard/Download/k2a-move.kdbx: 1 file pulled, 0 skipped. 0.1 MB/s (7781 bytes in 0.052s)
+### flow rc=0 2026-11-15T17:31:13.855Z

@@ -1,0 +1,21 @@
+# Scenario B, Keepass2Android's conflict path: open the target, push the source over the file
+# underneath it, add an entry at the root, and answer the "Merge changes?" question that the save
+# raises with "Yes, merge".
+include k2a-open.flow
+adb push ${SRC} /sdcard/Download/${NAME}.kdbx
+sh sha256sum /sdcard/Download/${NAME}.kdbx
+sleep 3
+list
+tap fabAddNew
+tap fabAddNewEntry
+maybe ^No$ 4                      # "Add templates?" on the first entry added
+waitfor entry_title 20
+tap entry_title
+text ${ENTRY}
+tap menu_save
+waitfor Merge.changes 60
+list
+tap ^Yes,.merge$
+waitfor fabAddNew 60
+sleep 5
+list

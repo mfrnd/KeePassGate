@@ -1,0 +1,54 @@
+1c1
+< # file S-argon.kdbx size=7941 sha256=bd84dd4785579e8705bd12f3fe4d53a2e342be2e88c64875413ef8b336dc11ae
+---
+> # file mid-recycled.kdbx size=7365 sha256=2610c1a91980fca6ea32c3c4e224b08a945539e4c5e1b7316b48cde5810614d6
+81,83c81,83
+< E E2 parent G (G)
+< E E2 prev -
+< E E2 t.accessed 2026-11-01T10:45:00Z
+---
+> E E2 parent Bin (Recycle Bin)
+> E E2 prev G
+> E E2 t.accessed 2026-11-15T19:26:11Z
+86,87c86,87
+< E E2 t.location 2026-11-01T10:45:00Z
+< E E2 t.modified 2026-11-01T10:45:00Z
+---
+> E E2 t.location 2026-11-15T19:26:11Z
+> E E2 t.modified 2026-11-15T19:26:11Z
+89c89
+< E E2 usage 0
+---
+> E E2 usage 2
+346c346
+< G Bin children groups=0 entries=0
+---
+> G Bin children groups=0 entries=1
+352c352
+< G Bin t.accessed 2026-11-01T10:05:00Z
+---
+> G Bin t.accessed 2026-11-15T19:26:11Z
+356c356
+< G Bin t.modified 2026-11-01T10:05:00Z
+---
+> G Bin t.modified 2026-11-15T19:26:11Z
+360c360
+< G G children groups=1 entries=8
+---
+> G G children groups=1 entries=7
+366c366
+< G G t.accessed 2026-11-01T10:00:00Z
+---
+> G G t.accessed 2026-11-15T19:26:11Z
+370c370
+< G G t.modified 2026-11-01T10:30:00Z
+---
+> G G t.modified 2026-11-15T19:26:11Z
+405c405
+< G Root t.accessed 2026-11-01T10:00:00Z
+---
+> G Root t.accessed 2026-11-15T19:26:11Z
+409c409
+< G Root t.modified 2026-11-01T10:00:00Z
+---
+> G Root t.modified 2026-11-15T19:26:11Z

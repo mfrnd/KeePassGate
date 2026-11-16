@@ -1,0 +1,56 @@
+1c1
+< # file S-argon.kdbx size=7941 sha256=bd84dd4785579e8705bd12f3fe4d53a2e342be2e88c64875413ef8b336dc11ae
+---
+> # file kpd-delete.kdbx size=7237 sha256=c0671146cb46de41fef8f1d2a3a48eed650a2e9dfd87f0dfb0059e33748d03df
+4c4,5
+< D count 2
+---
+> D E2 2026-11-15T17:59:02Z
+> D count 3
+6d6
+< E E1 CD KPG = "{\"reader\":[\"read\",\"list\"]}"
+73,89d72
+< E E2 S Notes p=0 ""
+< E E2 S Password p=1 "pw-e2-not-real"
+< E E2 S Title p=0 "E2"
+< E E2 S URL p=0 ""
+< E E2 S UserName p=0 "bob-invented"
+< E E2 autotype enabled=1 obfuscation=0 seq="" assoc=0
+< E E2 history.count 0
+< E E2 misc icon=0 customIcon=- fg=00000000 bg=00000000 overrideUrl="" quality=1
+< E E2 parent G (G)
+< E E2 prev -
+< E E2 t.accessed 2026-11-01T10:45:00Z
+< E E2 t.created 2026-11-01T10:45:00Z
+< E E2 t.expires 0 2026-11-01T10:00:00Z
+< E E2 t.location 2026-11-01T10:45:00Z
+< E E2 t.modified 2026-11-01T10:45:00Z
+< E E2 tags []
+< E E2 usage 0
+162d144
+< E R1 CD KPG.cd = "{\"control\":\"entry custom data on R1\"}"
+343c325
+< F groups 5 entries 13
+---
+> F groups 5 entries 12
+352c334
+< G Bin t.accessed 2026-11-01T10:05:00Z
+---
+> G Bin t.accessed 2026-11-15T17:59:02Z
+359,360c341
+< G G CD KPG = "{\"reader\":[\"read\",\"list\"]}"
+< G G children groups=1 entries=8
+---
+> G G children groups=1 entries=7
+366c347
+< G G t.accessed 2026-11-01T10:00:00Z
+---
+> G G t.accessed 2026-11-15T17:58:34Z
+405c386
+< G Root t.accessed 2026-11-01T10:00:00Z
+---
+> G Root t.accessed 2026-11-15T17:59:02Z
+422c403
+< M settingsChanged 2026-11-01T10:00:00Z
+---
+> M settingsChanged 2026-11-15T18:01:21Z

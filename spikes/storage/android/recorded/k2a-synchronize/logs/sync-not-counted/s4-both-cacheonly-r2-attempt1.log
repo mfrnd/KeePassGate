@@ -1,0 +1,31 @@
+### 2026-11-15T23:41:23.995Z sync s4-both-cacheonly-r2 flow=k2a-sy-s4.flow ANSWER=none ENTRY=phone-new PREFS=A (versionName=1.15-r6)
+Success
+server already running (17081)
+server kpg-s4-both-cacheonly-r2.kdbx after:  2165 bytes, mtime 2026-11-16 00:41:25.217630800 +0100 sha256 1019e391b75edfe8eb32c81be3e3cfb88a7b0efec39f10a7281da04f0d0469a3 (from SOLD.kdbx)
+SELinux: Loaded file_contexts
+prefs set A:  <boolean name="permit_cleartext_traffic" value="true" /> 
+[2026-11-15T23:41:25.721Z] k2a-sy-s4.flow:6 include k2a-sy-open.flow
+[2026-11-15T23:41:25.732Z] k2a-sy-open.flow:4 sh monkey -p keepass2android.keepass2android -c android.intent.category.LAUNCHER 1
+  bash arg: -p
+  bash arg: keepass2android.keepass2android
+  bash arg: -c
+  bash arg: android.intent.category.LAUNCHER
+  bash arg: 1
+Events injected: 1
+## Network stats: elapsed time=116ms (0ms mobile, 0ms wifi, 116ms not connected)
+args: [-p, keepass2android.keepass2android, -c, android.intent.category.LAUNCHER, 1]
+ arg: "-p"
+ arg: "keepass2android.keepass2android"
+ arg: "-c"
+ arg: "android.intent.category.LAUNCHER"
+ arg: "1"
+data="keepass2android.keepass2android"
+data="android.intent.category.LAUNCHER"
+[2026-11-15T23:41:26.956Z] k2a-sy-open.flow:5 clear ^OK$ start_open_file 40
+[2026-11-15T23:41:37.912Z]   cleared 'Change log' with (859, 1883)
+[2026-11-15T23:41:41.329Z] k2a-sy-open.flow:6 tap start_open_file
+[2026-11-15T23:41:44.066Z]   tapped (540, 1025) 'Open file...'
+[2026-11-15T23:41:44.068Z] k2a-sy-open.flow:7 tap ^HTTP..WebDav.$
+[2026-11-15T23:41:47.665Z]   tapped (849, 1174) 'HTTP (WebDav)'
+[2026-11-15T23:41:47.667Z] k2a-sy-open.flow:8 waitfor http_url 20
+[2026-11-15T23:41:50.302Z] k2a-sy-open.flow:9 type http_url 10.0.2.2:8080/

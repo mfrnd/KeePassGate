@@ -1,0 +1,197 @@
+### 2026-11-16T00:25:26.653Z sync s6-alwaysmerge-r1 flow=k2a-sy-s6.flow ANSWER=none SANSWER=none SETTING=^Always.merge.on.conflict$ PREFS=A (versionName=1.15-r6)
+Success
+server already running (21184)
+server kpg-s6-alwaysmerge-r1.kdbx after:  2165 bytes, mtime 2026-11-16 01:25:27.452597900 +0100 sha256 1019e391b75edfe8eb32c81be3e3cfb88a7b0efec39f10a7281da04f0d0469a3 (from SOLD.kdbx)
+SELinux: Loaded file_contexts
+prefs set A:  <boolean name="permit_cleartext_traffic" value="true" /> 
+[2026-11-16T00:25:27.719Z] k2a-sy-s6.flow:4 include k2a-sy-open.flow
+[2026-11-16T00:25:27.724Z] k2a-sy-open.flow:4 sh monkey -p keepass2android.keepass2android -c android.intent.category.LAUNCHER 1
+  bash arg: -p
+  bash arg: keepass2android.keepass2android
+  bash arg: -c
+  bash arg: android.intent.category.LAUNCHER
+  bash arg: 1
+Events injected: 1
+## Network stats: elapsed time=37ms (0ms mobile, 0ms wifi, 37ms not connected)
+args: [-p, keepass2android.keepass2android, -c, android.intent.category.LAUNCHER, 1]
+ arg: "-p"
+ arg: "keepass2android.keepass2android"
+ arg: "-c"
+ arg: "android.intent.category.LAUNCHER"
+ arg: "1"
+data="keepass2android.keepass2android"
+data="android.intent.category.LAUNCHER"
+[2026-11-16T00:25:28.374Z] k2a-sy-open.flow:5 clear ^OK$ start_open_file 40
+[2026-11-16T00:25:35.048Z]   cleared 'Change log' with (859, 1883)
+[2026-11-16T00:25:38.488Z] k2a-sy-open.flow:6 tap start_open_file
+[2026-11-16T00:25:41.613Z]   tapped (540, 1025) 'Open file...'
+[2026-11-16T00:25:41.615Z] k2a-sy-open.flow:7 tap ^HTTP..WebDav.$
+[2026-11-16T00:25:45.432Z]   tapped (849, 1174) 'HTTP (WebDav)'
+[2026-11-16T00:25:45.434Z] k2a-sy-open.flow:8 waitfor http_url 20
+[2026-11-16T00:25:48.142Z] k2a-sy-open.flow:9 type http_url 10.0.2.2:8080/
+[2026-11-16T00:26:00.941Z]   type: field never took the focus (attempt 1)
+[2026-11-16T00:26:11.018Z]   typed '10.0.2.2:8080/'
+[2026-11-16T00:26:11.019Z] k2a-sy-open.flow:10 type http_user kpg
+[2026-11-16T00:26:19.871Z]   typed 'kpg'
+[2026-11-16T00:26:19.872Z] k2a-sy-open.flow:11 typepw http_password <invented>
+[2026-11-16T00:26:27.239Z]   typed into the focused field
+[2026-11-16T00:26:27.241Z] k2a-sy-open.flow:12 dialog
+[2026-11-16T00:26:29.488Z]   dialog alertTitle: 'Enter WebDav login data:'
+[2026-11-16T00:26:29.490Z]   dialog button2: 'Cancel'
+[2026-11-16T00:26:29.493Z]   dialog button1: 'OK'
+[2026-11-16T00:26:29.496Z] k2a-sy-open.flow:13 tap ^OK$
+[2026-11-16T00:26:32.247Z]   tapped (832, 1111) 'OK'
+[2026-11-16T00:26:32.252Z] k2a-sy-open.flow:14 sleep 5
+[2026-11-16T00:26:37.253Z] k2a-sy-open.flow:15 dialog
+[2026-11-16T00:26:39.632Z] k2a-sy-open.flow:16 list
+  FrameLayout         (540, 1108)  id=content                      text='' desc=''
+  FrameLayout         (540, 1108)  id=afc_fragment_files           text='' desc=''
+  RelativeLayout      (540, 201)   id=afc_viewgroup_header         text='' desc=''
+  ImageView      cD   (63, 208)    id=afc_button_go_back           text='' desc=''
+  ImageView      cD   (176, 208)   id=afc_button_go_forward        text='' desc=''
+  RelativeLayout      (653, 206)   id=afc_viewgroup_button_locations text='' desc=''
+  HorizontalScrollView      (350, 206)   id=afc_view_locations_container text='' desc=''
+  LinearLayout        (350, 206)   id=afc_view_locations           text='' desc=''
+  TextView       c    (350, 206)   id=                             text='Root' desc=''
+  RelativeLayout      (540, 1179)  id=afc_viewgroup_files          text='' desc=''
+  LinearLayout        (540, 1179)  id=afc_view_files_container     text='' desc=''
+  ImageView      c    (66, 346)    id=afc_imageview_icon           text='' desc=''
+  TextView            (425, 329)   id=afc_textview_filename        text='kpg-s6-alwaysmerge-r1.kdbx' desc=''
+  TextView            (925, 381)   id=afc_textview_file_info       text='2.11 KiB, 1:25 AM' desc=''
+  View                (540, 72)    id=statusBarBackground          text='' desc=''
+  View                (0, 0)       id=navigationBarBackground      text='' desc=''
+[2026-11-16T00:26:41.647Z] k2a-sy-open.flow:17 tap ^kpg-s6-alwaysmerge-r1.kdbx$
+[2026-11-16T00:26:44.369Z]   tapped (425, 329) 'kpg-s6-alwaysmerge-r1.kdbx'
+[2026-11-16T00:26:44.370Z] k2a-sy-open.flow:18 sleep 3
+[2026-11-16T00:26:47.371Z] k2a-sy-open.flow:19 dialog
+[2026-11-16T00:26:50.603Z]   dialog android.widget.ImageButton: ''
+[2026-11-16T00:26:50.604Z]   dialog toggle_password: ''
+[2026-11-16T00:26:50.605Z]   dialog change_db: 'Change database'
+[2026-11-16T00:26:50.606Z]   dialog pass_ok: 'Unlock'
+[2026-11-16T00:26:50.607Z] k2a-sy-open.flow:20 waitfor password_edit 40
+[2026-11-16T00:26:52.567Z] k2a-sy-open.flow:21 list
+  LinearLayout        (540, 834)   id=action_bar_root              text='' desc=''
+  FrameLayout         (540, 834)   id=content                      text='' desc=''
+  DrawerLayout        (540, 834)   id=drawer_layout                text='' desc=''
+  LinearLayout        (540, 834)   id=main_layout                  text='' desc=''
+  ViewGroup           (540, 747)   id=main_content                 text='' desc=''
+  LinearLayout        (540, 489)   id=appbar                       text='' desc=''
+  FrameLayout         (540, 489)   id=collapsing_toolbar           text='' desc='Unlock database'
+  ImageView           (540, 489)   id=backdrop                     text='' desc=''
+  TextView            (330, 814)   id=filename                     text='http://10.0.2.2:8080/kpg-s6-alwaysmerge-r1.kdbx' desc=''
+  ViewGroup           (540, 233)   id=toolbar                      text='' desc=''
+  ImageButton    c    (77, 233)    id=                             text='' desc='Open'
+  ScrollView          (540, 1091)  id=scrollview                   text='' desc=''
+  TextView            (215, 899)   id=password_label               text='Select master key type:' desc=''
+  Spinner        c    (529, 954)   id=password_mode_spinner        text='' desc=''
+  TextView            (463, 953)   id=text1                        text='Password only' desc=''
+  View                (540, 1010)  id=line_below_spinner           text='' desc=''
+  TextView            (117, 1078)  id=                             text='Password' desc=''
+  EditText       cf   (501, 1151)  id=password_edit                text='Password' desc=''
+  ImageButton    c    (1003, 1133) id=toggle_password              text='' desc=''
+  LinearLayout        (534, 1276)  id=enable_quickunlock_container text='' desc=''
+  CheckBox       ckx  (255, 1298)  id=enable_quickunlock           text='Enable QuickUnlock' desc=''
+  TextView       c    (526, 1290)  id=                             text='\uf05a' desc=''
+  View                (540, 1350)  id=divider2                     text='' desc=''
+  RelativeLayout      (540, 1437)  id=bottom_bar                   text='' desc=''
+  Button         c    (214, 1437)  id=change_db                    text='Change database' desc=''
+  Button         c    (942, 1437)  id=pass_ok                      text='Unlock' desc=''
+  View                (540, 72)    id=statusBarBackground          text='' desc=''
+  View                (0, 0)       id=navigationBarBackground      text='' desc=''
+[2026-11-16T00:26:54.599Z] k2a-sy-open.flow:22 typepwck password_edit dummy-password-for-a-throwaway-file
+[2026-11-16T00:27:08.033Z]   typed the password (35 characters)
+[2026-11-16T00:27:08.034Z] k2a-sy-open.flow:23 tap pass_ok
+[2026-11-16T00:27:10.642Z]   tapped (942, 1437) 'Unlock'
+[2026-11-16T00:27:10.644Z] k2a-sy-open.flow:24 waitfor fabAddNew 90
+[2026-11-16T00:27:16.288Z] k2a-sy-open.flow:25 dialog
+[2026-11-16T00:27:18.575Z]   dialog fabTotpOverview: ''
+[2026-11-16T00:27:18.576Z]   dialog fabSearch: ''
+[2026-11-16T00:27:18.577Z]   dialog fabAddNew: ''
+[2026-11-16T00:27:18.578Z]   dialog enable_autofill: 'Enable Autofill'
+[2026-11-16T00:27:18.579Z]   dialog show_autofill_info: 'Show Autofill help'
+[2026-11-16T00:27:18.579Z]   dialog info_dont_show_autofill_again: 'Do not show again'
+[2026-11-16T00:27:18.580Z]   dialog menu_lock: ''
+[2026-11-16T00:27:18.581Z] k2a-sy-s6.flow:5 include k2a-setting.flow
+[2026-11-16T00:27:18.589Z] k2a-setting.flow:3 host sh <work>/scripts/prefs.sh before-settings
+[2026-11-16T00:27:18.684Z]   | prefs before-settings: 
+[2026-11-16T00:27:18.685Z] k2a-setting.flow:4 tap More.options
+[2026-11-16T00:27:21.421Z]   tapped (1024, 233) 'More options'
+[2026-11-16T00:27:21.423Z] k2a-setting.flow:5 tap ^Settings$
+[2026-11-16T00:27:24.545Z]   tapped (737, 387) 'Settings'
+[2026-11-16T00:27:24.547Z] k2a-setting.flow:6 sleep 2
+[2026-11-16T00:27:26.548Z] k2a-setting.flow:7 tap ^App$
+[2026-11-16T00:27:29.168Z]   tapped (84, 594) 'App'
+[2026-11-16T00:27:29.169Z] k2a-setting.flow:8 sleep 2
+[2026-11-16T00:27:31.171Z] k2a-setting.flow:9 tap ^File.handling$
+[2026-11-16T00:27:33.908Z]   tapped (325, 982) 'File handling'
+[2026-11-16T00:27:33.909Z] k2a-setting.flow:10 sleep 3
+[2026-11-16T00:27:36.910Z] k2a-setting.flow:11 host sh <work>/scripts/prefs.sh on-file-handling-screen
+[2026-11-16T00:27:37.017Z]   | prefs on-file-handling-screen:  <boolean name="UseOfflineCache" value="true" />  <boolean name="SyncOfflineCacheInBackground_key" value="true" />  <boolean name="CheckForFileChangesOnSave" value="true" />  <boolean name="UseFileTransactions" value="true" />  <boolean name="AlwaysMergeOnConflict" value="false" /> 
+[2026-11-16T00:27:37.019Z] k2a-setting.flow:12 scrollto ^Always.merge.on.conflict$
+[2026-11-16T00:28:03.234Z]   '^Always.merge.on.conflict$' on screen after 5 swipe(s)
+[2026-11-16T00:28:03.235Z] k2a-setting.flow:13 sh input swipe 540 1500 540 1000 400
+[2026-11-16T00:28:04.477Z] k2a-setting.flow:14 sleep 2
+[2026-11-16T00:28:06.478Z] k2a-setting.flow:15 checkstate ^Always.merge.on.conflict$
+[2026-11-16T00:28:08.369Z]   '^Always.merge.on.conflict$' checked=false
+[2026-11-16T00:28:08.370Z] k2a-setting.flow:16 tapb ^Always.merge.on.conflict$
+[2026-11-16T00:28:11.337Z]   tapped (450, 1524) 'Always merge on conflict'
+[2026-11-16T00:28:11.338Z] k2a-setting.flow:17 sleep 2
+[2026-11-16T00:28:13.339Z] k2a-setting.flow:18 checkstate ^Always.merge.on.conflict$
+[2026-11-16T00:28:15.377Z]   '^Always.merge.on.conflict$' checked=true
+[2026-11-16T00:28:15.378Z] k2a-setting.flow:19 host sh <work>/scripts/prefs.sh after-tap
+[2026-11-16T00:28:15.434Z]   | prefs after-tap:  <boolean name="UseOfflineCache" value="true" />  <boolean name="SyncOfflineCacheInBackground_key" value="true" />  <boolean name="CheckForFileChangesOnSave" value="true" />  <boolean name="UseFileTransactions" value="true" />  <boolean name="AlwaysMergeOnConflict" value="true" /> 
+[2026-11-16T00:28:15.435Z] k2a-setting.flow:20 key BACK
+[2026-11-16T00:28:16.198Z] k2a-setting.flow:21 sleep 2
+[2026-11-16T00:28:18.202Z] k2a-setting.flow:22 key BACK
+[2026-11-16T00:28:18.962Z] k2a-setting.flow:23 sleep 2
+[2026-11-16T00:28:20.964Z] k2a-setting.flow:24 key BACK
+[2026-11-16T00:28:21.983Z] k2a-setting.flow:25 sleep 2
+[2026-11-16T00:28:23.987Z] k2a-setting.flow:26 waitfor fabAddNew 30
+[2026-11-16T00:28:26.005Z] k2a-sy-s6.flow:6 host sh <work>/scripts/srv-put.sh kpg-s6-alwaysmerge-r1.kdbx <work>/sync/base/SNEW-fixed.kdbx
+[2026-11-16T00:28:26.122Z]   | server kpg-s6-alwaysmerge-r1.kdbx before: 2165 bytes, mtime 2026-11-16 01:25:27.452597900 +0100 sha256 1019e391b75edfe8eb32c81be3e3cfb88a7b0efec39f10a7281da04f0d0469a3
+[2026-11-16T00:28:26.123Z]   | server kpg-s6-alwaysmerge-r1.kdbx after:  2517 bytes, mtime 2026-11-16 01:28:26.054642000 +0100 sha256 88d9855975361fe9879ab327e9ff95e91775716e68a281f53b9c4d9d548ff99b (from SNEW-fixed.kdbx)
+[2026-11-16T00:28:26.124Z] k2a-sy-s6.flow:7 include k2a-sy-pw-P2.flow
+[2026-11-16T00:28:26.132Z] k2a-sy-pw-P2.flow:3 tap ^Passwords$
+[2026-11-16T00:28:28.973Z]   tapped (333, 560) 'Passwords'
+[2026-11-16T00:28:28.974Z] k2a-sy-pw-P2.flow:4 tap ^P2$
+[2026-11-16T00:28:32.392Z]   tapped (231, 728) 'P2'
+[2026-11-16T00:28:32.394Z] k2a-sy-pw-P2.flow:5 waitfor entry_edit 20
+[2026-11-16T00:28:35.188Z] k2a-sy-pw-P2.flow:6 tap entry_edit
+[2026-11-16T00:28:37.918Z]   tapped (959, 2041) 'keepass2android.keepass2android:id/entry_edit'
+[2026-11-16T00:28:37.919Z] k2a-sy-pw-P2.flow:7 waitfor entry_password 20
+[2026-11-16T00:28:40.614Z] k2a-sy-pw-P2.flow:8 appendpw entry_password -phone
+[2026-11-16T00:28:49.608Z]   appended to the focused field (was 6 characters)
+[2026-11-16T00:28:49.609Z] k2a-sy-pw-P2.flow:9 tap menu_save
+[2026-11-16T00:28:52.322Z]   tapped (882, 233) 'Save'
+[2026-11-16T00:28:52.324Z] k2a-sy-pw-P2.flow:10 ifthen Merge.changes 15 k2a-ans-none.flow
+[2026-11-16T00:29:08.918Z]   'Merge.changes' is not there: k2a-ans-none.flow skipped
+[2026-11-16T00:29:08.919Z] k2a-sy-pw-P2.flow:11 sleep 2
+[2026-11-16T00:29:10.920Z] k2a-sy-pw-P2.flow:12 dialog
+[2026-11-16T00:29:13.025Z]   dialog android.widget.Button: '11/1/2026 11:20 AM'
+[2026-11-16T00:29:13.026Z]   dialog entry_edit: ''
+[2026-11-16T00:29:13.027Z]   dialog android.widget.ImageButton: ''
+[2026-11-16T00:29:13.028Z]   dialog menu_lock: ''
+[2026-11-16T00:29:13.029Z]   dialog menu_toggle_pass: ''
+[2026-11-16T00:29:13.030Z] k2a-sy-pw-P2.flow:13 waitfor entry_edit 60
+[2026-11-16T00:29:14.963Z] k2a-sy-pw-P2.flow:14 key BACK
+[2026-11-16T00:29:15.753Z] k2a-sy-pw-P2.flow:15 sleep 2
+[2026-11-16T00:29:17.759Z] k2a-sy-pw-P2.flow:16 key BACK
+[2026-11-16T00:29:18.684Z] k2a-sy-pw-P2.flow:17 sleep 2
+[2026-11-16T00:29:20.685Z] k2a-sy-pw-P2.flow:18 waitfor fabAddNew 20
+[2026-11-16T00:29:22.685Z] k2a-sy-s6.flow:8 host sh <work>/scripts/events.sh 8 after-save
+[2026-11-16T00:29:30.793Z]   | events after-save: TYPE_WINDOW_STATE_CHANGED PackageName: keepass2android.keepass2android Text: [Keepass2Android]
+[2026-11-16T00:29:30.795Z] k2a-sy-s6.flow:9 host sh <work>/scripts/srv-stat.sh kpg-s6-alwaysmerge-r1.kdbx after-save
+[2026-11-16T00:29:31.137Z]   | server kpg-s6-alwaysmerge-r1.kdbx at after-save: 2517 bytes, mtime 2026-11-16 01:28:54.000000000 +0100 sha256 fa6a967d015a1e2e4eb168d263296b0d94edf40ce54b1d43a151f48c8b357a3a
+[2026-11-16T00:29:31.138Z]   | cache 0B10825282DFBF53C6EE3F2852D24810359D57A0F09E554ADE91BFC95D53BDD2.cache at after-save: 2517 bytes sha256 fa6a967d015a1e2e4eb168d263296b0d94edf40ce54b1d43a151f48c8b357a3a
+server already running (21184)
+server kpg-s6-alwaysmerge-r1.kdbx at end: 2517 bytes, mtime 2026-11-16 01:28:54.000000000 +0100 sha256 fa6a967d015a1e2e4eb168d263296b0d94edf40ce54b1d43a151f48c8b357a3a
+cache 0B10825282DFBF53C6EE3F2852D24810359D57A0F09E554ADE91BFC95D53BDD2.cache at end: 2517 bytes sha256 fa6a967d015a1e2e4eb168d263296b0d94edf40ce54b1d43a151f48c8b357a3a
+pulled /data/data/keepass2android.keepass2android/no_backup/OfflineCache/0B10825282DFBF53C6EE3F2852D24810359D57A0F09E554ADE91BFC95D53BDD2.cache -> cache.kdbx sha256 fa6a967d015a1e2e4eb168d263296b0d94edf40ce54b1d43a151f48c8b357a3a
+cache file /data/data/keepass2android.keepass2android/no_backup/OfflineCache/0B10825282DFBF53C6EE3F2852D24810359D57A0F09E554ADE91BFC95D53BDD2.cache.baseversion: FA6A967D015A1E2E4EB168D263296B0D94EDF40CE54B1D43A151F48C8B357A3A
+cache file /data/data/keepass2android.keepass2android/no_backup/OfflineCache/0B10825282DFBF53C6EE3F2852D24810359D57A0F09E554ADE91BFC95D53BDD2.cache.version: FA6A967D015A1E2E4EB168D263296B0D94EDF40CE54B1D43A151F48C8B357A3A
+pulled local backup http10.0.2.28080kpg-s6-alwaysmerge-r1.kdbx -> cache-localbackup.kdbx sha256 1019e391b75edfe8eb32c81be3e3cfb88a7b0efec39f10a7281da04f0d0469a3
+total 4
+drwxrwxrwx 1 probe probe  512 Nov 16 01:28 .
+drwxrwxrwx 1 probe probe  512 Nov 15 22:39 ..
+-rwxrwxrwx 1 probe probe 2517 Nov 16 01:28 kpg-s6-alwaysmerge-r1.kdbx
+### flow rc=0 2026-11-16T00:29:34.132Z

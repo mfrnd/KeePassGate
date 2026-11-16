@@ -1,0 +1,4 @@
+# Exploration: the rest of Keepass2Android's list of places to open a file from.
+sh input swipe 540 1800 540 400 600
+sleep 2
+list

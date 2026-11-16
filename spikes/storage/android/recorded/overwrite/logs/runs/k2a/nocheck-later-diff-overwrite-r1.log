@@ -1,0 +1,208 @@
+### 2026-11-15T22:37:55.306Z ow k2a nocheck-later-diff-overwrite-r1 flow=k2a-ow-setting.flow base=OLD ARRIVING=NEW-diff TMODE=later ANSWER=overwrite ENTRY=phone-nocheck-later-diff-overwrite-r1 SETTING=^Check.for.modifications$ WAIT=3 (versionName=1.15-r6)
+Success
+<work>/work/base/OLD.kdbx: 1 file pushed, 0 skipped. 0.7 MB/s (9301 bytes in 0.012s)
+given 9301 bytes, mtime 2026-11-15 23:27:55.000000000 +0100 sha256 8ef6785ca25b07b7398a59fe828878e7e78975a77fb425ef61a2c00b06da2946
+[2026-11-15T22:37:56.227Z] k2a-ow-setting.flow:6 include k2a-open.flow
+[2026-11-15T22:37:56.236Z] k2a-open.flow:4 sh monkey -p keepass2android.keepass2android -c android.intent.category.LAUNCHER 1
+  bash arg: -p
+  bash arg: keepass2android.keepass2android
+  bash arg: -c
+  bash arg: android.intent.category.LAUNCHER
+  bash arg: 1
+Events injected: 1
+## Network stats: elapsed time=98ms (0ms mobile, 0ms wifi, 98ms not connected)
+args: [-p, keepass2android.keepass2android, -c, android.intent.category.LAUNCHER, 1]
+ arg: "-p"
+ arg: "keepass2android.keepass2android"
+ arg: "-c"
+ arg: "android.intent.category.LAUNCHER"
+ arg: "1"
+data="keepass2android.keepass2android"
+data="android.intent.category.LAUNCHER"
+[2026-11-15T22:37:56.890Z] k2a-open.flow:5 clear ^OK$ start_open_file 40
+[2026-11-15T22:38:02.456Z]   cleared 'Change log' with (859, 1883)
+[2026-11-15T22:38:05.562Z] k2a-open.flow:6 tap start_open_file
+[2026-11-15T22:38:08.366Z]   tapped (540, 1025) 'Open file...'
+[2026-11-15T22:38:08.367Z] k2a-open.flow:7 tap ^System.file.picker$
+[2026-11-15T22:38:11.878Z]   tapped (229, 516) 'System file picker'
+[2026-11-15T22:38:11.880Z] k2a-open.flow:8 waitfor Show.roots 20
+[2026-11-15T22:38:14.390Z] k2a-open.flow:9 include picker.flow
+[2026-11-15T22:38:14.401Z] picker.flow:4 pick k2a-nocheck-later-diff-overwrite-r1.kdbx
+[2026-11-15T22:38:22.712Z]   focused and entered '^k2a\\-nocheck\\-later\\-diff\\-overwrite\\-r1\\.kdbx$'
+[2026-11-15T22:38:22.719Z] k2a-open.flow:10 waitfor password_edit 30
+[2026-11-15T22:38:27.253Z] k2a-open.flow:11 typepwck password_edit dummy-password-for-a-throwaway-file
+[2026-11-15T22:38:42.038Z]   typed the password (35 characters)
+[2026-11-15T22:38:42.039Z] k2a-open.flow:12 tap pass_ok
+[2026-11-15T22:38:45.313Z]   tapped (942, 1437) 'Unlock'
+[2026-11-15T22:38:45.315Z] k2a-open.flow:13 waitfor fabAddNew 60
+[2026-11-15T22:38:52.948Z] k2a-ow-setting.flow:7 sleep 2
+[2026-11-15T22:38:54.950Z] k2a-ow-setting.flow:8 host sh <work>/scripts/prefs.sh before-settings
+[2026-11-15T22:38:55.019Z]   | prefs before-settings: 
+[2026-11-15T22:38:55.021Z] k2a-ow-setting.flow:9 tap More.options
+[2026-11-15T22:38:57.738Z]   tapped (1024, 233) 'More options'
+[2026-11-15T22:38:57.741Z] k2a-ow-setting.flow:10 tap ^Settings$
+[2026-11-15T22:39:00.689Z]   tapped (737, 387) 'Settings'
+[2026-11-15T22:39:00.691Z] k2a-ow-setting.flow:11 sleep 2
+[2026-11-15T22:39:02.694Z] k2a-ow-setting.flow:12 tap ^App$
+[2026-11-15T22:39:05.609Z]   tapped (84, 594) 'App'
+[2026-11-15T22:39:05.611Z] k2a-ow-setting.flow:13 sleep 2
+[2026-11-15T22:39:07.612Z] k2a-ow-setting.flow:14 tap ^File.handling$
+[2026-11-15T22:39:10.289Z]   tapped (325, 982) 'File handling'
+[2026-11-15T22:39:10.291Z] k2a-ow-setting.flow:15 sleep 3
+[2026-11-15T22:39:13.293Z] k2a-ow-setting.flow:16 host sh <work>/scripts/prefs.sh on-file-handling-screen
+[2026-11-15T22:39:13.357Z]   | prefs on-file-handling-screen:  <boolean name="UseOfflineCache" value="true" />  <boolean name="SyncOfflineCacheInBackground_key" value="true" />  <boolean name="CheckForFileChangesOnSave" value="true" />  <boolean name="UseFileTransactions" value="true" />  <boolean name="AlwaysMergeOnConflict" value="false" /> 
+[2026-11-15T22:39:13.358Z] k2a-ow-setting.flow:17 scrollto ^Check.for.modifications$
+[2026-11-15T22:39:25.333Z]   '^Check.for.modifications$' on screen after 2 swipe(s)
+[2026-11-15T22:39:25.335Z] k2a-ow-setting.flow:18 sh input swipe 540 1500 540 1000 400
+[2026-11-15T22:39:27.061Z] k2a-ow-setting.flow:19 sleep 2
+[2026-11-15T22:39:29.063Z] k2a-ow-setting.flow:20 checkstate ^Check.for.modifications$
+[2026-11-15T22:39:30.983Z]   '^Check.for.modifications$' checked=true
+[2026-11-15T22:39:30.985Z] k2a-ow-setting.flow:21 list
+  ViewGroup           (540, 1108)  id=decor_content_parent         text='' desc=''
+  FrameLayout         (540, 233)   id=action_bar_container         text='' desc=''
+  ViewGroup           (540, 233)   id=action_bar                   text='' desc=''
+  ImageButton    c    (77, 233)    id=                             text='' desc='Navigate up'
+  TextView            (337, 233)   id=                             text='File handling' desc=''
+  FrameLayout         (540, 1196)  id=content                      text='' desc=''
+  FrameLayout         (540, 1196)  id=settings                     text='' desc=''
+  FrameLayout         (540, 1196)  id=list_container               text='' desc=''
+  RecyclerView        (540, 1196)  id=recycler_view                text='' desc=''
+  TextView       D    (617, 341)   id=summary                      text='Set the interval for background synchronization in minutes.' desc=''
+  TextView            (343, 479)   id=title                        text='Local backups' desc=''
+  TextView            (529, 563)   id=summary                      text='Create a local backup copy after successfully loading a database.' desc=''
+  LinearLayout        (948, 533)   id=widget_frame                 text='' desc=''
+  CheckBox       kx   (970, 533)   id=checkbox                     text='' desc=''
+  TextView            (358, 734)   id=title                        text='SSL certificates' desc=''
+  TextView            (617, 845)   id=summary                      text='Define the behavior when certificate validation fails. Note: you can install certificates on your device if validation fails!' desc=''
+  TextView            (519, 1044)  id=title                        text='OneDrive device sign-in (broker)' desc=''
+  TextView            (617, 1265)  id=summary                      text="Controls whether OneDrive sign-in uses your device's Microsoft account manager (broker), which is required on some Intune/Entra-managed work devices. Automatic tries broker sign-in first and falls back to normal sign-in if it fails. Choose Never if OneDrive sign-in fails repeatedly on this device." desc=''
+  TextView            (438, 1574)  id=title                        text='Check for modifications' desc=''
+  TextView            (529, 1658)  id=summary                      text='Check whether the file was modified externally before saving changes.' desc=''
+  LinearLayout        (948, 1628)  id=widget_frame                 text='' desc=''
+  CheckBox       kx   (970, 1628)  id=checkbox                     text='' desc=''
+  TextView            (365, 1829)  id=title                        text='File transactions' desc=''
+  TextView            (529, 1913)  id=summary                      text='Use file transactions for writing databases' desc=''
+  LinearLayout        (948, 1883)  id=widget_frame                 text='' desc=''
+  CheckBox       kx   (970, 1883)  id=checkbox                     text='' desc=''
+  TextView            (529, 2063)  id=title                        text='Enable chunked upload for WebDav' desc=''
+  TextView            (0, 0)       id=summary                      text='For WebDav servers that do not support uploading large files in a single request. When enabled, Keepass2Android uses standard WebDav chunking, not the Nextcloud chunking method.' desc=''
+  LinearLayout        (948, 2041)  id=widget_frame                 text='' desc=''
+  CheckBox       x    (0, 0)       id=checkbox                     text='' desc=''
+  View                (540, 72)    id=statusBarBackground          text='' desc=''
+  View                (0, 0)       id=navigationBarBackground      text='' desc=''
+[2026-11-15T22:39:33.254Z] k2a-ow-setting.flow:22 tapb ^Check.for.modifications$
+[2026-11-15T22:39:36.538Z]   tapped (438, 1574) 'Check for modifications'
+[2026-11-15T22:39:36.539Z] k2a-ow-setting.flow:23 sleep 2
+[2026-11-15T22:39:38.540Z] k2a-ow-setting.flow:24 checkstate ^Check.for.modifications$
+[2026-11-15T22:39:40.672Z]   '^Check.for.modifications$' checked=false
+[2026-11-15T22:39:40.673Z] k2a-ow-setting.flow:25 host sh <work>/scripts/prefs.sh after-tap
+[2026-11-15T22:39:40.774Z]   | prefs after-tap:  <boolean name="UseOfflineCache" value="true" />  <boolean name="SyncOfflineCacheInBackground_key" value="true" />  <boolean name="CheckForFileChangesOnSave" value="false" />  <boolean name="UseFileTransactions" value="true" />  <boolean name="AlwaysMergeOnConflict" value="false" /> 
+[2026-11-15T22:39:40.776Z] k2a-ow-setting.flow:26 key BACK
+[2026-11-15T22:39:41.896Z] k2a-ow-setting.flow:27 sleep 2
+[2026-11-15T22:39:43.898Z] k2a-ow-setting.flow:28 key BACK
+[2026-11-15T22:39:45.138Z] k2a-ow-setting.flow:29 sleep 2
+[2026-11-15T22:39:47.141Z] k2a-ow-setting.flow:30 key BACK
+[2026-11-15T22:39:48.569Z] k2a-ow-setting.flow:31 sleep 2
+[2026-11-15T22:39:50.570Z] k2a-ow-setting.flow:32 waitfor fabAddNew 30
+[2026-11-15T22:39:52.698Z] k2a-ow-setting.flow:33 host sh <work>/scripts/replace.sh /sdcard/Download/k2a-nocheck-later-diff-overwrite-r1.kdbx <work>/work/base/NEW-diff.kdbx later
+[2026-11-15T22:39:53.038Z]   | replace: before 9301 bytes, mtime 2026-11-15 23:27:55.000000000 +0100 sha256 8ef6785ca25b07b7398a59fe828878e7e78975a77fb425ef61a2c00b06da2946
+[2026-11-15T22:39:53.039Z]   | <work>/work/base/NEW-diff.kdbx: 1 file pushed, 0 skipped. 1.3 MB/s (11621 bytes in 0.009s)
+[2026-11-15T22:39:53.040Z]   | replace: after  11621 bytes, mtime 2026-11-15 23:39:52.100000000 +0100 sha256 469981f9d9289f78fcf80d60f5a40b464d704959a83384e91cc1be9a2549bed6 (mode later, from NEW-diff.kdbx)
+[2026-11-15T22:39:53.042Z] k2a-ow-setting.flow:34 sleep 3
+[2026-11-15T22:39:56.043Z] k2a-ow-setting.flow:35 include k2a-ow-edit.flow
+[2026-11-15T22:39:56.050Z] k2a-ow-edit.flow:3 tap fabAddNew
+[2026-11-15T22:39:59.321Z]   tapped (959, 1607) 'keepass2android.keepass2android:id/fabAddNew'
+[2026-11-15T22:39:59.322Z] k2a-ow-edit.flow:4 tap fabAddNewEntry
+[2026-11-15T22:40:02.725Z]   tapped (871, 1211) 'Add entry'
+[2026-11-15T22:40:02.734Z] k2a-ow-edit.flow:5 maybe ^No$ 4
+[2026-11-15T22:40:06.110Z]   maybe tapped (634, 1431) 'No'
+[2026-11-15T22:40:06.112Z] k2a-ow-edit.flow:6 waitfor entry_title 20
+[2026-11-15T22:40:09.471Z] k2a-ow-edit.flow:7 tap entry_title
+[2026-11-15T22:40:12.670Z]   tapped (473, 445) 'name'
+[2026-11-15T22:40:12.672Z] k2a-ow-edit.flow:8 text phone-nocheck-later-diff-overwrite-r1
+[2026-11-15T22:40:23.481Z] k2a-ow-edit.flow:9 tap menu_save
+[2026-11-15T22:40:26.903Z]   tapped (882, 233) 'Save'
+[2026-11-15T22:40:26.905Z] k2a-ow-edit.flow:10 ifthen Merge.changes 25 k2a-ans-overwrite.flow
+[2026-11-15T22:40:33.197Z]   'Merge.changes' is there: running k2a-ans-overwrite.flow
+[2026-11-15T22:40:33.217Z] k2a-ans-overwrite.flow:2 dialog
+[2026-11-15T22:40:35.578Z]   dialog alertTitle: 'Merge changes?'
+[2026-11-15T22:40:35.579Z]   dialog message: 'The database file was modified externally. Do you want to load and merge the changes before saving? Select No if you want to overwrite the external changes.'
+[2026-11-15T22:40:35.580Z]   dialog button3: 'Cancel'
+[2026-11-15T22:40:35.581Z]   dialog button2: 'No, overwrite'
+[2026-11-15T22:40:35.581Z]   dialog button1: 'Yes, merge'
+[2026-11-15T22:40:35.582Z] k2a-ans-overwrite.flow:3 tap ^No,.overwrite$
+[2026-11-15T22:40:38.639Z]   tapped (333, 1376) 'No, overwrite'
+[2026-11-15T22:40:38.641Z] k2a-ow-edit.flow:11 sleep 3
+[2026-11-15T22:40:41.643Z] k2a-ow-edit.flow:12 dialog
+[2026-11-15T22:40:44.224Z]   dialog fabTotpOverview: ''
+[2026-11-15T22:40:44.225Z]   dialog fabSearch: ''
+[2026-11-15T22:40:44.227Z]   dialog fabAddNew: ''
+[2026-11-15T22:40:44.229Z]   dialog enable_autofill: 'Enable Autofill'
+[2026-11-15T22:40:44.230Z]   dialog show_autofill_info: 'Show Autofill help'
+[2026-11-15T22:40:44.231Z]   dialog info_dont_show_autofill_again: 'Do not show again'
+[2026-11-15T22:40:44.232Z]   dialog menu_lock: ''
+[2026-11-15T22:40:44.234Z] k2a-ow-edit.flow:13 waitfor fabAddNew 60
+[2026-11-15T22:40:46.380Z] k2a-ow-edit.flow:14 sleep 4
+[2026-11-15T22:40:50.381Z] k2a-ow-edit.flow:15 list
+  ViewGroup           (540, 1036)  id=decor_content_parent         text='' desc=''
+  FrameLayout         (540, 1036)  id=content                      text='' desc=''
+  ViewGroup           (540, 1024)  id=main_content                 text='' desc=''
+  FrameLayout         (540, 1024)  id=list_fragment                text='' desc=''
+  FrameLayout         (540, 1024)  id=listContainer                text='' desc=''
+  ListView            (540, 1024)  id=list                         text='' desc=''
+  ImageView           (99, 408)    id=group_icon_bkg               text='' desc=''
+  ImageView           (99, 408)    id=icon                         text='' desc=''
+  TextView            (216, 386)   id=group_text                   text='G' desc=''
+  TextView            (319, 451)   id=group_label                  text='Group - 9 entries' desc=''
+  ImageView           (992, 408)   id=right_arrow                  text='' desc=''
+  ImageView           (99, 582)    id=group_icon_bkg               text='' desc=''
+  ImageView           (99, 582)    id=icon                         text='' desc=''
+  TextView            (251, 560)   id=group_text                   text='KPG' desc=''
+  TextView            (319, 625)   id=group_label                  text='Group - 4 entries' desc=''
+  ImageView           (992, 582)   id=right_arrow                  text='' desc=''
+  ImageView           (99, 756)    id=group_icon_bkg               text='' desc=''
+  ImageView           (99, 756)    id=icon                         text='' desc=''
+  TextView            (338, 734)   id=group_text                   text='Recycle Bin' desc=''
+  TextView            (319, 799)   id=group_label                  text='Group - 0 entries' desc=''
+  ImageView           (992, 756)   id=right_arrow                  text='' desc=''
+  ImageView           (99, 934)    id=entry_icon_bkg               text='' desc=''
+  ImageView           (99, 934)    id=icon                         text='' desc=''
+  TextView            (567, 934)   id=entry_text                   text='phone-nocheck-later-diff-overwrite-r1' desc=''
+  ImageView           (992, 934)   id=right_arrow                  text='' desc=''
+  ImageButton    c    (959, 1211)  id=fabTotpOverview              text='' desc=''
+  ImageButton    c    (959, 1409)  id=fabSearch                    text='' desc=''
+  ImageButton    c    (959, 1607)  id=fabAddNew                    text='' desc=''
+  View                (540, 1729)  id=divider2                     text='' desc=''
+  RelativeLayout      (540, 1901)  id=bottom_bar                   text='' desc=''
+  LinearLayout        (540, 1901)  id=autofill_infotext            text='' desc=''
+  TextView            (540, 1803)  id=myinfotext                   text="Keepass2Android supports Android's Autofill feature but it looks like you haven't enabled it yet." desc=''
+  RelativeLayout      (540, 1959)  id=autofill_buttons             text='' desc=''
+  Button         c    (183, 1959)  id=enable_autofill              text='Enable Autofill' desc=''
+  Button         c    (860, 1959)  id=show_autofill_info           text='Show Autofill help' desc=''
+  Button         c    (540, 2065)  id=info_dont_show_autofill_again text='Do not show again' desc=''
+  FrameLayout         (540, 233)   id=action_bar_container         text='' desc=''
+  ViewGroup           (540, 233)   id=action_bar                   text='' desc=''
+  TextView            (234, 233)   id=                             text='Storage probe' desc=''
+  LinearLayoutCompat      (771, 233)   id=menu_search                  text='' desc=''
+  LinearLayout        (771, 233)   id=search_bar                   text='' desc=''
+  ImageView      c    (771, 233)   id=search_button                text='' desc='Search'
+  Button         c    (903, 233)   id=menu_lock                    text='' desc='Lock Database'
+  ImageView      c    (1024, 233)  id=                             text='' desc='More options'
+  View                (540, 72)    id=statusBarBackground          text='' desc=''
+  View                (0, 0)       id=navigationBarBackground      text='' desc=''
+[2026-11-15T22:40:52.537Z] k2a-ow-setting.flow:36 sleep 3
+[2026-11-15T22:40:55.539Z] k2a-ow-setting.flow:37 host sh <work>/scripts/devstat.sh /sdcard/Download/k2a-nocheck-later-diff-overwrite-r1.kdbx after-wait
+[2026-11-15T22:40:57.108Z]   | devstat after-wait: 9461 bytes, mtime 2026-11-15 23:40:37.688000000 +0100 sha256 1144123f6dd0f7cd3ee11135ff2bc73dd3470f148f589fd7739a05a63e312dd2
+[2026-11-15T22:40:57.109Z] k2a-ow-setting.flow:38 dialog
+[2026-11-15T22:40:59.053Z]   dialog fabTotpOverview: ''
+[2026-11-15T22:40:59.055Z]   dialog fabSearch: ''
+[2026-11-15T22:40:59.056Z]   dialog fabAddNew: ''
+[2026-11-15T22:40:59.057Z]   dialog enable_autofill: 'Enable Autofill'
+[2026-11-15T22:40:59.058Z]   dialog show_autofill_info: 'Show Autofill help'
+[2026-11-15T22:40:59.059Z]   dialog info_dont_show_autofill_again: 'Do not show again'
+[2026-11-15T22:40:59.060Z]   dialog menu_lock: ''
+total 16
+-rw------- 1 u0_a160 u0_a160 9461 2026-11-15 23:40:37.688000000 +0100 k2a-nocheck-later-diff-overwrite-r1.kdbx
+device k2a-nocheck-later-diff-overwrite-r1.kdbx sha256 1144123f6dd0f7cd3ee11135ff2bc73dd3470f148f589fd7739a05a63e312dd2 9461 bytes, mtime 2026-11-15 23:40:37.688000000 +0100
+/sdcard/Download/k2a-nocheck-later-diff-overwrite-r1.kdbx: 1 file pulled, 0 skipped. 0.2 MB/s (9461 bytes in 0.048s)
+### flow rc=0 2026-11-15T22:41:01.987Z

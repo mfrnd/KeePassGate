@@ -1,0 +1,17 @@
+k2a-sy-s3c.flow s3c-phone-cacheonly-r1 ANSWER=none PREFS=A
+k2a-sy-s3c.flow s3c-phone-cacheonly-r2 ANSWER=none PREFS=A
+k2a-sy-s3b.flow s3b-phone-serverstopped-r1 ANSWER=none PREFS=A
+k2a-sy-s4.flow s4-both-cacheonly-r1 ANSWER=none ENTRY=phone-new PREFS=A
+k2a-sy-s4.flow s4-both-cacheonly-r2 ANSWER=none ENTRY=phone-new PREFS=A
+k2a-sy-s4.flow s4-both-cacheonly-r3 ANSWER=none ENTRY=phone-new PREFS=A
+k2a-sy-s4b.flow s4b-both-serverstopped-r1 ANSWER=none ENTRY=phone-new PREFS=A
+k2a-sy-s5.flow s5-save-merge-r1 ANSWER=merge PREFS=A
+k2a-sy-s5.flow s5-save-merge-r2 ANSWER=merge PREFS=A
+k2a-sy-s5.flow s5-save-overwrite-r1 ANSWER=overwrite PREFS=A
+k2a-sy-s6.flow s6-alwaysmerge-r1 ANSWER=none SETTING=^Always.merge.on.conflict$ PREFS=A
+k2a-sy-s6.flow s7-nocheck-r1 ANSWER=overwrite SETTING=^Check.for.modifications$ PREFS=A
+k2a-sy-s8.flow s8-reopen-r1 ANSWER=none PREFS=A
+k2a-sy-s8.flow s8-reopen-r2 ANSWER=none PREFS=A
+k2a-sy-s5.flow s5B-save-bgsync-r1 ANSWER=none PREFS=B
+k2a-sy-s5.flow s5B-save-bgsync-r2 ANSWER=none PREFS=B
+k2a-sy-s4.flow s4B-both-cacheonly-bgsync-r1 ANSWER=none ENTRY=phone-new PREFS=B

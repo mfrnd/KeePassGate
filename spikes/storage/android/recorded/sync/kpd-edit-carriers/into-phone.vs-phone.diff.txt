@@ -1,0 +1,6 @@
+1c1
+< # file kpd-edit-carriers.kdbx size=7525 sha256=3e126a4c9a0ce927d65946288043a739a6b45cc3daf148819226db7699a88bd8
+---
+> # file into-phone.kdbx size=8181 sha256=133ed66c6551c7037d5c0b7cc294df08fd3a572727be8a6b6275e488861a1c93
+5a6
+> E E1 CD KPG = "{\"reader\":[\"read\",\"list\"]}"

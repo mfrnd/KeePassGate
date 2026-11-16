@@ -1,0 +1,12 @@
+# Step 1, KeePassDroid: open, unlock, add one entry titled ${ENTRY} at the root and save it; the
+# spike's kpd-A.flow with the open part in kpd-open.flow. Its bottom buttons (ADD ENTRY, SAVE) come
+# back from the dump with bounds [0,0][0,0], so they are tapped where they are drawn.
+include kpd-open.flow
+list
+tapor add_entry 415 2141
+waitfor entry_save 30
+type entry_title@.* ${ENTRY}
+tapor entry_save 140 2141         # placed above the keyboard while it shows, else at the bottom
+waitfor entry_text@^${ENTRY}$ 40
+sleep 5
+list

@@ -1,0 +1,191 @@
+1c1
+< # file SOLD.kdbx size=2165 sha256=1019e391b75edfe8eb32c81be3e3cfb88a7b0efec39f10a7281da04f0d0469a3
+---
+> # file phone-before-sync.kdbx size=2613 sha256=9b40a2653a68dbc45bd553705596649f095f5a70144b6c1281b18a02ab8d142d
+74a75,89
+> E P2 H2026-11-01T10:20:00Z S Notes p=0 ""
+> E P2 H2026-11-01T10:20:00Z S Password p=1 "p2-old"
+> E P2 H2026-11-01T10:20:00Z S Title p=0 "P2"
+> E P2 H2026-11-01T10:20:00Z S URL p=0 ""
+> E P2 H2026-11-01T10:20:00Z S UserName p=0 "user-p2"
+> E P2 H2026-11-01T10:20:00Z autotype enabled=1 obfuscation=0 seq="" assoc=0
+> E P2 H2026-11-01T10:20:00Z misc icon=0 customIcon=- fg=00000000 bg=00000000 overrideUrl="" quality=1
+> E P2 H2026-11-01T10:20:00Z prev -
+> E P2 H2026-11-01T10:20:00Z t.accessed 2026-11-15T23:44:32Z
+> E P2 H2026-11-01T10:20:00Z t.created 2026-11-01T10:20:00Z
+> E P2 H2026-11-01T10:20:00Z t.expires 0 2026-11-01T10:00:00Z
+> E P2 H2026-11-01T10:20:00Z t.location 2026-11-01T10:20:00Z
+> E P2 H2026-11-01T10:20:00Z t.modified 2026-11-01T10:20:00Z
+> E P2 H2026-11-01T10:20:00Z tags []
+> E P2 H2026-11-01T10:20:00Z usage 1
+76c91
+< E P2 S Password p=1 "p2-old"
+---
+> E P2 S Password p=1 "p2-old-phone"
+81c96
+< E P2 history.count 0
+---
+> E P2 history.count 1
+85c100
+< E P2 t.accessed 2026-11-01T10:20:00Z
+---
+> E P2 t.accessed 2026-11-15T23:44:53Z
+89c104
+< E P2 t.modified 2026-11-01T10:20:00Z
+---
+> E P2 t.modified 2026-11-15T23:44:51Z
+91c106,121
+< E P2 usage 0
+---
+> E P2 usage 3
+> E Q1 H2026-11-01T10:20:00Z S Notes p=0 ""
+> E Q1 H2026-11-01T10:20:00Z S Password p=1 "q1-old"
+> E Q1 H2026-11-01T10:20:00Z S Title p=0 "Q1"
+> E Q1 H2026-11-01T10:20:00Z S URL p=0 ""
+> E Q1 H2026-11-01T10:20:00Z S UserName p=0 "user-q1"
+> E Q1 H2026-11-01T10:20:00Z autotype enabled=1 obfuscation=0 seq="" assoc=0
+> E Q1 H2026-11-01T10:20:00Z misc icon=0 customIcon=- fg=00000000 bg=00000000 overrideUrl="" quality=1
+> E Q1 H2026-11-01T10:20:00Z prev -
+> E Q1 H2026-11-01T10:20:00Z t.accessed 2026-11-15T23:45:28Z
+> E Q1 H2026-11-01T10:20:00Z t.created 2026-11-01T10:20:00Z
+> E Q1 H2026-11-01T10:20:00Z t.expires 0 2026-11-01T10:00:00Z
+> E Q1 H2026-11-01T10:20:00Z t.location 2026-11-01T10:20:00Z
+> E Q1 H2026-11-01T10:20:00Z t.modified 2026-11-01T10:20:00Z
+> E Q1 H2026-11-01T10:20:00Z tags []
+> E Q1 H2026-11-01T10:20:00Z usage 1
+93c123
+< E Q1 S Password p=1 "q1-old"
+---
+> E Q1 S Password p=1 "q1-old-phone"
+98c128
+< E Q1 history.count 0
+---
+> E Q1 history.count 1
+102c132
+< E Q1 t.accessed 2026-11-01T10:20:00Z
+---
+> E Q1 t.accessed 2026-11-15T23:45:48Z
+106c136
+< E Q1 t.modified 2026-11-01T10:20:00Z
+---
+> E Q1 t.modified 2026-11-15T23:45:47Z
+108c138,153
+< E Q1 usage 0
+---
+> E Q1 usage 3
+> E Q2 H2026-11-01T10:20:00Z S Notes p=0 ""
+> E Q2 H2026-11-01T10:20:00Z S Password p=1 "q2-old"
+> E Q2 H2026-11-01T10:20:00Z S Title p=0 "Q2"
+> E Q2 H2026-11-01T10:20:00Z S URL p=0 ""
+> E Q2 H2026-11-01T10:20:00Z S UserName p=0 "user-q2"
+> E Q2 H2026-11-01T10:20:00Z autotype enabled=1 obfuscation=0 seq="" assoc=0
+> E Q2 H2026-11-01T10:20:00Z misc icon=0 customIcon=- fg=00000000 bg=00000000 overrideUrl="" quality=1
+> E Q2 H2026-11-01T10:20:00Z prev -
+> E Q2 H2026-11-01T10:20:00Z t.accessed 2026-11-15T23:46:28Z
+> E Q2 H2026-11-01T10:20:00Z t.created 2026-11-01T10:20:00Z
+> E Q2 H2026-11-01T10:20:00Z t.expires 0 2026-11-01T10:00:00Z
+> E Q2 H2026-11-01T10:20:00Z t.location 2026-11-01T10:20:00Z
+> E Q2 H2026-11-01T10:20:00Z t.modified 2026-11-01T10:20:00Z
+> E Q2 H2026-11-01T10:20:00Z tags []
+> E Q2 H2026-11-01T10:20:00Z usage 1
+110c155
+< E Q2 S Password p=1 "q2-old"
+---
+> E Q2 S Password p=1 "q2-old-phone"
+115c160
+< E Q2 history.count 0
+---
+> E Q2 history.count 1
+119c164
+< E Q2 t.accessed 2026-11-01T10:20:00Z
+---
+> E Q2 t.accessed 2026-11-15T23:46:48Z
+123c168
+< E Q2 t.modified 2026-11-01T10:20:00Z
+---
+> E Q2 t.modified 2026-11-15T23:46:47Z
+125c170,185
+< E Q2 usage 0
+---
+> E Q2 usage 3
+> E Q3 H2026-11-01T10:20:00Z S Notes p=0 ""
+> E Q3 H2026-11-01T10:20:00Z S Password p=1 "q3-old"
+> E Q3 H2026-11-01T10:20:00Z S Title p=0 "Q3"
+> E Q3 H2026-11-01T10:20:00Z S URL p=0 ""
+> E Q3 H2026-11-01T10:20:00Z S UserName p=0 "user-q3"
+> E Q3 H2026-11-01T10:20:00Z autotype enabled=1 obfuscation=0 seq="" assoc=0
+> E Q3 H2026-11-01T10:20:00Z misc icon=0 customIcon=- fg=00000000 bg=00000000 overrideUrl="" quality=1
+> E Q3 H2026-11-01T10:20:00Z prev -
+> E Q3 H2026-11-01T10:20:00Z t.accessed 2026-11-15T23:47:25Z
+> E Q3 H2026-11-01T10:20:00Z t.created 2026-11-01T10:20:00Z
+> E Q3 H2026-11-01T10:20:00Z t.expires 0 2026-11-01T10:00:00Z
+> E Q3 H2026-11-01T10:20:00Z t.location 2026-11-01T10:20:00Z
+> E Q3 H2026-11-01T10:20:00Z t.modified 2026-11-01T10:20:00Z
+> E Q3 H2026-11-01T10:20:00Z tags []
+> E Q3 H2026-11-01T10:20:00Z usage 1
+127c187
+< E Q3 S Password p=1 "q3-old"
+---
+> E Q3 S Password p=1 "q3-old-phone"
+132c192
+< E Q3 history.count 0
+---
+> E Q3 history.count 1
+136c196
+< E Q3 t.accessed 2026-11-01T10:20:00Z
+---
+> E Q3 t.accessed 2026-11-15T23:47:46Z
+140c200
+< E Q3 t.modified 2026-11-01T10:20:00Z
+---
+> E Q3 t.modified 2026-11-15T23:47:44Z
+142c202
+< E Q3 usage 0
+---
+> E Q3 usage 3
+159a220,236
+> E ~a2455419 S Notes p=0 ""
+> E ~a2455419 S Password p=1 ""
+> E ~a2455419 S Title p=0 "phone-new"
+> E ~a2455419 S URL p=0 ""
+> E ~a2455419 S UserName p=0 ""
+> E ~a2455419 autotype enabled=1 obfuscation=0 seq="" assoc=0
+> E ~a2455419 history.count 0
+> E ~a2455419 misc icon=0 customIcon=- fg=00000000 bg=00000000 overrideUrl="" quality=1
+> E ~a2455419 parent Root (Synchronize probe)
+> E ~a2455419 prev -
+> E ~a2455419 t.accessed 2026-11-15T23:48:34Z
+> E ~a2455419 t.created 2026-11-15T23:48:23Z
+> E ~a2455419 t.expires 0 2026-11-15T23:43:56Z
+> E ~a2455419 t.location 2026-11-15T23:48:23Z
+> E ~a2455419 t.modified 2026-11-15T23:48:34Z
+> E ~a2455419 tags []
+> E ~a2455419 usage 1
+162c239
+< F groups 4 entries 9
+---
+> F groups 4 entries 10
+164c241
+< F version 4.1
+---
+> F version 4.0
+197c274
+< G PW t.accessed 2026-11-01T10:05:00Z
+---
+> G PW t.accessed 2026-11-15T23:47:46Z
+203,204c280,281
+< G PW usage 0
+< G Root children groups=3 entries=0
+---
+> G PW usage 8
+> G Root children groups=3 entries=1
+210c287
+< G Root t.accessed 2026-11-01T10:00:00Z
+---
+> G Root t.accessed 2026-11-15T23:47:46Z
+216,217c293,294
+< G Root usage 0
+< M CD KPG.Profiles = "[\"reader\",\"writer\"]" @2026-11-01T10:15:00Z
+---
+> G Root usage 8
+> M CD KPG.Profiles = "[\"reader\",\"writer\"]" @none

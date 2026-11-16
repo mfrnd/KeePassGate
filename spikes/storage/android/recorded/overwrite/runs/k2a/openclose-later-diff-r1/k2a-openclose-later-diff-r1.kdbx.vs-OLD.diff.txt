@@ -1,0 +1,116 @@
+1c1
+< # file OLD.kdbx size=9301 sha256=8ef6785ca25b07b7398a59fe828878e7e78975a77fb425ef61a2c00b06da2946
+---
+> # file k2a-openclose-later-diff-r1.kdbx size=11765 sha256=04ad1bc19f283b45cd2d682d9fb4e84466c2fc8a68067cc3384eaa69a47402c2
+4c4,5
+< D count 2
+---
+> D X1 2026-11-01T18:00:00Z
+> D count 3
+108c109,125
+< E M1 S KPG.base p=0 "{\"v\":0}"
+---
+> E M1 H2026-11-01T10:50:00Z S KPG.base p=0 "{\"v\":0}"
+> E M1 H2026-11-01T10:50:00Z S Notes p=0 ""
+> E M1 H2026-11-01T10:50:00Z S Password p=1 ""
+> E M1 H2026-11-01T10:50:00Z S Title p=0 "KPG merge 1"
+> E M1 H2026-11-01T10:50:00Z S URL p=0 ""
+> E M1 H2026-11-01T10:50:00Z S UserName p=0 ""
+> E M1 H2026-11-01T10:50:00Z autotype enabled=1 obfuscation=0 seq="" assoc=0
+> E M1 H2026-11-01T10:50:00Z misc icon=0 customIcon=- fg=00000000 bg=00000000 overrideUrl="" quality=1
+> E M1 H2026-11-01T10:50:00Z prev -
+> E M1 H2026-11-01T10:50:00Z t.accessed 2026-11-01T10:50:00Z
+> E M1 H2026-11-01T10:50:00Z t.created 2026-11-01T10:50:00Z
+> E M1 H2026-11-01T10:50:00Z t.expires 0 2026-11-01T10:00:00Z
+> E M1 H2026-11-01T10:50:00Z t.location 2026-11-01T10:50:00Z
+> E M1 H2026-11-01T10:50:00Z t.modified 2026-11-01T10:50:00Z
+> E M1 H2026-11-01T10:50:00Z tags []
+> E M1 H2026-11-01T10:50:00Z usage 0
+> E M1 S KPG.base p=0 "{\"v\":1,\"by\":\"KeePass\"}"
+115c132
+< E M1 history.count 0
+---
+> E M1 history.count 1
+119c136
+< E M1 t.accessed 2026-11-01T10:50:00Z
+---
+> E M1 t.accessed 2026-11-01T18:00:00Z
+123c140
+< E M1 t.modified 2026-11-01T10:50:00Z
+---
+> E M1 t.modified 2026-11-01T18:00:00Z
+256,272c273,290
+< E X1 S Notes p=0 len=1500 sha=5657257250e9dad5 "dCc4KKz7UUYDMLq3ey8jRh02wlYfk6PVsQdOI2OM6vZgrdEnNpqpmtY5MkHj..."
+< E X1 S Password p=1 "pw-x1"
+< E X1 S Title p=0 "X1"
+< E X1 S URL p=0 ""
+< E X1 S UserName p=0 "user-x1"
+< E X1 autotype enabled=1 obfuscation=0 seq="" assoc=0
+< E X1 history.count 0
+< E X1 misc icon=0 customIcon=- fg=00000000 bg=00000000 overrideUrl="" quality=1
+< E X1 parent G (G)
+< E X1 prev -
+< E X1 t.accessed 2026-11-01T10:55:00Z
+< E X1 t.created 2026-11-01T10:55:00Z
+< E X1 t.expires 0 2026-11-01T10:00:00Z
+< E X1 t.location 2026-11-01T10:55:00Z
+< E X1 t.modified 2026-11-01T10:55:00Z
+< E X1 tags []
+< E X1 usage 0
+---
+> E RV S KPG.Revoked.c2 p=0 "{\"revoked\":\"client-two\",\"at\":\"2026-11-01T18:00:00Z\"}"
+> E RV S Notes p=0 len=4000 sha=3dd3ca681dc60fc6 "b18q3EQGNwOuq8R1dXWo8IsmYMDB3ytgGdNDC0SKfNvdG8BAyS4UjoBTIVRr..."
+> E RV S Password p=1 ""
+> E RV S Title p=0 "KPG revocation"
+> E RV S URL p=0 ""
+> E RV S UserName p=0 ""
+> E RV autotype enabled=1 obfuscation=0 seq="" assoc=0
+> E RV history.count 0
+> E RV misc icon=0 customIcon=- fg=00000000 bg=00000000 overrideUrl="" quality=1
+> E RV parent GKPG (KPG)
+> E RV prev -
+> E RV t.accessed 2026-11-01T18:00:00Z
+> E RV t.created 2026-11-01T18:00:00Z
+> E RV t.expires 0 2026-11-01T10:00:00Z
+> E RV t.location 2026-11-01T18:00:00Z
+> E RV t.modified 2026-11-01T18:00:00Z
+> E RV tags []
+> E RV usage 0
+340a359,375
+> E ~f7e4ba8a S Notes p=0 ""
+> E ~f7e4ba8a S Password p=1 ""
+> E ~f7e4ba8a S Title p=0 "phone-openclose-later-diff-r1"
+> E ~f7e4ba8a S URL p=0 ""
+> E ~f7e4ba8a S UserName p=0 ""
+> E ~f7e4ba8a autotype enabled=1 obfuscation=0 seq="" assoc=0
+> E ~f7e4ba8a history.count 0
+> E ~f7e4ba8a misc icon=0 customIcon=- fg=00000000 bg=00000000 overrideUrl="" quality=1
+> E ~f7e4ba8a parent Root (Storage probe)
+> E ~f7e4ba8a prev -
+> E ~f7e4ba8a t.accessed 2026-11-15T22:16:07Z
+> E ~f7e4ba8a t.created 2026-11-15T22:15:51Z
+> E ~f7e4ba8a t.expires 0 2026-11-15T22:14:15Z
+> E ~f7e4ba8a t.location 2026-11-15T22:15:51Z
+> E ~f7e4ba8a t.modified 2026-11-15T22:16:07Z
+> E ~f7e4ba8a tags []
+> E ~f7e4ba8a usage 1
+343c378
+< F groups 5 entries 13
+---
+> F groups 5 entries 14
+360c395
+< G G children groups=1 entries=8
+---
+> G G children groups=1 entries=7
+373c408
+< G GKPG children groups=0 entries=4
+---
+> G GKPG children groups=0 entries=5
+399c434
+< G Root children groups=3 entries=0
+---
+> G Root children groups=3 entries=1
+412c447
+< M CD KPG.Profiles = "[\"reader\",\"writer\"]" @2026-11-01T10:15:00Z
+---
+> M CD KPG.Profiles = "[\"reader\",\"writer\"]" @none

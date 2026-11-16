@@ -1,0 +1,49 @@
+1c1
+< # file S-argon.kdbx size=7941 sha256=bd84dd4785579e8705bd12f3fe4d53a2e342be2e88c64875413ef8b336dc11ae
+---
+> # file mid-recycled.kdbx size=7285 sha256=3c3437286a499920d586649780bff97f8da636fd4c4c4ac1f50dd5fcaf408e19
+6d5
+< E E1 CD KPG = "{\"reader\":[\"read\",\"list\"]}"
+81c80
+< E E2 parent G (G)
+---
+> E E2 parent Bin (Recycle Bin)
+83c82
+< E E2 t.accessed 2026-11-01T10:45:00Z
+---
+> E E2 t.accessed 2026-11-15T17:58:34Z
+86c85
+< E E2 t.location 2026-11-01T10:45:00Z
+---
+> E E2 t.location 2026-11-15T17:58:34Z
+89c88
+< E E2 usage 0
+---
+> E E2 usage 1
+162d160
+< E R1 CD KPG.cd = "{\"control\":\"entry custom data on R1\"}"
+346c344
+< G Bin children groups=0 entries=0
+---
+> G Bin children groups=0 entries=1
+352c350
+< G Bin t.accessed 2026-11-01T10:05:00Z
+---
+> G Bin t.accessed 2026-11-15T17:58:34Z
+359,360c357
+< G G CD KPG = "{\"reader\":[\"read\",\"list\"]}"
+< G G children groups=1 entries=8
+---
+> G G children groups=1 entries=7
+366c363
+< G G t.accessed 2026-11-01T10:00:00Z
+---
+> G G t.accessed 2026-11-15T17:58:34Z
+405c402
+< G Root t.accessed 2026-11-01T10:00:00Z
+---
+> G Root t.accessed 2026-11-15T17:58:34Z
+422c419
+< M settingsChanged 2026-11-01T10:00:00Z
+---
+> M settingsChanged 2026-11-15T18:01:21Z

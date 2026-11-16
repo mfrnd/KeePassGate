@@ -1,0 +1,43 @@
+1c1
+< # file kpdx-merge-fromCP-r1.kdbx size=9321 sha256=9ceaf9826dec553ae6c9b762d540e22582aafa18961eeb7e04e9a59eca2c4d2c
+---
+> # file into-kp.kdbx size=10053 sha256=b5ccde0f63aff40e235721260376e92c7fe4267b3a345c2bd11a37af9950176a
+4,5c4
+< D X2 2026-11-01T15:00:00Z
+< D count 3
+---
+> D count 2
+343a343,359
+> E X1 S Notes p=0 ""
+> E X1 S Password p=1 "pw-x1"
+> E X1 S Title p=0 "X1"
+> E X1 S URL p=0 ""
+> E X1 S UserName p=0 "user-x1"
+> E X1 autotype enabled=1 obfuscation=0 seq="" assoc=0
+> E X1 history.count 0
+> E X1 misc icon=0 customIcon=- fg=00000000 bg=00000000 overrideUrl="" quality=1
+> E X1 parent G (G)
+> E X1 prev -
+> E X1 t.accessed 2026-11-01T10:55:00Z
+> E X1 t.created 2026-11-01T10:55:00Z
+> E X1 t.expires 0 2026-11-01T10:00:00Z
+> E X1 t.location 2026-11-01T10:55:00Z
+> E X1 t.modified 2026-11-01T10:55:00Z
+> E X1 tags []
+> E X1 usage 0
+449c465
+< E Y3 parent N (N)
+---
+> E Y3 parent G (G)
+460c476
+< F groups 5 entries 14
+---
+> F groups 5 entries 15
+477c493
+< G G children groups=1 entries=6
+---
+> G G children groups=1 entries=8
+503c519
+< G N children groups=0 entries=2
+---
+> G N children groups=0 entries=1

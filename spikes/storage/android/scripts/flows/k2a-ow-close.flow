@@ -1,0 +1,16 @@
+# Window (c), Keepass2Android: open OLD and unlock; lock with its own button and press "Close
+# database" on the QuickUnlock screen; replace.sh puts ${ARRIVING} over the file at time ${TMODE}
+# while the database is closed; start the program again, unlock with the password, look into KPG
+# (is KPG revocation there?), then add an entry ${ENTRY} at the root and save, answering a
+# "Merge changes?" question with ${ANSWER}.
+include k2a-open.flow
+sleep 2
+tap menu_lock
+waitfor QuickUnlock_buttonLock 20
+tap QuickUnlock_buttonLock
+sleep 3
+host sh ${P}/replace.sh /sdcard/Download/${NAME}.kdbx ${SRCDIR}/${ARRIVING}.kdbx ${TMODE}
+sleep 2
+include k2a-reopen.flow
+include k2a-look-kpg.flow
+include k2a-ow-edit.flow

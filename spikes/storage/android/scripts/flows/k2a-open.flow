@@ -1,0 +1,13 @@
+# Keepass2Android, fresh app state: open /sdcard/Download/${NAME}.kdbx through the system file
+# picker and unlock it. The spike's k2a-open.flow, with the password typed by typepwck, which
+# checks the field's length (a keystroke was seen to be lost under load).
+sh monkey -p keepass2android.keepass2android -c android.intent.category.LAUNCHER 1
+clear ^OK$ start_open_file 40     # change log (and any other first-start notice)
+tap start_open_file
+tap ^System.file.picker$
+waitfor Show.roots 20
+include picker.flow
+waitfor password_edit 30
+typepwck password_edit dummy-password-for-a-throwaway-file
+tap pass_ok
+waitfor fabAddNew 60

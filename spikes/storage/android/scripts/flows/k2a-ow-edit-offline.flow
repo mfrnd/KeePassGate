@@ -1,0 +1,16 @@
+# Keepass2Android, an open database at its root group: add an entry ${ENTRY} and save; if the save
+# asks "Merge changes?", record the dialog and answer it as k2a-ans-${ANSWER}.flow does.
+tap fabAddNew
+tap fabAddNewEntry
+maybe ^No$ 4                      # "Add templates?" on the first entry added
+waitfor entry_title 20
+tap entry_title
+text ${ENTRY}
+tap menu_save
+host sh ${P}/events.sh 8 save-new
+maybe ^OK$ 3
+sleep 3
+dialog
+waitfor fabAddNew 60
+sleep 4
+list

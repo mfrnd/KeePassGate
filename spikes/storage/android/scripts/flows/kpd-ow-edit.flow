@@ -1,0 +1,14 @@
+# KeePassDroid, an open database at its root group: add one entry titled ${ENTRY} and save (its
+# bottom buttons come back from the dump with no bounds and are tapped where they are drawn),
+# recording any dialog the save raises.
+list
+tapor add_entry 415 2141
+waitfor entry_save 30
+type entry_title@.* ${ENTRY}
+tapor entry_save 140 2141         # placed above the keyboard while it shows, else at the bottom
+sleep 2
+dialog
+waitfor entry_text@^${ENTRY}$ 40
+sleep 5
+dialog
+list

@@ -1,0 +1,9 @@
+# Keepass2Android, at the root group: More options, Synchronize database...; a "Merge changes?"
+# question answered as k2a-ans-${SANSWER}.flow does; the events of the next 15 s logged (a toast is
+# only there), then what is on screen.
+tap More.options
+tap ^Synchronize.database
+ifthen Merge.changes 25 k2a-ans-${SANSWER}.flow
+host sh ${P}/events.sh 15 after-synchronize
+dialog
+list

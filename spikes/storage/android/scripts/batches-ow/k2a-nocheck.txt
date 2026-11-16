@@ -1,0 +1,2 @@
+k2a k2a-ow-setting.flow keepass2android.keepass2android OLD nocheck-later-diff-r1 ARRIVING=NEW-diff TMODE=later ANSWER=none ENTRY=phone-nocheck-later-diff-r1 SETTING=^Check.for.modifications$ WAIT=3
+k2a k2a-ow-setting.flow keepass2android.keepass2android OLD nocheck-later-diff-r2 ARRIVING=NEW-diff TMODE=later ANSWER=none ENTRY=phone-nocheck-later-diff-r2 SETTING=^Check.for.modifications$ WAIT=3

@@ -1,0 +1,53 @@
+### 2026-11-15T18:12:59.917Z op kpdx save-aes-plain flow=kpdx-A.flow base=S-aes-plain (versionName=4.5.8)
+Success
+<work>/work/base/S-aes-plain.kdbx: 1 file pushed, 0 skipped. 1.0 MB/s (7719 bytes in 0.007s)
+pushed sha256 c344cc06c816d9cef38ebad8a5b0fd24bd9f5a94b7da586a8271ffdedfae61e0
+[2026-11-15T18:13:01.036Z] kpdx-A.flow:2 include kpdx-open.flow
+[2026-11-15T18:13:01.042Z] kpdx-open.flow:4 sh monkey -p com.kunzisoft.keepass.libre -c android.intent.category.LAUNCHER 1
+  bash arg: -p
+  bash arg: com.kunzisoft.keepass.libre
+  bash arg: -c
+  bash arg: android.intent.category.LAUNCHER
+  bash arg: 1
+Events injected: 1
+## Network stats: elapsed time=124ms (0ms mobile, 0ms wifi, 124ms not connected)
+args: [-p, com.kunzisoft.keepass.libre, -c, android.intent.category.LAUNCHER, 1]
+ arg: "-p"
+ arg: "com.kunzisoft.keepass.libre"
+ arg: "-c"
+ arg: "android.intent.category.LAUNCHER"
+ arg: "1"
+data="com.kunzisoft.keepass.libre"
+data="android.intent.category.LAUNCHER"
+[2026-11-15T18:13:02.013Z] kpdx-open.flow:5 waitfor open_database_button 30
+[2026-11-15T18:13:05.058Z] kpdx-open.flow:6 tapuntil open_database_button Show.roots 40
+[2026-11-15T18:13:07.881Z]   tapped (799, 2051) 'Open existing vault'
+[2026-11-15T18:13:15.731Z]   tapped (799, 2051) 'Open existing vault'
+[2026-11-15T18:13:18.156Z] kpdx-open.flow:7 include picker.flow
+[2026-11-15T18:13:18.164Z] picker.flow:4 pick kpdx-save-aes-plain.kdbx
+[2026-11-15T18:13:26.455Z]   focused and entered '^kpdx\\-save\\-aes\\-plain\\.kdbx$'
+[2026-11-15T18:13:26.456Z] kpdx-open.flow:8 waitfor password_text_view 40
+[2026-11-15T18:13:29.761Z] kpdx-open.flow:9 typepw password_text_view dummy-password-for-a-throwaway-file
+[2026-11-15T18:13:42.557Z]   type: field never took the focus (attempt 1)
+[2026-11-15T18:13:55.288Z]   type: field never took the focus (attempt 2)
+[2026-11-15T18:14:05.154Z]   typed into the focused field
+[2026-11-15T18:14:05.155Z] kpdx-open.flow:10 tapuntil activity_password_open_button add_button 60
+[2026-11-15T18:14:08.346Z]   tapped (895, 1435) 'Unlock'
+[2026-11-15T18:14:18.964Z]   tapped (895, 1435) 'Unlock'
+[2026-11-15T18:14:29.756Z]   tapped (895, 1435) 'Unlock'
+[2026-11-15T18:14:35.792Z] kpdx-A.flow:3 include kpdx-add.flow
+[2026-11-15T18:14:35.798Z] kpdx-add.flow:3 tapuntil add_button fab_add_entry 20
+[2026-11-15T18:14:38.703Z]   tapped (970, 2013) 'Add node'
+[2026-11-15T18:14:40.496Z] kpdx-add.flow:4 tapuntil fab_add_entry entry_edit_validate 30
+[2026-11-15T18:14:43.474Z]   tapped (885, 1691) 'Add entry'
+[2026-11-15T18:14:46.559Z] kpdx-add.flow:5 type ^Title$ droid-added
+[2026-11-15T18:14:59.344Z]   type: field never took the focus (attempt 1)
+[2026-11-15T18:15:10.318Z]   typed 'droid-added'
+[2026-11-15T18:15:10.319Z] kpdx-add.flow:6 tapuntil entry_edit_validate add_button 30
+[2026-11-15T18:15:13.644Z]   tapped (970, 1413) 'Validate'
+[2026-11-15T18:15:18.584Z] kpdx-add.flow:7 sleep 5
+total 12
+-rw------- 1 u0_a160 u0_a160 7271 2026-11-15 19:15:12.248000000 +0100 kpdx-save-aes-plain.kdbx
+device kpdx-save-aes-plain.kdbx sha256 b895f153a6cd72eb44f498a80428aa8ba55439e20cd6413c9ea3d9feb8480ea3
+/sdcard/Download/kpdx-save-aes-plain.kdbx: 1 file pulled, 0 skipped. 0.1 MB/s (7271 bytes in 0.047s)
+### flow rc=0 2026-11-15T18:15:26.293Z

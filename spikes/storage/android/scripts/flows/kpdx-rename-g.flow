@@ -1,0 +1,15 @@
+# Step 4, KeePassDX: open, select G (a 2 s press on the middle of its row), the selection's overflow, Edit, append -phone to
+# the name, OK.
+include kpdx-open.flow
+waitfor node_text@^G$ 20
+sleep 2
+longpressuntil node_text@^G$ menu_move 60 2000 600
+tapuntil More.options#2 ^Edit$ 30
+tap ^Edit$
+waitfor group_edit_name 20
+list
+append group_edit_name@.* -phone
+tap ^OK$
+waitfor node_text@^G-phone$ 30
+sleep 6
+list

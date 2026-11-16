@@ -1,0 +1,7 @@
+# What the later measurements' scripts write outside `work\` and `out\`, which the root rules
+# already reach: the synchronization bases and their dumps in `sync\base\`, and the server, rclone
+# as `server\fetch-rclone.sh` fetches it and the directory it serves, in `server\rclone-dl\` and
+# `server\root\`. Anchored here, so that `recorded\sync\` is not touched.
+/sync/
+/server/rclone-dl/
+/server/root/

@@ -1,0 +1,16 @@
+# Step 2, KeePassDroid: open, go into G, open E1, EDIT (bottom left, the dump gives it no bounds;
+# the screen is FLAG_SECURE), append -phone to the password and to its confirmation, SAVE. The
+# fields are named by their id (entry_password@.*): a bare entry_password matches its label first.
+include kpd-open.flow
+tap ^G$
+tap ^E1$
+waitfor entry_edit 30
+tapxy 140 2141
+waitfor entry_confpassword 30
+list
+appendpw entry_password@.* -phone
+appendpw entry_confpassword@.* -phone
+tapor entry_save 140 2141
+waitfor entry_edit 60
+sleep 6
+list

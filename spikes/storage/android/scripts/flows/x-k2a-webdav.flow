@@ -1,0 +1,7 @@
+# Exploration: open a file from the WebDAV server, then list the screen and the menu.
+include k2a-sy-open.flow
+list
+tap More.options
+sleep 2
+list
+key BACK

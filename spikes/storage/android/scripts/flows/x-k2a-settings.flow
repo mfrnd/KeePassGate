@@ -1,0 +1,12 @@
+# Exploration: Keepass2Android's File handling settings, listed after scrolling to the check.
+include k2a-open.flow
+tap More.options
+tap ^Settings$
+sleep 2
+tap ^App$
+sleep 2
+tap ^File.handling$
+sleep 3
+list
+scrollto ^Check.for.modifications$
+list

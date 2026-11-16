@@ -1,0 +1,22 @@
+# Scenario B, KeePassDX's external-change path: open the target, then (as a sync would) put the
+# source over the file with a current modification time; KeePassDX counts a change only when the
+# file's time moved on by more than 10 s. On resume it shows "modified outside the app"; then "Merge
+# data" from the toolbar's menu, which merges the file into the open database and saves it
+# (auto-save on).
+include kpdx-open.flow
+sleep 11
+adb push ${SRC} /sdcard/Download/${NAME}.kdbx
+sh touch /sdcard/Download/${NAME}.kdbx
+sh ls -l --full-time /sdcard/Download/${NAME}.kdbx
+sh sha256sum /sdcard/Download/${NAME}.kdbx
+key HOME
+sleep 2
+sh monkey -p ${PKG} -c android.intent.category.LAUNCHER 1
+waitfor modified.outside 40
+list
+tap ^OK$
+sleep 3
+tapuntil More.options ^Merge.data$ 30
+tap ^Merge.data$
+sleep 10
+list

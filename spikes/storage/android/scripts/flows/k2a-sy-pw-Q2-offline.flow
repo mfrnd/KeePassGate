@@ -1,0 +1,20 @@
+# With the server stopped: the events after Save logged, an OK pressed if a dialog asks. Keepass2Android, at the root group: Passwords, Q2, Edit, append -phone to the password, Save; a
+# "Merge changes?" question is answered as k2a-ans-${ANSWER}.flow does; back to the root.
+tap ^Passwords$
+tap ^Q2$
+waitfor entry_edit 20
+tap entry_edit
+waitfor entry_password 20
+appendpw entry_password -phone
+tap menu_save
+host sh ${P}/events.sh 8 save-Q2
+ifthen Merge.changes 3 k2a-ans-${ANSWER}.flow
+maybe ^OK$ 3
+sleep 2
+dialog
+waitfor entry_edit 60
+key BACK
+sleep 2
+key BACK
+sleep 2
+waitfor fabAddNew 20

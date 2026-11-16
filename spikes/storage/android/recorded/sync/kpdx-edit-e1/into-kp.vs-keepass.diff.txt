@@ -1,0 +1,63 @@
+1c1
+< # file S-argon.kdbx size=7941 sha256=bd84dd4785579e8705bd12f3fe4d53a2e342be2e88c64875413ef8b336dc11ae
+---
+> # file into-kp.kdbx size=8069 sha256=6100a803aeafc6059d57fc5896adfeb8cbbaf3098bf26333970527555471e128
+54a55,72
+> E E1 H2026-11-01T14:00:00Z A e1.txt p=0 len=600 sha=259674a04e10f900
+> E E1 H2026-11-01T14:00:00Z CD KPG = "{\"reader\":[\"read\",\"list\"]}"
+> E E1 H2026-11-01T14:00:00Z S Extra p=0 "extra-value-e1"
+> E E1 H2026-11-01T14:00:00Z S Notes p=0 "ordinary notes"
+> E E1 H2026-11-01T14:00:00Z S Password p=1 "pw-e1-not-real"
+> E E1 H2026-11-01T14:00:00Z S Title p=0 "E1"
+> E E1 H2026-11-01T14:00:00Z S URL p=0 "https://e1.example.invalid/"
+> E E1 H2026-11-01T14:00:00Z S UserName p=0 "alice-invented"
+> E E1 H2026-11-01T14:00:00Z autotype enabled=1 obfuscation=0 seq="" assoc=0
+> E E1 H2026-11-01T14:00:00Z misc icon=0 customIcon=- fg=00000000 bg=00000000 overrideUrl="" quality=1
+> E E1 H2026-11-01T14:00:00Z prev -
+> E E1 H2026-11-01T14:00:00Z t.accessed 2026-11-01T14:00:00Z
+> E E1 H2026-11-01T14:00:00Z t.created 2026-11-01T11:00:00Z
+> E E1 H2026-11-01T14:00:00Z t.expires 0 2026-11-01T10:00:00Z
+> E E1 H2026-11-01T14:00:00Z t.location 2026-11-01T11:00:00Z
+> E E1 H2026-11-01T14:00:00Z t.modified 2026-11-01T14:00:00Z
+> E E1 H2026-11-01T14:00:00Z tags [work]
+> E E1 H2026-11-01T14:00:00Z usage 0
+58c76
+< E E1 S Title p=0 "E1"
+---
+> E E1 S Title p=0 "E1-phone"
+62c80
+< E E1 history.count 3
+---
+> E E1 history.count 4
+66c84
+< E E1 t.accessed 2026-11-01T14:00:00Z
+---
+> E E1 t.accessed 2026-11-15T19:13:15Z
+68c86
+< E E1 t.expires 0 2026-11-01T10:00:00Z
+---
+> E E1 t.expires 0 2999-11-28T23:59:59Z
+70c88
+< E E1 t.modified 2026-11-01T14:00:00Z
+---
+> E E1 t.modified 2026-11-15T19:13:15Z
+72c90
+< E E1 usage 0
+---
+> E E1 usage 1
+366c384
+< G G t.accessed 2026-11-01T10:00:00Z
+---
+> G G t.accessed 2026-11-15T19:13:15Z
+370c388
+< G G t.modified 2026-11-01T10:30:00Z
+---
+> G G t.modified 2026-11-15T19:13:15Z
+405c423
+< G Root t.accessed 2026-11-01T10:00:00Z
+---
+> G Root t.accessed 2026-11-15T19:13:15Z
+409c427
+< G Root t.modified 2026-11-01T10:00:00Z
+---
+> G Root t.modified 2026-11-15T19:13:15Z

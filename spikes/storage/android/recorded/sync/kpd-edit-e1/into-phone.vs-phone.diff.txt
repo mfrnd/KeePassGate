@@ -1,0 +1,6 @@
+1c1
+< # file kpd-edit-e1.kdbx size=7349 sha256=2762884ededa7866975b451674fcd8fb6911a2741a0a4ebc2e5b961ca105a149
+---
+> # file into-phone.kdbx size=7989 sha256=a59c93ff23c3dc43df072fc8090742491ebc09bcd6a19dbad1b5d453cd470653
+177a178
+> E R1 CD KPG.cd = "{\"control\":\"entry custom data on R1\"}"

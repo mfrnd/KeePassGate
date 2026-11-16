@@ -1,0 +1,15 @@
+# KeePassDX, external change whose file time does not move on (adb push keeps the source's time, as
+# a restore or a copy that preserves times would): open the target, put the source over it, add an
+# entry at the root. Measures whether the save notices the change or writes over it.
+include kpdx-open.flow
+sleep 11
+adb push ${SRC} /sdcard/Download/${NAME}.kdbx
+sh ls -l --full-time /sdcard/Download/${NAME}.kdbx
+sh sha256sum /sdcard/Download/${NAME}.kdbx
+key HOME
+sleep 2
+sh monkey -p ${PKG} -c android.intent.category.LAUNCHER 1
+sleep 5
+list
+include kpdx-add.flow
+list

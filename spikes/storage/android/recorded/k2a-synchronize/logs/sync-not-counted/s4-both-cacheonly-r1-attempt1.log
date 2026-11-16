@@ -1,0 +1,414 @@
+### 2026-11-15T23:33:23.478Z sync s4-both-cacheonly-r1 flow=k2a-sy-s4.flow ANSWER=none ENTRY=phone-new PREFS=A (versionName=1.15-r6)
+Success
+server already running (17081)
+server kpg-s4-both-cacheonly-r1.kdbx after:  2165 bytes, mtime 2026-11-16 00:33:24.063528000 +0100 sha256 1019e391b75edfe8eb32c81be3e3cfb88a7b0efec39f10a7281da04f0d0469a3 (from SOLD.kdbx)
+SELinux: Loaded file_contexts
+prefs set A:  <boolean name="permit_cleartext_traffic" value="true" /> 
+[2026-11-15T23:33:24.530Z] k2a-sy-s4.flow:6 include k2a-sy-open.flow
+[2026-11-15T23:33:24.536Z] k2a-sy-open.flow:4 sh monkey -p keepass2android.keepass2android -c android.intent.category.LAUNCHER 1
+  bash arg: -p
+  bash arg: keepass2android.keepass2android
+  bash arg: -c
+  bash arg: android.intent.category.LAUNCHER
+  bash arg: 1
+Events injected: 1
+## Network stats: elapsed time=120ms (0ms mobile, 0ms wifi, 120ms not connected)
+args: [-p, keepass2android.keepass2android, -c, android.intent.category.LAUNCHER, 1]
+ arg: "-p"
+ arg: "keepass2android.keepass2android"
+ arg: "-c"
+ arg: "android.intent.category.LAUNCHER"
+ arg: "1"
+data="keepass2android.keepass2android"
+data="android.intent.category.LAUNCHER"
+[2026-11-15T23:33:25.248Z] k2a-sy-open.flow:5 clear ^OK$ start_open_file 40
+[2026-11-15T23:33:32.610Z]   cleared 'Change log' with (859, 1883)
+[2026-11-15T23:33:36.180Z] k2a-sy-open.flow:6 tap start_open_file
+[2026-11-15T23:33:39.156Z]   tapped (540, 1025) 'Open file...'
+[2026-11-15T23:33:39.157Z] k2a-sy-open.flow:7 tap ^HTTP..WebDav.$
+[2026-11-15T23:33:43.070Z]   tapped (849, 1174) 'HTTP (WebDav)'
+[2026-11-15T23:33:43.072Z] k2a-sy-open.flow:8 waitfor http_url 20
+[2026-11-15T23:33:45.649Z] k2a-sy-open.flow:9 type http_url 10.0.2.2:8080/
+[2026-11-15T23:33:59.082Z]   type: field never took the focus (attempt 1)
+[2026-11-15T23:34:09.358Z]   typed '10.0.2.2:8080/'
+[2026-11-15T23:34:09.359Z] k2a-sy-open.flow:10 type http_user kpg
+[2026-11-15T23:34:18.568Z]   typed 'kpg'
+[2026-11-15T23:34:18.569Z] k2a-sy-open.flow:11 typepw http_password <invented>
+[2026-11-15T23:34:26.614Z]   typed into the focused field
+[2026-11-15T23:34:26.617Z] k2a-sy-open.flow:12 dialog
+[2026-11-15T23:34:28.658Z]   dialog alertTitle: 'Enter WebDav login data:'
+[2026-11-15T23:34:28.659Z]   dialog button2: 'Cancel'
+[2026-11-15T23:34:28.660Z]   dialog button1: 'OK'
+[2026-11-15T23:34:28.661Z] k2a-sy-open.flow:13 tap ^OK$
+[2026-11-15T23:34:31.734Z]   tapped (832, 1111) 'OK'
+[2026-11-15T23:34:31.736Z] k2a-sy-open.flow:14 sleep 5
+[2026-11-15T23:34:36.738Z] k2a-sy-open.flow:15 dialog
+[2026-11-15T23:34:38.917Z] k2a-sy-open.flow:16 list
+  FrameLayout         (540, 1108)  id=content                      text='' desc=''
+  FrameLayout         (540, 1108)  id=afc_fragment_files           text='' desc=''
+  RelativeLayout      (540, 201)   id=afc_viewgroup_header         text='' desc=''
+  ImageView      cD   (63, 208)    id=afc_button_go_back           text='' desc=''
+  ImageView      cD   (176, 208)   id=afc_button_go_forward        text='' desc=''
+  RelativeLayout      (653, 206)   id=afc_viewgroup_button_locations text='' desc=''
+  HorizontalScrollView      (350, 206)   id=afc_view_locations_container text='' desc=''
+  LinearLayout        (350, 206)   id=afc_view_locations           text='' desc=''
+  TextView       c    (350, 206)   id=                             text='Root' desc=''
+  RelativeLayout      (540, 1179)  id=afc_viewgroup_files          text='' desc=''
+  LinearLayout        (540, 1179)  id=afc_view_files_container     text='' desc=''
+  ImageView      c    (66, 346)    id=afc_imageview_icon           text='' desc=''
+  TextView            (446, 329)   id=afc_textview_filename        text='kpg-s4-both-cacheonly-r1.kdbx' desc=''
+  TextView            (915, 381)   id=afc_textview_file_info       text='2.11 KiB, 12:33 AM' desc=''
+  View                (540, 72)    id=statusBarBackground          text='' desc=''
+  View                (0, 0)       id=navigationBarBackground      text='' desc=''
+[2026-11-15T23:34:40.783Z] k2a-sy-open.flow:17 tap ^kpg-s4-both-cacheonly-r1.kdbx$
+[2026-11-15T23:34:43.551Z]   tapped (446, 329) 'kpg-s4-both-cacheonly-r1.kdbx'
+[2026-11-15T23:34:43.553Z] k2a-sy-open.flow:18 sleep 3
+[2026-11-15T23:34:46.555Z] k2a-sy-open.flow:19 dialog
+[2026-11-15T23:34:49.722Z]   dialog android.widget.ImageButton: ''
+[2026-11-15T23:34:49.724Z]   dialog toggle_password: ''
+[2026-11-15T23:34:49.726Z]   dialog change_db: 'Change database'
+[2026-11-15T23:34:49.727Z]   dialog pass_ok: 'Unlock'
+[2026-11-15T23:34:49.728Z] k2a-sy-open.flow:20 waitfor password_edit 40
+[2026-11-15T23:34:52.029Z] k2a-sy-open.flow:21 list
+  LinearLayout        (540, 834)   id=action_bar_root              text='' desc=''
+  FrameLayout         (540, 834)   id=content                      text='' desc=''
+  DrawerLayout        (540, 834)   id=drawer_layout                text='' desc=''
+  LinearLayout        (540, 834)   id=main_layout                  text='' desc=''
+  ViewGroup           (540, 747)   id=main_content                 text='' desc=''
+  LinearLayout        (540, 489)   id=appbar                       text='' desc=''
+  FrameLayout         (540, 489)   id=collapsing_toolbar           text='' desc='Unlock database'
+  ImageView           (540, 489)   id=backdrop                     text='' desc=''
+  TextView            (343, 814)   id=filename                     text='http://10.0.2.2:8080/kpg-s4-both-cacheonly-r1.kdbx' desc=''
+  ViewGroup           (540, 233)   id=toolbar                      text='' desc=''
+  ImageButton    c    (77, 233)    id=                             text='' desc='Open'
+  ScrollView          (540, 1091)  id=scrollview                   text='' desc=''
+  TextView            (215, 899)   id=password_label               text='Select master key type:' desc=''
+  Spinner        c    (529, 954)   id=password_mode_spinner        text='' desc=''
+  TextView            (463, 953)   id=text1                        text='Password only' desc=''
+  View                (540, 1010)  id=line_below_spinner           text='' desc=''
+  TextView            (117, 1078)  id=                             text='Password' desc=''
+  EditText       cf   (501, 1151)  id=password_edit                text='Password' desc=''
+  ImageButton    c    (1003, 1133) id=toggle_password              text='' desc=''
+  LinearLayout        (534, 1276)  id=enable_quickunlock_container text='' desc=''
+  CheckBox       ckx  (255, 1298)  id=enable_quickunlock           text='Enable QuickUnlock' desc=''
+  TextView       c    (526, 1290)  id=                             text='\uf05a' desc=''
+  View                (540, 1350)  id=divider2                     text='' desc=''
+  RelativeLayout      (540, 1437)  id=bottom_bar                   text='' desc=''
+  Button         c    (214, 1437)  id=change_db                    text='Change database' desc=''
+  Button         c    (942, 1437)  id=pass_ok                      text='Unlock' desc=''
+  View                (540, 72)    id=statusBarBackground          text='' desc=''
+  View                (0, 0)       id=navigationBarBackground      text='' desc=''
+[2026-11-15T23:34:54.448Z] k2a-sy-open.flow:22 typepwck password_edit dummy-password-for-a-throwaway-file
+[2026-11-15T23:35:07.516Z]   typed the password (35 characters)
+[2026-11-15T23:35:07.517Z] k2a-sy-open.flow:23 tap pass_ok
+[2026-11-15T23:35:10.282Z]   tapped (942, 1437) 'Unlock'
+[2026-11-15T23:35:10.283Z] k2a-sy-open.flow:24 waitfor fabAddNew 90
+[2026-11-15T23:35:16.188Z] k2a-sy-open.flow:25 dialog
+[2026-11-15T23:35:18.353Z]   dialog fabTotpOverview: ''
+[2026-11-15T23:35:18.354Z]   dialog fabSearch: ''
+[2026-11-15T23:35:18.356Z]   dialog fabAddNew: ''
+[2026-11-15T23:35:18.357Z]   dialog enable_autofill: 'Enable Autofill'
+[2026-11-15T23:35:18.357Z]   dialog show_autofill_info: 'Show Autofill help'
+[2026-11-15T23:35:18.358Z]   dialog info_dont_show_autofill_again: 'Do not show again'
+[2026-11-15T23:35:18.359Z]   dialog menu_lock: ''
+[2026-11-15T23:35:18.360Z] k2a-sy-s4.flow:7 include k2a-sy-offline.flow
+[2026-11-15T23:35:18.366Z] k2a-sy-offline.flow:3 tap More.options
+[2026-11-15T23:35:21.390Z]   tapped (1024, 233) 'More options'
+[2026-11-15T23:35:21.395Z] k2a-sy-offline.flow:4 sleep 2
+[2026-11-15T23:35:23.397Z] k2a-sy-offline.flow:5 list
+  LinearLayout        (737, 256)   id=content                      text='' desc=''
+  TextView            (737, 255)   id=title                        text='Advanced Search' desc=''
+  LinearLayout        (737, 388)   id=content                      text='' desc=''
+  TextView            (737, 387)   id=title                        text='Settings' desc=''
+  LinearLayout        (737, 520)   id=content                      text='' desc=''
+  TextView            (737, 519)   id=title                        text='Synchronize database…' desc=''
+  LinearLayout        (737, 652)   id=content                      text='' desc=''
+  TextView            (737, 651)   id=title                        text='Work on internal cache only' desc=''
+  LinearLayout        (737, 784)   id=content                      text='' desc=''
+  TextView            (737, 783)   id=title                        text='Sort by...' desc=''
+  LinearLayout        (737, 916)   id=content                      text='' desc=''
+  TextView            (737, 915)   id=title                        text='Open another database…' desc=''
+[2026-11-15T23:35:25.482Z] k2a-sy-offline.flow:6 checkstate ^Work.on.internal.cache.only$
+[2026-11-15T23:35:27.461Z]   checkstate: no checkable node found for '^Work.on.internal.cache.only$'
+[2026-11-15T23:35:27.462Z] k2a-sy-offline.flow:7 tap ^Work.on.internal.cache.only$
+[2026-11-15T23:35:30.267Z]   tapped (737, 651) 'Work on internal cache only'
+[2026-11-15T23:35:30.268Z] k2a-sy-offline.flow:8 host sh <work>/scripts/events.sh 8 offline-toggle
+[2026-11-15T23:35:38.357Z]   | events offline-toggle: TYPE_WINDOW_STATE_CHANGED PackageName: keepass2android.keepass2android Text: [Keepass2Android]
+[2026-11-15T23:35:38.357Z] k2a-sy-offline.flow:9 dialog
+[2026-11-15T23:35:40.200Z]   dialog fabTotpOverview: ''
+[2026-11-15T23:35:40.201Z]   dialog fabSearch: ''
+[2026-11-15T23:35:40.202Z]   dialog fabAddNew: ''
+[2026-11-15T23:35:40.204Z]   dialog enable_autofill: 'Enable Autofill'
+[2026-11-15T23:35:40.205Z]   dialog show_autofill_info: 'Show Autofill help'
+[2026-11-15T23:35:40.207Z]   dialog info_dont_show_autofill_again: 'Do not show again'
+[2026-11-15T23:35:40.208Z]   dialog menu_lock: ''
+[2026-11-15T23:35:40.209Z] k2a-sy-s4.flow:8 include k2a-sy-pw-P2.flow
+[2026-11-15T23:35:40.216Z] k2a-sy-pw-P2.flow:3 tap ^Passwords$
+[2026-11-15T23:35:42.906Z]   tapped (333, 560) 'Passwords'
+[2026-11-15T23:35:42.908Z] k2a-sy-pw-P2.flow:4 tap ^P2$
+[2026-11-15T23:35:46.629Z]   tapped (231, 728) 'P2'
+[2026-11-15T23:35:46.631Z] k2a-sy-pw-P2.flow:5 waitfor entry_edit 20
+[2026-11-15T23:35:49.634Z] k2a-sy-pw-P2.flow:6 tap entry_edit
+[2026-11-15T23:35:52.232Z]   tapped (959, 2041) 'keepass2android.keepass2android:id/entry_edit'
+[2026-11-15T23:35:52.234Z] k2a-sy-pw-P2.flow:7 waitfor entry_password 20
+[2026-11-15T23:35:54.941Z] k2a-sy-pw-P2.flow:8 appendpw entry_password -phone
+[2026-11-15T23:36:05.503Z]   appended to the focused field (was 6 characters)
+[2026-11-15T23:36:05.504Z] k2a-sy-pw-P2.flow:9 tap menu_save
+[2026-11-15T23:36:08.772Z]   tapped (882, 233) 'Save'
+[2026-11-15T23:36:08.778Z] k2a-sy-pw-P2.flow:10 ifthen Merge.changes 15 k2a-ans-none.flow
+[2026-11-15T23:36:25.118Z]   'Merge.changes' is not there: k2a-ans-none.flow skipped
+[2026-11-15T23:36:25.121Z] k2a-sy-pw-P2.flow:11 sleep 2
+[2026-11-15T23:36:27.123Z] k2a-sy-pw-P2.flow:12 dialog
+[2026-11-15T23:36:29.229Z]   dialog android.widget.Button: '11/1/2026 11:20 AM'
+[2026-11-15T23:36:29.231Z]   dialog entry_edit: ''
+[2026-11-15T23:36:29.232Z]   dialog android.widget.ImageButton: ''
+[2026-11-15T23:36:29.232Z]   dialog menu_lock: ''
+[2026-11-15T23:36:29.233Z]   dialog menu_toggle_pass: ''
+[2026-11-15T23:36:29.234Z] k2a-sy-pw-P2.flow:13 waitfor entry_edit 60
+[2026-11-15T23:36:31.245Z] k2a-sy-pw-P2.flow:14 key BACK
+[2026-11-15T23:36:32.182Z] k2a-sy-pw-P2.flow:15 sleep 2
+[2026-11-15T23:36:34.184Z] k2a-sy-pw-P2.flow:16 key BACK
+[2026-11-15T23:36:35.144Z] k2a-sy-pw-P2.flow:17 sleep 2
+[2026-11-15T23:36:37.145Z] k2a-sy-pw-P2.flow:18 waitfor fabAddNew 20
+[2026-11-15T23:36:39.117Z] k2a-sy-s4.flow:9 include k2a-sy-pw-Q1.flow
+[2026-11-15T23:36:39.123Z] k2a-sy-pw-Q1.flow:3 tap ^Passwords$
+[2026-11-15T23:36:41.912Z]   tapped (333, 560) 'Passwords'
+[2026-11-15T23:36:41.918Z] k2a-sy-pw-Q1.flow:4 tap ^Q1$
+[2026-11-15T23:36:45.359Z]   tapped (232, 902) 'Q1'
+[2026-11-15T23:36:45.361Z] k2a-sy-pw-Q1.flow:5 waitfor entry_edit 20
+[2026-11-15T23:36:47.832Z] k2a-sy-pw-Q1.flow:6 tap entry_edit
+[2026-11-15T23:36:50.686Z]   tapped (959, 2041) 'keepass2android.keepass2android:id/entry_edit'
+[2026-11-15T23:36:50.688Z] k2a-sy-pw-Q1.flow:7 waitfor entry_password 20
+[2026-11-15T23:36:53.256Z] k2a-sy-pw-Q1.flow:8 appendpw entry_password -phone
+[2026-11-15T23:37:02.013Z]   appended to the focused field (was 6 characters)
+[2026-11-15T23:37:02.014Z] k2a-sy-pw-Q1.flow:9 tap menu_save
+[2026-11-15T23:37:05.090Z]   tapped (882, 233) 'Save'
+[2026-11-15T23:37:05.092Z] k2a-sy-pw-Q1.flow:10 ifthen Merge.changes 15 k2a-ans-none.flow
+[2026-11-15T23:37:20.843Z]   'Merge.changes' is not there: k2a-ans-none.flow skipped
+[2026-11-15T23:37:20.845Z] k2a-sy-pw-Q1.flow:11 sleep 2
+[2026-11-15T23:37:22.846Z] k2a-sy-pw-Q1.flow:12 dialog
+[2026-11-15T23:37:24.693Z]   dialog android.widget.Button: '11/1/2026 11:20 AM'
+[2026-11-15T23:37:24.695Z]   dialog entry_edit: ''
+[2026-11-15T23:37:24.696Z]   dialog android.widget.ImageButton: ''
+[2026-11-15T23:37:24.697Z]   dialog menu_lock: ''
+[2026-11-15T23:37:24.697Z]   dialog menu_toggle_pass: ''
+[2026-11-15T23:37:24.698Z] k2a-sy-pw-Q1.flow:13 waitfor entry_edit 60
+[2026-11-15T23:37:26.587Z] k2a-sy-pw-Q1.flow:14 key BACK
+[2026-11-15T23:37:27.505Z] k2a-sy-pw-Q1.flow:15 sleep 2
+[2026-11-15T23:37:29.507Z] k2a-sy-pw-Q1.flow:16 key BACK
+[2026-11-15T23:37:30.358Z] k2a-sy-pw-Q1.flow:17 sleep 2
+[2026-11-15T23:37:32.360Z] k2a-sy-pw-Q1.flow:18 waitfor fabAddNew 20
+[2026-11-15T23:37:34.252Z] k2a-sy-s4.flow:10 include k2a-sy-pw-Q2.flow
+[2026-11-15T23:37:34.258Z] k2a-sy-pw-Q2.flow:3 tap ^Passwords$
+[2026-11-15T23:37:37.018Z]   tapped (333, 560) 'Passwords'
+[2026-11-15T23:37:37.020Z] k2a-sy-pw-Q2.flow:4 tap ^Q2$
+[2026-11-15T23:37:40.398Z]   tapped (232, 1076) 'Q2'
+[2026-11-15T23:37:40.399Z] k2a-sy-pw-Q2.flow:5 waitfor entry_edit 20
+[2026-11-15T23:37:42.933Z] k2a-sy-pw-Q2.flow:6 tap entry_edit
+[2026-11-15T23:37:45.593Z]   tapped (959, 2041) 'keepass2android.keepass2android:id/entry_edit'
+[2026-11-15T23:37:45.594Z] k2a-sy-pw-Q2.flow:7 waitfor entry_password 20
+[2026-11-15T23:37:48.053Z] k2a-sy-pw-Q2.flow:8 appendpw entry_password -phone
+[2026-11-15T23:37:57.291Z]   appended to the focused field (was 6 characters)
+[2026-11-15T23:37:57.292Z] k2a-sy-pw-Q2.flow:9 tap menu_save
+[2026-11-15T23:38:00.334Z]   tapped (882, 233) 'Save'
+[2026-11-15T23:38:00.336Z] k2a-sy-pw-Q2.flow:10 ifthen Merge.changes 15 k2a-ans-none.flow
+[2026-11-15T23:38:16.720Z]   'Merge.changes' is not there: k2a-ans-none.flow skipped
+[2026-11-15T23:38:16.721Z] k2a-sy-pw-Q2.flow:11 sleep 2
+[2026-11-15T23:38:18.723Z] k2a-sy-pw-Q2.flow:12 dialog
+[2026-11-15T23:38:20.795Z]   dialog android.widget.Button: '11/1/2026 11:20 AM'
+[2026-11-15T23:38:20.796Z]   dialog entry_edit: ''
+[2026-11-15T23:38:20.797Z]   dialog android.widget.ImageButton: ''
+[2026-11-15T23:38:20.798Z]   dialog menu_lock: ''
+[2026-11-15T23:38:20.799Z]   dialog menu_toggle_pass: ''
+[2026-11-15T23:38:20.800Z] k2a-sy-pw-Q2.flow:13 waitfor entry_edit 60
+[2026-11-15T23:38:22.545Z] k2a-sy-pw-Q2.flow:14 key BACK
+[2026-11-15T23:38:23.605Z] k2a-sy-pw-Q2.flow:15 sleep 2
+[2026-11-15T23:38:25.607Z] k2a-sy-pw-Q2.flow:16 key BACK
+[2026-11-15T23:38:26.424Z] k2a-sy-pw-Q2.flow:17 sleep 2
+[2026-11-15T23:38:28.427Z] k2a-sy-pw-Q2.flow:18 waitfor fabAddNew 20
+[2026-11-15T23:38:30.304Z] k2a-sy-s4.flow:11 include k2a-sy-pw-Q3.flow
+[2026-11-15T23:38:30.313Z] k2a-sy-pw-Q3.flow:3 tap ^Passwords$
+[2026-11-15T23:38:33.012Z]   tapped (333, 560) 'Passwords'
+[2026-11-15T23:38:33.013Z] k2a-sy-pw-Q3.flow:4 tap ^Q3$
+[2026-11-15T23:38:36.761Z]   tapped (232, 1250) 'Q3'
+[2026-11-15T23:38:36.764Z] k2a-sy-pw-Q3.flow:5 waitfor entry_edit 20
+[2026-11-15T23:38:39.264Z] k2a-sy-pw-Q3.flow:6 tap entry_edit
+[2026-11-15T23:38:41.905Z]   tapped (959, 2041) 'keepass2android.keepass2android:id/entry_edit'
+[2026-11-15T23:38:41.912Z] k2a-sy-pw-Q3.flow:7 waitfor entry_password 20
+[2026-11-15T23:38:44.446Z] k2a-sy-pw-Q3.flow:8 appendpw entry_password -phone
+[2026-11-15T23:38:53.128Z]   appended to the focused field (was 6 characters)
+[2026-11-15T23:38:53.129Z] k2a-sy-pw-Q3.flow:9 tap menu_save
+[2026-11-15T23:38:55.883Z]   tapped (882, 233) 'Save'
+[2026-11-15T23:38:55.884Z] k2a-sy-pw-Q3.flow:10 ifthen Merge.changes 15 k2a-ans-none.flow
+[2026-11-15T23:39:11.980Z]   'Merge.changes' is not there: k2a-ans-none.flow skipped
+[2026-11-15T23:39:11.981Z] k2a-sy-pw-Q3.flow:11 sleep 2
+[2026-11-15T23:39:13.982Z] k2a-sy-pw-Q3.flow:12 dialog
+[2026-11-15T23:39:16.047Z]   dialog android.widget.Button: '11/1/2026 11:20 AM'
+[2026-11-15T23:39:16.049Z]   dialog entry_edit: ''
+[2026-11-15T23:39:16.049Z]   dialog android.widget.ImageButton: ''
+[2026-11-15T23:39:16.052Z]   dialog menu_lock: ''
+[2026-11-15T23:39:16.053Z]   dialog menu_toggle_pass: ''
+[2026-11-15T23:39:16.054Z] k2a-sy-pw-Q3.flow:13 waitfor entry_edit 60
+[2026-11-15T23:39:18.034Z] k2a-sy-pw-Q3.flow:14 key BACK
+[2026-11-15T23:39:18.876Z] k2a-sy-pw-Q3.flow:15 sleep 2
+[2026-11-15T23:39:20.880Z] k2a-sy-pw-Q3.flow:16 key BACK
+[2026-11-15T23:39:21.785Z] k2a-sy-pw-Q3.flow:17 sleep 2
+[2026-11-15T23:39:23.787Z] k2a-sy-pw-Q3.flow:18 waitfor fabAddNew 20
+[2026-11-15T23:39:25.927Z] k2a-sy-s4.flow:12 include k2a-ow-edit.flow
+[2026-11-15T23:39:25.935Z] k2a-ow-edit.flow:3 tap fabAddNew
+[2026-11-15T23:39:28.717Z]   tapped (959, 1607) 'keepass2android.keepass2android:id/fabAddNew'
+[2026-11-15T23:39:28.718Z] k2a-ow-edit.flow:4 tap fabAddNewEntry
+[2026-11-15T23:39:31.537Z]   tapped (871, 1211) 'Add entry'
+[2026-11-15T23:39:31.539Z] k2a-ow-edit.flow:5 maybe ^No$ 4
+[2026-11-15T23:39:34.688Z]   maybe tapped (634, 1431) 'No'
+[2026-11-15T23:39:34.689Z] k2a-ow-edit.flow:6 waitfor entry_title 20
+[2026-11-15T23:39:37.432Z] k2a-ow-edit.flow:7 tap entry_title
+[2026-11-15T23:39:40.307Z]   tapped (473, 445) 'name'
+[2026-11-15T23:39:40.310Z] k2a-ow-edit.flow:8 text phone-new
+[2026-11-15T23:39:43.059Z] k2a-ow-edit.flow:9 tap menu_save
+[2026-11-15T23:39:45.998Z]   tapped (882, 233) 'Save'
+[2026-11-15T23:39:46.000Z] k2a-ow-edit.flow:10 ifthen Merge.changes 25 k2a-ans-none.flow
+[2026-11-15T23:40:13.629Z]   'Merge.changes' is not there: k2a-ans-none.flow skipped
+[2026-11-15T23:40:13.631Z] k2a-ow-edit.flow:11 sleep 3
+[2026-11-15T23:40:16.632Z] k2a-ow-edit.flow:12 dialog
+[2026-11-15T23:40:18.448Z]   dialog fabTotpOverview: ''
+[2026-11-15T23:40:18.450Z]   dialog fabSearch: ''
+[2026-11-15T23:40:18.451Z]   dialog fabAddNew: ''
+[2026-11-15T23:40:18.452Z]   dialog enable_autofill: 'Enable Autofill'
+[2026-11-15T23:40:18.453Z]   dialog show_autofill_info: 'Show Autofill help'
+[2026-11-15T23:40:18.454Z]   dialog info_dont_show_autofill_again: 'Do not show again'
+[2026-11-15T23:40:18.454Z]   dialog menu_lock: ''
+[2026-11-15T23:40:18.455Z] k2a-ow-edit.flow:13 waitfor fabAddNew 60
+[2026-11-15T23:40:20.428Z] k2a-ow-edit.flow:14 sleep 4
+[2026-11-15T23:40:24.430Z] k2a-ow-edit.flow:15 list
+  ViewGroup           (540, 1036)  id=decor_content_parent         text='' desc=''
+  FrameLayout         (540, 1036)  id=content                      text='' desc=''
+  ViewGroup           (540, 1024)  id=main_content                 text='' desc=''
+  FrameLayout         (540, 1024)  id=list_fragment                text='' desc=''
+  FrameLayout         (540, 1024)  id=listContainer                text='' desc=''
+  ListView            (540, 1024)  id=list                         text='' desc=''
+  ImageView           (99, 408)    id=group_icon_bkg               text='' desc=''
+  ImageView           (99, 408)    id=icon                         text='' desc=''
+  TextView            (362, 386)   id=group_text                   text='KeePassGate' desc=''
+  TextView            (319, 451)   id=group_label                  text='Group - 2 entries' desc=''
+  ImageView           (992, 408)   id=right_arrow                  text='' desc=''
+  ImageView           (99, 582)    id=group_icon_bkg               text='' desc=''
+  ImageView           (99, 582)    id=icon                         text='' desc=''
+  TextView            (333, 560)   id=group_text                   text='Passwords' desc=''
+  TextView            (319, 625)   id=group_label                  text='Group - 7 entries' desc=''
+  ImageView           (992, 582)   id=right_arrow                  text='' desc=''
+  ImageView           (99, 756)    id=group_icon_bkg               text='' desc=''
+  ImageView           (99, 756)    id=icon                         text='' desc=''
+  TextView            (338, 734)   id=group_text                   text='Recycle Bin' desc=''
+  TextView            (319, 799)   id=group_label                  text='Group - 0 entries' desc=''
+  ImageView           (992, 756)   id=right_arrow                  text='' desc=''
+  ImageView           (99, 920)    id=entry_icon_bkg               text='' desc=''
+  ImageView           (99, 920)    id=icon                         text='' desc=''
+  TextView            (331, 920)   id=entry_text                   text='phone-new' desc=''
+  ImageView           (992, 920)   id=right_arrow                  text='' desc=''
+  ImageButton    c    (959, 1211)  id=fabTotpOverview              text='' desc=''
+  ImageButton    c    (959, 1409)  id=fabSearch                    text='' desc=''
+  ImageButton    c    (959, 1607)  id=fabAddNew                    text='' desc=''
+  View                (540, 1729)  id=divider2                     text='' desc=''
+  RelativeLayout      (540, 1901)  id=bottom_bar                   text='' desc=''
+  LinearLayout        (540, 1901)  id=autofill_infotext            text='' desc=''
+  TextView            (540, 1803)  id=myinfotext                   text="Keepass2Android supports Android's Autofill feature but it looks like you haven't enabled it yet." desc=''
+  RelativeLayout      (540, 1959)  id=autofill_buttons             text='' desc=''
+  Button         c    (183, 1959)  id=enable_autofill              text='Enable Autofill' desc=''
+  Button         c    (860, 1959)  id=show_autofill_info           text='Show Autofill help' desc=''
+  Button         c    (540, 2065)  id=info_dont_show_autofill_again text='Do not show again' desc=''
+  FrameLayout         (540, 233)   id=action_bar_container         text='' desc=''
+  ViewGroup           (540, 233)   id=action_bar                   text='' desc=''
+  TextView            (295, 233)   id=                             text='Synchronize probe' desc=''
+  LinearLayoutCompat      (771, 233)   id=menu_search                  text='' desc=''
+  LinearLayout        (771, 233)   id=search_bar                   text='' desc=''
+  ImageView      c    (771, 233)   id=search_button                text='' desc='Search'
+  Button         c    (903, 233)   id=menu_lock                    text='' desc='Lock Database'
+  ImageView      c    (1024, 233)  id=                             text='' desc='More options'
+  View                (540, 72)    id=statusBarBackground          text='' desc=''
+  View                (0, 0)       id=navigationBarBackground      text='' desc=''
+[2026-11-15T23:40:26.388Z] k2a-sy-s4.flow:13 host sh <work>/scripts/mksnew.sh <work>/work/sync/s4-both-cacheonly-r1 kpg-s4-both-cacheonly-r1.kdbx
+[2026-11-15T23:40:27.056Z]   | pulled /data/data/keepass2android.keepass2android/no_backup/OfflineCache/E2FB43E98D107762989EC07906451BB2E896C7002584F9F66BE568AE547747B6.cache -> phone-before-sync.kdbx sha256 2fe26e5f31506cf6a0731879f62e0bb9e92e48cced3869c5c64ef3c228eeb8e1
+[2026-11-15T23:40:27.057Z]   | cache file /data/data/keepass2android.keepass2android/no_backup/OfflineCache/E2FB43E98D107762989EC07906451BB2E896C7002584F9F66BE568AE547747B6.cache.baseversion: 1019E391B75EDFE8EB32C81BE3E3CFB88A7B0EFEC39F10A7281DA04F0D0469A3
+[2026-11-15T23:40:27.058Z]   | cache file /data/data/keepass2android.keepass2android/no_backup/OfflineCache/E2FB43E98D107762989EC07906451BB2E896C7002584F9F66BE568AE547747B6.cache.version: 2FE26E5F31506CF6A0731879F62E0BB9E92E48CCED3869C5C64EF3C228EEB8E1
+[2026-11-15T23:40:27.059Z]   | pulled local backup http10.0.2.28080kpg-s4-both-cacheonly-r1.kdbx -> phone-before-sync-localbackup.kdbx sha256 1019e391b75edfe8eb32c81be3e3cfb88a7b0efec39f10a7281da04f0d0469a3
+[2026-11-15T23:40:27.060Z]   | wrote <work>\work\sync\s4-both-cacheonly-r1\SNEW.kdbx (Q2 at 2026-11-16T00:37:59Z, Q3 at 2026-11-15T23:38:54Z)
+[2026-11-15T23:40:27.061Z]   | server kpg-s4-both-cacheonly-r1.kdbx before: 2165 bytes, mtime 2026-11-16 00:33:24.063528000 +0100 sha256 1019e391b75edfe8eb32c81be3e3cfb88a7b0efec39f10a7281da04f0d0469a3
+[2026-11-15T23:40:27.061Z]   | server kpg-s4-both-cacheonly-r1.kdbx after:  2533 bytes, mtime 2026-11-16 00:40:27.023275900 +0100 sha256 d6ebd4317a5fab08a8105e06adb072592055e3335d1025cf0864946fd38776fa (from SNEW.kdbx)
+[2026-11-15T23:40:27.063Z] k2a-sy-s4.flow:14 include k2a-sy-online.flow
+[2026-11-15T23:40:27.068Z] k2a-sy-online.flow:4 tap More.options
+[2026-11-15T23:40:29.728Z]   tapped (1024, 233) 'More options'
+[2026-11-15T23:40:29.729Z] k2a-sy-online.flow:5 sleep 2
+[2026-11-15T23:40:31.731Z] k2a-sy-online.flow:6 list
+  LinearLayout        (648, 256)   id=content                      text='' desc=''
+  TextView            (648, 255)   id=title                        text='Advanced Search' desc=''
+  LinearLayout        (648, 388)   id=content                      text='' desc=''
+  TextView            (648, 387)   id=title                        text='Settings' desc=''
+  LinearLayout        (648, 520)   id=content                      text='' desc=''
+  TextView            (648, 519)   id=title                        text='Synchronize cache copy with source' desc=''
+  LinearLayout        (648, 652)   id=content                      text='' desc=''
+  TextView            (648, 651)   id=title                        text='Sort by...' desc=''
+  LinearLayout        (648, 784)   id=content                      text='' desc=''
+  TextView            (648, 783)   id=title                        text='Open another database…' desc=''
+[2026-11-15T23:40:33.877Z] k2a-sy-online.flow:7 tap ^Synchronize.cache.copy.with.source$
+[2026-11-15T23:40:36.761Z]   tapped (648, 519) 'Synchronize cache copy with source'
+[2026-11-15T23:40:36.762Z] k2a-sy-online.flow:8 host sh <work>/scripts/events.sh 20 synchronize-cache-copy
+[2026-11-15T23:40:56.873Z]   | events synchronize-cache-copy: TYPE_WINDOW_STATE_CHANGED PackageName: keepass2android.keepass2android Text: [Merge changes?, The database file was modified externally. Do you want to load and merge the changes before saving? Select No if you want to overwrite the external changes., Cancel, No, overwrite, Yes, merge]
+[2026-11-15T23:40:56.874Z] k2a-sy-online.flow:9 dialog
+[2026-11-15T23:40:58.912Z]   dialog alertTitle: 'Merge changes?'
+[2026-11-15T23:40:58.913Z]   dialog message: 'The database file was modified externally. Do you want to load and merge the changes before saving? Select No if you want to overwrite the external changes.'
+[2026-11-15T23:40:58.914Z]   dialog button3: 'Cancel'
+[2026-11-15T23:40:58.914Z]   dialog button2: 'No, overwrite'
+[2026-11-15T23:40:58.915Z]   dialog button1: 'Yes, merge'
+[2026-11-15T23:40:58.916Z] k2a-sy-online.flow:10 list
+  FrameLayout         (540, 1176)  id=action_bar_root              text='' desc=''
+  FrameLayout         (540, 1176)  id=content                      text='' desc=''
+  LinearLayoutCompat      (540, 1176)  id=parentPanel                  text='' desc=''
+  LinearLayout        (540, 830)   id=topPanel                     text='' desc=''
+  LinearLayout        (540, 808)   id=title_template               text='' desc=''
+  TextView            (401, 833)   id=alertTitle                   text='Merge changes?' desc=''
+  View                (540, 899)   id=titleDividerNoCustom         text='' desc=''
+  FrameLayout         (540, 1030)  id=contentPanel                 text='' desc=''
+  ScrollView          (540, 1030)  id=scrollView                   text='' desc=''
+  TextView            (540, 1030)  id=message                      text='The database file was modified externally. Do you want to load and merge the changes before saving? Select No if you want to overwrite the external changes.' desc=''
+  ScrollView          (540, 1376)  id=buttonPanel                  text='' desc=''
+  Button         c    (253, 1244)  id=button3                      text='Cancel' desc=''
+  Button         c    (333, 1376)  id=button2                      text='No, overwrite' desc=''
+  Button         c    (314, 1508)  id=button1                      text='Yes, merge' desc=''
+[2026-11-15T23:41:00.998Z] k2a-sy-s4.flow:15 host sh <work>/scripts/srv-stat.sh kpg-s4-both-cacheonly-r1.kdbx after-sync-cache-copy
+[2026-11-15T23:41:01.176Z]   | server kpg-s4-both-cacheonly-r1.kdbx at after-sync-cache-copy: 2533 bytes, mtime 2026-11-16 00:40:27.023275900 +0100 sha256 d6ebd4317a5fab08a8105e06adb072592055e3335d1025cf0864946fd38776fa
+[2026-11-15T23:41:01.179Z]   | cache E2FB43E98D107762989EC07906451BB2E896C7002584F9F66BE568AE547747B6.cache at after-sync-cache-copy: 2613 bytes sha256 2fe26e5f31506cf6a0731879f62e0bb9e92e48cced3869c5c64ef3c228eeb8e1
+[2026-11-15T23:41:01.180Z] k2a-sy-s4.flow:16 host sh <work>/scripts/pull-cache.sh <work>/work/sync/s4-both-cacheonly-r1 cache-after-sync-cache-copy
+[2026-11-15T23:41:01.528Z]   | pulled /data/data/keepass2android.keepass2android/no_backup/OfflineCache/E2FB43E98D107762989EC07906451BB2E896C7002584F9F66BE568AE547747B6.cache -> cache-after-sync-cache-copy.kdbx sha256 2fe26e5f31506cf6a0731879f62e0bb9e92e48cced3869c5c64ef3c228eeb8e1
+[2026-11-15T23:41:01.529Z]   | cache file /data/data/keepass2android.keepass2android/no_backup/OfflineCache/E2FB43E98D107762989EC07906451BB2E896C7002584F9F66BE568AE547747B6.cache.baseversion: 1019E391B75EDFE8EB32C81BE3E3CFB88A7B0EFEC39F10A7281DA04F0D0469A3
+[2026-11-15T23:41:01.530Z]   | cache file /data/data/keepass2android.keepass2android/no_backup/OfflineCache/E2FB43E98D107762989EC07906451BB2E896C7002584F9F66BE568AE547747B6.cache.version: 2FE26E5F31506CF6A0731879F62E0BB9E92E48CCED3869C5C64EF3C228EEB8E1
+[2026-11-15T23:41:01.531Z]   | pulled local backup http10.0.2.28080kpg-s4-both-cacheonly-r1.kdbx -> cache-after-sync-cache-copy-localbackup.kdbx sha256 1019e391b75edfe8eb32c81be3e3cfb88a7b0efec39f10a7281da04f0d0469a3
+[2026-11-15T23:41:01.532Z] k2a-sy-s4.flow:17 include k2a-sy-sync.flow
+[2026-11-15T23:41:01.536Z] k2a-sy-sync.flow:3 tap More.options
+  FrameLayout         (540, 1176)  id=action_bar_root              text='' desc=''
+  FrameLayout         (540, 1176)  id=content                      text='' desc=''
+  LinearLayoutCompat      (540, 1176)  id=parentPanel                  text='' desc=''
+  LinearLayout        (540, 830)   id=topPanel                     text='' desc=''
+  LinearLayout        (540, 808)   id=title_template               text='' desc=''
+  TextView            (401, 833)   id=alertTitle                   text='Merge changes?' desc=''
+  View                (540, 899)   id=titleDividerNoCustom         text='' desc=''
+  FrameLayout         (540, 1030)  id=contentPanel                 text='' desc=''
+  ScrollView          (540, 1030)  id=scrollView                   text='' desc=''
+  TextView            (540, 1030)  id=message                      text='The database file was modified externally. Do you want to load and merge the changes before saving? Select No if you want to overwrite the external changes.' desc=''
+  ScrollView          (540, 1376)  id=buttonPanel                  text='' desc=''
+  Button         c    (253, 1244)  id=button3                      text='Cancel' desc=''
+  Button         c    (333, 1376)  id=button2                      text='No, overwrite' desc=''
+  Button         c    (314, 1508)  id=button1                      text='Yes, merge' desc=''
+[2026-11-15T23:41:20.526Z] FAILED: tap: no node matches More.options
+server already running (17081)
+server kpg-s4-both-cacheonly-r1.kdbx at end: 2533 bytes, mtime 2026-11-16 00:40:27.023275900 +0100 sha256 d6ebd4317a5fab08a8105e06adb072592055e3335d1025cf0864946fd38776fa
+cache E2FB43E98D107762989EC07906451BB2E896C7002584F9F66BE568AE547747B6.cache at end: 2613 bytes sha256 2fe26e5f31506cf6a0731879f62e0bb9e92e48cced3869c5c64ef3c228eeb8e1
+pulled /data/data/keepass2android.keepass2android/no_backup/OfflineCache/E2FB43E98D107762989EC07906451BB2E896C7002584F9F66BE568AE547747B6.cache -> cache.kdbx sha256 2fe26e5f31506cf6a0731879f62e0bb9e92e48cced3869c5c64ef3c228eeb8e1
+cache file /data/data/keepass2android.keepass2android/no_backup/OfflineCache/E2FB43E98D107762989EC07906451BB2E896C7002584F9F66BE568AE547747B6.cache.baseversion: 1019E391B75EDFE8EB32C81BE3E3CFB88A7B0EFEC39F10A7281DA04F0D0469A3
+cache file /data/data/keepass2android.keepass2android/no_backup/OfflineCache/E2FB43E98D107762989EC07906451BB2E896C7002584F9F66BE568AE547747B6.cache.version: 2FE26E5F31506CF6A0731879F62E0BB9E92E48CCED3869C5C64EF3C228EEB8E1
+pulled local backup http10.0.2.28080kpg-s4-both-cacheonly-r1.kdbx -> cache-localbackup.kdbx sha256 1019e391b75edfe8eb32c81be3e3cfb88a7b0efec39f10a7281da04f0d0469a3
+total 4
+drwxrwxrwx 1 probe probe  512 Nov 16 00:40 .
+drwxrwxrwx 1 probe probe  512 Nov 15 22:39 ..
+-rwxrwxrwx 1 probe probe 2533 Nov 16 00:40 kpg-s4-both-cacheonly-r1.kdbx
+### flow rc=1 2026-11-15T23:41:23.822Z

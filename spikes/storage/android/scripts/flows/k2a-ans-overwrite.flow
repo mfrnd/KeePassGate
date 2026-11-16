@@ -1,0 +1,3 @@
+# The save asked: record the dialog, answer "No, overwrite".
+dialog
+tap ^No,.overwrite$

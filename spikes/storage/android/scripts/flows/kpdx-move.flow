@@ -1,0 +1,25 @@
+# Step 6, KeePassDX: open, G, select E1 (2 s), Move, N, Paste; a copy is pulled then. Back in G,
+# select N, Move, the breadcrumb's root, Paste.
+include kpdx-open.flow
+tapuntil node_text@^G$ node_text@^Y3$ 40
+waitfor node_text@^E1$ 20
+sleep 2
+longpressuntil node_text@^E1$ menu_move 60 2000 600
+tap menu_move
+tapuntil node_text@^N$ node_text@^N1$ 40
+waitfor menu_paste 20
+tap menu_paste
+waitfor node_text@^E1$ 30
+sleep 6
+adb pull /sdcard/Download/${NAME}.kdbx ${OUT}/mid-moved-e1.kdbx
+key BACK
+waitfor node_text@^N$ 20
+sleep 2
+longpressuntil node_text@^N$ menu_move 60 2000 600
+tap menu_move
+tapuntil group_name@^Storage.probe$ node_text@^Recycle.Bin$ 40
+waitfor menu_paste 20
+tap menu_paste
+waitfor node_text@^N$ 30
+sleep 6
+list

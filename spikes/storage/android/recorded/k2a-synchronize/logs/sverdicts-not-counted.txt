@@ -1,0 +1,19 @@
+s1-nothing-r1-attempt1/server: KG1 KG2 KG3:NO NewKey:NO DZ:NO X1:there/norec | P1=p1-old P2=p2-old Q1=q1-old Q2=q2-old Q3=q3-old K=k-old | NP:NO | 1019e391b75e =SOLD
+s3c-phone-cacheonly-r1-attempt1/cache-localbackup: KG1 KG2 KG3:NO NewKey:NO DZ:NO X1:there/norec | P1=p1-old P2=p2-old Q1=q1-old Q2=q2-old Q3=q3-old K=k-old | NP:NO | 1019e391b75e =SOLD
+s3c-phone-cacheonly-r1-attempt1/cache: KG1 KG2 KG3:NO NewKey:NO DZ:NO X1:there/norec | P1=p1-old P2=p2-old Q1=q1-old Q2=q2-old Q3=q3-old K=k-old | NP:NO | 1019e391b75e =SOLD
+s3c-phone-cacheonly-r1-attempt1/server: KG1 KG2 KG3:NO NewKey:NO DZ:NO X1:there/norec | P1=p1-old P2=p2-old Q1=q1-old Q2=q2-old Q3=q3-old K=k-old | NP:NO | 1019e391b75e =SOLD
+s3c-phone-cacheonly-r1-attempt2/cache-localbackup: KG1 KG2 KG3:NO NewKey:NO DZ:NO X1:there/norec | P1=p1-old P2=p2-old Q1=q1-old Q2=q2-old Q3=q3-old K=k-old | NP:NO | 1019e391b75e =SOLD
+s3c-phone-cacheonly-r1-attempt2/cache: KG1 KG2 KG3:NO NewKey:NO DZ:NO X1:there/norec | P1=p1-old P2=p2-old-phone Q1=q1-old Q2=q2-old Q3=q3-old K=k-old | NP:NO | 00f7e18a150b
+s3c-phone-cacheonly-r1-attempt2/server: KG1 KG2 KG3:NO NewKey:NO DZ:NO X1:there/norec | P1=p1-old P2=p2-old Q1=q1-old Q2=q2-old Q3=q3-old K=k-old | NP:NO | 1019e391b75e =SOLD
+s4-both-cacheonly-r1-attempt1/SNEW: KG1 KG2 KG3:yes NewKey:yes DZ:yes X1:gone/rec | P1=p1-desktop P2=p2-old Q1=q1-desktop Q2=q2-desktop Q3=q3-desktop K=k-old | NP:NO | d6ebd4317a5f =SNEW
+s4-both-cacheonly-r1-attempt1/cache-after-sync-cache-copy-localbackup: KG1 KG2 KG3:NO NewKey:NO DZ:NO X1:there/norec | P1=p1-old P2=p2-old Q1=q1-old Q2=q2-old Q3=q3-old K=k-old | NP:NO | 1019e391b75e =SOLD
+s4-both-cacheonly-r1-attempt1/cache-after-sync-cache-copy: KG1 KG2 KG3:NO NewKey:NO DZ:NO X1:there/norec | P1=p1-old P2=p2-old-phone Q1=q1-old-phone Q2=q2-old-phone Q3=q3-old-phone K=k-old | NP:yes | 2fe26e5f3150
+s4-both-cacheonly-r1-attempt1/cache-localbackup: KG1 KG2 KG3:NO NewKey:NO DZ:NO X1:there/norec | P1=p1-old P2=p2-old Q1=q1-old Q2=q2-old Q3=q3-old K=k-old | NP:NO | 1019e391b75e =SOLD
+s4-both-cacheonly-r1-attempt1/cache: KG1 KG2 KG3:NO NewKey:NO DZ:NO X1:there/norec | P1=p1-old P2=p2-old-phone Q1=q1-old-phone Q2=q2-old-phone Q3=q3-old-phone K=k-old | NP:yes | 2fe26e5f3150
+s4-both-cacheonly-r1-attempt1/phone-before-sync-localbackup: KG1 KG2 KG3:NO NewKey:NO DZ:NO X1:there/norec | P1=p1-old P2=p2-old Q1=q1-old Q2=q2-old Q3=q3-old K=k-old | NP:NO | 1019e391b75e =SOLD
+s4-both-cacheonly-r1-attempt1/phone-before-sync: KG1 KG2 KG3:NO NewKey:NO DZ:NO X1:there/norec | P1=p1-old P2=p2-old-phone Q1=q1-old-phone Q2=q2-old-phone Q3=q3-old-phone K=k-old | NP:yes | 2fe26e5f3150
+s4-both-cacheonly-r1-attempt1/server: KG1 KG2 KG3:yes NewKey:yes DZ:yes X1:gone/rec | P1=p1-desktop P2=p2-old Q1=q1-desktop Q2=q2-desktop Q3=q3-desktop K=k-old | NP:NO | d6ebd4317a5f =SNEW
+s5B-save-bgsync-r1-attempt1/cache-localbackup: KG1 KG2 KG3:NO NewKey:NO DZ:NO X1:there/norec | P1=p1-old P2=p2-old Q1=q1-old Q2=q2-old Q3=q3-old K=k-old | NP:NO | 1019e391b75e =SOLD
+s5B-save-bgsync-r1-attempt1/cache: KG1 KG2 KG3:NO NewKey:NO DZ:NO X1:there/norec | P1=p1-old P2=p2-old-phone Q1=q1-old Q2=q2-old Q3=q3-old K=k-old | NP:NO | 860b07c2efca
+s5B-save-bgsync-r1-attempt1/server: KG1 KG2 KG3:yes NewKey:yes DZ:yes X1:gone/rec | P1=p1-desktop P2=p2-old Q1=q1-desktop Q2=q2-desktop Q3=q3-desktop K=k-old | NP:NO | 88d985597536 =SNEW-fixed
+x-webdav-attempt1/server: KG1 KG2 KG3:NO NewKey:NO DZ:NO X1:there/norec | P1=p1-old P2=p2-old Q1=q1-old Q2=q2-old Q3=q3-old K=k-old | NP:NO | 1019e391b75e =SOLD

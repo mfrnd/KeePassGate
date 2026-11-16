@@ -1,0 +1,59 @@
+### 2026-11-15T17:04:35.560Z op k2a save-aes flow=k2a-A.flow base=S-aes (versionName=1.15-r6)
+Success
+<work>/work/base/S-aes.kdbx: 1 file pushed, 0 skipped. 0.6 MB/s (7895 bytes in 0.012s)
+pushed sha256 820266096e762fce59c887a5677a00989cc6f6a043aac88abaff4447ad038399
+[2026-11-15T17:04:36.324Z] k2a-A.flow:2 include k2a-open.flow
+[2026-11-15T17:04:36.329Z] k2a-open.flow:3 sh monkey -p keepass2android.keepass2android -c android.intent.category.LAUNCHER 1
+  bash arg: -p
+  bash arg: keepass2android.keepass2android
+  bash arg: -c
+  bash arg: android.intent.category.LAUNCHER
+  bash arg: 1
+Events injected: 1
+## Network stats: elapsed time=115ms (0ms mobile, 0ms wifi, 115ms not connected)
+args: [-p, keepass2android.keepass2android, -c, android.intent.category.LAUNCHER, 1]
+ arg: "-p"
+ arg: "keepass2android.keepass2android"
+ arg: "-c"
+ arg: "android.intent.category.LAUNCHER"
+ arg: "1"
+data="keepass2android.keepass2android"
+data="android.intent.category.LAUNCHER"
+[2026-11-15T17:04:36.827Z] k2a-open.flow:4 clear ^OK$ start_open_file 40
+[2026-11-15T17:04:41.860Z]   cleared 'Change log' with (832, 1311)
+[2026-11-15T17:04:45.960Z]   cleared 'Change log' with (859, 1883)
+[2026-11-15T17:04:49.439Z] k2a-open.flow:5 tap start_open_file
+[2026-11-15T17:04:52.300Z]   tapped (540, 1025) 'Open file...'
+[2026-11-15T17:04:52.302Z] k2a-open.flow:6 tap ^System.file.picker$
+[2026-11-15T17:04:56.592Z]   tapped (229, 516) 'System file picker'
+[2026-11-15T17:04:56.594Z] k2a-open.flow:7 waitfor Show.roots 20
+[2026-11-15T17:04:59.343Z] k2a-open.flow:8 include picker.flow
+[2026-11-15T17:04:59.350Z] picker.flow:4 pick k2a-save-aes.kdbx
+[2026-11-15T17:05:07.656Z]   focused and entered '^k2a\\-save\\-aes\\.kdbx$'
+[2026-11-15T17:05:07.658Z] k2a-open.flow:9 waitfor password_edit 30
+[2026-11-15T17:05:12.156Z] k2a-open.flow:10 tap password_edit
+[2026-11-15T17:05:15.296Z]   tapped (501, 1151) 'Password'
+[2026-11-15T17:05:15.297Z] k2a-open.flow:11 text dummy-password-for-a-throwaway-file
+[2026-11-15T17:05:19.077Z] k2a-open.flow:12 tap pass_ok
+[2026-11-15T17:05:21.899Z]   tapped (942, 1437) 'Unlock'
+[2026-11-15T17:05:21.900Z] k2a-open.flow:13 waitfor fabAddNew 60
+[2026-11-15T17:05:28.037Z] k2a-A.flow:3 include k2a-add.flow
+[2026-11-15T17:05:28.044Z] k2a-add.flow:3 tap fabAddNew
+[2026-11-15T17:05:30.908Z]   tapped (959, 1607) 'keepass2android.keepass2android:id/fabAddNew'
+[2026-11-15T17:05:30.910Z] k2a-add.flow:4 tap fabAddNewEntry
+[2026-11-15T17:05:33.866Z]   tapped (871, 1211) 'Add entry'
+[2026-11-15T17:05:33.869Z] k2a-add.flow:5 maybe ^No$ 4
+[2026-11-15T17:05:37.023Z]   maybe tapped (634, 1431) 'No'
+[2026-11-15T17:05:37.024Z] k2a-add.flow:6 waitfor entry_title 20
+[2026-11-15T17:05:39.917Z] k2a-add.flow:7 tap entry_title
+[2026-11-15T17:05:42.605Z]   tapped (473, 445) 'name'
+[2026-11-15T17:05:42.607Z] k2a-add.flow:8 text droid-added
+[2026-11-15T17:05:45.850Z] k2a-add.flow:9 tap menu_save
+[2026-11-15T17:05:49.280Z]   tapped (882, 233) 'Save'
+[2026-11-15T17:05:49.288Z] k2a-add.flow:10 waitfor fabAddNew 60
+[2026-11-15T17:05:52.740Z] k2a-add.flow:11 sleep 4
+total 12
+-rw------- 1 u0_a160 u0_a160 8023 2026-11-15 18:05:48.504000000 +0100 k2a-save-aes.kdbx
+device k2a-save-aes.kdbx sha256 2f3304edc00e2af15d0c0be4ab796d3ac3a898530a95a8b89926dfdc9ac50b1c
+/sdcard/Download/k2a-save-aes.kdbx: 1 file pulled, 0 skipped. 0.2 MB/s (8023 bytes in 0.046s)
+### flow rc=0 2026-11-15T17:05:59.338Z

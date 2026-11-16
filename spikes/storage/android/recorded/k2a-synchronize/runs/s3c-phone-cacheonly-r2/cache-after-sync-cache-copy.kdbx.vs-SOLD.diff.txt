@@ -1,0 +1,62 @@
+1c1
+< # file SOLD.kdbx size=2165 sha256=1019e391b75edfe8eb32c81be3e3cfb88a7b0efec39f10a7281da04f0d0469a3
+---
+> # file cache-after-sync-cache-copy.kdbx size=2277 sha256=717625dc0dc0c1d6094a3e70408ebebd02f74f23d4e769becabc21a4f611484a
+74a75,89
+> E P2 H2026-11-01T10:20:00Z S Notes p=0 ""
+> E P2 H2026-11-01T10:20:00Z S Password p=1 "p2-old"
+> E P2 H2026-11-01T10:20:00Z S Title p=0 "P2"
+> E P2 H2026-11-01T10:20:00Z S URL p=0 ""
+> E P2 H2026-11-01T10:20:00Z S UserName p=0 "user-p2"
+> E P2 H2026-11-01T10:20:00Z autotype enabled=1 obfuscation=0 seq="" assoc=0
+> E P2 H2026-11-01T10:20:00Z misc icon=0 customIcon=- fg=00000000 bg=00000000 overrideUrl="" quality=1
+> E P2 H2026-11-01T10:20:00Z prev -
+> E P2 H2026-11-01T10:20:00Z t.accessed 2026-11-15T23:27:49Z
+> E P2 H2026-11-01T10:20:00Z t.created 2026-11-01T10:20:00Z
+> E P2 H2026-11-01T10:20:00Z t.expires 0 2026-11-01T10:00:00Z
+> E P2 H2026-11-01T10:20:00Z t.location 2026-11-01T10:20:00Z
+> E P2 H2026-11-01T10:20:00Z t.modified 2026-11-01T10:20:00Z
+> E P2 H2026-11-01T10:20:00Z tags []
+> E P2 H2026-11-01T10:20:00Z usage 1
+76c91
+< E P2 S Password p=1 "p2-old"
+---
+> E P2 S Password p=1 "p2-old-phone"
+81c96
+< E P2 history.count 0
+---
+> E P2 history.count 1
+85c100
+< E P2 t.accessed 2026-11-01T10:20:00Z
+---
+> E P2 t.accessed 2026-11-15T23:28:13Z
+89c104
+< E P2 t.modified 2026-11-01T10:20:00Z
+---
+> E P2 t.modified 2026-11-15T23:28:13Z
+91c106
+< E P2 usage 0
+---
+> E P2 usage 2
+164c179
+< F version 4.1
+---
+> F version 4.0
+197c212
+< G PW t.accessed 2026-11-01T10:05:00Z
+---
+> G PW t.accessed 2026-11-15T23:27:49Z
+203c218
+< G PW usage 0
+---
+> G PW usage 1
+210c225
+< G Root t.accessed 2026-11-01T10:00:00Z
+---
+> G Root t.accessed 2026-11-15T23:27:49Z
+216,217c231,232
+< G Root usage 0
+< M CD KPG.Profiles = "[\"reader\",\"writer\"]" @2026-11-01T10:15:00Z
+---
+> G Root usage 1
+> M CD KPG.Profiles = "[\"reader\",\"writer\"]" @none

@@ -1,0 +1,64 @@
+1c1
+< # file S-argon.kdbx size=7941 sha256=bd84dd4785579e8705bd12f3fe4d53a2e342be2e88c64875413ef8b336dc11ae
+---
+> # file kpdx-move.kdbx size=7397 sha256=8e9b6f0c277545bd34b5560e0dfdbaaed0a9702ad13449a1ec2b7500139d092f
+64,66c64,66
+< E E1 parent G (G)
+< E E1 prev -
+< E E1 t.accessed 2026-11-01T14:00:00Z
+---
+> E E1 parent N (N)
+> E E1 prev G
+> E E1 t.accessed 2026-11-15T19:31:19Z
+69,70c69,70
+< E E1 t.location 2026-11-01T11:00:00Z
+< E E1 t.modified 2026-11-01T14:00:00Z
+---
+> E E1 t.location 2026-11-15T19:31:19Z
+> E E1 t.modified 2026-11-15T19:31:19Z
+72c72
+< E E1 usage 0
+---
+> E E1 usage 2
+360c360
+< G G children groups=1 entries=8
+---
+> G G children groups=0 entries=7
+366c366
+< G G t.accessed 2026-11-01T10:00:00Z
+---
+> G G t.accessed 2026-11-15T19:31:54Z
+370c370
+< G G t.modified 2026-11-01T10:30:00Z
+---
+> G G t.modified 2026-11-15T19:31:54Z
+386c386
+< G N children groups=0 entries=1
+---
+> G N children groups=0 entries=2
+390,392c390,392
+< G N parent G (G)
+< G N prev -
+< G N t.accessed 2026-11-01T10:20:00Z
+---
+> G N parent Root (Storage probe)
+> G N prev G
+> G N t.accessed 2026-11-15T19:31:54Z
+395,396c395,396
+< G N t.location 2026-11-01T10:20:00Z
+< G N t.modified 2026-11-01T10:20:00Z
+---
+> G N t.location 2026-11-15T19:31:54Z
+> G N t.modified 2026-11-15T19:31:54Z
+399c399
+< G Root children groups=3 entries=0
+---
+> G Root children groups=4 entries=0
+405c405
+< G Root t.accessed 2026-11-01T10:00:00Z
+---
+> G Root t.accessed 2026-11-15T19:31:54Z
+409c409
+< G Root t.modified 2026-11-01T10:00:00Z
+---
+> G Root t.modified 2026-11-15T19:31:54Z

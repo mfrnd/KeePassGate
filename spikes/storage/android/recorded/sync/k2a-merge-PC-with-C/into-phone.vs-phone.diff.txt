@@ -1,0 +1,8 @@
+1c1
+< # file k2a-merge-PC-r1.kdbx size=10165 sha256=3e056c37350950ce31806939ec823f117e5b00dd7fa5ac400da4e16a37821bf7
+---
+> # file into-phone.kdbx size=10197 sha256=decf126d74036cc661bdaf47708212185f20c6572bdb1e70a2e0c656a7c08dda
+546c546
+< M CD KPG.Profiles = "[\"reader\",\"writer\"]" @none
+---
+> M CD KPG.Profiles = "[\"reader\",\"writer\"]" @2026-11-01T10:15:00Z

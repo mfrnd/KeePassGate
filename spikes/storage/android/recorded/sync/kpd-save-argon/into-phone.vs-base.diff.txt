@@ -1,0 +1,44 @@
+1c1
+< # file S-argon.kdbx size=7941 sha256=bd84dd4785579e8705bd12f3fe4d53a2e342be2e88c64875413ef8b336dc11ae
+---
+> # file into-phone.kdbx size=8149 sha256=d7554161b0dcfac50aff8c37ba93af600bec165ec1e4f9e0499582530620eb11
+340a341,367
+> E ~d3496dec H2026-11-15T17:50:08Z autotype enabled=1 obfuscation=0 seq="" assoc=0
+> E ~d3496dec H2026-11-15T17:50:08Z misc icon=1 customIcon=- fg=00000000 bg=00000000 overrideUrl="" quality=1
+> E ~d3496dec H2026-11-15T17:50:08Z prev -
+> E ~d3496dec H2026-11-15T17:50:08Z t.accessed 2026-11-15T17:50:08Z
+> E ~d3496dec H2026-11-15T17:50:08Z t.created 2026-11-15T17:50:08Z
+> E ~d3496dec H2026-11-15T17:50:08Z t.expires 0 2026-11-15T17:50:00Z
+> E ~d3496dec H2026-11-15T17:50:08Z t.location 2026-11-15T17:50:00Z
+> E ~d3496dec H2026-11-15T17:50:08Z t.modified 2026-11-15T17:50:08Z
+> E ~d3496dec H2026-11-15T17:50:08Z tags []
+> E ~d3496dec H2026-11-15T17:50:08Z usage 0
+> E ~d3496dec S Notes p=0 ""
+> E ~d3496dec S Password p=1 ""
+> E ~d3496dec S Title p=0 "droid-added"
+> E ~d3496dec S URL p=0 ""
+> E ~d3496dec S UserName p=0 ""
+> E ~d3496dec autotype enabled=1 obfuscation=0 seq="" assoc=0
+> E ~d3496dec history.count 1
+> E ~d3496dec misc icon=1 customIcon=- fg=00000000 bg=00000000 overrideUrl="" quality=1
+> E ~d3496dec parent Root (Storage probe)
+> E ~d3496dec prev -
+> E ~d3496dec t.accessed 2026-11-15T17:50:24Z
+> E ~d3496dec t.created 2026-11-15T17:50:08Z
+> E ~d3496dec t.expires 0 2026-11-15T17:50:00Z
+> E ~d3496dec t.location 2026-11-15T17:50:00Z
+> E ~d3496dec t.modified 2026-11-15T17:50:24Z
+> E ~d3496dec tags []
+> E ~d3496dec usage 0
+343c370
+< F groups 5 entries 13
+---
+> F groups 5 entries 14
+399c426
+< G Root children groups=3 entries=0
+---
+> G Root children groups=3 entries=1
+422c449
+< M settingsChanged 2026-11-01T10:00:00Z
+---
+> M settingsChanged 2026-11-15T17:56:32Z

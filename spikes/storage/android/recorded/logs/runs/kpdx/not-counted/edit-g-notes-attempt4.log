@@ -1,0 +1,61 @@
+### 2026-11-15T19:41:38.123Z op kpdx edit-g-notes flow=kpdx-edit-g-notes.flow base=S-argon (versionName=4.5.8)
+Success
+<work>/work/base/S-argon.kdbx: 1 file pushed, 0 skipped. 0.9 MB/s (7941 bytes in 0.009s)
+pushed sha256 bd84dd4785579e8705bd12f3fe4d53a2e342be2e88c64875413ef8b336dc11ae
+[2026-11-15T19:41:39.044Z] kpdx-edit-g-notes.flow:2 include kpdx-open.flow
+[2026-11-15T19:41:39.049Z] kpdx-open.flow:4 sh monkey -p com.kunzisoft.keepass.libre -c android.intent.category.LAUNCHER 1
+  bash arg: -p
+  bash arg: com.kunzisoft.keepass.libre
+  bash arg: -c
+  bash arg: android.intent.category.LAUNCHER
+  bash arg: 1
+Events injected: 1
+## Network stats: elapsed time=35ms (0ms mobile, 0ms wifi, 35ms not connected)
+args: [-p, com.kunzisoft.keepass.libre, -c, android.intent.category.LAUNCHER, 1]
+ arg: "-p"
+ arg: "com.kunzisoft.keepass.libre"
+ arg: "-c"
+ arg: "android.intent.category.LAUNCHER"
+ arg: "1"
+data="com.kunzisoft.keepass.libre"
+data="android.intent.category.LAUNCHER"
+[2026-11-15T19:41:39.895Z] kpdx-open.flow:5 waitfor open_database_button 30
+[2026-11-15T19:41:45.455Z] kpdx-open.flow:6 tapuntil open_database_button Show.roots 40
+[2026-11-15T19:41:48.090Z]   tapped (799, 2051) 'Open existing vault'
+[2026-11-15T19:41:58.431Z]   tapped (799, 2051) 'Open existing vault'
+[2026-11-15T19:42:01.820Z] kpdx-open.flow:7 include picker.flow
+[2026-11-15T19:42:01.826Z] picker.flow:4 pick kpdx-edit-g-notes.kdbx
+[2026-11-15T19:42:10.093Z]   focused and entered '^kpdx\\-edit\\-g\\-notes\\.kdbx$'
+[2026-11-15T19:42:10.097Z] kpdx-open.flow:8 waitfor password_text_view 40
+[2026-11-15T19:42:14.352Z] kpdx-open.flow:9 typepw password_text_view dummy-password-for-a-throwaway-file
+[2026-11-15T19:42:27.137Z]   type: field never took the focus (attempt 1)
+[2026-11-15T19:42:40.008Z]   type: field never took the focus (attempt 2)
+[2026-11-15T19:42:50.176Z]   typed into the focused field
+[2026-11-15T19:42:50.179Z] kpdx-open.flow:10 tapuntil activity_password_open_button add_button 60
+[2026-11-15T19:42:53.295Z]   tapped (895, 1435) 'Unlock'
+[2026-11-15T19:43:01.118Z]   tapped (895, 1435) 'Unlock'
+[2026-11-15T19:43:12.039Z]   tapped (895, 1435) 'Unlock'
+[2026-11-15T19:43:18.559Z] kpdx-edit-g-notes.flow:3 waitfor node_text@^G$ 20
+[2026-11-15T19:43:20.574Z] kpdx-edit-g-notes.flow:4 sleep 2
+[2026-11-15T19:43:22.576Z] kpdx-edit-g-notes.flow:5 longpressuntil node_text@^G$ menu_move 60 2000 600
+[2026-11-15T19:43:27.596Z]   long-pressed (600, 559) for 2000 ms on the line of 'G'
+[2026-11-15T19:43:39.908Z]   long-pressed (600, 559) for 2000 ms on the line of 'G'
+[2026-11-15T19:43:42.137Z] kpdx-edit-g-notes.flow:6 tapuntil More.options#2 ^Edit$ 30
+[2026-11-15T19:43:45.064Z]   tapped (1024, 2063) 'More options'
+[2026-11-15T19:43:55.704Z]   tapped (1024, 2063) 'More options'
+[2026-11-15T19:43:57.826Z] kpdx-edit-g-notes.flow:7 tap ^Edit$
+[2026-11-15T19:44:00.486Z]   tapped (799, 1966) 'Edit'
+[2026-11-15T19:44:00.489Z] kpdx-edit-g-notes.flow:8 waitfor group_edit_name 20
+[2026-11-15T19:44:03.406Z] kpdx-edit-g-notes.flow:9 append group_edit_name -phone
+[2026-11-15T19:44:16.012Z]   appended '-phone': 'G-phone'
+[2026-11-15T19:44:16.014Z] kpdx-edit-g-notes.flow:10 append group_edit_note -phone-notes
+[2026-11-15T19:44:28.417Z]   append: text did not land (attempt 1)
+[2026-11-15T19:44:41.821Z]   append: text did not land (attempt 2)
+[2026-11-15T19:44:54.546Z]   append: text did not land (attempt 3)
+[2026-11-15T19:45:07.458Z]   append: text did not land (attempt 4)
+[2026-11-15T19:45:07.459Z] FAILED: append: gave up on group_edit_note
+total 12
+-rw------- 1 u0_a160 u0_a160 7941 2026-11-15 17:55:55.000000000 +0100 kpdx-edit-g-notes.kdbx
+device kpdx-edit-g-notes.kdbx sha256 bd84dd4785579e8705bd12f3fe4d53a2e342be2e88c64875413ef8b336dc11ae
+/sdcard/Download/kpdx-edit-g-notes.kdbx: 1 file pulled, 0 skipped. 0.2 MB/s (7941 bytes in 0.031s)
+### flow rc=1 2026-11-15T19:45:10.318Z

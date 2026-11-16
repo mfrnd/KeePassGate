@@ -1,0 +1,123 @@
+### 2026-11-15T21:54:54.795Z ow kpd fg-later-diff-r1 flow=kpd-ow-fg.flow base=OLD ARRIVING=NEW-diff TMODE=later ENTRY=phone-fg-later-diff-r1 (versionName=2.7)
+Success
+<work>/work/base/OLD.kdbx: 1 file pushed, 0 skipped. 0.7 MB/s (9301 bytes in 0.012s)
+given 9301 bytes, mtime 2026-11-15 22:44:54.000000000 +0100 sha256 8ef6785ca25b07b7398a59fe828878e7e78975a77fb425ef61a2c00b06da2946
+[2026-11-15T21:54:55.866Z] kpd-ow-fg.flow:4 include kpd-open.flow
+[2026-11-15T21:54:55.872Z] kpd-open.flow:4 sh monkey -p com.android.keepass -c android.intent.category.LAUNCHER 1
+  bash arg: -p
+  bash arg: com.android.keepass
+  bash arg: -c
+  bash arg: android.intent.category.LAUNCHER
+  bash arg: 1
+Events injected: 1
+## Network stats: elapsed time=139ms (0ms mobile, 0ms wifi, 139ms not connected)
+args: [-p, com.android.keepass, -c, android.intent.category.LAUNCHER, 1]
+ arg: "-p"
+ arg: "com.android.keepass"
+ arg: "-c"
+ arg: "android.intent.category.LAUNCHER"
+ arg: "1"
+data="com.android.keepass"
+data="android.intent.category.LAUNCHER"
+[2026-11-15T21:54:56.546Z] kpd-open.flow:5 clear ^(OK|Accept|Allow)$ open@^OPEN$ 40
+[2026-11-15T21:55:00.842Z] kpd-open.flow:6 tapuntil open@^OPEN$ Show.roots 40
+[2026-11-15T21:55:04.148Z]   tapped (137, 453) 'OPEN'
+[2026-11-15T21:55:06.710Z] kpd-open.flow:7 include picker.flow
+[2026-11-15T21:55:06.719Z] picker.flow:4 pick kpd-fg-later-diff-r1.kdbx
+[2026-11-15T21:55:14.827Z]   focused and entered '^kpd\\-fg\\-later\\-diff\\-r1\\.kdbx$'
+[2026-11-15T21:55:14.829Z] kpd-open.flow:8 waitfor pass_ok 40
+[2026-11-15T21:55:17.286Z] kpd-open.flow:9 typepwck password@.* dummy-password-for-a-throwaway-file
+[2026-11-15T21:55:30.565Z]   typed the password (35 characters)
+[2026-11-15T21:55:30.566Z] kpd-open.flow:10 tapuntil pass_ok add_entry 60
+[2026-11-15T21:55:33.530Z]   tapped (137, 1045) 'OK'
+[2026-11-15T21:55:36.977Z] kpd-ow-fg.flow:5 sleep 2
+[2026-11-15T21:55:38.980Z] kpd-ow-fg.flow:6 host sh <work>/scripts/replace.sh /sdcard/Download/kpd-fg-later-diff-r1.kdbx <work>/work/base/NEW-diff.kdbx later
+[2026-11-15T21:55:39.417Z]   | replace: before 9301 bytes, mtime 2026-11-15 22:44:54.000000000 +0100 sha256 8ef6785ca25b07b7398a59fe828878e7e78975a77fb425ef61a2c00b06da2946
+[2026-11-15T21:55:39.417Z]   | <work>/work/base/NEW-diff.kdbx: 1 file pushed, 0 skipped. 0.7 MB/s (11621 bytes in 0.015s)
+[2026-11-15T21:55:39.418Z]   | replace: after  11621 bytes, mtime 2026-11-15 22:55:38.452000000 +0100 sha256 469981f9d9289f78fcf80d60f5a40b464d704959a83384e91cc1be9a2549bed6 (mode later, from NEW-diff.kdbx)
+[2026-11-15T21:55:39.420Z] kpd-ow-fg.flow:7 sleep 3
+[2026-11-15T21:55:42.421Z] kpd-ow-fg.flow:8 dialog
+[2026-11-15T21:55:44.522Z]   dialog menu_search: ''
+[2026-11-15T21:55:44.523Z]   dialog menu_lock: ''
+[2026-11-15T21:55:44.524Z]   dialog add_group: 'ADD GROUP'
+[2026-11-15T21:55:44.525Z]   dialog add_entry: 'ADD ENTRY'
+[2026-11-15T21:55:44.526Z] kpd-ow-fg.flow:9 include kpd-ow-edit.flow
+[2026-11-15T21:55:44.532Z] kpd-ow-edit.flow:4 list
+  LinearLayout        (540, 1108)  id=action_bar_root              text='' desc=''
+  FrameLayout         (540, 1108)  id=content                      text='' desc=''
+  ViewGroup           (540, 222)   id=toolbar                      text='' desc=''
+  TextView            (217, 222)   id=                             text='KeePassDroid' desc=''
+  Button         c    (771, 222)   id=menu_search                  text='' desc='Search'
+  Button         c    (903, 222)   id=menu_lock                    text='' desc='Lock Database'
+  ImageView      c    (1024, 222)  id=                             text='' desc='More options'
+  RelativeLayout      (540, 349)   id=group_header                 text='' desc=''
+  TextView            (496, 349)   id=group_name                   text='Storage probe' desc=''
+  ImageView           (1030, 349)  id=icon                         text='' desc=''
+  ListView            (540, 1235)  id=group_list                   text='' desc=''
+  ImageView           (58, 457)    id=group_icon                   text='' desc=''
+  TextView            (524, 456)   id=group_text                   text='G' desc=''
+  TextView            (1006, 457)  id=group_label                  text='Group' desc=''
+  ImageView           (58, 576)    id=group_icon                   text='' desc=''
+  TextView            (524, 575)   id=group_text                   text='KPG' desc=''
+  TextView            (1006, 576)  id=group_label                  text='Group' desc=''
+  ImageView           (58, 695)    id=group_icon                   text='' desc=''
+  TextView            (524, 694)   id=group_text                   text='Recycle Bin' desc=''
+  TextView            (1006, 695)  id=group_label                  text='Group' desc=''
+  ImageView           (0, 0)       id=divider2                     text='' desc=''
+  Button         c    (0, 0)       id=add_group                    text='ADD GROUP' desc=''
+  Button         c    (0, 0)       id=add_entry                    text='ADD ENTRY' desc=''
+  View                (540, 72)    id=statusBarBackground          text='' desc=''
+  View                (0, 0)       id=navigationBarBackground      text='' desc=''
+[2026-11-15T21:55:46.438Z] kpd-ow-edit.flow:5 tapor add_entry 415 2141
+[2026-11-15T21:55:49.306Z]   tapped (415, 2141) for 'add_entry' (no bounds in the dump)
+[2026-11-15T21:55:49.308Z] kpd-ow-edit.flow:6 waitfor entry_save 30
+[2026-11-15T21:55:51.879Z] kpd-ow-edit.flow:7 type entry_title@.* phone-fg-later-diff-r1
+[2026-11-15T21:56:04.356Z]   typed 'phone-fg-later-diff-r1'
+[2026-11-15T21:56:04.360Z] kpd-ow-edit.flow:8 tapor entry_save 140 2141
+[2026-11-15T21:56:07.344Z]   tapped (121, 1457) 'entry_save'
+[2026-11-15T21:56:07.346Z] kpd-ow-edit.flow:9 sleep 2
+[2026-11-15T21:56:09.349Z] kpd-ow-edit.flow:10 dialog
+[2026-11-15T21:56:11.863Z]   dialog menu_search: ''
+[2026-11-15T21:56:11.864Z]   dialog menu_lock: ''
+[2026-11-15T21:56:11.865Z]   dialog add_group: 'ADD GROUP'
+[2026-11-15T21:56:11.867Z]   dialog add_entry: 'ADD ENTRY'
+[2026-11-15T21:56:11.869Z] kpd-ow-edit.flow:11 waitfor entry_text@^phone-fg-later-diff-r1$ 40
+[2026-11-15T21:56:13.925Z] kpd-ow-edit.flow:12 sleep 5
+[2026-11-15T21:56:18.926Z] kpd-ow-edit.flow:13 dialog
+[2026-11-15T21:56:21.125Z]   dialog menu_search: ''
+[2026-11-15T21:56:21.127Z]   dialog menu_lock: ''
+[2026-11-15T21:56:21.128Z]   dialog add_group: 'ADD GROUP'
+[2026-11-15T21:56:21.130Z]   dialog add_entry: 'ADD ENTRY'
+[2026-11-15T21:56:21.131Z] kpd-ow-edit.flow:14 list
+  LinearLayout        (540, 1108)  id=action_bar_root              text='' desc=''
+  FrameLayout         (540, 1108)  id=content                      text='' desc=''
+  ViewGroup           (540, 222)   id=toolbar                      text='' desc=''
+  TextView            (217, 222)   id=                             text='KeePassDroid' desc=''
+  Button         c    (771, 222)   id=menu_search                  text='' desc='Search'
+  Button         c    (903, 222)   id=menu_lock                    text='' desc='Lock Database'
+  ImageView      c    (1024, 222)  id=                             text='' desc='More options'
+  RelativeLayout      (540, 349)   id=group_header                 text='' desc=''
+  TextView            (496, 349)   id=group_name                   text='Storage probe' desc=''
+  ImageView           (1030, 349)  id=icon                         text='' desc=''
+  ListView            (540, 1235)  id=group_list                   text='' desc=''
+  ImageView           (58, 457)    id=group_icon                   text='' desc=''
+  TextView            (524, 456)   id=group_text                   text='G' desc=''
+  TextView            (1006, 457)  id=group_label                  text='Group' desc=''
+  ImageView           (58, 576)    id=group_icon                   text='' desc=''
+  TextView            (524, 575)   id=group_text                   text='KPG' desc=''
+  TextView            (1006, 576)  id=group_label                  text='Group' desc=''
+  ImageView           (58, 695)    id=group_icon                   text='' desc=''
+  TextView            (524, 694)   id=group_text                   text='Recycle Bin' desc=''
+  TextView            (1006, 695)  id=group_label                  text='Group' desc=''
+  ImageView           (58, 814)    id=entry_icon                   text='' desc=''
+  TextView            (598, 813)   id=entry_text                   text='phone-fg-later-diff-r1' desc=''
+  ImageView           (0, 0)       id=divider2                     text='' desc=''
+  Button         c    (0, 0)       id=add_group                    text='ADD GROUP' desc=''
+  Button         c    (0, 0)       id=add_entry                    text='ADD ENTRY' desc=''
+  View                (540, 72)    id=statusBarBackground          text='' desc=''
+  View                (0, 0)       id=navigationBarBackground      text='' desc=''
+total 16
+-rw------- 1 u0_a160 u0_a160 8757 2026-11-15 22:56:06.488000000 +0100 kpd-fg-later-diff-r1.kdbx
+device kpd-fg-later-diff-r1.kdbx sha256 fc3c2d3e20b3b23cde1e7ed841133b64a18b4801dfc7bede68dd47640098d41e 8757 bytes, mtime 2026-11-15 22:56:06.488000000 +0100
+/sdcard/Download/kpd-fg-later-diff-r1.kdbx: 1 file pulled, 0 skipped. 0.1 MB/s (8757 bytes in 0.056s)
+### flow rc=0 2026-11-15T21:56:25.615Z

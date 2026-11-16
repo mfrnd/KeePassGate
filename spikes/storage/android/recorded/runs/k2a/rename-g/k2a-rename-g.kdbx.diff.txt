@@ -1,0 +1,70 @@
+1c1
+< # file S-argon.kdbx size=7941 sha256=bd84dd4785579e8705bd12f3fe4d53a2e342be2e88c64875413ef8b336dc11ae
+---
+> # file k2a-rename-g.kdbx size=7909 sha256=5a753e5605f2ace8134ef87e139c403efbf7c9650c399a2e31182152e3fb0da7
+64c64
+< E E1 parent G (G)
+---
+> E E1 parent G (G-phone)
+81c81
+< E E2 parent G (G)
+---
+> E E2 parent G (G-phone)
+99c99
+< E Gm parent G (G)
+---
+> E Gm parent G (G-phone)
+264c264
+< E X1 parent G (G)
+---
+> E X1 parent G (G-phone)
+281c281
+< E X2 parent G (G)
+---
+> E X2 parent G (G-phone)
+298c298
+< E Y1 parent G (G)
+---
+> E Y1 parent G (G-phone)
+315c315
+< E Y2 parent G (G)
+---
+> E Y2 parent G (G-phone)
+332c332
+< E Y3 parent G (G)
+---
+> E Y3 parent G (G-phone)
+362c362
+< G G name "G"
+---
+> G G name "G-phone"
+366c366
+< G G t.accessed 2026-11-01T10:00:00Z
+---
+> G G t.accessed 2026-11-15T17:43:21Z
+370c370
+< G G t.modified 2026-11-01T10:30:00Z
+---
+> G G t.modified 2026-11-15T17:43:21Z
+372c372
+< G G usage 0
+---
+> G G usage 1
+390c390
+< G N parent G (G)
+---
+> G N parent G (G-phone)
+405c405
+< G Root t.accessed 2026-11-01T10:00:00Z
+---
+> G Root t.accessed 2026-11-15T17:43:21Z
+409c409
+< G Root t.modified 2026-11-01T10:00:00Z
+---
+> G Root t.modified 2026-11-15T17:43:21Z
+411,412c411,412
+< G Root usage 0
+< M CD KPG.Profiles = "[\"reader\",\"writer\"]" @2026-11-01T10:15:00Z
+---
+> G Root usage 1
+> M CD KPG.Profiles = "[\"reader\",\"writer\"]" @none

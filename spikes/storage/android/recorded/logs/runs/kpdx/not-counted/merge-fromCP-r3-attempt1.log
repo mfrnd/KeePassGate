@@ -1,0 +1,40 @@
+### 2026-11-15T18:28:32.265Z op kpdx merge-fromCP-r3 flow=kpdx-B-from.flow base=C (versionName=4.5.8)
+Success
+<work>/work/base/C.kdbx: 1 file pushed, 0 skipped. 0.9 MB/s (9845 bytes in 0.010s)
+pushed sha256 7641ab1c30eb633b07889d6af116577e11b520a03a62d793cbb310c0b12fa5f0
+[2026-11-15T18:28:33.754Z] kpdx-B-from.flow:5 include kpdx-open.flow
+[2026-11-15T18:28:33.761Z] kpdx-open.flow:4 sh monkey -p com.kunzisoft.keepass.libre -c android.intent.category.LAUNCHER 1
+  bash arg: -p
+  bash arg: com.kunzisoft.keepass.libre
+  bash arg: -c
+  bash arg: android.intent.category.LAUNCHER
+  bash arg: 1
+Events injected: 1
+## Network stats: elapsed time=122ms (0ms mobile, 0ms wifi, 122ms not connected)
+args: [-p, com.kunzisoft.keepass.libre, -c, android.intent.category.LAUNCHER, 1]
+ arg: "-p"
+ arg: "com.kunzisoft.keepass.libre"
+ arg: "-c"
+ arg: "android.intent.category.LAUNCHER"
+ arg: "1"
+data="com.kunzisoft.keepass.libre"
+data="android.intent.category.LAUNCHER"
+[2026-11-15T18:28:34.714Z] kpdx-open.flow:5 waitfor open_database_button 30
+[2026-11-15T18:28:40.214Z] kpdx-open.flow:6 tapuntil open_database_button Show.roots 40
+[2026-11-15T18:28:42.864Z]   tapped (799, 2051) 'Open existing vault'
+[2026-11-15T18:28:53.189Z]   tapped (799, 2051) 'Open existing vault'
+[2026-11-15T18:28:55.674Z] kpdx-open.flow:7 include picker.flow
+[2026-11-15T18:28:55.680Z] picker.flow:4 pick kpdx-merge-fromCP-r3.kdbx
+[2026-11-15T18:29:04.023Z]   focused and entered '^kpdx\\-merge\\-fromCP\\-r3\\.kdbx$'
+[2026-11-15T18:29:04.025Z] kpdx-open.flow:8 waitfor password_text_view 40
+[2026-11-15T18:29:06.847Z] kpdx-open.flow:9 typepwck password_text_view dummy-password-for-a-throwaway-file
+[2026-11-15T18:29:17.031Z]   typepwck: field holds None characters, not 35 (attempt 1)
+[2026-11-15T18:29:27.469Z]   typepwck: field holds None characters, not 35 (attempt 2)
+[2026-11-15T18:29:37.222Z]   typepwck: field holds None characters, not 35 (attempt 3)
+[2026-11-15T18:29:49.326Z]   typepwck: field holds None characters, not 35 (attempt 4)
+[2026-11-15T18:29:49.327Z] FAILED: typepwck: gave up on password_text_view
+total 16
+-rw------- 1 u0_a160 u0_a160 9845 2026-11-15 17:55:55.000000000 +0100 kpdx-merge-fromCP-r3.kdbx
+device kpdx-merge-fromCP-r3.kdbx sha256 7641ab1c30eb633b07889d6af116577e11b520a03a62d793cbb310c0b12fa5f0
+/sdcard/Download/kpdx-merge-fromCP-r3.kdbx: 1 file pulled, 0 skipped. 0.2 MB/s (9845 bytes in 0.051s)
+### flow rc=1 2026-11-15T18:29:52.017Z

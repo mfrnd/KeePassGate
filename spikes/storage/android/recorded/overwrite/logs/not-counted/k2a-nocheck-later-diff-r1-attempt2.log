@@ -1,0 +1,167 @@
+### 2026-11-15T22:31:48.808Z ow k2a nocheck-later-diff-r1 flow=k2a-ow-setting.flow base=OLD ARRIVING=NEW-diff TMODE=later ANSWER=none ENTRY=phone-nocheck-later-diff-r1 SETTING=^Check.for.modifications$ WAIT=3 (versionName=1.15-r6)
+Success
+<work>/work/base/OLD.kdbx: 1 file pushed, 0 skipped. 0.6 MB/s (9301 bytes in 0.015s)
+given 9301 bytes, mtime 2026-11-15 23:21:49.000000000 +0100 sha256 8ef6785ca25b07b7398a59fe828878e7e78975a77fb425ef61a2c00b06da2946
+[2026-11-15T22:31:50.257Z] k2a-ow-setting.flow:6 include k2a-open.flow
+[2026-11-15T22:31:50.263Z] k2a-open.flow:4 sh monkey -p keepass2android.keepass2android -c android.intent.category.LAUNCHER 1
+  bash arg: -p
+  bash arg: keepass2android.keepass2android
+  bash arg: -c
+  bash arg: android.intent.category.LAUNCHER
+  bash arg: 1
+Events injected: 1
+## Network stats: elapsed time=152ms (0ms mobile, 0ms wifi, 152ms not connected)
+args: [-p, keepass2android.keepass2android, -c, android.intent.category.LAUNCHER, 1]
+ arg: "-p"
+ arg: "keepass2android.keepass2android"
+ arg: "-c"
+ arg: "android.intent.category.LAUNCHER"
+ arg: "1"
+data="keepass2android.keepass2android"
+data="android.intent.category.LAUNCHER"
+[2026-11-15T22:31:51.108Z] k2a-open.flow:5 clear ^OK$ start_open_file 40
+[2026-11-15T22:31:56.471Z]   cleared 'Change log' with (859, 1883)
+[2026-11-15T22:31:59.736Z] k2a-open.flow:6 tap start_open_file
+[2026-11-15T22:32:07.093Z]   tapped (540, 1025) 'Open file...'
+[2026-11-15T22:32:07.096Z] k2a-open.flow:7 tap ^System.file.picker$
+[2026-11-15T22:32:13.491Z]   tapped (229, 516) 'System file picker'
+[2026-11-15T22:32:13.496Z] k2a-open.flow:8 waitfor Show.roots 20
+[2026-11-15T22:32:16.574Z] k2a-open.flow:9 include picker.flow
+[2026-11-15T22:32:16.584Z] picker.flow:4 pick k2a-nocheck-later-diff-r1.kdbx
+[2026-11-15T22:32:24.699Z]   focused and entered '^k2a\\-nocheck\\-later\\-diff\\-r1\\.kdbx$'
+[2026-11-15T22:32:24.701Z] k2a-open.flow:10 waitfor password_edit 30
+[2026-11-15T22:32:29.319Z] k2a-open.flow:11 typepwck password_edit dummy-password-for-a-throwaway-file
+[2026-11-15T22:32:44.267Z]   typed the password (35 characters)
+[2026-11-15T22:32:44.269Z] k2a-open.flow:12 tap pass_ok
+[2026-11-15T22:32:47.414Z]   tapped (942, 1437) 'Unlock'
+[2026-11-15T22:32:47.416Z] k2a-open.flow:13 waitfor fabAddNew 60
+[2026-11-15T22:32:54.475Z] k2a-ow-setting.flow:7 sleep 2
+[2026-11-15T22:32:56.477Z] k2a-ow-setting.flow:8 host sh <work>/scripts/prefs.sh before-settings
+[2026-11-15T22:32:56.579Z]   | prefs before-settings: 
+[2026-11-15T22:32:56.581Z] k2a-ow-setting.flow:9 tap More.options
+[2026-11-15T22:32:59.672Z]   tapped (1024, 233) 'More options'
+[2026-11-15T22:32:59.673Z] k2a-ow-setting.flow:10 tap ^Settings$
+[2026-11-15T22:33:02.864Z]   tapped (737, 387) 'Settings'
+[2026-11-15T22:33:02.868Z] k2a-ow-setting.flow:11 sleep 2
+[2026-11-15T22:33:04.870Z] k2a-ow-setting.flow:12 tap ^App$
+[2026-11-15T22:33:08.656Z]   tapped (84, 594) 'App'
+[2026-11-15T22:33:08.657Z] k2a-ow-setting.flow:13 sleep 2
+[2026-11-15T22:33:10.659Z] k2a-ow-setting.flow:14 tap ^File.handling$
+[2026-11-15T22:33:13.823Z]   tapped (325, 982) 'File handling'
+[2026-11-15T22:33:13.825Z] k2a-ow-setting.flow:15 sleep 3
+[2026-11-15T22:33:16.826Z] k2a-ow-setting.flow:16 host sh <work>/scripts/prefs.sh on-file-handling-screen
+[2026-11-15T22:33:16.934Z]   | prefs on-file-handling-screen:  <boolean name="UseOfflineCache" value="true" />  <boolean name="SyncOfflineCacheInBackground_key" value="true" />  <boolean name="CheckForFileChangesOnSave" value="true" />  <boolean name="UseFileTransactions" value="true" />  <boolean name="AlwaysMergeOnConflict" value="false" /> 
+[2026-11-15T22:33:16.936Z] k2a-ow-setting.flow:17 scrollto ^Check.for.modifications$
+[2026-11-15T22:33:28.856Z]   '^Check.for.modifications$' on screen after 2 swipe(s)
+[2026-11-15T22:33:28.857Z] k2a-ow-setting.flow:18 sh input swipe 540 1500 540 1000 400
+[2026-11-15T22:33:30.135Z] k2a-ow-setting.flow:19 sleep 2
+[2026-11-15T22:33:32.138Z] k2a-ow-setting.flow:20 checkstate ^Check.for.modifications$
+[2026-11-15T22:33:34.190Z]   '^Check.for.modifications$' checked=true
+[2026-11-15T22:33:34.191Z] k2a-ow-setting.flow:21 list
+  ViewGroup           (540, 1108)  id=decor_content_parent         text='' desc=''
+  FrameLayout         (540, 233)   id=action_bar_container         text='' desc=''
+  ViewGroup           (540, 233)   id=action_bar                   text='' desc=''
+  ImageButton    c    (77, 233)    id=                             text='' desc='Navigate up'
+  TextView            (337, 233)   id=                             text='File handling' desc=''
+  FrameLayout         (540, 1196)  id=content                      text='' desc=''
+  FrameLayout         (540, 1196)  id=settings                     text='' desc=''
+  FrameLayout         (540, 1196)  id=list_container               text='' desc=''
+  RecyclerView        (540, 1196)  id=recycler_view                text='' desc=''
+  TextView            (343, 426)   id=title                        text='Local backups' desc=''
+  TextView            (529, 510)   id=summary                      text='Create a local backup copy after successfully loading a database.' desc=''
+  LinearLayout        (948, 480)   id=widget_frame                 text='' desc=''
+  CheckBox       kx   (970, 480)   id=checkbox                     text='' desc=''
+  TextView            (358, 681)   id=title                        text='SSL certificates' desc=''
+  TextView            (617, 792)   id=summary                      text='Define the behavior when certificate validation fails. Note: you can install certificates on your device if validation fails!' desc=''
+  TextView            (519, 991)   id=title                        text='OneDrive device sign-in (broker)' desc=''
+  TextView            (617, 1212)  id=summary                      text="Controls whether OneDrive sign-in uses your device's Microsoft account manager (broker), which is required on some Intune/Entra-managed work devices. Automatic tries broker sign-in first and falls back to normal sign-in if it fails. Choose Never if OneDrive sign-in fails repeatedly on this device." desc=''
+  TextView            (438, 1521)  id=title                        text='Check for modifications' desc=''
+  TextView            (529, 1605)  id=summary                      text='Check whether the file was modified externally before saving changes.' desc=''
+  LinearLayout        (948, 1575)  id=widget_frame                 text='' desc=''
+  CheckBox       kx   (970, 1575)  id=checkbox                     text='' desc=''
+  TextView            (365, 1776)  id=title                        text='File transactions' desc=''
+  TextView            (529, 1860)  id=summary                      text='Use file transactions for writing databases' desc=''
+  LinearLayout        (948, 1830)  id=widget_frame                 text='' desc=''
+  CheckBox       kx   (970, 1830)  id=checkbox                     text='' desc=''
+  TextView            (529, 2031)  id=title                        text='Enable chunked upload for WebDav' desc=''
+  TextView            (529, 2066)  id=summary                      text='For WebDav servers that do not support uploading large files in a single request. When enabled, Keepass2Android uses standard WebDav chunking, not the Nextcloud chunking method.' desc=''
+  LinearLayout        (948, 2015)  id=widget_frame                 text='' desc=''
+  CheckBox       x    (0, 0)       id=checkbox                     text='' desc=''
+  View                (540, 72)    id=statusBarBackground          text='' desc=''
+  View                (0, 0)       id=navigationBarBackground      text='' desc=''
+[2026-11-15T22:33:36.108Z] k2a-ow-setting.flow:22 tapb ^Check.for.modifications$
+[2026-11-15T22:33:39.117Z]   tapped (438, 1521) 'Check for modifications'
+[2026-11-15T22:33:39.119Z] k2a-ow-setting.flow:23 sleep 2
+[2026-11-15T22:33:41.121Z] k2a-ow-setting.flow:24 checkstate ^Check.for.modifications$
+[2026-11-15T22:33:43.121Z]   '^Check.for.modifications$' checked=false
+[2026-11-15T22:33:43.122Z] k2a-ow-setting.flow:25 host sh <work>/scripts/prefs.sh after-tap
+[2026-11-15T22:33:43.188Z]   | prefs after-tap:  <boolean name="UseOfflineCache" value="true" />  <boolean name="SyncOfflineCacheInBackground_key" value="true" />  <boolean name="CheckForFileChangesOnSave" value="false" />  <boolean name="UseFileTransactions" value="true" />  <boolean name="AlwaysMergeOnConflict" value="false" /> 
+[2026-11-15T22:33:43.190Z] k2a-ow-setting.flow:26 key BACK
+[2026-11-15T22:33:44.200Z] k2a-ow-setting.flow:27 sleep 2
+[2026-11-15T22:33:46.202Z] k2a-ow-setting.flow:28 key BACK
+[2026-11-15T22:33:46.952Z] k2a-ow-setting.flow:29 sleep 2
+[2026-11-15T22:33:48.954Z] k2a-ow-setting.flow:30 key BACK
+[2026-11-15T22:33:50.051Z] k2a-ow-setting.flow:31 sleep 2
+[2026-11-15T22:33:52.053Z] k2a-ow-setting.flow:32 waitfor fabAddNew 30
+[2026-11-15T22:33:53.959Z] k2a-ow-setting.flow:33 host sh <work>/scripts/replace.sh /sdcard/Download/k2a-nocheck-later-diff-r1.kdbx <work>/work/base/NEW-diff.kdbx later
+[2026-11-15T22:33:54.366Z]   | replace: before 9301 bytes, mtime 2026-11-15 23:21:49.000000000 +0100 sha256 8ef6785ca25b07b7398a59fe828878e7e78975a77fb425ef61a2c00b06da2946
+[2026-11-15T22:33:54.368Z]   | <work>/work/base/NEW-diff.kdbx: 1 file pushed, 0 skipped. 1.1 MB/s (11621 bytes in 0.011s)
+[2026-11-15T22:33:54.370Z]   | replace: after  11621 bytes, mtime 2026-11-15 23:33:53.452000000 +0100 sha256 469981f9d9289f78fcf80d60f5a40b464d704959a83384e91cc1be9a2549bed6 (mode later, from NEW-diff.kdbx)
+[2026-11-15T22:33:54.371Z] k2a-ow-setting.flow:34 sleep 3
+[2026-11-15T22:33:57.373Z] k2a-ow-setting.flow:35 include k2a-ow-edit.flow
+[2026-11-15T22:33:57.379Z] k2a-ow-edit.flow:3 tap fabAddNew
+[2026-11-15T22:34:00.394Z]   tapped (959, 1607) 'keepass2android.keepass2android:id/fabAddNew'
+[2026-11-15T22:34:00.395Z] k2a-ow-edit.flow:4 tap fabAddNewEntry
+[2026-11-15T22:34:03.721Z]   tapped (871, 1211) 'Add entry'
+[2026-11-15T22:34:03.722Z] k2a-ow-edit.flow:5 maybe ^No$ 4
+[2026-11-15T22:34:07.045Z]   maybe tapped (634, 1431) 'No'
+[2026-11-15T22:34:07.047Z] k2a-ow-edit.flow:6 waitfor entry_title 20
+[2026-11-15T22:34:10.320Z] k2a-ow-edit.flow:7 tap entry_title
+[2026-11-15T22:34:13.250Z]   tapped (473, 445) 'name'
+[2026-11-15T22:34:13.253Z] k2a-ow-edit.flow:8 text phone-nocheck-later-diff-r1
+[2026-11-15T22:34:20.923Z] k2a-ow-edit.flow:9 tap menu_save
+[2026-11-15T22:34:24.386Z]   tapped (882, 233) 'Save'
+[2026-11-15T22:34:24.388Z] k2a-ow-edit.flow:10 ifthen Merge.changes 25 k2a-ans-none.flow
+[2026-11-15T22:34:31.126Z]   'Merge.changes' is there: running k2a-ans-none.flow
+[2026-11-15T22:34:31.140Z] k2a-ans-none.flow:2 dialog
+[2026-11-15T22:34:33.292Z]   dialog alertTitle: 'Merge changes?'
+[2026-11-15T22:34:33.294Z]   dialog message: 'The database file was modified externally. Do you want to load and merge the changes before saving? Select No if you want to overwrite the external changes.'
+[2026-11-15T22:34:33.295Z]   dialog button3: 'Cancel'
+[2026-11-15T22:34:33.296Z]   dialog button2: 'No, overwrite'
+[2026-11-15T22:34:33.298Z]   dialog button1: 'Yes, merge'
+[2026-11-15T22:34:33.299Z] k2a-ans-none.flow:3 list
+  FrameLayout         (540, 1176)  id=action_bar_root              text='' desc=''
+  FrameLayout         (540, 1176)  id=content                      text='' desc=''
+  LinearLayoutCompat      (540, 1176)  id=parentPanel                  text='' desc=''
+  LinearLayout        (540, 830)   id=topPanel                     text='' desc=''
+  LinearLayout        (540, 808)   id=title_template               text='' desc=''
+  TextView            (401, 833)   id=alertTitle                   text='Merge changes?' desc=''
+  View                (540, 899)   id=titleDividerNoCustom         text='' desc=''
+  FrameLayout         (540, 1030)  id=contentPanel                 text='' desc=''
+  ScrollView          (540, 1030)  id=scrollView                   text='' desc=''
+  TextView            (540, 1030)  id=message                      text='The database file was modified externally. Do you want to load and merge the changes before saving? Select No if you want to overwrite the external changes.' desc=''
+  ScrollView          (540, 1376)  id=buttonPanel                  text='' desc=''
+  Button         c    (253, 1244)  id=button3                      text='Cancel' desc=''
+  Button         c    (333, 1376)  id=button2                      text='No, overwrite' desc=''
+  Button         c    (314, 1508)  id=button1                      text='Yes, merge' desc=''
+[2026-11-15T22:34:35.615Z] k2a-ans-none.flow:4 assert ^this-case-expected-no-question$
+  FrameLayout         (540, 1176)  id=action_bar_root              text='' desc=''
+  FrameLayout         (540, 1176)  id=content                      text='' desc=''
+  LinearLayoutCompat      (540, 1176)  id=parentPanel                  text='' desc=''
+  LinearLayout        (540, 830)   id=topPanel                     text='' desc=''
+  LinearLayout        (540, 808)   id=title_template               text='' desc=''
+  TextView            (401, 833)   id=alertTitle                   text='Merge changes?' desc=''
+  View                (540, 899)   id=titleDividerNoCustom         text='' desc=''
+  FrameLayout         (540, 1030)  id=contentPanel                 text='' desc=''
+  ScrollView          (540, 1030)  id=scrollView                   text='' desc=''
+  TextView            (540, 1030)  id=message                      text='The database file was modified externally. Do you want to load and merge the changes before saving? Select No if you want to overwrite the external changes.' desc=''
+  ScrollView          (540, 1376)  id=buttonPanel                  text='' desc=''
+  Button         c    (253, 1244)  id=button3                      text='Cancel' desc=''
+  Button         c    (333, 1376)  id=button2                      text='No, overwrite' desc=''
+  Button         c    (314, 1508)  id=button1                      text='Yes, merge' desc=''
+[2026-11-15T22:34:37.637Z] FAILED: assert failed: ^this-case-expected-no-question$
+total 16
+-rw------- 1 u0_a160 u0_a160 11621 2026-11-15 23:33:53.452000000 +0100 k2a-nocheck-later-diff-r1.kdbx
+device k2a-nocheck-later-diff-r1.kdbx sha256 469981f9d9289f78fcf80d60f5a40b464d704959a83384e91cc1be9a2549bed6 11621 bytes, mtime 2026-11-15 23:33:53.452000000 +0100
+/sdcard/Download/k2a-nocheck-later-diff-r1.kdbx: 1 file pulled, 0 skipped. 0.2 MB/s (11621 bytes in 0.057s)
+### flow rc=1 2026-11-15T22:34:40.556Z

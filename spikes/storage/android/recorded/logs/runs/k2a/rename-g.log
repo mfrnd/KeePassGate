@@ -1,0 +1,104 @@
+### 2026-11-15T17:41:54.376Z op k2a rename-g flow=k2a-rename-g.flow base=S-argon (versionName=1.15-r6)
+Success
+<work>/work/base/S-argon.kdbx: 1 file pushed, 0 skipped. 1.2 MB/s (7941 bytes in 0.006s)
+pushed sha256 bd84dd4785579e8705bd12f3fe4d53a2e342be2e88c64875413ef8b336dc11ae
+[2026-11-15T17:41:55.271Z] k2a-rename-g.flow:3 include k2a-open.flow
+[2026-11-15T17:41:55.277Z] k2a-open.flow:4 sh monkey -p keepass2android.keepass2android -c android.intent.category.LAUNCHER 1
+  bash arg: -p
+  bash arg: keepass2android.keepass2android
+  bash arg: -c
+  bash arg: android.intent.category.LAUNCHER
+  bash arg: 1
+Events injected: 1
+## Network stats: elapsed time=64ms (0ms mobile, 0ms wifi, 64ms not connected)
+args: [-p, keepass2android.keepass2android, -c, android.intent.category.LAUNCHER, 1]
+ arg: "-p"
+ arg: "keepass2android.keepass2android"
+ arg: "-c"
+ arg: "android.intent.category.LAUNCHER"
+ arg: "1"
+data="keepass2android.keepass2android"
+data="android.intent.category.LAUNCHER"
+[2026-11-15T17:41:55.682Z] k2a-open.flow:5 clear ^OK$ start_open_file 40
+[2026-11-15T17:42:00.795Z]   cleared 'Change log' with (832, 1311)
+[2026-11-15T17:42:05.395Z]   cleared 'Change log' with (859, 1883)
+[2026-11-15T17:42:08.784Z] k2a-open.flow:6 tap start_open_file
+[2026-11-15T17:42:11.797Z]   tapped (540, 1025) 'Open file...'
+[2026-11-15T17:42:11.800Z] k2a-open.flow:7 tap ^System.file.picker$
+[2026-11-15T17:42:16.132Z]   tapped (229, 516) 'System file picker'
+[2026-11-15T17:42:16.134Z] k2a-open.flow:8 waitfor Show.roots 20
+[2026-11-15T17:42:18.544Z] k2a-open.flow:9 include picker.flow
+[2026-11-15T17:42:18.550Z] picker.flow:4 pick k2a-rename-g.kdbx
+[2026-11-15T17:42:26.992Z]   focused and entered '^k2a\\-rename\\-g\\.kdbx$'
+[2026-11-15T17:42:26.994Z] k2a-open.flow:10 waitfor password_edit 30
+[2026-11-15T17:42:31.225Z] k2a-open.flow:11 typepwck password_edit dummy-password-for-a-throwaway-file
+[2026-11-15T17:42:44.921Z]   typed the password (35 characters)
+[2026-11-15T17:42:44.924Z] k2a-open.flow:12 tap pass_ok
+[2026-11-15T17:42:47.954Z]   tapped (942, 1437) 'Unlock'
+[2026-11-15T17:42:47.957Z] k2a-open.flow:13 waitfor fabAddNew 60
+[2026-11-15T17:42:54.920Z] k2a-rename-g.flow:4 longpress ^G$
+[2026-11-15T17:42:59.053Z]   long-pressed (216, 386) 'G'
+[2026-11-15T17:42:59.054Z] k2a-rename-g.flow:5 tap menu_edit
+[2026-11-15T17:43:02.297Z]   tapped (750, 233) 'Edit'
+[2026-11-15T17:43:02.298Z] k2a-rename-g.flow:6 waitfor group_name 20
+[2026-11-15T17:43:05.080Z] k2a-rename-g.flow:7 list
+  TextView            (540, 982)   id=title                        text='Edit Group' desc=''
+  FrameLayout         (540, 1238)  id=content                      text='' desc=''
+  EditText       c    (457, 1150)  id=group_name                   text='G' desc=''
+  Button         c    (325, 1322)  id=ok                           text='OK' desc=''
+  Button         c    (622, 1322)  id=cancel                       text='Cancel' desc=''
+  ImageButton    c    (804, 1176)  id=icon_button                  text='' desc=''
+[2026-11-15T17:43:07.149Z] k2a-rename-g.flow:8 append group_name -phone
+[2026-11-15T17:43:19.077Z]   appended '-phone': 'G-phone'
+[2026-11-15T17:43:19.078Z] k2a-rename-g.flow:9 tap ok@^OK$
+[2026-11-15T17:43:22.370Z]   tapped (325, 980) 'OK'
+[2026-11-15T17:43:22.372Z] k2a-rename-g.flow:10 waitfor ^G-phone$ 60
+[2026-11-15T17:43:25.651Z] k2a-rename-g.flow:11 sleep 5
+[2026-11-15T17:43:30.655Z] k2a-rename-g.flow:12 list
+  ViewGroup           (540, 1036)  id=decor_content_parent         text='' desc=''
+  FrameLayout         (540, 1036)  id=content                      text='' desc=''
+  ViewGroup           (540, 1024)  id=main_content                 text='' desc=''
+  FrameLayout         (540, 1024)  id=list_fragment                text='' desc=''
+  FrameLayout         (540, 1024)  id=listContainer                text='' desc=''
+  ListView            (540, 1024)  id=list                         text='' desc=''
+  ImageView           (99, 408)    id=group_icon_bkg               text='' desc=''
+  ImageView           (99, 408)    id=icon                         text='' desc=''
+  TextView            (299, 386)   id=group_text                   text='G-phone' desc=''
+  TextView            (319, 451)   id=group_label                  text='Group - 9 entries' desc=''
+  ImageView           (992, 408)   id=right_arrow                  text='' desc=''
+  ImageView           (99, 582)    id=group_icon_bkg               text='' desc=''
+  ImageView           (99, 582)    id=icon                         text='' desc=''
+  TextView            (251, 560)   id=group_text                   text='KPG' desc=''
+  TextView            (319, 625)   id=group_label                  text='Group - 4 entries' desc=''
+  ImageView           (992, 582)   id=right_arrow                  text='' desc=''
+  ImageView           (99, 756)    id=group_icon_bkg               text='' desc=''
+  ImageView           (99, 756)    id=icon                         text='' desc=''
+  TextView            (338, 734)   id=group_text                   text='Recycle Bin' desc=''
+  TextView            (319, 799)   id=group_label                  text='Group - 0 entries' desc=''
+  ImageView           (992, 756)   id=right_arrow                  text='' desc=''
+  ImageButton    c    (959, 1211)  id=fabTotpOverview              text='' desc=''
+  ImageButton    c    (959, 1409)  id=fabSearch                    text='' desc=''
+  ImageButton    c    (959, 1607)  id=fabAddNew                    text='' desc=''
+  View                (540, 1729)  id=divider2                     text='' desc=''
+  RelativeLayout      (540, 1901)  id=bottom_bar                   text='' desc=''
+  LinearLayout        (540, 1901)  id=autofill_infotext            text='' desc=''
+  TextView            (540, 1803)  id=myinfotext                   text="Keepass2Android supports Android's Autofill feature but it looks like you haven't enabled it yet." desc=''
+  RelativeLayout      (540, 1959)  id=autofill_buttons             text='' desc=''
+  Button         c    (183, 1959)  id=enable_autofill              text='Enable Autofill' desc=''
+  Button         c    (860, 1959)  id=show_autofill_info           text='Show Autofill help' desc=''
+  Button         c    (540, 2065)  id=info_dont_show_autofill_again text='Do not show again' desc=''
+  FrameLayout         (540, 233)   id=action_bar_container         text='' desc=''
+  ViewGroup           (540, 233)   id=action_bar                   text='' desc=''
+  TextView            (234, 233)   id=                             text='Storage probe' desc=''
+  LinearLayoutCompat      (771, 233)   id=menu_search                  text='' desc=''
+  LinearLayout        (771, 233)   id=search_bar                   text='' desc=''
+  ImageView      c    (771, 233)   id=search_button                text='' desc='Search'
+  Button         c    (903, 233)   id=menu_lock                    text='' desc='Lock Database'
+  ImageView      c    (1024, 233)  id=                             text='' desc='More options'
+  View                (540, 72)    id=statusBarBackground          text='' desc=''
+  View                (0, 0)       id=navigationBarBackground      text='' desc=''
+total 12
+-rw------- 1 u0_a160 u0_a160 7909 2026-11-15 18:43:21.684000000 +0100 k2a-rename-g.kdbx
+device k2a-rename-g.kdbx sha256 5a753e5605f2ace8134ef87e139c403efbf7c9650c399a2e31182152e3fb0da7
+/sdcard/Download/k2a-rename-g.kdbx: 1 file pulled, 0 skipped. 0.1 MB/s (7909 bytes in 0.060s)
+### flow rc=0 2026-11-15T17:43:35.289Z

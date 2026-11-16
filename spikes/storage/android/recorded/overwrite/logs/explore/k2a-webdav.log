@@ -1,0 +1,69 @@
+Success
+<work>/work/base/OLD.kdbx: 1 file pushed, 0 skipped. 0.4 MB/s (9301 bytes in 0.023s)
+[2026-11-15T22:51:07.453Z] x-k2a-webdav.flow:2 include k2a-sy-open.flow
+[2026-11-15T22:51:07.464Z] k2a-sy-open.flow:4 sh monkey -p keepass2android.keepass2android -c android.intent.category.LAUNCHER 1
+  bash arg: -p
+  bash arg: keepass2android.keepass2android
+  bash arg: -c
+  bash arg: android.intent.category.LAUNCHER
+  bash arg: 1
+Events injected: 1
+## Network stats: elapsed time=114ms (0ms mobile, 0ms wifi, 114ms not connected)
+args: [-p, keepass2android.keepass2android, -c, android.intent.category.LAUNCHER, 1]
+ arg: "-p"
+ arg: "keepass2android.keepass2android"
+ arg: "-c"
+ arg: "android.intent.category.LAUNCHER"
+ arg: "1"
+data="keepass2android.keepass2android"
+data="android.intent.category.LAUNCHER"
+[2026-11-15T22:51:08.037Z] k2a-sy-open.flow:5 clear ^OK$ start_open_file 40
+[2026-11-15T22:51:15.254Z]   cleared 'Change log' with (859, 1883)
+[2026-11-15T22:51:18.545Z] k2a-sy-open.flow:6 tap start_open_file
+[2026-11-15T22:51:21.216Z]   tapped (540, 1025) 'Open file...'
+[2026-11-15T22:51:21.220Z] k2a-sy-open.flow:7 tap ^HTTP..WebDav.$
+[2026-11-15T22:51:25.103Z]   tapped (849, 1174) 'HTTP (WebDav)'
+[2026-11-15T22:51:25.105Z] k2a-sy-open.flow:8 waitfor http_url 20
+[2026-11-15T22:51:27.775Z] k2a-sy-open.flow:9 type http_url 10.0.2.2:8080/
+[2026-11-15T22:51:41.335Z]   type: field never took the focus (attempt 1)
+[2026-11-15T22:51:52.375Z]   typed '10.0.2.2:8080/'
+[2026-11-15T22:51:52.377Z] k2a-sy-open.flow:10 type http_user kpg
+[2026-11-15T22:52:03.249Z]   typed 'kpg'
+[2026-11-15T22:52:03.251Z] k2a-sy-open.flow:11 typepw http_password <invented>
+[2026-11-15T22:52:12.041Z]   typed into the focused field
+[2026-11-15T22:52:12.043Z] k2a-sy-open.flow:12 dialog
+[2026-11-15T22:52:14.227Z]   dialog alertTitle: 'Enter WebDav login data:'
+[2026-11-15T22:52:14.229Z]   dialog button2: 'Cancel'
+[2026-11-15T22:52:14.230Z]   dialog button1: 'OK'
+[2026-11-15T22:52:14.231Z] k2a-sy-open.flow:13 tap ^OK$
+[2026-11-15T22:52:17.304Z]   tapped (832, 1111) 'OK'
+[2026-11-15T22:52:17.305Z] k2a-sy-open.flow:14 sleep 5
+[2026-11-15T22:52:22.307Z] k2a-sy-open.flow:15 dialog
+[2026-11-15T22:52:24.264Z]   dialog alertTitle: 'Error'
+[2026-11-15T22:52:24.265Z]   dialog message: 'Cannot connect to file provider service  Cleartext HTTP is disabled by user preference. Go to app settings/File handling if you really want to use HTTP.'
+[2026-11-15T22:52:24.266Z] k2a-sy-open.flow:16 list
+  FrameLayout         (540, 1176)  id=content                      text='' desc=''
+  LinearLayout        (540, 1176)  id=parentPanel                  text='' desc=''
+  LinearLayout        (540, 1044)  id=topPanel                     text='' desc=''
+  LinearLayout        (540, 1033)  id=title_template               text='' desc=''
+  ImageView           (182, 1058)  id=icon                         text='' desc=''
+  TextView            (595, 1058)  id=alertTitle                   text='Error' desc=''
+  View                (540, 1113)  id=titleDividerNoCustom         text='' desc=''
+  FrameLayout         (540, 1256)  id=contentPanel                 text='' desc=''
+  ScrollView          (540, 1256)  id=scrollView                   text='' desc=''
+  TextView            (540, 1231)  id=message                      text='Cannot connect to file provider service  Cleartext HTTP is disabled by user preference. Go to app settings/File handling if you really want to use HTTP.' desc=''
+  View                (540, 1364)  id=textSpacerNoButtons          text='' desc=''
+[2026-11-15T22:52:26.254Z] k2a-sy-open.flow:17 tap ^x-explore.kdbx$
+  FrameLayout         (540, 1176)  id=content                      text='' desc=''
+  LinearLayout        (540, 1176)  id=parentPanel                  text='' desc=''
+  LinearLayout        (540, 1044)  id=topPanel                     text='' desc=''
+  LinearLayout        (540, 1033)  id=title_template               text='' desc=''
+  ImageView           (182, 1058)  id=icon                         text='' desc=''
+  TextView            (595, 1058)  id=alertTitle                   text='Error' desc=''
+  View                (540, 1113)  id=titleDividerNoCustom         text='' desc=''
+  FrameLayout         (540, 1256)  id=contentPanel                 text='' desc=''
+  ScrollView          (540, 1256)  id=scrollView                   text='' desc=''
+  TextView            (540, 1231)  id=message                      text='Cannot connect to file provider service  Cleartext HTTP is disabled by user preference. Go to app settings/File handling if you really want to use HTTP.' desc=''
+  View                (540, 1364)  id=textSpacerNoButtons          text='' desc=''
+[2026-11-15T22:52:43.235Z] FAILED: tap: no node matches ^x-explore.kdbx$
+### rc=1

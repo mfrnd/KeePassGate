@@ -1,0 +1,22 @@
+1c1
+< # file k2a-edit-e1.kdbx size=8037 sha256=6d387422c43fd97005a95dc08376b487290ae9e2d25a7ec32b86909193401291
+---
+> # file into-phone.kdbx size=8085 sha256=70333e052a7adb6e0ce0dd94eae5b210fd90a6596c7a6e213b070f3cac1a5448
+384c384
+< G G t.accessed 2026-11-15T17:10:10Z
+---
+> G G t.accessed 2026-11-01T10:00:00Z
+390c390
+< G G usage 1
+---
+> G G usage 0
+423c423
+< G Root t.accessed 2026-11-15T17:10:10Z
+---
+> G Root t.accessed 2026-11-01T10:00:00Z
+429,430c429,430
+< G Root usage 1
+< M CD KPG.Profiles = "[\"reader\",\"writer\"]" @none
+---
+> G Root usage 0
+> M CD KPG.Profiles = "[\"reader\",\"writer\"]" @2026-11-01T10:15:00Z

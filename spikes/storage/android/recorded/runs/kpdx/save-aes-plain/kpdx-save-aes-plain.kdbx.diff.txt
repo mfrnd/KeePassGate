@@ -1,0 +1,38 @@
+1c1
+< # file S-aes-plain.kdbx size=7719 sha256=c344cc06c816d9cef38ebad8a5b0fd24bd9f5a94b7da586a8271ffdedfae61e0
+---
+> # file kpdx-save-aes-plain.kdbx size=7271 sha256=b895f153a6cd72eb44f498a80428aa8ba55439e20cd6413c9ea3d9feb8480ea3
+338a339,355
+> E ~404394be S Notes p=0 ""
+> E ~404394be S Password p=1 ""
+> E ~404394be S Title p=0 "droid-added"
+> E ~404394be S URL p=0 ""
+> E ~404394be S UserName p=0 ""
+> E ~404394be autotype enabled=1 obfuscation=0 seq="" assoc=0
+> E ~404394be history.count 0
+> E ~404394be misc icon=49 customIcon=- fg=00000000 bg=00000000 overrideUrl="" quality=1
+> E ~404394be parent Root (Storage probe)
+> E ~404394be prev -
+> E ~404394be t.accessed 2026-11-15T18:15:12Z
+> E ~404394be t.created 2026-11-15T18:15:12Z
+> E ~404394be t.expires 0 2999-11-28T23:59:59Z
+> E ~404394be t.location 2026-11-15T18:15:12Z
+> E ~404394be t.modified 2026-11-15T18:15:12Z
+> E ~404394be tags []
+> E ~404394be usage 1
+341c358
+< F groups 5 entries 13
+---
+> F groups 5 entries 14
+396c413
+< G Root children groups=3 entries=0
+---
+> G Root children groups=3 entries=1
+402c419
+< G Root t.accessed 2026-11-01T10:00:00Z
+---
+> G Root t.accessed 2026-11-15T18:15:12Z
+406c423
+< G Root t.modified 2026-11-01T10:00:00Z
+---
+> G Root t.modified 2026-11-15T18:15:12Z

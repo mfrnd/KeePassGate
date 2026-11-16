@@ -1,0 +1,9 @@
+# Keepass2Android after QuickUnlock! was pressed: log the screen; it was seen to leave for the home
+# screen, so the program is brought back by its launcher and the screen logged again.
+sleep 3
+dialog
+list
+sh monkey -p ${PKG} -c android.intent.category.LAUNCHER 1
+sleep 5
+dialog
+list

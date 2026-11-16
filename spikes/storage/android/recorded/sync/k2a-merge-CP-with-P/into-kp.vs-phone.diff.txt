@@ -1,0 +1,8 @@
+1c1
+< # file k2a-merge-CP-r1.kdbx size=10165 sha256=32fc8c54f9723dbee07103a81811c588d5b382d9dab26e54fc8e521bd3c8c337
+---
+> # file into-kp.kdbx size=10213 sha256=62393ed95d12051cde86720921ff76f031bf467a6bed4ee215e20876ecd26484
+546c546
+< M CD KPG.Profiles = "[\"reader\",\"writer\"]" @none
+---
+> M CD KPG.Profiles = "[\"reader\",\"writer\"]" @2026-11-01T10:15:00Z

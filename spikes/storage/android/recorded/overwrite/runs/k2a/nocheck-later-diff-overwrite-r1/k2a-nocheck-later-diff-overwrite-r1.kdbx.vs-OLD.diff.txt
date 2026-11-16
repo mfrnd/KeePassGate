@@ -1,0 +1,34 @@
+1c1
+< # file OLD.kdbx size=9301 sha256=8ef6785ca25b07b7398a59fe828878e7e78975a77fb425ef61a2c00b06da2946
+---
+> # file k2a-nocheck-later-diff-overwrite-r1.kdbx size=9461 sha256=1144123f6dd0f7cd3ee11135ff2bc73dd3470f148f589fd7739a05a63e312dd2
+340a341,357
+> E ~d3486aef S Notes p=0 ""
+> E ~d3486aef S Password p=1 ""
+> E ~d3486aef S Title p=0 "phone-nocheck-later-diff-overwrite-r1"
+> E ~d3486aef S URL p=0 ""
+> E ~d3486aef S UserName p=0 ""
+> E ~d3486aef autotype enabled=1 obfuscation=0 seq="" assoc=0
+> E ~d3486aef history.count 0
+> E ~d3486aef misc icon=0 customIcon=- fg=00000000 bg=00000000 overrideUrl="" quality=1
+> E ~d3486aef parent Root (Storage probe)
+> E ~d3486aef prev -
+> E ~d3486aef t.accessed 2026-11-15T22:40:25Z
+> E ~d3486aef t.created 2026-11-15T22:40:05Z
+> E ~d3486aef t.expires 0 2026-11-15T22:38:45Z
+> E ~d3486aef t.location 2026-11-15T22:40:05Z
+> E ~d3486aef t.modified 2026-11-15T22:40:25Z
+> E ~d3486aef tags []
+> E ~d3486aef usage 1
+343c360
+< F groups 5 entries 13
+---
+> F groups 5 entries 14
+399c416
+< G Root children groups=3 entries=0
+---
+> G Root children groups=3 entries=1
+412c429
+< M CD KPG.Profiles = "[\"reader\",\"writer\"]" @2026-11-01T10:15:00Z
+---
+> M CD KPG.Profiles = "[\"reader\",\"writer\"]" @none

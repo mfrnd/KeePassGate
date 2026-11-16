@@ -1,0 +1,127 @@
+### 2026-11-15T22:16:52.226Z ow k2a look-later-diff-r1 flow=k2a-ow-look.flow base=OLD ARRIVING=NEW-diff TMODE=later (versionName=1.15-r6)
+Success
+<work>/work/base/OLD.kdbx: 1 file pushed, 0 skipped. 0.6 MB/s (9301 bytes in 0.014s)
+given 9301 bytes, mtime 2026-11-15 23:06:52.000000000 +0100 sha256 8ef6785ca25b07b7398a59fe828878e7e78975a77fb425ef61a2c00b06da2946
+[2026-11-15T22:16:53.428Z] k2a-ow-look.flow:4 include k2a-open.flow
+[2026-11-15T22:16:53.437Z] k2a-open.flow:4 sh monkey -p keepass2android.keepass2android -c android.intent.category.LAUNCHER 1
+  bash arg: -p
+  bash arg: keepass2android.keepass2android
+  bash arg: -c
+  bash arg: android.intent.category.LAUNCHER
+  bash arg: 1
+Events injected: 1
+## Network stats: elapsed time=167ms (0ms mobile, 0ms wifi, 167ms not connected)
+args: [-p, keepass2android.keepass2android, -c, android.intent.category.LAUNCHER, 1]
+ arg: "-p"
+ arg: "keepass2android.keepass2android"
+ arg: "-c"
+ arg: "android.intent.category.LAUNCHER"
+ arg: "1"
+data="keepass2android.keepass2android"
+data="android.intent.category.LAUNCHER"
+[2026-11-15T22:16:54.706Z] k2a-open.flow:5 clear ^OK$ start_open_file 40
+[2026-11-15T22:17:02.636Z]   cleared 'Change log' with (859, 1883)
+[2026-11-15T22:17:06.429Z] k2a-open.flow:6 tap start_open_file
+[2026-11-15T22:17:09.454Z]   tapped (540, 1025) 'Open file...'
+[2026-11-15T22:17:09.456Z] k2a-open.flow:7 tap ^System.file.picker$
+[2026-11-15T22:17:13.796Z]   tapped (229, 516) 'System file picker'
+[2026-11-15T22:17:13.798Z] k2a-open.flow:8 waitfor Show.roots 20
+[2026-11-15T22:17:16.950Z] k2a-open.flow:9 include picker.flow
+[2026-11-15T22:17:16.960Z] picker.flow:4 pick k2a-look-later-diff-r1.kdbx
+[2026-11-15T22:17:25.166Z]   focused and entered '^k2a\\-look\\-later\\-diff\\-r1\\.kdbx$'
+[2026-11-15T22:17:25.172Z] k2a-open.flow:10 waitfor password_edit 30
+[2026-11-15T22:17:30.074Z] k2a-open.flow:11 typepwck password_edit dummy-password-for-a-throwaway-file
+[2026-11-15T22:17:45.070Z]   typed the password (35 characters)
+[2026-11-15T22:17:45.072Z] k2a-open.flow:12 tap pass_ok
+[2026-11-15T22:17:48.555Z]   tapped (942, 1437) 'Unlock'
+[2026-11-15T22:17:48.557Z] k2a-open.flow:13 waitfor fabAddNew 60
+[2026-11-15T22:17:56.307Z] k2a-ow-look.flow:5 sleep 2
+[2026-11-15T22:17:58.310Z] k2a-ow-look.flow:6 host sh <work>/scripts/replace.sh /sdcard/Download/k2a-look-later-diff-r1.kdbx <work>/work/base/NEW-diff.kdbx later
+[2026-11-15T22:17:58.666Z]   | replace: before 9301 bytes, mtime 2026-11-15 23:06:52.000000000 +0100 sha256 8ef6785ca25b07b7398a59fe828878e7e78975a77fb425ef61a2c00b06da2946
+[2026-11-15T22:17:58.666Z]   | <work>/work/base/NEW-diff.kdbx: 1 file pushed, 0 skipped. 1.0 MB/s (11621 bytes in 0.012s)
+[2026-11-15T22:17:58.667Z]   | replace: after  11621 bytes, mtime 2026-11-15 23:17:57.764000000 +0100 sha256 469981f9d9289f78fcf80d60f5a40b464d704959a83384e91cc1be9a2549bed6 (mode later, from NEW-diff.kdbx)
+[2026-11-15T22:17:58.668Z] k2a-ow-look.flow:7 sleep 3
+[2026-11-15T22:18:01.669Z] k2a-ow-look.flow:8 tap ^G$
+[2026-11-15T22:18:04.651Z]   tapped (216, 386) 'G'
+[2026-11-15T22:18:04.652Z] k2a-ow-look.flow:9 sleep 2
+[2026-11-15T22:18:06.654Z] k2a-ow-look.flow:10 tap ^E1$
+[2026-11-15T22:18:10.438Z]   tapped (229, 554) 'E1'
+[2026-11-15T22:18:10.444Z] k2a-ow-look.flow:11 sleep 3
+[2026-11-15T22:18:13.446Z] k2a-ow-look.flow:12 dialog
+[2026-11-15T22:18:15.560Z]   dialog android.widget.Button: '11/1/2026 12:00 PM'
+[2026-11-15T22:18:15.562Z]   dialog android.widget.Button: '11/1/2026 1:00 PM'
+[2026-11-15T22:18:15.564Z]   dialog android.widget.Button: '11/1/2026 2:00 PM'
+[2026-11-15T22:18:15.565Z]   dialog entry_edit: ''
+[2026-11-15T22:18:15.566Z]   dialog android.widget.ImageButton: ''
+[2026-11-15T22:18:15.568Z]   dialog menu_lock: ''
+[2026-11-15T22:18:15.569Z]   dialog menu_toggle_pass: ''
+[2026-11-15T22:18:15.571Z] k2a-ow-look.flow:13 key BACK
+[2026-11-15T22:18:16.660Z] k2a-ow-look.flow:14 sleep 2
+[2026-11-15T22:18:18.665Z] k2a-ow-look.flow:15 key BACK
+[2026-11-15T22:18:19.648Z] k2a-ow-look.flow:16 sleep 2
+[2026-11-15T22:18:21.649Z] k2a-ow-look.flow:17 include k2a-look-kpg.flow
+[2026-11-15T22:18:21.655Z] k2a-look-kpg.flow:2 tap ^KPG$
+[2026-11-15T22:18:24.712Z]   tapped (251, 560) 'KPG'
+[2026-11-15T22:18:24.715Z] k2a-look-kpg.flow:3 sleep 3
+[2026-11-15T22:18:27.718Z] k2a-look-kpg.flow:4 log entries listed in KPG follow
+[2026-11-15T22:18:27.720Z]   entries listed in KPG follow
+[2026-11-15T22:18:27.721Z] k2a-look-kpg.flow:5 list
+  ViewGroup           (540, 1036)  id=decor_content_parent         text='' desc=''
+  FrameLayout         (540, 1036)  id=content                      text='' desc=''
+  ViewGroup           (540, 1024)  id=main_content                 text='' desc=''
+  FrameLayout         (540, 1024)  id=list_fragment                text='' desc=''
+  FrameLayout         (540, 1024)  id=listContainer                text='' desc=''
+  ListView       f    (540, 1024)  id=list                         text='' desc=''
+  ImageView           (99, 398)    id=entry_icon_bkg               text='' desc=''
+  ImageView           (99, 398)    id=icon                         text='' desc=''
+  TextView            (359, 398)   id=entry_text                   text='KPG merge 1' desc=''
+  ImageView           (992, 398)   id=right_arrow                  text='' desc=''
+  ImageView           (99, 552)    id=entry_icon_bkg               text='' desc=''
+  ImageView           (99, 552)    id=icon                         text='' desc=''
+  TextView            (359, 552)   id=entry_text                   text='KPG merge 2' desc=''
+  ImageView           (992, 552)   id=right_arrow                  text='' desc=''
+  ImageView           (99, 716)    id=entry_icon_bkg               text='' desc=''
+  ImageView           (99, 716)    id=icon                         text='' desc=''
+  TextView            (359, 688)   id=entry_text                   text='KPG record 1' desc=''
+  TextView            (255, 753)   id=entry_text_detail            text='kpg-r1' desc=''
+  ImageView           (992, 716)   id=right_arrow                  text='' desc=''
+  ImageView           (99, 880)    id=entry_icon_bkg               text='' desc=''
+  ImageView           (99, 880)    id=icon                         text='' desc=''
+  TextView            (359, 880)   id=entry_text                   text='KPG record 2' desc=''
+  ImageView           (992, 880)   id=right_arrow                  text='' desc=''
+  ImageButton    c    (959, 1409)  id=fabSearch                    text='' desc=''
+  ImageButton    c    (959, 1607)  id=fabAddNew                    text='' desc=''
+  View                (540, 1729)  id=divider2                     text='' desc=''
+  RelativeLayout      (540, 1901)  id=bottom_bar                   text='' desc=''
+  LinearLayout        (540, 1901)  id=autofill_infotext            text='' desc=''
+  TextView            (540, 1803)  id=myinfotext                   text="Keepass2Android supports Android's Autofill feature but it looks like you haven't enabled it yet." desc=''
+  RelativeLayout      (540, 1959)  id=autofill_buttons             text='' desc=''
+  Button         c    (183, 1959)  id=enable_autofill              text='Enable Autofill' desc=''
+  Button         c    (860, 1959)  id=show_autofill_info           text='Show Autofill help' desc=''
+  Button         c    (540, 2065)  id=info_dont_show_autofill_again text='Do not show again' desc=''
+  FrameLayout         (540, 233)   id=action_bar_container         text='' desc=''
+  ViewGroup           (540, 233)   id=action_bar                   text='' desc=''
+  ImageButton    c    (77, 233)    id=                             text='' desc='Navigate up'
+  TextView            (224, 233)   id=                             text='KPG' desc=''
+  LinearLayoutCompat      (771, 233)   id=menu_search                  text='' desc=''
+  LinearLayout        (771, 233)   id=search_bar                   text='' desc=''
+  ImageView      c    (771, 233)   id=search_button                text='' desc='Search'
+  Button         c    (903, 233)   id=menu_lock                    text='' desc='Lock Database'
+  ImageView      c    (1024, 233)  id=                             text='' desc='More options'
+  View                (540, 72)    id=statusBarBackground          text='' desc=''
+  View                (0, 0)       id=navigationBarBackground      text='' desc=''
+[2026-11-15T22:18:29.700Z] k2a-look-kpg.flow:6 key BACK
+[2026-11-15T22:18:30.589Z] k2a-look-kpg.flow:7 sleep 2
+[2026-11-15T22:18:32.591Z] k2a-look-kpg.flow:8 waitfor fabAddNew 20
+[2026-11-15T22:18:34.661Z] k2a-ow-look.flow:18 tap menu_lock
+[2026-11-15T22:18:37.468Z]   tapped (903, 233) 'Lock Database'
+[2026-11-15T22:18:37.470Z] k2a-ow-look.flow:19 waitfor QuickUnlock_buttonLock 20
+[2026-11-15T22:18:41.540Z] k2a-ow-look.flow:20 tap QuickUnlock_buttonLock
+[2026-11-15T22:18:44.940Z]   tapped (195, 1437) 'Close database'
+[2026-11-15T22:18:44.944Z] k2a-ow-look.flow:21 sleep 3
+[2026-11-15T22:18:47.947Z] k2a-ow-look.flow:22 dialog
+total 16
+-rw------- 1 u0_a160 u0_a160 11621 2026-11-15 23:17:57.764000000 +0100 k2a-look-later-diff-r1.kdbx
+device k2a-look-later-diff-r1.kdbx sha256 469981f9d9289f78fcf80d60f5a40b464d704959a83384e91cc1be9a2549bed6 11621 bytes, mtime 2026-11-15 23:17:57.764000000 +0100
+/sdcard/Download/k2a-look-later-diff-r1.kdbx: 1 file pulled, 0 skipped. 0.3 MB/s (11621 bytes in 0.032s)
+### flow rc=0 2026-11-15T22:18:52.730Z

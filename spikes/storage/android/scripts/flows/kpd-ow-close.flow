@@ -1,0 +1,16 @@
+# Window (c), KeePassDroid: open OLD and unlock; close the program (force-stop, as swiping it away
+# does); replace.sh puts ${ARRIVING} over the file at time ${TMODE}; start it again, open the file
+# from its recent files, unlock, look into KPG, then add an entry ${ENTRY} and save.
+include kpd-open.flow
+sleep 2
+sh am force-stop ${PKG}
+sleep 2
+host sh ${P}/replace.sh /sdcard/Download/${NAME}.kdbx ${SRCDIR}/${ARRIVING}.kdbx ${TMODE}
+sleep 2
+sh monkey -p ${PKG} -c android.intent.category.LAUNCHER 1
+sleep 4
+dialog
+list
+include kpd-reopen.flow
+include kpd-look-kpg.flow
+include kpd-ow-edit.flow

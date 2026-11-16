@@ -1,0 +1,15 @@
+# Case 9, QuickUnlock (a screen lock set): open; lock; SNEW-fixed put on the server; QuickUnlock with
+# the password's last three characters; look; edit P2's password and save, answering a "Merge
+# changes?" question with ${ANSWER}.
+include k2a-sy-open.flow
+tap menu_lock
+waitfor QuickUnlock_password 20
+host sh ${P}/srv-put.sh ${SNAME} ${SRCDIR}/SNEW-fixed.kdbx
+typepw QuickUnlock_password ile
+tap QuickUnlock_button$
+include k2a-after-qu.flow
+host sh ${P}/events.sh 6 after-quickunlock
+waitfor fabAddNew 60
+include k2a-sy-look.flow
+include k2a-sy-pw-P2.flow
+host sh ${P}/srv-stat.sh ${SNAME} after-save

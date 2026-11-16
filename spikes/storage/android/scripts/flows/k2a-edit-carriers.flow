@@ -1,0 +1,26 @@
+# Step 3, Keepass2Android: open, append -phone to the title of KPG record 1 in the KPG group and
+# save, then the same for the marker entry in G.
+include k2a-open.flow
+tap ^KPG$
+tap ^KPG.record.1$
+waitfor entry_edit 20
+tap entry_edit
+waitfor entry_title 20
+append entry_title -phone
+tap menu_save
+waitfor entry_edit 60
+sleep 4
+key BACK
+waitfor ^KPG.record.2$ 20
+key BACK
+waitfor ^G$ 20
+tap ^G$
+tap ^KPG.marker$
+waitfor entry_edit 20
+tap entry_edit
+waitfor entry_title 20
+append entry_title -phone
+tap menu_save
+waitfor entry_edit 60
+sleep 5
+list

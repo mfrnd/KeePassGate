@@ -1,0 +1,3 @@
+k2a k2a-A.flow keepass2android.keepass2android S-aes save-aes ENTRY=droid-added
+k2a k2a-A.flow keepass2android.keepass2android S-aes-nocd save-aes-nocd ENTRY=droid-added
+k2a k2a-A.flow keepass2android.keepass2android S-aes-plain save-aes-plain ENTRY=droid-added

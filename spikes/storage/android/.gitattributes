@@ -1,0 +1,14 @@
+# Read under Linux, where a carriage return ends up inside a command or a hash: the measurement's
+# copy of the pins, which `env.sh` reads, and the batch files, whose last word on a line would
+# otherwise carry one into `run-op.sh`. The root rules cover `*.sh`, `*.flow`, `*.py` and the root
+# `android.sha256` only.
+scripts/android.sha256 text eol=lf
+scripts/batches/*.txt text eol=lf
+# The later measurements' batch files, which `batch-ow.sh` and `batch-sy.sh` read the same way.
+scripts/batches-ow/*.txt text eol=lf
+
+# The checksums rclone publishes, kept as they arrived: a signed text, whose bytes stay as signed.
+recorded/k2a-synchronize/server/SHA256SUMS -text
+
+# The MD5 pair is two bodies whose digests are quoted, so they are bytes, not text.
+*.bin binary

@@ -1,0 +1,23 @@
+# Step 5, Keepass2Android: open, go into G, select E2, Delete, answer No ("Press No to recycle"):
+# E2 goes to the recycle bin and the file is saved; a copy is pulled then. Then into the recycle
+# bin, select E2, Delete, answer Yes (permanently). K2A has no "empty recycle bin".
+include k2a-open.flow
+tap ^G$
+longpress ^E2$
+tap menu_delete
+waitfor ^Delete.permanently 20
+list
+tap ^No$
+gone ^E2$ 60
+sleep 5
+adb pull /sdcard/Download/${NAME}.kdbx ${OUT}/mid-recycled.kdbx
+tap Navigate.up
+tap ^Recycle.Bin$
+longpress ^E2$
+tap menu_delete
+waitfor ^Delete.permanently 20
+list
+tap ^Yes$
+gone ^E2$ 60
+sleep 5
+list

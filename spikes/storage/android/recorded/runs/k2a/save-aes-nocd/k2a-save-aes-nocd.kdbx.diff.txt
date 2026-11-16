@@ -1,0 +1,34 @@
+1c1
+< # file S-aes-nocd.kdbx size=7783 sha256=daf8d6c87a93e25d960ead7a72bda245868f8d8044117064275fe65be398c9d6
+---
+> # file k2a-save-aes-nocd.kdbx size=7927 sha256=c94babe371547b32adc328c261a060f94b2de8af10b99ccfa3fc4245de2054ab
+338a339,355
+> E ~220a2a56 S Notes p=0 ""
+> E ~220a2a56 S Password p=1 ""
+> E ~220a2a56 S Title p=0 "droid-added"
+> E ~220a2a56 S URL p=0 ""
+> E ~220a2a56 S UserName p=0 ""
+> E ~220a2a56 autotype enabled=1 obfuscation=0 seq="" assoc=0
+> E ~220a2a56 history.count 0
+> E ~220a2a56 misc icon=0 customIcon=- fg=00000000 bg=00000000 overrideUrl="" quality=1
+> E ~220a2a56 parent Root (Storage probe)
+> E ~220a2a56 prev -
+> E ~220a2a56 t.accessed 2026-11-15T17:07:08Z
+> E ~220a2a56 t.created 2026-11-15T17:06:56Z
+> E ~220a2a56 t.expires 0 2026-11-15T17:06:40Z
+> E ~220a2a56 t.location 2026-11-15T17:06:56Z
+> E ~220a2a56 t.modified 2026-11-15T17:07:08Z
+> E ~220a2a56 tags []
+> E ~220a2a56 usage 1
+341c358
+< F groups 5 entries 13
+---
+> F groups 5 entries 14
+396c413
+< G Root children groups=3 entries=0
+---
+> G Root children groups=3 entries=1
+409c426
+< M CD KPG.Profiles = "[\"reader\",\"writer\"]" @2026-11-01T10:15:00Z
+---
+> M CD KPG.Profiles = "[\"reader\",\"writer\"]" @none

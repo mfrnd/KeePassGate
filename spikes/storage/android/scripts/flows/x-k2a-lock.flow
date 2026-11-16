@@ -1,0 +1,4 @@
+# Exploration: what Keepass2Android's lock button leaves on screen.
+tap menu_lock
+sleep 3
+list

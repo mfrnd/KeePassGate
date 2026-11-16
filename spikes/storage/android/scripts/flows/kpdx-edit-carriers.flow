@@ -1,0 +1,26 @@
+# Step 3, KeePassDX: open, KPG, select KPG record 1, Edit (as kpdx-edit-e1.flow), append -phone to
+# the title, Validate; back to the root, G, the same for KPG marker.
+include kpdx-open.flow
+tapuntil node_text@^KPG$ node_text@^KPG.record.2$ 40
+sleep 3
+longpressuntil node_text@^KPG.record.1$ menu_move 60 2000 600
+tapuntil More.options#2 ^Edit$ 30
+tap ^Edit$
+ifthen setup_check_password_edit_text 8 kpdx-verify.flow
+waitfor entry_edit_validate 20
+append ^KPG.record.1$ -phone
+tapuntil entry_edit_validate add_button 30
+sleep 5
+key BACK
+waitfor node_text@^Recycle.Bin$ 20
+tapuntil node_text@^G$ node_text@^Y3$ 40
+sleep 3
+longpressuntil node_text@^KPG.marker$ menu_move 60 2000 600
+tapuntil More.options#2 ^Edit$ 30
+tap ^Edit$
+ifthen setup_check_password_edit_text 8 kpdx-verify.flow
+waitfor entry_edit_validate 20
+append ^KPG.marker$ -phone
+tapuntil entry_edit_validate add_button 30
+sleep 6
+list

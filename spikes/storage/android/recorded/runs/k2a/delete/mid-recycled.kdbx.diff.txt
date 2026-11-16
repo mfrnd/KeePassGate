@@ -1,0 +1,46 @@
+1c1
+< # file S-argon.kdbx size=7941 sha256=bd84dd4785579e8705bd12f3fe4d53a2e342be2e88c64875413ef8b336dc11ae
+---
+> # file mid-recycled.kdbx size=7909 sha256=2a68a2e3355b829296d2dd5d856c3e84f63d2c57eeba14a6acf57aebbc01eba9
+81c81
+< E E2 parent G (G)
+---
+> E E2 parent Bin (Recycle Bin)
+83c83
+< E E2 t.accessed 2026-11-01T10:45:00Z
+---
+> E E2 t.accessed 2026-11-15T17:44:46Z
+86c86
+< E E2 t.location 2026-11-01T10:45:00Z
+---
+> E E2 t.location 2026-11-15T17:44:46Z
+89c89
+< E E2 usage 0
+---
+> E E2 usage 1
+346c346
+< G Bin children groups=0 entries=0
+---
+> G Bin children groups=0 entries=1
+352c352
+< G Bin t.accessed 2026-11-01T10:05:00Z
+---
+> G Bin t.accessed 2026-11-15T17:44:46Z
+358c358
+< G Bin usage 0
+---
+> G Bin usage 1
+360c360
+< G G children groups=1 entries=8
+---
+> G G children groups=1 entries=7
+405c405
+< G Root t.accessed 2026-11-01T10:00:00Z
+---
+> G Root t.accessed 2026-11-15T17:44:46Z
+411,412c411,412
+< G Root usage 0
+< M CD KPG.Profiles = "[\"reader\",\"writer\"]" @2026-11-01T10:15:00Z
+---
+> G Root usage 1
+> M CD KPG.Profiles = "[\"reader\",\"writer\"]" @none

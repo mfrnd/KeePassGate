@@ -1,0 +1,123 @@
+### 2026-11-15T17:09:09.649Z op k2a edit-e1 flow=k2a-edit-e1.flow base=S-argon (versionName=1.15-r6)
+Success
+<work>/work/base/S-argon.kdbx: 1 file pushed, 0 skipped. 1.0 MB/s (7941 bytes in 0.008s)
+pushed sha256 bd84dd4785579e8705bd12f3fe4d53a2e342be2e88c64875413ef8b336dc11ae
+[2026-11-15T17:09:10.340Z] k2a-edit-e1.flow:3 include k2a-open.flow
+[2026-11-15T17:09:10.347Z] k2a-open.flow:3 sh monkey -p keepass2android.keepass2android -c android.intent.category.LAUNCHER 1
+  bash arg: -p
+  bash arg: keepass2android.keepass2android
+  bash arg: -c
+  bash arg: android.intent.category.LAUNCHER
+  bash arg: 1
+Events injected: 1
+## Network stats: elapsed time=50ms (0ms mobile, 0ms wifi, 50ms not connected)
+args: [-p, keepass2android.keepass2android, -c, android.intent.category.LAUNCHER, 1]
+ arg: "-p"
+ arg: "keepass2android.keepass2android"
+ arg: "-c"
+ arg: "android.intent.category.LAUNCHER"
+ arg: "1"
+data="keepass2android.keepass2android"
+data="android.intent.category.LAUNCHER"
+[2026-11-15T17:09:11.049Z] k2a-open.flow:4 clear ^OK$ start_open_file 40
+[2026-11-15T17:09:20.312Z]   cleared 'Change log' with (859, 1883)
+[2026-11-15T17:09:24.032Z] k2a-open.flow:5 tap start_open_file
+[2026-11-15T17:09:26.757Z]   tapped (540, 1025) 'Open file...'
+[2026-11-15T17:09:26.758Z] k2a-open.flow:6 tap ^System.file.picker$
+[2026-11-15T17:09:30.749Z]   tapped (229, 516) 'System file picker'
+[2026-11-15T17:09:30.750Z] k2a-open.flow:7 waitfor Show.roots 20
+[2026-11-15T17:09:34.582Z] k2a-open.flow:8 include picker.flow
+[2026-11-15T17:09:34.587Z] picker.flow:4 pick k2a-edit-e1.kdbx
+[2026-11-15T17:09:42.881Z]   focused and entered '^k2a\\-edit\\-e1\\.kdbx$'
+[2026-11-15T17:09:42.883Z] k2a-open.flow:9 waitfor password_edit 30
+[2026-11-15T17:09:48.005Z] k2a-open.flow:10 tap password_edit
+[2026-11-15T17:09:50.816Z]   tapped (501, 1151) 'Password'
+[2026-11-15T17:09:50.817Z] k2a-open.flow:11 text dummy-password-for-a-throwaway-file
+[2026-11-15T17:09:55.222Z] k2a-open.flow:12 tap pass_ok
+[2026-11-15T17:09:57.909Z]   tapped (942, 1437) 'Unlock'
+[2026-11-15T17:09:57.910Z] k2a-open.flow:13 waitfor fabAddNew 60
+[2026-11-15T17:10:04.778Z] k2a-edit-e1.flow:4 tap ^G$
+[2026-11-15T17:10:07.832Z]   tapped (216, 386) 'G'
+[2026-11-15T17:10:07.833Z] k2a-edit-e1.flow:5 tap ^E1$
+[2026-11-15T17:10:11.381Z]   tapped (229, 554) 'E1'
+[2026-11-15T17:10:11.383Z] k2a-edit-e1.flow:6 waitfor entry_edit 20
+[2026-11-15T17:10:14.343Z] k2a-edit-e1.flow:7 tap entry_edit
+[2026-11-15T17:10:17.100Z]   tapped (959, 2041) 'keepass2android.keepass2android:id/entry_edit'
+[2026-11-15T17:10:17.102Z] k2a-edit-e1.flow:8 waitfor entry_password 20
+[2026-11-15T17:10:20.095Z] k2a-edit-e1.flow:9 appendpw entry_password -phone
+[2026-11-15T17:10:29.368Z]   appended to the focused field (was 14 characters)
+[2026-11-15T17:10:29.370Z] k2a-edit-e1.flow:10 tap menu_save
+[2026-11-15T17:10:32.919Z]   tapped (882, 233) 'Save'
+[2026-11-15T17:10:32.921Z] k2a-edit-e1.flow:11 waitfor entry_edit 60
+[2026-11-15T17:10:36.987Z] k2a-edit-e1.flow:12 sleep 5
+[2026-11-15T17:10:41.988Z] k2a-edit-e1.flow:13 list
+  ViewGroup           (540, 1036)  id=decor_content_parent         text='' desc=''
+  FrameLayout         (540, 1036)  id=content                      text='' desc=''
+  ViewGroup           (540, 1036)  id=main_content                 text='' desc=''
+  ScrollView          (540, 1196)  id=entry_scroll                 text='' desc=''
+  LinearLayout        (540, 1196)  id=entry_contents               text='' desc=''
+  LinearLayout        (540, 1196)  id=entry_table                  text='' desc=''
+  LinearLayout        (540, 413)   id=entryfield_container_username text='' desc=''
+  TextView            (600, 387)   id=entry_user_name_label        text='User Name' desc=''
+  RelativeLayout c    (617, 450)   id=username_container           text='' desc=''
+  TextView            (551, 450)   id=entry_user_name              text='alice-invented' desc=''
+  ImageView           (986, 444)   id=username_vdots               text='' desc=''
+  LinearLayout        (540, 576)   id=entryfield_container_url     text='' desc=''
+  TextView            (600, 550)   id=entry_url_label              text='URL' desc=''
+  RelativeLayout c    (617, 613)   id=url_container                text='' desc=''
+  TextView            (551, 613)   id=entry_url                    text='https://e1.example.invalid/' desc=''
+  ImageView           (986, 607)   id=url_vdots                    text='' desc=''
+  LinearLayout        (540, 739)   id=entryfield_container_password text='' desc=''
+  TextView            (600, 713)   id=entry_password_label         text='Password' desc=''
+  RelativeLayout c    (617, 776)   id=password_container           text='' desc=''
+  TextView            (551, 776)   id=entry_password               text='••••••••••••••••••••' desc=''
+  ImageView           (986, 770)   id=password_vdots               text='' desc=''
+  LinearLayout        (540, 902)   id=entryfield_container_comment text='' desc=''
+  TextView            (600, 876)   id=entry_comment_label          text='Notes' desc=''
+  RelativeLayout c    (617, 939)   id=comment_container            text='' desc=''
+  TextView       c    (551, 939)   id=entry_comment                text='ordinary notes' desc=''
+  ImageView           (986, 933)   id=comment_vdots                text='' desc=''
+  LinearLayout        (540, 1078)  id=extra_strings_container      text='' desc=''
+  LinearLayout        (617, 1094)  id=extra_strings                text='' desc=''
+  LinearLayout        (617, 1065)  id=extra_title_container        text='' desc=''
+  TextView            (600, 1072)  id=entry_title                  text='Extra' desc=''
+  RelativeLayout c    (617, 1131)  id=extra_container              text='' desc=''
+  TextView            (567, 1131)  id=entry_extra_visible          text='extra-value-e1' desc=''
+  ImageView           (1003, 1122) id=extra_vdots                  text='' desc=''
+  LinearLayout        (540, 1253)  id=entry_binaries_label         text='' desc=''
+  TextView            (600, 1227)  id=                             text='File attachments' desc=''
+  LinearLayout        (617, 1290)  id=binaries                     text='' desc=''
+  RelativeLayout c    (617, 1290)  id=extra_container              text='' desc=''
+  TextView            (567, 1290)  id=entry_extra                  text='e1.txt' desc=''
+  TextView            (567, 1290)  id=entry_extra_visible          text='' desc=''
+  ImageView           (1003, 1277) id=extra_vdots                  text='' desc=''
+  LinearLayout        (540, 1416)  id=entryfield_container_tags    text='' desc=''
+  TextView            (600, 1390)  id=entry_tags_label             text='Tags' desc=''
+  TextView       c    (600, 1453)  id=entry_tags                   text='work' desc=''
+  LinearLayout        (540, 1579)  id=entryfield_container_created text='' desc=''
+  TextView            (600, 1553)  id=entry_created_label          text='Created' desc=''
+  TextView            (600, 1616)  id=entry_created                text='11/1/2026 12:00 PM' desc=''
+  LinearLayout        (540, 1742)  id=entryfield_container_modified text='' desc=''
+  TextView            (600, 1716)  id=entry_modified_label         text='Modified' desc=''
+  TextView            (600, 1779)  id=entry_modified               text='11/15/2026 6:10 PM' desc=''
+  LinearLayout        (540, 1953)  id=entry_history_container      text='' desc=''
+  TextView            (600, 1879)  id=                             text='Previous versions' desc=''
+  LinearLayout        (617, 1990)  id=previous_versions            text='' desc=''
+  Button         c    (617, 1975)  id=                             text='11/1/2026 12:00 PM' desc=''
+  Button         c    (617, 2056)  id=                             text='11/1/2026 1:00 PM' desc=''
+  Button         c    (0, 0)       id=                             text='11/1/2026 2:00 PM' desc=''
+  ImageButton    c    (959, 2041)  id=entry_edit                   text='' desc=''
+  FrameLayout         (540, 233)   id=action_bar_container         text='' desc=''
+  ViewGroup           (540, 233)   id=action_bar                   text='' desc=''
+  ImageButton    c    (77, 233)    id=                             text='' desc='Navigate up'
+  TextView            (199, 233)   id=                             text='E1' desc=''
+  Button         c    (771, 233)   id=menu_lock                    text='' desc='Lock Database'
+  Button         c    (903, 233)   id=menu_toggle_pass             text='' desc='Show password'
+  ImageView      c    (1024, 233)  id=                             text='' desc='More options'
+  View                (540, 72)    id=statusBarBackground          text='' desc=''
+  View                (0, 0)       id=navigationBarBackground      text='' desc=''
+total 12
+-rw------- 1 u0_a160 u0_a160 8037 2026-11-15 18:10:31.920000000 +0100 k2a-edit-e1.kdbx
+device k2a-edit-e1.kdbx sha256 6d387422c43fd97005a95dc08376b487290ae9e2d25a7ec32b86909193401291
+/sdcard/Download/k2a-edit-e1.kdbx: 1 file pulled, 0 skipped. 0.2 MB/s (8037 bytes in 0.046s)
+### flow rc=0 2026-11-15T17:10:46.773Z

@@ -1,0 +1,54 @@
+Success
+<work>/work/base/OLD.kdbx: 1 file pushed, 0 skipped. 0.6 MB/s (9301 bytes in 0.016s)
+[2026-11-15T21:05:47.455Z] x-k2a-menu.flow:2 include k2a-open.flow
+[2026-11-15T21:05:47.459Z] k2a-open.flow:4 sh monkey -p keepass2android.keepass2android -c android.intent.category.LAUNCHER 1
+  bash arg: -p
+  bash arg: keepass2android.keepass2android
+  bash arg: -c
+  bash arg: android.intent.category.LAUNCHER
+  bash arg: 1
+Events injected: 1
+## Network stats: elapsed time=109ms (0ms mobile, 0ms wifi, 109ms not connected)
+args: [-p, keepass2android.keepass2android, -c, android.intent.category.LAUNCHER, 1]
+ arg: "-p"
+ arg: "keepass2android.keepass2android"
+ arg: "-c"
+ arg: "android.intent.category.LAUNCHER"
+ arg: "1"
+data="keepass2android.keepass2android"
+data="android.intent.category.LAUNCHER"
+[2026-11-15T21:05:48.052Z] k2a-open.flow:5 clear ^OK$ start_open_file 40
+[2026-11-15T21:05:54.644Z]   cleared 'Change log' with (859, 1883)
+[2026-11-15T21:05:58.053Z] k2a-open.flow:6 tap start_open_file
+[2026-11-15T21:06:00.850Z]   tapped (540, 1025) 'Open file...'
+[2026-11-15T21:06:00.854Z] k2a-open.flow:7 tap ^System.file.picker$
+[2026-11-15T21:06:05.163Z]   tapped (229, 516) 'System file picker'
+[2026-11-15T21:06:05.165Z] k2a-open.flow:8 waitfor Show.roots 20
+[2026-11-15T21:06:08.802Z] k2a-open.flow:9 include picker.flow
+[2026-11-15T21:06:08.806Z] picker.flow:4 pick k2a-x.kdbx
+[2026-11-15T21:06:16.788Z]   focused and entered '^k2a\\-x\\.kdbx$'
+[2026-11-15T21:06:16.790Z] k2a-open.flow:10 waitfor password_edit 30
+[2026-11-15T21:06:20.736Z] k2a-open.flow:11 typepwck password_edit dummy-password-for-a-throwaway-file
+[2026-11-15T21:06:34.489Z]   typed the password (35 characters)
+[2026-11-15T21:06:34.496Z] k2a-open.flow:12 tap pass_ok
+[2026-11-15T21:06:37.261Z]   tapped (942, 1437) 'Unlock'
+[2026-11-15T21:06:37.262Z] k2a-open.flow:13 waitfor fabAddNew 60
+[2026-11-15T21:06:44.186Z] x-k2a-menu.flow:3 tap More.options
+[2026-11-15T21:06:47.300Z]   tapped (1024, 233) 'More options'
+[2026-11-15T21:06:47.301Z] x-k2a-menu.flow:4 sleep 2
+[2026-11-15T21:06:49.302Z] x-k2a-menu.flow:5 list
+  LinearLayout        (737, 256)   id=content                      text='' desc=''
+  TextView            (737, 255)   id=title                        text='Advanced Search' desc=''
+  LinearLayout        (737, 388)   id=content                      text='' desc=''
+  TextView            (737, 387)   id=title                        text='Settings' desc=''
+  LinearLayout        (737, 520)   id=content                      text='' desc=''
+  TextView            (737, 519)   id=title                        text='Synchronize database…' desc=''
+  LinearLayout        (737, 652)   id=content                      text='' desc=''
+  TextView            (737, 651)   id=title                        text='Work on internal cache only' desc=''
+  LinearLayout        (737, 784)   id=content                      text='' desc=''
+  TextView            (737, 783)   id=title                        text='Sort by...' desc=''
+  LinearLayout        (737, 916)   id=content                      text='' desc=''
+  TextView            (737, 915)   id=title                        text='Open another database…' desc=''
+[2026-11-15T21:06:51.253Z] x-k2a-menu.flow:6 key BACK
+[2026-11-15T21:06:52.059Z] x-k2a-menu.flow:7 sleep 1
+### rc=0

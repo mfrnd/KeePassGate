@@ -1,0 +1,16 @@
+1c1
+< # file kpdx-merge-fromCP-r1.kdbx size=9321 sha256=9ceaf9826dec553ae6c9b762d540e22582aafa18961eeb7e04e9a59eca2c4d2c
+---
+> # file into-kp.kdbx size=10037 sha256=ffde80cc68f3efe5652eda7e74acf0615cd7b9a69c4219b725925e115d52d47a
+4c4
+< D X2 2026-11-01T15:00:00Z
+---
+> D X1 2026-11-01T16:00:00Z
+450c450
+< E Y3 prev -
+---
+> E Y3 prev G
+454c454
+< E Y3 t.location 2026-11-01T10:55:00Z
+---
+> E Y3 t.location 2026-11-01T16:00:00Z

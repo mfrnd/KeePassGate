@@ -1,0 +1,8 @@
+kpdx kpdx-B-from.flow com.kunzisoft.keepass.libre C merge-fromCP-r2 SRC=work/base/P.kdbx SRCNAME=kpdx-merge-fromCP-r2-src
+kpdx kpdx-edit-e1.flow com.kunzisoft.keepass.libre S-argon edit-e1
+kpdx kpdx-edit-carriers.flow com.kunzisoft.keepass.libre S-argon edit-carriers
+kpdx kpdx-rename-g.flow com.kunzisoft.keepass.libre S-argon rename-g
+kpdx kpdx-edit-g-notes.flow com.kunzisoft.keepass.libre S-argon edit-g-notes
+kpdx kpdx-delete.flow com.kunzisoft.keepass.libre S-argon delete
+kpdx kpdx-move.flow com.kunzisoft.keepass.libre S-argon move
+kpdx kpdx-B-from.flow com.kunzisoft.keepass.libre C merge-fromCP-r3 SRC=work/base/P.kdbx SRCNAME=kpdx-merge-fromCP-r3-src

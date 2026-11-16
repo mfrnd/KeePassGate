@@ -1,0 +1,110 @@
+Success
+<work>/work/base/OLD.kdbx: 1 file pushed, 0 skipped. 1.1 MB/s (9301 bytes in 0.008s)
+[2026-11-15T22:30:01.330Z] x-k2a-settings.flow:2 include k2a-open.flow
+[2026-11-15T22:30:01.336Z] k2a-open.flow:4 sh monkey -p keepass2android.keepass2android -c android.intent.category.LAUNCHER 1
+  bash arg: -p
+  bash arg: keepass2android.keepass2android
+  bash arg: -c
+  bash arg: android.intent.category.LAUNCHER
+  bash arg: 1
+Events injected: 1
+## Network stats: elapsed time=90ms (0ms mobile, 0ms wifi, 90ms not connected)
+args: [-p, keepass2android.keepass2android, -c, android.intent.category.LAUNCHER, 1]
+ arg: "-p"
+ arg: "keepass2android.keepass2android"
+ arg: "-c"
+ arg: "android.intent.category.LAUNCHER"
+ arg: "1"
+data="keepass2android.keepass2android"
+data="android.intent.category.LAUNCHER"
+[2026-11-15T22:30:01.782Z] k2a-open.flow:5 clear ^OK$ start_open_file 40
+[2026-11-15T22:30:08.762Z]   cleared 'Change log' with (859, 1883)
+[2026-11-15T22:30:12.104Z] k2a-open.flow:6 tap start_open_file
+[2026-11-15T22:30:14.955Z]   tapped (540, 1025) 'Open file...'
+[2026-11-15T22:30:14.957Z] k2a-open.flow:7 tap ^System.file.picker$
+[2026-11-15T22:30:18.972Z]   tapped (229, 516) 'System file picker'
+[2026-11-15T22:30:18.973Z] k2a-open.flow:8 waitfor Show.roots 20
+[2026-11-15T22:30:21.306Z] k2a-open.flow:9 include picker.flow
+[2026-11-15T22:30:21.314Z] picker.flow:4 pick k2a-x.kdbx
+[2026-11-15T22:30:29.250Z]   focused and entered '^k2a\\-x\\.kdbx$'
+[2026-11-15T22:30:29.251Z] k2a-open.flow:10 waitfor password_edit 30
+[2026-11-15T22:30:33.157Z] k2a-open.flow:11 typepwck password_edit dummy-password-for-a-throwaway-file
+[2026-11-15T22:30:47.862Z]   typed the password (35 characters)
+[2026-11-15T22:30:47.864Z] k2a-open.flow:12 tap pass_ok
+[2026-11-15T22:30:50.730Z]   tapped (942, 1437) 'Unlock'
+[2026-11-15T22:30:50.737Z] k2a-open.flow:13 waitfor fabAddNew 60
+[2026-11-15T22:30:57.243Z] x-k2a-settings.flow:3 tap More.options
+[2026-11-15T22:31:00.172Z]   tapped (1024, 233) 'More options'
+[2026-11-15T22:31:00.174Z] x-k2a-settings.flow:4 tap ^Settings$
+[2026-11-15T22:31:03.261Z]   tapped (737, 387) 'Settings'
+[2026-11-15T22:31:03.262Z] x-k2a-settings.flow:5 sleep 2
+[2026-11-15T22:31:05.264Z] x-k2a-settings.flow:6 tap ^App$
+[2026-11-15T22:31:10.464Z]   tapped (84, 594) 'App'
+[2026-11-15T22:31:10.465Z] x-k2a-settings.flow:7 sleep 2
+[2026-11-15T22:31:12.467Z] x-k2a-settings.flow:8 tap ^File.handling$
+[2026-11-15T22:31:15.325Z]   tapped (325, 982) 'File handling'
+[2026-11-15T22:31:15.328Z] x-k2a-settings.flow:9 sleep 3
+[2026-11-15T22:31:18.330Z] x-k2a-settings.flow:10 list
+  ViewGroup           (540, 1108)  id=decor_content_parent         text='' desc=''
+  FrameLayout         (540, 233)   id=action_bar_container         text='' desc=''
+  ViewGroup           (540, 233)   id=action_bar                   text='' desc=''
+  ImageButton    c    (77, 233)    id=                             text='' desc='Navigate up'
+  TextView            (337, 233)   id=                             text='File handling' desc=''
+  FrameLayout         (540, 1196)  id=content                      text='' desc=''
+  FrameLayout         (540, 1196)  id=settings                     text='' desc=''
+  FrameLayout         (540, 1196)  id=list_container               text='' desc=''
+  RecyclerView        (540, 1196)  id=recycler_view                text='' desc=''
+  TextView            (378, 394)   id=title                        text='Database caching' desc=''
+  TextView            (529, 533)   id=summary                      text="Keep a copy of the database files in the app's cache directory. This allows to use databases even while the database file is not accessible." desc=''
+  LinearLayout        (948, 503)   id=widget_frame                 text='' desc=''
+  CheckBox       kx   (970, 503)   id=checkbox                     text='' desc=''
+  TextView            (467, 759)   id=title                        text='Synchronize in background' desc=''
+  TextView            (529, 898)   id=summary                      text='When saving or loading, use the internal cache. Then synchronize with remote storage in a background process.' desc=''
+  LinearLayout        (948, 868)   id=widget_frame                 text='' desc=''
+  CheckBox       kx   (970, 868)   id=checkbox                     text='' desc=''
+  TextView            (529, 1124)  id=title                        text='Background synchronization in Wi-Fi only' desc=''
+  TextView            (529, 1235)  id=summary                      text='If selected, background synchronization is only started while you are connected to Wi-Fi.' desc=''
+  LinearLayout        (948, 1206)  id=widget_frame                 text='' desc=''
+  CheckBox       x    (970, 1206)  id=checkbox                     text='' desc=''
+  TextView       D    (617, 1467)  id=title                        text='Background synchronization based on Wi-Fi-SSID' desc=''
+  TextView            (529, 1647)  id=title                        text='Periodic background synchronization' desc=''
+  TextView            (529, 1786)  id=summary                      text='If enabled, the app will periodically synchronize unlocked databases. This respects network connection settings from above.' desc=''
+  LinearLayout        (948, 1756)  id=widget_frame                 text='' desc=''
+  CheckBox       x    (970, 1756)  id=checkbox                     text='' desc=''
+  TextView       D    (617, 2027)  id=title                        text='Periodic background synchronization time interval' desc=''
+  TextView       D    (0, 0)       id=summary                      text='Set the interval for background synchronization in minutes.' desc=''
+  View                (540, 72)    id=statusBarBackground          text='' desc=''
+  View                (0, 0)       id=navigationBarBackground      text='' desc=''
+[2026-11-15T22:31:20.263Z] x-k2a-settings.flow:11 scrollto ^Check.for.modifications$
+[2026-11-15T22:31:33.844Z]   '^Check.for.modifications$' on screen after 2 swipe(s)
+[2026-11-15T22:31:33.846Z] x-k2a-settings.flow:12 list
+  ViewGroup           (540, 1108)  id=decor_content_parent         text='' desc=''
+  FrameLayout         (540, 233)   id=action_bar_container         text='' desc=''
+  ViewGroup           (540, 233)   id=action_bar                   text='' desc=''
+  ImageButton    c    (77, 233)    id=                             text='' desc='Navigate up'
+  TextView            (337, 233)   id=                             text='File handling' desc=''
+  FrameLayout         (540, 1196)  id=content                      text='' desc=''
+  FrameLayout         (540, 1196)  id=settings                     text='' desc=''
+  FrameLayout         (540, 1196)  id=list_container               text='' desc=''
+  RecyclerView        (540, 1196)  id=recycler_view                text='' desc=''
+  TextView            (529, 399)   id=summary                      text='If enabled, the app will periodically synchronize unlocked databases. This respects network connection settings from above.' desc=''
+  LinearLayout        (948, 421)   id=widget_frame                 text='' desc=''
+  CheckBox       x    (970, 363)   id=checkbox                     text='' desc=''
+  TextView       D    (617, 628)   id=title                        text='Periodic background synchronization time interval' desc=''
+  TextView       D    (617, 745)   id=summary                      text='Set the interval for background synchronization in minutes.' desc=''
+  TextView            (343, 916)   id=title                        text='Local backups' desc=''
+  TextView            (529, 1000)  id=summary                      text='Create a local backup copy after successfully loading a database.' desc=''
+  LinearLayout        (948, 970)   id=widget_frame                 text='' desc=''
+  CheckBox       kx   (970, 970)   id=checkbox                     text='' desc=''
+  TextView            (358, 1171)  id=title                        text='SSL certificates' desc=''
+  TextView            (617, 1282)  id=summary                      text='Define the behavior when certificate validation fails. Note: you can install certificates on your device if validation fails!' desc=''
+  TextView            (519, 1481)  id=title                        text='OneDrive device sign-in (broker)' desc=''
+  TextView            (617, 1702)  id=summary                      text="Controls whether OneDrive sign-in uses your device's Microsoft account manager (broker), which is required on some Intune/Entra-managed work devices. Automatic tries broker sign-in first and falls back to normal sign-in if it fails. Choose Never if OneDrive sign-in fails repeatedly on this device." desc=''
+  TextView            (438, 2011)  id=title                        text='Check for modifications' desc=''
+  TextView            (529, 2056)  id=summary                      text='Check whether the file was modified externally before saving changes.' desc=''
+  LinearLayout        (948, 2005)  id=widget_frame                 text='' desc=''
+  CheckBox       kx   (970, 2035)  id=checkbox                     text='' desc=''
+  LinearLayout        (0, 0)       id=widget_frame                 text='' desc=''
+  View                (540, 72)    id=statusBarBackground          text='' desc=''
+  View                (0, 0)       id=navigationBarBackground      text='' desc=''
+### rc=0

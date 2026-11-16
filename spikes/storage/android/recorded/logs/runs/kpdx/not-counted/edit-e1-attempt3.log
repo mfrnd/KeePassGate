@@ -1,0 +1,135 @@
+### 2026-11-15T18:55:26.865Z op kpdx edit-e1 flow=kpdx-edit-e1.flow base=S-argon (versionName=4.5.8)
+Success
+<work>/work/base/S-argon.kdbx: 1 file pushed, 0 skipped. 0.5 MB/s (7941 bytes in 0.015s)
+pushed sha256 bd84dd4785579e8705bd12f3fe4d53a2e342be2e88c64875413ef8b336dc11ae
+[2026-11-15T18:55:28.628Z] kpdx-edit-e1.flow:4 include kpdx-open.flow
+[2026-11-15T18:55:28.637Z] kpdx-open.flow:4 sh monkey -p com.kunzisoft.keepass.libre -c android.intent.category.LAUNCHER 1
+  bash arg: -p
+  bash arg: com.kunzisoft.keepass.libre
+  bash arg: -c
+  bash arg: android.intent.category.LAUNCHER
+  bash arg: 1
+Events injected: 1
+## Network stats: elapsed time=111ms (0ms mobile, 0ms wifi, 111ms not connected)
+args: [-p, com.kunzisoft.keepass.libre, -c, android.intent.category.LAUNCHER, 1]
+ arg: "-p"
+ arg: "com.kunzisoft.keepass.libre"
+ arg: "-c"
+ arg: "android.intent.category.LAUNCHER"
+ arg: "1"
+data="com.kunzisoft.keepass.libre"
+data="android.intent.category.LAUNCHER"
+[2026-11-15T18:55:30.127Z] kpdx-open.flow:5 waitfor open_database_button 30
+[2026-11-15T18:55:36.277Z] kpdx-open.flow:6 tapuntil open_database_button Show.roots 40
+[2026-11-15T18:55:39.255Z]   tapped (799, 2051) 'Open existing vault'
+[2026-11-15T18:55:49.968Z]   tapped (799, 2051) 'Open existing vault'
+[2026-11-15T18:55:53.075Z] kpdx-open.flow:7 include picker.flow
+[2026-11-15T18:55:53.084Z] picker.flow:4 pick kpdx-edit-e1.kdbx
+[2026-11-15T18:56:01.529Z]   focused and entered '^kpdx\\-edit\\-e1\\.kdbx$'
+[2026-11-15T18:56:01.532Z] kpdx-open.flow:8 waitfor password_text_view 40
+[2026-11-15T18:56:06.484Z] kpdx-open.flow:9 typepw password_text_view dummy-password-for-a-throwaway-file
+[2026-11-15T18:56:19.479Z]   type: field never took the focus (attempt 1)
+[2026-11-15T18:56:32.259Z]   type: field never took the focus (attempt 2)
+[2026-11-15T18:56:42.858Z]   typed into the focused field
+[2026-11-15T18:56:42.860Z] kpdx-open.flow:10 tapuntil activity_password_open_button add_button 60
+[2026-11-15T18:56:46.305Z]   tapped (895, 1435) 'Unlock'
+[2026-11-15T18:56:54.451Z]   tapped (895, 1435) 'Unlock'
+[2026-11-15T18:57:03.404Z]   tapped (895, 1435) 'Unlock'
+[2026-11-15T18:57:10.376Z] kpdx-edit-e1.flow:5 tapuntil node_text@^G$ node_text@^Y3$ 40
+[2026-11-15T18:57:13.240Z]   tapped (247, 559) 'G'
+[2026-11-15T18:57:21.402Z]   tapped (247, 559) 'G'
+[2026-11-15T18:57:24.076Z] kpdx-edit-e1.flow:6 waitfor node_text@^E1$ 20
+[2026-11-15T18:57:26.147Z] kpdx-edit-e1.flow:7 sleep 2
+[2026-11-15T18:57:28.149Z] kpdx-edit-e1.flow:8 tapuntil node_text@^E1$ entry_edit_fab 30 600
+[2026-11-15T18:57:31.273Z]   tapped (600, 856) on the line of 'E1'
+[2026-11-15T18:57:41.775Z]   tapped (600, 856) on the line of 'E1'
+[2026-11-15T18:57:52.431Z]   tapped (600, 856) on the line of 'E1'
+  LinearLayout        (540, 1036)  id=action_bar_root              text='' desc=''
+  FrameLayout         (540, 1036)  id=content                      text='' desc=''
+  DrawerLayout        (540, 1036)  id=drawer_layout                text='' desc=''
+  ViewGroup           (540, 1108)  id=activity_group_container_view text='' desc=''
+  FrameLayout         (540, 1108)  id=search_content_view          text='' desc=''
+  ViewGroup           (540, 1108)  id=error_coordinator            text='' desc=''
+  ViewGroup           (540, 233)   id=activity_group_header        text='' desc=''
+  ViewGroup           (540, 233)   id=toolbar                      text='' desc=''
+  ImageButton    c    (77, 233)    id=                             text='' desc='Navigation drawer open'
+  TextView            (446, 233)   id=database_name                text='Storage probe (invented)' desc=''
+  Button         c    (771, 233)   id=menu_search                  text='' desc='Search'
+  Button         c    (903, 233)   id=menu_sort                    text='' desc='Sort'
+  ImageView      c    (1024, 233)  id=                             text='' desc='More options'
+  ScrollView          (540, 1196)  id=group_coordinator            text='' desc=''
+  RelativeLayout      (540, 1196)  id=add_node_button              text='' desc=''
+  ImageButton    c    (970, 2013)  id=add_button                   text='' desc='Add node'
+  LinearLayout        (540, 409)   id=app_bar                      text='' desc=''
+  RecyclerView        (540, 409)   id=breadcrumb_list              text='' desc=''
+  CardView       c    (278, 409)   id=breadcrumb_group             text='' desc=''
+  ImageView           (86, 409)    id=group_icon                   text='' desc='Icon name'
+  TextView            (298, 408)   id=group_name                   text='Storage probe' desc=''
+  ImageView           (491, 409)   id=group_separator              text='' desc=''
+  CardView       c    (778, 409)   id=breadcrumb_group             text='' desc=''
+  TextView            (558, 388)   id=group_numbers                text='9' desc=''
+  ImageView           (604, 408)   id=group_icon                   text='' desc=''
+  TextView            (844, 383)   id=group_name                   text='G' desc=''
+  RecyclerView   f    (844, 438)   id=group_tags_list_view         text='' desc=''
+  TextView       c    (783, 435)   id=tag_name                     text='kpg.reader' desc=''
+  TextView       c    (941, 435)   id=tag_name                     text='team' desc=''
+  FrameLayout         (540, 1284)  id=nodes_list_fragment_container text='' desc=''
+  RecyclerView        (540, 1284)  id=nodes_list                   text='' desc='Node children'
+  RelativeLayout c    (534, 585)   id=node_container               text='' desc=''
+  TextView            (64, 565)    id=node_child_numbers           text='1' desc=''
+  ImageView           (127, 585)   id=node_icon                    text='' desc=''
+  TextView            (247, 584)   id=node_text                    text='N' desc=''
+  ImageView           (981, 585)   id=node_image_identifier        text='' desc=''
+  ViewGroup      c    (534, 739)   id=node_container               text='' desc=''
+  ImageView           (127, 739)   id=node_icon                    text='' desc=''
+  LinearLayout        (606, 739)   id=node_container_info          text='' desc=''
+  TextView            (349, 739)   id=node_text                    text='KPG marker' desc=''
+  ViewGroup      c    (534, 900)   id=node_container               text='' desc=''
+  ImageView           (127, 901)   id=node_icon                    text='' desc=''
+  LinearLayout        (573, 900)   id=node_container_info          text='' desc=''
+  TextView            (257, 856)   id=node_text                    text='E1' desc=''
+  TextView            (343, 899)   id=node_subtext                 text='alice-invented' desc=''
+  RecyclerView        (288, 949)   id=node_tags_list_view          text='' desc=''
+  TextView       c    (285, 946)   id=tag_name                     text='work' desc=''
+  LinearLayout        (981, 901)   id=node_options                 text='' desc=''
+  ImageView           (981, 901)   id=node_attachment_icon         text='' desc=''
+  ViewGroup      c    (534, 1062)  id=node_container               text='' desc=''
+  ImageView           (127, 1062)  id=node_icon                    text='' desc=''
+  LinearLayout        (606, 1062)  id=node_container_info          text='' desc=''
+  TextView            (257, 1043)  id=node_text                    text='E2' desc=''
+  TextView            (335, 1086)  id=node_subtext                 text='bob-invented' desc=''
+  ViewGroup      c    (534, 1216)  id=node_container               text='' desc=''
+  ImageView           (127, 1216)  id=node_icon                    text='' desc=''
+  LinearLayout        (606, 1216)  id=node_container_info          text='' desc=''
+  TextView            (258, 1197)  id=node_text                    text='X1' desc=''
+  TextView            (291, 1240)  id=node_subtext                 text='user-x1' desc=''
+  ViewGroup      c    (534, 1370)  id=node_container               text='' desc=''
+  ImageView           (127, 1370)  id=node_icon                    text='' desc=''
+  LinearLayout        (606, 1370)  id=node_container_info          text='' desc=''
+  TextView            (258, 1351)  id=node_text                    text='X2' desc=''
+  TextView            (291, 1394)  id=node_subtext                 text='user-x2' desc=''
+  ViewGroup      c    (534, 1524)  id=node_container               text='' desc=''
+  ImageView           (127, 1524)  id=node_icon                    text='' desc=''
+  LinearLayout        (606, 1524)  id=node_container_info          text='' desc=''
+  TextView            (257, 1505)  id=node_text                    text='Y1' desc=''
+  TextView            (290, 1548)  id=node_subtext                 text='user-y1' desc=''
+  ViewGroup      c    (534, 1678)  id=node_container               text='' desc=''
+  ImageView           (127, 1678)  id=node_icon                    text='' desc=''
+  LinearLayout        (606, 1678)  id=node_container_info          text='' desc=''
+  TextView            (257, 1659)  id=node_text                    text='Y2' desc=''
+  TextView            (290, 1702)  id=node_subtext                 text='user-y2' desc=''
+  ViewGroup      c    (534, 1832)  id=node_container               text='' desc=''
+  ImageView           (127, 1832)  id=node_icon                    text='' desc=''
+  LinearLayout        (606, 1832)  id=node_container_info          text='' desc=''
+  TextView            (257, 1813)  id=node_text                    text='Y3' desc=''
+  TextView            (290, 1856)  id=node_subtext                 text='user-y3' desc=''
+  ViewGroup           (540, 2033)  id=activity_group_footer        text='' desc=''
+  ImageButton    c    (90, 2033)   id=lock_button                  text='' desc='Lock'
+  View                (540, 72)    id=statusBarBackground          text='' desc=''
+  View                (0, 0)       id=navigationBarBackground      text='' desc=''
+[2026-11-15T18:58:00.070Z] FAILED: tapuntil: never reached entry_edit_fab
+total 12
+-rw------- 1 u0_a160 u0_a160 7941 2026-11-15 17:55:55.000000000 +0100 kpdx-edit-e1.kdbx
+device kpdx-edit-e1.kdbx sha256 bd84dd4785579e8705bd12f3fe4d53a2e342be2e88c64875413ef8b336dc11ae
+/sdcard/Download/kpdx-edit-e1.kdbx: 1 file pulled, 0 skipped. 0.1 MB/s (7941 bytes in 0.058s)
+### flow rc=1 2026-11-15T18:58:02.851Z

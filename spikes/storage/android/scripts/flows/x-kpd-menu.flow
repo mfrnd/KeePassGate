@@ -1,0 +1,7 @@
+# Exploration: KeePassDroid's group view toolbar and overflow menu.
+include kpd-open.flow
+list
+key MENU
+sleep 2
+list
+key BACK

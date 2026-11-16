@@ -1,0 +1,44 @@
+1c1
+< # file S-aes-plain.kdbx size=7719 sha256=c344cc06c816d9cef38ebad8a5b0fd24bd9f5a94b7da586a8271ffdedfae61e0
+---
+> # file kpd-save-aes-plain.kdbx size=7287 sha256=f713e5da43baf5bf143dfa679c513e3f94cce78ada6e30d5a786f1718e4e6b9f
+338a339,365
+> E ~4247c89a H2026-11-15T17:53:52Z autotype enabled=1 obfuscation=0 seq="" assoc=0
+> E ~4247c89a H2026-11-15T17:53:52Z misc icon=1 customIcon=- fg=00000000 bg=00000000 overrideUrl="" quality=1
+> E ~4247c89a H2026-11-15T17:53:52Z prev -
+> E ~4247c89a H2026-11-15T17:53:52Z t.accessed 2026-11-15T17:53:52Z
+> E ~4247c89a H2026-11-15T17:53:52Z t.created 2026-11-15T17:53:52Z
+> E ~4247c89a H2026-11-15T17:53:52Z t.expires 0 2026-11-15T17:53:44Z
+> E ~4247c89a H2026-11-15T17:53:52Z t.location 2026-11-15T17:53:44Z
+> E ~4247c89a H2026-11-15T17:53:52Z t.modified 2026-11-15T17:53:52Z
+> E ~4247c89a H2026-11-15T17:53:52Z tags []
+> E ~4247c89a H2026-11-15T17:53:52Z usage 0
+> E ~4247c89a S Notes p=0 ""
+> E ~4247c89a S Password p=1 ""
+> E ~4247c89a S Title p=0 "droid-added"
+> E ~4247c89a S URL p=0 ""
+> E ~4247c89a S UserName p=0 ""
+> E ~4247c89a autotype enabled=1 obfuscation=0 seq="" assoc=0
+> E ~4247c89a history.count 1
+> E ~4247c89a misc icon=1 customIcon=- fg=00000000 bg=00000000 overrideUrl="" quality=1
+> E ~4247c89a parent Root (Storage probe)
+> E ~4247c89a prev -
+> E ~4247c89a t.accessed 2026-11-15T17:54:08Z
+> E ~4247c89a t.created 2026-11-15T17:53:52Z
+> E ~4247c89a t.expires 0 2026-11-15T17:53:44Z
+> E ~4247c89a t.location 2026-11-15T17:53:44Z
+> E ~4247c89a t.modified 2026-11-15T17:54:08Z
+> E ~4247c89a tags []
+> E ~4247c89a usage 0
+341c368
+< F groups 5 entries 13
+---
+> F groups 5 entries 14
+396c423
+< G Root children groups=3 entries=0
+---
+> G Root children groups=3 entries=1
+419c446
+< M settingsChanged 2026-11-01T10:00:00Z
+---
+> M settingsChanged 2026-11-15T17:56:03Z

@@ -1,0 +1,3 @@
+# KeePassDroid's file list: tap the file this run opened, unless the password screen is already up.
+ifthen pass_ok 2 kpd-noop.flow
+tap ${NAME}

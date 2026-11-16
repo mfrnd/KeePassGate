@@ -1,0 +1,441 @@
+# file NEW-same.kdbx size=9301 sha256=b4e1dac8452f1a8dae853889711e8f1724b5a0577ac5d6c728ce501c7163c015
+D D1 2026-11-01T10:06:00Z
+D D2 2026-11-01T10:07:00Z
+D X1 2026-11-01T18:00:00Z
+D count 3
+E E1 A e1.txt p=0 len=600 sha=259674a04e10f900
+E E1 CD KPG = "{\"reader\":[\"read\",\"list\"]}"
+E E1 H2026-11-01T11:00:00Z S Notes p=0 "ordinary notes"
+E E1 H2026-11-01T11:00:00Z S Password p=1 "pw-e1-not-real"
+E E1 H2026-11-01T11:00:00Z S Title p=0 "E1"
+E E1 H2026-11-01T11:00:00Z S URL p=0 "https://e1.example.invalid/"
+E E1 H2026-11-01T11:00:00Z S UserName p=0 "alice-invented"
+E E1 H2026-11-01T11:00:00Z autotype enabled=1 obfuscation=0 seq="" assoc=0
+E E1 H2026-11-01T11:00:00Z misc icon=0 customIcon=- fg=00000000 bg=00000000 overrideUrl="" quality=1
+E E1 H2026-11-01T11:00:00Z prev -
+E E1 H2026-11-01T11:00:00Z t.accessed 2026-11-01T11:00:00Z
+E E1 H2026-11-01T11:00:00Z t.created 2026-11-01T11:00:00Z
+E E1 H2026-11-01T11:00:00Z t.expires 0 2026-11-01T10:00:00Z
+E E1 H2026-11-01T11:00:00Z t.location 2026-11-01T11:00:00Z
+E E1 H2026-11-01T11:00:00Z t.modified 2026-11-01T11:00:00Z
+E E1 H2026-11-01T11:00:00Z tags []
+E E1 H2026-11-01T11:00:00Z usage 0
+E E1 H2026-11-01T12:00:00Z S Extra p=0 "extra-v1"
+E E1 H2026-11-01T12:00:00Z S Notes p=0 "ordinary notes"
+E E1 H2026-11-01T12:00:00Z S Password p=1 "pw-e1-not-real"
+E E1 H2026-11-01T12:00:00Z S Title p=0 "E1"
+E E1 H2026-11-01T12:00:00Z S URL p=0 "https://e1.example.invalid/"
+E E1 H2026-11-01T12:00:00Z S UserName p=0 "alice-invented"
+E E1 H2026-11-01T12:00:00Z autotype enabled=1 obfuscation=0 seq="" assoc=0
+E E1 H2026-11-01T12:00:00Z misc icon=0 customIcon=- fg=00000000 bg=00000000 overrideUrl="" quality=1
+E E1 H2026-11-01T12:00:00Z prev -
+E E1 H2026-11-01T12:00:00Z t.accessed 2026-11-01T12:00:00Z
+E E1 H2026-11-01T12:00:00Z t.created 2026-11-01T11:00:00Z
+E E1 H2026-11-01T12:00:00Z t.expires 0 2026-11-01T10:00:00Z
+E E1 H2026-11-01T12:00:00Z t.location 2026-11-01T11:00:00Z
+E E1 H2026-11-01T12:00:00Z t.modified 2026-11-01T12:00:00Z
+E E1 H2026-11-01T12:00:00Z tags []
+E E1 H2026-11-01T12:00:00Z usage 0
+E E1 H2026-11-01T13:00:00Z S Extra p=0 "extra-v2"
+E E1 H2026-11-01T13:00:00Z S Notes p=0 "ordinary notes"
+E E1 H2026-11-01T13:00:00Z S Old p=0 "old-field"
+E E1 H2026-11-01T13:00:00Z S Password p=1 "pw-e1-not-real"
+E E1 H2026-11-01T13:00:00Z S Title p=0 "E1"
+E E1 H2026-11-01T13:00:00Z S URL p=0 "https://e1.example.invalid/"
+E E1 H2026-11-01T13:00:00Z S UserName p=0 "alice-invented"
+E E1 H2026-11-01T13:00:00Z autotype enabled=1 obfuscation=0 seq="" assoc=0
+E E1 H2026-11-01T13:00:00Z misc icon=0 customIcon=- fg=00000000 bg=00000000 overrideUrl="" quality=1
+E E1 H2026-11-01T13:00:00Z prev -
+E E1 H2026-11-01T13:00:00Z t.accessed 2026-11-01T13:00:00Z
+E E1 H2026-11-01T13:00:00Z t.created 2026-11-01T11:00:00Z
+E E1 H2026-11-01T13:00:00Z t.expires 0 2026-11-01T10:00:00Z
+E E1 H2026-11-01T13:00:00Z t.location 2026-11-01T11:00:00Z
+E E1 H2026-11-01T13:00:00Z t.modified 2026-11-01T13:00:00Z
+E E1 H2026-11-01T13:00:00Z tags []
+E E1 H2026-11-01T13:00:00Z usage 0
+E E1 S Extra p=0 "extra-value-e1"
+E E1 S Notes p=0 "ordinary notes"
+E E1 S Password p=1 "pw-e1-not-real"
+E E1 S Title p=0 "E1"
+E E1 S URL p=0 "https://e1.example.invalid/"
+E E1 S UserName p=0 "alice-invented"
+E E1 autotype enabled=1 obfuscation=0 seq="" assoc=0
+E E1 history.count 3
+E E1 misc icon=0 customIcon=- fg=00000000 bg=00000000 overrideUrl="" quality=1
+E E1 parent G (G)
+E E1 prev -
+E E1 t.accessed 2026-11-01T14:00:00Z
+E E1 t.created 2026-11-01T11:00:00Z
+E E1 t.expires 0 2026-11-01T10:00:00Z
+E E1 t.location 2026-11-01T11:00:00Z
+E E1 t.modified 2026-11-01T14:00:00Z
+E E1 tags [work]
+E E1 usage 0
+E E2 S Notes p=0 ""
+E E2 S Password p=1 "pw-e2-not-real"
+E E2 S Title p=0 "E2"
+E E2 S URL p=0 ""
+E E2 S UserName p=0 "bob-invented"
+E E2 autotype enabled=1 obfuscation=0 seq="" assoc=0
+E E2 history.count 0
+E E2 misc icon=0 customIcon=- fg=00000000 bg=00000000 overrideUrl="" quality=1
+E E2 parent G (G)
+E E2 prev -
+E E2 t.accessed 2026-11-01T10:45:00Z
+E E2 t.created 2026-11-01T10:45:00Z
+E E2 t.expires 0 2026-11-01T10:00:00Z
+E E2 t.location 2026-11-01T10:45:00Z
+E E2 t.modified 2026-11-01T10:45:00Z
+E E2 tags []
+E E2 usage 0
+E Gm S KPG.Marker p=0 "{\"marker\":\"G\",\"rules\":{\"reader\":\".R...L..\"}}"
+E Gm S Notes p=0 ""
+E Gm S Password p=1 ""
+E Gm S Title p=0 "KPG marker"
+E Gm S URL p=0 ""
+E Gm S UserName p=0 ""
+E Gm autotype enabled=1 obfuscation=0 seq="" assoc=0
+E Gm history.count 0
+E Gm misc icon=0 customIcon=- fg=00000000 bg=00000000 overrideUrl="" quality=1
+E Gm parent G (G)
+E Gm prev -
+E Gm t.accessed 2026-11-01T10:35:00Z
+E Gm t.created 2026-11-01T10:35:00Z
+E Gm t.expires 0 2026-11-01T10:00:00Z
+E Gm t.location 2026-11-01T10:35:00Z
+E Gm t.modified 2026-11-01T10:35:00Z
+E Gm tags []
+E Gm usage 0
+E M1 H2026-11-01T10:50:00Z S KPG.base p=0 "{\"v\":0}"
+E M1 H2026-11-01T10:50:00Z S Notes p=0 ""
+E M1 H2026-11-01T10:50:00Z S Password p=1 ""
+E M1 H2026-11-01T10:50:00Z S Title p=0 "KPG merge 1"
+E M1 H2026-11-01T10:50:00Z S URL p=0 ""
+E M1 H2026-11-01T10:50:00Z S UserName p=0 ""
+E M1 H2026-11-01T10:50:00Z autotype enabled=1 obfuscation=0 seq="" assoc=0
+E M1 H2026-11-01T10:50:00Z misc icon=0 customIcon=- fg=00000000 bg=00000000 overrideUrl="" quality=1
+E M1 H2026-11-01T10:50:00Z prev -
+E M1 H2026-11-01T10:50:00Z t.accessed 2026-11-01T10:50:00Z
+E M1 H2026-11-01T10:50:00Z t.created 2026-11-01T10:50:00Z
+E M1 H2026-11-01T10:50:00Z t.expires 0 2026-11-01T10:00:00Z
+E M1 H2026-11-01T10:50:00Z t.location 2026-11-01T10:50:00Z
+E M1 H2026-11-01T10:50:00Z t.modified 2026-11-01T10:50:00Z
+E M1 H2026-11-01T10:50:00Z tags []
+E M1 H2026-11-01T10:50:00Z usage 0
+E M1 S KPG.base p=0 "{\"v\":1,\"by\":\"KeePass\"}"
+E M1 S Notes p=0 ""
+E M1 S Password p=1 ""
+E M1 S Title p=0 "KPG merge 1"
+E M1 S URL p=0 ""
+E M1 S UserName p=0 ""
+E M1 autotype enabled=1 obfuscation=0 seq="" assoc=0
+E M1 history.count 1
+E M1 misc icon=0 customIcon=- fg=00000000 bg=00000000 overrideUrl="" quality=1
+E M1 parent GKPG (KPG)
+E M1 prev -
+E M1 t.accessed 2026-11-01T18:00:00Z
+E M1 t.created 2026-11-01T10:50:00Z
+E M1 t.expires 0 2026-11-01T10:00:00Z
+E M1 t.location 2026-11-01T10:50:00Z
+E M1 t.modified 2026-11-01T18:00:00Z
+E M1 tags []
+E M1 usage 0
+E M2 S KPG.base p=0 "{\"v\":0}"
+E M2 S Notes p=0 ""
+E M2 S Password p=1 ""
+E M2 S Title p=0 "KPG merge 2"
+E M2 S URL p=0 ""
+E M2 S UserName p=0 ""
+E M2 autotype enabled=1 obfuscation=0 seq="" assoc=0
+E M2 history.count 0
+E M2 misc icon=0 customIcon=- fg=00000000 bg=00000000 overrideUrl="" quality=1
+E M2 parent GKPG (KPG)
+E M2 prev -
+E M2 t.accessed 2026-11-01T10:50:00Z
+E M2 t.created 2026-11-01T10:50:00Z
+E M2 t.expires 0 2026-11-01T10:00:00Z
+E M2 t.location 2026-11-01T10:50:00Z
+E M2 t.modified 2026-11-01T10:50:00Z
+E M2 tags []
+E M2 usage 0
+E N1 S Notes p=0 ""
+E N1 S Password p=1 "pw-n1"
+E N1 S Title p=0 "N1"
+E N1 S URL p=0 ""
+E N1 S UserName p=0 "user-n1"
+E N1 autotype enabled=1 obfuscation=0 seq="" assoc=0
+E N1 history.count 0
+E N1 misc icon=0 customIcon=- fg=00000000 bg=00000000 overrideUrl="" quality=1
+E N1 parent N (N)
+E N1 prev -
+E N1 t.accessed 2026-11-01T10:25:00Z
+E N1 t.created 2026-11-01T10:25:00Z
+E N1 t.expires 0 2026-11-01T10:00:00Z
+E N1 t.location 2026-11-01T10:25:00Z
+E N1 t.modified 2026-11-01T10:25:00Z
+E N1 tags []
+E N1 usage 0
+E R1 A authority.p12 p=1 len=3000 sha=86f51de7a0078da7
+E R1 CD KPG.cd = "{\"control\":\"entry custom data on R1\"}"
+E R1 H2026-11-01T11:00:00Z S KPG.Record p=0 "{\"kind\":\"record\",\"version\":1}"
+E R1 H2026-11-01T11:00:00Z S Notes p=0 "{\"kind\":\"record\",\"n\":1,\"in\":\"notes\"}"
+E R1 H2026-11-01T11:00:00Z S Password p=1 "pw-r1-not-real"
+E R1 H2026-11-01T11:00:00Z S Title p=0 "KPG record 1"
+E R1 H2026-11-01T11:00:00Z S URL p=0 "kpg://record/1"
+E R1 H2026-11-01T11:00:00Z S UserName p=0 "kpg-r1"
+E R1 H2026-11-01T11:00:00Z autotype enabled=1 obfuscation=0 seq="" assoc=0
+E R1 H2026-11-01T11:00:00Z misc icon=0 customIcon=- fg=00000000 bg=00000000 overrideUrl="" quality=1
+E R1 H2026-11-01T11:00:00Z prev -
+E R1 H2026-11-01T11:00:00Z t.accessed 2026-11-01T11:00:00Z
+E R1 H2026-11-01T11:00:00Z t.created 2026-11-01T11:00:00Z
+E R1 H2026-11-01T11:00:00Z t.expires 0 2026-11-01T10:00:00Z
+E R1 H2026-11-01T11:00:00Z t.location 2026-11-01T11:00:00Z
+E R1 H2026-11-01T11:00:00Z t.modified 2026-11-01T11:00:00Z
+E R1 H2026-11-01T11:00:00Z tags []
+E R1 H2026-11-01T11:00:00Z usage 0
+E R1 H2026-11-01T12:00:00Z S KPG.20261115T101500Z.a1b2 p=0 "{\"at\":\"2026-11-15T10:15:00Z\",\"op\":\"grant\"}"
+E R1 H2026-11-01T12:00:00Z S KPG.Record p=0 "{\"kind\":\"record\",\"version\":2}"
+E R1 H2026-11-01T12:00:00Z S Notes p=0 "{\"kind\":\"record\",\"n\":1,\"in\":\"notes\"}"
+E R1 H2026-11-01T12:00:00Z S Password p=1 "pw-r1-not-real"
+E R1 H2026-11-01T12:00:00Z S Title p=0 "KPG record 1"
+E R1 H2026-11-01T12:00:00Z S URL p=0 "kpg://record/1"
+E R1 H2026-11-01T12:00:00Z S UserName p=0 "kpg-r1"
+E R1 H2026-11-01T12:00:00Z autotype enabled=1 obfuscation=0 seq="" assoc=0
+E R1 H2026-11-01T12:00:00Z misc icon=0 customIcon=- fg=00000000 bg=00000000 overrideUrl="" quality=1
+E R1 H2026-11-01T12:00:00Z prev -
+E R1 H2026-11-01T12:00:00Z t.accessed 2026-11-01T12:00:00Z
+E R1 H2026-11-01T12:00:00Z t.created 2026-11-01T11:00:00Z
+E R1 H2026-11-01T12:00:00Z t.expires 0 2026-11-01T10:00:00Z
+E R1 H2026-11-01T12:00:00Z t.location 2026-11-01T11:00:00Z
+E R1 H2026-11-01T12:00:00Z t.modified 2026-11-01T12:00:00Z
+E R1 H2026-11-01T12:00:00Z tags []
+E R1 H2026-11-01T12:00:00Z usage 0
+E R1 H2026-11-01T13:00:00Z A authority.p12 p=1 len=3000 sha=86f51de7a0078da7
+E R1 H2026-11-01T13:00:00Z S KPG.20261115T101500Z.a1b2 p=0 "{\"at\":\"2026-11-15T10:15:00Z\",\"op\":\"grant\"}"
+E R1 H2026-11-01T13:00:00Z S KPG.20261115T101501Z.c3d4 p=1 "{\"at\":\"2026-11-15T10:15:01Z\",\"op\":\"revoke\"}"
+E R1 H2026-11-01T13:00:00Z S KPG.Record p=0 len=2861 sha=50a33282b06760c8 "{\"kind\":\"record\",\"version\":3,\"items\":[{\"i\":0,\"nam..."
+E R1 H2026-11-01T13:00:00Z S KPG.Secret p=1 "{\"key\":\"invented-secret-v0\"}"
+E R1 H2026-11-01T13:00:00Z S Notes p=0 "{\"kind\":\"record\",\"n\":1,\"in\":\"notes\"}"
+E R1 H2026-11-01T13:00:00Z S Password p=1 "pw-r1-not-real"
+E R1 H2026-11-01T13:00:00Z S Title p=0 "KPG record 1"
+E R1 H2026-11-01T13:00:00Z S URL p=0 "kpg://record/1"
+E R1 H2026-11-01T13:00:00Z S UserName p=0 "kpg-r1"
+E R1 H2026-11-01T13:00:00Z autotype enabled=1 obfuscation=0 seq="" assoc=0
+E R1 H2026-11-01T13:00:00Z misc icon=0 customIcon=- fg=00000000 bg=00000000 overrideUrl="" quality=1
+E R1 H2026-11-01T13:00:00Z prev -
+E R1 H2026-11-01T13:00:00Z t.accessed 2026-11-01T13:00:00Z
+E R1 H2026-11-01T13:00:00Z t.created 2026-11-01T11:00:00Z
+E R1 H2026-11-01T13:00:00Z t.expires 0 2026-11-01T10:00:00Z
+E R1 H2026-11-01T13:00:00Z t.location 2026-11-01T11:00:00Z
+E R1 H2026-11-01T13:00:00Z t.modified 2026-11-01T13:00:00Z
+E R1 H2026-11-01T13:00:00Z tags [kpg]
+E R1 H2026-11-01T13:00:00Z usage 0
+E R1 S KPG.20261115T101500Z.a1b2 p=0 "{\"at\":\"2026-11-15T10:15:00Z\",\"op\":\"grant\"}"
+E R1 S KPG.20261115T101501Z.c3d4 p=1 "{\"at\":\"2026-11-15T10:15:01Z\",\"op\":\"revoke\"}"
+E R1 S KPG.Record p=0 len=2861 sha=50a33282b06760c8 "{\"kind\":\"record\",\"version\":3,\"items\":[{\"i\":0,\"nam..."
+E R1 S KPG.Secret p=1 "{\"key\":\"invented-secret-v1\"}"
+E R1 S Notes p=0 "{\"kind\":\"record\",\"n\":1,\"in\":\"notes\"}"
+E R1 S Password p=1 "pw-r1-not-real"
+E R1 S Title p=0 "KPG record 1"
+E R1 S URL p=0 "kpg://record/1"
+E R1 S UserName p=0 "kpg-r1"
+E R1 autotype enabled=1 obfuscation=0 seq="" assoc=0
+E R1 history.count 3
+E R1 misc icon=0 customIcon=- fg=00000000 bg=00000000 overrideUrl="" quality=1
+E R1 parent GKPG (KPG)
+E R1 prev -
+E R1 t.accessed 2026-11-01T14:00:00Z
+E R1 t.created 2026-11-01T11:00:00Z
+E R1 t.expires 0 2026-11-01T10:00:00Z
+E R1 t.location 2026-11-01T11:00:00Z
+E R1 t.modified 2026-11-01T14:00:00Z
+E R1 tags [kpg;record]
+E R1 usage 0
+E R2 A copy.p12 p=1 len=3000 sha=86f51de7a0078da7
+E R2 S KPG.20261115T101502Z.e5f6 p=0 "{\"at\":\"2026-11-15T10:15:02Z\",\"op\":\"grant\",\"who\":\"agent-two\"}"
+E R2 S Notes p=0 ""
+E R2 S Password p=1 ""
+E R2 S Title p=0 "KPG record 2"
+E R2 S URL p=0 ""
+E R2 S UserName p=0 ""
+E R2 autotype enabled=1 obfuscation=0 seq="" assoc=0
+E R2 history.count 0
+E R2 misc icon=0 customIcon=- fg=00000000 bg=00000000 overrideUrl="" quality=1
+E R2 parent GKPG (KPG)
+E R2 prev -
+E R2 t.accessed 2026-11-01T10:40:00Z
+E R2 t.created 2026-11-01T10:40:00Z
+E R2 t.expires 0 2026-11-01T10:00:00Z
+E R2 t.location 2026-11-01T10:40:00Z
+E R2 t.modified 2026-11-01T10:40:00Z
+E R2 tags [kpg]
+E R2 usage 0
+E RV S KPG.Revoked.c2 p=0 "{\"revoked\":\"client-two\",\"at\":\"2026-11-01T18:00:00Z\"}"
+E RV S Notes p=0 len=1309 sha=9c0f2ffea60ea4ac "b18q3EQGNwOuq8R1dXWo8IsmYMDB3ytgGdNDC0SKfNvdG8BAyS4UjoBTIVRr..."
+E RV S Password p=1 ""
+E RV S Title p=0 "KPG revocation"
+E RV S URL p=0 ""
+E RV S UserName p=0 ""
+E RV autotype enabled=1 obfuscation=0 seq="" assoc=0
+E RV history.count 0
+E RV misc icon=0 customIcon=- fg=00000000 bg=00000000 overrideUrl="" quality=1
+E RV parent GKPG (KPG)
+E RV prev -
+E RV t.accessed 2026-11-01T18:00:00Z
+E RV t.created 2026-11-01T18:00:00Z
+E RV t.expires 0 2026-11-01T10:00:00Z
+E RV t.location 2026-11-01T18:00:00Z
+E RV t.modified 2026-11-01T18:00:00Z
+E RV tags []
+E RV usage 0
+E X2 S Notes p=0 ""
+E X2 S Password p=1 "pw-x2"
+E X2 S Title p=0 "X2"
+E X2 S URL p=0 ""
+E X2 S UserName p=0 "user-x2"
+E X2 autotype enabled=1 obfuscation=0 seq="" assoc=0
+E X2 history.count 0
+E X2 misc icon=0 customIcon=- fg=00000000 bg=00000000 overrideUrl="" quality=1
+E X2 parent G (G)
+E X2 prev -
+E X2 t.accessed 2026-11-01T10:55:00Z
+E X2 t.created 2026-11-01T10:55:00Z
+E X2 t.expires 0 2026-11-01T10:00:00Z
+E X2 t.location 2026-11-01T10:55:00Z
+E X2 t.modified 2026-11-01T10:55:00Z
+E X2 tags []
+E X2 usage 0
+E Y1 S Notes p=0 ""
+E Y1 S Password p=1 "pw-y1"
+E Y1 S Title p=0 "Y1"
+E Y1 S URL p=0 ""
+E Y1 S UserName p=0 "user-y1"
+E Y1 autotype enabled=1 obfuscation=0 seq="" assoc=0
+E Y1 history.count 0
+E Y1 misc icon=0 customIcon=- fg=00000000 bg=00000000 overrideUrl="" quality=1
+E Y1 parent G (G)
+E Y1 prev -
+E Y1 t.accessed 2026-11-01T10:55:00Z
+E Y1 t.created 2026-11-01T10:55:00Z
+E Y1 t.expires 0 2026-11-01T10:00:00Z
+E Y1 t.location 2026-11-01T10:55:00Z
+E Y1 t.modified 2026-11-01T10:55:00Z
+E Y1 tags []
+E Y1 usage 0
+E Y2 S Notes p=0 ""
+E Y2 S Password p=1 "pw-y2"
+E Y2 S Title p=0 "Y2"
+E Y2 S URL p=0 ""
+E Y2 S UserName p=0 "user-y2"
+E Y2 autotype enabled=1 obfuscation=0 seq="" assoc=0
+E Y2 history.count 0
+E Y2 misc icon=0 customIcon=- fg=00000000 bg=00000000 overrideUrl="" quality=1
+E Y2 parent G (G)
+E Y2 prev -
+E Y2 t.accessed 2026-11-01T10:55:00Z
+E Y2 t.created 2026-11-01T10:55:00Z
+E Y2 t.expires 0 2026-11-01T10:00:00Z
+E Y2 t.location 2026-11-01T10:55:00Z
+E Y2 t.modified 2026-11-01T10:55:00Z
+E Y2 tags []
+E Y2 usage 0
+E Y3 S Notes p=0 ""
+E Y3 S Password p=1 "pw-y3"
+E Y3 S Title p=0 "Y3"
+E Y3 S URL p=0 ""
+E Y3 S UserName p=0 "user-y3"
+E Y3 autotype enabled=1 obfuscation=0 seq="" assoc=0
+E Y3 history.count 0
+E Y3 misc icon=0 customIcon=- fg=00000000 bg=00000000 overrideUrl="" quality=1
+E Y3 parent G (G)
+E Y3 prev -
+E Y3 t.accessed 2026-11-01T10:55:00Z
+E Y3 t.created 2026-11-01T10:55:00Z
+E Y3 t.expires 0 2026-11-01T10:00:00Z
+E Y3 t.location 2026-11-01T10:55:00Z
+E Y3 t.modified 2026-11-01T10:55:00Z
+E Y3 tags []
+E Y3 usage 0
+F cipher AES/Rijndael (256-bit key, FIPS 197)
+F compression GZip
+F groups 5 entries 13
+F kdf Argon2d it=2 mem=1024KiB par=1
+F version 4.1
+G Bin children groups=0 entries=0
+G Bin flags icon=43 customIcon=- search=0 autotype=0 expanded=1 seq="" lastTop=-
+G Bin name "Recycle Bin"
+G Bin notes ""
+G Bin parent Root (Storage probe)
+G Bin prev -
+G Bin t.accessed 2026-11-01T10:05:00Z
+G Bin t.created 2026-11-01T10:05:00Z
+G Bin t.expires 0 2026-11-01T10:00:00Z
+G Bin t.location 2026-11-01T10:05:00Z
+G Bin t.modified 2026-11-01T10:05:00Z
+G Bin tags []
+G Bin usage 0
+G G CD KPG = "{\"reader\":[\"read\",\"list\"]}"
+G G children groups=1 entries=7
+G G flags icon=48 customIcon=- search=inherit autotype=inherit expanded=1 seq="" lastTop=-
+G G name "G"
+G G notes "{\"kpg.rules\":{\"reader\":\".R...L..\",\"writer\":\"CRU..L..\"}}"
+G G parent Root (Storage probe)
+G G prev -
+G G t.accessed 2026-11-01T10:00:00Z
+G G t.created 2026-11-01T10:00:00Z
+G G t.expires 0 2026-11-01T10:00:00Z
+G G t.location 2026-11-01T10:00:00Z
+G G t.modified 2026-11-01T10:30:00Z
+G G tags [kpg.reader;team]
+G G usage 0
+G GKPG children groups=0 entries=5
+G GKPG flags icon=48 customIcon=- search=0 autotype=0 expanded=0 seq="" lastTop=-
+G GKPG name "KPG"
+G GKPG notes "The plugin's own group (invented)."
+G GKPG parent Root (Storage probe)
+G GKPG prev -
+G GKPG t.accessed 2026-11-01T10:10:00Z
+G GKPG t.created 2026-11-01T10:10:00Z
+G GKPG t.expires 0 2026-11-01T10:00:00Z
+G GKPG t.location 2026-11-01T10:10:00Z
+G GKPG t.modified 2026-11-01T10:10:00Z
+G GKPG tags []
+G GKPG usage 0
+G N children groups=0 entries=1
+G N flags icon=48 customIcon=- search=inherit autotype=inherit expanded=1 seq="" lastTop=-
+G N name "N"
+G N notes ""
+G N parent G (G)
+G N prev -
+G N t.accessed 2026-11-01T10:20:00Z
+G N t.created 2026-11-01T10:20:00Z
+G N t.expires 0 2026-11-01T10:00:00Z
+G N t.location 2026-11-01T10:20:00Z
+G N t.modified 2026-11-01T10:20:00Z
+G N tags []
+G N usage 0
+G Root children groups=3 entries=0
+G Root flags icon=49 customIcon=- search=inherit autotype=inherit expanded=1 seq="" lastTop=-
+G Root name "Storage probe"
+G Root notes ""
+G Root parent -
+G Root prev -
+G Root t.accessed 2026-11-01T10:00:00Z
+G Root t.created 2026-11-01T10:00:00Z
+G Root t.expires 0 2026-11-01T10:00:00Z
+G Root t.location 2026-11-01T10:00:00Z
+G Root t.modified 2026-11-01T10:00:00Z
+G Root tags []
+G Root usage 0
+M CD KPG.Profiles = "[\"reader\",\"writer\"]" @2026-11-01T10:15:00Z
+M CD KPG.Untimed = "no time on this key" @none
+M customIcons 0
+M defaultUserName "" changed 2026-11-01T10:00:00Z
+M description "Throwaway database, invented content only" changed 2026-11-01T10:00:00Z
+M historyMaxItems 8 historyMaxSize 5242880 maintenanceHistoryDays 200
+M masterKeyChanged 2026-11-01T10:00:00Z
+M name "Storage probe (invented)" changed 2026-11-01T10:00:00Z
+M publicCustomData 0
+M recycleBin enabled=1 group=Bin changed 2026-11-01T10:05:00Z
+M settingsChanged 2026-11-01T10:00:00Z
+M templatesGroup - changed 2026-11-01T10:00:00Z

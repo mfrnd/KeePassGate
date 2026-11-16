@@ -1,0 +1,8 @@
+1c1
+< # file k2a-save-argon.kdbx size=8069 sha256=37e12219240b7811bc7c959c743de4ccc87b33730ef1f1a7933f8aeda9734757
+---
+> # file into-kp.kdbx size=8117 sha256=f0c8f391cf03cb7a57a29b999c01ca47b28e0717cb03d4d03ea1d08ad65ed299
+429c429
+< M CD KPG.Profiles = "[\"reader\",\"writer\"]" @none
+---
+> M CD KPG.Profiles = "[\"reader\",\"writer\"]" @2026-11-01T10:15:00Z

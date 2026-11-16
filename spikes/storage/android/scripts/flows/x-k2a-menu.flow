@@ -1,0 +1,7 @@
+# Exploration: Keepass2Android's group view menu and its lock.
+include k2a-open.flow
+tap More.options
+sleep 2
+list
+key BACK
+sleep 1

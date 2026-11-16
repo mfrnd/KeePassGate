@@ -1,0 +1,2 @@
+# Keepass2Android's start screen lists recent files: tap the one this run opened.
+tap ${NAME}

@@ -1,0 +1,23 @@
+# Step 6, Keepass2Android: open, go into G, select E1, Move to another group, go into N, Insert
+# here; a copy is pulled then. Then back up to G, select N, Move, navigate up to the root, Insert
+# here.
+include k2a-open.flow
+tap ^G$
+longpress ^E1$
+tap menu_move
+waitfor insert_element 20
+tap ^N$
+tap insert_element
+waitfor ^N1$ 30
+sleep 5
+adb pull /sdcard/Download/${NAME}.kdbx ${OUT}/mid-moved-e1.kdbx
+tap Navigate.up
+longpress ^N$
+tap menu_move
+waitfor insert_element 20
+tap Navigate.up
+waitfor ^Storage.probe$ 20
+tap insert_element
+waitfor ^N$ 30
+sleep 5
+list

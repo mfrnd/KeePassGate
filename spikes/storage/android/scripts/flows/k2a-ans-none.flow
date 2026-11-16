@@ -1,0 +1,4 @@
+# The save asked although this case expected no question: record it and fail the run.
+dialog
+list
+assert ^this-case-expected-no-question$

@@ -1,0 +1,29 @@
+### 2026-11-15T18:49:39.123Z op kpdx edit-g-notes flow=kpdx-edit-g-notes.flow base=S-argon (versionName=4.5.8)
+Success
+<work>/work/base/S-argon.kdbx: 1 file pushed, 0 skipped. 0.4 MB/s (7941 bytes in 0.018s)
+pushed sha256 bd84dd4785579e8705bd12f3fe4d53a2e342be2e88c64875413ef8b336dc11ae
+[2026-11-15T18:49:40.437Z] kpdx-edit-g-notes.flow:2 include kpdx-open.flow
+[2026-11-15T18:49:40.443Z] kpdx-open.flow:4 sh monkey -p com.kunzisoft.keepass.libre -c android.intent.category.LAUNCHER 1
+  bash arg: -p
+  bash arg: com.kunzisoft.keepass.libre
+  bash arg: -c
+  bash arg: android.intent.category.LAUNCHER
+  bash arg: 1
+Events injected: 1
+## Network stats: elapsed time=45ms (0ms mobile, 0ms wifi, 45ms not connected)
+args: [-p, com.kunzisoft.keepass.libre, -c, android.intent.category.LAUNCHER, 1]
+ arg: "-p"
+ arg: "com.kunzisoft.keepass.libre"
+ arg: "-c"
+ arg: "android.intent.category.LAUNCHER"
+ arg: "1"
+data="com.kunzisoft.keepass.libre"
+data="android.intent.category.LAUNCHER"
+[2026-11-15T18:49:41.120Z] kpdx-open.flow:5 waitfor open_database_button 30
+[2026-11-15T18:49:46.652Z] kpdx-open.flow:6 tapuntil open_database_button Show.roots 40
+[2026-11-15T18:49:49.445Z]   tapped (799, 2051) 'Open existing vault'
+[2026-11-15T18:50:00.036Z]   tapped (799, 2051) 'Open existing vault'
+[2026-11-15T18:50:02.700Z] kpdx-open.flow:7 include picker.flow
+[2026-11-15T18:50:02.709Z] picker.flow:4 pick kpdx-edit-g-notes.kdbx
+[2026-11-15T18:50:10.485Z]   focused and entered '^kpdx\\-edit\\-g\\-notes\\.kdbx$'
+[2026-11-15T18:50:10.486Z] kpdx-open.flow:8 waitfor password_text_view 40

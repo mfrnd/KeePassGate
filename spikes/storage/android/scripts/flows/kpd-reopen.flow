@@ -1,0 +1,6 @@
+# KeePassDroid, after a lock or a restart: if the file list shows, tap the file this run opened;
+# then unlock with the password.
+ifthen ${NAME} 5 kpd-tap-recent.flow
+waitfor pass_ok 40
+typepwck password@.* dummy-password-for-a-throwaway-file
+tapuntil pass_ok add_entry 60

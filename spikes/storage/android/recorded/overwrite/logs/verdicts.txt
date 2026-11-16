@@ -1,0 +1,36 @@
+bg-equal-same-overwrite-r1/k2a-bg-equal-same-overwrite-r1.kdbx: NEW's changes LOST | RV ABSENT, M1 v0, X1 there, X1 no record | phone: phone-bg-equal-same-overwrite-r1 | v4.1 babc54d7bea7
+bg-later-diff-overwrite-r1/k2a-bg-later-diff-overwrite-r1.kdbx: NEW's changes LOST | RV ABSENT, M1 v0, X1 there, X1 no record | phone: phone-bg-later-diff-overwrite-r1 | v4.1 e3a45294cd8a
+bg-later-diff-overwrite-r2/k2a-bg-later-diff-overwrite-r2.kdbx: NEW's changes LOST | RV ABSENT, M1 v0, X1 there, X1 no record | phone: phone-bg-later-diff-overwrite-r2 | v4.1 8777b1322e4a
+bg-later-diff-overwrite-r3/k2a-bg-later-diff-overwrite-r3.kdbx: NEW's changes LOST | RV ABSENT, M1 v0, X1 there, X1 no record | phone: phone-bg-later-diff-overwrite-r3 | v4.1 a591d3d3d0e3
+close-later-diff-r1/k2a-close-later-diff-r1.kdbx: NEW's changes KEPT | RV present, M1 v1, X1 gone, X1 record | phone: phone-close-later-diff-r1 | v4.1 9d46de254df2
+close-later-diff-r2/k2a-close-later-diff-r2.kdbx: NEW's changes KEPT | RV present, M1 v1, X1 gone, X1 record | phone: phone-close-later-diff-r2 | v4.1 5366ab47cb8b
+close-later-diff-r3/k2a-close-later-diff-r3.kdbx: NEW's changes KEPT | RV present, M1 v1, X1 gone, X1 record | phone: phone-close-later-diff-r3 | v4.1 49b10ca6fb2b
+fg-earlier-diff-overwrite-r1/k2a-fg-earlier-diff-overwrite-r1.kdbx: NEW's changes LOST | RV ABSENT, M1 v0, X1 there, X1 no record | phone: phone-fg-earlier-diff-overwrite-r1 | v4.1 10448ea007cb
+fg-earlier-same-overwrite-r1/k2a-fg-earlier-same-overwrite-r1.kdbx: NEW's changes LOST | RV ABSENT, M1 v0, X1 there, X1 no record | phone: phone-fg-earlier-same-overwrite-r1 | v4.1 290dcad5489b
+fg-equal-diff-overwrite-r1/k2a-fg-equal-diff-overwrite-r1.kdbx: NEW's changes LOST | RV ABSENT, M1 v0, X1 there, X1 no record | phone: phone-fg-equal-diff-overwrite-r1 | v4.1 a56cca954bcd
+fg-equal-same-overwrite-r1/k2a-fg-equal-same-overwrite-r1.kdbx: NEW's changes LOST | RV ABSENT, M1 v0, X1 there, X1 no record | phone: phone-fg-equal-same-overwrite-r1 | v4.1 0722bdd203f1
+fg-equal-same-overwrite-r2/k2a-fg-equal-same-overwrite-r2.kdbx: NEW's changes LOST | RV ABSENT, M1 v0, X1 there, X1 no record | phone: phone-fg-equal-same-overwrite-r2 | v4.1 339666b22eef
+fg-equal-same-overwrite-r3/k2a-fg-equal-same-overwrite-r3.kdbx: NEW's changes LOST | RV ABSENT, M1 v0, X1 there, X1 no record | phone: phone-fg-equal-same-overwrite-r3 | v4.1 b59597fa2a7b
+fg-later-diff-cancel-r1/k2a-fg-later-diff-cancel-r1.kdbx: NEW's changes KEPT | RV present, M1 v1, X1 gone, X1 record | phone: none | v4.1 469981f9d928 =NEW-diff
+fg-later-diff-merge-r1/k2a-fg-later-diff-merge-r1.kdbx: NEW's changes KEPT | RV present, M1 v1, X1 gone, X1 record | phone: phone-fg-later-diff-merge-r1 | v4.1 922535e8f6fc
+fg-later-diff-merge-r2/k2a-fg-later-diff-merge-r2.kdbx: NEW's changes KEPT | RV present, M1 v1, X1 gone, X1 record | phone: phone-fg-later-diff-merge-r2 | v4.1 5a864d18da40
+fg-later-diff-merge-r3/k2a-fg-later-diff-merge-r3.kdbx: NEW's changes KEPT | RV present, M1 v1, X1 gone, X1 record | phone: phone-fg-later-diff-merge-r3 | v4.1 d1a036240994
+fg-later-diff-overwrite-r1/k2a-fg-later-diff-overwrite-r1.kdbx: NEW's changes LOST | RV ABSENT, M1 v0, X1 there, X1 no record | phone: phone-fg-later-diff-overwrite-r1 | v4.1 3b00bdb71b92
+fg-later-diff-overwrite-r2/k2a-fg-later-diff-overwrite-r2.kdbx: NEW's changes LOST | RV ABSENT, M1 v0, X1 there, X1 no record | phone: phone-fg-later-diff-overwrite-r2 | v4.1 bc6129eb1f64
+fg-later-diff-overwrite-r3/k2a-fg-later-diff-overwrite-r3.kdbx: NEW's changes LOST | RV ABSENT, M1 v0, X1 there, X1 no record | phone: phone-fg-later-diff-overwrite-r3 | v4.1 467d6e7e6802
+fg-later-ident-r1/k2a-fg-later-ident-r1.kdbx: NEW's changes LOST | RV ABSENT, M1 v0, X1 there, X1 no record | phone: phone-fg-later-ident-r1 | v4.1 69314072d462
+fg-later-ident-r2/k2a-fg-later-ident-r2.kdbx: NEW's changes LOST | RV ABSENT, M1 v0, X1 there, X1 no record | phone: phone-fg-later-ident-r2 | v4.1 c346c88e139d
+fg-later-ident-r3/k2a-fg-later-ident-r3.kdbx: NEW's changes LOST | RV ABSENT, M1 v0, X1 there, X1 no record | phone: phone-fg-later-ident-r3 | v4.1 635cb581e632
+fg-later-same-overwrite-r1/k2a-fg-later-same-overwrite-r1.kdbx: NEW's changes LOST | RV ABSENT, M1 v0, X1 there, X1 no record | phone: phone-fg-later-same-overwrite-r1 | v4.1 e259c00ba558
+look-later-diff-r1/k2a-look-later-diff-r1.kdbx: NEW's changes KEPT | RV present, M1 v1, X1 gone, X1 record | phone: none | v4.1 469981f9d928 =NEW-diff
+look-later-diff-r2/k2a-look-later-diff-r2.kdbx: NEW's changes KEPT | RV present, M1 v1, X1 gone, X1 record | phone: none | v4.1 469981f9d928 =NEW-diff
+nocheck-later-diff-overwrite-r1/k2a-nocheck-later-diff-overwrite-r1.kdbx: NEW's changes LOST | RV ABSENT, M1 v0, X1 there, X1 no record | phone: phone-nocheck-later-diff-overwrite-r1 | v4.1 1144123f6dd0
+nocheck-reopen-later-diff-r1/k2a-nocheck-reopen-later-diff-r1.kdbx: NEW's changes LOST | RV ABSENT, M1 v0, X1 there, X1 no record | phone: phone-nocheck-reopen-later-diff-r1 | v4.1 2c4d69b6287c
+openclose-later-diff-r1/k2a-openclose-later-diff-r1.kdbx: NEW's changes KEPT | RV present, M1 v1, X1 gone, X1 record | phone: phone-openclose-later-diff-r1 | v4.1 04ad1bc19f28
+qu-later-diff-overwrite-r1/k2a-qu-later-diff-overwrite-r1.kdbx: NEW's changes LOST | RV ABSENT, M1 v0, X1 there, X1 no record | phone: phone-qu-later-diff-overwrite-r1 | v4.1 c050647374ac
+qu-later-diff-overwrite-r2/k2a-qu-later-diff-overwrite-r2.kdbx: NEW's changes LOST | RV ABSENT, M1 v0, X1 there, X1 no record | phone: phone-qu-later-diff-overwrite-r2 | v4.1 69dc96a9ea81
+sync-later-diff-r1/k2a-sync-later-diff-r1.kdbx: NEW's changes KEPT | RV present, M1 v1, X1 gone, X1 record | phone: phone-sync-later-diff-r1 | v4.1 87df218bed47
+fg-later-diff-r1/kpd-fg-later-diff-r1.kdbx: NEW's changes LOST | RV ABSENT, M1 v0, X1 there, X1 no record | phone: phone-fg-later-diff-r1 | v4.1 fc3c2d3e20b3
+fg-later-diff-r2/kpd-fg-later-diff-r2.kdbx: NEW's changes LOST | RV ABSENT, M1 v0, X1 there, X1 no record | phone: phone-fg-later-diff-r2 | v4.1 6b88cba225e3
+fg-later-diff-r3/kpd-fg-later-diff-r3.kdbx: NEW's changes LOST | RV ABSENT, M1 v0, X1 there, X1 no record | phone: phone-fg-later-diff-r3 | v4.1 06f753370281
+lock-later-diff-r1/kpd-lock-later-diff-r1.kdbx: NEW's changes KEPT | RV present, M1 v1, X1 gone, X1 record | phone: phone-lock-later-diff-r1 | v4.1 4b832c79de04

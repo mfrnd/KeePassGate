@@ -1,0 +1,24 @@
+# Step 5, KeePassDX: open, G, select E2 (2 s), the selection's overflow, Delete (no question): E2
+# goes to the recycle bin; a copy is pulled then. Back at the root, the Recycle Bin, "Empty the
+# recycle bin", OK.
+include kpdx-open.flow
+tapuntil node_text@^G$ node_text@^Y3$ 40
+waitfor node_text@^E2$ 20
+sleep 2
+longpressuntil node_text@^E2$ menu_move 60 2000 600
+tapuntil More.options#2 ^Delete$ 30
+tap ^Delete$
+gone node_text@^E2$ 30
+sleep 6
+adb pull /sdcard/Download/${NAME}.kdbx ${OUT}/mid-recycled.kdbx
+key BACK
+waitfor node_text@^Recycle.Bin$ 20
+tapuntil node_text@^Recycle.Bin$ menu_empty_recycle_bin 40
+waitfor menu_empty_recycle_bin 20
+tap menu_empty_recycle_bin
+waitfor ^Permanently.delete 10
+list
+tap ^OK$
+gone node_text@^E2$ 30
+sleep 6
+list

@@ -1,0 +1,594 @@
+// Storage probe for the Android measurement of 2026-11-15, against KeePass 2.62's KeePassLib.
+// Modeled on the spike's Kpg.cs: it makes the throwaway databases the Android programs are given,
+// reads any .kdbx back into a line-per-item dump, and runs KeePass's own Synchronize headless.
+// Invented content only, one invented password, no window.
+//
+//   make <dir>                         the base databases and the merge pair, into <dir>
+//   dump <file> [<out>]                the sorted line-per-item dump of one file
+//   dumpdir <dir>                      <file>.dump.txt beside every .kdbx under <dir>
+//   sync <target> <source> <out>       open target, MergeIn(source, Synchronize), save as out
+//
+// Every line of a dump starts with what it is about and is then sorted, so that two dumps diff
+// item by item: F the file, M the database's meta, D a deletion record, G a group, E an entry,
+// "E <id> H<time>" one of its history items. A node is named by its identifier, not its title:
+// the base's nodes carry fixed identifiers ('KPG' and an ASCII alias), which print as the alias;
+// any other identifier prints as ~ and its first eight hex digits.
+using System;
+using System.Collections.Generic;
+using System.Globalization;
+using System.IO;
+using System.Linq;
+using System.Reflection;
+using System.Security.Cryptography;
+using System.Text;
+using KeePassLib;
+using KeePassLib.Collections;
+using KeePassLib.Cryptography.Cipher;
+using KeePassLib.Cryptography.KeyDerivation;
+using KeePassLib.Keys;
+using KeePassLib.Security;
+using KeePassLib.Serialization;
+
+static class Store
+{
+    public const string Password = "dummy-password-for-a-throwaway-file";
+    static readonly CultureInfo Inv = CultureInfo.InvariantCulture;
+    static readonly DateTime T0 = new DateTime(2026, 11, 1, 10, 0, 0, DateTimeKind.Utc);
+    static DateTime At(int minutes) { return T0.AddMinutes(minutes); }
+
+    // ---------------------------------------------------------------- identifiers
+
+    static PwUuid Id(string alias)
+    {
+        var b = new byte[16];
+        b[0] = 0x4b; b[1] = 0x50; b[2] = 0x47;
+        var a = Encoding.ASCII.GetBytes(alias);
+        if (a.Length > 13) throw new ArgumentException(alias);
+        Array.Copy(a, 0, b, 3, a.Length);
+        return new PwUuid(b);
+    }
+
+    static string Alias(PwUuid u)
+    {
+        if (u == null || u.Equals(PwUuid.Zero)) return "-";
+        var b = u.UuidBytes;
+        if (b[0] == 0x4b && b[1] == 0x50 && b[2] == 0x47)
+        {
+            int n = 3;
+            while (n < 16 && b[n] != 0) n++;
+            bool rest = true;
+            for (int i = n; i < 16; i++) if (b[i] != 0) rest = false;
+            if (rest && n > 3) return Encoding.ASCII.GetString(b, 3, n - 3);
+        }
+        return "~" + u.ToHexString().Substring(0, 8).ToLowerInvariant();
+    }
+
+    // ---------------------------------------------------------------- making
+
+    static CompositeKey Key()
+    {
+        var k = new CompositeKey();
+        k.AddUserKey(new KcpPassword(Password));
+        return k;
+    }
+
+    static KdfParameters Argon2d()
+    {
+        var p = new Argon2Kdf().GetDefaultParameters();
+        p.SetUInt64(Argon2Kdf.ParamIterations, 2);
+        p.SetUInt64(Argon2Kdf.ParamMemory, 1024UL * 1024UL);
+        p.SetUInt32(Argon2Kdf.ParamParallelism, 1);
+        return p;
+    }
+
+    static KdfParameters Aes()
+    {
+        var p = new AesKdf().GetDefaultParameters();
+        p.SetUInt64(AesKdf.ParamRounds, 60000);
+        return p;
+    }
+
+    static readonly MethodInfo SetWithTime = typeof(StringDictionaryEx).GetMethod("Set",
+        BindingFlags.Instance | BindingFlags.NonPublic, null, new[] { typeof(string), typeof(string), typeof(DateTime?) }, null);
+    static readonly MethodInfo TimeOf = typeof(StringDictionaryEx).GetMethod("GetLastModificationTime",
+        BindingFlags.Instance | BindingFlags.NonPublic);
+
+    static void SetCd(StringDictionaryEx d, string key, string value, DateTime? t)
+    {
+        if (SetWithTime == null) throw new InvalidOperationException("StringDictionaryEx.Set(string, string, DateTime?) not found");
+        SetWithTime.Invoke(d, new object[] { key, value, t });
+    }
+
+    static DateTime? CdTime(StringDictionaryEx d, string key)
+    {
+        if (TimeOf == null) return null;
+        return (DateTime?)TimeOf.Invoke(d, new object[] { key });
+    }
+
+    static PwGroup NewGroup(PwGroup parent, string alias, string name, DateTime t)
+    {
+        var g = new PwGroup(false, false);
+        g.Uuid = Id(alias);
+        g.Name = name;
+        g.IconId = PwIcon.Folder;
+        parent.AddGroup(g, true, false);
+        g.CreationTime = g.LastModificationTime = g.LastAccessTime = g.LocationChanged = t;
+        g.ExpiryTime = T0;
+        return g;
+    }
+
+    static PwEntry NewEntry(PwDatabase pd, PwGroup g, string alias, string title, DateTime t)
+    {
+        var e = new PwEntry(false, false);
+        e.Uuid = Id(alias);
+        var mp = pd.MemoryProtection;
+        e.Strings.Set(PwDefs.TitleField, new ProtectedString(mp.ProtectTitle, title));
+        e.Strings.Set(PwDefs.UserNameField, new ProtectedString(mp.ProtectUserName, ""));
+        e.Strings.Set(PwDefs.PasswordField, new ProtectedString(mp.ProtectPassword, ""));
+        e.Strings.Set(PwDefs.UrlField, new ProtectedString(mp.ProtectUrl, ""));
+        e.Strings.Set(PwDefs.NotesField, new ProtectedString(mp.ProtectNotes, ""));
+        g.AddEntry(e, true, false);
+        e.CreationTime = e.LastModificationTime = e.LastAccessTime = e.LocationChanged = t;
+        e.ExpiryTime = T0;
+        return e;
+    }
+
+    static void Std(PwDatabase pd, PwEntry e, string user, string pw, string url, string notes)
+    {
+        var mp = pd.MemoryProtection;
+        e.Strings.Set(PwDefs.UserNameField, new ProtectedString(mp.ProtectUserName, user));
+        e.Strings.Set(PwDefs.PasswordField, new ProtectedString(mp.ProtectPassword, pw));
+        e.Strings.Set(PwDefs.UrlField, new ProtectedString(mp.ProtectUrl, url));
+        e.Strings.Set(PwDefs.NotesField, new ProtectedString(mp.ProtectNotes, notes));
+    }
+
+    static void Str(PwEntry e, string name, bool prot, string value) { e.Strings.Set(name, new ProtectedString(prot, value)); }
+
+    // A new version of an entry, as KeePass's entry dialog makes one: the current state goes into
+    // history first, then the change, then the time.
+    static void Version(PwEntry e, DateTime t, Action change)
+    {
+        e.CreateBackup(null);
+        change();
+        e.LastModificationTime = e.LastAccessTime = t;
+    }
+
+    static byte[] Bytes(int seed, int n)
+    {
+        var b = new byte[n];
+        new Random(seed).NextBytes(b);
+        return b;
+    }
+
+    static string LongJson()
+    {
+        var sb = new StringBuilder("{\"kind\":\"record\",\"version\":3,\"items\":[");
+        for (int i = 0; i < 24; i++)
+        {
+            if (i > 0) sb.Append(',');
+            sb.Append("{\"i\":").Append(i.ToString(Inv)).Append(",\"name\":\"invented-item-").Append(i.ToString("00", Inv))
+              .Append("\",\"profiles\":[\"reader\",\"writer\"],\"note\":\"padding to make a value of a few kilobytes\"}");
+        }
+        sb.Append("]}");
+        return sb.ToString();
+    }
+
+    static readonly byte[] P12 = Bytes(12, 3000);
+    static readonly byte[] E1Att = Bytes(1, 600);
+    static readonly byte[] AddedC = Bytes(77, 1500);
+
+    // The base: every candidate carrier, the controls beside them.
+    //   nodeCd   custom data on G, E1 and R1 (the controls)
+    //   tags     tags on G (a KDBX 4.1 feature) and on entries
+    //   dbTimes  the database's custom data key KPG.Profiles carries a modification time (4.1)
+    static void Build(string path, KdfParameters kdf, bool nodeCd, bool tags, bool dbTimes)
+    {
+        if (File.Exists(path)) File.Delete(path);
+        var pd = new PwDatabase();
+        pd.New(IOConnectionInfo.FromPath(path), Key());
+        pd.KdfParameters = kdf;
+        pd.Name = "Storage probe (invented)";
+        pd.Description = "Throwaway database, invented content only";
+        pd.NameChanged = pd.DescriptionChanged = pd.DefaultUserNameChanged = pd.MasterKeyChanged = T0;
+        pd.SettingsChanged = T0;
+        pd.HistoryMaxItems = 8;
+        pd.HistoryMaxSize = 5L * 1024 * 1024;
+        pd.MaintenanceHistoryDays = 200;
+        // MemoryProtection is left at KeePassLib's defaults: KeePassLib 2.62 resets it at every load
+        // and writes the standard fields' flags from it, so a non-default value would not survive
+        // KeePass itself (measured: logs\keepasslib-memprot-reset.txt).
+
+        var root = new PwGroup(false, false);
+        root.Uuid = Id("Root");
+        root.Name = "Storage probe";
+        root.IconId = PwIcon.FolderOpen;
+        root.IsExpanded = true;
+        root.CreationTime = root.LastModificationTime = root.LastAccessTime = root.LocationChanged = T0;
+        root.ExpiryTime = T0;
+        pd.RootGroup = root;
+        pd.EntryTemplatesGroupChanged = T0;
+
+        var g = NewGroup(root, "G", "G", T0);
+        g.Notes = "{\"kpg.rules\":{\"reader\":\".R...L..\",\"writer\":\"CRU..L..\"}}";
+        if (tags) { g.Tags.Add("kpg.reader"); g.Tags.Add("team"); }
+        if (nodeCd) g.CustomData.Set("KPG", "{\"reader\":[\"read\",\"list\"]}");
+        g.LastModificationTime = At(30);
+        var n = NewGroup(g, "N", "N", At(20));
+        var kpg = NewGroup(root, "GKPG", "KPG", At(10));
+        kpg.Notes = "The plugin's own group (invented).";
+        kpg.EnableSearching = false;
+        kpg.EnableAutoType = false;
+        kpg.IsExpanded = false;
+        var bin = NewGroup(root, "Bin", "Recycle Bin", At(5));
+        bin.IconId = PwIcon.TrashBin;
+        bin.EnableSearching = false;
+        bin.EnableAutoType = false;
+        pd.RecycleBinEnabled = true;
+        pd.RecycleBinUuid = bin.Uuid;
+        pd.RecycleBinChanged = At(5);
+
+        // R1: every carrier an entry has, with three older versions whose custom fields differ.
+        var r1 = NewEntry(pd, kpg, "R1", "KPG record 1", At(60));
+        Std(pd, r1, "kpg-r1", "pw-r1-not-real", "kpg://record/1", "{\"kind\":\"record\",\"n\":1,\"in\":\"notes\"}");
+        Str(r1, "KPG.Record", false, "{\"kind\":\"record\",\"version\":1}");
+        Version(r1, At(120), () =>
+        {
+            Str(r1, "KPG.Record", false, "{\"kind\":\"record\",\"version\":2}");
+            Str(r1, "KPG.20261115T101500Z.a1b2", false, "{\"at\":\"2026-11-15T10:15:00Z\",\"op\":\"grant\"}");
+        });
+        Version(r1, At(180), () =>
+        {
+            Str(r1, "KPG.Record", false, LongJson());
+            Str(r1, "KPG.20261115T101501Z.c3d4", true, "{\"at\":\"2026-11-15T10:15:01Z\",\"op\":\"revoke\"}");
+            Str(r1, "KPG.Secret", true, "{\"key\":\"invented-secret-v0\"}");
+            r1.Binaries.Set("authority.p12", new ProtectedBinary(true, P12));
+            if (tags) r1.Tags.Add("kpg");
+        });
+        Version(r1, At(240), () =>
+        {
+            Str(r1, "KPG.Secret", true, "{\"key\":\"invented-secret-v1\"}");
+            if (tags) r1.Tags.Add("record");
+            if (nodeCd) r1.CustomData.Set("KPG.cd", "{\"control\":\"entry custom data on R1\"}");
+        });
+
+        // R2: the same attachment bytes under another name, a timestamp-named field, a tag.
+        var r2 = NewEntry(pd, kpg, "R2", "KPG record 2", At(40));
+        Str(r2, "KPG.20261115T101502Z.e5f6", false, "{\"at\":\"2026-11-15T10:15:02Z\",\"op\":\"grant\",\"who\":\"agent-two\"}");
+        r2.Binaries.Set("copy.p12", new ProtectedBinary(true, P12));
+        if (tags) r2.Tags.Add("kpg");
+
+        // M1 and M2: entries the merge pair changes on both sides.
+        var m1 = NewEntry(pd, kpg, "M1", "KPG merge 1", At(50));
+        Str(m1, "KPG.base", false, "{\"v\":0}");
+        var m2 = NewEntry(pd, kpg, "M2", "KPG merge 2", At(50));
+        Str(m2, "KPG.base", false, "{\"v\":0}");
+
+        // G's marker entry, E1 the ordinary entry with carriers of its own, E2 to be deleted, and the
+        // entries the merge pair deletes, changes and moves.
+        var gm = NewEntry(pd, g, "Gm", "KPG marker", At(35));
+        Str(gm, "KPG.Marker", false, "{\"marker\":\"G\",\"rules\":{\"reader\":\".R...L..\"}}");
+
+        var e1 = NewEntry(pd, g, "E1", "E1", At(60));
+        Std(pd, e1, "alice-invented", "pw-e1-not-real", "https://e1.example.invalid/", "ordinary notes");
+        Version(e1, At(120), () => { Str(e1, "Extra", false, "extra-v1"); });
+        Version(e1, At(180), () => { Str(e1, "Extra", false, "extra-v2"); Str(e1, "Old", false, "old-field"); });
+        Version(e1, At(240), () =>
+        {
+            Str(e1, "Extra", false, "extra-value-e1");
+            e1.Strings.Remove("Old");
+            e1.Binaries.Set("e1.txt", new ProtectedBinary(false, E1Att));
+            if (tags) e1.Tags.Add("work");
+            if (nodeCd) e1.CustomData.Set("KPG", "{\"reader\":[\"read\",\"list\"]}");
+        });
+
+        var e2 = NewEntry(pd, g, "E2", "E2", At(45));
+        Std(pd, e2, "bob-invented", "pw-e2-not-real", "", "");
+        foreach (var a in new[] { "X1", "X2", "Y1", "Y2", "Y3" })
+        {
+            var x = NewEntry(pd, g, a, a, At(55));
+            Std(pd, x, "user-" + a.ToLowerInvariant(), "pw-" + a.ToLowerInvariant(), "", "");
+        }
+        var n1 = NewEntry(pd, n, "N1", "N1", At(25));
+        Std(pd, n1, "user-n1", "pw-n1", "", "");
+
+        // Two entries deleted beforehand: their deletion records only.
+        pd.DeletedObjects.Add(new PwDeletedObject(Id("D1"), At(6)));
+        pd.DeletedObjects.Add(new PwDeletedObject(Id("D2"), At(7)));
+
+        SetCd(pd.CustomData, "KPG.Profiles", "[\"reader\",\"writer\"]", dbTimes ? (DateTime?)At(15) : null);
+        SetCd(pd.CustomData, "KPG.Untimed", "no time on this key", null);
+
+        pd.Save(null);
+        pd.Close();
+        Console.WriteLine("wrote " + path);
+    }
+
+    static PwDatabase Open(string file)
+    {
+        var pd = new PwDatabase();
+        pd.Open(IOConnectionInfo.FromPath(file), Key(), null);
+        return pd;
+    }
+
+    static PwEntry Entry(PwDatabase pd, string alias)
+    {
+        var id = Id(alias);
+        return pd.RootGroup.GetEntries(true).First(e => e.Uuid.Equals(id));
+    }
+
+    static PwGroup Group(PwDatabase pd, string alias)
+    {
+        var id = Id(alias);
+        if (pd.RootGroup.Uuid.Equals(id)) return pd.RootGroup;
+        return pd.RootGroup.GetGroups(true).First(x => x.Uuid.Equals(id));
+    }
+
+    static void Delete(PwDatabase pd, string alias, DateTime t)
+    {
+        var e = Entry(pd, alias);
+        e.ParentGroup.Entries.Remove(e);
+        pd.DeletedObjects.Add(new PwDeletedObject(e.Uuid, t));
+    }
+
+    // The merge pair. Both are the base changed independently, every change at an explicit time.
+    //   M1: a different timestamp-named field on each side, C at +5h, P at +6h
+    //   M2: a different timestamp-named field on each side, both at +7h
+    //   NC, NP: a new entry in the KPG group on one side each
+    //   X1: deleted in P (+6h), unchanged in C;  X2: deleted in C (+5h), changed in P later (+6h)
+    //   Y1: an attachment added in C (+5h);  Y2: a tag added in P (+6h)
+    //   G's notes changed in C (+5h);  Y3 moved from G to N in P (+6h)
+    static void MakePair(string dir, string basePath)
+    {
+        var c = Path.Combine(dir, "C.kdbx");
+        File.Copy(basePath, c, true);
+        var pd = Open(c);
+        var m1 = Entry(pd, "M1");
+        Version(m1, At(300), () => Str(m1, "KPG.20261115T120000Z.c", false, "{\"side\":\"C\",\"cell\":\"different times\"}"));
+        var m2 = Entry(pd, "M2");
+        Version(m2, At(420), () => Str(m2, "KPG.20261115T130000Z.c", false, "{\"side\":\"C\",\"cell\":\"equal times\"}"));
+        var nc = NewEntry(pd, Group(pd, "GKPG"), "NC", "KPG new C", At(300));
+        Str(nc, "KPG.20261115T120500Z.nc", false, "{\"side\":\"C\",\"cell\":\"new entry\"}");
+        Delete(pd, "X2", At(300));
+        var y1 = Entry(pd, "Y1");
+        Version(y1, At(300), () => y1.Binaries.Set("added-c.bin", new ProtectedBinary(false, AddedC)));
+        var g = Group(pd, "G");
+        g.Notes = "{\"kpg.rules\":{\"reader\":\".R...L..\",\"writer\":\"CRU..L..\"},\"changedBy\":\"C\"}";
+        g.LastModificationTime = At(300);
+        pd.Save(null);
+        pd.Close();
+        Console.WriteLine("wrote " + c);
+
+        var p = Path.Combine(dir, "P.kdbx");
+        File.Copy(basePath, p, true);
+        pd = Open(p);
+        m1 = Entry(pd, "M1");
+        Version(m1, At(360), () => Str(m1, "KPG.20261115T140000Z.p", false, "{\"side\":\"P\",\"cell\":\"different times\"}"));
+        m2 = Entry(pd, "M2");
+        Version(m2, At(420), () => Str(m2, "KPG.20261115T130000Z.p", false, "{\"side\":\"P\",\"cell\":\"equal times\"}"));
+        var np = NewEntry(pd, Group(pd, "GKPG"), "NP", "KPG new P", At(360));
+        Str(np, "KPG.20261115T140500Z.np", false, "{\"side\":\"P\",\"cell\":\"new entry\"}");
+        Delete(pd, "X1", At(360));
+        var x2 = Entry(pd, "X2");
+        Version(x2, At(360), () => Str(x2, PwDefs.UserNameField, pd.MemoryProtection.ProtectUserName, "changed-in-P"));
+        var y2 = Entry(pd, "Y2");
+        Version(y2, At(360), () => y2.Tags.Add("added-p"));
+        var y3 = Entry(pd, "Y3");
+        var from = y3.ParentGroup;
+        from.Entries.Remove(y3);
+        Group(pd, "N").AddEntry(y3, true, false);
+        y3.PreviousParentGroup = from.Uuid;
+        y3.LocationChanged = At(360);
+        pd.Save(null);
+        pd.Close();
+        Console.WriteLine("wrote " + p);
+    }
+
+    static void Make(string dir)
+    {
+        Directory.CreateDirectory(dir);
+        var main = Path.Combine(dir, "S-argon.kdbx");
+        Build(main, Argon2d(), true, true, true);
+        Build(Path.Combine(dir, "S-aes.kdbx"), Aes(), true, true, true);
+        Build(Path.Combine(dir, "S-aes-nocd.kdbx"), Aes(), false, true, true);
+        Build(Path.Combine(dir, "S-aes-plain.kdbx"), Aes(), false, false, false);
+        MakePair(dir, main);
+    }
+
+    // ---------------------------------------------------------------- reading
+
+    static string Iso(DateTime t) { return t.ToUniversalTime().ToString("yyyy-MM-dd'T'HH:mm:ss'Z'", Inv); }
+
+    static string Sha(byte[] b)
+    {
+        using (var s = SHA256.Create()) return BitConverter.ToString(s.ComputeHash(b)).Replace("-", "").ToLowerInvariant();
+    }
+
+    static string Esc(string s)
+    {
+        var sb = new StringBuilder();
+        foreach (char ch in s)
+        {
+            if (ch == '\\') sb.Append("\\\\");
+            else if (ch == '"') sb.Append("\\\"");
+            else if (ch == '\n') sb.Append("\\n");
+            else if (ch == '\r') sb.Append("\\r");
+            else if (ch == '\t') sb.Append("\\t");
+            else if (ch < 0x20 || ch > 0x7e) sb.Append("\\u").Append(((int)ch).ToString("x4", Inv));
+            else sb.Append(ch);
+        }
+        return sb.ToString();
+    }
+
+    static string Val(string s)
+    {
+        if (s == null) return "null";
+        var e = Esc(s);
+        if (e.Length <= 160) return "\"" + e + "\"";
+        return "len=" + s.Length.ToString(Inv) + " sha=" + Sha(Encoding.UTF8.GetBytes(s)).Substring(0, 16) + " \"" + e.Substring(0, 60) + "...\"";
+    }
+
+    static string Bool(bool? b) { return b.HasValue ? (b.Value ? "1" : "0") : "inherit"; }
+
+    static string Version(string file)
+    {
+        var b = new byte[12];
+        using (var s = File.OpenRead(file)) s.Read(b, 0, 12);
+        uint v = BitConverter.ToUInt32(b, 8);
+        return (v >> 16).ToString(Inv) + "." + (v & 0xFFFF).ToString(Inv);
+    }
+
+    static string KdfText(KdfParameters p)
+    {
+        var u = p.KdfUuid;
+        if (u.Equals(new AesKdf().Uuid)) return "AES-KDF rounds=" + p.GetUInt64(AesKdf.ParamRounds, 0).ToString(Inv);
+        string name = u.Equals(new Argon2Kdf().Uuid) ? "Argon2d" : ("kdf " + u.ToHexString());
+        return name + " it=" + p.GetUInt64(Argon2Kdf.ParamIterations, 0).ToString(Inv) + " mem=" + (p.GetUInt64(Argon2Kdf.ParamMemory, 0) / 1024).ToString(Inv)
+            + "KiB par=" + p.GetUInt32(Argon2Kdf.ParamParallelism, 0).ToString(Inv);
+    }
+
+    static void EntryLines(List<string> o, string p, PwEntry e, bool current)
+    {
+        foreach (var kv in e.Strings)
+            o.Add(p + " S " + kv.Key + " p=" + (kv.Value.IsProtected ? "1" : "0") + " " + Val(kv.Value.ReadString()));
+        foreach (var kv in e.Binaries)
+        {
+            var d = kv.Value.ReadData();
+            o.Add(p + " A " + kv.Key + " p=" + (kv.Value.IsProtected ? "1" : "0") + " len=" + d.Length.ToString(Inv) + " sha=" + Sha(d).Substring(0, 16));
+        }
+        o.Add(p + " tags [" + string.Join(";", e.Tags) + "]");
+        foreach (var kv in e.CustomData) o.Add(p + " CD " + kv.Key + " = " + Val(kv.Value));
+        o.Add(p + " t.created " + Iso(e.CreationTime));
+        o.Add(p + " t.modified " + Iso(e.LastModificationTime));
+        o.Add(p + " t.accessed " + Iso(e.LastAccessTime));
+        o.Add(p + " t.location " + Iso(e.LocationChanged));
+        o.Add(p + " t.expires " + (e.Expires ? "1 " : "0 ") + Iso(e.ExpiryTime));
+        o.Add(p + " usage " + e.UsageCount.ToString(Inv));
+        o.Add(p + " misc icon=" + ((int)e.IconId).ToString(Inv) + " customIcon=" + Alias(e.CustomIconUuid)
+            + " fg=" + e.ForegroundColor.ToArgb().ToString("x8", Inv) + " bg=" + e.BackgroundColor.ToArgb().ToString("x8", Inv)
+            + " overrideUrl=" + Val(e.OverrideUrl) + " quality=" + (e.QualityCheck ? "1" : "0"));
+        o.Add(p + " autotype enabled=" + (e.AutoType.Enabled ? "1" : "0") + " obfuscation=" + ((int)e.AutoType.ObfuscationOptions).ToString(Inv)
+            + " seq=" + Val(e.AutoType.DefaultSequence) + " assoc=" + e.AutoType.AssociationsCount.ToString(Inv));
+        o.Add(p + " prev " + Alias(e.PreviousParentGroup));
+        if (!current) return;
+        o.Add(p + " parent " + Alias(e.ParentGroup.Uuid) + " (" + Esc(e.ParentGroup.Name) + ")");
+        o.Add(p + " history.count " + e.History.UCount.ToString(Inv));
+        var seen = new Dictionary<string, int>();
+        foreach (var h in e.History)
+        {
+            var k = Iso(h.LastModificationTime);
+            int c;
+            seen.TryGetValue(k, out c);
+            seen[k] = c + 1;
+            var hp = p + " H" + k + (c > 0 ? "#" + (c + 1).ToString(Inv) : "");
+            if (!h.Uuid.Equals(e.Uuid)) o.Add(hp + " uuid " + Alias(h.Uuid));
+            EntryLines(o, hp, h, false);
+        }
+    }
+
+    static List<string> Dump(string file)
+    {
+        var head = new List<string>();
+        var o = new List<string>();
+        var bytes = File.ReadAllBytes(file);
+        head.Add("# file " + Path.GetFileName(file) + " size=" + bytes.Length.ToString(Inv) + " sha256=" + Sha(bytes));
+        PwDatabase pd;
+        try { pd = Open(file); }
+        catch (Exception ex)
+        {
+            head.Add("# READ FAILED " + ex.GetType().Name + ": " + ex.Message.Replace("\r", " ").Replace("\n", " "));
+            return head;
+        }
+        try
+        {
+            o.Add("F version " + Version(file));
+            o.Add("F kdf " + KdfText(pd.KdfParameters));
+            var cipher = CipherPool.GlobalPool.GetCipher(pd.DataCipherUuid);
+            o.Add("F cipher " + (cipher != null ? cipher.DisplayName : pd.DataCipherUuid.ToHexString()));
+            o.Add("F compression " + pd.Compression);
+            o.Add("F groups " + (pd.RootGroup.GetGroups(true).UCount + 1).ToString(Inv) + " entries " + pd.RootGroup.GetEntries(true).UCount.ToString(Inv));
+            o.Add("M name " + Val(pd.Name) + " changed " + Iso(pd.NameChanged));
+            o.Add("M description " + Val(pd.Description) + " changed " + Iso(pd.DescriptionChanged));
+            o.Add("M defaultUserName " + Val(pd.DefaultUserName) + " changed " + Iso(pd.DefaultUserNameChanged));
+            o.Add("M settingsChanged " + Iso(pd.SettingsChanged));
+            o.Add("M masterKeyChanged " + Iso(pd.MasterKeyChanged));
+            // No MemoryProtection line: KeePassLib 2.62 resets it to its defaults at every load
+            // (KdbxFile.Read.cs:246-248), so the file's own setting cannot be read back here. The
+            // protection flag of every string, which the reader takes from the file, is printed.
+            o.Add("M historyMaxItems " + pd.HistoryMaxItems.ToString(Inv) + " historyMaxSize " + pd.HistoryMaxSize.ToString(Inv)
+                + " maintenanceHistoryDays " + pd.MaintenanceHistoryDays.ToString(Inv));
+            o.Add("M recycleBin enabled=" + (pd.RecycleBinEnabled ? 1 : 0) + " group=" + Alias(pd.RecycleBinUuid) + " changed " + Iso(pd.RecycleBinChanged));
+            o.Add("M templatesGroup " + Alias(pd.EntryTemplatesGroup) + " changed " + Iso(pd.EntryTemplatesGroupChanged));
+            o.Add("M customIcons " + pd.CustomIcons.Count.ToString(Inv));
+            o.Add("M publicCustomData " + pd.PublicCustomData.Count.ToString(Inv));
+            foreach (var kv in pd.CustomData)
+            {
+                var t = CdTime(pd.CustomData, kv.Key);
+                o.Add("M CD " + kv.Key + " = " + Val(kv.Value) + " @" + (t.HasValue ? Iso(t.Value) : "none"));
+            }
+            foreach (var d in pd.DeletedObjects) o.Add("D " + Alias(d.Uuid) + " " + Iso(d.DeletionTime));
+            o.Add("D count " + pd.DeletedObjects.UCount.ToString(Inv));
+            foreach (var g in new[] { pd.RootGroup }.Concat(pd.RootGroup.GetGroups(true)))
+            {
+                var p = "G " + Alias(g.Uuid);
+                o.Add(p + " name " + Val(g.Name));
+                o.Add(p + " parent " + (g.ParentGroup == null ? "-" : Alias(g.ParentGroup.Uuid) + " (" + Esc(g.ParentGroup.Name) + ")"));
+                o.Add(p + " notes " + Val(g.Notes));
+                o.Add(p + " tags [" + string.Join(";", g.Tags) + "]");
+                foreach (var kv in g.CustomData) o.Add(p + " CD " + kv.Key + " = " + Val(kv.Value));
+                o.Add(p + " t.created " + Iso(g.CreationTime));
+                o.Add(p + " t.modified " + Iso(g.LastModificationTime));
+                o.Add(p + " t.accessed " + Iso(g.LastAccessTime));
+                o.Add(p + " t.location " + Iso(g.LocationChanged));
+                o.Add(p + " t.expires " + (g.Expires ? "1 " : "0 ") + Iso(g.ExpiryTime));
+                o.Add(p + " usage " + g.UsageCount.ToString(Inv));
+                o.Add(p + " prev " + Alias(g.PreviousParentGroup));
+                o.Add(p + " flags icon=" + ((int)g.IconId).ToString(Inv) + " customIcon=" + Alias(g.CustomIconUuid) + " search=" + Bool(g.EnableSearching)
+                    + " autotype=" + Bool(g.EnableAutoType) + " expanded=" + (g.IsExpanded ? 1 : 0) + " seq=" + Val(g.DefaultAutoTypeSequence)
+                    + " lastTop=" + Alias(g.LastTopVisibleEntry));
+                o.Add(p + " children groups=" + g.Groups.UCount.ToString(Inv) + " entries=" + g.Entries.UCount.ToString(Inv));
+            }
+            foreach (var e in pd.RootGroup.GetEntries(true)) EntryLines(o, "E " + Alias(e.Uuid), e, true);
+        }
+        finally { pd.Close(); }
+        o.Sort(StringComparer.Ordinal);
+        head.AddRange(o);
+        return head;
+    }
+
+    static void DumpTo(string file, string outFile)
+    {
+        var lines = Dump(file);
+        if (outFile == null) foreach (var l in lines) Console.WriteLine(l);
+        else { File.WriteAllLines(outFile, lines, new UTF8Encoding(false)); Console.WriteLine("dumped " + file + " -> " + outFile + " (" + lines.Count + " lines)"); }
+    }
+
+    static void Sync(string target, string source, string outFile)
+    {
+        var t = Open(target);
+        var s = Open(source);
+        t.MergeIn(s, PwMergeMethod.Synchronize, null);
+        s.Close();
+        if (File.Exists(outFile)) File.Delete(outFile);
+        t.SaveAs(IOConnectionInfo.FromPath(outFile), false, null);
+        t.Close();
+        Console.WriteLine("synchronized " + Path.GetFileName(source) + " into " + Path.GetFileName(target) + " -> " + outFile);
+    }
+
+    static int Main(string[] a)
+    {
+        if (a.Length == 0) { Console.Error.WriteLine("make <dir> | dump <file> [<out>] | dumpdir <dir> | sync <target> <source> <out>"); return 2; }
+        Console.Error.WriteLine("KeePassLib: " + typeof(PwDatabase).Assembly.FullName + ", PwDefs.VersionString " + PwDefs.VersionString);
+        switch (a[0])
+        {
+            case "make": Make(a[1]); return 0;
+            case "dump": DumpTo(a[1], a.Length > 2 ? a[2] : null); return 0;
+            case "dumpdir":
+                foreach (var f in Directory.GetFiles(a[1], "*.kdbx", SearchOption.AllDirectories).OrderBy(x => x, StringComparer.Ordinal))
+                    DumpTo(f, f + ".dump.txt");
+                return 0;
+            case "sync": Sync(a[1], a[2], a[3]); return 0;
+        }
+        Console.Error.WriteLine("unknown command " + a[0]);
+        return 2;
+    }
+}

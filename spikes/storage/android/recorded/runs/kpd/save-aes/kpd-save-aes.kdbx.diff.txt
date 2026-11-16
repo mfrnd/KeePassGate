@@ -1,0 +1,50 @@
+1c1
+< # file S-aes.kdbx size=7895 sha256=820266096e762fce59c887a5677a00989cc6f6a043aac88abaff4447ad038399
+---
+> # file kpd-save-aes.kdbx size=7335 sha256=dd65a58efc5571ce068f232181e099ac6ba188ae42048fc03a75650d39c7c316
+6d5
+< E E1 CD KPG = "{\"reader\":[\"read\",\"list\"]}"
+162d160
+< E R1 CD KPG.cd = "{\"control\":\"entry custom data on R1\"}"
+340a339,365
+> E ~9a4db681 H2026-11-15T17:51:24Z autotype enabled=1 obfuscation=0 seq="" assoc=0
+> E ~9a4db681 H2026-11-15T17:51:24Z misc icon=1 customIcon=- fg=00000000 bg=00000000 overrideUrl="" quality=1
+> E ~9a4db681 H2026-11-15T17:51:24Z prev -
+> E ~9a4db681 H2026-11-15T17:51:24Z t.accessed 2026-11-15T17:51:24Z
+> E ~9a4db681 H2026-11-15T17:51:24Z t.created 2026-11-15T17:51:24Z
+> E ~9a4db681 H2026-11-15T17:51:24Z t.expires 0 2026-11-15T17:51:16Z
+> E ~9a4db681 H2026-11-15T17:51:24Z t.location 2026-11-15T17:51:16Z
+> E ~9a4db681 H2026-11-15T17:51:24Z t.modified 2026-11-15T17:51:24Z
+> E ~9a4db681 H2026-11-15T17:51:24Z tags []
+> E ~9a4db681 H2026-11-15T17:51:24Z usage 0
+> E ~9a4db681 S Notes p=0 ""
+> E ~9a4db681 S Password p=1 ""
+> E ~9a4db681 S Title p=0 "droid-added"
+> E ~9a4db681 S URL p=0 ""
+> E ~9a4db681 S UserName p=0 ""
+> E ~9a4db681 autotype enabled=1 obfuscation=0 seq="" assoc=0
+> E ~9a4db681 history.count 1
+> E ~9a4db681 misc icon=1 customIcon=- fg=00000000 bg=00000000 overrideUrl="" quality=1
+> E ~9a4db681 parent Root (Storage probe)
+> E ~9a4db681 prev -
+> E ~9a4db681 t.accessed 2026-11-15T17:51:41Z
+> E ~9a4db681 t.created 2026-11-15T17:51:24Z
+> E ~9a4db681 t.expires 0 2026-11-15T17:51:16Z
+> E ~9a4db681 t.location 2026-11-15T17:51:16Z
+> E ~9a4db681 t.modified 2026-11-15T17:51:41Z
+> E ~9a4db681 tags []
+> E ~9a4db681 usage 0
+343c368
+< F groups 5 entries 13
+---
+> F groups 5 entries 14
+359d383
+< G G CD KPG = "{\"reader\":[\"read\",\"list\"]}"
+399c423
+< G Root children groups=3 entries=0
+---
+> G Root children groups=3 entries=1
+422c446
+< M settingsChanged 2026-11-01T10:00:00Z
+---
+> M settingsChanged 2026-11-15T17:56:02Z

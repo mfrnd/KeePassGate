@@ -1,0 +1,109 @@
+### 2026-11-15T17:10:46.918Z op k2a edit-carriers flow=k2a-edit-carriers.flow base=S-argon (versionName=1.15-r6)
+Success
+<work>/work/base/S-argon.kdbx: 1 file pushed, 0 skipped. 0.7 MB/s (7941 bytes in 0.010s)
+pushed sha256 bd84dd4785579e8705bd12f3fe4d53a2e342be2e88c64875413ef8b336dc11ae
+[2026-11-15T17:10:48.088Z] k2a-edit-carriers.flow:3 include k2a-open.flow
+[2026-11-15T17:10:48.094Z] k2a-open.flow:3 sh monkey -p keepass2android.keepass2android -c android.intent.category.LAUNCHER 1
+  bash arg: -p
+  bash arg: keepass2android.keepass2android
+  bash arg: -c
+  bash arg: android.intent.category.LAUNCHER
+  bash arg: 1
+Events injected: 1
+## Network stats: elapsed time=143ms (0ms mobile, 0ms wifi, 143ms not connected)
+args: [-p, keepass2android.keepass2android, -c, android.intent.category.LAUNCHER, 1]
+ arg: "-p"
+ arg: "keepass2android.keepass2android"
+ arg: "-c"
+ arg: "android.intent.category.LAUNCHER"
+ arg: "1"
+data="keepass2android.keepass2android"
+data="android.intent.category.LAUNCHER"
+[2026-11-15T17:10:48.957Z] k2a-open.flow:4 clear ^OK$ start_open_file 40
+[2026-11-15T17:10:56.233Z]   cleared 'Change log' with (859, 1883)
+[2026-11-15T17:10:59.425Z] k2a-open.flow:5 tap start_open_file
+[2026-11-15T17:11:02.244Z]   tapped (540, 1025) 'Open file...'
+[2026-11-15T17:11:02.247Z] k2a-open.flow:6 tap ^System.file.picker$
+[2026-11-15T17:11:06.281Z]   tapped (229, 516) 'System file picker'
+[2026-11-15T17:11:06.285Z] k2a-open.flow:7 waitfor Show.roots 20
+[2026-11-15T17:11:09.031Z] k2a-open.flow:8 include picker.flow
+[2026-11-15T17:11:09.040Z] picker.flow:4 pick k2a-edit-carriers.kdbx
+[2026-11-15T17:11:17.469Z]   focused and entered '^k2a\\-edit\\-carriers\\.kdbx$'
+[2026-11-15T17:11:17.471Z] k2a-open.flow:9 waitfor password_edit 30
+[2026-11-15T17:11:21.767Z] k2a-open.flow:10 tap password_edit
+[2026-11-15T17:11:24.618Z]   tapped (501, 1151) 'Password'
+[2026-11-15T17:11:24.620Z] k2a-open.flow:11 text dummy-password-for-a-throwaway-file
+[2026-11-15T17:11:28.608Z] k2a-open.flow:12 tap pass_ok
+[2026-11-15T17:11:31.834Z]   tapped (942, 1437) 'Unlock'
+[2026-11-15T17:11:31.835Z] k2a-open.flow:13 waitfor fabAddNew 60
+[2026-11-15T17:11:38.035Z] k2a-edit-carriers.flow:4 tap ^KPG$
+[2026-11-15T17:11:40.970Z]   tapped (251, 560) 'KPG'
+[2026-11-15T17:11:40.972Z] k2a-edit-carriers.flow:5 tap ^KPG.record.1$
+[2026-11-15T17:11:44.383Z]   tapped (359, 688) 'KPG record 1'
+[2026-11-15T17:11:44.384Z] k2a-edit-carriers.flow:6 waitfor entry_edit 20
+[2026-11-15T17:11:47.555Z] k2a-edit-carriers.flow:7 tap entry_edit
+[2026-11-15T17:11:50.383Z]   tapped (959, 2041) 'keepass2android.keepass2android:id/entry_edit'
+[2026-11-15T17:11:50.385Z] k2a-edit-carriers.flow:8 waitfor entry_title 20
+[2026-11-15T17:11:53.379Z] k2a-edit-carriers.flow:9 append entry_title -phone
+[2026-11-15T17:12:04.934Z]   appended '-phone': 'KPG record 1-phone'
+[2026-11-15T17:12:04.938Z] k2a-edit-carriers.flow:10 tap menu_save
+[2026-11-15T17:12:08.021Z]   tapped (882, 233) 'Save'
+[2026-11-15T17:12:08.023Z] k2a-edit-carriers.flow:11 waitfor entry_edit 60
+[2026-11-15T17:12:13.343Z] k2a-edit-carriers.flow:12 sleep 4
+[2026-11-15T17:12:17.345Z] k2a-edit-carriers.flow:13 key BACK
+[2026-11-15T17:12:18.276Z] k2a-edit-carriers.flow:14 waitfor ^KPG.record.2$ 20
+[2026-11-15T17:12:20.471Z] k2a-edit-carriers.flow:15 key BACK
+[2026-11-15T17:12:21.646Z] k2a-edit-carriers.flow:16 waitfor ^G$ 20
+[2026-11-15T17:12:23.850Z] k2a-edit-carriers.flow:17 tap ^G$
+[2026-11-15T17:12:27.101Z]   tapped (216, 386) 'G'
+[2026-11-15T17:12:27.106Z] k2a-edit-carriers.flow:18 tap ^KPG.marker$
+[2026-11-15T17:12:30.878Z]   tapped (345, 920) 'KPG marker'
+[2026-11-15T17:12:30.880Z] k2a-edit-carriers.flow:19 waitfor entry_edit 20
+[2026-11-15T17:12:33.809Z] k2a-edit-carriers.flow:20 tap entry_edit
+[2026-11-15T17:12:36.768Z]   tapped (959, 2041) 'keepass2android.keepass2android:id/entry_edit'
+[2026-11-15T17:12:36.770Z] k2a-edit-carriers.flow:21 waitfor entry_title 20
+[2026-11-15T17:12:39.515Z] k2a-edit-carriers.flow:22 append entry_title -phone
+[2026-11-15T17:12:52.027Z]   appended '-phone': 'KPG marker-phone'
+[2026-11-15T17:12:52.028Z] k2a-edit-carriers.flow:23 tap menu_save
+[2026-11-15T17:12:55.088Z]   tapped (882, 233) 'Save'
+[2026-11-15T17:12:55.091Z] k2a-edit-carriers.flow:24 waitfor entry_edit 60
+[2026-11-15T17:13:01.010Z] k2a-edit-carriers.flow:25 sleep 5
+[2026-11-15T17:13:06.013Z] k2a-edit-carriers.flow:26 list
+  ViewGroup           (540, 1036)  id=decor_content_parent         text='' desc=''
+  FrameLayout         (540, 1036)  id=content                      text='' desc=''
+  ViewGroup           (540, 1036)  id=main_content                 text='' desc=''
+  ScrollView          (540, 1196)  id=entry_scroll                 text='' desc=''
+  LinearLayout        (540, 723)   id=entry_contents               text='' desc=''
+  LinearLayout        (540, 723)   id=entry_table                  text='' desc=''
+  LinearLayout        (540, 457)   id=extra_strings_container      text='' desc=''
+  LinearLayout        (617, 474)   id=extra_strings                text='' desc=''
+  LinearLayout        (617, 413)   id=extra_title_container        text='' desc=''
+  TextView            (600, 420)   id=entry_title                  text='KPG.Marker' desc=''
+  RelativeLayout c    (617, 511)   id=extra_container              text='' desc=''
+  TextView            (567, 511)   id=entry_extra_visible          text='{"marker":"G","rules":{"reader":".R...L.."}}' desc=''
+  ImageView           (1003, 470)  id=extra_vdots                  text='' desc=''
+  LinearLayout        (540, 664)   id=entryfield_container_created text='' desc=''
+  TextView            (600, 638)   id=entry_created_label          text='Created' desc=''
+  TextView            (600, 701)   id=entry_created                text='11/1/2026 11:35 AM' desc=''
+  LinearLayout        (540, 827)   id=entryfield_container_modified text='' desc=''
+  TextView            (600, 801)   id=entry_modified_label         text='Modified' desc=''
+  TextView            (600, 864)   id=entry_modified               text='11/15/2026 6:12 PM' desc=''
+  LinearLayout        (540, 1023)  id=entry_history_container      text='' desc=''
+  TextView            (600, 964)   id=                             text='Previous versions' desc=''
+  LinearLayout        (617, 1060)  id=previous_versions            text='' desc=''
+  Button         c    (617, 1060)  id=                             text='11/1/2026 11:35 AM' desc=''
+  ImageButton    c    (959, 2041)  id=entry_edit                   text='' desc=''
+  FrameLayout         (540, 233)   id=action_bar_container         text='' desc=''
+  ViewGroup           (540, 233)   id=action_bar                   text='' desc=''
+  ImageButton    c    (77, 233)    id=                             text='' desc='Navigate up'
+  TextView            (420, 233)   id=                             text='KPG marker-phone' desc=''
+  Button         c    (771, 233)   id=menu_lock                    text='' desc='Lock Database'
+  Button         c    (903, 233)   id=menu_toggle_pass             text='' desc='Show password'
+  ImageView      c    (1024, 233)  id=                             text='' desc='More options'
+  View                (540, 72)    id=statusBarBackground          text='' desc=''
+  View                (0, 0)       id=navigationBarBackground      text='' desc=''
+total 16
+-rw------- 1 u0_a160 u0_a160 8245 2026-11-15 18:12:53.836000000 +0100 k2a-edit-carriers.kdbx
+device k2a-edit-carriers.kdbx sha256 c34914f1d986da5686e83cbbf5673b4a75fe6cebf4b94b8ccd25b187e0157d08
+/sdcard/Download/k2a-edit-carriers.kdbx: 1 file pulled, 0 skipped. 0.1 MB/s (8245 bytes in 0.057s)
+### flow rc=0 2026-11-15T17:13:10.631Z

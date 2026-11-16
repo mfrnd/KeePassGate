@@ -1,0 +1,15 @@
+# Overwrite, KeePassDroid, replacement while the program is in the background: open OLD and unlock,
+# HOME, replace.sh puts ${ARRIVING} over the file at time ${TMODE}, bring the program back, then add
+# an entry ${ENTRY} at the root and save, recording any dialog.
+include kpd-open.flow
+sleep 2
+key HOME
+sleep 3
+host sh ${P}/replace.sh /sdcard/Download/${NAME}.kdbx ${SRCDIR}/${ARRIVING}.kdbx ${TMODE}
+sleep 2
+sh monkey -p ${PKG} -c android.intent.category.LAUNCHER 1
+sleep 5
+dialog
+list
+waitfor add_entry 30
+include kpd-ow-edit.flow

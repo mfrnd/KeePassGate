@@ -1,0 +1,120 @@
+1c1
+< # file P.kdbx size=8309 sha256=cef28c42911774f3deeb4c884a85619dcfd7965b0907be06a1c10d843d45eae7
+---
+> # file k2a-merge-PC-r3.kdbx size=10165 sha256=c0c54f23609a54ff140155c9ceda930f199e769d1e64a3e7f2faecf952c4f189
+124a125,141
+> E M1 H2026-11-01T15:00:00Z S KPG.20261115T120000Z.c p=0 "{\"side\":\"C\",\"cell\":\"different times\"}"
+> E M1 H2026-11-01T15:00:00Z S KPG.base p=0 "{\"v\":0}"
+> E M1 H2026-11-01T15:00:00Z S Notes p=0 ""
+> E M1 H2026-11-01T15:00:00Z S Password p=1 ""
+> E M1 H2026-11-01T15:00:00Z S Title p=0 "KPG merge 1"
+> E M1 H2026-11-01T15:00:00Z S URL p=0 ""
+> E M1 H2026-11-01T15:00:00Z S UserName p=0 ""
+> E M1 H2026-11-01T15:00:00Z autotype enabled=1 obfuscation=0 seq="" assoc=0
+> E M1 H2026-11-01T15:00:00Z misc icon=0 customIcon=- fg=00000000 bg=00000000 overrideUrl="" quality=1
+> E M1 H2026-11-01T15:00:00Z prev -
+> E M1 H2026-11-01T15:00:00Z t.accessed 2026-11-01T15:00:00Z
+> E M1 H2026-11-01T15:00:00Z t.created 2026-11-01T10:50:00Z
+> E M1 H2026-11-01T15:00:00Z t.expires 0 2026-11-01T10:00:00Z
+> E M1 H2026-11-01T15:00:00Z t.location 2026-11-01T10:50:00Z
+> E M1 H2026-11-01T15:00:00Z t.modified 2026-11-01T15:00:00Z
+> E M1 H2026-11-01T15:00:00Z tags []
+> E M1 H2026-11-01T15:00:00Z usage 0
+133c150
+< E M1 history.count 1
+---
+> E M1 history.count 2
+160c177
+< E M2 S KPG.20261115T130000Z.p p=0 "{\"side\":\"P\",\"cell\":\"equal times\"}"
+---
+> E M2 S KPG.20261115T130000Z.c p=0 "{\"side\":\"C\",\"cell\":\"equal times\"}"
+195a213,230
+> E NC S KPG.20261115T120500Z.nc p=0 "{\"side\":\"C\",\"cell\":\"new entry\"}"
+> E NC S Notes p=0 ""
+> E NC S Password p=1 ""
+> E NC S Title p=0 "KPG new C"
+> E NC S URL p=0 ""
+> E NC S UserName p=0 ""
+> E NC autotype enabled=1 obfuscation=0 seq="" assoc=0
+> E NC history.count 0
+> E NC misc icon=0 customIcon=- fg=00000000 bg=00000000 overrideUrl="" quality=1
+> E NC parent GKPG (KPG)
+> E NC prev -
+> E NC t.accessed 2026-11-01T15:00:00Z
+> E NC t.created 2026-11-01T15:00:00Z
+> E NC t.expires 0 2026-11-01T10:00:00Z
+> E NC t.location 2026-11-01T15:00:00Z
+> E NC t.modified 2026-11-01T15:00:00Z
+> E NC tags []
+> E NC usage 0
+340a376,391
+> E Y1 A added-c.bin p=0 len=1500 sha=728ce7043f38dfd9
+> E Y1 H2026-11-01T10:55:00Z S Notes p=0 ""
+> E Y1 H2026-11-01T10:55:00Z S Password p=1 "pw-y1"
+> E Y1 H2026-11-01T10:55:00Z S Title p=0 "Y1"
+> E Y1 H2026-11-01T10:55:00Z S URL p=0 ""
+> E Y1 H2026-11-01T10:55:00Z S UserName p=0 "user-y1"
+> E Y1 H2026-11-01T10:55:00Z autotype enabled=1 obfuscation=0 seq="" assoc=0
+> E Y1 H2026-11-01T10:55:00Z misc icon=0 customIcon=- fg=00000000 bg=00000000 overrideUrl="" quality=1
+> E Y1 H2026-11-01T10:55:00Z prev -
+> E Y1 H2026-11-01T10:55:00Z t.accessed 2026-11-01T10:55:00Z
+> E Y1 H2026-11-01T10:55:00Z t.created 2026-11-01T10:55:00Z
+> E Y1 H2026-11-01T10:55:00Z t.expires 0 2026-11-01T10:00:00Z
+> E Y1 H2026-11-01T10:55:00Z t.location 2026-11-01T10:55:00Z
+> E Y1 H2026-11-01T10:55:00Z t.modified 2026-11-01T10:55:00Z
+> E Y1 H2026-11-01T10:55:00Z tags []
+> E Y1 H2026-11-01T10:55:00Z usage 0
+347c398
+< E Y1 history.count 0
+---
+> E Y1 history.count 1
+351c402
+< E Y1 t.accessed 2026-11-01T10:55:00Z
+---
+> E Y1 t.accessed 2026-11-01T15:00:00Z
+355c406
+< E Y1 t.modified 2026-11-01T10:55:00Z
+---
+> E Y1 t.modified 2026-11-01T15:00:00Z
+406a458,474
+> E ~e6c2756a S Notes p=0 ""
+> E ~e6c2756a S Password p=1 ""
+> E ~e6c2756a S Title p=0 "droid-merge"
+> E ~e6c2756a S URL p=0 ""
+> E ~e6c2756a S UserName p=0 ""
+> E ~e6c2756a autotype enabled=1 obfuscation=0 seq="" assoc=0
+> E ~e6c2756a history.count 0
+> E ~e6c2756a misc icon=0 customIcon=- fg=00000000 bg=00000000 overrideUrl="" quality=1
+> E ~e6c2756a parent Root (Storage probe)
+> E ~e6c2756a prev -
+> E ~e6c2756a t.accessed 2026-11-15T17:41:24Z
+> E ~e6c2756a t.created 2026-11-15T17:41:12Z
+> E ~e6c2756a t.expires 0 2026-11-15T17:40:54Z
+> E ~e6c2756a t.location 2026-11-15T17:41:12Z
+> E ~e6c2756a t.modified 2026-11-15T17:41:24Z
+> E ~e6c2756a tags []
+> E ~e6c2756a usage 1
+409c477
+< F groups 5 entries 13
+---
+> F groups 5 entries 15
+429c497
+< G G notes "{\"kpg.rules\":{\"reader\":\".R...L..\",\"writer\":\"CRU..L..\"}}"
+---
+> G G notes "{\"kpg.rules\":{\"reader\":\".R...L..\",\"writer\":\"CRU..L..\"},\"changedBy\":\"C\"}"
+436c504
+< G G t.modified 2026-11-01T10:30:00Z
+---
+> G G t.modified 2026-11-01T15:00:00Z
+439c507
+< G GKPG children groups=0 entries=5
+---
+> G GKPG children groups=0 entries=6
+465c533
+< G Root children groups=3 entries=0
+---
+> G Root children groups=3 entries=1
+478c546
+< M CD KPG.Profiles = "[\"reader\",\"writer\"]" @2026-11-01T10:15:00Z
+---
+> M CD KPG.Profiles = "[\"reader\",\"writer\"]" @none

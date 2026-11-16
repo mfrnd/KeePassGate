@@ -1,0 +1,38 @@
+1c1
+< # file S-argon.kdbx size=7941 sha256=bd84dd4785579e8705bd12f3fe4d53a2e342be2e88c64875413ef8b336dc11ae
+---
+> # file kpdx-save-argon.kdbx size=7461 sha256=aa3043d8832d6091da289dbbe068028274f5ea9319b21779fb89bd7e4a3f2150
+340a341,357
+> E ~384f5dba S Notes p=0 ""
+> E ~384f5dba S Password p=1 ""
+> E ~384f5dba S Title p=0 "droid-added"
+> E ~384f5dba S URL p=0 ""
+> E ~384f5dba S UserName p=0 ""
+> E ~384f5dba autotype enabled=1 obfuscation=0 seq="" assoc=0
+> E ~384f5dba history.count 0
+> E ~384f5dba misc icon=49 customIcon=- fg=00000000 bg=00000000 overrideUrl="" quality=1
+> E ~384f5dba parent Root (Storage probe)
+> E ~384f5dba prev -
+> E ~384f5dba t.accessed 2026-11-15T18:07:43Z
+> E ~384f5dba t.created 2026-11-15T18:07:43Z
+> E ~384f5dba t.expires 0 2999-11-28T23:59:59Z
+> E ~384f5dba t.location 2026-11-15T18:07:43Z
+> E ~384f5dba t.modified 2026-11-15T18:07:43Z
+> E ~384f5dba tags []
+> E ~384f5dba usage 1
+343c360
+< F groups 5 entries 13
+---
+> F groups 5 entries 14
+399c416
+< G Root children groups=3 entries=0
+---
+> G Root children groups=3 entries=1
+405c422
+< G Root t.accessed 2026-11-01T10:00:00Z
+---
+> G Root t.accessed 2026-11-15T18:07:43Z
+409c426
+< G Root t.modified 2026-11-01T10:00:00Z
+---
+> G Root t.modified 2026-11-15T18:07:43Z

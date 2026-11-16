@@ -1,0 +1,16 @@
+# Window (b), KeePassDroid: open OLD and unlock; replace.sh puts ${ARRIVING} over the file at time
+# ${TMODE} while the database is open; lock with its own Lock Database button; open the file again
+# from the screen the lock leaves (the recent file, or the password screen), unlock with the
+# password, look into KPG (is KPG revocation there?), back to the root, then add an entry ${ENTRY}
+# and save, recording any dialog.
+include kpd-open.flow
+sleep 2
+host sh ${P}/replace.sh /sdcard/Download/${NAME}.kdbx ${SRCDIR}/${ARRIVING}.kdbx ${TMODE}
+sleep 3
+tap Lock.Database
+sleep 3
+dialog
+list
+include kpd-reopen.flow
+include kpd-look-kpg.flow
+include kpd-ow-edit.flow

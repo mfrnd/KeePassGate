@@ -1,0 +1,8 @@
+kpd kpd-A.flow com.android.keepass S-argon save-argon ENTRY=droid-added
+kpd kpd-A.flow com.android.keepass S-aes save-aes ENTRY=droid-added
+kpd kpd-A.flow com.android.keepass S-aes-nocd save-aes-nocd ENTRY=droid-added
+kpd kpd-A.flow com.android.keepass S-aes-plain save-aes-plain ENTRY=droid-added
+kpd kpd-edit-e1.flow com.android.keepass S-argon edit-e1
+kpd kpd-edit-carriers.flow com.android.keepass S-argon edit-carriers
+kpd kpd-delete.flow com.android.keepass S-argon delete
+kpd kpd-menus.flow com.android.keepass S-argon menus

@@ -1,0 +1,13 @@
+# Synchronize, case 3c, only the phone changed, in "Work on internal cache only": open; the menu's
+# Work on internal cache only; edit P2's password and save; the menu item again (back to the
+# server: in that mode it reads "Synchronize cache copy with source"); then Synchronize database...
+# as well.
+include k2a-sy-open.flow
+include k2a-sy-offline.flow
+include k2a-sy-pw-P2.flow
+host sh ${P}/srv-stat.sh ${SNAME} after-save-cache-only
+include k2a-sy-online.flow
+host sh ${P}/srv-stat.sh ${SNAME} after-sync-cache-copy
+host sh ${P}/pull-cache.sh ${W} cache-after-sync-cache-copy
+include k2a-sy-sync.flow
+host sh ${P}/srv-stat.sh ${SNAME} after-sync

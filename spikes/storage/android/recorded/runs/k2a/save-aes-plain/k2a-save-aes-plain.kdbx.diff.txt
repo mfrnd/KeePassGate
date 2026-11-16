@@ -1,0 +1,38 @@
+1c1
+< # file S-aes-plain.kdbx size=7719 sha256=c344cc06c816d9cef38ebad8a5b0fd24bd9f5a94b7da586a8271ffdedfae61e0
+---
+> # file k2a-save-aes-plain.kdbx size=7742 sha256=2b1ef734f93346cae2fe4b721d9bcd47fedd67619da7f81eb4123983d17804a6
+338a339,355
+> E ~7405a615 S Notes p=0 ""
+> E ~7405a615 S Password p=1 ""
+> E ~7405a615 S Title p=0 "droid-added"
+> E ~7405a615 S URL p=0 ""
+> E ~7405a615 S UserName p=0 ""
+> E ~7405a615 autotype enabled=1 obfuscation=0 seq="" assoc=0
+> E ~7405a615 history.count 0
+> E ~7405a615 misc icon=0 customIcon=- fg=00000000 bg=00000000 overrideUrl="" quality=1
+> E ~7405a615 parent Root (Storage probe)
+> E ~7405a615 prev -
+> E ~7405a615 t.accessed 2026-11-15T17:08:31Z
+> E ~7405a615 t.created 2026-11-15T17:08:19Z
+> E ~7405a615 t.expires 0 2026-11-15T17:08:03Z
+> E ~7405a615 t.location 2026-11-15T17:08:19Z
+> E ~7405a615 t.modified 2026-11-15T17:08:31Z
+> E ~7405a615 tags []
+> E ~7405a615 usage 1
+341c358
+< F groups 5 entries 13
+---
+> F groups 5 entries 14
+343c360
+< F version 4.0
+---
+> F version 3.1
+396c413
+< G Root children groups=3 entries=0
+---
+> G Root children groups=3 entries=1
+419c436
+< M settingsChanged 2026-11-01T10:00:00Z
+---
+> M settingsChanged 2026-11-15T17:08:57Z

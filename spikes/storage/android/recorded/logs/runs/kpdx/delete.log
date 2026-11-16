@@ -1,0 +1,117 @@
+### 2026-11-15T19:23:28.515Z op kpdx delete flow=kpdx-delete.flow base=S-argon (versionName=4.5.8)
+Success
+<work>/work/base/S-argon.kdbx: 1 file pushed, 0 skipped. 0.5 MB/s (7941 bytes in 0.015s)
+pushed sha256 bd84dd4785579e8705bd12f3fe4d53a2e342be2e88c64875413ef8b336dc11ae
+[2026-11-15T19:23:29.551Z] kpdx-delete.flow:4 include kpdx-open.flow
+[2026-11-15T19:23:29.560Z] kpdx-open.flow:4 sh monkey -p com.kunzisoft.keepass.libre -c android.intent.category.LAUNCHER 1
+  bash arg: -p
+  bash arg: com.kunzisoft.keepass.libre
+  bash arg: -c
+  bash arg: android.intent.category.LAUNCHER
+  bash arg: 1
+Events injected: 1
+## Network stats: elapsed time=215ms (0ms mobile, 0ms wifi, 215ms not connected)
+args: [-p, com.kunzisoft.keepass.libre, -c, android.intent.category.LAUNCHER, 1]
+ arg: "-p"
+ arg: "com.kunzisoft.keepass.libre"
+ arg: "-c"
+ arg: "android.intent.category.LAUNCHER"
+ arg: "1"
+data="com.kunzisoft.keepass.libre"
+data="android.intent.category.LAUNCHER"
+[2026-11-15T19:23:30.520Z] kpdx-open.flow:5 waitfor open_database_button 30
+[2026-11-15T19:23:33.588Z] kpdx-open.flow:6 tapuntil open_database_button Show.roots 40
+[2026-11-15T19:23:36.415Z]   tapped (799, 2051) 'Open existing vault'
+[2026-11-15T19:23:46.741Z]   tapped (799, 2051) 'Open existing vault'
+[2026-11-15T19:23:49.140Z] kpdx-open.flow:7 include picker.flow
+[2026-11-15T19:23:49.150Z] picker.flow:4 pick kpdx-delete.kdbx
+[2026-11-15T19:23:57.064Z]   focused and entered '^kpdx\\-delete\\.kdbx$'
+[2026-11-15T19:23:57.072Z] kpdx-open.flow:8 waitfor password_text_view 40
+[2026-11-15T19:24:00.391Z] kpdx-open.flow:9 typepw password_text_view dummy-password-for-a-throwaway-file
+[2026-11-15T19:24:13.356Z]   type: field never took the focus (attempt 1)
+[2026-11-15T19:24:25.870Z]   type: field never took the focus (attempt 2)
+[2026-11-15T19:24:36.288Z]   typed into the focused field
+[2026-11-15T19:24:36.289Z] kpdx-open.flow:10 tapuntil activity_password_open_button add_button 60
+[2026-11-15T19:24:39.352Z]   tapped (895, 1435) 'Unlock'
+[2026-11-15T19:24:49.658Z]   tapped (895, 1435) 'Unlock'
+[2026-11-15T19:24:58.144Z]   tapped (895, 1435) 'Unlock'
+[2026-11-15T19:25:04.038Z] kpdx-delete.flow:5 tapuntil node_text@^G$ node_text@^Y3$ 40
+[2026-11-15T19:25:06.965Z]   tapped (247, 559) 'G'
+[2026-11-15T19:25:15.596Z]   tapped (247, 559) 'G'
+[2026-11-15T19:25:18.248Z] kpdx-delete.flow:6 waitfor node_text@^E2$ 20
+[2026-11-15T19:25:20.106Z] kpdx-delete.flow:7 sleep 2
+[2026-11-15T19:25:22.108Z] kpdx-delete.flow:8 longpressuntil node_text@^E2$ menu_move 60 2000 600
+[2026-11-15T19:25:26.856Z]   long-pressed (600, 1043) for 2000 ms on the line of 'E2'
+[2026-11-15T19:25:39.162Z]   long-pressed (600, 1043) for 2000 ms on the line of 'E2'
+[2026-11-15T19:25:51.569Z]   long-pressed (600, 1043) for 2000 ms on the line of 'E2'
+[2026-11-15T19:26:04.202Z]   long-pressed (600, 1043) for 2000 ms on the line of 'E2'
+[2026-11-15T19:26:06.339Z] kpdx-delete.flow:9 tap More.options#2
+[2026-11-15T19:26:09.241Z]   tapped (1024, 2063) 'More options'
+[2026-11-15T19:26:09.246Z] kpdx-delete.flow:10 tap ^Delete$
+[2026-11-15T19:26:12.623Z]   tapped (799, 1702) 'Delete'
+[2026-11-15T19:26:12.625Z] kpdx-delete.flow:11 gone node_text@^E2$ 30
+[2026-11-15T19:26:16.575Z] kpdx-delete.flow:12 sleep 6
+[2026-11-15T19:26:22.577Z] kpdx-delete.flow:13 adb pull /sdcard/Download/kpdx-delete.kdbx <work>/work/runs/kpdx/delete/mid-recycled.kdbx
+/sdcard/Download/kpdx-delete.kdbx: 1 file pulled, 0 skipped. 0.1 MB/s (7365 bytes in 0.054s)
+[2026-11-15T19:26:22.678Z] kpdx-delete.flow:14 key BACK
+[2026-11-15T19:26:23.542Z] kpdx-delete.flow:15 waitfor node_text@^Recycle.Bin$ 20
+[2026-11-15T19:26:25.842Z] kpdx-delete.flow:16 tapuntil node_text@^Recycle.Bin$ menu_empty_recycle_bin 40
+[2026-11-15T19:26:28.857Z]   tapped (344, 892) 'Recycle Bin'
+[2026-11-15T19:26:31.363Z] kpdx-delete.flow:17 waitfor menu_empty_recycle_bin 20
+[2026-11-15T19:26:33.443Z] kpdx-delete.flow:18 tap menu_empty_recycle_bin
+[2026-11-15T19:26:36.546Z]   tapped (903, 233) 'Empty the recycle bin'
+[2026-11-15T19:26:36.549Z] kpdx-delete.flow:19 waitfor ^Permanently.delete 10
+[2026-11-15T19:26:39.005Z] kpdx-delete.flow:20 list
+  FrameLayout         (540, 1176)  id=action_bar_root              text='' desc=''
+  FrameLayout         (540, 1176)  id=content                      text='' desc=''
+  LinearLayoutCompat      (540, 1176)  id=parentPanel                  text='' desc=''
+  FrameLayout         (540, 1099)  id=contentPanel                 text='' desc=''
+  ScrollView          (540, 1099)  id=scrollView                   text='' desc=''
+  View                (540, 1044)  id=textSpacerNoTitle            text='' desc=''
+  TextView            (540, 1124)  id=message                      text='Permanently delete all nodes from the recycle bin?' desc=''
+  ScrollView          (540, 1257)  id=buttonPanel                  text='' desc=''
+  Button         c    (683, 1257)  id=button2                      text='Cancel' desc=''
+  Button         c    (887, 1257)  id=button1                      text='OK' desc=''
+[2026-11-15T19:26:40.911Z] kpdx-delete.flow:21 tap ^OK$
+[2026-11-15T19:26:43.809Z]   tapped (887, 1257) 'OK'
+[2026-11-15T19:26:43.810Z] kpdx-delete.flow:22 gone node_text@^E2$ 30
+[2026-11-15T19:26:46.821Z] kpdx-delete.flow:23 sleep 6
+[2026-11-15T19:26:52.823Z] kpdx-delete.flow:24 list
+  LinearLayout        (540, 1036)  id=action_bar_root              text='' desc=''
+  FrameLayout         (540, 1036)  id=content                      text='' desc=''
+  DrawerLayout        (540, 1036)  id=drawer_layout                text='' desc=''
+  ViewGroup           (540, 1108)  id=activity_group_container_view text='' desc=''
+  FrameLayout         (540, 1108)  id=search_content_view          text='' desc=''
+  ViewGroup           (540, 1108)  id=error_coordinator            text='' desc=''
+  ViewGroup           (540, 233)   id=activity_group_header        text='' desc=''
+  ViewGroup           (540, 233)   id=toolbar                      text='' desc=''
+  ImageButton    c    (77, 233)    id=                             text='' desc='Navigation drawer open'
+  TextView            (446, 233)   id=database_name                text='Storage probe (invented)' desc=''
+  Button         c    (771, 233)   id=menu_search                  text='' desc='Search'
+  Button         c    (903, 233)   id=menu_empty_recycle_bin       text='' desc='Empty the recycle bin'
+  ImageView      c    (1024, 233)  id=                             text='' desc='More options'
+  ImageView           (148, 233)   id=database_modified            text='' desc='Save'
+  ScrollView          (540, 1196)  id=group_coordinator            text='' desc=''
+  RelativeLayout      (540, 1196)  id=add_node_button              text='' desc=''
+  ImageButton    c    (970, 2013)  id=add_button                   text='' desc='Add node'
+  LinearLayout        (540, 409)   id=app_bar                      text='' desc=''
+  RecyclerView   f    (540, 409)   id=breadcrumb_list              text='' desc=''
+  CardView       c    (278, 409)   id=breadcrumb_group             text='' desc=''
+  ImageView           (86, 409)    id=group_icon                   text='' desc='Icon name'
+  TextView            (298, 408)   id=group_name                   text='Storage probe' desc=''
+  ImageView           (491, 409)   id=group_separator              text='' desc=''
+  CardView       c    (733, 409)   id=breadcrumb_group             text='' desc=''
+  TextView            (558, 389)   id=group_numbers                text='0' desc=''
+  ImageView           (604, 409)   id=group_icon                   text='' desc=''
+  TextView            (799, 408)   id=group_name                   text='Recycle Bin' desc=''
+  FrameLayout         (540, 1284)  id=nodes_list_fragment_container text='' desc=''
+  RecyclerView        (540, 1284)  id=nodes_list                   text='' desc='Node children'
+  ViewGroup           (540, 2033)  id=activity_group_footer        text='' desc=''
+  ImageButton    c    (90, 2033)   id=lock_button                  text='' desc='Lock'
+  View                (540, 72)    id=statusBarBackground          text='' desc=''
+  View                (0, 0)       id=navigationBarBackground      text='' desc=''
+total 12
+-rw------- 1 u0_a160 u0_a160 7317 2026-11-15 20:26:42.512000000 +0100 kpdx-delete.kdbx
+device kpdx-delete.kdbx sha256 a25556faaf42daa0baab32a60c73036d0908cc4f4e403f4d9172f0c1025e3fe0
+/sdcard/Download/kpdx-delete.kdbx: 1 file pulled, 0 skipped. 0.1 MB/s (7317 bytes in 0.049s)
+### flow rc=0 2026-11-15T19:26:57.764Z

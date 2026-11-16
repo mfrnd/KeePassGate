@@ -1,0 +1,4 @@
+1c1
+< # file SOLD.kdbx size=2165 sha256=1019e391b75edfe8eb32c81be3e3cfb88a7b0efec39f10a7281da04f0d0469a3
+---
+> # file cache-localbackup.kdbx size=2165 sha256=1019e391b75edfe8eb32c81be3e3cfb88a7b0efec39f10a7281da04f0d0469a3

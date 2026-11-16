@@ -1,0 +1,39 @@
+1c1
+< # file S-argon.kdbx size=7941 sha256=bd84dd4785579e8705bd12f3fe4d53a2e342be2e88c64875413ef8b336dc11ae
+---
+> # file into-phone.kdbx size=7893 sha256=82aae7a4b032a8cbab9ba9c2b92d1f0d14899519074a7c3b36fa0234b5ed8c95
+4c4,5
+< D count 2
+---
+> D E2 2026-11-15T17:59:02Z
+> D count 3
+73,89d73
+< E E2 S Notes p=0 ""
+< E E2 S Password p=1 "pw-e2-not-real"
+< E E2 S Title p=0 "E2"
+< E E2 S URL p=0 ""
+< E E2 S UserName p=0 "bob-invented"
+< E E2 autotype enabled=1 obfuscation=0 seq="" assoc=0
+< E E2 history.count 0
+< E E2 misc icon=0 customIcon=- fg=00000000 bg=00000000 overrideUrl="" quality=1
+< E E2 parent G (G)
+< E E2 prev -
+< E E2 t.accessed 2026-11-01T10:45:00Z
+< E E2 t.created 2026-11-01T10:45:00Z
+< E E2 t.expires 0 2026-11-01T10:00:00Z
+< E E2 t.location 2026-11-01T10:45:00Z
+< E E2 t.modified 2026-11-01T10:45:00Z
+< E E2 tags []
+< E E2 usage 0
+343c327
+< F groups 5 entries 13
+---
+> F groups 5 entries 12
+360c344
+< G G children groups=1 entries=8
+---
+> G G children groups=1 entries=7
+422c406
+< M settingsChanged 2026-11-01T10:00:00Z
+---
+> M settingsChanged 2026-11-15T18:05:51Z

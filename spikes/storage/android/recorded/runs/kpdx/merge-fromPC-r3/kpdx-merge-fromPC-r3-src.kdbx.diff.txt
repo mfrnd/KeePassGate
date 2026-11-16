@@ -1,0 +1,197 @@
+1c1
+< # file P.kdbx size=8309 sha256=cef28c42911774f3deeb4c884a85619dcfd7965b0907be06a1c10d843d45eae7
+---
+> # file kpdx-merge-fromPC-r3-src.kdbx size=9845 sha256=7641ab1c30eb633b07889d6af116577e11b520a03a62d793cbb310c0b12fa5f0
+4c4
+< D X1 2026-11-01T16:00:00Z
+---
+> D X2 2026-11-01T15:00:00Z
+125c125
+< E M1 S KPG.20261115T140000Z.p p=0 "{\"side\":\"P\",\"cell\":\"different times\"}"
+---
+> E M1 S KPG.20261115T120000Z.c p=0 "{\"side\":\"C\",\"cell\":\"different times\"}"
+137c137
+< E M1 t.accessed 2026-11-01T16:00:00Z
+---
+> E M1 t.accessed 2026-11-01T15:00:00Z
+141c141
+< E M1 t.modified 2026-11-01T16:00:00Z
+---
+> E M1 t.modified 2026-11-01T15:00:00Z
+160c160
+< E M2 S KPG.20261115T130000Z.p p=0 "{\"side\":\"P\",\"cell\":\"equal times\"}"
+---
+> E M2 S KPG.20261115T130000Z.c p=0 "{\"side\":\"C\",\"cell\":\"equal times\"}"
+196,213c196,213
+< E NP S KPG.20261115T140500Z.np p=0 "{\"side\":\"P\",\"cell\":\"new entry\"}"
+< E NP S Notes p=0 ""
+< E NP S Password p=1 ""
+< E NP S Title p=0 "KPG new P"
+< E NP S URL p=0 ""
+< E NP S UserName p=0 ""
+< E NP autotype enabled=1 obfuscation=0 seq="" assoc=0
+< E NP history.count 0
+< E NP misc icon=0 customIcon=- fg=00000000 bg=00000000 overrideUrl="" quality=1
+< E NP parent GKPG (KPG)
+< E NP prev -
+< E NP t.accessed 2026-11-01T16:00:00Z
+< E NP t.created 2026-11-01T16:00:00Z
+< E NP t.expires 0 2026-11-01T10:00:00Z
+< E NP t.location 2026-11-01T16:00:00Z
+< E NP t.modified 2026-11-01T16:00:00Z
+< E NP tags []
+< E NP usage 0
+---
+> E NC S KPG.20261115T120500Z.nc p=0 "{\"side\":\"C\",\"cell\":\"new entry\"}"
+> E NC S Notes p=0 ""
+> E NC S Password p=1 ""
+> E NC S Title p=0 "KPG new C"
+> E NC S URL p=0 ""
+> E NC S UserName p=0 ""
+> E NC autotype enabled=1 obfuscation=0 seq="" assoc=0
+> E NC history.count 0
+> E NC misc icon=0 customIcon=- fg=00000000 bg=00000000 overrideUrl="" quality=1
+> E NC parent GKPG (KPG)
+> E NC prev -
+> E NC t.accessed 2026-11-01T15:00:00Z
+> E NC t.created 2026-11-01T15:00:00Z
+> E NC t.expires 0 2026-11-01T10:00:00Z
+> E NC t.location 2026-11-01T15:00:00Z
+> E NC t.modified 2026-11-01T15:00:00Z
+> E NC tags []
+> E NC usage 0
+309,340c309,341
+< E X2 H2026-11-01T10:55:00Z S Notes p=0 ""
+< E X2 H2026-11-01T10:55:00Z S Password p=1 "pw-x2"
+< E X2 H2026-11-01T10:55:00Z S Title p=0 "X2"
+< E X2 H2026-11-01T10:55:00Z S URL p=0 ""
+< E X2 H2026-11-01T10:55:00Z S UserName p=0 "user-x2"
+< E X2 H2026-11-01T10:55:00Z autotype enabled=1 obfuscation=0 seq="" assoc=0
+< E X2 H2026-11-01T10:55:00Z misc icon=0 customIcon=- fg=00000000 bg=00000000 overrideUrl="" quality=1
+< E X2 H2026-11-01T10:55:00Z prev -
+< E X2 H2026-11-01T10:55:00Z t.accessed 2026-11-01T10:55:00Z
+< E X2 H2026-11-01T10:55:00Z t.created 2026-11-01T10:55:00Z
+< E X2 H2026-11-01T10:55:00Z t.expires 0 2026-11-01T10:00:00Z
+< E X2 H2026-11-01T10:55:00Z t.location 2026-11-01T10:55:00Z
+< E X2 H2026-11-01T10:55:00Z t.modified 2026-11-01T10:55:00Z
+< E X2 H2026-11-01T10:55:00Z tags []
+< E X2 H2026-11-01T10:55:00Z usage 0
+< E X2 S Notes p=0 ""
+< E X2 S Password p=1 "pw-x2"
+< E X2 S Title p=0 "X2"
+< E X2 S URL p=0 ""
+< E X2 S UserName p=0 "changed-in-P"
+< E X2 autotype enabled=1 obfuscation=0 seq="" assoc=0
+< E X2 history.count 1
+< E X2 misc icon=0 customIcon=- fg=00000000 bg=00000000 overrideUrl="" quality=1
+< E X2 parent G (G)
+< E X2 prev -
+< E X2 t.accessed 2026-11-01T16:00:00Z
+< E X2 t.created 2026-11-01T10:55:00Z
+< E X2 t.expires 0 2026-11-01T10:00:00Z
+< E X2 t.location 2026-11-01T10:55:00Z
+< E X2 t.modified 2026-11-01T16:00:00Z
+< E X2 tags []
+< E X2 usage 0
+---
+> E X1 S Notes p=0 ""
+> E X1 S Password p=1 "pw-x1"
+> E X1 S Title p=0 "X1"
+> E X1 S URL p=0 ""
+> E X1 S UserName p=0 "user-x1"
+> E X1 autotype enabled=1 obfuscation=0 seq="" assoc=0
+> E X1 history.count 0
+> E X1 misc icon=0 customIcon=- fg=00000000 bg=00000000 overrideUrl="" quality=1
+> E X1 parent G (G)
+> E X1 prev -
+> E X1 t.accessed 2026-11-01T10:55:00Z
+> E X1 t.created 2026-11-01T10:55:00Z
+> E X1 t.expires 0 2026-11-01T10:00:00Z
+> E X1 t.location 2026-11-01T10:55:00Z
+> E X1 t.modified 2026-11-01T10:55:00Z
+> E X1 tags []
+> E X1 usage 0
+> E Y1 A added-c.bin p=0 len=1500 sha=728ce7043f38dfd9
+> E Y1 H2026-11-01T10:55:00Z S Notes p=0 ""
+> E Y1 H2026-11-01T10:55:00Z S Password p=1 "pw-y1"
+> E Y1 H2026-11-01T10:55:00Z S Title p=0 "Y1"
+> E Y1 H2026-11-01T10:55:00Z S URL p=0 ""
+> E Y1 H2026-11-01T10:55:00Z S UserName p=0 "user-y1"
+> E Y1 H2026-11-01T10:55:00Z autotype enabled=1 obfuscation=0 seq="" assoc=0
+> E Y1 H2026-11-01T10:55:00Z misc icon=0 customIcon=- fg=00000000 bg=00000000 overrideUrl="" quality=1
+> E Y1 H2026-11-01T10:55:00Z prev -
+> E Y1 H2026-11-01T10:55:00Z t.accessed 2026-11-01T10:55:00Z
+> E Y1 H2026-11-01T10:55:00Z t.created 2026-11-01T10:55:00Z
+> E Y1 H2026-11-01T10:55:00Z t.expires 0 2026-11-01T10:00:00Z
+> E Y1 H2026-11-01T10:55:00Z t.location 2026-11-01T10:55:00Z
+> E Y1 H2026-11-01T10:55:00Z t.modified 2026-11-01T10:55:00Z
+> E Y1 H2026-11-01T10:55:00Z tags []
+> E Y1 H2026-11-01T10:55:00Z usage 0
+347c348
+< E Y1 history.count 0
+---
+> E Y1 history.count 1
+351c352
+< E Y1 t.accessed 2026-11-01T10:55:00Z
+---
+> E Y1 t.accessed 2026-11-01T15:00:00Z
+355c356
+< E Y1 t.modified 2026-11-01T10:55:00Z
+---
+> E Y1 t.modified 2026-11-01T15:00:00Z
+358,372d358
+< E Y2 H2026-11-01T10:55:00Z S Notes p=0 ""
+< E Y2 H2026-11-01T10:55:00Z S Password p=1 "pw-y2"
+< E Y2 H2026-11-01T10:55:00Z S Title p=0 "Y2"
+< E Y2 H2026-11-01T10:55:00Z S URL p=0 ""
+< E Y2 H2026-11-01T10:55:00Z S UserName p=0 "user-y2"
+< E Y2 H2026-11-01T10:55:00Z autotype enabled=1 obfuscation=0 seq="" assoc=0
+< E Y2 H2026-11-01T10:55:00Z misc icon=0 customIcon=- fg=00000000 bg=00000000 overrideUrl="" quality=1
+< E Y2 H2026-11-01T10:55:00Z prev -
+< E Y2 H2026-11-01T10:55:00Z t.accessed 2026-11-01T10:55:00Z
+< E Y2 H2026-11-01T10:55:00Z t.created 2026-11-01T10:55:00Z
+< E Y2 H2026-11-01T10:55:00Z t.expires 0 2026-11-01T10:00:00Z
+< E Y2 H2026-11-01T10:55:00Z t.location 2026-11-01T10:55:00Z
+< E Y2 H2026-11-01T10:55:00Z t.modified 2026-11-01T10:55:00Z
+< E Y2 H2026-11-01T10:55:00Z tags []
+< E Y2 H2026-11-01T10:55:00Z usage 0
+379c365
+< E Y2 history.count 1
+---
+> E Y2 history.count 0
+383c369
+< E Y2 t.accessed 2026-11-01T16:00:00Z
+---
+> E Y2 t.accessed 2026-11-01T10:55:00Z
+387,388c373,374
+< E Y2 t.modified 2026-11-01T16:00:00Z
+< E Y2 tags [added-p]
+---
+> E Y2 t.modified 2026-11-01T10:55:00Z
+> E Y2 tags []
+398,399c384,385
+< E Y3 parent N (N)
+< E Y3 prev G
+---
+> E Y3 parent G (G)
+> E Y3 prev -
+403c389
+< E Y3 t.location 2026-11-01T16:00:00Z
+---
+> E Y3 t.location 2026-11-01T10:55:00Z
+426c412
+< G G children groups=1 entries=6
+---
+> G G children groups=1 entries=7
+429c415
+< G G notes "{\"kpg.rules\":{\"reader\":\".R...L..\",\"writer\":\"CRU..L..\"}}"
+---
+> G G notes "{\"kpg.rules\":{\"reader\":\".R...L..\",\"writer\":\"CRU..L..\"},\"changedBy\":\"C\"}"
+436c422
+< G G t.modified 2026-11-01T10:30:00Z
+---
+> G G t.modified 2026-11-01T15:00:00Z
+452c438
+< G N children groups=0 entries=2
+---
+> G N children groups=0 entries=1

@@ -1,0 +1,7 @@
+# KeePassDroid, working out the entry view and editor: open, go into G, open E1, list, press Edit,
+# list. Nothing is saved.
+include kpd-open.flow
+tap ^G$
+tap ^E1$
+waitfor entry_edit 30
+list

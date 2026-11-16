@@ -1,0 +1,53 @@
+1c1
+< # file S-argon.kdbx size=7941 sha256=bd84dd4785579e8705bd12f3fe4d53a2e342be2e88c64875413ef8b336dc11ae
+---
+> # file k2a-delete.kdbx size=7861 sha256=7ad9745a402749fc699ac683ad5e86e6fb7a5ad58d92215ac1ee64ba49e17acd
+4c4,5
+< D count 2
+---
+> D E2 2026-11-15T17:45:15Z
+> D count 3
+73,89d73
+< E E2 S Notes p=0 ""
+< E E2 S Password p=1 "pw-e2-not-real"
+< E E2 S Title p=0 "E2"
+< E E2 S URL p=0 ""
+< E E2 S UserName p=0 "bob-invented"
+< E E2 autotype enabled=1 obfuscation=0 seq="" assoc=0
+< E E2 history.count 0
+< E E2 misc icon=0 customIcon=- fg=00000000 bg=00000000 overrideUrl="" quality=1
+< E E2 parent G (G)
+< E E2 prev -
+< E E2 t.accessed 2026-11-01T10:45:00Z
+< E E2 t.created 2026-11-01T10:45:00Z
+< E E2 t.expires 0 2026-11-01T10:00:00Z
+< E E2 t.location 2026-11-01T10:45:00Z
+< E E2 t.modified 2026-11-01T10:45:00Z
+< E E2 tags []
+< E E2 usage 0
+343c327
+< F groups 5 entries 13
+---
+> F groups 5 entries 12
+352c336
+< G Bin t.accessed 2026-11-01T10:05:00Z
+---
+> G Bin t.accessed 2026-11-15T17:44:46Z
+358c342
+< G Bin usage 0
+---
+> G Bin usage 1
+360c344
+< G G children groups=1 entries=8
+---
+> G G children groups=1 entries=7
+405c389
+< G Root t.accessed 2026-11-01T10:00:00Z
+---
+> G Root t.accessed 2026-11-15T17:44:46Z
+411,412c395,396
+< G Root usage 0
+< M CD KPG.Profiles = "[\"reader\",\"writer\"]" @2026-11-01T10:15:00Z
+---
+> G Root usage 1
+> M CD KPG.Profiles = "[\"reader\",\"writer\"]" @none

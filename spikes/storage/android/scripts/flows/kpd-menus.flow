@@ -1,0 +1,19 @@
+# Steps 4 and 6, KeePassDroid: what it offers for a group and for an entry. Open, long-press group
+# G and list the menu it raises, close it; long-press E1 inside G and list; then the group view's
+# overflow menu. Nothing is changed or saved.
+include kpd-open.flow
+longpress ^G$
+sleep 2
+list
+key BACK
+sleep 1
+tap ^G$
+longpress ^E1$
+sleep 2
+list
+key BACK
+sleep 1
+key MENU
+sleep 2
+list
+key BACK

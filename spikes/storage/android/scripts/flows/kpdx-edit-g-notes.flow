@@ -1,0 +1,15 @@
+# Step 4, KeePassDX, with the notes: as kpdx-rename-g.flow, and also append "-phone-notes" to G's notes.
+include kpdx-open.flow
+waitfor node_text@^G$ 20
+sleep 2
+longpressuntil node_text@^G$ menu_move 60 2000 600
+tapuntil More.options#2 ^Edit$ 30
+tap ^Edit$
+waitfor group_edit_name 20
+append group_edit_name@.* -phone
+append group_edit_note@.* -phone-notes
+list
+tap ^OK$
+waitfor node_text@^G-phone$ 30
+sleep 6
+list

@@ -1,0 +1,38 @@
+# Keepass2Android with one file-handling setting changed by its own Settings screen: open OLD and
+# unlock; More options, Settings, App, File handling; tap the line ${SETTING} (which flips it) and
+# log its state before and after; back to the group view; replace.sh puts ${ARRIVING} over the file
+# at time ${TMODE}; add an entry ${ENTRY} at the root and save, answering a "Merge changes?" question
+# with ${ANSWER}; wait ${WAIT} s for anything done in the background.
+include k2a-open.flow
+sleep 2
+host sh ${P}/prefs.sh before-settings
+tap More.options
+tap ^Settings$
+sleep 2
+tap ^App$
+sleep 2
+tap ^File.handling$
+sleep 3
+host sh ${P}/prefs.sh on-file-handling-screen
+scrollto ${SETTING}
+sh input swipe 540 1500 540 1000 400
+sleep 2
+checkstate ${SETTING}
+list
+tapb ${SETTING}
+sleep 2
+checkstate ${SETTING}
+host sh ${P}/prefs.sh after-tap
+key BACK
+sleep 2
+key BACK
+sleep 2
+key BACK
+sleep 2
+waitfor fabAddNew 30
+host sh ${P}/replace.sh /sdcard/Download/${NAME}.kdbx ${SRCDIR}/${ARRIVING}.kdbx ${TMODE}
+sleep 3
+include k2a-ow-edit.flow
+sleep ${WAIT}
+host sh ${P}/devstat.sh /sdcard/Download/${NAME}.kdbx after-wait
+dialog

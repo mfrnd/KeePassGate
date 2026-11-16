@@ -1,0 +1,178 @@
+### 2026-11-15T19:13:33.643Z op kpdx edit-carriers flow=kpdx-edit-carriers.flow base=S-argon (versionName=4.5.8)
+Success
+<work>/work/base/S-argon.kdbx: 1 file pushed, 0 skipped. 1.1 MB/s (7941 bytes in 0.007s)
+pushed sha256 bd84dd4785579e8705bd12f3fe4d53a2e342be2e88c64875413ef8b336dc11ae
+[2026-11-15T19:13:34.878Z] kpdx-edit-carriers.flow:3 include kpdx-open.flow
+[2026-11-15T19:13:34.883Z] kpdx-open.flow:4 sh monkey -p com.kunzisoft.keepass.libre -c android.intent.category.LAUNCHER 1
+  bash arg: -p
+  bash arg: com.kunzisoft.keepass.libre
+  bash arg: -c
+  bash arg: android.intent.category.LAUNCHER
+  bash arg: 1
+Events injected: 1
+## Network stats: elapsed time=191ms (0ms mobile, 0ms wifi, 191ms not connected)
+args: [-p, com.kunzisoft.keepass.libre, -c, android.intent.category.LAUNCHER, 1]
+ arg: "-p"
+ arg: "com.kunzisoft.keepass.libre"
+ arg: "-c"
+ arg: "android.intent.category.LAUNCHER"
+ arg: "1"
+data="com.kunzisoft.keepass.libre"
+data="android.intent.category.LAUNCHER"
+[2026-11-15T19:13:35.729Z] kpdx-open.flow:5 waitfor open_database_button 30
+[2026-11-15T19:13:41.643Z] kpdx-open.flow:6 tapuntil open_database_button Show.roots 40
+[2026-11-15T19:13:44.339Z]   tapped (799, 2051) 'Open existing vault'
+[2026-11-15T19:13:54.783Z]   tapped (799, 2051) 'Open existing vault'
+[2026-11-15T19:13:58.064Z] kpdx-open.flow:7 include picker.flow
+[2026-11-15T19:13:58.071Z] picker.flow:4 pick kpdx-edit-carriers.kdbx
+[2026-11-15T19:14:06.016Z]   focused and entered '^kpdx\\-edit\\-carriers\\.kdbx$'
+[2026-11-15T19:14:06.020Z] kpdx-open.flow:8 waitfor password_text_view 40
+[2026-11-15T19:14:09.844Z] kpdx-open.flow:9 typepw password_text_view dummy-password-for-a-throwaway-file
+[2026-11-15T19:14:22.528Z]   type: field never took the focus (attempt 1)
+[2026-11-15T19:14:34.993Z]   type: field never took the focus (attempt 2)
+[2026-11-15T19:14:45.093Z]   typed into the focused field
+[2026-11-15T19:14:45.094Z] kpdx-open.flow:10 tapuntil activity_password_open_button add_button 60
+[2026-11-15T19:14:48.422Z]   tapped (895, 1435) 'Unlock'
+[2026-11-15T19:14:58.729Z]   tapped (895, 1435) 'Unlock'
+[2026-11-15T19:15:06.941Z]   tapped (895, 1435) 'Unlock'
+[2026-11-15T19:15:13.721Z] kpdx-edit-carriers.flow:4 tapuntil node_text@^KPG$ node_text@^KPG.record.2$ 40
+[2026-11-15T19:15:16.585Z]   tapped (275, 738) 'KPG'
+[2026-11-15T19:15:26.885Z]   tapped (275, 738) 'KPG'
+[2026-11-15T19:15:29.525Z] kpdx-edit-carriers.flow:5 sleep 3
+[2026-11-15T19:15:32.526Z] kpdx-edit-carriers.flow:6 longpressuntil node_text@^KPG.record.1$ menu_move 60 2000 600
+[2026-11-15T19:15:37.194Z]   long-pressed (600, 548) for 2000 ms on the line of 'KPG record 1'
+[2026-11-15T19:15:47.373Z]   long-pressed (600, 548) for 2000 ms on the line of 'KPG record 1'
+[2026-11-15T19:15:59.687Z]   long-pressed (600, 548) for 2000 ms on the line of 'KPG record 1'
+[2026-11-15T19:16:09.688Z]   long-pressed (600, 548) for 2000 ms on the line of 'KPG record 1'
+[2026-11-15T19:16:11.912Z] kpdx-edit-carriers.flow:7 tap More.options#2
+[2026-11-15T19:16:14.851Z]   tapped (1024, 2063) 'More options'
+[2026-11-15T19:16:14.852Z] kpdx-edit-carriers.flow:8 tap ^Edit$
+[2026-11-15T19:16:17.971Z]   tapped (799, 1966) 'Edit'
+[2026-11-15T19:16:17.973Z] kpdx-edit-carriers.flow:9 ifthen setup_check_password_edit_text 8 kpdx-verify.flow
+[2026-11-15T19:16:20.652Z]   'setup_check_password_edit_text' is there: running kpdx-verify.flow
+[2026-11-15T19:16:20.660Z] kpdx-verify.flow:3 type setup_check_password_edit_text dumm
+[2026-11-15T19:16:33.570Z]   type: field never took the focus (attempt 1)
+[2026-11-15T19:16:42.876Z]   typed 'dumm'
+[2026-11-15T19:16:42.877Z] kpdx-verify.flow:4 tapuntil ^Check$ entry_edit_validate 30
+[2026-11-15T19:16:45.961Z]   tapped (887, 1111) 'Check'
+[2026-11-15T19:16:50.040Z] kpdx-edit-carriers.flow:10 waitfor entry_edit_validate 20
+[2026-11-15T19:16:52.045Z] kpdx-edit-carriers.flow:11 append ^KPG.record.1$ -phone
+[2026-11-15T19:17:02.500Z]   append: text did not land (attempt 1)
+[2026-11-15T19:17:14.625Z]   appended '-phone': 'KPG record 1-phone'
+[2026-11-15T19:17:14.626Z] kpdx-edit-carriers.flow:12 tapuntil entry_edit_validate add_button 30
+[2026-11-15T19:17:17.761Z]   tapped (970, 1413) 'Validate'
+[2026-11-15T19:17:22.063Z] kpdx-edit-carriers.flow:13 sleep 5
+[2026-11-15T19:17:27.065Z] kpdx-edit-carriers.flow:14 key BACK
+[2026-11-15T19:17:28.008Z] kpdx-edit-carriers.flow:15 waitfor node_text@^Recycle.Bin$ 20
+[2026-11-15T19:17:30.267Z] kpdx-edit-carriers.flow:16 tapuntil node_text@^G$ node_text@^Y3$ 40
+[2026-11-15T19:17:33.064Z]   tapped (247, 559) 'G'
+[2026-11-15T19:17:35.477Z] kpdx-edit-carriers.flow:17 sleep 3
+[2026-11-15T19:17:38.479Z] kpdx-edit-carriers.flow:18 longpressuntil node_text@^KPG.marker$ menu_move 60 2000 600
+[2026-11-15T19:17:43.259Z]   long-pressed (600, 739) for 2000 ms on the line of 'KPG marker'
+[2026-11-15T19:17:45.332Z] kpdx-edit-carriers.flow:19 tap More.options#2
+[2026-11-15T19:17:48.514Z]   tapped (1024, 2063) 'More options'
+[2026-11-15T19:17:48.516Z] kpdx-edit-carriers.flow:20 tap ^Edit$
+[2026-11-15T19:17:51.430Z]   tapped (799, 1966) 'Edit'
+[2026-11-15T19:17:51.432Z] kpdx-edit-carriers.flow:21 ifthen setup_check_password_edit_text 8 kpdx-verify.flow
+[2026-11-15T19:17:54.292Z]   'setup_check_password_edit_text' is there: running kpdx-verify.flow
+[2026-11-15T19:17:54.298Z] kpdx-verify.flow:3 type setup_check_password_edit_text dumm
+[2026-11-15T19:18:07.160Z]   type: field never took the focus (attempt 1)
+[2026-11-15T19:18:16.551Z]   typed 'dumm'
+[2026-11-15T19:18:16.552Z] kpdx-verify.flow:4 tapuntil ^Check$ entry_edit_validate 30
+[2026-11-15T19:18:19.465Z]   tapped (887, 1111) 'Check'
+[2026-11-15T19:18:22.656Z] kpdx-edit-carriers.flow:22 waitfor entry_edit_validate 20
+[2026-11-15T19:18:24.853Z] kpdx-edit-carriers.flow:23 append ^KPG.marker$ -phone
+[2026-11-15T19:18:37.159Z]   appended '-phone': 'KPG marker-phone'
+[2026-11-15T19:18:37.161Z] kpdx-edit-carriers.flow:24 tapuntil entry_edit_validate add_button 30
+[2026-11-15T19:18:40.461Z]   tapped (970, 1413) 'Validate'
+[2026-11-15T19:18:46.903Z] kpdx-edit-carriers.flow:25 sleep 6
+[2026-11-15T19:18:52.904Z] kpdx-edit-carriers.flow:26 list
+  LinearLayout        (540, 1036)  id=action_bar_root              text='' desc=''
+  FrameLayout         (540, 1036)  id=content                      text='' desc=''
+  DrawerLayout        (540, 1036)  id=drawer_layout                text='' desc=''
+  ViewGroup           (540, 1108)  id=activity_group_container_view text='' desc=''
+  FrameLayout         (540, 1108)  id=search_content_view          text='' desc=''
+  ViewGroup           (540, 1108)  id=error_coordinator            text='' desc=''
+  ViewGroup           (540, 233)   id=activity_group_header        text='' desc=''
+  ViewGroup           (540, 233)   id=toolbar                      text='' desc=''
+  ImageButton    c    (77, 233)    id=                             text='' desc='Navigation drawer open'
+  TextView            (446, 233)   id=database_name                text='Storage probe (invented)' desc=''
+  Button         c    (771, 233)   id=menu_search                  text='' desc='Search'
+  Button         c    (903, 233)   id=menu_sort                    text='' desc='Sort'
+  ImageView      c    (1024, 233)  id=                             text='' desc='More options'
+  ImageView           (148, 233)   id=database_modified            text='' desc='Save'
+  ScrollView          (540, 1196)  id=group_coordinator            text='' desc=''
+  RelativeLayout      (540, 1196)  id=add_node_button              text='' desc=''
+  ImageButton    c    (970, 2013)  id=add_button                   text='' desc='Add node'
+  LinearLayout        (540, 409)   id=app_bar                      text='' desc=''
+  RecyclerView   f    (540, 409)   id=breadcrumb_list              text='' desc=''
+  CardView       c    (278, 409)   id=breadcrumb_group             text='' desc=''
+  ImageView           (86, 409)    id=group_icon                   text='' desc='Icon name'
+  TextView            (298, 408)   id=group_name                   text='Storage probe' desc=''
+  ImageView           (491, 409)   id=group_separator              text='' desc=''
+  CardView       c    (778, 409)   id=breadcrumb_group             text='' desc=''
+  TextView            (558, 388)   id=group_numbers                text='9' desc=''
+  ImageView           (604, 408)   id=group_icon                   text='' desc=''
+  TextView            (844, 383)   id=group_name                   text='G' desc=''
+  RecyclerView        (844, 438)   id=group_tags_list_view         text='' desc=''
+  TextView       c    (783, 435)   id=tag_name                     text='kpg.reader' desc=''
+  TextView       c    (941, 435)   id=tag_name                     text='team' desc=''
+  FrameLayout         (540, 1284)  id=nodes_list_fragment_container text='' desc=''
+  RecyclerView        (540, 1284)  id=nodes_list                   text='' desc='Node children'
+  RelativeLayout c    (534, 585)   id=node_container               text='' desc=''
+  TextView            (64, 565)    id=node_child_numbers           text='1' desc=''
+  ImageView           (127, 585)   id=node_icon                    text='' desc=''
+  TextView            (247, 584)   id=node_text                    text='N' desc=''
+  ImageView           (981, 585)   id=node_image_identifier        text='' desc=''
+  ViewGroup      c    (534, 739)   id=node_container               text='' desc=''
+  ImageView           (127, 739)   id=node_icon                    text='' desc=''
+  LinearLayout        (606, 739)   id=node_container_info          text='' desc=''
+  TextView            (416, 739)   id=node_text                    text='KPG marker-phone' desc=''
+  ViewGroup      c    (534, 900)   id=node_container               text='' desc=''
+  ImageView           (127, 901)   id=node_icon                    text='' desc=''
+  LinearLayout        (573, 900)   id=node_container_info          text='' desc=''
+  TextView            (257, 856)   id=node_text                    text='E1' desc=''
+  TextView            (343, 899)   id=node_subtext                 text='alice-invented' desc=''
+  RecyclerView        (288, 949)   id=node_tags_list_view          text='' desc=''
+  TextView       c    (285, 946)   id=tag_name                     text='work' desc=''
+  LinearLayout        (981, 901)   id=node_options                 text='' desc=''
+  ImageView           (981, 901)   id=node_attachment_icon         text='' desc=''
+  ViewGroup      c    (534, 1062)  id=node_container               text='' desc=''
+  ImageView           (127, 1062)  id=node_icon                    text='' desc=''
+  LinearLayout        (606, 1062)  id=node_container_info          text='' desc=''
+  TextView            (257, 1043)  id=node_text                    text='E2' desc=''
+  TextView            (335, 1086)  id=node_subtext                 text='bob-invented' desc=''
+  ViewGroup      c    (534, 1216)  id=node_container               text='' desc=''
+  ImageView           (127, 1216)  id=node_icon                    text='' desc=''
+  LinearLayout        (606, 1216)  id=node_container_info          text='' desc=''
+  TextView            (258, 1197)  id=node_text                    text='X1' desc=''
+  TextView            (291, 1240)  id=node_subtext                 text='user-x1' desc=''
+  ViewGroup      c    (534, 1370)  id=node_container               text='' desc=''
+  ImageView           (127, 1370)  id=node_icon                    text='' desc=''
+  LinearLayout        (606, 1370)  id=node_container_info          text='' desc=''
+  TextView            (258, 1351)  id=node_text                    text='X2' desc=''
+  TextView            (291, 1394)  id=node_subtext                 text='user-x2' desc=''
+  ViewGroup      c    (534, 1524)  id=node_container               text='' desc=''
+  ImageView           (127, 1524)  id=node_icon                    text='' desc=''
+  LinearLayout        (606, 1524)  id=node_container_info          text='' desc=''
+  TextView            (257, 1505)  id=node_text                    text='Y1' desc=''
+  TextView            (290, 1548)  id=node_subtext                 text='user-y1' desc=''
+  ViewGroup      c    (534, 1678)  id=node_container               text='' desc=''
+  ImageView           (127, 1678)  id=node_icon                    text='' desc=''
+  LinearLayout        (606, 1678)  id=node_container_info          text='' desc=''
+  TextView            (257, 1659)  id=node_text                    text='Y2' desc=''
+  TextView            (290, 1702)  id=node_subtext                 text='user-y2' desc=''
+  ViewGroup      c    (534, 1832)  id=node_container               text='' desc=''
+  ImageView           (127, 1832)  id=node_icon                    text='' desc=''
+  LinearLayout        (606, 1832)  id=node_container_info          text='' desc=''
+  TextView            (257, 1813)  id=node_text                    text='Y3' desc=''
+  TextView            (290, 1856)  id=node_subtext                 text='user-y3' desc=''
+  ViewGroup           (540, 2033)  id=activity_group_footer        text='' desc=''
+  ImageButton    c    (90, 2033)   id=lock_button                  text='' desc='Lock'
+  View                (540, 72)    id=statusBarBackground          text='' desc=''
+  View                (0, 0)       id=navigationBarBackground      text='' desc=''
+total 12
+-rw------- 1 u0_a160 u0_a160 7621 2026-11-15 20:18:39.076000000 +0100 kpdx-edit-carriers.kdbx
+device kpdx-edit-carriers.kdbx sha256 8de9f7f8a9caa3d7898c45db838837860a593700c258004e1122a83ca02ca110
+/sdcard/Download/kpdx-edit-carriers.kdbx: 1 file pulled, 0 skipped. 0.3 MB/s (7621 bytes in 0.028s)
+### flow rc=0 2026-11-15T19:18:57.594Z

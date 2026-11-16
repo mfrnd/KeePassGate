@@ -1,0 +1,50 @@
+1c1
+< # file NEW-diff.kdbx size=11621 sha256=469981f9d9289f78fcf80d60f5a40b464d704959a83384e91cc1be9a2549bed6
+---
+> # file kpd-lock-later-diff-r1.kdbx size=10981 sha256=4b832c79de0400a9ffcb15e533d27feb0d6e6c3a23831a6ddcadd10c043c84d3
+7d6
+< E E1 CD KPG = "{\"reader\":[\"read\",\"list\"]}"
+179d177
+< E R1 CD KPG.cd = "{\"control\":\"entry custom data on R1\"}"
+358a357,383
+> E ~254a2e55 H2026-11-15T22:01:20Z autotype enabled=1 obfuscation=0 seq="" assoc=0
+> E ~254a2e55 H2026-11-15T22:01:20Z misc icon=1 customIcon=- fg=00000000 bg=00000000 overrideUrl="" quality=1
+> E ~254a2e55 H2026-11-15T22:01:20Z prev -
+> E ~254a2e55 H2026-11-15T22:01:20Z t.accessed 2026-11-15T22:01:20Z
+> E ~254a2e55 H2026-11-15T22:01:20Z t.created 2026-11-15T22:01:20Z
+> E ~254a2e55 H2026-11-15T22:01:20Z t.expires 0 2026-11-15T22:00:11Z
+> E ~254a2e55 H2026-11-15T22:01:20Z t.location 2026-11-15T22:00:11Z
+> E ~254a2e55 H2026-11-15T22:01:20Z t.modified 2026-11-15T22:01:20Z
+> E ~254a2e55 H2026-11-15T22:01:20Z tags []
+> E ~254a2e55 H2026-11-15T22:01:20Z usage 0
+> E ~254a2e55 S Notes p=0 ""
+> E ~254a2e55 S Password p=1 ""
+> E ~254a2e55 S Title p=0 "phone-lock-later-diff-r1"
+> E ~254a2e55 S URL p=0 ""
+> E ~254a2e55 S UserName p=0 ""
+> E ~254a2e55 autotype enabled=1 obfuscation=0 seq="" assoc=0
+> E ~254a2e55 history.count 1
+> E ~254a2e55 misc icon=1 customIcon=- fg=00000000 bg=00000000 overrideUrl="" quality=1
+> E ~254a2e55 parent Root (Storage probe)
+> E ~254a2e55 prev -
+> E ~254a2e55 t.accessed 2026-11-15T22:01:39Z
+> E ~254a2e55 t.created 2026-11-15T22:01:20Z
+> E ~254a2e55 t.expires 0 2026-11-15T22:00:11Z
+> E ~254a2e55 t.location 2026-11-15T22:00:11Z
+> E ~254a2e55 t.modified 2026-11-15T22:01:39Z
+> E ~254a2e55 tags []
+> E ~254a2e55 usage 0
+361c386
+< F groups 5 entries 13
+---
+> F groups 5 entries 14
+377d401
+< G G CD KPG = "{\"reader\":[\"read\",\"list\"]}"
+417c441
+< G Root children groups=3 entries=0
+---
+> G Root children groups=3 entries=1
+440c464
+< M settingsChanged 2026-11-01T10:00:00Z
+---
+> M settingsChanged 2026-11-16T01:14:07Z

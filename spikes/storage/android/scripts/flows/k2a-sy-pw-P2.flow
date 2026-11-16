@@ -1,0 +1,18 @@
+# Keepass2Android, at the root group: Passwords, P2, Edit, append -phone to the password, Save; a
+# "Merge changes?" question is answered as k2a-ans-${ANSWER}.flow does; back to the root.
+tap ^Passwords$
+tap ^P2$
+waitfor entry_edit 20
+tap entry_edit
+waitfor entry_password 20
+appendpw entry_password -phone
+tap menu_save
+ifthen Merge.changes 15 k2a-ans-${ANSWER}.flow
+sleep 2
+dialog
+waitfor entry_edit 60
+key BACK
+sleep 2
+key BACK
+sleep 2
+waitfor fabAddNew 20

@@ -1,0 +1,9 @@
+# Overwrite, Keepass2Android, replacement with the program on screen: open OLD through the system
+# file picker and unlock; replace.sh puts ${ARRIVING} over the file at time ${TMODE}; then add an
+# entry ${ENTRY} at the root and save, answering a "Merge changes?" question with ${ANSWER}.
+include k2a-open.flow
+sleep 2
+host sh ${P}/replace.sh /sdcard/Download/${NAME}.kdbx ${SRCDIR}/${ARRIVING}.kdbx ${TMODE}
+sleep 3
+dialog
+include k2a-ow-edit.flow

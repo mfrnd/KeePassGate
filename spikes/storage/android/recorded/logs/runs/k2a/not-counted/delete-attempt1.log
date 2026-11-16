@@ -1,0 +1,72 @@
+### 2026-11-15T17:20:31.780Z op k2a delete flow=k2a-delete.flow base=S-argon (versionName=1.15-r6)
+Success
+<work>/work/base/S-argon.kdbx: 1 file pushed, 0 skipped. 0.1 MB/s (7941 bytes in 0.063s)
+pushed sha256 bd84dd4785579e8705bd12f3fe4d53a2e342be2e88c64875413ef8b336dc11ae
+[2026-11-15T17:20:36.463Z] k2a-delete.flow:4 include k2a-open.flow
+[2026-11-15T17:20:36.480Z] k2a-open.flow:3 sh monkey -p keepass2android.keepass2android -c android.intent.category.LAUNCHER 1
+  bash arg: -p
+  bash arg: keepass2android.keepass2android
+  bash arg: -c
+  bash arg: android.intent.category.LAUNCHER
+  bash arg: 1
+Events injected: 1
+## Network stats: elapsed time=581ms (0ms mobile, 0ms wifi, 581ms not connected)
+args: [-p, keepass2android.keepass2android, -c, android.intent.category.LAUNCHER, 1]
+ arg: "-p"
+ arg: "keepass2android.keepass2android"
+ arg: "-c"
+ arg: "android.intent.category.LAUNCHER"
+ arg: "1"
+data="keepass2android.keepass2android"
+data="android.intent.category.LAUNCHER"
+[2026-11-15T17:20:40.796Z] k2a-open.flow:4 clear ^OK$ start_open_file 40
+[2026-11-15T17:21:37.955Z]   cleared 'Change log' with (859, 1883)
+[2026-11-15T17:21:51.026Z] k2a-open.flow:5 tap start_open_file
+[2026-11-15T17:21:58.531Z]   tapped (540, 1025) 'Open file...'
+[2026-11-15T17:21:58.536Z] k2a-open.flow:6 tap ^System.file.picker$
+[2026-11-15T17:22:11.814Z]   tapped (229, 516) 'System file picker'
+[2026-11-15T17:22:11.824Z] k2a-open.flow:7 waitfor Show.roots 20
+[2026-11-15T17:22:17.880Z] k2a-open.flow:8 include picker.flow
+[2026-11-15T17:22:17.897Z] picker.flow:4 pick k2a-delete.kdbx
+[2026-11-15T17:22:37.576Z]   focused and entered '^k2a\\-delete\\.kdbx$'
+[2026-11-15T17:22:37.579Z] k2a-open.flow:9 waitfor password_edit 30
+[2026-11-15T17:22:48.965Z] k2a-open.flow:10 tap password_edit
+[2026-11-15T17:22:57.362Z]   tapped (501, 1151) 'Password'
+[2026-11-15T17:22:57.364Z] k2a-open.flow:11 text dummy-password-for-a-throwaway-file
+[2026-11-15T17:23:10.869Z] k2a-open.flow:12 tap pass_ok
+[2026-11-15T17:23:18.037Z]   tapped (942, 1437) 'Unlock'
+[2026-11-15T17:23:18.039Z] k2a-open.flow:13 waitfor fabAddNew 60
+  LinearLayout        (540, 834)   id=action_bar_root              text='' desc=''
+  FrameLayout         (540, 834)   id=content                      text='' desc=''
+  DrawerLayout        (540, 834)   id=drawer_layout                text='' desc=''
+  LinearLayout        (540, 834)   id=main_layout                  text='' desc=''
+  ViewGroup           (540, 747)   id=main_content                 text='' desc=''
+  LinearLayout        (540, 489)   id=appbar                       text='' desc=''
+  FrameLayout         (540, 489)   id=collapsing_toolbar           text='' desc='Unlock database'
+  ImageView           (540, 489)   id=backdrop                     text='' desc=''
+  TextView            (181, 814)   id=filename                     text='content://k2a-delete.kdbx' desc=''
+  ViewGroup           (540, 233)   id=toolbar                      text='' desc=''
+  ImageButton    c    (77, 233)    id=                             text='' desc='Open'
+  ScrollView          (540, 1091)  id=scrollview                   text='' desc=''
+  TextView            (215, 899)   id=password_label               text='Select master key type:' desc=''
+  Spinner        c    (529, 954)   id=password_mode_spinner        text='' desc=''
+  TextView            (463, 953)   id=text1                        text='Password only' desc=''
+  View                (540, 1010)  id=line_below_spinner           text='' desc=''
+  TextView            (117, 1078)  id=                             text='Password' desc=''
+  EditText       cf   (501, 1151)  id=password_edit                text='••••••••••••••••••••••••••••••••' desc=''
+  ImageButton    c    (1003, 1133) id=toggle_password              text='' desc=''
+  LinearLayout        (534, 1276)  id=enable_quickunlock_container text='' desc=''
+  CheckBox       ckx  (255, 1298)  id=enable_quickunlock           text='Enable QuickUnlock' desc=''
+  TextView       c    (526, 1290)  id=                             text='\uf05a' desc=''
+  View                (540, 1350)  id=divider2                     text='' desc=''
+  RelativeLayout      (540, 1437)  id=bottom_bar                   text='' desc=''
+  Button         c    (214, 1437)  id=change_db                    text='Change database' desc=''
+  Button         c    (942, 1437)  id=pass_ok                      text='Unlock' desc=''
+  View                (540, 72)    id=statusBarBackground          text='' desc=''
+  View                (0, 0)       id=navigationBarBackground      text='' desc=''
+[2026-11-15T17:24:36.472Z] FAILED: waitfor: timed out on fabAddNew
+total 12
+-rw------- 1 u0_a160 u0_a160 7941 2026-11-15 17:55:55.000000000 +0100 k2a-delete.kdbx
+device k2a-delete.kdbx sha256 bd84dd4785579e8705bd12f3fe4d53a2e342be2e88c64875413ef8b336dc11ae
+/sdcard/Download/k2a-delete.kdbx: 1 file pulled, 0 skipped. 0.2 MB/s (7941 bytes in 0.047s)
+### flow rc=1 2026-11-15T17:24:40.956Z

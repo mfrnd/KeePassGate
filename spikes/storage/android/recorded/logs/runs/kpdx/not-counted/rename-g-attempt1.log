@@ -1,0 +1,94 @@
+### 2026-11-15T18:47:34.495Z op kpdx rename-g flow=kpdx-rename-g.flow base=S-argon (versionName=4.5.8)
+Success
+<work>/work/base/S-argon.kdbx: 1 file pushed, 0 skipped. 0.4 MB/s (7941 bytes in 0.017s)
+pushed sha256 bd84dd4785579e8705bd12f3fe4d53a2e342be2e88c64875413ef8b336dc11ae
+[2026-11-15T18:47:35.565Z] kpdx-rename-g.flow:3 include kpdx-open.flow
+[2026-11-15T18:47:35.569Z] kpdx-open.flow:4 sh monkey -p com.kunzisoft.keepass.libre -c android.intent.category.LAUNCHER 1
+  bash arg: -p
+  bash arg: com.kunzisoft.keepass.libre
+  bash arg: -c
+  bash arg: android.intent.category.LAUNCHER
+  bash arg: 1
+Events injected: 1
+## Network stats: elapsed time=158ms (0ms mobile, 0ms wifi, 158ms not connected)
+args: [-p, com.kunzisoft.keepass.libre, -c, android.intent.category.LAUNCHER, 1]
+ arg: "-p"
+ arg: "com.kunzisoft.keepass.libre"
+ arg: "-c"
+ arg: "android.intent.category.LAUNCHER"
+ arg: "1"
+data="com.kunzisoft.keepass.libre"
+data="android.intent.category.LAUNCHER"
+[2026-11-15T18:47:36.512Z] kpdx-open.flow:5 waitfor open_database_button 30
+[2026-11-15T18:47:39.550Z] kpdx-open.flow:6 tapuntil open_database_button Show.roots 40
+[2026-11-15T18:47:42.424Z]   tapped (799, 2051) 'Open existing vault'
+[2026-11-15T18:47:52.965Z]   tapped (799, 2051) 'Open existing vault'
+[2026-11-15T18:47:55.391Z] kpdx-open.flow:7 include picker.flow
+[2026-11-15T18:47:55.399Z] picker.flow:4 pick kpdx-rename-g.kdbx
+[2026-11-15T18:48:03.684Z]   focused and entered '^kpdx\\-rename\\-g\\.kdbx$'
+[2026-11-15T18:48:03.686Z] kpdx-open.flow:8 waitfor password_text_view 40
+[2026-11-15T18:48:07.047Z] kpdx-open.flow:9 typepw password_text_view dummy-password-for-a-throwaway-file
+[2026-11-15T18:48:20.354Z]   type: field never took the focus (attempt 1)
+[2026-11-15T18:48:33.269Z]   type: field never took the focus (attempt 2)
+[2026-11-15T18:48:44.025Z]   typed into the focused field
+[2026-11-15T18:48:44.027Z] kpdx-open.flow:10 tapuntil activity_password_open_button add_button 60
+[2026-11-15T18:48:47.053Z]   tapped (895, 1435) 'Unlock'
+[2026-11-15T18:48:57.443Z]   tapped (895, 1435) 'Unlock'
+[2026-11-15T18:49:05.679Z]   tapped (895, 1435) 'Unlock'
+[2026-11-15T18:49:11.892Z] kpdx-rename-g.flow:4 waitfor node_text@^G$ 20
+[2026-11-15T18:49:13.870Z] kpdx-rename-g.flow:5 sleep 2
+[2026-11-15T18:49:15.872Z] kpdx-rename-g.flow:6 longpress node_text@^G$ 2000
+[2026-11-15T18:49:20.567Z]   long-pressed (247, 559) for 2000 ms 'G'
+[2026-11-15T18:49:20.570Z] kpdx-rename-g.flow:7 tap More.options#2
+  LinearLayout        (540, 1036)  id=action_bar_root              text='' desc=''
+  FrameLayout         (540, 1036)  id=content                      text='' desc=''
+  DrawerLayout        (540, 1036)  id=drawer_layout                text='' desc=''
+  ViewGroup           (540, 1108)  id=activity_group_container_view text='' desc=''
+  FrameLayout         (540, 1108)  id=search_content_view          text='' desc=''
+  ViewGroup           (540, 1108)  id=error_coordinator            text='' desc=''
+  ViewGroup           (540, 233)   id=activity_group_header        text='' desc=''
+  ViewGroup           (540, 233)   id=toolbar                      text='' desc=''
+  ImageButton    c    (77, 233)    id=                             text='' desc='Navigation drawer open'
+  TextView            (446, 233)   id=database_name                text='Storage probe (invented)' desc=''
+  Button         c    (771, 233)   id=menu_search                  text='' desc='Search'
+  Button         c    (903, 233)   id=menu_sort                    text='' desc='Sort'
+  ImageView      c    (1024, 233)  id=                             text='' desc='More options'
+  ScrollView          (540, 1196)  id=group_coordinator            text='' desc=''
+  RelativeLayout      (540, 1196)  id=add_node_button              text='' desc=''
+  ImageButton    c    (970, 2013)  id=add_button                   text='' desc='Add node'
+  LinearLayout        (540, 409)   id=app_bar                      text='' desc=''
+  RecyclerView   f    (540, 409)   id=breadcrumb_list              text='' desc=''
+  CardView       c    (267, 409)   id=breadcrumb_group             text='' desc=''
+  TextView            (77, 389)    id=group_numbers                text='13' desc=''
+  ImageView           (113, 409)   id=group_icon                   text='' desc=''
+  TextView            (333, 408)   id=group_name                   text='Storage probe' desc=''
+  FrameLayout         (540, 1284)  id=nodes_list_fragment_container text='' desc=''
+  RecyclerView        (540, 1284)  id=nodes_list                   text='' desc='Node children'
+  RelativeLayout c    (534, 585)   id=node_container               text='' desc=''
+  TextView            (64, 565)    id=node_child_numbers           text='9' desc=''
+  ImageView           (127, 585)   id=node_icon                    text='' desc=''
+  TextView            (247, 559)   id=node_text                    text='G' desc=''
+  RecyclerView        (389, 614)   id=node_tags_list_view          text='' desc=''
+  TextView       c    (328, 611)   id=tag_name                     text='kpg.reader' desc=''
+  TextView       c    (486, 611)   id=tag_name                     text='team' desc=''
+  ImageView           (981, 585)   id=node_image_identifier        text='' desc=''
+  RelativeLayout c    (534, 739)   id=node_container               text='' desc=''
+  TextView            (64, 719)    id=node_child_numbers           text='4' desc=''
+  ImageView           (127, 739)   id=node_icon                    text='' desc=''
+  TextView            (275, 738)   id=node_text                    text='KPG' desc=''
+  ImageView           (981, 739)   id=node_image_identifier        text='' desc=''
+  RelativeLayout c    (534, 893)   id=node_container               text='' desc=''
+  TextView            (64, 873)    id=node_child_numbers           text='0' desc=''
+  ImageView           (127, 893)   id=node_icon                    text='' desc=''
+  TextView            (344, 892)   id=node_text                    text='Recycle Bin' desc=''
+  ImageView           (981, 893)   id=node_image_identifier        text='' desc=''
+  ViewGroup           (540, 2033)  id=activity_group_footer        text='' desc=''
+  ImageButton    c    (90, 2033)   id=lock_button                  text='' desc='Lock'
+  View                (540, 72)    id=statusBarBackground          text='' desc=''
+  View                (0, 0)       id=navigationBarBackground      text='' desc=''
+[2026-11-15T18:49:36.380Z] FAILED: tap: no node matches More.options#2
+total 12
+-rw------- 1 u0_a160 u0_a160 7941 2026-11-15 17:55:55.000000000 +0100 kpdx-rename-g.kdbx
+device kpdx-rename-g.kdbx sha256 bd84dd4785579e8705bd12f3fe4d53a2e342be2e88c64875413ef8b336dc11ae
+/sdcard/Download/kpdx-rename-g.kdbx: 1 file pulled, 0 skipped. 0.1 MB/s (7941 bytes in 0.055s)
+### flow rc=1 2026-11-15T18:49:38.991Z

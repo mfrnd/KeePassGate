@@ -1,0 +1,83 @@
+1c1
+< # file S-argon.kdbx size=7941 sha256=bd84dd4785579e8705bd12f3fe4d53a2e342be2e88c64875413ef8b336dc11ae
+---
+> # file into-phone.kdbx size=8277 sha256=4311da7d7e26e2272a488edac7940fe2fddbc31db43a3afecf9e018cbbd2f66e
+89a90,105
+> E Gm H2026-11-01T10:35:00Z S KPG.Marker p=0 "{\"marker\":\"G\",\"rules\":{\"reader\":\".R...L..\"}}"
+> E Gm H2026-11-01T10:35:00Z S Notes p=0 ""
+> E Gm H2026-11-01T10:35:00Z S Password p=1 ""
+> E Gm H2026-11-01T10:35:00Z S Title p=0 "KPG marker"
+> E Gm H2026-11-01T10:35:00Z S URL p=0 ""
+> E Gm H2026-11-01T10:35:00Z S UserName p=0 ""
+> E Gm H2026-11-01T10:35:00Z autotype enabled=1 obfuscation=0 seq="" assoc=0
+> E Gm H2026-11-01T10:35:00Z misc icon=0 customIcon=- fg=00000000 bg=00000000 overrideUrl="" quality=1
+> E Gm H2026-11-01T10:35:00Z prev -
+> E Gm H2026-11-01T10:35:00Z t.accessed 2026-11-15T17:12:29Z
+> E Gm H2026-11-01T10:35:00Z t.created 2026-11-01T10:35:00Z
+> E Gm H2026-11-01T10:35:00Z t.expires 0 2026-11-01T10:00:00Z
+> E Gm H2026-11-01T10:35:00Z t.location 2026-11-01T10:35:00Z
+> E Gm H2026-11-01T10:35:00Z t.modified 2026-11-01T10:35:00Z
+> E Gm H2026-11-01T10:35:00Z tags []
+> E Gm H2026-11-01T10:35:00Z usage 1
+93c109
+< E Gm S Title p=0 "KPG marker"
+---
+> E Gm S Title p=0 "KPG marker-phone"
+97c113
+< E Gm history.count 0
+---
+> E Gm history.count 1
+101c117
+< E Gm t.accessed 2026-11-01T10:35:00Z
+---
+> E Gm t.accessed 2026-11-15T17:12:53Z
+105c121
+< E Gm t.modified 2026-11-01T10:35:00Z
+---
+> E Gm t.modified 2026-11-15T17:12:53Z
+107c123
+< E Gm usage 0
+---
+> E Gm usage 2
+215a232,252
+> E R1 H2026-11-01T14:00:00Z A authority.p12 p=1 len=3000 sha=86f51de7a0078da7
+> E R1 H2026-11-01T14:00:00Z CD KPG.cd = "{\"control\":\"entry custom data on R1\"}"
+> E R1 H2026-11-01T14:00:00Z S KPG.20261115T101500Z.a1b2 p=0 "{\"at\":\"2026-11-15T10:15:00Z\",\"op\":\"grant\"}"
+> E R1 H2026-11-01T14:00:00Z S KPG.20261115T101501Z.c3d4 p=1 "{\"at\":\"2026-11-15T10:15:01Z\",\"op\":\"revoke\"}"
+> E R1 H2026-11-01T14:00:00Z S KPG.Record p=0 len=2861 sha=50a33282b06760c8 "{\"kind\":\"record\",\"version\":3,\"items\":[{\"i\":0,\"nam..."
+> E R1 H2026-11-01T14:00:00Z S KPG.Secret p=1 "{\"key\":\"invented-secret-v1\"}"
+> E R1 H2026-11-01T14:00:00Z S Notes p=0 "{\"kind\":\"record\",\"n\":1,\"in\":\"notes\"}"
+> E R1 H2026-11-01T14:00:00Z S Password p=1 "pw-r1-not-real"
+> E R1 H2026-11-01T14:00:00Z S Title p=0 "KPG record 1"
+> E R1 H2026-11-01T14:00:00Z S URL p=0 "kpg://record/1"
+> E R1 H2026-11-01T14:00:00Z S UserName p=0 "kpg-r1"
+> E R1 H2026-11-01T14:00:00Z autotype enabled=1 obfuscation=0 seq="" assoc=0
+> E R1 H2026-11-01T14:00:00Z misc icon=0 customIcon=- fg=00000000 bg=00000000 overrideUrl="" quality=1
+> E R1 H2026-11-01T14:00:00Z prev -
+> E R1 H2026-11-01T14:00:00Z t.accessed 2026-11-15T17:11:43Z
+> E R1 H2026-11-01T14:00:00Z t.created 2026-11-01T11:00:00Z
+> E R1 H2026-11-01T14:00:00Z t.expires 0 2026-11-01T10:00:00Z
+> E R1 H2026-11-01T14:00:00Z t.location 2026-11-01T11:00:00Z
+> E R1 H2026-11-01T14:00:00Z t.modified 2026-11-01T14:00:00Z
+> E R1 H2026-11-01T14:00:00Z tags [kpg;record]
+> E R1 H2026-11-01T14:00:00Z usage 1
+222c259
+< E R1 S Title p=0 "KPG record 1"
+---
+> E R1 S Title p=0 "KPG record 1-phone"
+226c263
+< E R1 history.count 3
+---
+> E R1 history.count 4
+230c267
+< E R1 t.accessed 2026-11-01T14:00:00Z
+---
+> E R1 t.accessed 2026-11-15T17:12:07Z
+234c271
+< E R1 t.modified 2026-11-01T14:00:00Z
+---
+> E R1 t.modified 2026-11-15T17:12:06Z
+236c273
+< E R1 usage 0
+---
+> E R1 usage 3

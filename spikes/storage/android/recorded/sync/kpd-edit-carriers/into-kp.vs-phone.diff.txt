@@ -1,0 +1,14 @@
+1c1
+< # file kpd-edit-carriers.kdbx size=7525 sha256=3e126a4c9a0ce927d65946288043a739a6b45cc3daf148819226db7699a88bd8
+---
+> # file into-kp.kdbx size=8181 sha256=435ca1dbd86fc882bae36281b9074ba634d5cd59d8b3a87d69a9d7a401b4ac85
+230a231
+> E R1 H2026-11-01T14:00:00Z CD KPG.cd = "{\"control\":\"entry custom data on R1\"}"
+243c244
+< E R1 H2026-11-01T14:00:00Z t.accessed 2026-11-15T18:03:29Z
+---
+> E R1 H2026-11-01T14:00:00Z t.accessed 2026-11-01T14:00:00Z
+249c250
+< E R1 H2026-11-01T14:00:00Z usage 1
+---
+> E R1 H2026-11-01T14:00:00Z usage 0

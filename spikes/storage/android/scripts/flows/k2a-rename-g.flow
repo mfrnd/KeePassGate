@@ -1,0 +1,12 @@
+# Step 4, Keepass2Android: open, select group G (long press), Edit, append -phone to its name, OK
+# (the group dialog holds a name and an icon only: no notes, measured by listing it).
+include k2a-open.flow
+longpress ^G$
+tap menu_edit
+waitfor group_name 20
+list
+append group_name -phone
+tap ok@^OK$
+waitfor ^G-phone$ 60
+sleep 5
+list

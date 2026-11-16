@@ -1,0 +1,16 @@
+# Overwrite, Keepass2Android, replacement while the program is in the background: open OLD and
+# unlock, HOME, replace.sh puts ${ARRIVING} over the file at time ${TMODE}, bring the program back,
+# then add an entry ${ENTRY} at the root and save, answering a "Merge changes?" question with
+# ${ANSWER}.
+include k2a-open.flow
+sleep 2
+key HOME
+sleep 3
+host sh ${P}/replace.sh /sdcard/Download/${NAME}.kdbx ${SRCDIR}/${ARRIVING}.kdbx ${TMODE}
+sleep 2
+sh monkey -p ${PKG} -c android.intent.category.LAUNCHER 1
+sleep 5
+dialog
+list
+waitfor fabAddNew 30
+include k2a-ow-edit.flow

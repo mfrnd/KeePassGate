@@ -1,0 +1,14 @@
+1c1
+< # file kpd-edit-e1.kdbx size=7349 sha256=2762884ededa7866975b451674fcd8fb6911a2741a0a4ebc2e5b961ca105a149
+---
+> # file into-kp.kdbx size=7973 sha256=e48d1a06a465db81de580adf5afdad13a9ff98b5dfde90058f7fbf293cb7728c
+54a55
+> E E1 H2026-11-01T14:00:00Z CD KPG = "{\"reader\":[\"read\",\"list\"]}"
+64c65
+< E E1 H2026-11-01T14:00:00Z t.accessed 2026-11-15T18:01:58Z
+---
+> E E1 H2026-11-01T14:00:00Z t.accessed 2026-11-01T14:00:00Z
+70c71
+< E E1 H2026-11-01T14:00:00Z usage 1
+---
+> E E1 H2026-11-01T14:00:00Z usage 0

@@ -1,0 +1,12 @@
+1c1
+< # file kpdx-merge-fromPC-r1.kdbx size=9353 sha256=1f543c2ac57b43c47426ab9baf72aa361c89cd015166d145fe8aa9d0b17814e5
+---
+> # file into-phone.kdbx size=10085 sha256=894c3685ca11e1440a99520fd20784e7019e7f2cd3af2ed0851a6de27ca993e8
+177c177
+< E M2 S KPG.20261115T130000Z.p p=0 "{\"side\":\"P\",\"cell\":\"equal times\"}"
+---
+> E M2 S KPG.20261115T130000Z.c p=0 "{\"side\":\"C\",\"cell\":\"equal times\"}"
+522c522
+< G Root t.accessed 2026-11-15T18:21:51Z
+---
+> G Root t.accessed 2026-11-01T10:00:00Z

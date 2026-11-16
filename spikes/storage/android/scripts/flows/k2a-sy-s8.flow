@@ -1,0 +1,14 @@
+# Case 8, reopening after the server's file changed while the database was closed: open; lock;
+# Close database; SNEW-fixed put on the server; start again, unlock, look; Synchronize; look.
+include k2a-sy-open.flow
+tap menu_lock
+waitfor QuickUnlock_buttonLock 20
+tap QuickUnlock_buttonLock
+sleep 3
+host sh ${P}/srv-put.sh ${SNAME} ${SRCDIR}/SNEW-fixed.kdbx
+include k2a-reopen.flow
+host sh ${P}/events.sh 5 after-reopen
+include k2a-sy-look.flow
+host sh ${P}/pull-cache.sh ${W} cache-after-reopen
+include k2a-sy-sync.flow
+include k2a-sy-look.flow

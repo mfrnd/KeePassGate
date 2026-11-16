@@ -1,0 +1,125 @@
+### 2026-11-15T17:43:35.497Z op k2a delete flow=k2a-delete.flow base=S-argon (versionName=1.15-r6)
+Success
+<work>/work/base/S-argon.kdbx: 1 file pushed, 0 skipped. 0.9 MB/s (7941 bytes in 0.008s)
+pushed sha256 bd84dd4785579e8705bd12f3fe4d53a2e342be2e88c64875413ef8b336dc11ae
+[2026-11-15T17:43:36.587Z] k2a-delete.flow:4 include k2a-open.flow
+[2026-11-15T17:43:36.595Z] k2a-open.flow:4 sh monkey -p keepass2android.keepass2android -c android.intent.category.LAUNCHER 1
+  bash arg: -p
+  bash arg: keepass2android.keepass2android
+  bash arg: -c
+  bash arg: android.intent.category.LAUNCHER
+  bash arg: 1
+Events injected: 1
+## Network stats: elapsed time=106ms (0ms mobile, 0ms wifi, 106ms not connected)
+args: [-p, keepass2android.keepass2android, -c, android.intent.category.LAUNCHER, 1]
+ arg: "-p"
+ arg: "keepass2android.keepass2android"
+ arg: "-c"
+ arg: "android.intent.category.LAUNCHER"
+ arg: "1"
+data="keepass2android.keepass2android"
+data="android.intent.category.LAUNCHER"
+[2026-11-15T17:43:37.510Z] k2a-open.flow:5 clear ^OK$ start_open_file 40
+[2026-11-15T17:43:42.630Z]   cleared 'Change log' with (859, 1883)
+[2026-11-15T17:43:45.975Z] k2a-open.flow:6 tap start_open_file
+[2026-11-15T17:43:48.700Z]   tapped (540, 1025) 'Open file...'
+[2026-11-15T17:43:48.702Z] k2a-open.flow:7 tap ^System.file.picker$
+[2026-11-15T17:43:52.586Z]   tapped (229, 516) 'System file picker'
+[2026-11-15T17:43:52.589Z] k2a-open.flow:8 waitfor Show.roots 20
+[2026-11-15T17:43:55.446Z] k2a-open.flow:9 include picker.flow
+[2026-11-15T17:43:55.453Z] picker.flow:4 pick k2a-delete.kdbx
+[2026-11-15T17:44:03.666Z]   focused and entered '^k2a\\-delete\\.kdbx$'
+[2026-11-15T17:44:03.667Z] k2a-open.flow:10 waitfor password_edit 30
+[2026-11-15T17:44:08.127Z] k2a-open.flow:11 typepwck password_edit dummy-password-for-a-throwaway-file
+[2026-11-15T17:44:21.443Z]   typed the password (35 characters)
+[2026-11-15T17:44:21.444Z] k2a-open.flow:12 tap pass_ok
+[2026-11-15T17:44:24.386Z]   tapped (942, 1437) 'Unlock'
+[2026-11-15T17:44:24.388Z] k2a-open.flow:13 waitfor fabAddNew 60
+[2026-11-15T17:44:30.791Z] k2a-delete.flow:5 tap ^G$
+[2026-11-15T17:44:33.672Z]   tapped (216, 386) 'G'
+[2026-11-15T17:44:33.678Z] k2a-delete.flow:6 longpress ^E2$
+[2026-11-15T17:44:38.109Z]   long-pressed (229, 728) 'E2'
+[2026-11-15T17:44:38.110Z] k2a-delete.flow:7 tap menu_delete
+[2026-11-15T17:44:40.890Z]   tapped (750, 233) 'Delete'
+[2026-11-15T17:44:40.893Z] k2a-delete.flow:8 waitfor ^Delete.permanently 20
+[2026-11-15T17:44:43.566Z] k2a-delete.flow:9 list
+  FrameLayout         (540, 1176)  id=action_bar_root              text='' desc=''
+  FrameLayout         (540, 1176)  id=content                      text='' desc=''
+  LinearLayoutCompat      (540, 1176)  id=parentPanel                  text='' desc=''
+  LinearLayout        (540, 990)   id=topPanel                     text='' desc=''
+  LinearLayout        (540, 968)   id=title_template               text='' desc=''
+  TextView            (458, 993)   id=alertTitle                   text='Delete permanently?' desc=''
+  View                (540, 1059)  id=titleDividerNoCustom         text='' desc=''
+  FrameLayout         (540, 1162)  id=contentPanel                 text='' desc=''
+  ScrollView          (540, 1162)  id=scrollView                   text='' desc=''
+  TextView            (540, 1162)  id=message                      text='Do you want to delete the selected elements permanently? Press No to recycle. (content://k2a-delete.kdbx)' desc=''
+  ScrollView          (540, 1349)  id=buttonPanel                  text='' desc=''
+  Button         c    (253, 1349)  id=button3                      text='Cancel' desc=''
+  Button         c    (634, 1349)  id=button2                      text='No' desc=''
+  Button         c    (832, 1349)  id=button1                      text='Yes' desc=''
+[2026-11-15T17:44:45.649Z] k2a-delete.flow:10 tap ^No$
+[2026-11-15T17:44:48.637Z]   tapped (634, 1349) 'No'
+[2026-11-15T17:44:48.639Z] k2a-delete.flow:11 gone ^E2$ 60
+[2026-11-15T17:44:51.293Z] k2a-delete.flow:12 sleep 5
+[2026-11-15T17:44:56.295Z] k2a-delete.flow:13 adb pull /sdcard/Download/k2a-delete.kdbx <work>/work/runs/k2a/delete/mid-recycled.kdbx
+/sdcard/Download/k2a-delete.kdbx: 1 file pulled, 0 skipped. 0.1 MB/s (7909 bytes in 0.058s)
+[2026-11-15T17:44:56.380Z] k2a-delete.flow:14 tap Navigate.up
+[2026-11-15T17:44:59.061Z]   tapped (77, 233) 'Navigate up'
+[2026-11-15T17:44:59.063Z] k2a-delete.flow:15 tap ^Recycle.Bin$
+[2026-11-15T17:45:02.348Z]   tapped (338, 734) 'Recycle Bin'
+[2026-11-15T17:45:02.351Z] k2a-delete.flow:16 longpress ^E2$
+[2026-11-15T17:45:07.158Z]   long-pressed (229, 380) 'E2'
+[2026-11-15T17:45:07.159Z] k2a-delete.flow:17 tap menu_delete
+[2026-11-15T17:45:10.244Z]   tapped (750, 233) 'Delete'
+[2026-11-15T17:45:10.250Z] k2a-delete.flow:18 waitfor ^Delete.permanently 20
+[2026-11-15T17:45:12.340Z] k2a-delete.flow:19 list
+  FrameLayout         (540, 1176)  id=action_bar_root              text='' desc=''
+  FrameLayout         (540, 1176)  id=content                      text='' desc=''
+  LinearLayoutCompat      (540, 1176)  id=parentPanel                  text='' desc=''
+  LinearLayout        (540, 990)   id=topPanel                     text='' desc=''
+  LinearLayout        (540, 968)   id=title_template               text='' desc=''
+  TextView            (458, 993)   id=alertTitle                   text='Delete permanently?' desc=''
+  View                (540, 1059)  id=titleDividerNoCustom         text='' desc=''
+  FrameLayout         (540, 1162)  id=contentPanel                 text='' desc=''
+  ScrollView          (540, 1162)  id=scrollView                   text='' desc=''
+  TextView            (540, 1162)  id=message                      text='Do you want to delete the selected elements permanently? (content://k2a-delete.kdbx)' desc=''
+  ScrollView          (540, 1349)  id=buttonPanel                  text='' desc=''
+  Button         c    (253, 1349)  id=button3                      text='Cancel' desc=''
+  Button         c    (832, 1349)  id=button1                      text='Yes' desc=''
+[2026-11-15T17:45:14.366Z] k2a-delete.flow:20 tap ^Yes$
+[2026-11-15T17:45:17.232Z]   tapped (832, 1349) 'Yes'
+[2026-11-15T17:45:17.236Z] k2a-delete.flow:21 gone ^E2$ 60
+[2026-11-15T17:45:19.816Z] k2a-delete.flow:22 sleep 5
+[2026-11-15T17:45:24.818Z] k2a-delete.flow:23 list
+  ViewGroup           (540, 1036)  id=decor_content_parent         text='' desc=''
+  FrameLayout         (540, 1036)  id=content                      text='' desc=''
+  ViewGroup           (540, 1024)  id=main_content                 text='' desc=''
+  FrameLayout         (540, 1024)  id=list_fragment                text='' desc=''
+  FrameLayout         (540, 1024)  id=listContainer                text='' desc=''
+  ListView       f    (540, 1024)  id=list                         text='' desc=''
+  ImageButton    c    (959, 1409)  id=fabSearch                    text='' desc=''
+  ImageButton    c    (959, 1607)  id=fabAddNew                    text='' desc=''
+  View                (540, 1729)  id=divider2                     text='' desc=''
+  RelativeLayout      (540, 1901)  id=bottom_bar                   text='' desc=''
+  LinearLayout        (540, 1901)  id=autofill_infotext            text='' desc=''
+  TextView            (540, 1803)  id=myinfotext                   text="Keepass2Android supports Android's Autofill feature but it looks like you haven't enabled it yet." desc=''
+  RelativeLayout      (540, 1959)  id=autofill_buttons             text='' desc=''
+  Button         c    (183, 1959)  id=enable_autofill              text='Enable Autofill' desc=''
+  Button         c    (860, 1959)  id=show_autofill_info           text='Show Autofill help' desc=''
+  Button         c    (540, 2065)  id=info_dont_show_autofill_again text='Do not show again' desc=''
+  FrameLayout         (540, 233)   id=action_bar_container         text='' desc=''
+  ViewGroup           (540, 233)   id=action_bar                   text='' desc=''
+  ImageButton    c    (77, 233)    id=                             text='' desc='Navigate up'
+  TextView            (321, 233)   id=                             text='Recycle Bin' desc=''
+  LinearLayoutCompat      (771, 233)   id=menu_search                  text='' desc=''
+  LinearLayout        (771, 233)   id=search_bar                   text='' desc=''
+  ImageView      c    (771, 233)   id=search_button                text='' desc='Search'
+  Button         c    (903, 233)   id=menu_lock                    text='' desc='Lock Database'
+  ImageView      c    (1024, 233)  id=                             text='' desc='More options'
+  View                (540, 72)    id=statusBarBackground          text='' desc=''
+  View                (0, 0)       id=navigationBarBackground      text='' desc=''
+total 12
+-rw------- 1 u0_a160 u0_a160 7861 2026-11-15 18:45:16.160000000 +0100 k2a-delete.kdbx
+device k2a-delete.kdbx sha256 7ad9745a402749fc699ac683ad5e86e6fb7a5ad58d92215ac1ee64ba49e17acd
+/sdcard/Download/k2a-delete.kdbx: 1 file pulled, 0 skipped. 0.2 MB/s (7861 bytes in 0.046s)
+### flow rc=0 2026-11-15T17:45:29.256Z

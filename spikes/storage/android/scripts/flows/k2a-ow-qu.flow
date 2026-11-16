@@ -1,0 +1,22 @@
+# Window (b) with QuickUnlock, Keepass2Android, on a device with a screen lock (so QuickUnlock is
+# offered): open OLD and unlock; lock with its own button; replace.sh puts ${ARRIVING} over the file
+# at time ${TMODE} while locked; QuickUnlock with the password's last three characters; look into
+# KPG; then add an entry ${ENTRY} at the root and save, answering a "Merge changes?" question with
+# ${ANSWER}.
+include k2a-open.flow
+sleep 2
+tap menu_lock
+waitfor QuickUnlock_password 20
+sleep 2
+dialog
+list
+host sh ${P}/replace.sh /sdcard/Download/${NAME}.kdbx ${SRCDIR}/${ARRIVING}.kdbx ${TMODE}
+sleep 2
+typepw QuickUnlock_password ile
+tap QuickUnlock_button$
+include k2a-after-qu.flow
+sleep 3
+dialog
+waitfor fabAddNew 60
+include k2a-look-kpg.flow
+include k2a-ow-edit.flow

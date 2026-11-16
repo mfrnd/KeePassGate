@@ -1,0 +1,13 @@
+kpd kpd-ow-fg.flow com.android.keepass OLD fg-later-diff-r1 ARRIVING=NEW-diff TMODE=later ENTRY=phone-fg-later-diff-r1
+kpd kpd-ow-fg.flow com.android.keepass OLD fg-later-diff-r2 ARRIVING=NEW-diff TMODE=later ENTRY=phone-fg-later-diff-r2
+kpd kpd-ow-fg.flow com.android.keepass OLD fg-later-diff-r3 ARRIVING=NEW-diff TMODE=later ENTRY=phone-fg-later-diff-r3
+kpd kpd-ow-lock.flow com.android.keepass OLD lock-later-diff-r1 ARRIVING=NEW-diff TMODE=later ENTRY=phone-lock-later-diff-r1
+k2a k2a-ow-close.flow keepass2android.keepass2android OLD close-later-diff-r1 ARRIVING=NEW-diff TMODE=later ANSWER=none ENTRY=phone-close-later-diff-r1
+k2a k2a-ow-close.flow keepass2android.keepass2android OLD close-later-diff-r2 ARRIVING=NEW-diff TMODE=later ANSWER=none ENTRY=phone-close-later-diff-r2
+k2a k2a-ow-close.flow keepass2android.keepass2android OLD close-later-diff-r3 ARRIVING=NEW-diff TMODE=later ANSWER=none ENTRY=phone-close-later-diff-r3
+k2a k2a-ow-openclose.flow keepass2android.keepass2android OLD openclose-later-diff-r1 ARRIVING=NEW-diff TMODE=later ANSWER=none ENTRY=phone-openclose-later-diff-r1
+k2a k2a-ow-look.flow keepass2android.keepass2android OLD look-later-diff-r1 ARRIVING=NEW-diff TMODE=later
+k2a k2a-ow-look.flow keepass2android.keepass2android OLD look-later-diff-r2 ARRIVING=NEW-diff TMODE=later
+k2a k2a-ow-sync.flow keepass2android.keepass2android OLD sync-later-diff-r1 ARRIVING=NEW-diff TMODE=later ANSWER=none ENTRY=phone-sync-later-diff-r1
+k2a k2a-ow-setting.flow keepass2android.keepass2android OLD nocheck-later-diff-r1 ARRIVING=NEW-diff TMODE=later ANSWER=none ENTRY=phone-nocheck-later-diff-r1 SETTING=^Check.for.modifications$ WAIT=3
+k2a k2a-ow-setting.flow keepass2android.keepass2android OLD nocheck-later-diff-r2 ARRIVING=NEW-diff TMODE=later ANSWER=none ENTRY=phone-nocheck-later-diff-r2 SETTING=^Check.for.modifications$ WAIT=3

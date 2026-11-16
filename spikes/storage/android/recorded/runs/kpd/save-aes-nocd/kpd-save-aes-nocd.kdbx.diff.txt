@@ -1,0 +1,44 @@
+1c1
+< # file S-aes-nocd.kdbx size=7783 sha256=daf8d6c87a93e25d960ead7a72bda245868f8d8044117064275fe65be398c9d6
+---
+> # file kpd-save-aes-nocd.kdbx size=7335 sha256=6ac64af76d8cd3d5f9c1eeae2c0b231e73a7e31f2008ccdfba9ce6de839e6db6
+338a339,365
+> E ~f34c1467 H2026-11-15T17:52:38Z autotype enabled=1 obfuscation=0 seq="" assoc=0
+> E ~f34c1467 H2026-11-15T17:52:38Z misc icon=1 customIcon=- fg=00000000 bg=00000000 overrideUrl="" quality=1
+> E ~f34c1467 H2026-11-15T17:52:38Z prev -
+> E ~f34c1467 H2026-11-15T17:52:38Z t.accessed 2026-11-15T17:52:38Z
+> E ~f34c1467 H2026-11-15T17:52:38Z t.created 2026-11-15T17:52:38Z
+> E ~f34c1467 H2026-11-15T17:52:38Z t.expires 0 2026-11-15T17:52:30Z
+> E ~f34c1467 H2026-11-15T17:52:38Z t.location 2026-11-15T17:52:30Z
+> E ~f34c1467 H2026-11-15T17:52:38Z t.modified 2026-11-15T17:52:38Z
+> E ~f34c1467 H2026-11-15T17:52:38Z tags []
+> E ~f34c1467 H2026-11-15T17:52:38Z usage 0
+> E ~f34c1467 S Notes p=0 ""
+> E ~f34c1467 S Password p=1 ""
+> E ~f34c1467 S Title p=0 "droid-added"
+> E ~f34c1467 S URL p=0 ""
+> E ~f34c1467 S UserName p=0 ""
+> E ~f34c1467 autotype enabled=1 obfuscation=0 seq="" assoc=0
+> E ~f34c1467 history.count 1
+> E ~f34c1467 misc icon=1 customIcon=- fg=00000000 bg=00000000 overrideUrl="" quality=1
+> E ~f34c1467 parent Root (Storage probe)
+> E ~f34c1467 prev -
+> E ~f34c1467 t.accessed 2026-11-15T17:52:53Z
+> E ~f34c1467 t.created 2026-11-15T17:52:38Z
+> E ~f34c1467 t.expires 0 2026-11-15T17:52:30Z
+> E ~f34c1467 t.location 2026-11-15T17:52:30Z
+> E ~f34c1467 t.modified 2026-11-15T17:52:53Z
+> E ~f34c1467 tags []
+> E ~f34c1467 usage 0
+341c368
+< F groups 5 entries 13
+---
+> F groups 5 entries 14
+396c423
+< G Root children groups=3 entries=0
+---
+> G Root children groups=3 entries=1
+419c446
+< M settingsChanged 2026-11-01T10:00:00Z
+---
+> M settingsChanged 2026-11-15T17:56:02Z

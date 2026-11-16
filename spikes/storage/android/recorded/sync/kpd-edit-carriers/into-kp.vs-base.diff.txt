@@ -1,0 +1,117 @@
+1c1
+< # file S-argon.kdbx size=7941 sha256=bd84dd4785579e8705bd12f3fe4d53a2e342be2e88c64875413ef8b336dc11ae
+---
+> # file into-kp.kdbx size=8181 sha256=435ca1dbd86fc882bae36281b9074ba634d5cd59d8b3a87d69a9d7a401b4ac85
+6d5
+< E E1 CD KPG = "{\"reader\":[\"read\",\"list\"]}"
+89a89,104
+> E Gm H2026-11-01T10:35:00Z S KPG.Marker p=0 "{\"marker\":\"G\",\"rules\":{\"reader\":\".R...L..\"}}"
+> E Gm H2026-11-01T10:35:00Z S Notes p=0 ""
+> E Gm H2026-11-01T10:35:00Z S Password p=1 ""
+> E Gm H2026-11-01T10:35:00Z S Title p=0 "KPG marker"
+> E Gm H2026-11-01T10:35:00Z S URL p=0 ""
+> E Gm H2026-11-01T10:35:00Z S UserName p=0 ""
+> E Gm H2026-11-01T10:35:00Z autotype enabled=1 obfuscation=0 seq="" assoc=0
+> E Gm H2026-11-01T10:35:00Z misc icon=0 customIcon=- fg=00000000 bg=00000000 overrideUrl="" quality=1
+> E Gm H2026-11-01T10:35:00Z prev -
+> E Gm H2026-11-01T10:35:00Z t.accessed 2026-11-15T18:04:12Z
+> E Gm H2026-11-01T10:35:00Z t.created 2026-11-01T10:35:00Z
+> E Gm H2026-11-01T10:35:00Z t.expires 0 2026-11-01T10:00:00Z
+> E Gm H2026-11-01T10:35:00Z t.location 2026-11-01T10:35:00Z
+> E Gm H2026-11-01T10:35:00Z t.modified 2026-11-01T10:35:00Z
+> E Gm H2026-11-01T10:35:00Z tags []
+> E Gm H2026-11-01T10:35:00Z usage 1
+93c108
+< E Gm S Title p=0 "KPG marker"
+---
+> E Gm S Title p=0 "KPG marker-phone"
+97c112
+< E Gm history.count 0
+---
+> E Gm history.count 1
+101c116
+< E Gm t.accessed 2026-11-01T10:35:00Z
+---
+> E Gm t.accessed 2026-11-15T18:04:35Z
+105c120
+< E Gm t.modified 2026-11-01T10:35:00Z
+---
+> E Gm t.modified 2026-11-15T18:04:35Z
+107c122
+< E Gm usage 0
+---
+> E Gm usage 2
+162d176
+< E R1 CD KPG.cd = "{\"control\":\"entry custom data on R1\"}"
+215a230,250
+> E R1 H2026-11-01T14:00:00Z A authority.p12 p=1 len=3000 sha=86f51de7a0078da7
+> E R1 H2026-11-01T14:00:00Z CD KPG.cd = "{\"control\":\"entry custom data on R1\"}"
+> E R1 H2026-11-01T14:00:00Z S KPG.20261115T101500Z.a1b2 p=0 "{\"at\":\"2026-11-15T10:15:00Z\",\"op\":\"grant\"}"
+> E R1 H2026-11-01T14:00:00Z S KPG.20261115T101501Z.c3d4 p=1 "{\"at\":\"2026-11-15T10:15:01Z\",\"op\":\"revoke\"}"
+> E R1 H2026-11-01T14:00:00Z S KPG.Record p=0 len=2861 sha=50a33282b06760c8 "{\"kind\":\"record\",\"version\":3,\"items\":[{\"i\":0,\"nam..."
+> E R1 H2026-11-01T14:00:00Z S KPG.Secret p=1 "{\"key\":\"invented-secret-v1\"}"
+> E R1 H2026-11-01T14:00:00Z S Notes p=0 "{\"kind\":\"record\",\"n\":1,\"in\":\"notes\"}"
+> E R1 H2026-11-01T14:00:00Z S Password p=1 "pw-r1-not-real"
+> E R1 H2026-11-01T14:00:00Z S Title p=0 "KPG record 1"
+> E R1 H2026-11-01T14:00:00Z S URL p=0 "kpg://record/1"
+> E R1 H2026-11-01T14:00:00Z S UserName p=0 "kpg-r1"
+> E R1 H2026-11-01T14:00:00Z autotype enabled=1 obfuscation=0 seq="" assoc=0
+> E R1 H2026-11-01T14:00:00Z misc icon=0 customIcon=- fg=00000000 bg=00000000 overrideUrl="" quality=1
+> E R1 H2026-11-01T14:00:00Z prev -
+> E R1 H2026-11-01T14:00:00Z t.accessed 2026-11-01T14:00:00Z
+> E R1 H2026-11-01T14:00:00Z t.created 2026-11-01T11:00:00Z
+> E R1 H2026-11-01T14:00:00Z t.expires 0 2026-11-01T10:00:00Z
+> E R1 H2026-11-01T14:00:00Z t.location 2026-11-01T11:00:00Z
+> E R1 H2026-11-01T14:00:00Z t.modified 2026-11-01T14:00:00Z
+> E R1 H2026-11-01T14:00:00Z tags [kpg;record]
+> E R1 H2026-11-01T14:00:00Z usage 0
+222c257
+< E R1 S Title p=0 "KPG record 1"
+---
+> E R1 S Title p=0 "KPG record 1-phone"
+226c261
+< E R1 history.count 3
+---
+> E R1 history.count 4
+230c265
+< E R1 t.accessed 2026-11-01T14:00:00Z
+---
+> E R1 t.accessed 2026-11-15T18:03:51Z
+234c269
+< E R1 t.modified 2026-11-01T14:00:00Z
+---
+> E R1 t.modified 2026-11-15T18:03:51Z
+236c271
+< E R1 usage 0
+---
+> E R1 usage 2
+359d393
+< G G CD KPG = "{\"reader\":[\"read\",\"list\"]}"
+366c400
+< G G t.accessed 2026-11-01T10:00:00Z
+---
+> G G t.accessed 2026-11-15T18:04:35Z
+370c404
+< G G t.modified 2026-11-01T10:30:00Z
+---
+> G G t.modified 2026-11-15T18:04:35Z
+379c413
+< G GKPG t.accessed 2026-11-01T10:10:00Z
+---
+> G GKPG t.accessed 2026-11-15T18:03:51Z
+383c417
+< G GKPG t.modified 2026-11-01T10:10:00Z
+---
+> G GKPG t.modified 2026-11-15T18:03:51Z
+405c439
+< G Root t.accessed 2026-11-01T10:00:00Z
+---
+> G Root t.accessed 2026-11-15T18:04:35Z
+409c443
+< G Root t.modified 2026-11-01T10:00:00Z
+---
+> G Root t.modified 2026-11-15T18:04:35Z
+422c456
+< M settingsChanged 2026-11-01T10:00:00Z
+---
+> M settingsChanged 2026-11-15T18:05:49Z

@@ -1,0 +1,39 @@
+1c1
+< # file kpdx-merge-fromCP-r1.kdbx size=9321 sha256=9ceaf9826dec553ae6c9b762d540e22582aafa18961eeb7e04e9a59eca2c4d2c
+---
+> # file into-phone.kdbx size=10085 sha256=95caa45191676c091a5c9979e78dc361bad61e3bdb49de00563bd98356477787
+4,5c4
+< D X2 2026-11-01T15:00:00Z
+< D count 3
+---
+> D count 2
+343a343,359
+> E X1 S Notes p=0 ""
+> E X1 S Password p=1 "pw-x1"
+> E X1 S Title p=0 "X1"
+> E X1 S URL p=0 ""
+> E X1 S UserName p=0 "user-x1"
+> E X1 autotype enabled=1 obfuscation=0 seq="" assoc=0
+> E X1 history.count 0
+> E X1 misc icon=0 customIcon=- fg=00000000 bg=00000000 overrideUrl="" quality=1
+> E X1 parent G (G)
+> E X1 prev -
+> E X1 t.accessed 2026-11-01T10:55:00Z
+> E X1 t.created 2026-11-01T10:55:00Z
+> E X1 t.expires 0 2026-11-01T10:00:00Z
+> E X1 t.location 2026-11-01T10:55:00Z
+> E X1 t.modified 2026-11-01T10:55:00Z
+> E X1 tags []
+> E X1 usage 0
+460c476
+< F groups 5 entries 14
+---
+> F groups 5 entries 15
+477c493
+< G G children groups=1 entries=6
+---
+> G G children groups=1 entries=7
+522c538
+< G Root t.accessed 2026-11-15T18:18:15Z
+---
+> G Root t.accessed 2026-11-01T10:00:00Z

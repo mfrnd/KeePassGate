@@ -1,0 +1,17 @@
+# Window (b) without QuickUnlock, Keepass2Android: open OLD and unlock; replace.sh puts ${ARRIVING}
+# over the file at time ${TMODE} while the database is open; then lock with its own button and press
+# "Close database" (QuickUnlock is blocked on a device with no screen lock); start the program again,
+# unlock with the password, look into KPG, then add an entry ${ENTRY} at the root and save,
+# answering a "Merge changes?" question with ${ANSWER}.
+include k2a-open.flow
+sleep 2
+host sh ${P}/replace.sh /sdcard/Download/${NAME}.kdbx ${SRCDIR}/${ARRIVING}.kdbx ${TMODE}
+sleep 3
+tap menu_lock
+waitfor QuickUnlock_buttonLock 20
+dialog
+tap QuickUnlock_buttonLock
+sleep 3
+include k2a-reopen.flow
+include k2a-look-kpg.flow
+include k2a-ow-edit.flow
