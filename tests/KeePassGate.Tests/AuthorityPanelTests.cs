@@ -636,6 +636,38 @@ namespace KeePassGate.Tests
             }
         }
 
+        [Test]
+        public void A_tab_whose_first_read_fails_unexpectedly_is_let_go_of_as_it_fails()
+        {
+            // A failure the read does not name escapes the constructor, so nothing outside ever
+            // holds the panel it was building, and the fonts, the tooltip and the timer it had
+            // already made were left to the garbage collector. Dropping the notice is the first
+            // thing disposing does, and the one part of it a test can see from outside.
+            var notice = new CountingNotice();
+            _database.Store.ThrowOnRead = new InvalidCastException("invented for the test");
+
+            Assert.That(
+                () => new AuthorityPanel(_database, new FakePrompt(true), _log, null, null, notice),
+                Throws.InstanceOf<InvalidCastException>());
+
+            Assert.That(notice.Added, Is.Zero, "a panel that failed was left listening");
+            Assert.That(notice.Removed, Is.EqualTo(1), "the panel that failed was never disposed");
+        }
+
+        /// <summary>A notice that counts who listens to it and who stops.</summary>
+        private sealed class CountingNotice : IAdmissionNotice
+        {
+            public int Added { get; private set; }
+
+            public int Removed { get; private set; }
+
+            public event EventHandler Landed
+            {
+                add { Added++; }
+                remove { Removed++; }
+            }
+        }
+
         /// <summary>A database whose custom data cannot even be asked for, which stops a tab being built.</summary>
         private sealed class UnreadableDatabase : IGateDatabase
         {
