@@ -8,7 +8,9 @@ carried over on trust. These are the rules every family of probes follows.
 
 - **One directory per family**, `spikes\storage\probes\<family>\`, named after the paper the probes
   belong to: the option's key for an option (`store-entries`), `ground-<key>` for a ground report
-  (`ground-keepass`). The CRDT models are `spikes\storage\model\` and the emulator measurement is
+  (`ground-keepass`). A measurement made after the first draft of the evaluation is named after
+  what it measures (`rollback-rule-models`), and its `RUN.md` names its report under
+  `papers\ground\`. The CRDT models are `spikes\storage\model\` and the emulator measurements are
   `spikes\storage\android\`, under the same rules.
 - **Inside an option's family, a directory per paper**: `design\`, `survival\` and
   `security-and-fit\`, because the design's probe and its critics' probes share file names. Below

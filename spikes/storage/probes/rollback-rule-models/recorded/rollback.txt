@@ -1,0 +1,413 @@
+rollback trial of two access rule models; today's answers: KeePassGate.Acl.AclResolver at a42e38aa
+arguments: 1000 30 20 20261116 4
+
+== control 1: the design's own trials, its generator and draws, 400 trees of 30 nodes, seed 20261115 ==
+   recorded in grant-only\design\recorded\model.txt, sections 2 and 4
+   the design's 18 answers per node and profile:
+   4. a random other document, today's model:    2802 trials, wider in  2428 (52209 answers), narrower in  2440
+   4. a random other document, grant-only:       2802 trials, wider in  2280 (55483 answers), narrower in  2287; wider without the older row holding a letter the newer lacks: 0
+   2. one rule lost, today's model:              3175 trials, wider in  1025 (12142 answers), narrower in  2834
+   2. one rule lost, grant-only:                 3175 trials, wider in     0 (0 answers), narrower in  2809
+   this harness's 14 cells (strip and delete once each, so cells differ from answers):
+   4. a random other document, today's model:    2802 trials, wider in  2428 (41135 cells), narrower in  2440
+   4. a random other document, grant-only:       2802 trials, wider in  2280 (43417 cells), narrower in  2287
+   2. one rule lost, today's model:              3175 trials, wider in  1025 (9464 cells), narrower in  2834
+   2. one rule lost, grant-only:                 3175 trials, wider in     0 (0 cells), narrower in  2809
+
+== sample: 1000 histories, trees of 30 nodes (the design's generator), three profiles, 20 edits each, seed 20261116 ==
+   histories 1000, edits 20000
+   models: today's; grant-only and its middle form, a row taken away whole withdrawn with the letters removed
+   (design 5.2); the same two, "row whole", with such a row withdrawn with all eight letters (design probe, scenario 04)
+   edits by kind: grant 7809, widen 2161, narrow 3097, empty rule 1975, seal 756, remove 1929, add below 1429, adds below 844
+
+   records written, by the kind of edit (today: documents changed; grant-only: grants, withdrawals, grants deleted;
+   middle form: grants, withdrawals, marks, lifts):
+   grant         7809 edits | today   7811 | grant-only  10001    44    25 | middle   7809     0   553    27
+   widen         2161 edits | today   2203 | grant-only   2871   141    35 | middle   2161     0   422    97
+   narrow        3097 edits | today   3144 | grant-only    335  3925  1005 | middle      0  3097   482   402
+   empty rule    1975 edits | today   2015 | grant-only   1531  2327  2686 | middle      0  1406   705   240
+   seal           756 edits | today    768 | grant-only   1564   946  1057 | middle      0     0   795    48
+   remove        1929 edits | today   1975 | grant-only    295  2728  2980 | middle      0  1771    13   557
+   add below     1429 edits | today   1434 | grant-only   2391   702   131 | middle   1357     0   720    26
+   adds below     844 edits | today    852 | grant-only    874    84    28 | middle    844     0    60     0
+
+   control 2, no loss: each model's table from its own store against the intent, after every edit
+   today's model          states 20000: the intent exactly 18201, narrower 1799 (4124 cells), wider 0; store unlike its own expression 0
+                          states it cannot give exactly 1799; states not the intent although it could give it 0
+   grant-only             states 20000: the intent exactly 11582, narrower 8418 (77056 cells), wider 0; store unlike its own expression 0
+                          states it cannot give exactly 8418; states not the intent although it could give it 0
+   middle form            states 20000: the intent exactly 19299, narrower 701 (3191 cells), wider 0; store unlike its own expression 0
+                          states it cannot give exactly 701; states not the intent although it could give it 0
+   grant-only, row whole  states 20000: the intent exactly 11582, narrower 8418 (77056 cells), wider 0; store unlike its own expression 0
+                          states it cannot give exactly 8418; states not the intent although it could give it 0
+   middle form, row whole states 20000: the intent exactly 19299, narrower 701 (3191 cells), wider 0; store unlike its own expression 0
+                          states it cannot give exactly 701; states not the intent although it could give it 0
+   by the kind of the last edit: states not the intent / edits that made an exact state inexact, per model
+   grant       | today's model 450 / 1 | grant-only 2537 / 208 | middle form 223 / 35
+   widen       | today's model 182 / 15 | grant-only 816 / 39 | middle form 51 / 3
+   narrow      | today's model 268 / 18 | grant-only 1170 / 25 | middle form 102 / 7
+   empty rule  | today's model 122 / 0 | grant-only 917 / 267 | middle form 66 / 22
+   seal        | today's model 92 / 0 | grant-only 756 / 276 | middle form 68 / 33
+   remove      | today's model 114 / 1 | grant-only 574 / 0 | middle form 33 / 0
+   add below   | today's model 169 / 0 | grant-only 1126 / 227 | middle form 101 / 24
+   adds below  | today's model 402 / 294 | grant-only 522 / 4 | middle form 57 / 14
+   first example, today's model, grant: grant reader at n25 =.R...L..; grant ops at n18 =.R...L..; grant agent at n14 =CRU..L..; remove ops at n18; adds below agent at n18 +CRU..L.P; grant ops at n11 =.R...LAP; narrow agent at n18 +CRU....P; remove agent at n14; add below ops at n21 =CR...LAP; grant ops at n25 =.R...L.P; grant reader at n29 =.R...LAP; grant agent at n9 =.R...LAP => n18/agent lacks R+A,L+A
+   first example, today's model, widen: grant ops at n5 =.R...L..; remove ops at n5; grant ops at n11 =.R...LA.; grant reader at n2 =CRU..L..; add below ops at n15 =.R..DLA.; widen reader at n2 =CRU..L.P; add below ops at n17 =.R...LAP; seal n27; widen ops at n11 =.R...LAP; empty rule ops at n15 =........; adds below ops at n14 +....D...; empty rule ops at n24 =........; widen ops at n14 +..U.D... => n14/ops lacks U; n18/ops lacks U
+   first example, today's model, narrow: grant reader at n12 =.R...L.P; narrow reader at n12 =.R...L..; widen reader at n12 =.R...L.P; grant agent at n14 =.R...L..; widen reader at n12 =CR...L.P; add below reader at n16 =CR...L..; grant ops at n27 =....D...; grant ops at n15 =.R...L..; widen ops at n15 =.R..DL..; grant reader at n21 =C.......; widen ops at n15 =.R..DL.P; widen agent at n14 =.RU..L..; empty rule reader at n16 =........; remove reader at n12; grant ops at n19 =CRUSDL..; narrow reader at n21 =........; narrow ops at n19 =CRUSD...; adds below ops at n29 +..U....P; narrow ops at n15 =.R..DL.. => n29/ops lacks U+P
+   first example, today's model, remove: grant ops at n17 =.R...L.P; narrow ops at n17 =.....L.P; adds below ops at n28 +CRU..L.P; adds below ops at n18 +.R...L..; grant agent at n7 =.R...L.P; grant reader at n23 =CRUSDLAP; remove ops at n28; empty rule agent at n18 =........; add below agent at n10 =.R...LAP; adds below agent at n17 +..U....P; adds below ops at n22 +CRUSDL..; remove agent at n17; grant reader at n9 =CRU..L..; empty rule ops at n18 =........; add below agent at n28 =.R...L..; remove ops at n18 => n22/ops lacks L+P
+   first example, today's model, adds below: grant reader at n6 =.R...L.P; grant agent at n24 =CRUSDLAP; widen reader at n6 =.R..DL.P; narrow agent at n24 =CRU.DLAP; empty rule reader at n6 =........; grant ops at n14 =.R...LAP; narrow agent at n24 =CRU.DL.P; grant reader at n3 =CRUSDLAP; add below reader at n21 =CRUS.LAP; remove agent at n24; grant agent at n9 =CRUSDL..; narrow agent at n9 =CRUSD...; grant ops at n22 =.R...LA.; adds below agent at n27 +.R...LAP => n27/agent lacks C,U
+   first example, grant-only, grant: grant reader at n6 =.R...L.P; grant agent at n24 =CRUSDLAP; widen reader at n6 =.R..DL.P; narrow agent at n24 =CRU.DLAP; empty rule reader at n6 =........; grant ops at n14 =.R...LAP; narrow agent at n24 =CRU.DL.P; grant reader at n3 =CRUSDLAP => n3/reader lacks C,C+A,C+P,R,R+A,R+P,U,U+A,U+P,L,L+A,L+P,S,D; n5/reader lacks C,C+A,C+P,R,R+A,R+P,U,U+A,U+P,L,L+A,L+P,S,D
+   first example, grant-only, widen: grant agent at n22 =C.......; widen agent at n22 =C.U.....; narrow agent at n22 =..U.....; add below agent at n23 =..U....P; narrow agent at n23 =.......P; empty rule agent at n22 =........; grant agent at n5 =C.......; grant ops at n15 =..U....P; grant reader at n5 =.R...LA.; remove reader at n5; remove agent at n5; grant ops at n27 =.R...L.P; grant agent at n1 =CRU..L.P; widen agent at n22 =....D... => n22/agent lacks D
+   first example, grant-only, narrow: grant agent at n22 =C.......; widen agent at n22 =C.U.....; narrow agent at n22 =..U.....; add below agent at n23 =..U....P; narrow agent at n23 =.......P => n22/agent lacks U
+   first example, grant-only, empty rule: grant agent at n25 =C.......; empty rule agent at n25 =........; grant reader at n0 =.R...L..; grant agent at n10 =..U....P; widen agent at n25 =.R......; remove agent at n10; narrow reader at n0 =.R......; empty rule reader at n5 =........ => n0/reader lacks R; n3/reader lacks R
+   first example, grant-only, seal: grant ops at n14 =CRUSDL..; grant agent at n3 =.R...L.P; add below agent at n4 =.R..DL.P; seal n20 => n3/agent lacks R,R+P,L,L+P
+   first example, grant-only, add below: grant reader at n29 =CRUSDL..; narrow reader at n29 =C.USDL..; narrow reader at n29 =C.USD...; grant ops at n7 =....D...; grant agent at n10 =CRUSDL..; widen ops at n7 =.R..D...; grant agent at n2 =CRUSDL..; add below agent at n15 =CRUSD... => n2/agent lacks L; n3/agent lacks L
+   first example, grant-only, adds below: grant reader at n27 =.R...L..; grant agent at n6 =CRU..L..; adds below agent at n27 +CRUSDLAP; widen reader at n27 =.R...L.P; widen agent at n6 =CRUS.L..; grant agent at n8 =CRU..L..; add below agent at n28 =CRUS.L.P; adds below agent at n23 +....D... => n23/agent lacks D
+   first example, middle form, grant: grant ops at n6 =.R...L..; remove ops at n6; grant reader at n12 =CRU..L.P; empty rule reader at n25 =........; narrow reader at n12 =CR...L.P; seal n14; grant reader at n18 =CRUSDLAP; add below reader at n13 =C....L.P; grant reader at n28 =.R...L.P; add below reader at n24 =CRUS.LAP; narrow reader at n28 =.R.....P; grant agent at n17 =.R...L..; narrow reader at n18 =CRUSDL.P; add below reader at n26 =CRUSDLAP; widen reader at n13 =C.U..L.P; grant agent at n22 =C.......; grant reader at n0 =CRU..L.. => n13/reader lacks U,U+P
+   first example, middle form, widen: grant reader at n13 =.R...LA.; adds below reader at n14 +C.......; add below reader at n24 =.R.S.LA.; empty rule reader at n14 =........; remove reader at n24; widen reader at n13 =.R...LAP; adds below reader at n24 +....D...; empty rule reader at n24 =........; grant reader at n0 =CRU..L.P; seal n4; add below reader at n3 =CRU....P; grant agent at n0 =.R...LAP; grant ops at n9 =.R...L.P; narrow ops at n9 =.....L.P; grant agent at n4 =.R...LAP; widen reader at n14 =C....... => n14/reader lacks C
+   first example, middle form, narrow: grant agent at n27 =CRUSDL..; grant reader at n8 =CRU..L.P; grant reader at n1 =CRU..L.P; add below reader at n11 =CRU..LAP; grant agent at n15 =CRU..L.P; adds below reader at n29 +.R...LA.; narrow reader at n11 =C.U..LAP; grant ops at n27 =....D...; seal n21; narrow reader at n8 =CRU..L.. => n11/reader lacks C+P,U+P,L+P
+   first example, middle form, empty rule: grant reader at n29 =CRUSDL..; narrow reader at n29 =C.USDL..; narrow reader at n29 =C.USD...; grant ops at n7 =....D...; grant agent at n10 =CRUSDL..; widen ops at n7 =.R..D...; grant agent at n2 =CRUSDL..; add below agent at n15 =CRUSD...; empty rule agent at n8 =........; empty rule agent at n29 =........; add below agent at n19 =CR.SDL..; empty rule agent at n3 =........ => n10/agent lacks C,R,U,L,S,D; n15/agent lacks C,R,U,S,D
+   first example, middle form, seal: grant agent at n18 =..U....P; narrow agent at n18 =.......P; grant ops at n29 =CRUSDLAP; grant reader at n28 =.R...LAP; narrow ops at n29 =CRUSD.AP; remove reader at n28; grant reader at n15 =..U....P; widen ops at n29 =CRUSDLAP; empty rule ops at n29 =........; grant agent at n6 =CRUSDLAP; grant reader at n7 =.....L..; widen ops at n29 =.R......; grant ops at n10 =CRU..L.P; widen reader at n15 =..U..L.P; grant agent at n9 =....D...; add below ops at n23 =.RU..L.P; adds below reader at n20 +CRU..L..; narrow agent at n9 =........; seal n16 => n23/ops lacks R,R+P,U,U+P,L,L+P
+   first example, middle form, add below: grant ops at n10 =CRUSDLAP; seal n12; narrow ops at n10 =CRUS.LAP; add below ops at n27 =CRUS..AP; add below ops at n21 =.RUS.LAP => n27/ops lacks C,C+A,C+P
+   first example, middle form, adds below: grant agent at n20 =.R...LAP; grant agent at n3 =CRUSDLAP; add below agent at n25 =CRUSD.AP; add below agent at n29 =CRUS.LAP; grant reader at n4 =C.......; grant agent at n21 =..U....P; narrow agent at n20 =.R....AP; adds below agent at n28 +CRU..L.. => n28/agent lacks L
+
+   (a) the whole store as it was k edits ago, every k
+                                      trials   wider    cells   mean   max  narrower   equal        no     wider
+                                                                                only            change  than now
+   today's model                       20000   15701   208730   13.3   420      4221      78       100     15761
+   grant-only                          20000   15474   196719   12.7   420      4443      83       132     15518
+   middle form                         20000   15690   209129   13.3   420      4231      79        83     15727
+   grant-only, row whole               20000   15474   196719   12.7   420      4443      83       132     15518
+   middle form, row whole              20000   15690   209129   13.3   420      4231      79        83     15727
+   by k: trials, then wider than the intent for each model
+   k  1    1000     466     444     464
+   k  2    1000     695     667     690
+   k  3    1000     772     757     767
+   k  4    1000     813     798     811
+   k  5    1000     861     849     861
+   k  6    1000     874     853     874
+   k  7    1000     895     882     895
+   k  8    1000     879     872     879
+   k  9    1000     906     890     906
+   k 10    1000     891     883     892
+   k 11    1000     913     901     913
+   k 12    1000     869     859     870
+   k 13    1000     880     875     881
+   k 14    1000     871     863     871
+   k 15    1000     857     848     857
+   k 16    1000     828     820     828
+   k 17    1000     852     842     852
+   k 18    1000     674     666     674
+   k 19    1000     905     905     905
+   k 20    1000       0       0       0
+
+   (b) one node's rule back to its state before its last change, the rest as it is
+                                      trials   wider    cells   mean   max  narrower   equal        no     wider
+                                                                                only            change  than now
+   today's model                        9922    5019    31096    6.2   406      4697     206       300      5103
+   grant-only                          12734    5950    37845    6.4   420      6748      36       405      6007
+   middle form                          9922    4721    33285    7.1   420      4656     545       650      4721
+   grant-only, row whole               12734    5950    37845    6.4   420      6748      36       405      6007
+   middle form, row whole               9922    4721    33285    7.1   420      4656     545       650      4721
+
+   (b) by the mechanism named, a stale copy of the node itself winning by time (what travels with the node goes back)
+                                      trials   wider    cells   mean   max  narrower   equal        no     wider
+                                                                                only            change  than now
+   today's model                        9922    5019    31096    6.2   406      4697     206       300      5103
+   grant-only                          12734       0        0      -     0     10201    2533     12734         0
+   middle form                          9922       0        0      -     0      1124    8798      9922         0
+   grant-only, row whole               12734       0        0      -     0     10201    2533     12734         0
+   middle form, row whole               9922       0        0      -     0      1124    8798      9922         0
+
+   (c) the newest records of a node lost, older records and deletions as they are (today: the newest version, the same documents as (b))
+                                      trials   wider    cells   mean   max  narrower   equal        no     wider
+                                                                                only            change  than now
+   today's model                        9922    5019    31096    6.2   406      4697     206       300      5103
+   grant-only                          12734    1376     3652    2.7    96      9946    1412      4969      1417
+   middle form                          9922     858     4487    5.2    96      5777    3287      3607       858
+   grant-only, row whole               12734    1376     3652    2.7    96      9946    1412      4969      1417
+   middle form, row whole               9922     858     4487    5.2    96      5777    3287      3607       858
+
+   (b) by the kind of the edit that made the node's last change in that model: trials / wider than the intent
+   grant       | today's model 2943 / 101 | grant-only 3177 / 3 | middle form 3046 / 243
+   widen       | today's model 886 / 1 | grant-only 1092 / 0 | middle form 971 / 143
+   narrow      | today's model 1435 / 1435 | grant-only 1716 / 1613 | middle form 1488 / 1290
+   empty rule  | today's model 1276 / 1221 | grant-only 1991 / 1561 | middle form 1119 / 988
+   seal        | today's model 604 / 497 | grant-only 1257 / 798 | middle form 348 / 322
+   remove      | today's model 1526 / 1395 | grant-only 1888 / 1661 | middle form 1656 / 1372
+   add below   | today's model 834 / 369 | grant-only 1192 / 311 | middle form 762 / 334
+   adds below  | today's model 418 / 0 | grant-only 421 / 3 | middle form 532 / 29
+
+   (c) by the kind of the edit that made the node's last change in that model: trials / wider than the intent
+   grant       | today's model 2943 / 101 | grant-only 3177 / 0 | middle form 3046 / 0
+   widen       | today's model 886 / 1 | grant-only 1092 / 0 | middle form 971 / 0
+   narrow      | today's model 1435 / 1435 | grant-only 1716 / 1107 | middle form 1488 / 858
+   empty rule  | today's model 1276 / 1221 | grant-only 1991 / 1 | middle form 1119 / 0
+   seal        | today's model 604 / 497 | grant-only 1257 / 4 | middle form 348 / 0
+   remove      | today's model 1526 / 1395 | grant-only 1888 / 21 | middle form 1656 / 0
+   add below   | today's model 834 / 369 | grant-only 1192 / 240 | middle form 762 / 0
+   adds below  | today's model 418 / 0 | grant-only 421 / 3 | middle form 532 / 0
+
+   (d) one record of each kind lost
+                                      trials   wider    cells   mean   max  narrower   equal        no     wider
+                                                                                only            change  than now
+   today's model, a document            8525    1917    10484    5.5   208      5534    1074      1289      2025
+   grant-only, a grant                 11915       0        0      -     0     11911       4       301         0
+   grant-only, a withdrawal            10897    2246     6160    2.7   116      6226    2425      8651      2246
+   middle form, a grant                 7834       0        0      -     0      7331     503       671         0
+   middle form, a withdrawal            6274    1350     6764    5.0   116       356    4568      4924      1350
+   middle form, a mark and its ref      2353    2282    11211    4.9   204         5      66        71      2282
+   middle form, a mark, ref kept        2353       0        0      -     0      1494     859       989         0
+   middle form, a lift                  1397       0        0      -     0       495     902      1024         0
+   grant-only, row whole, a grant      11915       0        0      -     0     11911       4       301         0
+   grant-only, row whole, withdrawal   10897    2246     6160    2.7   116      6226    2425      8651      2246
+   middle, row whole, a grant           7834       0        0      -     0      7331     503       671         0
+   middle, row whole, a withdrawal      6274    1350     6764    5.0   116       356    4568      4924      1350
+   middle, row whole, mark and ref      2353    2282    11211    4.9   204         5      66        71      2282
+   middle, row whole, mark, ref kept    2353       0        0      -     0      1494     859       989         0
+   middle, row whole, a lift            1397       0        0      -     0       495     902      1024         0
+
+   (e) two edits of one node made apart, both kept; against what both allow
+                                      trials   wider    cells   mean   max  narrower   equal        no     wider
+                                                                                only            change  than now
+   today's model                        4055      19      136    7.2    20      1214    2822      1420         9
+   grant-only                           4055    2761    23447    8.5   416       888     406       656      1976
+   middle form                          4055    2716    24061    8.9   474       167    1172       564      1979
+   grant-only, row whole                4055    2434    22498    9.2   416      1136     485       829      1798
+   middle form, row whole               4055    2501    23277    9.3   474       180    1374       682      1860
+
+   (e) the same merges, against what either allows
+                                      trials   wider    cells   mean   max  narrower   equal        no     wider
+                                                                                only            change  than now
+   today's model                        4055       0        0      -     0      3828     227      1420         9
+   grant-only                           4055     106      277    2.6    34      3640     309       656      1976
+   middle form                          4055     120      361    3.0    54      2895    1040       564      1979
+   grant-only, row whole                4055     106      277    2.6    34      3640     309       829      1798
+   middle form, row whole               4055     120      361    3.0    54      2895    1040       682      1860
+
+   (e) only where no policy of the three holds a grant of the grant-only form's own kind; against what both allow
+                                      trials   wider    cells   mean   max  narrower   equal        no     wider
+                                                                                only            change  than now
+   today's model                        1841       0        0      -     0       143    1698       726         0
+   grant-only                           1841    1180     9790    8.3   336       367     294       356       853
+   middle form                          1841    1171    10170    8.7   378        34     636       298       864
+   grant-only, row whole                1841    1033     9404    9.1   336       447     361       442       767
+   middle form, row whole               1841    1036     9689    9.4   378        35     770       374       788
+
+   (e) the same, against what either allows
+                                      trials   wider    cells   mean   max  narrower   equal        no     wider
+                                                                                only            change  than now
+   today's model                        1841       0        0      -     0      1682     159       726         0
+   grant-only                           1841      32       82    2.6    12      1583     226       356       853
+   middle form                          1841      29       80    2.8    12      1290     522       298       864
+   grant-only, row whole                1841      32       82    2.6    12      1583     226       442       767
+   middle form, row whole               1841      29       80    2.8    12      1290     522       374       788
+
+== exhaustive: every history of 4 edits from nothing, root > G > {X, S > S1}, one profile, the small alphabet ==
+   histories 116745, edits 466980
+   models: today's; grant-only and its middle form, a row taken away whole withdrawn with the letters removed
+   (design 5.2); the same two, "row whole", with such a row withdrawn with all eight letters (design probe, scenario 04)
+   edits by kind: grant 176510, widen 24372, narrow 58870, empty rule 38440, seal 23590, remove 18894, add below 110865, adds below 15439
+
+   records written, by the kind of edit (today: documents changed; grant-only: grants, withdrawals, grants deleted;
+   middle form: grants, withdrawals, marks, lifts):
+   grant       176510 edits | today 176570 | grant-only 185275  1024   997 | middle 176510     0 16238  2200
+   widen        24372 edits | today  24926 | grant-only  24561  1094   700 | middle  24372     0  8334  2869
+   narrow       58870 edits | today  59414 | grant-only   6922 70540  7992 | middle      0 58870 21106 10477
+   empty rule   38440 edits | today  39207 | grant-only  15999 52601 54916 | middle      0 16014 28979  8611
+   seal         23590 edits | today  23879 | grant-only  13372 30297 31624 | middle      0     0 23572  3343
+   remove       18894 edits | today  19365 | grant-only   7335 20660 21340 | middle      0 16570   547 11528
+   add below   110865 edits | today 111817 | grant-only 141039 88862  7922 | middle 109461     0 87588  6249
+   adds below   15439 edits | today  15444 | grant-only  15034   715   698 | middle  15439     0  2219     0
+
+   control 2, no loss: each model's table from its own store against the intent, after every edit
+   today's model          states 466980: the intent exactly 444635, narrower 22345 (34092 cells), wider 0; store unlike its own expression 0
+                          states it cannot give exactly 22345; states not the intent although it could give it 0
+   grant-only             states 466980: the intent exactly 249500, narrower 217480 (1331426 cells), wider 0; store unlike its own expression 0
+                          states it cannot give exactly 217480; states not the intent although it could give it 0
+   middle form            states 466980: the intent exactly 439339, narrower 27641 (92178 cells), wider 0; store unlike its own expression 0
+                          states it cannot give exactly 27641; states not the intent although it could give it 0
+   grant-only, row whole  states 466980: the intent exactly 249500, narrower 217480 (1331426 cells), wider 0; store unlike its own expression 0
+                          states it cannot give exactly 217480; states not the intent although it could give it 0
+   middle form, row whole states 466980: the intent exactly 439339, narrower 27641 (92178 cells), wider 0; store unlike its own expression 0
+                          states it cannot give exactly 27641; states not the intent although it could give it 0
+   by the kind of the last edit: states not the intent / edits that made an exact state inexact, per model
+   grant       | today's model 706 / 30 | grant-only 23305 / 13384 | middle form 4066 / 3574
+   widen       | today's model 794 / 24 | grant-only 11946 / 1690 | middle form 1090 / 310
+   narrow      | today's model 1507 / 78 | grant-only 30173 / 4478 | middle form 2935 / 730
+   empty rule  | today's model 882 / 0 | grant-only 29907 / 15722 | middle form 4089 / 3415
+   seal        | today's model 683 / 0 | grant-only 23590 / 14601 | middle form 3509 / 3030
+   remove      | today's model 306 / 20 | grant-only 3246 / 24 | middle form 0 / 0
+   add below   | today's model 3663 / 23 | grant-only 89682 / 52378 | middle form 10731 / 8931
+   adds below  | today's model 13804 / 13129 | grant-only 5631 / 690 | middle form 1221 / 958
+   first example, today's model, grant: grant agent at root =.R...L..; adds below agent at G +..U....P; remove agent at root; grant agent at root =.R...L.. => G lacks U+P; X lacks U+P; S lacks U+P; S1 lacks U+P
+   first example, today's model, widen: grant agent at root =.R...L..; adds below agent at G +..U....P; narrow agent at G +.......P; widen agent at G +..U....P => G lacks U+P; X lacks U+P; S lacks U+P; S1 lacks U+P
+   first example, today's model, narrow: grant agent at root =.R...L..; widen agent at root =.R...L.P; adds below agent at G +..U....P; narrow agent at root =.R...L.. => G lacks U+P; X lacks U+P; S lacks U+P; S1 lacks U+P
+   first example, today's model, remove: grant agent at root =.R...L..; add below agent at G =.R...L.P; adds below agent at X +..U....P; remove agent at G => X lacks U+P
+   first example, today's model, add below: grant agent at root =.R...L..; widen agent at root =.R...L.P; adds below agent at X +..U....P; add below agent at G =.R...L.. => X lacks U+P
+   first example, today's model, adds below: grant agent at root =.R...L..; widen agent at root =.RU..L..; narrow agent at root =..U..L..; adds below agent at G +..U....P => G lacks U+P; X lacks U+P; S lacks U+P; S1 lacks U+P
+   first example, grant-only, grant: grant agent at root =.R...L..; empty rule agent at root =........; grant agent at X =.R...L..; grant agent at G =CRU..L.P => G lacks C,C+P,R+P,U,U+P,L+P
+   first example, grant-only, widen: grant agent at root =.R...L..; narrow agent at root =.....L..; add below agent at G =..U..L..; widen agent at root =.....L.P => root lacks L+P
+   first example, grant-only, narrow: grant agent at root =.R...L..; widen agent at root =.RU..L..; add below agent at G =.RU..L.P; narrow agent at G =..U..L.P => root lacks R
+   first example, grant-only, empty rule: grant agent at root =.R...L..; widen agent at root =.RU..L..; widen agent at root =.RU..L.P; empty rule agent at G =........ => root lacks R,R+P,U,U+P,L,L+P
+   first example, grant-only, seal: grant agent at root =.R...L..; widen agent at root =.RU..L..; widen agent at root =.RU..L.P; seal G => root lacks R,R+P,U,U+P,L,L+P
+   first example, grant-only, remove: grant agent at root =.R...L..; seal G; grant agent at G =.R...L..; remove agent at G => root lacks R,L
+   first example, grant-only, add below: grant agent at root =.R...L..; widen agent at root =.RU..L..; widen agent at root =.RU..L.P; add below agent at G =..U..L.P => root lacks R,R+P
+   first example, grant-only, adds below: grant agent at root =.R...L..; narrow agent at root =.....L..; add below agent at X =..U..L..; adds below agent at G +..U....P => G lacks U+P
+   first example, middle form, grant: grant agent at root =.R...L..; widen agent at root =.RU..L..; empty rule agent at G =........; grant agent at X =.R...L.. => X lacks R,L
+   first example, middle form, widen: grant agent at root =.R...L..; add below agent at G =.RU..L..; add below agent at X =.RU..L.P; widen agent at root =.R...L.P => X lacks R+P,U+P,L+P
+   first example, middle form, narrow: grant agent at root =.R...L..; add below agent at G =.RU..L..; add below agent at X =.RU..L.P; narrow agent at G =..U..L.. => X lacks R,R+P
+   first example, middle form, empty rule: grant agent at root =.R...L..; widen agent at root =.RU..L..; add below agent at X =.RU..L.P; empty rule agent at G =........ => X lacks R,R+P,U,U+P,L,L+P
+   first example, middle form, seal: grant agent at root =.R...L..; widen agent at root =.RU..L..; add below agent at X =.RU..L.P; seal G => X lacks R,R+P,U,U+P,L,L+P
+   first example, middle form, add below: grant agent at root =.R...L..; widen agent at root =.RU..L..; add below agent at G =.R...L..; add below agent at X =.RU..L.. => X lacks U
+   first example, middle form, adds below: grant agent at root =.R...L..; widen agent at root =.RU..L..; add below agent at G =.R...L..; adds below agent at X +..U....P => X lacks U,U+P
+
+   (a) the whole store as it was k edits ago, every k
+                                      trials   wider    cells   mean   max  narrower   equal        no     wider
+                                                                                only            change  than now
+   today's model                      466980  257458  1737418    6.7    40    199615    9907     11181    257537
+   grant-only                         466980  247375  1574580    6.4    40    210687    8918     33629    247950
+   middle form                        466980  256854  1739070    6.8    40    199789   10337     13749    262984
+   grant-only, row whole              466980  247375  1574580    6.4    40    210687    8918     33629    247950
+   middle form, row whole             466980  256854  1739070    6.8    40    199789   10337     13749    262984
+   by k: trials, then wider than the intent for each model
+   k  1  116745   77271   69356   76451
+   k  2  116745   89140   86972   89356
+   k  3  116745   91047   91047   91047
+   k  4  116745       0       0       0
+
+   (b) one node's rule back to its state before its last change, the rest as it is
+                                      trials   wider    cells   mean   max  narrower   equal        no     wider
+                                                                                only            change  than now
+   today's model                      344668  175441   768132    4.4    40    152863   16364     19350    175494
+   grant-only                         353772  180497   811411    4.5    40    164674    8601     45139    181458
+   middle form                        344606  159578   865408    5.4    40    152713   32315     46580    159626
+   grant-only, row whole              353772  180497   811411    4.5    40    164674    8601     45139    181458
+   middle form, row whole             344606  159578   865408    5.4    40    152713   32315     46580    159626
+
+   (b) by the mechanism named, a stale copy of the node itself winning by time (what travels with the node goes back)
+                                      trials   wider    cells   mean   max  narrower   equal        no     wider
+                                                                                only            change  than now
+   today's model                      344668  175441   768132    4.4    40    152863   16364     19350    175494
+   grant-only                         353772       0        0      -     0    277228   76544    353772         0
+   middle form                        344606       0        0      -     0     64815  279791    344606         0
+   grant-only, row whole              353772       0        0      -     0    277228   76544    353772         0
+   middle form, row whole             344606       0        0      -     0     64815  279791    344606         0
+
+   (c) the newest records of a node lost, older records and deletions as they are (today: the newest version, the same documents as (b))
+                                      trials   wider    cells   mean   max  narrower   equal        no     wider
+                                                                                only            change  than now
+   today's model                      344668  175441   768132    4.4    40    152863   16364     19350    175494
+   grant-only                         353772   77438   208026    2.7    20    246529   29805    147794     77891
+   middle form                        344606   31296   163491    5.2    20    236095   77215     98309     31296
+   grant-only, row whole              353772   77438   208026    2.7    20    246529   29805    147794     77891
+   middle form, row whole             344606   31296   163491    5.2    20    236095   77215     98309     31296
+
+   (b) by the kind of the edit that made the node's last change in that model: trials / wider than the intent
+   grant       | today's model 101910 / 7039 | grant-only 47111 / 190 | middle form 103058 / 9329
+   widen       | today's model 20959 / 0 | grant-only 16183 / 156 | middle form 24779 / 4560
+   narrow      | today's model 50069 / 50069 | grant-only 51390 / 47330 | middle form 53661 / 44142
+   empty rule  | today's model 36299 / 34131 | grant-only 55988 / 49532 | middle form 33216 / 25774
+   seal        | today's model 20535 / 18367 | grant-only 30550 / 26505 | middle form 15615 / 12817
+   remove      | today's model 17369 / 11453 | grant-only 22625 / 12586 | middle form 21345 / 11012
+   add below   | today's model 87507 / 54382 | grant-only 119805 / 44144 | middle form 78082 / 50227
+   adds below  | today's model 10020 / 0 | grant-only 10120 / 54 | middle form 14850 / 1717
+
+   (c) by the kind of the edit that made the node's last change in that model: trials / wider than the intent
+   grant       | today's model 101910 / 7039 | grant-only 47111 / 0 | middle form 103058 / 0
+   widen       | today's model 20959 / 0 | grant-only 16183 / 22 | middle form 24779 / 0
+   narrow      | today's model 50069 / 50069 | grant-only 51390 / 40143 | middle form 53661 / 31296
+   empty rule  | today's model 36299 / 34131 | grant-only 55988 / 12 | middle form 33216 / 0
+   seal        | today's model 20535 / 18367 | grant-only 30550 / 6 | middle form 15615 / 0
+   remove      | today's model 17369 / 11453 | grant-only 22625 / 126 | middle form 21345 / 0
+   add below   | today's model 87507 / 54382 | grant-only 119805 / 37129 | middle form 78082 / 0
+   adds below  | today's model 10020 / 0 | grant-only 10120 / 0 | middle form 14850 / 0
+
+   (d) one record of each kind lost
+                                      trials   wider    cells   mean   max  narrower   equal        no     wider
+                                                                                only            change  than now
+   today's model, a document          327734  125362   530785    4.2    32    175067   27305     30777    125362
+   grant-only, a grant                283348       0        0      -     0    277342    6006     58245         0
+   grant-only, a withdrawal           265793  103186   308188    3.0    20    123515   39092    162607    103186
+   middle form, a grant               289668       0        0      -     0    222493   67175     97006         0
+   middle form, a withdrawal           91454   35878   186158    5.2    20      4145   51431     55576     35878
+   middle form, a mark and its ref    143306  140975   590495    4.2    32       225    2106      2283    141023
+   middle form, a mark, ref kept      143306       0        0      -     0    100813   42493     51283         0
+   middle form, a lift                 45277       0        0      -     0     19820   25457     32350         0
+   grant-only, row whole, a grant     283348       0        0      -     0    277342    6006     58245         0
+   grant-only, row whole, withdrawal  265793  103186   308188    3.0    20    123515   39092    162607    103186
+   middle, row whole, a grant         289668       0        0      -     0    222493   67175     97006         0
+   middle, row whole, a withdrawal     91454   35878   186158    5.2    20      4145   51431     55576     35878
+   middle, row whole, mark and ref    143306  140975   590495    4.2    32       225    2106      2283    141023
+   middle, row whole, mark, ref kept  143306       0        0      -     0    100813   42493     51283         0
+   middle, row whole, a lift           45277       0        0      -     0     19820   25457     32350         0
+
+   (e) two edits of one node made apart, both kept; against what both allow
+                                      trials   wider    cells   mean   max  narrower   equal        no     wider
+                                                                                only            change  than now
+   today's model                      526850    1374     3522    2.6    12     54100  471376    210529      1995
+   grant-only                         526850  266360   966282    3.6    30    172088   88402    155210    158744
+   middle form                        526850  177232   582912    3.3    30     66414  283204    155216    109291
+   grant-only, row whole              526850  229014   889284    3.9    30    201716   96120    172548    139593
+   middle form, row whole             526850  161328   550602    3.4    30     67494  298028    163396    100701
+
+   (e) the same merges, against what either allows
+                                      trials   wider    cells   mean   max  narrower   equal        no     wider
+                                                                                only            change  than now
+   today's model                      526850       0        0      -     0    497230   29620    210529      1995
+   grant-only                         526850   29078    45898    1.6    12    476120   21652    155210    158744
+   middle form                        526850   29348    55330    1.9    12    449084   48418    155216    109291
+   grant-only, row whole              526850   29078    45898    1.6    12    476720   21052    172548    139593
+   middle form, row whole             526850   29348    55330    1.9    12    450160   47342    163396    100701
+
+   (e) only where no policy of the three holds a grant of the grant-only form's own kind; against what both allow
+                                      trials   wider    cells   mean   max  narrower   equal        no     wider
+                                                                                only            change  than now
+   today's model                      431716       0        0      -     0     24352  407364    166365         0
+   grant-only                         431716  200392   750118    3.7    30    151366   79958    133255    115171
+   middle form                        431716  120868   392338    3.2    30     59100  251748    133784     68735
+   grant-only, row whole              431716  170080   687024    4.0    30    174932   86704    147486     99589
+   middle form, row whole             431716  106736   363590    3.4    30     59980  265000    141126     61083
+
+   (e) the same, against what either allows
+                                      trials   wider    cells   mean   max  narrower   equal        no     wider
+                                                                                only            change  than now
+   today's model                      431716       0        0      -     0    405706   26010    166365         0
+   grant-only                         431716   15880    21610    1.4     5    399316   16520    133255    115171
+   middle form                        431716   10438    17292    1.7     5    384466   36812    133784     68735
+   grant-only, row whole              431716   15880    21610    1.4     5    399812   16024    147486     99589
+   middle form, row whole             431716   10438    17292    1.7     5    385438   35840    141126     61083
+
+   the first trial wider than the intent, for each loss and model: the edits | the loss => what differs from the intent
+   a, today's model: grant agent at root =.R...L..; widen agent at root =.RU..L..; widen agent at root =.RU..L.P; narrow agent at root =..U..L.P | the whole store at step 3 => root has R,R+P; G has R,R+P; X has R,R+P; S has R,R+P; S1 has R,R+P
+   a, grant-only: grant agent at root =.R...L..; widen agent at root =.RU..L..; widen agent at root =.RU..L.P; narrow agent at root =..U..L.P | the whole store at step 3 => root has R,R+P; G has R,R+P; X has R,R+P; S has R,R+P; S1 has R,R+P
+   a, middle form: grant agent at root =.R...L..; widen agent at root =.RU..L..; widen agent at root =.RU..L.P; narrow agent at root =..U..L.P | the whole store at step 3 => root has R,R+P; G has R,R+P; X has R,R+P; S has R,R+P; S1 has R,R+P
+   a, grant-only, row whole: grant agent at root =.R...L..; widen agent at root =.RU..L..; widen agent at root =.RU..L.P; narrow agent at root =..U..L.P | the whole store at step 3 => root has R,R+P; G has R,R+P; X has R,R+P; S has R,R+P; S1 has R,R+P
+   a, middle form, row whole: grant agent at root =.R...L..; widen agent at root =.RU..L..; widen agent at root =.RU..L.P; narrow agent at root =..U..L.P | the whole store at step 3 => root has R,R+P; G has R,R+P; X has R,R+P; S has R,R+P; S1 has R,R+P
+   b, today's model: grant agent at root =.R...L..; widen agent at root =.RU..L..; widen agent at root =.RU..L.P; narrow agent at root =..U..L.P | root back => root has R,R+P; G has R,R+P; X has R,R+P; S has R,R+P; S1 has R,R+P
+   b, grant-only: grant agent at root =.R...L..; widen agent at root =.RU..L..; widen agent at root =.RU..L.P; narrow agent at root =..U..L.P | root back => root has R,R+P; G has R,R+P; X has R,R+P; S has R,R+P; S1 has R,R+P
+   b, middle form: grant agent at root =.R...L..; widen agent at root =.RU..L..; widen agent at root =.RU..L.P; narrow agent at root =..U..L.P | root back => root has R,R+P; G has R,R+P; X has R,R+P; S has R,R+P; S1 has R,R+P
+   b, grant-only, row whole: grant agent at root =.R...L..; widen agent at root =.RU..L..; widen agent at root =.RU..L.P; narrow agent at root =..U..L.P | root back => root has R,R+P; G has R,R+P; X has R,R+P; S has R,R+P; S1 has R,R+P
+   b, middle form, row whole: grant agent at root =.R...L..; widen agent at root =.RU..L..; widen agent at root =.RU..L.P; narrow agent at root =..U..L.P | root back => root has R,R+P; G has R,R+P; X has R,R+P; S has R,R+P; S1 has R,R+P
+   b-node, today's model: grant agent at root =.R...L..; widen agent at root =.RU..L..; widen agent at root =.RU..L.P; narrow agent at root =..U..L.P | a stale copy of root => root has R,R+P; G has R,R+P; X has R,R+P; S has R,R+P; S1 has R,R+P
+   c, today's model: grant agent at root =.R...L..; widen agent at root =.RU..L..; widen agent at root =.RU..L.P; narrow agent at root =..U..L.P | root's newest version lost => root has R,R+P; G has R,R+P; X has R,R+P; S has R,R+P; S1 has R,R+P
+   c, grant-only: grant agent at root =.R...L..; widen agent at root =.RU..L..; widen agent at root =.RU..L.P; narrow agent at root =..U..L.P | root's newest records lost => root has R,R+P; G has R,R+P; X has R,R+P; S has R,R+P; S1 has R,R+P
+   c, middle form: grant agent at root =.R...L..; widen agent at root =.RU..L..; widen agent at root =.RU..L.P; narrow agent at root =..U..L.P | root's newest records lost => root has R,R+P; G has R,R+P; X has R,R+P; S has R,R+P; S1 has R,R+P
+   c, grant-only, row whole: grant agent at root =.R...L..; widen agent at root =.RU..L..; widen agent at root =.RU..L.P; narrow agent at root =..U..L.P | root's newest records lost => root has R,R+P; G has R,R+P; X has R,R+P; S has R,R+P; S1 has R,R+P
+   c, middle form, row whole: grant agent at root =.R...L..; widen agent at root =.RU..L..; widen agent at root =.RU..L.P; narrow agent at root =..U..L.P | root's newest records lost => root has R,R+P; G has R,R+P; X has R,R+P; S has R,R+P; S1 has R,R+P
+   d-document, today's model: grant agent at root =.R...L..; widen agent at root =.RU..L..; widen agent at root =.RU..L.P; empty rule agent at G =........ | G's document lost => G has R,R+P,U,U+P,L,L+P; X has R,R+P,U,U+P,L,L+P; S has R,R+P,U,U+P,L,L+P; S1 has R,R+P,U,U+P,L,L+P
+   d-withdrawal, grant-only: grant agent at root =.R...L..; widen agent at root =.RU..L..; widen agent at root =.RU..L.P; narrow agent at root =..U..L.P | withdrawal .R...... of agent at root lost => root has R,R+P; G has R,R+P; X has R,R+P; S has R,R+P; S1 has R,R+P
+   d-withdrawal, middle form: grant agent at root =.R...L..; widen agent at root =.RU..L..; widen agent at root =.RU..L.P; narrow agent at root =..U..L.P | withdrawal .R...... of agent at root lost => root has R,R+P; G has R,R+P; X has R,R+P; S has R,R+P; S1 has R,R+P
+   d-withdrawal, grant-only, row whole: grant agent at root =.R...L..; widen agent at root =.RU..L..; widen agent at root =.RU..L.P; narrow agent at root =..U..L.P | withdrawal .R...... of agent at root lost => root has R,R+P; G has R,R+P; X has R,R+P; S has R,R+P; S1 has R,R+P
+   d-withdrawal, middle form, row whole: grant agent at root =.R...L..; widen agent at root =.RU..L..; widen agent at root =.RU..L.P; narrow agent at root =..U..L.P | withdrawal .R...... of agent at root lost => root has R,R+P; G has R,R+P; X has R,R+P; S has R,R+P; S1 has R,R+P
+   d-mark-both, middle form: grant agent at root =.R...L..; widen agent at root =.RU..L..; widen agent at root =.RU..L.P; empty rule agent at G =........ | mark .RU..L.P of agent at G and its reference lost => G has R,R+P,U,U+P,L,L+P; X has R,R+P,U,U+P,L,L+P; S has R,R+P,U,U+P,L,L+P; S1 has R,R+P,U,U+P,L,L+P
+   d-mark-both, middle form, row whole: grant agent at root =.R...L..; widen agent at root =.RU..L..; widen agent at root =.RU..L.P; empty rule agent at G =........ | mark .RU..L.P of agent at G and its reference lost => G has R,R+P,U,U+P,L,L+P; X has R,R+P,U,U+P,L,L+P; S has R,R+P,U,U+P,L,L+P; S1 has R,R+P,U,U+P,L,L+P
+   e-both, today's model: grant agent at root =.R...L..; widen agent at root =.RU..L..; adds below agent at G +..U....P; widen agent at root =.RU..L.P | apart: narrow agent at root =.R...L.. => G has R+P,L+P; X has R+P,L+P; S has R+P,L+P; S1 has R+P,L+P
+   e-both, grant-only: grant agent at root =.R...L..; widen agent at root =.RU..L..; widen agent at root =.RU..L.P; empty rule agent at G =........ | apart: add below agent at G =..U..L.P => root lacks R,R+P,U,U+P,L,L+P; G has U,U+P,L,L+P; X has U,U+P,L,L+P; S has U,U+P,L,L+P; S1 has U,U+P,L,L+P
+   e-both, middle form: grant agent at root =.R...L..; widen agent at root =.RU..L..; narrow agent at root =..U..L..; widen agent at root =..U..L.P | apart: narrow agent at root =.....L.. => root has L+P; G has L+P; X has L+P; S has L+P; S1 has L+P
+   e-both, grant-only, row whole: grant agent at root =.R...L..; widen agent at root =.RU..L..; widen agent at root =.RU..L.P; empty rule agent at G =........ | apart: add below agent at G =..U..L.P => root lacks R,R+P,U,U+P,L,L+P; G has U,U+P,L,L+P; X has U,U+P,L,L+P; S has U,U+P,L,L+P; S1 has U,U+P,L,L+P
+   e-both, middle form, row whole: grant agent at root =.R...L..; widen agent at root =.RU..L..; narrow agent at root =..U..L..; widen agent at root =..U..L.P | apart: narrow agent at root =.....L.. => root has L+P; G has L+P; X has L+P; S has L+P; S1 has L+P
+   e-either, grant-only: grant agent at root =.R...L..; widen agent at root =.RU..L..; widen agent at root =.RU..L.P; add below agent at G =..U..L.P | apart: add below agent at G =.RU..L.. => root lacks R,R+P,U+P,L+P; G has R+P; X has R+P; S has R+P; S1 has R+P
+   e-either, middle form: grant agent at root =.R...L..; widen agent at root =.RU..L..; narrow agent at root =..U..L..; add below agent at G =.....L.. | apart: adds below agent at G +..U....P => G lacks U,U+P has L+P; X lacks U,U+P has L+P; S lacks U,U+P has L+P; S1 lacks U,U+P has L+P
+   e-either, grant-only, row whole: grant agent at root =.R...L..; widen agent at root =.RU..L..; widen agent at root =.RU..L.P; add below agent at G =..U..L.P | apart: add below agent at G =.RU..L.. => root lacks R,R+P,U+P,L+P; G has R+P; X has R+P; S has R+P; S1 has R+P
+   e-either, middle form, row whole: grant agent at root =.R...L..; widen agent at root =.RU..L..; narrow agent at root =..U..L..; add below agent at G =.....L.. | apart: adds below agent at G +..U....P => G lacks U,U+P has L+P; X lacks U,U+P has L+P; S lacks U,U+P has L+P; S1 lacks U,U+P has L+P

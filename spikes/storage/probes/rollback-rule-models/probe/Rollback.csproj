@@ -1,0 +1,39 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- The rollback trial of two access rule models. It compiles the same eight files of the product
+       the grant-only design's probe compiles, exported from the product's commit by
+       `tools\Product.ps1` into `.product\`, so that today's answers are the product's own
+       `AclResolver`. No KeePass type is used: the resolver asks `IAclNode`, which the probe's own
+       node class implements, so KeePass is not referenced and nothing here shows a window.
+       `Newtonsoft.Json` 13.0.4 is the version the product pins at that commit; `JsonBody.cs` and
+       `AclDocument.cs` need it. Built with the JIT's optimizations on, since no number here is a
+       timing that a build setting could move. -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net48</TargetFramework>
+    <LangVersion>7.3</LangVersion>
+    <PlatformTarget>x64</PlatformTarget>
+    <AssemblyName>Rollback</AssemblyName>
+    <Optimize>true</Optimize>
+    <DebugType>none</DebugType>
+    <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+    <NoWarn>$(NoWarn);1701;1702</NoWarn>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Include="$(ProductDir)src\KeePassGate\Acl\AclDocument.cs" />
+    <Compile Include="$(ProductDir)src\KeePassGate\Acl\AclDocuments.cs" />
+    <Compile Include="$(ProductDir)src\KeePassGate\Acl\AclGrant.cs" />
+    <Compile Include="$(ProductDir)src\KeePassGate\Acl\AclInheritance.cs" />
+    <Compile Include="$(ProductDir)src\KeePassGate\Acl\AclResolver.cs" />
+    <Compile Include="$(ProductDir)src\KeePassGate\Acl\AclVerb.cs" />
+    <Compile Include="$(ProductDir)src\KeePassGate\Acl\VerbMask.cs" />
+    <Compile Include="$(ProductDir)src\KeePassGate\Transport\JsonBody.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.4" />
+    <PackageReference Include="Microsoft.NETFramework.ReferenceAssemblies" Version="1.0.3" PrivateAssets="all" />
+  </ItemGroup>
+
+</Project>
