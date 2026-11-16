@@ -335,7 +335,7 @@ it once the plugin is gone:
 
 | | |
 | --- | --- |
-| **The retirements** | `KPG.RetiredAuthority.` and a fingerprint, a key for each authority the database has held, which Delete authority writes on purpose: they are what keeps a copy of the file from before putting the old authority back into service, so remove them only once the plugin is not coming back. |
+| **The retirements** | `KPG.RetiredAuthority.` and a fingerprint, a key for each authority the database has held, which Delete authority writes on purpose: they are what keeps a copy of the file from before, synchronized in later, from putting the old authority back into service, so remove them only once the plugin is not coming back. |
 | **The profiles** | `KPG.Profiles`, the names the Profiles page kept. |
 | **The rules** | `KPG`, in the custom data of each group and entry that has a rule. |
 

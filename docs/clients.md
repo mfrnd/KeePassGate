@@ -160,8 +160,13 @@ certificate and a new record, and the profiles are chosen again.
 
 **Recreate authority** on the Certificate Authority page replaces the authority, which invalidates
 every certificate it ever issued and removes every record and every revocation with it. The old
-authority is retired rather than only removed, so a copy of the file from before cannot put it back
-into service. Every program has to pair again.
+authority is retired rather than only removed, so a copy of the file from before, synchronized or
+merged in later, cannot put it back into service. Every program has to pair again.
+
+**A copy opened on its own is not retired.** The retirement is written into this database alone, so
+a backup from before the recreation, opened in a KeePass with the plugin loaded, still serves its
+own authority and every client it admitted. Recreate or delete the authority in such a copy as
+well, or open it only in a KeePass without the plugin.
 
 That is the recovery from an authority no longer trusted. For one program, use the list.
 

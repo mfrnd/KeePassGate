@@ -386,8 +386,10 @@ holding one `D` each do not add up to it. Listings are where profiles work toget
 be taken from a group one profile may list, and shows every item in it that any profile the program
 holds may list, with a protected title where a profile it holds carries `P` beside `L` or `R` there.
 
-An empty mask is a rule too. `........` on a group grants that profile nothing from there down, which
-is how a subtree is closed off for one profile while leaving the rest alone. A profile just
+An empty mask is a rule too. `........` on a group grants that profile nothing from there down,
+until a nearer rule below names the profile again, which is how a subtree is closed off for one
+profile while leaving the rest alone. A rule further down that names the profile still grants what
+it states, so look below before relying on the closing. A profile just
 picked arrives with exactly that, so a new rule starts by granting nothing and is opened
 deliberately.
 

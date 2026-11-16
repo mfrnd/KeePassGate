@@ -1075,6 +1075,12 @@ none, since it releases both.
   answers with nothing and success. So an update to a publishing action was not held and a change
   to what a release is built from did not wait for the release check: auto-merge went on. A yq
   that fails now stops the judgment, and the pull request waits for a person.
+- **The documents no longer promise that a retired authority is retired in a backup, or that an
+  empty mask closes a subtree whatever lies below it.** A retirement keeps a copy synchronized or
+  merged in from serving the old authority, but a copy opened on its own still serves it and every
+  client it admitted, so the recovery from an authority no longer trusted now names recreating or
+  deleting the authority in such a copy as well. An empty mask grants a profile nothing from there
+  down only until a nearer rule below names the profile again.
 
 ## 0.1.0, 2026-10-25
 
