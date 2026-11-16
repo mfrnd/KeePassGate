@@ -1,0 +1,52 @@
+== the recommended store in the extended model of the survival critique: where an entry
+   sits, the recycle bin, KeePassDroid's unchanged Save; every entry counts wherever it sits
+   (binall, change 1). Its configurations and seeds; 8000 histories a cell
+P  phone set: Synchronize, K2A; bin, delete with a record (also from the bin), Seal again 2 files   8000 histories  no failure
+P  phone set: Synchronize, K2A; bin, delete with a record (also from the bin), Seal again 3 files   8000 histories  no failure
+P1 the same and KeePassDroid editor Save (touch)                       2 files   8000 histories  safety x2
+    shortest safety (file 1: node root grants rw):
+        del 0 ('auth',) 1
+        merge k2a 1 0
+        create 1
+        rule 1 root rw
+P1 the same and KeePassDroid editor Save (touch)                       3 files   8000 histories  no failure
+P2 the same and Empty Recycle Bin, restore from the bin                2 files   8000 histories  safety x1
+    shortest safety (file 0: node root grants rw):
+        del 0 ('auth',) 1
+        create 0
+        rule 0 root rw
+P2 the same and Empty Recycle Bin, restore from the bin                3 files   8000 histories  no failure
+P3 = P2, with KeePassLib's strict record rule turned back to the model's 2 files   8000 histories  no failure
+P3 = P2, with KeePassLib's strict record rule turned back to the model's 3 files   8000 histories  no failure
+X  KeePassXC merges added to P; bin and delete with a record           2 files   8000 histories  no failure
+X  KeePassXC merges added to P; bin and delete with a record           3 files   8000 histories  no failure
+X1 KeePassXC and the import methods added to P2                        2 files   8000 histories  no failure
+X1 KeePassXC and the import methods added to P2                        3 files   8000 histories  no failure
+F  fix: the bin read for every kind; config X1                         2 files   8000 histories  safety x1
+    shortest safety (file 1: renewal of c0 asked):
+        renew 0 c0 forever
+        del 0 ('auth',) 1
+        merge kp_sync 1 0
+        create 1
+F  fix: the bin read for every kind; config X1                         3 files   8000 histories  safety x1
+    shortest safety (file 1: node root grants rw):
+        del 1 ('auth',) 1
+        create 1
+        rule 1 root rw
+F2 fix: the bin read for every kind; config P2                         2 files   8000 histories  safety x1
+    shortest safety (file 0: renewal of c0 asked):
+        renew 1 c0 forever
+        merge k2a 0 1
+        del 0 ('auth',) 1
+        create 0
+F2 fix: the bin read for every kind; config P2                         3 files   8000 histories  no failure
+DX Synchronize, K2A, KeePassDX; bin, delete with a record, Seal again  2 files   8000 histories  safety x1
+    shortest safety (file 0: renewal of c0 asked):
+        renew 0 c0 forever
+        del 1 ('auth',) 1
+        merge dx 0 1
+        create 0
+DX Synchronize, K2A, KeePassDX; bin, delete with a record, Seal again  3 files   8000 histories  no failure
+DX2 the same and every fault of P2                                     2 files   8000 histories  no failure
+DX2 the same and every fault of P2                                     3 files   8000 histories  no failure
+== 295 s

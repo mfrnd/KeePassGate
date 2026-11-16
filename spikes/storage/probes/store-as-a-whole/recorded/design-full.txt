@@ -1,0 +1,187 @@
+== lattice laws on the ideal transport: 0 violations in 10000 random pairs of files
+== the sequences of the critiques, replayed; and each part of the read rule switched off
+   columns: as written | no snapshot | no cover | no witness | no record rule | no head tag | no decision tag | generations
+ 1. a revocation, a KeePassXC merge into the stale copy, the revocation entry deleted there
+      [store-entries survival P1 A]
+   holds | FAILS | holds | holds | holds | holds | holds | holds
+ 2. the same, and the head deleted there too, both with deletion records
+      [store-entries survival P1 B]
+   holds (incomplete) | holds (incomplete) | holds (incomplete) | holds (incomplete) | holds (incomplete) | holds | holds (incomplete) | holds (incomplete)
+ 3. the same two deletions leaving no record (limit: that copy is a stale copy again)
+      [store-entries survival P1, what is left]
+   FAILS | FAILS | FAILS | FAILS | FAILS | FAILS | FAILS | FAILS
+ 4. a name removed in one copy; removed and added again in the other; merged
+      [store-entries survival P2]
+   holds | holds | holds | holds | holds | holds | holds | FAILS
+ 5. a name added in each copy on its own survives the merge
+      [store-entries survival P2, other side]
+   holds | holds | holds | holds | holds | holds | holds | holds
+ 6. a rule set, taken away, and the same rule set again in a copy that saw neither
+      [rules-on-node survival 2.4; rules-marker-entry survival P1]
+   holds | holds | holds | holds | holds | holds | holds | holds
+ 7. the newest rule version and the head deleted in the copy that wrote them, then a stale copy by KeePassXC
+      [rules-linked survival P2 C3]
+   holds (incomplete) | holds (incomplete) | holds (incomplete) | holds (incomplete) | holds (incomplete) | holds (incomplete) | holds (incomplete) | holds (incomplete)
+ 8. the same, the deletions leaving no record
+      [rules-linked survival P2 C3, no trace]
+   holds (incomplete) | holds (incomplete) | holds (incomplete) | holds (incomplete) | FAILS | holds (incomplete) | holds (incomplete) | holds (incomplete)
+ 9. the same, then deletion records cleared, then Synchronize with the stale copy (limit)
+      [rules-linked survival P2 C3c]
+   FAILS | FAILS | FAILS | FAILS | FAILS | FAILS | FAILS | FAILS
+10. the same, but the store sealed again by a press before the stale copy arrives
+      [rules-linked survival P2 C3c, with the press]
+   holds | holds | holds | holds | holds | holds | holds | holds
+11. one rule version deleted by hand, the deletion synchronized
+      [rules-linked survival P3 C5]
+   holds | holds | holds | holds | holds | holds | holds | holds
+12. two concurrent rule versions, then both entries deleted by hand
+      [rules-marker-entry survival P2]
+   holds | holds | holds | holds | holds | holds | holds | holds
+13. a foreign file plants a rule, a retirement, a record and a profile
+      [rules-central security S1; store-entries security S1; rules-linked security S5]
+   holds | holds | holds | holds | holds | holds | holds | holds
+14. a foreign authority arrives intact: nothing is served until the operator chooses
+      [CLAUDE.md, 503 undecided]
+   holds | holds | holds | holds | holds | holds | holds | holds
+15. a copy of a sealed node; a save; the copy then loses its carried reference
+      [rules-linked survival P1 C1b, C2]
+   holds | holds | holds | holds | holds | holds | holds | holds
+16. the same with no save between the copy and the loss (limit)
+      [rules-linked survival P1, what is left]
+   FAILS | FAILS | FAILS | FAILS | FAILS | FAILS | FAILS | FAILS
+17. everything of the plugin deleted without a trace in the copy that wrote it, then a stale copy by KeePassXC
+      [rules-linked survival P2 C3b]
+   holds (incomplete) | holds (incomplete) | holds (incomplete) | holds (incomplete) | holds (incomplete) | holds (incomplete) | holds (incomplete) | holds (incomplete)
+18. both carriers of a revocation deleted, the store sealed again by a press, merged into a stale copy by KeePassXC
+      [what the deletion-record witness is for]
+   holds | FAILS | holds | FAILS | holds | holds | holds | holds
+19. a store entry edited by hand, and the edit synchronized into every copy
+      [store-entries survival P7]
+   holds (incomplete) | holds | holds | holds (incomplete) | holds (incomplete) | holds (incomplete) | holds (incomplete) | holds (incomplete)
+20. an import with new identifiers of a stale copy
+      [rules-linked survival P3 C6]
+   holds | holds | holds | holds | holds | holds | holds | holds
+== random histories, the design as written
+A merges only (every program)                                      2 files  20000 histories  no failure
+B + deletions by hand with a deletion record                       2 files  20000 histories  no failure
+C + deletions that leave no record                                 2 files  20000 histories  safety x2
+    shortest safety (file 1: client c0 holds ['pf']):
+        prem 0 pf
+        del 0 ('head', 'old') 1
+        del 0 ('prem',) 1
+        merge kp_other 1 0
+D + records dated before the entry (a clock behind)                2 files  20000 histories  safety x2
+    shortest safety (file 0: node root grants r):
+        rule 1 root inherit
+        del 1 ('head', 'old') 2
+        del 1 ('ver', 'rule:root', 'new') 2
+        merge kp_other 0 1
+E + deletion records cleared                                       2 files  20000 histories  safety x1
+    shortest safety (file 1: node root grants r):
+        rule 0 root none
+        del 0 ('ver', 'rule:root', 'new') 1
+        renew 1 c0 forever
+        del 0 ('head', 'new') 1
+        merge dx 1 0
+F + foreign: edits, import with new identifiers, planted entries   2 files  20000 histories  no failure
+G + a copy stripped of its reference                               2 files  20000 histories  copy-cap x2
+    shortest copy-cap (file 1: M1):
+        rule 1 N none
+        copy 1
+        strip 1
+H + a whole file written over another                              2 files  20000 histories  rollback-by-overwrite x251, safety x1
+    shortest rollback-by-overwrite (file 0):
+        rule 0 root inherit
+        over 0 1
+    shortest safety (file 1: client c0 holds ['pf']):
+        prem 0 pf
+        del 0 ('prem',) 1
+        del 0 ('head', 'new') 1
+        merge xc 1 0
+I everything at once                                               2 files  20000 histories  rollback-by-overwrite x41, safety x1
+    shortest rollback-by-overwrite (file 0):
+        recreate 0
+        over 0 1
+    shortest safety (file 1: node root grants r):
+        rule 0 root inherit
+        padd 1 pg
+        del 0 ('head', 'old') 2
+        merge dx 1 0
+        del 1 ('ver', 'rule:root', 'new') 0
+J only KeePass Synchronize and Keepass2Android; deletions with a record 2 files  20000 histories  no failure
+J2 the same; every kind of deletion                                2 files  20000 histories  no failure
+K the same, and foreign edits, imports and planted entries         2 files  20000 histories  no failure
+A merges only (every program)                                      3 files  20000 histories  no failure
+B + deletions by hand with a deletion record                       3 files  20000 histories  no failure
+C + deletions that leave no record                                 3 files  20000 histories  safety x1
+    shortest safety (file 2: renewal of c0 asked):
+        renew 0 c0 forever
+        del 0 ('ver', 'renew:c0', 'new') 1
+        del 0 ('head', 'new') 1
+        merge kp_other 2 0
+D + records dated before the entry (a clock behind)                3 files  20000 histories  no failure
+E + deletion records cleared                                       3 files  20000 histories  no failure
+F + foreign: edits, import with new identifiers, planted entries   3 files  20000 histories  no failure
+G + a copy stripped of its reference                               3 files  20000 histories  no failure
+H + a whole file written over another                              3 files  20000 histories  rollback-by-overwrite x404, safety x2
+    shortest rollback-by-overwrite (file 2):
+        revoke 2 c0
+        over 2 1
+    shortest safety (file 2: node root grants r):
+        rule 1 root none
+        del 1 ('ver', 'rule:root', 'new') 1
+        del 1 ('head', 'new') 1
+        merge kp_other 2 1
+I everything at once                                               3 files  20000 histories  rollback-by-overwrite x105
+    shortest rollback-by-overwrite (file 1):
+        rule 1 root inherit
+        over 1 2
+J only KeePass Synchronize and Keepass2Android; deletions with a record 3 files  20000 histories  no failure
+J2 the same; every kind of deletion                                3 files  20000 histories  no failure
+K the same, and foreign edits, imports and planted entries         3 files  20000 histories  no failure
+== exhaustive, after a fixed divergence (file 0 newer in every way, file 1 stale)
+merges                                        10 steps wide, depth 4:   11110 histories  no failure
+merges and deletions with a record            36 steps wide, depth 3:   47988 histories  no failure
+merges and deletions without a record         34 steps wide, depth 3:   40494 histories  no failure
+Synchronize and Keepass2Android only, deletions with a record 30 steps wide, depth 3:   27930 histories  no failure
+== ablations: one part of the read rule switched off, random histories, 2 files
+no head snapshot (entries only) [rec]                              2 files  20000 histories  safety x20
+    shortest safety (file 1: client c0 admitted):
+        revoke 0 c0
+        del 0 ('ref', 'revoked') 1
+        merge xc 1 0
+    the design as written, same histories: safety x2
+no deletion-record witnesses for refusals [rec trace]              2 files  20000 histories  no failure
+    the design as written, same histories: no failure
+a deletion record does not take an element out of force [rec trace] 2 files  20000 histories  no failure
+    the design as written, same histories: no failure
+a deleted head is not recognized [rec]                             2 files  20000 histories  safety x2
+    shortest safety (file 0: node N grants rw):
+        rule 1 N none
+        rule 0 N rw
+        del 1 ('ver', 'rule:N', 'new') 1
+        del 1 ('head', 'old') 1
+        merge dx 0 1
+    the design as written, same histories: safety x2
+a decision without its head is accepted [rec trace]                2 files  20000 histories  no failure
+    the design as written, same histories: no failure
+the deletion record of a decision tells nothing [rec]              2 files  20000 histories  one-loss x1, safety x3
+    shortest one-loss (file 1: node root grants r):
+        rule 0 root inherit
+        del 0 ('head', 'new') 1
+        merge kp_other 1 0
+        del 1 ('ver', 'rule:root', 'new') 1
+    shortest safety (file 0: node N grants rw):
+        rule 1 N none
+        rule 0 N rw
+        del 1 ('ver', 'rule:N', 'new') 1
+        del 1 ('head', 'old') 1
+        merge dx 0 1
+    the design as written, same histories: safety x2
+profile additions by generation, not by what they saw [merges only] 2 files  20000 histories  convergence-to-ideal x2
+    shortest convergence-to-ideal (('ok', 'a0', (('c0', ('pf',)),), (('N', 'r'), ('root', 'r')), (('c0', 'ask'),), ('pf',)) vs ('ok', 'a0', (('c0', ()),), (('N', 'r'), ('root', 'r')), (('c0', 'ask'),), ())):
+        prem 0 pf
+        prem 1 pf
+        padd 0 pf
+    the design as written, same histories: no failure
+== 1441 s

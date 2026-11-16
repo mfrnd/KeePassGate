@@ -1,0 +1,84 @@
+== the design's 20 replays under the recommended store, each rule saved at once
+   columns: store, then the store with one decision undone: mark | witness | revkey | keyretire | pending | gates | repair
+ 1. a revocation, a KeePassXC merge into the stale copy, the revocation entry deleted there
+      [store-entries survival P1 A]
+   holds | holds | holds | holds | holds | holds | holds | holds
+ 2. the same, and the head deleted there too, both with deletion records
+      [store-entries survival P1 B]
+   holds (incomplete) | holds (incomplete) | holds (incomplete) | holds (incomplete) | holds (incomplete) | holds (incomplete) | holds (incomplete) | holds (incomplete)
+ 3. the same two deletions leaving no record (limit: that copy is a stale copy again)
+      [store-entries survival P1, what is left]
+   FAILS | FAILS | FAILS | FAILS | FAILS | FAILS | FAILS | FAILS
+ 4. a name removed in one copy; removed and added again in the other; merged
+      [store-entries survival P2]
+   holds | holds | holds | holds | holds | holds | holds | holds
+ 5. a name added in each copy on its own survives the merge
+      [store-entries survival P2, other side]
+   holds | holds | holds | holds | holds | holds | FAILS | holds
+ 6. a rule set, taken away, and the same rule set again in a copy that saw neither
+      [rules-on-node survival 2.4; rules-marker-entry survival P1]
+   holds | holds | holds | holds | holds | holds | FAILS | holds
+ 7. the newest rule version and the head deleted in the copy that wrote them, then a stale copy by KeePassXC
+      [rules-linked survival P2 C3]
+   holds (incomplete) | holds (incomplete) | holds (incomplete) | holds (incomplete) | holds (incomplete) | holds (incomplete) | holds (incomplete) | holds (incomplete)
+ 8. the same, the deletions leaving no record
+      [rules-linked survival P2 C3, no trace]
+   holds (incomplete) | holds (incomplete) | holds (incomplete) | holds (incomplete) | holds (incomplete) | holds (incomplete) | holds (incomplete) | holds (incomplete)
+ 9. the same, then deletion records cleared, then Synchronize with the stale copy (limit)
+      [rules-linked survival P2 C3c]
+   FAILS | FAILS | FAILS | FAILS | FAILS | FAILS | FAILS | FAILS
+10. the same, but the store sealed again by a press before the stale copy arrives
+      [rules-linked survival P2 C3c, with the press]
+   FAILS | holds | FAILS | FAILS | FAILS | FAILS | FAILS | FAILS
+11. one rule version deleted by hand, the deletion synchronized
+      [rules-linked survival P3 C5]
+   holds | holds | holds | holds | holds | holds | holds | holds
+12. two concurrent rule versions, then both entries deleted by hand
+      [rules-marker-entry survival P2]
+   holds | holds | holds | holds | holds | holds | holds | holds
+13. a foreign file plants a rule, a retirement, a record and a profile
+      [rules-central security S1; store-entries security S1; rules-linked security S5]
+   holds | holds | holds | holds | holds | holds | holds | holds
+14. a foreign authority arrives intact: nothing is served until the operator chooses
+      [CLAUDE.md, 503 undecided]
+   holds | holds | holds | holds | holds | holds | holds | holds
+15. a copy of a sealed node; a save; the copy then loses its carried reference
+      [rules-linked survival P1 C1b, C2]
+   FAILS | holds | FAILS | FAILS | FAILS | FAILS | FAILS | FAILS
+16. the same with no save between the copy and the loss (limit)
+      [rules-linked survival P1, what is left]
+   FAILS | FAILS | FAILS | FAILS | FAILS | FAILS | FAILS | FAILS
+17. everything of the plugin deleted without a trace in the copy that wrote it, then a stale copy by KeePassXC
+      [rules-linked survival P2 C3b]
+   holds (incomplete) | holds (incomplete) | holds (incomplete) | holds (incomplete) | holds (incomplete) | holds (incomplete) | holds (incomplete) | holds (incomplete)
+18. both carriers of a revocation deleted, the store sealed again by a press, merged into a stale copy by KeePassXC
+      [what the deletion-record witness is for]
+   FAILS | FAILS | holds | FAILS | FAILS | FAILS | FAILS | FAILS
+19. a store entry edited by hand, and the edit synchronized into every copy
+      [store-entries survival P7]
+   holds (incomplete) | holds (incomplete) | holds (incomplete) | holds (incomplete) | holds (incomplete) | holds (incomplete) | holds (incomplete) | holds (incomplete)
+20. an import with new identifiers of a stale copy
+      [rules-linked survival P3 C6]
+   holds | holds | holds | holds | holds | holds | holds | holds
+== the same replays through the model's own checks after every step (store)
+ 1. no failure of the checks
+ 2. no failure of the checks
+ 3. safety at step 3 (file 1: client c0 admitted); one-loss at step 3 (file 1: client c0 admitted)
+ 4. no failure of the checks
+ 5. no failure of the checks
+ 6. no failure of the checks
+ 7. no failure of the checks
+ 8. no failure of the checks
+ 9. safety at step 8 (file 0: node N grants rw)
+10. sealed-after-a-loss at step 8 (file 0: node N grants r)
+11. no failure of the checks
+12. no failure of the checks
+13. no failure of the checks
+14. no failure of the checks
+15. accepted:copy-wider at step 2 (file 0: M1)
+16. accepted:copy-wider at step 2 (file 0: M1)
+17. no failure of the checks
+18. sealed-after-a-loss at step 4 (file 1: client c0 admitted)
+19. no failure of the checks
+20. no failure of the checks
+== 1 s

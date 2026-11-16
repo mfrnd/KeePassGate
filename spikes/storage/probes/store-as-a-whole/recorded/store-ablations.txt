@@ -1,0 +1,1506 @@
+== the cost of each change taken by decision: the store, and the store with that change
+   undone, over the same histories (20000 a cell, 2 files, the design's seeds), with no deletion
+   or hand edit of the authority's entry (part search-noauth)
+store, B + deletions by hand with a deletion record                2 files  20000 histories  accepted:copy-wider x13, accepted:unsaved-rule-lost x111, info:repair-narrower x20, info:repair-writes x58
+    shortest accepted:copy-wider (file 0: M1):
+        rule 0 N none
+        renewcert 0 c0
+        copy 0
+    shortest accepted:unsaved-rule-lost (file 1: node N grants r):
+        rule 1 N none
+        quit 1
+    shortest info:repair-narrower (file 1):
+        rule 0 root rw
+        merge kp_other 0 1
+        merge kp_sync 1 0
+        merge kp_sync 0 1
+    shortest info:repair-writes (file 1):
+        rule 0 root rw
+        merge kp_other 0 1
+        merge kp_sync 1 0
+        merge kp_sync 0 1
+  undone: no mark on a user node (decision 11)                     2 files  20000 histories  accepted:unsaved-rule-lost x110, info:repair-narrower x20, info:repair-writes x58
+    shortest accepted:unsaved-rule-lost (file 1: node N grants r):
+        rule 1 N none
+        quit 1
+    shortest info:repair-narrower (file 1):
+        rule 0 root rw
+        merge kp_other 0 1
+        merge kp_sync 1 0
+        merge kp_sync 0 1
+    shortest info:repair-writes (file 1):
+        rule 0 root rw
+        merge kp_other 0 1
+        merge kp_sync 1 0
+        merge kp_sync 0 1
+  undone: no witness (decision 15)                                 2 files  20000 histories  accepted:copy-wider x13, accepted:unsaved-rule-lost x111, info:repair-narrower x20, info:repair-writes x58
+    shortest accepted:copy-wider (file 0: M1):
+        rule 0 N none
+        renewcert 0 c0
+        copy 0
+    shortest accepted:unsaved-rule-lost (file 1: node N grants r):
+        rule 1 N none
+        quit 1
+    shortest info:repair-narrower (file 1):
+        rule 0 root rw
+        merge kp_other 0 1
+        merge kp_sync 1 0
+        merge kp_sync 0 1
+    shortest info:repair-writes (file 1):
+        rule 0 root rw
+        merge kp_other 0 1
+        merge kp_sync 1 0
+        merge kp_sync 0 1
+  undone: a revocation names the key (decision 20, change 5)       2 files  20000 histories  accepted:copy-wider x13, accepted:unsaved-rule-lost x111, info:repair-narrower x20, info:repair-writes x58, safety x27, sealed-after-a-loss x1
+    shortest accepted:copy-wider (file 0: M1):
+        rule 0 N none
+        renewcert 0 c0
+        copy 0
+    shortest accepted:unsaved-rule-lost (file 1: node N grants r):
+        rule 1 N none
+        quit 1
+    shortest info:repair-narrower (file 1):
+        rule 0 root rw
+        merge kp_other 0 1
+        merge kp_sync 1 0
+        merge kp_sync 0 1
+    shortest info:repair-writes (file 1):
+        rule 0 root rw
+        merge kp_other 0 1
+        merge kp_sync 1 0
+        merge kp_sync 0 1
+    shortest safety (file 0: client c0.1 admitted):
+        renewcert 0 c0
+        revoke 1 c0
+        merge xc 0 1
+    shortest sealed-after-a-loss (file 1: client c0.1 admitted):
+        del 0 ('head', 'old') 1
+        reseal 0
+        revoke 1 c0
+        renewcert 0 c0
+        merge kp_sync 1 0
+  undone: the store key in the retirement (decision 12, change 6)  2 files  20000 histories  accepted:copy-wider x13, accepted:unsaved-rule-lost x111, info:repair-narrower x20, info:repair-writes x183, safety x4
+    shortest accepted:copy-wider (file 0: M1):
+        rule 0 N none
+        renewcert 0 c0
+        copy 0
+    shortest accepted:unsaved-rule-lost (file 1: node N grants r):
+        rule 1 N none
+        quit 1
+    shortest info:repair-narrower (file 1):
+        rule 0 root rw
+        merge kp_other 0 1
+        merge kp_sync 1 0
+        merge kp_sync 0 1
+    shortest info:repair-writes (file 1):
+        delauth 0
+        quit 1
+        merge kp_sync 1 0
+    shortest safety (file 0: renewal of c0 asked):
+        renew 1 c0 forever
+        delauth 1
+        merge kp_sync 0 1
+        create 0
+  undone: a rule written at the next save (decision 13, change 4)  2 files  20000 histories  accepted:copy-wider x65, info:repair-narrower x92, info:repair-writes x229
+    shortest accepted:copy-wider (file 1: M1):
+        rule 1 N none
+        copy 1
+    shortest info:repair-narrower (file 0):
+        merge kp_sync 0 1
+        rule 1 root rw
+        merge kp_sync 0 1
+    shortest info:repair-writes (file 0):
+        merge kp_sync 0 1
+        rule 1 root rw
+        merge kp_sync 0 1
+  undone: several gates (decision 20)                              2 files  20000 histories  accepted:copy-wider x10, accepted:unsaved-rule-lost x45, info:repair-narrower x15, info:repair-writes x32
+    shortest accepted:copy-wider (file 0: M1):
+        rule 0 N none
+        renewcert 0 c0
+        copy 0
+    shortest accepted:unsaved-rule-lost (file 0: node root grants r):
+        rule 0 root none
+        quit 0
+    shortest info:repair-narrower (file 1):
+        rule 0 root rw
+        merge kp_other 0 1
+        merge kp_sync 1 0
+        merge kp_sync 0 1
+    shortest info:repair-writes (file 1):
+        rule 0 root rw
+        merge kp_other 0 1
+        merge kp_sync 1 0
+        merge kp_sync 0 1
+  undone: the repair after a Synchronize (decisions 18, 19, change 7) 2 files  20000 histories  accepted:copy-wider x13, accepted:unsaved-rule-lost x111
+    shortest accepted:copy-wider (file 0: M1):
+        rule 0 N none
+        renewcert 0 c0
+        copy 0
+    shortest accepted:unsaved-rule-lost (file 1: node N grants r):
+        rule 1 N none
+        quit 1
+store, C + deletions that leave no record                          2 files  20000 histories  accepted:copy-wider x12, accepted:unsaved-rule-lost x96, info:repair-narrower x21, info:repair-writes x53
+    shortest accepted:copy-wider (file 0: M1):
+        rule 0 N none
+        renewcert 0 c0
+        copy 0
+    shortest accepted:unsaved-rule-lost (file 0: node root grants r):
+        rule 0 root none
+        quit 0
+    shortest info:repair-narrower (file 1):
+        merge dx 1 0
+        merge kp_other 0 1
+        del 1 ('head', 'new') 0
+        del 1 ('ver', 'rule:root', 'new') 1
+        merge kp_sync 1 0
+    shortest info:repair-writes (file 1):
+        merge xc 1 0
+        rule 0 root inherit
+        revoke 0 c0
+        merge kp_sync 1 0
+  undone: no mark on a user node (decision 11)                     2 files  20000 histories  accepted:unsaved-rule-lost x96, info:repair-narrower x21, info:repair-writes x53
+    shortest accepted:unsaved-rule-lost (file 0: node root grants r):
+        rule 0 root none
+        quit 0
+    shortest info:repair-narrower (file 1):
+        merge dx 1 0
+        merge kp_other 0 1
+        del 1 ('head', 'new') 0
+        del 1 ('ver', 'rule:root', 'new') 1
+        merge kp_sync 1 0
+    shortest info:repair-writes (file 1):
+        merge xc 1 0
+        rule 0 root inherit
+        revoke 0 c0
+        merge kp_sync 1 0
+  undone: no witness (decision 15)                                 2 files  20000 histories  accepted:copy-wider x12, accepted:unsaved-rule-lost x96, info:repair-narrower x21, info:repair-writes x53
+    shortest accepted:copy-wider (file 0: M1):
+        rule 0 N none
+        renewcert 0 c0
+        copy 0
+    shortest accepted:unsaved-rule-lost (file 0: node root grants r):
+        rule 0 root none
+        quit 0
+    shortest info:repair-narrower (file 1):
+        merge dx 1 0
+        merge kp_other 0 1
+        del 1 ('head', 'new') 0
+        del 1 ('ver', 'rule:root', 'new') 1
+        merge kp_sync 1 0
+    shortest info:repair-writes (file 1):
+        merge xc 1 0
+        rule 0 root inherit
+        revoke 0 c0
+        merge kp_sync 1 0
+  undone: a revocation names the key (decision 20, change 5)       2 files  20000 histories  accepted:copy-wider x12, accepted:unsaved-rule-lost x96, info:repair-left-wider x1, info:repair-narrower x21, info:repair-writes x53, safety x28
+    shortest accepted:copy-wider (file 0: M1):
+        rule 0 N none
+        renewcert 0 c0
+        copy 0
+    shortest accepted:unsaved-rule-lost (file 0: node root grants r):
+        rule 0 root none
+        quit 0
+    shortest info:repair-left-wider (file 0):
+        rule 1 root inherit
+        del 0 ('prem',) 0
+        del 0 ('prem',) 1
+        merge dx 0 1
+        renewcert 0 c0
+        merge kp_other 0 1
+        revoke 1 c0
+        merge kp_sync 0 1
+        rule 0 root inherit
+    shortest info:repair-narrower (file 1):
+        merge dx 1 0
+        merge kp_other 0 1
+        del 1 ('head', 'new') 0
+        del 1 ('ver', 'rule:root', 'new') 1
+        merge kp_sync 1 0
+    shortest info:repair-writes (file 1):
+        merge xc 1 0
+        rule 0 root inherit
+        revoke 0 c0
+        merge kp_sync 1 0
+    shortest safety (file 0: client c0.1 admitted):
+        revoke 0 c0
+        renewcert 1 c0
+        merge xc 0 1
+  undone: the store key in the retirement (decision 12, change 6)  2 files  20000 histories  accepted:copy-wider x12, accepted:unsaved-rule-lost x96, info:repair-narrower x21, info:repair-writes x189, safety x1
+    shortest accepted:copy-wider (file 0: M1):
+        rule 0 N none
+        renewcert 0 c0
+        copy 0
+    shortest accepted:unsaved-rule-lost (file 0: node root grants r):
+        rule 0 root none
+        quit 0
+    shortest info:repair-narrower (file 1):
+        merge dx 1 0
+        merge kp_other 0 1
+        del 1 ('head', 'new') 0
+        del 1 ('ver', 'rule:root', 'new') 1
+        merge kp_sync 1 0
+    shortest info:repair-writes (file 0):
+        delauth 1
+        merge kp_other 0 1
+        merge kp_sync 0 1
+    shortest safety (file 0: node root grants rw):
+        delauth 1
+        create 1
+        merge kp_sync 0 1
+        rule 0 root rw
+  undone: a rule written at the next save (decision 13, change 4)  2 files  20000 histories  accepted:copy-wider x58, info:repair-narrower x103, info:repair-writes x257, safety x1
+    shortest accepted:copy-wider (file 0: M1):
+        rule 0 N none
+        copy 0
+    shortest info:repair-narrower (file 1):
+        rule 0 root rw
+        merge kp_sync 1 0
+        merge dx 1 0
+    shortest info:repair-writes (file 0):
+        rule 1 root inherit
+        del 1 ('ver', 'rule:N', 'new') 1
+        merge kp_sync 0 1
+    shortest safety (file 1: client c0 holds ['pf']):
+        prem 0 pf
+        del 0 ('head', 'new') 0
+        del 0 ('prem',) 0
+        merge xc 1 0
+  undone: several gates (decision 20)                              2 files  20000 histories  accepted:copy-wider x8, accepted:unsaved-rule-lost x45, info:repair-narrower x15, info:repair-writes x36, safety x1
+    shortest accepted:copy-wider (file 0: M1):
+        rule 0 N none
+        renewcert 0 c0
+        copy 0
+    shortest accepted:unsaved-rule-lost (file 0: node root grants r):
+        rule 0 root none
+        quit 0
+    shortest info:repair-narrower (file 1):
+        merge dx 1 0
+        merge kp_other 0 1
+        del 1 ('head', 'new') 0
+        del 1 ('ver', 'rule:root', 'new') 1
+        merge kp_sync 1 0
+    shortest info:repair-writes (file 1):
+        merge xc 1 0
+        rule 0 root inherit
+        revoke 0 c0
+        merge kp_sync 1 0
+    shortest safety (file 1: client c0 holds ['pf']):
+        prem 0 pf
+        del 0 ('head', 'new') 0
+        del 0 ('prem',) 0
+        merge xc 1 0
+  undone: the repair after a Synchronize (decisions 18, 19, change 7) 2 files  20000 histories  accepted:copy-wider x12, accepted:unsaved-rule-lost x96
+    shortest accepted:copy-wider (file 0: M1):
+        rule 0 N none
+        renewcert 0 c0
+        copy 0
+    shortest accepted:unsaved-rule-lost (file 0: node root grants r):
+        rule 0 root none
+        quit 0
+store, D + records dated before the entry (a clock behind)         2 files  20000 histories  accepted:copy-wider x11, accepted:unsaved-rule-lost x102, info:repair-narrower x29, info:repair-writes x64, safety x1
+    shortest accepted:copy-wider (file 1: M1):
+        rule 1 N none
+        revoke 1 c0
+        copy 1
+    shortest accepted:unsaved-rule-lost (file 1: node root grants r):
+        rule 1 root none
+        quit 1
+    shortest info:repair-narrower (file 0):
+        rule 1 root rw
+        rule 1 root rw
+        recreate 1
+        rule 0 N r
+        merge kp_sync 0 1
+    shortest info:repair-writes (file 0):
+        rule 1 root inherit
+        create 1
+        recreate 1
+        merge kp_sync 0 1
+    shortest safety (file 0: client c0 holds ['pf']):
+        prem 1 pf
+        del 1 ('head', 'old') 1
+        del 1 ('prem',) 2
+        merge kp_other 0 1
+  undone: no mark on a user node (decision 11)                     2 files  20000 histories  accepted:unsaved-rule-lost x102, info:repair-narrower x29, info:repair-writes x64, safety x1
+    shortest accepted:unsaved-rule-lost (file 1: node root grants r):
+        rule 1 root none
+        quit 1
+    shortest info:repair-narrower (file 0):
+        rule 1 root rw
+        rule 1 root rw
+        recreate 1
+        rule 0 N r
+        merge kp_sync 0 1
+    shortest info:repair-writes (file 0):
+        rule 1 root inherit
+        create 1
+        recreate 1
+        merge kp_sync 0 1
+    shortest safety (file 0: client c0 holds ['pf']):
+        prem 1 pf
+        del 1 ('head', 'old') 1
+        del 1 ('prem',) 2
+        merge kp_other 0 1
+  undone: no witness (decision 15)                                 2 files  20000 histories  accepted:copy-wider x11, accepted:unsaved-rule-lost x102, info:repair-narrower x29, info:repair-writes x64, safety x1
+    shortest accepted:copy-wider (file 1: M1):
+        rule 1 N none
+        revoke 1 c0
+        copy 1
+    shortest accepted:unsaved-rule-lost (file 1: node root grants r):
+        rule 1 root none
+        quit 1
+    shortest info:repair-narrower (file 0):
+        rule 1 root rw
+        rule 1 root rw
+        recreate 1
+        rule 0 N r
+        merge kp_sync 0 1
+    shortest info:repair-writes (file 0):
+        rule 1 root inherit
+        create 1
+        recreate 1
+        merge kp_sync 0 1
+    shortest safety (file 0: client c0 holds ['pf']):
+        prem 1 pf
+        del 1 ('head', 'old') 1
+        del 1 ('prem',) 2
+        merge kp_other 0 1
+  undone: a revocation names the key (decision 20, change 5)       2 files  20000 histories  accepted:copy-wider x11, accepted:unsaved-rule-lost x102, info:repair-narrower x29, info:repair-writes x64, safety x21
+    shortest accepted:copy-wider (file 1: M1):
+        rule 1 N none
+        revoke 1 c0
+        copy 1
+    shortest accepted:unsaved-rule-lost (file 1: node root grants r):
+        rule 1 root none
+        quit 1
+    shortest info:repair-narrower (file 0):
+        rule 1 root rw
+        rule 1 root rw
+        recreate 1
+        rule 0 N r
+        merge kp_sync 0 1
+    shortest info:repair-writes (file 0):
+        rule 1 root inherit
+        create 1
+        recreate 1
+        merge kp_sync 0 1
+    shortest safety (file 1: client c0.1 admitted):
+        revoke 1 c0
+        renewcert 0 c0
+        merge xc 1 0
+  undone: the store key in the retirement (decision 12, change 6)  2 files  20000 histories  accepted:copy-wider x11, accepted:unsaved-rule-lost x102, info:repair-narrower x29, info:repair-writes x200, safety x2
+    shortest accepted:copy-wider (file 1: M1):
+        rule 1 N none
+        revoke 1 c0
+        copy 1
+    shortest accepted:unsaved-rule-lost (file 1: node root grants r):
+        rule 1 root none
+        quit 1
+    shortest info:repair-narrower (file 0):
+        rule 1 root rw
+        rule 1 root rw
+        recreate 1
+        rule 0 N r
+        merge kp_sync 0 1
+    shortest info:repair-writes (file 1):
+        delauth 0
+        merge kp_sync 1 0
+        merge dx 0 1
+    shortest safety (file 0: client c0 holds ['pf']):
+        prem 1 pf
+        del 1 ('head', 'old') 1
+        del 1 ('prem',) 2
+        merge kp_other 0 1
+  undone: a rule written at the next save (decision 13, change 4)  2 files  20000 histories  accepted:copy-wider x64, info:repair-narrower x116, info:repair-writes x250
+    shortest accepted:copy-wider (file 0: M1):
+        rule 0 N none
+        copy 0
+    shortest info:repair-narrower (file 0):
+        rule 1 root rw
+        revoke 0 c0
+        merge kp_sync 0 1
+    shortest info:repair-writes (file 0):
+        rule 1 root inherit
+        del 1 ('head', 'new') 1
+        merge kp_sync 0 1
+  undone: several gates (decision 20)                              2 files  20000 histories  accepted:copy-wider x10, accepted:unsaved-rule-lost x47, info:repair-narrower x16, info:repair-writes x40
+    shortest accepted:copy-wider (file 1: M1):
+        rule 0 N none
+        merge kp_sync 0 1
+        merge k2a 1 0
+        copy 1
+    shortest accepted:unsaved-rule-lost (file 0: node N grants r):
+        rule 0 N none
+        quit 0
+    shortest info:repair-narrower (file 1):
+        renewcert 0 c1
+        rule 0 root rw
+        renew 0 c0 forever
+        merge kp_sync 1 0
+        merge k2a 1 0
+    shortest info:repair-writes (file 1):
+        renewcert 0 c1
+        rule 0 root rw
+        renew 0 c0 forever
+        merge kp_sync 1 0
+        merge k2a 1 0
+  undone: the repair after a Synchronize (decisions 18, 19, change 7) 2 files  20000 histories  accepted:copy-wider x11, accepted:unsaved-rule-lost x102, safety x1
+    shortest accepted:copy-wider (file 1: M1):
+        rule 1 N none
+        revoke 1 c0
+        copy 1
+    shortest accepted:unsaved-rule-lost (file 1: node root grants r):
+        rule 1 root none
+        quit 1
+    shortest safety (file 0: client c0 holds ['pf']):
+        prem 1 pf
+        del 1 ('head', 'old') 1
+        del 1 ('prem',) 2
+        merge kp_other 0 1
+store, E + deletion records cleared                                2 files  20000 histories  accepted:copy-wider x8, accepted:unsaved-rule-lost x107, info:repair-narrower x38, info:repair-writes x68, safety x1
+    shortest accepted:copy-wider (file 0: M1):
+        rule 0 N none
+        recreate 0
+        copy 0
+    shortest accepted:unsaved-rule-lost (file 0: node root grants r):
+        rule 0 root inherit
+        quit 0
+    shortest info:repair-narrower (file 0):
+        rule 0 N rw
+        rule 1 root rw
+        save 1
+        merge kp_sync 0 1
+    shortest info:repair-writes (file 0):
+        rule 0 N rw
+        rule 1 root rw
+        save 1
+        merge kp_sync 0 1
+    shortest safety (file 1: client c0 admitted):
+        revoke 0 c0
+        del 0 ('head', 'old') 0
+        del 0 ('ref', 'revoked') 1
+        merge xc 1 0
+  undone: no mark on a user node (decision 11)                     2 files  20000 histories  accepted:unsaved-rule-lost x107, info:repair-narrower x38, info:repair-writes x68, safety x1
+    shortest accepted:unsaved-rule-lost (file 0: node root grants r):
+        rule 0 root inherit
+        quit 0
+    shortest info:repair-narrower (file 0):
+        rule 0 N rw
+        rule 1 root rw
+        save 1
+        merge kp_sync 0 1
+    shortest info:repair-writes (file 0):
+        rule 0 N rw
+        rule 1 root rw
+        save 1
+        merge kp_sync 0 1
+    shortest safety (file 1: client c0 admitted):
+        revoke 0 c0
+        del 0 ('head', 'old') 0
+        del 0 ('ref', 'revoked') 1
+        merge xc 1 0
+  undone: no witness (decision 15)                                 2 files  20000 histories  accepted:copy-wider x8, accepted:unsaved-rule-lost x107, info:repair-narrower x38, info:repair-writes x68, safety x1
+    shortest accepted:copy-wider (file 0: M1):
+        rule 0 N none
+        recreate 0
+        copy 0
+    shortest accepted:unsaved-rule-lost (file 0: node root grants r):
+        rule 0 root inherit
+        quit 0
+    shortest info:repair-narrower (file 0):
+        rule 0 N rw
+        rule 1 root rw
+        save 1
+        merge kp_sync 0 1
+    shortest info:repair-writes (file 0):
+        rule 0 N rw
+        rule 1 root rw
+        save 1
+        merge kp_sync 0 1
+    shortest safety (file 1: client c0 admitted):
+        revoke 0 c0
+        del 0 ('head', 'old') 0
+        del 0 ('ref', 'revoked') 1
+        merge xc 1 0
+  undone: a revocation names the key (decision 20, change 5)       2 files  20000 histories  accepted:copy-wider x8, accepted:unsaved-rule-lost x107, info:repair-narrower x38, info:repair-writes x68, safety x21
+    shortest accepted:copy-wider (file 0: M1):
+        rule 0 N none
+        recreate 0
+        copy 0
+    shortest accepted:unsaved-rule-lost (file 0: node root grants r):
+        rule 0 root inherit
+        quit 0
+    shortest info:repair-narrower (file 0):
+        rule 0 N rw
+        rule 1 root rw
+        save 1
+        merge kp_sync 0 1
+    shortest info:repair-writes (file 0):
+        rule 0 N rw
+        rule 1 root rw
+        save 1
+        merge kp_sync 0 1
+    shortest safety (file 1: client c0.1 admitted):
+        revoke 0 c0
+        renewcert 1 c0
+        merge xc 1 0
+  undone: the store key in the retirement (decision 12, change 6)  2 files  20000 histories  accepted:copy-wider x8, accepted:unsaved-rule-lost x107, info:repair-narrower x38, info:repair-writes x179, safety x4
+    shortest accepted:copy-wider (file 0: M1):
+        rule 0 N none
+        recreate 0
+        copy 0
+    shortest accepted:unsaved-rule-lost (file 0: node root grants r):
+        rule 0 root inherit
+        quit 0
+    shortest info:repair-narrower (file 0):
+        rule 0 N rw
+        rule 1 root rw
+        save 1
+        merge kp_sync 0 1
+    shortest info:repair-writes (file 0):
+        delauth 1
+        merge kp_sync 0 1
+        create 1
+    shortest safety (file 0: renewal of c0 asked):
+        delauth 0
+        create 0
+        renew 1 c0 forever
+        merge dx 0 1
+  undone: a rule written at the next save (decision 13, change 4)  2 files  20000 histories  accepted:copy-wider x54, info:repair-narrower x109, info:repair-writes x259, safety x1, sealed-after-a-loss x1
+    shortest accepted:copy-wider (file 1: M1):
+        rule 1 N none
+        copy 1
+    shortest info:repair-narrower (file 1):
+        rule 0 root rw
+        copy 0
+        merge kp_sync 1 0
+    shortest info:repair-writes (file 1):
+        renewcert 1 c1
+        rule 0 root inherit
+        merge kp_sync 1 0
+    shortest safety (file 1: node root grants r):
+        recreate 1
+        rule 0 root none
+        del 0 ('ver', 'rule:root', 'new') 1
+        del 0 ('head', 'new') 1
+        merge dx 1 0
+    shortest sealed-after-a-loss (file 0: node N grants r):
+        rule 0 N none
+        del 0 ('head', 'old') 1
+        del 0 ('ver', 'rule:N', 'new') 0
+        reseal 0
+  undone: several gates (decision 20)                              2 files  20000 histories  accepted:copy-wider x4, accepted:unsaved-rule-lost x64, info:repair-narrower x21, info:repair-writes x41, safety x1
+    shortest accepted:copy-wider (file 0: M1):
+        rule 0 N none
+        recreate 0
+        copy 0
+    shortest accepted:unsaved-rule-lost (file 0: node root grants r):
+        rule 0 root inherit
+        quit 0
+    shortest info:repair-narrower (file 1):
+        renewcert 0 c1
+        rule 0 root rw
+        pair 1
+        merge kp_other 0 1
+        del 0 ('ver', 'rule:N', 'old') 1
+        merge kp_sync 1 0
+    shortest info:repair-writes (file 1):
+        del 0 ('ver', 'rule:N', 'old') 1
+        rule 0 root inherit
+        merge kp_sync 1 0
+        merge kp_sync 0 1
+        merge kp_sync 1 0
+    shortest safety (file 1: client c0 admitted):
+        revoke 0 c0
+        del 0 ('head', 'old') 0
+        del 0 ('ref', 'revoked') 1
+        merge xc 1 0
+  undone: the repair after a Synchronize (decisions 18, 19, change 7) 2 files  20000 histories  accepted:copy-wider x8, accepted:unsaved-rule-lost x107, safety x1
+    shortest accepted:copy-wider (file 0: M1):
+        rule 0 N none
+        recreate 0
+        copy 0
+    shortest accepted:unsaved-rule-lost (file 0: node root grants r):
+        rule 0 root inherit
+        quit 0
+    shortest safety (file 1: client c0 admitted):
+        revoke 0 c0
+        del 0 ('head', 'old') 0
+        del 0 ('ref', 'revoked') 1
+        merge xc 1 0
+store, F + foreign: edits, import with new identifiers, planted entries 2 files  20000 histories  accepted:copy-wider x9, accepted:unsaved-rule-lost x96, info:repair-narrower x21, info:repair-writes x70
+    shortest accepted:copy-wider (file 1: M1):
+        rule 1 N none
+        plant 1 record
+        copy 1
+    shortest accepted:unsaved-rule-lost (file 0: node root grants r):
+        rule 0 root inherit
+        quit 0
+    shortest info:repair-narrower (file 1):
+        rule 0 root rw
+        plant 0 profile
+        merge kp_sync 1 0
+        merge xc 0 1
+        rule 0 N r
+    shortest info:repair-writes (file 0):
+        rule 1 root inherit
+        save 1
+        merge kp_sync 0 1
+        prem 0 pg
+  undone: no mark on a user node (decision 11)                     2 files  20000 histories  accepted:unsaved-rule-lost x96, info:repair-narrower x21, info:repair-writes x70
+    shortest accepted:unsaved-rule-lost (file 0: node root grants r):
+        rule 0 root inherit
+        quit 0
+    shortest info:repair-narrower (file 1):
+        rule 0 root rw
+        plant 0 profile
+        merge kp_sync 1 0
+        merge xc 0 1
+        rule 0 N r
+    shortest info:repair-writes (file 0):
+        rule 1 root inherit
+        save 1
+        merge kp_sync 0 1
+        prem 0 pg
+  undone: no witness (decision 15)                                 2 files  20000 histories  accepted:copy-wider x9, accepted:unsaved-rule-lost x96, info:repair-narrower x21, info:repair-writes x70
+    shortest accepted:copy-wider (file 1: M1):
+        rule 1 N none
+        plant 1 record
+        copy 1
+    shortest accepted:unsaved-rule-lost (file 0: node root grants r):
+        rule 0 root inherit
+        quit 0
+    shortest info:repair-narrower (file 1):
+        rule 0 root rw
+        plant 0 profile
+        merge kp_sync 1 0
+        merge xc 0 1
+        rule 0 N r
+    shortest info:repair-writes (file 0):
+        rule 1 root inherit
+        save 1
+        merge kp_sync 0 1
+        prem 0 pg
+  undone: a revocation names the key (decision 20, change 5)       2 files  20000 histories  accepted:copy-wider x9, accepted:unsaved-rule-lost x97, info:repair-narrower x21, info:repair-writes x70, safety x19
+    shortest accepted:copy-wider (file 1: M1):
+        rule 1 N none
+        plant 1 record
+        copy 1
+    shortest accepted:unsaved-rule-lost (file 0: node root grants r):
+        rule 0 root inherit
+        quit 0
+    shortest info:repair-narrower (file 1):
+        rule 0 root rw
+        plant 0 profile
+        merge kp_sync 1 0
+        merge xc 0 1
+        rule 0 N r
+    shortest info:repair-writes (file 0):
+        rule 1 root inherit
+        save 1
+        merge kp_sync 0 1
+        prem 0 pg
+    shortest safety (file 1: client c0.1 admitted):
+        revoke 0 c0
+        renewcert 1 c0
+        merge kp_sync 1 0
+  undone: the store key in the retirement (decision 12, change 6)  2 files  20000 histories  accepted:copy-wider x9, accepted:unsaved-rule-lost x96, info:repair-narrower x21, info:repair-writes x205
+    shortest accepted:copy-wider (file 1: M1):
+        rule 1 N none
+        plant 1 record
+        copy 1
+    shortest accepted:unsaved-rule-lost (file 0: node root grants r):
+        rule 0 root inherit
+        quit 0
+    shortest info:repair-narrower (file 1):
+        rule 0 root rw
+        plant 0 profile
+        merge kp_sync 1 0
+        merge xc 0 1
+        rule 0 N r
+    shortest info:repair-writes (file 1):
+        delauth 0
+        merge kp_sync 1 0
+        rule 0 root inherit
+  undone: a rule written at the next save (decision 13, change 4)  2 files  20000 histories  accepted:copy-wider x47, info:repair-narrower x83, info:repair-writes x236
+    shortest accepted:copy-wider (file 0: M1):
+        rule 0 N none
+        copy 0
+    shortest info:repair-narrower (file 0):
+        rule 1 root rw
+        renew 0 c0 allowed
+        merge kp_sync 0 1
+    shortest info:repair-writes (file 0):
+        rule 1 root inherit
+        merge kp_sync 0 1
+        del 1 ('head', 'new') 1
+  undone: several gates (decision 20)                              2 files  20000 histories  accepted:copy-wider x6, accepted:unsaved-rule-lost x47, info:repair-narrower x11, info:repair-writes x46
+    shortest accepted:copy-wider (file 0: M1):
+        rule 0 N none
+        revoke 0 c0
+        copy 0
+    shortest accepted:unsaved-rule-lost (file 0: node root grants r):
+        rule 0 root inherit
+        quit 0
+    shortest info:repair-narrower (file 1):
+        rule 0 root rw
+        plant 0 profile
+        merge kp_sync 1 0
+        merge xc 0 1
+        rule 0 N r
+    shortest info:repair-writes (file 1):
+        edit 0 ('head', 'old')
+        edit 1 ('ver', 'rule:root', 'new')
+        renewcert 1 c1
+        merge kp_sync 1 0
+  undone: the repair after a Synchronize (decisions 18, 19, change 7) 2 files  20000 histories  accepted:copy-wider x9, accepted:unsaved-rule-lost x96
+    shortest accepted:copy-wider (file 1: M1):
+        rule 1 N none
+        plant 1 record
+        copy 1
+    shortest accepted:unsaved-rule-lost (file 0: node root grants r):
+        rule 0 root inherit
+        quit 0
+store, H + a whole file written over another                       2 files  20000 histories  accepted:copy-wider x9, accepted:unsaved-rule-lost x90, info:repair-narrower x27, info:repair-writes x67, rollback-by-overwrite x170
+    shortest accepted:copy-wider (file 0: M1):
+        rule 1 N none
+        merge kp_sync 1 0
+        merge k2a 0 1
+        copy 0
+    shortest accepted:unsaved-rule-lost (file 0: node N grants r):
+        rule 0 N none
+        quit 0
+    shortest info:repair-narrower (file 1):
+        rule 0 root rw
+        merge kp_sync 0 1
+        merge kp_sync 1 0
+    shortest info:repair-writes (file 1):
+        rule 0 root inherit
+        renew 0 c0 allowed
+        merge kp_sync 1 0
+    shortest rollback-by-overwrite (file 0):
+        prem 0 pf
+        over 0 1
+  undone: no mark on a user node (decision 11)                     2 files  20000 histories  accepted:unsaved-rule-lost x90, info:repair-narrower x27, info:repair-writes x67, rollback-by-overwrite x170
+    shortest accepted:unsaved-rule-lost (file 0: node N grants r):
+        rule 0 N none
+        quit 0
+    shortest info:repair-narrower (file 1):
+        rule 0 root rw
+        merge kp_sync 0 1
+        merge kp_sync 1 0
+    shortest info:repair-writes (file 1):
+        rule 0 root inherit
+        renew 0 c0 allowed
+        merge kp_sync 1 0
+    shortest rollback-by-overwrite (file 0):
+        prem 0 pf
+        over 0 1
+  undone: no witness (decision 15)                                 2 files  20000 histories  accepted:copy-wider x9, accepted:unsaved-rule-lost x90, info:repair-narrower x27, info:repair-writes x67, rollback-by-overwrite x170
+    shortest accepted:copy-wider (file 0: M1):
+        rule 1 N none
+        merge kp_sync 1 0
+        merge k2a 0 1
+        copy 0
+    shortest accepted:unsaved-rule-lost (file 0: node N grants r):
+        rule 0 N none
+        quit 0
+    shortest info:repair-narrower (file 1):
+        rule 0 root rw
+        merge kp_sync 0 1
+        merge kp_sync 1 0
+    shortest info:repair-writes (file 1):
+        rule 0 root inherit
+        renew 0 c0 allowed
+        merge kp_sync 1 0
+    shortest rollback-by-overwrite (file 0):
+        prem 0 pf
+        over 0 1
+  undone: a revocation names the key (decision 20, change 5)       2 files  20000 histories  accepted:copy-wider x9, accepted:unsaved-rule-lost x90, info:repair-narrower x28, info:repair-writes x67, rollback-by-overwrite x170, safety x16
+    shortest accepted:copy-wider (file 0: M1):
+        rule 1 N none
+        merge kp_sync 1 0
+        merge k2a 0 1
+        copy 0
+    shortest accepted:unsaved-rule-lost (file 0: node N grants r):
+        rule 0 N none
+        quit 0
+    shortest info:repair-narrower (file 1):
+        rule 0 root rw
+        merge kp_sync 0 1
+        merge kp_sync 1 0
+    shortest info:repair-writes (file 1):
+        rule 0 root inherit
+        renew 0 c0 allowed
+        merge kp_sync 1 0
+    shortest rollback-by-overwrite (file 0):
+        prem 0 pf
+        over 0 1
+    shortest safety (file 1: client c0.1 admitted):
+        renewcert 0 c0
+        revoke 1 c0
+        merge k2a 1 0
+  undone: the store key in the retirement (decision 12, change 6)  2 files  20000 histories  accepted:copy-wider x9, accepted:unsaved-rule-lost x90, info:repair-narrower x27, info:repair-writes x190, rollback-by-overwrite x174, safety x2
+    shortest accepted:copy-wider (file 0: M1):
+        rule 1 N none
+        merge kp_sync 1 0
+        merge k2a 0 1
+        copy 0
+    shortest accepted:unsaved-rule-lost (file 0: node N grants r):
+        rule 0 N none
+        quit 0
+    shortest info:repair-narrower (file 1):
+        rule 0 root rw
+        merge kp_sync 0 1
+        merge kp_sync 1 0
+    shortest info:repair-writes (file 1):
+        rule 0 root inherit
+        renew 0 c0 allowed
+        merge kp_sync 1 0
+    shortest rollback-by-overwrite (file 0):
+        prem 0 pf
+        over 0 1
+    shortest safety (file 1: renewal of c0 asked):
+        renew 0 c0 forever
+        delauth 1
+        create 1
+        merge kp_sync 1 0
+  undone: a rule written at the next save (decision 13, change 4)  2 files  20000 histories  accepted:copy-wider x52, info:repair-narrower x98, info:repair-writes x247, rollback-by-overwrite x299, safety x2
+    shortest accepted:copy-wider (file 0: M1):
+        rule 0 N none
+        copy 0
+    shortest info:repair-narrower (file 0):
+        del 0 ('ref', 'retired') 1
+        rule 1 root rw
+        merge kp_sync 0 1
+    shortest info:repair-writes (file 0):
+        del 0 ('ref', 'retired') 1
+        rule 1 root rw
+        merge kp_sync 0 1
+    shortest rollback-by-overwrite (file 0):
+        prem 0 pf
+        over 0 1
+    shortest safety (file 1: node root grants r):
+        rule 0 root none
+        del 0 ('ver', 'rule:root', 'new') 1
+        del 0 ('head', 'new') 1
+        merge xc 1 0
+  undone: several gates (decision 20)                              2 files  20000 histories  accepted:copy-wider x5, accepted:unsaved-rule-lost x44, info:repair-narrower x19, info:repair-writes x42, rollback-by-overwrite x82
+    shortest accepted:copy-wider (file 0: M1):
+        rule 0 N none
+        pair 0
+        copy 0
+    shortest accepted:unsaved-rule-lost (file 0: node N grants r):
+        rule 0 N none
+        quit 0
+    shortest info:repair-narrower (file 1):
+        rule 0 root rw
+        merge kp_sync 0 1
+        merge kp_sync 1 0
+    shortest info:repair-writes (file 1):
+        rule 0 root inherit
+        renew 0 c0 allowed
+        merge kp_sync 1 0
+    shortest rollback-by-overwrite (file 0):
+        prem 0 pf
+        over 0 1
+  undone: the repair after a Synchronize (decisions 18, 19, change 7) 2 files  20000 histories  accepted:copy-wider x9, accepted:unsaved-rule-lost x90, rollback-by-overwrite x170
+    shortest accepted:copy-wider (file 0: M1):
+        rule 1 N none
+        merge kp_sync 1 0
+        merge k2a 0 1
+        copy 0
+    shortest accepted:unsaved-rule-lost (file 0: node N grants r):
+        rule 0 N none
+        quit 0
+    shortest rollback-by-overwrite (file 0):
+        prem 0 pf
+        over 0 1
+store, I everything at once                                        2 files  20000 histories  accepted:copy-wider x11, accepted:unsaved-rule-lost x96, info:repair-narrower x36, info:repair-writes x77, rollback-by-overwrite x44
+    shortest accepted:copy-wider (file 1: M1):
+        rule 1 N none
+        merge kp_other 1 0
+        copy 1
+    shortest accepted:unsaved-rule-lost (file 1: node root grants r):
+        rule 1 root inherit
+        quit 1
+    shortest info:repair-narrower (file 1):
+        rule 0 root rw
+        merge kp_sync 0 1
+        padd 1 pg
+        merge kp_sync 1 0
+    shortest info:repair-writes (file 1):
+        rule 0 root rw
+        merge kp_sync 0 1
+        padd 1 pg
+        merge kp_sync 1 0
+    shortest rollback-by-overwrite (file 1):
+        revoke 1 c0
+        over 1 0
+  undone: no mark on a user node (decision 11)                     2 files  20000 histories  accepted:unsaved-rule-lost x96, info:repair-narrower x36, info:repair-writes x77, rollback-by-overwrite x44
+    shortest accepted:unsaved-rule-lost (file 1: node root grants r):
+        rule 1 root inherit
+        quit 1
+    shortest info:repair-narrower (file 1):
+        rule 0 root rw
+        merge kp_sync 0 1
+        padd 1 pg
+        merge kp_sync 1 0
+    shortest info:repair-writes (file 1):
+        rule 0 root rw
+        merge kp_sync 0 1
+        padd 1 pg
+        merge kp_sync 1 0
+    shortest rollback-by-overwrite (file 1):
+        revoke 1 c0
+        over 1 0
+  undone: no witness (decision 15)                                 2 files  20000 histories  accepted:copy-wider x11, accepted:unsaved-rule-lost x96, info:repair-narrower x36, info:repair-writes x77, rollback-by-overwrite x44
+    shortest accepted:copy-wider (file 1: M1):
+        rule 1 N none
+        merge kp_other 1 0
+        copy 1
+    shortest accepted:unsaved-rule-lost (file 1: node root grants r):
+        rule 1 root inherit
+        quit 1
+    shortest info:repair-narrower (file 1):
+        rule 0 root rw
+        merge kp_sync 0 1
+        padd 1 pg
+        merge kp_sync 1 0
+    shortest info:repair-writes (file 1):
+        rule 0 root rw
+        merge kp_sync 0 1
+        padd 1 pg
+        merge kp_sync 1 0
+    shortest rollback-by-overwrite (file 1):
+        revoke 1 c0
+        over 1 0
+  undone: a revocation names the key (decision 20, change 5)       2 files  20000 histories  accepted:copy-wider x11, accepted:unsaved-rule-lost x96, info:repair-narrower x36, info:repair-writes x77, rollback-by-overwrite x44, safety x15
+    shortest accepted:copy-wider (file 1: M1):
+        rule 1 N none
+        merge kp_other 1 0
+        copy 1
+    shortest accepted:unsaved-rule-lost (file 1: node root grants r):
+        rule 1 root inherit
+        quit 1
+    shortest info:repair-narrower (file 1):
+        rule 0 root rw
+        merge kp_sync 0 1
+        padd 1 pg
+        merge kp_sync 1 0
+    shortest info:repair-writes (file 1):
+        rule 0 root rw
+        merge kp_sync 0 1
+        padd 1 pg
+        merge kp_sync 1 0
+    shortest rollback-by-overwrite (file 1):
+        revoke 1 c0
+        over 1 0
+    shortest safety (file 0: client c0.1 admitted):
+        renewcert 0 c0
+        revoke 1 c0
+        merge kp_sync 0 1
+  undone: the store key in the retirement (decision 12, change 6)  2 files  20000 histories  accepted:copy-wider x11, accepted:unsaved-rule-lost x96, info:repair-narrower x36, info:repair-writes x205, rollback-by-overwrite x44, safety x3
+    shortest accepted:copy-wider (file 1: M1):
+        rule 1 N none
+        merge kp_other 1 0
+        copy 1
+    shortest accepted:unsaved-rule-lost (file 1: node root grants r):
+        rule 1 root inherit
+        quit 1
+    shortest info:repair-narrower (file 1):
+        rule 0 root rw
+        merge kp_sync 0 1
+        padd 1 pg
+        merge kp_sync 1 0
+    shortest info:repair-writes (file 0):
+        delauth 1
+        merge kp_sync 0 1
+        merge kp_other 0 1
+    shortest rollback-by-overwrite (file 1):
+        revoke 1 c0
+        over 1 0
+    shortest safety (file 0: renewal of c0 asked):
+        renew 0 c0 forever
+        delauth 0
+        create 0
+  undone: a rule written at the next save (decision 13, change 4)  2 files  20000 histories  accepted:copy-wider x58, info:repair-narrower x102, info:repair-writes x276, rollback-by-overwrite x64
+    shortest accepted:copy-wider (file 0: M1):
+        rule 0 N none
+        copy 0
+    shortest info:repair-narrower (file 1):
+        prem 0 pg
+        rule 0 root rw
+        merge kp_sync 1 0
+    shortest info:repair-writes (file 1):
+        rule 0 root inherit
+        del 1 ('ver', 'rule:N', 'new') 0
+        merge kp_sync 1 0
+    shortest rollback-by-overwrite (file 1):
+        delauth 1
+        over 1 0
+  undone: several gates (decision 20)                              2 files  20000 histories  accepted:copy-wider x4, accepted:unsaved-rule-lost x51, info:repair-narrower x16, info:repair-writes x45, rollback-by-overwrite x26
+    shortest accepted:copy-wider (file 0: M1):
+        rule 0 N none
+        recreate 0
+        copy 0
+    shortest accepted:unsaved-rule-lost (file 0: node root grants r):
+        rule 0 root inherit
+        quit 0
+    shortest info:repair-narrower (file 1):
+        rule 0 root rw
+        merge kp_sync 0 1
+        padd 1 pg
+        merge kp_sync 1 0
+    shortest info:repair-writes (file 1):
+        rule 0 root rw
+        merge kp_sync 0 1
+        padd 1 pg
+        merge kp_sync 1 0
+    shortest rollback-by-overwrite (file 0):
+        prem 0 pf
+        over 0 1
+  undone: the repair after a Synchronize (decisions 18, 19, change 7) 2 files  20000 histories  accepted:copy-wider x11, accepted:unsaved-rule-lost x96, rollback-by-overwrite x44
+    shortest accepted:copy-wider (file 1: M1):
+        rule 1 N none
+        merge kp_other 1 0
+        copy 1
+    shortest accepted:unsaved-rule-lost (file 1: node root grants r):
+        rule 1 root inherit
+        quit 1
+    shortest rollback-by-overwrite (file 1):
+        revoke 1 c0
+        over 1 0
+store, J2 the same; every kind of deletion                         2 files  20000 histories  accepted:copy-wider x12, accepted:unsaved-rule-lost x80, info:repair-narrower x85, info:repair-writes x194
+    shortest accepted:copy-wider (file 0: M1):
+        rule 0 N none
+        merge kp_sync 0 1
+        copy 0
+    shortest accepted:unsaved-rule-lost (file 1: node root grants r):
+        rule 1 root inherit
+        quit 1
+    shortest info:repair-narrower (file 1):
+        merge kp_sync 1 0
+        rule 0 root rw
+        save 0
+        merge kp_sync 1 0
+    shortest info:repair-writes (file 0):
+        revoke 1 c1
+        rule 1 root inherit
+        merge kp_sync 1 0
+        merge kp_sync 0 1
+  undone: no mark on a user node (decision 11)                     2 files  20000 histories  accepted:unsaved-rule-lost x80, info:repair-narrower x85, info:repair-writes x194
+    shortest accepted:unsaved-rule-lost (file 1: node root grants r):
+        rule 1 root inherit
+        quit 1
+    shortest info:repair-narrower (file 1):
+        merge kp_sync 1 0
+        rule 0 root rw
+        save 0
+        merge kp_sync 1 0
+    shortest info:repair-writes (file 0):
+        revoke 1 c1
+        rule 1 root inherit
+        merge kp_sync 1 0
+        merge kp_sync 0 1
+  undone: no witness (decision 15)                                 2 files  20000 histories  accepted:copy-wider x12, accepted:unsaved-rule-lost x80, info:repair-narrower x85, info:repair-writes x194
+    shortest accepted:copy-wider (file 0: M1):
+        rule 0 N none
+        merge kp_sync 0 1
+        copy 0
+    shortest accepted:unsaved-rule-lost (file 1: node root grants r):
+        rule 1 root inherit
+        quit 1
+    shortest info:repair-narrower (file 1):
+        merge kp_sync 1 0
+        rule 0 root rw
+        save 0
+        merge kp_sync 1 0
+    shortest info:repair-writes (file 0):
+        revoke 1 c1
+        rule 1 root inherit
+        merge kp_sync 1 0
+        merge kp_sync 0 1
+  undone: a revocation names the key (decision 20, change 5)       2 files  20000 histories  accepted:copy-wider x12, accepted:unsaved-rule-lost x80, info:repair-left-wider x1, info:repair-narrower x85, info:repair-writes x194, safety x20
+    shortest accepted:copy-wider (file 0: M1):
+        rule 0 N none
+        merge kp_sync 0 1
+        copy 0
+    shortest accepted:unsaved-rule-lost (file 1: node root grants r):
+        rule 1 root inherit
+        quit 1
+    shortest info:repair-left-wider (file 0):
+        rule 1 root inherit
+        revoke 1 c0
+        copy 1
+        renewcert 0 c0
+        del 0 ('prem',) 2
+        merge kp_sync 0 1
+    shortest info:repair-narrower (file 1):
+        merge kp_sync 1 0
+        rule 0 root rw
+        save 0
+        merge kp_sync 1 0
+    shortest info:repair-writes (file 0):
+        revoke 1 c1
+        rule 1 root inherit
+        merge kp_sync 1 0
+        merge kp_sync 0 1
+    shortest safety (file 0: client c0.1 admitted):
+        revoke 1 c0
+        renewcert 0 c0
+        merge k2a 0 1
+  undone: the store key in the retirement (decision 12, change 6)  2 files  20000 histories  accepted:copy-wider x12, accepted:unsaved-rule-lost x80, info:repair-narrower x85, info:repair-writes x467, safety x3
+    shortest accepted:copy-wider (file 0: M1):
+        rule 0 N none
+        merge kp_sync 0 1
+        copy 0
+    shortest accepted:unsaved-rule-lost (file 1: node root grants r):
+        rule 1 root inherit
+        quit 1
+    shortest info:repair-narrower (file 1):
+        merge kp_sync 1 0
+        rule 0 root rw
+        save 0
+        merge kp_sync 1 0
+    shortest info:repair-writes (file 1):
+        delauth 0
+        prem 0 pg
+        merge kp_sync 1 0
+    shortest safety (file 0: renewal of c0 asked):
+        renew 0 c0 forever
+        delauth 0
+        create 0
+  undone: a rule written at the next save (decision 13, change 4)  2 files  20000 histories  accepted:copy-wider x57, info:repair-narrower x282, info:repair-writes x614, safety x1
+    shortest accepted:copy-wider (file 0: M1):
+        rule 0 N none
+        copy 0
+    shortest info:repair-narrower (file 0):
+        rule 1 root rw
+        renew 0 c0 allowed
+        merge kp_sync 0 1
+    shortest info:repair-writes (file 0):
+        rule 1 root rw
+        renew 0 c0 allowed
+        merge kp_sync 0 1
+    shortest safety (file 1: renewal of c0 asked):
+        rule 0 N r
+        renew 1 c0 forever
+        del 1 ('ver', 'renew:c0', 'new') 0
+        del 1 ('head', 'old') 0
+        merge kp_sync 1 0
+  undone: several gates (decision 20)                              2 files  20000 histories  accepted:copy-wider x7, accepted:unsaved-rule-lost x38, info:repair-narrower x52, info:repair-writes x104
+    shortest accepted:copy-wider (file 0: M1):
+        rule 0 N none
+        merge kp_sync 0 1
+        copy 0
+    shortest accepted:unsaved-rule-lost (file 0: node root grants r):
+        rule 0 root none
+        quit 0
+    shortest info:repair-narrower (file 1):
+        merge kp_sync 1 0
+        rule 0 root rw
+        save 0
+        merge kp_sync 1 0
+    shortest info:repair-writes (file 1):
+        merge kp_sync 1 0
+        rule 0 root rw
+        save 0
+        merge kp_sync 1 0
+  undone: the repair after a Synchronize (decisions 18, 19, change 7) 2 files  20000 histories  accepted:copy-wider x12, accepted:unsaved-rule-lost x80
+    shortest accepted:copy-wider (file 0: M1):
+        rule 0 N none
+        merge kp_sync 0 1
+        copy 0
+    shortest accepted:unsaved-rule-lost (file 1: node root grants r):
+        rule 1 root inherit
+        quit 1
+== the same for three files, configuration C and I
+store, C + deletions that leave no record                          3 files  20000 histories  accepted:copy-wider x3, accepted:unsaved-rule-lost x90, info:repair-narrower x18, info:repair-writes x39
+    shortest accepted:copy-wider (file 1: M1):
+        rule 1 N none
+        renew 1 c0 allowed
+        copy 1
+    shortest accepted:unsaved-rule-lost (file 0: node root grants r):
+        rule 0 root inherit
+        quit 0
+    shortest info:repair-narrower (file 2):
+        merge dx 1 2
+        rule 0 root rw
+        revoke 0 c0
+        merge kp_sync 2 0
+    shortest info:repair-writes (file 2):
+        merge dx 1 2
+        rule 0 root rw
+        revoke 0 c0
+        merge kp_sync 2 0
+  undone: no mark on a user node (decision 11)                     3 files  20000 histories  accepted:unsaved-rule-lost x90, info:repair-narrower x18, info:repair-writes x39
+    shortest accepted:unsaved-rule-lost (file 0: node root grants r):
+        rule 0 root inherit
+        quit 0
+    shortest info:repair-narrower (file 2):
+        merge dx 1 2
+        rule 0 root rw
+        revoke 0 c0
+        merge kp_sync 2 0
+    shortest info:repair-writes (file 2):
+        merge dx 1 2
+        rule 0 root rw
+        revoke 0 c0
+        merge kp_sync 2 0
+  undone: no witness (decision 15)                                 3 files  20000 histories  accepted:copy-wider x3, accepted:unsaved-rule-lost x90, info:repair-narrower x18, info:repair-writes x39
+    shortest accepted:copy-wider (file 1: M1):
+        rule 1 N none
+        renew 1 c0 allowed
+        copy 1
+    shortest accepted:unsaved-rule-lost (file 0: node root grants r):
+        rule 0 root inherit
+        quit 0
+    shortest info:repair-narrower (file 2):
+        merge dx 1 2
+        rule 0 root rw
+        revoke 0 c0
+        merge kp_sync 2 0
+    shortest info:repair-writes (file 2):
+        merge dx 1 2
+        rule 0 root rw
+        revoke 0 c0
+        merge kp_sync 2 0
+  undone: a revocation names the key (decision 20, change 5)       3 files  20000 histories  accepted:copy-wider x3, accepted:unsaved-rule-lost x90, info:repair-narrower x18, info:repair-writes x39, safety x25
+    shortest accepted:copy-wider (file 1: M1):
+        rule 1 N none
+        renew 1 c0 allowed
+        copy 1
+    shortest accepted:unsaved-rule-lost (file 0: node root grants r):
+        rule 0 root inherit
+        quit 0
+    shortest info:repair-narrower (file 2):
+        merge dx 1 2
+        rule 0 root rw
+        revoke 0 c0
+        merge kp_sync 2 0
+    shortest info:repair-writes (file 2):
+        merge dx 1 2
+        rule 0 root rw
+        revoke 0 c0
+        merge kp_sync 2 0
+    shortest safety (file 1: client c0.1 admitted):
+        revoke 1 c0
+        renewcert 2 c0
+        merge dx 1 2
+  undone: the store key in the retirement (decision 12, change 6)  3 files  20000 histories  accepted:copy-wider x3, accepted:unsaved-rule-lost x90, info:repair-narrower x18, info:repair-writes x139
+    shortest accepted:copy-wider (file 1: M1):
+        rule 1 N none
+        renew 1 c0 allowed
+        copy 1
+    shortest accepted:unsaved-rule-lost (file 0: node root grants r):
+        rule 0 root inherit
+        quit 0
+    shortest info:repair-narrower (file 2):
+        merge dx 1 2
+        rule 0 root rw
+        revoke 0 c0
+        merge kp_sync 2 0
+    shortest info:repair-writes (file 0):
+        delauth 2
+        renew 2 c0 allowed
+        merge kp_sync 0 2
+        rule 1 root rw
+  undone: a rule written at the next save (decision 13, change 4)  3 files  20000 histories  accepted:copy-wider x38, info:repair-narrower x101, info:repair-writes x210, safety x1
+    shortest accepted:copy-wider (file 1: M1):
+        rule 1 N none
+        copy 1
+    shortest info:repair-narrower (file 0):
+        merge xc 0 1
+        rule 2 root rw
+        merge kp_sync 0 2
+    shortest info:repair-writes (file 2):
+        rule 0 root inherit
+        rule 0 N rw
+        merge kp_sync 2 0
+    shortest safety (file 0: client c0 admitted):
+        revoke 1 c0
+        del 1 ('ref', 'revoked') 1
+        del 1 ('head', 'old') 1
+        merge kp_other 0 1
+  undone: several gates (decision 20)                              3 files  20000 histories  accepted:copy-wider x2, accepted:unsaved-rule-lost x31, info:repair-narrower x9, info:repair-writes x16
+    shortest accepted:copy-wider (file 0: M1):
+        rule 0 N none
+        renew 0 c0 allowed
+        copy 0
+    shortest accepted:unsaved-rule-lost (file 0: node root grants r):
+        rule 0 root inherit
+        quit 0
+    shortest info:repair-narrower (file 2):
+        merge dx 1 2
+        rule 0 root rw
+        revoke 0 c0
+        merge kp_sync 2 0
+    shortest info:repair-writes (file 2):
+        merge dx 1 2
+        rule 0 root rw
+        revoke 0 c0
+        merge kp_sync 2 0
+  undone: the repair after a Synchronize (decisions 18, 19, change 7) 3 files  20000 histories  accepted:copy-wider x3, accepted:unsaved-rule-lost x90
+    shortest accepted:copy-wider (file 1: M1):
+        rule 1 N none
+        renew 1 c0 allowed
+        copy 1
+    shortest accepted:unsaved-rule-lost (file 0: node root grants r):
+        rule 0 root inherit
+        quit 0
+store, I everything at once                                        3 files  20000 histories  accepted:copy-wider x4, accepted:unsaved-rule-lost x71, info:repair-narrower x9, info:repair-writes x32, rollback-by-overwrite x76
+    shortest accepted:copy-wider (file 1: M1):
+        rule 1 N none
+        padd 1 pg
+        copy 1
+    shortest accepted:unsaved-rule-lost (file 0: node root grants r):
+        rule 0 root none
+        quit 0
+    shortest info:repair-narrower (file 2):
+        rule 0 root rw
+        plant 0 record
+        merge kp_sync 2 0
+        merge kp_sync 1 0
+        merge xc 1 2
+    shortest info:repair-writes (file 1):
+        rule 2 root inherit
+        del 1 ('head', 'old') 2
+        merge kp_sync 2 0
+        merge kp_sync 1 2
+    shortest rollback-by-overwrite (file 0):
+        renew 0 c0 forever
+        over 0 1
+  undone: no mark on a user node (decision 11)                     3 files  20000 histories  accepted:unsaved-rule-lost x71, info:repair-narrower x9, info:repair-writes x32, rollback-by-overwrite x76
+    shortest accepted:unsaved-rule-lost (file 0: node root grants r):
+        rule 0 root none
+        quit 0
+    shortest info:repair-narrower (file 2):
+        rule 0 root rw
+        plant 0 record
+        merge kp_sync 2 0
+        merge kp_sync 1 0
+        merge xc 1 2
+    shortest info:repair-writes (file 1):
+        rule 2 root inherit
+        del 1 ('head', 'old') 2
+        merge kp_sync 2 0
+        merge kp_sync 1 2
+    shortest rollback-by-overwrite (file 0):
+        renew 0 c0 forever
+        over 0 1
+  undone: no witness (decision 15)                                 3 files  20000 histories  accepted:copy-wider x4, accepted:unsaved-rule-lost x71, info:repair-narrower x9, info:repair-writes x32, rollback-by-overwrite x76
+    shortest accepted:copy-wider (file 1: M1):
+        rule 1 N none
+        padd 1 pg
+        copy 1
+    shortest accepted:unsaved-rule-lost (file 0: node root grants r):
+        rule 0 root none
+        quit 0
+    shortest info:repair-narrower (file 2):
+        rule 0 root rw
+        plant 0 record
+        merge kp_sync 2 0
+        merge kp_sync 1 0
+        merge xc 1 2
+    shortest info:repair-writes (file 1):
+        rule 2 root inherit
+        del 1 ('head', 'old') 2
+        merge kp_sync 2 0
+        merge kp_sync 1 2
+    shortest rollback-by-overwrite (file 0):
+        renew 0 c0 forever
+        over 0 1
+  undone: a revocation names the key (decision 20, change 5)       3 files  20000 histories  accepted:copy-wider x4, accepted:unsaved-rule-lost x71, info:repair-narrower x9, info:repair-writes x32, rollback-by-overwrite x76, safety x22
+    shortest accepted:copy-wider (file 1: M1):
+        rule 1 N none
+        padd 1 pg
+        copy 1
+    shortest accepted:unsaved-rule-lost (file 0: node root grants r):
+        rule 0 root none
+        quit 0
+    shortest info:repair-narrower (file 2):
+        rule 0 root rw
+        plant 0 record
+        merge kp_sync 2 0
+        merge kp_sync 1 0
+        merge xc 1 2
+    shortest info:repair-writes (file 1):
+        rule 2 root inherit
+        del 1 ('head', 'old') 2
+        merge kp_sync 2 0
+        merge kp_sync 1 2
+    shortest rollback-by-overwrite (file 0):
+        renew 0 c0 forever
+        over 0 1
+    shortest safety (file 0: client c0.1 admitted):
+        renewcert 0 c0
+        revoke 2 c0
+        merge kp_other 0 2
+  undone: the store key in the retirement (decision 12, change 6)  3 files  20000 histories  accepted:copy-wider x4, accepted:unsaved-rule-lost x71, info:repair-narrower x9, info:repair-writes x135, rollback-by-overwrite x77
+    shortest accepted:copy-wider (file 1: M1):
+        rule 1 N none
+        padd 1 pg
+        copy 1
+    shortest accepted:unsaved-rule-lost (file 0: node root grants r):
+        rule 0 root none
+        quit 0
+    shortest info:repair-narrower (file 2):
+        rule 0 root rw
+        plant 0 record
+        merge kp_sync 2 0
+        merge kp_sync 1 0
+        merge xc 1 2
+    shortest info:repair-writes (file 2):
+        merge xc 2 1
+        delauth 1
+        merge kp_sync 2 1
+    shortest rollback-by-overwrite (file 0):
+        renew 0 c0 forever
+        over 0 1
+  undone: a rule written at the next save (decision 13, change 4)  3 files  20000 histories  accepted:copy-wider x37, info:repair-narrower x97, info:repair-writes x202, rollback-by-overwrite x119
+    shortest accepted:copy-wider (file 1: M1):
+        rule 1 N none
+        copy 1
+    shortest info:repair-narrower (file 2):
+        merge kp_other 0 1
+        rule 1 root rw
+        merge kp_sync 2 1
+    shortest info:repair-writes (file 0):
+        rule 2 root inherit
+        merge kp_sync 0 2
+        del 0 ('ver', 'rule:N', 'new') 2
+    shortest rollback-by-overwrite (file 0):
+        renew 0 c0 forever
+        over 0 1
+  undone: several gates (decision 20)                              3 files  20000 histories  accepted:unsaved-rule-lost x18, info:repair-narrower x5, info:repair-writes x14, rollback-by-overwrite x24
+    shortest accepted:unsaved-rule-lost (file 0: node root grants r):
+        rule 0 root none
+        quit 0
+    shortest info:repair-narrower (file 2):
+        rule 0 root rw
+        plant 0 record
+        merge kp_sync 2 0
+        merge kp_sync 1 0
+        merge xc 1 2
+    shortest info:repair-writes (file 2):
+        rule 0 root rw
+        plant 0 record
+        merge kp_sync 2 0
+        merge kp_sync 1 0
+        merge xc 1 2
+    shortest rollback-by-overwrite (file 0):
+        renew 0 c0 forever
+        over 0 1
+  undone: the repair after a Synchronize (decisions 18, 19, change 7) 3 files  20000 histories  accepted:copy-wider x4, accepted:unsaved-rule-lost x71, rollback-by-overwrite x76
+    shortest accepted:copy-wider (file 1: M1):
+        rule 1 N none
+        padd 1 pg
+        copy 1
+    shortest accepted:unsaved-rule-lost (file 0: node root grants r):
+        rule 0 root none
+        quit 0
+    shortest rollback-by-overwrite (file 0):
+        renew 0 c0 forever
+        over 0 1
+== 2550 s

@@ -1,0 +1,468 @@
+== the store's search again, with no deletion or hand edit of the authority's entry
+A merges only (every program)                                      2 files  20000 histories  accepted:copy-wider x17, accepted:unsaved-rule-lost x104, convergence-to-ideal (not wider) x35, info:repair-narrower x49, info:repair-writes x107
+    shortest accepted:copy-wider (file 0: M1):
+        rule 0 N none
+        save 0
+        copy 0
+    shortest accepted:unsaved-rule-lost (file 0: node root grants r):
+        rule 0 root none
+        quit 0
+    shortest convergence-to-ideal (not wider) (('ok', 'a0', (('c0', ('pf',)),), (('N', 'r'), ('root', 'r')), (('c0', 'ask'),), ('pf',)) vs ('ok', 'a0', (('c0', ('pf',)),), (('N', 'rw'), ('root', 'rw')), (('c0', 'ask'),), ('pf',))):
+        rule 1 root rw
+        merge kp_sync 1 0
+        merge kp_sync 0 1
+    shortest info:repair-narrower (file 1):
+        rule 0 root rw
+        merge kp_sync 0 1
+        merge kp_sync 1 0
+        rule 1 root inherit
+    shortest info:repair-writes (file 0):
+        rule 1 root rw
+        delauth 1
+        merge kp_sync 0 1
+B + deletions by hand with a deletion record                       2 files  20000 histories  accepted:copy-wider x13, accepted:unsaved-rule-lost x111, info:repair-narrower x20, info:repair-writes x58
+    shortest accepted:copy-wider (file 0: M1):
+        rule 0 N none
+        renewcert 0 c0
+        copy 0
+    shortest accepted:unsaved-rule-lost (file 1: node N grants r):
+        rule 1 N none
+        quit 1
+    shortest info:repair-narrower (file 1):
+        rule 0 root rw
+        merge kp_other 0 1
+        merge kp_sync 1 0
+        merge kp_sync 0 1
+    shortest info:repair-writes (file 1):
+        rule 0 root rw
+        merge kp_other 0 1
+        merge kp_sync 1 0
+        merge kp_sync 0 1
+C + deletions that leave no record                                 2 files  20000 histories  accepted:copy-wider x12, accepted:unsaved-rule-lost x96, info:repair-narrower x21, info:repair-writes x53
+    shortest accepted:copy-wider (file 0: M1):
+        rule 0 N none
+        renewcert 0 c0
+        copy 0
+    shortest accepted:unsaved-rule-lost (file 0: node root grants r):
+        rule 0 root none
+        quit 0
+    shortest info:repair-narrower (file 1):
+        merge dx 1 0
+        merge kp_other 0 1
+        del 1 ('head', 'new') 0
+        del 1 ('ver', 'rule:root', 'new') 1
+        merge kp_sync 1 0
+    shortest info:repair-writes (file 1):
+        merge xc 1 0
+        rule 0 root inherit
+        revoke 0 c0
+        merge kp_sync 1 0
+D + records dated before the entry (a clock behind)                2 files  20000 histories  accepted:copy-wider x11, accepted:unsaved-rule-lost x102, info:repair-narrower x29, info:repair-writes x64, safety x1
+    shortest accepted:copy-wider (file 1: M1):
+        rule 1 N none
+        revoke 1 c0
+        copy 1
+    shortest accepted:unsaved-rule-lost (file 1: node root grants r):
+        rule 1 root none
+        quit 1
+    shortest info:repair-narrower (file 0):
+        rule 1 root rw
+        rule 1 root rw
+        recreate 1
+        rule 0 N r
+        merge kp_sync 0 1
+    shortest info:repair-writes (file 0):
+        rule 1 root inherit
+        create 1
+        recreate 1
+        merge kp_sync 0 1
+    shortest safety (file 0: client c0 holds ['pf']):
+        prem 1 pf
+        del 1 ('head', 'old') 1
+        del 1 ('prem',) 2
+        merge kp_other 0 1
+E + deletion records cleared                                       2 files  20000 histories  accepted:copy-wider x8, accepted:unsaved-rule-lost x107, info:repair-narrower x38, info:repair-writes x68, safety x1
+    shortest accepted:copy-wider (file 0: M1):
+        rule 0 N none
+        recreate 0
+        copy 0
+    shortest accepted:unsaved-rule-lost (file 0: node root grants r):
+        rule 0 root inherit
+        quit 0
+    shortest info:repair-narrower (file 0):
+        rule 0 N rw
+        rule 1 root rw
+        save 1
+        merge kp_sync 0 1
+    shortest info:repair-writes (file 0):
+        rule 0 N rw
+        rule 1 root rw
+        save 1
+        merge kp_sync 0 1
+    shortest safety (file 1: client c0 admitted):
+        revoke 0 c0
+        del 0 ('head', 'old') 0
+        del 0 ('ref', 'revoked') 1
+        merge xc 1 0
+F + foreign: edits, import with new identifiers, planted entries   2 files  20000 histories  accepted:copy-wider x9, accepted:unsaved-rule-lost x96, info:repair-narrower x21, info:repair-writes x70
+    shortest accepted:copy-wider (file 1: M1):
+        rule 1 N none
+        plant 1 record
+        copy 1
+    shortest accepted:unsaved-rule-lost (file 0: node root grants r):
+        rule 0 root inherit
+        quit 0
+    shortest info:repair-narrower (file 1):
+        rule 0 root rw
+        plant 0 profile
+        merge kp_sync 1 0
+        merge xc 0 1
+        rule 0 N r
+    shortest info:repair-writes (file 0):
+        rule 1 root inherit
+        save 1
+        merge kp_sync 0 1
+        prem 0 pg
+G + a copy stripped of its reference                               2 files  20000 histories  accepted:copy-wider x12, accepted:unsaved-rule-lost x114, info:repair-narrower x26, info:repair-writes x65
+    shortest accepted:copy-wider (file 0: M1):
+        rule 0 N none
+        merge kp_sync 0 1
+        copy 0
+    shortest accepted:unsaved-rule-lost (file 1: node N grants r):
+        rule 1 N none
+        quit 1
+    shortest info:repair-narrower (file 0):
+        rule 1 root rw
+        renewcert 1 c0
+        merge kp_sync 0 1
+    shortest info:repair-writes (file 0):
+        rule 1 root rw
+        renewcert 1 c0
+        merge kp_sync 0 1
+H + a whole file written over another                              2 files  20000 histories  accepted:copy-wider x9, accepted:unsaved-rule-lost x90, info:repair-narrower x27, info:repair-writes x67, rollback-by-overwrite x170
+    shortest accepted:copy-wider (file 0: M1):
+        rule 1 N none
+        merge kp_sync 1 0
+        merge k2a 0 1
+        copy 0
+    shortest accepted:unsaved-rule-lost (file 0: node N grants r):
+        rule 0 N none
+        quit 0
+    shortest info:repair-narrower (file 1):
+        rule 0 root rw
+        merge kp_sync 0 1
+        merge kp_sync 1 0
+    shortest info:repair-writes (file 1):
+        rule 0 root inherit
+        renew 0 c0 allowed
+        merge kp_sync 1 0
+    shortest rollback-by-overwrite (file 0):
+        prem 0 pf
+        over 0 1
+I everything at once                                               2 files  20000 histories  accepted:copy-wider x11, accepted:unsaved-rule-lost x96, info:repair-narrower x36, info:repair-writes x77, rollback-by-overwrite x44
+    shortest accepted:copy-wider (file 1: M1):
+        rule 1 N none
+        merge kp_other 1 0
+        copy 1
+    shortest accepted:unsaved-rule-lost (file 1: node root grants r):
+        rule 1 root inherit
+        quit 1
+    shortest info:repair-narrower (file 1):
+        rule 0 root rw
+        merge kp_sync 0 1
+        padd 1 pg
+        merge kp_sync 1 0
+    shortest info:repair-writes (file 1):
+        rule 0 root rw
+        merge kp_sync 0 1
+        padd 1 pg
+        merge kp_sync 1 0
+    shortest rollback-by-overwrite (file 1):
+        revoke 1 c0
+        over 1 0
+J only KeePass Synchronize and Keepass2Android; deletions with a record 2 files  20000 histories  accepted:copy-wider x13, accepted:unsaved-rule-lost x115, info:repair-narrower x61, info:repair-writes x151
+    shortest accepted:copy-wider (file 0: M1):
+        rule 1 N none
+        revoke 1 c0
+        merge k2a 0 1
+        copy 0
+    shortest accepted:unsaved-rule-lost (file 0: node root grants r):
+        rule 0 root inherit
+        quit 0
+    shortest info:repair-narrower (file 1):
+        rule 0 root rw
+        prem 0 pf
+        merge kp_sync 1 0
+    shortest info:repair-writes (file 1):
+        rule 0 root rw
+        prem 0 pf
+        merge kp_sync 1 0
+J2 the same; every kind of deletion                                2 files  20000 histories  accepted:copy-wider x12, accepted:unsaved-rule-lost x80, info:repair-narrower x85, info:repair-writes x194
+    shortest accepted:copy-wider (file 0: M1):
+        rule 0 N none
+        merge kp_sync 0 1
+        copy 0
+    shortest accepted:unsaved-rule-lost (file 1: node root grants r):
+        rule 1 root inherit
+        quit 1
+    shortest info:repair-narrower (file 1):
+        merge kp_sync 1 0
+        rule 0 root rw
+        save 0
+        merge kp_sync 1 0
+    shortest info:repair-writes (file 0):
+        revoke 1 c1
+        rule 1 root inherit
+        merge kp_sync 1 0
+        merge kp_sync 0 1
+K the same, and foreign edits, imports and planted entries         2 files  20000 histories  accepted:copy-wider x17, accepted:unsaved-rule-lost x85, info:repair-narrower x62, info:repair-writes x168
+    shortest accepted:copy-wider (file 0: M1):
+        rule 1 N none
+        revoke 1 c0
+        merge k2a 0 1
+        copy 0
+    shortest accepted:unsaved-rule-lost (file 0: node N grants r):
+        rule 0 N none
+        quit 0
+    shortest info:repair-narrower (file 0):
+        rule 1 root rw
+        renew 1 c0 forever
+        del 0 ('ver', 'rule:root', 'new') 0
+        merge kp_sync 0 1
+    shortest info:repair-writes (file 1):
+        padd 0 pf
+        rule 0 root inherit
+        merge kp_sync 0 1
+        merge kp_sync 1 0
+A merges only (every program)                                      3 files  20000 histories  accepted:copy-wider x6, accepted:unsaved-rule-lost x67, convergence-to-ideal (not wider) x28, info:repair-narrower x32, info:repair-writes x75
+    shortest accepted:copy-wider (file 0: M1):
+        rule 0 N none
+        merge kp_sync 0 1
+        copy 0
+    shortest accepted:unsaved-rule-lost (file 0: node N grants r):
+        rule 0 N none
+        quit 0
+    shortest convergence-to-ideal (not wider) (('ok', 'a0', (('c0', ('pf',)),), (('N', 'r'), ('root', 'r')), (('c0', 'ask'),), ('pf',)) vs ('ok', 'a0', (('c0', ('pf',)),), (('N', 'rw'), ('root', 'rw')), (('c0', 'ask'),), ('pf',))):
+        rule 0 root rw
+        merge kp_other 0 1
+        merge kp_sync 1 0
+    shortest info:repair-narrower (file 1):
+        rule 0 root rw
+        merge kp_other 0 1
+        merge kp_other 2 0
+        merge kp_sync 1 0
+    shortest info:repair-writes (file 1):
+        rule 0 root rw
+        merge kp_other 0 1
+        merge kp_other 2 0
+        merge kp_sync 1 0
+B + deletions by hand with a deletion record                       3 files  20000 histories  accepted:copy-wider x7, accepted:unsaved-rule-lost x76, info:repair-narrower x16, info:repair-writes x44
+    shortest accepted:copy-wider (file 1: M1):
+        rule 1 N none
+        pair 1
+        copy 1
+    shortest accepted:unsaved-rule-lost (file 2: node root grants r):
+        rule 2 root none
+        quit 2
+    shortest info:repair-narrower (file 0):
+        rule 2 root rw
+        merge kp_sync 2 0
+        merge kp_sync 0 2
+    shortest info:repair-writes (file 0):
+        rule 2 root rw
+        merge kp_sync 2 0
+        merge kp_sync 0 2
+C + deletions that leave no record                                 3 files  20000 histories  accepted:copy-wider x3, accepted:unsaved-rule-lost x90, info:repair-narrower x18, info:repair-writes x39
+    shortest accepted:copy-wider (file 1: M1):
+        rule 1 N none
+        renew 1 c0 allowed
+        copy 1
+    shortest accepted:unsaved-rule-lost (file 0: node root grants r):
+        rule 0 root inherit
+        quit 0
+    shortest info:repair-narrower (file 2):
+        merge dx 1 2
+        rule 0 root rw
+        revoke 0 c0
+        merge kp_sync 2 0
+    shortest info:repair-writes (file 2):
+        merge dx 1 2
+        rule 0 root rw
+        revoke 0 c0
+        merge kp_sync 2 0
+D + records dated before the entry (a clock behind)                3 files  20000 histories  accepted:copy-wider x4, accepted:unsaved-rule-lost x86, info:repair-narrower x18, info:repair-writes x38
+    shortest accepted:copy-wider (file 2: M1):
+        rule 2 N none
+        merge kp_sync 2 0
+        copy 2
+    shortest accepted:unsaved-rule-lost (file 2: node root grants r):
+        rule 2 root inherit
+        quit 2
+    shortest info:repair-narrower (file 0):
+        rule 1 root rw
+        merge dx 0 2
+        padd 1 pg
+        merge kp_sync 0 1
+        revoke 2 c0
+    shortest info:repair-writes (file 2):
+        rule 1 root inherit
+        padd 1 pg
+        del 1 ('prem',) 2
+        merge kp_sync 2 1
+        create 1
+E + deletion records cleared                                       3 files  20000 histories  accepted:copy-wider x7, accepted:unsaved-rule-lost x73, info:repair-narrower x11, info:repair-writes x28
+    shortest accepted:copy-wider (file 0: M1):
+        rule 0 N none
+        renew 0 c0 allowed
+        copy 0
+    shortest accepted:unsaved-rule-lost (file 0: node root grants r):
+        rule 0 root inherit
+        quit 0
+    shortest info:repair-narrower (file 2):
+        rule 0 root rw
+        del 1 ('prem',) 1
+        del 0 ('head', 'old') 0
+        revoke 0 c0
+        merge kp_sync 2 0
+    shortest info:repair-writes (file 2):
+        rule 0 root rw
+        del 1 ('prem',) 1
+        del 0 ('head', 'old') 0
+        revoke 0 c0
+        merge kp_sync 2 0
+F + foreign: edits, import with new identifiers, planted entries   3 files  20000 histories  accepted:copy-wider x2, accepted:unsaved-rule-lost x73, info:repair-narrower x14, info:repair-writes x40
+    shortest accepted:copy-wider (file 1: M1):
+        rule 1 N none
+        merge kp_sync 1 0
+        copy 1
+    shortest accepted:unsaved-rule-lost (file 2: node root grants r):
+        rule 2 root none
+        quit 2
+    shortest info:repair-narrower (file 2):
+        rule 1 root rw
+        quit 2
+        pair 1
+        merge kp_sync 2 1
+        edit 1 ('head', 'new')
+    shortest info:repair-writes (file 1):
+        rule 2 root inherit
+        plant 2 record
+        merge kp_sync 1 2
+        renew 2 c0 forever
+        plant 1 auth
+G + a copy stripped of its reference                               3 files  20000 histories  accepted:copy-wider x7, accepted:unsaved-rule-lost x66, info:repair-narrower x13, info:repair-writes x30
+    shortest accepted:copy-wider (file 2: M1):
+        rule 2 N none
+        merge kp_sync 2 1
+        copy 2
+    shortest accepted:unsaved-rule-lost (file 1: node N grants r):
+        rule 1 N none
+        quit 1
+    shortest info:repair-narrower (file 2):
+        rule 1 root rw
+        merge kp_sync 1 2
+        merge kp_sync 2 1
+    shortest info:repair-writes (file 2):
+        rule 1 root rw
+        merge kp_sync 1 2
+        merge kp_sync 2 1
+H + a whole file written over another                              3 files  20000 histories  accepted:copy-wider x4, accepted:unsaved-rule-lost x76, info:repair-narrower x18, info:repair-writes x34, rollback-by-overwrite x267, safety x1
+    shortest accepted:copy-wider (file 1: M1):
+        rule 1 N none
+        merge kp_other 1 0
+        copy 1
+    shortest accepted:unsaved-rule-lost (file 2: node N grants r):
+        rule 2 N none
+        quit 2
+    shortest info:repair-narrower (file 2):
+        del 1 ('ver', 'rule:root', 'new') 1
+        rule 1 root rw
+        save 1
+        merge kp_sync 2 1
+    shortest info:repair-writes (file 2):
+        del 1 ('ver', 'rule:root', 'new') 1
+        rule 1 root rw
+        save 1
+        merge kp_sync 2 1
+    shortest rollback-by-overwrite (file 0):
+        prem 0 pf
+        over 0 2
+    shortest safety (file 0: client c0 holds ['pf']):
+        prem 2 pf
+        del 2 ('head', 'old') 1
+        del 2 ('prem',) 1
+        merge kp_other 0 2
+I everything at once                                               3 files  20000 histories  accepted:copy-wider x4, accepted:unsaved-rule-lost x71, info:repair-narrower x9, info:repair-writes x32, rollback-by-overwrite x76
+    shortest accepted:copy-wider (file 1: M1):
+        rule 1 N none
+        padd 1 pg
+        copy 1
+    shortest accepted:unsaved-rule-lost (file 0: node root grants r):
+        rule 0 root none
+        quit 0
+    shortest info:repair-narrower (file 2):
+        rule 0 root rw
+        plant 0 record
+        merge kp_sync 2 0
+        merge kp_sync 1 0
+        merge xc 1 2
+    shortest info:repair-writes (file 1):
+        rule 2 root inherit
+        del 1 ('head', 'old') 2
+        merge kp_sync 2 0
+        merge kp_sync 1 2
+    shortest rollback-by-overwrite (file 0):
+        renew 0 c0 forever
+        over 0 1
+J only KeePass Synchronize and Keepass2Android; deletions with a record 3 files  20000 histories  accepted:copy-wider x5, accepted:unsaved-rule-lost x81, info:repair-narrower x39, info:repair-writes x83
+    shortest accepted:copy-wider (file 1: M1):
+        rule 1 N none
+        renewcert 1 c0
+        copy 1
+    shortest accepted:unsaved-rule-lost (file 1: node root grants r):
+        rule 1 root none
+        quit 1
+    shortest info:repair-narrower (file 2):
+        rule 0 root rw
+        del 2 ('ref', 'retired') 1
+        renew 0 c0 allowed
+        merge kp_sync 2 0
+    shortest info:repair-writes (file 0):
+        rule 1 root inherit
+        pair 1
+        merge kp_sync 0 1
+        revoke 0 c0
+J2 the same; every kind of deletion                                3 files  20000 histories  accepted:copy-wider x6, accepted:unsaved-rule-lost x68, info:repair-narrower x40, info:repair-writes x85
+    shortest accepted:copy-wider (file 1: M1):
+        rule 1 N none
+        renew 1 c0 forever
+        copy 1
+    shortest accepted:unsaved-rule-lost (file 0: node root grants r):
+        rule 0 root inherit
+        quit 0
+    shortest info:repair-narrower (file 2):
+        del 2 ('ver', 'rule:root', 'new') 0
+        rule 1 root rw
+        renew 1 c0 allowed
+        merge kp_sync 2 1
+    shortest info:repair-writes (file 0):
+        rule 2 root inherit
+        merge kp_sync 2 1
+        merge kp_sync 0 2
+K the same, and foreign edits, imports and planted entries         3 files  20000 histories  accepted:copy-wider x8, accepted:unsaved-rule-lost x78, info:repair-narrower x38, info:repair-writes x98
+    shortest accepted:copy-wider (file 1: M1):
+        rule 1 N none
+        merge kp_sync 1 0
+        copy 1
+    shortest accepted:unsaved-rule-lost (file 1: node root grants r):
+        rule 1 root none
+        quit 1
+    shortest info:repair-narrower (file 1):
+        rule 2 root rw
+        merge kp_sync 2 1
+        merge kp_sync 1 2
+    shortest info:repair-writes (file 2):
+        rule 0 root inherit
+        merge kp_sync 0 1
+        merge kp_sync 2 0
+== 880 s

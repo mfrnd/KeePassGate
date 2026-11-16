@@ -1,0 +1,6 @@
+== B.7: one gate, 10 clients, 5 names, 20 ruled nodes; writes drawn with seed 20261116
+start        head:   4280 bytes in  24 KPG. strings, its after list   33 identifiers,  21 restated items; store:  38 entries,   12130 bytes of KPG. strings, longest string   1165 characters, longest version after list   0; deletion records    33; file    8055 bytes; read ok, 1.8 ms (median of 7, Python)
+10 writes    head:   5064 bytes in  27 KPG. strings, its after list   44 identifiers,  24 restated items; store:  39 entries,   13295 bytes of KPG. strings, longest string   1528 characters, longest version after list   1; deletion records    54; file    8871 bytes; read ok, 1.0 ms (median of 7, Python)
+100 writes   head:  11951 bytes in  44 KPG. strings, its after list  137 identifiers,  41 restated items; store:  57 entries,   25838 bytes of KPG. strings, longest string   4598 characters, longest version after list   7; deletion records   222; file   16039 bytes; read ok, 1.3 ms (median of 7, Python)
+1000 writes  head:  81551 bytes in 272 KPG. strings, its after list 1144 identifiers, 269 restated items; store: 285 entries,  157631 bytes of KPG. strings, longest string  37830 characters, longest version after list  36; deletion records  2008; file   90167 bytes; read ok, 13.9 ms (median of 7, Python)
+== 8 s

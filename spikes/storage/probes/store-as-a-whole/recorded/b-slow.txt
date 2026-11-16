@@ -1,0 +1,42 @@
+== B.1, B.3, B.4: every history, every merge, both directions; the file the merge wrote,
+   read by read.py and held to every decision any gate made. C: steps where the file and the
+   model disagreed, entry by entry and in the read. Key derivation: slow
+   Only the KeePassXC cells, of the histories H3, H6, H13 and T2.
+## H3: a revocation at gate 0; at gate 1, which has not seen it, the revoked key renewed
+   history: revoke 0 c0 ; renewcert 1 c0
+   KeePassXC 2.4.2        into 1: as decided [entries 0, read 0]
+                          into 0: as decided [entries 0, read 0]
+   KeePassXC 2.6.6        into 1: as decided [entries 0, read 0]
+                          into 0: as decided [entries 0, read 0]
+   KeePassXC 2.7.12       into 1: as decided [entries 0, read 0]
+                          into 0: as decided [entries 0, read 0]
+   KeePassXC 2.8.0        into 1: as decided [entries 0, read 0]
+                          into 0: as decided [entries 0, read 0]
+## H6: at copy 0 the authority recreated (key carried), deleted with none after, created again, a client paired
+   history: rule 0 N none ; merge kp_sync 1 0 ; recreate 0 ; delauth 0 ; create 0 ; padd 0 pf ; pair 0
+   KeePassXC 2.4.2        into 1: as decided [entries 0, read 0]
+                          into 0: as decided [entries 0, read 0]
+   KeePassXC 2.6.6        into 1: as decided [entries 0, read 0]
+                          into 0: as decided [entries 0, read 0]
+   KeePassXC 2.7.12       into 1: as decided [entries 0, read 0]
+                          into 0: as decided [entries 0, read 0]
+   KeePassXC 2.8.0        into 1: as decided [entries 0, read 0]
+                          into 0: as decided [entries 0, read 0]
+## H13: B.3: a copy from before a Recreate (copy 1) and a copy after it (copy 0)
+   history: rule 0 N none ; pair 0 ; merge kp_sync 1 0 ; recreate 0 ; pair 0 ; rule 0 N r
+   KeePassXC 2.4.2        into 1: as decided [entries 0, read 0]
+                          into 0: as decided [entries 0, read 0]
+   KeePassXC 2.6.6        into 1: as decided [entries 0, read 0]
+                          into 0: as decided [entries 0, read 0]
+   KeePassXC 2.7.12       into 1: as decided [entries 0, read 0]
+                          into 0: as decided [entries 0, read 0]
+   KeePassXC 2.8.0        into 1: as decided [entries 0, read 0]
+                          into 0: as decided [entries 0, read 0]
+== tally: as decided 24
+== B.1 for a user node under a rule (real files only; the model has no tree)
+## T2: N duplicated in copy 1 (a copy beside it)
+   KeePassXC 2.4.2        into 0: ok; N in General gives nothing, a copy of N in General gives r | into 1: ok; N in General gives nothing, a copy of N in General gives r
+   KeePassXC 2.6.6        into 0: ok; N in General gives nothing, a copy of N in General gives r | into 1: ok; N in General gives nothing, a copy of N in General gives r
+   KeePassXC 2.7.12       into 0: ok; N in General gives nothing, a copy of N in General gives r | into 1: ok; N in General gives nothing, a copy of N in General gives r
+   KeePassXC 2.8.0        into 0: ok; N in General gives nothing, a copy of N in General gives r | into 1: ok; N in General gives nothing, a copy of N in General gives r
+== 3751 s

@@ -1,0 +1,73 @@
+== Added from the desktop measurement: Delete Empty Groups and Delete Duplicate Entries
+   history at copy 0: revoke 0 c0 ; pair 0 ; prem 0 pf ; padd 0 pg ; rule 0 N none ; renew 0 c0 forever
+## the store as it sits: Delete Empty Groups
+   read: as decided | ok, served a0, admitted {'c1': 'pg'}, words {'N': '', 'root': 'r'}, refused renewals ['c0'], names ['pg'] | {'elements': 9, 'passed': 0, 'damage': 0, 'heads': 1, 'heads_live': 1, 'records': 10, 'keys': 1}
+   KeePassLib: Delete Empty Groups ok 2
+   C: entries 0, read 0
+## the store as it sits: Delete Duplicate Entries
+   read: as decided | ok, served a0, admitted {'c1': 'pg'}, words {'N': '', 'root': 'r'}, refused renewals ['c0'], names ['pg'] | {'elements': 9, 'passed': 0, 'damage': 0, 'heads': 1, 'heads_live': 1, 'records': 8, 'keys': 1}
+   KeePassLib: Delete Duplicate Entries ok 0
+   C: entries 0, read 0
+## two gates revoke the same client apart, Synchronize, Delete Duplicate Entries
+   read: as decided | ok, served a0, admitted {}, words {'N': '', 'root': 'r'}, refused renewals ['c0'], names ['pg'] | {'elements': 11, 'passed': 0, 'damage': 0, 'heads': 2, 'heads_live': 2, 'records': 10, 'keys': 1}
+   KeePassLib: Delete Duplicate Entries ok 0
+   C: entries 0, read 0
+## Duplicate Group of the plugin's group with " - Copy", Delete Duplicate Entries
+   read: as decided | ok, served a0, admitted {'c1': 'pg'}, words {'N': '', 'root': 'r'}, refused renewals ['c0'], names ['pg'] | {'elements': 9, 'passed': 9, 'damage': 0, 'heads': 1, 'heads_live': 1, 'records': 8, 'keys': 1}
+   KeePassLib: Delete Duplicate Entries ok 0
+   C: entries 0, read 0
+## Duplicate Group of the plugin's group without the suffix, Delete Duplicate Entries
+   read: refuses: the whole database (store nostore) | nostore, served None, admitted {}, words {'N': '', 'root': ''}, refused renewals [], names [] | {'elements': 0, 'passed': 9, 'damage': 0, 'heads': 0, 'heads_live': 0, 'records': 17, 'keys': 0}
+   KeePassLib: Delete Duplicate Entries ok 9
+   Seal again does not apply (nostore)
+   C: entries 1, read 1
+   C entries, step 7, file 0: record H007.14: model 90, file 27607240; record auth:a0: model 90, file 27607240; record padd:pg#9: model 90, file 27607240; record prem:pf#7: model 90, file 27607240; record rec:c1: model 90, file 27607240; record ref:c0#4: model 90, file 27607240; record ver:renew:c0#13: model 90, file 27607240; record ver:rule:N#11: model 90, file 27607240; record ver:rule:root#2: model 90, file 27607240
+   C read, step 7, file 0: model ('incomplete', None, [], [('N', ''), ('root', '')], [], []); read.py ('nostore', None, [], [('N', ''), ('root', '')], [], [])
+## Duplicate Entry of ref revoked without the suffix, Delete Duplicate Entries
+   read: as decided | ok, served a0, admitted {'c1': 'pg'}, words {'N': '', 'root': 'r'}, refused renewals ['c0'], names ['pg'] | {'elements': 8, 'passed': 1, 'damage': 0, 'heads': 1, 'heads_live': 1, 'records': 9, 'keys': 1}
+   KeePassLib: Delete Duplicate Entries ok 1
+   C: entries 1, read 0
+   C entries, step 7, file 0: record ref:c0#4: model 90, file 27607241
+## Duplicate Entry of ref retired without the suffix, Delete Duplicate Entries
+   read: as decided | ok, served a0, admitted {'c1': 'pg'}, words {'N': '', 'root': 'r'}, refused renewals ['c0'], names ['pg'] | {'elements': 9, 'passed': 0, 'damage': 0, 'heads': 1, 'heads_live': 1, 'records': 8, 'keys': 1}
+   KeePassLib: Delete Duplicate Entries ok 0
+   C: entries 0, read 0
+## Duplicate Entry of rec without the suffix, Delete Duplicate Entries
+   read: narrower: client c1 refused | ok, served a0, admitted {}, words {'N': '', 'root': 'r'}, refused renewals ['c0'], names ['pg'] | {'elements': 8, 'passed': 1, 'damage': 0, 'heads': 1, 'heads_live': 1, 'records': 9, 'keys': 1}
+   KeePassLib: Delete Duplicate Entries ok 1
+   C: entries 1, read 0
+   C entries, step 7, file 0: record rec:c1: model 90, file 27607243
+## Duplicate Entry of auth without the suffix, Delete Duplicate Entries
+   read: refuses: the whole database (store nostore) | nostore, served None, admitted {}, words {'N': '', 'root': ''}, refused renewals [], names [] | {'elements': 0, 'passed': 9, 'damage': 0, 'heads': 0, 'heads_live': 0, 'records': 9, 'keys': 0}
+   KeePassLib: Delete Duplicate Entries ok 1
+   Seal again does not apply (nostore)
+   C: entries 1, read 1
+   C entries, step 7, file 0: record auth:a0: model 90, file 27607244
+   C read, step 7, file 0: model ('incomplete', None, [], [('N', ''), ('root', '')], [], []); read.py ('nostore', None, [], [('N', ''), ('root', '')], [], [])
+## Duplicate Entry of padd without the suffix, Delete Duplicate Entries
+   read: narrower: client c1 lacks ['pg'] | ok, served a0, admitted {'c1': ''}, words {'N': '', 'root': 'r'}, refused renewals ['c0'], names [] | {'elements': 8, 'passed': 1, 'damage': 0, 'heads': 1, 'heads_live': 1, 'records': 9, 'keys': 1}
+   KeePassLib: Delete Duplicate Entries ok 1
+   C: entries 1, read 0
+   C entries, step 7, file 0: record padd:pg#9: model 90, file 27607245
+## Duplicate Entry of prem without the suffix, Delete Duplicate Entries
+   read: as decided | ok, served a0, admitted {'c1': 'pg'}, words {'N': '', 'root': 'r'}, refused renewals ['c0'], names ['pg'] | {'elements': 8, 'passed': 1, 'damage': 0, 'heads': 1, 'heads_live': 1, 'records': 9, 'keys': 1}
+   KeePassLib: Delete Duplicate Entries ok 1
+   C: entries 1, read 0
+   C entries, step 7, file 0: record prem:pf#7: model 90, file 27607245
+## Duplicate Entry of ver rule:N new without the suffix, Delete Duplicate Entries
+   read: as decided | ok, served a0, admitted {'c1': 'pg'}, words {'N': '', 'root': 'r'}, refused renewals ['c0'], names ['pg'] | {'elements': 8, 'passed': 1, 'damage': 0, 'heads': 1, 'heads_live': 1, 'records': 9, 'keys': 1}
+   KeePassLib: Delete Duplicate Entries ok 1
+   C: entries 1, read 0
+   C entries, step 7, file 0: record ver:rule:N#11: model 90, file 27607246
+## Duplicate Entry of ver renew:c0 new without the suffix, Delete Duplicate Entries
+   read: as decided | ok, served a0, admitted {'c1': 'pg'}, words {'N': '', 'root': 'r'}, refused renewals ['c0'], names ['pg'] | {'elements': 8, 'passed': 1, 'damage': 0, 'heads': 1, 'heads_live': 1, 'records': 9, 'keys': 1}
+   KeePassLib: Delete Duplicate Entries ok 1
+   C: entries 1, read 0
+   C entries, step 7, file 0: record ver:renew:c0#13: model 90, file 27607247
+## Duplicate Entry of head new without the suffix, Delete Duplicate Entries
+   read: refuses: the whole database (store incomplete) | incomplete, served None, admitted {}, words {'N': '', 'root': ''}, refused renewals ['c0'], names ['pg'] | {'elements': 8, 'passed': 1, 'damage': 0, 'heads': 0, 'heads_live': 0, 'records': 9, 'keys': 1}
+   KeePassLib: Delete Duplicate Entries ok 1
+   Seal again: as decided | ok, served a0, admitted {'c1': 'pg'}, words {'N': '', 'root': 'r'}, refused renewals ['c0'], names ['pg'] | {'elements': 9, 'passed': 1, 'damage': 0, 'heads': 1, 'heads_live': 1, 'records': 9, 'keys': 1}
+   C: entries 1, read 0
+   C entries, step 7, file 0: record H007.14: model 90, file 27607247
+== 12 s

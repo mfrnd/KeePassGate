@@ -1,0 +1,6 @@
+C   20000 histories: wider without the repair 2; of them closed by it 0, left wider 2
+D   20000 histories: wider without the repair 1; of them closed by it 0, left wider 1
+E   20000 histories: wider without the repair 3; of them closed by it 0, left wider 3
+F   20000 histories: wider without the repair 1; of them closed by it 0, left wider 1
+I   20000 histories: wider without the repair 0; of them closed by it 0, left wider 0
+J2  20000 histories: wider without the repair 0; of them closed by it 0, left wider 0

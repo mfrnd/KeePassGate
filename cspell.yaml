@@ -446,4 +446,43 @@ words:
   - Consolas
   - runas
   - trustlevel
+  # Identifiers in the store-as-a-whole probes and model, which are kept as they were recorded: in
+  # its copy of `crdt_model.py`, the locals and switches `ckey`, `revkey`, `rtuple`, `keyretire`,
+  # `newacts`, `idealkeys`, `Kdisk`, `ncert`, `wkey`, `Kview`, `Keverview`, `regval`, `maxclients`
+  # and `plantk`, and the acts `delauth` and `renewcert`; the search `noauth` of `store_runs.py`;
+  # in its probe, the acts `dupel`, `dupgroup` and `kimport`, the steps `readcheck` and `readdiff`
+  # and the field `keybytes` of `bridge.py` and `store.py`, `hbytes`, `sbytes` and `maxafter` of
+  # `growth.py`, `tbin`, `tdel` and `nread` of `cases.py`, `undoc` of `read.py`; and the
+  # environment variable `PSMODULEPATH` that `kp.py` clears.
+  - ckey
+  - revkey
+  - rtuple
+  - keyretire
+  - newacts
+  - idealkeys
+  - Kdisk
+  - ncert
+  - wkey
+  - Kview
+  - Keverview
+  - regval
+  - maxclients
+  - plantk
+  - delauth
+  - renewcert
+  - noauth
+  - dupel
+  - dupgroup
+  - kimport
+  - readcheck
+  - readdiff
+  - keybytes
+  - hbytes
+  - sbytes
+  - maxafter
+  - tbin
+  - tdel
+  - nread
+  - undoc
+  - PSMODULEPATH
 
