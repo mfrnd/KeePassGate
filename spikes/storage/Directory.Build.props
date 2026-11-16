@@ -1,0 +1,42 @@
+<Project>
+
+  <!-- Imported by MSBuild into every project under `spikes\storage`, because it is the nearest
+       `Directory.Build.props` above each of them. A probe directory therefore must not hold one of
+       its own, or this one is no longer imported there.
+
+       What it defines, all of it full paths that end in a separator:
+
+         BranchRoot    the root of this branch, two directories up.
+         KeePassDevDir the pinned KeePass, `.keepass\<version>\` with the version read from
+                       `keepass.version`, which `tools/KeePass.ps1` provides. Override it with
+                       `-p:KeePassDevDir=...` for a machine that keeps its own somewhere else;
+                       given that way, it is taken as written.
+         ProductDir    `.product\`, where `tools/Product.ps1` exports the product's files at the
+                       commit it names, at their paths in the product.
+
+       And one that ends in a file, KeePassExe, which is the whole of what a probe's project names
+       of KeePass:
+
+         <Reference Include="KeePass">
+           <HintPath>$(KeePassExe)</HintPath>
+         </Reference>
+
+       Neither program is provided by a build: an absent KeePass stops it with the command that
+       provides one, rather than with a warning about a reference nobody reads and a page of
+       missing types after it. -->
+  <PropertyGroup>
+    <BranchRoot>$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)..\..\'))</BranchRoot>
+    <KeePassPinnedVersion>$([System.IO.File]::ReadAllText('$(BranchRoot)keepass.version').Trim())</KeePassPinnedVersion>
+    <KeePassDevDir Condition="'$(KeePassDevDir)' == ''">$(BranchRoot).keepass\$(KeePassPinnedVersion)\</KeePassDevDir>
+    <!-- Not by reassigning `KeePassDevDir`: given on the command line it is a global property,
+         which no assignment in a project file changes. -->
+    <KeePassExe>$([MSBuild]::EnsureTrailingSlash('$(KeePassDevDir)'))KeePass.exe</KeePassExe>
+    <ProductDir>$(BranchRoot).product\</ProductDir>
+  </PropertyGroup>
+
+  <Target Name="KpgRequireKeePass" BeforeTargets="ResolveAssemblyReferences">
+    <Error Condition="'@(Reference->AnyHaveMetadataValue('Identity', 'KeePass'))' == 'true' and !Exists('$(KeePassExe)')"
+           Text="KeePass $(KeePassPinnedVersion) is not provided at $(KeePassExe). From the branch root, in Windows PowerShell: . .\tools\KeePass.ps1; Install-KeePass" />
+  </Target>
+
+</Project>
