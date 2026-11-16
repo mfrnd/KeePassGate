@@ -1706,6 +1706,42 @@ namespace KeePassGate.Tests
         }
 
         [Test]
+        public void A_code_still_out_under_a_profile_edit_is_named_by_the_band()
+        {
+            // The code from an accepted dialog stays good under the edit, so a band telling the
+            // operator to press OK and reopen the dialog to pair stood over a code a program could
+            // pair with right then.
+            var pending = new PendingDatabase(_database, null);
+
+            using (var book = new InvitationBook(_log))
+            using (var panel = new AuthorityPanel(pending, new FakePrompt(true), _log, new PendingInvitations(book), null))
+            {
+                panel.CreateAuthority();
+                pending.Apply();
+                var earlier = book.Invite(Digest());
+
+                var names = ProfileNames.Read(null);
+                Assume.That(names.Add("ops"), Is.Null);
+                pending.PluginCustomData.Set(ProfileNames.CustomDataKey, names.Write());
+                panel.Describe();
+
+                Assume.That(panel.ProfilesAreWaiting, Is.True);
+                Assert.That(Button(panel, GateTab.InviteButtonName).Enabled, Is.False);
+                Assert.That(Label(panel, GateTab.InviteNoticeName).Text,
+                    Is.EqualTo(GateTab.PendingProfilesCodeOutNotice));
+                Assert.That(GateTab.PendingProfilesCodeOutNotice, Does.Contain("still pairs"));
+
+                // Brought up to date as the countdown is, since a code runs out on the clock and
+                // nothing redraws the tab for it.
+                Assume.That(book.Withdraw(earlier.Id), Is.True);
+                panel.Tick();
+
+                Assert.That(Label(panel, GateTab.InviteNoticeName).Text,
+                    Is.EqualTo(GateTab.PendingProfilesNotice));
+            }
+        }
+
+        [Test]
         public void Nobody_can_be_invited_while_a_profile_name_is_still_waiting()
         {
             // `KPG.Profiles` is the one key this tab and pairing both write, and they write it
@@ -1733,7 +1769,7 @@ namespace KeePassGate.Tests
 
                 Assert.That(panel.ProfilesAreWaiting, Is.True);
                 Assert.That(Button(panel, GateTab.InviteButtonName).Enabled, Is.False,
-                    "so a pairing cannot write the list this dialog is about to write over");
+                    "so no new code is handed out against the list this dialog is about to write over");
 
                 // The band under the button, which is the only place this reason can be given. A
                 // dead button says nothing about why it is dead, and this was the one of the three

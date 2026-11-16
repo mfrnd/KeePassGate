@@ -299,6 +299,18 @@ namespace KeePassGate.Ui
             "The profile change is not applied yet. Press OK and reopen this dialog to pair.";
 
         /// <summary>
+        /// What it shows instead while a profile edit waits and a code is still out.
+        /// </summary>
+        /// <remarks>
+        /// The edit takes back the code made on this dialog, and a code from an earlier dialog
+        /// that was accepted is not this dialog's to take back, so it stays good and a program can
+        /// pair with it before OK. The notice above, over that code's countdown, denied a pairing
+        /// that could happen at once.
+        /// </remarks>
+        public const string PendingProfilesCodeOutNotice =
+            "The profile change is not applied yet. The code handed out earlier still pairs.";
+
+        /// <summary>
         /// Every sentence the band over the invite button can hold, which is what the tab has to
         /// be measured against.
         /// </summary>
@@ -311,7 +323,7 @@ namespace KeePassGate.Ui
         /// </remarks>
         public static readonly IReadOnlyList<string> InviteNotices = new[]
         {
-            PendingAuthorityNotice, PendingDeleteNotice, PendingProfilesNotice
+            PendingAuthorityNotice, PendingDeleteNotice, PendingProfilesNotice, PendingProfilesCodeOutNotice
         };
 
         /// <summary>The dialog raised when somebody asks to pair.</summary>
