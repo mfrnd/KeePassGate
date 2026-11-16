@@ -1,0 +1,9 @@
+add exit 0
+edit General/Ordinary1 exit 0
+edit KPG/cd-both exit 0
+edit KPG/prot-A exit 0
+edit KPG/att-A exit 0
+edit KPG/hist-many exit 0
+edit KPG/hist-big exit 0
+rm General/Ordinary2 exit 0
+rm Recycle Bin/bin-A exit 0

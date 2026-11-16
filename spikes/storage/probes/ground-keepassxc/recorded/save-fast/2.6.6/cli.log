@@ -1,0 +1,50 @@
+### 2.6.6 "add" "-u" "xc-user" "--url" "https://example.invalid/xc" "spikes\storage\probes\ground-keepassxc\work\save-fast\2.6.6\S.kdbx" "General/xc-added"
+### exit 0 2026-11-15T14:51:46.4073629Z/2026-11-15T14:51:46.6858451Z
+Successfully added entry xc-added.
+Enter password to unlock spikes\storage\probes\ground-keepassxc\work\save-fast\2.6.6\S.kdbx: 
+
+### 2.6.6 "edit" "-t" "Ordinary1-renamed" "spikes\storage\probes\ground-keepassxc\work\save-fast\2.6.6\S.kdbx" "General/Ordinary1"
+### exit 0 2026-11-15T14:51:46.8141745Z/2026-11-15T14:51:47.0529009Z
+Successfully edited entry Ordinary1-renamed.
+Enter password to unlock spikes\storage\probes\ground-keepassxc\work\save-fast\2.6.6\S.kdbx: 
+
+### 2.6.6 "edit" "-u" "xc-user" "spikes\storage\probes\ground-keepassxc\work\save-fast\2.6.6\S.kdbx" "KPG/cd-both"
+### exit 0 2026-11-15T14:51:47.0628557Z/2026-11-15T14:51:47.3409529Z
+Successfully edited entry cd-both.
+Enter password to unlock spikes\storage\probes\ground-keepassxc\work\save-fast\2.6.6\S.kdbx: 
+
+### 2.6.6 "edit" "-u" "xc-user" "spikes\storage\probes\ground-keepassxc\work\save-fast\2.6.6\S.kdbx" "KPG/prot-A"
+### exit 0 2026-11-15T14:51:47.3491414Z/2026-11-15T14:51:47.6089462Z
+Successfully edited entry prot-A.
+Enter password to unlock spikes\storage\probes\ground-keepassxc\work\save-fast\2.6.6\S.kdbx: 
+
+### 2.6.6 "edit" "-u" "xc-user" "spikes\storage\probes\ground-keepassxc\work\save-fast\2.6.6\S.kdbx" "KPG/att-A"
+### exit 0 2026-11-15T14:51:47.6203190Z/2026-11-15T14:51:47.8802046Z
+Successfully edited entry att-A.
+Enter password to unlock spikes\storage\probes\ground-keepassxc\work\save-fast\2.6.6\S.kdbx: 
+
+### 2.6.6 "edit" "-u" "xc-user" "spikes\storage\probes\ground-keepassxc\work\save-fast\2.6.6\S.kdbx" "KPG/hist-many"
+### exit 0 2026-11-15T14:51:47.8885616Z/2026-11-15T14:51:48.1345752Z
+Successfully edited entry hist-many.
+Enter password to unlock spikes\storage\probes\ground-keepassxc\work\save-fast\2.6.6\S.kdbx: 
+
+### 2.6.6 "edit" "-u" "xc-user" "spikes\storage\probes\ground-keepassxc\work\save-fast\2.6.6\S.kdbx" "KPG/hist-big"
+### exit 0 2026-11-15T14:51:48.1494419Z/2026-11-15T14:51:48.3881555Z
+Successfully edited entry hist-big.
+Enter password to unlock spikes\storage\probes\ground-keepassxc\work\save-fast\2.6.6\S.kdbx: 
+
+### 2.6.6 "rm" "spikes\storage\probes\ground-keepassxc\work\save-fast\2.6.6\S.kdbx" "General/Ordinary2"
+### exit 0 2026-11-15T14:51:48.3957126Z/2026-11-15T14:51:48.6427259Z
+Successfully recycled entry Ordinary2.
+Enter password to unlock spikes\storage\probes\ground-keepassxc\work\save-fast\2.6.6\S.kdbx: 
+
+### 2.6.6 "rm" "spikes\storage\probes\ground-keepassxc\work\save-fast\2.6.6\S.kdbx" "Recycle Bin/bin-A"
+### exit 0 2026-11-15T14:51:48.6507356Z/2026-11-15T14:51:48.8989591Z
+Successfully deleted entry bin-A.
+Enter password to unlock spikes\storage\probes\ground-keepassxc\work\save-fast\2.6.6\S.kdbx: 
+
+### 2.6.6 "mv" "spikes\storage\probes\ground-keepassxc\work\save-fast\2.6.6\S.kdbx" "General/Ordinary3" "KPG/Sub"
+### exit 0 2026-11-15T14:51:48.9073563Z/2026-11-15T14:51:49.1519520Z
+Successfully moved entry Ordinary3 to group KPG/Sub.
+Enter password to unlock spikes\storage\probes\ground-keepassxc\work\save-fast\2.6.6\S.kdbx: 
+

@@ -1,0 +1,85 @@
+### 2.8.0 "merge" "--help"
+### exit 1 2026-11-15T14:46:18.7218615Z/2026-11-15T14:46:18.7768182Z
+Fehlende(s) positionale(s) Argument(e).
+
+Aufruf: keepassxc-cli.exe [Optionen] database database2
+Zwei Datenbanken zusammenführen
+
+Optionen:
+  -q, --quiet                    Silence password prompt and other secondary
+                                 outputs.
+  -k, --key-file <path>          Key file of the database.
+  --no-password                  Deactivate password key for the database.
+  -y, --yubikey <slot[:serial]>  Yubikey slot and optional serial used to
+                                 access the database (e.g., 1:7370001).
+  -s, --same-credentials         Use the same credentials for both database
+                                 files.
+  --key-file-from <path>         Key file of the database to merge from.
+  --no-password-from             Deactivate password key for the database to
+                                 merge from.
+  -d, --dry-run                  Only print the changes detected by the merge
+                                 operation.
+  --yubikey-from <slot>          Yubikey slot for the second database.
+  -?, -h, --help                 Display this help.
+
+Argumente:
+  database                       Pfad der Datenbank.
+  database2                      Pfad der Datenbank, aus der zusammengeführt
+                                 werden soll.
+
+### 2.8.0 "merge" "-s" "--dry-run" "spikes\storage\probes\ground-keepassxc\work\merge-fast\2.8.0-intoB\B.kdbx" "spikes\storage\probes\ground-keepassxc\work\merge-fast\2.8.0-intoB\A.kdbx"
+### exit 0 2026-11-15T14:46:18.7785390Z/2026-11-15T14:46:18.8875426Z
+	Geändert: '/Root/KPG'/'both-diff' [{03bbf11b-b7bc-1141-9c60-16a9bcef50ca}] (Benutzerdefinierte Eigenschaften, History (neue Änderungen zum bestehenden Eintrag hinzufügen))
+	Geändert: '/Root/KPG'/'both-samefield' [{02cae5a0-c824-3a44-b0c2-e33fa3329231}] (Benutzerdefinierte Eigenschaften, History (neue Änderungen zum bestehenden Eintrag hinzufügen))
+	Geändert: '/Root/KPG'/'one-A' [{558f6463-1584-0043-863a-915691420d61}] (Benutzerdefinierte Eigenschaften, History (lokale Änderungen zum neuen Eintrag hinzufügen))
+	Geändert: '/Root/KPG'/'rewound-B' [{4b4223bf-f274-5948-8da7-c2f055c480d6}] (Benutzerdefinierte Eigenschaften, History (lokale Änderungen zum neuen Eintrag hinzufügen))
+	Geändert: '/Root/KPG'/'prot-A' [{3990ba40-58a9-4543-b897-83fc525bd7c7}] (Benutzerdefinierte Eigenschaften, History (lokale Änderungen zum neuen Eintrag hinzufügen))
+	Geändert: '/Root/KPG'/'att-A' [{d2668c41-f161-1341-a4c5-cfd43027396b}] (Anhänge, History (lokale Änderungen zum neuen Eintrag hinzufügen))
+	Geändert: '/Root/KPG'/'att-both' [{3675f2b3-a532-a04d-a37f-2d12e79f9c07}] (Anhänge, History (neue Änderungen zum bestehenden Eintrag hinzufügen))
+	Geändert: '/Root/KPG'/'tag-A' [{f888f9b4-a6c0-4045-a8d9-e8e18d2a1950}] (Tags, History (lokale Änderungen zum neuen Eintrag hinzufügen))
+	Geändert: '/Root/KPG'/'tag-both' [{bdb3fd70-4c43-d948-90a1-b364272b817c}] (Tags, History (neue Änderungen zum bestehenden Eintrag hinzufügen))
+	Geändert: '/Root/KPG'/'cd-both' [{2c5fba19-29e9-c64b-a494-02a995ca4909}] (Plugin-Daten, History (neue Änderungen zum bestehenden Eintrag hinzufügen))
+	Geändert: '/Root/KPG'/'notes-A' [{8f6648d1-ed25-e346-b0e0-848896ac8bf9}] (Notizen, History (lokale Änderungen zum neuen Eintrag hinzufügen))
+	Geändert: '/Root/KPG'/'hist' [{d16cf329-4e87-6c40-b6e2-c5645712232d}] (Benutzerdefinierte Eigenschaften, History (neue Änderungen zum bestehenden Eintrag hinzufügen))
+	Geändert: '/Root/KPG'/'hist-many' [{02a4b439-b4d6-3e44-9e44-5836fd13132f}] (Benutzerdefinierte Eigenschaften, History (neue Änderungen zum bestehenden Eintrag hinzufügen))
+	Geändert: '/Root/KPG'/'hist-big' [{801867e8-1b03-5d4d-879e-6ddbd4b731f6}] (Anhänge, History (lokale Änderungen zum neuen Eintrag hinzufügen))
+	Hinzugefügt: '/Root/KPG'/'added-A' [{5af7a9b4-b585-4c45-9b71-346163406bb0}]
+	Verschoben: '/Root/KPG/Sub'/'move-A' [{8cb68ab9-c707-934e-8f21-261285fae217}] (Vorheriger Speicherort: KPG)
+	Verschoben: '/Root/KPG/Sub'/'move-A-edit-B' [{bd72f04b-8d96-4d43-a614-de40938361dc}] (Vorheriger Speicherort: KPG)
+	Geändert: '/Root/KPG/GNotesA' [{c2a3efc6-cfa8-104b-85d6-44a04be57aa1}] (Notizen, Änderungszeit)
+	Geändert: '/Root/KPG/GTagsA' [{464340df-d4ba-9b48-a15c-04ff14446337}] (Änderungszeit)
+	Hinzugefügt: '/Root/KPG/NewA' [{505edff5-a912-6e43-b65c-6d00882e7458}] (Anzahl der Einträge in der Gruppe: 1)
+	Hinzugefügt: '/Root/KPG/NewA'/'in-newA' [{1de502d8-b540-a540-a0e5-b300b4dcce8c}]
+	Hinzugefügt: '/Root/Recycle Bin' [{9d30dc8a-e5ec-6e47-b93d-db99dfcc8080}] (Anzahl der Einträge in der Gruppe: 1)
+	Verschoben: '/Root/Recycle Bin'/'bin-A' [{5fce245d-68f5-7646-af60-a4c134cb652b}] (Vorheriger Speicherort: KPG)
+Datenbank wurde beim Zusammenführen nicht verändert.
+Passwort zum Entsperren von spikes\storage\probes\ground-keepassxc\work\merge-fast\2.8.0-intoB\B.kdbx eingeben:
+
+### 2.8.0 "merge" "-s" "spikes\storage\probes\ground-keepassxc\work\merge-fast\2.8.0-intoB\B.kdbx" "spikes\storage\probes\ground-keepassxc\work\merge-fast\2.8.0-intoB\A.kdbx"
+### exit 0 2026-11-15T14:46:18.9255094Z/2026-11-15T14:46:19.0852167Z
+	Geändert: '/Root/KPG'/'both-diff' [{03bbf11b-b7bc-1141-9c60-16a9bcef50ca}] (Benutzerdefinierte Eigenschaften, History (neue Änderungen zum bestehenden Eintrag hinzufügen))
+	Geändert: '/Root/KPG'/'both-samefield' [{02cae5a0-c824-3a44-b0c2-e33fa3329231}] (Benutzerdefinierte Eigenschaften, History (neue Änderungen zum bestehenden Eintrag hinzufügen))
+	Geändert: '/Root/KPG'/'one-A' [{558f6463-1584-0043-863a-915691420d61}] (Benutzerdefinierte Eigenschaften, History (lokale Änderungen zum neuen Eintrag hinzufügen))
+	Geändert: '/Root/KPG'/'rewound-B' [{4b4223bf-f274-5948-8da7-c2f055c480d6}] (Benutzerdefinierte Eigenschaften, History (lokale Änderungen zum neuen Eintrag hinzufügen))
+	Geändert: '/Root/KPG'/'prot-A' [{3990ba40-58a9-4543-b897-83fc525bd7c7}] (Benutzerdefinierte Eigenschaften, History (lokale Änderungen zum neuen Eintrag hinzufügen))
+	Geändert: '/Root/KPG'/'att-A' [{d2668c41-f161-1341-a4c5-cfd43027396b}] (Anhänge, History (lokale Änderungen zum neuen Eintrag hinzufügen))
+	Geändert: '/Root/KPG'/'att-both' [{3675f2b3-a532-a04d-a37f-2d12e79f9c07}] (Anhänge, History (neue Änderungen zum bestehenden Eintrag hinzufügen))
+	Geändert: '/Root/KPG'/'tag-A' [{f888f9b4-a6c0-4045-a8d9-e8e18d2a1950}] (Tags, History (lokale Änderungen zum neuen Eintrag hinzufügen))
+	Geändert: '/Root/KPG'/'tag-both' [{bdb3fd70-4c43-d948-90a1-b364272b817c}] (Tags, History (neue Änderungen zum bestehenden Eintrag hinzufügen))
+	Geändert: '/Root/KPG'/'cd-both' [{2c5fba19-29e9-c64b-a494-02a995ca4909}] (Plugin-Daten, History (neue Änderungen zum bestehenden Eintrag hinzufügen))
+	Geändert: '/Root/KPG'/'notes-A' [{8f6648d1-ed25-e346-b0e0-848896ac8bf9}] (Notizen, History (lokale Änderungen zum neuen Eintrag hinzufügen))
+	Geändert: '/Root/KPG'/'hist' [{d16cf329-4e87-6c40-b6e2-c5645712232d}] (Benutzerdefinierte Eigenschaften, History (neue Änderungen zum bestehenden Eintrag hinzufügen))
+	Geändert: '/Root/KPG'/'hist-many' [{02a4b439-b4d6-3e44-9e44-5836fd13132f}] (Benutzerdefinierte Eigenschaften, History (neue Änderungen zum bestehenden Eintrag hinzufügen))
+	Geändert: '/Root/KPG'/'hist-big' [{801867e8-1b03-5d4d-879e-6ddbd4b731f6}] (Anhänge, History (lokale Änderungen zum neuen Eintrag hinzufügen))
+	Hinzugefügt: '/Root/KPG'/'added-A' [{5af7a9b4-b585-4c45-9b71-346163406bb0}]
+	Verschoben: '/Root/KPG/Sub'/'move-A' [{8cb68ab9-c707-934e-8f21-261285fae217}] (Vorheriger Speicherort: KPG)
+	Verschoben: '/Root/KPG/Sub'/'move-A-edit-B' [{bd72f04b-8d96-4d43-a614-de40938361dc}] (Vorheriger Speicherort: KPG)
+	Geändert: '/Root/KPG/GNotesA' [{c2a3efc6-cfa8-104b-85d6-44a04be57aa1}] (Notizen, Änderungszeit)
+	Geändert: '/Root/KPG/GTagsA' [{464340df-d4ba-9b48-a15c-04ff14446337}] (Änderungszeit)
+	Hinzugefügt: '/Root/KPG/NewA' [{505edff5-a912-6e43-b65c-6d00882e7458}] (Anzahl der Einträge in der Gruppe: 1)
+	Hinzugefügt: '/Root/KPG/NewA'/'in-newA' [{1de502d8-b540-a540-a0e5-b300b4dcce8c}]
+	Hinzugefügt: '/Root/Recycle Bin' [{9d30dc8a-e5ec-6e47-b93d-db99dfcc8080}] (Anzahl der Einträge in der Gruppe: 1)
+	Verschoben: '/Root/Recycle Bin'/'bin-A' [{5fce245d-68f5-7646-af60-a4c134cb652b}] (Vorheriger Speicherort: KPG)
+spikes\storage\probes\ground-keepassxc\work\merge-fast\2.8.0-intoB\A.kdbx erfolgreich nach spikes\storage\probes\ground-keepassxc\work\merge-fast\2.8.0-intoB\B.kdbx zusammengeführt.
+Passwort zum Entsperren von spikes\storage\probes\ground-keepassxc\work\merge-fast\2.8.0-intoB\B.kdbx eingeben:
+

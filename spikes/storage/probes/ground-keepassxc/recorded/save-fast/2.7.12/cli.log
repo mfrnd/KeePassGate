@@ -1,0 +1,50 @@
+### 2.7.12 "add" "-u" "xc-user" "--url" "https://example.invalid/xc" "spikes\storage\probes\ground-keepassxc\work\save-fast\2.7.12\S.kdbx" "General/xc-added"
+### exit 0 2026-11-15T14:51:49.2979701Z/2026-11-15T14:51:49.4194662Z
+Eintrag xc-added erfolgreich hinzugefügt.
+Passwort zum Entsperren von spikes\storage\probes\ground-keepassxc\work\save-fast\2.7.12\S.kdbx eingeben:
+
+### 2.7.12 "edit" "-t" "Ordinary1-renamed" "spikes\storage\probes\ground-keepassxc\work\save-fast\2.7.12\S.kdbx" "General/Ordinary1"
+### exit 0 2026-11-15T14:51:49.5520243Z/2026-11-15T14:51:49.6728696Z
+Eintrag Ordinary1-renamed erfolgreich bearbeitet.
+Passwort zum Entsperren von spikes\storage\probes\ground-keepassxc\work\save-fast\2.7.12\S.kdbx eingeben:
+
+### 2.7.12 "edit" "-u" "xc-user" "spikes\storage\probes\ground-keepassxc\work\save-fast\2.7.12\S.kdbx" "KPG/cd-both"
+### exit 0 2026-11-15T14:51:49.6821487Z/2026-11-15T14:51:49.7891336Z
+Eintrag cd-both erfolgreich bearbeitet.
+Passwort zum Entsperren von spikes\storage\probes\ground-keepassxc\work\save-fast\2.7.12\S.kdbx eingeben:
+
+### 2.7.12 "edit" "-u" "xc-user" "spikes\storage\probes\ground-keepassxc\work\save-fast\2.7.12\S.kdbx" "KPG/prot-A"
+### exit 0 2026-11-15T14:51:49.7961979Z/2026-11-15T14:51:49.9084389Z
+Eintrag prot-A erfolgreich bearbeitet.
+Passwort zum Entsperren von spikes\storage\probes\ground-keepassxc\work\save-fast\2.7.12\S.kdbx eingeben:
+
+### 2.7.12 "edit" "-u" "xc-user" "spikes\storage\probes\ground-keepassxc\work\save-fast\2.7.12\S.kdbx" "KPG/att-A"
+### exit 0 2026-11-15T14:51:49.9151058Z/2026-11-15T14:51:50.0230848Z
+Eintrag att-A erfolgreich bearbeitet.
+Passwort zum Entsperren von spikes\storage\probes\ground-keepassxc\work\save-fast\2.7.12\S.kdbx eingeben:
+
+### 2.7.12 "edit" "-u" "xc-user" "spikes\storage\probes\ground-keepassxc\work\save-fast\2.7.12\S.kdbx" "KPG/hist-many"
+### exit 0 2026-11-15T14:51:50.0305506Z/2026-11-15T14:51:50.1383332Z
+Eintrag hist-many erfolgreich bearbeitet.
+Passwort zum Entsperren von spikes\storage\probes\ground-keepassxc\work\save-fast\2.7.12\S.kdbx eingeben:
+
+### 2.7.12 "edit" "-u" "xc-user" "spikes\storage\probes\ground-keepassxc\work\save-fast\2.7.12\S.kdbx" "KPG/hist-big"
+### exit 0 2026-11-15T14:51:50.1454685Z/2026-11-15T14:51:50.2439646Z
+Eintrag hist-big erfolgreich bearbeitet.
+Passwort zum Entsperren von spikes\storage\probes\ground-keepassxc\work\save-fast\2.7.12\S.kdbx eingeben:
+
+### 2.7.12 "rm" "spikes\storage\probes\ground-keepassxc\work\save-fast\2.7.12\S.kdbx" "General/Ordinary2"
+### exit 0 2026-11-15T14:51:50.2550701Z/2026-11-15T14:51:50.3491021Z
+Eintrag Ordinary2 erfolgreich in Papierkorb verschoben.
+Passwort zum Entsperren von spikes\storage\probes\ground-keepassxc\work\save-fast\2.7.12\S.kdbx eingeben:
+
+### 2.7.12 "rm" "spikes\storage\probes\ground-keepassxc\work\save-fast\2.7.12\S.kdbx" "Recycle Bin/bin-A"
+### exit 0 2026-11-15T14:51:50.3555914Z/2026-11-15T14:51:50.4505709Z
+Eintrag bin-A erfolgreich gelöscht.
+Passwort zum Entsperren von spikes\storage\probes\ground-keepassxc\work\save-fast\2.7.12\S.kdbx eingeben:
+
+### 2.7.12 "mv" "spikes\storage\probes\ground-keepassxc\work\save-fast\2.7.12\S.kdbx" "General/Ordinary3" "KPG/Sub"
+### exit 0 2026-11-15T14:51:50.4588894Z/2026-11-15T14:51:50.5515027Z
+Eintrag Ordinary3 erfolgreich in Gruppe KPG/Sub verschoben.
+Passwort zum Entsperren von spikes\storage\probes\ground-keepassxc\work\save-fast\2.7.12\S.kdbx eingeben:
+

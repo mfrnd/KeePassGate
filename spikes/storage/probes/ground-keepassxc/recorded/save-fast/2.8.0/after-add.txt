@@ -1,0 +1,53 @@
+# S.kdbx kdbx 4.1
+meta recycleBin=on bin='Recycle Bin' 9d30dc8a historyMaxItems=10 historyMaxSize=1048576 dbCustomData=[KPXC_RANDOM_SLUG,_LAST_MODIFIED]
+deleted 2ca0f306 @+01:00:00
+deleted 335fa553 @+01:00:00
+deleted dddd7d40 @+01:00:00
+deleted ebfd26c3 @+01:00:00
+G '' u=588481bc mod=+00:00:00 loc=+00:00:00 prev=- notes="" tags=[] cd={}
+G 'General' u=3b56d60f mod=2026-11-15T14:51:50Z loc=+00:00:00 prev=- notes="" tags=[] cd={}
+  E 'Ordinary1' u=ea58d955 mod=+00:00:00 loc=+00:00:00 prev=- :: Notes= Password[P]=invented-password-1 URL=https://example.invalid/1 UserName=user1
+  E 'Ordinary2' u=dd42a6b8 mod=+00:00:00 loc=+00:00:00 prev=- :: Notes= Password[P]=invented-password-2 URL=https://example.invalid/2 UserName=user2
+  E 'Ordinary3' u=c826d8e7 mod=+00:00:00 loc=+00:00:00 prev=- :: Notes= Password[P]=invented-password-3 URL=https://example.invalid/3 UserName=user3
+  E 'xc-added' u=7dfc6457 mod=2026-11-15T14:51:50Z loc=2026-11-15T14:51:50Z prev=- :: Notes= Password[P]= URL=https://example.invalid/xc UserName=xc-user
+G 'KPG' u=2b47981f mod=+00:00:00 loc=+00:00:00 prev=- notes="kpg notes v0" tags=[] cd={}
+  E 'added-A' u=5af7a9b4 mod=+01:00:00 loc=+01:00:00 prev=- :: Data=A Notes= Password[P]= URL= UserName=
+  E 'att-A' u=d2668c41 mod=+01:00:00 loc=+00:00:00 prev=- :: Data=0 Notes= Password[P]= URL= UserName= bin:blob.bin[P]=a3c0f97c
+    H 1: +00:00:00 {Data=0 Notes= Password[P]= URL= UserName= bin:blob.bin[P]=d064f5c4}
+  E 'att-both' u=3675f2b3 mod=+01:00:00 loc=+00:00:00 prev=- :: Data=0 Notes= Password[P]= URL= UserName= bin:a.bin[P]=01818d27 bin:base.bin[P]=33ba5dd5
+    H 1: +00:00:00 {Data=0 Notes= Password[P]= URL= UserName= bin:base.bin[P]=33ba5dd5}
+  E 'both-diff' u=03bbf11b mod=+01:00:00 loc=+00:00:00 prev=- :: Data=0 FieldA=a Notes= Password[P]= URL= UserName=
+    H 1: +00:00:00 {Data=0 Notes= Password[P]= URL= UserName=}
+  E 'both-samefield' u=02cae5a0 mod=+01:00:00 loc=+00:00:00 prev=- :: Data=0 Notes= Password[P]= Shared=A URL= UserName=
+    H 1: +00:00:00 {Data=0 Notes= Password[P]= Shared=0 URL= UserName=}
+  E 'both-tie' u=94a51558 mod=+01:00:00 loc=+00:00:00 prev=- :: Data=0 FieldA=a Notes= Password[P]= URL= UserName=
+    H 1: +00:00:00 {Data=0 Notes= Password[P]= URL= UserName=}
+  E 'cd-both' u=2c5fba19 mod=+01:00:00 loc=+00:00:00 prev=- :: Data=0 Notes= Password[P]= URL= UserName= cd={_LAST_MODIFIED=Sun Nov 15 14:51:50 2026 GMT@none; cd0=0@none; cdA=a@none}
+    H 1: +00:00:00 {Data=0 Notes= Password[P]= URL= UserName= cd={_LAST_MODIFIED=Sun Nov 15 14:51:50 2026 GMT@none; cd0=0@none}}
+  E 'hist' u=d16cf329 mod=+01:00:00 loc=-10:00:00 prev=- :: Data=A Notes= Password[P]= URL= UserName=
+    H 3: -02:00:00 {Data=h1 Notes= Password[P]= URL= UserName=} ; -01:00:00 {Data=h2 Notes= Password[P]= URL= UserName=} ; +00:00:00 {Data=0 Notes= Password[P]= URL= UserName=}
+  E 'hist-big' u=801867e8 mod=+01:00:00 loc=-10:00:00 prev=- :: Data=0 Notes= Password[P]= URL= UserName= bin:big.bin[P]=521bdd7c
+    H 2: -01:00:00 {Data=0 Notes= Password[P]= URL= UserName= bin:big.bin[P]=27819dff} ; +00:00:00 {Data=0 Notes= Password[P]= URL= UserName= bin:big.bin[P]=a71cc4ad}
+  E 'hist-many' u=02a4b439 mod=+01:00:00 loc=-10:00:00 prev=- :: Data=A Notes= Password[P]= URL= UserName=
+    H 10: -09:00:00 {Data=m1 Notes= Password[P]= URL= UserName=} ; -08:00:00 {Data=m2 Notes= Password[P]= URL= UserName=} ; -07:00:00 {Data=m3 Notes= Password[P]= URL= UserName=} ; -06:00:00 {Data=m4 Notes= Password[P]= URL= UserName=} ; -05:00:00 {Data=m5 Notes= Password[P]= URL= UserName=} ; -04:00:00 {Data=m6 Notes= Password[P]= URL= UserName=} ; -03:00:00 {Data=m7 Notes= Password[P]= URL= UserName=} ; -02:00:00 {Data=m8 Notes= Password[P]= URL= UserName=} ; -01:00:00 {Data=m9 Notes= Password[P]= URL= UserName=} ; +00:00:00 {Data=0 Notes= Password[P]= URL= UserName=}
+  E 'notes-A' u=8f6648d1 mod=+01:00:00 loc=+00:00:00 prev=- :: Data=0 Notes=nA Password[P]= URL= UserName=
+    H 1: +00:00:00 {Data=0 Notes=n0 Password[P]= URL= UserName=}
+  E 'one-A' u=558f6463 mod=+01:00:00 loc=+00:00:00 prev=- :: Data=A Notes= Password[P]= URL= UserName=
+    H 1: +00:00:00 {Data=0 Notes= Password[P]= URL= UserName=}
+  E 'prot-A' u=3990ba40 mod=+01:00:00 loc=+00:00:00 prev=- :: Data=0 Notes= Password[P]= Secret[P]=sA URL= UserName=
+    H 1: +00:00:00 {Data=0 Notes= Password[P]= Secret[P]=s0 URL= UserName=}
+  E 'rewound-B' u=4b4223bf mod=+00:00:00 loc=+00:00:00 prev=- :: Data=0 Notes= Password[P]= URL= UserName=
+  E 'tag-A' u=f888f9b4 mod=+01:00:00 loc=+00:00:00 prev=- :: Data=0 Notes= Password[P]= URL= UserName= tags=[tagA]
+    H 1: +00:00:00 {Data=0 Notes= Password[P]= URL= UserName=}
+  E 'tag-both' u=bdb3fd70 mod=+01:00:00 loc=+00:00:00 prev=- :: Data=0 Notes= Password[P]= URL= UserName= tags=[t0|tagA]
+    H 1: +00:00:00 {Data=0 Notes= Password[P]= URL= UserName= tags=[t0]}
+G 'KPG/GNotesA' u=c2a3efc6 mod=+01:00:00 loc=+00:00:00 prev=- notes="nA" tags=[] cd={}
+G 'KPG/GNotesBoth' u=aecaed5b mod=+01:00:00 loc=+00:00:00 prev=- notes="nA" tags=[] cd={}
+G 'KPG/GTagsA' u=464340df mod=+01:00:00 loc=+00:00:00 prev=- notes="" tags=[gtA] cd={}
+G 'KPG/NewA' u=505edff5 mod=+01:00:00 loc=+01:00:00 prev=- notes="" tags=[] cd={}
+  E 'in-newA' u=1de502d8 mod=+01:00:00 loc=+01:00:00 prev=- :: Data=A Notes= Password[P]= URL= UserName=
+G 'KPG/Sub' u=541961ce mod=+00:00:00 loc=+00:00:00 prev=- notes="" tags=[] cd={}
+  E 'move-A' u=8cb68ab9 mod=+00:00:00 loc=+01:00:00 prev=2b47981f :: Data=0 Notes= Password[P]= URL= UserName=
+  E 'move-A-edit-B' u=bd72f04b mod=+00:00:00 loc=+01:00:00 prev=2b47981f :: Data=0 Notes= Password[P]= URL= UserName=
+G 'Recycle Bin' u=9d30dc8a mod=+01:00:00 loc=+01:00:00 prev=- notes="" tags=[] cd={}
+  E 'bin-A' u=5fce245d mod=+00:00:00 loc=+01:00:00 prev=2b47981f :: Data=0 Notes= Password[P]= URL= UserName=

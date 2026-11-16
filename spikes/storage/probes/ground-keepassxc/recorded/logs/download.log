@@ -1,0 +1,8 @@
+fetching https://github.com/keepassxreboot/keepassxc/releases/download/2.4.2/KeePassXC-2.4.2-Win64-portable.zip
+2.4.2 hash=F2F0B870C9C3B956B19471E463AB22D08F48E0178C64A208978A398896981264 sig=Valid signer=CN="DroidMonkey Apps, LLC", O="DroidMonkey Apps, LLC", STREET=3474 Raintree Circle, L=Suffolk, S=VA, PostalCode=23435, C=US fileversion=2.4.2 cli=.keepassxc\2.4.2\keepassxc-cli.exe
+fetching https://github.com/keepassxreboot/keepassxc/releases/download/2.6.6/KeePassXC-2.6.6-Win64-portable.zip
+2.6.6 hash=45A4CD19F02AD617808AA814FAC2ED61B59EFF467D8C464D94BA5304D7CCABC0 sig=Valid signer=CN="DroidMonkey Apps, LLC", O="DroidMonkey Apps, LLC", STREET=6653 Audrey Kay Ct, L=Franconia, S=Virginia, PostalCode=22315, C=US fileversion=2.6.6 cli=.keepassxc\2.6.6\keepassxc-cli.exe
+fetching https://github.com/keepassxreboot/keepassxc/releases/download/2.7.12/KeePassXC-2.7.12-Win64.zip
+2.7.12 hash=958234B0669D757B53EACF42BDD5DE0FA1CC1AB7527709DDF4F7E29C06A8305F sig=Valid signer=CN="DroidMonkey Apps, LLC", O="DroidMonkey Apps, LLC", S=Virginia, C=US fileversion=2.7.12 cli=.keepassxc\2.7.12\keepassxc-cli.exe
+fetching https://github.com/keepassxreboot/keepassxc/releases/download/2.8.0/KeePassXC-2.8.0-x64.zip
+2.8.0 hash=48FF4F088E9CE70E241DA1270E5081528DBA77C38B17DAE4AA6690FFC50FC828 sig=Valid signer=CN="DroidMonkey Apps, LLC", O="DroidMonkey Apps, LLC", S=Virginia, C=US fileversion=2.8.0 cli=.keepassxc\2.8.0\keepassxc-cli.exe

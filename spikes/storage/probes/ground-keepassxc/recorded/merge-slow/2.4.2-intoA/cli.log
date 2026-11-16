@@ -1,0 +1,25 @@
+### 2.4.2 "merge" "--help"
+### exit 0 2026-11-15T14:48:04.8221975Z/2026-11-15T14:48:04.9915833Z
+Usage: .keepassxc\2.4.2\keepassxc-cli.exe [options] database1 database2
+Merge two databases.
+
+Options:
+  -q, --quiet                 Silence password prompt and other secondary
+                              outputs.
+  -s, --same-credentials      Use the same credentials for both database files.
+  -k, --key-file <path>       Key file of the database.
+  --no-password               Deactivate password key for the database.
+  -f, --key-file-from <path>  Key file of the database to merge from.
+  --no-password-from          Deactivate password key for the database to merge
+                              from.
+  -?, -h, --help              Displays this help.
+
+Arguments:
+  database1                   Path of the database to merge into.
+  database2                   Path of the database to merge from.
+
+### 2.4.2 "merge" "-s" "spikes\storage\probes\ground-keepassxc\work\merge-slow\2.4.2-intoA\A.kdbx" "spikes\storage\probes\ground-keepassxc\work\merge-slow\2.4.2-intoA\B.kdbx"
+### exit 0 2026-11-15T14:48:05.0111041Z/2026-11-15T14:48:14.8013497Z
+Insert password to unlock spikes\storage\probes\ground-keepassxc\work\merge-slow\2.4.2-intoA\A.kdbx: 
+Successfully merged the database files.
+

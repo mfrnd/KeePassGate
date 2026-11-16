@@ -1,0 +1,18 @@
+	Geändert: '/Root/KPG'/'both-diff' [{03bbf11b-b7bc-1141-9c60-16a9bcef50ca}] (Benutzerdefinierte Eigenschaften, History (lokale Änderungen zum neuen Eintrag hinzufügen))
+	Geändert: '/Root/KPG'/'both-samefield' [{02cae5a0-c824-3a44-b0c2-e33fa3329231}] (Benutzerdefinierte Eigenschaften, History (lokale Änderungen zum neuen Eintrag hinzufügen))
+	Geändert: '/Root/KPG'/'rewound-B' [{4b4223bf-f274-5948-8da7-c2f055c480d6}] (Benutzerdefinierte Eigenschaften, History (neue Änderungen zum bestehenden Eintrag hinzufügen))
+	Geändert: '/Root/KPG'/'att-both' [{3675f2b3-a532-a04d-a37f-2d12e79f9c07}] (Anhänge, History (lokale Änderungen zum neuen Eintrag hinzufügen))
+	Geändert: '/Root/KPG'/'tag-both' [{bdb3fd70-4c43-d948-90a1-b364272b817c}] (Tags, History (lokale Änderungen zum neuen Eintrag hinzufügen))
+	Geändert: '/Root/KPG'/'cd-both' [{2c5fba19-29e9-c64b-a494-02a995ca4909}] (Plugin-Daten, History (lokale Änderungen zum neuen Eintrag hinzufügen))
+	Geändert: '/Root/KPG/Sub'/'move-A-edit-B' [{bd72f04b-8d96-4d43-a614-de40938361dc}] (Benutzerdefinierte Eigenschaften, History (lokale Änderungen zum neuen Eintrag hinzufügen))
+	Hinzugefügt: '/Root/KPG'/'del-A-unch' [{dddd7d40-1914-794e-9e5a-b3521622cd7d}]
+	Hinzugefügt: '/Root/KPG'/'del-A-chB-after' [{ebfd26c3-9495-674e-aa70-a79a3fe45a15}]
+	Hinzugefügt: '/Root/KPG'/'del-A-chB-before' [{2ca0f306-4495-bb47-a59f-b83c540f63f9}]
+	Geändert: '/Root/KPG'/'hist' [{d16cf329-4e87-6c40-b6e2-c5645712232d}] (Benutzerdefinierte Eigenschaften, History (lokale Änderungen zum neuen Eintrag hinzufügen))
+	Geändert: '/Root/KPG'/'hist-many' [{02a4b439-b4d6-3e44-9e44-5836fd13132f}] (Benutzerdefinierte Eigenschaften, History (lokale Änderungen zum neuen Eintrag hinzufügen))
+	Geändert: '/Root/KPG'/'hist-big' [{801867e8-1b03-5d4d-879e-6ddbd4b731f6}] (Anhänge, History (neue Änderungen zum bestehenden Eintrag hinzufügen))
+	Hinzugefügt: '/Root/KPG'/'added-B' [{a8430fa1-1bcb-3e41-a342-8d4a6aba392d}]
+	Geändert: '/Root/KPG/GNotesBoth' [{aecaed5b-3e8d-dc49-91be-7bf4fc480451}] (Notizen, Änderungszeit)
+	Hinzugefügt: '/Root/KPG/GDelA' [{335fa553-e86f-d344-9f85-64db340ce9b4}] (Anzahl der Einträge in der Gruppe: 0)
+spikes\storage\probes\ground-keepassxc\work\merge-fast\2.7.12-intoA\B.kdbx erfolgreich nach spikes\storage\probes\ground-keepassxc\work\merge-fast\2.7.12-intoA\A.kdbx zusammengeführt.
+Passwort zum Entsperren von spikes\storage\probes\ground-keepassxc\work\merge-fast\2.7.12-intoA\A.kdbx eingeben:

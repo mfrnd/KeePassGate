@@ -103,3 +103,13 @@ words:
   # its X2 prints, which the family's `x2.py` and `RUN.md` match, and the local `scen` of X3.
   - nobackup
   - scen
+  # Identifiers in the ground-keepassxc probe, which is carried unchanged: the entries
+  # `both-samefield` and `del-A-unch`, the local `gdel` and the verb `kpsync` of `Xcp.exe`, and the
+  # directory `histmax` its steps write; and `fileversion`, the label `logs\download.log` gives the
+  # version a release reports, which the family's replay writes the same way.
+  - samefield
+  - unch
+  - gdel
+  - kpsync
+  - histmax
+  - fileversion

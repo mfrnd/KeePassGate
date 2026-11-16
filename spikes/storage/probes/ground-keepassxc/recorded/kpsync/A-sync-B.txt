@@ -1,0 +1,56 @@
+# A-sync-B.kdbx kdbx 4.1
+meta recycleBin=on bin='Recycle Bin' 9d30dc8a historyMaxItems=10 historyMaxSize=1048576 dbCustomData=[]
+deleted 2ca0f306 @+01:00:00
+deleted 335fa553 @+01:00:00
+deleted dddd7d40 @+01:00:00
+G '' u=588481bc mod=+00:00:00 loc=+00:00:00 prev=- notes="" tags=[] cd={} search=inherit autotype=inherit
+G 'General' u=3b56d60f mod=+00:00:00 loc=+00:00:00 prev=- notes="" tags=[] cd={} search=inherit autotype=inherit
+  E 'Ordinary1' u=ea58d955 mod=+00:00:00 loc=+00:00:00 prev=- :: Password[P]=invented-password-1 URL=https://example.invalid/1 UserName=user1
+  E 'Ordinary2' u=dd42a6b8 mod=+00:00:00 loc=+00:00:00 prev=- :: Password[P]=invented-password-2 URL=https://example.invalid/2 UserName=user2
+  E 'Ordinary3' u=c826d8e7 mod=+00:00:00 loc=+00:00:00 prev=- :: Password[P]=invented-password-3 URL=https://example.invalid/3 UserName=user3
+G 'KPG' u=2b47981f mod=+00:00:00 loc=+00:00:00 prev=- notes="kpg notes v0" tags=[] cd={} search=inherit autotype=inherit
+  E 'added-A' u=5af7a9b4 mod=+01:00:00 loc=+01:00:00 prev=- :: Data=A
+  E 'added-B' u=a8430fa1 mod=+02:00:00 loc=+02:00:00 prev=- :: Data=B
+  E 'att-A' u=d2668c41 mod=+01:00:00 loc=+00:00:00 prev=- :: Data=0 bin:blob.bin=a3c0f97c
+    H 1: +00:00:00 {Data=0 bin:blob.bin=d064f5c4}
+  E 'att-both' u=3675f2b3 mod=+02:00:00 loc=+00:00:00 prev=- :: Data=0 bin:b.bin=b573a974 bin:base.bin=33ba5dd5
+    H 2: +00:00:00 {Data=0 bin:base.bin=33ba5dd5} ; +01:00:00 {Data=0 bin:a.bin=01818d27 bin:base.bin=33ba5dd5}
+  E 'both-diff' u=03bbf11b mod=+02:00:00 loc=+00:00:00 prev=- :: Data=0 FieldB=b
+    H 2: +00:00:00 {Data=0} ; +01:00:00 {Data=0 FieldA=a}
+  E 'both-samefield' u=02cae5a0 mod=+02:00:00 loc=+00:00:00 prev=- :: Data=0 Shared=B
+    H 2: +00:00:00 {Data=0 Shared=0} ; +01:00:00 {Data=0 Shared=A}
+  E 'both-tie' u=94a51558 mod=+01:00:00 loc=+00:00:00 prev=- :: Data=0 FieldB=b
+    H 1: +00:00:00 {Data=0}
+  E 'cd-both' u=2c5fba19 mod=+02:00:00 loc=+00:00:00 prev=- :: Data=0 cd={cd0=0@none; cdB=b@none}
+    H 2: +00:00:00 {Data=0 cd={cd0=0@none}} ; +01:00:00 {Data=0 cd={cd0=0@none; cdA=a@none}}
+  E 'del-A-chB-after' u=ebfd26c3 mod=+02:00:00 loc=+00:00:00 prev=- :: Data=B
+    H 1: +00:00:00 {Data=0}
+  E 'hist' u=d16cf329 mod=+02:00:00 loc=-10:00:00 prev=- :: Data=B
+    H 4: -02:00:00 {Data=h1} ; -01:00:00 {Data=h2} ; +00:00:00 {Data=0} ; +01:00:00 {Data=A}
+  E 'hist-big' u=801867e8 mod=+01:00:00 loc=-10:00:00 prev=- :: Data=0 bin:big.bin=521bdd7c
+    H 2: -01:00:00 {Data=0 bin:big.bin=27819dff} ; +00:00:00 {Data=0 bin:big.bin=a71cc4ad}
+  E 'hist-many' u=02a4b439 mod=+02:00:00 loc=-10:00:00 prev=- :: Data=B
+    H 10: -08:00:00 {Data=m2} ; -07:00:00 {Data=m3} ; -06:00:00 {Data=m4} ; -05:00:00 {Data=m5} ; -04:00:00 {Data=m6} ; -03:00:00 {Data=m7} ; -02:00:00 {Data=m8} ; -01:00:00 {Data=m9} ; +00:00:00 {Data=0} ; +01:00:00 {Data=A}
+  E 'notes-A' u=8f6648d1 mod=+01:00:00 loc=+00:00:00 prev=- :: Data=0 Notes=nA
+    H 1: +00:00:00 {Data=0 Notes=n0}
+  E 'one-A' u=558f6463 mod=+01:00:00 loc=+00:00:00 prev=- :: Data=A
+    H 1: +00:00:00 {Data=0}
+  E 'prot-A' u=3990ba40 mod=+01:00:00 loc=+00:00:00 prev=- :: Data=0 Secret[P]=sA
+    H 1: +00:00:00 {Data=0 Secret[P]=s0}
+  E 'rewound-B' u=4b4223bf mod=+00:00:00 loc=+00:00:00 prev=- :: Data=0
+    H 2: -01:00:00 {Data=B} ; +00:00:00 {Data=0}
+  E 'tag-A' u=f888f9b4 mod=+01:00:00 loc=+00:00:00 prev=- :: Data=0 tags=[tagA]
+    H 1: +00:00:00 {Data=0}
+  E 'tag-both' u=bdb3fd70 mod=+02:00:00 loc=+00:00:00 prev=- :: Data=0 tags=[t0|tagB]
+    H 2: +00:00:00 {Data=0 tags=[t0]} ; +01:00:00 {Data=0 tags=[t0|tagA]}
+G 'KPG/GNotesA' u=c2a3efc6 mod=+01:00:00 loc=+00:00:00 prev=- notes="nA" tags=[] cd={} search=inherit autotype=inherit
+G 'KPG/GNotesBoth' u=aecaed5b mod=+02:00:00 loc=+00:00:00 prev=- notes="nB" tags=[] cd={} search=inherit autotype=inherit
+G 'KPG/GTagsA' u=464340df mod=+01:00:00 loc=+00:00:00 prev=- notes="" tags=[gtA] cd={} search=inherit autotype=inherit
+G 'KPG/NewA' u=505edff5 mod=+01:00:00 loc=+01:00:00 prev=- notes="" tags=[] cd={} search=inherit autotype=inherit
+  E 'in-newA' u=1de502d8 mod=+01:00:00 loc=+01:00:00 prev=- :: Data=A
+G 'KPG/Sub' u=541961ce mod=+00:00:00 loc=+00:00:00 prev=- notes="" tags=[] cd={} search=inherit autotype=inherit
+  E 'move-A' u=8cb68ab9 mod=+00:00:00 loc=+01:00:00 prev=2b47981f :: Data=0
+  E 'move-A-edit-B' u=bd72f04b mod=+02:00:00 loc=+01:00:00 prev=2b47981f :: Data=B
+    H 1: +00:00:00 {Data=0}
+G 'Recycle Bin' u=9d30dc8a mod=+01:00:00 loc=+01:00:00 prev=- notes="" tags=[] cd={} search=False autotype=False
+  E 'bin-A' u=5fce245d mod=+00:00:00 loc=+01:00:00 prev=2b47981f :: Data=0

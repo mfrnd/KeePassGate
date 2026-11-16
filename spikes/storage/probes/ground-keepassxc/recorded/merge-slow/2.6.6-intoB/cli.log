@@ -1,0 +1,82 @@
+### 2.6.6 "merge" "--help"
+### exit 1 2026-11-15T14:49:01.9265313Z/2026-11-15T14:49:02.1006982Z
+Usage: keepassxc-cli.exe merge [options] database database2
+Merge two databases.
+
+Options:
+  -q, --quiet                    Silence password prompt and other secondary
+                                 outputs.
+  -k, --key-file <path>          Key file of the database.
+  --no-password                  Deactivate password key for the database.
+  -y, --yubikey <slot[:serial]>  Yubikey slot and optional serial used to
+                                 access the database (e.g., 1:7370001).
+  -s, --same-credentials         Use the same credentials for both database
+                                 files.
+  --key-file-from <path>         Key file of the database to merge from.
+  --no-password-from             Deactivate password key for the database to
+                                 merge from.
+  --dry-run                      Only print the changes detected by the merge
+                                 operation.
+  --yubikey-from <slot>          Yubikey slot for the second database.
+  -?, -h, --help                 Display this help.
+
+Arguments:
+  database                       Path of the database.
+  database2                      Path of the database to merge from.
+
+### 2.6.6 "merge" "-s" "--dry-run" "spikes\storage\probes\ground-keepassxc\work\merge-slow\2.6.6-intoB\B.kdbx" "spikes\storage\probes\ground-keepassxc\work\merge-slow\2.6.6-intoB\A.kdbx"
+### exit 0 2026-11-15T14:49:02.1094810Z/2026-11-15T14:49:08.5008488Z
+	Synchronizing from older source both-diff [40a9b9bf49dd7b4c993e50edf87e96b0]
+	Synchronizing from older source both-samefield [345d803091196148a1653d003aedd3fc]
+	Synchronizing from newer source one-A [9fda9d9eeb1ffb4d9d505ced7ff8bbc8]
+	Synchronizing from newer source rewound-B [8019fa559b0b8846bfb0d493938589b0]
+	Synchronizing from newer source prot-A [13410c52c8277c4287b7ec28b178e284]
+	Synchronizing from newer source att-A [e3343fb08ffeb9458ac0693d2e47fec4]
+	Synchronizing from older source att-both [2bf31776c009224989a017dd7889755a]
+	Synchronizing from newer source tag-A [e9545a751c9ef443b903dee35c0e059b]
+	Synchronizing from older source tag-both [9613e622531f4447a45ba9ba0b2c0970]
+	Synchronizing from older source cd-both [539e00453308d34683e2658ad565af93]
+	Synchronizing from newer source notes-A [43c03f1a29045441808e40bfe299ebf4]
+	Synchronizing from older source hist [159c82ef59342c4392410e3c2a634ff1]
+	Synchronizing from older source hist-many [bcc0ca314de91a4ea85b6d7b9d8e5639]
+	Synchronizing from newer source hist-big [3d6271763d9485479614ba99325de578]
+	Creating missing added-A [db27232c8bfd5c43beaf0935a02d7ea6]
+	Relocating move-A [7eee4316360ac54eb5051e70feefdf01]
+	Relocating move-A-edit-B [b3626522af8d88418f97afe154099fb3]
+	Overwriting GNotesA [9920c178ff54664fab1178e17630f392]
+	Overwriting GTagsA [f646dd4ba964ae42b17137d3b42f687a]
+	Creating missing NewA [f5cd0e4daeba71478970c657bd965ad9]
+	Creating missing in-newA [f18a3055323471458a0fc09482480cdc]
+	Creating missing Recycle Bin [60a1e71d85961747a8980836fa497efb]
+	Relocating bin-A [73aa069c1f54584db325f32aaa383a92]
+Database was not modified by merge operation.
+Enter password to unlock spikes\storage\probes\ground-keepassxc\work\merge-slow\2.6.6-intoB\B.kdbx: 
+
+### 2.6.6 "merge" "-s" "spikes\storage\probes\ground-keepassxc\work\merge-slow\2.6.6-intoB\B.kdbx" "spikes\storage\probes\ground-keepassxc\work\merge-slow\2.6.6-intoB\A.kdbx"
+### exit 0 2026-11-15T14:49:08.5190958Z/2026-11-15T14:49:18.0711255Z
+	Synchronizing from older source both-diff [40a9b9bf49dd7b4c993e50edf87e96b0]
+	Synchronizing from older source both-samefield [345d803091196148a1653d003aedd3fc]
+	Synchronizing from newer source one-A [9fda9d9eeb1ffb4d9d505ced7ff8bbc8]
+	Synchronizing from newer source rewound-B [8019fa559b0b8846bfb0d493938589b0]
+	Synchronizing from newer source prot-A [13410c52c8277c4287b7ec28b178e284]
+	Synchronizing from newer source att-A [e3343fb08ffeb9458ac0693d2e47fec4]
+	Synchronizing from older source att-both [2bf31776c009224989a017dd7889755a]
+	Synchronizing from newer source tag-A [e9545a751c9ef443b903dee35c0e059b]
+	Synchronizing from older source tag-both [9613e622531f4447a45ba9ba0b2c0970]
+	Synchronizing from older source cd-both [539e00453308d34683e2658ad565af93]
+	Synchronizing from newer source notes-A [43c03f1a29045441808e40bfe299ebf4]
+	Synchronizing from older source hist [159c82ef59342c4392410e3c2a634ff1]
+	Synchronizing from older source hist-many [bcc0ca314de91a4ea85b6d7b9d8e5639]
+	Synchronizing from newer source hist-big [3d6271763d9485479614ba99325de578]
+	Creating missing added-A [db27232c8bfd5c43beaf0935a02d7ea6]
+	Relocating move-A [7eee4316360ac54eb5051e70feefdf01]
+	Relocating move-A-edit-B [b3626522af8d88418f97afe154099fb3]
+	Overwriting GNotesA [9920c178ff54664fab1178e17630f392]
+	Overwriting GTagsA [f646dd4ba964ae42b17137d3b42f687a]
+	Creating missing NewA [f5cd0e4daeba71478970c657bd965ad9]
+	Creating missing in-newA [f18a3055323471458a0fc09482480cdc]
+	Creating missing Recycle Bin [60a1e71d85961747a8980836fa497efb]
+	Relocating bin-A [73aa069c1f54584db325f32aaa383a92]
+Successfully merged spikes\storage\probes\ground-keepassxc\work\merge-slow\2.6.6-intoB\A.kdbx into spikes\storage\probes\ground-keepassxc\work\merge-slow\2.6.6-intoB\B.kdbx.
+Enter password to unlock spikes\storage\probes\ground-keepassxc\work\merge-slow\2.6.6-intoB\B.kdbx: 
+

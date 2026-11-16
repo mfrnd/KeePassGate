@@ -1,0 +1,26 @@
+Usage: .keepassxc\2.4.2\keepassxc-cli.exe [options] command
+KeePassXC command line interface.
+
+Available commands:
+add            Add a new entry to a database.
+clip           Copy an entry's password to the clipboard.
+create         Create a new database.
+diceware       Generate a new random diceware passphrase.
+edit           Edit an entry.
+estimate       Estimate the entropy of a password.
+extract        Extract and print the content of a database.
+generate       Generate a new random password.
+locate         Find entries quickly.
+ls             List database entries.
+merge          Merge two databases.
+rm             Remove an entry from the database.
+show           Show an entry's information.
+
+
+Options:
+  --debug-info    Displays debugging information.
+  -?, -h, --help  Displays this help.
+  -v, --version   Displays version information.
+
+Arguments:
+  command         Name of the command to execute.

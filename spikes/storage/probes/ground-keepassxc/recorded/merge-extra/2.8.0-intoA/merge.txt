@@ -1,0 +1,4 @@
+	Geändert: '/Root/KPG'/'meta' [{f70a657a-aa05-d043-9c7d-428b3a95cfc5}] (Benutzerdefinierte Eigenschaften, History (lokale Änderungen zum neuen Eintrag hinzufügen))
+	Geändert: '/Root/KPG'/'meta2' [{cb59e47e-b491-0e45-b1b3-91a18fcd3b2d}] (Benutzerdefinierte Eigenschaften, History (neue Änderungen zum bestehenden Eintrag hinzufügen))
+spikes\storage\probes\ground-keepassxc\work\merge-extra\2.8.0-intoA\B.kdbx erfolgreich nach spikes\storage\probes\ground-keepassxc\work\merge-extra\2.8.0-intoA\A.kdbx zusammengeführt.
+Passwort zum Entsperren von spikes\storage\probes\ground-keepassxc\work\merge-extra\2.8.0-intoA\A.kdbx eingeben:

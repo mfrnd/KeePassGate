@@ -1,0 +1,36 @@
+Usage: .keepassxc\2.6.6\keepassxc-cli.exe [options] command
+KeePassXC command line interface.
+
+Available commands:
+add            Add a new entry to a database.
+analyze        Analyze passwords for weaknesses and problems.
+clip           Copy an entry's attribute to the clipboard.
+close          Close the currently opened database.
+db-create      Create a new database.
+db-info        Show a database's information.
+diceware       Generate a new random diceware passphrase.
+edit           Edit an entry.
+estimate       Estimate the entropy of a password.
+export         Exports the content of a database to standard output in the specified format.
+generate       Generate a new random password.
+help           Display command help.
+import         Import the contents of an XML database.
+locate         Find entries quickly.
+ls             List database entries.
+merge          Merge two databases.
+mkdir          Adds a new group to a database.
+mv             Moves an entry to a new group.
+open           Open a database.
+rm             Remove an entry from the database.
+rmdir          Removes a group from a database.
+show           Show an entry's information.
+
+
+Options:
+  --debug-info    Displays debugging information.
+  -?, -h, --help  Displays help on commandline options.
+  --help-all      Displays help including Qt specific options.
+  -v, --version   Displays version information.
+
+Arguments:
+  command         Name of the command to execute.

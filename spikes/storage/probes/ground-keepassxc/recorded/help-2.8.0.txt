@@ -1,0 +1,40 @@
+Aufruf: .keepassxc\2.8.0\keepassxc-cli.exe [Optionen] command
+KeePassXC command line interface.
+
+Verfügbare Kommandos:
+add                 Neuen Eintrag zur Datenbank hinzufügen.
+analyze             Passwörter auf Schwächen und Probleme prüfen.
+attachment-export   Anhang eines Eintrags exportieren.
+attachment-import   Einen Anhang zu einem Eintrag importieren.
+attachment-rm       Anhang eines Eintrages entfernen.
+clip                Eigenschaft eines Eintrags in die Zwischenablage kopieren.
+close               Die aktuell geöffnete Datenbank schließen.
+db-create           Neue Datenbank erstellen.
+db-edit             Eine Datenbank bearbeiten.
+db-info             Datenbankinformationen anzeigen.
+diceware            Neue zufällige Diceware-Passphrase erzeugen.
+edit                Einen Eintrag bearbeiten.
+estimate            Entropie des Passworts abschätzen.
+export              Exportiert den Inhalt einer Datenbank im angegebenen Format auf die Standardausgabe.
+generate            Neues zufälliges Passwort erzeugen.
+help                Hilfe zu diesem Befehl anzeigen.
+import              Die Inhalte einer XML-Datenbank importieren.
+ls                  Datenbankeinträge auflisten.
+merge               Zwei Datenbanken zusammenführen
+mkdir               Fügt der Datenbank eine neue Gruppe hinzu.
+mv                  Verschiebt einen Eintrag in eine neue Gruppe.
+open                Datenbank öffnen.
+rm                  Remove an entry from the database.
+rmdir               Removes a group from a database.
+search              Einträge schnell finden.
+show                Informationen eines Eintrags anzeigen.
+
+
+Optionen:
+  --debug-info    Zeigt Informationen zur Fehlerbehebung an.
+  -?, -h, --help  Zeigt Hilfe zu den Kommandozeilenoptionen an.
+  --help-all      Zeigt Hilfe einschließlich der generischen Qt-Optionen an.
+  -v, --version   Zeigt Versionsinformation an.
+
+Argumente:
+  command         Name des auszuführenden Befehls.

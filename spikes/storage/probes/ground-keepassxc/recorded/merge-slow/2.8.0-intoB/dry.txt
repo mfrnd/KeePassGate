@@ -1,0 +1,25 @@
+	Geändert: '/Root/KPG'/'both-diff' [{40a9b9bf-49dd-7b4c-993e-50edf87e96b0}] (Benutzerdefinierte Eigenschaften, History (neue Änderungen zum bestehenden Eintrag hinzufügen))
+	Geändert: '/Root/KPG'/'both-samefield' [{345d8030-9119-6148-a165-3d003aedd3fc}] (Benutzerdefinierte Eigenschaften, History (neue Änderungen zum bestehenden Eintrag hinzufügen))
+	Geändert: '/Root/KPG'/'one-A' [{9fda9d9e-eb1f-fb4d-9d50-5ced7ff8bbc8}] (Benutzerdefinierte Eigenschaften, History (lokale Änderungen zum neuen Eintrag hinzufügen))
+	Geändert: '/Root/KPG'/'rewound-B' [{8019fa55-9b0b-8846-bfb0-d493938589b0}] (Benutzerdefinierte Eigenschaften, History (lokale Änderungen zum neuen Eintrag hinzufügen))
+	Geändert: '/Root/KPG'/'prot-A' [{13410c52-c827-7c42-87b7-ec28b178e284}] (Benutzerdefinierte Eigenschaften, History (lokale Änderungen zum neuen Eintrag hinzufügen))
+	Geändert: '/Root/KPG'/'att-A' [{e3343fb0-8ffe-b945-8ac0-693d2e47fec4}] (Anhänge, History (lokale Änderungen zum neuen Eintrag hinzufügen))
+	Geändert: '/Root/KPG'/'att-both' [{2bf31776-c009-2249-89a0-17dd7889755a}] (Anhänge, History (neue Änderungen zum bestehenden Eintrag hinzufügen))
+	Geändert: '/Root/KPG'/'tag-A' [{e9545a75-1c9e-f443-b903-dee35c0e059b}] (Tags, History (lokale Änderungen zum neuen Eintrag hinzufügen))
+	Geändert: '/Root/KPG'/'tag-both' [{9613e622-531f-4447-a45b-a9ba0b2c0970}] (Tags, History (neue Änderungen zum bestehenden Eintrag hinzufügen))
+	Geändert: '/Root/KPG'/'cd-both' [{539e0045-3308-d346-83e2-658ad565af93}] (Plugin-Daten, History (neue Änderungen zum bestehenden Eintrag hinzufügen))
+	Geändert: '/Root/KPG'/'notes-A' [{43c03f1a-2904-5441-808e-40bfe299ebf4}] (Notizen, History (lokale Änderungen zum neuen Eintrag hinzufügen))
+	Geändert: '/Root/KPG'/'hist' [{159c82ef-5934-2c43-9241-0e3c2a634ff1}] (Benutzerdefinierte Eigenschaften, History (neue Änderungen zum bestehenden Eintrag hinzufügen))
+	Geändert: '/Root/KPG'/'hist-many' [{bcc0ca31-4de9-1a4e-a85b-6d7b9d8e5639}] (Benutzerdefinierte Eigenschaften, History (neue Änderungen zum bestehenden Eintrag hinzufügen))
+	Geändert: '/Root/KPG'/'hist-big' [{3d627176-3d94-8547-9614-ba99325de578}] (Anhänge, History (lokale Änderungen zum neuen Eintrag hinzufügen))
+	Hinzugefügt: '/Root/KPG'/'added-A' [{db27232c-8bfd-5c43-beaf-0935a02d7ea6}]
+	Verschoben: '/Root/KPG/Sub'/'move-A' [{7eee4316-360a-c54e-b505-1e70feefdf01}] (Vorheriger Speicherort: KPG)
+	Verschoben: '/Root/KPG/Sub'/'move-A-edit-B' [{b3626522-af8d-8841-8f97-afe154099fb3}] (Vorheriger Speicherort: KPG)
+	Geändert: '/Root/KPG/GNotesA' [{9920c178-ff54-664f-ab11-78e17630f392}] (Notizen, Änderungszeit)
+	Geändert: '/Root/KPG/GTagsA' [{f646dd4b-a964-ae42-b171-37d3b42f687a}] (Änderungszeit)
+	Hinzugefügt: '/Root/KPG/NewA' [{f5cd0e4d-aeba-7147-8970-c657bd965ad9}] (Anzahl der Einträge in der Gruppe: 1)
+	Hinzugefügt: '/Root/KPG/NewA'/'in-newA' [{f18a3055-3234-7145-8a0f-c09482480cdc}]
+	Hinzugefügt: '/Root/Recycle Bin' [{60a1e71d-8596-1747-a898-0836fa497efb}] (Anzahl der Einträge in der Gruppe: 1)
+	Verschoben: '/Root/Recycle Bin'/'bin-A' [{73aa069c-1f54-584d-b325-f32aaa383a92}] (Vorheriger Speicherort: KPG)
+Datenbank wurde beim Zusammenführen nicht verändert.
+Passwort zum Entsperren von spikes\storage\probes\ground-keepassxc\work\merge-slow\2.8.0-intoB\B.kdbx eingeben:

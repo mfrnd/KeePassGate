@@ -1,0 +1,71 @@
+### 2.7.12 "merge" "--help"
+### exit 1 2026-11-15T14:49:25.0580872Z/2026-11-15T14:49:25.0989501Z
+Fehlende(s) positionale(s) Argument(e).
+
+Aufruf: keepassxc-cli.exe [Optionen] database database2
+Zwei Datenbanken zusammenführen
+
+Optionen:
+  -q, --quiet                    Silence password prompt and other secondary
+                                 outputs.
+  -k, --key-file <path>          Key file of the database.
+  --no-password                  Deactivate password key for the database.
+  -y, --yubikey <slot[:serial]>  Yubikey slot and optional serial used to
+                                 access the database (e.g., 1:7370001).
+  -s, --same-credentials         Use the same credentials for both database
+                                 files.
+  --key-file-from <path>         Key file of the database to merge from.
+  --no-password-from             Deactivate password key for the database to
+                                 merge from.
+  -d, --dry-run                  Only print the changes detected by the merge
+                                 operation.
+  --yubikey-from <slot>          Yubikey slot for the second database.
+  -?, -h, --help                 Display this help.
+
+Argumente:
+  database                       Pfad der Datenbank.
+  database2                      Pfad der Datenbank, aus der zusammengeführt
+                                 werden soll.
+
+### 2.7.12 "merge" "-s" "--dry-run" "spikes\storage\probes\ground-keepassxc\work\merge-slow\2.7.12-intoA\A.kdbx" "spikes\storage\probes\ground-keepassxc\work\merge-slow\2.7.12-intoA\B.kdbx"
+### exit 0 2026-11-15T14:49:25.1006961Z/2026-11-15T14:49:31.9537600Z
+	Geändert: '/Root/KPG'/'both-diff' [{40a9b9bf-49dd-7b4c-993e-50edf87e96b0}] (Benutzerdefinierte Eigenschaften, History (lokale Änderungen zum neuen Eintrag hinzufügen))
+	Geändert: '/Root/KPG'/'both-samefield' [{345d8030-9119-6148-a165-3d003aedd3fc}] (Benutzerdefinierte Eigenschaften, History (lokale Änderungen zum neuen Eintrag hinzufügen))
+	Geändert: '/Root/KPG'/'rewound-B' [{8019fa55-9b0b-8846-bfb0-d493938589b0}] (Benutzerdefinierte Eigenschaften, History (neue Änderungen zum bestehenden Eintrag hinzufügen))
+	Geändert: '/Root/KPG'/'att-both' [{2bf31776-c009-2249-89a0-17dd7889755a}] (Anhänge, History (lokale Änderungen zum neuen Eintrag hinzufügen))
+	Geändert: '/Root/KPG'/'tag-both' [{9613e622-531f-4447-a45b-a9ba0b2c0970}] (Tags, History (lokale Änderungen zum neuen Eintrag hinzufügen))
+	Geändert: '/Root/KPG'/'cd-both' [{539e0045-3308-d346-83e2-658ad565af93}] (Plugin-Daten, History (lokale Änderungen zum neuen Eintrag hinzufügen))
+	Geändert: '/Root/KPG/Sub'/'move-A-edit-B' [{b3626522-af8d-8841-8f97-afe154099fb3}] (Benutzerdefinierte Eigenschaften, History (lokale Änderungen zum neuen Eintrag hinzufügen))
+	Hinzugefügt: '/Root/KPG'/'del-A-unch' [{259f2a67-2de2-0545-9e8d-c0200fca9d1c}]
+	Hinzugefügt: '/Root/KPG'/'del-A-chB-after' [{ff499f48-fa42-ef48-aec1-fe3fcca2a092}]
+	Hinzugefügt: '/Root/KPG'/'del-A-chB-before' [{c7b2e02a-f89a-b34b-bba8-cd86ee7fcc3a}]
+	Geändert: '/Root/KPG'/'hist' [{159c82ef-5934-2c43-9241-0e3c2a634ff1}] (Benutzerdefinierte Eigenschaften, History (lokale Änderungen zum neuen Eintrag hinzufügen))
+	Geändert: '/Root/KPG'/'hist-many' [{bcc0ca31-4de9-1a4e-a85b-6d7b9d8e5639}] (Benutzerdefinierte Eigenschaften, History (lokale Änderungen zum neuen Eintrag hinzufügen))
+	Geändert: '/Root/KPG'/'hist-big' [{3d627176-3d94-8547-9614-ba99325de578}] (Anhänge, History (neue Änderungen zum bestehenden Eintrag hinzufügen))
+	Hinzugefügt: '/Root/KPG'/'added-B' [{021ab7f0-a694-8b45-a93f-f7ae6084b73d}]
+	Geändert: '/Root/KPG/GNotesBoth' [{128a5370-044e-5b4b-895d-f7472dc931bc}] (Notizen, Änderungszeit)
+	Hinzugefügt: '/Root/KPG/GDelA' [{bd623a2c-eb86-f94a-b6c5-33a4d4e838c1}] (Anzahl der Einträge in der Gruppe: 0)
+Datenbank wurde beim Zusammenführen nicht verändert.
+Passwort zum Entsperren von spikes\storage\probes\ground-keepassxc\work\merge-slow\2.7.12-intoA\A.kdbx eingeben:
+
+### 2.7.12 "merge" "-s" "spikes\storage\probes\ground-keepassxc\work\merge-slow\2.7.12-intoA\A.kdbx" "spikes\storage\probes\ground-keepassxc\work\merge-slow\2.7.12-intoA\B.kdbx"
+### exit 0 2026-11-15T14:49:31.9695415Z/2026-11-15T14:49:42.6393077Z
+	Geändert: '/Root/KPG'/'both-diff' [{40a9b9bf-49dd-7b4c-993e-50edf87e96b0}] (Benutzerdefinierte Eigenschaften, History (lokale Änderungen zum neuen Eintrag hinzufügen))
+	Geändert: '/Root/KPG'/'both-samefield' [{345d8030-9119-6148-a165-3d003aedd3fc}] (Benutzerdefinierte Eigenschaften, History (lokale Änderungen zum neuen Eintrag hinzufügen))
+	Geändert: '/Root/KPG'/'rewound-B' [{8019fa55-9b0b-8846-bfb0-d493938589b0}] (Benutzerdefinierte Eigenschaften, History (neue Änderungen zum bestehenden Eintrag hinzufügen))
+	Geändert: '/Root/KPG'/'att-both' [{2bf31776-c009-2249-89a0-17dd7889755a}] (Anhänge, History (lokale Änderungen zum neuen Eintrag hinzufügen))
+	Geändert: '/Root/KPG'/'tag-both' [{9613e622-531f-4447-a45b-a9ba0b2c0970}] (Tags, History (lokale Änderungen zum neuen Eintrag hinzufügen))
+	Geändert: '/Root/KPG'/'cd-both' [{539e0045-3308-d346-83e2-658ad565af93}] (Plugin-Daten, History (lokale Änderungen zum neuen Eintrag hinzufügen))
+	Geändert: '/Root/KPG/Sub'/'move-A-edit-B' [{b3626522-af8d-8841-8f97-afe154099fb3}] (Benutzerdefinierte Eigenschaften, History (lokale Änderungen zum neuen Eintrag hinzufügen))
+	Hinzugefügt: '/Root/KPG'/'del-A-unch' [{259f2a67-2de2-0545-9e8d-c0200fca9d1c}]
+	Hinzugefügt: '/Root/KPG'/'del-A-chB-after' [{ff499f48-fa42-ef48-aec1-fe3fcca2a092}]
+	Hinzugefügt: '/Root/KPG'/'del-A-chB-before' [{c7b2e02a-f89a-b34b-bba8-cd86ee7fcc3a}]
+	Geändert: '/Root/KPG'/'hist' [{159c82ef-5934-2c43-9241-0e3c2a634ff1}] (Benutzerdefinierte Eigenschaften, History (lokale Änderungen zum neuen Eintrag hinzufügen))
+	Geändert: '/Root/KPG'/'hist-many' [{bcc0ca31-4de9-1a4e-a85b-6d7b9d8e5639}] (Benutzerdefinierte Eigenschaften, History (lokale Änderungen zum neuen Eintrag hinzufügen))
+	Geändert: '/Root/KPG'/'hist-big' [{3d627176-3d94-8547-9614-ba99325de578}] (Anhänge, History (neue Änderungen zum bestehenden Eintrag hinzufügen))
+	Hinzugefügt: '/Root/KPG'/'added-B' [{021ab7f0-a694-8b45-a93f-f7ae6084b73d}]
+	Geändert: '/Root/KPG/GNotesBoth' [{128a5370-044e-5b4b-895d-f7472dc931bc}] (Notizen, Änderungszeit)
+	Hinzugefügt: '/Root/KPG/GDelA' [{bd623a2c-eb86-f94a-b6c5-33a4d4e838c1}] (Anzahl der Einträge in der Gruppe: 0)
+spikes\storage\probes\ground-keepassxc\work\merge-slow\2.7.12-intoA\B.kdbx erfolgreich nach spikes\storage\probes\ground-keepassxc\work\merge-slow\2.7.12-intoA\A.kdbx zusammengeführt.
+Passwort zum Entsperren von spikes\storage\probes\ground-keepassxc\work\merge-slow\2.7.12-intoA\A.kdbx eingeben:
+

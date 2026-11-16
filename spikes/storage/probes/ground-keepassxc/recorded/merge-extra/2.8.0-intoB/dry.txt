@@ -1,0 +1,6 @@
+	Geändert: '/Root/KPG'/'meta2' [{cb59e47e-b491-0e45-b1b3-91a18fcd3b2d}] (Benutzerdefinierte Eigenschaften, History (lokale Änderungen zum neuen Eintrag hinzufügen))
+	Geändert: '/Root/KPG'/'excl' [{78e58dce-5c23-4f4d-a3de-d1951a6c5a6a}] (History (lokale Änderungen zum neuen Eintrag hinzufügen))
+	Geändert: '/Root/KPG/GFlags' [{0a9d837d-c04c-d944-a734-8e45c7c63be4}] (Änderungszeit)
+	Geändert: '/Root/KPG/GCustom' [{e446a2e4-f956-bc46-b7d7-b07c61626156}] (Änderungszeit)
+Datenbank wurde beim Zusammenführen nicht verändert.
+Passwort zum Entsperren von spikes\storage\probes\ground-keepassxc\work\merge-extra\2.8.0-intoB\B.kdbx eingeben:

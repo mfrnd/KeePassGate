@@ -1,0 +1,40 @@
+### 2.6.6 "merge" "--help"
+### exit 1 2026-11-15T14:57:46.9863343Z/2026-11-15T14:57:47.1576429Z
+Usage: keepassxc-cli.exe merge [options] database database2
+Merge two databases.
+
+Options:
+  -q, --quiet                    Silence password prompt and other secondary
+                                 outputs.
+  -k, --key-file <path>          Key file of the database.
+  --no-password                  Deactivate password key for the database.
+  -y, --yubikey <slot[:serial]>  Yubikey slot and optional serial used to
+                                 access the database (e.g., 1:7370001).
+  -s, --same-credentials         Use the same credentials for both database
+                                 files.
+  --key-file-from <path>         Key file of the database to merge from.
+  --no-password-from             Deactivate password key for the database to
+                                 merge from.
+  --dry-run                      Only print the changes detected by the merge
+                                 operation.
+  --yubikey-from <slot>          Yubikey slot for the second database.
+  -?, -h, --help                 Display this help.
+
+Arguments:
+  database                       Path of the database.
+  database2                      Path of the database to merge from.
+
+### 2.6.6 "merge" "-s" "--dry-run" "spikes\storage\probes\ground-keepassxc\work\merge-extra\2.6.6-intoA\A.kdbx" "spikes\storage\probes\ground-keepassxc\work\merge-extra\2.6.6-intoA\B.kdbx"
+### exit 0 2026-11-15T14:57:47.1605323Z/2026-11-15T14:57:47.3496144Z
+	Synchronizing from newer source meta [f70a657aaa05d0439c7d428b3a95cfc5]
+	Synchronizing from older source meta2 [cb59e47eb4910e45b1b391a18fcd3b2d]
+Database was not modified by merge operation.
+Enter password to unlock spikes\storage\probes\ground-keepassxc\work\merge-extra\2.6.6-intoA\A.kdbx: 
+
+### 2.6.6 "merge" "-s" "spikes\storage\probes\ground-keepassxc\work\merge-extra\2.6.6-intoA\A.kdbx" "spikes\storage\probes\ground-keepassxc\work\merge-extra\2.6.6-intoA\B.kdbx"
+### exit 0 2026-11-15T14:57:47.3694863Z/2026-11-15T14:57:47.6018097Z
+	Synchronizing from newer source meta [f70a657aaa05d0439c7d428b3a95cfc5]
+	Synchronizing from older source meta2 [cb59e47eb4910e45b1b391a18fcd3b2d]
+Successfully merged spikes\storage\probes\ground-keepassxc\work\merge-extra\2.6.6-intoA\B.kdbx into spikes\storage\probes\ground-keepassxc\work\merge-extra\2.6.6-intoA\A.kdbx.
+Enter password to unlock spikes\storage\probes\ground-keepassxc\work\merge-extra\2.6.6-intoA\A.kdbx: 
+
