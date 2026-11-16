@@ -336,9 +336,52 @@ public static class Store
         return "O:" + g.Name;
     }
 
-    // dump <path>: the bin; every group with its parent; every entry with a KPG. string or the
-    // title N, with its times, place, parent and every KPG. string; every deletion record.
-    static string Dump(string path)
+    // ADDED (decided store): history-edit <path> <uuid> <t> <what> [<field>]: an edit through KeePass's own
+    // paths, each of which puts the version before it into the entry's history and trims that
+    // history to the database's limits (CreateBackup with the database, as the entry dialog and the
+    // quick edits call it), then moves the modification time. what: "char", the first character of
+    // the value of <field> inside KPG.Data changed (the entry dialog); "field", KPG.Data deleted
+    // (the entry dialog); "title", " (edited)" appended to the title (the entry dialog, nothing the
+    // check covers); "quick", Expires: Now (a quick edit, nothing the check covers).
+    static string HistoryEdit(string path, string uuid, long t, string what, string field)
+    {
+        var db = Open(path);
+        var e = db.RootGroup.FindEntry(new PwUuid(Unhex(uuid)), true);
+        if (e == null) { db.Close(); return "absent"; }
+        e.CreateBackup(db);
+        if (what == "char")
+        {
+            var ps = e.Strings.GetSafe("KPG.Data");
+            string data = ps.ReadString();
+            string key = "\"" + field + "\":\"";
+            int i = data.IndexOf(key, StringComparison.Ordinal);
+            if (i < 0) throw new InvalidOperationException("no field " + field);
+            i += key.Length;
+            char c = data[i];
+            char n = c == 'z' || c == 'Z' || c == '9' || c == 'f' || c == 'F' ? (char)(c - 1) : (char)(c + 1);
+            e.Strings.Set("KPG.Data", new ProtectedString(ps.IsProtected, data.Substring(0, i) + n + data.Substring(i + 1)));
+        }
+        else if (what == "field") e.Strings.Remove("KPG.Data");
+        else if (what == "title") e.Strings.Set(PwDefs.TitleField, new ProtectedString(false, e.Strings.ReadSafe(PwDefs.TitleField) + " (edited)"));
+        else if (what == "quick") { e.Expires = true; e.ExpiryTime = At(t); }
+        else throw new InvalidOperationException(what);
+        e.LastModificationTime = At(t); e.LastAccessTime = At(t);
+        SaveClose(db);
+        return "ok " + e.History.UCount;
+    }
+
+    // ADDED (decided store): limits <path> <items>: the database's limit of history items per entry
+    // (KeePass's default is 10; 0 keeps no history).
+    static string Limits(string path, int items)
+    {
+        var db = Open(path); db.HistoryMaxItems = items; SaveClose(db); return "ok";
+    }
+
+    // dump <path> [h]: the bin; every group with its parent; every entry with a KPG. string or the
+    // title N, with its times, place, parent and every KPG. string; every deletion record. ADDED
+    // (decided store): with "h", after each entry a line for each of its history items, oldest
+    // first, with its modification time and every KPG. string.
+    static string Dump(string path, bool hist)
     {
         var db = Open(path);
         var sb = new StringBuilder();
@@ -355,6 +398,16 @@ public static class Store
                 + Place(db, e.ParentGroup) + "\t" + Hex(e.ParentGroup.Uuid.UuidBytes) + "\t" + B64(title) + "\t" + e.History.UCount);
             foreach (var k in names) line.Append("\t" + k + "=" + B64(e.Strings.ReadSafe(k)));
             sb.Append(line.ToString() + "\n");
+            if (!hist) continue;
+            for (uint i = 0; i < e.History.UCount; i++)
+            {
+                var h = e.History.GetAt(i);
+                var hl = new StringBuilder();
+                hl.Append("H\t" + Hex(e.Uuid.UuidBytes) + "\t" + i + "\t" + Sec(h.LastModificationTime));
+                foreach (var k in h.Strings.GetKeys().Where(k => k.StartsWith("KPG.")).OrderBy(k => k, StringComparer.Ordinal))
+                    hl.Append("\t" + k + "=" + B64(h.Strings.ReadSafe(k)));
+                sb.Append(hl.ToString() + "\n");
+            }
         }
         foreach (var o in db.DeletedObjects) sb.Append("D\t" + Hex(o.Uuid.UuidBytes) + "\t" + Sec(o.DeletionTime) + "\n");
         db.Close();
@@ -382,7 +435,9 @@ public static class Store
             case "dedupe": return Dedupe(p[1]);
             case "deg": return Deg(p[1]);
             case "dupgroup": return DupGroup(p[1], p[2], long.Parse(p[3]));
-            case "dump": return Dump(p[1]);
+            case "dump": return Dump(p[1], p.Length > 2 && p[2] == "h");
+            case "history-edit": return HistoryEdit(p[1], p[2], long.Parse(p[3]), p[4], p.Length > 5 ? p[5] : "");
+            case "limits": return Limits(p[1], int.Parse(p[2]));
             default: throw new InvalidOperationException(line);
         }
     }

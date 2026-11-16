@@ -39,6 +39,10 @@ Each family has a `RUN.md` at its root, holding for each probe:
   **Fresh output goes to `out\`**, which is not committed, so a re-run is compared with the record
   rather than written over it. A paper's path into a probe's `out\` names the file a run writes
   there; its recorded copy has the same name under `recorded\`.
+- **A second configuration of a family keeps a record of its own beside the first**: a family run
+  again under a configuration its first record did not have writes into `out\<configuration>\` and
+  is held to `recorded-<configuration>\`, and its `RUN.md` names the switch that selects it. The
+  first record stays as it was and still comes out the same, so the two can be compared.
 - **No `.kdbx` is kept**, in any directory, for any reason. A probe makes its databases every time
   it runs, in the system's temporary directory or in a `work\` beside it, which is not committed
   either, and what it recorded about a database is a dump of it, never the file.

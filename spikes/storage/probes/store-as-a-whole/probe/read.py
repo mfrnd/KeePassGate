@@ -9,6 +9,13 @@ client's key (change 5); a retirement may carry the store key (change 6); no wit
 read(dump) answers: status (ok, incomplete, nostore), the authority served, the clients admitted
 with their profiles, the profile names, the words each user node gives, the renewal answers, and
 counts of what it found.
+
+ADDED (decided store): read(dump, history=True) is the store as decided on 2026-11-16, the history
+rule of EVALUATION.md 4.3 (decision 7), over a dump that carries each entry's history items: a
+record counts in its current version when that version passes the check, or else in its newest
+history item that passes, and only an entry with no passing version is damage. A store key is
+found in any version of an authority or a retirement. Without it, the reading is that of the run
+with the repair had, and its answers are unchanged.
 """
 import json
 
@@ -36,25 +43,45 @@ def strict(text):
 
 
 class Cand:
-    __slots__ = ('u', 'kind', 'data', 'd', 'mac', 'extra', 'key', 'place')
+    # ADDED (decided store): `versions`, every version of the entry the reading may count, the
+    # current first and then the history items newest first; `by_history`, counted by a history item
+    __slots__ = ('u', 'kind', 'data', 'd', 'mac', 'extra', 'key', 'place', 'versions', 'by_history')
 
 
-def candidates(dump):
+def version(s):
+    """A version of an entry: its kind, data, check and summary strings, the data parsed."""
+    c = Cand()
+    c.kind, c.data, c.mac = s.get('KPG.Kind'), s.get('KPG.Data'), s.get('KPG.Mac')
+    c.extra = {k: v for k, v in s.items() if k.startswith('KPG.S.')}
+    try:
+        c.d = strict(c.data) if c.data is not None else None
+    except ValueError:
+        c.d = None
+    return c
+
+
+def take(c, v):
+    """The candidate reads as version v."""
+    c.kind, c.data, c.mac, c.extra, c.d = v.kind, v.data, v.mac, v.extra, v.d
+
+
+def candidates(dump, history=False):
     out = []
     for u, e in dump['entries'].items():
         s = e['strings']
-        if not any(k.startswith('KPG.') for k in s):
+        hist = [h['strings'] for h in reversed(e.get('history', []))] if history else []
+        if not any(k.startswith('KPG.') for x in [s] + hist for k in x):
             continue
-        c = Cand()
-        c.u, c.kind, c.data, c.mac = u, s.get('KPG.Kind'), s.get('KPG.Data'), s.get('KPG.Mac')
-        c.extra = {k: v for k, v in s.items() if k.startswith('KPG.S.')}
-        c.place, c.key = e['place'], None
-        try:
-            c.d = strict(c.data) if c.data is not None else None
-        except ValueError:
-            c.d = None
+        c = version(s)
+        c.u, c.place, c.key, c.by_history = u, e['place'], None, False
+        c.versions = [version(x) for x in [s] + hist]
         out.append(c)
     return out
+
+
+def store_entries(dump, history=False):
+    """ADDED (decided store): the entries the reading takes as the store's candidates."""
+    return set(c.u for c in candidates(dump, history))
 
 
 def verifies(c, key):
@@ -72,26 +99,41 @@ def heads_items(h):
     return [json.loads(v) for k, v in sorted(h.extra.items())]
 
 
-def read(dump):
-    cands = candidates(dump)
+def read(dump, history=False):
+    """ADDED (decided store): `history` is the history rule of EVALUATION.md 4.3 (decision 7): a
+    record counts in its current version when that version passes the check, or else in the
+    newest history item that passes; a store entry with no passing version anywhere is damage and
+    stops the whole database. Without it, the reading of the run with the repair: an entry under a
+    plugin identifier whose current version fails is damage. The dump needs `history` too."""
+    cands = candidates(dump, history)
     dels = dump['dels']
     named = set(dels)
     # The store keys: an authority verifies under the key its own document holds; a retirement that
-    # carries a key verifies under that key (change 6).
+    # carries a key verifies under that key (change 6). With the history rule, in any version.
     held = []
     for c in cands:
-        if c.kind in ('authority', 'retired') and c.d and 'storeKey' in c.d:
-            try:
-                k = bytes.fromhex(c.d['storeKey'])
-            except ValueError:
-                continue
-            if verifies(c, k) and k not in held:
-                held.append(k)
-    els, passed, damage = [], 0, 0
+        for v in (c.versions if history else [c]):
+            if v.kind in ('authority', 'retired') and v.d and 'storeKey' in v.d:
+                try:
+                    k = bytes.fromhex(v.d['storeKey'])
+                except ValueError:
+                    continue
+                v.u = c.u
+                if verifies(v, k) and k not in held:
+                    held.append(k)
+    els, passed, damage, by_history = [], 0, 0, 0
     for c in cands:
-        for k in held:
-            if verifies(c, k):
-                c.key = k
+        for n, v in enumerate(c.versions if history else [c]):
+            v.u = c.u
+            for k in held:
+                if verifies(v, k):
+                    c.key = k
+                    break
+            if c.key is not None:
+                if n:
+                    take(c, v)
+                    c.by_history = True
+                    by_history += 1
                 break
         if c.key is not None:
             els.append(c)
@@ -268,16 +310,20 @@ def read(dump):
         return memo[n]
 
     raw = {}
+    mine = set(c.u for c in cands)      # ADDED (decided store): with history, an entry with a KPG.
     for n in [dump['root']] + sorted(dump['groups']) + sorted(u for u, e in dump['entries'].items()
-                                                              if not any(k.startswith('KPG.') for k in e['strings'])):
+                                                              if not any(k.startswith('KPG.') for k in e['strings'])
+                                                              and u not in mine):
         raw[n] = words(n)
     serve = status == 'ok' and served is not None
     renew = {}
     for cl in sorted(clients):
         f = freg('renew:' + cl)
         renew[cl] = 'forever' if f is not None and not app(f, ALL) else 'ask'
+    counts = dict(elements=len(els), passed=passed, damage=damage, heads=len(heads),
+                  heads_live=len(heads_live), records=len(dels), keys=len(held))
+    if history:     # ADDED (decided store): records that count by a history item
+        counts['byhistory'] = by_history
     return dict(status=status, served=served, auths=auths, adm=adm if serve else {}, valid=valid,
                 names=sorted(on), words={n: (w if serve else frozenset()) for n, w in raw.items()},
-                words_raw=raw, renew=renew, refusals=refusals,
-                counts=dict(elements=len(els), passed=passed, damage=damage, heads=len(heads),
-                            heads_live=len(heads_live), records=len(dels), keys=len(held)))
+                words_raw=raw, renew=renew, refusals=refusals, counts=counts)

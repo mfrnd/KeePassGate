@@ -28,16 +28,35 @@
       b-repair             probe\cases.py repair: B.6, with the import cases (desktop measurement)
       b-random             probe\cases.py random 300 7: the bridge over random histories (C)
 
+    With -Decided, the store as decided on 2026-11-16 instead: no repair after a Synchronize, and
+    every file read under the history rule. Its parts write into `out\decided\` and are compared
+    with `recorded-decided\`; the databases go into `work\d-<part>`:
+
+      store-search         store_runs.py --decided search: the search with no repair
+      store-search-noauth  the same, with no hand deletion or edit of the authority's entry
+      store-ext            the extended model with no repair
+      b-growth             growth.py --decided: B.7, read under the history rule
+      b-merges, b-dedupe, b-deletions, b-clear, b-dupes, b-repair, b-random
+                           cases.py --decided: the same parts with no repair and the history rule
+      b-history            cases.py --decided history: each kind of store entry edited, the history
+                           rule beside the plain stop, then merged both ways
+
 .PARAMETER Parts
     Which parts to run; every part by default.
 
 .PARAMETER Parallel
     How many parts run at once.
 
+.PARAMETER Decided
+    Runs the store as decided rather than the recorded configuration with the repair.
+
 .EXAMPLE
     powershell.exe -NoProfile -ExecutionPolicy Bypass -File spikes\storage\probes\store-as-a-whole\run.ps1
+
+.EXAMPLE
+    powershell.exe -NoProfile -ExecutionPolicy Bypass -File spikes\storage\probes\store-as-a-whole\run.ps1 -Decided
 #>
-param([string[]] $Parts = @(), [int] $Parallel = 6)
+param([string[]] $Parts = @(), [int] $Parallel = 6, [switch] $Decided)
 
 $ErrorActionPreference = 'Stop'
 $family = $PSScriptRoot
@@ -68,6 +87,22 @@ $all = [ordered]@{
     'b-repair'            = @("$probe\cases.py", 'repair')
     'b-random'            = @("$probe\cases.py", 'random', '300', '7')
 }
+if ($Decided) {
+    $all = [ordered]@{
+        'store-search'        = @("$model\store_runs.py", '--decided', 'search')
+        'store-search-noauth' = @("$model\store_runs.py", '--decided', 'search-noauth')
+        'store-ext'           = @("$model\store_runs.py", '--decided', 'ext', '8000')
+        'b-growth'            = @("$probe\growth.py", '--decided')
+        'b-merges'            = @("$probe\cases.py", '--decided', 'merges')
+        'b-dedupe'            = @("$probe\cases.py", '--decided', 'dedupe')
+        'b-deletions'         = @("$probe\cases.py", '--decided', 'deletions')
+        'b-clear'             = @("$probe\cases.py", '--decided', 'clear')
+        'b-dupes'             = @("$probe\cases.py", '--decided', 'dupes')
+        'b-repair'            = @("$probe\cases.py", '--decided', 'repair')
+        'b-random'            = @("$probe\cases.py", '--decided', 'random', '300', '7')
+        'b-history'           = @("$probe\cases.py", '--decided', 'history')
+    }
+}
 # Through -File a list arrives as one string, so commas are split here.
 $Parts = @($Parts | ForEach-Object { $_ -split ',' } | ForEach-Object { $_.Trim() } | Where-Object { $_ })
 if ($Parts.Count -eq 0) { $Parts = @($all.Keys) }
@@ -75,13 +110,22 @@ foreach ($p in $Parts) { if (-not $all.Contains($p)) { throw "No part named $p."
 
 $out = Join-Path $family 'out'
 $work = Join-Path $family 'work'
+if ($Decided) { $out = Join-Path $out 'decided' }
 if ($Parts.Count -eq $all.Count) {
-    foreach ($dir in $out, $work) {
-        if (Test-Path -LiteralPath $dir) { Remove-Item -LiteralPath $dir -Recurse -Force }
+    if ($Decided) {
+        # the decided parts' own output and databases only
+        if (Test-Path -LiteralPath $out) { Remove-Item -LiteralPath $out -Recurse -Force }
+        if (Test-Path -LiteralPath $work) {
+            Get-ChildItem -LiteralPath $work -Directory -Filter 'd-*' | Remove-Item -Recurse -Force
+        }
+    } else {
+        foreach ($dir in $out, $work) {
+            if (Test-Path -LiteralPath $dir) { Remove-Item -LiteralPath $dir -Recurse -Force }
+        }
     }
 }
 foreach ($dir in $out, $work) {
-    if (-not (Test-Path -LiteralPath $dir)) { [void](New-Item -ItemType Directory -Path $dir) }
+    if (-not (Test-Path -LiteralPath $dir)) { [void](New-Item -ItemType Directory -Path $dir -Force) }
 }
 # A part named alone replaces only its own output; each part's databases are in a directory of
 # its own under work\, which the part empties itself.
@@ -118,4 +162,8 @@ while ($queue.Count -gt 0 -or $running.Count -gt 0) {
     }
 }
 $times | Add-Content -Encoding UTF8 (Join-Path $out 'times.txt')
-& uv run --no-project python -I -X utf8 (Join-Path $family 'compare.py')
+if ($Decided) {
+    & uv run --no-project python -I -X utf8 (Join-Path $family 'compare.py') --decided
+} else {
+    & uv run --no-project python -I -X utf8 (Join-Path $family 'compare.py')
+}

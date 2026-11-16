@@ -7,6 +7,13 @@ every figure of the table at the end. The store is configured
 from `EVALUATION.md` as it stood on 2026-11-16 at 12:50 UTC, SHA-256
 `39f58d3095acce27f3850f16eb6c825854a5bd0700d10e582a742a10aebffd47`.
 
+**A second configuration, the store as decided**, was added the same day for the report
+`papers\ground\measured-decided-store.md`: no repair after a Synchronize, and every file read under
+the history rule. `run.ps1 -Decided` selects it, its output goes to `out\decided\` and its record is
+`recorded-decided\`. The section "The store as decided" at the end holds what it runs, its figures
+and what was added for it. With the switch off, every part prints what it printed before: six
+parts were run again after the addition and came out the same as `recorded\`.
+
 | Path | What it is |
 | --- | --- |
 | `model\crdt_model.py` | a copy of `spikes\storage\model\crdt_model.py` with the switches of section "What was added" below; every new switch at its default is the design's model |
@@ -22,6 +29,7 @@ from `EVALUATION.md` as it stood on 2026-11-16 at 12:50 UTC, SHA-256
 | `probe\growth.py` | the head and the store as the plugin writes, and the read's time |
 | `run.ps1`, `compare.py` | the command, and the comparison of a fresh `out\` with `recorded\` |
 | `recorded\` | the output of the run the report quotes |
+| `recorded-decided\` | the output of the run of the store as decided, which `measured-decided-store.md` quotes |
 
 **Everything ran twice**, on 2026-11-16, on a machine other measurements were sharing. Every
 output of the second run is the same as the record line for line, apart from what `compare.py`
@@ -325,3 +333,164 @@ Reported, not fixed.
 - A clock behind on real files beyond a deletion record dated at the start of the times.
 - The limit of 64 as a switch: the design's model holds none, so dropping it is what the model
   already runs; the formal critique's CE5 is where the limit was measured.
+
+## The store as decided
+
+Added on 2026-11-16 for `papers\ground\measured-decided-store.md`, after two decisions changed what
+the store is: no repair after a Synchronize (the plugin puts nothing back after a merge), and the
+history rule (a record counts in its current version when that version passes its check, or else in
+the newest item of the entry's history that passes; only an entry of the store with no passing
+version, or a missing summary entry, stops the whole database). Everything else is the store of the
+first record: no witness, no mark, several gates, a revocation naming the client's key, the store
+key carried over a Recreate and kept in the retirement after a Delete, no memory on the gate's
+machine.
+
+### What it runs
+
+`run.ps1 -Decided` runs these parts, each into `out\decided\<part>.txt`, held to
+`recorded-decided\` by `compare.py --decided`:
+
+| Part | What it is |
+| --- | --- |
+| `store-search`, `store-search-noauth`, `store-ext` | the model's searches of the first record, the repair switched off. The model holds no history of an entry, so a hand edit is still damage there; the history rule is run on files |
+| `b-merges`, `b-dedupe`, `b-deletions`, `b-clear`, `b-dupes`, `b-random` | the same cells as the first record, with no repair after any Synchronize and every file read under the history rule |
+| `b-repair` | the same histories, in the modes with no repair only: the Synchronize at gate 0 with both files written, and each File, Import method with no repair |
+| `b-growth` | B.7 again, read under the history rule |
+| `b-history` | new: each kind of store entry edited at copy 0 by an operation of KeePass's own, then copy 0 read, each copy merged with the other by Synchronize and by KeePassXC 2.8.0, and copy 0 after the gate writes again; each read under the history rule and under the plain stop of the first record |
+
+**`b-history` in full.** The base is `revoke 0 c0; recreate 0; pair 0; padd 0 pg; prem 0 pf; rule 0
+N none; renew 0 c1 forever; Synchronize 1 from 0`, so that both copies hold an authority, a
+retirement, an admission record (c1), a revocation (c0), a profile addition (pg), a removal (pf), a
+rule version (N, nothing), a renewal answer (c1, refused forever) and a summary entry. A tenth kind,
+the retirement that holds the store key, has `delauth 0` before the Synchronize; no authority is
+served there, so each of its reads is followed by Create at that copy and read again. The
+operations, each made by KeePassLib in copy 0 as KeePass's own commands make them
+(`CreateBackup` with the database, which trims the history to the database's limits):
+
+| Operation | What `Store.cs` does |
+| --- | --- |
+| `dialog` | the entry dialog: the first character of the record's subject in `KPG.Data` changed |
+| `field` | the entry dialog: `KPG.Data` deleted |
+| `quick` | a quick edit, Expires: Now, which the check does not cover |
+| `move`, `bin`, `delete` | moved to the group General; deleted to the recycle bin; deleted for good with a deletion record |
+| `edits10`, `edits11` | the dialog edit and then 9 or 10 dialog edits of the title: 10 or 11 edits under KeePass's default limit of 10 history items |
+| `quick10` | the dialog edit and then 10 quick edits |
+| `off` | the database's limit of history items set to 0 in both copies, then the dialog edit |
+
+Ten kinds by ten operations by six columns, less the gate's own write for the tenth kind, are 590
+cells.
+
+**Left out, to keep both runs within the time set for them**: `b-slow`, whose 32 cells came out the
+same as the fast cells in the first record and whose question, the seconds of two loads, touches
+nothing this store keeps; `store-ablations`, `store-scenarios` and `store-section6`, whose records
+already hold a column with the repair undone; `store-repair-closes`, which is about the repair; and
+`design-full`, which checks the copy of the design's model and is unchanged.
+
+### The command
+
+From the branch root, in Windows PowerShell 5.1:
+
+```powershell
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File spikes\storage\probes\store-as-a-whole\run.ps1 -Decided -Parallel 8
+uv run --no-project python -I -X utf8 spikes\storage\probes\store-as-a-whole\compare.py --decided
+```
+
+A run of every part empties `out\decided\` and the databases of this configuration, `work\d-*`,
+and nothing of the first record's. Both runs here were made under an ordinary user token, eight
+parts at once.
+
+**How long**, in seconds:
+
+| Part | Run 1 | Run 2 |
+| --- | --- | --- |
+| `store-search` | 456 | 426 |
+| `store-search-noauth` | 401 | 381 |
+| `store-ext` | 136 | 131 |
+| `b-merges` | 91 | 96 |
+| `b-random` | 95 | 100 |
+| `b-clear` | 90 | 95 |
+| `b-history` | 75 | 95 |
+| `b-deletions` | 60 | 65 |
+| `b-repair`, `b-dupes`, `b-growth`, `b-dedupe` | 20, 10, 10, 5 | 20, 10, 5, 5 |
+
+**Compared.** Every output of run 2 is the same as `recorded-decided\` line for line, with the masks
+of "Running it": 12 files.
+
+| Figure | Recorded | Second run | Reproduced |
+| --- | --- | --- | --- |
+| `store-search`: `safety` per cell A to K, two files; three files | 0, 3, 2, 1, 1, 6, 2, 2, 2, 2, 2, 2; 0, 2, 2, 0, 0, 0, 0, 1, 1, 1, 0, 2 | the same | yes |
+| `store-search`: accepted rule lost before a save, two files; three files | 86 to 106; 60 to 89, each cell as in `recorded\` | the same | yes |
+| `store-search`: exhaustive histories; failures | 11,110, 47,988, 40,494, 27,930; none | the same | yes |
+| `store-search-noauth`: `safety` | 1 in D and E over two files, 1 in H over three, as in `recorded\` | the same | yes |
+| `store-ext`: every line | as in `recorded\` but the first line | the same | yes |
+| `b-merges`: as decided, narrower, wider | 221, 3, 10 | the same | yes |
+| `b-merges`: N under its own rule in every cell of a user node | gives nothing, 90 cells | the same | yes |
+| `b-deletions`: as decided, narrower, refusing, wider | 126, 12, 6, 0 of 144 | the same | yes |
+| `b-clear`: as decided, narrower, wider | 210, 0, 0 of 210 | the same | yes |
+| `b-dedupe`, `b-dupes` | every outcome as in `recorded\` | the same | yes |
+| `b-repair`: the 96 cells of the modes with no repair | as in `recorded\`, cell for cell; R1 and R8 wider at gate 0 and in file 1 | the same | yes |
+| `b-random`: steps; `safety`; files at the end against every decision | 1,419; 0; 171, 406, 93, 54 | the same | yes |
+| `b-growth`: every size | as in `recorded\` | the same | yes |
+| `b-history`: under the history rule, as decided, narrower, refusing, wider | 390, 28, 172, 0 of 590 | the same | yes |
+| `b-history`: the 500 reads before any write, under the plain stop | as decided 214, narrower 8, refusing 278, wider 0 | the same | yes |
+
+### What was added for it
+
+Each line added or changed carries "ADDED (decided store)". With the switch off, every part prints
+what it printed before: `b-dedupe`, `b-dupes`, `b-repair`, `b-merges`, `b-growth` and
+`store-scenarios` were run again after the addition and came out the same as `recorded\` line for
+line, with the masks of "Running it".
+
+- `Store.cs`: `dump <path> h`, the dump with a line for each history item of each entry;
+  `history-edit`, the four edits of the table above; `limits`, the database's limit of history
+  items.
+- `kp.py`: `dump(path, history=True)` reads those lines.
+- `read.py`: `read(dump, history=True)`, the history rule: an entry is the store's when any of its
+  versions carries a `KPG.` string; a store key is found in any version of an authority or a
+  retirement; an entry counts in its current version when that version passes, or else in its
+  newest history item that passes; only an entry with no passing version is damage. With `history`
+  off it reads as before and counts nothing new.
+- `bridge.py`: `decide()`: no repair unless a mode asks for it, dumps with history, every read under
+  the history rule, and the model adopting an entry as intact when any of its versions passes. Its
+  databases go to `work\d-<tag>`.
+- `cases.py`: `--decided`, which calls `decide()`; the part `history`; and in `repair`, with the
+  switch on, only the modes with no repair.
+- `growth.py`: `--decided`. `store_runs.py`: `--decided` for `search`, `search-noauth` and `ext`,
+  with the repair off.
+- `run.ps1`: `-Decided`. `compare.py`: `--decided`.
+
+### Defects and limits of this configuration
+
+Reported, not fixed.
+
+- **The model holds no history of an entry.** In the model's searches an edit is damage, as in the
+  first record; the history rule is run on files only (`b-history`, `b-random`).
+- **The plugin writes nothing again for a record that counts by its history**, the narrowest reading
+  of a point `EVALUATION.md` section 8 leaves open: the next write of the plugin leaves the edited
+  entry as it is, and the summary entry it writes restates what is in force as before.
+- **A store entry is recognized as damaged only under a key the file holds.** An authority, or a
+  retirement that holds the store key, with no passing version leaves no key in the file, so the
+  read answers `nostore` and the model `incomplete`, as in the first record's defect of the same
+  kind; both serve nothing.
+- **`read.py` lists a renewal answer only for a client the file still names** (the first record's
+  defect): 93 of the 121 read differences of `b-history` are this, each in a copy where c1's record
+  is gone or names a retired authority; the other 28 are `nostore` against `incomplete`.
+- **KeePassLib stands for KeePass's window**: the entry dialog and the quick edit are `CreateBackup`
+  with the database, then the change, then the modification time, as `edited-refusals` stands for
+  them.
+- **The first run after `Store.cs` changes compiles it in every part at once**, and parts that
+  start together can fail to write the same `bin\Store-<hash>.dll` (CS0016, the file in use). Such a
+  part ends at once with that error in its `.err`; running it again uses the file the others wrote.
+  It happened once here: after the record, local names of the probe were renamed for the spelling
+  check, and of the five parts run again to confirm the record, three failed so; run again, all
+  five printed `recorded-decided\` line for line.
+- **Only Synchronize and KeePassXC 2.8.0** merge the edited copy in `b-history`; the other methods
+  of KeePassLib and releases of KeePassXC were run on edited records in `edited-refusals`, on a
+  store without summary entries.
+
+### Not run in this configuration
+
+- Seal again after a stop of `b-history`; an edit in both copies; an edit by pykeepass or by a phone
+  program; Database Maintenance's history page; a history item edited by script. Each was run on a
+  store without summary entries in `edited-refusals`.
+- Everything the first record does not run.

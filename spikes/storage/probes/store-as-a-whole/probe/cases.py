@@ -10,6 +10,11 @@ file the merge wrote is read by read.py and held to every decision any gate made
 decided, narrower, refuses (and for what scope), or WIDER. Beside it, C: the steps at which the
 file and the model's prediction disagreed, entry by entry (`entries`) and in what the read rule
 answers (`read`).
+
+ADDED (decided store): `cases.py --decided PART` runs a part under the store as decided on
+2026-11-16 (bridge.decide: no repair, the history rule in every read), and adds the part `history`:
+each kind of store entry edited by an operation of KeePass's own, read under the history rule and
+under the plain stop, then merged with an unedited copy both ways.
 """
 import os
 import random
@@ -153,8 +158,8 @@ def part_merges(host, speed='fast', only_xc=False):
 
 
 def tree_view(b, i):
-    dump = b.h.dump(b.files[i])
-    r = RD.read(dump)
+    dump = b.dump(i)
+    r = RD.read(dump, history=B.DECIDED)
     out = []
     nid = b.ids['N']
     for u, e in sorted(dump['entries'].items()):
@@ -414,6 +419,10 @@ def part_repair(host, extra=()):
     for m in B.METHODS:
         modes.append(('import with %s, no repair' % m, dict(repair=True, both='after'), (m, False)))
         modes.append(('import with %s, the repair at the next save' % m, dict(repair=True, both='after'), (m, True)))
+    if B.DECIDED:   # ADDED (decided store): no repair runs anywhere; the modes it decides are left out
+        print('   The store as decided: no repair. Only the modes without it are run.')
+        modes = [(m, dict(kw, repair=False), imp) for m, kw, imp in modes
+                 if not kw['repair'] or (imp is not None and not imp[1])]
     for rid, what, ops0 in list(REPAIR) + list(extra):
         print('## %s: %s' % (rid, what))
         print('   history: ' + ' ; '.join(' '.join(map(str, op)) for op in ops0))
@@ -514,7 +523,165 @@ def part_random(host, count, seed):
         print(x)
 
 
+# ADDED (decided store): the history rule with the summary entries. Each kind of store entry in
+# turn is edited at copy 0 by an operation of KeePass's own, as KeePassLib does them; copy 1 is the
+# same database unedited. Then: copy 0 read as it is; each copy merged with the other, by
+# Synchronize and by KeePassXC 2.8.0, both ways; and copy 0 after the gate writes again. Each is
+# read under the history rule and, beside it, under the plain stop the run with the repair had.
+HIST_BASE = [('revoke', 0, 'c0'), ('recreate', 0), ('pair', 0), ('padd', 0, 'pg'), ('prem', 0, 'pf'),
+             ('rule', 0, 'N', 'none'), ('renew', 0, 'c1', 'forever'), ('merge', 'kp_sync', 1, 0)]
+# The retirement that holds the store key: the authority deleted with none after it (change 6).
+HIST_BASE_KEY = HIST_BASE[:-1] + [('delauth', 0), ('merge', 'kp_sync', 1, 0)]
+# kind, which entry, the field of KPG.Data whose first character the dialog edit changes, base
+HIST_KINDS = [
+    ('the authority', ('auth',), 'id', HIST_BASE),
+    ('a retirement (from Recreate)', ('ref', 'retired'), 'authority', HIST_BASE),
+    ('an admission record (c1)', ('rec',), 'client', HIST_BASE),
+    ('a revocation (c0)', ('ref', 'revoked'), 'client', HIST_BASE),
+    ('a profile addition (pg)', ('padd',), 'name', HIST_BASE),
+    ('a profile removal (pf)', ('prem',), 'name', HIST_BASE),
+    ('a rule version (N, nothing)', ('ver', 'rule:N', 'new'), 'object', HIST_BASE),
+    ('a renewal answer (c1, forever)', ('ver', 'renew:c1', 'new'), 'object', HIST_BASE),
+    ('the summary entry', ('head', 'new'), 'height', HIST_BASE),
+    ('the retirement that holds the store key', ('carry',), 'authority', HIST_BASE_KEY),
+]
+# operation, what it does: a list of history-edit kinds, or a tree operation; 'off' first sets no history
+HIST_OPS = [
+    ('dialog', 'a character of the payload changed in the entry dialog', ['char']),
+    ('field', 'the payload string deleted in the entry dialog', ['field']),
+    ('quick', 'a quick edit, Expires: Now (nothing the check covers)', ['quick']),
+    ('move', 'moved to the group General', 'move'),
+    ('bin', 'deleted to the recycle bin', 'bin'),
+    ('delete', 'deleted for good, with a deletion record', 'delrec'),
+    ('edits10', 'the dialog edit and 9 more dialog edits (of the title): 10 edits', ['char'] + ['title'] * 9),
+    ('edits11', 'the dialog edit and 10 more dialog edits (of the title): 11 edits', ['char'] + ['title'] * 10),
+    ('quick10', 'the dialog edit and 10 quick edits: 11 edits', ['char'] + ['quick'] * 10),
+    ('off', 'history kept by neither copy (0 items), then the dialog edit', ['char']),
+]
+HIST_MERGES = [('Synchronize into 1', 1, 0, 'Synchronize'), ('Synchronize into 0', 0, 1, 'Synchronize'),
+               ('KeePassXC 2.8.0 into 1', 1, 0, '2.8.0'), ('KeePassXC 2.8.0 into 0', 0, 1, '2.8.0')]
+
+
+def hist_pick(b, sel):
+    if sel == ('carry',):
+        W = b.W
+        c = sorted(eid for u, (eid, mt, ok) in W.reps[0].entries.items()
+                   if u == eid and W.EL[eid].kind == 'ref' and W.EL[eid].carry)
+        return c[-1] if c else None
+    return b.W.pick(b.W.reps[0], sel)
+
+
+def hist_cell(b, i, key_carrier):
+    """The history rule's outcome, the plain stop's, and the entry counts; with the retirement that
+    holds the key, then Create at that file and the outcome after it."""
+    o, r = B.outcome(b, i, history=True)
+    p, _ = B.outcome(b, i, history=False)
+    txt = '%s [store %s, by history %d] | plain stop: %s' % (o, r['status'], r['counts']['byhistory'], p)
+    cat = o.split(':')[0]
+    if key_carrier:
+        b.sync_file(i)
+        if b.step(90 + i, ('create', i)):
+            o2, r2 = B.outcome(b, i, history=True)
+            txt += ' || then Create at %d: %s [keys %d]' % (i, o2, r2['counts']['keys'])
+            cat = o2.split(':')[0]
+        else:
+            txt += ' || then Create at %d: does not apply' % i
+            cat = 'Create does not apply'
+    return txt, cat
+
+
+def part_history(host):
+    print('== B of the decided store: the history rule with the summary entries. Each kind of store')
+    print('   entry edited at copy 0 by one operation; copy 1 the same database unedited. Columns: copy')
+    print('   0 as it is; each merge with the other copy; copy 0 after the gate writes again. Each read')
+    print('   under the history rule, and beside it under the plain stop. With the retirement that')
+    print('   holds the store key no authority is served, so each read is followed by Create there.')
+    print('   History limits: KeePass\'s defaults (10 items, 6 MiB) unless the operation names 0.')
+    print('   base: ' + ' ; '.join(' '.join(map(str, op)) for op in HIST_BASE))
+    print('   base of the last kind: ' + ' ; '.join(' '.join(map(str, op)) for op in HIST_BASE_KEY))
+    tally, per_kind = {}, {}
+    for kind_name, sel, field, base in HIST_KINDS:
+        key_carrier = sel == ('carry',)
+        print('## %s' % kind_name)
+        for oid, what, edits in HIST_OPS:
+            b = B.Bridge(host, 2, 'hst')
+            for k, op in enumerate(base):
+                if not b.step(k, op):
+                    b.log.append('%2d %s (does not apply)' % (k, ' '.join(map(str, op))))
+            f = b.files
+            if oid == 'off':
+                for x in f:
+                    host.run('limits', x, 0)
+            eid = hist_pick(b, sel)
+            u = b.uid(eid)
+            t = b.W.t + 10
+            if edits == 'move':
+                out = host.run('move', f[0], u, 'General', t)
+            elif edits == 'bin':
+                out = host.run('bin', f[0], u, t)
+            elif edits == 'delrec':
+                out = host.run('delrec', f[0], u, t)
+            else:
+                for e in edits:
+                    out = host.run('history-edit', f[0], u, t, e, field)
+                    t += 60
+            b.W.t = t + 10
+            b.sync_file(0)
+            e0, e1 = f[0] + '.edited', f[1] + '.edited'
+            kp.copy(f[0], e0)
+            kp.copy(f[1], e1)
+            W0 = b.W.clone()
+            enc0 = (dict(b.enc.uuid), dict(b.enc.eid), dict(b.macs))
+
+            def restore():
+                kp.copy(e0, f[0])
+                kp.copy(e1, f[1])
+                b.W = W0.clone()
+                b.enc.W = b.W
+                b.enc.uuid, b.enc.eid, b.macs = dict(enc0[0]), dict(enc0[1]), dict(enc0[2])
+
+            hist = {x: len(e.get('history', [])) for x, e in host.dump(f[0], history=True)['entries'].items()}
+            rows = []
+            txt, cat = hist_cell(b, 0, key_carrier)
+            rows.append(('copy 0 as it is', txt, cat))
+            for label, d, s, prog in HIST_MERGES:
+                restore()
+                b.step(20, merge_op(prog, d, s))
+                txt, cat = hist_cell(b, d, key_carrier)
+                rows.append((label, txt, cat))
+            restore()
+            b.sync_file(0)
+            if key_carrier:
+                rows.append(('copy 0, the gate writes again', '(the Create above)', None))
+            else:
+                ok = b.step(30, ('padd', 0, 'ph'))
+                o, r = B.outcome(b, 0, history=True)
+                rows.append(('copy 0, the gate writes again',
+                             '%s%s [store %s, by history %d]' % ('' if ok else 'cannot write; ', o, r['status'],
+                                                                 r['counts']['byhistory']),
+                             o.split(':')[0]))
+            print('   %s: %s (%s; history items of the entry at copy 0: %s)' % (
+                oid, what, out, hist.get(u, 'gone')))
+            for label, txt, cat in rows:
+                print('      %-30s %s' % (label, txt))
+                if cat:
+                    tally[cat] = tally.get(cat, 0) + 1
+                    per_kind.setdefault(kind_name, {})[cat] = per_kind.get(kind_name, {}).get(cat, 0) + 1
+            for x in c_lines(b, '      '):
+                print(x)
+            if b.by_history:
+                print('      the model read %d entries as damaged that the file counts by history' % b.by_history)
+    print('== tally of every cell under the history rule (after Create for the last kind): '
+          + ', '.join('%s %d' % kv for kv in sorted(tally.items())))
+    for kind_name, c in per_kind.items():
+        print('   %-42s %s' % (kind_name, ', '.join('%s %d' % kv for kv in sorted(c.items()))))
+
+
 def main():
+    # ADDED (decided store): --decided runs a part under the store as decided (bridge.decide)
+    if sys.argv[1] == '--decided':
+        B.decide()
+        del sys.argv[1]
     part = sys.argv[1]
     sys.stdout.reconfigure(line_buffering=True)
     host = kp.Host()
@@ -536,6 +703,8 @@ def main():
             part_dupes(host)
         elif part == 'random':
             part_random(host, int(sys.argv[2]), int(sys.argv[3]))
+        elif part == 'history' and B.DECIDED:
+            part_history(host)
         else:
             raise SystemExit('unknown part ' + part)
     finally:

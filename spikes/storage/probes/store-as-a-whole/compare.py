@@ -9,6 +9,8 @@ stream KeePassLib draws at random at each save, so the compressed file varies by
 the time KeePassLib's Delete
 Duplicate Entries gives the records it writes, which is the moment it runs. `design-full.txt` is held to the design's own record,
 spikes/storage/model/recorded/results-full.txt, but for its last line. Exits 0 when nothing differs.
+
+ADDED (decided store): with --decided, `out/decided` is held to `recorded-decided` the same way.
 """
 import os
 import re
@@ -35,6 +37,9 @@ def lines(path):
 
 
 def main():
+    global OUT, REC
+    if sys.argv[1:] == ['--decided']:
+        OUT, REC = os.path.join(OUT, 'decided'), os.path.join(FAMILY, 'recorded-decided')
     bad = 0
     for name in sorted(os.listdir(REC)):
         if not name.endswith('.txt') or name == 'times.txt':

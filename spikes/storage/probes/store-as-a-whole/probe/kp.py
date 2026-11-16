@@ -67,11 +67,21 @@ class Host:
         except Exception:
             self.p.kill()
 
-    def dump(self, path):
-        """The file as Store.cs dumps it: {bin, root, groups, entries, dels}."""
+    def dump(self, path, history=False):
+        """The file as Store.cs dumps it: {bin, root, groups, entries, dels}. ADDED (decided store):
+        with `history`, each entry also carries `history`, its history items oldest first, each
+        {mt, strings} with every KPG. string."""
         d = {'entries': {}, 'dels': {}, 'groups': {}, 'bin': None, 'root': None}
-        for line in self.run('dump', path).split('\n'):
+        args = ('dump', path, 'h') if history else ('dump', path)
+        for line in self.run(*args).split('\n'):
             p = line.split('\t')
+            if p[0] == 'H':
+                strings = {}
+                for kv in p[4:]:
+                    k, v = kv.split('=', 1)
+                    strings[k] = unb64(v)
+                d['entries'][p[1]].setdefault('history', []).append(dict(mt=int(p[3]), strings=strings))
+                continue
             if p[0] == 'R':
                 d['bin'], d['root'] = (None if p[1] == '-' else p[1]), p[2]
             elif p[0] == 'G':

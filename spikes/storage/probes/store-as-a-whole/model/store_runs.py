@@ -341,6 +341,16 @@ def part_section6(n):
 
 
 def main():
+    # ADDED (decided store): --decided runs search, search-noauth or ext on the store as decided on
+    # 2026-11-16, which has no repair (decision 14). The model holds no entry history, so an edit is
+    # still read as damage there; the history rule is run on real files (cases.py history).
+    global STORE
+    if sys.argv[1] == '--decided':
+        del sys.argv[1]
+        if sys.argv[1] not in ('search', 'search-noauth', 'ext'):
+            raise SystemExit('--decided runs search, search-noauth and ext only')
+        STORE = M.STORE.but(repair=False)
+        print('== the store as decided: no repair after a Synchronize')
     part = sys.argv[1]
     n = int(sys.argv[2]) if len(sys.argv) > 2 else 20000
     sys.stdout.reconfigure(line_buffering=True)

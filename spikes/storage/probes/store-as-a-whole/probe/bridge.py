@@ -15,6 +15,12 @@ After a Synchronize at a gate, the repair of change 7 runs on what the file hold
 before the merge against the merged file, and what takes access away again is written into the file
 before it is saved (and, with both=True, into the other file of the Synchronize too, as KeePass
 writes the merged database to both; that order is read, not run).
+
+ADDED (decided store): `decide()` switches the module to the store as decided on 2026-11-16: no
+repair after a Synchronize (decision 14), and every read through the history rule (decision 7):
+read.py with `history`, over dumps that carry each entry's history items; the model adopts an entry
+as intact when any of its versions passes the check, which is what the rule counts. Its databases go
+to `work\\d-<tag>`, so that both configurations can run at once.
 """
 import os
 import sys
@@ -35,6 +41,19 @@ TREE = 'ab112233445566778899aabbccddeeff'
 FLAGS = M.STORE.but(pending=False, repair=False)
 METHODS = ('Synchronize', 'OverwriteIfNewer', 'OverwriteExisting', 'KeepExisting', 'CreateNewUuids')
 RELEASES = ('2.4.2', '2.6.6', '2.7.12', '2.8.0')
+DECIDED = False     # ADDED (decided store): set by decide()
+
+
+def decide():
+    """ADDED (decided store): no repair, and the history rule in every read."""
+    global DECIDED
+    DECIDED = True
+
+
+def versions(e):
+    """ADDED (decided store): an entry's versions as the reading takes them: the current, then,
+    with the history rule, its history items newest first."""
+    return [e['strings']] + ([h['strings'] for h in reversed(e.get('history', []))] if DECIDED else [])
 
 
 def node_ids():
@@ -44,13 +63,16 @@ def node_ids():
 
 
 class Bridge:
-    def __init__(self, host, nrep, tag, speed='fast', repair=True, both=False, flags=FLAGS):
+    def __init__(self, host, nrep, tag, speed='fast', repair=None, both=False, flags=FLAGS):
+        if repair is None:          # ADDED (decided store): the repair unless decided
+            repair = not DECIDED
         self.h, self.n, self.speed, self.repair, self.both = host, nrep, speed, repair, both
         self.W = X.LWorld(nrep, flags, binall=True)
         self.ids = node_ids()
         self.enc = S.Encoder(self.W, {'N': self.ids['N'], 'root': self.ids['root']})
         self.macs = {}
-        self.dir = os.path.join(WORK, tag)
+        self.by_history = 0     # ADDED (decided store): an edit the model reads as damage, the file by history
+        self.dir = os.path.join(WORK, ('d-' if DECIDED else '') + tag)
         os.makedirs(self.dir, exist_ok=True)
         for x in os.listdir(self.dir):
             os.remove(os.path.join(self.dir, x))
@@ -92,20 +114,34 @@ class Bridge:
         self.h.run('patch', self.files[i], p)
 
     # ------------------------------------------------------------------ reading
+    def dump(self, i):
+        """ADDED (decided store): the file's dump, with history items when decided."""
+        return self.h.dump(self.files[i], history=DECIDED)
+
+    def read(self, i, history=None):
+        """ADDED (decided store): read.py's answer for file i, by the configuration's rule unless
+        `history` names a rule."""
+        h = DECIDED if history is None else history
+        return RD.read(self.h.dump(self.files[i], history=h), history=h)
+
     def real(self, i):
-        d = self.h.dump(self.files[i])
+        d = self.dump(i)
         ents, loc, dels = {}, {}, {}
         for u, e in d['entries'].items():
-            s = e['strings']
-            if 'KPG.Kind' not in s:
+            vs = versions(e)        # ADDED (decided store): the current alone unless decided
+            if not any('KPG.Kind' in x for x in vs):
                 continue
             mu = self.enc.eid.get(u)
-            eid = mu if mu is not None else self.macs.get(s.get('KPG.Mac'))
+            eid = mu
+            for x in vs:
+                if eid is None:
+                    eid = self.macs.get(x.get('KPG.Mac'))
             if eid is None:
                 continue        # an entry the bridge never wrote, which no step here makes
             key = S.keybytes(self.W.EL[eid].key)
-            intact = S.mac(key, s.get('KPG.Kind', ''), s.get('KPG.Data', ''),
-                           {k: v for k, v in s.items() if k.startswith('KPG.S.')}) == s.get('KPG.Mac')
+            intact = any(S.mac(key, x.get('KPG.Kind', ''), x.get('KPG.Data', ''),
+                               {k: v for k, v in x.items() if k.startswith('KPG.S.')}) == x.get('KPG.Mac')
+                         for x in vs)
             if mu is None:
                 mu = 'X:' + u   # an entry under an identifier the gate never gave it
             ents[mu] = [eid, e['mt'], intact]
@@ -120,6 +156,11 @@ class Bridge:
         ents, loc, dels, d = self.real(i)
         pe = {u: tuple(v) for u, v in pred.entries.items() if not u.startswith('X')}
         re_ = {u: tuple(v) for u, v in ents.items() if not u.startswith('X:')}
+        if DECIDED:     # ADDED (decided store): the model reads an edit as damage, the rule by history
+            for u, v in list(pe.items()):
+                if not v[2] and re_.get(u) == (v[0], v[1], True):
+                    pe[u] = re_[u]
+                    self.by_history += 1
         diffs = []
         for u in sorted(set(pe) | set(re_)):
             if pe.get(u) != re_.get(u):
@@ -154,7 +195,7 @@ class Bridge:
     def readcheck(self, i, d, step):
         """C: the model's read of what the file holds against read.py's read of the file."""
         v = self.W.fold(self.W.reps[i])
-        r = self.as_model(RD.read(d))
+        r = self.as_model(RD.read(d, history=DECIDED))
         mine = (v['status'], v['served'], sorted((c, sorted(p)) for c, p in v['adm'].items()),
                 sorted((n, ''.join(sorted(w))) for n, w in v['words'].items() if n in ('N', 'root')),
                 sorted(c for c, a in v['renew'].items() if a == 'forever'), sorted(v['names']))
@@ -315,7 +356,7 @@ class Bridge:
                 self.gate_write(d, prev)
                 self.log.append('   the repair at gate %d wrote: %s' % (d, ', '.join(
                     '%s +%d' % (x, W.stats[x] - n0.get(x, 0)) for x in sorted(W.stats) if W.stats[x] != n0.get(x, 0))))
-                self.readcheck(d, self.h.dump(self.files[d]), k)
+                self.readcheck(d, self.dump(d), k)
         if self.both == 'after':           # KeePass writes the merged database, additions in, to both
             kp.copy(self.files[d], self.files[s])
             W.other(('over', s, d))
@@ -428,9 +469,10 @@ def global_ideal(W, i):
     return W.fold(r, M.IDEAL)
 
 
-def outcome(b, i):
-    """The file's answer by read.py, held to every decision any gate made (the oracle)."""
-    r = b.as_model(RD.read(b.h.dump(b.files[i])))
+def outcome(b, i, history=None):
+    """The file's answer by read.py, held to every decision any gate made (the oracle). ADDED
+    (decided store): read by the configuration's rule unless `history` names a rule."""
+    r = b.as_model(b.read(i, history))
     I = global_ideal(b.W, i)
     nodes = ('root', 'N')
     w = M.narrower(r, I, nodes)

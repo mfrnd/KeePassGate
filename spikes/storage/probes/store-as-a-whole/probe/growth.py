@@ -81,11 +81,11 @@ def measure(host, W, label, path):
         fh.write('\n'.join(lines) + '\n')
     host.run('patch', path, spec)
     os.remove(spec)
-    dump = host.dump(path)
+    dump = host.dump(path, history=B.DECIDED)     # ADDED (decided store): history items when decided
     times = []
     for _ in range(7):
         t = time.perf_counter()
-        r = RD.read(dump)
+        r = RD.read(dump, history=B.DECIDED)
         times.append(time.perf_counter() - t)
     ents = [e for e in dump['entries'].values() if 'KPG.Kind' in e['strings']]
     heads = [e for e in ents if e['strings']['KPG.Kind'] == 'head']
@@ -106,12 +106,16 @@ def measure(host, W, label, path):
 
 
 def main():
+    # ADDED (decided store): --decided reads every file under the history rule (bridge.decide); the
+    # writes are the same, since this gate never synchronizes and so never ran the repair
+    if len(sys.argv) > 1 and sys.argv[1] == '--decided':
+        B.decide()
     sys.stdout.reconfigure(line_buffering=True)
     rng = random.Random(20261116)
     t0 = time.time()
     W = setup()
     host = kp.Host()
-    work = os.path.join(B.WORK, 'growth')
+    work = os.path.join(B.WORK, ('d-' if B.DECIDED else '') + 'growth')
     os.makedirs(work, exist_ok=True)
     print('== B.7: one gate, 10 clients, 5 names, 20 ruled nodes; writes drawn with seed 20261116')
     print(measure(host, W, 'start', os.path.join(work, 'g0.kdbx')))
