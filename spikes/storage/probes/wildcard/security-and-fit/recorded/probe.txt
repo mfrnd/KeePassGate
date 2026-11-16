@@ -1,0 +1,22 @@
+## P1 self-import with Create new IDs, then Delete Duplicate Entries
+  after the import:
+    1494900CF643A7428DD2284AA6CE6331 'user-1' in General
+    49EA7392F5BB0B4CAD62FEBD81478608 'user-2' in General
+    4B50472D533100000002A1B2C3D4E5F6 'KeePassGate store' in KeePassGate KPG.Store
+    E24D668F8B2A264D8CAEFF950AB00F46 'user-1' in General
+    0A35450CE7D00240ACF80952DC4C7D6A 'user-2' in General
+    AB0A72C0307DE04E9953012F91118E3F 'KeePassGate store' in KeePassGate KPG.Store
+    deletion records: 
+  Delete Duplicate Entries removed 3
+  after Delete Duplicate Entries:
+    E24D668F8B2A264D8CAEFF950AB00F46 'user-1' in General
+    0A35450CE7D00240ACF80952DC4C7D6A 'user-2' in General
+    AB0A72C0307DE04E9953012F91118E3F 'KeePassGate store' in KeePassGate KPG.Store
+    deletion records: 1494900CF643A7428DD2284AA6CE6331, 49EA7392F5BB0B4CAD62FEBD81478608, 4B50472D533100000002A1B2C3D4E5F6
+  snapshot left: AB0A72C0307DE04E9953012F91118E3F = a copy (another identifier)
+
+## P2 a witness deletion record against a node carrying its identifier
+  node modified +20 s, record at +10 s, into-witness-copy: witness kept=False, node present=True
+  node modified +20 s, record at +10 s, into-node-copy: witness kept=False, node present=True
+  node modified +5 s, record at +10 s, into-witness-copy: witness kept=True, node present=False
+  node modified +5 s, record at +10 s, into-node-copy: witness kept=True, node present=False

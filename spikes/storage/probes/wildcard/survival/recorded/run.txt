@@ -1,0 +1,78 @@
+## signatures
+keepassxc-cli 2.4.2 : Valid CN="DroidMonkey Apps, LLC", O="DroidMonkey Apps, LLC", STREET=3474 Raintree Circle, L=Suffolk, S=VA, PostalCode=23435, C=US
+keepassxc-cli 2.8.0 : Valid CN="DroidMonkey Apps, LLC", O="DroidMonkey Apps, LLC", S=Virginia, C=US
+kdbxweb 2.1.1
+
+## inputs
+U-A                                | IN FORCE                                       | present [S2:ffe00a*] | records S[S1:96dfce] R1 A0 | refused [c1] | state fa9d0697 authorities=[fpA] retired=[] clients=[c1(revoked),c2] revoked=[c1] refused=[] profiles=[reader:1(on),writer:1(on)] rules=[G n1 {"default":"inherit","reader":["read","list"]}; E1 n1 {"reader":[]}]
+U-B                                | IN FORCE                                       | present [S1:96dfce*] | records S[] R0 A0 | refused [] | state b86fc04c authorities=[fpA] retired=[] clients=[c1,c2] revoked=[] refused=[] profiles=[reader:1(on),writer:1(on)] rules=[G n1 {"default":"inherit","reader":["read","list"]}; E1 n1 {"reader":[]}]
+R-A                                | IN FORCE                                       | present [S2:ffe00a*@/Recycle Bin] | records S[S1:96dfce] R1 A0 | refused [c1] | state fa9d0697 authorities=[fpA] retired=[] clients=[c1(revoked),c2] revoked=[c1] refused=[] profiles=[reader:1(on),writer:1(on)] rules=[G n1 {"default":"inherit","reader":["read","list"]}; E1 n1 {"reader":[]}]
+R-B                                | IN FORCE                                       | present [S1:96dfce*] | records S[] R0 A0 | refused [] | state b86fc04c authorities=[fpA] retired=[] clients=[c1,c2] revoked=[] refused=[] profiles=[reader:1(on),writer:1(on)] rules=[G n1 {"default":"inherit","reader":["read","list"]}; E1 n1 {"reader":[]}]
+
+## e1: Delete Empty Groups while the snapshot is in the bin, the next write, kdbxweb
+R-A before (records and groups):
+    record 4B5047530000000196DFCEF6376366B0 2026-01-01T00:00:10Z
+    record 4B504752D0F631CA1DDBA8DB3BCFCB9E 2026-01-01T00:00:10Z
+    group  B68A26C482EB6B4380DD9D7F2D267D42 General mod 2026-01-01T00:00:00Z entries 3
+    group  B2DA487B71C01A4CAD87B1BF3CB55989 Projects mod 2026-01-01T00:00:00Z entries 1
+    group  4B504747000000000000000000000001 KeePassGate mod 2026-01-01T00:00:00Z entries 0
+    group  81DA15FF6AE7E94FA7ED5E9756A96C23 Recycle Bin mod 2026-01-01T00:00:30Z entries 1
+KeePass Delete Empty Groups on R-A:
+    Delete Empty Groups removed 1 group(s)
+R-A after Delete Empty Groups      | IN FORCE                                       | present [S2:ffe00a*@/Recycle Bin] | records S[S1:96dfce] R1 A0 | refused [c1] | state fa9d0697 authorities=[fpA] retired=[] clients=[c1(revoked),c2] revoked=[c1] refused=[] profiles=[reader:1(on),writer:1(on)] rules=[G n1 {"default":"inherit","reader":["read","list"]}; E1 n1 {"reader":[]}]
+then the plugin next write         | IN FORCE                                       | present [S3:948dc1*] | records S[S1:96dfce S2:ffe00a] R1 A0 | refused [c1] | state fa9d0697 authorities=[fpA] retired=[] clients=[c1(revoked),c2] revoked=[c1] refused=[] profiles=[reader:1(on),writer:1(on)] rules=[G n1 {"default":"inherit","reader":["read","list"]}; E1 n1 {"reader":[]}]
+its records and groups:
+    record 4B5047530000000196DFCEF6376366B0 2026-01-01T00:00:10Z
+    record 4B504752D0F631CA1DDBA8DB3BCFCB9E 2026-01-01T00:00:10Z
+    record 4B504747000000000000000000000001 2026-11-15T17:32:20Z
+    record 4B50475300000002FFE00ADBC6D9C340 2026-11-15T17:32:21Z
+    group  B68A26C482EB6B4380DD9D7F2D267D42 General mod 2026-01-01T00:00:00Z entries 3
+    group  B2DA487B71C01A4CAD87B1BF3CB55989 Projects mod 2026-01-01T00:00:00Z entries 1
+    group  81DA15FF6AE7E94FA7ED5E9756A96C23 Recycle Bin mod 2026-01-01T00:00:30Z entries 0
+    group  4B504747000000000000000000000001 KeePassGate mod 2026-11-15T17:32:21Z entries 1
+kdbxweb, stale R-B merged into it  | GONE: traces of a store and no snapshot in force | present [] | records S[S1:96dfce S2:ffe00a] R1 A0 | refused [c1(witness)]
+kdbxweb, it merged into stale R-B  | GONE: traces of a store and no snapshot in force | present [] | records S[S1:96dfce S2:ffe00a] R1 A0 | refused [c1(witness)]
+records and groups of the first:
+    record 4B5047530000000196DFCEF6376366B0 2026-01-01T00:00:10Z
+    record 4B504752D0F631CA1DDBA8DB3BCFCB9E 2026-01-01T00:00:10Z
+    record 4B504747000000000000000000000001 2026-11-15T17:32:20Z
+    record 4B50475300000002FFE00ADBC6D9C340 2026-11-15T17:32:21Z
+    group  B68A26C482EB6B4380DD9D7F2D267D42 General mod 2026-01-01T00:00:00Z entries 3
+    group  B2DA487B71C01A4CAD87B1BF3CB55989 Projects mod 2026-01-01T00:00:00Z entries 1
+    group  81DA15FF6AE7E94FA7ED5E9756A96C23 Recycle Bin mod 2026-01-01T00:00:30Z entries 0
+control: KeePass Synchronize, R-B into it | IN FORCE                                       | present [S3:948dc1*] | records S[S1:96dfce S2:ffe00a] R1 A0 | refused [c1] | state fa9d0697 authorities=[fpA] retired=[] clients=[c1(revoked),c2] revoked=[c1] refused=[] profiles=[reader:1(on),writer:1(on)] rules=[G n1 {"default":"inherit","reader":["read","list"]}; E1 n1 {"reader":[]}]
+control: KeePass Synchronize, it into R-B | IN FORCE                                       | present [S3:948dc1*] | records S[S1:96dfce S2:ffe00a] R1 A0 | refused [c1] | state fa9d0697 authorities=[fpA] retired=[] clients=[c1(revoked),c2] revoked=[c1] refused=[] profiles=[reader:1(on),writer:1(on)] rules=[G n1 {"default":"inherit","reader":["read","list"]}; E1 n1 {"reader":[]}]
+control: KeePassXC 2.4.2, R-B into it (exit 0) | IN FORCE                                       | present [S1:96dfce!named S3:948dc1*] | records S[S1:96dfce S2:ffe00a] R1 A0 | refused [c1] | state fa9d0697 authorities=[fpA] retired=[] clients=[c1(revoked),c2] revoked=[c1] refused=[] profiles=[reader:1(on),writer:1(on)] rules=[G n1 {"default":"inherit","reader":["read","list"]}; E1 n1 {"reader":[]}]
+control: KeePassXC 2.4.2, it into R-B (exit 0) | IN FORCE                                       | present [S1:96dfce S3:948dc1*] | records S[] R0 A0 | refused [c1] | state fa9d0697 authorities=[fpA] retired=[] clients=[c1(revoked),c2] revoked=[c1] refused=[] profiles=[reader:1(on),writer:1(on)] rules=[G n1 {"default":"inherit","reader":["read","list"]}; E1 n1 {"reader":[]}]
+control: KeePassXC 2.8.0, R-B into it (exit 0) | IN FORCE                                       | present [S1:96dfce!named S3:948dc1*] | records S[S1:96dfce S2:ffe00a] R1 A0 | refused [c1] | state fa9d0697 authorities=[fpA] retired=[] clients=[c1(revoked),c2] revoked=[c1] refused=[] profiles=[reader:1(on),writer:1(on)] rules=[G n1 {"default":"inherit","reader":["read","list"]}; E1 n1 {"reader":[]}]
+control: KeePassXC 2.8.0, it into R-B (exit 0) | IN FORCE                                       | present [S1:96dfce S3:948dc1*] | records S[] R0 A0 | refused [c1] | state fa9d0697 authorities=[fpA] retired=[] clients=[c1(revoked),c2] revoked=[c1] refused=[] profiles=[reader:1(on),writer:1(on)] rules=[G n1 {"default":"inherit","reader":["read","list"]}; E1 n1 {"reader":[]}]
+kdbxweb, the KeePass-repaired copy merged with the first kdbxweb result | GONE: traces of a store and no snapshot in force | present [] | records S[S1:96dfce S2:ffe00a] R1 A0 | refused [c1(witness)]
+KeePass Synchronize of the kdbxweb result with the copy that still holds the store | IN FORCE                                       | present [S3:948dc1*] | records S[S1:96dfce S2:ffe00a] R1 A0 | refused [c1] | state fa9d0697 authorities=[fpA] retired=[] clients=[c1(revoked),c2] revoked=[c1] refused=[] profiles=[reader:1(on),writer:1(on)] rules=[G n1 {"default":"inherit","reader":["read","list"]}; E1 n1 {"reader":[]}]
+
+## e2: the store group deleted for good, a new store under the same group identifier, kdbxweb
+    store group deleted for good with its entries
+U-A, store group deleted for good  | GONE: traces of a store and no snapshot in force | present [] | records S[S1:96dfce S2:ffe00a] R1 A0 | refused [c1(witness)]
+then a new store (the probe write over gone: new key, empty state, same group identifier) | BEHIND: deleted and replaced by nothing here: S1:96dfce,S2:ffe00a | present [S1:a6c260*] | records S[S1:96dfce S2:ffe00a] R1 A0 | refused [c1(witness)] | state f8ff87b6 authorities=[] retired=[] clients=[] revoked=[] refused=[] profiles=[] rules=[]
+its records and groups:
+    record 4B5047530000000196DFCEF6376366B0 2026-01-01T00:00:10Z
+    record 4B504752D0F631CA1DDBA8DB3BCFCB9E 2026-01-01T00:00:10Z
+    record 4B50475300000002FFE00ADBC6D9C340 2026-11-15T17:32:25Z
+    record 4B504747000000000000000000000001 2026-11-15T17:32:25Z
+    group  B68A26C482EB6B4380DD9D7F2D267D42 General mod 2026-01-01T00:00:00Z entries 3
+    group  B2DA487B71C01A4CAD87B1BF3CB55989 Projects mod 2026-01-01T00:00:00Z entries 1
+    group  4B504747000000000000000000000001 KeePassGate mod 2026-11-15T17:32:26Z entries 1
+kdbxweb, stale U-B merged into it  | GONE: traces of a store and no snapshot in force | present [] | records S[S1:96dfce S2:ffe00a] R1 A0 | refused [c1(witness)]
+kdbxweb, it merged into stale U-B  | GONE: traces of a store and no snapshot in force | present [] | records S[S1:96dfce S2:ffe00a] R1 A0 | refused [c1(witness)]
+control: KeePass Synchronize, U-B into it | BEHIND: deleted and replaced by nothing here: S1:96dfce,S2:ffe00a | present [S1:a6c260*] | records S[S1:96dfce S2:ffe00a] R1 A0 | refused [c1(witness)] | state f8ff87b6 authorities=[] retired=[] clients=[] revoked=[] refused=[] profiles=[] rules=[]
+control: KeePass Synchronize, it into U-B | BEHIND: deleted and replaced by nothing here: S1:96dfce,S2:ffe00a | present [S1:a6c260*] | records S[S1:96dfce S2:ffe00a] R1 A0 | refused [c1(witness)] | state f8ff87b6 authorities=[] retired=[] clients=[] revoked=[] refused=[] profiles=[] rules=[]
+
+## e3: the newest snapshot arrived without its witness, then a hand deletion with a record
+U-A merged into stale U-B by KeePassXC 2.4.2 (exit 0) | IN FORCE                                       | present [S1:96dfce S2:ffe00a*] | records S[] R0 A0 | refused [c1] | state fa9d0697 authorities=[fpA] retired=[] clients=[c1(revoked),c2] revoked=[c1] refused=[] profiles=[reader:1(on),writer:1(on)] rules=[G n1 {"default":"inherit","reader":["read","list"]}; E1 n1 {"reader":[]}]
+    deleted snapshot seq 2 (4B50475300000002FFE00ADBC6D9C340) for good, with a record
+then the newest snapshot deleted for good, with a record | BEHIND: deleted and replaced by nothing here: S2:ffe00a | present [S1:96dfce*] | records S[S2:ffe00a] R0 A0 | refused [] | state b86fc04c authorities=[fpA] retired=[] clients=[c1,c2] revoked=[] refused=[] profiles=[reader:1(on),writer:1(on)] rules=[G n1 {"default":"inherit","reader":["read","list"]}; E1 n1 {"reader":[]}]
+U-A merged into stale U-B by KeePassXC 2.8.0 (exit 0) | IN FORCE                                       | present [S1:96dfce S2:ffe00a*] | records S[] R0 A0 | refused [c1] | state fa9d0697 authorities=[fpA] retired=[] clients=[c1(revoked),c2] revoked=[c1] refused=[] profiles=[reader:1(on),writer:1(on)] rules=[G n1 {"default":"inherit","reader":["read","list"]}; E1 n1 {"reader":[]}]
+    deleted snapshot seq 2 (4B50475300000002FFE00ADBC6D9C340) for good, with a record
+then the newest snapshot deleted for good, with a record | BEHIND: deleted and replaced by nothing here: S2:ffe00a | present [S1:96dfce*] | records S[S2:ffe00a] R0 A0 | refused [] | state b86fc04c authorities=[fpA] retired=[] clients=[c1,c2] revoked=[] refused=[] profiles=[reader:1(on),writer:1(on)] rules=[G n1 {"default":"inherit","reader":["read","list"]}; E1 n1 {"reader":[]}]
+U-A merged into stale U-B by KeePass OverwriteIfNewer | IN FORCE                                       | present [S1:96dfce S2:ffe00a*] | records S[] R0 A0 | refused [c1] | state fa9d0697 authorities=[fpA] retired=[] clients=[c1(revoked),c2] revoked=[c1] refused=[] profiles=[reader:1(on),writer:1(on)] rules=[G n1 {"default":"inherit","reader":["read","list"]}; E1 n1 {"reader":[]}]
+    deleted snapshot seq 2 (4B50475300000002FFE00ADBC6D9C340) for good, with a record
+then the newest snapshot deleted for good, with a record | BEHIND: deleted and replaced by nothing here: S2:ffe00a | present [S1:96dfce*] | records S[S2:ffe00a] R0 A0 | refused [] | state b86fc04c authorities=[fpA] retired=[] clients=[c1,c2] revoked=[] refused=[] profiles=[reader:1(on),writer:1(on)] rules=[G n1 {"default":"inherit","reader":["read","list"]}; E1 n1 {"reader":[]}]

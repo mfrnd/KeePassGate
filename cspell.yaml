@@ -186,6 +186,19 @@ words:
   - NTFS
   - Newtonsoft
   - Syncthing
+  # Identifiers in the wildcard probes, which are carried unchanged: the identifier marks `KPGS`,
+  # `KPGR` and `KPGA` of the design's `Wc.exe`, which its `pk.py` matches too, the .NET class
+  # `HMACSHA256` it seals with, the locals `thenb` and `pkdir` and the file `resaved.kdbx` of its
+  # `Run.ps1`, and the verbs `delnewest` and `tobin` of the survival probe's KeePassLib script.
+  - KPGS
+  - KPGR
+  - KPGA
+  - HMACSHA
+  - thenb
+  - pkdir
+  - resaved
+  - delnewest
+  - tobin
   # Identifiers in the ground-keepass probe, which is carried unchanged: the variant `nobackup`
   # its X2 prints, which the family's `x2.py` and `RUN.md` match, and the local `scen` of X3.
   - nobackup

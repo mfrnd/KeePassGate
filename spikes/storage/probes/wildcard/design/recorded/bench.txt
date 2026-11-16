@@ -1,0 +1,6 @@
+entries 1000: pass by identifier only 0,070 ms; deletion records alone 0,0797 ms; store group and bin found by identifier 0,0049 ms
+entries 1000, groups 51, deletion records 5000, snapshot text 37299 chars: pass 0,265 ms, unprotect and seal 0,035 ms, whole reading uncached 2,117 ms (found 1)
+entries 10000: pass by identifier only 0,283 ms; deletion records alone 0,0604 ms; store group and bin found by identifier 0,0344 ms
+entries 10000, groups 501, deletion records 5000, snapshot text 37299 chars: pass 2,257 ms, unprotect and seal 0,046 ms, whole reading uncached 5,403 ms (found 1)
+entries 50000: pass by identifier only 2,454 ms; deletion records alone 0,0700 ms; store group and bin found by identifier 0,1876 ms
+entries 50000, groups 2501, deletion records 5000, snapshot text 37299 chars: pass 29,759 ms, unprotect and seal 0,037 ms, whole reading uncached 19,706 ms (found 1)
