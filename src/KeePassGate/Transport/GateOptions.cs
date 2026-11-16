@@ -144,16 +144,23 @@ namespace KeePassGate.Transport
         /// `DatabaseWriter.WriteTimeout` that does not bound a started save, and it is kept here
         /// because this budget only has to outlast the waits, not bound them.
         ///
-        /// So it has to exceed `ApprovalTimeout` for the screen, then `ApprovalTimeout +
-        /// PairingApprovalPrompt.Grace` for the dialog, then `ApprovalSettle` for a busy KeePass to
-        /// settle once the operator has approved, then `DatabaseWriter.LockTimeout +
-        /// DatabaseWriter.WriteTimeout` for the write, and
-        /// `GateOptionsTests.The_pairing_budget_outlasts_everything_a_pairing_waits_for` is what
-        /// keeps the six numbers from drifting apart.
+        /// **A dialog that comes up late is given what is left of this, not the whole of
+        /// `ApprovalTimeout`**, which reverses a decision. The dialog's countdown starts when it is
+        /// built, and a dialog that waited `ApprovalTimeout` for the screen and then
+        /// `ApprovalTimeout + PairingApprovalPrompt.Grace` for its turn on KeePass's thread used to
+        /// give the operator the whole of their time on purpose, which came to 427 seconds against
+        /// these 360. Now `PairingOptions.DialogLeft` sets aside what follows the dialog,
+        /// `PairingOptions.AfterTheDialog`: the grace, `ApprovalSettle` for a busy KeePass to
+        /// settle once the operator has approved, and `DatabaseWriter.LockTimeout +
+        /// DatabaseWriter.WriteTimeout` for the write. The dialog is given the rest or
+        /// `ApprovalTimeout`, whichever is less, and is not shown with less than
+        /// `PairingApprovalPrompt.Shortest` left.
+        /// `GateOptionsTests.The_pairing_budget_outlasts_everything_a_pairing_waits_for` keeps that
+        /// floor under what a dialog still has when it comes up as late as those waits allow.
         ///
         /// **A renewal is measured against it too**, because it waits for the same things: the
         /// same screen, which it shares with every pairing, the same dialog and grace, and the same
-        /// turn at the writer.
+        /// turn at the writer, and its dialog is shortened the same way.
         /// </remarks>
         public TimeSpan PairingBudget { get; set; }
 

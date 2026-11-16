@@ -774,6 +774,24 @@ namespace KeePassGate.Tests
         }
 
         [Test]
+        public void The_dialog_is_told_what_is_left_of_the_budget_once_the_write_is_set_aside()
+        {
+            // Counted from when the request arrived, which is where the connection's budget
+            // starts, so that time spent before the operator is asked comes off the dialog rather
+            // than off the write after it.
+            var options = new PairingOptions();
+            var approval = Approving("ops");
+            Hello(ClientProof());
+
+            Request("agent-fictitious", new[] { "ops" }, approval);
+
+            var most = options.ApprovalHeld - options.AfterTheDialog;
+            Assert.That(approval.LastTimeout, Is.EqualTo(options.ApprovalTimeout));
+            Assert.That(approval.LastLeft, Is.LessThanOrEqualTo(most));
+            Assert.That(approval.LastLeft, Is.GreaterThan(most - TimeSpan.FromSeconds(5)));
+        }
+
+        [Test]
         public void A_lifetime_asked_for_is_put_to_the_operator()
         {
             var approval = Approving();

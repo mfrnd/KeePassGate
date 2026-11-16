@@ -180,6 +180,25 @@ namespace KeePassGate.Tests
         }
 
         [Test]
+        public void The_dialog_is_told_what_is_left_of_the_budget_as_a_pairing_s_is()
+        {
+            var options = new PairingOptions();
+            var operatorAt = FakeRenewalApproval.Approving();
+
+            using (var old = _authority.IssueAdmittedClient("reader"))
+            {
+                _authority.KnownProfiles = new[] { "reader" };
+
+                Renew(operatorAt, old, "{}");
+
+                var most = options.ApprovalHeld - options.AfterTheDialog;
+                Assert.That(operatorAt.Asked, Is.EqualTo(1));
+                Assert.That(operatorAt.LastLeft, Is.LessThanOrEqualTo(most));
+                Assert.That(operatorAt.LastLeft, Is.GreaterThan(most - TimeSpan.FromSeconds(5)));
+            }
+        }
+
+        [Test]
         public void The_new_certificate_is_never_wider_than_what_was_offered()
         {
             // Whatever the screen answered: a name the record did not hold, or one the database

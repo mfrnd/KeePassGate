@@ -27,6 +27,9 @@ namespace KeePassGate.Tests.Fakes
         /// </summary>
         public bool RunsLate { get; set; }
 
+        /// <summary>How long the thread takes to reach the work, as a busy thread does.</summary>
+        public TimeSpan Late { get; set; }
+
         public Exception Throws { get; set; }
 
         public int Asked { get; private set; }
@@ -46,6 +49,11 @@ namespace KeePassGate.Tests.Fakes
             if (!Runs)
             {
                 return false;
+            }
+
+            if (Late > TimeSpan.Zero)
+            {
+                System.Threading.Thread.Sleep(Late);
             }
 
             work();

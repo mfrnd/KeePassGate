@@ -29,22 +29,31 @@ namespace KeePassGate.Tests
             var options = new GateOptions();
             var pairing = new PairingOptions();
 
-            // Every wait a pairing connection can be sitting in, added up. The screen is the one
-            // that was missing: `PairingApprovalPrompt` puts one pairing in front of the operator
-            // at a time, and a second waits for it for as long as it was going to give the operator
-            // anyway. Taking the screen just inside that wait leaves the whole dialog still ahead,
-            // so the two are consecutive rather than alternatives.
-            var forTheScreen = pairing.ApprovalTimeout;
-            var forTheDialog = pairing.ApprovalTimeout + PairingApprovalPrompt.Grace;
-            var forKeePassToSettle = pairing.ApprovalSettle;
-            var forTheWrite = DatabaseWriter.LockTimeout + DatabaseWriter.WriteTimeout;
+            // The handler counts the budget as the approval's hold does, so the two have to be the
+            // number the listener closes the connection at.
+            Assert.That(pairing.ApprovalHeld, Is.EqualTo(options.PairingBudget));
 
-            var waits = forTheScreen + forTheDialog + forKeePassToSettle + forTheWrite;
+            // What follows the dialog, as the budget adds it up: the grace the prompt keeps beyond
+            // the dialog, a busy KeePass settling once the operator has approved, and the turn at
+            // the writer and the write. The dialog is given no more than the budget less these, so
+            // the whole of a pairing is inside the budget by construction.
+            var afterTheDialog = PairingApprovalPrompt.Grace + pairing.ApprovalSettle
+                + DatabaseWriter.LockTimeout + DatabaseWriter.WriteTimeout;
+            Assert.That(pairing.AfterTheDialog, Is.EqualTo(afterTheDialog));
 
-            Assert.That(options.PairingBudget, Is.GreaterThan(waits),
-                "the connection budget closes the socket while the operator is still reading, and " +
-                "everything after that point still happens: the invitation is spent and the record " +
-                "is saved, with nothing left to hand the certificate back on.");
+            // How late a dialog can come up from the waits written down: the screen, which a
+            // second request waits for as long as its operator was going to be given, and then its
+            // turn on KeePass's thread, which is waited for as long again and the grace. A dialog
+            // coming up that late used to give the operator the whole of their time all the same,
+            // which came to 427 seconds against the 360 of the budget. It is given what is left
+            // now, and that has to be enough to read, or the floor would turn away a request that
+            // nothing but those waits delayed.
+            var latest = pairing.ApprovalTimeout + pairing.ApprovalTimeout + PairingApprovalPrompt.Grace;
+            var leftThen = options.PairingBudget - afterTheDialog - latest;
+
+            Assert.That(leftThen, Is.GreaterThanOrEqualTo(PairingApprovalPrompt.Shortest),
+                "a dialog delayed only by the waits the budget names would never be shown, and every " +
+                "request behind another would be answered busy.");
         }
 
         [Test]

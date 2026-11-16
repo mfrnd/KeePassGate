@@ -26,6 +26,9 @@ namespace KeePassGate.Tests.Fakes
 
         public RenewalRequest LastRequest { get; private set; }
 
+        /// <summary>How long the dialog was told it may stand at most, for the budget.</summary>
+        public TimeSpan LastLeft { get; private set; }
+
         /// <summary>How long the operator takes to answer.</summary>
         public TimeSpan Thinks { get; set; }
 
@@ -38,10 +41,11 @@ namespace KeePassGate.Tests.Fakes
             return new FakeRenewalApproval(request => RenewalApproval.Approved(request.Profiles, request.Lifetime));
         }
 
-        public RenewalApproval Ask(RenewalRequest request, TimeSpan timeout)
+        public RenewalApproval Ask(RenewalRequest request, TimeSpan timeout, TimeSpan left)
         {
             Asked++;
             LastRequest = request;
+            LastLeft = left;
 
             if (Thinks > TimeSpan.Zero)
             {

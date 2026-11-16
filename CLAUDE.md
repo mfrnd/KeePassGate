@@ -1601,9 +1601,12 @@ and save. Pairing keeps its deadline, and that asymmetry is the argument rather 
 it, since a pairing's remaining work is a list of waits somebody wrote down: the screen, because one
 pairing at a time is put to the operator and a second waits as long again just to get in front of
 them, then the dialog and the grace on it, then the turn at the writer. `PairingBudget` is what
-those are added up against. `GateOptionsTests` still pins that one. A renewal waits for the same
-things on the same screen, so the listener gives it the same deadline once it has read which
-request arrived.
+those are added up against. **A dialog that comes up late is given only what is left of it**, once
+the grace and the write after it are set aside, and is not shown at all with under thirty seconds
+left: that reverses giving every dialog its whole two minutes, which took the worst case past the
+budget, `DESIGN.md` §119. `GateOptionsTests` pins the floor against the waits. A renewal waits
+for the same things on the same screen, so the listener gives it the same deadline once it has
+read which request arrived, and its dialog is shortened the same way.
 
 **And it starts again for the answer.** Once the handler has decided, an ordinary connection's
 answer is written under the ordinary budget counted afresh, `GateListener.Deadline.Writing`,

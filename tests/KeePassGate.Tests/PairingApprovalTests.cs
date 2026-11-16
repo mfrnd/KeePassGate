@@ -1057,6 +1057,12 @@ namespace KeePassGate.Tests
     {
         private static readonly TimeSpan Timeout = TimeSpan.FromSeconds(30);
 
+        /// <summary>
+        /// What is left of a pairing budget with all of it still ahead, which gives a dialog the
+        /// whole of its time.
+        /// </summary>
+        private static readonly TimeSpan Ample = TimeSpan.FromMinutes(10);
+
         /// <summary>How long a test waits on another thread before calling it a failure.</summary>
         private static readonly TimeSpan Patience = TimeSpan.FromSeconds(5);
 
@@ -1084,7 +1090,7 @@ namespace KeePassGate.Tests
         {
             var prompt = new PairingApprovalPrompt(new FakeUiThread { Runs = false }, _log);
 
-            var answer = prompt.Ask(Request(), Timeout);
+            var answer = prompt.Ask(Request(), Timeout, Ample);
 
             Assert.That(answer.Decision, Is.EqualTo(PairingDecision.TimedOut));
             Assert.That(_log.Warnings, Is.Not.Empty);
@@ -1106,7 +1112,7 @@ namespace KeePassGate.Tests
                     : PairingApproval.Approved(new[] { "ops" })
             };
 
-            var answer = prompt.Ask(Request(), Timeout);
+            var answer = prompt.Ask(Request(), Timeout, Ample);
 
             Assert.That(answer.Decision, Is.EqualTo(decided));
         }
@@ -1119,16 +1125,114 @@ namespace KeePassGate.Tests
                 Dialog = (request, timeout) => null
             };
 
-            Assert.That(prompt.Ask(Request(), Timeout).Decision, Is.EqualTo(PairingDecision.TimedOut));
+            Assert.That(prompt.Ask(Request(), Timeout, Ample).Decision, Is.EqualTo(PairingDecision.TimedOut));
         }
 
         [Test]
         public void It_waits_longer_than_the_dialog_does_so_the_dialog_is_what_gives_up()
         {
             var ui = new FakeUiThread { Runs = false };
-            new PairingApprovalPrompt(ui, _log).Ask(Request(), Timeout);
+            new PairingApprovalPrompt(ui, _log).Ask(Request(), Timeout, Ample);
 
             Assert.That(ui.LastTimeout, Is.EqualTo(Timeout + PairingApprovalPrompt.Grace));
+        }
+
+        [Test]
+        public void A_dialog_with_the_whole_budget_ahead_of_it_gets_the_operator_s_whole_time()
+        {
+            var given = TimeSpan.Zero;
+            var prompt = new PairingApprovalPrompt(new FakeUiThread(), _log)
+            {
+                Dialog = (request, allowed) =>
+                {
+                    given = allowed;
+                    return PairingApproval.Refused();
+                }
+            };
+
+            prompt.Ask(Request(), Timeout, Ample);
+
+            Assert.That(given, Is.EqualTo(Timeout));
+        }
+
+        [Test]
+        public void A_dialog_that_comes_up_late_is_given_what_is_left_rather_than_the_whole_time()
+        {
+            // A dialog behind another on the screen, or behind a busy KeePass, used to give the
+            // operator the whole of their time from when it came up, and so took the pairing past
+            // the budget its connection is closed at: the invitation spent and the record saved,
+            // with no certificate handed back. What it is given now is what is left, counted from
+            // when it was asked for, and its countdown starts from that.
+            var late = TimeSpan.FromMilliseconds(300);
+            var left = PairingApprovalPrompt.Shortest + TimeSpan.FromSeconds(10);
+            var given = TimeSpan.Zero;
+            var prompt = new PairingApprovalPrompt(new FakeUiThread { Late = late }, _log)
+            {
+                Dialog = (request, allowed) =>
+                {
+                    given = allowed;
+                    return PairingApproval.Approved(new[] { "ops" });
+                }
+            };
+
+            var answer = prompt.Ask(Request(), TimeSpan.FromMinutes(2), left);
+
+            Assert.That(answer.Decision, Is.EqualTo(PairingDecision.Approved), "what the operator decided stands");
+            Assert.That(given, Is.LessThanOrEqualTo(left - late),
+                "the time the dialog waited for its turn was not taken off what it was given");
+            Assert.That(given, Is.GreaterThan(left - late - Patience));
+            Assert.That(_log.Entries.Select(entry => entry.Message), Has.Some.Contains("came up late"));
+        }
+
+        [Test]
+        public void A_renewal_dialog_that_comes_up_late_is_given_what_is_left_as_well()
+        {
+            var left = PairingApprovalPrompt.Shortest + TimeSpan.FromSeconds(10);
+            var given = TimeSpan.Zero;
+            var prompt = new PairingApprovalPrompt(new FakeUiThread(), _log)
+            {
+                RenewalDialog = (request, allowed) =>
+                {
+                    given = allowed;
+                    return RenewalApproval.Refused(null);
+                }
+            };
+
+            prompt.Ask(Renewal(), TimeSpan.FromMinutes(2), left);
+
+            Assert.That(given, Is.LessThanOrEqualTo(left));
+            Assert.That(given, Is.GreaterThan(left - Patience));
+        }
+
+        [Test]
+        public void A_dialog_left_less_than_the_shortest_time_is_never_shown()
+        {
+            // A countdown of a few seconds is a dialog nobody can read, and an approval given in it
+            // would not be a decision. So it is answered as a request that never got the screen,
+            // which spends nothing and leaves the client free to ask again.
+            var shown = 0;
+            var prompt = new PairingApprovalPrompt(new FakeUiThread(), _log)
+            {
+                Dialog = (request, allowed) =>
+                {
+                    shown++;
+                    return PairingApproval.Approved(new[] { "ops" });
+                },
+                RenewalDialog = (request, allowed) =>
+                {
+                    shown++;
+                    return RenewalApproval.Approved(new[] { "ops" }, null);
+                }
+            };
+
+            var tooLittle = PairingApprovalPrompt.Shortest - TimeSpan.FromSeconds(1);
+            var pairing = prompt.Ask(Request(), TimeSpan.FromMinutes(2), tooLittle);
+            var renewal = prompt.Ask(Renewal(), TimeSpan.FromMinutes(2), tooLittle);
+
+            Assert.That(shown, Is.Zero, "a dialog went up with less than the shortest time left");
+            Assert.That(pairing.Decision, Is.EqualTo(PairingDecision.Unavailable));
+            Assert.That(renewal.Decision, Is.EqualTo(PairingDecision.Unavailable));
+            Assert.That(_log.Warnings.Select(entry => entry.Message), Has.Some.Contains("was not shown"));
         }
 
         [Test]
@@ -1142,7 +1246,7 @@ namespace KeePassGate.Tests
             // operator was going to be given, and spends nothing.
             var ui = new HeldUiThread();
             var prompt = new PairingApprovalPrompt(ui, _log);
-            var first = new Thread(() => prompt.Ask(Request(), Timeout));
+            var first = new Thread(() => prompt.Ask(Request(), Timeout, Ample));
 
             first.IsBackground = true;
             first.Start();
@@ -1151,7 +1255,7 @@ namespace KeePassGate.Tests
             {
                 Assert.That(ui.Reached(Patience), Is.True, "the first pairing has the screen");
 
-                var second = prompt.Ask(Request(), TimeSpan.FromMilliseconds(50));
+                var second = prompt.Ask(Request(), TimeSpan.FromMilliseconds(50), Ample);
 
                 Assert.That(second.Decision, Is.EqualTo(PairingDecision.Unavailable));
                 Assert.That(second.Reason, Is.Not.Empty, "the log is told which pairing this was");
@@ -1174,7 +1278,7 @@ namespace KeePassGate.Tests
             // pairing would, so the two share the one screen rather than each having one.
             var ui = new HeldUiThread();
             var prompt = new PairingApprovalPrompt(ui, _log);
-            var first = new Thread(() => prompt.Ask(Request(), Timeout));
+            var first = new Thread(() => prompt.Ask(Request(), Timeout, Ample));
 
             first.IsBackground = true;
             first.Start();
@@ -1194,7 +1298,8 @@ namespace KeePassGate.Tests
                         Array.Empty<string>(),
                         "127.0.0.1:60001",
                         null),
-                    TimeSpan.FromMilliseconds(50));
+                    TimeSpan.FromMilliseconds(50),
+                    Ample);
 
                 Assert.That(renewal.Decision, Is.EqualTo(PairingDecision.Unavailable));
                 Assert.That(ui.Asked, Is.EqualTo(1), "no second dialog behind the first");
@@ -1216,8 +1321,8 @@ namespace KeePassGate.Tests
             var prompt = new PairingApprovalPrompt(ui, _log);
 
             ui.Release();
-            prompt.Ask(Request(), Timeout);
-            prompt.Ask(Request(), Timeout);
+            prompt.Ask(Request(), Timeout, Ample);
+            prompt.Ask(Request(), Timeout, Ample);
 
             Assert.That(ui.Asked, Is.EqualTo(2));
         }
@@ -1229,7 +1334,7 @@ namespace KeePassGate.Tests
             // timeout for a turn and could not be shown under it anyway. Told at once instead.
             var ui = new FakeUiThread { Stalled = "a message box is open" };
 
-            var answer = new PairingApprovalPrompt(ui, _log).Ask(Request(), Timeout);
+            var answer = new PairingApprovalPrompt(ui, _log).Ask(Request(), Timeout, Ample);
 
             Assert.That(answer.Decision, Is.EqualTo(PairingDecision.Unavailable));
             Assert.That(ui.Asked, Is.Zero, "nothing was queued for KeePass's thread");
@@ -1240,7 +1345,7 @@ namespace KeePassGate.Tests
         {
             var ui = new FakeUiThread { Throws = new InvalidOperationException("no handle") };
 
-            var answer = new PairingApprovalPrompt(ui, _log).Ask(Request(), Timeout);
+            var answer = new PairingApprovalPrompt(ui, _log).Ask(Request(), Timeout, Ample);
 
             Assert.That(answer.Decision, Is.EqualTo(PairingDecision.Unavailable));
             Assert.That(_log.Errors, Is.Not.Empty);
@@ -1251,8 +1356,8 @@ namespace KeePassGate.Tests
         {
             var prompt = new PairingApprovalPrompt(CurrentThread.Instance, _log);
 
-            Assert.Throws<ArgumentNullException>(() => prompt.Ask((PairingRequest)null, Timeout));
-            Assert.Throws<ArgumentNullException>(() => prompt.Ask((RenewalRequest)null, Timeout));
+            Assert.Throws<ArgumentNullException>(() => prompt.Ask((PairingRequest)null, Timeout, Ample));
+            Assert.Throws<ArgumentNullException>(() => prompt.Ask((RenewalRequest)null, Timeout, Ample));
         }
 
         [Test]
@@ -1276,8 +1381,8 @@ namespace KeePassGate.Tests
                 }
             };
 
-            var pairing = prompt.Ask(Request(), Timeout);
-            var renewal = prompt.Ask(Renewal(), Timeout);
+            var pairing = prompt.Ask(Request(), Timeout, Ample);
+            var renewal = prompt.Ask(Renewal(), Timeout, Ample);
 
             Assert.That(pairing.Decision, Is.EqualTo(PairingDecision.Locked));
             Assert.That(renewal.Decision, Is.EqualTo(PairingDecision.Locked));
@@ -1319,7 +1424,7 @@ namespace KeePassGate.Tests
                 }
             };
 
-            var answer = prompt.Ask(Renewal(), Timeout);
+            var answer = prompt.Ask(Renewal(), Timeout, Ample);
 
             Assert.That(answer.Decision, Is.EqualTo(PairingDecision.Locked));
             Assert.That(answer.Shown, Is.True, "a dialog the lock closed was put to the operator");
@@ -1364,7 +1469,7 @@ namespace KeePassGate.Tests
                 }
             };
 
-            var answer = prompt.Ask(Renewal(), Timeout);
+            var answer = prompt.Ask(Renewal(), Timeout, Ample);
 
             Assert.That(answer.Decision, Is.EqualTo(PairingDecision.Locked));
             Assert.That(_log.Warnings.Count(entry => entry.Message.Contains("closed unanswered")), Is.EqualTo(1));
@@ -1384,7 +1489,7 @@ namespace KeePassGate.Tests
                 prompt.Closed(new[] { Renewal().DatabaseId });
             });
 
-            var answer = prompt.Ask(Renewal(), Timeout);
+            var answer = prompt.Ask(Renewal(), Timeout, Ample);
 
             Assert.That(answer.Decision, Is.EqualTo(PairingDecision.Locked), "answered as a lock's is");
             Assert.That(answer.Reason, Is.EqualTo(PairingApproval.ClosedReason), "and named for the close");
@@ -1402,7 +1507,7 @@ namespace KeePassGate.Tests
             var prompt = new PairingApprovalPrompt(CurrentThread.Instance, _log);
             OffScreenRenewal(prompt, () => prompt.Closed(new[] { "another database" }));
 
-            var answer = prompt.Ask(Renewal(), Timeout);
+            var answer = prompt.Ask(Renewal(), Timeout, Ample);
 
             Assert.That(answer.Reason, Is.EqualTo(PairingApproval.LockedReason),
                 "still standing for the lock that ended it");
@@ -1418,7 +1523,7 @@ namespace KeePassGate.Tests
             var prompt = new PairingApprovalPrompt(CurrentThread.Instance, _log);
             OffScreenRenewal(prompt, () => prompt.Closed(null));
 
-            var answer = prompt.Ask(Renewal(), Timeout);
+            var answer = prompt.Ask(Renewal(), Timeout, Ample);
 
             Assert.That(answer.Reason, Is.EqualTo(PairingApproval.ClosedReason));
         }
@@ -1478,7 +1583,7 @@ namespace KeePassGate.Tests
                 }
             };
 
-            var answer = prompt.Ask(Request(), Timeout);
+            var answer = prompt.Ask(Request(), Timeout, Ample);
 
             Assert.That(answer.Decision, Is.EqualTo(PairingDecision.Approved));
             Assert.That(shown, Is.EqualTo(1), "shown once, after the save");
@@ -1507,8 +1612,8 @@ namespace KeePassGate.Tests
                 }
             };
 
-            var pairing = prompt.Ask(Request(), Timeout);
-            var renewal = prompt.Ask(Renewal(), Timeout);
+            var pairing = prompt.Ask(Request(), Timeout, Ample);
+            var renewal = prompt.Ask(Renewal(), Timeout, Ample);
 
             Assert.That(pairing.Decision, Is.EqualTo(PairingDecision.Unavailable));
             Assert.That(pairing.Reason, Is.EqualTo("KeePass is importing"));
@@ -1526,7 +1631,7 @@ namespace KeePassGate.Tests
                 Dialog = (request, timeout) => PairingApproval.Approved(new[] { "ops" })
             };
 
-            var answer = prompt.Ask(Request(), Timeout);
+            var answer = prompt.Ask(Request(), Timeout, Ample);
 
             Assert.That(answer.Decision, Is.EqualTo(PairingDecision.Unavailable));
             Assert.That(ui.Asked, Is.Zero, "nothing was posted to KeePass's thread at all");
@@ -1536,7 +1641,7 @@ namespace KeePassGate.Tests
         [Test]
         public void A_plugin_with_no_screen_approves_nothing_and_says_why()
         {
-            var answer = NoPairingApproval.Instance.Ask(Request(), Timeout);
+            var answer = NoPairingApproval.Instance.Ask(Request(), Timeout, Ample);
 
             Assert.That(answer.Decision, Is.EqualTo(PairingDecision.Unavailable));
             Assert.That(answer.Reason, Is.Not.Empty);

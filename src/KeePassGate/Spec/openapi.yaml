@@ -418,8 +418,9 @@ paths:
         body at all is malformed; a `400` is answered before anybody is asked. `401 unpaired` is
         also the answer when the record went between the connection and the request, or while
         the operator was deciding, in which case nothing was issued. `503 busy` covers, beside
-        what `Unavailable` names, another pairing or renewal in front of the operator, a renewal
-        of this same certificate still being answered, which is told so at once, no screen to ask
+        what `Unavailable` names, another pairing or renewal in front of the operator, a wait for
+        the screen that left the dialog under thirty seconds of the pairing budget, a renewal of
+        this same certificate still being answered, which is told so at once, no screen to ask
         on, and a list of profiles in the database that will not read.
       x-kpg-verb: none
       requestBody:

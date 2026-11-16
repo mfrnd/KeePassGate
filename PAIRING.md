@@ -142,6 +142,13 @@ renewal's, is raised. **That is the whole of the difference**: their remaining w
 waits somebody wrote down, so a number for it means something, where an ordinary write's remaining
 work is a save of unknown length.
 
+**A dialog that comes up late has less than two minutes.** Its countdown starts from what is left
+of the budget once the waits after the dialog are set aside, when that is shorter, so the answer
+still reaches the client inside the budget; with less than thirty seconds left the dialog is not
+shown at all, and the request is answered `503 busy` with nothing spent. That reverses giving every
+dialog its whole two minutes however late it came up, which took the worst case past the budget:
+`DESIGN.md` §119 has the arithmetic.
+
 **Not when the name resolves**, which is earlier and asks for less. The reason for the longer
 budget is that the connection is about to wait on a person, and a connection that has named an
 invitation and sent nothing waits on nobody: granted there, one invitation would buy thirty-two
@@ -585,7 +592,7 @@ What a refusal says, and deliberately no more:
 | `400 name` / `400 profile` / `400 malformed` | it could never have been issued as asked |
 | `403 refused` | the operator said no, and the invitation is spent |
 | `504 unanswered` | nobody was at the screen. **Nothing is spent** |
-| `503 busy` | a dialog is open that would take the record back, KeePass is part way through a save, an import, a synchronize, an export or a message box of its own, or shows its progress window for one such as XML Replace, saving the database would stop to ask the operator something, such as what to do about a file on disk that is not the one KeePass read, another pairing or a renewal is already in front of the operator, a save this plugin is making for another client outlasts the wait for the screen, there is no screen to ask, or the database's list of profiles will not read; or the operator approved and KeePass was still busy a moment later, and then the body carries `heldUntil`, the moment the approval stops being held; or the operator approved and, when the write came to it, the list of profiles no longer held a name the answer rested on as the dialog showed it, and then the approval is used up and the next request is put to the operator again. **Nothing is spent**, and the client is never told which |
+| `503 busy` | a dialog is open that would take the record back, KeePass is part way through a save, an import, a synchronize, an export or a message box of its own, or shows its progress window for one such as XML Replace, saving the database would stop to ask the operator something, such as what to do about a file on disk that is not the one KeePass read, another pairing or a renewal is already in front of the operator, so little of the pairing's time is left once the request reaches the screen that the dialog would stand for under thirty seconds, a save this plugin is making for another client outlasts the wait for the screen, there is no screen to ask, or the database's list of profiles will not read; or the operator approved and KeePass was still busy a moment later, and then the body carries `heldUntil`, the moment the approval stops being held; or the operator approved and, when the write came to it, the list of profiles no longer held a name the answer rested on as the dialog showed it, and then the approval is used up and the next request is put to the operator again. **Nothing is spent**, and the client is never told which |
 | `500 not recorded` | the operator approved and the record did not reach the disk. **The invitation is spent** |
 | `500 internal error` | the operator approved and no certificate could be issued: the authority's key would not sign, or the authority has outlived its hundred years. **The invitation is not spent**, and the client starts again from a hello |
 | `503 undecided` | the database holds more than one authority and the operator has not yet kept any of them. Answered before the request is read, as `503 locked` is, so **nothing is spent** |

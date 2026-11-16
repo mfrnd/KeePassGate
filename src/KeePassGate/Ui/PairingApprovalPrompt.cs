@@ -39,6 +39,20 @@ namespace KeePassGate.Ui
         /// <summary>How much longer than the dialog this waits before giving up on it.</summary>
         public static readonly TimeSpan Grace = TimeSpan.FromSeconds(15);
 
+        /// <summary>
+        /// The least a dialog is shown for. A request left less of its pairing budget than this
+        /// when its dialog would come up is answered as a request that never got the screen is.
+        /// </summary>
+        /// <remarks>
+        /// Enough to read the request once and press a button, which a dialog that flashed up and
+        /// closed again is not. And under what a dialog has left when it comes up as late as the
+        /// waits written down here allow, two minutes for the screen and the dialog's own time and
+        /// the grace for its turn, so that this never turns away a request those waits alone
+        /// delayed: `GateOptionsTests` pins that relation, and `DESIGN.md` §119 has the
+        /// arithmetic.
+        /// </remarks>
+        public static readonly TimeSpan Shortest = TimeSpan.FromSeconds(30);
+
         private readonly IUiThread _ui;
         private readonly IGateLog _log;
 
@@ -121,7 +135,7 @@ namespace KeePassGate.Ui
         /// <summary>The same for a renewal, and settable for the same reason.</summary>
         internal Func<RenewalRequest, TimeSpan, RenewalApproval> RenewalDialog { get; set; }
 
-        public PairingApproval Ask(PairingRequest request, TimeSpan timeout)
+        public PairingApproval Ask(PairingRequest request, TimeSpan timeout, TimeSpan left)
         {
             if (request == null)
             {
@@ -129,16 +143,17 @@ namespace KeePassGate.Ui
             }
 
             return OnScreen(
-                () => Dialog(request, timeout),
+                allowed => Dialog(request, allowed),
                 request.DatabaseId,
                 timeout,
+                left,
                 "pairing",
                 PairingApproval.Unavailable,
                 PairingApproval.TimedOut,
                 PairingApproval.LockedWhileWaiting);
         }
 
-        public RenewalApproval Ask(RenewalRequest request, TimeSpan timeout)
+        public RenewalApproval Ask(RenewalRequest request, TimeSpan timeout, TimeSpan left)
         {
             if (request == null)
             {
@@ -146,9 +161,10 @@ namespace KeePassGate.Ui
             }
 
             return OnScreen(
-                () => RenewalDialog(request, timeout),
+                allowed => RenewalDialog(request, allowed),
                 request.DatabaseId,
                 timeout,
+                left,
                 "renewal",
                 RenewalApproval.Unavailable,
                 RenewalApproval.TimedOut,
@@ -219,6 +235,14 @@ namespace KeePassGate.Ui
         /// <summary>
         /// Waits for the screen, puts a dialog on it, and waits for the answer.
         /// </summary>
+        /// <param name="dialog">Shows the dialog for as long as it is handed.</param>
+        /// <param name="timeout">
+        /// How long the operator is given, and how long this waits for the screen.
+        /// </param>
+        /// <param name="left">
+        /// How long from now the dialog may stand at most, so that what follows it still fits the
+        /// pairing budget.
+        /// </param>
         /// <param name="what">What is being asked, for the log: a pairing or a renewal.</param>
         /// <param name="lockedWhileWaiting">
         /// The answer for a request whose database locked or closed while it waited for the screen,
@@ -226,9 +250,10 @@ namespace KeePassGate.Ui
         /// unanswered.
         /// </param>
         private TAnswer OnScreen<TAnswer>(
-            Func<TAnswer> dialog,
+            Func<TimeSpan, TAnswer> dialog,
             string databaseId,
             TimeSpan timeout,
+            TimeSpan left,
             string what,
             Func<string, TAnswer> unavailable,
             Func<TAnswer> timedOut,
@@ -312,7 +337,35 @@ namespace KeePassGate.Ui
                                     return;
                                 }
 
-                                answer = dialog();
+                                // **What is left of the pairing budget, and never more than the
+                                // operator's own time.** The dialog's countdown starts when it is
+                                // built, so a dialog that came up behind another, or behind a busy
+                                // KeePass, used to give the operator the whole of their time on
+                                // purpose, and took the pairing past its budget: the socket closed
+                                // under the write, with the invitation spent and the record saved
+                                // and no certificate handed back. The operator's ruling of
+                                // 2026-11-16 gives it what is left instead, which its countdown
+                                // starts from, and shows nothing that could not be read.
+                                var remaining = left - waiting.Elapsed;
+                                if (remaining < Shortest)
+                                {
+                                    _log.Warn("the " + what + " dialog was not shown, because only " +
+                                              Seconds(remaining) + " s of the time its connection " +
+                                              "is given was left when it could come up");
+                                    answer = unavailable(
+                                        "too little of its time was left to put it to the operator");
+                                    return;
+                                }
+
+                                if (remaining < timeout)
+                                {
+                                    _log.Info("the " + what + " dialog came up late, so the operator " +
+                                              "was given " + Seconds(remaining) + " s to answer it");
+                                    answer = dialog(remaining);
+                                    return;
+                                }
+
+                                answer = dialog(timeout);
                             },
                             timeout + Grace);
                     }
@@ -345,10 +398,11 @@ namespace KeePassGate.Ui
                 // says false for work it withdrew before it began and for work that began too late
                 // to finish inside the wait, which it then waits out. The dialog's own countdown
                 // starts when the dialog is built, so a thread that reached the dialog late gave the
-                // operator their whole two minutes after this wait was over, and what they decided
-                // is here. Answering a timeout instead turned a refusal into one that spends
-                // nothing, so the client could raise the dialog again, and an approval into nothing
-                // issued.
+                // operator what was left of the pairing budget after this wait was over, and what
+                // they decided is here. That used to be their whole two minutes, deliberately,
+                // which is reversed where the dialog is built above. Answering a timeout instead
+                // turned a refusal into one that spends nothing, so the client could raise the
+                // dialog again, and an approval into nothing issued.
                 if (!shown)
                 {
                     _log.Warn("the " + what + " dialog was shown late, and its answer is the one given");
@@ -369,6 +423,13 @@ namespace KeePassGate.Ui
         private bool Quiet(TimeSpan left)
         {
             return _writes == null || _writes.Quiet(left < TimeSpan.Zero ? TimeSpan.Zero : left);
+        }
+
+        /// <summary>A span as the log writes it, in whole seconds and never below none.</summary>
+        private static string Seconds(TimeSpan span)
+        {
+            return Math.Max(0, (int)span.TotalSeconds)
+                .ToString(System.Globalization.CultureInfo.InvariantCulture);
         }
 
         /// <summary>

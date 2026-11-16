@@ -131,7 +131,9 @@ refused without anybody having to remember to take it away, and a program that i
 to renew before then, which is a dialog like this one with no invitation to hand out first, as
 [`clients.md`](clients.md#expiry) states.
 
-The dialog closes itself after a couple of minutes and issues nothing when it does. An unanswered
+The dialog closes itself when the countdown beside its buttons runs out, after two minutes, or
+less when it came up behind another request and the program's time was running short, and issues
+nothing when it does. An unanswered
 request is not a refusal in one respect: the invitation is not spent, so the program can try again.
 A refusal does spend it.
 

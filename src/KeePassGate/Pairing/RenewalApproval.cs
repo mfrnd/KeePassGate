@@ -180,7 +180,16 @@ namespace KeePassGate.Pairing
     /// <summary>Asks the operator about a renewal and waits for the answer.</summary>
     public interface IRenewalApproval
     {
-        RenewalApproval Ask(RenewalRequest request, TimeSpan timeout);
+        /// <summary>Puts the renewal to the operator and answers with what they decided.</summary>
+        /// <param name="request">What the operator is asked about.</param>
+        /// <param name="timeout">
+        /// How long the operator is given to answer a dialog shown at once.
+        /// </param>
+        /// <param name="left">
+        /// How long from now a dialog may stand at most, as for a pairing:
+        /// <see cref="PairingOptions.DialogLeft"/>.
+        /// </param>
+        RenewalApproval Ask(RenewalRequest request, TimeSpan timeout, TimeSpan left);
     }
 
     /// <summary>What a plugin with no screen answers: nothing is renewed and nothing is stored.</summary>
@@ -188,7 +197,7 @@ namespace KeePassGate.Pairing
     {
         public static readonly NoRenewalApproval Instance = new NoRenewalApproval();
 
-        public RenewalApproval Ask(RenewalRequest request, TimeSpan timeout)
+        public RenewalApproval Ask(RenewalRequest request, TimeSpan timeout, TimeSpan left)
         {
             return RenewalApproval.Unavailable("there is no screen to ask");
         }
