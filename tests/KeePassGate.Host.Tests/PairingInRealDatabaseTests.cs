@@ -1311,7 +1311,7 @@ namespace KeePassGate.Host.Tests
         /// <summary>An operator who agrees to exactly what was asked for.</summary>
         private sealed class AgreeingOperator : IPairingApproval
         {
-            public PairingApproval Ask(PairingRequest request, TimeSpan timeout)
+            public PairingApproval Ask(PairingRequest request, TimeSpan timeout, TimeSpan left)
             {
                 return PairingApproval.Approved(request.Profiles);
             }
@@ -1327,7 +1327,7 @@ namespace KeePassGate.Host.Tests
                 _look = look;
             }
 
-            public PairingApproval Ask(PairingRequest request, TimeSpan timeout)
+            public PairingApproval Ask(PairingRequest request, TimeSpan timeout, TimeSpan left)
             {
                 _look(request);
                 return PairingApproval.Refused();

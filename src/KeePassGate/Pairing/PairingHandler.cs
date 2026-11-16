@@ -60,7 +60,42 @@ namespace KeePassGate.Pairing
         /// short enough that an unanswered pairing frees the connection rather than holding it. A
         /// timeout does not spend the invitation.
         /// </summary>
+        /// <remarks>
+        /// What a dialog shown at once is given. A dialog that comes up late is given what is
+        /// left of the pairing budget instead, when that is less: <see cref="DialogLeft"/>.
+        /// </remarks>
         public TimeSpan ApprovalTimeout { get; set; }
+
+        /// <summary>
+        /// What a pairing or a renewal still waits for once its dialog has closed, as the pairing
+        /// budget is added up: the grace the prompt keeps beyond the dialog, a busy KeePass
+        /// settling, and the turn at the writer and the write.
+        /// </summary>
+        public TimeSpan AfterTheDialog
+        {
+            get
+            {
+                return Ui.PairingApprovalPrompt.Grace + ApprovalSettle
+                    + Bridge.DatabaseWriter.LockTimeout + Bridge.DatabaseWriter.WriteTimeout;
+            }
+        }
+
+        /// <summary>
+        /// How long a dialog asked for now may stand, so that what follows it still ends inside
+        /// the pairing budget the request arrived in.
+        /// </summary>
+        /// <remarks>
+        /// The budget as <see cref="ApprovalHeld"/> holds it, counted from when the request
+        /// arrived, less <see cref="AfterTheDialog"/>. A dialog that comes up late, behind another
+        /// on the screen or behind a busy KeePass, is given this rather than the whole of
+        /// <see cref="ApprovalTimeout"/> when it is less, and is not shown at all when it is less
+        /// than <see cref="Ui.PairingApprovalPrompt.Shortest"/>. `DESIGN.md` §119 has the
+        /// arithmetic.
+        /// </remarks>
+        internal TimeSpan DialogLeft(PairingMoment arrived, PairingClock clock)
+        {
+            return arrived.After(ApprovalHeld - AfterTheDialog).Elapsed - clock.Elapsed;
+        }
     }
 
     /// <summary>
@@ -495,7 +530,9 @@ namespace KeePassGate.Pairing
             PairingApproval decision;
             try
             {
-                decision = _approval.Ask(request, _options.ApprovalTimeout) ?? PairingApproval.TimedOut();
+                var left = _options.DialogLeft(arrived, _clock);
+                decision = _approval.Ask(request, _options.ApprovalTimeout, left)
+                    ?? PairingApproval.TimedOut();
             }
             catch (Exception error) when (Expected.OfUserInterface(error))
             {

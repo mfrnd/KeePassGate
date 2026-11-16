@@ -367,7 +367,9 @@ namespace KeePassGate.Pairing
             RenewalApproval decision;
             try
             {
-                decision = _approval.Ask(request, _options.ApprovalTimeout) ?? RenewalApproval.TimedOut();
+                var left = _options.DialogLeft(arrived, _clock);
+                decision = _approval.Ask(request, _options.ApprovalTimeout, left)
+                    ?? RenewalApproval.TimedOut();
             }
             catch (Exception error) when (Expected.OfUserInterface(error))
             {

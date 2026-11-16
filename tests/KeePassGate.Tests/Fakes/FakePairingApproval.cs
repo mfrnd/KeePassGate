@@ -29,6 +29,9 @@ namespace KeePassGate.Tests.Fakes
 
         public TimeSpan LastTimeout { get; private set; }
 
+        /// <summary>How long the dialog was told it may stand at most, for the budget.</summary>
+        public TimeSpan LastLeft { get; private set; }
+
         public Exception Throws { get; set; }
 
         /// <summary>
@@ -52,11 +55,12 @@ namespace KeePassGate.Tests.Fakes
             return new FakePairingApproval(PairingApproval.TimedOut());
         }
 
-        public PairingApproval Ask(PairingRequest request, TimeSpan timeout)
+        public PairingApproval Ask(PairingRequest request, TimeSpan timeout, TimeSpan left)
         {
             Asked++;
             LastRequest = request;
             LastTimeout = timeout;
+            LastLeft = left;
 
             if (Thinks > TimeSpan.Zero)
             {
@@ -79,7 +83,7 @@ namespace KeePassGate.Tests.Fakes
 
         public IReadOnlyList<string> LastProfiles { get; private set; }
 
-        public PairingApproval Ask(PairingRequest request, TimeSpan timeout)
+        public PairingApproval Ask(PairingRequest request, TimeSpan timeout, TimeSpan left)
         {
             Asked++;
             LastProfiles = request.Profiles;

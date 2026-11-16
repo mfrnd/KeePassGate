@@ -853,7 +853,7 @@ namespace KeePassGate.Tests
         [Test]
         public void A_plugin_with_no_screen_renews_nothing_and_says_why()
         {
-            var answer = NoRenewalApproval.Instance.Ask(Request(new[] { "reader" }, 40), Timeout);
+            var answer = NoRenewalApproval.Instance.Ask(Request(new[] { "reader" }, 40), Timeout, Timeout);
 
             Assert.That(answer.Decision, Is.EqualTo(PairingDecision.Unavailable));
             Assert.That(answer.Reason, Is.Not.Empty);

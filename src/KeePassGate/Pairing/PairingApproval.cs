@@ -336,7 +336,16 @@ namespace KeePassGate.Pairing
     /// </remarks>
     public interface IPairingApproval
     {
-        PairingApproval Ask(PairingRequest request, TimeSpan timeout);
+        /// <summary>Puts the request to the operator and answers with what they decided.</summary>
+        /// <param name="request">What the operator is asked about.</param>
+        /// <param name="timeout">
+        /// How long the operator is given to answer a dialog shown at once.
+        /// </param>
+        /// <param name="left">
+        /// How long from now a dialog may stand at most, so that what follows it still ends inside
+        /// the pairing budget the request arrived in: <see cref="PairingOptions.DialogLeft"/>.
+        /// </param>
+        PairingApproval Ask(PairingRequest request, TimeSpan timeout, TimeSpan left);
     }
 
     /// <summary>What a plugin with no screen answers: nothing is approved and nothing is spent.</summary>
@@ -344,7 +353,7 @@ namespace KeePassGate.Pairing
     {
         public static readonly NoPairingApproval Instance = new NoPairingApproval();
 
-        public PairingApproval Ask(PairingRequest request, TimeSpan timeout)
+        public PairingApproval Ask(PairingRequest request, TimeSpan timeout, TimeSpan left)
         {
             return PairingApproval.Unavailable("there is no screen to ask");
         }

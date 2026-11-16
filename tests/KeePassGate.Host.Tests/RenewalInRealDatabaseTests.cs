@@ -697,7 +697,7 @@ namespace KeePassGate.Host.Tests
                     _meanwhile = meanwhile;
                 }
 
-                public RenewalApproval Ask(RenewalRequest request, TimeSpan timeout)
+                public RenewalApproval Ask(RenewalRequest request, TimeSpan timeout, TimeSpan left)
                 {
                     _renewal.Asked++;
                     _renewal.LastRequest = request;
