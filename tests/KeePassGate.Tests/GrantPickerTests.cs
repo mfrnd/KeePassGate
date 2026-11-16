@@ -791,6 +791,98 @@ namespace KeePassGate.Tests
         }
 
         [Test]
+        public void A_closing_pickers_work_that_fails_is_shown_on_the_tab_as_a_choice_not_applied()
+        {
+            // What a picker's close does runs a message later, posted, and what the user interface
+            // throws there is caught by name and put on the tab, with the choice left off the
+            // table. Giving the dialog its accept button back is the first thing it does.
+            Using(
+                Rules.Granting(("reader", "R")),
+                (form, panel, grid) =>
+                {
+                    var accept = new RefusingButton();
+                    form.Controls.Add(accept);
+                    form.AcceptButton = accept;
+
+                    panel.Press(0, MaskColumn);
+                    OffScreenForm.Pump();
+                    Assert.That(panel.Picking, Is.True, "nothing opened, so nothing below is measured");
+
+                    accept.Refuses = true;
+                    panel.Type(Keys.L);
+                    panel.ClosePicker();
+                    OffScreenForm.Pump();
+                    accept.Refuses = null;
+
+                    Assert.That(panel.Warning, Is.EqualTo("That choice could not be applied: " + RefusingButton.Refusal));
+                    Assert.That(panel.Lines, Is.EqualTo(new[] { "reader .R......" }));
+                    Assert.That(panel.Writes, Is.Zero);
+                    Assert.That(_loop, Is.Empty);
+                });
+        }
+
+        [Test]
+        public void A_closed_picker_that_cannot_be_let_go_of_is_shown_on_the_tab_as_not_closed()
+        {
+            // The same posted work, failing where its own catch does not reach: in letting go of
+            // the dropdown, after the choice was taken. `Later` catches that by name instead.
+            Using(
+                Rules.Granting(("reader", "R")),
+                (form, panel, grid) =>
+                {
+                    panel.Press(0, MaskColumn);
+                    OffScreenForm.Pump();
+                    Assert.That(panel.Picking, Is.True, "nothing opened, so nothing below is measured");
+
+                    var open = (ToolStripDropDown)typeof(GrantPanel)
+                        .GetField("_open", BindingFlags.Instance | BindingFlags.NonPublic).GetValue(panel);
+                    var thrown = false;
+                    open.Disposed += (sender, e) =>
+                    {
+                        if (!thrown)
+                        {
+                            thrown = true;
+                            throw new InvalidOperationException(RefusingButton.Refusal);
+                        }
+                    };
+
+                    panel.ClosePicker();
+                    OffScreenForm.Pump();
+
+                    Assert.That(thrown, Is.True, "the dropdown was never let go of, so nothing below is measured");
+                    Assert.That(panel.Warning, Is.EqualTo("That picker could not be closed: " + RefusingButton.Refusal));
+                    Assert.That(_loop, Is.Empty);
+                });
+        }
+
+        [Test]
+        public void A_rule_picker_that_fails_to_open_after_a_profile_is_shown_on_the_tab_as_not_opened()
+        {
+            // Choosing a profile opens its rule picker a message later, through `Later`, and taking
+            // the dialog's accept button away is the first thing a picker does as it opens.
+            Using((form, panel, grid) =>
+            {
+                var accept = new RefusingButton();
+                form.Controls.Add(accept);
+                form.AcceptButton = accept;
+
+                panel.Press(grid.NewRowIndex, ProfileColumn);
+                OffScreenForm.Pump();
+                Assert.That(panel.Picking, Is.True, "nothing opened, so nothing below is measured");
+
+                accept.Refuses = false;
+                panel.Type(Keys.Enter);
+                OffScreenForm.Pump();
+                accept.Refuses = null;
+
+                Assert.That(panel.Warning, Is.EqualTo("That picker could not be opened: " + RefusingButton.Refusal));
+                Assert.That(panel.Lines, Is.EqualTo(new[] { "ops ........" }), "and the profile chosen is on the table");
+                Assert.That(panel.Picking, Is.False);
+                Assert.That(_loop, Is.Empty);
+            });
+        }
+
+        [Test]
         public void A_database_naming_no_profiles_says_so_twice_rather_than_once()
         {
             // The state a database is in before anything has been set up at all: no authority, no
@@ -1028,6 +1120,35 @@ namespace KeePassGate.Tests
         private void OnThreadException(object sender, ThreadExceptionEventArgs e)
         {
             _loop.Add(e.Exception);
+        }
+
+        /// <summary>
+        /// An accept button that throws, once told to, when it is made the dialog's default or when
+        /// it stops being it.
+        /// </summary>
+        /// <remarks>
+        /// What the user interface throws, and from where a picker meets it: a picker takes the
+        /// dialog's accept button away as it opens and gives it back as its close finishes.
+        /// </remarks>
+        private sealed class RefusingButton : Button
+        {
+            public const string Refusal = "the default button would not change";
+
+            /// <summary>
+            /// Which change throws: true for becoming the default, false for no longer being it,
+            /// and null for neither.
+            /// </summary>
+            public bool? Refuses { get; set; }
+
+            public override void NotifyDefault(bool value)
+            {
+                if (Refuses == value)
+                {
+                    throw new InvalidOperationException(Refusal);
+                }
+
+                base.NotifyDefault(value);
+            }
         }
 
         /// <summary>
