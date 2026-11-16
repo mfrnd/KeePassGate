@@ -258,6 +258,14 @@ stills it parks the pointer clear of each window before the picture is taken, so
 covers what the picture shows, and chooses from the menu one picture leaves open once it has been
 taken.
 
+**A grant picker its dialog goes out from under**, in `LiveGrantPickerCloseTests`: the profile
+picker opened with the pointer on the group dialog's KPG tab, and the dialog then closed by a close
+posted to its window, as another program closes it. An operator's own ways of leaving the dialog
+close the picker first; this leaves it open, and WinForms closes it after the dialog has gone.
+KeePass goes on running and then exits cleanly, and the plugin logs no warning. The two are separate
+tests, so that a picker the plugin could not let go of for want of a window fails the second and
+not the first. `GrantPickerTests` holds the same sequence in the unit tier, on a form of its own.
+
 **A client's own certificate**, in `LiveCertificateTests` and `LiveRenewalTests`. A client revokes
 the certificate it presents and is refused on its very next connection, and the revocation is in the
 `.kdbx` after KeePass has exited. And an admitted client asks to renew: the renewal dialog is a real
