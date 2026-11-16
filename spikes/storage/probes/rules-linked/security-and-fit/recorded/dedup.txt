@@ -1,0 +1,5 @@
+
+== dedup: group U (opened to agent read,list, with its link and X, Y, Z) duplicated beside itself as Duplicate Group does (PwGroup.Duplicate, added to the same parent), then KeePass's Delete Duplicate Entries ==
+  after Duplicate Group: Q@C=- | V@W=- | X@U - Copy=-[copy] | X@U=-[agree] | Y@U - Copy=- | Y@U=list,read | Z@U - Copy=- | Z@U=list,read  || groups S:agree, U - Copy:copy, U:agree
+  Delete Duplicate Entries deleted 4; U still holds 0 entries, its own link gone; U - Copy holds 4
+  after:  Q@C=- | V@W=- | X@U - Copy=-[copy] | Y@U - Copy=- | Z@U - Copy=-  || groups S:agree, U - Copy:copy, U:unconfirmed

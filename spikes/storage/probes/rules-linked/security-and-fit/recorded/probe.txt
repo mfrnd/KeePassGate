@@ -1,0 +1,61 @@
+critique probe run 2026-11-15T17:42:11.7381950Z, KeePassLib 2.62; the design's model from rules-linked\probe\Program.cs; profile read: agent
+
+== plant-confirm: a foreign file brings a rule for entry Q (under the seal S, no rule) and entry Y (in U, agent read,list), each with an OLDER copy of the entry carrying the planted anchor ==
+  victim before: Q -; Y list,read
+  KeePassLib Synchronize:
+    after the merge: Q - [unconfirmed], Q carries the planted anchor False, Q's history carries it True, Q's password is the victim's True
+                     Y list,read [unconfirmed], Y carries the planted anchor False, Y's history carries it True, Y's password is the victim's True
+    after Confirm:   Q list,protected,read [agree] (password the victim's True); Y list,protected,read [agree] (password the victim's True)
+  KeePassLib KeepExisting:
+    after the merge: Q - [unconfirmed], Q carries the planted anchor False, Q's history carries it True, Q's password is the victim's True
+                     Y list,read [unconfirmed], Y carries the planted anchor False, Y's history carries it True, Y's password is the victim's True
+    after Confirm:   Q list,protected,read [agree] (password the victim's True); Y list,protected,read [agree] (password the victim's True)
+  KeePassLib OverwriteIfNewer:
+    after the merge: Q - [unconfirmed], Q carries the planted anchor False, Q's history carries it True, Q's password is the victim's True
+                     Y list,read [unconfirmed], Y carries the planted anchor False, Y's history carries it True, Y's password is the victim's True
+    after Confirm:   Q list,protected,read [agree] (password the victim's True); Y list,protected,read [agree] (password the victim's True)
+  KeePassLib OverwriteExisting:
+    after the merge: Q list,protected,read [agree], Q carries the planted anchor True, Q's history carries it False, Q's password is the victim's False
+                     Y list,protected,read [agree], Y carries the planted anchor True, Y's history carries it False, Y's password is the victim's False
+    after Confirm:   Q list,protected,read [agree] (password the victim's False); Y list,protected,read [agree] (password the victim's False)
+  keepassxc-cli 2.8.0 merge -s (exit 0):
+    after the merge: Q - [unconfirmed], Q carries the planted anchor False, Q's history carries it True, Q's password is the victim's True
+                     Y list,read [unconfirmed], Y carries the planted anchor False, Y's history carries it True, Y's password is the victim's True
+    after Confirm:   Q list,protected,read [agree] (password the victim's True); Y list,protected,read [agree] (password the victim's True)
+  keepassxc-cli 2.4.2 merge -s (exit 0):
+    after the merge: Q - [unconfirmed], Q carries the planted anchor False, Q's history carries it True, Q's password is the victim's True
+                     Y list,read [unconfirmed], Y carries the planted anchor False, Y's history carries it True, Y's password is the victim's True
+    after Confirm:   Q list,protected,read [agree] (password the victim's True); Y list,protected,read [agree] (password the victim's True)
+
+== midsave: U's rule changed from agent read,list to agent nothing, applied from inside the save's progress callback while the serializer is writing W's first entry; the plugin marks the database modified ==
+
+  root's groups in order: KeePassGate, KeePassGate rules, U, S, W; trigger after entry 13 of 13
+  before:            Y list,read
+  save: completed; the change ran True; Modified after the save False
+  in memory:         Y -
+  the file reopened: Y list,read  || Q@C=- | V@W=- | X@U=-[agree] | Y@U=list,read | Z@U=list,read  || groups S:agree, U:agree
+
+  root's groups in order: U, S, W, KeePassGate rules, KeePassGate; trigger after entry 7 of 13
+  before:            Y list,read
+  save: completed; the change ran True; Modified after the save False
+  in memory:         Y -
+  the file reopened: Y -  || Q@C=- | V@W=- | X@U=-[agree] | Y@U=- | Z@U=-  || groups S:agree, U:agree
+
+== paste: every entry of the sealed group S selected (its link and entry P), copied and pasted into U (opened to agent read,list) through KdbxFile.WriteEntries and ReadEntries, the path of KeePass's Copy and Paste Entries ==
+  before: P@S=- | Q@C=- | V@W=- | X@U=-[agree] | Y@U=list,read | Z@U=list,read  || groups S:agree, U:agree
+  after:  P@S=- | P@U=- | Q@C=- | V@W=- | X@U=-[agree] | Y@U=- | Z@U=-  || groups S:agree, U:agree+copy
+
+== template: group T is the templates group and is sealed, so its link entry sits among the templates; the operator picks it from Add Entry's template menu (PwEntry.Duplicate, History.Clear, as EntryTemplates.OnMenuExecute) and fills it in, in group U ==
+  the template menu lists: Web login, KeePassGate link
+  before: Q@C=- | V@W=- | Web login@Templates=- | X@U=-[agree] | Y@U=list,read | Z@U=list,read  || groups S:agree, Templates:agree, U:agree
+  after:  Q@C=- | V@W=- | Web login@Templates=- | X@U=-[agree] | Y@U=- | Z@U=-  || groups S:agree, Templates:agree, U:agree+copy
+  the new entry 'bank login' carries KPG.Kind=link, so the design's guard leaves it out of every route; its identifier is its KPG.Anchor False
+
+== otherdb: entry X (ruled) pasted into another database, and group U (ruled, with its link) copied there as the group clipboard does (new identifiers throughout) ==
+  the second database: K@H=list,read | X@H=REFUSE(itself: it refers to a rule that is not in this database)[dangling] | X@U copied=REFUSE(itself: it refers to a rule that is not in this database)[dangling] | Y@U copied=REFUSE(U copied: it refers to a rule that is not in this database) | Z@U copied=REFUSE(U copied: it refers to a rule that is not in this database)  || groups H:agree, U copied:dangling
+
+== delgroup: group R (ruled, holding only its link) removed in copy A the way KdbxVault's permanent path removes an empty group (one deletion record, the group's); B unchanged; then synchronized ==
+  deletion records for the group only, Synchronize into A: group R is back, holding 1 entry
+  deletion records for the group only, Synchronize into B: group R is back, holding 1 entry
+  deletion records for the group and its link, Synchronize into A: group R is gone
+  deletion records for the group and its link, Synchronize into B: group R is gone

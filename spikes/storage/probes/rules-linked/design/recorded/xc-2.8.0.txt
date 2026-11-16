@@ -1,0 +1,84 @@
+probe run 2026-11-15T17:17:32.3246471Z, KeePassLib 2.62, xc
+store group FE4040A9E0FAE884FA8BECAEEE9FBB46, rules group 7D510F67A71D521BFB9BCB9B9E62A4D8, profile read: agent
+
+== KeePassXC 2.8.0: keepassxc-cli, every result read back with KeePassLib 2.62 ==
+a plain save (add, exit 0), file then KDBX 4.0: every plugin entry and every entry carrying KPG.Anchor unchanged in identifier, group, time, history count and strings: NO
+was:
+3997B56AAC40A0269F21779C5A1845EA in KeePassGate 2026-01-01T00:00:00.0000000Z h0 KPG.After=none; KPG.Anchor=95CE46ADAABF7D9FB78DCB29C218918A; KPG.Kind=issued; KPG.Node=group/16ADD6D7D79AF8A91E51BA2AFF7494BF; KPG.Version=FD0E16B302ACDB8F3D56476154032A92; Notes=KeePassGate data. Managed on the KPG tab in KeePass.; Password[p]=(0 chars); Title=KPG rule record 95CE46AD FD0E16B3; URL=; UserName=; 
+411ECF2507931E17404B395CAB04D01B in U 2026-01-01T00:00:00.0000000Z h0 KPG.Anchor=5B81CC0361F024B85BEE69608DCB16ED; Password[p]=(10 chars); Title=X; 
+9232A07ACD3DFF1849394980F39291BC in U 2026-01-01T00:00:00.0000000Z h0 KPG.Anchor=9232A07ACD3DFF1849394980F39291BC; KPG.Kind=link; Notes=KeePassGate data. Managed on the KPG tab in KeePass.; Password[p]=(0 chars); Title=KeePassGate link; URL=; UserName=; 
+95CE46ADAABF7D9FB78DCB29C218918A in S 2026-01-01T00:00:00.0000000Z h0 KPG.Anchor=95CE46ADAABF7D9FB78DCB29C218918A; KPG.Kind=link; Notes=KeePassGate data. Managed on the KPG tab in KeePass.; Password[p]=(0 chars); Title=KeePassGate link; URL=; UserName=; 
+B85A30DFB25ED997211E3EA918EB9F35 in KeePassGate 2026-01-01T00:00:00.0000000Z h0 KPG.After=none; KPG.Anchor=9232A07ACD3DFF1849394980F39291BC; KPG.Kind=issued; KPG.Node=group/D83A771310A28ED5FAC0CFBE3BE15FB1; KPG.Version=BD6AD2BE6AEF449E7F72134E176F7F86; Notes=KeePassGate data. Managed on the KPG tab in KeePass.; Password[p]=(0 chars); Title=KPG rule record 9232A07A BD6AD2BE; URL=; UserName=; 
+BD6AD2BE6AEF449E7F72134E176F7F86 in KeePassGate rules 2026-01-01T00:00:00.0000000Z h0 KPG.After=none; KPG.Anchor=9232A07ACD3DFF1849394980F39291BC; KPG.Data={"default":"inherit","agent":["read","list"]}; KPG.Kind=rule; KPG.Lost=none; KPG.Node=group/D83A771310A28ED5FAC0CFBE3BE15FB1; KPG.Nonce=29C22AD0E51F7E91E4951468FD6BF5AA; Notes=KeePassGate data. Managed on the KPG tab in KeePass.; Password[p]=(0 chars); Title=KPG rule 9232A07A; URL=; UserName=; 
+D1D8FE32560394DAC774452482DA6E53 in KeePassGate 2026-01-01T00:00:00.0000000Z h0 KPG.After=none; KPG.Anchor=5B81CC0361F024B85BEE69608DCB16ED; KPG.Kind=issued; KPG.Node=entry/411ECF2507931E17404B395CAB04D01B; KPG.Version=E906870AC533FBCA188A17A07D9EF9FC; Notes=KeePassGate data. Managed on the KPG tab in KeePass.; Password[p]=(0 chars); Title=KPG rule record 5B81CC03 E906870A; URL=; UserName=; 
+E906870AC533FBCA188A17A07D9EF9FC in KeePassGate rules 2026-01-01T00:00:00.0000000Z h0 KPG.After=none; KPG.Anchor=5B81CC0361F024B85BEE69608DCB16ED; KPG.Data={"default":"inherit","agent":[]}; KPG.Kind=rule; KPG.Lost=none; KPG.Node=entry/411ECF2507931E17404B395CAB04D01B; KPG.Nonce=91340AC1155447A9A2C0C0F7F65CBDC5; Notes=KeePassGate data. Managed on the KPG tab in KeePass.; Password[p]=(0 chars); Title=KPG rule 5B81CC03; URL=; UserName=; 
+FD0E16B302ACDB8F3D56476154032A92 in KeePassGate rules 2026-01-01T00:00:00.0000000Z h0 KPG.After=none; KPG.Anchor=95CE46ADAABF7D9FB78DCB29C218918A; KPG.Data={"default":"deny"}; KPG.Kind=rule; KPG.Lost=none; KPG.Node=group/16ADD6D7D79AF8A91E51BA2AFF7494BF; KPG.Nonce=547AB48910ACA680E118238D96BA629B; Notes=KeePassGate data. Managed on the KPG tab in KeePass.; Password[p]=(0 chars); Title=KPG rule 95CE46AD; URL=; UserName=; 
+now:
+3997B56AAC40A0269F21779C5A1845EA in KeePassGate 2026-01-01T00:00:00.0000000Z h0 KPG.After=none; KPG.Anchor=95CE46ADAABF7D9FB78DCB29C218918A; KPG.Kind=issued; KPG.Node=group/16ADD6D7D79AF8A91E51BA2AFF7494BF; KPG.Version=FD0E16B302ACDB8F3D56476154032A92; Notes=KeePassGate data. Managed on the KPG tab in KeePass.; Password[p]=(0 chars); Title=KPG rule record 95CE46AD FD0E16B3; URL=; UserName=; 
+411ECF2507931E17404B395CAB04D01B in U 2026-01-01T00:00:00.0000000Z h0 KPG.Anchor=5B81CC0361F024B85BEE69608DCB16ED; Notes=; Password[p]=(10 chars); Title=X; URL=; UserName=; 
+9232A07ACD3DFF1849394980F39291BC in U 2026-01-01T00:00:00.0000000Z h0 KPG.Anchor=9232A07ACD3DFF1849394980F39291BC; KPG.Kind=link; Notes=KeePassGate data. Managed on the KPG tab in KeePass.; Password[p]=(0 chars); Title=KeePassGate link; URL=; UserName=; 
+95CE46ADAABF7D9FB78DCB29C218918A in S 2026-01-01T00:00:00.0000000Z h0 KPG.Anchor=95CE46ADAABF7D9FB78DCB29C218918A; KPG.Kind=link; Notes=KeePassGate data. Managed on the KPG tab in KeePass.; Password[p]=(0 chars); Title=KeePassGate link; URL=; UserName=; 
+B85A30DFB25ED997211E3EA918EB9F35 in KeePassGate 2026-01-01T00:00:00.0000000Z h0 KPG.After=none; KPG.Anchor=9232A07ACD3DFF1849394980F39291BC; KPG.Kind=issued; KPG.Node=group/D83A771310A28ED5FAC0CFBE3BE15FB1; KPG.Version=BD6AD2BE6AEF449E7F72134E176F7F86; Notes=KeePassGate data. Managed on the KPG tab in KeePass.; Password[p]=(0 chars); Title=KPG rule record 9232A07A BD6AD2BE; URL=; UserName=; 
+BD6AD2BE6AEF449E7F72134E176F7F86 in KeePassGate rules 2026-01-01T00:00:00.0000000Z h0 KPG.After=none; KPG.Anchor=9232A07ACD3DFF1849394980F39291BC; KPG.Data={"default":"inherit","agent":["read","list"]}; KPG.Kind=rule; KPG.Lost=none; KPG.Node=group/D83A771310A28ED5FAC0CFBE3BE15FB1; KPG.Nonce=29C22AD0E51F7E91E4951468FD6BF5AA; Notes=KeePassGate data. Managed on the KPG tab in KeePass.; Password[p]=(0 chars); Title=KPG rule 9232A07A; URL=; UserName=; 
+D1D8FE32560394DAC774452482DA6E53 in KeePassGate 2026-01-01T00:00:00.0000000Z h0 KPG.After=none; KPG.Anchor=5B81CC0361F024B85BEE69608DCB16ED; KPG.Kind=issued; KPG.Node=entry/411ECF2507931E17404B395CAB04D01B; KPG.Version=E906870AC533FBCA188A17A07D9EF9FC; Notes=KeePassGate data. Managed on the KPG tab in KeePass.; Password[p]=(0 chars); Title=KPG rule record 5B81CC03 E906870A; URL=; UserName=; 
+E906870AC533FBCA188A17A07D9EF9FC in KeePassGate rules 2026-01-01T00:00:00.0000000Z h0 KPG.After=none; KPG.Anchor=5B81CC0361F024B85BEE69608DCB16ED; KPG.Data={"default":"inherit","agent":[]}; KPG.Kind=rule; KPG.Lost=none; KPG.Node=entry/411ECF2507931E17404B395CAB04D01B; KPG.Nonce=91340AC1155447A9A2C0C0F7F65CBDC5; Notes=KeePassGate data. Managed on the KPG tab in KeePass.; Password[p]=(0 chars); Title=KPG rule 5B81CC03; URL=; UserName=; 
+FD0E16B302ACDB8F3D56476154032A92 in KeePassGate rules 2026-01-01T00:00:00.0000000Z h0 KPG.After=none; KPG.Anchor=95CE46ADAABF7D9FB78DCB29C218918A; KPG.Data={"default":"deny"}; KPG.Kind=rule; KPG.Lost=none; KPG.Node=group/16ADD6D7D79AF8A91E51BA2AFF7494BF; KPG.Nonce=547AB48910ACA680E118238D96BA629B; Notes=KeePassGate data. Managed on the KPG tab in KeePass.; Password[p]=(0 chars); Title=KPG rule 95CE46AD; URL=; UserName=; 
+  before: Q@C=- | V@W=- | X@U=-[agree] | Y@U=list,read | Z@U=list,read  || groups S:agree, U:agree
+  after:  Q@C=- | V@W=- | X@U=-[agree] | Y@U=list,read | Z@U=list,read | xc-added@W=-  || groups S:agree, U:agree
+an edit of X's user name (edit -u, exit 0): X's KPG.Anchor kept True, user name now 'edited-in-xc', history items 1, the history item carries KPG.Anchor True
+  after:  Q@C=- | V@W=- | X@U=-[agree] | Y@U=list,read | Z@U=list,read | xc-added@W=-  || groups S:agree, U:agree
+
+xc2.8.0-01: A gives Y its first rule, a narrowing (agent: nothing), at +10; B changes Y's password at +20
+  into A (exit 0): Q@C=- | V@W=- | X@U=-[agree] | Y@U=-[unconfirmed] | Z@U=list,read  || groups S:agree, U:agree  (X back ref yes, Y back ref no, V back ref no)
+  into B (exit 0): Q@C=- | V@W=- | X@U=-[agree] | Y@U=-[unconfirmed] | Z@U=list,read  || groups S:agree, U:agree  (X back ref yes, Y back ref no, V back ref no)
+
+xc2.8.0-02: A gives V its first rule, a grant (agent: read), at +10; B changes V's password at +20
+  into A (exit 0): Q@C=- | V@W=-[unconfirmed] | X@U=-[agree] | Y@U=list,read | Z@U=list,read  || groups S:agree, U:agree  (X back ref yes, Y back ref no, V back ref no)
+  into B (exit 0): Q@C=- | V@W=-[unconfirmed] | X@U=-[agree] | Y@U=list,read | Z@U=list,read  || groups S:agree, U:agree  (X back ref yes, Y back ref no, V back ref no)
+
+xc2.8.0-03: as 01, both in the same second (+10)
+  into A (exit 0): Q@C=- | V@W=- | X@U=-[agree] | Y@U=-[agree] | Z@U=list,read  || groups S:agree, U:agree  (X back ref yes, Y back ref yes, V back ref no)
+  into B (exit 0): Q@C=- | V@W=- | X@U=-[agree] | Y@U=-[unconfirmed] | Z@U=list,read  || groups S:agree, U:agree  (X back ref yes, Y back ref no, V back ref no)
+
+xc2.8.0-04: X is ruled in the base (agent: nothing). A changes X's rule to agent: list at +10; B changes X's password at +20
+  into A (exit 0): Q@C=- | V@W=- | X@U=list[agree] | Y@U=list,read | Z@U=list,read  || groups S:agree, U:agree  (X back ref yes, Y back ref no, V back ref no)
+  into B (exit 0): Q@C=- | V@W=- | X@U=list[agree] | Y@U=list,read | Z@U=list,read  || groups S:agree, U:agree  (X back ref yes, Y back ref no, V back ref no)
+
+xc2.8.0-05: X ruled agent: read, list, protected in the base. A changes it to agent: list, B to agent: read, neither seeing the other
+  into A (exit 0): Q@C=- | V@W=- | X@U=-[agree] | Y@U=list,read | Z@U=list,read  || groups S:agree, U:agree  (X back ref yes, Y back ref no, V back ref no)
+  into B (exit 0): Q@C=- | V@W=- | X@U=-[agree] | Y@U=list,read | Z@U=list,read  || groups S:agree, U:agree  (X back ref yes, Y back ref no, V back ref no)
+
+xc2.8.0-06: A gives Y a first rule (agent: nothing) at +10, B gives Y a first rule (agent: list) at +20: two anchors
+  into A (exit 0): Q@C=- | V@W=- | X@U=-[agree] | Y@U=-[agree+unconfirmed] | Z@U=list,read  || groups S:agree, U:agree  (X back ref yes, Y back ref yes, V back ref no)
+  into B (exit 0): Q@C=- | V@W=- | X@U=-[agree] | Y@U=-[agree+unconfirmed] | Z@U=list,read  || groups S:agree, U:agree  (X back ref yes, Y back ref yes, V back ref no)
+
+xc2.8.0-07: A gives group W its first rule, a grant (agent: read, list), at +10; B adds an entry to W and edits W's notes at +20
+  into A (exit 0): N@W=list,read | Q@C=- | V@W=list,read | X@U=-[agree] | Y@U=list,read | Z@U=list,read  || groups S:agree, U:agree, W:agree  (X back ref yes, Y back ref no, V back ref no)
+  into B (exit 0): N@W=list,read | Q@C=- | V@W=list,read | X@U=-[agree] | Y@U=list,read | Z@U=list,read  || groups S:agree, U:agree, W:agree  (X back ref yes, Y back ref no, V back ref no)
+
+xc2.8.0-08: A gives group W a first rule (agent: read, list) at +10, B gives W a first rule (agent: read) at +20: two links, two anchors
+  into A (exit 0): Q@C=- | V@W=read | X@U=-[agree] | Y@U=list,read | Z@U=list,read  || groups S:agree, U:agree, W:agree+agree  (X back ref yes, Y back ref no, V back ref no)
+  into B (exit 0): Q@C=- | V@W=read | X@U=-[agree] | Y@U=list,read | Z@U=list,read  || groups S:agree, U:agree, W:agree+agree  (X back ref yes, Y back ref no, V back ref no)
+
+xc2.8.0-09: A duplicates entry X inside U, group S and group U (PwEntry.Duplicate, PwGroup.Duplicate, as KeePass's commands do); B changes Z's password
+  into A (exit 0): Q@C=- | Q@C=- | V@W=- | X - Copy@U - Copy=-[copy] | X - Copy@U=-[copy] | X@U - Copy=-[copy] | X@U=-[agree] | Y@U - Copy=- | Y@U=list,read | Z@U - Copy=- | Z@U=list,read  || groups S - Copy:copy, S:agree, U - Copy:copy, U:agree  (X back ref yes, Y back ref no, V back ref no)
+  into B (exit 0): Q@C=- | Q@C=- | V@W=- | X - Copy@U - Copy=-[copy] | X - Copy@U=-[copy] | X@U - Copy=-[copy] | X@U=-[agree] | Y@U - Copy=- | Y@U=list,read | Z@U - Copy=- | Z@U=list,read  || groups S - Copy:copy, S:agree, U - Copy:copy, U:agree  (X back ref yes, Y back ref no, V back ref no)
+
+xc2.8.0-10: A deletes X's rule entry for good, by hand, with a deletion record, at +10; B changes X's password at +20
+  into A (exit 0): Q@C=- | V@W=- | X@U=-[agree] | Y@U=list,read | Z@U=list,read  || groups S:agree, U:agree  (X back ref yes, Y back ref no, V back ref no)
+  into B (exit 0): Q@C=- | V@W=- | X@U=-[agree] | Y@U=list,read | Z@U=list,read  || groups S:agree, U:agree  (X back ref yes, Y back ref no, V back ref no)
+
+xc2.8.0-11: A moves U's link entry into W by hand at +10 (location only); B changes Y's password at +20
+  into A (exit 0): Q@C=- | V@W=- | X@U=-[agree] | Y@U=- | Z@U=-  || groups S:agree, U:unconfirmed, W:a moved link, ignored  (X back ref yes, Y back ref no, V back ref no)
+  into B (exit 0): Q@C=- | V@W=- | X@U=-[agree] | Y@U=- | Z@U=-  || groups S:agree, U:unconfirmed, W:a moved link, ignored  (X back ref yes, Y back ref no, V back ref no)
+
+xc2.8.0-12: X is ruled in the base (agent: nothing). A deletes X's back reference by hand (an ordinary edit at +30); B changes Z's password at +20
+  into A (exit 0): Q@C=- | V@W=- | X@U=-[unconfirmed] | Y@U=list,read | Z@U=list,read  || groups S:agree, U:agree  (X back ref no, Y back ref no, V back ref no)
+  into B (exit 0): Q@C=- | V@W=- | X@U=-[unconfirmed] | Y@U=list,read | Z@U=list,read  || groups S:agree, U:agree  (X back ref no, Y back ref no, V back ref no)
+
+== the newest version lost, and a stale copy merged in afterwards by keepassxc-cli 2.8.0 ==
+the stale copy holds X ruled agent: read, list, protected. The current copy narrowed X to agent: nothing (the old version deleted with its deletion record).
+  rule entry lost, no trace, before any merge: Q@C=- | V@W=- | X@U=REFUSE(itself: a recorded rule version is missing)[broken] | Y@U=list,read | Z@U=list,read  || groups S:agree, U:agree
+  rule entry lost, no trace, then the stale copy merged in (exit 0): Q@C=- | V@W=- | X@U=REFUSE(itself: a recorded rule version is missing)[broken] | Y@U=list,read | Z@U=list,read  || groups S:agree, U:agree
+  rule entry and its record lost, no trace, before any merge: Q@C=- | V@W=- | X@U=REFUSE(itself: a recorded rule version is missing)[broken] | Y@U=list,read | Z@U=list,read  || groups S:agree, U:agree
+  rule entry and its record lost, no trace, then the stale copy merged in (exit 0): Q@C=- | V@W=- | X@U=list,protected,read[agree] | Y@U=list,read | Z@U=list,read  || groups S:agree, U:agree

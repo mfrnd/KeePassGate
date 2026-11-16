@@ -1,0 +1,52 @@
+rules-linked-survival probe run 2026-11-15T17:45:31.4248367Z, KeePassLib 2.62
+store group FE4040A9E0FAE884FA8BECAEEE9FBB46, rules group 7D510F67A71D521BFB9BCB9B9E62A4D8, profile read: agent
+notation: <entry>@<group>=<what agent gets>[<the entry's own state>]; '-' is nothing; REFUSE(...) a refusal
+
+== C1, C2: copies, and the reference the copy carries (KeePassLib 2.62) ==
+  base: Q@S=- | V@W=- | X@U=-[agree] | Y@U=list,read  || groups S:agree, U:agree
+C1a copying drag of sealed S into U (granting): copy link uuid==anchor False, copy link time 2026-01-01T00:00:00.0000000Z original 2026-01-01T00:00:00.0000000Z, titles equal True
+  C1a after the drag: Q@S=- | Q@S=- | V@W=- | X@U=-[agree] | Y@U=list,read  || groups S:agree, S:copy, U:agree
+C1b drag, Q edited in the copy, then Delete Duplicate Entries: deleted 1: KeePassGate link@S(copy link)
+  before Delete Duplicate Entries: Q2@S=- | Q@S=- | V@W=- | X@U=-[agree] | Y@U=list,read  || groups S:agree, S:copy, U:agree
+  C1b after, saved and reopened: Q2@S=list,read | Q@S=- | V@W=- | X@U=-[agree] | Y@U=list,read  || groups S:agree, U:agree
+  C1c drag, then the copy's link deleted for good: Q@S=- | Q@S=list,read | V@W=- | X@U=-[agree] | Y@U=list,read  || groups S:agree, U:agree
+  C1d Duplicate Group with '- Copy', moved into U, Delete Duplicate Entries deleted 0: Q - Copy@S=- | Q@S=- | V@W=- | X@U=-[agree] | Y@U=list,read  || groups S:agree, S:copy, U:agree
+C2 Duplicate Entry X: X - Copy is - [copy]
+  C2 then the copy's KPG.Anchor deleted by hand: Q@S=- | V@W=- | X - Copy@U=list,read | X@U=-[agree] | Y@U=list,read  || groups S:agree, U:agree
+
+== C3: the newest version and its record deleted with deletion records (as emptying the bin does), then a stale copy ==
+  stale copy: Q@S=- | V@W=- | X@U=list,protected,read[agree] | Y@U=list,read  || groups S:agree, U:agree
+  current copy after the narrowing: Q@S=- | V@W=- | X@U=-[agree] | Y@U=list,read  || groups S:agree, U:agree
+  C3 version and record deleted with records, before any merge: Q@S=- | V@W=- | X@U=REFUSE(itself: a recorded rule version is missing)[broken] | Y@U=list,read  || groups S:agree, U:agree
+  C3 then the stale copy merged into the current one by KeePassLib Synchronize: Q@S=- | V@W=- | X@U=REFUSE(itself: a recorded rule version is missing)[broken] | Y@U=list,read  || groups S:agree, U:agree
+  C3 then the stale copy merged into the current one by KeePassLib OverwriteIfNewer: Q@S=- | V@W=- | X@U=REFUSE(itself: a recorded rule version is missing)[broken] | Y@U=list,read  || groups S:agree, U:agree
+  C3 then the stale copy merged into the current one by KeePassLib OverwriteExisting: Q@S=- | V@W=- | X@U=REFUSE(itself: a recorded rule version is missing)[broken] | Y@U=list,read  || groups S:agree, U:agree
+  C3 then the stale copy merged into the current one by KeePassLib KeepExisting: Q@S=- | V@W=- | X@U=REFUSE(itself: a recorded rule version is missing)[broken] | Y@U=list,read  || groups S:agree, U:agree
+  C3 then the stale copy merged into the current one by keepassxc-cli 2.4.2 (exit 0, deletion records in the result 3): Q@S=- | V@W=- | X@U=list,protected,read[agree] | Y@U=list,read  || groups S:agree, U:agree
+  C3 then the stale copy merged into the current one by keepassxc-cli 2.8.0 (exit 0, deletion records in the result 3): Q@S=- | V@W=- | X@U=list,protected,read[agree] | Y@U=list,read  || groups S:agree, U:agree
+
+  C3b current copy: X narrowed, Y given a first rule (agent: nothing): Q@S=- | V@W=- | X@U=-[agree] | Y@U=-[agree]  || groups S:agree, U:agree
+  C3b both plugin groups deleted for good, with records: Q@S=REFUSE(S: it refers to a rule that is not in this database) | V@W=- | X@U=REFUSE(itself: it refers to a rule that is not in this database)[dangling] | Y@U=REFUSE(itself: it refers to a rule that is not in this database)[dangling]  || groups S:dangling, U:dangling
+  C3b then the stale copy synchronized in by KeePassLib: Q@S=REFUSE(S: it refers to a rule that is not in this database) | V@W=- | X@U=REFUSE(itself: it refers to a rule that is not in this database)[dangling] | Y@U=REFUSE(itself: it refers to a rule that is not in this database)[dangling]  || groups S:dangling, U:dangling
+  C3c deletion records removed, then the stale copy synchronized in by KeePassLib: Q@S=- | V@W=- | X@U=list,protected,read[agree] | Y@U=REFUSE(itself: it refers to a rule that is not in this database)[dangling]  || groups S:agree, U:agree
+  C3b then the stale copy merged in by keepassxc-cli 2.4.2 (exit 0): Q@S=- | V@W=- | X@U=list,protected,read[agree] | Y@U=REFUSE(itself: it refers to a rule that is not in this database)[dangling]  || groups S:agree, U:agree
+  C3b then the stale copy merged in by keepassxc-cli 2.8.0 (exit 0): Q@S=- | V@W=- | X@U=list,protected,read[agree] | Y@U=REFUSE(itself: it refers to a rule that is not in this database)[dangling]  || groups S:agree, U:agree
+
+== C4: a phone clock a day ahead; KeePass's Confirm undone by every synchronize until the clock passes ==
+  round 1 (phone into KeePass): V is - [unconfirmed], V carries KPG.Anchor False
+  after Confirm at +20: V is read [agree]
+  round 2, synchronized into KeePass: V is - [unconfirmed], carries KPG.Anchor False
+  round 2, synchronized into phone: V is - [unconfirmed], carries KPG.Anchor False
+  Confirm again after the phone's stamp (+86401), then synchronized: V is read [agree]
+
+== C5: the rules group deleted for good in one copy (a phone tidy-up, then the bin emptied), then one KeePassLib synchronize ==
+  phone copy after the bin was emptied: Q@S=REFUSE(S: a recorded rule version is missing) | V@W=- | X@U=REFUSE(itself: a recorded rule version is missing)[broken] | Y@U=REFUSE(U: a recorded rule version is missing)  || groups S:broken, U:broken
+  synchronized into KeePass (rule texts left in the file: 0): Q@S=REFUSE(S: a recorded rule version is missing) | V@W=- | X@U=REFUSE(itself: a recorded rule version is missing)[broken] | Y@U=REFUSE(U: a recorded rule version is missing)  || groups S:broken, U:broken
+  synchronized into phone (rule texts left in the file: 0): Q@S=REFUSE(S: a recorded rule version is missing) | V@W=- | X@U=REFUSE(itself: a recorded rule version is missing)[broken] | Y@U=REFUSE(U: a recorded rule version is missing)  || groups S:broken, U:broken
+  KeePassXC 2.8.0 merge of the intact copy into the phone's (exit 0): Q@S=- | V@W=- | X@U=-[agree] | Y@U=list,read  || groups S:agree, U:agree
+
+== C6: a copy of the database imported with Create new IDs (ImportMethodForm.cs:37, :69), then Delete Duplicate Entries to clean up ==
+  after the import: Q@S=- | Q@S=- | V@W=- | V@W=- | X@U=-[agree] | X@U=-[copy] | Y@U=- | Y@U=list,read  || groups S:agree, S:copy, U:agree, U:copy
+  Delete Duplicate Entries deleted 12: issued:KPG rule record 5B81CC03 E906870A@KeePassGate, issued:KPG rule record 9232A07A BD6AD2BE@KeePassGate, issued:KPG rule record 95CE46AD FD0E16B3@KeePassGate, link:KeePassGate link@S, link:KeePassGate link@U, rule:KPG rule 5B81CC03@KeePassGate rules, rule:KPG rule 9232A07A@KeePassGate rules, rule:KPG rule 95CE46AD@KeePassGate rules, user:Q@S, user:V@W, user:X@U, user:Y@U
+  rule versions left: intact 0, displaced 3
+  after the clean-up: Q@S=REFUSE(S: it is a copy and the original's rule cannot be used) | V@W=- | X@U=REFUSE(itself: it is a copy and the original's rule cannot be used)[copy-broken] | Y@U=REFUSE(U: it is a copy and the original's rule cannot be used)  || groups S:copy-broken, S:unconfirmed, U:copy-broken, U:unconfirmed

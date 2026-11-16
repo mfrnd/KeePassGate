@@ -1,0 +1,28 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- Added to run the probe from the branch. Its agent compiled `Program.cs` with the .NET
+       Framework's own `csc` into `Rls.exe`, with nothing in a project file, against a copy of the
+       pinned KeePass.exe. The executable it left is IL only for any processor, neither requiring
+       nor preferring 32 bits, and carries no `DebuggableAttribute`. This builds the same source,
+       unchanged, as the same kind of executable under the same name, at C# 5, which is what that
+       `csc` compiles, against the KeePass `spikes\storage\Directory.Build.props` provides. The
+       draft `Mine.cs.part` the agent left beside it was not carried, so nothing else is compiled
+       here. No window: only KeePassLib types are used, and `keepassxc-cli` is started as a console
+       child. -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net48</TargetFramework>
+    <LangVersion>5</LangVersion>
+    <PlatformTarget>AnyCPU</PlatformTarget>
+    <Prefer32Bit>false</Prefer32Bit>
+    <AssemblyName>Rls</AssemblyName>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Reference Include="KeePass">
+      <HintPath>$(KeePassExe)</HintPath>
+    </Reference>
+    <PackageReference Include="Microsoft.NETFramework.ReferenceAssemblies" Version="1.0.3" PrivateAssets="all" />
+  </ItemGroup>
+
+</Project>

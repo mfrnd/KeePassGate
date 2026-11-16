@@ -143,6 +143,17 @@ words:
   - alikes
   - xcsave
   - lineterm
+  # Identifiers in the rules-linked probes, which are carried unchanged: the list `Insts` and the
+  # locals `fpath` and `sdir` of the design's `Rl.exe`, which the two critics' probes copy, and the
+  # cases `midsave`, `otherdb`, `delgroup` and `dedup` of the security probe, built as `Rlsf.exe`.
+  - Insts
+  - fpath
+  - sdir
+  - midsave
+  - otherdb
+  - delgroup
+  - dedup
+  - Rlsf
   # Identifiers in the ground-keepass probe, which is carried unchanged: the variant `nobackup`
   # its X2 prints, which the family's `x2.py` and `RUN.md` match, and the local `scen` of X3.
   - nobackup

@@ -1,0 +1,173 @@
+probe run 2026-11-15T17:16:12.4331223Z, KeePassLib 2.62, keepass
+store group FE4040A9E0FAE884FA8BECAEEE9FBB46, rules group 7D510F67A71D521BFB9BCB9B9E62A4D8, profile read: agent
+
+== KeePassLib 2.62, PwDatabase.MergeIn, the result saved, reopened and read ==
+
+01: A gives Y its first rule, a narrowing (agent: nothing), at +10; B changes Y's password at +20
+  A alone: Q@C=- | V@W=- | X@U=-[agree] | Y@U=-[agree] | Z@U=list,read  || groups S:agree, U:agree
+  B alone: Q@C=- | V@W=- | X@U=-[agree] | Y@U=list,read | Z@U=list,read  || groups S:agree, U:agree
+  [Synchronize into A; Synchronize into B; OverwriteIfNewer into A; OverwriteIfNewer into B; OverwriteExisting into A; KeepExisting into B]: Q@C=- | V@W=- | X@U=-[agree] | Y@U=-[unconfirmed] | Z@U=list,read  || groups S:agree, U:agree  (X back ref yes, Y back ref no, V back ref no)
+  [OverwriteExisting into B; KeepExisting into A]: Q@C=- | V@W=- | X@U=-[agree] | Y@U=-[agree] | Z@U=list,read  || groups S:agree, U:agree  (X back ref yes, Y back ref yes, V back ref no)
+
+02: A gives V its first rule, a grant (agent: read), at +10; B changes V's password at +20
+  A alone: Q@C=- | V@W=read[agree] | X@U=-[agree] | Y@U=list,read | Z@U=list,read  || groups S:agree, U:agree
+  B alone: Q@C=- | V@W=- | X@U=-[agree] | Y@U=list,read | Z@U=list,read  || groups S:agree, U:agree
+  [Synchronize into A; Synchronize into B; OverwriteIfNewer into A; OverwriteIfNewer into B; OverwriteExisting into A; KeepExisting into B]: Q@C=- | V@W=-[unconfirmed] | X@U=-[agree] | Y@U=list,read | Z@U=list,read  || groups S:agree, U:agree  (X back ref yes, Y back ref no, V back ref no)
+  [OverwriteExisting into B; KeepExisting into A]: Q@C=- | V@W=read[agree] | X@U=-[agree] | Y@U=list,read | Z@U=list,read  || groups S:agree, U:agree  (X back ref yes, Y back ref no, V back ref yes)
+
+03: as 01, both in the same second (+10)
+  A alone: Q@C=- | V@W=- | X@U=-[agree] | Y@U=-[agree] | Z@U=list,read  || groups S:agree, U:agree
+  B alone: Q@C=- | V@W=- | X@U=-[agree] | Y@U=list,read | Z@U=list,read  || groups S:agree, U:agree
+  [Synchronize into A; OverwriteIfNewer into A; OverwriteExisting into A; KeepExisting into B]: Q@C=- | V@W=- | X@U=-[agree] | Y@U=-[unconfirmed] | Z@U=list,read  || groups S:agree, U:agree  (X back ref yes, Y back ref no, V back ref no)
+  [Synchronize into B; OverwriteIfNewer into B; OverwriteExisting into B; KeepExisting into A]: Q@C=- | V@W=- | X@U=-[agree] | Y@U=-[agree] | Z@U=list,read  || groups S:agree, U:agree  (X back ref yes, Y back ref yes, V back ref no)
+
+04: X is ruled in the base (agent: nothing). A changes X's rule to agent: list at +10; B changes X's password at +20
+  A alone: Q@C=- | V@W=- | X@U=list[agree] | Y@U=list,read | Z@U=list,read  || groups S:agree, U:agree
+  B alone: Q@C=- | V@W=- | X@U=-[agree] | Y@U=list,read | Z@U=list,read  || groups S:agree, U:agree
+  [Synchronize into A; Synchronize into B; OverwriteIfNewer into A; OverwriteIfNewer into B; OverwriteExisting into A; OverwriteExisting into B; KeepExisting into A; KeepExisting into B]: Q@C=- | V@W=- | X@U=list[agree] | Y@U=list,read | Z@U=list,read  || groups S:agree, U:agree  (X back ref yes, Y back ref no, V back ref no)
+
+05: X ruled agent: read, list, protected in the base. A changes it to agent: list, B to agent: read, neither seeing the other
+  A alone: Q@C=- | V@W=- | X@U=list[agree] | Y@U=list,read | Z@U=list,read  || groups S:agree, U:agree
+  B alone: Q@C=- | V@W=- | X@U=read[agree] | Y@U=list,read | Z@U=list,read  || groups S:agree, U:agree
+  [Synchronize into A; Synchronize into B; OverwriteIfNewer into A; OverwriteIfNewer into B; OverwriteExisting into A; OverwriteExisting into B; KeepExisting into A; KeepExisting into B]: Q@C=- | V@W=- | X@U=-[agree] | Y@U=list,read | Z@U=list,read  || groups S:agree, U:agree  (X back ref yes, Y back ref no, V back ref no)
+
+06: A gives Y a first rule (agent: nothing) at +10, B gives Y a first rule (agent: list) at +20: two anchors
+  A alone: Q@C=- | V@W=- | X@U=-[agree] | Y@U=-[agree] | Z@U=list,read  || groups S:agree, U:agree
+  B alone: Q@C=- | V@W=- | X@U=-[agree] | Y@U=list[agree] | Z@U=list,read  || groups S:agree, U:agree
+  [Synchronize into A; Synchronize into B; OverwriteIfNewer into A; OverwriteIfNewer into B; OverwriteExisting into A; OverwriteExisting into B; KeepExisting into A; KeepExisting into B]: Q@C=- | V@W=- | X@U=-[agree] | Y@U=-[agree+unconfirmed] | Z@U=list,read  || groups S:agree, U:agree  (X back ref yes, Y back ref yes, V back ref no)
+
+07: A gives group W its first rule, a grant (agent: read, list), at +10; B adds an entry to W and edits W's notes at +20
+  A alone: Q@C=- | V@W=list,read | X@U=-[agree] | Y@U=list,read | Z@U=list,read  || groups S:agree, U:agree, W:agree
+  B alone: N@W=- | Q@C=- | V@W=- | X@U=-[agree] | Y@U=list,read | Z@U=list,read  || groups S:agree, U:agree
+  [Synchronize into A; Synchronize into B; OverwriteIfNewer into A; OverwriteIfNewer into B; OverwriteExisting into A; OverwriteExisting into B; KeepExisting into A; KeepExisting into B]: N@W=list,read | Q@C=- | V@W=list,read | X@U=-[agree] | Y@U=list,read | Z@U=list,read  || groups S:agree, U:agree, W:agree  (X back ref yes, Y back ref no, V back ref no)
+
+08: A gives group W a first rule (agent: read, list) at +10, B gives W a first rule (agent: read) at +20: two links, two anchors
+  A alone: Q@C=- | V@W=list,read | X@U=-[agree] | Y@U=list,read | Z@U=list,read  || groups S:agree, U:agree, W:agree
+  B alone: Q@C=- | V@W=read | X@U=-[agree] | Y@U=list,read | Z@U=list,read  || groups S:agree, U:agree, W:agree
+  [Synchronize into A; Synchronize into B; OverwriteIfNewer into A; OverwriteIfNewer into B; OverwriteExisting into A; OverwriteExisting into B; KeepExisting into A; KeepExisting into B]: Q@C=- | V@W=read | X@U=-[agree] | Y@U=list,read | Z@U=list,read  || groups S:agree, U:agree, W:agree+agree  (X back ref yes, Y back ref no, V back ref no)
+
+09: A duplicates entry X inside U, group S and group U (PwEntry.Duplicate, PwGroup.Duplicate, as KeePass's commands do); B changes Z's password
+  A alone: Q@C=- | Q@C=- | V@W=- | X - Copy@U - Copy=-[copy] | X - Copy@U=-[copy] | X@U - Copy=-[copy] | X@U=-[agree] | Y@U - Copy=- | Y@U=list,read | Z@U - Copy=- | Z@U=list,read  || groups S - Copy:copy, S:agree, U - Copy:copy, U:agree
+  B alone: Q@C=- | V@W=- | X@U=-[agree] | Y@U=list,read | Z@U=list,read  || groups S:agree, U:agree
+  [Synchronize into A; Synchronize into B; OverwriteIfNewer into A; OverwriteIfNewer into B; OverwriteExisting into A; OverwriteExisting into B; KeepExisting into A; KeepExisting into B]: Q@C=- | Q@C=- | V@W=- | X - Copy@U - Copy=-[copy] | X - Copy@U=-[copy] | X@U - Copy=-[copy] | X@U=-[agree] | Y@U - Copy=- | Y@U=list,read | Z@U - Copy=- | Z@U=list,read  || groups S - Copy:copy, S:agree, U - Copy:copy, U:agree  (X back ref yes, Y back ref no, V back ref no)
+
+10: A deletes X's rule entry for good, by hand, with a deletion record, at +10; B changes X's password at +20
+  A alone: Q@C=- | V@W=- | X@U=REFUSE(itself: a recorded rule version is missing)[broken] | Y@U=list,read | Z@U=list,read  || groups S:agree, U:agree
+  B alone: Q@C=- | V@W=- | X@U=-[agree] | Y@U=list,read | Z@U=list,read  || groups S:agree, U:agree
+  [Synchronize into A; Synchronize into B; OverwriteIfNewer into A; OverwriteExisting into A; KeepExisting into A]: Q@C=- | V@W=- | X@U=REFUSE(itself: a recorded rule version is missing)[broken] | Y@U=list,read | Z@U=list,read  || groups S:agree, U:agree  (X back ref yes, Y back ref no, V back ref no)
+  [OverwriteIfNewer into B; OverwriteExisting into B; KeepExisting into B]: Q@C=- | V@W=- | X@U=-[agree] | Y@U=list,read | Z@U=list,read  || groups S:agree, U:agree  (X back ref yes, Y back ref no, V back ref no)
+
+11: A moves U's link entry into W by hand at +10 (location only); B changes Y's password at +20
+  A alone: Q@C=- | V@W=- | X@U=-[agree] | Y@U=- | Z@U=-  || groups S:agree, U:unconfirmed, W:a moved link, ignored
+  B alone: Q@C=- | V@W=- | X@U=-[agree] | Y@U=list,read | Z@U=list,read  || groups S:agree, U:agree
+  [Synchronize into A; Synchronize into B; OverwriteIfNewer into A; OverwriteExisting into A; KeepExisting into A]: Q@C=- | V@W=- | X@U=-[agree] | Y@U=- | Z@U=-  || groups S:agree, U:unconfirmed, W:a moved link, ignored  (X back ref yes, Y back ref no, V back ref no)
+  [OverwriteIfNewer into B; OverwriteExisting into B; KeepExisting into B]: Q@C=- | V@W=- | X@U=-[agree] | Y@U=list,read | Z@U=list,read  || groups S:agree, U:agree  (X back ref yes, Y back ref no, V back ref no)
+
+12: X is ruled in the base (agent: nothing). A deletes X's back reference by hand (an ordinary edit at +30); B changes Z's password at +20
+  A alone: Q@C=- | V@W=- | X@U=-[unconfirmed] | Y@U=list,read | Z@U=list,read  || groups S:agree, U:agree
+  B alone: Q@C=- | V@W=- | X@U=-[agree] | Y@U=list,read | Z@U=list,read  || groups S:agree, U:agree
+  [Synchronize into A; Synchronize into B; OverwriteIfNewer into A; OverwriteIfNewer into B; OverwriteExisting into B; KeepExisting into A]: Q@C=- | V@W=- | X@U=-[unconfirmed] | Y@U=list,read | Z@U=list,read  || groups S:agree, U:agree  (X back ref no, Y back ref no, V back ref no)
+  [OverwriteExisting into A; KeepExisting into B]: Q@C=- | V@W=- | X@U=-[agree] | Y@U=list,read | Z@U=list,read  || groups S:agree, U:agree  (X back ref yes, Y back ref no, V back ref no)
+
+== single file: what a person can do by hand, the result saved, reopened and read (KeePassLib 2.62) ==
+
+h01: X's back reference changed by hand to text that is no anchor
+  before: Q@C=- | V@W=- | X@U=-[agree] | Y@U=list,read | Z@U=list,read  || groups S:agree, U:agree
+  after:  Q@C=- | V@W=- | X@U=REFUSE(itself: its reference will not read)[refuse+unconfirmed] | Y@U=list,read | Z@U=list,read  || groups S:agree, U:agree
+
+h02: X's back reference changed by hand to a well formed anchor nothing carries
+  before: Q@C=- | V@W=- | X@U=-[agree] | Y@U=list,read | Z@U=list,read  || groups S:agree, U:agree
+  after:  Q@C=- | V@W=- | X@U=REFUSE(itself: it refers to a rule that is not in this database)[dangling+unconfirmed] | Y@U=list,read | Z@U=list,read  || groups S:agree, U:agree
+
+h03: X's back reference changed by hand to U's anchor (a rule that names another node)
+  before: Q@C=- | V@W=- | X@U=-[agree] | Y@U=list,read | Z@U=list,read  || groups S:agree, U:agree
+  after:  Q@C=- | V@W=- | X@U=-[copy+unconfirmed] | Y@U=list,read | Z@U=list,read  || groups S:agree, U:agree
+
+h04: X's back reference deleted by hand
+  before: Q@C=- | V@W=- | X@U=-[agree] | Y@U=list,read | Z@U=list,read  || groups S:agree, U:agree
+  after:  Q@C=- | V@W=- | X@U=-[unconfirmed] | Y@U=list,read | Z@U=list,read  || groups S:agree, U:agree
+
+h05: Y, unruled, given X's anchor by hand
+  before: Q@C=- | V@W=- | X@U=-[agree] | Y@U=list,read | Z@U=list,read  || groups S:agree, U:agree
+  after:  Q@C=- | V@W=- | X@U=-[agree] | Y@U=-[copy] | Z@U=list,read  || groups S:agree, U:agree
+
+h06: V, unruled and outside every grant, given U's anchor by hand (a grant's anchor)
+  before: Q@C=- | V@W=- | X@U=-[agree] | Y@U=list,read | Z@U=list,read  || groups S:agree, U:agree
+  after:  Q@C=- | V@W=-[copy] | X@U=-[agree] | Y@U=list,read | Z@U=list,read  || groups S:agree, U:agree
+
+h07: X's rule entry edited by hand: KPG.Data widened to agent: read, list, protected
+  before: Q@C=- | V@W=- | X@U=-[agree] | Y@U=list,read | Z@U=list,read  || groups S:agree, U:agree
+  after:  Q@C=- | V@W=- | X@U=REFUSE(itself: a recorded rule version is missing)[broken] | Y@U=list,read | Z@U=list,read  || groups S:agree, U:agree
+
+h08: X's rule entry deleted with no trace (no deletion record), its record kept
+  before: Q@C=- | V@W=- | X@U=-[agree] | Y@U=list,read | Z@U=list,read  || groups S:agree, U:agree
+  after:  Q@C=- | V@W=- | X@U=REFUSE(itself: a recorded rule version is missing)[broken] | Y@U=list,read | Z@U=list,read  || groups S:agree, U:agree
+
+h09: X's rule entry and its record both deleted with no trace
+  before: Q@C=- | V@W=- | X@U=-[agree] | Y@U=list,read | Z@U=list,read  || groups S:agree, U:agree
+  after:  Q@C=- | V@W=- | X@U=REFUSE(itself: it refers to a rule that is not in this database)[dangling] | Y@U=list,read | Z@U=list,read  || groups S:agree, U:agree
+
+h10: as h09, and X's back reference deleted too: three acts in three places
+  before: Q@C=- | V@W=- | X@U=-[agree] | Y@U=list,read | Z@U=list,read  || groups S:agree, U:agree
+  after:  Q@C=- | V@W=- | X@U=list,read | Y@U=list,read | Z@U=list,read  || groups S:agree, U:agree
+
+h11: the whole rules group deleted with no trace
+  before: Q@C=- | V@W=- | X@U=-[agree] | Y@U=list,read | Z@U=list,read  || groups S:agree, U:agree
+  after:  Q@C=REFUSE(S: a recorded rule version is missing) | V@W=- | X@U=REFUSE(itself: a recorded rule version is missing)[broken] | Y@U=REFUSE(U: a recorded rule version is missing) | Z@U=REFUSE(U: a recorded rule version is missing)  || groups S:broken, U:broken
+
+h12: the rules group and the store group both deleted with no trace
+  before: Q@C=- | V@W=- | X@U=-[agree] | Y@U=list,read | Z@U=list,read  || groups S:agree, U:agree
+  after:  Q@C=REFUSE(S: it refers to a rule that is not in this database) | V@W=- | X@U=REFUSE(itself: it refers to a rule that is not in this database)[dangling] | Y@U=REFUSE(U: it refers to a rule that is not in this database) | Z@U=REFUSE(U: it refers to a rule that is not in this database)  || groups S:dangling, U:dangling
+
+h13: U's link entry deleted for good
+  before: Q@C=- | V@W=- | X@U=-[agree] | Y@U=list,read | Z@U=list,read  || groups S:agree, U:agree
+  after:  Q@C=- | V@W=- | X@U=-[agree] | Y@U=- | Z@U=-  || groups S:agree, U:unconfirmed
+
+h14: S's link entry (the seal's) deleted for good
+  before: Q@C=- | V@W=- | X@U=-[agree] | Y@U=list,read | Z@U=list,read  || groups S:agree, U:agree
+  after:  Q@C=- | V@W=- | X@U=-[agree] | Y@U=list,read | Z@U=list,read  || groups S:unconfirmed, U:agree
+
+h15: X's rule entry moved to the root by hand, its record into U
+  before: Q@C=- | V@W=- | X@U=-[agree] | Y@U=list,read | Z@U=list,read  || groups S:agree, U:agree
+  after:  Q@C=- | V@W=- | X@U=-[agree] | Y@U=list,read | Z@U=list,read  || groups S:agree, U:agree
+
+  h16: DeleteDuplicateEntries deleted 1; the original X is gone, the copy stayed
+
+h16: KeePass's Delete Duplicate Entries after X was copied by a drag (PwEntry.Duplicate, same strings)
+  before: Q@C=- | V@W=- | X@U=-[agree] | Y@U=list,read | Z@U=list,read  || groups S:agree, U:agree
+  after:  Q@C=- | V@W=- | X@U=-[copy] | Y@U=list,read | Z@U=list,read  || groups S:agree, U:agree
+
+h17: X restored to its revision from before its first rule (the rule given at +10 as an edit, then the revision restored)
+  before: Q@C=- | V@W=- | X@U=list,read | Y@U=list,read | Z@U=list,read  || groups S:agree, U:agree
+  after:  Q@C=- | V@W=- | X@U=-[unconfirmed] | Y@U=list,read | Z@U=list,read  || groups S:agree, U:agree
+
+== what KeePass's own copying carries (KeePassLib 2.62) ==
+PwEntry.Duplicate (Duplicate Entry, a copying drag, Add Entry from a template): new identifier True, KPG.Anchor kept True
+  original: KPG.Anchor=5B81CC0361F024B85BEE69608DCB16ED; Password[p]=(10 chars); Title=X; 
+  copy:     KPG.Anchor=5B81CC0361F024B85BEE69608DCB16ED; Password[p]=(10 chars); Title=X; 
+PwGroup.Duplicate (Duplicate Group, a copying drag of a group): new group identifier True, link entry copied True, its identifier new True, its KPG.Anchor still the original's True, so the copy's identifier is no longer its anchor True
+KdbxFile.WriteEntries then ReadEntries (copy and paste of entries): 1 entry, new identifier True, KPG.Anchor kept True
+
+Create new IDs, a copy of the base imported into itself:
+  Q@C=- | Q@C=- | V@W=- | V@W=- | X@U=-[agree] | X@U=-[copy] | Y@U=- | Y@U=list,read | Z@U=- | Z@U=list,read  || groups S:agree, S:copy, U:agree, U:copy
+
+== a foreign file, sharing only public identifiers with the victim, merged in (KeePassLib 2.62) ==
+
+the foreign file holds rule entries naming group C and entry V, and nothing else:
+  Synchronize: Q@C=- | V@W=-[unconfirmed] | X@U=-[agree] | Y@U=list,read | Z@U=list,read  || groups C:unconfirmed, S:agree, U:agree
+  KeepExisting: Q@C=- | V@W=-[unconfirmed] | X@U=-[agree] | Y@U=list,read | Z@U=list,read  || groups C:unconfirmed, S:agree, U:agree
+  OverwriteExisting: Q@C=- | V@W=-[unconfirmed] | X@U=-[agree] | Y@U=list,read | Z@U=list,read  || groups C:unconfirmed, S:agree, U:agree
+  CreateNewUuids: Q@C=- | V@W=-[unconfirmed] | X@U=-[agree] | Y@U=list,read | Z@U=list,read  || groups C:unconfirmed, S:agree, U:agree
+
+the foreign file holds rule entries naming group C and entry V, and a link entry inside a group that carries C's identifier:
+  Synchronize: Q@C=list,protected,read | V@W=-[unconfirmed] | X@U=-[agree] | Y@U=list,read | Z@U=list,read  || groups C:agree, S:agree, U:agree
+  KeepExisting: Q@C=list,protected,read | V@W=-[unconfirmed] | X@U=-[agree] | Y@U=list,read | Z@U=list,read  || groups C:agree, S:agree, U:agree
+  OverwriteExisting: Q@C=list,protected,read | V@W=-[unconfirmed] | X@U=-[agree] | Y@U=list,read | Z@U=list,read  || groups C:agree, S:agree, U:agree
+  CreateNewUuids: Q@C=- | V@W=-[unconfirmed] | X@U=-[agree] | Y@U=list,read | Z@U=list,read  || groups C:copy-broken, C:unconfirmed, S:agree, U:agree
+
+== the newest version lost, and a stale copy merged in afterwards (KeePassLib Synchronize) ==
+the stale copy holds X ruled agent: read, list, protected. The current copy narrowed X to agent: nothing (the old version deleted with its deletion record).
+  rule entry lost, no trace, before any merge: Q@C=- | V@W=- | X@U=REFUSE(itself: a recorded rule version is missing)[broken] | Y@U=list,read | Z@U=list,read  || groups S:agree, U:agree
+  rule entry lost, no trace, then the stale copy synchronized in: Q@C=- | V@W=- | X@U=REFUSE(itself: a recorded rule version is missing)[broken] | Y@U=list,read | Z@U=list,read  || groups S:agree, U:agree
+  rule entry and its record lost, no trace, before any merge: Q@C=- | V@W=- | X@U=REFUSE(itself: a recorded rule version is missing)[broken] | Y@U=list,read | Z@U=list,read  || groups S:agree, U:agree
+  rule entry and its record lost, no trace, then the stale copy synchronized in: Q@C=- | V@W=- | X@U=REFUSE(itself: a recorded rule version is missing)[broken] | Y@U=list,read | Z@U=list,read  || groups S:agree, U:agree
