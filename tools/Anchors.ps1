@@ -6,15 +6,15 @@
     A reference to "the part of `DESIGN.md` about resolution" is a reference nobody can follow
     mechanically: it survives the section being renamed, moved or split without ever pointing
     anywhere different, and nothing anywhere reports that it has stopped being true. An anchor is
-    the same reference with a handle on it. Every section of the four documents that settle things
+    the same reference with a handle on it. Every section of the documents that settle things
     carries a number, every number is unique and permanent, and one of them is a single grep away
     from the paragraph that defines it and from every place that leans on it.
 
-    The routing document is a fifth, and anchored differently. `openapi.yaml` has no headings and
-    a key on every line, so a number there sits at the end of a comment line between keys, beside
-    what it names, and only what something cites carries one. Numbering every operation, schema
-    and response would put a handle on every line of the routing table for the sake of the few
-    that are ever pointed at.
+    The routing document settles things as well, and is anchored differently. `openapi.yaml` has
+    no headings and a key on every line, so a number there sits at the end of a comment line
+    between keys, beside what it names, and only what something cites carries one. Numbering
+    every operation, schema and response would put a handle on every line of the routing table
+    for the sake of the few that are ever pointed at.
 
     The numbers are flat rather than hierarchical, and that is the whole point of them. A section
     numbered by where it sits has to be renumbered when something is inserted above it, which
@@ -74,6 +74,7 @@ $blocks = [ordered] @{
     'PAIRING.md' = 300
     'API.md'     = 400
     $routing     = 500
+    'STORE.md'   = 600
 }
 
 # Where a definition may sit. A Markdown document defines one at the end of a heading below the

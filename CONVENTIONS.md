@@ -55,19 +55,20 @@ carries the product keeps what a proof established, not the code that establishe
 
 ## References
 
-**A reference to a decision names the section that settles it.** Four documents settle things:
-`DESIGN.md`, `CA.md`, `PAIRING.md` and `API.md`. Every section of each carries a number, and
-everything else points at the number rather than at a title: code comments, the operator's pages,
-`CLAUDE.md` and commit messages alike. The form is a section sign and three digits. One grep then
-finds the paragraph that decides something and every place leaning on it, in one answer, which is
-what a reference by title never gives. **The routing document is a fifth**,
-`src/KeePassGate/Spec/openapi.yaml`, which settles what each route answers, and it carries a number
-only where something cites it.
+**A reference to a decision names the section that settles it.** These documents settle things:
+`DESIGN.md`, `CA.md`, `PAIRING.md`, `API.md` and `STORE.md`. Every section of each carries a
+number, and everything else points at the number rather than at a title: code comments, the
+operator's pages, `CLAUDE.md` and commit messages alike. The form is a section sign and three
+digits. One grep then finds the paragraph that decides something and every place leaning on it,
+in one answer, which is what a reference by title never gives. **The routing document settles
+things as well**, `src/KeePassGate/Spec/openapi.yaml`, which settles what each route answers, and
+it carries a number only where something cites it.
 
 **The numbers are flat and permanent.** Each document allocates from its own hundred, `DESIGN.md`
-from 100, `CA.md` from 200, `PAIRING.md` from 300, `API.md` from 400 and `openapi.yaml` from 500,
-so a number says which document it is in before anything is looked up. A new section takes the
-next number above the highest that document has used, wherever in the document it is inserted.
+from 100, `CA.md` from 200, `PAIRING.md` from 300, `API.md` from 400, `openapi.yaml` from 500 and
+`STORE.md` from 600, so a number tells which document it is in before anything is looked up. A new
+section takes the next number above the highest that document has used, wherever in the document
+it is inserted.
 **A number is never renumbered and never reused.** Renumbering silently rewrites every reference
 that was correct the day before, and reusing a number that a deleted section held sends an old
 reference somewhere plausible and wrong, which is worse than sending it nowhere.
@@ -158,9 +159,9 @@ button, a third-party option.
 - **Each commit stands alone and says why**, not merely what. The history is read as if it were a
   pull request, by somebody who was not here.
 - **A forward reference belongs in a design document and nowhere else.** Describing what is to be
-  built is what a design document is for, so `DESIGN.md`, `CA.md` and `PAIRING.md` may name what
-  does not exist yet. Anywhere else, a comment, a page or a commit message describes what is, and a
-  pull request brings whatever its own lines refer to.
+  built is what a design document is for, so `DESIGN.md`, `CA.md`, `PAIRING.md` and `STORE.md` may
+  name what does not exist yet. Anywhere else, a comment, a page or a commit message describes
+  what is, and a pull request brings whatever its own lines refer to.
 - **A professional tone.** Plain technical language: no anthropomorphism, no rhetorical openers, no
   cuteness. A gate does not answer "civilly", a test does not "assume", and a subject does not open
   with "Say what". The subject states what the commit does and the body says why, both in the
