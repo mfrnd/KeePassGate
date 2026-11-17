@@ -31,6 +31,7 @@ PyKeePassGate is the reference client, a library and a command line covering eve
 | [`API.md`](API.md) | the reasoning behind the routes and what is deliberately absent, with the per-route detail in [`openapi.yaml`](src/KeePassGate/Spec/openapi.yaml) |
 | [`CA.md`](CA.md) | the certificate authority: issuance, claims, validation, revocation |
 | [`PAIRING.md`](PAIRING.md) | how a stranger becomes a client, with the flow diagrams |
+| [`STORE.md`](STORE.md) | the store decided for 0.3.0: where the plugin's data lives in a database, how it is written and read, and a section attacking it. **Decided and not built**: 0.2.0 ships the store of `CA.md` §204 |
 | [`FINDINGS.md`](FINDINGS.md) | what was measured rather than assumed, and what turned out wrong |
 | [`TESTING.md`](TESTING.md) | the four test tiers, what each one buys, and how to run them |
 | [`RELEASING.md`](RELEASING.md) | how a version is published, and the settings a release needs |
@@ -117,6 +118,15 @@ designing around them.
   what saving and merging in them does to it is measured and stated in CA.md §204. A revocation no
   longer needs the times, being a key of its own, but a KeePassXC merge can still undo a revocation,
   which is why a paired database belongs in KeePass 2.48 or later with the plugin.
+- **That store is decided to be replaced in 0.3.0, and is what 0.2.0 ships until then.** The
+  entries above about `CustomData` and KDBX 4.1 describe the plugin as released. What replaces
+  them is decided and not built: the plugin's data as entries in a group of its own, each written
+  once under a check keyed by a secret the database holds, with no custom data anywhere and
+  nothing on the operator's own entries or groups. [`STORE.md`](STORE.md) §601 is the contract,
+  §604 what it reverses and on which measurements, and `spikes/storage-survival` holds those
+  measurements with the evaluation they were decided from. **Do not build anything new on custom
+  data, and do not re-propose what those decisions closed**, which §612, §630 and §634 list with
+  the measurement behind each.
 - **The admission record is load bearing.** A certificate that chains, passes its EKU check and has
   no record in the database is refused, and so is one whose record has a revocation beside it. The
   permitted profiles are read from the **record**, less any name the database's list of profiles no

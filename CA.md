@@ -109,6 +109,12 @@ file. That is a format and not a gate: other programs open the file, and the par
 below has what saving and merging in them was measured to do. Nothing that has to survive a merge
 turns on the times any more, which is what the revocation paragraph below is about.
 
+**This store is decided to be replaced in 0.3.0, and is the store 0.2.0 ships.** What other
+programs do to custom data, in the paragraphs on them below, is what reopened it: the plugin's
+data is to move into entries in a group of the plugin's own, with no custom data anywhere.
+[`STORE.md`](STORE.md) §601 holds that store and §604 lists what of this section it reverses.
+None of it is built, so this section remains the account of what the plugin does.
+
 | Key | Contents | Written |
 | --- | --- | --- |
 | `KPG.Authority.<sha256>` | one authority, filed under the digest of its certificate: the authority, the host certificate and the gate key, all three in one document | once, at creation and on recreation, and never rewritten |

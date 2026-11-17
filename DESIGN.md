@@ -631,7 +631,8 @@ this is what the rest of the design depends on.
 - **Every database is its own certificate authority**, stored inside itself under `KPG` keys in the
   database's own `CustomData`. That is what makes a malicious kdbx harmless: it vouches only for
   itself, and a certificate it issued opens exactly one door, its own. CA.md §204 says why that
-  dictionary and not a group's.
+  dictionary and not a group's. Release 0.3.0 keeps the authority and everything beside it in
+  entries of a group of the plugin's own, which is decided and not yet built: `STORE.md` §601.
 - **The issuer generates the key pair and builds every extension.** It never accepts a signing
   request, because a request can carry extensions and an issuer that copies them lets the client
   choose its own claims.
@@ -747,7 +748,9 @@ node, so it sits with the verbs rather than with the editor.
 
 Grants live in group and entry `CustomData` under **`KPG`**, a single key holding a JSON document,
 which is this plugin's own namespace. Sharing a key with another plugin would couple two schemas
-through a file format permanently.
+through a file format permanently. Release 0.3.0 moves a rule off its node into a record that
+names the node, which is decided and not yet built, `STORE.md` §617; the rule model stays as §136
+and §137 have it.
 
 One key holding one document, rather than a key per concern, because `CustomData` is a flat string
 dictionary and a document keeps a group's rules readable and atomic to write.
@@ -2372,3 +2375,11 @@ Written down so that it is possible to be wrong about this on purpose rather tha
   lost often enough to be a support burden, to Database Maintenance, a merge or a declined save,
   `CustomData` is the wrong store and that decision has to reopen. The group dialog's own copy is a
   hazard to grants, which live on the node, and the editor answers it by writing into that copy.
+
+  **That decision has reopened, on a measurement of other programs rather than on lost records.**
+  A KeePassXC merge replaces the custom data of the database it merges into whole and never merges
+  a group's, `CA.md` §204, and a record that fails closed absorbs none of that for a rule that
+  narrows. So `CustomData` is decided to be the wrong store, and release 0.3.0 keeps the plugin's
+  data in entries of a group of its own: `STORE.md` §601 holds what is decided and §604 what it
+  reverses. None of it is built, and everything in this document describes the store that 0.2.0
+  ships.
