@@ -18,12 +18,13 @@ takes access away is a further entry, never an entry deleted or changed.
 
 > **Decided, and not built.** This document is the contract for the store of release 0.3.0. Release
 > 0.2.0 ships the store `CA.md` §204 describes: the database's own custom data, and a `KPG` key in
-> the custom data of groups and entries. Nothing below describes what the plugin does today, with a
-> single exception: the API's guard of §633 is built, with what tells a node of the store by its
-> identifier, and §633 states which part that is. Each pull request that builds a part of this
-> store brings `CA.md`, `DESIGN.md`, `PAIRING.md`, `API.md` and `docs/` into line with the code it
-> adds. Until then those documents hold for 0.2.0, and this document holds for what replaces its
-> store.
+> the custom data of groups and entries. Nothing below describes what the plugin does today, with
+> two exceptions: the API's guard of §633 is built, with what tells a node of the store by its
+> identifier, and the reading of §620 to §624 is built, with the words `split`, `outdated` and
+> `stopped` of §656; §620, §633 and §656 state which parts those are. Each pull request that
+> builds a part of this store brings `CA.md`, `DESIGN.md`, `PAIRING.md`, `API.md` and `docs/`
+> into line with the code it adds. Until then those documents hold for 0.2.0, and this document
+> holds for what replaces its store.
 
 **How to read it.**
 
@@ -937,12 +938,27 @@ strings pass the check under a key the file holds, and what they parse to. It is
 identifier of the entry and by the very string objects the version holds, name for name.
 KeePass replaces a string object when a text changes and never changes a string object in
 place, which `KeePassContractTests` pins, so the same objects are the same text, and any other
-object is checked again. **Nothing else is kept**: no list of the entries that are candidates,
-no key that stands, no record that counts, no summary entry in force, no word, and no answer
-that admits or grants. Every hold walks every entry of the database with its history, holds
-each version to what is kept by its objects, and works out everything else again. What is kept
-goes when the database is locked or closed, and a store key among it is overwritten then, as
-the gate key is, `CA.md` §208.
+object is checked again. **Nothing else is kept as an answer**: no list of the entries that are
+candidates, no key that stands, no record that counts, no summary entry in force, no word, and
+no answer that admits or grants. Every hold walks every entry of the database with its history,
+holds each version to what is kept by its objects, and works out everything else again. The
+reading of the last hold, its state and what the guard hides by, keys aside, is held until the
+next replaces it, and answers nothing after its hold: it is kept by a number that names its
+hold, `IReadHold.Stamp`, and no number is given to two holds. What is kept goes when the gate lets go
+of the database at a lock or a close, and a store key among it is overwritten then, as the gate
+key is, `CA.md` §208, even where a connection still holds what the database was served with, as a
+pairing can for its whole budget: that connection reads afresh from then on and keeps nothing.
+§632 states what of a key cannot be overwritten.
+
+**A change of the API's reads the store once as well**, on KeePass's own thread, where every
+other question reads afresh: from the lookup of its node to the change it hands the writer,
+since nothing a route may change is a node or a string of the store (§633). The save that
+follows is read afresh.
+
+**No thread waits on a reading.** What is kept is used by a single reading at a time, which
+takes it without waiting and puts the next in its place; a reading that finds it in use, which is
+one beside a hold that lapsed with its reading still going, reads with nothing kept and keeps
+nothing, and letting the database go at a lock marks what is kept to go and does not wait.
 
 **What that rules out.** Nothing is kept by a modification time, since pykeepass 4.2.0 changes
 a string and leaves the time (`measured-edited-refusals` 9.2). Nothing is kept until an event
@@ -970,12 +986,32 @@ entries in a hundred groups beside a store of 282 entries: the hold a connection
 which reads the store and nothing else, 3.5 ms; a read of an entry 3.5 ms; a listing of every
 entry 39 ms. Where every entry holds ten history items, 60, 59 and 100 ms, and the worst run 143
 ms. The first reading, with nothing kept, adds about 40 ms once. A request takes two holds that
-read the store. So the estimate holds in its shape, the walk somewhat dearer in the product, and
-reading every entry at every request stays well within the five seconds a hold is let run, with
-a full history on every entry the case that shows. *Held by* `StoreReadingTests` and
+read the store. A change's turn on KeePass's thread reads it once: 2.6 ms, and 58 ms where every
+entry holds ten history items, where it read it at each question and took 6.3 and 120 ms. A
+file that brings a store key of its own for each of its entries costs what any file of its size
+costs (§649): 2 ms for a second reading of 300 such entries and 1 ms for 1,000, where the work
+under each key took 0.7 and 19 seconds. So the estimate holds in its shape, the walk somewhat
+dearer in the product, and reading every entry at every request stays well within the five
+seconds a hold is let run, with a full history on every entry the case that shows. *Held by*
+`StoreReadingBoundTests`, `StoreReadingTests` and
 `StoreInRealDatabaseTests`: a string replaced by an object of another text is read at the next
 hold with the entry's times left as they were; a second question inside a hold walks nothing;
 and nothing kept outlasts a lock.
+
+**What is built.** The reading of this section, of §621 to §624, of §649 to §651 and of §658,
+whole as far as it decides whether a store may be served: `StoreReading` over the candidates
+and the deletion records `StoreSource` walks, read once for each hold through
+`IReadHold.Stamp`, with the checked forms kept in `StoreKept` and let go, their keys overwritten,
+with the target at a lock and a close. It answers the state of §656 and the guard's keys and
+tags (§633). What is in force by meaning (§623, steps 1 to 5) is worked out only as far as
+wholeness needs it, and the pull requests that bring each kind's meaning build the rest. In this
+build the authority a database is served with is still the one `CA.md` §204 describes: the store
+is asked for a database the gate serves or holds several authorities of, a database with no
+store key is served as before, and no released plugin writes a store, so a store reaches a
+database only in a file that already holds one. *Held by* `StoreReadingTests`,
+`StoreReadingStatesTests`, `StoreReadingKeysTests`, `StoreReadingFormatTests`,
+`StoreReadingWholeTests`, `StoreInRealDatabaseTests` and `StoreStatesInRealDatabaseTests`, and in
+a real KeePass by `LiveStoreTests`.
 
 ### Which entries are records §621
 
@@ -1160,6 +1196,30 @@ then brings the entry that carried the lost key back, since an entry that a merg
 gives its key again (§632). The operator then chooses between the store started again and the
 store that was lost. A store started again by the command of §632 comes about with nobody being
 asked: the command sets every other key aside in the write that makes the new key.
+
+**The reading bounds its work in the keys it finds** (this document's own). A key is found by
+passing under itself, so a file anybody can make brings a key for each of its entries, and the
+work the reading does under each key, a check of every version under it and a look at every pair
+of keys, grows with their product. Past 32 keys found, `StoreFormat.MaxKeys`, the reading does no
+work under a key that is not a version's own: the store is split, nothing of it is judged, and
+the API's guard leaves out every entry that carries a string of the store, besides every entry
+under a tag of any key found, which is what reaches a record stripped of every string of the store
+outside the plugin's group. A key's tags are made once and kept with the checked form that gave
+the key, as the key is, so a hold past the ceiling costs the walk and a few numbers for each key,
+and no digest. A database the operator keeps holds a handful of keys over its life,
+one for each store started again and for each pair of copies that made a first store apart, so
+the ceiling is several times what a real database reaches. Within it, the marking of the keys is
+over their pairs and every record, item and deletion record is looked at once. *Held by*
+`StoreReadingBoundTests`: at the ceiling every key is judged, past it none is and the store is
+split with the guard hiding more, and a file of 1,000 such entries is read again in milliseconds;
+explicitly, the second reading of 20,000 such entries, 35 ms, is held to that of 20,000 entries
+that give no key, 14 ms.
+
+**What the operator does past the ceiling** is not what ends an ordinary split. Keeping a store
+judges the keys, and past the ceiling none is judged, so no keep record can be read until the
+entries that brought the keys are gone: the operator deletes them, which the log names by how
+many keys were found and how many entries are hidden, and the store is judged again at the next
+reading once the keys found are back within the ceiling.
 
 **What it costs.**
 
@@ -1671,6 +1731,17 @@ deletion record does, the file holds two keys that each vouch for themselves, an
 serves nothing until the operator keeps a store (§649). The operator can then keep the store
 that was lost (reasoning).
 
+**What of a key the plugin overwrites, and what it cannot** (read from the product). A store key
+the reading finds is held as bytes by the checked form of the version that gave it, and
+overwritten when that form is let go: at a lock, at a close, and when the version leaves its
+entry. Nothing else of a key is kept between two holds: what a form was asked is filed by the
+key's name (§649), which tells nothing of the key. What cannot be overwritten is every string the
+key passed through on its way to those bytes, as with the host key, `CA.md` §208: the content of
+an authority's or a retirement's version, which holds the key in hexadecimal and will hold the
+authority's private key, as KeePass hands it to a reader; the text the check is computed over,
+until it is made into bytes; and the strings the JSON reader makes of the content's members.
+Each goes with the collector, and none is kept by the plugin past the reading that made it.
+
 **Who holds the key.** Whoever can open the database, or could open any copy of it made since
 the first authority, since the key is never renewed (reasoning; §639).
 
@@ -2069,7 +2140,8 @@ leaves out:
 
 **What follows from telling a record by its tag.** An ordinary entry of the operator's whose
 identifier begins with a tag is absent too: a random identifier meets a given tag about once in 17
-million entries (§621), so with the eight kinds and a single store key about once in two million.
+million entries (§621), and the tag of some kind of §658 under a single store key as many times as
+often as the table has kinds.
 Where the file holds no key, nothing outside the plugin's groups is told as the store's, and a
 record there reads as an entry holding a title and notes, every string of the store left out.
 
@@ -2080,12 +2152,14 @@ the gate (§621, §652), is absent by its content passing the check, whether or 
 stopped: the stop belongs to the reading, and hiding does not wait for it.
 
 **The formats it takes as stated, and where each is open.** The prefix's eight bytes, as measured
-(§606). The kinds, as measured, and none of §648, §649 and §650, which §658 has named since and
-which the pull request that builds the core adds to what a tag tells. Six bytes of the check in
-an identifier (§609), which only the identifier of an entry that carries a key is composed with,
-and two bytes for the height, zero there. The members `id`, `authority` and `storeKey`, the key
-as 64 hexadecimal characters, S3. The reader of `JsonBody` for a content, with its ceilings
+(§606). Every kind of §658, each of which a tag tells. Six bytes of the check in an identifier
+(§609), and two bytes for a number. The members `id`, `authority` and `storeKey`, the key as 64
+lowercase hexadecimal characters, S3. The reader of `JsonBody` for a content, with its ceilings
 (§607). Each is written once in the code, so a change to it is a change in a single place.
+
+**It takes its keys from the store's reading** (§620), which the hold the lookup is made in has
+made once: the tags of every kind under every key found, and the entries with a version whose
+check passes under any of them. The guard walks nothing of its own.
 
 **The cases the test drives** are the ways a route names a node, and each operation the routing
 document declares has a case, read off the document: no node, for the gate itself, the caller's
@@ -2232,6 +2306,17 @@ answering under a retired authority, whose clients are told nothing today. *Held
 with the standing authority's host certificate, to a request before a route is chosen and to a
 `head`; a database opened with no store key resolves no name; and a gate that was serving
 answers `lost` after the key carrier is deleted under it, and nothing after a lock.
+
+**What is built.** `split`, `outdated` and `stopped`, answered before a route is chosen by the
+target of a database the gate serves, and, ahead of `undecided`, by each target of a database
+that holds several authorities, under the host certificate of the authority `CA.md` §204 has it
+served with or of each of those authorities. A database with no store key, and a database with
+no authority, are answered as they are today. `lost`, and the memory of what a gate last served
+with, come with the authority's record (§632); `frozen` comes with the release that first moves
+the format number (§652), and the routing document declares it and the reference client knows
+it already. *Held by* `StoreWordsTests`, `StoreHeldBackGateTests`, `UndecidedGateTests` and
+`UnavailableWordsTests`, the order of the words by `StoreReadingStatesTests`, and in a real
+KeePass by `LiveStoreTests`.
 
 ---
 
@@ -2893,9 +2978,12 @@ that finds a measurement against a decision reports it and does not design aroun
    history page, and KeePassLib's other methods and the other KeePassXC releases for an edited
    entry; a rule set again after the loss of the entry that carries the key; an edit that leaves
    a record's subject intact, three copies and chains of merges; and the model with an entry's
-   history, which it does not hold, so that the history rule was run on files only. Owed by the
-   pull request that builds the reading. *Could overturn*: the history rule as worded, and what
-   §632 states of a store started again.
+   history, which it does not hold, so that the history rule was run on files only. The pull
+   request that builds the reading runs, over real databases, an edit, the content removed, ten
+   edits and the eleventh, a quick edit and a move, a database that keeps no history, the
+   authority's entry edited past the limit, and Synchronize carrying a deleted summary entry
+   (`StoreStatesInRealDatabaseTests`); the rest of this item stays owed. *Could overturn*: the
+   history rule as worded, and what §632 states of a store started again.
 3. **The record written again, beyond the run that was made** (`measured-two-readings` 5): in
    KeePass's window and by the plugin itself; beside a second KeePass with the plugin; on a
    phone or an emulator; with KeePassXC releases other than 2.8.0; with the slow key derivation;
@@ -2932,7 +3020,8 @@ that finds a measurement against a decision reports it and does not design aroun
 11. **The sequences of §639 that were not replayed on the store**: a node's place decided by a
     merge, a merge that makes another group the recycle bin, a rule narrowed while a save runs,
     the differing files of row 16, and a deleting device whose clock is behind, on real files.
-12. **The reading on KeePass's thread.** Measured by the pull request that builds the reading,
+12. **The reading on KeePass's thread.** Measured, with a change's turn and with a key for each
+    entry of a file, by the pull request that builds the reading,
     through the real router and vault, and recorded in §620, in `DESIGN.md` §119 and in
     `FINDINGS.md` section 22: it overturns nothing. What stays owed is the same run on a
     machine that is not a developer's, and a database of more entries than 10,000.
@@ -2950,8 +3039,12 @@ that finds a measurement against a decision reports it and does not design aroun
     answers and after the answer. Then two copies that each made a first authority; copies that
     keep different stores and are asked again; a later answer that takes an earlier answer
     back; a lost key that comes back beside the key of a store started again; and a file from a
-    holder of the database's key with a keep record that names it. Owed by the pull request
-    that builds the reading. *Could overturn*: how the decision on a second key is built.
+    holder of the database's key with a keep record that names it. The pull request that builds
+    the reading runs a file that brings a key of its own by Synchronize and by each import
+    method that keeps identifiers, and copies that keep different stores, over real databases,
+    and the keep records, their items, their deletion records, circles and chains over composed
+    ones; KeePassXC, the reading after an answer, and the rest stay owed. *Could overturn*: how
+    the decision on a second key is built.
 16. **A single certificate taken away** (§648), of which nothing was run: a renewal and the old
     certificate given up at a gate while another gate holds a copy from before; a renewal made
     from that certificate at the other gate in the meantime, and a renewal onward from that;
@@ -2961,15 +3054,19 @@ that finds a measurement against a decision reports it and does not design aroun
 17. **Create refused on a stopped store** (§624), which the measured code does not do. Owed by
     the pull request that builds the authority's commands on the store.
 18. **A version that has to read a single way** (§607, §608): a string beginning `KPG.S.` that is
-    not four digits, a line feed in a part, a member that appears twice. Each has to fail, and
-    none was run. Owed by the pull request that builds the check.
+    not four digits, a line feed in a part, a member that appears twice. Each fails in
+    `StoreReadingTests`, over composed versions; none was run through another program's save.
 19. **The format number, the version record and a kind the plugin does not know** (§647, §621),
     of which nothing was run: the highest of each after each program's merge; an older plugin
     on a store that was raised; a newer plugin on an older store, before and after the operator
     raises it; a write refused in between; a deletion record that tells of a version record; a
     record and an item of a kind the plugin does not know; a gate on a stale copy; and a store
     started again from a store that holds the plugin back, with the earlier store coming back
-    by a merge. Owed by the pull request that builds §647.
+    by a merge. The pull request that builds the store's core runs, over real databases, a
+    version record of a later format and its deletion record arriving by Synchronize, and a
+    record of a kind the plugin does not know with no version record present; and over
+    composed stores, the item, the deletion record that tells a number and one that does not.
+    The rest is owed by the pull request that builds the writing of §647.
 20. **The move from 0.2** (§645, §654), which was read from the source of 0.2.0 and not run. The
     steps, and the path through KeePass's windows for clearing what 0.2 left, are run in a real
     KeePass by the pull request that writes the warning.
@@ -2979,8 +3076,10 @@ that finds a measurement against a decision reports it and does not design aroun
     that still serves the earlier store. Owed by the pull request that builds the command.
 22. **The words of §656**, of which nothing was run: each state answered with its word, to a
     request before a route is chosen and to a `head`; `frozen` to a write and to no read; and
-    whether `lost` and `outdated` can be sent at all (S33). Owed by the pull request that makes
-    the gate answer them.
+    whether `lost` and `outdated` can be sent at all (S33). The pull request that builds the
+    store's core runs `split`, `outdated` and `stopped` over a real handshake to a request and to
+    a `head` (`StoreHeldBackGateTests`), and `stopped` in a real KeePass (`LiveStoreTests`).
+    `lost` and `frozen` stay owed by the pull requests that make the gate answer them.
 23. **The grant editor's rows for a rule in several versions** (§657). The pictures the decision
     was taken from are of a prototype with rows that were made up, and not of a store: two and
     three versions, scrolled, under a high contrast setting, and with what removing a row and
@@ -3003,6 +3102,18 @@ that finds a measurement against a decision reports it and does not design aroun
     for a profile, `DatabaseNodes`, leaves the recycle bin out and not the plugin's store, which
     the API leaves out beside it (§633). Owed by the pull request that brings the tab's listing
     of the store.
+26. **The store asked again where a client writes into it.** A pairing, a renewal and a client's
+    own revocation are judged against the store where the connection arrives, and not again
+    where their write is made, since a rule governs none of them and the router asks the store
+    again only where a rule is asked; one that waits for its dialog meets a store that came to
+    hold the gate back meanwhile only at its next request. Owed by the pull request that moves the
+    admissions into the store: each of the three asks the store again at its write and answers
+    the store's word there.
+27. **What the tab shows past the ceiling on store keys** (§649). A store past it is split with
+    nothing judged, and the dialog that keeps a store has nothing to offer, since no keep record
+    is read: the tab states the number of keys found and the number of entries hidden, and that
+    the entries that brought the keys are to be deleted first. Owed by the pull request that
+    builds the tab's listing of the store.
 
 ---
 

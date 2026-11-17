@@ -478,3 +478,9 @@ breaking. Nothing else changes for a program: the client is not changed by it, a
 works with a 0.3 gate as the rule above has it. It stays in 0.3 by the operator's ruling of
 2026-11-15, that a 0.x release may break an earlier 0.x release and that earlier versions count
 from 1.0 on.
+
+**0.3 adds words a client may rely on**, which is what moves the minor version. A `503` carries
+`split`, `outdated` or `stopped` where the database's store holds the gate back, and the routing
+document declares `frozen`, which a later gate sends, `STORE.md` §656. Each is a `503`, so a 0.2
+client takes each for the gate being unavailable and works on, and the 0.3 client raises a class
+of its own for each.
