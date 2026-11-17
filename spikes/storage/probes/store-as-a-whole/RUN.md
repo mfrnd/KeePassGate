@@ -1097,11 +1097,38 @@ and starts no program and writes no file, so it runs without KeePass:
 ```powershell
 uv run --no-project python -I -X utf8 spikes\storage\probes\store-as-a-whole\vectors.py
 uv run --no-project python -I -X utf8 spikes\storage\probes\store-as-a-whole\vectors.py --readings
+uv run --no-project python -I -X utf8 spikes\storage\probes\store-as-a-whole\vectors.py --records
+uv run --no-project python -I -X utf8 spikes\storage\probes\store-as-a-whole\vectors.py --meanings
+uv run --no-project python -I -X utf8 spikes\storage\probes\store-as-a-whole\vectors.py --writes
 ```
 
-The first prints every vector. The second prints the small stores in the shape of the product's
-`tests\Shared\StoreReadingVectors.json`, byte for byte, with the three words of the read's status
-written as the names the product gives those states; the script's `STATES` is that table.
+The first prints every vector, those of the last three modes among them. The second prints the
+small stores in the shape of the product's `tests\Shared\StoreReadingVectors.json`, byte for byte,
+with the three words of the read's status written as the names the product gives those states;
+the script's `STATES` is that table. Each of the last three prints a file the product keeps under
+`tests\Shared`, opening with an `about` that names what made it and what is invented, with its
+keys sorted:
+
+- **`--records`**, `StoreRecordVectors.json`: records in the forms `STORE.md` §614, §615 and §648
+  fix, composed by `store.py`'s `dumps`, `mac` and `ident` as `rec` composes them. An authority
+  with `ca`, `host`, `id`, `sniKey` and `storeKey`; a retirement with and without `storeKey`; an
+  admission with the members of S4, with and without `from`; a revocation holding `client` alone;
+  a `withdrawn` record with `from` and `renewed`, and with an empty `renewed`; and summary entries
+  of height 1 and of height 2, the last naming both in `after` and holding the items `format`,
+  `retired`, `revoked` and `withdrawn`. Each with its inputs, its content text, its check, its
+  subject and number, its identifier and every string of its entry.
+- **`--meanings`**, `StoreMeaningVectors.json`: thirteen small stores of those records, with what
+  `read.py` answers for each with its history rule on, as `status`, `served`, `auths`, `adm`,
+  `valid`, `refusals` and `names`: an authority alone, two authorities, a retirement by record,
+  by item and by deletion record, an authority beside a deletion record naming it, an admission,
+  a revocation by record, by item and by deletion record, an admission beside a deletion record
+  naming it, under a retired issuer, and under an authority that is not served.
+- **`--writes`**, `StoreWriteVectors.json`: the file after each act of two sequences that
+  `crdt_model.py`'s `World.step` plays under `bridge.py`'s `FLAGS`, written out by `store.py`'s
+  `Encoder`, each step with its records, its deletion records, its summary entries and `read.py`'s
+  answer. From the store the model's World starts with: Pair, Pair, Revoke, Recreate, Pair,
+  Delete and Create on a single copy; and Recreate in each of two copies, Synchronize of the
+  second into the first, and keeping an authority.
 
 ### Defects and limits
 
@@ -1110,3 +1137,22 @@ written as the names the product gives those states; the script's `STATES` is th
 - The small stores are dumps composed in the script, not files a program saved.
 - It has no record of its own under `recorded\`: the product's file is its record, and a change of
   `store.py` or `read.py` that changes a value shows as a difference from that file.
+- **The values of a record are invented.** An authority's `ca` and `host` are invented bytes and
+  no PKCS#12, and its `id` is the digest of nothing in `ca`, so the reading of §614 finds every
+  authority here not whole, and `read.py`, which judges no authority whole, serves it all the
+  same. An admission's `der` is a certificate made in the script that decodes, with the base point
+  of P-256 as its key and a signature nobody checks, and its `certificate` is the SHA-256 of it.
+- **`read.py` reads less than `STORE.md` fixes**: it asks a summary entry for no item `format`, it
+  holds no `der` to its certificate, and it applies none of §648 and none of S24. The stores of
+  `--meanings` keep within that, and their `about` names it.
+- **The model cannot play a Create on a database with no store and then a pairing.** Its Create
+  on a file with no store writes the authority under a new key label, while its pairing writes
+  every admission under the label `K`; played from emptied files, every admission after that
+  Create was under a key the file does not hold and passed over, and the revocation did not
+  apply. So `--writes` starts each sequence from the store the model's World starts with and
+  leaves that first Create out; it raises the model's `maxclients` to 4, as `growth.py` raises it.
+- **The model writes the measured forms**: `v`, short names, nonces derived from its elements, no
+  version record and no item `format`, an authority and an admission without the members of S3
+  and S4, a revocation that also holds `certificate`, and a retirement for keeping an authority
+  without the store key. So the product holds `--writes` by shape and by answer, and the first
+  two modes byte for byte.
